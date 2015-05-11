@@ -13,8 +13,6 @@ Require Import CaseNaming.
 Require Import CpdtTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Add LoadPath "/Volumes/CoqLibs/math-classes" as MathClasses.
-
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
