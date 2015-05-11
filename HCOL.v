@@ -138,7 +138,7 @@ Module HCOLOperators.
            (a: vector A n) (x:A) : A  :=
     match a with
         nil => 0
-      | Vcons a0 a' => a0 + (x * (EvalPolynomial a' x))
+      | cons a0 p a' => a0 + (x * (EvalPolynomial a' x))
     end.
 
   (* === HCOL Basic Operators === *)
@@ -278,8 +278,7 @@ Proof.
   intros.
   unfold ScalarProd.
   rewrite 2!Vfold_right_to_Vfold_right_reord.
-  assert (Commutative mult).  apply SR.
-  setoid_replace (Vmap2 mult a b) with (Vmap2 mult b a) by apply Vmap2_comm.
+  rewrite Vmap2_comm.
   reflexivity.  
 Qed.
 
@@ -315,13 +314,13 @@ Proof.
   VOtac.
   simpl.
   symmetry.
-  rewrite mult_0_r.
+  rewrite_Vcons mult_0_r.
   reflexivity.
   Case "S(n)".
   VSntac a.  VSntac b.
   simpl.
   symmetry.
-  rewrite plus_mult_distr_l.
+  rewrite_Vcons plus_mult_distr_l.
 
   (* Remove cons from IHn *)
   assert (HIHn:  forall a0 b0 : vector A n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
@@ -331,6 +330,7 @@ Proof.
   apply IHn.
   clear IHn.
 
+  rewrite 2!Vcons_to_Vcons_reord.
   rewrite HIHn.
 
   (* it should be possible to combine next 3 lines into one *)
@@ -506,6 +506,7 @@ Section HCOLProper.
     induction n.
     reflexivity.  
     rewrite 2!MonomialEnumerator_reduce.
+    rewrite 2!Vcons_to_Vcons_reord.
     rewrite IHn.
     rewrite aE.
     reflexivity.
@@ -520,8 +521,9 @@ Section HCOLProper.
     rewrite 2!Induction_reduce.
     Focus 2. apply Asetoid.
     Focus 2. assumption.
-    Focus 2. apply Asetoid.
     Focus 2. assumption.
+    Focus 2. assumption.
+    rewrite 2!Vcons_to_Vcons_reord.
     rewrite 2!Vmap_to_Vmap_reord.
 
     assert (Proper (Ae0 ==> Ae0) (λ x : B, f x v)).

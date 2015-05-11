@@ -7,7 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-Require Import Eqdep List.
+Require Import Eqdep Coq.Lists.List.
 
 Require Import Omega.
 

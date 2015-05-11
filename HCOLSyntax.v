@@ -72,20 +72,20 @@ Section HCOL.
       fix evalHCOL {i} {o} op v :=
       (match op in @HOperator i o return vector A i -> vector A o
        with
-         | HOPrepend i a => Vapp a
-         | HOInfinityNorm => fun v0 => Vectorize (InfinityNorm v0)
-         | HOReduction _ f idv => fun v0 => Vectorize (Reduction f idv v0)
-         | HOAppend _ a => Vapp a
+         | HOPrepend i n a => Vapp a
+         | HOInfinityNorm _ => fun v0 => Vectorize (InfinityNorm v0)
+         | HOReduction _ f _ idv => fun v0 => Vectorize (Reduction f idv v0)
+         | HOAppend _ _ a => Vapp a
          | HOVMinus o => VMinus  ∘ (vector2pair o)
-         | HOPointWise2 o f => PointWise2 f ∘ (vector2pair o)
+         | HOPointWise2 o f _ => PointWise2 f ∘ (vector2pair o)
          | HOLess o => ZVLess  ∘ (vector2pair o)
          (* | HOPart p => Vsub v p *)
-         | HOEvalPolynomial a => Lst ∘ EvalPolynomial a ∘ Scalarize
+         | HOEvalPolynomial _ a => Lst ∘ EvalPolynomial a ∘ Scalarize
          | HOMonomialEnumerator n => MonomialEnumerator n ∘ Scalarize
          | HOChebyshevDistance h => Lst ∘ ChebyshevDistance ∘ (vector2pair h)
-         | @HOScalarProd h => Lst ∘ ScalarProd ∘ (vector2pair h)
-         | HOInduction n f initial => Induction n f initial ∘ Scalarize
-         | HOCompose _ _ cop1 cop2 => ((evalHCOL cop1) ∘ (evalHCOL cop2))
+         | HOScalarProd h => Lst ∘ ScalarProd ∘ (vector2pair h)
+         | HOInduction n f _ initial => Induction n f initial ∘ Scalarize
+         | HOCompose _ _ _ cop1 cop2 => ((evalHCOL cop1) ∘ (evalHCOL cop2))
          | HOTLess i1 _ _ lop1 lop2 => fun v0 => let (v1,v2) := vector2pair i1 v0 in
                                                  ZVLess (pair (evalHCOL lop1 v1) (evalHCOL lop2 v2))
          | HOCross x _ _ _ xop1 xop2 => pair2vector ∘ (Cross (evalHCOL xop1, evalHCOL xop2)) ∘ (vector2pair x)

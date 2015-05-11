@@ -13,15 +13,16 @@ Require Import CaseNaming.
 Require Import CpdtTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
+Add LoadPath "/Volumes/CoqLibs/math-classes" as MathClasses.
+
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.products.
 
-Require Import Vector.
-(*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+Require Export Vector.
+Require Export VecUtil.
 Import VectorNotations.
 
 (* Varois definitions related to vector equality and setoid rewriting *)
@@ -77,21 +78,38 @@ Section Vfold_right_p.
   
 End Vfold_right_p.
 
-Global Instance Vcons_proper A `{Equiv A}:
-  Proper ((=) ==> forall_relation (fun k => (=) ==> (=)))
-         (@Vcons A).
-Proof.
-  split;  assumption.
-Qed.
+Section VCons_p.
+  Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
 
-Global Instance Vcons_proper1 A `{AE:Equiv A} `{!Setoid A} n a:
-  Proper ((@equiv (vector A (n)) (@vec_equiv A AE (n))) ==> equiv)
-         (@Vector.cons A a n).
-Proof.
-  split.
-  reflexivity.
-  apply H.
-Qed.
+  Lemma Vcons_to_Vcons_reord: forall A n (t: t A n) (h:A), Vcons h t  ≡ Vcons_reord t h.
+  Proof.
+    crush.
+  Qed.
+  
+  Global Instance Vcons_reord_proper `{Equiv A} n:
+    Proper (@vec_equiv A _ n ==> (=) ==> @vec_equiv A _ (S n))
+           (@Vcons_reord A n).
+  Proof.
+    split.
+    assumption.
+    unfold vec_equiv, Vforall2 in H0.  assumption.
+  Qed.
+
+End VCons_p.
+
+(* This tactics rewrites using H in Vcons using temporary conversion
+      to Vcons_reord and then back *)
+Ltac rewrite_Vcons H := rewrite Vcons_to_Vcons_reord, H, <- Vcons_to_Vcons_reord.
+
+(*
+Ltac rewrite_Vcons H := 
+  rewrite Vcons_to_Vcons_reord;
+  match H with
+    | [H1] => rewrite H
+    | [N!H1] => rewrite N!H
+  end;
+  rewrite <- Vcons_to_Vcons_reord.
+ *)
 
 Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
@@ -106,7 +124,11 @@ Proof.
 
   assert (h=h0).
   apply aEq.
+
+  rewrite 2!Vcons_to_Vcons_reord.
   rewrite H.
+  rewrite <- 2!Vcons_to_Vcons_reord.
+
   unfold equiv, vec_equiv.
   apply Vforall2_cons_eq.
   split. reflexivity.
@@ -252,7 +274,7 @@ Proof.
   setoid_replace (abs a) with (-a) by apply abs_nonpos_s.
   rewrite abs_negate_s.
   auto.
-  assumption. apply Ar. apply ASRO. assumption.
+  assumption. assumption. assumption. assumption.
 Qed.
 
 Lemma abs_max_comm_2nd
@@ -301,7 +323,7 @@ Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p :=
   end.
 Program Definition take A n p (a : vector A n) (H : p <= n) : vector A p :=
   take_plus (m := n - p) p a.
-Solve Obligations with auto with arith.
+Solve Obligations using auto with arith.
 
 Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m := 
   match p return vector A (p+m) -> vector A m with
@@ -310,7 +332,7 @@ Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m :=
   end.
 Program Definition drop A n p (a : vector A n) (H : p <= n) : vector A (n-p) :=
   drop_plus (m := n - p) p a.
-Solve Obligations with auto with arith.
+Solve Obligations using auto with arith.
 
 (* Split vector into a pair: first  'p' elements and the rest. *)
 Definition vector2pair {A:Type} (p:nat) {t:nat} (v:vector A (p+t)) : (vector A p)*(vector A t) :=
@@ -595,7 +617,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap2_comm : forall `{CO:Commutative B A f} `{SB: !Setoid B} `{SA:Setoid A},
+Lemma Vmap2_comm : forall `{CO:Commutative B A f} `{SB: !Setoid B},
                    forall n:nat, Commutative (Vmap2 f (n:=n)).
 Proof.
   intros.
@@ -606,7 +628,10 @@ Proof.
   dep_destruct b.
   reflexivity.
   rewrite Vmap2_cons_hd by apply SB.
+  
   (* reorder LHS head *)
+  
+  rewrite Vcons_to_Vcons_reord.
   rewrite commutativity.
   rewrite <- IHn. (* reoder LHS tail *)
   setoid_rewrite <- Vmap2_cons.
@@ -751,8 +776,8 @@ Qed.
 Lemma hd_equiv: forall `{Setoid A} {n} (u v: vector A (S n)), u=v -> (Vhead u) = (Vhead v).
 Proof.
   intros.
+  rewrite H0.
   f_equiv.
-  assumption.
 Qed.
 
 Lemma Vcons_equiv_elim `{Equiv A}: forall a1 a2 n (v1 v2 : vector A n),
@@ -765,6 +790,7 @@ Lemma Vcons_equiv_intro `{Setoid A} : forall a1 a2 n (v1 v2 : vector A n),
                                         a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
 Proof.
   intros.
+  rewrite 2!Vcons_to_Vcons_reord.
   rewrite H0.
   rewrite H1.
   reflexivity.
@@ -802,9 +828,8 @@ Proof.
   destruct E as [E1 E2].
   simpl in E1. simpl in E2.
   unfold Ptail.
-  f_equiv.
-  f_equiv. assumption.
-  f_equiv. assumption.
+  rewrite E1, E2.
+  reflexivity.
 Qed.
 
 Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.
@@ -890,6 +915,7 @@ Proof.
   dep_destruct v. dep_destruct v1.
   simpl.
 
+  rewrite 2!Vcons_to_Vcons_reord.
   assert (E: Vbreak x = Vbreak x0).
   apply IHn1.  apply vE. 
   rewrite E.

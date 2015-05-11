@@ -105,11 +105,7 @@ Section HCOLBreakdown.
 
     rewrite EvalPolynomial_reduce.
     rewrite ScalarProd_reduce.
-    
-    assert (SR:SemiRing A). admit.   (* TODO!!! *)
-    Set Typeclasses Debug.    
     rewrite MonomialEnumerator_reduce.
-    
     unfold Ptail, Pair.
     rewrite ScalarProd_comm.
     replace (Vtail (Vcons 1 (Scale (v, MonomialEnumerator n v)))) with (Scale (v, MonomialEnumerator n v)) by auto.
@@ -200,9 +196,11 @@ Section HCOLBreakdown.
     reflexivity.
     Case "n=(S _)". 
     rewrite MonomialEnumerator_reduce.
+    rewrite Vcons_to_Vcons_reord.
     rewrite IHn. clear IHn.
     symmetry.
     rewrite Induction_reduce by apply Asetoid.
+    rewrite Vcons_to_Vcons_reord.
     unfold Scale.
     rewrite 2!Vmap_to_Vmap_reord.
     setoid_replace (fun x0 : A => mult x0 x) with (mult x).
