@@ -77,9 +77,10 @@ Defined.
             end
               (eq_refl _)
           );
-      replace (S pad * 0) with 0;
-      try replace ( (S (pad + S pad * p))) with (S pad * S p) in *;
-      eauto; lia.
+      try match goal with
+          | [ H: ?vector ?t1 ?n1 |- ?vector ?t2 ?n2] => replace n2 with n1 by lia
+          end;
+      eauto.
     Defined.
     
     Close Scope nat_scope.
