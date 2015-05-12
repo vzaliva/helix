@@ -1,9 +1,11 @@
 (* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import Spiral.
-Require Import SPMatrix.
 
 Require Import Arith.
+Require Import Coq.Arith.Peano_dec.
+Require Import ArithRing.
+
 Require Import Program. (* compose *)
 Require Import Morphisms.
 Require Import RelationClasses.
@@ -47,27 +49,34 @@ Module SigmaHCOLOperators.
     ring.
   Defined.
 
-  (* zero - based, pad=(stride-1) parameter *)
-  Program Fixpoint ScatHUnion_0 `{Zero A} {n:nat} (pad:nat): vector A n -> vector A ((S pad)*n) :=
-    match n return (vector A n) -> (vector A ((S pad)*n)) with
-      | 0 => fun _ => Vnil
-      | S p => fun a => Vcons (hd a) (Vector.append (Vconst 0 pad) (ScatHUnion_0 pad (tl a)))
-    end.  
-  Next Obligation.
-    revert a.
-    revert p.
-    revert pad.
-    clear H.
-    clear n.
-
+  Section ScatHUnion_workaround.
+    (* 0 - based, pad=(stride-1) parameter *)
     
-  Defined.
-      | S p => fun a => Vconst 0 ((S pad)*(S p)) -- OK
-      | S p => fun a => Vconst 0 ((S pad)*n) -- Seems OK
-      | S p => Vector.append (Vconst 0 (S pad)) (Vconst 0 ((S pad)*p))  -- OK!!!
+    Definition f1 (pad n:nat) : n ≡ O -> vector nat 0 -> vector nat ((S pad)*n).
+    Proof.
+      Unset Printing Notations.
+      intros. subst.
+      rewrite mult_0_r.
+      auto.
+    Qed.
+    
+    Definition f2 (pad n n':nat) : n = S n' -> t nat (S pad + (S pad * n')) -> t nat ((S pad)*n).
+                                     intros H H0. replace (S pad + S pad * n') with (S pad * S n') in H0 by ring.
+                                     subst; auto.
+    Qed.
+    
+    Program Fixpoint ScatHUnion_0 {A} {n:nat} (pad:nat): vector A n -> vector (option A) ((S pad)*n) :=
+      match n return (vector A n) -> (vector (option A) ((S pad)*n)) with
+      | 0 => fun _ => Vnil
+      | S p => fun a => Vcons (Some (hd a)) (Vector.append (Vconst None pad) (ScatHUnion_0 pad (tl a)))
+      end.  
+    Next Obligation.
+    ring.
+    Defined.
+  End ScatHUnion_workaround.
 
-
-      | S p => fun a => Vector.append (Vcons (hd a) (Vconst 0 pad)) (ScatHUnion_0 pad (tl a))
+  Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): vector (option A) (base+((S pad)*n)) :=
+    Vector.append (Vconst None base) (ScatHUnion_0 pad v).
   
 (*
 Motivating example:
@@ -86,8 +95,12 @@ ISumUnion(i3, 2,
 
 
 End SigmaHCOLOperators.
-
 Import HCOLOperators.
+
+Inductive SHOperator : nat -> nat -> Type :=
+  | ScatHUnion {n} base pad 
+  | HOPrepend i {n} (a:vector A n): HOperator i (n+i)
+  | HOInfinityNorm {i}: HOperator i 1
+
   
 Close Scope vector_scope.
-
