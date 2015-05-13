@@ -111,7 +111,7 @@ Defined.
 End SigmaHCOLOperators.
 
 Import SigmaHCOLOperators.
-Import HCOLOperators.
+Require Import HCOLSyntax.
 
 (*
 Lemma test `{Equiv A}: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
@@ -132,13 +132,13 @@ ISumUnion(i3, 2,
   GathH(4, 2, i3, 2)
 )
 
-Inductive SHOperator : nat -> nat -> Type :=
-  | ScatHUnion {n} base pad 
-  | HOPrepend i {n} (a:vector A n): HOperator i (n+i)
-  | HOInfinityNorm {i}: HOperator i 1
-
 *)  
 
+Inductive SHOperator : nat -> bool -> nat -> bool -> Type :=
+| SHScatHUnion {i} (base pad:nat): SHOperator i false i true
+| SHGathH (n base stride: nat) {s t} {snz: stride≡S s}: SHOperator (base+n*stride+t) false n false
+| SHHOperator {i o} (op: HOperator i o): SHOperator i false o false
+.
 
 
 
