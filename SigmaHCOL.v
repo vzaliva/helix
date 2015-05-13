@@ -26,8 +26,17 @@ Import VectorNotations.
 
 Require Import Coq.Lists.List.
 
-(* === Sigma HCOL Operators === *)
-SearchAbout is_None.
+Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
+  fun a b =>
+    match a with
+    | None => is_None b
+    | Some x => (match b with
+                 | None => False
+                 | Some y => equiv x y
+                 end)
+    end.
+
+Global Instance opt_vec_equiv `{Equiv A} {n}: Equiv (vector (option A) n) := Vforall2 (n:=n) opt_equiv.
 
 Fixpoint catSomes {A} {n} (v:vector (option A) n): list A :=
   match v with
@@ -103,6 +112,12 @@ End SigmaHCOLOperators.
 
 Import SigmaHCOLOperators.
 Import HCOLOperators.
+
+(*
+Lemma test `{Equiv A}: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
+Proof.
+Qed.
+ *)
 
 (*
 Motivating example:
