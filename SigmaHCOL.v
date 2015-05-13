@@ -24,7 +24,17 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Require Import Coq.Lists.List.
+
 (* === Sigma HCOL Operators === *)
+SearchAbout is_None.
+
+Fixpoint catSomes {A} {n} (v:vector (option A) n): list A :=
+  match v with
+  | Vnil => @List.nil A
+  | Vcons None _ vs  => catSomes vs
+  | Vcons (Some x) _ vs => List.cons x (catSomes vs)
+  end.
 
 Module SigmaHCOLOperators.
 
@@ -33,7 +43,7 @@ Module SigmaHCOLOperators.
     let stride := S s in (
       match n return vector A ((n*stride)+t) -> vector A n with
         | O => fun _ => Vnil
-        | S p => fun a => Vcons (hd a) (GathH_0 p s (t0:=t) (drop_plus stride a))
+        | S p => fun a => Vcons (Vhead a) (GathH_0 p s (t0:=t) (drop_plus stride a))
       end).
   Next Obligation.
     lia.
@@ -67,12 +77,12 @@ Defined.
       vector A n -> vector (option A) ((S pad)*n).
         refine(
             match n as m return m=n -> _ with
-            | O =>  fun _ _ => (fun _ => _) nil
+            | O =>  fun _ _ => (fun _ => _) Vnil
             | S p => fun H1 a =>
                        let aa := (fun _ => _) a in
-                       let hh := Some (hd aa) in
-                       let tt := ScatHUnion_0 A p pad (tl aa) in
-                       let ttt := append (Vector.const None pad) tt in
+                       let hh := Some (Vhead aa) in
+                       let tt := ScatHUnion_0 A p pad (Vtail aa) in
+                       let ttt := Vector.append (Vector.const None pad) tt in
                        (fun _ => _) (Vcons hh ttt)
             end
               (eq_refl _)
@@ -80,7 +90,7 @@ Defined.
       try match goal with
           | [ H: ?vector ?t1 ?n1 |- ?vector ?t2 ?n2] => replace n2 with n1 by lia
           end;
-      eauto.
+      eauto.        
     Defined.
     
     Close Scope nat_scope.
@@ -88,9 +98,9 @@ Defined.
   
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): vector (option A) (base+((S pad)*n)) :=
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
-
-End SigmaHCOLOperators.
   
+End SigmaHCOLOperators.
+
 Import SigmaHCOLOperators.
 Import HCOLOperators.
 
