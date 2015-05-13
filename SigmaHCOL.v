@@ -139,6 +139,7 @@ Inductive SHOperator : nat -> bool -> nat -> bool -> Type :=
 | SHGathH (n base stride: nat) {s t} {snz: stride≡S s}: SHOperator (base+n*stride+t) false n false
 | SHHOperator {i o} (op: HOperator i o): SHOperator i false o false
 | SHCompose i ifl {t} {tfl} o ofl: SHOperator t tfl o ofl -> SHOperator i ifl t tfl -> SHOperator i ifl o ofl
+| SHOptCast {i}: SHOperator i false i true
 .
 
 
