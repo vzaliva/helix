@@ -147,12 +147,6 @@ Section OHOperator_language.
   .
 
 End OHOperator_language.  
-(*
-| SHISumUnion {i o: nat} (r:nat) : OHOperator i false o true -> OHOperator i false o false (* this does not reflect variable substitutuin rules *)
-| SHISumUnionG {i o: nat} (r:nat)
-               (ogen: forall n:nat, (n < r) -> (OHOperator i false o true))
-  : OHOperator i false o false (* operator generator *)
-*)
 
 Section SOHOperator_language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
@@ -162,12 +156,15 @@ Section SOHOperator_language.
   Inductive varname : Type :=
     Var : string → varname.
   
-  Global Instance varname_equiv `{Equiv string}: Equiv (varname) :=
-    fun a b => match a with
-               | Var a => match b with
-                          | Var b => equiv a b
-                          end
-               end.
+  Theorem eq_varname_dec: forall id1 id2 : varname, {id1 ≡ id2} + {id1 ≢ id2}.
+  Proof.
+    intros id1 id2.
+    destruct id1 as [n1]. destruct id2 as [n2].
+    destruct (string_dec n1 n2) as [Heq | Hneq].
+    left. rewrite Heq. reflexivity.
+    right. intros contra. inversion contra. apply Hneq.
+    assumption.
+  Qed.
   
   Inductive aexp : Type :=
   | ANum : nat → aexp
@@ -183,6 +180,43 @@ Section SOHOperator_language.
   | SHACompose i ifl {t} {tfl} o ofl: SHAOperator t tfl o ofl -> SHAOperator i ifl t tfl -> SHAOperator i ifl o ofl
   | SHAOptCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
+  .
+  
+  Definition state := varname -> option nat.
+  
+  Definition empty_state : state :=
+    fun _ => None.
+  
+  Definition update (st : state) (x : varname) (n : nat) : state :=
+    fun x' => if eq_varname_dec x x' then Some n else st x'.
+
+  Definition eval_opt_binop (a: option nat) (b: option nat) (op: nat->nat->nat) :=
+    match a with
+    | None => None
+    | Some an => match b with
+                 | None => None
+                 | Some bn => Some (bn + an)
+                 end
+    end.
+  
+  Fixpoint eval (st:state) (e:aexp): option nat :=
+    match e  with
+    | ANum x => Some x
+    | AName x => st x
+    | APlus a b => eval_opt_binop (eval st a) (eval st b) plus
+    | AMinus a b => eval_opt_binop (eval st a) (eval st b) minus
+    | AMult a b => eval_opt_binop (eval st a) (eval st b) mult
+    end.
+        
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (op:SHAOperator ai iflag ao oflag): OHOperator i iflag o oflag :=
+    match op with
+    | SHAScatHUnion i o base pad =>
+    | SHAGathH i n base stride =>
+    | SHACompose i ifl t tfl o ofl x x0 =>
+    | SHAOptCast i =>
+    | SHAISumUnion i o v r x =>
+    end
+      
   .
   
   Global Instance aexp_equiv `{Equiv nat} `{Equiv varname}: Equiv (aexp).
