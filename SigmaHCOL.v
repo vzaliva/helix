@@ -134,12 +134,49 @@ ISumUnion(i3, 2,
 
 *)  
 
+
+(* Old "static" definition *)
 Inductive SHOperator : nat -> bool -> nat -> bool -> Type :=
 | SHScatHUnion {i} (base pad:nat): SHOperator i false i true
 | SHGathH (n base stride: nat) {s t} {snz: stride≡S s}: SHOperator (base+n*stride+t) false n false
 | SHHOperator {i o} (op: HOperator i o): SHOperator i false o false
 | SHCompose i ifl {t} {tfl} o ofl: SHOperator t tfl o ofl -> SHOperator i ifl t tfl -> SHOperator i ifl o ofl
 | SHOptCast {i}: SHOperator i false i true
+| SHISumUnion {i o: nat} (r:nat) : SHOperator i false o true -> SHOperator i false o false (* this does not reflect variable substitutuin rules *)
+| SHISumUnionG {i o: nat} (r:nat)
+               (ogen: forall n:nat, (n < r) -> (SHOperator i false o true))
+  : SHOperator i false o false (* operator generator *)
+.
+
+Require Import Coq.Strings.String.
+
+Inductive varname : Type :=
+  Var : string → varname.
+
+Global Instance varname_equiv `{Equiv string}: Equiv (varname) :=
+  fun a b => match a with
+             | Var a => match b with
+                        | Var b => equiv a b
+                        end
+             end.
+
+Inductive aexp : Type :=
+| ANum : nat → aexp
+| AName : varname → aexp
+| APlus : aexp → aexp → aexp
+| AMinus : aexp → aexp → aexp
+| AMult : aexp → aexp → aexp.
+
+Global Instance aexp_equiv `{Equiv nat} `{Equiv varname}: Equiv (aexp).
+Admitted.
+
+Inductive SHAOperator `{Equiv aexp} : aexp -> bool -> aexp -> bool -> Type :=
+| SHAScatHUnion {i} (base pad:aexp): SHAOperator i false i true
+| SHAGathH (n base stride: aexp) {s t:aexp} {snz: stride=(APlus s (ANum 1))}: SHAOperator (APlus base (APlus (AMult n stride) t)) false n false
+| SHAHOperator {i o} (op: HOperator i o): SHAOperator (ANum i) false (ANum o) false
+| SHACompose i ifl {t} {tfl} o ofl: SHAOperator t tfl o ofl -> SHAOperator i ifl t tfl -> SHAOperator i ifl o ofl
+| SHAOptCast {i}: SHAOperator i false i true
+| SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false (* Does not show how variable is used *)
 .
 
 
