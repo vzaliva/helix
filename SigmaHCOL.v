@@ -181,46 +181,49 @@ Section SOHOperator_language.
   | SHAOptCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
-  
-  Definition state := varname -> option nat.
-  
-  Definition empty_state : state :=
-    fun _ => None.
+    
+  Inductive maybeError {A : Type} : Type :=
+  | OK : A → @maybeError A
+  | Error: string -> @maybeError A.
+
+  Definition state := varname -> @maybeError nat.
+    
+  Definition empty_state: state :=
+    fun x =>
+      match x with 
+      | (Var n) => Error ("variable " ++ n ++ " not found")
+      end.
   
   Definition update (st : state) (x : varname) (n : nat) : state :=
-    fun x' => if eq_varname_dec x x' then Some n else st x'.
+    fun x' => if eq_varname_dec x x' then OK n else st x'.
 
-  Definition eval_opt_binop (a: option nat) (b: option nat) (op: nat->nat->nat) :=
+  Definition eval_mayberr_binop (a: @maybeError nat) (b: @maybeError nat) (op: nat->nat->nat) :=
     match a with
-    | None => None
-    | Some an => match b with
-                 | None => None
-                 | Some bn => Some (bn + an)
+    | Error msg => Error msg
+    | OK an => match b with
+                 | Error msg => Error msg
+                 | OK bn => OK (bn + an)
                  end
     end.
   
-  Fixpoint eval (st:state) (e:aexp): option nat :=
+  Fixpoint eval (st:state) (e:aexp): @maybeError nat :=
     match e  with
-    | ANum x => Some x
+    | ANum x => OK x
     | AName x => st x
-    | APlus a b => eval_opt_binop (eval st a) (eval st b) plus
-    | AMinus a b => eval_opt_binop (eval st a) (eval st b) minus
-    | AMult a b => eval_opt_binop (eval st a) (eval st b) mult
+    | APlus a b => eval_mayberr_binop (eval st a) (eval st b) plus
+    | AMinus a b => eval_mayberr_binop (eval st a) (eval st b) minus
+    | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
         
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (op:SHAOperator ai iflag ao oflag): OHOperator i iflag o oflag :=
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (op:SHAOperator ai iflag ao oflag):
+    @maybeError (OHOperator i iflag o oflag) :=
     match op with
-    | SHAScatHUnion i o base pad =>
-    | SHAGathH i n base stride =>
-    | SHACompose i ifl t tfl o ofl x x0 =>
-    | SHAOptCast i =>
-    | SHAISumUnion i o v r x =>
-    end
-      
-  .
-  
-  Global Instance aexp_equiv `{Equiv nat} `{Equiv varname}: Equiv (aexp).
-  Admitted.
+    | SHAScatHUnion i o base pad => Error "TODO"
+    | SHAGathH i n base stride => Error "TODO"
+    | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
+    | SHAOptCast i => Error "TODO"
+    | SHAISumUnion i o v r x => Error "TODO"
+    end.
   
   End SOHOperator_language.
   
