@@ -215,10 +215,33 @@ Section SOHOperator_language.
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
         
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (op:SHAOperator ai iflag ao oflag):
+  Set Printing Implicit.
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state) (op:SHAOperator ai iflag ao oflag):
     @maybeError (OHOperator i iflag o oflag) :=
     match op with
-    | SHAScatHUnion i o base pad => Error "TODO"
+    | SHAScatHUnion i o base pad =>
+      match (eval st i) with
+      | Error msg => Error msg
+      | OK ni =>
+        match (eval st o) with
+        | Error msg => Error msg
+        | OK no => 
+          match (eval st base) with
+          | Error msg => Error msg
+          | OK nbase => 
+            match (eval st pad) with
+            | Error msg => Error msg
+            | OK npad =>
+              if iflag then
+                Error "iflag must be false"
+              else if oflag then
+                     OK (OHScatHUnion (i:=ni) nbase npad)
+                   else
+                     Error "oflag must be true"
+            end
+          end
+        end
+      end
     | SHAGathH i n base stride => Error "TODO"
     | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
     | SHAOptCast i => Error "TODO"
