@@ -182,7 +182,7 @@ Section SOHOperator_language.
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
     
-  Inductive maybeError {A : Type} : Type :=
+  Inductive maybeError {A:Type} : Type :=
   | OK : A → @maybeError A
   | Error: string -> @maybeError A.
 
@@ -216,39 +216,42 @@ Section SOHOperator_language.
     end.
         
   Set Printing Implicit.
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state) (op:SHAOperator ai iflag ao oflag):
-    @maybeError (OHOperator i iflag o oflag) :=
-    match op with
-    | SHAScatHUnion i o base pad =>
-      match (eval st i) with
-      | Error msg => Error msg
-      | OK ni =>
-        match (eval st o) with
-        | Error msg => Error msg
-        | OK no => 
-          match (eval st base) with
-          | Error msg => Error msg
-          | OK nbase => 
-            match (eval st pad) with
+  
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
+           (op: (SHAOperator ai iflag ao oflag)):
+    @maybeError (OHOperator i iflag o oflag).
+      refine(
+          match op with
+          | SHAScatHUnion ai ao base pad =>
+            match (eval st ai) with
             | Error msg => Error msg
-            | OK npad =>
-              if iflag then
-                Error "iflag must be false"
-              else if oflag then
-                     OK (OHScatHUnion (i:=ni) nbase npad)
-                   else
-                     Error "oflag must be true"
+            | OK ni =>
+              match (eval st ao) with
+              | Error msg => Error msg
+              | OK no => 
+                match (eval st base) with
+                | Error msg => Error msg
+                | OK nbase => 
+                  match (eval st pad) with
+                  | Error msg => Error msg
+                  | OK npad =>
+                    if iflag then
+                      Error "iflag must be false"
+                    else if oflag then
+                           OK (@OHScatHUnion ni nbase npad)
+                         else
+                           Error "oflag must be true"
+                  end
+                end
+              end
             end
-          end
-        end
-      end
-    | SHAGathH i n base stride => Error "TODO"
-    | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
-    | SHAOptCast i => Error "TODO"
-    | SHAISumUnion i o v r x => Error "TODO"
-    end.
-  
-  End SOHOperator_language.
-  
+          | SHAGathH i n base stride => Error "TODO"
+          | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
+          | SHAOptCast i => Error "TODO"
+          | SHAISumUnion i o v r x => Error "TODO"
+          end).
+      
+End SOHOperator_language.
+
   
   
