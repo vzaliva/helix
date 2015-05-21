@@ -4,6 +4,7 @@ Require Import Spiral.
 Require Import HCOL.
 
 Require Import ArithRing.
+Require Import Coq.Arith.EqNat.
 
 Require Import Program. (* compose *)
 Require Import Morphisms.
@@ -217,40 +218,41 @@ Section SOHOperator_language.
         
   Set Printing Implicit.
   
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
-           (op: (SHAOperator ai iflag ao oflag)):
-    @maybeError (OHOperator i iflag o oflag).
-      refine(
-          match op with
-          | SHAScatHUnion ai ao base pad =>
-            match (eval st ai) with
+  Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
+             (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator i iflag o oflag) :=
+    match op with
+    | SHAScatHUnion ai ao base pad =>
+      match (eval st ai) with
+      | Error msg => Error msg
+      | OK ni =>
+        match (eval st ao) with
+        | Error msg => Error msg
+        | OK no => 
+          match (eval st base) with
+          | Error msg => Error msg
+          | OK nbase => 
+            match (eval st pad) with
             | Error msg => Error msg
-            | OK ni =>
-              match (eval st ao) with
-              | Error msg => Error msg
-              | OK no => 
-                match (eval st base) with
-                | Error msg => Error msg
-                | OK nbase => 
-                  match (eval st pad) with
-                  | Error msg => Error msg
-                  | OK npad =>
-                    if iflag then
-                      Error "iflag must be false"
-                    else if oflag then
-                           OK (@OHScatHUnion ni nbase npad)
-                         else
-                           Error "oflag must be true"
-                  end
-                end
-              end
+            | OK npad =>
+              if iflag then
+                Error "iflag must be false"
+              else if oflag then
+                     if beq_nat ni (nbase + S npad * ni) then
+                       OK (@OHScatHUnion ni nbase npad)
+                     else
+                       Error "input and output sizes of OHScatHUnion do not match"
+                   else
+                     Error "oflag must be true"
             end
-          | SHAGathH i n base stride => Error "TODO"
-          | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
-          | SHAOptCast i => Error "TODO"
-          | SHAISumUnion i o v r x => Error "TODO"
-          end).
-      
+          end
+        end
+      end
+    | SHAGathH i n base stride => Error "TODO"
+    | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
+    | SHAOptCast i => Error "TODO"
+    | SHAISumUnion i o v r x => Error "TODO"
+    end.
+  
 End SOHOperator_language.
 
   
