@@ -167,7 +167,7 @@ Section SOHOperator_language.
     assumption.
   Qed.
   
-  Inductive aexp : Type :=
+  Inductive aexp : Set :=
   | ANum : nat → aexp
   | AName : varname → aexp
   | APlus : aexp → aexp → aexp
