@@ -241,15 +241,10 @@ Section SOHOperator_language.
              (x: OHOperator a0 b0 c0 d0) : @maybeError (OHOperator a1 b1 c1 d1).
   Proof.
     assert(Decision(a0 ≡ a1 /\ b0 ≡ b1 /\ c0 ≡ c1 /\ d0 ≡ d1)).
-    apply and_dec. unfold Decision. decide equality.
-    apply and_dec. unfold Decision. decide equality.
-    apply and_dec. unfold Decision. decide equality.
-    unfold Decision. decide equality.
-    unfold Decision in H.
-
+    (repeat apply and_dec); unfold Decision; decide equality.
     case H.
-    intros.
-    destruct a. destruct H1. destruct H2.
+    intros Ha.
+    destruct Ha. destruct H1. destruct H2.
     rewrite H0, H1, H2, H3 in x.
     left. assumption.
     right. exact "incompatible arguments".
@@ -294,6 +289,9 @@ Section SOHOperator_language.
     end.
   
 End SOHOperator_language.
+
+(* Compute (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))). *)
+
 
   
   
