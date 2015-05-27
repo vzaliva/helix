@@ -219,7 +219,7 @@ Section SOHOperator_language.
         
   Set Printing Implicit.
 
-  Definition cast_nat (F : nat -> Type) (a b : nat) (x : F a) : @maybeError (F b) :=
+  Definition cast_nat (F : nat -> Set) (a b : nat) (x : F a) : @maybeError (F b) :=
     match Coq.Arith.Peano_dec.eq_nat_dec a b with
     | left pf => OK match pf in _ ≡ t return F t with
                       | eq_refl => x
@@ -227,7 +227,7 @@ Section SOHOperator_language.
     | right _ => Error "type constrains violated (for nat)"
     end.
 
-  Definition cast_bool (F : bool -> Type) (a b : bool) (x : F a) : @maybeError (F b) :=
+  Definition cast_bool (F : bool -> Set) (a b : bool) (x : F a) : @maybeError (F b) :=
     match bool_dec a b with
     | left pf => OK match pf in _ ≡ t return F t with
                       | eq_refl => x
@@ -239,7 +239,20 @@ Section SOHOperator_language.
              (a0:nat) (b0:bool) (c0:nat) (d0:bool)
              (a1:nat) (b1:bool) (c1:nat) (d1:bool)
              (x: OHOperator a0 b0 c0 d0) : @maybeError (OHOperator a1 b1 c1 d1).
-                                    admit.
+  Proof.
+    assert(Decision(a0 ≡ a1 /\ b0 ≡ b1 /\ c0 ≡ c1 /\ d0 ≡ d1)).
+    apply and_dec. unfold Decision. decide equality.
+    apply and_dec. unfold Decision. decide equality.
+    apply and_dec. unfold Decision. decide equality.
+    unfold Decision. decide equality.
+    unfold Decision in H.
+
+    case H.
+    intros.
+    destruct a. destruct H1. destruct H2.
+    rewrite H0, H1, H2, H3 in x.
+    left. assumption.
+    right. exact "incompatible arguments".
   Defined.
   
   Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
