@@ -217,24 +217,6 @@ Section SOHOperator_language.
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
         
-  Set Printing Implicit.
-
-  Definition cast_nat (F : nat -> Set) (a b : nat) (x : F a) : @maybeError (F b) :=
-    match Coq.Arith.Peano_dec.eq_nat_dec a b with
-    | left pf => OK match pf in _ ≡ t return F t with
-                      | eq_refl => x
-                      end
-    | right _ => Error "type constrains violated (for nat)"
-    end.
-
-  Definition cast_bool (F : bool -> Set) (a b : bool) (x : F a) : @maybeError (F b) :=
-    match bool_dec a b with
-    | left pf => OK match pf in _ ≡ t return F t with
-                      | eq_refl => x
-                      end
-    | right _ => Error "type constrains violated (for bool)"
-    end.
-
   Definition cast_OHOperator
              (a0:nat) (b0:bool) (c0:nat) (d0:bool)
              (a1:nat) (b1:bool) (c1:nat) (d1:bool)
