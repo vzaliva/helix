@@ -5,6 +5,7 @@ Require Import HCOL.
 
 Require Import ArithRing.
 Require Import Coq.Arith.EqNat.
+Require Import Coq.Bool.Bool.
 
 Require Import Program. (* compose *)
 Require Import Morphisms.
@@ -217,6 +218,29 @@ Section SOHOperator_language.
     end.
         
   Set Printing Implicit.
+
+  Definition cast_nat (F : nat -> Type) (a b : nat) (x : F a) : @maybeError (F b) :=
+    match Coq.Arith.Peano_dec.eq_nat_dec a b with
+    | left pf => OK match pf in _ ≡ t return F t with
+                      | eq_refl => x
+                      end
+    | right _ => Error "type constrains violated (for nat)"
+    end.
+
+  Definition cast_bool (F : bool -> Type) (a b : bool) (x : F a) : @maybeError (F b) :=
+    match bool_dec a b with
+    | left pf => OK match pf in _ ≡ t return F t with
+                      | eq_refl => x
+                      end
+    | right _ => Error "type constrains violated (for bool)"
+    end.
+
+  Definition cast_op (F : nat -> bool -> nat -> bool -> Type)
+             (a0:nat) (b0:bool) (c0:nat) (d0:bool)
+             (a1:nat) (b1:bool) (c1:nat) (d1:bool)
+             (x: F a0 b0 c0 d0) : @maybeError (F a1 b1 c1 d1).
+                                    admit.
+  Defined.
   
   Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
              (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator i iflag o oflag) :=
@@ -237,8 +261,12 @@ Section SOHOperator_language.
               if iflag then
                 Error "iflag must be false"
               else if oflag then
-                     if beq_nat ni (nbase + S npad * ni) then
-                       OK (@OHScatHUnion ni nbase npad)
+                     if beq_nat i ni && beq_nat no (nbase + S npad * ni) then
+                       cast_op
+                         (OHOperator)
+                         ni false (nbase + S npad * ni) true
+                         i iflag o oflag
+                         (@OHScatHUnion ni nbase npad)
                      else
                        Error "input and output sizes of OHScatHUnion do not match"
                    else
