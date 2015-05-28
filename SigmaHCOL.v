@@ -188,6 +188,18 @@ Section SOHOperator_language.
   | OK : A → @maybeError A
   | Error: string -> @maybeError A.
 
+  Definition isError {A:Type}  (x:@maybeError A) :=
+    match x with
+    | OK _ => False
+    | Error _ => True
+    end.
+
+  Definition isOK {A:Type}  (x:@maybeError A) :=
+    match x with
+    | OK _ => True
+    | Error _ => False
+    end.
+  
   Definition state := varname -> @maybeError nat.
     
   Definition empty_state: state :=
@@ -272,7 +284,49 @@ Section SOHOperator_language.
   
 End SOHOperator_language.
 
-(* Compute (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))). *)
+Section SigmaHCOL_language_tests.
+
+  Definition a1 := update (empty_state) (Var "A1") 1.
+  Definition a2 := update (empty_state) (Var "A2") 2.
+  
+  Lemma test1: (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))) ≡ OK (OHScatHUnion 0 1).
+  Proof. auto. Qed.
+
+  Lemma test2: isError (compileSHAOperator (i:=2) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))).
+  Proof. compute. tauto. Qed.
+
+  Lemma test3: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 4)) (ANum 0) (ANum 1))).
+  Proof. compute. tauto. Qed.
+
+  Lemma test4: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))).
+  Proof. compute. tauto. Qed.
+                 
+  Lemma test5: (compileSHAOperator (i:=1) (o:=2) a1 (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))) ≡ OK (OHScatHUnion 0 1).
+  Proof.
+    unfold compileSHAOperator.
+    assert (eval a1 (AName (Var "A1")) ≡ OK 1).
+    compute.
+    case eq_varname_dec.
+    intros. reflexivity.
+    intros. contradiction n. reflexivity.
+    rewrite H.
+    auto.
+  Qed.
+
+  Lemma test6: isError (compileSHAOperator (i:=1) (o:=2) a2 (SHAScatHUnion (i:=(AName (Var "A2"))) (o:=(ANum 2)) (ANum 0) (ANum 1))).
+  Proof.
+    unfold compileSHAOperator.
+    assert (eval a2 (AName (Var "A2")) ≡ OK 2).
+    compute.
+    case eq_varname_dec.
+    intros. reflexivity.
+    intros. contradiction n. reflexivity.
+    rewrite H.
+    compute. tauto.
+  Qed.
+  
+End SigmaHCOL_language_tests.
+
 
 
   
