@@ -244,8 +244,6 @@ Section SOHOperator_language.
     right. exact "incompatible arguments".
   Defined.
 
-
-  Set Printing All.
   Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
              (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator i iflag o oflag) :=
     match op with
@@ -325,13 +323,13 @@ Section SigmaHCOL_language_tests.
   Proof. auto. Qed.
 
   Lemma test2: isError (compileSHAOperator (i:=2) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))).
-  Proof. compute. tauto. Qed.
+  Proof. compute. trivial. Qed.
 
   Lemma test3: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 4)) (ANum 0) (ANum 1))).
-  Proof. compute. tauto. Qed.
+  Proof. compute. trivial. Qed.
 
   Lemma test4: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))).
-  Proof. compute. tauto. Qed.
+  Proof. compute. trivial. Qed.
                  
   Lemma test5: (compileSHAOperator (i:=1) (o:=2) a1 (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))) ≡ OK (OHScatHUnion 0 1).
   Proof.
@@ -354,9 +352,21 @@ Section SigmaHCOL_language_tests.
     intros. reflexivity.
     intros. contradiction n. reflexivity.
     rewrite H.
-    compute. tauto.
+    compute. trivial.
   Qed.
-  
+
+  Lemma test7: compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (s:=1) (snz:=eq_refl 2)).
+  Proof.  compute.  reflexivity. Qed.
+                 
+  Lemma test8: compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 11) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (s:=1) (snz:=eq_refl 2)).
+  Proof.  compute.  reflexivity. Qed.
+
+  Lemma test9: isError (compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2))).
+  Proof.  compute.  trivial. Qed.
+
+  Lemma test10: isError (compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 1) (ANum 2))).
+  Proof.  compute.  trivial. Qed.
+
 End SigmaHCOL_language_tests.
 
 
