@@ -298,13 +298,11 @@ Section SOHOperator_language.
                      Error "oflag must be false"
                    else if beq_nat o nn && (Coq.Arith.Compare_dec.leb (nbase + nn*(S s)) ni || beq_nat (nbase+nn*(S s)) ni)
                         then
-                          let t := (ni - (nbase + nn*(S s))) in
-                          let stride := S s in
+                          let t := (minus ni (nbase + nn*(S s))) in
                           cast_OHOperator
                             (nbase+nn*(S s)+t) false nn false
                             i iflag o oflag
-                            (@OHGathH nn nbase stride s t _)
-                            (* OHGathH (n base stride: nat) {s t} {snz: stride≡S s}: OHOperator (base+n*stride+t) false n false *)
+                            (@OHGathH nn nbase (S s) s t (eq_refl _))
                         else
                           Error "input and output sizes of OHScatHUnion do not match"
             end
