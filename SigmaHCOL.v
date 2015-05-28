@@ -243,7 +243,9 @@ Section SOHOperator_language.
     left. assumption.
     right. exact "incompatible arguments".
   Defined.
-  
+
+
+  Set Printing All.
   Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
              (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator i iflag o oflag) :=
     match op with
@@ -276,7 +278,39 @@ Section SOHOperator_language.
           end
         end
       end
-    | SHAGathH i n base stride => Error "TODO"
+    | SHAGathH ai an abase astride =>
+      match (eval st ai) with
+      | Error msg => Error msg
+      | OK ni =>
+        match (eval st an) with
+        | Error msg => Error msg
+        | OK nn =>
+          match (eval st abase) with
+          | Error msg => Error msg
+          | OK nbase =>
+            match (eval st astride) with
+            | Error msg => Error msg
+            | OK O => Error "Zero stride not allowed"
+            | OK (S s) =>
+              if iflag then
+                Error "iflag must be false"
+              else if oflag then
+                     Error "oflag must be false"
+                   else if beq_nat o nn && (Coq.Arith.Compare_dec.leb (nbase + nn*(S s)) ni || beq_nat (nbase+nn*(S s)) ni)
+                        then
+                          let t := (ni - (nbase + nn*(S s))) in
+                          let stride := S s in
+                          cast_OHOperator
+                            (nbase+nn*(S s)+t) false nn false
+                            i iflag o oflag
+                            (@OHGathH nn nbase stride s t _)
+                            (* OHGathH (n base stride: nat) {s t} {snz: stride≡S s}: OHOperator (base+n*stride+t) false n false *)
+                        else
+                          Error "input and output sizes of OHScatHUnion do not match"
+            end
+          end
+        end
+      end
     | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
     | SHAOptCast i => Error "TODO"
     | SHAISumUnion i o v r x => Error "TODO"
