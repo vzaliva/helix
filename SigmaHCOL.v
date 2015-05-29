@@ -150,7 +150,7 @@ Section OHOperator_language.
   Inductive OHOperator : nat -> bool -> nat -> bool -> Type :=
   | OHScatHUnion {i} (base pad:nat): OHOperator i false (base+((S pad)*i)) true
   | OHGathH (n base stride: nat) {t} {snz: 0 ≢ stride}: OHOperator (base+n*stride+t) false n false
-  | OHBinOp {o} (f: A->A->A): OHOperator (o+o) false o false
+  | OHBinOp o (f: A->A->A): OHOperator (o+o) false o false
   | OHHOperator {i o} (op: HOperator i o): OHOperator i false o false (* cast classic HOperator to  OHOperator *)
   | OHCompose i ifl {t} {tfl} o ofl: OHOperator t tfl o ofl -> OHOperator i ifl t tfl -> OHOperator i ifl o ofl
   | OHOptCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
@@ -316,7 +316,22 @@ Section SOHOperator_language.
           end
         end
       end
-    | SHABinOp i o f => Error "TODO"
+    | SHABinOp ai ao f =>
+      match (eval st ai) with
+      | Error msg => Error msg
+      | OK ni =>
+        match (eval st ao) with
+        | Error msg => Error msg
+        | OK no =>
+          if beq_nat o no && beq_nat i (no+no) then
+            cast_OHOperator
+              (no+no) false no false
+              i iflag o oflag
+              (OHBinOp no f)
+          else
+            Error "input and output sizes of OHBinOp do not match"
+        end
+      end
     | SHACompose i ifl t1 tfl o ofl x x0 => Error "TODO"
     | SHAOptCast i => Error "TODO"
     | SHAISumUnion i o v r x => Error "TODO"
