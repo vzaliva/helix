@@ -60,9 +60,12 @@ Module SigmaHCOLOperators.
     lia.
   Defined.
 
-  Program Definition GathH {A: Type} (n base stride: nat) {s t} {snz: stride≡S s} (v: vector A (base+n*stride+t)) : vector A n :=
-    GathH_0 n s (t0:=t) (drop_plus base v).
+  Program Definition GathH {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
+    GathH_0 n (pred stride) (t0:=t) (drop_plus base v).
   Next Obligation.
+    destruct stride.
+    contradiction snz. trivial.
+    unfold pred.
     lia.
   Defined.
 
@@ -142,7 +145,7 @@ Section OHOperator_language.
   
   Inductive OHOperator : nat -> bool -> nat -> bool -> Type :=
   | OHScatHUnion {i} (base pad:nat): OHOperator i false (base+((S pad)*i)) true
-  | OHGathH (n base stride: nat) {s t} {snz: stride≡S s}: OHOperator (base+n*stride+t) false n false
+  | OHGathH (n base stride: nat) {t} {snz: 0 ≢ stride}: OHOperator (base+n*stride+t) false n false
   | OHHOperator {i o} (op: HOperator i o): OHOperator i false o false (* cast classic HOperator to  OHOperator *)
   | OHCompose i ifl {t} {tfl} o ofl: OHOperator t tfl o ofl -> OHOperator i ifl t tfl -> OHOperator i ifl o ofl
   | OHOptCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
@@ -300,7 +303,7 @@ Section SOHOperator_language.
                           cast_OHOperator
                             (nbase+nn*(S s)+t) false nn false
                             i iflag o oflag
-                            (@OHGathH nn nbase (S s) s t (eq_refl _))
+                            (@OHGathH nn nbase (S s) t (O_S _))
                         else
                           Error "input and output sizes of OHScatHUnion do not match"
             end
@@ -355,10 +358,10 @@ Section SigmaHCOL_language_tests.
     compute. trivial.
   Qed.
 
-  Lemma test7: compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (s:=1) (snz:=eq_refl 2)).
+  Lemma test7: compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (snz:=O_S 1)).
   Proof.  compute.  reflexivity. Qed.
                  
-  Lemma test8: compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 11) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (s:=1) (snz:=eq_refl 2)).
+  Lemma test8: compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 11) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (snz:=O_S 1)).
   Proof.  compute.  reflexivity. Qed.
 
   Lemma test9: isError (compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2))).
