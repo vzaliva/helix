@@ -12,6 +12,8 @@ Require Import Morphisms.
 Require Import RelationClasses.
 Require Import Relations.
 
+Require Import Coq.Strings.String.
+
 Require Import CpdtTactics.
 Require Import CaseNaming.
 Require Import Psatz.
@@ -142,10 +144,13 @@ ISumUnion(i3, 2,
 
 Section OHOperator_language.
   (* ---  An extension of HOperator to deal with missing values. Instead of vector of type 'A' they operate on vectors of 'option A'  --- *)
+
+  Context {A:Type} {Ae: Equiv A}.
   
   Inductive OHOperator : nat -> bool -> nat -> bool -> Type :=
   | OHScatHUnion {i} (base pad:nat): OHOperator i false (base+((S pad)*i)) true
   | OHGathH (n base stride: nat) {t} {snz: 0 ≢ stride}: OHOperator (base+n*stride+t) false n false
+  | OHBinOp {o} (f: A->A->A): OHOperator (o+o) false o false
   | OHHOperator {i o} (op: HOperator i o): OHOperator i false o false (* cast classic HOperator to  OHOperator *)
   | OHCompose i ifl {t} {tfl} o ofl: OHOperator t tfl o ofl -> OHOperator i ifl t tfl -> OHOperator i ifl o ofl
   | OHOptCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
@@ -155,8 +160,8 @@ End OHOperator_language.
 
 Section SOHOperator_language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
-  
-  Require Import Coq.Strings.String.
+
+  Context {A:Type} {Ae: Equiv A}.
   
   Inductive varname : Type :=
     Var : string → varname.
@@ -181,23 +186,24 @@ Section SOHOperator_language.
   Inductive SHAOperator: aexp -> bool -> aexp -> bool -> Type :=
   | SHAScatHUnion {i o:aexp} (base pad:aexp): SHAOperator i false o true
   | SHAGathH (i n base stride: aexp): SHAOperator i false n false
+  | SHABinOp {i o:aexp} (f: A->A->A): SHAOperator i false o false
   (* TODO: all HCOL operators but with aexpes instead of nums *)
   | SHACompose i ifl {t} {tfl} o ofl: SHAOperator t tfl o ofl -> SHAOperator i ifl t tfl -> SHAOperator i ifl o ofl
   | SHAOptCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
     
-  Inductive maybeError {A:Type} : Type :=
-  | OK : A → @maybeError A
-  | Error: string -> @maybeError A.
+  Inductive maybeError {T:Type} : Type :=
+  | OK : T → @maybeError T
+  | Error: string -> @maybeError T.
 
-  Definition isError {A:Type}  (x:@maybeError A) :=
+  Definition isError {T:Type}  (x:@maybeError T) :=
     match x with
     | OK _ => False
     | Error _ => True
     end.
 
-  Definition isOK {A:Type}  (x:@maybeError A) :=
+  Definition isOK {T:Type}  (x:@maybeError T) :=
     match x with
     | OK _ => True
     | Error _ => False
@@ -248,7 +254,7 @@ Section SOHOperator_language.
   Defined.
 
   Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
-             (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator i iflag o oflag) :=
+             (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
     match op with
     | SHAScatHUnion ai ao base pad =>
       match (eval st ai) with
@@ -270,7 +276,7 @@ Section SOHOperator_language.
                        cast_OHOperator
                          ni false (nbase + S npad * ni) true
                          i iflag o oflag
-                         (@OHScatHUnion ni nbase npad)
+                         (OHScatHUnion (i:=ni) nbase npad)
                      else
                        Error "input and output sizes of OHScatHUnion do not match"
                    else
@@ -303,14 +309,15 @@ Section SOHOperator_language.
                           cast_OHOperator
                             (nbase+nn*(S s)+t) false nn false
                             i iflag o oflag
-                            (@OHGathH nn nbase (S s) t (O_S _))
+                            (OHGathH nn nbase (S s) (t:=t) (snz:=O_S _))
                         else
                           Error "input and output sizes of OHScatHUnion do not match"
             end
           end
         end
       end
-    | SHACompose i ifl t tfl o ofl x x0 => Error "TODO"
+    | SHABinOp i o f => Error "TODO"
+    | SHACompose i ifl t1 tfl o ofl x x0 => Error "TODO"
     | SHAOptCast i => Error "TODO"
     | SHAISumUnion i o v r x => Error "TODO"
     end.
