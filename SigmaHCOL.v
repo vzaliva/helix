@@ -121,12 +121,6 @@ Import SigmaHCOLOperators.
 Require Import HCOLSyntax.
 
 (*
-Lemma test `{Equiv A}: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
-Proof.
-Qed.
- *)
-
-(*
 Motivating example:
 
 BinOp(2, Lambda([ r4, r5 ], sub(r4, r5)))
@@ -341,6 +335,9 @@ End SOHOperator_language.
 
 Section SigmaHCOL_language_tests.
 
+  (* Lemma test0: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
+  Proof.  compute. Qed. *)
+  
   Definition a1 := update (empty_state) (Var "A1") 1.
   Definition a2 := update (empty_state) (Var "A2") 2.
   
