@@ -251,7 +251,7 @@ Section SOHOperator_language.
     right. exact "incompatible arguments".
   Defined.
 
-  Definition compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
              (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
     match op with
     | SHAScatHUnion ai ao base pad =>
@@ -355,7 +355,15 @@ Section SOHOperator_language.
                              && beq_nat nbi nxi
                              && eqb oflag ofl && eqb iflag ifl
                   then
-                    Error "TODO"
+                    match compileSHAOperator st opa (i:=nai) (o:=nao) with
+                    | Error msg => Error msg
+                    | OK copa =>
+                      match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
+                      | Error msg => Error msg
+                      | OK copb =>
+                        OK (OHCompose i ifl o ofl copa copb)
+                      end
+                    end
                   else
                     Error "Dimensions or flags of OHBinOp do not match"
                 end
