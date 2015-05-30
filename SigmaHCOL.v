@@ -51,6 +51,9 @@ Fixpoint catSomes {A} {n} (v:vector (option A) n): list A :=
 
 Module SigmaHCOLOperators.
 
+  Definition OptCast {A} {n:nat} (v:vector A n): vector (option A) n :=
+    Vmap (Some) v.
+
   (* zero - based, (stride-1) parameter *)
   Program Fixpoint GathH_0 {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
     let stride := S s in (
