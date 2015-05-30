@@ -330,7 +330,18 @@ Section SOHOperator_language.
         end
       end
     | SHACompose i ifl t1 tfl o ofl x x0 => Error "TODO"
-    | SHAOptCast i => Error "TODO"
+    | SHAOptCast ai =>
+      match (eval st ai) with
+      | Error msg => Error msg
+      | OK ni =>
+        if beq_nat o ni && beq_nat i ni then
+          cast_OHOperator
+            ni false ni true
+            i iflag o oflag
+            (OHOptCast (i:=ni))
+        else
+          Error "input and output sizes of OHBinOp do not match"
+      end
     | SHAISumUnion i o v r x => Error "TODO"
     end.
   
