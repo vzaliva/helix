@@ -6,6 +6,7 @@ Require Import HCOL.
 Require Import ArithRing.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Bool.Bool.
+Require Import Coq.Bool.BoolEq.
 
 Require Import Program. (* compose *)
 Require Import Morphisms.
@@ -185,7 +186,7 @@ Section SOHOperator_language.
   | SHAGathH (i n base stride: aexp): SHAOperator i false n false
   | SHABinOp {i o:aexp} (f: A->A->A): SHAOperator i false o false
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose i ifl {t} {tfl} o ofl: SHAOperator t tfl o ofl -> SHAOperator i ifl t tfl -> SHAOperator i ifl o ofl
+  | SHACompose i ifl o ofl {ai ao} {bi bo} {tifl tofl} : SHAOperator ai tifl ao ofl -> SHAOperator bi ifl bo tofl -> SHAOperator i ifl o ofl
   | SHAOptCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
@@ -329,7 +330,40 @@ Section SOHOperator_language.
             Error "input and output sizes of OHBinOp do not match"
         end
       end
-    | SHACompose i ifl t1 tfl o ofl x x0 => Error "TODO"
+    | SHACompose xi ifl xo ofl ai ao bi bo tifl tofl opa opb =>
+      match (eval st xi) with
+      | Error msg => Error msg
+      | OK nxi =>
+        match (eval st xo) with
+        | Error msg => Error msg
+        | OK nxo =>
+          match (eval st ai) with
+          | Error msg => Error msg
+          | OK nai =>
+            match (eval st ao) with
+            | Error msg => Error msg
+            | OK nao =>
+              match (eval st bi) with
+              | Error msg => Error msg
+              | OK nbi =>
+                match (eval st bo) with
+                | Error msg => Error msg
+                | OK nbo => 
+                  if beq_nat o nxo && beq_nat i nxi
+                             && beq_nat nao nxo
+                             && beq_nat nai nbo
+                             && beq_nat nbi nxi
+                             && eqb oflag ofl && eqb iflag ifl
+                  then
+                    Error "TODO"
+                  else
+                    Error "Dimensions or flags of OHBinOp do not match"
+                end
+              end
+            end
+          end
+        end
+      end
     | SHAOptCast ai =>
       match (eval st ai) with
       | Error msg => Error msg
@@ -340,7 +374,7 @@ Section SOHOperator_language.
             i iflag o oflag
             (OHOptCast (i:=ni))
         else
-          Error "input and output sizes of OHBinOp do not match"
+          Error "input and output sizes of SHAOptCast do not match"
       end
     | SHAISumUnion i o v r x => Error "TODO"
     end.
