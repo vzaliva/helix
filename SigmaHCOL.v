@@ -439,7 +439,7 @@ Section SigmaHCOL_language_tests.
     case eq_varname_dec.
     intros. reflexivity.
     intros. contradiction n. reflexivity.
-    rewrite H.
+    unfold buildOHScatHUnion. rewrite H.
     auto.
   Qed.
 
@@ -451,7 +451,7 @@ Section SigmaHCOL_language_tests.
     case eq_varname_dec.
     intros. reflexivity.
     intros. contradiction n. reflexivity.
-    rewrite H.
+    unfold buildOHScatHUnion. rewrite H.
     compute. trivial.
   Qed.
 
