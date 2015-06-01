@@ -355,14 +355,14 @@ Section SOHOperator_language.
       else
         Error "input and output sizes of SHAOptCast do not match"
     end.
-  
+
   Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
            (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
     match op with
-    | SHAScatHUnion ai ao base pad => buildOHScatHUnion st ai ao base pad
-    | SHAGathH ai an abase astride => buildOHGathH st ai an abase astride
-    | SHABinOp ai ao f => buildOHBinOp st ai ao f
-    | SHACompose xi ifl xo ofl ai ao bi bo tifl tofl opa opb =>
+    | SHAScatHUnion _ _ base pad => buildOHScatHUnion st ai ao base pad
+    | SHAGathH _ _ abase astride => buildOHGathH st ai ao abase astride
+    | SHABinOp _ _ f => buildOHBinOp st ai ao f
+    | SHACompose xi ifl xo ofl _ _ bi bo tifl tofl opa opb =>
       match (eval st xi) with
       | Error msg => Error msg
       | OK nxi =>
@@ -405,8 +405,8 @@ Section SOHOperator_language.
           end
         end
       end
-    | SHAOptCast ai => buildOHOptCast st ai
-    | SHAISumUnion i o v r x => Error "TODO"
+    | SHAOptCast _ => buildOHOptCast st ai
+    | SHAISumUnion _ _ v r body => Error "TODO"
     end.
 
 End SOHOperator_language.
