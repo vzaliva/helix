@@ -251,10 +251,10 @@ Section SOHOperator_language.
     right. exact "incompatible arguments".
   Defined.
 
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
-             (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
-    match op with
-    | SHAScatHUnion ai ao base pad =>
+  Definition buildOHScatHUnion {iflag oflag:bool} {i o:nat}
+             (st:state)
+             (ai ao base pad:aexp):
+    @maybeError (OHOperator i iflag o oflag) :=
       match (eval st ai) with
       | Error msg => Error msg
       | OK ni =>
@@ -282,15 +282,20 @@ Section SOHOperator_language.
             end
           end
         end
-      end
-    | SHAGathH ai an abase astride =>
-      match (eval st ai) with
+      end.
+        
+  
+  Definition buildOHGathH {iflag oflag:bool} {i o:nat}
+             (st:state)
+             (ai an abase astride:aexp):
+    @maybeError (OHOperator i iflag o oflag) :=
+    match (eval st ai) with
+    | Error msg => Error msg
+    | OK ni =>
+      match (eval st an) with
       | Error msg => Error msg
-      | OK ni =>
-        match (eval st an) with
-        | Error msg => Error msg
-        | OK nn =>
-          match (eval st abase) with
+      | OK nn =>
+        match (eval st abase) with
           | Error msg => Error msg
           | OK nbase =>
             match (eval st astride) with
@@ -311,15 +316,19 @@ Section SOHOperator_language.
                         else
                           Error "input and output sizes of OHScatHUnion do not match"
             end
-          end
         end
-      end
-    | SHABinOp ai ao f =>
-      match (eval st ai) with
+        end
+    end.
+
+  Definition buildOHBinOp {iflag oflag:bool} {i o:nat}
+             (st:state)
+             (ai ao: aexp) (f: A->A->A):
+    @maybeError (OHOperator i iflag o oflag) :=
+    match (eval st ai) with
+    | Error msg => Error msg
+    | OK ni =>
+      match (eval st ao) with
       | Error msg => Error msg
-      | OK ni =>
-        match (eval st ao) with
-        | Error msg => Error msg
         | OK no =>
           if beq_nat o no && beq_nat i (no+no) then
             cast_OHOperator
@@ -328,8 +337,31 @@ Section SOHOperator_language.
               (OHBinOp no f)
           else
             Error "input and output sizes of OHBinOp do not match"
-        end
       end
+    end.
+
+  Definition buildOHOptCast {iflag oflag:bool} {i o:nat}
+             (st:state)
+             (ai: aexp):
+    @maybeError (OHOperator i iflag o oflag) :=
+    match (eval st ai) with
+    | Error msg => Error msg
+    | OK ni =>
+      if beq_nat o ni && beq_nat i ni then
+        cast_OHOperator
+          ni false ni true
+          i iflag o oflag
+          (OHOptCast (i:=ni))
+      else
+        Error "input and output sizes of SHAOptCast do not match"
+    end.
+  
+  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
+           (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
+    match op with
+    | SHAScatHUnion ai ao base pad => buildOHScatHUnion st ai ao base pad
+    | SHAGathH ai an abase astride => buildOHGathH st ai an abase astride
+    | SHABinOp ai ao f => buildOHBinOp st ai ao f
     | SHACompose xi ifl xo ofl ai ao bi bo tifl tofl opa opb =>
       match (eval st xi) with
       | Error msg => Error msg
@@ -347,46 +379,36 @@ Section SOHOperator_language.
               | Error msg => Error msg
               | OK nbi =>
                 match (eval st bo) with
-                | Error msg => Error msg
-                | OK nbo => 
-                  if beq_nat o nxo && beq_nat i nxi
-                             && beq_nat nao nxo
-                             && beq_nat nai nbo
-                             && beq_nat nbi nxi
-                             && eqb oflag ofl && eqb iflag ifl
-                  then
-                    match compileSHAOperator st opa (i:=nai) (o:=nao) with
+              | Error msg => Error msg
+              | OK nbo => 
+                if beq_nat o nxo && beq_nat i nxi
+                           && beq_nat nao nxo
+                           && beq_nat nai nbo
+                           && beq_nat nbi nxi
+                           && eqb oflag ofl && eqb iflag ifl
+                then
+                  match compileSHAOperator st opa (i:=nai) (o:=nao) with
+                  | Error msg => Error msg
+                  | OK copa =>
+                    match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
                     | Error msg => Error msg
-                    | OK copa =>
-                      match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
-                      | Error msg => Error msg
-                      | OK copb =>
-                        OK (OHCompose i ifl o ofl copa copb)
-                      end
+                    | OK copb =>
+                      Error "TODO"
+                            (* OK (OHCompose i ifl o ofl copa copb) *)
                     end
-                  else
-                    Error "Dimensions or flags of OHBinOp do not match"
+                  end
+                else
+                  Error "Dimensions or flags of OHBinOp do not match"
                 end
               end
             end
           end
         end
       end
-    | SHAOptCast ai =>
-      match (eval st ai) with
-      | Error msg => Error msg
-      | OK ni =>
-        if beq_nat o ni && beq_nat i ni then
-          cast_OHOperator
-            ni false ni true
-            i iflag o oflag
-            (OHOptCast (i:=ni))
-        else
-          Error "input and output sizes of SHAOptCast do not match"
-      end
+    | SHAOptCast ai => buildOHOptCast st ai
     | SHAISumUnion i o v r x => Error "TODO"
     end.
-  
+
 End SOHOperator_language.
 
 Section SigmaHCOL_language_tests.
