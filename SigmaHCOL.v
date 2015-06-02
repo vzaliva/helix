@@ -362,7 +362,7 @@ Section SOHOperator_language.
     | SHAScatHUnion _ _ base pad => buildOHScatHUnion st ai ao base pad
     | SHAGathH _ _ abase astride => buildOHGathH st ai ao abase astride
     | SHABinOp _ _ f => buildOHBinOp st ai ao f
-    | SHACompose xi iflg xo oflg ai ao bi bo tifl tofl opa opb =>
+    | SHACompose _ iflg _ oflg ai ao bi bo tifl tofl opa opb =>
       match (eval st ai) with
       | Error msg => Error msg
       | OK ni =>
@@ -385,17 +385,22 @@ Section SOHOperator_language.
                            && beq_nat nao no
                            && beq_nat nai nbo
                            && beq_nat nbi ni
+                           && eqb tifl tofl
                 then
                   match compileSHAOperator st opa (i:=nbo) (o:=o) with
                   | Error msg => Error msg
                   | OK copa =>
-                    match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
+                    match compileSHAOperator st opb (i:=i) (o:=nbo) with
                     | Error msg => Error msg
                     | OK copb =>
-                      match (cast_OHOperator nbo tifl o oflg nbo tifl o oflag copa ) with
+                      match (cast_OHOperator _ _ _ _ nbo tifl o oflag copa) with
                       | Error msg => Error msg
                       | OK ccopa =>
-                        OK (OHCompose i iflag o oflag ccopa copb (t:=nbo) (tfl:=tifl))
+                        match (cast_OHOperator _ _ _ _  i iflag nbo tifl copb) with
+                        | Error msg => Error msg
+                        | OK ccopb =>
+                          OK (OHCompose i iflag o oflag ccopa ccopb (t:=nbo) (tfl:=tifl))
+                        end
                       end
                     end
                   end
