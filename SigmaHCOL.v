@@ -362,13 +362,13 @@ Section SOHOperator_language.
     | SHAScatHUnion _ _ base pad => buildOHScatHUnion st ai ao base pad
     | SHAGathH _ _ abase astride => buildOHGathH st ai ao abase astride
     | SHABinOp _ _ f => buildOHBinOp st ai ao f
-    | SHACompose xi ifl xo ofl _ _ bi bo tifl tofl opa opb =>
-      match (eval st xi) with
+    | SHACompose xi iflg xo oflg ai ao bi bo tifl tofl opa opb =>
+      match (eval st ai) with
       | Error msg => Error msg
-      | OK nxi =>
-        match (eval st xo) with
+      | OK ni =>
+        match (eval st ao) with
         | Error msg => Error msg
-        | OK nxo =>
+        | OK no =>
           match (eval st ai) with
           | Error msg => Error msg
           | OK nai =>
@@ -381,11 +381,10 @@ Section SOHOperator_language.
                 match (eval st bo) with
               | Error msg => Error msg
               | OK nbo => 
-                if beq_nat o nxo && beq_nat i nxi
-                           && beq_nat nao nxo
+                if beq_nat o no && beq_nat i ni
+                           && beq_nat nao no
                            && beq_nat nai nbo
-                           && beq_nat nbi nxi
-                           && eqb oflag ofl && eqb iflag ifl
+                           && beq_nat nbi ni
                 then
                   match compileSHAOperator st opa (i:=nai) (o:=nao) with
                   | Error msg => Error msg
@@ -393,8 +392,7 @@ Section SOHOperator_language.
                     match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
                     | Error msg => Error msg
                     | OK copb =>
-                      Error "TODO"
-                            (* OK (OHCompose i ifl o ofl copa copb) *)
+                        OK (OHCompose i iflag o oflag copa copb (t:=nbo) (tfl:=tifl))
                     end
                   end
                 else
