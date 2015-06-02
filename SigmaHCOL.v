@@ -386,13 +386,17 @@ Section SOHOperator_language.
                            && beq_nat nai nbo
                            && beq_nat nbi ni
                 then
-                  match compileSHAOperator st opa (i:=nai) (o:=nao) with
+                  match compileSHAOperator st opa (i:=nbo) (o:=o) with
                   | Error msg => Error msg
                   | OK copa =>
                     match compileSHAOperator st opb (i:=nbi) (o:=nbo) with
                     | Error msg => Error msg
                     | OK copb =>
-                        OK (OHCompose i iflag o oflag copa copb (t:=nbo) (tfl:=tifl))
+                      match (cast_OHOperator nbo tifl o oflg nbo tifl o oflag copa ) with
+                      | Error msg => Error msg
+                      | OK ccopa =>
+                        OK (OHCompose i iflag o oflag ccopa copb (t:=nbo) (tfl:=tifl))
+                      end
                     end
                   end
                 else
