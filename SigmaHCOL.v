@@ -186,7 +186,7 @@ Section SOHOperator_language.
   | SHAGathH (i n base stride: aexp): SHAOperator i false n false
   | SHABinOp {i o:aexp} (f: A->A->A): SHAOperator i false o false
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose i ifl o ofl {ai ao} {bi bo} {tifl tofl} : SHAOperator ai tifl ao ofl -> SHAOperator bi ifl bo tofl -> SHAOperator i ifl o ofl
+  | SHACompose i ifl o ofl {ai ao} {bi bo} {tfl} : SHAOperator ai tfl ao ofl -> SHAOperator bi ifl bo tfl -> SHAOperator i ifl o ofl
   | SHAOptCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
@@ -362,7 +362,7 @@ Section SOHOperator_language.
     | SHAScatHUnion _ _ base pad => buildOHScatHUnion st ai ao base pad
     | SHAGathH _ _ abase astride => buildOHGathH st ai ao abase astride
     | SHABinOp _ _ f => buildOHBinOp st ai ao f
-    | SHACompose _ iflg _ oflg ai ao bi bo tifl tofl opa opb =>
+    | SHACompose _ iflg _ oflg ai ao bi bo tfl opa opb =>
       match (eval st ai) with
       | Error msg => Error msg
       | OK ni =>
@@ -385,7 +385,6 @@ Section SOHOperator_language.
                            && beq_nat nao no
                            && beq_nat nai nbo
                            && beq_nat nbi ni
-                           && eqb tifl tofl
                 then
                   match compileSHAOperator st opa (i:=nbo) (o:=o) with
                   | Error msg => Error msg
@@ -393,13 +392,13 @@ Section SOHOperator_language.
                     match compileSHAOperator st opb (i:=i) (o:=nbo) with
                     | Error msg => Error msg
                     | OK copb =>
-                      match (cast_OHOperator _ _ _ _ nbo tifl o oflag copa) with
+                      match (cast_OHOperator _ _ _ _ nbo tfl o oflag copa) with
                       | Error msg => Error msg
                       | OK ccopa =>
-                        match (cast_OHOperator _ _ _ _  i iflag nbo tifl copb) with
+                        match (cast_OHOperator _ _ _ _  i iflag nbo tfl copb) with
                         | Error msg => Error msg
                         | OK ccopb =>
-                          OK (OHCompose i iflag o oflag ccopa ccopb (t:=nbo) (tfl:=tifl))
+                          OK (OHCompose i iflag o oflag ccopa ccopb (t:=nbo))
                         end
                       end
                     end
