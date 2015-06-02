@@ -222,9 +222,9 @@ Section SOHOperator_language.
     match a with
     | Error msg => Error msg
     | OK an => match b with
-                 | Error msg => Error msg
-                 | OK bn => OK (bn + an)
-                 end
+               | Error msg => Error msg
+               | OK bn => OK (op bn an)
+               end
     end.
   
   Fixpoint eval (st:state) (e:aexp): @maybeError nat :=
@@ -235,7 +235,7 @@ Section SOHOperator_language.
     | AMinus a b => eval_mayberr_binop (eval st a) (eval st b) minus
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
-        
+  
   Definition cast_OHOperator
              (a0:nat) (b0:bool) (c0:nat) (d0:bool)
              (a1:nat) (b1:bool) (c1:nat) (d1:bool)
