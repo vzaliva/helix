@@ -31,6 +31,9 @@ Import VectorNotations.
 
 Require Import Coq.Lists.List.
 
+(* "sparse" vector *)
+Notation svector A n := (vector (option A) n).
+
 Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
   fun a b =>
     match a with
@@ -41,9 +44,9 @@ Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
                  end)
     end.
 
-Global Instance opt_vec_equiv `{Equiv A} {n}: Equiv (vector (option A) n) := Vforall2 (n:=n) opt_equiv.
+Global Instance opt_vec_equiv `{Equiv A} {n}: Equiv (svector A n) := Vforall2 (n:=n) opt_equiv.
 
-Fixpoint catSomes {A} {n} (v:vector (option A) n): list A :=
+Fixpoint catSomes {A} {n} (v:svector A n): list A :=
   match v with
   | Vnil => @List.nil A
   | Vcons None _ vs  => catSomes vs
@@ -52,7 +55,7 @@ Fixpoint catSomes {A} {n} (v:vector (option A) n): list A :=
 
 Module SigmaHCOLOperators.
 
-  Definition OptCast {A} {n:nat} (v:vector A n): vector (option A) n :=
+  Definition OptCast {A} {n:nat} (v:vector A n): svector A n :=
     Vmap (Some) v.
 
   (* zero - based, (stride-1) parameter *)
@@ -94,7 +97,7 @@ Defined.
     Open Scope nat_scope.
     
     Fixpoint ScatHUnion_0 (A:Type) (n:nat) (pad:nat) {struct n}:
-      vector A n -> vector (option A) ((S pad)*n).
+      vector A n -> svector A ((S pad)*n).
         refine(
             match n as m return m=n -> _ with
             | O =>  fun _ _ => (fun _ => _) Vnil
@@ -116,7 +119,7 @@ Defined.
     Close Scope nat_scope.
   End Coq84Workaround.
   
-  Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): vector (option A) (base+((S pad)*n)) :=
+  Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
   
 End SigmaHCOLOperators.
