@@ -44,7 +44,7 @@ Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
                  end)
     end.
 
-Global Instance opt_vec_equiv `{Equiv A} {n}: Equiv (svector A n) := Vforall2 (n:=n) opt_equiv.
+Global Instance sparce_vec_equiv `{Equiv A} {n}: Equiv (svector A n) := Vforall2 (n:=n) opt_equiv.
 
 Fixpoint catSomes {A} {n} (v:svector A n): list A :=
   match v with
@@ -55,7 +55,7 @@ Fixpoint catSomes {A} {n} (v:svector A n): list A :=
 
 Module SigmaHCOLOperators.
 
-  Definition OptCast {A} {n:nat} (v:vector A n): svector A n :=
+  Definition SparseCast {A} {n:nat} (v:vector A n): svector A n :=
     Vmap (Some) v.
 
   (* zero - based, (stride-1) parameter *)
@@ -154,7 +154,7 @@ Section OHOperator_language.
   | OHBinOp o (f: A->A->A): OHOperator (o+o) false o false
   | OHHOperator {i o} (op: HOperator i o): OHOperator i false o false (* cast classic HOperator to  OHOperator *)
   | OHCompose i ifl {t} {tfl} o ofl: OHOperator t tfl o ofl -> OHOperator i ifl t tfl -> OHOperator i ifl o ofl
-  | OHOptCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
+  | OHSparseCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
   .
 
 End OHOperator_language.  
@@ -190,7 +190,7 @@ Section SOHOperator_language.
   | SHABinOp {i o:aexp} (f: A->A->A): SHAOperator i false o false
   (* TODO: all HCOL operators but with aexpes instead of nums *)
   | SHACompose i ifl o ofl {ai ao} {bi bo} {tfl} : SHAOperator ai tfl ao ofl -> SHAOperator bi ifl bo tfl -> SHAOperator i ifl o ofl
-  | SHAOptCast {i}: SHAOperator i false i true
+  | SHASparseCast {i}: SHAOperator i false i true
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
     
@@ -343,7 +343,7 @@ Section SOHOperator_language.
       end
     end.
 
-  Definition buildOHOptCast {iflag oflag:bool} {i o:nat}
+  Definition buildOHSparseCast {iflag oflag:bool} {i o:nat}
              (st:state)
              (ai: aexp):
     @maybeError (OHOperator i iflag o oflag) :=
@@ -354,9 +354,9 @@ Section SOHOperator_language.
         cast_OHOperator
           ni false ni true
           i iflag o oflag
-          (OHOptCast (i:=ni))
+          (OHSparseCast (i:=ni))
       else
-        Error "input and output sizes of SHAOptCast do not match"
+        Error "input and output sizes of SHASparseCast do not match"
     end.
 
   Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
@@ -414,7 +414,7 @@ Section SOHOperator_language.
           end
         end
       end
-    | SHAOptCast _ => buildOHOptCast st ai
+    | SHASparseCast _ => buildOHSparseCast st ai
     | SHAISumUnion _ _ v r body => Error "TODO"
     end.
 
