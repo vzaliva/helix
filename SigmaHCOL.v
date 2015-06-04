@@ -66,14 +66,13 @@ Global Instance sparce_vec_equiv `{Equiv A} {n}: Equiv (svector A n) := Vforall2
 Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (svector A n) := 
   match n with
   | O => fun _ _ => OK (@Vnil (option A))
-  | (S p) => fun a b =>
+  | (S _) => fun a b =>
                match (SparseUnion (Vtail a) (Vtail b)) as t with
                | Error msg => Error msg
                | OK xs =>
                  match (Vhead a), (Vhead b) with
                  |  Some _, Some _ => Error "incompatible values"
-                 |  None, None => OK (Vcons None xs)
-                 |  None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
+                 |  None, None as x | None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
                  end
                end
   end.
