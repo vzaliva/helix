@@ -31,6 +31,23 @@ Import VectorNotations.
 
 Require Import Coq.Lists.List.
 
+(* Error type *)
+Inductive maybeError {T:Type} : Type :=
+| OK : T → @maybeError T
+| Error: string -> @maybeError T.
+
+Definition isError {T:Type}  (x:@maybeError T) :=
+  match x with
+  | OK _ => False
+  | Error _ => True
+  end.
+
+Definition isOK {T:Type}  (x:@maybeError T) :=
+  match x with
+  | OK _ => True
+  | Error _ => False
+  end.
+
 (* "sparse" vector *)
 Notation svector A n := (vector (option A) n).
 
@@ -45,6 +62,21 @@ Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
     end.
 
 Global Instance sparce_vec_equiv `{Equiv A} {n}: Equiv (svector A n) := Vforall2 (n:=n) opt_equiv.
+
+Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (svector A n) := 
+  match n with
+  | O => fun _ _ => OK (@Vnil (option A))
+  | (S p) => fun a b =>
+               match (SparseUnion (Vtail a) (Vtail b)) as t with
+               | Error msg => Error msg
+               | OK xs =>
+                 match (Vhead a), (Vhead b) with
+                 |  Some _, Some _ => Error "incompatible values"
+                 |  None, None => OK (Vcons None xs)
+                 |  None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
+                 end
+               end
+  end.
 
 Fixpoint catSomes {A} {n} (v:svector A n): list A :=
   match v with
@@ -194,22 +226,6 @@ Section SOHOperator_language.
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
   .
     
-  Inductive maybeError {T:Type} : Type :=
-  | OK : T → @maybeError T
-  | Error: string -> @maybeError T.
-
-  Definition isError {T:Type}  (x:@maybeError T) :=
-    match x with
-    | OK _ => False
-    | Error _ => True
-    end.
-
-  Definition isOK {T:Type}  (x:@maybeError T) :=
-    match x with
-    | OK _ => True
-    | Error _ => False
-    end.
-  
   Definition state := varname -> @maybeError nat.
     
   Definition empty_state: state :=
