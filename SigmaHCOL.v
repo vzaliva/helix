@@ -84,7 +84,7 @@ Fixpoint catSomes {A} {n} (v:svector A n): list A :=
   | Vcons (Some x) _ vs => List.cons x (catSomes vs)
   end.
 
-Module SigmaHCOLOperators.
+Module SigmaHCOL_Operators.
 
   Definition SparseCast {A} {n:nat} (v:vector A n): svector A n :=
     Vmap (Some) v.
@@ -153,10 +153,9 @@ Defined.
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
   
-End SigmaHCOLOperators.
+End SigmaHCOL_Operators.
 
-Import SigmaHCOLOperators.
-Require Import HCOLSyntax.
+Import SigmaHCOL_Operators.
 
 (*
 Motivating example:
@@ -174,23 +173,7 @@ ISumUnion(i3, 2,
 *)  
 
 
-Section OHOperator_language.
-  (* ---  An extension of HOperator to deal with missing values. Instead of vector of type 'A' they operate on vectors of 'option A'  --- *)
-
-  Context {A:Type} {Ae: Equiv A}.
-  
-  Inductive OHOperator : nat -> bool -> nat -> bool -> Type :=
-  | OHScatHUnion {i} (base pad:nat): OHOperator i false (base+((S pad)*i)) true
-  | OHGathH (n base stride: nat) {t} {snz: 0 ≢ stride}: OHOperator (base+n*stride+t) false n false
-  | OHBinOp o (f: A->A->A): OHOperator (o+o) false o false
-  | OHHOperator {i o} (op: HOperator i o): OHOperator i false o false (* cast classic HOperator to  OHOperator *)
-  | OHCompose i ifl {t} {tfl} o ofl: OHOperator t tfl o ofl -> OHOperator i ifl t tfl -> OHOperator i ifl o ofl
-  | OHSparseCast {i}: OHOperator i false i true (* Cast any vector to vector of options *)
-  .
-
-End OHOperator_language.  
-
-Section SOHOperator_language.
+Section SigmaHCOL_language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
   Context {A:Type} {Ae: Equiv A}.
@@ -215,14 +198,14 @@ Section SOHOperator_language.
   | AMinus : aexp → aexp → aexp
   | AMult : aexp → aexp → aexp.
   
-  Inductive SHAOperator: aexp -> bool -> aexp -> bool -> Type :=
-  | SHAScatHUnion {i o:aexp} (base pad:aexp): SHAOperator i false o true
-  | SHAGathH (i n base stride: aexp): SHAOperator i false n false
-  | SHABinOp {i o:aexp} (f: A->A->A): SHAOperator i false o false
+  Inductive SOperator: aexp -> aexp-> Type :=
+  | SHAScatHUnion {i o:aexp} (base pad:aexp): SOperator i o 
+  | SHAGathH (i n base stride: aexp): SOperator i n 
+  | SHABinOp {i o:aexp} (f: A->A->A): SOperator i o 
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose i ifl o ofl {ai ao} {bi bo} {tfl} : SHAOperator ai tfl ao ofl -> SHAOperator bi ifl bo tfl -> SHAOperator i ifl o ofl
-  | SHASparseCast {i}: SHAOperator i false i true
-  | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SHAOperator i false o true -> SHAOperator i false o false
+  | SHACompose i o {ai ao} {bi bo}: SOperator ai ao -> SOperator bi bo -> SOperator i o
+  | SHASparseCast {i}: SOperator i i
+  | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SOperator i o  -> SOperator i o
   .
     
   Definition state := varname -> @maybeError nat.
@@ -253,187 +236,14 @@ Section SOHOperator_language.
     | AMinus a b => eval_mayberr_binop (eval st a) (eval st b) minus
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
-  
-  Definition cast_OHOperator
-             (a0:nat) (b0:bool) (c0:nat) (d0:bool)
-             (a1:nat) (b1:bool) (c1:nat) (d1:bool)
-             (x: OHOperator a0 b0 c0 d0) : @maybeError (OHOperator a1 b1 c1 d1).
+
+  Fixpoint sem {ai ao: aexp} {i o:nat}
+           (st:state) (op: (SOperator ai ao))
+    : @maybeError ((svector A i) -> (svector A o)).
   Proof.
-    assert(Decision(a0 ≡ a1 /\ b0 ≡ b1 /\ c0 ≡ c1 /\ d0 ≡ d1)).
-    (repeat apply and_dec); unfold Decision; decide equality.
-    case H.
-    intros Ha.
-    destruct Ha. destruct H1. destruct H2.
-    rewrite H0, H1, H2, H3 in x.
-    left. assumption.
-    right. exact "incompatible arguments".
-  Defined.
-
-  Definition buildOHScatHUnion {iflag oflag:bool} {i o:nat}
-             (st:state)
-             (ai ao base pad:aexp):
-    @maybeError (OHOperator i iflag o oflag) :=
-      match (eval st ai) with
-      | Error msg => Error msg
-      | OK ni =>
-        match (eval st ao) with
-        | Error msg => Error msg
-        | OK no => 
-          match (eval st base) with
-          | Error msg => Error msg
-          | OK nbase => 
-            match (eval st pad) with
-            | Error msg => Error msg
-            | OK npad =>
-              if iflag then
-                Error "iflag must be false"
-              else if oflag then
-                     if beq_nat i ni && beq_nat no (nbase + S npad * ni) then
-                       cast_OHOperator
-                         ni false (nbase + S npad * ni) true
-                         i iflag o oflag
-                         (OHScatHUnion (i:=ni) nbase npad)
-                     else
-                       Error "input and output sizes of OHScatHUnion do not match"
-                   else
-                     Error "oflag must be true"
-            end
-          end
-        end
-      end.
-        
-  
-  Definition buildOHGathH {iflag oflag:bool} {i o:nat}
-             (st:state)
-             (ai an abase astride:aexp):
-    @maybeError (OHOperator i iflag o oflag) :=
-    match (eval st ai) with
-    | Error msg => Error msg
-    | OK ni =>
-      match (eval st an) with
-      | Error msg => Error msg
-      | OK nn =>
-        match (eval st abase) with
-          | Error msg => Error msg
-          | OK nbase =>
-            match (eval st astride) with
-            | Error msg => Error msg
-            | OK O => Error "Zero stride not allowed"
-            | OK (S s) =>
-              if iflag then
-                Error "iflag must be false"
-              else if oflag then
-                     Error "oflag must be false"
-                   else if beq_nat o nn && (Coq.Arith.Compare_dec.leb (nbase + nn*(S s)) ni || beq_nat (nbase+nn*(S s)) ni)
-                        then
-                          let t := (minus ni (nbase + nn*(S s))) in
-                          cast_OHOperator
-                            (nbase+nn*(S s)+t) false nn false
-                            i iflag o oflag
-                            (OHGathH nn nbase (S s) (t:=t) (snz:=O_S _))
-                        else
-                          Error "input and output sizes of OHScatHUnion do not match"
-            end
-        end
-        end
-    end.
-
-  Definition buildOHBinOp {iflag oflag:bool} {i o:nat}
-             (st:state)
-             (ai ao: aexp) (f: A->A->A):
-    @maybeError (OHOperator i iflag o oflag) :=
-    match (eval st ai) with
-    | Error msg => Error msg
-    | OK ni =>
-      match (eval st ao) with
-      | Error msg => Error msg
-        | OK no =>
-          if beq_nat o no && beq_nat i (no+no) then
-            cast_OHOperator
-              (no+no) false no false
-              i iflag o oflag
-              (OHBinOp no f)
-          else
-            Error "input and output sizes of OHBinOp do not match"
-      end
-    end.
-
-  Definition buildOHSparseCast {iflag oflag:bool} {i o:nat}
-             (st:state)
-             (ai: aexp):
-    @maybeError (OHOperator i iflag o oflag) :=
-    match (eval st ai) with
-    | Error msg => Error msg
-    | OK ni =>
-      if beq_nat o ni && beq_nat i ni then
-        cast_OHOperator
-          ni false ni true
-          i iflag o oflag
-          (OHSparseCast (i:=ni))
-      else
-        Error "input and output sizes of SHASparseCast do not match"
-    end.
-
-  Fixpoint compileSHAOperator {iflag oflag:bool} {ai ao: aexp} {i o:nat} (st:state)
-           (op: (SHAOperator ai iflag ao oflag)): @maybeError (OHOperator (A:=A) i iflag o oflag) :=
-    match op with
-    | SHAScatHUnion _ _ base pad => buildOHScatHUnion st ai ao base pad
-    | SHAGathH _ _ abase astride => buildOHGathH st ai ao abase astride
-    | SHABinOp _ _ f => buildOHBinOp st ai ao f
-    | SHACompose _ iflg _ oflg ai ao bi bo tfl opa opb =>
-      match (eval st ai) with
-      | Error msg => Error msg
-      | OK ni =>
-        match (eval st ao) with
-        | Error msg => Error msg
-        | OK no =>
-          match (eval st ai) with
-          | Error msg => Error msg
-          | OK nai =>
-            match (eval st ao) with
-            | Error msg => Error msg
-            | OK nao =>
-              match (eval st bi) with
-              | Error msg => Error msg
-              | OK nbi =>
-                match (eval st bo) with
-              | Error msg => Error msg
-              | OK nbo => 
-                if beq_nat o no && beq_nat i ni
-                           && beq_nat nao no
-                           && beq_nat nai nbo
-                           && beq_nat nbi ni
-                then
-                  match compileSHAOperator st opa (i:=nbo) (o:=o) with
-                  | Error msg => Error msg
-                  | OK copa =>
-                    match compileSHAOperator st opb (i:=i) (o:=nbo) with
-                    | Error msg => Error msg
-                    | OK copb =>
-                      match (cast_OHOperator _ _ _ _ nbo tfl o oflag copa) with
-                      | Error msg => Error msg
-                      | OK ccopa =>
-                        match (cast_OHOperator _ _ _ _  i iflag nbo tfl copb) with
-                        | Error msg => Error msg
-                        | OK ccopb =>
-                          OK (OHCompose i iflag o oflag ccopa ccopb (t:=nbo))
-                        end
-                      end
-                    end
-                  end
-                else
-                  Error "Dimensions or flags of OHBinOp do not match"
-                end
-              end
-            end
-          end
-        end
-      end
-    | SHASparseCast _ => buildOHSparseCast st ai
-    | SHAISumUnion _ _ v r body => Error "TODO"
-    end.
-
-End SOHOperator_language.
+  Admitted.
+    
+End SigmaHCOL_language.
 
 Section SigmaHCOL_language_tests.
 
@@ -443,53 +253,6 @@ Section SigmaHCOL_language_tests.
   Definition a1 := update (empty_state) (Var "A1") 1.
   Definition a2 := update (empty_state) (Var "A2") 2.
   
-  Lemma test1: (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))) ≡ OK (OHScatHUnion 0 1).
-  Proof. auto. Qed.
-
-  Lemma test2: isError (compileSHAOperator (i:=2) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 2)) (ANum 0) (ANum 1))).
-  Proof. compute. trivial. Qed.
-
-  Lemma test3: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(ANum 1)) (o:=(ANum 4)) (ANum 0) (ANum 1))).
-  Proof. compute. trivial. Qed.
-
-  Lemma test4: isError (compileSHAOperator (i:=1) (o:=2) (empty_state) (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))).
-  Proof. compute. trivial. Qed.
-                 
-  Lemma test5: (compileSHAOperator (i:=1) (o:=2) a1 (SHAScatHUnion (i:=(AName (Var "A1"))) (o:=(ANum 2)) (ANum 0) (ANum 1))) ≡ OK (OHScatHUnion 0 1).
-  Proof.
-    unfold compileSHAOperator.
-    assert (eval a1 (AName (Var "A1")) ≡ OK 1).
-    compute.
-    case eq_varname_dec.
-    intros. reflexivity.
-    intros. contradiction n. reflexivity.
-    unfold buildOHScatHUnion. rewrite H.
-    auto.
-  Qed.
-
-  Lemma test6: isError (compileSHAOperator (i:=1) (o:=2) a2 (SHAScatHUnion (i:=(AName (Var "A2"))) (o:=(ANum 2)) (ANum 0) (ANum 1))).
-  Proof.
-    unfold compileSHAOperator.
-    assert (eval a2 (AName (Var "A2")) ≡ OK 2).
-    compute.
-    case eq_varname_dec.
-    intros. reflexivity.
-    intros. contradiction n. reflexivity.
-    unfold buildOHScatHUnion. rewrite H.
-    compute. trivial.
-  Qed.
-
-  Lemma test7: compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (snz:=O_S 1)).
-  Proof.  compute.  reflexivity. Qed.
-                 
-  Lemma test8: compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 11) (ANum 5) (ANum 0) (ANum 2)) ≡ OK (OHGathH 5 0 2 (snz:=O_S 1)).
-  Proof.  compute.  reflexivity. Qed.
-
-  Lemma test9: isError (compileSHAOperator (i:=11) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 0) (ANum 2))).
-  Proof.  compute.  trivial. Qed.
-
-  Lemma test10: isError (compileSHAOperator (i:=10) (o:=5) empty_state (SHAGathH (ANum 10) (ANum 5) (ANum 1) (ANum 2))).
-  Proof.  compute.  trivial. Qed.
 
 End SigmaHCOL_language_tests.
 
