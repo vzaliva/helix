@@ -204,7 +204,6 @@ Section SigmaHCOL_language.
   | SHABinOp {i o:aexp} (f: A->A->A): SOperator i o 
   (* TODO: all HCOL operators but with aexpes instead of nums *)
   | SHACompose i o {ai ao} {bi bo}: SOperator ai ao -> SOperator bi bo -> SOperator i o
-  | SHASparseCast {i}: SOperator i i
   | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SOperator i o  -> SOperator i o
   .
     
@@ -237,11 +236,32 @@ Section SigmaHCOL_language.
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
 
+
+  (* 
+Compute denotational semantics of SOperator expresssion.
+Not all expressions have semantics, and in ths case this function
+returns 'Error', which means that given expression is incorrect.
+
+Unfortuntatelly not all compiled expressions return valid vector due
+to sparcity. Access to sparse vector elements or `SparseUnion` could
+give runtime errors, not detectable at this stage.  
+
+A separate proofs could be provided guaranteeing that given SOperator
+expression never returns 'Error' or, for example, that it returns
+dense (non-sparse) vector.
+   *)
+  
   Fixpoint sem {ai ao: aexp} {i o:nat}
            (st:state) (op: (SOperator ai ao))
-    : @maybeError ((svector A i) -> (svector A o)).
-  Proof.
-  Admitted.
+    : @maybeError ((svector A i) -> (@maybeError (svector A o))) :=
+      match  op with
+      | SHAScatHUnion i o base pad => Error "TODO"
+      | SHAGathH i n base stride => Error "TODO"
+      | SHABinOp i o f => Error "TODO"
+      | SHACompose i o ai ao bi bo x x0 => Error "TODO"
+      | SHAISumUnion i o v r x => Error "TODO"
+      end.
+        
     
 End SigmaHCOL_language.
 
