@@ -8,6 +8,7 @@ Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Lt.
 Require Import Program.
 Require Import Morphisms.
+Require Import Coq.Strings.String.
 
 Require Import CaseNaming.
 Require Import CpdtTactics.
@@ -23,7 +24,38 @@ Require Export Vector.
 Require Export VecUtil.
 Import VectorNotations.
 
-(* Varois definitions related to vector equality and setoid rewriting *)
+Section Error.
+  (* Error type *)
+  Inductive maybeError {T:Type}: Type :=
+  | OK : T → @maybeError T
+  | Error: string -> @maybeError T.
+  
+  Definition is_Error {T:Type}  (x:@maybeError T) :=
+    match x with
+    | OK _ => False
+    | Error _ => True
+    end.
+  
+  Definition is_OK {T:Type}  (x:@maybeError T) :=
+    match x with
+    | OK _ => True
+    | Error _ => False
+    end.
+End Error.
+
+(* equality of option types *)
+Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
+  fun a b =>
+    match a with
+    | None => is_None b
+    | Some x => (match b with
+                 | None => False
+                 | Some y => equiv x y
+                 end)
+    end.
+
+
+(* Various definitions related to vector equality and setoid rewriting *)
 
 Global Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
 
