@@ -126,8 +126,6 @@ Definition DenseVtail {A:Type} {n:nat} (d:@DenseV A (S n)): @DenseV A n :=
   | buildDenseV v H => buildDenseV (Vtail v) (dense_tl H)
   end.
   
-Set Printing Implicit.
-
 Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
   match n return @DenseV A n -> (vector A n) with
   | O => fun _ => @Vnil A
@@ -139,13 +137,8 @@ Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
   end d.
 
 Fixpoint DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
-  match n return (svector A n) -> (is_Dense _) -> (vector A n) with
-  | O => fun _ _ => @Vnil A
-  | (S p) => fun x H1 => Vcons (dense_get_hd x H1) _ (DenseCast (Vtail x)
-                                                                (dense_tl H (Vtail x))
-                                                     )
-  end v H.
-
+  DenseCast' (buildDenseV v H).
+    
 Module SigmaHCOL_Operators.
 
   (* zero - based, (stride-1) parameter *)
