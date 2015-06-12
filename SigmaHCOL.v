@@ -108,11 +108,23 @@ Proof.
   apply from_Some.
 Defined.
 
-Fixpoint DenseCast {A} {n} (v:svector A n) {H:is_Dense v}: vector A n :=
-  match n return (svector A n) -> (vector A n) with
-  | O => fun _ => @Vnil A
-  | (S p) => fun x => Vcons (dense_get_hd x H) _ (DenseCast (Vtail x))
-  end v.
+Lemma dense_tl {A} {n} {v: svector A (S n)}: is_Dense v -> is_Dense (Vtail v).
+Proof.
+  unfold is_Dense.
+  intros.
+  dep_destruct v.
+  simpl in H.
+  simpl.
+  apply H.
+Defined.
+
+Fixpoint DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
+  match n return (svector A n) -> (is_Dense _) -> (vector A n) with
+  | O => fun _ _ => @Vnil A
+  | (S p) => fun x H1 => Vcons (dense_get_hd x H1) _ (DenseCast (Vtail x)
+                                                                (dense_tl H (Vtail x))
+                                                     )
+  end v H.
 
 Module SigmaHCOL_Operators.
 
