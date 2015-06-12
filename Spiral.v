@@ -921,5 +921,21 @@ Proof.
   reflexivity.
 Qed. 
 
+Lemma Vforall_hd {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
+  Vforall P v -> P (Vhead v).
+Proof.
+  dep_destruct v.
+  simpl.
+  tauto.
+Qed.
+
+Lemma Vforall_tl {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
+  Vforall P v -> Vforall P (Vtail v).
+Proof.
+  dep_destruct v.
+  simpl.
+  tauto.
+Qed.
+
 Close Scope vector_scope.
 

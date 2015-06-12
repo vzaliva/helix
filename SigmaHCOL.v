@@ -36,13 +36,13 @@ Inductive maybeError {T:Type} : Type :=
 | OK : T → @maybeError T
 | Error: string -> @maybeError T.
 
-Definition isError {T:Type}  (x:@maybeError T) :=
+Definition is_Error {T:Type}  (x:@maybeError T) :=
   match x with
   | OK _ => False
   | Error _ => True
   end.
 
-Definition isOK {T:Type}  (x:@maybeError T) :=
+Definition is_OK {T:Type}  (x:@maybeError T) :=
   match x with
   | OK _ => True
   | Error _ => False
@@ -84,10 +84,37 @@ Fixpoint catSomes {A} {n} (v:svector A n): list A :=
   | Vcons (Some x) _ vs => List.cons x (catSomes vs)
   end.
 
-Module SigmaHCOL_Operators.
+Definition SparseCast {A} {n} (v:vector A n): svector A n :=
+  Vmap (Some) v.
 
-  Definition SparseCast {A} {n:nat} (v:vector A n): svector A n :=
-    Vmap (Some) v.
+Definition is_Dense {A} {n} (v:svector A n) : Prop :=
+  Vforall is_Some v.
+
+Definition from_Some {A} (x:option A) {S: is_Some x}: A.
+Proof.
+  destruct x.
+  tauto.
+  unfold is_Some in S.
+  tauto.
+Defined.
+
+Lemma dense_get_hd {A} {n} (v:svector A (S n)): is_Dense v -> A.
+Proof.
+  unfold is_Dense.
+  intros.
+  assert (is_Some (Vhead v)).
+  apply Vforall_hd. assumption.
+  revert H0.
+  apply from_Some.
+Defined.
+
+Fixpoint DenseCast {A} {n} (v:svector A n) {H:is_Dense v}: vector A n :=
+  match n return (svector A n) -> (vector A n) with
+  | O => fun _ => @Vnil A
+  | (S p) => fun x => Vcons (dense_get_hd x H) _ (DenseCast (Vtail x))
+  end v.
+
+Module SigmaHCOL_Operators.
 
   (* zero - based, (stride-1) parameter *)
   Program Fixpoint GathH_0 {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
@@ -236,7 +263,55 @@ Section SigmaHCOL_language.
     | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
     end.
 
+  Set Printing Implicit.
 
+
+Definition cast_lift_operator
+             (i0:nat) (o0:nat)
+             (i1:nat) (o1:nat)
+             (f: (svector A i0) -> (svector A o0))  : @maybeError ((svector A i1) -> (svector A o1)).
+  Proof.
+    assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
+    (repeat apply and_dec); unfold Decision; decide equality.
+    case H.
+    intros Ha.
+    destruct Ha.
+    rewrite <- H0, <- H1.
+    left. assumption.
+    right. exact "incompatible arguments".
+  Defined.
+  
+  Definition semScatHUnion {i o:nat}
+             (st:state)
+             (ai ao base pad:aexp):
+    @maybeError ((svector A i) -> (svector A o)) :=
+    match (eval st ai) with
+    | Error msg => Error msg
+    | OK ni =>
+      match (eval st ao) with
+      | Error msg => Error msg
+      | OK no => 
+        match (eval st base) with
+        | Error msg => Error msg
+        | OK nbase => 
+          match (eval st pad) with
+          | Error msg => Error msg
+          | OK npad =>
+            if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
+              (cast_lift_operator
+                 ni (nbase + S npad * ni)
+                 i o
+                 (compose
+                    (ScatHUnion (A:=A) (n:=ni) nbase npad)
+                    (DenseCast))
+              )
+            else
+              Error "input and output sizes of OHScatHUnion do not match"
+          end
+        end
+      end
+    end.
+  
   (* 
 Compute denotational semantics of SOperator expresssion.
 Not all expressions have semantics, and in ths case this function
