@@ -16,7 +16,7 @@ Require Import Spiral.
 (* "sparse" vector type *)
 Notation svector A n := (vector (option A) n).
 
-Global Instance sparce_vec_equiv `{Equiv A} {n}: Equiv (svector A n) :=
+Global Instance sparse_vec_equiv `{Equiv A} {n}: Equiv (svector A n) :=
   Vforall2 (n:=n) opt_equiv.
 
 Definition SparseCast {A} {n} (v:vector A n): svector A n :=
@@ -71,8 +71,25 @@ Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
                end d0
   end d.
 
-Fixpoint DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
+Definition DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
   DenseCast' (buildDenseV v H).
-    
+
+Set Printing Implicit.
+
+Fixpoint TryDenseCast {A} {n} (v:svector A n): @maybeError (vector A n) :=
+  match n return (svector A n) -> (@maybeError (vector A n)) with
+  | O => fun _ => OK (@Vnil A)
+  | (S p) => fun v0 =>
+               match v0 return (svector A (S p)) -> (@maybeError (vector A (S p))) with
+               | Vnil => fun _ => Error "Assertion failed: vector size mismatch"
+               | (Vcons None p _) => fun _ => Error "Sparse vector could not be converted to Dense"
+               | (Vcons (Some x) p xs) => fun v1 =>
+                                            let t := (TryDenseCast xs) in
+                                            match t return @maybeError (vector A p) -> (@maybeError (vector A (S p))) with
+                                            | Error msg => fun _ => Error msg
+                                            | OK t' => fun _ => OK (Vcons x t')
+                                            end t
+               end v0
+  end v.
 
 
