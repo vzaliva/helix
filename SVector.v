@@ -54,11 +54,16 @@ Proof.
 Defined.
 
 Inductive DenseV {A:Type} {n:nat} : Type :=
-| buildDenseV (v:svector A n) (H:is_Dense v): DenseV.
+| dvector (v:svector A n) (H:is_Dense v): DenseV.
+
+Lemma DenseVnil {A:Type}: is_Dense (@Vnil (option A)).
+Proof.
+  crush.
+Qed.
 
 Definition DenseVtail {A:Type} {n:nat} (d:@DenseV A (S n)): @DenseV A n :=
   match d with
-  | buildDenseV v H => buildDenseV (Vtail v) (dense_tl H)
+  | dvector v H => dvector (Vtail v) (dense_tl H)
   end.
   
 Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
@@ -66,13 +71,13 @@ Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
   | O => fun _ => @Vnil A
   | (S p) => fun d0 =>
                match d0 return @DenseV A (S p) -> (vector A (S p)) with
-               | buildDenseV v i =>
+               | dvector v i =>
                  fun d2 => Vcons (dense_get_hd v i) (DenseCast' (DenseVtail d2))
                end d0
   end d.
 
 Definition DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
-  DenseCast' (buildDenseV v H).
+  DenseCast' (dvector v H).
 
 Set Printing Implicit.
 
