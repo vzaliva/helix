@@ -87,7 +87,7 @@ Fixpoint TryDenseCast {A} {n} (v:svector A n): @maybeError (vector A n) :=
   | (S p) => fun v0 =>
                match v0 return (svector A (S p)) -> (@maybeError (vector A (S p))) with
                | Vnil => fun _ => Error "Assertion failed: vector size mismatch"
-               | (Vcons None p _) => fun _ => Error "Sparse vector could not be converted to Dense"
+               | (Vcons None _ _) => fun _ => Error "Sparse vector could not be converted to Dense"
                | (Vcons (Some x) p xs) => fun v1 =>
                                             let t := (TryDenseCast xs) in
                                             match t return @maybeError (vector A p) -> (@maybeError (vector A (S p))) with
