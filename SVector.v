@@ -79,8 +79,6 @@ Fixpoint DenseCast' {A} {n} (d:@DenseV A n): vector A n :=
 Definition DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
   DenseCast' (dvector v H).
 
-Set Printing Implicit.
-
 Fixpoint TryDenseCast {A} {n} (v:svector A n): @maybeError (vector A n) :=
   match n return (svector A n) -> (@maybeError (vector A n)) with
   | O => fun _ => OK (@Vnil A)
