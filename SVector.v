@@ -108,5 +108,16 @@ Definition VectorDenseExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) 
   | DVector v H => OK (vector_from_svector v H)
   end.
 
+Definition svectorFromVector {A} {n} (d:@Vector A n): (svector A n) :=
+  match d with
+  | DVector v _ => v
+  | SVector v => v
+  end.
 
-
+Definition VectorDensify {A} {n} (d:@Vector A n) (D: svector_is_dense (svectorFromVector d)):
+  (@Vector A n) :=
+  match d with
+  | DVector _ _ as ad => ad (* already dense *)
+  | SVector _ => DVector (svectorFromVector d) D
+  end.
+    
