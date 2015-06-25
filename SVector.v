@@ -34,9 +34,9 @@ Proof.
   tauto.
 Defined.
 
-Lemma svector_hd {A} {n} (v:svector A (S n)): svector_is_dense v -> A.
+Definition svector_hd {A} {n} (v:svector A (S n)): svector_is_dense v -> A.
 Proof.
-  unfold svector_is_dense.
+  unfold svector_is_dense.  
   intros.
   assert (is_Some (Vhead v)).
   apply Vforall_hd. assumption.
@@ -60,14 +60,13 @@ Proof.
   crush.
 Qed.
 
-
-Fixpoint vector_from_svector {A} {n} (v:svector A n) (D:svector_is_dense v): vector A n :=
-  match n return (svector A n) -> (svector_is_dense v) -> (vector A n) with
+Fixpoint vector_from_svector {A} {n} {v:svector A n} (D:svector_is_dense v): vector A n :=
+  match n return  (svector_is_dense v) -> (svector A n) -> (vector A n) with
   | O => fun _ _ => @Vnil A
   | (S p) => fun v0 D0 => Vcons
-                            (svector_hd v0 D0)
+                            (svector_hd v D)
                             (vector_from_svector (Vtail v) (svector_tl_dense D))
-  end v D.
+  end D v.
 
 (* -------------------------------------------------------- *)
 
