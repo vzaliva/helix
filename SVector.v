@@ -67,6 +67,22 @@ Fixpoint vector_from_svector {A} {n} (v:svector A n) (D:svector_is_dense v): vec
                             (vector_from_svector (Vtail v0) (svector_tl_dense D0))
   end v D.
 
+Fixpoint try_vector_from_svector {A} {n} (v:svector A n): @maybeError (vector A n) :=
+  match n return (svector A n) -> (@maybeError (vector A n)) with
+  | O => fun _ => OK (@Vnil A)
+  | (S p) => fun v0 =>
+               match v0 return (svector A (S p)) -> (@maybeError (vector A (S p))) with
+               | Vnil => fun _ => Error "Assertion failed: vector size mismatch"
+               | (Vcons None _ _) => fun _ => Error "Sparse vector could not be converted to Dense"
+               | (Vcons (Some x) _ _) => fun v1 =>
+                                            match (try_vector_from_svector (Vtail v1)) with
+                                            | Error msg => Error msg
+                                            | OK t' => OK (Vcons x t')
+                                            end
+               end v0
+  end v.
+
+
 (* -------------------------------------------------------- *)
 
 (* Inductive type representing both sparse and dense vectors. While underlying
@@ -86,38 +102,11 @@ Definition VectorTail {A:Type} {n:nat} (d:@Vector A (S n)): @Vector A n :=
   | SVector v => SVector (Vtail v)
   end.
 
-Definition VectorDenseExtract  {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
+Definition VectorDenseExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
   match d with
   | SVector _ => Error "Attempting to extract dense vector from sparse or"
   | DVector v H => OK (vector_from_svector v H)
   end.
-    
 
-
-
-
-
-
-
-
-
-
-Definition DenseCast {A} {n} (v:svector A n) (H:is_Dense v): vector A n :=
-  DenseCast' (dvector v H).
-
-Fixpoint TryDenseCast {A} {n} (v:svector A n): @maybeError (vector A n) :=
-  match n return (svector A n) -> (@maybeError (vector A n)) with
-  | O => fun _ => OK (@Vnil A)
-  | (S p) => fun v0 =>
-               match v0 return (svector A (S p)) -> (@maybeError (vector A (S p))) with
-               | Vnil => fun _ => Error "Assertion failed: vector size mismatch"
-               | (Vcons None _ _) => fun _ => Error "Sparse vector could not be converted to Dense"
-               | (Vcons (Some x) _ _) => fun v1 =>
-                                            match (TryDenseCast (Vtail v1)) with
-                                            | Error msg => Error msg
-                                            | OK t' => OK (Vcons x t')
-                                            end
-               end v0
-  end v.
 
 
