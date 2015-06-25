@@ -3,6 +3,7 @@
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
+Require Import MathClasses.misc.decision.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -24,6 +25,12 @@ Definition SparseCast {A} {n} (v:vector A n): svector A n :=
 
 Definition is_Dense {A} {n} (v:svector A n) : Prop :=
   Vforall is_Some v.
+
+(*Lemma is_Dense_dec {A} {n} (v:svector A n): Decision(is_Dense v).
+Proof.
+  induction v.
+  auto.
+Qed. *)
 
 Definition from_Some {A} (x:option A) {S: is_Some x}: A.
 Proof.
