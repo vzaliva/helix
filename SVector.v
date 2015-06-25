@@ -30,9 +30,7 @@ Definition from_Some {A} (x:option A) {S: is_Some x}: A.
 Proof.
   destruct x.
   assumption.
-  unfold is_Some in S.
   contradiction.
-  tauto.
 Defined.
 
 Definition svector_hd {A} {n} (v:svector A (S n)): svector_is_dense v -> A.
