@@ -59,16 +59,15 @@ Proof.
   crush.
 Qed.
 
-Fixpoint vector_from_svector {A} {n} {v:svector A n} (D:svector_is_dense v): vector A n :=
-  match n return  (svector_is_dense v) -> (svector A n) -> (vector A n) with
+Fixpoint vector_from_svector {A} {n} (v:svector A n) (D:svector_is_dense v): vector A n :=
+  match n return forall (w:svector A n), (svector_is_dense w) -> (vector A n) with
   | O => fun _ _ => @Vnil A
   | (S p) => fun v0 D0 => Vcons
-                            (svector_hd v D)
-                            (vector_from_svector (Vtail v) (svector_tl_dense D))
-  end D v.
+                            (svector_hd v0 D0)
+                            (vector_from_svector (Vtail v0) (svector_tl_dense D0))
+  end v D.
 
 (* -------------------------------------------------------- *)
-
 
 (* Inductive type representing both sparse and dense vectors. While underlying
 vector storage structure is the same (svector), in dense case it is paired with
@@ -88,7 +87,7 @@ Definition VectorTail {A:Type} {n:nat} (d:@Vector A (S n)): @Vector A n :=
   end.
 
 Definition VectorDenseExtract  {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
-  match  with
+  match d with
   | SVector _ => Error "Attempting to extract dense vector from sparse or"
   | DVector v H => OK (vector_from_svector v H)
   end.
