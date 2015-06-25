@@ -182,13 +182,13 @@ Section SigmaHCOL_language.
                end
     end.
   
-  Fixpoint eval (st:state) (e:aexp): @maybeError nat :=
+  Fixpoint evalAexp (st:state) (e:aexp): @maybeError nat :=
     match e  with
     | ANum x => OK x
     | AName x => st x
-    | APlus a b => eval_mayberr_binop (eval st a) (eval st b) plus
-    | AMinus a b => eval_mayberr_binop (eval st a) (eval st b) minus
-    | AMult a b => eval_mayberr_binop (eval st a) (eval st b) mult
+    | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) plus
+    | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
+    | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
   Set Printing Implicit.
@@ -213,16 +213,16 @@ Definition cast_lift_operator
              (st:state)
              (ai ao base pad:aexp):
     @maybeError ((svector A i) -> (svector A o)) :=
-    match (eval st ai) with
+    match (evalAexp st ai) with
     | Error msg => Error msg
     | OK ni =>
-      match (eval st ao) with
+      match (evalAexp st ao) with
       | Error msg => Error msg
       | OK no => 
-        match (eval st base) with
+        match (evalAexp st base) with
         | Error msg => Error msg
         | OK nbase => 
-          match (eval st pad) with
+          match (evalAexp st pad) with
           | Error msg => Error msg
           | OK npad =>
             if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
