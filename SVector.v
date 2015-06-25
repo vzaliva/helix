@@ -29,8 +29,9 @@ Definition svector_is_dense {A} {n} (v:svector A n) : Prop :=
 Definition from_Some {A} (x:option A) {S: is_Some x}: A.
 Proof.
   destruct x.
-  tauto.
+  assumption.
   unfold is_Some in S.
+  contradiction.
   tauto.
 Defined.
 
