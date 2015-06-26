@@ -26,12 +26,20 @@ Definition svector_from_vector {A} {n} (v:vector A n): svector A n :=
 Definition svector_is_dense {A} {n} (v:svector A n) : Prop :=
   Vforall is_Some v.
 
+Definition from_Some {A} (x:option A) {S: is_Some x}: A :=
+  match x as o return (@is_Some A o -> A) with
+  | Some a => fun _ : @is_Some A (@Some A a) => a
+  | None => fun S0 : @is_Some A (@None A) => False_rect A S0
+  end S.
+
+(* Alternative but equal definition:
 Definition from_Some {A} (x:option A) {S: is_Some x}: A.
 Proof.
   destruct x.
   assumption.
   contradiction.
 Defined.
+ *)
 
 Definition svector_hd {A} {n} (v:svector A (S n)): svector_is_dense v -> A.
 Proof.
