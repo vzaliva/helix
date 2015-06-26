@@ -131,6 +131,16 @@ ISumUnion(i3, 2,
 Section SigmaHCOL_language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
+  Section Errors.
+    Inductive compileError {A:Type}: Type :=
+    | CompileOK : A → @compileError A
+    | CompileError: string -> @compileError A.
+    
+    Inductive runtimeError {A:Type}: Type :=
+    | RuntimeOK : A → @runtimeError A
+    | RuntimeError: string -> @runtimeError A.    
+  End Errors.
+  
   Context {A:Type} {Ae: Equiv A}.
   
   Inductive varname : Type :=
@@ -162,43 +172,39 @@ Section SigmaHCOL_language.
   | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
   .
     
-  Definition state := varname -> @maybeError nat.
+  Definition state := varname -> @compileError nat.
     
   Definition empty_state: state :=
     fun x =>
       match x with 
-      | (Var n) => Error ("variable " ++ n ++ " not found")
+      | (Var n) => CompileError ("variable " ++ n ++ " not found")
       end.
   
   Definition update (st : state) (x : varname) (n : nat) : state :=
-    fun x' => if eq_varname_dec x x' then OK n else st x'.
+    fun x' => if eq_varname_dec x x' then CompileOK n else st x'.
 
-  Definition eval_mayberr_binop (a: @maybeError nat) (b: @maybeError nat) (op: nat->nat->nat) :=
+  Definition eval_mayberr_binop (a: @compileError nat) (b: @compileError nat) (op: nat->nat->nat) :=
     match a with
-    | Error msg => Error msg
-    | OK an => match b with
-               | Error msg => Error msg
-               | OK bn => OK (op bn an)
+    | CompileError msg => CompileError msg
+    | CompileOK an => match b with
+               | CompileError msg => CompileError msg
+               | CompileOK bn => CompileOK (op bn an)
                end
     end.
   
-  Fixpoint evalAexp (st:state) (e:aexp): @maybeError nat :=
+  Fixpoint evalAexp (st:state) (e:aexp): @compileError nat :=
     match e  with
-    | ANum x => OK x
+    | ANum x => CompileOK x
     | AName x => st x
     | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) plus
     | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
-  Set Printing Implicit.
-
-
-(*
 Definition cast_lift_operator
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
-             (f: (svector A i0) -> (svector A o0))  : @maybeError ((svector A i1) -> (svector A o1)).
+             (f: (svector A i0) -> (svector A o0))  : @compileError ((svector A i1) -> (svector A o1)).
   Proof.
     assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
     (repeat apply and_dec); unfold Decision; decide equality.
@@ -209,36 +215,58 @@ Definition cast_lift_operator
     left. assumption.
     right. exact "incompatible arguments".
   Defined.
- *)
+
+  (* TODO: better name *)
+  Definition add_runtime_error_err
+            (i:nat) (o:nat)
+            (f: (svector A i) -> (svector A o))  : (svector A i) -> (@runtimeError (svector A o)) :=
+    fun v => RuntimeOK (f v).
+
+
+  Set Printing Implicit.
+  Definition ugly_cast
+             (i o0 o1:nat)
+             (f: @compileError (vector (option A) i → @runtimeError (vector (option A) o0))):
+    @compileError (vector (option A) i → @runtimeError (vector (option A) o1)).
+  Proof.
+    assert(Decision(o0 ≡ o1)).
+    unfold Decision. decide equality.
+    case H.
+    intros.
+    rewrite <- e. 
+    assumption.
+    intros.
+    right.
+    exact "Incompatible vector dimensions".
+  Qed.
   
-  Definition evalScatHUnion
+  Definition semScatHUnion
+             (i o: nat)
              (st:state)
              (ai ao base pad:aexp):
-    (svector A i) -> (@maybeError (svector A o)) :=
+    (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
     match (evalAexp st ai) with
-    | Error msg => fun _ => Error msg
-    | OK ni =>
+    | CompileError msg => CompileError msg
+    | CompileOK ni =>
       match (evalAexp st ao) with
-      | Error msg => Error msg
-      | OK no => 
+      | CompileError msg => CompileError msg
+      | CompileOK no => 
         match (evalAexp st base) with
-        | Error msg => Error msg
-        | OK nbase => 
+        | CompileError msg => CompileError msg
+        | CompileOK nbase => 
           match (evalAexp st pad) with
-          | Error msg => Error msg
-          | OK npad =>
+          | CompileError msg => CompileError msg
+          | CompileOK npad =>
             if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
-              (cast_lift_operator
-                 ni (nbase + S npad * ni)
-                 i o
-                 (fun dv =>
-                    match (try_vector_from_svector dv) with
-                    | OK x => ScatHUnion (A:=A) (n:=ni) nbase npad x
-                    | Error msg => Error "ScatHUnion expects dense vector!"
-                    end)
-              )
+              ugly_cast i (nbase + S npad* i) o
+                        (CompileOK
+                           (fun dv =>
+                              match (try_vector_from_svector dv) with
+                              | OK x => RuntimeOK (ScatHUnion (A:=A) (n:=i) nbase npad x) 
+                              | Error msg => RuntimeError "ScatHUnion expects dense vector!"
+                              end))
             else
-              Error "input and output sizes of OHScatHUnion do not match"
+              CompileError "input and output sizes of OHScatHUnion do not match"
           end
         end
       end

@@ -26,17 +26,17 @@ Import VectorNotations.
 
 Section Error.
   (* Error type *)
-  Inductive maybeError {T:Type}: Type :=
-  | OK : T → @maybeError T
-  | Error: string -> @maybeError T.
+  Inductive maybeError {A:Type}: Type :=
+  | OK : A → @maybeError A
+  | Error: string -> @maybeError A.
   
-  Definition is_Error {T:Type}  (x:@maybeError T) :=
+  Definition is_Error {A:Type}  (x:@maybeError A) :=
     match x with
     | OK _ => False
     | Error _ => True
     end.
   
-  Definition is_OK {T:Type}  (x:@maybeError T) :=
+  Definition is_OK {A:Type}  (x:@maybeError A) :=
     match x with
     | OK _ => True
     | Error _ => False
