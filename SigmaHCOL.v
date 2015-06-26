@@ -153,13 +153,13 @@ Section SigmaHCOL_language.
   | AMinus : aexp → aexp → aexp
   | AMult : aexp → aexp → aexp.
   
-  Inductive SOperator: aexp -> aexp-> Type :=
-  | SHAScatHUnion {i o:aexp} (base pad:aexp): SOperator i o 
-  | SHAGathH (i n base stride: aexp): SOperator i n 
-  | SHABinOp {i o:aexp} (f: A->A->A): SOperator i o 
+  Inductive SOperator {i o:aexp}: Type :=
+  | SHAScatHUnion (base pad:aexp): SOperator
+  | SHAGathH (base stride: aexp): SOperator
+  | SHABinOp (f: A->A->A): SOperator
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose i o {ai ao} {bi bo}: SOperator ai ao -> SOperator bi bo -> SOperator i o
-  | SHAISumUnion {i o: aexp} (v:varname) (r:aexp) : SOperator i o  -> SOperator i o
+  | SHACompose: SOperator -> SOperator -> SOperator
+  | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
   .
     
   Definition state := varname -> @maybeError nat.
@@ -194,6 +194,7 @@ Section SigmaHCOL_language.
   Set Printing Implicit.
 
 
+(*
 Definition cast_lift_operator
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
@@ -208,13 +209,14 @@ Definition cast_lift_operator
     left. assumption.
     right. exact "incompatible arguments".
   Defined.
+ *)
   
-  Definition semScatHUnion {i o:nat}
+  Definition evalScatHUnion
              (st:state)
              (ai ao base pad:aexp):
-    @maybeError ((svector A i) -> (svector A o)) :=
+    (svector A i) -> (@maybeError (svector A o)) :=
     match (evalAexp st ai) with
-    | Error msg => Error msg
+    | Error msg => fun _ => Error msg
     | OK ni =>
       match (evalAexp st ao) with
       | Error msg => Error msg
@@ -229,9 +231,11 @@ Definition cast_lift_operator
               (cast_lift_operator
                  ni (nbase + S npad * ni)
                  i o
-                 (compose
-                    (ScatHUnion (A:=A) (n:=ni) nbase npad)
-                    (DenseCast))
+                 (fun dv =>
+                    match (try_vector_from_svector dv) with
+                    | OK x => ScatHUnion (A:=A) (n:=ni) nbase npad x
+                    | Error msg => Error "ScatHUnion expects dense vector!"
+                    end)
               )
             else
               Error "input and output sizes of OHScatHUnion do not match"
