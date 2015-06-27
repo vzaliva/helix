@@ -247,31 +247,19 @@ Section SigmaHCOL_language.
              (st:state)
              (ai ao base pad:aexp):
     (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
-    match (evalAexp st ai) with
-    | CompileError msg => CompileError msg
-    | CompileOK ni =>
-      match (evalAexp st ao) with
-      | CompileError msg => CompileError msg
-      | CompileOK no => 
-        match (evalAexp st base) with
-        | CompileError msg => CompileError msg
-        | CompileOK nbase => 
-          match (evalAexp st pad) with
-          | CompileError msg => CompileError msg
-          | CompileOK npad =>
-            if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
-              ugly_cast i (nbase + S npad* i) o
-                        (CompileOK
-                           (fun dv =>
-                              match (try_vector_from_svector dv) with
-                              | OK x => RuntimeOK (ScatHUnion (A:=A) (n:=i) nbase npad x) 
-                              | Error msg => RuntimeError "ScatHUnion expects dense vector!"
-                              end))
-            else
-              CompileError "input and output sizes of OHScatHUnion do not match"
-          end
-        end
-      end
+    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
+    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK npad =>
+      if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
+        ugly_cast i (nbase + S npad* i) o
+                  (CompileOK
+                     (fun dv =>
+                        match (try_vector_from_svector dv) with
+                        | OK x => RuntimeOK (ScatHUnion (A:=A) (n:=i) nbase npad x) 
+                        | Error msg => RuntimeError "ScatHUnion expects dense vector!"
+                        end))
+      else
+        CompileError "input and output sizes of OHScatHUnion do not match"
+    | _ , _, _, _ => CompileError "Undefined variables in ScatHUnion arguments"
     end.
 
   Definition compileGathH
@@ -279,29 +267,17 @@ Section SigmaHCOL_language.
              (st:state)
              (ai ao base stride:aexp) {t:nat}:
     (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
-      match (evalAexp st ai) with
-      | CompileError msg => CompileError msg
-      | CompileOK ni =>
-        match (evalAexp st ao) with
-        | CompileError msg => CompileError msg
-        | CompileOK no => 
-          match (evalAexp st base) with
-          | CompileError msg => CompileError msg
-          | CompileOK nbase => 
-            match (evalAexp st stride) with
-            | CompileError msg => CompileError msg
-            | CompileOK nstride => 
-              if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
-                (CompileOK
-                   (fun v => RuntimeOK (GathH (A:=option A) o nbase nstride v)
-                ))
-              else
-                CompileError "input and output sizes of SHAGathH do not match"
-            end
-          end
-        end
-      end.
-      
+    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
+    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK nstride => 
+      if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
+        (CompileOK
+           (fun v => RuntimeOK (GathH (A:=option A) o nbase nstride v)
+        ))
+      else
+        CompileError "input and output sizes of SHAGathH do not match"
+    | _ , _, _, _ => CompileError "Undefined variables in GathH arguments"
+    end.
+  
               (*ugly_cast i (nbase + S npad* i) o
                          *)
     
