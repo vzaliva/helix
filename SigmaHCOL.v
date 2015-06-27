@@ -265,10 +265,14 @@ Section SigmaHCOL_language.
   Definition compileGathH
              (i o: nat)
              (st:state)
-             (ai ao base stride:aexp) {t:nat}:
+             (ai ao base stride:aexp):
     (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
-    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK nstride => 
+    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK nstride =>
+
+      (* TODO: calculate 't' from 'i' size *)
+      (* TODO: check 0 ≢ stride *)
+
       if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
         (CompileOK
            (fun v => RuntimeOK (GathH (A:=option A) o nbase nstride v)
