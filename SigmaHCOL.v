@@ -274,13 +274,46 @@ Section SigmaHCOL_language.
       end
     end.
 
+  Definition compileGathH
+             (i o: nat)
+             (st:state)
+             (ai ao base stride:aexp) {t:nat}:
+    (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
+      match (evalAexp st ai) with
+      | CompileError msg => CompileError msg
+      | CompileOK ni =>
+        match (evalAexp st ao) with
+        | CompileError msg => CompileError msg
+        | CompileOK no => 
+          match (evalAexp st base) with
+          | CompileError msg => CompileError msg
+          | CompileOK nbase => 
+            match (evalAexp st stride) with
+            | CompileError msg => CompileError msg
+            | CompileOK nstride => 
+              if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
+                (CompileOK
+                   (fun v => RuntimeOK (GathH (A:=option A) o nbase nstride v)
+                ))
+              else
+                CompileError "input and output sizes of SHAGathH do not match"
+            end
+          end
+        end
+      end.
+      
+              (*ugly_cast i (nbase + S npad* i) o
+                         *)
+    
+  (*   Program Definition GathH {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n *)
   
+                                                                             
   Fixpoint compile {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
     : @compileError ((svector A i) -> (@runtimeError (svector A o))) :=
     match op with
     | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
-    | SHAGathH base stride => CompileError "TODO"
+    | SHAGathH base stride => compileGathH  i o st ai ao base stride
     | SHABinOp f => CompileError "TODO"
     | SHACompose f g => CompileError "TODO"
     | SHAISumUnion r x op => CompileError "TODO"
