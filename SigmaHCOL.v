@@ -32,14 +32,14 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
   match n with
   | O => fun _ _ => OK (@Vnil (option A))
   | (S _) => fun a b =>
-               match (SparseUnion (Vtail a) (Vtail b)) as t with
-               | Error msg => Error msg
-               | OK xs =>
-                 match (Vhead a), (Vhead b) with
-                 |  Some _, Some _ => Error "incompatible values"
-                 |  None, None as x | None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
-                 end
-               end
+              match (SparseUnion (Vtail a) (Vtail b)) as t with
+              | Error msg => Error msg
+              | OK xs =>
+                match (Vhead a), (Vhead b) with
+                |  Some _, Some _ => Error "incompatible values"
+                |  None, None as x | None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
+                end
+              end
   end.
 
 Module SigmaHCOL_Operators.
@@ -48,8 +48,8 @@ Module SigmaHCOL_Operators.
   Program Fixpoint GathH_0 {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
     let stride := S s in (
       match n return vector A ((n*stride)+t) -> vector A n with
-        | O => fun _ => Vnil
-        | S p => fun a => Vcons (Vhead a) (GathH_0 p s (t0:=t) (drop_plus stride a))
+      | O => fun _ => Vnil
+      | S p => fun a => Vcons (Vhead a) (GathH_0 p s (t0:=t) (drop_plus stride a))
       end).
   Next Obligation.
     lia.
@@ -88,11 +88,11 @@ Defined.
             match n as m return m=n -> _ with
             | O =>  fun _ _ => (fun _ => _) Vnil
             | S p => fun H1 a =>
-                       let aa := (fun _ => _) a in
-                       let hh := Some (Vhead aa) in
-                       let tt := ScatHUnion_0 A p pad (Vtail aa) in
-                       let ttt := Vector.append (Vector.const None pad) tt in
-                       (fun _ => _) (Vcons hh ttt)
+                      let aa := (fun _ => _) a in
+                      let hh := Some (Vhead aa) in
+                      let tt := ScatHUnion_0 A p pad (Vtail aa) in
+                      let ttt := Vector.append (Vector.const None pad) tt in
+                      (fun _ => _) (Vcons hh ttt)
             end
               (eq_refl _)
           );
@@ -125,7 +125,7 @@ ISumUnion(i3, 2,
   GathH(4, 2, i3, 2)
 )
 
-*)  
+ *)  
 
 
 Section SigmaHCOL_language.
@@ -171,9 +171,9 @@ Section SigmaHCOL_language.
   | SHACompose: SOperator -> SOperator -> SOperator
   | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
   .
-    
+  
   Definition state := varname -> @compileError nat.
-    
+  
   Definition empty_state: state :=
     fun x =>
       match x with 
@@ -187,9 +187,9 @@ Section SigmaHCOL_language.
     match a with
     | CompileError msg => CompileError msg
     | CompileOK an => match b with
-               | CompileError msg => CompileError msg
-               | CompileOK bn => CompileOK (op bn an)
-               end
+                     | CompileError msg => CompileError msg
+                     | CompileOK bn => CompileOK (op bn an)
+                     end
     end.
   
   Fixpoint evalAexp (st:state) (e:aexp): @compileError nat :=
@@ -201,7 +201,9 @@ Section SigmaHCOL_language.
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
-Definition cast_lift_operator
+  Set Printing Implicit.
+
+  Definition cast_lift_operator
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
              (f: (svector A i0) -> (svector A o0))  : @compileError ((svector A i1) -> (svector A o1)).
@@ -215,15 +217,15 @@ Definition cast_lift_operator
     left. assumption.
     right. exact "incompatible arguments".
   Defined.
-
+  
   (* TODO: better name *)
   Definition add_runtime_error_err
-            (i:nat) (o:nat)
-            (f: (svector A i) -> (svector A o))  : (svector A i) -> (@runtimeError (svector A o)) :=
+             (i:nat) (o:nat)
+             (f: (svector A i) -> (svector A o))  : (svector A i) -> (@runtimeError (svector A o)) :=
     fun v => RuntimeOK (f v).
+  
 
-
-  Set Printing Implicit.
+  (* TODO: better name *)
   Definition ugly_cast
              (i o0 o1:nat)
              (f: @compileError (vector (option A) i → @runtimeError (vector (option A) o0))):
@@ -271,19 +273,20 @@ Definition cast_lift_operator
         end
       end
     end.
+
   
   Fixpoint compile {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
     : @compileError ((svector A i) -> (@runtimeError (svector A o))) :=
-      match op with
-      | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
-      | SHAGathH base stride => CompileError "TODO"
-      | SHABinOp f => CompileError "TODO"
-      | SHACompose f g => CompileError "TODO"
-      | SHAISumUnion r x op => CompileError "TODO"
-      end.
-        
-    
+    match op with
+    | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
+    | SHAGathH base stride => CompileError "TODO"
+    | SHABinOp f => CompileError "TODO"
+    | SHACompose f g => CompileError "TODO"
+    | SHAISumUnion r x op => CompileError "TODO"
+    end.
+  
+  
 End SigmaHCOL_language.
 
 Section SigmaHCOL_language_tests.
@@ -299,5 +302,5 @@ End SigmaHCOL_language_tests.
 
 
 
-  
-  
+
+
