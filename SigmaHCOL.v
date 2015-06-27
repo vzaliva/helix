@@ -240,7 +240,7 @@ Definition cast_lift_operator
     exact "Incompatible vector dimensions".
   Qed.
   
-  Definition semScatHUnion
+  Definition compileScatHUnion
              (i o: nat)
              (st:state)
              (ai ao base pad:aexp):
@@ -272,29 +272,15 @@ Definition cast_lift_operator
       end
     end.
   
-  (* 
-Compute denotational semantics of SOperator expresssion.
-Not all expressions have semantics, and in ths case this function
-returns 'Error', which means that given expression is incorrect.
-
-Unfortuntatelly not all compiled expressions return valid vector due
-to sparcity. Access to sparse vector elements or `SparseUnion` could
-give runtime errors, not detectable at this stage.  
-
-A separate proofs could be provided guaranteeing that given SOperator
-expression never returns 'Error' or, for example, that it returns
-dense (non-sparse) vector.
-   *)
-  
-  Fixpoint sem {ai ao: aexp} {i o:nat}
-           (st:state) (op: (SOperator ai ao))
-    : @maybeError ((svector A i) -> (@maybeError (svector A o))) :=
-      match  op with
-      | SHAScatHUnion i o base pad => Error "TODO"
-      | SHAGathH i n base stride => Error "TODO"
-      | SHABinOp i o f => Error "TODO"
-      | SHACompose i o ai ao bi bo x x0 => Error "TODO"
-      | SHAISumUnion i o v r x => Error "TODO"
+  Fixpoint compile {ai ao: aexp} {i o:nat}
+           (st:state) (op: @SOperator ai ao)
+    : @compileError ((svector A i) -> (@runtimeError (svector A o))) :=
+      match op with
+      | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
+      | SHAGathH base stride => CompileError "TODO"
+      | SHABinOp f => CompileError "TODO"
+      | SHACompose f g => CompileError "TODO"
+      | SHAISumUnion r x op => CompileError "TODO"
       end.
         
     
