@@ -6,6 +6,9 @@ Require Import HCOL.
 
 Require Import ArithRing.
 Require Import Coq.Arith.EqNat.
+Require Import Coq.Arith.Le.
+Require Import Coq.Arith.Plus.
+Require Import Coq.Arith.Minus.
 Require Import Coq.Bool.Bool.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
@@ -55,6 +58,26 @@ Module SigmaHCOL_Operators.
     lia.
   Defined.
 
+  (* TODO: move to Spiral.v *)
+  Lemma nez2gt: forall n, 0 ≢ n -> gt n 0.
+  Proof.
+    crush.
+  Defined.
+  
+  (* no base. actual stride value  *)
+  Program Fixpoint GathH_1 {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
+      match n return vector A ((n*stride)+t) -> vector A n with
+      | O => fun _ => Vnil
+      | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH_1 p stride (t0:=t) (snz:=snz) (drop_plus stride a))
+      end.
+  Next Obligation.
+    apply nez2gt in snz.
+    lia.
+  Defined.
+  Next Obligation.
+    lia.
+  Defined.
+  
   Program Definition GathH {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
     GathH_0 n (pred stride) (t0:=t) (drop_plus base v).
   Next Obligation.
@@ -64,6 +87,37 @@ Module SigmaHCOL_Operators.
     lia.
   Defined.
 
+  Open Local Scope nat_scope.
+
+  (* TODO: move *)
+  Lemma le_mius_minus : forall a b c, a>=(b+c) -> a-b-c ≡ a - (b+c).
+  Proof.
+    intros.
+    omega.
+  Qed.
+  
+  Program Definition GathH1 {A: Type}
+          (i n base stride: nat)
+          {snz: 0%nat ≢ stride}
+          {oc: le (base+n*stride) i}
+          (v: vector A i) : vector A n :=
+    @GathH_1 A (i-base-n*stride) n stride snz (drop_plus base v).
+  Next Obligation.
+    revert oc.
+    generalize  (n*stride) as p.
+    intros.
+    rename base into b.
+    clear snz v stride A n.
+    rewrite Plus.plus_assoc.
+    rewrite le_mius_minus.
+    revert oc.
+    generalize (b+p) as u.
+    intros.
+    rewrite  le_plus_minus_r.
+    reflexivity.
+    assumption.
+    tauto.
+  Qed.
   Section Coq84Workaround.
     
     (* 
