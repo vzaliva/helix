@@ -58,12 +58,6 @@ Module SigmaHCOL_Operators.
     lia.
   Defined.
 
-  (* TODO: move to Spiral.v *)
-  Lemma nez2gt: forall n, 0 ≢ n -> gt n 0.
-  Proof.
-    crush.
-  Defined.
-  
   (* no base. actual stride value  *)
   Program Fixpoint GathH_1 {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
       match n return vector A ((n*stride)+t) -> vector A n with
@@ -89,13 +83,6 @@ Module SigmaHCOL_Operators.
 
   Open Local Scope nat_scope.
 
-  (* TODO: move *)
-  Lemma le_mius_minus : forall a b c, a>=(b+c) -> a-b-c ≡ a - (b+c).
-  Proof.
-    intros.
-    omega.
-  Qed.
-  
   Program Definition GathH1 {A: Type}
           (i n base stride: nat)
           {snz: 0%nat ≢ stride}
@@ -118,9 +105,10 @@ Module SigmaHCOL_Operators.
     assumption.
     tauto.
   Qed.
+  Close Local Scope nat_scope.
+
   Section Coq84Workaround.
-    
-    (* 
+      (* 
 This section is workaround for Coq 8.4 bug in Program construct. under Coq 8.5 
 the following definition suffice:
 

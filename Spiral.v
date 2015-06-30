@@ -969,5 +969,20 @@ Proof.
   tauto.
 Qed.
 
+Open Local Scope nat_scope.
+Lemma le_mius_minus : forall a b c, a>=(b+c) -> a-b-c ≡ a - (b+c).
+Proof.
+  intros.
+  omega.
+Qed.
+
+Lemma nez2gt: forall n, 0 ≢ n -> gt n 0.
+Proof.
+  intros.
+  omega.
+Defined.
+
+Close Local Scope nat_scope.
+
 Close Scope vector_scope.
 
