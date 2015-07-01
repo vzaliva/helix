@@ -299,8 +299,14 @@ Section SigmaHCOL_language.
       end
     | _ , _, _, _ => Error "Undefined variables in GathH arguments"
     end.
-  
-  
+
+  Definition evalBinOp (o: nat) (f: A->A->A) (v: svector A (o+o)):
+    @maybeError (svector A (o)) :=
+    match (try_vector_from_svector v) with
+    | Error msg => Error "OHScatHUnion expects dense vector!"
+    | OK x => (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o)) x
+    end.
+
   Fixpoint eval {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o) :=
