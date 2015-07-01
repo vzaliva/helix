@@ -173,16 +173,6 @@ ISumUnion(i3, 2,
 Section SigmaHCOL_language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
-  Section Errors.
-    Inductive compileError {A:Type}: Type :=
-    | CompileOK : A → @compileError A
-    | CompileError: string -> @compileError A.
-    
-    Inductive runtimeError {A:Type}: Type :=
-    | RuntimeOK : A → @runtimeError A
-    | RuntimeError: string -> @runtimeError A.    
-  End Errors.
-  
   Context {A:Type} {Ae: Equiv A}.
   
   Inductive varname : Type :=
@@ -214,29 +204,29 @@ Section SigmaHCOL_language.
   | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
   .
   
-  Definition state := varname -> @compileError nat.
+  Definition state := varname -> @maybeError nat.
   
   Definition empty_state: state :=
     fun x =>
       match x with 
-      | (Var n) => CompileError ("variable " ++ n ++ " not found")
+      | (Var n) => Error ("variable " ++ n ++ " not found")
       end.
   
   Definition update (st : state) (x : varname) (n : nat) : state :=
-    fun x' => if eq_varname_dec x x' then CompileOK n else st x'.
+    fun x' => if eq_varname_dec x x' then OK n else st x'.
 
-  Definition eval_mayberr_binop (a: @compileError nat) (b: @compileError nat) (op: nat->nat->nat) :=
+  Definition eval_mayberr_binop (a: @maybeError nat) (b: @maybeError nat) (op: nat->nat->nat) :=
     match a with
-    | CompileError msg => CompileError msg
-    | CompileOK an => match b with
-                     | CompileError msg => CompileError msg
-                     | CompileOK bn => CompileOK (op bn an)
+    | Error msg => Error msg
+    | OK an => match b with
+                     | Error msg => Error msg
+                     | OK bn => OK (op bn an)
                      end
     end.
   
-  Fixpoint evalAexp (st:state) (e:aexp): @compileError nat :=
+  Fixpoint evalAexp (st:state) (e:aexp): @maybeError nat :=
     match e  with
-    | ANum x => CompileOK x
+    | ANum x => OK x
     | AName x => st x
     | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) plus
     | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
@@ -248,7 +238,7 @@ Section SigmaHCOL_language.
   Definition cast_lift_operator
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
-             (f: (svector A i0) -> (svector A o0))  : @compileError ((svector A i1) -> (svector A o1)).
+             (f: (svector A i0) -> (svector A o0))  : @maybeError ((svector A i1) -> (svector A o1)).
   Proof.
     assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
     (repeat apply and_dec); unfold Decision; decide equality.
@@ -259,49 +249,42 @@ Section SigmaHCOL_language.
     left. assumption.
     right. exact "incompatible arguments".
   Defined.
-  
-  (* TODO: better name *)
-  Definition add_runtime_error_err
-             (i:nat) (o:nat)
-             (f: (svector A i) -> (svector A o))  : (svector A i) -> (@runtimeError (svector A o)) :=
-    fun v => RuntimeOK (f v).
-  
 
-  (* TODO: better name *)
-  Definition ugly_cast
+  Definition vector_rel_o_cast
+             {B C: Type}
              (i o0 o1:nat)
-             (f: @compileError (vector (option A) i → @runtimeError (vector (option A) o0))):
-    @compileError (vector (option A) i → @runtimeError (vector (option A) o1)).
+             (f: ((vector B i) → @maybeError (vector C o0))):
+    (vector B i → @maybeError (vector C o1)).
   Proof.
     assert(Decision(o0 ≡ o1)).
     unfold Decision. decide equality.
     case H.
-    intros.
-    rewrite <- e. 
+    intros E.
+    rewrite <- E.
     assumption.
-    intros.
+    intros NE.
     right.
     exact "Incompatible vector dimensions".
-  Qed.
+  Defined.
   
-  Definition compileScatHUnion
+  Definition evalScatHUnion
              (i o: nat)
              (st:state)
-             (ai ao base pad:aexp):
-    (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
+             (ai ao base pad:aexp)
+             (v:svector A i):
+    (@maybeError (svector A o)) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
-    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK npad =>
-      if beq_nat i ni && beq_nat o no && beq_nat no (nbase + S npad * ni) then
-        ugly_cast i (nbase + S npad* i) o
-                  (CompileOK
-                     (fun dv =>
-                        match (try_vector_from_svector dv) with
-                        | OK x => RuntimeOK (ScatHUnion (A:=A) (n:=i) nbase npad x) 
-                        | Error msg => RuntimeError "ScatHUnion expects dense vector!"
-                        end))
+    | OK ni, OK no, OK nbase, OK npad =>
+      if beq_nat i ni && beq_nat o no && beq_nat o (nbase + S npad * i) then
+        match (try_vector_from_svector v) with
+        | Error msg => Error "ScatHUnion expects dense vector!"
+        | OK x => (vector_rel_o_cast
+                   i (nbase + S npad * i) o
+                   (fun a => OK (ScatHUnion (A:=A) (n:=i) nbase npad a))) x
+        end
       else
-        CompileError "input and output sizes of OHScatHUnion do not match"
-    | _ , _, _, _ => CompileError "Undefined variables in ScatHUnion arguments"
+        Error "input and output sizes of OHScatHUnion do not match"
+    | _ , _, _, _ => Error "Undefined variables in ScatHUnion arguments"
     end.
 
   (*
@@ -316,20 +299,20 @@ Section SigmaHCOL_language.
              (i o: nat)
              (st:state)
              (ai ao base stride:aexp):
-    (@compileError ((svector A i) -> (@runtimeError (svector A o)))) :=
+    (@maybeError ((svector A i) -> (@maybeError (svector A o)))) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
-    | CompileOK ni, CompileOK no, CompileOK nbase, CompileOK nstride =>
+    | OK ni, OK no, OK nbase, OK nstride =>
 
       (* TODO: calculate 't' from 'i' size *)
       (* TODO: check 0 ≢ stride *)
 
       if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
-        (CompileOK
-           (fun v => RuntimeOK (GathH (A:=option A) o nbase nstride v)
+        (OK
+           (fun v => OK (GathH (A:=option A) o nbase nstride v)
         ))
       else
-        CompileError "input and output sizes of SHAGathH do not match"
-    | _ , _, _, _ => CompileError "Undefined variables in GathH arguments"
+        Error "input and output sizes of SHAGathH do not match"
+    | _ , _, _, _ => Error "Undefined variables in GathH arguments"
     end.
   
               (*ugly_cast i (nbase + S npad* i) o
@@ -340,13 +323,13 @@ Section SigmaHCOL_language.
                                                                              
   Fixpoint compile {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
-    : @compileError ((svector A i) -> (@runtimeError (svector A o))) :=
+    : @maybeError ((svector A i) -> (@maybeError (svector A o))) :=
     match op with
     | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
     | SHAGathH base stride => compileGathH  i o st ai ao base stride
-    | SHABinOp f => CompileError "TODO"
-    | SHACompose f g => CompileError "TODO"
-    | SHAISumUnion r x op => CompileError "TODO"
+    | SHABinOp f => Error "TODO"
+    | SHACompose f g => Error "TODO"
+    | SHAISumUnion r x op => Error "TODO"
     end.
   
   
