@@ -278,8 +278,8 @@ Section SigmaHCOL_language.
   Definition evalGathH
              (i o: nat)
              (st:state)
-             (ai ao base stride:aexp):
-    (@maybeError ((svector A i) -> (@maybeError (svector A o)))) :=
+             (ai ao base stride:aexp)
+             (v: svector A i):  @maybeError (svector A o) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
     | OK ni, OK no, OK nbase, OK nstride =>
       match (eq_nat_decide 0 nstride) with
@@ -289,12 +289,10 @@ Section SigmaHCOL_language.
         | right _ => Error "SHAGathH input size is too small for given params"
         | left oc =>
           if beq_nat i ni && beq_nat o no then
-            (OK
-               (fun v => OK (GathH (A:=option A)
-                                (snz:=(neq_nat_to_neq nsnz))
-                                (oc:=oc)
-                                i o nbase nstride v)
-            ))
+            OK (GathH (A:=option A)
+                      (snz:=(neq_nat_to_neq nsnz))
+                      (oc:=oc)
+                      i o nbase nstride v)
           else
             Error "input and output sizes of SHAGathH do not match"
         end
@@ -302,13 +300,13 @@ Section SigmaHCOL_language.
     | _ , _, _, _ => Error "Undefined variables in GathH arguments"
     end.
   
-                                                                             
-  Fixpoint compile {ai ao: aexp} {i o:nat}
+  
+  Fixpoint eval {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
-    : @maybeError ((svector A i) -> (@maybeError (svector A o))) :=
+           (v: svector A i): @maybeError (svector A o) :=
     match op with
-    | SHAScatHUnion base pad => compileScatHUnion i o st ai ao base pad
-    | SHAGathH base stride => compileGathH  i o st ai ao base stride
+    | SHAScatHUnion base pad => evalScatHUnion i o st ai ao base pad v
+    | SHAGathH base stride => evalGathH i o st ai ao base stride v
     | SHABinOp f => Error "TODO"
     | SHACompose f g => Error "TODO"
     | SHAISumUnion r x op => Error "TODO"
