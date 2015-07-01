@@ -235,10 +235,12 @@ Section SigmaHCOL_language.
 
   Set Printing Implicit.
 
-  Definition cast_lift_operator
+
+  Definition cast_vector_operator
+             {B C: Type}
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
-             (f: (svector A i0) -> (svector A o0))  : @maybeError ((svector A i1) -> (svector A o1)).
+             (f: (vector B i0) -> (@maybeError (vector C o0)))  :  ((vector B i1) -> (@maybeError (vector C o1))).
   Proof.
     assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
     (repeat apply and_dec); unfold Decision; decide equality.
@@ -246,26 +248,32 @@ Section SigmaHCOL_language.
     intros Ha.
     destruct Ha.
     rewrite <- H0, <- H1.
-    left. assumption.
-    right. exact "incompatible arguments".
+    assumption.
+    intros.
+    exact (Error "incompatible arguments").
   Defined.
 
-  Definition vector_rel_o_cast
-             {B C: Type}
-             (i o0 o1:nat)
-             (f: ((vector B i) → @maybeError (vector C o0))):
-    (vector B i → @maybeError (vector C o1)).
-  Proof.
-    assert(Decision(o0 ≡ o1)).
-    unfold Decision. decide equality.
-    case H.
-    intros E.
-    rewrite <- E.
-    assumption.
-    intros NE.
-    right.
-    exact "Incompatible vector dimensions".
-  Defined.
+  Definition evalScatHUnion
+             (i o: nat)
+             (st:state)
+             (ai ao base pad:aexp)
+             (v:svector A i):
+    (@maybeError (svector A o)) :=
+    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
+    | OK ni, OK no, OK nbase, OK npad =>
+      if beq_nat i ni && beq_nat o no then
+        match (try_vector_from_svector v) with
+        | Error msg => Error "ScatHUnion expects dense vector!"
+        | OK x => (cast_vector_operator
+                    i (nbase + S npad * i)
+                    i o
+                   (fun a => OK (ScatHUnion (A:=A) (n:=i) nbase npad a))) x
+        end
+      else
+        Error "input and output sizes of OHScatHUnion do not match"
+    | _ , _, _, _ => Error "Undefined variables in ScatHUnion arguments"
+    end.
+
   
   Definition evalScatHUnion
              (i o: nat)
