@@ -275,7 +275,7 @@ Section SigmaHCOL_language.
     (@maybeError (svector A o)) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
     | OK ni, OK no, OK nbase, OK npad =>
-      if beq_nat i ni && beq_nat o no && beq_nat o (nbase + S npad * i) then
+      if beq_nat i ni && beq_nat o no then
         match (try_vector_from_svector v) with
         | Error msg => Error "ScatHUnion expects dense vector!"
         | OK x => (vector_rel_o_cast
