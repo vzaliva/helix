@@ -48,21 +48,21 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 Module SigmaHCOL_Operators.
 
   (* zero - based, (stride-1) parameter *)
-  Program Fixpoint GathH_0 {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
+  Program Fixpoint GathH'_old {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
     let stride := S s in (
       match n return vector A ((n*stride)+t) -> vector A n with
       | O => fun _ => Vnil
-      | S p => fun a => Vcons (Vhead a) (GathH_0 p s (t0:=t) (drop_plus stride a))
+      | S p => fun a => Vcons (Vhead a) (GathH'_old p s (t0:=t) (drop_plus stride a))
       end).
   Next Obligation.
     lia.
   Defined.
 
   (* no base. actual stride value  *)
-  Program Fixpoint GathH_1 {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
+  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
       match n return vector A ((n*stride)+t) -> vector A n with
       | O => fun _ => Vnil
-      | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH_1 p stride (t0:=t) (snz:=snz) (drop_plus stride a))
+      | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
       end.
   Next Obligation.
     apply nez2gt in snz.
@@ -72,8 +72,8 @@ Module SigmaHCOL_Operators.
     lia.
   Defined.
   
-  Program Definition GathH {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
-    GathH_0 n (pred stride) (t0:=t) (drop_plus base v).
+  Program Definition GathH_old {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
+    GathH'_old n (pred stride) (t0:=t) (drop_plus base v).
   Next Obligation.
     destruct stride.
     contradiction snz. trivial.
@@ -83,12 +83,12 @@ Module SigmaHCOL_Operators.
 
   Open Local Scope nat_scope.
 
-  Program Definition GathH1 {A: Type}
+  Program Definition GathH {A: Type}
           (i n base stride: nat)
           {snz: 0%nat ≢ stride}
           {oc: le (base+n*stride) i}
           (v: vector A i) : vector A n :=
-    @GathH_1 A (i-base-n*stride) n stride snz (drop_plus base v).
+    @GathH' A (i-base-n*stride) n stride snz (drop_plus base v).
   Next Obligation.
     revert oc.
     generalize  (n*stride) as p.
