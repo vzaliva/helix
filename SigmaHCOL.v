@@ -262,13 +262,13 @@ Section SigmaHCOL_language.
     (@maybeError (svector A o)) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
     | OK ni, OK no, OK nbase, OK npad =>
-      if beq_nat i ni && beq_nat o no then
+      if beq_nat o no then
         match (try_vector_from_svector v) with
         | Error msg => Error "OHScatHUnion expects dense vector!"
         | OK x => (cast_vector_operator
-                    i (nbase + S npad * i)
+                    ni (nbase + S npad * ni)
                     i o
-                   (fun a => OK (ScatHUnion (A:=A) (n:=i) nbase npad a))) x
+                   (fun a => OK (ScatHUnion (A:=A) (n:=ni) nbase npad a))) x
         end
       else
         Error "input and output sizes of OHScatHUnion do not match"
