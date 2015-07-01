@@ -4,23 +4,14 @@ Require Import Spiral.
 Require Import SVector.
 Require Import HCOL.
 
-Require Import ArithRing.
-Require Import Coq.Arith.EqNat.
-Require Import Coq.Arith.Le.
-Require Import Coq.Arith.Plus.
-Require Import Coq.Arith.Compare_dec.
-Require Import Coq.Arith.Minus.
-Require Import Coq.Bool.Bool.
+Require Import Coq.Arith.EqNat Coq.Arith.Le Coq.Arith.Compare_dec.
+Require Import Coq.Arith.Plus Coq.Arith.Minus.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
-Require Import Program. (* compose *)
-Require Import Morphisms.
-Require Import RelationClasses.
-Require Import Relations.
 
 Require Import CpdtTactics.
 Require Import CaseNaming.
-Require Import Psatz.
+ Require Import Psatz.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -56,7 +47,7 @@ Module SigmaHCOL_Operators.
       | S p => fun a => Vcons (Vhead a) (GathH'_old p s (t0:=t) (drop_plus stride a))
       end).
   Next Obligation.
-    lia.
+    omega.
   Defined.
 
   (* no base. actual stride value  *)
@@ -70,7 +61,7 @@ Module SigmaHCOL_Operators.
     lia.
   Defined.
   Next Obligation.
-    lia.
+    omega.
   Defined.
   
   Program Definition GathH_old {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
@@ -79,7 +70,7 @@ Module SigmaHCOL_Operators.
     destruct stride.
     contradiction snz. trivial.
     unfold pred.
-    lia.
+    omega.
   Defined.
 
   Open Local Scope nat_scope.
@@ -233,9 +224,6 @@ Section SigmaHCOL_language.
     | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
-
-  Set Printing Implicit.
-
 
   Definition cast_vector_operator
              {B C: Type}
