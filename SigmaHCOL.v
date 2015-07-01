@@ -201,7 +201,7 @@ Section SigmaHCOL_language.
   | SHAGathH (base stride: aexp): SOperator
   | SHABinOp (f: A->A->A): SOperator
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose: SOperator -> SOperator -> SOperator
+  | SHACompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
   | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
   .
   
@@ -322,6 +322,7 @@ Section SigmaHCOL_language.
     | _ , _ => Error "Undefined variables in GathH arguments"
     end.
 
+
   Fixpoint eval {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o) :=
@@ -329,7 +330,21 @@ Section SigmaHCOL_language.
     | SHAScatHUnion base pad => evalScatHUnion i o st ai ao base pad v
     | SHAGathH base stride => evalGathH i o st ai ao base stride v
     | SHABinOp f => evalBinOp i o st ai ao f v
-    | SHACompose f g => Error "TODO"
+    | SHACompose fi fo gi go f g =>
+      match (evalAexp st fi), (evalAexp st fo), (evalAexp st gi), (evalAexp st go), (evalAexp st ai), (evalAexp st ao) with
+      | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
+        if beq_nat i ni && beq_nat o no &&
+                   beq_nat ngi i && beq_nat nfo o &&
+                   beq_nat ngo nfi
+        then
+          match eval st g v with
+          | Error _ as e => e
+          | OK t => eval st f t
+          end
+        else
+          Error "Operators' dimensions in Compose does not match"
+      | _ , _, _, _, _, _ => Error "Undefined variables in Compose arguments"
+      end
     | SHAISumUnion r x op => Error "TODO"
     end.
   
