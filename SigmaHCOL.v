@@ -275,26 +275,6 @@ Section SigmaHCOL_language.
     end.
 
   
-  Definition evalScatHUnion
-             (i o: nat)
-             (st:state)
-             (ai ao base pad:aexp)
-             (v:svector A i):
-    (@maybeError (svector A o)) :=
-    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
-    | OK ni, OK no, OK nbase, OK npad =>
-      if beq_nat i ni && beq_nat o no then
-        match (try_vector_from_svector v) with
-        | Error msg => Error "ScatHUnion expects dense vector!"
-        | OK x => (vector_rel_o_cast
-                   i (nbase + S npad * i) o
-                   (fun a => OK (ScatHUnion (A:=A) (n:=i) nbase npad a))) x
-        end
-      else
-        Error "input and output sizes of OHScatHUnion do not match"
-    | _ , _, _, _ => Error "Undefined variables in ScatHUnion arguments"
-    end.
-
   (*
   GathH {A: Type}
           (i n base stride: nat)
