@@ -300,11 +300,26 @@ Section SigmaHCOL_language.
     | _ , _, _, _ => Error "Undefined variables in GathH arguments"
     end.
 
-  Definition evalBinOp (o: nat) (f: A->A->A) (v: svector A (o+o)):
-    @maybeError (svector A (o)) :=
-    match (try_vector_from_svector v) with
-    | Error msg => Error "OHScatHUnion expects dense vector!"
-    | OK x => (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o)) x
+  Definition evalBinOp
+             (i o: nat)
+             (st:state)
+             (ai ao: aexp)
+             (f: A->A->A) (v: svector A i):
+    @maybeError (svector A o) :=
+    match (evalAexp st ai), (evalAexp st ao) with
+    | OK ni, OK no =>
+      if beq_nat i ni && beq_nat o no then
+        match (try_vector_from_svector v) with
+        | Error msg => Error "OHScatHUnion expects dense vector!"
+        | OK x =>
+          (cast_vector_operator
+             (o+o) o
+             i o
+             (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
+        end
+      else
+        Error "input and output sizes of evalBinOp do not match"
+    | _ , _ => Error "Undefined variables in GathH arguments"
     end.
 
   Fixpoint eval {ai ao: aexp} {i o:nat}
@@ -313,7 +328,7 @@ Section SigmaHCOL_language.
     match op with
     | SHAScatHUnion base pad => evalScatHUnion i o st ai ao base pad v
     | SHAGathH base stride => evalGathH i o st ai ao base stride v
-    | SHABinOp f => Error "TODO"
+    | SHABinOp f => evalBinOp i o st ai ao f v
     | SHACompose f g => Error "TODO"
     | SHAISumUnion r x op => Error "TODO"
     end.
