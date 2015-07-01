@@ -984,5 +984,11 @@ Defined.
 
 Close Local Scope nat_scope.
 
+Lemma neq_nat_to_neq {a b:nat} (e: ¬eq_nat a b): a ≢ b.
+Proof.
+  crush.
+Defined.
+
+
 Close Scope vector_scope.
 

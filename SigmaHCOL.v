@@ -8,6 +8,7 @@ Require Import ArithRing.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Le.
 Require Import Coq.Arith.Plus.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Minus.
 Require Import Coq.Bool.Bool.
 Require Import Coq.Bool.BoolEq.
@@ -263,7 +264,7 @@ Section SigmaHCOL_language.
     | OK ni, OK no, OK nbase, OK npad =>
       if beq_nat i ni && beq_nat o no then
         match (try_vector_from_svector v) with
-        | Error msg => Error "ScatHUnion expects dense vector!"
+        | Error msg => Error "OHScatHUnion expects dense vector!"
         | OK x => (cast_vector_operator
                     i (nbase + S npad * i)
                     i o
@@ -274,39 +275,32 @@ Section SigmaHCOL_language.
     | _ , _, _, _ => Error "Undefined variables in ScatHUnion arguments"
     end.
 
-  
-  (*
-  GathH {A: Type}
-          (i n base stride: nat)
-          {snz: 0%nat ≢ stride}
-          {oc: le (base+n*stride) i}
-          (v: vector A i) : vector A n.
-   *)
-  
-  Definition compileGathH
+  Definition evalGathH
              (i o: nat)
              (st:state)
              (ai ao base stride:aexp):
     (@maybeError ((svector A i) -> (@maybeError (svector A o)))) :=
     match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
     | OK ni, OK no, OK nbase, OK nstride =>
-
-      (* TODO: calculate 't' from 'i' size *)
-      (* TODO: check 0 ≢ stride *)
-
-      if beq_nat i ni && beq_nat o no && beq_nat ni (nbase+o*nstride+t) then
-        (OK
-           (fun v => OK (GathH (A:=option A) o nbase nstride v)
-        ))
-      else
-        Error "input and output sizes of SHAGathH do not match"
+      match (eq_nat_decide 0 nstride) with
+      | left _ => Error "SHAGathH stride must not be 0"
+      | right nsnz =>
+        match (le_dec (nbase+o*nstride) i) with
+        | right _ => Error "SHAGathH input size is too small for given params"
+        | left oc =>
+          if beq_nat i ni && beq_nat o no then
+            (OK
+               (fun v => OK (GathH (A:=option A)
+                                (snz:=(neq_nat_to_neq nsnz))
+                                (oc:=oc)
+                                i o nbase nstride v)
+            ))
+          else
+            Error "input and output sizes of SHAGathH do not match"
+        end
+      end
     | _ , _, _, _ => Error "Undefined variables in GathH arguments"
     end.
-  
-              (*ugly_cast i (nbase + S npad* i) o
-                         *)
-    
-  (*   Program Definition GathH {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n *)
   
                                                                              
   Fixpoint compile {ai ao: aexp} {i o:nat}
