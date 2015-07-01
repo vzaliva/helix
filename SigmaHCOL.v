@@ -27,10 +27,10 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
   match n with
   | O => fun _ _ => OK (@Vnil (option A))
   | (S _) => fun a b =>
-              match (SparseUnion (Vtail a) (Vtail b)) as t with
+              match SparseUnion (Vtail a) (Vtail b) as t with
               | Error msg => Error msg
               | OK xs =>
-                match (Vhead a), (Vhead b) with
+                match Vhead a, Vhead b with
                 |  Some _, Some _ => Error "incompatible values"
                 |  None, None as x | None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
                 end
@@ -229,7 +229,8 @@ Section SigmaHCOL_language.
              {B C: Type}
              (i0:nat) (o0:nat)
              (i1:nat) (o1:nat)
-             (f: (vector B i0) -> (@maybeError (vector C o0)))  :  ((vector B i1) -> (@maybeError (vector C o1))).
+             (f: (vector B i0) -> (@maybeError (vector C o0))):
+    (vector B i1) -> (@maybeError (vector C o1)).
   Proof.
     assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
     (repeat apply and_dec); unfold Decision; decide equality.
@@ -247,11 +248,11 @@ Section SigmaHCOL_language.
              (st:state)
              (ai ao base pad:aexp)
              (v:svector A i):
-    (@maybeError (svector A o)) :=
-    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st pad) with
+    @maybeError (svector A o) :=
+    match evalAexp st ai, evalAexp st ao, evalAexp st base, evalAexp st pad with
     | OK ni, OK no, OK nbase, OK npad =>
       if beq_nat o no then
-        match (try_vector_from_svector v) with
+        match try_vector_from_svector v with
         | Error msg => Error "OHScatHUnion expects dense vector!"
         | OK x => (cast_vector_operator
                     ni (nbase + S npad * ni)
@@ -268,12 +269,12 @@ Section SigmaHCOL_language.
              (st:state)
              (ai ao base stride:aexp)
              (v: svector A i):  @maybeError (svector A o) :=
-    match (evalAexp st ai), (evalAexp st ao), (evalAexp st base), (evalAexp st stride) with
+    match evalAexp st ai, evalAexp st ao, evalAexp st base, evalAexp st stride with
     | OK ni, OK no, OK nbase, OK nstride =>
-      match (eq_nat_decide 0 nstride) with
+      match eq_nat_decide 0 nstride with
       | left _ => Error "SHAGathH stride must not be 0"
       | right nsnz =>
-        match (le_dec (nbase+o*nstride) i) with
+        match le_dec (nbase+o*nstride) i with
         | right _ => Error "SHAGathH input size is too small for given params"
         | left oc =>
           if beq_nat i ni && beq_nat o no then
@@ -294,10 +295,10 @@ Section SigmaHCOL_language.
              (ai ao: aexp)
              (f: A->A->A) (v: svector A i):
     @maybeError (svector A o) :=
-    match (evalAexp st ai), (evalAexp st ao) with
+    match evalAexp st ai, evalAexp st ao with
     | OK ni, OK no =>
       if beq_nat i ni && beq_nat o no then
-        match (try_vector_from_svector v) with
+        match try_vector_from_svector v with
         | Error msg => Error "OHScatHUnion expects dense vector!"
         | OK x =>
           (cast_vector_operator
@@ -319,7 +320,7 @@ Section SigmaHCOL_language.
     | SHAGathH base stride => evalGathH st ai ao base stride v
     | SHABinOp f => evalBinOp st ai ao f v
     | SHACompose fi fo gi go f g =>
-      match (evalAexp st fi), (evalAexp st fo), (evalAexp st gi), (evalAexp st go), (evalAexp st ai), (evalAexp st ao) with
+      match evalAexp st fi, evalAexp st fo, evalAexp st gi, evalAexp st go, evalAexp st ai, evalAexp st ao with
       | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
         if beq_nat i ni && beq_nat o no &&
                    beq_nat ngi i && beq_nat nfo o &&
