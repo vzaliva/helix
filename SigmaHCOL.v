@@ -122,7 +122,7 @@ Next Obligation.
 Defined.
      *)
     
-    Open Scope nat_scope.
+    Open Local Scope nat_scope.
     
     Fixpoint ScatHUnion_0 (A:Type) (n:nat) (pad:nat) {struct n}:
       vector A n -> svector A ((S pad)*n).
@@ -144,7 +144,7 @@ Defined.
       eauto.        
     Defined.
     
-    Close Scope nat_scope.
+    Close Local Scope nat_scope.
   End Coq84Workaround.
   
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
@@ -304,6 +304,14 @@ Section SigmaHCOL_language.
     | _ , _, _, _ => CompileError "Undefined variables in ScatHUnion arguments"
     end.
 
+  (*
+  GathH {A: Type}
+          (i n base stride: nat)
+          {snz: 0%nat ≢ stride}
+          {oc: le (base+n*stride) i}
+          (v: vector A i) : vector A n.
+   *)
+  
   Definition compileGathH
              (i o: nat)
              (st:state)
