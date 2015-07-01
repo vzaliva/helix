@@ -243,7 +243,7 @@ Section SigmaHCOL_language.
   Defined.
 
   Definition evalScatHUnion
-             (i o: nat)
+             {i o: nat}
              (st:state)
              (ai ao base pad:aexp)
              (v:svector A i):
@@ -264,7 +264,7 @@ Section SigmaHCOL_language.
     end.
 
   Definition evalGathH
-             (i o: nat)
+             {i o: nat}
              (st:state)
              (ai ao base stride:aexp)
              (v: svector A i):  @maybeError (svector A o) :=
@@ -289,7 +289,7 @@ Section SigmaHCOL_language.
     end.
 
   Definition evalBinOp
-             (i o: nat)
+             {i o: nat}
              (st:state)
              (ai ao: aexp)
              (f: A->A->A) (v: svector A i):
@@ -315,9 +315,9 @@ Section SigmaHCOL_language.
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o) :=
     match op with
-    | SHAScatHUnion base pad => evalScatHUnion i o st ai ao base pad v
-    | SHAGathH base stride => evalGathH i o st ai ao base stride v
-    | SHABinOp f => evalBinOp i o st ai ao f v
+    | SHAScatHUnion base pad => evalScatHUnion st ai ao base pad v
+    | SHAGathH base stride => evalGathH st ai ao base stride v
+    | SHABinOp f => evalBinOp st ai ao f v
     | SHACompose fi fo gi go f g =>
       match (evalAexp st fi), (evalAexp st fo), (evalAexp st gi), (evalAexp st go), (evalAexp st ai), (evalAexp st ao) with
       | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
