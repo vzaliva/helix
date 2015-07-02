@@ -192,9 +192,28 @@ Section SigmaHCOL_Language.
   (* --- HCOL basic operators --- *)
   | SHOScatHUnion {i o} (base pad:aexp): SOperator i o
   | SHOGathH {i o} (base stride: aexp): SOperator i o
+  (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
   (* --- lifted HCOL operators --- *)
   | SHOInfinityNorm {i}: SOperator i 1
+  | SOReduction i (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (idv:A): SOperator i 1
+
+  (* TODO:
+  | HOPrepend i {n} (a:vector A n): HOperator i (n+i)
+  | HOAppend i {n} (a:vector A n): HOperator i (n+i)
+  | HOVMinus o: HOperator (o + o) o
+  | HOPointWise2 o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: HOperator (o+o) o
+  | HOLess o: HOperator (o+o) o
+  | HOEvalPolynomial {n} (a:vector A n): HOperator 1 1
+  | HOMonomialEnumerator n: HOperator 1 (S n)
+  | HOChebyshevDistance h: HOperator (h+h) 1
+  | HOScalarProd {h:nat}: HOperator (h+h) 1
+  | HOInduction n (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (initial:A): HOperator 1 n
+  | HOCross i1 o1 i2 o2:  HOperator i1 o1 -> HOperator i2 o2 -> HOperator (i1+i2) (o1+o2)
+  | HOTLess i1 i2 o: HOperator i1 o -> HOperator i2 o -> HOperator (i1+i2) o
+  | HOStack i o1 o2: HOperator i o1 -> HOperator i o2 -> HOperator i (o1+o2)
+   *)
+                                   
   (* TODO: All HCOL operators but with aexpes instead of nums *)
   (* --- HCOL compositional operators --- *)
   | SHOCompose i {t} o: SOperator t o -> SOperator i t -> SOperator i o
@@ -332,6 +351,20 @@ Section SigmaHCOL_Eval.
       (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
     end.
 
+  Definition evalReduction
+             {i: nat}
+             (st:state)
+             (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (idv:A)
+             (v: svector A i):
+    @maybeError (svector A 1) :=
+    match try_vector_from_svector v with
+    | Error _ => Error "Reduction expects dense vector!"
+    | OK dv =>
+      let h := HOReduction i f idv in
+      (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
+    end.
+  
   Definition evalSigmaHCOL:
     forall {i o:nat}, state-> SOperator i o -> svector A i -> @maybeError (svector A o) :=
     fix evalSigmaHCOL {i o: nat} st (op: SOperator i o) v :=           
@@ -368,6 +401,7 @@ Section SigmaHCOL_Eval.
        | SHOGathH _ _ base stride => evalGathH st base stride
        | SHOBinOp _ f _ => evalBinOp st f
        | SHOInfinityNorm _ => evalInfinityNorm st
+       | SOReduction _ f pf idv => evalReduction st f idv
        end) v.
   
 End SigmaHCOL_Eval.
