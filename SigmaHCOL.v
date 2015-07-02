@@ -3,6 +3,7 @@
 Require Import Spiral.
 Require Import SVector.
 Require Import HCOL.
+Require Import HCOLSyntax.
 
 Require Import Coq.Arith.EqNat Coq.Arith.Le Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Plus Coq.Arith.Minus.
@@ -188,13 +189,13 @@ Section SigmaHCOL_language.
   | AMult : aexp → aexp → aexp.
   
   Inductive SOperator {i o:aexp}: Type :=
-  | SHAScatHUnion (base pad:aexp): SOperator
-  | SHAGathH (base stride: aexp): SOperator
-  | SHABinOp (f: A->A->A): SOperator
+  | SHOScatHUnion (base pad:aexp): SOperator
+  | SHOGathH (base stride: aexp): SOperator
+  | SHOBinOp (f: A->A->A): SOperator
   (* TODO: all HCOL operators but with aexpes instead of nums *)
-  | SHACompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
+  | SHOCompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
   (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
-  | SHAISumUnion (var:varname) (r:aexp) : SOperator -> SOperator
+  | SHOISumUnion (var:varname) (r:aexp) : SOperator -> SOperator
   .
   
   Definition state := varname -> @maybeError nat.
@@ -273,10 +274,10 @@ Section SigmaHCOL_language.
     match evalAexp st ai, evalAexp st ao, evalAexp st base, evalAexp st stride with
     | OK ni, OK no, OK nbase, OK nstride =>
       match eq_nat_decide 0 nstride with
-      | left _ => Error "SHAGathH stride must not be 0"
+      | left _ => Error "SHOGathH stride must not be 0"
       | right nsnz =>
         match le_dec (nbase+o*nstride) i with
-        | right _ => Error "SHAGathH input size is too small for given params"
+        | right _ => Error "SHOGathH input size is too small for given params"
         | left oc =>
           if beq_nat i ni && beq_nat o no then
             OK (GathH (A:=option A)
@@ -284,7 +285,7 @@ Section SigmaHCOL_language.
                       (oc:=oc)
                       i o nbase nstride v)
           else
-            Error "input and output sizes of SHAGathH do not match"
+            Error "input and output sizes of SHOGathH do not match"
         end
       end
     | _ , _, _, _ => Error "Undefined variables in GathH arguments"
@@ -318,10 +319,10 @@ Section SigmaHCOL_language.
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o):=
     match op with
-    | SHAScatHUnion base pad => evalScatHUnion st ai ao base pad v
-    | SHAGathH base stride => evalGathH st ai ao base stride v
-    | SHABinOp f => evalBinOp st ai ao f v
-    | SHACompose fi fo gi go f g =>
+    | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
+    | SHOGathH base stride => evalGathH st ai ao base stride v
+    | SHOBinOp f => evalBinOp st ai ao f v
+    | SHOCompose fi fo gi go f g =>
       match evalAexp st fi, evalAexp st fo, evalAexp st gi, evalAexp st go, evalAexp st ai, evalAexp st ao with
       | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
         if beq_nat i ni && beq_nat o no &&
@@ -336,9 +337,9 @@ Section SigmaHCOL_language.
           Error "Operators' dimensions in Compose does not match"
       | _ , _, _, _, _, _ => Error "Undefined variables in Compose arguments"
       end
-    | SHAISumUnion var r body => 
+    | SHOISumUnion var r body => 
       match evalAexp st r with
-      | OK O => Error "Invalid SHAISumUnion range"
+      | OK O => Error "Invalid SHOISumUnion range"
       | OK (S p) =>
         (fix evalISUM (st:state) (nr:nat) {struct nr}:
            @maybeError (svector A o) :=
@@ -354,7 +355,7 @@ Section SigmaHCOL_language.
              |  Error _ as e => e
              end
            end) st p
-      | _  => Error "Undefined variables in SHAISumUnion arguments"
+      | _  => Error "Undefined variables in SHOISumUnion arguments"
       end
     end.
   
