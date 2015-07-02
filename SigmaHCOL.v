@@ -147,22 +147,6 @@ End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.
 
-(*
-Motivating example:
-
-BinOp(2, Lambda([ r4, r5 ], sub(r4, r5)))
-
--->
-
-ISumUnion(i3, 2,
-  ScatHUnion(2, 1, i3, 1) o
-  BinOp(1, Lambda([ r4, r5 ], sub(r4, r5))) o
-  GathH(4, 2, i3, 2)
-)
-
- *)  
-
-
 Section SigmaHCOL_Language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
@@ -182,8 +166,8 @@ Section SigmaHCOL_Language.
   Qed.
   
   Inductive aexp : Set :=
-  | ANum : nat → aexp
-  | AName : varname → aexp
+  | AConst : nat → aexp
+  | AValue : varname → aexp
   | APlus : aexp → aexp → aexp
   | AMinus : aexp → aexp → aexp
   | AMult : aexp → aexp → aexp.
@@ -234,8 +218,8 @@ Section SigmaHCOL_Language.
   
   Fixpoint evalAexp (st:state) (e:aexp): @maybeError nat :=
     match e  with
-    | ANum x => OK x
-    | AName x => st x
+    | AConst x => OK x
+    | AValue x => st x
     | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) plus
     | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
@@ -415,10 +399,6 @@ Section SigmaHCOL_language_tests.
   (* Lemma test0: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
   Proof.  compute. Qed. *)
   
-  Definition a1 := update (empty_state) (Var "A1") 1.
-  Definition a2 := update (empty_state) (Var "A2") 2.
-  
-
 End SigmaHCOL_language_tests.
 
 

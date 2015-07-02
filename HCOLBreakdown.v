@@ -9,7 +9,7 @@ Require Import HCOLSyntax.
 Require Import Arith.
 Require Import Compare_dec.
 Require Import Coq.Arith.Peano_dec.
-Require Import Program. (* compose *)
+Require Import Program. 
 
 Require Import CpdtTactics.
 Require Import CaseNaming.
