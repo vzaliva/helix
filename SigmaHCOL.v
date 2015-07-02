@@ -231,8 +231,6 @@ Section SigmaHCOL_language.
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
-End SigmaHCOL_language.
-
 Section SigmaHCOL_Eval.
     Context    
       `{Az: Zero A} `{A1: One A}
@@ -337,9 +335,33 @@ Section SigmaHCOL_Eval.
     end.
 
 
-  Set Printing Implicits.
+  Set Printing Implicit.
+
+  Definition evalInfinityNorm
+             {i o: nat}
+             (st:state)
+             (ai ao: aexp)
+             (v: svector A i):
+    @maybeError (svector A o) :=
+    match evalAexp st ai, evalAexp st ao with
+    | OK ni, OK no =>
+      if beq_nat i ni  && beq_nat o no && beq_nat no 1 then
+        match try_vector_from_svector v with
+        | Error _ => Error "OHScatHUnion expects dense vector!"
+        | OK dv =>
+          let h := HOInfinityNorm (i:=i) in
+          (cast_vector_operator
+             i 1
+             i o
+             (fun x =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) x)) dv
+        end
+      else
+        Error "Invalid output dimensionality in SHOInfinityNorm"
+    | _, _ => Error "Undefined variables in SHOInfinityNorm arguments"
+    end.
+  
   Fixpoint evalSigmaHCOL {ai ao: aexp} {i o:nat}
-           (st:state) (op: @SOperator A ai ao)
+           (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o):=
     match op with
     | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
@@ -380,18 +402,12 @@ Section SigmaHCOL_Eval.
            end) st p
       | _  => Error "Undefined variables in SHOISumUnion arguments"
       end
-    | SHOInfinityNorm =>
-      match evalAexp st ai, evalAexp st ao with
-      | OK ni, OK no => if beq_nat i ni  && beq_nat o no && beq_nat no 1 then
-                         let h := HOInfinityNorm (i:=i) in
-                         Error "OK (evalHCOL h  v)"
-                       else
-                         Error "Invalid output dimensionality in SHOInfinityNorm"
-      | _, _ => Error "Undefined variables in SHOInfinityNorm arguments"
-      end
+    | SHOInfinityNorm => evalInfinityNorm st ai ao v
     end.
     
 End SigmaHCOL_Eval.
+End SigmaHCOL_language.
+
 
 Section SigmaHCOL_language_tests.
 
