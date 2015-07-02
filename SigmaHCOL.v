@@ -193,7 +193,8 @@ Section SigmaHCOL_language.
   | SHABinOp (f: A->A->A): SOperator
   (* TODO: all HCOL operators but with aexpes instead of nums *)
   | SHACompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
-  | SHAISumUnion (v:varname) (r:aexp) : SOperator -> SOperator
+  (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
+  | SHAISumUnion (var:varname) (r:aexp) : SOperator -> SOperator
   .
   
   Definition state := varname -> @maybeError nat.
@@ -312,9 +313,10 @@ Section SigmaHCOL_language.
     end.
 
 
+  Set Printing Implicits.
   Fixpoint eval {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
-           (v: svector A i): @maybeError (svector A o) :=
+           (v: svector A i): @maybeError (svector A o):=
     match op with
     | SHAScatHUnion base pad => evalScatHUnion st ai ao base pad v
     | SHAGathH base stride => evalGathH st ai ao base stride v
@@ -334,7 +336,26 @@ Section SigmaHCOL_language.
           Error "Operators' dimensions in Compose does not match"
       | _ , _, _, _, _, _ => Error "Undefined variables in Compose arguments"
       end
-    | SHAISumUnion r x op => Error "TODO"
+    | SHAISumUnion var r body => 
+      match evalAexp st r with
+      | OK O => Error "Invalid SHAISumUnion range"
+      | OK (S p) =>
+        (fix evalISUM (st:state) (nr:nat) {struct nr}:
+           @maybeError (svector A o) :=
+           match nr with
+           | O => eval (update st var nr) body v
+           | S p =>
+             match eval (update st var nr) body v with
+             | OK x =>
+               match evalISUM st p with
+               | OK xs => SparseUnion x xs
+               |  Error _ as e => e
+               end
+             |  Error _ as e => e
+             end
+           end) st p
+      | _  => Error "Undefined variables in SHAISumUnion arguments"
+      end
     end.
   
   
