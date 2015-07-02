@@ -366,9 +366,9 @@ Section SigmaHCOL_Eval.
                  end) st p
             | _  => Error "Undefined variables in SHOISumUnion arguments"
             end) 
-       | SHOScatHUnion _ _ base pad => fun _ => Error "evalScatHUnion st base pad"
+       | SHOScatHUnion _ _ base pad => evalScatHUnion st base pad
        | SHOGathH _ _ base stride => evalGathH st base stride
-       | SHOBinOp _ f pf => evalBinOp st f
+       | SHOBinOp _ f _ => evalBinOp st f
        | SHOInfinityNorm _ => evalInfinityNorm st
        end) v.
   
