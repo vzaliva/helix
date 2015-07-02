@@ -231,6 +231,25 @@ Section SigmaHCOL_language.
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
+End SigmaHCOL_language.
+
+Section SigmaHCOL_Eval.
+    Context    
+      `{Az: Zero A} `{A1: One A}
+      `{Aplus: Plus A} `{Amult: Mult A} 
+      `{Aneg: Negate A}
+      `{Ale: Le A}
+      `{Alt: Lt A}
+      `{Ato: !@TotalOrder A Ae Ale}
+      `{Aabs: !@Abs A Ae Ale Az Aneg}
+      `{Asetoid: !@Setoid A Ae}
+      `{Aledec: !∀ x y: A, Decision (x ≤ y)}
+      `{Aeqdec: !∀ x y, Decision (x = y)}
+      `{Altdec: !∀ x y: A, Decision (x < y)}
+      `{Ar: !Ring A}
+      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
+      `{ASSO: !@StrictSetoidOrder A Ae Alt}.
+  
   Definition cast_vector_operator
              {B C: Type}
              (i0:nat) (o0:nat)
@@ -319,8 +338,8 @@ Section SigmaHCOL_language.
 
 
   Set Printing Implicits.
-  Fixpoint SigmaHCOL {ai ao: aexp} {i o:nat}
-           (st:state) (op: @SOperator ai ao)
+  Fixpoint evalSigmaHCOL {ai ao: aexp} {i o:nat}
+           (st:state) (op: @SOperator A ai ao)
            (v: svector A i): @maybeError (svector A o):=
     match op with
     | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
@@ -333,9 +352,9 @@ Section SigmaHCOL_language.
                    beq_nat ngi i && beq_nat nfo o &&
                    beq_nat ngo nfi
         then
-          match SigmaHCOL st g v with
+          match evalSigmaHCOL st g v with
           | Error _ as e => e
-          | OK t => SigmaHCOL st f t
+          | OK t => evalSigmaHCOL st f t
           end
         else
           Error "Operators' dimensions in Compose does not match"
@@ -348,9 +367,9 @@ Section SigmaHCOL_language.
         (fix evalISUM (st:state) (nr:nat) {struct nr}:
            @maybeError (svector A o) :=
            match nr with
-           | O => SigmaHCOL (update st var nr) body v
+           | O => evalSigmaHCOL (update st var nr) body v
            | S p =>
-             match SigmaHCOL (update st var nr) body v with
+             match evalSigmaHCOL (update st var nr) body v with
              | OK x =>
                match evalISUM st p with
                | OK xs => SparseUnion x xs
@@ -364,16 +383,15 @@ Section SigmaHCOL_language.
     | SHOInfinityNorm =>
       match evalAexp st ai, evalAexp st ao with
       | OK ni, OK no => if beq_nat i ni  && beq_nat o no && beq_nat no 1 then
-                         Error "TODO: Coq hangs"
-                         (* OK (@evalHCOL (HOInfinityNorm i) v) *)
+                         let h := HOInfinityNorm (i:=i) in
+                         Error "OK (evalHCOL h  v)"
                        else
                          Error "Invalid output dimensionality in SHOInfinityNorm"
       | _, _ => Error "Undefined variables in SHOInfinityNorm arguments"
       end
     end.
-  
-  
-End SigmaHCOL_language.
+    
+End SigmaHCOL_Eval.
 
 Section SigmaHCOL_language_tests.
 
