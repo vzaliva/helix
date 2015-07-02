@@ -364,9 +364,6 @@ Section SigmaHCOL_Eval.
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o):=
     match op with
-    | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
-    | SHOGathH base stride => evalGathH st ai ao base stride v
-    | SHOBinOp f => evalBinOp st ai ao f v
     | SHOCompose fi fo gi go f g =>
       match evalAexp st fi, evalAexp st fo, evalAexp st gi, evalAexp st go, evalAexp st ai, evalAexp st ao with
       | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
@@ -402,6 +399,9 @@ Section SigmaHCOL_Eval.
            end) st p
       | _  => Error "Undefined variables in SHOISumUnion arguments"
       end
+    | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
+    | SHOGathH base stride => evalGathH st ai ao base stride v
+    | SHOBinOp f => evalBinOp st ai ao f v
     | SHOInfinityNorm => evalInfinityNorm st ai ao v
     end.
     
