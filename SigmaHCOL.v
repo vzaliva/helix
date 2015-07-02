@@ -280,7 +280,7 @@ Section SigmaHCOL_Eval.
         | OK x => (cast_vector_operator
                     ni (nbase + S npad * ni)
                     i o
-                   (fun a => OK (ScatHUnion (A:=A) (n:=ni) nbase npad a))) x
+                   (OK ∘ (ScatHUnion (A:=A) (n:=ni) nbase npad))) x
         end
       else
         Error "input and output sizes of OHScatHUnion do not match"
@@ -353,7 +353,7 @@ Section SigmaHCOL_Eval.
           (cast_vector_operator
              i 1
              i o
-             (fun x =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) x)) dv
+             (OK ∘ svector_from_vector ∘ (evalHCOL h))) dv
         end
       else
         Error "Invalid output dimensionality in SHOInfinityNorm"
