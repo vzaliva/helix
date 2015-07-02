@@ -188,18 +188,18 @@ Section SigmaHCOL_Language.
   | AMinus : aexp → aexp → aexp
   | AMult : aexp → aexp → aexp.
   
-  Inductive SOperator {i o:aexp}: Type :=
+  Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatHUnion (base pad:aexp): SOperator
-  | SHOGathH (base stride: aexp): SOperator
-  | SHOBinOp (f: A->A->A): SOperator
+  | SHOScatHUnion {i o} (base pad:aexp): SOperator i o
+  | SHOGathH {i o} (base stride: aexp): SOperator i o
+  | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
   (* --- lifted HCOL operators --- *)
-  | SHOInfinityNorm: SOperator
+  | SHOInfinityNorm {i}: SOperator i 1
   (* TODO: All HCOL operators but with aexpes instead of nums *)
   (* --- HCOL compositional operators --- *)
-  | SHOCompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
+  | SHOCompose i {t} o: SOperator t o -> SOperator i t -> SOperator i o
   (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
-  | SHOISumUnion (var:varname) (r:aexp) : SOperator -> SOperator
+  | SHOISumUnion {i o} (var:varname) (r:aexp) : SOperator i o -> SOperator i o
   .
   
   Definition state := varname -> @maybeError nat.
@@ -269,142 +269,109 @@ Section SigmaHCOL_Eval.
   Definition evalScatHUnion
              {i o: nat}
              (st:state)
-             (ai ao base pad:aexp)
+             (base pad:aexp)
              (v:svector A i):
     @maybeError (svector A o) :=
-    match evalAexp st ai, evalAexp st ao, evalAexp st base, evalAexp st pad with
-    | OK ni, OK no, OK nbase, OK npad =>
-      if beq_nat o no then
-        match try_vector_from_svector v with
-        | Error msg => Error "OHScatHUnion expects dense vector!"
-        | OK x => (cast_vector_operator
-                    ni (nbase + S npad * ni)
-                    i o
-                   (OK ∘ (ScatHUnion (A:=A) (n:=ni) nbase npad))) x
-        end
-      else
-        Error "input and output sizes of OHScatHUnion do not match"
-    | _ , _, _, _ => Error "Undefined variables in ScatHUnion arguments"
+    match evalAexp st base, evalAexp st pad with
+    | OK nbase, OK npad =>
+      match try_vector_from_svector v with
+      | Error msg => Error "OHScatHUnion expects dense vector!"
+      | OK x => (cast_vector_operator
+                  i (nbase + S npad * i)
+                  i o
+                  (OK ∘ (ScatHUnion (A:=A) (n:=i) nbase npad))) x
+      end
+    |  _, _ => Error "Undefined variables in ScatHUnion arguments"
     end.
 
   Definition evalGathH
              {i o: nat}
              (st:state)
-             (ai ao base stride:aexp)
+             (base stride:aexp)
              (v: svector A i):  @maybeError (svector A o) :=
-    match evalAexp st ai, evalAexp st ao, evalAexp st base, evalAexp st stride with
-    | OK ni, OK no, OK nbase, OK nstride =>
+    match evalAexp st base, evalAexp st stride with
+    | OK nbase, OK nstride =>
       match eq_nat_decide 0 nstride with
       | left _ => Error "SHOGathH stride must not be 0"
       | right nsnz =>
         match le_dec (nbase+o*nstride) i with
         | right _ => Error "SHOGathH input size is too small for given params"
         | left oc =>
-          if beq_nat i ni && beq_nat o no then
-            OK (GathH (A:=option A)
-                      (snz:=(neq_nat_to_neq nsnz))
-                      (oc:=oc)
-                      i o nbase nstride v)
-          else
-            Error "input and output sizes of SHOGathH do not match"
+          OK (GathH (A:=option A)
+                    (snz:=(neq_nat_to_neq nsnz))
+                    (oc:=oc)
+                    i o nbase nstride v)
         end
       end
-    | _ , _, _, _ => Error "Undefined variables in GathH arguments"
+    |  _, _ => Error "Undefined variables in GathH arguments"
     end.
 
   Definition evalBinOp
              {i o: nat}
              (st:state)
-             (ai ao: aexp)
              (f: A->A->A) (v: svector A i):
     @maybeError (svector A o) :=
-    match evalAexp st ai, evalAexp st ao with
-    | OK ni, OK no =>
-      if beq_nat i ni && beq_nat o no then
-        match try_vector_from_svector v with
-        | Error msg => Error "OHScatHUnion expects dense vector!"
-        | OK x =>
-          (cast_vector_operator
-             (o+o) o
-             i o
-             (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
-        end
-      else
-        Error "input and output sizes of evalBinOp do not match"
-    | _ , _ => Error "Undefined variables in GathH arguments"
+    match try_vector_from_svector v with
+    | Error msg => Error "OHScatHUnion expects dense vector!"
+    | OK x =>
+      (cast_vector_operator
+         (o+o) o
+         i o
+         (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
     end.
-
-
+    
   Set Printing Implicit.
 
   Definition evalInfinityNorm
-             {i o: nat}
+             {i: nat}
              (st:state)
-             (ai ao: aexp)
              (v: svector A i):
-    @maybeError (svector A o) :=
-    match evalAexp st ai, evalAexp st ao with
-    | OK ni, OK no =>
-      if beq_nat i ni  && beq_nat o no && beq_nat no 1 then
-        match try_vector_from_svector v with
-        | Error _ => Error "OHScatHUnion expects dense vector!"
-        | OK dv =>
-          let h := HOInfinityNorm (i:=i) in
-          (cast_vector_operator
-             i 1
-             i o
-             (OK ∘ svector_from_vector ∘ (evalHCOL h))) dv
-        end
-      else
-        Error "Invalid output dimensionality in SHOInfinityNorm"
-    | _, _ => Error "Undefined variables in SHOInfinityNorm arguments"
+    @maybeError (svector A 1) :=
+    match try_vector_from_svector v with
+    | Error _ => Error "OHScatHUnion expects dense vector!"
+    | OK dv =>
+      let h := HOInfinityNorm (i:=i) in
+      (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
     end.
+
+  Definition evalSigmaHCOL:
+    forall {i o:nat}, state-> SOperator i o -> svector A i -> @maybeError (svector A o) :=
+    fix evalSigmaHCOL {i o: nat} st (op: SOperator i o) v :=           
+      (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
+       with
+       | SHOCompose _ _ _ f g  =>
+         (fun v0 =>
+            match evalSigmaHCOL st g v0 with
+            | Error msg => Error msg
+            | OK gv => evalSigmaHCOL st f gv
+            end)
+       | SHOISumUnion _ _ var r body =>
+         (fun v0 =>
+            match evalAexp st r with
+            | OK O => Error "Invalid SHOISumUnion range"
+            | OK (S p) =>
+              (fix evalISUM (st:state) (nr:nat) {struct nr}:
+                 @maybeError (svector A _) :=
+                 match nr with
+                 | O => evalSigmaHCOL (update st var nr) body v0
+                 | S p =>
+                   match evalSigmaHCOL (update st var nr) body v0 with
+                   | OK x =>
+                     match evalISUM st p with
+                     | OK xs => SparseUnion x xs
+                     |  Error _ as e => e
+                     end
+                   |  Error _ as e => e
+                   end
+                 end) st p
+            | _  => Error "Undefined variables in SHOISumUnion arguments"
+            end) 
+       | SHOScatHUnion _ _ base pad => fun _ => Error "evalScatHUnion st base pad"
+       | SHOGathH _ _ base stride => evalGathH st base stride
+       | SHOBinOp _ f pf => evalBinOp st f
+       | SHOInfinityNorm _ => evalInfinityNorm st
+       end) v.
   
-  Fixpoint evalSigmaHCOL {ai ao: aexp} {i o:nat}
-           (st:state) (op: @SOperator ai ao)
-           (v: svector A i): @maybeError (svector A o):=
-    match op with
-    | SHOCompose fi fo gi go f g =>
-      match evalAexp st fi, evalAexp st fo, evalAexp st gi, evalAexp st go, evalAexp st ai, evalAexp st ao with
-      | OK nfi, OK nfo, OK ngi, OK ngo, OK ni, OK no =>
-        if beq_nat i ni && beq_nat o no &&
-                   beq_nat ngi i && beq_nat nfo o &&
-                   beq_nat ngo nfi
-        then
-          match evalSigmaHCOL st g v with
-          | Error _ as e => e
-          | OK gv => evalSigmaHCOL st f gv
-          end
-        else
-          Error "Operators' dimensions in Compose does not match"
-      | _ , _, _, _, _, _ => Error "Undefined variables in Compose arguments"
-      end
-    | SHOISumUnion var r body => 
-      match evalAexp st r with
-      | OK O => Error "Invalid SHOISumUnion range"
-      | OK (S p) =>
-        (fix evalISUM (st:state) (nr:nat) {struct nr}:
-           @maybeError (svector A o) :=
-           match nr with
-           | O => evalSigmaHCOL (update st var nr) body v
-           | S p =>
-             match evalSigmaHCOL (update st var nr) body v with
-             | OK x =>
-               match evalISUM st p with
-               | OK xs => SparseUnion x xs
-               |  Error _ as e => e
-               end
-             |  Error _ as e => e
-             end
-           end) st p
-      | _  => Error "Undefined variables in SHOISumUnion arguments"
-      end
-    | SHOScatHUnion base pad => evalScatHUnion st ai ao base pad v
-    | SHOGathH base stride => evalGathH st ai ao base stride v
-    | SHOBinOp f => evalBinOp st ai ao f v
-    | SHOInfinityNorm => evalInfinityNorm st ai ao v
-    end.
-    
 End SigmaHCOL_Eval.
 End SigmaHCOL_Language.
 
