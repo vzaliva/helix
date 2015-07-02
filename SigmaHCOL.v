@@ -373,7 +373,7 @@ Section SigmaHCOL_Eval.
         then
           match evalSigmaHCOL st g v with
           | Error _ as e => e
-          | OK t => evalSigmaHCOL st f t
+          | OK gv => evalSigmaHCOL st f gv
           end
         else
           Error "Operators' dimensions in Compose does not match"
