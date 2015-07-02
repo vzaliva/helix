@@ -163,7 +163,7 @@ ISumUnion(i3, 2,
  *)  
 
 
-Section SigmaHCOL_language.
+Section SigmaHCOL_Language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
   Context {A:Type} {Ae: Equiv A}.
@@ -406,7 +406,7 @@ Section SigmaHCOL_Eval.
     end.
     
 End SigmaHCOL_Eval.
-End SigmaHCOL_language.
+End SigmaHCOL_Language.
 
 
 Section SigmaHCOL_language_tests.

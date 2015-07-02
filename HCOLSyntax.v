@@ -27,7 +27,7 @@ Open Scope vector_scope.
 
 (* === HCOL Syntax === *)
 
-Section HCOL.
+Section HCOL_Language.
   Context    
     `{Ae: Equiv A}.
 
@@ -265,4 +265,4 @@ Section HCOL.
 
     End HCOL_Proper.
   End HCOL_Eval.
-End HCOL.
+End HCOL_Language.
