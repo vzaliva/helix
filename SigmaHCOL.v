@@ -320,8 +320,6 @@ Section SigmaHCOL_Eval.
          (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
     end.
     
-  Set Printing Implicit.
-
   Definition evalInfinityNorm
              {i: nat}
              (st:state)
