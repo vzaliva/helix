@@ -74,7 +74,7 @@ Module SigmaHCOL_Operators.
     omega.
   Defined.
 
-  Open Local Scope nat_scope.
+  Local Open  Scope nat_scope.
 
   Program Definition GathH {A: Type}
           (i n base stride: nat)
@@ -98,7 +98,7 @@ Module SigmaHCOL_Operators.
     assumption.
     tauto.
   Qed.
-  Close Local Scope nat_scope.
+  Local Close Scope nat_scope.
 
   Section Coq84Workaround.
       (* 
@@ -115,7 +115,7 @@ Next Obligation.
 Defined.
      *)
     
-    Open Local Scope nat_scope.
+    Local Open Scope nat_scope.
     
     Fixpoint ScatHUnion_0 (A:Type) (n:nat) (pad:nat) {struct n}:
       vector A n -> svector A ((S pad)*n).
@@ -137,7 +137,7 @@ Defined.
       eauto.        
     Defined.
     
-    Close Local Scope nat_scope.
+    Local Close Scope nat_scope.
   End Coq84Workaround.
   
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
