@@ -189,10 +189,14 @@ Section SigmaHCOL_language.
   | AMult : aexp → aexp → aexp.
   
   Inductive SOperator {i o:aexp}: Type :=
+  (* --- HCOL basic operators --- *)
   | SHOScatHUnion (base pad:aexp): SOperator
   | SHOGathH (base stride: aexp): SOperator
   | SHOBinOp (f: A->A->A): SOperator
-  (* TODO: all HCOL operators but with aexpes instead of nums *)
+  (* --- lifted HCOL operators --- *)
+  | SHOInfinityNorm: SOperator
+  (* TODO: All HCOL operators but with aexpes instead of nums *)
+  (* --- HCOL compositional operators --- *)
   | SHOCompose {fi fo gi go:aexp}: @SOperator fi fo -> @SOperator gi go -> SOperator
   (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
   | SHOISumUnion (var:varname) (r:aexp) : SOperator -> SOperator
@@ -315,7 +319,7 @@ Section SigmaHCOL_language.
 
 
   Set Printing Implicits.
-  Fixpoint eval {ai ao: aexp} {i o:nat}
+  Fixpoint SigmaHCOL {ai ao: aexp} {i o:nat}
            (st:state) (op: @SOperator ai ao)
            (v: svector A i): @maybeError (svector A o):=
     match op with
@@ -329,9 +333,9 @@ Section SigmaHCOL_language.
                    beq_nat ngi i && beq_nat nfo o &&
                    beq_nat ngo nfi
         then
-          match eval st g v with
+          match SigmaHCOL st g v with
           | Error _ as e => e
-          | OK t => eval st f t
+          | OK t => SigmaHCOL st f t
           end
         else
           Error "Operators' dimensions in Compose does not match"
@@ -344,9 +348,9 @@ Section SigmaHCOL_language.
         (fix evalISUM (st:state) (nr:nat) {struct nr}:
            @maybeError (svector A o) :=
            match nr with
-           | O => eval (update st var nr) body v
+           | O => SigmaHCOL (update st var nr) body v
            | S p =>
-             match eval (update st var nr) body v with
+             match SigmaHCOL (update st var nr) body v with
              | OK x =>
                match evalISUM st p with
                | OK xs => SparseUnion x xs
@@ -356,6 +360,15 @@ Section SigmaHCOL_language.
              end
            end) st p
       | _  => Error "Undefined variables in SHOISumUnion arguments"
+      end
+    | SHOInfinityNorm =>
+      match evalAexp st ai, evalAexp st ao with
+      | OK ni, OK no => if beq_nat i ni  && beq_nat o no && beq_nat no 1 then
+                         Error "TODO: Coq hangs"
+                         (* OK (@evalHCOL (HOInfinityNorm i) v) *)
+                       else
+                         Error "Invalid output dimensionality in SHOInfinityNorm"
+      | _, _ => Error "Undefined variables in SHOInfinityNorm arguments"
       end
     end.
   
