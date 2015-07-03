@@ -93,39 +93,44 @@ Fixpoint try_vector_from_svector {A} {n} (v:svector A n): @maybeError (vector A 
 
 (* -------------------------------------------------------- *)
 
-(* Inductive type representing both sparse and dense vectors. While underlying
+Section ProofCarryingSparseVector.
+
+  (* Inductive type representing both sparse and dense vectors. While underlying
 vector storage structure is the same (svector), in dense case it is paired with
 proof of density.
 
 It should be noted that "sparse" vector could be in fact dense, but we just
 lacking a proof of it.
- *)
-Inductive Vector {A:Type} {n:nat}: Type :=
-| DVector (v:svector A n) (D:svector_is_dense v): Vector
-| SVector (v:svector A n): Vector.
+   *)
+  Inductive Vector {A:Type} {n:nat}: Type :=
+  | DVector (v:svector A n) (D:svector_is_dense v): Vector
+  | SVector (v:svector A n): Vector.
 
-Definition VectorTail {A:Type} {n:nat} (d:@Vector A (S n)): @Vector A n :=
-  match d with
-  | DVector v D => DVector (Vtail v) (svector_tl_dense D)
-  | SVector v => SVector (Vtail v)
-  end.
+  Definition VectorTail {A:Type} {n:nat} (d:@Vector A (S n)): @Vector A n :=
+    match d with
+    | DVector v D => DVector (Vtail v) (svector_tl_dense D)
+    | SVector v => SVector (Vtail v)
+    end.
 
-Definition tryDenseVectorExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
-  match d with
-  | SVector _ => Error "Attempting to extract dense vector from sparse or"
-  | DVector v H => OK (vector_from_svector v H)
-  end.
+  Definition tryDenseVectorExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
+    match d with
+    | SVector _ => Error "Attempting to extract dense vector from sparse or"
+    | DVector v H => OK (vector_from_svector v H)
+    end.
 
-Definition sparseVectorExtract {A} {n} (d:@Vector A n): (svector A n) :=
-  match d with
-  | DVector v _ => v
-  | SVector v => v
-  end.
+  Definition sparseVectorExtract {A} {n} (d:@Vector A n): (svector A n) :=
+    match d with
+    | DVector v _ => v
+    | SVector v => v
+    end.
 
-Definition densifyVector {A} {n} (d:@Vector A n) (D: svector_is_dense (sparseVectorExtract d)):
-  (@Vector A n) :=
-  match d with
-  | DVector _ _ as ad => ad (* already dense *)
-  | SVector _ => DVector (sparseVectorExtract d) D
-  end.
+  Definition densifyVector {A} {n} (d:@Vector A n) (D: svector_is_dense (sparseVectorExtract d)):
+    (@Vector A n) :=
+    match d with
+    | DVector _ _ as ad => ad (* already dense *)
+    | SVector _ => DVector (sparseVectorExtract d) D
+    end.
+
+End ProofCarryingSparseVector.
+
     
