@@ -98,6 +98,7 @@ ISumUnion(i3, 2,
     unfold equiv, SigmaHCOL_equiv.
     intros.
     unfold op1, op2.
+    crush.
   Qed.
     
 Section SigmaHCOLRewriting.

@@ -110,22 +110,22 @@ Definition VectorTail {A:Type} {n:nat} (d:@Vector A (S n)): @Vector A n :=
   | SVector v => SVector (Vtail v)
   end.
 
-Definition VectorDenseExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
+Definition tryDenseVectorExtract {A} {n} (d:@Vector A n): @maybeError (vector A n) :=
   match d with
   | SVector _ => Error "Attempting to extract dense vector from sparse or"
   | DVector v H => OK (vector_from_svector v H)
   end.
 
-Definition svectorFromVector {A} {n} (d:@Vector A n): (svector A n) :=
+Definition sparseVectorExtract {A} {n} (d:@Vector A n): (svector A n) :=
   match d with
   | DVector v _ => v
   | SVector v => v
   end.
 
-Definition VectorDensify {A} {n} (d:@Vector A n) (D: svector_is_dense (svectorFromVector d)):
+Definition densifyVector {A} {n} (d:@Vector A n) (D: svector_is_dense (sparseVectorExtract d)):
   (@Vector A n) :=
   match d with
   | DVector _ _ as ad => ad (* already dense *)
-  | SVector _ => DVector (svectorFromVector d) D
+  | SVector _ => DVector (sparseVectorExtract d) D
   end.
     
