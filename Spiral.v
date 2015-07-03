@@ -41,6 +41,18 @@ Section Error.
     | OK _ => True
     | Error _ => False
     end.
+
+  (* Error comparison does not take into account error message *)
+Global Instance maybeError_equiv `{Equiv A}: Equiv (@maybeError A) :=
+  fun a b =>
+    match a with
+    | Error _ => is_Error b
+    | OK x => (match b with
+                 | Error _ => False
+                 | OK y => equiv x y
+                 end)
+    end.
+  
 End Error.
 
 (* equality of option types *)

@@ -95,6 +95,9 @@ ISumUnion(i3, 2,
 
   Lemma testOp2Op1: op1 = op2.
   Proof.
+    unfold equiv, SigmaHCOL_equiv.
+    intros.
+    unfold op1, op2.
   Qed.
     
 Section SigmaHCOLRewriting.

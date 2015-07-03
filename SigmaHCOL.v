@@ -389,6 +389,10 @@ Section SigmaHCOL_Eval.
        | SHOInfinityNorm _ => evalInfinityNorm st
        | SOReduction _ f pf idv => evalReduction st f idv
        end) v.
+
+
+  Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
+    fun a b => forall st (x:svector A i), evalSigmaHCOL st a x = evalSigmaHCOL st b x.
   
 End SigmaHCOL_Eval.
 End SigmaHCOL_Language.
