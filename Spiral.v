@@ -52,7 +52,54 @@ Global Instance maybeError_equiv `{Equiv A}: Equiv (@maybeError A) :=
                  | OK y => equiv x y
                  end)
     end.
+
+Global Instance maybeError_Equivalence `{Ae: Equiv A}
+       `{!Equivalence (@equiv A _)}
+: Equivalence (@maybeError_equiv A Ae).
+Proof.
+constructor.
+  unfold Reflexive.
+  intros.
+  destruct x.
+  unfold equiv.
+  unfold maybeError_equiv.
+  reflexivity.
+  unfold equiv.
+  unfold maybeError_equiv.
+  constructor.
+
+  unfold Symmetric.
+  intros.
+  destruct x,y.
+  unfold equiv, maybeError_equiv in *.
+  symmetry. assumption.
+  auto.
+  auto.
+  unfold equiv, maybeError_equiv in *.
+  auto.
+
+  unfold Transitive.
+  intros.
+  destruct x,y,z.
+  unfold equiv, maybeError_equiv in *.
+  auto.
+  auto.
+  contradiction.
+  contradiction.
+  contradiction.
+  contradiction.
+  contradiction.
   
+  unfold equiv, maybeError_equiv in *.
+  auto.
+Qed.
+
+Global Instance maybeError_Setoid `{Setoid A}: Setoid (@maybeError A).
+Proof.
+  unfold Setoid.
+  apply maybeError_Equivalence.
+Qed.
+
 End Error.
 
 (* equality of option types *)
