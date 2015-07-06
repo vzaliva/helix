@@ -117,20 +117,11 @@ Global Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
 Set Printing Implicit.
 Global Instance opt_Setoid `{Setoid A}: Setoid (@option A).
 Proof.
-  unfold Setoid.
-  unfold Setoid in *.
+  unfold Setoid in H.
   constructor. destruct H.
-  unfold Reflexive.
-  destruct x; (unfold equiv; crush).
-  unfold Symmetric.
-  intros. destruct x,y; (unfold equiv; crush).
-  unfold Transitive.
-  intros. destruct x,y,z; unfold equiv, opt_Equiv; auto.
-  unfold equiv in H0, H1; simpl in H0,H1.
-  auto.
-  unfold equiv in H0, H1; simpl in H0,H1.
-  contradiction.
-  constructor.
+  unfold Reflexive. destruct x; (unfold equiv; crush).
+  unfold Symmetric. intros. destruct x,y; (unfold equiv; crush). 
+  unfold Transitive. intros. destruct x,y,z; unfold equiv, opt_Equiv in *; crush.
 Qed.
 
 (* Various definitions related to vector equality and setoid rewriting *)
