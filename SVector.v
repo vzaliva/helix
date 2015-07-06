@@ -115,14 +115,7 @@ Proof.
   intros.
   simpl.
 
-  assert (is_OK (try_vector_from_svector x)).
-  auto.
-  revert H2.
-  generalize (try_vector_from_svector x).
-  intros m.
-  destruct m.
-  auto.
-  auto.
+  destruct (try_vector_from_svector x);auto.
   auto.
 Qed.
 
