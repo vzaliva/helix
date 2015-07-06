@@ -95,9 +95,23 @@ ISumUnion(i3, 2,
 
   Lemma testOp2Op1: op1 = op2.
   Proof.
+    
     unfold equiv, SigmaHCOL_equiv.
     intros.
+    destruct (evalSigmaHCOL st op1 x).
+    destruct (evalSigmaHCOL st op2 x).
+
+
     unfold op1, op2.
+
+    destruct  (evalSigmaHCOL st (SHOBinOp 2 ASub) x).
+    destruct (evalSigmaHCOL st
+                   (SHOISumUnion (Var "i") c2
+                                 (SHOCompose 4 2 (SHOScatHUnion vari c2)
+                                             (SHOCompose 4 1 (SHOBinOp 1 ASub) (SHOGathH vari c2)))) x).
+    
+    
+
     crush.
   Qed.
     

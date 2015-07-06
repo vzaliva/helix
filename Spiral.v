@@ -53,21 +53,24 @@ Global Instance maybeError_equiv `{Equiv A}: Equiv (@maybeError A) :=
                  end)
     end.
 
-Global Instance maybeError_Equivalence `{Ae: Equiv A}
-       `{!Equivalence (@equiv A _)}
-: Equivalence (@maybeError_equiv A Ae).
+
+Global Instance maybeError_Reflexive `{Ae: Equiv A}
+       `{!Reflexive (@equiv A _)}
+: Reflexive (@maybeError_equiv A Ae).
 Proof.
-constructor.
   unfold Reflexive.
   intros.
   destruct x.
-  unfold equiv.
   unfold maybeError_equiv.
   reflexivity.
-  unfold equiv.
   unfold maybeError_equiv.
   constructor.
+Qed.
 
+Global Instance maybeError_Symmetric `{Ae: Equiv A}
+       `{!Symmetric (@equiv A _)}
+  : Symmetric (@maybeError_equiv A Ae).
+Proof.
   unfold Symmetric.
   intros.
   destruct x,y.
@@ -77,7 +80,12 @@ constructor.
   auto.
   unfold equiv, maybeError_equiv in *.
   auto.
+Qed.
 
+Global Instance maybeError_Transitive `{Ae: Equiv A}
+       `{!Transitive (@equiv A _)}
+  : Transitive (@maybeError_equiv A Ae).
+Proof.
   unfold Transitive.
   intros.
   destruct x,y,z.
@@ -89,9 +97,18 @@ constructor.
   contradiction.
   contradiction.
   contradiction.
-  
   unfold equiv, maybeError_equiv in *.
   auto.
+Qed.
+
+Global Instance maybeError_Equivalence `{Ae: Equiv A}
+       `{!Equivalence (@equiv A _)}
+: Equivalence (@maybeError_equiv A Ae).
+Proof.
+  constructor.
+  apply maybeError_Reflexive.
+  apply maybeError_Symmetric.
+  apply maybeError_Transitive.
 Qed.
 
 Global Instance maybeError_Setoid `{Setoid A}: Setoid (@maybeError A).
@@ -103,7 +120,7 @@ Qed.
 End Error.
 
 (* equality of option types *)
-Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
+Global Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
   fun a b =>
     match a with
     | None => is_None b
@@ -113,6 +130,24 @@ Global Instance opt_equiv `{Equiv A}: Equiv (option A) :=
                  end)
     end.
 
+Set Printing Implicit.
+Global Instance opt_Setoid `{Setoid A}: Setoid (@option A).
+Proof.
+  unfold Setoid.
+  unfold Setoid in *.
+  constructor. destruct H.
+  unfold Reflexive.
+  destruct x; (unfold equiv; crush).
+  unfold Symmetric.
+  intros. destruct x,y; (unfold equiv; crush).
+  unfold Transitive.
+  intros. destruct x,y,z; unfold equiv, opt_Equiv; auto.
+  unfold equiv in H0, H1; simpl in H0,H1.
+  auto.
+  unfold equiv in H0, H1; simpl in H0,H1.
+  contradiction.
+  constructor.
+Qed.
 
 (* Various definitions related to vector equality and setoid rewriting *)
 

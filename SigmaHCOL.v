@@ -392,7 +392,32 @@ Section SigmaHCOL_Eval.
 
 
   Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
-    fun a b => forall st (x:svector A i), evalSigmaHCOL st a x = evalSigmaHCOL st b x.
+    fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
+
+  Lemma SigmaHCOL_extensionality {i o} (f g : SOperator i o) :
+      (forall v st, evalSigmaHCOL st f v = evalSigmaHCOL st g v) -> f = g.
+  Proof.
+      intros.
+      unfold equiv, SigmaHCOL_equiv.
+      auto.
+    Qed.
+
+  Global Instance SigmaHCOL_Equivalence {i o:nat}
+         `{!Equivalence (@equiv A _)}
+    : Equivalence (@SigmaHCOL_equiv i o).
+  Proof.
+    unfold SigmaHCOL_equiv.
+    constructor.
+    unfold Reflexive. intros. apply SigmaHCOL_extensionality. intros. reflexivity.
+    unfold Symmetric. intros. apply SigmaHCOL_extensionality. intros. symmetry. auto.
+    unfold Transitive. intros. apply SigmaHCOL_extensionality. intros. rewrite H. auto.
+  Qed.
+  
+  Global Instance SigmaHCOL_Setoid {i o}: Setoid (SOperator i o).
+  Proof.
+    unfold Setoid.
+    apply SigmaHCOL_Equivalence.
+  Qed.
   
 End SigmaHCOL_Eval.
 End SigmaHCOL_Language.

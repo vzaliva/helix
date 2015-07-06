@@ -18,7 +18,7 @@ Require Import Spiral.
 Notation svector A n := (vector (option A) n).
 
 Global Instance svector_equiv `{Equiv A} {n}: Equiv (svector A n) :=
-  Vforall2 (n:=n) opt_equiv.
+  Vforall2 (n:=n) opt_Equiv.
 
 Definition svector_from_vector {A} {n} (v:vector A n): svector A n :=
   Vmap (Some) v.
