@@ -91,6 +91,41 @@ Fixpoint try_vector_from_svector {A} {n} (v:svector A n): @maybeError (vector A 
   end v.
 
 
+Lemma dense_cons:
+  forall A n (h:option A) (t: svector A n),
+    (is_Some h /\ svector_is_dense t) = svector_is_dense (Vcons h t).
+Proof.
+  crush.
+Qed.
+
+Lemma dense_casts_OK:
+  ∀ A n (x : svector A n),
+    svector_is_dense x → is_OK (try_vector_from_svector x).
+Proof.
+  induction x. 
+  auto.
+
+  intros.
+
+  assert (svector_is_dense x). crush.
+  assert (is_Some h).  apply H.
+  
+  revert H1.
+  dep_destruct h.
+  intros.
+  simpl.
+
+  assert (is_OK (try_vector_from_svector x)).
+  auto.
+  revert H2.
+  generalize (try_vector_from_svector x).
+  intros m.
+  destruct m.
+  auto.
+  auto.
+  auto.
+Qed.
+
 (* -------------------------------------------------------- *)
 
 Section ProofCarryingSparseVector.

@@ -1,5 +1,6 @@
 
 Require Import Spiral.
+Require Import SVector.
 Require Import HCOL.
 Require Import SigmaHCOL.
 Require Import HCOLSyntax.
@@ -98,22 +99,21 @@ ISumUnion(i3, 2,
   Proof.
 
     unfold equiv, SigmaHCOL_equiv, equiv.
+    intros.
+    unfold maybeError_equiv.
 
-    dep_destruct (evalSigmaHCOL st op1 x).
-    dep_destruct (evalSigmaHCOL st op2 x).
-
+    unfold op1.
+    assert (op1OK: (svector_is_dense x) -> is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
+    intros.
+    simpl.
+    unfold evalBinOp.
+    assert (svector_is_dense x -> is_OK (try_vector_from_svector x)).
+      
+    unfold svector_is_dense in H.
+    induction x.
 
     unfold op1, op2.
 
-    destruct  (evalSigmaHCOL st (SHOBinOp 2 ASub) x).
-    destruct (evalSigmaHCOL st
-                   (SHOISumUnion (Var "i") c2
-                                 (SHOCompose 4 2 (SHOScatHUnion vari c2)
-                                             (SHOCompose 4 1 (SHOBinOp 1 ASub) (SHOGathH vari c2)))) x).
-    
-    
-
-    crush.
   Qed.
     
 Section SigmaHCOLRewriting.

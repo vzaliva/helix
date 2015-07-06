@@ -45,14 +45,12 @@ Section Error.
   (* Error comparison does not take into account error message *)
 Global Instance maybeError_equiv `{Equiv A}: Equiv (@maybeError A) :=
   fun a b =>
-    match a with
-    | Error _ => is_Error b
-    | OK x => (match b with
-                 | Error _ => False
-                 | OK y => equiv x y
-                 end)
+    match a, b with
+    | Error _, Error _ => True
+    | OK _, Error _ => False
+    | Error _, OK _ => False
+    | OK x, OK y => equiv x y
     end.
-
 
 Global Instance maybeError_Reflexive `{Ae: Equiv A}
        `{!Reflexive (@equiv A _)}
@@ -114,7 +112,6 @@ Global Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
                  end)
     end.
 
-Set Printing Implicit.
 Global Instance opt_Setoid `{Setoid A}: Setoid (@option A).
 Proof.
   unfold Setoid in H.
