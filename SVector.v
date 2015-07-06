@@ -104,7 +104,7 @@ Lemma dense_casts_OK:
 Proof.
   induction x. 
   auto.
- 
+
   intros.
   assert (svector_is_dense x). apply svector_tl_dense in H. auto.
   assert (is_Some h). apply H.

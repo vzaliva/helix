@@ -302,7 +302,7 @@ Section SigmaHCOL_Eval.
 
   Definition evalBinOp
              {i o: nat}
-             (st:state)
+             (_:state)
              (f: A->A->A) (v: svector A i):
     @maybeError (svector A o) :=
     match try_vector_from_svector v with

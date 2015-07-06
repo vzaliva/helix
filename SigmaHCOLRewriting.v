@@ -98,21 +98,26 @@ ISumUnion(i3, 2,
   Lemma testOp2Op1: op1 = op2.
   Proof.
 
+    (*Set Printing Implicit. *)
+
     unfold equiv, SigmaHCOL_equiv, equiv.
     intros.
     unfold maybeError_equiv.
 
     unfold op1.
-    assert (op1OK: (svector_is_dense x) -> is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
+    assert (op1OK: (@svector_is_dense A 4 x) -> is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
     intros.
     simpl.
-    unfold evalBinOp.
-    assert (svector_is_dense x -> is_OK (try_vector_from_svector x)).
-      
-    unfold svector_is_dense in H.
-    induction x.
 
-    unfold op1, op2.
+    unfold evalBinOp.
+    assert (is_OK (@try_vector_from_svector A 4 x)).
+    apply dense_casts_OK. assumption.
+
+    destruct (@try_vector_from_svector A 4 x).
+    crush.
+    auto.
+
+
 
   Qed.
     
