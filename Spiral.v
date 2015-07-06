@@ -59,11 +59,9 @@ Global Instance maybeError_Reflexive `{Ae: Equiv A}
 : Reflexive (@maybeError_equiv A Ae).
 Proof.
   unfold Reflexive.
-  intros.
+  unfold maybeError_equiv.
   destruct x.
-  unfold maybeError_equiv.
   reflexivity.
-  unfold maybeError_equiv.
   constructor.
 Qed.
 
@@ -73,13 +71,8 @@ Global Instance maybeError_Symmetric `{Ae: Equiv A}
 Proof.
   unfold Symmetric.
   intros.
-  destruct x,y.
   unfold equiv, maybeError_equiv in *.
-  symmetry. assumption.
-  auto.
-  auto.
-  unfold equiv, maybeError_equiv in *.
-  auto.
+  destruct x,y; auto.
 Qed.
 
 Global Instance maybeError_Transitive `{Ae: Equiv A}
@@ -88,17 +81,8 @@ Global Instance maybeError_Transitive `{Ae: Equiv A}
 Proof.
   unfold Transitive.
   intros.
-  destruct x,y,z.
-  unfold equiv, maybeError_equiv in *.
-  auto.
-  auto.
-  contradiction.
-  contradiction.
-  contradiction.
-  contradiction.
-  contradiction.
-  unfold equiv, maybeError_equiv in *.
-  auto.
+  unfold maybeError_equiv in *.
+  destruct x,y,z; auto; contradiction.
 Qed.
 
 Global Instance maybeError_Equivalence `{Ae: Equiv A}

@@ -1,4 +1,5 @@
 
+Require Import Spiral.
 Require Import HCOL.
 Require Import SigmaHCOL.
 Require Import HCOLSyntax.
@@ -95,11 +96,11 @@ ISumUnion(i3, 2,
 
   Lemma testOp2Op1: op1 = op2.
   Proof.
-    
-    unfold equiv, SigmaHCOL_equiv.
-    intros.
-    destruct (evalSigmaHCOL st op1 x).
-    destruct (evalSigmaHCOL st op2 x).
+
+    unfold equiv, SigmaHCOL_equiv, equiv.
+
+    dep_destruct (evalSigmaHCOL st op1 x).
+    dep_destruct (evalSigmaHCOL st op2 x).
 
 
     unfold op1, op2.
