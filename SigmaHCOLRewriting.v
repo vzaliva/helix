@@ -98,8 +98,6 @@ ISumUnion(i3, 2,
   Lemma testOp2Op1: forall (st : state) (x : vector (option A) (2 + 2)),
    svector_is_dense x -> evalSigmaHCOL st op1 x = evalSigmaHCOL st op2 x.
   Proof.
-
-    (*Set Printing Implicit. *)
     intros.
 
     unfold equiv.
@@ -116,6 +114,17 @@ ISumUnion(i3, 2,
     destruct (@try_vector_from_svector A 4 x).
     crush.
     auto.
+
+    Set Printing Implicit.
+    case_eq (evalSigmaHCOL st (SHOBinOp 2 ASub) x).
+    intros.
+    simpl in H0, op1OK.
+
+    Focus 2.
+    intros.
+    simpl in H0, op1OK.
+    rewrite H0 in op1OK.
+    contradiction.
 
   Qed.
     
