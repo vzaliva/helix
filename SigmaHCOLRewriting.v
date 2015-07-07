@@ -95,18 +95,18 @@ ISumUnion(i3, 2,
                                          (SHOBinOp 1 ASub)
                                          (SHOGathH (i:=4) (o:=2) vari c2))).
 
-  Lemma testOp2Op1: op1 = op2.
+  Lemma testOp2Op1: forall (st : state) (x : vector (option A) (2 + 2)),
+   svector_is_dense x -> evalSigmaHCOL st op1 x = evalSigmaHCOL st op2 x.
   Proof.
 
     (*Set Printing Implicit. *)
-
-    unfold equiv, SigmaHCOL_equiv, equiv.
     intros.
+
+    unfold equiv.
     unfold maybeError_equiv.
 
     unfold op1.
-    assert (op1OK: (@svector_is_dense A 4 x) -> is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
-    intros.
+    assert (op1OK: is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
     simpl.
 
     unfold evalBinOp.
@@ -116,8 +116,6 @@ ISumUnion(i3, 2,
     destruct (@try_vector_from_svector A 4 x).
     crush.
     auto.
-
-
 
   Qed.
     
