@@ -68,8 +68,52 @@ ISumUnion(i3, 2,
         GathH(2*o.N, 2, i, o.N)
         )))),
 
- *)  
+   *)  
+  
+  (*
+  Lemma identity_cast: forall
+      {B C: Type}
+      (i:nat) (o:nat)
+      (f: (vector B i) -> (@maybeError (vector C o))),
+      cast_vector_operator i o i o f  ≡ f.
+  Proof.
+    intros.
+    unfold cast_vector_operator.
+    compute.
+  Qed.
+   *)
 
+  Lemma is_OK_alt m: @is_OK A m -> ∃ v, m ≡ OK v.
+  Proof.
+    intros.
+    destruct m.
+    exists a. reflexivity.
+    contradiction.
+  Qed.
+  
+  Lemma BinOpIsDense: forall o st
+                        (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+                        (x: svector A (o+o)),
+      svector_is_dense x -> 
+      is_OK (evalSigmaHCOL st (SHOBinOp o f) x).
+  Proof.
+    intros.
+    simpl.
+    Set Printing Implicit.
+
+    unfold evalBinOp.
+    apply dense_casts_OK in H.
+    destruct (try_vector_from_svector x).
+
+    Focus 2.
+    contradiction.
+
+
+    assert (is_OK ((@OK (vector (option A) o) ∘ @svector_from_vector A o
+                        ∘ @HCOLOperators.PointWise2 A A A f o ∘ @vector2pair A o o) t)).
+    auto.
+    
+  Admitted.
 
   Definition ASub: A -> A -> A := (plus∘negate).
 
@@ -109,9 +153,11 @@ ISumUnion(i3, 2,
 
     unfold evalBinOp.
     assert (is_OK (@try_vector_from_svector A 4 x)).
+ 
     apply dense_casts_OK. assumption.
 
     destruct (@try_vector_from_svector A 4 x).
+    clear H0.
     crush.
     auto.
 
@@ -126,6 +172,8 @@ ISumUnion(i3, 2,
     rewrite H0 in op1OK.
     contradiction.
 
+    unfold op2.
+    
   Qed.
     
 Section SigmaHCOLRewriting.
