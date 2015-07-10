@@ -241,7 +241,9 @@ Section SigmaHCOL_Eval.
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
-  
+
+
+
   Definition cast_vector_operator
              {B C: Type}
              (i0:nat) (o0:nat)
@@ -249,17 +251,22 @@ Section SigmaHCOL_Eval.
              (f: (vector B i0) -> (@maybeError (vector C o0))):
     (vector B i1) -> (@maybeError (vector C o1)).
   Proof.
-    assert(Decision(i0 ≡ i1 /\ o0 ≡ o1)).
-    (repeat apply and_dec); unfold Decision; decide equality.
-    case H.
-    intros Ha.
-    destruct Ha.
-    rewrite <- H0, <- H1.
+    assert(Di: Decision(i0 ≡ i1)).
+    unfold Decision; decide equality.
+    assert(Do: Decision(o0 ≡ o1)).
+    unfold Decision; decide equality.
+    destruct Di, Do.
+    rewrite <- e. 
+    rewrite <- e0.
     assumption.
     intros.
-    exact (Error "incompatible arguments").
+    exact (Error "incompatible output sizes").
+    intros.
+    exact (Error "incompatible input sizes").
+    intros.
+    exact (Error "incompatible input and output sizes").
   Defined.
-
+    
   Definition evalScatHUnion
              {i o: nat}
              (st:state)
