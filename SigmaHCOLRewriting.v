@@ -70,28 +70,7 @@ ISumUnion(i3, 2,
 
    *)  
   
-  (*
-  Lemma identity_cast: forall
-      {B C: Type}
-      (i:nat) (o:nat)
-      (f: (vector B i) -> (@maybeError (vector C o))),
-      cast_vector_operator i o i o f  ≡ f.
-  Proof.
-    intros.
-    unfold cast_vector_operator.
-    compute.
-  Qed.
-   *)
-
-  Lemma is_OK_alt m: @is_OK A m -> ∃ v, m ≡ OK v.
-  Proof.
-    intros.
-    destruct m.
-    exists a. reflexivity.
-    contradiction.
-  Qed.
-  
-  Lemma BinOpIsDense: forall o st
+   Lemma BinOpIsDense: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                         (x: svector A (o+o)),
       svector_is_dense x -> 
@@ -107,7 +86,6 @@ ISumUnion(i3, 2,
 
     Focus 2.
     contradiction.
-
 
     assert (is_OK ((@OK (vector (option A) o) ∘ @svector_from_vector A o
                         ∘ @HCOLOperators.PointWise2 A A A f o ∘ @vector2pair A o o) t)).
@@ -161,7 +139,6 @@ ISumUnion(i3, 2,
     crush.
     auto.
 
-    Set Printing Implicit.
     case_eq (evalSigmaHCOL st (SHOBinOp 2 ASub) x).
     intros.
     simpl in H0, op1OK.
