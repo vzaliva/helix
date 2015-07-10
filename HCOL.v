@@ -26,15 +26,6 @@ Open Scope vector_scope.
 
 (* === HCOL Semantics === *)
 
-(*
-Set Printing All.
-Set Printing Notations.
-Set Printing Implicit.
-
-Unset Implicit Arguments.
-Unset Ltac Debug.
- *)
-
 Module HCOLOperators.
   
   (* --- Highger order operators --- *)

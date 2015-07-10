@@ -20,8 +20,6 @@ Require Import CoLoR.Util.Nat.NatUtil.
 Require Import CoLoR.Util.Logic.LogicUtil.
 Import VectorNotations.
 
-Unset Implicit Arguments.
-
 Open Scope vector_scope.
 
 (* Matrix represented by a vector of vectors (in a row-wise fashion) *)
