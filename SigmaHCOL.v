@@ -243,7 +243,6 @@ Section SigmaHCOL_Eval.
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
 
 
-
   Definition cast_vector_operator
              {B C: Type}
              (i0:nat) (o0:nat)
@@ -266,7 +265,7 @@ Section SigmaHCOL_Eval.
     intros.
     exact (Error "incompatible input and output sizes").
   Defined.
-    
+
   Definition evalScatHUnion
              {i o: nat}
              (st:state)

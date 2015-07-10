@@ -87,9 +87,26 @@ ISumUnion(i3, 2,
     rewrite Hi. clear i0 Hi.
     intros.
 
-        
+    unfold compose.
+    set (e := (λ x : vector A i1, @OK (vector (option A) o0) (op x))).
+
+    assert(is_OK (e v)).
+    unfold e. simpl. trivial.
+    revert H.
+    generalize dependent e. clear op.
+    intros.
+
+    rename i1 into i.
+    rename o0 into o.
+    (* here we arrived to more generic form of the lemma, stating that is_OK property is preserved by 'cast_vector_operator *)
+
+    
+
+    
   Admitted.
 
+  
+  
   
    Lemma BinOpIsDense: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
