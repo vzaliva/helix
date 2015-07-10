@@ -68,7 +68,28 @@ ISumUnion(i3, 2,
         GathH(2*o.N, 2, i, o.N)
         )))),
 
-   *)  
+   *)
+
+  Set Printing Implicit.
+
+  Lemma cast_vector_operator_OK_OK: forall i0 i1 o0 o1 (v: vector A i1)
+                      (op: vector A i0 → svector A o0)
+    ,
+      (i0 ≡ i1 /\ o0 ≡ o1) -> is_OK ((cast_vector_operator
+               i0 o0
+               i1 o1
+               (OK ∘ op)) v).
+  Proof.
+    intros.
+    destruct H as [Hi Ho].
+    rewrite <- Ho. clear o1 Ho.
+    revert op.
+    rewrite Hi. clear i0 Hi.
+    intros.
+
+        
+  Admitted.
+
   
    Lemma BinOpIsDense: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -76,23 +97,14 @@ ISumUnion(i3, 2,
       svector_is_dense x -> 
       is_OK (evalSigmaHCOL st (SHOBinOp o f) x).
   Proof.
-    intros.
-    simpl.
-    Set Printing Implicit.
-
+    intros. simpl.
     unfold evalBinOp.
     apply dense_casts_OK in H.
     destruct (try_vector_from_svector x).
-
-    Focus 2.
+    apply cast_vector_operator_OK_OK. omega.
     contradiction.
-
-    assert (is_OK ((@OK (vector (option A) o) ∘ @svector_from_vector A o
-                        ∘ @HCOLOperators.PointWise2 A A A f o ∘ @vector2pair A o o) t)).
-    auto.
-    
-  Admitted.
-
+  Qed.
+  
   Definition ASub: A -> A -> A := (plus∘negate).
 
   Global Instance ASub_proper:
