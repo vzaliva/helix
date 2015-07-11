@@ -13,7 +13,7 @@ Require Import Coq.Arith.Peano_dec.
 
 Require Import CpdtTactics.
 Require Import CaseNaming.
- Require Import Psatz.
+Require Import Psatz.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -54,10 +54,10 @@ Module SigmaHCOL_Operators.
 
   (* no base. actual stride value  *)
   Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
-      match n return vector A ((n*stride)+t) -> vector A n with
-      | O => fun _ => Vnil
-      | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
-      end.
+    match n return vector A ((n*stride)+t) -> vector A n with
+    | O => fun _ => Vnil
+    | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
+    end.
   Next Obligation.
     apply nez2gt in snz.
     lia.
@@ -102,7 +102,7 @@ Module SigmaHCOL_Operators.
   Local Close Scope nat_scope.
 
   Section Coq84Workaround.
-      (* 
+    (* 
 This section is workaround for Coq 8.4 bug in Program construct. under Coq 8.5 
 the following definition suffice:
 
@@ -212,9 +212,9 @@ Section SigmaHCOL_Language.
     match a with
     | Error msg => Error msg
     | OK an => match b with
-                     | Error msg => Error msg
-                     | OK bn => OK (op bn an)
-                     end
+              | Error msg => Error msg
+              | OK bn => OK (op bn an)
+              end
     end.
   
   Fixpoint evalAexp (st:state) (e:aexp): @maybeError nat :=
@@ -226,7 +226,7 @@ Section SigmaHCOL_Language.
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
-Section SigmaHCOL_Eval.
+  Section SigmaHCOL_Eval.
     Context    
       `{Az: Zero A} `{A1: One A}
       `{Aplus: Plus A} `{Amult: Mult A} 
@@ -244,193 +244,193 @@ Section SigmaHCOL_Eval.
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
 
 
-  Definition cast_vector_operator
-             {B C: Type}
-             (i0:nat) (o0:nat)
-             (i1:nat) (o1:nat)
-             (f: (vector B i0) -> (@maybeError (vector C o0))):
-    (vector B i1) -> (@maybeError (vector C o1)).
-  Proof.
-    assert (Di: {i0 = i1} + {i0 <> i1}) by apply (eq_nat_dec).
-    assert (Do: {o0 = o1} + {o0 <> o1}) by apply (eq_nat_dec).
-    destruct Di, Do.
-    rewrite <- e. 
-    rewrite <- e0.
-    assumption.
-    intros.
-    exact (Error "incompatible output sizes").
-    intros.
-    exact (Error "incompatible input sizes").
-    intros.
-    exact (Error "incompatible input and output sizes").
-  Defined.
+    Definition cast_vector_operator
+               {B C: Type}
+               (i0:nat) (o0:nat)
+               (i1:nat) (o1:nat)
+               (f: (vector B i0) -> (@maybeError (vector C o0))):
+      (vector B i1) -> (@maybeError (vector C o1)).
+    Proof.
+      assert (Di: {i0 = i1} + {i0 <> i1}) by apply (eq_nat_dec).
+      assert (Do: {o0 = o1} + {o0 <> o1}) by apply (eq_nat_dec).
+      destruct Di, Do.
+      rewrite <- e. 
+      rewrite <- e0.
+      assumption.
+      intros.
+      exact (Error "incompatible output sizes").
+      intros.
+      exact (Error "incompatible input sizes").
+      intros.
+      exact (Error "incompatible input and output sizes").
+    Defined.
 
-  Definition evalScatHUnion
-             {i o: nat}
-             (st:state)
-             (base pad:aexp)
-             (v:svector A i):
-    @maybeError (svector A o) :=
-    match evalAexp st base, evalAexp st pad with
-    | OK nbase, OK npad =>
+    Definition evalScatHUnion
+               {i o: nat}
+               (st:state)
+               (base pad:aexp)
+               (v:svector A i):
+      @maybeError (svector A o) :=
+      match evalAexp st base, evalAexp st pad with
+      | OK nbase, OK npad =>
+        match try_vector_from_svector v with
+        | Error msg => Error "OHScatHUnion expects dense vector!"
+        | OK x => (cast_vector_operator
+                    i (nbase + S npad * i)
+                    i o
+                    (OK ∘ (ScatHUnion (A:=A) (n:=i) nbase npad))) x
+        end
+      |  _, _ => Error "Undefined variables in ScatHUnion arguments"
+      end.
+
+    Definition evalGathH
+               {i o: nat}
+               (st:state)
+               (base stride:aexp)
+               (v: svector A i):  @maybeError (svector A o) :=
+      match evalAexp st base, evalAexp st stride with
+      | OK nbase, OK nstride =>
+        match eq_nat_decide 0 nstride with
+        | left _ => Error "SHOGathH stride must not be 0"
+        | right nsnz =>
+          match le_dec (nbase+o*nstride) i with
+          | right _ => Error "SHOGathH input size is too small for given params"
+          | left oc =>
+            OK (GathH (A:=option A)
+                      (snz:=(neq_nat_to_neq nsnz))
+                      (oc:=oc)
+                      i o nbase nstride v)
+          end
+        end
+      |  _, _ => Error "Undefined variables in GathH arguments"
+      end.
+
+    Definition evalBinOp
+               {i o: nat}
+               (_:state)
+               (f: A->A->A) (v: svector A i):
+      @maybeError (svector A o) :=
       match try_vector_from_svector v with
       | Error msg => Error "OHScatHUnion expects dense vector!"
-      | OK x => (cast_vector_operator
-                  i (nbase + S npad * i)
-                  i o
-                  (OK ∘ (ScatHUnion (A:=A) (n:=i) nbase npad))) x
-      end
-    |  _, _ => Error "Undefined variables in ScatHUnion arguments"
-    end.
-
-  Definition evalGathH
-             {i o: nat}
-             (st:state)
-             (base stride:aexp)
-             (v: svector A i):  @maybeError (svector A o) :=
-    match evalAexp st base, evalAexp st stride with
-    | OK nbase, OK nstride =>
-      match eq_nat_decide 0 nstride with
-      | left _ => Error "SHOGathH stride must not be 0"
-      | right nsnz =>
-        match le_dec (nbase+o*nstride) i with
-        | right _ => Error "SHOGathH input size is too small for given params"
-        | left oc =>
-          OK (GathH (A:=option A)
-                    (snz:=(neq_nat_to_neq nsnz))
-                    (oc:=oc)
-                    i o nbase nstride v)
-        end
-      end
-    |  _, _ => Error "Undefined variables in GathH arguments"
-    end.
-
-  Definition evalBinOp
-             {i o: nat}
-             (_:state)
-             (f: A->A->A) (v: svector A i):
-    @maybeError (svector A o) :=
-    match try_vector_from_svector v with
-    | Error msg => Error "OHScatHUnion expects dense vector!"
-    | OK x =>
-      (cast_vector_operator
-         (o+o) o
-         i o
-         (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
-    end.
+      | OK x =>
+        (cast_vector_operator
+           (o+o) o
+           i o
+           (OK ∘ svector_from_vector ∘ (HCOLOperators.PointWise2 f) ∘ (vector2pair o))) x
+      end.
     
-  Definition evalInfinityNorm
-             {i: nat}
-             (st:state)
-             (v: svector A i):
-    @maybeError (svector A 1) :=
-    match try_vector_from_svector v with
-    | Error _ => Error "OHScatHUnion expects dense vector!"
-    | OK dv =>
-      let h := HOInfinityNorm (i:=i) in
-      (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
-    end.
+    Definition evalInfinityNorm
+               {i: nat}
+               (st:state)
+               (v: svector A i):
+      @maybeError (svector A 1) :=
+      match try_vector_from_svector v with
+      | Error _ => Error "OHScatHUnion expects dense vector!"
+      | OK dv =>
+        let h := HOInfinityNorm (i:=i) in
+        (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
+      end.
 
-  Definition evalReduction
-             {i: nat}
-             (st:state)
-             (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (idv:A)
-             (v: svector A i):
-    @maybeError (svector A 1) :=
-    match try_vector_from_svector v with
-    | Error _ => Error "Reduction expects dense vector!"
-    | OK dv =>
-      let h := HOReduction i f idv in
-      (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
-    end.
+    Definition evalReduction
+               {i: nat}
+               (st:state)
+               (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (idv:A)
+               (v: svector A i):
+      @maybeError (svector A 1) :=
+      match try_vector_from_svector v with
+      | Error _ => Error "Reduction expects dense vector!"
+      | OK dv =>
+        let h := HOReduction i f idv in
+        (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
+      end.
 
-  Definition evalHOperator
-             {i o: nat}
-             (h: HOperator i o)
-             (v: svector A i):
-    @maybeError (svector A o) :=
-    match try_vector_from_svector v with
-    | Error _ => Error "HOperator  expects dense vector!"
-    | OK dv =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
-    end.
-  
-  Definition evalSigmaHCOL:
-    forall {i o:nat}, state-> SOperator i o -> svector A i -> @maybeError (svector A o) :=
-    fix evalSigmaHCOL {i o: nat} st (op: SOperator i o) v :=           
-      (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
-       with
-       | SHOCompose _ _ _ f g  =>
-         (fun v0 =>
-            match evalSigmaHCOL st g v0 with
-            | Error msg => Error msg
-            | OK gv => evalSigmaHCOL st f gv
-            end)
-       | SHOISumUnion _ _ var r body =>
-         (fun v0 =>
-            match evalAexp st r with
-            | OK O => Error "Invalid SHOISumUnion range"
-            | OK (S p) =>
-              (fix evalISUM (st:state) (nr:nat) {struct nr}:
-                 @maybeError (svector A _) :=
-                 match nr with
-                 | O => evalSigmaHCOL (update st var nr) body v0
-                 | S p =>
-                   match evalSigmaHCOL (update st var nr) body v0 with
-                   | OK x =>
-                     match evalISUM st p with
-                     | OK xs => SparseUnion x xs
+    Definition evalHOperator
+               {i o: nat}
+               (h: HOperator i o)
+               (v: svector A i):
+      @maybeError (svector A o) :=
+      match try_vector_from_svector v with
+      | Error _ => Error "HOperator  expects dense vector!"
+      | OK dv =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
+      end.
+    
+    Definition evalSigmaHCOL:
+      forall {i o:nat}, state-> SOperator i o -> svector A i -> @maybeError (svector A o) :=
+      fix evalSigmaHCOL {i o: nat} st (op: SOperator i o) v :=           
+        (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
+         with
+         | SHOCompose _ _ _ f g  =>
+           (fun v0 =>
+              match evalSigmaHCOL st g v0 with
+              | Error msg => Error msg
+              | OK gv => evalSigmaHCOL st f gv
+              end)
+         | SHOISumUnion _ _ var r body =>
+           (fun v0 =>
+              match evalAexp st r with
+              | OK O => Error "Invalid SHOISumUnion range"
+              | OK (S p) =>
+                (fix evalISUM (st:state) (nr:nat) {struct nr}:
+                   @maybeError (svector A _) :=
+                   match nr with
+                   | O => evalSigmaHCOL (update st var nr) body v0
+                   | S p =>
+                     match evalSigmaHCOL (update st var nr) body v0 with
+                     | OK x =>
+                       match evalISUM st p with
+                       | OK xs => SparseUnion x xs
+                       |  Error _ as e => e
+                       end
                      |  Error _ as e => e
                      end
-                   |  Error _ as e => e
-                   end
-                 end) st p
-            | _  => Error "Undefined variables in SHOISumUnion arguments"
-            end) 
-       | SHOScatHUnion _ _ base pad => evalScatHUnion st base pad
-       | SHOGathH _ _ base stride => evalGathH st base stride
-       | SHOBinOp _ f _ => evalBinOp st f
-       | SOHCOL _ _ h => evalHOperator h
-       | SHOInfinityNorm _ => evalInfinityNorm st
-       | SOReduction _ f pf idv => evalReduction st f idv
-       end) v.
+                   end) st p
+              | _  => Error "Undefined variables in SHOISumUnion arguments"
+              end) 
+         | SHOScatHUnion _ _ base pad => evalScatHUnion st base pad
+         | SHOGathH _ _ base stride => evalGathH st base stride
+         | SHOBinOp _ f _ => evalBinOp st f
+         | SOHCOL _ _ h => evalHOperator h
+         | SHOInfinityNorm _ => evalInfinityNorm st
+         | SOReduction _ f pf idv => evalReduction st f idv
+         end) v.
 
 
-  Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
-    fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
+    Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
+      fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
 
-  Lemma SigmaHCOL_extensionality {i o} (f g : SOperator i o) :
+    Lemma SigmaHCOL_extensionality {i o} (f g : SOperator i o) :
       (forall v st, evalSigmaHCOL st f v = evalSigmaHCOL st g v) -> f = g.
-  Proof.
+    Proof.
       intros.
       unfold equiv, SigmaHCOL_equiv.
       auto.
     Qed.
 
-  Global Instance SigmaHCOL_Equivalence {i o:nat}
-         `{!Equivalence (@equiv A _)}
-    : Equivalence (@SigmaHCOL_equiv i o).
-  Proof.
-    unfold SigmaHCOL_equiv.
-    constructor.
-    unfold Reflexive. intros. apply SigmaHCOL_extensionality. intros. reflexivity.
-    unfold Symmetric. intros. apply SigmaHCOL_extensionality. intros. symmetry. auto.
-    unfold Transitive. intros. apply SigmaHCOL_extensionality. intros. rewrite H. auto.
-  Qed.
-  
-  Global Instance SigmaHCOL_Setoid {i o}: Setoid (SOperator i o).
-  Proof.
-    unfold Setoid.
-    apply SigmaHCOL_Equivalence.
-  Qed.
-  
-End SigmaHCOL_Eval.
+    Global Instance SigmaHCOL_Equivalence {i o:nat}
+           `{!Equivalence (@equiv A _)}
+      : Equivalence (@SigmaHCOL_equiv i o).
+    Proof.
+      unfold SigmaHCOL_equiv.
+      constructor.
+      unfold Reflexive. intros. apply SigmaHCOL_extensionality. intros. reflexivity.
+      unfold Symmetric. intros. apply SigmaHCOL_extensionality. intros. symmetry. auto.
+      unfold Transitive. intros. apply SigmaHCOL_extensionality. intros. rewrite H. auto.
+    Qed.
+    
+    Global Instance SigmaHCOL_Setoid {i o}: Setoid (SOperator i o).
+    Proof.
+      unfold Setoid.
+      apply SigmaHCOL_Equivalence.
+    Qed.
+    
+  End SigmaHCOL_Eval.
 End SigmaHCOL_Language.
 
 
 Section SigmaHCOL_language_tests.
 
-  (* Lemma test0: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
+(* Lemma test0: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
   Proof.  compute. Qed. *)
   
 End SigmaHCOL_language_tests.
