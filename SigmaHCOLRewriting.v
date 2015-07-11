@@ -70,8 +70,6 @@ ISumUnion(i3, 2,
 
    *)
 
-  Set Printing Implicit.
-
   Lemma cast_vector_operator_OK_OK: forall i0 i1 o0 o1 (v: vector A i1)
                       (op: vector A i0 → svector A o0)
     ,
@@ -100,14 +98,15 @@ ISumUnion(i3, 2,
     rename o0 into o.
     (* here we arrived to more generic form of the lemma, stating that is_OK property is preserved by 'cast_vector_operator *)
 
-    induction i.
+    unfold cast_vector_operator.
+    destruct (eq_nat_dec o o), (eq_nat_dec i i); try congruence.
 
+    compute.
+    destruct e0.
+    dep_destruct e1.
+    auto.
+Qed.
     
-  Admitted.
-
-  
-  
-  
    Lemma BinOpIsDense: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                         (x: svector A (o+o)),
