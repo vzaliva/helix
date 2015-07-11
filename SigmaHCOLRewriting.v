@@ -100,7 +100,7 @@ ISumUnion(i3, 2,
     rename o0 into o.
     (* here we arrived to more generic form of the lemma, stating that is_OK property is preserved by 'cast_vector_operator *)
 
-    
+    induction i.
 
     
   Admitted.

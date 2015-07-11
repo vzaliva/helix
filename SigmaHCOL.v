@@ -9,6 +9,7 @@ Require Import Coq.Arith.EqNat Coq.Arith.Le Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Plus Coq.Arith.Minus.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
+Require Import Coq.Arith.Peano_dec.
 
 Require Import CpdtTactics.
 Require Import CaseNaming.
@@ -250,10 +251,8 @@ Section SigmaHCOL_Eval.
              (f: (vector B i0) -> (@maybeError (vector C o0))):
     (vector B i1) -> (@maybeError (vector C o1)).
   Proof.
-    assert(Di: Decision(i0 ≡ i1)).
-    unfold Decision; decide equality.
-    assert(Do: Decision(o0 ≡ o1)).
-    unfold Decision; decide equality.
+    assert (Di: {i0 = i1} + {i0 <> i1}) by apply (eq_nat_dec).
+    assert (Do: {o0 = o1} + {o0 <> o1}) by apply (eq_nat_dec).
     destruct Di, Do.
     rewrite <- e. 
     rewrite <- e0.
