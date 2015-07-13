@@ -122,7 +122,7 @@ ISumUnion(i3, 2,
   Qed.
   
   Definition ASub: A -> A -> A := (plus∘negate).
-
+ 
   Global Instance ASub_proper:
     Proper ((=) ==> (=) ==> (=)) (ASub).
   Proof.
@@ -155,17 +155,9 @@ ISumUnion(i3, 2,
 
     unfold op1.
     assert (op1OK: is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)).
-    simpl.
 
-    unfold evalBinOp.
-    assert (is_OK (@try_vector_from_svector A 4 x)).
-    
-    apply dense_casts_OK. assumption.
-
-    destruct (@try_vector_from_svector A 4 x).
-    clear H0.
-    crush.
-    auto.
+    apply BinOpIsDense.
+    assumption.
 
     case_eq (evalSigmaHCOL st (SHOBinOp 2 ASub) x).
     intros.
@@ -177,7 +169,7 @@ ISumUnion(i3, 2,
     rewrite H0 in op1OK.
     contradiction.
 
-    unfold op2.
+     unfold op2.
     
   Qed.
   
