@@ -79,25 +79,12 @@ Module SigmaHCOL_Operators.
 
   Program Definition GathH {A: Type}
           (i n base stride: nat)
-          {snz: 0%nat ≢ stride}
-          {oc: le (base+n*stride) i}
+          {snz: 0 ≢ stride}
+          {oc: (base+n*stride) <= i}
           (v: vector A i) : vector A n :=
     @GathH' A (i-base-n*stride) n stride snz (drop_plus base v).
   Next Obligation.
-    revert oc.
-    generalize  (n*stride) as p.
-    intros.
-    rename base into b.
-    clear snz v stride A n.
-    rewrite Plus.plus_assoc.
-    rewrite le_mius_minus.
-    revert oc.
-    generalize (b+p) as u.
-    intros.
-    rewrite  le_plus_minus_r.
-    reflexivity.
-    assumption.
-    tauto.
+    lia.
   Qed.
   Local Close Scope nat_scope.
 
