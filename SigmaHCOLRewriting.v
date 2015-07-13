@@ -120,6 +120,26 @@ ISumUnion(i3, 2,
     apply cast_vector_operator_OK_OK. omega.
     contradiction.
   Qed.
+
+  (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
+  Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+                   (x: svector A i),
+      (evalAexp st base ≡ OK nbase) ->
+      (evalAexp st stride ≡ OK nstride) ->
+      nstride ≢ 0 ->
+      (nbase+o*nstride) <= i ->
+      is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x).
+  Proof.
+    intros; simpl.
+    unfold evalGathH.
+    crush.    
+    destruct (le_dec (nbase + o * nstride)).
+    destruct nstride.
+    contradiction  H1.
+    reflexivity.
+    unfold is_OK. trivial.
+    contradiction.
+Qed.
   
   Definition ASub: A -> A -> A := (plus∘negate).
  
@@ -158,7 +178,7 @@ ISumUnion(i3, 2,
     rewrite H0 in op1OK.
     contradiction.
 
-     unfold op2.
+    unfold op2.
     
   Qed.
   

@@ -208,6 +208,8 @@ Section SigmaHCOL_Language.
   Definition update (st : state) (x : varname) (n : nat) : state :=
     fun x' => if eq_varname_dec x x' then OK n else st x'.
 
+  Definition has_value (st:state) (x:varname) : Prop := is_OK (st x).
+  
   Definition eval_mayberr_binop (a: @maybeError nat) (b: @maybeError nat) (op: nat->nat->nat) :=
     match a with
     | Error msg => Error msg
@@ -290,14 +292,14 @@ Section SigmaHCOL_Language.
                (v: svector A i):  @maybeError (svector A o) :=
       match evalAexp st base, evalAexp st stride with
       | OK nbase, OK nstride =>
-        match eq_nat_decide 0 nstride with
+        match eq_nat_dec 0 nstride with
         | left _ => Error "SHOGathH stride must not be 0"
         | right nsnz =>
           match le_dec (nbase+o*nstride) i with
           | right _ => Error "SHOGathH input size is too small for given params"
           | left oc =>
             OK (GathH (A:=option A)
-                      (snz:=(neq_nat_to_neq nsnz))
+                      (snz:=nsnz)
                       (oc:=oc)
                       i o nbase nstride v)
           end
