@@ -1035,6 +1035,18 @@ Proof.
   tauto.
 Qed.
 
+Lemma Vforall_nil:
+  ∀ B (P:B->Prop), Vforall P (@Vnil B).
+Proof.
+  crush.
+Qed.
+
+Lemma Vforall_cons {B:Type} {P:B->Prop} {n:nat} {x:B} {xs:vector B n}:
+  (P x /\ Vforall P xs) ≡ Vforall P (cons x xs).
+Proof.
+  auto.
+Qed.
+
 Open Local Scope nat_scope.
 Lemma le_mius_minus : forall a b c, a>=(b+c) -> a-b-c ≡ a - (b+c).
 Proof.
@@ -1055,6 +1067,7 @@ Proof.
   crush.
 Defined.
 
+Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
 Close Scope vector_scope.
 

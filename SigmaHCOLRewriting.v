@@ -124,13 +124,14 @@ ISumUnion(i3, 2,
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
-      (evalAexp st base ≡ OK nbase) ->
-      (evalAexp st stride ≡ OK nstride) ->
-      nstride ≢ 0 ->
-      (nbase+o*nstride) <= i ->
+      ((evalAexp st base ≡ OK nbase) /\
+       (evalAexp st stride ≡ OK nstride) /\
+       nstride ≢ 0 /\
+       (nbase+o*nstride) <= i) ->
       is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x).
   Proof.
-    intros; simpl.
+    intros i o nbase nstride base stride st x.
+    simpl.
     unfold evalGathH.
     crush.    
     destruct (le_dec (nbase + o * nstride)).
@@ -139,7 +140,49 @@ ISumUnion(i3, 2,
     reflexivity.
     unfold is_OK. trivial.
     contradiction.
-Qed.
+  Qed.
+
+
+  Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
+                            (y: svector A o)
+                            (x: svector A i),
+      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
+      Vforall (Vin_aux x) y.
+  Proof.
+
+    intros i o base stride st y x.
+
+    unfold evalSigmaHCOL, evalGathH. simpl.
+    assert ((SigmaHCOL_Operators.GathH i o nbase nstride x) ≡ y).
+    injection y.
+    
+    induction y.
+        
+    intros. apply Vforall_nil.
+ 
+    unfold evalSigmaHCOL, evalGathH. simpl.
+    
+    rewrite <- Vforall_cons.
+    split.
+    admit.
+    apply IHy.
+  Qed.
+        
+  (* Gath on dense vector produces dense vector *)
+  Lemma GathDenseIsDense: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+                            (y: svector A o)
+                            (x: svector A i),
+      svector_is_dense x -> 
+      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
+      svector_is_dense y.
+  Proof.
+    intros.
+    inversion H0.
+    revert H2.
+    unfold evalGathH.
+
+    
+  Qed.
   
   Definition ASub: A -> A -> A := (plus∘negate).
  
