@@ -142,6 +142,31 @@ ISumUnion(i3, 2,
     contradiction.
   Qed.
 
+  (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
+  Lemma GathPreInv: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+                    (x: svector A i),
+      is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ->
+      ((evalAexp st base ≡ OK nbase) /\
+       (evalAexp st stride ≡ OK nstride) /\
+       nstride ≢ 0 /\
+       (nbase+o*nstride) <= i).
+  Proof.
+    intros i o nbase nstride base stride st x. 
+    simpl.
+    unfold is_OK .
+    case_eq (evalGathH (o:=o) st base stride x).
+    
+    Focus 2.
+    intros.
+    contradiction H0.
+    unfold is_OK.
+    intros.
+    clear H0.
+
+    destruct (evalAexp st base), (evalAexp st stride), (le_dec (nbase + o * nstride) i), (nstride).
+
+  Qed.
+  
 
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
