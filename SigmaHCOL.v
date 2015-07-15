@@ -41,17 +41,6 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 
 Module SigmaHCOL_Operators.
 
-  (* zero - based, (stride-1) parameter *)
-  Program Fixpoint GathH'_old {A} {t:nat} (n s:nat) : vector A ((n*(S s)+t)) -> vector A n :=
-    let stride := S s in (
-      match n return vector A ((n*stride)+t) -> vector A n with
-      | O => fun _ => Vnil
-      | S p => fun a => Vcons (Vhead a) (GathH'_old p s (t0:=t) (drop_plus stride a))
-      end).
-  Next Obligation.
-    omega.
-  Defined.
-
   (* no base. actual stride value  *)
   Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
     match n return vector A ((n*stride)+t) -> vector A n with
@@ -66,15 +55,6 @@ Module SigmaHCOL_Operators.
     omega.
   Defined.
   
-  Program Definition GathH_old {A: Type} (n base stride: nat) {t} {snz: 0 ≢ stride} (v: vector A (base+n*stride+t)) : vector A n :=
-    GathH'_old n (pred stride) (t0:=t) (drop_plus base v).
-  Next Obligation.
-    destruct stride.
-    contradiction snz. trivial.
-    unfold pred.
-    omega.
-  Defined.
-
   Local Open  Scope nat_scope.
 
   Program Definition GathH {A: Type}

@@ -154,7 +154,6 @@ ISumUnion(i3, 2,
   Proof.
     simpl.
     intros. 
-    assert (HD: (nbase+o*nstride) <= i). admit. (* TODO: prove *)
 
     revert H1.
     unfold evalGathH.
@@ -165,18 +164,31 @@ ISumUnion(i3, 2,
     intros HS1. 
 
     case (le_dec (nbase + o * nstride) i).
-    Focus 2. intros. contradiction.
-    intros HD1.
+    Focus 2. intros. congruence.
+    intros HD.
 
     intros.
     injection H1. clear H1.
-    unfold SigmaHCOL_Operators.GathH.
+    intros.
+    rewrite <- H1.
 
+    clear_all.
+
+    induction o.
+
+    assert (~ n < 0) by  apply lt_n_0; contradiction.
+
+    rewrite <- IHo.
     
-    induction n.
+     unfold SigmaHCOL_Operators.GathH.
+    
+
+
 
   Qed.
-  
+
+
+        
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
                             (x: svector A i),
