@@ -142,51 +142,68 @@ ISumUnion(i3, 2,
     contradiction.
   Qed.
 
-  (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
-  Lemma GathPreInv: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
-                    (x: svector A i),
-      is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ->
-      ((evalAexp st base ≡ OK nbase) /\
-       (evalAexp st stride ≡ OK nstride) /\
-       nstride ≢ 0 /\
-       (nbase+o*nstride) <= i).
+  Lemma GathInvariant: forall (i o nbase nstride: nat)
+                         (base stride:aexp) (st:state)
+                         (x: svector A i) (y: svector A o)
+                         (n:nat) (HO: n<o) (HI: (nbase + n*nstride) < i)
+                         (HS: nstride ≢ 0)
+    ,
+      (evalAexp st base ≡ OK nbase) -> (evalAexp st stride ≡ OK nstride) ->
+      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
+      Vnth y HO ≡ Vnth x HI.
   Proof.
-    intros i o nbase nstride base stride st x. 
     simpl.
-    unfold is_OK .
-    case_eq (evalGathH (o:=o) st base stride x).
-    
-    Focus 2.
-    intros.
-    contradiction H0.
-    unfold is_OK.
-    intros.
-    clear H0.
+    intros. 
+    assert (HD: (nbase+o*nstride) <= i). admit. (* TODO: prove *)
 
-    destruct (evalAexp st base), (evalAexp st stride), (le_dec (nbase + o * nstride) i), (nstride).
+    revert H1.
+    unfold evalGathH.
+    rewrite H0, H.
+
+    case (eq_nat_dec 0 nstride).
+    intros. congruence.
+    intros HS1. 
+
+    case (le_dec (nbase + o * nstride) i).
+    Focus 2. intros. contradiction.
+    intros HD1.
+
+    intros.
+    injection H1. clear H1.
+    unfold SigmaHCOL_Operators.GathH.
+
+    
+    induction n.
 
   Qed.
   
-
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
                             (x: svector A i),
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       Vforall (Vin_aux x) y.
   Proof.
+    intros.
 
+
+
+
+
+
+
+    
     intros i o base stride st y x.
 
     unfold evalSigmaHCOL, evalGathH. simpl.
-    assert ((SigmaHCOL_Operators.GathH i o nbase nstride x) ≡ y).
-    injection y.
+    (*assert ((SigmaHCOL_Operators.GathH i o nbase nstride x) ≡ y).
+    injection y. *)
     
     induction y.
         
     intros. apply Vforall_nil.
  
     unfold evalSigmaHCOL, evalGathH. simpl.
-    
+    intros.
     rewrite <- Vforall_cons.
     split.
     admit.
