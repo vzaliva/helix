@@ -75,12 +75,13 @@ Module SigmaHCOL_Operators.
   Program Definition GathH {A: Type}
           (i n base stride: nat)
           {snz: 0 ≢ stride}
-          {oc: (base+n*stride) <= i}
+          {nnz: 0 ≢ n}
+          {oc: (base+n*stride) < i}
           (v: vector A i) : vector A n :=
-    @GathH' A (i-base-n*stride) n stride snz (drop_plus base v).
+    @GathH' A (i-base-n*stride) n stride snz nnz (drop_plus base v).
   Next Obligation.
     lia.
-  Qed.
+  Defined.
   Local Close Scope nat_scope.
 
   Section Coq84Workaround.
@@ -274,21 +275,26 @@ Section SigmaHCOL_Language.
                (v: svector A i):  @maybeError (svector A o) :=
       match evalAexp st base, evalAexp st stride with
       | OK nbase, OK nstride =>
-        match eq_nat_dec 0 nstride with
-        | left _ => Error "SHOGathH stride must not be 0"
-        | right nsnz =>
-          match le_dec (nbase+o*nstride) i with
-          | right _ => Error "SHOGathH input size is too small for given params"
-          | left oc =>
-            OK (GathH (A:=option A)
-                      (snz:=nsnz)
-                      (oc:=oc)
-                      i o nbase nstride v)
+        match eq_nat_dec 0 o with
+        | left _ => Error "SHOGathH n must not be 0"
+        | right nnnz =>
+          match eq_nat_dec 0 nstride with
+          | left _ => Error "SHOGathH stride must not be 0"
+          | right nsnz =>
+            match lt_dec (nbase+o*nstride) i with
+            | right _ => Error "SHOGathH input size is too small for given params"
+            | left oc =>
+              OK (GathH (A:=option A)
+                        (snz:=nsnz)
+                        (nnz:=nnnz)
+                        (oc:=oc)
+                        i o nbase nstride v)
+            end
           end
         end
       |  _, _ => Error "Undefined variables in GathH arguments"
       end.
-
+    
     Definition evalBinOp
                {i o: nat}
                (_:state)

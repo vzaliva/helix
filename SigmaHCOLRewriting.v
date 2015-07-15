@@ -127,19 +127,23 @@ ISumUnion(i3, 2,
       ((evalAexp st base ≡ OK nbase) /\
        (evalAexp st stride ≡ OK nstride) /\
        nstride ≢ 0 /\
-       (nbase+o*nstride) <= i) ->
+       o ≢ 0 /\
+       (nbase+o*nstride) < i) ->
       is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x).
   Proof.
     intros i o nbase nstride base stride st x.
     simpl.
     unfold evalGathH.
-    crush.    
-    destruct (le_dec (nbase + o * nstride)).
-    destruct nstride.
-    contradiction  H1.
-    reflexivity.
-    unfold is_OK. trivial.
-    contradiction.
+    crush. 
+    destruct (Compare_dec.lt_dec (nbase + o * nstride)), o, nstride.
+    contradiction H1; reflexivity.
+    contradiction H2; reflexivity.
+    Focus 2. unfold is_OK. trivial.
+    contradiction H1; reflexivity.
+    contradiction H1; reflexivity.
+    contradiction H2; reflexivity.
+    contradiction H1; reflexivity.
+    
   Qed.
 
   Lemma GathInvariant: forall (i o nbase nstride: nat)
