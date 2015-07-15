@@ -41,20 +41,31 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 
 Module SigmaHCOL_Operators.
 
-  (* no base. actual stride value  *)
-  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}:
+  (* no base. actual stride value, 0 ≢ n *)
+  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride} {nnz: 0 ≢ n}:
     vector A ((n*stride+t)) -> vector A n
     :=
       match n return vector A ((n*stride)+t) -> vector A n with
       | O => fun _ => Vnil
-      | S p => fun a => Vcons
-                      (Vhead (n:=(pred ((((S p)*stride)+t)))) a)
-                      (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
+      | S p => match eq_nat_dec 0 p with
+              | left _ => fun a => Vcons
+                                 (Vhead (n:=(pred ((((S p)*stride)+t)))) a) []
+              | right pnz => fun a => Vcons
+                                    (Vhead (n:=(pred ((((S p)*stride)+t)))) a)
+                                    (GathH' p stride (t0:=t) (snz:=snz) (nnz:=pnz)
+                                            (drop_plus stride a))
+              end
       end.
   Next Obligation.
     apply nez2gt in snz.
     lia.
-  Defined.
+  Defined. 
+  Next Obligation.
+    rewrite NPeano.Nat.succ_pred.
+    omega. 
+    apply nez2gt in snz.
+    lia.
+  Defined.    
   Next Obligation.
     omega.
   Defined.
