@@ -134,11 +134,13 @@ ISumUnion(i3, 2,
     intros i o nbase nstride base stride st x.
     simpl.
     unfold evalGathH.
-    crush. 
-    destruct (Compare_dec.lt_dec (nbase + o * nstride) i), o, nstride;
-      try (contradiction H1; reflexivity); try (contradiction H2; reflexivity).
-    unfold is_OK. trivial.
-    contradiction.
+    crush.
+    destruct (Compare_dec.lt_dec (nbase + o * nstride) i), o, nstride; 
+    try match goal with
+        | [ H: eq O zero -> False |- _ ] => contradiction H; reflexivity
+        | [ |- is_OK (OK _) ] => unfold is_OK; trivial
+        | [ H0: ?P ,  H1: ~?P |- _] => contradiction
+    end.
   Qed.
 
   Lemma GathInvariant: forall (i o nbase nstride: nat)
