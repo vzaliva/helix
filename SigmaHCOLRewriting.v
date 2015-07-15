@@ -146,13 +146,14 @@ ISumUnion(i3, 2,
   Lemma GathInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
-                         (n:nat) (HO: n<o) (HI: (nbase + n*nstride) < i)
-                         (HS: nstride ≢ 0)
+                         (n:nat) (HY: n<o) (HX: (nbase + n*nstride) < i)
+                         (snz: nstride ≢ 0) (nnz: o ≢ 0)
+                         (HO: (nbase + o*nstride) < i)
     ,
       (evalAexp st base ≡ OK nbase) ->
       (evalAexp st stride ≡ OK nstride) ->
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
-      Vnth y HO ≡ Vnth x HI.
+      Vnth y HY ≡ Vnth x HX.
   Proof.
     simpl.
     intros. 
@@ -162,30 +163,24 @@ ISumUnion(i3, 2,
     rewrite H0, H.
 
     case (eq_nat_dec 0 nstride).
-    intros. congruence.
-    intros HS1. 
+    intros. symmetry in e. contradiction.
+    intros Hsnz. 
 
-    case (le_dec (nbase + o * nstride) i).
-    Focus 2. intros. congruence.
+    case (eq_nat_dec 0 o).
+    intros. congruence.
+    intros Hnnz.
+    
+    case (Compare_dec.lt_dec (nbase + o * nstride) i).
+    Focus 2. congruence.
     intros HD.
 
-    intros.
-    injection H1. clear H1.
-    intros.
-    rewrite <- H1.
+    intros. injection H1. clear H1.
+    intros. rewrite <- H1.
 
-    clear_all.
-
-    induction o.
-
-    assert (~ n < 0) by  apply lt_n_0; contradiction.
-
-    rewrite <- IHo.
-    
-     unfold SigmaHCOL_Operators.GathH.
-    
-
-
+    (* clear_all. *)
+    induction n.
+    (* HX, HY,  HO together contradict *)
+    congruence.
 
   Qed.
 
