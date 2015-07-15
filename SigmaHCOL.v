@@ -42,11 +42,15 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 Module SigmaHCOL_Operators.
 
   (* no base. actual stride value  *)
-  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}: vector A ((n*stride+t)) -> vector A n :=
-    match n return vector A ((n*stride)+t) -> vector A n with
-    | O => fun _ => Vnil
-    | S p => fun a => Vcons (Vhead (n:=(pred ((((S p)*stride)+t)))) a) (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
-    end.
+  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride}:
+    vector A ((n*stride+t)) -> vector A n
+    :=
+      match n return vector A ((n*stride)+t) -> vector A n with
+      | O => fun _ => Vnil
+      | S p => fun a => Vcons
+                      (Vhead (n:=(pred ((((S p)*stride)+t)))) a)
+                      (GathH' p stride (t0:=t) (snz:=snz) (drop_plus stride a))
+      end.
   Next Obligation.
     apply nez2gt in snz.
     lia.
@@ -56,7 +60,7 @@ Module SigmaHCOL_Operators.
   Defined.
   
   Local Open  Scope nat_scope.
-
+  
   Program Definition GathH {A: Type}
           (i n base stride: nat)
           {snz: 0 ≢ stride}

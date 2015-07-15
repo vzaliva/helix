@@ -148,7 +148,8 @@ ISumUnion(i3, 2,
                          (n:nat) (HO: n<o) (HI: (nbase + n*nstride) < i)
                          (HS: nstride ≢ 0)
     ,
-      (evalAexp st base ≡ OK nbase) -> (evalAexp st stride ≡ OK nstride) ->
+      (evalAexp st base ≡ OK nbase) ->
+      (evalAexp st stride ≡ OK nstride) ->
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       Vnth y HO ≡ Vnth x HI.
   Proof.
