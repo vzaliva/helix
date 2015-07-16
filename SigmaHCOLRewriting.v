@@ -159,24 +159,43 @@ ISumUnion(i3, 2,
                    end
        end.
   
-  Definition opt_nat_Lt (x:option nat) (y: nat): Prop :=
-    match x with
-    | None => True
-    | Some x' => x' < y
+  Definition opt_nat_max (x:option nat) (y: option nat): option nat :=
+    match x, y with
+    | None, None => None
+    | None, Some y' => Some y'
+    | Some x', None => Some x'
+    | Some x', Some y' => Some (max x'  y')
     end.
+  
+  Definition OptMapUpperBound
+             (f: nat -> (option nat))
+             (i: nat) :=
+    Vfold_left opt_nat_max None (Vmap f (natrange i)).
 
-  (*
+
+  Definition vector_index_operator
+             {i}
+             (f: nat -> (option nat))
+             {obound: OptMapUpperBound f i < o}
+             (x: svector A i):  (y: svector A o)
+
+  
+(*  
   Lemma GathIndexMapUpperBound
         (base stride i: nat)
         {snz: 0 ≢ stride}:
-    forall {n:nat},  n<i -> opt_nat_Lt (GathIndexMap (snz:=snz) base stride n)
-                                 (modulo (i-base) stride).
+    (OptMapUpperBound (GathIndexMap (snz:=snz) base stride) i)= Some (modulo (i-base) stride) \/ (OptMapUpperBound (GathIndexMap (snz:=snz) base stride) i) = None.
   Proof.
-    intros.
-    unfold GathIndexMap.
+    induction i.
+    right. 
+    reflexivity.
 
+    unfold OptMapUpperBound.
+
+    assert ((natrange (S i)) ≡ snoc (natrange i) i).
+    
   Qed.
-*)    
+*)
   
   Lemma GathInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
