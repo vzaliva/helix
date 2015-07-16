@@ -1060,14 +1060,22 @@ Proof.
   omega.
 Defined.
 
-Close Local Scope nat_scope.
-
 Lemma neq_nat_to_neq {a b:nat} (e: ¬eq_nat a b): a ≢ b.
 Proof.
   crush.
 Defined.
 
 Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
+
+Lemma Vnth_0 {B} {n} (v:vector B (S n)) (ip: 0<(S n)):
+  Vnth (i:=0) v ip ≡ Vhead v.
+Proof.
+  dep_destruct v.
+  simpl.
+  reflexivity.
+Qed.
+
+Close Local Scope nat_scope.
 
 Close Scope vector_scope.
 

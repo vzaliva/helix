@@ -46,6 +46,7 @@ Section SigmaHCOLRewriting.
   Add Ring RingA: (stdlib_ring_theory A).
   
   Open Scope vector_scope.
+  Open Scope nat_scope.
 
 
   (*
@@ -137,7 +138,7 @@ ISumUnion(i3, 2,
     crush.
     destruct (Compare_dec.lt_dec (nbase + o * nstride) i), o, nstride; 
     try match goal with
-        | [ H: eq O zero -> False |- _ ] => contradiction H; reflexivity
+        | [ H: 0 ≡ 0 -> False |- _ ] => contradiction H; reflexivity
         | [ |- is_OK (OK _) ] => unfold is_OK; trivial
         | [ H0: ?P ,  H1: ~?P |- _] => contradiction
     end.
@@ -153,7 +154,7 @@ ISumUnion(i3, 2,
       (evalAexp st base ≡ OK nbase) ->
       (evalAexp st stride ≡ OK nstride) ->
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
-      Vnth y HY ≡ Vnth x HX.
+      Vnth x HX ≡ Vnth y HY.
   Proof.
     simpl.
     intros. 
@@ -172,18 +173,21 @@ ISumUnion(i3, 2,
     
     case (Compare_dec.lt_dec (nbase + o * nstride) i).
     Focus 2. congruence.
-    intros HD.
+    intros HD. clear HO. (* HO = HD *)
 
+    
     intros. injection H1. clear H1.
-    intros. rewrite <- H1.
-
-    (* clear_all. *)
-    induction n.
-    (* HX, HY,  HO together contradict *)
-    congruence.
-
+    intros.
+    (* rewrite <- H1. *)
+ 
+    dependent induction n.
+    Case "n=0".
+    destruct y.
+    SCase "y=[]".
+    crush.
+    SCase "y<>[]".
+    rewrite Vnth_cons_head; try reflexivity.
   Qed.
-
 
         
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
