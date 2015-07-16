@@ -144,6 +144,40 @@ ISumUnion(i3, 2,
     end.
   Qed.
 
+
+  Require Import Coq.Numbers.Natural.Peano.NPeano.
+
+
+  Definition GathIndexMap
+             (base stride: nat)
+             {snz: 0 ≢ stride} (i:nat): (option nat)
+    := match lt_dec i base with
+       | left _ => None
+       | right _ => match divmod (i-base) stride 0 stride with
+                   | (o, O) => Some o
+                   | _ => None
+                   end
+       end.
+  
+  Definition opt_nat_Lt (x:option nat) (y: nat): Prop :=
+    match x with
+    | None => True
+    | Some x' => x' < y
+    end.
+
+  (*
+  Lemma GathIndexMapUpperBound
+        (base stride i: nat)
+        {snz: 0 ≢ stride}:
+    forall {n:nat},  n<i -> opt_nat_Lt (GathIndexMap (snz:=snz) base stride n)
+                                 (modulo (i-base) stride).
+  Proof.
+    intros.
+    unfold GathIndexMap.
+
+  Qed.
+*)    
+  
   Lemma GathInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
