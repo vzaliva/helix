@@ -148,7 +148,17 @@ ISumUnion(i3, 2,
   Require Import Coq.Numbers.Natural.Peano.NPeano.
 
 
-  Definition GathIndexMap
+  (* Mapping from input indices to output ones.
+This might be applicable in SPIRAL, since operators usually
+never write to same element of the output vector more than once,
+and some element of input vector can map to more than one element
+of output vectors. 
+
+In other words, functions on indices are:
+1. injective (every element of the codomain is mapped to by at most one element of the domain)
+1. non-surjective (NOT: if every element of the codomain is mapped to by at least one element of the domain)
+   *)
+  Definition GathForwardMap
              (base stride: nat)
              {snz: 0 ≢ stride} (i:nat): (option nat)
     := match lt_dec i base with
@@ -158,6 +168,12 @@ ISumUnion(i3, 2,
                    | _ => None
                    end
        end.
+
+  (* Because it never returns NONE it means output vector is dense! *)
+  Definition GathBackwardMap
+             (base stride: nat)
+             {snz: 0 ≢ stride} (o:nat): (option nat)
+    := Some (base + o*stride).
   
   Definition opt_nat_max (x:option nat) (y: option nat): option nat :=
     match x, y with
@@ -166,19 +182,47 @@ ISumUnion(i3, 2,
     | Some x', None => Some x'
     | Some x', Some y' => Some (max x'  y')
     end.
+
+  Definition opt_nat_lt (x:option nat) (y: nat): Prop :=
+    match x with
+    | None => True
+    | Some x' =>  x' < y
+    end.
   
-  Definition OptMapUpperBound
+  Definition IndexMapUpperBound
              (f: nat -> (option nat))
              (i: nat) :=
     Vfold_left opt_nat_max None (Vmap f (natrange i)).
 
-
-  Definition vector_index_operator
-             {i}
-             (f: nat -> (option nat))
-             {obound: OptMapUpperBound f i < o}
-             (x: svector A i):  (y: svector A o)
-
+  Lemma ibound_relax_by_1
+        {i o: nat}
+        {f: nat -> (option nat)} :
+    (forall (n:nat), n< (S o) ->  opt_nat_lt (f n) i) -> (forall (n:nat), n<o ->  opt_nat_lt (f n) i).
+  Proof.
+    crush.
+  Qed.
+  
+  (* Build operator on vectors by mapping outputs to inputs
+via provided (output_index -> input_index) function *)
+  Fixpoint vector_index_backward_operator
+           {i o: nat}
+           (f: nat -> (option nat))
+           {ibound: forall (n:nat), n<o ->  opt_nat_lt (f n) i}
+           (x: svector A i):  (svector A o) :=
+    match o return (svector A o) with 
+    | 0 => Vnil
+    | S p => snoc (vector_index_backward_operator (o:=p)
+                                                 (ibound := ibound_relax_by_1 ibound) f x)
+                 match f p with
+                 | None => None
+                 | Some a' =>
+                   match lt_dec a' i with
+                   | left ip => Vnth x ip
+                   | right _ => !
+                   end
+                 end
+    end.
+  
   
 (*  
   Lemma GathIndexMapUpperBound
