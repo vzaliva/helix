@@ -209,19 +209,20 @@ via provided (output_index -> input_index) function *)
            (f: nat -> (option nat))
            {ibound: forall (n:nat), n<o ->  opt_nat_lt (f n) i}
            (x: svector A i):  (svector A o) :=
-    match o return (svector A o) with 
-    | 0 => Vnil
-    | S p => snoc (vector_index_backward_operator (o:=p)
-                                                 (ibound := ibound_relax_by_1 ibound) f x)
+    (match o return nat -> (forall (n:nat), n<o ->  opt_nat_lt (f n) i) -> (svector A o) with 
+    | 0 => fun _ _ => Vnil
+    | S p => fun no ib =>
+      snoc (vector_index_backward_operator (o:=p)
+                                                 (ibound := ibound_relax_by_1 ib) f x)
                  match f p with
                  | None => None
                  | Some a' =>
                    match lt_dec a' i with
                    | left ip => Vnth x ip
-                   | right _ => !
+                   | right _ => None (* this should never happen *)
                    end
                  end
-    end.
+    end) o ibound.
   
   
 (*  
