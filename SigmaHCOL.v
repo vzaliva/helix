@@ -5,8 +5,7 @@ Require Import SVector.
 Require Import HCOL.
 Require Import HCOLSyntax.
 
-Require Import Coq.Arith.EqNat Coq.Arith.Le Coq.Arith.Compare_dec.
-Require Import Coq.Arith.Plus Coq.Arith.Minus.
+Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
@@ -126,6 +125,123 @@ Defined.
   
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
+
+
+  Section IndexedOperators.
+    Require Import Coq.Numbers.Natural.Peano.NPeano.
+
+    Local Open Scope nat_scope.
+    
+    (* Mapping from input indices to output ones.
+This might be applicable in SPIRAL, since operators usually
+never write to same element of the output vector more than once,
+and some element of input vector can map to more than one element
+of output vectors. 
+
+In other words, functions on indices are:
+1. injective (every element of the codomain is mapped to by at most one element of the domain)
+1. non-surjective (NOT: if every element of the codomain is mapped to by at least one element of the domain)
+     *)
+    Definition GathForwardMap
+               (base stride: nat)
+               {snz: 0 ≢ stride} (i:nat): (option nat)
+      := match lt_dec i base with
+         | left _ => None
+         | right _ => match divmod (i-base) stride 0 stride with
+                     | (o, O) => Some o
+                     | _ => None
+                     end
+         end.
+
+    (* Because it never returns NONE it means output vector is dense! *)
+    Definition GathBackwardMap
+               (base stride: nat)
+               {snz: 0 ≢ stride} (o:nat): (option nat)
+      := Some (base + o*stride).
+    
+    Definition opt_nat_max (x:option nat) (y: option nat): option nat :=
+      match x, y with
+      | None, None => None
+      | None, Some y' => Some y'
+      | Some x', None => Some x'
+      | Some x', Some y' => Some (max x'  y')
+      end.
+
+    Definition opt_nat_lt (x:option nat) (y: nat): Prop :=
+      match x with
+      | None => True
+      | Some x' =>  x' < y
+      end.
+
+    Definition IndexMapUpperBound
+               (f: nat -> (option nat))
+               (i: nat) :=
+      Vfold_left opt_nat_max None (Vmap f (natrange i)).
+
+    
+    Lemma ibound_relax_by_1
+          {i o: nat}
+          {f: nat -> (option nat)} :
+      (forall (n:nat), n< (S o) ->  opt_nat_lt (f n) i) -> (forall (n:nat), n<o ->  opt_nat_lt (f n) i).
+    Proof.
+      crush.
+    Qed.
+    
+    (* Build operator on vectors by mapping outputs to inputs
+via provided (output_index -> input_index) function *)
+    Fixpoint vector_index_backward_operator
+             {A}
+             {i o: nat}
+             (f: nat -> (option nat))
+             {ibound: forall (n:nat), n<o ->  opt_nat_lt (f n) i}
+             (x: svector A i):  (svector A o) :=
+      (match o return nat -> (forall (n:nat), n<o ->  opt_nat_lt (f n) i) -> (svector A o) with 
+       | 0 => fun _ _ => Vnil
+       | S p => fun no ib =>
+                 snoc (vector_index_backward_operator (o:=p)
+                                                      (ibound := ibound_relax_by_1 ib) f x)
+                      match f p with
+                      | None => None
+                      | Some a' =>
+                        match lt_dec a' i with
+                        | left ip => Vnth x ip
+                        | right _ => None (* this should never happen *)
+                        end
+                      end
+       end) o ibound.
+
+    Lemma GathIBound
+          (i o base stride: nat)
+          {snz: 0 ≢ stride}
+          {oc: (base+o*stride) < i}
+          {onz: 0 ≢ o}:
+      forall (n:nat), n<o ->  opt_nat_lt (GathBackwardMap (snz:=snz) base stride n) i.
+    Proof.
+      intros.
+      simpl.
+      assert (0 < stride). crush.
+      assert ((n * stride) < (o * stride)).
+      apply mult_lt_compat_r; assumption.
+      omega.
+    Qed.
+
+    (* Indexed version of GatH operator *)
+    Definition GathH_i
+               {A}
+               (i o base stride: nat)
+               {snz: 0 ≢ stride}
+               {onz: 0 ≢ o}
+               {oc: (base+o*stride) < i}:
+      (vector (option A) i) -> vector (option A) o :=
+      vector_index_backward_operator
+        (ibound := GathIBound (oc:=oc) (onz:=onz) i o base stride)
+        (GathBackwardMap
+           (snz:=snz)
+           base stride).
+    
+    Local Close Scope nat_scope.
+  End IndexedOperators.
+
   
 End SigmaHCOL_Operators.
 
