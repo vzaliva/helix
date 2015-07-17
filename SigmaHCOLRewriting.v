@@ -188,7 +188,7 @@ In other words, functions on indices are:
     | None => True
     | Some x' =>  x' < y
     end.
-  
+
   Definition IndexMapUpperBound
              (f: nat -> (option nat))
              (i: nat) :=
@@ -223,7 +223,33 @@ via provided (output_index -> input_index) function *)
                    end
                  end
     end) o ibound.
-  
+
+  Lemma GathIBound
+        (i o base stride: nat)
+        {snz: 0 ≢ stride}
+        {oc: (base+o*stride) < i}
+        {onz: 0 ≢ o}:
+    forall (n:nat), n<o ->  opt_nat_lt (GathBackwardMap (snz:=snz) base stride n) i.
+  Proof.
+    intros.
+    simpl.
+    assert (0 < stride). crush.
+    assert ((n * stride) < (o * stride)).
+    apply mult_lt_compat_r; assumption.
+    omega.
+  Qed.
+
+  Definition GathH_i 
+             (i o base stride: nat)
+             {snz: 0 ≢ stride}
+             {onz: 0 ≢ o}
+             {oc: (base+o*stride) < i}:
+    (vector (option A) i) -> vector (option A) o :=
+    vector_index_backward_operator
+      (ibound := GathIBound (oc:=oc) (onz:=onz) i o base stride)
+      (GathBackwardMap
+         (snz:=snz)
+         base stride).
   
 (*  
   Lemma GathIndexMapUpperBound
