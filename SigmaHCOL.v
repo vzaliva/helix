@@ -40,49 +40,6 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 
 Module SigmaHCOL_Operators.
 
-  (* no base. actual stride value, 0 ≢ n *)
-  Program Fixpoint GathH' {A} {t:nat} (n stride:nat)  {snz: 0 ≢ stride} {nnz: 0 ≢ n}:
-    vector A ((n*stride+t)) -> vector A n
-    :=
-      match n return vector A ((n*stride)+t) -> vector A n with
-      | O => fun _ => Vnil
-      | S p => match eq_nat_dec 0 p with
-              | left _ => fun a => Vcons
-                                 (Vhead (n:=(pred ((((S p)*stride)+t)))) a) []
-              | right pnz => fun a => Vcons
-                                    (Vhead (n:=(pred ((((S p)*stride)+t)))) a)
-                                    (GathH' p stride (t0:=t) (snz:=snz) (nnz:=pnz)
-                                            (drop_plus stride a))
-              end
-      end.
-  Next Obligation.
-    apply nez2gt in snz.
-    lia.
-  Defined. 
-  Next Obligation.
-    rewrite NPeano.Nat.succ_pred.
-    omega. 
-    apply nez2gt in snz.
-    lia.
-  Defined.    
-  Next Obligation.
-    omega.
-  Defined.
-  
-  Local Open  Scope nat_scope.
-  
-  Program Definition GathH {A: Type}
-          (i n base stride: nat)
-          {snz: 0 ≢ stride}
-          {nnz: 0 ≢ n}
-          {oc: (base+n*stride) < i}
-          (v: vector A i) : vector A n :=
-    @GathH' A (i-base-n*stride) n stride snz nnz (drop_plus base v).
-  Next Obligation.
-    lia.
-  Defined.
-  Local Close Scope nat_scope.
-
   Section Coq84Workaround.
     (* 
 This section is workaround for Coq 8.4 bug in Program construct. under Coq 8.5 
@@ -210,12 +167,23 @@ via provided (output_index -> input_index) function *)
                       end
        end) o ibound.
 
-    Lemma GathIBound
+    Lemma backward_operator_nth
+          {A}
+          {i o: nat}
+          (f: nat -> (option nat))
+          {ibound: forall (n:nat), n<o ->  opt_nat_lt (f n) i}
+          (x: svector A i)  (y: svector A o):
+      (y = (vector_index_backward_operator  f x)) ->
+      forall (n:nat), n<o -> Vnth y  ≡ Vnth x (f n).
+    Proof.
+    Qed.
+
+    Lemma GathBound
           (i o base stride: nat)
           {snz: 0 ≢ stride}
           {oc: (base+o*stride) < i}
           {onz: 0 ≢ o}:
-      forall (n:nat), n<o ->  opt_nat_lt (GathBackwardMap (snz:=snz) base stride n) i.
+      forall (n:nat), n<o -> opt_nat_lt (GathBackwardMap (snz:=snz) base stride n) i.
     Proof.
       intros.
       simpl.
@@ -226,7 +194,7 @@ via provided (output_index -> input_index) function *)
     Qed.
 
     (* Indexed version of GatH operator *)
-    Definition GathH_i
+    Definition GathH
                {A}
                (i o base stride: nat)
                {snz: 0 ≢ stride}
@@ -234,7 +202,7 @@ via provided (output_index -> input_index) function *)
                {oc: (base+o*stride) < i}:
       (vector (option A) i) -> vector (option A) o :=
       vector_index_backward_operator
-        (ibound := GathIBound (oc:=oc) (onz:=onz) i o base stride)
+        (ibound := GathBound (oc:=oc) (onz:=onz) i o base stride)
         (GathBackwardMap
            (snz:=snz)
            base stride).
@@ -393,18 +361,18 @@ Section SigmaHCOL_Language.
       | OK nbase, OK nstride =>
         match eq_nat_dec 0 o with
         | left _ => Error "SHOGathH n must not be 0"
-        | right nnnz =>
+        | right onz =>
           match eq_nat_dec 0 nstride with
           | left _ => Error "SHOGathH stride must not be 0"
-          | right nsnz =>
+          | right snz =>
             match lt_dec (nbase+o*nstride) i with
             | right _ => Error "SHOGathH input size is too small for given params"
             | left oc =>
-              OK (GathH (A:=option A)
-                        (snz:=nsnz)
-                        (nnz:=nnnz)
-                        (oc:=oc)
-                        i o nbase nstride v)
+              OK (GathH
+                    (snz:=snz)
+                    (onz:=onz)
+                    (oc:=oc)
+                    i o nbase nstride v)
             end
           end
         end

@@ -144,26 +144,6 @@ ISumUnion(i3, 2,
     end.
   Qed.
 
-
-
-
-(*  
-  Lemma GathIndexMapUpperBound
-        (base stride i: nat)
-        {snz: 0 ≢ stride}:
-    (OptMapUpperBound (GathIndexMap (snz:=snz) base stride) i)= Some (modulo (i-base) stride) \/ (OptMapUpperBound (GathIndexMap (snz:=snz) base stride) i) = None.
-  Proof.
-    induction i.
-    right. 
-    reflexivity.
-
-    unfold OptMapUpperBound.
-
-    assert ((natrange (S i)) ≡ snoc (natrange i) i).
-    
-  Qed.
-*)
-  
   Lemma GathInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
@@ -197,18 +177,13 @@ ISumUnion(i3, 2,
 
     
     intros. injection H1. clear H1.
-    intros.
-    (* rewrite <- H1. *)
- 
-    dependent induction n.
-    Case "n=0".
-    destruct y.
-    SCase "y=[]".
+    unfold SigmaHCOL_Operators.GathH.
     crush.
-    SCase "y<>[]".
-    rewrite Vnth_cons_head; try reflexivity.
+
+      
   Qed.
 
+  
         
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
