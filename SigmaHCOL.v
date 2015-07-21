@@ -116,7 +116,7 @@ In other words, functions on indices are:
       := match lt_dec n o with
          | left _ => Some (base + n*stride)
          | right _ =>  None
-    end.
+         end.
     
     Definition opt_nat_max (x:option nat) (y: option nat): option nat :=
       match x, y with
@@ -138,9 +138,9 @@ In other words, functions on indices are:
       Vfold_left opt_nat_max None (Vmap f (natrange i)).
 
     
-     (* Build operator on vectors by mapping outputs to inputs
+    (* Build operator on vectors by mapping outputs to inputs
 via provided (output_index -> input_index) function *)
-        Fixpoint vector_index_backward_operator
+    Fixpoint vector_index_backward_operator
              {A}
              {i o: nat}
              (f: nat -> (option nat))
@@ -160,7 +160,7 @@ via provided (output_index -> input_index) function *)
                       end
        end) o.
 
-        (*
+    (*
     Lemma backward_operator_nth
             `{Ae: Equiv A}
             {i o: nat}
@@ -171,41 +171,41 @@ via provided (output_index -> input_index) function *)
       forall (n n':nat), n<o -> f n ≡ Some n' -> Vnth y ≡ Vnth x.
     Proof.
     Qed.
-         *)
+     *)
 
-        Lemma GathBound
-              (i o base stride: nat)
-              {snz: 0 ≢ stride}
-              {oc: (base+o*stride) < i}
-              {onz: 0 ≢ o}:
-          forall (n n':nat), GathBackwardMap (snz:=snz) base stride o n ≡ Some n' -> n' < i.
-        Proof.
-          intros n n'.
-          unfold GathBackwardMap.
-          case (lt_dec n o).
+    Lemma GathBound
+          (i o base stride: nat)
+          {snz: 0 ≢ stride}
+          {oc: (base+o*stride) < i}
+          {onz: 0 ≢ o}:
+      forall (n n':nat), GathBackwardMap (snz:=snz) base stride o n ≡ Some n' -> n' < i.
+    Proof.
+      intros n n'.
+      unfold GathBackwardMap.
+      case (lt_dec n o).
 
-          crush.
-          assert (0 < stride). crush.
-          assert ((n * stride) < (o * stride)).
-          apply mult_lt_compat_r; assumption.
-          omega.
+      crush.
+      assert (0 < stride). crush.
+      assert ((n * stride) < (o * stride)).
+      apply mult_lt_compat_r; assumption.
+      omega.
 
-          congruence.
-        Qed.
+      congruence.
+    Qed.
 
-        (* Indexed version of GatH operator *)
-        Definition GathH
+    (* Indexed version of GatH operator *)
+    Definition GathH
                {A}
                (i o base stride: nat)
                {snz: 0 ≢ stride}
                {onz: 0 ≢ o}
                {oc: (base+o*stride) < i}:
-          (vector (option A) i) -> vector (option A) o :=
-          vector_index_backward_operator
-            (ibound := GathBound (oc:=oc) (onz:=onz) i o base stride)
-            (GathBackwardMap
-               (snz:=snz)
-               base stride o).
+      (vector (option A) i) -> vector (option A) o :=
+      vector_index_backward_operator
+        (ibound := GathBound (oc:=oc) (onz:=onz) i o base stride)
+        (GathBackwardMap
+           (snz:=snz)
+           base stride o).
     
     Local Close Scope nat_scope.
   End IndexedOperators.
