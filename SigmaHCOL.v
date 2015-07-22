@@ -160,18 +160,33 @@ via provided (output_index -> input_index) function *)
                       end
        end) o.
 
+
+    Lemma backward_operator_nth `{Ae: Equiv A}
+          {i o: nat}
+          (f: nat -> (option nat))
+          {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+          (x: svector A i)  (y: svector A o):
+      (y = (vector_index_backward_operator (ibound:=ibound) f x)) ->
+      forall (n n':nat) (Hy:n<o) (Hs: f n ≡ Some n'),
+        (Vnth y Hy ≡ Vnth x (ibound n n' Hs)).
+    Proof.
+      intros.
+      generalize (ibound n n' Hs) as Hx. intros.
+
+    Qed.
+
     (*
     Lemma backward_operator_nth
-            `{Ae: Equiv A}
-            {i o: nat}
-            (f: nat -> (option nat))
-             {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-            (x: svector A i)  (y: svector A o):
-      (y = (vector_index_backward_operator (ibound:=ibound)  f x)) ->
-      forall (n n':nat), n<o -> f n ≡ Some n' -> Vnth y ≡ Vnth x.
+          `{Ae: Equiv A}
+          {i o: nat}
+          (f: nat -> (option nat))
+          {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+          (x: svector A i)  (y: svector A o):
+      (y = (vector_index_backward_operator (ibound:=ibound) f x)) ->
+      forall (n n':nat) (Hy:n<o) (Hx: n'< i),
+        (f n ≡ Some n') -> (Vnth y Hy ≡ Vnth x Hx).
     Proof.
-    Qed.
-     *)
+     *)      
 
     Lemma GathBound
           (i o base stride: nat)
