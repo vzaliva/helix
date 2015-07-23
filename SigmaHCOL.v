@@ -104,15 +104,6 @@ Defined.
       omega.
     Defined.
     
-    Definition GathBackwardMap
-               (i o base stride: nat)
-               {snz: 0 ≢ stride} 
-               {range_bound: (base+o*stride) < i}
-               (n:nat)
-               (dom_bound: n<o)
-      : (option nat)
-      := proj1_sig (@GathBackwardMap_Spec i o base stride snz range_bound n dom_bound).
-
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
@@ -143,19 +134,14 @@ natrual number by index mapping function f_spec. *)
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
     
-    (* Indexed version of GatH operator *)
-    Definition GathH
-               {A}
+    Definition GathH `{Equiv A}
                (i o base stride: nat)
-               {snz: 0 ≢ stride}
-               {onz: 0 ≢ o}
-               {oc: (base+o*stride) < i}:
-      (vector (option A) i) -> vector (option A) o :=
-      vector_index_backward_operator
-        (ibound := GathBound (oc:=oc) (onz:=onz) i o base stride)
-        (GathBackwardMap
-           (snz:=snz)
-           base stride o).
+               {snz: 0 ≢ stride} 
+               {range_bound: (base+o*stride) < i}
+      :
+        (vector (option A) i) -> vector (option A) o :=
+      vector_index_backward_operator 
+        (@GathBackwardMap_Spec i o base stride snz range_bound).
     
     Local Close Scope nat_scope.
   End IndexedOperators.
