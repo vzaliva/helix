@@ -140,6 +140,7 @@ In other words, functions on indices are:
     
     (* Build operator on vectors by mapping outputs to inputs
 via provided (output_index -> input_index) function *)
+    (*
     Fixpoint vector_index_backward_operator
              {A}
              {i o: nat}
@@ -159,7 +160,7 @@ via provided (output_index -> input_index) function *)
                         end
                       end
        end) o.
-
+     *)
 
     (*
      Definition gen `{A:Type}
@@ -173,21 +174,28 @@ via provided (output_index -> input_index) function *)
          end.
      *)    
 
-     Definition gen `{A:Type}
-                {i o: nat}
+    Definition gen `{A:Type}
+               {i o: nat}
                (f: nat -> (option nat))
-               {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-               (x: svector A i) (t:nat) (ti: t < o): option A.
-     Admitted.
+               {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+               (x: svector A i) (t:nat) (dom_bound: t < o): option A.
+    Admitted.
     
-    Fixpoint vector_index_backward_operator_spec `{Equiv A}
+    Definition vector_index_backward_operator_spec `{Equiv A}
              {i o: nat}
              (f: nat -> (option nat))
-             {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+             {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
              (x: svector A i):
       {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ gen f x n ip}
-      := Vbuild_spec (@gen A i o f ibound x).
+      := Vbuild_spec (@gen A i o f range_bound x).
 
+    Definition vector_index_backward_operator `{Equiv A}
+             {i o: nat}
+             (f: nat -> (option nat))
+             {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+             (x: svector A i): svector A o :=
+    proj1_sig (vector_index_backward_operator_spec (range_bound:=range_bound) f x).
+    
     Lemma backward_operator_nth `{Ae: Equiv A}
           {i o: nat}
           (f: nat -> (option nat))
@@ -197,6 +205,7 @@ via provided (output_index -> input_index) function *)
       forall (n n':nat) (Hy:n<o) (Hs: f n ≡ Some n'),
         (Vnth y Hy ≡ Vnth x (ibound n n' Hs)).
     Proof.
+      unfold vector_index_backward_operator.
       intros.
       generalize (ibound n n' Hs) as Hx. intros.
 
