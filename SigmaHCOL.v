@@ -161,24 +161,32 @@ via provided (output_index -> input_index) function *)
        end) o.
 
 
-    Definition gen `{A}
-             {i o: nat}
-             (f: nat -> (option nat))
-             {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-             (x: svector A i): forall t, t < o -> option A
-      := fun t tp => match (f t) as z with
-                | None => None
-                | Some t' => Vnth x (ibound t t' tp)
-                end.
+    (*
+     Definition gen `{A:Type}
+               {i o: nat}
+               (f: nat -> (option nat))
+               {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+               (x: svector A i) (t:nat) (ti: t < o): option A
+      := match (f t) with
+         | None => None
+         | Some t' => Vnth x (ibound t t' (eq_refl _))
+         end.
+     *)    
+
+     Definition gen `{A:Type}
+                {i o: nat}
+               (f: nat -> (option nat))
+               {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+               (x: svector A i) (t:nat) (ti: t < o): option A.
+     Admitted.
     
     Fixpoint vector_index_backward_operator_spec `{Equiv A}
              {i o: nat}
              (f: nat -> (option nat))
              {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
              (x: svector A i):
-      {y : svector A o | forall n n' (op : n < o) (Hs: f n ≡ Some n'), Vnth y op = Vnth x (ibound n n' Hs)}
-      := Vbuild o (gen)
-        
+      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ gen f x n ip}
+      := Vbuild_spec (@gen A i o f ibound x).
 
     Lemma backward_operator_nth `{Ae: Equiv A}
           {i o: nat}
