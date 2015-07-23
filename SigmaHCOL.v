@@ -88,55 +88,30 @@ Defined.
     Require Import Coq.Numbers.Natural.Peano.NPeano.
 
     Local Open Scope nat_scope.
+
+    Program Definition GathBackwardMap_Spec
+               (i o base stride: nat)
+               {snz: 0 ≢ stride} 
+               {range_bound: (base+o*stride) < i}
+               (n:nat)
+               (dom_bound: n<o):
+      {v: (option nat) | forall n', (v ≡ Some n') -> n'<i}
+      := Some (base + n*stride).
+    Next Obligation.
+      assert (0 < stride). crush.
+      assert ((n * stride) < (o * stride)).
+      apply mult_lt_compat_r; assumption.
+      omega.
+    Defined.
     
-    (* Mapping from input indices to output ones.
-This might be applicable in SPIRAL, since operators usually
-never write to same element of the output vector more than once,
-and some element of input vector can map to more than one element
-of output vectors. 
-
-In other words, functions on indices are:
-1. injective (every element of the codomain is mapped to by at most one element of the domain)
-1. non-surjective (NOT: if every element of the codomain is mapped to by at least one element of the domain)
-     *)
-    Definition GathForwardMap
-               (base stride: nat)
-               {snz: 0 ≢ stride} (i:nat): (option nat)
-      := match lt_dec i base with
-         | left _ => None
-         | right _ => match divmod (i-base) stride 0 stride with
-                     | (o, O) => Some o
-                     | _ => None
-                     end
-         end.
-
     Definition GathBackwardMap
-               (base stride o: nat)
-               {snz: 0 ≢ stride} (n:nat): (option nat)
-      := match lt_dec n o with
-         | left _ => Some (base + n*stride)
-         | right _ =>  None
-         end.
-    
-    Definition opt_nat_max (x:option nat) (y: option nat): option nat :=
-      match x, y with
-      | None, None => None
-      | None, Some y' => Some y'
-      | Some x', None => Some x'
-      | Some x', Some y' => Some (max x'  y')
-      end.
-
-    Definition opt_nat_lt (x:option nat) (y: nat): Prop :=
-      match x with
-      | None => True
-      | Some x' =>  x' < y
-      end.
-
-    Definition IndexMapUpperBound
-               (f: nat -> (option nat))
-               (i: nat) :=
-      Vfold_left opt_nat_max None (Vmap f (natrange i)).
-
+               (i o base stride: nat)
+               {snz: 0 ≢ stride} 
+               {range_bound: (base+o*stride) < i}
+               (n:nat)
+               (dom_bound: n<o)
+      : (option nat)
+      := proj1_sig (@GathBackwardMap_Spec i o base stride snz range_bound n dom_bound).
     
     (* Build operator on vectors by mapping outputs to inputs
 via provided (output_index -> input_index) function *)
@@ -174,27 +149,33 @@ via provided (output_index -> input_index) function *)
          end.
      *)    
 
-    Definition gen `{A:Type}
-               {i o: nat}
-               (f: nat -> (option nat))
-               {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-               (x: svector A i) (t:nat) (dom_bound: t < o): option A.
-    Admitted.
+    Definition gen {A:Type}
+               {i o:nat}
+               (x: svector A i)
+               (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
+               (n:nat) (np: n<o)
+      : option A
+      := let fv:=f_spec n np in
+         let fn := proj1_sig fv in
+         let fp := proj2_sig fv in
+         match fn as fn' return fn = fn' -> option A with           
+         | None => fun _ => None
+         | Some fn => fun ep => Vnth x (fp fn ep)
+         end (eq_refl fn).
     
     Definition vector_index_backward_operator_spec `{Equiv A}
              {i o: nat}
-             (f: nat -> (option nat))
-             {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
+             (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
              (x: svector A i):
-      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ gen f x n ip}
-      := Vbuild_spec (@gen A i o f range_bound x).
-
+      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ gen x f_spec n ip }
+      := Vbuild_spec (gen x f_spec).
+    
     Definition vector_index_backward_operator `{Equiv A}
-             {i o: nat}
-             (f: nat -> (option nat))
-             {range_bound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-             (x: svector A i): svector A o :=
-    proj1_sig (vector_index_backward_operator_spec (range_bound:=range_bound) f x).
+               {i o: nat}
+               (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
+               (x: svector A i):
+      svector A o
+      := proj1_sig (vector_index_backward_operator_spec f_spec x).
     
     Lemma backward_operator_nth `{Ae: Equiv A}
           {i o: nat}
