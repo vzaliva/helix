@@ -112,44 +112,10 @@ Defined.
                (dom_bound: n<o)
       : (option nat)
       := proj1_sig (@GathBackwardMap_Spec i o base stride snz range_bound n dom_bound).
-    
-    (* Build operator on vectors by mapping outputs to inputs
-via provided (output_index -> input_index) function *)
-    (*
-    Fixpoint vector_index_backward_operator
-             {A}
-             {i o: nat}
-             (f: nat -> (option nat))
-             {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-             (x: svector A i):  (svector A o) :=
-      (match o return nat -> (svector A o) with 
-       | 0 => fun _ => Vnil
-       | S p => fun no =>
-                 snoc (vector_index_backward_operator (o:=p) (ibound:=ibound) f x)
-                      match f p with
-                      | None => None
-                      | Some a' =>
-                        match lt_dec a' i with
-                        | left ip => Vnth x ip
-                        | right _ => None (* this should never happen *)
-                        end
-                      end
-       end) o.
-     *)
 
-    (*
-     Definition gen `{A:Type}
-               {i o: nat}
-               (f: nat -> (option nat))
-               {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-               (x: svector A i) (t:nat) (ti: t < o): option A
-      := match (f t) with
-         | None => None
-         | Some t' => Vnth x (ibound t t' (eq_refl _))
-         end.
-     *)    
-
-    Definition gen {A:Type}
+    (* Returns an element of the vector 'x' which is result of mapping of given
+natrual number by index mapping function f_spec. *)
+    Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: svector A i)
                (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
@@ -167,8 +133,8 @@ via provided (output_index -> input_index) function *)
              {i o: nat}
              (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
              (x: svector A i):
-      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ gen x f_spec n ip }
-      := Vbuild_spec (gen x f_spec).
+      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
+      := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition vector_index_backward_operator `{Equiv A}
                {i o: nat}
@@ -177,54 +143,6 @@ via provided (output_index -> input_index) function *)
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
     
-    Lemma backward_operator_nth `{Ae: Equiv A}
-          {i o: nat}
-          (f: nat -> (option nat))
-          {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-          (x: svector A i)  (y: svector A o):
-      (y = (vector_index_backward_operator (ibound:=ibound) f x)) ->
-      forall (n n':nat) (Hy:n<o) (Hs: f n ≡ Some n'),
-        (Vnth y Hy ≡ Vnth x (ibound n n' Hs)).
-    Proof.
-      unfold vector_index_backward_operator.
-      intros.
-      generalize (ibound n n' Hs) as Hx. intros.
-
-    Qed.
-
-    (*
-    Lemma backward_operator_nth
-          `{Ae: Equiv A}
-          {i o: nat}
-          (f: nat -> (option nat))
-          {ibound: forall (n n':nat), f n ≡ Some n' -> n' < i}
-          (x: svector A i)  (y: svector A o):
-      (y = (vector_index_backward_operator (ibound:=ibound) f x)) ->
-      forall (n n':nat) (Hy:n<o) (Hx: n'< i),
-        (f n ≡ Some n') -> (Vnth y Hy ≡ Vnth x Hx).
-    Proof.
-     *)      
-
-    Lemma GathBound
-          (i o base stride: nat)
-          {snz: 0 ≢ stride}
-          {oc: (base+o*stride) < i}
-          {onz: 0 ≢ o}:
-      forall (n n':nat), GathBackwardMap (snz:=snz) base stride o n ≡ Some n' -> n' < i.
-    Proof.
-      intros n n'.
-      unfold GathBackwardMap.
-      case (lt_dec n o).
-
-      crush.
-      assert (0 < stride). crush.
-      assert ((n * stride) < (o * stride)).
-      apply mult_lt_compat_r; assumption.
-      omega.
-
-      congruence.
-    Qed.
-
     (* Indexed version of GatH operator *)
     Definition GathH
                {A}
