@@ -295,21 +295,16 @@ Section SigmaHCOL_Language.
                (v: svector A i):  @maybeError (svector A o) :=
       match evalAexp st base, evalAexp st stride with
       | OK nbase, OK nstride =>
-        match eq_nat_dec 0 o with
-        | left _ => Error "SHOGathH n must not be 0"
-        | right onz =>
-          match eq_nat_dec 0 nstride with
-          | left _ => Error "SHOGathH stride must not be 0"
-          | right snz =>
-            match lt_dec (nbase+o*nstride) i with
-            | right _ => Error "SHOGathH input size is too small for given params"
-            | left oc =>
-              OK (GathH
-                    (snz:=snz)
-                    (onz:=onz)
-                    (oc:=oc)
-                    i o nbase nstride v)
-            end
+        match eq_nat_dec 0 nstride with
+        | left _ => Error "SHOGathH stride must not be 0"
+        | right snz =>
+          match lt_dec (nbase+o*nstride) i with
+          | right _ => Error "SHOGathH input size is too small for given params"
+          | left range_bound =>
+            OK (GathH
+                  (snz:=snz)
+                  (range_bound:=range_bound)
+                  i o nbase nstride v)
           end
         end
       |  _, _ => Error "Undefined variables in GathH arguments"
