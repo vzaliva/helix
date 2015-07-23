@@ -148,8 +148,7 @@ ISumUnion(i3, 2,
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
                          (n:nat) (HY: n<o) (HX: (nbase + n*nstride) < i)
-                         (snz: nstride ≢ 0) (nnz: o ≢ 0)
-                         (HO: (nbase + o*nstride) < i)
+                         (snz: nstride ≢ 0) (range_bound: (nbase + o*nstride) < i)
     ,
       (evalAexp st base ≡ OK nbase) ->
       (evalAexp st stride ≡ OK nstride) ->
@@ -167,20 +166,21 @@ ISumUnion(i3, 2,
     intros. symmetry in e. contradiction.
     intros Hsnz. 
 
-    case (eq_nat_dec 0 o).
-    intros. congruence.
-    intros Hnnz.
-    
     case (Compare_dec.lt_dec (nbase + o * nstride) i).
     Focus 2. congruence.
-    intros HD. clear HO. (* HO = HD *)
+    intros HD. clear range_bound. (* range_bound = HD *)
 
-    
     intros. injection H1. clear H1.
     unfold SigmaHCOL_Operators.GathH.
-    crush.
+    intros. rewrite <- H1. clear H1.
+    unfold SigmaHCOL_Operators.vector_index_backward_operator.
+    unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
+    destruct (Vbuild_spec _). simpl. rewrite e. clear e.
+    unfold SigmaHCOL_Operators.GathBackwardMap_Spec.
+    Print SigmaHCOL_Operators.GathBackwardMap_Spec_obligation_1.
+    
 
-      
+
   Qed.
 
   
