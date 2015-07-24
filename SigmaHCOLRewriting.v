@@ -176,21 +176,18 @@ ISumUnion(i3, 2,
     unfold SigmaHCOL_Operators.vector_index_backward_operator.
     unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
     destruct (Vbuild_spec _). simpl. rewrite e. clear e.
-    unfold SigmaHCOL_Operators.GathBackwardMap_Spec.
+    unfold SigmaHCOL_Operators.GathBackwardMap_Spec. 
     generalize (SigmaHCOL_Operators.GathBackwardMap_Spec_obligation_1 i o nbase
                                                                       nstride Hsnz HD) as gath_map_oc. intros.
     unfold SigmaHCOL_Operators.VnthIndexMapped.
     simpl.
     generalize (gath_map_oc n HY (nbase + n * nstride) eq_refl) as HX1. clear gath_map_oc.
     intros.
-    assert (HX1 ≡ HX).
-    apply proof_irrelevance.
-    rewrite H1.
+    assert (HX1 ≡ HX). apply proof_irrelevance. rewrite H1.
     reflexivity.
   Qed.
 
-  
-        
+(*          
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
                             (x: svector A i),
@@ -239,6 +236,7 @@ ISumUnion(i3, 2,
 
     
   Qed.
+ *)
   
   Definition ASub: A -> A -> A := (plus∘negate).
  
@@ -278,7 +276,7 @@ ISumUnion(i3, 2,
     contradiction.
 
     unfold op2.
-    
+
   Qed.
   
   Section SigmaHCOLRewriting.
