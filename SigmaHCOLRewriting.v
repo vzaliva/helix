@@ -196,13 +196,6 @@ ISumUnion(i3, 2,
   Proof.
     intros.
 
-
-
-
-
-
-
-    
     intros i o base stride st y x.
 
     unfold evalSigmaHCOL, evalGathH. simpl.
@@ -252,7 +245,6 @@ ISumUnion(i3, 2,
   Definition op1 := SHOBinOp 2 ASub.
   Definition vari := AValue (Var "i").
   Definition c2 := AConst 2.
-  Definition c0 := AConst 0.
   
   Definition op2 :=
     SHOISumUnion (Var "i") c2
@@ -275,8 +267,37 @@ ISumUnion(i3, 2,
     rewrite H0 in op1OK.
     contradiction.
 
-    unfold op2.
+    Set Printing Implicit.
+    unfold op2, vari, c2.
 
+    unfold evalSigmaHCOL.
+    simpl.
+
+    assert (is_OK
+              (@evalGathH A Ae 4 2
+                          (update st (Var "i") 1)
+                          (AValue (Var "i"))
+                          (AConst 2) x)).
+
+(*
+      ((evalAexp st base ≡ OK nbase) /\
+       (evalAexp st stride ≡ OK nstride) /\
+       nstride ≢ 0 /\
+       o ≢ 0 /\
+       (nbase+o*nstride) < i) ->
+*)
+
+    assert(pre_nbase: evalAexp (update st (Var "i") 1) (AValue (Var "i")) ≡ OK 1).
+    simpl. unfold update.
+    destruct eq_varname_dec. reflexivity.
+    congruence.
+
+    assert(pre_nstride: evalAexp (update st (Var "i") 1) (AConst 2) ≡ OK 2).
+    simpl. unfold update.
+    reflexivity.
+    
+    apply GathPre with (nbase:=1) (nstride:=2); repeat (split; try assumption; try auto).
+    
   Qed.
   
   Section SigmaHCOLRewriting.
