@@ -146,14 +146,14 @@ Pre-condition:
        (evalAexp st stride ≡ OK nstride) /\
        nstride ≢ 0 /\
        o ≢ 0 /\
-       (nbase+o*nstride) < i) ->
+       (nbase+(pred o)*nstride) < i) ->
       is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x).
   Proof.
     intros i o nbase nstride base stride st x.
     simpl.
     unfold evalGathH.
     crush.
-    destruct (Compare_dec.lt_dec (nbase + o * nstride) i), o, nstride; 
+    destruct (Compare_dec.lt_dec (nbase + (pred o) * nstride) i), o, nstride; 
     try match goal with
         | [ H: 0 ≡ 0 -> False |- _ ] => contradiction H; reflexivity
         | [ |- is_OK (OK _) ] => unfold is_OK; trivial
@@ -183,7 +183,7 @@ Pre-condition:
     intros. symmetry in e. contradiction.
     intros Hsnz. 
 
-    case (Compare_dec.lt_dec (nbase + o * nstride) i).
+    case (Compare_dec.lt_dec (nbase + (pred o) * nstride) i).
     Focus 2. congruence.
     intros HD. clear range_bound. (* range_bound = HD *)
 

@@ -141,7 +141,7 @@ natrual number by index mapping function f_spec. *)
     Definition GathH `{Equiv A}
                (i o base stride: nat)
                {snz: 0 ≢ stride} 
-               {range_bound: (base+o*stride) < i}
+               {range_bound: (base+(pred o)*stride) < i}
       :
         (vector (option A) i) -> vector (option A) o :=
       vector_index_backward_operator 
@@ -302,7 +302,7 @@ Section SigmaHCOL_Language.
         match eq_nat_dec 0 nstride with
         | left _ => Error "SHOGathH stride must not be 0"
         | right snz =>
-          match lt_dec (nbase+o*nstride) i with
+          match lt_dec (nbase+(pred o)*nstride) i with
           | right _ => Error "SHOGathH input size is too small for given params"
           | left range_bound =>
             OK (GathH
