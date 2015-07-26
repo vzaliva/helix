@@ -84,24 +84,40 @@ Defined.
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
 
 
+ 
   Section IndexedOperators.
     Require Import Coq.Numbers.Natural.Peano.NPeano.
 
     Local Open Scope nat_scope.
 
+    Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
+    Proof.
+      crush.
+    Qed.
+
+    Lemma  plus_le_subst_r: forall a b b' c,  b' <= b -> a + b < c -> a + b' < c.
+    Proof.
+      crush.
+    Qed.
+    
     Program Definition GathBackwardMap_Spec
                (i o base stride: nat)
                {snz: 0 ≢ stride} 
-               {range_bound: (base+o*stride) < i}
+               {onz: 0 ≢ o} 
+               {range_bound: (base+(pred o)*stride) < i}
                (n:nat)
                (dom_bound: n<o):
       {v: (option nat) | forall n', (v ≡ Some n') -> n'<i}
       := Some (base + n*stride).
     Next Obligation.
-      assert (0 < stride). crush.
-      assert ((n * stride) < (o * stride)).
-      apply mult_lt_compat_r; assumption.
-      omega.
+      dep_destruct o. congruence.
+      clear onz.
+      unfold pred in range_bound.
+      assert (n<=x). lia.
+      assert(n * stride <= x*stride).
+      apply mult_le_compat_r; assumption.
+      apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
+        assumption.
     Defined.
     
     (* Returns an element of the vector 'x' which is result of mapping of given

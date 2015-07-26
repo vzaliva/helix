@@ -59,8 +59,25 @@ BinOp(2, Lambda([ r4, r5 ], sub(r4, r5)))
 ISumUnion(i3, 2,
   ScatHUnion(2, 1, i3, 1) o
   BinOp(1, Lambda([ r4, r5 ], sub(r4, r5))) o
-  GathH(4, 2, i3, 2)
+  GathH(N=4, n=2, base=i3, stride=2)
 )
+
+Loop:
+1.  GathH(N=4, n=2, base=0, stride=2)
+    for j={0,1}: base+j*stride:
+             0+0*2=0
+             0+1*2=2
+1.  GathH(N=4, n=2, base=1, stride=2)
+    for j={0,1}: base+j*stride:
+             1+0*2=1
+             1+1*2=3
+
+Pre-condition:
+    (base + (n-1)*stride) < N
+
+    base + n*sride - stride < N
+    base + n*stride < N+stride 
+
 
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
