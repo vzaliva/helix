@@ -1048,6 +1048,17 @@ Proof.
 Qed.
 
 Open Local Scope nat_scope.
+
+Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
+Proof.
+  intros. omega.
+Qed.
+
+Lemma  plus_le_subst_r: forall a b b' c,  b' <= b -> a + b < c -> a + b' < c.
+Proof.
+  intros. omega.
+Qed.
+
 Lemma le_mius_minus : forall a b c, a>=(b+c) -> a-b-c ≡ a - (b+c).
 Proof.
   intros.

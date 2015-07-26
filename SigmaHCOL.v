@@ -90,16 +90,6 @@ Defined.
 
     Local Open Scope nat_scope.
 
-    Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
-    Proof.
-      crush.
-    Qed.
-
-    Lemma  plus_le_subst_r: forall a b b' c,  b' <= b -> a + b < c -> a + b' < c.
-    Proof.
-      crush.
-    Qed.
-    
     Program Definition GathBackwardMap_Spec
                (i o base stride: nat)
                {snz: 0 ≢ stride} 
@@ -110,10 +100,9 @@ Defined.
       {v: (option nat) | forall n', (v ≡ Some n') -> n'<i}
       := Some (base + n*stride).
     Next Obligation.
-      dep_destruct o. congruence.
-      clear onz.
+      dep_destruct o. congruence. clear onz.
       unfold pred in range_bound.
-      assert (n<=x). lia.
+      assert (n<=x) by lia.
       assert(n * stride <= x*stride).
       apply mult_le_compat_r; assumption.
       apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
