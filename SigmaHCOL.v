@@ -93,14 +93,13 @@ Defined.
     Program Definition GathBackwardMap_Spec
                (i o base stride: nat)
                {snz: 0 ≢ stride} 
-               {onz: 0 ≢ o} 
                {range_bound: (base+(pred o)*stride) < i}
                (n:nat)
                (dom_bound: n<o):
       {v: (option nat) | forall n', (v ≡ Some n') -> n'<i}
       := Some (base + n*stride).
     Next Obligation.
-      dep_destruct o. congruence. clear onz.
+      dep_destruct o. crush.
       unfold pred in range_bound.
       assert (n<=x) by lia.
       assert(n * stride <= x*stride).
