@@ -139,6 +139,26 @@ Pre-condition:
     contradiction.
   Qed.
 
+  Lemma BinOpPre
+        {o: nat}
+        (st :state)
+        (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (x: svector A (o+o)):
+    svector_is_dense x ->
+    is_OK (
+        evalSigmaHCOL st (SHOBinOp o f ) x
+      ).
+  Proof.
+    intros.
+    simpl. 
+    unfold evalBinOp.
+    assert(is_OK (try_vector_from_svector x))
+          by (apply (dense_casts_OK); assumption). 
+    destruct (try_vector_from_svector x); ok_err_elim.
+    apply cast_vector_operator_OK_OK; split; reflexivity.
+  Qed.
+      
+  
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),

@@ -1090,3 +1090,15 @@ Close Local Scope nat_scope.
 
 Close Scope vector_scope.
 
+(* ----------- Some handy tactics ----------- *)
+
+(* simple tactic to get rid (is_OK (Error _)) goals which are frequently produced
+by cases analsysis on matcing error conditions *)
+Global Ltac ok_err_elim := 
+          repeat match goal with
+                 | [ H : is_OK (Error _)  |- _ ] => unfold is_OK; trivial
+                 | [ H: ?x ≢ ?x |- _ ] => congruence
+                 end.
+
+
+
