@@ -116,6 +116,21 @@ Proof.
   auto.
 Qed.
 
+Lemma svector_from_vector_is_dense
+      {A:Type} {n:nat}
+      (y: svector A n) (x: vector A n):
+  (svector_from_vector x ≡ y) → svector_is_dense y.
+Proof.
+  intros.
+  destruct H.
+  unfold svector_from_vector, svector_is_dense.
+  induction n.
+  VOtac. crush. 
+  VSntac x. simpl.
+  auto.
+Qed.
+  
+
 (* -------------------------------------------------------- *)
 
 Section ProofCarryingSparseVector.

@@ -124,7 +124,29 @@ Pre-condition:
     dep_destruct e1.
     auto.
   Qed.
+
   
+  Lemma cast_vector_operator_OK_elim: forall i o (v: vector A i)
+                                        (op: vector A i → svector A o)
+    ,
+      forall (t: svector A o),
+        ((cast_vector_operator
+            i o
+            i o
+            (OK ∘ op)) v) ≡ OK t -> op v ≡ t.
+  Proof.
+    intros i o v op t.
+    unfold cast_vector_operator.
+    destruct (eq_nat_dec i i); try congruence.
+    destruct (eq_nat_dec o o); try congruence.
+    compute.
+    dep_destruct e.
+    dep_destruct e0.
+    intros.
+    inversion H.
+    reflexivity.
+  Qed.
+   
   Lemma BinOpPre: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                         (x: svector A (o+o)),
@@ -139,7 +161,25 @@ Pre-condition:
     contradiction.
   Qed.
 
-  
+  Lemma OpPost: forall o st
+                        (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+                        (x: svector A (o+o)),
+      forall (v: svector A o),
+      (evalSigmaHCOL st (SHOBinOp o f) x ≡ OK v) -> svector_is_dense v.
+  Proof.
+    simpl.
+    intros.
+    revert H.
+    unfold evalBinOp.
+    destruct (try_vector_from_svector x).
+    intros.
+    apply cast_vector_operator_OK_elim in H.
+    apply svector_from_vector_is_dense in H.
+    assumption.
+    intros.
+    inversion H.
+  Qed.
+
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
