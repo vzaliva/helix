@@ -125,7 +125,7 @@ Pre-condition:
     auto.
   Qed.
   
-  Lemma BinOpIsDense: forall o st
+  Lemma BinOpPre: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                         (x: svector A (o+o)),
       svector_is_dense x -> 
@@ -139,25 +139,6 @@ Pre-condition:
     contradiction.
   Qed.
 
-  Lemma BinOpPre
-        {o: nat}
-        (st :state)
-        (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        (x: svector A (o+o)):
-    svector_is_dense x ->
-    is_OK (
-        evalSigmaHCOL st (SHOBinOp o f ) x
-      ).
-  Proof.
-    intros.
-    simpl. 
-    unfold evalBinOp.
-    assert(is_OK (try_vector_from_svector x))
-          by (apply (dense_casts_OK); assumption). 
-    destruct (try_vector_from_svector x); ok_err_elim.
-    apply cast_vector_operator_OK_OK; split; reflexivity.
-  Qed.
-      
   
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
@@ -296,7 +277,7 @@ Pre-condition:
   Proof.
     intros.
     unfold equiv, maybeError_equiv, op1.
-    assert (op1OK: is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)) by (apply BinOpIsDense; assumption).
+    assert (op1OK: is_OK (evalSigmaHCOL st (SHOBinOp 2 ASub) x)) by (apply BinOpPre; assumption). 
 
     case_eq (evalSigmaHCOL st (SHOBinOp 2 ASub) x); intros; simpl in H0, op1OK.
 
@@ -343,9 +324,9 @@ Pre-condition:
     reflexivity.
     
     apply GathPre with (nbase:=0) (nstride:=2); repeat (split; try assumption; try auto).
-
+ 
     dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
-                 (AValue (Var "i")) (AConst 2) x); trivial.
+                             (AValue (Var "i")) (AConst 2) x); trivial.
     
   Qed.
   
