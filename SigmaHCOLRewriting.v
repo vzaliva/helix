@@ -296,24 +296,36 @@ Pre-condition:
                           (AValue (Var "i"))
                           (AConst 2) x)).
 
-(*
-      ((evalAexp st base ≡ OK nbase) /\
-       (evalAexp st stride ≡ OK nstride) /\
-       nstride ≢ 0 /\
-       o ≢ 0 /\
-       (nbase+o*nstride) < i) ->
-*)
-
-    assert(pre_nbase: evalAexp (update st (Var "i") 1) (AValue (Var "i")) ≡ OK 1).
+    assert(g1_pre_nbase: evalAexp (update st (Var "i") 1) (AValue (Var "i")) ≡ OK 1).
     simpl. unfold update.
     destruct eq_varname_dec. reflexivity.
     congruence.
 
-    assert(pre_nstride: evalAexp (update st (Var "i") 1) (AConst 2) ≡ OK 2).
+    assert(g2_pre_nstride: evalAexp (update st (Var "i") 1) (AConst 2) ≡ OK 2).
     simpl. unfold update.
     reflexivity.
     
     apply GathPre with (nbase:=1) (nstride:=2); repeat (split; try assumption; try auto).
+
+    dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 1) (AValue (Var "i"))
+        (AConst 2) x); trivial.
+
+    assert (is_OK (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
+                 (AValue (Var "i")) (AConst 2) x)).
+    
+    assert(g2_pre_nbase: evalAexp (update st (Var "i") 0) (AValue (Var "i")) ≡ OK 0).
+    simpl. unfold update.
+    destruct eq_varname_dec. reflexivity.
+    congruence.
+
+    assert(g2_pre_nstride: evalAexp (update st (Var "i") 0) (AConst 2) ≡ OK 2).
+    simpl. unfold update.
+    reflexivity.
+    
+    apply GathPre with (nbase:=0) (nstride:=2); repeat (split; try assumption; try auto).
+
+    dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
+                 (AValue (Var "i")) (AConst 2) x); trivial.
     
   Qed.
   
