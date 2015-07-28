@@ -439,8 +439,11 @@ End SigmaHCOL_Language.
 
 Section SigmaHCOL_language_tests.
 
-(* Lemma test0: @ScatHUnion_0 nat 0 0 Vnil = Vnil.
-  Proof.  compute. Qed. *)
+(* TODO: unit tests using CUnit:
+http://coq-blog.clarus.me/simple-unit-testing-in-coq.html
+*)
+
+
   
 End SigmaHCOL_language_tests.
 
