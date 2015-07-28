@@ -196,12 +196,8 @@ Pre-condition:
     simpl.
     unfold evalGathH.
     crush.
-    destruct (Compare_dec.lt_dec (nbase + (pred o) * nstride) i), o, nstride; 
-    try match goal with
-        | [ H: 0 ≡ 0 -> False |- _ ] => contradiction H; reflexivity
-        | [ |- is_OK (OK _) ] => unfold is_OK; trivial
-        | [ H0: ?P ,  H1: ~?P |- _] => contradiction
-    end.
+    destruct (Compare_dec.lt_dec (nbase + (pred o) * nstride) i), o, nstride;
+      err_ok_elim.
   Qed.
 
   Lemma GathInvariant: forall (i o nbase nstride: nat)
@@ -245,6 +241,7 @@ Pre-condition:
       + congruence.
   Qed.
 
+
   Lemma index_op_is_partial_map:
     ∀ (i o : nat)
       (x : svector A i),
@@ -254,39 +251,29 @@ Pre-condition:
                   (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
       Proof.
         intros.
-        unfold SigmaHCOL_Operators.vector_index_backward_operator.
-        unfold proj1_sig.
-        unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
-        apply Vforall_eq. intros x0.
-        
-        assert(B: Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)  ≡
-                         (let (a, _) :=
-                              Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
-                          a)).
-        {
-          unfold Vbuild. unfold proj1_sig. reflexivity.
-        }
-        
-        rewrite <- B. clear B.
-        intros.
-        apply Vbuild_in in H.
-
-        destruct H. destruct H.
-        subst x0.
-        case_eq (SigmaHCOL_Operators.VnthIndexMapped x f_spec x1 x2).
-        - right.
-          unfold SigmaHCOL_Operators.VnthIndexMapped in H.
-          unfold proj1_sig in H.
-          destruct (f_spec x1 x2) in H.
-          dependent destruction x0.
-          + rewrite <- H.
-            simpl.
-            unfold Vin_aux.
-            apply Vnth_in.
-          + congruence.
-        - left.
-          unfold is_None.
-          trivial.
+        unfold SigmaHCOL_Operators.vector_index_backward_operator, proj1_sig,
+        SigmaHCOL_Operators.vector_index_backward_operator_spec.
+        replace (let (a, _) :=
+                     Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
+                 a) with
+        (Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)).
+        -
+          apply Vforall_eq. intros.
+          apply Vbuild_in in H.
+          destruct H. destruct H. 
+          subst x0.
+          case_eq (SigmaHCOL_Operators.VnthIndexMapped x f_spec x1 x2).
+          + right.
+            unfold SigmaHCOL_Operators.VnthIndexMapped, proj1_sig in H.
+            destruct (f_spec x1 x2) in H.
+            destruct x0.
+            * rewrite <- H.
+              unfold Vin_aux.
+              apply Vnth_in.
+            * congruence.
+          + left.
+            none_some_elim.
+        - reflexivity.
   Qed.
 
 (*          
