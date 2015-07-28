@@ -245,41 +245,53 @@ Pre-condition:
     reflexivity.
   Qed.
 
+
+  Lemma index_op_is_partial_map:
+    ∀ (i o : nat)
+      (x : svector A i),
+        ∀ f_spec : ∀ n : nat,
+            n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
+          Vforall (fun z => is_None z \/ Vin_aux x z)
+                  (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+      Proof.
+        intros.
+        unfold SigmaHCOL_Operators.vector_index_backward_operator.
+        unfold proj1_sig.
+        unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
+        apply Vforall_eq. intros x0.
+ 
+        assert(Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)  ≡
+                      (let (a, _) :=
+                           Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
+                       a)).
+        unfold Vbuild. unfold proj1_sig. reflexivity.
+        
+        rewrite <- H. clear H.
+        intros.
+        apply Vbuild_in in H.
+
+
+
+       
+  Qed.
+  
 (*          
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
                             (x: svector A i),
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       Vforall (Vin_aux x) y.
-  Proof.
-    intros.
-
-    intros i o base stride st y x.
-
-    unfold evalSigmaHCOL, evalGathH. simpl.
-    (*assert ((SigmaHCOL_Operators.GathH i o nbase nstride x) ≡ y).
-    injection y. *)
-    
-    induction y.
-        
-    intros. apply Vforall_nil.
- 
-    unfold evalSigmaHCOL, evalGathH. simpl.
-    intros.
-    rewrite <- Vforall_cons.
-    split.
-    admit.
-    apply IHy.
   Qed.
  *)
 
 
   Lemma index_op_preserves_P:
     ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
+      P None ->
       Vforall P x
       → ∀ f_spec : ∀ n : nat,
-          n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
-        Vforall P (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+            n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
+          Vforall P (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
   Proof.
     intros.
     unfold SigmaHCOL_Operators.vector_index_backward_operator.
@@ -288,6 +300,9 @@ Pre-condition:
 
     dep_destruct (Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec)).
 
+    unfold SigmaHCOL_Operators.VnthIndexMapped in e.
+    
+    apply Vforall_eq.
     
   Qed.
   
