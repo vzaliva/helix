@@ -161,7 +161,7 @@ Pre-condition:
     contradiction.
   Qed.
 
-  Lemma OpPost: forall o st
+  Lemma BinOpPost: forall o st
                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                         (x: svector A (o+o)),
       forall (v: svector A o),
@@ -271,23 +271,51 @@ Pre-condition:
     admit.
     apply IHy.
   Qed.
-        
+ *)
+
+
+  Lemma index_op_preserves_P:
+    ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
+      Vforall P x
+      → ∀ f_spec : ∀ n : nat,
+          n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
+        Vforall P (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+  Proof.
+    intros.
+    unfold SigmaHCOL_Operators.vector_index_backward_operator.
+    unfold proj1_sig. 
+    unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
+
+    dep_destruct (Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec)).
+
+    
+  Qed.
+  
   (* Gath on dense vector produces dense vector *)
-  Lemma GathDenseIsDense: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
-                            (y: svector A o)
-                            (x: svector A i),
+  Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+                           (y: svector A o)
+                           (x: svector A i),
       svector_is_dense x -> 
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       svector_is_dense y.
   Proof.
+    simpl.
     intros.
-    inversion H0.
-    revert H2.
+    revert H0.
     unfold evalGathH.
+    destruct (evalAexp st base); try congruence.
+    destruct (evalAexp st stride); try congruence.
+    destruct (eq_nat_dec 0 n0); try congruence.
+    destruct (Compare_dec.lt_dec (n + pred o * n0) i); try congruence.
+    intros.
+    inversion H0. clear H0 H2.
 
+    unfold svector_is_dense in *.
+    unfold SigmaHCOL_Operators.GathH.
+
+      
     
   Qed.
- *)
   
   Definition ASub: A -> A -> A := (plus∘negate).
  
