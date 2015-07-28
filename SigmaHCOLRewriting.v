@@ -107,7 +107,9 @@ Pre-condition:
     set (e := (λ x : vector A i1, @OK (vector (option A) o0) (op x))).
 
     assert(is_OK (e v)).
-    unfold e. simpl. trivial.
+    {
+      unfold e. simpl. trivial.
+    }
     revert H.
     generalize dependent e. clear op.
     intros.
@@ -157,8 +159,8 @@ Pre-condition:
     unfold evalBinOp.
     apply dense_casts_OK in H.
     destruct (try_vector_from_svector x).
-    apply cast_vector_operator_OK_OK. omega.
-    contradiction.
+    - apply cast_vector_operator_OK_OK. omega.
+    - contradiction.
   Qed.
 
   Lemma BinOpPost: forall o st
@@ -172,12 +174,12 @@ Pre-condition:
     revert H.
     unfold evalBinOp.
     destruct (try_vector_from_svector x).
-    intros.
-    apply cast_vector_operator_OK_elim in H.
-    apply svector_from_vector_is_dense in H.
-    assumption.
-    intros.
-    inversion H.
+    - intros.
+      apply cast_vector_operator_OK_elim in H.
+      apply svector_from_vector_is_dense in H.
+      assumption.
+    - intros.
+      inversion H.
   Qed.
 
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
@@ -221,30 +223,27 @@ Pre-condition:
     rewrite H0, H.
 
     case (eq_nat_dec 0 nstride).
-    intros. symmetry in e. contradiction.
-    intros Hsnz. 
-
-    case (Compare_dec.lt_dec (nbase + (pred o) * nstride) i).
-    Focus 2. congruence.
-    intros HD. clear range_bound. (* range_bound = HD *)
-
-    intros. injection H1. clear H1.
-    unfold SigmaHCOL_Operators.GathH.
-    intros. rewrite <- H1. clear H1.
-    unfold SigmaHCOL_Operators.vector_index_backward_operator.
-    unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
-    destruct (Vbuild_spec _). simpl. rewrite e. clear e.
-    unfold SigmaHCOL_Operators.GathBackwardMap_Spec. 
-    generalize (SigmaHCOL_Operators.GathBackwardMap_Spec_obligation_1 i o nbase
-                                                                      nstride Hsnz HD) as gath_map_oc. intros.
-    unfold SigmaHCOL_Operators.VnthIndexMapped.
-    simpl.
-    generalize (gath_map_oc n HY (nbase + n * nstride) eq_refl) as HX1. clear gath_map_oc.
-    intros.
-    assert (HX1 ≡ HX). apply proof_irrelevance. rewrite H1.
-    reflexivity.
+    - intros. symmetry in e. contradiction.
+    - intros Hsnz. 
+      case (Compare_dec.lt_dec (nbase + (pred o) * nstride) i).
+      + intros HD. clear range_bound. (* range_bound = HD *)
+        intros. injection H1. clear H1.
+        unfold SigmaHCOL_Operators.GathH.
+        intros. rewrite <- H1. clear H1.
+        unfold SigmaHCOL_Operators.vector_index_backward_operator.
+        unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
+        destruct (Vbuild_spec _). simpl. rewrite e. clear e.
+        unfold SigmaHCOL_Operators.GathBackwardMap_Spec. 
+        generalize (SigmaHCOL_Operators.GathBackwardMap_Spec_obligation_1 i o nbase
+                                                                          nstride Hsnz HD) as gath_map_oc. intros.
+        unfold SigmaHCOL_Operators.VnthIndexMapped.
+        simpl.
+        generalize (gath_map_oc n HY (nbase + n * nstride) eq_refl) as HX1. clear gath_map_oc.
+        intros.
+        assert (HX1 ≡ HX). apply proof_irrelevance. rewrite H1.
+        reflexivity.
+      + congruence.
   Qed.
-
 
   Lemma index_op_is_partial_map:
     ∀ (i o : nat)
@@ -259,14 +258,16 @@ Pre-condition:
         unfold proj1_sig.
         unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
         apply Vforall_eq. intros x0.
- 
-        assert(Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)  ≡
-                      (let (a, _) :=
-                           Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
-                       a)).
-        unfold Vbuild. unfold proj1_sig. reflexivity.
         
-        rewrite <- H. clear H.
+        assert(B: Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)  ≡
+                         (let (a, _) :=
+                              Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
+                          a)).
+        {
+          unfold Vbuild. unfold proj1_sig. reflexivity.
+        }
+        
+        rewrite <- B. clear B.
         intros.
         apply Vbuild_in in H.
 
