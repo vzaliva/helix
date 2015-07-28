@@ -271,11 +271,24 @@ Pre-condition:
         intros.
         apply Vbuild_in in H.
 
-
-
-       
+        destruct H. destruct H.
+        subst x0.
+        case_eq (SigmaHCOL_Operators.VnthIndexMapped x f_spec x1 x2).
+        - right.
+          unfold SigmaHCOL_Operators.VnthIndexMapped in H.
+          unfold proj1_sig in H.
+          destruct (f_spec x1 x2) in H.
+          dependent destruction x0.
+          + rewrite <- H.
+            simpl.
+            unfold Vin_aux.
+            apply Vnth_in.
+          + congruence.
+        - left.
+          unfold is_None.
+          trivial.
   Qed.
-  
+
 (*          
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
                             (y: svector A o)
