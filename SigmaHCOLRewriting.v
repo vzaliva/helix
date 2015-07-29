@@ -300,8 +300,22 @@ Pre-condition:
       auto.
   Qed.
 
-
+  Definition index_function_is_surjective
+             (i o : nat)
+             (f_spec : ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}) :=
+    forall (j:nat) (jp:j<o), exists (j':nat), is_Some(proj1_sig (f_spec j jp)).
   
+  Lemma index_op_is_dense:
+    ∀ (i o : nat) (x : svector A i)
+      (f_spec : ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}),
+      svector_is_dense x ->
+      index_function_is_surjective i o f_spec -> 
+      svector_is_dense (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+  Proof.
+    intros i o x f_spec xdense fsurj.
+    unfold index_function_is_surjective in fsurj.
+  Qed.
+
 
 (*          
   Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
