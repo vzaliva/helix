@@ -296,20 +296,18 @@ Pre-condition:
   Proof.
     intros.
     assert(Vforall (fun z => is_None z \/ Vin_aux x z)
-                  (SigmaHCOL_Operators.vector_index_backward_operator f_spec x)).
-    apply index_op_is_partial_map.
+                   (SigmaHCOL_Operators.vector_index_backward_operator f_spec x))
+      by apply index_op_is_partial_map.
     generalize dependent (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
-    assert (is_None x0 ∨ Vin_aux x x0).
-    apply H1; assumption.
+    assert (is_None x0 ∨ Vin_aux x x0) by (apply H1; assumption).
     inversion H3.
-    destruct x0; none_some_elim.
-    assumption.
-    unfold Vin_aux in H4.
-    rewrite Vforall_eq in H0.
-    auto.
+    + destruct x0; none_some_elim.
+      assumption.
+    + rewrite Vforall_eq in H0.
+      auto.
   Qed.
   
   (* Gath on dense vector produces dense vector *)
