@@ -298,8 +298,7 @@ Pre-condition:
     assert(Vforall (fun z => is_None z \/ Vin_aux x z)
                   (SigmaHCOL_Operators.vector_index_backward_operator f_spec x)).
     apply index_op_is_partial_map.
-    revert H1.
-    generalize (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+    generalize dependent (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
