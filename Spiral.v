@@ -1099,9 +1099,9 @@ Global Ltac err_ok_elim :=
           repeat match goal with
                  | [ H: ?x ≢ ?x |- _ ] => congruence
                                           
-                 | [ H : is_OK (Error _)  |- _ ] => unfold is_OK in H; congruence
+                 | [ H : is_OK (Error _)  |- _ ] => unfold is_OK in H; contradiction H
                  | [ H : is_OK (OK _)  |- _ ] => clear H
-                 | [ H : is_Error (OK _)  |- _ ] => unfold is_Error in H; congruence
+                 | [ H : is_Error (OK _)  |- _ ] => unfold is_Error in H; contradiction H
                  | [ H : is_Error (Error _)  |- _ ] => clear H
                                                                           
                  | [ H : _ |- is_OK (OK _) ] => unfold is_OK; trivial
@@ -1114,9 +1114,9 @@ Ltac none_some_elim :=
   repeat match goal with
          | [ H: ?x ≢ ?x |- _ ] => congruence
                                   
-         | [ H : is_None (Some _) |- _] => unfold is_None in H; congruence
+         | [ H : is_None (Some _) |- _] => unfold is_None in H; contradiction H
          | [ H : is_None None  |- _ ] => clear H
-         | [ H : is_Some None |- _] => unfold is_Some in H; congruence
+         | [ H : is_Some None |- _] => unfold is_Some in H; contradiction H
          | [ H : is_Some (Some _) |-_ ] => clear H
 
          | [ H : _ |- is_None (Some _) ] => unfold is_None; congruence

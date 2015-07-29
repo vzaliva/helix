@@ -295,16 +295,22 @@ Pre-condition:
           Vforall P (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
   Proof.
     intros.
-    unfold SigmaHCOL_Operators.vector_index_backward_operator.
-    unfold proj1_sig. 
-    unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
-
-    dep_destruct (Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec)).
-
-    unfold SigmaHCOL_Operators.VnthIndexMapped in e.
-    
-    apply Vforall_eq.
-    
+    assert(Vforall (fun z => is_None z \/ Vin_aux x z)
+                  (SigmaHCOL_Operators.vector_index_backward_operator f_spec x)).
+    apply index_op_is_partial_map.
+    revert H1.
+    generalize (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+    intros t.
+    rewrite 2!Vforall_eq.
+    crush.
+    assert (is_None x0 ∨ Vin_aux x x0).
+    apply H1; assumption.
+    inversion H3.
+    destruct x0; none_some_elim.
+    assumption.
+    unfold Vin_aux in H4.
+    rewrite Vforall_eq in H0.
+    auto.
   Qed.
   
   (* Gath on dense vector produces dense vector *)
