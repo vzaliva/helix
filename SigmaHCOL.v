@@ -90,14 +90,16 @@ Defined.
 
     Local Open Scope nat_scope.
 
+    (* Vector index mapping functon which maps output vector indices to input
+     vector indices or None *)
+    Definition index_function_spec (i o : nat) :=
+      ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}.
+
     Program Definition GathBackwardMap_Spec
-               (i o base stride: nat)
-               {snz: 0 ≢ stride} 
-               {range_bound: (base+(pred o)*stride) < i}
-               (n:nat)
-               (dom_bound: n<o):
-      {v: (option nat) | forall n', (v ≡ Some n') -> n'<i}
-      := Some (base + n*stride).
+            (i o base stride: nat)
+            {snz: 0 ≢ stride} 
+            {range_bound: (base+(pred o)*stride) < i}: index_function_spec i o :=
+      fun n dom_boun => Some (base + n*stride).
     Next Obligation.
       dep_destruct o. crush.
       unfold pred in range_bound.
@@ -107,13 +109,13 @@ Defined.
       apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
         assumption.
     Defined.
-    
+
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: svector A i)
-               (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
+               (f_spec: index_function_spec i o)
                (n:nat) (np: n<o)
       : option A
       := let fv:=f_spec n np in
@@ -126,14 +128,14 @@ natrual number by index mapping function f_spec. *)
     
     Definition vector_index_backward_operator_spec `{Equiv A}
              {i o: nat}
-             (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
+             (f_spec: index_function_spec i o)
              (x: svector A i):
       {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition vector_index_backward_operator `{Equiv A}
                {i o: nat}
-               (f_spec: forall n, n<o -> {v: option nat  | forall n', (v ≡ Some n') -> n'<i})
+               (f_spec: index_function_spec i o)
                (x: svector A i):
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
@@ -150,7 +152,6 @@ natrual number by index mapping function f_spec. *)
     Local Close Scope nat_scope.
   End IndexedOperators.
 
-  
 End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.

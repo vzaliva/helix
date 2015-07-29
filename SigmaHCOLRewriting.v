@@ -3,6 +3,7 @@ Require Import Spiral.
 Require Import SVector.
 Require Import HCOL.
 Require Import SigmaHCOL.
+Import SigmaHCOL_Operators.
 Require Import HCOLSyntax.
 
 Require Import Arith.
@@ -224,15 +225,15 @@ Pre-condition:
       case (Compare_dec.lt_dec (nbase + (pred o) * nstride) i).
       + intros HD. clear range_bound. (* range_bound = HD *)
         intros. injection H1. clear H1.
-        unfold SigmaHCOL_Operators.GathH.
+        unfold GathH.
         intros. rewrite <- H1. clear H1.
-        unfold SigmaHCOL_Operators.vector_index_backward_operator.
-        unfold SigmaHCOL_Operators.vector_index_backward_operator_spec.
+        unfold vector_index_backward_operator.
+        unfold vector_index_backward_operator_spec.
         destruct (Vbuild_spec _). simpl. rewrite e. clear e.
-        unfold SigmaHCOL_Operators.GathBackwardMap_Spec. 
-        generalize (SigmaHCOL_Operators.GathBackwardMap_Spec_obligation_1 i o nbase
+        unfold GathBackwardMap_Spec. 
+        generalize (GathBackwardMap_Spec_obligation_1 i o nbase
                                                                           nstride Hsnz HD) as gath_map_oc. intros.
-        unfold SigmaHCOL_Operators.VnthIndexMapped.
+        unfold VnthIndexMapped.
         simpl.
         generalize (gath_map_oc n HY (nbase + n * nstride) eq_refl) as HX1. clear gath_map_oc.
         intros.
@@ -245,26 +246,26 @@ Pre-condition:
   Lemma index_op_is_partial_map:
     ∀ (i o : nat)
       (x : svector A i),
-        ∀ f_spec : ∀ n : nat,
-            n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
+        ∀ (f_spec: index_function_spec i o),
           Vforall (fun z => is_None z \/ Vin_aux x z)
-                  (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+                  (vector_index_backward_operator f_spec x).
       Proof.
         intros.
-        unfold SigmaHCOL_Operators.vector_index_backward_operator, proj1_sig,
-        SigmaHCOL_Operators.vector_index_backward_operator_spec.
+        unfold index_function_spec in f_spec.
+        unfold vector_index_backward_operator, proj1_sig,
+        vector_index_backward_operator_spec.
         replace (let (a, _) :=
-                     Vbuild_spec (SigmaHCOL_Operators.VnthIndexMapped x f_spec) in
+                     Vbuild_spec (VnthIndexMapped x f_spec) in
                  a) with
-        (Vbuild (SigmaHCOL_Operators.VnthIndexMapped x f_spec)).
+        (Vbuild (VnthIndexMapped x f_spec)).
         -
           apply Vforall_eq. intros.
           apply Vbuild_in in H.
           destruct H. destruct H. 
           subst x0.
-          case_eq (SigmaHCOL_Operators.VnthIndexMapped x f_spec x1 x2).
+          case_eq (VnthIndexMapped x f_spec x1 x2).
           + right.
-            unfold SigmaHCOL_Operators.VnthIndexMapped, proj1_sig in H.
+            unfold VnthIndexMapped, proj1_sig in H.
             destruct (f_spec x1 x2) in H.
             destruct x0.
             * rewrite <- H.
@@ -280,15 +281,15 @@ Pre-condition:
     ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
       P None ->
       Vforall P x
-      → ∀ f_spec : ∀ n : nat,
-            n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i},
-          Vforall P (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+      → ∀ f_spec : index_function_spec i o,
+          Vforall P (vector_index_backward_operator f_spec x).
   Proof.
     intros.
+    unfold index_function_spec in f_spec.
     assert(Vforall (fun z => is_None z \/ Vin_aux x z)
-                   (SigmaHCOL_Operators.vector_index_backward_operator f_spec x))
+                   (vector_index_backward_operator f_spec x))
       by apply index_op_is_partial_map.
-    generalize dependent (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+    generalize dependent (vector_index_backward_operator f_spec x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
@@ -302,17 +303,18 @@ Pre-condition:
 
   Definition index_function_is_surjective
              (i o : nat)
-             (f_spec : ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}) :=
+             (f_spec: index_function_spec i o) :=
     forall (j:nat) (jp:j<o), exists (j':nat), is_Some(proj1_sig (f_spec j jp)).
   
   Lemma index_op_is_dense:
     ∀ (i o : nat) (x : svector A i)
-      (f_spec : ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}),
+      (f_spec: index_function_spec i o),
       svector_is_dense x ->
       index_function_is_surjective i o f_spec -> 
-      svector_is_dense (SigmaHCOL_Operators.vector_index_backward_operator f_spec x).
+      svector_is_dense (vector_index_backward_operator f_spec x).
   Proof.
     intros i o x f_spec xdense fsurj.
+    unfold index_function_spec in f_spec.
     unfold index_function_is_surjective in fsurj.
   Qed.
 
@@ -352,7 +354,7 @@ Pre-condition:
     inversion H0. clear H0 H2.
 
     unfold svector_is_dense in *.
-    unfold SigmaHCOL_Operators.GathH.
+    unfold GathH.
 
       
     
