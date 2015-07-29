@@ -276,16 +276,6 @@ Pre-condition:
         - reflexivity.
   Qed.
 
-(*          
-  Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
-                            (y: svector A o)
-                            (x: svector A i),
-      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
-      Vforall (Vin_aux x) y.
-  Qed.
- *)
-
-
   Lemma index_op_preserves_P:
     ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
       P None ->
@@ -309,6 +299,20 @@ Pre-condition:
     + rewrite Vforall_eq in H0.
       auto.
   Qed.
+
+
+  
+
+(*          
+  Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
+                            (y: svector A o)
+                            (x: svector A i),
+      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
+      Vforall (Vin_aux x) y.
+  Qed.
+ *)
+
+
   
   (* Gath on dense vector produces dense vector *)
   Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
@@ -318,6 +322,10 @@ Pre-condition:
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       svector_is_dense y.
   Proof.
+
+    (*TODO: prove via f_spec properties! *)
+
+    
     simpl.
     intros.
     revert H0.
