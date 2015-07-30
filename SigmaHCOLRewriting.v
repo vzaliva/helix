@@ -362,7 +362,7 @@ Pre-condition:
       trivial.
     Qed.
   
-  Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+  Lemma GathDensePost: forall (i o: nat) (base stride:aexp) (st:state)
                            (y: svector A o)
                            (x: svector A i),
       svector_is_dense x -> 
@@ -420,31 +420,54 @@ Pre-condition:
     contradiction.
 
     Set Printing Implicit.
-    unfold op2, vari, c2.
-
-    unfold evalSigmaHCOL.
+    unfold op2, vari, c2, evalSigmaHCOL.
     simpl.
-
-    assert (is_OK
+    
+    assert (g1OK: is_OK
               (@evalGathH A Ae 4 2
                           (update st (Var "i") 1)
                           (AValue (Var "i"))
                           (AConst 2) x)).
+    {
+      assert(g1_pre_nbase: evalAexp (update st (Var "i") 1) (AValue (Var "i")) ≡ OK 1).
+      {
+        simpl. unfold update.
+        destruct eq_varname_dec. reflexivity.
+        congruence.
+      }
+      
+      assert(g2_pre_nstride: evalAexp (update st (Var "i") 1) (AConst 2) ≡ OK 2).
+      {
+        simpl. unfold update.
+        reflexivity.
+      }
+      
+      apply GathPre with (nbase:=1) (nstride:=2) ; repeat (split; try assumption; try auto).
+    }
 
-    assert(g1_pre_nbase: evalAexp (update st (Var "i") 1) (AValue (Var "i")) ≡ OK 1).
-    simpl. unfold update.
-    destruct eq_varname_dec. reflexivity.
-    congruence.
+    case_eq (@evalGathH A Ae 4 2 (update st (Var "i") 1) (AValue (Var "i"))
+                        (AConst 2) x); intros.
+    Focus 2.  rewrite H1 in g1OK. err_ok_elim.
+    apply GathDensePost in H1 ; try assumption.
 
-    assert(g2_pre_nstride: evalAexp (update st (Var "i") 1) (AConst 2) ≡ OK 2).
-    simpl. unfold update.
-    reflexivity.
+    assert(b1OK: is_OK (@evalBinOp A 2 1 (update st (Var "i") 1) ASub t0)).
+    {
+      apply BinOpPre.
+      apply ASub_proper.
+      assumption.
+    }
+
+    case_eq (@evalBinOp A 2 1 (update st (Var "i") 1) ASub t0).
+    Focus 2. intros. rewrite H2 in b1OK. err_ok_elim.
+    apply BinOpPost in H0; try apply ASub_proper.
+
+
+
+
+
+
+
     
-    apply GathPre with (nbase:=1) (nstride:=2); repeat (split; try assumption; try auto).
-
-    dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 1) (AValue (Var "i"))
-        (AConst 2) x); trivial.
-
     assert (is_OK (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
                  (AValue (Var "i")) (AConst 2) x)).
     
@@ -458,9 +481,10 @@ Pre-condition:
     reflexivity.
     
     apply GathPre with (nbase:=0) (nstride:=2); repeat (split; try assumption; try auto).
- 
+    
     dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
                              (AValue (Var "i")) (AConst 2) x); trivial.
+
     
   Qed.
   
