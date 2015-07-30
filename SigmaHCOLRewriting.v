@@ -257,25 +257,23 @@ Pre-condition:
         replace (let (a, _) :=
                      Vbuild_spec (VnthIndexMapped x f_spec) in
                  a) with
-        (Vbuild (VnthIndexMapped x f_spec)).
-        -
-          apply Vforall_eq. intros.
-          apply Vbuild_in in H.
-          destruct H. destruct H. 
-          subst x0.
-          case_eq (VnthIndexMapped x f_spec x1 x2).
-          + right.
-            unfold VnthIndexMapped, proj1_sig in H.
-            destruct (f_spec x1 x2) in H.
-            destruct x0.
-            * rewrite <- H.
-              unfold Vin_aux.
-              apply Vnth_in.
-            * congruence.
-          + left.
-            none_some_elim.
-        - reflexivity.
-  Qed.
+        (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
+        apply Vforall_eq. intros.
+        apply Vbuild_in in H.
+        destruct H. destruct H. 
+        subst x0.
+        case_eq (VnthIndexMapped x f_spec x1 x2).
+        + right.
+          unfold VnthIndexMapped, proj1_sig in H.
+          destruct (f_spec x1 x2) in H.
+          destruct x0.
+          * rewrite <- H.
+            unfold Vin_aux.
+            apply Vnth_in.
+          * congruence.
+        + left.
+          none_some_elim.
+      Qed.
 
   Lemma index_op_preserves_P:
     ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
@@ -304,7 +302,7 @@ Pre-condition:
   Definition index_function_is_surjective
              (i o : nat)
              (f_spec: index_function_spec i o) :=
-    forall (j:nat) (jp:j<o), exists (j':nat), is_Some(proj1_sig (f_spec j jp)).
+    forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
   
   Lemma index_op_is_dense:
     ∀ (i o : nat) (x : svector A i)
@@ -316,6 +314,36 @@ Pre-condition:
     intros i o x f_spec xdense fsurj.
     unfold index_function_spec in f_spec.
     unfold index_function_is_surjective in fsurj.
+    unfold svector_is_dense in *.
+    unfold vector_index_backward_operator, proj1_sig,
+    vector_index_backward_operator_spec.
+    
+    replace (let (a, _) :=
+                 Vbuild_spec (VnthIndexMapped x f_spec) in
+             a) with
+    (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
+    apply Vforall_eq. intros.
+    apply Vbuild_in in H.
+    destruct H. destruct H. 
+    subst x0.
+    case_eq (VnthIndexMapped x f_spec x1 x2). 
+    - intros. 
+      none_some_elim.
+    - intros.
+      assert(FS: is_Some (` (f_spec x1 x2))) by apply fsurj.
+      unfold VnthIndexMapped, proj1_sig in H.
+      destruct (f_spec x1 x2) in H, FS; none_some_elim.
+      destruct x0.
+      +
+        simpl in *.
+        generalize dependent (l n eq_refl). 
+        clear FS f_spec fsurj l.
+        intros.
+        (* here we have a contradiction between 'xdense' and 'H' *)
+        assert (HS: is_Some (Vnth x l)) by (apply Vforall_nth; assumption).
+        destruct (Vnth x l); simpl in *;  congruence.
+      +
+        simpl in FS. contradiction FS.
   Qed.
 
 
