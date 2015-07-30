@@ -184,6 +184,18 @@ Pre-condition:
       inversion H.
   Qed.
 
+  
+  (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
+  Lemma ScatPre: forall (i o nbase npad: nat) (base pad:aexp) (st:state)
+                   (x: svector A i),
+      ((evalAexp st base ≡ OK nbase) /\
+       (evalAexp st pad ≡ OK npad) /\
+       (o ≡ (nbase + S npad * i))) ->
+      is_OK (evalSigmaHCOL st (SHOScatHUnion  (i:=i) (o:=o) base pad) x).
+  Proof.
+    (* TODO! *)
+  Admitted.
+  
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
@@ -456,6 +468,15 @@ Pre-condition:
       Focus 2. intros s C. rewrite C in bOK. err_ok_elim.
 
       intros.
+ 
+      assert(sOK: is_OK (@evalScatHUnion A 1 1 (update st var 0) (AValue var) pad t0)).
+      {
+        apply ScatPre with (nbase:=0) (npad:=1).
+        split. apply update_eval.
+        split. apply padE.
+        (* Something serously wrong here. Perhaps induction was wrong approach *)
+        split; auto.
+      }
 
       
   Qed.
