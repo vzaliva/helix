@@ -394,34 +394,47 @@ Pre-condition:
              (v:nat) :=
     forall (x:nat), evalAexp (update st var x) exp ≡ OK x.
   
-    
+
+  Set Printing Implicit.
+  
   Lemma BinOpSums
         (o: nat)
+        {onz: 0 ≢ o} 
         (f:A->A->A)
         (var:varname)
-        (st:state)
         (pad stride:aexp)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     :
-      evalsToWithVar var st pad o ->
-      evalsToWithVar var st stride o ->
-      SHOBinOp o f = 
-      SHOISumUnion var (AConst o)
-                   (SHOCompose _ _
-                               (SHOScatHUnion (AValue var) pad)
-                               (SHOCompose _ _ 
-                                           (SHOBinOp 1 f)
-                                           (SHOGathH (i:=o+o) (AValue var) stride))).
+      forall (st : state) (x : vector (option A) (o + o)),
+        evalsToWithVar var st pad o ->  evalsToWithVar var st stride o ->
+        svector_is_dense x ->
+        evalSigmaHCOL st (SHOBinOp o f) x =
+        evalSigmaHCOL st (SHOISumUnion var (AConst o)
+                                       (SHOCompose _ _
+                                                   (SHOScatHUnion (AValue var) pad)
+                                                   (SHOCompose _ _ 
+                                                               (SHOBinOp 1 f)
+                                                               (SHOGathH (i:=o+o) (AValue var) stride)))) x.
   Proof.
     intros.
-    unfold equiv, SigmaHCOL_equiv.
-    intros. simpl.
+    unfold evalSigmaHCOL at 1.
+    assert(b1OK: is_OK (@evalBinOp A (o + o) o st f x)).
+    {
+      apply BinOpPre;
+      assumption.
+    }
+    (* LHS taken care of *)
+    unfold evalSigmaHCOL at 1.
+
+
+
+    break_match_goal; try congruence.
+
   Qed.
+  
 
 
 
-
-  Set Printing Implicit.
 
 
 
