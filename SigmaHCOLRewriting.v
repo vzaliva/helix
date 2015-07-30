@@ -357,6 +357,9 @@ Pre-condition:
                                         (range_bound:=range_bound)
                                         i o base stride).
     Proof.
+      unfold index_function_is_surjective.
+      simpl.
+      trivial.
     Qed.
   
   Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
