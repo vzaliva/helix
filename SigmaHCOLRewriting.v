@@ -392,9 +392,15 @@ Pre-condition:
              (st:state)
              (exp: aexp)
              (v:nat) :=
-    forall (x:nat), evalAexp (update st var x) exp ≡ OK x.
+    forall (x:nat), evalAexp (update st var x) exp ≡ OK v.
   
 
+  Lemma const_eval_OK:
+    forall st x, evalAexp st (AConst x) ≡ OK x.
+  Proof.
+    auto.
+  Qed.
+  
   Set Printing Implicit.
   
   Lemma BinOpSums
@@ -404,10 +410,11 @@ Pre-condition:
         (var:varname)
         (pad stride:aexp)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-    :
-      forall (st : state) (x : vector (option A) (o + o)),
-        evalsToWithVar var st pad o ->  evalsToWithVar var st stride o ->
-        svector_is_dense x ->
+        (st : state) (x : vector (option A) (o + o))
+        (padE: evalsToWithVar var st pad o)
+        (strideE: evalsToWithVar var st stride o)
+        (xdense: svector_is_dense x):
+    
         evalSigmaHCOL st (SHOBinOp o f) x =
         evalSigmaHCOL st (SHOISumUnion var (AConst o)
                                        (SHOCompose _ _
@@ -425,11 +432,32 @@ Pre-condition:
     }
     (* LHS taken care of *)
     unfold evalSigmaHCOL at 1.
+    break_match_goal; try (simpl in Heqm; err_ok_elim).
+    inversion Heqm as [ON]. rewrite <- ON. clear ON.
+    break_match_goal; try congruence. 
+    induction n0.
+    + simpl.
+      assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) stride x)).
+      {
+        apply GathPre with (nbase:=0) (nstride:=1).
+        split. apply update_eval.
+        split. apply strideE.
+        split; auto.
+      } 
+      case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) stride x).
+      Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
 
+      intros.
+      apply GathDensePost in H; try assumption.
+      assert(bOK: is_OK (@evalBinOp A 2 1 (update st var 0) f t))
+        by (apply BinOpPre; assumption).
 
+      case_eq (@evalBinOp A 2 1 (update st var 0) f t).
+      Focus 2. intros s C. rewrite C in bOK. err_ok_elim.
 
-    break_match_goal; try congruence.
+      intros.
 
+      
   Qed.
   
 

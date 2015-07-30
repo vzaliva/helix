@@ -11,6 +11,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Psatz.
 
@@ -215,9 +216,9 @@ Section SigmaHCOL_Language.
   
   Definition update (st : state) (x : varname) (n : nat) : state :=
     fun x' => if eq_varname_dec x x' then OK n else st x'.
-
-  Definition has_value (st:state) (x:varname) : Prop := is_OK (st x).
   
+  Definition has_value (st:state) (x:varname) : Prop := is_OK (st x).
+
   Definition eval_mayberr_binop (a: @maybeError nat) (b: @maybeError nat) (op: nat->nat->nat) :=
     match a with
     | Error msg => Error msg
@@ -236,6 +237,17 @@ Section SigmaHCOL_Language.
     | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
     end.
 
+  Lemma update_eval:
+    ∀ (var : varname) (st : state) (x:nat),
+      evalAexp (update st var x) (AValue var) ≡ @OK nat x.
+  Proof.
+      intros.
+      compute.
+      break_if.
+      reflexivity.
+      congruence.
+  Qed.
+  
   Section SigmaHCOL_Eval.
     Context    
       `{Az: Zero A} `{A1: One A}

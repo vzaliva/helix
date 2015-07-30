@@ -1098,10 +1098,13 @@ frequently produced by cases analsysis on matcing error conditions *)
 Global Ltac err_ok_elim := 
           repeat match goal with
                  | [ H: ?x ≢ ?x |- _ ] => congruence
+                 | [ H: ?x ≡ ?x |- _ ] => clear H
                                           
                  | [ H : is_OK (Error _)  |- _ ] => unfold is_OK in H; contradiction H
+                 | [ H : @OK _ _ ≡ @Error _ _  |- _ ] => congruence
                  | [ H : is_OK (OK _)  |- _ ] => clear H
                  | [ H : is_Error (OK _)  |- _ ] => unfold is_Error in H; contradiction H
+                 | [ H : @Error _ _ ≡ @OK _ _  |- _ ] => congruence
                  | [ H : is_Error (Error _)  |- _ ] => clear H
                                                                           
                  | [ H : _ |- is_OK (OK _) ] => unfold is_OK; trivial
