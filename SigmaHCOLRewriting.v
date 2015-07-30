@@ -347,17 +347,6 @@ Pre-condition:
   Qed.
 
 
-(*          
-  Lemma GathIsMap: forall (i o: nat) (base stride:aexp) (st:state)
-                            (y: svector A o)
-                            (x: svector A i),
-      (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
-      Vforall (Vin_aux x) y.
-  Qed.
- *)
-
-
-  
   (* Gath on dense vector produces dense vector *)
   Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                            (y: svector A o)
