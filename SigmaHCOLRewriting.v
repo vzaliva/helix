@@ -12,6 +12,7 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Program. 
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -382,6 +383,48 @@ Pre-condition:
     apply index_op_is_dense; try assumption.
     apply gath_math_surj.
   Qed.
+
+
+
+  (* Ensures that variable var is not affecting evaluation of expression. to prove it all we need to make sure it is free in exp *)
+  Definition evalsToWithVar
+             (var:varname)
+             (st:state)
+             (exp: aexp)
+             (v:nat) :=
+    forall (x:nat), evalAexp (update st var x) exp ≡ OK x.
+  
+    
+  Lemma BinOpSums
+        (o: nat)
+        (f:A->A->A)
+        (var:varname)
+        (st:state)
+        (pad stride:aexp)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    :
+      evalsToWithVar var st pad o ->
+      evalsToWithVar var st stride o ->
+      SHOBinOp o f = 
+      SHOISumUnion var (AConst o)
+                   (SHOCompose _ _
+                               (SHOScatHUnion (AValue var) pad)
+                               (SHOCompose _ _ 
+                                           (SHOBinOp 1 f)
+                                           (SHOGathH (i:=o+o) (AValue var) stride))).
+  Proof.
+    intros.
+    unfold equiv, SigmaHCOL_equiv.
+    intros. simpl.
+  Qed.
+
+
+
+
+  Set Printing Implicit.
+
+
+
   
   Definition ASub: A -> A -> A := (plus∘negate).
  
@@ -419,7 +462,6 @@ Pre-condition:
     rewrite H0 in op1OK.
     contradiction.
 
-    Set Printing Implicit.
     unfold op2, vari, c2, evalSigmaHCOL.
     simpl.
     
@@ -463,9 +505,8 @@ Pre-condition:
     apply BinOpPost in H0; try apply ASub_proper.
 
 
-
-
-
+    (* it looks like it could be proven this way but it is work intesive and stupid.
+        should be proven in generic form with variables instead of concrete values *)
 
     
   Qed.
