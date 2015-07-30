@@ -456,34 +456,16 @@ Pre-condition:
       apply ASub_proper.
       assumption.
     }
-
+ 
     case_eq (@evalBinOp A 2 1 (update st (Var "i") 1) ASub t0).
     Focus 2. intros. rewrite H2 in b1OK. err_ok_elim.
+    intros.
     apply BinOpPost in H0; try apply ASub_proper.
 
 
 
 
 
-
-
-    
-    assert (is_OK (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
-                 (AValue (Var "i")) (AConst 2) x)).
-    
-    assert(g2_pre_nbase: evalAexp (update st (Var "i") 0) (AValue (Var "i")) ≡ OK 0).
-    simpl. unfold update.
-    destruct eq_varname_dec. reflexivity.
-    congruence.
-
-    assert(g2_pre_nstride: evalAexp (update st (Var "i") 0) (AConst 2) ≡ OK 2).
-    simpl. unfold update.
-    reflexivity.
-    
-    apply GathPre with (nbase:=0) (nstride:=2); repeat (split; try assumption; try auto).
-    
-    dep_destruct (@evalGathH A Ae 4 2 (update st (Var "i") 0) 
-                             (AValue (Var "i")) (AConst 2) x); trivial.
 
     
   Qed.
