@@ -348,6 +348,17 @@ Pre-condition:
 
 
   (* Gath on dense vector produces dense vector *)
+
+    Lemma gath_math_surj:
+      ∀ (i o base stride : nat) (snz : 0 ≢ stride) (range_bound : base + pred o * stride < i),
+        index_function_is_surjective i o
+                                     (GathBackwardMap_Spec
+                                        (snz:=snz)
+                                        (range_bound:=range_bound)
+                                        i o base stride).
+    Proof.
+    Qed.
+  
   Lemma GathDensePost: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                            (y: svector A o)
                            (x: svector A i),
@@ -355,10 +366,6 @@ Pre-condition:
       (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x) ≡ OK y ->
       svector_is_dense y.
   Proof.
-
-    (*TODO: prove via f_spec properties! *)
-
-    
     simpl.
     intros.
     revert H0.
@@ -367,14 +374,10 @@ Pre-condition:
     destruct (evalAexp st stride); try congruence.
     destruct (eq_nat_dec 0 n0); try congruence.
     destruct (Compare_dec.lt_dec (n + pred o * n0) i); try congruence.
-    intros.
-    inversion H0. clear H0 H2.
-
-    unfold svector_is_dense in *.
-    unfold GathH.
-
-      
-    
+    inversion 1.
+    unfold GathH in *.
+    apply index_op_is_dense; try assumption.
+    apply gath_math_surj.
   Qed.
   
   Definition ASub: A -> A -> A := (plus∘negate).
