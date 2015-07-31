@@ -91,17 +91,18 @@ Defined.
 
     Local Open Scope nat_scope.
 
-    (* Vector index mapping functon which maps output vector indices to input
-     vector indices or None *)
-    Definition index_function_spec (i o : nat) :=
-      ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}.
+    (* Vector index mapping functon which maps between two sets of natrual
+     numers. Mapping is partial and it returns None if there is no correspondance
+     between a number in source set and target set. *)
+    Definition index_map_spec (range domain : nat) :=
+      ∀ n : nat, n < domain → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < range}.
 
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: svector A i)
-               (f_spec: index_function_spec i o)
+               (f_spec: index_map_spec i o)
                (n:nat) (np: n<o)
       : option A
       := let fv:=f_spec n np in
@@ -114,14 +115,14 @@ natrual number by index mapping function f_spec. *)
     
     Definition vector_index_backward_operator_spec `{Equiv A}
                {i o: nat}
-               (f_spec: index_function_spec i o)
+               (f_spec: index_map_spec i o)
                (x: svector A i):
       {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition vector_index_backward_operator `{Equiv A}
                {i o: nat}
-               (f_spec: index_function_spec i o)
+               (f_spec: index_map_spec i o)
                (x: svector A i):
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
@@ -129,12 +130,12 @@ natrual number by index mapping function f_spec. *)
     Lemma index_op_is_partial_map `{Ae: Equiv A}:
       ∀ (i o : nat)
         (x : svector A i),
-      ∀ (f_spec: index_function_spec i o),
+      ∀ (f_spec: index_map_spec i o),
         Vforall (fun z => is_None z \/ Vin_aux x z)
                 (vector_index_backward_operator f_spec x).
     Proof.
       intros.
-      unfold index_function_spec in f_spec.
+      unfold index_map_spec in f_spec.
       unfold vector_index_backward_operator, proj1_sig,
       vector_index_backward_operator_spec.
       replace (let (a, _) :=
@@ -162,11 +163,11 @@ natrual number by index mapping function f_spec. *)
       ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
         P None ->
         Vforall P x
-        → ∀ f_spec : index_function_spec i o,
+        → ∀ f_spec : index_map_spec i o,
             Vforall P (vector_index_backward_operator f_spec x).
     Proof.
       intros.
-      unfold index_function_spec in f_spec.
+      unfold index_map_spec in f_spec.
       assert(Vforall (fun z => is_None z \/ Vin_aux x z)
                      (vector_index_backward_operator f_spec x))
         by apply index_op_is_partial_map.
@@ -184,18 +185,18 @@ natrual number by index mapping function f_spec. *)
 
     Definition index_function_is_surjective
                (i o : nat)
-               (f_spec: index_function_spec i o) :=
+               (f_spec: index_map_spec i o) :=
       forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
     
     Lemma index_op_is_dense `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i)
-        (f_spec: index_function_spec i o),
+        (f_spec: index_map_spec i o),
         svector_is_dense x ->
         index_function_is_surjective i o f_spec -> 
         svector_is_dense (vector_index_backward_operator f_spec x).
     Proof.
       intros i o x f_spec xdense fsurj.
-      unfold index_function_spec in f_spec.
+      unfold index_map_spec in f_spec.
       unfold index_function_is_surjective in fsurj.
       unfold svector_is_dense in *.
       unfold vector_index_backward_operator, proj1_sig,
@@ -233,7 +234,7 @@ natrual number by index mapping function f_spec. *)
     Program Definition GathBackwardMap_Spec
             (i o base stride: nat)
             {snz: 0 ≢ stride} 
-            {range_bound: (base+(pred o)*stride) < i}: index_function_spec i o :=
+            {range_bound: (base+(pred o)*stride) < i}: index_map_spec i o :=
       fun n dom_boun => Some (base + n*stride).
     Next Obligation.
       dep_destruct o. crush.
