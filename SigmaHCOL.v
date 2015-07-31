@@ -85,7 +85,7 @@ Defined.
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
 
 
- 
+  
   Section IndexedOperators.
     Require Import Coq.Numbers.Natural.Peano.NPeano.
 
@@ -95,21 +95,6 @@ Defined.
      vector indices or None *)
     Definition index_function_spec (i o : nat) :=
       ∀ n : nat, n < o → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < i}.
-
-    Program Definition GathBackwardMap_Spec
-            (i o base stride: nat)
-            {snz: 0 ≢ stride} 
-            {range_bound: (base+(pred o)*stride) < i}: index_function_spec i o :=
-      fun n dom_boun => Some (base + n*stride).
-    Next Obligation.
-      dep_destruct o. crush.
-      unfold pred in range_bound.
-      assert (n<=x) by lia.
-      assert(n * stride <= x*stride).
-      apply mult_le_compat_r; assumption.
-      apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
-        assumption.
-    Defined.
 
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
@@ -128,9 +113,9 @@ natrual number by index mapping function f_spec. *)
          end (eq_refl fn).
     
     Definition vector_index_backward_operator_spec `{Equiv A}
-             {i o: nat}
-             (f_spec: index_function_spec i o)
-             (x: svector A i):
+               {i o: nat}
+               (f_spec: index_function_spec i o)
+               (x: svector A i):
       {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
@@ -140,6 +125,126 @@ natrual number by index mapping function f_spec. *)
                (x: svector A i):
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
+
+    Lemma index_op_is_partial_map `{Ae: Equiv A}:
+      ∀ (i o : nat)
+        (x : svector A i),
+      ∀ (f_spec: index_function_spec i o),
+        Vforall (fun z => is_None z \/ Vin_aux x z)
+                (vector_index_backward_operator f_spec x).
+    Proof.
+      intros.
+      unfold index_function_spec in f_spec.
+      unfold vector_index_backward_operator, proj1_sig,
+      vector_index_backward_operator_spec.
+      replace (let (a, _) :=
+                   Vbuild_spec (VnthIndexMapped x f_spec) in
+               a) with
+      (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
+      apply Vforall_eq. intros x0 VB.
+      apply Vbuild_in in VB.
+      destruct VB as [x1 VB1]. destruct VB1.
+      subst x0.
+      case_eq (VnthIndexMapped x f_spec x1 x2).
+      + right.
+        unfold VnthIndexMapped, proj1_sig in H.
+        destruct (f_spec x1 x2) in H.
+        destruct x0.
+        * rewrite <- H.
+          unfold Vin_aux.
+          apply Vnth_in.
+        * congruence.
+      + left.
+        none_some_elim.
+    Qed.
+
+    Lemma index_op_preserves_P `{Ae: Equiv A}:
+      ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
+        P None ->
+        Vforall P x
+        → ∀ f_spec : index_function_spec i o,
+            Vforall P (vector_index_backward_operator f_spec x).
+    Proof.
+      intros.
+      unfold index_function_spec in f_spec.
+      assert(Vforall (fun z => is_None z \/ Vin_aux x z)
+                     (vector_index_backward_operator f_spec x))
+        by apply index_op_is_partial_map.
+      generalize dependent (vector_index_backward_operator f_spec x).
+      intros t.
+      rewrite 2!Vforall_eq.
+      crush.
+      assert (is_None x0 ∨ Vin_aux x x0) by (apply H1; assumption).
+      inversion H3.
+      + destruct x0; none_some_elim.
+        assumption.
+      + rewrite Vforall_eq in H0.
+        auto.
+    Qed.
+
+    Definition index_function_is_surjective
+               (i o : nat)
+               (f_spec: index_function_spec i o) :=
+      forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
+    
+    Lemma index_op_is_dense `{Ae: Equiv A}:
+      ∀ (i o : nat) (x : svector A i)
+        (f_spec: index_function_spec i o),
+        svector_is_dense x ->
+        index_function_is_surjective i o f_spec -> 
+        svector_is_dense (vector_index_backward_operator f_spec x).
+    Proof.
+      intros i o x f_spec xdense fsurj.
+      unfold index_function_spec in f_spec.
+      unfold index_function_is_surjective in fsurj.
+      unfold svector_is_dense in *.
+      unfold vector_index_backward_operator, proj1_sig,
+      vector_index_backward_operator_spec.
+      
+      replace (let (a, _) :=
+                   Vbuild_spec (VnthIndexMapped x f_spec) in
+               a) with
+      (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
+      apply Vforall_eq. intros.
+      apply Vbuild_in in H.
+      destruct H. destruct H. 
+      subst x0.
+      case_eq (VnthIndexMapped x f_spec x1 x2). 
+      - intros. 
+        none_some_elim.
+      - intros.
+        assert(FS: is_Some (` (f_spec x1 x2))) by apply fsurj.
+        unfold VnthIndexMapped, proj1_sig in H.
+        destruct (f_spec x1 x2) in H, FS; none_some_elim.
+        destruct x0.
+        +
+          simpl in *.
+          generalize dependent (l n eq_refl). 
+          clear FS f_spec fsurj l.
+          intros.
+          (* here we have a contradiction between 'xdense' and 'H' *)
+          assert (HS: is_Some (Vnth x l)) by (apply Vforall_nth; assumption).
+          destruct (Vnth x l); simpl in *;  congruence.
+        +
+          simpl in FS. contradiction FS.
+    Qed.
+
+
+    Program Definition GathBackwardMap_Spec
+            (i o base stride: nat)
+            {snz: 0 ≢ stride} 
+            {range_bound: (base+(pred o)*stride) < i}: index_function_spec i o :=
+      fun n dom_boun => Some (base + n*stride).
+    Next Obligation.
+      dep_destruct o. crush.
+      unfold pred in range_bound.
+      assert (n<=x) by lia.
+      assert(n * stride <= x*stride).
+      apply mult_le_compat_r; assumption.
+      apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
+        assumption.
+    Defined.
+
     
     Definition GathH `{Equiv A}
                (i o base stride: nat)
@@ -241,11 +346,11 @@ Section SigmaHCOL_Language.
     ∀ (var : varname) (st : state) (x:nat),
       evalAexp (update st var x) (AValue var) ≡ @OK nat x.
   Proof.
-      intros.
-      compute.
-      break_if.
-      reflexivity.
-      congruence.
+    intros.
+    compute.
+    break_if.
+    reflexivity.
+    congruence.
   Qed.
   
   Section SigmaHCOL_Eval.
@@ -287,6 +392,68 @@ Section SigmaHCOL_Language.
       exact (Error "incompatible input and output sizes").
     Defined.
 
+    Lemma cast_vector_operator_OK_OK: forall i0 i1 o0 o1 (v: vector A i1)
+                                        (op: vector A i0 → svector A o0)
+      ,
+        (i0 ≡ i1 /\ o0 ≡ o1) -> is_OK ((cast_vector_operator
+                                        i0 o0
+                                        i1 o1
+                                        (OK ∘ op)) v).
+    Proof.
+      intros.
+      destruct H as [Hi Ho].
+      rewrite <- Ho. clear o1 Ho.
+      revert op.
+      rewrite Hi. clear i0 Hi.
+      intros.
+
+      unfold compose.
+      set (e := (λ x : vector A i1, @OK (vector (option A) o0) (op x))).
+
+      assert(is_OK (e v)).
+      {
+        unfold e. simpl. trivial.
+      }
+      revert H.
+      generalize dependent e. clear op.
+      intros.
+
+      rename i1 into i.
+      rename o0 into o.
+      (* here we arrived to more generic form of the lemma, stating that is_OK property is preserved by 'cast_vector_operator *)
+
+      unfold cast_vector_operator.
+      destruct (eq_nat_dec o o), (eq_nat_dec i i); try congruence.
+
+      compute.
+      destruct e0.
+      dep_destruct e1.
+      auto.
+    Qed.
+
+    
+    Lemma cast_vector_operator_OK_elim: forall i o (v: vector A i)
+                                          (op: vector A i → svector A o)
+      ,
+        forall (t: svector A o),
+          ((cast_vector_operator
+              i o
+              i o
+              (OK ∘ op)) v) ≡ OK t -> op v ≡ t.
+    Proof.
+      intros i o v op t.
+      unfold cast_vector_operator.
+      destruct (eq_nat_dec i i); try congruence.
+      destruct (eq_nat_dec o o); try congruence.
+      compute.
+      dep_destruct e.
+      dep_destruct e0.
+      intros.
+      inversion H.
+      reflexivity.
+    Qed.
+    
+    
     Definition evalScatHUnion
                {i o: nat}
                (st:state)
@@ -454,7 +621,7 @@ Section SigmaHCOL_language_tests.
 
 (* TODO: unit tests using CUnit:
 http://coq-blog.clarus.me/simple-unit-testing-in-coq.html
-*)
+ *)
 
 
   
