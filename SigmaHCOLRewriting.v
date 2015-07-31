@@ -199,13 +199,13 @@ Pre-condition:
   
   Lemma gath_map_surj:
     ∀ (i o base stride : nat) (snz : 0 ≢ stride) (range_bound : base + pred o * stride < i),
-      index_function_is_surjective i o
+      index_map_is_surjective i o
                                    (GathBackwardMap_Spec
                                       (snz:=snz)
                                       (range_bound:=range_bound)
                                       i o base stride).
   Proof.
-    unfold index_function_is_surjective.
+    unfold index_map_is_surjective.
     simpl.
     trivial.
   Qed.
@@ -227,7 +227,7 @@ Pre-condition:
     destruct (Compare_dec.lt_dec (n + pred o * n0) i); try congruence.
     inversion 1.
     unfold GathH in *.
-    apply index_op_is_dense; try assumption.
+    apply vector_index_backward_operator_is_dense; try assumption.
     apply gath_map_surj.
   Qed.
 
@@ -319,8 +319,7 @@ Pre-condition:
 
 
 
-
-
+  (* --- Test on an example --- *)
 
   
   Definition ASub: A -> A -> A := (plus∘negate).

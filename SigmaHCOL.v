@@ -84,12 +84,10 @@ Defined.
   Definition ScatHUnion {A} {n:nat} (base:nat) (pad:nat) (v:vector A n): svector A (base+((S pad)*n)) :=
     Vector.append (Vconst None base) (ScatHUnion_0 A n pad v).
 
+  Local Open Scope nat_scope.
 
-  
   Section IndexedOperators.
     Require Import Coq.Numbers.Natural.Peano.NPeano.
-
-    Local Open Scope nat_scope.
 
     (* Vector index mapping functon which maps between two sets of natrual
      numers. Mapping is partial and it returns None if there is no correspondance
@@ -127,7 +125,7 @@ natrual number by index mapping function f_spec. *)
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
 
-    Lemma index_op_is_partial_map `{Ae: Equiv A}:
+    Lemma vector_index_backward_operator_is_partial_map `{Ae: Equiv A}:
       ∀ (i o : nat)
         (x : svector A i),
       ∀ (f_spec: index_map_spec i o),
@@ -159,7 +157,7 @@ natrual number by index mapping function f_spec. *)
         none_some_elim.
     Qed.
 
-    Lemma index_op_preserves_P `{Ae: Equiv A}:
+    Lemma vector_index_backward_operator_preserves_P `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
         P None ->
         Vforall P x
@@ -170,7 +168,7 @@ natrual number by index mapping function f_spec. *)
       unfold index_map_spec in f_spec.
       assert(Vforall (fun z => is_None z \/ Vin_aux x z)
                      (vector_index_backward_operator f_spec x))
-        by apply index_op_is_partial_map.
+        by apply vector_index_backward_operator_is_partial_map.
       generalize dependent (vector_index_backward_operator f_spec x).
       intros t.
       rewrite 2!Vforall_eq.
@@ -183,21 +181,21 @@ natrual number by index mapping function f_spec. *)
         auto.
     Qed.
 
-    Definition index_function_is_surjective
+    Definition index_map_is_surjective
                (i o : nat)
                (f_spec: index_map_spec i o) :=
       forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
     
-    Lemma index_op_is_dense `{Ae: Equiv A}:
+    Lemma vector_index_backward_operator_is_dense `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i)
         (f_spec: index_map_spec i o),
         svector_is_dense x ->
-        index_function_is_surjective i o f_spec -> 
+        index_map_is_surjective i o f_spec -> 
         svector_is_dense (vector_index_backward_operator f_spec x).
     Proof.
       intros i o x f_spec xdense fsurj.
       unfold index_map_spec in f_spec.
-      unfold index_function_is_surjective in fsurj.
+      unfold index_map_is_surjective in fsurj.
       unfold svector_is_dense in *.
       unfold vector_index_backward_operator, proj1_sig,
       vector_index_backward_operator_spec.
@@ -230,35 +228,33 @@ natrual number by index mapping function f_spec. *)
           simpl in FS. contradiction FS.
     Qed.
 
-
-    Program Definition GathBackwardMap_Spec
-            (i o base stride: nat)
-            {snz: 0 ≢ stride} 
-            {range_bound: (base+(pred o)*stride) < i}: index_map_spec i o :=
-      fun n dom_boun => Some (base + n*stride).
-    Next Obligation.
-      dep_destruct o. crush.
-      unfold pred in range_bound.
-      assert (n<=x) by lia.
-      assert(n * stride <= x*stride).
-      apply mult_le_compat_r; assumption.
-      apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
-        assumption.
-    Defined.
-
-    
-    Definition GathH `{Equiv A}
-               (i o base stride: nat)
-               {snz: 0 ≢ stride} 
-               {range_bound: (base+(pred o)*stride) < i}
-      :
-        (vector (option A) i) -> vector (option A) o :=
-      vector_index_backward_operator 
-        (@GathBackwardMap_Spec i o base stride snz range_bound).
-    
-    Local Close Scope nat_scope.
   End IndexedOperators.
 
+  Program Definition GathBackwardMap_Spec
+          (i o base stride: nat)
+          {snz: 0 ≢ stride} 
+          {range_bound: (base+(pred o)*stride) < i}: index_map_spec i o :=
+    fun n dom_boun => Some (base + n*stride).
+  Next Obligation.
+    dep_destruct o. crush.
+    unfold pred in range_bound.
+    assert (n<=x) by lia.
+    assert(n * stride <= x*stride).
+    apply mult_le_compat_r; assumption.
+    apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
+        assumption.
+  Defined.
+    
+  Definition GathH `{Equiv A}
+             (i o base stride: nat)
+             {snz: 0 ≢ stride} 
+             {range_bound: (base+(pred o)*stride) < i}
+    :
+      (vector (option A) i) -> vector (option A) o :=
+    vector_index_backward_operator 
+        (@GathBackwardMap_Spec i o base stride snz range_bound).
+  
+  Local Close Scope nat_scope.
 End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.
