@@ -9,6 +9,8 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
+Require Import Compare_dec.
+Require Import Coq.Numbers.Natural.Peano.NPeano.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
@@ -234,7 +236,7 @@ natrual number by index mapping function f_spec. *)
           (i o base stride: nat)
           {snz: 0 ≢ stride} 
           {range_bound: (base+(pred o)*stride) < i}: index_map_spec i o :=
-    fun n dom_boun => Some (base + n*stride).
+    fun n dom_bound => Some (base + n*stride).
   Next Obligation.
     dep_destruct o. crush.
     unfold pred in range_bound.
@@ -253,6 +255,22 @@ natrual number by index mapping function f_spec. *)
       (vector (option A) i) -> vector (option A) o :=
     vector_index_backward_operator 
         (@GathBackwardMap_Spec i o base stride snz range_bound).
+  
+  Program Definition ScatHBackwardMap_Spec
+          (i o base pad: nat)
+          {iodep: (base + (S pad) * i) = o}: index_map_spec i o :=
+    fun n dom_bound =>
+      match lt_dec n base with
+      | left _ => None
+      | right _ => match divmod (o-base) (S pad) 0 (S pad) with
+                  | (j, 0) => Some j
+                  | _ => None
+                  end
+      end.
+  Next Obligation.
+    assert(n'< (0-base) mod (S pad)).
+    omega.
+  Defined.
   
   Local Close Scope nat_scope.
 End SigmaHCOL_Operators.
