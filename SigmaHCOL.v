@@ -268,8 +268,24 @@ natrual number by index mapping function f_spec. *)
                   end
       end.
   Next Obligation.
-    assert(n'< (0-base) mod (S pad)).
-    omega.
+    rename Heq_anonymous0 into P.
+    assert (S pad <= S pad) by auto.
+    generalize (divmod_spec (o - base) (S pad) 0 (S pad)).
+    destruct divmod as (q,u).
+    tuple_inversion.
+    intros.
+    simpl in *.
+    assert(o - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad
+           ∧ 0 <= S pad) by auto. clear H H0.
+    rewrite Mult.mult_0_r in H1.
+    rewrite minus_diag in H1.
+    repeat rewrite Plus.plus_0_r in H1.
+
+    assert(0 <= S pad) by apply le_0_n.
+    assert(H2: o - base ≡ q + (q + pad * q) + S pad)
+      by firstorder. clear H1 H.
+    
+
   Defined.
   
   Local Close Scope nat_scope.
