@@ -285,7 +285,7 @@ natrual number by index mapping function f_spec. *)
       by firstorder. clear H1 H.
     clear wildcard' dom_bound Heq_anonymous.
     rewrite minus_plus in H2.
-    
+    symmetry in H2. rename pad into p.
     
   Defined.
   
