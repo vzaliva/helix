@@ -258,7 +258,7 @@ natrual number by index mapping function f_spec. *)
   
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
-          {iodep: (base + (S pad) * i) = o}: index_map_spec i o :=
+          {iodep: (base + (S pad) * i) ≡ o}: index_map_spec i o :=
     fun n dom_bound =>
       match lt_dec n base with
       | left _ => None
@@ -270,22 +270,23 @@ natrual number by index mapping function f_spec. *)
   Next Obligation.
     rename Heq_anonymous0 into P.
     assert (S pad <= S pad) by auto.
-    generalize (divmod_spec (o - base) (S pad) 0 (S pad)).
+    generalize (divmod_spec (base + (i + pad * i) - base) (S pad) 0 (S pad)).
     destruct divmod as (q,u).
     tuple_inversion.
     intros.
-    simpl in *.
-    assert(o - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad
-           ∧ 0 <= S pad) by auto. clear H H0.
+    simpl in *. 
+    assert(base + (i + pad * i) - base + pad * 0 + (pad - pad)
+         ≡ q + (q + pad * q) + S pad ∧ 0 <= S pad) by auto. clear H H0.
     rewrite Mult.mult_0_r in H1.
     rewrite minus_diag in H1.
     repeat rewrite Plus.plus_0_r in H1.
-
-    assert(0 <= S pad) by apply le_0_n.
-    assert(H2: o - base ≡ q + (q + pad * q) + S pad)
+    assert(0 <= S pad) by apply le_0_n. 
+    assert(H2: base + (i + pad * i) - base ≡ q + (q + pad * q) + S pad)
       by firstorder. clear H1 H.
+    clear wildcard' dom_bound Heq_anonymous.
+    rewrite minus_plus in H2.
     
-
+    
   Defined.
   
   Local Close Scope nat_scope.
