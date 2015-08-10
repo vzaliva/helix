@@ -268,24 +268,25 @@ natrual number by index mapping function f_spec. *)
                   end
       end.
   Next Obligation.
+
     rename Heq_anonymous0 into P.
-    assert (S pad <= S pad) by auto.
     generalize (divmod_spec (base + (i + pad * i) - base) (S pad) 0 (S pad)).
     destruct divmod as (q,u).
     tuple_inversion.
-    intros.
-    simpl in *. 
-    assert(base + (i + pad * i) - base + pad * 0 + (pad - pad)
-         ≡ q + (q + pad * q) + S pad ∧ 0 <= S pad) by auto. clear H H0.
-    rewrite Mult.mult_0_r in H1.
-    rewrite minus_diag in H1.
-    repeat rewrite Plus.plus_0_r in H1.
-    assert(0 <= S pad) by apply le_0_n. 
-    assert(H2: base + (i + pad * i) - base ≡ q + (q + pad * q) + S pad)
-      by firstorder. clear H1 H.
-    clear wildcard' dom_bound Heq_anonymous.
-    rewrite minus_plus in H2.
+    simpl. intros.
+    assert(H1: base + (i + pad * i) - base + pad * 0 + (pad - pad)
+         ≡ q + (q + pad * q) + S pad ∧ 0 <= S pad) by auto. clear H.
+    assert(H2: base + (i + pad * i) - base + pad * 0 + (pad - pad)
+         ≡ q + (q + pad * q) + S pad ) by firstorder. clear H1.
+
+    rewrite Mult.mult_0_r,
+    minus_diag,
+    Plus.plus_0_r, Plus.plus_0_r,
+    minus_plus in H2.
     symmetry in H2. rename pad into p.
+
+    clear wildcard' dom_bound Heq_anonymous.
+
     
   Defined.
   
