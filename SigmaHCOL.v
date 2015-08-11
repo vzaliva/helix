@@ -9,7 +9,6 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
-Require Import Compare_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 
 Require Import CpdtTactics.

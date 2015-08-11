@@ -172,10 +172,10 @@ Pre-condition:
     unfold evalGathH.
     rewrite H0, H.
 
-    case (eq_nat_dec 0 nstride).
+    case eq_nat_dec.
     - intros. symmetry in e. contradiction.
     - intros Hsnz. 
-      case (Compare_dec.lt_dec (nbase + (pred o) * nstride) i).
+      case lt_dec.
       + intros HD. clear range_bound. (* range_bound = HD *)
         intros. injection H1. clear H1.
         unfold GathH.
@@ -225,13 +225,12 @@ Pre-condition:
     destruct (evalAexp st base); try congruence.
     destruct (evalAexp st stride); try congruence.
     destruct (eq_nat_dec 0 n0); try congruence.
-    destruct (Compare_dec.lt_dec (n + pred o * n0) i); try congruence.
+    destruct lt_dec; try congruence.
     inversion 1.
     unfold GathH in *.
     apply vector_index_backward_operator_is_dense; try assumption.
     apply gath_map_surj.
   Qed.
-
 
 
   (* Ensures that variable var is not affecting evaluation of expression. to prove it all we need to make sure it is free in exp *)
