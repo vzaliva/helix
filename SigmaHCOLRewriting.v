@@ -309,12 +309,14 @@ Pre-condition:
 
       intros.
       
-      assert(sOK: is_OK (@evalScatHUnion A 1 1 (update st var 0) (AValue var) pad t0)).
+      assert(sOK: is_OK (evalScatHUnion (o:=1) (update st var 0) (AValue var) pad t0)).
       {
         apply ScatPre with (nbase:=0) (npad:=1).
         split. apply update_eval.
         split. apply padE.
-        (* Something serously wrong here. Perhaps induction was wrong approach *)
+
+        (* Something serously wrong here. Perhaps induction was wrong approach.
+         Scat i=o=1 is not possible. *)
         split; auto.
       }
 
