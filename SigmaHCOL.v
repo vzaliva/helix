@@ -260,12 +260,6 @@ natrual number by index mapping function f_spec. *)
 
   Local Open Scope nat_scope.
 
-  Lemma div_S_lt_compat_l:
-    ∀ i p q : nat, S p * q < S p * i → q < i.
-  Proof.
-  Admitted.
-  
-
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
           {iodep: (base + (S pad) * i) ≡ o}: index_map_spec i o :=
@@ -283,31 +277,7 @@ natrual number by index mapping function f_spec. *)
     destruct divmod as (q,u).
     simpl in *.
     subst.
-    intros H.
-    assert(H1: n - b + p * 0 + (p - p) ≡ q + p * q + (p - p) ∧ p <= p) by auto. clear H.
-    assert(H2: n - b + p * 0 + (p - p) ≡ q + p * q + (p - p))
-      by firstorder. clear H1.
-
-    rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r, Plus.plus_0_r in H2.
-    apply not_lt_le_flip in W.
-    
-    destruct W.
-    rewrite minus_diag in H2.
-    assert(Q0: q ≡ 0) by lia. rewrite Q0. clear Q0 H2 q.
-    assert(I0: i ≢ 0).
-    destruct p.
-    rewrite Mult.mult_0_l, Plus.plus_0_r in dom_bound.
-    lia.
-    crush.
-    crush.
-    assert(H3: S m - b < (i + p * i)).
-    lia. clear dom_bound.
-    rewrite H2 in H3.
-    assert(H4: (S p)*q < (S p)*i).
-    lia. clear H2 H3.
-
-    apply div_S_lt_compat_l with (q:=q) (i:=i) (p:=p) in H4.
-    assumption.
+    nia.
   Defined.
   
   Local Close Scope nat_scope.
