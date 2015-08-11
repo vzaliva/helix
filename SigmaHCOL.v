@@ -22,6 +22,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.implementations.peano_naturals.
+Require Import MathClasses.orders.orders.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -255,6 +256,9 @@ natrual number by index mapping function f_spec. *)
       (vector (option A) i) -> vector (option A) o :=
     vector_index_backward_operator 
         (@GathBackwardMap_Spec i o base stride snz range_bound).
+
+
+  Local Open Scope nat_scope.
   
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
@@ -268,11 +272,12 @@ natrual number by index mapping function f_spec. *)
                   end
       end.
   Next Obligation.
-
-    rename Heq_anonymous0 into P.
     clear Heq_anonymous.
-    rename wildcard' into W.
 
+    assert (W: ¬(n < base)%nat) by auto.
+    clear wildcard'. 
+    rename Heq_anonymous0 into P.
+    
     generalize (divmod_spec (n - base) (S pad) 0 (S pad)).
     destruct divmod as (q,u).
     tuple_inversion.
@@ -285,6 +290,9 @@ natrual number by index mapping function f_spec. *)
     rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r in H2.
     rename base into b.  rename pad into p.
 
+    apply not_lt_le_flip in W.
+    destruct W.
+    lia.
     
   Defined.
   
