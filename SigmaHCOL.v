@@ -262,7 +262,7 @@ natrual number by index mapping function f_spec. *)
     fun n dom_bound =>
       match lt_dec n base with
       | left _ => None
-      | right _ => match divmod (o-base) (S pad) 0 (S pad) with
+      | right _ => match divmod (n-base) (S pad) 0 (S pad) with
                   | (j, 0) => Some j
                   | _ => None
                   end
@@ -270,22 +270,20 @@ natrual number by index mapping function f_spec. *)
   Next Obligation.
 
     rename Heq_anonymous0 into P.
-    generalize (divmod_spec (base + (i + pad * i) - base) (S pad) 0 (S pad)).
+    clear Heq_anonymous.
+    rename wildcard' into W.
+
+    generalize (divmod_spec (n - base) (S pad) 0 (S pad)).
     destruct divmod as (q,u).
     tuple_inversion.
     simpl. intros.
-    assert(H1: base + (i + pad * i) - base + pad * 0 + (pad - pad)
-         ≡ q + (q + pad * q) + S pad ∧ 0 <= S pad) by auto. clear H.
-    assert(H2: base + (i + pad * i) - base + pad * 0 + (pad - pad)
-         ≡ q + (q + pad * q) + S pad ) by firstorder. clear H1.
+    assert(H1: n - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad
+        ∧ 0 <= S pad) by auto. clear H.
+    assert(H2: n - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad)
+      by firstorder. clear H1.
 
-    rewrite Mult.mult_0_r,
-    minus_diag,
-    Plus.plus_0_r, Plus.plus_0_r,
-    minus_plus in H2.
-    symmetry in H2. rename pad into p.
-
-    clear wildcard' dom_bound Heq_anonymous.
+    rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r in H2.
+    rename base into b.  rename pad into p.
 
     
   Defined.
