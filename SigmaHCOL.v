@@ -377,8 +377,9 @@ Section SigmaHCOL_Language.
       exact (Error "incompatible input and output sizes").
     Defined.
 
-    Lemma cast_vector_operator_OK_OK: forall i0 i1 o0 o1 (v: vector A i1)
-                                        (op: vector A i0 → svector A o0)
+    Lemma cast_vector_operator_OK_OK {B C: Type}
+      : forall i0 i1 o0 o1 (v: vector B i1)
+          (op: vector B i0 → vector C o0)
       ,
         (i0 ≡ i1 /\ o0 ≡ o1) -> is_OK ((cast_vector_operator
                                         i0 o0
@@ -393,7 +394,7 @@ Section SigmaHCOL_Language.
       intros.
 
       unfold compose.
-      set (e := (λ x : vector A i1, @OK (vector (option A) o0) (op x))).
+      set (e := (λ x : vector B i1, @OK (vector C o0) (op x))).
 
       assert(is_OK (e v)).
       {

@@ -134,8 +134,13 @@ Pre-condition:
        (o ≡ (nbase + S npad * i))) ->
       is_OK (evalSigmaHCOL st (SHOScatHUnion  (i:=i) (o:=o) base pad) x).
   Proof.
-    (* TODO! *)
-  Admitted.
+    intros.
+    crush.
+    unfold evalScatHUnion.
+    crush.
+    apply cast_vector_operator_OK_OK.
+    auto.
+  Qed.
 
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
