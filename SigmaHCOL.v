@@ -259,37 +259,31 @@ natrual number by index mapping function f_spec. *)
 
 
   Local Open Scope nat_scope.
-  
+
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
           {iodep: (base + (S pad) * i) ≡ o}: index_map_spec i o :=
     fun n dom_bound =>
       match lt_dec n base with
       | left _ => None
-      | right _ => match divmod (n-base) (S pad) 0 (S pad) with
-                  | (j, 0) => Some j
-                  | _ => None
-                  end
+      | right _ => let ab := divmod (n-base) pad 0 pad in
+                  if eq_nat_dec (snd ab) pad then Some (fst ab) else None
       end.
   Next Obligation.
-    clear Heq_anonymous.
-
-    assert (W: ¬(n < base)%nat) by auto.
-    clear wildcard'. 
-    rename Heq_anonymous0 into P.
-    
-    generalize (divmod_spec (n - base) (S pad) 0 (S pad)).
+    rename base into b.  rename pad into p.
+    assert (W: ¬(n < b)%nat) by auto.
+    clear Heq_anonymous wildcard'. 
+    generalize (divmod_spec (n - b) p 0 p).
     destruct divmod as (q,u).
-    tuple_inversion.
-    simpl. intros.
-    assert(H1: n - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad
-        ∧ 0 <= S pad) by auto. clear H.
-    assert(H2: n - base + pad * 0 + (pad - pad) ≡ q + (q + pad * q) + S pad)
+    simpl in *.
+    subst.
+    intros H.
+    assert(H1: n - b + p * 0 + (p - p) ≡ q + p * q + (p - p) ∧ p <= p) by auto. clear H.
+    assert(H2: n - b + p * 0 + (p - p) ≡ q + p * q + (p - p))
       by firstorder. clear H1.
 
-    rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r in H2.
-    rename base into b.  rename pad into p.
-
+    rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r, Plus.plus_0_r in H2.
+    
     apply not_lt_le_flip in W.
     destruct W.
     lia.
