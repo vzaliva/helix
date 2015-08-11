@@ -15,6 +15,8 @@ Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Psatz.
+
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
@@ -48,7 +50,7 @@ Section SigmaHCOLRewriting.
   Add Ring RingA: (stdlib_ring_theory A).
   
   Open Scope vector_scope.
-  Open Scope nat_scope.
+  Global Open Scope nat_scope.
 
 
   (*
@@ -134,14 +136,13 @@ Pre-condition:
   Proof.
     (* TODO! *)
   Admitted.
-  
+
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
   Lemma GathPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
       ((evalAexp st base ≡ OK nbase) /\
        (evalAexp st stride ≡ OK nstride) /\
        nstride ≢ 0 /\
-       o ≢ 0 /\
        (nbase+(pred o)*nstride) < i) ->
       is_OK (evalSigmaHCOL st (SHOGathH (i:=i) (o:=o) base stride) x).
   Proof.
@@ -149,8 +150,8 @@ Pre-condition:
     simpl.
     unfold evalGathH.
     crush.
-    destruct (Compare_dec.lt_dec (nbase + (pred o) * nstride) i), o, nstride;
-      err_ok_elim.
+    destruct lt_dec, nstride; err_ok_elim.
+    contradiction.
   Qed.
 
   Lemma GathInvariant: forall (i o nbase nstride: nat)

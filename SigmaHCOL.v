@@ -44,8 +44,8 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
 
 Module SigmaHCOL_Operators.
 
-  Local Open Scope nat_scope.
-
+  Global Open Scope nat_scope.
+  
   Section IndexedOperators.
     Require Import Coq.Numbers.Natural.Peano.NPeano.
 
@@ -215,8 +215,6 @@ natrual number by index mapping function f_spec. *)
       vector_index_backward_operator 
         (@GathBackwardMap_Spec i o base stride snz range_bound).
 
-  Local Open Scope nat_scope.
-
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
           {iodep: (base + (S pad) * i) ≡ o}: index_map_spec i o :=
@@ -237,8 +235,6 @@ natrual number by index mapping function f_spec. *)
     nia.
   Defined.
   
-  Local Close Scope nat_scope.
-
   Definition ScatHUnion `{Equiv A}
              {n:nat} (base:nat) (pad:nat):
     svector A n -> svector A (base+((S pad)*n))
@@ -355,7 +351,7 @@ Section SigmaHCOL_Language.
       `{Asetoid: !@Setoid A Ae}
       `{Aledec: !∀ x y: A, Decision (x ≤ y)}
       `{Aeqdec: !∀ x y, Decision (x = y)}
-      `{Altdec: !∀ x y: A, Decision (x < y)}
+      `{Altdec: !∀ x y: A, Decision (lt x y)}
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
