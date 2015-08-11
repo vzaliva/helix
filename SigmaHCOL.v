@@ -283,11 +283,17 @@ natrual number by index mapping function f_spec. *)
       by firstorder. clear H1.
 
     rewrite Mult.mult_0_r, minus_diag, Plus.plus_0_r, Plus.plus_0_r, Plus.plus_0_r in H2.
-    
     apply not_lt_le_flip in W.
     destruct W.
+    rewrite minus_diag in H2.
+    assert(Q0: q ≡ 0) by lia. rewrite Q0. clear Q0 H2 q.
+    assert(I0: i ≢ 0).
+    destruct p.
+    rewrite Mult.mult_0_l, Plus.plus_0_r in dom_bound.
     lia.
-    
+    crush.
+    crush.
+
   Defined.
   
   Local Close Scope nat_scope.
