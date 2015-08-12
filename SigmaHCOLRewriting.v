@@ -253,8 +253,6 @@ Pre-condition:
     auto.
   Qed.
   
-  Set Printing Implicit.
-  
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 

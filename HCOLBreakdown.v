@@ -80,7 +80,7 @@ Section HCOLBreakdown.
   Proof.
     intros. apply HCOL_extensionality.  intros.
     unfold evalHCOL.
-    unfold vector2pair, compose, Lst.
+    unfold vector2pair, compose, Lst, Vectorize.
     apply Vcons_single_elim.
     destruct  (Vbreak v).
     apply breakdown_ScalarProd.
