@@ -53,7 +53,7 @@ natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: svector A i)
-               (f_spec: index_map_spec i o)
+               (f_spec: index_map_spec o i)
                (n:nat) (np: n<o)
       : option A
       := let fv:=f_spec n np in
@@ -66,14 +66,14 @@ natrual number by index mapping function f_spec. *)
     
     Definition vector_index_backward_operator_spec `{Equiv A}
                {i o: nat}
-               (f_spec: index_map_spec i o)
+               (f_spec: index_map_spec o i)
                (x: svector A i):
       {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition vector_index_backward_operator `{Equiv A}
                {i o: nat}
-               (f_spec: index_map_spec i o)
+               (f_spec: index_map_spec o i)
                (x: svector A i):
       svector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
@@ -81,7 +81,7 @@ natrual number by index mapping function f_spec. *)
     Lemma vector_index_backward_operator_is_partial_map `{Ae: Equiv A}:
       ∀ (i o : nat)
         (x : svector A i),
-      ∀ (f_spec: index_map_spec i o),
+      ∀ (f_spec: index_map_spec o i),
         Vforall (fun z => is_None z \/ Vin_aux x z)
                 (vector_index_backward_operator f_spec x).
     Proof.
@@ -114,7 +114,7 @@ natrual number by index mapping function f_spec. *)
       ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
         P None ->
         Vforall P x
-        → ∀ f_spec : index_map_spec i o,
+        → ∀ f_spec : index_map_spec o i,
             Vforall P (vector_index_backward_operator f_spec x).
     Proof.
       intros.
@@ -136,12 +136,12 @@ natrual number by index mapping function f_spec. *)
 
     Definition index_map_is_surjective
                (i o : nat)
-               (f_spec: index_map_spec i o) :=
+               (f_spec: index_map_spec o i) :=
       forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
     
     Lemma vector_index_backward_operator_is_dense `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i)
-        (f_spec: index_map_spec i o),
+        (f_spec: index_map_spec o i),
         svector_is_dense x ->
         index_map_is_surjective i o f_spec -> 
         svector_is_dense (vector_index_backward_operator f_spec x).
@@ -186,7 +186,7 @@ natrual number by index mapping function f_spec. *)
   Program Definition GathBackwardMap_Spec
           (i o base stride: nat)
           {snz: 0 ≢ stride} 
-          {range_bound: (base+(pred o)*stride) < i}: index_map_spec i o :=
+          {range_bound: (base+(pred o)*stride) < i}: index_map_spec o i :=
     fun n dom_bound => Some (base + n*stride).
   Next Obligation.
     dep_destruct o. crush.
@@ -210,7 +210,7 @@ natrual number by index mapping function f_spec. *)
 
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
-          {iodep: (base + (S pad) * i) ≡ o}: index_map_spec i o :=
+          {iodep: (base + (S pad) * i) ≡ o}: index_map_spec o i :=
     fun n dom_bound =>
       match lt_dec n base with
       | left _ => None
