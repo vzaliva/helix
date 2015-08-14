@@ -4,6 +4,7 @@ Require Import Spiral.
 Require Import SVector.
 Require Import HCOL.
 Require Import HCOLSyntax.
+Require Import IndexFunctions.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.BoolEq.
@@ -46,13 +47,6 @@ Module SigmaHCOL_Operators.
   Global Open Scope nat_scope.
   
   Section IndexedOperators.
-    Require Import Coq.Numbers.Natural.Peano.NPeano.
-
-    (* Vector index mapping functon which maps between two sets of natrual
-     numers. Mapping is partial and it returns None if there is no correspondance
-     between a number in source set and target set. *)
-    Definition index_map_spec (range domain : nat) :=
-      ∀ n : nat, n < domain → {v : option nat | ∀ n' : nat, v ≡ Some n' → n' < range}.
 
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
