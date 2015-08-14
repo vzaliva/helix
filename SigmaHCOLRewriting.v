@@ -159,6 +159,7 @@ Pre-condition:
     contradiction.
   Qed.
 
+  (* TODO: should be GatherH not Gather *)
   Lemma GathInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
@@ -202,7 +203,8 @@ Pre-condition:
 
   
   (* Gath on dense vector produces dense vector *)
-  
+
+  (* TODO: not surjective. Probably total *)
   Lemma gath_map_surj:
     ∀ (i o base stride : nat) (snz : 0 ≢ stride) (range_bound : base + pred o * stride < i),
       index_map_is_surjective i o
