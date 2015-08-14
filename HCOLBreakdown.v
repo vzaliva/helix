@@ -287,7 +287,7 @@ Section HCOLBreakdown.
 
 
   (* Our top-level example goal *)
-  Theorem DynWinOSPL:  forall (a: vector A 3),
+  Definition DynWinOSPL_def :=  forall (a: vector A 3),
                          HOTLess 1 4 1
                                  (HOEvalPolynomial a)
                                  (HOChebyshevDistance 2)
@@ -305,9 +305,12 @@ Section HCOLBreakdown.
                                               (HOCompose 4 _
                                                          (HOReduction _ MaxAbs 0)
                                                          (HOPointWise2 2 (plus∘negate))
-                                              )).
-  Proof.
-    intros. apply HCOL_extensionality.  intros.
+                                     )).
+
+                           
+  Theorem DynWinOSPL:   DynWinOSPL_def.
+ Proof.
+    unfold DynWinOSPL_def. intros. apply HCOL_extensionality.  intros.
     rewrite breakdown_OTLess_Base.
     rewrite breakdown_OEvalPolynomial.    
     rewrite breakdown_OScalarProd. 
