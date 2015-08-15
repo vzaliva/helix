@@ -5,6 +5,8 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 
+Require Import Psatz.
+
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
@@ -38,38 +40,49 @@ Section TotalIndexMap.
   (* Returns upper rang bound for given `total_index_map_spec` *)
   Definition total_index_map_range {d r:nat} (s: total_index_map_spec d r) := r.
 
-  Definition total_index_map_compose
-             {i o t: nat}
-             (g: total_index_map_spec t o)
-             (f: total_index_map_spec i t) :
-    total_index_map_spec i o
-    := fun x xdom_bound =>
-         (* manual uncurry *)
-         let (fv, fv_dom_bound) := f x xdom_bound in
-         g fv fv_dom_bound.
+  Section Primitive_Functions.
+    
+    Program Definition identity_index_map
+            {domain range: nat}
+            {drdep: domain ≡ range}:
+      total_index_map_spec domain range
+      :=
+        fun i i_dim => i.
+    
+    Program Definition constant_index_map
+            {range: nat}
+            (j: nat)
+            {jdep: j<range}:
+      total_index_map_spec 1%nat range
+      :=
+        fun _ _ => j.
+    
+    Program Definition add_index_map
+            {domain range: nat}
+            (k: nat)
+            {kdep: k+domain <= range}:
+      total_index_map_spec domain range
+      :=
+        fun i i_dim => i+k.
+    Next Obligation.
+      lia.
+    Qed.
 
-  Program Definition identity_index_map
-          {domain range: nat}
-          {drdep: domain ≡ range}:
-    total_index_map_spec domain range
-    :=
-      fun i i_dim => i.
+  End Primitive_Functions.
 
-  Program Definition constant_index_map
-          {range: nat}
-          (j: nat)
-          {jdep: j<range}:
-    total_index_map_spec 1%nat range
-    :=
-      fun _ _ => j.
-
-  Program Definition add_index_map
-          {domain range: nat}
-          (k: nat)
-          {kdep: k <= (range-domain)}:
-    total_index_map_spec domain range
-    :=
-      fun i i_dim => i+k.
+  Section Function_Operators.
+    
+    Definition total_index_map_compose
+               {i o t: nat}
+               (g: total_index_map_spec t o)
+               (f: total_index_map_spec i t) :
+      total_index_map_spec i o
+      := fun x xdom_bound =>
+           (* manual uncurry *)
+           let (fv, fv_dom_bound) := f x xdom_bound in
+           g fv fv_dom_bound.
+    
+  End Function_Operators.
   
   
 End TotalIndexMap.
