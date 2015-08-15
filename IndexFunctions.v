@@ -55,4 +55,13 @@ Section TotalIndexMap.
     :=
       fun i i_dim => i.
 
+  Program Definition constant_index_map
+          {range: nat}
+          (j: nat)
+          {jdep: j<range}:
+    total_index_map_spec 1%nat range
+    :=
+      fun _ _ => j.
+
+  
 End TotalIndexMap.
