@@ -48,4 +48,11 @@ Section TotalIndexMap.
          let (fv, fv_dom_bound) := f x xdom_bound in
          g fv fv_dom_bound.
 
+  Program Definition identity_index_map
+          {domain range: nat}
+          {drdep: domain ≡ range}:
+    total_index_map_spec domain range
+    :=
+      fun i i_dim => i.
+
 End TotalIndexMap.
