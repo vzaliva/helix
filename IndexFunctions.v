@@ -63,5 +63,13 @@ Section TotalIndexMap.
     :=
       fun _ _ => j.
 
+  Program Definition add_index_map
+          {domain range: nat}
+          (k: nat)
+          {kdep: k <= (range-domain)}:
+    total_index_map_spec domain range
+    :=
+      fun i i_dim => i+k.
+  
   
 End TotalIndexMap.
