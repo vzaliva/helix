@@ -69,7 +69,7 @@ Section TotalIndexMap.
         fun i i_dim => i+k.
     Next Obligation.
       lia.
-    Qed.
+    Defined.
 
   End Primitive_Functions.
 
