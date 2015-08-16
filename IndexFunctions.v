@@ -5,6 +5,9 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 
+Require Import CpdtTactics.
+Require Import JRWTactics.
+Require Import CaseNaming.
 Require Import Psatz.
 
 (* CoRN MathClasses *)
@@ -81,6 +84,42 @@ Section TotalIndexMap.
            (* manual uncurry *)
            let (fv, fv_dom_bound) := f x xdom_bound in
            g fv fv_dom_bound.
+
+    Program Definition total_index_map_tensor_product
+               {m n M N: nat}
+               {nz: 0 ≢ n}
+               (f: total_index_map_spec m M)
+               (g: total_index_map_spec n N):
+      total_index_map_spec (m*n) (M*N)
+      := fun i _ =>
+           let pn := pred n in
+           let ab := divmod i pn 0 pn in
+           N * (f (fst ab) _) + (g (pn - (snd ab)) _).
+    Next Obligation.
+      destruct n.
+      congruence. clear nz.
+      simpl.
+      generalize (divmod_spec i n 0 n). 
+      destruct divmod as (q,u).
+      simpl.
+      nia.
+    Defined.
+    Next Obligation.
+      destruct n.
+      congruence. clear nz.
+      lia.
+    Defined.
+    Next Obligation.
+      generalize (f (fst (divmod i (pred n) 0 (pred n)))
+                    (total_index_map_tensor_product_obligation_1 m n M N nz f g i H)) as fg.
+      generalize (g (pred n - snd (divmod i (pred n) 0 (pred n)))
+                    (total_index_map_tensor_product_obligation_2 m n M N nz f g i H)) as gg.
+      intros.
+      destruct gg as [gv ga].
+      destruct fg as [fv fa].
+      simpl.
+      nia.
+    Defined.
     
   End Function_Operators.
   
