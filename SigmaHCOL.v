@@ -72,36 +72,25 @@ natrual number by index mapping function f_spec. *)
       vector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
 
-    Lemma vector_index_backward_operator_is_partial_map `{Ae: Equiv A}:
+    Lemma vector_index_backward_operator_is_endomorphism `{Ae: Equiv A}:
       ∀ (i o : nat)
-        (x : svector A i),
+        (x : vector A i),
       ∀ (f_spec: index_map_spec o i),
-        Vforall (fun z => is_None z \/ Vin_aux x z)
+        Vforall (Vin_aux x)
                 (vector_index_backward_operator f_spec x).
     Proof.
       intros.
+      apply Vforall_eq.
+      intros.
       unfold index_map_spec in f_spec.
       unfold vector_index_backward_operator, proj1_sig,
-      vector_index_backward_operator_spec.
-      replace (let (a, _) :=
-                   Vbuild_spec (VnthIndexMapped x f_spec) in
-               a) with
-      (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
-      apply Vforall_eq. intros x0 VB.
-      apply Vbuild_in in VB.
-      destruct VB as [x1 VB1]. destruct VB1.
-      subst x0.
-      case_eq (VnthIndexMapped x f_spec x1 x2).
-      + right.
-        unfold VnthIndexMapped, proj1_sig in H.
-        destruct (f_spec x1 x2) in H.
-        destruct x0.
-        * rewrite <- H.
-          unfold Vin_aux.
-          apply Vnth_in.
-        * congruence.
-      + left.
-        none_some_elim.
+      vector_index_backward_operator_spec in *.
+      assert (H1: Vin x0 (Vbuild (VnthIndexMapped x f_spec))) by auto. clear H.
+      unfold Vin_aux.
+      apply Vbuild_in in H1.
+      crush.
+      unfold VnthIndexMapped.
+      apply Vnth_in.
     Qed.
 
     Lemma vector_index_backward_operator_preserves_P `{Ae: Equiv A}:
