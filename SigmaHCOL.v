@@ -131,7 +131,7 @@ natrual number by index mapping function f_spec. *)
           (i o base stride: nat)
           {snz: 0 ≢ stride} 
           {range_bound: (base+(pred o)*stride) < i}: index_map_spec o i :=
-    fun n dom_bound => Some (base + n*stride).
+    fun n dom_bound => base + n*stride.
   Next Obligation.
     dep_destruct o. crush.
     unfold pred in range_bound.
