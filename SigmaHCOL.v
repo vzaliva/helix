@@ -113,51 +113,16 @@ natrual number by index mapping function f_spec. *)
       crush.
     Qed.
 
-    Definition index_map_is_surjective
-               (i o : nat)
-               (f_spec: index_map_spec o i) :=
-      forall (j:nat) (jp:j<o), is_Some(proj1_sig (f_spec j jp)).
-    
-    Lemma vector_index_backward_operator_is_dense `{Ae: Equiv A}:
+    Lemma vector_index_backward_operator_preserves_density `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i)
         (f_spec: index_map_spec o i),
         svector_is_dense x ->
-        index_map_is_surjective i o f_spec -> 
         svector_is_dense (vector_index_backward_operator f_spec x).
     Proof.
-      intros i o x f_spec xdense fsurj.
-      unfold index_map_spec in f_spec.
-      unfold index_map_is_surjective in fsurj.
+      intros.
       unfold svector_is_dense in *.
-      unfold vector_index_backward_operator, proj1_sig,
-      vector_index_backward_operator_spec.
-      
-      replace (let (a, _) :=
-                   Vbuild_spec (VnthIndexMapped x f_spec) in
-               a) with
-      (Vbuild (VnthIndexMapped x f_spec)) by reflexivity.
-      apply Vforall_eq. intros.
-      apply Vbuild_in in H.
-      destruct H. destruct H. 
-      subst x0.
-      case_eq (VnthIndexMapped x f_spec x1 x2). 
-      - intros. 
-        none_some_elim.
-      - intros.
-        assert(FS: is_Some (` (f_spec x1 x2))) by apply fsurj.
-        unfold VnthIndexMapped, proj1_sig in H.
-        destruct (f_spec x1 x2) in H, FS; none_some_elim.
-        destruct x0.
-        +
-          simpl in *.
-          generalize dependent (l n eq_refl). 
-          clear FS f_spec fsurj l.
-          intros.
-          (* here we have a contradiction between 'xdense' and 'H' *)
-          assert (HS: is_Some (Vnth x l)) by (apply Vforall_nth; assumption).
-          destruct (Vnth x l); simpl in *;  congruence.
-        +
-          simpl in FS. contradiction FS.
+      apply vector_index_backward_operator_preserves_P.
+      assumption.
     Qed.
 
   End IndexedOperators.
