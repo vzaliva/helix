@@ -94,27 +94,23 @@ natrual number by index mapping function f_spec. *)
     Qed.
 
     Lemma vector_index_backward_operator_preserves_P `{Ae: Equiv A}:
-      ∀ (i o : nat) (x : svector A i) (P: option A->Prop),
-        P None ->
+      ∀ (i o : nat) (x : vector A i) (P: A->Prop),
         Vforall P x
         → ∀ f_spec : index_map_spec o i,
-            Vforall P (vector_index_backward_operator f_spec x).
+          Vforall P (vector_index_backward_operator f_spec x).
     Proof.
       intros.
       unfold index_map_spec in f_spec.
-      assert(Vforall (fun z => is_None z \/ Vin_aux x z)
+      assert(Vforall (Vin_aux x)
                      (vector_index_backward_operator f_spec x))
-        by apply vector_index_backward_operator_is_partial_map.
+        by apply vector_index_backward_operator_is_endomorphism.
       generalize dependent (vector_index_backward_operator f_spec x).
       intros t.
       rewrite 2!Vforall_eq.
       crush.
-      assert (is_None x0 ∨ Vin_aux x x0) by (apply H1; assumption).
-      inversion H3.
-      + destruct x0; none_some_elim.
-        assumption.
-      + rewrite Vforall_eq in H0.
-        auto.
+      assert (Vin_aux x x0) by (apply H0; assumption).
+      rewrite Vforall_eq in H.
+      crush.
     Qed.
 
     Definition index_map_is_surjective
