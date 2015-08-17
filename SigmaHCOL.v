@@ -52,30 +52,24 @@ Module SigmaHCOL_Operators.
 natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
-               (x: svector A i)
+               (x: vector A i)
                (f_spec: index_map_spec o i)
                (n:nat) (np: n<o)
-      : option A
-      := let fv:=f_spec n np in
-         let fn := proj1_sig fv in
-         let fp := proj2_sig fv in
-         match fn as fn' return fn = fn' -> option A with           
-         | None => fun _ => None
-         | Some fn => fun ep => Vnth x (fp fn ep)
-         end (eq_refl fn).
+      : A
+      := Vnth x (proj2_sig (f_spec n np)).
     
     Definition vector_index_backward_operator_spec `{Equiv A}
                {i o: nat}
                (f_spec: index_map_spec o i)
-               (x: svector A i):
-      {y : svector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
+               (x: vector A i):
+      {y : vector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition vector_index_backward_operator `{Equiv A}
                {i o: nat}
                (f_spec: index_map_spec o i)
-               (x: svector A i):
-      svector A o
+               (x: vector A i):
+      vector A o
       := proj1_sig (vector_index_backward_operator_spec f_spec x).
 
     Lemma vector_index_backward_operator_is_partial_map `{Ae: Equiv A}:
