@@ -207,43 +207,30 @@ Section Function_Rules.
 
   Local Open Scope index_f_scope.
 
-  Section rule_39.
-    Variable rf0 rf1 dg0 dg1 rg0 rg1:nat.
-    Variable g0: index_map_spec dg0 rg0.
-    Variable g1: index_map_spec dg1 rg1.
+  Lemma index_map_rule_39
+        {rf0 rf1 dg0 dg1 rg0 rg1:nat}
+        {g0: index_map_spec dg0 rg0}
+        {g1: index_map_spec dg1 rg1}
+        {f0: index_map_spec rg0 rf0}
+        {f1: index_map_spec rg1 rf1}
+        {ndg1: 0 ≢ dg1}
+        {nrg1: 0 ≢ rg1}
+        {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
+        {nf1cg1: 0 ≢ index_map_dom (f1 ∘ g1)}
+    :
+      (index_map_tensor_product f0 f1 (nz:=nrg1))
+        ∘ (index_map_tensor_product g0 g1 (nz:=ndg1))
+      =
+      index_map_tensor_product
+        (f0 ∘ g0)
+        (f1 ∘ g1)
+        (nz := nf1cg1).
+  Proof.
+    unfold equiv, index_map_equiv.
+    intros.
     
-    
-    Variable f0: index_map_spec rg0 rf0.
-    Variable f1: index_map_spec rg1 rf1.
+  Qed.
 
-    Variable ndg1: 0 ≢ dg1.
-    Variable nrg1: 0 ≢ rg1.
-    Variable ls:  (dg0 * dg1) ≡ (rf0 * rf1).
-    
-    Definition f0f1  := index_map_tensor_product f0 f1 (nz:=nrg1).
-    Definition g0g1 := (index_map_tensor_product g0 g1 (nz:=ndg1)).
-
-    Program Definition lhs := f0f1 ∘ g0g1.
-
-    Program Definition f0cg0 := f0 ∘ g0.
-    Program Definition f1cg1 := f1 ∘ g1.
-
-    Variable nf1cg1: 0 ≢ index_map_dom f1cg1.
-    Program Definition rhs :=  index_map_tensor_product
-                                 f0cg0
-                                 f1cg1
-                                 (nz := nf1cg1).
-
-    Program Lemma index_map_rule_39
-      : lhs = rhs.
-    Proof.
-      unfold equiv, index_map_equiv.
-      intros.
-      unfold lhs, rhs.
-
-    Qed.
-  End rule_39.
-  
   Local Close Scope index_f_scope.
         
 End Function_Rules.
