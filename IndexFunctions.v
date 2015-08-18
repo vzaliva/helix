@@ -21,6 +21,8 @@ Require Import MathClasses.orders.orders.
 (*  CoLoR *)
 Require Import CoLoR.Util.List.ListUtil.
 
+Require Import bijection.
+
 Global Open Scope nat_scope.
 
 (* Vector index mapping functon which maps between two sets of natrual
@@ -45,25 +47,38 @@ Proof.
   auto with arith.
 Defined.
 
-Fixpoint natrange_f_spec
-         (n:nat)
-         {i o: nat}
-         (nd: n<=i)
-         (f_spec: index_map_spec i o)
+Section Permutations.
+  Fixpoint natrange_f_spec
+           (n:nat)
+           {i o: nat}
+           (nd: n<=i)
+           (f_spec: index_map_spec i o)
   : list nat
-  :=
-    match n return n <= i -> list nat with
-    | 0 => fun _ => nil
-    | S n' => fun nd => cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
-    end nd.
+    :=
+      match n return n <= i -> list nat with
+      | 0 => fun _ => nil
+      | S n' => fun nd => cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
+      end nd.
+  
+  Program Definition index_map_f_is_permutation
+          {n: nat}
+          (f_spec: index_map_spec n n)
+    :=
+      Permutation
+        (natrange_list n)
+        (@natrange_f_spec n n n _ f_spec).
+End Permutations.
 
-Program Definition index_map_f_is_permutation
-        {n: nat}
-        (f_spec: index_map_spec n n)
-  :=
-    Permutation
-      (natrange_list n)
-      (@natrange_f_spec n n n _ f_spec).
+Section Bijections.
+
+  Definition index_map_injective
+             {n: nat}
+             (f_spec: index_map_spec n n)
+    :=
+      forall (x:nat) (xc: x<n) (y:nat) (yc: y<n), 
+        f_spec x xc ≡ f_spec y yc → x ≡ y.
+
+End Bijections.
 
 Section Primitive_Functions.
   
