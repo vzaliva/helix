@@ -58,10 +58,11 @@ Fixpoint natrange_f_spec
 
 Program Definition index_map_f_is_permutation
         {n: nat}
-        (f_spec: index_map_spec n n) :=
-  let i := natrange_list n in
-  let o := @natrange_f_spec n n n _ f_spec in
-  Permutation i o.
+        (f_spec: index_map_spec n n)
+  :=
+    Permutation
+      (natrange_list n)
+      (@natrange_f_spec n n n _ f_spec).
 
 Section Primitive_Functions.
   
