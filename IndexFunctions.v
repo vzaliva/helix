@@ -228,7 +228,10 @@ Section Function_Rules.
   Proof.
     unfold equiv, index_map_equiv.
     intros.
+    unfold index_map_compose.
+    unfold index_map_tensor_product.
     
+
   Qed.
 
   Local Close Scope index_f_scope.
