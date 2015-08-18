@@ -21,8 +21,6 @@ Require Import MathClasses.orders.orders.
 (*  CoLoR *)
 Require Import CoLoR.Util.List.ListUtil.
 
-Require Import bijection.
-
 Global Open Scope nat_scope.
 
 (* Vector index mapping functon which maps between two sets of natrual
@@ -69,7 +67,7 @@ Section Permutations.
         (@natrange_f_spec n n n _ f_spec).
 End Permutations.
 
-Section Bijections.
+Section Jections.
 
   Definition index_map_injective
              {n: nat}
@@ -78,7 +76,22 @@ Section Bijections.
       forall (x:nat) (xc: x<n) (y:nat) (yc: y<n), 
         f_spec x xc ≡ f_spec y yc → x ≡ y.
 
-End Bijections.
+  Definition index_map_surjective
+             {n: nat}
+             (f_spec: index_map_spec n n)
+    :=
+      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), proj1_sig (f_spec x xc) ≡ y .
+
+  Inductive index_map_bijective
+            {n: nat}
+            (f_spec: index_map_spec n n) : Set
+    :=
+      index_map_is_bijective :
+        index_map_injective f_spec ->
+        index_map_surjective f_spec ->
+        index_map_bijective f_spec.
+
+End Jections.
 
 Section Primitive_Functions.
   
