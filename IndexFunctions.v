@@ -106,9 +106,7 @@ Proof.
   + auto.
   + simpl.
     constructor.
-
-
-Qed.
+Admitted.
   
 Section Primitive_Functions.
   
@@ -187,6 +185,43 @@ Section Function_Operators.
     simpl.
     nia.
   Defined.
-  
+
 End Function_Operators.
+
+Notation "g ∘ f" := (index_map_compose g f) : index_f_scope.
+Notation "x ⊗ y" := (index_map_tensor_product x y) (at level 90) : index_f_scope.
+
+Section Function_Rules.
+
+  Local Open Scope index_f_scope.
+
+  (*
+Experiments to check typing:
+  Variable df0 df1 rf0 rf1 dg0 dg1 rg0 rg1:nat.
+  Variable f0: index_map_spec df0 rf0.
+  Variable f1: index_map_spec df1 rf1.
+  Variable g0: index_map_spec dg0 rg0.
+  Variable g1: index_map_spec dg1 rg1.
+  Check(g0 ⊗ g1). (* (dg0 * dg1) (rg0 * rg1) *)
+  Check (f0 ⊗ f1). (* (df0 * df1) (rf0 * rf1) *)
+  Check (f0 ⊗ g0). (* (df0 * dg0) (rf0 * rg0) *)
+  Check (f1 ⊗ g1). (* (df1 * dg1) (rf1 * rg1) *)
+*)
+  
+  Program Lemma index_map_rule_39
+        {df0 df1 rf0 rf1 dg0 dg1 rg0 rg1:nat}
+        {c1: (rg0 * rg1) ≡ (df0 * df1)}
+        {c2: (rf1 * rg1) ≡ (df0 * dg0)}
+        {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
+        {rs: (df1 * dg1) ≡ (df0 * dg0)}
+        (f0: index_map_spec df0 rf0)
+        (f1: index_map_spec df1 rf1)
+        (g0: index_map_spec dg0 rg0)
+        (g1: index_map_spec dg1 rg1):
+    (f0 ⊗ f1) ∘ (g0 ⊗ g1) = (f0 ⊗ g0) ∘ (f1 ⊗ g1).
+    
+  Local Close Scope index_f_scope.
+  
+End Function_Rules.
+  
 
