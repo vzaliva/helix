@@ -219,7 +219,6 @@ Section Function_Rules.
     Variable ndg1: 0 ≢ dg1.
     Variable nrg1: 0 ≢ rg1.
     Variable ls:  (dg0 * dg1) ≡ (rf0 * rf1).
-    Variable lc1: (rg0 * rg1) ≡ (rg0 * rg1).
     
     Definition f0f1  := index_map_tensor_product f0 f1 (nz:=nrg1).
     Definition g0g1 := (index_map_tensor_product g0 g1 (nz:=ndg1)).
