@@ -18,7 +18,8 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
-Require Export ListUtil.
+(*  CoLoR *)
+Require Import CoLoR.Util.List.ListUtil.
 
 Global Open Scope nat_scope.
 
