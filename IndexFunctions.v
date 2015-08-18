@@ -208,43 +208,25 @@ Section Function_Rules.
   Local Open Scope index_f_scope.
 
   Section rule_39.
-    Variable df0 df1 rf0 rf1 dg0 dg1 rg0 rg1:nat.
+    Variable rf0 rf1 dg0 dg1 rg0 rg1:nat.
     Variable g0: index_map_spec dg0 rg0.
     Variable g1: index_map_spec dg1 rg1.
     
     
-    Variable f0: index_map_spec df0 rf0.
-    Variable f1: index_map_spec df1 rf1.
+    Variable f0: index_map_spec rg0 rf0.
+    Variable f1: index_map_spec rg1 rf1.
 
     Variable ndg1: 0 ≢ dg1.
-    Variable ndf1: 0 ≢ df1.
+    Variable nrg1: 0 ≢ rg1.
     Variable ls:  (dg0 * dg1) ≡ (rf0 * rf1).
-    Variable lc1: (rg0 * rg1) ≡ (df0 * df1).
+    Variable lc1: (rg0 * rg1) ≡ (rg0 * rg1).
     
-    Definition f0f1  := index_map_tensor_product f0 f1 (nz:=ndf1).
+    Definition f0f1  := index_map_tensor_product f0 f1 (nz:=nrg1).
     Definition g0g1 := (index_map_tensor_product g0 g1 (nz:=ndg1)).
 
     Program Definition lhs := f0f1 ∘ g0g1.
-    Next Obligation.
-      assert ((proj1_sig (g0 (fst (divmod x (pred dg1) 0 (pred dg1)))
-                                          (index_map_tensor_product_obligation_1 dg0 dg1 rg0 rg1 ndg1 g0 g1 x x0))) < rg0) by apply index_function_proj1_bound.
-      generalize dependent (proj1_sig (g0 (fst (divmod x (pred dg1) 0 (pred dg1)))
-                                          (index_map_tensor_product_obligation_1 dg0 dg1 rg0 rg1 ndg1 g0 g1 x x0))).
 
-      assert ((proj1_sig (g1 (pred dg1 - snd (divmod x (pred dg1) 0 (pred dg1)))
-                                          (index_map_tensor_product_obligation_2 dg0 dg1 rg0 rg1 ndg1 g0 g1 x x0))) < rg1) by apply index_function_proj1_bound.
-      generalize dependent (proj1_sig (g1 (pred dg1 - snd (divmod x (pred dg1) 0 (pred dg1)))
-                                          (index_map_tensor_product_obligation_2 dg0 dg1 rg0 rg1 ndg1 g0 g1 x x0))).
-      intros.
-      nia.
-    Defined.
-
-
-
-    Variable rc1: rg0 ≡ df0.
     Program Definition f0cg0 := f0 ∘ g0.
-
-    Variable rc2: rg1 ≡ df1.
     Program Definition f1cg1 := f1 ∘ g1.
 
     Variable nf1cg1: 0 ≢ index_map_dom f1cg1.
@@ -256,7 +238,10 @@ Section Function_Rules.
     Program Lemma index_map_rule_39
       : lhs = rhs.
     Proof.
-      
+      unfold equiv, index_map_equiv.
+      intros.
+      unfold lhs, rhs.
+
     Qed.
   End rule_39.
   
