@@ -58,7 +58,7 @@ Section Permutations.
       | S n' => fun nd => cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
       end nd.
   
-  Program Definition index_map_f_is_permutation
+  Program Definition index_map_is_permutation
           {n: nat}
           (f_spec: index_map_spec n n)
     :=
@@ -80,19 +80,36 @@ Section Jections.
              {n: nat}
              (f_spec: index_map_spec n n)
     :=
-      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), proj1_sig (f_spec x xc) ≡ y .
+      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), proj1_sig (f_spec x xc) ≡ y.
 
-  Inductive index_map_bijective
+  Definition index_map_bijective
             {n: nat}
-            (f_spec: index_map_spec n n) : Set
+            (f_spec: index_map_spec n n)
     :=
-      index_map_is_bijective :
-        index_map_injective f_spec ->
-        index_map_surjective f_spec ->
-        index_map_bijective f_spec.
+      (index_map_injective f_spec) /\ (index_map_surjective f_spec).
 
 End Jections.
 
+(* permutation is bijective function of a set into itself *)
+Lemma permutation_is_bijection
+      {n: nat}
+      (f_spec: index_map_spec n n):
+  index_map_bijective f_spec <-> index_map_is_permutation f_spec.
+Proof.
+  split.
+  unfold index_map_bijective, index_map_is_permutation.
+  intros.
+  destruct H as [IH SH].
+  generalize (index_map_is_permutation_obligation_1 n f_spec) as nn; intros.
+
+  induction n.
+  + auto.
+  + simpl.
+    constructor.
+
+
+Qed.
+  
 Section Primitive_Functions.
   
   Program Definition identity_index_map
