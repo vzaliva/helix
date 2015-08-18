@@ -39,26 +39,7 @@ Fixpoint natrange_list (n:nat) : list nat :=
   | S p => cons p (natrange_list p)
   end.
 
-Lemma natrange_to_cons (n:nat):
-  natrange_list (S n) ≡ cons n (natrange_list n).
-Proof.
-  auto.
-Qed.
-
-Lemma natrage_le (n:nat):
-  forall x, In x (natrange_list n) -> x<n.
-Proof.
-  intros.
-  induction n.
-  simpl in H. contradiction.
-
-  rewrite natrange_to_cons in H.
-  rewrite In_cons in H.
-  destruct H; crush.
-Qed.
-
-
-Lemma lt_pred_l {n m} (H: S n < m): n < m.
+Lemma le_pred_l {n m} (H: S n <= m): n <= m.
 Proof.
   auto with arith.
 Defined.
@@ -66,35 +47,21 @@ Defined.
 Fixpoint natrange_f_spec
          (n:nat)
          {i o: nat}
-         (nd: n<i)
+         (nd: n<=i)
          (f_spec: index_map_spec i o)
   : list nat
   :=
-    match n return list nat with
-    | 0 => nil
-    | S n' => cons n' (natrange_f_spec n' (lt_pred_l nd) f_spec)
-    end.
+    match n return n <= i -> list nat with
+    | 0 => fun _ => nil
+    | S n' => fun nd => cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
+    end nd.
 
 Program Definition index_map_f_is_permutation
-           {n: nat}
-           (f_spec: index_map_spec n n) :=
+        {n: nat}
+        (f_spec: index_map_spec n n) :=
   let i := natrange_list n in
-  let o := map (fun z => proj1_sig (f_spec (natrage_le n z))) i in
+  let o := @natrange_f_spec n n n _ f_spec in
   Permutation i o.
-
-Lemma xxx:
-  (f1: index_func)
-    (f2: index_func)
-    index_map_f_is_permutation f1 ->
-  index_map_f_is_permutation f2 ->
-  index_map_f_is_permutation (tens f1 f2)
-
-Lemma l1: index_map_f_is_permutation (f_id).
-Proof.
-  ...
-  Qed.
-
-index_map_f_is_permutation (f_id) -> .....
 
 Section Primitive_Functions.
   
