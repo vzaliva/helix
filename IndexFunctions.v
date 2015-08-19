@@ -88,20 +88,22 @@ Section Jections.
 End Jections.
 
 (* permutation is bijective function of a set into itself *)
-(* Lemma permutation_is_bijection
+Lemma permutation_is_bijection
       {n: nat}
       (f: index_map n n):
   index_map_bijective  f <-> index_map_is_permutation f.
 Proof.
+  destruct f as [f f_spec]. 
   split.
-  unfold index_map_bijective, index_map_is_permutation.
-  intros.
-  destruct H as [IH SH].
-  induction n.
-  + auto.
-  + simpl.
-    auto.
-Admitted. *)
+  +unfold index_map_bijective, index_map_injective, index_map_surjective, index_map_is_permutation.
+   simpl.
+   intros.
+   destruct H as [IH SH].
+   induction n.
+   auto.
+   simpl.
+
+Admitted.
   
 Section Primitive_Functions.
   
