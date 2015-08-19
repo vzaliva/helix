@@ -145,14 +145,22 @@ Section Function_Operators.
              (g: index_map t o)
              (f: index_map i t) :
     index_map i o.
+  Proof.
       refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
-      Proof.
-        intros.
-        destruct f, g.
-        simpl.
-        unfold compose.
-        auto.
-      Defined.
+      intros.
+      destruct f, g.
+      simpl.
+      unfold compose.
+      auto.
+  Defined.
+      
+  Definition tensor_product
+             (n N: nat)
+             {nz: 0 ≢ n}
+             (f: nat -> nat)
+             (g: nat -> nat)
+             (i: nat): nat
+    :=  N * (f (i / n)) + (g (i mod n)).
 
   Program Definition index_map_tensor_product
           {m n M N: nat}
@@ -160,12 +168,10 @@ Section Function_Operators.
           (f: index_map m M)
           (g: index_map n N):
     index_map (m*n) (M*N)
-    := IndexMap (m*n) (M*N)
-      (fun i =>
-         N * (⟦f⟧ (i / n)) + (⟦g⟧ (i mod n))) _.
+    := IndexMap (m*n) (M*N)  (tensor_product n N ⟦f⟧ ⟦g⟧ (nz:=nz))  _.
   Next Obligation.
     destruct f,g.
-    unfold div, modulo.
+    unfold tensor_product, div, modulo.
     assert ((fst (divmod x (pred n) 0 (pred n))) < m).
     {
       destruct n.
@@ -213,6 +219,16 @@ Section Function_Rules.
 
   Local Open Scope index_f_scope.
 
+  (* TODO: move *)
+  Lemma modulo_smaller_than_devisor:
+    ∀ x y : nat, 0 ≢ y → x mod y < y.
+  Proof.
+    intros.
+    destruct y; try congruence.
+    unfold modulo.
+    omega.
+  Qed.
+  
   Lemma index_map_rule_39
         {rf0 rf1 dg0 dg1 rg0 rg1:nat}
         {g0: index_map dg0 rg0}
@@ -222,7 +238,6 @@ Section Function_Rules.
         {ndg1: 0 ≢ dg1}
         {nrg1: 0 ≢ rg1}
         {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
-        {nf1cg1: 0 ≢ index_map_dom (f1 ∘ g1)}
     :
       (index_map_tensor_product f0 f1 (nz:=nrg1))
         ∘ (index_map_tensor_product g0 g1 (nz:=ndg1))
@@ -230,18 +245,47 @@ Section Function_Rules.
       index_map_tensor_product
         (f0 ∘ g0)
         (f1 ∘ g1)
-        (nz := nf1cg1).
+        (nz := ndg1).
   Proof.
-    destruct f0,f1,g0,g1.
-    unfold equiv, index_map_equiv.
-    unfold index_map_compose.
-    unfold index_map_tensor_product.
-    intros.
-    simpl.
-    auto.
+    destruct f0 as [f0 f0_spec].
+    destruct f1 as [f1 f1_spec].
+    destruct g0 as [g0 g0_spec].
+    destruct g1 as [g1 g1_spec].
 
+    unfold equiv, index_map_equiv.
+    intros.
+    unfold index_map_compose, compose.
+    unfold index_map_tensor_product, tensor_product.
+    simpl.
+
+    assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) / rg1 ≡ g0 (x / dg1)).
+    {
+      rewrite plus_comm, mult_comm, Nat.div_add.
+      + assert(x mod dg1 < dg1). {
+          apply modulo_smaller_than_devisor. assumption.
+        }
+        assert (g1 (x mod dg1) < rg1). {
+          apply g1_spec. assumption.
+        }
+        assert (X0: g1 (x mod dg1) / rg1 ≡ 0). {
+          apply Nat.div_small.  assumption.
+        }
+        rewrite X0.
+        auto.
+      +auto.
+    }
+    rewrite X. clear X.
+
+    assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 = g1 (x mod dg1)).
+    {
+      admit.
+    }
+    rewrite X. clear X.
+    reflexivity.
   Qed.
 
+
+  
   Local Close Scope index_f_scope.
         
 End Function_Rules.
