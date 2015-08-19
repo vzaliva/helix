@@ -6,9 +6,11 @@ Global Generalizable All Variables.
 Require Import Arith.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Lt.
+Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Program.
 Require Import Morphisms.
 Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
 
 Require Import CaseNaming.
 Require Import CpdtTactics.
@@ -458,6 +460,12 @@ Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
   end.
 
 Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
+
+Fixpoint natrange_list (n:nat) : list nat :=
+  match n with
+  | 0 => List.nil
+  | S p => List.cons p (natrange_list p)
+  end.
 
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
   match n return (vector nat n) with 
@@ -1086,6 +1094,20 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma modulo_smaller_than_devisor:
+  ∀ x y : nat, 0 ≢ y → x mod y < y.
+Proof.
+  intros.
+  destruct y; try congruence.
+  unfold modulo.
+  omega.
+Qed.
+
+Lemma le_pred_l {n m} (H: S n <= m): n <= m.
+Proof.
+  auto with arith.
+Defined.
+
 Close Local Scope nat_scope.
 
 Close Scope vector_scope.
@@ -1127,3 +1149,5 @@ Ltac none_some_elim :=
          | [ H : _ |- is_Some None ] => unfold is_Some; congruence
          | [ H : _ |- is_Some (Some _) ] => unfold is_Some; trivial
          end. 
+
+Ltac rewrite_clear H := rewrite H; clear H.

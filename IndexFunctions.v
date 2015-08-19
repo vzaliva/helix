@@ -21,6 +21,8 @@ Require Import MathClasses.orders.orders.
 (*  CoLoR *)
 Require Import CoLoR.Util.List.ListUtil.
 
+Require Import Spiral.
+
 Global Open Scope nat_scope.
 
 Record index_map (domain range : nat)
@@ -41,17 +43,6 @@ Global Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
-Fixpoint natrange_list (n:nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S p => cons p (natrange_list p)
-  end.
-
-Lemma le_pred_l {n m} (H: S n <= m): n <= m.
-Proof.
-  auto with arith.
-Defined.
-
 Section Permutations.
   Fixpoint natrange_f_spec
            (n:nat)
@@ -61,8 +52,8 @@ Section Permutations.
   : list nat
     :=
       match n return n <= i -> list nat with
-      | 0 => fun _ => nil
-      | S n' => fun nd => cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
+      | 0 => fun _ => List.nil
+      | S n' => fun nd => List.cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
       end nd.
   
   Program Definition index_map_is_permutation
@@ -70,7 +61,7 @@ Section Permutations.
           (f: index_map n n)
     :=
       let l:=(natrange_list n) in
-      Permutation l (map ⟦ f ⟧ l).
+      Permutation l (List.map ⟦ f ⟧ l).
 End Permutations.
 
 Section Jections.
@@ -219,17 +210,6 @@ Section Function_Rules.
 
   Local Open Scope index_f_scope.
 
-  (* TODO: move *)
-  Lemma modulo_smaller_than_devisor:
-    ∀ x y : nat, 0 ≢ y → x mod y < y.
-  Proof.
-    intros.
-    destruct y; try congruence.
-    unfold modulo.
-    omega.
-  Qed.
-
-
   Lemma index_map_rule_39
         {rf0 rf1 dg0 dg1 rg0 rg1:nat}
         {g0: index_map dg0 rg0}
@@ -272,7 +252,7 @@ Section Function_Rules.
         rewrite X0.
         auto.
     }
-    rewrite X. clear X.
+    rewrite_clear X.
     
     assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 ≡  g1 (x mod dg1)).
     {
@@ -286,7 +266,7 @@ Section Function_Rules.
       }
       auto.
     }
-    rewrite X. clear X.
+    rewrite_clear X.
     reflexivity.
   Qed.
 
