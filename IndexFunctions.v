@@ -23,21 +23,23 @@ Require Import CoLoR.Util.List.ListUtil.
 
 Global Open Scope nat_scope.
 
-(* Vector index mapping functon which maps between two sets of natrual
-     numers. *)
-Definition index_map_spec (domain range: nat) :=
-  forall n : nat, n < domain -> {v : nat | v < range}.
+Record index_map (domain range : nat)
+  :=
+    IndexMap { index_f : nat -> nat; index_f_spec : forall x, x<domain -> (index_f x) < range }.
+
+Notation "⟦ f ⟧" := (@index_f _ _ f).
+Notation "« f »" := (@index_f_spec _ _ f).
 
 (* Returns upper domain bound for given `index_map_spec` *)
-Definition index_map_dom {d r:nat} (s: index_map_spec d r) := d.
+Definition index_map_dom {d r:nat} (s: index_map d r) := d.
 
 (* Returns upper rang bound for given `index_map_spec` *)
-Definition index_map_range {d r:nat} (s: index_map_spec d r) := r.
+Definition index_map_range {d r:nat} (s: index_map d r) := r.
 
 Global Instance index_map_equiv {domain range:nat}:
-  Equiv (index_map_spec domain range)
+  Equiv (index_map domain range)
   :=
-    fun f g => forall (x:nat) (xd: x<domain), f x xd = g x xd.
+    fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
 Fixpoint natrange_list (n:nat) : list nat :=
   match n with
@@ -55,7 +57,7 @@ Section Permutations.
            (n:nat)
            {i o: nat}
            (nd: n<=i)
-           (f_spec: index_map_spec i o)
+           (f_spec: index_map i o)
   : list nat
     :=
       match n return n <= i -> list nat with
@@ -65,77 +67,71 @@ Section Permutations.
   
   Program Definition index_map_is_permutation
           {n: nat}
-          (f_spec: index_map_spec n n)
+          (f: index_map n n)
     :=
-      Permutation
-        (natrange_list n)
-        (@natrange_f_spec n n n _ f_spec).
+      let l:=(natrange_list n) in
+      Permutation l (map ⟦ f ⟧ l).
 End Permutations.
 
 Section Jections.
 
   Definition index_map_injective
              {n: nat}
-             (f_spec: index_map_spec n n)
-    :=
+             (f: index_map n n)
+    := 
       forall (x:nat) (xc: x<n) (y:nat) (yc: y<n), 
-        f_spec x xc ≡ f_spec y yc → x ≡ y.
+         ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
   Definition index_map_surjective
              {n: nat}
-             (f_spec: index_map_spec n n)
+             (f: index_map n n)
     :=
-      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), proj1_sig (f_spec x xc) ≡ y.
+      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), ⟦ f ⟧ x ≡ y.
 
   Definition index_map_bijective
             {n: nat}
-            (f_spec: index_map_spec n n)
+            (f: index_map n n)
     :=
-      (index_map_injective f_spec) /\ (index_map_surjective f_spec).
+      (index_map_injective f) /\ (index_map_surjective f).
 
 End Jections.
 
 (* permutation is bijective function of a set into itself *)
 Lemma permutation_is_bijection
       {n: nat}
-      (f_spec: index_map_spec n n):
-  index_map_bijective f_spec <-> index_map_is_permutation f_spec.
+      (f: index_map n n):
+  index_map_bijective  f <-> index_map_is_permutation f.
 Proof.
   split.
   unfold index_map_bijective, index_map_is_permutation.
   intros.
   destruct H as [IH SH].
-  generalize (index_map_is_permutation_obligation_1 n f_spec) as nn; intros.
-
   induction n.
   + auto.
   + simpl.
-    constructor.
+    auto.
 Admitted.
   
 Section Primitive_Functions.
   
   Program Definition identity_index_map
           (dr: nat):
-    index_map_spec dr dr
-    :=
-      fun i _ => i.
+    index_map dr dr
+    := IndexMap dr dr id _.
   
   Program Definition constant_index_map
           {range: nat}
           (j: nat)
           {jdep: j<range}:
-    index_map_spec 1%nat range
-    :=
-      fun _ _ => j.
+    index_map 1 range
+    := IndexMap 1 range (fun _ => j) _.
   
   Program Definition add_index_map
           {domain range: nat}
           (k: nat)
           {kdep: k+domain <= range}:
-    index_map_spec domain range
-    :=
-      fun i i_dim => i+k.
+    index_map domain range
+    := IndexMap domain range (fun i => i+k) _.
   Next Obligation.
     lia.
   Defined.
@@ -146,20 +142,24 @@ Section Function_Operators.
   
   Definition index_map_compose
              {i o t: nat}
-             (g: index_map_spec t o)
-             (f: index_map_spec i t) :
-    index_map_spec i o
-    := fun x xdom_bound =>
-         (* manual uncurry *)
-         let (fv, fv_dom_bound) := f x xdom_bound in
-         g fv fv_dom_bound.
-
+             (g: index_map t o)
+             (f: index_map i t) :
+    index_map i o.
+      refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
+      Proof.
+        intros.
+        destruct f, g.
+        simpl.
+        unfold compose.
+        auto.
+      Defined.
+      
   Program Definition index_map_tensor_product
           {m n M N: nat}
           {nz: 0 ≢ n}
-          (f: index_map_spec m M)
-          (g: index_map_spec n N):
-    index_map_spec (m*n) (M*N)
+          (f: index_map m M)
+          (g: index_map n N):
+    index_map (m*n) (M*N)
     := fun i _ =>
          let pn := pred n in
          let ab := divmod i pn 0 pn in
@@ -197,8 +197,8 @@ Notation "x ⊗ y" := (index_map_tensor_product x y) (at level 90) : index_f_sco
 
 Lemma index_function_proj1_bound
       {domain range: nat}
-      (f_spec: index_map_spec domain range):
-  forall n (nd: n<domain), proj1_sig (f_spec n nd) < range.
+      ( f: index_map domain range):
+  forall n (nd: n<domain), proj1_sig ( ⟦ f ⟧ n nd) < range.
 Proof.
   auto.
 Qed.
@@ -209,10 +209,10 @@ Section Function_Rules.
 
   Lemma index_map_rule_39
         {rf0 rf1 dg0 dg1 rg0 rg1:nat}
-        {g0: index_map_spec dg0 rg0}
-        {g1: index_map_spec dg1 rg1}
-        {f0: index_map_spec rg0 rf0}
-        {f1: index_map_spec rg1 rf1}
+        {g0: index_map dg0 rg0}
+        {g1: index_map dg1 rg1}
+        {f0: index_map rg0 rf0}
+        {f1: index_map rg1 rf1}
         {ndg1: 0 ≢ dg1}
         {nrg1: 0 ≢ rg1}
         {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
