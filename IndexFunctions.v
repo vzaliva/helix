@@ -160,33 +160,38 @@ Section Function_Operators.
           (f: index_map m M)
           (g: index_map n N):
     index_map (m*n) (M*N)
-    := fun i _ =>
+    := IndexMap (m*n) (M*N)
+      (fun i =>
          let pn := pred n in
          let ab := divmod i pn 0 pn in
-         N * (f (fst ab) _) + (g (pn - (snd ab)) _).
+         N * (⟦f⟧ (fst ab)) + (⟦g⟧ (pn - (snd ab)))) _.
   Next Obligation.
-    destruct n.
-    congruence. clear nz.
-    simpl.
-    generalize (divmod_spec i n 0 n). 
-    destruct divmod as (q,u).
-    simpl.
-    nia.
-  Defined.
-  Next Obligation.
-    destruct n.
-    congruence. clear nz.
-    lia.
-  Defined.
-  Next Obligation.
-    generalize (f (fst (divmod i (pred n) 0 (pred n)))
-                  (index_map_tensor_product_obligation_1 m n M N nz f g i H)) as fg.
-    generalize (g (pred n - snd (divmod i (pred n) 0 (pred n)))
-                  (index_map_tensor_product_obligation_2 m n M N nz f g i H)) as gg.
-    intros.
-    destruct gg as [gv ga].
-    destruct fg as [fv fa].
-    simpl.
+    destruct f,g; simpl.
+    
+    assert ((fst (divmod x (pred n) 0 (pred n))) < m).
+    {
+      destruct n.
+      congruence. clear nz.
+      simpl.
+      generalize (divmod_spec x n 0 n). 
+      destruct divmod as (q,u).
+      simpl.
+      nia.
+    }
+    assert (index_f0 (fst (divmod x (pred n) 0 (pred n))) < M) by auto.
+    
+    assert ((pred n - snd (divmod x (pred n) 0 (pred n))) < n).
+    {
+      destruct n.
+      congruence. clear nz.
+      simpl.
+       generalize (divmod_spec x n 0 n). 
+       destruct divmod as (q,u).
+       simpl.
+       nia.
+    }
+    assert (index_f1 (pred n - snd (divmod x (pred n) 0 (pred n))) < N) by auto.
+    
     nia.
   Defined.
 
@@ -194,14 +199,6 @@ End Function_Operators.
 
 Notation "g ∘ f" := (index_map_compose g f) : index_f_scope.
 Notation "x ⊗ y" := (index_map_tensor_product x y) (at level 90) : index_f_scope.
-
-Lemma index_function_proj1_bound
-      {domain range: nat}
-      ( f: index_map domain range):
-  forall n (nd: n<domain), proj1_sig ( ⟦ f ⟧ n nd) < range.
-Proof.
-  auto.
-Qed.
 
 Section Function_Rules.
 
@@ -230,6 +227,7 @@ Section Function_Rules.
     intros.
     unfold index_map_compose.
     unfold index_map_tensor_product.
+    simpl.
     
 
   Qed.
