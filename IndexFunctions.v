@@ -97,7 +97,7 @@ Section Jections.
 End Jections.
 
 (* permutation is bijective function of a set into itself *)
-Lemma permutation_is_bijection
+(* Lemma permutation_is_bijection
       {n: nat}
       (f: index_map n n):
   index_map_bijective  f <-> index_map_is_permutation f.
@@ -110,7 +110,7 @@ Proof.
   + auto.
   + simpl.
     auto.
-Admitted.
+Admitted. *)
   
 Section Primitive_Functions.
   
@@ -153,7 +153,7 @@ Section Function_Operators.
         unfold compose.
         auto.
       Defined.
-      
+
   Program Definition index_map_tensor_product
           {m n M N: nat}
           {nz: 0 ≢ n}
@@ -162,12 +162,10 @@ Section Function_Operators.
     index_map (m*n) (M*N)
     := IndexMap (m*n) (M*N)
       (fun i =>
-         let pn := pred n in
-         let ab := divmod i pn 0 pn in
-         N * (⟦f⟧ (fst ab)) + (⟦g⟧ (pn - (snd ab)))) _.
+         N * (⟦f⟧ (i / n)) + (⟦g⟧ (i mod n))) _.
   Next Obligation.
-    destruct f,g; simpl.
-    
+    destruct f,g.
+    unfold div, modulo.
     assert ((fst (divmod x (pred n) 0 (pred n))) < m).
     {
       destruct n.
@@ -185,14 +183,25 @@ Section Function_Operators.
       destruct n.
       congruence. clear nz.
       simpl.
-       generalize (divmod_spec x n 0 n). 
-       destruct divmod as (q,u).
-       simpl.
-       nia.
+      generalize (divmod_spec x n 0 n). 
+      destruct divmod as (q,u).
+      simpl.
+      nia.
     }
     assert (index_f1 (pred n - snd (divmod x (pred n) 0 (pred n))) < N) by auto.
-    
+    simpl.
+    replace (match n with
+                | 0 => n
+                | S y' => fst (divmod x y' 0 y')
+                end) with (fst (divmod x (pred n) 0 (pred n))).
+    replace (match n with
+            | 0 => n
+            | S y' => y' - snd (divmod x y' 0 y') end) with
+    ((pred n) - snd (divmod x (pred n) 0 (pred n))).
     nia.
+    break_match; auto.
+    break_match; auto.
+    congruence.
   Defined.
 
 End Function_Operators.
@@ -223,12 +232,13 @@ Section Function_Rules.
         (f1 ∘ g1)
         (nz := nf1cg1).
   Proof.
+    destruct f0,f1,g0,g1.
     unfold equiv, index_map_equiv.
-    intros.
     unfold index_map_compose.
     unfold index_map_tensor_product.
+    intros.
     simpl.
-    
+    auto.
 
   Qed.
 
