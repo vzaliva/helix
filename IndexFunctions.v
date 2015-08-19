@@ -230,64 +230,7 @@ Section Function_Rules.
   Qed.
 
 
-    Lemma index_map_rule_39
-        {rf0 rf1 dg0 dg1 rg0 rg1:nat}
-        {g0: index_map dg0 rg0}
-        {g1: index_map dg1 rg1}
-        {f0: index_map rg0 rf0}
-        {f1: index_map rg1 rf1}
-        {ndg1: 0 ≢ dg1}
-        {nrg1: 0 ≢ rg1}
-        {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
-    :
-      (index_map_tensor_product f0 f1 (nz:=nrg1))
-        ∘ (index_map_tensor_product g0 g1 (nz:=ndg1))
-      =
-      index_map_tensor_product
-        (f0 ∘ g0)
-        (f1 ∘ g1)
-        (nz := ndg1).
-  Proof.
-    destruct f0 as [f0 f0_spec].
-    destruct f1 as [f1 f1_spec].
-    destruct g0 as [g0 g0_spec].
-    destruct g1 as [g1 g1_spec].
-
-    unfold equiv, index_map_equiv.
-    intros. simpl.
-    unfold compose at 1, tensor_product at 1 2.
-    
-    assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) / rg1 ≡ g0 (x / dg1)).
-    {
-      rewrite plus_comm, mult_comm, Nat.div_add.
-      + assert(x mod dg1 < dg1). {
-          apply modulo_smaller_than_devisor. assumption.
-        }
-        assert (g1 (x mod dg1) < rg1). {
-          apply g1_spec. assumption.
-        }
-        assert (X0: g1 (x mod dg1) / rg1 ≡ 0). {
-          apply Nat.div_small.  assumption.
-        }
-        rewrite X0.
-        auto.
-      +auto.
-    }
-    rewrite X. clear X.
-    fold (compose f0 g0 (x / dg1)).
-
-    assert(X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 ≡  g1 (x mod dg1)).
-    {
-      simpl.
-      admit.
-    }
-    rewrite X. clear X.
-    fold (compose f1 g1 (x mod dg1)).
-    fold (tensor_product dg1 rf1 (f0 ∘ g0)%prg (f1 ∘ g1)%prg x (nz:=ndg1)).
-    reflexivity.
-  Qed.
-  
-  Lemma index_map_rule_39'
+  Lemma index_map_rule_39
         {rf0 rf1 dg0 dg1 rg0 rg1:nat}
         {g0: index_map dg0 rg0}
         {g1: index_map dg1 rg1}
@@ -316,7 +259,7 @@ Section Function_Rules.
 
     assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) / rg1 ≡ g0 (x / dg1)).
     {
-      rewrite plus_comm, mult_comm, Nat.div_add.
+      rewrite plus_comm, mult_comm, Nat.div_add by auto.
       + assert(x mod dg1 < dg1). {
           apply modulo_smaller_than_devisor. assumption.
         }
@@ -328,13 +271,20 @@ Section Function_Rules.
         }
         rewrite X0.
         auto.
-      +auto.
     }
     rewrite X. clear X.
-
-    assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 = g1 (x mod dg1)).
+    
+    assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 ≡  g1 (x mod dg1)).
     {
-      admit.
+      rewrite plus_comm, mult_comm.
+      rewrite Nat.mod_add by auto.
+      rewrite Nat.mod_small.
+      reflexivity.
+      assert (x mod dg1 < dg1).  {
+        apply modulo_smaller_than_devisor.
+        assumption.
+      }
+      auto.
     }
     rewrite X. clear X.
     reflexivity.
