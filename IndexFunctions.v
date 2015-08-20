@@ -97,12 +97,14 @@ Proof.
   split.
   +unfold index_map_bijective, index_map_injective, index_map_surjective, index_map_is_permutation.
    simpl.
-   intros.
+   intros.   
    destruct H as [IH SH].
-   induction n.
-   auto.
-   simpl.
 
+   apply NoDup_Permutation.
+   admit.
+   admit.
+   admit.
+  +
 Admitted.
   
 Section Primitive_Functions.
