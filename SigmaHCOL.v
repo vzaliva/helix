@@ -62,7 +62,7 @@ natrual number by index mapping function f_spec. *)
                {i o: nat}
                (f_spec: index_map o i)
                (x: vector A i):
-      {y : vector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
+      {y : vector A o |  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
     Definition Gather `{Equiv A}
@@ -121,6 +121,29 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
 
+    Definition Scatter_spec `{Equiv A}
+               {i o: nat}
+               (f: index_map i o)
+               (x: vector A i):
+      {y : svector A o |  ∀ ny (yp : ny < o),
+          ((exists nx (xp: nx<i), ⟦ f ⟧ nx ≡ ny -> Vnth y yp ≡ Some (Vnth x xp)) \/ (is_None (Vnth y yp)))
+            
+      }.
+
+          Vnth x ip ≡ VnthIndexMapped y f_spec n ip }.
+
+      {y : vector A o |  ∀ (n : nat) (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f_spec n ip }.
+
+
+  := Vbuild_spec (VnthIndexMapped x f_spec).
+    
+    Definition Scatter`{Equiv A}
+               {i o: nat}
+               (f_spec: index_map i o)
+               (x: vector A i):
+      vector A o
+      := proj1_sig (Scatter_spec f_spec x).
+    
   End IndexedOperators.
 
   Definition GathH `{Equiv A}
