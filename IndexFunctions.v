@@ -88,6 +88,7 @@ Section Jections.
 End Jections.
 
 (* permutation is bijective function of a set into itself *)
+(*
 Lemma permutation_is_bijection
       {n: nat}
       (f: index_map n n):
@@ -101,12 +102,22 @@ Proof.
    destruct H as [IH SH].
 
    apply NoDup_Permutation.
-   admit.
+   {
+     induction n.
+     constructor 1.
+     simpl.
+     constructor 2.
+     unfold List.In.
+     admit.
+     apply IHn; admit.
+   }
    admit.
    admit.
   +
-Admitted.
-  
+    admit.
+Qed.
+ *)
+
 Section Primitive_Functions.
   
   Program Definition identity_index_map
