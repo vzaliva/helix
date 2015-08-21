@@ -53,39 +53,37 @@ natrual number by index mapping function f_spec. *)
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: vector A i)
-               (f_spec: index_map_spec o i)
+               (f: index_map o i)
                (n:nat) (np: n<o)
-      : A
-      := Vnth x (proj2_sig (f_spec n np)).
+    : A
+      := Vnth x (« f » n np).
     
-    Definition vector_index_backward_operator_spec `{Equiv A}
+    Definition Gather_spec `{Equiv A}
                {i o: nat}
-               (f_spec: index_map_spec o i)
+               (f_spec: index_map o i)
                (x: vector A i):
       {y : vector A o |  ∀ (n : nat) (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
       := Vbuild_spec (VnthIndexMapped x f_spec).
     
-    Definition vector_index_backward_operator `{Equiv A}
+    Definition Gather `{Equiv A}
                {i o: nat}
-               (f_spec: index_map_spec o i)
+               (f_spec: index_map o i)
                (x: vector A i):
       vector A o
-      := proj1_sig (vector_index_backward_operator_spec f_spec x).
+      := proj1_sig (Gather_spec f_spec x).
 
-    Lemma vector_index_backward_operator_is_endomorphism `{Ae: Equiv A}:
+    Lemma Gather_is_endomorphism `{Ae: Equiv A}:
       ∀ (i o : nat)
         (x : vector A i),
-      ∀ (f_spec: index_map_spec o i),
+      ∀ (f: index_map o i),
         Vforall (Vin_aux x)
-                (vector_index_backward_operator f_spec x).
+                (Gather f x).
     Proof.
       intros.
       apply Vforall_eq.
       intros.
-      unfold index_map_spec in f_spec.
-      unfold vector_index_backward_operator, proj1_sig,
-      vector_index_backward_operator_spec in *.
-      assert (H1: Vin x0 (Vbuild (VnthIndexMapped x f_spec))) by auto. clear H.
+      unfold Gather, proj1_sig in H. 
+      assert (H1: Vin x0 (Vbuild (VnthIndexMapped x f))) by auto.      
       unfold Vin_aux.
       apply Vbuild_in in H1.
       crush.
@@ -93,18 +91,16 @@ natrual number by index mapping function f_spec. *)
       apply Vnth_in.
     Qed.
 
-    Lemma vector_index_backward_operator_preserves_P `{Ae: Equiv A}:
+    Lemma Gather_preserves_P `{Ae: Equiv A}:
       ∀ (i o : nat) (x : vector A i) (P: A->Prop),
         Vforall P x
-        → ∀ f_spec : index_map_spec o i,
-          Vforall P (vector_index_backward_operator f_spec x).
+        → ∀ f : index_map o i,
+          Vforall P (Gather f x).
     Proof.
       intros.
-      unfold index_map_spec in f_spec.
-      assert(Vforall (Vin_aux x)
-                     (vector_index_backward_operator f_spec x))
-        by apply vector_index_backward_operator_is_endomorphism.
-      generalize dependent (vector_index_backward_operator f_spec x).
+      assert(Vforall (Vin_aux x) (Gather f x))
+        by apply Gather_is_endomorphism.
+      generalize dependent (Gather f x).
       intros t.
       rewrite 2!Vforall_eq.
       crush.
@@ -113,15 +109,15 @@ natrual number by index mapping function f_spec. *)
       crush.
     Qed.
 
-    Lemma vector_index_backward_operator_preserves_density `{Ae: Equiv A}:
+    Lemma Gather_preserves_density `{Ae: Equiv A}:
       ∀ (i o : nat) (x : svector A i)
-        (f_spec: index_map_spec o i),
+        (f: index_map o i),
         svector_is_dense x ->
-        svector_is_dense (vector_index_backward_operator f_spec x).
+        svector_is_dense (Gather f x).
     Proof.
       intros.
       unfold svector_is_dense in *.
-      apply vector_index_backward_operator_preserves_P.
+      apply Gather_preserves_P.
       assumption.
     Qed.
 
@@ -149,7 +145,7 @@ natrual number by index mapping function f_spec. *)
     :
       (svector A i) -> svector A o
     :=
-      vector_index_backward_operator 
+      Gather 
         (@GathBackwardMap_Spec i o base stride snz range_bound).
 
   Program Definition ScatHBackwardMap_Spec
@@ -176,7 +172,7 @@ natrual number by index mapping function f_spec. *)
              {n:nat} (base:nat) (pad:nat):
     svector A n -> svector A (base+((S pad)*n))
     :=
-      vector_index_backward_operator 
+      Gather 
         (@ScatHBackwardMap_Spec n (base + (S pad) * n) base pad
                                 (eq_refl _)
         ).
