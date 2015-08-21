@@ -142,6 +142,17 @@ Section Primitive_Functions.
     lia.
   Defined.
 
+  Program Definition h_index_map
+          {domain range: nat}
+          (b s: nat)
+          {range_bound: (b+(pred domain)*s) < range}
+    : index_map domain range
+    :=
+      IndexMap domain range (fun i => b + i*s) _.
+  Next Obligation.
+    nia.
+  Defined.
+
 End Primitive_Functions.
 
 Section Function_Operators.

@@ -123,30 +123,14 @@ natrual number by index mapping function f_spec. *)
 
   End IndexedOperators.
 
-  Program Definition GathBackwardMap_Spec
-          (i o base stride: nat)
-          {snz: 0 ≢ stride} 
-          {range_bound: (base+(pred o)*stride) < i}: index_map_spec o i :=
-    fun n dom_bound => base + n*stride.
-  Next Obligation.
-    dep_destruct o. crush.
-    unfold pred in range_bound.
-    assert (n<=x) by lia.
-    assert(n * stride <= x*stride).
-    apply mult_le_compat_r; assumption.
-    apply plus_le_subst_r with (b:=x*stride) (b':=n*stride) in range_bound;
-        assumption.
-  Defined.
-    
   Definition GathH `{Equiv A}
              (i o base stride: nat)
-             {snz: 0 ≢ stride} 
              {range_bound: (base+(pred o)*stride) < i}
     :
       (svector A i) -> svector A o
     :=
       Gather 
-        (@GathBackwardMap_Spec i o base stride snz range_bound).
+        (@h_index_map o i base stride range_bound).
 
   Program Definition ScatHBackwardMap_Spec
           (i o base pad: nat)
