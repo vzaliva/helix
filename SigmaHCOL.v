@@ -70,7 +70,7 @@ natrual number by index mapping function f_spec. *)
           (f: index_map o i)
           (x: vector A i)
           (y: vector A o):
-      Gather f x ≡ y ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
+      (Gather f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
     Proof.
       unfold Gather, Vbuild. 
       destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
