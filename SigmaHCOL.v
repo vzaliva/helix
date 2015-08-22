@@ -57,21 +57,29 @@ natrual number by index mapping function f_spec. *)
                (n:nat) (np: n<o)
     : A
       := Vnth x (« f » n np).
-    
-    Definition Gather_spec `{Equiv A}
-               {i o: nat}
-               (f_spec: index_map o i)
-               (x: vector A i):
-      {y : vector A o |  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f_spec n ip }
-      := Vbuild_spec (VnthIndexMapped x f_spec).
-    
+
     Definition Gather `{Equiv A}
                {i o: nat}
-               (f_spec: index_map o i)
+               (f: index_map o i)
                (x: vector A i):
       vector A o
-      := proj1_sig (Gather_spec f_spec x).
+      := Vbuild (VnthIndexMapped x f).
 
+    Lemma Gather_spec `{Equiv A}
+          {i o: nat}
+          (f: index_map o i)
+          (x: vector A i)
+          (y: vector A o):
+      Gather f x ≡ y ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
+    Proof.
+      unfold Gather, Vbuild. 
+      destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
+      simpl.
+      intros.
+      subst.
+      auto.
+    Qed.
+    
     Lemma Gather_is_endomorphism `{Ae: Equiv A}:
       ∀ (i o : nat)
         (x : vector A i),
@@ -82,10 +90,9 @@ natrual number by index mapping function f_spec. *)
       intros.
       apply Vforall_eq.
       intros.
-      unfold Gather, proj1_sig in H. 
-      assert (H1: Vin x0 (Vbuild (VnthIndexMapped x f))) by auto.      
+      unfold Gather in H. 
       unfold Vin_aux.
-      apply Vbuild_in in H1.
+      apply Vbuild_in in H.
       crush.
       unfold VnthIndexMapped.
       apply Vnth_in.
@@ -121,31 +128,28 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
 
-    Definition Scatter_spec `{Equiv A}
-               {i o: nat}
-               (f: index_map i o)
-               (x: vector A i):
-      {y : svector A o |  ∀ ny (yp : ny < o),
-          ((exists nx (xp: nx<i), ⟦ f ⟧ nx ≡ ny -> Vnth y yp ≡ Some (Vnth x xp)) \/ (is_None (Vnth y yp)))
-            
-      }.
-
-          Vnth x ip ≡ VnthIndexMapped y f_spec n ip }.
-
-      {y : vector A o |  ∀ (n : nat) (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f_spec n ip }.
-
-
-  := Vbuild_spec (VnthIndexMapped x f_spec).
-    
     Definition Scatter`{Equiv A}
                {i o: nat}
                (f_spec: index_map i o)
-               (x: vector A i):
-      vector A o
-      := proj1_sig (Scatter_spec f_spec x).
+               (x: svector A i):
+      svector A o.
+        admit.
+    Defined.
+
+    Lemma Scatter_spec `{Equiv A}
+               {i o: nat}
+               (f: index_map i o)
+               (x: svector A i)
+               (y : svector A o):
+      Scatter f x ≡ y -> 
+        ∀ ny (yp : ny < o),
+          ((exists nx (xp: nx<i), ⟦ f ⟧ nx ≡ ny -> Vnth y yp ≡ Vnth x xp) \/ (is_None (Vnth y yp))).
+    Proof.
+    Qed.
     
   End IndexedOperators.
 
+  (* TODO: additional property, assuring that we access only initialized values? *)
   Definition GathH `{Equiv A}
              (i o base stride: nat)
              {range_bound: (base+(pred o)*stride) < i}
