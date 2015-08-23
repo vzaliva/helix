@@ -128,13 +128,58 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
 
+    Fixpoint build_inverse_f
+             (d: nat)
+             (f: nat -> nat) : nat -> option nat :=
+      match d with
+      | O => fun _ => None
+      | S x' =>
+        fun y => if eq_nat_dec y (f x') then Some x' else build_inverse_f x' f y
+      end.
+ 
+    Lemma index_map_inverse_dom_range
+             {domain range: nat}
+             (f: index_map domain range)
+             (f': nat -> option nat):
+      f' ≡ build_inverse_f domain ⟦ f ⟧ ->
+      forall x z, x<range ->
+           (((f' x) ≡ Some z) -> z < domain) \/
+           is_None (f' x).
+    Proof.
+      intros.
+      destruct f.
+      simpl in *.
+      induction domain.
+      crush.
+      simpl in H.
+      case_eq (f' x).
+      intros.
+      left.
+      replace (Some n) with (f' x) by apply H1.
+      subst f'.
+      dep_destruct (eq_nat_dec x (index_f domain)).
+      crush.
+      apply IHdomain.
+    Qed.
+
+    (* Returns an element of the vector 'x' which is result of mapping of given
+natrual number by index mapping partial function 'f'*)
+    Program Definition VnthIndexMappedOpt {A:Type}
+               {i o:nat}
+               (x: vector A i)
+               (f: nat -> option nat)
+               (n:nat) (np: n<o)
+    : option A
+      := match (f n) with
+         | None => None
+         | Some z => Some (Vnth x z _)
+         end.
+    
     Definition Scatter`{Equiv A}
                {i o: nat}
                (f_spec: index_map i o)
                (x: svector A i):
-      svector A o.
-        admit.
-    Defined.
+      svector A o : Vbuild (VnthIndexMapped x f).
 
     Lemma Scatter_spec `{Equiv A}
                {i o: nat}
