@@ -140,13 +140,14 @@ natrual number by index mapping function f_spec. *)
     (* continuation-style definition using map/fold *)
     Fixpoint build_inverse_f'
              (d: nat)
-             (f: nat -> nat) : nat -> option nat :=
-      Vfold_left
-        (fun a b => b a)
-        (fun _ => None)
-        (Vmap (fun x' =>
-                 (fun c y => if eq_nat_dec y (f x') then Some x' else c y))
-              (natrange d)).
+             (f: nat -> nat) :
+      nat -> option nat
+      :=
+        Vfold_left
+          (fun a b => b a)
+          (fun _ => None)
+          (Vmap (fun x' c y => if eq_nat_dec y (f x') then Some x' else c y)
+                (natrange d)).
     
     Lemma index_map_inverse_dom_range
              {domain range: nat}
