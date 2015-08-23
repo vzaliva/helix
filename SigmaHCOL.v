@@ -136,7 +136,24 @@ natrual number by index mapping function f_spec. *)
       | S x' =>
         fun y => if eq_nat_dec y (f x') then Some x' else build_inverse_f x' f y
       end.
- 
+
+    (* continuation-style definition using map/fold *)
+    Fixpoint build_inverse_f'
+             (d: nat)
+             (f: nat -> nat) : nat -> option nat :=
+      Vfold_left
+        (fun a b => b a)
+        (fun _ => None)
+        (Vmap (fun x' =>
+                 (fun c y => if eq_nat_dec y (f x') then Some x' else c y))
+              (natrange d)).
+    
+      match d with
+      | O => fun _ => None
+      | S x' =>
+        fun y => if eq_nat_dec y (f x') then Some x' else build_inverse_f x' f y
+      end.
+    
     Lemma index_map_inverse_dom_range
              {domain range: nat}
              (f: index_map domain range)
@@ -149,19 +166,14 @@ natrual number by index mapping function f_spec. *)
       intros.
       destruct f.
       simpl in *.
-      induction domain.
-      crush.
-      simpl in H.
-      case_eq (f' x).
-      intros.
-      left.
-      replace (Some n) with (f' x) by apply H1.
       subst f'.
-      dep_destruct (eq_nat_dec x (index_f domain)).
+      induction domain.
       crush.
       apply IHdomain.
     Qed.
 
+(* TODO: change to svector *)
+    
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping partial function 'f'*)
     Program Definition VnthIndexMappedOpt {A:Type}
