@@ -148,12 +148,6 @@ natrual number by index mapping function f_spec. *)
                  (fun c y => if eq_nat_dec y (f x') then Some x' else c y))
               (natrange d)).
     
-      match d with
-      | O => fun _ => None
-      | S x' =>
-        fun y => if eq_nat_dec y (f x') then Some x' else build_inverse_f x' f y
-      end.
-    
     Lemma index_map_inverse_dom_range
              {domain range: nat}
              (f: index_map domain range)
