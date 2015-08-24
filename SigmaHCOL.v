@@ -143,11 +143,34 @@ natrual number by index mapping function f_spec. *)
              (f: nat -> nat) :
       nat -> option nat
       :=
-        Vfold_left
+        List.fold_left
           (fun a b => b a)
-          (fun _ => None)
-          (Vmap (fun x' c y => if eq_nat_dec y (f x') then Some x' else c y)
-                (natrange d)).
+          (List.map (fun x' c y => if eq_nat_dec y (f x') then Some x' else c y)
+                    (natrange_list d))
+          (fun _ => None).
+
+
+    Lemma inverse_impl_eq:
+      forall d (f:nat->nat) x, build_inverse_f d x ≡ build_inverse_f' d x.
+    Proof.
+      intros.
+      induction d.
+      simpl.
+      reflexivity.
+      simpl.
+      replace (List.fold_left
+       (λ (a : nat → option nat) (b : (nat → option nat) → nat → option nat),
+        b a)
+       (List.map
+          (λ (x' : nat) (c : nat → option nat) (y : nat),
+           if eq_nat_dec y (x x') then Some x' else c y) 
+          (natrange_list d))
+       (λ y : nat, if eq_nat_dec y (x d) then Some d else None)) with  (   (λ y : nat, if eq_nat_dec y (x d) then Some d else build_inverse_f' d x y)
+).
+      rewrite <- IHd.
+      reflexivity.
+
+    Qed.
     
     Lemma index_map_inverse_dom_range
              {domain range: nat}
