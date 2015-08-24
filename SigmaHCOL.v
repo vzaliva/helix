@@ -144,32 +144,89 @@ natrual number by index mapping function f_spec. *)
       nat -> option nat
       :=
         List.fold_left
-          (fun a b => b a)
+          (flip apply)
           (List.map (fun x' c y => if eq_nat_dec y (f x') then Some x' else c y)
                     (natrange_list d))
           (fun _ => None).
 
+    Lemma build_inverse_Sd:
+      forall d f, build_inverse_f (S d) f ≡
+                                fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f d f y.
+    Proof.
+      intros.
+      auto.
+    Qed.
 
+    (* TODO: move *)
+    Lemma  fold_apply_once:
+      forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A), 
+      List.fold_left f (x::xs) b ≡ List.fold_left f xs (f b x).
+    Proof.
+      auto.
+    Qed.
+
+    Lemma build_inverse_Sd':
+      forall d f, build_inverse_f' (S d) f ≡
+                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
+    Proof.
+      intros.
+      unfold build_inverse_f' at 1.
+      unfold natrange_list.
+      rewrite List.map_map.
+      simpl (rev_natrange_list (S d)).
+      simpl (List.map
+               (λ (x : nat) (c : nat → option nat) (y : nat),
+                if eq_nat_dec y (f (S d - 1 - x)) then Some (S d - 1 - x) else c y)
+               (d :: rev_natrange_list d)).
+      rewrite fold_apply_once.
+      repeat unfold flip at 2, apply at 2.
+
+      extensionality z.
+
+      destruct (eq_nat_dec z (f d)).
+      - subst z.
+        induction d.
+        + simpl.
+          destruct eq_nat_dec.
+          reflexivity.
+          congruence.
+        + 
+          revert IHd.
+          replace (S d - 0 - S d) with 0 by auto with arith.
+          replace (d - 0) with d by apply minus_n_O.
+          replace (S d - 0) with (S d) by apply minus_n_O.
+          replace (d - d) with 0 by (symmetry; apply minus_diag).
+          intros IHd.
+    Admitted.
+        
     Lemma inverse_impl_eq:
       forall d (f:nat->nat) x, build_inverse_f d x ≡ build_inverse_f' d x.
     Proof.
       intros.
       induction d.
-      simpl.
-      reflexivity.
-      simpl.
-      replace (List.fold_left
-       (λ (a : nat → option nat) (b : (nat → option nat) → nat → option nat),
-        b a)
-       (List.map
-          (λ (x' : nat) (c : nat → option nat) (y : nat),
-           if eq_nat_dec y (x x') then Some x' else c y) 
-          (natrange_list d))
-       (λ y : nat, if eq_nat_dec y (x d) then Some d else None)) with  (   (λ y : nat, if eq_nat_dec y (x d) then Some d else build_inverse_f' d x y)
-).
-      rewrite <- IHd.
-      reflexivity.
-
+      + simpl.
+        reflexivity.
+      +rewrite build_inverse_Sd, build_inverse_Sd'.
+       rewrite IHd.
+       reflexivity.
+    Qed.
+    
+    Lemma index_map_inverse_dom_range'
+             {domain range: nat}
+             (f: index_map domain range)
+             (f': nat -> option nat):
+      f' ≡ build_inverse_f' domain ⟦ f ⟧ ->
+      forall x z, x<range ->
+           (((f' x) ≡ Some z) -> z < domain) \/
+           is_None (f' x).
+    Proof.
+      intros.
+      destruct f.
+      simpl in *.
+      subst f'.
+      induction domain.
+      crush.
+      apply IHdomain.
     Qed.
     
     Lemma index_map_inverse_dom_range

@@ -461,12 +461,18 @@ Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
 
 Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
 
-Fixpoint natrange_list (n:nat) : list nat :=
+(* n-1 ... 0 *)
+Fixpoint rev_natrange_list (n:nat) : list nat :=
   match n with
   | 0 => List.nil
-  | S p => List.cons p (natrange_list p)
+  | S p => List.cons p (rev_natrange_list p)
   end.
 
+(* 0 ...  n-1  *)
+Definition natrange_list (n:nat) : list nat :=
+  List.map (Peano.minus (Peano.minus n 1)) (rev_natrange_list n).
+
+(* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
   match n return (vector nat n) with 
       0 => Vnil

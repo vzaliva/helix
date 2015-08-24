@@ -60,7 +60,7 @@ Section Permutations.
           {n: nat}
           (f: index_map n n)
     :=
-      let l:=(natrange_list n) in
+      let l:=(rev_natrange_list n) in
       Permutation l (List.map ⟦ f ⟧ l).
 End Permutations.
 
