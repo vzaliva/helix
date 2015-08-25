@@ -138,7 +138,7 @@ natrual number by index mapping function f_spec. *)
       end.
 
     (* continuation-style definition using map/fold *)
-    Fixpoint build_inverse_f'
+    Fixpoint build_inverse_f_CPS
              (d: nat)
              (f: nat -> nat) :
       nat -> option nat
@@ -149,6 +149,18 @@ natrual number by index mapping function f_spec. *)
                     (natrange_list d))
           (fun _ => None).
 
+
+    (* definition using map/fold *)
+    Fixpoint build_inverse_f'
+             (d: nat)
+             (f: nat -> nat) :
+      nat -> option nat
+      := fun y =>
+        List.fold_left
+          (fun p x' => if eq_nat_dec y (f x') then Some x' else p)
+          (natrange_list d)
+          None.
+    
     Lemma build_inverse_Sd:
       forall d f, build_inverse_f (S d) f ≡
                                 fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f d f y.
@@ -165,6 +177,34 @@ natrual number by index mapping function f_spec. *)
       auto.
     Qed.
 
+    Lemma fold_left_map {A B M} (ff:A -> B -> A) (fm:M->B) (l:list M) (a0:A):
+      List.fold_left ff (List.map fm l) a0 ≡ List.fold_left (fun a m => ff a (fm m)) l a0.
+    Proof.
+      generalize a0.
+      induction l.
+      + auto.
+      + simpl.
+        intros.
+        rewrite IHl.
+        reflexivity.
+    Qed.
+
+    Lemma build_inverse_Sd':
+      forall d f, build_inverse_f' (S d) f ≡
+                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
+    Proof.
+      intros.
+      extensionality z.
+      simpl.
+      replace (d - 0) with d by apply minus_n_O.
+      replace (d - d) with 0 by (symmetry; apply minus_diag).
+
+      destruct (eq_nat_dec z (f d)).
+      subst z.
+      simpl.
+      
+    Qed.
+    
     Lemma build_inverse_Sd':
       forall d f, build_inverse_f' (S d) f ≡
                               fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
