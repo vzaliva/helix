@@ -177,6 +177,21 @@ natrual number by index mapping function f_spec. *)
       Lemma natrage_list_hd:
         ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
       Proof.
+        intros.
+        unfold natrange_list.
+
+        rewrite <- 2!List.map_rev.
+        simpl; rewrite <- minus_n_O.
+
+        rewrite List.map_app.
+        simpl; rewrite minus_diag.
+        
+        assert (HC :(minus (minus z (S O))) ≡ fun x => (minus z)(S x))
+          by (extensionality p; lia).
+        rewrite_clear HC.
+        rewrite <- map_map with (f:=S).
+
+        
       Admitted.
       
     (* TODO: move *)
