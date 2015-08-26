@@ -138,7 +138,7 @@ natrual number by index mapping function f_spec. *)
       end.
 
     (* continuation-style definition using map/fold *)
-    Fixpoint build_inverse_f_CPS
+    Definition build_inverse_f_CPS
              (d: nat)
              (f: nat -> nat) :
       nat -> option nat
@@ -150,8 +150,8 @@ natrual number by index mapping function f_spec. *)
           (fun _ => None).
 
 
-    (* definition using map/fold *)
-    Fixpoint build_inverse_f'
+    (* definition using map/fold_left *)
+    Definition build_inverse_f'
              (d: nat)
              (f: nat -> nat) :
       nat -> option nat
@@ -160,6 +160,35 @@ natrual number by index mapping function f_spec. *)
           (fun p x' => if eq_nat_dec y (f x') then Some x' else p)
           (natrange_list d)
           None.
+
+    (* definition using map/fold_right *)
+    Definition build_inverse_f''
+             (d: nat)
+             (f: nat -> nat) :
+      nat -> option nat
+      := fun y =>
+           List.fold_right
+          (fun x' p => if eq_nat_dec y (f x') then Some x' else p)
+          None
+          (rev_natrange_list d).
+
+    Lemma rev_natrange_rev:
+        ∀ z : nat, List.rev (natrange_list z) ≡ rev_natrange_list z.
+    Proof.
+    Admitted.
+    
+    (* To check ourselves prove that these 2 implementations are equivalent *)
+    Lemma f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
+    Proof.
+      intros.
+      induction d.
+      auto.
+      unfold build_inverse_f''.
+      extensionality z.
+      rewrite <- rev_natrange_rev.
+      rewrite List.fold_left_rev_right.
+      crush.
+    Qed.
     
     Lemma build_inverse_Sd:
       forall d f, build_inverse_f (S d) f ≡
@@ -170,7 +199,7 @@ natrual number by index mapping function f_spec. *)
     Qed.
 
     (* TODO: move *)
-    Lemma  fold_apply_once:
+    Lemma  fold_left_once:
       forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A), 
       List.fold_left f (x::xs) b ≡ List.fold_left f xs (f b x).
     Proof.
@@ -189,20 +218,20 @@ natrual number by index mapping function f_spec. *)
         reflexivity.
     Qed.
 
+    Lemma build_inverse_Sd'':
+      forall d f, build_inverse_f'' (S d) f ≡
+                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f'' d f y.
+    Proof.
+      crush.
+    Qed.
+    
     Lemma build_inverse_Sd':
       forall d f, build_inverse_f' (S d) f ≡
                               fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
     Proof.
       intros.
-      extensionality z.
-      simpl.
-      replace (d - 0) with d by apply minus_n_O.
-      replace (d - d) with 0 by (symmetry; apply minus_diag).
-
-      destruct (eq_nat_dec z (f d)).
-      subst z.
-      simpl.
-      
+      rewrite 2!f'_eq_f''.
+      apply build_inverse_Sd''.
     Qed.
     
     Lemma build_inverse_Sd':
