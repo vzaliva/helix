@@ -234,40 +234,6 @@ natrual number by index mapping function f_spec. *)
       apply build_inverse_Sd''.
     Qed.
     
-    Lemma build_inverse_Sd':
-      forall d f, build_inverse_f' (S d) f ≡
-                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
-    Proof.
-      intros.
-      unfold build_inverse_f' at 1.
-      unfold natrange_list.
-      rewrite List.map_map.
-      simpl (rev_natrange_list (S d)).
-      simpl (List.map
-               (λ (x : nat) (c : nat → option nat) (y : nat),
-                if eq_nat_dec y (f (S d - 1 - x)) then Some (S d - 1 - x) else c y)
-               (d :: rev_natrange_list d)).
-      rewrite fold_apply_once.
-      repeat unfold flip at 2, apply at 2.
-
-      extensionality z.
-
-      destruct (eq_nat_dec z (f d)).
-      - subst z.
-        induction d.
-        + simpl.
-          destruct eq_nat_dec.
-          reflexivity.
-          congruence.
-        + 
-          revert IHd.
-          replace (S d - 0 - S d) with 0 by auto with arith.
-          replace (d - 0) with d by apply minus_n_O.
-          replace (S d - 0) with (S d) by apply minus_n_O.
-          replace (d - d) with 0 by (symmetry; apply minus_diag).
-          intros IHd.
-    Admitted.
-        
     Lemma inverse_impl_eq:
       forall d (f:nat->nat) x, build_inverse_f d x ≡ build_inverse_f' d x.
     Proof.
