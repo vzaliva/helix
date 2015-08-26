@@ -174,6 +174,18 @@ natrual number by index mapping function f_spec. *)
           (rev_natrange_list d).
 
     (* TODO: move *)
+    Lemma natrange_list_bound:
+      ∀ z x : nat, In x (rev_natrange_list z) → x < z.
+    Proof.
+      intros.
+      induction z.
+      + compute in H.
+        contradiction.
+      + crush.
+    Qed.
+    
+    
+    (* TODO: move *)
       Lemma natrage_list_hd:
         ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
       Proof.
@@ -188,10 +200,21 @@ natrual number by index mapping function f_spec. *)
         
         assert (HC :(minus (minus z (S O))) ≡ fun x => (minus z)(S x))
           by (extensionality p; lia).
-        rewrite_clear HC.
+        rewrite_clear HC. 
         rewrite <- map_map with (f:=S).
 
-        
+        assert (ENB: forall i, In i (rev (rev_natrange_list z)) -> i<z).
+        {
+          intros.
+          assert(In i (rev_natrange_list z)).
+          rewrite List.in_rev.
+          assumption.
+          apply natrange_list_bound.
+          assumption.
+        }
+          
+        generalize dependent (rev (rev_natrange_list z)).
+        intros.
       Admitted.
       
     (* TODO: move *)
