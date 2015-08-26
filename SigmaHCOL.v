@@ -25,6 +25,7 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
 (*  CoLoR *)
+Require Import CoLoR.Util.List.ListUtil.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
@@ -172,10 +173,26 @@ natrual number by index mapping function f_spec. *)
           None
           (rev_natrange_list d).
 
+    (* TODO: move *)
+      Lemma natrage_list_hd:
+        ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
+      Proof.
+      Admitted.
+      
+    (* TODO: move *)
     Lemma rev_natrange_rev:
         ∀ z : nat, List.rev (natrange_list z) ≡ rev_natrange_list z.
     Proof.
-    Admitted.
+      intros.
+      induction z.
+      auto.
+      simpl (rev_natrange_list (S z)).
+      rewrite <-IHz.
+      unfold natrange_list at 2.
+      replace (map (minus (z - 1)) (rev_natrange_list z))
+      with (natrange_list z) by auto.
+      apply natrage_list_hd.
+    Qed.
     
     (* To check ourselves prove that these 2 implementations are equivalent *)
     Lemma f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
@@ -261,6 +278,7 @@ natrual number by index mapping function f_spec. *)
       subst f'.
       induction domain.
       crush.
+      (* Stuck here? *)
       apply IHdomain.
     Qed.
     
