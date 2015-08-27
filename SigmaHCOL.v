@@ -184,39 +184,31 @@ natrual number by index mapping function f_spec. *)
       + crush.
     Qed.
     
-    
-    (* TODO: move *)
-      Lemma natrage_list_hd:
-        ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
-      Proof.
-        intros.
-        unfold natrange_list.
 
-        rewrite <- 2!List.map_rev.
-        simpl; rewrite <- minus_n_O.
-
-        rewrite List.map_app.
-        simpl; rewrite minus_diag.
-        
-        assert (HC :(minus (minus z (S O))) ≡ fun x => (minus z)(S x))
-          by (extensionality p; lia).
-        rewrite_clear HC. 
-        rewrite <- map_map with (f:=S).
-
-        assert (ENB: forall i, In i (rev (rev_natrange_list z)) -> i<z).
-        {
-          intros.
-          assert(In i (rev_natrange_list z)).
-          rewrite List.in_rev.
-          assumption.
-          apply natrange_list_bound.
-          assumption.
-        }
-          
-        generalize dependent (rev (rev_natrange_list z)).
-        intros.
-      Admitted.
+    Lemma natrange_list_Sn:
+      ∀ z : nat, rev (natrange_list (S z)) ≡ rev (natrange_list z ++ [z]).
+    Proof.
+      intros.
+      induction z.
+      auto.
+      rewrite List.rev_app_distr.
+      rewrite IHz.
+      rewrite <-List.rev_app_distr.
       
+    Qed.
+
+    (* TODO: move *)
+    Lemma natrage_list_hd:
+      ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
+    Proof.
+      intros.
+      replace (z :: rev (natrange_list z)) with ([z] ++ rev (natrange_list z))%list by auto.
+      replace [z] with (rev[z]) by auto.
+      rewrite <- List.rev_app_distr.
+      rewrite natrange_list_Sn.
+      reflexivity.
+    Qed.
+    
     (* TODO: move *)
     Lemma rev_natrange_rev:
         ∀ z : nat, List.rev (natrange_list z) ≡ rev_natrange_list z.
