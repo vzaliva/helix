@@ -224,16 +224,20 @@ natrual number by index mapping function f_spec. *)
        rewrite IHd.
        reflexivity.
     Qed.
+
+
+    Definition partial_function_spec domain range f' :=
+      forall x z, x<range ->
+             (((f' x) ≡ Some z) -> z < domain) \/
+             is_None (f' x).
     
     Lemma index_map_inverse_dom_range'
              {domain range: nat}
              (f: index_map domain range)
              (f': nat -> option nat):
-      f' ≡ build_inverse_f' domain ⟦ f ⟧ ->
-      forall x z, x<range ->
-           (((f' x) ≡ Some z) -> z < domain) \/
-           is_None (f' x).
+      f' ≡ build_inverse_f' domain ⟦ f ⟧ -> partial_function_spec domain range f'.
     Proof.
+      unfold partial_function_spec.
       rewrite inverse_f'_eq_f''.
       intros.
       destruct f. simpl in *. subst f'.
@@ -256,30 +260,48 @@ natrual number by index mapping function f_spec. *)
              {domain range: nat}
              (f: index_map domain range)
              (f': nat -> option nat):
-      f' ≡ build_inverse_f domain ⟦ f ⟧ ->
-      forall x z, x<range ->
-           (((f' x) ≡ Some z) -> z < domain) \/
-           is_None (f' x).
+      f' ≡ build_inverse_f domain ⟦ f ⟧ -> partial_function_spec domain range f'.
     Proof.
       rewrite inverse_f_eq_f'.
       apply index_map_inverse_dom_range'.
       exact ⟦f⟧.
     Qed.
 
-    (* TODO: change to svector *)
-    
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping partial function 'f'*)
-    Program Definition VnthIndexMappedOpt {A:Type}
+    Definition VnthInverseIndexMapped {A:Type}
+               {i o:nat}
+               (x: svector A i)
+               (f': nat -> option nat)
+               (f'_spec: partial_function_spec i o f')
+               (n:nat) (np: n<o)
+      : option A.
+    Proof.
+      unfold partial_function_spec in f'_spec.
+      assert(forall z, (f' n ≡ Some z → z < i) ∨ is_None (f' n)).
+      intros.
+      auto. clear f'_spec.
+
+      
+      specialize H with z:=z1.
+
+
+    Defined.
+    
+      := match (f' n), (f'_spec n) with
+         | None, _ => None
+         | Some z, inright zc  => Vnth x z _
+         end.
+
+    Definition VnthIndexMapped {A:Type}
                {i o:nat}
                (x: vector A i)
-               (f: nat -> option nat)
+               (f: index_map o i)
                (n:nat) (np: n<o)
-    : option A
-      := match (f n) with
-         | None => None
-         | Some z => Some (Vnth x z _)
-         end.
+    : A
+      := Vnth x (« f » n np).
+
+
     
     Definition Scatter`{Equiv A}
                {i o: nat}
