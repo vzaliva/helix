@@ -470,7 +470,17 @@ Fixpoint rev_natrange_list (n:nat) : list nat :=
 
 (* 0 ...  n-1  *)
 Definition natrange_list (n:nat) : list nat :=
-  List.map (Peano.minus (Peano.minus n 1)) (rev_natrange_list n).
+  List.rev (rev_natrange_list n).
+
+Lemma rev_natrange_list_bound:
+  ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
+Proof.
+  intros.
+  induction z.
+  + compute in H.
+    contradiction.
+  + crush.
+Qed.
 
 (* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
@@ -1128,6 +1138,27 @@ Defined.
 Close Local Scope nat_scope.
 
 Close Scope vector_scope.
+
+Lemma  fold_left_once:
+  forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A), 
+    List.fold_left f (x::xs) b ≡ List.fold_left f xs (f b x).
+Proof.
+  auto.
+Qed.
+
+Lemma fold_left_map {A B M} (ff:A -> B -> A) (fm:M->B) (l:list M) (a0:A):
+  List.fold_left ff (List.map fm l) a0 ≡ List.fold_left (fun a m => ff a (fm m)) l a0.
+Proof.
+  generalize a0.
+  induction l.
+  + auto.
+  + simpl.
+    intros.
+    rewrite IHl.
+    reflexivity.
+Qed.
+
+
 
 (* ----------- Some handy tactics ----------- *)
 

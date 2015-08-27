@@ -171,59 +171,8 @@ natrual number by index mapping function f_spec. *)
            List.fold_right
           (fun x' p => if eq_nat_dec y (f x') then Some x' else p)
           None
-          (rev_natrange_list d).
+          (rev_natrange_list d).    
 
-    (* TODO: move *)
-    Lemma natrange_list_bound:
-      ∀ z x : nat, In x (rev_natrange_list z) → x < z.
-    Proof.
-      intros.
-      induction z.
-      + compute in H.
-        contradiction.
-      + crush.
-    Qed.
-    
-
-    Lemma natrange_list_Sn:
-      ∀ z : nat, rev (natrange_list (S z)) ≡ rev (natrange_list z ++ [z]).
-    Proof.
-      intros.
-      induction z.
-      auto.
-      rewrite List.rev_app_distr.
-      rewrite IHz.
-      rewrite <-List.rev_app_distr.
-      
-    Qed.
-
-    (* TODO: move *)
-    Lemma natrage_list_hd:
-      ∀ z : nat, rev (natrange_list (S z)) ≡ z :: rev (natrange_list z).
-    Proof.
-      intros.
-      replace (z :: rev (natrange_list z)) with ([z] ++ rev (natrange_list z))%list by auto.
-      replace [z] with (rev[z]) by auto.
-      rewrite <- List.rev_app_distr.
-      rewrite natrange_list_Sn.
-      reflexivity.
-    Qed.
-    
-    (* TODO: move *)
-    Lemma rev_natrange_rev:
-        ∀ z : nat, List.rev (natrange_list z) ≡ rev_natrange_list z.
-    Proof.
-      intros.
-      induction z.
-      auto.
-      simpl (rev_natrange_list (S z)).
-      rewrite <-IHz.
-      unfold natrange_list at 2.
-      replace (map (minus (z - 1)) (rev_natrange_list z))
-      with (natrange_list z) by auto.
-      apply natrage_list_hd.
-    Qed.
-    
     (* To check ourselves prove that these 2 implementations are equivalent *)
     Lemma f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
     Proof.
@@ -232,9 +181,12 @@ natrual number by index mapping function f_spec. *)
       auto.
       unfold build_inverse_f''.
       extensionality z.
-      rewrite <- rev_natrange_rev.
-      rewrite List.fold_left_rev_right.
-      crush.
+      replace ((rev_natrange_list (S d))) with (rev (natrange_list (S d))).
+      + rewrite List.fold_left_rev_right.
+        crush.
+      + unfold natrange_list.
+        rewrite rev_involutive.
+        reflexivity.
     Qed.
     
     Lemma build_inverse_Sd:
@@ -243,26 +195,6 @@ natrual number by index mapping function f_spec. *)
     Proof.
       intros.
       auto.
-    Qed.
-
-    (* TODO: move *)
-    Lemma  fold_left_once:
-      forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A), 
-      List.fold_left f (x::xs) b ≡ List.fold_left f xs (f b x).
-    Proof.
-      auto.
-    Qed.
-
-    Lemma fold_left_map {A B M} (ff:A -> B -> A) (fm:M->B) (l:list M) (a0:A):
-      List.fold_left ff (List.map fm l) a0 ≡ List.fold_left (fun a m => ff a (fm m)) l a0.
-    Proof.
-      generalize a0.
-      induction l.
-      + auto.
-      + simpl.
-        intros.
-        rewrite IHl.
-        reflexivity.
     Qed.
 
     Lemma build_inverse_Sd'':
