@@ -482,6 +482,16 @@ Proof.
   + crush.
 Qed.
 
+Lemma natrange_list_bound:
+  ∀ z x : nat, List.In x (natrange_list z) → (x < z)%nat.
+Proof.
+  unfold natrange_list.
+  intros.
+  rewrite <- in_rev in H.
+  apply rev_natrange_list_bound.
+  assumption.
+Qed.
+
 (* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
   match n return (vector nat n) with 

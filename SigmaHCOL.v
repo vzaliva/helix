@@ -209,7 +209,7 @@ natrual number by index mapping function f_spec. *)
                               fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
     Proof.
       intros.
-      rewrite 2!f'_eq_f''.
+      rewrite 2!inverse_f'_eq_f''.
       apply build_inverse_Sd''.
     Qed.
     
@@ -238,10 +238,18 @@ natrual number by index mapping function f_spec. *)
       destruct f.
       simpl in *.
       subst f'.
-      induction domain.
-      crush.
-      (* Stuck here? *)
-      admit.
+      case_eq (build_inverse_f' domain index_f x).
+      + intros.
+        left.
+        rewrite <- H.  clear H.
+        unfold build_inverse_f'.
+        assert(List.In x (natrange_list domain) → (x < domain)%nat) by
+            apply natrange_list_bound.
+
+        
+        
+      + right.
+        none_some_elim.
     Qed.
     
     Lemma index_map_inverse_dom_range
