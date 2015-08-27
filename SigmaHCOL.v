@@ -261,16 +261,12 @@ natrual number by index mapping function f_spec. *)
            (((f' x) ≡ Some z) -> z < domain) \/
            is_None (f' x).
     Proof.
-      intros.
-      destruct f.
-      simpl in *.
-      subst f'.
-      induction domain.
-      crush.
-      apply IHdomain.
+      rewrite inverse_f_eq_f'.
+      apply index_map_inverse_dom_range'.
+      exact ⟦f⟧.
     Qed.
 
-(* TODO: change to svector *)
+    (* TODO: change to svector *)
     
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping partial function 'f'*)
