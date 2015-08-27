@@ -225,11 +225,10 @@ natrual number by index mapping function f_spec. *)
        reflexivity.
     Qed.
 
-
     Definition partial_function_spec domain range f' :=
-      forall x z, x<range ->
-             (((f' x) ≡ Some z) -> z < domain) \/
-             is_None (f' x).
+      forall x, x<range ->
+           (forall z,(((f' x) ≡ Some z) -> z < domain)) \/
+           is_None (f' x).
     
     Lemma index_map_inverse_dom_range'
              {domain range: nat}
@@ -243,8 +242,8 @@ natrual number by index mapping function f_spec. *)
       destruct f. simpl in *. subst f'.
       case_eq (build_inverse_f'' domain index_f x).
       - intros.
-        left.
-        rewrite <- H.  clear H.
+        left.  intro z.
+        rewrite <- H. clear H.
         unfold build_inverse_f''.
         induction domain.
         crush.
@@ -273,25 +272,18 @@ natrual number by index mapping partial function 'f'*)
                {i o:nat}
                (x: svector A i)
                (f': nat -> option nat)
-               (f'_spec: partial_function_spec i o f')
+               (f'_spec:  forall x, x<o ->
+                               (forall z,(((f' x) ≡ Some z) -> z < i)) \/
+                               is_None (f' x))
                (n:nat) (np: n<o)
-      : option A.
-    Proof.
-      unfold partial_function_spec in f'_spec.
-      assert(forall z, (f' n ≡ Some z → z < i) ∨ is_None (f' n)).
-      intros.
-      auto. clear f'_spec.
-
-      
-      specialize H with z:=z1.
-
-
-    Defined.
+      : option A
+      :=
+        match (f' n) as fn, (f'_spec n np) return f' n = fn -> option A with        
+        | None, _ => fun _ => None
+        | Some z, or_introl zc1  => fun p => Vnth x (zc1 z p)
+        | Some z, or_intror _  => fun _ => None (*  impossible case *)
+        end.
     
-      := match (f' n), (f'_spec n) with
-         | None, _ => None
-         | Some z, inright zc  => Vnth x z _
-         end.
 
     Definition VnthIndexMapped {A:Type}
                {i o:nat}
