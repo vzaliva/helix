@@ -174,7 +174,7 @@ natrual number by index mapping function f_spec. *)
           (rev_natrange_list d).    
 
     (* To check ourselves prove that these 2 implementations are equivalent *)
-    Lemma f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
+    Lemma inverse_f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
     Proof.
       intros.
       induction d.
@@ -213,7 +213,7 @@ natrual number by index mapping function f_spec. *)
       apply build_inverse_Sd''.
     Qed.
     
-    Lemma inverse_impl_eq:
+    Lemma inverse_f_eq_f':
       forall d (f:nat->nat) x, build_inverse_f d x ≡ build_inverse_f' d x.
     Proof.
       intros.
@@ -241,7 +241,7 @@ natrual number by index mapping function f_spec. *)
       induction domain.
       crush.
       (* Stuck here? *)
-      apply IHdomain.
+      admit.
     Qed.
     
     Lemma index_map_inverse_dom_range
