@@ -234,21 +234,21 @@ natrual number by index mapping function f_spec. *)
            (((f' x) ≡ Some z) -> z < domain) \/
            is_None (f' x).
     Proof.
+      rewrite inverse_f'_eq_f''.
       intros.
-      destruct f.
-      simpl in *.
-      subst f'.
-      case_eq (build_inverse_f' domain index_f x).
-      + intros.
+      destruct f. simpl in *. subst f'.
+      case_eq (build_inverse_f'' domain index_f x).
+      - intros.
         left.
         rewrite <- H.  clear H.
-        unfold build_inverse_f'.
-        assert(List.In x (natrange_list domain) → (x < domain)%nat) by
-            apply natrange_list_bound.
-
-        
-        
-      + right.
+        unfold build_inverse_f''.
+        induction domain.
+        crush.
+        simpl.
+        destruct (eq_nat_dec x (index_f domain)).
+        + intros. inversion H. auto.
+        + crush.
+      - right.
         none_some_elim.
     Qed.
     
