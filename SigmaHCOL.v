@@ -226,9 +226,7 @@ natrual number by index mapping function f_spec. *)
     Qed.
 
     Definition partial_function_spec domain range f' :=
-      forall x, x<range ->
-           (forall z,(((f' x) ≡ Some z) -> z < domain)) \/
-           is_None (f' x).
+      forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
     
     Lemma index_map_inverse_dom_range'
              {domain range: nat}
@@ -236,23 +234,19 @@ natrual number by index mapping function f_spec. *)
              (f': nat -> option nat):
       f' ≡ build_inverse_f' domain ⟦ f ⟧ -> partial_function_spec domain range f'.
     Proof.
+      destruct f.  simpl.
+      
       unfold partial_function_spec.
       rewrite inverse_f'_eq_f''.
       intros.
-      destruct f. simpl in *. subst f'.
-      case_eq (build_inverse_f'' domain index_f x).
-      - intros.
-        left.  intro z.
-        rewrite <- H. clear H.
-        unfold build_inverse_f''.
-        induction domain.
-        crush.
-        simpl.
-        destruct (eq_nat_dec x (index_f domain)).
-        + intros. inversion H. auto.
-        + crush.
-      - right.
-        none_some_elim.
+      subst f'.
+      
+      unfold build_inverse_f'' in H1.
+      induction domain.
+      crush.
+
+      simpl in H1.
+      destruct (eq_nat_dec x (index_f domain)); crush.
     Qed.
     
     Lemma index_map_inverse_dom_range
@@ -272,33 +266,19 @@ natrual number by index mapping partial function 'f'*)
                {i o:nat}
                (x: svector A i)
                (f': nat -> option nat)
-               (f'_spec:  forall x, x<o ->
-                               (forall z,(((f' x) ≡ Some z) -> z < i)) \/
-                               is_None (f' x))
+               (f'_spec: partial_function_spec i o f')
                (n:nat) (np: n<o)
       : option A
       :=
-        match (f' n) as fn, (f'_spec n np) return f' n = fn -> option A with        
-        | None, _ => fun _ => None
-        | Some z, or_introl zc1  => fun p => Vnth x (zc1 z p)
-        | Some z, or_intror _  => fun _ => None (*  impossible case *)
-        end.
-    
-
-    Definition VnthIndexMapped {A:Type}
-               {i o:nat}
-               (x: vector A i)
-               (f: index_map o i)
-               (n:nat) (np: n<o)
-    : A
-      := Vnth x (« f » n np).
-
-
+        match (f' n) as fn return f' n = fn -> option A with        
+        | None => fun _ => None
+        | Some z => fun p => Vnth x (f'_spec n np z p)
+        end eq_refl.
     
     Definition Scatter`{Equiv A}
                {i o: nat}
-               (f_spec: index_map i o)
-               (x: svector A i):
+               (f: index_map i o)
+               (x: svector A i) :
       svector A o : Vbuild (VnthIndexMapped x f).
 
     Lemma Scatter_spec `{Equiv A}
