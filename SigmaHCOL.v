@@ -270,7 +270,7 @@ natrual number by index mapping partial function 'f'*)
                (n:nat) (np: n<o)
       : option A
       :=
-        match (f' n) as fn return f' n = fn -> option A with        
+        match (f' n) as fn return f' n ≡ fn -> option A with        
         | None => fun _ => None
         | Some z => fun p => Vnth x (f'_spec n np z p)
         end eq_refl.
@@ -278,9 +278,13 @@ natrual number by index mapping partial function 'f'*)
     Definition Scatter`{Equiv A}
                {i o: nat}
                (f: index_map i o)
-               (x: svector A i) :
-      svector A o : Vbuild (VnthIndexMapped x f).
+               (x: svector A i) : vector A o
+      :=
+        let f' := build_inverse_f' o ⟦ f ⟧ in
+        let f'_spec := index_map_inverse_dom_range f f' in 
+        Vbuild (VnthInverseIndexMapped x f' f'_spec).
 
+                      
     Lemma Scatter_spec `{Equiv A}
                {i o: nat}
                (f: index_map i o)
