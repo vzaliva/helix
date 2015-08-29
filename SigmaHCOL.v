@@ -129,41 +129,8 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
 
-    Fixpoint build_inverse_f
-             (d: nat)
-             (f: nat -> nat) : nat -> option nat :=
-      match d with
-      | O => fun _ => None
-      | S x' =>
-        fun y => if eq_nat_dec y (f x') then Some x' else build_inverse_f x' f y
-      end.
-
-    (* continuation-style definition using map/fold *)
-    Definition build_inverse_f_CPS
-             (d: nat)
-             (f: nat -> nat) :
-      nat -> option nat
-      :=
-        List.fold_left
-          (flip apply)
-          (List.map (fun x' c y => if eq_nat_dec y (f x') then Some x' else c y)
-                    (natrange_list d))
-          (fun _ => None).
-
-
-    (* definition using map/fold_left *)
-    Definition build_inverse_f'
-             (d: nat)
-             (f: nat -> nat) :
-      nat -> option nat
-      := fun y =>
-        List.fold_left
-          (fun p x' => if eq_nat_dec y (f x') then Some x' else p)
-          (natrange_list d)
-          None.
-
     (* definition using map/fold_right *)
-    Definition build_inverse_f''
+    Definition build_inverse_f
              (d: nat)
              (f: nat -> nat) :
       nat -> option nat
@@ -172,58 +139,6 @@ natrual number by index mapping function f_spec. *)
           (fun x' p => if eq_nat_dec y (f x') then Some x' else p)
           None
           (rev_natrange_list d).    
-
-    (* To check ourselves prove that these 2 implementations are equivalent *)
-    Lemma inverse_f'_eq_f'': forall d f,  build_inverse_f' d f ≡ build_inverse_f'' d f.
-    Proof.
-      intros.
-      induction d.
-      auto.
-      unfold build_inverse_f''.
-      extensionality z.
-      replace ((rev_natrange_list (S d))) with (rev (natrange_list (S d))).
-      + rewrite List.fold_left_rev_right.
-        crush.
-      + unfold natrange_list.
-        rewrite rev_involutive.
-        reflexivity.
-    Qed.
-    
-    Lemma build_inverse_Sd:
-      forall d f, build_inverse_f (S d) f ≡
-                                fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f d f y.
-    Proof.
-      intros.
-      auto.
-    Qed.
-
-    Lemma build_inverse_Sd'':
-      forall d f, build_inverse_f'' (S d) f ≡
-                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f'' d f y.
-    Proof.
-      crush.
-    Qed.
-    
-    Lemma build_inverse_Sd':
-      forall d f, build_inverse_f' (S d) f ≡
-                              fun y => if eq_nat_dec y (f d) then Some d else build_inverse_f' d f y.
-    Proof.
-      intros.
-      rewrite 2!inverse_f'_eq_f''.
-      apply build_inverse_Sd''.
-    Qed.
-    
-    Lemma inverse_f_eq_f':
-      forall d (f:nat->nat) x, build_inverse_f d x ≡ build_inverse_f' d x.
-    Proof.
-      intros.
-      induction d.
-      + simpl.
-        reflexivity.
-      +rewrite build_inverse_Sd, build_inverse_Sd'.
-       rewrite IHd.
-       reflexivity.
-    Qed.
 
     Definition partial_function_spec domain range f' :=
       forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
@@ -235,13 +150,12 @@ natrual number by index mapping function f_spec. *)
                {i o: nat}
                (f: index_map i o): inverse_map_spec i o
       :=
-      build_inverse_f' i ⟦ f ⟧.
+      build_inverse_f i ⟦ f ⟧.
     Next Obligation.
       destruct f.  simpl.
       unfold partial_function_spec.
-      rewrite inverse_f'_eq_f''.
       intros.
-      unfold build_inverse_f'' in H0.
+      unfold build_inverse_f in H0.
       induction i.
       crush.
       simpl in H0.
@@ -261,7 +175,6 @@ natrual number by index mapping function f_spec. *)
         | None => fun _ => None
         | Some z => fun p => Vnth x (f'_dr n np z p)
         end eq_refl.
-
 
     Program Definition Scatter {A:Type}
             {i o: nat}
