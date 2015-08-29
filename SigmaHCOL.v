@@ -129,17 +129,6 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
 
-    (* definition using map/fold_right *)
-    Definition build_inverse_f
-             (d: nat)
-             (f: nat -> nat) :
-      nat -> option nat
-      := fun y =>
-           List.fold_right
-          (fun x' p => if eq_nat_dec y (f x') then Some x' else p)
-          None
-          (rev_natrange_list d).    
-
     Definition partial_function_spec domain range f' :=
       forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
     
@@ -147,15 +136,17 @@ natrual number by index mapping function f_spec. *)
       { f': nat -> option nat | partial_function_spec i o f'}.
     
     Program Definition build_inverse_map_spec
-               {i o: nat}
-               (f: index_map i o): inverse_map_spec i o
-      :=
-      build_inverse_f i ⟦ f ⟧.
+            {i o: nat}
+            (f: index_map i o): inverse_map_spec i o
+      := fun y =>
+           List.fold_right
+             (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
+             None
+             (rev_natrange_list i).
     Next Obligation.
       destruct f.  simpl.
       unfold partial_function_spec.
       intros.
-      unfold build_inverse_f in H0.
       induction i.
       crush.
       simpl in H0.
