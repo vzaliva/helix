@@ -228,63 +228,49 @@ natrual number by index mapping function f_spec. *)
     Definition partial_function_spec domain range f' :=
       forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
     
-    Lemma index_map_inverse_dom_range'
-             {domain range: nat}
-             (f: index_map domain range)
-             (f': nat -> option nat):
-      f' ≡ build_inverse_f' domain ⟦ f ⟧ -> partial_function_spec domain range f'.
-    Proof.
+    Definition inverse_map_spec (i o: nat) :=
+      { f': nat -> option nat | partial_function_spec i o f'}.
+    
+    Program Definition build_inverse_map_spec
+               {i o: nat}
+               (f: index_map i o): inverse_map_spec i o
+      :=
+      build_inverse_f' i ⟦ f ⟧.
+    Next Obligation.
       destruct f.  simpl.
-      
       unfold partial_function_spec.
       rewrite inverse_f'_eq_f''.
       intros.
-      subst f'.
-      
-      unfold build_inverse_f'' in H1.
-      induction domain.
+      unfold build_inverse_f'' in H0.
+      induction i.
       crush.
+      simpl in H0.
+      destruct (eq_nat_dec x (index_f i)); crush.
+    Defined.
 
-      simpl in H1.
-      destruct (eq_nat_dec x (index_f domain)); crush.
-    Qed.
-    
-    Lemma index_map_inverse_dom_range
-             {domain range: nat}
-             (f: index_map domain range)
-             (f': nat -> option nat):
-      f' ≡ build_inverse_f domain ⟦ f ⟧ -> partial_function_spec domain range f'.
-    Proof.
-      rewrite inverse_f_eq_f'.
-      apply index_map_inverse_dom_range'.
-      exact ⟦f⟧.
-    Qed.
-
-    (* Returns an element of the vector 'x' which is result of mapping of given
-natrual number by index mapping partial function 'f'*)
-    Definition VnthInverseIndexMapped {A:Type}
+    Definition VnthInverseIndexMapped' {A:Type}
                {i o:nat}
                (x: svector A i)
-               (f': nat -> option nat)
-               (f'_spec: partial_function_spec i o f')
+               (f'_spec: inverse_map_spec i o)
                (n:nat) (np: n<o)
       : option A
       :=
+               let f' := proj1_sig f'_spec in
+               let f'_dr := proj2_sig f'_spec in
         match (f' n) as fn return f' n ≡ fn -> option A with        
         | None => fun _ => None
-        | Some z => fun p => Vnth x (f'_spec n np z p)
+        | Some z => fun p => Vnth x (f'_dr n np z p)
         end eq_refl.
-    
-    Definition Scatter`{Equiv A}
-               {i o: nat}
-               (f: index_map i o)
-               (x: svector A i) : vector A o
-      :=
-        let f' := build_inverse_f' o ⟦ f ⟧ in
-        let f'_spec := index_map_inverse_dom_range f f' in 
-        Vbuild (VnthInverseIndexMapped x f' f'_spec).
 
-                      
+
+    Program Definition Scatter {A:Type}
+            {i o: nat}
+            (f: index_map i o)
+            (x: svector A i) : svector A o
+      :=
+        Vbuild (fun n np =>
+            VnthInverseIndexMapped' x (build_inverse_map_spec f) n np).
+
     Lemma Scatter_spec `{Equiv A}
                {i o: nat}
                (f: index_map i o)
