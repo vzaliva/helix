@@ -149,7 +149,7 @@ Qed.
 Section Primitive_Functions.
   
   Program Definition identity_index_map
-          (dr: nat):
+          (dr: nat) {dp: dr>0}:
     index_map dr dr
     := IndexMap dr dr (id) _.
   
@@ -265,14 +265,12 @@ Section Function_Rules.
 
   Local Open Scope index_f_scope.
 
-
-  (* NOTE: n>0 constraint addded! Not in paper *)
   Lemma index_map_rule_40:
     forall n (np: n>0)
       {range_bound_h_0: 0 + pred n * 1 < n}
       {c1_gt_0: 1>0}
     ,
-      identity_index_map n = @h_index_map n n 0 1
+      @identity_index_map n np = @h_index_map n n 0 1
                                           range_bound_h_0 c1_gt_0.
   Proof.
     intros.
