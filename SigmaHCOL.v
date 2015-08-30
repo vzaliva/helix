@@ -153,14 +153,26 @@ natrual number by index mapping function f_spec. *)
     
     Lemma Scatter_spec `{Equiv A}
           {i o: nat}
-               (f: index_map i o)
-               (x: svector A i)
-               (y : svector A o):
+          (f: index_map i o)
+          (x: svector A i)
+          (y : svector A o):
+      (Scatter f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped' x (build_inverse_map_spec f) n ip.
+    Proof.
+      unfold Scatter, Vbuild. 
+      destruct (Vbuild_spec
+                  (λ (n : nat) (np : n < o),
+       VnthInverseIndexMapped' x (build_inverse_map_spec f) n np)) as [Vv Vs].
+      simpl.
+      intros.
+      subst.
+      auto.
+    Qed.
+
+    (* 
       Scatter f x ≡ y -> 
         ∀ ny (yp : ny < o),
           ((exists nx (xp: nx<i), ⟦ f ⟧ nx ≡ ny -> Vnth y yp ≡ Vnth x xp) \/ (is_None (Vnth y yp))).
-    Proof.
-    Qed.
+    *)
     
   End IndexedOperators.
 
