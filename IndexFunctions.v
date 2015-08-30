@@ -43,6 +43,34 @@ Global Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
+
+Section Inversions.
+  Definition partial_function_spec domain range f' :=
+    forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
+  
+  Definition inverse_map_spec (i o: nat) :=
+    { f': nat -> option nat | partial_function_spec i o f'}.
+  
+  Program Definition build_inverse_map_spec
+          {i o: nat}
+          (f: index_map i o): inverse_map_spec i o
+    := fun y =>
+         List.fold_right
+           (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
+           None
+           (rev_natrange_list i).
+  Next Obligation.
+    destruct f.  simpl.
+    unfold partial_function_spec.
+    intros.
+    induction i.
+    crush.
+    simpl in H0.
+    destruct (eq_nat_dec x (index_f0 i)); crush.
+  Defined.
+End Inversions.
+  
+
 Section Permutations.
   Fixpoint natrange_f_spec
            (n:nat)

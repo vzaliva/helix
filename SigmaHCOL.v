@@ -128,31 +128,7 @@ natrual number by index mapping function f_spec. *)
       apply Gather_preserves_P.
       assumption.
     Qed.
-
-    Definition partial_function_spec domain range f' :=
-      forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
     
-    Definition inverse_map_spec (i o: nat) :=
-      { f': nat -> option nat | partial_function_spec i o f'}.
-    
-    Program Definition build_inverse_map_spec
-            {i o: nat}
-            (f: index_map i o): inverse_map_spec i o
-      := fun y =>
-           List.fold_right
-             (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
-             None
-             (rev_natrange_list i).
-    Next Obligation.
-      destruct f.  simpl.
-      unfold partial_function_spec.
-      intros.
-      induction i.
-      crush.
-      simpl in H0.
-      destruct (eq_nat_dec x (index_f i)); crush.
-    Defined.
-
     Definition VnthInverseIndexMapped' {A:Type}
                {i o:nat}
                (x: svector A i)
@@ -160,23 +136,23 @@ natrual number by index mapping function f_spec. *)
                (n:nat) (np: n<o)
       : option A
       :=
-               let f' := proj1_sig f'_spec in
-               let f'_dr := proj2_sig f'_spec in
+        let f' := proj1_sig f'_spec in
+        let f'_dr := proj2_sig f'_spec in
         match (f' n) as fn return f' n ≡ fn -> option A with        
         | None => fun _ => None
         | Some z => fun p => Vnth x (f'_dr n np z p)
         end eq_refl.
-
+    
     Program Definition Scatter {A:Type}
             {i o: nat}
             (f: index_map i o)
             (x: svector A i) : svector A o
       :=
         Vbuild (fun n np =>
-            VnthInverseIndexMapped' x (build_inverse_map_spec f) n np).
-
+                  VnthInverseIndexMapped' x (build_inverse_map_spec f) n np).
+    
     Lemma Scatter_spec `{Equiv A}
-               {i o: nat}
+          {i o: nat}
                (f: index_map i o)
                (x: svector A i)
                (y : svector A o):
