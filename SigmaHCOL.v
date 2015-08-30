@@ -191,15 +191,6 @@ natrual number by index mapping function f_spec. *)
       Scatter 
         (@h_index_map i o base stride domain_bound sc).
   
-  Definition ScatHUnion `{Equiv A}
-             {n:nat} (base:nat) (pad:nat):
-    svector A n -> svector A (base+((S pad)*n))
-    :=
-      Gather 
-        (@ScatHBackwardMap_Spec n (base + (S pad) * n) base pad
-                                (eq_refl _)
-        ).
-  
 End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.
