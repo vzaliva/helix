@@ -174,6 +174,7 @@ Section Primitive_Functions.
           {domain range: nat}
           (b s: nat)
           {range_bound: (b+(pred domain)*s) < range}
+          {sc: s>0} (* required constraint, according by Franz *)
     : index_map domain range
     :=
       IndexMap domain range (fun i => b + i*s) _.

@@ -168,43 +168,28 @@ natrual number by index mapping function f_spec. *)
       auto.
     Qed.
 
-    (* 
-      Scatter f x ≡ y -> 
-        ∀ ny (yp : ny < o),
-          ((exists nx (xp: nx<i), ⟦ f ⟧ nx ≡ ny -> Vnth y yp ≡ Vnth x xp) \/ (is_None (Vnth y yp))).
-    *)
-    
   End IndexedOperators.
 
   (* TODO: additional property, assuring that we access only initialized values? *)
   Definition GathH `{Equiv A}
              (i o base stride: nat)
              {range_bound: (base+(pred o)*stride) < i}
+             {sc: stride>0} 
     :
       (svector A i) -> svector A o
     :=
       Gather 
-        (@h_index_map o i base stride range_bound).
+        (@h_index_map o i base stride range_bound sc).
 
-  Program Definition ScatHBackwardMap_Spec
-          (i o base pad: nat)
-          {iodep: (base + (S pad) * i) ≡ o}: index_map_spec o i :=
-    fun n dom_bound =>
-      match lt_dec n base with
-      | left _ => None
-      | right _ => let ab := divmod (n-base) pad 0 pad in
-                  if eq_nat_dec (snd ab) pad then Some (fst ab) else None
-      end.
-  Next Obligation.
-    rename base into b.  rename pad into p.
-    assert (W: ¬(n < b)%nat) by auto.
-    clear Heq_anonymous wildcard'. 
-    generalize (divmod_spec (n - b) p 0 p).
-    destruct divmod as (q,u).
-    simpl in *.
-    subst.
-    nia.
-  Defined.
+  Definition ScatH `{Equiv A}
+             (i o base stride: nat)
+             {domain_bound: (base+(pred i)*stride) < o}
+             {sc: stride>0} 
+    :
+      (svector A i) -> svector A o
+    :=
+      Scatter 
+        (@h_index_map i o base stride domain_bound sc).
   
   Definition ScatHUnion `{Equiv A}
              {n:nat} (base:nat) (pad:nat):
@@ -214,7 +199,7 @@ natrual number by index mapping function f_spec. *)
         (@ScatHBackwardMap_Spec n (base + (S pad) * n) base pad
                                 (eq_refl _)
         ).
-
+  
 End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.
