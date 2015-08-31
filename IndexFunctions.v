@@ -174,7 +174,7 @@ Section Primitive_Functions.
           {domain range: nat}
           (b s: nat)
           {range_bound: (b+(pred domain)*s) < range}
-          {sc: s>0} (* required constraint, according by Franz *)
+          {snz: s ≢ 0} (* required constraint, according by Franz *)
     : index_map domain range
     :=
       IndexMap domain range (fun i => b + i*s) _.
@@ -328,10 +328,10 @@ Section Function_Rules.
   Lemma index_map_rule_40:
     forall n (np: n>0)
       {range_bound_h_0: 0 + pred n * 1 < n}
-      {c1_gt_0: 1>0}
+      {c1_ne_0: 1≢0}
     ,
       @identity_index_map n np = @h_index_map n n 0 1
-                                              range_bound_h_0 c1_gt_0.
+                                              range_bound_h_0 c1_ne_0.
   Proof.
     intros.
     unfold identity_index_map, h_index_map, equiv, index_map_equiv, id.

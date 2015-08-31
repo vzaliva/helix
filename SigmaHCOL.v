@@ -174,22 +174,22 @@ natrual number by index mapping function f_spec. *)
   Definition GathH `{Equiv A}
              (i o base stride: nat)
              {range_bound: (base+(pred o)*stride) < i}
-             {sc: stride>0} 
+             {snz: stride ≢ 0} 
     :
       (svector A i) -> svector A o
     :=
       Gather 
-        (@h_index_map o i base stride range_bound sc).
+        (@h_index_map o i base stride range_bound snz).
 
   Definition ScatH `{Equiv A}
              (i o base stride: nat)
              {domain_bound: (base+(pred i)*stride) < o}
-             {sc: stride>0} 
+             {snz: stride ≢ 0} 
     :
       (svector A i) -> svector A o
     :=
       Scatter 
-        (@h_index_map i o base stride domain_bound sc).
+        (@h_index_map i o base stride domain_bound snz).
   
 End SigmaHCOL_Operators.
 
@@ -222,7 +222,7 @@ Section SigmaHCOL_Language.
   
   Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatHUnion {i o} (base pad:aexp): SOperator i o
+  | SHOScatHUnion {i o} (base stride:aexp): SOperator i o
   | SHOGathH {i o} (base stride: aexp): SOperator i o
   (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
@@ -386,22 +386,30 @@ Section SigmaHCOL_Language.
       inversion H.
       reflexivity.
     Qed.
-    
+
     Definition evalScatHUnion
                {i o: nat}
                (st:state)
-               (base pad:aexp)
+               (base stride:aexp)
                (v:svector A i):
       @maybeError (svector A o) :=
-      match evalAexp st base, evalAexp st pad with
-      | OK nbase, OK npad =>
-        (cast_vector_operator (B:=option A) (C:=option A)
-                              i (nbase + S npad * i)
-                              i o
-                              (OK ∘ (ScatHUnion (n:=i) nbase npad))) v
+      match evalAexp st base, evalAexp st stride with
+      | OK nbase, OK nstride =>
+        match eq_nat_dec nstride 0 with
+        | left _ => Error "SHOScatH stride must not be 0"
+        | right snz =>
+          match lt_dec (nbase+(pred i)*nstride) o with
+          | right _ => Error "SHOScatH output size is too small for given params"
+          | left domain_bound =>
+            OK (ScatH
+                  (snz:=snz)
+                  (domain_bound:=domain_bound)
+                  i o nbase nstride v)
+          end
+        end
       |  _, _ => Error "Undefined variables in ScatHUnion arguments"
       end.
-    
+
     Definition evalGathH
                {i o: nat}
                (st:state)
@@ -409,7 +417,7 @@ Section SigmaHCOL_Language.
                (v: svector A i):  @maybeError (svector A o) :=
       match evalAexp st base, evalAexp st stride with
       | OK nbase, OK nstride =>
-        match eq_nat_dec 0 nstride with
+        match eq_nat_dec nstride 0 with
         | left _ => Error "SHOGathH stride must not be 0"
         | right snz =>
           match lt_dec (nbase+(pred o)*nstride) i with
@@ -506,7 +514,7 @@ Section SigmaHCOL_Language.
                    end) st p
               | _  => Error "Undefined variables in SHOISumUnion arguments"
               end) 
-         | SHOScatHUnion _ _ base pad => evalScatHUnion st base pad
+         | SHOScatHUnion _ _ base stride => evalScatHUnion st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
          | SHOBinOp _ f _ => evalBinOp st f
          | SOHCOL _ _ h => evalHOperator h
