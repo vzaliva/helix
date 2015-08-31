@@ -188,16 +188,16 @@ Pre-condition:
         injection H1. clear H1.
         unfold GathH.
         intros.
-        assert(GS: ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x (IndexFunctions.h_index_map nbase nstride (range_bound:=HD) (snz:=Hsnz)) n ip) by 
-            (apply Gather_spec, H1).
-        subst y.
-        rewrite GS.
+        
+        apply Gather_spec with (IndexFunctions.h_index_map nbase nstride) x y n HY in H1 .
+        rewrite H1.
         unfold VnthIndexMapped.
         simpl.
         generalize (IndexFunctions.h_index_map_obligation_1 o i nbase nstride HD Hsnz n
                                                             HY) as gath_map_oc.
         intros.
-        assert (gath_map_oc ≡ HX). apply proof_irrelevance. rewrite H1.
+        assert (gath_map_oc ≡ HX). apply proof_irrelevance.
+        rewrite H2.
         reflexivity.
       + congruence.
   Qed.
