@@ -127,19 +127,21 @@ Pre-condition:
 
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
-  Lemma ScatPre: forall (i o nbase npad: nat) (base pad:aexp) (st:state)
+  Lemma ScatPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
       ((evalAexp st base ≡ OK nbase) /\
-       (evalAexp st pad ≡ OK npad) /\
-       (o ≡ (nbase + S npad * i))) ->
-      is_OK (evalSigmaHCOL st (SHOScatHUnion  (i:=i) (o:=o) base pad) x).
+       (evalAexp st stride ≡ OK nstride) /\
+       ((nbase+(pred i)*nstride) < o) /\
+       (nstride ≢ 0)) ->
+       is_OK (evalSigmaHCOL st (SHOScatHUnion (i:=i) (o:=o) base stride) x).
   Proof.
     intros.
     crush.
     unfold evalScatHUnion.
     crush.
-    apply cast_vector_operator_OK_OK.
-    auto.
+    destruct lt_dec, eq_nat_dec; err_ok_elim.
+    contradiction n0.
+    contradiction n.
   Qed.
 
   (* Checks preconditoins of evaluation of SHOGathH to make sure it succeeds*)
@@ -155,12 +157,11 @@ Pre-condition:
     simpl.
     unfold evalGathH.
     crush.
-    destruct lt_dec, nstride; err_ok_elim.
+    destruct lt_dec, eq_nat_dec; err_ok_elim.
     contradiction.
   Qed.
 
-  (* TODO: should be GatherH not Gather *)
-  Lemma GathInvariant: forall (i o nbase nstride: nat)
+  Lemma GatHInvariant: forall (i o nbase nstride: nat)
                          (base stride:aexp) (st:state)
                          (x: svector A i) (y: svector A o)
                          (n:nat) (HY: n<o) (HX: (nbase + n*nstride) < i)
