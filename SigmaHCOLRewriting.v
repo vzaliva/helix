@@ -173,31 +173,31 @@ Pre-condition:
       Vnth x HX ≡ Vnth y HY.
   Proof.
     simpl.
-    intros. 
-
+    intros.
+    
     revert H1.
     unfold evalGathH.
     rewrite H0, H.
-
-    case eq_nat_dec.
-    - intros. symmetry in e. contradiction.
+    
+    case eq_nat_dec. 
+    - intros. contradiction.
     - intros Hsnz. 
       case lt_dec.
       + intros HD. clear range_bound. (* range_bound = HD *)
-        intros. injection H1. clear H1.
+        intros.
+        injection H1. clear H1.
         unfold GathH.
-        intros. rewrite <- H1. clear H1.
-        unfold vector_index_backward_operator.
-        unfold vector_index_backward_operator_spec.
-        destruct (Vbuild_spec _). simpl. rewrite e. clear e.
-        unfold GathBackwardMap_Spec. 
-        generalize (GathBackwardMap_Spec_obligation_1 i o nbase
-                                                      nstride Hsnz HD) as gath_map_oc. intros.
+        intros.
+        assert(GS: ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x (IndexFunctions.h_index_map nbase nstride (range_bound:=HD) (snz:=Hsnz)) n ip) by 
+            (apply Gather_spec, H1).
+        subst y.
+        rewrite GS.
         unfold VnthIndexMapped.
         simpl.
-        generalize (gath_map_oc n HY (nbase + n * nstride) eq_refl) as HX1. clear gath_map_oc.
+        generalize (IndexFunctions.h_index_map_obligation_1 o i nbase nstride HD Hsnz n
+                                                            HY) as gath_map_oc.
         intros.
-        assert (HX1 ≡ HX). apply proof_irrelevance. rewrite H1.
+        assert (gath_map_oc ≡ HX). apply proof_irrelevance. rewrite H1.
         reflexivity.
       + congruence.
   Qed.
