@@ -201,25 +201,9 @@ Pre-condition:
         reflexivity.
       + congruence.
   Qed.
-
-  
-  (* Gath on dense vector produces dense vector *)
-
-  (* TODO: not surjective. Probably total *)
-  Lemma gath_map_surj:
-    ∀ (i o base stride : nat) (snz : 0 ≢ stride) (range_bound : base + pred o * stride < i),
-      index_map_is_surjective i o
-                                   (GathBackwardMap_Spec
-                                      (snz:=snz)
-                                      (range_bound:=range_bound)
-                                      i o base stride).
-  Proof.
-    unfold index_map_is_surjective.
-    simpl.
-    trivial.
-  Qed.
-  
-  Lemma GathDensePost: forall (i o: nat) (base stride:aexp) (st:state)
+    
+  (* GatH on dense vector produces dense vector *)
+  Lemma GatHDensePost: forall (i o: nat) (base stride:aexp) (st:state)
                          (y: svector A o)
                          (x: svector A i),
       svector_is_dense x -> 
@@ -232,14 +216,12 @@ Pre-condition:
     unfold evalGathH.
     destruct (evalAexp st base); try congruence.
     destruct (evalAexp st stride); try congruence.
-    destruct (eq_nat_dec 0 n0); try congruence.
+    destruct (eq_nat_dec n0 0); try congruence.
     destruct lt_dec; try congruence.
     inversion 1.
     unfold GathH in *.
-    apply vector_index_backward_operator_is_dense; try assumption.
-    apply gath_map_surj.
+    apply Gather_preserves_density; try assumption.
   Qed.
-
 
   (* Ensures that variable var is not affecting evaluation of expression. to prove it all we need to make sure it is free in exp *)
   Definition evalsToWithVar
