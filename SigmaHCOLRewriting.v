@@ -127,7 +127,7 @@ Pre-condition:
 
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
-  Lemma ScatPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
+  Lemma ScatHPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
       ((evalAexp st base ≡ OK nbase) /\
        (evalAexp st stride ≡ OK nstride) /\
@@ -243,28 +243,26 @@ Pre-condition:
         {onz: 0 ≢ o} 
         (f:A->A->A)
         (var:varname)
-        (pad stride:aexp)
+        (sstride gstride:aexp)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (st : state) (x : vector (option A) (o + o))
-        (padE: evalsToWithVar var st pad o)
-        (strideE: evalsToWithVar var st stride o)
+        (gstrideE: evalsToWithVar var st gstride o)
+        (sstrideE: evalsToWithVar var st sstride o)
         (xdense: svector_is_dense x):
     
     evalSigmaHCOL st (SHOBinOp o f) x =
     evalSigmaHCOL st (SHOISumUnion var (AConst o)
                                    (SHOCompose _ _
-                                               (SHOScatHUnion (AValue var) pad)
+                                               (SHOScatHUnion (AValue var) sstride)
                                                (SHOCompose _ _ 
                                                            (SHOBinOp 1 f)
-                                                           (SHOGathH (i:=o+o) (AValue var) stride)))) x.
+                                                           (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
   Proof.
     intros.
     unfold evalSigmaHCOL at 1.
-    assert(b1OK: is_OK (@evalBinOp A (o + o) o st f x)).
-    {
-      apply BinOpPre;
-      assumption.
-    }
+    assert(b1OK: is_OK (@evalBinOp A (o + o) o st f x))
+      by (apply BinOpPre; assumption).
+
     (* LHS taken care of *)
     unfold evalSigmaHCOL at 1.
     break_match_goal; try (simpl in Heqm; err_ok_elim).
@@ -272,18 +270,18 @@ Pre-condition:
     break_match_goal; try congruence. 
     induction n0.
     + simpl.
-      assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) stride x)).
+      assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x)).
       {
         apply GathPre with (nbase:=0) (nstride:=1).
         split. apply update_eval.
-        split. apply strideE.
-        split; auto.
+        split. apply gstrideE.
+        lia.
       } 
-      case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) stride x).
+      case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x).
       Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
 
       intros.
-      apply GathDensePost in H; try assumption.
+      apply GatHDensePost in H; try assumption.
       assert(bOK: is_OK (@evalBinOp A 2 1 (update st var 0) f t))
         by (apply BinOpPre; assumption).
 
@@ -291,18 +289,14 @@ Pre-condition:
       Focus 2. intros s C. rewrite C in bOK. err_ok_elim.
 
       intros.
-      
-      assert(sOK: is_OK (evalScatHUnion (o:=1) (update st var 0) (AValue var) pad t0)).
+      assert(sOK: is_OK (evalScatHUnion (o:=1) (update st var 0) (AValue var) sstride t0)).
       {
-        apply ScatPre with (nbase:=0) (npad:=1).
+        apply ScatHPre with (nbase:=0) (nstride:=1).
         split. apply update_eval.
-        split. apply padE.
-
-        (* Something serously wrong here. Perhaps induction was wrong approach.
-         Scat i=o=1 is not possible. *)
-        split; auto.
+        split. apply sstrideE.
+        lia.
       }
-
+      subst.
       
   Qed.
   
