@@ -267,7 +267,8 @@ Pre-condition:
     unfold evalSigmaHCOL at 1.
     break_match_goal; try (simpl in Heqm; err_ok_elim).
     inversion Heqm as [ON]. rewrite <- ON. clear ON.
-    break_match_goal; try congruence. 
+    break_match_goal; try congruence.
+
     induction n0.
     + simpl.
       assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x)).
@@ -279,7 +280,7 @@ Pre-condition:
       } 
       case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x).
       Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
-
+      
       intros.
       apply GatHDensePost in H; try assumption.
       assert(bOK: is_OK (@evalBinOp A 2 1 (update st var 0) f t))
@@ -287,7 +288,7 @@ Pre-condition:
 
       case_eq (@evalBinOp A 2 1 (update st var 0) f t).
       Focus 2. intros s C. rewrite C in bOK. err_ok_elim.
-
+      
       intros.
       assert(sOK: is_OK (evalScatHUnion (o:=1) (update st var 0) (AValue var) sstride t0)).
       {
@@ -296,7 +297,18 @@ Pre-condition:
         split. apply sstrideE.
         lia.
       }
+      
+      inversion Heqm as [N1].
       subst.
+      clear Heqm onz.
+
+      destruct (evalScatHUnion (update st var 0) (AValue var) sstride t0) eqn:sOK1; err_ok_elim.
+      (* we need to do this as 2=1+1 used in b10K *)
+      assert(b1OK':@is_OK (vector (option A) 1) (@evalBinOp A 2 1 st f x)) by auto.
+      clear b1OK.
+      destruct (@evalBinOp A 2 1 st f x) eqn: b10K ; err_ok_elim.
+
+      
       
   Qed.
   
