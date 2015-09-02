@@ -286,6 +286,7 @@ Section SigmaHCOL_Language.
     congruence.
   Qed.
 
+  (* TODO: generalize (AValue var1) as (free var exp:Prop) *)
   Lemma update_unrelated:
     ∀ (var0 var1 : varname) (st : state) (x:nat),
       var0 ≢ var1 ->
@@ -298,7 +299,6 @@ Section SigmaHCOL_Language.
     contradiction.
     reflexivity.
   Qed.
-
   
   Section SigmaHCOL_Eval.
     Context    

@@ -318,9 +318,17 @@ Pre-condition:
 
       rewrite update_eval in Heqm. inversion Heqm. clear Heqm.
       subst n.
+
+      rewrite sstrideE in Heqm0. inversion Heqm0. clear Heqm0.
+      subst n0.
       
       unfold ScatH in H2.
-      apply Scatter_spec with 1 1 (IndexFunctions.h_index_map 0 n0) t0 t1 in H2.
+      assert(SS: ∀ n (ip : n < 1), Vnth t1 ip ≡ VnthInverseIndexMapped' t0 (IndexFunctions.build_inverse_map_spec (@IndexFunctions.h_index_map 1 1 0 1 l n1)) n ip).
+      {
+        apply Scatter_spec. assumption.
+      }
+
+      apply Scatter_spec with 1 1 (@IndexFunctions.h_index_map 1 1 0 1 l n1) t0 t1 in H2.
   Qed.
   
 
