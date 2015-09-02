@@ -269,7 +269,11 @@ Pre-condition:
     inversion Heqm as [ON]. rewrite <- ON. clear ON.
     break_match_goal; try congruence.
 
+    inversion Heqm as [N1]. clear Heqm.
+    subst.
+
     induction n0.
+    clear onz.
     + simpl.
       assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x)).
       {
@@ -297,19 +301,13 @@ Pre-condition:
         split. apply sstrideE.
         lia.
       }
-      
-      inversion Heqm as [N1].
-      subst.
-      clear Heqm onz.
 
       destruct (evalScatHUnion (update st var 0) (AValue var) sstride t0) eqn:sOK1; err_ok_elim.
       (* we need to do this as 2=1+1 used in b10K *)
       assert(b1OK':@is_OK (vector (option A) 1) (@evalBinOp A 2 1 st f x)) by auto.
       clear b1OK.
       destruct (@evalBinOp A 2 1 st f x) eqn: b10K ; err_ok_elim.
-
-      
-      
+      unfold equiv, maybeError_equiv.
   Qed.
   
 
