@@ -301,23 +301,20 @@ Section SigmaHCOL_Language.
       varFreeIn v exp ->
       evalAexp (update st v x) exp ≡ evalAexp st exp.
   Proof.
-    intros v exp st x F.
-    induction exp.
-    auto.
+    Local Ltac uniop_case F :=
+      (unfold varFreeIn in F;
+       unfold update; simpl;
+       destruct eq_varname_dec; congruence).
 
-    unfold varFreeIn in F.
-    unfold update. simpl.
-    destruct eq_varname_dec; congruence.
-
-    Local Ltac t F H1 H2:=
+    Local Ltac binop_case F H1 H2:=
       (simpl in F; decompose [and] F; clear F;
-      unfold evalAexp; fold evalAexp;
-      rewrite H1, H2; 
-      [reflexivity | assumption| assumption]).
-
-    t F IHexp1 IHexp2.
-    t F IHexp1 IHexp2.
-    t F IHexp1 IHexp2.
+       unfold evalAexp; fold evalAexp;
+       rewrite H1, H2; 
+       [reflexivity | assumption| assumption]).
+    
+    intros v exp st x F.
+    induction exp;
+      solve [ auto | uniop_case F | binop_case F IHexp1 IHexp2].
   Qed.
   
   Section SigmaHCOL_Eval.
