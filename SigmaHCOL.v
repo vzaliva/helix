@@ -286,18 +286,38 @@ Section SigmaHCOL_Language.
     congruence.
   Qed.
 
-  (* TODO: generalize (AValue var1) as (free var exp:Prop) *)
-  Lemma update_unrelated:
-    ∀ (var0 var1 : varname) (st : state) (x:nat),
-      var0 ≢ var1 ->
-      evalAexp (update st var0 x) (AValue var1) ≡ evalAexp st (AValue var1).
+  Fixpoint varFreeIn (v:varname) (e: aexp) : Prop
+    :=
+      match e with
+      | AConst _ => True
+      | AValue x => x<>v
+      | APlus a b => varFreeIn v a /\ varFreeIn v b
+      | AMinus a b => varFreeIn v a /\ varFreeIn v b
+      | AMult a b => varFreeIn v a /\ varFreeIn v b
+      end.
+  
+  Lemma eval_update_free:
+    ∀ (v: varname) (exp:aexp) (st : state) (x:nat),
+      varFreeIn v exp ->
+      evalAexp (update st v x) exp ≡ evalAexp st exp.
   Proof.
-    intros var0 var1 st x v01eq.
-    simpl.
-    unfold update.
-    destruct eq_varname_dec.
-    contradiction.
-    reflexivity.
+    intros v exp st x F.
+    induction exp.
+    auto.
+
+    unfold varFreeIn in F.
+    unfold update. simpl.
+    destruct eq_varname_dec; congruence.
+
+    Local Ltac t F H1 H2:=
+      (simpl in F; decompose [and] F; clear F;
+      unfold evalAexp; fold evalAexp;
+      rewrite H1, H2; 
+      [reflexivity | assumption| assumption]).
+
+    t F IHexp1 IHexp2.
+    t F IHexp1 IHexp2.
+    t F IHexp1 IHexp2.
   Qed.
   
   Section SigmaHCOL_Eval.
