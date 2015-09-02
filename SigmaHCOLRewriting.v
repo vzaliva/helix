@@ -308,6 +308,19 @@ Pre-condition:
       clear b1OK.
       destruct (@evalBinOp A 2 1 st f x) eqn: b10K ; err_ok_elim.
       unfold equiv, maybeError_equiv.
+
+      unfold evalScatHUnion in sOK1. repeat break_match_hyp.
+      err_ok_elim. inversion sOK1. clear sOK1.
+
+      unfold evalBinOp in b10K. break_match_hyp.
+      apply cast_vector_operator_OK_elim in b10K.
+      subst t2.
+
+      rewrite update_eval in Heqm. inversion Heqm. clear Heqm.
+      subst n.
+      
+      unfold ScatH in H2.
+      apply Scatter_spec with 1 1 (IndexFunctions.h_index_map 0 n0) t0 t1 in H2.
   Qed.
   
 
