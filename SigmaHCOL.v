@@ -285,6 +285,20 @@ Section SigmaHCOL_Language.
     reflexivity.
     congruence.
   Qed.
+
+  Lemma update_unrelated:
+    ∀ (var0 var1 : varname) (st : state) (x:nat),
+      var0 ≢ var1 ->
+      evalAexp (update st var0 x) (AValue var1) ≡ evalAexp st (AValue var1).
+  Proof.
+    intros var0 var1 st x v01eq.
+    simpl.
+    unfold update.
+    destruct eq_varname_dec.
+    contradiction.
+    reflexivity.
+  Qed.
+
   
   Section SigmaHCOL_Eval.
     Context    
