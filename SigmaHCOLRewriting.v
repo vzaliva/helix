@@ -258,7 +258,6 @@ Pre-condition:
                                                            (SHOBinOp 1 f)
                                                            (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
   Proof.
-    intros.
     unfold evalSigmaHCOL at 1.
     assert(b1OK: is_OK (@evalBinOp A (o + o) o st f x))
       by (apply BinOpPre; assumption).
@@ -266,11 +265,9 @@ Pre-condition:
     (* LHS taken care of *)
     unfold evalSigmaHCOL at 1.
     break_match_goal; try (simpl in Heqm; err_ok_elim).
-    inversion Heqm as [ON]. rewrite <- ON. clear ON.
+    inversion Heqm as [ON]. clear Heqm. subst.
     break_match_goal; try congruence.
 
-    inversion Heqm as [N1]. clear Heqm.
-    subst.
 
     induction n0.
     clear onz.
