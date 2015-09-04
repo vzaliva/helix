@@ -526,8 +526,6 @@ Section SigmaHCOL_Language.
       | OK dv =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
       end.
 
-    Set Printing Implicit. 
-
     Fixpoint evalSigmaHCOL
              {i o: nat}
              (st:state)
@@ -536,12 +534,7 @@ Section SigmaHCOL_Language.
       :=
         (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
          with
-         | SHOCompose _ _ _ f g  =>
-           (fun v0 =>
-              match evalSigmaHCOL st g v0 with
-              | Error msg => Error msg
-              | OK gv => evalSigmaHCOL st f gv
-              end)
+           (*
          | SHOISumUnion _ _ var r body as su =>
            (fun v0 => 
               match (evalAexp st r)
@@ -555,6 +548,34 @@ Section SigmaHCOL_Language.
                 List.fold_left (@ErrSparseUnion A o) v' z
               end
            )
+            *)
+         | SHOISumUnion _ _ var r body =>
+           (fun v0 =>
+              match evalAexp st r with
+              | OK O => Error "Invalid SHOISumUnion range"
+              | OK (S p) =>
+                (fix evalISUM (st:state) (nr:nat) {struct nr}:
+                   @maybeError (svector A _) :=
+                   match nr with
+                   | O => evalSigmaHCOL (update st var nr) body v0
+                   | S p =>
+                     match evalSigmaHCOL (update st var nr) body v0 with
+                     | OK x =>
+                       match evalISUM st p with
+                       | OK xs => SparseUnion x xs
+                       |  Error _ as e => e
+                       end
+                     |  Error _ as e => e
+                     end
+                   end) st p
+              | _  => Error "Undefined variables in SHOISumUnion arguments"
+              end) 
+         | SHOCompose _ _ _ f g  =>
+           (fun v0 =>
+              match evalSigmaHCOL st g v0 with
+              | Error msg => Error msg
+              | OK gv => evalSigmaHCOL st f gv
+              end)
          | SHOScatHUnion _ _ base stride => evalScatHUnion st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
          | SHOBinOp _ f _ => evalBinOp st f
