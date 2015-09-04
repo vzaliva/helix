@@ -543,7 +543,7 @@ Section SigmaHCOL_Language.
               | OK (S p) =>
                 let v' := List.map (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
                                    (rev_natrange_list (S p)) in
-                let z := OK (@Vconst (option A) None o) in 
+                let z := OK (empty_svector o) in 
                 List.fold_left (@ErrSparseUnion A o) v' z
               end
            )

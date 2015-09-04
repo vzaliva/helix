@@ -26,6 +26,9 @@ Definition svector_from_vector {A} {n} (v:vector A n): svector A n :=
 Definition svector_is_dense {A} {n} (v:svector A n) : Prop :=
   Vforall is_Some v.
 
+Definition empty_svector {A} n: svector A n := @Vconst (option A) None n.
+    
+
 Definition from_Some {A} (x:option A) {S: is_Some x}: A :=
   match x as o return (@is_Some A o -> A) with
   | Some a => fun _ : @is_Some A (@Some A a) => a
