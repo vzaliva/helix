@@ -43,6 +43,19 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
               end
   end.
 
+Definition ErrSparseUnion {A} {n}
+           (a: @maybeError (svector A n))
+           (b: @maybeError (svector A n))
+           : @maybeError (svector A n)
+  := 
+    match a, b with
+    | Error _ as e, Error _ => e (* TODO: combine error messages *)
+    | Error _ as e, OK _ => e
+    | OK _, Error _ as e  => e
+    | OK a', OK b' => SparseUnion a' b'
+    end.
+
+    
 Module SigmaHCOL_Operators.
 
   Global Open Scope nat_scope.
@@ -512,10 +525,15 @@ Section SigmaHCOL_Language.
       | Error _ => Error "HOperator  expects dense vector!"
       | OK dv =>  (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
       end.
-    
-    Definition evalSigmaHCOL:
-      forall {i o:nat}, state-> SOperator i o -> svector A i -> @maybeError (svector A o) :=
-      fix evalSigmaHCOL {i o: nat} st (op: SOperator i o) v :=           
+
+    Set Printing Implicit. 
+
+    Fixpoint evalSigmaHCOL
+             {i o: nat}
+             (st:state)
+             (op: SOperator i o)
+             (v:svector A i): @maybeError (svector A o)
+      :=
         (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
          with
          | SHOCompose _ _ _ f g  =>
@@ -524,27 +542,19 @@ Section SigmaHCOL_Language.
               | Error msg => Error msg
               | OK gv => evalSigmaHCOL st f gv
               end)
-         | SHOISumUnion _ _ var r body =>
-           (fun v0 =>
-              match evalAexp st r with
+         | SHOISumUnion _ _ var r body as su =>
+           (fun v0 => 
+              match (evalAexp st r)
+              with
+              | Error _ => Error "Undefined SHOISumUnion range"
               | OK O => Error "Invalid SHOISumUnion range"
               | OK (S p) =>
-                (fix evalISUM (st:state) (nr:nat) {struct nr}:
-                   @maybeError (svector A _) :=
-                   match nr with
-                   | O => evalSigmaHCOL (update st var nr) body v0
-                   | S p =>
-                     match evalSigmaHCOL (update st var nr) body v0 with
-                     | OK x =>
-                       match evalISUM st p with
-                       | OK xs => SparseUnion x xs
-                       |  Error _ as e => e
-                       end
-                     |  Error _ as e => e
-                     end
-                   end) st p
-              | _  => Error "Undefined variables in SHOISumUnion arguments"
-              end) 
+                let v' := List.map (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
+                                   (rev_natrange_list (S p)) in
+                let z := OK (@Vconst (option A) None o) in 
+                List.fold_left (@ErrSparseUnion A o) v' z
+              end
+           )
          | SHOScatHUnion _ _ base stride => evalScatHUnion st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
          | SHOBinOp _ f _ => evalBinOp st f
@@ -552,8 +562,8 @@ Section SigmaHCOL_Language.
          | SHOInfinityNorm _ => evalInfinityNorm st
          | SOReduction _ f pf idv => evalReduction st f idv
          end) v.
-
-
+    
+        
     Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
       fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
 
