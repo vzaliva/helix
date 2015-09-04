@@ -534,8 +534,7 @@ Section SigmaHCOL_Language.
       :=
         (match op in @SOperator i o return svector A i -> @maybeError (svector A o)
          with
-           (*
-         | SHOISumUnion _ _ var r body as su =>
+         | SHOISumUnion i o var r body as su =>
            (fun v0 => 
               match (evalAexp st r)
               with
@@ -548,28 +547,6 @@ Section SigmaHCOL_Language.
                 List.fold_left (@ErrSparseUnion A o) v' z
               end
            )
-            *)
-         | SHOISumUnion _ _ var r body =>
-           (fun v0 =>
-              match evalAexp st r with
-              | OK O => Error "Invalid SHOISumUnion range"
-              | OK (S p) =>
-                (fix evalISUM (st:state) (nr:nat) {struct nr}:
-                   @maybeError (svector A _) :=
-                   match nr with
-                   | O => evalSigmaHCOL (update st var nr) body v0
-                   | S p =>
-                     match evalSigmaHCOL (update st var nr) body v0 with
-                     | OK x =>
-                       match evalISUM st p with
-                       | OK xs => SparseUnion x xs
-                       |  Error _ as e => e
-                       end
-                     |  Error _ as e => e
-                     end
-                   end) st p
-              | _  => Error "Undefined variables in SHOISumUnion arguments"
-              end) 
          | SHOCompose _ _ _ f g  =>
            (fun v0 =>
               match evalSigmaHCOL st g v0 with
