@@ -258,20 +258,21 @@ Pre-condition:
                                                            (SHOBinOp 1 f)
                                                            (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
   Proof.
+    (*
     unfold evalSigmaHCOL at 1.
-    assert(b1OK: is_OK (@evalBinOp A (o + o) o st f x))
+    assert(b1isOK: is_OK (@evalBinOp A (o + o) o st f x))
       by (apply BinOpPre; assumption).
+    destruct (evalBinOp st f x) eqn: B10K; err_ok_elim.
+     *)
 
-    (* LHS taken care of *)
-    unfold evalSigmaHCOL at 1.
+    unfold evalSigmaHCOL.
     break_match_goal; try (simpl in Heqm; err_ok_elim).
     inversion Heqm as [ON]. clear Heqm. subst.
     break_match_goal; try congruence.
-
-
-    induction n0.
     clear onz.
-    + simpl.
+    
+    induction n0.
+    +
       assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x)).
       {
         apply GathPre with (nbase:=0) (nstride:=1).
@@ -282,23 +283,35 @@ Pre-condition:
       case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x).
       Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
       
-      intros.
-      apply GatHDensePost in H; try assumption.
-      assert(bOK: is_OK (@evalBinOp A 2 1 (update st var 0) f t))
-        by (apply BinOpPre; assumption).
+      intros tg EG.
+      (* apply GatHDensePost in EG; try assumption. *)
 
-      case_eq (@evalBinOp A 2 1 (update st var 0) f t).
-      Focus 2. intros s C. rewrite C in bOK. err_ok_elim.
-      
-      intros.
-      assert(sOK: is_OK (evalScatHUnion (o:=1) (update st var 0) (AValue var) sstride t0)).
+      assert(sOK: forall gv, is_OK (evalScatHUnion (i:=1) (o:=1) (update st var 0) (AValue var) sstride gv)).
       {
+        intros.
         apply ScatHPre with (nbase:=0) (nstride:=1).
         split. apply update_eval.
         split. apply sstrideE.
+        simpl.
+        split.
         lia.
+        auto.
       }
 
+      crush.
+      assert(b1isOK: is_OK (evalBinOp (o:=1) (update st var 0) f tg )).
+      apply BinOpPre. assumption.
+      
+      apply GatHDensePost in EG; try assumption.
+
+      destruct (evalBinOp (o:=1) (update st var 0) f tg) eqn: B10K; err_ok_elim.
+      destruct (evalScatHUnion (update st var 0) (AValue var) sstride t ).
+
+
+
+      
+
+      
       destruct (evalScatHUnion (update st var 0) (AValue var) sstride t0) eqn:sOK1; err_ok_elim.
       (* we need to do this as 2=1+1 used in b10K *)
       assert(b1OK':@is_OK (vector (option A) 1) (@evalBinOp A 2 1 st f x)) by auto.

@@ -541,10 +541,10 @@ Section SigmaHCOL_Language.
               | Error _ => Error "Undefined SHOISumUnion range"
               | OK O => Error "Invalid SHOISumUnion range"
               | OK (S p) =>
-                let v' := List.map (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
-                                   (rev_natrange_list (S p)) in
-                let z := OK (empty_svector o) in 
-                List.fold_left (@ErrSparseUnion A o) v' z
+                List.fold_left (@ErrSparseUnion A o)
+                               (List.map (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
+                                         (rev_natrange_list (S p)))
+                               (OK (empty_svector o))
               end
            )
          | SHOCompose _ _ _ f g  =>
