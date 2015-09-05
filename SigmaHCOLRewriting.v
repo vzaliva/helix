@@ -271,8 +271,10 @@ Pre-condition:
     Focus 2. simpl in AO. congruence.
     clear onz.
 
-
-
+ 
+    remember (rev_natrange_list (S n)) as nr eqn: NRE.
+    dependent induction nr.
+    crush.
 
   Qed.
   
