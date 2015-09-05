@@ -258,12 +258,11 @@ Pre-condition:
                                                            (SHOBinOp 1 f)
                                                            (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
   Proof.
-    (*
+
     unfold evalSigmaHCOL at 1.
     assert(b1isOK: is_OK (@evalBinOp A (o + o) o st f x))
       by (apply BinOpPre; assumption).
     destruct (evalBinOp st f x) eqn: B10K; err_ok_elim.
-     *)
 
     unfold evalSigmaHCOL.
     break_match_goal; try (simpl in Heqm; err_ok_elim).
@@ -286,7 +285,15 @@ Pre-condition:
       intros tg EG.
       (* apply GatHDensePost in EG; try assumption. *)
 
-      assert(sOK: forall gv, is_OK (evalScatHUnion (i:=1) (o:=1) (update st var 0) (AValue var) sstride gv)).
+      crush.
+      assert(b1isOK: is_OK (evalBinOp (o:=1) (update st var 0) f tg )).
+      apply BinOpPre. assumption.
+      
+      apply GatHDensePost in EG; try assumption.
+
+      destruct (evalBinOp (o:=1) (update st var 0) f tg) eqn: B1OK; err_ok_elim.
+      
+      assert(sOK: is_OK (evalScatHUnion (i:=1) (o:=1) (update st var 0) (AValue var) sstride t0)).
       {
         intros.
         apply ScatHPre with (nbase:=0) (nstride:=1).
@@ -298,35 +305,25 @@ Pre-condition:
         auto.
       }
 
-      crush.
-      assert(b1isOK: is_OK (evalBinOp (o:=1) (update st var 0) f tg )).
-      apply BinOpPre. assumption.
-      
-      apply GatHDensePost in EG; try assumption.
+      destruct (evalScatHUnion (o:=1) (update st var 0) (AValue var) sstride t0 ) eqn: S1OK; err_ok_elim.
+      subst.
 
-      destruct (evalBinOp (o:=1) (update st var 0) f tg) eqn: B10K; err_ok_elim.
-      destruct (evalScatHUnion (update st var 0) (AValue var) sstride t ).
+      assert (svector_is_dense tg)
+        by (apply GatHDensePost with 2 (AValue var) gstride (update st var 0) x; assumption).
 
+      assert (svector_is_dense t0)
+        by (apply BinOpPost with (update st var 0) f pF tg; assumption).
 
-
-      
 
       
-      destruct (evalScatHUnion (update st var 0) (AValue var) sstride t0) eqn:sOK1; err_ok_elim.
-      (* we need to do this as 2=1+1 used in b10K *)
-      assert(b1OK':@is_OK (vector (option A) 1) (@evalBinOp A 2 1 st f x)) by auto.
-      clear b1OK.
-      destruct (@evalBinOp A 2 1 st f x) eqn: b10K ; err_ok_elim.
-      unfold equiv, maybeError_equiv.
 
-      unfold evalScatHUnion in sOK1. repeat break_match_hyp.
-      err_ok_elim. inversion sOK1. clear sOK1.
 
-      unfold evalBinOp in b10K. break_match_hyp.
-      apply cast_vector_operator_OK_elim in b10K.
-      subst t2.
 
-      rewrite update_eval in Heqm. inversion Heqm. clear Heqm.
+
+
+      
+      (*
+      rewrite update_eval in S1OK. inversion Heqm. clear Heqm.
       subst n.
 
       rewrite sstrideE in Heqm0. inversion Heqm0. clear Heqm0.
@@ -338,7 +335,9 @@ Pre-condition:
         apply Scatter_spec. assumption.
       }
 
+      
       apply Scatter_spec with 1 1 (@IndexFunctions.h_index_map 1 1 0 1 l n1) t0 t1 in H2.
+       *)
   Qed.
   
 
