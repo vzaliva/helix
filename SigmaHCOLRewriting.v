@@ -260,84 +260,20 @@ Pre-condition:
   Proof.
 
     unfold evalSigmaHCOL at 1.
-    assert(b1isOK: is_OK (@evalBinOp A (o + o) o st f x))
+    assert(BOK': is_OK (@evalBinOp A (o + o) o st f x))
       by (apply BinOpPre; assumption).
-    destruct (evalBinOp st f x) eqn: B10K; err_ok_elim.
+    destruct (evalBinOp st f x) eqn: BOK; err_ok_elim.
 
     unfold evalSigmaHCOL.
-    break_match_goal; try (simpl in Heqm; err_ok_elim).
-    inversion Heqm as [ON]. clear Heqm. subst.
+    destruct (evalAexp st (AConst o)) eqn: AO.
+    simpl in AO. inversion AO as [ON]. clear AO. subst n.
     break_match_goal; try congruence.
+    Focus 2. simpl in AO. congruence.
     clear onz.
-    
-    induction n0.
-    +
-      assert(gOK: is_OK (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x)).
-      {
-        apply GathPre with (nbase:=0) (nstride:=1).
-        split. apply update_eval.
-        split. apply gstrideE.
-        lia.
-      } 
-      case_eq (@evalGathH A Ae 2 2 (update st var 0) (AValue var) gstride x).
-      Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
-      
-      intros tg EG.
-      (* apply GatHDensePost in EG; try assumption. *)
-
-      crush.
-      assert(b1isOK: is_OK (evalBinOp (o:=1) (update st var 0) f tg )).
-      apply BinOpPre. assumption.
-      
-      apply GatHDensePost in EG; try assumption.
-
-      destruct (evalBinOp (o:=1) (update st var 0) f tg) eqn: B1OK; err_ok_elim.
-      
-      assert(sOK: is_OK (evalScatHUnion (i:=1) (o:=1) (update st var 0) (AValue var) sstride t0)).
-      {
-        intros.
-        apply ScatHPre with (nbase:=0) (nstride:=1).
-        split. apply update_eval.
-        split. apply sstrideE.
-        simpl.
-        split.
-        lia.
-        auto.
-      }
-
-      destruct (evalScatHUnion (o:=1) (update st var 0) (AValue var) sstride t0 ) eqn: S1OK; err_ok_elim.
-      subst.
-
-      assert (svector_is_dense tg)
-        by (apply GatHDensePost with 2 (AValue var) gstride (update st var 0) x; assumption).
-
-      assert (svector_is_dense t0)
-        by (apply BinOpPost with (update st var 0) f pF tg; assumption).
-
-
-      
 
 
 
 
-
-      
-      (*
-      rewrite update_eval in S1OK. inversion Heqm. clear Heqm.
-      subst n.
-
-      rewrite sstrideE in Heqm0. inversion Heqm0. clear Heqm0.
-      subst n0.
-      
-      unfold ScatH in H2.
-      assert(SS: ∀ n (ip : n < 1), Vnth t1 ip ≡ VnthInverseIndexMapped' t0 (IndexFunctions.build_inverse_map_spec (@IndexFunctions.h_index_map 1 1 0 1 l n1)) n ip).
-      {
-        apply Scatter_spec. assumption.
-      }
-
-      
-      apply Scatter_spec with 1 1 (@IndexFunctions.h_index_map 1 1 0 1 l n1) t0 t1 in H2.
-       *)
   Qed.
   
 
