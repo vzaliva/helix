@@ -237,7 +237,26 @@ Pre-condition:
   Proof.
     auto.
   Qed.
-  
+
+  Definition MaybeVnth {B : Type} (n : nat)
+             (el: @maybeError (svector B n)) {i: nat} {ip: i < n}: option B :=
+    match el with
+    | Error _ => None
+    | OK l => Vnth l ip
+    end.
+
+  Lemma SparseUnionOK (n m:nat) (l: vector (@maybeError (svector A m)) n) (z: svector A m):
+    (forall (i:nat) (ip: i<m),
+        exists j (jp: j<n),
+          (
+            (exists lj (ljOK: Vnth l jp ≡ OK lj), is_Some (Vnth lj ip))
+            /\
+            (forall j' (j'p: j'<n),
+                (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
+                -> j' ≡ j)
+    ))
+    -> is_OK (Vfold_left ErrSparseUnion (OK z) l).
+        
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -271,11 +290,35 @@ Pre-condition:
     Focus 2. simpl in AO. congruence.
     clear onz.
 
- 
+
+
+    (*
+
+Proof sketch:
+
+fold ErrSparseUnion ->
+SparseUnion [x_1[i], x_2[i] ...]
+case analysis on:
+
+None, None
+Some, None
+None, Some
+Some, Some
+
+And proove that for each [i] answer is: Some
+Map this Some to f() output
+map f() inputs via index function to original vectors
+
+     *)
+
+
+    
     remember (rev_natrange_list (S n)) as nr eqn: NRE.
     dependent induction nr.
     crush.
 
+
+    
   Qed.
   
 
