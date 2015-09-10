@@ -339,8 +339,57 @@ Pre-condition:
              | Error msg => @Error (Vector.t (option A) (S n)) msg
              end)  as f1 eqn:HF1.
 
+    assert (MOK: Vforall is_OK (Vmap f1 (rev_natrange (S n)))).
+    {
+      apply Vforall_map_intro.
+      apply Vforall_eq.
+      intros n0.
+      intros VIN.
+      apply VinRevNatrange in VIN.
+      subst f1.
 
-    
+      dependent induction n0.
+      Set Printing Implicit. Show.
+
+      assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var 0) 
+                                    (AValue var) gstride x)).
+      {
+        apply GathPre with (nbase:=0) (nstride:=S n).
+        split. apply update_eval.
+        split. apply gstrideE.
+        split. auto.
+        simpl.
+        nia.
+      } 
+      case_eq  (@evalGathH A Ae (S n + S n) (1 + 1) (update st var 0) 
+                                    (AValue var) gstride x).
+      Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
+
+      intros g G.
+      apply GatHDensePost in G; try assumption. 
+
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 (update st var 0) f g)).
+      {
+        apply BinOpPre; assumption.
+      }
+      
+      destruct (@evalBinOp A (1 + 1) 1 (update st var 0) f g)  eqn: B1OK; err_ok_elim.
+
+      assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var 0) (AValue var) sstride t0)).
+      {
+        intros.
+        apply ScatHPre with (nbase:=0) (nstride:=S n).
+        split. apply update_eval.
+        split. apply sstrideE.
+        simpl.
+        split.
+        lia.
+        auto.
+      }
+      crush.
+
+      (* Done with base case of induction on 'n' *)
+    }
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vmap f1 (rev_natrange (S n))))).
