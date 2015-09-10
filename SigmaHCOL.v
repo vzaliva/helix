@@ -25,7 +25,6 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.List.ListUtil.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
@@ -541,10 +540,11 @@ Section SigmaHCOL_Language.
               | Error _ => Error "Undefined SHOISumUnion range"
               | OK O => Error "Invalid SHOISumUnion range"
               | OK (S p) =>
-                List.fold_left (@ErrSparseUnion A o)
-                               (List.map (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
-                                         (rev_natrange_list (S p)))
-                               (OK (empty_svector o))
+                Vfold_left (@ErrSparseUnion A o)
+                           (OK (empty_svector o))
+                           (Vmap (fix en (n':nat) := evalSigmaHCOL (update st var n') body v0)
+                                 (rev_natrange (S p)))
+                               
               end
            )
          | SHOCompose _ _ _ f g  =>

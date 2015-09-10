@@ -499,6 +499,13 @@ Program Fixpoint natrange (n:nat) : (vector nat n) :=
     | S p => snoc (natrange p) p
   end.
 
+(* n-1 ... 0*)
+Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
+  match n return (vector nat n) with 
+      0 => Vnil
+    | S p => Vcons p (rev_natrange p)
+  end.
+
 Lemma hd_cons {A} {n} (h:A) {t: vector A n}: Vhead (Vcons h t) ≡ h.
 Proof.
   reflexivity.
