@@ -510,6 +510,27 @@ Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
     | S p => Vcons p (rev_natrange p)
   end.
 
+Local Open Scope nat_scope.
+Lemma VinRevNatrange x n:
+  Vin x (rev_natrange n) <-> (x<n).
+Proof.
+  split.
+  + intros.
+    induction n; crush.
+  + intros.
+    induction n.
+    crush.
+    simpl.
+    assert (XN: x ≡ n \/ x < n).
+    crush.
+    decompose sum XN.
+  - left. auto.
+  - right.
+    apply IHn.
+    assumption.
+Qed.
+Local Close Scope nat_scope.
+
 Lemma hd_cons {A} {n} (h:A) {t: vector A n}: Vhead (Vcons h t) ≡ h.
 Proof.
   reflexivity.
