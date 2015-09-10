@@ -256,6 +256,14 @@ Pre-condition:
                 -> j' ≡ j)
     ))
     -> is_OK (Vfold_left ErrSparseUnion (OK z) l).
+  Proof.
+    unfold is_OK.
+    destruct (Vfold_left ErrSparseUnion (OK z) l) eqn:VFOK.
+    admit.
+    admit.
+    
+  Qed.
+      
         
   Lemma BinOpSums
         (o: nat)
@@ -290,6 +298,8 @@ Pre-condition:
     Focus 2. simpl in AO. congruence.
     clear onz.
 
+    symmetry.
+    apply SparseUnionOK.
 
 
     (*
