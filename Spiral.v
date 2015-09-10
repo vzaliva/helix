@@ -461,36 +461,40 @@ Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
 
 Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
 
-(* n-1 ... 0 *)
-Fixpoint rev_natrange_list (n:nat) : list nat :=
-  match n with
-  | 0 => List.nil
-  | S p => List.cons p (rev_natrange_list p)
-  end.
+Section Natrange_List.
+  (* Probably will be removed later *)
+  
+  (* n-1 ... 0 *)
+  Fixpoint rev_natrange_list (n:nat) : list nat :=
+    match n with
+    | 0 => List.nil
+    | S p => List.cons p (rev_natrange_list p)
+    end.
 
-(* 0 ...  n-1  *)
-Definition natrange_list (n:nat) : list nat :=
-  List.rev (rev_natrange_list n).
+  (* 0 ...  n-1  *)
+  Definition natrange_list (n:nat) : list nat :=
+    List.rev (rev_natrange_list n).
 
-Lemma rev_natrange_list_bound:
-  ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
-Proof.
-  intros.
-  induction z.
-  + compute in H.
-    contradiction.
-  + crush.
-Qed.
+  Lemma rev_natrange_list_bound:
+    ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
+  Proof.
+    intros.
+    induction z.
+    + compute in H.
+      contradiction.
+    + crush.
+  Qed.
 
-Lemma natrange_list_bound:
-  ∀ z x : nat, List.In x (natrange_list z) → (x < z)%nat.
-Proof.
-  unfold natrange_list.
-  intros.
-  rewrite <- in_rev in H.
-  apply rev_natrange_list_bound.
-  assumption.
-Qed.
+  Lemma natrange_list_bound:
+    ∀ z x : nat, List.In x (natrange_list z) → (x < z)%nat.
+  Proof.
+    unfold natrange_list.
+    intros.
+    rewrite <- in_rev in H.
+    apply rev_natrange_list_bound.
+    assumption.
+  Qed.
+End Natrange_List.
 
 (* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=

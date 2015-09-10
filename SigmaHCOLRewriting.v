@@ -339,10 +339,12 @@ Pre-condition:
              | Error msg => @Error (Vector.t (option A) (S n)) msg
              end)  as f1 eqn:HF1.
 
+
+    
+    
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vmap f1 (rev_natrange (S n))))).
     apply SparseUnionOK.
-    
 
     (*
 
