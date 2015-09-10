@@ -300,11 +300,17 @@ Pre-condition:
                                                            (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
   Proof.
 
+    (* unfold left part and assure it is always OK *)
     unfold evalSigmaHCOL at 1.
     assert(BOK': is_OK (@evalBinOp A (o + o) o st f x))
-      by (apply BinOpPre; assumption).
+      by (apply BinOpPre; assumption).    
     destruct (evalBinOp st f x) eqn: BOK; err_ok_elim.
 
+    (* binop output is dense *)
+    assert (TD: evalSigmaHCOL st (SHOBinOp o f) x ≡ OK t). auto.
+    apply BinOpPost in TD.
+
+    (* unfold right part *)
     unfold evalSigmaHCOL.
     destruct (evalAexp st (AConst o)) eqn: AO.
     simpl in AO. inversion AO as [ON]. clear AO. subst n.
@@ -333,6 +339,8 @@ Pre-condition:
              | Error msg => @Error (Vector.t (option A) (S n)) msg
              end)  as f1 eqn:HF1.
 
+    assert (is_OK (List.fold_left ErrSparseUnion (List.map f1 (rev_natrange_list (S n)))
+     (OK (empty_svector (S n))))).
     apply SparseUnionOK.
 
 
