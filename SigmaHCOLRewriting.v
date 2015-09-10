@@ -264,7 +264,21 @@ Pre-condition:
     
   Qed.
       
-        
+  Lemma OK_intro {B} {m: @maybeError B}:
+    forall x,  (m ≡ OK x) -> is_OK m.
+  Proof.
+    crush.
+  Qed.
+
+  Lemma OK_exists {B} {m: @maybeError B}:
+    is_OK m -> (exists x, m ≡ OK x).
+  Proof.
+    intros.
+    destruct m.
+    exists b. reflexivity.
+    err_ok_elim.
+  Qed.
+
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -299,6 +313,26 @@ Pre-condition:
     clear onz.
 
     symmetry.
+    remember (fix en (n' : nat) : @maybeError (Vector.t (option A) (S n)) :=
+             match
+               match
+                 @evalGathH A Ae (Peano.plus (S n) (S n))
+                   (Peano.plus (S O) (S O)) (update st var n') 
+                   (AValue var) gstride x
+                 return (@maybeError (Vector.t (option A) (S O)))
+               with
+               | OK gv =>
+                   @evalBinOp A (Peano.plus (S O) (S O)) 
+                     (S O) (update st var n') f gv
+               | Error msg => @Error (Vector.t (option A) (S O)) msg
+               end return (@maybeError (Vector.t (option A) (S n)))
+             with
+             | OK gv =>
+                 @evalScatHUnion A Ae (S O) (S n) (update st var n')
+                   (AValue var) sstride gv
+             | Error msg => @Error (Vector.t (option A) (S n)) msg
+             end)  as f1 eqn:HF1.
+
     apply SparseUnionOK.
 
 
