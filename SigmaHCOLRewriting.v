@@ -350,10 +350,11 @@ Pre-condition:
 
       (* To get rid of 'fix', even though the function is not
       recrusive we need to destruct the argument.*)
+
       destruct n0.
 
       assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var 0) 
-                                    (AValue var) gstride x)).
+                                      (AValue var) gstride x)).
       {
         apply GathPre with (nbase:=0) (nstride:=S n).
         split. apply update_eval.
@@ -363,9 +364,9 @@ Pre-condition:
         nia.
       } 
       case_eq  (@evalGathH A Ae (S n + S n) (1 + 1) (update st var 0) 
-                                    (AValue var) gstride x).
+                           (AValue var) gstride x).
       Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
-
+      
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
@@ -430,44 +431,11 @@ Pre-condition:
       }
       crush.
     }
-
-
-
-
-
-
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vmap f1 (rev_natrange (S n))))).
     apply SparseUnionOK.
 
-    (*
-
-Proof sketch:
-
-fold ErrSparseUnion ->
-SparseUnion [x_1[i], x_2[i] ...]
-case analysis on:
-
-None, None
-Some, None
-None, Some
-Some, Some
-
-And proove that for each [i] answer is: Some
-Map this Some to f() output
-map f() inputs via index function to original vectors
-
-     *)
-
-
-    
-    remember (rev_natrange_list (S n)) as nr eqn: NRE.
-    dependent induction nr.
-    crush.
-
-
-    
   Qed.
   
 
