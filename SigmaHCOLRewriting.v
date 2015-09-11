@@ -264,21 +264,6 @@ Pre-condition:
     
   Qed.
       
-  Lemma OK_intro {B} {m: @maybeError B}:
-    forall x,  (m ≡ OK x) -> is_OK m.
-  Proof.
-    crush.
-  Qed.
-
-  Lemma OK_exists {B} {m: @maybeError B}:
-    is_OK m -> (exists x, m ≡ OK x).
-  Proof.
-    intros.
-    destruct m.
-    exists b. reflexivity.
-    err_ok_elim.
-  Qed.
-
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -319,39 +304,45 @@ Pre-condition:
     clear onz.
 
     symmetry.
-    remember (fix en (n' : nat) : @maybeError (Vector.t (option A) (S n)) :=
+
+    remember (fix en (n' : nat) (np : n' < S n) {struct n'} :
+           @maybeError (vector (option A) (S n)) :=
+           match
              match
-               match
-                 @evalGathH A Ae (Peano.plus (S n) (S n))
-                   (Peano.plus (S O) (S O)) (update st var n') 
-                   (AValue var) gstride x
-                 return (@maybeError (Vector.t (option A) (S O)))
-               with
-               | OK gv =>
-                   @evalBinOp A (Peano.plus (S O) (S O)) 
-                     (S O) (update st var n') f gv
-               | Error msg => @Error (Vector.t (option A) (S O)) msg
-               end return (@maybeError (Vector.t (option A) (S n)))
+               @evalGathH A Ae (S n + S n) (1 + 1) 
+                 (update st var n') (AValue var) gstride x
              with
-             | OK gv =>
-                 @evalScatHUnion A Ae (S O) (S n) (update st var n')
-                   (AValue var) sstride gv
-             | Error msg => @Error (Vector.t (option A) (S n)) msg
-             end)  as f1 eqn:HF1.
-     
-    assert (MOK: Vforall is_OK (Vmap f1 (rev_natrange (S n)))).
+             | OK gv => @evalBinOp A (1 + 1) 1 (update st var n') f gv
+             | Error msg => @Error (vector (option A) 1) msg
+             end
+           with
+           | OK gv =>
+               @evalScatHUnion A Ae 1 (S n) (update st var n') 
+                 (AValue var) sstride gv
+           | Error msg => @Error (vector (option A) (S n)) msg
+           end)  as f1 eqn:HF1.
+    
+    assert (MOK: Vforall is_OK (Vbuild f1)).
     {
-      apply Vforall_map_intro.
-      apply Vforall_eq.
-      intros n0.
-      intros VIN.
-      apply vin_rev_natrange in VIN.
+      unfold Vbuild.
+      destruct (Vbuild_spec f1) eqn: ff.
+      simpl.
+      apply Vforall_nth_intro.
+
+      assert (e' : ∀ (i : nat) (ip : i < S n), f1 i ip ≡ Vnth x0 ip).
+      {
+        intros. symmetry. apply e.
+      }
+      intros.
+      specialize e' with (i:=i) (ip:=ip).
+      rewrite <- e'. 
+
       subst f1.
 
       (* To get rid of 'fix', even though the function is not
       recrusive we need to destruct the argument.*)
 
-      destruct n0.
+      destruct i.
 
       assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var 0) 
                                       (AValue var) gstride x)).
@@ -392,39 +383,39 @@ Pre-condition:
 
       (* Done with '0' on 'n' *)
 
-      assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var (S n0)) 
+      assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var (S i)) 
                                     (AValue var) gstride x)).
       {
-        apply GathPre with (nbase:=(S n0)) (nstride:=S n).
+        apply GathPre with (nbase:=(S i)) (nstride:=S n).
         split. apply update_eval.
         split. apply gstrideE.
         split. auto.
         simpl.
-        nia.
+        omega.
       } 
-      case_eq  (@evalGathH A Ae (S n + S n) (1 + 1) (update st var (S n0)) 
+      case_eq  (@evalGathH A Ae (S n + S n) (1 + 1) (update st var (S i)) 
                                     (AValue var) gstride x).
       Focus 2. intros s C. rewrite C in gOK. err_ok_elim.
 
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
-      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 (update st var (S n0)) f g)).
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 (update st var (S i)) f g)).
       {
         apply BinOpPre; assumption.
       }
       
-      destruct (@evalBinOp A (1 + 1) 1 (update st var (S n0)) f g)  eqn: B1OK; err_ok_elim.
+      destruct (@evalBinOp A (1 + 1) 1 (update st var (S i)) f g)  eqn: B1OK; err_ok_elim.
 
-      assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var (S n0)) (AValue var) sstride t0)).
+      assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var (S i)) (AValue var) sstride t0)).
       {
         intros.
-        apply ScatHPre with (nbase:=S n0) (nstride:=S n).
+        apply ScatHPre with (nbase:=S i) (nstride:=S n).
         split. apply update_eval.
         split. apply sstrideE.
         simpl.
         split.
-        lia.
+        omega.
         auto.
       }
       crush.
@@ -432,7 +423,7 @@ Pre-condition:
 
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
-                                   (Vmap f1 (rev_natrange (S n))))).
+                                   (Vbuild f1))).
     apply SparseUnionOK.
 
   Qed.
