@@ -390,9 +390,7 @@ Pre-condition:
       }
       crush.
 
-      (* Done with the base case of induction on 'n' *)
-      Set Printing Implicit. Show.
-
+      (* Done with '0' on 'n' *)
 
       assert(gOK: is_OK (@evalGathH A Ae (S n + S n) (1 + 1) (update st var (S n0)) 
                                     (AValue var) gstride x)).
@@ -431,6 +429,7 @@ Pre-condition:
       }
       crush.
     }
+
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vmap f1 (rev_natrange (S n))))).

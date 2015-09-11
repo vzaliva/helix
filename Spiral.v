@@ -529,6 +529,40 @@ Proof.
     apply IHn.
     assumption.
 Qed.
+
+Lemma VnthNatrange {n} (i:nat) (ip:i<(S n)):
+  Vnth (rev_natrange (S n)) ip ≡ n - i.
+Proof.
+  revert i ip.
+  dependent induction n.
+  + unfold rev_natrange.
+    intros.
+    apply Vnth_cons_head.
+    omega.
+  + intros.
+    replace (rev_natrange (S (S n))) with (S n :: rev_natrange (S n)) by auto.
+    destruct i.
+    crush.
+    remember (S i) as j.
+    assert (JP: j>0) by omega.
+    rewrite Vnth_cons_tail with (h2:=JP).
+    rewrite IHn.
+    omega.
+Qed.
+
+Lemma VmapNatrange `{Equiv B} {n:nat} (f: nat->B) (v: vector B n):
+  (Vmap f (rev_natrange n) ≡ v)
+  <->
+  (forall (i:nat) (ip:i<n), Vnth v ip ≡ f i).
+Proof.
+  split.
+  intros M i ip.
+  rewrite <- M.
+  rewrite Vnth_map.
+
+Qed.
+                               
+          
 Local Close Scope nat_scope.
 
 Lemma hd_cons {A} {n} (h:A) {t: vector A n}: Vhead (Vcons h t) ≡ h.
