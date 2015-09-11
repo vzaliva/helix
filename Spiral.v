@@ -4,6 +4,7 @@
 Global Generalizable All Variables.
 
 Require Import Arith.
+Require Import Coq.Arith.Minus.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Lt.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
@@ -14,6 +15,7 @@ Require Import Coq.Lists.List.
 
 Require Import CaseNaming.
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -511,7 +513,7 @@ Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
   end.
 
 Local Open Scope nat_scope.
-Lemma VinRevNatrange x n:
+Lemma vin_rev_natrange x n:
   Vin x (rev_natrange n) <-> (x<n).
 Proof.
   split.
@@ -530,7 +532,27 @@ Proof.
     assumption.
 Qed.
 
-Lemma VnthNatrange {n} (i:nat) (ip:i<(S n)):
+Lemma vnth_natrange {n} (i:nat) (ip:i<n):
+  Vnth (rev_natrange n) ip ≡ (pred n) - i.
+Proof.
+  revert i ip.
+  dependent induction n.
+  + intros. crush.
+  + simpl (rev_natrange (S n)).
+    intros.
+    simpl (pred (S n)).
+    destruct i.
+    rewrite <- minus_n_O.
+    apply Vnth_cons_head.
+    reflexivity.
+    remember (S i) as j.
+    assert (JP: j>0) by omega.
+    rewrite Vnth_cons_tail with (h2:=JP).
+    rewrite IHn.
+    omega.
+Qed.
+
+Lemma vnth_natrange_sn {n} (i:nat) (ip:i<(S n)):
   Vnth (rev_natrange (S n)) ip ≡ n - i.
 Proof.
   revert i ip.
@@ -550,15 +572,20 @@ Proof.
     omega.
 Qed.
 
-Lemma VmapNatrange `{Equiv B} {n:nat} (f: nat->B) (v: vector B n):
+Lemma vmap_natrange `{Equiv B} {n:nat} (f: nat->B) (v: vector B n):
   (Vmap f (rev_natrange n) ≡ v)
   <->
-  (forall (i:nat) (ip:i<n), Vnth v ip ≡ f i).
+  (forall (i:nat) (ip:i<n), Vnth v ip ≡ f ((pred n) - i)).
 Proof.
   split.
-  intros M i ip.
-  rewrite <- M.
-  rewrite Vnth_map.
+  + intros M i ip.
+    rewrite <- M.
+    rewrite Vnth_map.
+    rewrite vnth_natrange.
+    reflexivity.
+  + intros M.
+
+Qed.
 
 Qed.
                                
