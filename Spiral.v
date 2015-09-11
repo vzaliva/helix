@@ -572,6 +572,7 @@ Proof.
     omega.
 Qed.
 
+(*
 Lemma vmap_natrange `{Equiv B} {n:nat} (f: nat->B) (v: vector B n):
   (Vmap f (rev_natrange n) ≡ v)
   <->
@@ -586,10 +587,8 @@ Proof.
   + intros M.
 
 Qed.
+ *)
 
-Qed.
-                               
-          
 Local Close Scope nat_scope.
 
 Lemma hd_cons {A} {n} (h:A) {t: vector A n}: Vhead (Vcons h t) ≡ h.

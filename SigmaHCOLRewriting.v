@@ -345,7 +345,7 @@ Pre-condition:
       apply Vforall_eq.
       intros n0.
       intros VIN.
-      apply VinRevNatrange in VIN.
+      apply vin_rev_natrange in VIN.
       subst f1.
 
       (* To get rid of 'fix', even though the function is not
