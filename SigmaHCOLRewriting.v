@@ -125,6 +125,53 @@ Pre-condition:
       inversion H.
   Qed.
 
+  Lemma half_plus_less_half_less_than_double {i o:nat} (ip: i<o): i+o < o+o.
+  Proof.
+    lia.
+  Defined.
+
+  Lemma less_half_less_double {i o:nat} (ip: i<o): i< o+o.
+  Proof.
+    lia.
+  Defined.
+  
+  Lemma evalBinOpSpec: forall o
+                         (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+                         (x: svector A (o+o)),
+      forall (y: svector A o),
+        svector_is_dense x -> 
+        ((@evalBinOp A (o + o) o f x) ≡ OK y) ->
+        forall (i:nat) (ip:i<o) xva xvb, 
+          (Vnth x
+                (less_half_less_double ip) ≡ Some xva) ->
+          (Vnth x
+                (half_plus_less_half_less_than_double ip) ≡ Some xvb) ->
+          Vnth y ip ≡ Some (f xva xvb).
+  Proof.
+    intros o f pF x y D B i ip xva xvb XA XB.
+
+    destruct o as [|o].
+    assert(¬i < 0) by apply lt_n_0.
+    contradiction.
+    
+    induction i.
+    unfold evalBinOp in B.
+    destruct (try_vector_from_svector x) in B. ;try congruence. (TODO: get rid of t!)
+    apply cast_vector_operator_OK_elim in B.
+
+    (*
+    assert(Y': Vnth y (lt_0_Sn o) ≡ Some yv) by crush.
+    rewrite <- Vhead_nth with (n:=o) in Y'.
+    clear Y.
+
+    generalize dependent (less_half_less_double ip).
+    intros l XA.
+    rewrite <- Vhead_nth in XA.
+     *)
+    subst y.
+    simpl.
+
+  Qed.
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
   Lemma ScatHPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
