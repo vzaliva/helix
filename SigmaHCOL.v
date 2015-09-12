@@ -477,7 +477,6 @@ Section SigmaHCOL_Language.
     
     Definition evalBinOp
                {i o: nat}
-               (_:state)
                (f: A->A->A) (v: svector A i):
       @maybeError (svector A o) :=
       match try_vector_from_svector v with
@@ -553,7 +552,7 @@ Section SigmaHCOL_Language.
               end)
          | SHOScatHUnion _ _ base stride => evalScatHUnion st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
-         | SHOBinOp _ f _ => evalBinOp st f
+         | SHOBinOp _ f _ => evalBinOp f
          | SOHCOL _ _ h => evalHOperator h
          | SHOInfinityNorm _ => evalInfinityNorm st
          | SOReduction _ f pf idv => evalReduction st f idv

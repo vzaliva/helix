@@ -287,9 +287,9 @@ Pre-condition:
 
     (* unfold left part and assure it is always OK *)
     unfold evalSigmaHCOL at 1.
-    assert(BOK': is_OK (@evalBinOp A (o + o) o st f x))
+    assert(BOK': is_OK (@evalBinOp A (o + o) o f x))
       by (apply BinOpPre; assumption).    
-    destruct (evalBinOp st f x) eqn: BOK; err_ok_elim.
+    destruct (evalBinOp f x) eqn: BOK; err_ok_elim.
 
     (* binop output is dense *)
     assert (TD: evalSigmaHCOL st (SHOBinOp o f) x ≡ OK t). auto.
@@ -312,7 +312,7 @@ Pre-condition:
                @evalGathH A Ae (S n + S n) (1 + 1) 
                  (update st var n') (AValue var) gstride x
              with
-             | OK gv => @evalBinOp A (1 + 1) 1 (update st var n') f gv
+             | OK gv => @evalBinOp A (1 + 1) 1 f gv
              | Error msg => @Error (vector (option A) 1) msg
              end
            with
@@ -361,12 +361,12 @@ Pre-condition:
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
-      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 (update st var 0) f g)).
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g)).
       {
         apply BinOpPre; assumption.
       }
       
-      destruct (@evalBinOp A (1 + 1) 1 (update st var 0) f g)  eqn: B1OK; err_ok_elim.
+      destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
       assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var 0) (AValue var) sstride t0)).
       {
@@ -400,12 +400,12 @@ Pre-condition:
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
-      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 (update st var (S i)) f g)).
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g)).
       {
         apply BinOpPre; assumption.
       }
       
-      destruct (@evalBinOp A (1 + 1) 1 (update st var (S i)) f g)  eqn: B1OK; err_ok_elim.
+      destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
       assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var (S i)) (AValue var) sstride t0)).
       {
@@ -420,7 +420,6 @@ Pre-condition:
       }
       crush.
     }
-
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
