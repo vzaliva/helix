@@ -134,7 +134,78 @@ Pre-condition:
   Proof.
     lia.
   Defined.
+
+  Lemma try_vector_from_svector_cons:
+    ∀ (n : nat)
+      (xh : option A) (xt : vector (option A) n) 
+      (th : A) (tt : vector A n),
+      try_vector_from_svector (Vcons xh xt) ≡ OK (Vcons th tt)
+      → xh ≡ Some th ∧ try_vector_from_svector xt ≡ OK tt.
+  Proof.
+    intros n xh xt th tt P.
+    simpl in P.
+    break_match_hyp.
+    break_match_hyp.
+    assert (C: (Vcons a t) ≡ (Vcons th tt)) by crush.
+    apply Vcons_eq_elim in C.
+    crush.
+    err_ok_elim.
+    err_ok_elim.
+  Qed.    
   
+  Lemma VheadSndVector2Pair {p t0} {x: vector A (p+(S t0))} (P: p < (p+(S t0))):
+    Vhead (snd (vector2pair p x)) ≡ Vnth x P.
+  Proof.
+    unfold vector2pair.
+    induction p.
+    simpl in *.
+    dep_destruct x.
+    simpl. reflexivity.
+    dep_destruct x.
+    simpl.
+    apply IHp.
+  Qed.
+
+    Lemma try_vector_svector_forall:
+      ∀ (n : nat)
+        (x : svector A n)
+        (t : vector A n),
+        try_vector_from_svector x ≡ OK t ->
+        Vforall is_Some x.
+    Proof.
+      intros n x t.
+      dependent induction n.
+      dep_destruct x.
+      crush.
+      dep_destruct x. rename h into xh. rename x0 into xt.
+      dep_destruct t. rename h into th. rename x0 into tt.
+
+      intros TC.
+      apply try_vector_from_svector_cons in TC.
+      destruct TC as [TH TT].
+      
+      simpl.
+      split.
+      + crush.
+      + apply IHn with (t0:=tt); assumption.
+    Qed.
+    
+    Lemma vector_svector_eq:
+      ∀ (n : nat)
+        (x : svector A n)
+        (t : vector A n),
+        try_vector_from_svector x ≡ OK t
+        → ∀ (i : nat) (ip : i < n), Some (Vnth t ip) ≡ Vnth x ip.
+    Proof.
+      intros n x t XT i ip.
+      unfold try_vector_from_svector in XT.
+
+      destruct n.
+      crush.
+      dep_destruct x.
+      simpl in XT.
+    Qed.
+    
   Lemma evalBinOpSpec: forall o
                          (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                          (x: svector A (o+o)),
@@ -156,21 +227,23 @@ Pre-condition:
     
     induction i.
     unfold evalBinOp in B.
-    destruct (try_vector_from_svector x) in B. ;try congruence. (TODO: get rid of t!)
+
+    revert B.
+    case_eq (try_vector_from_svector x); try congruence.
+    intros t T B.
     apply cast_vector_operator_OK_elim in B.
 
-    (*
-    assert(Y': Vnth y (lt_0_Sn o) ≡ Some yv) by crush.
-    rewrite <- Vhead_nth with (n:=o) in Y'.
-    clear Y.
-
-    generalize dependent (less_half_less_double ip).
-    intros l XA.
-    rewrite <- Vhead_nth in XA.
-     *)
     subst y.
     simpl.
 
+    assert(P1: (o < (o+(S o)))) by lia.
+    rewrite VheadSndVector2Pair with (P:=P1).
+    rewrite Vnth_tail.
+
+    assert(TX: forall (i:nat) (ip:i < (S o + S o)), Some (Vnth t ip) ≡ Vnth x ip).
+      
+
+      
   Qed.
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
