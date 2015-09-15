@@ -190,20 +190,25 @@ Pre-condition:
       + apply IHn with (t0:=tt); assumption.
     Qed.
     
-    Lemma vector_svector_eq:
+    Lemma try_vector_from_svector_elementwise:
       ∀ (n : nat)
         (x : svector A n)
         (t : vector A n),
         try_vector_from_svector x ≡ OK t
         → ∀ (i : nat) (ip : i < n), Some (Vnth t ip) ≡ Vnth x ip.
     Proof.
-      intros n x t XT i ip.
-      unfold try_vector_from_svector in XT.
-
-      destruct n.
+      intros n x t X i ip.
+      dependent induction n.
       crush.
-      dep_destruct x.
-      simpl in XT.
+      dep_destruct x. rename h into xh. rename x0 into xt.
+      dep_destruct t. rename h into th. rename x0 into tt.
+      apply try_vector_from_svector_cons in X.
+      destruct X as [XH XT].
+      simpl.
+      break_match_goal.
+      auto.
+      apply IHn.
+      assumption.
     Qed.
     
   Lemma evalBinOpSpec: forall o
