@@ -194,8 +194,8 @@ Pre-condition:
       ∀ (n : nat)
         (x : svector A n)
         (t : vector A n),
-        try_vector_from_svector x ≡ OK t
-        → ∀ (i : nat) (ip : i < n), Some (Vnth t ip) ≡ Vnth x ip.
+        try_vector_from_svector x ≡ OK t ->
+        ∀ (i : nat) (ip : i < n), Some (Vnth t ip) ≡ Vnth x ip.
     Proof.
       intros n x t X i ip.
       dependent induction n.
@@ -209,6 +209,13 @@ Pre-condition:
       auto.
       apply IHn.
       assumption.
+    Qed.
+
+    Lemma VnthVhead {B:Type} {n} (ip:0<(S n)) (x:vector B (S n)):
+      Vnth x ip ≡ Vhead x.
+    Proof.
+      dep_destruct x.
+      crush.
     Qed.
     
   Lemma evalBinOpSpec: forall o
@@ -230,7 +237,7 @@ Pre-condition:
     assert(¬i < 0) by apply lt_n_0.
     contradiction.
     
-    induction i.
+    dependent induction i.
     unfold evalBinOp in B.
 
     revert B.
@@ -245,8 +252,14 @@ Pre-condition:
     rewrite VheadSndVector2Pair with (P:=P1).
     rewrite Vnth_tail.
 
-    assert(TX: forall (i:nat) (ip:i < (S o + S o)), Some (Vnth t ip) ≡ Vnth x ip).
-      
+    assert (HIP: 0 < (S o + S o)) by crush.
+    rewrite <- VnthVhead with (ip0:=HIP).
+
+    f_equal.
+    f_equal.
+
+    assert(Some (Vnth t HIP) ≡ Vnth x HIP).
+    apply try_vector_from_svector_elementwise; assumption.
 
       
   Qed.
