@@ -9,6 +9,7 @@ Require Import HCOLSyntax.
 Require Import Arith.
 Require Import Compare_dec.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Logic.ProofIrrelevance.
 Require Import Program. 
 
 Require Import CpdtTactics.
@@ -214,8 +215,31 @@ Pre-condition:
     Lemma VnthVhead {B:Type} {n} (ip:0<(S n)) (x:vector B (S n)):
       Vnth x ip ≡ Vhead x.
     Proof.
-      dep_destruct x.
-      crush.
+      dependent destruction x.
+      reflexivity.
+    Qed.
+
+    Lemma SomeConstrEquiv:
+      ∀ (T : Type) (a b : T), Some a ≡ Some b ↔ a ≡ b.
+    Proof.
+      split.
+      + intros E.
+        inversion E.
+        reflexivity.
+      + intros R.
+        rewrite R.
+        reflexivity.
+    Qed.
+
+    Lemma VnthVtail : forall n (v : vector A (S n)) i (h : i < n) (h': S i < S n),
+        Vnth (Vtail v) h ≡ Vnth v h'.
+    Proof.
+      intros n v i h h'.
+      VSntac v. simpl.
+      generalize (lt_S_n h').
+      intros h''.
+      replace h'' with h by apply proof_irrelevance.
+      reflexivity.
     Qed.
     
   Lemma evalBinOpSpec: forall o
@@ -238,30 +262,52 @@ Pre-condition:
     contradiction.
     
     dependent induction i.
-    unfold evalBinOp in B.
-
-    revert B.
-    case_eq (try_vector_from_svector x); try congruence.
-    intros t T B.
-    apply cast_vector_operator_OK_elim in B.
-
-    subst y.
-    simpl.
-
-    assert(P1: (o < (o+(S o)))) by lia.
-    rewrite VheadSndVector2Pair with (P:=P1).
-    rewrite Vnth_tail.
-
-    assert (HIP: 0 < (S o + S o)) by crush.
-    rewrite <- VnthVhead with (ip0:=HIP).
-
-    f_equal.
-    f_equal.
-
-    assert(Some (Vnth t HIP) ≡ Vnth x HIP).
-    apply try_vector_from_svector_elementwise; assumption.
-
+    - unfold evalBinOp in B.
       
+      revert B.
+      case_eq (try_vector_from_svector x); try congruence.
+      intros t T B.
+      apply cast_vector_operator_OK_elim in B.
+      
+      subst y. simpl.
+      
+      f_equal.  f_equal.
+      + (* first argument *)
+        assert (HIP: 0 < (S o + S o)) by lia.
+        
+        assert(VH: Vnth t HIP ≡ Vhead t  ). apply VnthVhead.
+        rewrite <- VH. clear VH.
+
+        apply SomeConstrEquiv. rewrite <- XA. clear XA.
+        
+        assert(TX: Some (Vnth t HIP) ≡ Vnth x HIP).
+        apply try_vector_from_svector_elementwise; assumption.
+        rewrite_clear TX.
+        
+        replace HIP with (less_half_less_double ip) by apply proof_irrelevance.
+        reflexivity.
+      + (* second argument *)
+        assert(P1: (o < (o+(S o)))) by lia.
+        rewrite VheadSndVector2Pair with (P:=P1).
+
+        assert(P1S: S o < S (o + S o)) by lia.
+        rewrite VnthVtail with (h':=P1S).
+
+        clear P1.
+        apply SomeConstrEquiv.  rewrite <- XB. clear XB.
+
+        assert(TX: @Some A (@Vnth A (S (o + S o)) t (S o) P1S) ≡ Vnth x P1S).
+        apply try_vector_from_svector_elementwise; assumption.
+        rewrite_clear TX.
+        
+        replace P1S with (half_plus_less_half_less_than_double ip) by apply proof_irrelevance.
+        reflexivity.
+    -
+      
+
+    
+    Set Printing Implicit. Show.
+    
   Qed.
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
