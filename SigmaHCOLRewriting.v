@@ -330,7 +330,9 @@ Pre-condition:
     rewrite Vnth_sub.
     generalize  (Vnth_sub_aux 0 pti ip) as c1. intros.
     generalize (less_half_less_double ip) as c2. intros.
-    admit.
+    replace (c1) with (c2).
+    apply try_vector_from_svector_elementwise; try assumption.
+    apply proof_irrelevance.
     rewrite FA.
 
     assert(FB: Vnth (snd tp) ip  ≡ xvb).
