@@ -260,10 +260,24 @@ Pre-condition:
       reflexivity.
     Qed.
 
-    Lemma VsubVtail_from0:
+
+    Lemma VsubVtail_right:
+      ∀ (B : Type) (p t : nat) (v : vector B (S p + t))
+        (pti : S p + t <= S p + t) (pti' : p + t <= p + t),
+        @Vsub B (p+t) (Vtail v) p t pti' ≡ Vsub v pti.
+    Proof.
+      intros.
+      dep_destruct v.
+      simpl.
+      rewrite Vsub_cons.
+      replace pti' with (Vsub_cons_aux pti) by apply proof_irrelevance.
+      reflexivity.
+    Qed.
+    
+    Lemma VsubVtail_left:
       ∀ (B : Type) (p t : nat) (v : vector B (S p + t)) 
         (pti : 0 + p <= p + t) (pti' : 1 + p <= S p + t),
-        Vsub (Vtail v) pti ≡ Vsub v pti'.
+        @Vsub B (p + t) (Vtail v) 0 p pti ≡ Vsub v pti'.
     Proof.
       intros.
       dep_destruct v.
@@ -288,12 +302,26 @@ Pre-condition:
       rewrite <- H1.
 
       assert(H2: (@Vsub B (p + t) (Vtail v) 0 p pti') ≡ Vsub v (Vsub_aux2 0 p pti)).
-      apply VsubVtail_from0.
+      apply VsubVtail_left.
       rewrite H2.
       reflexivity.
     Qed.
 
-
+    Lemma snd_vector2pair {B:Type} (p:nat) {t:nat} (v:vector B (p+t))
+          (pti: p + t <= p + t): 
+      snd (vector2pair p v) ≡ @Vsub B (p+t) v p t pti.
+    Proof.
+      unfold vector2pair.
+      induction p.
+      simpl in *.
+      rewrite Vsub_id.
+      reflexivity.
+      simpl.
+      assert(pti':p + t <= p + t) by omega.
+      rewrite IHp with (pti:=pti').
+      apply VsubVtail_right.
+    Qed.
+    
   Lemma evalBinOpSpec: forall o
                          (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                          (x: svector A (o+o)),
@@ -322,22 +350,28 @@ Pre-condition:
     rewrite Vnth_PointWise2.
 
     assert(FA: Vnth (fst tp) ip ≡ xva).
-    subst tp.
-    assert(pti : 0 + S o  <= S o + S o) by omega.
-    rewrite fst_vector2pair with (pti0:=pti).
-    apply SomeConstrEquiv.
-    rewrite <- XA.
-    rewrite Vnth_sub.
-    generalize  (Vnth_sub_aux 0 pti ip) as c1. intros.
-    generalize (less_half_less_double ip) as c2. intros.
-    replace (c1) with (c2).
-    apply try_vector_from_svector_elementwise; try assumption.
-    apply proof_irrelevance.
+    {
+      subst tp.
+      assert(pti : 0 + S o  <= S o + S o) by omega.
+      rewrite fst_vector2pair with (pti0:=pti).
+      apply SomeConstrEquiv.
+      rewrite <- XA.
+      rewrite Vnth_sub.
+      generalize  (Vnth_sub_aux 0 pti ip) as c1. intros.
+      generalize (less_half_less_double ip) as c2. intros.
+      replace (c1) with (c2).
+      apply try_vector_from_svector_elementwise; try assumption.
+      apply proof_irrelevance.
+    }
     rewrite FA.
 
     assert(FB: Vnth (snd tp) ip  ≡ xvb).
-    admit.
+    {
+      subst tp.
+      admit.
+    }
     rewrite FB.
+    
     reflexivity.
   Qed.
 
