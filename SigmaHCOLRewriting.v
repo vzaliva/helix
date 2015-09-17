@@ -357,8 +357,8 @@ Pre-condition:
       apply SomeConstrEquiv.
       rewrite <- XA.
       rewrite Vnth_sub.
-      generalize  (Vnth_sub_aux 0 pti ip) as c1. intros.
-      generalize (less_half_less_double ip) as c2. intros.
+      generalize  (Vnth_sub_aux 0 pti ip) as c1; intros.
+      generalize (less_half_less_double ip) as c2; intros.
       replace (c1) with (c2).
       apply try_vector_from_svector_elementwise; try assumption.
       apply proof_irrelevance.
@@ -368,7 +368,16 @@ Pre-condition:
     assert(FB: Vnth (snd tp) ip  ≡ xvb).
     {
       subst tp.
-      admit.
+      assert(pti: S o + S o <= S o + S o) by omega.
+      rewrite snd_vector2pair with (pti0:=pti).
+      apply SomeConstrEquiv.
+      rewrite <- XB.
+      rewrite Vnth_sub.
+      generalize (Vnth_sub_aux (S o) pti ip) as c1;rewrite Plus.plus_comm; intros.
+      generalize (half_plus_less_half_less_than_double ip) as c2. intros.
+      replace (c1) with (c2).
+      apply try_vector_from_svector_elementwise; try assumption.
+      apply proof_irrelevance.
     }
     rewrite FB.
     
