@@ -250,6 +250,16 @@ Pre-condition:
       reflexivity.
     Qed.
 
+    Lemma Vnth_PointWise2 {B C D: Type} (f: B->C->D) {n} (ab: (vector B n)*(vector C n))
+          {i} {ip:i<n} {v}:
+      Vnth (HCOLOperators.PointWise2 f v) ip ≡ f (Vnth (fst v) ip) (Vnth (snd v) ip).
+    Proof.
+      destruct v as [a b].
+      unfold HCOLOperators.PointWise2.
+      rewrite Vnth_map2.
+      reflexivity.
+    Qed.
+
   Lemma evalBinOpSpec: forall o
                          (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                          (x: svector A (o+o)),
@@ -274,6 +284,8 @@ Pre-condition:
     subst y.  
     rewrite Vnth_svector_from_vector.
     f_equal.
+    rewrite Vnth_PointWise2.
+
 
     
 
