@@ -251,10 +251,10 @@ Pre-condition:
     Qed.
 
     Lemma Vnth_PointWise2 {B C D: Type} (f: B->C->D) {n} (ab: (vector B n)*(vector C n))
-          {i} {ip:i<n} {v}:
-      Vnth (HCOLOperators.PointWise2 f v) ip ≡ f (Vnth (fst v) ip) (Vnth (snd v) ip).
+          {i} {ip:i<n}:
+      Vnth (HCOLOperators.PointWise2 f ab) ip ≡ f (Vnth (fst ab) ip) (Vnth (snd ab) ip).
     Proof.
-      destruct v as [a b].
+      destruct ab as [a b].
       unfold HCOLOperators.PointWise2.
       rewrite Vnth_map2.
       reflexivity.
@@ -284,77 +284,19 @@ Pre-condition:
     subst y.  
     rewrite Vnth_svector_from_vector.
     f_equal.
+    remember (vector2pair (S o) t) as tp.
     rewrite Vnth_PointWise2.
 
+    assert(FA: Vnth (fst tp) ip ≡ xva).
+    admit.
+    rewrite FA.
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    dependent induction i.
-    - unfold evalBinOp in B.
-      
-      revert B.
-      case_eq (try_vector_from_svector x); try congruence.
-      intros t T B.
-      apply cast_vector_operator_OK_elim in B.
-      
-      subst y. simpl.
-      
-      f_equal.  f_equal.
-      + (* first argument *)
-        assert (HIP: 0 < (S o + S o)) by lia.
-        
-        assert(VH: Vnth t HIP ≡ Vhead t). apply VnthVhead.
-        rewrite <- VH. clear VH.
-
-        apply SomeConstrEquiv. rewrite <- XA. clear XA.
-        
-        assert(TX: Some (Vnth t HIP) ≡ Vnth x HIP).
-        apply try_vector_from_svector_elementwise; assumption.
-        rewrite_clear TX.
-        
-        replace HIP with (less_half_less_double ip) by apply proof_irrelevance.
-        reflexivity.
-      + (* second argument *)
-        assert(P1: (o < (o+(S o)))) by lia.
-        rewrite VheadSndVector2Pair with (P:=P1).
-
-        assert(P1S: S o < S (o + S o)) by lia.
-        rewrite VnthVtail with (h':=P1S).
-
-        clear P1.
-        apply SomeConstrEquiv.  rewrite <- XB. clear XB.
-
-        assert(TX: @Some A (@Vnth A (S (o + S o)) t (S o) P1S) ≡ Vnth x P1S).
-        apply try_vector_from_svector_elementwise; assumption.
-        rewrite_clear TX.
-        
-        replace P1S with (half_plus_less_half_less_than_double ip) by apply proof_irrelevance.
-        reflexivity.
-    -
-      destruct y as [|yh o' yt] eqn:YY; try nat_lt_0_contradiction.
-      rewrite <- YY in IHi.
-      assert(ip': i < o') by omega.
-      rewrite Vnth_Sn with (ip'0:=ip').
-      
-      
+    assert(FB: Vnth (snd tp) ip  ≡ xvb).
+    admit.
+    rewrite FB.
+    reflexivity.
   Qed.
+
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
   Lemma ScatHPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
