@@ -1200,7 +1200,7 @@ Proof.
   auto.
 Qed.
 
-Open Local Scope nat_scope.
+Local Open Scope nat_scope.
 
 Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
 Proof.
@@ -1253,7 +1253,7 @@ Proof.
   auto with arith.
 Defined.
 
-Close Local Scope nat_scope.
+Local Close Scope nat_scope.
 
 Close Scope vector_scope.
 
@@ -1317,3 +1317,10 @@ Ltac none_some_elim :=
          end. 
 
 Ltac rewrite_clear H := rewrite H; clear H.
+
+Ltac nat_lt_0_contradiction := 
+  let H' := fresh in
+  match goal with
+  | [H: Peano.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
+  end.
+

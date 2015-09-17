@@ -257,9 +257,7 @@ Pre-condition:
   Proof.
     intros o f pF x y D B i ip xva xvb XA XB.
 
-    destruct o as [|o].
-    assert(¬i < 0) by apply lt_n_0.
-    contradiction.
+    destruct o as [|o]; try nat_lt_0_contradiction.
     
     dependent induction i.
     - unfold evalBinOp in B.
@@ -275,7 +273,7 @@ Pre-condition:
       + (* first argument *)
         assert (HIP: 0 < (S o + S o)) by lia.
         
-        assert(VH: Vnth t HIP ≡ Vhead t  ). apply VnthVhead.
+        assert(VH: Vnth t HIP ≡ Vhead t). apply VnthVhead.
         rewrite <- VH. clear VH.
 
         apply SomeConstrEquiv. rewrite <- XA. clear XA.
@@ -302,12 +300,9 @@ Pre-condition:
         
         replace P1S with (half_plus_less_half_less_than_double ip) by apply proof_irrelevance.
         reflexivity.
-    -
+    - assert(ip': i < S o) by crush.
       
-
-    
-    Set Printing Implicit. Show.
-    
+      destruct y as [|yh]; try nat_lt_0_contradiction.
   Qed.
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
