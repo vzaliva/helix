@@ -242,6 +242,14 @@ Pre-condition:
       reflexivity.
     Qed.
 
+    Lemma Vnth_svector_from_vector {B} {n i} {ip:i<n} {v:vector B n}:
+      Vnth (svector_from_vector v) ip ≡ Some (Vnth v ip).
+    Proof.
+      unfold svector_from_vector.
+      rewrite Vnth_map.
+      reflexivity.
+    Qed.
+
   Lemma evalBinOpSpec: forall o
                          (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                          (x: svector A (o+o)),
@@ -256,8 +264,35 @@ Pre-condition:
           Vnth y ip ≡ Some (f xva xvb).
   Proof.
     intros o f pF x y D B i ip xva xvb XA XB.
-
     destruct o as [|o]; try nat_lt_0_contradiction.
+
+    unfold evalBinOp in B.
+    revert B.
+    case_eq (try_vector_from_svector x); try congruence.
+    intros t T B.
+    apply cast_vector_operator_OK_elim in B.
+    subst y.  
+    rewrite Vnth_svector_from_vector.
+    f_equal.
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     dependent induction i.
     - unfold evalBinOp in B.
@@ -300,7 +335,7 @@ Pre-condition:
         
         replace P1S with (half_plus_less_half_less_than_double ip) by apply proof_irrelevance.
         reflexivity.
-    -       
+    -
       destruct y as [|yh o' yt] eqn:YY; try nat_lt_0_contradiction.
       rewrite <- YY in IHi.
       assert(ip': i < o') by omega.
