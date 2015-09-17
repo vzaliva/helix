@@ -241,7 +241,7 @@ Pre-condition:
       replace h'' with h by apply proof_irrelevance.
       reflexivity.
     Qed.
-    
+
   Lemma evalBinOpSpec: forall o
                          (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                          (x: svector A (o+o)),
@@ -300,9 +300,13 @@ Pre-condition:
         
         replace P1S with (half_plus_less_half_less_than_double ip) by apply proof_irrelevance.
         reflexivity.
-    - assert(ip': i < S o) by crush.
+    -       
+      destruct y as [|yh o' yt] eqn:YY; try nat_lt_0_contradiction.
+      rewrite <- YY in IHi.
+      assert(ip': i < o') by omega.
+      rewrite Vnth_Sn with (ip'0:=ip').
       
-      destruct y as [|yh]; try nat_lt_0_contradiction.
+      
   Qed.
   
   (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)

@@ -1239,6 +1239,14 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
+  Vnth (Vcons v vs) ip ≡ Vnth vs ip'.
+Proof.
+  simpl.
+  replace (lt_S_n ip) with ip' by apply proof_irrelevance.
+      reflexivity.
+Qed.
+
 Lemma modulo_smaller_than_devisor:
   ∀ x y : nat, 0 ≢ y → x mod y < y.
 Proof.
