@@ -504,7 +504,9 @@ Pre-condition:
     | OK l => Vnth l ip
     end.
 
-  Lemma SparseUnionOK (n m:nat) (l: vector (@maybeError (svector A m)) n) (z: svector A m):
+  Lemma SparseUnionOK (n m:nat)
+        (l: vector (@maybeError (svector A m)) n)
+        (z: svector A m):
     (forall (i:nat) (ip: i<m),
         exists j (jp: j<n),
           (
@@ -519,17 +521,7 @@ Pre-condition:
     unfold is_OK.
     destruct (Vfold_left ErrSparseUnion (OK z) l) eqn:VFOK.
     admit.
-    admit.
-    
-  Qed.
-
-  Lemma VnthDense {B} {n} {x: svector B n} {i} {ip:i<n}:
-    svector_is_dense x -> is_Some (Vnth x ip).
-  Proof.
-    intros D.
-    unfold svector_is_dense in D.
-    apply Vforall_nth.
-    auto.
+    admit.    
   Qed.
   
   Lemma BinOpSums
@@ -700,7 +692,6 @@ Pre-condition:
       assumption.
     }
 
-
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
     {
@@ -725,6 +716,8 @@ Pre-condition:
               → Vnth x (half_plus_less_half_less_than_double ip) ≡ Some xvb
               → Vnth t' ip ≡ Some (f xva xvb)).
     {
+
+        
       admit.
     }
 
@@ -802,7 +795,12 @@ Pre-condition:
   Lemma testOp2Op1: forall (st : state) (x : vector (option A) (2 + 2)),
       svector_is_dense x -> evalSigmaHCOL st op1 x = evalSigmaHCOL st op2 x.
   Proof.
-    appy BinOpSums.
+    intros.
+    apply BinOpSums.
+    lia.
+    compute; intros; reflexivity.
+    compute; intros; reflexivity.
+    assumption.
   Qed.
   
   Section SigmaHCOLRewriting.
