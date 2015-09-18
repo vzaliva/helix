@@ -522,7 +522,16 @@ Pre-condition:
     admit.
     
   Qed.
-      
+
+  Lemma VnthDense {B} {n} {x: svector B n} {i} {ip:i<n}:
+    svector_is_dense x -> is_Some (Vnth x ip).
+  Proof.
+    intros D.
+    unfold svector_is_dense in D.
+    apply Vforall_nth.
+    auto.
+  Qed.
+  
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -680,7 +689,7 @@ Pre-condition:
       crush.
     }
 
-    assert(∀ (i : nat) (ip : i < (S n)) (xva xvb : A),
+    assert(BSP: ∀ (i : nat) (ip : i < (S n)) (xva xvb : A),
               Vnth x (less_half_less_double ip) ≡ Some xva
               → Vnth x (half_plus_less_half_less_than_double ip) ≡ Some xvb
               → Vnth t ip ≡ Some (f xva xvb)).
@@ -690,20 +699,78 @@ Pre-condition:
       assumption.
       assumption.
     }
-    
+
+
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
-    apply SparseUnionOK.
+    {
+      apply SparseUnionOK.
+      intros.
+      exists i ip.
+      assert(IE: Vnth (Vbuild f1) ip ≡ OK t). admit.
+      assert(IS: is_Some (Vnth t ip)). admit.
+      split.
+      exists t. exists IE. exact IS.
+      admit.
+    }
+    
+    remember (OK (empty_svector (S n))) as Zn.
+
+    destruct (Vfold_left ErrSparseUnion Zn (Vbuild f1))
+             as [t' |  ]
+             eqn: F; err_ok_elim.
+
+    assert(FSP: ∀ (i : nat) (ip : i < S n) (xva xvb : A),
+              Vnth x (less_half_less_double ip) ≡ Some xva
+              → Vnth x (half_plus_less_half_less_than_double ip) ≡ Some xvb
+              → Vnth t' ip ≡ Some (f xva xvb)).
+    {
+      admit.
+    }
+
+    unfold equiv, maybeError_equiv, equiv, svector_equiv.
+
+    apply Vforall2_intro_nth.
     intros.
-    exists i ip.
-    assert(IE: Vnth (Vbuild f1) ip ≡ OK t). admit.
-    assert(IS: is_Some (Vnth t ip)). admit.
-    split.
-    exists t. exists IE. exact IS.
+    
+    remember (Vnth x (less_half_less_double ip)) as xa.
+    destruct xa as [xva|].
+    symmetry in Heqxa.
 
+    remember (Vnth x (half_plus_less_half_less_than_double ip)) as xb.
+    destruct xb as [xvb|].
+    symmetry in Heqxb.
+    
+    specialize BSP with i ip xva xvb.
+    specialize FSP with i ip xva xvb.
+
+    assert(BN: Vnth t ip ≡ Some (f xva xvb)).
+    {
+      apply BSP.
+      assumption.
+      assumption.
+    }
+    assert(FN: Vnth t' ip ≡ Some (f xva xvb)).
+    {
+      apply FSP.
+      assumption.
+      assumption.
+    }
+    rewrite BN, FN.
+    unfold opt_Equiv.
+    reflexivity.
+
+    assert(H:is_Some (Vnth x (half_plus_less_half_less_than_double ip)))
+      by (apply VnthDense; assumption).
+    rewrite <- Heqxb in H.
+    none_some_elim.
+    
+    assert(H:is_Some (Vnth x (less_half_less_double ip)))
+      by (apply VnthDense; assumption).
+    rewrite <- Heqxa in H.
+    none_some_elim.
+     
   Qed.
-  
-
 
 
   (* --- Test on an example --- *)
