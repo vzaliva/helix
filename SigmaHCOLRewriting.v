@@ -679,10 +679,27 @@ Pre-condition:
       }
       crush.
     }
+
+    assert(∀ (i : nat) (ip : i < (S n)) (xva xvb : A),
+              Vnth x (less_half_less_double ip) ≡ Some xva
+              → Vnth x (half_plus_less_half_less_than_double ip) ≡ Some xvb
+              → Vnth t ip ≡ Some (f xva xvb)).
+    {
+      apply evalBinOpSpec.
+      assumption.
+      assumption.
+      assumption.
+    }
     
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
     apply SparseUnionOK.
+    intros.
+    exists i ip.
+    assert(IE: Vnth (Vbuild f1) ip ≡ OK t). admit.
+    assert(IS: is_Some (Vnth t ip)). admit.
+    split.
+    exists t. exists IE. exact IS.
 
   Qed.
   
