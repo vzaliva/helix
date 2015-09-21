@@ -505,16 +505,16 @@ Pre-condition:
     end.
 
   Lemma SparseUnionOK (n m:nat)
-        (l: vector (@maybeError (svector A m)) n)
+        (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matric stroed in column major order *)
         (z: svector A m):
-    (forall (i:nat) (ip: i<m),
-        exists j (jp: j<n),
+    (forall (i:nat) (ip: i<m), (* for all rows *)
+        exists j (jp: j<n), (* exists colum *)
           (
-            (exists lj (ljOK: Vnth l jp ≡ OK lj), is_Some (Vnth lj ip))
+            (exists lj (ljOK: Vnth l jp ≡ OK lj), is_Some (Vnth lj ip)) (* has value at (i, j) *)
             /\
             (forall j' (j'p: j'<n),
                 (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
-                -> j' ≡ j)
+                -> j' ≡ j) (* and this value is unique *)
     ))
     -> is_OK (Vfold_left ErrSparseUnion (OK z) l).
   Proof.
