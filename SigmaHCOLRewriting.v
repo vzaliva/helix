@@ -504,9 +504,26 @@ Pre-condition:
     | OK l => Vnth l ip
     end.
 
+  Lemma ErrSparseUnionArgOK:
+    ∀ (n : nat) 
+      (a b : @maybeError (svector A n)),
+      is_OK (ErrSparseUnion a b) → (is_OK a) /\ (is_OK b).
+  Proof.
+    intros.
+    unfold is_OK in H.
+    break_match_hyp.
+    unfold ErrSparseUnion in Heqm.
+    + split.
+      repeat break_match_hyp; err_ok_elim.
+      repeat break_match_hyp; err_ok_elim.
+    + contradiction H.
+  Qed.
+  
   Lemma SparseUnionOK (n m:nat)
-        (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matric stroed in column major order *)
+        (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
         (z: svector A m):
+    (n≡0) \/
+    (m≡0 /\ Vforall is_OK l) \/
     (forall (i:nat) (ip: i<m), (* for all rows *)
         exists j (jp: j<n), (* exists colum *)
           (
@@ -516,10 +533,50 @@ Pre-condition:
                 (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
                 -> j' ≡ j) (* and this value is unique *)
     ))
-    -> is_OK (Vfold_left ErrSparseUnion (OK z) l).
+    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l).
   Proof.
-    unfold is_OK.
+    split.
+    Focus 2.
+    (* prove is_OK -> ... direction first *)
+    intros K.
+    destruct n.
+    (* Take care of n=0 case *)
+    left; trivial.
+    (* now n!=0 *)
+    right.
+    destruct m.
+    (* Now let us take care of m=0 *)
+    left. split. reflexivity.
+
+
+    dependent induction n.
+    admit.
+    dep_destruct l.
+    auto.
+    simpl.
+    split.
+    admit.
+    apply IHn with z.
+    simpl in K.
+    apply ErrSparseUnionArgOK in K.
+    destruct K.
+    assumption.
+
+      
+    
+    
+
+
+
+
+    intros i ip.
+    
+    unfold is_OK in K.
     destruct (Vfold_left ErrSparseUnion (OK z) l) eqn:VFOK.
+    clear K.
+    unfold Vfold_left in VFOK.
+    destruct l eqn:L.
+    
     admit.
     admit.    
   Qed.
