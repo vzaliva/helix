@@ -522,9 +522,9 @@ Pre-condition:
   Lemma SparseUnionOK (n m:nat)
         (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
         (z: svector A m):
-    (n≡0) \/
-    (m≡0 /\ Vforall is_OK l) \/
-    (svector_is_empty z ->
+    svector_is_empty z -> Vforall is_OK l ->
+    ((n≡0) \/
+    (m≡0) \/
     (forall (i:nat) (ip: i<m), (* for all rows *)
         exists j (jp: j<n), (* exists colum *)
           (
@@ -533,9 +533,10 @@ Pre-condition:
             (forall j' (j'p: j'<n),
                 (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
                 -> j' ≡ j)) (* and this value is unique *)
-    ))
-    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l).
+    )
+    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l)).
   Proof.
+    intros Ze OKl.
     split.
     Focus 2.
     (* prove is_OK -> ... direction first *)
@@ -547,11 +548,22 @@ Pre-condition:
     right.
     destruct m.
     (* Now let us take care of m=0 *)
-    left. split. reflexivity.
+    left. reflexivity.
+    right.
 
+    (* all special cases for 'm' and 'n' are taken care of *)
+
+
+
+
+    
     induction n.
     rewrite Vfold_left_1 in K.
-    simpl in K.
+    apply ErrSparseUnionArgOK in K.
+    destruct K.
+
+
+    
     break_match_hyp.
     apply Vforall_1.
     crush.
@@ -572,38 +584,6 @@ Pre-condition:
     
 
 
-    
-
-    
-    admit.
-    dep_destruct l.
-    auto.
-    simpl.
-    split.
-    admit.
-    apply IHn with z.
-    simpl in K.
-    apply ErrSparseUnionArgOK in K.
-    destruct K.
-    assumption.
-
-      
-    
-    
-
-
-
-
-    intros i ip.
-    
-    unfold is_OK in K.
-    destruct (Vfold_left ErrSparseUnion (OK z) l) eqn:VFOK.
-    clear K.
-    unfold Vfold_left in VFOK.
-    destruct l eqn:L.
-    
-    admit.
-    admit.    
   Qed.
   
   Lemma BinOpSums
