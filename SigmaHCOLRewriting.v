@@ -524,6 +524,7 @@ Pre-condition:
         (z: svector A m):
     (n≡0) \/
     (m≡0 /\ Vforall is_OK l) \/
+    (svector_is_empty z ->
     (forall (i:nat) (ip: i<m), (* for all rows *)
         exists j (jp: j<n), (* exists colum *)
           (
@@ -531,7 +532,7 @@ Pre-condition:
             /\
             (forall j' (j'p: j'<n),
                 (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
-                -> j' ≡ j) (* and this value is unique *)
+                -> j' ≡ j)) (* and this value is unique *)
     ))
     <-> is_OK (Vfold_left ErrSparseUnion (OK z) l).
   Proof.
@@ -567,6 +568,12 @@ Pre-condition:
     right.
 
     (* all special cases for 'm' and 'n' are taken care of *)
+    intros Ze i ip.
+    
+
+
+    
+
     
     admit.
     dep_destruct l.

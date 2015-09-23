@@ -27,7 +27,9 @@ Definition svector_is_dense {A} {n} (v:svector A n) : Prop :=
   Vforall is_Some v.
 
 Definition empty_svector {A} n: svector A n := @Vconst (option A) None n.
-    
+
+Definition svector_is_empty {A} {n} (v:svector A n) := Vforall is_None v.
+
 
 Definition from_Some {A} (x:option A) {S: is_Some x}: A :=
   match x as o return (@is_Some A o -> A) with
