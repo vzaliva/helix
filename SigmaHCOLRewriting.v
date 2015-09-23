@@ -539,16 +539,16 @@ Pre-condition:
     Focus 2.
     (* prove is_OK -> ... direction first *)
     intros K.
-    destruct n as [|n0] eqn:N.
+    destruct n.
     (* Take care of n=0 case *)
     left; trivial.
     (* now n!=0 *)
     right.
-    destruct m as [|m0] eqn:M.
+    destruct m.
     (* Now let us take care of m=0 *)
     left. split. reflexivity.
 
-    dependent induction n0.
+    induction n.
     rewrite Vfold_left_1 in K.
     simpl in K.
     break_match_hyp.
@@ -562,7 +562,7 @@ Pre-condition:
     destruct K as [KF Kh].
     split.
     assumption.
-    apply IHn0 with (z:=z).
+    apply IHn.
     assumption.
     right.
 
