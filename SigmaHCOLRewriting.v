@@ -519,19 +519,6 @@ Pre-condition:
     + contradiction H.
   Qed.
 
-  Lemma Vfold_left_1
-        {B C : Type} (f: C → B → C) {z: C} {v:vector B 1}:
-    Vfold_left f z v ≡ f z (Vhead v).
-  Proof.
-    dep_destruct v.
-    simpl.
-    replace x with (@Vnil B).
-    simpl.
-    reflexivity.
-    symmetry.
-    apply t0_nil.
-  Qed.
-  
   Lemma SparseUnionOK (n m:nat)
         (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
         (z: svector A m):
@@ -562,7 +549,19 @@ Pre-condition:
     left. split. reflexivity.
 
     dependent induction n.
-    apply Vfold_left_1.
+    rewrite Vfold_left_1 in K.
+    simpl in K.
+    break_match_hyp.
+    apply Vforall_1.
+    crush.
+    err_ok_elim.
+
+
+
+
+
+
+
 
     
     admit.

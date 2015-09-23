@@ -979,6 +979,19 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vfold_left_1
+      {B C : Type} (f: C → B → C) {z: C} {v:vector B 1}:
+  Vfold_left f z v ≡ f z (Vhead v).
+Proof.
+  dep_destruct v.
+  simpl.
+  replace x with (@Vnil B).
+  simpl.
+  reflexivity.
+  symmetry.
+  apply t0_nil.
+Qed.
+
 Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
                             Vfold_right f v id ≡ f (hd v) (Vfold_right f (tl v) id).
 Proof.
@@ -1199,6 +1212,28 @@ Lemma Vforall_cons {B:Type} {P:B->Prop} {n:nat} {x:B} {xs:vector B n}:
 Proof.
   auto.
 Qed.
+
+Lemma Vforall_1 {B: Type} {P} (v: vector B 1):
+  Vforall P v <-> P (Vhead v).
+Proof.
+  split.
+  +
+    dep_destruct v.
+    simpl.
+    replace (Vforall P x) with True; simpl.
+    tauto.
+    replace x with (@Vnil B).
+    simpl; reflexivity.
+    symmetry;  apply t0_nil.
+  + dep_destruct v.
+    simpl.
+    replace (Vforall P x) with True; simpl.
+    tauto.
+    replace x with (@Vnil B).
+    simpl; reflexivity.
+    symmetry;  apply t0_nil.
+Qed.
+
 
 Local Open Scope nat_scope.
 
