@@ -523,20 +523,16 @@ Pre-condition:
         (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
         (z: svector A m):
     svector_is_empty z -> Vforall is_OK l ->
-    ((n≡0) \/
+    (((n≡0) \/
     (m≡0) \/
-    (forall (i:nat) (ip: i<m), (* for all rows *)
-        exists j (jp: j<n), (* exists colum *)
-          (
-            (exists lj (ljOK: Vnth l jp ≡ OK lj), is_Some (Vnth lj ip)) (* has value at (i, j) *)
-            /\
-            (forall j' (j'p: j'<n),
-                (exists lj' (lj'OK: Vnth l j'p ≡ OK lj'), is_Some (Vnth lj' ip))
-                -> j' ≡ j)) (* and this value is unique *)
+    (forall i (ip: i<m) j (jp: j<n) j' (j'p: j'<n) lj lj',
+        Vnth l jp ≡ OK lj -> is_Some (Vnth lj ip)  -> 
+        Vnth l j'p ≡ OK lj' -> is_Some (Vnth lj' ip)
+        -> j' ≡ j)
     )
     <-> is_OK (Vfold_left ErrSparseUnion (OK z) l)).
   Proof.
-    intros Ze OKl.
+    intros Ze Lo.
     split.
     Focus 2.
     (* prove is_OK -> ... direction first *)
@@ -553,35 +549,8 @@ Pre-condition:
 
     (* all special cases for 'm' and 'n' are taken care of *)
 
+    intros i ip j jp j' j'p lj lj' Jo LJs J'o LJ's.
 
-
-
-    
-    induction n.
-    rewrite Vfold_left_1 in K.
-    apply ErrSparseUnionArgOK in K.
-    destruct K.
-
-
-    
-    break_match_hyp.
-    apply Vforall_1.
-    crush.
-    err_ok_elim.
-
-    dep_destruct l.
-    simpl in *.
-    apply ErrSparseUnionArgOK in K.
-    destruct K as [KF Kh].
-    split.
-    assumption.
-    apply IHn.
-    assumption.
-    right.
-
-    (* all special cases for 'm' and 'n' are taken care of *)
-    intros Ze i ip.
-    
 
 
   Qed.
