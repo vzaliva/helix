@@ -9,6 +9,7 @@ Require Import HCOLSyntax.
 Require Import Arith.
 Require Import Compare_dec.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Program. 
 
@@ -497,8 +498,8 @@ Pre-condition:
     auto.
   Qed.
 
-  Definition MaybeVnth {B : Type} (n : nat)
-             (el: @maybeError (svector B n)) {i: nat} {ip: i < n}: option B :=
+  Definition MaybeVnth {B : Type} {n : nat}
+             (el: @maybeError (svector B n)) {i: nat} (ip: i < n): option B :=
     match el with
     | Error _ => None
     | OK l => Vnth l ip
@@ -518,6 +519,62 @@ Pre-condition:
       repeat break_match_hyp; err_ok_elim.
     + contradiction H.
   Qed.
+
+  Fixpoint Vfold_left_err
+           {B C : Type}
+           (f: C → B → @maybeError C)
+           {n}
+           (z: C)
+           (v: vector B n)
+    : @maybeError C
+    :=
+      match v with
+      | Vnil => OK z
+      | Vcons a _ w =>
+        match Vfold_left_err f z w with
+        | OK p => f p a 
+        | Error _ as e => e
+        end
+      end.
+
+  Lemma Vbuild_cons: forall {B} {n} (gen : forall i, i < S n -> B),
+      Vbuild gen ≡ Vcons
+             (gen 0 (lt_O_Sn n))
+             (Vbuild (fun i ip => gen (S i) (lt_n_S ip))).
+  Proof.
+    intros.
+    rewrite <- Vbuild_head.
+    rewrite <- Vbuild_tail.
+    auto.
+  Qed.
+
+  Lemma FoldErrSpraseUnionSpec:
+    ∀ {n m : nat}
+      (l: vector (@maybeError (svector A (S m))) (S n))
+      (z v : svector A (S m)),
+      
+      Vforall is_OK l
+      → (Vfold_left ErrSparseUnion (OK z) l) ≡ OK v
+                                             
+      -> (forall i (ip: i<S m),
+            Vfold_left_err OptionUnion None
+                           (Vbuild (fun j jp => MaybeVnth (Vnth l jp) ip))
+                           ≡ OK (Vnth v ip)
+        ).
+  Proof.
+    intros n m l z v Lo Vo j jp.
+    remember (Vbuild (λ (j0 : nat) (jp0 : j0 < S n), MaybeVnth (Vnth l jp0) jp)) as b.
+    dependent induction b.
+    crush.
+    break_match.
+
+    rewrite Vbuild_cons in Heqb.
+    inversion Heqb. rename H0 into Hh, H1 into Hb.
+    apply inj_pair2_eq_dec in Hb; try apply eq_nat_dec.
+    clear Heqb.
+
+  Qed.
+    
 
   Lemma SparseUnionOK (n m:nat)
         (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
@@ -550,9 +607,19 @@ Pre-condition:
     (* all special cases for 'm' and 'n' are taken care of *)
 
     intros i ip j jp j' j'p lj lj' Jo LJs J'o LJ's.
+    destruct (Vfold_left ErrSparseUnion (OK z) l) as [v|v] eqn:Ko; err_ok_elim.
+    
+    assert(Rj: 
+            Vfold_left_err OptionUnion None
+                            (Vbuild (fun pj pjp => MaybeVnth (Vnth l pjp) ip))
+                            ≡ OK (Vnth v ip)).
+    {
+      apply FoldErrSpraseUnionSpec with (z0:=z).
+      assumption.
+      assumption.
+      }
 
-
-
+    
   Qed.
   
   Lemma BinOpSums

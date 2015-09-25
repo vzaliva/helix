@@ -28,6 +28,13 @@ Require Import MathClasses.orders.orders.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+
+Definition OptionUnion {A} (a b: option A) :=
+  match a, b with
+  |  Some _, Some _ => Error "incompatible values"
+  |  None, None as x | None, Some _ as x | Some _ as x, None => OK x
+  end.
+
 Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (svector A n) := 
   match n with
   | O => fun _ _ => OK (@Vnil (option A))
@@ -35,9 +42,9 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
               match SparseUnion (Vtail a) (Vtail b) as t with
               | Error msg => Error msg
               | OK xs =>
-                match Vhead a, Vhead b with
-                |  Some _, Some _ => Error "incompatible values"
-                |  None, None as x | None, Some _ as x | Some _ as x, None => OK (Vcons x xs)
+                match OptionUnion (Vhead a) (Vhead b) with
+                |  Error _ => Error "incompatible values"
+                |  OK x => OK (Vcons x xs)
                 end
               end
   end.
