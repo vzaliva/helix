@@ -1326,7 +1326,7 @@ Qed.
 (* simple tactic to get rid is_OK/is_Error and is_None/is_Some goals which are 
 frequently produced by cases analsysis on matcing error conditions *)
 
-Global Ltac err_ok_elim := 
+Ltac err_ok_elim := 
           repeat match goal with
                  | [ H: ?x ≢ ?x |- _ ] => congruence
                  | [ H: ?x ≡ ?x |- _ ] => clear H
@@ -1343,6 +1343,7 @@ Global Ltac err_ok_elim :=
                  | [ H : _ |- is_Error (Error) ] => unfold is_Error; trivial
                  | [ H : _ |- is_Error (OK _) ] => unfold is_Error; congruence
                  end.
+Ltac ok_err_elim :=  err_ok_elim.
 
 Ltac none_some_elim := 
   repeat match goal with
@@ -1358,6 +1359,7 @@ Ltac none_some_elim :=
          | [ H : _ |- is_Some None ] => unfold is_Some; congruence
          | [ H : _ |- is_Some (Some _) ] => unfold is_Some; trivial
          end. 
+Ltac some_none_elim := none_some_elim.
 
 Ltac rewrite_clear H := rewrite H; clear H.
 

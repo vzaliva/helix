@@ -545,7 +545,7 @@ Pre-condition:
     intros.
     rewrite <- Vbuild_head.
     rewrite <- Vbuild_tail.
-    auto.
+    reflexivity.
   Qed.
 
   Lemma FoldErrSpraseUnionSpec
@@ -567,7 +567,7 @@ Pre-condition:
     dependent induction m.
     crush.
     break_match.
-
+    (*
     break_match.
     Focus 2.
     simpl in Heqm0.
@@ -580,23 +580,34 @@ Pre-condition:
     clear Heqb.
     *)
     admit.
+    admit.
+    admit.
   Qed.
     
 
+  Lemma FoldOptionOKUniqueSome:
+    ∀ {n} {j : nat} (jp : j < S n) {j' : nat} (j'p : j' < S n)
+      (vg : vector (option A) (S n)),
+      is_Some (Vnth vg jp)
+      → is_Some (Vnth vg j'p) → is_OK (Vfold_left_err OptionUnion None vg) -> j' ≡ j.
+  Proof.
+    intros n j jp j' j'p vg Sj Sj' Fok.
+    admit.
+  Qed.
+  
   Lemma SparseUnionOK (n m:nat)
         (l: vector (@maybeError (svector A m)) n) (* We can think of 'l' as a matrix stored in column major order. Each column is of type @maybeError (vector) *)
-        (z: svector A m):
-    svector_is_empty z -> Vforall is_OK l ->
-    (((n≡0) \/
+        (z: svector A m)
+        (Ze: svector_is_empty z)
+        (Lo: Vforall is_OK l):
+    (n≡0) \/
     (m≡0) \/
     (forall i (ip: i<m) j (jp: j<n) j' (j'p: j'<n) lj lj',
         Vnth l jp ≡ OK lj -> is_Some (Vnth lj ip)  -> 
         Vnth l j'p ≡ OK lj' -> is_Some (Vnth lj' ip)
         -> j' ≡ j)
-    )
-    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l)).
+    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l).
   Proof.
-    intros Ze Lo.
     split.
     Focus 2.
     (* prove is_OK -> ... direction first *)
@@ -626,6 +637,32 @@ Pre-condition:
       assumption.
       }
 
+    (* proof by contradiction *)
+     now_show (j' ≡ j).
+    
+    assert (LoU: forall x (xp:x<S n), is_OK (Vnth l xp)).
+    {
+      intros.
+      apply Vforall_nth with (i:=x) (ip:=xp) in Lo.
+      assumption.
+    }
+    remember (Vbuild (λ (pj : nat) (pjp : pj < S n), MaybeVnth (Vnth l pjp) ip)) as vg.
+
+    assert(is_Some (Vnth vg jp)).
+    {
+      destruct (Vnth vg jp).
+      none_some_elim.
+      
+      admit.
+    }
+    assert(is_Some (Vnth vg j'p)).
+    {
+      admit.
+    }
+
+    apply (FoldOptionOKUniqueSome jp j'p vg); try assumption.
+    crush.
+    (* now prove ... -> is_OK direction *)
     
   Qed.
   
