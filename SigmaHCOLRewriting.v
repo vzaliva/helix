@@ -548,31 +548,38 @@ Pre-condition:
     auto.
   Qed.
 
-  Lemma FoldErrSpraseUnionSpec:
-    ∀ {n m : nat}
-      (l: vector (@maybeError (svector A (S m))) (S n))
-      (z v : svector A (S m)),
-      
-      Vforall is_OK l
-      → (Vfold_left ErrSparseUnion (OK z) l) ≡ OK v
-                                             
-      -> (forall i (ip: i<S m),
-            Vfold_left_err OptionUnion None
-                           (Vbuild (fun j jp => MaybeVnth (Vnth l jp) ip))
-                           ≡ OK (Vnth v ip)
-        ).
+  Lemma FoldErrSpraseUnionSpec
+        {n m : nat}
+        (l: vector (@maybeError (svector A (S m))) (S n))
+        (z v : svector A (S m))
+        (Lo:  Vforall is_OK l)
+        (Vo: Vfold_left ErrSparseUnion (OK z) l ≡ OK v):
+    
+    forall i (ip: i<S m),
+      Vfold_left_err OptionUnion None
+                     (Vbuild (fun j jp => MaybeVnth (Vnth l jp) ip))
+                     ≡ OK (Vnth v ip).
   Proof.
-    intros n m l z v Lo Vo j jp.
-    remember (Vbuild (λ (j0 : nat) (jp0 : j0 < S n), MaybeVnth (Vnth l jp0) jp)) as b.
-    dependent induction b.
+    intros i ip.
+    remember (Vbuild (λ (j : nat) (jp : j < S n), MaybeVnth (Vnth l jp) ip)) as r eqn:Reqn.
+    (* 'r' is row in our matrix *)
+    
+    dependent induction m.
     crush.
     break_match.
 
+    break_match.
+    Focus 2.
+    simpl in Heqm0.
+    unfold Vfold_left_err in Heqm0.
+
+    
     rewrite Vbuild_cons in Heqb.
     inversion Heqb. rename H0 into Hh, H1 into Hb.
     apply inj_pair2_eq_dec in Hb; try apply eq_nat_dec.
     clear Heqb.
-
+    *)
+    admit.
   Qed.
     
 
