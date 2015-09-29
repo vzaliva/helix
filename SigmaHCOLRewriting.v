@@ -650,14 +650,16 @@ Pre-condition:
 
     assert(is_Some (Vnth vg jp)).
     {
-      destruct (Vnth vg jp).
-      none_some_elim.
-      
-      admit.
+      subst vg.
+      rewrite Vbuild_nth.
+      crush.
     }
+
     assert(is_Some (Vnth vg j'p)).
     {
-      admit.
+      subst vg.
+      rewrite Vbuild_nth.
+      crush.
     }
 
     apply (FoldOptionOKUniqueSome jp j'p vg); try assumption.
