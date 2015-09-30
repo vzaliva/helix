@@ -610,7 +610,7 @@ Pre-condition:
   Proof.
     split.
     Focus 2.
-    (* prove is_OK -> ... direction first *)
+    (* First prove is_OK -> ... direction first *)
     intros K.
     destruct n.
     (* Take care of n=0 case *)
@@ -664,7 +664,25 @@ Pre-condition:
 
     apply (FoldOptionOKUniqueSome jp j'p vg); try assumption.
     crush.
-    (* now prove ... -> is_OK direction *)
+
+    (* Now prove ... -> is_OK direction *)
+    intros B.
+    destruct B as [N|B1].
+    (* n=0 case *)
+    destruct z, l; crush.
+    destruct B1 as [M|S].
+    (* m=0 case *)
+    destruct z; crush.
+    induction l.
+    auto.
+    simpl.
+    simpl in Lo. destruct Lo as [Hok L'ok].
+    assert(is_OK (Vfold_left ErrSparseUnion (OK []) l)) by auto. clear IHl.
+    destruct (Vfold_left ErrSparseUnion (OK []) l).
+    crush.
+    destruct h; crush.
+    err_ok_elim.
+    (* m!=0 /\ n!=0 case *)
     
   Qed.
   
