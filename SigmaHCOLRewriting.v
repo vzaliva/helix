@@ -683,7 +683,30 @@ Pre-condition:
     destruct h; crush.
     err_ok_elim.
     (* m!=0 /\ n!=0 case *)
+    induction n.
+    dep_destruct l.
+    crush.
+
+
+
+    TODO: here
+
+
     
+    induction m.
+    dep_destruct z.
+    destruct l.
+    crush.
+    simpl.
+
+    destruct (Vfold_left ErrSparseUnion (OK []) l) eqn: Fm0.
+    
+    assert (is_OK (Vfold_left ErrSparseUnion (OK []) l)).
+    apply IHn with (l:=l).
+    
+    SearchAbout Vfold_left.
+
+
   Qed.
   
   Lemma BinOpSums
