@@ -148,18 +148,18 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
     
-    Definition VnthInverseIndexMapped' {A:Type}
+    Definition VnthInverseIndexMapped {A:Type}
                {i o:nat}
                (x: svector A i)
-               (f'_spec: inverse_map_spec i o)
+               (f': partial_index_map o i)
                (n:nat) (np: n<o)
       : option A
       :=
-        let f' := proj1_sig f'_spec in
-        let f'_dr := proj2_sig f'_spec in
-        match (f' n) as fn return f' n ≡ fn -> option A with        
+        let f := partial_index_f _ _ f' in
+        let f_spec := partial_index_f_spec _ _  f' in
+        match (f n) as fn return f n ≡ fn -> option A with        
         | None => fun _ => None
-        | Some z => fun p => Vnth x (f'_dr n np z p)
+        | Some z => fun p => Vnth x (f_spec n np z p)
         end eq_refl.
     
     Program Definition Scatter {A:Type}
@@ -168,19 +168,19 @@ natrual number by index mapping function f_spec. *)
             (x: svector A i) : svector A o
       :=
         Vbuild (fun n np =>
-                  VnthInverseIndexMapped' x (build_inverse_map_spec f) n np).
+                  VnthInverseIndexMapped x (build_inverse_index_map f) n np).
     
     Lemma Scatter_spec `{Equiv A}
           {i o: nat}
           (f: index_map i o)
           (x: svector A i)
           (y : svector A o):
-      (Scatter f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped' x (build_inverse_map_spec f) n ip.
+      (Scatter f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip.
     Proof.
       unfold Scatter, Vbuild. 
       destruct (Vbuild_spec
                   (λ (n : nat) (np : n < o),
-       VnthInverseIndexMapped' x (build_inverse_map_spec f) n np)) as [Vv Vs].
+       VnthInverseIndexMapped x (build_inverse_index_map f) n np)) as [Vv Vs].
       simpl.
       intros.
       subst.
