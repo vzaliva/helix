@@ -99,10 +99,10 @@ Section Jections.
          ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
   Definition index_map_surjective
-             {n: nat}
-             (f: index_map n n)
+             {d r: nat}
+             (f: index_map d r)
     :=
-      forall (y:nat) (yc: y<n), exists (x:nat) (xc: x<n), ⟦ f ⟧ x ≡ y.
+      forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d), ⟦ f ⟧ x ≡ y.
 
   Definition index_map_bijective
             {n: nat}
@@ -110,6 +110,27 @@ Section Jections.
     :=
       (index_map_injective f) /\ (index_map_surjective f).
 
+  Definition partial_index_map_injective
+             {d r: nat}
+             (fp: partial_index_map d r)
+    := 
+      let f := partial_index_f _ _ fp in
+      forall (x:nat) (xc: x<d) (y:nat) (yc: y<r) v, 
+        (f x ≡ Some v /\ f y ≡ Some v) → x ≡ y.
+
+  Definition partial_index_map_surjective
+             {d r: nat}
+             (fp: partial_index_map d r)
+    :=
+      let f := partial_index_f _ _ fp in
+      forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d),  f x ≡ Some y.
+  
+  Definition partial_index_map_bijective
+             {n: nat}
+             (f: partial_index_map n n)
+    :=
+      (partial_index_map_injective f) /\ (partial_index_map_surjective f).
+  
 End Jections.
 
 Section Primitive_Functions.
