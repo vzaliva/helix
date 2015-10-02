@@ -95,10 +95,10 @@ End Permutations.
 Section Jections.
 
   Definition index_map_injective
-             {n: nat}
-             (f: index_map n n)
+             {d r: nat}
+             (f: index_map d r)
     := 
-      forall (x:nat) (xc: x<n) (y:nat) (yc: y<n), 
+      forall (x:nat) (xc: x<d) (y:nat) (yc: y<r), 
          ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
   Definition index_map_surjective
@@ -114,37 +114,6 @@ Section Jections.
       (index_map_injective f) /\ (index_map_surjective f).
 
 End Jections.
-
-(* permutation is bijective function of a set into itself *)
-(*
-Lemma permutation_is_bijection
-      {n: nat}
-      (f: index_map n n):
-  index_map_bijective  f <-> index_map_is_permutation f.
-Proof.
-  destruct f as [f f_spec]. 
-  split.
-  +unfold index_map_bijective, index_map_injective, index_map_surjective, index_map_is_permutation.
-   simpl.
-   intros.   
-   destruct H as [IH SH].
-
-   apply NoDup_Permutation.
-   {
-     induction n.
-     constructor 1.
-     simpl.
-     constructor 2.
-     unfold List.In.
-     admit.
-     apply IHn; admit.
-   }
-   admit.
-   admit.
-  +
-    admit.
-Qed.
- *)
 
 Section Primitive_Functions.
   
@@ -181,6 +150,19 @@ Section Primitive_Functions.
   Next Obligation.
     nia.
   Defined.
+
+  Lemma h_index_map_is_injective
+        {domain range: nat}
+        (b s: nat)
+        {range_bound: (b+(pred domain)*s) < range}
+        {snz: s ≢ 0}:
+    index_map_injective  (@h_index_map domain range b s range_bound snz).
+  Proof.
+    unfold index_map_injective.
+    intros x xc y yc H.
+    simpl in H.
+    nia.
+  Qed.
 
 End Primitive_Functions.
 
