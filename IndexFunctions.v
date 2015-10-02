@@ -45,11 +45,11 @@ Global Instance index_map_equiv {domain range:nat}:
 
 
 Section Inversions.
-  Definition partial_function_spec domain range f' :=
+  Definition partial_function_def domain range f' :=
     forall x, x<range -> forall z, (((f' x) ≡ Some z) -> z < domain).
   
   Definition inverse_map_spec (i o: nat) :=
-    { f': nat -> option nat | partial_function_spec i o f'}.
+    { f': nat -> option nat | partial_function_def i o f'}.
   
   Program Definition build_inverse_map_spec
           {i o: nat}
@@ -61,7 +61,7 @@ Section Inversions.
            (rev_natrange_list i).
   Next Obligation.
     destruct f.  simpl.
-    unfold partial_function_spec.
+    unfold partial_function_def.
     intros.
     induction i.
     crush.
