@@ -6,6 +6,7 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.Lists.List.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
@@ -182,6 +183,36 @@ Section Primitive_Functions.
     nia.
   Qed.
 
+  Lemma h_index_map'_is_injective
+        {domain range: nat}
+        (b s: nat)
+        {range_bound: (b+(pred domain)*s) < range}
+        {snz: s ≢ 0}:
+    partial_index_map_injective
+      (build_inverse_index_map
+         (@h_index_map domain range b s range_bound snz)).
+  Proof.
+    assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
+      by apply h_index_map_is_injective.
+    unfold index_map_injective in N.
+    simpl in N.
+    unfold partial_index_map_injective.
+    intros x xc y yc v H.
+    destruct H as [H1 E].
+    rewrite <- H1 in E. clear H1.
+    simpl in E.
+
+    set (f1:= λ (x' : nat) (p : option nat),
+              if eq_nat_dec y (b + x' * s) then Some x' else p) in E.
+    set (f2:= λ (x' : nat) (p : option nat),
+              if eq_nat_dec x (b + x' * s) then Some x' else p) in E.
+
+    assert (FE: forall (n:nat) (np: n < domain), f1 n ≡ f2 n).
+    intros n np.
+    admit.
+
+  Qed.
+  
 End Primitive_Functions.
 
 Section Function_Operators.
