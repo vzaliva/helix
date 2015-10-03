@@ -230,19 +230,16 @@ Section Primitive_Functions.
     unfold partial_index_map_injective.
     intros x y xc yc v H.
     destruct H as [H1 E].
-    rewrite <- H1 in E. clear H1.
-    simpl in E.
-
+    rewrite <- H1 in E. 
+    remember (build_inverse_index_map (h_index_map b s)) as hp'.
+    unfold build_inverse_index_map in Heqhp'.
+    destruct hp' as [h' h'_spec].
+    simpl in E, H1.
+    inversion Heqhp' as [H]. clear Heqhp'.
     remember (rev_natrange_list domain) as l.
-
-    set (f1:= λ (x' : nat) (p : option nat),
-              if eq_nat_dec y (b + x' * s) then Some x' else p) in E.
-    set (f2:= λ (x' : nat) (p : option nat),
-              if eq_nat_dec x (b + x' * s) then Some x' else p) in E.
-
-    dependent induction domain.
-
-
+    
+    induction domain.
+    crush.
   Qed.
   
 End Primitive_Functions.
