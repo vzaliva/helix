@@ -111,6 +111,10 @@ Section Jections.
     :=
       (index_map_injective f) /\ (index_map_surjective f).
 
+  (* "A partial function is said to be injective or surjective when
+  the total function given by the restriction of the partial function
+  to its domain of definition is." *)
+
   Definition partial_index_map_injective
              {d r: nat}
              (fp: partial_index_map d r)
