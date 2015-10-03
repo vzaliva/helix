@@ -96,7 +96,7 @@ Section Jections.
              {d r: nat}
              (f: index_map d r)
     := 
-      forall (x:nat) (xc: x<d) (y:nat) (yc: y<r), 
+      forall (x y:nat) (xc: x<d) (yc: y<d),
          ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
   Definition index_map_surjective
@@ -116,7 +116,7 @@ Section Jections.
              (fp: partial_index_map d r)
     := 
       let f := partial_index_f _ _ fp in
-      forall (x:nat) (xc: x<d) (y:nat) (yc: y<r) v, 
+      forall (x y:nat) (xc: x<d) (yc: y<d) v, 
         (f x ≡ Some v /\ f y ≡ Some v) → x ≡ y.
 
   Definition partial_index_map_surjective
@@ -178,7 +178,7 @@ Section Primitive_Functions.
     index_map_injective  (@h_index_map domain range b s range_bound snz).
   Proof.
     unfold index_map_injective.
-    intros x xc y yc H.
+    intros x y xc yc H.
     simpl in H.
     nia.
   Qed.
@@ -192,16 +192,17 @@ Section Primitive_Functions.
       (build_inverse_index_map
          (@h_index_map domain range b s range_bound snz)).
   Proof.
+    (*
     assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
       by apply h_index_map_is_injective.
     unfold index_map_injective in N.
-    simpl in N.
+    simpl in N. *)
     unfold partial_index_map_injective.
-    intros x xc y yc v H.
+    intros x y xc yc v H.
     destruct H as [H1 E].
     rewrite <- H1 in E. clear H1.
     simpl in E.
-
+    
     set (f1:= λ (x' : nat) (p : option nat),
               if eq_nat_dec y (b + x' * s) then Some x' else p) in E.
     set (f2:= λ (x' : nat) (p : option nat),
