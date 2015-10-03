@@ -26,6 +26,9 @@ Require Import Spiral.
 
 Global Open Scope nat_scope.
 
+
+(* Index maps (total functions) *)
+
 Record index_map (domain range : nat)
   :=
     IndexMap { index_f : nat -> nat; index_f_spec : forall x, x<domain -> (index_f x) < range }.
@@ -33,10 +36,10 @@ Record index_map (domain range : nat)
 Notation "⟦ f ⟧" := (@index_f _ _ f).
 Notation "« f »" := (@index_f_spec _ _ f).
 
-(* Returns upper domain bound for given `index_map_spec` *)
+(* Returns upper domain bound for given `index_map` *)
 Definition index_map_dom {d r:nat} (s: index_map d r) := d.
 
-(* Returns upper rang bound for given `index_map_spec` *)
+(* Returns upper rang bound for given `index_map` *)
 Definition index_map_range {d r:nat} (s: index_map d r) := r.
 
 Global Instance index_map_equiv {domain range:nat}:
@@ -44,31 +47,26 @@ Global Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
-Section Inversions.
+(* Index maps (partial functions) *)
 
-  Record partial_index_map (domain range : nat)
-    :=
-      PartialIndexMap { partial_index_f : nat -> option nat; partial_index_f_spec :  forall x, x<domain -> forall z, (((partial_index_f x) ≡ Some z) -> z < range)}.
-  
-  Program Definition build_inverse_index_map
-          {i o: nat}
-          (f: index_map i o): partial_index_map o i
-    := PartialIndexMap o i (fun y =>
-                              List.fold_right
-                                (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
-                                None
-                                (rev_natrange_list i)) _.
-  Next Obligation.
-    destruct f.  simpl.
-    intros.
-    induction i.
-    crush.
-    simpl in H0.
-    destruct (eq_nat_dec x (index_f0 i)); crush.
-  Defined.
-  
-End Inversions.
-  
+Record partial_index_map (domain range : nat)
+  :=
+    PartialIndexMap { partial_index_f : nat -> option nat; partial_index_f_spec :  forall x, x<domain -> forall z, (((partial_index_f x) ≡ Some z) -> z < range)}.
+
+(* Returns upper domain bound for given `partial_index_map` *)
+Definition patial_index_map_dom {d r:nat} (s: partial_index_map d r) := d.
+
+(* Returns upper rang bound for given `patial_index_map` *)
+Definition partial_index_map_range {d r:nat} (s: partial_index_map d r) := r.
+
+Global Instance partial_index_map_equiv {domain range:nat}:
+  Equiv (partial_index_map domain range)
+  :=
+    fun fp gp =>
+      let f := partial_index_f _ _ fp in
+      let g := partial_index_f _ _ gp in
+      forall (x:nat) (xd: x<domain), f x = g x.
+
 Section Permutations.
   Fixpoint natrange_f_spec
            (n:nat)
@@ -138,6 +136,31 @@ Section Jections.
   
 End Jections.
 
+Section Inversions.
+
+  Program Definition build_inverse_index_map
+          {i o: nat}
+          (f: index_map i o)
+          {FI: index_map_injective f} (* we can only build inverse of injective functions *)
+    : partial_index_map o i
+    := PartialIndexMap o i (fun y =>
+                              List.fold_right
+                                (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
+                                None
+                                (rev_natrange_list i)) _.
+  Next Obligation.
+    clear FI.
+    destruct f.  simpl in *.
+    intros.
+    induction i.
+    crush.
+    simpl in H0.
+    destruct (eq_nat_dec x (index_f0 i)); crush.
+  Defined.
+  
+End Inversions.
+  
+
 Section Primitive_Functions.
   
   Program Definition identity_index_map
@@ -193,28 +216,32 @@ Section Primitive_Functions.
         {range_bound: (b+(pred domain)*s) < range}
         {snz: s ≢ 0}:
     partial_index_map_injective
-      (build_inverse_index_map
-         (@h_index_map domain range b s range_bound snz)).
+      (@build_inverse_index_map domain range
+         (@h_index_map domain range b s range_bound snz)
+         (@h_index_map_is_injective domain range b s range_bound snz)
+      ).
   Proof.
     (*
     assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
       by apply h_index_map_is_injective.
     unfold index_map_injective in N.
-    simpl in N. *)
+    simpl in N.
+    *)
     unfold partial_index_map_injective.
     intros x y xc yc v H.
     destruct H as [H1 E].
     rewrite <- H1 in E. clear H1.
     simpl in E.
-    
+
+    remember (rev_natrange_list domain) as l.
+
     set (f1:= λ (x' : nat) (p : option nat),
               if eq_nat_dec y (b + x' * s) then Some x' else p) in E.
     set (f2:= λ (x' : nat) (p : option nat),
               if eq_nat_dec x (b + x' * s) then Some x' else p) in E.
 
-    assert (FE: forall (n:nat) (np: n < domain), f1 n ≡ f2 n).
-    intros n np.
-    admit.
+    dependent induction domain.
+
 
   Qed.
   
