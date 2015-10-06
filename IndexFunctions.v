@@ -154,10 +154,12 @@ Section Inversions.
     crush.
   Qed.
 
+  (* Theoretically, we can only build inverse of injective functions. However this
+definition does not enforce this requirement, and the function produced might not be
+   true inverse in mathematical sense. To make sure it is, checl (index_map_injective f) *)
   Program Definition build_inverse_index_map
           {i o: nat}
           (f: index_map i o)
-          {FI: index_map_injective f} (* we can only build inverse of injective functions *)
     : partial_index_map o i
     := PartialIndexMap o i (fun y =>
                               List.fold_right
@@ -244,9 +246,8 @@ Section Primitive_Functions.
         {range_bound: (b+(pred domain)*s) < range}
         {snz: s ≢ 0}:
     partial_index_map_injective
-      (@build_inverse_index_map domain range
+      (build_inverse_index_map 
          (@h_index_map domain range b s range_bound snz)
-         (@h_index_map_is_injective domain range b s range_bound snz)
       ).
   Proof.
     unfold partial_index_map_injective.
