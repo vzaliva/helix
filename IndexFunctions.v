@@ -138,7 +138,7 @@ End Jections.
 
 Section Inversions.
 
-  Lemma h'_dom (domain x z : nat) (f: nat->nat):
+  Fact h'_dom (domain x z : nat) (f: nat->nat):
     List.fold_right
       (λ (x' : nat) (p : option nat),
        if eq_nat_dec x (f x') then Some x' else p) None
@@ -222,6 +222,21 @@ Section Primitive_Functions.
     simpl in H.
     nia.
   Qed.
+
+  Fact h'_returns_from_h_domain (r x:nat) (f: nat->nat) l:
+    List.fold_right
+      (λ (x' : nat) (p : option nat),
+       if eq_nat_dec x (f x') then Some x' else p) None
+      l ≡ Some r -> f r ≡ x.
+  Proof.
+    intros.
+    induction l.
+    + simpl in H. congruence.
+    + simpl in H.
+      destruct (eq_nat_dec x (f a)).
+    - inversion H as [R]; rewrite <- R; symmetry; assumption.
+    - apply IHl; assumption.
+  Qed.
   
   Lemma h_index_map'_is_injective
         {domain range: nat}
@@ -253,12 +268,13 @@ Section Primitive_Functions.
         (eq_nat_dec y (b + domain * s)) as [yT | yF],
                                            (eq_nat_dec x (b + domain * s)) as [xT | xF].
 
-    -subst x y; reflexivity.
-    - admit. (* not possible, since E contradicsts xF *)
-    - admit. (* not possible, since E contradicsts yF *)
-    -
-      apply IHdomain with
-            (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
+    - subst x y; reflexivity.
+    - symmetry in E.
+      apply h'_returns_from_h_domain in E.
+      congruence.
+    - apply h'_returns_from_h_domain in E.
+      congruence.
+    - apply IHdomain with (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
       nia.
       intros; apply h'_dom with (x:=x0) (f:=fun x' => b+x'*s); assumption.
       {
