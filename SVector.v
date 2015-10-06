@@ -4,7 +4,8 @@
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
 Require Import MathClasses.misc.decision.
-
+Require Import MathClasses.interfaces.abstract_algebra.
+        
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -29,7 +30,6 @@ Definition svector_is_dense {A} {n} (v:svector A n) : Prop :=
 Definition empty_svector {A} n: svector A n := @Vconst (option A) None n.
 
 Definition svector_is_empty {A} {n} (v:svector A n) := Vforall is_None v.
-
 
 Definition from_Some {A} (x:option A) {S: is_Some x}: A :=
   match x as o return (@is_Some A o -> A) with
@@ -144,5 +144,13 @@ Proof.
     apply Vforall_nth.
     auto.
 Qed.
+
+Lemma empty_svector_cons {A} {n}:
+  empty_svector (S n) ≡ Vcons None (@empty_svector A n).
+Proof.
+  intros.
+  reflexivity.
+Qed.
+
 
 

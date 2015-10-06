@@ -19,7 +19,6 @@ Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
 
-
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
@@ -827,7 +826,22 @@ Pre-condition:
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
     {
-      admit.
+      induction n.
+      simpl.
+      break_match.
+      break_match.
+      crush.
+      break_match_hyp; err_ok_elim.
+      simpl in MOK; destruct MOK;
+      rewrite Heqm in H; err_ok_elim.
+      destruct (Vfold_left ErrSparseUnion (OK (empty_svector (S (S n)))) (Vbuild f1))
+                   eqn:FD.
+      crush.
+      rewrite Vbuild_cons in FD.
+      rewrite empty_svector_cons in FD.
+      TODO: split Vfold, apply IH.
+        
+
     }
 
     remember (OK (empty_svector (S n))) as Zn.
