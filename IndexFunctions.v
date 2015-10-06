@@ -138,6 +138,22 @@ End Jections.
 
 Section Inversions.
 
+  Lemma h'_dom (domain x z : nat) (f: nat->nat):
+    List.fold_right
+      (λ (x' : nat) (p : option nat),
+       if eq_nat_dec x (f x') then Some x' else p) None
+      (rev_natrange_list domain) ≡ Some z → z < domain.
+  Proof.
+    intros H.
+    induction domain.
+    simpl in *.  congruence.
+    simpl in H.
+    destruct (eq_nat_dec x (f domain)).
+    inversion H.
+    lia.
+    crush.
+  Qed.
+
   Program Definition build_inverse_index_map
           {i o: nat}
           (f: index_map i o)
@@ -149,13 +165,10 @@ Section Inversions.
                                 None
                                 (rev_natrange_list i)) _.
   Next Obligation.
-    clear FI.
+    
     destruct f.  simpl in *.
-    intros.
-    induction i.
-    crush.
-    simpl in H0.
-    destruct (eq_nat_dec x (index_f0 i)); crush.
+    apply h'_dom with (x:=x) (f:=index_f0).
+    assumption.
   Defined.
   
 End Inversions.
@@ -210,26 +223,6 @@ Section Primitive_Functions.
     nia.
   Qed.
   
-  Lemma h'_dom:
-    ∀ domain range b s x : nat,
-      x < range
-      → ∀ z : nat,
-        List.fold_right
-          (λ (x' : nat) (p : option nat),
-           if eq_nat_dec x (b + x' * s) then Some x' else p) None
-          (rev_natrange_list domain) ≡ Some z → z < domain.
-  Proof.
-    intros domain range b s x H z S.
-    induction domain.
-    crush.
-    simpl in S.
-    destruct (eq_nat_dec x (b + domain * s)).
-    inversion S.
-    lia.
-    crush.
-  Qed.
-        
-  
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
@@ -267,7 +260,7 @@ Section Primitive_Functions.
       apply IHdomain with
             (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
       nia.
-      apply h'_dom.
+      intros; apply h'_dom with (x:=x0) (f:=fun x' => b+x'*s); assumption.
       {
         simpl in H1.
         destruct (eq_nat_dec x (b + domain * s)).
