@@ -221,12 +221,12 @@ Section Primitive_Functions.
          (@h_index_map_is_injective domain range b s range_bound snz)
       ).
   Proof.
-    (*
-    assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
+
+    (*assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
       by apply h_index_map_is_injective.
     unfold index_map_injective in N.
-    simpl in N.
-    *)
+    simpl in N.*)
+
     unfold partial_index_map_injective.
     intros x y xc yc v H.
     destruct H as [H1 E].
@@ -237,9 +237,24 @@ Section Primitive_Functions.
     simpl in E, H1.
     inversion Heqhp' as [H]. clear Heqhp'.
     remember (rev_natrange_list domain) as l.
-    
-    induction domain.
-    crush.
+
+    subst_max.
+    dependent induction domain.
+    + crush.
+    + simpl in E.
+      destruct 
+        (eq_nat_dec y (b + domain * s)) as [yT | yF],
+                                           (eq_nat_dec x (b + domain * s)) as [xT | xF].
+
+    -subst x y; reflexivity.
+    - admit. (* not possible, since E contradicsts xF *)
+    - admit. (* not possible, since E contradicsts yF *)
+    -
+      apply IHdomain with
+            (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
+      nia.
+      admit.
+      admit.
   Qed.
   
 End Primitive_Functions.
