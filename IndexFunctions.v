@@ -209,7 +209,27 @@ Section Primitive_Functions.
     simpl in H.
     nia.
   Qed.
-
+  
+  Lemma h'_dom:
+    ∀ domain range b s x : nat,
+      x < range
+      → ∀ z : nat,
+        List.fold_right
+          (λ (x' : nat) (p : option nat),
+           if eq_nat_dec x (b + x' * s) then Some x' else p) None
+          (rev_natrange_list domain) ≡ Some z → z < domain.
+  Proof.
+    intros domain range b s x H z S.
+    induction domain.
+    crush.
+    simpl in S.
+    destruct (eq_nat_dec x (b + domain * s)).
+    inversion S.
+    lia.
+    crush.
+  Qed.
+        
+  
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
@@ -221,12 +241,6 @@ Section Primitive_Functions.
          (@h_index_map_is_injective domain range b s range_bound snz)
       ).
   Proof.
-
-    (*assert (N: index_map_injective  (@h_index_map domain range b s range_bound snz))
-      by apply h_index_map_is_injective.
-    unfold index_map_injective in N.
-    simpl in N.*)
-
     unfold partial_index_map_injective.
     intros x y xc yc v H.
     destruct H as [H1 E].
@@ -253,8 +267,10 @@ Section Primitive_Functions.
       apply IHdomain with
             (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
       nia.
-      admit.
-      admit.
+      apply h'_dom.
+      {
+        admit.
+      }
   Qed.
   
 End Primitive_Functions.
