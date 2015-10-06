@@ -269,7 +269,10 @@ Section Primitive_Functions.
       nia.
       apply h'_dom.
       {
-        admit.
+        simpl in H1.
+        destruct (eq_nat_dec x (b + domain * s)).
+        congruence.
+        apply H1.
       }
   Qed.
   
