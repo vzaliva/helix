@@ -548,6 +548,7 @@ Pre-condition:
     reflexivity.
   Qed.
 
+(*  
   Lemma FoldErrSpraseUnionSpec
         {n m : nat}
         (l: vector (@maybeError (svector A (S m))) (S n))
@@ -600,17 +601,14 @@ Pre-condition:
         (z: svector A m)
         (Ze: svector_is_empty z)
         (Lo: Vforall is_OK l):
-    (n≡0) \/
-    (m≡0) \/
-    (forall i (ip: i<m) j (jp: j<n) j' (j'p: j'<n) lj lj',
-        Vnth l jp ≡ OK lj -> is_Some (Vnth lj ip)  -> 
-        Vnth l j'p ≡ OK lj' -> is_Some (Vnth lj' ip)
-        -> j' ≡ j)
-    <-> is_OK (Vfold_left ErrSparseUnion (OK z) l).
+    is_OK (Vfold_left ErrSparseUnion (OK z) l) ->
+    ((n≡0) \/
+     (m≡0) \/
+     (forall i (ip: i<m) j (jp: j<n) j' (j'p: j'<n) lj lj',
+         Vnth l jp ≡ OK lj -> is_Some (Vnth lj ip)  -> 
+         Vnth l j'p ≡ OK lj' -> is_Some (Vnth lj' ip)
+         -> j' ≡ j)).
   Proof.
-    split.
-    Focus 2.
-    (* First prove is_OK -> ... direction first *)
     intros K.
     destruct n.
     (* Take care of n=0 case *)
@@ -621,7 +619,7 @@ Pre-condition:
     (* Now let us take care of m=0 *)
     left. reflexivity.
     right.
-
+    
     (* all special cases for 'm' and 'n' are taken care of *)
 
     intros i ip j jp j' j'p lj lj' Jo LJs J'o LJ's.
@@ -664,51 +662,9 @@ Pre-condition:
 
     apply (FoldOptionOKUniqueSome jp j'p vg); try assumption.
     crush.
-
-    (* Now prove ... -> is_OK direction *)
-    intros B.
-    destruct B as [N|B1].
-    (* n=0 case *)
-    destruct z, l; crush.
-    destruct B1 as [M|S].
-    (* m=0 case *)
-    destruct z; crush.
-    induction l.
-    auto.
-    simpl.
-    simpl in Lo. destruct Lo as [Hok L'ok].
-    assert(is_OK (Vfold_left ErrSparseUnion (OK []) l)) by auto. clear IHl.
-    destruct (Vfold_left ErrSparseUnion (OK []) l).
-    crush.
-    destruct h; crush.
-    err_ok_elim.
-    (* m!=0 /\ n!=0 case *)
-    induction n.
-    dep_destruct l.
-    crush.
-
-
-
-    TODO: here
-
-
-    
-    induction m.
-    dep_destruct z.
-    destruct l.
-    crush.
-    simpl.
-
-    destruct (Vfold_left ErrSparseUnion (OK []) l) eqn: Fm0.
-    
-    assert (is_OK (Vfold_left ErrSparseUnion (OK []) l)).
-    apply IHn with (l:=l).
-    
-    SearchAbout Vfold_left.
-
-
   Qed.
-  
+ *)
+
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -806,10 +762,8 @@ Pre-condition:
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
-      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g)).
-      {
-        apply BinOpPre; assumption.
-      }
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g))
+             by (apply BinOpPre; assumption).
       
       destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
@@ -845,10 +799,8 @@ Pre-condition:
       intros g G.
       apply GatHDensePost in G; try assumption. 
 
-      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g)).
-      {
-        apply BinOpPre; assumption.
-      }
+      assert (bOK: is_OK (@evalBinOp A (1 + 1) 1 f g))
+             by (apply BinOpPre; assumption).
       
       destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
@@ -869,18 +821,12 @@ Pre-condition:
     assert(BSP: ∀ (i : nat) (ip : i < (S n)) (xva xvb : A),
               Vnth x (less_half_less_double ip) ≡ Some xva
               → Vnth x (half_plus_less_half_less_than_double ip) ≡ Some xvb
-              → Vnth t ip ≡ Some (f xva xvb)).
-    {
-      apply evalBinOpSpec.
-      assumption.
-      assumption.
-      assumption.
-    }
+              → Vnth t ip ≡ Some (f xva xvb))
+    by  (apply evalBinOpSpec; assumption).
 
     assert (FOK: is_OK (Vfold_left ErrSparseUnion (OK (empty_svector (S n)))
                                    (Vbuild f1))).
     {
-      apply SparseUnionOK.
       admit.
     }
 
@@ -911,21 +857,8 @@ Pre-condition:
     destruct xb as [xvb|].
     symmetry in Heqxb.
     
-    specialize BSP with i ip xva xvb.
-    specialize FSP with i ip xva xvb.
-
-    assert(BN: Vnth t ip ≡ Some (f xva xvb)).
-    {
-      apply BSP.
-      assumption.
-      assumption.
-    }
-    assert(FN: Vnth t' ip ≡ Some (f xva xvb)).
-    {
-      apply FSP.
-      assumption.
-      assumption.
-    }
+    assert(BN: Vnth t ip ≡ Some (f xva xvb)) by (apply BSP; assumption).
+    assert(FN: Vnth t' ip ≡ Some (f xva xvb)) by (apply FSP; assumption).
     rewrite BN, FN.
     unfold opt_Equiv.
     reflexivity.
@@ -939,7 +872,6 @@ Pre-condition:
       by (apply VnthDense; assumption).
     rewrite <- Heqxa in H.
     none_some_elim.
-     
   Qed.
 
 
