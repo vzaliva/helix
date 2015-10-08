@@ -493,6 +493,17 @@ Section Natrange_List.
   Definition natrange_list (n:nat) : list nat :=
     List.rev (rev_natrange_list n).
 
+  Lemma rev_natrange_len:
+    ∀ i : nat, Datatypes.length (rev_natrange_list i) ≡ i.
+  Proof.
+    intros.
+    induction i.
+    crush.
+    simpl.
+    rewrite IHi.
+    reflexivity.
+  Qed.
+  
   Lemma rev_natrange_list_bound:
     ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
   Proof.

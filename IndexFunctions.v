@@ -172,6 +172,35 @@ definition does not enforce this requirement, and the function produced might no
     apply h'_dom with (x:=x) (f:=index_f0).
     assumption.
   Defined.
+
+
+  Lemma build_inverse_index_map_is_left_inverse
+             {i o: nat}
+             (f: index_map i o)
+             (f_inj: index_map_injective f):
+    let fp := build_inverse_index_map f in
+    let f' := partial_index_f _ _ fp in
+    forall x y (xc:x<i), ⟦ f ⟧ x ≡ y -> f' y ≡ Some x.
+  Proof.
+    intros fp f' x y xc A.
+    destruct f.
+    unfold index_map_injective in f_inj.
+    unfold build_inverse_index_map in fp.
+    simpl in *.
+    unfold f'.
+    subst y.
+    clear fp f'.
+    
+    induction i.
+    - nat_lt_0_contradiction.
+    - simpl.
+      destruct (eq_nat_dec (index_f0 x) (index_f0 i)) as [E|N].
+      apply f_inj in E; auto.
+      apply IHi; auto.
+      destruct (eq_nat_dec x i).
+      + congruence.
+      + lia.
+  Qed.
   
 End Inversions.
   
