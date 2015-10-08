@@ -174,6 +174,8 @@ definition does not enforce this requirement, and the function produced might no
   Defined.
 
 
+  (* The following lemma proves that using `buld_inverse_index_map` on
+  injective index_map produces true "left inverse" of it *)
   Lemma build_inverse_index_map_is_left_inverse
              {i o: nat}
              (f: index_map i o)
