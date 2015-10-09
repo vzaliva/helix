@@ -559,15 +559,26 @@ Pre-condition:
         (y : vector (option A) (m*n)):
     (evalsToWithVar var st sstride m) ->  
     (svector_is_dense x) -> 
-    (evalSigmaHCOL st (SHOISumUnion var (AConst (pred m))
+    (evalSigmaHCOL st (SHOISumUnion var (AConst m)
                                     (SHOScatH (AValue var) sstride)
                       ) x ≡ OK y) ->
     svector_is_dense y.
   Proof.
     intros estride xdense E.
-    destruct m; try (contradict  mnz; reflexivity).
-    simpl (pred (S m)) in E.
-   
+    unfold evalSigmaHCOL in E.
+    simpl (evalAexp st (AConst m)) in E.
+
+    destruct m. err_ok_elim.
+
+    remember ((@Vbuild (@maybeError (vector (option A) (S m * n))) 
+           (S m)
+           (fix en (n' : nat) (np : n' < S m) {struct n'} :
+              @maybeError (vector (option A) (S m * n)) :=
+              @evalScatH A Ae (S m) (S m * n) (update st var n') 
+                         (AValue var) sstride x))) as b eqn:B.
+
+    SearchAbout Vbuild.
+    
   Qed.
   
 
