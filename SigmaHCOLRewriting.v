@@ -548,24 +548,28 @@ Pre-condition:
   Qed.
 
 
-  Lemma ISumUnionScatH
-        (o: nat)
-        {onz: 0 ≢ o} 
-        (f:A->A->A)
+  Lemma ISumUnionScatH_base
+        (m n: nat)
+        {mnz: 0 ≢ m}
+        {nnz: 0 ≢ n}
         (var:varname)
         (sstride:aexp)
         (st : state)
-        (x : vector (option A) (o + o))
-        (y : vector (option A) (o + o))
-        (sstrideE: evalsToWithVar var st sstride o)
-        (xdense: svector_is_dense x):
-    (evalSigmaHCOL st (SHOISumUnion var (AConst o)
+        (x : vector (option A) m)
+        (y : vector (option A) (m*n)):
+    (evalsToWithVar var st sstride m) ->  
+    (svector_is_dense x) -> 
+    (evalSigmaHCOL st (SHOISumUnion var (AConst (pred m))
                                     (SHOScatH (AValue var) sstride)
                       ) x ≡ OK y) ->
     svector_is_dense y.
-
+  Proof.
+    intros estride xdense E.
+    destruct m; try (contradict  mnz; reflexivity).
+    simpl (pred (S m)) in E.
+   
+  Qed.
   
-
 
       (* TODO: Experimental/unproven code below *)
   
