@@ -187,28 +187,22 @@ natrual number by index mapping function f_spec. *)
         apply build_inverse_index_map_is_left_inverse; try assumption.
         reflexivity.
       }
-      clear J.
+
+      (* At this point 'rewrite L' should work but it does not, so we will generalize the hell out of it, and remove unnecessary hypothesis to work around this problem *)
+      
       remember (build_inverse_index_map f) as f' eqn:F.
       unfold VnthInverseIndexMapped.
-      generalize (@Vnth (option A) i x). intros V.
       destruct f.
       simpl in *.
-      generalize dependent (build_inverse_index_map
-                              {| index_f := index_f; index_f_spec := index_f_spec |}).
-      intros p' F. clear F p'.
-      generalize (partial_index_f_spec o i f' (index_f n) (index_f_spec n ip)).
-      intros.
-      clear x.
-      clear H.
-      destruct f'.
-      simpl in *.
-      clear index_f_spec partial_index_f_spec o.
 
-      destruct (partial_index_f (index_f n)).
+      generalize (partial_index_f_spec o i f' (index_f n) (index_f_spec n ip)).
+      intros l.
+
+      destruct (partial_index_f o i f' (index_f n)).
       inversion L.
-      generalize (l n0 eq_refl).
-      intros l0.
       subst n0.
+      generalize (l n eq_refl).
+      intros l0.
       replace l0 with ip by apply proof_irrelevance.
       reflexivity.
       congruence.
