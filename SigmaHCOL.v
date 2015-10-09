@@ -192,13 +192,10 @@ natrual number by index mapping function f_spec. *)
       
       remember (build_inverse_index_map f) as f' eqn:F.
       unfold VnthInverseIndexMapped.
-      destruct f.
-      simpl in *.
 
-      generalize (partial_index_f_spec o i f' (index_f n) (index_f_spec n ip)).
-      intros l.
-
-      destruct (partial_index_f o i f' (index_f n)).
+      generalize (partial_index_f_spec o i f' (⟦f ⟧ n) («f » n ip)).
+      intros.
+      destruct (partial_index_f o i f' (⟦f ⟧ n)).
       inversion L.
       subst n0.
       generalize (l n eq_refl).
