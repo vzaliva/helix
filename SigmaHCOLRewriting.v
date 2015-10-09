@@ -594,6 +594,7 @@ Pre-condition:
       rewrite Vbuild_nth.
       destruct i. (* to get rid of fix *)
 
+      (* case: i = 0 *)
       assert(gOK: is_OK (evalSigmaHCOL (update st var 0) (SHOGathH (i:=S m) (o:=1) (AValue var) (AConst 1)) x)).
       apply GathPre with (nbase:=0) (nstride:=1).
       {
@@ -608,6 +609,29 @@ Pre-condition:
       assert(sOK: is_OK (evalSigmaHCOL (update st var 0) (SHOScatH (i:=1) (o:=S m * n) (AValue var) sstride) t)).
       {
         apply ScatHPre with (nbase:=0) (nstride:=S m).
+        repeat split.
+        apply update_eval.
+        apply estride.
+        nia.
+        auto.
+      }
+      apply sOK.
+
+      (* case: i = (S i0) *)
+      assert(gOK: is_OK (evalSigmaHCOL (update st var (S i)) (SHOGathH (i:=S m) (o:=1) (AValue var) (AConst 1)) x)).
+      apply GathPre with (nbase:=S i) (nstride:=1).
+      {
+        repeat split.
+        apply update_eval.
+        auto.
+        lia.
+      }
+      simpl in gOK.
+      break_match_goal; err_ok_elim.
+      
+      assert(sOK: is_OK (evalSigmaHCOL (update st var (S i)) (SHOScatH (i:=1) (o:=S m * n) (AValue var) sstride) t)).
+      {
+        apply ScatHPre with (nbase:=S i) (nstride:=S m).
         repeat split.
         apply update_eval.
         apply estride.
