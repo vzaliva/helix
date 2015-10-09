@@ -385,18 +385,18 @@ Pre-condition:
   Qed.
 
   
-  (* Checks preconditoins of evaluation of SHOScatHUnion to make sure it succeeds*)
+  (* Checks preconditoins of evaluation of SHOScatH to make sure it succeeds*)
   Lemma ScatHPre: forall (i o nbase nstride: nat) (base stride:aexp) (st:state)
                    (x: svector A i),
       ((evalAexp st base ≡ OK nbase) /\
        (evalAexp st stride ≡ OK nstride) /\
        ((nbase+(pred i)*nstride) < o) /\
        (nstride ≢ 0)) ->
-       is_OK (evalSigmaHCOL st (SHOScatHUnion (i:=i) (o:=o) base stride) x).
+       is_OK (evalSigmaHCOL st (SHOScatH (i:=i) (o:=o) base stride) x).
   Proof.
     intros.
     crush.
-    unfold evalScatHUnion.
+    unfold evalScatH.
     crush.
     destruct lt_dec, eq_nat_dec; err_ok_elim.
     contradiction n0.
@@ -547,6 +547,28 @@ Pre-condition:
     reflexivity.
   Qed.
 
+
+  Lemma ISumUnionScatH
+        (o: nat)
+        {onz: 0 ≢ o} 
+        (f:A->A->A)
+        (var:varname)
+        (sstride:aexp)
+        (st : state)
+        (x : vector (option A) (o + o))
+        (y : vector (option A) (o + o))
+        (sstrideE: evalsToWithVar var st sstride o)
+        (xdense: svector_is_dense x):
+    (evalSigmaHCOL st (SHOISumUnion var (AConst o)
+                                    (SHOScatH (AValue var) sstride)
+                      ) x ≡ OK y) ->
+    svector_is_dense y.
+
+  
+
+
+      (* TODO: Experimental/unproven code below *)
+  
 (*  
   Lemma FoldErrSpraseUnionSpec
         {n m : nat}
@@ -664,6 +686,7 @@ Pre-condition:
   Qed.
  *)
 
+
   Lemma BinOpSums
         (o: nat)
         {onz: 0 ≢ o} 
@@ -679,7 +702,7 @@ Pre-condition:
     evalSigmaHCOL st (SHOBinOp o f) x =
     evalSigmaHCOL st (SHOISumUnion var (AConst o)
                                    (SHOCompose _ _
-                                               (SHOScatHUnion (AValue var) sstride)
+                                               (SHOScatH (AValue var) sstride)
                                                (SHOCompose _ _ 
                                                            (SHOBinOp 1 f)
                                                            (SHOGathH (i:=o+o) (AValue var) gstride)))) x.
@@ -717,7 +740,7 @@ Pre-condition:
              end
            with
            | OK gv =>
-               @evalScatHUnion A Ae 1 (S n) (update st var n') 
+               @evalScatH A Ae 1 (S n) (update st var n') 
                  (AValue var) sstride gv
            | Error msg => @Error (vector (option A) (S n)) msg
            end)  as f1 eqn:HF1.
@@ -766,7 +789,7 @@ Pre-condition:
       
       destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
-      assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var 0) (AValue var) sstride t0)).
+      assert (SOK: is_OK (@evalScatH A Ae 1 (S n) (update st var 0) (AValue var) sstride t0)).
       {
         intros.
         apply ScatHPre with (nbase:=0) (nstride:=S n).
@@ -803,7 +826,7 @@ Pre-condition:
       
       destruct (@evalBinOp A (1 + 1) 1 f g)  eqn: B1OK; err_ok_elim.
 
-      assert (SOK: is_OK (@evalScatHUnion A Ae 1 (S n) (update st var (S i)) (AValue var) sstride t0)).
+      assert (SOK: is_OK (@evalScatH A Ae 1 (S n) (update st var (S i)) (AValue var) sstride t0)).
       {
         intros.
         apply ScatHPre with (nbase:=S i) (nstride:=S n).
@@ -910,7 +933,7 @@ Pre-condition:
   Definition op2 :=
     SHOISumUnion (Var "i") c2
                  (SHOCompose _ _
-                             (SHOScatHUnion (o:=2) vari c2)
+                             (SHOScatH (o:=2) vari c2)
                              (SHOCompose _ _ 
                                          (SHOBinOp 1 ASub)
                                          (SHOGathH (i:=4) (o:=2) vari c2))).

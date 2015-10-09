@@ -283,7 +283,7 @@ Section SigmaHCOL_Language.
   
   Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatHUnion {i o} (base stride:aexp): SOperator i o
+  | SHOScatH {i o} (base stride:aexp): SOperator i o
   | SHOGathH {i o} (base stride: aexp): SOperator i o
   (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
@@ -479,7 +479,7 @@ Section SigmaHCOL_Language.
       reflexivity.
     Qed.
 
-    Definition evalScatHUnion
+    Definition evalScatH
                {i o: nat}
                (st:state)
                (base stride:aexp)
@@ -499,7 +499,7 @@ Section SigmaHCOL_Language.
                   i o nbase nstride v)
           end
         end
-      |  _, _ => Error "Undefined variables in ScatHUnion arguments"
+      |  _, _ => Error "Undefined variables in ScatH arguments"
       end.
 
     Definition evalGathH
@@ -529,7 +529,7 @@ Section SigmaHCOL_Language.
                (f: A->A->A) (v: svector A i):
       @maybeError (svector A o) :=
       match try_vector_from_svector v with
-      | Error msg => Error "OHScatHUnion expects dense vector!"
+      | Error msg => Error "OHScatH expects dense vector!"
       | OK x =>
         (cast_vector_operator
            (o+o) o
@@ -543,7 +543,7 @@ Section SigmaHCOL_Language.
                (v: svector A i):
       @maybeError (svector A 1) :=
       match try_vector_from_svector v with
-      | Error _ => Error "OHScatHUnion expects dense vector!"
+      | Error _ => Error "OHScatH expects dense vector!"
       | OK dv =>
         let h := HOInfinityNorm (i:=i) in
         (OK ∘ svector_from_vector ∘ (evalHCOL h)) dv
@@ -599,7 +599,7 @@ Section SigmaHCOL_Language.
               | Error msg => Error msg
               | OK gv => evalSigmaHCOL st f gv
               end)
-         | SHOScatHUnion _ _ base stride => evalScatHUnion st base stride
+         | SHOScatH _ _ base stride => evalScatH st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
          | SHOBinOp _ f _ => evalBinOp f
          | SOHCOL _ _ h => evalHOperator h
