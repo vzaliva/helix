@@ -85,6 +85,9 @@ natrual number by index mapping function f_spec. *)
       vector A o
       := Vbuild (VnthIndexMapped x f).
 
+    (* Specification of gather as mapping from ouptu to input. NOTE:
+    we are using definitional equality here, as Scatter does not
+    perform any operations on elements of type A *)
     Lemma Gather_spec `{Equiv A}
           {i o: nat}
           (f: index_map o i)
@@ -170,6 +173,9 @@ natrual number by index mapping function f_spec. *)
         Vbuild (fun n np =>
                   VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
+    (* Specification of scatter as mapping from input to output. NOTE:
+    we are using definitional equality here, as Scatter does not
+    perform any operations on elements of type A *)
     Lemma Scatter_spec `{Equiv A}
           {i o: nat}
           (f: index_map i o)
@@ -203,7 +209,10 @@ natrual number by index mapping function f_spec. *)
       congruence.
     Qed.
     
-    Lemma Scatter_dumb_spec `{Equiv A}
+    (* Specification of scatter as mapping from output to input.
+    NOTE: we are using definitional equality here, as Scatter does not
+    perform any operations on elements of type A *)
+    Lemma Scatter_rev_spec `{Equiv A}
           {i o: nat}
           (f: index_map i o)
           (x: svector A i)
