@@ -169,8 +169,52 @@ natrual number by index mapping function f_spec. *)
       :=
         Vbuild (fun n np =>
                   VnthInverseIndexMapped x (build_inverse_index_map f) n np).
-    
+
     Lemma Scatter_spec `{Equiv A}
+          {i o: nat}
+          (f: index_map i o)
+          (x: svector A i)
+          (y : svector A o):
+      index_map_injective f -> (Scatter f x ≡ y) ->  ∀ n (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f n ip.
+    Proof.
+      intros J S n ip.
+      unfold VnthIndexMapped.
+      unfold Scatter in S.
+      subst y.
+      rewrite Vbuild_nth.
+      assert(L: partial_index_f o i (build_inverse_index_map f) (⟦f ⟧ n) ≡ Some n).
+      {
+        apply build_inverse_index_map_is_left_inverse; try assumption.
+        reflexivity.
+      }
+      clear J.
+      remember (build_inverse_index_map f) as f' eqn:F.
+      unfold VnthInverseIndexMapped.
+      generalize (@Vnth (option A) i x). intros V.
+      destruct f.
+      simpl in *.
+      generalize dependent (build_inverse_index_map
+                              {| index_f := index_f; index_f_spec := index_f_spec |}).
+      intros p' F. clear F p'.
+      generalize (partial_index_f_spec o i f' (index_f n) (index_f_spec n ip)).
+      intros.
+      clear x.
+      clear H.
+      destruct f'.
+      simpl in *.
+      clear index_f_spec partial_index_f_spec o.
+
+      destruct (partial_index_f (index_f n)).
+      inversion L.
+      generalize (l n0 eq_refl).
+      intros l0.
+      subst n0.
+      replace l0 with ip by apply proof_irrelevance.
+      reflexivity.
+      congruence.
+    Qed.
+    
+    Lemma Scatter_dumb_spec `{Equiv A}
           {i o: nat}
           (f: index_map i o)
           (x: svector A i)
