@@ -547,7 +547,6 @@ Pre-condition:
     reflexivity.
   Qed.
 
-
   Lemma ISumUnionScatH_base
         (m n: nat)
         {mnz: 0 ≢ m}
@@ -558,9 +557,12 @@ Pre-condition:
         (x : vector (option A) m)
         (y : vector (option A) (m*n)):
     (evalsToWithVar var st sstride m) ->  
-    (svector_is_dense x) -> 
+    (svector_is_dense x) ->
+
     (evalSigmaHCOL st (SHOISumUnion var (AConst m)
-                                    (SHOScatH (AValue var) sstride)
+                                    (SHOCompose _ _
+                                                (SHOScatH (AValue var) sstride)
+                                                (SHOGathH (i:=m) (o:=1) (AValue var) (AConst 1)))
                       ) x ≡ OK y) ->
     svector_is_dense y.
   Proof.
@@ -568,17 +570,52 @@ Pre-condition:
     unfold evalSigmaHCOL in E.
     simpl (evalAexp st (AConst m)) in E.
 
-    destruct m. err_ok_elim.
+    destruct m; err_ok_elim.
 
-    remember ((@Vbuild (@maybeError (vector (option A) (S m * n))) 
+    remember (@Vbuild (@maybeError (vector (option A) (S m * n))) 
            (S m)
            (fix en (n' : nat) (np : n' < S m) {struct n'} :
               @maybeError (vector (option A) (S m * n)) :=
-              @evalScatH A Ae (S m) (S m * n) (update st var n') 
-                         (AValue var) sstride x))) as b eqn:B.
+              match
+                @evalGathH A Ae (S m) 1 (update st var n') 
+                  (AValue var) (AConst 1) x
+              with
+              | OK gv =>
+                  @evalScatH A Ae 1 (S m * n) (update st var n') 
+                    (AValue var) sstride gv
+              | Error msg => @Error (vector (option A) (S m * n)) msg
+              end)) as b eqn:B.
 
-    SearchAbout Vbuild.
-    
+    assert(bOK: Vforall is_OK b).
+    {
+      rewrite B.
+      apply Vforall_nth_intro.
+      intros i ip.
+      rewrite Vbuild_nth.
+      destruct i. (* to get rid of fix *)
+
+      assert(gOK: is_OK (evalSigmaHCOL (update st var 0) (SHOGathH (i:=S m) (o:=1) (AValue var) (AConst 1)) x)).
+      apply GathPre with (nbase:=0) (nstride:=1).
+      {
+        repeat split.
+        apply update_eval.
+        auto.
+        lia.
+      }
+      simpl in gOK.
+      break_match_goal; err_ok_elim.
+        
+      assert(sOK: is_OK (evalSigmaHCOL (update st var 0) (SHOScatH (i:=1) (o:=S m * n) (AValue var) sstride) t)).
+      {
+        apply ScatHPre with (nbase:=0) (nstride:=S m).
+        repeat split.
+        apply update_eval.
+        apply estride.
+        nia.
+        auto.
+      }
+      apply sOK.
+    }
   Qed.
   
 
