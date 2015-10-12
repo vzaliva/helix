@@ -591,7 +591,8 @@ Section SigmaHCOL_Language.
                 Vfold_left (@ErrSparseUnion A o)
                            (OK (empty_svector o))
                            (Vbuild 
-                              (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))                      end
+                              (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))
+              end
            )
          | SHOCompose _ _ _ f g  =>
            (fun v0 =>
