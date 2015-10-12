@@ -640,6 +640,18 @@ Pre-condition:
       }
       apply sOK.
     }
+    
+    (*
+
+TODO: replace 0 with expression based on h_index_map 
+    unfold evalScatH in B.
+    unfold ScatH in B.
+    assert(forall c (cc:c< S m) bc,
+              (Vnth b cc ≡ OK bc) -> forall r (rc:r< (S m * n)),
+                Vnth bc rc ≡ Vnth x 0).
+     *)
+    
+    dependent induction m.
   Qed.
   
 
