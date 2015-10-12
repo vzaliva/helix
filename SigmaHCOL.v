@@ -331,20 +331,30 @@ Section SigmaHCOL_Language.
     match e  with
     | AConst x => OK x
     | AValue x => st x
-    | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) plus
-    | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) minus
-    | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) mult
+    | APlus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) Peano.plus
+    | AMinus a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) Peano.minus
+    | AMult a b => eval_mayberr_binop (evalAexp st a) (evalAexp st b) Peano.mult
     end.
+
+
+  Lemma update_apply:
+    ∀ (var : varname) (st : state) (x:nat),
+      (update st var x var) ≡ @OK nat x.
+  Proof.
+    intros var st x.
+    compute.
+    break_if.
+    reflexivity.
+    congruence.
+  Qed.
 
   Lemma update_eval:
     ∀ (var : varname) (st : state) (x:nat),
       evalAexp (update st var x) (AValue var) ≡ @OK nat x.
   Proof.
     intros.
-    compute.
-    break_if.
-    reflexivity.
-    congruence.
+    simpl.
+    apply update_apply.
   Qed.
 
   Fixpoint varFreeIn (v:varname) (e: aexp) : Prop
