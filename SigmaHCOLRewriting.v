@@ -548,12 +548,12 @@ Pre-condition:
   Qed.
 
   Lemma Vfold_leftErrSparseUnionOKOK:
-    ∀ (n : nat) {B:Type}
-      (b : vector maybeError n),
-      is_OK (Vfold_left ErrSparseUnion (OK (@empty_svector B n)) b)
+    ∀ (m n : nat) {B:Type}
+      (b: vector (@maybeError (svector B m)) n),
+      is_OK (Vfold_left ErrSparseUnion (OK (@empty_svector B m)) b)
       → Vforall is_OK b.
   Proof.
-    intros n B b K.
+    intros m n B b K.
     induction b.
     simpl. trivial.
     simpl in *.
@@ -598,31 +598,11 @@ Pre-condition:
                 (AMult (AValue var) (AConst m)) (AConst 1) x)) as b eqn:B.
 
     assert(bOK: Vforall is_OK b).
-    {      
-      rewrite B.
-
-      apply Vforall_nth_intro.
-      intros i ip.
-      rewrite Vbuild_nth.
-      destruct i. (* to get rid of fix *)
-
-      (* case: i = 0 *)
-      eapply ScatHPre with (nbase:=0%nat) (nstride:=1%nat).
-      repeat split.
-      simpl; rewrite update_apply; simpl; auto.
-      nia.
-      auto.
-      
-      (* case: i = (S i0) *)
-      Check b.
-      apply ScatHPre with (nbase:=(S i)*m) (nstride:=1).
-      repeat split.
-      simpl; rewrite update_apply; simpl.
-      cut (m * S i ≡ m + i * m); intros; auto; lia.
-      nia.
-      auto.
+    {
+      apply Vfold_leftErrSparseUnionOKOK.
+      apply OK_intro in E.
+      apply E.
     }
-
 
     induction n.
 
