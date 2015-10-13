@@ -505,8 +505,8 @@ Pre-condition:
     end.
 
   Lemma ErrSparseUnionArgOK:
-    ∀ (n : nat) 
-      (a b : @maybeError (svector A n)),
+    ∀ (n : nat) {B:Type}
+      (a b : @maybeError (svector B n)),
       is_OK (ErrSparseUnion a b) → (is_OK a) /\ (is_OK b).
   Proof.
     intros.
@@ -548,12 +548,12 @@ Pre-condition:
   Qed.
 
   Lemma Vfold_leftErrSparseUnionOKOK:
-    ∀ (n : nat)
+    ∀ (n : nat) {B:Type}
       (b : vector maybeError n),
-      is_OK (Vfold_left ErrSparseUnion (OK (@empty_svector A n)) b)
+      is_OK (Vfold_left ErrSparseUnion (OK (@empty_svector B n)) b)
       → Vforall is_OK b.
   Proof.
-    intros n b K.
+    intros n B b K.
     induction b.
     simpl. trivial.
     simpl in *.
