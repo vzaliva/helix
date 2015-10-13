@@ -49,6 +49,19 @@ Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (sve
               end
   end.
 
+Lemma SparseUnionOK_head:
+      forall (A : Type) (n : nat)
+        (a b c : vector (option A) (S n)),
+        SparseUnion a b ≡ OK c
+        → OptionUnion (Vhead a) (Vhead b) ≡ OK (Vhead c).
+Proof.
+  intros A n a b c E.
+  simpl in E.
+  repeat break_match_hyp; err_ok_elim.
+  inversion E.
+  reflexivity.
+Qed.
+
 Lemma SparseUnionOK_tail:
   ∀ (A : Type) (n : nat)
     (a b c : vector (option A) (S n)),
@@ -76,18 +89,23 @@ Lemma SparseUnion_Vnth {A} {n}
     OK (Vnth c ip) ≡ OptionUnion (Vnth a ip) (Vnth b ip).
 Proof.
   intros E i ip.
-  induction n.
+  dependent induction n.
+
   nat_lt_0_contradiction.
   dep_destruct a.
   dep_destruct b.
   dep_destruct c.
 
+  repeat rewrite Vnth_cons.
+  destruct i.
+  simpl.
+  apply SparseUnionOK_head in E.
+  simpl in E. auto.
+  simpl.
+
   apply SparseUnionOK_tail in E.
   simpl in E.
-
-  unfold OptionUnion.
-
-
+  auto.
 Qed.
 
 Definition ErrSparseUnion {A} {n}
