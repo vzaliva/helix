@@ -212,13 +212,15 @@ natrual number by index mapping function f_spec. *)
     (* Specification of scatter as mapping from output to input.
     NOTE: we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-    Lemma Scatter_rev_spec `{Equiv A}
+    Lemma Scatter_rev_spec `{Equiv A}:
+    forall 
           {i o: nat}
           (f: index_map i o)
           (x: svector A i)
-          (y : svector A o):
-      (Scatter f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip.
+          (y : svector A o),
+      (Scatter f x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
     Proof.
+      intros i o f x y.
       unfold Scatter, Vbuild. 
       destruct (Vbuild_spec
                   (λ (n : nat) (np : n < o),

@@ -606,6 +606,46 @@ Pre-condition:
       auto.
     }
 
+
+    induction n.
+
+    rewrite B in E.
+    simpl in E.
+    break_match_hyp; err_ok_elim.
+    unfold evalScatH in Heqm0.
+    simpl in Heqm0.
+    break_match_hyp; err_ok_elim.
+    break_match_hyp; err_ok_elim.
+    inversion Heqm0 as [S].
+    unfold ScatH in S.
+    
+    remember (IndexFunctions.h_index_map n 1) as h.
+    (* one of two following lemmas will come handy *)
+    assert(SS1: ∀ (n0 : nat) (ip : n0 < m*1),
+         Vnth t ip
+         ≡ VnthInverseIndexMapped x
+         (IndexFunctions.build_inverse_index_map h) n0 ip)
+      by (apply Scatter_rev_spec; assumption).
+
+    assert(SS2: ∀ n0 (ip : n0 < m), Vnth x ip ≡ VnthIndexMapped t h n0 ip).
+    {
+      apply Scatter_spec.
+      subst h.
+      apply IndexFunctions.h_index_map_is_injective.
+      assumption.
+    }
+
+    unfold svector_is_dense.
+    apply Vforall_nth_intro.
+    intros i ip.
+
+    (* TODO:
+
+      1. Define lemma which defined is_OK(SparseUnion) in terms of indices
+      2. Apply to E to produce E_spec
+      3. Induction on 'm' and use relationship between indices in SS1, SS2 and Espec to prove.
+      4. Repeat the same for n=(S _) case :(
+     *)
     
   Qed.
 
