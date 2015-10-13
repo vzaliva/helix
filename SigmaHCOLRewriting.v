@@ -547,6 +547,23 @@ Pre-condition:
     reflexivity.
   Qed.
 
+  Lemma Vfold_leftErrSparseUnionOKOK:
+    ∀ (n : nat)
+      (b : vector maybeError n),
+      is_OK (Vfold_left ErrSparseUnion (OK (@empty_svector A n)) b)
+      → Vforall is_OK b.
+  Proof.
+    intros n b K.
+    induction b.
+    simpl. trivial.
+    simpl in *.
+    eapply ErrSparseUnionArgOK in K.
+    destruct K as [Kh Kt].
+    split.
+    assumption.
+    apply IHb.
+    assumption.
+  Qed.
 
   Lemma ISumUnionScatH_mj_1
         (m n: nat)
@@ -581,7 +598,7 @@ Pre-condition:
                 (AMult (AValue var) (AConst m)) (AConst 1) x)) as b eqn:B.
 
     assert(bOK: Vforall is_OK b).
-    {
+    {      
       rewrite B.
 
       apply Vforall_nth_intro.
