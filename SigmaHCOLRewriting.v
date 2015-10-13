@@ -636,9 +636,18 @@ Pre-condition:
     apply Vforall_nth_intro.
     intros i ip.
 
+    cut(exists r (rc: r<m*1),
+           is_Some (Vnth t rc)).
+    intros.
+    destruct H as [r' ER1].
+    destruct ER1 as [rc' ER2].
+
+
+
+    
     (* TODO:
 
-      1. Define lemma which defined is_OK(SparseUnion) in terms of indices
+      1. Use SparseUnionOK
       2. Apply to E to produce E_spec
       3. Induction on 'm' and use relationship between indices in SS1, SS2 and Espec to prove.
       4. Repeat the same for n=(S _) case :(
