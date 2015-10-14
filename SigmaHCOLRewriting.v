@@ -643,13 +643,16 @@ Pre-condition:
 
    subst z; rewrite empty_svector_Vnth in EN.
 
+   assert (is_Some (Vnth t ip)).
+   {
+     admit.
+   }
+   simpl in EN.
+   break_match_hyp; none_some_elim.
+   inversion EN.
+   crush.
 
-
-   
-
-
-   
-   unfold OptionUnion in EN.
+   (* IHn proven *)
     
   Qed.
 
