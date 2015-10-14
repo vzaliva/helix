@@ -636,22 +636,20 @@ Pre-condition:
     apply Vforall_nth_intro.
     intros i ip.
 
-    cut(exists r (rc: r<m*1),
-           is_Some (Vnth t rc)).
-    intros.
-    destruct H as [r' ER1].
-    destruct ER1 as [rc' ER2].
+    remember (empty_svector (m * 1)) as z.
+
+   assert(EN: OK (Vnth y ip) ≡ OptionUnion (Vnth z ip) (Vnth t ip))
+      by (apply SparseUnion_Vnth; assumption).
+
+   subst z; rewrite empty_svector_Vnth in EN.
 
 
 
-    
-    (* TODO:
+   
 
-      1. Use SparseUnionOK
-      2. Apply to E to produce E_spec
-      3. Induction on 'm' and use relationship between indices in SS1, SS2 and Espec to prove.
-      4. Repeat the same for n=(S _) case :(
-     *)
+
+   
+   unfold OptionUnion in EN.
     
   Qed.
 

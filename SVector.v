@@ -152,5 +152,12 @@ Proof.
   reflexivity.
 Qed.
 
-
+Lemma empty_svector_Vnth:
+  ∀ {A} (m i : nat) (ip : (i < m)%nat),
+    Vnth (empty_svector m) ip ≡ @None A.
+Proof.
+  intros A m i ip.
+  unfold empty_svector.
+  apply Vnth_const.
+Qed.
 
