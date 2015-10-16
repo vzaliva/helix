@@ -30,31 +30,57 @@ Require Import MathClasses.orders.orders.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Definition OptionDontCollide {A} (a b: option A) : Prop :=
+(* Options compatible *)
+Definition OptComp {A} (a b: option A) : Prop :=
   match a, b with
   |  Some _, Some _ => False
   |  None, None as x | None, Some _ as x | Some _ as x, None => True
   end.
 
-Definition OptionUnion {A}
+Program Definition OptionUnion {A}
            (a b: option A)
-           {ok: OptionDontCollide a b}
+           (ok: OptComp a b) : option A
   :=
   match a, b with
   |  None, None as x | None, Some _ as x | Some _ as x, None => x
-  |  Some _ as x, Some _ => x (* impossible case *)
+  |  Some _ as x, Some _ => ! (* impossible case *)
   end.
 
-Fixpoint SparseUnion {A} {n}: (svector A n) -> (svector A n) -> @maybeError (svector A n) := 
-  match n with
-  | O => fun _ _ => OK (@Vnil (option A))
-  | (S _) => fun a b =>
-              match SparseUnion (Vtail a) (Vtail b) as t with
-              | Error msg => Error msg
-              | OK xs =>
-                match OptionUnion (Vhead a) (Vhead b) with
-                |  Error _ => Error "incompatible values"
-                |  OK x => OK (Vcons x xs)
-                end
-              end
-  end.
+(* Two option vectors compatible *)
+Definition OptVecComp {A} {n} (a: svector A n)  (b: svector A n): Prop :=
+  Vforall2 OptComp a b.
+
+Lemma OptVecComp_tl {A} {n} {a b: svector A (S n)}:
+  OptVecComp a b -> OptVecComp (Vtail a) (Vtail b).
+Proof.
+  intros C.
+  dependent destruction a.
+  dependent destruction b.
+  unfold OptVecComp, Vforall2 in C.
+  destruct C as [H T].
+  simpl.
+  assumption.
+Qed.
+
+Lemma OptVecComp_hd {A} {n} {a b: svector A (S n)}:
+  OptVecComp a b -> OptComp (Vhead a) (Vhead b).
+Proof.
+  intros C.
+  dependent destruction a.
+  dependent destruction b.
+  unfold OptVecComp, Vforall2 in C.
+  destruct C as [H T].
+  simpl.
+  assumption.
+Qed.
+
+Fixpoint SparseUnion {A} {n}:
+  forall (a b: svector A n), OptVecComp a b -> svector A n
+  :=
+    match n with
+    | O => fun _ _  _=> @Vnil (option A)
+    | (S _) => fun a' b' ok=> 
+                Vcons
+                  (OptionUnion (Vhead a') (Vhead b') (OptVecComp_hd ok))
+                  (SparseUnion (Vtail a') (Vtail b')  (OptVecComp_tl ok))
+    end.
