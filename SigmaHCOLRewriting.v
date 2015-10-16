@@ -5,6 +5,7 @@ Require Import HCOL.
 Require Import SigmaHCOL.
 Import SigmaHCOL_Operators.
 Require Import HCOLSyntax.
+Require Import MaybeError.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -565,6 +566,52 @@ Pre-condition:
     assumption.
   Qed.
 
+
+
+  Lemma Franz_ISumUnionScatH_mj_1
+        (m n: nat)
+        {mnz: 0 ≢ m}
+        {nnz: 0 ≢ n}
+        (var: varname)
+        (st : state)
+        (x : vector (option A) m)
+        (y : vector (option A) (m*n)):
+    (svector_is_dense x) ->
+    (Vfold_left ErrSparseUnion (OK (empty_svector (m * n)))
+                (Vbuild 
+                   (fun (i : nat) (ic : i < n) =>
+                      evalScatH (update st var i)
+                                (AMult (AValue var) (AConst m)) 
+                                (AConst 1)
+                                x
+                   ))) ≡ OK y ->
+    svector_is_dense y.
+  Proof.
+    intros xdense E.
+    remember (Vbuild
+           (λ (i : nat) (_ : i < n),
+            evalScatH (update st var i) (AMult (AValue var) (AConst m))
+              (AConst 1) x)) as b eqn: B.
+    
+    assert(bOK: Vforall is_OK b).
+    {
+      apply Vfold_leftErrSparseUnionOKOK.
+      apply OK_intro in E.
+      apply E.
+    }
+
+    induction n.
+    crush.
+    destruct y eqn:YD.
+    crush.
+    simpl.
+    split.
+    admit.
+    apply IHn.
+
+    admit.
+  Qed.
+            
   Lemma ISumUnionScatH_mj_1
         (m n: nat)
         {mnz: 0 ≢ m}
@@ -653,7 +700,14 @@ Pre-condition:
    crush.
 
    (* IHn proven *)
-    
+   TODO below
+   destruct y eqn:YD.
+   crush.
+   simpl.
+   split.
+   Focus 2.
+   destruct b; crush.
+
   Qed.
 
   Lemma ISumUnionScatH_j_n

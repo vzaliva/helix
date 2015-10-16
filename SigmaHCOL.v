@@ -5,6 +5,7 @@ Require Import SVector.
 Require Import HCOL.
 Require Import HCOLSyntax.
 Require Import IndexFunctions.
+Require Import MaybeError.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.BoolEq.
@@ -28,6 +29,42 @@ Require Import MathClasses.orders.orders.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Section SVectorError.
+
+  Fixpoint try_vector_from_svector {A} {n} (v:svector A n): @maybeError (vector A n) :=
+    match n return (svector A n) -> (@maybeError (vector A n)) with
+    | O => fun _ => OK (@Vnil A)
+    | (S p) => fun v0 =>
+                match v0 return (svector A (S p)) -> (@maybeError (vector A (S p))) with
+                | Vnil => fun _ => Error "Assertion failed: vector size mismatch"
+                | (Vcons None _ _) => fun _ => Error "Sparse vector could not be converted to Dense"
+                | (Vcons (Some x) _ _) => fun v1 =>
+                                           match (try_vector_from_svector (Vtail v1)) with
+                                           | Error msg => Error msg
+                                           | OK t' => OK (Vcons x t')
+                                           end
+                end v0
+    end v.
+
+  Lemma dense_casts_OK:
+    ∀ A n (x : svector A n),
+      svector_is_dense x → is_OK (try_vector_from_svector x).
+  Proof.
+    induction x. 
+    auto.
+
+    intros.
+    assert (svector_is_dense x). apply svector_tl_dense in H. auto.
+    assert (is_Some h). apply H.
+
+    dep_destruct h.
+    simpl.
+    
+    destruct (try_vector_from_svector x);auto.
+    auto.
+  Qed.
+
+End SVectorError.
 
 Definition OptionUnion {A} (a b: option A) :=
   match a, b with
