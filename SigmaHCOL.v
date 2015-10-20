@@ -1,4 +1,4 @@
-(* Coq defintions for Sigma-HCOL operator language *)
+(* Coq defintions for Sigma-HCOL operator language with notion of errors *)
 
 Require Import Spiral.
 Require Import SVector.
