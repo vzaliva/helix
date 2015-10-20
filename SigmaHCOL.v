@@ -1,4 +1,4 @@
-(* Experimental alternative Sigma-HCOL, correcty by construction, avoiding notion of Error *)
+(* Experimental alternative Sigma-HCOL, which ignores errors *)
 
 (* Coq defintions for Sigma-HCOL operator language *)
 
@@ -32,19 +32,11 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 (* Options compatible *)
+(*
 Definition OptComp {A} (a b: option A) : Prop :=
   match a, b with
   |  Some _, Some _ => False
   |  None, None as x | None, Some _ as x | Some _ as x, None => True
-  end.
-
-Program Definition OptionUnion {A}
-           (a b: option A)
-           (ok: OptComp a b) : option A
-  :=
-  match a, b with
-  |  None, None as x | None, Some _ as x | Some _ as x, None => x
-  |  Some _ as x, Some _ => ! (* impossible case *)
   end.
 
 (* Two option vectors compatible *)
@@ -74,17 +66,19 @@ Proof.
   simpl.
   assumption.
 Qed.
+ *)
 
-Fixpoint SparseUnion {A} {n}:
-  forall (a b: svector A n), OptVecComp a b -> svector A n
+Program Definition OptionUnion {A}
+           (a b: option A): option A
   :=
-    match n with
-    | O => fun _ _  _=> @Vnil (option A)
-    | (S _) => fun a' b' ok=> 
-                Vcons
-                  (OptionUnion (Vhead a') (Vhead b') (OptVecComp_hd ok))
-                  (SparseUnion (Vtail a') (Vtail b')  (OptVecComp_tl ok))
-    end.
+  match a, b with
+  |  None, None as x | None, Some _ as x | Some _ as x, None => x
+  |  Some _ as x, Some _ => None (* placeholder in case of error *)
+  end.
+
+
+Fixpoint SparseUnion {A} {n} (a b: svector A n): svector A n
+  := Vmap2 OptionUnion a b.
 
 Module SigmaHCOL_Operators.
 
@@ -288,10 +282,8 @@ Section SigmaHCOL_Language.
   
   Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatH {i o} (base stride:aexp):
-      forall st:state,  (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred i * (evalAexp st stride) < o) -> SOperator i o
-  | SHOGathH {i o} (base stride: aexp):
-      forall st:state, (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred o * (evalAexp st stride) < i) ->  SOperator i o
+  | SHOScatH {i o} (base stride:aexp): SOperator i o
+  | SHOGathH {i o} (base stride: aexp): SOperator i o
   (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
   (* Lifted generic HCOL operator *)
@@ -309,8 +301,7 @@ Section SigmaHCOL_Language.
   (* --- HCOL compositional operators --- *)
   | SHOCompose i {t} o: SOperator t o -> SOperator i t -> SOperator i o
   (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
-  | SHOISumUnion {i o} (var:varname) (r:aexp):
-      SOperator i o -> forall (st:state), (evalAexp st r ≢ 0) -> SOperator i o
+  | SHOISumUnion {i o} (var:varname) (r:aexp):   SOperator i o -> SOperator i o
   .
   
   Section SigmaHCOL_Eval.
@@ -330,38 +321,56 @@ Section SigmaHCOL_Language.
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
 
+
     Definition evalScatH
                {i o: nat}
                (st:state)
                (base stride:aexp)
-               (snz: evalAexp st stride ≢ 0)
-               (domain_bound: (evalAexp st base) + pred i * (evalAexp st stride) < o)
                (v:svector A i):
-      @svector A o :=
-      ScatH
-        (snz:=snz)
-        (domain_bound:=domain_bound)
-        i o (evalAexp st base) (evalAexp st stride) v.
+      svector A o :=
+      match evalAexp st base, evalAexp st stride with
+      | nbase, nstride =>
+        match eq_nat_dec nstride 0 with
+        | left _ => empty_svector o (* error placeholder *)
+        | right snz =>
+          match lt_dec (nbase+(pred i)*nstride) o with
+          | right _ => empty_svector o (* error placeholder *)
+          | left domain_bound =>
+            ScatH
+              (snz:=snz)
+              (domain_bound:=domain_bound)
+              i o nbase nstride v
+          end
+        end
+      end.
 
     Definition evalGathH
                {i o: nat}
                (st:state)
                (base stride:aexp)
-               (snz: evalAexp st stride ≢ 0)
-               (range_bound: (evalAexp st base) + pred o * (evalAexp st stride) < i)
                (v: svector A i):  svector A o :=
-      GathH
-        (snz:=snz)
-        (range_bound:=range_bound)
-        i o (evalAexp st base) (evalAexp st stride) v.
-    
-    (* TODO: move *)
+      match evalAexp st base, evalAexp st stride with
+      | nbase, nstride =>
+        match eq_nat_dec nstride 0 with
+        | left _ => empty_svector o (* error placeholder *)
+        | right snz =>
+          match lt_dec (nbase+(pred o)*nstride) i with
+          | right _ => empty_svector o (* error placeholder *)
+          | left range_bound =>
+            GathH
+              (snz:=snz)
+              (range_bound:=range_bound)
+              i o nbase nstride v
+          end
+        end
+      end.
+
     Fixpoint vector_from_svector {A} `{Zero A}  {n} (v:svector A n): vector A n :=
       Vmap (fun x => match x with
                   | None => zero (* Placeholder for missing values *)
                   | Some v => v
                   end) v.
-
+    
     (* TODO: just use evalHOperator *)
     Definition evalBinOp
                {o: nat}
@@ -407,7 +416,6 @@ Section SigmaHCOL_Language.
          ∘ vector_from_svector
       ) v.
 
-
     Fixpoint evalSigmaHCOL
              {i o: nat}
              (st:state)
@@ -416,28 +424,26 @@ Section SigmaHCOL_Language.
       :=
         (match op in @SOperator i o return svector A i -> svector A o
          with
-         | SHOISumUnion i o var r  body st rnz as su =>
+         | SHOISumUnion i o var r body as su =>
            (fun v0 => 
               match (evalAexp st r)
               with
-              | O => !
+              | O => empty_svector o (* error placeholder *)
               | (S p) =>
-                Vfold_left (SparseUnion ) (*TODO: Prop missing here *)
+                Vfold_left (@SparseUnion A o)
                            (empty_svector o)
                            (Vbuild 
                               (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))
               end
            )
-         | SHOCompose _ _ _ f g  => 
-           (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
-         | SHOScatH _ _ base stride st snz domain_bound => evalScatH st base stride snz domain_bound
-         | SHOGathH _ _ base stride st snz range_bound => evalGathH st base stride snz range_bound
+         | SHOCompose _ _ _ f g  => (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
+         | SHOScatH _ _ base stride => evalScatH st base stride
+         | SHOGathH _ _ base stride => evalGathH st base stride
          | SHOBinOp _ f _ => evalBinOp f
          | SOHCOL _ _ h => evalHOperator h
          | SHOInfinityNorm _ => evalInfinityNorm st
          | SOReduction _ f pf idv => evalReduction st f idv
          end) v.
-    
         
     Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
       fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
