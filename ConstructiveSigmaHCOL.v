@@ -288,8 +288,10 @@ Section SigmaHCOL_Language.
   
   Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatH {i o} (base stride:aexp): SOperator i o
-  | SHOGathH {i o} (base stride: aexp): SOperator i o
+  | SHOScatH {i o} (base stride:aexp):
+      forall st:state,  (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred i * (evalAexp st stride) < o) -> SOperator i o
+  | SHOGathH {i o} (base stride: aexp):
+      forall st:state, (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred o * (evalAexp st stride) < i) ->  SOperator i o
   (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
   (* Lifted generic HCOL operator *)
@@ -307,7 +309,8 @@ Section SigmaHCOL_Language.
   (* --- HCOL compositional operators --- *)
   | SHOCompose i {t} o: SOperator t o -> SOperator i t -> SOperator i o
   (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
-  | SHOISumUnion {i o} (var:varname) (r:aexp): SOperator i o -> SOperator i o
+  | SHOISumUnion {i o} (var:varname) (r:aexp):
+      SOperator i o -> forall (st:state), (evalAexp st r ≢ 0) -> SOperator i o
   .
   
   Section SigmaHCOL_Eval.
@@ -405,7 +408,6 @@ Section SigmaHCOL_Language.
       ) v.
 
 
-    (*TODO: need {rnz: evalAexp st r ≢ 0} *)
     Fixpoint evalSigmaHCOL
              {i o: nat}
              (st:state)
@@ -414,26 +416,22 @@ Section SigmaHCOL_Language.
       :=
         (match op in @SOperator i o return svector A i -> svector A o
          with
-         | SHOISumUnion i o var r body as su =>
+         | SHOISumUnion i o var r  body st rnz as su =>
            (fun v0 => 
               match (evalAexp st r)
               with
-              | O => Error "Invalid SHOISumUnion range"
+              | O => !
               | (S p) =>
-                Vfold_left (@ErrSparseUnion A o)
-                           (OK (empty_svector o))
+                Vfold_left (SparseUnion ) (*TODO: Prop missing here *)
+                           (empty_svector o)
                            (Vbuild 
                               (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))
               end
            )
-         | SHOCompose _ _ _ f g  =>
-           (fun v0 =>
-              match evalSigmaHCOL st g v0 with
-              | Error msg => Error msg
-              | OK gv => evalSigmaHCOL st f gv
-              end)
-         | SHOScatH _ _ base stride => evalScatH st base stride
-         | SHOGathH _ _ base stride => evalGathH st base stride
+         | SHOCompose _ _ _ f g  => 
+           (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
+         | SHOScatH _ _ base stride st snz domain_bound => evalScatH st base stride snz domain_bound
+         | SHOGathH _ _ base stride st snz range_bound => evalGathH st base stride snz range_bound
          | SHOBinOp _ f _ => evalBinOp f
          | SOHCOL _ _ h => evalHOperator h
          | SHOInfinityNorm _ => evalInfinityNorm st
