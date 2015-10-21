@@ -32,7 +32,7 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 (* Options compatible *)
-(*
+
 Definition OptComp {A} (a b: option A) : Prop :=
   match a, b with
   |  Some _, Some _ => False
@@ -40,33 +40,32 @@ Definition OptComp {A} (a b: option A) : Prop :=
   end.
 
 (* Two option vectors compatible *)
-Definition OptVecComp {A} {n} (a: svector A n)  (b: svector A n): Prop :=
+Definition VecOptComp {A} {n} (a: svector A n)  (b: svector A n): Prop :=
   Vforall2 OptComp a b.
 
-Lemma OptVecComp_tl {A} {n} {a b: svector A (S n)}:
-  OptVecComp a b -> OptVecComp (Vtail a) (Vtail b).
+Lemma VecOptComp_tl {A} {n} {a b: svector A (S n)}:
+  VecOptComp a b -> VecOptComp (Vtail a) (Vtail b).
 Proof.
   intros C.
   dependent destruction a.
   dependent destruction b.
-  unfold OptVecComp, Vforall2 in C.
+  unfold VecOptComp, Vforall2 in C.
   destruct C as [H T].
   simpl.
   assumption.
 Qed.
 
-Lemma OptVecComp_hd {A} {n} {a b: svector A (S n)}:
-  OptVecComp a b -> OptComp (Vhead a) (Vhead b).
+Lemma VecOptComp_hd {A} {n} {a b: svector A (S n)}:
+  VecOptComp a b -> OptComp (Vhead a) (Vhead b).
 Proof.
   intros C.
   dependent destruction a.
   dependent destruction b.
-  unfold OptVecComp, Vforall2 in C.
+  unfold VecOptComp, Vforall2 in C.
   destruct C as [H T].
   simpl.
   assumption.
 Qed.
- *)
 
 Program Definition OptionUnion {A}
            (a b: option A): option A
@@ -75,7 +74,6 @@ Program Definition OptionUnion {A}
   |  None, None as x | None, Some _ as x | Some _ as x, None => x
   |  Some _ as x, Some _ => None (* placeholder in case of error *)
   end.
-
 
 Fixpoint SparseUnion {A} {n} (a b: svector A n): svector A n
   := Vmap2 OptionUnion a b.
@@ -371,41 +369,6 @@ Section SigmaHCOL_Language.
                   | Some v => v
                   end) v.
     
-    (* TODO: just use evalHOperator *)
-    Definition evalBinOp
-               {o: nat}
-               (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (v: svector A (o+o)):
-      svector A o :=
-      (svector_from_vector
-         ∘ evalHCOL (HOPointWise2 o f (Ae:=Ae) (pF:=pF))
-         ∘ vector_from_svector
-      ) v.
-
-    (* TODO: just use evalHOperator *)
-    Definition evalInfinityNorm
-               {i: nat}
-               (st:state)
-               (v: svector A i):
-      svector A 1 :=
-      (svector_from_vector
-         ∘ evalHCOL (HOInfinityNorm)
-         ∘ vector_from_svector
-      ) v.
-
-    (* TODO: just use evalHOperator *)
-    Definition evalReduction
-               {i: nat}
-               (st:state)
-               (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (idv:A)
-               (v: svector A i):
-      svector A 1 :=
-      (svector_from_vector
-         ∘ evalHCOL (HOReduction i f idv)
-         ∘ vector_from_svector
-      ) v.
-
     Definition evalHOperator
                {i o: nat}
                (h: HOperator i o)
@@ -439,10 +402,10 @@ Section SigmaHCOL_Language.
          | SHOCompose _ _ _ f g  => (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
          | SHOScatH _ _ base stride => evalScatH st base stride
          | SHOGathH _ _ base stride => evalGathH st base stride
-         | SHOBinOp _ f _ => evalBinOp f
+         | SHOBinOp o f pF => evalHOperator (HOPointWise2 o f (Ae:=Ae) (pF:=pF))
          | SOHCOL _ _ h => evalHOperator h
-         | SHOInfinityNorm _ => evalInfinityNorm st
-         | SOReduction _ f pf idv => evalReduction st f idv
+         | SHOInfinityNorm _ => evalHOperator (HOInfinityNorm)
+         | SOReduction i f pf idv => evalHOperator (HOReduction i f idv)
          end) v.
         
     Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
