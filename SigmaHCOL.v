@@ -67,7 +67,7 @@ Proof.
   assumption.
 Qed.
 
-Program Definition OptionUnion {A}
+Definition OptionUnion {A}
            (a b: option A): option A
   :=
   match a, b with
@@ -184,7 +184,7 @@ natrual number by index mapping function f_spec. *)
         | Some z => fun p => Vnth x (f_spec n np z p)
         end eq_refl.
     
-    Program Definition Scatter {A:Type}
+    Definition Scatter {A:Type}
             {i o: nat}
             (f: index_map i o)
             (x: svector A i) : svector A o
