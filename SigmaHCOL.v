@@ -72,10 +72,13 @@ Program Definition OptionUnion {A}
   :=
   match a, b with
   |  None, None as x | None, Some _ as x | Some _ as x, None => x
-  |  Some _ as x, Some _ => None (* placeholder in case of error *)
+  |  Some _ , Some _ => None (* placeholder in case of error *)
   end.
 
-Fixpoint SparseUnion {A} {n} (a b: svector A n): svector A n
+Definition VecOptUnion {A} {n} (v:svector A (S n)): option A :=
+  Vfold_left OptionUnion (Vhead v) (Vtail v).
+
+Definition SparseUnion {A} {n} (a b: svector A n): svector A n
   := Vmap2 OptionUnion a b.
 
 Module SigmaHCOL_Operators.
@@ -363,7 +366,7 @@ Section SigmaHCOL_Language.
         end
       end.
 
-    Fixpoint vector_from_svector {A} `{Zero A}  {n} (v:svector A n): vector A n :=
+    Definition vector_from_svector {A} `{Zero A}  {n} (v:svector A n): vector A n :=
       Vmap (fun x => match x with
                   | None => zero (* Placeholder for missing values *)
                   | Some v => v
