@@ -68,6 +68,19 @@ Section SigmaHCOLRewriting.
     destruct h; auto.
   Qed.
   
+
+  Lemma VecOptionUnion_Cons_None:
+    ∀ (m : nat) (x : vector (option A) (S m)),
+      VecOptUnion (Vcons None x) ≡ VecOptUnion x.
+  Proof.
+    intros m x.
+    unfold VecOptUnion.
+    simpl.
+    dep_destruct x.
+    simpl.
+    admit.
+  Qed.
+  
   
   (* Unary union of vector where all except exactly one element are "structural zero", and one is unknown, is the value of this element  *)
   Lemma Lemma3 m j (x:svector A (S m)) (jc:j<(S m)):
@@ -75,7 +88,7 @@ Section SigmaHCOLRewriting.
   Proof.
     intros SZ.
 
-    induction m.
+    dependent induction m.
     - dep_destruct x.
       dep_destruct x0.
       destruct j; crush.
@@ -99,6 +112,27 @@ Section SigmaHCOLRewriting.
 
         apply Vfold_OptionUnion_empty; assumption.
       +
+        assert(Zc: 0<(S (S m))) by lia.
+        assert (H0: is_None (Vnth (Vcons h x0) Zc))
+          by (apply SZ; auto).
+        rewrite Vnth_0 in H0. simpl in H0.
+        rewrite is_None_def in H0.
+        subst h.
+
+        rewrite VecOptionUnion_Cons_None.
+        
+        destruct j as [j0|js]; try congruence.
+        assert(jcp : js < S m) by lia.
+        rewrite Vnth_Sn with (ip':=jcp).
+
+        rewrite <-IHm.
+        reflexivity.
+        intros i ic inej.
+
+        assert(ics: (S i) < S (S m)) by lia.
+        rewrite <- Vnth_Sn with (v:=None) (ip:=ics).
+        apply SZ.
+        auto.
   Qed.
   
   Section SigmaHCOLRewriting.
