@@ -931,6 +931,16 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vfold_left_app : forall {A B:Type} {m n} (f:B → A → B) (l:vector A m) (l': vector A n) (i:B),
+    Vfold_left f i (Vapp l l') ≡ Vfold_left f (Vfold_left f i l') l.
+Proof.
+  intros A B m n f l l' i.
+  induction l; simpl.
+  + reflexivity.
+  + rewrite IHl.
+    reflexivity.
+Qed.
+
 Lemma rev_nil: forall A, rev (@nil A) ≡ [].
 Proof.
   intros.
