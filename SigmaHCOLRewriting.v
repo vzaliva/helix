@@ -219,7 +219,6 @@ Section SigmaHCOLRewriting.
       remember (λ (i : nat) (ic : i < S (S n)), Vnth (Vcons h x0) ic) as geni.
       remember (λ (i : nat) (ic : i < S (S n)), Vnth (geni i ic) kc) as genik.
 
-
       (* RHS massaging *)
       rewrite Vbuild_cons with (gen:=genik).
       replace (genik 0 (lt_0_Sn (S n))) with (Vnth h kc)
@@ -241,35 +240,21 @@ Section SigmaHCOLRewriting.
       apply AbsorbUnionIndexBinary.
 
       subst genX.
-      apply functional_extensionality.
-      
-      (*
-replace lambda rewrite proof goes here.
-        subst genik geni. simpl.
-        rewrite NatUtil.lt_Sn_nS.
-        admit.
-      *)
-
-
-
-      
-      destruct (Vbuild_spec geni) as [x1 e1].
-      destruct (Vbuild_spec genik) as [x2 e2].
+      extensionality i.
+      extensionality ic.
       simpl.
+      rewrite NatUtil.lt_Sn_nS.
+      reflexivity.
 
-      dep_destruct x1.
+      extensionality i.
+      extensionality ic.
+      subst genik geni.
       simpl.
-
-      SearchAbout Vbuild.
-
-      
-      destruct (eq_nat_dec k 0).
-      rewrite Vnth_cons_head.
-      
+      rewrite NatUtil.lt_Sn_nS.
+      reflexivity.
   Qed.
         
-        
-  
+   
   Lemma Lemma2:
     forall var st m n (x: vector (svector A m) n) k (kc: k<(m*n)), exists i (ic:i<n) j (jc:j<m),
         Vnth (Vnth x ic) jc ≡ Vnth
