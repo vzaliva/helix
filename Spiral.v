@@ -941,9 +941,17 @@ Proof.
     reflexivity.
 Qed.
 
+(* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
+Lemma Vfold_left_cons:
+  forall A B {n} (f : B->A->B) (b:B) (x: A) (xs : vector A n),
+    Vfold_left f b (Vcons x xs) ≡ f (Vfold_left f b xs) x.
+Proof.
+  crush.
+Qed.
+
 Lemma rev_nil: forall A, rev (@nil A) ≡ [].
 Proof.
-  intros.
+  intros A.
   unfold rev.
   assert (rev_append (@nil A) (@nil A) ≡ (@nil A)).
   unfold rev_append.

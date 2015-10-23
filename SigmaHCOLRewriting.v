@@ -170,13 +170,13 @@ Section SigmaHCOLRewriting.
     rewrite SparseUnion_Cons_None; reflexivity).
   Qed.
 
-  (* TODO: move  *)
-  Lemma EmptySvector_nth {B}:
-    ∀ (m k : nat) (kc : k < m), Vnth (@empty_svector B m) kc ≡ None.
+  Lemma AbsorbUnionIndexBinary:
+    ∀ (m k : nat) (kc : k < m) (h t : vector (option A) m),
+      Vnth (SparseUnion t h) kc ≡ OptionUnion (Vnth t kc) (Vnth h kc).
   Proof.
-    intros.
-    unfold empty_svector.
-    apply Vnth_const.
+    intros m k kc h t.
+    unfold SparseUnion.
+    apply Vnth_map2.
   Qed.
 
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
@@ -210,7 +210,7 @@ Section SigmaHCOLRewriting.
       subst h0.
       unfold SparseUnion.
       rewrite Vnth_map2.
-      rewrite EmptySvector_nth.
+      rewrite empty_svector_Vnth.
       dep_destruct x1.
       simpl.
       destruct (Vnth h kc); reflexivity.
@@ -225,18 +225,32 @@ Section SigmaHCOLRewriting.
       replace (genik 0 (lt_0_Sn (S n))) with (Vnth h kc)
         by (subst genik geni; reflexivity).
       rewrite VecOptionUnion_cons.
+
+      replace (λ (i : nat) (ip : i < S n), genik (S i) (lt_n_S ip)) with
+      (λ (i : nat) (ic : i < S n), Vnth (Vnth x0 ic) kc).
+      
       rewrite <- IHn.
+      remember (λ (i : nat) (ic : i < S n), Vnth x0 ic) as genX.
 
-
-      (*
-LHS 
-      rewrite Vbuild_cons.
+      rewrite Vbuild_cons with (gen:=geni).
       replace (geni 0 (lt_0_Sn (S n))) with h
         by (subst geni; reflexivity).
-      remember (Vbuild (λ (i : nat) (ip : i < S n), geni (S i) (lt_n_S ip))) as genSi.
-      simpl.
-       *)
+      subst geni.
+      replace (λ (i : nat) (ip : i < S n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
+      rewrite Vfold_left_cons.
+      apply AbsorbUnionIndexBinary.
+
+      subst genX.
+      apply functional_extensionality.
       
+      (*
+replace lambda rewrite proof goes here.
+        subst genik geni. simpl.
+        rewrite NatUtil.lt_Sn_nS.
+        admit.
+      *)
+
+
 
       
       destruct (Vbuild_spec geni) as [x1 e1].
