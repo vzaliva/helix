@@ -80,7 +80,18 @@ Section SigmaHCOLRewriting.
     simpl.
     admit.
   Qed.
-  
+
+  Lemma SparseUnion_Cons_None:
+    ∀ (n : nat) (x : vector (option A) n), SparseUnion (Vconst None n) x ≡ x.
+  Proof.
+    intros n x.
+    induction x.
+    auto.
+    destruct h;
+    (simpl;
+     rewrite IHx;
+     reflexivity).
+  Qed.
   
   (* Unary union of vector where all except exactly one element are "structural zero", and one is unknown, is the value of this element  *)
   Lemma Lemma3 m j (x:svector A (S m)) (jc:j<(S m)):
@@ -133,6 +144,83 @@ Section SigmaHCOLRewriting.
         rewrite <- Vnth_Sn with (v:=None) (ip:=ics).
         apply SZ.
         auto.
+  Qed.
+
+  Lemma SparseUnionWithEmpty:
+    ∀ (m : nat) (x : vector (option A) m), SparseUnion (empty_svector m) x ≡ x.
+  Proof.
+    intros m x.
+    induction x.
+    auto.
+    destruct h;
+    (simpl;
+    rewrite SparseUnion_Cons_None; reflexivity).
+  Qed.
+
+  (* TODO: move  *)
+  Lemma EmptySvector_nth {B}:
+    ∀ (m k : nat) (kc : k < m), Vnth (@empty_svector B m) kc ≡ None.
+  Proof.
+    intros.
+    unfold empty_svector.
+    apply Vnth_const.
+  Qed.
+
+  (* Called 'union_index' in Vadim's paper notes *)
+  Lemma AbsorbUnionIndex:
+    forall m n (x: vector (svector A m) (S n)) k (kc: k<m),
+      Vnth
+        (Vfold_left SparseUnion (empty_svector m)
+                    (Vbuild 
+                       (fun (i : nat) (ic : i < S n) =>
+                          (Vnth x ic)
+                    ))
+        ) kc ≡
+        VecOptUnion
+        (Vbuild 
+           (fun (i : nat) (ic : i < S n) =>
+              Vnth (Vnth x ic) kc
+        )).
+  Proof.
+    intros m n x k kc.
+    
+    induction n.
+    + dep_destruct x.
+      dep_destruct x0.
+      remember (Vbuild (λ (i : nat) (ic : i < 1), Vnth (Vnth [h] ic) kc)) as b.
+      unfold VecOptUnion.
+      dep_destruct b.
+      dep_destruct x0.
+      simpl.
+      apply hd_eq in Heqb.
+      simpl in Heqb.
+      subst h0.
+      unfold SparseUnion.
+      rewrite Vnth_map2.
+      rewrite EmptySvector_nth.
+      dep_destruct x1.
+      simpl.
+      destruct (Vnth h kc); reflexivity.
+    +
+      dep_destruct x.
+      
+  Qed.
+        
+        
+  
+  Lemma Lemma2:
+    forall var st m n (x: vector (svector A m) n) k (kc: k<(m*n)), exists i (ic:i<n) j (jc:j<m),
+        Vnth (Vnth x ic) jc ≡ Vnth
+                                (Vfold_left SparseUnion (empty_svector (m * n))
+                                            (Vbuild 
+                                               (fun (i : nat) (ic : i < n) =>
+                                                  evalScatH (update st var i)
+                                                            (AMult (AValue var) (AConst m)) 
+                                                            (AConst 1)
+                                                            (Vnth x ic)
+                                ))) kc.
+  Proof.
+    intros var st m n x k kc.
   Qed.
   
   Section SigmaHCOLRewriting.
