@@ -69,6 +69,19 @@ Section SigmaHCOLRewriting.
   Qed.
   
 
+  Lemma VecOptionUnion_cons:
+    ∀ m x (xs : vector (option A) (S m)),
+      VecOptUnion (Vcons x xs) ≡
+                  OptionUnion
+                  (VecOptUnion xs)
+                  x.
+  Proof.
+    intros m x xs.
+    unfold VecOptUnion at 1.
+    simpl.
+    admit.
+  Qed.
+  
   Lemma VecOptionUnion_Cons_None:
     ∀ (m : nat) (x : vector (option A) (S m)),
       VecOptUnion (Vcons None x) ≡ VecOptUnion x.
@@ -166,7 +179,7 @@ Section SigmaHCOLRewriting.
     apply Vnth_const.
   Qed.
 
-  (* Called 'union_index' in Vadim's paper notes *)
+  (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
   Lemma AbsorbUnionIndex:
     forall m n (x: vector (svector A m) (S n)) k (kc: k<m),
       Vnth
@@ -203,6 +216,41 @@ Section SigmaHCOLRewriting.
       destruct (Vnth h kc); reflexivity.
     +
       dep_destruct x.
+      remember (λ (i : nat) (ic : i < S (S n)), Vnth (Vcons h x0) ic) as geni.
+      remember (λ (i : nat) (ic : i < S (S n)), Vnth (geni i ic) kc) as genik.
+
+
+      (* RHS massaging *)
+      rewrite Vbuild_cons with (gen:=genik).
+      replace (genik 0 (lt_0_Sn (S n))) with (Vnth h kc)
+        by (subst genik geni; reflexivity).
+      rewrite VecOptionUnion_cons.
+      rewrite <- IHn.
+
+
+      (*
+LHS 
+      rewrite Vbuild_cons.
+      replace (geni 0 (lt_0_Sn (S n))) with h
+        by (subst geni; reflexivity).
+      remember (Vbuild (λ (i : nat) (ip : i < S n), geni (S i) (lt_n_S ip))) as genSi.
+      simpl.
+       *)
+      
+
+      
+      destruct (Vbuild_spec geni) as [x1 e1].
+      destruct (Vbuild_spec genik) as [x2 e2].
+      simpl.
+
+      dep_destruct x1.
+      simpl.
+
+      SearchAbout Vbuild.
+
+      
+      destruct (eq_nat_dec k 0).
+      rewrite Vnth_cons_head.
       
   Qed.
         

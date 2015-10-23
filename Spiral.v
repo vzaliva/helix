@@ -1211,6 +1211,16 @@ Proof.
       reflexivity.
 Qed.
 
+Lemma Vbuild_cons:
+  forall B n (gen : forall i, i < S n -> B),
+    Vbuild gen ≡ Vcons (gen 0 (lt_O_Sn n)) (Vbuild (fun i ip => gen (S i) (lt_n_S ip))).
+Proof.
+  intros B n gen.
+  rewrite <- Vbuild_head.
+  rewrite <- Vbuild_tail.
+  auto.
+Qed.
+
 Lemma modulo_smaller_than_devisor:
   ∀ x y : nat, 0 ≢ y → x mod y < y.
 Proof.
