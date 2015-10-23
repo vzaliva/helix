@@ -87,11 +87,8 @@ Section SigmaHCOLRewriting.
       VecOptUnion (Vcons None x) ≡ VecOptUnion x.
   Proof.
     intros m x.
-    unfold VecOptUnion.
-    simpl.
-    dep_destruct x.
-    simpl.
-    admit.
+    rewrite VecOptionUnion_cons.
+    destruct (VecOptUnion x); reflexivity.
   Qed.
 
   Lemma SparseUnion_Cons_None:
