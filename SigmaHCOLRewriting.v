@@ -68,7 +68,6 @@ Section SigmaHCOLRewriting.
     destruct h; auto.
   Qed.
   
-
   Lemma OptionUnionAssoc:
     forall B (a b c:option B),
       (a ≡ None /\ b ≡ None ) \/
@@ -81,6 +80,26 @@ Section SigmaHCOLRewriting.
     destruct a, b, c; crush.
   Qed.
 
+  (* Inductive definition of sparse vector which has at most single non-empty element. It is called "Union-compatible *)
+  Inductive UnionCompSvector {B}: forall {n} (v: svector B n), Prop :=
+  | SingleSome_nil: UnionCompSvector []
+  | SingleSome_none {n} (v: svector B n): UnionCompSvector (None::v)
+  | SingleSome_some {x} {n} (v: svector B n): Forall is_None v -> UnionCompSvector (Some x::v).
+  
+  Lemma UnionCompSvector_spec {B} {n} {x:svector B n}:
+    UnionCompSvector x <->
+    forall i j (ic:i<n) (jc:j<n), (Vnth x ic ≢ None) /\ (Vnth x jc ≢ None) -> i ≡ j.
+  Proof.
+    split.
+    intros S i j ic jc U.
+    destruct U as [Ui Uj].
+    induction x.
+    crush.
+    destruct S.
+    nat_lt_0_contradiction.
+
+  Qed.
+  
   Lemma VecOptionUnion_cons:
     ∀ m x (xs : vector (option A) (S m)),
       VecOptUnion (Vcons x xs) ≡
