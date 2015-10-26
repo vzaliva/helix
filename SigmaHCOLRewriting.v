@@ -69,6 +69,18 @@ Section SigmaHCOLRewriting.
   Qed.
   
 
+  Lemma OptionUnionAssoc:
+    forall B (a b c:option B),
+      (a ≡ None /\ b ≡ None ) \/
+      (a ≡ None  /\ c ≡ None ) \/
+      (b ≡ None  /\ c ≡ None ) 
+      ->
+      OptionUnion (OptionUnion a b) c ≡ OptionUnion (OptionUnion a c) b.
+  Proof.
+    intros B a b c C.
+    destruct a, b, c; crush.
+  Qed.
+
   Lemma VecOptionUnion_cons:
     ∀ m x (xs : vector (option A) (S m)),
       VecOptUnion (Vcons x xs) ≡
@@ -77,8 +89,19 @@ Section SigmaHCOLRewriting.
                   x.
   Proof.
     intros m x xs.
-    unfold VecOptUnion at 1.
+    unfold VecOptUnion.
     simpl.
+    dep_destruct xs. simpl.
+    induction x0.
+    destruct x, h; auto.
+    rewrite 2!Vfold_left_cons.
+
+    rewrite OptionUnionAssoc.
+    rewrite IHx0.
+    rewrite OptionUnionAssoc.
+    reflexivity.
+    admit.
+    exact (Vtail xs).
     admit.
   Qed.
   
