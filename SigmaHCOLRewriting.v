@@ -80,24 +80,59 @@ Section SigmaHCOLRewriting.
     destruct a, b, c; crush.
   Qed.
 
-  (* Inductive definition of sparse vector which has at most single non-empty element. It is called "Union-compatible *)
-  Inductive UnionCompSvector {B}: forall {n} (v: svector B n), Prop :=
-  | SingleSome_nil: UnionCompSvector []
-  | SingleSome_none {n} (v: svector B n): UnionCompSvector (None::v)
-  | SingleSome_some {x} {n} (v: svector B n): Forall is_None v -> UnionCompSvector (Some x::v).
-  
-  Lemma UnionCompSvector_spec {B} {n} {x:svector B n}:
-    UnionCompSvector x <->
-    forall i j (ic:i<n) (jc:j<n), (Vnth x ic ≢ None) /\ (Vnth x jc ≢ None) -> i ≡ j.
-  Proof.
-    split.
-    intros S i j ic jc U.
-    destruct U as [Ui Uj].
-    induction x.
-    crush.
-    destruct S.
-    nat_lt_0_contradiction.
+  (* Inductive definition of sparse vector which has at most single non-empty element. It is called "VecOptUnionCompSvector compatible" *)
+  Inductive VecOptUnionCompSvector {B}: forall {n} (v: svector B (S n)), Prop :=
+  | SingleSome_none {n} (v: svector B (S n)): VecOptUnionCompSvector v -> VecOptUnionCompSvector (None::v)
+  | SingleSome_some {x} {n} (v: svector B n): Vforall is_None v -> VecOptUnionCompSvector (Some x::v).
 
+  Lemma VecOptUnionCompSvector_spec {B} {n} {x:svector B (S n)}:
+    VecOptUnionCompSvector x ->
+    forall i j (ic:i< S n) (jc:j<S n), (Vnth x ic ≢ None) /\ (Vnth x jc ≢ None) -> i ≡ j.
+  Proof.
+    intros V i j ic jc U.
+    destruct U as [Ui Uj].
+    dependent induction V.
+    -
+      destruct i, j.
+      + reflexivity.
+      + rewrite Vnth_0 in Ui.
+        simpl in Ui.
+        none_some_elim.
+      + rewrite Vnth_0 in Uj.
+        simpl in Uj.
+        none_some_elim.
+      +
+        assert (ic':i < S n) by omega.
+        assert (jc':j < S n) by omega.
+        f_equal.
+        apply IHV with (ic:=ic') (jc:=jc').
+        simpl in Ui.
+        replace (lt_S_n ic) with ic' in Ui by apply proof_irrelevance.
+        assumption.
+        simpl in Uj.
+        replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
+        assumption.
+    -
+      destruct i, j.
+      + reflexivity.
+      + simpl in Uj.
+        assert (jc':j < n) by omega.
+        replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
+        apply Vforall_nth with (ip:=jc') in H.
+        rewrite is_None_def in H.
+        congruence.
+      + simpl in Ui.
+        assert (ic':i < n) by omega.
+        replace (lt_S_n ic) with ic' in Ui by apply proof_irrelevance.
+        apply Vforall_nth with (ip:=ic') in H.
+        rewrite is_None_def in H.
+        congruence.
+      + simpl in Uj.
+        assert (jc':j < n) by omega.
+        replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
+        apply Vforall_nth with (ip:=jc') in H.
+        rewrite is_None_def in H.
+        congruence.
   Qed.
   
   Lemma VecOptionUnion_cons:
