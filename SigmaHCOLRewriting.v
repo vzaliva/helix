@@ -137,70 +137,25 @@ Section SigmaHCOLRewriting.
 
   Lemma VecOptionUnion_cons:
     ∀ m x (xs : vector (option A) (S m)),
-      VecOptUnionCompSvector (Vcons x xs) ->
       VecOptUnion (Vcons x xs) ≡
                   OptionUnion
-                  (VecOptUnion xs)
-                  x.
+                  x
+                  (VecOptUnion xs).
   Proof.
-    intros m x xs C.
+    intros m x xs.
     unfold VecOptUnion.
-    simpl.
-
-    dependent destruction xs. simpl.
-    induction xs.
-    destruct x, h; auto.
-    rewrite 2!Vfold_left_cons.
-
-    rewrite OptionUnionAssoc.
-    rewrite_clear IHxs. 
-    rewrite OptionUnionAssoc.
+    rewrite Vfold_right_reduce.
     reflexivity.
-    destruct x eqn:X, h eqn:H, h0 eqn:H0;  try (dep_destruct C; simpl in v0; break_and; contradiction).
-    dep_destruct C.
-    right. left.
-    split; try reflexivity.
-    apply Vfold_OptionUnion_empty; crush.
-
-    dep_destruct C.
-    dep_destruct x0.
-    crush.
-    right. right. crush.
-
-    left.
-    split; try reflexivity.
-    dep_destruct C.
-    dep_destruct x0.
-    dep_destruct x1.
-    apply Vfold_OptionUnion_empty; crush.
-
-    right. right.
-    split; reflexivity.
-
-    {
-      admit.
-    }
-
-    admit.
   Qed.
 
-
-  (* NOT GENERALLY TRUE. If x have 2 SOME? *)
   Lemma VecOptionUnion_Cons_None:
     ∀ (m : nat) (x : vector (option A) (S m)),
       VecOptUnion (Vcons None x) ≡ VecOptUnion x.
   Proof.
     intros m x.
-    
-    induction m.
-    unfold VecOptUnion.
+    rewrite VecOptionUnion_cons.
     simpl.
-    dep_destruct (Vtail x).
-    simpl.
-    dep_destruct x.
-    dep_destruct x0.
-    destruct h; reflexivity.
-    admit.
+    destruct (VecOptUnion x); reflexivity.
   Qed.
 
   Lemma SparseUnion_Cons_None:

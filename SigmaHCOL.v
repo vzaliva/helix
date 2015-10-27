@@ -75,8 +75,8 @@ Definition OptionUnion {A}
   |  Some _ , Some _ => None (* placeholder in case of error *)
   end.
 
-Definition VecOptUnion {A} {n} (v:svector A (S n)): option A :=
-  Vfold_left OptionUnion (Vhead v) (Vtail v).
+Definition VecOptUnion {A} {n} (v:svector A n): option A :=
+  Vfold_right OptionUnion v None.
 
 Definition SparseUnion {A} {n} (a b: svector A n): svector A n
   := Vmap2 OptionUnion a b.
@@ -396,10 +396,10 @@ Section SigmaHCOL_Language.
               with
               | O => empty_svector o (* error placeholder *)
               | (S p) =>
-                Vfold_left (@SparseUnion A o)
-                           (empty_svector o)
+                Vfold_right (@SparseUnion A o)
                            (Vbuild 
                               (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))
+                           (empty_svector o)
               end
            )
          | SHOCompose _ _ _ f g  => (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
