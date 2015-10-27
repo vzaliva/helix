@@ -80,54 +80,56 @@ Section SigmaHCOLRewriting.
     destruct a, b, c; crush.
   Qed.
 
-  (* Inductive definition of sparse vector which has at most single non-empty element. It is called "VecOptUnionCompSvector compatible" *)
-  Inductive VecOptUnionCompSvector {B}: forall {n} (v: svector B (S n)), Prop :=
-  | SingleSome_none {n} (v: svector B (S n)): VecOptUnionCompSvector v -> VecOptUnionCompSvector (None::v)
-  | SingleSome_some {x} {n} (v: svector B n): Vforall is_None v -> VecOptUnionCompSvector (Some x::v).
+  (* Inductive definition of sparse vector which has at most one non-empty element. It is called "VecOptUnionCompSvector compatible" *)
+  Inductive VecOptUnionCompSvector {B}: forall {n} (v: svector B n), Prop :=
+  | VecOptUnionCompSvector_nil: VecOptUnionCompSvector []
+  | VecOptUnionCompSvector_none {n} (v: svector B n): VecOptUnionCompSvector v -> VecOptUnionCompSvector (None::v)
+  | VecOptUnionCompSvector_some {x} {n} (v: svector B n): Vforall is_None v -> VecOptUnionCompSvector (Some x::v).
 
-  Lemma VecOptUnionCompSvector_spec {B} {n} {x:svector B (S n)}:
+  Lemma VecOptUnionCompSvector_spec {B} {n} {x:svector B n}:
     VecOptUnionCompSvector x ->
-    forall i j (ic:i< S n) (jc:j<S n), (Vnth x ic ≢ None) /\ (Vnth x jc ≢ None) -> i ≡ j.
+    forall i j (ic:i< n) (jc:j<n), (Vnth x ic ≢ None) /\ (Vnth x jc ≢ None) -> i ≡ j.
   Proof.
     intros V i j ic jc U.
     destruct U as [Ui Uj].
     dependent induction V.
-    -
+    destruct i, j; crush.
+
+    destruct i, j.
+    reflexivity.
+    + rewrite Vnth_0 in Ui.
+      simpl in Ui.
+      none_some_elim.
+    + rewrite Vnth_0 in Uj.
+      simpl in Uj.
+      none_some_elim.
+    +
+      assert (ic':i < n) by omega.
+      assert (jc':j < n) by omega.
+      f_equal.
+      apply IHV with (ic:=ic') (jc:=jc').
+      simpl in Ui.
+      replace (lt_S_n ic) with ic' in Ui by apply proof_irrelevance.
+      assumption.
+      simpl in Uj.
+      replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
+      assumption.
+    +
       destruct i, j.
-      + reflexivity.
-      + rewrite Vnth_0 in Ui.
-        simpl in Ui.
-        none_some_elim.
-      + rewrite Vnth_0 in Uj.
-        simpl in Uj.
-        none_some_elim.
-      +
-        assert (ic':i < S n) by omega.
-        assert (jc':j < S n) by omega.
-        f_equal.
-        apply IHV with (ic:=ic') (jc:=jc').
-        simpl in Ui.
-        replace (lt_S_n ic) with ic' in Ui by apply proof_irrelevance.
-        assumption.
-        simpl in Uj.
-        replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
-        assumption.
-    -
-      destruct i, j.
-      + reflexivity.
-      + simpl in Uj.
+      - reflexivity.
+      - simpl in Uj.
         assert (jc':j < n) by omega.
         replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
         apply Vforall_nth with (ip:=jc') in H.
         rewrite is_None_def in H.
         congruence.
-      + simpl in Ui.
+      - simpl in Ui.
         assert (ic':i < n) by omega.
         replace (lt_S_n ic) with ic' in Ui by apply proof_irrelevance.
         apply Vforall_nth with (ip:=ic') in H.
         rewrite is_None_def in H.
         congruence.
-      + simpl in Uj.
+      - simpl in Uj.
         assert (jc':j < n) by omega.
         replace (lt_S_n jc) with jc' in Uj by apply proof_irrelevance.
         apply Vforall_nth with (ip:=jc') in H.
@@ -169,6 +171,12 @@ Section SigmaHCOLRewriting.
      rewrite IHx;
      reflexivity).
   Qed.
+
+
+
+  Inductive AllNoneOneUnknownSvector {B}: forall {n} (v: svector B (S n)), Prop :=
+  | SingleSome_none {n} (v: svector B (S n)): VecOptUnionCompSvector v -> VecOptUnionCompSvector (None::v)
+  | SingleSome_some {x} {n} (v: svector B n): Vforall is_None v -> VecOptUnionCompSvector (Some x::v).
   
   (* Unary union of vector where all except exactly one element are "structural zero", and one is unknown, is the value of this element  *)
   Lemma Lemma3 m j (x:svector A (S m)) (jc:j<(S m)):
