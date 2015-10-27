@@ -71,8 +71,8 @@ Section SigmaHCOLRewriting.
   Lemma OptionUnionAssoc:
     forall B (a b c:option B),
       (a ≡ None /\ b ≡ None ) \/
-      (a ≡ None  /\ c ≡ None ) \/
-      (b ≡ None  /\ c ≡ None ) 
+      (a ≡ None /\ c ≡ None ) \/
+      (b ≡ None /\ c ≡ None ) 
       ->
       OptionUnion (OptionUnion a b) c ≡ OptionUnion (OptionUnion a c) b.
   Proof.
@@ -134,38 +134,73 @@ Section SigmaHCOLRewriting.
         rewrite is_None_def in H.
         congruence.
   Qed.
-  
+
   Lemma VecOptionUnion_cons:
     ∀ m x (xs : vector (option A) (S m)),
+      VecOptUnionCompSvector (Vcons x xs) ->
       VecOptUnion (Vcons x xs) ≡
                   OptionUnion
                   (VecOptUnion xs)
                   x.
   Proof.
-    intros m x xs.
+    intros m x xs C.
     unfold VecOptUnion.
     simpl.
-    dep_destruct xs. simpl.
-    induction x0.
+
+    dependent destruction xs. simpl.
+    induction xs.
     destruct x, h; auto.
     rewrite 2!Vfold_left_cons.
 
     rewrite OptionUnionAssoc.
-    rewrite IHx0.
+    rewrite_clear IHxs. 
     rewrite OptionUnionAssoc.
     reflexivity.
-    admit.
-    exact (Vtail xs).
+    destruct x eqn:X, h eqn:H, h0 eqn:H0;  try (dep_destruct C; simpl in v0; break_and; contradiction).
+    dep_destruct C.
+    right. left.
+    split; try reflexivity.
+    apply Vfold_OptionUnion_empty; crush.
+
+    dep_destruct C.
+    dep_destruct x0.
+    crush.
+    right. right. crush.
+
+    left.
+    split; try reflexivity.
+    dep_destruct C.
+    dep_destruct x0.
+    dep_destruct x1.
+    apply Vfold_OptionUnion_empty; crush.
+
+    right. right.
+    split; reflexivity.
+
+    {
+      admit.
+    }
+
     admit.
   Qed.
-  
+
+
+  (* NOT GENERALLY TRUE. If x have 2 SOME? *)
   Lemma VecOptionUnion_Cons_None:
     ∀ (m : nat) (x : vector (option A) (S m)),
       VecOptUnion (Vcons None x) ≡ VecOptUnion x.
   Proof.
     intros m x.
-    rewrite VecOptionUnion_cons.
-    destruct (VecOptUnion x); reflexivity.
+    
+    induction m.
+    unfold VecOptUnion.
+    simpl.
+    dep_destruct (Vtail x).
+    simpl.
+    dep_destruct x.
+    dep_destruct x0.
+    destruct h; reflexivity.
+    admit.
   Qed.
 
   Lemma SparseUnion_Cons_None:
