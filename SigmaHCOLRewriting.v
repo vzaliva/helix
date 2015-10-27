@@ -172,11 +172,6 @@ Section SigmaHCOLRewriting.
      reflexivity).
   Qed.
 
-
-
-  Inductive AllNoneOneUnknownSvector {B}: forall {n} (v: svector B (S n)), Prop :=
-  | SingleSome_none {n} (v: svector B (S n)): VecOptUnionCompSvector v -> VecOptUnionCompSvector (None::v)
-  | SingleSome_some {x} {n} (v: svector B n): Vforall is_None v -> VecOptUnionCompSvector (Some x::v).
   
   (* Unary union of vector where all except exactly one element are "structural zero", and one is unknown, is the value of this element  *)
   Lemma Lemma3 m j (x:svector A (S m)) (jc:j<(S m)):
