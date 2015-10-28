@@ -3,7 +3,7 @@
 (* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import Spiral.
-Require Import SVector.
+Require Import Rtheta.
 Require Import HCOL.
 Require Import HCOLSyntax.
 Require Import IndexFunctions.
@@ -30,6 +30,25 @@ Require Import MathClasses.orders.orders.
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
+
+Section SparseVectors.
+
+  (* "sparse" vector type *)
+
+  Notation svector n := (vector Rtheta n).
+  
+  Definition svector_from_vector {n} (v:vector A n): svector n :=
+    Vmap Rtheta_normal v.
+  
+  Definition svector_is_dense {n} (v:svector n) : Prop :=
+    Vforall Is_SZero v.
+  
+  Definition empty_svector n: svector n := Vconst Rtheta_szero n.
+  
+  Definition svector_is_empty {n} (v:svector n) := Vforall Is_SZero v.
+  
+End SparseVectors.
+
 
 (* Options compatible *)
 
