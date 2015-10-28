@@ -101,7 +101,7 @@ Section RType.
     apply Rtheta_Symmetric_equiv.
     apply Rtheta_Transitive_equiv.
   Qed.
-      
+  
   Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
   Instance Rtheta_One: One Rtheta := (1, false, false).
   Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb.
@@ -118,6 +118,14 @@ Section RType.
     apply plus_assoc.
   Qed.
 
+  Instance Rtheta_Associative_mult: Associative Rtheta_Mult.
+  Proof.
+    unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_pointwise,
+    Rtheta1, Rtheta2, Rtheta3, equiv, Rtheta_equiv, Rtheta_rel_first.
+    intros.
+    apply mult_assoc.
+  Qed.
+  
   (* Convenience tactice to destruct 3-tuple into elements *)
   Ltac destruct_Rtheta x :=
     let x01 := fresh x "01" in
@@ -132,11 +140,22 @@ Section RType.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Plus, Rtheta_pointwise, equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta a. destruct_Rtheta b.
+    destruct_Rtheta a'. destruct_Rtheta b'.
     simpl.
-    destruct_Rtheta a.
-    destruct_Rtheta b.
-    destruct_Rtheta a'.
-    destruct_Rtheta b'.
+    unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in aEq. simpl in aEq.
+    unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in bEq. simpl in bEq.
+    rewrite aEq, bEq.
+    reflexivity.
+  Qed.
+
+  Global Instance Rtheta_mult_proper :
+    Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
+  Proof.
+    intros a a' aEq b b' bEq.
+    unfold Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta a. destruct_Rtheta b.
+    destruct_Rtheta a'. destruct_Rtheta b'.
     simpl.
     unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in aEq. simpl in aEq.
     unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in bEq. simpl in bEq.
@@ -205,17 +224,80 @@ Section RType.
     split.
     apply Rtheta_Monoid_plus_0.
     apply Rtheta_Commutative_plus.
-Qed.
+  Qed.
+
+  Instance Rtheta_SemiGroup_mult:
+    @SemiGroup Rtheta Rtheta_equiv mult.
+  Proof.
+    split.
+    apply Rtheta_Setoid.
+    apply Rtheta_Associative_mult.
+    apply Rtheta_mult_proper.
+  Qed.
+
+  Instance Rtheta_LeftIdentity_mult_1:
+    @LeftIdentity Rtheta Rtheta Rtheta_equiv mult one.
+  Proof.
+    unfold LeftIdentity.
+    intros.
+    unfold  mult, one, equiv, Rtheta_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
+    Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta y.
+    simpl.
+    ring.
+  Qed.
+
+  Instance Rtheta_RightIdentity_mult_1:
+    @RightIdentity Rtheta Rtheta_equiv Rtheta mult one.
+  Proof.
+    unfold RightIdentity.
+    intros.
+    unfold  mult, one, equiv, Rtheta_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
+    Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta x.
+    simpl.
+    ring.
+  Qed.
+  
+  Instance Rtheta_Monoid_mult_1:
+    @Monoid Rtheta Rtheta_equiv mult one.
+  Proof.
+    split.
+    apply Rtheta_SemiGroup_mult.
+    apply Rtheta_LeftIdentity_mult_1.
+    apply Rtheta_RightIdentity_mult_1.
+  Qed.
+
+  Instance Rtheta_Commutative_mult:
+    @Commutative Rtheta Rtheta_equiv Rtheta mult.
+  Proof.
+    unfold Commutative.
+    intros.
+    unfold  mult, zero, equiv, Rtheta_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
+    Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta x.
+    destruct_Rtheta y.
+    simpl.
+    ring.
+  Qed.
+  
+  Instance Rtheta_CommutativeMonoid_mult_1:
+    @CommutativeMonoid Rtheta Rtheta_equiv mult one.
+  Proof.
+    split.
+    apply Rtheta_Monoid_mult_1.
+    apply Rtheta_Commutative_mult.
+  Qed.
   
   Instance: SemiRing Rtheta.
   Proof.
     split.
     apply Rtheta_CommutativeMonoid_plus_0.
+    apply Rtheta_CommutativeMonoid_mult_1.
   Qed.
-
+  
 
 End RType.  
 
 
-  
-  
+
