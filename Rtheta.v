@@ -338,8 +338,6 @@ Section RType.
     ring.
   Qed.
 
-  Set Printing Implicit.
-  
   Instance Rtheta_Group_plus_0_neg:
     @Group Rtheta Rtheta_equiv Rtheta_Plus Rtheta_Zero Rtheta_Neg.
   Proof.
