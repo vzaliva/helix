@@ -8,9 +8,13 @@ isSErr: indicates that this value was a result of structural error.
 
 *)
 
+Require Import Coq.Bool.Bool.
+Require Import Ring.
+
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
+
 
 Section RType.
   Context
@@ -33,6 +37,10 @@ Section RType.
   Definition RthetaVal (x:Rtheta) := fst (fst x). (* value *)
   Definition RthetaIsSZero (x:Rtheta) := snd (fst x). (* structural zero *)
   Definition RthetaIsSErr (x:Rtheta) := snd x. (* structural error *)
+
+  (* Propositional predicates *)
+  Definition Is_SZero (x:Rtheta) := Is_true (RthetaIsSZero x).
+  Definition Is_SErr (x:Rtheta) :=  Is_true (RthetaIsSErr x).
   
   (* Pointwise application of 3 functions to elements of Rtheta *)
   Definition Rtheta_pointwise 
