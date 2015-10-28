@@ -27,7 +27,7 @@ Section RType.
     `{Ato: !@TotalOrder A Ae Ale}
     `{Aabs: !@Abs A Ae Ale Az Aneg}
     `{Asetoid: !@Setoid A Ae}
-    `{Aledec: !∀ x y: A, Decision (x ≤ y)}
+    `{Aledec: !∀ x y: A, Decision (x ≤ y)} (* TODO: cleanup. We do not need all *)
     `{Aeqdec: !∀ x y, Decision (x = y)}
     `{Altdec: !∀ x y: A, Decision (x < y)}
     `{Ar: !Ring A}
@@ -135,7 +135,7 @@ Section RType.
     destruct x as (x01, x2); 
       destruct x01 as (x0, x1).
   
-  Global Instance Rtheta_plus_proper :
+  Global Instance Rtheta_plus_proper:
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
@@ -149,7 +149,19 @@ Section RType.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_mult_proper :
+  Global Instance Rtheta_neg_proper:
+    Proper ((=) ==> (=)) (Rtheta_Neg).
+  Proof.
+    intros a b aEq.
+    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1, Rtheta2, Rtheta3.
+    destruct_Rtheta a. destruct_Rtheta b.
+    simpl.
+    unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in aEq. simpl in aEq.
+    rewrite aEq.
+    reflexivity.
+  Qed.
+  
+  Global Instance Rtheta_mult_proper:
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
   Proof.
     intros a a' aEq b b' bEq.
@@ -317,8 +329,52 @@ Section RType.
     apply Rtheta_LeftDistribute_mult_plus.
     apply Rtheta_LeftAbsorb.
   Qed.
-  
 
+  Instance Rtheta_LeftInverse_plus_neg_0:
+    LeftInverse plus negate 0.
+  Proof.
+    unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_equiv, Rtheta_rel_first, Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    intros.
+    simpl.
+    ring.
+  Qed.
+
+  Instance Rtheta_RightInverse_plus_neg_0:
+    RightInverse plus negate 0.
+  Proof.
+    unfold RightInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_equiv, Rtheta_rel_first, Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    intros.
+    simpl.
+    ring.
+  Qed.
+
+  Set Printing Implicit.
+  
+  Instance Rtheta_Group_plus_0_neg:
+    @Group Rtheta Rtheta_equiv Rtheta_Plus Rtheta_Zero Rtheta_Neg.
+  Proof.
+    split.
+    apply Rtheta_Monoid_plus_0.
+    split.
+    apply Rtheta_Setoid.
+    apply Rtheta_Setoid.
+    apply Rtheta_neg_proper.
+    apply Rtheta_LeftInverse_plus_neg_0.
+    apply Rtheta_RightInverse_plus_neg_0.
+  Qed.
+
+  Instance: Ring Rtheta.
+  Proof.
+    split.
+    split.
+    apply Rtheta_Group_plus_0_neg.
+    apply Rtheta_Commutative_plus.
+    apply Rtheta_CommutativeMonoid_mult_1.
+    apply Rtheta_LeftDistribute_mult_plus.
+  Qed.  
+  
+  Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
+  
 End RType.  
 
 
