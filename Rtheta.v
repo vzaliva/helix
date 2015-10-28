@@ -1,11 +1,12 @@
-(*
-R_theta is special type which is used as value for vectors used in Spiral.
-In have a value (for example Real) and two boolean flags:
+(* 
+
+R_theta is type which is used as value for vectors in Spiral.  It
+holds a value (for example Real) and two boolean flags:
 
 IsSZero: indicates that this value should be treated as "structural zero"
 isSErr: indicates that this value was a result of structural error.
-*)
 
+*)
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -25,8 +26,7 @@ Section RType.
 
   Add Ring RingA: (stdlib_ring_theory A).
 
-  (* Rtheta is product type of type A, and two booleans. The A is value (like Real) and 
-   boolean flags correspond to "structural zero" and "structural error" respectively *)
+  (* Rtheta is product type of type A, and two booleans *)
   Definition Rtheta := prod (prod A bool) bool.
 
   (* Projections: *)
@@ -57,9 +57,11 @@ Section RType.
              (a b: Rtheta)
     := oA (RthetaVal a) (RthetaVal b).
 
-  (* Setoid equality is defined by taking into account only first element. If you need full equality, use 'eq' instead *)
+  (* Setoid equality is defined by taking into account only the first element. If you need full equality, use 'eq' instead *)
   Instance Rtheta_equiv: Equiv Rtheta := Rtheta_rel_first equiv.
 
+  (* --- Rheta properties (as MathClasses instances) below --- *)
+  
   Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_equiv.
   Proof.
     unfold Reflexive.
