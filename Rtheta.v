@@ -275,8 +275,17 @@ Section RType.
     intros.
     unfold  mult, zero, equiv, Rtheta_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
     Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
+    destruct_Rtheta x. destruct_Rtheta y.
+    simpl.
+    ring.
+  Qed.
+
+  Instance Rtheta_LeftDistribute_mult_plus:
+    LeftDistribute mult plus.
+  Proof.
+    unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_equiv, Rtheta_rel_first, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    intros.
+    destruct_Rtheta a. destruct_Rtheta b. destruct_Rtheta c.
     simpl.
     ring.
   Qed.
@@ -288,12 +297,25 @@ Section RType.
     apply Rtheta_Monoid_mult_1.
     apply Rtheta_Commutative_mult.
   Qed.
+
+  Instance Rtheta_LeftAbsorb:
+    LeftAbsorb mult 0.
+  Proof.
+    unfold LeftAbsorb.
+    intros.
+    destruct_Rtheta y.    
+    unfold equiv, Rtheta_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
+    simpl.
+    ring.
+  Qed.
   
   Instance: SemiRing Rtheta.
   Proof.
     split.
     apply Rtheta_CommutativeMonoid_plus_0.
     apply Rtheta_CommutativeMonoid_mult_1.
+    apply Rtheta_LeftDistribute_mult_plus.
+    apply Rtheta_LeftAbsorb.
   Qed.
   
 
