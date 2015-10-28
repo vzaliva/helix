@@ -118,25 +118,29 @@ Section RType.
     apply plus_assoc.
   Qed.
 
+  (* Convenience tactice to destruct 3-tuple into elements *)
+  Ltac destruct_Rtheta x :=
+    let x01 := fresh x "01" in
+    let x2 := fresh x "2" in
+    let x0 := fresh x "0" in
+    let x1 := fresh x "1" in
+    destruct x as (x01, x2); 
+      destruct x01 as (x0, x1).
+  
   Global Instance Rtheta_plus_proper :
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Plus, Rtheta_pointwise, equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1, Rtheta2, Rtheta3.
     simpl.
-    destruct a as (a01, a2).
-    destruct a01 as (a0, a1).
-    destruct b as (b01, b2).
-    destruct b01 as (b0, b1).
-    destruct a' as (a01', a2').
-    destruct a01' as (a0', a1').
-    destruct b' as (b01', b2').
-    destruct b01' as (b0', b1').
+    destruct_Rtheta a.
+    destruct_Rtheta b.
+    destruct_Rtheta a'.
+    destruct_Rtheta b'.
     simpl.
     unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in aEq. simpl in aEq.
     unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta1 in bEq. simpl in bEq.
-    rewrite aEq.
-    rewrite bEq.
+    rewrite aEq, bEq.
     reflexivity.
   Qed.
   
@@ -156,7 +160,7 @@ Section RType.
     intros.
     unfold  plus, zero, equiv, Rtheta_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
     Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
-    destruct y as (y01, y2). destruct y01 as (y0,y1).
+    destruct_Rtheta y.
     simpl.
     ring.
   Qed.
@@ -168,7 +172,7 @@ Section RType.
     intros.
     unfold  plus, zero, equiv, Rtheta_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
     Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
-    destruct x as (x01, x2). destruct x01 as (x0,x1).
+    destruct_Rtheta x.
     simpl.
     ring.
   Qed.
@@ -189,8 +193,8 @@ Section RType.
     intros.
     unfold  plus, zero, equiv, Rtheta_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
     Rtheta_pointwise, Rtheta1, Rtheta2, Rtheta3.
-    destruct x as (x01, x2). destruct x01 as (x0,x1).
-    destruct y as (y01, y2). destruct y01 as (y0,y1).
+    destruct_Rtheta x.
+    destruct_Rtheta y.
     simpl.
     ring.
   Qed.
