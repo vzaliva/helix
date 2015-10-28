@@ -33,11 +33,12 @@ Add Ring RingA: (stdlib_ring_theory A).
 (* Rtheta is product type of type A, and two booleans *)
 Definition Rtheta := prod (prod A bool) bool.
 
+
+(* Some convenient constructros *)
 Definition Rtheta_new (val:A) (is_s_zero is_s_err: bool) := (val, is_s_zero, is_s_err).
-
 Definition Rtheta_normal (val:A) := (val, false, false).
-
 Definition Rtheta_szero := (0, true, false).
+Definition Rtheta_szero_err := (0, true, true).
 
 
 (* Projections: *)

@@ -10,6 +10,7 @@ Require Import IndexFunctions.
 Require Import AExp.
 
 Require Import Coq.Arith.Arith.
+Require Import Coq.Bool.Bool.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
@@ -31,12 +32,11 @@ Require Import MathClasses.orders.orders.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+(* "sparse" vector type *)
+Notation svector n := (vector Rtheta n) (only parsing).
+
 Section SparseVectors.
 
-  (* "sparse" vector type *)
-
-  Notation svector n := (vector Rtheta n).
-  
   Definition svector_from_vector {n} (v:vector A n): svector n :=
     Vmap Rtheta_normal v.
   
@@ -49,56 +49,24 @@ Section SparseVectors.
   
 End SparseVectors.
 
-
-(* Options compatible *)
-
-Definition OptComp {A} (a b: option A) : Prop :=
-  match a, b with
-  |  Some _, Some _ => False
-  |  None, None as x | None, Some _ as x | Some _ as x, None => True
-  end.
-
-(* Two option vectors compatible *)
-Definition VecOptComp {A} {n} (a: svector A n)  (b: svector A n): Prop :=
-  Vforall2 OptComp a b.
-
-Lemma VecOptComp_tl {A} {n} {a b: svector A (S n)}:
-  VecOptComp a b -> VecOptComp (Vtail a) (Vtail b).
-Proof.
-  intros C.
-  dependent destruction a.
-  dependent destruction b.
-  unfold VecOptComp, Vforall2 in C.
-  destruct C as [H T].
-  simpl.
-  assumption.
-Qed.
-
-Lemma VecOptComp_hd {A} {n} {a b: svector A (S n)}:
-  VecOptComp a b -> OptComp (Vhead a) (Vhead b).
-Proof.
-  intros C.
-  dependent destruction a.
-  dependent destruction b.
-  unfold VecOptComp, Vforall2 in C.
-  destruct C as [H T].
-  simpl.
-  assumption.
-Qed.
-
-Definition OptionUnion {A}
-           (a b: option A): option A
+(* Scalar union *)
+Definition Union 
+           (a b: Rtheta): Rtheta
   :=
-  match a, b with
-  |  None, None as x | None, Some _ as x | Some _ as x, None => x
-  |  Some _ , Some _ => None (* placeholder in case of error *)
-  end.
+    match a, b with
+    |  (_, true, ae), (bv, false, be) => (bv, false, andb ae be) (* s0 + b = b *)
+    |  (av, false, ae), (_, true, be) => (av, false, andb ae be) (* a + s0 = a *)
+    |  (_, true, ae), (_, true, be) => (zero, true, andb ae be) (* s0 + s0 = s0 *)
+    |  (_, false, _), (_, false, _) => Rtheta_szero_err (* a + b = s0, ERR ! *)
+    end.
 
-Definition VecOptUnion {A} {n} (v:svector A n): option A :=
-  Vfold_right OptionUnion v None.
+(* Unary union of vector's elements (fold) *)
+Definition VecUnion {n} (v:svector n): Rtheta :=
+  Vfold_right Union v Rtheta_szero.
 
-Definition SparseUnion {A} {n} (a b: svector A n): svector A n
-  := Vmap2 OptionUnion a b.
+(* Binary element-wise union of two vectors *)
+Definition Vec2Union {n} (a b: svector n): svector n
+  := Vmap2 Union a b.
 
 Module SigmaHCOL_Operators.
 
