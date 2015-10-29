@@ -39,6 +39,9 @@ Section SparseVectors.
 
   Definition svector_from_vector {n} (v:vector A n): svector n :=
     Vmap Rtheta_normal v.
+
+  Definition vector_from_svector {n} (v:svector n): vector A n :=
+    Vmap RthetaVal v.
   
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall Is_SZero v.
@@ -263,39 +266,31 @@ End SigmaHCOL_Operators.
 
 Import SigmaHCOL_Operators.
 
+
 Section SigmaHCOL_Language.
   (* Sigma-HCOL language, introducing even higher level concepts like variables *)
 
-  Context {A:Type} {Ae: Equiv A}.
-  
   Inductive SOperator: nat -> nat -> Type :=
   (* --- HCOL basic operators --- *)
-  | SHOScatH {i o} (base stride:aexp): SOperator i o
-  | SHOGathH {i o} (base stride: aexp): SOperator i o
+  | SHOScatH {i o} (base stride:aexp):
+      forall st:state,  (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred i * (evalAexp st stride) < o) -> SOperator i o
+  | SHOGathH {i o} (base stride: aexp):
+      forall st:state, (evalAexp st stride ≢ 0) -> ((evalAexp st base) + pred o * (evalAexp st stride) < i) ->  SOperator i o
   (* TODO: proper migh not neccessary be part of SOperator as it only needed for rewriting *)
   | SHOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: SOperator (o+o) o
   (* Lifted generic HCOL operator *)
-  | SOHCOL {i} {o} (h:HOperator i o): SOperator i o
-  (* --- Copies of HCOL operators which can use variabeles --- *)
-  | SHOInfinityNorm {i}: SOperator i 1
-  | SOReduction i (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (idv:A): SOperator i 1
-  (* TODO:
-  | HOPointWise2 o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: HOperator (o+o) o
-  | HOInduction n (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (initial:A): HOperator 1 n
-  | HOCross i1 o1 i2 o2:  HOperator i1 o1 -> HOperator i2 o2 -> HOperator (i1+i2) (o1+o2)
-  | HOTLess i1 i2 o: HOperator i1 o -> HOperator i2 o -> HOperator (i1+i2) o
-  | HOStack i o1 o2: HOperator i o1 -> HOperator i o2 -> HOperator i (o1+o2)
-   *)
+  | SOHCOL {i} {o} (h:@HOperator A Ae i o): SOperator i o
   (* --- HCOL compositional operators --- *)
   | SHOCompose i {t} o: SOperator t o -> SOperator i t -> SOperator i o
-  (* NOTE: dimensionality of the body must match that of enclosing ISUMUnion. *)
-  | SHOISumUnion {i o} (var:varname) (r:aexp):   SOperator i o -> SOperator i o
+  | SHOISumUnion {i o} (var:varname) (r:aexp):
+      SOperator i o -> forall (st:state), (evalAexp st r ≢ 0) -> SOperator i o
   .
-  
+
   Section SigmaHCOL_Eval.
-    Context    
+    (* The following context is matching one for evalHCOL *)
+    Context
       `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A} 
+      `{Aplus: Plus A} `{Amult: Mult A}
       `{Aneg: Negate A}
       `{Ale: Le A}
       `{Alt: Lt A}
@@ -303,67 +298,53 @@ Section SigmaHCOL_Language.
       `{Aabs: !@Abs A Ae Ale Az Aneg}
       `{Asetoid: !@Setoid A Ae}
       `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-      `{Aeqdec: !∀ x y, Decision (x = y)}
+      `{Aeqdec: !∀ (x y: A), Decision (x=y)}
       `{Altdec: !∀ x y: A, Decision (lt x y)}
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
       `{ASSO: !@StrictSetoidOrder A Ae Alt}.
-
-
+     
     Definition evalScatH
                {i o: nat}
                (st:state)
                (base stride:aexp)
-               (v:svector A i):
-      svector A o :=
-      match evalAexp st base, evalAexp st stride with
-      | nbase, nstride =>
-        match eq_nat_dec nstride 0 with
-        | left _ => empty_svector o (* error placeholder *)
-        | right snz =>
-          match lt_dec (nbase+(pred i)*nstride) o with
-          | right _ => empty_svector o (* error placeholder *)
-          | left domain_bound =>
-            ScatH
-              (snz:=snz)
-              (domain_bound:=domain_bound)
-              i o nbase nstride v
-          end
-        end
-      end.
+               (snz: evalAexp st stride ≢ 0)
+               (domain_bound: (evalAexp st base) + pred i * (evalAexp st stride) < o)
+               (v:svector i):
+      @svector o :=
+      ScatH
+        (snz:=snz)
+        (domain_bound:=domain_bound)
+        i o (evalAexp st base) (evalAexp st stride) v.
 
     Definition evalGathH
                {i o: nat}
                (st:state)
                (base stride:aexp)
-               (v: svector A i):  svector A o :=
-      match evalAexp st base, evalAexp st stride with
-      | nbase, nstride =>
-        match eq_nat_dec nstride 0 with
-        | left _ => empty_svector o (* error placeholder *)
-        | right snz =>
-          match lt_dec (nbase+(pred o)*nstride) i with
-          | right _ => empty_svector o (* error placeholder *)
-          | left range_bound =>
-            GathH
-              (snz:=snz)
-              (range_bound:=range_bound)
-              i o nbase nstride v
-          end
-        end
-      end.
-
-    Definition vector_from_svector {A} `{Zero A}  {n} (v:svector A n): vector A n :=
-      Vmap (fun x => match x with
-                  | None => zero (* Placeholder for missing values *)
-                  | Some v => v
-                  end) v.
+               (snz: evalAexp st stride ≢ 0)
+               (range_bound: (evalAexp st base) + pred o * (evalAexp st stride) < i)
+               (v: svector i):  svector o :=
+      GathH
+        (snz:=snz)
+        (range_bound:=range_bound)
+        i o (evalAexp st base) (evalAexp st stride) v.
     
+    (* TODO: just use evalHOperator *)
+    Definition evalBinOp
+               {o: nat}
+               (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (v: svector (o+o)):
+      svector o :=
+      (svector_from_vector
+         ∘ evalHCOL (HOPointWise2 o f (Ae:=Ae) (pF:=pF))
+         ∘ vector_from_svector
+      ) v.
+
     Definition evalHOperator
                {i o: nat}
-               (h: HOperator i o)
-               (v: svector A i):
-      svector A o :=
+               (h: HOperator i o (A:=A))
+               (v: svector i):
+      svector o :=
       (svector_from_vector
          ∘ evalHCOL h
          ∘ vector_from_svector
@@ -373,33 +354,33 @@ Section SigmaHCOL_Language.
              {i o: nat}
              (st:state)
              (op: SOperator i o)
-             (v:svector A i): svector A o
+             (v:svector i): svector o
       :=
-        (match op in @SOperator i o return svector A i -> svector A o
+        (match op in @SOperator i o return svector i -> svector o
          with
-         | SHOISumUnion i o var r body as su =>
+         | SHOISumUnion i o var r  body st rnz as su =>
            (fun v0 => 
               match (evalAexp st r)
               with
-              | O => empty_svector o (* error placeholder *)
+              | O => !
               | (S p) =>
-                Vfold_right (@SparseUnion A o)
+                Vfold_left Vec2Union (*TODO: Prop missing here *)
+                           (empty_svector o)
                            (Vbuild 
                               (fix en (n':nat) (np:n'<S p) := evalSigmaHCOL (update st var n') body v0))
-                           (empty_svector o)
               end
            )
-         | SHOCompose _ _ _ f g  => (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
-         | SHOScatH _ _ base stride => evalScatH st base stride
-         | SHOGathH _ _ base stride => evalGathH st base stride
-         | SHOBinOp o f pF => evalHOperator (HOPointWise2 o f (Ae:=Ae) (pF:=pF))
+         | SHOCompose _ _ _ f g  => 
+           (evalSigmaHCOL st f) ∘ (evalSigmaHCOL st g)
+         | SHOScatH _ _ base stride st snz domain_bound => evalScatH st base stride snz domain_bound
+         | SHOGathH _ _ base stride st snz range_bound => evalGathH st base stride snz range_bound
+         | SHOBinOp _ f _ => evalBinOp f
          | SOHCOL _ _ h => evalHOperator h
-         | SHOInfinityNorm _ => evalHOperator (HOInfinityNorm)
-         | SOReduction i f pf idv => evalHOperator (HOReduction i f idv)
          end) v.
+    
         
     Global Instance SigmaHCOL_equiv {i o:nat}: Equiv (SOperator i o) :=
-      fun f g => forall st (x:svector A i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
+      fun f g => forall st (x:svector i), evalSigmaHCOL st f x = evalSigmaHCOL st g x.
 
     Lemma SigmaHCOL_extensionality {i o} (f g : SOperator i o) :
       (forall v st, evalSigmaHCOL st f v = evalSigmaHCOL st g v) -> f = g.
