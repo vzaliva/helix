@@ -76,29 +76,29 @@ Module SigmaHCOL_Operators.
 
     (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
-    Definition VnthIndexMapped {A:Type}
+    Definition VnthIndexMapped
                {i o:nat}
-               (x: vector A i)
+               (x: svector i)
                (f: index_map o i)
                (n:nat) (np: n<o)
-    : A
+    : Rtheta
       := Vnth x (« f » n np).
 
-    Definition Gather `{Equiv A}
+    Definition Gather 
                {i o: nat}
                (f: index_map o i)
-               (x: vector A i):
-      vector A o
+               (x: svector i):
+      svector o
       := Vbuild (VnthIndexMapped x f).
 
     (* Specification of gather as mapping from ouptu to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-    Lemma Gather_spec `{Equiv A}
+    Lemma Gather_spec
           {i o: nat}
           (f: index_map o i)
-          (x: vector A i)
-          (y: vector A o):
+          (x: svector i)
+          (y: svector o):
       (Gather f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
     Proof.
       unfold Gather, Vbuild. 
@@ -109,9 +109,9 @@ natrual number by index mapping function f_spec. *)
       auto.
     Qed.
     
-    Lemma Gather_is_endomorphism `{Ae: Equiv A}:
+    Lemma Gather_is_endomorphism:
       ∀ (i o : nat)
-        (x : vector A i),
+        (x : svector i),
       ∀ (f: index_map o i),
         Vforall (Vin_aux x)
                 (Gather f x).
@@ -127,8 +127,8 @@ natrual number by index mapping function f_spec. *)
       apply Vnth_in.
     Qed.
 
-    Lemma Gather_preserves_P `{Ae: Equiv A}:
-      ∀ (i o : nat) (x : vector A i) (P: A->Prop),
+    Lemma Gather_preserves_P:
+      ∀ (i o : nat) (x : svector i) (P: Rtheta->Prop),
         Vforall P x
         → ∀ f : index_map o i,
           Vforall P (Gather f x).
@@ -145,8 +145,8 @@ natrual number by index mapping function f_spec. *)
       crush.
     Qed.
 
-    Lemma Gather_preserves_density `{Ae: Equiv A}:
-      ∀ (i o : nat) (x : svector A i)
+    Lemma Gather_preserves_density:
+      ∀ (i o : nat) (x : svector i)
         (f: index_map o i),
         svector_is_dense x ->
         svector_is_dense (Gather f x).
@@ -157,24 +157,24 @@ natrual number by index mapping function f_spec. *)
       assumption.
     Qed.
     
-    Definition VnthInverseIndexMapped {A:Type}
+    Definition VnthInverseIndexMapped
                {i o:nat}
-               (x: svector A i)
+               (x: svector i)
                (f': partial_index_map o i)
                (n:nat) (np: n<o)
-      : option A
+      : Rtheta
       :=
         let f := partial_index_f _ _ f' in
         let f_spec := partial_index_f_spec _ _  f' in
-        match (f n) as fn return f n ≡ fn -> option A with        
-        | None => fun _ => None
+        match (f n) as fn return f n ≡ fn -> Rtheta with        
+        | None => fun _ => Rtheta_szero
         | Some z => fun p => Vnth x (f_spec n np z p)
         end eq_refl.
     
-    Definition Scatter {A:Type}
+    Definition Scatter 
             {i o: nat}
             (f: index_map i o)
-            (x: svector A i) : svector A o
+            (x: svector i) : svector o
       :=
         Vbuild (fun n np =>
                   VnthInverseIndexMapped x (build_inverse_index_map f) n np).
@@ -182,11 +182,11 @@ natrual number by index mapping function f_spec. *)
     (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-    Lemma Scatter_spec `{Equiv A}
+    Lemma Scatter_spec
           {i o: nat}
           (f: index_map i o)
-          (x: svector A i)
-          (y : svector A o):
+          (x: svector i)
+          (y : svector o):
       index_map_injective f -> (Scatter f x ≡ y) ->  ∀ n (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f n ip.
     Proof.
       intros J S n ip.
@@ -218,12 +218,12 @@ natrual number by index mapping function f_spec. *)
     (* Specification of scatter as mapping from output to input.
     NOTE: we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-    Lemma Scatter_rev_spec `{Equiv A}:
+    Lemma Scatter_rev_spec:
     forall 
           {i o: nat}
           (f: index_map i o)
-          (x: svector A i)
-          (y : svector A o),
+          (x: svector i)
+          (y : svector o),
       (Scatter f x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
     Proof.
       intros i o f x y.
@@ -239,22 +239,22 @@ natrual number by index mapping function f_spec. *)
 
   End IndexedOperators.
 
-  Definition GathH `{Equiv A}
+  Definition GathH
              (i o base stride: nat)
              {range_bound: (base+(pred o)*stride) < i}
              {snz: stride ≢ 0} 
     :
-      (svector A i) -> svector A o
+      (svector i) -> svector o
     :=
       Gather 
         (@h_index_map o i base stride range_bound snz).
 
-  Definition ScatH `{Equiv A}
+  Definition ScatH
              (i o base stride: nat)
              {domain_bound: (base+(pred i)*stride) < o}
              {snz: stride ≢ 0} 
     :
-      (svector A i) -> svector A o
+      (svector i) -> svector o
     :=
       Scatter 
         (@h_index_map i o base stride domain_bound snz).
