@@ -107,6 +107,7 @@ Section SigmaHCOLRewriting.
                 (λ (i0 : nat) (id : i0 < n),
                  ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
 
+    
     unfold GathH, Gather.
 
   Qed.
@@ -351,7 +352,7 @@ Section SigmaHCOLRewriting.
   Qed.
 
   Lemma SparseUnionWithEmpty:
-    ∀ (m : nat) (x : vector (option A) m), SparseUnion (empty_svector m) x ≡ x.
+    ∀ (m : nat) (x : vector (option A) m), SparseUnion (szero_svector m) x ≡ x.
   Proof.
     intros m x.
     induction x.
@@ -374,7 +375,7 @@ Section SigmaHCOLRewriting.
   Lemma AbsorbUnionIndex:
     forall m n (x: vector (svector A m) (S n)) k (kc: k<m),
       Vnth
-        (Vfold_left SparseUnion (empty_svector m)
+        (Vfold_left SparseUnion (szero_svector m)
                     (Vbuild 
                        (fun (i : nat) (ic : i < S n) =>
                           (Vnth x ic)
@@ -401,7 +402,7 @@ Section SigmaHCOLRewriting.
       subst h0.
       unfold SparseUnion.
       rewrite Vnth_map2.
-      rewrite empty_svector_Vnth.
+      rewrite szero_svector_Vnth.
       dep_destruct x1.
       simpl.
       destruct (Vnth h kc); reflexivity.
@@ -449,7 +450,7 @@ Section SigmaHCOLRewriting.
   Lemma Lemma2:
     forall var st m n (x: vector (svector A m) n) k (kc: k<(m*n)), exists i (ic:i<n) j (jc:j<m),
         Vnth (Vnth x ic) jc ≡ Vnth
-                                (Vfold_left SparseUnion (empty_svector (m * n))
+                                (Vfold_left SparseUnion (szero_svector (m * n))
                                             (Vbuild 
                                                (fun (i : nat) (ic : i < n) =>
                                                   evalScatH (update st var i)

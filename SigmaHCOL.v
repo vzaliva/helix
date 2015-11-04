@@ -31,23 +31,26 @@ Require Import MathClasses.orders.orders.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-(* "sparse" vector type *)
+(* "sparse" vector type: vector holding Rhteta values *)
 Notation svector n := (vector Rtheta n) (only parsing).
 
 Section SparseVectors.
 
+  (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
   Definition svector_from_vector {n} (v:vector A n): svector n :=
     Vmap Rtheta_normal v.
 
+  (* Project out carrier type values from vector of Rheta values *)
   Definition vector_from_svector {n} (v:svector n): vector A n :=
     Vmap RthetaVal v.
+
+  (* Our definition of "dense" vector means that it does not contain "structural" values. *)
   
   Definition svector_is_dense {n} (v:svector n) : Prop :=
-    Vforall Is_SZero v.
-  
-  Definition empty_svector n: svector n := Vconst Rtheta_szero n.
-  
-  Definition svector_is_empty {n} (v:svector n) := Vforall Is_SZero v.
+    Vforall (not ∘ Is_Struct) v.
+
+  (* Construct "Zero svector". All values are structural zeros. *)
+  Definition szero_svector n: svector n := Vconst Rtheta_szero n.
   
 End SparseVectors.
 
@@ -148,7 +151,7 @@ Section SigmaHCOL_Operators.
   
   Definition ISumUnion
              {o n} (v: vector (svector o) n): svector o
-    := Vfold_left Vec2Union (empty_svector o) v.
+    := Vfold_left Vec2Union (szero_svector o) v.
  
 End SigmaHCOL_Operators.
 
