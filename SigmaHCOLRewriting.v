@@ -56,38 +56,108 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
-  Fact ScatH_domain_bound base o (bc:base<o):
+  Fact ScatH_j1_domain_bound base o (bc:base<o):
     (base+(pred 1)*1) < o.
   Proof.
     lia.
   Qed.
 
-  Fact GathH_range_bound base i (bc:base<i):
+  Fact GathH_j1_range_bound base i (bc:base<i):
     (base+(pred 1)*1) < i.
   Proof.
     lia.
   Qed.
+
+
+  Fact lt_0_1: 0 < 1.
+  Proof.
+    auto.
+  Qed.
   
-  Theorem U_SAG1_PW {n}:
-    forall j (jd:j<n) (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
+  Lemma Vbuild_1 B `{Equiv B} gen:
+    @Vbuild B 1 gen ≡ [gen 0 (lt_0_1)].
+  Proof.
+    unfold Vbuild.
+    simpl.
+    replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_1) by apply proof_irrelevance.
+    reflexivity.
+  Qed.
+  
+  Lemma U_SAG1:
+    ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
+      (i : nat) (ip : i < n),
+      Vnth
+        (ISumUnion
+           (Vbuild
+              (λ (i0 : nat) (id : i0 < n),
+               ((ScatH i0 1
+                       (snz:=One_ne_Zero)
+                       (domain_bound:=ScatH_j1_domain_bound i0 n id))
+                  ∘ Atomic (f i0 id)
+                  ∘ (GathH i0 1
+                           (snz:=One_ne_Zero)
+                           (range_bound:=GathH_j1_range_bound i0 n id))
+               ) x))) ip
+      ≡
+      Vnth (Pointwise f x) ip.
+  Proof.
+    intros n x f i ip.
+    unfold compose.
+    remember 
+                (λ (i0 : nat) (id : i0 < n),
+                 ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
+
+    unfold GathH, Gather.
+
+  Qed.
+
+  Lemma vec_eq_elementwise n B (v1 v2: vector B n):
+    Vforall2 eq v1 v2 -> (v1 ≡ v2).
+  Proof.
+    induction n.
+    + dep_destruct v1. dep_destruct v2.
+      auto.
+    + dep_destruct v1. dep_destruct v2.
+      intros H.
+      rewrite Vforall2_cons_eq in H.
+      destruct H as [Hh Ht].
+      apply IHn in Ht.
+      rewrite Ht, Hh.
+      reflexivity.
+  Qed.
+  
+  Theorem U_SAG1_PW:
+    forall n (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
       ISumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
                     (
                       (ScatH i 1
                              (snz:=One_ne_Zero)
-                             (domain_bound:=ScatH_domain_bound i n id)) 
+                             (domain_bound:=ScatH_j1_domain_bound i n id)) 
                         ∘ (Atomic (f i id)) 
                         ∘ (GathH i 1
                                  (snz:=One_ne_Zero)
-                                 (range_bound:=GathH_range_bound i n id)
+                                 (range_bound:=GathH_j1_range_bound i n id)
                           )
                     ) x
         ))
-      =
-      Pointwise (f j jd) x.
+      ≡
+      Pointwise f x.
   Proof.
+    intros n x f.
+    apply vec_eq_elementwise.
+    apply Vforall2_intro_nth.
+    intros i ip.
+    apply U_SAG1.
   Qed.
+  
+
+
+
+
+
+
   
 
 
@@ -106,7 +176,7 @@ Section SigmaHCOLRewriting.
 
 
 
-
+  (* --------------- OLD STUFF BELOW ------------------ *)
   
   Lemma Vfold_OptionUnion_empty:
     ∀ (m : nat) (h : option A) (x : vector (option A) m),

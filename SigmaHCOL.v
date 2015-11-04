@@ -136,10 +136,10 @@ Section SigmaHCOL_Operators.
         (@h_index_map i o base stride domain_bound snz).
 
   Definition Pointwise
-             {i: nat}
-             (f: Rtheta -> Rtheta)
-             (x: svector i)
-    := Vmap f x.
+             {n: nat}
+             (f: forall i, i<n -> Rtheta -> Rtheta)
+             (x: svector n)
+    := Vbuild (fun j jd => f j jd (Vnth x jd)).
 
   Definition Atomic
              (f: Rtheta -> Rtheta)
