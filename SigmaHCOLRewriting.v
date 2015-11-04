@@ -1,10 +1,7 @@
 
 Require Import Spiral.
-Require Import SVector.
-Require Import AExp.
 Require Import HCOL.
 Require Import SigmaHCOL.
-Import SigmaHCOL_Operators.
 Require Import HCOLSyntax.
 
 Require Import Arith.
@@ -54,6 +51,29 @@ Section SigmaHCOLRewriting.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
   Lemma Vfold_OptionUnion_empty:
     ∀ (m : nat) (h : option A) (x : vector (option A) m),
       Vforall is_None x → Vfold_left OptionUnion h x ≡ h.

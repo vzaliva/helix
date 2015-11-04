@@ -133,12 +133,17 @@ Section SigmaHCOL_Operators.
       Scatter 
         (@h_index_map i o base stride domain_bound snz).
 
-  Definition Atomic
+  Definition Pointwise
              {i: nat}
              (f: Rtheta -> Rtheta)
              (x: svector i)
     := Vmap f x.
 
+  Definition Atomic
+             (f: Rtheta -> Rtheta)
+             (x: svector 1)
+    := [f (Vhead x)].
+  
   Definition ISumUnion
              {o n} (v: vector (svector o) n): svector o
     := Vfold_left Vec2Union (empty_svector o) v.
