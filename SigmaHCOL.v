@@ -114,7 +114,8 @@ Section SigmaHCOL_Operators.
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
   
   Definition GathH
-             (i o base stride: nat)
+             {i o}
+             (base stride: nat)
              {range_bound: (base+(pred o)*stride) < i}
              {snz: stride ≢ 0} 
     :
@@ -124,7 +125,8 @@ Section SigmaHCOL_Operators.
         (@h_index_map o i base stride range_bound snz).
   
   Definition ScatH
-             (i o base stride: nat)
+             {i o}
+             (base stride: nat)
              {domain_bound: (base+(pred i)*stride) < o}
              {snz: stride ≢ 0} 
     :

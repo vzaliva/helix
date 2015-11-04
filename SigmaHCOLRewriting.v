@@ -1,8 +1,7 @@
 
 Require Import Spiral.
-Require Import HCOL.
+Require Import Rtheta.
 Require Import SigmaHCOL.
-Require Import HCOLSyntax.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -52,9 +51,44 @@ Section SigmaHCOLRewriting.
   Global Open Scope nat_scope.
 
 
+  Lemma One_ne_Zero: 1 ≢ 0.
+  Proof.
+    lia.
+  Qed.
 
+  Fact ScatH_domain_bound base o (bc:base<o):
+    (base+(pred 1)*1) < o.
+  Proof.
+    lia.
+  Qed.
 
-
+  Fact GathH_range_bound base i (bc:base<i):
+    (base+(pred 1)*1) < i.
+  Proof.
+    lia.
+  Qed.
+  
+  Theorem U_SAG1_PW {n}:
+    forall j (jd:j<n) (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
+      ISumUnion
+        (@Vbuild (svector n) n
+                 (fun i id =>
+                    (
+                      (ScatH i 1
+                             (snz:=One_ne_Zero)
+                             (domain_bound:=ScatH_domain_bound i n id)) 
+                        ∘ (Atomic (f i id)) 
+                        ∘ (GathH i 1
+                                 (snz:=One_ne_Zero)
+                                 (range_bound:=GathH_range_bound i n id)
+                          )
+                    ) x
+        ))
+      =
+      Pointwise (f j jd) x.
+  Proof.
+  Qed.
+  
 
 
 
