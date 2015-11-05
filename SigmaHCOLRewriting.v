@@ -82,6 +82,23 @@ Section SigmaHCOLRewriting.
     replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_1) by apply proof_irrelevance.
     reflexivity.
   Qed.
+
+  Lemma Vnth_cast_i_plus_0:
+    ∀ (n : nat) (x : vector Rtheta n) (j : nat) (jn : j < n) 
+      (ln : j + 0 < n), Vnth x ln ≡ Vnth x jn.
+  Proof.
+    intros n x j jn ln.
+    dependent induction x.
+    crush.
+    destruct j.
+    crush.
+    assert(jn' :  j < n) by lia.
+    simpl in ln.
+    assert(ln' : j + 0 < n) by lia.
+    rewrite Vnth_Sn with (ip':=ln').
+    rewrite Vnth_Sn with (ip':=jn').
+    apply IHx.
+  Qed.
   
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
@@ -122,17 +139,8 @@ Section SigmaHCOLRewriting.
       generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
                                                           (GathH_j1_range_bound j n jn) One_ne_Zero 0 lt_0_1).
       intros ln.
-
       simpl in ln.
-      assert (JL: Vnth x ln ≡ Vnth x jn).
-      { 
-        dependent induction x.
-        crush.
-        rewrite 2!Vnth_cons.
-        assert(J0: j < n → j + 0 < n) by lia.
-        admit.
-      }
-      rewrite <- JL.
+      rewrite Vnth_cast_i_plus_0 with (jn:=jn).
       reflexivity.
       apply Rtheta_equiv.
     }
