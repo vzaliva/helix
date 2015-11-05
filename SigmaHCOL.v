@@ -149,7 +149,7 @@ Section SigmaHCOL_Operators.
              (x: svector 1)
     := [f (Vhead x)].
   
-  Definition ISumUnion
+  Definition SumUnion
              {o n} (v: vector (svector o) n): svector o
     := Vfold_left Vec2Union (szero_svector o) v.
  

@@ -99,12 +99,112 @@ Section SigmaHCOLRewriting.
     rewrite Vnth_Sn with (ip':=jn').
     apply IHx.
   Qed.
+
+  Lemma Vbuild_0:
+    forall B gen, @Vbuild B 0 gen ≡ @Vnil B.
+  Proof.
+    intros B gen.
+    crush.
+  Qed.
+
+
+  Lemma VecUnion_cons:
+    ∀ m x (xs : svector m),
+      VecUnion (Vcons x xs) ≡ Union x (VecUnion xs).
+  Proof.
+    intros m x xs.
+    unfold VecUnion.
+    rewrite Vfold_right_reduce.
+    reflexivity.
+  Qed.
+
+  Lemma SumUnion_cons m n (x: svector m) (xs: vector (svector m) n):
+    SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
+  Proof.
+    unfold SumUnion.
+    apply Vfold_left_cons.
+  Qed.
+
+  Lemma AbsorbUnionIndexBinary:
+    ∀ (m k : nat) (kc : k < m) (a b : svector m),
+      Vnth (Vec2Union a b) kc ≡ Union (Vnth a kc) (Vnth b kc).
+  Proof.
+    intros m k kc a b.
+    unfold Vec2Union.
+    apply Vnth_map2.
+  Qed.
+  
+  (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
+  Lemma AbsorbUnionIndex:
+    forall m n (x: vector (svector m) n) k (kc: k<m),
+      Vnth
+        (SumUnion
+           (Vbuild 
+              (fun (i : nat) (ic : i < n) =>
+                 (Vnth x ic)
+           ))
+        ) kc ≡
+        VecUnion
+        (Vbuild 
+           (fun (i : nat) (ic : i < n) =>
+              Vnth (Vnth x ic) kc
+        )).
+  Proof.
+    intros m n x k kc.
+    
+    induction n.
+    + dep_destruct x.
+      rewrite 2!Vbuild_0.
+      unfold VecUnion; simpl.
+      unfold SumUnion; simpl.
+      unfold szero_svector; apply Vnth_const.
+
+    +
+      dep_destruct x.
+      remember (λ (i : nat) (ic : i < (S n)), Vnth (Vcons h x0) ic) as geni.
+      remember (λ (i : nat) (ic : i < (S n)), Vnth (geni i ic) kc) as genik.
+
+      (* RHS massaging *)
+      rewrite Vbuild_cons with (gen:=genik).
+      replace (genik 0 (lt_0_Sn n)) with (Vnth h kc)
+        by (subst genik geni; reflexivity).
+      rewrite VecUnion_cons.
+
+      replace (λ (i : nat) (ip : i < n), genik (S i) (lt_n_S ip)) with
+      (λ (i : nat) (ic : i < n), Vnth (Vnth x0 ic) kc).
+      
+      rewrite <- IHn.
+      remember (λ (i : nat) (ic : i < n), Vnth x0 ic) as genX.
+
+      rewrite Vbuild_cons with (gen:=geni).
+      replace (geni 0 (lt_0_Sn n)) with h
+        by (subst geni; reflexivity).
+      subst geni.
+      replace (λ (i : nat) (ip : i < n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
+      rewrite SumUnion_cons.
+      rewrite AbsorbUnionIndexBinary.
+      admit.
+      
+      subst genX.
+      extensionality i.
+      extensionality ic.
+      simpl.
+      rewrite NatUtil.lt_Sn_nS.
+      reflexivity.
+
+      extensionality i.
+      extensionality ic.
+      subst genik geni.
+      simpl.
+      rewrite NatUtil.lt_Sn_nS.
+      reflexivity.
+  Qed.
   
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
       Vnth
-        (ISumUnion
+        (SumUnion
            (Vbuild
               (λ (i0 : nat) (id : i0 < n),
                ((ScatH i0 1
@@ -156,7 +256,10 @@ Section SigmaHCOLRewriting.
     rewrite B2.
     clear B1 B2 Heqbf bf.
 
-    apply Lemma5.
+    unfold Pointwise.
+    rewrite Vbuild_nth.
+
+    (* Lemma5 emebdded below *)
     
 
   Qed.
@@ -178,7 +281,7 @@ Section SigmaHCOLRewriting.
   
   Theorem U_SAG1_PW:
     forall n (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
-      ISumUnion
+      SumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
                     (
@@ -311,18 +414,6 @@ Section SigmaHCOLRewriting.
         congruence.
   Qed.
 
-  Lemma VecOptionUnion_cons:
-    ∀ m x (xs : vector (option A) (S m)),
-      VecOptUnion (Vcons x xs) ≡
-                  OptionUnion
-                  x
-                  (VecOptUnion xs).
-  Proof.
-    intros m x xs.
-    unfold VecOptUnion.
-    rewrite Vfold_right_reduce.
-    reflexivity.
-  Qed.
 
   Lemma VecOptionUnion_Cons_None:
     ∀ (m : nat) (x : vector (option A) (S m)),
