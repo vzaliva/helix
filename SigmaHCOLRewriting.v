@@ -103,12 +103,53 @@ Section SigmaHCOLRewriting.
   Proof.
     intros n x f i ip.
     unfold compose.
-    remember 
-                (λ (i0 : nat) (id : i0 < n),
-                 ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
 
+    remember (λ (i0 : nat) (id : i0 < n),
+              ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
+    assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
+                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_j1_domain_bound i0 n id) (Atomic (f i0 id) [Vnth x id]))
+           ).
     
-    unfold GathH, Gather.
+    {
+      subst bf.
+      extensionality j.
+      extensionality jn.
+      unfold GathH.
+      unfold Gather.
+      rewrite Vbuild_1.
+      unfold VnthIndexMapped.
+      simpl.
+      generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
+                                                          (GathH_j1_range_bound j n jn) One_ne_Zero 0 lt_0_1).
+      intros ln.
+
+      simpl in ln.
+      assert (JL: Vnth x ln ≡ Vnth x jn).
+      { 
+        dependent induction x.
+        crush.
+        rewrite 2!Vnth_cons.
+        assert(J0: j < n → j + 0 < n) by lia.
+        admit.
+      }
+      rewrite <- JL.
+      reflexivity.
+      apply Rtheta_equiv.
+    }
+    assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
+                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_j1_domain_bound i0 n id)  [f i0 id (Vnth x id)])).
+    {
+      rewrite B1.
+      extensionality j.
+      extensionality jn.
+      unfold Atomic.
+      reflexivity.
+    }
+    rewrite B2.
+    clear B1 B2 Heqbf bf.
+
+    apply Lemma5.
+    
 
   Qed.
 
