@@ -65,6 +65,26 @@ Definition Union
     |  (_, false, _), (_, false, _) => Rtheta_szero_err (* a + b = s0, ERR ! *)
     end.
 
+
+(* Stronger commutativity, wrt to 'eq' equality *)
+Lemma Union_comm: ∀ x y : Rtheta, Union x y ≡ Union y x.
+Proof.
+  intros x y.
+  destruct_Rtheta x.
+  destruct_Rtheta y.
+  destruct x1, x2, y1, y2; crush.
+Qed.
+
+(* Weaker commutativity, wrt to 'equiv' equality *)
+Instance Rtheta_Commutative_Union:
+  @Commutative Rtheta Rtheta_equiv Rtheta Union.
+Proof.
+  unfold Commutative.
+  intros x y.
+  rewrite Union_comm.
+  reflexivity.
+Qed.
+
 (* Unary union of vector's elements (fold) *)
 Definition VecUnion {n} (v:svector n): Rtheta :=
   Vfold_right Union v Rtheta_szero.

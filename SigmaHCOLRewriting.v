@@ -183,7 +183,7 @@ Section SigmaHCOLRewriting.
       replace (λ (i : nat) (ip : i < n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
       rewrite SumUnion_cons.
       rewrite AbsorbUnionIndexBinary.
-      admit.
+      apply Union_comm.
       
       subst genX.
       extensionality i.
