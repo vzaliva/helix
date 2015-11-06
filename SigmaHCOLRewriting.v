@@ -133,9 +133,23 @@ Section SigmaHCOLRewriting.
     unfold Vec2Union.
     apply Vnth_map2.
   Qed.
+
+  Lemma AbsorbUnionIndex:
+    forall m n (x: vector (svector m) n) k (kc: k<m),
+      Vnth (SumUnion x) kc ≡ VecUnion (Vmap (fun v => Vnth v kc) x).
+  Proof.
+    intros m n x k kc.
+    induction n.
+    + dep_destruct x.
+      unfold VecUnion, SumUnion,szero_svector; simpl.
+      apply Vnth_const.
+    + dep_destruct x.
+      rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons, Union_comm.
+      reflexivity.
+  Qed.
   
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
-  Lemma AbsorbUnionIndex:
+  Lemma AbsorbIUnionIndex:
     forall m n (x: vector (svector m) n) k (kc: k<m),
       Vnth
         (SumUnion
@@ -260,6 +274,7 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
 
     (* Lemma5 emebdded below *)
+    rewrite AbsorbUnionIndex.
     
 
   Qed.

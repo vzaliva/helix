@@ -626,7 +626,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap_cons: forall A B `{Setoid B} (f:A->B) n (x:A) (xs: vector A n) (ys:vector B n), 
+Lemma Vmap_cons: forall A B (f:A->B) n (x:A) (xs: vector A n), 
+    Vmap f (Vcons x xs) ≡ Vcons (f x) (Vmap f xs).
+Proof.
+  intros.
+  constructor.
+Qed.
+
+Lemma Vmap_equiv_cons: forall A B `{Setoid B} (f:A->B) n (x:A) (xs: vector A n),
     Vmap f (Vcons x xs) = Vcons (f x) (Vmap f xs).
 Proof.
   intros.
