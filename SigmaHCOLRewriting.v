@@ -50,7 +50,21 @@ Section SigmaHCOLRewriting.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
-
+  Lemma vec_eq_elementwise n B (v1 v2: vector B n):
+    Vforall2 eq v1 v2 -> (v1 ≡ v2).
+  Proof.
+    induction n.
+    + dep_destruct v1. dep_destruct v2.
+      auto.
+    + dep_destruct v1. dep_destruct v2.
+      intros H.
+      rewrite Vforall2_cons_eq in H.
+      destruct H as [Hh Ht].
+      apply IHn in Ht.
+      rewrite Ht, Hh.
+      reflexivity.
+  Qed.
+ 
   Lemma One_ne_Zero: 1 ≢ 0.
   Proof.
     lia.
@@ -213,7 +227,18 @@ Section SigmaHCOLRewriting.
       rewrite NatUtil.lt_Sn_nS.
       reflexivity.
   Qed.
-  
+
+  Lemma Vmap_Vbuild n B C (fm: B->C) (fb : ∀ i : nat, i < n → B):
+    Vmap fm (Vbuild fb) ≡ Vbuild (fun z zi => fm (fb z zi)).
+  Proof.
+    apply vec_eq_elementwise.
+    apply Vforall2_intro_nth.
+    intros i ip.
+    rewrite Vnth_map.
+    rewrite 2!Vbuild_nth.
+    reflexivity.
+  Qed.
+      
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -275,25 +300,12 @@ Section SigmaHCOLRewriting.
 
     (* Lemma5 emebdded below *)
     rewrite AbsorbUnionIndex.
+    rewrite Vmap_Vbuild.
+
     
 
   Qed.
 
-  Lemma vec_eq_elementwise n B (v1 v2: vector B n):
-    Vforall2 eq v1 v2 -> (v1 ≡ v2).
-  Proof.
-    induction n.
-    + dep_destruct v1. dep_destruct v2.
-      auto.
-    + dep_destruct v1. dep_destruct v2.
-      intros H.
-      rewrite Vforall2_cons_eq in H.
-      destruct H as [Hh Ht].
-      apply IHn in Ht.
-      rewrite Ht, Hh.
-      reflexivity.
-  Qed.
-  
   Theorem U_SAG1_PW:
     forall n (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
       SumUnion
