@@ -185,6 +185,75 @@ Section SigmaHCOLRewriting.
       reflexivity.
   Qed.
 
+  Lemma Union_Val_with_structs:
+    ∀ x , Is_Val x -> Union x Rtheta_szero ≡ x.
+  Proof.
+    intros x H.
+    unfold Rtheta_szero.
+    destruct_Rtheta x.
+    unfold Is_Val, Is_Struct, Is_SErr in H.
+    destruct x1, x2; crush.
+  Qed.
+  
+  
+  (* Unary union of vector where all except exactly one element are "structural", and one is unknown, is the value of this element  *)
+  Lemma Lemma3 m j (x:svector (S m)) (jc:j<(S m)):
+    (forall i (ic:i<(S m)) (inej: i ≢ j), Is_Struct (Vnth x ic)) -> (VecUnion x ≡ Vnth x jc).
+  Proof.
+    intros SZ.
+    
+    dependent induction m.
+    - dep_destruct x.
+      dep_destruct x0.
+      destruct j.
+      simpl.
+      rewrite VecUnion_cons.
+      unfold VecUnion; simpl.
+
+        
+    (* got IHm *)
+      
+    - dep_destruct x.
+      destruct (eq_nat_dec j 0).
+      +
+        rewrite Vnth_cons_head; try assumption.
+        unfold VecOptUnion.
+        simpl.
+        
+        assert(Vforall is_None x0).
+        {
+          apply Vforall_nth_intro.
+          intros.
+          assert(ipp:S i < S (S m)) by lia.
+          replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
+          apply SZ; lia.
+        }
+        
+        apply Vfold_OptionUnion_empty; assumption.
+      +
+        assert(Zc: 0<(S (S m))) by lia.
+        assert (H0: is_None (Vnth (Vcons h x0) Zc))
+          by (apply SZ; auto).
+        rewrite Vnth_0 in H0. simpl in H0.
+        rewrite is_None_def in H0.
+        subst h.
+
+        rewrite VecOptionUnion_Cons_None.
+        
+        destruct j as [j0|js]; try congruence.
+        assert(jcp : js < S m) by lia.
+        rewrite Vnth_Sn with (ip':=jcp).
+
+        rewrite <-IHm.
+        reflexivity.
+        intros i ic inej.
+
+        assert(ics: (S i) < S (S m)) by lia.
+        rewrite <- Vnth_Sn with (v:=None) (ip:=ics).
+        apply SZ.
+        auto.
+  Qed.
+  
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -247,7 +316,7 @@ Section SigmaHCOLRewriting.
     rewrite AbsorbUnionIndex.
     rewrite Vmap_Vbuild.
 
-    
+    TODO: apply Lemma3
 
   Qed.
 
