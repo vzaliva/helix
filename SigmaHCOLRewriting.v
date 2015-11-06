@@ -50,26 +50,6 @@ Section SigmaHCOLRewriting.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
-  Lemma vec_eq_elementwise n B (v1 v2: vector B n):
-    Vforall2 eq v1 v2 -> (v1 ≡ v2).
-  Proof.
-    induction n.
-    + dep_destruct v1. dep_destruct v2.
-      auto.
-    + dep_destruct v1. dep_destruct v2.
-      intros H.
-      rewrite Vforall2_cons_eq in H.
-      destruct H as [Hh Ht].
-      apply IHn in Ht.
-      rewrite Ht, Hh.
-      reflexivity.
-  Qed.
- 
-  Lemma One_ne_Zero: 1 ≢ 0.
-  Proof.
-    lia.
-  Qed.
-
   Fact ScatH_j1_domain_bound base o (bc:base<o):
     (base+(pred 1)*1) < o.
   Proof.
@@ -81,22 +61,7 @@ Section SigmaHCOLRewriting.
   Proof.
     lia.
   Qed.
-
-
-  Fact lt_0_1: 0 < 1.
-  Proof.
-    auto.
-  Qed.
-  
-  Lemma Vbuild_1 B `{Equiv B} gen:
-    @Vbuild B 1 gen ≡ [gen 0 (lt_0_1)].
-  Proof.
-    unfold Vbuild.
-    simpl.
-    replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_1) by apply proof_irrelevance.
-    reflexivity.
-  Qed.
-
+    
   Lemma Vnth_cast_i_plus_0:
     ∀ (n : nat) (x : vector Rtheta n) (j : nat) (jn : j < n) 
       (ln : j + 0 < n), Vnth x ln ≡ Vnth x jn.
@@ -113,14 +78,6 @@ Section SigmaHCOLRewriting.
     rewrite Vnth_Sn with (ip':=jn').
     apply IHx.
   Qed.
-
-  Lemma Vbuild_0:
-    forall B gen, @Vbuild B 0 gen ≡ @Vnil B.
-  Proof.
-    intros B gen.
-    crush.
-  Qed.
-
 
   Lemma VecUnion_cons:
     ∀ m x (xs : svector m),
@@ -228,17 +185,6 @@ Section SigmaHCOLRewriting.
       reflexivity.
   Qed.
 
-  Lemma Vmap_Vbuild n B C (fm: B->C) (fb : ∀ i : nat, i < n → B):
-    Vmap fm (Vbuild fb) ≡ Vbuild (fun z zi => fm (fb z zi)).
-  Proof.
-    apply vec_eq_elementwise.
-    apply Vforall2_intro_nth.
-    intros i ip.
-    rewrite Vnth_map.
-    rewrite 2!Vbuild_nth.
-    reflexivity.
-  Qed.
-      
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -276,12 +222,11 @@ Section SigmaHCOLRewriting.
       unfold VnthIndexMapped.
       simpl.
       generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
-                                                          (GathH_j1_range_bound j n jn) One_ne_Zero 0 lt_0_1).
+                                                          (GathH_j1_range_bound j n jn) One_ne_Zero 0 (lt_0_Sn 0)).
       intros ln.
       simpl in ln.
       rewrite Vnth_cast_i_plus_0 with (jn:=jn).
       reflexivity.
-      apply Rtheta_equiv.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
                   ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_j1_domain_bound i0 n id)  [f i0 id (Vnth x id)])).
@@ -372,18 +317,6 @@ Section SigmaHCOLRewriting.
     destruct h; auto.
   Qed.
   
-  Lemma OptionUnionAssoc:
-    forall B (a b c:option B),
-      (a ≡ None /\ b ≡ None ) \/
-      (a ≡ None /\ c ≡ None ) \/
-      (b ≡ None /\ c ≡ None ) 
-      ->
-      OptionUnion (OptionUnion a b) c ≡ OptionUnion (OptionUnion a c) b.
-  Proof.
-    intros B a b c C.
-    destruct a, b, c; crush.
-  Qed.
-
   (* Inductive definition of sparse vector which has at most one non-empty element. It is called "VecOptUnionCompSvector compatible" *)
   Inductive VecOptUnionCompSvector {B}: forall {n} (v: svector B n), Prop :=
   | VecOptUnionCompSvector_nil: VecOptUnionCompSvector []
@@ -538,82 +471,6 @@ Section SigmaHCOLRewriting.
     apply Vnth_map2.
   Qed.
 
-  (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
-  Lemma AbsorbUnionIndex:
-    forall m n (x: vector (svector A m) (S n)) k (kc: k<m),
-      Vnth
-        (Vfold_left SparseUnion (szero_svector m)
-                    (Vbuild 
-                       (fun (i : nat) (ic : i < S n) =>
-                          (Vnth x ic)
-                    ))
-        ) kc ≡
-        VecOptUnion
-        (Vbuild 
-           (fun (i : nat) (ic : i < S n) =>
-              Vnth (Vnth x ic) kc
-        )).
-  Proof.
-    intros m n x k kc.
-    
-    induction n.
-    + dep_destruct x.
-      dep_destruct x0.
-      remember (Vbuild (λ (i : nat) (ic : i < 1), Vnth (Vnth [h] ic) kc)) as b.
-      unfold VecOptUnion.
-      dep_destruct b.
-      dep_destruct x0.
-      simpl.
-      apply hd_eq in Heqb.
-      simpl in Heqb.
-      subst h0.
-      unfold SparseUnion.
-      rewrite Vnth_map2.
-      rewrite szero_svector_Vnth.
-      dep_destruct x1.
-      simpl.
-      destruct (Vnth h kc); reflexivity.
-    +
-      dep_destruct x.
-      remember (λ (i : nat) (ic : i < S (S n)), Vnth (Vcons h x0) ic) as geni.
-      remember (λ (i : nat) (ic : i < S (S n)), Vnth (geni i ic) kc) as genik.
-
-      (* RHS massaging *)
-      rewrite Vbuild_cons with (gen:=genik).
-      replace (genik 0 (lt_0_Sn (S n))) with (Vnth h kc)
-        by (subst genik geni; reflexivity).
-      rewrite VecOptionUnion_cons.
-
-      replace (λ (i : nat) (ip : i < S n), genik (S i) (lt_n_S ip)) with
-      (λ (i : nat) (ic : i < S n), Vnth (Vnth x0 ic) kc).
-      
-      rewrite <- IHn.
-      remember (λ (i : nat) (ic : i < S n), Vnth x0 ic) as genX.
-
-      rewrite Vbuild_cons with (gen:=geni).
-      replace (geni 0 (lt_0_Sn (S n))) with h
-        by (subst geni; reflexivity).
-      subst geni.
-      replace (λ (i : nat) (ip : i < S n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
-      rewrite Vfold_left_cons.
-      apply AbsorbUnionIndexBinary.
-
-      subst genX.
-      extensionality i.
-      extensionality ic.
-      simpl.
-      rewrite NatUtil.lt_Sn_nS.
-      reflexivity.
-
-      extensionality i.
-      extensionality ic.
-      subst genik geni.
-      simpl.
-      rewrite NatUtil.lt_Sn_nS.
-      reflexivity.
-  Qed.
-        
-   
   Lemma Lemma2:
     forall var st m n (x: vector (svector A m) n) k (kc: k<(m*n)), exists i (ic:i<n) j (jc:j<m),
         Vnth (Vnth x ic) jc ≡ Vnth

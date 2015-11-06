@@ -1178,8 +1178,57 @@ Proof.
     symmetry;  apply t0_nil.
 Qed.
 
+Lemma vec_eq_elementwise n B (v1 v2: vector B n):
+  Vforall2 eq v1 v2 -> (v1 ≡ v2).
+Proof.
+  induction n.
+  + dep_destruct v1. dep_destruct v2.
+    auto.
+  + dep_destruct v1. dep_destruct v2.
+    intros H.
+    rewrite Vforall2_cons_eq in H.
+    destruct H as [Hh Ht].
+    apply IHn in Ht.
+    rewrite Ht, Hh.
+    reflexivity.
+Qed.
+
+Lemma Vmap_Vbuild n B C (fm: B->C) (fb : ∀ i : nat, i < n → B):
+  Vmap fm (Vbuild fb) ≡ Vbuild (fun z zi => fm (fb z zi)).
+Proof.
+  apply vec_eq_elementwise.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite Vnth_map.
+  rewrite 2!Vbuild_nth.
+  reflexivity.
+Qed.
 
 Local Open Scope nat_scope.
+
+Lemma One_ne_Zero: 1 ≢ 0.
+Proof.
+  auto.
+Qed.
+
+Lemma Vbuild_0:
+  forall B gen, @Vbuild B 0 gen ≡ @Vnil B.
+Proof.
+  intros B gen.
+  auto.
+Qed.
+
+Lemma Vbuild_1 B gen:
+  @Vbuild B 1 gen ≡ [gen 0 (lt_0_Sn 0)].
+Proof.
+  unfold Vbuild.
+  simpl.
+  replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_Sn 0) by apply proof_irrelevance.
+  reflexivity.
+Qed.
+
+
+
 
 Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
 Proof.
