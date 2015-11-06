@@ -598,13 +598,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma t0_nil: forall A (x:vector A 0), x ≡ [].
-Proof.
-  intros.
-  dep_destruct x.
-  reflexivity.
-Qed.
-
 Lemma map_nil: forall A B (f:A->B), map f [] ≡ [].
 Proof.
   intros.
@@ -705,16 +698,16 @@ Proof.
   dep_destruct l.
   assert (L: last (h::x) ≡ h).
   SCase "L".
-  rewrite t0_nil with (x:=x).
+  dep_destruct x.
   reflexivity.
   rewrite L.
   assert (S: forall (z:vector A 1), shiftout z ≡ []).
   SCase "S".
   intros.
   dep_destruct z.
-  rewrite t0_nil with (x:=x0).
+  dep_destruct x0.
   reflexivity.
-  rewrite t0_nil with (x:=x).
+  dep_destruct x.
   rewrite S.
   simpl.
   reflexivity.
@@ -746,17 +739,17 @@ Proof.
   assert (L: forall T hl (xl:t T 0), last (hl::xl) ≡ hl).
   SCase "L".
   intros.
-  rewrite t0_nil with (x:=xl).
+  dep_destruct xl.
   reflexivity.
   repeat rewrite L.
   assert (S: forall T (z:t T 1), shiftout z ≡ []).
   SCase "S".
   intros.
   dep_destruct z.
-  rewrite t0_nil with (x:=x1).
+  dep_destruct x1.
   reflexivity.
-  rewrite t0_nil with (x:=x).
-  rewrite t0_nil with (x:=x0).
+  dep_destruct x.
+  dep_destruct x0.
   repeat rewrite S.
   simpl.
   reflexivity.
@@ -823,14 +816,12 @@ Lemma map2_ignore_2: forall A B C (f:A->B->C) n (a:vector A n) (b0 b1:vector B n
 Proof.
   intros.
   induction a.
-  rewrite -> t0_nil.
-  rewrite -> t0_nil with (x:=b0).
-  apply(map2_nil).
-  rewrite map2_cons.
-  rewrite map2_cons.
+  dep_destruct (map2 f [] b1).
+  dep_destruct (map2 f [] b0).
+  reflexivity.
+  rewrite 2!map2_cons.
   simpl.
   rewrite -> H with (a':=h) (b0':=(hd b0)) (b1':=(hd b1)).
-
   assert(map2 f a (tl b0) ≡ map2 f a (tl b1)).
   apply(IHa).
   rewrite <- H0.
@@ -846,14 +837,12 @@ Lemma map2_ignore_1: forall A B C (f:A->B->C) n (a0 a1:vector A n) (b:vector B n
 Proof.
   intros.
   induction b.
-  rewrite -> t0_nil.
-  rewrite -> t0_nil with (x:=a0).
-  apply(map2_nil).
-  rewrite map2_cons.
-  rewrite map2_cons.
+  dep_destruct (map2 f a0 []).
+  dep_destruct (map2 f a1 []).
+  reflexivity.
+  rewrite 2!map2_cons.
   simpl.
   rewrite -> H with (b':=h) (a0':=(hd a0)) (a1':=(hd a1)).
-
   assert(map2 f (tl a0) b ≡ map2 f (tl a1) b).
   apply(IHb).
   rewrite <- H0.
@@ -915,7 +904,8 @@ Proof.
   simpl.
   reflexivity.
   symmetry.
-  apply t0_nil.
+  dep_destruct x.
+  reflexivity.
 Qed.
 
 Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
@@ -1168,14 +1158,14 @@ Proof.
     tauto.
     replace x with (@Vnil B).
     simpl; reflexivity.
-    symmetry;  apply t0_nil.
+    dep_destruct x; reflexivity.
   + dep_destruct v.
     simpl.
     replace (Vforall P x) with True; simpl.
     tauto.
     replace x with (@Vnil B).
     simpl; reflexivity.
-    symmetry;  apply t0_nil.
+    dep_destruct x; reflexivity.
 Qed.
 
 Lemma vec_eq_elementwise n B (v1 v2: vector B n):

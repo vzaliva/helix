@@ -96,7 +96,7 @@ Section HCOLBreakdown.
     induction n.
     simpl (MonomialEnumerator 0 v).
     rewrite EvalPolynomial_reduce.
-    rewrite t0_nil with (x:=(Vtail a)).
+    dep_destruct (Vtail a).
     rewrite EvalPolynomial_0.
     unfold ScalarProd.
     simpl.
