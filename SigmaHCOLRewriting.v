@@ -186,9 +186,44 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
-  Lemma Vfold_OptionUnion_empty:
+  Lemma Union_Val_with_Struct:
+    ∀ x s , Is_Val x -> Is_Struct s -> Union x s ≡ x.
+  Proof.
+    intros x s V S.
+    destruct_Rtheta x.
+    destruct_Rtheta s.
+    unfold Is_Val, Is_Struct, Is_SErr in V.
+    destruct x1, x2, s1, s2; crush.
+  Qed.
+
+  Lemma Is_Struct_Rtheta_szero:
+    Is_Struct Rtheta_szero.
+  Proof.
+    unfold Rtheta_szero.
+    unfold Is_Struct, RthetaIsStruct.
+    simpl.
+    trivial.
+  Qed.
+  
+  Lemma VecUnion_structs:
+    ∀ (m : nat) (x : svector m),
+      Vforall Is_Struct x → VecUnion x ≡ Rtheta_szero.
+  Proof.
+    intros m x H.
+    unfold VecUnion.
+    induction x.
+    crush.
+    simpl.
+    rewrite IHx.
+    destruct_Rtheta h.
+    unfold Rtheta_szero.
+    destruct h1, h2; crush.
+    crush.
+  Qed.
+  
+  Lemma Vfold_OptionUnion_val_with_empty:
     ∀ (m : nat) (h : Rtheta) (x : svector m),
-      Is_Val h -> Vforall Is_Struct x → Vfold_left Union h x ≡ h.
+      Is_Val h -> Vforall Is_Struct x → Vfold_right Union x h ≡ h.
   Proof.
     intros m h x V E.
     induction x.
@@ -197,27 +232,12 @@ Section SigmaHCOLRewriting.
     simpl in E. destruct E as [Eh Ex].
     rewrite IHx; try assumption.
 
-    (* housekeeping *)
-    rename h into v.
-    rename h0 into s.
-    clear IHx Ex.
-
-    unfold Is_Val in V.
-    destruct_Rtheta v. destruct_Rtheta s.
-    destruct v1, v2, s1, s2; crush.
+    rewrite Union_comm.
+    rewrite Union_Val_with_Struct; try assumption.
+    reflexivity.
   Qed.
   
   
-  Lemma Union_Val_with_structs:
-    ∀ x , Is_Val x -> Union x Rtheta_szero ≡ x.
-  Proof.
-    intros x H.
-    unfold Rtheta_szero.
-    destruct_Rtheta x.
-    unfold Is_Val, Is_Struct, Is_SErr in H.
-    destruct x1, x2; crush.
-  Qed.
-
   Lemma Lemma3 m j (x:svector m) (jc:j<m):
     (forall i (ic:i<m),
         (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_Struct (Vnth x ic)))
@@ -233,19 +253,9 @@ Section SigmaHCOLRewriting.
       dep_destruct x.
       destruct (eq_nat_dec j 0).
       +
+        Case ("j=0").
         rewrite Vnth_cons_head; try assumption.
-        unfold VecUnion.
-        simpl.
-        
-
-        (*
-        rewrite Vnth_cons_head; try assumption.
-        unfold VecUnion.
-        simpl.
-        replace (Vfold_right Union x0 Rtheta_szero) with (VecUnion x0)
-          by (unfold VecUnion; reflexivity).
-        rewrite IHm.
-         *)
+        rewrite VecUnion_cons.
 
         assert(Vforall Is_Struct x0).
         {
@@ -265,96 +275,48 @@ Section SigmaHCOLRewriting.
           apply SZ0.
           reflexivity.
         }
-
-        apply Vfold_OptionUnion_empty.
-        apply Vfold_OptionUnion_empty; assumption.
+        rewrite VecUnion_structs.
+        apply Union_Val_with_Struct.
+        assumption.
+        apply Is_Struct_Rtheta_szero.
+        assumption.
       +
-        assert(Zc: 0<(S (S m))) by lia.
-        assert (H0: is_None (Vnth (Vcons h x0) Zc))
-          by (apply SZ; auto).
-        rewrite Vnth_0 in H0. simpl in H0.
-        rewrite is_None_def in H0.
-        subst h.
+        Case ("j!=0").
+        rewrite VecUnion_cons.
+        assert(Zc: 0<(S m)) by lia.
 
-        rewrite VecOptionUnion_Cons_None.
-        
-        destruct j as [j0|js]; try congruence.
-        assert(jcp : js < S m) by lia.
-        rewrite Vnth_Sn with (ip':=jcp).
-
-        rewrite <-IHm.
-        reflexivity.
-        intros i ic inej.
-
-        assert(ics: (S i) < S (S m)) by lia.
-        rewrite <- Vnth_Sn with (v:=None) (ip:=ics).
-        apply SZ.
-        auto.      
-  Qed.
-  
-  (* Unary union of vector where all except exactly one element are "structural", and one is unknown, is the value of this element  *)
-  Lemma Lemma3 m j (x:svector (S m)) (jc:j<(S m)):
-    (forall i (ic:i<(S m)),
-        (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_Struct (Vnth x ic)))
-    -> (VecUnion x ≡ Vnth x jc).
-  Proof.
-    intros SZ.
-    
-    dependent induction m.
-    - dep_destruct x.
-      dep_destruct x0.
-      destruct j.
-      assert(HV: Is_Val (Vnth [h] jc)).
-      {
-        apply SZ ;reflexivity.
-      }
-      simpl.
-      rewrite VecUnion_cons.
-      unfold VecUnion; simpl.
-      apply Union_Val_with_structs.
-      apply HV.
-      omega.
-    (* got IHm *)
-      
-    - dep_destruct x.
-      destruct (eq_nat_dec j 0).
-      +
-        rewrite Vnth_cons_head; try assumption.
-        unfold VecOptUnion.
-        simpl.
-        
-        assert(Vforall is_None x0).
+        assert (HS: Is_Struct h).
         {
-          apply Vforall_nth_intro.
-          intros.
-          assert(ipp:S i < S (S m)) by lia.
-          replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
-          apply SZ; lia.
+          cut (Is_Struct (Vnth (Vcons h x0) Zc)).
+          rewrite Vnth_0.
+          auto.
+          apply SZ; auto.
         }
-        
-        apply Vfold_OptionUnion_empty; assumption.
-      +
-        assert(Zc: 0<(S (S m))) by lia.
-        assert (H0: is_None (Vnth (Vcons h x0) Zc))
-          by (apply SZ; auto).
-        rewrite Vnth_0 in H0. simpl in H0.
-        rewrite is_None_def in H0.
-        subst h.
 
-        rewrite VecOptionUnion_Cons_None.
-        
-        destruct j as [j0|js]; try congruence.
-        assert(jcp : js < S m) by lia.
-        rewrite Vnth_Sn with (ip':=jcp).
+        destruct j; try congruence.
+        simpl.
+        generalize (lt_S_n jc).
+        intros l.
+        rewrite IHm with (jc:=l).
 
-        rewrite <-IHm.
-        reflexivity.
-        intros i ic inej.
+        assert(Is_Val (Vnth x0 l)).
+        {
+          assert(ics: S j < S m) by lia.
+          specialize SZ with (i:=S j) (ic:=ics).
+          destruct SZ as [SZ0 SZ1].
+          simpl in *.
+          replace (lt_S_n ics) with l in SZ0 by apply proof_irrelevance.
+          apply SZ0.
+          reflexivity.
+        }
+        rewrite Union_comm.
+        apply Union_Val_with_Struct; assumption.
 
-        assert(ics: (S i) < S (S m)) by lia.
-        rewrite <- Vnth_Sn with (v:=None) (ip:=ics).
-        apply SZ.
-        auto.
+        intros i ic.
+        assert(ics: S i < S m) by lia.
+        rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
+        specialize SZ with (i:=S i) (ic:=ics).
+        crush.
   Qed.
   
   Lemma U_SAG1:
