@@ -318,7 +318,42 @@ Section SigmaHCOLRewriting.
         specialize SZ with (i:=S i) (ic:=ics).
         crush.
   Qed.
-  
+
+
+  Lemma InverseIndex_h_j1:
+    ∀ (n i : nat) (ip : i < n) (v : Rtheta),
+      VnthInverseIndexMapped [v]
+                             (IndexFunctions.build_inverse_index_map
+                                (IndexFunctions.h_index_map i 1
+                                                            (range_bound := ScatH_j1_domain_bound i n ip)
+                                                            (snz := One_ne_Zero)
+                             ))
+                             i ip ≡ v.
+  Proof.
+    intros n i ip v.
+
+    destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map i 1))
+             as [h' h'_spec]
+             eqn:P.
+    unfold IndexFunctions.h_index_map in P.
+    inversion P.
+
+    assert(PH': h' i ≡ Some 0).
+    {
+      rewrite <- H0.
+      simpl.
+      destruct (eq_nat_dec i (i + 0)).
+      reflexivity.
+      omega.
+    }
+    unfold VnthInverseIndexMapped.
+    simpl (IndexFunctions.partial_index_f n 1
+       {|
+       IndexFunctions.partial_index_f := h';
+       IndexFunctions.partial_index_f_spec := h'_spec |}).
+    dep_destruct (h' i).
+  Qed.
+
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -381,8 +416,26 @@ Section SigmaHCOLRewriting.
     rewrite AbsorbUnionIndex.
     rewrite Vmap_Vbuild.
 
-    TODO: apply Lemma3
+    (* Preparing to apply Lemma3. Prove some peoperties first. *)
+    remember (Vbuild
+                (λ (z : nat) (zi : z < n), Vnth (ScatH z 1 [f z zi (Vnth x zi)]) ip)) as b.
 
+    assert
+      (L3pre: forall ib (icb:ib<n),
+          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_Struct (Vnth b icb))).
+    {
+      admit.
+    }
+    rewrite Lemma3 with (j:=i) (jc:=ip).
+    subst b.
+    rewrite Vbuild_nth.
+    
+    unfold ScatH, Scatter.
+    rewrite Vbuild_nth.
+    generalize  (f i ip (Vnth x ip)) as v.
+    intros v.
+    apply InverseIndex_h_j1.
+    assumption.
   Qed.
 
   Theorem U_SAG1_PW:
