@@ -61,7 +61,7 @@ Definition Union
     match a, b with
     |  (_, true, ae), (bv, false, be) => (bv, false, andb ae be) (* s0 + b = b *)
     |  (av, false, ae), (_, true, be) => (av, false, andb ae be) (* a + s0 = a *)
-    |  (_, true, ae), (_, true, be) => (zero, true, andb ae be) (* s0 + s0 = s0 *)
+    |  (_, true, ae), (_, true, be) => (zero, true, orb ae be) (* s0 + s0 = s0 *)
     |  (_, false, _), (_, false, _) => Rtheta_szero_err (* a + b = s0, ERR ! *)
     end.
 
