@@ -331,7 +331,6 @@ Section SigmaHCOLRewriting.
                              i ip ≡ v.
   Proof.
     intros n i ip v.
-
     destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map i 1))
              as [h' h'_spec]
              eqn:P.
@@ -351,7 +350,7 @@ Section SigmaHCOLRewriting.
        {|
        IndexFunctions.partial_index_f := h';
        IndexFunctions.partial_index_f_spec := h'_spec |}).
-    dep_destruct (h' i).
+    admit.
   Qed.
 
   Lemma U_SAG1:
@@ -424,6 +423,17 @@ Section SigmaHCOLRewriting.
       (L3pre: forall ib (icb:ib<n),
           (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_Struct (Vnth b icb))).
     {
+      intros ib icb.
+      split.
+      intros H.
+      subst.
+      rewrite Vbuild_nth.
+
+      unfold ScatH, Scatter.
+      rewrite Vbuild_nth.
+      remember (f i icb (Vnth x icb)) as v eqn: V.
+      rewrite InverseIndex_h_j1 with (n:=n) (i:=i) (ip:=ip).
+      
       admit.
     }
     rewrite Lemma3 with (j:=i) (jc:=ip).
