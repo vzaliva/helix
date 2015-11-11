@@ -59,10 +59,10 @@ Definition Union
            (a b: Rtheta): Rtheta
   :=
     match a, b with
-    |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be) (* s0 + b = b *)
-    |  (av, false, ae), (_, true, be) => (av, false, orb ae be) (* a + s0 = a *)
-    |  (_, true, ae), (_, true, be) => (zero, true, orb ae be) (* s0 + s0 = s0 *)
-    |  (_, false, _), (_, false, _) => Rtheta_szero_err (* a + b = s0, ERR ! *)
+    |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be) 
+    |  (av, false, ae), (_, true, be) => (av, false, orb ae be) 
+    |  (_, true, ae), (_, true, be) => (zero, true, orb ae be) 
+    |  (_, false, _), (_, false, _) => Rtheta_szero_err
     end.
 
 
@@ -87,7 +87,7 @@ Qed.
 
 (* Unary union of vector's elements (fold) *)
 Definition VecUnion {n} (v:svector n): Rtheta :=
-  Vfold_right Union v Rtheta_szero.
+  Vfold_left Union Rtheta_szero v.
 
 (* Binary element-wise union of two vectors *)
 Definition Vec2Union {n} (a b: svector n): svector n

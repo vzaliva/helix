@@ -136,7 +136,6 @@ Proof.
   apply mult_assoc.
 Qed.
 
-(* Convenience tactice to destruct 3-tuple into elements *)
 Ltac destruct_Rtheta x :=
   let x01 := fresh x "01" in
   let x2 := fresh x "2" in

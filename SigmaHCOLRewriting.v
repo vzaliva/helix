@@ -81,11 +81,11 @@ Section SigmaHCOLRewriting.
 
   Lemma VecUnion_cons:
     ∀ m x (xs : svector m),
-      VecUnion (Vcons x xs) ≡ Union x (VecUnion xs).
+      VecUnion (Vcons x xs) ≡ Union (VecUnion xs) x.
   Proof.
     intros m x xs.
     unfold VecUnion.
-    rewrite Vfold_right_reduce.
+    rewrite Vfold_left_cons.
     reflexivity.
   Qed.
 
@@ -168,7 +168,7 @@ Section SigmaHCOLRewriting.
       replace (λ (i : nat) (ip : i < n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
       rewrite SumUnion_cons.
       rewrite AbsorbUnionIndexBinary.
-      apply Union_comm.
+      reflexivity.
       
       subst genX.
       extensionality i.
