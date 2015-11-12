@@ -187,15 +187,28 @@ Section SigmaHCOLRewriting.
 
 
   Lemma Union_Val_with_Struct:
-    ∀ x s , Is_Val x -> Is_Struct s -> Union x s ≡ x.
+    ∀ x s , Is_Val x -> Is_StructNonErr s -> Union x s ≡ x.
   Proof.
     intros x s V S.
+    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in *.
+    destruct V, S.
     destruct_Rtheta x.
     destruct_Rtheta s.
-    unfold Is_Val, Is_Struct, Is_SErr in V.
     destruct x1, x2, s1, s2; crush.
   Qed.
 
+  Lemma Union_Struct_with_Val:
+    ∀ x s , Is_Val x -> Is_StructNonErr s -> Union s x ≡ x.
+  Proof.
+    intros x s V S.
+    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in *.
+    destruct V, S.
+    destruct_Rtheta x.
+    destruct_Rtheta s.
+    destruct x1, x2, s1, s2; crush.
+  Qed.
+
+  
   Lemma Is_Struct_Rtheta_szero:
     Is_Struct Rtheta_szero.
   Proof.
@@ -204,10 +217,20 @@ Section SigmaHCOLRewriting.
     simpl.
     trivial.
   Qed.
+
+
+  Lemma Is_StructNonErr_Rtheta_szero:
+    Is_StructNonErr Rtheta_szero.
+  Proof.
+    unfold Is_StructNonErr.
+    split.
+    apply Is_Struct_Rtheta_szero.
+    crush.
+  Qed.
   
   Lemma VecUnion_structs:
     ∀ (m : nat) (x : svector m),
-      Vforall Is_Struct x → VecUnion x ≡ Rtheta_szero.
+      Vforall Is_StructNonErr x → VecUnion x ≡ Rtheta_szero.
   Proof.
     intros m x H.
     unfold VecUnion.
@@ -215,15 +238,20 @@ Section SigmaHCOLRewriting.
     crush.
     simpl.
     rewrite IHx.
+    simpl in H. destruct H as [Hh Hx].
+    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in Hh.
+    destruct Hh.
+    
     destruct_Rtheta h.
     unfold Rtheta_szero.
     destruct h1, h2; crush.
-    crush.
+    apply H.
   Qed.
+
   
   Lemma Vfold_OptionUnion_val_with_empty:
     ∀ (m : nat) (h : Rtheta) (x : svector m),
-      Is_Val h -> Vforall Is_Struct x → Vfold_right Union x h ≡ h.
+      Is_Val h -> Vforall Is_StructNonErr x → Vfold_left Union h x ≡ h.
   Proof.
     intros m h x V E.
     induction x.
@@ -231,16 +259,14 @@ Section SigmaHCOLRewriting.
     simpl.
     simpl in E. destruct E as [Eh Ex].
     rewrite IHx; try assumption.
-
-    rewrite Union_comm.
     rewrite Union_Val_with_Struct; try assumption.
     reflexivity.
   Qed.
-  
+
   
   Lemma Lemma3 m j (x:svector m) (jc:j<m):
     (forall i (ic:i<m),
-        (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_Struct (Vnth x ic)))
+        (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_StructNonErr (Vnth x ic)))
     -> (VecUnion x ≡ Vnth x jc).
   Proof.
     intros SZ.
@@ -257,7 +283,7 @@ Section SigmaHCOLRewriting.
         rewrite Vnth_cons_head; try assumption.
         rewrite VecUnion_cons.
 
-        assert(Vforall Is_Struct x0).
+        assert(Vforall Is_StructNonErr x0).
         {
           apply Vforall_nth_intro.
           intros.
@@ -276,18 +302,18 @@ Section SigmaHCOLRewriting.
           reflexivity.
         }
         rewrite VecUnion_structs.
-        apply Union_Val_with_Struct.
+        apply Union_Struct_with_Val.
         assumption.
-        apply Is_Struct_Rtheta_szero.
+        apply Is_StructNonErr_Rtheta_szero.
         assumption.
       +
         Case ("j!=0").
         rewrite VecUnion_cons.
         assert(Zc: 0<(S m)) by lia.
 
-        assert (HS: Is_Struct h).
+        assert (HS: Is_StructNonErr h).
         {
-          cut (Is_Struct (Vnth (Vcons h x0) Zc)).
+          cut (Is_StructNonErr (Vnth (Vcons h x0) Zc)).
           rewrite Vnth_0.
           auto.
           apply SZ; auto.
@@ -310,7 +336,7 @@ Section SigmaHCOLRewriting.
           reflexivity.
         }
         rewrite Union_comm.
-        apply Union_Val_with_Struct; assumption.
+        apply Union_Struct_with_Val; assumption.
 
         intros i ic.
         assert(ics: S i < S m) by lia.

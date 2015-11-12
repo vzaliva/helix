@@ -51,6 +51,7 @@ Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
 Definition Is_SErr (x:Rtheta) :=  Is_true (RthetaIsSErr x).
 Definition Is_SZero (x:Rtheta) := (Is_Struct x) /\ (RthetaVal x ≡ 0). (* The value is structural zero. Error flag is ignored *)
 Definition Is_Val (x:Rtheta) := (not (Is_Struct x)) /\ (not (Is_SErr x)). (* Non-structural and not error *)
+Definition Is_StructNonErr (x:Rtheta) := (Is_Struct x) /\ (not (Is_SErr x)). (* structural, but not error *)
 
 (* Pointwise application of 3 functions to elements of Rtheta *)
 Definition Rtheta_pointwise 
