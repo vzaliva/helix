@@ -345,19 +345,6 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
-  Lemma InverseIndex_h_j1_not_j:
-    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
-      VnthInverseIndexMapped [v]
-                             (IndexFunctions.build_inverse_index_map
-                                (IndexFunctions.h_index_map ib 1
-                                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
-                                                            (snz := One_ne_Zero)
-                             ))
-                             i ip ≡ Rtheta_szero.
-  Proof .
-    admit.
-  Qed.
-  
   Lemma InverseIndex_h_j1_j:
     ∀ (n i : nat) (ip : i < n) (v : Rtheta),
       VnthInverseIndexMapped [v]
@@ -391,6 +378,19 @@ Section SigmaHCOLRewriting.
     admit.
   Qed.
 
+  Lemma InverseIndex_h_j1_not_j:
+    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
+      VnthInverseIndexMapped [v]
+                             (IndexFunctions.build_inverse_index_map
+                                (IndexFunctions.h_index_map ib 1
+                                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
+                                                            (snz := One_ne_Zero)
+                             ))
+                             i ip ≡ Rtheta_szero.
+  Proof .
+    admit.
+  Qed.
+  
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
