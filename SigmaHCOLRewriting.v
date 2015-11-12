@@ -261,9 +261,8 @@ Section SigmaHCOLRewriting.
     rewrite IHx; try assumption.
     rewrite Union_Val_with_Struct; try assumption.
     reflexivity.
-  Qed.
 
-  
+    
   Lemma Lemma3 m j (x:svector m) (jc:j<m):
     (forall i (ic:i<m),
         (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_StructNonErr (Vnth x ic)))
@@ -346,7 +345,20 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
-  Lemma InverseIndex_h_j1:
+  Lemma InverseIndex_h_j1_not_j:
+    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
+      VnthInverseIndexMapped [v]
+                             (IndexFunctions.build_inverse_index_map
+                                (IndexFunctions.h_index_map ib 1
+                                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
+                                                            (snz := One_ne_Zero)
+                             ))
+                             i ip ≡ Rtheta_szero.
+  Proof .
+    admit.
+  Qed.
+  
+  Lemma InverseIndex_h_j1_j:
     ∀ (n i : nat) (ip : i < n) (v : Rtheta),
       VnthInverseIndexMapped [v]
                              (IndexFunctions.build_inverse_index_map
@@ -382,6 +394,8 @@ Section SigmaHCOLRewriting.
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
+      Vforall Is_Val x ->
+      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f i ic y)) ->
       Vnth
         (SumUnion
            (Vbuild
@@ -397,7 +411,7 @@ Section SigmaHCOLRewriting.
       ≡
       Vnth (Pointwise f x) ip.
   Proof.
-    intros n x f i ip.
+    intros n x f i ip V F.
     unfold compose.
 
     remember (λ (i0 : nat) (id : i0 < n),
@@ -447,30 +461,36 @@ Section SigmaHCOLRewriting.
 
     assert
       (L3pre: forall ib (icb:ib<n),
-          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_Struct (Vnth b icb))).
+          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_StructNonErr (Vnth b icb))).
     {
       intros ib icb.
-      split.
-      intros H.
+
       subst.
       rewrite Vbuild_nth.
-
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
-      remember (f i icb (Vnth x icb)) as v eqn: V.
-      rewrite InverseIndex_h_j1 with (n:=n) (i:=i) (ip:=ip).
-      
-      admit.
+      split.
+
+      intros H.
+      subst ib.
+      remember (f i icb (Vnth x icb)) as v eqn: W.
+      rewrite InverseIndex_h_j1_j with (n:=n) (i:=i) (ip:=ip).
+      cut(Is_Val (Vnth x icb)); try crush.
+      apply Vforall_nth with (i:=i) (ip:=icb) in V.
+      apply V.
+
+      intros H.
+      rewrite InverseIndex_h_j1_not_j with (n:=n) (i:=i) (ip:=ip).
+      apply Is_StructNonErr_Rtheta_szero.
     }
     rewrite Lemma3 with (j:=i) (jc:=ip).
     subst b.
     rewrite Vbuild_nth.
-    
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
     generalize  (f i ip (Vnth x ip)) as v.
     intros v.
-    apply InverseIndex_h_j1.
+    apply InverseIndex_h_j1_j.
     assumption.
   Qed.
 
