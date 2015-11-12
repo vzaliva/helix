@@ -496,6 +496,8 @@ Section SigmaHCOLRewriting.
 
   Theorem U_SAG1_PW:
     forall n (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
+      Vforall Is_Val x ->
+      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f i ic y)) ->
       SumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
@@ -513,16 +515,13 @@ Section SigmaHCOLRewriting.
       ≡
       Pointwise f x.
   Proof.
-    intros n x f.
+    intros n x f V F.
     apply vec_eq_elementwise.
     apply Vforall2_intro_nth.
     intros i ip.
-    apply U_SAG1.
+    apply U_SAG1; assumption.
   Qed.
   
-
-
-
 
 
 
