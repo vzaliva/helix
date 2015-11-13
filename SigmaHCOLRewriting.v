@@ -361,6 +361,7 @@ Section SigmaHCOLRewriting.
              eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P.
+    clear P.
 
     assert(PH': h' i ≡ Some 0).
     {
@@ -370,12 +371,9 @@ Section SigmaHCOLRewriting.
       reflexivity.
       omega.
     }
-    unfold VnthInverseIndexMapped.
-    simpl (IndexFunctions.partial_index_f n 1
-       {|
-       IndexFunctions.partial_index_f := h';
-       IndexFunctions.partial_index_f_spec := h'_spec |}).
-    admit.
+    
+    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
+    
   Qed.
 
   Lemma InverseIndex_h_j1_not_j:
