@@ -357,8 +357,7 @@ Section SigmaHCOLRewriting.
   Proof.
     intros n i ip v.
     destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map i 1))
-             as [h' h'_spec]
-             eqn:P.
+             as [h' h'_spec]eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
 
@@ -375,6 +374,7 @@ Section SigmaHCOLRewriting.
 
   Lemma InverseIndex_h_j1_not_j:
     ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
+      i ≢ ib ->
       VnthInverseIndexMapped [v]
                              (IndexFunctions.build_inverse_index_map
                                 (IndexFunctions.h_index_map ib 1
@@ -383,7 +383,24 @@ Section SigmaHCOLRewriting.
                              ))
                              i ip ≡ Rtheta_szero.
   Proof .
-    admit.
+    intros n i ib ip ibd v N.
+    destruct (IndexFunctions.build_inverse_index_map
+                (IndexFunctions.h_index_map ib 1
+                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
+                                            (snz := One_ne_Zero)
+             )) as [h' h'_spec] eqn:P.
+    unfold IndexFunctions.h_index_map in P.
+    inversion P. rename H0 into HH. symmetry in HH. clear P.
+
+    assert(PH': h' i ≡ None).
+    {
+      subst h'.
+      break_if ; [omega | reflexivity ].
+    }
+    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
+
+    generalize (h'_spec i).
+    destruct (h' i); crush.
   Qed.
   
   Lemma U_SAG1:
@@ -477,6 +494,7 @@ Section SigmaHCOLRewriting.
       intros H.
       rewrite InverseIndex_h_j1_not_j with (n:=n) (i:=i) (ip:=ip).
       apply Is_StructNonErr_Rtheta_szero.
+      auto.
     }
     rewrite Lemma3 with (j:=i) (jc:=ip).
     subst b.
