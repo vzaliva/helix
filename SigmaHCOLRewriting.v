@@ -49,13 +49,16 @@ Section SigmaHCOLRewriting.
   
   Open Scope vector_scope.
   Global Open Scope nat_scope.
-  
-  Fact ScatH_j1_domain_bound base o (bc:base<o):
-    (base+(pred 1)*1) < o.
+
+  Fact ScatH_1_to_n_domain_bound base o stride:
+    base < o ->
+    (base+(pred 1)*stride) < o.
   Proof.
-    lia.
+    intros bo.
+    omega.
   Qed.
 
+  
   Fact GathH_j1_range_bound base i (bc:base<i):
     (base+(pred 1)*1) < i.
   Proof.
@@ -350,7 +353,7 @@ Section SigmaHCOLRewriting.
       VnthInverseIndexMapped [v]
                              (IndexFunctions.build_inverse_index_map
                                 (IndexFunctions.h_index_map i 1
-                                                            (range_bound := ScatH_j1_domain_bound i n ip)
+                                                            (range_bound := ScatH_1_to_n_domain_bound i n 1 ip)
                                                             (snz := One_ne_Zero)
                              ))
                              i ip ≡ v.
@@ -378,7 +381,7 @@ Section SigmaHCOLRewriting.
       VnthInverseIndexMapped [v]
                              (IndexFunctions.build_inverse_index_map
                                 (IndexFunctions.h_index_map ib 1
-                                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
+                                                            (range_bound := ScatH_1_to_n_domain_bound ib n 1 ibd)
                                                             (snz := One_ne_Zero)
                              ))
                              i ip ≡ Rtheta_szero.
@@ -386,7 +389,7 @@ Section SigmaHCOLRewriting.
     intros n i ib ip ibd v N.
     destruct (IndexFunctions.build_inverse_index_map
                 (IndexFunctions.h_index_map ib 1
-                                            (range_bound := ScatH_j1_domain_bound ib n ibd)
+                                            (range_bound := ScatH_1_to_n_domain_bound ib n 1 ibd)
                                             (snz := One_ne_Zero)
              )) as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
@@ -414,7 +417,7 @@ Section SigmaHCOLRewriting.
               (λ (i0 : nat) (id : i0 < n),
                ((ScatH i0 1
                        (snz:=One_ne_Zero)
-                       (domain_bound:=ScatH_j1_domain_bound i0 n id))
+                       (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id))
                   ∘ Atomic (f i0 id)
                   ∘ (GathH i0 1
                            (snz:=One_ne_Zero)
@@ -429,7 +432,7 @@ Section SigmaHCOLRewriting.
     remember (λ (i0 : nat) (id : i0 < n),
               ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_j1_domain_bound i0 n id) (Atomic (f i0 id) [Vnth x id]))
+                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
            ).
     
     {
@@ -449,7 +452,7 @@ Section SigmaHCOLRewriting.
       reflexivity.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_j1_domain_bound i0 n id)  [f i0 id (Vnth x id)])).
+                  ScatH i0 1 (snz:=One_ne_Zero) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
     {
       rewrite B1.
       extensionality j.
@@ -517,7 +520,7 @@ Section SigmaHCOLRewriting.
                     (
                       (ScatH i 1
                              (snz:=One_ne_Zero)
-                             (domain_bound:=ScatH_j1_domain_bound i n id)) 
+                             (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)) 
                         ∘ (Atomic (f i id)) 
                         ∘ (GathH i 1
                                  (snz:=One_ne_Zero)
@@ -533,6 +536,41 @@ Section SigmaHCOLRewriting.
     apply Vforall2_intro_nth.
     intros i ip.
     apply U_SAG1; assumption.
+  Qed.
+
+  Fact GathH_jn_range_bound {i o} base stride:
+    stride ≢ 0 ->
+    (base+(pred o)*stride) < i.
+  Proof.
+    admit.
+  Qed.
+
+  Fact GathH_n_to_2_range_bound base i stride (bc:base<i):
+    (base+(pred 2)*stride) < i.
+  Proof.
+    admit.
+  Qed.
+                               
+  Theorem U_SAG_PW2:
+    forall n (x:svector (n+n)) (f: Rtheta -> Rtheta -> Rtheta) (nnz: n ≢ 0),
+      Vforall Is_Val x ->
+      (forall a b, Is_Val a -> Is_Val b -> Is_Val (f a b)) ->
+      SumUnion
+        (@Vbuild (svector n) n
+                 (fun i id =>
+                    (
+                      (ScatH i n (i:=1) (o:=n)
+                             (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
+                             (snz:=nnz))
+                        ∘ (Pointwise2 f (n:=1)) 
+                        ∘ (GathH i n (o:=2)
+                                 (range_bound:=GathH_jn_range_bound i n nnz)
+                                 (snz:=nnz))
+                    ) x
+        ))
+      ≡
+      Pointwise2 f x.
+  Proof.
   Qed.
   
   Section SigmaHCOLRewriting.

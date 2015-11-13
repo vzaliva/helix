@@ -4,8 +4,6 @@
 
 Require Import Spiral.
 Require Import Rtheta.
-Require Import HCOL.
-Require Import HCOLSyntax.
 Require Import IndexFunctions.
 
 Require Import Coq.Arith.Arith.
@@ -30,6 +28,8 @@ Require Import MathClasses.orders.orders.
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
+Open Scope vector_scope.
+
 
 (* "sparse" vector type: vector holding Rhteta values *)
 Notation svector n := (vector Rtheta n) (only parsing).
@@ -172,7 +172,13 @@ Section SigmaHCOL_Operators.
   Definition SumUnion
              {o n} (v: vector (svector o) n): svector o
     := Vfold_left Vec2Union (szero_svector o) v.
- 
+
+
+  Definition Pointwise2 (f: Rtheta -> Rtheta -> Rtheta) {n} (x: svector (n+n)) : svector n :=
+    match (@Vbreak Rtheta n n x) with
+    | (a,b) =>  Vmap2 f a b
+    end.
+
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:
