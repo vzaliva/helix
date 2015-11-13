@@ -360,20 +360,17 @@ Section SigmaHCOLRewriting.
              as [h' h'_spec]
              eqn:P.
     unfold IndexFunctions.h_index_map in P.
-    inversion P.
-    clear P.
+    inversion P. rename H0 into HH. symmetry in HH. clear P.
 
     assert(PH': h' i ≡ Some 0).
     {
-      rewrite <- H0.
-      simpl.
-      destruct (eq_nat_dec i (i + 0)).
-      reflexivity.
-      omega.
+      subst h'.
+      break_if; [reflexivity | omega].
     }
-    
     unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
-    
+
+    generalize (h'_spec i).
+    destruct (h' i); crush.
   Qed.
 
   Lemma InverseIndex_h_j1_not_j:
