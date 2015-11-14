@@ -538,19 +538,14 @@ Section SigmaHCOLRewriting.
     apply U_SAG1; assumption.
   Qed.
 
-  Fact GathH_jn_range_bound {i o} base stride:
-    stride ≢ 0 ->
-    (base+(pred o)*stride) < i.
+  Fact GathH_jn_range_bound i n:
+    i < n ->
+    n ≢ 0 ->
+    (i+(pred 2)*n) < (n+n).
   Proof.
-    admit.
+    nia.
   Qed.
-
-  Fact GathH_n_to_2_range_bound base i stride (bc:base<i):
-    (base+(pred 2)*stride) < i.
-  Proof.
-    admit.
-  Qed.
-                               
+  
   Theorem U_SAG_PW2:
     forall n (x:svector (n+n)) (f: Rtheta -> Rtheta -> Rtheta) (nnz: n ≢ 0),
       Vforall Is_Val x ->
@@ -564,12 +559,12 @@ Section SigmaHCOLRewriting.
                              (snz:=nnz))
                         ∘ (Pointwise2 f (n:=1)) 
                         ∘ (GathH i n (o:=2)
-                                 (range_bound:=GathH_jn_range_bound i n nnz)
+                                 (range_bound:=GathH_jn_range_bound i n id nnz)
                                  (snz:=nnz))
                     ) x
         ))
-      ≡
-      Pointwise2 f x.
+        ≡
+        Pointwise2 f x.
   Proof.
   Qed.
   
