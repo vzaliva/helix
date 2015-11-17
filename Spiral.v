@@ -1217,8 +1217,23 @@ Proof.
   reflexivity.
 Qed.
 
+Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros;omega. Qed.
 
-
+Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; omega. Qed.
+  
+Lemma Vbuild_2 B gen:
+  @Vbuild B 2 gen ≡ [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
+Proof.
+  unfold Vbuild.
+  simpl.
+  replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
+  replace (Vbuild_spec_obligation_3 gen eq_refl
+        (Vbuild_spec_obligation_4
+           (λ (i : nat) (ip : i < 1),
+            gen (S i) (Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
+  reflexivity.
+Qed.
+  
 
 Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
 Proof.

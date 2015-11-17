@@ -405,7 +405,7 @@ Section SigmaHCOLRewriting.
     generalize (h'_spec i).
     destruct (h' i); crush.
   Qed.
-  
+
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -546,6 +546,117 @@ Section SigmaHCOLRewriting.
     nia.
   Qed.
   
+  Lemma Vnth_cast_i_plus_n0_lt_n_plus_nn:
+    ∀ (n : nat) (x : vector Rtheta (n+n)) (j : nat) (nnz : n ≢ 0) (jn : j + n < n + n) 
+      (ln : j + (n + 0) < n+n), Vnth x ln ≡ Vnth x jn.
+  Proof.
+    admit.
+  Qed.
+
+  Lemma Lemma5:
+    ∀ (n : nat) (x : vector (svector 1) n) 
+      (nnz : n ≢ 0) (k : nat) (kp : k < n),
+      Vforall ((Is_Val) ∘ (@Vhead Rtheta 0)) x  → 
+      Vnth (SumUnion
+              (Vbuild
+                 (λ (i : nat) (id : i < n),
+                  ScatH i n (Vnth x id)
+                        (snz:=nnz)
+                        (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
+           ))) kp ≡ Vhead (Vnth x kp).
+  Proof.
+    admit.
+  Qed.
+      
+  
+  Lemma U_SAG2:
+    ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
+      (nnz : n ≢ 0) (k : nat) (kp : k < n),
+      Vforall Is_Val x
+      → (∀ a b : Rtheta, Is_Val a → Is_Val b → Is_Val (f a b))
+      → Vnth
+          (SumUnion
+             (Vbuild
+                (λ (i : nat) (id : i < n),
+                 ((ScatH i n
+                         (snz:=nnz)
+                         (domain_bound:=ScatH_1_to_n_domain_bound i n n id))
+                    ∘ (Pointwise2 (n:=1) f)
+                    ∘ (GathH i n
+                             (range_bound:=GathH_jn_range_bound i n id nnz)
+                             (snz:=nnz))
+                 ) x))) kp
+          ≡ Vnth (Pointwise2 f x) kp.
+  Proof.
+    intros n x f nnz k kp V F.
+    unfold compose.
+
+    remember (λ (i : nat) (id : i < n),
+              ScatH (o:=n) i n
+                    (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
+                    (snz:=nnz)
+                    (Pointwise2 (n:=1) f (
+                                  GathH i n x
+                                        (range_bound:=GathH_jn_range_bound i n id nnz)
+                                        (snz:=nnz)
+             ))) as bf.
+
+    assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
+    assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
+
+    assert(B1: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
+                                                     (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
+                                                     (snz:=nnz)
+                                                     (Pointwise2 (n:=1) f
+                                                                 [
+                                                                   (Vnth x (ILTNN i id));
+                                                                   (Vnth x (INLTNN i id))
+          ]))).
+    {
+      subst bf.
+      extensionality j.
+      extensionality jn.
+      unfold GathH.
+      unfold Gather.
+      rewrite Vbuild_2.
+      unfold VnthIndexMapped.
+      generalize
+        (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_range_bound j n jn nnz) nnz) 0  (lt_0_SSn 0)) as l0
+                                                                                                                                                     , (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_range_bound j n jn nnz) nnz) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
+      intros.
+      simpl in *.
+      rewrite Vnth_cast_i_plus_0 with (jn:=l00) (ln:=l0).
+      rewrite Vnth_cast_i_plus_n0_lt_n_plus_nn with (jn:=l01) (ln:=l1).
+      reflexivity.
+      assumption.
+    }
+    
+    assert (B2: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
+                                                      (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
+                                                      (snz:=nnz)
+                                                      [ f  (Vnth x (ILTNN i id))
+                                                           (Vnth x (INLTNN i id)) ]
+           )).
+    {
+      rewrite B1.
+      extensionality j.
+      extensionality jn.
+      unfold Pointwise2.
+      reflexivity.
+    }
+    rewrite B2.
+    clear B1 B2 Heqbf bf.
+
+    (* Apply Lemma5*)
+    unfold Vbuild.
+    destruct (Vbuild_spec
+            (λ (i : nat) (id : i < n),
+             ScatH i n [f (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))])) as [x0 x0_spec].
+    simpl.
+    rewrite Lemma5.
+      
+  Qed.
+  
   Theorem U_SAG_PW2:
     forall n (x:svector (n+n)) (f: Rtheta -> Rtheta -> Rtheta) (nnz: n ≢ 0),
       Vforall Is_Val x ->
@@ -566,6 +677,12 @@ Section SigmaHCOLRewriting.
         ≡
         Pointwise2 f x.
   Proof.
+    intros n x f nnz V F.
+    apply vec_eq_elementwise.
+
+    apply Vforall2_intro_nth.
+    intros i ip.
+    apply U_SAG2; assumption.
   Qed.
   
   Section SigmaHCOLRewriting.
