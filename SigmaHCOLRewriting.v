@@ -526,8 +526,6 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    generalize  (f i ip (Vnth x ip)) as v.
-    intros v.
     apply InverseIndex_h_j1_j.
     assumption.
   Qed.
@@ -575,6 +573,15 @@ Section SigmaHCOLRewriting.
     admit.
   Qed.
 
+  Lemma Pointwise2_nth:
+    ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
+      (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
+      Vnth (Pointwise2 f x) kp ≡ f (Vnth x kn) (Vnth x knn).
+  Proof.
+    intros n x f k kp kn knn nnz.
+    admit.
+  Qed.
+  
   Lemma U_SAG2:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (nnz : n ≢ 0) (k : nat) (kp : k < n),
@@ -699,10 +706,8 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    generalize (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v.
-    intros v.
     rewrite InverseIndex_h_jn_j.
-    admit.
+    symmetry; apply Pointwise2_nth.
     assumption.
   Qed.
   
