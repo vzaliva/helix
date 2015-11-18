@@ -553,7 +553,19 @@ Section SigmaHCOLRewriting.
       Vnth (Pointwise2 f x) kp ≡ f (Vnth x kn) (Vnth x knn).
   Proof.
     intros n x f k kp kn knn nnz.
-    admit.
+    unfold Pointwise2.
+    break_let.  rename t into a. rename t0 into b.
+    rewrite Vnth_map2.
+    assert(A: Vnth a kp ≡ Vnth x kn).
+    {
+      admit.
+    }
+    assert(B: Vnth b kp ≡ Vnth x knn). 
+    {
+      admit.
+    }
+    rewrite A, B.
+    reflexivity.
   Qed.
   
   Lemma U_SAG2:
