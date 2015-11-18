@@ -348,12 +348,12 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
-  Lemma InverseIndex_1:
+  Lemma InverseIndex_1_hit:
     ∀ (n k s : nat) (kp : k < n) (v : Rtheta) {snz:s ≢ 0},
       (@VnthInverseIndexMapped 1 n [v]
-                               (@IndexFunctions.build_inverse_index_map 1 n
-                                                                        (@IndexFunctions.h_index_map 1 n k s
-                                                                                                     (ScatH_1_to_n_domain_bound k n s kp) snz)) k kp) ≡ v.
+           (@IndexFunctions.build_inverse_index_map 1 n
+                 (@IndexFunctions.h_index_map 1 n k s
+                     (ScatH_1_to_n_domain_bound k n s kp) snz)) k kp) ≡ v.
   Proof.
     intros n k s kp v snz.
     Set Printing Implicit. Show.
@@ -371,45 +371,33 @@ Section SigmaHCOLRewriting.
     generalize (h'_spec k).
     destruct (h' k); crush.
   Qed.
-  
-  Lemma InverseIndex_h_jn_not_j:
-    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta) {nnz:n ≢ 0},
-      i ≢ ib ->
-      (@VnthInverseIndexMapped 1 n [v]
-                               (@IndexFunctions.build_inverse_index_map 1 n
-                                                                        (@IndexFunctions.h_index_map 1 n ib n
-                                                                                                     (ScatH_1_to_n_domain_bound ib n n ibd) nnz)) i ip) ≡ Rtheta_szero.
-  Proof.
-    admit.
-  Qed.
-  
-  Lemma InverseIndex_h_j1_not_j:
-    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
-      i ≢ ib ->
-      VnthInverseIndexMapped [v]
-                             (IndexFunctions.build_inverse_index_map
-                                (IndexFunctions.h_index_map ib 1
-                                                            (range_bound := ScatH_1_to_n_domain_bound ib n 1 ibd)
-                                                            (snz := One_ne_Zero)
+
+  Lemma InverseIndex_1_miss:
+    ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : Rtheta) {snz: s ≢ 0},
+      i ≢ j ->
+      @VnthInverseIndexMapped 1 n [v]
+                              (@IndexFunctions.build_inverse_index_map 1 n
+                                                                       (@IndexFunctions.h_index_map 1 n j s
+                                                                                                    (ScatH_1_to_n_domain_bound j n s jp)
+                                                             snz
                              ))
                              i ip ≡ Rtheta_szero.
   Proof .
-    intros n i ib ip ibd v N.
-    destruct (IndexFunctions.build_inverse_index_map
-                (IndexFunctions.h_index_map ib 1
-                                            (range_bound := ScatH_1_to_n_domain_bound ib n 1 ibd)
-                                            (snz := One_ne_Zero)
-             )) as [h' h'_spec] eqn:P.
+    intros n s i j ip jp v snz N.
+    destruct (@IndexFunctions.build_inverse_index_map 1 n
+                                                                       (@IndexFunctions.h_index_map 1 n j s
+                                                                                                    (ScatH_1_to_n_domain_bound j n s jp)
+                                                             snz
+                             )) as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
-    inversion P. rename H0 into HH. symmetry in HH. clear P.
-
+    inversion P. rename H0 into HH. symmetry in HH. 
     assert(PH': h' i ≡ None).
     {
       subst h'.
       break_if ; [omega | reflexivity ].
     }
+    assert (N0: i ≢ j + 0) by omega.
     unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
-
     generalize (h'_spec i).
     destruct (h' i); crush.
   Qed.
@@ -498,13 +486,13 @@ Section SigmaHCOLRewriting.
       subst ib.
       remember (f i icb (Vnth x icb)) as v eqn: W.
       replace ip with icb by apply proof_irrelevance.
-      rewrite InverseIndex_1 with (n:=n) (k:=i) (kp:=icb) (s:=1) (v:=v).
+      rewrite InverseIndex_1_hit.
       cut(Is_Val (Vnth x icb)); try crush.
       apply Vforall_nth with (i:=i) (ip:=icb) in V.
       apply V.
 
       intros H.
-      rewrite InverseIndex_h_j1_not_j with (n:=n) (i:=i) (ip:=ip).
+      rewrite InverseIndex_1_miss. 
       apply Is_StructNonErr_Rtheta_szero.
       auto.
     }
@@ -513,7 +501,7 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    apply InverseIndex_1. 
+    apply InverseIndex_1_hit. 
     assumption.
   Qed.
 
@@ -673,7 +661,7 @@ Section SigmaHCOLRewriting.
       subst ib.
       replace icb with kp by apply proof_irrelevance.
       remember (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
-      rewrite InverseIndex_1 with (n:=n) (k:=k) (kp:=kp) (v:=v).
+      rewrite InverseIndex_1_hit.
       
       assert(Is_Val (Vnth x (ILTNN k kp))); try crush.
       apply Vforall_nth with (i:=k) (ip:=(ILTNN k kp)) in V.
@@ -684,7 +672,7 @@ Section SigmaHCOLRewriting.
       apply V.
       
       intros H.
-      rewrite InverseIndex_h_jn_not_j with (n:=n) (i:=k) (ip:=kp).
+      rewrite InverseIndex_1_miss.
       apply Is_StructNonErr_Rtheta_szero.
       auto.
     }
@@ -693,7 +681,7 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    rewrite InverseIndex_1.
+    rewrite InverseIndex_1_hit.
     symmetry; apply Pointwise2_nth.
     assumption.
     assumption.
