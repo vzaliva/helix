@@ -69,17 +69,9 @@ Section SigmaHCOLRewriting.
     ∀ (n : nat) (x : vector Rtheta n) (j : nat) (jn : j < n) 
       (ln : j + 0 < n), Vnth x ln ≡ Vnth x jn.
   Proof.
-    intros n x j jn ln.
-    dependent induction x.
-    crush.
-    destruct j.
-    crush.
-    assert(jn' :  j < n) by lia.
-    simpl in ln.
-    assert(ln' : j + 0 < n) by lia.
-    rewrite Vnth_Sn with (ip':=ln').
-    rewrite Vnth_Sn with (ip':=jn').
-    apply IHx.
+    intros n x j jn ln. 
+    apply Vnth_cast_index.
+    omega.
   Qed.
 
   Lemma VecUnion_cons:
@@ -544,7 +536,9 @@ Section SigmaHCOLRewriting.
     ∀ (n : nat) (x : vector Rtheta (n+n)) (j : nat) (nnz : n ≢ 0) (jn : j + n < n + n) 
       (ln : j + (n + 0) < n+n), Vnth x ln ≡ Vnth x jn.
   Proof.
-    admit.
+    intros n x j nnz jn ln.
+    apply Vnth_cast_index.
+    omega.
   Qed.
 
   Lemma Pointwise2_nth:

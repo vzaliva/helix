@@ -1280,6 +1280,16 @@ Proof.
       reflexivity.
 Qed.
 
+Lemma Vnth_cast_index:
+  ∀ {B} {n : nat} i j (ic: i<n) (jc: j<n) (x : vector B n),
+    i ≡ j -> Vnth x ic ≡ Vnth x jc.
+Proof.
+  intros B n i j ic jc x E.
+  crush.
+  replace ic with jc by apply proof_irrelevance.
+  reflexivity.
+Qed.
+
 Lemma Vbuild_cons:
   forall B n (gen : forall i, i < S n -> B),
     Vbuild gen ≡ Vcons (gen 0 (lt_O_Sn n)) (Vbuild (fun i ip => gen (S i) (lt_n_S ip))).
