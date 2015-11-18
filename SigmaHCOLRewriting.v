@@ -348,6 +348,16 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
+  Lemma InverseIndex_h_jn_j:
+    ∀ (n k : nat) (kp : k < n) (v : Rtheta) {nnz:n ≢ 0},
+      (@VnthInverseIndexMapped 1 n [v]
+                               (@IndexFunctions.build_inverse_index_map 1 n
+                                                                        (@IndexFunctions.h_index_map 1 n k n
+                                                                                                     (ScatH_1_to_n_domain_bound k n n kp) nnz)) k kp) ≡ v.
+  Proof.
+    admit.
+  Qed.
+  
   Lemma InverseIndex_h_j1_j:
     ∀ (n i : nat) (ip : i < n) (v : Rtheta),
       VnthInverseIndexMapped [v]
@@ -375,6 +385,18 @@ Section SigmaHCOLRewriting.
     destruct (h' i); crush.
   Qed.
 
+  
+  Lemma InverseIndex_h_jn_not_j:
+    ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta) {nnz:n ≢ 0},
+      i ≢ ib ->
+      (@VnthInverseIndexMapped 1 n [v]
+                               (@IndexFunctions.build_inverse_index_map 1 n
+                                                                        (@IndexFunctions.h_index_map 1 n ib n
+                                                                                                     (ScatH_1_to_n_domain_bound ib n n ibd) nnz)) i ip) ≡ Rtheta_szero.
+  Proof.
+    admit.
+  Qed.
+  
   Lemma InverseIndex_h_j1_not_j:
     ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta),
       i ≢ ib ->
@@ -553,22 +575,6 @@ Section SigmaHCOLRewriting.
     admit.
   Qed.
 
-  Lemma Lemma5:
-    ∀ (n : nat) (x : vector (svector 1) n) 
-      (nnz : n ≢ 0) (k : nat) (kp : k < n),
-      Vforall ((Is_Val) ∘ (@Vhead Rtheta 0)) x  → 
-      Vnth (SumUnion
-              (Vbuild
-                 (λ (i : nat) (id : i < n),
-                  ScatH i n (Vnth x id)
-                        (snz:=nnz)
-                        (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
-           ))) kp ≡ Vhead (Vnth x kp).
-  Proof.
-    admit.
-  Qed.
-      
-  
   Lemma U_SAG2:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (nnz : n ≢ 0) (k : nat) (kp : k < n),
@@ -647,14 +653,57 @@ Section SigmaHCOLRewriting.
     rewrite B2.
     clear B1 B2 Heqbf bf.
 
-    (* Apply Lemma5*)
-    unfold Vbuild.
-    destruct (Vbuild_spec
-            (λ (i : nat) (id : i < n),
-             ScatH i n [f (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))])) as [x0 x0_spec].
-    simpl.
-    rewrite Lemma5.
+    (* Lemma5 embedded below*)
+
+    rewrite AbsorbUnionIndex.
+    rewrite Vmap_Vbuild.
+
+    (* Preparing to apply Lemma3. Prove some peoperties first. *)
+    remember (Vbuild
+        (λ (z : nat) (zi : z < n),
+         Vnth (ScatH z n [f (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))]) kp)) as b.
+
+    assert
+      (L3pre: forall ib (icb:ib<n),
+          (ib ≡ k -> Is_Val (Vnth b icb)) /\ (ib ≢ k -> Is_StructNonErr (Vnth b icb))).
+    {
+      intros ib icb.
+
+      subst.
+      rewrite Vbuild_nth.
+      unfold ScatH, Scatter.
+      rewrite Vbuild_nth.
+      split.
+
+      intros H.
+      subst ib.
+      replace icb with kp by apply proof_irrelevance.
+      remember (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
+      rewrite InverseIndex_h_jn_j with (n:=n) (k:=k) (kp:=kp) (v:=v).
       
+      assert(Is_Val (Vnth x (ILTNN k kp))); try crush.
+      apply Vforall_nth with (i:=k) (ip:=(ILTNN k kp)) in V.
+      apply V.
+
+      assert(Is_Val (Vnth x (INLTNN k kp))); try crush.
+      apply Vforall_nth with (i:=k+n) (ip:=(INLTNN k kp)) in V.
+      apply V.
+      
+      intros H.
+      rewrite InverseIndex_h_jn_not_j with (n:=n) (i:=k) (ip:=kp).
+      apply Is_StructNonErr_Rtheta_szero.
+      auto.
+    }
+    rewrite Lemma3 with (j:=k) (jc:=kp).
+    subst b.
+    rewrite Vbuild_nth.
+    unfold ScatH, Scatter.
+    rewrite Vbuild_nth.
+    generalize (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v.
+    intros v.
+    rewrite InverseIndex_h_jn_j.
+    admit.
+    assumption.
   Qed.
   
   Theorem U_SAG_PW2:
