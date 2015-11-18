@@ -355,7 +355,19 @@ Section SigmaHCOLRewriting.
                                                                         (@IndexFunctions.h_index_map 1 n k n
                                                                                                      (ScatH_1_to_n_domain_bound k n n kp) nnz)) k kp) ≡ v.
   Proof.
-    admit.
+    intros n k kp v nnz.
+    destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map k n))
+             as [h' h'_spec] eqn:P.
+    unfold IndexFunctions.h_index_map in P.
+    inversion P. rename H0 into HH. symmetry in HH. clear P.
+    assert(PH': h' k ≡ Some 0).
+    {
+      subst h'.
+      break_if; [reflexivity | omega].
+    }
+    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
+    generalize (h'_spec k).
+    destruct (h' k); crush.
   Qed.
   
   Lemma InverseIndex_h_j1_j:
@@ -369,8 +381,9 @@ Section SigmaHCOLRewriting.
                              i ip ≡ v.
   Proof.
     intros n i ip v.
+    apply InverseIndex_h_jn_j with (k:=i) (n:=n).
     destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map i 1))
-             as [h' h'_spec]eqn:P.
+             as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
 
