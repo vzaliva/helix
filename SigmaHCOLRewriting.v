@@ -356,7 +356,6 @@ Section SigmaHCOLRewriting.
                      (ScatH_1_to_n_domain_bound k n s kp) snz)) k kp) ≡ v.
   Proof.
     intros n k s kp v snz.
-    Set Printing Implicit. Show.
     destruct (@IndexFunctions.build_inverse_index_map 1 n
         (@IndexFunctions.h_index_map 1 n k s
            (ScatH_1_to_n_domain_bound k n s kp) snz)) as [h' h'_spec] eqn:P.
