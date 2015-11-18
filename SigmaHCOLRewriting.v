@@ -348,16 +348,18 @@ Section SigmaHCOLRewriting.
   Qed.
 
 
-  Lemma InverseIndex_h_jn_j:
-    ∀ (n k : nat) (kp : k < n) (v : Rtheta) {nnz:n ≢ 0},
+  Lemma InverseIndex_1:
+    ∀ (n k s : nat) (kp : k < n) (v : Rtheta) {snz:s ≢ 0},
       (@VnthInverseIndexMapped 1 n [v]
                                (@IndexFunctions.build_inverse_index_map 1 n
-                                                                        (@IndexFunctions.h_index_map 1 n k n
-                                                                                                     (ScatH_1_to_n_domain_bound k n n kp) nnz)) k kp) ≡ v.
+                                                                        (@IndexFunctions.h_index_map 1 n k s
+                                                                                                     (ScatH_1_to_n_domain_bound k n s kp) snz)) k kp) ≡ v.
   Proof.
-    intros n k kp v nnz.
-    destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map k n))
-             as [h' h'_spec] eqn:P.
+    intros n k s kp v snz.
+    Set Printing Implicit. Show.
+    destruct (@IndexFunctions.build_inverse_index_map 1 n
+        (@IndexFunctions.h_index_map 1 n k s
+           (ScatH_1_to_n_domain_bound k n s kp) snz)) as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
     assert(PH': h' k ≡ Some 0).
@@ -369,35 +371,6 @@ Section SigmaHCOLRewriting.
     generalize (h'_spec k).
     destruct (h' k); crush.
   Qed.
-  
-  Lemma InverseIndex_h_j1_j:
-    ∀ (n i : nat) (ip : i < n) (v : Rtheta),
-      VnthInverseIndexMapped [v]
-                             (IndexFunctions.build_inverse_index_map
-                                (IndexFunctions.h_index_map i 1
-                                                            (range_bound := ScatH_1_to_n_domain_bound i n 1 ip)
-                                                            (snz := One_ne_Zero)
-                             ))
-                             i ip ≡ v.
-  Proof.
-    intros n i ip v.
-    apply InverseIndex_h_jn_j with (k:=i) (n:=n).
-    destruct (IndexFunctions.build_inverse_index_map (IndexFunctions.h_index_map i 1))
-             as [h' h'_spec] eqn:P.
-    unfold IndexFunctions.h_index_map in P.
-    inversion P. rename H0 into HH. symmetry in HH. clear P.
-
-    assert(PH': h' i ≡ Some 0).
-    {
-      subst h'.
-      break_if; [reflexivity | omega].
-    }
-    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
-
-    generalize (h'_spec i).
-    destruct (h' i); crush.
-  Qed.
-
   
   Lemma InverseIndex_h_jn_not_j:
     ∀ (n i ib : nat) (ip : i < n) (ibd: ib<n) (v : Rtheta) {nnz:n ≢ 0},
@@ -524,7 +497,8 @@ Section SigmaHCOLRewriting.
       intros H.
       subst ib.
       remember (f i icb (Vnth x icb)) as v eqn: W.
-      rewrite InverseIndex_h_j1_j with (n:=n) (i:=i) (ip:=ip).
+      replace ip with icb by apply proof_irrelevance.
+      rewrite InverseIndex_1 with (n:=n) (k:=i) (kp:=icb) (s:=1) (v:=v).
       cut(Is_Val (Vnth x icb)); try crush.
       apply Vforall_nth with (i:=i) (ip:=icb) in V.
       apply V.
@@ -539,7 +513,7 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    apply InverseIndex_h_j1_j.
+    apply InverseIndex_1. 
     assumption.
   Qed.
 
@@ -699,7 +673,7 @@ Section SigmaHCOLRewriting.
       subst ib.
       replace icb with kp by apply proof_irrelevance.
       remember (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
-      rewrite InverseIndex_h_jn_j with (n:=n) (k:=k) (kp:=kp) (v:=v).
+      rewrite InverseIndex_1 with (n:=n) (k:=k) (kp:=kp) (v:=v).
       
       assert(Is_Val (Vnth x (ILTNN k kp))); try crush.
       apply Vforall_nth with (i:=k) (ip:=(ILTNN k kp)) in V.
@@ -719,8 +693,9 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    rewrite InverseIndex_h_jn_j.
+    rewrite InverseIndex_1.
     symmetry; apply Pointwise2_nth.
+    assumption.
     assumption.
   Qed.
   
