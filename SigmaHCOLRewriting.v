@@ -541,6 +541,15 @@ Section SigmaHCOLRewriting.
     omega.
   Qed.
 
+  Lemma Vbreak_arg_app:
+    ∀ (m n : nat) (x : vector Rtheta (m + n)) (a: vector Rtheta m) (b: vector Rtheta n),
+      Vbreak x ≡ (a, b) → x ≡ Vapp a b.
+  Proof.
+    intros m n x a b V.
+    rewrite <- Vbreak_app in V.
+    admit.
+  Qed.
+  
   Lemma Pointwise2_nth:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
@@ -552,11 +561,25 @@ Section SigmaHCOLRewriting.
     rewrite Vnth_map2.
     assert(A: Vnth a kp ≡ Vnth x kn).
     {
-      admit.
+      apply Vbreak_arg_app in Heqp.
+      subst x.
+      rewrite Vnth_app.
+      break_match.
+      crush.
+      replace kp with g by apply proof_irrelevance.
+      reflexivity.
     }
     assert(B: Vnth b kp ≡ Vnth x knn). 
     {
-      admit.
+      apply Vbreak_arg_app in Heqp.
+      subst x.
+      rewrite Vnth_app.
+      break_match.
+      generalize (Vnth_app_aux n knn l) as g.
+      intros.
+      apply Vnth_cast_index.
+      omega.
+      crush.
     }
     rewrite A, B.
     reflexivity.
