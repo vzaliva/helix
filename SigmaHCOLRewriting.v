@@ -541,15 +541,6 @@ Section SigmaHCOLRewriting.
     omega.
   Qed.
 
-  Lemma Vbreak_arg_app:
-    ∀ (m n : nat) (x : vector Rtheta (m + n)) (a: vector Rtheta m) (b: vector Rtheta n),
-      Vbreak x ≡ (a, b) → x ≡ Vapp a b.
-  Proof.
-    intros m n x a b V.
-    rewrite <- Vbreak_app in V.
-    admit.
-  Qed.
-  
   Lemma Pointwise2_nth:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),

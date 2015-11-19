@@ -1119,6 +1119,16 @@ Proof.
   reflexivity.
 Qed. 
 
+Lemma Vbreak_arg_app:
+  ∀ {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
+    Vbreak x ≡ (a, b) → x ≡ Vapp a b.
+Proof.
+  intros B m n x a b V.
+  rewrite Vbreak_eq_app with (v:=x).
+  rewrite V.
+  reflexivity.
+Qed.
+
 Lemma Vforall_hd {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
   Vforall P v -> P (Vhead v).
 Proof.
