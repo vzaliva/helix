@@ -88,7 +88,7 @@ Section HCOLBreakdown.
   
   Lemma breakdown_EvalPolynomial: forall (n:nat) (a: vector A (S n)) (v:A),
                                    EvalPolynomial a v = (
-                                     (ScalarProd) ∘ (Pair a) ∘ (MonomialEnumerator n)
+                                     (ScalarProd) ∘ (pair a) ∘ (MonomialEnumerator n)
                                    ) v.
   Proof.
     intros.
@@ -106,7 +106,7 @@ Section HCOLBreakdown.
     rewrite EvalPolynomial_reduce.
     rewrite ScalarProd_reduce.
     rewrite MonomialEnumerator_reduce.
-    unfold Ptail, Pair.
+    unfold Ptail.
     rewrite ScalarProd_comm.
     replace (Vtail (Vcons 1 (Scale (v, MonomialEnumerator n v)))) with (Scale (v, MonomialEnumerator n v)) by auto.
     rewrite ScalarProduct_hd_descale.
@@ -114,7 +114,6 @@ Section HCOLBreakdown.
     simpl  (Vhead (fst (a, Vcons 1 (Scale (v, MonomialEnumerator n v))))).
     simpl (Vhead (snd (a, Vcons 1 (Scale (v, MonomialEnumerator n v))))).    
     rewrite mult_1_r.
-    unfold Pair.
     rewrite ScalarProd_comm.
     reflexivity.
   Qed.

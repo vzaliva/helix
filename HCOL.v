@@ -44,29 +44,6 @@ Module HCOLOperators.
                  end
     end.
 
-  Section projections.
-    Variables A B C: Type.
-    Set Implicit Arguments.
-
-    Definition Fst1of3 (x:A*B*C): A := fst (fst x).
-    Definition Fst2of3 (x:A*B*C): A*B := fst x.
-
-    Definition Snd1of3 (p:A*B*C) := match p with
-                                      | (x, y, z) => z
-                                    end.
-    Definition Snd2of3 (p:A*B*C) := match p with
-                                      | (x,y,z) => (y,z)
-                                    end.
-
-    Definition RightAssocProd3 (p:A*B*C) : A*(B*C)  := match p with
-                                                         | (x,y,z) => (x,(y,z))
-                                                       end.
-
-    Definition Pair (a:A) (b:B): A*B := pair a b.
-    Definition SwappedPair (a:A) (b:B): B*A := pair b a.
-    
-  End projections.
-
   (* --- Type casts --- *)
 
   (* Promote scalar to unit vector *)
