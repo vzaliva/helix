@@ -1,7 +1,6 @@
 (* Coq defintions for HCOL operator language *)
 
 Require Import Spiral.
-Require Import SPMatrix.
 
 Require Import Arith.
 Require Import Program. (* compose *)
@@ -12,6 +11,7 @@ Require Import Relations.
 Require Import CpdtTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
+
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -200,20 +200,6 @@ Module HCOLOperators.
         (a,b) => Vapp a b
     end.
 
-  (* ---- Matrices ----- *)
-
-  (* Identity Matrix as operator?*)
-  Definition Imat (A:Type) `{!Mult A, !Plus A, !Zero A, !One A} (n: nat) (x:vector A n) : vector A n:=
-    mat_vec_prod A (id_matrix A n) x.
-
-  (* Basis Vector as 1xN matrix as an operator *)
-  Definition eRow (A:Type) `{!Mult A, !Plus A, !Zero A, !One A} n i {ip : i < n} (x: vector A n) : vector A 1 :=
-    mat_vec_prod A (id_row_mat A n i (ip:=ip)) x.
-  
-  (* Basis Vector as Nx1 matrix as operator *)
-  Definition eCol (A:Type) `{!Mult A, !Plus A, !Zero A, !One A} n i {ip : i < n} (x: vector A 1) : vector A n :=
-    mat_vec_prod A (id_col_mat A n i (ip:=ip)) x.
-  
 End HCOLOperators.
 
 Import HCOLOperators.
