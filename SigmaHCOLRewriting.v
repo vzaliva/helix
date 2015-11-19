@@ -65,15 +65,6 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
     
-  Lemma Vnth_cast_i_plus_0:
-    ∀ (n : nat) (x : vector Rtheta n) (j : nat) (jn : j < n) 
-      (ln : j + 0 < n), Vnth x ln ≡ Vnth x jn.
-  Proof.
-    intros n x j jn ln. 
-    apply Vnth_cast_index.
-    omega.
-  Qed.
-
   Lemma VecUnion_cons:
     ∀ m x (xs : svector m),
       VecUnion (Vcons x xs) ≡ Union (VecUnion xs) x.
@@ -435,7 +426,7 @@ Section SigmaHCOLRewriting.
                                                           (GathH_j1_range_bound j n jn) One_ne_Zero 0 (lt_0_Sn 0)).
       intros ln.
       simpl in ln.
-      rewrite Vnth_cast_i_plus_0 with (jn:=jn).
+      rewrite Vnth_cast_index with (jc:=jn) by omega.
       reflexivity.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
@@ -532,15 +523,6 @@ Section SigmaHCOLRewriting.
     nia.
   Qed.
   
-  Lemma Vnth_cast_i_plus_n0_lt_n_plus_nn:
-    ∀ (n : nat) (x : vector Rtheta (n+n)) (j : nat) (nnz : n ≢ 0) (jn : j + n < n + n) 
-      (ln : j + (n + 0) < n+n), Vnth x ln ≡ Vnth x jn.
-  Proof.
-    intros n x j nnz jn ln.
-    apply Vnth_cast_index.
-    omega.
-  Qed.
-
   Lemma Pointwise2_nth:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
@@ -632,10 +614,9 @@ Section SigmaHCOLRewriting.
                                                                                                                                                      , (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_range_bound j n jn nnz) nnz) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
       intros.
       simpl in *.
-      rewrite Vnth_cast_i_plus_0 with (jn:=l00) (ln:=l0).
-      rewrite Vnth_cast_i_plus_n0_lt_n_plus_nn with (jn:=l01) (ln:=l1).
+      rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
+      rewrite Vnth_cast_index with (jc:=l01) (ic:=l1) by omega.
       reflexivity.
-      assumption.
     }
     
     assert (B2: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
