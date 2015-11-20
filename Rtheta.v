@@ -15,6 +15,7 @@ Require Import Ring.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 
+Require Import CpdtTactics.
 
 Parameter A: Type.
 Parameter Ae: Equiv A.
@@ -26,6 +27,8 @@ Parameter Aneg: Negate A.
 Parameter Ale: Le A.
 Parameter Alt: Lt A.
 Parameter Asetoid: @Setoid A Ae.
+Parameter Aabs: @Abs A Ae Ale Az Aneg.
+Parameter Aledec: ∀ x y: A, Decision (x ≤ y).
 Parameter Ar: Ring A.
 
 Add Ring RingA: (stdlib_ring_theory A).
@@ -381,7 +384,13 @@ Proof.
 Qed.  
 
 Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
+  
+Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
+  Aledec (RthetaVal x) (RthetaVal y).
 
-
-
-
+Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
+                                             (abs (RthetaVal x), RthetaIsStruct x, RthetaIsSErr x).
+Next Obligation.
+  unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+  split; unfold abs; crush.
+Qed.
