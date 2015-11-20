@@ -1,6 +1,8 @@
 (* Coq defintions for HCOL operator language *)
 
 Require Import Spiral.
+Require Import Rtheta.
+Require Import SVector.
 
 Require Import Arith.
 Require Import Program. (* compose *)
@@ -11,7 +13,6 @@ Require Import Relations.
 Require Import CpdtTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
-
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -47,35 +48,34 @@ Module HCOLOperators.
   (* --- Type casts --- *)
 
   (* Promote scalar to unit vector *)
-  Definition Vectorize {A} (x:A): (vector A 1) := [x].
+  Definition Vectorize (x:Rtheta): (svector 1) := [x].
 
   (* Convert single element vector to scalar *)
-  Definition Scalarize {A} (x: vector A 1) : A := Vhead x.
+  Definition Scalarize (x: svector 1) : Rtheta := Vhead x.
 
-  
   (* --- Scalar Product --- *)
 
-  Definition ScalarProd `{SemiRing A}
-             {n} (ab: (vector A n)*(vector A n)) : A :=
+  Definition ScalarProd 
+             {n} (ab: (svector n)*(svector n)) : Rtheta :=
     match ab with
       | (a, b) => Vfold_right (+) (Vmap2 (.*.) a b) 0
     end.
 
   (* --- Infinity Norm --- *)
-  Definition InfinityNorm`{Abs A} `{∀ x y: A, Decision (x ≤ y)} 
-             {n} (v: vector A n) : A :=
+  Definition InfinityNorm
+             {n} (v: svector n) : Rtheta :=
     Vfold_right (max) (Vmap (abs) v) 0.
 
   (* --- Chebyshev Distance --- *)
-  Definition ChebyshevDistance `{Abs A, Plus A} `{∀ x y: A, Decision (x ≤ y)} 
-             {n} (ab: (vector A n)*(vector A n)): A :=
+  Definition ChebyshevDistance 
+             {n} (ab: (svector n)*(svector n)): Rtheta :=
     match ab with
       | (a, b) => InfinityNorm (Vmap2 (plus∘negate) a b)
     end.    
 
   (* --- Vector Subtraction --- *)
-  Definition VMinus `{Plus A, Negate A}
-             {n} (ab: (vector A n)*(vector A n)) : vector A n := 
+  Definition VMinus 
+             {n} (ab: (svector n)*(svector n)) : svector n := 
     match ab with
       | (a,b) => Vmap2 ((+)∘(-)) a b
     end.
