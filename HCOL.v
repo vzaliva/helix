@@ -84,17 +84,15 @@ Module HCOLOperators.
 
   (* Zero/One version *)
   Definition ZVLess {n} 
-             {A:Type} `{Lt A} `{Altdec: !∀ x y: A, Decision (x < y)}
-             {Z:Type} `{Zero Z, One Z}
-             (ab: (vector A n)*(vector A n)) : vector Z n :=
+             (ab: (svector n)*(svector n)) : svector n :=
     match ab with
       | (a,b) => Vmap2 (Zless) a b
     end.
 
   (* --- Monomial Enumerator --- *)
 
-  Fixpoint MonomialEnumerator `{One A, Mult A}
-           (n:nat) (x:A) {struct n} : vector A (S n) :=
+  Fixpoint MonomialEnumerator
+           (n:nat) (x:Rtheta) {struct n} : svector (S n) :=
     match n with 
       | O => [1]
       | S p => Vcons 1 (Vmap (mult x) (MonomialEnumerator p x))
@@ -102,8 +100,8 @@ Module HCOLOperators.
 
   (* --- Polynomial Evaluation --- *)
 
-  Fixpoint EvalPolynomial {n} `{SemiRing A}
-           (a: vector A n) (x:A) : A  :=
+  Fixpoint EvalPolynomial {n} 
+           (a: svector n) (x:Rtheta) : Rtheta  :=
     match a with
         nil => 0
       | cons a0 p a' => a0 + (x * (EvalPolynomial a' x))

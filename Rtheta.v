@@ -28,6 +28,7 @@ Parameter Ale: Le A.
 Parameter Alt: Lt A.
 Parameter Asetoid: @Setoid A Ae.
 Parameter Aabs: @Abs A Ae Ale Az Aneg.
+Parameter Altdec: ∀ x y: A, Decision (x < y).
 Parameter Aledec: ∀ x y: A, Decision (x ≤ y).
 Parameter Ar: Ring A.
 
@@ -387,6 +388,9 @@ Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
   
 Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
   Aledec (RthetaVal x) (RthetaVal y).
+
+Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
+  Altdec (RthetaVal x) (RthetaVal y).
 
 Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
                                              (abs (RthetaVal x), RthetaIsStruct x, RthetaIsSErr x).
