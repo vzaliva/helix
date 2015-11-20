@@ -115,26 +115,6 @@ Module HCOLOperators.
       | (a,b) =>  Vmap2 f a b
     end.
 
-  (* --- Pointwise with single function and one vector --- *)
-  Definition PointWise1 {A B: Type} (f: A->B) {n} (a: vector A n) : vector B n := 
-    Vmap f a.
-  
-  (* --- Pointwise with list of functions and two vectors --- *)
-  Fixpoint PointWiseF2 {A B C: Type} {n} : (vector (A->B->C) n) -> (vector A n)*(vector B n) -> (vector C n)  := 
-    match n return  (vector (A->B->C) n) -> (vector A n)*(vector B n) -> (vector C n)  with
-        0 => fun _ _ => Vnil
-      | S p => fun  f ab => match ab with
-                              | (a,b) => Vcons ((Vhead f) (Vhead a) (Vhead b)) (PointWiseF2 (Vtail f) ((Vtail a), (Vtail b)))
-                            end
-    end.
-  
-  (* --- Pointwise with list of functions and one vector --- *)
-  Fixpoint PointWiseF1 {A B: Type} {n} : (vector (A->B) n) -> (vector A n) -> (vector B n)  := 
-    match n return  (vector (A->B) n) -> (vector A n) -> (vector B n)  with
-        0 => fun _ _ => Vnil
-      | S p => fun  f a => Vcons ((Vhead f) (Vhead a)) (PointWiseF1 (Vtail f) (Vtail a))
-    end.
-
   (* --- Induction --- *)
 
   Fixpoint Induction {A B:Type} (n:nat) (f:B->A->B) (initial:B) (v:A) {struct n} : vector B n :=
