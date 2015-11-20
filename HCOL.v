@@ -274,18 +274,15 @@ Proof.
 Qed.
 
 Section HCOLProper.
-  Context    
-    `{Ae: Equiv A}
-    `{Asetoid: !@Setoid A Ae}.
 
-  Global Instance Scale_proper `{Mult A} `{!Proper (Ae ==> Ae ==> Ae) mult} (n:nat):
+  Global Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
     Proper ((=) ==> (=))
            (Scale (n:=n)).
   Proof.
     intros x y Ex.
     destruct x as [xa xb]. destruct y as [ya yb].
-    destruct Ex.
-    simpl in H0. simpl in H1.
+    destruct Ex as [H0 H1].
+    simpl in H0, H1.
     unfold Scale.
     induction n.
     Case "n=0".
@@ -309,7 +306,7 @@ Section HCOLProper.
     apply H1.
   Qed.
   
-  Global Instance ScalarProd_proper `{!@SemiRing A Ae Aplus Amult Azero Aone} (n:nat):
+  Global Instance ScalarProd_proper (n:nat):
     Proper ((=) ==> (=))
            (ScalarProd (n:=n)).
   Proof.
@@ -318,18 +315,14 @@ Section HCOLProper.
     destruct y as [ya yb].
     unfold ScalarProd.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
-    destruct Ex.
+    destruct Ex as [H0 H1].
     simpl in H0, H1.
     rewrite H0, H1.
     reflexivity.
   Qed.
-
   
   Global Instance InfinityNorm_proper
-         `{Ar: !@Ring A Ae Aplus Amult Azero Aone Anegate}
          `{Ato: !@TotalOrder A Ae Ale}
-         `{Aabs: !@Abs A Ae Ale Azero Anegate}
-         `{∀ x y: A, Decision (x ≤ y)}
          {n:nat}:
     Proper ((=) ==> (=)) (InfinityNorm (n:=n)).
   Proof.
