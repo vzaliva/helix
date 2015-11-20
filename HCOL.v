@@ -116,13 +116,13 @@ Module HCOLOperators.
 
   (* --- Induction --- *)
 
-  Fixpoint Induction {A B:Type} (n:nat) (f:B->A->B) (initial:B) (v:A) {struct n} : vector B n :=
+  Fixpoint Induction (n:nat) (f:Rtheta->Rtheta->Rtheta) (initial:Rtheta) (v:Rtheta) {struct n} : svector n :=
     match n with 
       | O => []
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
     end.
 
-  Fixpoint Inductor {A B:Type} (n:nat) (f:B->A->B) (initial:B) (v:A) {struct n} : B :=
+  Fixpoint Inductor (n:nat) (f:Rtheta->Rtheta->Rtheta) (initial:Rtheta) (v:Rtheta) {struct n} : Rtheta :=
     match n with 
       | O => initial
       | S p => f (Inductor p f initial v) v
@@ -133,18 +133,18 @@ Module HCOLOperators.
   (*  Reduction (fold) using single finction. In case of empty list returns 'id' value:
     Reduction f x1 .. xn b = f xn (f x_{n-1} .. (f x1 id) .. )
    *)
-  Definition Reduction {A B: Type} (f: A->B->B) {n} (id:B) (a: vector A n) : B := 
+  Definition Reduction (f: Rtheta->Rtheta->Rtheta) {n} (id:Rtheta) (a: svector n) : Rtheta := 
     Vfold_right f a id.
 
   (* --- Scale --- *)
-  Definition Scale `{Mult A}
-             {n} (sv:A*(vector A n)) : vector A n :=
+  Definition Scale
+             {n} (sv:Rtheta*(svector n)) : svector n :=
     match sv with
       | (s,v) => Vmap (mult s) v
     end.
 
   (* --- Concat ---- *)
-  Definition Concat {A} {an bn: nat} (ab: (vector A an)*(vector A bn)) : vector A (an+bn) :=
+  Definition Concat {an bn: nat} (ab: (svector an)*(svector bn)) : svector (an+bn) :=
     match ab with
         (a,b) => Vapp a b
     end.
