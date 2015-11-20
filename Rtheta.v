@@ -14,8 +14,10 @@ Require Import Ring.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
+Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 
 Parameter A: Type.
 Parameter Ae: Equiv A.
@@ -30,6 +32,8 @@ Parameter Asetoid: @Setoid A Ae.
 Parameter Aabs: @Abs A Ae Ale Az Aneg.
 Parameter Altdec: ∀ x y: A, Decision (x < y).
 Parameter Aledec: ∀ x y: A, Decision (x ≤ y).
+Parameter Ato: @TotalOrder A Ae Ale.
+
 Parameter Ar: Ring A.
 
 Add Ring RingA: (stdlib_ring_theory A).
@@ -408,4 +412,85 @@ Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
 Next Obligation.
   unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsSErr.
   split; unfold abs; crush.
+Qed.
+
+
+Global Instance Rtheta_le_proper:
+  Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
+Proof.
+  intros a a' aEq b b' bEq.
+  unfold Rtheta_Le, Rtheta_rel_first, Rtheta_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+  destruct_Rtheta a. destruct_Rtheta b.
+  destruct_Rtheta a'. destruct_Rtheta b'.
+  simpl.
+  unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal in aEq, bEq.
+  simpl in *.
+  rewrite <- aEq, <- bEq.
+  split; auto.
+Qed.
+
+Instance Rtheta_le_Reflexive:
+  Reflexive le.
+Proof.
+  unfold Reflexive.
+  intros.
+  unfold le, Rtheta_Le, Rtheta_rel_first.
+  reflexivity.
+Qed.
+
+Instance Rtheta_le_Transitive:
+  Transitive le.
+Proof.
+  unfold Transitive.
+  unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+  intros.
+  destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
+  simpl in *.
+  auto.
+Qed.
+
+Instance Rtheta_le_AntiSymmetric:
+  AntiSymmetric le.
+Proof.
+  unfold AntiSymmetric.
+  unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal.
+  destruct_Rtheta x. destruct_Rtheta y.
+  intros.
+  simpl in *.
+  apply (antisymmetry (≤)); assumption.
+Qed.
+
+Instance Rtheta_le_PreOrder:
+  PreOrder le.
+Proof.
+  split.
+  apply Rtheta_le_Reflexive.
+  apply Rtheta_le_Transitive.
+Qed.
+
+Instance Rtheta_le_PartialOrder:
+  PartialOrder Rtheta_Le.
+Proof.
+  split.
+  apply Rtheta_Setoid.
+  apply Rtheta_le_proper.
+  apply Rtheta_le_PreOrder.
+  apply Rtheta_le_AntiSymmetric.
+Qed.
+
+Instance Rtheta_le_TotalRelation:
+  TotalRelation le.
+Proof.
+  unfold TotalRelation.
+  unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+  destruct_Rtheta x. destruct_Rtheta y.
+  simpl.
+  apply (total (≤)).
+Qed.
+
+Instance: TotalOrder Rtheta_Le.
+Proof.
+  split.
+  apply Rtheta_le_PartialOrder.
+  apply Rtheta_le_TotalRelation.
 Qed.
