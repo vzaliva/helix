@@ -137,11 +137,6 @@ Module HCOLOperators.
   Definition Reduction {A B: Type} (f: A->B->B) {n} (id:B) (a: vector A n) : B := 
     Vfold_right f a id.
 
-  (* --- Atomic --- *)
-
-  (* Atomic with 2 arguments *)
-  Definition Atomic2 {A B C: Type} := @prod_curry A B C.
-
   (* --- Scale --- *)
   Definition Scale `{Mult A}
              {n} (sv:A*(vector A n)) : vector A n :=
@@ -349,17 +344,6 @@ Section HCOLProper.
     reflexivity.
   Qed.
   
-  Global Instance Atomic2_proper  (X Y Z:Type) `{!Equiv X, !Equiv Y, !Equiv Z} (f : X->Y->Z) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (Atomic2 f).
-  Proof.
-    unfold Proper.
-    intros a b Ea.
-    unfold Atomic2, prod_curry.
-    destruct a. destruct b.
-    destruct Ea as [H1 H2]. simpl in H1. simpl in H2.
-    apply pF;  assumption.
-  Qed.              
-
   Global Instance Pointwise2_proper  (X Y Z:Type)
          `{Ex:!Equiv X, Ey:!Equiv Y, Ez:!Equiv Z}
          `{@Setoid X Ex, @Setoid Y Ey, @Setoid Z Ez}
