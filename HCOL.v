@@ -321,10 +321,9 @@ Section HCOLProper.
     reflexivity.
   Qed.
   
-  Global Instance InfinityNorm_proper
-         `{Ato: !@TotalOrder A Ae Ale}
-         {n:nat}:
-    Proper ((=) ==> (=)) (InfinityNorm (n:=n)).
+  Global Instance InfinityNorm_proper {n:nat}:
+    Proper ((=) ==> (=))
+           (InfinityNorm (n:=n)).
   Proof.
     unfold Proper.
     intros a b E1.
