@@ -155,51 +155,45 @@ Import HCOLOperators.
 
 (* === Lemmas about HCOL operators === *)
 
-Lemma Induction_reduce A B `{Setoid A, Setoid B}:
-  forall n initial (f:B->A->B) (v:A), 
+Lemma Induction_cons:
+  forall n initial (f:Rtheta->Rtheta->Rtheta) (v:Rtheta), 
     Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
 Proof.
-  intros.
-  dep_destruct n; reflexivity.
+  intros; dep_destruct n; reflexivity.
 Qed.
 
-Lemma EvalPolynomial_0 `{SemiRing A}:
-  forall (v:A), EvalPolynomial (Vnil) v = 0.
+Lemma EvalPolynomial_0:
+  forall (v:Rtheta), EvalPolynomial (Vnil) v = 0.
 Proof.
-  intros.
-  unfold EvalPolynomial.
-  reflexivity.
+  intros; unfold EvalPolynomial; reflexivity.
 Qed.
 
-Lemma EvalPolynomial_reduce `{SemiRing A}:
-  forall n (a: vector A (S n)) (x:A),
+(* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
+Lemma EvalPolynomial_reduce:
+  forall n (a: svector (S n)) (x:Rtheta),
     EvalPolynomial a x  =
     (Vhead a) + (x * (EvalPolynomial (Vtail a) x)).
 Proof.
-  intros.
-  dep_destruct a.
-  reflexivity.
+  intros; dep_destruct a; reflexivity.
 Qed.
 
-Lemma ScalarProd_reduce `{SemiRing A}:
-  forall n (ab: (vector A (S n))*(vector A (S n))),
+(* TODO: better name. Maybe suffficent to replace with ScalarProd_cons *)
+Lemma ScalarProd_reduce:
+  forall n (ab: (svector (S n))*(svector (S n))),
     ScalarProd ab = (Vhead (fst ab))* (Vhead (snd ab)) + (ScalarProd (Ptail ab)).
 Proof.
-  intros.
-  dep_destruct ab.
-  reflexivity.
+  intros; dep_destruct ab; reflexivity.
 Qed.
 
-Lemma MonomialEnumerator_reduce `{SemiRing A}:
-  forall n (x:A), 
+Lemma MonomialEnumerator_cons:
+  forall n (x:Rtheta), 
     MonomialEnumerator (S n) x = Vcons 1 (Scale (x, (MonomialEnumerator n x))).
 Proof.
-  intros.
-  dep_destruct n; reflexivity.
+  intros; dep_destruct n; reflexivity.
 Qed.
 
-Lemma ScalarProd_comm `{SR: SemiRing A} `{!Setoid A}: forall n (a b: t A n),
-                                                        ScalarProd (a,b) = ScalarProd (b,a).
+Lemma ScalarProd_comm: forall n (a b: svector n),
+    ScalarProd (a,b) = ScalarProd (b,a).
 Proof.
   intros.
   unfold ScalarProd.
@@ -208,40 +202,45 @@ Proof.
   reflexivity.  
 Qed.
 
-Lemma Scale_reduce `{SR: SemiRing A} `{!Setoid A}: forall n (s: A) (v: t A (S n)),
-                                                     Scale (s,v) = Vcons (s * (Vhead v)) (Scale (s, (Vtail v))).
+(* Currently unused *)
+Lemma Scale_cons: forall n (s: Rtheta) (v: svector (S n)),
+    Scale (s,v) = Vcons (s * (Vhead v)) (Scale (s, (Vtail v))).
 Proof.
   intros.
-  repeat unfold Scale.
-  VSntac v.
+  unfold Scale.
+  dep_destruct v.
   reflexivity.
 Qed.
 
 (* Scale distributivitiy *)
-Lemma  Scale_dist `{SR: SemiRing A} `{!Setoid A}: forall n a (b: vector A (S n)) (k: A),
-                                                    (k * a) + (Vhead (Scale (k,b))) = (k *  (a + (Vhead b))).
+(* Currently unused *)
+Lemma  Scale_dist: forall n a (b: svector (S n)) (k: Rtheta),
+    (k * a) + (Vhead (Scale (k,b))) = (k *  (a + (Vhead b))).
 Proof.
   intros.
   unfold Scale.
-  VSntac b.
+  dep_destruct b.
   simpl.
   rewrite plus_mult_distr_l.
   reflexivity.
 Qed.
 
-Lemma ScalarProduct_descale `{SemiRing A} `{!Setoid A}  : forall {n} (a b: vector A n) (s:A),
-                                                            [ScalarProd ((Scale (s,a)), b)] = Scale (s, [(ScalarProd (a,b))]).
+Lemma ScalarProduct_descale: forall {n} (a b: svector n) (s:Rtheta),
+    [ScalarProd ((Scale (s,a)), b)] = Scale (s, [(ScalarProd (a,b))]).
 Proof.
   intros.
   unfold Scale, ScalarProd.
   simpl.
   induction n.
   Case "n=0".
+  crush.
   VOtac.
   simpl.
   symmetry.
-  rewrite_Vcons mult_0_r.
-  reflexivity.
+  destruct_Rtheta s. unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
+  split; try trivial.
+  unfold mult, Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal.
+  apply mult_0_r.
   Case "S(n)".
   VSntac a.  VSntac b.
   simpl.
@@ -249,7 +248,7 @@ Proof.
   rewrite_Vcons plus_mult_distr_l.
 
   (* Remove cons from IHn *)
-  assert (HIHn:  forall a0 b0 : vector A n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
+  assert (HIHn:  forall a0 b0 : svector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
                                                   (mult s (Vfold_right plus (Vmap2 mult a0 b0) zero))).
   intros.
   rewrite <- Vcons_single_elim.
@@ -266,8 +265,8 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma ScalarProduct_hd_descale `{SemiRing A} `{!Setoid A}: forall {n} (a b: vector A n) (s:A),
-                                                             ScalarProd ((Scale (s,a)), b) = Vhead (Scale (s, [(ScalarProd (a,b))])).
+Lemma ScalarProduct_hd_descale: forall {n} (a b: svector n) (s:Rtheta),
+    ScalarProd ((Scale (s,a)), b) = Vhead (Scale (s, [(ScalarProd (a,b))])).
 Proof.
   intros.
   apply hd_equiv with (u:=[ScalarProd ((Scale (s,a)),b)]).
@@ -420,7 +419,7 @@ Section HCOLProper.
     intros a a' aE.
     induction n.
     reflexivity.  
-    rewrite 2!MonomialEnumerator_reduce.
+    rewrite 2!MonomialEnumerator_cons
     rewrite 2!Vcons_to_Vcons_reord.
     rewrite IHn.
     rewrite aE.
@@ -433,7 +432,7 @@ Section HCOLProper.
     intros ini ini' iniEq v v' vEq.
     induction n.
     reflexivity. 
-    rewrite 2!Induction_reduce.
+    rewrite 2!Induction_cons.
     Focus 2. apply Asetoid.
     Focus 2. assumption.
     Focus 2. assumption.

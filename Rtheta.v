@@ -335,6 +335,17 @@ Proof.
   ring.
 Qed.
 
+Instance Rtheta_RightAbsorb:
+  RightAbsorb mult 0.
+Proof.
+  unfold RightAbsorb.
+  intros.
+  destruct_Rtheta x.
+  unfold equiv, Rtheta_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+  simpl.
+  ring.
+Qed.
+
 Instance: SemiRing Rtheta.
 Proof.
   split.

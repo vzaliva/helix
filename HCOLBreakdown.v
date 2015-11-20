@@ -105,7 +105,7 @@ Section HCOLBreakdown.
 
     rewrite EvalPolynomial_reduce.
     rewrite ScalarProd_reduce.
-    rewrite MonomialEnumerator_reduce.
+    rewrite MonomialEnumerator_cons.
     unfold Ptail.
     rewrite ScalarProd_comm.
     replace (Vtail (Vcons 1 (Scale (v, MonomialEnumerator n v)))) with (Scale (v, MonomialEnumerator n v)) by auto.
@@ -194,11 +194,11 @@ Section HCOLBreakdown.
     Case "n=0".
     reflexivity.
     Case "n=(S _)". 
-    rewrite MonomialEnumerator_reduce.
+    rewrite MonomialEnumerator_cons.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn. clear IHn.
     symmetry.
-    rewrite Induction_reduce by apply Asetoid.
+    rewrite Induction_cons by apply Asetoid.
     rewrite Vcons_to_Vcons_reord.
     unfold Scale.
     rewrite 2!Vmap_to_Vmap_reord.
