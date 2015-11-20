@@ -108,9 +108,8 @@ Module HCOLOperators.
     end.
 
   (* === HCOL Basic Operators === *)
-
-  (* --- Pointwise with single function and two vectors (most common case) --- *)
-  Definition PointWise2 {A B C: Type} (f: A->B->C) {n} (ab: (vector A n)*(vector B n)) : vector C n :=
+  (* formerly known as PointWise2 *)
+  Definition BinOp (f: Rtheta->Rtheta->Rtheta) {n} (ab: (svector n)*(svector n)) : svector n :=
     match ab with
       | (a,b) =>  Vmap2 f a b
     end.
@@ -344,15 +343,15 @@ Section HCOLProper.
     reflexivity.
   Qed.
   
-  Global Instance Pointwise2_proper  (X Y Z:Type)
+  Global Instance BinOp_proper  (X Y Z:Type)
          `{Ex:!Equiv X, Ey:!Equiv Y, Ez:!Equiv Z}
          `{@Setoid X Ex, @Setoid Y Ey, @Setoid Z Ez}
          {n:nat} (f : X->Y->Z) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (@PointWise2 X Y Z f n).
+    Proper ((=) ==> (=)) (@BinOp X Y Z f n).
   Proof.
     unfold Proper.
     intros a b Ea.
-    unfold PointWise2.
+    unfold BinOp.
     destruct a. destruct b.
     destruct Ea as [E1 E2]. simpl in E1. simpl in E2.
     rewrite E1, E2.

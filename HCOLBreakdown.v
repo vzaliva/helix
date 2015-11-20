@@ -64,10 +64,10 @@ Section HCOLBreakdown.
   
   Lemma breakdown_ScalarProd: forall (n:nat) (a v: vector A n),
                                   ScalarProd (a,v) = 
-                                  ((Reduction (+) 0) ∘ (PointWise2 (.*.))) (a,v).
+                                  ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
   Proof.
     intros.
-    unfold compose, PointWise2, Reduction, ScalarProd.
+    unfold compose, BinOp, Reduction, ScalarProd.
     reflexivity.
   Qed.
 
@@ -76,7 +76,7 @@ Section HCOLBreakdown.
                                 =
                                 HOCompose _ _
                                                     (HOReduction  _ (+) 0)
-                                                    (HOPointWise2 _ (.*.)).
+                                                    (HOBinOp _ (.*.)).
   Proof.
     intros. apply HCOL_extensionality.  intros.
     unfold evalHCOL.
@@ -244,14 +244,14 @@ Section HCOLBreakdown.
   Qed.
       
   Lemma breakdown_VMinus:  forall (n:nat) (ab: (vector A n)*(vector A n)),
-                            VMinus ab =  PointWise2 (plus∘negate) ab.
+                            VMinus ab =  BinOp (plus∘negate) ab.
   Proof.
     crush.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat) ,
                              HOVMinus _ =
-                             HOPointWise2 n (plus∘negate).
+                             HOBinOp n (plus∘negate).
   Proof.
     intros. apply HCOL_extensionality.  intros.
     unfold evalHCOL.
@@ -267,7 +267,7 @@ Section HCOLBreakdown.
                                
                                HOTLess i1 i2 o o1 o2 =
                                HOCompose _ _
-                                         (HOPointWise2 o (Zless))
+                                         (HOBinOp o (Zless))
                                          (HOCross i1 o i2 o o1 o2).
   Proof.
     intros. apply HCOL_extensionality.  intros.
@@ -275,7 +275,7 @@ Section HCOLBreakdown.
     fold (evalHCOL o1)  (evalHCOL o2).
     unfold evalHCOL at 3.
     fold (evalHCOL o1)  (evalHCOL o2).
-    unfold compose, PointWise2.
+    unfold compose, BinOp.
     rewrite vp2pv.    
     elim (vector2pair i1 v).
     intros.
@@ -291,19 +291,19 @@ Section HCOLBreakdown.
                                  (HOEvalPolynomial a)
                                  (HOChebyshevDistance 2)
                          = HOCompose _ _
-                                     (HOPointWise2 _ (Zless))
+                                     (HOBinOp _ (Zless))
                                      (HOCross _ _ _ _
                                               (HOCompose _ _ 
                                                          (HOCompose _ _
                                                                     (HOReduction  _ (+) 0)
-                                                                    (HOPointWise2 _ (.*.)))
+                                                                    (HOBinOp _ (.*.)))
                                                          (HOCompose _ _
                                                                     (HOPrepend _ a)
                                                                     (HOInduction _ (.*.) 1))
                                               )
                                               (HOCompose 4 _
                                                          (HOReduction _ MaxAbs 0)
-                                                         (HOPointWise2 2 (plus∘negate))
+                                                         (HOBinOp 2 (plus∘negate))
                                      )).
 
                            

@@ -37,7 +37,7 @@ Section HCOL_Language.
   | HOReduction i (f: A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (idv:A): HOperator i 1
   | HOAppend i {n} (a:vector A n): HOperator i (n+i)
   | HOVMinus o: HOperator (o + o) o
-  | HOPointWise2 o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: HOperator (o+o) o
+  | HOBinOp o (f:A->A->A) `{pF: !Proper ((=) ==> (=) ==> (=)) f}: HOperator (o+o) o
   | HOLess o: HOperator (o+o) o
   | HOEvalPolynomial {n} (a:vector A n): HOperator 1 1
   | HOMonomialEnumerator n: HOperator 1 (S n)
@@ -77,7 +77,7 @@ Section HCOL_Language.
          | HOReduction _ f _ idv => fun v0 => Vectorize (Reduction f idv v0)
          | HOAppend _ _ a => Vapp a
          | HOVMinus o => VMinus  ∘ (vector2pair o)
-         | HOPointWise2 o f _ => PointWise2 f ∘ (vector2pair o)
+         | HOBinOp o f _ => BinOp f ∘ (vector2pair o)
          | HOLess o => ZVLess  ∘ (vector2pair o)
          (* | HOPart p => Vsub v p *)
          | HOEvalPolynomial _ a => Lst ∘ EvalPolynomial a ∘ Scalarize
@@ -148,7 +148,7 @@ Section HCOL_Language.
         Case "VMinus".
         unfold vector2pair. 
         rewrite vE. reflexivity.
-        Case "PointWise2".
+        Case "BinOp".
         unfold vector2pair. 
         rewrite vE. reflexivity.
         Case "ZVLess".
