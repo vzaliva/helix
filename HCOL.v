@@ -249,10 +249,12 @@ Proof.
 
   (* Remove cons from IHn *)
   assert (HIHn:  forall a0 b0 : svector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
-                                                  (mult s (Vfold_right plus (Vmap2 mult a0 b0) zero))).
-  intros.
-  rewrite <- Vcons_single_elim.
-  apply IHn.
+                                            (mult s (Vfold_right plus (Vmap2 mult a0 b0) zero))).
+  {
+    intros.
+    rewrite <- Vcons_single_elim.
+    apply IHn.
+  }
   clear IHn.
 
   rewrite 2!Vcons_to_Vcons_reord.
@@ -334,27 +336,23 @@ Section HCOLProper.
     reflexivity.
   Qed.
   
-  Global Instance BinOp_proper  (X Y Z:Type)
-         `{Ex:!Equiv X, Ey:!Equiv Y, Ez:!Equiv Z}
-         `{@Setoid X Ex, @Setoid Y Ey, @Setoid Z Ez}
-         {n:nat} (f : X->Y->Z) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (@BinOp X Y Z f n).
+  Global Instance BinOp_proper
+         {n:nat} (f : Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
     unfold Proper.
     intros a b Ea.
     unfold BinOp.
     destruct a. destruct b.
-    destruct Ea as [E1 E2]. simpl in E1. simpl in E2.
+    destruct Ea as [E1 E2]. simpl in *.
     rewrite E1, E2.
     reflexivity.
   Qed.
   
-  Global Instance Reduction_proper  (X Y:Type)
-         `{Ex:!Equiv X, Ey:!Equiv Y}
-         `{@Setoid X Ex, @Setoid Y Ey}
-         {n:nat} (f : X->Y->Y)
+  Global Instance Reduction_proper
+         {n:nat} (f : Rtheta->Rtheta->Rtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
-    Proper ((=) ==> (=) ==> (=)) (@Reduction X Y f n).
+    Proper ((=) ==> (=) ==> (=)) (@Reduction f n).
   Proof.
     unfold Proper.
     intros a b E1 x y E2.
@@ -364,27 +362,19 @@ Section HCOLProper.
     reflexivity.
   Qed.
   
-  Global Instance ChebyshevDistance_proper
-         `{A1: One A}
-         `{Aplus: Plus A} `{Amult: Mult A} 
-         `{Ato: !@TotalOrder A Ae Ale}
-         `{Aabs: !@Abs A Ae Ale Azero Anegate}
-         `{∀ x y: A, Decision (x ≤ y)}
-         `{Ar: !Ring A}
-         (n:nat):
+  Global Instance ChebyshevDistance_proper  (n:nat):
     Proper ((=) ==> (=))  (ChebyshevDistance (n:=n)).
   Proof.
     intros p p' pE.
     dep_destruct p.
     dep_destruct p'.
     unfold ChebyshevDistance.
-    assert (E1: t=t1). apply pE.
-    assert (E2: t0=t2). apply pE.
-    rewrite E1, E2.
+    inversion pE. clear pE. simpl in *.
+    rewrite H, H0.
     reflexivity.
   Qed.
   
-  Global Instance EvalPolynomial_proper `{SemiRing A} (n:nat):
+  Global Instance EvalPolynomial_proper (n:nat):
     Proper ((=) ==> (=) ==> (=))  (EvalPolynomial (n:=n)).
   Proof.
     intros v v' vE a a' aE.
@@ -395,54 +385,43 @@ Section HCOLProper.
     dep_destruct v.
     dep_destruct v'.
     simpl.
-    assert (XE: x = x0). apply vE.
-    setoid_replace (EvalPolynomial x a) with (EvalPolynomial x0 a').
-    assert (HE: h = h0). apply vE.  
-    rewrite HE.
-    rewrite aE.
+    apply Vcons_equiv_elim in vE.
+    destruct vE as [HE xE].
+    setoid_replace (EvalPolynomial x a) with (EvalPolynomial x0 a')
+      by (apply IHn; assumption).
+    rewrite HE, aE.
     reflexivity.
-    apply IHn.
-    assumption.
   Qed.
 
-  Global Instance MonomialEnumerator_proper `{!@SemiRing A Ae Aplus Amult Azero Aone} (n:nat):
+  Global Instance MonomialEnumerator_proper (n:nat):
     Proper ((=) ==> (=))  (MonomialEnumerator n).
   Proof.
     intros a a' aE.
     induction n.
     reflexivity.  
-    rewrite 2!MonomialEnumerator_cons
-    rewrite 2!Vcons_to_Vcons_reord.
-    rewrite IHn.
-    rewrite aE.
+    rewrite 2!MonomialEnumerator_cons, 2!Vcons_to_Vcons_reord, IHn, aE.
     reflexivity.
   Qed.
 
-  Global Instance Induction_proper `{Setoid B} (f:B->A->B) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
-    Proper ((=) ==> (=) ==> (=))  (@Induction A B n f).
+  Global Instance Induction_proper
+         (f:Rtheta->Rtheta->Rtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
+    Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
     intros ini ini' iniEq v v' vEq.
     induction n.
-    reflexivity. 
-    rewrite 2!Induction_cons.
-    Focus 2. apply Asetoid.
-    Focus 2. assumption.
-    Focus 2. assumption.
-    Focus 2. assumption.
-    rewrite 2!Vcons_to_Vcons_reord.
-    rewrite 2!Vmap_to_Vmap_reord.
-
-    assert (Proper (Ae0 ==> Ae0) (λ x : B, f x v)).
-    solve_proper.
-
-    rewrite IHn.
-    rewrite iniEq.
-
-    assert (EE:ext_equiv (λ x : B, f x v)  (λ x : B, f x v')).
-    unfold ext_equiv.
-    intros z z' zE.
-    rewrite vEq, zE.
     reflexivity.
+    
+    rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
+    assert (RP: Proper (Rtheta_equiv ==> Rtheta_equiv) (λ x, f x v)) by solve_proper.
+    rewrite IHn,  iniEq.
+
+    assert (EE: ext_equiv (λ x, f x v)  (λ x, f x v')).
+    {
+      unfold ext_equiv.
+      intros z z' zE.
+      rewrite vEq, zE.
+      reflexivity.
+    }
     
     rewrite EE.
     reflexivity.
@@ -459,14 +438,11 @@ Section HCOLProper.
   Proof.
     intros fg fg' fgE.
     destruct fg, fg'.
-    assert (M1:d=d0). apply fgE.
-    assert (M2:e=e0). apply fgE.    
-    unfold Cross.
+    destruct fgE as [M2 M1]. simpl in *.
     split; simpl.
-    apply pF. assumption.
-    apply pG. assumption.
+    apply pF; assumption.
+    apply pG; assumption.
   Qed.
-
   
 End HCOLProper.
 
