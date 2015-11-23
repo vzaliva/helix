@@ -1,6 +1,8 @@
 (* Coq defintions for HCOL operator language *)
 
 Require Import Spiral.
+Require Import Rtheta.
+Require Import SVector.
 
 Require Import Arith.
 Require Import Coq.Arith.Plus.
@@ -24,6 +26,71 @@ Import VectorNotations.
 Require Import HCOL.
 Import HCOLOperators.
 Open Scope vector_scope.
+
+(* === HCOL operators === *)
+
+Definition HOPrepend {i n} (a:svector n)
+  : svector i -> svector (n+i)
+  := Vapp a.
+
+Definition HOInfinityNorm {i}
+  : svector i -> svector 1
+  := Vectorize ∘ InfinityNorm.
+
+Definition HOReduction {i}
+           (f: Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f} (idv:Rtheta)
+  : svector i -> svector 1
+  := Vectorize ∘ (Reduction f idv).
+
+Definition HOAppend {i n} (a:svector n)
+  : svector i -> svector (i+n)
+  := fun x => Vapp x a.
+
+Definition HOVMinus {o}
+  : svector (o+o) -> svector o
+  := VMinus  ∘ (vector2pair o).
+
+Definition HOBinOp {o}
+           (f: Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+  : svector (o+o) -> svector o
+  :=  BinOp f ∘ (vector2pair o).
+
+Definition HOLess {o}
+  : svector (o+o) -> svector o
+  := ZVLess  ∘ (vector2pair o).
+
+Definition HOEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
+  := Lst ∘ EvalPolynomial a ∘ Scalarize.
+
+Definition HOMonomialEnumerator {n}
+  : svector 1 -> svector (S n)
+  := MonomialEnumerator n ∘ Scalarize.
+
+Definition HOChebyshevDistance {h}
+  : svector (h+h) -> svector 1
+  := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
+
+Definition HOScalarProd {h}
+  : svector (h+h) -> svector 1
+  := Lst ∘ ScalarProd ∘ (vector2pair h).
+
+Definition HOInduction {n}
+           (f: Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial:Rtheta)
+  : svector 1 -> svector n
+  := Induction n f initial ∘ Scalarize.
+
+(* HOCompose becomes ∘ *)
+
+Definition HOTLess i1 _ _ lop1 lop2 => fun v0 => let (v1,v2) := vector2pair i1 v0 in
+                                             ZVLess (pair (evalHCOL lop1 v1) (evalHCOL lop2 v2))
+                                                    
+Definition HOCross x _ _ _ xop1 xop2 => pair2vector ∘ (Cross (evalHCOL xop1, evalHCOL xop2)) ∘ (vector2pair x)
+Definition HOStack _ _ _ op1 op2 => pair2vector ∘ (Stack (evalHCOL op1, evalHCOL op2))
+
+
 
 (* === HCOL Syntax === *)
 
