@@ -27,6 +27,20 @@ Open Scope vector_scope.
 
 (* === HCOL Semantics === *)
 
+Definition Zless (a b:Rtheta): Rtheta
+  := if Rtheta_ltdec a b then one else zero.
+
+Global Instance Zless_proper:
+  Proper ((=) ==> (=) ==> (=)) (Zless).
+Proof.
+  unfold Proper.
+  intros a a' aE z z' zE.
+  unfold Zless.
+  destruct (Rtheta_ltdec a z), (Rtheta_ltdec a' z'); auto.
+  rewrite aE, zE in l; contradiction.
+  rewrite <- aE, <- zE in l; contradiction.
+Qed.
+
 Module HCOLOperators.
   
   (* --- Highger order operators --- *)

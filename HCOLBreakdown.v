@@ -1,9 +1,9 @@
 
 Require Import Spiral.
-Import Spiral.
+Require Import Rtheta.
+Require Import SVector.
 
 Require Import HCOL.
-Import HCOLOperators.
 Require Import HCOLSyntax.
 
 Require Import Arith.
@@ -23,48 +23,42 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
+Open Scope vector_scope.
 
+
+Definition MaxAbs (a b:Rtheta): Rtheta := max (abs a) (abs b).
+
+Global Instance MaxAbs_proper:
+  Proper ((=) ==> (=) ==> (=)) (MaxAbs).
+Proof.
+  intros a a' aE b b' bE.
+  unfold MaxAbs.
+  rewrite aE, bE.
+  reflexivity.
+Qed.
+
+Context
+  `{Plus Rtheta}
+  `{Mult Rtheta}
+  `{Negate Rtheta}
+  `{Lt Rtheta}.
+
+Definition orig_exp (a: svector 3) :=
+  HOTLess 
+    (HOEvalPolynomial a)
+    (HOChebyshevDistance 2).
+
+Definition rewritten_exp (a: svector 3) :=
+  HOBinOp Zless ∘
+          HOCross
+          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction mult 1))
+          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate)).
 
 Section HCOLBreakdown.
-  Context
-
-    `{Ae: Equiv A}
-    `{Az: Zero A} `{A1: One A}
-    `{Aplus: Plus A} `{Amult: Mult A} 
-    `{Aneg: Negate A}
-    `{Ale: Le A}
-    `{Alt: Lt A}
-    `{Ato: !@TotalOrder A Ae Ale}
-    `{Aabs: !@Abs A Ae Ale Az Aneg}
-    `{Asetoid: !@Setoid A Ae}
-    `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-    `{Aeqdec: !∀ x y, Decision (x = y)}
-    `{Altdec: !∀ x y: A, Decision (x < y)}
-    `{Ar: !Ring A}
-    `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-    `{ASSO: !@StrictSetoidOrder A Ae Alt}
-  .
-
-  Add Ring RingA: (stdlib_ring_theory A).
-  
-  Open Scope vector_scope.
-
-
-  Definition MaxAbs (a b:A): A := max (abs a) (abs b).
-
-  Global Instance MaxAbs_proper:
-    Proper ((=) ==> (=) ==> (=)) (MaxAbs).
-  Proof.
-    intros a a' aE b b' bE.
-    unfold MaxAbs.
-    rewrite aE, bE.
-    reflexivity.
-  Qed.
-  
   
   Lemma breakdown_ScalarProd: forall (n:nat) (a v: vector A n),
-                                  ScalarProd (a,v) = 
-                                  ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
+    ScalarProd (a,v) = 
+    ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
   Proof.
     intros.
     unfold compose, BinOp, Reduction, ScalarProd.

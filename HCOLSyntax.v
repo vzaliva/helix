@@ -70,7 +70,7 @@ Section HCOL_Language.
     : svector 1 -> svector (S n)
     := MonomialEnumerator n ∘ Scalarize.
 
-  Definition HOChebyshevDistance {h}
+  Definition HOChebyshevDistance h
     : svector (h+h) -> svector 1
     := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
 
@@ -85,16 +85,29 @@ Section HCOL_Language.
     : svector 1 -> svector n
     := Induction n f initial ∘ Scalarize.
 
-  (* HOCompose becomes ∘ *)
+  (* HOCompose becomes just ∘ *)
 
-  (*
-Definition HOTLess i1 _ _ lop1 lop2 => fun v0 => let (v1,v2) := vector2pair i1 v0 in
-                                             ZVLess (pair (evalHCOL lop1 v1) (evalHCOL lop2 v2))
-                                                    
-Definition HOCross x _ _ _ xop1 xop2 => pair2vector ∘ (Cross (evalHCOL xop1, evalHCOL xop2)) ∘ (vector2pair x)
-Definition HOStack _ _ _ op1 op2 => pair2vector ∘ (Stack (evalHCOL op1, evalHCOL op2))
-   *)
+  Definition HOTLess {i1 i2 o}
+             (lop1: svector i1 -> svector o)
+             (lop2: svector i2 -> svector o)
+    : svector (i1+i2) -> svector o
+    := fun v0 => let (v1,v2) := vector2pair i1 v0 in
+              ZVLess (lop1 v1, lop2 v2).
+  
+  Definition HOCross
+             {i1 o1 i2 o2}
+             (xop1: svector i1 -> svector o1)
+             (xop2: svector i2 -> svector o2)
+    : svector (i1+i2) -> svector (o1+o2)
+    := pair2vector ∘ (Cross (xop1, xop2)) ∘ (vector2pair i1).
 
+  
+  Definition HOStack {i o1 o2}
+             (op1: svector i -> svector o1)
+             (op2: svector i -> svector o2)
+    : svector i -> svector (o1+o2)
+    := pair2vector ∘ (Stack (op1, op2)).
+  
   Section HCOL_Proper.
 
   (*

@@ -33,6 +33,7 @@ Parameter Aabs: @Abs A Ae Ale Az Aneg.
 Parameter Altdec: ∀ x y: A, Decision (x < y).
 Parameter Aledec: ∀ x y: A, Decision (x ≤ y).
 Parameter Ato: @TotalOrder A Ae Ale.
+Parameter ASSO: @StrictSetoidOrder A Ae Alt.
 
 Parameter Ar: Ring A.
 
@@ -121,13 +122,13 @@ Proof.
   apply Rtheta_Transitive_equiv.
 Qed.
 
-Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
-Instance Rtheta_One: One Rtheta := (1, false, false).
-Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb.
-Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb.
-Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
-Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
-Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
+Global Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
+Global Instance Rtheta_One: One Rtheta := (1, false, false).
+Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb.
+Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb.
+Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
+Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
+Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
 
 Instance Rtheta_Associative_plus: Associative Rtheta_Plus.
 Proof.
@@ -401,10 +402,10 @@ Qed.
 
 Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
   
-Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
+Global Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
   Aledec (RthetaVal x) (RthetaVal y).
 
-Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
+Global Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
   Altdec (RthetaVal x) (RthetaVal y).
 
 Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
@@ -414,12 +415,25 @@ Next Obligation.
   split; unfold abs; crush.
 Qed.
 
-
 Global Instance Rtheta_le_proper:
   Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
 Proof.
   intros a a' aEq b b' bEq.
   unfold Rtheta_Le, Rtheta_rel_first, Rtheta_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+  destruct_Rtheta a. destruct_Rtheta b.
+  destruct_Rtheta a'. destruct_Rtheta b'.
+  simpl.
+  unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal in aEq, bEq.
+  simpl in *.
+  rewrite <- aEq, <- bEq.
+  split; auto.
+Qed.
+
+Global Instance Rtheta_lt_proper:
+  Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
+Proof.
+  intros a a' aEq b b' bEq.
+  unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsSErr.
   destruct_Rtheta a. destruct_Rtheta b.
   destruct_Rtheta a'. destruct_Rtheta b'.
   simpl.

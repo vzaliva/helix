@@ -1068,33 +1068,6 @@ Proof.
   apply IHn, Ea.
 Qed.
 
-Definition Zless
-           {A:Type} `{Lt A} `{Altdec: !∀ x y: A, Decision (x < y)}
-           {Z:Type} `{Zero Z, One Z}  (a:A) (b:A) : Z :=
-  if Altdec a b then one else zero.
-
-
-Global Instance zless_proper
-       (A:Type) `{Alt:Lt A} `{Altdec: !∀ x y: A, Decision (x < y)} `{Setoid A} `{!StrictSetoidOrder Alt}
-       (Z:Type) `{Zero Z, One Z} `{Setoid Z}:
-  Proper ((=) ==> (=) ==> (=)) (Zless).
-Proof.
-  unfold Proper.
-  intros a a' aE z z' zE.
-  unfold Zless.
-  dep_destruct (Altdec a z).
-  dep_destruct (Altdec a' z').
-  auto.
-  rewrite aE in p.
-  rewrite zE in p.
-  contradiction.
-  dep_destruct (Altdec a' z').
-  rewrite <- aE in p.
-  rewrite <- zE in p.
-  contradiction.
-  auto.  
-Qed.
-
 Definition Lst {B:Type} (x:B) := [x].
 
 Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
