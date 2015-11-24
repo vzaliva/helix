@@ -238,26 +238,17 @@ Section HCOLBreakdown.
   Qed.
   
   Fact breakdown_OTLess_Base: forall
-      (i1 i2 o:nat)
-      (o1: HOperator i1 o)
-      (o2: HOperator i2 o),
-      
-      HOTLess i1 i2 o o1 o2 =
-      HOCompose _ _
-                (HOBinOp o (Zless))
-                (HOCross i1 o i2 o o1 o2).
+      {i1 i2 o}
+      (o1: svector i1 -> svector o)
+      (o2: svector i2 -> svector o)
+      (v:svector (i1 + i2)),
+      HOTLess o1 o2 v = (HOBinOp Zless ∘ HOCross o1 o2) v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL at 1.
-    fold (evalHCOL o1)  (evalHCOL o2).
-    unfold evalHCOL at 3.
-    fold (evalHCOL o1)  (evalHCOL o2).
+    intros i1 i2 o o1 o2 v.
+    unfold HOTLess, HOBinOp, HOCross.
     unfold compose, BinOp.
-    rewrite vp2pv.    
+    rewrite vp2pv.
     elim (vector2pair i1 v).
-    intros.
-    unfold ZVLess.
-    unfold Cross.
     reflexivity.
   Qed.
 
