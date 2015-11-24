@@ -76,74 +76,59 @@ Section HCOLBreakdown.
       ScalarProd (a,v) = 
       ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
   Proof.
-    intros.
+    intros n a v.
     unfold compose, BinOp, Reduction, ScalarProd.
     reflexivity.
   Qed.
-
-  Fact breakdown_OScalarProd: forall {h:nat},
-      HOScalarProd (h:=h)
+  
+  Fact breakdown_OScalarProd: forall {h:nat} v, 
+      HOScalarProd (h:=h) v
       =
-      (HOReduction  (+) 0) ∘ (HOBinOp (.*.)).
+      ((HOReduction  (+) 0) ∘ (HOBinOp (.*.))) v.
   Proof.
-    intros.
-    extensionality a.
+    intros h v.
+    unfold HOScalarProd, HOReduction, HOBinOp.
     unfold vector2pair, compose, Lst, Vectorize.
     apply Vcons_single_elim.
-    destruct  (Vbreak v).
+    destruct (Vbreak v).
     apply breakdown_ScalarProd.
   Qed.
   
-  Lemma breakdown_EvalPolynomial: forall (n:nat) (a: vector A (S n)) (v:A),
-                                   EvalPolynomial a v = (
-                                     (ScalarProd) ∘ (pair a) ∘ (MonomialEnumerator n)
-                                   ) v.
+  Lemma breakdown_EvalPolynomial: forall (n:nat) (a: svector (S n)) (v:Rtheta),
+      EvalPolynomial a v = (
+        (ScalarProd) ∘ (pair a) ∘ (MonomialEnumerator n)
+      ) v.
   Proof.
-    intros.
+    intros n a v.
     unfold compose.
     induction n.
-    simpl (MonomialEnumerator 0 v).
-    rewrite EvalPolynomial_reduce.
-    dep_destruct (Vtail a).
-    rewrite EvalPolynomial_0.
-    unfold ScalarProd.
-    simpl.
-    rewrite mult_1_r, mult_0_r.
-    reflexivity.
-
-    rewrite EvalPolynomial_reduce.
-    rewrite ScalarProd_reduce.
-    rewrite MonomialEnumerator_cons.
-    unfold Ptail.
-    rewrite ScalarProd_comm.
-    replace (Vtail (Vcons 1 (Scale (v, MonomialEnumerator n v)))) with (Scale (v, MonomialEnumerator n v)) by auto.
-    rewrite ScalarProduct_hd_descale.
-    rewrite IHn. clear IHn.
-    simpl  (Vhead (fst (a, Vcons 1 (Scale (v, MonomialEnumerator n v))))).
-    simpl (Vhead (snd (a, Vcons 1 (Scale (v, MonomialEnumerator n v))))).    
-    rewrite mult_1_r.
-    rewrite ScalarProd_comm.
-    reflexivity.
+    - simpl (MonomialEnumerator 0 v).
+      rewrite EvalPolynomial_reduce.
+      dep_destruct (Vtail a).
+      simpl; ring.
+      
+    - rewrite EvalPolynomial_reduce, ScalarProd_reduce, MonomialEnumerator_cons.
+      unfold Ptail.
+      rewrite ScalarProd_comm.
+      Opaque Scale ScalarProd.
+      simpl.
+      rewrite ScalarProduct_hd_descale, IHn, mult_1_r, ScalarProd_comm.
+      reflexivity.
   Qed.
-
-  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: vector A (S n)),
-                                    HOEvalPolynomial a =
-                                    HOCompose _ _
-                                              (HOScalarProd)
-                                              (HOCompose _ _
-                                                         (HOAppend _ a)
-                                                         (HOMonomialEnumerator _)).
-                                             
+  
+  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: svector (S n)) v,
+      HOEvalPolynomial a v =
+      (HOScalarProd ∘
+                    ((HOPrepend  a) ∘
+                                    (HOMonomialEnumerator))) v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
-    unfold vector2pair, compose, Lst.
-    apply Vcons_single_elim.
-    rewrite Vbreak_app.
+    intros n a v.
+    unfold HOEvalPolynomial, HOScalarProd, HOPrepend, HOMonomialEnumerator.
+    unfold vector2pair, compose, Lst, Scalarize.
+    rewrite Vcons_single_elim, Vbreak_app.
     apply breakdown_EvalPolynomial.
   Qed.
-  
-  
+    
   Lemma breakdown_TInfinityNorm:  forall (n:nat) (v: vector A n),
                                    InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
