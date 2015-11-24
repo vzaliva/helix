@@ -37,17 +37,6 @@ Proof.
   reflexivity.
 Qed.
 
-Definition orig_exp (a: svector 3) :=
-  HOTLess 
-    (HOEvalPolynomial a)
-    (HOChebyshevDistance 2).
-
-Definition rewritten_exp (a: svector 3) :=
-  HOBinOp Zless ∘
-          HOCross
-          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction mult 1))
-          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate)).
-
 Section HCOLBreakdown.
 
   Import HCOLOperators.
@@ -256,37 +245,24 @@ End HCOLBreakdown.
 
 
   (* Our top-level example goal *)
-  Definition DynWinOSPL_def :=  forall (a: vector A 3),
-                         HOTLess 1 4 1
-                                 (HOEvalPolynomial a)
-                                 (HOChebyshevDistance 2)
-                         = HOCompose _ _
-                                     (HOBinOp _ (Zless))
-                                     (HOCross _ _ _ _
-                                              (HOCompose _ _ 
-                                                         (HOCompose _ _
-                                                                    (HOReduction  _ (+) 0)
-                                                                    (HOBinOp _ (.*.)))
-                                                         (HOCompose _ _
-                                                                    (HOPrepend _ a)
-                                                                    (HOInduction _ (.*.) 1))
-                                              )
-                                              (HOCompose 4 _
-                                                         (HOReduction _ MaxAbs 0)
-                                                         (HOBinOp 2 (plus∘negate))
-                                     )).
-
-                           
-  Theorem DynWinOSPL:   DynWinOSPL_def.
- Proof.
-    unfold DynWinOSPL_def. intros. apply HCOL_extensionality.  intros.
-    rewrite breakdown_OTLess_Base.
-    rewrite breakdown_OEvalPolynomial.    
-    rewrite breakdown_OScalarProd. 
-    rewrite breakdown_OMonomialEnumerator.
-    rewrite breakdown_OChebyshevDistance.
-    rewrite breakdown_OVMinus.
-    rewrite breakdown_OTInfinityNorm.
+Theorem DynWinOSPL:  forall (a: svector 3) v,
+  (HOTLess 
+    (HOEvalPolynomial a)
+    (HOChebyshevDistance 2)) v
+  =
+  (HOBinOp Zless ∘
+          HOCross
+          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction mult 1))
+          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate))) v.
+Proof.
+  intros a v.
+  rewrite breakdown_OTLess_Base.
+  rewrite breakdown_OEvalPolynomial.    
+  rewrite breakdown_OScalarProd. 
+  rewrite breakdown_OMonomialEnumerator.
+  rewrite breakdown_OChebyshevDistance.
+  rewrite breakdown_OVMinus.
+  rewrite breakdown_OTInfinityNorm.
     reflexivity.
-  Qed.
-  
+Qed.
+
