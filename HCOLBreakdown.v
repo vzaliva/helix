@@ -203,7 +203,7 @@ Section HCOLBreakdown.
     apply breakdown_MonomialEnumerator.
   Qed.
 
-  Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (vector A n)*(vector A n)),
+  Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (svector n)*(svector n)),
       ChebyshevDistance ab = (InfinityNorm  ∘ VMinus) ab.
   Proof.
     intros.
@@ -212,46 +212,40 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
   
-  Fact breakdown_OChebyshevDistance:  forall (n:nat) ,
-      HOChebyshevDistance n =
-      HOCompose _ _
-                (HOInfinityNorm)
-                (HOVMinus _)
-  .
+  Fact breakdown_OChebyshevDistance:  forall (n:nat) v,
+      HOChebyshevDistance n v = (HOInfinityNorm ∘ HOVMinus) v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
+    intros n v.
     unfold Lst, compose.
     apply Vcons_single_elim.
     apply breakdown_ChebyshevDistance.
   Qed.
-      
-  Lemma breakdown_VMinus:  forall (n:nat) (ab: (vector A n)*(vector A n)),
-                            VMinus ab =  BinOp (plus∘negate) ab.
+  
+  Lemma breakdown_VMinus:  forall (n:nat) (ab: (svector n)*(svector n)),
+      VMinus ab =  BinOp (plus∘negate) ab.
   Proof.
     crush.
   Qed.
 
-  Fact breakdown_OVMinus:  forall (n:nat) ,
-                             HOVMinus _ =
-                             HOBinOp n (plus∘negate).
+  Fact breakdown_OVMinus:  forall (n:nat) (v:svector (n+n)),
+      HOVMinus v = HOBinOp (plus∘negate) v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
+    intros n v.
+    unfold HOVMinus.
     unfold compose at 2.
     unfold vector2pair.
     apply breakdown_VMinus.
   Qed.
   
   Fact breakdown_OTLess_Base: forall
-                               (i1 i2 o:nat)
-                               (o1: HOperator i1 o)
-                               (o2: HOperator i2 o),
-                               
-                               HOTLess i1 i2 o o1 o2 =
-                               HOCompose _ _
-                                         (HOBinOp o (Zless))
-                                         (HOCross i1 o i2 o o1 o2).
+      (i1 i2 o:nat)
+      (o1: HOperator i1 o)
+      (o2: HOperator i2 o),
+      
+      HOTLess i1 i2 o o1 o2 =
+      HOCompose _ _
+                (HOBinOp o (Zless))
+                (HOCross i1 o i2 o o1 o2).
   Proof.
     intros. apply HCOL_extensionality.  intros.
     unfold evalHCOL at 1.
