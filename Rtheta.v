@@ -34,6 +34,7 @@ Parameter Altdec: ∀ x y: A, Decision (x < y).
 Parameter Aledec: ∀ x y: A, Decision (x ≤ y).
 Parameter Ato: @TotalOrder A Ae Ale.
 Parameter ASSO: @StrictSetoidOrder A Ae Alt.
+Parameter ASRO: @SemiRingOrder A Ae Aplus Amult Az A1 Ale.
 
 Parameter Ar: Ring A.
 
@@ -351,7 +352,7 @@ Proof.
   ring.
 Qed.
 
-Instance: SemiRing Rtheta.
+Instance Rtheta_SemiRing: SemiRing Rtheta.
 Proof.
   split.
   apply Rtheta_CommutativeMonoid_plus_0.
@@ -502,9 +503,25 @@ Proof.
   apply (total (≤)).
 Qed.
 
-Instance: TotalOrder Rtheta_Le.
+Instance Rtheta_TotalOrder: TotalOrder Rtheta_Le.
 Proof.
   split.
   apply Rtheta_le_PartialOrder.
   apply Rtheta_le_TotalRelation.
+Qed.
+
+Instance Rtheta_SemiRingOrder: SemiRingOrder Rtheta_Le.
+Proof.
+  split.
+  - apply total_order_po.
+  - apply Rtheta_SemiRing.
+  - intros x y H.
+    (*
+    destruct_Rtheta x. destruct_Rtheta y.
+    unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal.
+     *)
+    admit.
+    
+  admit.
+  admit.
 Qed.

@@ -129,43 +129,34 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
     
-  Lemma breakdown_TInfinityNorm:  forall (n:nat) (v: vector A n),
+  Lemma breakdown_TInfinityNorm:  forall (n:nat) (v: svector n),
                                    InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
     intros.
     unfold InfinityNorm, Reduction.
 
     dependent induction v.
-    Case "[]".
-    VOtac.
-    reflexivity.
-    
-    Case "Cons v".
-    rewrite Vfold_right_reduce.
-    simpl.
-    rewrite IHv. clear IHv.
-    simpl.
-
-    assert (ABH: (abs (Vfold_right MaxAbs v 0)) =
-                 (Vfold_right MaxAbs v 0)).
-    unfold MaxAbs.
-    intros.
-    dependent induction v.
-    SCase "v=[]".
-    simpl.
-    apply abs_0_s.
-    (* rewrite le_equiv_lt. *)
-    apply Ato.
-    SCase "w!=[]".
-    rewrite Vfold_right_reduce.
-    simpl.
-
-    rewrite IHv. clear IHv.
-    rewrite <- abs_max_comm_2nd.
-    reflexivity.
-    unfold MaxAbs.
-    rewrite ABH.
-    reflexivity.
+    - reflexivity.
+    - rewrite Vfold_right_reduce.
+      simpl.
+      rewrite_clear IHv. 
+      
+      assert (ABH: (abs (Vfold_right MaxAbs v 0)) =
+                   (Vfold_right MaxAbs v 0)).
+      {
+        unfold MaxAbs.
+        intros.
+        dependent induction v.
+        + simpl.
+          apply abs_0_s.
+          
+        + apply Rtheta_TotalOrder.
+          rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
+          reflexivity.
+      }
+      unfold MaxAbs.
+      rewrite ABH.
+      reflexivity.
   Qed.
 
   Fact breakdown_OTInfinityNorm:  forall (n:nat),
