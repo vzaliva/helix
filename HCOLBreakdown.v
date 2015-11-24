@@ -37,12 +37,6 @@ Proof.
   reflexivity.
 Qed.
 
-Context
-  `{Plus Rtheta}
-  `{Mult Rtheta}
-  `{Negate Rtheta}
-  `{Lt Rtheta}.
-
 Definition orig_exp (a: svector 3) :=
   HOTLess 
     (HOEvalPolynomial a)
@@ -55,10 +49,32 @@ Definition rewritten_exp (a: svector 3) :=
           (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate)).
 
 Section HCOLBreakdown.
+
+  Import HCOLOperators.
+
+    Context
+    `{Ae: Equiv A}
+    `{Az: Zero A} `{A1: One A}
+    `{Aplus: Plus A} `{Amult: Mult A} 
+    `{Aneg: Negate A}
+    `{Ale: Le A}
+    `{Alt: Lt A}
+    `{Ato: !@TotalOrder A Ae Ale}
+    `{Aabs: !@Abs A Ae Ale Az Aneg}
+    `{Asetoid: !@Setoid A Ae}
+    `{Aledec: !∀ x y: A, Decision (x ≤ y)}
+    `{Aeqdec: !∀ x y, Decision (x = y)}
+    `{Altdec: !∀ x y: A, Decision (x < y)}
+    `{Ar: !Ring A}
+    `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
+    `{ASSO: !@StrictSetoidOrder A Ae Alt}
+  .
   
-  Lemma breakdown_ScalarProd: forall (n:nat) (a v: vector A n),
-    ScalarProd (a,v) = 
-    ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
+  Add Ring RingA: (stdlib_ring_theory A).
+
+  Lemma breakdown_ScalarProd: forall (n:nat) (a v: svector n),
+      ScalarProd (a,v) = 
+      ((Reduction (+) 0) ∘ (BinOp (.*.))) (a,v).
   Proof.
     intros.
     unfold compose, BinOp, Reduction, ScalarProd.
@@ -66,14 +82,12 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat},
-                                HOScalarProd (h:=h)
-                                =
-                                HOCompose _ _
-                                                    (HOReduction  _ (+) 0)
-                                                    (HOBinOp _ (.*.)).
+      HOScalarProd (h:=h)
+      =
+      (HOReduction  (+) 0) ∘ (HOBinOp (.*.)).
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
+    intros.
+    extensionality a.
     unfold vector2pair, compose, Lst, Vectorize.
     apply Vcons_single_elim.
     destruct  (Vbreak v).
@@ -278,6 +292,8 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
 
+End HCOLBreakdown.
+
 
   (* Our top-level example goal *)
   Definition DynWinOSPL_def :=  forall (a: vector A 3),
@@ -314,6 +330,3 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
   
-  Close Scope vector_scope.
-  
-End HCOLBreakdown.
