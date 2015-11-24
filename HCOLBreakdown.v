@@ -110,8 +110,11 @@ Section HCOLBreakdown.
     - rewrite EvalPolynomial_reduce, ScalarProd_reduce, MonomialEnumerator_cons.
       unfold Ptail.
       rewrite ScalarProd_comm.
-      Opaque Scale ScalarProd.
+
+      Opaque Scale ScalarProd. 
       simpl.
+      Transparent Scale ScalarProd.
+
       rewrite ScalarProduct_hd_descale, IHn, mult_1_r, ScalarProd_comm.
       reflexivity.
   Qed.
@@ -120,7 +123,7 @@ Section HCOLBreakdown.
       HOEvalPolynomial a v =
       (HOScalarProd ∘
                     ((HOPrepend  a) ∘
-                                    (HOMonomialEnumerator))) v.
+                                    (HOMonomialEnumerator n))) v.
   Proof.
     intros n a v.
     unfold HOEvalPolynomial, HOScalarProd, HOPrepend, HOMonomialEnumerator.
@@ -159,53 +162,49 @@ Section HCOLBreakdown.
       reflexivity.
   Qed.
 
-  Fact breakdown_OTInfinityNorm:  forall (n:nat),
-                                    HOInfinityNorm  =
-                                    HOReduction n MaxAbs 0.
+  Fact breakdown_OTInfinityNorm:  forall (n:nat) (v:svector n),
+                                    HOInfinityNorm v  =
+                                    HOReduction MaxAbs 0 v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
+    intros n v.
     apply Vcons_single_elim.
     apply breakdown_TInfinityNorm.
   Qed.
   
   Lemma breakdown_MonomialEnumerator:
-    forall (n:nat) (x:A), 
+    forall (n:nat) (x:Rtheta), 
       MonomialEnumerator n x = Induction (S n) (.*.) 1 x.
   Proof.
-    intros.
+    intros n x.
     induction n.
-    Case "n=0".
-    reflexivity.
-    Case "n=(S _)". 
-    rewrite MonomialEnumerator_cons.
-    rewrite Vcons_to_Vcons_reord.
-    rewrite IHn. clear IHn.
-    symmetry.
-    rewrite Induction_cons by apply Asetoid.
-    rewrite Vcons_to_Vcons_reord.
-    unfold Scale.
-    rewrite 2!Vmap_to_Vmap_reord.
-    setoid_replace (fun x0 : A => mult x0 x) with (mult x).
-    reflexivity.
-    SCase "ext_eqiuv".     
-    compute. intros.
-    rewrite H. apply mult_comm.
+    - reflexivity.
+    - rewrite MonomialEnumerator_cons.
+      rewrite Vcons_to_Vcons_reord.
+      rewrite_clear IHn. 
+      symmetry.
+      rewrite Induction_cons.
+      rewrite Vcons_to_Vcons_reord.
+      unfold Scale.
+    
+      rewrite 2!Vmap_to_Vmap_reord.
+      setoid_replace (fun x0 : Rtheta => mult x0 x) with (mult x).
+      reflexivity.
+      +
+        compute. intros.
+        rewrite H. apply mult_comm.
   Qed.
 
   Fact breakdown_OMonomialEnumerator:
-    forall (n:nat),
-      HOMonomialEnumerator n =
-      HOInduction _ (.*.) 1.
+    forall (n:nat) (v:svector 1),
+      HOMonomialEnumerator n v =
+      HOInduction (.*.) 1 v.
   Proof.
-    intros. apply HCOL_extensionality.  intros.
-    unfold evalHCOL.
-    unfold compose.
+    intros n v.
     apply breakdown_MonomialEnumerator.
   Qed.
 
   Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (vector A n)*(vector A n)),
-                                       ChebyshevDistance ab = (InfinityNorm  ∘ VMinus) ab.
+      ChebyshevDistance ab = (InfinityNorm  ∘ VMinus) ab.
   Proof.
     intros.
     unfold compose, ChebyshevDistance, VMinus.
@@ -214,11 +213,11 @@ Section HCOLBreakdown.
   Qed.
   
   Fact breakdown_OChebyshevDistance:  forall (n:nat) ,
-                                        HOChebyshevDistance n =
-                                        HOCompose _ _
-                                                  (HOInfinityNorm)
-                                                  (HOVMinus _)
-                                                 .
+      HOChebyshevDistance n =
+      HOCompose _ _
+                (HOInfinityNorm)
+                (HOVMinus _)
+  .
   Proof.
     intros. apply HCOL_extensionality.  intros.
     unfold evalHCOL.

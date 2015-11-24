@@ -522,6 +522,6 @@ Proof.
      *)
     admit.
     
-  admit.
-  admit.
+  - admit.
+  - admit.
 Qed.

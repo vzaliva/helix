@@ -66,7 +66,7 @@ Section HCOL_Language.
   Definition HOEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
     := Lst ∘ EvalPolynomial a ∘ Scalarize.
 
-  Definition HOMonomialEnumerator {n}
+  Definition HOMonomialEnumerator n
     : svector 1 -> svector (S n)
     := MonomialEnumerator n ∘ Scalarize.
 
