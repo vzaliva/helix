@@ -525,3 +525,11 @@ Proof.
   - admit.
   - admit.
 Qed.
+
+Lemma Rtheta_eq_equiv:
+  forall (a b: Rtheta), eq a b -> equiv a b.
+Proof.
+  intros.
+  crush.
+Qed.
+

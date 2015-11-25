@@ -229,21 +229,13 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Lemma Rtheta_eq_equiv:
-      forall (a b: Rtheta), eq a b -> equiv a b.
-    Proof.
-      intros.
-      crush.
-    Qed.
-    
     Global Instance HOTLess_proper {i1 i2 o}
            `{!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o)}
            `{!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)}:
       Proper ((=) ==> (=)) (@HOTLess i1 i2 o lop1 lop2).
     Proof.
       intros x y E.
-      unfold HOTLess.
-      unfold compose, Lst, vector2pair.
+      unfold HOTLess, vector2pair.
       destruct (Vbreak x) as [x0 x1] eqn: X.
       destruct (Vbreak y) as [y0 y1] eqn: Y.
       assert(Ye: Vbreak y = (y0, y1)) by crush.
@@ -255,8 +247,29 @@ Section HCOL_Language.
       rewrite H, H0.
       reflexivity.
     Qed.
-      
-             
+
+
+    Global Instance HOCross_proper
+           {i1 o1 i2 o2}
+           `{!Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1)}
+           `{!Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)}:
+      Proper ((=) ==> (=)) (@HOCross i1 o1 i2 o2 xop1 xop2).
+    Proof.
+      intros x y E.
+      unfold HOCross.
+      unfold compose, pair2vector, vector2pair.
+      destruct (Vbreak x) as [x0 x1] eqn: X.
+      destruct (Vbreak y) as [y0 y1] eqn: Y.
+      assert(Ye: Vbreak y = (y0, y1)) by crush.
+      assert(Xe: Vbreak x = (x0, x1)) by crush.
+      rewrite E in Xe.
+      rewrite Xe in Ye.
+      clear X Y Xe E.
+      inversion Ye. simpl in *.
+      rewrite H, H0.
+      reflexivity.
+    Qed.
+    
     Global Instance Compose_Setoid_Morphism
            `{Setoid A}`{Setoid B} `{Setoid C}
            `{Am: !Setoid_Morphism (f : B → C)}
@@ -314,18 +327,6 @@ Section HCOL_Language.
         reflexivity.
       Qed.
 
-      Global Instance HOTLess_proper i1 i2 o:
-        Proper ((=) ==> (=) ==> (=)) (@HOTLess i1 i2 o).
-      Proof.
-        intros op1 op1' op1E  op2 op2' op2E.
-        unfold equiv, HCOL_equiv.
-        intros.
-        simpl.
-        generalize (vector2pair i1 x). intros.
-        destruct p.
-        rewrite op1E, op2E.
-        reflexivity.
-      Qed.
    *)
   End HCOL_Morphisms.
 End HCOL_Language.
