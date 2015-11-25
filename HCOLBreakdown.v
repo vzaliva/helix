@@ -123,7 +123,7 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
     
-  Lemma breakdown_TInfinityNorm:  forall (n:nat) (v: svector n),
+  Lemma breakdown_TInfinityNorm: forall (n:nat) (v: svector n),
                                    InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
     intros.
@@ -153,11 +153,12 @@ Section HCOLBreakdown.
       reflexivity.
   Qed.
 
-  Fact breakdown_OTInfinityNorm:  forall (n:nat) (v:svector n),
-                                    HOInfinityNorm v  =
-                                    HOReduction MaxAbs 0 v.
+  Fact breakdown_OTInfinityNorm:  forall (n:nat),
+      HOInfinityNorm =
+      HOReduction MaxAbs 0 (i:=n).
   Proof.
-    intros n v.
+    intros n.
+    apply HOperator_functional_extensionality; intros v.
     apply Vcons_single_elim.
     apply breakdown_TInfinityNorm.
   Qed.
@@ -186,11 +187,12 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OMonomialEnumerator:
-    forall (n:nat) (v:svector 1),
-      HOMonomialEnumerator n v =
-      HOInduction (.*.) 1 v.
+    forall (n:nat),
+      HOMonomialEnumerator n =
+      HOInduction (S n) (.*.) 1.
   Proof.
-    intros n v.
+    intros n.
+    apply HOperator_functional_extensionality; intros v.
     apply breakdown_MonomialEnumerator.
   Qed.
 
@@ -203,10 +205,11 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
   
-  Fact breakdown_OChebyshevDistance:  forall (n:nat) v,
-      HOChebyshevDistance n v = (HOInfinityNorm ∘ HOVMinus) v.
+  Fact breakdown_OChebyshevDistance:  forall (n:nat),
+      HOChebyshevDistance n = (HOInfinityNorm ∘ HOVMinus).
   Proof.
-    intros n v.
+    intros n.
+    apply HOperator_functional_extensionality; intros v.
     unfold Lst, compose.
     apply Vcons_single_elim.
     apply breakdown_ChebyshevDistance.

@@ -80,7 +80,7 @@ Section HCOL_Language.
     : svector (h+h) -> svector 1
     := Lst ∘ ScalarProd ∘ (vector2pair h).
 
-  Definition HOInduction {n}
+  Definition HOInduction (n:nat)
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial:Rtheta)
@@ -173,6 +173,7 @@ Section HCOL_Language.
 
     Global Instance HOMonomialEnumerator_proper n:
       Proper ((=) ==> (=)) (@HOMonomialEnumerator n).
+    Proof.
       intros x y E.
       unfold HOMonomialEnumerator.
       unfold compose, Lst, vector2pair.
@@ -180,8 +181,31 @@ Section HCOL_Language.
       rewrite E.
       reflexivity.
     Qed.
-      
 
+    Global Instance HOInfinityNorm_proper n:
+      Proper ((=) ==> (=)) (@HOInfinityNorm n).
+    Proof.
+      intros x y E.
+      unfold HOInfinityNorm.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOInduction_proper {n:nat}
+           (f: Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial:Rtheta):
+      Proper ((=) ==> (=)) (HOInduction n f initial).
+    Proof.
+      intros x y E.
+      unfold HOInduction.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
       
     Global Instance Compose_Setoid_Morphism
            `{Setoid A}`{Setoid B} `{Setoid C}
