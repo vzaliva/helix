@@ -221,10 +221,11 @@ Section HCOLBreakdown.
     crush.
   Qed.
 
-  Fact breakdown_OVMinus:  forall (n:nat) (v:svector (n+n)),
-      HOVMinus v = HOBinOp (plus∘negate) v.
+  Fact breakdown_OVMinus:  forall (n:nat),
+      HOVMinus = HOBinOp (o:=n) (plus∘negate).
   Proof.
-    intros n v.
+    intros n.
+    apply HOperator_functional_extensionality; intros v.
     unfold HOVMinus.
     unfold compose at 2.
     unfold vector2pair.
@@ -233,12 +234,12 @@ Section HCOLBreakdown.
   
   Fact breakdown_OTLess_Base: forall
       {i1 i2 o}
-      (o1: svector i1 -> svector o)
-      (o2: svector i2 -> svector o)
-      (v:svector (i1 + i2)),
-      HOTLess o1 o2 v = (HOBinOp Zless ∘ HOCross o1 o2) v.
+      `{!Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
+      `{!Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
+      HOTLess o1 o2 = (HOBinOp Zless ∘ HOCross o1 o2).
   Proof.
-    intros i1 i2 o o1 o2 v.
+    intros i1 i2 o o1 po1 o2 po2.
+    apply HOperator_functional_extensionality; intros v.
     unfold HOTLess, HOBinOp, HOCross.
     unfold compose, BinOp.
     rewrite vp2pv.

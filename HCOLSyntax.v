@@ -10,6 +10,7 @@ Require Import Program. (* compose *)
 Require Import Morphisms.
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -224,11 +225,38 @@ Section HCOL_Language.
       intros x y E.
       unfold HOVMinus.
       unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
+
+    Lemma Rtheta_eq_equiv:
+      forall (a b: Rtheta), eq a b -> equiv a b.
+    Proof.
+      intros.
+      crush.
+    Qed.
+    
+    Global Instance HOTLess_proper {i1 i2 o}
+           `{!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o)}
+           `{!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)}:
+      Proper ((=) ==> (=)) (@HOTLess i1 i2 o lop1 lop2).
+    Proof.
+      intros x y E.
+      unfold HOTLess.
+      unfold compose, Lst, vector2pair.
+      destruct (Vbreak x) as [x0 x1] eqn: X.
+      destruct (Vbreak y) as [y0 y1] eqn: Y.
+      assert(Ye: Vbreak y = (y0, y1)) by crush.
+      assert(Xe: Vbreak x = (x0, x1)) by crush.
+      rewrite E in Xe.
+      rewrite Xe in Ye.
+      clear X Y Xe E.
+      inversion Ye. simpl in *.
+      rewrite H, H0.
+      reflexivity.
+    Qed.
       
+             
     Global Instance Compose_Setoid_Morphism
            `{Setoid A}`{Setoid B} `{Setoid C}
            `{Am: !Setoid_Morphism (f : B → C)}

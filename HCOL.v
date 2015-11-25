@@ -440,6 +440,12 @@ Section HCOLProper.
     rewrite EE.
     reflexivity.
   Qed.
+
+  Global Instance ZVLess_proper {n}:
+    Proper ((=) ==> (=))  (@ZVLess n).
+  Proof.
+    solve_proper.
+  Qed.
   
   Global Instance Cross_proper
          {D R E S: Type}
