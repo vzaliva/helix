@@ -250,18 +250,18 @@ Section HCOLBreakdown.
 End HCOLBreakdown.
 
 
-  (* Our top-level example goal *)
-Theorem DynWinOSPL:  forall (a: svector 3) v,
+(* Our top-level example goal *)
+Theorem DynWinOSPL:  forall (a: svector 3),
   (HOTLess 
     (HOEvalPolynomial a)
-    (HOChebyshevDistance 2)) v
+    (HOChebyshevDistance 2))
   =
   (HOBinOp Zless ∘
           HOCross
-          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction mult 1))
-          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate))) v.
+          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction _ mult 1))
+          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate))).
 Proof.
-  intros a v.
+  intros a.
   rewrite breakdown_OTLess_Base.
   rewrite breakdown_OEvalPolynomial.    
   rewrite breakdown_OScalarProd. 
