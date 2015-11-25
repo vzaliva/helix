@@ -109,13 +109,14 @@ Section HCOLBreakdown.
       reflexivity.
   Qed.
   
-  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: svector (S n)) v,
-      HOEvalPolynomial a v =
+  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: svector (S n)),
+      HOEvalPolynomial a =
       (HOScalarProd ∘
                     ((HOPrepend  a) ∘
-                                    (HOMonomialEnumerator n))) v.
+                                    (HOMonomialEnumerator n))).
   Proof.
-    intros n a v.
+    intros n a.
+    apply HOperator_functional_extensionality; intros v.
     unfold HOEvalPolynomial, HOScalarProd, HOPrepend, HOMonomialEnumerator.
     unfold vector2pair, compose, Lst, Scalarize.
     rewrite Vcons_single_elim, Vbreak_app.

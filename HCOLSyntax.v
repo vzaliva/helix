@@ -149,6 +149,40 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
+    Global Instance HOEvalPolynomial_proper {n} (a: svector n):
+      Proper ((=) ==> (=)) (@HOEvalPolynomial n a).
+    Proof.
+      intros x y E.
+      unfold HOEvalPolynomial.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOPrepend_proper {i n} (a:svector n):
+      Proper ((=) ==> (=)) (@HOPrepend i n a).
+    Proof.
+      intros x y E.
+      unfold HOPrepend.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOMonomialEnumerator_proper n:
+      Proper ((=) ==> (=)) (@HOMonomialEnumerator n).
+      intros x y E.
+      unfold HOMonomialEnumerator.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+      
+
+      
     Global Instance Compose_Setoid_Morphism
            `{Setoid A}`{Setoid B} `{Setoid C}
            `{Am: !Setoid_Morphism (f : B → C)}
