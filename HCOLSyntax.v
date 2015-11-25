@@ -206,6 +206,28 @@ Section HCOL_Language.
       rewrite E.
       reflexivity.
     Qed.
+
+    Global Instance HOChebyshevDistance_proper h:
+      Proper ((=) ==> (=)) (HOChebyshevDistance h).
+    Proof.
+      intros x y E.
+      unfold HOChebyshevDistance.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOVMinus_proper h:
+      Proper ((=) ==> (=)) (@HOVMinus h).
+    Proof.
+      intros x y E.
+      unfold HOVMinus.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
       
     Global Instance Compose_Setoid_Morphism
            `{Setoid A}`{Setoid B} `{Setoid C}
