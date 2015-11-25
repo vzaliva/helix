@@ -18,6 +18,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.theory.rings.
+Require Import MathClasses.theory.setoids.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -41,7 +42,8 @@ Section HCOL_Language.
 
   Definition HOReduction {i}
              (f: Rtheta->Rtheta->Rtheta)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f} (idv:Rtheta)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (idv:Rtheta)
     : svector i -> svector 1
     := Vectorize ∘ (Reduction f idv).
 
@@ -108,8 +110,72 @@ Section HCOL_Language.
     : svector i -> svector (o1+o2)
     := pair2vector ∘ (Stack (op1, op2)).
   
-  Section HCOL_Proper.
+  Section HCOL_Morphisms.
 
+    Global Instance HOScalarProd_proper {n}:
+      Proper ((=) ==> (=)) (@HOScalarProd n).
+    Proof.
+      intros x y E.
+      unfold HOScalarProd.
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOBinOp_proper {o}
+           (f: Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      Proper ((=) ==> (=)) (@HOBinOp o f pF).
+    Proof.
+      intros x y E.
+      unfold HOBinOp.
+      unfold compose, Lst, vector2pair.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance HOReduction_proper {i}
+           (f: Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (idv:Rtheta):
+      Proper ((=) ==> (=)) (@HOReduction i f pF idv).
+    Proof.
+      intros x y E.
+      unfold HOReduction .
+      unfold compose, Lst, vector2pair.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance Compose_Setoid_Morphism
+           `{Setoid A}`{Setoid B} `{Setoid C}
+           `{Am: !Setoid_Morphism (f : B → C)}
+           `{Bm: !Setoid_Morphism (g : A → B)}:
+      Setoid_Morphism (f ∘ g).
+    Proof.
+      split; try assumption.
+      unfold compose.
+      intros x y E.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Lemma HOperator_functional_extensionality
+          {m n: nat}
+          `{!Proper ((=) ==> (=)) (f : svector m → svector n)}
+          `{!Proper ((=) ==> (=)) (g : svector m → svector n)} :
+      (∀ v, f v = g v) -> f = g.
+    Proof.
+      assert(Setoid_Morphism g).
+      split; try apply vec_Setoid. assumption.
+      assert(Setoid_Morphism f).
+      split; try apply vec_Setoid. assumption.
+      apply ext_equiv_applied_iff.
+    Qed.
+    
+    
   (*
       Global Instance HOStack_proper i o1 o2:
         Proper ((=) ==> (=) ==> (=)) (@HOStack i o1 o2).
@@ -152,18 +218,6 @@ Section HCOL_Language.
         rewrite op1E, op2E.
         reflexivity.
       Qed.
-      
-      Global Instance HOCompose_proper i t o :
-        Proper ((=) ==> (=) ==> (=)) (@HOCompose i t o).
-      Proof.
-        intros op1 op1' op1E  op2 op2' op2E.
-        unfold equiv, HCOL_equiv.
-        intros.
-        simpl.
-        unfold compose.
-        rewrite op1E, op2E. 
-        reflexivity.
-      Qed.
    *)
-  End HCOL_Proper.
+  End HCOL_Morphisms.
 End HCOL_Language.

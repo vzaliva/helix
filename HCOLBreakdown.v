@@ -69,13 +69,14 @@ Section HCOLBreakdown.
     unfold compose, BinOp, Reduction, ScalarProd.
     reflexivity.
   Qed.
-  
-  Fact breakdown_OScalarProd: forall {h:nat} v, 
-      HOScalarProd (h:=h) v
+
+  Fact breakdown_OScalarProd: forall {h:nat}, 
+      HOScalarProd (h:=h)
       =
-      ((HOReduction  (+) 0) ∘ (HOBinOp (.*.))) v.
+      ((HOReduction  (+) 0) ∘ (HOBinOp (.*.))).
   Proof.
-    intros h v.
+    intros h.
+    apply HOperator_functional_extensionality; intros v.
     unfold HOScalarProd, HOReduction, HOBinOp.
     unfold vector2pair, compose, Lst, Vectorize.
     apply Vcons_single_elim.
@@ -263,6 +264,6 @@ Proof.
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.
   rewrite breakdown_OTInfinityNorm.
-    reflexivity.
+  reflexivity.
 Qed.
 
