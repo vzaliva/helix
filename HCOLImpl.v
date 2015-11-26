@@ -29,34 +29,6 @@ Open Scope vector_scope.
 
 Section HCOL_implementations.
 
-  (* Apply 2 functions to the same input returning tuple of results *)
-  Definition Stack {D R F: Type} (fg:(D->R)*(D->F)) (x:D) : (R*F) :=
-    match fg with
-    | (f,g) => pair (f x) (g x)
-    end.
-
-  (* Apply 2 functions to 2 inputs returning tuple of results *)
-  Definition Cross {D R E F: Type} (fg:(D->R)*(E->F)) (x:D*E) : (R*F) :=
-    match fg with
-    | (f,g) => match x with
-              | (x0,x1) => pair (f x0) (g x1)
-              end
-    end.
-
-  Definition Zless (a b:Rtheta): Rtheta
-    := if Rtheta_ltdec a b then one else zero.
-
-  Instance Zless_proper:
-    Proper ((=) ==> (=) ==> (=)) (Zless).
-  Proof.
-    unfold Proper.
-    intros a a' aE z z' zE.
-    unfold Zless.
-    destruct (Rtheta_ltdec a z), (Rtheta_ltdec a' z'); auto.
-    rewrite aE, zE in l; contradiction.
-    rewrite <- aE, <- zE in l; contradiction.
-  Qed.
-
   (* --- Type casts --- *)
 
   (* Promote scalar to unit vector *)
@@ -90,15 +62,6 @@ Section HCOL_implementations.
              {n} (ab: (svector n)*(svector n)) : svector n := 
     match ab with
     | (a,b) => Vmap2 ((+)∘(-)) a b
-    end.
-
-  (* --- Pointwise Comparison --- *)
-
-  (* Zero/One version *)
-  Definition ZVLess {n} 
-             (ab: (svector n)*(svector n)) : svector n :=
-    match ab with
-    | (a,b) => Vmap2 (Zless) a b
     end.
 
   (* --- Monomial Enumerator --- *)
@@ -291,34 +254,7 @@ End HCOL_implementation_facts.
 
 Section HCOL_implementation_proper.
 
-  Instance Cross_arg_proper
-         `{Equiv D,Equiv R,Equiv E,Equiv F}
-         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-         `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
-    Proper ((=) ==> (=))  (Cross (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    destruct fg, fg'.
-    destruct fgE as [M2 M1]. simpl in *.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
-
-
-  Instance Stack_arg_proper
-         `{Equiv D,Equiv R,Equiv F}
-         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-         `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
-    Proper ((=) ==> (=))  (Stack (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
-    
-  Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
+  Global Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
     Proper ((=) ==> (=))
            (Scale (n:=n)).
   Proof.
@@ -349,7 +285,7 @@ Section HCOL_implementation_proper.
     apply H1.
   Qed.
   
-  Instance ScalarProd_proper (n:nat):
+  Global Instance ScalarProd_proper (n:nat):
     Proper ((=) ==> (=))
            (ScalarProd (n:=n)).
   Proof.
@@ -364,7 +300,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Instance InfinityNorm_proper {n:nat}:
+  Global Instance InfinityNorm_proper {n:nat}:
     Proper ((=) ==> (=))
            (InfinityNorm (n:=n)).
   Proof.
@@ -377,7 +313,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Instance BinOp_proper
+  Global Instance BinOp_proper
          {n:nat} (f : Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
@@ -390,7 +326,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Instance Reduction_proper
+  Global Instance Reduction_proper
          {n:nat} (f : Rtheta->Rtheta->Rtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
     Proper ((=) ==> (=) ==> (=)) (@Reduction f n).
@@ -403,7 +339,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Instance ChebyshevDistance_proper  (n:nat):
+  Global Instance ChebyshevDistance_proper  (n:nat):
     Proper ((=) ==> (=))  (ChebyshevDistance (n:=n)).
   Proof.
     intros p p' pE.
@@ -416,7 +352,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Instance EvalPolynomial_proper (n:nat):
+  Global Instance EvalPolynomial_proper (n:nat):
     Proper ((=) ==> (=) ==> (=))  (EvalPolynomial (n:=n)).
   Proof.
     intros v v' vE a a' aE.
@@ -435,7 +371,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  Instance MonomialEnumerator_proper (n:nat):
+  Global Instance MonomialEnumerator_proper (n:nat):
     Proper ((=) ==> (=))  (MonomialEnumerator n).
   Proof.
     intros a a' aE.
@@ -445,7 +381,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  Instance Induction_proper
+  Global Instance Induction_proper
          (f:Rtheta->Rtheta->Rtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
     Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
@@ -467,19 +403,6 @@ Section HCOL_implementation_proper.
     
     rewrite EE.
     reflexivity.
-  Qed.
-
-  Instance ZVLess_proper {n:nat}:
-    Proper ((=) ==> (=))  (@ZVLess n).
-  Proof.
-    solve_proper.
-    (* workaround 
-    intros x y E.
-    unfold ZVLess.
-    repeat break_let.
-    inversion E. simpl in *.
-    unfold equiv, vec_equiv.
-    rewrite H0, H. *)
   Qed.
 
 End HCOL_implementation_proper.

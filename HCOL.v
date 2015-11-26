@@ -60,10 +60,6 @@ Section HCOL_Language.
     : svector (o+o) -> svector o
     :=  BinOp f ∘ (vector2pair o).
 
-  Definition HLess {o}
-    : svector (o+o) -> svector o
-    := ZVLess  ∘ (vector2pair o).
-
   Definition HEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
     := Lst ∘ EvalPolynomial a ∘ Scalarize.
 

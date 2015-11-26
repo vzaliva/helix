@@ -5,7 +5,7 @@
 Require Import Spiral.
 Require Import Rtheta.
 Require Import SVector.
-Require Import HCOLImpl.
+Require Import THCOLImpl.
 Require Import HCOL.
 
 Require Import Arith.
