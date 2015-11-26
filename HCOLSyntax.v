@@ -33,208 +33,226 @@ Open Scope vector_scope.
 
 Section HCOL_Language.
 
-  Definition HOPrepend {i n} (a:svector n)
+  Definition HPrepend {i n} (a:svector n)
   : svector i -> svector (n+i)
     := Vapp a.
 
-  Definition HOInfinityNorm {i}
+  Definition HInfinityNorm {i}
     : svector i -> svector 1
     := Vectorize ∘ InfinityNorm.
 
-  Definition HOReduction {i}
+  Definition HReduction {i}
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (idv:Rtheta)
     : svector i -> svector 1
     := Vectorize ∘ (Reduction f idv).
 
-  Definition HOAppend {i n} (a:svector n)
+  Definition HAppend {i n} (a:svector n)
     : svector i -> svector (i+n)
     := fun x => Vapp x a.
 
-  Definition HOVMinus {o}
+  Definition HVMinus {o}
     : svector (o+o) -> svector o
     := VMinus  ∘ (vector2pair o).
 
-  Definition HOBinOp {o}
+  Definition HBinOp {o}
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     : svector (o+o) -> svector o
     :=  BinOp f ∘ (vector2pair o).
 
-  Definition HOLess {o}
+  Definition HLess {o}
     : svector (o+o) -> svector o
     := ZVLess  ∘ (vector2pair o).
 
-  Definition HOEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
+  Definition HEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
     := Lst ∘ EvalPolynomial a ∘ Scalarize.
 
-  Definition HOMonomialEnumerator n
+  Definition HMonomialEnumerator n
     : svector 1 -> svector (S n)
     := MonomialEnumerator n ∘ Scalarize.
 
-  Definition HOChebyshevDistance h
+  Definition HChebyshevDistance h
     : svector (h+h) -> svector 1
     := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
 
-  Definition HOScalarProd {h}
+  Definition HScalarProd {h}
     : svector (h+h) -> svector 1
     := Lst ∘ ScalarProd ∘ (vector2pair h).
 
-  Definition HOInduction (n:nat)
+  Definition HInduction (n:nat)
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial:Rtheta)
     : svector 1 -> svector n
     := Induction n f initial ∘ Scalarize.
 
-  (* HOCompose becomes just ∘ *)
+  (* HCompose becomes just ∘ *)
 
-  Definition HOTLess {i1 i2 o}
+  Definition HTLess {i1 i2 o}
              (lop1: svector i1 -> svector o)
              (lop2: svector i2 -> svector o)
     : svector (i1+i2) -> svector o
     := fun v0 => let (v1,v2) := vector2pair i1 v0 in
               ZVLess (lop1 v1, lop2 v2).
   
-  Definition HOCross
+  Definition HCross
              {i1 o1 i2 o2}
              `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
              `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2))
     : svector (i1+i2) -> svector (o1+o2)
     := pair2vector ∘ (Cross (xop1, xop2)) ∘ (vector2pair i1).
     
-  Definition HOStack {i o1 o2}
+  Definition HStack {i o1 o2}
              (op1: svector i -> svector o1)
              (op2: svector i -> svector o2)
     : svector i -> svector (o1+o2)
     := pair2vector ∘ (Stack (op1, op2)).
+
+
+  (* HOperator is a record with contains actual operator function and Proper morphism proof *)
+  
+  Record HOperator (i o:nat) :=
+    Build_HOperator {
+        op: svector i -> svector o;
+        opf: Proper ((=) ==> (=)) (op)
+      }.
+  
+  Global Instance HOperator_equiv {i o:nat}:
+    Equiv (HOperator i o)
+    :=
+      fun f g => (op _ _ f) = (op _ _ g).
+  
   
   Section HCOL_Morphisms.
 
-    Global Instance HOScalarProd_proper {n}:
-      Proper ((=) ==> (=)) (@HOScalarProd n).
+    Global Instance HScalarProd_proper {n}:
+      Proper ((=) ==> (=)) (@HScalarProd n).
     Proof.
       intros x y E.
-      unfold HOScalarProd.
+      unfold HScalarProd.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
-
-    Global Instance HOBinOp_proper {o}
+    
+    Definition HOScalarProd {n}: @HOperator (n+n) 1
+      := Build_HOperator (n+n) 1 (@HScalarProd n) HScalarProd_proper.
+    
+    Global Instance HBinOp_proper {o}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      Proper ((=) ==> (=)) (@HOBinOp o f pF).
+      Proper ((=) ==> (=)) (@HBinOp o f pF).
     Proof.
       intros x y E.
-      unfold HOBinOp.
+      unfold HBinOp.
       unfold compose, Lst, vector2pair.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOReduction_proper {i}
+    Global Instance HReduction_proper {i}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (idv:Rtheta):
-      Proper ((=) ==> (=)) (@HOReduction i f pF idv).
+      Proper ((=) ==> (=)) (@HReduction i f pF idv).
     Proof.
       intros x y E.
-      unfold HOReduction .
+      unfold HReduction .
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOEvalPolynomial_proper {n} (a: svector n):
-      Proper ((=) ==> (=)) (@HOEvalPolynomial n a).
+    Global Instance HEvalPolynomial_proper {n} (a: svector n):
+      Proper ((=) ==> (=)) (@HEvalPolynomial n a).
     Proof.
       intros x y E.
-      unfold HOEvalPolynomial.
+      unfold HEvalPolynomial.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOPrepend_proper {i n} (a:svector n):
-      Proper ((=) ==> (=)) (@HOPrepend i n a).
+    Global Instance HPrepend_proper {i n} (a:svector n):
+      Proper ((=) ==> (=)) (@HPrepend i n a).
     Proof.
       intros x y E.
-      unfold HOPrepend.
+      unfold HPrepend.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOMonomialEnumerator_proper n:
-      Proper ((=) ==> (=)) (@HOMonomialEnumerator n).
+    Global Instance HMonomialEnumerator_proper n:
+      Proper ((=) ==> (=)) (@HMonomialEnumerator n).
     Proof.
       intros x y E.
-      unfold HOMonomialEnumerator.
+      unfold HMonomialEnumerator.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOInfinityNorm_proper n:
-      Proper ((=) ==> (=)) (@HOInfinityNorm n).
+    Global Instance HInfinityNorm_proper n:
+      Proper ((=) ==> (=)) (@HInfinityNorm n).
     Proof.
       intros x y E.
-      unfold HOInfinityNorm.
+      unfold HInfinityNorm.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOInduction_proper {n:nat}
+    Global Instance HInduction_proper {n:nat}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (initial:Rtheta):
-      Proper ((=) ==> (=)) (HOInduction n f initial).
+      Proper ((=) ==> (=)) (HInduction n f initial).
     Proof.
       intros x y E.
-      unfold HOInduction.
+      unfold HInduction.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOChebyshevDistance_proper h:
-      Proper ((=) ==> (=)) (HOChebyshevDistance h).
+    Global Instance HChebyshevDistance_proper h:
+      Proper ((=) ==> (=)) (HChebyshevDistance h).
     Proof.
       intros x y E.
-      unfold HOChebyshevDistance.
+      unfold HChebyshevDistance.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOVMinus_proper h:
-      Proper ((=) ==> (=)) (@HOVMinus h).
+    Global Instance HVMinus_proper h:
+      Proper ((=) ==> (=)) (@HVMinus h).
     Proof.
       intros x y E.
-      unfold HOVMinus.
+      unfold HVMinus.
       unfold compose, Lst, vector2pair.
       rewrite E.
       reflexivity.
     Qed.
 
-    Global Instance HOTLess_proper {i1 i2 o}
+    Global Instance HTLess_proper {i1 i2 o}
            `{!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o)}
            `{!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)}:
-      Proper ((=) ==> (=)) (@HOTLess i1 i2 o lop1 lop2).
+      Proper ((=) ==> (=)) (@HTLess i1 i2 o lop1 lop2).
     Proof.
       intros x y E.
-      unfold HOTLess, vector2pair.
+      unfold HTLess, vector2pair.
       destruct (Vbreak x) as [x0 x1] eqn: X.
       destruct (Vbreak y) as [y0 y1] eqn: Y.
       assert(Ye: Vbreak y = (y0, y1)) by crush.
@@ -260,14 +278,14 @@ Section HCOL_Language.
       apply ext_equiv_applied_iff.
     Qed.
        
-    Global Instance HOCross_arg_proper
+    Global Instance HCross_arg_proper
            {i1 o1 i2 o2}
            `{xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1)}
            `{xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)}:
-      Proper ((=) ==> (=)) (HOCross xop1pf xop2pf).
+      Proper ((=) ==> (=)) (HCross xop1pf xop2pf).
     Proof.
       intros x y E.
-      unfold HOCross.
+      unfold HCross.
       unfold compose, pair2vector, vector2pair.
       destruct (Vbreak x) as [x0 x1] eqn: X.
       destruct (Vbreak y) as [y0 y1] eqn: Y.
@@ -282,11 +300,11 @@ Section HCOL_Language.
     Qed.
 
     (*
-    Global Instance HOCross_proper {i1 o1 i2 o2}:
-      Proper ((=) ==> (=) ==> (=)) (@HOCross i1 o1 i2 o2).
+    Global Instance HCross_proper {i1 o1 i2 o2}:
+      Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
     Proof.
       intros op1 op2 E1 xop1 xop2 E2.
-      unfold HOCross.
+      unfold HCross.
       unfold compose, pair2vector, vector2pair.
       destruct (Vbreak x) as [x0 x1] eqn: X.
       destruct (Vbreak y) as [y0 y1] eqn: Y.
@@ -303,8 +321,8 @@ Section HCOL_Language.
     
     
   (*
-      Global Instance HOStack_proper i o1 o2:
-        Proper ((=) ==> (=) ==> (=)) (@HOStack i o1 o2).
+      Global Instance HStack_proper i o1 o2:
+        Proper ((=) ==> (=) ==> (=)) (@HStack i o1 o2).
       Proof.
         intros op1 op1' op1E  op2 op2' op2E.
         unfold equiv, HCOL_equiv.
@@ -316,8 +334,8 @@ Section HCOL_Language.
         reflexivity.
       Qed.
       
-      Global Instance HOCross_proper i1 o1 i2 o2:
-        Proper ((=) ==> (=) ==> (=)) (@HOCross i1 o1 i2 o2).
+      Global Instance HCross_proper i1 o1 i2 o2:
+        Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
       Proof.
         intros op1 op1' op1E  op2 op2' op2E.
         unfold equiv, HCOL_equiv.
