@@ -99,12 +99,11 @@ Section HCOL_Language.
   
   Definition HOCross
              {i1 o1 i2 o2}
-             (xop1: svector i1 -> svector o1)
-             (xop2: svector i2 -> svector o2)
+             `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
+             `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2))
     : svector (i1+i2) -> svector (o1+o2)
     := pair2vector ∘ (Cross (xop1, xop2)) ∘ (vector2pair i1).
-
-  
+    
   Definition HOStack {i o1 o2}
              (op1: svector i -> svector o1)
              (op2: svector i -> svector o2)
@@ -248,12 +247,24 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-
-    Global Instance HOCross_proper
+    Lemma HOperator_functional_extensionality
+          {m n: nat}
+          `{!Proper ((=) ==> (=)) (f : svector m → svector n)}
+          `{!Proper ((=) ==> (=)) (g : svector m → svector n)} :
+      (∀ v, f v = g v) -> f = g.
+    Proof.
+      assert(Setoid_Morphism g).
+      split; try apply vec_Setoid. assumption.
+      assert(Setoid_Morphism f).
+      split; try apply vec_Setoid. assumption.
+      apply ext_equiv_applied_iff.
+    Qed.
+       
+    Global Instance HOCross_arg_proper
            {i1 o1 i2 o2}
-           `{!Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1)}
-           `{!Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)}:
-      Proper ((=) ==> (=)) (@HOCross i1 o1 i2 o2 xop1 xop2).
+           `{xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1)}
+           `{xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)}:
+      Proper ((=) ==> (=)) (HOCross xop1pf xop2pf).
     Proof.
       intros x y E.
       unfold HOCross.
@@ -269,32 +280,26 @@ Section HCOL_Language.
       rewrite H, H0.
       reflexivity.
     Qed.
-    
-    Global Instance Compose_Setoid_Morphism
-           `{Setoid A}`{Setoid B} `{Setoid C}
-           `{Am: !Setoid_Morphism (f : B → C)}
-           `{Bm: !Setoid_Morphism (g : A → B)}:
-      Setoid_Morphism (f ∘ g).
+
+    (*
+    Global Instance HOCross_proper {i1 o1 i2 o2}:
+      Proper ((=) ==> (=) ==> (=)) (@HOCross i1 o1 i2 o2).
     Proof.
-      split; try assumption.
-      unfold compose.
-      intros x y E.
-      rewrite E.
+      intros op1 op2 E1 xop1 xop2 E2.
+      unfold HOCross.
+      unfold compose, pair2vector, vector2pair.
+      destruct (Vbreak x) as [x0 x1] eqn: X.
+      destruct (Vbreak y) as [y0 y1] eqn: Y.
+      assert(Ye: Vbreak y = (y0, y1)) by crush.
+      assert(Xe: Vbreak x = (x0, x1)) by crush.
+      rewrite E in Xe.
+      rewrite Xe in Ye.
+      clear X Y Xe E.
+      inversion Ye. simpl in *.
+      rewrite H, H0.
       reflexivity.
     Qed.
-
-    Lemma HOperator_functional_extensionality
-          {m n: nat}
-          `{!Proper ((=) ==> (=)) (f : svector m → svector n)}
-          `{!Proper ((=) ==> (=)) (g : svector m → svector n)} :
-      (∀ v, f v = g v) -> f = g.
-    Proof.
-      assert(Setoid_Morphism g).
-      split; try apply vec_Setoid. assumption.
-      assert(Setoid_Morphism f).
-      split; try apply vec_Setoid. assumption.
-      apply ext_equiv_applied_iff.
-    Qed.
+*)
     
     
   (*

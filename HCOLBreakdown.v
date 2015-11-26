@@ -234,9 +234,9 @@ Section HCOLBreakdown.
   
   Fact breakdown_OTLess_Base: forall
       {i1 i2 o}
-      `{!Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
-      `{!Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
-      HOTLess o1 o2 = (HOBinOp Zless ∘ HOCross o1 o2).
+      `{o1pf: !Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
+      `{o2pf: !Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
+      HOTLess o1 o2 = (HOBinOp Zless ∘ HOCross o1pf o2pf).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
     apply HOperator_functional_extensionality; intros v.
@@ -249,6 +249,14 @@ Section HCOLBreakdown.
 
 End HCOLBreakdown.
 
+
+Theorem Test:  forall (a: svector 3),
+    HOCross (HOEvalPolynomial a) (HOChebyshevDistance 2) = HOCross (HOEvalPolynomial a) (HOChebyshevDistance 2).
+Proof.
+  intros.
+  Set Printing Implicit. Show.
+  rewrite breakdown_OEvalPolynomial.    
+Qed.
 
 (* Our top-level example goal *)
 Theorem DynWinOSPL:  forall (a: svector 3),
