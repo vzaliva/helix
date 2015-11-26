@@ -4,7 +4,7 @@ Require Import Rtheta.
 Require Import SVector.
 
 Require Import HCOL.
-Require Import HCOLSyntax.
+Require Import THCOL.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -38,8 +38,6 @@ Proof.
 Qed.
 
 Section HCOLBreakdown.
-
-  Import HCOLOperators.
 
     Context
     `{Ae: Equiv A}
