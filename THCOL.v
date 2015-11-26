@@ -77,25 +77,15 @@ Global Instance HStack_arg_proper
 Proof.
   intros x y E.
   unfold HStack.
-  unfold compose, pair2vector, vector2pair.
-  repeat break_let.
-  rewrite E in Heqp.
-  destruct (Vbreak x) as [x0 x1] eqn: X.
-  destruct (Vbreak y) as [y0 y1] eqn: Y.
-  assert(Ye: Vbreak y = (y0, y1)) by crush.
-  assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite E in Xe.
-  rewrite Xe in Ye.
-  clear X Y Xe E.
-  inversion Ye. simpl in *.
-  rewrite H, H0.
-  reflexivity.  
+  unfold pair2vector.
+  simpl.
+  rewrite E.
+  reflexivity.
 Qed.
 
 (* Apply 2 functions to the same input returning tuple of results *)
 Definition HOStack {i o1 o2} (f:@HOperator i o1) (g:@HOperator i o2): @HOperator i (o1+o2) 
-  := fun x => Build_HOperator _ _ (HStack (op f) (op g)) (HStack_arg_proper (opf f) (opf g)).
-
+  := Build_HOperator _ _ (HStack (op f) (op g)) (HStack_arg_proper (opf f) (opf g)).
 
 (* HCompose becomes just ∘ *)
 
