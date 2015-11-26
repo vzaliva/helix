@@ -28,6 +28,20 @@ Open Scope vector_scope.
 
 Section HCOL_implementations.
 
+  (* Apply 2 functions to the same input returning tuple of results *)
+  Definition Stack {D R S: Type} (fg:(D->R)*(D->S)) (x:D) : (R*S) :=
+    match fg with
+    | (f,g) => pair (f x) (g x)
+    end.
+  
+  (* Apply 2 functions to 2 inputs returning tuple of results *)
+  Definition Cross {D R E S: Type} (fg:(D->R)*(E->S)) (x:D*E) : (R*S) :=
+    match fg with
+    | (f,g) => match x with
+              | (x0,x1) => pair (f x0) (g x1)
+              end
+    end.
+
   Definition Zless (a b:Rtheta): Rtheta
     := if Rtheta_ltdec a b then one else zero.
 
@@ -276,6 +290,20 @@ End HCOL_implementation_facts.
 
 Section HCOL_implementation_proper.
 
+  Global Instance Cross_arg_proper
+         `{Equiv D,Equiv R,Equiv E,Equiv F}
+         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+         `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
+    Proper ((=) ==> (=))  (Cross (f,g)).
+  Proof.
+    intros fg fg' fgE.
+    destruct fg, fg'.
+    destruct fgE as [M2 M1]. simpl in *.
+    split; simpl.
+    apply pF; assumption.
+    apply pG; assumption.
+  Qed.
+  
   Global Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
     Proper ((=) ==> (=))
            (Scale (n:=n)).

@@ -15,6 +15,7 @@ Require Import RelationClasses.
 Require Import Relations.
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -29,38 +30,42 @@ Import VectorNotations.
 
 Open Scope vector_scope.
 
-(* Apply 2 functions to the same input returning tuple of results *)
-Definition Stack {D R S: Type} (fg:(D->R)*(D->S)) (x:D) : (R*S) :=
-  match fg with
-  | (f,g) => pair (f x) (g x)
-  end.
+Definition HCross
+           {i1 o1 i2 o2}
+           (f: svector i1 -> svector o1)
+           (g: svector i2 -> svector o2)
+  : svector (i1+i2) -> svector (o1+o2) :=
+  fun x =>  pair2vector (Cross (f, g) (Vbreak x)).
 
-(* Apply 2 functions to 2 inputs returning tuple of results *)
-Definition Cross {D R E S: Type} (fg:(D->R)*(E->S)) (x:D*E) : (R*S) :=
-  match fg with
-  | (f,g) => match x with
-            | (x0,x1) => pair (f x0) (g x1)
-            end
-  end.
-
-Global Instance Cross_proper
-       {D R E S: Type}
-       `{Equiv D,Equiv R,Equiv E,Equiv S}
-       (f:D->R)
-       (g:E->S)
-       `{pF: !Proper ((=) ==> (=)) f}
-       `{pG: !Proper ((=) ==> (=)) g}:
-  Proper ((=) ==> (=))  (Cross (f,g)).
+Global Instance HCross_arg_proper
+       {i1 o1 i2 o2}
+       `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
+       `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)):
+  Proper ((=) ==> (=)) (HCross xop1 xop2).
 Proof.
-  intros fg fg' fgE.
-  destruct fg, fg'.
-  destruct fgE as [M2 M1]. simpl in *.
-  split; simpl.
-  apply pF; assumption.
-  apply pG; assumption.
+  intros x y E.
+  unfold HCross.
+  unfold compose, pair2vector, vector2pair.
+  destruct (Vbreak x) as [x0 x1] eqn: X.
+  destruct (Vbreak y) as [y0 y1] eqn: Y.
+  assert(Ye: Vbreak y = (y0, y1)) by crush.
+  assert(Xe: Vbreak x = (x0, x1)) by crush.
+  rewrite E in Xe.
+  rewrite Xe in Ye.
+  clear X Y Xe E.
+  inversion Ye. simpl in *.
+  rewrite H, H0.
+  reflexivity.  
 Qed.
 
+(* Apply 2 functions to 2 inputs returning tuple of results *)
+Definition HOCross {i1 o1 i2 o2} (f:@HOperator i1 o1) (g:@HOperator i2 o2): @HOperator (i1+i2) (o1+o2)
+  := Build_HOperator _ _ (HCross (op f) (op g)) (HCross_arg_proper (opf f) (opf g)).
 
+(* Apply 2 functions to the same input returning tuple of results *)
+(*Definition HStack {i o1 o2} (f:@HOperator i o1) (g:@HOperator i o2): @HOperator i (o1+o2) 
+  := fun x => Vapp ((op f) x) ((op g) x).
+*)
 
 (* HCompose becomes just ∘ *)
 
@@ -103,26 +108,6 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance HCross_arg_proper
-       {i1 o1 i2 o2}
-       `{xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1)}
-       `{xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)}:
-  Proper ((=) ==> (=)) (HCross xop1pf xop2pf).
-Proof.
-  intros x y E.
-  unfold HCross.
-  unfold compose, pair2vector, vector2pair.
-  destruct (Vbreak x) as [x0 x1] eqn: X.
-  destruct (Vbreak y) as [y0 y1] eqn: Y.
-  assert(Ye: Vbreak y = (y0, y1)) by crush.
-  assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite E in Xe.
-  rewrite Xe in Ye.
-  clear X Y Xe E.
-  inversion Ye. simpl in *.
-  rewrite H, H0.
-  reflexivity.
-Qed.
 
 (*
     Global Instance HCross_proper {i1 o1 i2 o2}:
