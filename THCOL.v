@@ -96,22 +96,9 @@ Definition HTLess {i1 i2 o}
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
             ZVLess (lop1 v1, lop2 v2).
 
-Definition HCross
-           {i1 o1 i2 o2}
-           `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
-           `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2))
-  : svector (i1+i2) -> svector (o1+o2)
-  := pair2vector ∘ (Cross (xop1, xop2)) ∘ (vector2pair i1).
-
-Definition HStack {i o1 o2}
-           (op1: svector i -> svector o1)
-           (op2: svector i -> svector o2)
-  : svector i -> svector (o1+o2)
-  := pair2vector ∘ (Stack (op1, op2)).
-
-Global Instance HTLess_proper {i1 i2 o}
-       `{!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o)}
-       `{!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)}:
+Global Instance HTLess_arg_proper {i1 i2 o}
+       `(!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o))
+       `(!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)):
   Proper ((=) ==> (=)) (@HTLess i1 i2 o lop1 lop2).
 Proof.
   intros x y E.
@@ -128,4 +115,7 @@ Proof.
   reflexivity.
 Qed.
 
+(* Apply 2 functions to the same input returning tuple of results *)
+Definition HOTLess {i1 i2 o} (f:@HOperator i1 o) (g:@HOperator i2 o): @HOperator (i1+i2) o
+  := Build_HOperator _ _ (HTLess (op f) (op g)) (HTLess_arg_proper (opf f) (opf g)).
 
