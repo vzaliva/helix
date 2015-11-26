@@ -12,6 +12,7 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Program. 
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 

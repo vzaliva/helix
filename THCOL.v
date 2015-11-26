@@ -62,10 +62,40 @@ Qed.
 Definition HOCross {i1 o1 i2 o2} (f:@HOperator i1 o1) (g:@HOperator i2 o2): @HOperator (i1+i2) (o1+o2)
   := Build_HOperator _ _ (HCross (op f) (op g)) (HCross_arg_proper (opf f) (opf g)).
 
+Definition HStack
+           {i1 o1 o2}
+           (f: svector i1 -> svector o1)
+           (g: svector i1 -> svector o2)
+  : svector i1 -> svector (o1+o2) :=
+  fun x =>  pair2vector (Stack (f, g) x).
+
+Global Instance HStack_arg_proper
+       {i1 o1 o2}
+       `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
+       `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i1 -> svector o2)):
+  Proper ((=) ==> (=)) (HStack xop1 xop2).
+Proof.
+  intros x y E.
+  unfold HStack.
+  unfold compose, pair2vector, vector2pair.
+  repeat break_let.
+  rewrite E in Heqp.
+  destruct (Vbreak x) as [x0 x1] eqn: X.
+  destruct (Vbreak y) as [y0 y1] eqn: Y.
+  assert(Ye: Vbreak y = (y0, y1)) by crush.
+  assert(Xe: Vbreak x = (x0, x1)) by crush.
+  rewrite E in Xe.
+  rewrite Xe in Ye.
+  clear X Y Xe E.
+  inversion Ye. simpl in *.
+  rewrite H, H0.
+  reflexivity.  
+Qed.
+
 (* Apply 2 functions to the same input returning tuple of results *)
-(*Definition HStack {i o1 o2} (f:@HOperator i o1) (g:@HOperator i o2): @HOperator i (o1+o2) 
-  := fun x => Vapp ((op f) x) ((op g) x).
-*)
+Definition HOStack {i o1 o2} (f:@HOperator i o1) (g:@HOperator i o2): @HOperator i (o1+o2) 
+  := fun x => Build_HOperator _ _ (HStack (op f) (op g)) (HStack_arg_proper (opf f) (opf g)).
+
 
 (* HCompose becomes just ∘ *)
 
@@ -108,57 +138,4 @@ Proof.
   reflexivity.
 Qed.
 
-
-(*
-    Global Instance HCross_proper {i1 o1 i2 o2}:
-      Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
-    Proof.
-      intros op1 op2 E1 xop1 xop2 E2.
-      unfold HCross.
-      unfold compose, pair2vector, vector2pair.
-      destruct (Vbreak x) as [x0 x1] eqn: X.
-      destruct (Vbreak y) as [y0 y1] eqn: Y.
-      assert(Ye: Vbreak y = (y0, y1)) by crush.
-      assert(Xe: Vbreak x = (x0, x1)) by crush.
-      rewrite E in Xe.
-      rewrite Xe in Ye.
-      clear X Y Xe E.
-      inversion Ye. simpl in *.
-      rewrite H, H0.
-      reflexivity.
-    Qed.
- *)
-
-
-(*
-      Global Instance HStack_proper i o1 o2:
-        Proper ((=) ==> (=) ==> (=)) (@HStack i o1 o2).
-      Proof.
-        intros op1 op1' op1E  op2 op2' op2E.
-        unfold equiv, HCOL_equiv.
-        intros.
-        simpl.
-        unfold pair2vector, Stack, compose.
-        unfold equiv, HCOL_equiv in op1E.
-        rewrite op1E, op2E.
-        reflexivity.
-      Qed.
-      
-      Global Instance HCross_proper i1 o1 i2 o2:
-        Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
-      Proof.
-        intros op1 op1' op1E  op2 op2' op2E.
-        unfold equiv, HCOL_equiv.
-        intros.
-        simpl.
-        unfold compose.
-        generalize (vector2pair i1 x). intros.
-        destruct p.
-        unfold Cross.
-        unfold pair2vector.
-        rewrite op1E, op2E.
-        reflexivity.
-      Qed.
-
- *)
 

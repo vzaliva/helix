@@ -11,6 +11,7 @@ Require Import RelationClasses.
 Require Import Relations.
 
 Require Import CpdtTactics.
+Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -29,13 +30,13 @@ Open Scope vector_scope.
 Section HCOL_implementations.
 
   (* Apply 2 functions to the same input returning tuple of results *)
-  Definition Stack {D R S: Type} (fg:(D->R)*(D->S)) (x:D) : (R*S) :=
+  Definition Stack {D R F: Type} (fg:(D->R)*(D->F)) (x:D) : (R*F) :=
     match fg with
     | (f,g) => pair (f x) (g x)
     end.
-  
+
   (* Apply 2 functions to 2 inputs returning tuple of results *)
-  Definition Cross {D R E S: Type} (fg:(D->R)*(E->S)) (x:D*E) : (R*S) :=
+  Definition Cross {D R E F: Type} (fg:(D->R)*(E->F)) (x:D*E) : (R*F) :=
     match fg with
     | (f,g) => match x with
               | (x0,x1) => pair (f x0) (g x1)
@@ -45,7 +46,7 @@ Section HCOL_implementations.
   Definition Zless (a b:Rtheta): Rtheta
     := if Rtheta_ltdec a b then one else zero.
 
-  Global Instance Zless_proper:
+  Instance Zless_proper:
     Proper ((=) ==> (=) ==> (=)) (Zless).
   Proof.
     unfold Proper.
@@ -290,7 +291,7 @@ End HCOL_implementation_facts.
 
 Section HCOL_implementation_proper.
 
-  Global Instance Cross_arg_proper
+  Instance Cross_arg_proper
          `{Equiv D,Equiv R,Equiv E,Equiv F}
          `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
          `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
@@ -303,8 +304,21 @@ Section HCOL_implementation_proper.
     apply pF; assumption.
     apply pG; assumption.
   Qed.
-  
-  Global Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
+
+
+  Instance Stack_arg_proper
+         `{Equiv D,Equiv R,Equiv F}
+         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+         `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
+    Proper ((=) ==> (=))  (Stack (f,g)).
+  Proof.
+    intros fg fg' fgE.
+    split; simpl.
+    apply pF; assumption.
+    apply pG; assumption.
+  Qed.
+    
+  Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
     Proper ((=) ==> (=))
            (Scale (n:=n)).
   Proof.
@@ -335,7 +349,7 @@ Section HCOL_implementation_proper.
     apply H1.
   Qed.
   
-  Global Instance ScalarProd_proper (n:nat):
+  Instance ScalarProd_proper (n:nat):
     Proper ((=) ==> (=))
            (ScalarProd (n:=n)).
   Proof.
@@ -350,7 +364,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Global Instance InfinityNorm_proper {n:nat}:
+  Instance InfinityNorm_proper {n:nat}:
     Proper ((=) ==> (=))
            (InfinityNorm (n:=n)).
   Proof.
@@ -363,7 +377,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Global Instance BinOp_proper
+  Instance BinOp_proper
          {n:nat} (f : Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
@@ -376,7 +390,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Global Instance Reduction_proper
+  Instance Reduction_proper
          {n:nat} (f : Rtheta->Rtheta->Rtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
     Proper ((=) ==> (=) ==> (=)) (@Reduction f n).
@@ -389,7 +403,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
   
-  Global Instance ChebyshevDistance_proper  (n:nat):
+  Instance ChebyshevDistance_proper  (n:nat):
     Proper ((=) ==> (=))  (ChebyshevDistance (n:=n)).
   Proof.
     intros p p' pE.
@@ -397,11 +411,12 @@ Section HCOL_implementation_proper.
     dep_destruct p'.
     unfold ChebyshevDistance.
     inversion pE. clear pE. simpl in *.
+    clear p p'.
     rewrite H, H0.
     reflexivity.
   Qed.
   
-  Global Instance EvalPolynomial_proper (n:nat):
+  Instance EvalPolynomial_proper (n:nat):
     Proper ((=) ==> (=) ==> (=))  (EvalPolynomial (n:=n)).
   Proof.
     intros v v' vE a a' aE.
@@ -420,7 +435,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  Global Instance MonomialEnumerator_proper (n:nat):
+  Instance MonomialEnumerator_proper (n:nat):
     Proper ((=) ==> (=))  (MonomialEnumerator n).
   Proof.
     intros a a' aE.
@@ -430,7 +445,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  Global Instance Induction_proper
+  Instance Induction_proper
          (f:Rtheta->Rtheta->Rtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
     Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
@@ -454,10 +469,17 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  Global Instance ZVLess_proper {n:nat}:
+  Instance ZVLess_proper {n:nat}:
     Proper ((=) ==> (=))  (@ZVLess n).
   Proof.
     solve_proper.
+    (* workaround 
+    intros x y E.
+    unfold ZVLess.
+    repeat break_let.
+    inversion E. simpl in *.
+    unfold equiv, vec_equiv.
+    rewrite H0, H. *)
   Qed.
 
 End HCOL_implementation_proper.
