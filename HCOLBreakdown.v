@@ -4,7 +4,9 @@ Require Import Rtheta.
 Require Import SVector.
 
 Require Import HCOL.
+Require Import HCOLImpl.
 Require Import THCOL.
+Require Import THCOLImpl.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -70,13 +72,13 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat}, 
-      HOScalarProd (h:=h)
+      HScalarProd (h:=h)
       =
-      ((HOReduction  (+) 0) ∘ (HOBinOp (.*.))).
+      ((HReduction  (+) 0) ∘ (HBinOp (.*.))).
   Proof.
     intros h.
     apply HOperator_functional_extensionality; intros v.
-    unfold HOScalarProd, HOReduction, HOBinOp.
+    unfold HScalarProd, HReduction, HBinOp.
     unfold vector2pair, compose, Lst, Vectorize.
     apply Vcons_single_elim.
     destruct (Vbreak v).
@@ -109,14 +111,14 @@ Section HCOLBreakdown.
   Qed.
   
   Fact breakdown_OEvalPolynomial: forall (n:nat) (a: svector (S n)),
-      HOEvalPolynomial a =
-      (HOScalarProd ∘
-                    ((HOPrepend  a) ∘
-                                    (HOMonomialEnumerator n))).
+      HEvalPolynomial a =
+      (HScalarProd ∘
+                    ((HPrepend  a) ∘
+                                    (HMonomialEnumerator n))).
   Proof.
     intros n a.
     apply HOperator_functional_extensionality; intros v.
-    unfold HOEvalPolynomial, HOScalarProd, HOPrepend, HOMonomialEnumerator.
+    unfold HEvalPolynomial, HScalarProd, HPrepend, HMonomialEnumerator.
     unfold vector2pair, compose, Lst, Scalarize.
     rewrite Vcons_single_elim, Vbreak_app.
     apply breakdown_EvalPolynomial.
@@ -153,8 +155,8 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OTInfinityNorm:  forall (n:nat),
-      HOInfinityNorm =
-      HOReduction MaxAbs 0 (i:=n).
+      HInfinityNorm =
+      HReduction MaxAbs 0 (i:=n).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -187,8 +189,8 @@ Section HCOLBreakdown.
 
   Fact breakdown_OMonomialEnumerator:
     forall (n:nat),
-      HOMonomialEnumerator n =
-      HOInduction (S n) (.*.) 1.
+      HMonomialEnumerator n =
+      HInduction (S n) (.*.) 1.
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -205,7 +207,7 @@ Section HCOLBreakdown.
   Qed.
   
   Fact breakdown_OChebyshevDistance:  forall (n:nat),
-      HOChebyshevDistance n = (HOInfinityNorm ∘ HOVMinus).
+      HChebyshevDistance n = (HInfinityNorm ∘ HVMinus).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -221,11 +223,11 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),
-      HOVMinus = HOBinOp (o:=n) (plus∘negate).
+      HVMinus = HBinOp (o:=n) (plus∘negate).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
-    unfold HOVMinus.
+    unfold HVMinus.
     unfold compose at 2.
     unfold vector2pair.
     apply breakdown_VMinus.
@@ -235,14 +237,19 @@ Section HCOLBreakdown.
       {i1 i2 o}
       `{o1pf: !Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
       `{o2pf: !Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
-      HOTLess o1 o2 = (HOBinOp Zless ∘ HOCross o1pf o2pf).
+      HTLess o1 o2 = (HBinOp Zless ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
     apply HOperator_functional_extensionality; intros v.
-    unfold HOTLess, HOBinOp, HOCross.
+    unfold HTLess, HBinOp, HCross.
     unfold compose, BinOp.
+    simpl.
     rewrite vp2pv.
-    elim (vector2pair i1 v).
+    repeat break_let.
+    unfold vector2pair in Heqp.
+    rewrite Heqp in Heqp1.
+    inversion Heqp0.
+    inversion Heqp1.
     reflexivity.
   Qed.
 
@@ -250,7 +257,7 @@ End HCOLBreakdown.
 
 
 Theorem Test:  forall (a: svector 3),
-    HOCross (HOEvalPolynomial a) (HOChebyshevDistance 2) = HOCross (HOEvalPolynomial a) (HOChebyshevDistance 2).
+    HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
   intros.
   Set Printing Implicit. Show.
@@ -259,14 +266,14 @@ Qed.
 
 (* Our top-level example goal *)
 Theorem DynWinOSPL:  forall (a: svector 3),
-  (HOTLess 
-    (HOEvalPolynomial a)
-    (HOChebyshevDistance 2))
+  (HTLess 
+    (HEvalPolynomial a)
+    (HChebyshevDistance 2))
   =
-  (HOBinOp Zless ∘
-          HOCross
-          ((HOReduction plus 0 ∘ HOBinOp mult) ∘ (HOPrepend a ∘ HOInduction _ mult 1))
-          (HOReduction MaxAbs 0 ∘ HOBinOp (o:=2) (plus∘negate))).
+  (HBinOp Zless ∘
+          HCross
+          ((HReduction plus 0 ∘ HBinOp mult) ∘ (HPrepend a ∘ HInduction _ mult 1))
+          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (plus∘negate))).
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
