@@ -256,6 +256,18 @@ Section HCOLBreakdown.
 End HCOLBreakdown.
 
 
+Global Instance HCross_proper
+       {i1 o1 i2 o2}:
+  Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
+Proof.
+  intros f f' Ef g g' Eg.
+  unfold HCross, pair2vector.
+  simpl.
+  extensionality a.
+Qed.
+
+
+
 Theorem Test:  forall (a: svector 3),
     HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
