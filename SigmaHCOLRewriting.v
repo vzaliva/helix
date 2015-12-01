@@ -26,27 +26,7 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Section SigmaHCOLRewriting.
-  Context
 
-    `{Ae: Equiv A}
-    `{Az: Zero A} `{A1: One A}
-    `{Aplus: Plus A} `{Amult: Mult A} 
-    `{Aneg: Negate A}
-    `{Ale: Le A}
-    `{Alt: Lt A}
-    `{Ato: !@TotalOrder A Ae Ale}
-    `{Aabs: !@Abs A Ae Ale Az Aneg}
-    `{Asetoid: !@Setoid A Ae}
-    `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-    `{Aeqdec: !∀ x y, Decision (x = y)}
-    `{Altdec: !∀ x y: A, Decision (x < y)}
-    `{Ar: !Ring A}
-    `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-    `{ASSO: !@StrictSetoidOrder A Ae Alt}
-  .
-  
-  Add Ring RingA: (stdlib_ring_theory A).
-  
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 

@@ -14,11 +14,11 @@ Notation svector n := (vector Rtheta n) (only parsing).
 Section SparseVectors.
 
   (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
-  Definition svector_from_vector {n} (v:vector A n): svector n :=
+  Definition svector_from_vector {n} (v:vector CarrierA n): svector n :=
     Vmap Rtheta_normal v.
 
   (* Project out carrier type values from vector of Rheta values *)
-  Definition vector_from_svector {n} (v:svector n): vector A n :=
+  Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
     Vmap RthetaVal v.
 
   (* Our definition of "dense" vector means that it does not contain "structural" values. *)
