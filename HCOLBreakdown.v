@@ -239,11 +239,12 @@ Theorem Test0:  forall (a: svector 3),
     compose (HEvalPolynomial a) (HChebyshevDistance 2) = compose (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
   intros.
-  Typeclasses eauto := debug.
-  setoid_rewrite breakdown_OEvalPolynomial.
+
+  Typeclasses eauto := 7.
+  rewrite breakdown_OEvalPolynomial.
+  Typeclasses eauto := 100.
+  eapply HOperator_functional_extensionality.
   reflexivity.
-  apply HEvalPolynomial_proper.
-  apply HChebyshevDistance_proper.
 Qed.
 
 Theorem Test:  forall (a: svector 3),

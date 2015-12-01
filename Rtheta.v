@@ -96,12 +96,17 @@ Proof.
   auto.
 Qed.
 
-Instance Rtheta_Setoid: Setoid Rtheta.
+Instance Rtheta_Equivalence_equiv: Equivalence Rtheta_equiv.
 Proof.
   split.
   apply Rtheta_Reflexive_equiv.
   apply Rtheta_Symmetric_equiv.
   apply Rtheta_Transitive_equiv.
+Qed.
+
+Instance Rtheta_Setoid: Setoid Rtheta.
+Proof.
+  apply Rtheta_Equivalence_equiv.
 Qed.
 
 Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
