@@ -236,28 +236,6 @@ Section HCOLBreakdown.
 End HCOLBreakdown.
 
 
-Theorem Test0:  forall (a: svector 3),
-    compose (HEvalPolynomial a) (HChebyshevDistance 2) = compose (HEvalPolynomial a) (HChebyshevDistance 2).
-Proof.
-  intros.
-
-  Typeclasses eauto := 7.
-  rewrite breakdown_OEvalPolynomial.
-  Typeclasses eauto := 100.
-  eapply HOperator_functional_extensionality.
-  reflexivity.
-Qed.
-
-Theorem Test:  forall (a: svector 3),
-    HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HEvalPolynomial a) (HChebyshevDistance 2).
-Proof.
-  intros.
-  rewrite breakdown_OEvalPolynomial.
-  eapply HOperator_functional_extensionality.
-  intros.
-  reflexivity.
-Qed.
-
 (* Our top-level example goal *)
 Theorem DynWinOSPL:  forall (a: svector 3),
   (HTLess 
@@ -274,9 +252,12 @@ Proof.
   rewrite breakdown_OEvalPolynomial.
   rewrite breakdown_OScalarProd.
   rewrite breakdown_OMonomialEnumerator.
+  Typeclasses eauto := 8. (* Hacky way to work around hangup in typeclass resolution *)
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.
   rewrite breakdown_OTInfinityNorm.
+  Typeclasses eauto := 100. (* Important not to forget to set it back to normal *)
+  apply HOperator_functional_extensionality.
   reflexivity.
 Qed.
 
