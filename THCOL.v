@@ -38,21 +38,7 @@ Definition HCross
   fun x =>  pair2vector (Cross (f, g) (Vbreak x)).
 
 
-Global Instance HCross_proper
-       {i1 o1 i2 o2}
-       (R0: relation (svector i1))
-       (R1: relation (svector o1))
-       (R2: relation (svector i2))
-       (R3: relation (svector o2))
-       (R3: relation (svector (i1+i2)))
-       (R3: relation (svector (o1+o2)))
-  :
-    Proper ((R0 ==> R1) ==> (R2 ==> R3) ==> (R4 ==> R5)) (HCross).
-Proof.
-  admit.
-Qed.
-  
-Global Instance HCross_arg_proper
+Instance HCross_arg_proper
        {i1 o1 i2 o2}
        `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
        `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)):
@@ -73,6 +59,14 @@ Proof.
   reflexivity.  
 Qed.
 
+Instance HCross_proper
+         {i1 o1 i2 o2:nat}
+  :
+    Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2 o2).
+Proof.
+  admit.
+Qed.
+
 Definition HStack
            {i1 o1 o2}
            (f: svector i1 -> svector o1)
@@ -80,7 +74,7 @@ Definition HStack
   : svector i1 -> svector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
-Global Instance HStack_arg_proper
+Instance HStack_arg_proper
        {i1 o1 o2}
        `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
        `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i1 -> svector o2)):
@@ -103,7 +97,7 @@ Definition HTLess {i1 i2 o}
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
             ZVLess (lop1 v1, lop2 v2).
 
-Global Instance HTLess_arg_proper {i1 i2 o}
+Instance HTLess_arg_proper {i1 i2 o}
        `(!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o))
        `(!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)):
   Proper ((=) ==> (=)) (@HTLess i1 i2 o lop1 lop2).

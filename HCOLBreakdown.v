@@ -251,10 +251,10 @@ Theorem Test:  forall (a: svector 3),
     HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
   intros.
-  f_equiv.
-  apply HCross_proper.
-  apply HEvalPolynomial_proper.
-  apply HChebyshevDistance_proper.
+  rewrite breakdown_OEvalPolynomial.
+  eapply HOperator_functional_extensionality.
+  intros.
+  reflexivity.
 Qed.
 
 (* Our top-level example goal *)
