@@ -82,22 +82,6 @@ Section HCOL_Language.
     : svector 1 -> svector n
     := Induction n f initial ∘ Scalarize.
 
-  (* ***
-    Section HOperator_def.
-    (* HOperator is a record with contains actual operator function and Proper morphism proof *)
-    
-    Record HOperator {i o:nat} :=
-      Build_HOperator {
-          op: svector i -> svector o;
-          opf: Proper ((=) ==> (=)) (op)
-        }.
-    
-    Global Instance HOperator_equiv {i o:nat}: Equiv (@HOperator i o)
-      := fun f g => (op f) = (op g).
-
-  End HOperator_def.
-   *)  
-
   Lemma HOperator_functional_extensionality
         {m n: nat}
         `{!Proper ((=) ==> (=)) (f : svector m → svector n)}
@@ -124,9 +108,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
     
-    (* *** Definition HOScalarProd {n}
-      := Build_HOperator (n+n) 1 (@HScalarProd n) HScalarProd_proper. *)
-    
     Global Instance HBinOp_proper {o}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
@@ -139,12 +120,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOBinOp {o}
-               (f: Rtheta->Rtheta->Rtheta)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := Build_HOperator _ _ (@HBinOp o f pF) (HBinOp_proper f) .
-   *)    
     Global Instance HReduction_proper {i}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -159,13 +134,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOReduction {i}
-               (f: Rtheta->Rtheta->Rtheta)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (idv:Rtheta) :=
-      Build_HOperator _ _  (@HReduction i f pF idv) (HReduction_proper f idv) .
-*)    
     Global Instance HEvalPolynomial_proper {n} (a: svector n):
       Proper ((=) ==> (=)) (@HEvalPolynomial n a).
     Proof.
@@ -177,10 +145,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOEvalPolynomial {n} (a: svector n)
-      := Build_HOperator _ _ (HEvalPolynomial a) (HEvalPolynomial_proper a).
-*)    
     Global Instance HPrepend_proper {i n} (a:svector n):
       Proper ((=) ==> (=)) (@HPrepend i n a).
     Proof.
@@ -192,10 +156,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition  HOPrepend {i n} (a:svector n)
-      := Build_HOperator _ _  (@HPrepend i n a) (HPrepend_proper a).
-*)    
     Global Instance HMonomialEnumerator_proper n:
       Proper ((=) ==> (=)) (@HMonomialEnumerator n).
     Proof.
@@ -207,10 +167,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOMonomialEnumerator n
-      := Build_HOperator _ _  (HMonomialEnumerator n) (HMonomialEnumerator_proper n).
-   *)    
     Global Instance HInfinityNorm_proper n:
       Proper ((=) ==> (=)) (@HInfinityNorm n).
     Proof.
@@ -222,10 +178,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOInfinityNorm n :=
-      Build_HOperator _ _ (@HInfinityNorm n) (HInfinityNorm_proper n).
-*)    
     Global Instance HInduction_proper {n:nat}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -240,13 +192,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOInduction {n:nat}
-               (f: Rtheta->Rtheta->Rtheta)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (initial:Rtheta) :=
-      Build_HOperator _ _ (HInduction n f initial) (HInduction_proper f initial).
-*)    
     Global Instance HChebyshevDistance_proper h:
       Proper ((=) ==> (=)) (HChebyshevDistance h).
     Proof.
@@ -258,10 +203,6 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOChebyshevDistance h :=
-      Build_HOperator _ _ (HChebyshevDistance h) (HChebyshevDistance_proper h).
-*)    
     Global Instance HVMinus_proper h:
       Proper ((=) ==> (=)) (@HVMinus h).
     Proof.
@@ -272,9 +213,5 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-  (* ***
-    Definition HOVMinus h :=
-      Build_HOperator _ _ (@HVMinus h) (HVMinus_proper h).
-*)    
   End HCOL_operators.
 End HCOL_Language.
