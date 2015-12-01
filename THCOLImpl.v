@@ -97,7 +97,6 @@ Section THCOL_implementation_proper.
     apply pG; assumption.
   Qed.
 
-
   Global Instance Stack_arg_proper
            `{Equiv D,Equiv R,Equiv F}
            `{pF: !Proper ((=) ==> (=)) (f: D -> R)}

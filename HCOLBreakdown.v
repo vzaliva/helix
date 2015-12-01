@@ -255,25 +255,25 @@ Section HCOLBreakdown.
 
 End HCOLBreakdown.
 
-
-Global Instance HCross_proper
-       {i1 o1 i2 o2}:
-  Proper ((=) ==> (=) ==> (=)) (@HCross i1 o1 i2 o2).
+Theorem Test0:  forall (a: svector 3),
+    compose (HEvalPolynomial a) (HChebyshevDistance 2) = compose (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
-  intros f f' Ef g g' Eg.
-  unfold HCross, pair2vector.
-  simpl.
-  extensionality a.
+  intros.
+  Typeclasses eauto := debug.
+  setoid_rewrite breakdown_OEvalPolynomial.
+  reflexivity.
+  apply HEvalPolynomial_proper.
+  apply HChebyshevDistance_proper.
 Qed.
-
-
 
 Theorem Test:  forall (a: svector 3),
     HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.
   intros.
-  Set Printing Implicit. Show.
-  rewrite breakdown_OEvalPolynomial.    
+  f_equiv.
+  apply HCross_proper.
+  apply HEvalPolynomial_proper.
+  apply HChebyshevDistance_proper.
 Qed.
 
 (* Our top-level example goal *)
@@ -289,8 +289,8 @@ Theorem DynWinOSPL:  forall (a: svector 3),
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
-  rewrite breakdown_OEvalPolynomial.    
-  rewrite breakdown_OScalarProd. 
+  rewrite breakdown_OEvalPolynomial.
+  rewrite breakdown_OScalarProd.
   rewrite breakdown_OMonomialEnumerator.
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.

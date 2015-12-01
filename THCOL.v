@@ -37,6 +37,21 @@ Definition HCross
   : svector (i1+i2) -> svector (o1+o2) :=
   fun x =>  pair2vector (Cross (f, g) (Vbreak x)).
 
+
+Global Instance HCross_proper
+       {i1 o1 i2 o2}
+       (R0: relation (svector i1))
+       (R1: relation (svector o1))
+       (R2: relation (svector i2))
+       (R3: relation (svector o2))
+       (R3: relation (svector (i1+i2)))
+       (R3: relation (svector (o1+o2)))
+  :
+    Proper ((R0 ==> R1) ==> (R2 ==> R3) ==> (R4 ==> R5)) (HCross).
+Proof.
+  admit.
+Qed.
+  
 Global Instance HCross_arg_proper
        {i1 o1 i2 o2}
        `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
@@ -58,10 +73,11 @@ Proof.
   reflexivity.  
 Qed.
 
+  (* ***
 (* Apply 2 functions to 2 inputs returning tuple of results *)
 Definition HOCross {i1 o1 i2 o2} (f:@HOperator i1 o1) (g:@HOperator i2 o2): @HOperator (i1+i2) (o1+o2)
   := Build_HOperator _ _ (HCross (op f) (op g)) (HCross_arg_proper (opf f) (opf g)).
-
+*)
 Definition HStack
            {i1 o1 o2}
            (f: svector i1 -> svector o1)
@@ -83,10 +99,11 @@ Proof.
   reflexivity.
 Qed.
 
+  (* ***
 (* Apply 2 functions to the same input returning tuple of results *)
 Definition HOStack {i o1 o2} (f:@HOperator i o1) (g:@HOperator i o2): @HOperator i (o1+o2) 
   := Build_HOperator _ _ (HStack (op f) (op g)) (HStack_arg_proper (opf f) (opf g)).
-
+   *)
 (* HCompose becomes just ∘ *)
 
 Definition HTLess {i1 i2 o}
@@ -115,7 +132,8 @@ Proof.
   reflexivity.
 Qed.
 
+  (* ***
 (* Apply 2 functions to the same input returning tuple of results *)
 Definition HOTLess {i1 i2 o} (f:@HOperator i1 o) (g:@HOperator i2 o): @HOperator (i1+i2) o
   := Build_HOperator _ _ (HTLess (op f) (op g)) (HTLess_arg_proper (opf f) (opf g)).
-
+*)
