@@ -104,13 +104,13 @@ Proof.
   apply Rtheta_Transitive_equiv.
 Qed.
 
-Global Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
-Global Instance Rtheta_One: One Rtheta := (1, false, false).
-Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb.
-Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb.
-Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
-Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
-Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
+Instance Rtheta_Zero: Zero Rtheta := (0, false, false).
+Instance Rtheta_One: One Rtheta := (1, false, false).
+Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb.
+Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb.
+Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
+Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
+Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
 
 Instance Rtheta_Associative_plus: Associative Rtheta_Plus.
 Proof.
@@ -136,7 +136,7 @@ Ltac destruct_Rtheta x :=
   destruct x as (x01, x2); 
     destruct x01 as (x0, x1).
 
-Global Instance Rtheta_plus_proper:
+Instance Rtheta_plus_proper:
   Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
 Proof.
   intros a a' aEq b b' bEq.
@@ -150,7 +150,7 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance Rtheta_neg_proper:
+Instance Rtheta_neg_proper:
   Proper ((=) ==> (=)) (Rtheta_Neg).
 Proof.
   intros a b aEq.
@@ -162,7 +162,7 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance Rtheta_mult_proper:
+Instance Rtheta_mult_proper:
   Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
 Proof.
   intros a a' aEq b b' bEq.
@@ -384,10 +384,10 @@ Qed.
 
 Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
 
-Global Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
+Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
   CarrierAledec (RthetaVal x) (RthetaVal y).
 
-Global Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
+Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
   CarrierAltdec (RthetaVal x) (RthetaVal y).
 
 Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
@@ -397,7 +397,7 @@ Next Obligation.
   split; unfold abs; crush.
 Qed.
 
-Global Instance Rtheta_le_proper:
+Instance Rtheta_le_proper:
   Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
 Proof.
   intros a a' aEq b b' bEq.
@@ -411,7 +411,7 @@ Proof.
   split; auto.
 Qed.
 
-Global Instance Rtheta_lt_proper:
+Instance Rtheta_lt_proper:
   Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
 Proof.
   intros a a' aEq b b' bEq.

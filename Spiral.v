@@ -30,17 +30,17 @@ Import VectorNotations.
 
 
 (* equality of option types *)
-Global Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
+Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
   fun a b =>
     match a with
     | None => is_None b
     | Some x => (match b with
-                 | None => False
-                 | Some y => equiv x y
-                 end)
+                | None => False
+                | Some y => equiv x y
+                end)
     end.
 
-Global Instance opt_Setoid `{Setoid A}: Setoid (@option A).
+Instance opt_Setoid `{Setoid A}: Setoid (@option A).
 Proof.
   unfold Setoid in H.
   constructor. destruct H.
@@ -51,18 +51,18 @@ Qed.
 
 (* Various definitions related to vector equality and setoid rewriting *)
 
-Global Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
+Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
 
-Global Instance vec_Equivalence `{Ae: Equiv A} {n:nat}
-       `{!Equivalence (@equiv A _)}
-: Equivalence (@vec_equiv A Ae n).
+Instance vec_Equivalence `{Ae: Equiv A} {n:nat}
+         `{!Equivalence (@equiv A _)}
+  : Equivalence (@vec_equiv A Ae n).
 Proof.
   unfold vec_equiv.
   apply Vforall2_equiv.
   assumption.
 Qed.
 
-Global Instance vec_Setoid `{Setoid A} {n}: Setoid (vector A n).
+Instance vec_Setoid `{Setoid A} {n}: Setoid (vector A n).
 Proof.
   unfold Setoid.
   apply vec_Equivalence.
@@ -78,7 +78,7 @@ Section Vfold_right_p.
   Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
   
   Lemma Vfold_right_to_Vfold_right_reord: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-                                            Vfold_right f v initial ≡ Vfold_right_reord f v initial.
+      Vfold_right f v initial ≡ Vfold_right_reord f v initial.
   Proof.
     crush.
   Qed.
@@ -163,7 +163,7 @@ Proof.
 Qed.
 
 
-Global Instance Vhead_proper A `{H:Equiv A} n:
+Instance Vhead_proper A `{H:Equiv A} n:
   Proper (@equiv (vector A (S n)) (@vec_equiv A H (S n)) ==> @equiv A H) (@Vhead A n).
 Proof.
   intros a b E.
@@ -173,7 +173,7 @@ Proof.
   intuition.
 Defined.
 
-Global Instance Vtail_proper `{Equiv A} n:
+Instance Vtail_proper `{Equiv A} n:
   Proper (@vec_equiv A _ (S n) ==> @vec_equiv A _ n)
          (@Vtail A n).
 Proof.
@@ -184,7 +184,7 @@ Proof.
   assumption.
 Defined.
 
-Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
+Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) (max).
 Proof.
   solve_proper.
@@ -202,7 +202,7 @@ Instance abs_setoid_proper A
          `{Asetoid: !Setoid A}
          `{Ato: !@TotalOrder A Ae Ale}
          `{Aabs: !@Abs A Ae Ale Azero Anegate}
-: Setoid_Morphism abs | 0.
+  : Setoid_Morphism abs | 0.
 Proof.
   split; try assumption.
   intros x y E.
@@ -231,7 +231,7 @@ Lemma abs_0_s
       `{Ae: Equiv A}
       `{Ato: !@TotalOrder A Ae Ale}
       `{Aabs: !@Abs A Ae Ale Azero Anegate}
-: abs 0 = 0.
+  : abs 0 = 0.
 Proof.
   apply abs_nonneg_s. auto.
 Qed.
@@ -246,7 +246,7 @@ Lemma abs_always_nonneg
       `{Aabs: !@Abs A Ae Ale Az Aneg}
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-: forall x, 0 ≤ abs x.
+  : forall x, 0 ≤ abs x.
 Proof.
   intros.
   destruct (total (≤) 0 x).
@@ -266,7 +266,7 @@ Lemma abs_negate_s A (x:A)
       `{Aabs: !@Abs A Ae Ale Az Aneg}
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
-: abs (-x) = abs x.
+  : abs (-x) = abs x.
 Proof with trivial.
   destruct (total (≤) 0 x).
   rewrite (abs_nonneg x), abs_nonpos...
@@ -287,7 +287,7 @@ Instance abs_idempotent
          `{Aabs: !@Abs A Ae Ale Az Aneg}
          `{Ar: !Ring A}
          `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
-:UnaryIdempotent abs.
+  :UnaryIdempotent abs.
 Proof.
   intros a b E.
   unfold compose.
@@ -312,7 +312,7 @@ Lemma abs_max_comm_2nd
       `{Ar: !Ring A}
       `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
       `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-: forall (x y:A),  max (abs y) x = abs (max (abs y) x).
+  : forall (x y:A),  max (abs y) x = abs (max (abs y) x).
 Proof.
 
   intros.
@@ -342,8 +342,8 @@ Notation "h :: t" := (cons h t) (at level 60, right associativity)
 
 Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p := 
   match p return vector A (p+m) -> vector A p with
-      0%nat => fun _ => Vnil
-    | S p' => fun a => Vcons (hd a) (take_plus p' (tl a))
+    0%nat => fun _ => Vnil
+  | S p' => fun a => Vcons (hd a) (take_plus p' (tl a))
   end.
 Program Definition take A n p (a : vector A n) (H : p <= n) : vector A p :=
   take_plus (m := n - p) p a.
@@ -351,8 +351,8 @@ Solve Obligations using auto with arith.
 
 Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m := 
   match p return vector A (p+m) -> vector A m with
-      0 => fun a => a
-    | S p' => fun a => drop_plus p' (tl a)
+    0 => fun a => a
+  | S p' => fun a => drop_plus p' (tl a)
   end.
 Program Definition drop A n p (a : vector A n) (H : p <= n) : vector A (n-p) :=
   drop_plus (m := n - p) p a.
@@ -365,11 +365,11 @@ Definition vector2pair {A:Type} (p:nat) {t:nat} (v:vector A (p+t)) : (vector A p
 (* Split vector into a pair: first  'p' elements and the rest. *)
 Definition pair2vector {A:Type} {i j:nat} (p:(vector A i)*(vector A j)) : (vector A (i+j))  :=
   match p with
-      (a,b) => Vapp a b
+    (a,b) => Vapp a b
   end.
 
 Lemma vp2pv: forall {T:Type} i1 i2 (p:((vector T i1)*(vector T i2))),
-               vector2pair i1 (pair2vector p) ≡ p.
+    vector2pair i1 (pair2vector p) ≡ p.
 Proof.
   intros.
   unfold vector2pair.
@@ -381,8 +381,8 @@ Qed.
 (* reverse CONS, append single element to the end of the list *)
 Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
   match l with
-    | nil => [v]
-    | h' :: t' => Vcons h' (snoc t' v)
+  | nil => [v]
+  | h' :: t' => Vcons h' (snoc t' v)
   end.
 
 Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
@@ -436,15 +436,15 @@ End Natrange_List.
 (* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
   match n return (vector nat n) with 
-      0 => Vnil
-    | S p => snoc (natrange p) p
+    0 => Vnil
+  | S p => snoc (natrange p) p
   end.
 
 (* n-1 ... 0*)
 Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
   match n return (vector nat n) with 
-      0 => Vnil
-    | S p => Vcons p (rev_natrange p)
+    0 => Vnil
+  | S p => Vcons p (rev_natrange p)
   end.
 
 Local Open Scope nat_scope.
@@ -553,7 +553,7 @@ Proof.
 Qed.
 
 Lemma snoc2cons: forall {A} (n:nat) (l:vector A (S n)) v,
-                   snoc l v ≡ @cons _ (hd l) _ (snoc (tl l) v).
+    snoc l v ≡ @cons _ (hd l) _ (snoc (tl l) v).
 Proof.
   intros.
   dep_destruct l.
@@ -638,7 +638,7 @@ Proof.
 Qed.
 
 Lemma map_cons: forall A B n (f:A->B) (v:vector A (S n)),
-                  map f v ≡ @cons _ (f (hd v)) _ (map f (tl v)).
+    map f v ≡ @cons _ (f (hd v)) _ (map f (tl v)).
 Proof.
   intros.
   dep_destruct v.
@@ -646,7 +646,7 @@ Proof.
 Qed.
 
 Lemma map2_cons: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
-                   map2 f a b ≡ @cons _ (f (hd a) (hd b)) _ (map2 f (tl a) (tl b)).
+    map2 f a b ≡ @cons _ (f (hd a) (hd b)) _ (map2 f (tl a) (tl b)).
 Proof.
   intros.
   dep_destruct a.
@@ -655,7 +655,7 @@ Proof.
 Qed.
 
 Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
-                    Vmap2 f a b = @cons _ (f (Vhead a) (Vhead b)) _ (Vmap2 f (Vtail a) (Vtail b)).
+    Vmap2 f a b = @cons _ (f (Vhead a) (Vhead b)) _ (Vmap2 f (Vtail a) (Vtail b)).
 Proof.
   intros.
   dep_destruct a.
@@ -664,7 +664,7 @@ Proof.
 Qed.
 
 Lemma Vmap2_cons: forall A B C `{Setoid C} (f:A->B->C) n (a:A) (b:B) (a':vector A n) (b':vector B n), 
-                    Vmap2 f (a::a') (b::b') = @cons _ (f a b) _ (Vmap2 f a' b').
+    Vmap2 f (a::a') (b::b') = @cons _ (f a b) _ (Vmap2 f a' b').
 Proof.
   intros.
   reflexivity.
@@ -672,7 +672,7 @@ Qed.
 
 
 Lemma shifout_tl_swap: forall {A} n (l:vector A (S (S n))),
-                         tl (shiftout l) ≡ shiftout (tl l).
+    tl (shiftout l) ≡ shiftout (tl l).
 Proof.
   intros.
   dep_destruct l.
@@ -681,7 +681,7 @@ Proof.
 Qed.
 
 Lemma last_tl: forall {A} n (l:vector A (S (S n))),
-                 last (tl l) ≡ last l.
+    last (tl l) ≡ last l.
 Proof.
   intros.
   dep_destruct l.
@@ -690,7 +690,7 @@ Proof.
 Qed.
 
 Lemma map_snoc: forall A B n (f:A->B) (l:vector A (S n)),
-                  map f l ≡ snoc (map f (shiftout l)) (f (last l)).
+    map f l ≡ snoc (map f (shiftout l)) (f (last l)).
 Proof.
   intros.
   induction n.
@@ -729,7 +729,7 @@ Qed.
 
 
 Lemma map2_snoc: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
-                   map2 f a b ≡ snoc (map2 f (shiftout a) (shiftout b)) (f (last a) (last b)).
+    map2 f a b ≡ snoc (map2 f (shiftout a) (shiftout b)) (f (last a) (last b)).
 Proof.
   intros.
   induction n.
@@ -771,7 +771,7 @@ Qed.
 
 
 Lemma map2_comm: forall A B (f:A->A->B) n (a b:vector A n), 
-                   (forall x y, (f x y) ≡ (f y x)) -> map2 f a b ≡ map2 f b a.
+    (forall x y, (f x y) ≡ (f y x)) -> map2 f a b ≡ map2 f b a.
 Proof.
   intros.
   induction n.
@@ -786,7 +786,7 @@ Proof.
 Qed.
 
 Lemma Vmap2_comm : forall `{CO:Commutative B A f} `{SB: !Setoid B},
-                   forall n:nat, Commutative (Vmap2 f (n:=n)).
+    forall n:nat, Commutative (Vmap2 f (n:=n)).
 Proof.
   intros.
   unfold Commutative.
@@ -811,8 +811,8 @@ Qed.
 (* Shows that two map2 supplied with function which ignores 2nd argument 
 will be eqivalent for all values of second list *)
 Lemma map2_ignore_2: forall A B C (f:A->B->C) n (a:vector A n) (b0 b1:vector B n),
-                       (forall a' b0' b1', f a' b0' ≡ f a' b1') ->
-                       map2 f a b0 ≡ map2 f a b1 .
+    (forall a' b0' b1', f a' b0' ≡ f a' b1') ->
+    map2 f a b0 ≡ map2 f a b1 .
 Proof.
   intros.
   induction a.
@@ -832,8 +832,8 @@ Qed.
 (* Shows that two map2 supplied with function which ignores 1st argument 
 will be eqivalent for all values of first list *)
 Lemma map2_ignore_1: forall A B C (f:A->B->C) n (a0 a1:vector A n) (b:vector B n),
-                       (forall a0' a1' b', f a0' b' ≡ f a1' b') ->
-                       map2 f a0 b ≡ map2 f a1 b .
+    (forall a0' a1' b', f a0' b' ≡ f a1' b') ->
+    map2 f a0 b ≡ map2 f a1 b .
 Proof.
   intros.
   induction b.
@@ -887,7 +887,7 @@ Proof.
 Qed.
 
 Lemma fold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
-                           fold_right f v id ≡ f (hd v) (fold_right f (tl v) id).
+    fold_right f v id ≡ f (hd v) (fold_right f (tl v) id).
 Proof.
   intros.
   dep_destruct v.
@@ -909,7 +909,7 @@ Proof.
 Qed.
 
 Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
-                            Vfold_right f v id ≡ f (hd v) (Vfold_right f (tl v) id).
+    Vfold_right f v id ≡ f (hd v) (Vfold_right f (tl v) id).
 Proof.
   intros.
   dep_destruct v.
@@ -917,7 +917,7 @@ Proof.
 Qed.
 
 Lemma Vfold_right_fold_right: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-                                Vfold_right f v initial ≡ @fold_right A B f n v initial.
+    Vfold_right f v initial ≡ @fold_right A B f n v initial.
 Proof.
   intros.
   induction v.
@@ -977,13 +977,13 @@ Proof.
 Qed.
 
 Lemma Vcons_equiv_elim `{Equiv A}: forall a1 a2 n (v1 v2 : vector A n),
-                                     Vcons a1 v1 = Vcons a2 v2 -> a1 = a2 /\ v1 = v2.
+    Vcons a1 v1 = Vcons a2 v2 -> a1 = a2 /\ v1 = v2.
 Proof.
   intros. auto.
 Qed.
 
 Lemma Vcons_equiv_intro `{Setoid A} : forall a1 a2 n (v1 v2 : vector A n),
-                                        a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
+    a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
 Proof.
   intros.
   rewrite 2!Vcons_to_Vcons_reord.
@@ -993,7 +993,7 @@ Proof.
 Qed.
 
 Lemma Vcons_single_elim `{Equiv A} : forall a1 a2,
-                                       Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
+    Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
 Proof.
   intros a1 a2.
   unfold equiv, vec_equiv.
@@ -1007,12 +1007,12 @@ Qed.
 
 Definition Phead {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): A*B
   := match ab with
-       | (va,vb) => ((Vhead va), (Vhead vb))
+     | (va,vb) => ((Vhead va), (Vhead vb))
      end.
 
 Definition Ptail {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): (vector A n)*(vector B n)
   := match ab with
-       | (va,vb) => ((Vtail va), (Vtail vb))
+     | (va,vb) => ((Vtail va), (Vtail vb))
      end.
 
 Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
@@ -1035,7 +1035,7 @@ Proof.
   crush.
 Qed.
 
-Global Instance Vmap_reord_proper_ext_equiv n  (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
+Instance Vmap_reord_proper_ext_equiv n  (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
   Proper (@ext_equiv M Me N Ne 
                      ==> @vec_equiv M Me n
                      ==> @vec_equiv N Ne n)
@@ -1052,8 +1052,8 @@ Proof.
   apply IHn, Ev.
 Qed.
 
-Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
-       `{fP: !Proper (Me ==> Ne) f} (n:nat):
+Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
+         `{fP: !Proper (Me ==> Ne) f} (n:nat):
   Proper ((@vec_equiv M _ n) ==> (@vec_equiv N _ n)) (@Vmap M N f n).
 Proof.
   intros a b Ea.
@@ -1070,7 +1070,7 @@ Qed.
 
 Definition Lst {B:Type} (x:B) := [x].
 
-Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
+Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
   Proper ((=) ==> (=)) (@Vbreak A n1 n2).
 Proof.
   intros v v1 vE.
@@ -1203,7 +1203,7 @@ Qed.
 Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros;omega. Qed.
 
 Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; omega. Qed.
-  
+
 Lemma Vbuild_2 B gen:
   @Vbuild B 2 gen ≡ [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
 Proof.
@@ -1211,12 +1211,12 @@ Proof.
   simpl.
   replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
   replace (Vbuild_spec_obligation_3 gen eq_refl
-        (Vbuild_spec_obligation_4
-           (λ (i : nat) (ip : i < 1),
-            gen (S i) (Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
+                                    (Vbuild_spec_obligation_4
+                                       (λ (i : nat) (ip : i < 1),
+                                        gen (S i) (Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
   reflexivity.
 Qed.
-  
+
 
 Lemma  plus_lt_subst_r: forall a b b' c,  b' < b -> a + b < c -> a + b' < c.
 Proof.
@@ -1260,7 +1260,7 @@ Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
 Proof.
   simpl.
   replace (lt_S_n ip) with ip' by apply proof_irrelevance.
-      reflexivity.
+  reflexivity.
 Qed.
 
 Lemma Vnth_cast_index:
