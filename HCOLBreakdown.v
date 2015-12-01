@@ -235,6 +235,7 @@ Section HCOLBreakdown.
 
 End HCOLBreakdown.
 
+
 Theorem Test0:  forall (a: svector 3),
     compose (HEvalPolynomial a) (HChebyshevDistance 2) = compose (HEvalPolynomial a) (HChebyshevDistance 2).
 Proof.

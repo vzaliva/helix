@@ -59,12 +59,29 @@ Proof.
   reflexivity.  
 Qed.
 
-Instance HCross_proper
-         {i1 o1 i2 o2:nat}
-  :
+Instance HCross_proper {i1 o1 i2 o2:nat}:
     Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2 o2).
 Proof.
-  admit.
+  intros f f' Ef g g' Eg x y Ex.
+  unfold HCross, compose, pair2vector, vector2pair.
+  destruct (Vbreak x) as [x0 x1] eqn: X.
+  destruct (Vbreak y) as [y0 y1] eqn: Y.
+  assert(Ye: Vbreak y = (y0, y1)) by crush.
+  assert(Xe: Vbreak x = (x0, x1)) by crush.
+  rewrite Ex in Xe.
+  rewrite Xe in Ye.
+  clear X Y Xe Ex.
+  inversion Ye. rename H into Ey, H0 into Ex.
+  simpl in *.
+
+  assert(A1: f x0 = f' y0).
+  apply Ef, Ey.
+  rewrite A1.
+
+  assert(A2: g x1 = g' y1).
+  apply Eg, Ex.
+  rewrite A2.
+  reflexivity.  
 Qed.
 
 Definition HStack
