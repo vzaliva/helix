@@ -496,20 +496,34 @@ Proof.
   apply Rtheta_le_TotalRelation.
 Qed.
 
+Instance Rtheta_plus_OrderEmbedding: ∀ (z : Rtheta), OrderEmbedding (plus z).
+Proof.
+  intros.
+  destruct_Rtheta z.
+  unfold plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+  simpl.  
+  admit.
+Qed.
+
 Instance Rtheta_SemiRingOrder: SemiRingOrder Rtheta_Le.
 Proof.
   split.
   - apply total_order_po.
   - apply Rtheta_SemiRing.
-  - intros x y H.
-    (*
+  - 
     destruct_Rtheta x. destruct_Rtheta y.
+    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+    unfold plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal.
     unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal.
-     *)
-    admit.
-    
-  - admit.
-  - admit.
+    unfold RthetaIsStruct, RthetaIsSErr.
+    simpl.
+    intros H.
+    exists (y0-x0, false, false).
+    simpl; ring.
+  - apply Rtheta_plus_OrderEmbedding.
+  - destruct_Rtheta x. destruct_Rtheta y.
+    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+    apply CarrierASRO.
 Qed.
 
 Lemma Rtheta_eq_equiv:
