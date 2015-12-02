@@ -29,9 +29,8 @@ Global Open Scope nat_scope.
 
 (* Index maps (total functions) *)
 
-Record index_map (domain range : nat)
-  :=
-    IndexMap { index_f : nat -> nat; index_f_spec : forall x, x<domain -> (index_f x) < range }.
+Record index_map (domain range : nat) :=
+  IndexMap { index_f : nat -> nat; index_f_spec : forall x, x<domain -> (index_f x) < range }.
 
 Notation "⟦ f ⟧" := (@index_f _ _ f).
 Notation "« f »" := (@index_f_spec _ _ f).
@@ -42,7 +41,7 @@ Definition index_map_dom {d r:nat} (s: index_map d r) := d.
 (* Returns upper rang bound for given `index_map` *)
 Definition index_map_range {d r:nat} (s: index_map d r) := r.
 
-Global Instance index_map_equiv {domain range:nat}:
+Instance index_map_equiv {domain range:nat}:
   Equiv (index_map domain range)
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
@@ -59,7 +58,7 @@ Definition patial_index_map_dom {d r:nat} (s: partial_index_map d r) := d.
 (* Returns upper rang bound for given `patial_index_map` *)
 Definition partial_index_map_range {d r:nat} (s: partial_index_map d r) := r.
 
-Global Instance partial_index_map_equiv {domain range:nat}:
+Instance partial_index_map_equiv {domain range:nat}:
   Equiv (partial_index_map domain range)
   :=
     fun fp gp =>
@@ -95,7 +94,7 @@ Section Jections.
              (f: index_map d r)
     := 
       forall (x y:nat) (xc: x<d) (yc: y<d),
-         ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
+        ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
   Definition index_map_surjective
              {d r: nat}
@@ -104,8 +103,8 @@ Section Jections.
       forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d), ⟦ f ⟧ x ≡ y.
 
   Definition index_map_bijective
-            {n: nat}
-            (f: index_map n n)
+             {n: nat}
+             (f: index_map n n)
     :=
       (index_map_injective f) /\ (index_map_surjective f).
 
@@ -177,9 +176,9 @@ definition does not enforce this requirement, and the function produced might no
   (* The following lemma proves that using `buld_inverse_index_map` on
   injective index_map produces true "left inverse" of it *)
   Lemma build_inverse_index_map_is_left_inverse
-             {i o: nat}
-             (f: index_map i o)
-             (f_inj: index_map_injective f):
+        {i o: nat}
+        (f: index_map i o)
+        (f_inj: index_map_injective f):
     let fp := build_inverse_index_map f in
     let f' := partial_index_f _ _ fp in
     forall x y (xc:x<i), ⟦ f ⟧ x ≡ y -> f' y ≡ Some x.
@@ -205,7 +204,7 @@ definition does not enforce this requirement, and the function produced might no
   Qed.
   
 End Inversions.
-  
+
 
 Section Primitive_Functions.
   
@@ -327,14 +326,14 @@ Section Function_Operators.
              (f: index_map i t) :
     index_map i o.
   Proof.
-      refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
-      intros.
-      destruct f, g.
-      simpl.
-      unfold compose.
-      auto.
+    refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
+    intros.
+    destruct f, g.
+    simpl.
+    unfold compose.
+    auto.
   Defined.
-      
+  
   Definition tensor_product
              (n N: nat)
              {nz: 0 ≢ n}
@@ -378,12 +377,12 @@ Section Function_Operators.
     assert (index_f1 (pred n - snd (divmod x (pred n) 0 (pred n))) < N) by auto.
     simpl.
     replace (match n with
-                | 0 => n
-                | S y' => fst (divmod x y' 0 y')
-                end) with (fst (divmod x (pred n) 0 (pred n))).
+             | 0 => n
+             | S y' => fst (divmod x y' 0 y')
+             end) with (fst (divmod x (pred n) 0 (pred n))).
     replace (match n with
-            | 0 => n
-            | S y' => y' - snd (divmod x y' 0 y') end) with
+             | 0 => n
+             | S y' => y' - snd (divmod x y' 0 y') end) with
     ((pred n) - snd (divmod x (pred n) 0 (pred n))).
     nia.
     break_match; auto.
@@ -475,7 +474,7 @@ Section Function_Rules.
   Qed.
 
   Local Close Scope index_f_scope.
-        
-End Function_Rules.
   
+End Function_Rules.
+
 
