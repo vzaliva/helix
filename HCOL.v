@@ -109,8 +109,8 @@ Section HCOL_Language.
     Qed.
     
     Global Instance HBinOp_proper {o}
-           (f: Rtheta->Rtheta->Rtheta)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+           (f: nat->Rtheta->Rtheta->Rtheta)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       Proper ((=) ==> (=)) (@HBinOp o f pF).
     Proof.
       intros x y E.

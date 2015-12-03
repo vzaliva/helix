@@ -405,6 +405,18 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
+  Global Instance VMinus_proper (n:nat):
+    Proper ((=) ==> (=))
+           (@VMinus n).
+  Proof.
+    intros a b E.
+    unfold VMinus.
+    repeat break_let.
+    destruct E as [E1 E2]; simpl in *.
+    rewrite E1, E2.
+    reflexivity.
+  Qed.
+  
 End HCOL_implementation_proper.
 
 Close Scope nat_scope.
