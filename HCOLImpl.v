@@ -19,13 +19,14 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
+Require Import MathClasses.theory.naturals.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Open Scope vector_scope.
-
+Open Scope nat_scope.
 
 Section HCOL_implementations.
 
@@ -42,13 +43,13 @@ Section HCOL_implementations.
   Definition ScalarProd 
              {n} (ab: (svector n)*(svector n)) : Rtheta :=
     match ab with
-    | (a, b) => Vfold_right (+) (Vmap2 (.*.) a b) 0
+    | (a, b) => Vfold_right (+) (Vmap2 (.*.) a b) zero
     end.
 
   (* --- Infinity Norm --- *)
   Definition InfinityNorm
              {n} (v: svector n) : Rtheta :=
-    Vfold_right (max) (Vmap (abs) v) 0.
+    Vfold_right (max) (Vmap (abs) v) zero.
 
   (* --- Chebyshev Distance --- *)
   Definition ChebyshevDistance 
@@ -69,8 +70,8 @@ Section HCOL_implementations.
   Fixpoint MonomialEnumerator
            (n:nat) (x:Rtheta) {struct n} : svector (S n) :=
     match n with 
-    | O => [1]
-    | S p => Vcons 1 (Vmap (mult x) (MonomialEnumerator p x))
+    | O => [one]
+    | S p => Vcons one (Vmap (mult x) (MonomialEnumerator p x))
     end.
 
   (* --- Polynomial Evaluation --- *)
@@ -78,17 +79,18 @@ Section HCOL_implementations.
   Fixpoint EvalPolynomial {n} 
            (a: svector n) (x:Rtheta) : Rtheta  :=
     match a with
-      nil => 0
-    | cons a0 p a' => a0 + (x * (EvalPolynomial a' x))
+      nil => zero
+    | cons a0 p a' => plus a0 (mult x (EvalPolynomial a' x))
     end.
 
   (* === HCOL Basic Operators === *)
-  (* formerly known as PointWise2 *)
-  Definition BinOp (f: Rtheta->Rtheta->Rtheta) {n} (ab: (svector n)*(svector n)) : svector n :=
+  (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
+  Definition BinOp
+             (f: nat->Rtheta->Rtheta->Rtheta) {n} (ab: (svector n)*(svector n)) : svector n :=
     match ab with
-    | (a,b) =>  Vmap2 f a b
+    | (a,b) =>  Vmap2Indexed f a b
     end.
-
+  
   (* --- Induction --- *)
 
   Fixpoint Induction (n:nat) (f:Rtheta->Rtheta->Rtheta) (initial:Rtheta) (v:Rtheta) {struct n} : svector n :=
@@ -138,7 +140,7 @@ Section HCOL_implementation_facts.
   Qed.
 
   Lemma EvalPolynomial_0:
-    forall (v:Rtheta), EvalPolynomial (Vnil) v = 0.
+    forall (v:Rtheta), EvalPolynomial (Vnil) v = zero.
   Proof.
     intros; unfold EvalPolynomial; reflexivity.
   Qed.
@@ -147,7 +149,7 @@ Section HCOL_implementation_facts.
   Lemma EvalPolynomial_reduce:
     forall n (a: svector (S n)) (x:Rtheta),
       EvalPolynomial a x  =
-      (Vhead a) + (x * (EvalPolynomial (Vtail a) x)).
+      plus (Vhead a) (mult x (EvalPolynomial (Vtail a) x)).
   Proof.
     intros; dep_destruct a; reflexivity.
   Qed.
@@ -155,14 +157,15 @@ Section HCOL_implementation_facts.
   (* TODO: better name. Maybe suffficent to replace with ScalarProd_cons *)
   Lemma ScalarProd_reduce:
     forall n (ab: (svector (S n))*(svector (S n))),
-      ScalarProd ab = (Vhead (fst ab))* (Vhead (snd ab)) + (ScalarProd (Ptail ab)).
+      ScalarProd ab = plus (mult (Vhead (fst ab)) (Vhead (snd ab))) (ScalarProd (Ptail ab)).
   Proof.
-    intros; dep_destruct ab; reflexivity.
+    intros; dep_destruct ab.
+    reflexivity.
   Qed.
 
   Lemma MonomialEnumerator_cons:
     forall n (x:Rtheta), 
-      MonomialEnumerator (S n) x = Vcons 1 (Scale (x, (MonomialEnumerator n x))).
+      MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
     intros; dep_destruct n; reflexivity.
   Qed.
@@ -179,7 +182,7 @@ Section HCOL_implementation_facts.
 
   (* Currently unused *)
   Lemma Scale_cons: forall n (s: Rtheta) (v: svector (S n)),
-      Scale (s,v) = Vcons (s * (Vhead v)) (Scale (s, (Vtail v))).
+      Scale (s,v) = Vcons (mult s (Vhead v)) (Scale (s, (Vtail v))).
   Proof.
     intros.
     unfold Scale.
@@ -190,7 +193,7 @@ Section HCOL_implementation_facts.
   (* Scale distributivitiy *)
   (* Currently unused *)
   Lemma  Scale_dist: forall n a (b: svector (S n)) (k: Rtheta),
-      (k * a) + (Vhead (Scale (k,b))) = (k *  (a + (Vhead b))).
+      plus (mult k a) (Vhead (Scale (k,b))) = (mult k (plus a (Vhead b))).
   Proof.
     intros.
     unfold Scale.
@@ -220,7 +223,7 @@ Section HCOL_implementation_facts.
     VSntac a.  VSntac b.
     simpl.
     symmetry.
-    rewrite_Vcons plus_mult_distr_l.
+    rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.    
 
     (* Remove cons from IHn *)
     assert (HIHn:  forall a0 b0 : svector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
@@ -232,13 +235,10 @@ Section HCOL_implementation_facts.
     }
     clear IHn.
 
-    rewrite 2!Vcons_to_Vcons_reord.
-    rewrite HIHn.
+    rewrite 2!Vcons_to_Vcons_reord,  HIHn.
 
-    (* it should be possible to combine next 3 lines into one *)
-    assert (AA: s * (Vhead a * Vhead b)  = s * Vhead a * Vhead b). 
-    apply mult_assoc.
-    rewrite AA.
+    setoid_replace (mult s (mult (Vhead a) (Vhead b))) with (mult (mult s (Vhead a)) (Vhead b))
+      by apply mult_assoc.
     reflexivity.
   Qed.
 
@@ -312,12 +312,12 @@ Section HCOL_implementation_proper.
     rewrite E1.
     reflexivity.
   Qed.
-  
+
   Global Instance BinOp_proper
-         {n:nat} (f : Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+         {n:nat}
+         (f : nat->Rtheta->Rtheta->Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
-    unfold Proper.
     intros a b Ea.
     unfold BinOp.
     destruct a. destruct b.
@@ -407,5 +407,5 @@ Section HCOL_implementation_proper.
 
 End HCOL_implementation_proper.
 
-
+Close Scope nat_scope.
 Close Scope vector_scope.

@@ -23,6 +23,7 @@ Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.or
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.products.
+Require Import MathClasses.theory.naturals.
 
 Require Export Vector.
 Require Export VecUtil.
@@ -120,20 +121,6 @@ Section VCons_p.
   Qed.
 
 End VCons_p.
-
-(* This tactics rewrites using H in Vcons using temporary conversion
-      to Vcons_reord and then back *)
-Ltac rewrite_Vcons H := rewrite Vcons_to_Vcons_reord, H, <- Vcons_to_Vcons_reord.
-
-(*
-Ltac rewrite_Vcons H := 
-  rewrite Vcons_to_Vcons_reord;
-  match H with
-    | [H1] => rewrite H
-    | [N!H1] => rewrite N!H
-  end;
-  rewrite <- Vcons_to_Vcons_reord.
- *)
 
 Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
@@ -1319,6 +1306,65 @@ Proof.
     rewrite IHl.
     reflexivity.
 Qed.
+
+Section VMap2_Indexed.
+  Fixpoint Vmap2Indexed' {A B C : Type} {n} (f: nat->A->B->C) i: vector A n -> vector B n -> vector C n :=
+    match n with
+    | O => fun _ _ => Vnil
+    | _ => fun v1 v2 =>
+            Vcons (f i (Vhead v1) (Vhead v2)) (Vmap2Indexed' f (S i) (Vtail v1) (Vtail v2))
+    end.
+  
+  Definition Vmap2Indexed {A B C : Type} {n:nat} (f: nat->A->B->C) (a:vector A n) (b:vector B n) :=
+    Vmap2Indexed' f 0 a b.
+  
+  Global Instance Vmap2Indexed'_proper
+         `{Setoid A} `{Setoid B} `{Setoid C}
+         n
+         (f: nat->A->B->C)
+         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    :
+      Proper ((=) ==> (=) ==> (=) ==> (=)) (@Vmap2Indexed' A B C n f).
+  Proof.
+    intros i i' Ei a a' Ea b b' Eb.
+    dependent induction n.
+    crush.
+    dep_destruct a.
+    dep_destruct b.
+    dep_destruct a'.
+    dep_destruct b'.
+    simpl.
+    apply Vcons_equiv_elim in Ea; destruct Ea as [Eh Ex1].
+    apply Vcons_equiv_elim in Eb; destruct Eb as [Eh0 Ex2].
+    apply Vcons_equiv_intro.
+    apply f_mor; assumption.
+    apply IHn; try assumption.
+    rewrite Ei; reflexivity.
+  Qed.
+(*  
+  Global Instance Vmap2Indexed_proper
+         `{Aeq: Equiv A} `{Beq: Equiv B} `{Ceq: Equiv C}
+         n
+         (f: nat->A->B->C)
+         `{f_mor: !Proper ((=) ==> Aeq ==> Beq ==> Ceq) f}
+    :
+    Proper ((@vec_equiv A Aeq n) ==> (@vec_equiv B Beq n) ==> (@vec_equiv C Ceq n)) (@Vmap2Indexed' A B C n f).
+  Proof.
+    intros a a' Ea b b' Eb.
+    unfold Vmap2Indexed.
+    dependent induction n.
+    reflexivity.
+    dep_destruct a.
+    dep_destruct b.
+    dep_destruct a'.
+    dep_destruct b'.
+    simpl.
+    rewrite IHn.
+    apply Vcons_equiv_elim in Eb. destruct Eb as [Eh Ex].
+  Qed.
+*)  
+End VMap2_Indexed.
+
 
 
 

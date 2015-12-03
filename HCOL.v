@@ -55,8 +55,8 @@ Section HCOL_Language.
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
-             (f: Rtheta->Rtheta->Rtheta)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (f: nat->Rtheta->Rtheta->Rtheta)
+             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : svector (o+o) -> svector o
     :=  BinOp f ∘ (vector2pair o).
 
