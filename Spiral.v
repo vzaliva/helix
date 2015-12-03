@@ -1341,28 +1341,19 @@ Section VMap2_Indexed.
     apply IHn; try assumption.
     rewrite Ei; reflexivity.
   Qed.
-(*  
+
   Global Instance Vmap2Indexed_proper
-         `{Aeq: Equiv A} `{Beq: Equiv B} `{Ceq: Equiv C}
+         `{Setoid A} `{Setoid B} `{Setoid C}
          n
          (f: nat->A->B->C)
-         `{f_mor: !Proper ((=) ==> Aeq ==> Beq ==> Ceq) f}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-    Proper ((@vec_equiv A Aeq n) ==> (@vec_equiv B Beq n) ==> (@vec_equiv C Ceq n)) (@Vmap2Indexed' A B C n f).
+      Proper ((=) ==> (=) ==> (=)) (@Vmap2Indexed A B C n f).
   Proof.
-    intros a a' Ea b b' Eb.
-    unfold Vmap2Indexed.
-    dependent induction n.
+    apply Vmap2Indexed'_proper; try assumption.
     reflexivity.
-    dep_destruct a.
-    dep_destruct b.
-    dep_destruct a'.
-    dep_destruct b'.
-    simpl.
-    rewrite IHn.
-    apply Vcons_equiv_elim in Eb. destruct Eb as [Eh Ex].
   Qed.
-*)  
+
 End VMap2_Indexed.
 
 
