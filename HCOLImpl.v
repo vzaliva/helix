@@ -13,7 +13,6 @@ Require Import Relations.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import CaseNaming.
-Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.

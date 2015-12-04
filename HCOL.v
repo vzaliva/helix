@@ -89,10 +89,10 @@ Section HCOL_Language.
     (∀ v, f v = g v) -> f = g.
   Proof.
     assert(Setoid_Morphism g).
-      split; try apply vec_Setoid. assumption.
-      assert(Setoid_Morphism f).
-      split; try apply vec_Setoid. assumption.
-      apply ext_equiv_applied_iff.
+    split; try apply vec_Setoid. assumption.
+    assert(Setoid_Morphism f).
+    split; try apply vec_Setoid. assumption.
+    apply ext_equiv_applied_iff.
   Qed.
   
   Section HCOL_operators.
