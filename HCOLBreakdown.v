@@ -45,43 +45,41 @@ Qed.
 
 Section HCOLBreakdown.
 
-  Lemma IgnoreIndex_ignores `{Setoid A} {i0 i1}
+  Lemma IgnoreIndex_ignores `{Setoid A} 
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-  :
+  : forall i0 i1,
     (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
   Proof.
+    intros.
     unfold IgnoreIndex2.
     apply f_mor.
   Qed.
-
+  
   Lemma Vmap2Indexed'_IgnoreIndex_ignores
-        `{Setoid A} {i0 i1} {n} {a:vector A n} {v} 
+        `{Setoid A} {n} {a:vector A n} {v} 
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-    :
+    : forall i0 i1,
       Vmap2Indexed' (IgnoreIndex2 f) i0 a v =
       Vmap2Indexed' (IgnoreIndex2 f) i1 a v.
   Proof.
-    revert i0 i1.
     dependent induction n.
-    reflexivity.
-    
-    simpl.
-    intros.
-    apply Vcons_equiv_intro.
-    reflexivity.
-
-    apply IHn, f_mor.
+    - reflexivity.
+    - intros.
+      simpl.
+      apply Vcons_equiv_intro.
+      + reflexivity.
+      + apply IHn, f_mor.
   Qed.
-        
+  
   Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a:vector A n} {v}
         (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
     :
-    Vmap2 f a v = Vmap2Indexed (IgnoreIndex2 f) a v.
+      Vmap2 f a v = Vmap2Indexed (IgnoreIndex2 f) a v.
   Proof.
     induction n.
     dep_destruct a. dep_destruct v.
     compute. trivial.
-
+    
     unfold Vmap2Indexed in *.
     simpl.
     apply Vcons_equiv_intro.
@@ -89,10 +87,10 @@ Section HCOLBreakdown.
     setoid_replace (Vmap2Indexed' (IgnoreIndex2 f) 1 (Vtail a) (Vtail v))
     with (Vmap2Indexed' (IgnoreIndex2 f) 0 (Vtail a) (Vtail v))
       by apply Vmap2Indexed'_IgnoreIndex_ignores, f_mor.
-
+    
     apply IHn.
   Qed.
-
+  
   Lemma breakdown_ScalarProd: forall (n:nat) (a v: svector n),
       ScalarProd (a,v) = 
       ((Reduction (+) 0) ∘ (BinOp (IgnoreIndex2 mult))) (a,v).
