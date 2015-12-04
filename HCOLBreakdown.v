@@ -29,8 +29,30 @@ Import VectorNotations.
 Open Scope vector_scope.
 
 
-(* Simple wrapper to ignore index parameter for HBinOp. 2 stands for arity of 'f' *)
-Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
+Section IgnoreIndex_wrapper.
+  
+  (* Simple wrapper to ignore index parameter for HBinOp. 2 stands for arity of 'f' *)
+  Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
+
+  Lemma IgnoreIndex2_ignores `{Setoid A} 
+        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+    : forall i0 i1,
+      (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
+  Proof.
+    intros.
+    unfold IgnoreIndex2.
+    apply f_mor.
+  Qed.
+
+  Global Instance IgnoreIndex2_proper:
+    (Proper (((=) ==> (=)) ==> (=)) IgnoreIndex2).
+  Proof.
+    simpl_relation.
+    apply H; assumption.
+  Qed.
+  
+End IgnoreIndex_wrapper.
+
 
 Definition MaxAbs (a b:Rtheta): Rtheta := max (abs a) (abs b).
 
@@ -45,16 +67,6 @@ Qed.
 
 Section HCOLBreakdown.
 
-  Lemma IgnoreIndex_ignores `{Setoid A} 
-        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-  : forall i0 i1,
-    (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
-  Proof.
-    intros.
-    unfold IgnoreIndex2.
-    apply f_mor.
-  Qed.
-  
   Lemma Vmap2Indexed'_IgnoreIndex_ignores
         `{Setoid A} {n} {a:vector A n} {v} 
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
@@ -106,7 +118,7 @@ Section HCOLBreakdown.
   Fact breakdown_OScalarProd: forall {h:nat}, 
       HScalarProd (h:=h)
       =
-      ((HReduction  (+) 0) ∘ (HBinOp (.*.))).
+      ((HReduction  (+) 0) ∘ (HBinOp (IgnoreIndex2 mult))).
   Proof.
     intros h.
     apply HOperator_functional_extensionality; intros v.
@@ -249,13 +261,17 @@ Section HCOLBreakdown.
   Qed.
   
   Lemma breakdown_VMinus:  forall (n:nat) (ab: (svector n)*(svector n)),
-      VMinus ab =  BinOp (plus∘negate) ab.
+      VMinus ab =  BinOp (IgnoreIndex2 (plus∘negate)) ab.
   Proof.
+    intros.
+    unfold VMinus, BinOp.
+    break_let.
+    apply Vmap2Indexed_to_VMap2.
     crush.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),
-      HVMinus = HBinOp (o:=n) (plus∘negate).
+      HVMinus = HBinOp (o:=n) (IgnoreIndex2 (plus∘negate)).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -269,7 +285,7 @@ Section HCOLBreakdown.
       {i1 i2 o}
       `{o1pf: !Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
       `{o2pf: !Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
-      HTLess o1 o2 = (HBinOp Zless ∘ HCross o1 o2).
+      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
     apply HOperator_functional_extensionality; intros v.
@@ -282,7 +298,8 @@ Section HCOLBreakdown.
     rewrite Heqp in Heqp1.
     inversion Heqp0.
     inversion Heqp1.
-    reflexivity.
+    apply Vmap2Indexed_to_VMap2.
+    crush.
   Qed.
 
 End HCOLBreakdown.
@@ -294,10 +311,10 @@ Theorem DynWinOSPL:  forall (a: svector 3),
     (HEvalPolynomial a)
     (HChebyshevDistance 2))
   =
-  (HBinOp Zless ∘
+  (HBinOp (IgnoreIndex2 Zless) ∘
           HCross
-          ((HReduction plus 0 ∘ HBinOp mult) ∘ (HPrepend a ∘ HInduction _ mult 1))
-          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (plus∘negate))).
+          ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
+          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 (plus∘negate)))).
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
