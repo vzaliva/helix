@@ -3,6 +3,7 @@ Require Import Spiral.
 Require Import Rtheta.
 Require Import SVector.
 Require Import SigmaHCOL.
+Require Import HCOL.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -694,5 +695,42 @@ Section SigmaHCOLRewriting.
     intros i ip.
     apply U_SAG2; assumption.
   Qed.
+
+  (*
+    BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
+        ISumUnion(i, i.range, OLCompose(
+        ScatHUnion(o.N, 1, i, 1),
+        BinOp(1, o.op),
+        GathH(2*o.N, 2, i, o.N)
+        )))),
+   *)
+  Lemma expand_BinOp:
+    forall n (x:svector (n+n))
+      {nnz:n≢0}
+      (f: Rtheta->Rtheta->Rtheta)
+      `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+      Vforall Is_Val x ->
+      (forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (f a b)) ->
+      HBinOp (o:=n) (IgnoreIndex2 f) x ≡
+      SumUnion
+        (@Vbuild (svector n) n
+                 (fun i id =>
+                    (
+                      (ScatH i 1
+                             (snz:=One_ne_Zero)
+                             (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)) 
+                        ∘ (HBinOp (o:=1) (IgnoreIndex2 f))
+                        ∘ (GathH i n
+                                 (snz:=nnz)
+                                 (range_bound:=GathH_jn_range_bound i n id nnz)
+                          )
+                    ) x
+        )).
+  Proof.
+    intros n x nnz f pF x_dense f_dense.
+  Qed.
   
 End SigmaHCOLRewriting.
+
+
+    

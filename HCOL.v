@@ -215,3 +215,29 @@ Section HCOL_Language.
 
   End HCOL_operators.
 End HCOL_Language.
+
+Section IgnoreIndex_wrapper.
+  
+  (* Simple wrapper to ignore index parameter for HBinOp. 2 stands for arity of 'f' *)
+  Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
+  
+  Lemma IgnoreIndex2_ignores `{Setoid A} 
+        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+    : forall i0 i1,
+      (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
+  Proof.
+    intros.
+    unfold IgnoreIndex2.
+    apply f_mor.
+  Qed.
+  
+  Global Instance IgnoreIndex2_proper:
+    (Proper (((=) ==> (=)) ==> (=)) IgnoreIndex2).
+  Proof.
+    simpl_relation.
+    apply H; assumption.
+  Qed.
+  
+End IgnoreIndex_wrapper.
+
+
