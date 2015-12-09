@@ -217,8 +217,20 @@ Section HCOL_Language.
 End HCOL_Language.
 
 Section IgnoreIndex_wrapper.
+
+  (* Wrapper to replace index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
+  Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := fun (_:nat) => f i.
   
-  (* Simple wrapper to ignore index parameter for HBinOp. 2 stands for arity of 'f' *)
+  Global Instance SwapIndex2_proper `{Setoid A} (i:nat)
+         (f:nat->A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A i f).
+  Proof.
+    intros a a' Ea b b' Eb y y' Ey.
+    unfold SwapIndex2.
+    f_equiv; assumption.
+  Qed.
+  
+  (* Wrapper to ignore index parameter for HBinOp kernal. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
   
   Lemma IgnoreIndex2_ignores `{Setoid A} 

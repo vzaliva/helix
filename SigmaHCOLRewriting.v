@@ -707,11 +707,11 @@ Section SigmaHCOLRewriting.
   Lemma expand_BinOp:
     forall n (x:svector (n+n))
       {nnz:n≢0}
-      (f: Rtheta->Rtheta->Rtheta)
-      `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+      (f: nat->Rtheta->Rtheta->Rtheta)
+      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
-      (forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (f a b)) ->
-      HBinOp (o:=n) (IgnoreIndex2 f) x ≡
+      (forall j a b, (Is_Val a /\ Is_Val b) -> Is_Val (f j a b)) ->
+      HBinOp (o:=n) (f) x =
       SumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
@@ -719,7 +719,7 @@ Section SigmaHCOLRewriting.
                       (ScatH i 1
                              (snz:=One_ne_Zero)
                              (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)) 
-                        ∘ (HBinOp (o:=1) (IgnoreIndex2 f))
+                        ∘ (HBinOp (o:=1) (SwapIndex2 i f))
                         ∘ (GathH i n
                                  (snz:=nnz)
                                  (range_bound:=GathH_jn_range_bound i n id nnz)
@@ -728,6 +728,8 @@ Section SigmaHCOLRewriting.
         )).
   Proof.
     intros n x nnz f pF x_dense f_dense.
+    apply HOperator_functional_extensionality; intros v.
+    
   Qed.
   
 End SigmaHCOLRewriting.
