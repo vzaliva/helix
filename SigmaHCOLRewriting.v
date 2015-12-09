@@ -504,13 +504,13 @@ Section SigmaHCOLRewriting.
     nia.
   Qed.
   
-  Lemma Pointwise2_nth:
+  Lemma SimpleBinOp_nth:
     ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
       (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
-      Vnth (Pointwise2 f x) kp ≡ f (Vnth x kn) (Vnth x knn).
+      Vnth (SimpleBinOp f x) kp ≡ f (Vnth x kn) (Vnth x knn).
   Proof.
     intros n x f k kp kn knn nnz.
-    unfold Pointwise2.
+    unfold SimpleBinOp.
     break_let.  rename t into a. rename t0 into b.
     rewrite Vnth_map2.
     assert(A: Vnth a kp ≡ Vnth x kn).
@@ -551,12 +551,12 @@ Section SigmaHCOLRewriting.
                  ((ScatH i n
                          (snz:=nnz)
                          (domain_bound:=ScatH_1_to_n_domain_bound i n n id))
-                    ∘ (Pointwise2 (n:=1) f)
+                    ∘ (SimpleBinOp (n:=1) f)
                     ∘ (GathH i n
                              (range_bound:=GathH_jn_range_bound i n id nnz)
                              (snz:=nnz))
                  ) x))) kp
-          ≡ Vnth (Pointwise2 f x) kp.
+          ≡ Vnth (SimpleBinOp f x) kp.
   Proof.
     intros n x f nnz k kp V F.
     unfold compose.
@@ -565,7 +565,7 @@ Section SigmaHCOLRewriting.
               ScatH (o:=n) i n
                     (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
                     (snz:=nnz)
-                    (Pointwise2 (n:=1) f (
+                    (SimpleBinOp (n:=1) f (
                                   GathH i n x
                                         (range_bound:=GathH_jn_range_bound i n id nnz)
                                         (snz:=nnz)
@@ -577,7 +577,7 @@ Section SigmaHCOLRewriting.
     assert(B1: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
                                                      (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
                                                      (snz:=nnz)
-                                                     (Pointwise2 (n:=1) f
+                                                     (SimpleBinOp (n:=1) f
                                                                  [
                                                                    (Vnth x (ILTNN i id));
                                                                    (Vnth x (INLTNN i id))
@@ -610,7 +610,7 @@ Section SigmaHCOLRewriting.
       rewrite B1.
       extensionality j.
       extensionality jn.
-      unfold Pointwise2.
+      unfold SimpleBinOp.
       reflexivity.
     }
     rewrite B2.
@@ -663,7 +663,7 @@ Section SigmaHCOLRewriting.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
     rewrite InverseIndex_1_hit.
-    symmetry; apply Pointwise2_nth.
+    symmetry; apply SimpleBinOp_nth.
     assumption.
     assumption.
   Qed.
@@ -679,14 +679,14 @@ Section SigmaHCOLRewriting.
                       (ScatH i n (i:=1) (o:=n)
                              (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
                              (snz:=nnz))
-                        ∘ (Pointwise2 f (n:=1)) 
+                        ∘ (SimpleBinOp f (n:=1)) 
                         ∘ (GathH i n (o:=2)
                                  (range_bound:=GathH_jn_range_bound i n id nnz)
                                  (snz:=nnz))
                     ) x
         ))
         ≡
-        Pointwise2 f x.
+        SimpleBinOp f x.
   Proof.
     intros n x f nnz V F.
     apply vec_eq_elementwise.
@@ -728,7 +728,8 @@ Section SigmaHCOLRewriting.
         )).
   Proof.
     intros n x nnz f pF x_dense f_dense.
-    apply HOperator_functional_extensionality; intros v.
+      
+    
     
   Qed.
   

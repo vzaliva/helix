@@ -149,7 +149,7 @@ Section SigmaHCOL_Operators.
     := Vfold_left Vec2Union (szero_svector o) v.
 
 
-  Definition Pointwise2 (f: Rtheta -> Rtheta -> Rtheta) {n} (x: svector (n+n)) : svector n :=
+  Definition SimpleBinOp (f: Rtheta -> Rtheta -> Rtheta) {n} (x: svector (n+n)) : svector n :=
     match (@Vbreak Rtheta n n x) with
     | (a,b) =>  Vmap2 f a b
     end.
