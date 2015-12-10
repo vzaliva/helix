@@ -544,23 +544,28 @@ Section SigmaHCOLRewriting.
   Qed.
   
   Lemma U_SAG2:
-    ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
+    ∀ (n : nat) (x : vector Rtheta (n + n))
+      (f: nat->Rtheta->Rtheta->Rtheta)
+      `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       (nnz : n ≢ 0) (k : nat) (kp : k < n),
       Vforall Is_Val x
-      → (∀ a b : Rtheta, Is_Val a → Is_Val b → Is_Val (f a b))
+      → (∀ (j:nat) (a b : Rtheta), Is_Val a → Is_Val b → Is_Val (f j a b))
       → Vnth
           (SumUnion
-             (Vbuild
-                (λ (i : nat) (id : i < n),
-                 ((ScatH i n
-                         (snz:=nnz)
-                         (domain_bound:=ScatH_1_to_n_domain_bound i n n id))
-                    ∘ (SimpleBinOp (n:=1) f)
-                    ∘ (GathH i n
-                             (range_bound:=GathH_jn_range_bound i n id nnz)
-                             (snz:=nnz))
-                 ) x))) kp
-          ≡ Vnth (SimpleBinOp f x) kp.
+             (@Vbuild (svector n) n
+                      (fun i id =>
+                         (
+                           (ScatH i 1
+                                  (snz:=One_ne_Zero)
+                                  (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)) 
+                             ∘ (HBinOp (o:=1) (SwapIndex2 i f))
+                             ∘ (GathH i n
+                                      (snz:=nnz)
+                                      (range_bound:=GathH_jn_range_bound i n id nnz)
+                               )
+                         ) x
+          ))) kp
+          ≡ Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
     intros n x f nnz k kp V F.
     unfold compose.
@@ -672,34 +677,6 @@ Section SigmaHCOLRewriting.
     assumption.
   Qed.
   
-  Theorem U_SAG_PW2:
-    forall n (x:svector (n+n)) (f: Rtheta -> Rtheta -> Rtheta) (nnz: n ≢ 0),
-      Vforall Is_Val x ->
-      (forall a b, Is_Val a -> Is_Val b -> Is_Val (f a b)) ->
-      SumUnion
-        (@Vbuild (svector n) n
-                 (fun i id =>
-                    (
-                      (ScatH i n (i:=1) (o:=n)
-                             (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
-                             (snz:=nnz))
-                        ∘ (SimpleBinOp f (n:=1)) 
-                        ∘ (GathH i n (o:=2)
-                                 (range_bound:=GathH_jn_range_bound i n id nnz)
-                                 (snz:=nnz))
-                    ) x
-        ))
-        ≡
-        SimpleBinOp f x.
-  Proof.
-    intros n x f nnz V F.
-    apply vec_eq_elementwise.
-
-    apply Vforall2_intro_nth.
-    intros i ip.
-    apply U_SAG2; assumption.
-  Qed.
-
   (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
@@ -712,9 +689,9 @@ Section SigmaHCOLRewriting.
     forall n (x:svector (n+n))
       {nnz:n≢0}
       (f: nat->Rtheta->Rtheta->Rtheta)
-      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+      `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
-      (forall j a b, (Is_Val a /\ Is_Val b) -> Is_Val (f j a b)) ->
+      (forall j a b, Is_Val a -> Is_Val b -> Is_Val (f j a b)) ->
       HBinOp (o:=n) (f) x ≡
       SumUnion
         (@Vbuild (svector n) n
@@ -735,6 +712,7 @@ Section SigmaHCOLRewriting.
     apply vec_eq_elementwise.
     apply Vforall2_intro_nth.
     intros i ip.
+    symmetry.
     apply U_SAG2; assumption.
   Qed.
 
