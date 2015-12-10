@@ -616,7 +616,6 @@ Section SigmaHCOLRewriting.
     clear B1 B2 Heqbf bf.
 
     (* Lemma5 embedded below*)
-    
       
     rewrite AbsorbUnionIndex.
     rewrite Vmap_Vbuild.
@@ -624,7 +623,7 @@ Section SigmaHCOLRewriting.
     (* Preparing to apply Lemma3. Prove some peoperties first. *)
     remember (Vbuild
                 (λ (z : nat) (zi : z < n),
-                 Vnth (ScatH z n [f (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))]) kp)) as b.
+                 Vnth (ScatH z 1 [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))]) kp)) as b.
 
     assert
       (L3pre: forall ib (icb:ib<n),
@@ -641,7 +640,7 @@ Section SigmaHCOLRewriting.
       intros H.
       subst ib.
       replace icb with kp by apply proof_irrelevance.
-      remember (f (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
+      remember (f k (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
       rewrite InverseIndex_1_hit.
       
       assert(Is_Val (Vnth x (ILTNN k kp))); try crush.
@@ -663,7 +662,7 @@ Section SigmaHCOLRewriting.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
     rewrite InverseIndex_1_hit.
-    symmetry; apply SimpleBinOp_nth.
+    symmetry; apply HBinOp_nth.
     assumption.
     assumption.
   Qed.
@@ -705,10 +704,6 @@ Section SigmaHCOLRewriting.
     intros i ip.
     symmetry.
     apply U_SAG2; assumption.
-  Qed.
-
-    
-    
   Qed.
   
 End SigmaHCOLRewriting.
