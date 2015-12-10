@@ -554,49 +554,43 @@ Section SigmaHCOLRewriting.
           (SumUnion
              (@Vbuild (svector n) n
                       (fun i id =>
-                         (
-                           (ScatH i 1
+                         ((ScatH i 1
                                   (snz:=One_ne_Zero)
-                                  (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)) 
-                             ∘ (HBinOp (o:=1) (SwapIndex2 i f))
-                             ∘ (GathH i n
-                                      (snz:=nnz)
-                                      (range_bound:=GathH_jn_range_bound i n id nnz)
-                               )
+                                  (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
+                            ∘ (HBinOp (o:=1) (SwapIndex2 i f))
+                            ∘ (GathH i n
+                                     (snz:=nnz)
+                                     (range_bound:=GathH_jn_range_bound i n id nnz))
                          ) x
           ))) kp
           ≡ Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
-    intros n x f nnz k kp V F.
+    intros n x f f_mor nnz k kp V F.
     unfold compose.
-
-    remember (λ (i : nat) (id : i < n),
-              ScatH (o:=n) i n
-                    (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
-                    (snz:=nnz)
-                    (SimpleBinOp (n:=1) f (
-                                  GathH i n x
-                                        (range_bound:=GathH_jn_range_bound i n id nnz)
-                                        (snz:=nnz)
-             ))) as bf.
-
+    
+    remember (fun i id =>
+                ScatH i 1
+                      (snz:=One_ne_Zero)
+                      (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                             (HBinOp (o:=1) (SwapIndex2 i f)
+                                     (GathH i n
+                                            (snz:=nnz)
+                                            (range_bound:=GathH_jn_range_bound i n id nnz) x)))
+      as bf.
+    
     assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
     assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
-
-    assert(B1: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
-                                                     (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
-                                                     (snz:=nnz)
-                                                     (SimpleBinOp (n:=1) f
-                                                                 [
-                                                                   (Vnth x (ILTNN i id));
-                                                                   (Vnth x (INLTNN i id))
-          ]))).
+    
+    assert(B1: bf ≡ (fun i id =>
+                       (ScatH i 1
+                              (snz:=One_ne_Zero)
+                              (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                              (HBinOp (o:=1) (SwapIndex2 i f)
+                                      [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
     {
       subst bf.
-      extensionality j.
-      extensionality jn.
-      unfold GathH.
-      unfold Gather.
+      extensionality j. extensionality jn.
+      unfold GathH, Gather, compose.
       rewrite Vbuild_2.
       unfold VnthIndexMapped.
       generalize
@@ -609,24 +603,21 @@ Section SigmaHCOLRewriting.
       reflexivity.
     }
     
-    assert (B2: bf ≡ (λ (i : nat) (id : i < n), ScatH (o:=n) i n
-                                                      (domain_bound:=ScatH_1_to_n_domain_bound i n n id)
-                                                      (snz:=nnz)
-                                                      [ f  (Vnth x (ILTNN i id))
-                                                           (Vnth x (INLTNN i id)) ]
-           )).
+    assert (B2: bf ≡ (λ (i : nat) (id : i < n),
+                      ScatH i 1
+                            (snz:=One_ne_Zero)
+                            (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                            [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id)) ])).
     {
       rewrite B1.
-      extensionality j.
-      extensionality jn.
-      unfold SimpleBinOp.
       reflexivity.
     }
     rewrite B2.
     clear B1 B2 Heqbf bf.
 
     (* Lemma5 embedded below*)
-
+    
+      
     rewrite AbsorbUnionIndex.
     rewrite Vmap_Vbuild.
 
