@@ -43,40 +43,21 @@ Qed.
 
 Section HCOLBreakdown.
 
-  Lemma Vmap2Indexed'_IgnoreIndex_ignores
-        `{Setoid A} {n} {a:vector A n} {v} 
-        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-    : forall i0 i1,
-      Vmap2Indexed' (IgnoreIndex2 f) i0 a v =
-      Vmap2Indexed' (IgnoreIndex2 f) i1 a v.
-  Proof.
-    dependent induction n.
-    - reflexivity.
-    - intros.
-      simpl.
-      apply Vcons_equiv_intro.
-      + reflexivity.
-      + apply IHn, f_mor.
-  Qed.
-  
   Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a:vector A n} {v}
         (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
     :
       Vmap2 f a v = Vmap2Indexed (IgnoreIndex2 f) a v.
   Proof.
     induction n.
-    dep_destruct a. dep_destruct v.
-    compute. trivial.
-    
-    unfold Vmap2Indexed in *.
-    simpl.
-    apply Vcons_equiv_intro.
-    reflexivity.
-    setoid_replace (Vmap2Indexed' (IgnoreIndex2 f) 1 (Vtail a) (Vtail v))
-    with (Vmap2Indexed' (IgnoreIndex2 f) 0 (Vtail a) (Vtail v))
-      by apply Vmap2Indexed'_IgnoreIndex_ignores, f_mor.
-    
-    apply IHn.
+    +
+      dep_destruct a. dep_destruct v.
+      compute. trivial.
+    +
+      VSntac a.
+      VSntac v.
+      repeat rewrite Vmap2_cons; try assumption.
+      rewrite Vcons_to_Vcons_reord, IHn, <- Vcons_to_Vcons_reord.
+      reflexivity.
   Qed.
   
   Lemma breakdown_ScalarProd: forall (n:nat) (a v: svector n),

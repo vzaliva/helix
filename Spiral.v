@@ -1311,41 +1311,17 @@ Proof.
 Qed.
 
 Section VMap2_Indexed.
-
-  Fixpoint Vmap2Indexed' {A B C : Type} {n} (f: nat->A->B->C) i: vector A n -> vector B n -> vector C n :=
-    match n with
-    | O => fun _ _ => Vnil
-    | _ => fun v1 v2 =>
-            Vcons (f i (Vhead v1) (Vhead v2)) (Vmap2Indexed' f (S i) (Vtail v1) (Vtail v2))
-    end.
   
-  Definition Vmap2Indexed {A B C : Type} {n:nat} (f: nat->A->B->C) (a:vector A n) (b:vector B n) :=
-    Vmap2Indexed' f 0 a b.
+  Fixpoint Vmap2Indexed {A B C : Type} {n} (f: nat->A->B->C):
+    vector A n -> vector B n -> vector C n
+    :=
+      match n with
+      | O => fun _ _ => Vnil
+      | S p => fun v1 v2 =>
+                let f' := fun i => f (S i) in
+                Vcons (f 0 (Vhead v1) (Vhead v2)) (Vmap2Indexed f' (Vtail v1) (Vtail v2))
+      end.
   
-  Global Instance Vmap2Indexed'_proper
-         `{Setoid A} `{Setoid B} `{Setoid C}
-         n
-         (f: nat->A->B->C)
-         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-      Proper ((=) ==> (=) ==> (=) ==> (=)) (@Vmap2Indexed' A B C n f).
-  Proof.
-    intros i i' Ei a a' Ea b b' Eb.
-    dependent induction n.
-    crush.
-    dep_destruct a.
-    dep_destruct b.
-    dep_destruct a'.
-    dep_destruct b'.
-    simpl.
-    apply Vcons_equiv_elim in Ea; destruct Ea as [Eh Ex1].
-    apply Vcons_equiv_elim in Eb; destruct Eb as [Eh0 Ex2].
-    apply Vcons_equiv_intro.
-    apply f_mor; assumption.
-    apply IHn; try assumption.
-    rewrite Ei; reflexivity.
-  Qed.
-
   Global Instance Vmap2Indexed_proper
          `{Setoid A} `{Setoid B} `{Setoid C}
          n
@@ -1354,8 +1330,24 @@ Section VMap2_Indexed.
     :
       Proper ((=) ==> (=) ==> (=)) (@Vmap2Indexed A B C n f).
   Proof.
-    apply Vmap2Indexed'_proper; try assumption.
-    reflexivity.
+    intros a a' Ea b b' Eb.
+    dependent induction n
+    ; (
+        dep_destruct a;
+        dep_destruct b;
+        dep_destruct a';
+        dep_destruct b'
+      ).
+    + reflexivity.
+    + simpl.
+      apply Vcons_equiv_elim in Ea; destruct Ea as [Eh Ex1].
+      apply Vcons_equiv_elim in Eb; destruct Eb as [Eh0 Ex2].
+      apply Vcons_equiv_intro.
+      rewrite Eh, Eh0.
+      reflexivity.
+      apply IHn; try assumption.
+      simpl_relation.
+      rewrite H2, H3, H4; reflexivity.
   Qed.
 
   Lemma Vnth_Vmap2Indexed:
@@ -1364,22 +1356,19 @@ Section VMap2_Indexed.
       Vnth (Vmap2Indexed f a b) ip ≡ f i (Vnth a ip) (Vnth b ip).
   Proof.
     (*
-    unfold Vmap2Indexed.
-    dependent induction i.
-    intros ip f a b.
-    dep_destruct (Vmap2Indexed' f 0 a b).
-    nat_lt_0_contradiction.
-    simpl.
-    admit.
-    intros ip f a b.
-    dependent induction n; intros i ip f a b.
+    intros A B C n i ip f a b.
+    dependent induction n; intros.
     VOtac. nat_lt_0_contradiction.
     VSntac a. VSntac b.
     simpl. destruct i. reflexivity.
 
-    
-    induction i.
-    crush.
+    assert(ip':i<n) by (apply lt_S_n; assumption).
+    replace (lt_S_n ip) with ip' by apply proof_irrelevance.
+
+
+
+
+
 
     dep_destruct i. reflexivity.
     repeat rewrite <- VSn_eq.
