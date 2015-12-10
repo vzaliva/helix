@@ -16,6 +16,9 @@ Require Import Coq.Lists.List.
 Require Import CaseNaming.
 Require Import CpdtTactics.
 Require Import JRWTactics.
+Require Import SpiralTactics.
+Require Import Psatz.
+
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -1308,6 +1311,7 @@ Proof.
 Qed.
 
 Section VMap2_Indexed.
+
   Fixpoint Vmap2Indexed' {A B C : Type} {n} (f: nat->A->B->C) i: vector A n -> vector B n -> vector C n :=
     match n with
     | O => fun _ _ => Vnil
@@ -1354,38 +1358,58 @@ Section VMap2_Indexed.
     reflexivity.
   Qed.
 
+  Lemma Vnth_Vmap2Indexed:
+    forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
+      (a:vector A n) (b:vector B n),
+      Vnth (Vmap2Indexed f a b) ip ≡ f i (Vnth a ip) (Vnth b ip).
+  Proof.
+    (*
+    unfold Vmap2Indexed.
+    dependent induction i.
+    intros ip f a b.
+    dep_destruct (Vmap2Indexed' f 0 a b).
+    nat_lt_0_contradiction.
+    simpl.
+    admit.
+    intros ip f a b.
+    dependent induction n; intros i ip f a b.
+    VOtac. nat_lt_0_contradiction.
+    VSntac a. VSntac b.
+    simpl. destruct i. reflexivity.
+
+    
+    induction i.
+    crush.
+
+    dep_destruct i. reflexivity.
+    repeat rewrite <- VSn_eq.
+    rewrite IHn.
+    
+    
+    
+    assert(ip': i < n) by (apply lt_S_n; assumption).
+    replace (lt_S_n ip) with ip' by apply proof_irrelevance.
+    rewrite <-IHn with (f:=f) (i:=S i) (a:=a)  (b:=b) (ip:=ip).
+    
+    rewrite 2!Vnth_Sn with (ip'0:=ip').
+    Set Printing Implicit. Show.
+    rewrite <- IHn.
+    
+    repeat rewrite <- VSn_eq.
+    rewrite <-IHn with (f:=f) (i:=S i) (a:=a)  (b:=b) (ip:=ip).
+    
+    induction n.
+    nat_lt_0_contradiction.
+    simpl.
+    dep_destruct i.
+    rewrite 2!Vnth_0.
+    reflexivity.
+     *)
+    admit.
+  Qed.
+  
 End VMap2_Indexed.
 
 
 
-
-(* ----------- Some handy tactics ----------- *)
-
-(* simple tactic to get rid of is_None/is_Some goals which are 
-frequently produced by cases analsysis on matcing error conditions *)
-
-Ltac none_some_elim := 
-  repeat match goal with
-         | [ H: ?x ≢ ?x |- _ ] => congruence
-                                  
-         | [ H : is_None (Some _) |- _] => unfold is_None in H; contradiction H
-         | [ H : is_None None  |- _ ] => clear H
-         | [ H : is_Some None |- _] => unfold is_Some in H; contradiction H
-         | [ H : is_Some (Some _) |-_ ] => clear H
-
-         | [ H : _ |- is_None (Some _) ] => unfold is_None; congruence
-         | [ H : _ |- is_None None ] => unfold is_None; trivial
-         | [ H : _ |- is_Some None ] => unfold is_Some; congruence
-         | [ H : _ |- is_Some (Some _) ] => unfold is_Some; trivial
-         end. 
-Ltac some_none_elim := none_some_elim.
-
-Ltac rewrite_clear H := rewrite H; clear H.
-
-Ltac nat_lt_0_contradiction := 
-  let H' := fresh in
-  match goal with
-  | [H: Peano.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
-  | [H: MathClasses.interfaces.canonical_names.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
-  end.
 

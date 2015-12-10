@@ -15,6 +15,7 @@ Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import CaseNaming.
+Require Import SpiralTactics.
 Require Import Psatz.
 
 (* CoRN MathClasses *)
@@ -148,11 +149,6 @@ Section SigmaHCOL_Operators.
              {o n} (v: vector (svector o) n): svector o
     := Vfold_left Vec2Union (szero_svector o) v.
 
-
-  Definition SimpleBinOp (f: Rtheta -> Rtheta -> Rtheta) {n} (x: svector (n+n)) : svector n :=
-    match (@Vbreak Rtheta n n x) with
-    | (a,b) =>  Vmap2 f a b
-    end.
 
 End SigmaHCOL_Operators.
 

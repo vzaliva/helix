@@ -11,12 +11,13 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Program. 
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Psatz.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import CaseNaming.
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Psatz.
+Require Import SpiralTactics.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
@@ -504,15 +505,18 @@ Section SigmaHCOLRewriting.
     nia.
   Qed.
   
-  Lemma SimpleBinOp_nth:
-    ∀ (n : nat) (x : vector Rtheta (n + n)) (f : Rtheta → Rtheta → Rtheta)
+  Lemma HBinOp_nth:
+    ∀ (n : nat) (x : vector Rtheta (n + n))
+      (f : nat -> Rtheta → Rtheta → Rtheta)
+      `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
-      Vnth (SimpleBinOp f x) kp ≡ f (Vnth x kn) (Vnth x knn).
+      Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
   Proof.
-    intros n x f k kp kn knn nnz.
-    unfold SimpleBinOp.
+    intros n x f f_mor k kp kn knn nnz.
+    unfold HBinOp, compose, vector2pair, HCOLImpl.BinOp.
     break_let.  rename t into a. rename t0 into b.
-    rewrite Vnth_map2.
+
+    rewrite Vnth_Vmap2Indexed.
     assert(A: Vnth a kp ≡ Vnth x kn).
     {
       apply Vbreak_arg_app in Heqp.
@@ -711,7 +715,7 @@ Section SigmaHCOLRewriting.
       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
       (forall j a b, (Is_Val a /\ Is_Val b) -> Is_Val (f j a b)) ->
-      HBinOp (o:=n) (f) x =
+      HBinOp (o:=n) (f) x ≡
       SumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
@@ -728,7 +732,12 @@ Section SigmaHCOLRewriting.
         )).
   Proof.
     intros n x nnz f pF x_dense f_dense.
-      
+    apply vec_eq_elementwise.
+    apply Vforall2_intro_nth.
+    intros i ip.
+    apply U_SAG2; assumption.
+  Qed.
+
     
     
   Qed.
