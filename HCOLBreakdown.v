@@ -43,21 +43,17 @@ Qed.
 
 Section HCOLBreakdown.
 
-  Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a:vector A n} {v}
+  Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b:vector A n}
         (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
     :
-      Vmap2 f a v = Vmap2Indexed (IgnoreIndex2 f) a v.
+      Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
   Proof.
-    induction n.
-    +
-      dep_destruct a. dep_destruct v.
-      compute. trivial.
-    +
-      VSntac a.
-      VSntac v.
-      repeat rewrite Vmap2_cons; try assumption.
-      rewrite Vcons_to_Vcons_reord, IHn, <- Vcons_to_Vcons_reord.
-      reflexivity.
+    unfold equiv, vec_equiv.
+    apply Vforall2_intro_nth.
+    intros i ip.
+    rewrite Vnth_Vmap2Indexed.
+    rewrite Vnth_map2.
+    reflexivity.
   Qed.
   
   Lemma breakdown_ScalarProd: forall (n:nat) (a v: svector n),
@@ -277,8 +273,8 @@ Proof.
   rewrite breakdown_OTLess_Base.
   rewrite breakdown_OEvalPolynomial.
   rewrite breakdown_OScalarProd.
+  Typeclasses eauto := 9. (* Hacky way to work around hangup in typeclass resolution *)
   rewrite breakdown_OMonomialEnumerator.
-  Typeclasses eauto := 8. (* Hacky way to work around hangup in typeclass resolution *)
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.
   rewrite breakdown_OTInfinityNorm.
