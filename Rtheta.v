@@ -496,13 +496,56 @@ Proof.
   apply Rtheta_le_TotalRelation.
 Qed.
 
+Instance Rtheta_plus_Order_Morphism: ∀ (z : Rtheta), Order_Morphism (plus z).
+Proof.
+  split.
+  split.
+  apply Rtheta_Setoid.
+  apply Rtheta_Setoid.
+  apply Rtheta_plus_proper.
+  reflexivity.
+  apply Rtheta_le_PartialOrder.
+  apply Rtheta_le_PartialOrder.
+Qed.
+
+Lemma Rtheta_le_plus_lemma1:
+  ∀ z x y : Rtheta, x ≤ y <-> z + x ≤ z + y.
+Proof.
+  intros z x y.
+  destruct_Rtheta x.
+  destruct_Rtheta y.
+  destruct_Rtheta z.
+  unfold le, Rtheta_Le, Rtheta_rel_first, plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal.
+  simpl.
+  assert(H: SemiRingOrder CarrierAle) by apply CarrierASRO.
+  destruct H.
+  specialize srorder_plus with (z:=z0).
+  destruct srorder_plus.
+  destruct order_embedding_preserving.
+  destruct order_embedding_reflecting.
+  split; auto.
+Qed.
+
+Instance Rtheta_plus_OrderPreserving: ∀ (z : Rtheta), OrderPreserving (plus z).
+Proof.
+  split.
+  apply Rtheta_plus_Order_Morphism.
+  apply Rtheta_le_plus_lemma1.
+Qed.
+
+Instance Rtheta_plus_OrderReflecting: ∀ (z : Rtheta), OrderReflecting (plus z).
+Proof.
+  split.
+  apply Rtheta_plus_Order_Morphism.
+  apply Rtheta_le_plus_lemma1.
+Qed.
+
 Instance Rtheta_plus_OrderEmbedding: ∀ (z : Rtheta), OrderEmbedding (plus z).
 Proof.
   intros.
-  destruct_Rtheta z.
-  unfold plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsSErr.
-  simpl.  
-  admit.
+  split.
+  apply Rtheta_plus_OrderPreserving.
+  apply Rtheta_plus_OrderReflecting.
 Qed.
 
 Instance Rtheta_SemiRingOrder: SemiRingOrder Rtheta_Le.
