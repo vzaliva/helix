@@ -1339,19 +1339,11 @@ Section VMap2_Indexed.
     ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n) 
       (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
   Proof.
-    admit.
+    intros A Ae n v1 v2 i ip E.
+    unfold equiv, vec_equiv in E.
+    apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
+    assumption.
   Qed.
-  (*
-    dependent induction i.
-    - destruct n.
-      nat_lt_0_contradiction.
-      rewrite 2!Vnth_0.
-      apply hd_equiv.
-      assumption.
-    - 
-      apply IHi.
-  Qed.  
-   *)
   
   Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
     i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
