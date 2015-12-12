@@ -30,45 +30,6 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 Open Scope vector_scope.
 
-(* Scalar union *)
-Definition Union 
-           (a b: Rtheta): Rtheta
-  :=
-    match a, b with
-    |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be) 
-    |  (av, false, ae), (_, true, be) => (av, false, orb ae be) 
-    |  (_, true, ae), (_, true, be) => (zero, true, orb ae be) 
-    |  (_, false, _), (_, false, _) => Rtheta_szero_err
-    end.
-
-
-(* Stronger commutativity, wrt to 'eq' equality *)
-Lemma Union_comm: ∀ x y : Rtheta, Union x y ≡ Union y x.
-Proof.
-  intros x y.
-  destruct_Rtheta x.
-  destruct_Rtheta y.
-  destruct x1, x2, y1, y2; crush.
-Qed.
-
-(* Weaker commutativity, wrt to 'equiv' equality *)
-Instance Rtheta_Commutative_Union:
-  @Commutative Rtheta Rtheta_equiv Rtheta Union.
-Proof.
-  unfold Commutative.
-  intros x y.
-  rewrite Union_comm.
-  reflexivity.
-Qed.
-
-(* Unary union of vector's elements (fold) *)
-Definition VecUnion {n} (v:svector n): Rtheta :=
-  Vfold_left Union Rtheta_szero v.
-
-(* Binary element-wise union of two vectors *)
-Definition Vec2Union {n} (a b: svector n): svector n
-  := Vmap2 Union a b.
-
 Global Open Scope nat_scope.
 
 (* Returns an element of the vector 'x' which is result of mapping of given
@@ -145,11 +106,6 @@ Section SigmaHCOL_Operators.
              (x: svector 1)
     := [f (Vhead x)].
   
-  Definition SumUnion
-             {o n} (v: vector (svector o) n): svector o
-    := Vfold_left Vec2Union (szero_svector o) v.
-
-
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:

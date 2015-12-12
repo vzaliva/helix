@@ -133,3 +133,8 @@ Proof.
   reflexivity.
 Qed.
 
+Definition HTSUMUnion {i o}
+           (f: svector i -> svector o)
+           (g: svector i -> svector o)
+           (x: svector i): svector o
+  :=  Vec2Union (f x) (g x).
