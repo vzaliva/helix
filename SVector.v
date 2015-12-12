@@ -43,7 +43,7 @@ End SparseVectors.
 
 Section Sparse_Unions.
 
-  (* Scalar union *)
+  (* Scalar union. NB: It is not Proper wrt 'equiv'! *)
   Definition Union 
              (a b: Rtheta): Rtheta
     :=

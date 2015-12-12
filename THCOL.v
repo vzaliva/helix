@@ -138,3 +138,10 @@ Definition HTSUMUnion {i o}
            (g: svector i -> svector o)
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
+
+
+Definition HTDirectSum {i o1 o2}
+           (f: svector i -> svector o1)
+           (g: svector i -> svector o2)
+           (x: svector i): svector (o1+o2)
+  :=  Vapp (f x) (g x).
