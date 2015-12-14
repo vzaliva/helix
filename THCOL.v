@@ -136,7 +136,7 @@ Qed.
 (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
 just Union of two vectors, produced by application of two operators
 to the input *)
-Definition HTISumUnion {i o}
+Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)
            (x: svector i): svector o
