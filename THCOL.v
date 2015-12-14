@@ -133,15 +133,21 @@ Proof.
   reflexivity.
 Qed.
 
-Definition HTSUMUnion {i o}
+(* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
+just Union of two vectors, produced by application of two operators
+to the input *)
+Definition HTISumUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
 
-
-Definition HTDirectSum {i o1 o2}
-           (f: svector i -> svector o1)
-           (g: svector i -> svector o2)
-           (x: svector i): svector (o1+o2)
-  :=  Vapp (f x) (g x).
+(* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
+same as Cross, where input vectors are passed as concateneated
+vector. Since Coq formalization of HCross is already dfined this way
+we just alias DirectSum to it. *)
+Definition HTDirectSum
+           {i1 o1 i2 o2}
+           (f: svector i1 -> svector o1)
+           (g: svector i2 -> svector o2)
+  : svector (i1+i2) -> svector (o1+o2) := HCross f g.
