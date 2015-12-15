@@ -51,49 +51,47 @@ Definition VnthInverseIndexMapped
   :=
     let f := partial_index_f _ _ f' in
     let f_spec := partial_index_f_spec _ _  f' in
-    match (f n) as fn return f n ≡ fn -> Rtheta with        
+    match (f n) as fn return f n ≡ fn -> Rtheta with
     | None => fun _ => Rtheta_szero
     | Some z => fun p => Vnth x (f_spec n np z p)
     end eq_refl.
 
 Section SigmaHCOL_Operators.
-  
-  Definition Gather 
+
+  Definition Gather
              {i o: nat}
              (f: index_map o i)
              (x: svector i):
     svector o
     := Vbuild (VnthIndexMapped x f).
 
-  Definition Scatter 
+  Definition Scatter
              {i o: nat}
              (f: index_map i o)
              (x: svector i) : svector o
     :=
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
-  
+
   Definition GathH
              {i o}
              (base stride: nat)
              {range_bound: ∀ x : nat, x < o → base + x * stride < i}
-             {snz: stride ≢ 0} 
     :
       (svector i) -> svector o
     :=
-      Gather 
-        (@h_index_map o i base stride range_bound snz).
-  
+      Gather
+        (@h_index_map o i base stride range_bound).
+
   Definition ScatH
              {i o}
              (base stride: nat)
              {domain_bound: ∀ x : nat, x < i → base + x * stride < o}
-             {snz: stride ≢ 0} 
     :
       (svector i) -> svector o
     :=
-      Scatter 
-        (@h_index_map i o base stride domain_bound snz).
+      Scatter
+        (@h_index_map i o base stride domain_bound).
 
   Definition Pointwise
              {n: nat}
@@ -105,7 +103,7 @@ Section SigmaHCOL_Operators.
              (f: Rtheta -> Rtheta)
              (x: svector 1)
     := [f (Vhead x)].
-  
+
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:
@@ -118,7 +116,7 @@ Lemma Gather_spec
       (y: svector o):
   (Gather f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
 Proof.
-  unfold Gather, Vbuild. 
+  unfold Gather, Vbuild.
   destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
   simpl.
   intros.
@@ -136,7 +134,7 @@ Proof.
   intros.
   apply Vforall_eq.
   intros.
-  unfold Gather in H. 
+  unfold Gather in H.
   unfold Vin_aux.
   apply Vbuild_in in H.
   crush.
@@ -196,7 +194,7 @@ Proof.
   }
 
   (* At this point 'rewrite L' should work but it does not, so we will generalize the hell out of it, and remove unnecessary hypothesis to work around this problem *)
-  
+
   remember (build_inverse_index_map f) as f' eqn:F.
   unfold VnthInverseIndexMapped.
 
@@ -214,7 +212,7 @@ Qed.
     NOTE: we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
 Lemma Scatter_rev_spec:
-  forall 
+  forall
     {i o: nat}
     (f: index_map i o)
     (x: svector i)
@@ -222,7 +220,7 @@ Lemma Scatter_rev_spec:
     (Scatter f x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
 Proof.
   intros i o f x y.
-  unfold Scatter, Vbuild. 
+  unfold Scatter, Vbuild.
   destruct (Vbuild_spec
               (λ (n : nat) (np : n < o),
                VnthInverseIndexMapped x (build_inverse_index_map f) n np)) as [Vv Vs].

@@ -27,7 +27,6 @@ Require Import Spiral.
 
 Global Open Scope nat_scope.
 
-
 (* Index maps (total functions) *)
 
 Record index_map (domain range : nat) :=
@@ -79,7 +78,7 @@ Section Permutations.
       | 0 => fun _ => List.nil
       | S n' => fun nd => List.cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
       end nd.
-  
+
   Program Definition index_map_is_permutation
           {n: nat}
           (f: index_map n n)
@@ -93,7 +92,7 @@ Section Jections.
   Definition index_map_injective
              {d r: nat}
              (f: index_map d r)
-    := 
+    :=
       forall (x y:nat) (xc: x<d) (yc: y<d),
         ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
 
@@ -116,9 +115,9 @@ Section Jections.
   Definition partial_index_map_injective
              {d r: nat}
              (fp: partial_index_map d r)
-    := 
+    :=
       let f := partial_index_f _ _ fp in
-      forall (x y:nat) (xc: x<d) (yc: y<d) v, 
+      forall (x y:nat) (xc: x<d) (yc: y<d) v,
         (f x ≡ Some v /\ f y ≡ Some v) → x ≡ y.
 
   Definition partial_index_map_surjective
@@ -127,13 +126,13 @@ Section Jections.
     :=
       let f := partial_index_f _ _ fp in
       forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d),  f x ≡ Some y.
-  
+
   Definition partial_index_map_bijective
              {n: nat}
              (f: partial_index_map n n)
     :=
       (partial_index_map_injective f) /\ (partial_index_map_surjective f).
-  
+
 End Jections.
 
 Section Inversions.
@@ -167,7 +166,7 @@ definition does not enforce this requirement, and the function produced might no
                                 None
                                 (rev_natrange_list i)) _.
   Next Obligation.
-    
+
     destruct f.  simpl in *.
     apply h'_dom with (x:=x) (f:=index_f0).
     assumption.
@@ -192,7 +191,7 @@ definition does not enforce this requirement, and the function produced might no
     unfold f'.
     subst y.
     clear fp f'.
-    
+
     induction i.
     - nat_lt_0_contradiction.
     - simpl.
@@ -203,24 +202,24 @@ definition does not enforce this requirement, and the function produced might no
       + congruence.
       + lia.
   Qed.
-  
+
 End Inversions.
 
 
 Section Primitive_Functions.
-  
+
   Program Definition identity_index_map
           (dr: nat) {dp: dr>0}:
     index_map dr dr
     := IndexMap dr dr (id) _.
-  
+
   Program Definition constant_index_map
           {range: nat}
           (j: nat)
           {jdep: j<range}:
     index_map 1 range
     := IndexMap 1 range (fun _ => j) _.
-  
+
   Program Definition add_index_map
           {domain range: nat}
           (k: nat)
@@ -235,7 +234,6 @@ Section Primitive_Functions.
           {domain range: nat}
           (b s: nat)
           {range_bound: forall x, x<domain -> (b+x*s) < range}
-          {snz: s ≢ 0} (* required constraint, according by Franz *)
     : index_map domain range
     :=
       IndexMap domain range (fun i => b + i*s) _.
@@ -244,8 +242,9 @@ Section Primitive_Functions.
         {domain range: nat}
         (b s: nat)
         {range_bound: forall x, x<domain -> (b+x*s) < range}
-        {snz: s ≢ 0}:
-    index_map_injective  (@h_index_map domain range b s range_bound snz).
+        {snz: s ≢ 0} (* without this it is not injective! *)
+    :
+      index_map_injective  (@h_index_map domain range b s range_bound).
   Proof.
     unfold index_map_injective.
     intros x y xc yc H.
@@ -268,22 +267,22 @@ Section Primitive_Functions.
     - apply IHl; assumption.
   Qed.
 
-  (*
-This lemma was changes to use new 'range_bound' definition. The proof needs to be adjusted.
+(*
+This lemma was changed to use new 'range_bound' definition. The proof needs to be adjusted.
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
         {range_bound: forall x, x<domain -> (b+x*s) < range}
-        {snz: s ≢ 0}:
+        {snz: s ≢ 0}: (* may or my not needed *)
     partial_index_map_injective
-      (build_inverse_index_map 
+      (build_inverse_index_map
          (@h_index_map domain range b s range_bound snz)
       ).
   Proof.
     unfold partial_index_map_injective.
     intros x y xc yc v H.
     destruct H as [H1 E].
-    rewrite <- H1 in E. 
+    rewrite <- H1 in E.
     remember (build_inverse_index_map (h_index_map b s)) as hp'.
     unfold build_inverse_index_map in Heqhp'.
     destruct hp' as [h' h'_spec].
@@ -295,7 +294,7 @@ This lemma was changes to use new 'range_bound' definition. The proof needs to b
     dependent induction domain.
     + crush.
     + simpl in E.
-      destruct 
+      destruct
         (eq_nat_dec y (b + domain * s)) as [yT | yF],
                                            (eq_nat_dec x (b + domain * s)) as [xT | xF].
 
@@ -315,12 +314,12 @@ This lemma was changes to use new 'range_bound' definition. The proof needs to b
         apply H1.
       }
   Qed.
-   *)
-  
+ *)
+
 End Primitive_Functions.
 
 Section Function_Operators.
-  
+
   Definition index_map_compose
              {i o t: nat}
              (g: index_map t o)
@@ -334,7 +333,7 @@ Section Function_Operators.
     unfold compose.
     auto.
   Defined.
-  
+
   Definition tensor_product
              (n N: nat)
              {nz: 0 ≢ n}
@@ -358,19 +357,19 @@ Section Function_Operators.
       destruct n.
       congruence. clear nz.
       simpl.
-      generalize (divmod_spec x n 0 n). 
+      generalize (divmod_spec x n 0 n).
       destruct divmod as (q,u).
       simpl.
       nia.
     }
     assert (index_f0 (fst (divmod x (pred n) 0 (pred n))) < M) by auto.
-    
+
     assert ((pred n - snd (divmod x (pred n) 0 (pred n))) < n).
     {
       destruct n.
       congruence. clear nz.
       simpl.
-      generalize (divmod_spec x n 0 n). 
+      generalize (divmod_spec x n 0 n).
       destruct divmod as (q,u).
       simpl.
       nia.
@@ -443,7 +442,7 @@ Section Function_Rules.
         auto.
     }
     rewrite_clear X.
-    
+
     assert (X: (rg1 * g0 (x / dg1) + g1 (x mod dg1)) mod rg1 ≡  g1 (x mod dg1)).
     {
       rewrite plus_comm, mult_comm.
@@ -460,14 +459,11 @@ Section Function_Rules.
     reflexivity.
   Qed.
 
-  (* {range_bound: forall x, x<domain -> (b+x*s) < range} *)
-
   Program Lemma index_map_rule_40:
     forall n (np: n>0)
       {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
     ,
       @identity_index_map n np = h_index_map 0 1
-                                             (snz:=One_ne_Zero)
                                              (range_bound:=range_bound_h_0).
   Proof.
     intros.
@@ -477,7 +473,7 @@ Section Function_Rules.
   Qed.
 
   Local Close Scope index_f_scope.
-  
+
 End Function_Rules.
 
 
