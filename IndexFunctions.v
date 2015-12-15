@@ -267,8 +267,6 @@ Section Primitive_Functions.
     - apply IHl; assumption.
   Qed.
 
-(*
-This lemma was changed to use new 'range_bound' definition. The proof needs to be adjusted.
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
@@ -276,7 +274,7 @@ This lemma was changed to use new 'range_bound' definition. The proof needs to b
         {snz: s ≢ 0}: (* may or my not needed *)
     partial_index_map_injective
       (build_inverse_index_map
-         (@h_index_map domain range b s range_bound snz)
+         (@h_index_map domain range b s range_bound)
       ).
   Proof.
     unfold partial_index_map_injective.
@@ -305,7 +303,10 @@ This lemma was changed to use new 'range_bound' definition. The proof needs to b
     - apply h'_returns_from_h_domain in E.
       congruence.
     - apply IHdomain with (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
-      nia.
+      intros.
+      specialize (range_bound x0).
+      apply range_bound.
+      lia.
       intros; apply h'_dom with (x:=x0) (f:=fun x' => b+x'*s); assumption.
       {
         simpl in H1.
@@ -314,7 +315,6 @@ This lemma was changed to use new 'range_bound' definition. The proof needs to b
         apply H1.
       }
   Qed.
- *)
 
 End Primitive_Functions.
 
