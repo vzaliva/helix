@@ -76,7 +76,7 @@ Section SigmaHCOL_Operators.
   Definition GathH
              {i o}
              (base stride: nat)
-             {range_bound: (base+(pred o)*stride) < i}
+             {range_bound: ∀ x : nat, x < o → base + x * stride < i}
              {snz: stride ≢ 0} 
     :
       (svector i) -> svector o
@@ -87,7 +87,7 @@ Section SigmaHCOL_Operators.
   Definition ScatH
              {i o}
              (base stride: nat)
-             {domain_bound: (base+(pred i)*stride) < o}
+             {domain_bound: ∀ x : nat, x < i → base + x * stride < o}
              {snz: stride ≢ 0} 
     :
       (svector i) -> svector o
