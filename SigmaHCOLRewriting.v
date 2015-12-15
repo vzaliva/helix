@@ -374,10 +374,10 @@ Section SigmaHCOLRewriting.
     ∀ (n : nat) (x : vector Rtheta (n + n))
       (f : nat -> Rtheta → Rtheta → Rtheta)
       `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n) (nnz : n ≢ 0),
+      (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
       Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
   Proof.
-    intros n x f f_mor k kp kn knn nnz.
+    intros n x f f_mor k kp kn knn.
     unfold HBinOp, compose, vector2pair, HCOLImpl.BinOp.
     break_let.  rename t into a. rename t0 into b.
 
