@@ -234,19 +234,16 @@ Section Primitive_Functions.
   Program Definition h_index_map
           {domain range: nat}
           (b s: nat)
-          {range_bound: (b+(pred domain)*s) < range}
+          {range_bound: forall x, x<domain -> (b+x*s) < range}
           {snz: s ≢ 0} (* required constraint, according by Franz *)
     : index_map domain range
     :=
       IndexMap domain range (fun i => b + i*s) _.
-  Next Obligation.
-    nia.
-  Defined.
 
   Lemma h_index_map_is_injective
         {domain range: nat}
         (b s: nat)
-        {range_bound: (b+(pred domain)*s) < range}
+        {range_bound: forall x, x<domain -> (b+x*s) < range}
         {snz: s ≢ 0}:
     index_map_injective  (@h_index_map domain range b s range_bound snz).
   Proof.
@@ -270,11 +267,13 @@ Section Primitive_Functions.
     - inversion H as [R]; rewrite <- R; symmetry; assumption.
     - apply IHl; assumption.
   Qed.
-  
+
+  (*
+This lemma was changes to use new 'range_bound' definition. The proof needs to be adjusted.
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
-        {range_bound: (b+(pred domain)*s) < range}
+        {range_bound: forall x, x<domain -> (b+x*s) < range}
         {snz: s ≢ 0}:
     partial_index_map_injective
       (build_inverse_index_map 
@@ -316,6 +315,7 @@ Section Primitive_Functions.
         apply H1.
       }
   Qed.
+   *)
   
 End Primitive_Functions.
 
@@ -460,13 +460,15 @@ Section Function_Rules.
     reflexivity.
   Qed.
 
-  Lemma index_map_rule_40:
+  (* {range_bound: forall x, x<domain -> (b+x*s) < range} *)
+
+  Program Lemma index_map_rule_40:
     forall n (np: n>0)
-      {range_bound_h_0: 0 + pred n * 1 < n}
-      {c1_ne_0: 1≢0}
+      {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
     ,
-      @identity_index_map n np = @h_index_map n n 0 1
-                                              range_bound_h_0 c1_ne_0.
+      @identity_index_map n np = h_index_map 0 1
+                                             (snz:=One_ne_Zero)
+                                             (range_bound:=range_bound_h_0).
   Proof.
     intros.
     unfold identity_index_map, h_index_map, equiv, index_map_equiv, id.

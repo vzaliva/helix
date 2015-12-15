@@ -631,7 +631,7 @@ Section SigmaHCOLRewriting.
   Proof.
     admit.
   Qed.
-  
+
 End SigmaHCOLRewriting.
 
 
