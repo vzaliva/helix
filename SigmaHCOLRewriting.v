@@ -4,6 +4,7 @@ Require Import Rtheta.
 Require Import SVector.
 Require Import SigmaHCOL.
 Require Import HCOL.
+Require Import THCOL.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -574,6 +575,61 @@ Section SigmaHCOLRewriting.
     intros i ip.
     symmetry.
     apply U_SAG2; assumption.
+  Qed.
+
+
+  Open Scope nat_scope.
+  Fact tmp (o1 o2:nat):
+    0 + pred o1 * 1 < (o1+o2).
+  Proof.
+    rewrite Mult.mult_1_r.
+    rewrite Plus.plus_0_l.
+    admit.
+  Qed.
+
+  Fact tmp2 (i1 o1 o2:nat):
+    i1 + pred o2 * 1 < o1 + o2.
+  Proof.
+    admit.
+  Qed.
+
+  Fact tmp3 (i1 i2:nat):
+    i1 + pred i2 * 1 < i1 + i2.
+  Proof.
+    admit.
+  Qed.
+  
+  (*
+   ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
+            ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
+            self(ch[i], opts),
+            GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
+   *)
+  Lemma expand_HTDirectSum
+        {i1 o1 i2 o2}
+        (f: svector i1 -> svector o1)
+        (g: svector i2 -> svector o2):
+
+    HTDirectSum f g ≡
+                HTSUMUnion
+                
+                ((ScatH 0 1 (i:=o1) (o:=o1+o2)
+                        (snz:=One_ne_Zero)
+                        (domain_bound := tmp o1 o2)
+                 ) ∘ f ∘ (GathH 0 1 (i:=i1+i2) (o:=i1)
+                                (snz:=One_ne_Zero)
+                                (range_bound := tmp i1 i2)
+                ))
+                
+                ((ScatH i1 1 (i:=o2) (o:=o1+o2)
+                        (snz:=One_ne_Zero)
+                        (domain_bound := tmp2 i1 o1 o2)
+                 ) ∘ g ∘ (GathH i1 1 (i:=i1+i2) (o:=i2)
+                                (snz:=One_ne_Zero)
+                                (range_bound := tmp3 i1 i2)
+                )).
+  Proof.
+    admit.
   Qed.
   
 End SigmaHCOLRewriting.
