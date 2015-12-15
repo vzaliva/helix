@@ -36,15 +36,16 @@ Section SigmaHCOLRewriting.
 
   Fact ScatH_1_to_n_domain_bound base o stride:
     base < o ->
-    (base+(pred 1)*stride) < o.
+    ∀ x : nat, x < 1 → base + x * stride < o.
   Proof.
-    intros bo.
-    omega.
+    intros.
+    nia.
   Qed.
 
   Fact GathH_j1_range_bound base i (bc:base<i):
-    (base+(pred 1)*1) < i.
+    ∀ x : nat, x < 1 → base + x * 1 < i.
   Proof.
+    intros.
     lia.
   Qed.
   
@@ -371,8 +372,9 @@ Section SigmaHCOLRewriting.
   Fact GathH_jn_range_bound i n:
     i < n ->
     n ≢ 0 ->
-    (i+(pred 2)*n) < (n+n).
+    ∀ x : nat, x < 2 → i + x * n < (n+n).
   Proof.
+    intros.
     nia.
   Qed.
   
@@ -577,28 +579,21 @@ Section SigmaHCOLRewriting.
     apply U_SAG2; assumption.
   Qed.
 
-
-  Open Scope nat_scope.
-  Fact tmp (o1 o2:nat):
-    0 + pred o1 * 1 < (o1+o2).
+  
+  Fact h_bound_first_half (o1 o2:nat):
+    ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
   Proof.
-    rewrite Mult.mult_1_r.
-    rewrite Plus.plus_0_l.
-    admit.
-  Qed.
-
-  Fact tmp2 (i1 o1 o2:nat):
-    i1 + pred o2 * 1 < o1 + o2.
-  Proof.
-    admit.
-  Qed.
-
-  Fact tmp3 (i1 i2:nat):
-    i1 + pred i2 * 1 < i1 + i2.
-  Proof.
-    admit.
+    intros.
+    lia.
   Qed.
   
+  Fact h_bound_second_half (o1 o2:nat):
+    ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
+  Proof.
+    intros.
+    lia.
+  Qed.
+
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -615,23 +610,23 @@ Section SigmaHCOLRewriting.
                 
                 ((ScatH 0 1 (i:=o1) (o:=o1+o2)
                         (snz:=One_ne_Zero)
-                        (domain_bound := tmp o1 o2)
+                        (domain_bound := h_bound_first_half o1 o2)
                  ) ∘ f ∘ (GathH 0 1 (i:=i1+i2) (o:=i1)
                                 (snz:=One_ne_Zero)
-                                (range_bound := tmp i1 i2)
+                                (range_bound := h_bound_first_half i1 i2)
                 ))
                 
-                ((ScatH i1 1 (i:=o2) (o:=o1+o2)
+                ((ScatH o1 1 (i:=o2) (o:=o1+o2)
                         (snz:=One_ne_Zero)
-                        (domain_bound := tmp2 i1 o1 o2)
+                        (domain_bound := h_bound_second_half o1 o2)
                  ) ∘ g ∘ (GathH i1 1 (i:=i1+i2) (o:=i2)
                                 (snz:=One_ne_Zero)
-                                (range_bound := tmp3 i1 i2)
+                                (range_bound := h_bound_second_half i1 i2)
                 )).
   Proof.
     admit.
   Qed.
-
+  
 End SigmaHCOLRewriting.
 
 
