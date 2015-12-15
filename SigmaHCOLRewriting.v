@@ -412,7 +412,7 @@ Section SigmaHCOLRewriting.
     ∀ (n : nat) (x : vector Rtheta (n + n))
       (f: nat->Rtheta->Rtheta->Rtheta)
       `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      (nnz : n ≢ 0) (k : nat) (kp : k < n),
+      (k : nat) (kp : k < n),
       Vforall Is_Val x
       → (∀ (j:nat) (a b : Rtheta), Is_Val a → Is_Val b → Is_Val (f j a b))
       → Vnth
@@ -428,7 +428,7 @@ Section SigmaHCOLRewriting.
           ))) kp
           ≡ Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
-    intros n x f f_mor nnz k kp V F.
+    intros n x f f_mor k kp V F.
     unfold compose.
 
     remember (fun i id =>
@@ -523,7 +523,6 @@ Section SigmaHCOLRewriting.
     rewrite InverseIndex_1_hit.
     symmetry; apply HBinOp_nth.
     assumption.
-    assumption.
   Qed.
 
   (*
@@ -536,7 +535,6 @@ Section SigmaHCOLRewriting.
    *)
   Lemma expand_BinOp:
     forall n (x:svector (n+n))
-      {nnz:n≢0}
       (f: nat->Rtheta->Rtheta->Rtheta)
       `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
@@ -555,7 +553,7 @@ Section SigmaHCOLRewriting.
                          ) x
              )).
   Proof.
-    intros n x nnz f pF x_dense f_dense.
+    intros n x f pF x_dense f_dense.
     apply vec_eq_elementwise.
     apply Vforall2_intro_nth.
     intros i ip.
@@ -588,21 +586,12 @@ Section SigmaHCOLRewriting.
         {i1 o1 i2 o2}
         (f: svector i1 -> svector o1)
         (g: svector i2 -> svector o2):
-
     HTDirectSum f g ≡
                 HTSUMUnion
-
-                ((ScatH 0 1 (i:=o1) (o:=o1+o2)
-                        (domain_bound := h_bound_first_half o1 o2)
-                 ) ∘ f ∘ (GathH 0 1 (i:=i1+i2) (o:=i1)
-                                (range_bound := h_bound_first_half i1 i2)
-                ))
-
-                ((ScatH o1 1 (i:=o2) (o:=o1+o2)
-                        (domain_bound := h_bound_second_half o1 o2)
-                 ) ∘ g ∘ (GathH i1 1 (i:=i1+i2) (o:=i2)
-                                (range_bound := h_bound_second_half i1 i2)
-                )).
+                ((ScatH 0 1 (domain_bound := h_bound_first_half o1 o2)
+                 ) ∘ f ∘ (GathH 0 1 (range_bound := h_bound_first_half i1 i2)))
+                ((ScatH o1 1 (domain_bound := h_bound_second_half o1 o2)
+                 ) ∘ g ∘ (GathH i1 1 (range_bound := h_bound_second_half i1 i2))).
   Proof.
     admit.
   Qed.
