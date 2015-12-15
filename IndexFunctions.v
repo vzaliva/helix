@@ -270,8 +270,7 @@ Section Primitive_Functions.
   Lemma h_index_map'_is_injective
         {domain range: nat}
         (b s: nat)
-        {range_bound: forall x, x<domain -> (b+x*s) < range}
-        {snz: s ≢ 0}: (* may or my not needed *)
+        {range_bound: forall x, x<domain -> (b+x*s) < range}:
     partial_index_map_injective
       (build_inverse_index_map
          (@h_index_map domain range b s range_bound)
