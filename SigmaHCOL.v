@@ -65,14 +65,6 @@ Section SigmaHCOL_Operators.
     svector o
     := Vbuild (VnthIndexMapped x f).
 
-  Definition Scatter
-             {i o: nat}
-             (f: index_map i o)
-             (x: svector i) : svector o
-    :=
-      Vbuild (fun n np =>
-                VnthInverseIndexMapped x (build_inverse_index_map f) n np).
-
   Definition GathH
              {i o}
              (base stride: nat)
@@ -82,6 +74,14 @@ Section SigmaHCOL_Operators.
     :=
       Gather
         (@h_index_map o i base stride range_bound).
+
+  Definition Scatter
+             {i o: nat}
+             (f: index_map i o)
+             (x: svector i) : svector o
+    :=
+      Vbuild (fun n np =>
+                VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
   Definition ScatH
              {i o}
