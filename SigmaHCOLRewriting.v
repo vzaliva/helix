@@ -618,9 +618,18 @@ Section SigmaHCOLRewriting.
     Vbreak x ≡ (x0, x1) ->
     forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
   Proof.
-    admit.
+    intros B a.
+    apply Vbreak_arg_app in B.
+    subst.
+    split.
+    apply Vin_app.
+    intros.
+    destruct H.
+    apply Vin_appl; assumption.
+    apply Vin_appr; assumption.
   Qed.
 
+  (* TODO: move to Spiral*)
   Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
     Vbreak x ≡ (x0, x1) ->
     (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
