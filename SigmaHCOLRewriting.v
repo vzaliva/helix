@@ -245,7 +245,7 @@ Section SigmaHCOLRewriting.
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
-      Vforall Is_Val x ->
+      svector_is_dense x ->
       (forall i (ic: i<n) y, Is_Val y -> Is_Val (f i ic y)) ->
       Vnth
         (SumUnion
@@ -263,7 +263,7 @@ Section SigmaHCOLRewriting.
   Proof.
     intros n x f i ip V F.
     unfold compose.
-
+    unfold svector_is_dense in V.
     remember (λ (i0 : nat) (id : i0 < n),
               ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
@@ -596,11 +596,59 @@ Section SigmaHCOLRewriting.
 
   (* TODO: move *)
   Lemma Vec2Union_szero_svector {n} {a: svector n}:
+    svector_is_dense a ->
     Vec2Union a (szero_svector n) ≡ a.
+  Proof.
+    intros D.
+    unfold szero_svector.
+    induction n.
+    VOtac; reflexivity.
+    simpl.
+    rewrite_clear IHn.
+    rewrite Union_Val_with_Struct.
+    dep_destruct a; reflexivity.
+    apply Vforall_hd; assumption.
+    unfold Is_StructNonErr, Rtheta_szero, Is_Struct, RthetaIsStruct, Is_SErr, RthetaIsSErr.
+    simpl; tauto.
+    apply Vforall_tl; assumption.
+  Qed.
+
+  
+  Lemma Vbreak_preserves_values {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1}:
+    Vbreak x ≡ (x0, x1) ->
+    forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
   Proof.
     admit.
   Qed.
 
+  Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
+    Vbreak x ≡ (x0, x1) ->
+    (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
+  Proof.
+    intros B D.
+    assert(N: forall a, Vin a x → P a).
+    {
+      intros a.
+      apply Vforall_in with (v:=x); assumption.
+    }
+    (split;
+     apply Vforall_intro; intros x2 H;
+     apply N;
+     apply Vbreak_preserves_values with (a:=x2) in B;
+     destruct B as [B0 B1];
+     apply B1) ;
+      [left | right]; assumption.
+  Qed.
+  
+  (* TODO: move *)
+  Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
+    Vbreak x ≡ (x0, x1) ->
+    svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).
+  Proof.
+    unfold svector_is_dense.
+    apply Vbreak_preserves_P.
+  Qed.
+  
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -610,17 +658,22 @@ Section SigmaHCOLRewriting.
   Lemma expand_HTDirectSum
         {i1 o1 i2 o2}
         (f: svector i1 -> svector o1)
-        (g: svector i2 -> svector o2):
-    HTDirectSum f g ≡
-                HTSUMUnion
-                ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                 ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-                ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                 ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))).
+        (g: svector i2 -> svector o2)
+        (x: svector (i1+i2)) (* input vector *)
+        (D: svector_is_dense x) (* input must be dense *)
+        (Df: forall u, svector_is_dense u -> svector_is_dense (f u)) (* f is density-preserving *)
+        (Dg: forall u, svector_is_dense u -> svector_is_dense (g u)) (* g is density-preserving *)
+    :
+      HTDirectSum f g x≡
+                (HTSUMUnion
+                   ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                    ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                   ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                    ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
+                x.
   Proof.
     unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
     HTSUMUnion, pair2vector.
-    extensionality x.
     break_let. break_let.
     rename t1 into x0, t2 into x1.
     tuple_inversion.
@@ -640,8 +693,12 @@ Section SigmaHCOLRewriting.
       admit.
     }
     rewrite LS, RS.
+    apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
     rewrite Vec2Union_Vapp, Vec2Union_szero_svector, Vec2Union_comm, Vec2Union_szero_svector.
     reflexivity.
+    apply Dg; assumption.
+    apply Df; assumption.
+    assumption.
   Qed.
 
 End SigmaHCOLRewriting.

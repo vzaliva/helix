@@ -31,10 +31,10 @@ Section SparseVectors.
   Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
     Vmap RthetaVal v.
 
-  (* Our definition of "dense" vector means that it does not contain "structural" values. *)
+  (* Our definition of "dense" vector means that it does not contain "structural" values and errors. *)
 
   Definition svector_is_dense {n} (v:svector n) : Prop :=
-    Vforall (not ∘ Is_Struct) v.
+    Vforall Is_Val v.
 
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_szero n.
@@ -215,6 +215,7 @@ Section Sparse_Unions.
     destruct x1, x2, s1, s2; crush.
   Qed.
 
+  
   Lemma Union_Struct_with_Val:
     ∀ x s , Is_Val x -> Is_StructNonErr s -> Union s x ≡ x.
   Proof.
