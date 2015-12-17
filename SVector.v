@@ -203,7 +203,6 @@ Section Sparse_Unions.
       reflexivity.
   Qed.
 
-
   Lemma Union_Val_with_Struct:
     ∀ x s , Is_Val x -> Is_StructNonErr s -> Union x s ≡ x.
   Proof.
@@ -215,7 +214,7 @@ Section Sparse_Unions.
     destruct x1, x2, s1, s2; crush.
   Qed.
 
-  
+
   Lemma Union_Struct_with_Val:
     ∀ x s , Is_Val x -> Is_StructNonErr s -> Union s x ≡ x.
   Proof.
@@ -225,6 +224,32 @@ Section Sparse_Unions.
     destruct_Rtheta x.
     destruct_Rtheta s.
     destruct x1, x2, s1, s2; crush.
+  Qed.
+
+  Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
+    Vbreak x ≡ (x0, x1) ->
+    svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).
+  Proof.
+    unfold svector_is_dense.
+    apply Vbreak_preserves_P.
+  Qed.
+
+  Lemma Vec2Union_szero_svector {n} {a: svector n}:
+    svector_is_dense a ->
+    Vec2Union a (szero_svector n) ≡ a.
+  Proof.
+    intros D.
+    unfold szero_svector.
+    induction n.
+    VOtac; reflexivity.
+    simpl.
+    rewrite_clear IHn.
+    rewrite Union_Val_with_Struct.
+    dep_destruct a; reflexivity.
+    apply Vforall_hd; assumption.
+    unfold Is_StructNonErr, Rtheta_szero, Is_Struct, RthetaIsStruct, Is_SErr, RthetaIsSErr.
+    simpl; tauto.
+    apply Vforall_tl; assumption.
   Qed.
 
 End Sparse_Unions.

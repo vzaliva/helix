@@ -49,7 +49,7 @@ Proof.
   unfold Setoid in H.
   constructor. destruct H.
   unfold Reflexive. destruct x; (unfold equiv; crush).
-  unfold Symmetric. intros. destruct x,y; (unfold equiv; crush). 
+  unfold Symmetric. intros. destruct x,y; (unfold equiv; crush).
   unfold Transitive. intros. destruct x,y,z; unfold equiv, opt_Equiv in *; crush.
 Qed.
 
@@ -80,13 +80,13 @@ Section Vfold_right_p.
     `{pF: !Proper ((=) ==> (=) ==> (=)) f}.
 
   Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
-  
+
   Lemma Vfold_right_to_Vfold_right_reord: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
       Vfold_right f v initial ≡ Vfold_right_reord f v initial.
   Proof.
     crush.
   Qed.
-  
+
   Global Instance Vfold_right_reord_proper n :
     Proper (@vec_equiv A _ n ==> (=) ==> (=)) (@Vfold_right_reord A B n f).
   Proof.
@@ -103,7 +103,7 @@ Section Vfold_right_p.
     SCase "Pf - 2".
     apply IHv. unfold vec_equiv.  assumption.
   Qed.
-  
+
 End Vfold_right_p.
 
 Section VCons_p.
@@ -113,7 +113,7 @@ Section VCons_p.
   Proof.
     crush.
   Qed.
-  
+
   Global Instance Vcons_reord_proper `{Equiv A} n:
     Proper (@vec_equiv A _ n ==> (=) ==> @vec_equiv A _ (S n))
            (@Vcons_reord A n).
@@ -178,7 +178,7 @@ Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (
   Proper ((=) ==> (=) ==> (=)) (max).
 Proof.
   solve_proper.
-Qed.  
+Qed.
 
 Instance negate_proper A `{Ar: Ring A} `{!Setoid A}:
   Setoid_Morphism (negate).
@@ -229,7 +229,7 @@ Qed.
 Lemma abs_always_nonneg
       `{Ae: Equiv A}
       `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A} 
+      `{Aplus: Plus A} `{Amult: Mult A}
       `{Aneg: Negate A}
       `{Ale: Le A}
       `{Ato: !@TotalOrder A Ae Ale}
@@ -249,13 +249,13 @@ Qed.
 Lemma abs_negate_s A (x:A)
       `{Ae: Equiv A}
       `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A} 
+      `{Aplus: Plus A} `{Amult: Mult A}
       `{Aneg: Negate A}
       `{Ale: Le A}
       `{Ato: !@TotalOrder A Ae Ale}
       `{Aabs: !@Abs A Ae Ale Az Aneg}
       `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
+      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
   : abs (-x) = abs x.
 Proof with trivial.
   destruct (total (≤) 0 x).
@@ -270,13 +270,13 @@ Qed.
 Instance abs_idempotent
          `{Ae: Equiv A}
          `{Az: Zero A} `{A1: One A}
-         `{Aplus: Plus A} `{Amult: Mult A} 
+         `{Aplus: Plus A} `{Amult: Mult A}
          `{Aneg: Negate A}
          `{Ale: Le A}
          `{Ato: !@TotalOrder A Ae Ale}
          `{Aabs: !@Abs A Ae Ale Az Aneg}
          `{Ar: !Ring A}
-         `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
+         `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
   :UnaryIdempotent abs.
 Proof.
   intros a b E.
@@ -284,7 +284,7 @@ Proof.
   destruct (total (≤) 0 a).
   rewrite abs_nonneg_s.
   auto.
-  apply abs_always_nonneg. 
+  apply abs_always_nonneg.
   setoid_replace (abs a) with (-a) by apply abs_nonpos_s.
   rewrite abs_negate_s.
   auto.
@@ -294,13 +294,13 @@ Qed.
 Lemma abs_max_comm_2nd
       `{Ae: Equiv A}
       `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A} 
+      `{Aplus: Plus A} `{Amult: Mult A}
       `{Aneg: Negate A}
       `{Ale: Le A}
       `{Ato: !@TotalOrder A Ae Ale}
       `{Aabs: !@Abs A Ae Ale Az Aneg}
       `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}      
+      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
       `{Aledec: !∀ x y: A, Decision (x ≤ y)}
   : forall (x y:A),  max (abs y) x = abs (max (abs y) x).
 Proof.
@@ -308,14 +308,14 @@ Proof.
   intros.
   unfold max, sort, decide_rel.
   destruct (Aledec (abs y) x).
-  
+
   Case "abs y <= x".
   unfold abs, abs_sig.
   simpl.
   destruct (Aabs x) as [z1 [Ez1 Fz1]].
   simpl.
   symmetry.
-  assert (XP: 0 ≤ x). revert l. assert (0 ≤ abs y). apply abs_always_nonneg. auto.  
+  assert (XP: 0 ≤ x). revert l. assert (0 ≤ abs y). apply abs_always_nonneg. auto.
   revert Ez1.
   auto.
 
@@ -330,7 +330,7 @@ Open Scope vector_scope.
 Notation "h :: t" := (cons h t) (at level 60, right associativity)
                      : vector_scope.
 
-Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p := 
+Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p :=
   match p return vector A (p+m) -> vector A p with
     0%nat => fun _ => Vnil
   | S p' => fun a => Vcons (hd a) (take_plus p' (tl a))
@@ -339,7 +339,7 @@ Program Definition take A n p (a : vector A n) (H : p <= n) : vector A p :=
   take_plus (m := n - p) p a.
 Solve Obligations using auto with arith.
 
-Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m := 
+Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m :=
   match p return vector A (p+m) -> vector A m with
     0 => fun a => a
   | S p' => fun a => drop_plus p' (tl a)
@@ -379,7 +379,7 @@ Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
 
 Section Natrange_List.
   (* Probably will be removed later *)
-  
+
   (* n-1 ... 0 *)
   Fixpoint rev_natrange_list (n:nat) : list nat :=
     match n with
@@ -401,7 +401,7 @@ Section Natrange_List.
     rewrite IHi.
     reflexivity.
   Qed.
-  
+
   Lemma rev_natrange_list_bound:
     ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
   Proof.
@@ -425,14 +425,14 @@ End Natrange_List.
 
 (* 0 ... n-1*)
 Program Fixpoint natrange (n:nat) : (vector nat n) :=
-  match n return (vector nat n) with 
+  match n return (vector nat n) with
     0 => Vnil
   | S p => snoc (natrange p) p
   end.
 
 (* n-1 ... 0*)
 Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
-  match n return (vector nat n) with 
+  match n return (vector nat n) with
     0 => Vnil
   | S p => Vcons p (rev_natrange p)
   end.
@@ -609,7 +609,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap_cons: forall A B (f:A->B) n (x:A) (xs: vector A n), 
+Lemma Vmap_cons: forall A B (f:A->B) n (x:A) (xs: vector A n),
     Vmap f (Vcons x xs) ≡ Vcons (f x) (Vmap f xs).
 Proof.
   intros.
@@ -635,7 +635,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma map2_cons: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
+Lemma map2_cons: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
     map2 f a b ≡ @cons _ (f (hd a) (hd b)) _ (map2 f (tl a) (tl b)).
 Proof.
   intros.
@@ -644,7 +644,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
+Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
     Vmap2 f a b = @cons _ (f (Vhead a) (Vhead b)) _ (Vmap2 f (Vtail a) (Vtail b)).
 Proof.
   intros.
@@ -653,7 +653,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap2_cons: forall A B C `{Setoid C} (f:A->B->C) n (a:A) (b:B) (a':vector A n) (b':vector B n), 
+Lemma Vmap2_cons: forall A B C `{Setoid C} (f:A->B->C) n (a:A) (b:B) (a':vector A n) (b':vector B n),
     Vmap2 f (a::a') (b::b') = @cons _ (f a b) _ (Vmap2 f a' b').
 Proof.
   intros.
@@ -703,7 +703,7 @@ Proof.
   reflexivity.
   Case "S n".
   rewrite map_cons.
-  rewrite IHn.  clear_all.  
+  rewrite IHn.  clear_all.
   symmetry.
   rewrite snoc2cons.
   rewrite map_cons.
@@ -714,11 +714,11 @@ Proof.
   simpl (hd (f (hd l) :: map f (tl (shiftout l)))).
   assert (L:(tl (f (hd l) :: map f (tl (shiftout l)))) ≡ (map f (shiftout (tl l)))).
   simpl. rewrite shifout_tl_swap. reflexivity.
-  rewrite L. rewrite last_tl. reflexivity. 
+  rewrite L. rewrite last_tl. reflexivity.
 Qed.
 
 
-Lemma map2_snoc: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)), 
+Lemma map2_snoc: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
     map2 f a b ≡ snoc (map2 f (shiftout a) (shiftout b)) (f (last a) (last b)).
 Proof.
   intros.
@@ -745,7 +745,7 @@ Proof.
   reflexivity.
   Case "S n".
   rewrite map2_cons.
-  rewrite IHn.  clear_all.  
+  rewrite IHn.  clear_all.
   symmetry.
   repeat rewrite snoc2cons.
   repeat rewrite map2_cons.
@@ -756,11 +756,11 @@ Proof.
 
   assert(L:(tl (f (hd a) (hd b) :: map2 f (tl (shiftout a)) (tl (shiftout b)))) ≡ (map2 f (shiftout (tl a)) (shiftout (tl b)))).
   simpl. repeat rewrite shifout_tl_swap. reflexivity.
-  rewrite L. repeat rewrite last_tl. reflexivity.   
+  rewrite L. repeat rewrite last_tl. reflexivity.
 Qed.
 
 
-Lemma map2_comm: forall A B (f:A->A->B) n (a b:vector A n), 
+Lemma map2_comm: forall A B (f:A->A->B) n (a b:vector A n),
     (forall x y, (f x y) ≡ (f y x)) -> map2 f a b ≡ map2 f b a.
 Proof.
   intros.
@@ -786,9 +786,9 @@ Proof.
   dep_destruct b.
   reflexivity.
   rewrite Vmap2_cons_hd by apply SB.
-  
+
   (* reorder LHS head *)
-  
+
   rewrite Vcons_to_Vcons_reord.
   rewrite commutativity.
   rewrite <- IHn. (* reoder LHS tail *)
@@ -798,7 +798,7 @@ Proof.
 Qed.
 
 
-(* Shows that two map2 supplied with function which ignores 2nd argument 
+(* Shows that two map2 supplied with function which ignores 2nd argument
 will be eqivalent for all values of second list *)
 Lemma map2_ignore_2: forall A B C (f:A->B->C) n (a:vector A n) (b0 b1:vector B n),
     (forall a' b0' b1', f a' b0' ≡ f a' b1') ->
@@ -819,7 +819,7 @@ Proof.
 Qed.
 
 
-(* Shows that two map2 supplied with function which ignores 1st argument 
+(* Shows that two map2 supplied with function which ignores 1st argument
 will be eqivalent for all values of first list *)
 Lemma map2_ignore_1: forall A B C (f:A->B->C) n (a0 a1:vector A n) (b:vector B n),
     (forall a0' a1' b', f a0' b' ≡ f a1' b') ->
@@ -869,7 +869,7 @@ Proof.
   rewrite tl_snoc1.
   rewrite IHn. clear IHn.
   replace (snoc (natrange n) n) with (natrange (S n)) by reflexivity.
-  
+
   rewrite map_snoc.
   rewrite last_natrange.
   rewrite shifhout_natrange.
@@ -987,7 +987,7 @@ Lemma Vcons_single_elim `{Equiv A} : forall a1 a2,
 Proof.
   intros a1 a2.
   unfold equiv, vec_equiv.
-  rewrite Vforall2_cons_eq.   
+  rewrite Vforall2_cons_eq.
   assert(Vforall2 equiv (@Vnil A) (@Vnil A)).
   constructor.
   split; tauto.
@@ -1026,7 +1026,7 @@ Proof.
 Qed.
 
 Instance Vmap_reord_proper_ext_equiv n  (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
-  Proper (@ext_equiv M Me N Ne 
+  Proper (@ext_equiv M Me N Ne
                      ==> @vec_equiv M Me n
                      ==> @vec_equiv N Ne n)
          (@Vmap_reord M N n).
@@ -1076,11 +1076,11 @@ Proof.
 
   rewrite 2!Vcons_to_Vcons_reord.
   assert (E: Vbreak x = Vbreak x0).
-  apply IHn1.  apply vE. 
+  apply IHn1.  apply vE.
   rewrite E.
   setoid_replace h with h0 by apply vE.
   reflexivity.
-Qed. 
+Qed.
 
 Lemma Vbreak_arg_app:
   ∀ {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
@@ -1090,6 +1090,40 @@ Proof.
   rewrite Vbreak_eq_app with (v:=x).
   rewrite V.
   reflexivity.
+Qed.
+
+Lemma Vbreak_preserves_values {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1}:
+  Vbreak x ≡ (x0, x1) ->
+  forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
+Proof.
+  intros B a.
+  apply Vbreak_arg_app in B.
+  subst.
+  split.
+  apply Vin_app.
+  intros.
+  destruct H.
+  apply Vin_appl; assumption.
+  apply Vin_appr; assumption.
+Qed.
+
+Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
+  Vbreak x ≡ (x0, x1) ->
+  (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
+Proof.
+  intros B D.
+  assert(N: forall a, Vin a x → P a).
+  {
+    intros a.
+    apply Vforall_in with (v:=x); assumption.
+  }
+  (split;
+   apply Vforall_intro; intros x2 H;
+   apply N;
+   apply Vbreak_preserves_values with (a:=x2) in B;
+   destruct B as [B0 B1];
+   apply B1) ;
+    [left | right]; assumption.
 Qed.
 
 Lemma Vforall_hd {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
@@ -1292,7 +1326,7 @@ Local Close Scope nat_scope.
 Close Scope vector_scope.
 
 Lemma  fold_left_once:
-  forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A), 
+  forall (A B:Type) (x:B) (xs:list B) (b:A) (f:A->B->A),
     List.fold_left f (x::xs) b ≡ List.fold_left f xs (f b x).
 Proof.
   auto.
@@ -1311,13 +1345,13 @@ Proof.
 Qed.
 
 Section VMap2_Indexed.
-  
+
   Definition Vmap2Indexed {A B C : Type} {n}
              (f: nat->A->B->C) (a: vector A n) (b: vector B n)
-    := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)). 
+    := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
 
   Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> Vnth v h1 = Vnth v h2.
+      i1 = i2 -> Vnth v h1 = Vnth v h2.
 
   Proof.
     induction v; intro; case i1.
@@ -1336,7 +1370,7 @@ Section VMap2_Indexed.
   Qed.
 
   Lemma Vnth_arg_equiv:
-    ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n) 
+    ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
       (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
   Proof.
     intros A Ae n v1 v2 i ip E.
@@ -1344,16 +1378,16 @@ Section VMap2_Indexed.
     apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
     assumption.
   Qed.
-  
+
   Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
+      i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
   Proof.
     intros n v1 v2 i1 h1 i2 h2 Ei Ev.
     rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
     apply Vnth_arg_equiv.
     assumption.
   Qed.
-  
+
   Global Instance Vmap2Indexed_proper
          `{Setoid A} `{Setoid B} `{Setoid C}
          n
@@ -1389,7 +1423,7 @@ Section VMap2_Indexed.
     rewrite Vbuild_nth.
     reflexivity.
   Qed.
-  
+
 End VMap2_Indexed.
 
 
