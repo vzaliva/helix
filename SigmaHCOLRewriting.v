@@ -603,6 +603,13 @@ Section SigmaHCOLRewriting.
                 ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
                  ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))).
   Proof.
+    unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
+    HTSUMUnion, pair2vector, Vec2Union.
+    extensionality x.
+    break_let. break_let.
+    rename t1 into x0, t2 into x1.
+    tuple_inversion.
+    symmetry.
     admit.
   Qed.
 

@@ -33,10 +33,9 @@ Open Scope vector_scope.
 Definition HCross
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
-           (g: svector i2 -> svector o2)
-  : svector (i1+i2) -> svector (o1+o2) :=
-  fun x =>  pair2vector (Cross (f, g) (Vbreak x)).
-
+           (g: svector i2 -> svector o2):
+  svector (i1+i2) -> svector (o1+o2)
+  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
 
 Instance HCross_arg_proper
        {i1 o1 i2 o2}
