@@ -78,6 +78,7 @@ Section SigmaHCOL_Operators.
   Definition Scatter
              {i o: nat}
              (f: index_map i o)
+             {f_inj: index_map_injective f}
              (x: svector i) : svector o
     :=
       Vbuild (fun n np =>
@@ -87,11 +88,13 @@ Section SigmaHCOL_Operators.
              {i o}
              (base stride: nat)
              {domain_bound: ∀ x : nat, x < i → base + x * stride < o}
+             {snzord0: stride ≢ 0 \/ i < 2}
     :
       (svector i) -> svector o
     :=
-      Scatter
-        (@h_index_map i o base stride domain_bound).
+      Scatter (@h_index_map i o base stride domain_bound)
+              (f_inj:=@h_index_map_is_injective i o base stride domain_bound snzord0).
+
 
   Definition Pointwise
              {n: nat}
@@ -178,11 +181,12 @@ Qed.
 Lemma Scatter_spec
       {i o: nat}
       (f: index_map i o)
+      {f_inj: index_map_injective f}
       (x: svector i)
       (y : svector o):
-  index_map_injective f -> (Scatter f x ≡ y) ->  ∀ n (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f n ip.
+  (Scatter f (f_inj:=f_inj) x ≡ y) ->  ∀ n (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f n ip.
 Proof.
-  intros J S n ip.
+  intros S n ip.
   unfold VnthIndexMapped.
   unfold Scatter in S.
   subst y.
@@ -215,11 +219,12 @@ Lemma Scatter_rev_spec:
   forall
     {i o: nat}
     (f: index_map i o)
+    {f_inj: index_map_injective f}
     (x: svector i)
     (y : svector o),
-    (Scatter f x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
+    (Scatter f (f_inj:=f_inj) x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
 Proof.
-  intros i o f x y.
+  intros i o f f_inj x y.
   unfold Scatter, Vbuild.
   destruct (Vbuild_spec
               (λ (n : nat) (np : n < o),

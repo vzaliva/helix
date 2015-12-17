@@ -242,7 +242,7 @@ Section Primitive_Functions.
         {domain range: nat}
         (b s: nat)
         {range_bound: forall x, x<domain -> (b+x*s) < range}
-        {snz: s ≢ 0} (* without this it is not injective! *)
+        {snzord0: s ≢ 0 \/ domain < 2} (* without this it is not injective! *)
     :
       index_map_injective  (@h_index_map domain range b s range_bound).
   Proof.

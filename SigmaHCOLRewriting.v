@@ -236,6 +236,12 @@ Section SigmaHCOLRewriting.
     destruct (h' i); crush.
   Qed.
 
+  Fact ScatH_stride1_constr:
+    forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+  Proof.
+    auto.
+  Qed.
+
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),
@@ -246,6 +252,7 @@ Section SigmaHCOLRewriting.
            (Vbuild
               (λ (i0 : nat) (id : i0 < n),
                ((ScatH i0 1
+                       (snzord0:=ScatH_stride1_constr)
                        (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id))
                   ∘ Atomic (f i0 id)
                   ∘ (GathH i0 1
@@ -260,9 +267,8 @@ Section SigmaHCOLRewriting.
     remember (λ (i0 : nat) (id : i0 < n),
               ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                     ScatH i0 1 (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
+                     ScatH i0 1 (snzord0:=ScatH_stride1_constr) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
           ).
-
     {
       subst bf.
       extensionality j.
@@ -279,7 +285,7 @@ Section SigmaHCOLRewriting.
       reflexivity.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                      ScatH i0 1 (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
+                      ScatH i0 1 (snzord0:=ScatH_stride1_constr) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
     {
       rewrite B1.
       extensionality j.
@@ -319,8 +325,7 @@ Section SigmaHCOLRewriting.
       replace ip with icb by apply proof_irrelevance.
       rewrite InverseIndex_1_hit.
       cut(Is_Val (Vnth x icb)); try crush.
-      apply Vforall_nth with (i:=i) (ip:=icb) in V.
-      apply V.
+      apply Vforall_nth with (i:=i) (ip:=icb) in V; apply V.
 
       intros H.
       rewrite InverseIndex_1_miss.
@@ -345,6 +350,7 @@ Section SigmaHCOLRewriting.
                  (fun i id =>
                     (
                       (ScatH i 1
+                             (snzord0:=ScatH_stride1_constr)
                              (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
                         ∘ (Atomic (f i id))
                         ∘ (GathH i 1
@@ -420,6 +426,7 @@ Section SigmaHCOLRewriting.
              (@Vbuild (svector n) n
                       (fun i id =>
                          ((ScatH i 1
+                                 (snzord0:=ScatH_stride1_constr)
                                  (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
                             ∘ (HBinOp (o:=1) (SwapIndex2 i f))
                             ∘ (GathH i n
@@ -444,6 +451,7 @@ Section SigmaHCOLRewriting.
 
     assert(B1: bf ≡ (fun i id =>
                        (ScatH i 1
+                              (snzord0:=ScatH_stride1_constr)
                               (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
                               (HBinOp (o:=1) (SwapIndex2 i f)
                                       [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
@@ -465,6 +473,7 @@ Section SigmaHCOLRewriting.
 
     assert (B2: bf ≡ (λ (i : nat) (id : i < n),
                       ScatH i 1
+                            (snzord0:=ScatH_stride1_constr)
                             (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
                             [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id)) ])).
     {
@@ -545,6 +554,7 @@ Section SigmaHCOLRewriting.
                       (fun i id =>
                          (
                            (ScatH i 1
+                                  (snzord0:=ScatH_stride1_constr)
                                   (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
                              ∘ (HBinOp (o:=1) (SwapIndex2 i f))
                              ∘ (GathH i n
@@ -588,9 +598,9 @@ Section SigmaHCOLRewriting.
         (g: svector i2 -> svector o2):
     HTDirectSum f g ≡
                 HTSUMUnion
-                ((ScatH 0 1 (domain_bound := h_bound_first_half o1 o2)
+                ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (domain_bound := h_bound_first_half o1 o2)
                  ) ∘ f ∘ (GathH 0 1 (range_bound := h_bound_first_half i1 i2)))
-                ((ScatH o1 1 (domain_bound := h_bound_second_half o1 o2)
+                ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (domain_bound := h_bound_second_half o1 o2)
                  ) ∘ g ∘ (GathH i1 1 (range_bound := h_bound_second_half i1 i2))).
   Proof.
     admit.
