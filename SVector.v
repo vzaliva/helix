@@ -32,25 +32,25 @@ Section SparseVectors.
     Vmap RthetaVal v.
 
   (* Our definition of "dense" vector means that it does not contain "structural" values. *)
-  
+
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall (not ∘ Is_Struct) v.
-  
+
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_szero n.
-  
+
 End SparseVectors.
 
 Section Sparse_Unions.
 
   (* Scalar union. NB: It is not Proper wrt 'equiv'! *)
-  Definition Union 
+  Definition Union
              (a b: Rtheta): Rtheta
     :=
       match a, b with
-      |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be) 
-      |  (av, false, ae), (_, true, be) => (av, false, orb ae be) 
-      |  (_, true, ae), (_, true, be) => (zero, true, orb ae be) 
+      |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be)
+      |  (av, false, ae), (_, true, be) => (av, false, orb ae be)
+      |  (_, true, ae), (_, true, be) => (zero, true, orb ae be)
       |  (_, false, _), (_, false, _) => Rtheta_szero_err
       end.
 
@@ -96,6 +96,17 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
+  Lemma Vec2Union_comm {n} {a b:svector n}:
+    Vec2Union a b ≡ Vec2Union b a.
+  Proof.
+    induction n.
+    VOtac; reflexivity.
+    VSntac a. VSntac b.
+    simpl.
+    rewrite IHn, Union_comm.
+    reflexivity.
+  Qed.
+
   Lemma SumUnion_cons m n (x: svector m) (xs: vector (svector m) n):
     SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
   Proof.
@@ -125,25 +136,25 @@ Section Sparse_Unions.
       rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons, Union_comm.
       reflexivity.
   Qed.
-  
+
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
   Lemma AbsorbIUnionIndex:
     forall m n (x: vector (svector m) n) k (kc: k<m),
       Vnth
         (SumUnion
-           (Vbuild 
+           (Vbuild
               (fun (i : nat) (ic : i < n) =>
                  (Vnth x ic)
            ))
         ) kc ≡
         VecUnion
-        (Vbuild 
+        (Vbuild
            (fun (i : nat) (ic : i < n) =>
               Vnth (Vnth x ic) kc
         )).
   Proof.
     intros m n x k kc.
-    
+
     induction n.
     + dep_destruct x.
       rewrite 2!Vbuild_0.
@@ -164,7 +175,7 @@ Section Sparse_Unions.
 
       replace (λ (i : nat) (ip : i < n), genik (S i) (lt_n_S ip)) with
       (λ (i : nat) (ic : i < n), Vnth (Vnth x0 ic) kc).
-      
+
       rewrite <- IHn.
       remember (λ (i : nat) (ic : i < n), Vnth x0 ic) as genX.
 
@@ -176,7 +187,7 @@ Section Sparse_Unions.
       rewrite SumUnion_cons.
       rewrite AbsorbUnionIndexBinary.
       reflexivity.
-      
+
       subst genX.
       extensionality i.
       extensionality ic.

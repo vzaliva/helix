@@ -589,7 +589,7 @@ Section SigmaHCOLRewriting.
   (* TODO: move *)
   Lemma Vec2Union_Vapp {n m} {a b:svector m} {a' b':svector n}:
     Vec2Union (Vapp a a') (Vapp b b') ≡
-             Vapp (Vec2Union a b) (Vec2Union a' b').
+              Vapp (Vec2Union a b) (Vec2Union a' b').
   Proof.
     admit.
   Qed.
@@ -601,13 +601,6 @@ Section SigmaHCOLRewriting.
     admit.
   Qed.
 
-  (* TODO: move *)
-  Lemma Vec2Union_comm {n} {a b:svector n}:
-    Vec2Union a b ≡ Vec2Union b a.
-  Proof.
-    admit.
-  Qed.
-  
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -634,15 +627,15 @@ Section SigmaHCOLRewriting.
     symmetry.
 
     assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
-                   (@ScatH_stride1_constr o1 2)
-                   (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
+                      (@ScatH_stride1_constr o1 2)
+                      (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
     {
       admit.
     }
 
     assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
-        (@ScatH_stride1_constr o2 2)
-        (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
+                      (@ScatH_stride1_constr o2 2)
+                      (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
     {
       admit.
     }
