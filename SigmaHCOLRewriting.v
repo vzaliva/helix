@@ -586,6 +586,28 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
+  (* TODO: move *)
+  Lemma Vec2Union_Vapp {n m} {a b:svector m} {a' b':svector n}:
+    Vec2Union (Vapp a a') (Vapp b b') ≡
+             Vapp (Vec2Union a b) (Vec2Union a' b').
+  Proof.
+    admit.
+  Qed.
+
+  (* TODO: move *)
+  Lemma Vec2Union_szero_svector {n} {a: svector n}:
+    Vec2Union a (szero_svector n) ≡ a.
+  Proof.
+    admit.
+  Qed.
+
+  (* TODO: move *)
+  Lemma Vec2Union_comm {n} {a b:svector n}:
+    Vec2Union a b ≡ Vec2Union b a.
+  Proof.
+    admit.
+  Qed.
+  
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -604,13 +626,29 @@ Section SigmaHCOLRewriting.
                  ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))).
   Proof.
     unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-    HTSUMUnion, pair2vector, Vec2Union.
+    HTSUMUnion, pair2vector.
     extensionality x.
     break_let. break_let.
     rename t1 into x0, t2 into x1.
     tuple_inversion.
     symmetry.
-    admit.
+
+    assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
+                   (@ScatH_stride1_constr o1 2)
+                   (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
+    {
+      admit.
+    }
+
+    assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
+        (@ScatH_stride1_constr o2 2)
+        (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
+    {
+      admit.
+    }
+    rewrite LS, RS.
+    rewrite Vec2Union_Vapp, Vec2Union_szero_svector, Vec2Union_comm, Vec2Union_szero_svector.
+    reflexivity.
   Qed.
 
 End SigmaHCOLRewriting.
