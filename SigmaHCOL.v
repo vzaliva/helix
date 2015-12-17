@@ -68,12 +68,13 @@ Section SigmaHCOL_Operators.
   Definition GathH
              {i o}
              (base stride: nat)
-             {range_bound: ∀ x : nat, x < o → base + x * stride < i}
+             {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
     :
       (svector i) -> svector o
     :=
-      Gather
-        (@h_index_map o i base stride range_bound).
+      Gather (h_index_map base stride
+                          (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
+             ).
 
   Definition Scatter
              {i o: nat}
@@ -87,13 +88,13 @@ Section SigmaHCOL_Operators.
   Definition ScatH
              {i o}
              (base stride: nat)
-             {domain_bound: ∀ x : nat, x < i → base + x * stride < o}
+             {range_bound: ∀ x : nat, x < i → base + x * stride < o}
              {snzord0: stride ≢ 0 \/ i < 2}
     :
       (svector i) -> svector o
     :=
-      Scatter (@h_index_map i o base stride domain_bound)
-              (f_inj:=@h_index_map_is_injective i o base stride domain_bound snzord0).
+      Scatter (h_index_map base stride (range_bound:=range_bound))
+              (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
 
   Definition Pointwise

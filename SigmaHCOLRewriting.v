@@ -34,7 +34,7 @@ Section SigmaHCOLRewriting.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
-  Fact ScatH_1_to_n_domain_bound base o stride:
+  Fact ScatH_1_to_n_range_bound base o stride:
     base < o ->
     ∀ x : nat, x < 1 → base + x * stride < o.
   Proof.
@@ -42,7 +42,7 @@ Section SigmaHCOLRewriting.
     nia.
   Qed.
 
-  Fact GathH_j1_range_bound base i (bc:base<i):
+  Fact GathH_j1_domain_bound base i (bc:base<i):
     ∀ x : nat, x < 1 → base + x * 1 < i.
   Proof.
     intros.
@@ -190,12 +190,12 @@ Section SigmaHCOLRewriting.
       (@VnthInverseIndexMapped 1 n [v]
                                (@IndexFunctions.build_inverse_index_map 1 n
                                                                         (@IndexFunctions.h_index_map 1 n k s
-                                                                                                     (ScatH_1_to_n_domain_bound k n s kp) )) k kp) ≡ v.
+                                                                                                     (ScatH_1_to_n_range_bound k n s kp) )) k kp) ≡ v.
   Proof.
     intros n k s kp v.
     destruct (@IndexFunctions.build_inverse_index_map 1 n
                                                       (@IndexFunctions.h_index_map 1 n k s
-                                                                                   (ScatH_1_to_n_domain_bound k n s kp) )) as [h' h'_spec] eqn:P.
+                                                                                   (ScatH_1_to_n_range_bound k n s kp) )) as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
     assert(PH': h' k ≡ Some 0).
@@ -214,14 +214,14 @@ Section SigmaHCOLRewriting.
       @VnthInverseIndexMapped 1 n [v]
                               (@IndexFunctions.build_inverse_index_map 1 n
                                                                        (@IndexFunctions.h_index_map 1 n j s
-                                                                                                    (ScatH_1_to_n_domain_bound j n s jp)
+                                                                                                    (ScatH_1_to_n_range_bound j n s jp)
                               ))
                               i ip ≡ Rtheta_szero.
   Proof .
     intros n s i j ip jp v N.
     destruct (@IndexFunctions.build_inverse_index_map 1 n
                                                       (@IndexFunctions.h_index_map 1 n j s
-                                                                                   (ScatH_1_to_n_domain_bound j n s jp)
+                                                                                   (ScatH_1_to_n_range_bound j n s jp)
              )) as [h' h'_spec] eqn:P.
     unfold IndexFunctions.h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH.
@@ -237,7 +237,7 @@ Section SigmaHCOLRewriting.
   Qed.
 
   Fact ScatH_stride1_constr:
-    forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+  forall {a b:nat}, 1 ≢ 0 ∨ a < b.
   Proof.
     auto.
   Qed.
@@ -253,10 +253,10 @@ Section SigmaHCOLRewriting.
               (λ (i0 : nat) (id : i0 < n),
                ((ScatH i0 1
                        (snzord0:=ScatH_stride1_constr)
-                       (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id))
+                       (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
                   ∘ Atomic (f i0 id)
                   ∘ (GathH i0 1
-                           (range_bound:=GathH_j1_range_bound i0 n id))
+                           (domain_bound:=GathH_j1_domain_bound i0 n id))
                ) x))) ip
         ≡
         Vnth (Pointwise f x) ip.
@@ -267,7 +267,7 @@ Section SigmaHCOLRewriting.
     remember (λ (i0 : nat) (id : i0 < n),
               ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                     ScatH i0 1 (snzord0:=ScatH_stride1_constr) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
+                     ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
           ).
     {
       subst bf.
@@ -278,14 +278,14 @@ Section SigmaHCOLRewriting.
       unfold VnthIndexMapped.
       simpl.
       generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
-                                                          (GathH_j1_range_bound j n jn) 0 (lt_0_Sn 0)).
+                                                          (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
       intros ln.
       simpl in ln.
       rewrite Vnth_cast_index with (jc:=jn) by omega.
       reflexivity.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                      ScatH i0 1 (snzord0:=ScatH_stride1_constr) (domain_bound:=ScatH_1_to_n_domain_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
+                      ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
     {
       rewrite B1.
       extensionality j.
@@ -351,10 +351,10 @@ Section SigmaHCOLRewriting.
                     (
                       (ScatH i 1
                              (snzord0:=ScatH_stride1_constr)
-                             (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
+                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
                         ∘ (Atomic (f i id))
                         ∘ (GathH i 1
-                                 (range_bound:=GathH_j1_range_bound i n id)
+                                 (domain_bound:=GathH_j1_domain_bound i n id)
                           )
                     ) x
         ))
@@ -368,7 +368,7 @@ Section SigmaHCOLRewriting.
     apply U_SAG1; assumption.
   Qed.
 
-  Fact GathH_jn_range_bound i n:
+  Fact GathH_jn_domain_bound i n:
     i < n ->
     ∀ x : nat, x < 2 → i + x * n < (n+n).
   Proof.
@@ -427,10 +427,10 @@ Section SigmaHCOLRewriting.
                       (fun i id =>
                          ((ScatH i 1
                                  (snzord0:=ScatH_stride1_constr)
-                                 (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
+                                 (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
                             ∘ (HBinOp (o:=1) (SwapIndex2 i f))
                             ∘ (GathH i n
-                                     (range_bound:=GathH_jn_range_bound i n id))
+                                     (domain_bound:=GathH_jn_domain_bound i n id))
                          ) x
           ))) kp
           ≡ Vnth (HBinOp (o:=n) (f) x) kp.
@@ -440,10 +440,10 @@ Section SigmaHCOLRewriting.
 
     remember (fun i id =>
                 ScatH i 1
-                      (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                      (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                       (HBinOp (o:=1) (SwapIndex2 i f)
                               (GathH i n
-                                     (range_bound:=GathH_jn_range_bound i n id) x)))
+                                     (domain_bound:=GathH_jn_domain_bound i n id) x)))
       as bf.
 
     assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
@@ -452,7 +452,7 @@ Section SigmaHCOLRewriting.
     assert(B1: bf ≡ (fun i id =>
                        (ScatH i 1
                               (snzord0:=ScatH_stride1_constr)
-                              (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                              (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                               (HBinOp (o:=1) (SwapIndex2 i f)
                                       [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
     {
@@ -462,8 +462,8 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_2.
       unfold VnthIndexMapped.
       generalize
-        (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_range_bound j n jn)) 0  (lt_0_SSn 0)) as l0
-                                                                                                                                             , (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_range_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
+        (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
+                                                                                                                                              , (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
       intros.
       simpl in *.
       rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
@@ -474,7 +474,7 @@ Section SigmaHCOLRewriting.
     assert (B2: bf ≡ (λ (i : nat) (id : i < n),
                       ScatH i 1
                             (snzord0:=ScatH_stride1_constr)
-                            (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id)
+                            (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                             [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id)) ])).
     {
       rewrite B1.
@@ -555,10 +555,10 @@ Section SigmaHCOLRewriting.
                          (
                            (ScatH i 1
                                   (snzord0:=ScatH_stride1_constr)
-                                  (domain_bound:=ScatH_1_to_n_domain_bound i n 1 id))
+                                  (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
                              ∘ (HBinOp (o:=1) (SwapIndex2 i f))
                              ∘ (GathH i n
-                                      (range_bound:=GathH_jn_range_bound i n id)
+                                      (domain_bound:=GathH_jn_domain_bound i n id)
                                )
                          ) x
              )).
@@ -598,10 +598,10 @@ Section SigmaHCOLRewriting.
         (g: svector i2 -> svector o2):
     HTDirectSum f g ≡
                 HTSUMUnion
-                ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (domain_bound := h_bound_first_half o1 o2)
-                 ) ∘ f ∘ (GathH 0 1 (range_bound := h_bound_first_half i1 i2)))
-                ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (domain_bound := h_bound_second_half o1 o2)
-                 ) ∘ g ∘ (GathH i1 1 (range_bound := h_bound_second_half i1 i2))).
+                ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                 ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                 ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))).
   Proof.
     admit.
   Qed.
