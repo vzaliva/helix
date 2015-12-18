@@ -620,7 +620,26 @@ Section SigmaHCOLRewriting.
                       (@ScatH_stride1_constr o1 2)
                       (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
     {
+      replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with x0.
       admit.
+      unfold GathH, Gather.
+      apply Veq_nth.
+      intros.
+      rewrite Vbuild_nth.
+      unfold IndexFunctions.h_index_map.
+      unfold VnthIndexMapped.
+      simpl.
+      apply Vbreak_arg_app in Heqp0.
+      subst x.
+      rewrite Vnth_app.
+      break_match.
+      omega.
+      revert g0.
+      rewrite Mult.mult_1_r.
+      unfold gt.
+      intros g0.
+      replace g0 with ip by apply proof_irrelevance.
+      reflexivity.
     }
 
     assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
