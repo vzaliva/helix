@@ -602,12 +602,12 @@ Section SigmaHCOLRewriting.
         (Dg: forall u, svector_is_dense u -> svector_is_dense (g u)) (* g is density-preserving *)
     :
       HTDirectSum f g x≡
-                (HTSUMUnion
-                   ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                    ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-                   ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                    ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
-                x.
+                  (HTSUMUnion
+                     ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                      ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                     ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                      ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
+                  x.
   Proof.
     unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
     HTSUMUnion, pair2vector.
@@ -621,31 +621,58 @@ Section SigmaHCOLRewriting.
                       (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
     {
       replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with x0.
-      admit.
-      unfold GathH, Gather.
-      apply Veq_nth.
-      intros.
-      rewrite Vbuild_nth.
-      unfold IndexFunctions.h_index_map.
-      unfold VnthIndexMapped.
-      simpl.
-      apply Vbreak_arg_app in Heqp0.
-      subst x.
-      rewrite Vnth_app.
-      break_match.
-      omega.
-      revert g0.
-      rewrite Mult.mult_1_r.
-      unfold gt.
-      intros g0.
-      replace g0 with ip by apply proof_irrelevance.
-      reflexivity.
+      - 
+        unfold ScatH, Scatter.
+        apply Veq_nth.
+        intros.
+
+        assert(DX0: svector_is_dense (f x0)).
+        {
+          apply Df.
+          apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
+          assumption.
+          assumption.
+        }
+        rewrite Vbuild_nth.
+        generalize dependent (f x0). intros fx0 DX0.
+        rewrite Vnth_app.
+        break_match.
+        + (* Second half of x, which is all zeros *)
+          unfold szero_svector.
+          rewrite Vnth_const.
+      (* Set Printing Implicit. Show.  *)
+          (* TODO prove that OOB index causes ZERO. May need adjust partial spec *)
+          admit.
+        + (* First half of x, which is fx0 *)
+          (* Set Printing Implicit. Show. *)
+          (* TODO: try to build spec of VnthInverseIndexMapped. for i hit ad miss.
+another idea: h 0 1 = id -> h' is also id in it's range *)
+          admit.
+      - unfold GathH, Gather.
+        apply Veq_nth.
+        intros.
+        rewrite Vbuild_nth.
+        unfold IndexFunctions.h_index_map.
+        unfold VnthIndexMapped.
+        simpl.
+        apply Vbreak_arg_app in Heqp0.
+        subst x.
+        rewrite Vnth_app.
+        break_match.
+        omega.
+        revert g0.
+        rewrite Mult.mult_1_r.
+        unfold gt.
+        intros g0.
+        replace g0 with ip by apply proof_irrelevance.
+        reflexivity.
     }
 
     assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
                       (@ScatH_stride1_constr o2 2)
                       (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
     {
+      (* TODO: could reuse some proofs from LS! *)
       admit.
     }
     rewrite LS, RS.
