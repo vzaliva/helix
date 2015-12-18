@@ -586,14 +586,6 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
-  (* TODO: move *)
-  Lemma Vec2Union_Vapp {n m} {a b:svector m} {a' b':svector n}:
-    Vec2Union (Vapp a a') (Vapp b b') ≡
-              Vapp (Vec2Union a b) (Vec2Union a' b').
-  Proof.
-    admit.
-  Qed.
-
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -639,7 +631,8 @@ Section SigmaHCOLRewriting.
     }
     rewrite LS, RS.
     apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
-    rewrite Vec2Union_Vapp, Vec2Union_szero_svector, Vec2Union_comm, Vec2Union_szero_svector.
+    unfold Vec2Union. rewrite VMapp2_app.
+    rewrite Vec2Union_szero_svector, Vec2Union_comm, Vec2Union_szero_svector.
     reflexivity.
     apply Dg; assumption.
     apply Df; assumption.

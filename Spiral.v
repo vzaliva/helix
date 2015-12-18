@@ -660,6 +660,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma VMapp2_app:
+  ∀ {A B} {f: A->A->B} (n m : nat)
+    {a b: vector A m} {a' b':vector A n},
+    Vmap2 f (Vapp a a') (Vapp b b')
+          ≡ Vapp (Vmap2 f a b) (Vmap2 f a' b').
+Proof.
+  intros A B f n m a b a' b'.
+  induction m.
+  - VOtac.
+    reflexivity.
+  - VSntac a. VSntac b.
+    simpl.
+    rewrite IHm.
+    reflexivity.
+Qed.
 
 Lemma shifout_tl_swap: forall {A} n (l:vector A (S (S n))),
     tl (shiftout l) ≡ shiftout (tl l).
