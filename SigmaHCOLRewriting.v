@@ -653,12 +653,11 @@ Section SigmaHCOLRewriting.
           unfold VnthInverseIndexMapped.
           simpl.
           specialize HZ with i.
-          crush.
-          
-          
-      (* Set Printing Implicit. Show.  *)
-          (* TODO prove that OOB index causes ZERO. May need adjust partial spec *)
-          admit.
+          assert (HZI: partial_index_f i ≡ None )
+            by apply is_None_def, HZ, l.
+          generalize (partial_index_f_spec i ip).
+          rewrite HZI.
+          reflexivity.
         + (* First half of x, which is fx0 *)
           (* Set Printing Implicit. Show. *)
           (* TODO: try to build spec of VnthInverseIndexMapped. for i hit ad miss.
