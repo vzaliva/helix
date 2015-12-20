@@ -5,6 +5,7 @@ Require Import SVector.
 Require Import SigmaHCOL.
 Require Import HCOL.
 Require Import THCOL.
+Require Import IndexFunctions.
 
 Require Import Arith.
 Require Import Compare_dec.
@@ -188,22 +189,22 @@ Section SigmaHCOLRewriting.
   Lemma InverseIndex_1_hit:
     ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
       (@VnthInverseIndexMapped 1 n [v]
-                               (@IndexFunctions.build_inverse_index_map 1 n
-                                                                        (@IndexFunctions.h_index_map 1 n k s
+                               (@build_inverse_index_map 1 n
+                                                                        (@h_index_map 1 n k s
                                                                                                      (ScatH_1_to_n_range_bound k n s kp) )) k kp) ≡ v.
   Proof.
     intros n k s kp v.
-    destruct (@IndexFunctions.build_inverse_index_map 1 n
-                                                      (@IndexFunctions.h_index_map 1 n k s
+    destruct (@build_inverse_index_map 1 n
+                                                      (@h_index_map 1 n k s
                                                                                    (ScatH_1_to_n_range_bound k n s kp) )) as [h' h'_spec] eqn:P.
-    unfold IndexFunctions.h_index_map in P.
+    unfold h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
     assert(PH': h' k ≡ Some 0).
     {
       subst h'.
       break_if; [reflexivity | omega].
     }
-    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
+    unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
     generalize (h'_spec k).
     destruct (h' k); crush.
   Qed.
@@ -212,18 +213,18 @@ Section SigmaHCOLRewriting.
     ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : Rtheta),
       i ≢ j ->
       @VnthInverseIndexMapped 1 n [v]
-                              (@IndexFunctions.build_inverse_index_map 1 n
-                                                                       (@IndexFunctions.h_index_map 1 n j s
+                              (@build_inverse_index_map 1 n
+                                                                       (@h_index_map 1 n j s
                                                                                                     (ScatH_1_to_n_range_bound j n s jp)
                               ))
                               i ip ≡ Rtheta_szero.
   Proof .
     intros n s i j ip jp v N.
-    destruct (@IndexFunctions.build_inverse_index_map 1 n
-                                                      (@IndexFunctions.h_index_map 1 n j s
+    destruct (@build_inverse_index_map 1 n
+                                                      (@h_index_map 1 n j s
                                                                                    (ScatH_1_to_n_range_bound j n s jp)
              )) as [h' h'_spec] eqn:P.
-    unfold IndexFunctions.h_index_map in P.
+    unfold h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH.
     assert(PH': h' i ≡ None).
     {
@@ -231,7 +232,7 @@ Section SigmaHCOLRewriting.
       break_if ; [omega | reflexivity ].
     }
     assert (N0: i ≢ j + 0) by omega.
-    unfold VnthInverseIndexMapped, IndexFunctions.partial_index_f, IndexFunctions.partial_index_f_spec.
+    unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
     generalize (h'_spec i).
     destruct (h' i); crush.
   Qed.
@@ -277,7 +278,7 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_1.
       unfold VnthIndexMapped.
       simpl.
-      generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
+      generalize (h_index_map_obligation_1 1 n j 1
                                                           (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
       intros ln.
       simpl in ln.
@@ -462,8 +463,8 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_2.
       unfold VnthIndexMapped.
       generalize
-        (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
-                                                                                                                                              , (IndexFunctions.index_f_spec 2 (n + n) (@IndexFunctions.h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
+        (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
+                                                                                                                                              , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
       intros.
       simpl in *.
       rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
@@ -638,8 +639,23 @@ Section SigmaHCOLRewriting.
         rewrite Vnth_app.
         break_match.
         + (* Second half of x, which is all zeros *)
-          unfold szero_svector.
-          rewrite Vnth_const.
+          unfold szero_svector.  rewrite Vnth_const.
+          remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+          destruct h'.
+          inversion Heqh'. rename H0 into H. clear Heqh'.
+          assert(HZ: forall j, j>=o1 -> is_None (partial_index_f j)). (* could be lemma *)
+          {
+            intros.
+            subst.
+            apply is_None_def.
+            admit.
+          }
+          unfold VnthInverseIndexMapped.
+          simpl.
+          specialize HZ with i.
+          crush.
+          
+          
       (* Set Printing Implicit. Show.  *)
           (* TODO prove that OOB index causes ZERO. May need adjust partial spec *)
           admit.
@@ -652,7 +668,7 @@ another idea: h 0 1 = id -> h' is also id in it's range *)
         apply Veq_nth.
         intros.
         rewrite Vbuild_nth.
-        unfold IndexFunctions.h_index_map.
+        unfold h_index_map.
         unfold VnthIndexMapped.
         simpl.
         apply Vbreak_arg_app in Heqp0.
