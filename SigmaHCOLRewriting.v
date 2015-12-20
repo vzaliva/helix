@@ -587,7 +587,7 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
-  Lemma pf_oob:
+  Lemma Partial_index_id_out_of_range_is_none:
     ∀ (o1: nat) (partial_index_f : nat → option nat),
       partial_index_f
         ≡ (λ y : nat,
@@ -597,8 +597,6 @@ Section SigmaHCOLRewriting.
                    (rev_natrange_list o1))
       → ∀ j : nat, j ≥ o1 → is_None (partial_index_f j).
   Proof.
-    
-
     intros.
     subst.
     apply is_None_def.
@@ -673,7 +671,7 @@ Section SigmaHCOLRewriting.
           assert (HZI: partial_index_f i ≡ None).
           {
             apply is_None_def.
-            apply pf_oob with (o1:=o1).
+            apply Partial_index_id_out_of_range_is_none with (o1:=o1).
             apply H.
             apply l.
           }
