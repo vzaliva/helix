@@ -587,6 +587,31 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
+  Lemma pf_oob:
+    ∀ (o1: nat) (partial_index_f : nat → option nat),
+      partial_index_f
+        ≡ (λ y : nat,
+                 List.fold_right
+                   (λ (x' : nat) (p : option nat),
+                    if eq_nat_dec y (x' * 1) then Some x' else p) None
+                   (rev_natrange_list o1))
+      → ∀ j : nat, j ≥ o1 → is_None (partial_index_f j).
+  Proof.
+    
+
+    intros.
+    subst.
+    apply is_None_def.
+    induction o1.
+    crush.
+    simpl.
+    break_if.
+    crush.
+    rewrite IHo1.
+    reflexivity.
+    omega.
+  Qed.
+  
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -643,18 +668,15 @@ Section SigmaHCOLRewriting.
           remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
           destruct h'.
           inversion Heqh'. rename H0 into H. clear Heqh'.
-          assert(HZ: forall j, j>=o1 -> is_None (partial_index_f j)). (* could be lemma *)
-          {
-            intros.
-            subst.
-            apply is_None_def.
-            admit.
-          }
           unfold VnthInverseIndexMapped.
           simpl.
-          specialize HZ with i.
-          assert (HZI: partial_index_f i ≡ None )
-            by apply is_None_def, HZ, l.
+          assert (HZI: partial_index_f i ≡ None).
+          {
+            apply is_None_def.
+            apply pf_oob with (o1:=o1).
+            apply H.
+            apply l.
+          }
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
           reflexivity.
