@@ -682,7 +682,19 @@ Section SigmaHCOLRewriting.
           (* Set Printing Implicit. Show. *)
           (* TODO: try to build spec of VnthInverseIndexMapped. for i hit ad miss.
 another idea: h 0 1 = id -> h' is also id in it's range *)
-          admit.
+          remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+          destruct h'.
+          inversion Heqh'. rename H0 into H. clear Heqh'.
+          unfold VnthInverseIndexMapped; simpl.
+          assert (HZI: partial_index_f i ≡ Some i).
+          {
+            admit.
+          }
+          generalize (partial_index_f_spec i ip) as some_spec.
+          rewrite HZI.
+          intros.
+          replace (some_spec i eq_refl) with g0 by apply proof_irrelevance.
+          reflexivity.
       - unfold GathH, Gather.
         apply Veq_nth.
         intros.
