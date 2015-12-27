@@ -587,6 +587,27 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
+  Lemma Partial_index_id_in_range:
+    ∀ (o1 i : nat) (partial_index_f : nat → option nat),
+      partial_index_f
+        ≡ (λ y : nat,
+                 List.fold_right
+                   (λ (x' : nat) (p : option nat),
+                    if eq_nat_dec y (x' * 1) then Some x' else p) None
+                   (rev_natrange_list o1)) → o1 > i → partial_index_f i ≡ Some i.
+  Proof.
+    intros.
+    subst.
+    induction o1.
+    crush.
+    simpl.
+    break_if.
+    crush.
+    rewrite IHo1.
+    reflexivity.
+    omega.
+  Qed.
+       
   Lemma Partial_index_id_out_of_range_is_none:
     ∀ (o1: nat) (partial_index_f : nat → option nat),
       partial_index_f
@@ -679,16 +700,15 @@ Section SigmaHCOLRewriting.
           rewrite HZI.
           reflexivity.
         + (* First half of x, which is fx0 *)
-          (* Set Printing Implicit. Show. *)
-          (* TODO: try to build spec of VnthInverseIndexMapped. for i hit ad miss.
-another idea: h 0 1 = id -> h' is also id in it's range *)
           remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
           destruct h'.
           inversion Heqh'. rename H0 into H. clear Heqh'.
           unfold VnthInverseIndexMapped; simpl.
           assert (HZI: partial_index_f i ≡ Some i).
           {
-            admit.
+            apply Partial_index_id_in_range with (o1:=o1).
+            apply H.
+            apply g0.
           }
           generalize (partial_index_f_spec i ip) as some_spec.
           rewrite HZI.
