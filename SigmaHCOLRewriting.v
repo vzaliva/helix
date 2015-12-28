@@ -611,8 +611,7 @@ Section SigmaHCOLRewriting.
     omega.
   Qed.
 
-  (* TODO: combine next 2 *)
-  Lemma Partial_index_offset_out_of_range_is_none:
+  Lemma Partial_index_out_of_range_is_none:
     ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
       partial_index_f
         ≡ (λ y : nat,
@@ -620,42 +619,19 @@ Section SigmaHCOLRewriting.
                    (λ (x' : nat) (p : option nat),
                     if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
                    (rev_natrange_list o2))
-      → o1 > i
-      → i < o1 + o2
+      → (o1 > i) \/ (i>=o1+o2)
       → is_None (partial_index_f i).
   Proof.
     intros.
     subst.
     apply is_None_def.
+
     induction o2.
     crush.
     simpl.
     break_if.
     crush.
     rewrite IHo2.
-    reflexivity.
-    omega.
-  Qed.
-
-  Lemma Partial_index_id_out_of_range_is_none:
-    ∀ (o1: nat) (partial_index_f : nat → option nat),
-      partial_index_f
-        ≡ (λ y : nat,
-                 List.fold_right
-                   (λ (x' : nat) (p : option nat),
-                    if eq_nat_dec y (x' * 1) then Some x' else p) None
-                   (rev_natrange_list o1))
-      → ∀ j : nat, j ≥ o1 → is_None (partial_index_f j).
-  Proof.
-    intros.
-    subst.
-    apply is_None_def.
-    induction o1.
-    crush.
-    simpl.
-    break_if.
-    crush.
-    rewrite IHo1.
     reflexivity.
     omega.
   Qed.
@@ -721,7 +697,10 @@ Section SigmaHCOLRewriting.
           assert (HZI: partial_index_f i ≡ None).
           {
             apply is_None_def.
-            apply Partial_index_id_out_of_range_is_none with (o1:=o1); assumption.
+            apply Partial_index_out_of_range_is_none with (o1:=0) (o2:=o1).
+            assumption.
+            simpl.
+            omega.
           }
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
@@ -807,7 +786,9 @@ Section SigmaHCOLRewriting.
           assert (HZI: partial_index_f i ≡ None).
           {
             apply is_None_def.
-            apply Partial_index_offset_out_of_range_is_none with (o1:=o1) (o2:=o2); assumption.
+            apply Partial_index_out_of_range_is_none with (o1:=o1) (o2:=o2).
+            assumption.
+            omega.
           }
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
