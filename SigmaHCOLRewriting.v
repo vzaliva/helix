@@ -587,8 +587,7 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
-  (* TODO: combine next 2 *)
-  Lemma Partial_index_offset_in_range:
+  Lemma Partial_index_in_range:
     ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
       partial_index_f
         ≡ (λ y : nat,
@@ -608,27 +607,6 @@ Section SigmaHCOLRewriting.
     break_if.
     crush.
     rewrite IHo2.
-    reflexivity.
-    omega.
-  Qed.
-
-  Lemma Partial_index_id_in_range:
-    ∀ (o1 i : nat) (partial_index_f : nat → option nat),
-      partial_index_f
-        ≡ (λ y : nat,
-                 List.fold_right
-                   (λ (x' : nat) (p : option nat),
-                    if eq_nat_dec y (x' * 1) then Some x' else p) None
-                   (rev_natrange_list o1)) → o1 > i → partial_index_f i ≡ Some i.
-  Proof.
-    intros.
-    subst.
-    induction o1.
-    crush.
-    simpl.
-    break_if.
-    crush.
-    rewrite IHo1.
     reflexivity.
     omega.
   Qed.
@@ -755,7 +733,12 @@ Section SigmaHCOLRewriting.
           unfold VnthInverseIndexMapped; simpl.
           assert (HZI: partial_index_f i ≡ Some i).
           {
-            apply Partial_index_id_in_range with (o1:=o1); assumption.
+            replace (Some i) with (Some (i-0)).
+            apply Partial_index_in_range with (o2:=o1) (o1:=O).
+            assumption.
+            omega.
+            omega.
+            f_equal; omega.
           }
           generalize (partial_index_f_spec i ip) as some_spec.
           rewrite HZI.
