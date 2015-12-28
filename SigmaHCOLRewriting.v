@@ -596,8 +596,8 @@ Section SigmaHCOLRewriting.
                    (λ (x' : nat) (p : option nat),
                     if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
                    (rev_natrange_list o2))
-      → (o1 <= i)
-      → (i < o1 + o2)
+      → o1 <= i
+      → i < o1 + o2
       -> partial_index_f i ≡ Some (i-o1).
   Proof.
     intros.
@@ -632,7 +632,33 @@ Section SigmaHCOLRewriting.
     reflexivity.
     omega.
   Qed.
-       
+
+  (* TODO: combine next 2 *)
+  Lemma Partial_index_offset_out_of_range_is_none:
+    ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
+      partial_index_f
+        ≡ (λ y : nat,
+                 List.fold_right
+                   (λ (x' : nat) (p : option nat),
+                    if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
+                   (rev_natrange_list o2))
+      → o1 > i
+      → i < o1 + o2
+      → is_None (partial_index_f i).
+  Proof.
+    intros.
+    subst.
+    apply is_None_def.
+    induction o2.
+    crush.
+    simpl.
+    break_if.
+    crush.
+    rewrite IHo2.
+    reflexivity.
+    omega.
+  Qed.
+  
   Lemma Partial_index_id_out_of_range_is_none:
     ∀ (o1: nat) (partial_index_f : nat → option nat),
       partial_index_f
@@ -789,9 +815,8 @@ Section SigmaHCOLRewriting.
           replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
           reflexivity.
         + (* First half of x, which is all zeros *)
-          HERE
           unfold szero_svector.  rewrite Vnth_const.
-          remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+          remember ((build_inverse_index_map (h_index_map o1 1))) as h'.
           destruct h'.
           inversion Heqh'. rename H0 into H. clear Heqh'.
           unfold VnthInverseIndexMapped.
@@ -799,16 +824,11 @@ Section SigmaHCOLRewriting.
           assert (HZI: partial_index_f i ≡ None).
           {
             apply is_None_def.
-            apply Partial_index_id_out_of_range_is_none with (o1:=o1).
-            apply H.
-            apply l.
+            apply Partial_index_offset_out_of_range_is_none with (o1:=o1) (o2:=o2); assumption.
           }
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
           reflexivity.
-
-
-      admit.
     }
     rewrite LS, RS.
     apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
