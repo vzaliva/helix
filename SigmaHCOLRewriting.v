@@ -791,7 +791,7 @@ Section SigmaHCOLRewriting.
           inversion Heqh'. rename H0 into H. clear Heqh'.
           unfold VnthInverseIndexMapped; simpl.
           assert (HZI: partial_index_f i ≡ Some (i-o1))
-            by (apply Partial_index_offset_in_range with (o2:=o2); assumption).
+            by (apply Partial_index_in_range with (o2:=o2); assumption).
           generalize (partial_index_f_spec i ip) as some_spec.
           rewrite HZI.
           intros.
