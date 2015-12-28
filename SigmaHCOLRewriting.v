@@ -829,6 +829,23 @@ Section SigmaHCOLRewriting.
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
           reflexivity.
+      - unfold GathH, Gather.
+        apply Veq_nth.
+        intros.
+        rewrite Vbuild_nth.
+        unfold h_index_map.
+        unfold VnthIndexMapped.
+        simpl.
+        apply Vbreak_arg_app in Heqp0.
+        subst x.
+        rewrite Vnth_app.
+        break_match.
+        generalize (Vnth_app_aux i2
+                                 (h_index_map_obligation_1 i2 (i1 + i2) i1 1
+                                                           (h_bound_second_half i1 i2) i ip) l) as ip'.
+        intros ip'.
+        replace ip' with ip by apply proof_irrelevance.
+        reflexivity.
     }
     rewrite LS, RS.
     apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
