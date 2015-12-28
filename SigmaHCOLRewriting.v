@@ -587,6 +587,31 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
+  (* TODO: combine next 2 *)
+  Lemma Partial_index_offset_in_range:
+    ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
+      partial_index_f
+        ≡ (λ y : nat,
+                 List.fold_right
+                   (λ (x' : nat) (p : option nat),
+                    if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
+                   (rev_natrange_list o2))
+      → (o1 <= i)
+      → (i < o1 + o2)
+      -> partial_index_f i ≡ Some (i-o1).
+  Proof.
+    intros.
+    subst.
+    induction o2.
+    crush.
+    simpl.
+    break_if.
+    crush.
+    rewrite IHo2.
+    reflexivity.
+    omega.
+  Qed.
+
   Lemma Partial_index_id_in_range:
     ∀ (o1 i : nat) (partial_index_f : nat → option nat),
       partial_index_f
@@ -692,9 +717,7 @@ Section SigmaHCOLRewriting.
           assert (HZI: partial_index_f i ≡ None).
           {
             apply is_None_def.
-            apply Partial_index_id_out_of_range_is_none with (o1:=o1).
-            apply H.
-            apply l.
+            apply Partial_index_id_out_of_range_is_none with (o1:=o1); assumption.
           }
           generalize (partial_index_f_spec i ip).
           rewrite HZI.
@@ -706,9 +729,7 @@ Section SigmaHCOLRewriting.
           unfold VnthInverseIndexMapped; simpl.
           assert (HZI: partial_index_f i ≡ Some i).
           {
-            apply Partial_index_id_in_range with (o1:=o1).
-            apply H.
-            apply g0.
+              apply Partial_index_id_in_range with (o1:=o1); assumption.
           }
           generalize (partial_index_f_spec i ip) as some_spec.
           rewrite HZI.
@@ -739,7 +760,54 @@ Section SigmaHCOLRewriting.
                       (@ScatH_stride1_constr o2 2)
                       (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
     {
-      (* TODO: could reuse some proofs from LS! *)
+      replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with x1.
+      - 
+        unfold ScatH, Scatter.
+        apply Veq_nth.
+        intros.
+        assert(DX1: svector_is_dense (g x1)).
+        {
+          apply Dg.
+          apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
+          assumption.
+          assumption.
+        }
+        rewrite Vbuild_nth.
+        generalize dependent (g x1). intros gx0 DX1.
+        rewrite Vnth_app.
+        break_match.
+        + (* Second half of x, which is gx0 *)
+          remember (build_inverse_index_map (h_index_map o1 1)) as h'.
+          destruct h'.
+          inversion Heqh'. rename H0 into H. clear Heqh'.
+          unfold VnthInverseIndexMapped; simpl.
+          assert (HZI: partial_index_f i ≡ Some (i-o1))
+            by (apply Partial_index_offset_in_range with (o2:=o2); assumption).
+          generalize (partial_index_f_spec i ip) as some_spec.
+          rewrite HZI.
+          intros.
+          replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
+          reflexivity.
+        + (* First half of x, which is all zeros *)
+          HERE
+          unfold szero_svector.  rewrite Vnth_const.
+          remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+          destruct h'.
+          inversion Heqh'. rename H0 into H. clear Heqh'.
+          unfold VnthInverseIndexMapped.
+          simpl.
+          assert (HZI: partial_index_f i ≡ None).
+          {
+            apply is_None_def.
+            apply Partial_index_id_out_of_range_is_none with (o1:=o1).
+            apply H.
+            apply l.
+          }
+          generalize (partial_index_f_spec i ip).
+          rewrite HZI.
+          reflexivity.
+
+
       admit.
     }
     rewrite LS, RS.
