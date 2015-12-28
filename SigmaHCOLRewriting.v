@@ -190,13 +190,13 @@ Section SigmaHCOLRewriting.
     ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
       (@VnthInverseIndexMapped 1 n [v]
                                (@build_inverse_index_map 1 n
-                                                                        (@h_index_map 1 n k s
-                                                                                                     (ScatH_1_to_n_range_bound k n s kp) )) k kp) ≡ v.
+                                                         (@h_index_map 1 n k s
+                                                                       (ScatH_1_to_n_range_bound k n s kp) )) k kp) ≡ v.
   Proof.
     intros n k s kp v.
     destruct (@build_inverse_index_map 1 n
-                                                      (@h_index_map 1 n k s
-                                                                                   (ScatH_1_to_n_range_bound k n s kp) )) as [h' h'_spec] eqn:P.
+                                       (@h_index_map 1 n k s
+                                                     (ScatH_1_to_n_range_bound k n s kp) )) as [h' h'_spec] eqn:P.
     unfold h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH. clear P.
     assert(PH': h' k ≡ Some 0).
@@ -214,15 +214,15 @@ Section SigmaHCOLRewriting.
       i ≢ j ->
       @VnthInverseIndexMapped 1 n [v]
                               (@build_inverse_index_map 1 n
-                                                                       (@h_index_map 1 n j s
-                                                                                                    (ScatH_1_to_n_range_bound j n s jp)
+                                                        (@h_index_map 1 n j s
+                                                                      (ScatH_1_to_n_range_bound j n s jp)
                               ))
                               i ip ≡ Rtheta_szero.
   Proof .
     intros n s i j ip jp v N.
     destruct (@build_inverse_index_map 1 n
-                                                      (@h_index_map 1 n j s
-                                                                                   (ScatH_1_to_n_range_bound j n s jp)
+                                       (@h_index_map 1 n j s
+                                                     (ScatH_1_to_n_range_bound j n s jp)
              )) as [h' h'_spec] eqn:P.
     unfold h_index_map in P.
     inversion P. rename H0 into HH. symmetry in HH.
@@ -279,7 +279,7 @@ Section SigmaHCOLRewriting.
       unfold VnthIndexMapped.
       simpl.
       generalize (h_index_map_obligation_1 1 n j 1
-                                                          (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
+                                           (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
       intros ln.
       simpl in ln.
       rewrite Vnth_cast_index with (jc:=jn) by omega.
@@ -464,7 +464,7 @@ Section SigmaHCOLRewriting.
       unfold VnthIndexMapped.
       generalize
         (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
-                                                                                                                                              , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
+                                                                                                                , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
       intros.
       simpl in *.
       rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
@@ -658,7 +658,7 @@ Section SigmaHCOLRewriting.
     reflexivity.
     omega.
   Qed.
-  
+
   Lemma Partial_index_id_out_of_range_is_none:
     ∀ (o1: nat) (partial_index_f : nat → option nat),
       partial_index_f
@@ -681,7 +681,7 @@ Section SigmaHCOLRewriting.
     reflexivity.
     omega.
   Qed.
-  
+
   (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -717,7 +717,7 @@ Section SigmaHCOLRewriting.
                       (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
     {
       replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with x0.
-      - 
+      -
         unfold ScatH, Scatter.
         apply Veq_nth.
         intros.
@@ -755,7 +755,7 @@ Section SigmaHCOLRewriting.
           unfold VnthInverseIndexMapped; simpl.
           assert (HZI: partial_index_f i ≡ Some i).
           {
-              apply Partial_index_id_in_range with (o1:=o1); assumption.
+            apply Partial_index_id_in_range with (o1:=o1); assumption.
           }
           generalize (partial_index_f_spec i ip) as some_spec.
           rewrite HZI.
@@ -787,7 +787,7 @@ Section SigmaHCOLRewriting.
                       (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
     {
       replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with x1.
-      - 
+      -
         unfold ScatH, Scatter.
         apply Veq_nth.
         intros.
@@ -843,9 +843,12 @@ Section SigmaHCOLRewriting.
         generalize (Vnth_app_aux i2
                                  (h_index_map_obligation_1 i2 (i1 + i2) i1 1
                                                            (h_bound_second_half i1 i2) i ip) l) as ip'.
-        intros ip'.
-        replace ip' with ip by apply proof_irrelevance.
+        revert ip.
+        replace (i1 + i * 1 - i1) with i by omega.
+        intros ip ip'.
+        replace ip with ip' by apply proof_irrelevance.
         reflexivity.
+        crush. (* contradiction in g0 *)
     }
     rewrite LS, RS.
     apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
