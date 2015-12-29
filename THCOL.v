@@ -40,11 +40,11 @@ Definition HCross
   := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
 
 Instance HCross_HOperator
-       {i1 o1 i2 o2}
-       (op1: svector i1 -> svector o1)
-       (op2: svector i2 -> svector o2)
-       `{hop1: !HOperator op1}
-       `{hop2: !HOperator op2}:
+         {i1 o1 i2 o2}
+         (op1: svector i1 -> svector o1)
+         (op2: svector i2 -> svector o2)
+         `{hop1: !HOperator op1}
+         `{hop2: !HOperator op2}:
   HOperator (HCross op1 op2).
 Proof.
   intros x y E.
@@ -87,7 +87,7 @@ Proof.
   assert(A2: g x1 = g' y1).
   apply Eg, Ex.
   rewrite A2.
-  reflexivity.  
+  reflexivity.
 Qed.
  *)
 
@@ -117,22 +117,33 @@ Proof.
   reflexivity.
 Qed.
 
-(* HCompose becomes just ∘ *)
+Definition HCompose
+           {i1 o2 o3}
+           (op1: svector o2 -> svector o3)
+           (op2: svector i1 -> svector o2)
+           `{hop1: !HOperator op1}
+           `{hop2: !HOperator op2}
+  := compose op1 op2.
+
+Notation " g ∘ f " := (HCompose g f)
+                        (at level 40, left associativity) : hcol_scope.
+
+Local Open Scope hcol_scope.
 
 (*
 Functional compoition of 2 HOperators is also an HCross_HOperator
  *)
-Instance Compose_HOperator
+Instance HCompose_HOperator
          {i1 o2 o3}
          (op1: svector o2 -> svector o3)
          (op2: svector i1 -> svector o2)
          `{hop1: !HOperator op1}
          `{hop2: !HOperator op2}:
-  HOperator (compose op1 op2).
+  HOperator (HCompose op1 op2).
 Proof.
   intros x y E.
   unfold HOperator in *.
-  unfold compose.
+  unfold HCompose, compose.
   apply (hop1 (op2 x) (op2 y)).
   apply (hop2 x y).
   assumption.
@@ -148,10 +159,10 @@ Definition HTLess {i1 i2 o}
             ZVLess (f v1, g v2).
 
 Instance HTLess_HOperator {i1 i2 o}
-       (op1: svector i1 -> svector o)
-       (op2: svector i2 -> svector o)
-       `{hop1: !HOperator op1}
-       `{hop2: !HOperator op2}:
+         (op1: svector i1 -> svector o)
+         (op2: svector i2 -> svector o)
+         `{hop1: !HOperator op1}
+         `{hop2: !HOperator op2}:
   HOperator (HTLess op1 op2).
 Proof.
   intros x y E.

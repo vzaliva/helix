@@ -31,11 +31,11 @@ Open Scope vector_scope.
 
 Section HCOL_Language.
 
-  Class HOperator {i o:nat} (op: svector i -> svector o) := 
+  Class HOperator {i o:nat} (op: svector i -> svector o) :=
     op_proper : Proper ((=) ==> (=)) (op).
-  
+
   Definition HPrepend {i n} (a:svector n)
-  : svector i -> svector (n+i)
+    : svector i -> svector (n+i)
     := Vapp a.
 
   Definition HInfinityNorm {i}
@@ -98,9 +98,9 @@ Section HCOL_Language.
     split; try apply vec_Setoid. assumption.
     apply ext_equiv_applied_iff.
   Qed.
-  
+
   Section HCOL_operators.
-    
+
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
     Proof.
@@ -111,7 +111,7 @@ Section HCOL_Language.
       rewrite E.
       reflexivity.
     Qed.
-    
+
     Global Instance HBinOp_HOperator {o}
            (f: nat->Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
@@ -224,7 +224,7 @@ Section IgnoreIndex_wrapper.
 
   (* Wrapper to replace index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := fun (_:nat) => f i.
-  
+
   Global Instance SwapIndex2_proper `{Setoid A} (i:nat)
          (f:nat->A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A i f).
@@ -233,11 +233,11 @@ Section IgnoreIndex_wrapper.
     unfold SwapIndex2.
     f_equiv; assumption.
   Qed.
-  
+
   (* Wrapper to ignore index parameter for HBinOp kernal. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
-  
-  Lemma IgnoreIndex2_ignores `{Setoid A} 
+
+  Lemma IgnoreIndex2_ignores `{Setoid A}
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
     : forall i0 i1,
       (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
@@ -246,14 +246,14 @@ Section IgnoreIndex_wrapper.
     unfold IgnoreIndex2.
     apply f_mor.
   Qed.
-  
+
   Global Instance IgnoreIndex2_proper:
     (Proper (((=) ==> (=)) ==> (=)) IgnoreIndex2).
   Proof.
     simpl_relation.
     apply H; assumption.
   Qed.
-  
+
 End IgnoreIndex_wrapper.
 
 
