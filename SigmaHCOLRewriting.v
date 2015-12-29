@@ -246,6 +246,7 @@ Section SigmaHCOLRewriting.
     auto.
   Qed.
 
+  (* TODO: here is probably a good place to introduce a notion of "proper" family of functions *)
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
       (i : nat) (ip : i < n),

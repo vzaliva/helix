@@ -66,6 +66,22 @@ Section SigmaHCOL_Operators.
     svector o
     := Vbuild (VnthIndexMapped x f).
 
+  Global Instance Gather_HOperator
+         {i o: nat}
+         (f: index_map o i):
+    HOperator (@Gather i o f).
+  Proof.
+    intros x y E.
+    unfold Gather.
+    unfold VnthIndexMapped.
+    unfold equiv, vec_equiv.
+    apply Vforall2_intro_nth.
+    intros j jp.
+    rewrite 2!Vbuild_nth.
+    apply Vnth_arg_equiv.
+    assumption.
+  Qed.
+  
   Definition GathH
              {i o}
              (base stride: nat)
@@ -77,6 +93,18 @@ Section SigmaHCOL_Operators.
                           (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
              ).
 
+  Global Instance GathH_HOperator
+             {i o}
+             (base stride: nat)
+             {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
+    HOperator (@GathH i o base stride domain_bound).
+  Proof.
+    intros x y E.
+    unfold GathH.
+    apply Gather_HOperator.
+    assumption.
+  Qed.
+  
   Definition Scatter
              {i o: nat}
              (f: index_map i o)
@@ -104,6 +132,19 @@ Section SigmaHCOL_Operators.
              (x: svector n)
     := Vbuild (fun j jd => f j jd (Vnth x jd)).
 
+  Global Instance Pointwise_HOperator
+             {n: nat}
+             (f: forall i, i<n -> Rtheta -> Rtheta):
+    HOperator (@Pointwise n f).
+  Proof.
+    intros x y E.
+    unfold Pointwise.
+    apply Vforall2_intro_nth.
+    intros i ip.
+    rewrite 2!Vbuild_nth.
+    NEED PROPER
+  Qed.
+  
   Definition Atomic
              (f: Rtheta -> Rtheta)
              `{pF: !Proper ((=) ==> (=)) f}
