@@ -31,6 +31,9 @@ Open Scope vector_scope.
 
 Section HCOL_Language.
 
+  Class HOperator {i o:nat} (op: svector i -> svector o) := 
+    op_proper : Proper ((=) ==> (=)) (op).
+  
   Definition HPrepend {i n} (a:svector n)
   : svector i -> svector (n+i)
     := Vapp a.
@@ -84,10 +87,11 @@ Section HCOL_Language.
 
   Lemma HOperator_functional_extensionality
         {m n: nat}
-        `{!Proper ((=) ==> (=)) (f : svector m → svector n)}
-        `{!Proper ((=) ==> (=)) (g : svector m → svector n)} :
+        `{HOperator m n f}
+        `{HOperator m n g}:
     (∀ v, f v = g v) -> f = g.
   Proof.
+    unfold HOperator in *.
     assert(Setoid_Morphism g).
     split; try apply vec_Setoid. assumption.
     assert(Setoid_Morphism f).
@@ -97,8 +101,8 @@ Section HCOL_Language.
   
   Section HCOL_operators.
     
-    Global Instance HScalarProd_proper {n}:
-      Proper ((=) ==> (=)) (@HScalarProd n).
+    Global Instance HScalarProd_HOperator {n}:
+      HOperator (@HScalarProd n).
     Proof.
       intros x y E.
       unfold HScalarProd.
@@ -108,10 +112,10 @@ Section HCOL_Language.
       reflexivity.
     Qed.
     
-    Global Instance HBinOp_proper {o}
+    Global Instance HBinOp_HOperator {o}
            (f: nat->Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      Proper ((=) ==> (=)) (@HBinOp o f pF).
+      HOperator (@HBinOp o f pF).
     Proof.
       intros x y E.
       unfold HBinOp.
@@ -120,11 +124,11 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HReduction_proper {i}
+    Global Instance HReduction_HOperator {i}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (idv:Rtheta):
-      Proper ((=) ==> (=)) (@HReduction i f pF idv).
+      HOperator (@HReduction i f pF idv).
     Proof.
       intros x y E.
       unfold HReduction .
@@ -134,8 +138,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HEvalPolynomial_proper {n} (a: svector n):
-      Proper ((=) ==> (=)) (@HEvalPolynomial n a).
+    Global Instance HEvalPolynomial_HOperator {n} (a: svector n):
+      HOperator (@HEvalPolynomial n a).
     Proof.
       intros x y E.
       unfold HEvalPolynomial.
@@ -145,8 +149,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HPrepend_proper {i n} (a:svector n):
-      Proper ((=) ==> (=)) (@HPrepend i n a).
+    Global Instance HPrepend_HOperator {i n} (a:svector n):
+      HOperator (@HPrepend i n a).
     Proof.
       intros x y E.
       unfold HPrepend.
@@ -156,8 +160,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HMonomialEnumerator_proper n:
-      Proper ((=) ==> (=)) (@HMonomialEnumerator n).
+    Global Instance HMonomialEnumerator_HOperator n:
+      HOperator (@HMonomialEnumerator n).
     Proof.
       intros x y E.
       unfold HMonomialEnumerator.
@@ -167,8 +171,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HInfinityNorm_proper n:
-      Proper ((=) ==> (=)) (@HInfinityNorm n).
+    Global Instance HInfinityNorm_HOperator n:
+      HOperator (@HInfinityNorm n).
     Proof.
       intros x y E.
       unfold HInfinityNorm.
@@ -178,11 +182,11 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HInduction_proper {n:nat}
+    Global Instance HInduction_HOperator {n:nat}
            (f: Rtheta->Rtheta->Rtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (initial:Rtheta):
-      Proper ((=) ==> (=)) (HInduction n f initial).
+      HOperator (HInduction n f initial).
     Proof.
       intros x y E.
       unfold HInduction.
@@ -192,8 +196,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HChebyshevDistance_proper h:
-      Proper ((=) ==> (=)) (HChebyshevDistance h).
+    Global Instance HChebyshevDistance_HOperator h:
+      HOperator (HChebyshevDistance h).
     Proof.
       intros x y E.
       unfold HChebyshevDistance.
@@ -203,8 +207,8 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HVMinus_proper h:
-      Proper ((=) ==> (=)) (@HVMinus h).
+    Global Instance HVMinus_HOperator h:
+      HOperator (@HVMinus h).
     Proof.
       intros x y E.
       unfold HVMinus.

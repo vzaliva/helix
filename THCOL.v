@@ -33,15 +33,19 @@ Open Scope vector_scope.
 Definition HCross
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
-           (g: svector i2 -> svector o2):
+           (g: svector i2 -> svector o2)
+           `{!HOperator f}
+           `{!HOperator g}:
   svector (i1+i2) -> svector (o1+o2)
   := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
 
-Instance HCross_arg_proper
+Instance HCross_HOperator
        {i1 o1 i2 o2}
-       `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
-       `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i2 -> svector o2)):
-  Proper ((=) ==> (=)) (HCross xop1 xop2).
+       (op1: svector i1 -> svector o1)
+       (op2: svector i2 -> svector o2)
+       `{hop1: !HOperator op1}
+       `{hop2: !HOperator op2}:
+  HOperator (HCross op1 op2).
 Proof.
   intros x y E.
   unfold HCross.
@@ -54,10 +58,13 @@ Proof.
   rewrite Xe in Ye.
   clear X Y Xe E.
   inversion Ye. simpl in *.
-  rewrite H, H0.
-  reflexivity.  
+  unfold HOperator in *.
+  rewrite (hop1 x0 y0) by assumption.
+  rewrite (hop2 x1 y1) by assumption.
+  reflexivity.
 Qed.
 
+(*
 Instance HCross_proper {i1 o1 i2 o2:nat}:
     Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2 o2).
 Proof.
@@ -82,41 +89,70 @@ Proof.
   rewrite A2.
   reflexivity.  
 Qed.
+ *)
 
 Definition HStack
            {i1 o1 o2}
            (f: svector i1 -> svector o1)
            (g: svector i1 -> svector o2)
+           `{!HOperator f}
+           `{!HOperator g}
   : svector i1 -> svector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
-Instance HStack_arg_proper
-       {i1 o1 o2}
-       `(xop1pf: !Proper ((=) ==> (=)) (xop1: svector i1 -> svector o1))
-       `(xop2pf: !Proper ((=) ==> (=)) (xop2: svector i1 -> svector o2)):
-  Proper ((=) ==> (=)) (HStack xop1 xop2).
+Instance HStack_HOperator
+         {i1 o1 o2}
+         (op1: svector i1 -> svector o1)
+         (op2: svector i1 -> svector o2)
+         `{hop1: !HOperator op1}
+         `{hop2: !HOperator op2}:
+  HOperator (HStack op1 op2).
 Proof.
   intros x y E.
   unfold HStack.
   unfold pair2vector.
   simpl.
-  rewrite E.
+  rewrite (hop1 x y) by assumption.
+  rewrite (hop2 x y) by assumption.
   reflexivity.
 Qed.
 
 (* HCompose becomes just ∘ *)
 
+(*
+Functional compoition of 2 HOperators is also an HCross_HOperator
+ *)
+Instance Compose_HOperator
+         {i1 o2 o3}
+         (op1: svector o2 -> svector o3)
+         (op2: svector i1 -> svector o2)
+         `{hop1: !HOperator op1}
+         `{hop2: !HOperator op2}:
+  HOperator (compose op1 op2).
+Proof.
+  intros x y E.
+  unfold HOperator in *.
+  unfold compose.
+  apply (hop1 (op2 x) (op2 y)).
+  apply (hop2 x y).
+  assumption.
+Qed.
+
 Definition HTLess {i1 i2 o}
-           (lop1: svector i1 -> svector o)
-           (lop2: svector i2 -> svector o)
+           (f: svector i1 -> svector o)
+           (g: svector i2 -> svector o)
+           `{!HOperator f}
+           `{!HOperator g}
   : svector (i1+i2) -> svector o
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
-            ZVLess (lop1 v1, lop2 v2).
+            ZVLess (f v1, g v2).
 
-Instance HTLess_arg_proper {i1 i2 o}
-       `(!Proper ((=) ==> (=)) (lop1: svector i1 -> svector o))
-       `(!Proper ((=) ==> (=)) (lop2: svector i2 -> svector o)):
-  Proper ((=) ==> (=)) (@HTLess i1 i2 o lop1 lop2).
+Instance HTLess_HOperator {i1 i2 o}
+       (op1: svector i1 -> svector o)
+       (op2: svector i2 -> svector o)
+       `{hop1: !HOperator op1}
+       `{hop2: !HOperator op2}:
+  HOperator (HTLess op1 op2).
 Proof.
   intros x y E.
   unfold HTLess, vector2pair.
@@ -128,25 +164,36 @@ Proof.
   rewrite Xe in Ye.
   clear X Y Xe E.
   inversion Ye. simpl in *.
-  rewrite H, H0.
+  rewrite (hop1 x0 y0) by assumption.
+  rewrite (hop2 x1 y1) by assumption.
   reflexivity.
 Qed.
 
 (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
 just Union of two vectors, produced by application of two operators
-to the input *)
+to the input.
+
+We put an additional constraint of 'f' and 'g' being HOperators
+ *)
 Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)
+           `{!HOperator f}
+           `{!HOperator g}
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
 
 (* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
 same as Cross, where input vectors are passed as concateneated
 vector. Since Coq formalization of HCross is already dfined this way
-we just alias DirectSum to it. *)
+we just alias DirectSum to it.
+
+We put an additional constraint of 'f' and 'g' being HOperators
+ *)
 Definition HTDirectSum
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
            (g: svector i2 -> svector o2)
+           `{!HOperator f}
+           `{!HOperator g}
   : svector (i1+i2) -> svector (o1+o2) := HCross f g.

@@ -236,8 +236,8 @@ Section HCOLBreakdown.
   
   Fact breakdown_OTLess_Base: forall
       {i1 i2 o}
-      `{o1pf: !Proper ((=) ==> (=)) (o1: svector i1 -> svector o)}
-      `{o2pf: !Proper ((=) ==> (=)) (o2: svector i2 -> svector o)},
+      `{o1pf: !HOperator (o1: svector i1 -> svector o)}
+      `{o2pf: !HOperator (o2: svector i2 -> svector o)},
       HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
