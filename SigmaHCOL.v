@@ -4,6 +4,7 @@ Require Import Spiral.
 Require Import Rtheta.
 Require Import SVector.
 Require Import IndexFunctions.
+Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.Bool.
@@ -105,9 +106,27 @@ Section SigmaHCOL_Operators.
 
   Definition Atomic
              (f: Rtheta -> Rtheta)
+             `{pF: !Proper ((=) ==> (=)) f}
              (x: svector 1)
     := [f (Vhead x)].
 
+  Global Instance Atomic_HOperator
+         (f: Rtheta->Rtheta)
+         `{pF: !Proper ((=) ==> (=)) f}:
+    HOperator (Atomic f).
+  Proof.
+    intros x y E.
+    unfold Atomic.
+    unfold equiv, vec_equiv.
+    apply Vforall2_intro_nth.
+    intros.
+    simpl.
+    dep_destruct i.
+    rewrite E.
+    reflexivity.
+    reflexivity.
+  Qed.
+  
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:

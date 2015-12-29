@@ -30,6 +30,9 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Local Open Scope hcol_scope. (* for compose *)
+  
+
 Section SigmaHCOLRewriting.
 
   Open Scope vector_scope.
@@ -646,6 +649,8 @@ Section SigmaHCOLRewriting.
         {i1 o1 i2 o2}
         (f: svector i1 -> svector o1)
         (g: svector i2 -> svector o2)
+        `{hop1: !HOperator f}
+        `{hop2: !HOperator g}
         (x: svector (i1+i2)) (* input vector *)
         (D: svector_is_dense x) (* input must be dense *)
         (Df: forall u, svector_is_dense u -> svector_is_dense (f u)) (* f is density-preserving *)
