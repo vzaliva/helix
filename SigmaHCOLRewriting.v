@@ -31,7 +31,7 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Local Open Scope hcol_scope. (* for compose *)
-  
+
 
 Section SigmaHCOLRewriting.
 
@@ -248,10 +248,11 @@ Section SigmaHCOLRewriting.
 
   (* TODO: here is probably a good place to introduce a notion of "proper" family of functions *)
   Lemma U_SAG1:
-    ∀ (n : nat) (x : vector Rtheta n) (f : ∀ i : nat, i < n → Rtheta → Rtheta)
+    ∀ (n : nat) (x : vector Rtheta n)
+      (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       (i : nat) (ip : i < n),
       svector_is_dense x ->
-      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f i ic y)) ->
+      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
       Vnth
         (SumUnion
            (Vbuild
@@ -259,20 +260,20 @@ Section SigmaHCOLRewriting.
                ((ScatH i0 1
                        (snzord0:=ScatH_stride1_constr)
                        (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                  ∘ Atomic (f i0 id)
+                  ∘ Atomic (f (i0 ↾ id))
                   ∘ (GathH i0 1
                            (domain_bound:=GathH_j1_domain_bound i0 n id))
                ) x))) ip
         ≡
         Vnth (Pointwise f x) ip.
   Proof.
-    intros n x f i ip V F.
-    unfold compose.
+    intros n x f pF i ip V F.
+    unfold HCompose, compose.
     unfold svector_is_dense in V.
     remember (λ (i0 : nat) (id : i0 < n),
-              ScatH i0 1 (Atomic (f i0 id) (GathH i0 1 x))) as bf.
+              ScatH i0 1 (Atomic (f (i0 ↾ id)) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                     ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (Atomic (f i0 id) [Vnth x id]))
+                     ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (Atomic (f (i0 ↾ id)) [Vnth x id]))
           ).
     {
       subst bf.
@@ -290,7 +291,7 @@ Section SigmaHCOLRewriting.
       reflexivity.
     }
     assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                      ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)  [f i0 id (Vnth x id)])).
+                      ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)  [f (i0 ↾ id) (Vnth x id)])).
     {
       rewrite B1.
       extensionality j.
@@ -310,7 +311,7 @@ Section SigmaHCOLRewriting.
 
     (* Preparing to apply Lemma3. Prove some peoperties first. *)
     remember (Vbuild
-                (λ (z : nat) (zi : z < n), Vnth (ScatH z 1 [f z zi (Vnth x zi)]) ip)) as b.
+                (λ (z : nat) (zi : z < n), Vnth (ScatH z 1 [f (z ↾ zi) (Vnth x zi)]) ip)) as b.
 
     assert
       (L3pre: forall ib (icb:ib<n),
@@ -326,7 +327,7 @@ Section SigmaHCOLRewriting.
 
       intros H.
       subst ib.
-      remember (f i icb (Vnth x icb)) as v eqn: W.
+      remember (f (i ↾ icb) (Vnth x icb)) as v eqn: W.
       replace ip with icb by apply proof_irrelevance.
       rewrite InverseIndex_1_hit.
       cut(Is_Val (Vnth x icb)); try crush.
@@ -347,9 +348,10 @@ Section SigmaHCOLRewriting.
   Qed.
 
   Theorem U_SAG1_PW:
-    forall n (x:svector n) (f: forall i, i<n -> Rtheta -> Rtheta),
+    forall n (x:svector n)
+      (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
-      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f i ic y)) ->
+      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
       SumUnion
         (@Vbuild (svector n) n
                  (fun i id =>
@@ -357,7 +359,7 @@ Section SigmaHCOLRewriting.
                       (ScatH i 1
                              (snzord0:=ScatH_stride1_constr)
                              (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                        ∘ (Atomic (f i id))
+                        ∘ (Atomic (f (i ↾ id)))
                         ∘ (GathH i 1
                                  (domain_bound:=GathH_j1_domain_bound i n id)
                           )
@@ -366,7 +368,7 @@ Section SigmaHCOLRewriting.
         ≡
         Pointwise f x.
   Proof.
-    intros n x f V F.
+    intros n x f pF V F.
     apply vec_eq_elementwise.
     apply Vforall2_intro_nth.
     intros i ip.
@@ -441,7 +443,7 @@ Section SigmaHCOLRewriting.
           ≡ Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
     intros n x f f_mor k kp V F.
-    unfold compose.
+    unfold HCompose, compose.
 
     remember (fun i id =>
                 ScatH i 1
@@ -665,7 +667,7 @@ Section SigmaHCOLRewriting.
                       ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
                   x.
   Proof.
-    unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
+    unfold HTDirectSum, HCross, THCOLImpl.Cross, HCompose, compose,
     HTSUMUnion, pair2vector.
     break_let. break_let.
     rename t1 into x0, t2 into x1.

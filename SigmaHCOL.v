@@ -59,7 +59,7 @@ Definition VnthInverseIndexMapped
 
 Lemma VnthInverseIndexMapped_arg_equiv:
   ∀ (i o : nat)
-    (x y : vector Rtheta i) (j : nat) 
+    (x y : vector Rtheta i) (j : nat)
     (jp : j < o)
     (f' : partial_index_map o i),
     x = y
@@ -96,7 +96,7 @@ Section SigmaHCOL_Operators.
     rewrite 2!Vbuild_nth.
     apply Vnth_arg_equiv; assumption.
   Qed.
-  
+
   Definition GathH
              {i o}
              (base stride: nat)
@@ -109,14 +109,14 @@ Section SigmaHCOL_Operators.
              ).
 
   Global Instance GathH_HOperator
-             {i o}
-             (base stride: nat)
-             {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
+         {i o}
+         (base stride: nat)
+         {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
     HOperator (@GathH i o base stride domain_bound).
   Proof.
     apply Gather_HOperator.
   Qed.
-  
+
   Definition Scatter
              {i o: nat}
              (f: index_map i o)
@@ -141,7 +141,7 @@ Section SigmaHCOL_Operators.
     apply VnthInverseIndexMapped_arg_equiv.
     assumption.
   Qed.
-  
+
   Definition ScatH
              {i o}
              (base stride: nat)
@@ -162,7 +162,7 @@ Section SigmaHCOL_Operators.
   Proof.
     apply Scatter_HOperator.
   Qed.
-  
+
   Definition Pointwise
              {n: nat}
              (f: { i | i<n} -> Rtheta -> Rtheta)
@@ -186,7 +186,7 @@ Section SigmaHCOL_Operators.
     rewrite H.
     reflexivity.
   Qed.
-  
+
   Definition Atomic
              (f: Rtheta -> Rtheta)
              `{pF: !Proper ((=) ==> (=)) f}
@@ -209,7 +209,7 @@ Section SigmaHCOL_Operators.
     reflexivity.
     reflexivity.
   Qed.
-  
+
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:
