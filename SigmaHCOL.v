@@ -57,6 +57,23 @@ Definition VnthInverseIndexMapped
     | Some z => fun p => Vnth x (f_spec n np z p)
     end eq_refl.
 
+Lemma VnthInverseIndexMapped_arg_equiv:
+  ∀ (i o : nat)
+    (x y : vector Rtheta i) (j : nat) 
+    (jp : j < o)
+    (f' : partial_index_map o i),
+    x = y
+    → VnthInverseIndexMapped x f' j jp = VnthInverseIndexMapped y f' j jp.
+Proof.
+  intros i o x y j jp f' H.
+  destruct f'.
+  unfold VnthInverseIndexMapped; simpl.
+  generalize (partial_index_f_spec j jp).
+  destruct (partial_index_f j); intros.
+  apply Vnth_arg_equiv; assumption.
+  reflexivity.
+Qed.
+
 Section SigmaHCOL_Operators.
 
   Definition Gather
@@ -75,11 +92,9 @@ Section SigmaHCOL_Operators.
     unfold Gather.
     unfold VnthIndexMapped.
     unfold equiv, vec_equiv.
-    apply Vforall2_intro_nth.
-    intros j jp.
+    apply Vforall2_intro_nth; intros j jp.
     rewrite 2!Vbuild_nth.
-    apply Vnth_arg_equiv.
-    assumption.
+    apply Vnth_arg_equiv; assumption.
   Qed.
   
   Definition GathH
@@ -99,10 +114,7 @@ Section SigmaHCOL_Operators.
              {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
     HOperator (@GathH i o base stride domain_bound).
   Proof.
-    intros x y E.
-    unfold GathH.
     apply Gather_HOperator.
-    assumption.
   Qed.
   
   Definition Scatter
@@ -114,6 +126,22 @@ Section SigmaHCOL_Operators.
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
+  Global Instance Scatter_HOperator
+         {i o: nat}
+         (f: index_map i o)
+         {f_inj: index_map_injective f}:
+    HOperator (@Scatter i o f f_inj).
+  Proof.
+    intros x y E.
+    unfold Scatter.
+    unfold equiv, vec_equiv.
+    apply Vforall2_intro_nth.
+    intros j jp.
+    rewrite 2!Vbuild_nth.
+    apply VnthInverseIndexMapped_arg_equiv.
+    assumption.
+  Qed.
+  
   Definition ScatH
              {i o}
              (base stride: nat)
@@ -125,7 +153,16 @@ Section SigmaHCOL_Operators.
       Scatter (h_index_map base stride (range_bound:=range_bound))
               (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
-
+  Global Instance ScatH_HOperator
+         {i o}
+         (base stride: nat)
+         {range_bound: ∀ x : nat, x < i → base + x * stride < o}
+         {snzord0: stride ≢ 0 \/ i < 2}:
+    HOperator (@ScatH i o base stride range_bound snzord0).
+  Proof.
+    apply Scatter_HOperator.
+  Qed.
+  
   Definition Pointwise
              {n: nat}
              (f: forall i, i<n -> Rtheta -> Rtheta)
