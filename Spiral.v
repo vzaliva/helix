@@ -32,6 +32,7 @@ Require Export Vector.
 Require Export VecUtil.
 Import VectorNotations.
 
+Global Instance Nat_Spec_Equiv {n:nat}: Equiv {i | (i<n)%nat} := sig_equiv _.
 
 (* equality of option types *)
 Instance opt_Equiv `{Equiv A}: Equiv (option A) :=

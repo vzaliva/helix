@@ -165,21 +165,26 @@ Section SigmaHCOL_Operators.
   
   Definition Pointwise
              {n: nat}
-             (f: forall i, i<n -> Rtheta -> Rtheta)
+             (f: { i | i<n} -> Rtheta -> Rtheta)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (x: svector n)
-    := Vbuild (fun j jd => f j jd (Vnth x jd)).
+    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
 
   Global Instance Pointwise_HOperator
-             {n: nat}
-             (f: forall i, i<n -> Rtheta -> Rtheta):
-    HOperator (@Pointwise n f).
+         {n: nat}
+         (f: { i | i<n} -> Rtheta -> Rtheta)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+    HOperator (@Pointwise n f pF).
   Proof.
     intros x y E.
     unfold Pointwise.
     apply Vforall2_intro_nth.
     intros i ip.
     rewrite 2!Vbuild_nth.
-    NEED PROPER
+    assert(Vnth x ip = Vnth y ip).
+    apply Vnth_arg_equiv; assumption.
+    rewrite H.
+    reflexivity.
   Qed.
   
   Definition Atomic
