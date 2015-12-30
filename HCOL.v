@@ -234,7 +234,7 @@ Section IgnoreIndex_wrapper.
     f_equiv; assumption.
   Qed.
 
-  (* Wrapper to ignore index parameter for HBinOp kernal. 2 stands for arity of 'f' *)
+  (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
 
   Lemma IgnoreIndex2_ignores `{Setoid A}
