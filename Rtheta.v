@@ -141,6 +141,12 @@ Ltac destruct_Rtheta x :=
   destruct x as (x01, x2); 
     destruct x01 as (x0, x1).
 
+Instance Rtheta_val_proper:
+  Proper ((=) ==> (=)) (RthetaVal).
+Proof.
+  simpl_relation.
+Qed.
+
 Instance Rtheta_plus_proper:
   Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
 Proof.
