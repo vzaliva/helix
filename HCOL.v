@@ -254,6 +254,19 @@ Section IgnoreIndex_wrapper.
     apply H; assumption.
   Qed.
 
+  Global Instance IgnoreIndex2_preserves_proper
+         (f: Rtheta->Rtheta->Rtheta)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    :
+    (Proper ((=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2 f)).
+  Proof.
+    simpl_relation.
+    unfold IgnoreIndex2.
+    rewrite H0, H1.
+    reflexivity.
+  Qed.
+
+  
 End IgnoreIndex_wrapper.
 
 
