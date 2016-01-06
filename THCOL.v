@@ -33,40 +33,14 @@ Open Scope vector_scope.
 Definition HCross
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
-           (g: svector i2 -> svector o2)
-           `{!HOperator f}
-           `{!HOperator g}:
+           (g: svector i2 -> svector o2):
   svector (i1+i2) -> svector (o1+o2)
   := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
 
-Instance HCross_HOperator
-         {i1 o1 i2 o2}
-         (op1: svector i1 -> svector o1)
-         (op2: svector i2 -> svector o2)
-         `{hop1: !HOperator op1}
-         `{hop2: !HOperator op2}:
-  HOperator (HCross op1 op2).
-Proof.
-  intros x y E.
-  unfold HCross.
-  unfold compose, pair2vector, vector2pair.
-  destruct (Vbreak x) as [x0 x1] eqn: X.
-  destruct (Vbreak y) as [y0 y1] eqn: Y.
-  assert(Ye: Vbreak y = (y0, y1)) by crush.
-  assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite E in Xe.
-  rewrite Xe in Ye.
-  clear X Y Xe E.
-  inversion Ye. simpl in *.
-  unfold HOperator in *.
-  rewrite (hop1 x0 y0) by assumption.
-  rewrite (hop2 x1 y1) by assumption.
-  reflexivity.
-Qed.
-
-(*
+(* This is the most general Proper morphism for HCross, which involves all arguments *)
 Instance HCross_proper {i1 o1 i2 o2:nat}:
-    Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2 o2).
+  Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2
+o2).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
   unfold HCross, compose, pair2vector, vector2pair.
@@ -89,14 +63,22 @@ Proof.
   rewrite A2.
   reflexivity.
 Qed.
- *)
+
+Instance HCross_HOperator
+         {i1 o1 i2 o2}
+         (op1: svector i1 -> svector o1)
+         (op2: svector i2 -> svector o2)
+         `{hop1: !HOperator op1}
+         `{hop2: !HOperator op2}:
+  HOperator (HCross op1 op2).
+Proof.
+  apply HCross_proper; assumption.
+Qed.
 
 Definition HStack
            {i1 o1 o2}
            (f: svector i1 -> svector o1)
            (g: svector i1 -> svector o2)
-           `{!HOperator f}
-           `{!HOperator g}
   : svector i1 -> svector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
@@ -121,8 +103,6 @@ Definition HCompose
            {i1 o2 o3}
            (op1: svector o2 -> svector o3)
            (op2: svector i1 -> svector o2)
-           `{hop1: !HOperator op1}
-           `{hop2: !HOperator op2}
   := compose op1 op2.
 
 Notation " g ∘ f " := (HCompose g f)
@@ -152,8 +132,6 @@ Qed.
 Definition HTLess {i1 i2 o}
            (f: svector i1 -> svector o)
            (g: svector i2 -> svector o)
-           `{!HOperator f}
-           `{!HOperator g}
   : svector (i1+i2) -> svector o
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
             ZVLess (f v1, g v2).
