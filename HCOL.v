@@ -34,6 +34,20 @@ Section HCOL_Language.
   Class HOperator {i o:nat} (op: svector i -> svector o) :=
     op_proper : Proper ((=) ==> (=)) (op).
 
+  Lemma HOperator_functional_extensionality
+        {m n: nat}
+        `{HOperator m n f}
+        `{HOperator m n g}:
+    (∀ v, f v = g v) -> f = g.
+  Proof.
+    unfold HOperator in *.
+    assert(Setoid_Morphism g).
+    split; try apply vec_Setoid. assumption.
+    assert(Setoid_Morphism f).
+    split; try apply vec_Setoid. assumption.
+    apply ext_equiv_applied_iff.
+  Qed.
+  
   Definition HPrepend {i n} (a:svector n)
     : svector i -> svector (n+i)
     := Vapp a.
@@ -84,20 +98,6 @@ Section HCOL_Language.
              (initial:Rtheta)
     : svector 1 -> svector n
     := Induction n f initial ∘ Scalarize.
-
-  Lemma HOperator_functional_extensionality
-        {m n: nat}
-        `{HOperator m n f}
-        `{HOperator m n g}:
-    (∀ v, f v = g v) -> f = g.
-  Proof.
-    unfold HOperator in *.
-    assert(Setoid_Morphism g).
-    split; try apply vec_Setoid. assumption.
-    assert(Setoid_Morphism f).
-    split; try apply vec_Setoid. assumption.
-    apply ext_equiv_applied_iff.
-  Qed.
 
   Section HCOL_operators.
 
