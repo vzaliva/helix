@@ -32,8 +32,8 @@ Open Scope vector_scope.
 Section HCOL_Language.
 
   Class HOperator {i o:nat} (op: svector i -> svector o) :=
-    op_proper : Proper ((=) ==> (=)) (op).
-
+    o_setoidmor :> Setoid_Morphism op.
+  
   Lemma HOperator_functional_extensionality
         {m n: nat}
         `{HOperator m n f}
@@ -41,10 +41,6 @@ Section HCOL_Language.
     (∀ v, f v = g v) -> f = g.
   Proof.
     unfold HOperator in *.
-    assert(Setoid_Morphism g).
-    split; try apply vec_Setoid. assumption.
-    assert(Setoid_Morphism f).
-    split; try apply vec_Setoid. assumption.
     apply ext_equiv_applied_iff.
   Qed.
   
@@ -104,6 +100,7 @@ Section HCOL_Language.
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HScalarProd.
       unfold compose, Lst, vector2pair.
@@ -117,6 +114,7 @@ Section HCOL_Language.
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f pF).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HBinOp.
       unfold compose, Lst, vector2pair.
@@ -130,6 +128,7 @@ Section HCOL_Language.
            (idv:Rtheta):
       HOperator (@HReduction i f pF idv).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HReduction .
       unfold compose, Lst, vector2pair.
@@ -141,6 +140,7 @@ Section HCOL_Language.
     Global Instance HEvalPolynomial_HOperator {n} (a: svector n):
       HOperator (@HEvalPolynomial n a).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HEvalPolynomial.
       unfold compose, Lst, vector2pair.
@@ -152,6 +152,7 @@ Section HCOL_Language.
     Global Instance HPrepend_HOperator {i n} (a:svector n):
       HOperator (@HPrepend i n a).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HPrepend.
       unfold compose, Lst, vector2pair.
@@ -163,6 +164,7 @@ Section HCOL_Language.
     Global Instance HMonomialEnumerator_HOperator n:
       HOperator (@HMonomialEnumerator n).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HMonomialEnumerator.
       unfold compose, Lst, vector2pair.
@@ -174,6 +176,7 @@ Section HCOL_Language.
     Global Instance HInfinityNorm_HOperator n:
       HOperator (@HInfinityNorm n).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInfinityNorm.
       unfold compose, Lst, vector2pair.
@@ -188,6 +191,7 @@ Section HCOL_Language.
            (initial:Rtheta):
       HOperator (HInduction n f initial).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInduction.
       unfold compose, Lst, vector2pair.
@@ -199,6 +203,7 @@ Section HCOL_Language.
     Global Instance HChebyshevDistance_HOperator h:
       HOperator (HChebyshevDistance h).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HChebyshevDistance.
       unfold compose, Lst, vector2pair.
@@ -210,6 +215,7 @@ Section HCOL_Language.
     Global Instance HVMinus_HOperator h:
       HOperator (@HVMinus h).
     Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HVMinus.
       unfold compose, Lst, vector2pair.

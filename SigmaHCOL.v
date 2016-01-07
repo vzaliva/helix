@@ -88,6 +88,7 @@ Section SigmaHCOL_Operators.
          (f: index_map o i):
     HOperator (@Gather i o f).
   Proof.
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
@@ -132,6 +133,7 @@ Section SigmaHCOL_Operators.
          {f_inj: index_map_injective f}:
     HOperator (@Scatter i o f f_inj).
   Proof.
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Scatter.
     unfold equiv, vec_equiv.
@@ -176,6 +178,7 @@ Section SigmaHCOL_Operators.
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
     HOperator (@Pointwise n f pF).
   Proof.
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Pointwise.
     apply Vforall2_intro_nth.
@@ -198,6 +201,7 @@ Section SigmaHCOL_Operators.
          `{pF: !Proper ((=) ==> (=)) f}:
     HOperator (Atomic f).
   Proof.
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Atomic.
     unfold equiv, vec_equiv.

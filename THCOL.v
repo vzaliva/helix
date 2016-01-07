@@ -72,7 +72,8 @@ Instance HCross_HOperator
          `{hop2: !HOperator op2}:
   HOperator (HCross op1 op2).
 Proof.
-  apply HCross_proper; assumption.
+  unfold HOperator. split; try (apply vec_Setoid).
+  apply HCross_proper; [apply hop1 | apply hop2].
 Qed.
 
 Definition HStack
@@ -90,12 +91,12 @@ Instance HStack_HOperator
          `{hop2: !HOperator op2}:
   HOperator (HStack op1 op2).
 Proof.
+  unfold HOperator. split; try (apply vec_Setoid).
   intros x y E.
   unfold HStack.
   unfold pair2vector.
   simpl.
-  rewrite (hop1 x y) by assumption.
-  rewrite (hop2 x y) by assumption.
+  rewrite E.
   reflexivity.
 Qed.
 
@@ -121,12 +122,12 @@ Instance HCompose_HOperator
          `{hop2: !HOperator op2}:
   HOperator (HCompose op1 op2).
 Proof.
+  unfold HOperator. split; try (apply vec_Setoid).
   intros x y E.
   unfold HOperator in *.
   unfold HCompose, compose.
-  apply (hop1 (op2 x) (op2 y)).
-  apply (hop2 x y).
-  assumption.
+  rewrite E.
+  reflexivity.
 Qed.
 
 Definition HTLess {i1 i2 o}
@@ -143,6 +144,7 @@ Instance HTLess_HOperator {i1 i2 o}
          `{hop2: !HOperator op2}:
   HOperator (HTLess op1 op2).
 Proof.
+  unfold HOperator. split; try (apply vec_Setoid).
   intros x y E.
   unfold HTLess, vector2pair.
   destruct (Vbreak x) as [x0 x1] eqn: X.
@@ -153,8 +155,7 @@ Proof.
   rewrite Xe in Ye.
   clear X Y Xe E.
   inversion Ye. simpl in *.
-  rewrite (hop1 x0 y0) by assumption.
-  rewrite (hop2 x1 y1) by assumption.
+  rewrite H, H0.
   reflexivity.
 Qed.
 

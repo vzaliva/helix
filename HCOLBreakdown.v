@@ -272,7 +272,7 @@ Theorem DynWinOSPL:  forall (a: svector 3),
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
-
+  
   {
     (* experimental *)
     assert (H: HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HScalarProd ∘ (HPrepend a ∘ HMonomialEnumerator 2)) (HChebyshevDistance 2)).
