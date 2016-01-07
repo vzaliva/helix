@@ -85,21 +85,16 @@ Definition HStack
   : svector i1 -> svector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
-Instance HStack_HOperator
-         {i1 o1 o2}
-         (op1: svector i1 -> svector o1)
-         (op2: svector i1 -> svector o2)
-         `{hop1: !HOperator op1}
-         `{hop2: !HOperator op2}:
-  HOperator (HStack op1 op2).
+Instance HStack_THOperator2 {i1 o1 o2}:
+  THOperator2 (@HStack i1 o1 o2).
 Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
-  intros x y E.
-  unfold HStack.
-  unfold pair2vector.
-  simpl.
-  rewrite E.
+  intros f f' Ef g g' Eg x y Ex.
+  unfold HStack, compose, pair2vector, vector2pair, Stack.
+  setoid_replace (f x) with (f' y).
+  setoid_replace (g x) with (g' y).
   reflexivity.
+  apply Eg; assumption.
+  apply Ef; assumption.
 Qed.
 
 Definition HCompose
