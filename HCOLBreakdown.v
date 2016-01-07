@@ -272,38 +272,12 @@ Theorem DynWinOSPL:  forall (a: svector 3),
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
-  
-  {
-    (* experimental *)
-    assert (H: HCross (HEvalPolynomial a) (HChebyshevDistance 2) = HCross (HScalarProd ∘ (HPrepend a ∘ HMonomialEnumerator 2)) (HChebyshevDistance 2)).
-
-    assert(C: HOperator (HCross (HScalarProd ∘ (HPrepend a ∘ HMonomialEnumerator 2))
-                                (HChebyshevDistance 2))).
-    {
-      apply HCross_HOperator.
-      apply HCompose_HOperator.
-      apply HScalarProd_HOperator.
-      apply HCompose_HOperator.
-      apply HPrepend_HOperator.
-      apply HMonomialEnumerator_HOperator.
-      apply HChebyshevDistance_HOperator.
-    }
-    unfold HOperator in C.
-    rewrite breakdown_OEvalPolynomial at 1.
-    apply (C
-             (HEvalPolynomial a)
-             (HScalarProd ∘ (HPrepend a ∘ HMonomialEnumerator 2))
-          ).
-  }
-
   rewrite breakdown_OEvalPolynomial.
   rewrite breakdown_OScalarProd.
-  Typeclasses eauto := 9. (* Hacky way to work around hangup in typeclass resolution *)
   rewrite breakdown_OMonomialEnumerator.
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.
   rewrite breakdown_OTInfinityNorm.
-  Typeclasses eauto := 100. (* Important not to forget to set it back to normal *)
   apply HOperator_functional_extensionality.
   reflexivity.
 Qed.

@@ -659,7 +659,7 @@ Section SigmaHCOLRewriting.
         (Df: forall u, svector_is_dense u -> svector_is_dense (f u)) (* f is density-preserving *)
         (Dg: forall u, svector_is_dense u -> svector_is_dense (g u)) (* g is density-preserving *)
     :
-      HTDirectSum f g x≡
+      HTDirectSum f g x ≡
                   (HTSUMUnion
                      ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
                       ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))

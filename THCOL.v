@@ -144,6 +144,7 @@ Proof.
   apply Ef, Ey.
 Qed.
 
+
 (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
 just Union of two vectors, produced by application of two operators
 to the input.
@@ -158,6 +159,22 @@ Definition HTSUMUnion {i o}
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
 
+(* In general HTSUMUnion is not HOperator, since Union is not Proper
+Instance HTSUMUnion_THOperator2 {i o}:
+  THOperator2 (@HTSUMUnion i o).
+Proof.
+  intros f f' Ef g g' Eg x y Ex.
+  unfold HTSUMUnion, Vec2Union.
+  Print Instances Proper.
+
+  setoid_replace (g x) with (g' y).
+  setoid_replace (f x) with (f' x).
+  reflexivity.
+  apply Eg, Ex.
+  apply Ef, Ey.
+Qed.
+ *)
+
 (* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
 same as Cross, where input vectors are passed as concateneated
 vector. Since Coq formalization of HCross is already dfined this way
@@ -169,6 +186,8 @@ Definition HTDirectSum
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
            (g: svector i2 -> svector o2)
-           `{!HOperator f}
-           `{!HOperator g}
   : svector (i1+i2) -> svector (o1+o2) := HCross f g.
+
+(* Not sure if this is needed *)
+Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
+  THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
