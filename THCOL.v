@@ -108,23 +108,12 @@ Notation " g ∘ f " := (HCompose g f)
 
 Local Open Scope hcol_scope.
 
-(*
-Functional compoition of 2 HOperators is also an HCross_HOperator
- *)
-Instance HCompose_HOperator
-         {i1 o2 o3}
-         (op1: svector o2 -> svector o3)
-         (op2: svector i1 -> svector o2)
-         `{hop1: !HOperator op1}
-         `{hop2: !HOperator op2}:
-  HOperator (HCompose op1 op2).
+Instance HCompose_THOperator2 {i1 o2 o3}:
+  THOperator2 (@HCompose i1 o2 o3).
 Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
-  intros x y E.
-  unfold HOperator in *.
-  unfold HCompose, compose.
-  rewrite E.
-  reflexivity.
+  intros f f' Ef g g' Eg x y Ex.
+  unfold HCompose, compose, pair2vector, vector2pair.
+  apply Ef, Eg, Ex.
 Qed.
 
 Definition HTLess {i1 i2 o}
@@ -134,26 +123,25 @@ Definition HTLess {i1 i2 o}
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
             ZVLess (f v1, g v2).
 
-Instance HTLess_HOperator {i1 i2 o}
-         (op1: svector i1 -> svector o)
-         (op2: svector i2 -> svector o)
-         `{hop1: !HOperator op1}
-         `{hop2: !HOperator op2}:
-  HOperator (HTLess op1 op2).
+Instance HTLess_THOperator2 {i1 i2 o}:
+  THOperator2 (@HTLess i1 i2 o).
 Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
-  intros x y E.
-  unfold HTLess, vector2pair.
+  intros f f' Ef g g' Eg x y Ex.
+  unfold HTLess, compose, pair2vector, vector2pair, ZVLess.
   destruct (Vbreak x) as [x0 x1] eqn: X.
   destruct (Vbreak y) as [y0 y1] eqn: Y.
   assert(Ye: Vbreak y = (y0, y1)) by crush.
   assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite E in Xe.
+  rewrite Ex in Xe.
   rewrite Xe in Ye.
-  clear X Y Xe E.
-  inversion Ye. simpl in *.
-  rewrite H, H0.
+  clear X Y Xe Ex.
+  inversion Ye. rename H into Ey, H0 into Ex.
+  simpl in *.
+  setoid_replace (f x0) with (f' y0).
+  setoid_replace (g x1) with (g' y1).
   reflexivity.
+  apply Eg, Ex.
+  apply Ef, Ey.
 Qed.
 
 (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
