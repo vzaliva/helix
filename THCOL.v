@@ -30,6 +30,22 @@ Import VectorNotations.
 
 Open Scope vector_scope.
 
+
+(* Templete HCOL operator which uses two HOperators to build a new HOperator *)
+Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (svector i1 -> svector o1) -> (svector i2 -> svector o2) -> svector ix -> svector ox) :=
+  mop_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
+
+(* Curried Templete HCOL operator with arity 2 is HOperators *)
+Instance THOperator_HOperator
+         `{O1: @HOperator i1 o1 op1}
+         `{O2: @HOperator i2 o2 op2}
+         `{T: @THOperator2 i1 o1 i2 o2 ix ox to}:
+  HOperator (to op1 op2).
+Proof.
+  split; try apply vec_Setoid.
+  apply T ; [apply O1 | apply O2].
+Qed.
+
 Definition HCross
            {i1 o1 i2 o2}
            (f: svector i1 -> svector o1)
@@ -37,10 +53,8 @@ Definition HCross
   svector (i1+i2) -> svector (o1+o2)
   := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
 
-(* This is the most general Proper morphism for HCross, which involves all arguments *)
-Instance HCross_proper {i1 o1 i2 o2:nat}:
-  Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> ((=) ==> (=))) (@HCross i1 o1 i2
-o2).
+Instance HCross_THOperator2 {i1 o1 i2 o2}:
+  THOperator2 (@HCross i1 o1 i2 o2).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
   unfold HCross, compose, pair2vector, vector2pair.
@@ -62,18 +76,6 @@ Proof.
   apply Eg, Ex.
   rewrite A2.
   reflexivity.
-Qed.
-
-Instance HCross_HOperator
-         {i1 o1 i2 o2}
-         (op1: svector i1 -> svector o1)
-         (op2: svector i2 -> svector o2)
-         `{hop1: !HOperator op1}
-         `{hop2: !HOperator op2}:
-  HOperator (HCross op1 op2).
-Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
-  apply HCross_proper; [apply hop1 | apply hop2].
 Qed.
 
 Definition HStack
