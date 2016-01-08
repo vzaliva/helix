@@ -149,7 +149,10 @@ Qed.
 just Union of two vectors, produced by application of two operators
 to the input.
 
-We put an additional constraint of 'f' and 'g' being HOperators
+We put an additional constraint of 'f' and 'g' being HOperators.
+
+In general HTSUMUnion is not HOperator, since Union is not Proper
+wrt equiv.
  *)
 Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
@@ -158,22 +161,6 @@ Definition HTSUMUnion {i o}
            `{!HOperator g}
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
-
-(* In general HTSUMUnion is not HOperator, since Union is not Proper
-Instance HTSUMUnion_THOperator2 {i o}:
-  THOperator2 (@HTSUMUnion i o).
-Proof.
-  intros f f' Ef g g' Eg x y Ex.
-  unfold HTSUMUnion, Vec2Union.
-  Print Instances Proper.
-
-  setoid_replace (g x) with (g' y).
-  setoid_replace (f x) with (f' x).
-  reflexivity.
-  apply Eg, Ex.
-  apply Ef, Ey.
-Qed.
- *)
 
 (* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
 same as Cross, where input vectors are passed as concateneated
