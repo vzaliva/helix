@@ -148,17 +148,12 @@ Qed.
 (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
 just Union of two vectors, produced by application of two operators
 to the input.
-
-We put an additional constraint of 'f' and 'g' being HOperators.
-
 In general HTSUMUnion is not HOperator, since Union is not Proper
 wrt equiv.
  *)
 Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)
-           `{!HOperator f}
-           `{!HOperator g}
            (x: svector i): svector o
   :=  Vec2Union (f x) (g x).
 
