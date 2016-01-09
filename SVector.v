@@ -43,61 +43,85 @@ End SparseVectors.
 
 Section Sparse_Unions.
 
-  (* Scalar union. NB: It is not Proper wrt 'equiv'! *)
   Definition Union
-             (a b: Rtheta): Rtheta
-    :=
-      match a, b with
-      |  (_, true, ae), (bv, false, be) => (bv, false, orb ae be)
-      |  (av, false, ae), (_, true, be) => (av, false, orb ae be)
-      |  (_, true, ae), (_, true, be) => (zero, true, orb ae be)
-      |  (_, false, _), (_, false, _) => Rtheta_szero_err
-      end.
+             (op: CarrierA -> CarrierA -> CarrierA)
+             (a b: Rtheta)
+  : Rtheta :=
+    let '(a0,a1,a2) := a in
+    let '(b0,b1,b2) := b in
+    let s := andb a1 b1 in
+    (op a0 b0, s, orb s (orb a2 b2)).
 
-
+  Instance Union_proper:
+    Proper (((=) ==> (=)) ==> (=) ==> (=)) (Union).
+  Proof.
+    simpl_relation.
+    unfold RthetaVal, Union.
+    repeat break_let.
+    apply H ; [apply H0 | apply H1].
+  Qed.
+  
   (* Stronger commutativity, wrt to 'eq' equality *)
-  Lemma Union_comm: ∀ x y : Rtheta, Union x y ≡ Union y x.
+  Lemma Union_comm
+        (op: CarrierA -> CarrierA -> CarrierA)
+        `{C: !@Commutative CarrierA eq CarrierA op}
+    : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
   Proof.
     intros x y.
     destruct_Rtheta x.
     destruct_Rtheta y.
-    destruct x1, x2, y1, y2; reflexivity.
+    destruct x1, x2, y1, y2;
+      (unfold Union;       
+       replace (op x0 y0) with (op y0 x0) by apply C;
+       reflexivity).
   Qed.
+
 
   (* Weaker commutativity, wrt to 'equiv' equality *)
-  Instance Rtheta_Commutative_Union:
-    @Commutative Rtheta Rtheta_equiv Rtheta Union.
+  Instance Rtheta_Commutative_Union
+           (op: CarrierA -> CarrierA -> CarrierA)
+           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+           `{C: !Commutative op}
+    :
+    @Commutative Rtheta Rtheta_equiv Rtheta (Union op).
   Proof.
-    unfold Commutative.
     intros x y.
-    rewrite Union_comm.
-    reflexivity.
+    destruct_Rtheta x.
+    destruct_Rtheta y.
+    destruct x1, x2, y1, y2; 
+      (unfold Union;
+       unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal;
+       setoid_replace (op x0 y0) with (op y0 x0) by apply C;
+       reflexivity).
   Qed.
-
+  
   (* Unary union of vector's elements (fold) *)
-  Definition VecUnion {n} (v:svector n): Rtheta :=
-    Vfold_left Union Rtheta_szero v.
+  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v:svector n): Rtheta :=
+    Vfold_left (Union op) Rtheta_szero v.
 
   (* Binary element-wise union of two vectors *)
-  Definition Vec2Union {n} (a b: svector n): svector n
-    := Vmap2 Union a b.
+  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): svector n
+    := Vmap2 (Union op) a b.
 
   Definition SumUnion
-             {o n} (v: vector (svector o) n): svector o
-    := Vfold_left Vec2Union (szero_svector o) v.
+             {o n} (op: CarrierA -> CarrierA -> CarrierA) (v: vector (svector o) n): svector o
+    := Vfold_left (Vec2Union op) (szero_svector o) v.
 
   Lemma VecUnion_cons:
-    ∀ m x (xs : svector m),
-      VecUnion (Vcons x xs) ≡ Union (VecUnion xs) x.
+    ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : svector m),
+      VecUnion op (Vcons x xs) ≡ Union op (VecUnion op xs) x.
   Proof.
-    intros m x xs.
+    intros op m x xs.
     unfold VecUnion.
     rewrite Vfold_left_cons.
     reflexivity.
   Qed.
 
-  Lemma Vec2Union_comm {n} {a b:svector n}:
-    Vec2Union a b ≡ Vec2Union b a.
+  Lemma Vec2Union_comm {n}
+        (op: CarrierA -> CarrierA -> CarrierA)
+        `{C: !@Commutative CarrierA eq CarrierA op}
+        {a b:svector n}:
+    Vec2Union op a b ≡ Vec2Union op b a.
   Proof.
     induction n.
     VOtac; reflexivity.
@@ -105,29 +129,33 @@ Section Sparse_Unions.
     simpl.
     rewrite IHn, Union_comm.
     reflexivity.
+    apply C.
   Qed.
 
-  Lemma SumUnion_cons m n (x: svector m) (xs: vector (svector m) n):
-    SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
+  Lemma SumUnion_cons {m n}
+        (op: CarrierA -> CarrierA -> CarrierA)
+        `{C: !@Commutative CarrierA eq CarrierA op}
+        (x: svector m) (xs: vector (svector m) n):
+    SumUnion op (Vcons x xs) ≡ Vec2Union op (SumUnion op xs) x.
   Proof.
     unfold SumUnion.
     apply Vfold_left_cons.
   Qed.
 
   Lemma AbsorbUnionIndexBinary:
-    ∀ (m k : nat) (kc : k < m) (a b : svector m),
-      Vnth (Vec2Union a b) kc ≡ Union (Vnth a kc) (Vnth b kc).
+    ∀ (op: CarrierA -> CarrierA -> CarrierA) (m k : nat) (kc : k < m) (a b : svector m),
+      Vnth (Vec2Union op a b) kc ≡ Union op (Vnth a kc) (Vnth b kc).
   Proof.
-    intros m k kc a b.
+    intros op m k kc a b.
     unfold Vec2Union.
     apply Vnth_map2.
   Qed.
 
   Lemma AbsorbUnionIndex:
-    forall m n (x: vector (svector m) n) k (kc: k<m),
-      Vnth (SumUnion x) kc ≡ VecUnion (Vmap (fun v => Vnth v kc) x).
+    forall (op: CarrierA -> CarrierA -> CarrierA) `{C: !@Commutative CarrierA eq CarrierA op} m n (x: vector (svector m) n) k (kc: k<m),
+      Vnth (SumUnion op x) kc ≡ VecUnion op (Vmap (fun v => Vnth v kc) x).
   Proof.
-    intros m n x k kc.
+    intros op C m n x k kc.
     induction n.
     + dep_destruct x.
       unfold VecUnion, SumUnion,szero_svector; simpl.
@@ -135,25 +163,27 @@ Section Sparse_Unions.
     + dep_destruct x.
       rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons, Union_comm.
       reflexivity.
+      apply C.
+      apply C.
   Qed.
 
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
   Lemma AbsorbIUnionIndex:
-    forall m n (x: vector (svector m) n) k (kc: k<m),
+    forall (op: CarrierA -> CarrierA -> CarrierA) `{C: !@Commutative CarrierA eq CarrierA op} m n (x: vector (svector m) n) k (kc: k<m),
       Vnth
-        (SumUnion
+        (SumUnion op
            (Vbuild
               (fun (i : nat) (ic : i < n) =>
                  (Vnth x ic)
            ))
         ) kc ≡
-        VecUnion
+        VecUnion op
         (Vbuild
            (fun (i : nat) (ic : i < n) =>
               Vnth (Vnth x ic) kc
         )).
   Proof.
-    intros m n x k kc.
+    intros op C m n x k kc.
 
     induction n.
     + dep_destruct x.
@@ -189,10 +219,12 @@ Section Sparse_Unions.
       reflexivity.
 
       subst genX.
+      apply C.
       extensionality i.
       extensionality ic.
       simpl.
       rewrite NatUtil.lt_Sn_nS.
+      subst genX.
       reflexivity.
 
       extensionality i.
@@ -204,14 +236,16 @@ Section Sparse_Unions.
   Qed.
 
   Lemma Union_Val_with_Struct:
-    ∀ x s , Is_Val x -> Is_StructNonErr s -> Union x s ≡ x.
+    ∀ (op: CarrierA -> CarrierA -> CarrierA) x s,
+      Is_Val x -> Is_StructNonErr s -> Union op x s ≡ x.
   Proof.
-    intros x s V S.
+    intros op x s V S.
     unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in *.
     destruct V, S.
     destruct_Rtheta x.
     destruct_Rtheta s.
     destruct x1, x2, s1, s2; crush.
+
   Qed.
 
 
