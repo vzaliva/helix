@@ -76,7 +76,6 @@ Section Sparse_Unions.
        reflexivity).
   Qed.
 
-
   (* Weaker commutativity, wrt to 'equiv' equality *)
   Instance Rtheta_Commutative_Union
            (op: CarrierA -> CarrierA -> CarrierA)
@@ -235,29 +234,31 @@ Section Sparse_Unions.
       reflexivity.
   Qed.
 
-  Lemma Union_Val_with_Struct:
-    ∀ (op: CarrierA -> CarrierA -> CarrierA) x s,
-      Is_Val x -> Is_StructNonErr s -> Union op x s ≡ x.
-  Proof.
-    intros op x s V S.
-    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in *.
-    destruct V, S.
-    destruct_Rtheta x.
-    destruct_Rtheta s.
-    destruct x1, x2, s1, s2; crush.
-
-  Qed.
-
-
-  Lemma Union_Struct_with_Val:
-    ∀ x s , Is_Val x -> Is_StructNonErr s -> Union s x ≡ x.
+  Lemma Union_Plus_Val_with_SZeroNonErr:
+    ∀ x s,
+      Is_Val x -> Is_SZeroNonErr s -> Union (plus) x s = x.
   Proof.
     intros x s V S.
-    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in *.
-    destruct V, S.
+    unfold Is_Val, Is_SZeroNonErr, Is_SZero, Is_Struct, Is_SErr, RthetaVal, RthetaIsStruct, RthetaIsSErr in *.
+    destruct V as [V0 V1].
+    destruct S as [[S0 S00] S1].
     destruct_Rtheta x.
     destruct_Rtheta s.
-    destruct x1, x2, s1, s2; crush.
+    destruct x1, x2, s1, s2; 
+      (simpl in S00;
+       unfold Union, equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal;
+       simpl; rewrite S00; ring).
+  Qed.
+
+  Lemma Union_Plus_SZeroNonErr_with_Val:
+    ∀ x s , Is_Val x -> Is_SZeroNonErr s -> Union (plus) s x = x.
+  Proof.
+    intros x s V S.
+    setoid_replace (Union plus s x) with (Union plus x s).
+    apply Union_Plus_Val_with_SZeroNonErr; assumption.
+    apply Rtheta_Commutative_Union.
+    solve_proper.
+    unfold Commutative; intros a b; ring.
   Qed.
 
   Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
@@ -270,19 +271,19 @@ Section Sparse_Unions.
 
   Lemma Vec2Union_szero_svector {n} {a: svector n}:
     svector_is_dense a ->
-    Vec2Union a (szero_svector n) ≡ a.
+    Vec2Union plus a (szero_svector n) = a.
   Proof.
     intros D.
     unfold szero_svector.
     induction n.
     VOtac; reflexivity.
     simpl.
+    rewrite Vcons_to_Vcons_reord.
     rewrite_clear IHn.
-    rewrite Union_Val_with_Struct.
+    rewrite Union_Plus_Val_with_SZeroNonErr.
     dep_destruct a; reflexivity.
     apply Vforall_hd; assumption.
-    unfold Is_StructNonErr, Rtheta_szero, Is_Struct, RthetaIsStruct, Is_SErr, RthetaIsSErr.
-    simpl; tauto.
+    unfold Is_SZeroNonErr, Is_SZero, Rtheta_szero, Is_Struct, RthetaIsStruct, Is_SErr, RthetaIsSErr, RthetaVal. crush.
     apply Vforall_tl; assumption.
   Qed.
 
