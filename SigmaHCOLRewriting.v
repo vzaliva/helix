@@ -85,24 +85,13 @@ Section SigmaHCOLRewriting.
       + 
         simpl in H. destruct H as [Hh Hx].
         destruct Hh.
-        rewrite Union_Plus_SZeroNonErr_with_Val.
-
-
-        
-        
-        
-        unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta_szero, RthetaVal.
-        unfold Is_SZero in H.
-        destruct H as [HS HV0].
-        unfold RthetaVal in HV0.
-        destruct_Rtheta h.
-        auto.
-        
-      destruct h1, h2; crush.
-
-      apply H.
+        apply Rtheta_poinitwise_equiv_equiv.
+        apply Union_Plus_SZeroNonErr_r.
+        unfold Is_SZeroNonErr.
+        split; assumption.
+      + apply Vforall_tl in H.
+        assumption.
   Qed.
-
 
   Lemma Vfold_OptionUnion_val_with_empty:
     ∀ (m : nat) (h : Rtheta) (x : svector m),

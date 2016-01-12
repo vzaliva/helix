@@ -595,3 +595,13 @@ Proof.
   unfold RthetaVal in H.
   auto.
 Qed.
+
+Lemma Rtheta_Val_is_not_Struct:
+  ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
+Proof.
+  intros z H.
+  unfold Is_Val in H.
+  destruct H as [H1 H2].
+  assumption.
+Qed.
+

@@ -43,14 +43,18 @@ End SparseVectors.
 
 Section Sparse_Unions.
 
+Open Local Scope bool_scope.
+  
   Definition Union
              (op: CarrierA -> CarrierA -> CarrierA)
              (a b: Rtheta)
   : Rtheta :=
-    let '(a0,a1,a2) := a in
-    let '(b0,b1,b2) := b in
-    let s := andb a1 b1 in
-    (op a0 b0, s, orb s (orb a2 b2)).
+    let '(v0,s0,e0) := a in
+    let '(v1,s1,e1) := b in
+    (op v0 v1,
+     s0 && s1,
+     (e0 || e1) || (negb (s0 || s1))
+    ).
 
   Global Instance Union_proper:
     Proper (((=) ==> (=)) ==> (=) ==> (=)) (Union).
@@ -234,16 +238,13 @@ Section Sparse_Unions.
       reflexivity.
   Qed.
 
-  Lemma Union_Plus_Val_with_SZeroNonErr:
-    ∀ x s,
-      Is_Val x -> Is_SZeroNonErr s ->
+  Lemma Union_Plus_SZeroNonErr_r:
+    ∀ x s, Is_SZeroNonErr s ->
       Rtheta_poinitwise_equiv (Union (plus) x s) x.
   Proof.
-    intros x s V S.
-    unfold Rtheta_poinitwise_equiv, Is_SZeroNonErr, Is_Val, Is_Struct, RthetaIsStruct, RthetaVal, Is_SErr, RthetaIsSErr in S. 
+    intros x s S.
+    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S. 
     destruct S as [[S0 S1] S2].
-    unfold Is_Val, Is_Struct, Is_SErr, RthetaIsStruct, RthetaIsSErr in V.
-    destruct V as [V0 V1].
     destruct_Rtheta x.
     destruct_Rtheta s.
     unfold Rtheta_poinitwise_equiv, RthetaVal, RthetaIsStruct, RthetaIsSErr.
@@ -253,15 +254,13 @@ Section Sparse_Unions.
     - destruct x1, x2, s1, s2; crush.
   Qed.
 
-  Lemma Union_Plus_SZeroNonErr_with_Val:
-    ∀ x s , Is_Val x -> Is_SZeroNonErr s ->
+  Lemma Union_Plus_SZeroNonErr_l:
+    ∀ x s , Is_SZeroNonErr s ->
             Rtheta_poinitwise_equiv (Union (plus) s x) x.
   Proof.
-    intros x s V S.
-    unfold Rtheta_poinitwise_equiv, Is_SZeroNonErr, Is_Val, Is_Struct, RthetaIsStruct, RthetaVal, Is_SErr, RthetaIsSErr in S. 
+    intros x s S.
+    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S. 
     destruct S as [[S0 S1] S2].
-    unfold Is_Val, Is_Struct, Is_SErr, RthetaIsStruct, RthetaIsSErr in V.
-    destruct V as [V0 V1].
     destruct_Rtheta x.
     destruct_Rtheta s.
     unfold Rtheta_poinitwise_equiv, RthetaVal, RthetaIsStruct, RthetaIsSErr.
@@ -279,7 +278,7 @@ Section Sparse_Unions.
     apply Vbreak_preserves_P.
   Qed.
 
-  Lemma Vec2Union_szero_svector {n} {a: svector n}:
+  Lemma Vec2Union_szero_svecto_r {n} {a: svector n}:
     svector_is_dense a ->
     Vec2Union plus a (szero_svector n) = a.
   Proof.
@@ -294,9 +293,11 @@ Section Sparse_Unions.
     assert(E: (Union plus (Vhead a) Rtheta_szero) = (Vhead a)).
     {
       apply Rtheta_poinitwise_equiv_equiv.
-      apply Union_Plus_Val_with_SZeroNonErr.
-      apply Vforall_hd; assumption.
-      unfold Is_SZeroNonErr, Rtheta_szero, Is_StructNonErr, RthetaVal, Is_Struct, Is_SErr; crush.
+      apply Union_Plus_SZeroNonErr_r.
+      unfold Is_SZeroNonErr, Rtheta_szero.
+      split.
+      + unfold Is_StructNonErr, Is_Struct; crush.
+      + unfold RthetaVal. crush.
     }
     rewrite E.
     rewrite <- Vcons_to_Vcons_reord.
