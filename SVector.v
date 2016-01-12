@@ -290,15 +290,14 @@ Section Sparse_Unions.
     simpl.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-    
-    assert(Rtheta_poinitwise_equiv (Union plus (Vhead a) Rtheta_szero) (Vhead a)).
+
+    assert(E: (Union plus (Vhead a) Rtheta_szero) = (Vhead a)).
     {
+      apply Rtheta_poinitwise_equiv_equiv.
       apply Union_Plus_Val_with_SZeroNonErr.
       apply Vforall_hd; assumption.
       unfold Is_SZeroNonErr, Rtheta_szero, Is_StructNonErr, RthetaVal, Is_Struct, Is_SErr; crush.
     }
-    assert(E: (Union plus (Vhead a) Rtheta_szero) = (Vhead a)).
-    apply H.
     rewrite E.
     rewrite <- Vcons_to_Vcons_reord.
     dep_destruct a.

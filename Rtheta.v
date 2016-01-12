@@ -587,3 +587,11 @@ Definition Rtheta_poinitwise_equiv (a b: Rtheta) :=
   eq (RthetaIsStruct a) (RthetaIsStruct b) /\
   eq (RthetaIsSErr a) (RthetaIsSErr b).
 
+Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
+  Rtheta_poinitwise_equiv a b -> a = b.
+Proof.
+  intros H.
+  destruct H.
+  unfold RthetaVal in H.
+  auto.
+Qed.
