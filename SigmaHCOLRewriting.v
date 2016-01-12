@@ -74,22 +74,33 @@ Section SigmaHCOLRewriting.
 
   Lemma VecUnion_structs:
     ∀ (m : nat) (x : svector m),
-      Vforall Is_StructNonErr x → VecUnion x ≡ Rtheta_szero.
+      Vforall Is_SZeroNonErr x → VecUnion plus x = Rtheta_szero.
   Proof.
     intros m x H.
     unfold VecUnion.
     induction x.
-    crush.
-    simpl.
-    rewrite IHx.
-    simpl in H. destruct H as [Hh Hx].
-    unfold Is_Val, Is_StructNonErr, Is_Struct, Is_SErr in Hh.
-    destruct Hh.
+    - crush.
+    - simpl.
+      rewrite_clear IHx.
+      + 
+        simpl in H. destruct H as [Hh Hx].
+        destruct Hh.
+        rewrite Union_Plus_SZeroNonErr_with_Val.
 
-    destruct_Rtheta h.
-    unfold Rtheta_szero.
-    destruct h1, h2; crush.
-    apply H.
+
+        
+        
+        
+        unfold equiv, Rtheta_equiv, Rtheta_rel_first, Rtheta_szero, RthetaVal.
+        unfold Is_SZero in H.
+        destruct H as [HS HV0].
+        unfold RthetaVal in HV0.
+        destruct_Rtheta h.
+        auto.
+        
+      destruct h1, h2; crush.
+
+      apply H.
   Qed.
 
 

@@ -155,7 +155,7 @@ Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)
            (x: svector i): svector o
-  :=  Vec2Union (f x) (g x).
+  :=  Vec2Union plus (f x) (g x).
 
 (* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
 same as Cross, where input vectors are passed as concateneated

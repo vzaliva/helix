@@ -40,10 +40,9 @@ Definition RthetaIsSErr (x:Rtheta) := snd x. (* structural error *)
 (* Propositional predicates *)
 Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
 Definition Is_SErr (x:Rtheta) :=  Is_true (RthetaIsSErr x).
-Definition Is_SZero (x:Rtheta) := (Is_Struct x) /\ (RthetaVal x = 0). (* The value is structural zero. Error flag is ignored *)
-Definition Is_SZeroNonErr (x:Rtheta) := (Is_SZero x) /\ (not (Is_SErr x)).
 Definition Is_Val (x:Rtheta) := (not (Is_Struct x)) /\ (not (Is_SErr x)). (* Non-structural and not error *)
 Definition Is_StructNonErr (x:Rtheta) := (Is_Struct x) /\ (not (Is_SErr x)). (* structural, but not error *)
+Definition Is_SZeroNonErr (x:Rtheta) := Is_StructNonErr x /\ RthetaVal x = 0.
 
 (* Pointwise application of 3 functions to elements of Rtheta *)
 Definition Rtheta_pointwise 
@@ -582,4 +581,9 @@ Proof.
   intros.
   crush.
 Qed.
+
+Definition Rtheta_poinitwise_equiv (a b: Rtheta) :=
+  (RthetaVal a) = (RthetaVal b) /\
+  eq (RthetaIsStruct a) (RthetaIsStruct b) /\
+  eq (RthetaIsSErr a) (RthetaIsSErr b).
 
