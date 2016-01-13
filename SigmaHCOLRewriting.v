@@ -82,7 +82,7 @@ Section SigmaHCOLRewriting.
     - crush.
     - simpl.
       rewrite_clear IHx.
-      + 
+      +
         simpl in H. destruct H as [Hh Hx].
         destruct Hh.
         apply Rtheta_poinitwise_equiv_equiv.
@@ -95,16 +95,27 @@ Section SigmaHCOLRewriting.
 
   Lemma Vfold_OptionUnion_val_with_empty:
     ∀ (m : nat) (h : Rtheta) (x : svector m),
-      Is_Val h -> Vforall Is_StructNonErr x → Vfold_left Union h x ≡ h.
+      Is_Val h -> Vforall Is_SZeroNonErr x →
+      Rtheta_poinitwise_equiv (Vfold_left (Union plus) h x) h.
   Proof.
     intros m h x V E.
     induction x.
-    auto.
-    simpl.
-    simpl in E. destruct E as [Eh Ex].
-    rewrite IHx; try assumption.
-    rewrite Union_Val_with_Struct; try assumption.
-    reflexivity.
+    - unfold Rtheta_poinitwise_equiv; crush.
+    - simpl.
+      simpl in E. destruct E as [Eh Ex].
+      pose Ex as IHx1. apply IHx in IHx1.
+      unfold Rtheta_poinitwise_equiv in IHx1.
+      destruct IHx1 as [IHx01 [IHx02 IHx03]].
+      unfold Rtheta_poinitwise_equiv.
+      repeat split.
+      + setoid_rewrite <- IHx01.
+        apply Union_Plus_SZeroNonErr_r; assumption.
+      +
+        rewrite <- IHx02.
+        apply Union_Plus_SZeroNonErr_r; assumption.
+      +
+        rewrite <- IHx03.
+        apply Union_Plus_SZeroNonErr_r; assumption.
   Qed.
 
   Lemma Lemma3 m j (x:svector m) (jc:j<m):
