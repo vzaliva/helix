@@ -377,8 +377,10 @@ Qed.
 Instance Rtheta_LeftInverse_plus_neg_0:
   LeftInverse plus negate 0.
 Proof.
-  unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_equiv, Rtheta_rel_first, Rtheta_pointwise, RthetaVal.
+  unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_equiv, Rtheta_rel_first, Rtheta_pointwise.
   intros.
+  destruct_Rtheta x.
+  unfold RthetaVal.
   simpl.
   ring.
 Qed.
