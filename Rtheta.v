@@ -118,7 +118,7 @@ Section Rtheta_val_Setoid_equiv.
   
   Global Instance Rtheta_val_Symmetric_equiv: Symmetric Rtheta_val_equiv.
   Proof.
-    unfold Reflexive.
+    unfold Symmetric.
     intros.
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
     auto.
@@ -126,7 +126,7 @@ Section Rtheta_val_Setoid_equiv.
 
   Global Instance Rtheta_val_Transitive_equiv: Transitive Rtheta_val_equiv.
   Proof.
-    unfold Reflexive.
+    unfold Transitive.
     intros.
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
     auto.
@@ -140,7 +140,7 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_Transitive_equiv.
   Qed.
 
-  Global Instance Rtheta_val_Setoid: Setoid Rtheta.
+  Global Instance Rtheta_val_Setoid: @Setoid Rtheta Rtheta_val_equiv.
   Proof.
     apply Rtheta_val_Equivalence_equiv.
   Qed.
@@ -632,6 +632,46 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     destruct_Rtheta a. destruct_Rtheta b.
     tuple_inversion.
     crush.
+  Qed.
+
+  Global Instance Rtheta_pw_Reflexive_equiv: Reflexive Rtheta_pw_equiv.
+  Proof.
+    unfold Reflexive.
+    intros x.
+    destruct_Rtheta x.
+    unfold equiv, Rtheta_pw_equiv.
+    crush.
+  Qed.
+  
+  Global Instance Rtheta_pw_Symmetric_equiv: Symmetric Rtheta_pw_equiv.
+  Proof.
+    unfold Symmetric.
+    intros x y H.
+    destruct_Rtheta x. destruct_Rtheta y.
+    unfold equiv, Rtheta_pw_equiv in *.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_Transitive_equiv: Transitive Rtheta_pw_equiv.
+  Proof.
+    unfold Transitive.
+    intros x y z.
+    destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
+    unfold equiv, Rtheta_pw_equiv.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_Equivalence_equiv: Equivalence Rtheta_pw_equiv.
+  Proof.
+    split.
+    apply Rtheta_pw_Reflexive_equiv.
+    apply Rtheta_pw_Symmetric_equiv.
+    apply Rtheta_pw_Transitive_equiv.
+  Qed.
+
+  Global Instance Rtheta_pw_Setoid: @Setoid Rtheta Rtheta_pw_equiv.
+  Proof.
+    apply Rtheta_pw_Equivalence_equiv.
   Qed.
   
 End Rtheta_Poinitwise_Setoid_equiv.
