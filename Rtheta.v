@@ -85,6 +85,14 @@ Definition Rtheta_rel_first
            (a b: Rtheta)
   := oA (RthetaVal a) (RthetaVal b).
 
+Global Instance Rtheta_Zero: Zero Rtheta := (0, false, false, false).
+Global Instance Rtheta_One: One Rtheta := (1, false, false, false).
+Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb orb.
+Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb orb.
+Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
+Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
+Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
+
 Ltac destruct_Rtheta x :=
   let x01 := fresh x "01" in
   let x02 := fresh x "02" in
@@ -100,7 +108,7 @@ Section Rtheta_val_Setoid_equiv.
   (* Setoid equality is defined by taking into account only the first element. *)
   Global Instance Rtheta_val_equiv: Equiv Rtheta := Rtheta_rel_first equiv.
   
-  Global Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_val_equiv.
+  Global Instance Rtheta_val_Reflexive_equiv: Reflexive Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
     intros.
@@ -108,7 +116,7 @@ Section Rtheta_val_Setoid_equiv.
     reflexivity.
   Qed.
   
-  Global Instance Rtheta_Symmetric_equiv: Symmetric Rtheta_val_equiv.
+  Global Instance Rtheta_val_Symmetric_equiv: Symmetric Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
     intros.
@@ -116,7 +124,7 @@ Section Rtheta_val_Setoid_equiv.
     auto.
   Qed.
 
-  Global Instance Rtheta_Transitive_equiv: Transitive Rtheta_val_equiv.
+  Global Instance Rtheta_val_Transitive_equiv: Transitive Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
     intros.
@@ -124,28 +132,20 @@ Section Rtheta_val_Setoid_equiv.
     auto.
   Qed.
 
-  Global Instance Rtheta_Equivalence_equiv: Equivalence Rtheta_val_equiv.
+  Global Instance Rtheta_val_Equivalence_equiv: Equivalence Rtheta_val_equiv.
   Proof.
     split.
-    apply Rtheta_Reflexive_equiv.
-    apply Rtheta_Symmetric_equiv.
-    apply Rtheta_Transitive_equiv.
+    apply Rtheta_val_Reflexive_equiv.
+    apply Rtheta_val_Symmetric_equiv.
+    apply Rtheta_val_Transitive_equiv.
   Qed.
 
-  Global Instance Rtheta_Setoid: Setoid Rtheta.
+  Global Instance Rtheta_val_Setoid: Setoid Rtheta.
   Proof.
-    apply Rtheta_Equivalence_equiv.
+    apply Rtheta_val_Equivalence_equiv.
   Qed.
 
-  Global Instance Rtheta_Zero: Zero Rtheta := (0, false, false, false).
-  Global Instance Rtheta_One: One Rtheta := (1, false, false, false).
-  Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb orb.
-  Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb orb.
-  Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
-  Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
-  Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
-
-  Global Instance Rtheta_Associative_plus: Associative Rtheta_Plus.
+  Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
     unfold Associative, HeteroAssociative, Rtheta_Plus, Rtheta_pointwise,
     RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_val_equiv, Rtheta_rel_first.
@@ -153,7 +153,7 @@ Section Rtheta_val_Setoid_equiv.
     apply plus_assoc.
   Qed.
 
-  Global Instance Rtheta_Associative_mult: Associative Rtheta_Mult.
+  Global Instance Rtheta_val_Associative_mult: Associative Rtheta_Mult.
   Proof.
     unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_pointwise,
     RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_val_equiv, Rtheta_rel_first.
@@ -161,13 +161,13 @@ Section Rtheta_val_Setoid_equiv.
     apply mult_assoc.
   Qed.
 
-  Global Instance Rtheta_val_proper:
+  Global Instance Rtheta_val_val_proper:
     Proper ((=) ==> (=)) (RthetaVal).
   Proof.
     simpl_relation.
   Qed.
 
-  Global Instance Rtheta_plus_proper:
+  Global Instance Rtheta_val_plus_proper:
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
@@ -181,7 +181,7 @@ Section Rtheta_val_Setoid_equiv.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_neg_proper:
+  Global Instance Rtheta_val_neg_proper:
     Proper ((=) ==> (=)) (Rtheta_Neg).
   Proof.
     intros a b aEq.
@@ -193,7 +193,7 @@ Section Rtheta_val_Setoid_equiv.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_mult_proper:
+  Global Instance Rtheta_val_mult_proper:
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
   Proof.
     intros a a' aEq b b' bEq.
@@ -207,16 +207,16 @@ Section Rtheta_val_Setoid_equiv.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_SemiGroup_plus:
+  Global Instance Rtheta_val_SemiGroup_plus:
     @SemiGroup Rtheta Rtheta_val_equiv plus.
   Proof.
     split.
-    apply Rtheta_Setoid.
-    apply Rtheta_Associative_plus.
-    apply Rtheta_plus_proper.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_Associative_plus.
+    apply Rtheta_val_plus_proper.
   Qed.
 
-  Global Instance Rtheta_LeftIdentity_plus_0:
+  Global Instance Rtheta_val_LeftIdentity_plus_0:
     @LeftIdentity Rtheta Rtheta Rtheta_val_equiv plus zero.
   Proof.
     unfold LeftIdentity.
@@ -228,7 +228,7 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_RightIdentity_plus_0:
+  Global Instance Rtheta_val_RightIdentity_plus_0:
     @RightIdentity Rtheta Rtheta_val_equiv Rtheta plus zero.
   Proof.
     unfold RightIdentity.
@@ -240,16 +240,16 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_Monoid_plus_0:
+  Global Instance Rtheta_val_Monoid_plus_0:
     @Monoid Rtheta Rtheta_val_equiv plus zero.
   Proof.
     split.
-    apply Rtheta_SemiGroup_plus.
-    apply Rtheta_LeftIdentity_plus_0.
-    apply Rtheta_RightIdentity_plus_0.
+    apply Rtheta_val_SemiGroup_plus.
+    apply Rtheta_val_LeftIdentity_plus_0.
+    apply Rtheta_val_RightIdentity_plus_0.
   Qed.
 
-  Global Instance Rtheta_Commutative_plus:
+  Global Instance Rtheta_val_Commutative_plus:
     @Commutative Rtheta Rtheta_val_equiv Rtheta plus.
   Proof.
     unfold Commutative.
@@ -262,24 +262,24 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_CommutativeMonoid_plus_0:
+  Global Instance Rtheta_val_CommutativeMonoid_plus_0:
     @CommutativeMonoid Rtheta Rtheta_val_equiv plus zero.
   Proof.
     split.
-    apply Rtheta_Monoid_plus_0.
-    apply Rtheta_Commutative_plus.
+    apply Rtheta_val_Monoid_plus_0.
+    apply Rtheta_val_Commutative_plus.
   Qed.
 
-  Global Instance Rtheta_SemiGroup_mult:
+  Global Instance Rtheta_val_SemiGroup_mult:
     @SemiGroup Rtheta Rtheta_val_equiv mult.
   Proof.
     split.
-    apply Rtheta_Setoid.
-    apply Rtheta_Associative_mult.
-    apply Rtheta_mult_proper.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_Associative_mult.
+    apply Rtheta_val_mult_proper.
   Qed.
 
-  Global Instance Rtheta_LeftIdentity_mult_1:
+  Global Instance Rtheta_val_LeftIdentity_mult_1:
     @LeftIdentity Rtheta Rtheta Rtheta_val_equiv mult one.
   Proof.
     unfold LeftIdentity.
@@ -291,7 +291,7 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_RightIdentity_mult_1:
+  Global Instance Rtheta_val_RightIdentity_mult_1:
     @RightIdentity Rtheta Rtheta_val_equiv Rtheta mult one.
   Proof.
     unfold RightIdentity.
@@ -303,16 +303,16 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_Monoid_mult_1:
+  Global Instance Rtheta_val_Monoid_mult_1:
     @Monoid Rtheta Rtheta_val_equiv mult one.
   Proof.
     split.
-    apply Rtheta_SemiGroup_mult.
-    apply Rtheta_LeftIdentity_mult_1.
-    apply Rtheta_RightIdentity_mult_1.
+    apply Rtheta_val_SemiGroup_mult.
+    apply Rtheta_val_LeftIdentity_mult_1.
+    apply Rtheta_val_RightIdentity_mult_1.
   Qed.
 
-  Global Instance Rtheta_Commutative_mult:
+  Global Instance Rtheta_val_Commutative_mult:
     @Commutative Rtheta Rtheta_val_equiv Rtheta mult.
   Proof.
     unfold Commutative.
@@ -324,7 +324,7 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_LeftDistribute_mult_plus:
+  Global Instance Rtheta_val_LeftDistribute_mult_plus:
     LeftDistribute mult plus.
   Proof.
     unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
@@ -334,15 +334,15 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_CommutativeMonoid_mult_1:
+  Global Instance Rtheta_val_CommutativeMonoid_mult_1:
     @CommutativeMonoid Rtheta Rtheta_val_equiv mult one.
   Proof.
     split.
-    apply Rtheta_Monoid_mult_1.
-    apply Rtheta_Commutative_mult.
+    apply Rtheta_val_Monoid_mult_1.
+    apply Rtheta_val_Commutative_mult.
   Qed.
 
-  Global Instance Rtheta_LeftAbsorb:
+  Global Instance Rtheta_val_LeftAbsorb:
     LeftAbsorb mult 0.
   Proof.
     unfold LeftAbsorb.
@@ -353,7 +353,7 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_RightAbsorb:
+  Global Instance Rtheta_val_RightAbsorb:
     RightAbsorb mult 0.
   Proof.
     unfold RightAbsorb.
@@ -364,16 +364,16 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_SemiRing: SemiRing Rtheta.
+  Global Instance Rtheta_val_SemiRing: SemiRing Rtheta.
   Proof.
     split.
-    apply Rtheta_CommutativeMonoid_plus_0.
-    apply Rtheta_CommutativeMonoid_mult_1.
-    apply Rtheta_LeftDistribute_mult_plus.
-    apply Rtheta_LeftAbsorb.
+    apply Rtheta_val_CommutativeMonoid_plus_0.
+    apply Rtheta_val_CommutativeMonoid_mult_1.
+    apply Rtheta_val_LeftDistribute_mult_plus.
+    apply Rtheta_val_LeftAbsorb.
   Qed.
 
-  Global Instance Rtheta_LeftInverse_plus_neg_0:
+  Global Instance Rtheta_val_LeftInverse_plus_neg_0:
     LeftInverse plus negate 0.
   Proof.
     unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_pointwise.
@@ -384,7 +384,7 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_RightInverse_plus_neg_0:
+  Global Instance Rtheta_val_RightInverse_plus_neg_0:
     RightInverse plus negate 0.
   Proof.
     unfold RightInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_pointwise, RthetaVal, RthetaIsStruct.
@@ -393,44 +393,44 @@ Section Rtheta_val_Setoid_equiv.
     ring.
   Qed.
 
-  Global Instance Rtheta_Group_plus_0_neg:
+  Global Instance Rtheta_val_Group_plus_0_neg:
     @Group Rtheta Rtheta_val_equiv Rtheta_Plus Rtheta_Zero Rtheta_Neg.
   Proof.
     split.
-    apply Rtheta_Monoid_plus_0.
+    apply Rtheta_val_Monoid_plus_0.
     split.
-    apply Rtheta_Setoid.
-    apply Rtheta_Setoid.
-    apply Rtheta_neg_proper.
-    apply Rtheta_LeftInverse_plus_neg_0.
-    apply Rtheta_RightInverse_plus_neg_0.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_neg_proper.
+    apply Rtheta_val_LeftInverse_plus_neg_0.
+    apply Rtheta_val_RightInverse_plus_neg_0.
   Qed.
 
-  Global Instance: Ring Rtheta.
+  Global Instance Ring_Rtheta_val: Ring Rtheta.
   Proof.
     split. split.
-    apply Rtheta_Group_plus_0_neg.
-    apply Rtheta_Commutative_plus.
-    apply Rtheta_CommutativeMonoid_mult_1.
-    apply Rtheta_LeftDistribute_mult_plus.
+    apply Rtheta_val_Group_plus_0_neg.
+    apply Rtheta_val_Commutative_plus.
+    apply Rtheta_val_CommutativeMonoid_mult_1.
+    apply Rtheta_val_LeftDistribute_mult_plus.
   Qed.
 
-  Add Ring RingRtheta: (stdlib_ring_theory Rtheta).
+  Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
-  Global Instance Rtheta_ledec (x y: Rtheta): Decision (x ≤ y) :=
+  Global Instance Rtheta_val_ledec (x y: Rtheta): Decision (x ≤ y) :=
     CarrierAledec (RthetaVal x) (RthetaVal y).
 
-  Global Instance Rtheta_ltdec (x y: Rtheta): Decision (x < y) :=
+  Global Instance Rtheta_val_ltdec (x y: Rtheta): Decision (x < y) :=
     CarrierAltdec (RthetaVal x) (RthetaVal y).
 
-  Global Program Instance Rtheta_abs: Abs Rtheta := fun (x:Rtheta) =>
+  Global Program Instance Rtheta_val_abs: Abs Rtheta := fun (x:Rtheta) =>
                                                       (abs (RthetaVal x), RthetaIsStruct x, RthetaIsVCollision x, RthetaIsSCollision x).
   Next Obligation.
     unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
     split; unfold abs; crush.
   Qed.
 
-  Global Instance Rtheta_le_proper:
+  Global Instance Rtheta_val_le_proper:
     Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
   Proof.
     intros a a' aEq b b' bEq.
@@ -444,7 +444,7 @@ Section Rtheta_val_Setoid_equiv.
     split; auto.
   Qed.
 
-  Global Instance Rtheta_lt_proper:
+  Global Instance Rtheta_val_lt_proper:
     Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
   Proof.
     intros a a' aEq b b' bEq.
@@ -458,7 +458,7 @@ Section Rtheta_val_Setoid_equiv.
     split; auto.
   Qed.
 
-  Global Instance Rtheta_le_Reflexive:
+  Global Instance Rtheta_val_le_Reflexive:
     Reflexive le.
   Proof.
     unfold Reflexive.
@@ -467,7 +467,7 @@ Section Rtheta_val_Setoid_equiv.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_le_Transitive:
+  Global Instance Rtheta_val_le_Transitive:
     Transitive le.
   Proof.
     unfold Transitive.
@@ -478,7 +478,7 @@ Section Rtheta_val_Setoid_equiv.
     auto.
   Qed.
 
-  Global Instance Rtheta_le_AntiSymmetric:
+  Global Instance Rtheta_val_le_AntiSymmetric:
     AntiSymmetric le.
   Proof.
     unfold AntiSymmetric.
@@ -489,25 +489,25 @@ Section Rtheta_val_Setoid_equiv.
     apply (antisymmetry (≤)); assumption.
   Qed.
 
-  Global Instance Rtheta_le_PreOrder:
+  Global Instance Rtheta_val_le_PreOrder:
     PreOrder le.
   Proof.
     split.
-    apply Rtheta_le_Reflexive.
-    apply Rtheta_le_Transitive.
+    apply Rtheta_val_le_Reflexive.
+    apply Rtheta_val_le_Transitive.
   Qed.
 
-  Global Instance Rtheta_le_PartialOrder:
+  Global Instance Rtheta_val_le_PartialOrder:
     PartialOrder Rtheta_Le.
   Proof.
     split.
-    apply Rtheta_Setoid.
-    apply Rtheta_le_proper.
-    apply Rtheta_le_PreOrder.
-    apply Rtheta_le_AntiSymmetric.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_le_proper.
+    apply Rtheta_val_le_PreOrder.
+    apply Rtheta_val_le_AntiSymmetric.
   Qed.
 
-  Global Instance Rtheta_le_TotalRelation:
+  Global Instance Rtheta_val_le_TotalRelation:
     TotalRelation le.
   Proof.
     unfold TotalRelation.
@@ -517,26 +517,26 @@ Section Rtheta_val_Setoid_equiv.
     apply (total (≤)).
   Qed.
 
-  Global Instance Rtheta_TotalOrder: TotalOrder Rtheta_Le.
+  Global Instance Rtheta_val_TotalOrder: TotalOrder Rtheta_Le.
   Proof.
     split.
-    apply Rtheta_le_PartialOrder.
-    apply Rtheta_le_TotalRelation.
+    apply Rtheta_val_le_PartialOrder.
+    apply Rtheta_val_le_TotalRelation.
   Qed.
 
-  Global Instance Rtheta_plus_Order_Morphism: ∀ (z : Rtheta), Order_Morphism (plus z).
+  Global Instance Rtheta_val_plus_Order_Morphism: ∀ (z : Rtheta), Order_Morphism (plus z).
   Proof.
     split.
     split.
-    apply Rtheta_Setoid.
-    apply Rtheta_Setoid.
-    apply Rtheta_plus_proper.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_Setoid.
+    apply Rtheta_val_plus_proper.
     reflexivity.
-    apply Rtheta_le_PartialOrder.
-    apply Rtheta_le_PartialOrder.
+    apply Rtheta_val_le_PartialOrder.
+    apply Rtheta_val_le_PartialOrder.
   Qed.
 
-  Lemma Rtheta_le_plus_lemma1:
+  Lemma Rtheta_val_le_plus_lemma1:
     ∀ z x y : Rtheta, x ≤ y <-> z + x ≤ z + y.
   Proof.
     intros z x y.
@@ -554,33 +554,33 @@ Section Rtheta_val_Setoid_equiv.
     split; auto.
   Qed.
 
-  Global Instance Rtheta_plus_OrderPreserving: ∀ (z : Rtheta), OrderPreserving (plus z).
+  Global Instance Rtheta_val_plus_OrderPreserving: ∀ (z : Rtheta), OrderPreserving (plus z).
   Proof.
     split.
-    apply Rtheta_plus_Order_Morphism.
-    apply Rtheta_le_plus_lemma1.
+    apply Rtheta_val_plus_Order_Morphism.
+    apply Rtheta_val_le_plus_lemma1.
   Qed.
 
-  Global Instance Rtheta_plus_OrderReflecting: ∀ (z : Rtheta), OrderReflecting (plus z).
+  Global Instance Rtheta_val_plus_OrderReflecting: ∀ (z : Rtheta), OrderReflecting (plus z).
   Proof.
     split.
-    apply Rtheta_plus_Order_Morphism.
-    apply Rtheta_le_plus_lemma1.
+    apply Rtheta_val_plus_Order_Morphism.
+    apply Rtheta_val_le_plus_lemma1.
   Qed.
 
-  Global Instance Rtheta_plus_OrderEmbedding: ∀ (z : Rtheta), OrderEmbedding (plus z).
+  Global Instance Rtheta_val_plus_OrderEmbedding: ∀ (z : Rtheta), OrderEmbedding (plus z).
   Proof.
     intros.
     split.
-    apply Rtheta_plus_OrderPreserving.
-    apply Rtheta_plus_OrderReflecting.
+    apply Rtheta_val_plus_OrderPreserving.
+    apply Rtheta_val_plus_OrderReflecting.
   Qed.
 
-  Global Instance Rtheta_SemiRingOrder: SemiRingOrder Rtheta_Le.
+  Global Instance Rtheta_val_SemiRingOrder: SemiRingOrder Rtheta_Le.
   Proof.
     split.
     - apply total_order_po.
-    - apply Rtheta_SemiRing.
+    - apply Rtheta_val_SemiRing.
     -
       destruct_Rtheta x. destruct_Rtheta y.
       unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
@@ -591,7 +591,7 @@ Section Rtheta_val_Setoid_equiv.
       intros H.
       exists (y_val-x_val, false, false, false).
       simpl; ring.
-    - apply Rtheta_plus_OrderEmbedding.
+    - apply Rtheta_val_plus_OrderEmbedding.
     - destruct_Rtheta x. destruct_Rtheta y.
       unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
       apply CarrierASRO.
