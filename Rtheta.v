@@ -104,6 +104,15 @@ Ltac destruct_Rtheta x :=
     destruct x01 as (x02, x2);
     destruct x02 as (x0, x1).
 
+Lemma Rtheta_Val_is_not_Struct:
+  ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
+Proof.
+  intros z H.
+  unfold Is_Val in H.
+  destruct H as [H1 H2].
+  assumption.
+Qed.
+
 Section Rtheta_val_Setoid_equiv.
   (* Setoid equality is defined by taking into account only the first element. *)
   Global Instance Rtheta_val_equiv: Equiv Rtheta := Rtheta_rel_first equiv.
@@ -676,12 +685,79 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   
 End Rtheta_Poinitwise_Setoid_equiv.
 
-Lemma Rtheta_Val_is_not_Struct:
-  ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
-Proof.
-  intros z H.
-  unfold Is_Val in H.
-  destruct H as [H1 H2].
-  assumption.
-Qed.
+Section Rtheta_Union.
 
+  Open Local Scope bool_scope.
+  
+  Definition Union
+             (op: CarrierA -> CarrierA -> CarrierA)
+             (a b: Rtheta)
+    : Rtheta :=
+    let '(v0,s0,cv0,cs0) := a in
+    let '(v1,s1,cv1,cs1) := b in
+    (op v0 v1,
+     s0 && s1,
+     (cv0 || cv1) || (negb (s0 || s1)),
+     (cs0 || cs1) || (s0 && s1)
+    ).
+  
+  Global Instance Union_val_proper:
+    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Union).
+  Proof.
+    simpl_relation.
+    unfold Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, Union in *.
+    repeat break_let.
+    repeat tuple_inversion.
+    apply H ; [apply H0 | apply H1].
+  Qed.
+  
+  (* Stronger commutativity, wrt to 'eq' equality *)
+  Lemma Union_comm
+        (op: CarrierA -> CarrierA -> CarrierA)
+        `{C: !@Commutative CarrierA eq CarrierA op}
+    : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
+  Proof.
+    intros x y.
+    destruct_Rtheta x.
+    destruct_Rtheta y.
+    
+    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
+      (unfold Union;       
+       replace (op x_val y_val) with (op y_val x_val) by apply C;
+       reflexivity).
+  Qed.
+
+  (* Weaker commutativity, wrt to pointwise equality *)
+  Global Instance Rtheta_pw_Commutative_Union
+           (op: CarrierA -> CarrierA -> CarrierA)
+           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+           `{C: !Commutative op}
+    :
+    @Commutative Rtheta Rtheta_pw_equiv Rtheta (Union op).
+  Proof.
+    intros x y.
+    destruct_Rtheta x. destruct_Rtheta y.
+    unfold Union.
+    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
+      unfold equiv, Rtheta_pw_equiv;  auto.
+  Qed.
+  
+  (* Even weaker commutativity, wrt to value equality *)
+  Global Instance Rtheta_val_Commutative_Union
+           (op: CarrierA -> CarrierA -> CarrierA)
+           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+           `{C: !Commutative op}
+    :
+    @Commutative Rtheta Rtheta_val_equiv Rtheta (Union op).
+  Proof.
+    intros x y.
+    destruct_Rtheta x.
+    destruct_Rtheta y.
+    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
+      (unfold Union;
+       unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal;
+       setoid_replace (op x_val y_val) with (op y_val x_val) by apply C;
+       reflexivity).
+  Qed.
+
+End Rtheta_Union.

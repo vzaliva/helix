@@ -45,41 +45,6 @@ Section Sparse_Unions.
 
 Open Local Scope bool_scope.
   
-  Definition Union
-             (op: CarrierA -> CarrierA -> CarrierA)
-             (a b: Rtheta)
-  : Rtheta :=
-    let '(v0,s0,e0) := a in
-    let '(v1,s1,e1) := b in
-    (op v0 v1,
-     s0 && s1,
-     (e0 || e1) || (negb (s0 || s1))
-    ).
-
-  Global Instance Union_proper:
-    Proper (((=) ==> (=)) ==> (=) ==> (=)) (Union).
-  Proof.
-    simpl_relation.
-    unfold RthetaVal, Union.
-    repeat break_let.
-    apply H ; [apply H0 | apply H1].
-  Qed.
-  
-  (* Stronger commutativity, wrt to 'eq' equality *)
-  Lemma Union_comm
-        (op: CarrierA -> CarrierA -> CarrierA)
-        `{C: !@Commutative CarrierA eq CarrierA op}
-    : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
-  Proof.
-    intros x y.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
-    destruct x1, x2, y1, y2;
-      (unfold Union;       
-       replace (op x0 y0) with (op y0 x0) by apply C;
-       reflexivity).
-  Qed.
-
   (* Weaker commutativity, wrt to 'equiv' equality *)
   Global Instance Rtheta_Commutative_Union
            (op: CarrierA -> CarrierA -> CarrierA)
