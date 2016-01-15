@@ -760,4 +760,7 @@ Section Rtheta_Union.
        reflexivity).
   Qed.
 
+  Global Instance Rtheta_Union_Plus: Plus Rtheta := Union plus.
+  Global Instance Rtheta_Union_Mult: Mult Rtheta := Union mult.
+  
 End Rtheta_Union.
