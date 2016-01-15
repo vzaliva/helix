@@ -93,6 +93,7 @@ Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
 Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
 Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
 
+(* similar to `destruct_all Rtheta` but gives variables more meaningful names *)
 Ltac destruct_Rtheta x :=
   let x01 := fresh x "01" in
   let x02 := fresh x "02" in
@@ -762,5 +763,32 @@ Section Rtheta_Union.
 
   Global Instance Rtheta_Union_Plus: Plus Rtheta := Union plus.
   Global Instance Rtheta_Union_Mult: Mult Rtheta := Union mult.
+
+  Global Instance Rtheta_pw_Associative_plus: Associative Rtheta_Union_Plus.
+  Proof.
+    unfold Associative, HeteroAssociative.
+    intros x y z.
+    unfold Rtheta_Union_Plus, Union, equiv, Rtheta_pw_equiv.
+    destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
+    repeat split.
+    ring.
+    destr_bool.
+    destr_bool.
+    admit.
+  Qed.
+
+  Global Instance Rtheta_pw_Associative_mult: Associative Rtheta_Union_Mult.
+  Proof.
+    unfold Associative, HeteroAssociative.
+    intros x y z.
+    unfold Rtheta_Union_Mult, Union, equiv, Rtheta_pw_equiv.
+    repeat break_let.
+    repeat tuple_inversion.
+    repeat split.
+    ring.
+    destr_bool.
+    destr_bool.
+    admit.
+  Qed.
   
 End Rtheta_Union.
