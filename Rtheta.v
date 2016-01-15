@@ -96,7 +96,7 @@ Ltac destruct_Rtheta x :=
     destruct x01 as (x02, x2);
     destruct x02 as (x0, x1).
 
-Section Rtheta_Setoid_equiv.
+Section Rtheta_val_Setoid_equiv.
   (* Setoid equality is defined by taking into account only the first element. *)
   Global Instance Rtheta_val_equiv: Equiv Rtheta := Rtheta_rel_first equiv.
   
@@ -604,9 +604,9 @@ Section Rtheta_Setoid_equiv.
     crush.
   Qed.
 
-End Rtheta_Setoid_equiv.
+End Rtheta_val_Setoid_equiv.
 
-Section Rtheta_Poinitwise_equiv.
+Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta := fun a b =>
@@ -634,7 +634,7 @@ Section Rtheta_Poinitwise_equiv.
     crush.
   Qed.
   
-End Rtheta_Poinitwise_equiv.
+End Rtheta_Poinitwise_Setoid_equiv.
 
 Lemma Rtheta_Val_is_not_Struct:
   ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
