@@ -683,7 +683,212 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Proof.
     apply Rtheta_pw_Equivalence_equiv.
   Qed.
+
+  Global Instance Rtheta_pw_Associative_plus: Associative Rtheta_Plus.
+  Proof.
+    unfold Associative, HeteroAssociative, Rtheta_Plus, Rtheta_pointwise,
+    RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_pw_equiv, Rtheta_rel_first.
+    intros.
+    split.
+    apply plus_assoc.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_Associative_mult: Associative Rtheta_Mult.
+  Proof.
+    unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_pointwise,
+    RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_pw_equiv, Rtheta_rel_first.
+    intros.
+    split.
+    apply mult_assoc.
+    crush.
+  Qed.
+
+  Global Instance RthetaVal_pw_proper:
+    Proper ((=) ==> (=)) (RthetaVal).
+  Proof.
+    simpl_relation.
+    unfold RthetaVal.
+    repeat break_let.
+    unfold Rtheta_pw_equiv in H.
+    destruct H as [H0 [H1 [H2 H3]]].
+    auto.
+  Qed.
+
+  Global Instance Rtheta_pw_plus_proper:
+    Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
+  Proof.
+    intros a a' aEq b b' bEq.
+    unfold Rtheta_Plus, Rtheta_pointwise, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta a. destruct_Rtheta b.
+    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold equiv, Rtheta_pw_equiv in aEq, bEq.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_neg_proper:
+    Proper ((=) ==> (=)) (Rtheta_Neg).
+  Proof.
+    intros a b aEq.
+    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta a. destruct_Rtheta b.
+    unfold equiv, Rtheta_pw_equiv in aEq.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_mult_proper:
+    Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
+  Proof.
+    intros a a' aEq b b' bEq.
+    unfold Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta a. destruct_Rtheta b.
+    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold equiv, Rtheta_pw_equiv in aEq, bEq.
+    crush.
+  Qed.
+
+  Global Instance Rtheta_pw_SemiGroup_plus:
+    @SemiGroup Rtheta Rtheta_pw_equiv plus.
+  Proof.
+    split.
+    apply Rtheta_pw_Setoid.
+    apply Rtheta_pw_Associative_plus.
+    apply Rtheta_pw_plus_proper.
+  Qed.
+
+  Global Instance Rtheta_pw_LeftIdentity_plus_0:
+    @LeftIdentity Rtheta Rtheta Rtheta_pw_equiv plus zero.
+  Proof.
+    unfold LeftIdentity.
+    intros.
+    unfold  plus, zero, equiv, Rtheta_pw_equiv, Rtheta_Plus, Rtheta_Zero,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta y.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_RightIdentity_plus_0:
+    @RightIdentity Rtheta Rtheta_pw_equiv Rtheta plus zero.
+  Proof.
+    unfold RightIdentity.
+    intros.
+    unfold  plus, zero, equiv, Rtheta_pw_equiv, Rtheta_Plus, Rtheta_Zero,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta x.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_Commutative_plus:
+    @Commutative Rtheta Rtheta_pw_equiv Rtheta plus.
+  Proof.
+    unfold Commutative.
+    intros.
+    unfold  plus, zero, equiv, Rtheta_pw_equiv, Rtheta_Plus, Rtheta_Zero,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta x.
+    destruct_Rtheta y.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_Monoid_plus_0:
+    @Monoid Rtheta Rtheta_pw_equiv plus zero.
+  Proof.
+    split.
+    apply Rtheta_pw_SemiGroup_plus.
+    apply Rtheta_pw_LeftIdentity_plus_0.
+    apply Rtheta_pw_RightIdentity_plus_0.
+  Qed.
   
+  Global Instance Rtheta_pw_CommutativeMonoid_plus_0:
+    @CommutativeMonoid Rtheta Rtheta_pw_equiv plus zero.
+  Proof.
+    split.
+    apply Rtheta_pw_Monoid_plus_0.
+    apply Rtheta_pw_Commutative_plus.
+  Qed.
+
+  Global Instance Rtheta_pw_SemiGroup_mult:
+    @SemiGroup Rtheta Rtheta_pw_equiv mult.
+  Proof.
+    split.
+    apply Rtheta_pw_Setoid.
+    apply Rtheta_pw_Associative_mult.
+    apply Rtheta_pw_mult_proper.
+  Qed.
+
+  Global Instance Rtheta_pw_LeftIdentity_mult_1:
+    @LeftIdentity Rtheta Rtheta Rtheta_pw_equiv mult one.
+  Proof.
+    unfold LeftIdentity.
+    intros.
+    unfold  mult, one, equiv, Rtheta_pw_equiv, Rtheta_Mult, Rtheta_One,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta y.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_RightIdentity_mult_1:
+    @RightIdentity Rtheta Rtheta_pw_equiv Rtheta mult one.
+  Proof.
+    unfold RightIdentity.
+    intros.
+    unfold  mult, one, equiv, Rtheta_pw_equiv, Rtheta_Mult, Rtheta_One,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta x.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_Monoid_mult_1:
+    @Monoid Rtheta Rtheta_pw_equiv mult one.
+  Proof.
+    split.
+    apply Rtheta_pw_SemiGroup_mult.
+    apply Rtheta_pw_LeftIdentity_mult_1.
+    apply Rtheta_pw_RightIdentity_mult_1.
+  Qed.
+
+  Global Instance Rtheta_pw_Commutative_mult:
+    @Commutative Rtheta Rtheta_pw_equiv Rtheta mult.
+  Proof.
+    unfold Commutative.
+    intros.
+    unfold  mult, zero, equiv, Rtheta_pw_equiv, Rtheta_Mult, Rtheta_One,
+    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    destruct_Rtheta x. destruct_Rtheta y.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_LeftDistribute_mult_plus:
+    LeftDistribute mult plus.
+  Proof.
+    unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_pw_equiv, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    intros.
+    destruct_Rtheta a. destruct_Rtheta b. destruct_Rtheta c.
+    split.
+    ring.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Rtheta_pw_CommutativeMonoid_mult_1:
+    @CommutativeMonoid Rtheta Rtheta_pw_equiv mult one.
+  Proof.
+    split.
+    apply Rtheta_pw_Monoid_mult_1.
+    apply Rtheta_pw_Commutative_mult.
+  Qed.
+
 End Rtheta_Poinitwise_Setoid_equiv.
 
 Section Rtheta_Union.
@@ -764,7 +969,7 @@ Section Rtheta_Union.
   Global Instance Rtheta_Union_Plus: Plus Rtheta := Union plus.
   Global Instance Rtheta_Union_Mult: Mult Rtheta := Union mult.
 
-  Global Instance Rtheta_pw_Associative_plus: Associative Rtheta_Union_Plus.
+  Global Instance Rtheta_Upw_Associative_plus: Associative Rtheta_Union_Plus.
   Proof.
     unfold Associative, HeteroAssociative.
     intros x y z.
@@ -777,7 +982,7 @@ Section Rtheta_Union.
     admit.
   Qed.
 
-  Global Instance Rtheta_pw_Associative_mult: Associative Rtheta_Union_Mult.
+  Global Instance Rtheta_Upw_Associative_mult: Associative Rtheta_Union_Mult.
   Proof.
     unfold Associative, HeteroAssociative.
     intros x y z.
