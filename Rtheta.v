@@ -893,7 +893,7 @@ End Rtheta_Poinitwise_Setoid_equiv.
 
 Section Rtheta_Union.
 
-  Open Local Scope bool_scope.
+  Local Open Scope bool_scope.
   
   Definition Union
              (op: CarrierA -> CarrierA -> CarrierA)
