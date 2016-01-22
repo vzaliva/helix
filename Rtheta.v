@@ -1,11 +1,5 @@
 (*
-
-R_theta is type which is used as value for vectors in Spiral.  It
-holds a value (for example Real) and two boolean flags:
-
-IsStruct: indicates that this value should be treated as "structural"
-isVCollision: indicates that this a result of a value collision: an operation on two non-structural values .
-isSCollision: indicates that this a result of a structual collision: an operation on two structural values .
+R_theta is type which is used as value for vectors in Spiral.  
  *)
 
 Require Export CarrierType.
@@ -21,80 +15,106 @@ Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
-(* Rtheta is product type of type A, and three booleans *)
-Definition Rtheta := prod (prod (prod CarrierA bool) bool) bool.
+Record RthetaFlags : Type :=
+  mkRthetaFlags
+    {
+      structCollision: bool ;
+      valueCollision: bool ; 
+      leftStruct: bool ;
+      rightStruct: bool 
+    }.
+
+Record Rtheta : Type
+  := mkRtheta
+       {
+         val : CarrierA;
+         s0: bool ;
+         s1: bool ;
+         flags: RthetaFlags ;
+         stickyFlags: RthetaFlags
+       }.
 
 (* Some convenience constructros *)
-Definition Rtheta_new (val:CarrierA) (is_struct is_v_col is_s_col: bool) := (val, is_struct, is_v_col, is_s_col).
-Definition Rtheta_normal (val:CarrierA) := (val, false, false, false).
-Definition Rtheta_SZero := (0, true, false, false).
-Definition Rtheta_SOne := (1, true, false, false).
 
+Definition RthetaFlags_normal := mkRthetaFlags false false false false.
 
-(* Projections: *)
-Definition RthetaVal (x:Rtheta) :=
-  match x with
-  | (val, is_struct, is_v_col, is_s_col) => val
-  end.
+Definition Rtheta_normal (val:CarrierA) :=
+  mkRtheta val false false RthetaFlags_normal RthetaFlags_normal.
+
+Definition Rtheta_SZero :=
+  mkRtheta 0 true true RthetaFlags_normal RthetaFlags_normal.
+
+Definition Rtheta_SOne :=
+  mkRtheta 1 true true RthetaFlags_normal RthetaFlags_normal.
 
 Definition RthetaIsStruct (x:Rtheta) :=
-  match x with
-  | (val, is_struct, is_v_col, is_s_col) => is_struct
-  end.
+  andb (s0 x) (s1 x).
 
-Definition RthetaIsVCollision (x:Rtheta) :=
-  match x with
-  | (val, is_struct, is_v_col, is_s_col) => is_v_col
-  end.
-
-Definition RthetaIsSCollision (x:Rtheta) :=
-  match x with
-  | (val, is_struct, is_v_col, is_s_col) => is_s_col
-  end.
+Definition RthetaIsCollision (x:Rtheta) :=
+  let sf := stickyFlags x in
+  orb (structCollision sf) (valueCollision sf).
 
 (* Propositional predicates *)
 Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
-Definition Is_SCollision (x:Rtheta) :=  Is_true (RthetaIsSCollision x).
-Definition Is_VCollision (x:Rtheta) :=  Is_true (RthetaIsVCollision x).
-Definition Is_Collision (x:Rtheta) :=  Is_SCollision x \/ Is_VCollision x.
+Definition Is_Collision (x:Rtheta) := Is_true (RthetaIsCollision x).
 Definition Is_Val (x:Rtheta) := (not (Is_Struct x)) /\ (not (Is_Collision x)). (* Non-structural and not collision *)
 Definition Is_StructNonCol (x:Rtheta) := (Is_Struct x) /\ (not (Is_Collision x)). (* structural, but not collision *)
-Definition Is_SZeroNonCol (x:Rtheta) := Is_StructNonCol x /\ RthetaVal x = 0.
+Definition Is_SZeroNonCol (x:Rtheta) := Is_StructNonCol x /\ val x = 0.
 
-(* Pointwise application of 3 functions to elements of Rtheta *)
-Definition Rtheta_pointwise
-           (oA:CarrierA->CarrierA->CarrierA) (ob1 ob2 ob3: bool->bool->bool)
+Definition RthetaFlags_pointwise
+           (op:bool->bool->bool) 
+           (a b: RthetaFlags)
+  :=
+    mkRthetaFlags
+      (op (structCollision a) (structCollision b))
+      (op (valueCollision a) (valueCollision b))
+      (op (leftStruct a) (leftStruct b))
+      (op (rightStruct a) (rightStruct b)).
+
+Definition Rtheta_binop
+           (op:CarrierA->CarrierA->CarrierA) 
            (a b: Rtheta)
   :=
-    (
-      oA (RthetaVal a) (RthetaVal b),
-      ob1 (RthetaIsStruct a) (RthetaIsStruct b),
-      ob3  (RthetaIsVCollision a) (RthetaIsVCollision b),
-      ob2  (RthetaIsSCollision a) (RthetaIsSCollision b)
-    ).
+    let sa := (RthetaIsStruct a) in
+    let sb := (RthetaIsStruct b) in
+    let newflags :=
+        match sa, sb with
+        | false, false => mkRthetaFlags false true false false (* value collision *)
+        | false, true => mkRthetaFlags false false false true (* right struct *)
+        | true, false => mkRthetaFlags false false true false (* left struct *)
+        | true, true => mkRthetaFlags true false false false (* struct collision *)
+        end
+    in
+    mkRtheta
+      (op (val a) (val b)) (* apply operation to argument value fields *)
+      sa (* preserve structural flag from 1st argument as s0 *)
+      sb (* preserve structural flag from 2nd argument as s1 *)
+      newflags
+      (RthetaFlags_pointwise orb newflags
+                             (RthetaFlags_pointwise orb (stickyFlags a) (stickyFlags b))).
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
-           (oA:CarrierA->CarrierA)
+           (op:CarrierA->CarrierA)
            (x: Rtheta)
-  := (oA (RthetaVal x), (RthetaIsStruct x), (RthetaIsVCollision x), (RthetaIsSCollision x)).
+  := mkRtheta (op (val x)) (s0 x) (s1 x) (flags x) (stickyFlags x).
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
-           (oA:relation CarrierA)
+           (rel: relation CarrierA)
            (a b: Rtheta)
-  := oA (RthetaVal a) (RthetaVal b).
+  := rel (val a) (val b).
 
-Global Instance Rtheta_Zero: Zero Rtheta := (0, false, false, false).
-Global Instance Rtheta_One: One Rtheta := (1, false, false, false).
-Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_pointwise plus orb orb orb.
-Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_pointwise mult orb orb orb.
+Global Instance Rtheta_Zero: Zero Rtheta := Rtheta_normal 0.
+Global Instance Rtheta_One: One Rtheta := Rtheta_normal 1.
+Global Instance Rtheta_Plus: Plus Rtheta := Rtheta_binop plus.
+Global Instance Rtheta_Mult: Mult Rtheta := Rtheta_binop mult.
 Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
 Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
 Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
 
 (* similar to `destruct_all Rtheta` but gives variables more meaningful names *)
-Ltac destruct_Rtheta x :=
+(* Ltac destruct_Rtheta x :=
   let x01 := fresh x "01" in
   let x02 := fresh x "02" in
   let x0 := fresh x "_val" in
@@ -103,7 +123,7 @@ Ltac destruct_Rtheta x :=
   let x3 := fresh x "_s_col" in
   destruct x as (x01, x3);
     destruct x01 as (x02, x2);
-    destruct x02 as (x0, x1).
+    destruct x02 as (x0, x1). *)
 
 Lemma Rtheta_Val_is_not_Struct:
   ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
@@ -157,22 +177,21 @@ Section Rtheta_val_Setoid_equiv.
 
   Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
-    unfold Associative, HeteroAssociative, Rtheta_Plus, Rtheta_pointwise,
-    RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop,
+    RthetaIsStruct.
     intros.
     apply plus_assoc.
   Qed.
 
   Global Instance Rtheta_val_Associative_mult: Associative Rtheta_Mult.
   Proof.
-    unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_pointwise,
-    RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_binop.
     intros.
     apply mult_assoc.
   Qed.
 
   Global Instance Rtheta_val_val_proper:
-    Proper ((=) ==> (=)) (RthetaVal).
+    Proper ((=) ==> (=)) (val).
   Proof.
     simpl_relation.
   Qed.
@@ -181,12 +200,10 @@ Section Rtheta_val_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_pointwise, equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in aEq. simpl in aEq.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in bEq. simpl in bEq.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq. simpl in aEq, bEq.
     rewrite aEq, bEq.
     reflexivity.
   Qed.
@@ -195,10 +212,10 @@ Section Rtheta_val_Setoid_equiv.
     Proper ((=) ==> (=)) (Rtheta_Neg).
   Proof.
     intros a b aEq.
-    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
+    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct a, b.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in aEq. simpl in aEq.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq. simpl in aEq.
     rewrite aEq.
     reflexivity.
   Qed.
@@ -207,12 +224,10 @@ Section Rtheta_val_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in aEq. simpl in aEq.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in bEq. simpl in bEq.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq. simpl in aEq, bEq.
     rewrite aEq, bEq.
     reflexivity.
   Qed.
@@ -232,8 +247,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold LeftIdentity.
     intros.
     unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta y.
+    Rtheta_binop.
+    destruct y.
     simpl.
     ring.
   Qed.
@@ -244,8 +259,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold RightIdentity.
     intros.
     unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta x.
+    Rtheta_binop.
+    destruct x.
     simpl.
     ring.
   Qed.
@@ -265,9 +280,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold Commutative.
     intros.
     unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
+    Rtheta_binop.
+    destruct x, y.
     simpl.
     ring.
   Qed.
@@ -295,8 +309,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold LeftIdentity.
     intros.
     unfold  mult, one, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta y.
+    Rtheta_binop.
+    destruct y.
     simpl.
     ring.
   Qed.
@@ -307,8 +321,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold RightIdentity.
     intros.
     unfold  mult, one, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta x.
+    Rtheta_binop.
+    destruct x.
     simpl.
     ring.
   Qed.
@@ -328,8 +342,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold Commutative.
     intros.
     unfold  mult, zero, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta x. destruct_Rtheta y.
+    Rtheta_binop.
+    destruct x,y.
     simpl.
     ring.
   Qed.
@@ -337,9 +351,9 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_LeftDistribute_mult_plus:
     LeftDistribute mult plus.
   Proof.
-    unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_binop.
     intros.
-    destruct_Rtheta a. destruct_Rtheta b. destruct_Rtheta c.
+    destruct a,b,c.
     simpl.
     ring.
   Qed.
@@ -357,8 +371,8 @@ Section Rtheta_val_Setoid_equiv.
   Proof.
     unfold LeftAbsorb.
     intros.
-    destruct_Rtheta y.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct.
+    destruct y.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_binop.
     simpl.
     ring.
   Qed.
@@ -368,8 +382,8 @@ Section Rtheta_val_Setoid_equiv.
   Proof.
     unfold RightAbsorb.
     intros.
-    destruct_Rtheta x.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_pointwise, RthetaVal, RthetaIsStruct.
+    destruct x.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_binop.
     simpl.
     ring.
   Qed.
@@ -386,10 +400,9 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_LeftInverse_plus_neg_0:
     LeftInverse plus negate 0.
   Proof.
-    unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_pointwise.
+    unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_binop.
     intros.
-    destruct_Rtheta x.
-    unfold RthetaVal.
+    destruct x.
     simpl.
     ring.
   Qed.
@@ -397,7 +410,7 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_RightInverse_plus_neg_0:
     RightInverse plus negate 0.
   Proof.
-    unfold RightInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_pointwise, RthetaVal, RthetaIsStruct.
+    unfold RightInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_binop.
     intros.
     simpl.
     ring.
@@ -428,15 +441,14 @@ Section Rtheta_val_Setoid_equiv.
   Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
   Global Instance Rtheta_val_ledec (x y: Rtheta): Decision (x ≤ y) :=
-    CarrierAledec (RthetaVal x) (RthetaVal y).
+    CarrierAledec (val x) (val y).
 
   Global Instance Rtheta_val_ltdec (x y: Rtheta): Decision (x < y) :=
-    CarrierAltdec (RthetaVal x) (RthetaVal y).
+    CarrierAltdec (val x) (val y).
 
-  Global Program Instance Rtheta_val_abs: Abs Rtheta := fun (x:Rtheta) =>
-                                                      (abs (RthetaVal x), RthetaIsStruct x, RthetaIsVCollision x, RthetaIsSCollision x).
+  Global Program Instance Rtheta_val_abs: Abs Rtheta := Rtheta_unary abs.
   Next Obligation.
-    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
     split; unfold abs; crush.
   Qed.
 
@@ -444,12 +456,10 @@ Section Rtheta_val_Setoid_equiv.
     Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in aEq, bEq.
-    simpl in *.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq; simpl in aEq, bEq.
     rewrite <- aEq, <- bEq.
     split; auto.
   Qed.
@@ -458,12 +468,10 @@ Section Rtheta_val_Setoid_equiv.
     Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal in aEq, bEq.
-    simpl in *.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq; simpl in aEq, bEq.
     rewrite <- aEq, <- bEq.
     split; auto.
   Qed.
@@ -481,9 +489,9 @@ Section Rtheta_val_Setoid_equiv.
     Transitive le.
   Proof.
     unfold Transitive.
-    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+    unfold le, Rtheta_Le, Rtheta_rel_first.
     intros.
-    destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
+    destruct x, y, z.
     simpl in *.
     auto.
   Qed.
@@ -492,8 +500,8 @@ Section Rtheta_val_Setoid_equiv.
     AntiSymmetric le.
   Proof.
     unfold AntiSymmetric.
-    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal, equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal.
-    destruct_Rtheta x. destruct_Rtheta y.
+    unfold le, Rtheta_Le, Rtheta_rel_first, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    destruct x,y.
     intros.
     simpl in *.
     apply (antisymmetry (≤)); assumption.
@@ -521,8 +529,8 @@ Section Rtheta_val_Setoid_equiv.
     TotalRelation le.
   Proof.
     unfold TotalRelation.
-    unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
-    destruct_Rtheta x. destruct_Rtheta y.
+    unfold le, Rtheta_Le, Rtheta_rel_first.
+    destruct x,y.
     simpl.
     apply (total (≤)).
   Qed.
@@ -550,14 +558,12 @@ Section Rtheta_val_Setoid_equiv.
     ∀ z x y : Rtheta, x ≤ y <-> z + x ≤ z + y.
   Proof.
     intros z x y.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
-    destruct_Rtheta z.
-    unfold le, Rtheta_Le, Rtheta_rel_first, plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal.
+    destruct x,y,z.
+    unfold le, Rtheta_Le, Rtheta_rel_first, plus, Rtheta_Plus, Rtheta_binop.
     simpl.
     assert(H: SemiRingOrder CarrierAle) by apply CarrierASRO.
     destruct H.
-    specialize srorder_plus with (z:=z_val).
+    specialize srorder_plus with (z:=val2).
     destruct srorder_plus.
     destruct order_embedding_preserving.
     destruct order_embedding_reflecting.
@@ -592,18 +598,17 @@ Section Rtheta_val_Setoid_equiv.
     - apply total_order_po.
     - apply Rtheta_val_SemiRing.
     -
-      destruct_Rtheta x. destruct_Rtheta y.
-      unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
-      unfold plus, Rtheta_Plus, Rtheta_pointwise, RthetaVal.
-      unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal.
-      unfold RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+      destruct x,y.
+      unfold le, Rtheta_Le, Rtheta_rel_first.
+      unfold plus, Rtheta_Plus, Rtheta_binop.
+      unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
       simpl.
       intros H.
-      exists (y_val-x_val, false, false, false).
+      exists (Rtheta_normal (val1-val0)).
       simpl; ring.
     - apply Rtheta_val_plus_OrderEmbedding.
-    - destruct_Rtheta x. destruct_Rtheta y.
-      unfold le, Rtheta_Le, Rtheta_rel_first, RthetaVal.
+    - destruct x,y.
+      unfold le, Rtheta_Le, Rtheta_rel_first.
       apply CarrierASRO.
   Qed.
 
@@ -699,7 +704,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_pointwise, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
     destruct_Rtheta a. destruct_Rtheta b.
     destruct_Rtheta a'. destruct_Rtheta b'.
     unfold equiv, Rtheta_pw_equiv in aEq, bEq.
@@ -720,7 +725,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
+    unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
     destruct_Rtheta a. destruct_Rtheta b.
     destruct_Rtheta a'. destruct_Rtheta b'.
     unfold equiv, Rtheta_pw_equiv in aEq, bEq.
