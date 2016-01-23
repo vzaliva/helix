@@ -249,27 +249,37 @@ Section Rtheta_val_Setoid_equiv.
     simpl_relation.
   Qed.
 
+  Global Instance Rtheta_binop_val_proper:
+    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Rtheta_binop).
+  Proof.
+    simpl_relation.
+    unfold Rtheta_val_equiv, Rtheta_rel_first in *.
+    apply H ; [apply H0 | apply H1].
+  Qed.
+
+  Global Instance Rtheta_unary_val_proper:
+    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Rtheta_unary).
+  Proof.
+    simpl_relation.
+    unfold Rtheta_val_equiv, Rtheta_rel_first in *.
+    apply H, H0.
+  Qed.
+
   Global Instance Rtheta_val_plus_proper:
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
-    intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_val_equiv, Rtheta_rel_first.
-    destruct a, b, a', b'.
-    simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq. simpl in aEq, bEq.
-    rewrite aEq, bEq.
+    apply Rtheta_binop_val_proper.
+    simpl_relation.
+    rewrite H, H0.
     reflexivity.
   Qed.
 
   Global Instance Rtheta_val_neg_proper:
     Proper ((=) ==> (=)) (Rtheta_Neg).
   Proof.
-    intros a b aEq.
-    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_val_equiv, Rtheta_rel_first.
-    destruct a, b.
-    simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq. simpl in aEq.
-    rewrite aEq.
+    apply Rtheta_unary_val_proper.
+    simpl_relation.
+    rewrite H.
     reflexivity.
   Qed.
 
@@ -794,35 +804,11 @@ End Rtheta_Poinitwise_Setoid_equiv.
 
 Section Rtheta_Union.
 
-  Local Open Scope bool_scope.
-
-  Definition Union
-             (op: CarrierA -> CarrierA -> CarrierA)
-             (a b: Rtheta)
-    : Rtheta :=
-    let '(v0,s0,cv0,cs0) := a in
-    let '(v1,s1,cv1,cs1) := b in
-    (op v0 v1,
-     s0 && s1,
-     (cv0 || cv1) || (negb (s0 || s1)),
-     (cs0 || cs1) || (s0 && s1)
-    ).
-
-  Global Instance Union_val_proper:
-    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Union).
-  Proof.
-    simpl_relation.
-    unfold Rtheta_val_equiv, Rtheta_rel_first, RthetaVal, Union in *.
-    repeat break_let.
-    repeat tuple_inversion.
-    apply H ; [apply H0 | apply H1].
-  Qed.
-
   (* Stronger commutativity, wrt to 'eq' equality *)
   Lemma Union_comm
         (op: CarrierA -> CarrierA -> CarrierA)
         `{C: !@Commutative CarrierA eq CarrierA op}
-    : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
+  : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
   Proof.
     intros x y.
     destruct_Rtheta x.
