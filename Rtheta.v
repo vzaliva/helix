@@ -24,6 +24,14 @@ Record RthetaFlags : Type :=
       rightStruct: bool 
     }.
 
+Global Instance RthetaFlags_equiv:
+  Equiv RthetaFlags :=
+  fun a b =>
+    structCollision a ≡ structCollision b /\
+    valueCollision a ≡ valueCollision b /\
+    leftStruct a ≡ leftStruct b /\
+    rightStruct a ≡ rightStruct b.
+
 Record Rtheta : Type
   := mkRtheta
        {
@@ -625,27 +633,29 @@ Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta := fun a b =>
-    match a, b with
-      (a_val, a_struct, a_v_col, a_s_col), (b_val, b_struct, b_v_col, b_s_col) =>
-      a_val = b_val /\
-      a_struct ≡ b_struct /\
-      a_v_col ≡ b_v_col /\
-      a_s_col ≡ b_s_col
-    end.
+      val a = val b /\
+      s0 a ≡ s0 b /\
+      flags a ≡ flags b /\
+      stickyFlags a ≡ stickyFlags b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
   Proof.
-    destruct_Rtheta a. destruct_Rtheta b.
-    crush.
+    destruct a, b.
+    unfold Rtheta_pw_equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    simpl.
+    intros H.
+    destruct H as [H0 H1].
+    apply H0.
   Qed.
 
   Lemma Rtheta_eq_pw_equiv:
     forall (a b: Rtheta), eq a b -> Rtheta_pw_equiv a b.
   Proof.
     intros.
-    destruct_Rtheta a. destruct_Rtheta b.
-    tuple_inversion.
+    destruct a, b.
+    unfold Rtheta_pw_equiv.
+    f_equal.
     crush.
   Qed.
 
