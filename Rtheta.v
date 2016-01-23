@@ -1,5 +1,5 @@
 (*
-R_theta is type which is used as value for vectors in Spiral.  
+R_theta is type which is used as value for vectors in Spiral.
  *)
 
 Require Export CarrierType.
@@ -15,29 +15,74 @@ Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
-Record RthetaFlags : Type :=
-  mkRthetaFlags
-    {
-      structCollision: bool ;
-      valueCollision: bool ; 
-      leftStruct: bool ;
-      rightStruct: bool 
-    }.
 
-Global Instance RthetaFlags_equiv:
-  Equiv RthetaFlags :=
-  fun a b =>
-    structCollision a ≡ structCollision b /\
-    valueCollision a ≡ valueCollision b /\
-    leftStruct a ≡ leftStruct b /\
-    rightStruct a ≡ rightStruct b.
+Section RthetaFlags.
+
+  Record RthetaFlags : Type :=
+    mkRthetaFlags
+      {
+        structCollision: bool ;
+        valueCollision: bool ;
+        leftStruct: bool ;
+        rightStruct: bool
+      }.
+
+  Global Instance RthetaFlags_equiv:
+    Equiv RthetaFlags :=
+    fun a b =>
+      structCollision a ≡ structCollision b /\
+      valueCollision a ≡ valueCollision b /\
+      leftStruct a ≡ leftStruct b /\
+      rightStruct a ≡ rightStruct b.
+
+  Global Instance RthetaFlags_Reflexive_equiv: Reflexive RthetaFlags_equiv.
+  Proof.
+    unfold Reflexive.
+    intros x.
+    destruct x.
+    unfold equiv, RthetaFlags_equiv.
+    auto.
+  Qed.
+
+  Global Instance RthetaFlags_Symmetric_equiv: Symmetric RthetaFlags_equiv.
+  Proof.
+    unfold Symmetric.
+    intros x y H.
+    destruct x,y.
+    unfold equiv, RthetaFlags_equiv in *.
+    simpl in *.
+    split; crush.
+  Qed.
+
+  Global Instance RthetaFlags_Transitive_equiv: Transitive RthetaFlags_equiv.
+  Proof.
+    unfold Transitive.
+    intros x y z H0 H1.
+    unfold equiv, RthetaFlags_equiv in *.
+    crush.
+  Qed.
+
+  Global Instance RthetaFlags_Equivalence_equiv: Equivalence RthetaFlags_equiv.
+  Proof.
+    split.
+    apply RthetaFlags_Reflexive_equiv.
+    apply RthetaFlags_Symmetric_equiv.
+    apply RthetaFlags_Transitive_equiv.
+  Qed.
+
+  Global Instance RthetaFlags_Setoid: @Setoid RthetaFlags RthetaFlags_equiv.
+  Proof.
+    apply RthetaFlags_Equivalence_equiv.
+  Qed.
+
+End RthetaFlags.
 
 Record Rtheta : Type
   := mkRtheta
        {
          val : CarrierA;
-         s0: bool ;
-         s1: bool ;
+         sL: bool ;
+         sR: bool ;
          flags: RthetaFlags ;
          stickyFlags: RthetaFlags
        }.
@@ -56,7 +101,7 @@ Definition Rtheta_SOne :=
   mkRtheta 1 true true RthetaFlags_normal RthetaFlags_normal.
 
 Definition RthetaIsStruct (x:Rtheta) :=
-  andb (s0 x) (s1 x).
+  andb (sL x) (sR x).
 
 Definition RthetaIsCollision (x:Rtheta) :=
   let sf := stickyFlags x in
@@ -70,7 +115,7 @@ Definition Is_StructNonCol (x:Rtheta) := (Is_Struct x) /\ (not (Is_Collision x))
 Definition Is_SZeroNonCol (x:Rtheta) := Is_StructNonCol x /\ val x = 0.
 
 Definition RthetaFlags_pointwise
-           (op:bool->bool->bool) 
+           (op:bool->bool->bool)
            (a b: RthetaFlags)
   :=
     mkRthetaFlags
@@ -80,7 +125,7 @@ Definition RthetaFlags_pointwise
       (op (rightStruct a) (rightStruct b)).
 
 Definition Rtheta_binop
-           (op:CarrierA->CarrierA->CarrierA) 
+           (op:CarrierA->CarrierA->CarrierA)
            (a b: Rtheta)
   :=
     let sa := (RthetaIsStruct a) in
@@ -95,8 +140,8 @@ Definition Rtheta_binop
     in
     mkRtheta
       (op (val a) (val b)) (* apply operation to argument value fields *)
-      sa (* preserve structural flag from 1st argument as s0 *)
-      sb (* preserve structural flag from 2nd argument as s1 *)
+      sa (* preserve structural flag from 1st argument as sL *)
+      sb (* preserve structural flag from 2nd argument as sR *)
       newflags
       (RthetaFlags_pointwise orb newflags
                              (RthetaFlags_pointwise orb (stickyFlags a) (stickyFlags b))).
@@ -105,7 +150,7 @@ Definition Rtheta_binop
 Definition Rtheta_unary
            (op:CarrierA->CarrierA)
            (x: Rtheta)
-  := mkRtheta (op (val x)) (s0 x) (s1 x) (flags x) (stickyFlags x).
+  := mkRtheta (op (val x)) (sL x) (sR x) (flags x) (stickyFlags x).
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
@@ -145,7 +190,7 @@ Qed.
 Section Rtheta_val_Setoid_equiv.
   (* Setoid equality is defined by taking into account only the first element. *)
   Global Instance Rtheta_val_equiv: Equiv Rtheta := Rtheta_rel_first equiv.
-  
+
   Global Instance Rtheta_val_Reflexive_equiv: Reflexive Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
@@ -153,7 +198,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
     reflexivity.
   Qed.
-  
+
   Global Instance Rtheta_val_Symmetric_equiv: Symmetric Rtheta_val_equiv.
   Proof.
     unfold Symmetric.
@@ -633,10 +678,11 @@ Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta := fun a b =>
-      val a = val b /\
-      s0 a ≡ s0 b /\
-      flags a ≡ flags b /\
-      stickyFlags a ≡ stickyFlags b.
+                                                     val a = val b /\
+                                                     sL a ≡ sL b /\
+                                                     sR a ≡ sR b /\
+                                                     flags a ≡ flags b /\
+                                                     stickyFlags a ≡ stickyFlags b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
@@ -652,36 +698,37 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Lemma Rtheta_eq_pw_equiv:
     forall (a b: Rtheta), eq a b -> Rtheta_pw_equiv a b.
   Proof.
-    intros.
+    intros a b H.
     destruct a, b.
     unfold Rtheta_pw_equiv.
-    f_equal.
-    crush.
+    simpl.
+    inversion H.
+    auto.
   Qed.
 
   Global Instance Rtheta_pw_Reflexive_equiv: Reflexive Rtheta_pw_equiv.
   Proof.
     unfold Reflexive.
     intros x.
-    destruct_Rtheta x.
+    destruct x.
     unfold equiv, Rtheta_pw_equiv.
-    crush.
+    auto.
   Qed.
-  
+
   Global Instance Rtheta_pw_Symmetric_equiv: Symmetric Rtheta_pw_equiv.
   Proof.
     unfold Symmetric.
     intros x y H.
-    destruct_Rtheta x. destruct_Rtheta y.
+    destruct x,y.
     unfold equiv, Rtheta_pw_equiv in *.
-    crush.
+    split; try symmetry; crush.
   Qed.
 
   Global Instance Rtheta_pw_Transitive_equiv: Transitive Rtheta_pw_equiv.
   Proof.
     unfold Transitive.
     intros x y z.
-    destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
+    destruct x, y, z.
     unfold equiv, Rtheta_pw_equiv.
     crush.
   Qed.
@@ -700,11 +747,11 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Global Instance RthetaVal_pw_proper:
-    Proper ((=) ==> (=)) (RthetaVal).
+    Proper ((=) ==> (=)) (val).
   Proof.
     simpl_relation.
-    unfold RthetaVal.
-    repeat break_let.
+    destruct x, y.
+    simpl.
     unfold Rtheta_pw_equiv in H.
     destruct H as [H0 [H1 [H2 H3]]].
     auto.
@@ -714,10 +761,12 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
-    unfold equiv, Rtheta_pw_equiv in aEq, bEq.
+    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaIsStruct, RthetaFlags_pointwise.
+    destruct a, b, a', b'.
+    simpl.
+    destruct aEq as [AH0 [AH1 [AH2 AH3]]].
+    destruct bEq as [BH0 [BH1 [BH2 BH3]]].
+    simpl in *.
     crush.
   Qed.
 
@@ -725,8 +774,8 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((=) ==> (=)) (Rtheta_Neg).
   Proof.
     intros a b aEq.
-    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
+    unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_pw_equiv, Rtheta_rel_first.
+    destruct a, b.
     unfold equiv, Rtheta_pw_equiv in aEq.
     crush.
   Qed.
@@ -735,9 +784,8 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaVal, RthetaIsStruct, RthetaIsVCollision, RthetaIsSCollision.
-    destruct_Rtheta a. destruct_Rtheta b.
-    destruct_Rtheta a'. destruct_Rtheta b'.
+    unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first.
+    destruct a, b, a', b'.
     unfold equiv, Rtheta_pw_equiv in aEq, bEq.
     crush.
   Qed.
@@ -747,7 +795,7 @@ End Rtheta_Poinitwise_Setoid_equiv.
 Section Rtheta_Union.
 
   Local Open Scope bool_scope.
-  
+
   Definition Union
              (op: CarrierA -> CarrierA -> CarrierA)
              (a b: Rtheta)
@@ -759,7 +807,7 @@ Section Rtheta_Union.
      (cv0 || cv1) || (negb (s0 || s1)),
      (cs0 || cs1) || (s0 && s1)
     ).
-  
+
   Global Instance Union_val_proper:
     Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Union).
   Proof.
@@ -769,7 +817,7 @@ Section Rtheta_Union.
     repeat tuple_inversion.
     apply H ; [apply H0 | apply H1].
   Qed.
-  
+
   (* Stronger commutativity, wrt to 'eq' equality *)
   Lemma Union_comm
         (op: CarrierA -> CarrierA -> CarrierA)
@@ -779,20 +827,20 @@ Section Rtheta_Union.
     intros x y.
     destruct_Rtheta x.
     destruct_Rtheta y.
-    
+
     destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
-      (unfold Union;       
+      (unfold Union;
        replace (op x_val y_val) with (op y_val x_val) by apply C;
        reflexivity).
   Qed.
 
   (* Weaker commutativity, wrt to pointwise equality *)
   Global Instance Rtheta_pw_Commutative_Union
-           (op: CarrierA -> CarrierA -> CarrierA)
-           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-           `{C: !Commutative op}
+         (op: CarrierA -> CarrierA -> CarrierA)
+         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+         `{C: !Commutative op}
     :
-    @Commutative Rtheta Rtheta_pw_equiv Rtheta (Union op).
+      @Commutative Rtheta Rtheta_pw_equiv Rtheta (Union op).
   Proof.
     intros x y.
     destruct_Rtheta x. destruct_Rtheta y.
@@ -800,14 +848,14 @@ Section Rtheta_Union.
     destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
       unfold equiv, Rtheta_pw_equiv;  auto.
   Qed.
-  
+
   (* Even weaker commutativity, wrt to value equality *)
   Global Instance Rtheta_val_Commutative_Union
-           (op: CarrierA -> CarrierA -> CarrierA)
-           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-           `{C: !Commutative op}
+         (op: CarrierA -> CarrierA -> CarrierA)
+         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+         `{C: !Commutative op}
     :
-    @Commutative Rtheta Rtheta_val_equiv Rtheta (Union op).
+      @Commutative Rtheta Rtheta_val_equiv Rtheta (Union op).
   Proof.
     intros x y.
     destruct_Rtheta x.
@@ -848,5 +896,5 @@ Section Rtheta_Union.
     destr_bool.
     admit.
   Qed.
-  
+
 End Rtheta_Union.
