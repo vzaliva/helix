@@ -804,23 +804,7 @@ End Rtheta_Poinitwise_Setoid_equiv.
 
 Section Rtheta_Union.
 
-  (* Stronger commutativity, wrt to 'eq' equality *)
-  Lemma Union_comm
-        (op: CarrierA -> CarrierA -> CarrierA)
-        `{C: !@Commutative CarrierA eq CarrierA op}
-  : ∀ x y : Rtheta, Union op x y ≡ Union op y x.
-  Proof.
-    intros x y.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
-
-    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
-      (unfold Union;
-       replace (op x_val y_val) with (op y_val x_val) by apply C;
-       reflexivity).
-  Qed.
-
-  (* Weaker commutativity, wrt to pointwise equality *)
+  (* Only commutativity we have is wrt to pointwise equality. It is not commutative wrt. definitional equality  *)
   Global Instance Rtheta_pw_Commutative_Union
          (op: CarrierA -> CarrierA -> CarrierA)
          `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
