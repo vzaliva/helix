@@ -228,7 +228,7 @@ Section Rtheta_val_Setoid_equiv.
 
   Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
-    
+
     unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, RthetaIsStruct,
     RthetaFlags_pointwise.
     intros x y z.
@@ -340,16 +340,31 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_RightIdentity_plus_0.
   Qed.
 
+  Global Instance Rtheta_val_Commutative_Rtheta_binary
+         (op: CarrierA -> CarrierA -> CarrierA)
+         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+         `{C: !Commutative op}
+    :
+      @Commutative Rtheta Rtheta_val_equiv Rtheta (Rtheta_binop op).
+  Proof.
+    intros x y.
+    destruct x, y.
+    unfold Rtheta_binop.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    apply C.
+  Qed.
+
   Global Instance Rtheta_val_Commutative_plus:
     @Commutative Rtheta Rtheta_val_equiv Rtheta plus.
   Proof.
-    unfold Commutative.
-    intros.
-    unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct x, y.
-    simpl.
-    ring.
+    apply Rtheta_val_Commutative_Rtheta_binary.
+    - simpl_relation.
+      rewrite H, H0.
+      reflexivity.
+    - simpl_relation.
+      setoid_replace (x + y) with (y + x).
+      reflexivity.
+      ring.
   Qed.
 
   Global Instance Rtheta_val_CommutativeMonoid_plus_0:
@@ -405,13 +420,14 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_Commutative_mult:
     @Commutative Rtheta Rtheta_val_equiv Rtheta mult.
   Proof.
-    unfold Commutative.
-    intros.
-    unfold  mult, zero, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct x,y.
-    simpl.
-    ring.
+    apply Rtheta_val_Commutative_Rtheta_binary.
+    - simpl_relation.
+      rewrite H, H0.
+      reflexivity.
+    - simpl_relation.
+      setoid_replace (x * y) with (y * x).
+      reflexivity.
+      ring.
   Qed.
 
   Global Instance Rtheta_val_LeftDistribute_mult_plus:
@@ -804,69 +820,3 @@ Section Rtheta_Poinitwise_Setoid_equiv.
 
 End Rtheta_Poinitwise_Setoid_equiv.
 
-Section Rtheta_Union.
-
-  (* Only commutativity we have is wrt to pointwise equality. It is not commutative wrt. definitional equality  *)
-  Global Instance Rtheta_pw_Commutative_Union
-         (op: CarrierA -> CarrierA -> CarrierA)
-         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-         `{C: !Commutative op}
-    :
-      @Commutative Rtheta Rtheta_pw_equiv Rtheta (Union op).
-  Proof.
-    intros x y.
-    destruct_Rtheta x. destruct_Rtheta y.
-    unfold Union.
-    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
-      unfold equiv, Rtheta_pw_equiv;  auto.
-  Qed.
-
-  (* Even weaker commutativity, wrt to value equality *)
-  Global Instance Rtheta_val_Commutative_Union
-         (op: CarrierA -> CarrierA -> CarrierA)
-         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-         `{C: !Commutative op}
-    :
-      @Commutative Rtheta Rtheta_val_equiv Rtheta (Union op).
-  Proof.
-    intros x y.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
-    destruct x_struct, x_v_col, x_s_col, y_struct, y_v_col, y_s_col;
-      (unfold Union;
-       unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, RthetaVal;
-       setoid_replace (op x_val y_val) with (op y_val x_val) by apply C;
-       reflexivity).
-  Qed.
-
-  Global Instance Rtheta_Union_Plus: Plus Rtheta := Union plus.
-  Global Instance Rtheta_Union_Mult: Mult Rtheta := Union mult.
-
-  Global Instance Rtheta_Upw_Associative_plus: Associative Rtheta_Union_Plus.
-  Proof.
-    unfold Associative, HeteroAssociative.
-    intros x y z.
-    unfold Rtheta_Union_Plus, Union, equiv, Rtheta_pw_equiv.
-    destruct_Rtheta x. destruct_Rtheta y. destruct_Rtheta z.
-    repeat split.
-    ring.
-    destr_bool.
-    destr_bool.
-    admit.
-  Qed.
-
-  Global Instance Rtheta_Upw_Associative_mult: Associative Rtheta_Union_Mult.
-  Proof.
-    unfold Associative, HeteroAssociative.
-    intros x y z.
-    unfold Rtheta_Union_Mult, Union, equiv, Rtheta_pw_equiv.
-    repeat break_let.
-    repeat tuple_inversion.
-    repeat split.
-    ring.
-    destr_bool.
-    destr_bool.
-    admit.
-  Qed.
-
-End Rtheta_Union.
