@@ -83,8 +83,7 @@ Record Rtheta : Type
          val : CarrierA;
          sL: bool ;
          sR: bool ;
-         flags: RthetaFlags ;
-         stickyFlags: RthetaFlags
+         flags: RthetaFlags  (* sticky *)
        }.
 
 (* Some convenience constructros *)
@@ -92,19 +91,19 @@ Record Rtheta : Type
 Definition RthetaFlags_normal := mkRthetaFlags false false false false.
 
 Definition Rtheta_normal (val:CarrierA) :=
-  mkRtheta val false false RthetaFlags_normal RthetaFlags_normal.
+  mkRtheta val false false RthetaFlags_normal.
 
 Definition Rtheta_SZero :=
-  mkRtheta 0 true true RthetaFlags_normal RthetaFlags_normal.
+  mkRtheta 0 true true RthetaFlags_normal.
 
 Definition Rtheta_SOne :=
-  mkRtheta 1 true true RthetaFlags_normal RthetaFlags_normal.
+  mkRtheta 1 true true RthetaFlags_normal.
 
 Definition RthetaIsStruct (x:Rtheta) :=
   andb (sL x) (sR x).
 
 Definition RthetaIsCollision (x:Rtheta) :=
-  let sf := stickyFlags x in
+  let sf := flags x in
   orb (structCollision sf) (valueCollision sf).
 
 (* Propositional predicates *)
@@ -142,15 +141,14 @@ Definition Rtheta_binop
       (op (val a) (val b)) (* apply operation to argument value fields *)
       sa (* preserve structural flag from 1st argument as sL *)
       sb (* preserve structural flag from 2nd argument as sR *)
-      newflags
       (RthetaFlags_pointwise orb newflags
-                             (RthetaFlags_pointwise orb (stickyFlags a) (stickyFlags b))).
+                             (RthetaFlags_pointwise orb (flags a) (flags b))).
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
            (op:CarrierA->CarrierA)
            (x: Rtheta)
-  := mkRtheta (op (val x)) (sL x) (sR x) (flags x) (stickyFlags x).
+  := mkRtheta (op (val x)) (sL x) (sR x) (flags x).
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
@@ -230,16 +228,21 @@ Section Rtheta_val_Setoid_equiv.
 
   Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
-    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop,
-    RthetaIsStruct.
-    intros.
+    
+    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, RthetaIsStruct,
+    RthetaFlags_pointwise.
+    intros x y z.
+    destruct x, y, z.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
     apply plus_assoc.
   Qed.
 
   Global Instance Rtheta_val_Associative_mult: Associative Rtheta_Mult.
   Proof.
     unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_binop.
-    intros.
+    intros x y z.
+    destruct x, y, z.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
     apply mult_assoc.
   Qed.
 
@@ -691,8 +694,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
                                                      val a = val b /\
                                                      sL a ≡ sL b /\
                                                      sR a ≡ sR b /\
-                                                     flags a ≡ flags b /\
-                                                     stickyFlags a ≡ stickyFlags b.
+                                                     flags a ≡ flags b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
