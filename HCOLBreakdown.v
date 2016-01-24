@@ -96,7 +96,7 @@ Section HCOLBreakdown.
       dep_destruct (Vtail a).
       simpl; ring.
 
-    - rewrite EvalPolynomial_reduce, ScalarProd_reduce, MonomialEnumerator_cons.
+    - rewrite EvalPolynomial_reduce, MonomialEnumerator_cons, ScalarProd_reduce.
       unfold Ptail.
       rewrite ScalarProd_comm.
 
@@ -143,7 +143,7 @@ Section HCOLBreakdown.
         + simpl.
           apply abs_0_s.
 
-        + apply Rtheta_TotalOrder.
+        + apply Rtheta_val_TotalOrder.
           rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
           reflexivity.
       }
