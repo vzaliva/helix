@@ -53,7 +53,7 @@ Definition VnthInverseIndexMapped
     let f := partial_index_f _ _ f' in
     let f_spec := partial_index_f_spec _ _  f' in
     match (f n) as fn return f n ≡ fn -> Rtheta with
-    | None => fun _ => Rtheta_szero
+    | None => fun _ => Rtheta_SZero
     | Some z => fun p => Vnth x (f_spec n np z p)
     end eq_refl.
 
