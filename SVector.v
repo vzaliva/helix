@@ -29,7 +29,7 @@ Section SparseVectors.
 
   (* Project out carrier type values from vector of Rheta values *)
   Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
-    Vmap RthetaVal v.
+    Vmap val v.
 
   (* Our definition of "dense" vector means that it does not contain "structural" values and errors. *)
 
@@ -37,35 +37,18 @@ Section SparseVectors.
     Vforall Is_Val v.
 
   (* Construct "Zero svector". All values are structural zeros. *)
-  Definition szero_svector n: svector n := Vconst Rtheta_szero n.
+  Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
 
 End SparseVectors.
 
 Section Sparse_Unions.
+  Open Local Scope bool_scope.
 
-Open Local Scope bool_scope.
-  
-  (* Weaker commutativity, wrt to 'equiv' equality *)
-  Global Instance Rtheta_Commutative_Union
-           (op: CarrierA -> CarrierA -> CarrierA)
-           `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-           `{C: !Commutative op}
-    :
-    @Commutative Rtheta Rtheta_equiv Rtheta (Union op).
-  Proof.
-    intros x y.
-    destruct_Rtheta x.
-    destruct_Rtheta y.
-    destruct x1, x2, y1, y2; 
-      (unfold Union;
-       unfold equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal;
-       setoid_replace (op x0 y0) with (op y0 x0) by apply C;
-       reflexivity).
-  Qed.
-  
+  Definition Union := Rtheta_binop.
+
   (* Unary union of vector's elements (fold) *)
   Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v:svector n): Rtheta :=
-    Vfold_left (Union op) Rtheta_szero v.
+    Vfold_left (Union op) Rtheta_SZero v.
 
   (* Binary element-wise union of two vectors *)
   Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): svector n
@@ -87,22 +70,24 @@ Open Local Scope bool_scope.
 
   Lemma Vec2Union_comm {n}
         (op: CarrierA -> CarrierA -> CarrierA)
-        `{C: !@Commutative CarrierA eq CarrierA op}
+        `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+        `{C: !Commutative op}
         {a b:svector n}:
-    Vec2Union op a b ≡ Vec2Union op b a.
+    Vec2Union op a b = Vec2Union op b a.
   Proof.
     induction n.
     VOtac; reflexivity.
     VSntac a. VSntac b.
     simpl.
-    rewrite IHn, Union_comm.
+    rewrite 2!Vcons_to_Vcons_reord.
+    rewrite_clear IHn.
+    setoid_replace (Union op (Vhead a) (Vhead b)) with (Union op (Vhead b) (Vhead a))
+      by apply (@Rtheta_val_Commutative_Rtheta_binary op op_mor C).
     reflexivity.
-    apply C.
   Qed.
 
   Lemma SumUnion_cons {m n}
         (op: CarrierA -> CarrierA -> CarrierA)
-        `{C: !@Commutative CarrierA eq CarrierA op}
         (x: svector m) (xs: vector (svector m) n):
     SumUnion op (Vcons x xs) ≡ Vec2Union op (SumUnion op xs) x.
   Proof.
@@ -110,40 +95,43 @@ Open Local Scope bool_scope.
     apply Vfold_left_cons.
   Qed.
 
-  Lemma AbsorbUnionIndexBinary:
-    ∀ (op: CarrierA -> CarrierA -> CarrierA) (m k : nat) (kc : k < m) (a b : svector m),
-      Vnth (Vec2Union op a b) kc ≡ Union op (Vnth a kc) (Vnth b kc).
+  Lemma AbsorbUnionIndexBinary
+        (op: CarrierA -> CarrierA -> CarrierA)
+        (m k : nat)
+        (kc : k < m)
+        (a b : svector m):
+    Vnth (Vec2Union op a b) kc ≡ Union op (Vnth a kc) (Vnth b kc).
   Proof.
-    intros op m k kc a b.
     unfold Vec2Union.
     apply Vnth_map2.
   Qed.
 
-  Lemma AbsorbUnionIndex:
-    forall (op: CarrierA -> CarrierA -> CarrierA) `{C: !@Commutative CarrierA eq CarrierA op} m n (x: vector (svector m) n) k (kc: k<m),
-      Vnth (SumUnion op x) kc ≡ VecUnion op (Vmap (fun v => Vnth v kc) x).
+  Lemma AbsorbUnionIndex
+        (op: CarrierA -> CarrierA -> CarrierA)
+        `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+        m n (x: vector (svector m) n) k (kc: k<m):
+    Vnth (SumUnion op x) kc = VecUnion op (Vmap (fun v => Vnth v kc) x).
   Proof.
-    intros op C m n x k kc.
     induction n.
     + dep_destruct x.
       unfold VecUnion, SumUnion,szero_svector; simpl.
-      apply Vnth_const.
+      rewrite Vnth_const; reflexivity.
     + dep_destruct x.
-      rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons, Union_comm.
+      rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
       reflexivity.
-      apply C.
-      apply C.
   Qed.
 
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
-  Lemma AbsorbIUnionIndex:
-    forall (op: CarrierA -> CarrierA -> CarrierA) `{C: !@Commutative CarrierA eq CarrierA op} m n (x: vector (svector m) n) k (kc: k<m),
+  Lemma AbsorbIUnionIndex
+        (op: CarrierA -> CarrierA -> CarrierA)
+        m n (x: vector (svector m) n) k (kc: k<m)
+    :
       Vnth
         (SumUnion op
-           (Vbuild
-              (fun (i : nat) (ic : i < n) =>
-                 (Vnth x ic)
-           ))
+                  (Vbuild
+                     (fun (i : nat) (ic : i < n) =>
+                        (Vnth x ic)
+                  ))
         ) kc ≡
         VecUnion op
         (Vbuild
@@ -151,8 +139,6 @@ Open Local Scope bool_scope.
               Vnth (Vnth x ic) kc
         )).
   Proof.
-    intros op C m n x k kc.
-
     induction n.
     + dep_destruct x.
       rewrite 2!Vbuild_0.
@@ -187,12 +173,10 @@ Open Local Scope bool_scope.
       reflexivity.
 
       subst genX.
-      apply C.
       extensionality i.
       extensionality ic.
       simpl.
       rewrite NatUtil.lt_Sn_nS.
-      subst genX.
       reflexivity.
 
       extensionality i.

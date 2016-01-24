@@ -164,18 +164,6 @@ Global Instance Rtheta_Neg: Negate Rtheta := Rtheta_unary negate.
 Global Instance Rtheta_Le: Le Rtheta := Rtheta_rel_first le.
 Global Instance Rtheta_Lt: Lt Rtheta := Rtheta_rel_first lt.
 
-(* similar to `destruct_all Rtheta` but gives variables more meaningful names *)
-(* Ltac destruct_Rtheta x :=
-  let x01 := fresh x "01" in
-  let x02 := fresh x "02" in
-  let x0 := fresh x "_val" in
-  let x1 := fresh x "_struct" in
-  let x2 := fresh x "_v_col" in
-  let x3 := fresh x "_s_col" in
-  destruct x as (x01, x3);
-    destruct x01 as (x02, x2);
-    destruct x02 as (x0, x1). *)
-
 Lemma Rtheta_Val_is_not_Struct:
   ∀ z : Rtheta, Is_Val z → ¬Is_Struct z.
 Proof.
@@ -703,6 +691,7 @@ Section Rtheta_val_Setoid_equiv.
 
 End Rtheta_val_Setoid_equiv.
 
+(*
 Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
@@ -820,3 +809,5 @@ Section Rtheta_Poinitwise_Setoid_equiv.
 
 End Rtheta_Poinitwise_Setoid_equiv.
 
+
+*)
