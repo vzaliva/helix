@@ -66,7 +66,7 @@ Section HCOLBreakdown.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2Indexed_to_VMap2.
     reflexivity.
-    apply Rtheta_mult_proper.
+    apply Rtheta_val_mult_proper.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat},

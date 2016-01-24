@@ -508,8 +508,6 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_LeftDistribute_mult_plus.
   Qed.
 
-  Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
-
   Global Instance Rtheta_val_ledec (x y: Rtheta): Decision (x ≤ y) :=
     CarrierAledec (val x) (val y).
 
@@ -697,6 +695,7 @@ Section Rtheta_val_Setoid_equiv.
 
 End Rtheta_val_Setoid_equiv.
 
+Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
 Section Rtheta_Poinitwise_Setoid_equiv.
 
