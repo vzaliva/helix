@@ -18,7 +18,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 Open Scope nat_scope.
 
-(* "sparse" vector type: vector holding Rhteta values *)
+(* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
 Notation svector n := (vector Rtheta n) (only parsing).
 
 Section SparseVectors.
@@ -44,7 +44,7 @@ End SparseVectors.
 Section Sparse_Unions.
   Open Local Scope bool_scope.
 
-  Definition Union := Rtheta_binop.
+  Definition Union := Rtheta_binop. (* For sparse vectors binary operation on Rthetat is called Union (parametrized by binop kernel) *)
 
   (* Unary union of vector's elements (fold) *)
   Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v:svector n): Rtheta :=
@@ -187,20 +187,26 @@ Section Sparse_Unions.
       reflexivity.
   Qed.
 
+  (*
+Following two lemmas used to prove left and right absorbtion of structural
+zero wrt. pointwise equality. This is no longer true.
+However what I might need instead is a more general lemma proving
+that Union with structural non-error value is non-structural non-error.
   Lemma Union_Plus_SZeroNonErr_r:
-    ∀ x s, Is_SZeroNonErr s ->
-      Rtheta_poinitwise_equiv (Union (plus) x s) x.
+    ∀ x s, Is_SZeroNonCol s ->
+      Rtheta_pw_equiv (Union (plus) x s) x.
   Proof.
     intros x s S.
-    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S. 
+    unfold Is_SZeroNonCol, Is_StructNonCol, Is_Struct, Is_Collision in S.
     destruct S as [[S0 S1] S2].
-    destruct_Rtheta x.
-    destruct_Rtheta s.
-    unfold Rtheta_poinitwise_equiv, RthetaVal, RthetaIsStruct, RthetaIsSErr.
+    destruct x, s.
+    unfold Rtheta_pw_equiv.
     simpl in *.
-    split.
+    repeat split.
     - rewrite S2; ring.
-    - destruct x1, x2, s1, s2; crush.
+    - unfold RthetaIsStruct, RthetaIsCollision in *.
+      simpl in *.
+      auto.
   Qed.
 
   Lemma Union_Plus_SZeroNonErr_l:
@@ -208,7 +214,7 @@ Section Sparse_Unions.
             Rtheta_poinitwise_equiv (Union (plus) s x) x.
   Proof.
     intros x s S.
-    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S. 
+    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S.
     destruct S as [[S0 S1] S2].
     destruct_Rtheta x.
     destruct_Rtheta s.
@@ -218,7 +224,7 @@ Section Sparse_Unions.
     - rewrite S2; ring.
     - destruct x1, x2, s1, s2; crush.
   Qed.
-
+   *)
   Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
     Vbreak x ≡ (x0, x1) ->
     svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).
@@ -239,14 +245,11 @@ Section Sparse_Unions.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
 
-    assert(E: (Union plus (Vhead a) Rtheta_szero) = (Vhead a)).
+    assert(E: (Union plus (Vhead a) Rtheta_SZero) = (Vhead a)).
     {
-      apply Rtheta_poinitwise_equiv_equiv.
-      apply Union_Plus_SZeroNonErr_r.
-      unfold Is_SZeroNonErr, Rtheta_szero.
-      split.
-      + unfold Is_StructNonErr, Is_Struct; crush.
-      + unfold RthetaVal. crush.
+      unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+      simpl.
+      ring.
     }
     rewrite E.
     rewrite <- Vcons_to_Vcons_reord.
