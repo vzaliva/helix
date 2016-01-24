@@ -186,45 +186,23 @@ Section Sparse_Unions.
       rewrite NatUtil.lt_Sn_nS.
       reflexivity.
   Qed.
-
-  (*
-Following two lemmas used to prove left and right absorbtion of structural
-zero wrt. pointwise equality. This is no longer true.
-However what I might need instead is a more general lemma proving
-that Union with structural non-error value is non-structural non-error.
-  Lemma Union_Plus_SZeroNonErr_r:
-    ∀ x s, Is_SZeroNonCol s ->
-      Rtheta_pw_equiv (Union (plus) x s) x.
+ 
+  Lemma Union_Plus_SZero_r x:
+    (Union (plus) x Rtheta_SZero) = x.
   Proof.
-    intros x s S.
-    unfold Is_SZeroNonCol, Is_StructNonCol, Is_Struct, Is_Collision in S.
-    destruct S as [[S0 S1] S2].
-    destruct x, s.
-    unfold Rtheta_pw_equiv.
-    simpl in *.
-    repeat split.
-    - rewrite S2; ring.
-    - unfold RthetaIsStruct, RthetaIsCollision in *.
-      simpl in *.
-      auto.
+    unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    simpl.
+    ring.
+  Qed.  
+
+  Lemma Union_Plus_SZero_l x:
+    (Union (plus) Rtheta_SZero x) = x.
+  Proof.
+    unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    simpl.
+    ring.
   Qed.
 
-  Lemma Union_Plus_SZeroNonErr_l:
-    ∀ x s , Is_SZeroNonErr s ->
-            Rtheta_poinitwise_equiv (Union (plus) s x) x.
-  Proof.
-    intros x s S.
-    unfold Is_SZeroNonErr, Is_StructNonErr, RthetaVal, Is_Struct, RthetaIsStruct, Is_SErr in S.
-    destruct S as [[S0 S1] S2].
-    destruct_Rtheta x.
-    destruct_Rtheta s.
-    unfold Rtheta_poinitwise_equiv, RthetaVal, RthetaIsStruct, RthetaIsSErr.
-    simpl in *.
-    split.
-    - rewrite S2; ring.
-    - destruct x1, x2, s1, s2; crush.
-  Qed.
-   *)
   Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
     Vbreak x ≡ (x0, x1) ->
     svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).
@@ -244,14 +222,7 @@ that Union with structural non-error value is non-structural non-error.
     simpl.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-
-    assert(E: (Union plus (Vhead a) Rtheta_SZero) = (Vhead a)).
-    {
-      unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
-      simpl.
-      ring.
-    }
-    rewrite E.
+    rewrite Union_Plus_SZero_r.
     rewrite <- Vcons_to_Vcons_reord.
     dep_destruct a.
     crush.

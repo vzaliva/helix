@@ -53,28 +53,28 @@ Section SigmaHCOLRewriting.
     lia.
   Qed.
 
-  Lemma Is_Struct_Rtheta_szero:
-    Is_Struct Rtheta_szero.
+  Lemma Is_Struct_Rtheta_SZero:
+    Is_Struct Rtheta_SZero.
   Proof.
-    unfold Rtheta_szero.
+    unfold Rtheta_SZero.
     unfold Is_Struct, RthetaIsStruct.
     simpl.
     trivial.
   Qed.
 
 
-  Lemma Is_StructNonErr_Rtheta_szero:
-    Is_StructNonErr Rtheta_szero.
+  Lemma Is_StructNonCol_Rtheta_SZero:
+    Is_StructNonCol Rtheta_SZero.
   Proof.
-    unfold Is_StructNonErr.
+    unfold Is_StructNonCol.
     split.
-    apply Is_Struct_Rtheta_szero.
+    apply Is_Struct_Rtheta_SZero.
     crush.
   Qed.
 
   Lemma VecUnion_structs:
     ∀ (m : nat) (x : svector m),
-      Vforall Is_SZeroNonErr x → VecUnion plus x = Rtheta_szero.
+      Vforall Is_SZeroNonCol x → VecUnion plus x = Rtheta_SZero.
   Proof.
     intros m x H.
     unfold VecUnion.
@@ -85,43 +85,17 @@ Section SigmaHCOLRewriting.
       +
         simpl in H. destruct H as [Hh Hx].
         destruct Hh.
-        apply Rtheta_poinitwise_equiv_equiv.
-        apply Union_Plus_SZeroNonErr_r.
-        unfold Is_SZeroNonErr.
-        split; assumption.
+        rewrite Union_Plus_SZero_l.
+        crush.
       + apply Vforall_tl in H.
         assumption.
   Qed.
 
-  Lemma Vfold_OptionUnion_val_with_empty:
-    ∀ (m : nat) (h : Rtheta) (x : svector m),
-      Is_Val h -> Vforall Is_SZeroNonErr x →
-      Rtheta_poinitwise_equiv (Vfold_left (Union plus) h x) h.
-  Proof.
-    intros m h x V E.
-    induction x.
-    - unfold Rtheta_poinitwise_equiv; crush.
-    - simpl.
-      simpl in E. destruct E as [Eh Ex].
-      pose Ex as IHx1. apply IHx in IHx1.
-      unfold Rtheta_poinitwise_equiv in IHx1.
-      destruct IHx1 as [IHx01 [IHx02 IHx03]].
-      unfold Rtheta_poinitwise_equiv.
-      repeat split.
-      + setoid_rewrite <- IHx01.
-        apply Union_Plus_SZeroNonErr_r; assumption.
-      +
-        rewrite <- IHx02.
-        apply Union_Plus_SZeroNonErr_r; assumption.
-      +
-        rewrite <- IHx03.
-        apply Union_Plus_SZeroNonErr_r; assumption.
-  Qed.
-
-  Lemma Lemma3 m j (x:svector m) (jc:j<m):
-    (forall i (ic:i<m),
-        (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_StructNonErr (Vnth x ic)))
-    -> (VecUnion x ≡ Vnth x jc).
+  Lemma Lemma3 m j (x:svector m) (jc:j<m)
+    :
+      (forall i (ic:i<m),
+          (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_StructNonCol (Vnth x ic)))
+      -> (VecUnion op x ≡ Vnth x jc).
   Proof.
     intros SZ.
     dependent induction m.
@@ -137,7 +111,7 @@ Section SigmaHCOLRewriting.
         rewrite Vnth_cons_head; try assumption.
         rewrite VecUnion_cons.
 
-        assert(Vforall Is_StructNonErr x0).
+        assert(Vforall Is_StructNonCol x0).
         {
           apply Vforall_nth_intro.
           intros.
@@ -158,16 +132,16 @@ Section SigmaHCOLRewriting.
         rewrite VecUnion_structs.
         apply Union_Struct_with_Val.
         assumption.
-        apply Is_StructNonErr_Rtheta_szero.
+        apply Is_StructNonCol_Rtheta_SZero.
         assumption.
       +
         Case ("j!=0").
         rewrite VecUnion_cons.
         assert(Zc: 0<(S m)) by lia.
 
-        assert (HS: Is_StructNonErr h).
+        assert (HS: Is_StructNonCol h).
         {
-          cut (Is_StructNonErr (Vnth (Vcons h x0) Zc)).
+          cut (Is_StructNonCol (Vnth (Vcons h x0) Zc)).
           rewrite Vnth_0.
           auto.
           apply SZ; auto.
@@ -231,7 +205,7 @@ Section SigmaHCOLRewriting.
                                                         (@h_index_map 1 n j s
                                                                       (ScatH_1_to_n_range_bound j n s jp)
                               ))
-                              i ip ≡ Rtheta_szero.
+                              i ip ≡ Rtheta_SZero.
   Proof .
     intros n s i j ip jp v N.
     destruct (@build_inverse_index_map 1 n
@@ -326,7 +300,7 @@ Section SigmaHCOLRewriting.
 
     assert
       (L3pre: forall ib (icb:ib<n),
-          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_StructNonErr (Vnth b icb))).
+          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_StructNonCol (Vnth b icb))).
     {
       intros ib icb.
 
@@ -346,7 +320,7 @@ Section SigmaHCOLRewriting.
 
       intros H.
       rewrite InverseIndex_1_miss.
-      apply Is_StructNonErr_Rtheta_szero.
+      apply Is_StructNonCol_Rtheta_SZero.
       auto.
     }
     rewrite Lemma3 with (j:=i) (jc:=ip).
@@ -513,7 +487,7 @@ Section SigmaHCOLRewriting.
 
     assert
       (L3pre: forall ib (icb:ib<n),
-          (ib ≡ k -> Is_Val (Vnth b icb)) /\ (ib ≢ k -> Is_StructNonErr (Vnth b icb))).
+          (ib ≡ k -> Is_Val (Vnth b icb)) /\ (ib ≢ k -> Is_StructNonCol (Vnth b icb))).
     {
       intros ib icb.
 
@@ -539,7 +513,7 @@ Section SigmaHCOLRewriting.
 
       intros H.
       rewrite InverseIndex_1_miss.
-      apply Is_StructNonErr_Rtheta_szero.
+      apply Is_StructNonCol_Rtheta_SZero.
       auto.
     }
     rewrite Lemma3 with (j:=k) (jc:=kp).
