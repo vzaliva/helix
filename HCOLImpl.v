@@ -214,9 +214,9 @@ Section HCOL_implementation_facts.
     VOtac.
     simpl.
     symmetry.
-    destruct_Rtheta s. unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
+    destruct s. unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
     split; try trivial.
-    unfold mult, Rtheta_Mult, Rtheta_pointwise, equiv, Rtheta_equiv, Rtheta_rel_first, RthetaVal.
+    unfold mult, Rtheta_Mult,  equiv, Rtheta_val_equiv, Rtheta_rel_first.
     apply mult_0_r.
     Case "S(n)".
     VSntac a.  VSntac b.
@@ -389,7 +389,7 @@ Section HCOL_implementation_proper.
     reflexivity.
     
     rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    assert (RP: Proper (Rtheta_equiv ==> Rtheta_equiv) (λ x, f x v)) by solve_proper.
+    assert (RP: Proper (Rtheta_val_equiv ==> Rtheta_val_equiv) (λ x, f x v)) by solve_proper.
     rewrite IHn,  iniEq.
 
     assert (EE: ext_equiv (λ x, f x v)  (λ x, f x v')).
