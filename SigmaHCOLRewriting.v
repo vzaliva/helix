@@ -173,7 +173,6 @@ Section SigmaHCOLRewriting.
         crush.
   Qed.
 
-
   Lemma InverseIndex_1_hit:
     ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
       (@VnthInverseIndexMapped 1 n [v]
