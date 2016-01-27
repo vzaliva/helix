@@ -232,8 +232,6 @@ Section SigmaHCOLRewriting.
     ∀ (n : nat) (x : vector Rtheta n)
       (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       (i : nat) (ip : i < n),
-      svector_is_dense x ->
-      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
       Vnth
         (SumUnion plus
            (Vbuild
@@ -248,9 +246,8 @@ Section SigmaHCOLRewriting.
         =
         Vnth (Pointwise f x) ip.
   Proof.
-    intros n x f pF i ip V F.
+    intros n x f pF i ip.
     unfold HCompose, compose.
-    unfold svector_is_dense in V.
     remember (λ (i0 : nat) (id : i0 < n),
               ScatH i0 1 (Atomic (f (i0 ↾ id)) (GathH i0 1 x))) as bf.
     assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
@@ -320,8 +317,6 @@ Section SigmaHCOLRewriting.
   Theorem U_SAG1_PW:
     forall n (x:svector n)
       (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
-      Vforall Is_Val x ->
-      (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
       SumUnion plus
         (@Vbuild (svector n) n
                  (fun i id =>
@@ -338,10 +333,10 @@ Section SigmaHCOLRewriting.
         =
         Pointwise f x.
   Proof.
-    intros n x f pF V F.
+    intros n x f pF.
     apply Vforall2_intro_nth.
     intros i ip.
-    apply U_SAG1; assumption.
+    apply U_SAG1.
   Qed.
 
   Fact GathH_jn_domain_bound i n:
@@ -395,10 +390,8 @@ Section SigmaHCOLRewriting.
       (f: nat->Rtheta->Rtheta->Rtheta)
       `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       (k : nat) (kp : k < n),
-      Vforall Is_Val x
-      → (∀ (j:nat) (a b : Rtheta), Is_Val a → Is_Val b → Is_Val (f j a b))
-      → Vnth
-          (SumUnion
+      Vnth
+          (SumUnion plus
              (@Vbuild (svector n) n
                       (fun i id =>
                          ((ScatH i 1
@@ -409,7 +402,7 @@ Section SigmaHCOLRewriting.
                                      (domain_bound:=GathH_jn_domain_bound i n id))
                          ) x
           ))) kp
-          ≡ Vnth (HBinOp (o:=n) (f) x) kp.
+          = Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
     intros n x f f_mor k kp V F.
     unfold HCompose, compose.
