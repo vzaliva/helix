@@ -498,10 +498,8 @@ Section SigmaHCOLRewriting.
     forall n (x:svector (n+n))
       (f: nat->Rtheta->Rtheta->Rtheta)
       `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-      Vforall Is_Val x ->
-      (forall j a b, Is_Val a -> Is_Val b -> Is_Val (f j a b)) ->
-      HBinOp (o:=n) (f) x ≡
-             SumUnion
+      HBinOp (o:=n) (f) x =
+             SumUnion plus
              (@Vbuild (svector n) n
                       (fun i id =>
                          (
@@ -515,8 +513,7 @@ Section SigmaHCOLRewriting.
                          ) x
              )).
   Proof.
-    intros n x f pF x_dense f_dense.
-    apply vec_eq_elementwise.
+    intros n x f pF.
     apply Vforall2_intro_nth.
     intros i ip.
     symmetry.
