@@ -404,7 +404,7 @@ Section SigmaHCOLRewriting.
           ))) kp
           = Vnth (HBinOp (o:=n) (f) x) kp.
   Proof.
-    intros n x f f_mor k kp V F.
+    intros n x f f_mor k kp.
     unfold HCompose, compose.
 
     remember (fun i id =>
@@ -453,8 +453,7 @@ Section SigmaHCOLRewriting.
     clear B1 B2 Heqbf bf.
 
     (* Lemma5 embedded below*)
-
-    rewrite AbsorbUnionIndex.
+    rewrite AbsorbUnionIndex by solve_proper.
     rewrite Vmap_Vbuild.
 
     (* Preparing to apply Lemma3. Prove some peoperties first. *)
@@ -464,7 +463,7 @@ Section SigmaHCOLRewriting.
 
     assert
       (L3pre: forall ib (icb:ib<n),
-          (ib ≡ k -> Is_Val (Vnth b icb)) /\ (ib ≢ k -> Is_StructNonCol (Vnth b icb))).
+          ib ≢ k -> Is_ValZero (Vnth b icb)).
     {
       intros ib icb.
 
@@ -472,35 +471,19 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
-      split.
-
-      intros H.
-      subst ib.
-      replace icb with kp by apply proof_irrelevance.
-      remember (f k (Vnth x (ILTNN k kp)) (Vnth x (INLTNN k kp))) as v eqn: W.
-      rewrite InverseIndex_1_hit.
-
-      assert(Is_Val (Vnth x (ILTNN k kp))); try crush.
-      apply Vforall_nth with (i:=k) (ip:=(ILTNN k kp)) in V.
-      apply V.
-
-      assert(Is_Val (Vnth x (INLTNN k kp))); try crush.
-      apply Vforall_nth with (i:=k+n) (ip:=(INLTNN k kp)) in V.
-      apply V.
-
       intros H.
       rewrite InverseIndex_1_miss.
-      apply Is_StructNonCol_Rtheta_SZero.
+      apply SZero_is_ValZero.
       auto.
     }
-    rewrite Lemma3 with (j:=k) (jc:=kp).
+    rewrite SingleValueInZeros with (j:=k) (jc:=kp) by apply L3pre.
     subst b.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
     rewrite InverseIndex_1_hit.
-    symmetry; apply HBinOp_nth.
-    assumption.
+    setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
+    reflexivity.
   Qed.
 
   (*
