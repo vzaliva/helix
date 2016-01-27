@@ -62,7 +62,6 @@ Section SigmaHCOLRewriting.
     trivial.
   Qed.
 
-
   Lemma Is_StructNonCol_Rtheta_SZero:
     Is_StructNonCol Rtheta_SZero.
   Proof.
@@ -72,30 +71,41 @@ Section SigmaHCOLRewriting.
     crush.
   Qed.
 
+  Definition Is_ValZero (x:Rtheta) := val x = zero.
+
+  Lemma Is_ValZero_to_zero (x: Rtheta):
+    Is_ValZero x -> x = Rtheta_SZero.
+  Proof.
+    intros H.
+    unfold Is_ValZero in H.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    rewrite H.
+    reflexivity.
+  Qed.
+  
   Lemma VecUnion_structs:
     ∀ (m : nat) (x : svector m),
-      Vforall Is_SZeroNonCol x → VecUnion plus x = Rtheta_SZero.
+      Vforall Is_ValZero x → Is_ValZero (VecUnion plus x).
   Proof.
     intros m x H.
-    unfold VecUnion.
+    unfold VecUnion, Is_ValZero.
     induction x.
     - crush.
     - simpl.
       rewrite_clear IHx.
-      +
+      + 
         simpl in H. destruct H as [Hh Hx].
-        destruct Hh.
-        rewrite Union_Plus_SZero_l.
-        crush.
+        unfold Is_ValZero in Hh.
+        rewrite Hh.
+        ring.
       + apply Vforall_tl in H.
         assumption.
   Qed.
 
-  Lemma Lemma3 m j (x:svector m) (jc:j<m)
-    :
-      (forall i (ic:i<m),
-          (i ≡ j -> Is_Val (Vnth x ic)) /\ (i ≢ j -> Is_StructNonCol (Vnth x ic)))
-      -> (VecUnion op x ≡ Vnth x jc).
+  (* Formerly Lemma3 *)
+  Lemma SingleValueInZeros m j (x:svector m) (jc:j<m):
+    (forall i (ic:i<m),
+        i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion plus x = Vnth x jc).
   Proof.
     intros SZ.
     dependent induction m.
@@ -110,8 +120,7 @@ Section SigmaHCOLRewriting.
         Case ("j=0").
         rewrite Vnth_cons_head; try assumption.
         rewrite VecUnion_cons.
-
-        assert(Vforall Is_StructNonCol x0).
+        assert(Vforall Is_ValZero x0).
         {
           apply Vforall_nth_intro.
           intros.
@@ -120,28 +129,20 @@ Section SigmaHCOLRewriting.
           apply SZ; lia.
         }
 
-        assert(Is_Val h).
-        {
-          specialize SZ with (i:=j) (ic:=jc).
-          destruct SZ as [SZ0 SZ1].
-          subst j.
-          simpl in *.
-          apply SZ0.
-          reflexivity.
-        }
-        rewrite VecUnion_structs.
-        apply Union_Struct_with_Val.
-        assumption.
-        apply Is_StructNonCol_Rtheta_SZero.
-        assumption.
+        assert(UZ: Is_ValZero (VecUnion plus x0))
+          by apply VecUnion_structs, H.
+        setoid_replace (VecUnion plus x0) with Rtheta_SZero
+          by apply Is_ValZero_to_zero, UZ.
+        clear UZ.
+        apply Union_Plus_SZero_l.
       +
         Case ("j!=0").
         rewrite VecUnion_cons.
         assert(Zc: 0<(S m)) by lia.
 
-        assert (HS: Is_StructNonCol h).
+        assert (HS: Is_ValZero h).
         {
-          cut (Is_StructNonCol (Vnth (Vcons h x0) Zc)).
+          cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
           rewrite Vnth_0.
           auto.
           apply SZ; auto.
@@ -153,24 +154,14 @@ Section SigmaHCOLRewriting.
         intros l.
         rewrite IHm with (jc:=l).
 
-        assert(Is_Val (Vnth x0 l)).
-        {
-          assert(ics: S j < S m) by lia.
-          specialize SZ with (i:=S j) (ic:=ics).
-          destruct SZ as [SZ0 SZ1].
-          simpl in *.
-          replace (lt_S_n ics) with l in SZ0 by apply proof_irrelevance.
-          apply SZ0.
-          reflexivity.
-        }
-        rewrite Union_comm.
-        apply Union_Struct_with_Val; assumption.
+        setoid_replace h with Rtheta_SZero by apply Is_ValZero_to_zero, HS.
+        apply Union_Plus_SZero_r.
 
         intros i ic.
         assert(ics: S i < S m) by lia.
         rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
         specialize SZ with (i:=S i) (ic:=ics).
-        crush.
+        auto.
   Qed.
 
   Lemma InverseIndex_1_hit:
@@ -230,7 +221,6 @@ Section SigmaHCOLRewriting.
     auto.
   Qed.
 
-  (* TODO: here is probably a good place to introduce a notion of "proper" family of functions *)
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n)
       (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -238,7 +228,7 @@ Section SigmaHCOLRewriting.
       svector_is_dense x ->
       (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
       Vnth
-        (SumUnion
+        (SumUnion plus
            (Vbuild
               (λ (i0 : nat) (id : i0 < n),
                ((ScatH i0 1
