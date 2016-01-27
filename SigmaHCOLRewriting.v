@@ -82,6 +82,13 @@ Section SigmaHCOLRewriting.
     rewrite H.
     reflexivity.
   Qed.
+
+  Lemma SZero_is_ValZero:
+    Is_ValZero Rtheta_SZero.
+  Proof.
+    unfold Is_ValZero.
+    reflexivity.
+  Qed.
   
   Lemma VecUnion_structs:
     ∀ (m : nat) (x : svector m),
@@ -220,7 +227,7 @@ Section SigmaHCOLRewriting.
   Proof.
     auto.
   Qed.
-
+  
   Lemma U_SAG1:
     ∀ (n : nat) (x : vector Rtheta n)
       (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -238,7 +245,7 @@ Section SigmaHCOLRewriting.
                   ∘ (GathH i0 1
                            (domain_bound:=GathH_j1_domain_bound i0 n id))
                ) x))) ip
-        ≡
+        =
         Vnth (Pointwise f x) ip.
   Proof.
     intros n x f pF i ip V F.
@@ -280,7 +287,7 @@ Section SigmaHCOLRewriting.
     rewrite Vbuild_nth.
 
     (* Lemma5 emebdded below *)
-    rewrite AbsorbUnionIndex.
+    rewrite AbsorbUnionIndex by solve_proper.
     rewrite Vmap_Vbuild.
 
     (* Preparing to apply Lemma3. Prove some peoperties first. *)
@@ -289,36 +296,25 @@ Section SigmaHCOLRewriting.
 
     assert
       (L3pre: forall ib (icb:ib<n),
-          (ib ≡ i -> Is_Val (Vnth b icb)) /\ (ib ≢ i -> Is_StructNonCol (Vnth b icb))).
+          ib ≢ i -> Is_ValZero (Vnth b icb)).
     {
       intros ib icb.
-
       subst.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
-      split.
-
-      intros H.
-      subst ib.
-      remember (f (i ↾ icb) (Vnth x icb)) as v eqn: W.
-      replace ip with icb by apply proof_irrelevance.
-      rewrite InverseIndex_1_hit.
-      cut(Is_Val (Vnth x icb)); try crush.
-      apply Vforall_nth with (i:=i) (ip:=icb) in V; apply V.
-
       intros H.
       rewrite InverseIndex_1_miss.
-      apply Is_StructNonCol_Rtheta_SZero.
+      apply SZero_is_ValZero.
       auto.
     }
-    rewrite Lemma3 with (j:=i) (jc:=ip).
+    rewrite SingleValueInZeros with (j:=i) (jc:=ip) by apply L3pre.
     subst b.
     rewrite Vbuild_nth.
     unfold ScatH, Scatter.
     rewrite Vbuild_nth.
-    apply InverseIndex_1_hit.
-    assumption.
+    rewrite InverseIndex_1_hit.
+    reflexivity.
   Qed.
 
   Theorem U_SAG1_PW:
