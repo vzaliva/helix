@@ -322,7 +322,7 @@ Section SigmaHCOLRewriting.
       (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
       Vforall Is_Val x ->
       (forall i (ic: i<n) y, Is_Val y -> Is_Val (f (i ↾ ic) y)) ->
-      SumUnion
+      SumUnion plus
         (@Vbuild (svector n) n
                  (fun i id =>
                     (
@@ -335,11 +335,10 @@ Section SigmaHCOLRewriting.
                           )
                     ) x
         ))
-        ≡
+        =
         Pointwise f x.
   Proof.
     intros n x f pF V F.
-    apply vec_eq_elementwise.
     apply Vforall2_intro_nth.
     intros i ip.
     apply U_SAG1; assumption.
