@@ -211,11 +211,9 @@ Section Sparse_Unions.
     apply Vbreak_preserves_P.
   Qed.
 
-  Lemma Vec2Union_szero_svecto_r {n} {a: svector n}:
-    svector_is_dense a ->
+  Lemma Vec2Union_szero_svector_r {n} {a: svector n}:
     Vec2Union plus a (szero_svector n) = a.
   Proof.
-    intros D.
     unfold szero_svector.
     induction n.
     VOtac; reflexivity.
@@ -228,6 +226,21 @@ Section Sparse_Unions.
     crush.
   Qed.
 
+  Lemma Vec2Union_szero_svector_l {n} {a: svector n}:
+    Vec2Union plus (szero_svector n) a = a.
+  Proof.
+    unfold szero_svector.
+    induction n.
+    VOtac; reflexivity.
+    simpl.
+    rewrite Vcons_to_Vcons_reord.
+    rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
+    rewrite Union_Plus_SZero_l.
+    rewrite <- Vcons_to_Vcons_reord.
+    dep_destruct a.
+    crush.
+  Qed.
+  
 End Sparse_Unions.
 
 Close Scope vector_scope.

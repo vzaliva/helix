@@ -597,11 +597,8 @@ Section SigmaHCOLRewriting.
         `{hop1: !HOperator f}
         `{hop2: !HOperator g}
         (x: svector (i1+i2)) (* input vector *)
-        (D: svector_is_dense x) (* input must be dense *)
-        (Df: forall u, svector_is_dense u -> svector_is_dense (f u)) (* f is density-preserving *)
-        (Dg: forall u, svector_is_dense u -> svector_is_dense (g u)) (* g is density-preserving *)
     :
-      HTDirectSum f g x ≡
+      HTDirectSum f g x =
                   (HTSUMUnion
                      ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
                       ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
@@ -626,15 +623,8 @@ Section SigmaHCOLRewriting.
         apply Veq_nth.
         intros.
 
-        assert(DX0: svector_is_dense (f x0)).
-        {
-          apply Df.
-          apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
-          assumption.
-          assumption.
-        }
         rewrite Vbuild_nth.
-        generalize dependent (f x0). intros fx0 DX0.
+        generalize dependent (f x0). intros fx0.
         rewrite Vnth_app.
         break_match.
         + (* Second half of x, which is all zeros *)
@@ -703,15 +693,8 @@ Section SigmaHCOLRewriting.
         unfold ScatH, Scatter.
         apply Veq_nth.
         intros.
-        assert(DX1: svector_is_dense (g x1)).
-        {
-          apply Dg.
-          apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
-          assumption.
-          assumption.
-        }
         rewrite Vbuild_nth.
-        generalize dependent (g x1). intros gx0 DX1.
+        generalize dependent (g x1). intros gx0.
         rewrite Vnth_app.
         break_match.
         + (* Second half of x, which is gx0 *)
@@ -765,13 +748,13 @@ Section SigmaHCOLRewriting.
         crush. (* contradiction in g0 *)
     }
     rewrite LS, RS.
-    apply Vbreak_dense_vector in Heqp0.  destruct Heqp0.
+    (* destruct Heqp0.*)
     unfold Vec2Union. rewrite VMapp2_app.
-    rewrite Vec2Union_szero_svector, Vec2Union_comm, Vec2Union_szero_svector.
+    setoid_replace (Vmap2 (Union plus) (f x0) (szero_svector o1)) with (f x0).
+    setoid_replace (Vmap2 (Union plus) (szero_svector o2) (g x1)) with (g x1).
     reflexivity.
-    apply Dg; assumption.
-    apply Df; assumption.
-    assumption.
+    apply Vec2Union_szero_svector_l.
+    apply Vec2Union_szero_svector_r.
   Qed.
 
 End SigmaHCOLRewriting.
