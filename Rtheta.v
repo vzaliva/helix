@@ -623,7 +623,7 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_le_PartialOrder.
     apply Rtheta_val_le_PartialOrder.
   Qed.
-  
+
   Lemma Rtheta_val_le_plus_lemma1:
     ∀ z x y : Rtheta, x ≤ y <-> z + x ≤ z + y.
   Proof.
@@ -697,14 +697,52 @@ End Rtheta_val_Setoid_equiv.
 
 Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
+Section Rtheta_Zero_Util.
+  Definition Is_ValZero (x:Rtheta) := val x = zero.
+
+  Lemma SZero_is_ValZero:
+    Is_ValZero Rtheta_SZero.
+  Proof.
+    unfold Is_ValZero.
+    reflexivity.
+  Qed.
+
+  Lemma Zero_is_ValZero:
+    Is_ValZero zero.
+  Proof.
+    unfold Is_ValZero.
+    reflexivity.
+  Qed.
+
+  Lemma Is_ValZero_to_SZero (x: Rtheta):
+    Is_ValZero x -> x = Rtheta_SZero.
+  Proof.
+    intros H.
+    unfold Is_ValZero in H.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma Is_ValZero_to_zero (x: Rtheta):
+    Is_ValZero x -> x = zero.
+  Proof.
+    intros H.
+    unfold Is_ValZero in H.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    rewrite H.
+    reflexivity.
+  Qed.
+End Rtheta_Zero_Util.
+
 Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta | 2 := fun a b =>
-                                                     val a = val b /\
-                                                     sL a ≡ sL b /\
-                                                     sR a ≡ sR b /\
-                                                     flags a ≡ flags b.
+                                                         val a = val b /\
+                                                         sL a ≡ sL b /\
+                                                         sR a ≡ sR b /\
+                                                         flags a ≡ flags b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
