@@ -741,6 +741,42 @@ Section SigmaHCOLRewriting.
 
   End Value_Correctness.
 
+  Section Structural_Correctness.
+
+    Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
+      o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
+
+    Lemma HTDirectSum_Structural_Correct
+          {i1 o1 i2 o2}
+          (f: svector i1 -> svector o1)
+          (g: svector i2 -> svector o2)
+          `{hop1: !HOperator f}
+          `{hop2: !HOperator g}
+          `{DP1: !DensityPreserving f}
+          `{DP2: !DensityPreserving g}
+          (x: svector (i1+i2)) (* input vector *)
+    :
+      svector_is_dense x ->
+      svector_is_dense (HTDirectSum f g x).
+    Proof.
+      intros Dx.
+      unfold svector_is_dense.
+      unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
+      break_let. break_let.
+      tuple_inversion.
+      apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
+      assert(svector_is_dense (f t1))
+        by apply DP1, H.
+      assert(svector_is_dense (g t2))
+        by apply DP2, H0.
+      apply Vforall_app.
+      auto.
+      apply Dx.
+    Qed.
+    
+  End Structural_Correctness.
+  
+
 End SigmaHCOLRewriting.
 
 

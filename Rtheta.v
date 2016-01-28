@@ -103,8 +103,7 @@ Definition RthetaIsStruct (x:Rtheta) :=
   andb (sL x) (sR x).
 
 Definition RthetaIsCollision (x:Rtheta) :=
-  let sf := flags x in
-  orb (structCollision sf) (valueCollision sf).
+  structCollision (flags x).
 
 (* Propositional predicates *)
 Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).

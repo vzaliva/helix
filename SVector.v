@@ -31,7 +31,7 @@ Section SparseVectors.
   Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
     Vmap val v.
 
-  (* Our definition of "dense" vector means that it does not contain "structural" values and errors. *)
+  (* Our definition of "dense" vector means that it does not contain "structural" values or structual collisions. *)
 
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall Is_Val v.
