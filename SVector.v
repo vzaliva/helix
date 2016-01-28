@@ -36,6 +36,10 @@ Section SparseVectors.
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall Is_Val v.
 
+  (* svector is structure collision-free *)
+  Definition svector_is_non_col {n} (v:svector n) : Prop :=
+    Vforall (not ∘ Is_Collision) v.
+
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
 
