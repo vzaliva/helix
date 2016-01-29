@@ -800,6 +800,99 @@ Section SigmaHCOLRewriting.
     Qed.
     
     
+    Instance HTDirectSumExpansion_DensityPreserving
+             {i1 o1 i2 o2}
+             (f: svector i1 -> svector o1)
+             (g: svector i2 -> svector o2)
+             `{hop1: !HOperator f}
+             `{hop2: !HOperator g}
+             `{DP1: !DensityPreserving f}
+             `{DP2: !DensityPreserving g}
+      : DensityPreserving 
+          (HTSUMUnion
+             ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+              ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+             ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+              ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+    Proof.
+      unfold DenseCauseNoCol.
+      intros x Dx.
+      unfold svector_is_non_col, compose, Is_Collision, RthetaIsCollision.
+      repeat unfold HCompose, compose.
+      apply Vforall_nth_intro.
+      intros i ip.
+      unfold HTSUMUnion.
+      unfold GathH.
+
+      (* Generalize Gathers *)
+      remember (@Gather (i1 + i2) i2
+                           (@h_index_map i2 (i1 + i2) i1 1
+                                         (h_bound_second_half i1 i2)) x) as gx1.
+      assert(Dxg1: svector_is_dense gx1).
+      {
+        subst.
+        apply Gather_preserves_density, Dx.
+      }
+      generalize dependent gx1.
+      intros gx1 Heqgx Dxg1. clear Heqgx.
+
+      remember (@Gather (i1 + i2) i1
+                           (@h_index_map i1 (i1 + i2) 0 1
+                              (h_bound_first_half i1 i2)) x) as gx2.
+      assert(Dxg2: svector_is_dense gx2).
+      {
+        subst.
+        apply Gather_preserves_density, Dx.
+      }
+      generalize dependent gx2.
+      intros gx2 Heqgx Dxg2. clear Heqgx.
+      clear Dx x.
+
+      (* Generalize nested operators' application *)
+      assert(svector_is_dense (f gx2)) by apply DP1, Dxg2.
+      generalize dependent (f gx2). intros fgx2 Dfgx2.
+      clear Dxg2 gx2 DP1 hop1 f.
+
+      assert(svector_is_dense (g gx1)) by apply DP2, Dxg1.
+      generalize dependent (g gx1). intros ggx1 Dggx1.
+      clear Dxg1 gx1 DP2 hop2 g.
+
+      unfold Vec2Union.
+      rewrite Vnth_map2.
+
+      unfold ScatH.
+      rewrite 2!Scatter_rev_spec.
+
+
+      destruct (lt_dec i o1).
+      
+      assert(ihit: 
+                is_Some 
+                  ((partial_index_f (o1 + o2) o1
+                                    ((@build_inverse_index_map o1 (o1 + o2)
+                                                               (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))))
+                   ) i)
+            ). admit.
+
+      assert(
+          Is_Val 
+          (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
+           (@build_inverse_index_map o1 (o1 + o2)
+                                     (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
+      {
+        unfold VnthInverseIndexMapped.
+      }
+      
+
+      (* TODO: 
+ split cases:
+apply InverseIndex_1_miss, InverseIndex_1_hit pairs.
+       *)
+
+      
+
+    Qed.
+    
   End Structural_Correctness.
   
 
