@@ -863,9 +863,7 @@ Section SigmaHCOLRewriting.
       unfold ScatH.
       rewrite 2!Scatter_rev_spec.
 
-
       destruct (lt_dec i o1).
-      
       assert(ihit: 
                 is_Some 
                   ((partial_index_f (o1 + o2) o1
@@ -874,23 +872,23 @@ Section SigmaHCOLRewriting.
                    ) i)
             ). admit.
 
-      assert(
+      assert(imiss:
           Is_Val 
           (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
            (@build_inverse_index_map o1 (o1 + o2)
                                      (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
       {
-        unfold VnthInverseIndexMapped.
+        destruct (partial_index_f (Peano.plus o1 o2) o1
+                                  (build_inverse_index_map (h_index_map O (S O))) i) eqn: PFI.
+        + unfold VnthInverseIndexMapped.
+          simpl in *.
+          revert PFI.
+          admit.
+        + destruct ihit.
       }
       
-
-      (* TODO: 
- split cases:
-apply InverseIndex_1_miss, InverseIndex_1_hit pairs.
-       *)
-
-      
-
+      admit.
+      admit.
     Qed.
     
   End Structural_Correctness.
