@@ -122,19 +122,22 @@ Definition RthetaFlags_pointwise
       (op (leftStruct a) (leftStruct b))
       (op (rightStruct a) (rightStruct b)).
 
+(* Compute flags based on structural properties of two values being combined *)
+Definition deriveFlags (sa sb: bool) :=
+  match sa, sb with
+  | false, false => mkRthetaFlags false true false false (* value collision *)
+  | false, true => mkRthetaFlags false false false true (* right struct *)
+  | true, false => mkRthetaFlags false false true false (* left struct *)
+  | true, true => mkRthetaFlags true false false false (* struct collision *)
+  end.
+
 Definition Rtheta_binop
            (op:CarrierA->CarrierA->CarrierA)
            (a b: Rtheta)
   :=
     let sa := (RthetaIsStruct a) in
     let sb := (RthetaIsStruct b) in
-    let newflags :=
-        match sa, sb with
-        | false, false => mkRthetaFlags false true false false (* value collision *)
-        | false, true => mkRthetaFlags false false false true (* right struct *)
-        | true, false => mkRthetaFlags false false true false (* left struct *)
-        | true, true => mkRthetaFlags true false false false (* struct collision *)
-        end
+    let newflags := deriveFlags sa sb
     in
     mkRtheta
       (op (val a) (val b)) (* apply operation to argument value fields *)
@@ -145,9 +148,10 @@ Definition Rtheta_binop
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
-           (op:CarrierA->CarrierA)
+           (op: CarrierA->CarrierA)
            (x: Rtheta)
-  := mkRtheta (op (val x)) (sL x) (sR x) (flags x).
+  := let s := (RthetaIsStruct x) in
+     mkRtheta (op (val x)) s s (deriveFlags s s).
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first

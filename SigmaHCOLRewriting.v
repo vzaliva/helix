@@ -798,8 +798,8 @@ Section SigmaHCOLRewriting.
       auto.
       apply Dx.
     Qed.
-    
-    
+
+
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
              (f: svector i1 -> svector o1)
@@ -808,7 +808,7 @@ Section SigmaHCOLRewriting.
              `{hop2: !HOperator g}
              `{DP1: !DensityPreserving f}
              `{DP2: !DensityPreserving g}
-      : DensityPreserving 
+      : DensityPreserving
           (HTSUMUnion
              ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
               ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
@@ -826,8 +826,8 @@ Section SigmaHCOLRewriting.
 
       (* Generalize Gathers *)
       remember (@Gather (i1 + i2) i2
-                           (@h_index_map i2 (i1 + i2) i1 1
-                                         (h_bound_second_half i1 i2)) x) as gx1.
+                        (@h_index_map i2 (i1 + i2) i1 1
+                                      (h_bound_second_half i1 i2)) x) as gx1.
       assert(Dxg1: svector_is_dense gx1).
       {
         subst.
@@ -837,8 +837,8 @@ Section SigmaHCOLRewriting.
       intros gx1 Heqgx Dxg1. clear Heqgx.
 
       remember (@Gather (i1 + i2) i1
-                           (@h_index_map i1 (i1 + i2) 0 1
-                              (h_bound_first_half i1 i2)) x) as gx2.
+                        (@h_index_map i1 (i1 + i2) 0 1
+                                      (h_bound_first_half i1 i2)) x) as gx2.
       assert(Dxg2: svector_is_dense gx2).
       {
         subst.
@@ -864,19 +864,19 @@ Section SigmaHCOLRewriting.
       rewrite 2!Scatter_rev_spec.
 
       destruct (lt_dec i o1).
-      assert(ihit: 
-                is_Some 
-                  ((partial_index_f (o1 + o2) o1
-                                    ((@build_inverse_index_map o1 (o1 + o2)
-                                                               (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))))
-                   ) i)
+      assert(ihit:
+               is_Some
+                 ((partial_index_f (o1 + o2) o1
+                                   ((@build_inverse_index_map o1 (o1 + o2)
+                                                              (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))))
+                  ) i)
             ). admit.
 
       assert(imiss:
-          Is_Val 
-          (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
-           (@build_inverse_index_map o1 (o1 + o2)
-                                     (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
+               Is_Val
+                 (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
+                                          (@build_inverse_index_map o1 (o1 + o2)
+                                                                    (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
       {
         destruct (partial_index_f (Peano.plus o1 o2) o1
                                   (build_inverse_index_map (h_index_map O (S O))) i) eqn: PFI.
@@ -886,14 +886,16 @@ Section SigmaHCOLRewriting.
           admit.
         + destruct ihit.
       }
-      
+
       admit.
       admit.
     Qed.
-    
+
   End Structural_Correctness.
-  
+
 
 End SigmaHCOLRewriting.
+
+
 
 
