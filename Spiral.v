@@ -3,13 +3,13 @@
 
 Global Generalizable All Variables.
 
-Require Import Arith.
+Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Minus.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Lt.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
-Require Import Program.
-Require Import Morphisms.
+Require Import Coq.Program.Program.
+Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
