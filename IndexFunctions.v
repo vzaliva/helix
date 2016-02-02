@@ -155,7 +155,7 @@ Section Inversions.
 
   (* Theoretically, we can only build inverse of injective functions. However this
 definition does not enforce this requirement, and the function produced might not be
-   true inverse in mathematical sense. To make sure it is, checl (index_map_injective f) *)
+   true inverse in mathematical sense. To make sure it is, check (index_map_injective f) *)
   Program Definition build_inverse_index_map
           {i o: nat}
           (f: index_map i o)
