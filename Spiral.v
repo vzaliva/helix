@@ -28,8 +28,8 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.products.
 Require Import MathClasses.theory.naturals.
 
-Require Export Vector.
-Require Export VecUtil.
+Require Export Coq.Vectors.Vector.
+Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Global Instance Nat_Spec_Equiv {n:nat}: Equiv {i | (i<n)%nat} := sig_equiv _.
