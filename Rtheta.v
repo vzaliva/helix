@@ -1,6 +1,4 @@
-(*
-R_theta is type which is used as value for vectors in Spiral.
- *)
+(* R_theta is type which is used as value for vectors in SPIRAL.  *)
 
 Require Export CarrierType.
 
@@ -14,7 +12,6 @@ Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-
 
 Section RthetaFlags.
 
@@ -75,83 +72,66 @@ Section RthetaFlags.
     apply RthetaFlags_Equivalence_equiv.
   Qed.
 
+  Definition RthetaFlags_normal := mkRthetaFlags false false false false.
+
+  Definition combineFlags (a b: RthetaFlags): RthetaFlags
+    :=  mkRthetaFlags
+          (orb (structCollision a) (structCollision b))
+          (orb (valueCollision a) (valueCollision b))
+          (orb (leftStruct a) (leftStruct b))
+          (orb (rightStruct a) (rightStruct b)).
+  
+  (* Compute flags based on structural properties of two values being combined *)
+  Definition computeFlags (sa sb: bool) :=
+    match sa, sb with
+    | false, false => mkRthetaFlags false true false false (* value collision *)
+    | false, true => mkRthetaFlags false false false true (* right struct *)
+    | true, false => mkRthetaFlags false false true false (* left struct *)
+    | true, true => mkRthetaFlags true false false false (* struct collision *)
+    end.
+  
 End RthetaFlags.
 
-Record Rtheta : Type
-  := mkRtheta
-       {
-         val : CarrierA;
-         sL: bool ;
-         sR: bool ;
-         flags: RthetaFlags  (* sticky *)
-       }.
+Record Rtheta : Type :=
+  mkRtheta  {
+      val : CarrierA;
+      sL: bool;
+      sR: bool
+    }.
 
 (* Some convenience constructros *)
 
-Definition RthetaFlags_normal := mkRthetaFlags false false false false.
-
-Definition Rtheta_normal (val:CarrierA) :=
-  mkRtheta val false false RthetaFlags_normal.
+Definition Rtheta_normal (val: CarrierA) :=
+  mkRtheta val false false.
 
 Definition Rtheta_SZero :=
-  mkRtheta 0 true true RthetaFlags_normal.
+  mkRtheta 0 true true.
 
 Definition Rtheta_SOne :=
-  mkRtheta 1 true true RthetaFlags_normal.
+  mkRtheta 1 true true.
 
-Definition RthetaIsStruct (x:Rtheta) :=
+Definition RthetaIsStruct (x: Rtheta) :=
   andb (sL x) (sR x).
-
-Definition RthetaIsCollision (x:Rtheta) :=
-  structCollision (flags x).
 
 (* Propositional predicates *)
 Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
-Definition Is_Collision (x:Rtheta) := Is_true (RthetaIsCollision x).
-Definition Is_Val (x:Rtheta) := (not (Is_Struct x)) /\ (not (Is_Collision x)). (* Non-structural and not collision *)
-Definition Is_StructNonCol (x:Rtheta) := (Is_Struct x) /\ (not (Is_Collision x)). (* structural, but not collision *)
-Definition Is_SZeroNonCol (x:Rtheta) := Is_StructNonCol x /\ val x = 0.
-
-Definition RthetaFlags_pointwise
-           (op:bool->bool->bool)
-           (a b: RthetaFlags)
-  :=
-    mkRthetaFlags
-      (op (structCollision a) (structCollision b))
-      (op (valueCollision a) (valueCollision b))
-      (op (leftStruct a) (leftStruct b))
-      (op (rightStruct a) (rightStruct b)).
-
-(* Compute flags based on structural properties of two values being combined *)
-Definition deriveFlags (sa sb: bool) :=
-  match sa, sb with
-  | false, false => mkRthetaFlags false true false false (* value collision *)
-  | false, true => mkRthetaFlags false false false true (* right struct *)
-  | true, false => mkRthetaFlags false false true false (* left struct *)
-  | true, true => mkRthetaFlags true false false false (* struct collision *)
-  end.
+Definition Is_Val (x:Rtheta) := not (Is_Struct x).
 
 Definition Rtheta_binop
-           (op:CarrierA->CarrierA->CarrierA)
+           (op: CarrierA->CarrierA->CarrierA)
            (a b: Rtheta)
   :=
-    let sa := (RthetaIsStruct a) in
-    let sb := (RthetaIsStruct b) in
-    let newflags := deriveFlags sa sb
-    in
     mkRtheta
       (op (val a) (val b)) (* apply operation to argument value fields *)
-      sa (* preserve structural flag from 1st argument as sL *)
-      sb (* preserve structural flag from 2nd argument as sR *)
-      (RthetaFlags_pointwise orb newflags
-                             (RthetaFlags_pointwise orb (flags a) (flags b))).
+      (RthetaIsStruct a) (* preserve structural flag from 1st argument as sL *)
+      (RthetaIsStruct b). (* preserve structural flag from 2nd argument as sR *)
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
            (op: CarrierA->CarrierA)
            (x: Rtheta)
   := let s := (RthetaIsStruct x) in
-     mkRtheta (op (val x)) s s (deriveFlags s s).
+     mkRtheta (op (val x)) s s.
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
@@ -172,7 +152,6 @@ Lemma Rtheta_Val_is_not_Struct:
 Proof.
   intros z H.
   unfold Is_Val in H.
-  destruct H as [H1 H2].
   assumption.
 Qed.
 
@@ -220,8 +199,7 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
 
-    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, RthetaIsStruct,
-    RthetaFlags_pointwise.
+    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, RthetaIsStruct.
     intros x y z.
     destruct x, y, z.
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
@@ -744,8 +722,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Global Instance Rtheta_pw_equiv: Equiv Rtheta | 2 := fun a b =>
                                                          val a = val b /\
                                                          sL a ≡ sL b /\
-                                                         sR a ≡ sR b /\
-                                                         flags a ≡ flags b.
+                                                         sR a ≡ sR b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
@@ -816,7 +793,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     destruct x, y.
     simpl.
     unfold Rtheta_pw_equiv in H.
-    destruct H as [H0 [H1 [H2 H3]]].
+    destruct H as [H0 [H1 H2]].
     auto.
   Qed.
 
@@ -824,11 +801,11 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaIsStruct, RthetaFlags_pointwise.
+    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaIsStruct.
     destruct a, b, a', b'.
     simpl.
-    destruct aEq as [AH0 [AH1 [AH2 AH3]]].
-    destruct bEq as [BH0 [BH1 [BH2 BH3]]].
+    destruct aEq as [AH0 [AH1 AH2]].
+    destruct bEq as [BH0 [BH1 BH2]].
     simpl in *.
     crush.
   Qed.
