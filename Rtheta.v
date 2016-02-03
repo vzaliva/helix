@@ -103,8 +103,7 @@ Definition RthetaIsStruct (x:Rtheta) :=
   andb (sL x) (sR x).
 
 Definition RthetaIsCollision (x:Rtheta) :=
-  let sf := flags x in
-  orb (structCollision sf) (valueCollision sf).
+  structCollision (flags x).
 
 (* Propositional predicates *)
 Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
@@ -123,19 +122,22 @@ Definition RthetaFlags_pointwise
       (op (leftStruct a) (leftStruct b))
       (op (rightStruct a) (rightStruct b)).
 
+(* Compute flags based on structural properties of two values being combined *)
+Definition deriveFlags (sa sb: bool) :=
+  match sa, sb with
+  | false, false => mkRthetaFlags false true false false (* value collision *)
+  | false, true => mkRthetaFlags false false false true (* right struct *)
+  | true, false => mkRthetaFlags false false true false (* left struct *)
+  | true, true => mkRthetaFlags true false false false (* struct collision *)
+  end.
+
 Definition Rtheta_binop
            (op:CarrierA->CarrierA->CarrierA)
            (a b: Rtheta)
   :=
     let sa := (RthetaIsStruct a) in
     let sb := (RthetaIsStruct b) in
-    let newflags :=
-        match sa, sb with
-        | false, false => mkRthetaFlags false true false false (* value collision *)
-        | false, true => mkRthetaFlags false false false true (* right struct *)
-        | true, false => mkRthetaFlags false false true false (* left struct *)
-        | true, true => mkRthetaFlags true false false false (* struct collision *)
-        end
+    let newflags := deriveFlags sa sb
     in
     mkRtheta
       (op (val a) (val b)) (* apply operation to argument value fields *)
@@ -146,9 +148,10 @@ Definition Rtheta_binop
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
-           (op:CarrierA->CarrierA)
+           (op: CarrierA->CarrierA)
            (x: Rtheta)
-  := mkRtheta (op (val x)) (sL x) (sR x) (flags x).
+  := let s := (RthetaIsStruct x) in
+     mkRtheta (op (val x)) s s (deriveFlags s s).
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
@@ -623,7 +626,7 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_le_PartialOrder.
     apply Rtheta_val_le_PartialOrder.
   Qed.
-  
+
   Lemma Rtheta_val_le_plus_lemma1:
     ∀ z x y : Rtheta, x ≤ y <-> z + x ≤ z + y.
   Proof.
@@ -697,14 +700,52 @@ End Rtheta_val_Setoid_equiv.
 
 Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
+Section Rtheta_Zero_Util.
+  Definition Is_ValZero (x:Rtheta) := val x = zero.
+
+  Lemma SZero_is_ValZero:
+    Is_ValZero Rtheta_SZero.
+  Proof.
+    unfold Is_ValZero.
+    reflexivity.
+  Qed.
+
+  Lemma Zero_is_ValZero:
+    Is_ValZero zero.
+  Proof.
+    unfold Is_ValZero.
+    reflexivity.
+  Qed.
+
+  Lemma Is_ValZero_to_SZero (x: Rtheta):
+    Is_ValZero x -> x = Rtheta_SZero.
+  Proof.
+    intros H.
+    unfold Is_ValZero in H.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma Is_ValZero_to_zero (x: Rtheta):
+    Is_ValZero x -> x = zero.
+  Proof.
+    intros H.
+    unfold Is_ValZero in H.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    rewrite H.
+    reflexivity.
+  Qed.
+End Rtheta_Zero_Util.
+
 Section Rtheta_Poinitwise_Setoid_equiv.
 
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta | 2 := fun a b =>
-                                                     val a = val b /\
-                                                     sL a ≡ sL b /\
-                                                     sR a ≡ sR b /\
-                                                     flags a ≡ flags b.
+                                                         val a = val b /\
+                                                         sL a ≡ sL b /\
+                                                         sR a ≡ sR b /\
+                                                         flags a ≡ flags b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.

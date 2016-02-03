@@ -31,10 +31,14 @@ Section SparseVectors.
   Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
     Vmap val v.
 
-  (* Our definition of "dense" vector means that it does not contain "structural" values and errors. *)
+  (* Our definition of "dense" vector means that it does not contain "structural" values or structual collisions. *)
 
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall Is_Val v.
+
+  (* svector is structure collision-free *)
+  Definition svector_is_non_col {n} (v:svector n) : Prop :=
+    Vforall (not ∘ Is_Collision) v.
 
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
@@ -211,11 +215,9 @@ Section Sparse_Unions.
     apply Vbreak_preserves_P.
   Qed.
 
-  Lemma Vec2Union_szero_svecto_r {n} {a: svector n}:
-    svector_is_dense a ->
+  Lemma Vec2Union_szero_svector_r {n} {a: svector n}:
     Vec2Union plus a (szero_svector n) = a.
   Proof.
-    intros D.
     unfold szero_svector.
     induction n.
     VOtac; reflexivity.
@@ -228,6 +230,21 @@ Section Sparse_Unions.
     crush.
   Qed.
 
+  Lemma Vec2Union_szero_svector_l {n} {a: svector n}:
+    Vec2Union plus (szero_svector n) a = a.
+  Proof.
+    unfold szero_svector.
+    induction n.
+    VOtac; reflexivity.
+    simpl.
+    rewrite Vcons_to_Vcons_reord.
+    rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
+    rewrite Union_Plus_SZero_l.
+    rewrite <- Vcons_to_Vcons_reord.
+    dep_destruct a.
+    crush.
+  Qed.
+  
 End Sparse_Unions.
 
 Close Scope vector_scope.

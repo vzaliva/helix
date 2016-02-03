@@ -290,13 +290,11 @@ Lemma Scatter_spec
       (f: index_map i o)
       {f_inj: index_map_injective f}
       (x: svector i)
-      (y : svector o):
-  (Scatter f (f_inj:=f_inj) x ≡ y) ->  ∀ n (ip : n < i), Vnth x ip ≡ VnthIndexMapped y f n ip.
+      (n: nat) (ip : n < i):
+  Vnth x ip ≡ VnthIndexMapped (Scatter f (f_inj:=f_inj) x) f n ip.
 Proof.
-  intros S n ip.
   unfold VnthIndexMapped.
-  unfold Scatter in S.
-  subst y.
+  unfold Scatter.
   rewrite Vbuild_nth.
   assert(L: partial_index_f o i (build_inverse_index_map f) (⟦f ⟧ n) ≡ Some n).
   {
@@ -322,24 +320,21 @@ Qed.
 (* Specification of scatter as mapping from output to input.
     NOTE: we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-Lemma Scatter_rev_spec:
-  forall
-    {i o: nat}
-    (f: index_map i o)
-    {f_inj: index_map_injective f}
-    (x: svector i)
-    (y : svector o),
-    (Scatter f (f_inj:=f_inj) x ≡ y) ->  (∀ n (ip : n < o), Vnth y ip ≡ VnthInverseIndexMapped x (build_inverse_index_map f) n ip).
+Lemma Scatter_rev_spec
+      {i o: nat}
+      (f: index_map i o)
+      {f_inj: index_map_injective f}
+      (x: svector i)
+      (n: nat)
+      (ip : n < o):
+  Vnth (Scatter f (f_inj:=f_inj) x) ip ≡
+       VnthInverseIndexMapped x (build_inverse_index_map f) n ip.
 Proof.
-  intros i o f f_inj x y.
   unfold Scatter, Vbuild.
   destruct (Vbuild_spec
               (λ (n : nat) (np : n < o),
                VnthInverseIndexMapped x (build_inverse_index_map f) n np)) as [Vv Vs].
   simpl.
-  intros.
-  subst.
   auto.
 Qed.
-
 
