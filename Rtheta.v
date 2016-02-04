@@ -10,6 +10,8 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
+Require Import ExtLib.Data.Monads.StateMonad.
+
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
@@ -80,7 +82,7 @@ Section RthetaFlags.
           (orb (valueCollision a) (valueCollision b))
           (orb (leftStruct a) (leftStruct b))
           (orb (rightStruct a) (rightStruct b)).
-  
+
   (* Compute flags based on structural properties of two values being combined *)
   Definition computeFlags (sa sb: bool) :=
     match sa, sb with
@@ -89,32 +91,28 @@ Section RthetaFlags.
     | true, false => mkRthetaFlags false false true false (* left struct *)
     | true, true => mkRthetaFlags true false false false (* struct collision *)
     end.
-  
+
 End RthetaFlags.
 
 Record Rtheta : Type :=
   mkRtheta  {
       val : CarrierA;
-      sL: bool;
-      sR: bool
+      is_struct: bool
     }.
 
 (* Some convenience constructros *)
 
 Definition Rtheta_normal (val: CarrierA) :=
-  mkRtheta val false false.
+  mkRtheta val false.
 
 Definition Rtheta_SZero :=
-  mkRtheta 0 true true.
+  mkRtheta 0 true.
 
 Definition Rtheta_SOne :=
-  mkRtheta 1 true true.
-
-Definition RthetaIsStruct (x: Rtheta) :=
-  andb (sL x) (sR x).
+  mkRtheta 1 true.
 
 (* Propositional predicates *)
-Definition Is_Struct (x:Rtheta) := Is_true (RthetaIsStruct x).
+Definition Is_Struct (x:Rtheta) := Is_true (is_struct x).
 Definition Is_Val (x:Rtheta) := not (Is_Struct x).
 
 Definition Rtheta_binop
@@ -123,15 +121,14 @@ Definition Rtheta_binop
   :=
     mkRtheta
       (op (val a) (val b)) (* apply operation to argument value fields *)
-      (RthetaIsStruct a) (* preserve structural flag from 1st argument as sL *)
-      (RthetaIsStruct b). (* preserve structural flag from 2nd argument as sR *)
+      (andb (is_struct a) (is_struct b)).
 
 (* Unary application of a function to first element, preserving remaining ones *)
 Definition Rtheta_unary
            (op: CarrierA->CarrierA)
            (x: Rtheta)
-  := let s := (RthetaIsStruct x) in
-     mkRtheta (op (val x)) s s.
+  := let s := (is_struct x) in
+     mkRtheta (op (val x)) s.
 
 (* Relation on the first element, ignoring the rest *)
 Definition Rtheta_rel_first
@@ -199,7 +196,7 @@ Section Rtheta_val_Setoid_equiv.
   Global Instance Rtheta_val_Associative_plus: Associative Rtheta_Plus.
   Proof.
 
-    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, RthetaIsStruct.
+    unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, is_struct.
     intros x y z.
     destruct x, y, z.
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
@@ -721,8 +718,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   (* Setoid equality is defined by pointwise comparison of all elements. *)
   Global Instance Rtheta_pw_equiv: Equiv Rtheta | 2 := fun a b =>
                                                          val a = val b /\
-                                                         sL a ≡ sL b /\
-                                                         sR a ≡ sR b.
+                                                         is_struct a ≡ is_struct b.
 
   Lemma Rtheta_poinitwise_equiv_equiv (a b: Rtheta):
     Rtheta_pw_equiv a b -> Rtheta_val_equiv a b.
@@ -793,7 +789,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     destruct x, y.
     simpl.
     unfold Rtheta_pw_equiv in H.
-    destruct H as [H0 [H1 H2]].
+    destruct H as [H0 H1].
     auto.
   Qed.
 
@@ -801,11 +797,11 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) (Rtheta_Plus).
   Proof.
     intros a a' aEq b b' bEq.
-    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, RthetaIsStruct.
+    unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, is_struct.
     destruct a, b, a', b'.
     simpl.
-    destruct aEq as [AH0 [AH1 AH2]].
-    destruct bEq as [BH0 [BH1 BH2]].
+    destruct aEq as [AH0 AH1].
+    destruct bEq as [BH0 BH1].
     simpl in *.
     crush.
   Qed.
@@ -829,6 +825,9 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     unfold equiv, Rtheta_pw_equiv in aEq, bEq.
     crush.
   Qed.
+
+  Section Rtheta_Monad.
+  End Rtheta_Monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
 
