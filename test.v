@@ -28,15 +28,6 @@ Section with_monad.
       put (FlagsCombine f (orb (beq_nat x 0) (beq_nat y 0))) ;;
       ret (op x y).
 
-  Definition bop1 
-             (op: nat -> nat -> nat)
-             (x y: m nat) : m nat :=
-    f <- get ;;
-      xv <- x ;;
-      yv <- y ;;
-      put (FlagsCombine f (orb (beq_nat xv 0) (beq_nat yv 0))) ;;
-      ret (op xv yv).
-    
 End with_monad.
 
 Definition m : Type -> Type := state bool.
@@ -47,4 +38,6 @@ Compute (runState ex1 false).
 Compute (runState ex1 true).
 Compute (runState ex2 false).
 Compute (runState ex2 true).
+
+
 
