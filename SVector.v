@@ -79,12 +79,14 @@ Section Sparse_Unions.
   
   Local Open Scope bool_scope.
 
-  Definition Union := @Rtheta_liftM2 m Monad_m State_m.
+  (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
+  Definition Union (op: CarrierA -> CarrierA -> CarrierA)
+    := @Rtheta_binopM m Monad_m State_m op.
   
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: svector n): m Rtheta :=
     VfoldM_left (Union op) (ret Rtheta_SZero) v.
-
+  
   (* Binary element-wise union of two vectors *)
   Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): m (svector n)
     := Vmap2M (Union op) a b.

@@ -835,14 +835,14 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Context {Monad_m : Monad m}.
     Context {State_m : MonadState RthetaFlags m}.
 
-    Definition Rtheta_liftM
+    Definition Rtheta_unaryM
                (op: CarrierA -> CarrierA)
                (x: Rtheta) : m Rtheta :=
       flags <- get ;;
             put (combineFlags flags (computeFlags (is_struct x) (is_struct x)))  ;;
             ret (Rtheta_unary op x).
 
-    Definition Rtheta_liftM2
+    Definition Rtheta_binopM
                (op: CarrierA -> CarrierA -> CarrierA)
                (a b: Rtheta) : m Rtheta :=
       flags <- get ;;
