@@ -92,8 +92,7 @@ Section Sparse_Unions.
   Definition SumUnion
              {o n} (op: CarrierA -> CarrierA -> CarrierA)
              (v: vector (svector o) n): m (svector o)
-    := 
-         ret (VfoldM_left (Vec2Union op) (ret (szero_svector o)) v).
+    :=  VfoldM_left (Vec2Union op) (ret (szero_svector o)) v.
 
   Lemma VecUnion_cons:
     ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : svector m),
