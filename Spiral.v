@@ -376,8 +376,6 @@ Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
   | h' :: t' => Vcons h' (snoc t' v)
   end.
 
-Notation "h ;; t" := (snoc h t) (at level 60, right associativity).
-
 Section Natrange_List.
   (* Probably will be removed later *)
 

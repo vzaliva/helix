@@ -31,14 +31,10 @@ Section SparseVectors.
   Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
     Vmap val v.
 
-  (* Our definition of "dense" vector means that it does not contain "structural" values or structual collisions. *)
+  (* Our definition of "dense" vector means that it does not contain "structural" values *)
 
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall Is_Val v.
-
-  (* svector is structure collision-free *)
-  Definition svector_is_non_col {n} (v:svector n) : Prop :=
-    Vforall (not ∘ Is_Collision) v.
 
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
@@ -46,21 +42,58 @@ Section SparseVectors.
 End SparseVectors.
 
 Section Sparse_Unions.
-  Open Local Scope bool_scope.
+  Require Import ExtLib.Data.Monads.StateMonad.
+  Require Import ExtLib.Structures.Monads.
+  
+  Import MonadNotation.
+  Local Open Scope monad_scope.
 
-  Definition Union := Rtheta_binop. (* For sparse vectors binary operation on Rthetat is called Union (parametrized by binop kernel) *)
+  Variable m : Type -> Type.
+  Context {Monad_m : Monad m}.
+  Context {State_m : MonadState RthetaFlags m}.
 
-  (* Unary union of vector's elements (fold) *)
-  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v:svector n): Rtheta :=
-    Vfold_left (Union op) Rtheta_SZero v.
+  Set Implicit Arguments.
+  
+  Section VfoldM_left.
+    Variables (A B : Type) (f : B->A->m B).
+    
+    Fixpoint VfoldM_left n (b: m B) (v : vector A n) : m B :=
+      match v with
+      | Vnil => b
+      | Vcons a _ w => t <- VfoldM_left b w ;; f t a
+      end.
+  End VfoldM_left.
+
+  Section Vmap2M.
+  Variables (A B C : Type) (f: A->B->m C).
+  
+  Fixpoint Vmap2M n : vector A n -> vector B n -> m (vector C n) :=
+    match n with
+    | O => fun _ _ => (ret Vnil)
+    | _ => fun v1 v2 =>
+            h <- f (Vhead v1) (Vhead v2) ;;
+              t <- Vmap2M (Vtail v1) (Vtail v2) ;;
+              ret (Vcons h t)
+    end.
+  End Vmap2M.
+  
+  Local Open Scope bool_scope.
+
+  Definition Union := @Rtheta_liftM2 m Monad_m State_m.
+  
+  (* Unary union of vector's elements (left fold) *)
+  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: svector n): m Rtheta :=
+    VfoldM_left (Union op) (ret Rtheta_SZero) v.
 
   (* Binary element-wise union of two vectors *)
-  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): svector n
-    := Vmap2 (Union op) a b.
+  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): m (svector n)
+    := Vmap2M (Union op) a b.
 
   Definition SumUnion
-             {o n} (op: CarrierA -> CarrierA -> CarrierA) (v: vector (svector o) n): svector o
-    := Vfold_left (Vec2Union op) (szero_svector o) v.
+             {o n} (op: CarrierA -> CarrierA -> CarrierA)
+             (v: vector (svector o) n): m (svector o)
+    := 
+         ret (VfoldM_left (Vec2Union op) (ret (szero_svector o)) v).
 
   Lemma VecUnion_cons:
     ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : svector m),
@@ -190,14 +223,14 @@ Section Sparse_Unions.
       rewrite NatUtil.lt_Sn_nS.
       reflexivity.
   Qed.
- 
+
   Lemma Union_Plus_SZero_r x:
     (Union (plus) x Rtheta_SZero) = x.
   Proof.
     unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
     simpl.
     ring.
-  Qed.  
+  Qed.
 
   Lemma Union_Plus_SZero_l x:
     (Union (plus) Rtheta_SZero x) = x.
@@ -244,7 +277,7 @@ Section Sparse_Unions.
     dep_destruct a.
     crush.
   Qed.
-  
+
 End Sparse_Unions.
 
 Close Scope vector_scope.
