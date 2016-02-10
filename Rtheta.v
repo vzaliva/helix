@@ -10,8 +10,6 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
-Require Import ExtLib.Data.Monads.StateMonad.
-
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
@@ -827,6 +825,30 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Section Rtheta_Monad.
+    Require Import ExtLib.Data.Monads.StateMonad.
+    Require Import ExtLib.Structures.Monads.
+
+    Import MonadNotation.
+    Local Open Scope monad_scope.
+
+    Variable m : Type -> Type.
+    Context {Monad_m : Monad m}.
+    Context {State_m : MonadState RthetaFlags m}.
+
+    Definition Rtheta_liftM
+               (op: CarrierA -> CarrierA)
+               (x: Rtheta) : m Rtheta :=
+      flags <- get ;;
+            put (combineFlags flags (computeFlags (is_struct x) (is_struct x)))  ;;
+            ret (Rtheta_unary op x).
+
+    Definition Rtheta_liftM2
+               (op: CarrierA -> CarrierA -> CarrierA)
+               (a b: Rtheta) : m Rtheta :=
+      flags <- get ;;
+            put (combineFlags flags (computeFlags (is_struct a) (is_struct b)))  ;;
+            ret (Rtheta_binop op a b).
+
   End Rtheta_Monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
