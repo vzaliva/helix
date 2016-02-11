@@ -824,32 +824,33 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     crush.
   Qed.
 
-  Section Rtheta_Monad.
-    Require Import ExtLib.Data.Monads.StateMonad.
+  Section with_monad.
     Require Import ExtLib.Structures.Monads.
+    Require Import ExtLib.Structures.Monoid.
+    Require Import ExtLib.Data.Monads.WriterMonad.
 
     Import MonadNotation.
     Local Open Scope monad_scope.
 
+    Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid combineFlags RthetaFlags_normal.
+
     Variable m : Type -> Type.
     Context {Monad_m : Monad m}.
-    Context {State_m : MonadState RthetaFlags m}.
+    Context {Writer_m: MonadWriter Monoid_RthetaFlags m}.
 
     Definition Rtheta_unaryM
                (op: CarrierA -> CarrierA)
                (x: Rtheta) : m Rtheta :=
-      flags <- get ;;
-            put (combineFlags flags (computeFlags (is_struct x) (is_struct x)))  ;;
-            ret (Rtheta_unary op x).
+      tell (computeFlags (is_struct x) (is_struct x)) ;;
+           ret (Rtheta_unary op x).
 
     Definition Rtheta_binopM
                (op: CarrierA -> CarrierA -> CarrierA)
                (a b: Rtheta) : m Rtheta :=
-      flags <- get ;;
-            put (combineFlags flags (computeFlags (is_struct a) (is_struct b)))  ;;
-            ret (Rtheta_binop op a b).
+      tell (computeFlags (is_struct a) (is_struct b)) ;;
+           ret (Rtheta_binop op a b).
 
-  End Rtheta_Monad.
+  End with_monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
 

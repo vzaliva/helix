@@ -42,21 +42,22 @@ Section SparseVectors.
 End SparseVectors.
 
 Section Sparse_Unions.
-  Require Import ExtLib.Data.Monads.StateMonad.
   Require Import ExtLib.Structures.Monads.
-  
+  Require Import ExtLib.Structures.Monoid.
+  Require Import ExtLib.Data.Monads.WriterMonad.
+
   Import MonadNotation.
   Local Open Scope monad_scope.
 
   Variable m : Type -> Type.
   Context {Monad_m : Monad m}.
-  Context {State_m : MonadState RthetaFlags m}.
+  Context {Writer_m: MonadWriter Monoid_RthetaFlags m}.
 
   Set Implicit Arguments.
-  
+
   Section VfoldM_left.
     Variables (A B : Type) (f : B->A->m B).
-    
+
     Fixpoint VfoldM_left n (b: m B) (v : vector A n) : m B :=
       match v with
       | Vnil => b
@@ -65,28 +66,28 @@ Section Sparse_Unions.
   End VfoldM_left.
 
   Section Vmap2M.
-  Variables (A B C : Type) (f: A->B->m C).
-  
-  Fixpoint Vmap2M n : vector A n -> vector B n -> m (vector C n) :=
-    match n with
-    | O => fun _ _ => (ret Vnil)
-    | _ => fun v1 v2 =>
-            h <- f (Vhead v1) (Vhead v2) ;;
-              t <- Vmap2M (Vtail v1) (Vtail v2) ;;
-              ret (Vcons h t)
-    end.
+    Variables (A B C : Type) (f: A->B->m C).
+
+    Fixpoint Vmap2M n : vector A n -> vector B n -> m (vector C n) :=
+      match n with
+      | O => fun _ _ => (ret Vnil)
+      | _ => fun v1 v2 =>
+              h <- f (Vhead v1) (Vhead v2) ;;
+                t <- Vmap2M (Vtail v1) (Vtail v2) ;;
+                ret (Vcons h t)
+      end.
   End Vmap2M.
-  
+
   Local Open Scope bool_scope.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
   Definition Union (op: CarrierA -> CarrierA -> CarrierA)
-    := @Rtheta_binopM m Monad_m State_m op.
-  
+    := @Rtheta_binopM _ _ _ op.
+
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: svector n): m Rtheta :=
     VfoldM_left (Union op) (ret Rtheta_SZero) v.
-  
+
   (* Binary element-wise union of two vectors *)
   Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): m (svector n)
     := Vmap2M (Union op) a b.
