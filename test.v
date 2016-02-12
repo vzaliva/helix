@@ -7,7 +7,24 @@ Require Import ExtLib.Data.Monads.WriterMonad.
 Require Import Coq.Bool.BoolEq.
 
 (* https://wiki.haskell.org/All_About_Monads#The_Writer_monad *)
-     
+
+Set Implicit Arguments.
+Set Maximal Implicit Insertion.
+
+Section WriterMonad.
+  Variable S : Type.
+
+  Variable Monoid_S : Monoid S.
+  Variable m : Type -> Type.
+  (* Definition m : Type -> Type := writerT Monoid_S ident . *)
+
+  Definition writer := writerT Monoid_S ident.
+  Definition runWriter x := unIdent (@runWriterT S Monoid_S ident (m S) x).
+  
+End WriterMonad.
+
+Arguments runWriter {S} {Monoid_S} {m} x.
+
 Section with_monad.
   Import MonadNotation.
   Local Open Scope bool_scope.
@@ -35,13 +52,13 @@ Section with_monad.
 End with_monad.
 
 Definition sticky := Build_Monoid orb false.
-Definition m : Type -> Type := writerT sticky ident .
+Definition m : Type -> Type := writer sticky.
 
-Definition ex1 :=  bop _ m plus 1 2.
-Definition ex2 :=  bop _ m plus 0 5.
+Definition ex1 :=  @bop _ m _ _ plus 1 2.
+Definition ex2 :=  @bop _ m _ _ plus 0 5.
 
-Compute (unIdent (runWriterT ex1)).
-Compute (unIdent (runWriterT ex2)).
+Compute (runWriter ex1).
+Compute (runWriterT ex2).
 
 
 
