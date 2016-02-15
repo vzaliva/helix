@@ -87,6 +87,17 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
+  Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
+    fun am bm => a <- am ;; b <- bm ;; ret (a = b).
+  
+  Lemma test (a b: flags_m Rtheta):
+    a=b.
+  
+  Instance vec_Mequiv `{Equiv A} {n}: Equiv (sector A n) :=
+    Vforall2 (n:=n)
+             equiv.
+
+
   Lemma Vec2Union_comm {n}
         (op: CarrierA -> CarrierA -> CarrierA)
         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}

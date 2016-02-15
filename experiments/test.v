@@ -12,24 +12,23 @@ Set Implicit Arguments.
 Set Maximal Implicit Insertion.
 
 Section WriterMonad.
-  Variable S : Type.
-
+  Variable S T : Type.
+  
   Variable Monoid_S : Monoid S.
   Variable m : Type -> Type.
-  (* Definition m : Type -> Type := writerT Monoid_S ident . *)
-
+  
   Definition writer := writerT Monoid_S ident.
-  Definition runWriter x := unIdent (@runWriterT S Monoid_S ident (m S) x).
+  Definition runWriter x := unIdent (@runWriterT S Monoid_S ident T x).
   
 End WriterMonad.
 
-Arguments runWriter {S} {Monoid_S} {m} x.
+Arguments runWriter {S} {T} {Monoid_S} x.
 
 Section with_monad.
   Import MonadNotation.
   Local Open Scope bool_scope.
   Local Open Scope monad_scope.
-
+  
   Definition FlagsT : Type := bool.
   
   Variable Monoid_B : Monoid FlagsT.
@@ -48,7 +47,7 @@ Section with_monad.
              (x y: nat) : m nat :=
     tell (orb (beq_nat x 0) (beq_nat y 0)) ;;
          ret (op x y).
-
+  
 End with_monad.
 
 Definition sticky := Build_Monoid orb false.
@@ -58,7 +57,7 @@ Definition ex1 :=  @bop _ m _ _ plus 1 2.
 Definition ex2 :=  @bop _ m _ _ plus 0 5.
 
 Compute (runWriter ex1).
-Compute (runWriterT ex2).
+Compute (runWriter ex2).
 
 
 
