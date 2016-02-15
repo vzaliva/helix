@@ -844,12 +844,27 @@ Section Rtheta_Poinitwise_Setoid_equiv.
       tell (computeFlags (is_struct x) (is_struct x)) ;;
            ret (Rtheta_unary op x).
 
+    Definition Rtheta_unaryMM
+               (op: CarrierA -> CarrierA)
+               (xm: m Rtheta) : m Rtheta :=
+      x <- xm ;;
+        tell (computeFlags (is_struct x) (is_struct x)) ;;
+        ret (Rtheta_unary op x).
+    
     Definition Rtheta_binopM
                (op: CarrierA -> CarrierA -> CarrierA)
                (a b: Rtheta) : m Rtheta :=
       tell (computeFlags (is_struct a) (is_struct b)) ;;
            ret (Rtheta_binop op a b).
-
+    
+    Definition Rtheta_binopMM
+               (op: CarrierA -> CarrierA -> CarrierA)
+               (am bm: m Rtheta) : m Rtheta :=
+      a <- am ;;
+        b <- bm ;;
+        tell (computeFlags (is_struct a) (is_struct b)) ;;
+        ret (Rtheta_binop op a b).
+    
   End with_monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
