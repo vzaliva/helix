@@ -49,56 +49,36 @@ Section Sparse_Unions.
   Import MonadNotation.
   Local Open Scope monad_scope.
 
-  Variable m : Type -> Type.
-  Context {Monad_m : Monad m}.
-  Context {Writer_m: MonadWriter Monoid_RthetaFlags m}.
-
+  Variable flags_m : Type -> Type.
+  Context {Monad_flags : Monad flags_m}.
+  Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
+  
+  Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
+  Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
+  
   Set Implicit Arguments.
-
-  Section VfoldM_left.
-    Variables (A B : Type) (f : B->A->m B).
-
-    Fixpoint VfoldM_left n (b: m B) (v : vector A n) : m B :=
-      match v with
-      | Vnil => b
-      | Vcons a _ w => t <- VfoldM_left b w ;; f t a
-      end.
-  End VfoldM_left.
-
-  Section Vmap2M.
-    Variables (A B C : Type) (f: A->B->m C).
-
-    Fixpoint Vmap2M n : vector A n -> vector B n -> m (vector C n) :=
-      match n with
-      | O => fun _ _ => (ret Vnil)
-      | _ => fun v1 v2 =>
-              h <- f (Vhead v1) (Vhead v2) ;;
-                t <- Vmap2M (Vtail v1) (Vtail v2) ;;
-                ret (Vcons h t)
-      end.
-  End Vmap2M.
 
   Local Open Scope bool_scope.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
   Definition Union (op: CarrierA -> CarrierA -> CarrierA)
-    := @Rtheta_binopM _ _ _ op.
+    := @Rtheta_liftM2 _ _ _ op.
 
   (* Unary union of vector's elements (left fold) *)
-  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: svector n): m Rtheta :=
-    VfoldM_left (Union op) (ret Rtheta_SZero) v.
+  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: mvector n): flags_m Rtheta :=
+    Vfold_left (Union op) (ret Rtheta_SZero) v.
 
   (* Binary element-wise union of two vectors *)
-  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: svector n): m (svector n)
-    := Vmap2M (Union op) a b.
+  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: mvector n): mvector n
+    := Vmap2 (Union op) a b.
 
   Definition SumUnion
              {o n} (op: CarrierA -> CarrierA -> CarrierA)
-             (v: vector (svector o) n): m (svector o)
-    :=  VfoldM_left (Vec2Union op) (ret (szero_svector o)) v.
+             (v: vector (mvector o) n): mvector o
+    :=  Vfold_left (Vec2Union op) (szero_mvector o) v.
 
   Lemma VecUnion_cons:
-    ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : svector m),
+    ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : mvector m),
       VecUnion op (Vcons x xs) ≡ Union op (VecUnion op xs) x.
   Proof.
     intros op m x xs.
@@ -111,7 +91,7 @@ Section Sparse_Unions.
         (op: CarrierA -> CarrierA -> CarrierA)
         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
         `{C: !Commutative op}
-        {a b:svector n}:
+        {a b: mvector n}:
     Vec2Union op a b = Vec2Union op b a.
   Proof.
     induction n.
