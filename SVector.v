@@ -89,14 +89,44 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-  Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
+  Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
     fun am bm =>
       (evalWriter am) = (evalWriter bm).
   
-  Instance vec_Mequiv {n}: Equiv (mvector n) :=
+  (* Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
     Vforall2 (n:=n)
-             Rtheta_Mequiv.
+             Rtheta_Mequiv. *)
 
+
+  Set Printing All.
+  Lemma test
+    (op: (flags_m Rtheta) -> (flags_m Rtheta))
+    `{op_mor: !Proper ((=) ==> (=)) op}
+    (a b: flags_m Rtheta)
+    :
+    a = b -> op a = op b.
+  Proof.
+    intros H.
+    apply op_mor.
+    assumption.
+  Qed.
+
+  Lemma test1
+        {n}
+        (op: (mvector n) -> (mvector n))
+        `{op_mor: !Proper ((=) ==> (=)) op}
+        {a b: mvector n}
+    :
+      a = b -> op a = op b.
+  Proof.
+    intros H.
+    apply op_mor.
+    assumption.
+  Qed.
+
+  Instance test2:
+    Proper ((=) ==> ((=) ==> (=)) liftM2).
+  
   Lemma Vec2Union_comm {n}
         (op: CarrierA -> CarrierA -> CarrierA)
         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
