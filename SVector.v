@@ -45,11 +45,13 @@ Section Sparse_Unions.
   Require Import ExtLib.Structures.Monads.
   Require Import ExtLib.Structures.Monoid.
   Require Import ExtLib.Data.Monads.WriterMonad.
+  Require Import WriterMonadNoT.
+
 
   Import MonadNotation.
   Local Open Scope monad_scope.
 
-  Variable flags_m : Type -> Type.
+  Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
   Context {Monad_flags : Monad flags_m}.
   Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
   
@@ -88,15 +90,12 @@ Section Sparse_Unions.
   Qed.
 
   Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
-    fun am bm => a <- am ;; b <- bm ;; ret (a = b).
+    fun am bm =>
+      (evalWriter am) = (evalWriter bm).
   
-  Lemma test (a b: flags_m Rtheta):
-    a=b.
-  
-  Instance vec_Mequiv `{Equiv A} {n}: Equiv (sector A n) :=
+  Instance vec_Mequiv {n}: Equiv (mvector n) :=
     Vforall2 (n:=n)
-             equiv.
-
+             Rtheta_Mequiv.
 
   Lemma Vec2Union_comm {n}
         (op: CarrierA -> CarrierA -> CarrierA)

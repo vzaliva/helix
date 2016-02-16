@@ -1,32 +1,23 @@
-Require Import Coq.ZArith.ZArith_base Coq.Strings.String.
+Require Import Coq.Arith.EqNat.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Structures.Monoid.
 Require Import ExtLib.Data.Monads.WriterMonad.
 
-Require Import Coq.Bool.BoolEq.
-
-(* https://wiki.haskell.org/All_About_Monads#The_Writer_monad *)
-
 Set Implicit Arguments.
-Set Maximal Implicit Insertion.
 
 Section WriterMonad.
-  Variable S T : Type.
+  Variable s t : Type.
+  Variable Monoid_s : Monoid s.
   
-  Variable Monoid_S : Monoid S.
-  Variable m : Type -> Type.
-  
-  Definition writer := writerT Monoid_S ident.
-  Definition runWriter x := unIdent (@runWriterT S Monoid_S ident T x).
-  
+  Definition writer := writerT Monoid_s ident.
+  Definition runWriter x := unIdent (@runWriterT s Monoid_s ident t x).
+  Definition execWriter x:= snd (runWriter x).
+  Definition evalWriter x:= fst (runWriter x).
 End WriterMonad.
-
-Arguments runWriter {S} {T} {Monoid_S} x.
 
 Section with_monad.
   Import MonadNotation.
-  Local Open Scope bool_scope.
   Local Open Scope monad_scope.
   
   Definition FlagsT : Type := bool.
@@ -47,16 +38,18 @@ Section with_monad.
              (x y: nat) : m nat :=
     tell (orb (beq_nat x 0) (beq_nat y 0)) ;;
          ret (op x y).
-  
 End with_monad.
 
 Definition sticky := Build_Monoid orb false.
 Definition m : Type -> Type := writer sticky.
 
-Definition ex1 :=  @bop _ m _ _ plus 1 2.
-Definition ex2 :=  @bop _ m _ _ plus 0 5.
+Definition ex1 : m nat :=  bop plus 1 2.
+Definition ex2 : m nat :=  bop plus 0 5.
 
 Compute (runWriter ex1).
+Compute (execWriter ex1).
+Compute (evalWriter ex1).
+
 Compute (runWriter ex2).
 
 
