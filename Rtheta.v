@@ -842,9 +842,12 @@ Section Rtheta_Poinitwise_Setoid_equiv.
                (op: Rtheta -> Rtheta)
                (xm: m Rtheta) : m Rtheta :=
       x <- xm ;;
-        tell (computeFlags (is_struct x) (is_struct x)) ;;
+        tell
+        (let xs := (is_struct x) in
+         (computeFlags xs xs))
+        ;;
         ret (op x).
-    
+
     Definition Rtheta_liftM2
                (op: Rtheta -> Rtheta -> Rtheta)
                (am bm: m Rtheta) : m Rtheta :=

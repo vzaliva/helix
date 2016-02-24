@@ -45,6 +45,7 @@ Section Sparse_Unions.
   Require Import ExtLib.Structures.Monads.
   Require Import ExtLib.Structures.Monoid.
   Require Import ExtLib.Data.Monads.WriterMonad.
+  Require Import ExtLib.Data.Monads.IdentityMonad.
   Require Import WriterMonadNoT.
 
 
@@ -54,33 +55,71 @@ Section Sparse_Unions.
   Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
   Context {Monad_flags : Monad flags_m}.
   Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
-  
+
   Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
   Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
-  
+
   Set Implicit Arguments.
+
+  Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
+    fun am bm =>
+      (evalWriter am) = (evalWriter bm).
+
+  Lemma evalWriter_Rtheta_liftM
+        (op: Rtheta -> Rtheta)
+        {a: flags_m Rtheta}
+    :
+      evalWriter (Rtheta_liftM flags_m op a) = op (evalWriter a).
+  Proof.
+    unfold evalWriter, runWriter, unIdent.
+    unfold Rtheta_liftM.
+    simpl.
+
+    generalize computeFlags as computeFlags.
+    generalize is_struct as is_struct.
+    intros is_struct computeFlags.
+
+    unfold fst.
+    repeat repeat break_let.
+
+    destruct r, r0, r1, r2.
+
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    simpl.
+    admit.
+  Qed.
+
+  Lemma evalWriter_lift_Rtheta_liftM2
+        (op: Rtheta -> Rtheta -> Rtheta)
+        {a b: flags_m Rtheta}
+    :
+      evalWriter (Rtheta_liftM2 flags_m op a b) = op (evalWriter a) (evalWriter b).
+  Proof.
+    admit.
+  Qed.
+
 
   Local Open Scope bool_scope.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
-  Definition Union (op: CarrierA -> CarrierA -> CarrierA)
+  Definition Union (op: Rtheta -> Rtheta -> Rtheta)
     := @Rtheta_liftM2 _ _ _ op.
 
   (* Unary union of vector's elements (left fold) *)
-  Definition VecUnion {n} (op: CarrierA -> CarrierA -> CarrierA) (v: mvector n): flags_m Rtheta :=
+  Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
     Vfold_left (Union op) (ret Rtheta_SZero) v.
 
   (* Binary element-wise union of two vectors *)
-  Definition Vec2Union {n} (op: CarrierA -> CarrierA -> CarrierA) (a b: mvector n): mvector n
+  Definition Vec2Union {n} (op: Rtheta -> Rtheta -> Rtheta) (a b: mvector n): mvector n
     := Vmap2 (Union op) a b.
 
   Definition SumUnion
-             {o n} (op: CarrierA -> CarrierA -> CarrierA)
+             {o n} (op: Rtheta -> Rtheta -> Rtheta)
              (v: vector (mvector o) n): mvector o
     :=  Vfold_left (Vec2Union op) (szero_mvector o) v.
 
   Lemma VecUnion_cons:
-    ∀ (op: CarrierA -> CarrierA -> CarrierA) m x (xs : mvector m),
+    ∀ (op: Rtheta -> Rtheta -> Rtheta) m x (xs : mvector m),
       VecUnion op (Vcons x xs) ≡ Union op (VecUnion op xs) x.
   Proof.
     intros op m x xs.
@@ -89,29 +128,38 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-  Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
-    fun am bm =>
-      (evalWriter am) = (evalWriter bm).
-  
   (* Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
     Vforall2 (n:=n)
              Rtheta_Mequiv. *)
 
-
-  Set Printing All.
-  Lemma test
-    (op: (flags_m Rtheta) -> (flags_m Rtheta))
-    `{op_mor: !Proper ((=) ==> (=)) op}
-    (a b: flags_m Rtheta)
+  Lemma test1
+        (op: (flags_m Rtheta) -> (flags_m Rtheta))
+        `{op_mor: !Proper ((=) ==> (=)) op}
+        (a b: flags_m Rtheta)
     :
-    a = b -> op a = op b.
+      a = b -> op a = op b.
   Proof.
     intros H.
     apply op_mor.
     assumption.
   Qed.
 
-  Lemma test1
+  Lemma test2
+        (op: Rtheta -> Rtheta)
+        `{op_mor: !Proper ((=) ==> (=)) op}
+        {a b: flags_m Rtheta}
+    :
+      a = b -> (Rtheta_liftM flags_m op) a = (Rtheta_liftM flags_m op) b.
+  Proof.
+    intros H.
+
+    unfold equiv, Rtheta_Mequiv in *.
+    rewrite 2!evalWriter_Rtheta_liftM.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Lemma mtest1
         {n}
         (op: (mvector n) -> (mvector n))
         `{op_mor: !Proper ((=) ==> (=)) op}
@@ -124,11 +172,12 @@ Section Sparse_Unions.
     assumption.
   Qed.
 
-  Instance test2:
-    Proper ((=) ==> ((=) ==> (=)) liftM2).
-  
+
+  (*   Instance test_liftM2_proper:
+    Proper ((=) ==> ((=) ==> (=)) liftM2). *)
+
   Lemma Vec2Union_comm {n}
-        (op: CarrierA -> CarrierA -> CarrierA)
+        (op: Rtheta -> Rtheta -> Rtheta)
         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
         `{C: !Commutative op}
         {a b: mvector n}:
@@ -304,3 +353,4 @@ End Sparse_Unions.
 
 Close Scope vector_scope.
 Close Scope nat_scope.
+
