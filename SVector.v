@@ -128,9 +128,11 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-  (* Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
-    Vforall2 (n:=n)
-             Rtheta_Mequiv. *)
+  (* The following is probably not needed, as vec_Equiv applies as long as we have Equiv instance for (flags_m Rtheta)
+
+Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
+    Vforall2 (n:=n) Rtheta_Mequiv.
+   *)
 
   Lemma test1
         (op: (flags_m Rtheta) -> (flags_m Rtheta))
