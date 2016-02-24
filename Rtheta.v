@@ -839,19 +839,19 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     Context {Writer_m: MonadWriter Monoid_RthetaFlags m}.
 
     Definition Rtheta_liftM
-               (op: CarrierA -> CarrierA)
+               (op: Rtheta -> Rtheta)
                (xm: m Rtheta) : m Rtheta :=
       x <- xm ;;
         tell (computeFlags (is_struct x) (is_struct x)) ;;
-        ret (Rtheta_unary op x).
+        ret (op x).
     
     Definition Rtheta_liftM2
-               (op: CarrierA -> CarrierA -> CarrierA)
+               (op: Rtheta -> Rtheta -> Rtheta)
                (am bm: m Rtheta) : m Rtheta :=
       a <- am ;;  b <- bm ;;
         tell (computeFlags (is_struct a) (is_struct b)) ;;
-        ret (Rtheta_binop op a b).
-    
+        ret (op a b).
+
   End with_monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
