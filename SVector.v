@@ -55,14 +55,8 @@ Section Sparse_Unions.
   Local Open Scope monad_scope.
 
   Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
-  Context {Monad_flags : Monad flags_m}.
   Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 
-  Variable meq : forall {T}, type T -> type (flags_m T).
-
-  Variable MonadLaws_m : @MonadLaws flags_m Monad_flags meq.
-  
- 
   Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
   Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
 
@@ -76,36 +70,18 @@ Section Sparse_Unions.
         (op: Rtheta -> Rtheta)
         {a: flags_m Rtheta}
     :
-      evalWriter (Rtheta_liftM flags_m op a) = op (evalWriter a).
+      evalWriter (Rtheta_liftM flags_m op a) ≡ op (evalWriter a).
   Proof.
-    unfold evalWriter, runWriter, unIdent.
-    unfold Rtheta_liftM.
-    simpl.
-
-    generalize computeFlags as computeFlags.
-    generalize is_struct as is_struct.
-    intros is_struct computeFlags.
-
-    unfold fst.
-    
-    repeat break_let.
-
-    destruct r, r0, r1, r2.
-
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
-    simpl.
-
-    
-    admit.
+    reflexivity.
   Qed.
 
   Lemma evalWriter_lift_Rtheta_liftM2
         (op: Rtheta -> Rtheta -> Rtheta)
         {a b: flags_m Rtheta}
     :
-      evalWriter (Rtheta_liftM2 flags_m op a b) = op (evalWriter a) (evalWriter b).
+      evalWriter (Rtheta_liftM2 flags_m op a b) ≡ op (evalWriter a) (evalWriter b).
   Proof.
-    admit.
+    reflexivity.
   Qed.
 
 

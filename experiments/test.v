@@ -64,7 +64,7 @@ Lemma evalWriter_lift_uop
       (op: nat -> nat)
       {a: m nat}
   :
-    evalWriter (lift_uop op a) = op (evalWriter a).
+    evalWriter ((lift_uop op) a) = op (evalWriter a).
 Proof.
   reflexivity.
 Qed.
