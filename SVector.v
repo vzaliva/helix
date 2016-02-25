@@ -42,11 +42,13 @@ Section SparseVectors.
 End SparseVectors.
 
 Section Sparse_Unions.
+  Require Import ExtLib.Core.Type.
   Require Import ExtLib.Structures.Monads.
   Require Import ExtLib.Structures.Monoid.
   Require Import ExtLib.Data.Monads.WriterMonad.
   Require Import ExtLib.Data.Monads.IdentityMonad.
   Require Import WriterMonadNoT.
+  Require Import ExtLib.Structures.MonadLaws.
 
 
   Import MonadNotation.
@@ -56,6 +58,11 @@ Section Sparse_Unions.
   Context {Monad_flags : Monad flags_m}.
   Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 
+  Variable meq : forall {T}, type T -> type (flags_m T).
+
+  Variable MonadLaws_m : @MonadLaws flags_m Monad_flags meq.
+  
+ 
   Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
   Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
 
@@ -80,12 +87,15 @@ Section Sparse_Unions.
     intros is_struct computeFlags.
 
     unfold fst.
-    repeat repeat break_let.
+    
+    repeat break_let.
 
     destruct r, r0, r1, r2.
 
     unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
     simpl.
+
+    
     admit.
   Qed.
 
