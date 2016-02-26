@@ -11,6 +11,7 @@ Require Import CaseNaming.
 Require Import SpiralTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -65,6 +66,14 @@ Section Sparse_Unions.
   Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
     fun am bm => (evalWriter am) = (evalWriter bm).
 
+  Instance Rtheta_MSetoid: Setoid (flags_m Rtheta).
+  Proof.
+    split.
+    unfold Reflexive. destruct x; (unfold equiv, Rtheta_Mequiv; crush).
+    unfold Symmetric. intros. destruct x,y; (unfold equiv, Rtheta_Mequiv in *; crush).
+    unfold Transitive. intros. destruct x,y,z; unfold equiv, Rtheta_Mequiv in *; crush.
+  Qed.
+
   Lemma evalWriter_Rtheta_liftM
         (op: Rtheta -> Rtheta)
         {a: flags_m Rtheta}
@@ -83,7 +92,6 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-
   Local Open Scope bool_scope.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
@@ -100,7 +108,7 @@ Section Sparse_Unions.
     rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply C.
   Qed.
-  
+
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
     Vfold_left (Union op) (ret Rtheta_SZero) v.
@@ -141,8 +149,8 @@ Section Sparse_Unions.
   Qed.
 
   Lemma SumUnion_cons {m n}
-        (op: CarrierA -> CarrierA -> CarrierA)
-        (x: svector m) (xs: vector (svector m) n):
+        (op: Rtheta -> Rtheta -> Rtheta)
+        (x: mvector m) (xs: vector (mvector m) n):
     SumUnion op (Vcons x xs) ≡ Vec2Union op (SumUnion op xs) x.
   Proof.
     unfold SumUnion.
@@ -150,10 +158,10 @@ Section Sparse_Unions.
   Qed.
 
   Lemma AbsorbUnionIndexBinary
-        (op: CarrierA -> CarrierA -> CarrierA)
+        (op: Rtheta -> Rtheta -> Rtheta)
         (m k : nat)
         (kc : k < m)
-        (a b : svector m):
+        (a b : mvector m):
     Vnth (Vec2Union op a b) kc ≡ Union op (Vnth a kc) (Vnth b kc).
   Proof.
     unfold Vec2Union.
@@ -161,14 +169,14 @@ Section Sparse_Unions.
   Qed.
 
   Lemma AbsorbUnionIndex
-        (op: CarrierA -> CarrierA -> CarrierA)
+        (op: Rtheta -> Rtheta -> Rtheta)
         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-        m n (x: vector (svector m) n) k (kc: k<m):
+        m n (x: vector (mvector m) n) k (kc: k<m):
     Vnth (SumUnion op x) kc = VecUnion op (Vmap (fun v => Vnth v kc) x).
   Proof.
     induction n.
     + dep_destruct x.
-      unfold VecUnion, SumUnion,szero_svector; simpl.
+      unfold VecUnion, SumUnion, szero_mvector; simpl.
       rewrite Vnth_const; reflexivity.
     + dep_destruct x.
       rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
