@@ -199,8 +199,8 @@ Section Sparse_Unions.
 
   (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
   Lemma AbsorbIUnionIndex
-        (op: CarrierA -> CarrierA -> CarrierA)
-        m n (x: vector (svector m) n) k (kc: k<m)
+        (op: Rtheta -> Rtheta -> Rtheta)
+        m n (x: vector (mvector m) n) k (kc: k<m)
     :
       Vnth
         (SumUnion op
