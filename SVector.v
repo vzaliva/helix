@@ -95,11 +95,8 @@ Section Sparse_Unions.
       @Commutative Rtheta Rtheta_val_equiv Rtheta op ->
       @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Union op).
   Proof.
-    intros op C.
-    unfold Commutative.
-    intros x y.
-    unfold Union.
-    unfold equiv, Rtheta_Mequiv.
+    intros op C x y.
+    unfold Union, equiv, Rtheta_Mequiv.
     rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply C.
   Qed.
@@ -129,10 +126,10 @@ Section Sparse_Unions.
 
   Lemma Vec2Union_comm {n}
         (op: Rtheta -> Rtheta -> Rtheta)
-        `{C: !Commutative op}
-        {a b: mvector n}:
-    Vec2Union op a b = Vec2Union op b a.
+        `{C: !Commutative op}:
+    @Commutative (mvector n) _ (mvector n) (Vec2Union op).
   Proof.
+    intros a b.
     induction n.
     VOtac; reflexivity.
     VSntac a. VSntac b.
