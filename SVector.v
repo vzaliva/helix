@@ -63,8 +63,7 @@ Section Sparse_Unions.
   Set Implicit Arguments.
 
   Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
-    fun am bm =>
-      (evalWriter am) = (evalWriter bm).
+    fun am bm => (evalWriter am) = (evalWriter bm).
 
   Lemma evalWriter_Rtheta_liftM
         (op: Rtheta -> Rtheta)
@@ -89,7 +88,7 @@ Section Sparse_Unions.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
   Definition Union (op: Rtheta -> Rtheta -> Rtheta)
-    := @Rtheta_liftM2 _ _ _ op.
+    := Rtheta_liftM2 flags_m op.
 
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
@@ -114,55 +113,11 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-  (* The following is probably not needed, as vec_Equiv applies as long as we have Equiv instance for (flags_m Rtheta)
+  (* The following is probably not needed, as vec_Equiv applies as long as we have Equiv instance for (flags_m Rtheta) 
 
-Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
-    Vforall2 (n:=n) Rtheta_Mequiv.
-   *)
-
-  Lemma test1
-        (op: (flags_m Rtheta) -> (flags_m Rtheta))
-        `{op_mor: !Proper ((=) ==> (=)) op}
-        (a b: flags_m Rtheta)
-    :
-      a = b -> op a = op b.
-  Proof.
-    intros H.
-    apply op_mor.
-    assumption.
-  Qed.
-
-  Lemma test2
-        (op: Rtheta -> Rtheta)
-        `{op_mor: !Proper ((=) ==> (=)) op}
-        {a b: flags_m Rtheta}
-    :
-      a = b -> (Rtheta_liftM flags_m op) a = (Rtheta_liftM flags_m op) b.
-  Proof.
-    intros H.
-
-    unfold equiv, Rtheta_Mequiv in *.
-    rewrite 2!evalWriter_Rtheta_liftM.
-    rewrite H.
-    reflexivity.
-  Qed.
-
-  Lemma mtest1
-        {n}
-        (op: (mvector n) -> (mvector n))
-        `{op_mor: !Proper ((=) ==> (=)) op}
-        {a b: mvector n}
-    :
-      a = b -> op a = op b.
-  Proof.
-    intros H.
-    apply op_mor.
-    assumption.
-  Qed.
-
-
-  (*   Instance test_liftM2_proper:
-    Proper ((=) ==> ((=) ==> (=)) liftM2). *)
+  Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
+    Vforall2 (n:=n) Rtheta_Mequiv. *)
+   
 
   Lemma Vec2Union_comm {n}
         (op: Rtheta -> Rtheta -> Rtheta)
@@ -176,6 +131,31 @@ Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
     VSntac a. VSntac b.
     simpl.
     rewrite 2!Vcons_to_Vcons_reord.
+
+    Set Printing Implicit. Show.
+    Print Instances Proper.
+    generalize (Vec2Union op (Vtail a) (Vtail b)) as aaa.
+    generalize (Vec2Union op (Vtail b) (Vtail a)) as bbb.
+    generalize (Union op (Vhead a) (Vhead b)) as aa.
+    generalize (Union op (Vhead b) (Vhead a)) as bb.
+    intros bb aa bbb aaa.
+    apply Vcons_reord_proper.
+Unset Printing Notations. Show.
+    Print Instances Proper.
+    setoid_replace aaa with bbb using relation
+                                (@equiv (vector (flags_m Rtheta) n)
+                                   (@vec_equiv (flags_m Rtheta) 
+                                               (@equiv (flags_m Rtheta) Rtheta_Mequiv)
+                                               n
+                                   )).
+    apply Vcons_reord_proper.
+    
+    setoid_replace (Vec2Union op (Vtail a) (Vtail b)) with (Vec2Union op (Vtail b) (Vtail a)).
+    
+    Unset Printing Notations. Show.
+    Set Printing Implicit. Show.
+    setoid_rewrite IHn.
+    
     rewrite_clear IHn.
     setoid_replace (Union op (Vhead a) (Vhead b)) with (Union op (Vhead b) (Vhead a))
       by apply (@Rtheta_val_Commutative_Rtheta_binary op op_mor C).

@@ -116,14 +116,14 @@ Section VCons_p.
   Qed.
 
   Global Instance Vcons_reord_proper `{Equiv A} n:
-    Proper (@vec_equiv A _ n ==> (=) ==> @vec_equiv A _ (S n))
+    Proper ((=) ==> (=) ==> (=))
            (@Vcons_reord A n).
   Proof.
     split.
     assumption.
     unfold vec_equiv, Vforall2 in H0.  assumption.
   Qed.
-
+  
 End VCons_p.
 
 Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
