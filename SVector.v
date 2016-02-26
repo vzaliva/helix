@@ -92,6 +92,14 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
+  Definition Rtheta_MSZero: flags_m Rtheta := ret Rtheta_SZero.
+
+  Lemma evalWriter_Rtheta_MSZero:
+    evalWriter Rtheta_MSZero = Rtheta_SZero.
+  Proof.
+    reflexivity.
+  Qed.
+
   Local Open Scope bool_scope.
 
   (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
@@ -113,8 +121,8 @@ Section Sparse_Unions.
          (op: Rtheta -> Rtheta -> Rtheta)
          `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
     :
-    Proper ((=) ==> (=) ==> (=))
-           (Union op).
+      Proper ((=) ==> (=) ==> (=))
+             (Union op).
   Proof.
     intros a b H x y E.
     unfold Union.
@@ -122,7 +130,7 @@ Section Sparse_Unions.
     rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply op_mor; assumption.
   Qed.
-  
+
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
     Vfold_left (Union op) (ret Rtheta_SZero) v.
@@ -263,18 +271,26 @@ Section Sparse_Unions.
       reflexivity.
   Qed.
 
-  Lemma Union_Plus_SZero_r x:
-    (Union (plus) x Rtheta_SZero) = x.
+  Lemma Union_Plus_MSZero_r x:
+    (Union (plus) x Rtheta_MSZero) = x.
   Proof.
-    unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold Union.
+    unfold equiv, Rtheta_Mequiv.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    rewrite evalWriter_Rtheta_MSZero.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
     simpl.
     ring.
   Qed.
 
-  Lemma Union_Plus_SZero_l x:
-    (Union (plus) Rtheta_SZero x) = x.
+  Lemma Union_Plus_MSZero_l x:
+    (Union (plus) Rtheta_MSZero x) = x.
   Proof.
-    unfold Union, equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold Union.
+    unfold equiv, Rtheta_Mequiv.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    rewrite evalWriter_Rtheta_MSZero.
+    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
     simpl.
     ring.
   Qed.

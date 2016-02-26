@@ -123,7 +123,7 @@ Section SigmaHCOLRewriting.
           setoid_replace (VecUnion plus x0) with Rtheta_SZero
             by apply Is_ValZero_to_zero, UZ.
           clear UZ.
-          apply Union_Plus_SZero_l.
+          apply Union_Plus_MSZero_l.
         +
           Case ("j!=0").
           rewrite VecUnion_cons.
@@ -144,7 +144,7 @@ Section SigmaHCOLRewriting.
           rewrite IHm with (jc:=l).
 
           setoid_replace h with Rtheta_SZero by apply Is_ValZero_to_zero, HS.
-          apply Union_Plus_SZero_r.
+          apply Union_Plus_MSZero_r.
 
           intros i ic.
           assert(ics: S i < S m) by lia.
