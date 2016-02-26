@@ -37,29 +37,29 @@ Global Open Scope nat_scope.
 natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
            {i o:nat}
-           (x: svector i)
+           (x: mvector i)
            (f: index_map o i)
            (n:nat) (np: n<o)
-  : Rtheta
+  : flags_m Rtheta
   := Vnth x (« f » n np).
 
 Definition VnthInverseIndexMapped
            {i o:nat}
-           (x: svector i)
+           (x: mvector i)
            (f': partial_index_map o i)
            (n:nat) (np: n<o)
-  : Rtheta
+  : flags_m Rtheta
   :=
     let f := partial_index_f _ _ f' in
     let f_spec := partial_index_f_spec _ _  f' in
-    match (f n) as fn return f n ≡ fn -> Rtheta with
-    | None => fun _ => Rtheta_SZero
+    match (f n) as fn return f n ≡ fn -> flags_m Rtheta with
+    | None => fun _ => Rtheta_MSZero
     | Some z => fun p => Vnth x (f_spec n np z p)
     end eq_refl.
 
 Lemma VnthInverseIndexMapped_arg_equiv:
   ∀ (i o : nat)
-    (x y : vector Rtheta i) (j : nat)
+    (x y : mvector i) (j : nat)
     (jp : j < o)
     (f' : partial_index_map o i),
     x = y
@@ -76,19 +76,22 @@ Qed.
 
 Section SigmaHCOL_Operators.
 
+  Class SHOperator {i o:nat} (op: mvector i -> mvector o) :=
+    o_setoidmor :> Setoid_Morphism op.
+
   Definition Gather
              {i o: nat}
              (f: index_map o i)
-             (x: svector i):
-    svector o
+             (x: mvector i):
+    mvector o
     := Vbuild (VnthIndexMapped x f).
 
-  Global Instance Gather_HOperator
+  Global Instance Gather_SHOperator
          {i o: nat}
          (f: index_map o i):
-    HOperator (@Gather i o f).
+    SHOperator (@Gather i o f).
   Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
+    unfold SHOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
@@ -103,37 +106,37 @@ Section SigmaHCOL_Operators.
              (base stride: nat)
              {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
     :
-      (svector i) -> svector o
+      (mvector i) -> mvector o
     :=
       Gather (h_index_map base stride
                           (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
              ).
 
-  Global Instance GathH_HOperator
+  Global Instance GathH_SHOperator
          {i o}
          (base stride: nat)
          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-    HOperator (@GathH i o base stride domain_bound).
+    SHOperator (@GathH i o base stride domain_bound).
   Proof.
-    apply Gather_HOperator.
+    apply Gather_SHOperator.
   Qed.
 
   Definition Scatter
              {i o: nat}
              (f: index_map i o)
              {f_inj: index_map_injective f}
-             (x: svector i) : svector o
+             (x: mvector i) : mvector o
     :=
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
-  Global Instance Scatter_HOperator
+  Global Instance Scatter_SHOperator
          {i o: nat}
          (f: index_map i o)
          {f_inj: index_map_injective f}:
-    HOperator (@Scatter i o f f_inj).
+    SHOperator (@Scatter i o f f_inj).
   Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
+    unfold SHOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Scatter.
     unfold equiv, vec_equiv.
@@ -150,35 +153,35 @@ Section SigmaHCOL_Operators.
              {range_bound: ∀ x : nat, x < i → base + x * stride < o}
              {snzord0: stride ≢ 0 \/ i < 2}
     :
-      (svector i) -> svector o
+      (mvector i) -> mvector o
     :=
       Scatter (h_index_map base stride (range_bound:=range_bound))
               (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
-  Global Instance ScatH_HOperator
+  Global Instance ScatH_SHOperator
          {i o}
          (base stride: nat)
          {range_bound: ∀ x : nat, x < i → base + x * stride < o}
          {snzord0: stride ≢ 0 \/ i < 2}:
-    HOperator (@ScatH i o base stride range_bound snzord0).
+    SHOperator (@ScatH i o base stride range_bound snzord0).
   Proof.
-    apply Scatter_HOperator.
+    apply Scatter_SHOperator.
   Qed.
 
   Definition Pointwise
              {n: nat}
-             (f: { i | i<n} -> Rtheta -> Rtheta)
+             (f: { i | i<n} -> flags_m Rtheta -> flags_m Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (x: svector n)
+             (x: mvector n)
     := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
 
-  Global Instance Pointwise_HOperator
+  Global Instance Pointwise_SHOperator
          {n: nat}
-         (f: { i | i<n} -> Rtheta -> Rtheta)
+         (f: { i | i<n} -> flags_m Rtheta -> flags_m Rtheta)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    HOperator (@Pointwise n f pF).
+    SHOperator (@Pointwise n f pF).
   Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
+    unfold SHOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Pointwise.
     apply Vforall2_intro_nth.
@@ -191,17 +194,17 @@ Section SigmaHCOL_Operators.
   Qed.
 
   Definition Atomic
-             (f: Rtheta -> Rtheta)
+             (f: flags_m Rtheta -> flags_m Rtheta)
              `{pF: !Proper ((=) ==> (=)) f}
-             (x: svector 1)
+             (x: mvector 1)
     := [f (Vhead x)].
 
-  Global Instance Atomic_HOperator
-         (f: Rtheta->Rtheta)
+  Global Instance Atomic_SHOperator
+         (f: flags_m Rtheta -> flags_m Rtheta)
          `{pF: !Proper ((=) ==> (=)) f}:
-    HOperator (Atomic f).
+    SHOperator (Atomic f).
   Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
+    unfold SHOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Atomic.
     unfold equiv, vec_equiv.
@@ -222,8 +225,8 @@ End SigmaHCOL_Operators.
 Lemma Gather_spec
       {i o: nat}
       (f: index_map o i)
-      (x: svector i)
-      (y: svector o):
+      (x: mvector i)
+      (y: mvector o):
   (Gather f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
 Proof.
   unfold Gather, Vbuild.
@@ -236,7 +239,7 @@ Qed.
 
 Lemma Gather_is_endomorphism:
   ∀ (i o : nat)
-    (x : svector i),
+    (x : mvector i),
   ∀ (f: index_map o i),
     Vforall (Vin_aux x)
             (Gather f x).
@@ -253,7 +256,7 @@ Proof.
 Qed.
 
 Lemma Gather_preserves_P:
-  ∀ (i o : nat) (x : svector i) (P: Rtheta->Prop),
+  ∀ (i o : nat) (x : mvector i) (P: flags_m Rtheta -> Prop),
     Vforall P x
     → ∀ f : index_map o i,
       Vforall P (Gather f x).
@@ -271,13 +274,13 @@ Proof.
 Qed.
 
 Lemma Gather_preserves_density:
-  ∀ (i o : nat) (x : svector i)
+  ∀ (i o : nat) (x : mvector i)
     (f: index_map o i),
-    svector_is_dense x ->
-    svector_is_dense (Gather f x).
+    mvector_is_dense x ->
+    mvector_is_dense (Gather f x).
 Proof.
   intros.
-  unfold svector_is_dense in *.
+  unfold mvector_is_dense in *.
   apply Gather_preserves_P.
   assumption.
 Qed.
@@ -289,7 +292,7 @@ Lemma Scatter_spec
       {i o: nat}
       (f: index_map i o)
       {f_inj: index_map_injective f}
-      (x: svector i)
+      (x: mvector i)
       (n: nat) (ip : n < i):
   Vnth x ip ≡ VnthIndexMapped (Scatter f (f_inj:=f_inj) x) f n ip.
 Proof.
@@ -324,7 +327,7 @@ Lemma Scatter_rev_spec
       {i o: nat}
       (f: index_map i o)
       {f_inj: index_map_injective f}
-      (x: svector i)
+      (x: mvector i)
       (n: nat)
       (ip : n < o):
   Vnth (Scatter f (f_inj:=f_inj) x) ip ≡

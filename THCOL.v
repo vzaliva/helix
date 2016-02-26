@@ -168,9 +168,9 @@ to the input.
 In general HTSUMUnion is not HOperator, since Union is not Proper
 wrt equiv.
  *)
+
 Definition HTSUMUnion {i o}
            (f: mvector i -> mvector o)
            (g: mvector i -> mvector o)
            (x: mvector i): mvector o
   :=  Vec2Union plus (f x) (g x).
-
