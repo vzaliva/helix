@@ -40,6 +40,7 @@ Section SparseVectors.
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
 
+  
 End SparseVectors.
 
 Section Sparse_Unions.
@@ -303,31 +304,31 @@ Section Sparse_Unions.
     apply Vbreak_preserves_P.
   Qed.
 
-  Lemma Vec2Union_szero_svector_r {n} {a: svector n}:
-    Vec2Union plus a (szero_svector n) = a.
+  Lemma Vec2Union_szero_svector_r {n} {a: mvector n}:
+    Vec2Union plus a (szero_mvector n) = a.
   Proof.
-    unfold szero_svector.
+    unfold szero_mvector.
     induction n.
     VOtac; reflexivity.
     simpl.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-    rewrite Union_Plus_SZero_r.
+    rewrite Union_Plus_MSZero_r.
     rewrite <- Vcons_to_Vcons_reord.
     dep_destruct a.
     crush.
   Qed.
 
-  Lemma Vec2Union_szero_svector_l {n} {a: svector n}:
-    Vec2Union plus (szero_svector n) a = a.
+  Lemma Vec2Union_szero_svector_l {n} {a: mvector n}:
+    Vec2Union plus (szero_mvector n) a = a.
   Proof.
-    unfold szero_svector.
+    unfold szero_mvector.
     induction n.
     VOtac; reflexivity.
     simpl.
     rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-    rewrite Union_Plus_SZero_l.
+    rewrite Union_Plus_MSZero_l.
     rewrite <- Vcons_to_Vcons_reord.
     dep_destruct a.
     crush.
