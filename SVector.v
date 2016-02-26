@@ -90,6 +90,20 @@ Section Sparse_Unions.
   Definition Union (op: Rtheta -> Rtheta -> Rtheta)
     := Rtheta_liftM2 flags_m op.
 
+  Lemma Union_comm:
+    forall (op : Rtheta -> Rtheta -> Rtheta),
+      @Commutative Rtheta Rtheta_val_equiv Rtheta op ->
+      @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Union op).
+  Proof.
+    intros op C.
+    unfold Commutative.
+    intros x y.
+    unfold Union.
+    unfold equiv, Rtheta_Mequiv.
+    rewrite 2!evalWriter_lift_Rtheta_liftM2.
+    apply C.
+  Qed.
+  
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
     Vfold_left (Union op) (ret Rtheta_SZero) v.
@@ -113,15 +127,8 @@ Section Sparse_Unions.
     reflexivity.
   Qed.
 
-  (* The following is probably not needed, as vec_Equiv applies as long as we have Equiv instance for (flags_m Rtheta) 
-
-  Global Instance vec_Mequiv {n}: Equiv (mvector n) :=
-    Vforall2 (n:=n) Rtheta_Mequiv. *)
-   
-
   Lemma Vec2Union_comm {n}
         (op: Rtheta -> Rtheta -> Rtheta)
-        `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
         `{C: !Commutative op}
         {a b: mvector n}:
     Vec2Union op a b = Vec2Union op b a.
@@ -131,35 +138,9 @@ Section Sparse_Unions.
     VSntac a. VSntac b.
     simpl.
     rewrite 2!Vcons_to_Vcons_reord.
-
-    Set Printing Implicit. Show.
-    Print Instances Proper.
-    generalize (Vec2Union op (Vtail a) (Vtail b)) as aaa.
-    generalize (Vec2Union op (Vtail b) (Vtail a)) as bbb.
-    generalize (Union op (Vhead a) (Vhead b)) as aa.
-    generalize (Union op (Vhead b) (Vhead a)) as bb.
-    intros bb aa bbb aaa.
     apply Vcons_reord_proper.
-Unset Printing Notations. Show.
-    Print Instances Proper.
-    setoid_replace aaa with bbb using relation
-                                (@equiv (vector (flags_m Rtheta) n)
-                                   (@vec_equiv (flags_m Rtheta) 
-                                               (@equiv (flags_m Rtheta) Rtheta_Mequiv)
-                                               n
-                                   )).
-    apply Vcons_reord_proper.
-    
-    setoid_replace (Vec2Union op (Vtail a) (Vtail b)) with (Vec2Union op (Vtail b) (Vtail a)).
-    
-    Unset Printing Notations. Show.
-    Set Printing Implicit. Show.
-    setoid_rewrite IHn.
-    
-    rewrite_clear IHn.
-    setoid_replace (Union op (Vhead a) (Vhead b)) with (Union op (Vhead b) (Vhead a))
-      by apply (@Rtheta_val_Commutative_Rtheta_binary op op_mor C).
-    reflexivity.
+    apply IHn.
+    apply Union_comm; apply C.
   Qed.
 
   Lemma SumUnion_cons {m n}
