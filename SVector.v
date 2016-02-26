@@ -109,6 +109,20 @@ Section Sparse_Unions.
     apply C.
   Qed.
 
+  Global Instance Union_proper
+         (op: Rtheta -> Rtheta -> Rtheta)
+         `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+    :
+    Proper ((=) ==> (=) ==> (=))
+           (Union op).
+  Proof.
+    intros a b H x y E.
+    unfold Union.
+    unfold Union, equiv, Rtheta_Mequiv in *.
+    rewrite 2!evalWriter_lift_Rtheta_liftM2.
+    apply op_mor; assumption.
+  Qed.
+  
   (* Unary union of vector's elements (left fold) *)
   Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
     Vfold_left (Union op) (ret Rtheta_SZero) v.
