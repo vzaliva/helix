@@ -31,7 +31,7 @@ Open Scope vector_scope.
 
 Section HCOL_Language.
 
-  Class HOperator {i o:nat} (op: svector i -> svector o) :=
+  Class HOperator {i o:nat} (op: mvector i -> mvector o) :=
     o_setoidmor :> Setoid_Morphism op.
   
   Lemma HOperator_functional_extensionality
@@ -44,55 +44,55 @@ Section HCOL_Language.
     apply ext_equiv_applied_iff.
   Qed.
   
-  Definition HPrepend {i n} (a:svector n)
-    : svector i -> svector (n+i)
+  Definition HPrepend {i n} (a:mvector n)
+    : mvector i -> mvector (n+i)
     := Vapp a.
 
   Definition HInfinityNorm {i}
-    : svector i -> svector 1
+    : mvector i -> mvector 1
     := Vectorize ∘ InfinityNorm.
 
   Definition HReduction {i}
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (idv:Rtheta)
-    : svector i -> svector 1
+    : mvector i -> mvector 1
     := Vectorize ∘ (Reduction f idv).
 
-  Definition HAppend {i n} (a:svector n)
-    : svector i -> svector (i+n)
+  Definition HAppend {i n} (a:mvector n)
+    : mvector i -> mvector (i+n)
     := fun x => Vapp x a.
 
   Definition HVMinus {o}
-    : svector (o+o) -> svector o
+    : mvector (o+o) -> mvector o
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
              (f: nat->Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    : svector (o+o) -> svector o
+    : mvector (o+o) -> mvector o
     :=  BinOp f ∘ (vector2pair o).
 
-  Definition HEvalPolynomial {n} (a: svector n): svector 1 -> svector 1
+  Definition HEvalPolynomial {n} (a: mvector n): mvector 1 -> mvector 1
     := Lst ∘ EvalPolynomial a ∘ Scalarize.
 
   Definition HMonomialEnumerator n
-    : svector 1 -> svector (S n)
+    : mvector 1 -> mvector (S n)
     := MonomialEnumerator n ∘ Scalarize.
 
   Definition HChebyshevDistance h
-    : svector (h+h) -> svector 1
+    : mvector (h+h) -> mvector 1
     := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
 
   Definition HScalarProd {h}
-    : svector (h+h) -> svector 1
+    : mvector (h+h) -> mvector 1
     := Lst ∘ ScalarProd ∘ (vector2pair h).
 
   Definition HInduction (n:nat)
              (f: Rtheta->Rtheta->Rtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial:Rtheta)
-    : svector 1 -> svector n
+    : mvector 1 -> mvector n
     := Induction n f initial ∘ Scalarize.
 
   Section HCOL_operators.
@@ -137,7 +137,7 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HEvalPolynomial_HOperator {n} (a: svector n):
+    Global Instance HEvalPolynomial_HOperator {n} (a: mvector n):
       HOperator (@HEvalPolynomial n a).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -149,7 +149,7 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HPrepend_HOperator {i n} (a:svector n):
+    Global Instance HPrepend_HOperator {i n} (a:mvector n):
       HOperator (@HPrepend i n a).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).

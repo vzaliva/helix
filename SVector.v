@@ -97,7 +97,30 @@ Proof.
   reflexivity.
 Qed.
 
+Definition Rtheta_evalRel
+           (rel: Rtheta -> Rtheta -> Prop)
+           (am bm: flags_m Rtheta) : Prop :=
+  rel (evalWriter am) (evalWriter bm).
+
+
+Global Instance Rtheta_MZero: Zero (flags_m Rtheta) := ret (Rtheta_normal zero).
+Global Instance Rtheta_MOne: One (flags_m Rtheta) := ret (Rtheta_normal one).
+Global Instance Rtheta_MPlus: Plus (flags_m Rtheta) := Rtheta_liftM2 flags_m (Rtheta_binop plus).
+Global Instance Rtheta_MMult: Mult (flags_m Rtheta) := Rtheta_liftM2 flags_m (Rtheta_binop mult).
+Global Instance Rtheta_MNeg: Negate (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary negate).
+Global Instance Rtheta_MLe: Le (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first le).
+Global Instance Rtheta_MLt: Lt (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first lt).
+
+Global Program Instance Rtheta_val_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary abs).
+Next Obligation.
+  unfold equiv, Rtheta_Mequiv.
+  rewrite evalWriter_Rtheta_liftM.
+  unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
+  unfold abs; crush.
+Qed.
+
 Definition Rtheta_MSZero: flags_m Rtheta := ret Rtheta_SZero.
+Definition Rtheta_MSOne: flags_m Rtheta := ret Rtheta_SOne.
 
 Lemma evalWriter_Rtheta_MSZero:
   evalWriter Rtheta_MSZero = Rtheta_SZero.
