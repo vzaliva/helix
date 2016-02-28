@@ -178,12 +178,13 @@ Section HCOL_implementation_facts.
   Proof.
     assert(R: Rtheta_MSOne = one).
     {
-      unfold equiv, Rtheta_Mequiv, Rtheta_MSOne.
+      unfold_Rtheta_Mequiv.
+      unfold Rtheta_MSOne.
       setoid_replace Rtheta_SOne with (@one Rtheta Rtheta_One).
-      unfold_Rtheta_equiv.
+      unfold_Rtheta_val_equiv.
       simpl.
       reflexivity.
-      unfold_Rtheta_equiv.
+      unfold_Rtheta_val_equiv.
       reflexivity.
     }
     intros n x.

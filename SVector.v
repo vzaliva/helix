@@ -71,12 +71,14 @@ Set Implicit Arguments.
 Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
   fun am bm => (evalWriter am) = (evalWriter bm).
 
+Ltac unfold_Rtheta_Mequiv := unfold equiv, Rtheta_Mequiv in *.
+
 Instance Rtheta_MSetoid: Setoid (flags_m Rtheta).
 Proof.
   split.
-  unfold Reflexive. destruct x; (unfold equiv, Rtheta_Mequiv; crush).
-  unfold Symmetric. intros. destruct x,y; (unfold equiv, Rtheta_Mequiv in *; crush).
-  unfold Transitive. intros. destruct x,y,z; unfold equiv, Rtheta_Mequiv in *; crush.
+  unfold Reflexive. destruct x; (unfold_Rtheta_Mequiv; crush).
+  unfold Symmetric. intros. destruct x,y; (unfold_Rtheta_Mequiv; crush).
+  unfold Transitive. intros. destruct x,y,z; unfold_Rtheta_Mequiv; crush.
 Qed.
 
 Lemma evalWriter_Rtheta_liftM
@@ -113,7 +115,7 @@ Global Instance Rtheta_MLt: Lt (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_fi
 
 Global Program Instance Rtheta_val_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary abs).
 Next Obligation.
-  unfold equiv, Rtheta_Mequiv.
+  unfold_Rtheta_Mequiv.
   rewrite evalWriter_Rtheta_liftM.
   unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
   unfold abs; crush.
@@ -303,7 +305,7 @@ Lemma Union_Plus_MSZero_r x:
   (Union (plus) x Rtheta_MSZero) = x.
 Proof.
   unfold Union.
-  unfold equiv, Rtheta_Mequiv.
+  unfold_Rtheta_Mequiv.
   rewrite evalWriter_lift_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_MSZero.
   unfold_Rtheta_val_equiv.
@@ -315,7 +317,7 @@ Lemma Union_Plus_MSZero_l x:
   (Union (plus) Rtheta_MSZero x) = x.
 Proof.
   unfold Union.
-  unfold equiv, Rtheta_Mequiv.
+  unfold_Rtheta_Mequiv.
   rewrite evalWriter_lift_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_MSZero.
   unfold_Rtheta_val_equiv.

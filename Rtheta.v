@@ -152,8 +152,7 @@ Qed.
 
 
 (* Setoid equality is defined by taking into account only the first element. 
-We define it outside the section to be able to define LTAC command unfold_Rtheta_val_equiv.
-*)
+We define it outside the section to be able to define tactics 'unfold_Rtheta_val_equiv' *)
 Global Instance Rtheta_val_equiv: Equiv Rtheta | 1 := Rtheta_rel_first equiv.
 
 Ltac unfold_Rtheta_val_equiv := unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
