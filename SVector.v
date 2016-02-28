@@ -318,7 +318,7 @@ Proof.
   unfold equiv, Rtheta_Mequiv.
   rewrite evalWriter_lift_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_MSZero.
-  unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+  unfold_Rtheta_val_equiv.
   simpl.
   ring.
 Qed.
