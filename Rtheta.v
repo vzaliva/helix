@@ -150,15 +150,21 @@ Proof.
   assumption.
 Qed.
 
+
+(* Setoid equality is defined by taking into account only the first element. 
+We define it outside the section to be able to define LTAC command unfold_Rtheta_val_equiv.
+*)
+Global Instance Rtheta_val_equiv: Equiv Rtheta | 1 := Rtheta_rel_first equiv.
+
+Ltac unfold_Rtheta_val_equiv := unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
+
 Section Rtheta_val_Setoid_equiv.
-  (* Setoid equality is defined by taking into account only the first element. *)
-  Global Instance Rtheta_val_equiv: Equiv Rtheta | 1 := Rtheta_rel_first equiv.
 
   Global Instance Rtheta_val_Reflexive_equiv: Reflexive Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
     intros.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
+    unfold_Rtheta_val_equiv.
     reflexivity.
   Qed.
 
@@ -166,7 +172,7 @@ Section Rtheta_val_Setoid_equiv.
   Proof.
     unfold Symmetric.
     intros.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
+    unfold_Rtheta_val_equiv.
     auto.
   Qed.
 
@@ -174,7 +180,7 @@ Section Rtheta_val_Setoid_equiv.
   Proof.
     unfold Transitive.
     intros.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in *.
+    unfold_Rtheta_val_equiv.
     auto.
   Qed.
 
@@ -197,7 +203,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold Associative, HeteroAssociative, Rtheta_Plus , Rtheta_binop, is_struct.
     intros x y z.
     destruct x, y, z.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
+    unfold_Rtheta_val_equiv; simpl.
     apply plus_assoc.
   Qed.
 
@@ -206,7 +212,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold Associative, HeteroAssociative, Rtheta_Mult, Rtheta_binop.
     intros x y z.
     destruct x, y, z.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first; simpl.
+    unfold_Rtheta_val_equiv; simpl.
     apply mult_assoc.
   Qed.
 
@@ -257,7 +263,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_val_equiv, Rtheta_rel_first.
     destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq. simpl in aEq, bEq.
+    unfold_Rtheta_val_equiv.
     rewrite aEq, bEq.
     reflexivity.
   Qed.
@@ -314,7 +320,7 @@ Section Rtheta_val_Setoid_equiv.
     intros x y.
     destruct x, y.
     unfold Rtheta_binop.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold_Rtheta_val_equiv.
     apply C.
   Qed.
 
@@ -418,7 +424,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold LeftAbsorb.
     intros.
     destruct y.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_binop.
+    unfold_Rtheta_val_equiv.
+    unfold plus, mult, Rtheta_Mult, Rtheta_binop.
     simpl.
     ring.
   Qed.
@@ -429,7 +436,8 @@ Section Rtheta_val_Setoid_equiv.
     unfold RightAbsorb.
     intros.
     destruct x.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Mult, Rtheta_binop.
+    unfold_Rtheta_val_equiv.
+    unfold plus, mult, Rtheta_Mult, Rtheta_binop.
     simpl.
     ring.
   Qed.
@@ -503,7 +511,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
     destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq; simpl in aEq, bEq.
+    unfold_Rtheta_val_equiv.
     rewrite <- aEq, <- bEq.
     split; auto.
   Qed.
@@ -515,7 +523,7 @@ Section Rtheta_val_Setoid_equiv.
     unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
     destruct a, b, a', b'.
     simpl.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first in aEq, bEq; simpl in aEq, bEq.
+    unfold_Rtheta_val_equiv.
     rewrite <- aEq, <- bEq.
     split; auto.
   Qed.
@@ -651,7 +659,7 @@ Section Rtheta_val_Setoid_equiv.
       destruct x,y.
       unfold le, Rtheta_Le, Rtheta_rel_first.
       unfold plus, Rtheta_Plus, Rtheta_binop.
-      unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+      unfold_Rtheta_val_equiv.
       simpl.
       intros H.
       exists (Rtheta_normal (val1-val0)).
@@ -695,7 +703,7 @@ Section Rtheta_Zero_Util.
   Proof.
     intros H.
     unfold Is_ValZero in H.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold_Rtheta_val_equiv.
     rewrite H.
     reflexivity.
   Qed.
@@ -705,7 +713,7 @@ Section Rtheta_Zero_Util.
   Proof.
     intros H.
     unfold Is_ValZero in H.
-    unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+    unfold_Rtheta_val_equiv.
     rewrite H.
     reflexivity.
   Qed.

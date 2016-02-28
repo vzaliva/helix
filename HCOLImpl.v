@@ -176,10 +176,18 @@ Section HCOL_implementation_facts.
     forall n (x:flags_m Rtheta), 
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
-    intros; dep_destruct n; 
+    assert(R: Rtheta_MSOne = one).
+    {
+      unfold equiv, Rtheta_Mequiv, Rtheta_MSOne.
+      setoid_replace Rtheta_SOne with (@one Rtheta Rtheta_One).
+      unfold_Rtheta_equiv.
+      simpl.
       reflexivity.
-
-    TODO: here
+      unfold_Rtheta_equiv.
+      reflexivity.
+    }
+    intros n x.
+    destruct n; simpl; repeat rewrite Vcons_to_Vcons_reord; rewrite R; reflexivity.
   Qed.
 
   Lemma ScalarProd_comm: forall n (a b: mvector n),
