@@ -2,6 +2,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import RthetaWriterMonad.
 Require Import SVector.
 
 Require Import Arith.
@@ -24,10 +25,16 @@ Require Import MathClasses.theory.naturals.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Require Import ExtLib.Structures.Monads.
+Require Import WriterMonadNoT.
+
+
 Open Scope vector_scope.
 Open Scope nat_scope.
 
 Section HCOL_implementations.
+
+  Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 
   (* --- Type casts --- *)
 
@@ -39,7 +46,7 @@ Section HCOL_implementations.
 
   (* --- Scalar Product --- *)
 
-  Definition ScalarProd 
+  Definition ScalarProd
              {n} (ab: (mvector n)*(mvector n)) : flags_m Rtheta :=
     match ab with
     | (a, b) => Vfold_right plus (Vmap2 mult a b) zero
@@ -48,18 +55,18 @@ Section HCOL_implementations.
   (* --- Infinity Norm --- *)
   Definition InfinityNorm
              {n} (v: mvector n) : flags_m Rtheta :=
-    Vfold_right (Rtheta_liftM2 flags_m (max)) (Vmap abs v) zero.
+    Vfold_right (Rtheta_liftM2 (max)) (Vmap abs v) zero.
 
   (* --- Chebyshev Distance --- *)
-  Definition ChebyshevDistance 
+  Definition ChebyshevDistance
              {n} (ab: (mvector n)*(mvector n)): flags_m Rtheta :=
     match ab with
     | (a, b) => InfinityNorm (Vmap2 (plus∘negate) a b)
-    end.    
+    end.
 
   (* --- Vector Subtraction --- *)
-  Definition VMinus 
-             {n} (ab: (mvector n)*(mvector n)) : mvector n := 
+  Definition VMinus
+             {n} (ab: (mvector n)*(mvector n)) : mvector n :=
     match ab with
     | (a,b) => Vmap2 ((+)∘(-)) a b
     end.
@@ -68,14 +75,14 @@ Section HCOL_implementations.
 
   Fixpoint MonomialEnumerator
            (n:nat) (x:flags_m Rtheta) {struct n} : mvector (S n) :=
-    match n with 
+    match n with
     | O => [one]
     | S p => Vcons Rtheta_MSOne (Vmap (mult x) (MonomialEnumerator p x))
     end.
 
   (* --- Polynomial Evaluation --- *)
 
-  Fixpoint EvalPolynomial {n} 
+  Fixpoint EvalPolynomial {n}
            (a: mvector n) (x:flags_m Rtheta) : flags_m Rtheta  :=
     match a with
       nil => Rtheta_MSZero
@@ -91,21 +98,21 @@ Section HCOL_implementations.
     match ab with
     | (a,b) =>  Vmap2Indexed f a b
     end.
-  
+
   (* --- Induction --- *)
 
   Fixpoint Induction (n:nat) (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
            (initial: flags_m Rtheta) (v: flags_m Rtheta) {struct n} : mvector n
     :=
-    match n with 
-    | O => []
-    | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
-    end.
+      match n with
+      | O => []
+      | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
+      end.
 
   Fixpoint Inductor (n:nat) (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
            (initial: flags_m Rtheta) (v:flags_m Rtheta) {struct n}
     : flags_m Rtheta :=
-    match n with 
+    match n with
     | O => initial
     | S p => f (Inductor p f initial v) v
     end.
@@ -117,7 +124,7 @@ Section HCOL_implementations.
    *)
   Definition Reduction (f: flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
              {n} (id:flags_m Rtheta) (a: mvector n) : flags_m Rtheta
-    := 
+    :=
       Vfold_right f a id.
 
   (* --- Scale --- *)
@@ -139,9 +146,11 @@ End HCOL_implementations.
 
 Section HCOL_implementation_facts.
 
+  Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
+
   Lemma Induction_cons:
     forall n initial (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
-      (v:flags_m Rtheta), 
+      (v:flags_m Rtheta),
       Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
   Proof.
     intros; dep_destruct n; reflexivity.
@@ -173,7 +182,7 @@ Section HCOL_implementation_facts.
   Qed.
 
   Lemma MonomialEnumerator_cons:
-    forall n (x:flags_m Rtheta), 
+    forall n (x:flags_m Rtheta),
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
     assert(R: Rtheta_MSOne = one).
@@ -198,7 +207,7 @@ Section HCOL_implementation_facts.
     unfold ScalarProd.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2_comm.
-    reflexivity.  
+    reflexivity.
   Qed.
 
   (* Currently unused *)
@@ -220,7 +229,7 @@ Section HCOL_implementation_facts.
     unfold Scale.
     dep_destruct b.
     simpl.
-    TODO: need full ring on flags_m
+    (* TODO: need full ring on flags_m *)
     rewrite plus_mult_distr_l.
     reflexivity.
   Qed.
@@ -245,7 +254,7 @@ Section HCOL_implementation_facts.
     VSntac a.  VSntac b.
     simpl.
     symmetry.
-    rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.    
+    rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.
 
     (* Remove cons from IHn *)
     assert (HIHn:  forall a0 b0 : mvector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
@@ -290,23 +299,23 @@ Section HCOL_implementation_proper.
     VOtac.
     reflexivity.
     Case "S n".
-    
+
     dep_destruct xb.  dep_destruct yb.  split.
     assert (HH: h=h0) by apply H1.
     rewrite HH, H0.
     reflexivity.
-    
+
     setoid_replace (Vmap (mult xa) x) with (Vmap (mult ya) x0).
     replace (Vforall2_aux equiv (Vmap (mult ya) x0) (Vmap (mult ya) x0))
     with (Vforall2 equiv (Vmap (mult ya) x0) (Vmap (mult ya) x0)).
     reflexivity.
-    
+
     unfold Vforall2. reflexivity.
-    
+
     apply IHn. clear IHn.
     apply H1.
   Qed.
-  
+
   Global Instance ScalarProd_proper (n:nat):
     Proper ((=) ==> (=))
            (ScalarProd (n:=n)).
@@ -321,7 +330,7 @@ Section HCOL_implementation_proper.
     rewrite H0, H1.
     reflexivity.
   Qed.
-  
+
   Global Instance InfinityNorm_proper {n:nat}:
     Proper ((=) ==> (=))
            (InfinityNorm (n:=n)).
@@ -347,7 +356,7 @@ Section HCOL_implementation_proper.
     rewrite E1, E2.
     reflexivity.
   Qed.
-  
+
   Global Instance Reduction_proper
          {n:nat} (f : flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
@@ -360,7 +369,7 @@ Section HCOL_implementation_proper.
     rewrite E1, E2.
     reflexivity.
   Qed.
-  
+
   Global Instance ChebyshevDistance_proper  (n:nat):
     Proper ((=) ==> (=))  (ChebyshevDistance (n:=n)).
   Proof.
@@ -373,7 +382,7 @@ Section HCOL_implementation_proper.
     rewrite H, H0.
     reflexivity.
   Qed.
-  
+
   Global Instance EvalPolynomial_proper (n:nat):
     Proper ((=) ==> (=) ==> (=))  (EvalPolynomial (n:=n)).
   Proof.
@@ -398,7 +407,7 @@ Section HCOL_implementation_proper.
   Proof.
     intros a a' aE.
     induction n.
-    reflexivity.  
+    reflexivity.
     rewrite 2!MonomialEnumerator_cons, 2!Vcons_to_Vcons_reord, IHn, aE.
     reflexivity.
   Qed.
@@ -410,7 +419,7 @@ Section HCOL_implementation_proper.
     intros ini ini' iniEq v v' vEq.
     induction n.
     reflexivity.
-    
+
     rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
     assert (RP: Proper (Rtheta_val_equiv ==> Rtheta_val_equiv) (λ x, f x v)) by solve_proper.
     rewrite IHn,  iniEq.
@@ -422,7 +431,7 @@ Section HCOL_implementation_proper.
       rewrite vEq, zE.
       reflexivity.
     }
-    
+
     rewrite EE.
     reflexivity.
   Qed.
@@ -438,7 +447,7 @@ Section HCOL_implementation_proper.
     rewrite E1, E2.
     reflexivity.
   Qed.
-  
+
 End HCOL_implementation_proper.
 
 Close Scope nat_scope.

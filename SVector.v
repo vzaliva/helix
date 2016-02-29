@@ -1,6 +1,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import RthetaWriterMonad.
 
 Require Import Arith.
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -15,6 +16,14 @@ Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
+
+Require Import ExtLib.Structures.Monads.
+Require Import WriterMonadNoT.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+
+Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 
 Open Scope vector_scope.
 Open Scope nat_scope.
@@ -38,21 +47,6 @@ Definition svector_is_dense {n} (v:svector n) : Prop :=
 (* Construct "Zero svector". All values are structural zeros. *)
 Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
 
-Require Import ExtLib.Core.Type.
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Structures.Monoid.
-Require Import ExtLib.Data.Monads.WriterMonad.
-Require Import ExtLib.Data.Monads.IdentityMonad.
-Require Import WriterMonadNoT.
-Require Import ExtLib.Structures.MonadLaws.
-
-
-Import MonadNotation.
-Local Open Scope monad_scope.
-
-Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
-Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
-
 Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
 
 Definition mvector_from_svector {n} (v:svector n): mvector n :=
@@ -68,86 +62,11 @@ Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
 
 Set Implicit Arguments.
 
-Global Instance Rtheta_Mequiv: Equiv (flags_m Rtheta) :=
-  fun am bm => (evalWriter am) = (evalWriter bm).
-
-Ltac unfold_Rtheta_Mequiv := unfold equiv, Rtheta_Mequiv in *.
-
-Instance Rtheta_MSetoid: Setoid (flags_m Rtheta).
-Proof.
-  split.
-  unfold Reflexive. destruct x; (unfold_Rtheta_Mequiv; crush).
-  unfold Symmetric. intros. destruct x,y; (unfold_Rtheta_Mequiv; crush).
-  unfold Transitive. intros. destruct x,y,z; unfold_Rtheta_Mequiv; crush.
-Qed.
-
-Lemma evalWriter_Rtheta_liftM
-      (op: Rtheta -> Rtheta)
-      {a: flags_m Rtheta}
-  :
-    evalWriter (Rtheta_liftM flags_m op a) ≡ op (evalWriter a).
-Proof.
-  reflexivity.
-Qed.
-
-Lemma evalWriter_lift_Rtheta_liftM2
-      (op: Rtheta -> Rtheta -> Rtheta)
-      {a b: flags_m Rtheta}
-  :
-    evalWriter (Rtheta_liftM2 flags_m op a b) ≡ op (evalWriter a) (evalWriter b).
-Proof.
-  reflexivity.
-Qed.
-
-Definition Rtheta_evalRel
-           (rel: Rtheta -> Rtheta -> Prop)
-           (am bm: flags_m Rtheta) : Prop :=
-  rel (evalWriter am) (evalWriter bm).
-
-
-Global Instance Rtheta_MZero: Zero (flags_m Rtheta) := ret (Rtheta_normal zero).
-Global Instance Rtheta_MOne: One (flags_m Rtheta) := ret (Rtheta_normal one).
-Global Instance Rtheta_MPlus: Plus (flags_m Rtheta) := Rtheta_liftM2 flags_m (Rtheta_binop plus).
-Global Instance Rtheta_MMult: Mult (flags_m Rtheta) := Rtheta_liftM2 flags_m (Rtheta_binop mult).
-Global Instance Rtheta_MNeg: Negate (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary negate).
-Global Instance Rtheta_MLe: Le (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first le).
-Global Instance Rtheta_MLt: Lt (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first lt).
-
-Global Instance Rtheta_Commutative_Rtheta_liftM2
-       (op: Rtheta -> Rtheta -> Rtheta)
-       `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-       `{C: !Commutative op}
-  :
-    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Rtheta_liftM2 flags_m op).
-Proof.
-  intros x y.
-  unfold_Rtheta_Mequiv.
-  rewrite 2!evalWriter_lift_Rtheta_liftM2.
-  apply C.
-Qed.
-
-Global Program Instance Rtheta_val_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary abs).
-Next Obligation.
-  unfold_Rtheta_Mequiv.
-  rewrite evalWriter_Rtheta_liftM.
-  unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
-  unfold abs; crush.
-Qed.
-
-Definition Rtheta_MSZero: flags_m Rtheta := ret Rtheta_SZero.
-Definition Rtheta_MSOne: flags_m Rtheta := ret Rtheta_SOne.
-
-Lemma evalWriter_Rtheta_MSZero:
-  evalWriter Rtheta_MSZero = Rtheta_SZero.
-Proof.
-  reflexivity.
-Qed.
-
 Local Open Scope bool_scope.
 
 (* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
 Definition Union (op: Rtheta -> Rtheta -> Rtheta)
-  := Rtheta_liftM2 flags_m op.
+  := Rtheta_liftM2 op.
 
 Lemma Union_comm:
   forall (op : Rtheta -> Rtheta -> Rtheta),

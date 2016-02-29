@@ -151,7 +151,7 @@ Proof.
 Qed.
 
 
-(* Setoid equality is defined by taking into account only the first element. 
+(* Setoid equality is defined by taking into account only the first element.
 We define it outside the section to be able to define tactics 'unfold_Rtheta_val_equiv' *)
 Global Instance Rtheta_val_equiv: Equiv Rtheta | 1 := Rtheta_rel_first equiv.
 
@@ -830,39 +830,6 @@ Section Rtheta_Poinitwise_Setoid_equiv.
     unfold equiv, Rtheta_pw_equiv in aEq, bEq.
     crush.
   Qed.
-
-  Section with_monad.
-    Require Import ExtLib.Structures.Monads.
-    Require Import ExtLib.Structures.Monoid.
-    Require Import ExtLib.Data.Monads.WriterMonad.
-
-    Import MonadNotation.
-    Local Open Scope monad_scope.
-
-    Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid combineFlags RthetaFlags_normal.
-
-    Variable m : Type -> Type.
-    Context {Monad_m : Monad m}.
-    Context {Writer_m: MonadWriter Monoid_RthetaFlags m}.
-
-    Definition Rtheta_liftM
-               (op: Rtheta -> Rtheta)
-               (xm: m Rtheta) : m Rtheta :=
-      x <- xm ;;
-        tell
-        (let xs := (is_struct x) in
-         (computeFlags xs xs))
-        ;;
-        ret (op x).
-
-    Definition Rtheta_liftM2
-               (op: Rtheta -> Rtheta -> Rtheta)
-               (am bm: m Rtheta) : m Rtheta :=
-      a <- am ;;  b <- bm ;;
-        tell (computeFlags (is_struct a) (is_struct b)) ;;
-        ret (op a b).
-
-  End with_monad.
 
 End Rtheta_Poinitwise_Setoid_equiv.
 
