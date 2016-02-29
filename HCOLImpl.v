@@ -220,6 +220,7 @@ Section HCOL_implementation_facts.
     unfold Scale.
     dep_destruct b.
     simpl.
+    TODO: need full ring on flags_m
     rewrite plus_mult_distr_l.
     reflexivity.
   Qed.

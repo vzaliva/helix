@@ -113,6 +113,19 @@ Global Instance Rtheta_MNeg: Negate (flags_m Rtheta) := Rtheta_liftM flags_m (Rt
 Global Instance Rtheta_MLe: Le (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first le).
 Global Instance Rtheta_MLt: Lt (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first lt).
 
+Global Instance Rtheta_Commutative_Rtheta_liftM2
+       (op: Rtheta -> Rtheta -> Rtheta)
+       `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
+       `{C: !Commutative op}
+  :
+    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Rtheta_liftM2 flags_m op).
+Proof.
+  intros x y.
+  unfold_Rtheta_Mequiv.
+  rewrite 2!evalWriter_lift_Rtheta_liftM2.
+  apply C.
+Qed.
+
 Global Program Instance Rtheta_val_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM flags_m (Rtheta_unary abs).
 Next Obligation.
   unfold_Rtheta_Mequiv.
