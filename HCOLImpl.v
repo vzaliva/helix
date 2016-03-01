@@ -34,32 +34,30 @@ Open Scope nat_scope.
 
 Section HCOL_implementations.
 
-  Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
-
   (* --- Type casts --- *)
 
   (* Promote scalar to unit vector *)
-  Definition Vectorize (x:flags_m Rtheta): (mvector 1) := [x].
+  Definition Vectorize (x:MRtheta): (mvector 1) := [x].
 
   (* Convert single element vector to scalar *)
-  Definition Scalarize (x: mvector 1) : flags_m Rtheta := Vhead x.
+  Definition Scalarize (x: mvector 1) : MRtheta := Vhead x.
 
   (* --- Scalar Product --- *)
 
   Definition ScalarProd
-             {n} (ab: (mvector n)*(mvector n)) : flags_m Rtheta :=
+             {n} (ab: (mvector n)*(mvector n)) : MRtheta :=
     match ab with
     | (a, b) => Vfold_right plus (Vmap2 mult a b) zero
     end.
 
   (* --- Infinity Norm --- *)
   Definition InfinityNorm
-             {n} (v: mvector n) : flags_m Rtheta :=
+             {n} (v: mvector n) : MRtheta :=
     Vfold_right (Rtheta_liftM2 (max)) (Vmap abs v) zero.
 
   (* --- Chebyshev Distance --- *)
   Definition ChebyshevDistance
-             {n} (ab: (mvector n)*(mvector n)): flags_m Rtheta :=
+             {n} (ab: (mvector n)*(mvector n)): MRtheta :=
     match ab with
     | (a, b) => InfinityNorm (Vmap2 (plus∘negate) a b)
     end.
@@ -74,7 +72,7 @@ Section HCOL_implementations.
   (* --- Monomial Enumerator --- *)
 
   Fixpoint MonomialEnumerator
-           (n:nat) (x:flags_m Rtheta) {struct n} : mvector (S n) :=
+           (n:nat) (x:MRtheta) {struct n} : mvector (S n) :=
     match n with
     | O => [one]
     | S p => Vcons Rtheta_MSOne (Vmap (mult x) (MonomialEnumerator p x))
@@ -83,7 +81,7 @@ Section HCOL_implementations.
   (* --- Polynomial Evaluation --- *)
 
   Fixpoint EvalPolynomial {n}
-           (a: mvector n) (x:flags_m Rtheta) : flags_m Rtheta  :=
+           (a: mvector n) (x:MRtheta) : MRtheta  :=
     match a with
       nil => Rtheta_MSZero
     | cons a0 p a' => plus a0 (mult x (EvalPolynomial a' x))
@@ -92,7 +90,7 @@ Section HCOL_implementations.
   (* === HCOL Basic Operators === *)
   (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
   Definition BinOp
-             (f: nat -> flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
+             (f: nat -> MRtheta -> MRtheta -> MRtheta)
              {n} (ab: (mvector n)*(mvector n))
     : mvector n :=
     match ab with
@@ -101,17 +99,17 @@ Section HCOL_implementations.
 
   (* --- Induction --- *)
 
-  Fixpoint Induction (n:nat) (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
-           (initial: flags_m Rtheta) (v: flags_m Rtheta) {struct n} : mvector n
+  Fixpoint Induction (n:nat) (f:MRtheta -> MRtheta -> MRtheta)
+           (initial: MRtheta) (v: MRtheta) {struct n} : mvector n
     :=
       match n with
       | O => []
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
       end.
 
-  Fixpoint Inductor (n:nat) (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
-           (initial: flags_m Rtheta) (v:flags_m Rtheta) {struct n}
-    : flags_m Rtheta :=
+  Fixpoint Inductor (n:nat) (f:MRtheta -> MRtheta -> MRtheta)
+           (initial: MRtheta) (v:MRtheta) {struct n}
+    : MRtheta :=
     match n with
     | O => initial
     | S p => f (Inductor p f initial v) v
@@ -122,14 +120,14 @@ Section HCOL_implementations.
   (*  Reduction (fold) using single finction. In case of empty list returns 'id' value:
     Reduction f x1 .. xn b = f xn (f x_{n-1} .. (f x1 id) .. )
    *)
-  Definition Reduction (f: flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
-             {n} (id:flags_m Rtheta) (a: mvector n) : flags_m Rtheta
+  Definition Reduction (f: MRtheta -> MRtheta -> MRtheta)
+             {n} (id:MRtheta) (a: mvector n) : MRtheta
     :=
       Vfold_right f a id.
 
   (* --- Scale --- *)
   Definition Scale
-             {n} (sv:(flags_m Rtheta)*(mvector n)) : mvector n :=
+             {n} (sv:(MRtheta)*(mvector n)) : mvector n :=
     match sv with
     | (s,v) => Vmap (mult s) v
     end.
@@ -149,15 +147,15 @@ Section HCOL_implementation_facts.
   Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 
   Lemma Induction_cons:
-    forall n initial (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
-      (v:flags_m Rtheta),
+    forall n initial (f:MRtheta -> MRtheta -> MRtheta)
+      (v:MRtheta),
       Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
   Proof.
     intros; dep_destruct n; reflexivity.
   Qed.
 
   Lemma EvalPolynomial_0:
-    forall (v:flags_m Rtheta), EvalPolynomial (Vnil) v = zero.
+    forall (v:MRtheta), EvalPolynomial (Vnil) v = zero.
   Proof.
     intros; unfold EvalPolynomial.
     apply evalWriter_Rtheta_MSZero.
@@ -165,7 +163,7 @@ Section HCOL_implementation_facts.
 
   (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
   Lemma EvalPolynomial_reduce:
-    forall n (a: mvector (S n)) (x:flags_m Rtheta),
+    forall n (a: mvector (S n)) (x:MRtheta),
       EvalPolynomial a x  =
       plus (Vhead a) (mult x (EvalPolynomial (Vtail a) x)).
   Proof.
@@ -182,7 +180,7 @@ Section HCOL_implementation_facts.
   Qed.
 
   Lemma MonomialEnumerator_cons:
-    forall n (x:flags_m Rtheta),
+    forall n (x:MRtheta),
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
     assert(R: Rtheta_MSOne = one).
@@ -211,7 +209,7 @@ Section HCOL_implementation_facts.
   Qed.
 
   (* Currently unused *)
-  Lemma Scale_cons: forall n (s: flags_m Rtheta) (v: mvector (S n)),
+  Lemma Scale_cons: forall n (s: MRtheta) (v: mvector (S n)),
       Scale (s,v) = Vcons (mult s (Vhead v)) (Scale (s, (Vtail v))).
   Proof.
     intros.
@@ -222,19 +220,18 @@ Section HCOL_implementation_facts.
 
   (* Scale distributivitiy *)
   (* Currently unused *)
-  Lemma  Scale_dist: forall n a (b: mvector (S n)) (k: flags_m Rtheta),
+  Lemma  Scale_dist: forall n a (b: mvector (S n)) (k: MRtheta),
       plus (mult k a) (Vhead (Scale (k,b))) = (mult k (plus a (Vhead b))).
   Proof.
     intros.
     unfold Scale.
     dep_destruct b.
     simpl.
-    (* TODO: need full ring on flags_m *)
     rewrite plus_mult_distr_l.
     reflexivity.
   Qed.
 
-  Lemma ScalarProduct_descale: forall {n} (a b: mvector n) (s:flags_m Rtheta),
+  Lemma ScalarProduct_descale: forall {n} (a b: mvector n) (s:MRtheta),
       [ScalarProd ((Scale (s,a)), b)] = Scale (s, [(ScalarProd (a,b))]).
   Proof.
     intros.
@@ -273,7 +270,7 @@ Section HCOL_implementation_facts.
     reflexivity.
   Qed.
 
-  Lemma ScalarProduct_hd_descale: forall {n} (a b: mvector n) (s:Rtheta),
+  Lemma ScalarProduct_hd_descale: forall {n} (a b: mvector n) (s:MRtheta),
       ScalarProd ((Scale (s,a)), b) = Vhead (Scale (s, [(ScalarProd (a,b))])).
   Proof.
     intros.
@@ -285,7 +282,7 @@ End HCOL_implementation_facts.
 
 Section HCOL_implementation_proper.
 
-  Global Instance Scale_proper `{!Proper (Rtheta_equiv ==> Rtheta_equiv ==> Rtheta_equiv) mult} (n:nat):
+  Global Instance Scale_proper `{!Proper ((=) ==> (=) ==> (=)) mult} (n:nat):
     Proper ((=) ==> (=))
            (Scale (n:=n)).
   Proof.
@@ -346,7 +343,8 @@ Section HCOL_implementation_proper.
 
   Global Instance BinOp_proper
          {n:nat}
-         (f : nat->flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+         (f : nat->MRtheta -> MRtheta -> MRtheta)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
     intros a b Ea.
@@ -358,7 +356,7 @@ Section HCOL_implementation_proper.
   Qed.
 
   Global Instance Reduction_proper
-         {n:nat} (f : flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)
+         {n:nat} (f : MRtheta -> MRtheta -> MRtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
     Proper ((=) ==> (=) ==> (=)) (@Reduction f n).
   Proof.
@@ -379,6 +377,7 @@ Section HCOL_implementation_proper.
     unfold ChebyshevDistance.
     inversion pE. clear pE. simpl in *.
     clear p p'.
+    TODO: here
     rewrite H, H0.
     reflexivity.
   Qed.
@@ -413,7 +412,7 @@ Section HCOL_implementation_proper.
   Qed.
 
   Global Instance Induction_proper
-         (f:flags_m Rtheta -> flags_m Rtheta -> flags_m Rtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
+         (f:MRtheta -> MRtheta -> MRtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
     Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
     intros ini ini' iniEq v v' vEq.
