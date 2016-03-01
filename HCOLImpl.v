@@ -55,11 +55,24 @@ Section HCOL_implementations.
              {n} (v: mvector n) : MRtheta :=
     Vfold_right (Rtheta_liftM2 (max)) (Vmap abs v) zero.
 
+  (* Poor man's minus *)
+  Definition pneg := plus∘negate.
+
+  (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
+  Global Instance MRtheta_neg_proper:
+    Proper ((=) ==> (=) ==> (=)) (pneg).
+  Proof.
+    intros a b Ha x y Hx .
+    unfold pneg, compose.
+    rewrite Hx, Ha.
+    reflexivity.
+  Qed.
+
   (* --- Chebyshev Distance --- *)
   Definition ChebyshevDistance
              {n} (ab: (mvector n)*(mvector n)): MRtheta :=
     match ab with
-    | (a, b) => InfinityNorm (Vmap2 (plus∘negate) a b)
+    | (a, b) => InfinityNorm (Vmap2 pneg a b)
     end.
 
   (* --- Vector Subtraction --- *)
@@ -377,7 +390,6 @@ Section HCOL_implementation_proper.
     unfold ChebyshevDistance.
     inversion pE. clear pE. simpl in *.
     clear p p'.
-    TODO: here
     rewrite H, H0.
     reflexivity.
   Qed.
@@ -411,8 +423,10 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
+  (* TODO: move pf into Proper *)
   Global Instance Induction_proper
-         (f:MRtheta -> MRtheta -> MRtheta)`{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
+         (f:MRtheta -> MRtheta -> MRtheta)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
     Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
     intros ini ini' iniEq v v' vEq.
@@ -420,7 +434,7 @@ Section HCOL_implementation_proper.
     reflexivity.
 
     rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    assert (RP: Proper (Rtheta_val_equiv ==> Rtheta_val_equiv) (λ x, f x v)) by solve_proper.
+    assert (RP: Proper (MRtheta_equiv ==> MRtheta_equiv) (λ x, f x v)) by solve_proper.
     rewrite IHn,  iniEq.
 
     assert (EE: ext_equiv (λ x, f x v)  (λ x, f x v')).
