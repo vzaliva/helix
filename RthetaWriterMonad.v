@@ -416,48 +416,59 @@ Global Instance Rtheta_Mneg_proper:
     unfold abs; crush.
   Qed.
 
+
+  Global Instance Rtheta_evalRel_proper:
+    Proper (((=) ==> (=) ==> (iff)) ==> (Rtheta_Mequiv) ==> (Rtheta_Mequiv) ==> (iff))
+           (Rtheta_evalRel).
+  Proof.
+    simpl_relation.
+    unfold Rtheta_evalRel.
+    apply H.
+    apply H0.
+    apply H1.
+  Qed.
+  
   Global Instance Rtheta_Mle_proper:
     Proper ((=) ==> (=) ==> (iff)) (Rtheta_MLe).
   Proof.
-    intros a a' aEq b b' bEq.
-    unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
-    destruct a, b, a', b'.
-    simpl.
-    unfold_Rtheta_Mequiv.
-    rewrite <- aEq, <- bEq.
-    split; auto.
+    unfold Rtheta_MLe, Rtheta_rel_first.
+    apply Rtheta_evalRel_proper.
+    apply Rtheta_val_le_proper.
   Qed.
 
-  Global Instance Rtheta_val_lt_proper:
-    Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
+  Global Instance Rtheta_Mlt_proper:
+    Proper ((=) ==> (=) ==> (iff)) (Rtheta_MLt).
   Proof.
-    intros a a' aEq b b' bEq.
-    unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
-    destruct a, b, a', b'.
-    simpl.
-    unfold_Rtheta_val_equiv.
-    rewrite <- aEq, <- bEq.
-    split; auto.
+    unfold Rtheta_MLt, Rtheta_rel_first.
+    apply Rtheta_evalRel_proper.
+    apply Rtheta_val_lt_proper.
   Qed.
 
-  Global Instance Rtheta_val_le_Reflexive:
-    Reflexive le.
+  Global Instance Rtheta_Mle_Reflexive:
+    @Reflexive (flags_m Rtheta) le.
   Proof.
     unfold Reflexive.
-    intros.
-    unfold le, Rtheta_Le, Rtheta_rel_first.
-    reflexivity.
+    intros x.
+    unfold le, Rtheta_MLe, Rtheta_evalRel.
+    apply Rtheta_val_le_Reflexive.
   Qed.
 
-  Global Instance Rtheta_val_le_Transitive:
-    Transitive le.
+
+  (*
+    Lemma Rtheta_rel_first
+          (rel: relation CarrierA)
+          (a b: flags_m Rtheta):
+      Rtheta_rel_first rel a b -> rel (evalWriter a) (evalWriter b).
+   *)  
+
+  
+  Global Instance Rtheta_Mle_Transitive:
+    @Transitive (flags_m Rtheta) le.
   Proof.
     unfold Transitive.
-    unfold le, Rtheta_Le, Rtheta_rel_first.
-    intros.
-    destruct x, y, z.
-    simpl in *.
-    auto.
+    intros x y z H0 H1.
+    unfold le, Rtheta_MLe, Rtheta_evalRel.
+    apply Rtheta_val_le_Transitive.
   Qed.
 
   Global Instance Rtheta_val_le_AntiSymmetric:
