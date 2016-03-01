@@ -20,11 +20,6 @@ Import VectorNotations.
 Require Import ExtLib.Structures.Monads.
 Require Import WriterMonadNoT.
 
-Import MonadNotation.
-Local Open Scope monad_scope.
-
-Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
-
 Open Scope vector_scope.
 Open Scope nat_scope.
 
@@ -47,7 +42,7 @@ Definition svector_is_dense {n} (v:svector n) : Prop :=
 (* Construct "Zero svector". All values are structural zeros. *)
 Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
 
-Notation mvector n := (vector (flags_m Rtheta) n) (only parsing).
+Notation mvector n := (vector (MRtheta) n) (only parsing).
 
 Definition mvector_from_svector {n} (v:svector n): mvector n :=
   Vmap ret v.
@@ -71,11 +66,11 @@ Definition Union (op: Rtheta -> Rtheta -> Rtheta)
 Lemma Union_comm:
   forall (op : Rtheta -> Rtheta -> Rtheta),
     @Commutative Rtheta Rtheta_val_equiv Rtheta op ->
-    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Union op).
+    @Commutative (MRtheta) Rtheta_Mequiv (MRtheta) (Union op).
 Proof.
   intros op C x y.
   unfold Union, equiv, Rtheta_Mequiv.
-  rewrite 2!evalWriter_lift_Rtheta_liftM2.
+  rewrite 2!evalWriter_Rtheta_liftM2.
   apply C.
 Qed.
 
@@ -89,12 +84,12 @@ Proof.
   intros a b H x y E.
   unfold Union.
   unfold Union, equiv, Rtheta_Mequiv in *.
-  rewrite 2!evalWriter_lift_Rtheta_liftM2.
+  rewrite 2!evalWriter_Rtheta_liftM2.
   apply op_mor; assumption.
 Qed.
 
 (* Unary union of vector's elements (left fold) *)
-Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): flags_m Rtheta :=
+Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): MRtheta :=
   Vfold_left (Union op) (ret Rtheta_SZero) v.
 
 (* Binary element-wise union of two vectors *)
@@ -238,7 +233,7 @@ Lemma Union_Plus_MSZero_r x:
 Proof.
   unfold Union.
   unfold_Rtheta_Mequiv.
-  rewrite evalWriter_lift_Rtheta_liftM2.
+  rewrite evalWriter_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_MSZero.
   unfold_Rtheta_val_equiv.
   simpl.
@@ -250,7 +245,7 @@ Lemma Union_Plus_MSZero_l x:
 Proof.
   unfold Union.
   unfold_Rtheta_Mequiv.
-  rewrite evalWriter_lift_Rtheta_liftM2.
+  rewrite evalWriter_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_MSZero.
   unfold_Rtheta_val_equiv.
   simpl.
