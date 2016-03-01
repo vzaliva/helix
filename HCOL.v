@@ -2,6 +2,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import MRtheta.
 Require Import SVector.
 Require Import HCOLImpl.
 
@@ -53,9 +54,9 @@ Section HCOL_Language.
     := Vectorize ∘ InfinityNorm.
 
   Definition HReduction {i}
-             (f: Rtheta->Rtheta->Rtheta)
+             (f: MRtheta -> MRtheta -> MRtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (idv:Rtheta)
+             (idv: MRtheta)
     : mvector i -> mvector 1
     := Vectorize ∘ (Reduction f idv).
 
@@ -68,7 +69,7 @@ Section HCOL_Language.
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
-             (f: nat->Rtheta->Rtheta->Rtheta)
+             (f: nat -> MRtheta -> MRtheta -> MRtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : mvector (o+o) -> mvector o
     :=  BinOp f ∘ (vector2pair o).
@@ -89,9 +90,9 @@ Section HCOL_Language.
     := Lst ∘ ScalarProd ∘ (vector2pair h).
 
   Definition HInduction (n:nat)
-             (f: Rtheta->Rtheta->Rtheta)
+             (f: MRtheta -> MRtheta -> MRtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (initial:Rtheta)
+             (initial: MRtheta)
     : mvector 1 -> mvector n
     := Induction n f initial ∘ Scalarize.
 
@@ -110,7 +111,7 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HBinOp_HOperator {o}
-           (f: nat->Rtheta->Rtheta->Rtheta)
+           (f: nat -> MRtheta -> MRtheta -> MRtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f pF).
     Proof.
@@ -123,9 +124,9 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HReduction_HOperator {i}
-           (f: Rtheta->Rtheta->Rtheta)
+           (f: MRtheta -> MRtheta -> MRtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (idv:Rtheta):
+           (idv: MRtheta):
       HOperator (@HReduction i f pF idv).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -186,9 +187,9 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HInduction_HOperator {n:nat}
-           (f: Rtheta->Rtheta->Rtheta)
+           (f: MRtheta -> MRtheta -> MRtheta)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (initial:Rtheta):
+           (initial: MRtheta):
       HOperator (HInduction n f initial).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -261,7 +262,7 @@ Section IgnoreIndex_wrapper.
   Qed.
 
   Global Instance IgnoreIndex2_preserves_proper
-         (f: Rtheta->Rtheta->Rtheta)
+         (f: Rtheta -> Rtheta -> Rtheta)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     :
     (Proper ((=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2 f)).
