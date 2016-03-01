@@ -2,6 +2,14 @@
 Require Import Coq.Bool.Bool.
 Require Import Ring.
 
+Require Import ExtLib.Core.Type.
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Structures.Monoid.
+Require Import ExtLib.Data.Monads.WriterMonad.
+Require Import ExtLib.Data.Monads.IdentityMonad.
+Require Import WriterMonadNoT.
+Require Import ExtLib.Structures.MonadLaws.
+
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
@@ -12,18 +20,11 @@ Require Import Rtheta.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
-Require Import ExtLib.Core.Type.
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Structures.Monoid.
-Require Import ExtLib.Data.Monads.WriterMonad.
-Require Import ExtLib.Data.Monads.IdentityMonad.
-Require Import WriterMonadNoT.
-Require Import ExtLib.Structures.MonadLaws.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid combineFlags RthetaFlags_normal.
+Definition Monoid_RthetaFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid combineFlags RthetaFlags_normal.
 
 Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
 Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
@@ -115,27 +116,6 @@ Global Instance Rtheta_MNeg: Negate (flags_m Rtheta) := Rtheta_liftM (Rtheta_una
 Global Instance Rtheta_MLe: Le (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first le).
 Global Instance Rtheta_MLt: Lt (flags_m Rtheta) := Rtheta_evalRel (Rtheta_rel_first lt).
 
-Global Instance Rtheta_Commutative_Rtheta_liftM2
-       (op: Rtheta -> Rtheta -> Rtheta)
-       `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-       `{C: !Commutative op}
-  :
-    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Rtheta_liftM2 op).
-Proof.
-  intros x y.
-  unfold_Rtheta_Mequiv.
-  rewrite 2!evalWriter_lift_Rtheta_liftM2.
-  apply C.
-Qed.
-
-Global Program Instance Rtheta_val_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM (Rtheta_unary abs).
-Next Obligation.
-  unfold_Rtheta_Mequiv.
-  rewrite evalWriter_Rtheta_liftM.
-  unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
-  unfold abs; crush.
-Qed.
-
 Definition Rtheta_MSZero: flags_m Rtheta := ret Rtheta_SZero.
 Definition Rtheta_MSOne: flags_m Rtheta := ret Rtheta_SOne.
 
@@ -212,247 +192,238 @@ Global Instance Rtheta_Mneg_proper:
     apply Rtheta_Mplus_proper.
   Qed.
 
-
-
-
-
-
-  
-  Global Instance Rtheta_val_LeftIdentity_plus_0:
-    @LeftIdentity Rtheta Rtheta Rtheta_val_equiv plus zero.
+  Global Instance Rtheta_LeftIdentity_Mplus_0:
+    @LeftIdentity (flags_m Rtheta) (flags_m Rtheta) Rtheta_Mequiv plus zero.
   Proof.
     unfold LeftIdentity.
-    intros.
-    unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct y.
-    simpl.
-    ring.
+    intros y.
+    unfold_Rtheta_Mequiv.
+    unfold plus, Rtheta_MPlus.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    apply Rtheta_val_LeftIdentity_plus_0.
   Qed.
 
-  Global Instance Rtheta_val_RightIdentity_plus_0:
-    @RightIdentity Rtheta Rtheta_val_equiv Rtheta plus zero.
+  Global Instance Rtheta_RightIdentity_Mplus_0:
+    @RightIdentity (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) plus zero.
   Proof.
     unfold RightIdentity.
-    intros.
-    unfold  plus, zero, equiv, Rtheta_val_equiv, Rtheta_Plus, Rtheta_Zero, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct x.
-    simpl.
-    ring.
-  Qed.
-
-  Global Instance Rtheta_val_Monoid_plus_0:
-    @Monoid Rtheta Rtheta_val_equiv plus zero.
-  Proof.
-    split.
-    apply Rtheta_val_SemiGroup_plus.
-    apply Rtheta_val_LeftIdentity_plus_0.
+    intros x.
+    unfold_Rtheta_Mequiv.
+    unfold plus, Rtheta_MPlus.
+    rewrite evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_RightIdentity_plus_0.
   Qed.
 
-  Global Instance Rtheta_val_Commutative_Rtheta_binary
-         (op: CarrierA -> CarrierA -> CarrierA)
+  (* Note: this is MathClasses monoid, not ExtLib's *)
+  Global Instance Rtheta_Monoid_Mplus_0:
+    @Monoid (flags_m Rtheta) Rtheta_Mequiv plus zero.
+  Proof.
+    split.
+    apply Rtheta_SemiGroup_Mplus.
+    apply Rtheta_LeftIdentity_Mplus_0.
+    apply Rtheta_RightIdentity_Mplus_0.
+  Qed.
+
+
+  Global Instance Rtheta_Commutative_Rtheta_liftM2
+         (op: Rtheta -> Rtheta -> Rtheta)
          `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
          `{C: !Commutative op}
     :
-      @Commutative Rtheta Rtheta_val_equiv Rtheta (Rtheta_binop op).
+      @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) (Rtheta_liftM2 op).
   Proof.
     intros x y.
-    destruct x, y.
-    unfold Rtheta_binop.
-    unfold_Rtheta_val_equiv.
+    unfold_Rtheta_Mequiv.
+    rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply C.
   Qed.
 
-  Global Instance Rtheta_val_Commutative_plus:
-    @Commutative Rtheta Rtheta_val_equiv Rtheta plus.
+  Global Instance Rtheta_Commutative_Mplus:
+    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) plus.
   Proof.
-    apply Rtheta_val_Commutative_Rtheta_binary.
-    - simpl_relation.
-      rewrite H, H0.
-      reflexivity.
-    - simpl_relation.
-      setoid_replace (x + y) with (y + x).
-      reflexivity.
-      ring.
-  Qed.
-
-  Global Instance Rtheta_val_CommutativeMonoid_plus_0:
-    @CommutativeMonoid Rtheta Rtheta_val_equiv plus zero.
-  Proof.
-    split.
-    apply Rtheta_val_Monoid_plus_0.
+    unfold Commutative.
+    intros x y.
+    unfold_Rtheta_Mequiv.
+    unfold plus, Rtheta_MPlus.
+    rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_Commutative_plus.
   Qed.
 
-  Global Instance Rtheta_val_SemiGroup_mult:
-    @SemiGroup Rtheta Rtheta_val_equiv mult.
+  Global Instance Rtheta_CommutativeMonoid_Mplus_0:
+    @CommutativeMonoid (flags_m Rtheta) Rtheta_Mequiv plus zero.
   Proof.
     split.
-    apply Rtheta_val_Setoid.
-    apply Rtheta_val_Associative_mult.
-    apply Rtheta_val_mult_proper.
+    apply Rtheta_Monoid_Mplus_0.
+    apply Rtheta_Commutative_Mplus.
   Qed.
 
-  Global Instance Rtheta_val_LeftIdentity_mult_1:
-    @LeftIdentity Rtheta Rtheta Rtheta_val_equiv mult one.
+  Global Instance Rtheta_SemiGroup_Mmult:
+    @SemiGroup (flags_m Rtheta) Rtheta_Mequiv mult.
+  Proof.
+    split.
+    apply Rtheta_MSetoid.
+    apply Rtheta_Associative_Mmult.
+    apply Rtheta_Mmult_proper.
+  Qed.
+
+  Global Instance Rtheta_LeftIdentity_Mmult_1:
+    @LeftIdentity (flags_m Rtheta) (flags_m Rtheta) Rtheta_Mequiv mult one.
   Proof.
     unfold LeftIdentity.
-    intros.
-    unfold  mult, one, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct y.
-    simpl.
-    ring.
+    intros y.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    apply Rtheta_val_LeftIdentity_mult_1.
   Qed.
 
-  Global Instance Rtheta_val_RightIdentity_mult_1:
-    @RightIdentity Rtheta Rtheta_val_equiv Rtheta mult one.
+  Global Instance Rtheta_RightIdentity_Mmult_1:
+    @RightIdentity (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) mult one.
   Proof.
     unfold RightIdentity.
-    intros.
-    unfold  mult, one, equiv, Rtheta_val_equiv, Rtheta_Mult, Rtheta_One, Rtheta_rel_first,
-    Rtheta_binop.
-    destruct x.
-    simpl.
-    ring.
+    intros x.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    apply Rtheta_val_RightIdentity_mult_1.    
   Qed.
 
-  Global Instance Rtheta_val_Monoid_mult_1:
-    @Monoid Rtheta Rtheta_val_equiv mult one.
+  Global Instance Rtheta_Monoid_Mmult_1:
+    @Monoid (flags_m Rtheta) Rtheta_Mequiv mult one.
   Proof.
     split.
-    apply Rtheta_val_SemiGroup_mult.
-    apply Rtheta_val_LeftIdentity_mult_1.
-    apply Rtheta_val_RightIdentity_mult_1.
+    apply Rtheta_SemiGroup_Mmult.
+    apply Rtheta_LeftIdentity_Mmult_1.
+    apply Rtheta_RightIdentity_Mmult_1.
   Qed.
 
-  Global Instance Rtheta_val_Commutative_mult:
-    @Commutative Rtheta Rtheta_val_equiv Rtheta mult.
+  Global Instance Rtheta_Commutative_Mmult:
+    @Commutative (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) mult.
   Proof.
-    apply Rtheta_val_Commutative_Rtheta_binary.
-    - simpl_relation.
-      rewrite H, H0.
-      reflexivity.
-    - simpl_relation.
-      setoid_replace (x * y) with (y * x).
-      reflexivity.
-      ring.
-  Qed.
-
-  Global Instance Rtheta_val_LeftDistribute_mult_plus:
-    @LeftDistribute Rtheta Rtheta_val_equiv mult plus.
-  Proof.
-    unfold LeftDistribute, LeftHeteroDistribute, equiv, Rtheta_val_equiv, Rtheta_rel_first, plus, mult, Rtheta_Plus, Rtheta_Mult, Rtheta_binop.
-    intros.
-    destruct a, b, c.
-    simpl.
-    ring.
-  Qed.
-
-  Global Instance Rtheta_val_CommutativeMonoid_mult_1:
-    @CommutativeMonoid Rtheta Rtheta_val_equiv mult one.
-  Proof.
-    split.
-    apply Rtheta_val_Monoid_mult_1.
+    unfold Commutative.
+    intros x y.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult.
+    rewrite 2!evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_Commutative_mult.
   Qed.
 
-  Global Instance Rtheta_val_LeftAbsorb:
-    @LeftAbsorb Rtheta Rtheta_val_equiv Rtheta mult 0.
+  Global Instance Rtheta_LeftDistribute_Mmult_Mplus:
+    @LeftDistribute (flags_m Rtheta) Rtheta_Mequiv mult plus.
   Proof.
-    unfold LeftAbsorb.
-    intros.
-    destruct y.
-    unfold_Rtheta_val_equiv.
-    unfold plus, mult, Rtheta_Mult, Rtheta_binop.
-    simpl.
-    ring.
+    unfold LeftDistribute, LeftHeteroDistribute.
+    intros a b c.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult, plus, Rtheta_MPlus.
+    rewrite 4!evalWriter_lift_Rtheta_liftM2.
+    apply Rtheta_val_LeftDistribute_mult_plus.    
   Qed.
 
-  Global Instance Rtheta_val_RightAbsorb:
-    @RightAbsorb Rtheta Rtheta Rtheta_val_equiv mult 0.
-  Proof.
-    unfold RightAbsorb.
-    intros.
-    destruct x.
-    unfold_Rtheta_val_equiv.
-    unfold plus, mult, Rtheta_Mult, Rtheta_binop.
-    simpl.
-    ring.
-  Qed.
-
-  Global Instance Rtheta_val_SemiRing: SemiRing Rtheta.
+  Global Instance Rtheta_CommutativeMonoid_Mmult_1:
+    @CommutativeMonoid (flags_m Rtheta) Rtheta_Mequiv mult one.
   Proof.
     split.
-    apply Rtheta_val_CommutativeMonoid_plus_0.
-    apply Rtheta_val_CommutativeMonoid_mult_1.
-    apply Rtheta_val_LeftDistribute_mult_plus.
+    apply Rtheta_Monoid_Mmult_1.
+    apply Rtheta_Commutative_Mmult.
+  Qed.
+
+  Global Instance Rtheta_MLeftAbsorb:
+    @LeftAbsorb (flags_m Rtheta) Rtheta_Mequiv (flags_m Rtheta) mult 0.
+  Proof.
+    unfold LeftAbsorb.
+    intros y.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult.
+    rewrite evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_LeftAbsorb.
   Qed.
 
-  Global Instance Rtheta_val_LeftInverse_plus_neg_0:
-    @LeftInverse Rtheta Rtheta Rtheta Rtheta_val_equiv plus negate 0.
+  Global Instance Rtheta_MRightAbsorb:
+    @RightAbsorb (flags_m Rtheta) (flags_m Rtheta) Rtheta_Mequiv mult 0.
   Proof.
-    unfold LeftInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_binop.
-    intros.
-    destruct x.
-    simpl.
-    ring.
+    unfold RightAbsorb.
+    intros x.
+    unfold_Rtheta_Mequiv.
+    unfold mult, Rtheta_MMult.
+    rewrite evalWriter_lift_Rtheta_liftM2.
+    apply Rtheta_val_RightAbsorb.
   Qed.
 
-  Global Instance Rtheta_val_RightInverse_plus_neg_0:
-    @RightInverse Rtheta Rtheta Rtheta Rtheta_val_equiv plus negate 0.
+  Global Instance Rtheta_MSemiRing: SemiRing (flags_m Rtheta).
   Proof.
-    unfold RightInverse, equiv, Rtheta_Plus, Rtheta_Neg, Rtheta_unary, Rtheta_val_equiv, Rtheta_rel_first, Rtheta_binop.
-    intros.
-    simpl.
-    ring.
+    split.
+    apply Rtheta_CommutativeMonoid_Mplus_0.
+    apply Rtheta_CommutativeMonoid_Mmult_1.
+    apply Rtheta_LeftDistribute_Mmult_Mplus.
+    apply Rtheta_MLeftAbsorb.
   Qed.
 
-  Global Instance Rtheta_val_Group_plus_0_neg:
-    @Group Rtheta Rtheta_val_equiv Rtheta_Plus Rtheta_Zero Rtheta_Neg.
+  Global Instance Rtheta_LeftInverse_Mplus_neg_0:
+    @LeftInverse (flags_m Rtheta) (flags_m Rtheta) (flags_m Rtheta) Rtheta_Mequiv plus negate 0.
   Proof.
-    split.
-    apply Rtheta_val_Monoid_plus_0.
-    split.
-    apply Rtheta_val_Setoid.
-    apply Rtheta_val_Setoid.
-    apply Rtheta_val_neg_proper.
+    unfold LeftInverse.
+    intros x.
+    unfold_Rtheta_Mequiv.
+    unfold plus, Rtheta_MPlus, negate, Rtheta_Neg.
+    rewrite evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_LeftInverse_plus_neg_0.
+  Qed.
+
+  Global Instance Rtheta_RightInverse_Mplus_neg_0:
+    @RightInverse (flags_m Rtheta) (flags_m Rtheta) (flags_m Rtheta) Rtheta_Mequiv plus negate 0.
+  Proof.
+    unfold RightInverse.
+    intros x.
+    unfold_Rtheta_Mequiv.
+    unfold plus, Rtheta_MPlus, negate, Rtheta_Neg.
+    rewrite evalWriter_lift_Rtheta_liftM2.
     apply Rtheta_val_RightInverse_plus_neg_0.
   Qed.
 
-  Global Instance Ring_Rtheta_val: Ring Rtheta.
+  Global Instance Rtheta_Group_Mplus_0_neg:
+    @Group (flags_m Rtheta) Rtheta_Mequiv Rtheta_MPlus Rtheta_MZero Rtheta_MNeg.
+  Proof.
+    split.
+    apply Rtheta_Monoid_Mplus_0.
+    split.
+    apply Rtheta_MSetoid.
+    apply Rtheta_MSetoid.
+    apply Rtheta_Mneg_proper.
+    apply Rtheta_LeftInverse_Mplus_neg_0.
+    apply Rtheta_RightInverse_Mplus_neg_0.
+  Qed.
+
+  Global Instance Ring_MRtheta: Ring (flags_m Rtheta).
   Proof.
     split. split.
-    apply Rtheta_val_Group_plus_0_neg.
-    apply Rtheta_val_Commutative_plus.
-    apply Rtheta_val_CommutativeMonoid_mult_1.
-    apply Rtheta_val_LeftDistribute_mult_plus.
+    apply Rtheta_Group_Mplus_0_neg.
+    apply Rtheta_Commutative_Mplus.
+    apply Rtheta_CommutativeMonoid_Mmult_1.
+    apply Rtheta_LeftDistribute_Mmult_Mplus.
   Qed.
 
-  Global Instance Rtheta_val_ledec (x y: Rtheta): Decision (x ≤ y) :=
-    CarrierAledec (val x) (val y).
+  Global Instance Rtheta_Mledec (x y: flags_m Rtheta): Decision (x ≤ y) :=
+    Rtheta_val_ledec (evalWriter x) (evalWriter y).
+  
+  Global Instance Rtheta_Mltdec (x y: flags_m Rtheta): Decision (x < y) :=
+    Rtheta_val_ltdec (evalWriter x) (evalWriter y).
 
-  Global Instance Rtheta_val_ltdec (x y: Rtheta): Decision (x < y) :=
-    CarrierAltdec (val x) (val y).
-
-  Global Program Instance Rtheta_val_abs: Abs Rtheta := Rtheta_unary abs.
+  Global Program Instance Rtheta_Mabs: Abs (flags_m Rtheta) := Rtheta_liftM (Rtheta_unary abs).
   Next Obligation.
+    unfold_Rtheta_Mequiv.
+    rewrite evalWriter_Rtheta_liftM.
     unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
-    split; unfold abs; crush.
+    unfold abs; crush.
   Qed.
 
-  Global Instance Rtheta_val_le_proper:
-    Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
+  Global Instance Rtheta_Mle_proper:
+    Proper ((=) ==> (=) ==> (iff)) (Rtheta_MLe).
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
     destruct a, b, a', b'.
     simpl.
-    unfold_Rtheta_val_equiv.
+    unfold_Rtheta_Mequiv.
     rewrite <- aEq, <- bEq.
     split; auto.
   Qed.
