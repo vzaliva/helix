@@ -66,10 +66,10 @@ Definition Union (op: Rtheta -> Rtheta -> Rtheta)
 Lemma Union_comm:
   forall (op : Rtheta -> Rtheta -> Rtheta),
     @Commutative Rtheta Rtheta_val_equiv Rtheta op ->
-    @Commutative (MRtheta) Rtheta_Mequiv (MRtheta) (Union op).
+    @Commutative (MRtheta) MRtheta_equiv (MRtheta) (Union op).
 Proof.
   intros op C x y.
-  unfold Union, equiv, Rtheta_Mequiv.
+  unfold Union, equiv, MRtheta_equiv.
   rewrite 2!evalWriter_Rtheta_liftM2.
   apply C.
 Qed.
@@ -83,7 +83,7 @@ Global Instance Union_proper
 Proof.
   intros a b H x y E.
   unfold Union.
-  unfold Union, equiv, Rtheta_Mequiv in *.
+  unfold Union, equiv, MRtheta_equiv in *.
   rewrite 2!evalWriter_Rtheta_liftM2.
   apply op_mor; assumption.
 Qed.
@@ -229,24 +229,24 @@ Proof.
 Qed.
 
 Lemma Union_Plus_MSZero_r x:
-  (Union (plus) x Rtheta_MSZero) = x.
+  (Union (plus) x MRtheta_SZero) = x.
 Proof.
   unfold Union.
-  unfold_Rtheta_Mequiv.
+  unfold_MRtheta_equiv.
   rewrite evalWriter_Rtheta_liftM2.
-  rewrite evalWriter_Rtheta_MSZero.
+  rewrite evalWriter_MRtheta_SZero.
   unfold_Rtheta_val_equiv.
   simpl.
   ring.
 Qed.
 
 Lemma Union_Plus_MSZero_l x:
-  (Union (plus) Rtheta_MSZero x) = x.
+  (Union (plus) MRtheta_SZero x) = x.
 Proof.
   unfold Union.
-  unfold_Rtheta_Mequiv.
+  unfold_MRtheta_equiv.
   rewrite evalWriter_Rtheta_liftM2.
-  rewrite evalWriter_Rtheta_MSZero.
+  rewrite evalWriter_MRtheta_SZero.
   unfold_Rtheta_val_equiv.
   simpl.
   ring.

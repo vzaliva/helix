@@ -482,7 +482,7 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_RightInverse_plus_neg_0.
   Qed.
 
-  Global Instance Ring_Rtheta_val: Ring Rtheta.
+  Global Instance Rtheta_val_Ring: Ring Rtheta.
   Proof.
     split. split.
     apply Rtheta_val_Group_plus_0_neg.

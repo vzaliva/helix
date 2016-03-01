@@ -48,39 +48,39 @@ Definition Rtheta_liftM2
     ret (op a b).
 
 
-Global Instance Rtheta_Mequiv: Equiv (MRtheta) :=
+Global Instance MRtheta_equiv: Equiv (MRtheta) :=
   fun am bm => (evalWriter am) = (evalWriter bm).
 
-Ltac unfold_Rtheta_Mequiv := unfold equiv, Rtheta_Mequiv in *.
+Ltac unfold_MRtheta_equiv := unfold equiv, MRtheta_equiv in *.
 
 
-Global Instance Rtheta_Reflexive_Mequiv: Reflexive Rtheta_Mequiv.
+Global Instance MRtheta_Reflexive_equiv: Reflexive MRtheta_equiv.
 Proof.
-  destruct x; (unfold_Rtheta_Mequiv; crush).
+  destruct x; (unfold_MRtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Symmetric_Mequiv: Symmetric Rtheta_Mequiv.
+Global Instance MRtheta_Symmetric_equiv: Symmetric MRtheta_equiv.
 Proof.
-  destruct x; (unfold_Rtheta_Mequiv; crush).
+  destruct x; (unfold_MRtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Transitive_Mequiv: Transitive Rtheta_Mequiv.
+Global Instance MRtheta_Transitive_equiv: Transitive MRtheta_equiv.
 Proof.
-  destruct x; (unfold_Rtheta_Mequiv; crush).
+  destruct x; (unfold_MRtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Equivalence_Mequiv: Equivalence Rtheta_Mequiv.
+Global Instance MRtheta_Equivalence_equiv: Equivalence MRtheta_equiv.
 Proof.
   split.
-  apply Rtheta_Reflexive_Mequiv.
-  apply Rtheta_Symmetric_Mequiv.
-  apply Rtheta_Transitive_Mequiv.
+  apply MRtheta_Reflexive_equiv.
+  apply MRtheta_Symmetric_equiv.
+  apply MRtheta_Transitive_equiv.
 Qed.
 
 
-Instance Rtheta_MSetoid: Setoid (MRtheta).
+Instance MRtheta_Setoid: Setoid (MRtheta).
 Proof.
-  apply Rtheta_Equivalence_Mequiv.
+  apply MRtheta_Equivalence_equiv.
 Qed.
 
 (* Note: definitional equality *)
@@ -109,43 +109,43 @@ Definition Rtheta_liftRel
   rel (evalWriter am) (evalWriter bm).
 
 
-Global Instance Rtheta_MZero: Zero (MRtheta) := ret (Rtheta_normal zero).
-Global Instance Rtheta_MOne: One (MRtheta) := ret (Rtheta_normal one).
-Global Instance Rtheta_MPlus: Plus (MRtheta) := Rtheta_liftM2 (Rtheta_binop plus).
-Global Instance Rtheta_MMult: Mult (MRtheta) := Rtheta_liftM2 (Rtheta_binop mult).
-Global Instance Rtheta_MNeg: Negate (MRtheta) := Rtheta_liftM (Rtheta_unary negate).
-Global Instance Rtheta_MLe: Le (MRtheta) := Rtheta_liftRel (Rtheta_rel_first le).
-Global Instance Rtheta_MLt: Lt (MRtheta) := Rtheta_liftRel (Rtheta_rel_first lt).
+Global Instance MRtheta_Zero: Zero (MRtheta) := ret (Rtheta_normal zero).
+Global Instance MRtheta_One: One (MRtheta) := ret (Rtheta_normal one).
+Global Instance MRtheta_Plus: Plus (MRtheta) := Rtheta_liftM2 (Rtheta_binop plus).
+Global Instance MRtheta_Mult: Mult (MRtheta) := Rtheta_liftM2 (Rtheta_binop mult).
+Global Instance MRtheta_Neg: Negate (MRtheta) := Rtheta_liftM (Rtheta_unary negate).
+Global Instance MRtheta_Le: Le (MRtheta) := Rtheta_liftRel (Rtheta_rel_first le).
+Global Instance MRtheta_Lt: Lt (MRtheta) := Rtheta_liftRel (Rtheta_rel_first lt).
 
-Definition Rtheta_MSZero: MRtheta := ret Rtheta_SZero.
-Definition Rtheta_MSOne: MRtheta := ret Rtheta_SOne.
+Definition MRtheta_SZero: MRtheta := ret Rtheta_SZero.
+Definition MRtheta_SOne: MRtheta := ret Rtheta_SOne.
 
-Lemma evalWriter_Rtheta_MSZero:
-  evalWriter Rtheta_MSZero = Rtheta_SZero.
+Lemma evalWriter_MRtheta_SZero:
+  evalWriter MRtheta_SZero = Rtheta_SZero.
 Proof.
   reflexivity.
 Qed.
 
-Global Instance Rtheta_Associative_Mplus: Associative Rtheta_MPlus.
+Global Instance MRtheta_Associative_plus: Associative MRtheta_Plus.
 Proof.
   intros x y z.
-  unfold_Rtheta_Mequiv.
-  unfold Rtheta_MPlus.
+  unfold_MRtheta_equiv.
+  unfold MRtheta_Plus.
   rewrite 4!evalWriter_Rtheta_liftM2.
   apply Rtheta_val_Associative_plus.
 Qed.
 
-Global Instance Rtheta_Associative_Mmult: Associative Rtheta_MMult.
+Global Instance MRtheta_Associative_mult: Associative MRtheta_Mult.
 Proof.
   intros x y z.
-  unfold_Rtheta_Mequiv.
-  unfold Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold MRtheta_Mult.
   rewrite 4!evalWriter_Rtheta_liftM2.
   apply Rtheta_val_Associative_mult.
 Qed.
 
 Global Instance Rtheta_liftM2_proper:
-  Proper (((=) ==> (=)) ==> (Rtheta_Mequiv) ==> (Rtheta_Mequiv) ==> (Rtheta_Mequiv)) (Rtheta_liftM2).
+  Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) (Rtheta_liftM2).
 Proof.
   simpl_relation.
   rewrite 2!evalWriter_Rtheta_liftM2.
@@ -155,7 +155,7 @@ Proof.
 Qed.
 
 Global Instance Rtheta_liftM_proper:
-  Proper (((=) ==> (=)) ==> (Rtheta_Mequiv) ==> (Rtheta_Mequiv)) (Rtheta_liftM).
+  Proper (((=) ==> (=)) ==> (=) ==> (=)) (Rtheta_liftM).
 Proof.
   simpl_relation.
   rewrite 2!evalWriter_Rtheta_liftM.
@@ -163,263 +163,261 @@ Proof.
   apply H0.
 Qed.
 
-Global Instance Rtheta_Mplus_proper:
-  Proper ((=) ==> (=) ==> (=)) (Rtheta_MPlus).
+Global Instance MRtheta_plus_proper:
+  Proper ((=) ==> (=) ==> (=)) (MRtheta_Plus).
 Proof.
   apply Rtheta_liftM2_proper.
   apply Rtheta_val_plus_proper.
 Qed.
 
-Global Instance Rtheta_Mneg_proper:
-  Proper ((=) ==> (=)) (Rtheta_MNeg).
+Global Instance MRtheta_neg_proper:
+  Proper ((=) ==> (=)) (MRtheta_Neg).
 Proof.
   apply Rtheta_liftM_proper.
   apply Rtheta_val_neg_proper.
 Qed.
 
-Global Instance Rtheta_Mmult_proper:
-  Proper ((=) ==> (=) ==> (=)) (Rtheta_MMult).
+Global Instance MRtheta_mult_proper:
+  Proper ((=) ==> (=) ==> (=)) (MRtheta_Mult).
 Proof.
   apply Rtheta_liftM2_proper.
   apply Rtheta_val_mult_proper.
 Qed.
 
-Global Instance Rtheta_SemiGroup_Mplus:
-  @SemiGroup (MRtheta) Rtheta_Mequiv plus.
+Global Instance MRtheta_SemiGroup_plus:
+  @SemiGroup (MRtheta) MRtheta_equiv plus.
 Proof.
   split.
-  apply Rtheta_MSetoid.
-  apply Rtheta_Associative_Mplus.
-  apply Rtheta_Mplus_proper.
+  apply MRtheta_Setoid.
+  apply MRtheta_Associative_plus.
+  apply MRtheta_plus_proper.
 Qed.
 
-Global Instance Rtheta_LeftIdentity_Mplus_0:
-  @LeftIdentity (MRtheta) (MRtheta) Rtheta_Mequiv plus zero.
+Global Instance MRtheta_LeftIdentity_plus_0:
+  @LeftIdentity (MRtheta) (MRtheta) MRtheta_equiv plus zero.
 Proof.
   unfold LeftIdentity.
   intros y.
-  unfold_Rtheta_Mequiv.
-  unfold plus, Rtheta_MPlus.
+  unfold_MRtheta_equiv.
+  unfold plus, MRtheta_Plus.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_LeftIdentity_plus_0.
 Qed.
 
-Global Instance Rtheta_RightIdentity_Mplus_0:
-  @RightIdentity (MRtheta) Rtheta_Mequiv (MRtheta) plus zero.
+Global Instance MRtheta_RightIdentity_plus_0:
+  @RightIdentity (MRtheta) MRtheta_equiv (MRtheta) plus zero.
 Proof.
   unfold RightIdentity.
   intros x.
-  unfold_Rtheta_Mequiv.
-  unfold plus, Rtheta_MPlus.
+  unfold_MRtheta_equiv.
+  unfold plus, MRtheta_Plus.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_RightIdentity_plus_0.
 Qed.
 
 (* Note: this is MathClasses monoid, not ExtLib's *)
-Global Instance Rtheta_Monoid_Mplus_0:
-  @Monoid (MRtheta) Rtheta_Mequiv plus zero.
+Global Instance MRtheta_Monoid_plus_0:
+  @Monoid (MRtheta) MRtheta_equiv plus zero.
 Proof.
   split.
-  apply Rtheta_SemiGroup_Mplus.
-  apply Rtheta_LeftIdentity_Mplus_0.
-  apply Rtheta_RightIdentity_Mplus_0.
+  apply MRtheta_SemiGroup_plus.
+  apply MRtheta_LeftIdentity_plus_0.
+  apply MRtheta_RightIdentity_plus_0.
 Qed.
-
 
 Global Instance Rtheta_Commutative_Rtheta_liftM2
        (op: Rtheta -> Rtheta -> Rtheta)
        `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
        `{C: !Commutative op}
   :
-    @Commutative (MRtheta) Rtheta_Mequiv (MRtheta) (Rtheta_liftM2 op).
+    @Commutative (MRtheta) MRtheta_equiv (MRtheta) (Rtheta_liftM2 op).
 Proof.
   intros x y.
-  unfold_Rtheta_Mequiv.
+  unfold_MRtheta_equiv.
   rewrite 2!evalWriter_Rtheta_liftM2.
   apply C.
 Qed.
 
-Global Instance Rtheta_Commutative_Mplus:
-  @Commutative (MRtheta) Rtheta_Mequiv (MRtheta) plus.
+Global Instance MRtheta_Commutative_plus:
+  @Commutative (MRtheta) MRtheta_equiv (MRtheta) plus.
 Proof.
   unfold Commutative.
   intros x y.
-  unfold_Rtheta_Mequiv.
-  unfold plus, Rtheta_MPlus.
+  unfold_MRtheta_equiv.
+  unfold plus, MRtheta_Plus.
   rewrite 2!evalWriter_Rtheta_liftM2.
   apply Rtheta_val_Commutative_plus.
 Qed.
 
-Global Instance Rtheta_CommutativeMonoid_Mplus_0:
-  @CommutativeMonoid (MRtheta) Rtheta_Mequiv plus zero.
+Global Instance MRtheta_CommutativeMonoid_plus_0:
+  @CommutativeMonoid (MRtheta) MRtheta_equiv plus zero.
 Proof.
   split.
-  apply Rtheta_Monoid_Mplus_0.
-  apply Rtheta_Commutative_Mplus.
+  apply MRtheta_Monoid_plus_0.
+  apply MRtheta_Commutative_plus.
 Qed.
 
-Global Instance Rtheta_SemiGroup_Mmult:
-  @SemiGroup (MRtheta) Rtheta_Mequiv mult.
+Global Instance MRtheta_SemiGroup_mult:
+  @SemiGroup (MRtheta) MRtheta_equiv mult.
 Proof.
   split.
-  apply Rtheta_MSetoid.
-  apply Rtheta_Associative_Mmult.
-  apply Rtheta_Mmult_proper.
+  apply MRtheta_Setoid.
+  apply MRtheta_Associative_mult.
+  apply MRtheta_mult_proper.
 Qed.
 
-Global Instance Rtheta_LeftIdentity_Mmult_1:
-  @LeftIdentity (MRtheta) (MRtheta) Rtheta_Mequiv mult one.
+Global Instance MRtheta_LeftIdentity_mult_1:
+  @LeftIdentity (MRtheta) (MRtheta) MRtheta_equiv mult one.
 Proof.
   unfold LeftIdentity.
   intros y.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_LeftIdentity_mult_1.
 Qed.
 
-Global Instance Rtheta_RightIdentity_Mmult_1:
-  @RightIdentity (MRtheta) Rtheta_Mequiv (MRtheta) mult one.
+Global Instance MRtheta_RightIdentity_mult_1:
+  @RightIdentity (MRtheta) MRtheta_equiv (MRtheta) mult one.
 Proof.
   unfold RightIdentity.
   intros x.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_RightIdentity_mult_1.
 Qed.
 
-Global Instance Rtheta_Monoid_Mmult_1:
-  @Monoid (MRtheta) Rtheta_Mequiv mult one.
+Global Instance MRtheta_Monoid_mult_1:
+  @Monoid (MRtheta) MRtheta_equiv mult one.
 Proof.
   split.
-  apply Rtheta_SemiGroup_Mmult.
-  apply Rtheta_LeftIdentity_Mmult_1.
-  apply Rtheta_RightIdentity_Mmult_1.
+  apply MRtheta_SemiGroup_mult.
+  apply MRtheta_LeftIdentity_mult_1.
+  apply MRtheta_RightIdentity_mult_1.
 Qed.
 
-Global Instance Rtheta_Commutative_Mmult:
-  @Commutative (MRtheta) Rtheta_Mequiv (MRtheta) mult.
+Global Instance MRtheta_Commutative_mult:
+  @Commutative (MRtheta) MRtheta_equiv (MRtheta) mult.
 Proof.
   unfold Commutative.
   intros x y.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult.
   rewrite 2!evalWriter_Rtheta_liftM2.
   apply Rtheta_val_Commutative_mult.
 Qed.
 
-Global Instance Rtheta_LeftDistribute_Mmult_Mplus:
-  @LeftDistribute (MRtheta) Rtheta_Mequiv mult plus.
+Global Instance MRtheta_LeftDistribute_mult_plus:
+  @LeftDistribute (MRtheta) MRtheta_equiv mult plus.
 Proof.
   unfold LeftDistribute, LeftHeteroDistribute.
   intros a b c.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult, plus, Rtheta_MPlus.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult, plus, MRtheta_Plus.
   rewrite 4!evalWriter_Rtheta_liftM2.
   apply Rtheta_val_LeftDistribute_mult_plus.
 Qed.
 
-Global Instance Rtheta_CommutativeMonoid_Mmult_1:
-  @CommutativeMonoid (MRtheta) Rtheta_Mequiv mult one.
+Global Instance MRtheta_CommutativeMonoid_mult_1:
+  @CommutativeMonoid (MRtheta) MRtheta_equiv mult one.
 Proof.
   split.
-  apply Rtheta_Monoid_Mmult_1.
-  apply Rtheta_Commutative_Mmult.
+  apply MRtheta_Monoid_mult_1.
+  apply MRtheta_Commutative_mult.
 Qed.
 
-Global Instance Rtheta_MLeftAbsorb:
-  @LeftAbsorb (MRtheta) Rtheta_Mequiv (MRtheta) mult 0.
+Global Instance MRtheta_LeftAbsorb:
+  @LeftAbsorb (MRtheta) MRtheta_equiv (MRtheta) mult 0.
 Proof.
   unfold LeftAbsorb.
   intros y.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_LeftAbsorb.
 Qed.
 
-Global Instance Rtheta_MRightAbsorb:
-  @RightAbsorb (MRtheta) (MRtheta) Rtheta_Mequiv mult 0.
+Global Instance MRtheta_RightAbsorb:
+  @RightAbsorb (MRtheta) (MRtheta) MRtheta_equiv mult 0.
 Proof.
   unfold RightAbsorb.
   intros x.
-  unfold_Rtheta_Mequiv.
-  unfold mult, Rtheta_MMult.
+  unfold_MRtheta_equiv.
+  unfold mult, MRtheta_Mult.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_RightAbsorb.
 Qed.
 
-Global Instance Rtheta_MSemiRing: SemiRing (MRtheta).
+Global Instance MRtheta_SemiRing: SemiRing (MRtheta).
 Proof.
   split.
-  apply Rtheta_CommutativeMonoid_Mplus_0.
-  apply Rtheta_CommutativeMonoid_Mmult_1.
-  apply Rtheta_LeftDistribute_Mmult_Mplus.
-  apply Rtheta_MLeftAbsorb.
+  apply MRtheta_CommutativeMonoid_plus_0.
+  apply MRtheta_CommutativeMonoid_mult_1.
+  apply MRtheta_LeftDistribute_mult_plus.
+  apply MRtheta_LeftAbsorb.
 Qed.
 
-Global Instance Rtheta_LeftInverse_Mplus_neg_0:
-  @LeftInverse (MRtheta) (MRtheta) (MRtheta) Rtheta_Mequiv plus negate 0.
+Global Instance MRtheta_LeftInverse_plus_neg_0:
+  @LeftInverse (MRtheta) (MRtheta) (MRtheta) MRtheta_equiv plus negate 0.
 Proof.
   unfold LeftInverse.
   intros x.
-  unfold_Rtheta_Mequiv.
-  unfold plus, Rtheta_MPlus, negate, Rtheta_Neg.
+  unfold_MRtheta_equiv.
+  unfold plus, MRtheta_Plus, negate, Rtheta_Neg.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_LeftInverse_plus_neg_0.
 Qed.
 
-Global Instance Rtheta_RightInverse_Mplus_neg_0:
-  @RightInverse (MRtheta) (MRtheta) (MRtheta) Rtheta_Mequiv plus negate 0.
+Global Instance MRtheta_RightInverse_plus_neg_0:
+  @RightInverse (MRtheta) (MRtheta) (MRtheta) MRtheta_equiv plus negate 0.
 Proof.
   unfold RightInverse.
   intros x.
-  unfold_Rtheta_Mequiv.
-  unfold plus, Rtheta_MPlus, negate, Rtheta_Neg.
+  unfold_MRtheta_equiv.
+  unfold plus, MRtheta_Plus, negate, Rtheta_Neg.
   rewrite evalWriter_Rtheta_liftM2.
   apply Rtheta_val_RightInverse_plus_neg_0.
 Qed.
 
-Global Instance Rtheta_Group_Mplus_0_neg:
-  @Group (MRtheta) Rtheta_Mequiv Rtheta_MPlus Rtheta_MZero Rtheta_MNeg.
+Global Instance MRtheta_Group_plus_0_neg:
+  @Group (MRtheta) MRtheta_equiv MRtheta_Plus MRtheta_Zero MRtheta_Neg.
 Proof.
   split.
-  apply Rtheta_Monoid_Mplus_0.
+  apply MRtheta_Monoid_plus_0.
   split.
-  apply Rtheta_MSetoid.
-  apply Rtheta_MSetoid.
-  apply Rtheta_Mneg_proper.
-  apply Rtheta_LeftInverse_Mplus_neg_0.
-  apply Rtheta_RightInverse_Mplus_neg_0.
+  apply MRtheta_Setoid.
+  apply MRtheta_Setoid.
+  apply MRtheta_neg_proper.
+  apply MRtheta_LeftInverse_plus_neg_0.
+  apply MRtheta_RightInverse_plus_neg_0.
 Qed.
 
-Global Instance Ring_MRtheta: Ring (MRtheta).
+Global Instance MRtheta_Ring: Ring MRtheta.
 Proof.
   split. split.
-  apply Rtheta_Group_Mplus_0_neg.
-  apply Rtheta_Commutative_Mplus.
-  apply Rtheta_CommutativeMonoid_Mmult_1.
-  apply Rtheta_LeftDistribute_Mmult_Mplus.
+  apply MRtheta_Group_plus_0_neg.
+  apply MRtheta_Commutative_plus.
+  apply MRtheta_CommutativeMonoid_mult_1.
+  apply MRtheta_LeftDistribute_mult_plus.
 Qed.
 
-Global Instance Rtheta_Mledec (x y: MRtheta): Decision (x ≤ y) :=
+Global Instance MRtheta_ledec (x y: MRtheta): Decision (x ≤ y) :=
   Rtheta_val_ledec (evalWriter x) (evalWriter y).
 
-Global Instance Rtheta_Mltdec (x y: MRtheta): Decision (x < y) :=
+Global Instance MRtheta_ltdec (x y: MRtheta): Decision (x < y) :=
   Rtheta_val_ltdec (evalWriter x) (evalWriter y).
 
-Global Program Instance Rtheta_Mabs: Abs (MRtheta) := Rtheta_liftM (Rtheta_unary abs).
+Global Program Instance MRtheta_abs: Abs (MRtheta) := Rtheta_liftM (Rtheta_unary abs).
 Next Obligation.
-  unfold_Rtheta_Mequiv.
+  unfold_MRtheta_equiv.
   rewrite evalWriter_Rtheta_liftM.
   unfold le, Rtheta_Le, Rtheta_rel_first, Rtheta_unary.
   unfold abs; crush.
 Qed.
 
-
 Global Instance Rtheta_liftRel_proper:
-  Proper (((=) ==> (=) ==> (iff)) ==> (Rtheta_Mequiv) ==> (Rtheta_Mequiv) ==> (iff))
+  Proper (((=) ==> (=) ==> (iff)) ==> (MRtheta_equiv) ==> (MRtheta_equiv) ==> (iff))
          (Rtheta_liftRel).
 Proof.
   simpl_relation.
@@ -429,154 +427,154 @@ Proof.
   apply H1.
 Qed.
 
-Global Instance Rtheta_Mle_proper:
-  Proper ((=) ==> (=) ==> (iff)) (Rtheta_MLe).
+Global Instance MRtheta_le_proper:
+  Proper ((=) ==> (=) ==> (iff)) (MRtheta_Le).
 Proof.
-  unfold Rtheta_MLe, Rtheta_rel_first.
+  unfold MRtheta_Le, Rtheta_rel_first.
   apply Rtheta_liftRel_proper.
   apply Rtheta_val_le_proper.
 Qed.
 
-Global Instance Rtheta_Mlt_proper:
-  Proper ((=) ==> (=) ==> (iff)) (Rtheta_MLt).
+Global Instance MRtheta_lt_proper:
+  Proper ((=) ==> (=) ==> (iff)) (MRtheta_Lt).
 Proof.
-  unfold Rtheta_MLt, Rtheta_rel_first.
+  unfold MRtheta_Lt, Rtheta_rel_first.
   apply Rtheta_liftRel_proper.
   apply Rtheta_val_lt_proper.
 Qed.
 
-Global Instance Rtheta_Mle_Reflexive:
+Global Instance MRtheta_le_Reflexive:
   @Reflexive (MRtheta) le.
 Proof.
   unfold Reflexive.
   intros x.
-  unfold le, Rtheta_MLe, Rtheta_liftRel.
+  unfold le, MRtheta_Le, Rtheta_liftRel.
   apply Rtheta_val_le_Reflexive.
 Qed.
 
-Global Instance Rtheta_Mle_Transitive:
+Global Instance MRtheta_le_Transitive:
   @Transitive (MRtheta) le.
 Proof.
   unfold Transitive.
   intros x y z.
-  unfold le, Rtheta_MLe, Rtheta_liftRel.
+  unfold le, MRtheta_Le, Rtheta_liftRel.
   apply Rtheta_val_le_Transitive.
 Qed.
 
-Global Instance Rtheta_Mle_AntiSymmetric:
-  @AntiSymmetric MRtheta Rtheta_Mequiv le.
+Global Instance MRtheta_le_AntiSymmetric:
+  @AntiSymmetric MRtheta MRtheta_equiv le.
 Proof.
   unfold AntiSymmetric.
   intros x y.
-  unfold le, Rtheta_MLe, Rtheta_liftRel.
+  unfold le, MRtheta_Le, Rtheta_liftRel.
   apply Rtheta_val_le_AntiSymmetric.
 Qed.
 
-Global Instance Rtheta_Mle_PreOrder:
+Global Instance MRtheta_le_PreOrder:
   @PreOrder MRtheta le.
 Proof.
   split.
-  apply Rtheta_Mle_Reflexive.
-  apply Rtheta_Mle_Transitive.
+  apply MRtheta_le_Reflexive.
+  apply MRtheta_le_Transitive.
 Qed.
 
-Global Instance Rtheta_Mle_PartialOrder:
-  @PartialOrder MRtheta Rtheta_Mequiv Rtheta_MLe.
+Global Instance MRtheta_le_PartialOrder:
+  @PartialOrder MRtheta MRtheta_equiv MRtheta_Le.
 Proof.
   split.
-  apply Rtheta_MSetoid.
-  apply Rtheta_Mle_proper.
-  apply Rtheta_Mle_PreOrder.
-  apply Rtheta_Mle_AntiSymmetric.
+  apply MRtheta_Setoid.
+  apply MRtheta_le_proper.
+  apply MRtheta_le_PreOrder.
+  apply MRtheta_le_AntiSymmetric.
 Qed.
 
-Global Instance Rtheta_Mle_TotalRelation:
+Global Instance MRtheta_le_TotalRelation:
   @TotalRelation MRtheta le.
 Proof.
   unfold TotalRelation.
   intros x y.
-  unfold le, Rtheta_MLe, Rtheta_liftRel.
+  unfold le, MRtheta_Le, Rtheta_liftRel.
   apply Rtheta_val_le_TotalRelation.
 Qed.
 
-Global Instance Rtheta_MTotalOrder:
-  TotalOrder Rtheta_MLe.
+Global Instance MRtheta_TotalOrder:
+  TotalOrder MRtheta_Le.
 Proof.
   split.
-  apply Rtheta_Mle_PartialOrder.
-  apply Rtheta_Mle_TotalRelation.
+  apply MRtheta_le_PartialOrder.
+  apply MRtheta_le_TotalRelation.
 Qed.
 
-Global Instance Rtheta_Mplus_Order_Morphism:
+Global Instance MRtheta_plus_Order_Morphism:
   ∀ (z : MRtheta), Order_Morphism (plus z).
 Proof.
   split.
   split.
-  apply Rtheta_MSetoid.
-  apply Rtheta_MSetoid.
-  apply Rtheta_Mplus_proper.
+  apply MRtheta_Setoid.
+  apply MRtheta_Setoid.
+  apply MRtheta_plus_proper.
   reflexivity.
-  apply Rtheta_Mle_PartialOrder.
-  apply Rtheta_Mle_PartialOrder.
+  apply MRtheta_le_PartialOrder.
+  apply MRtheta_le_PartialOrder.
 Qed.
 
-Lemma Rtheta_Mle_plus_lemma1:
+Lemma MRtheta_le_plus_lemma1:
   ∀ z x y : MRtheta, x ≤ y <-> z + x ≤ z + y.
 Proof.
   intros z x y.
-  unfold le, Rtheta_MLe, Rtheta_liftRel.
+  unfold le, MRtheta_Le, Rtheta_liftRel.
   apply Rtheta_val_le_plus_lemma1.
 Qed.
 
-Global Instance Rtheta_Mplus_OrderPreserving:
+Global Instance MRtheta_plus_OrderPreserving:
   ∀ (z : MRtheta), OrderPreserving (plus z).
 Proof.
   split.
-  apply Rtheta_Mplus_Order_Morphism.
-  apply Rtheta_Mle_plus_lemma1.
+  apply MRtheta_plus_Order_Morphism.
+  apply MRtheta_le_plus_lemma1.
 Qed.
 
-Global Instance Rtheta_Mplus_OrderReflecting:
+Global Instance MRtheta_plus_OrderReflecting:
   ∀ (z : MRtheta), OrderReflecting (plus z).
 Proof.
   split.
-  apply Rtheta_Mplus_Order_Morphism.
-  apply Rtheta_Mle_plus_lemma1.
+  apply MRtheta_plus_Order_Morphism.
+  apply MRtheta_le_plus_lemma1.
 Qed.
 
-Global Instance Rtheta_Mplus_OrderEmbedding:
+Global Instance MRtheta_plus_OrderEmbedding:
   ∀ (z : MRtheta), OrderEmbedding (plus z).
 Proof.
   intros.
   split.
-  apply Rtheta_Mplus_OrderPreserving.
-  apply Rtheta_Mplus_OrderReflecting.
+  apply MRtheta_plus_OrderPreserving.
+  apply MRtheta_plus_OrderReflecting.
 Qed.
 
-Global Instance Rtheta_MSemiRingOrder:
-  SemiRingOrder Rtheta_MLe.
+Global Instance MRtheta_SemiRingOrder:
+  SemiRingOrder MRtheta_Le.
 Proof.
   split.
   - apply total_order_po.
-  - apply Rtheta_MSemiRing.
+  - apply MRtheta_SemiRing.
   -
     intros x y.
     exists (y-x).
-    unfold_Rtheta_Mequiv.
-    unfold plus, Rtheta_MPlus, negate, Rtheta_MNeg.
+    unfold_MRtheta_equiv.
+    unfold plus, MRtheta_Plus, negate, MRtheta_Neg.
     rewrite 2!evalWriter_Rtheta_liftM2, evalWriter_Rtheta_liftM.
-    unfold le, Rtheta_MLe, Rtheta_liftRel,Rtheta_rel_first in H.
+    unfold le, MRtheta_Le, Rtheta_liftRel,Rtheta_rel_first in H.
     apply Rtheta_val_SemiRingOrder, CarrierASRO.
     simpl in *.
     ring.
-  - apply Rtheta_Mplus_OrderEmbedding.
+  - apply MRtheta_plus_OrderEmbedding.
   - intros x y.
-    unfold le, Rtheta_MLe, Rtheta_liftRel,Rtheta_rel_first.
+    unfold le, MRtheta_Le, Rtheta_liftRel, Rtheta_rel_first.
     apply CarrierASRO.
 Qed.
 
-Lemma Rtheta_eq_Mequiv:
-  forall (a b: MRtheta), eq a b -> Rtheta_Mequiv a b.
+Lemma MRtheta_eq_equiv:
+  forall (a b: MRtheta), eq a b -> MRtheta_equiv a b.
 Proof.
   intros.
   crush.

@@ -75,7 +75,7 @@ Section HCOL_implementations.
            (n:nat) (x:MRtheta) {struct n} : mvector (S n) :=
     match n with
     | O => [one]
-    | S p => Vcons Rtheta_MSOne (Vmap (mult x) (MonomialEnumerator p x))
+    | S p => Vcons MRtheta_SOne (Vmap (mult x) (MonomialEnumerator p x))
     end.
 
   (* --- Polynomial Evaluation --- *)
@@ -83,7 +83,7 @@ Section HCOL_implementations.
   Fixpoint EvalPolynomial {n}
            (a: mvector n) (x:MRtheta) : MRtheta  :=
     match a with
-      nil => Rtheta_MSZero
+      nil => MRtheta_SZero
     | cons a0 p a' => plus a0 (mult x (EvalPolynomial a' x))
     end.
 
@@ -158,7 +158,7 @@ Section HCOL_implementation_facts.
     forall (v:MRtheta), EvalPolynomial (Vnil) v = zero.
   Proof.
     intros; unfold EvalPolynomial.
-    apply evalWriter_Rtheta_MSZero.
+    apply evalWriter_MRtheta_SZero.
   Qed.
 
   (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
@@ -183,10 +183,10 @@ Section HCOL_implementation_facts.
     forall n (x:MRtheta),
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
-    assert(R: Rtheta_MSOne = one).
+    assert(R: MRtheta_SOne = one).
     {
-      unfold_Rtheta_Mequiv.
-      unfold Rtheta_MSOne.
+      unfold_MRtheta_equiv.
+      unfold MRtheta_SOne.
       setoid_replace Rtheta_SOne with (@one Rtheta Rtheta_One).
       unfold_Rtheta_val_equiv.
       simpl.
