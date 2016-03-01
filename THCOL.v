@@ -4,6 +4,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import MRtheta.
 Require Import SVector.
 Require Import THCOLImpl.
 Require Import HCOL.
@@ -32,7 +33,7 @@ Open Scope vector_scope.
 
 
 (* Templete HCOL operator which uses two HOperators to build a new HOperator *)
-Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (svector i1 -> svector o1) -> (svector i2 -> svector o2) -> svector ix -> svector ox) :=
+Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (mvector i1 -> mvector o1) -> (mvector i2 -> mvector o2) -> mvector ix -> mvector ox) :=
   mop_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
 
 (* Curried Templete HCOL operator with arity 2 is HOperators *)
@@ -48,10 +49,10 @@ Qed.
 
 Definition HCross
            {i1 o1 i2 o2}
-           (f: svector i1 -> svector o1)
-           (g: svector i2 -> svector o2):
-  svector (i1+i2) -> svector (o1+o2)
-  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak Rtheta i1 i2).
+           (f: mvector i1 -> mvector o1)
+           (g: mvector i2 -> mvector o2):
+  mvector (i1+i2) -> mvector (o1+o2)
+  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak MRtheta i1 i2).
 
 Instance HCross_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HCross i1 o1 i2 o2).
@@ -80,9 +81,9 @@ Qed.
 
 Definition HStack
            {i1 o1 o2}
-           (f: svector i1 -> svector o1)
-           (g: svector i1 -> svector o2)
-  : svector i1 -> svector (o1+o2) :=
+           (f: mvector i1 -> mvector o1)
+           (g: mvector i1 -> mvector o2)
+  : mvector i1 -> mvector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
 Instance HStack_THOperator2 {i1 o1 o2}:
@@ -99,8 +100,8 @@ Qed.
 
 Definition HCompose
            {i1 o2 o3}
-           (op1: svector o2 -> svector o3)
-           (op2: svector i1 -> svector o2)
+           (op1: mvector o2 -> mvector o3)
+           (op2: mvector i1 -> mvector o2)
   := compose op1 op2.
 
 Notation " g ∘ f " := (HCompose g f)
@@ -117,9 +118,9 @@ Proof.
 Qed.
 
 Definition HTLess {i1 i2 o}
-           (f: svector i1 -> svector o)
-           (g: svector i2 -> svector o)
-  : svector (i1+i2) -> svector o
+           (f: mvector i1 -> mvector o)
+           (g: mvector i2 -> mvector o)
+  : mvector (i1+i2) -> mvector o
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
             ZVLess (f v1, g v2).
 
@@ -153,9 +154,9 @@ We put an additional constraint of 'f' and 'g' being HOperators
  *)
 Definition HTDirectSum
            {i1 o1 i2 o2}
-           (f: svector i1 -> svector o1)
-           (g: svector i2 -> svector o2)
-  : svector (i1+i2) -> svector (o1+o2) := HCross f g.
+           (f: mvector i1 -> mvector o1)
+           (g: mvector i2 -> mvector o2)
+  : mvector (i1+i2) -> mvector (o1+o2) := HCross f g.
 
 (* Not sure if this is needed *)
 Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:

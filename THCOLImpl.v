@@ -2,6 +2,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import MRtheta.
 Require Import SVector.
 
 Require Import Arith.
@@ -42,8 +43,8 @@ Section THCOL_implementations.
               end
     end.
   
-  Definition Zless (a b:Rtheta): Rtheta
-    := if Rtheta_val_ltdec a b then one else zero.
+  Definition Zless (a b: MRtheta): MRtheta
+    := if MRtheta_ltdec a b then one else zero.
   
   Global Instance Zless_proper:
     Proper ((=) ==> (=) ==> (=)) (Zless).
@@ -51,7 +52,7 @@ Section THCOL_implementations.
     unfold Proper.
     intros a a' aE z z' zE.
     unfold Zless.
-    destruct (Rtheta_val_ltdec a z), (Rtheta_val_ltdec a' z'); auto.
+    destruct (MRtheta_ltdec a z), (MRtheta_ltdec a' z'); auto.
     rewrite aE, zE in l; contradiction.
     rewrite <- aE, <- zE in l; contradiction.
   Qed.
@@ -60,7 +61,7 @@ Section THCOL_implementations.
   
   (* Zero/One version *)
   Definition ZVLess {n} 
-             (ab: (svector n)*(svector n)) : svector n :=
+             (ab: (mvector n)*(mvector n)) : mvector n :=
     match ab with
     | (a,b) => Vmap2 (Zless) a b
     end.
