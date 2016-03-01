@@ -12,6 +12,7 @@ Require Import RelationClasses.
 Require Import Relations.
 
 Require Import CpdtTactics.
+Require Import SpiralTactics.
 Require Import JRWTactics.
 Require Import CaseNaming.
 
@@ -133,8 +134,9 @@ Section HCOL_implementations.
   (*  Reduction (fold) using single finction. In case of empty list returns 'id' value:
     Reduction f x1 .. xn b = f xn (f x_{n-1} .. (f x1 id) .. )
    *)
-  Definition Reduction (f: MRtheta -> MRtheta -> MRtheta)
-             {n} (id:MRtheta) (a: mvector n) : MRtheta
+  Definition Reduction {n:nat}
+             (f: MRtheta -> MRtheta -> MRtheta)
+             (id:MRtheta) (a: mvector n) : MRtheta
     :=
       Vfold_right f a id.
 
@@ -364,18 +366,14 @@ Section HCOL_implementation_proper.
     apply Vmap2Indexed_proper; assumption.
   Qed.
 
-  (* TODO: move f into Proper *)
-  Global Instance Reduction_proper
-         {n:nat} (f : MRtheta -> MRtheta -> MRtheta)
-         `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:
-    Proper ((=) ==> (=) ==> (=)) (@Reduction f n).
+  Global Instance Reduction_proper {n:nat}:
+    Proper (((=) ==> (=) ==>  (=)) ==> (=) ==> (=) ==> (=)) (Reduction (n:=n)).
   Proof.
     unfold Proper.
-    intros a b E1 x y E2.
+    intros fa fb Ef a b E1 x y E2.
     unfold Reduction.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
-    rewrite E1, E2.
-    reflexivity.
+    apply Vfold_right_reord_proper; assumption.
   Qed.
 
   Global Instance ChebyshevDistance_proper  (n:nat):
@@ -419,6 +417,7 @@ Section HCOL_implementation_proper.
     rewrite 2!MonomialEnumerator_cons, 2!Vcons_to_Vcons_reord, IHn, aE.
     reflexivity.
   Qed.
+
 
   (* TODO: move pf into Proper *)
   Global Instance Induction_proper

@@ -76,9 +76,7 @@ Qed.
 Section Vfold_right_p.
   Context
     `{eqA: Equiv A}
-    `{eqB: Equiv B}
-    (f : A->B->B)
-    `{pF: !Proper ((=) ==> (=) ==> (=)) f}.
+    `{eqB: Equiv B}.
 
   Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
 
@@ -89,16 +87,17 @@ Section Vfold_right_p.
   Qed.
 
   Global Instance Vfold_right_reord_proper n :
-    Proper (@vec_equiv A _ n ==> (=) ==> (=)) (@Vfold_right_reord A B n f).
+    Proper (((=) ==> (=) ==> (=)) ==> (@vec_equiv A _ n ==> (=) ==> (=)))
+           (@Vfold_right_reord A B n).
   Proof.
-    intros v v' vEq i i' iEq.
+    intros f f' Ef v v' vEq i i' iEq.
     unfold Vfold_right_reord.
     induction v.
     Case "N=0".
     VOtac. simpl. assumption.
     Case "S(N)".
     revert vEq. VSntac v'. unfold vec_equiv. rewrite Vforall2_cons_eq. intuition. simpl.
-    apply pF.
+    apply Ef.
     SCase "Pf - 1".
     assumption.
     SCase "Pf - 2".
@@ -1039,10 +1038,8 @@ Proof.
   crush.
 Qed.
 
-Instance Vmap_reord_proper_ext_equiv n  (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
-  Proper (@ext_equiv M Me N Ne
-                     ==> @vec_equiv M Me n
-                     ==> @vec_equiv N Ne n)
+Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
+  Proper (((=) ==> (=)) ==> (=) ==> (=))
          (@Vmap_reord M N n).
 Proof.
   intros f g Eext a b Ev.
