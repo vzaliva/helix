@@ -216,13 +216,13 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_val_proper:
-    Proper ((=) ==> (=)) (val).
+    Proper ((=) ==> (=)) val.
   Proof.
     simpl_relation.
   Qed.
 
   Global Instance Rtheta_binop_val_proper:
-    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Rtheta_binop).
+    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) Rtheta_binop.
   Proof.
     simpl_relation.
     unfold Rtheta_val_equiv, Rtheta_rel_first in *.
@@ -230,7 +230,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_unary_val_proper:
-    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) (Rtheta_unary).
+    Proper (((=) ==> (=)) ==> (Rtheta_val_equiv) ==> (Rtheta_val_equiv)) Rtheta_unary.
   Proof.
     simpl_relation.
     unfold Rtheta_val_equiv, Rtheta_rel_first in *.
@@ -238,7 +238,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_plus_proper:
-    Proper ((=) ==> (=) ==> (=)) (Rtheta_Plus).
+    Proper ((=) ==> (=) ==> (=)) Rtheta_Plus.
   Proof.
     apply Rtheta_binop_val_proper.
     simpl_relation.
@@ -247,7 +247,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_neg_proper:
-    Proper ((=) ==> (=)) (Rtheta_Neg).
+    Proper ((=) ==> (=)) Rtheta_Neg.
   Proof.
     apply Rtheta_unary_val_proper.
     simpl_relation.
@@ -256,7 +256,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_mult_proper:
-    Proper ((=) ==> (=) ==> (=)) (Rtheta_Mult).
+    Proper ((=) ==> (=) ==> (=)) Rtheta_Mult.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_val_equiv, Rtheta_rel_first.
@@ -504,7 +504,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_le_proper:
-    Proper ((=) ==> (=) ==> (iff)) (Rtheta_Le).
+    Proper ((=) ==> (=) ==> (iff)) Rtheta_Le.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Le, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
@@ -516,7 +516,7 @@ Section Rtheta_val_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_val_lt_proper:
-    Proper ((=) ==> (=) ==> (iff)) (Rtheta_Lt).
+    Proper ((=) ==> (=) ==> (iff)) Rtheta_Lt.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Lt, Rtheta_rel_first, Rtheta_val_equiv, Rtheta_rel_first.
@@ -788,7 +788,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Global Instance RthetaVal_pw_proper:
-    Proper ((Rtheta_pw_equiv) ==> (=)) (val).
+    Proper ((Rtheta_pw_equiv) ==> (=)) val.
   Proof.
     simpl_relation.
     destruct x, y.
@@ -799,7 +799,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_pw_plus_proper:
-    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) (Rtheta_Plus).
+    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) Rtheta_Plus.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Plus, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first, is_struct.
@@ -812,7 +812,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_pw_neg_proper:
-    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) (Rtheta_Neg).
+    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) Rtheta_Neg.
   Proof.
     intros a b aEq.
     unfold Rtheta_Neg, Rtheta_unary, equiv, Rtheta_pw_equiv, Rtheta_rel_first.
@@ -822,7 +822,7 @@ Section Rtheta_Poinitwise_Setoid_equiv.
   Qed.
 
   Global Instance Rtheta_pw_mult_proper:
-    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) (Rtheta_Mult).
+    Proper ((Rtheta_pw_equiv) ==> (Rtheta_pw_equiv) ==> (Rtheta_pw_equiv)) Rtheta_Mult.
   Proof.
     intros a a' aEq b b' bEq.
     unfold Rtheta_Mult, Rtheta_binop, equiv, Rtheta_pw_equiv, Rtheta_rel_first.

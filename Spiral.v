@@ -176,7 +176,7 @@ Proof.
 Defined.
 
 Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
-  Proper ((=) ==> (=) ==> (=)) (max).
+  Proper ((=) ==> (=) ==> (=)) max.
 Proof.
   solve_proper.
 Qed.

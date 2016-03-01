@@ -145,7 +145,7 @@ Proof.
 Qed.
 
 Global Instance Rtheta_liftM2_proper:
-  Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) (Rtheta_liftM2).
+  Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) Rtheta_liftM2.
 Proof.
   simpl_relation.
   rewrite 2!evalWriter_Rtheta_liftM2.
@@ -155,7 +155,7 @@ Proof.
 Qed.
 
 Global Instance Rtheta_liftM_proper:
-  Proper (((=) ==> (=)) ==> (=) ==> (=)) (Rtheta_liftM).
+  Proper (((=) ==> (=)) ==> (=) ==> (=)) Rtheta_liftM.
 Proof.
   simpl_relation.
   rewrite 2!evalWriter_Rtheta_liftM.
@@ -164,21 +164,21 @@ Proof.
 Qed.
 
 Global Instance MRtheta_plus_proper:
-  Proper ((=) ==> (=) ==> (=)) (MRtheta_Plus).
+  Proper ((=) ==> (=) ==> (=)) MRtheta_Plus.
 Proof.
   apply Rtheta_liftM2_proper.
   apply Rtheta_val_plus_proper.
 Qed.
 
 Global Instance MRtheta_neg_proper:
-  Proper ((=) ==> (=)) (MRtheta_Neg).
+  Proper ((=) ==> (=)) MRtheta_Neg.
 Proof.
   apply Rtheta_liftM_proper.
   apply Rtheta_val_neg_proper.
 Qed.
 
 Global Instance MRtheta_mult_proper:
-  Proper ((=) ==> (=) ==> (=)) (MRtheta_Mult).
+  Proper ((=) ==> (=) ==> (=)) MRtheta_Mult.
 Proof.
   apply Rtheta_liftM2_proper.
   apply Rtheta_val_mult_proper.
@@ -418,7 +418,7 @@ Qed.
 
 Global Instance Rtheta_liftRel_proper:
   Proper (((=) ==> (=) ==> (iff)) ==> (MRtheta_equiv) ==> (MRtheta_equiv) ==> (iff))
-         (Rtheta_liftRel).
+         Rtheta_liftRel.
 Proof.
   simpl_relation.
   unfold Rtheta_liftRel.
@@ -428,7 +428,7 @@ Proof.
 Qed.
 
 Global Instance MRtheta_le_proper:
-  Proper ((=) ==> (=) ==> (iff)) (MRtheta_Le).
+  Proper ((=) ==> (=) ==> (iff)) MRtheta_Le.
 Proof.
   unfold MRtheta_Le, Rtheta_rel_first.
   apply Rtheta_liftRel_proper.
@@ -436,7 +436,7 @@ Proof.
 Qed.
 
 Global Instance MRtheta_lt_proper:
-  Proper ((=) ==> (=) ==> (iff)) (MRtheta_Lt).
+  Proper ((=) ==> (=) ==> (iff)) MRtheta_Lt.
 Proof.
   unfold MRtheta_Lt, Rtheta_rel_first.
   apply Rtheta_liftRel_proper.
