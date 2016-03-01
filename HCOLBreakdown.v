@@ -1,6 +1,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import MRtheta.
 Require Import SVector.
 
 Require Import HCOL.
@@ -31,7 +32,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 Open Scope hcol_scope.
 
-Definition MaxAbs (a b:Rtheta): Rtheta := max (abs a) (abs b).
+Definition MaxAbs (a b: MRtheta): MRtheta := max (abs a) (abs b).
 
 Global Instance MaxAbs_proper:
   Proper ((=) ==> (=) ==> (=)) (MaxAbs).
@@ -44,7 +45,7 @@ Qed.
 
 Section HCOLBreakdown.
 
-  Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b:vector A n}
+  Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b: vector A n}
         (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
   :
     Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
@@ -57,7 +58,7 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
 
-  Lemma breakdown_ScalarProd: forall (n:nat) (a v: svector n),
+  Lemma breakdown_ScalarProd: forall (n:nat) (a v: mvector n),
       ScalarProd (a,v) =
       (compose (Reduction (+) 0) (BinOp (IgnoreIndex2 mult))) (a,v).
   Proof.
@@ -66,7 +67,7 @@ Section HCOLBreakdown.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2Indexed_to_VMap2.
     reflexivity.
-    apply Rtheta_val_mult_proper.
+    apply MRtheta_mult_proper.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat},
@@ -83,7 +84,7 @@ Section HCOLBreakdown.
     apply breakdown_ScalarProd.
   Qed.
 
-  Lemma breakdown_EvalPolynomial: forall (n:nat) (a: svector (S n)) (v:Rtheta),
+  Lemma breakdown_EvalPolynomial: forall (n:nat) (a: mvector (S n)) (v: MRtheta),
       EvalPolynomial a v = (
         compose (ScalarProd) (compose (pair a) (MonomialEnumerator n))
       ) v.
@@ -94,7 +95,8 @@ Section HCOLBreakdown.
     - simpl (MonomialEnumerator 0 v).
       rewrite EvalPolynomial_reduce.
       dep_destruct (Vtail a).
-      simpl; ring.
+      simpl. rewrite MRthetaSZero_Zero.
+      ring.
 
     - rewrite EvalPolynomial_reduce, MonomialEnumerator_cons, ScalarProd_reduce.
       unfold Ptail.
@@ -108,7 +110,7 @@ Section HCOLBreakdown.
       reflexivity.
   Qed.
 
-  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: svector (S n)),
+  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: mvector (S n)),
       HEvalPolynomial a =
       (HScalarProd ∘
                    ((HPrepend  a) ∘
@@ -122,7 +124,7 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Lemma breakdown_TInfinityNorm: forall (n:nat) (v: svector n),
+  Lemma breakdown_TInfinityNorm: forall (n:nat) (v: mvector n),
       InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
     intros.
@@ -131,6 +133,9 @@ Section HCOLBreakdown.
     dependent induction v.
     - reflexivity.
     - rewrite Vfold_right_reduce.
+      unfold_MRtheta_equiv.
+      rewrite evalWriter_Rtheta_liftM2.
+
       simpl.
       rewrite_clear IHv.
 
@@ -143,7 +148,7 @@ Section HCOLBreakdown.
         + simpl.
           apply abs_0_s.
 
-        + apply Rtheta_val_TotalOrder.
+        + apply MRtheta_TotalOrder.
           rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
           reflexivity.
       }
@@ -195,7 +200,7 @@ Section HCOLBreakdown.
     apply breakdown_MonomialEnumerator.
   Qed.
 
-  Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (svector n)*(svector n)),
+  Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (mvector n)*(mvector n)),
       ChebyshevDistance ab = (compose InfinityNorm VMinus) ab.
   Proof.
     intros.
@@ -214,7 +219,7 @@ Section HCOLBreakdown.
     apply breakdown_ChebyshevDistance.
   Qed.
 
-  Lemma breakdown_VMinus:  forall (n:nat) (ab: (svector n)*(svector n)),
+  Lemma breakdown_VMinus:  forall (n:nat) (ab: (mvector n)*(mvector n)),
       VMinus ab =  BinOp (IgnoreIndex2 (compose plus negate)) ab.
   Proof.
     intros.
@@ -237,8 +242,8 @@ Section HCOLBreakdown.
 
   Fact breakdown_OTLess_Base: forall
       {i1 i2 o}
-      `{o1pf: !HOperator (o1: svector i1 -> svector o)}
-      `{o2pf: !HOperator (o2: svector i2 -> svector o)},
+      `{o1pf: !HOperator (o1: mvector i1 -> mvector o)}
+      `{o2pf: !HOperator (o2: mvector i2 -> mvector o)},
       HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
@@ -260,7 +265,7 @@ End HCOLBreakdown.
 
 
 (* Our top-level example goal *)
-Theorem DynWinOSPL:  forall (a: svector 3),
+Theorem DynWinOSPL:  forall (a: mvector 3),
     (HTLess
        (HEvalPolynomial a)
        (HChebyshevDistance 2))

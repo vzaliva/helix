@@ -120,6 +120,17 @@ Global Instance MRtheta_Lt: Lt (MRtheta) := Rtheta_liftRel (Rtheta_rel_first lt)
 Definition MRtheta_SZero: MRtheta := ret Rtheta_SZero.
 Definition MRtheta_SOne: MRtheta := ret Rtheta_SOne.
 
+Lemma MRthetaSZero_Zero:
+  MRtheta_SZero = 0.
+Proof.
+  unfold MRtheta_SZero.
+  unfold_MRtheta_equiv.
+  unfold Rtheta_SZero, evalWriter, runWriter.
+  unfold Rtheta_normal.
+  unfold equiv, Rtheta_val_equiv, Rtheta_rel_first.
+  reflexivity.
+Qed.
+
 Lemma evalWriter_MRtheta_SZero:
   evalWriter MRtheta_SZero = Rtheta_SZero.
 Proof.
@@ -401,6 +412,8 @@ Proof.
   apply MRtheta_CommutativeMonoid_mult_1.
   apply MRtheta_LeftDistribute_mult_plus.
 Qed.
+
+Add Ring RingMRtheta: (stdlib_ring_theory MRtheta).
 
 Global Instance MRtheta_ledec (x y: MRtheta): Decision (x ≤ y) :=
   Rtheta_val_ledec (evalWriter x) (evalWriter y).
