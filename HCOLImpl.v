@@ -102,9 +102,9 @@ Section HCOL_implementations.
 
   (* === HCOL Basic Operators === *)
   (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
-  Definition BinOp
+  Definition BinOp {n}
              (f: nat -> MRtheta -> MRtheta -> MRtheta)
-             {n} (ab: (mvector n)*(mvector n))
+             (ab: (mvector n)*(mvector n))
     : mvector n :=
     match ab with
     | (a,b) =>  Vmap2Indexed f a b
@@ -354,19 +354,14 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-  (* TODO: move f into Proper *)
-  Global Instance BinOp_proper
-         {n:nat}
-         (f : nat -> MRtheta -> MRtheta -> MRtheta)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=)) (@BinOp f n).
+  Global Instance BinOp_proper {n:nat}:
+    Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (BinOp (n:=n)).
   Proof.
-    intros a b Ea.
+    intros fa fb Ef a b Ea.
     unfold BinOp.
     destruct a. destruct b.
     destruct Ea as [E1 E2]. simpl in *.
-    rewrite E1, E2.
-    reflexivity.
+    apply Vmap2Indexed_proper; assumption.
   Qed.
 
   (* TODO: move f into Proper *)

@@ -1403,21 +1403,19 @@ Section VMap2_Indexed.
   Qed.
 
   Global Instance Vmap2Indexed_proper
-         `{Setoid A} `{Setoid B} `{Setoid C}
-         n
-         (f: nat->A->B->C)
-         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+         `{Setoid A, Setoid B, Setoid C} {n:nat}
     :
-      Proper ((=) ==> (=) ==> (=)) (@Vmap2Indexed A B C n f).
+      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+             (@Vmap2Indexed A B C n).
   Proof.
-    intros a a' Ea b b' Eb.
+    intros fa fb Ef a a' Ea b b' Eb.
     unfold Vmap2Indexed.
 
     unfold equiv, vec_equiv.
     apply Vforall2_intro_nth.
     intros i ip.
     rewrite 2!Vbuild_nth.
-    apply f_mor.
+    apply Ef.
     - reflexivity.
     - apply Vnth_equiv.
       reflexivity.
