@@ -354,9 +354,10 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
+  (* TODO: move f into Proper *)
   Global Instance BinOp_proper
          {n:nat}
-         (f : nat->MRtheta -> MRtheta -> MRtheta)
+         (f : nat -> MRtheta -> MRtheta -> MRtheta)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     Proper ((=) ==> (=)) (@BinOp f n).
   Proof.
@@ -368,6 +369,7 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
+  (* TODO: move f into Proper *)
   Global Instance Reduction_proper
          {n:nat} (f : MRtheta -> MRtheta -> MRtheta)
          `{pF: !Proper ((=) ==> (=) ==>  (=)) f}:

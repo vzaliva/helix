@@ -309,6 +309,7 @@ Section Rtheta_val_Setoid_equiv.
     apply Rtheta_val_RightIdentity_plus_0.
   Qed.
 
+  (* TODO: move op into Proper *)
   Global Instance Rtheta_val_Commutative_Rtheta_binary
          (op: CarrierA -> CarrierA -> CarrierA)
          `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
