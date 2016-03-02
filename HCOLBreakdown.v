@@ -3,6 +3,7 @@ Require Import Spiral.
 Require Import Rtheta.
 Require Import MRtheta.
 Require Import SVector.
+Require Import WriterMonadNoT.
 
 Require Import HCOL.
 Require Import HCOLImpl.
@@ -129,21 +130,60 @@ Section HCOLBreakdown.
   Proof.
     intros.
     unfold InfinityNorm, Reduction.
-
     dependent induction v.
     - reflexivity.
     - rewrite Vfold_right_reduce.
-      unfold_MRtheta_equiv.
-      rewrite evalWriter_Rtheta_liftM2.
-
-      simpl.
       rewrite_clear IHv.
+      simpl.
 
+      assert(H: forall a b:MRtheta, MaxAbs a b = Rtheta_liftM2 max (abs a) (abs b)).
+      {
+        intros.
+        unfold MaxAbs.
+
+        (* TODO: this may be generalized to more universal lemma *)
+        assert(A: forall x:MRtheta,
+                  abs x =
+                  (Rtheta_liftM abs) x
+              ).
+        {
+          intros x.
+          unfold abs at 1.
+          simpl.
+          unfold_MRtheta_equiv.
+          rewrite 2!evalWriter_Rtheta_liftM.
+          reflexivity.
+        }
+        rewrite 2!A.
+
+        (* HERE
+        assert(S: forall (T:Type) (xy:(T*MRtheta)),
+                  snd x =
+                  (Rtheta_liftM snd) x
+              ).
+        {
+        }
+         *)
+
+        assert(M: forall x y: MRtheta,
+                  max x y =
+                  (Rtheta_liftM2 max) x y
+              ).
+        {
+          intros x y.
+          unfold max.
+          unfold_MRtheta_equiv.
+
+          admit.
+        }
+        rewrite M.
+        reflexivity.
+      }
+      rewrite_clear H.
       assert (ABH: (abs (Vfold_right MaxAbs v 0)) =
                    (Vfold_right MaxAbs v 0)).
       {
         unfold MaxAbs.
-        intros.
         dependent induction v.
         + simpl.
           apply abs_0_s.
@@ -152,7 +192,6 @@ Section HCOLBreakdown.
           rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
           reflexivity.
       }
-      unfold MaxAbs.
       rewrite ABH.
       reflexivity.
   Qed.
