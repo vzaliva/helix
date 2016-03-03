@@ -2,6 +2,7 @@
 
 Require Import Spiral.
 Require Import Rtheta.
+Require Import MRtheta.
 Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
@@ -40,7 +41,7 @@ Definition VnthIndexMapped
            (x: mvector i)
            (f: index_map o i)
            (n:nat) (np: n<o)
-  : flags_m Rtheta
+  : MRtheta
   := Vnth x (« f » n np).
 
 Definition VnthInverseIndexMapped
@@ -48,12 +49,12 @@ Definition VnthInverseIndexMapped
            (x: mvector i)
            (f': partial_index_map o i)
            (n:nat) (np: n<o)
-  : flags_m Rtheta
+  : MRtheta
   :=
     let f := partial_index_f _ _ f' in
     let f_spec := partial_index_f_spec _ _  f' in
-    match (f n) as fn return f n ≡ fn -> flags_m Rtheta with
-    | None => fun _ => Rtheta_MSZero
+    match (f n) as fn return f n ≡ fn -> MRtheta with
+    | None => fun _ => MRtheta_SZero
     | Some z => fun p => Vnth x (f_spec n np z p)
     end eq_refl.
 
@@ -76,9 +77,6 @@ Qed.
 
 Section SigmaHCOL_Operators.
 
-  Class SHOperator {i o:nat} (op: mvector i -> mvector o) :=
-    o_setoidmor :> Setoid_Morphism op.
-
   Definition Gather
              {i o: nat}
              (f: index_map o i)
@@ -86,12 +84,12 @@ Section SigmaHCOL_Operators.
     mvector o
     := Vbuild (VnthIndexMapped x f).
 
-  Global Instance Gather_SHOperator
+  Global Instance Gather_HOperator
          {i o: nat}
          (f: index_map o i):
-    SHOperator (@Gather i o f).
+    HOperator (@Gather i o f).
   Proof.
-    unfold SHOperator. split; try (apply vec_Setoid).
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
@@ -112,13 +110,13 @@ Section SigmaHCOL_Operators.
                           (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
              ).
 
-  Global Instance GathH_SHOperator
+  Global Instance GathH_HOperator
          {i o}
          (base stride: nat)
          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-    SHOperator (@GathH i o base stride domain_bound).
+    HOperator (@GathH i o base stride domain_bound).
   Proof.
-    apply Gather_SHOperator.
+    apply Gather_HOperator.
   Qed.
 
   Definition Scatter
@@ -130,13 +128,13 @@ Section SigmaHCOL_Operators.
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
-  Global Instance Scatter_SHOperator
+  Global Instance Scatter_HOperator
          {i o: nat}
          (f: index_map i o)
          {f_inj: index_map_injective f}:
-    SHOperator (@Scatter i o f f_inj).
+    HOperator (@Scatter i o f f_inj).
   Proof.
-    unfold SHOperator. split; try (apply vec_Setoid).
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Scatter.
     unfold equiv, vec_equiv.
@@ -158,30 +156,30 @@ Section SigmaHCOL_Operators.
       Scatter (h_index_map base stride (range_bound:=range_bound))
               (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
-  Global Instance ScatH_SHOperator
+  Global Instance ScatH_HOperator
          {i o}
          (base stride: nat)
          {range_bound: ∀ x : nat, x < i → base + x * stride < o}
          {snzord0: stride ≢ 0 \/ i < 2}:
-    SHOperator (@ScatH i o base stride range_bound snzord0).
+    HOperator (@ScatH i o base stride range_bound snzord0).
   Proof.
-    apply Scatter_SHOperator.
+    apply Scatter_HOperator.
   Qed.
 
   Definition Pointwise
              {n: nat}
-             (f: { i | i<n} -> flags_m Rtheta -> flags_m Rtheta)
+             (f: { i | i<n} -> MRtheta -> MRtheta)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (x: mvector n)
     := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
 
-  Global Instance Pointwise_SHOperator
+  Global Instance Pointwise_HOperator
          {n: nat}
-         (f: { i | i<n} -> flags_m Rtheta -> flags_m Rtheta)
+         (f: { i | i<n} -> MRtheta -> MRtheta)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHOperator (@Pointwise n f pF).
+    HOperator (@Pointwise n f pF).
   Proof.
-    unfold SHOperator. split; try (apply vec_Setoid).
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Pointwise.
     apply Vforall2_intro_nth.
@@ -194,17 +192,17 @@ Section SigmaHCOL_Operators.
   Qed.
 
   Definition Atomic
-             (f: flags_m Rtheta -> flags_m Rtheta)
+             (f: MRtheta -> MRtheta)
              `{pF: !Proper ((=) ==> (=)) f}
              (x: mvector 1)
     := [f (Vhead x)].
 
-  Global Instance Atomic_SHOperator
-         (f: flags_m Rtheta -> flags_m Rtheta)
+  Global Instance Atomic_HOperator
+         (f: MRtheta -> MRtheta)
          `{pF: !Proper ((=) ==> (=)) f}:
-    SHOperator (Atomic f).
+    HOperator (Atomic f).
   Proof.
-    unfold SHOperator. split; try (apply vec_Setoid).
+    unfold HOperator. split; try (apply vec_Setoid).
     intros x y E.
     unfold Atomic.
     unfold equiv, vec_equiv.
@@ -256,7 +254,7 @@ Proof.
 Qed.
 
 Lemma Gather_preserves_P:
-  ∀ (i o : nat) (x : mvector i) (P: flags_m Rtheta -> Prop),
+  ∀ (i o : nat) (x : mvector i) (P: MRtheta -> Prop),
     Vforall P x
     → ∀ f : index_map o i,
       Vforall P (Gather f x).
