@@ -154,17 +154,9 @@ Section HCOLBreakdown.
           rewrite 2!evalWriter_Rtheta_liftM.
           reflexivity.
         }
-        rewrite 2!A.
+        rewrite 2!A. clear A.
 
-        (* HERE
-        assert(S: forall (T:Type) (xy:(T*MRtheta)),
-                  snd x =
-                  (Rtheta_liftM snd) x
-              ).
-        {
-        }
-         *)
-
+        (* TODO: this may be generalized to more universal lemma *)
         assert(M: forall x y: MRtheta,
                   max x y =
                   (Rtheta_liftM2 max) x y
@@ -172,11 +164,14 @@ Section HCOLBreakdown.
         {
           intros x y.
           unfold max.
+          unfold sort.
+          unfold decide_rel.
+          unfold MRtheta_ledec.
           unfold_MRtheta_equiv.
-
-          admit.
+          rewrite evalWriter_Rtheta_liftM2.
+          break_if; crush.
         }
-        rewrite M.
+        rewrite_clear M.
         reflexivity.
       }
       rewrite_clear H.
@@ -192,7 +187,7 @@ Section HCOLBreakdown.
           rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
           reflexivity.
       }
-      rewrite ABH.
+      rewrite_clear ABH.
       reflexivity.
   Qed.
 
