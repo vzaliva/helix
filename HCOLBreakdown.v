@@ -202,7 +202,7 @@ Section HCOLBreakdown.
   Qed.
 
   Lemma breakdown_MonomialEnumerator:
-    forall (n:nat) (x:Rtheta),
+    forall (n:nat) (x: MRtheta),
       MonomialEnumerator n x = Induction (S n) (.*.) 1 x.
   Proof.
     intros n x.
@@ -217,7 +217,7 @@ Section HCOLBreakdown.
       unfold Scale.
 
       rewrite 2!Vmap_to_Vmap_reord.
-      setoid_replace (fun x0 : Rtheta => mult x0 x) with (mult x).
+      setoid_replace (fun x0 : MRtheta => mult x0 x) with (mult x).
       reflexivity.
       +
         compute. intros.
@@ -254,7 +254,7 @@ Section HCOLBreakdown.
   Qed.
 
   Lemma breakdown_VMinus:  forall (n:nat) (ab: (mvector n)*(mvector n)),
-      VMinus ab =  BinOp (IgnoreIndex2 (compose plus negate)) ab.
+      VMinus ab =  BinOp (IgnoreIndex2 pneg) ab.
   Proof.
     intros.
     unfold VMinus, BinOp.
@@ -264,12 +264,11 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),
-      HVMinus = HBinOp (o:=n) (IgnoreIndex2 (compose plus negate)).
+      HVMinus = HBinOp (o:=n) (IgnoreIndex2 pneg).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
     unfold HVMinus.
-    unfold compose at 2.
     unfold vector2pair.
     apply breakdown_VMinus.
   Qed.
@@ -307,7 +306,7 @@ Theorem DynWinOSPL:  forall (a: mvector 3),
     (HBinOp (IgnoreIndex2 Zless) ∘
             HCross
             ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-            (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 (compose plus negate)))).
+            (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 pneg))).
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
