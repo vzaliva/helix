@@ -22,7 +22,7 @@ Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import SpiralTactics.
 
-(* CoRN MathClasses *)
+(* CoRN Math-classes *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
@@ -86,9 +86,9 @@ Section SigmaHCOLRewriting.
     Qed.
 
     (* Formerly Lemma3 *)
-    Lemma SingleValueInZeros m j (x:svector m) (jc:j<m):
+    Lemma SingleValueInZeros m j (x:mvector m) (jc:j<m):
       (forall i (ic:i<m),
-          i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion plus x = Vnth x jc).
+          i ≢ j -> Is_MValZero (Vnth x ic)) -> (VecUnion plus x = Vnth x jc).
     Proof.
       intros SZ.
       dependent induction m.
@@ -103,7 +103,7 @@ Section SigmaHCOLRewriting.
           Case ("j=0").
           rewrite Vnth_cons_head; try assumption.
           rewrite VecUnion_cons.
-          assert(Vforall Is_ValZero x0).
+          assert(Vforall Is_MValZero x0).
           {
             apply Vforall_nth_intro.
             intros.
@@ -112,9 +112,9 @@ Section SigmaHCOLRewriting.
             apply SZ; lia.
           }
 
-          assert(UZ: Is_ValZero (VecUnion plus x0))
+          assert(UZ: Is_MValZero (VecUnion plus x0))
             by apply VecUnion_structs, H.
-          setoid_replace (VecUnion plus x0) with Rtheta_SZero
+          setoid_replace (VecUnion plus x0) with MRtheta_SZero
             by apply Is_ValZero_to_zero, UZ.
           clear UZ.
           apply Union_Plus_MSZero_l.
@@ -123,9 +123,9 @@ Section SigmaHCOLRewriting.
           rewrite VecUnion_cons.
           assert(Zc: 0<(S m)) by lia.
 
-          assert (HS: Is_ValZero h).
+          assert (HS: Is_MValZero h).
           {
-            cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
+            cut (Is_MValZero (Vnth (Vcons h x0) Zc)).
             rewrite Vnth_0.
             auto.
             apply SZ; auto.
@@ -137,7 +137,7 @@ Section SigmaHCOLRewriting.
           intros l.
           rewrite IHm with (jc:=l).
 
-          setoid_replace h with Rtheta_SZero by apply Is_ValZero_to_zero, HS.
+          setoid_replace h with MRtheta_SZero by apply Is_ValZero_to_zero, HS.
           apply Union_Plus_MSZero_r.
 
           intros i ic.
