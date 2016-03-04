@@ -148,7 +148,7 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma InverseIndex_1_hit:
-      ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
+      ∀ (n k s : nat) (kp : k < n) (v : MRtheta),
         (@VnthInverseIndexMapped 1 n [v]
                                  (@build_inverse_index_map 1 n
                                                            (@h_index_map 1 n k s
@@ -171,14 +171,14 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma InverseIndex_1_miss:
-      ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : Rtheta),
+      ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : MRtheta),
         i ≢ j ->
         @VnthInverseIndexMapped 1 n [v]
                                 (@build_inverse_index_map 1 n
                                                           (@h_index_map 1 n j s
                                                                         (ScatH_1_to_n_range_bound j n s jp)
                                 ))
-                                i ip ≡ Rtheta_SZero.
+                                i ip ≡ MRtheta_SZero.
     Proof .
       intros n s i j ip jp v N.
       destruct (@build_inverse_index_map 1 n
@@ -205,8 +205,8 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma U_SAG1:
-      ∀ (n : nat) (x : vector Rtheta n)
-        (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      ∀ (n : nat) (x : mvector n)
+        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (i : nat) (ip : i < n),
         Vnth
           (SumUnion plus
@@ -269,7 +269,7 @@ Section SigmaHCOLRewriting.
 
       assert
         (L3pre: forall ib (icb:ib<n),
-            ib ≢ i -> Is_ValZero (Vnth b icb)).
+            ib ≢ i -> Is_MValZero (Vnth b icb)).
       {
         intros ib icb.
         subst.
@@ -291,10 +291,10 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Theorem U_SAG1_PW:
-      forall n (x:svector n)
-        (f: { i | i<n} -> Rtheta -> Rtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+      forall n (x:mvector n)
+        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion plus
-                 (@Vbuild (svector n) n
+                 (@Vbuild (mvector n) n
                           (fun i id =>
                              (
                                (ScatH i 1
@@ -324,8 +324,8 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma HBinOp_nth:
-      ∀ (n : nat) (x : vector Rtheta (n + n))
-        (f : nat -> Rtheta → Rtheta → Rtheta)
+      ∀ (n : nat) (x : mvector (n + n))
+        (f : nat -> MRtheta → MRtheta → MRtheta)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
         Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
@@ -362,13 +362,13 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma U_SAG2:
-      ∀ (n : nat) (x : vector Rtheta (n + n))
-        (f: nat->Rtheta->Rtheta->Rtheta)
+      ∀ (n : nat) (x : mvector (n + n))
+        (f: nat -> MRtheta -> MRtheta -> MRtheta)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         (k : nat) (kp : k < n),
         Vnth
           (SumUnion plus
-                    (@Vbuild (svector n) n
+                    (@Vbuild (mvector n) n
                              (fun i id =>
                                 ((ScatH i 1
                                         (snzord0:=ScatH_stride1_constr)
@@ -439,7 +439,7 @@ Section SigmaHCOLRewriting.
 
       assert
         (L3pre: forall ib (icb:ib<n),
-            ib ≢ k -> Is_ValZero (Vnth b icb)).
+            ib ≢ k -> Is_MValZero (Vnth b icb)).
       {
         intros ib icb.
 
@@ -471,12 +471,12 @@ Section SigmaHCOLRewriting.
         )))),
      *)
     Lemma expand_BinOp:
-      forall n (x:svector (n+n))
-        (f: nat->Rtheta->Rtheta->Rtheta)
+      forall n (x:mvector (n+n))
+        (f: nat -> MRtheta -> MRtheta -> MRtheta)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         HBinOp (o:=n) (f) x =
         SumUnion plus
-                 (@Vbuild (svector n) n
+                 (@Vbuild (mvector n) n
                           (fun i id =>
                              (
                                (ScatH i 1
@@ -568,11 +568,11 @@ Section SigmaHCOLRewriting.
      *)
     Lemma expand_HTDirectSum
           {i1 o1 i2 o2}
-          (f: svector i1 -> svector o1)
-          (g: svector i2 -> svector o2)
+          (f: mvector i1 -> mvector o1)
+          (g: mvector i2 -> mvector o2)
           `{hop1: !HOperator f}
           `{hop2: !HOperator g}
-          (x: svector (i1+i2)) (* input vector *)
+          (x: mvector (i1+i2)) (* input vector *)
       :
         HTDirectSum f g x =
         (HTSUMUnion
@@ -591,7 +591,7 @@ Section SigmaHCOLRewriting.
 
       assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
                         (@ScatH_stride1_constr o1 2)
-                        (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_svector o2)).
+                        (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_mvector o2)).
       {
         replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with x0.
         -
@@ -604,7 +604,7 @@ Section SigmaHCOLRewriting.
           rewrite Vnth_app.
           break_match.
           + (* Second half of x, which is all zeros *)
-            unfold szero_svector.  rewrite Vnth_const.
+            unfold szero_mvector.  rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
@@ -662,7 +662,7 @@ Section SigmaHCOLRewriting.
 
       assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
                         (@ScatH_stride1_constr o2 2)
-                        (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_svector o1) (g x1)).
+                        (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_mvector o1) (g x1)).
       {
         replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with x1.
         -
@@ -686,7 +686,7 @@ Section SigmaHCOLRewriting.
             replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
             reflexivity.
           + (* First half of x, which is all zeros *)
-            unfold szero_svector.  rewrite Vnth_const.
+            unfold szero_mvector.  rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map o1 1))) as h'.
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
@@ -726,8 +726,8 @@ Section SigmaHCOLRewriting.
       rewrite LS, RS.
       (* destruct Heqp0.*)
       unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union plus) (f x0) (szero_svector o1)) with (f x0).
-      setoid_replace (Vmap2 (Union plus) (szero_svector o2) (g x1)) with (g x1).
+      setoid_replace (Vmap2 (Union plus) (f x0) (szero_mvector o1)) with (f x0).
+      setoid_replace (Vmap2 (Union plus) (szero_mvector o2) (g x1)) with (g x1).
       reflexivity.
       apply Vec2Union_szero_svector_l.
       apply Vec2Union_szero_svector_r.
