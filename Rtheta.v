@@ -159,6 +159,12 @@ Ltac unfold_Rtheta_val_equiv := unfold equiv, Rtheta_val_equiv, Rtheta_rel_first
 
 Section Rtheta_val_Setoid_equiv.
 
+  Global Instance val_proper:
+    Proper ((=) ==> (=)) val.
+  Proof.
+    auto.
+  Qed.
+
   Global Instance Rtheta_val_Reflexive_equiv: Reflexive Rtheta_val_equiv.
   Proof.
     unfold Reflexive.
@@ -682,6 +688,14 @@ Add Ring RingRthetaVal: (stdlib_ring_theory Rtheta).
 
 Section Rtheta_Zero_Util.
   Definition Is_ValZero (x:Rtheta) := val x = zero.
+
+  Global Instance Is_ValZero_proper:
+    Proper ((=) ==> (=)) Is_ValZero.
+  Proof.
+    simpl_relation.
+    unfold Is_ValZero.
+    split; (rewrite H; auto).
+  Qed.
 
   Lemma SZero_is_ValZero:
     Is_ValZero Rtheta_SZero.

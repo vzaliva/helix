@@ -53,7 +53,7 @@ Definition sector_from_mvector {n} (v:mvector n): svector n :=
 Definition mvector_is_dense {n} (v:mvector n) : Prop :=
   Vforall (Is_Val ∘ (@evalWriter RthetaFlags Rtheta Monoid_RthetaFlags)) v.
 
-Definition szero_mvector n: mvector n := Vconst (ret Rtheta_SZero) n.
+Definition szero_mvector n: mvector n := Vconst MRtheta_SZero n.
 
 Set Implicit Arguments.
 
@@ -90,7 +90,7 @@ Qed.
 
 (* Unary union of vector's elements (left fold) *)
 Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): MRtheta :=
-  Vfold_left (Union op) (ret Rtheta_SZero) v.
+  Vfold_left (Union op) MRtheta_SZero v.
 
 (* Binary element-wise union of two vectors *)
 Definition Vec2Union {n} (op: Rtheta -> Rtheta -> Rtheta) (a b: mvector n): mvector n

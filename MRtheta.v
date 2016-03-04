@@ -51,6 +51,12 @@ Definition Rtheta_liftM2
 Global Instance MRtheta_equiv: Equiv (MRtheta) :=
   fun am bm => (evalWriter am) = (evalWriter bm).
 
+Global Instance evalWriter_proper:
+  Proper ((=) ==> (=)) (@evalWriter RthetaFlags Rtheta _).
+Proof.
+  simpl_relation.
+Qed.
+
 Ltac unfold_MRtheta_equiv := unfold equiv, MRtheta_equiv in *.
 
 
@@ -593,3 +599,28 @@ Proof.
   crush.
 Qed.
 
+Section Rtheta_Zero_Util.
+
+  Definition Is_MValZero (x:MRtheta) := Is_ValZero (evalWriter x).
+
+  Lemma Is_MValZero_to_MSZero (x: MRtheta):
+    Is_MValZero x -> x = MRtheta_SZero.
+  Proof.
+    intros H.
+    unfold Is_MValZero in H.
+    unfold_MRtheta_equiv.
+    apply Is_ValZero_to_SZero in H.
+    rewrite H.
+    reflexivity.
+  Qed.
+
+  Global Instance Is_MValZero_proper:
+    Proper ((=) ==> (=)) Is_MValZero.
+  Proof.
+    simpl_relation.
+    unfold Is_MValZero.
+    split; (rewrite H; auto).
+  Qed.
+
+
+End Rtheta_Zero_Util.
