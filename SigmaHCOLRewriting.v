@@ -290,7 +290,7 @@ Section SigmaHCOLRewriting.
       reflexivity.
     Qed.
 
-    Theorem U_SAG1_PW:
+    Lemma U_SAG1_PW:
       forall n (x:mvector n)
         (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion plus
@@ -470,7 +470,7 @@ Section SigmaHCOLRewriting.
         GathH(2*o.N, 2, i, o.N)
         )))),
      *)
-    Lemma expand_BinOp:
+    Theorem expand_BinOp:
       forall n (x:mvector (n+n))
         (f: nat -> MRtheta -> MRtheta -> MRtheta)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
@@ -566,7 +566,7 @@ Section SigmaHCOLRewriting.
             self(ch[i], opts),
             GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
      *)
-    Lemma expand_HTDirectSum
+    Theorem expand_HTDirectSum
           {i1 o1 i2 o2}
           (f: mvector i1 -> mvector o1)
           (g: mvector i2 -> mvector o2)

@@ -59,7 +59,7 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
 
-  Lemma breakdown_ScalarProd: forall (n:nat) (a v: mvector n),
+  Theorem breakdown_ScalarProd: forall (n:nat) (a v: mvector n),
       ScalarProd (a,v) =
       (compose (Reduction (+) 0) (BinOp (IgnoreIndex2 mult))) (a,v).
   Proof.
@@ -85,7 +85,7 @@ Section HCOLBreakdown.
     apply breakdown_ScalarProd.
   Qed.
 
-  Lemma breakdown_EvalPolynomial: forall (n:nat) (a: mvector (S n)) (v: MRtheta),
+  Theorem breakdown_EvalPolynomial: forall (n:nat) (a: mvector (S n)) (v: MRtheta),
       EvalPolynomial a v = (
         compose (ScalarProd) (compose (pair a) (MonomialEnumerator n))
       ) v.
@@ -125,7 +125,7 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Lemma breakdown_TInfinityNorm: forall (n:nat) (v: mvector n),
+  Theorem breakdown_TInfinityNorm: forall (n:nat) (v: mvector n),
       InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
     intros.
@@ -201,7 +201,7 @@ Section HCOLBreakdown.
     apply breakdown_TInfinityNorm.
   Qed.
 
-  Lemma breakdown_MonomialEnumerator:
+  Theorem breakdown_MonomialEnumerator:
     forall (n:nat) (x: MRtheta),
       MonomialEnumerator n x = Induction (S n) (.*.) 1 x.
   Proof.
@@ -234,7 +234,7 @@ Section HCOLBreakdown.
     apply breakdown_MonomialEnumerator.
   Qed.
 
-  Lemma breakdown_ChebyshevDistance:  forall (n:nat) (ab: (mvector n)*(mvector n)),
+  Theorem breakdown_ChebyshevDistance:  forall (n:nat) (ab: (mvector n)*(mvector n)),
       ChebyshevDistance ab = (compose InfinityNorm VMinus) ab.
   Proof.
     intros.
@@ -253,7 +253,7 @@ Section HCOLBreakdown.
     apply breakdown_ChebyshevDistance.
   Qed.
 
-  Lemma breakdown_VMinus:  forall (n:nat) (ab: (mvector n)*(mvector n)),
+  Theorem breakdown_VMinus:  forall (n:nat) (ab: (mvector n)*(mvector n)),
       VMinus ab =  BinOp (IgnoreIndex2 pneg) ab.
   Proof.
     intros.
@@ -298,7 +298,7 @@ End HCOLBreakdown.
 
 
 (* Our top-level example goal *)
-Theorem DynWinOSPL:  forall (a: mvector 3),
+Lemma DynWinOSPL:  forall (a: mvector 3),
     (HTLess
        (HEvalPolynomial a)
        (HChebyshevDistance 2))
