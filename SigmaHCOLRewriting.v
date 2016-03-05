@@ -782,7 +782,6 @@ Section SigmaHCOLRewriting.
     Proof.
       unfold DenseCauseNoCol.
       intros x Dx.
-      unfold mvector_is_dense.
       unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
       break_let. break_let.
       tuple_inversion.
