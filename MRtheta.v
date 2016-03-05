@@ -30,6 +30,7 @@ Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
 Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
 Definition MRtheta := flags_m Rtheta.
 
+(* Lift unary operation *)
 Definition Rtheta_liftM
            (op: Rtheta -> Rtheta)
            (xm: MRtheta) : MRtheta :=
@@ -40,12 +41,25 @@ Definition Rtheta_liftM
     ;;
     ret (op x).
 
+(* Lift binary operation *)
 Definition Rtheta_liftM2
            (op: Rtheta -> Rtheta -> Rtheta)
            (am bm: MRtheta) : MRtheta :=
   a <- am ;;  b <- bm ;;
     tell (computeFlags (is_struct a) (is_struct b)) ;;
     ret (op a b).
+
+(* Lift Predicate *)
+Definition Rtheta_liftPred
+           (pred: Rtheta -> Prop)
+           (x: MRtheta) : Prop :=
+  pred (evalWriter x).
+
+(* Lift Relation *)
+Definition Rtheta_liftRel
+           (rel: Rtheta -> Rtheta -> Prop)
+           (am bm: MRtheta) : Prop :=
+  rel (evalWriter am) (evalWriter bm).
 
 
 Global Instance MRtheta_equiv: Equiv (MRtheta) :=
@@ -108,12 +122,6 @@ Proof.
   reflexivity.
 Qed.
 
-Definition Rtheta_liftRel
-           (rel: Rtheta -> Rtheta -> Prop)
-           (am bm: MRtheta) : Prop :=
-  rel (evalWriter am) (evalWriter bm).
-
-
 Global Instance MRtheta_Zero: Zero (MRtheta) := ret (Rtheta_normal zero).
 Global Instance MRtheta_One: One (MRtheta) := ret (Rtheta_normal one).
 Global Instance MRtheta_Plus: Plus (MRtheta) := Rtheta_liftM2 (Rtheta_binop plus).
@@ -132,6 +140,8 @@ Definition MRtheta_valueCollision (x:MRtheta) :=
 (* Propositional predicate *)
 Definition MRtheta_Is_valueCollision (x:MRtheta) :=
   Is_valueCollision (execWriter x).
+
+Definition MRtheta_Is_Val := Rtheta_liftPred Is_Val.
 
 Lemma MRthetaSZero_Zero:
   MRtheta_SZero = 0.

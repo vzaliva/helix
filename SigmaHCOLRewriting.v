@@ -292,7 +292,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:mvector n)
-        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+             (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion plus
                  (@Vbuild (mvector n) n
                           (fun i id =>
@@ -472,8 +472,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:mvector (n+n))
-        (f: nat -> MRtheta -> MRtheta -> MRtheta)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> MRtheta -> MRtheta -> MRtheta)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         HBinOp (o:=n) (f) x =
         SumUnion plus
                  (@Vbuild (mvector n) n
@@ -567,12 +567,12 @@ Section SigmaHCOLRewriting.
             GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
      *)
     Theorem expand_HTDirectSum
-          {i1 o1 i2 o2}
-          (f: mvector i1 -> mvector o1)
-          (g: mvector i2 -> mvector o2)
-          `{hop1: !HOperator f}
-          `{hop2: !HOperator g}
-          (x: mvector (i1+i2)) (* input vector *)
+            {i1 o1 i2 o2}
+            (f: mvector i1 -> mvector o1)
+            (g: mvector i2 -> mvector o2)
+            `{hop1: !HOperator f}
+            `{hop2: !HOperator g}
+            (x: mvector (i1+i2)) (* input vector *)
       :
         HTDirectSum f g x =
         (HTSUMUnion
@@ -796,8 +796,8 @@ Section SigmaHCOLRewriting.
 
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
-             (f: svector i1 -> svector o1)
-             (g: svector i2 -> svector o2)
+             (f: mvector i1 -> mvector o1)
+             (g: mvector i2 -> mvector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
              `{DP1: !DensityPreserving f}
@@ -809,9 +809,9 @@ Section SigmaHCOLRewriting.
              ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
               ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
     Proof.
-      unfold DenseCauseNoCol.
+      unfold DensityPreserving.
       intros x Dx.
-      unfold svector_is_non_col, compose, Is_Collision, RthetaIsCollision.
+      unfold mvector_is_dense.
       repeat unfold HCompose, compose.
       apply Vforall_nth_intro.
       intros i ip.
@@ -822,7 +822,7 @@ Section SigmaHCOLRewriting.
       remember (@Gather (i1 + i2) i2
                         (@h_index_map i2 (i1 + i2) i1 1
                                       (h_bound_second_half i1 i2)) x) as gx1.
-      assert(Dxg1: svector_is_dense gx1).
+      assert(Dxg1: mvector_is_dense gx1).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -833,7 +833,7 @@ Section SigmaHCOLRewriting.
       remember (@Gather (i1 + i2) i1
                         (@h_index_map i1 (i1 + i2) 0 1
                                       (h_bound_first_half i1 i2)) x) as gx2.
-      assert(Dxg2: svector_is_dense gx2).
+      assert(Dxg2: mvector_is_dense gx2).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -843,11 +843,11 @@ Section SigmaHCOLRewriting.
       clear Dx x.
 
       (* Generalize nested operators' application *)
-      assert(svector_is_dense (f gx2)) by apply DP1, Dxg2.
+      assert(mvector_is_dense (f gx2)) by apply DP1, Dxg2.
       generalize dependent (f gx2). intros fgx2 Dfgx2.
       clear Dxg2 gx2 DP1 hop1 f.
 
-      assert(svector_is_dense (g gx1)) by apply DP2, Dxg1.
+      assert(mvector_is_dense (g gx1)) by apply DP2, Dxg1.
       generalize dependent (g gx1). intros ggx1 Dggx1.
       clear Dxg1 gx1 DP2 hop2 g.
 
@@ -867,7 +867,7 @@ Section SigmaHCOLRewriting.
             ). admit.
 
       assert(imiss:
-               Is_Val
+               MRtheta_Is_Val
                  (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
                                           (@build_inverse_index_map o1 (o1 + o2)
                                                                     (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
