@@ -83,7 +83,6 @@ Proof.
   apply MRtheta_Transitive_equiv.
 Qed.
 
-
 Instance MRtheta_Setoid: Setoid (MRtheta).
 Proof.
   apply MRtheta_Equivalence_equiv.
@@ -125,6 +124,14 @@ Global Instance MRtheta_Lt: Lt (MRtheta) := Rtheta_liftRel (Rtheta_rel_first lt)
 
 Definition MRtheta_SZero: MRtheta := ret Rtheta_SZero.
 Definition MRtheta_SOne: MRtheta := ret Rtheta_SOne.
+
+(* boolean version *)
+Definition MRtheta_valueCollision (x:MRtheta) :=
+  valueCollision (execWriter x).
+
+(* Propositional predicate *)
+Definition MRtheta_Is_valueCollision (x:MRtheta) :=
+  Is_valueCollision (execWriter x).
 
 Lemma MRthetaSZero_Zero:
   MRtheta_SZero = 0.

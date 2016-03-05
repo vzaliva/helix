@@ -24,6 +24,12 @@ Section RthetaFlags.
         rightStruct: bool
       }.
 
+  (* Propositional predicates *)
+  Definition Is_structCollision (x:RthetaFlags) := Is_true (structCollision x).
+  Definition Is_valueCollision (x:RthetaFlags) := Is_true (valueCollision x).
+  Definition Is_leftStruct (x:RthetaFlags) := Is_true (leftStruct x).
+  Definition Is_rightStruct (x:RthetaFlags) := Is_true (rightStruct x).
+
   Global Instance RthetaFlags_equiv:
     Equiv RthetaFlags :=
     fun a b =>

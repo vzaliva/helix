@@ -738,13 +738,13 @@ Section SigmaHCOLRewriting.
   Section Structural_Correctness.
 
     (* Strong condition: operator preserves vectors' density *)
-    Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
-      o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
+    Class DensityPreserving {i o:nat} (op: mvector i -> mvector o) :=
+      o_den_pres : forall x, mvector_is_dense x -> mvector_is_dense (op x).
 
     Instance HTDirectSum_DensityPreserving
              {i1 o1 i2 o2}
-             (f: svector i1 -> svector o1)
-             (g: svector i2 -> svector o2)
+             (f: mvector i1 -> mvector o1)
+             (g: mvector i2 -> mvector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
              `{DP1: !DensityPreserving f}
@@ -753,26 +753,27 @@ Section SigmaHCOLRewriting.
     Proof.
       unfold DensityPreserving.
       intros x Dx.
-      unfold svector_is_dense.
+      unfold mvector_is_dense.
       unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
       break_let. break_let.
       tuple_inversion.
-      apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
-      assert(svector_is_dense (f t1)) by apply DP1, H.
-      assert(svector_is_dense (g t2)) by apply DP2, H0.
+      apply Vbreak_dense_mvector in Heqp0. destruct Heqp0.
+      assert(mvector_is_dense (f t1)) by apply DP1, H.
+      assert(mvector_is_dense (g t2)) by apply DP2, H0.
       apply Vforall_app.
       auto.
       apply Dx.
     Qed.
 
-    (* Weaker condition: applied to dense vector does not produce strucural collisions *)
-    Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
-      o_den_non_col : forall x, svector_is_dense x -> svector_is_non_col (op x).
+
+    (* Weaker condition: applied to a dense vector does not produce strucural collisions *)
+    Class DenseCauseNoCol {i o:nat} (op: mvector i -> mvector o) :=
+      o_den_non_col : forall x, mvector_is_dense x -> mvector_Is_valueCollision_free (op x).
 
     Instance HTDirectSum_DenseCauseNoCol
              {i1 o1 i2 o2}
-             (f: svector i1 -> svector o1)
-             (g: svector i2 -> svector o2)
+             (f: mvector i1 -> mvector o1)
+             (g: mvector i2 -> mvector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
              `{DP1: !DenseCauseNoCol f}
@@ -781,18 +782,17 @@ Section SigmaHCOLRewriting.
     Proof.
       unfold DenseCauseNoCol.
       intros x Dx.
-      unfold svector_is_dense.
+      unfold mvector_is_dense.
       unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
       break_let. break_let.
       tuple_inversion.
-      apply Vbreak_dense_vector in Heqp0. destruct Heqp0.
-      assert(svector_is_non_col (f t1)) by apply DP1, H.
-      assert(svector_is_non_col (g t2)) by apply DP2, H0.
+      apply Vbreak_dense_mvector in Heqp0. destruct Heqp0.
+      assert(mvector_Is_valueCollision_free (f t1)) by apply DP1, H.
+      assert(mvector_Is_valueCollision_free (g t2)) by apply DP2, H0.
       apply Vforall_app.
       auto.
       apply Dx.
     Qed.
-
 
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}

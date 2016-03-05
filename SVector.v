@@ -260,6 +260,14 @@ Proof.
   apply Vbreak_preserves_P.
 Qed.
 
+Lemma Vbreak_dense_mvector {n1 n2} {x: mvector (n1+n2)} {x0 x1}:
+  Vbreak x ≡ (x0, x1) ->
+  mvector_is_dense x ->  (mvector_is_dense x0) /\ (mvector_is_dense x1).
+Proof.
+  unfold mvector_is_dense.
+  apply Vbreak_preserves_P.
+Qed.
+
 Lemma Vec2Union_szero_svector_r {n} {a: mvector n}:
   Vec2Union plus a (szero_mvector n) = a.
 Proof.
@@ -290,6 +298,11 @@ Proof.
   crush.
 Qed.
 
+Definition mvector_valueCollision {n} (x:mvector n) :=
+  Vfold_left orb false (Vmap MRtheta_valueCollision x).
+
+Definition mvector_Is_valueCollision_free :=
+  Vforall (not ∘ MRtheta_Is_valueCollision).
 
 Close Scope vector_scope.
 Close Scope nat_scope.
