@@ -797,14 +797,14 @@ Section SigmaHCOLRewriting.
     Definition SparseEmbedding
                {n i o ki ko}
                (op: Rtheta -> Rtheta -> Rtheta)
-               (Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b))
+               {Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b)}
                (kernel: forall k, (k<n) -> mvector ki -> mvector ko)
-               {f: forall k, (k<n) -> index_map ko o}
-               (f_inj : ∀ k (kc: k<n), index_map_injective (f k kc))
-               {g: forall k, (k<n) -> index_map ki i}
-               (x: mvector i)
+               (f: forall k, (k<n) -> index_map ko o)
+               {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
+               (g: forall k, (k<n) -> index_map ki i)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+               (x: mvector i)
       :=
         (SumUnion op
                   (Vbuild
@@ -813,6 +813,36 @@ Section SigmaHCOLRewriting.
                          ∘ (kernel j jc)
                          ∘ (Gather (g j jc))
                       ) x))).
+
+    Definition index_family_injective
+               {n i o}
+               (f: forall k, (k<n) -> index_map i o)
+      :=
+        forall (j1 j2: nat) (jc1: j1<n) (jc2: j2<n) (x y:nat) (xc: x<i) (yc: y<i),
+          ⟦ f j1 jc1 ⟧ x ≡ ⟦ f j2 jc2 ⟧ y → x ≡ y.
+
+    
+    Lemma SparseEmbeddingCauseNoCol
+          {n i o ki ko}
+          (op: Rtheta -> Rtheta -> Rtheta)
+          {Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b)}
+          (kernel: forall k, (k<n) -> mvector ki -> mvector ko)
+          (f: forall k, (k<n) -> index_map ko o)
+          {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
+          (g: forall k, (k<n) -> index_map ki i)
+          `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+          `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+          (x: mvector i)
+      :
+        mvector_is_dense x ->
+        index_family_injective f ->
+        mvector_Is_valueCollision_free
+          (@SparseEmbedding n i o ki ko op Odense kernel f f_inj g Koperator Kdense x).
+    Proof.
+      intros xdense f_family_inj.
+
+    Qed.
+
 
   (*
 
