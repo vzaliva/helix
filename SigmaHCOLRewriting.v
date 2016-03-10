@@ -799,9 +799,9 @@ Section SigmaHCOLRewriting.
                (op: Rtheta -> Rtheta -> Rtheta)
                (Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b))
                (kernel: forall k, (k<n) -> mvector ki -> mvector ko)
-               {f: forall k, (k<n) -> index_map ki i}
-               {g: forall k, (k<n) -> index_map ko o}
-               (g_inj : ∀ k (kc: k<n), index_map_injective (g k kc))
+               {f: forall k, (k<n) -> index_map ko o}
+               (f_inj : ∀ k (kc: k<n), index_map_injective (f k kc))
+               {g: forall k, (k<n) -> index_map ki i}
                (x: mvector i)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
@@ -809,9 +809,9 @@ Section SigmaHCOLRewriting.
         (SumUnion op
                   (Vbuild
                      (λ (j:nat) (jc:j<n),
-                      ((Scatter (g j jc) (f_inj := g_inj j jc))
+                      ((Scatter (f j jc) (f_inj := f_inj j jc))
                          ∘ (kernel j jc)
-                         ∘ (Gather (f j jc))
+                         ∘ (Gather (g j jc))
                       ) x))).
 
   (*
