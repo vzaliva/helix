@@ -823,35 +823,6 @@ Section SigmaHCOLRewriting.
 
 
 
-    (* TODO: move to AbsorbIUnionIndex, see if it could be implemented via this *)
-    Lemma AbsorbIUnionIndexGen
-          {o n}
-          (op: Rtheta -> Rtheta -> Rtheta)
-          (body: forall (i : nat) (ic : i < n), mvector o)
-          k (kc: k<o)
-      :
-        Vnth
-          (SumUnion op (Vbuild body)) kc ≡
-          VecUnion op
-          (Vbuild
-             (fun (i : nat) (ic : i < n) =>
-                Vnth (body i ic) kc
-          )).
-    Proof.
-      induction n.
-      - rewrite 2!Vbuild_0.
-        unfold VecUnion, SumUnion, szero_mvector, MRtheta_SZero.
-        apply Vnth_const.
-      -
-        rewrite Vbuild_cons.
-        rewrite SumUnion_cons.
-        rewrite AbsorbUnionIndexBinary.
-        rewrite IHn.
-        rewrite <- VecUnion_cons.
-        rewrite Vbuild_cons.
-        reflexivity.
-    Qed.
-
     Require Import ExtLib.Structures.Monads.
     Import MonadNotation.
     Local Open Scope monad_scope.
@@ -881,7 +852,7 @@ Section SigmaHCOLRewriting.
       intros oi oic.
       unfold compose.
       unfold SparseEmbedding.
-      rewrite AbsorbIUnionIndexGen.
+      rewrite AbsorbIUnionIndex.
 
       induction n.
       crush.

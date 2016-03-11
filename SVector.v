@@ -164,69 +164,33 @@ Qed.
 
 (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
 Lemma AbsorbIUnionIndex
+      {o n}
       (op: Rtheta -> Rtheta -> Rtheta)
-      m n (x: vector (mvector m) n) k (kc: k<m)
+      (body: forall (i : nat) (ic : i < n), mvector o)
+      k (kc: k<o)
   :
     Vnth
-      (SumUnion op
-                (Vbuild
-                   (fun (i : nat) (ic : i < n) =>
-                      (Vnth x ic)
-                ))
-      ) kc ≡
+      (SumUnion op (Vbuild body)) kc ≡
       VecUnion op
       (Vbuild
          (fun (i : nat) (ic : i < n) =>
-            Vnth (Vnth x ic) kc
+            Vnth (body i ic) kc
       )).
 Proof.
   induction n.
-  + dep_destruct x.
-    rewrite 2!Vbuild_0.
-    unfold VecUnion; simpl.
-    unfold SumUnion; simpl.
-    unfold szero_svector; apply Vnth_const.
-
-  +
-    dep_destruct x.
-    remember (λ (i : nat) (ic : i < S n), Vnth (Vcons h x0) ic) as geni.
-    remember (λ (i : nat) (ic : i < S n), Vnth (geni i ic) kc) as genik.
-
-    (* RHS massaging *)
-    rewrite Vbuild_cons with (gen:=genik).
-    replace (genik 0 (lt_0_Sn n)) with (Vnth h kc)
-      by (subst genik geni; reflexivity).
-    rewrite VecUnion_cons.
-
-    replace (λ (i : nat) (ip : i < n), genik (S i) (lt_n_S ip)) with
-    (λ (i : nat) (ic : i < n), Vnth (Vnth x0 ic) kc).
-
-    rewrite <- IHn.
-    remember (λ (i : nat) (ic : i < n), Vnth x0 ic) as genX.
-
-    rewrite Vbuild_cons with (gen:=geni).
-    replace (geni 0 (lt_0_Sn n)) with h
-      by (subst geni; reflexivity).
-    subst geni.
-    replace (λ (i : nat) (ip : i < n), Vnth (Vcons h x0) (lt_n_S ip)) with genX.
+  - rewrite 2!Vbuild_0.
+    unfold VecUnion, SumUnion, szero_mvector, MRtheta_SZero.
+        apply Vnth_const.
+  -
+    rewrite Vbuild_cons.
     rewrite SumUnion_cons.
     rewrite AbsorbUnionIndexBinary.
-    reflexivity.
-
-    subst genX.
-    extensionality i.
-    extensionality ic.
-    simpl.
-    rewrite NatUtil.lt_Sn_nS.
-    reflexivity.
-
-    extensionality i.
-    extensionality ic.
-    subst genik geni.
-    simpl.
-    rewrite NatUtil.lt_Sn_nS.
+    rewrite IHn.
+    rewrite <- VecUnion_cons.
+    rewrite Vbuild_cons.
     reflexivity.
 Qed.
+
 
 Lemma Union_Plus_MSZero_r x:
   (Union (plus) x MRtheta_SZero) = x.
