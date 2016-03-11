@@ -821,7 +821,41 @@ Section SigmaHCOLRewriting.
         forall (j1 j2: nat) (jc1: j1<n) (jc2: j2<n) (x y:nat) (xc: x<i) (yc: y<i),
           ⟦ f j1 jc1 ⟧ x ≡ ⟦ f j2 jc2 ⟧ y → x ≡ y.
 
-    
+
+
+    (* TODO: move to AbsorbIUnionIndex, see if it could be implemented via this *)
+    Lemma AbsorbIUnionIndexGen
+          {o n}
+          (op: Rtheta -> Rtheta -> Rtheta)
+          (body: forall (i : nat) (ic : i < n), mvector o)
+          k (kc: k<o)
+      :
+        Vnth
+          (SumUnion op (Vbuild body)) kc ≡
+          VecUnion op
+          (Vbuild
+             (fun (i : nat) (ic : i < n) =>
+                Vnth (body i ic) kc
+          )).
+    Proof.
+      induction n.
+      - rewrite 2!Vbuild_0.
+        unfold VecUnion, SumUnion, szero_mvector, MRtheta_SZero.
+        apply Vnth_const.
+      -
+        rewrite Vbuild_cons.
+        rewrite SumUnion_cons.
+        rewrite AbsorbUnionIndexBinary.
+        rewrite IHn.
+        rewrite <- VecUnion_cons.
+        rewrite Vbuild_cons.
+        reflexivity.
+    Qed.
+
+    Require Import ExtLib.Structures.Monads.
+    Import MonadNotation.
+    Local Open Scope monad_scope.
+
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
           (op: Rtheta -> Rtheta -> Rtheta)
@@ -840,6 +874,34 @@ Section SigmaHCOLRewriting.
           (@SparseEmbedding n i o ki ko op Odense kernel f f_inj g Koperator Kdense x).
     Proof.
       intros xdense f_family_inj.
+
+      unfold mvector_Is_valueCollision_free.
+      apply Vforall_nth_intro.
+
+      intros oi oic.
+      unfold compose.
+      unfold SparseEmbedding.
+      rewrite AbsorbIUnionIndexGen.
+
+      induction n.
+      crush.
+      rewrite Vbuild_cons.
+      rewrite VecUnion_cons.
+
+
+
+      assert(forall a b,
+                ¬MRtheta_Is_valueCollision a ->
+                ¬MRtheta_Is_valueCollision b ->
+                Is_Struct a ->
+
+             ¬MRtheta_Is_valueCollision (Union op a b)).
+
+      unfold Union.
+      unfold Rtheta_liftM2.
+
+      unfold MRtheta_Is_valueCollision, Is_valueCollision.
+
 
     Qed.
 
