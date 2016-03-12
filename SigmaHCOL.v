@@ -75,6 +75,28 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vin_VnthInverseIndexMapped
+      (i o : nat)
+      (x : vector MRtheta i)
+      (f : partial_index_map o i)
+      (j : nat) (jp : j < o):
+  Vin (VnthInverseIndexMapped x f j jp) x
+  ∨ VnthInverseIndexMapped x f j jp ≡ MRtheta_SZero.
+Proof.
+  unfold VnthInverseIndexMapped, partial_index_f.
+  break_let.
+  simpl in *.
+  clear Heqp f.
+  generalize (partial_index_f_spec j jp).
+  intros l.
+  destruct (partial_index_f j).
+  - left.
+    apply Vnth_in.
+  - right.
+    reflexivity.
+Qed.
+
+
 Section SigmaHCOL_Operators.
 
   Definition Gather
@@ -339,3 +361,17 @@ Proof.
   auto.
 Qed.
 
+Lemma Scatter_is_almost_endomorphism
+      (i o : nat)
+      (x : mvector i)
+      (f: index_map i o)
+      {f_inj : index_map_injective f}:
+  Vforall (fun p => (Vin p x) \/ (p ≡ MRtheta_SZero))
+          (Scatter f (f_inj:=f_inj) x).
+Proof.
+  apply Vforall_nth_intro.
+  intros j jp.
+  unfold Scatter.
+  rewrite Vbuild_nth.
+  apply Vin_VnthInverseIndexMapped.
+Qed.

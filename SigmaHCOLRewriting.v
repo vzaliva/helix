@@ -824,9 +824,39 @@ Section SigmaHCOLRewriting.
 
 
     Require Import ExtLib.Structures.Monads.
+    Require Import WriterMonadNoT.
     Import MonadNotation.
     Local Open Scope monad_scope.
 
+
+    Lemma ScatterCollisionFree
+          {i o}
+          (f: index_map i o)
+          {f_inj : index_map_injective f}
+          (x: mvector i)
+          (Xcf: mvector_Is_valueCollision_free x)
+      :
+        mvector_Is_valueCollision_free (@Scatter i o f f_inj x).
+    Proof.
+      unfold mvector_Is_valueCollision_free.
+      apply Vforall_nth_intro.
+      intros j jp.
+
+      assert(E: Vforall (fun p => (Vin p x) \/ (p ≡ MRtheta_SZero))
+                        (Scatter f (f_inj:=f_inj) x)) by
+          apply Scatter_is_almost_endomorphism.
+      apply Vforall_nth with (ip:=jp) in E.
+      generalize dependent (Vnth (Scatter f (f_inj:=f_inj) x) jp).
+      intros v E.
+      destruct E.
+      -
+        unfold mvector_Is_valueCollision_free in Xcf.
+        apply Vforall_in with (v:=x); assumption.
+      -
+        rewrite_clear H.
+        crush.
+    Qed.
+    
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
           (op: Rtheta -> Rtheta -> Rtheta)
@@ -855,25 +885,50 @@ Section SigmaHCOLRewriting.
       rewrite AbsorbIUnionIndex.
 
       induction n.
-      crush.
-      rewrite Vbuild_cons.
-      rewrite VecUnion_cons.
+      - crush.
+      - rewrite Vbuild_cons.
+        rewrite VecUnion_cons.
+
+        (* TODO: coule be important lemma. Move out *)
+        assert(L: forall a b,
+                  ¬MRtheta_Is_valueCollision a ->
+                  ¬MRtheta_Is_valueCollision b ->
+                  ¬(Is_Val (evalWriter a) /\ Is_Val (evalWriter b)) ->
+                  ¬MRtheta_Is_valueCollision (Union op a b)).
+        {
+          admit.
+        }
+
+        apply L.
+        + apply IHn. clear IHn.
+          * crush.
+          * crush.
+          * unfold index_family_injective in *.
+            admit.
+        + clear IHn.
+          repeat unfold HCompose, compose.
+          assert(mvector_is_dense (Gather (g 0 (lt_0_Sn n)) x)).
+          apply Gather_preserves_density, xdense.
+          generalize dependent (Gather (g 0 (lt_0_Sn n)) x).
+          intros gx gdense.
+          clear xdense x.
+
+          assert(mvector_is_dense (kernel 0 (lt_0_Sn n) gx)).
+          apply Kdense, gdense.
+          generalize dependent (kernel 0 (lt_0_Sn n) gx).
+          intros kx kxdense.
+          clear gx gdense.
 
 
-
-      assert(forall a b,
-                ¬MRtheta_Is_valueCollision a ->
-                ¬MRtheta_Is_valueCollision b ->
-                Is_Struct a ->
-
-             ¬MRtheta_Is_valueCollision (Union op a b)).
-
-      unfold Union.
-      unfold Rtheta_liftM2.
-
-      unfold MRtheta_Is_valueCollision, Is_valueCollision.
-
-
+          assert(C: mvector_Is_valueCollision_free (@Scatter ko o (f O (lt_0_Sn n)) (f_inj O (lt_0_Sn n)) kx)) by apply ScatterCollisionFree.
+          generalize dependent (@Scatter ko o (f O (lt_0_Sn n)) (f_inj O (lt_0_Sn n)) kx).
+          intros sx scf.
+          clear kx kxdense.
+          (* NOTE: We have not used kxdense! *)
+          unfold  mvector_Is_valueCollision_free in scf.
+          apply Vforall_nth with (i:=oi) (ip:=oic) in scf .
+          auto.
+        +
     Qed.
 
 
