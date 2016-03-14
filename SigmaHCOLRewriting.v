@@ -868,13 +868,15 @@ Section SigmaHCOLRewriting.
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
           `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
           (x: mvector i)
+
       :
         mvector_is_dense x ->
         index_family_injective f ->
+        mvector_Is_valueCollision_free x ->
         mvector_Is_valueCollision_free
           (@SparseEmbedding n i o ki ko op Odense kernel f f_inj g Koperator Kdense x).
     Proof.
-      intros xdense f_family_inj.
+      intros xdense f_family_inj xcf.
 
       unfold mvector_Is_valueCollision_free.
       apply Vforall_nth_intro.
@@ -911,6 +913,9 @@ Section SigmaHCOLRewriting.
           apply Gather_preserves_density, xdense.
           generalize dependent (Gather (g 0 (lt_0_Sn n)) x).
           intros gx gdense.
+
+          (* TODO: propagate xcf property accrosss G, K *)
+
           clear xdense x.
 
           assert(mvector_is_dense (kernel 0 (lt_0_Sn n) gx)).
