@@ -40,40 +40,40 @@ Definition ex2 : m nat :=  (lift_bop plus) (ret 0) (ret 5).
 Definition ex3 : m nat :=  (lift_bop plus) (mzero) (mzero).
 Definition ex4 : m nat :=  (lift_bop plus) (mzero) (ret 5).
 
-Definition runWriter x := @runWriterT bool sticky option nat x.
-Definition execWriter x:= liftM (@snd nat bool) (runWriter x).
-Definition evalWriter x:= liftM (@fst nat bool) (runWriter x).
+Definition run x := (@runWriterT bool sticky option nat x).
+Definition exec x:= liftM (@snd nat bool) (run x).
+Definition eval x:= liftM (@fst nat bool) (run x).
 
-Compute (runWriter ex1).
-Compute (execWriter ex1).
-Compute (evalWriter ex1).
+Compute (run ex1).
+Compute (exec ex1).
+Compute (eval ex1).
 
-Compute (runWriter ex2).
-Compute (runWriter ex3).
-Compute (runWriter ex4).
+Compute (run ex2).
+Compute (run ex3).
+Compute (run ex4).
 
 
 (* TODO: Not converted code below *)
 
 Definition equiv {T: Type} (a b: m T) :=
-  (evalWriter a) = (evalWriter b).
+  (eval a) = (eval b).
 
 Require Import Coq.Classes.Morphisms.
 
-Lemma evalWriter_lift_uop
+Lemma eval_lift_uop
       (op: nat -> nat)
       {a: m nat}
   :
-    evalWriter ((lift_uop op) a) = op (evalWriter a).
+    eval ((lift_uop op) a) = op (eval a).
 Proof.
   reflexivity.
 Qed.
 
-Lemma evalWriter_lift_bop
+Lemma eval_lift_bop
       (op: nat -> nat -> nat)
       {a b: m nat}
   :
-    evalWriter (lift_bop op a b) = op (evalWriter a) (evalWriter b).
+    eval (lift_bop op a b) = op (eval a) (eval b).
 Proof.
   reflexivity.
 Qed.
@@ -90,7 +90,7 @@ Proof.
 
   (*  Direct proof:
   unfold equiv in *.
-  unfold evalWriter, runWriter in *.
+  unfold eval, runWriter in *.
   unfold lift_uop.
 
   simpl. (* also cbv or compute works *)
@@ -99,7 +99,7 @@ Proof.
    *)
 
   unfold equiv in *.
-  rewrite 2!evalWriter_lift_uop.
+  rewrite 2!eval_lift_uop.
   rewrite H.
   reflexivity.
 Qed.
