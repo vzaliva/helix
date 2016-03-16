@@ -37,6 +37,8 @@ End with_monad.
 
 Definition ex1 : m nat :=  (lift_bop plus) (ret 1) (ret 2).
 Definition ex2 : m nat :=  (lift_bop plus) (ret 0) (ret 5).
+Definition ex3 : m nat :=  (lift_bop plus) (mzero) (mzero).
+Definition ex4 : m nat :=  (lift_bop plus) (mzero) (ret 5).
 
 Definition runWriter x := @runWriterT bool sticky option nat x.
 Definition execWriter x:= liftM (@snd nat bool) (runWriter x).
@@ -47,6 +49,8 @@ Compute (execWriter ex1).
 Compute (evalWriter ex1).
 
 Compute (runWriter ex2).
+Compute (runWriter ex3).
+Compute (runWriter ex4).
 
 
 (* TODO: Not converted code below *)
