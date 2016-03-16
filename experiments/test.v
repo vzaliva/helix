@@ -14,17 +14,19 @@ Section with_monad.
 
 
   Definition sticky: Monoid bool := Build_Monoid orb false.
-  Definition m : Type -> Type := writerT sticky option.
+  Definition m : Type -> Type := writerT sticky (optionT ident).
   Context {Monad_m: Monad m}.
   Context {Writer_m: MonadWriter sticky m}.
 
+  Definition T := option nat.
 
   Definition lift_uop
-             (op: nat -> nat)
-             (mx: m nat) : m nat :=
+             (op: T -> T)
+             (mx: m T) : m T :=
     x <- mx ;;
-      tell (beq_nat x 0) ;;
-      ret (op x).
+      xv <- x ;;
+      tell (beq_nat xv 0) ;;
+      ret (op (ret xv)).
 
   Definition lift_bop
              (op: nat -> nat -> nat)
