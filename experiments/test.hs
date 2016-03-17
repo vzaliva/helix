@@ -24,7 +24,7 @@ wbplus wa wb =
 runW :: WInt -> (Maybe Int, Bool)
 runW x = let (v,f) = runWriter $ runMaybeT x
          in (v, getAny f)
-                  
+
 ex0 = runW (wbplus (mzero) (return 2))
 ex1 = runW (wbplus (return 2) (mzero))
 
