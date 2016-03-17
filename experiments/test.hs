@@ -5,7 +5,7 @@ import Data.Monoid
 import Data.Maybe
 import Control.Monad.Trans.Maybe
 
-type W = WriterT Any (MaybeT Identity)
+type W = MaybeT (WriterT Any Identity)
 type WInt = W Int
     
 bplus :: Int -> Int -> WInt
@@ -23,18 +23,18 @@ wbplus wa wb =
            return (a+b)
 
 
-runW (x::WInt) = runIdentity $ runMaybeT $ runWriterT x
-
--- runW :: WInt -> (Int, Bool)
--- runW x = let (v,f) = runWriter (fromJust x)
---          in (v,getAny f)
+runW :: WInt -> (Maybe Int, Bool)
+runW x = let (v,f) = runWriter $ runMaybeT x
+         in (v, getAny f)
                   
--- ex0 = runW (bplus 1 2) 
--- ex1 = runW (bplus 0 2)
+ex0 = runW (bplus 1 2) 
+ex1 = runW (bplus 0 2)
 
--- ex2 = runW (wbplus (return 1) (return 2))
--- ex3 = runW (wbplus (return 0) (return 2))
+ex2 = runW (wbplus (return 1) (return 2))
+ex3 = runW (wbplus (return 0) (return 2))
 
--- ex4 = runW (wbplus (wbplus (return 1) (return 2)) (return 2))
--- ex5 = runW (wbplus (wbplus (return 0) (return 2)) (return 2))
--- ex6 = runW (wbplus (wbplus (return 1) (return 2)) (return 0))
+ex4 = runW (wbplus (wbplus (return 1) (return 2)) (return 2))
+ex5 = runW (wbplus (wbplus (return 0) (return 2)) (return 2))
+ex6 = runW (wbplus (wbplus (return 1) (return 2)) (return 0))
+
+-- ex7 = runW (bplus None 2) 
