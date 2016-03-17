@@ -1,37 +1,40 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.Monoid
 import Data.Maybe
 import Control.Monad.Trans.Maybe
 
-type W = MaybeT (WriterT Any Identity)
-type WInt = W Int
+data Structural a = Value a | Struct a deriving (Show)  
 
--- Regular plus, without collision checking
-wplus :: WInt -> WInt -> WInt
-wplus = liftM2 (+)
+instance Monad Structural where
+    return = Value
+    Struct x >>= k = k x
+    Value x >>= k = case (k x) of
+                      Struct y -> Value y
+                      Value y -> Value y -- fail "could not combine values"
+
+
+type WInt = Structural Int
+
+union :: WInt -> WInt -> WInt
+union = liftM2 (+)
     
-wbplus :: WInt -> WInt -> WInt
-wbplus wa wb =
-    do
-      a <- wa ;
-      b <- wb ;
-      tell (Any (a == 0 || b == 0)) ;
-           return (a+b)
+runW :: WInt -> WInt
+runW x = x
 
+x :: WInt
+x = return 5
+             
+ex0 = runW (union (Struct 2) (Struct 1))
+ex1 = runW (union (Struct 0) (return 2))
+ex2 = runW (union (return 2) (Struct 3))
 
-runW :: WInt -> (Maybe Int, Bool)
-runW x = let (v,f) = runWriter $ runMaybeT x
-         in (v, getAny f)
+ex3 = runW (union (return 1) (return 2))
+ex4 = runW (union (return 0) (return 2))
 
-ex0 = runW (wbplus (mzero) (return 2))
-ex1 = runW (wbplus (return 2) (mzero))
-
-ex2 = runW (wbplus (return 1) (return 2))
-ex3 = runW (wbplus (return 0) (return 2))
-
-ex4 = runW (wbplus (wbplus (return 1) (return 2)) (return 2))
-ex5 = runW (wbplus (wbplus (return 0) (return 2)) (return 2))
-ex6 = runW (wbplus (wbplus (return 1) (return 2)) (return 0))
+ex5 = runW (union (union (return 1) (return 2)) (return 2))
+ex6 = runW (union (union (return 0) (return 2)) (return 2))
+ex7 = runW (union (union (return 1) (return 2)) (return 0))
 
