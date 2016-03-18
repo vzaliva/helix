@@ -7,7 +7,9 @@ import Data.Maybe
 import Control.Monad.Trans.Maybe
 
 
-{- Structural flag is Any: a Boolean monoid under conjunction ('&&'). -}
+{- Structural flag is All: a Boolean monoid under conjunction ('&&'). 
+The initial value is 'True' and values are combined using &&.
+-}
     
 type W = Writer All
 type WInt = W Int
