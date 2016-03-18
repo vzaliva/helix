@@ -6,8 +6,7 @@ Definition t0 := (true, false).
 Definition op (a b: T) :=
   let (s0,c0) := a in
   let (s1,c1) := b in
-  (andb s0 s1, orb c0 c1).
-(*   (andb s0 s1, orb (orb c0 c1) (negb (orb s0 s1))). *)
+  (andb s0 s1, orb (orb c0 c1) (negb (orb s0 s1))).
 
 Lemma Tident: forall a:T,
     (op a t0) = a /\ (op t0 a) = a.
