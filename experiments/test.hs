@@ -42,7 +42,13 @@ runW x = let ((v, f), c) = runWriter (runWriterT x) in
 {- simple lifted (+), without collision tracking -}         
 plus :: SInt -> SInt -> SInt
 plus = liftM2 (+)
-         
+
+       
+{- Union operator, which is basically (+) with collision tracking -}         
+union :: SInt -> SInt -> SInt
+union = plus
+
+       
 ex0 = runW (plus (struct 2) (struct 1))
 ex1 = runW (plus (struct 0) (value 2))
 ex2 = runW (plus (value 2) (struct 3))
@@ -52,5 +58,7 @@ ex5 = runW (plus (plus (value 1) (value 2)) (value 2))
 ex6 = runW (plus (plus (value 0) (value 2)) (value 2))
 ex7 = runW (plus (plus (value 1) (value 2)) (value 0))
 ex8 = runW (plus (plus (struct 1) (value 2)) (struct 0))
-ex9 = runW (plus (plus (struct 1) (struct 2)) (value 0)) -- collision!
+      
+ex9 = runW (plus (plus (struct 1) (struct 2)) (value 0)) -- untracked collision!
+ex10 = runW (union (union (struct 1) (struct 2)) (value 0)) -- tracked collision
 
