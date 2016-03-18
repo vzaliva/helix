@@ -26,9 +26,6 @@ runW :: WInt -> (Int, Bool)
 runW x = let (v,f) = runWriter x
          in (v, getAll f)
 
--- ex0 = runW (plus (mzero) (return 2))
--- ex1 = runW (plus (return 2) (mzero))
-
 x :: WInt
 x = value 2
 
