@@ -2,7 +2,7 @@
 
 SPIRAL formalization in Coq
 
-Branch info: *two_monads* branch is intended to experiment with Monadic handling of structural flag.
+Branch info: *one_monad* branch is intended to experiment with Monadic handling of structural flag ONLY for for SigmalHCOL operators. HCOL does not deal with monads
 
 
 ### Dependencies ###
