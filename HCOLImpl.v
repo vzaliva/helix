@@ -1,9 +1,7 @@
 (* Low-level functions implementing HCOL matrix and vector manupulation operators *)
 
 Require Import Spiral.
-Require Import Rtheta.
-Require Import MRtheta.
-Require Import SVector.
+Require Import CarrierType.
 
 Require Import Arith.
 Require Import Program. (* compose *)
@@ -26,10 +24,6 @@ Require Import MathClasses.theory.naturals.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import ExtLib.Structures.Monads.
-Require Import WriterMonadNoT.
-
-
 Open Scope vector_scope.
 Open Scope nat_scope.
 
@@ -38,29 +32,29 @@ Section HCOL_implementations.
   (* --- Type casts --- *)
 
   (* Promote scalar to unit vector *)
-  Definition Vectorize (x:MRtheta): (mvector 1) := [x].
+  Definition Vectorize (x:CarrierA): (avector 1) := [x].
 
   (* Convert single element vector to scalar *)
-  Definition Scalarize (x: mvector 1) : MRtheta := Vhead x.
+  Definition Scalarize (x: avector 1) : CarrierA := Vhead x.
 
   (* --- Scalar Product --- *)
 
   Definition ScalarProd
-             {n} (ab: (mvector n)*(mvector n)) : MRtheta :=
+             {n} (ab: (avector n)*(avector n)) : CarrierA :=
     match ab with
     | (a, b) => Vfold_right plus (Vmap2 mult a b) zero
     end.
 
   (* --- Infinity Norm --- *)
   Definition InfinityNorm
-             {n} (v: mvector n) : MRtheta :=
-    Vfold_right (Rtheta_liftM2 (max)) (Vmap abs v) zero.
+             {n} (v: avector n) : CarrierA :=
+    Vfold_right max (Vmap abs v) zero.
 
   (* Poor man's minus *)
   Definition pneg := plus∘negate.
 
   (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
-  Global Instance MRtheta_neg_proper:
+  Global Instance CarrierA_neg_proper:
     Proper ((=) ==> (=) ==> (=)) (pneg).
   Proof.
     intros a b Ha x y Hx .
@@ -71,14 +65,14 @@ Section HCOL_implementations.
 
   (* --- Chebyshev Distance --- *)
   Definition ChebyshevDistance
-             {n} (ab: (mvector n)*(mvector n)): MRtheta :=
+             {n} (ab: (avector n)*(avector n)): CarrierA :=
     match ab with
     | (a, b) => InfinityNorm (Vmap2 pneg a b)
     end.
 
   (* --- Vector Subtraction --- *)
   Definition VMinus
-             {n} (ab: (mvector n)*(mvector n)) : mvector n :=
+             {n} (ab: (avector n)*(avector n)) : avector n :=
     match ab with
     | (a,b) => Vmap2 ((+)∘(-)) a b
     end.
@@ -86,44 +80,44 @@ Section HCOL_implementations.
   (* --- Monomial Enumerator --- *)
 
   Fixpoint MonomialEnumerator
-           (n:nat) (x:MRtheta) {struct n} : mvector (S n) :=
+           (n:nat) (x:CarrierA) {struct n} : avector (S n) :=
     match n with
     | O => [one]
-    | S p => Vcons MRtheta_SOne (Vmap (mult x) (MonomialEnumerator p x))
+    | S p => Vcons one (Vmap (mult x) (MonomialEnumerator p x))
     end.
 
   (* --- Polynomial Evaluation --- *)
 
   Fixpoint EvalPolynomial {n}
-           (a: mvector n) (x:MRtheta) : MRtheta  :=
+           (a: avector n) (x:CarrierA) : CarrierA  :=
     match a with
-      nil => MRtheta_SZero
+      nil => zero
     | cons a0 p a' => plus a0 (mult x (EvalPolynomial a' x))
     end.
 
   (* === HCOL Basic Operators === *)
   (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
   Definition BinOp {n}
-             (f: nat -> MRtheta -> MRtheta -> MRtheta)
-             (ab: (mvector n)*(mvector n))
-    : mvector n :=
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             (ab: (avector n)*(avector n))
+    : avector n :=
     match ab with
     | (a,b) =>  Vmap2Indexed f a b
     end.
 
   (* --- Induction --- *)
 
-  Fixpoint Induction (n:nat) (f:MRtheta -> MRtheta -> MRtheta)
-           (initial: MRtheta) (v: MRtheta) {struct n} : mvector n
+  Fixpoint Induction (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+           (initial: CarrierA) (v: CarrierA) {struct n} : avector n
     :=
       match n with
       | O => []
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
       end.
 
-  Fixpoint Inductor (n:nat) (f:MRtheta -> MRtheta -> MRtheta)
-           (initial: MRtheta) (v:MRtheta) {struct n}
-    : MRtheta :=
+  Fixpoint Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+           (initial: CarrierA) (v:CarrierA) {struct n}
+    : CarrierA :=
     match n with
     | O => initial
     | S p => f (Inductor p f initial v) v
@@ -135,20 +129,20 @@ Section HCOL_implementations.
     Reduction f x1 .. xn b = f xn (f x_{n-1} .. (f x1 id) .. )
    *)
   Definition Reduction {n:nat}
-             (f: MRtheta -> MRtheta -> MRtheta)
-             (id:MRtheta) (a: mvector n) : MRtheta
+             (f: CarrierA -> CarrierA -> CarrierA)
+             (id:CarrierA) (a: avector n) : CarrierA
     :=
       Vfold_right f a id.
 
   (* --- Scale --- *)
   Definition Scale
-             {n} (sv:(MRtheta)*(mvector n)) : mvector n :=
+             {n} (sv:(CarrierA)*(avector n)) : avector n :=
     match sv with
     | (s,v) => Vmap (mult s) v
     end.
 
   (* --- Concat ---- *)
-  Definition Concat {an bn: nat} (ab: (mvector an)*(mvector bn)) : mvector (an+bn) :=
+  Definition Concat {an bn: nat} (ab: (avector an)*(avector bn)) : avector (an+bn) :=
     match ab with
       (a,b) => Vapp a b
     end.
@@ -159,26 +153,24 @@ End HCOL_implementations.
 
 Section HCOL_implementation_facts.
 
-  Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
-
   Lemma Induction_cons:
-    forall n initial (f:MRtheta -> MRtheta -> MRtheta)
-      (v:MRtheta),
+    forall n initial (f:CarrierA -> CarrierA -> CarrierA)
+      (v:CarrierA),
       Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
   Proof.
     intros; dep_destruct n; reflexivity.
   Qed.
 
   Lemma EvalPolynomial_0:
-    forall (v:MRtheta), EvalPolynomial (Vnil) v = zero.
+    forall (v:CarrierA), EvalPolynomial (Vnil) v = zero.
   Proof.
     intros; unfold EvalPolynomial.
-    apply evalWriter_MRtheta_SZero.
+    reflexivity.
   Qed.
 
   (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
   Lemma EvalPolynomial_reduce:
-    forall n (a: mvector (S n)) (x:MRtheta),
+    forall n (a: avector (S n)) (x:CarrierA),
       EvalPolynomial a x  =
       plus (Vhead a) (mult x (EvalPolynomial (Vtail a) x)).
   Proof.
@@ -187,7 +179,7 @@ Section HCOL_implementation_facts.
 
   (* TODO: better name. Maybe suffficent to replace with ScalarProd_cons *)
   Lemma ScalarProd_reduce:
-    forall n (ab: (mvector (S n))*(mvector (S n))),
+    forall n (ab: (avector (S n))*(avector (S n))),
       ScalarProd ab = plus (mult (Vhead (fst ab)) (Vhead (snd ab))) (ScalarProd (Ptail ab)).
   Proof.
     intros; dep_destruct ab.
@@ -195,25 +187,14 @@ Section HCOL_implementation_facts.
   Qed.
 
   Lemma MonomialEnumerator_cons:
-    forall n (x:MRtheta),
+    forall n (x:CarrierA),
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
-    assert(R: MRtheta_SOne = one).
-    {
-      unfold_MRtheta_equiv.
-      unfold MRtheta_SOne.
-      setoid_replace Rtheta_SOne with (@one Rtheta Rtheta_One).
-      unfold_Rtheta_val_equiv.
-      simpl.
-      reflexivity.
-      unfold_Rtheta_val_equiv.
-      reflexivity.
-    }
     intros n x.
-    destruct n; simpl; repeat rewrite Vcons_to_Vcons_reord; rewrite R; reflexivity.
+    destruct n; simpl; repeat rewrite Vcons_to_Vcons_reord; reflexivity.
   Qed.
 
-  Lemma ScalarProd_comm: forall n (a b: mvector n),
+  Lemma ScalarProd_comm: forall n (a b: avector n),
       ScalarProd (a,b) = ScalarProd (b,a).
   Proof.
     intros.
@@ -224,7 +205,7 @@ Section HCOL_implementation_facts.
   Qed.
 
   (* Currently unused *)
-  Lemma Scale_cons: forall n (s: MRtheta) (v: mvector (S n)),
+  Lemma Scale_cons: forall n (s: CarrierA) (v: avector (S n)),
       Scale (s,v) = Vcons (mult s (Vhead v)) (Scale (s, (Vtail v))).
   Proof.
     intros.
@@ -235,7 +216,7 @@ Section HCOL_implementation_facts.
 
   (* Scale distributivitiy *)
   (* Currently unused *)
-  Lemma  Scale_dist: forall n a (b: mvector (S n)) (k: MRtheta),
+  Lemma  Scale_dist: forall n a (b: avector (S n)) (k: CarrierA),
       plus (mult k a) (Vhead (Scale (k,b))) = (mult k (plus a (Vhead b))).
   Proof.
     intros.
@@ -246,46 +227,45 @@ Section HCOL_implementation_facts.
     reflexivity.
   Qed.
 
-  Lemma ScalarProduct_descale: forall {n} (a b: mvector n) (s:MRtheta),
+  Lemma ScalarProduct_descale: forall {n} (a b: avector n) (s:CarrierA),
       [ScalarProd ((Scale (s,a)), b)] = Scale (s, [(ScalarProd (a,b))]).
   Proof.
     intros.
     unfold Scale, ScalarProd.
     simpl.
     induction n.
-    Case "n=0".
-    crush.
-    VOtac.
-    simpl.
-    symmetry.
-    destruct s. unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
-    split; try trivial.
-    unfold mult, Rtheta_Mult,  equiv, Rtheta_val_equiv, Rtheta_rel_first.
-    apply mult_0_r.
-    Case "S(n)".
-    VSntac a.  VSntac b.
-    simpl.
-    symmetry.
-    rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.
+    - Case "n=0".
+      crush.
+      VOtac.
+      simpl.
+      symmetry.
+      unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
+      split; try trivial.
+      ring.
+    - Case "S(n)".
+      VSntac a.  VSntac b.
+      simpl.
+      symmetry.
+      rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.
 
-    (* Remove cons from IHn *)
-    assert (HIHn:  forall a0 b0 : mvector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
-                                              (mult s (Vfold_right plus (Vmap2 mult a0 b0) zero))).
-    {
-      intros.
-      rewrite <- Vcons_single_elim.
-      apply IHn.
-    }
-    clear IHn.
+      (* Remove cons from IHn *)
+      assert (HIHn:  forall a0 b0 : avector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
+                                                (mult s (Vfold_right plus (Vmap2 mult a0 b0) zero))).
+      {
+        intros.
+        rewrite <- Vcons_single_elim.
+        apply IHn.
+      }
+      clear IHn.
 
-    rewrite 2!Vcons_to_Vcons_reord,  HIHn.
+      rewrite 2!Vcons_to_Vcons_reord,  HIHn.
 
-    setoid_replace (mult s (mult (Vhead a) (Vhead b))) with (mult (mult s (Vhead a)) (Vhead b))
-      by apply mult_assoc.
-    reflexivity.
+      setoid_replace (mult s (mult (Vhead a) (Vhead b))) with (mult (mult s (Vhead a)) (Vhead b))
+        by apply mult_assoc.
+      reflexivity.
   Qed.
 
-  Lemma ScalarProduct_hd_descale: forall {n} (a b: mvector n) (s:MRtheta),
+  Lemma ScalarProduct_hd_descale: forall {n} (a b: avector n) (s:CarrierA),
       ScalarProd ((Scale (s,a)), b) = Vhead (Scale (s, [(ScalarProd (a,b))])).
   Proof.
     intros.
@@ -421,7 +401,7 @@ Section HCOL_implementation_proper.
 
   (* TODO: move pf into Proper *)
   Global Instance Induction_proper
-         (f:MRtheta -> MRtheta -> MRtheta)
+         (f:CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
     Proper ((=) ==> (=) ==> (=))  (@Induction n f).
   Proof.
@@ -430,7 +410,7 @@ Section HCOL_implementation_proper.
     reflexivity.
 
     rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    assert (RP: Proper (MRtheta_equiv ==> MRtheta_equiv) (λ x, f x v)) by solve_proper.
+    assert (RP: Proper ((=) ==> (=)) (λ x, f x v)) by solve_proper.
     rewrite IHn,  iniEq.
 
     assert (EE: ext_equiv (λ x, f x v)  (λ x, f x v')).

@@ -1,7 +1,6 @@
 
 Require Import Spiral.
 Require Import Rtheta.
-Require Import MRtheta.
 
 Require Import Arith.
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -28,93 +27,71 @@ Notation svector n := (vector Rtheta n) (only parsing).
 
 (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
 Definition svector_from_vector {n} (v:vector CarrierA n): svector n :=
-  Vmap Rtheta_normal v.
+  Vmap mkValue v.
 
 (* Project out carrier type values from vector of Rheta values *)
 Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
-  Vmap val v.
-
-(* Our definition of "dense" vector means that it does not contain "structural" values *)
-
-Definition svector_is_dense {n} (v:svector n) : Prop :=
-  Vforall Is_Val v.
+  Vmap (@evalWriter RthetaFlags CarrierA _) v.
 
 (* Construct "Zero svector". All values are structural zeros. *)
-Definition szero_svector n: svector n := Vconst Rtheta_SZero n.
+Definition szero_svector n: svector n := Vconst mkSZero n.
 
-Notation mvector n := (vector (MRtheta) n) (only parsing).
+(* "dense" vector means that it does not contain "structural" values *)
+Definition svector_is_dense {n} (v:svector n) : Prop :=
+  Vforall (IsVal ∘ (@execWriter RthetaFlags CarrierA _)) v.
 
-Definition mvector_from_svector {n} (v:svector n): mvector n :=
-  Vmap ret v.
-
-Definition sector_from_mvector {n} (v:mvector n): svector n :=
-  Vmap (@evalWriter RthetaFlags Rtheta Monoid_RthetaFlags) v.
-
-Definition mvector_is_dense {n} (v:mvector n) : Prop :=
-  Vforall (Is_Val ∘ (@evalWriter RthetaFlags Rtheta Monoid_RthetaFlags)) v.
-
-Definition szero_mvector n: mvector n := Vconst MRtheta_SZero n.
-
-Set Implicit Arguments.
 
 Local Open Scope bool_scope.
 
-(* Union is a binary operation on carrier type applied to Rhteta values, using State Monad to keep track of flags *)
-Definition Union (op: Rtheta -> Rtheta -> Rtheta)
-  := Rtheta_liftM2 op.
+Set Implicit Arguments.
+
+Definition Union: Rtheta -> Rtheta -> Rtheta := liftM2 plus.
 
 Lemma Union_comm:
-  forall (op : Rtheta -> Rtheta -> Rtheta),
-    @Commutative Rtheta Rtheta_val_equiv Rtheta op ->
-    @Commutative (MRtheta) MRtheta_equiv (MRtheta) (Union op).
+  Commutative Union.
 Proof.
-  intros op C x y.
-  unfold Union, equiv, MRtheta_equiv.
+  intros x y.
+  unfold Union, equiv, Rtheta_equiv.
   rewrite 2!evalWriter_Rtheta_liftM2.
-  apply C.
+  ring.
 Qed.
 
 Global Instance Union_proper
-       (op: Rtheta -> Rtheta -> Rtheta)
-       `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
   :
-    Proper ((=) ==> (=) ==> (=))
-           (Union op).
+    Proper ((=) ==> (=) ==> (=)) Union.
 Proof.
   intros a b H x y E.
-  unfold Union.
-  unfold Union, equiv, MRtheta_equiv in *.
+  unfold Union, equiv, Rtheta_equiv in *.
   rewrite 2!evalWriter_Rtheta_liftM2.
-  apply op_mor; assumption.
+  rewrite E, H.
+  reflexivity.
 Qed.
 
 (* Unary union of vector's elements (left fold) *)
-Definition VecUnion {n} (op: Rtheta -> Rtheta -> Rtheta) (v: mvector n): MRtheta :=
-  Vfold_left (Union op) MRtheta_SZero v.
+Definition VecUnion {n} (v: svector n): Rtheta :=
+  Vfold_left Union mkSZero v.
 
 (* Binary element-wise union of two vectors *)
-Definition Vec2Union {n} (op: Rtheta -> Rtheta -> Rtheta) (a b: mvector n): mvector n
-  := Vmap2 (Union op) a b.
+Definition Vec2Union {n} (a b: svector n): svector n
+  := Vmap2 Union a b.
 
 Definition SumUnion
-           {o n} (op: Rtheta -> Rtheta -> Rtheta)
-           (v: vector (mvector o) n): mvector o
-  :=  Vfold_left (Vec2Union op) (szero_mvector o) v.
+           {o n}
+           (v: vector (svector o) n): svector o
+  :=  Vfold_left Vec2Union (szero_svector o) v.
 
 Lemma VecUnion_cons:
-  ∀ (op: Rtheta -> Rtheta -> Rtheta) m x (xs : mvector m),
-    VecUnion op (Vcons x xs) ≡ Union op (VecUnion op xs) x.
+  ∀ m x (xs : svector m),
+    VecUnion (Vcons x xs) ≡ Union (VecUnion xs) x.
 Proof.
-  intros op m x xs.
+  intros m x xs.
   unfold VecUnion.
   rewrite Vfold_left_cons.
   reflexivity.
 Qed.
 
-Lemma Vec2Union_comm {n}
-      (op: Rtheta -> Rtheta -> Rtheta)
-      `{C: !Commutative op}:
-  @Commutative (mvector n) _ (mvector n) (Vec2Union op).
+Lemma Vec2Union_comm {n}:
+  @Commutative (svector n) _ (svector n) Vec2Union.
 Proof.
   intros a b.
   induction n.
@@ -128,34 +105,30 @@ Proof.
 Qed.
 
 Lemma SumUnion_cons {m n}
-      (op: Rtheta -> Rtheta -> Rtheta)
-      (x: mvector m) (xs: vector (mvector m) n):
-  SumUnion op (Vcons x xs) ≡ Vec2Union op (SumUnion op xs) x.
+      (x: svector m) (xs: vector (svector m) n):
+  SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
 Proof.
   unfold SumUnion.
   apply Vfold_left_cons.
 Qed.
 
 Lemma AbsorbUnionIndexBinary
-      (op: Rtheta -> Rtheta -> Rtheta)
       (m k : nat)
       (kc : k < m)
-      (a b : mvector m):
-  Vnth (Vec2Union op a b) kc ≡ Union op (Vnth a kc) (Vnth b kc).
+      (a b : svector m):
+  Vnth (Vec2Union a b) kc ≡ Union (Vnth a kc) (Vnth b kc).
 Proof.
   unfold Vec2Union.
   apply Vnth_map2.
 Qed.
 
 Lemma AbsorbUnionIndex
-      (op: Rtheta -> Rtheta -> Rtheta)
-      `{op_mor: !Proper ((=) ==> (=) ==> (=)) op}
-      m n (x: vector (mvector m) n) k (kc: k<m):
-  Vnth (SumUnion op x) kc = VecUnion op (Vmap (fun v => Vnth v kc) x).
+      m n (x: vector (svector m) n) k (kc: k<m):
+  Vnth (SumUnion x) kc = VecUnion (Vmap (fun v => Vnth v kc) x).
 Proof.
   induction n.
   + dep_destruct x.
-    unfold VecUnion, SumUnion, szero_mvector; simpl.
+    unfold VecUnion, SumUnion, szero_svector; simpl.
     rewrite Vnth_const; reflexivity.
   + dep_destruct x.
     rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
@@ -165,13 +138,12 @@ Qed.
 (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
 Lemma AbsorbIUnionIndex
       {o n}
-      (op: Rtheta -> Rtheta -> Rtheta)
-      (body: forall (i : nat) (ic : i < n), mvector o)
+      (body: forall (i : nat) (ic : i < n), svector o)
       k (kc: k<o)
   :
     Vnth
-      (SumUnion op (Vbuild body)) kc ≡
-      VecUnion op
+      (SumUnion (Vbuild body)) kc ≡
+      VecUnion
       (Vbuild
          (fun (i : nat) (ic : i < n) =>
             Vnth (body i ic) kc
@@ -179,8 +151,8 @@ Lemma AbsorbIUnionIndex
 Proof.
   induction n.
   - rewrite 2!Vbuild_0.
-    unfold VecUnion, SumUnion, szero_mvector, MRtheta_SZero.
-        apply Vnth_const.
+    unfold VecUnion, SumUnion, szero_svector, mkSZero.
+    apply Vnth_const.
   -
     rewrite Vbuild_cons.
     rewrite SumUnion_cons.
@@ -192,27 +164,23 @@ Proof.
 Qed.
 
 
-Lemma Union_Plus_MSZero_r x:
-  (Union (plus) x MRtheta_SZero) = x.
+Lemma Union_SZero_r x:
+  (Union x mkSZero) = x.
 Proof.
   unfold Union.
-  unfold_MRtheta_equiv.
+  unfold_Rtheta_equiv.
   rewrite evalWriter_Rtheta_liftM2.
-  rewrite evalWriter_MRtheta_SZero.
-  unfold_Rtheta_val_equiv.
-  simpl.
+  rewrite evalWriter_Rtheta_SZero.
   ring.
 Qed.
 
-Lemma Union_Plus_MSZero_l x:
-  (Union (plus) MRtheta_SZero x) = x.
+Lemma Union_SZero_l x:
+  (Union mkSZero x) = x.
 Proof.
   unfold Union.
-  unfold_MRtheta_equiv.
+  unfold_Rtheta_equiv.
   rewrite evalWriter_Rtheta_liftM2.
-  rewrite evalWriter_MRtheta_SZero.
-  unfold_Rtheta_val_equiv.
-  simpl.
+  rewrite evalWriter_Rtheta_SZero.
   ring.
 Qed.
 
@@ -224,49 +192,40 @@ Proof.
   apply Vbreak_preserves_P.
 Qed.
 
-Lemma Vbreak_dense_mvector {n1 n2} {x: mvector (n1+n2)} {x0 x1}:
-  Vbreak x ≡ (x0, x1) ->
-  mvector_is_dense x ->  (mvector_is_dense x0) /\ (mvector_is_dense x1).
+Lemma Vec2Union_szero_svector_r {n} {a: svector n}:
+  Vec2Union a (szero_svector n) = a.
 Proof.
-  unfold mvector_is_dense.
-  apply Vbreak_preserves_P.
-Qed.
-
-Lemma Vec2Union_szero_svector_r {n} {a: mvector n}:
-  Vec2Union plus a (szero_mvector n) = a.
-Proof.
-  unfold szero_mvector.
+  unfold szero_svector.
   induction n.
   VOtac; reflexivity.
   simpl.
   rewrite Vcons_to_Vcons_reord.
   rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-  rewrite Union_Plus_MSZero_r.
+  rewrite Union_SZero_r.
   rewrite <- Vcons_to_Vcons_reord.
   dep_destruct a.
   crush.
 Qed.
 
-Lemma Vec2Union_szero_svector_l {n} {a: mvector n}:
-  Vec2Union plus (szero_mvector n) a = a.
+Lemma Vec2Union_szero_svector_l {n} {a: svector n}:
+  Vec2Union (szero_svector n) a = a.
 Proof.
-  unfold szero_mvector.
+  unfold szero_svector.
   induction n.
   VOtac; reflexivity.
   simpl.
   rewrite Vcons_to_Vcons_reord.
   rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-  rewrite Union_Plus_MSZero_l.
+  rewrite Union_SZero_l.
   rewrite <- Vcons_to_Vcons_reord.
   dep_destruct a.
   crush.
 Qed.
 
-Definition mvector_valueCollision {n} (x:mvector n) :=
-  Vfold_left orb false (Vmap MRtheta_valueCollision x).
+Definition svector_valueCollision {n} (v:svector n) :=
+  Vforall (IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
 
-Definition mvector_Is_valueCollision_free :=
-  Vforall (not ∘ MRtheta_Is_valueCollision).
+Definition svector_Is_valueCollision_free {n} (v:svector n) := (not ∘ svector_valueCollision) v.
 
 Close Scope vector_scope.
 Close Scope nat_scope.

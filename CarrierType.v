@@ -1,9 +1,11 @@
-(* 
+(*
 Carrier type used in all our proofs. Could be real of Float in future.
  *)
 
 Require Import Coq.Bool.Bool.
 Require Import Ring.
+
+Require Import CoLoR.Util.Vector.VecUtil.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -30,3 +32,4 @@ Parameter CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmu
 
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
+Notation avector n := (vector CarrierA n) (only parsing).
