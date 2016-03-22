@@ -96,6 +96,42 @@ Section HCOL_Language.
 
   Section HCOL_operators.
 
+    Global Instance Pointwise_HOperator
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      HOperator (@Pointwise n f pF).
+    Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
+      intros x y E.
+      unfold Pointwise.
+      apply Vforall2_intro_nth.
+      intros i ip.
+      rewrite 2!Vbuild_nth.
+      assert(Vnth x ip = Vnth y ip).
+      apply Vnth_arg_equiv; assumption.
+      rewrite H.
+      reflexivity.
+    Qed.
+
+    Global Instance Atomic_HOperator
+           (f: CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=)) f}:
+      HOperator (Atomic f).
+    Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
+      intros x y E.
+      unfold Atomic.
+      unfold equiv, vec_equiv.
+      apply Vforall2_intro_nth.
+      intros.
+      simpl.
+      dep_destruct i.
+      rewrite E.
+      reflexivity.
+      reflexivity.
+    Qed.
+
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
     Proof.

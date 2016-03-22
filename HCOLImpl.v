@@ -96,6 +96,7 @@ Section HCOL_implementations.
     end.
 
   (* === HCOL Basic Operators === *)
+
   (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
   Definition BinOp {n}
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
@@ -104,6 +105,20 @@ Section HCOL_implementations.
     match ab with
     | (a,b) =>  Vmap2Indexed f a b
     end.
+
+  Definition Pointwise
+             {n: nat}
+             (f: { i | i<n} -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (x: avector n)
+    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
+
+  (* Special case of pointwise *)
+  Definition Atomic
+             (f: CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=)) f}
+             (x: avector 1)
+    := [f (Vhead x)].
 
   (* --- Induction --- *)
 

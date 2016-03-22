@@ -199,55 +199,6 @@ wrt equiv. (TODO: maybe not true anymore)
     apply Scatter_Proper.
   Qed.
 
-  Definition Pointwise
-             {n: nat}
-             (f: { i | i<n} -> Rtheta -> Rtheta)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (x: svector n)
-    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
-
-  Global Instance Pointwise_HOperator
-         {n: nat}
-         (f: { i | i<n} -> Rtheta -> Rtheta)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    HOperator (@Pointwise n f pF).
-  Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
-    intros x y E.
-    unfold Pointwise.
-    apply Vforall2_intro_nth.
-    intros i ip.
-    rewrite 2!Vbuild_nth.
-    assert(Vnth x ip = Vnth y ip).
-    apply Vnth_arg_equiv; assumption.
-    rewrite H.
-    reflexivity.
-  Qed.
-
-  Definition Atomic
-             (f: Rtheta -> Rtheta)
-             `{pF: !Proper ((=) ==> (=)) f}
-             (x: svector 1)
-    := [f (Vhead x)].
-
-  Global Instance Atomic_HOperator
-         (f: Rtheta -> Rtheta)
-         `{pF: !Proper ((=) ==> (=)) f}:
-    HOperator (Atomic f).
-  Proof.
-    unfold HOperator. split; try (apply vec_Setoid).
-    intros x y E.
-    unfold Atomic.
-    unfold equiv, vec_equiv.
-    apply Vforall2_intro_nth.
-    intros.
-    simpl.
-    dep_destruct i.
-    rewrite E.
-    reflexivity.
-    reflexivity.
-  Qed.
-
 End SigmaHCOL_Operators.
 
 (* Specification of gather as mapping from ouptu to input. NOTE:
