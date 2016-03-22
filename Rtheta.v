@@ -177,3 +177,15 @@ Lemma evalWriter_Rtheta_SZero:
 Proof.
   reflexivity.
 Qed.
+
+Global Instance mkValue_Proper:
+  Proper((=) ==> (=)) mkValue.
+Proof.
+  simpl_relation.
+Qed.
+
+Global Instance mkStruct_Proper:
+  Proper((=) ==> (=)) mkStruct.
+Proof.
+  simpl_relation.
+Qed.
