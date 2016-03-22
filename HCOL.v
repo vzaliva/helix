@@ -1,9 +1,7 @@
 (* Coq defintions for HCOL operator language *)
 
 Require Import Spiral.
-Require Import Rtheta.
-Require Import MRtheta.
-Require Import SVector.
+Require Import CarrierType.
 Require Import HCOLImpl.
 
 Require Import Arith.
@@ -32,9 +30,9 @@ Open Scope vector_scope.
 
 Section HCOL_Language.
 
-  Class HOperator {i o:nat} (op: mvector i -> mvector o) :=
+  Class HOperator {i o:nat} (op: avector i -> avector o) :=
     o_setoidmor :> Setoid_Morphism op.
-  
+
   Lemma HOperator_functional_extensionality
         {m n: nat}
         `{HOperator m n f}
@@ -44,56 +42,56 @@ Section HCOL_Language.
     unfold HOperator in *.
     apply ext_equiv_applied_iff.
   Qed.
-  
-  Definition HPrepend {i n} (a:mvector n)
-    : mvector i -> mvector (n+i)
+
+  Definition HPrepend {i n} (a:avector n)
+    : avector i -> avector (n+i)
     := Vapp a.
 
   Definition HInfinityNorm {i}
-    : mvector i -> mvector 1
+    : avector i -> avector 1
     := Vectorize ∘ InfinityNorm.
 
   Definition HReduction {i}
-             (f: MRtheta -> MRtheta -> MRtheta)
+             (f: CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (idv: MRtheta)
-    : mvector i -> mvector 1
+             (idv: CarrierA)
+    : avector i -> avector 1
     := Vectorize ∘ (Reduction f idv).
 
-  Definition HAppend {i n} (a:mvector n)
-    : mvector i -> mvector (i+n)
+  Definition HAppend {i n} (a:avector n)
+    : avector i -> avector (i+n)
     := fun x => Vapp x a.
 
   Definition HVMinus {o}
-    : mvector (o+o) -> mvector o
+    : avector (o+o) -> avector o
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
-             (f: nat -> MRtheta -> MRtheta -> MRtheta)
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    : mvector (o+o) -> mvector o
+    : avector (o+o) -> avector o
     :=  BinOp f ∘ (vector2pair o).
 
-  Definition HEvalPolynomial {n} (a: mvector n): mvector 1 -> mvector 1
+  Definition HEvalPolynomial {n} (a: avector n): avector 1 -> avector 1
     := Lst ∘ EvalPolynomial a ∘ Scalarize.
 
   Definition HMonomialEnumerator n
-    : mvector 1 -> mvector (S n)
+    : avector 1 -> avector (S n)
     := MonomialEnumerator n ∘ Scalarize.
 
   Definition HChebyshevDistance h
-    : mvector (h+h) -> mvector 1
+    : avector (h+h) -> avector 1
     := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
 
   Definition HScalarProd {h}
-    : mvector (h+h) -> mvector 1
+    : avector (h+h) -> avector 1
     := Lst ∘ ScalarProd ∘ (vector2pair h).
 
   Definition HInduction (n:nat)
-             (f: MRtheta -> MRtheta -> MRtheta)
+             (f: CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (initial: MRtheta)
-    : mvector 1 -> mvector n
+             (initial: CarrierA)
+    : avector 1 -> avector n
     := Induction n f initial ∘ Scalarize.
 
   Section HCOL_operators.
@@ -111,7 +109,7 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HBinOp_HOperator {o}
-           (f: nat -> MRtheta -> MRtheta -> MRtheta)
+           (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f pF).
     Proof.
@@ -124,9 +122,9 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HReduction_HOperator {i}
-           (f: MRtheta -> MRtheta -> MRtheta)
+           (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (idv: MRtheta):
+           (idv: CarrierA):
       HOperator (@HReduction i f pF idv).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -138,7 +136,7 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HEvalPolynomial_HOperator {n} (a: mvector n):
+    Global Instance HEvalPolynomial_HOperator {n} (a: avector n):
       HOperator (@HEvalPolynomial n a).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -150,7 +148,7 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance HPrepend_HOperator {i n} (a:mvector n):
+    Global Instance HPrepend_HOperator {i n} (a:avector n):
       HOperator (@HPrepend i n a).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -187,9 +185,9 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HInduction_HOperator {n:nat}
-           (f: MRtheta -> MRtheta -> MRtheta)
+           (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (initial: MRtheta):
+           (initial: CarrierA):
       HOperator (HInduction n f initial).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
@@ -242,7 +240,7 @@ Section IgnoreIndex_wrapper.
   Qed.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
-  Definition IgnoreIndex2 {A} (f:A->A->A) := fun  (i:nat) => f.
+  Definition IgnoreIndex2 {A} (f:A->A->A) := fun (i:nat) => f.
 
   Lemma IgnoreIndex2_ignores `{Setoid A}
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
@@ -262,10 +260,10 @@ Section IgnoreIndex_wrapper.
   Qed.
 
   Global Instance IgnoreIndex2_preserves_proper
-         (f: Rtheta -> Rtheta -> Rtheta)
+         (f: CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     :
-    (Proper ((=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2 f)).
+      (Proper ((=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2 f)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex2.
@@ -273,7 +271,7 @@ Section IgnoreIndex_wrapper.
     reflexivity.
   Qed.
 
-  
+
 End IgnoreIndex_wrapper.
 
 
