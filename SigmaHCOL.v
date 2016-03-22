@@ -328,7 +328,7 @@ Lemma Scatter_is_almost_endomorphism
       (x : svector i)
       (f: index_map i o)
       {f_inj : index_map_injective f}:
-  Vforall (fun p => (Vin p x) \/ (p ≡ Rtheta_SZero))
+  Vforall (fun p => (Vin p x) \/ (p ≡ mkSZero))
           (Scatter f (f_inj:=f_inj) x).
 Proof.
   apply Vforall_nth_intro.
