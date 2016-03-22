@@ -1,9 +1,6 @@
 
 Require Import Spiral.
-Require Import Rtheta.
-Require Import MRtheta.
-Require Import SVector.
-Require Import WriterMonadNoT.
+Require Import CarrierType.
 
 Require Import HCOL.
 Require Import HCOLImpl.
@@ -33,7 +30,7 @@ Import VectorNotations.
 Open Scope vector_scope.
 Open Scope hcol_scope.
 
-Definition MaxAbs (a b: MRtheta): MRtheta := max (abs a) (abs b).
+Definition MaxAbs (a b: CarrierA): CarrierA := max (abs a) (abs b).
 
 Global Instance MaxAbs_proper:
   Proper ((=) ==> (=) ==> (=)) (MaxAbs).
@@ -59,7 +56,7 @@ Section HCOLBreakdown.
     reflexivity.
   Qed.
 
-  Theorem breakdown_ScalarProd: forall (n:nat) (a v: mvector n),
+  Theorem breakdown_ScalarProd: forall (n:nat) (a v: avector n),
       ScalarProd (a,v) =
       (compose (Reduction (+) 0) (BinOp (IgnoreIndex2 mult))) (a,v).
   Proof.
@@ -68,7 +65,7 @@ Section HCOLBreakdown.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2Indexed_to_VMap2.
     reflexivity.
-    apply MRtheta_mult_proper.
+    solve_proper.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat},
@@ -85,7 +82,7 @@ Section HCOLBreakdown.
     apply breakdown_ScalarProd.
   Qed.
 
-  Theorem breakdown_EvalPolynomial: forall (n:nat) (a: mvector (S n)) (v: MRtheta),
+  Theorem breakdown_EvalPolynomial: forall (n:nat) (a: avector (S n)) (v: CarrierA),
       EvalPolynomial a v = (
         compose (ScalarProd) (compose (pair a) (MonomialEnumerator n))
       ) v.
@@ -96,7 +93,7 @@ Section HCOLBreakdown.
     - simpl (MonomialEnumerator 0 v).
       rewrite EvalPolynomial_reduce.
       dep_destruct (Vtail a).
-      simpl. rewrite MRthetaSZero_Zero.
+      simpl.
       ring.
 
     - rewrite EvalPolynomial_reduce, MonomialEnumerator_cons, ScalarProd_reduce.
@@ -111,7 +108,7 @@ Section HCOLBreakdown.
       reflexivity.
   Qed.
 
-  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: mvector (S n)),
+  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: avector (S n)),
       HEvalPolynomial a =
       (HScalarProd ∘
                    ((HPrepend  a) ∘
@@ -125,7 +122,7 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Theorem breakdown_TInfinityNorm: forall (n:nat) (v: mvector n),
+  Theorem breakdown_TInfinityNorm: forall (n:nat) (v: avector n),
       InfinityNorm v = (Reduction MaxAbs 0) v.
   Proof.
     intros.
@@ -136,57 +133,18 @@ Section HCOLBreakdown.
       rewrite_clear IHv.
       simpl.
 
-      assert(H: forall a b:MRtheta, MaxAbs a b = Rtheta_liftM2 max (abs a) (abs b)).
-      {
-        intros.
-        unfold MaxAbs.
-
-        (* TODO: this may be generalized to more universal lemma *)
-        assert(A: forall x:MRtheta,
-                  abs x =
-                  (Rtheta_liftM abs) x
-              ).
-        {
-          intros x.
-          unfold abs at 1.
-          simpl.
-          unfold_MRtheta_equiv.
-          rewrite 2!evalWriter_Rtheta_liftM.
-          reflexivity.
-        }
-        rewrite 2!A. clear A.
-
-        (* TODO: this may be generalized to more universal lemma *)
-        assert(M: forall x y: MRtheta,
-                  max x y =
-                  (Rtheta_liftM2 max) x y
-              ).
-        {
-          intros x y.
-          unfold max.
-          unfold sort.
-          unfold decide_rel.
-          unfold MRtheta_ledec.
-          unfold_MRtheta_equiv.
-          rewrite evalWriter_Rtheta_liftM2.
-          break_if; crush.
-        }
-        rewrite_clear M.
-        reflexivity.
-      }
-      rewrite_clear H.
-      assert (ABH: (abs (Vfold_right MaxAbs v 0)) =
-                   (Vfold_right MaxAbs v 0)).
+      assert(ABH: (abs (Vfold_right MaxAbs v 0)) =
+                  (Vfold_right MaxAbs v 0)).
       {
         unfold MaxAbs.
         dependent induction v.
         + simpl.
           apply abs_0_s.
-
-        + apply MRtheta_TotalOrder.
+        + apply CarrierAto.
           rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
           reflexivity.
       }
+      unfold MaxAbs.
       rewrite_clear ABH.
       reflexivity.
   Qed.
@@ -202,7 +160,7 @@ Section HCOLBreakdown.
   Qed.
 
   Theorem breakdown_MonomialEnumerator:
-    forall (n:nat) (x: MRtheta),
+    forall (n:nat) (x: CarrierA),
       MonomialEnumerator n x = Induction (S n) (.*.) 1 x.
   Proof.
     intros n x.
@@ -217,7 +175,7 @@ Section HCOLBreakdown.
       unfold Scale.
 
       rewrite 2!Vmap_to_Vmap_reord.
-      setoid_replace (fun x0 : MRtheta => mult x0 x) with (mult x).
+      setoid_replace (fun x0 : CarrierA => mult x0 x) with (mult x).
       reflexivity.
       +
         compute. intros.
@@ -234,7 +192,7 @@ Section HCOLBreakdown.
     apply breakdown_MonomialEnumerator.
   Qed.
 
-  Theorem breakdown_ChebyshevDistance:  forall (n:nat) (ab: (mvector n)*(mvector n)),
+  Theorem breakdown_ChebyshevDistance:  forall (n:nat) (ab: (avector n)*(avector n)),
       ChebyshevDistance ab = (compose InfinityNorm VMinus) ab.
   Proof.
     intros.
@@ -253,7 +211,7 @@ Section HCOLBreakdown.
     apply breakdown_ChebyshevDistance.
   Qed.
 
-  Theorem breakdown_VMinus:  forall (n:nat) (ab: (mvector n)*(mvector n)),
+  Theorem breakdown_VMinus:  forall (n:nat) (ab: (avector n)*(avector n)),
       VMinus ab =  BinOp (IgnoreIndex2 pneg) ab.
   Proof.
     intros.
@@ -275,8 +233,8 @@ Section HCOLBreakdown.
 
   Fact breakdown_OTLess_Base: forall
       {i1 i2 o}
-      `{o1pf: !HOperator (o1: mvector i1 -> mvector o)}
-      `{o2pf: !HOperator (o2: mvector i2 -> mvector o)},
+      `{o1pf: !HOperator (o1: avector i1 -> avector o)}
+      `{o2pf: !HOperator (o2: avector i2 -> avector o)},
       HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
@@ -298,7 +256,7 @@ End HCOLBreakdown.
 
 
 (* Our top-level example goal *)
-Lemma DynWinOSPL:  forall (a: mvector 3),
+Lemma DynWinOSPL:  forall (a: avector 3),
     (HTLess
        (HEvalPolynomial a)
        (HChebyshevDistance 2))

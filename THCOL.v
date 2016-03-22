@@ -1,11 +1,7 @@
 (* Template HCOL. HCOL meta-operators *)
 
-(* Coq defintions for HCOL operator language *)
-
 Require Import Spiral.
-Require Import Rtheta.
-Require Import MRtheta.
-Require Import SVector.
+Require Import CarrierType.
 Require Import THCOLImpl.
 Require Import HCOL.
 
@@ -33,7 +29,7 @@ Open Scope vector_scope.
 
 
 (* Templete HCOL operator which uses two HOperators to build a new HOperator *)
-Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (mvector i1 -> mvector o1) -> (mvector i2 -> mvector o2) -> mvector ix -> mvector ox) :=
+Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (avector i1 -> avector o1) -> (avector i2 -> avector o2) -> avector ix -> avector ox) :=
   mop_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
 
 (* Curried Templete HCOL operator with arity 2 is HOperators *)
@@ -49,10 +45,10 @@ Qed.
 
 Definition HCross
            {i1 o1 i2 o2}
-           (f: mvector i1 -> mvector o1)
-           (g: mvector i2 -> mvector o2):
-  mvector (i1+i2) -> mvector (o1+o2)
-  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak MRtheta i1 i2).
+           (f: avector i1 -> avector o1)
+           (g: avector i2 -> avector o2):
+  avector (i1+i2) -> avector (o1+o2)
+  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak CarrierA i1 i2).
 
 Instance HCross_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HCross i1 o1 i2 o2).
@@ -81,9 +77,9 @@ Qed.
 
 Definition HStack
            {i1 o1 o2}
-           (f: mvector i1 -> mvector o1)
-           (g: mvector i1 -> mvector o2)
-  : mvector i1 -> mvector (o1+o2) :=
+           (f: avector i1 -> avector o1)
+           (g: avector i1 -> avector o2)
+  : avector i1 -> avector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
 Instance HStack_THOperator2 {i1 o1 o2}:
@@ -100,8 +96,8 @@ Qed.
 
 Definition HCompose
            {i1 o2 o3}
-           (op1: mvector o2 -> mvector o3)
-           (op2: mvector i1 -> mvector o2)
+           (op1: avector o2 -> avector o3)
+           (op2: avector i1 -> avector o2)
   := compose op1 op2.
 
 Notation " g ∘ f " := (HCompose g f)
@@ -118,11 +114,11 @@ Proof.
 Qed.
 
 Definition HTLess {i1 i2 o}
-           (f: mvector i1 -> mvector o)
-           (g: mvector i2 -> mvector o)
-  : mvector (i1+i2) -> mvector o
+           (f: avector i1 -> avector o)
+           (g: avector i2 -> avector o)
+  : avector (i1+i2) -> avector o
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
-            ZVLess (f v1, g v2).
+               ZVLess (f v1, g v2).
 
 Instance HTLess_THOperator2 {i1 i2 o}:
   THOperator2 (@HTLess i1 i2 o).
@@ -154,24 +150,10 @@ We put an additional constraint of 'f' and 'g' being HOperators
  *)
 Definition HTDirectSum
            {i1 o1 i2 o2}
-           (f: mvector i1 -> mvector o1)
-           (g: mvector i2 -> mvector o2)
-  : mvector (i1+i2) -> mvector (o1+o2) := HCross f g.
+           (f: avector i1 -> avector o1)
+           (g: avector i2 -> avector o2)
+  : avector (i1+i2) -> avector (o1+o2) := HCross f g.
 
 (* Not sure if this is needed *)
 Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
-
-
-(* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
-just Union of two vectors, produced by application of two operators
-to the input.
-In general HTSUMUnion is not HOperator, since Union is not Proper
-wrt equiv.
- *)
-
-Definition HTSUMUnion {i o}
-           (f: mvector i -> mvector o)
-           (g: mvector i -> mvector o)
-           (x: mvector i): mvector o
-  :=  Vec2Union plus (f x) (g x).

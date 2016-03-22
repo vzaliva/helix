@@ -1,9 +1,7 @@
-(* Low-level functions implementing HCOL matrix and vector manupulation operators *)
+(* HCOL metaoperators *)
 
 Require Import Spiral.
-Require Import Rtheta.
-Require Import MRtheta.
-Require Import SVector.
+Require Import CarrierType.
 
 Require Import Arith.
 Require Import Program. (* compose *)
@@ -34,7 +32,7 @@ Section THCOL_implementations.
     match fg with
     | (f,g) => pair (f x) (g x)
     end.
-  
+
   (* Apply 2 functions to 2 inputs returning tuple of results *)
   Definition Cross {D R E F: Type} (fg:(D->R)*(E->F)) (x:D*E) : (R*F) :=
     match fg with
@@ -42,30 +40,30 @@ Section THCOL_implementations.
               | (x0,x1) => pair (f x0) (g x1)
               end
     end.
-  
-  Definition Zless (a b: MRtheta): MRtheta
-    := if MRtheta_ltdec a b then one else zero.
-  
+
+  Definition Zless (a b: CarrierA): CarrierA
+    := if CarrierAltdec a b then one else zero.
+
   Global Instance Zless_proper:
     Proper ((=) ==> (=) ==> (=)) (Zless).
   Proof.
     unfold Proper.
     intros a a' aE z z' zE.
     unfold Zless.
-    destruct (MRtheta_ltdec a z), (MRtheta_ltdec a' z'); auto.
+    destruct (CarrierAltdec a z), (CarrierAltdec a' z'); auto.
     rewrite aE, zE in l; contradiction.
     rewrite <- aE, <- zE in l; contradiction.
   Qed.
 
   (* --- Pointwise Comparison --- *)
-  
+
   (* Zero/One version *)
-  Definition ZVLess {n} 
-             (ab: (mvector n)*(mvector n)) : mvector n :=
+  Definition ZVLess {n}
+             (ab: (avector n)*(avector n)) : avector n :=
     match ab with
     | (a,b) => Vmap2 (Zless) a b
     end.
-  
+
   Global Instance ZVLess_proper {n:nat}:
     Proper ((=) ==> (=))  (@ZVLess n).
   Proof.
@@ -78,16 +76,16 @@ Section THCOL_implementations.
     rewrite H0, H.
     reflexivity.
   Qed.
-  
+
 End THCOL_implementations.
 
 
 Section THCOL_implementation_proper.
 
   Global Instance Cross_arg_proper
-           `{Equiv D,Equiv R,Equiv E,Equiv F}
-           `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-           `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
+         `{Equiv D,Equiv R,Equiv E,Equiv F}
+         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+         `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
     Proper ((=) ==> (=))  (Cross (f,g)).
   Proof.
     intros fg fg' fgE.
@@ -99,9 +97,9 @@ Section THCOL_implementation_proper.
   Qed.
 
   Global Instance Stack_arg_proper
-           `{Equiv D,Equiv R,Equiv F}
-           `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
-           `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
+         `{Equiv D,Equiv R,Equiv F}
+         `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
+         `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
     Proper ((=) ==> (=))  (Stack (f,g)).
   Proof.
     intros fg fg' fgE.
@@ -109,5 +107,5 @@ Section THCOL_implementation_proper.
     apply pF; assumption.
     apply pG; assumption.
   Qed.
-  
+
 End THCOL_implementation_proper.
