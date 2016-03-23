@@ -106,20 +106,6 @@ Section HCOL_implementations.
     | (a,b) =>  Vmap2Indexed f a b
     end.
 
-  Definition Pointwise
-             {n: nat}
-             (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (x: avector n)
-    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
-
-  (* Special case of pointwise *)
-  Definition Atomic
-             (f: CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=)) f}
-             (x: avector 1)
-    := [f (Vhead x)].
-
   (* --- Induction --- *)
 
   Fixpoint Induction (n:nat) (f:CarrierA -> CarrierA -> CarrierA)

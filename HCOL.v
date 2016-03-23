@@ -94,17 +94,31 @@ Section HCOL_Language.
     : avector 1 -> avector n
     := Induction n f initial ∘ Scalarize.
 
+  Definition HPointwise
+             {n: nat}
+             (f: { i | i<n} -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (x: avector n)
+    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
+
+  (* Special case of pointwise *)
+  Definition HAtomic
+             (f: CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=)) f}
+             (x: avector 1)
+    := [f (Vhead x)].
+
   Section HCOL_operators.
 
-    Global Instance Pointwise_HOperator
+    Global Instance HPointwise_HOperator
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      HOperator (@Pointwise n f pF).
+      HOperator (@HPointwise n f pF).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
-      unfold Pointwise.
+      unfold HPointwise.
       apply Vforall2_intro_nth.
       intros i ip.
       rewrite 2!Vbuild_nth.
@@ -114,14 +128,14 @@ Section HCOL_Language.
       reflexivity.
     Qed.
 
-    Global Instance Atomic_HOperator
+    Global Instance HAtomic_HOperator
            (f: CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=)) f}:
-      HOperator (Atomic f).
+      HOperator (HAtomic f).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
-      unfold Atomic.
+      unfold HAtomic.
       unfold equiv, vec_equiv.
       apply Vforall2_intro_nth.
       intros.

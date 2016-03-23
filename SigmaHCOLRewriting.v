@@ -193,22 +193,22 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma U_SAG1:
-      ∀ (n : nat) (x : mvector n)
-        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      ∀ (n : nat) (x : svector n)
+        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (i : nat) (ip : i < n),
         Vnth
-          (SumUnion plus
-                    (Vbuild
+          (SumUnion
+             (Vbuild
                        (λ (i0 : nat) (id : i0 < n),
                         ((ScatH i0 1
                                 (snzord0:=ScatH_stride1_constr)
                                 (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                           ∘ Atomic (f (i0 ↾ id))
+                           ∘ HAtomic (f (i0 ↾ id))
                            ∘ (GathH i0 1
                                     (domain_bound:=GathH_j1_domain_bound i0 n id))
                         ) x))) ip
         =
-        Vnth (Pointwise f x) ip.
+        Vnth (HPointwise f x) ip.
     Proof.
       intros n x f pF i ip.
       unfold HCompose, compose.
