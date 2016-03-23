@@ -30,10 +30,9 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Local Open Scope hcol_scope. (* for compose *)
-
 Section SigmaHCOLRewriting.
 
+  Local Open Scope hcol_scope. (* for compose *)
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
@@ -192,23 +191,31 @@ Section SigmaHCOLRewriting.
       auto.
     Qed.
 
+    Definition liftM_HOperator
+               {i o}
+               (op: avector i -> avector o)
+               `{hop: !HOperator op}
+               (x:svector i): svector o :=
+      svector_from_vector (op (vector_from_svector x)).
+
     Lemma U_SAG1:
-      ∀ (n : nat) (x : svector n)
+      ∀ (n : nat) (x : avector n)
         (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (i : nat) (ip : i < n),
         Vnth
           (SumUnion
              (Vbuild
                        (λ (i0 : nat) (id : i0 < n),
-                        ((ScatH i0 1
+                        ((
+                            ScatH i0 1
                                 (snzord0:=ScatH_stride1_constr)
                                 (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                           ∘ HAtomic (f (i0 ↾ id))
+                           ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
                            ∘ (GathH i0 1
                                     (domain_bound:=GathH_j1_domain_bound i0 n id))
-                        ) x))) ip
+                        ) (svector_from_vector x)))) ip
         =
-        Vnth (HPointwise f x) ip.
+        mkValue (Vnth (HPointwise f x) ip).
     Proof.
       intros n x f pF i ip.
       unfold HCompose, compose.
