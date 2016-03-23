@@ -172,20 +172,32 @@ Proof.
   crush.
 Qed.
 
-Lemma evalWriter_Rtheta_SZero:
-  evalWriter mkSZero = zero.
-Proof.
-  reflexivity.
-Qed.
+Section Zero_Utils.
 
-Global Instance mkValue_Proper:
-  Proper((=) ==> (=)) mkValue.
-Proof.
-  simpl_relation.
-Qed.
+  Lemma evalWriter_Rtheta_SZero:
+    evalWriter mkSZero = zero.
+  Proof.
+    reflexivity.
+  Qed.
 
-Global Instance mkStruct_Proper:
-  Proper((=) ==> (=)) mkStruct.
-Proof.
-  simpl_relation.
-Qed.
+  Global Instance mkValue_Proper:
+    Proper((=) ==> (=)) mkValue.
+  Proof.
+    simpl_relation.
+  Qed.
+
+  Global Instance mkStruct_Proper:
+    Proper((=) ==> (=)) mkStruct.
+  Proof.
+    simpl_relation.
+  Qed.
+
+  Definition Is_ValZero (x:Rtheta) := (evalWriter x) = 0.
+
+  Lemma Is_ValZero_to_mkSZero (x:Rtheta):
+    (Is_ValZero x) <-> (x = mkSZero).
+  Proof.
+    split; auto.
+  Qed.
+
+End Zero_Utils.

@@ -1,7 +1,6 @@
 
 Require Import Spiral.
 Require Import Rtheta.
-Require Import MRtheta.
 Require Import SVector.
 Require Import SigmaHCOL.
 Require Import HCOL.
@@ -55,33 +54,24 @@ Section SigmaHCOLRewriting.
       lia.
     Qed.
 
-    Lemma Is_Struct_Rtheta_SZero:
-      Is_Struct Rtheta_SZero.
-    Proof.
-      unfold Rtheta_SZero.
-      unfold Is_Struct.
-      simpl.
-      trivial.
-    Qed.
-
     Lemma VecUnion_structs:
-      ∀ (m : nat) (x : mvector m),
-        Vforall Is_MValZero x → Is_MValZero (VecUnion plus x).
+      ∀ (m : nat) (x : svector m),
+        Vforall Is_ValZero x → Is_ValZero (VecUnion x).
     Proof.
       intros m x H.
       unfold VecUnion.
       induction x.
       -
-        unfold Is_MValZero, Is_ValZero.
-        unfold_MRtheta_equiv.
+        unfold Is_ValZero.
+        unfold_Rtheta_equiv.
         reflexivity.
       - simpl in H. destruct H as [Hh Hx].
         Opaque Monad.ret.
         simpl.
         Transparent Monad.ret.
-        apply Is_MValZero_to_MSZero in Hh.
+        rewrite Is_ValZero_to_mkSZero in *.
         rewrite Hh.
-        rewrite Union_Plus_MSZero_r.
+        rewrite Union_SZero_r.
         apply IHx, Hx.
     Qed.
 
