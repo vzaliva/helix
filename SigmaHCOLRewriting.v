@@ -136,7 +136,7 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma InverseIndex_1_hit:
-      ∀ (n k s : nat) (kp : k < n) (v : MRtheta),
+      ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
         (@VnthInverseIndexMapped 1 n [v]
                                  (@build_inverse_index_map 1 n
                                                            (@h_index_map 1 n k s
@@ -159,14 +159,14 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma InverseIndex_1_miss:
-      ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : MRtheta),
+      ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : Rtheta),
         i ≢ j ->
         @VnthInverseIndexMapped 1 n [v]
                                 (@build_inverse_index_map 1 n
                                                           (@h_index_map 1 n j s
                                                                         (ScatH_1_to_n_range_bound j n s jp)
                                 ))
-                                i ip ≡ MRtheta_SZero.
+                                i ip ≡ mkSZero.
     Proof .
       intros n s i j ip jp v N.
       destruct (@build_inverse_index_map 1 n
