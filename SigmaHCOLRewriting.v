@@ -375,33 +375,33 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma U_SAG2:
-      ∀ (n : nat) (x : mvector (n + n))
-        (f: nat -> MRtheta -> MRtheta -> MRtheta)
+      ∀ (n : nat) (x : avector (n + n))
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         (k : nat) (kp : k < n),
         Vnth
-          (SumUnion plus
-                    (@Vbuild (mvector n) n
-                             (fun i id =>
-                                ((ScatH i 1
-                                        (snzord0:=ScatH_stride1_constr)
-                                        (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                                   ∘ (HBinOp (o:=1) (SwapIndex2 i f))
-                                   ∘ (GathH i n
-                                            (domain_bound:=GathH_jn_domain_bound i n id))
-                                ) x
+          (SumUnion
+             (@Vbuild (svector n) n
+                      (fun i id =>
+                         ((ScatH i 1
+                                 (snzord0:=ScatH_stride1_constr)
+                                 (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                            ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
+                            ∘ (GathH i n
+                                     (domain_bound:=GathH_jn_domain_bound i n id))
+                         ) (svector_from_vector x)
           ))) kp
-        = Vnth (HBinOp (o:=n) (f) x) kp.
+        = mkValue (Vnth (HBinOp (o:=n) (f) x) kp).
     Proof.
       intros n x f f_mor k kp.
-      unfold HCompose, compose.
+      unfold compose.
 
       remember (fun i id =>
                   ScatH i 1
                         (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                        (HBinOp (o:=1) (SwapIndex2 i f)
-                                (GathH i n
-                                       (domain_bound:=GathH_jn_domain_bound i n id) x)))
+                        (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                                         (GathH i n
+                                                (domain_bound:=GathH_jn_domain_bound i n id) (svector_from_vector x))))
         as bf.
 
       assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
@@ -411,8 +411,8 @@ Section SigmaHCOLRewriting.
                          (ScatH i 1
                                 (snzord0:=ScatH_stride1_constr)
                                 (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                                (HBinOp (o:=1) (SwapIndex2 i f)
-                                        [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
+                                (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                                                 [(Vnth (svector_from_vector x) (ILTNN i id));  (Vnth (svector_from_vector x) (INLTNN i id))])))).
       {
         subst bf.
         extensionality j. extensionality jn.
@@ -433,9 +433,15 @@ Section SigmaHCOLRewriting.
                         ScatH i 1
                               (snzord0:=ScatH_stride1_constr)
                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                              [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id)) ])).
+                              (svector_from_vector
+                                 [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))]))).
       {
         rewrite B1.
+        extensionality i.
+        extensionality id.
+        unfold liftM_HOperator, compose, svector_from_vector.
+        rewrite 2!Vnth_map.
+        simpl.
         reflexivity.
       }
       rewrite B2.
@@ -448,19 +454,19 @@ Section SigmaHCOLRewriting.
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
       remember (Vbuild
                   (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH z 1 [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))]) kp)) as b.
+                   Vnth (ScatH z 1 (svector_from_vector [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
-            ib ≢ k -> Is_MValZero (Vnth b icb)).
+            ib ≢ k -> Is_ValZero (Vnth b icb)).
       {
         intros ib icb.
-
         subst.
         rewrite Vbuild_nth.
         unfold ScatH, Scatter.
         rewrite Vbuild_nth.
         intros H.
+        simpl.
         rewrite InverseIndex_1_miss.
         apply SZero_is_ValZero.
         auto.
@@ -470,6 +476,7 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
+      simpl.
       rewrite InverseIndex_1_hit.
       setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
       reflexivity.
@@ -485,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:mvector (n+n))
-             (f: nat -> MRtheta -> MRtheta -> MRtheta)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> MRtheta -> MRtheta -> MRtheta)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         HBinOp (o:=n) (f) x =
         SumUnion plus
                  (@Vbuild (mvector n) n
