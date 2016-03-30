@@ -491,28 +491,29 @@ Section SigmaHCOLRewriting.
         )))),
      *)
     Theorem expand_BinOp:
-      forall n (x:mvector (n+n))
-        (f: nat -> MRtheta -> MRtheta -> MRtheta)
+      forall n (x:avector (n+n))
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        HBinOp (o:=n) (f) x =
-        SumUnion plus
-                 (@Vbuild (mvector n) n
-                          (fun i id =>
-                             (
-                               (ScatH i 1
-                                      (snzord0:=ScatH_stride1_constr)
-                                      (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                                 ∘ (HBinOp (o:=1) (SwapIndex2 i f))
-                                 ∘ (GathH i n
-                                          (domain_bound:=GathH_jn_domain_bound i n id)
-                                   )
-                             ) x
-                 )).
+        svector_from_vector (HBinOp (o:=n) (f) x) =
+        SumUnion
+          (@Vbuild (svector n) n
+                   (fun i id =>
+                      (
+                        (ScatH i 1
+                               (snzord0:=ScatH_stride1_constr)
+                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                          ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
+                          ∘ (GathH i n
+                                   (domain_bound:=GathH_jn_domain_bound i n id)
+                            )
+                      ) (svector_from_vector x)
+          )).
     Proof.
       intros n x f pF.
       apply Vforall2_intro_nth.
       intros i ip.
       symmetry.
+      rewrite Vnth_svector_from_vector.
       apply U_SAG2; assumption.
     Qed.
 
