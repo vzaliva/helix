@@ -45,6 +45,15 @@ Local Open Scope bool_scope.
 
 Set Implicit Arguments.
 
+Lemma Vnth_svector_from_vector:
+  ∀ (n i : nat) (ip : i < n) (v : vector CarrierA n),
+    Vnth (svector_from_vector v) ip ≡ mkValue (Vnth v ip).
+Proof.
+  intros n i ip v.
+  unfold svector_from_vector.
+  apply Vnth_map.
+Qed.
+
 Definition Union: Rtheta -> Rtheta -> Rtheta := liftM2 plus.
 
 Lemma Union_comm:

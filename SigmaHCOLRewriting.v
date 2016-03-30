@@ -224,9 +224,9 @@ Section SigmaHCOLRewriting.
                   (ScatH i0 1
                          (snzord0:=ScatH_stride1_constr)
                          (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                     ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                     ∘ (GathH i0 1
-                              (domain_bound:=GathH_j1_domain_bound i0 n id))
+                    ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                    ∘ (GathH i0 1
+                             (domain_bound:=GathH_j1_domain_bound i0 n id))
                 ) (svector_from_vector x)) as bf.
       assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
                        ScatH i0 1
@@ -274,8 +274,8 @@ Section SigmaHCOLRewriting.
 
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
       remember (Vbuild
-        (λ (z : nat) (zi : z < n),
-         Vnth (ScatH z 1 (svector_from_vector [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
+                  (λ (z : nat) (zi : z < n),
+                   Vnth (ScatH z 1 (svector_from_vector [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
@@ -302,27 +302,28 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma U_SAG1_PW:
-      forall n (x:mvector n)
-        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
-        SumUnion plus
-                 (@Vbuild (mvector n) n
-                          (fun i id =>
-                             (
-                               (ScatH i 1
-                                      (snzord0:=ScatH_stride1_constr)
-                                      (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                                 ∘ (Atomic (f (i ↾ id)))
-                                 ∘ (GathH i 1
-                                          (domain_bound:=GathH_j1_domain_bound i n id)
-                                   )
-                             ) x
-                 ))
+      forall n (x:avector n)
+        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        SumUnion
+          (@Vbuild (svector n) n
+                   (fun i id =>
+                      (
+                        (ScatH i 1
+                               (snzord0:=ScatH_stride1_constr)
+                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                          ∘ (liftM_HOperator (HAtomic (f (i ↾ id))))
+                          ∘ (GathH i 1
+                                   (domain_bound:=GathH_j1_domain_bound i n id)
+                            )
+                      ) (svector_from_vector x)
+          ))
         =
-        Pointwise f x.
+        svector_from_vector (HPointwise f x).
     Proof.
       intros n x f pF.
       apply Vforall2_intro_nth.
       intros i ip.
+      rewrite Vnth_svector_from_vector.
       apply U_SAG1.
     Qed.
 
@@ -483,8 +484,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:mvector (n+n))
-        (f: nat -> MRtheta -> MRtheta -> MRtheta)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> MRtheta -> MRtheta -> MRtheta)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         HBinOp (o:=n) (f) x =
         SumUnion plus
                  (@Vbuild (mvector n) n
