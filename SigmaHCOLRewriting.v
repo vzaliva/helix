@@ -219,17 +219,27 @@ Section SigmaHCOLRewriting.
         mkValue (Vnth (HPointwise f x) ip).
     Proof.
       intros n x f pF i ip.
-      unfold HCompose, compose.
       remember (λ (i0 : nat) (id : i0 < n),
-                ScatH i0 1 (Atomic (f (i0 ↾ id)) (GathH i0 1 x))) as bf.
+                (
+                  (ScatH i0 1
+                         (snzord0:=ScatH_stride1_constr)
+                         (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
+                     ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                     ∘ (GathH i0 1
+                              (domain_bound:=GathH_j1_domain_bound i0 n id))
+                ) (svector_from_vector x)) as bf.
       assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                       ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (Atomic (f (i0 ↾ id)) [Vnth x id]))
-            ).
+                       ScatH i0 1
+                             (snzord0:=ScatH_stride1_constr)
+                             (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)
+                             ((liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                                [Vnth (svector_from_vector x) id]))).
       {
         subst bf.
         extensionality j.
         extensionality jn.
         unfold GathH, Gather.
+        unfold compose.
         rewrite Vbuild_1.
         unfold VnthIndexMapped.
         simpl.
@@ -241,18 +251,21 @@ Section SigmaHCOLRewriting.
         reflexivity.
       }
       assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                        ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)  [f (i0 ↾ id) (Vnth x id)])).
+                        ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (svector_from_vector [f (i0 ↾ id) (Vnth x id)]))).
       {
         rewrite B1.
         extensionality j.
         extensionality jn.
-        unfold Atomic.
+        unfold liftM_HOperator, HAtomic, compose.
+        unfold svector_from_vector.
+        simpl.
+        rewrite Vnth_map.
         reflexivity.
       }
       rewrite B2.
       clear B1 B2 Heqbf bf.
 
-      unfold Pointwise.
+      unfold HPointwise.
       rewrite Vbuild_nth.
 
       (* Lemma5 emebdded below *)
@@ -261,18 +274,19 @@ Section SigmaHCOLRewriting.
 
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
       remember (Vbuild
-                  (λ (z : nat) (zi : z < n), Vnth (ScatH z 1 [f (z ↾ zi) (Vnth x zi)]) ip)) as b.
+        (λ (z : nat) (zi : z < n),
+         Vnth (ScatH z 1 (svector_from_vector [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
-            ib ≢ i -> Is_MValZero (Vnth b icb)).
+            ib ≢ i -> Is_ValZero (Vnth b icb)).
       {
         intros ib icb.
         subst.
         rewrite Vbuild_nth.
         unfold ScatH, Scatter.
-        rewrite Vbuild_nth.
-        intros H.
+        rewrite Vbuild_nth; intros H.
+        simpl.
         rewrite InverseIndex_1_miss.
         apply SZero_is_ValZero.
         auto.
@@ -282,6 +296,7 @@ Section SigmaHCOLRewriting.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
+      simpl.
       rewrite InverseIndex_1_hit.
       reflexivity.
     Qed.

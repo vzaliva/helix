@@ -200,4 +200,12 @@ Section Zero_Utils.
     split; auto.
   Qed.
 
+  Lemma SZero_is_ValZero:
+    Is_ValZero mkSZero.
+  Proof.
+    unfold Is_ValZero.
+    compute.
+    reflexivity.
+  Qed.
+
 End Zero_Utils.
