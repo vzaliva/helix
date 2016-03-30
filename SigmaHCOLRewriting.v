@@ -205,16 +205,16 @@ Section SigmaHCOLRewriting.
         (i : nat) (ip : i < n),
         Vnth
           (SumUnion
-             (Vbuild (A:=Rtheta)
-                       (λ (i0 : nat) (id : i0 < n),
-                        (
-                          (ScatH i0 1
-                                 (snzord0:=ScatH_stride1_constr)
-                                 (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                            ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                            ∘ (GathH i0 1
-                                    (domain_bound:=GathH_j1_domain_bound i0 n id))
-                        ) (svector_from_vector x)))) ip
+             (Vbuild
+                (λ (i0 : nat) (id : i0 < n),
+                 (
+                   (ScatH i0 1
+                          (snzord0:=ScatH_stride1_constr)
+                          (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
+                     ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                     ∘ (GathH i0 1
+                              (domain_bound:=GathH_j1_domain_bound i0 n id))
+                 ) (svector_from_vector x)))) ip
         =
         mkValue (Vnth (HPointwise f x) ip).
     Proof.
@@ -288,7 +288,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:mvector n)
-             (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        (f: { i | i<n} -> MRtheta -> MRtheta) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion plus
                  (@Vbuild (mvector n) n
                           (fun i id =>
@@ -468,8 +468,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:mvector (n+n))
-             (f: nat -> MRtheta -> MRtheta -> MRtheta)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> MRtheta -> MRtheta -> MRtheta)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         HBinOp (o:=n) (f) x =
         SumUnion plus
                  (@Vbuild (mvector n) n
@@ -852,7 +852,7 @@ Section SigmaHCOLRewriting.
         rewrite_clear H.
         crush.
     Qed.
-    
+
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
           (op: Rtheta -> Rtheta -> Rtheta)
@@ -1025,7 +1025,7 @@ Section SigmaHCOLRewriting.
       admit.
       admit.
     Qed.
-     *)
+   *)
 
   End Structural_Correctness.
 
