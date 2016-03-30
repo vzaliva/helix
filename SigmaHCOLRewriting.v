@@ -335,9 +335,10 @@ Section SigmaHCOLRewriting.
       nia.
     Qed.
 
+    (* TODO: maybe move to HCOL modules *)
     Lemma HBinOp_nth:
-      ∀ (n : nat) (x : mvector (n + n))
-        (f : nat -> MRtheta → MRtheta → MRtheta)
+      ∀ (n : nat) (x : avector (n + n))
+        (f : nat -> CarrierA → CarrierA → CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
         Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
