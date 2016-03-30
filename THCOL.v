@@ -100,7 +100,8 @@ Definition HCompose
            (op2: avector i1 -> avector o2)
   := compose op1 op2.
 
-Notation " g ∘ f " := (HCompose g f)
+(* Special compose notation for Hoperator *)
+Notation " g ⊚ f " := (HCompose g f)
                         (at level 40, left associativity) : hcol_scope.
 
 Local Open Scope hcol_scope.

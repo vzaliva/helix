@@ -195,8 +195,9 @@ Section SigmaHCOLRewriting.
                {i o}
                (op: avector i -> avector o)
                `{hop: !HOperator op}
-               (x:svector i): svector o :=
-      svector_from_vector (op (vector_from_svector x)).
+      : svector i -> svector o :=
+      svector_from_vector ∘ op ∘ vector_from_svector.
+
 
     Lemma U_SAG1:
       ∀ (n : nat) (x : avector n)
@@ -204,14 +205,14 @@ Section SigmaHCOLRewriting.
         (i : nat) (ip : i < n),
         Vnth
           (SumUnion
-             (Vbuild
+             (Vbuild (A:=Rtheta)
                        (λ (i0 : nat) (id : i0 < n),
-                        ((
-                            ScatH i0 1
-                                (snzord0:=ScatH_stride1_constr)
-                                (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                           ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                           ∘ (GathH i0 1
+                        (
+                          (ScatH i0 1
+                                 (snzord0:=ScatH_stride1_constr)
+                                 (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
+                            ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                            ∘ (GathH i0 1
                                     (domain_bound:=GathH_j1_domain_bound i0 n id))
                         ) (svector_from_vector x)))) ip
         =

@@ -101,9 +101,9 @@ Qed.
 
 Definition mkStruct (val: CarrierA) : Rtheta := ret val.
 
-Definition mkSZero := mkStruct 0.
+Definition mkSZero : Rtheta := mkStruct 0.
 
-Definition mkValue (val: CarrierA) :=
+Definition mkValue (val: CarrierA) : Rtheta :=
   tell (mkRthetaFlags false false) ;; ret val.
 
 Global Instance Rtheta_equiv: Equiv (Rtheta) :=

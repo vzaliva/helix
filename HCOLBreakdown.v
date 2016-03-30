@@ -58,7 +58,7 @@ Section HCOLBreakdown.
 
   Theorem breakdown_ScalarProd: forall (n:nat) (a v: avector n),
       ScalarProd (a,v) =
-      (compose (Reduction (+) 0) (BinOp (IgnoreIndex2 mult))) (a,v).
+      ((Reduction (+) 0) ∘ (BinOp (IgnoreIndex2 mult))) (a,v).
   Proof.
     intros n a v.
     unfold compose, BinOp, Reduction, ScalarProd.
@@ -71,7 +71,7 @@ Section HCOLBreakdown.
   Fact breakdown_OScalarProd: forall {h:nat},
       HScalarProd (h:=h)
       =
-      ((HReduction  (+) 0) ∘ (HBinOp (IgnoreIndex2 mult))).
+      ((HReduction  (+) 0) ⊚ (HBinOp (IgnoreIndex2 mult))).
   Proof.
     intros h.
     apply HOperator_functional_extensionality; intros v.
@@ -84,7 +84,7 @@ Section HCOLBreakdown.
 
   Theorem breakdown_EvalPolynomial: forall (n:nat) (a: avector (S n)) (v: CarrierA),
       EvalPolynomial a v = (
-        compose (ScalarProd) (compose (pair a) (MonomialEnumerator n))
+        ScalarProd ∘ (pair a) ∘ (MonomialEnumerator n)
       ) v.
   Proof.
     intros n a v.
@@ -110,8 +110,8 @@ Section HCOLBreakdown.
 
   Fact breakdown_OEvalPolynomial: forall (n:nat) (a: avector (S n)),
       HEvalPolynomial a =
-      (HScalarProd ∘
-                   ((HPrepend  a) ∘
+      (HScalarProd ⊚
+                   ((HPrepend  a) ⊚
                                   (HMonomialEnumerator n))).
   Proof.
     intros n a.
@@ -193,7 +193,7 @@ Section HCOLBreakdown.
   Qed.
 
   Theorem breakdown_ChebyshevDistance:  forall (n:nat) (ab: (avector n)*(avector n)),
-      ChebyshevDistance ab = (compose InfinityNorm VMinus) ab.
+      ChebyshevDistance ab = (InfinityNorm ∘ VMinus) ab.
   Proof.
     intros.
     unfold compose, ChebyshevDistance, VMinus.
@@ -202,7 +202,7 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OChebyshevDistance:  forall (n:nat),
-      HChebyshevDistance n = (HInfinityNorm ∘ HVMinus).
+      HChebyshevDistance n = (HInfinityNorm ⊚ HVMinus).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -235,7 +235,7 @@ Section HCOLBreakdown.
       {i1 i2 o}
       `{o1pf: !HOperator (o1: avector i1 -> avector o)}
       `{o2pf: !HOperator (o2: avector i2 -> avector o)},
-      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
+      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ⊚ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
     apply HOperator_functional_extensionality; intros v.
@@ -261,10 +261,10 @@ Lemma DynWinOSPL:  forall (a: avector 3),
        (HEvalPolynomial a)
        (HChebyshevDistance 2))
     =
-    (HBinOp (IgnoreIndex2 Zless) ∘
+    (HBinOp (IgnoreIndex2 Zless) ⊚
             HCross
-            ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-            (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 pneg))).
+            ((HReduction plus 0 ⊚ HBinOp (IgnoreIndex2 mult)) ⊚ (HPrepend a ⊚ HInduction _ mult 1))
+            (HReduction MaxAbs 0 ⊚ HBinOp (o:=2) (IgnoreIndex2 pneg))).
 Proof.
   intros a.
   rewrite breakdown_OTLess_Base.
