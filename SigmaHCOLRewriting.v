@@ -492,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         svector_from_vector (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -532,6 +532,7 @@ Section SigmaHCOLRewriting.
       lia.
     Qed.
 
+    (* TODO: move to index functions *)
     Lemma Partial_index_in_range:
       ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
         partial_index_f
@@ -556,6 +557,7 @@ Section SigmaHCOLRewriting.
       omega.
     Qed.
 
+    (* TODO: move to index functions *)
     Lemma Partial_index_out_of_range_is_none:
       ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
         partial_index_f
@@ -589,19 +591,19 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_HTDirectSum
             {i1 o1 i2 o2}
-            (f: mvector i1 -> mvector o1)
-            (g: mvector i2 -> mvector o2)
+            (f: avector i1 -> avector o1)
+            (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
-            (x: mvector (i1+i2)) (* input vector *)
+            (x: avector (i1+i2)) (* input vector *)
       :
-        HTDirectSum f g x =
+        svector_from_vector (HTDirectSum f g x) =
         (HTSUMUnion
            ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-            ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+            ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
            ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-            ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
-          x.
+            ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
+          (svector_from_vector x).
     Proof.
       unfold HTDirectSum, HCross, THCOLImpl.Cross, HCompose, compose,
       HTSUMUnion, pair2vector.
@@ -612,20 +614,21 @@ Section SigmaHCOLRewriting.
 
       assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
                         (@ScatH_stride1_constr o1 2)
-                        (f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) ≡ Vapp (f x0) (szero_mvector o2)).
+                        (liftM_HOperator f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (svector_from_vector x))) ≡ Vapp (svector_from_vector (f x0)) (szero_svector o2)).
       {
-        replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with x0.
+        replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (svector_from_vector x)) with (svector_from_vector x0).
         -
           unfold ScatH, Scatter.
           apply Veq_nth.
           intros.
-
           rewrite Vbuild_nth.
-          generalize dependent (f x0). intros fx0.
+
+          unfold svector_from_vector.
           rewrite Vnth_app.
           break_match.
           + (* Second half of x, which is all zeros *)
-            unfold szero_mvector.  rewrite Vnth_const.
+            unfold szero_svector.
+            rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
@@ -660,6 +663,16 @@ Section SigmaHCOLRewriting.
             rewrite HZI.
             intros.
             replace (some_spec i eq_refl) with g0 by apply proof_irrelevance.
+            rewrite Vnth_map.
+            unfold liftM_HOperator, svector_from_vector, compose.
+            rewrite Vnth_map.
+            unfold vector_from_svector.
+            rewrite Vmap_map.
+
+            unfold mkValue, WriterMonadNoT.evalWriter.
+            simpl.
+            replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
+              by (symmetry; apply Vmap_id).
             reflexivity.
         - unfold GathH, Gather.
           apply Veq_nth.
@@ -670,6 +683,8 @@ Section SigmaHCOLRewriting.
           simpl.
           apply Vbreak_arg_app in Heqp0.
           subst x.
+          unfold svector_from_vector.
+          rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
           omega.
@@ -683,15 +698,14 @@ Section SigmaHCOLRewriting.
 
       assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
                         (@ScatH_stride1_constr o2 2)
-                        (g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) ≡ Vapp (szero_mvector o1) (g x1)).
+                        (liftM_HOperator g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (svector_from_vector x))) ≡ Vapp (szero_svector o1) (svector_from_vector (g x1))).
       {
-        replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with x1.
+        replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (svector_from_vector x)) with (svector_from_vector x1).
         -
           unfold ScatH, Scatter.
           apply Veq_nth.
           intros.
           rewrite Vbuild_nth.
-          generalize dependent (g x1). intros gx0.
           rewrite Vnth_app.
           break_match.
           + (* Second half of x, which is gx0 *)
@@ -705,9 +719,20 @@ Section SigmaHCOLRewriting.
             rewrite HZI.
             intros.
             replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
+
+            unfold liftM_HOperator, svector_from_vector, compose.
+            rewrite Vnth_map.
+            unfold vector_from_svector.
+            rewrite Vmap_map.
+
+            unfold mkValue, WriterMonadNoT.evalWriter.
+            simpl.
+            rewrite Vnth_map.
+            replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
+              by (symmetry; apply Vmap_id).
             reflexivity.
           + (* First half of x, which is all zeros *)
-            unfold szero_mvector.  rewrite Vnth_const.
+            unfold szero_svector.  rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map o1 1))) as h'.
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
@@ -732,6 +757,8 @@ Section SigmaHCOLRewriting.
           simpl.
           apply Vbreak_arg_app in Heqp0.
           subst x.
+          unfold svector_from_vector.
+          rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
           generalize (Vnth_app_aux i2
@@ -747,8 +774,10 @@ Section SigmaHCOLRewriting.
       rewrite LS, RS.
       (* destruct Heqp0.*)
       unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union plus) (f x0) (szero_mvector o1)) with (f x0).
-      setoid_replace (Vmap2 (Union plus) (szero_mvector o2) (g x1)) with (g x1).
+      setoid_replace (Vmap2 (Union) (svector_from_vector (f x0)) (szero_svector o1)) with (svector_from_vector (f x0)).
+      setoid_replace (Vmap2 (Union) (szero_svector o2) (svector_from_vector (g x1))) with (svector_from_vector (g x1)).
+      unfold svector_from_vector.
+      rewrite Vmap_app.
       reflexivity.
       apply Vec2Union_szero_svector_l.
       apply Vec2Union_szero_svector_r.
