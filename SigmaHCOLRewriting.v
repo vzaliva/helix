@@ -887,12 +887,16 @@ Section SigmaHCOLRewriting.
         auto.
     Qed.
 
-    Lemma Gather_DenseCauseNoCol:
-      ∀ i o f,
-        DenseCauseNoCol (@Gather i o f).
+    Lemma GatherCollisionFree
+          {i o: nat}
+          (x: svector i)
+          (Xcf: svector_is_non_collision x)
+      :
+        forall f, svector_is_non_collision (@Gather i o f x).
     Proof.
-      intros i o f.
-      admit.
+      intros f.
+      apply Gather_preserves_P.
+      apply Xcf.
     Qed.
 
     Lemma SparseEmbeddingCauseNoCol
@@ -951,7 +955,7 @@ Section SigmaHCOLRewriting.
 
           (* Get rid of Gather, carring over its properties *)
           assert(svector_is_non_collision (Gather (g 0 (lt_0_Sn n)) sx))
-            by apply Gather_DenseCauseNoCol, SXD.
+            by apply GatherCollisionFree, SXNC.
           assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
             by apply Gather_preserves_density, SXD.
           generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
@@ -977,7 +981,9 @@ Section SigmaHCOLRewriting.
           unfold svector_is_non_collision in SNC.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
-        +
+        + clear IHn.
+          apply Decidable.not_or.
+
     Qed.
 
 
