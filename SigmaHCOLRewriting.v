@@ -831,23 +831,20 @@ Section SigmaHCOLRewriting.
 
     Definition SparseEmbedding
                {n i o ki ko}
-               (op: Rtheta -> Rtheta -> Rtheta)
-               {Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b)}
-               (kernel: forall k, (k<n) -> mvector ki -> mvector ko)
+               (kernel: forall k, (k<n) -> avector ki -> avector ko)
                (f: forall k, (k<n) -> index_map ko o)
                {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
                (g: forall k, (k<n) -> index_map ki i)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
-               `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-               (x: mvector i)
+               (x: avector i)
       :=
-        (SumUnion op
-                  (Vbuild
-                     (λ (j:nat) (jc:j<n),
-                      ((Scatter (f j jc) (f_inj := f_inj j jc))
-                         ∘ (kernel j jc)
-                         ∘ (Gather (g j jc))
-                      ) x))).
+        (SumUnion
+           (Vbuild
+              (λ (j:nat) (jc:j<n),
+               ((Scatter (f j jc) (f_inj := f_inj j jc))
+                  ∘ liftM_HOperator (kernel j jc)
+                  ∘ (Gather (g j jc))
+               ) (sparsify x)))).
 
     Definition index_family_injective
                {n i o}
@@ -857,39 +854,38 @@ Section SigmaHCOLRewriting.
           ⟦ f j1 jc1 ⟧ x ≡ ⟦ f j2 jc2 ⟧ y → x ≡ y.
 
 
-
-    Require Import ExtLib.Structures.Monads.
-    Require Import WriterMonadNoT.
-    Import MonadNotation.
-    Local Open Scope monad_scope.
-
-
+    (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
     Lemma ScatterCollisionFree
           {i o}
           (f: index_map i o)
-          {f_inj : index_map_injective f}
-          (x: mvector i)
-          (Xcf: mvector_Is_valueCollision_free x)
+          {f_inj: index_map_injective f}
+          (x: svector i)
+          (Xcf: svector_is_non_collision x)
       :
-        mvector_Is_valueCollision_free (@Scatter i o f f_inj x).
+        svector_is_non_collision (@Scatter i o f f_inj x).
     Proof.
-      unfold mvector_Is_valueCollision_free.
+      Set Printing Implicit. Show.
+
+      unfold svector_is_non_collision in *.
       apply Vforall_nth_intro.
       intros j jp.
 
-      assert(E: Vforall (fun p => (Vin p x) \/ (p ≡ MRtheta_SZero))
-                        (Scatter f (f_inj:=f_inj) x)) by
+      assert(E: Vforall
+                  (A:=(@WriterMonad.writerT RthetaFlags Monoid_RthetaFlags IdentityMonad.ident CarrierA))
+                  (fun p => (Vin p x) \/ (p ≡ mkSZero))
+                  (Scatter f (f_inj:=f_inj) x)) by
           apply Scatter_is_almost_endomorphism.
       apply Vforall_nth with (ip:=jp) in E.
+
       generalize dependent (Vnth (Scatter f (f_inj:=f_inj) x) jp).
-      intros v E.
+      intros v.
       destruct E.
       -
-        unfold mvector_Is_valueCollision_free in Xcf.
+        unfold svector_is_non_collision in Xcf.
         apply Vforall_in with (v:=x); assumption.
       -
         rewrite_clear H.
-        crush.
+        auto.
     Qed.
 
     Lemma SparseEmbeddingCauseNoCol

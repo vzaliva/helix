@@ -232,10 +232,10 @@ Proof.
 Qed.
 
 Definition svector_is_collision {n} (v:svector n) :=
-  Vexists (IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
+  Vexists (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) v.
 
 Definition svector_is_non_collision {n} (v:svector n) :=
-  Vforall (not ∘ IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
+  Vforall (not ∘ IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) v.
 
 (* TODO: decidable for collision? *)
 
