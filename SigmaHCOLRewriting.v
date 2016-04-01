@@ -887,6 +887,14 @@ Section SigmaHCOLRewriting.
         auto.
     Qed.
 
+    Lemma Gather_DenseCauseNoCol:
+      ∀ i o f,
+        DenseCauseNoCol (@Gather i o f).
+    Proof.
+      intros i o f.
+      admit.
+    Qed.
+
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -921,41 +929,54 @@ Section SigmaHCOLRewriting.
                   ¬(Is_Val a /\ Is_Val b) ->
                   ¬Is_Collision (Union a b)).
         {
+          intros a b CA CB C.
           admit.
         }
 
         apply L.
-        + apply IHn. clear IHn.
-          * crush.
-          * crush.
+        + apply IHn.
+          clear IHn.
           * unfold index_family_injective in *.
             admit.
         + clear IHn.
-          repeat unfold HCompose, compose.
-          assert(mvector_is_dense (Gather (g 0 (lt_0_Sn n)) x)).
-          apply Gather_preserves_density, xdense.
-          generalize dependent (Gather (g 0 (lt_0_Sn n)) x).
-          intros gx gdense.
+          unfold compose.
 
-          (* TODO: propagate xcf property accrosss G, K *)
+          (* Get rid of (sparcify x), carring over its properties *)
+          assert(svector_is_non_collision (sparsify x))
+            by apply sparsify_non_coll.
+          assert(svector_is_dense (sparsify x))
+            by apply sparsify_is_dense.
+          generalize dependent (sparsify x).
+          intros sx SXNC SXD.
 
-          clear xdense x.
+          (* Get rid of Gather, carring over its properties *)
+          assert(svector_is_non_collision (Gather (g 0 (lt_0_Sn n)) sx))
+            by apply Gather_DenseCauseNoCol, SXD.
+          assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
+            by apply Gather_preserves_density, SXD.
+          generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
+          intros gx GNC GD.
+          clear sx SXNC SXD.
 
-          assert(mvector_is_dense (kernel 0 (lt_0_Sn n) gx)).
-          apply Kdense, gdense.
-          generalize dependent (kernel 0 (lt_0_Sn n) gx).
-          intros kx kxdense.
-          clear gx gdense.
+          (* Get rid of lifted kernel, carring over its properties *)
+          assert(svector_is_non_collision (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx))
+            by apply liftM_HOperator_DenseCauseNoCol, GD.
+          assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx))
+            by apply liftM_HOperator_DensityPreserving, GD.
+          generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx).
+          intros kx KXNC KXD.
+          clear gx GNC GD.
 
+          (* Get rid of Scatter, carring over non-collision property  *)
+          assert(svector_is_non_collision (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx)).
+          apply ScatterCollisionFree, KXNC.
+          generalize dependent (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx).
+          intros sx SNC.
+          clear kx KXNC KXD.
 
-          assert(C: mvector_Is_valueCollision_free (@Scatter ko o (f O (lt_0_Sn n)) (f_inj O (lt_0_Sn n)) kx)) by apply ScatterCollisionFree.
-          generalize dependent (@Scatter ko o (f O (lt_0_Sn n)) (f_inj O (lt_0_Sn n)) kx).
-          intros sx scf.
-          clear kx kxdense.
-          (* NOTE: We have not used kxdense! *)
-          unfold  mvector_Is_valueCollision_free in scf.
-          apply Vforall_nth with (i:=oi) (ip:=oic) in scf .
-          auto.
+          unfold svector_is_non_collision in SNC.
+          apply Vforall_nth with (ip:=oic) in SNC.
+          apply SNC.
         +
     Qed.
 

@@ -251,6 +251,18 @@ Proof.
   auto.
 Qed.
 
+Lemma sparsify_is_dense:
+  ∀ (i : nat) (x : vector CarrierA i), svector_is_dense (sparsify x).
+Proof.
+  intros i x.
+  unfold sparsify, svector_is_dense.
+  apply Vforall_map_intro.
+  apply Vforall_intro.
+  intros v N.
+  apply IsVal_mkValue.
+Qed.
+
+
 
 Close Scope vector_scope.
 Close Scope nat_scope.
