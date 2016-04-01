@@ -78,7 +78,9 @@ Qed.
 
 Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
 
-Global Instance Writer_flags: MonadWriter Monoid_RthetaFlags flags_m := Writer_writerT _.
+(* Global Instance Writer_flags: MonadWriter Monoid_RthetaFlags flags_m
+  := Writer_writerT Monoid_RthetaFlags. *)
+
 Definition Rtheta := flags_m CarrierA.
 
 Global Instance RthetaFlags_equiv:

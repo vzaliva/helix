@@ -864,12 +864,12 @@ Section SigmaHCOLRewriting.
       :
         svector_is_non_collision (@Scatter i o f f_inj x).
     Proof.
-      Set Printing Implicit. Show.
-
       unfold svector_is_non_collision in *.
       apply Vforall_nth_intro.
       intros j jp.
 
+      (* We need to specify here specific monad implementation we are using,
+not just generic Rtheta *)
       assert(E: Vforall
                   (A:=(@WriterMonad.writerT RthetaFlags Monoid_RthetaFlags IdentityMonad.ident CarrierA))
                   (fun p => (Vin p x) \/ (p ≡ mkSZero))
