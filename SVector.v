@@ -235,7 +235,21 @@ Definition svector_is_collision {n} (v:svector n) :=
   Vexists (IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
 
 Definition svector_is_non_collision {n} (v:svector n) :=
-  (not ∘ svector_is_collision) v.
+  Vforall (not ∘ IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
+
+(* TODO: decidable for collision? *)
+
+Lemma svector_from_vector_non_coll: forall n (x:avector n),
+    svector_is_non_collision (svector_from_vector x).
+Proof.
+  intros n x.
+  unfold svector_from_vector.
+  unfold svector_is_non_collision, compose.
+  apply Vforall_map_intro.
+  apply Vforall_intro.
+  intros v N.
+  auto.
+Qed.
 
 
 Close Scope vector_scope.

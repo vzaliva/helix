@@ -791,6 +791,7 @@ Section SigmaHCOLRewriting.
     Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
       o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
 
+    (* All lifted HOperators are naturally density preserving *)
     Instance liftM_HOperator_DensityPreserving
              {i o}
              (op: avector i -> avector o)
@@ -811,30 +812,20 @@ Section SigmaHCOLRewriting.
 
 
     (* Weaker condition: applied to a dense vector does not produce strucural collisions *)
-    Class DenseCauseNoCol {i o:nat} (op: mvector i -> mvector o) :=
-      o_den_non_col : forall x, mvector_is_dense x -> mvector_Is_valueCollision_free (op x).
+    Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
+      o_den_non_col : forall x, svector_is_dense x -> svector_is_non_collision (op x).
 
-    Instance HTDirectSum_DenseCauseNoCol
-             {i1 o1 i2 o2}
-             (f: mvector i1 -> mvector o1)
-             (g: mvector i2 -> mvector o2)
-             `{hop1: !HOperator f}
-             `{hop2: !HOperator g}
-             `{DP1: !DenseCauseNoCol f}
-             `{DP2: !DenseCauseNoCol g}
-      : DenseCauseNoCol (HTDirectSum f g).
+
+    Instance liftM_HOperator_DenseCauseNoCol
+             {i o}
+             (op: avector i -> avector o)
+             `{hop: !HOperator op}
+      : DenseCauseNoCol (liftM_HOperator op).
     Proof.
       unfold DenseCauseNoCol.
-      intros x Dx.
-      unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
-      break_let. break_let.
-      tuple_inversion.
-      apply Vbreak_dense_mvector in Heqp0. destruct Heqp0.
-      assert(mvector_Is_valueCollision_free (f t1)) by apply DP1, H.
-      assert(mvector_Is_valueCollision_free (g t2)) by apply DP2, H0.
-      apply Vforall_app.
-      auto.
-      apply Dx.
+      intros x D.
+      unfold liftM_HOperator, compose.
+      apply svector_from_vector_non_coll.
     Qed.
 
 
