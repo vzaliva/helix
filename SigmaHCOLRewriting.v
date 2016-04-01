@@ -196,7 +196,7 @@ Section SigmaHCOLRewriting.
                (op: avector i -> avector o)
                `{hop: !HOperator op}
       : svector i -> svector o :=
-      svector_from_vector ∘ op ∘ vector_from_svector.
+      sparsify ∘ op ∘ densify.
 
 
     Lemma U_SAG1:
@@ -214,7 +214,7 @@ Section SigmaHCOLRewriting.
                      ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
                      ∘ (GathH i0 1
                               (domain_bound:=GathH_j1_domain_bound i0 n id))
-                 ) (svector_from_vector x)))) ip
+                 ) (sparsify x)))) ip
         =
         mkValue (Vnth (HPointwise f x) ip).
     Proof.
@@ -227,13 +227,13 @@ Section SigmaHCOLRewriting.
                     ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
                     ∘ (GathH i0 1
                              (domain_bound:=GathH_j1_domain_bound i0 n id))
-                ) (svector_from_vector x)) as bf.
+                ) (sparsify x)) as bf.
       assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
                        ScatH i0 1
                              (snzord0:=ScatH_stride1_constr)
                              (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)
                              ((liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                                [Vnth (svector_from_vector x) id]))).
+                                [Vnth (sparsify x) id]))).
       {
         subst bf.
         extensionality j.
@@ -251,13 +251,13 @@ Section SigmaHCOLRewriting.
         reflexivity.
       }
       assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                        ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (svector_from_vector [f (i0 ↾ id) (Vnth x id)]))).
+                        ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (sparsify [f (i0 ↾ id) (Vnth x id)]))).
       {
         rewrite B1.
         extensionality j.
         extensionality jn.
         unfold liftM_HOperator, HAtomic, compose.
-        unfold svector_from_vector.
+        unfold sparsify.
         simpl.
         rewrite Vnth_map.
         reflexivity.
@@ -275,7 +275,7 @@ Section SigmaHCOLRewriting.
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
       remember (Vbuild
                   (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH z 1 (svector_from_vector [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
+                   Vnth (ScatH z 1 (sparsify [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
@@ -315,15 +315,15 @@ Section SigmaHCOLRewriting.
                           ∘ (GathH i 1
                                    (domain_bound:=GathH_j1_domain_bound i n id)
                             )
-                      ) (svector_from_vector x)
+                      ) (sparsify x)
           ))
         =
-        svector_from_vector (HPointwise f x).
+        sparsify (HPointwise f x).
     Proof.
       intros n x f pF.
       apply Vforall2_intro_nth.
       intros i ip.
-      rewrite Vnth_svector_from_vector.
+      rewrite Vnth_sparsify.
       apply U_SAG1.
     Qed.
 
@@ -389,7 +389,7 @@ Section SigmaHCOLRewriting.
                             ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
                             ∘ (GathH i n
                                      (domain_bound:=GathH_jn_domain_bound i n id))
-                         ) (svector_from_vector x)
+                         ) (sparsify x)
           ))) kp
         = mkValue (Vnth (HBinOp (o:=n) (f) x) kp).
     Proof.
@@ -401,7 +401,7 @@ Section SigmaHCOLRewriting.
                         (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                         (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
                                          (GathH i n
-                                                (domain_bound:=GathH_jn_domain_bound i n id) (svector_from_vector x))))
+                                                (domain_bound:=GathH_jn_domain_bound i n id) (sparsify x))))
         as bf.
 
       assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
@@ -412,7 +412,7 @@ Section SigmaHCOLRewriting.
                                 (snzord0:=ScatH_stride1_constr)
                                 (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                                 (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
-                                                 [(Vnth (svector_from_vector x) (ILTNN i id));  (Vnth (svector_from_vector x) (INLTNN i id))])))).
+                                                 [(Vnth (sparsify x) (ILTNN i id));  (Vnth (sparsify x) (INLTNN i id))])))).
       {
         subst bf.
         extensionality j. extensionality jn.
@@ -433,13 +433,13 @@ Section SigmaHCOLRewriting.
                         ScatH i 1
                               (snzord0:=ScatH_stride1_constr)
                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                              (svector_from_vector
+                              (sparsify
                                  [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))]))).
       {
         rewrite B1.
         extensionality i.
         extensionality id.
-        unfold liftM_HOperator, compose, svector_from_vector.
+        unfold liftM_HOperator, compose, sparsify.
         rewrite 2!Vnth_map.
         simpl.
         reflexivity.
@@ -454,7 +454,7 @@ Section SigmaHCOLRewriting.
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
       remember (Vbuild
                   (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH z 1 (svector_from_vector [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
+                   Vnth (ScatH z 1 (sparsify [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
@@ -492,9 +492,9 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        svector_from_vector (HBinOp (o:=n) (f) x) =
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -506,14 +506,14 @@ Section SigmaHCOLRewriting.
                           ∘ (GathH i n
                                    (domain_bound:=GathH_jn_domain_bound i n id)
                             )
-                      ) (svector_from_vector x)
+                      ) (sparsify x)
           )).
     Proof.
       intros n x f pF.
       apply Vforall2_intro_nth.
       intros i ip.
       symmetry.
-      rewrite Vnth_svector_from_vector.
+      rewrite Vnth_sparsify.
       apply U_SAG2; assumption.
     Qed.
 
@@ -597,13 +597,13 @@ Section SigmaHCOLRewriting.
             `{hop2: !HOperator g}
             (x: avector (i1+i2)) (* input vector *)
       :
-        svector_from_vector (HTDirectSum f g x) =
+        sparsify (HTDirectSum f g x) =
         (HTSUMUnion
            ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
             ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
            ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
             ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
-          (svector_from_vector x).
+          (sparsify x).
     Proof.
       unfold HTDirectSum, HCross, THCOLImpl.Cross, HCompose, compose,
       HTSUMUnion, pair2vector.
@@ -614,16 +614,16 @@ Section SigmaHCOLRewriting.
 
       assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
                         (@ScatH_stride1_constr o1 2)
-                        (liftM_HOperator f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (svector_from_vector x))) ≡ Vapp (svector_from_vector (f x0)) (szero_svector o2)).
+                        (liftM_HOperator f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (sparsify x))) ≡ Vapp (sparsify (f x0)) (szero_svector o2)).
       {
-        replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (svector_from_vector x)) with (svector_from_vector x0).
+        replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (sparsify x)) with (sparsify x0).
         -
           unfold ScatH, Scatter.
           apply Veq_nth.
           intros.
           rewrite Vbuild_nth.
 
-          unfold svector_from_vector.
+          unfold sparsify.
           rewrite Vnth_app.
           break_match.
           + (* Second half of x, which is all zeros *)
@@ -664,9 +664,9 @@ Section SigmaHCOLRewriting.
             intros.
             replace (some_spec i eq_refl) with g0 by apply proof_irrelevance.
             rewrite Vnth_map.
-            unfold liftM_HOperator, svector_from_vector, compose.
+            unfold liftM_HOperator, sparsify, compose.
             rewrite Vnth_map.
-            unfold vector_from_svector.
+            unfold densify.
             rewrite Vmap_map.
 
             unfold mkValue, WriterMonadNoT.evalWriter.
@@ -683,7 +683,7 @@ Section SigmaHCOLRewriting.
           simpl.
           apply Vbreak_arg_app in Heqp0.
           subst x.
-          unfold svector_from_vector.
+          unfold sparsify.
           rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
@@ -698,9 +698,9 @@ Section SigmaHCOLRewriting.
 
       assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
                         (@ScatH_stride1_constr o2 2)
-                        (liftM_HOperator g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (svector_from_vector x))) ≡ Vapp (szero_svector o1) (svector_from_vector (g x1))).
+                        (liftM_HOperator g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (sparsify x))) ≡ Vapp (szero_svector o1) (sparsify (g x1))).
       {
-        replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (svector_from_vector x)) with (svector_from_vector x1).
+        replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) (sparsify x)) with (sparsify x1).
         -
           unfold ScatH, Scatter.
           apply Veq_nth.
@@ -720,9 +720,9 @@ Section SigmaHCOLRewriting.
             intros.
             replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
 
-            unfold liftM_HOperator, svector_from_vector, compose.
+            unfold liftM_HOperator, sparsify, compose.
             rewrite Vnth_map.
-            unfold vector_from_svector.
+            unfold densify.
             rewrite Vmap_map.
 
             unfold mkValue, WriterMonadNoT.evalWriter.
@@ -757,7 +757,7 @@ Section SigmaHCOLRewriting.
           simpl.
           apply Vbreak_arg_app in Heqp0.
           subst x.
-          unfold svector_from_vector.
+          unfold sparsify.
           rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
@@ -774,9 +774,9 @@ Section SigmaHCOLRewriting.
       rewrite LS, RS.
       (* destruct Heqp0.*)
       unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union) (svector_from_vector (f x0)) (szero_svector o1)) with (svector_from_vector (f x0)).
-      setoid_replace (Vmap2 (Union) (szero_svector o2) (svector_from_vector (g x1))) with (svector_from_vector (g x1)).
-      unfold svector_from_vector.
+      setoid_replace (Vmap2 (Union) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
+      setoid_replace (Vmap2 (Union) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
+      unfold sparsify.
       rewrite Vmap_app.
       reflexivity.
       apply Vec2Union_szero_svector_l.
@@ -802,8 +802,8 @@ Section SigmaHCOLRewriting.
       intros x D.
 
       unfold liftM_HOperator, compose.
-      generalize (op (vector_from_svector x)) as y. intros y.
-      unfold svector_is_dense, svector_from_vector.
+      generalize (op (densify x)) as y. intros y.
+      unfold svector_is_dense, sparsify.
       apply Vforall_map_intro.
       apply Vforall_nth_intro.
       intros i0 ip.
@@ -825,7 +825,7 @@ Section SigmaHCOLRewriting.
       unfold DenseCauseNoCol.
       intros x D.
       unfold liftM_HOperator, compose.
-      apply svector_from_vector_non_coll.
+      apply sparsify_non_coll.
     Qed.
 
 

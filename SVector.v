@@ -26,11 +26,11 @@ Open Scope nat_scope.
 Notation svector n := (vector Rtheta n) (only parsing).
 
 (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
-Definition svector_from_vector {n} (v:vector CarrierA n): svector n :=
+Definition sparsify {n} (v:vector CarrierA n): svector n :=
   Vmap mkValue v.
 
 (* Project out carrier type values from vector of Rheta values *)
-Definition vector_from_svector {n} (v:svector n): vector CarrierA n :=
+Definition densify {n} (v:svector n): vector CarrierA n :=
   Vmap (@evalWriter RthetaFlags CarrierA _) v.
 
 (* Construct "Zero svector". All values are structural zeros. *)
@@ -45,12 +45,12 @@ Local Open Scope bool_scope.
 
 Set Implicit Arguments.
 
-Lemma Vnth_svector_from_vector:
+Lemma Vnth_sparsify:
   ∀ (n i : nat) (ip : i < n) (v : vector CarrierA n),
-    Vnth (svector_from_vector v) ip ≡ mkValue (Vnth v ip).
+    Vnth (sparsify v) ip ≡ mkValue (Vnth v ip).
 Proof.
   intros n i ip v.
-  unfold svector_from_vector.
+  unfold sparsify.
   apply Vnth_map.
 Qed.
 
@@ -239,11 +239,11 @@ Definition svector_is_non_collision {n} (v:svector n) :=
 
 (* TODO: decidable for collision? *)
 
-Lemma svector_from_vector_non_coll: forall n (x:avector n),
-    svector_is_non_collision (svector_from_vector x).
+Lemma sparsify_non_coll: forall n (x:avector n),
+    svector_is_non_collision (sparsify x).
 Proof.
   intros n x.
-  unfold svector_from_vector.
+  unfold sparsify.
   unfold svector_is_non_collision, compose.
   apply Vforall_map_intro.
   apply Vforall_intro.
