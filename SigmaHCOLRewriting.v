@@ -303,7 +303,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+             (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -492,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -867,18 +867,17 @@ Section SigmaHCOLRewriting.
       unfold svector_is_non_collision in *.
       apply Vforall_nth_intro.
       intros j jp.
+      unfold Is_Collision in *.
 
-      (* We need to specify here specific monad implementation we are using,
-not just generic Rtheta *)
       assert(E: Vforall
-                  (A:=(@WriterMonad.writerT RthetaFlags Monoid_RthetaFlags IdentityMonad.ident CarrierA))
                   (fun p => (Vin p x) \/ (p ≡ mkSZero))
                   (Scatter f (f_inj:=f_inj) x)) by
           apply Scatter_is_almost_endomorphism.
+
       apply Vforall_nth with (ip:=jp) in E.
 
       generalize dependent (Vnth (Scatter f (f_inj:=f_inj) x) jp).
-      intros v.
+      intros v E.
       destruct E.
       -
         unfold svector_is_non_collision in Xcf.
@@ -890,28 +889,21 @@ not just generic Rtheta *)
 
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
-          (op: Rtheta -> Rtheta -> Rtheta)
-          {Odense: forall a b, (Is_Val a /\ Is_Val b) -> Is_Val (op a b)}
-          (kernel: forall k, (k<n) -> mvector ki -> mvector ko)
+          (kernel: forall k, (k<n) -> avector ki -> avector ko)
           (f: forall k, (k<n) -> index_map ko o)
           {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
           (g: forall k, (k<n) -> index_map ki i)
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
-          `{Kdense: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-          (x: mvector i)
+          (x: avector i)
 
       :
-        mvector_is_dense x ->
         index_family_injective f ->
-        mvector_Is_valueCollision_free x ->
-        mvector_Is_valueCollision_free
-          (@SparseEmbedding n i o ki ko op Odense kernel f f_inj g Koperator Kdense x).
+        svector_is_non_collision
+          (@SparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
     Proof.
-      intros xdense f_family_inj xcf.
-
-      unfold mvector_Is_valueCollision_free.
+      intros f_family_inj.
+      unfold svector_is_non_collision.
       apply Vforall_nth_intro.
-
       intros oi oic.
       unfold compose.
       unfold SparseEmbedding.
@@ -924,10 +916,10 @@ not just generic Rtheta *)
 
         (* TODO: coule be important lemma. Move out *)
         assert(L: forall a b,
-                  ¬MRtheta_Is_valueCollision a ->
-                  ¬MRtheta_Is_valueCollision b ->
-                  ¬(Is_Val (evalWriter a) /\ Is_Val (evalWriter b)) ->
-                  ¬MRtheta_Is_valueCollision (Union op a b)).
+                  ¬Is_Collision a ->
+                  ¬Is_Collision b ->
+                  ¬(Is_Val a /\ Is_Val b) ->
+                  ¬Is_Collision (Union a b)).
         {
           admit.
         }

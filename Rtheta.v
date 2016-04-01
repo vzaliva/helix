@@ -138,11 +138,15 @@ Definition mkSZero : Rtheta := mkStruct 0.
 Definition mkValue (val: CarrierA) : Rtheta :=
   tell (mkRthetaFlags false false) ;; ret val.
 
+Definition Is_Val (x:Rtheta) := (IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
+
+Definition Is_Collision (x:Rtheta) := (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
+
 Lemma IsVal_mkValue:
-  ∀ v : CarrierA, IsVal (WriterMonadNoT.execWriter (mkValue v)).
+  ∀ v : CarrierA, Is_Val (mkValue v).
 Proof.
   intros v.
-  unfold IsVal, mkValue.
+  unfold Is_Val, IsVal, mkValue.
   apply Bool.negb_prop_elim.
   simpl.
   trivial.

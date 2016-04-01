@@ -38,7 +38,7 @@ Definition szero_svector n: svector n := Vconst mkSZero n.
 
 (* "dense" vector means that it does not contain "structural" values *)
 Definition svector_is_dense {n} (v:svector n) : Prop :=
-  Vforall (IsVal ∘ (@execWriter RthetaFlags CarrierA _)) v.
+  Vforall Is_Val v.
 
 
 Local Open Scope bool_scope.
@@ -232,10 +232,10 @@ Proof.
 Qed.
 
 Definition svector_is_collision {n} (v:svector n) :=
-  Vexists (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) v.
+  Vexists Is_Collision v.
 
 Definition svector_is_non_collision {n} (v:svector n) :=
-  Vforall (not ∘ IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) v.
+  Vforall (not ∘ Is_Collision) v.
 
 (* TODO: decidable for collision? *)
 
