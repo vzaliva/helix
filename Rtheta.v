@@ -37,18 +37,48 @@ Definition IsCollision (x:RthetaFlags) := Is_true (is_collision x).
 Definition IsStruct (x:RthetaFlags) := Is_true (is_struct x).
 Definition IsVal (x:RthetaFlags) := not (Is_true (is_struct x)).
 
+(* mappend *)
 Definition RthetaFlagsAppend (a b: RthetaFlags) : RthetaFlags :=
   mkRthetaFlags
     (andb (is_struct a) (is_struct b))
     (orb (is_collision a) (orb (is_collision b)
                                (negb (orb (is_struct a) (is_struct b))))).
 
+(* mzero *)
 Definition RthetaFlagsZero := mkRthetaFlags true false.
 
 Definition Monoid_RthetaFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
+Global Instance RthetaFlags_type:
+  type RthetaFlags := type_libniz RthetaFlags.
+
+Global Instance MonoidLaws_RthetaFlags:
+  MonoidLaws Monoid_RthetaFlags.
+Proof.
+  split.
+  -
+    simpl.
+    unfold BinOps.Associative.
+    intros a b c.
+    destruct a,b,c.
+    destr_bool.
+  -
+    simpl.
+    unfold BinOps.LeftUnit.
+    intros a.
+    destruct a.
+    destr_bool.
+  -
+    simpl.
+    unfold BinOps.RightUnit.
+    intros a.
+    destruct a.
+    destr_bool.
+Qed.
+
 Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
-Context {Writer_flags: MonadWriter Monoid_RthetaFlags flags_m}.
+
+Global Instance Writer_flags: MonadWriter Monoid_RthetaFlags flags_m := Writer_writerT _.
 Definition Rtheta := flags_m CarrierA.
 
 Global Instance RthetaFlags_equiv:
@@ -105,6 +135,16 @@ Definition mkSZero : Rtheta := mkStruct 0.
 
 Definition mkValue (val: CarrierA) : Rtheta :=
   tell (mkRthetaFlags false false) ;; ret val.
+
+Lemma IsVal_mkValue:
+  ∀ v : CarrierA, IsVal (WriterMonadNoT.execWriter (mkValue v)).
+Proof.
+  intros v.
+  unfold IsVal, mkValue.
+  apply Bool.negb_prop_elim.
+  simpl.
+  trivial.
+Qed.
 
 Global Instance Rtheta_equiv: Equiv (Rtheta) :=
   fun am bm => (evalWriter am) = (evalWriter bm).

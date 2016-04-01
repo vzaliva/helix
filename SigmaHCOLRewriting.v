@@ -788,31 +788,25 @@ Section SigmaHCOLRewriting.
   Section Structural_Correctness.
 
     (* Strong condition: operator preserves vectors' density *)
-    Class DensityPreserving {i o:nat} (op: mvector i -> mvector o) :=
-      o_den_pres : forall x, mvector_is_dense x -> mvector_is_dense (op x).
+    Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
+      o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
 
-    Instance HTDirectSum_DensityPreserving
-             {i1 o1 i2 o2}
-             (f: mvector i1 -> mvector o1)
-             (g: mvector i2 -> mvector o2)
-             `{hop1: !HOperator f}
-             `{hop2: !HOperator g}
-             `{DP1: !DensityPreserving f}
-             `{DP2: !DensityPreserving g}
-      : DensityPreserving (HTDirectSum f g).
+    Instance liftM_HOperator_DensityPreserving
+             {i o}
+             (op: avector i -> avector o)
+             `{hop: !HOperator op}
+      : DensityPreserving (liftM_HOperator op).
     Proof.
       unfold DensityPreserving.
-      intros x Dx.
-      unfold mvector_is_dense.
-      unfold HTDirectSum, HCross, compose, THCOLImpl.Cross, pair2vector.
-      break_let. break_let.
-      tuple_inversion.
-      apply Vbreak_dense_mvector in Heqp0. destruct Heqp0.
-      assert(mvector_is_dense (f t1)) by apply DP1, H.
-      assert(mvector_is_dense (g t2)) by apply DP2, H0.
-      apply Vforall_app.
-      auto.
-      apply Dx.
+      intros x D.
+
+      unfold liftM_HOperator, compose.
+      generalize (op (vector_from_svector x)) as y. intros y.
+      unfold svector_is_dense, svector_from_vector.
+      apply Vforall_map_intro.
+      apply Vforall_nth_intro.
+      intros i0 ip.
+      apply IsVal_mkValue.
     Qed.
 
 

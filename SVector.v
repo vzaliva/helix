@@ -231,10 +231,12 @@ Proof.
   crush.
 Qed.
 
-Definition svector_valueCollision {n} (v:svector n) :=
-  Vforall (IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
+Definition svector_is_collision {n} (v:svector n) :=
+  Vexists (IsCollision ∘ (@execWriter RthetaFlags CarrierA _)) v.
 
-Definition svector_Is_valueCollision_free {n} (v:svector n) := (not ∘ svector_valueCollision) v.
+Definition svector_is_non_collision {n} (v:svector n) :=
+  (not ∘ svector_is_collision) v.
+
 
 Close Scope vector_scope.
 Close Scope nat_scope.
