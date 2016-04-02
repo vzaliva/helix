@@ -828,7 +828,6 @@ Section SigmaHCOLRewriting.
       apply sparsify_non_coll.
     Qed.
 
-
     Definition SparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -970,7 +969,7 @@ Section SigmaHCOLRewriting.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
         +
-
+          (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
 
     Qed.
 
