@@ -969,8 +969,8 @@ Section SigmaHCOLRewriting.
           unfold svector_is_non_collision in SNC.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
-        + clear IHn.
-          apply Decidable.not_or.
+        +
+
 
     Qed.
 
