@@ -925,19 +925,7 @@ Section SigmaHCOLRewriting.
       - crush.
       - rewrite Vbuild_cons.
         rewrite VecUnion_cons.
-
-        (* TODO: coule be important lemma. Move out *)
-        assert(L: forall a b,
-                  ¬Is_Collision a ->
-                  ¬Is_Collision b ->
-                  ¬(Is_Val a /\ Is_Val b) ->
-                  ¬Is_Collision (Union a b)).
-        {
-          intros a b CA CB C.
-          admit.
-        }
-
-        apply L.
+        apply UnionCollisionFree.
         + apply IHn.
           clear IHn.
           * unfold index_family_injective in *.

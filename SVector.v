@@ -2,6 +2,7 @@
 Require Import Spiral.
 Require Import Rtheta.
 
+Require Import Coq.Bool.Bool.
 Require Import Arith.
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -191,6 +192,24 @@ Proof.
   rewrite evalWriter_Rtheta_liftM2.
   rewrite evalWriter_Rtheta_SZero.
   ring.
+Qed.
+
+Lemma UnionCollisionFree (a b : Rtheta):
+  ¬Is_Collision a →
+  ¬Is_Collision b →
+  ¬(Is_Val a ∧ Is_Val b)
+  → ¬Is_Collision (Union a b).
+Proof.
+  intros CA CB C.
+  unfold Union, Is_Collision, compose.
+  rewrite execWriter_Rtheta_liftM2.
+  unfold Is_Collision, Is_Val, compose in *.
+  destruct (WriterMonadNoT.execWriter a) as [str_a col_a].
+  destruct (WriterMonadNoT.execWriter b) as [str_b col_b].
+  unfold RthetaFlagsAppend.
+  unfold IsCollision, IsVal in *.
+  destr_bool.
+  auto.
 Qed.
 
 Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:

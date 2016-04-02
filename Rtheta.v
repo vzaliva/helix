@@ -52,28 +52,49 @@ Definition Monoid_RthetaFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := E
 Global Instance RthetaFlags_type:
   type RthetaFlags := type_libniz RthetaFlags.
 
+Lemma RthetaFlags_assoc:
+  ∀ a b c : RthetaFlags,
+    RthetaFlagsAppend (RthetaFlagsAppend a b) c
+                      ≡ RthetaFlagsAppend a (RthetaFlagsAppend b c).
+Proof.
+
+  intros a b c.
+      destruct a,b,c.
+      destr_bool.
+Qed.
+
+Lemma RthetaFlags_lunit:
+  ∀ a : RthetaFlags, RthetaFlagsAppend RthetaFlagsZero a ≡ a.
+Proof.
+  intros a.
+  destruct a.
+  destr_bool.
+Qed.
+
+Lemma RthetaFlags_runit:
+  ∀ a : RthetaFlags, RthetaFlagsAppend a RthetaFlagsZero ≡ a.
+Proof.
+  intros a.
+  destruct a.
+  destr_bool.
+Qed.
+
 Global Instance MonoidLaws_RthetaFlags:
   MonoidLaws Monoid_RthetaFlags.
 Proof.
   split.
-  -
+  - (* monoid_assoc *)
     simpl.
     unfold BinOps.Associative.
-    intros a b c.
-    destruct a,b,c.
-    destr_bool.
-  -
+    apply RthetaFlags_assoc.
+  - (* monoid_lunit *)
     simpl.
     unfold BinOps.LeftUnit.
-    intros a.
-    destruct a.
-    destr_bool.
-  -
+    apply RthetaFlags_lunit.
+  - (* monoid_runit *)
     simpl.
     unfold BinOps.RightUnit.
-    intros a.
-    destruct a.
-    destr_bool.
+    apply RthetaFlags_runit.
 Qed.
 
 Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
@@ -198,6 +219,18 @@ Lemma evalWriter_Rtheta_liftM
   :
     evalWriter (liftM op a) ≡ op (evalWriter a).
 Proof.
+  reflexivity.
+Qed.
+
+Lemma execWriter_Rtheta_liftM2
+      (op: CarrierA -> CarrierA -> CarrierA)
+      {a b: Rtheta}
+  :
+    execWriter (liftM2 op a b) ≡ RthetaFlagsAppend (execWriter a) (execWriter b).
+Proof.
+  unfold execWriter, liftM2.
+  simpl.
+  rewrite RthetaFlags_runit.
   reflexivity.
 Qed.
 
