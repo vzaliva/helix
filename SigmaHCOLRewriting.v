@@ -898,6 +898,43 @@ Section SigmaHCOLRewriting.
       apply Xcf.
     Qed.
 
+    (* Sparse Emebedding is dense, but only for for n>0
+    Lemma SparseEmbeddingIsDense
+          {n i o ki ko}
+          (kernel: forall k, (k<n) -> avector ki -> avector ko)
+          (f: forall k, (k<n) -> index_map ko o)
+          {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
+          (g: forall k, (k<n) -> index_map ki i)
+          `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+          (x: avector i)
+      :
+        n ≢ 0 ->
+        svector_is_dense
+          (@SparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+    Proof.
+      intros nz.
+      unfold svector_is_non_collision.
+      apply Vforall_nth_intro.
+      intros oi oic.
+      unfold compose.
+      unfold SparseEmbedding.
+      rewrite AbsorbIUnionIndex.
+      destruct n.
+      congruence.
+      induction n.
+      -
+        admit.
+      - rewrite Vbuild_cons.
+        rewrite VecUnion_cons.
+        apply ValUnionIsVal.
+        split.
+        + apply IHn.
+          auto.
+        + clear IHn.
+          unfold compose.
+          admit.
+    Qed. *)
+
     Lemma SparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -917,7 +954,7 @@ Section SigmaHCOLRewriting.
       apply Vforall_nth_intro.
       intros oi oic.
       unfold compose.
-      unfold SparseEmbedding.
+      unfold SparseEmbedding in *.
       rewrite AbsorbIUnionIndex.
 
       induction n.
@@ -962,14 +999,43 @@ Section SigmaHCOLRewriting.
           assert(svector_is_non_collision (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx)).
           apply ScatterCollisionFree, KXNC.
           generalize dependent (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx).
-          intros sx SNC.
+          intros scx SNC.
           clear kx KXNC KXD.
 
           unfold svector_is_non_collision in SNC.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
-        +
-          (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
+        +  clear IHn.
+           (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
+
+          assert(T: forall A B: Prop, not A \/ not B -> not (A /\ B))
+            by tauto.
+          apply T.
+
+          unfold index_family_injective in f_family_inj.
+
+
+          (* Partial proof of second djsjunct (for later) *)
+
+          unfold compose.
+          assert(svector_is_dense (sparsify x))
+            by apply sparsify_is_dense.
+          generalize dependent (sparsify x). intros sx SXD.
+
+          assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
+            by apply Gather_preserves_density, SXD.
+          generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
+          intros gx1 GXD1.
+          (* clear sx SXD. *)
+
+          assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1))
+            by apply liftM_HOperator_DensityPreserving, GXD1.
+          generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1).
+          intros kx KXD.
+
+
+
+
 
     Qed.
 

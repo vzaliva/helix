@@ -204,12 +204,27 @@ Proof.
   unfold Union, Is_Collision, compose.
   rewrite execWriter_Rtheta_liftM2.
   unfold Is_Collision, Is_Val, compose in *.
-  destruct (WriterMonadNoT.execWriter a) as [str_a col_a].
-  destruct (WriterMonadNoT.execWriter b) as [str_b col_b].
+  destruct (execWriter a) as [str_a col_a].
+  destruct (execWriter b) as [str_b col_b].
   unfold RthetaFlagsAppend.
   unfold IsCollision, IsVal in *.
   destr_bool.
   auto.
+Qed.
+
+(* Conditions under which Union produces value *)
+Lemma ValUnionIsVal (a b : Rtheta):
+  Is_Val a ∧ Is_Val b
+  -> Is_Val (Union a b).
+Proof.
+  intros [VA VB].
+  unfold Union, Is_Val, compose in *.
+  rewrite execWriter_Rtheta_liftM2.
+  destruct (execWriter a) as [str_a col_a].
+  destruct (execWriter b) as [str_b col_b].
+  unfold RthetaFlagsAppend.
+  unfold IsVal in *.
+  destr_bool.
 Qed.
 
 Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
