@@ -854,6 +854,7 @@ Section SigmaHCOLRewriting.
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                (x: svector i)
                (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather ( ⦃g⦄ j jc) x))
+               {nz: n ≢ 0} (* only defined for non-empty iterator *)
       :=
         (SumUnion
            (Vbuild
@@ -921,31 +922,29 @@ Section SigmaHCOLRewriting.
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
           (x: svector i)
           (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather (⦃g⦄ j jc) x))
+          {nz: n ≢ 0}
       :
-        n ≢ 0 ->
         svector_is_dense
-          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x g_dense).
+          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x g_dense nz).
     Proof.
-      intros nz.
-      unfold svector_is_non_collision.
       apply Vforall_nth_intro.
       intros oi oic.
       unfold compose.
       unfold USparseEmbedding, SparseEmbedding.
       rewrite AbsorbIUnionIndex.
       destruct n.
-      congruence.
-      induction n.
-      -
+      - congruence.
+      - induction n.
+      +
         admit.
-      - rewrite Vbuild_cons.
+      + rewrite Vbuild_cons.
         rewrite VecUnion_cons.
         apply ValUnionIsVal.
         split.
-        + apply IHn.
+        * apply IHn.
           auto.
           auto.
-        + clear IHn.
+        * clear IHn.
           unfold compose.
           admit.
     Qed.
