@@ -811,10 +811,12 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
-    (* Weaker condition: applied to a dense vector does not produce strucural collisions *)
+    (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
     Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
-      o_den_non_col : forall x, svector_is_dense x -> svector_is_non_collision (op x).
-
+      o_den_non_col : forall x,
+        svector_is_dense x ->
+        svector_is_non_collision x ->
+        svector_is_non_collision (op x).
 
     Instance liftM_HOperator_DenseCauseNoCol
              {i o}
@@ -823,7 +825,7 @@ Section SigmaHCOLRewriting.
       : DenseCauseNoCol (liftM_HOperator op).
     Proof.
       unfold DenseCauseNoCol.
-      intros x D.
+      intros x D NC.
       unfold liftM_HOperator, compose.
       apply sparsify_non_coll.
     Qed.
@@ -835,13 +837,15 @@ Section SigmaHCOLRewriting.
                (f_inj : index_map_injective f)
                (g: index_map ki i)
                `{Koperator: @HOperator ki ko kernel}
+               (x: svector i)
+               (g_dense: forall (j:nat) (jc: j<ki), Is_Val (Vnth (Gather g x) jc))
       :=
-        Scatter f (f_inj:=f_inj)
-                ∘ (liftM_HOperator kernel)
-                ∘ (Gather g).
+        (Scatter f (f_inj:=f_inj)
+                 ∘ (liftM_HOperator kernel)
+                 ∘ (Gather g)) x.
 
 
-    Definition USparseEmbedding
+    Program Definition USparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
                (f: forall k, (k<n) -> index_map ko o)
@@ -857,7 +861,24 @@ Section SigmaHCOLRewriting.
                                (f j jc)
                                (f_inj j jc)
                                (g j jc)
-                               (sparsify x)))).
+                               (sparsify x)
+                               _
+        ))).
+    Next Obligation.
+    Proof.
+      assert(XD: svector_is_dense (sparsify x)) by
+          apply sparsify_is_dense.
+      revert XD.
+      generalize dependent (sparsify x).
+      intros sx XD.
+      assert(GD: svector_is_dense (Gather (g j jc) sx))
+        by apply Gather_preserves_density, XD.
+      generalize dependent (Gather (g j jc) sx).
+      intros gx GD.
+      unfold svector_is_dense in GD.
+      apply Vforall_nth with (i:=j0) (ip:=jc0) in GD.
+      assumption.
+    Defined.
 
     Definition index_family_injective
                {n i o}
