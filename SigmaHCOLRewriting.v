@@ -838,7 +838,7 @@ Section SigmaHCOLRewriting.
                (g: index_map ki i)
                `{Koperator: @HOperator ki ko kernel}
                (x: svector i)
-               (g_dense: forall (j:nat) (jc: j<ki), Is_Val (Vnth (Gather g x) jc))
+               (g_dense: Vforall Is_Val (Gather g x))
       :=
         (Scatter f (f_inj:=f_inj)
                  ∘ (liftM_HOperator kernel)
@@ -853,7 +853,7 @@ Section SigmaHCOLRewriting.
                (g: forall k, (k<n) -> index_map ki i)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                (x: svector i)
-               (g_dense: forall j (jc:j<n) l (lc:l<ki), Is_Val (Vnth (Gather (g j jc) x) lc))
+               (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather (g j jc) x))
       :=
         (SumUnion
            (Vbuild
@@ -866,23 +866,6 @@ Section SigmaHCOLRewriting.
                                (g_dense j jc)
         ))).
 
-
-    (* Utility lemma constructing g_dense property of Sparseembedding for dense vector *)
-    Lemma Gather_is_Dense_costr
-          {ki i: nat}
-          (g: index_map ki i)
-          (x: svector i):
-      (svector_is_dense x) -> forall (j:nat) (jc: j<ki), Is_Val (Vnth (Gather g x) jc).
-    Proof.
-      intros XD j jc.
-      assert(GD: svector_is_dense (Gather g x))
-        by apply Gather_preserves_density, XD.
-      generalize dependent (Gather g x).
-      intros gx GD.
-      unfold svector_is_dense in GD.
-      apply Vforall_nth with (i:=j) (ip:=jc) in GD.
-      apply GD.
-    Defined.
 
     Definition index_family_injective
                {n i o}
