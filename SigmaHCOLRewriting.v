@@ -912,6 +912,32 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
+    Lemma Is_Val_VecUnion {n} {v: svector (S n)}:
+      Vexists Is_Val v -> Is_Val (VecUnion v).
+    Proof.
+      intros H.
+      apply Vexists_eq in H.
+      unfold VecUnion.
+      destruct H as [x [XI XV]].
+      induction n.
+      - rewrite Vfold_left_1.
+        admit.
+      -
+        destruct v.
+        + unfold Vin in XI.
+          congruence.
+        + rewrite Vfold_left_cons.
+          apply ValUnionIsVal.
+          simpl in XI.
+          destruct XI.
+          * right.
+            subst h.
+            apply XV.
+          * left.
+            apply IHn.
+    Qed.
+
+
     Lemma USparseEmbeddingIsDense
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -934,14 +960,15 @@ Section SigmaHCOLRewriting.
       rewrite AbsorbIUnionIndex.
       destruct n.
       - congruence.
-      - induction n.
+      - clear nz.
+        induction n.
       +
         admit.
       + rewrite Vbuild_cons.
         rewrite VecUnion_cons.
         apply ValUnionIsVal.
         split.
-        * apply IHn.
+        * apply IHn0.
           auto.
           auto.
         * clear IHn.
