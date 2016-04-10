@@ -834,11 +834,11 @@ Section SigmaHCOLRewriting.
                {i o ki ko}
                (kernel: avector ki -> avector ko)
                (f: index_map ko o)
-               (f_inj : index_map_injective f)
+               {f_inj : index_map_injective f}
                (g: index_map ki i)
                `{Koperator: @HOperator ki ko kernel}
                (x: svector i)
-               (g_dense: Vforall Is_Val (Gather g x))
+               {g_dense: Vforall Is_Val (Gather g x)}
       :=
         (Scatter f (f_inj:=f_inj)
                  ∘ (liftM_HOperator kernel)
@@ -848,32 +848,24 @@ Section SigmaHCOLRewriting.
     Definition USparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
-               (f: forall k, (k<n) -> index_map ko o)
-               {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
-               (g: forall k, (k<n) -> index_map ki i)
+               (f: index_map_family ko o n)
+               {f_inj : index_map_family_injective f}
+               (g: index_map_family ki i n)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                (x: svector i)
-               (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather (g j jc) x))
+               (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather ( ⦃g⦄ j jc) x))
       :=
         (SumUnion
            (Vbuild
               (λ (j:nat) (jc:j<n),
-               SparseEmbedding (kernel j jc)
-                               (f j jc)
-                               (f_inj j jc)
-                               (g j jc)
-                               x
-                               (g_dense j jc)
+               SparseEmbedding
+                 (f_inj:=index_map_family_member_injective f_inj j jc)
+                 (g_dense:=g_dense j jc)
+                 (kernel j jc)
+                 ( ⦃f⦄ j jc)
+                 ( ⦃g⦄ j jc)
+                 x
         ))).
-
-
-    Definition index_family_injective
-               {n i o}
-               (f: forall k, (k<n) -> index_map i o)
-      :=
-        forall (j1 j2: nat) (jc1: j1<n) (jc2: j2<n) (x y:nat) (xc: x<i) (yc: y<i),
-          ⟦ f j1 jc1 ⟧ x ≡ ⟦ f j2 jc2 ⟧ y → x ≡ y.
-
 
     (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
     Lemma ScatterCollisionFree
@@ -915,31 +907,31 @@ Section SigmaHCOLRewriting.
       :
         forall f, svector_is_non_collision (@Gather i o f x).
     Proof.
-      intros f.
-      apply Gather_preserves_P.
-      apply Xcf.
+      apply Gather_preserves_P, Xcf.
     Qed.
 
-    (* Sparse Emebedding is dense, but only for for n>0
-    Lemma SparseEmbeddingIsDense
+
+    Lemma USparseEmbeddingIsDense
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
-          (f: forall k, (k<n) -> index_map ko o)
-          {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
-          (g: forall k, (k<n) -> index_map ki i)
+          (f: index_map_family ko o n)
+          {f_inj: index_map_family_injective f} (* gives non-col *)
+          {f_sur: index_map_family_surjective f} (* gives density *)
+          (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
-          (x: avector i)
+          (x: svector i)
+          (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather (⦃g⦄ j jc) x))
       :
         n ≢ 0 ->
         svector_is_dense
-          (@SparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x g_dense).
     Proof.
       intros nz.
       unfold svector_is_non_collision.
       apply Vforall_nth_intro.
       intros oi oic.
       unfold compose.
-      unfold SparseEmbedding.
+      unfold USparseEmbedding, SparseEmbedding.
       rewrite AbsorbIUnionIndex.
       destruct n.
       congruence.
@@ -952,10 +944,11 @@ Section SigmaHCOLRewriting.
         split.
         + apply IHn.
           auto.
+          auto.
         + clear IHn.
           unfold compose.
           admit.
-    Qed. *)
+    Qed.
 
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}

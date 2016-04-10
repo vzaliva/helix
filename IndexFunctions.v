@@ -206,6 +206,47 @@ definition does not enforce this requirement, and the function produced might no
 End Inversions.
 
 
+Record index_map_family (d r n : nat) :=
+  IndexMapFamily { family_f : forall k, k<n -> index_map d r }.
+
+Notation "⦃ f ⦄" := (@family_f _ _ _ f).
+
+
+Section IndexFamilies.
+
+  Definition index_map_family_injective
+             {n d r: nat}
+             (f: index_map_family d r n)
+    :=
+      forall (j1 j2: nat) (jc1: j1<n) (jc2: j2<n) (x y:nat) (xc: x<d) (yc: y<d),
+        ⟦ ⦃f⦄ j1 jc1 ⟧ x ≡ ⟦ ⦃f⦄ j2 jc2 ⟧ y → x ≡ y.
+
+  Definition index_map_family_surjective
+             {n d r: nat}
+             (f: index_map_family d r n)
+    :=
+      forall (y:nat) (yc: y<r), exists (x j:nat) (xc: x<d) (jc: j<n), ⟦ ⦃f⦄ j jc ⟧ x ≡ y.
+
+  Definition index_map_family_bijective
+             {n d r}
+             (f: index_map_family d r n)
+    :=
+      (index_map_family_injective f) /\ (index_map_family_surjective f).
+
+  Lemma index_map_family_member_injective
+        {d r n: nat}
+        {f: index_map_family d r n}:
+    index_map_family_injective f -> forall j (jc:j<n), index_map_injective (⦃f⦄ j jc).
+  Proof.
+    intros H j jc.
+    unfold index_map_family_injective in H.
+    unfold index_map_injective.
+    apply H.
+  Qed.
+
+End IndexFamilies.
+
+
 Section Primitive_Functions.
 
   Program Definition identity_index_map
