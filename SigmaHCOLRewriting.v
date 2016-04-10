@@ -829,6 +829,19 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Definition SparseEmbedding
+               {i o ki ko}
+               (kernel: avector ki -> avector ko)
+               (f: index_map ko o)
+               (f_inj : index_map_injective f)
+               (g: index_map ki i)
+               `{Koperator: @HOperator ki ko kernel}
+      :=
+        Scatter f (f_inj:=f_inj)
+                ∘ (liftM_HOperator kernel)
+                ∘ (Gather g).
+
+
+    Definition USparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
                (f: forall k, (k<n) -> index_map ko o)
@@ -840,10 +853,11 @@ Section SigmaHCOLRewriting.
         (SumUnion
            (Vbuild
               (λ (j:nat) (jc:j<n),
-               ((Scatter (f j jc) (f_inj := f_inj j jc))
-                  ∘ liftM_HOperator (kernel j jc)
-                  ∘ (Gather (g j jc))
-               ) (sparsify x)))).
+               SparseEmbedding (kernel j jc)
+                               (f j jc)
+                               (f_inj j jc)
+                               (g j jc)
+                               (sparsify x)))).
 
     Definition index_family_injective
                {n i o}
@@ -935,7 +949,7 @@ Section SigmaHCOLRewriting.
           admit.
     Qed. *)
 
-    Lemma SparseEmbeddingCauseNoCol
+    Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
           (f: forall k, (k<n) -> index_map ko o)
@@ -947,14 +961,14 @@ Section SigmaHCOLRewriting.
       :
         index_family_injective f ->
         svector_is_non_collision
-          (@SparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
     Proof.
       intros f_family_inj.
       unfold svector_is_non_collision.
       apply Vforall_nth_intro.
       intros oi oic.
       unfold compose.
-      unfold SparseEmbedding in *.
+      unfold USparseEmbedding, SparseEmbedding in *.
       rewrite AbsorbIUnionIndex.
 
       induction n.
@@ -1008,30 +1022,30 @@ Section SigmaHCOLRewriting.
         +  clear IHn.
            (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
 
-          assert(T: forall A B: Prop, not A \/ not B -> not (A /\ B))
-            by tauto.
-          apply T.
+           assert(T: forall A B: Prop, not A \/ not B -> not (A /\ B))
+             by tauto.
+           apply T.
 
-          unfold index_family_injective in f_family_inj.
+           unfold index_family_injective in f_family_inj.
 
 
-          (* Partial proof of second djsjunct (for later) *)
+           (* Partial proof of second djsjunct (for later) *)
 
-          unfold compose.
-          assert(svector_is_dense (sparsify x))
-            by apply sparsify_is_dense.
-          generalize dependent (sparsify x). intros sx SXD.
+           unfold compose.
+           assert(svector_is_dense (sparsify x))
+             by apply sparsify_is_dense.
+           generalize dependent (sparsify x). intros sx SXD.
 
-          assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
-            by apply Gather_preserves_density, SXD.
-          generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
-          intros gx1 GXD1.
-          (* clear sx SXD. *)
+           assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
+             by apply Gather_preserves_density, SXD.
+           generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
+           intros gx1 GXD1.
+           (* clear sx SXD. *)
 
-          assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1))
-            by apply liftM_HOperator_DensityPreserving, GXD1.
-          generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1).
-          intros kx KXD.
+           assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1))
+             by apply liftM_HOperator_DensityPreserving, GXD1.
+           generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1).
+           intros kx KXD.
 
 
 
@@ -1052,6 +1066,7 @@ Section SigmaHCOLRewriting.
              `{DP2: !DensityPreserving g}
       : DensityPreserving
           (HTSUMUnion
+
              ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
               ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
              ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
