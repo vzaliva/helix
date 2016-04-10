@@ -845,14 +845,15 @@ Section SigmaHCOLRewriting.
                  ∘ (Gather g)) x.
 
 
-    Program Definition USparseEmbedding
+    Definition USparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
                (f: forall k, (k<n) -> index_map ko o)
                {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
                (g: forall k, (k<n) -> index_map ki i)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
-               (x: avector i)
+               (x: svector i)
+               (g_dense: forall j (jc:j<n) l (lc:l<ki), Is_Val (Vnth (Gather (g j jc) x) lc))
       :=
         (SumUnion
            (Vbuild
@@ -861,23 +862,26 @@ Section SigmaHCOLRewriting.
                                (f j jc)
                                (f_inj j jc)
                                (g j jc)
-                               (sparsify x)
-                               _
+                               x
+                               (g_dense j jc)
         ))).
-    Next Obligation.
+
+
+    (* Utility lemma constructing g_dense property of Sparseembedding for dense vector *)
+    Lemma Gather_is_Dense_costr
+          {ki i: nat}
+          (g: index_map ki i)
+          (x: svector i):
+      (svector_is_dense x) -> forall (j:nat) (jc: j<ki), Is_Val (Vnth (Gather g x) jc).
     Proof.
-      assert(XD: svector_is_dense (sparsify x)) by
-          apply sparsify_is_dense.
-      revert XD.
-      generalize dependent (sparsify x).
-      intros sx XD.
-      assert(GD: svector_is_dense (Gather (g j jc) sx))
+      intros XD j jc.
+      assert(GD: svector_is_dense (Gather g x))
         by apply Gather_preserves_density, XD.
-      generalize dependent (Gather (g j jc) sx).
+      generalize dependent (Gather g x).
       intros gx GD.
       unfold svector_is_dense in GD.
-      apply Vforall_nth with (i:=j0) (ip:=jc0) in GD.
-      assumption.
+      apply Vforall_nth with (i:=j) (ip:=jc) in GD.
+      apply GD.
     Defined.
 
     Definition index_family_injective
