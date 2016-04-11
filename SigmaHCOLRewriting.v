@@ -845,7 +845,6 @@ Section SigmaHCOLRewriting.
                  ∘ (liftM_HOperator kernel)
                  ∘ (Gather g)) x.
 
-
     Definition USparseEmbedding
                {n i o ki ko}
                (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -912,33 +911,6 @@ Section SigmaHCOLRewriting.
       apply Gather_preserves_P, Xcf.
     Qed.
 
-
-    Lemma Is_Val_VecUnion {n} {v: svector (S n)}:
-      Vexists Is_Val v -> Is_Val (VecUnion v).
-    Proof.
-      intros H.
-      apply Vexists_eq in H.
-      unfold VecUnion.
-      destruct H as [x [XI XV]].
-      induction n.
-      - rewrite Vfold_left_1.
-        admit.
-      -
-        destruct v.
-        + unfold Vin in XI.
-          congruence.
-        + rewrite Vfold_left_cons.
-          apply ValUnionIsVal.
-          simpl in XI.
-          destruct XI.
-          * right.
-            subst h.
-            apply XV.
-          * left.
-            apply IHn.
-    Qed.
-
-
     Lemma USparseEmbeddingIsDense
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -948,7 +920,7 @@ Section SigmaHCOLRewriting.
           (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
           (x: svector i)
-          (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather (⦃g⦄ j jc) x))
+          {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
           {nz: n ≢ 0}
       :
         svector_is_dense
@@ -962,12 +934,24 @@ Section SigmaHCOLRewriting.
       destruct n.
       - congruence.
       - clear nz.
+
+        rewrite Vbuild_cons.
+        apply Is_Val_VecUnion.
+        simpl.
         induction n.
-      +
-        admit.
-      + rewrite Vbuild_cons.
-        rewrite VecUnion_cons.
-        apply ValUnionIsVal.
+        +
+          admit.
+        + destruct IHn.
+
+
+
+          rewrite Vbuild_cons.
+          rewrite VecUnion_cons.
+          apply ValUnionIsVal.
+
+        rewrite Vbuild_cons in IHn.
+        apply Is_Val_VecUnion in IHn.
+
         split.
         * apply IHn0.
           auto.

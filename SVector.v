@@ -228,6 +228,31 @@ Proof.
       destr_bool; auto).
 Qed.
 
+Lemma Is_Val_VecUnion {n} {v: svector n}:
+  Vexists Is_Val v -> Is_Val (VecUnion v).
+Proof.
+  intros H.
+  apply Vexists_eq in H.
+  unfold VecUnion.
+  destruct H as [x [XI XV]].
+  induction v.
+  - unfold Vin in XI.
+    congruence.
+  - apply Vin_cons in XI.
+    rewrite Vfold_left_cons.
+    destruct XI.
+    + subst h.
+      apply ValUnionIsVal.
+      right.
+      assumption.
+    +
+      clear XV.
+      apply IHv in H.
+      apply ValUnionIsVal.
+      left.
+      assumption.
+Qed.
+
 Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
   Vbreak x ≡ (x0, x1) ->
   svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).

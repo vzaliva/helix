@@ -122,7 +122,7 @@ Section VCons_p.
     assumption.
     unfold vec_equiv, Vforall2 in H0.  assumption.
   Qed.
-  
+
 End VCons_p.
 
 Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
@@ -1279,6 +1279,13 @@ Lemma neq_nat_to_neq {a b:nat} (e: ¬eq_nat a b): a ≢ b.
 Proof.
   crush.
 Defined.
+
+Lemma Vin_cons:
+  ∀ (T:Type) (h : T) (n : nat) (v : vector T n) (x : T),
+    Vin x (Vcons h v) → x ≡ h ∨ Vin x v.
+Proof.
+  crush.
+Qed.
 
 Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
