@@ -838,7 +838,8 @@ Section SigmaHCOLRewriting.
                (g: index_map ki i)
                `{Koperator: @HOperator ki ko kernel}
                (x: svector i)
-               {g_dense: Vforall Is_Val (Gather g x)}
+               {g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))}
+
       :=
         (Scatter f (f_inj:=f_inj)
                  ∘ (liftM_HOperator kernel)
@@ -853,7 +854,7 @@ Section SigmaHCOLRewriting.
                (g: index_map_family ki i n)
                `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
                (x: svector i)
-               (g_dense: forall j (jc:j<n), Vforall Is_Val (Gather ( ⦃g⦄ j jc) x))
+               {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
                {nz: n ≢ 0} (* only defined for non-empty iterator *)
       :=
         (SumUnion
