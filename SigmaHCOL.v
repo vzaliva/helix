@@ -219,6 +219,20 @@ Proof.
   auto.
 Qed.
 
+(* Index-function based condition under which Gather output is dense *)
+Lemma Gather_dense_constr (i ki : nat)
+      (g: index_map ki i)
+      (x: svector i)
+      (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
+  Vforall Is_Val (Gather g x).
+Proof.
+  apply Vforall_nth_intro.
+  intros i0 ip.
+  remember (Gather g x) as gx.
+  rewrite Gather_spec with (f:=g) (x0:=x) by (symmetry;apply Heqgx).
+  apply g_dense.
+Qed.
+
 Lemma Gather_is_endomorphism:
   ∀ (i o : nat)
     (x : svector i),

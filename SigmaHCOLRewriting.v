@@ -911,6 +911,21 @@ Section SigmaHCOLRewriting.
       apply Gather_preserves_P, Xcf.
     Qed.
 
+    (* TODO: move *)
+    Lemma partial_index_f_at_point:
+      ∀ (r d y x : nat)
+        (yc: y<r)
+        (xc: x<d)
+        (fp : index_map d r),
+        ⟦fp⟧ x ≡ y → partial_index_f r d (build_inverse_index_map fp) y ≡ Some x.
+    Proof.
+      intros r d y x yc xc fp H.
+      simpl.
+      induction d.
+      crush.
+      admit. (* TODO *)
+    Qed.
+
     Lemma USparseEmbeddingIsDense
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -941,6 +956,29 @@ Section SigmaHCOLRewriting.
         specialize (f_sur oi oic).
         destruct f_sur as [z [p [zc [pc F]]]].
         exists p pc.
+
+        assert(Vforall Is_Val (Gather (⦃g ⦄ p pc) x))
+          by apply Gather_dense_constr, g_dense.
+        generalize dependent (Gather (⦃g ⦄ p pc) x).
+        intros gx GD.
+        clear g_dense g.
+
+        assert(Vforall Is_Val (liftM_HOperator (kernel p pc) gx))
+          by apply liftM_HOperator_DensityPreserving, GD.
+
+        generalize dependent (liftM_HOperator (kernel p pc) gx).
+        intros kx KD.
+        clear GD gx Koperator kernel.
+
+        rewrite Scatter_rev_spec.
+        generalize dependent (⦃f ⦄ p pc). intros fp F.
+        clear f_inj f.
+
+        assert(ZI: partial_index_f _ _ (build_inverse_index_map fp) oi ≡ Some z)
+          by apply partial_index_f_at_point, F.
+
+        unfold VnthInverseIndexMapped.
+        TODO: here.
 
     Qed.
 
