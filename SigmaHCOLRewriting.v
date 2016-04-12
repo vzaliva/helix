@@ -937,16 +937,11 @@ Section SigmaHCOLRewriting.
       - clear nz.
         apply Is_Val_VecUnion.
         apply Vexists_Vbuild.
+        unfold index_map_family_surjective in f_sur.
+        specialize (f_sur oi oic).
+        destruct f_sur as [z [p [zc [pc F]]]].
+        exists p pc.
 
-
-
-
-
-        rewrite Vbuild_cons.
-        rewrite VecUnion_cons.
-        apply ValUnionIsVal.
-        right.
-        simpl.
     Qed.
 
     Lemma USparseEmbeddingCauseNoCol
