@@ -1219,6 +1219,33 @@ Proof.
   auto.
 Qed.
 
+Lemma Vexists_Vbuild:
+  forall (T:Type) (P: T -> Prop) (n:nat) {f},
+    Vexists P (Vbuild (n:=n) f) <-> exists i (ic:i<n), P (f i ic).
+Proof.
+  intros T P n f.
+  split.
+  - intros E.
+    apply Vexists_eq in E.
+    destruct E as[x [V Px]].
+    apply Vin_nth in V.
+    destruct V as [i [ip V]].
+    rewrite Vbuild_nth in V.
+    subst x.
+    exists i ip.
+    apply Px.
+  - intros H.
+    apply Vexists_eq.
+    destruct H as [i [ic H]].
+    exists (f i ic).
+    split.
+    +
+      apply Vin_build.
+      exists i ic.
+      reflexivity.
+    + assumption.
+Qed.
+
 Lemma Vbuild_0:
   forall B gen, @Vbuild B 0 gen ≡ @Vnil B.
 Proof.

@@ -931,34 +931,22 @@ Section SigmaHCOLRewriting.
       unfold compose.
       unfold USparseEmbedding, SparseEmbedding.
       rewrite AbsorbIUnionIndex.
+      unfold compose.
       destruct n.
       - congruence.
       - clear nz.
+        apply Is_Val_VecUnion.
+        apply Vexists_Vbuild.
+
+
+
+
 
         rewrite Vbuild_cons.
-        apply Is_Val_VecUnion.
+        rewrite VecUnion_cons.
+        apply ValUnionIsVal.
+        right.
         simpl.
-        induction n.
-        +
-          admit.
-        + destruct IHn.
-
-
-
-          rewrite Vbuild_cons.
-          rewrite VecUnion_cons.
-          apply ValUnionIsVal.
-
-        rewrite Vbuild_cons in IHn.
-        apply Is_Val_VecUnion in IHn.
-
-        split.
-        * apply IHn0.
-          auto.
-          auto.
-        * clear IHn.
-          unfold compose.
-          admit.
     Qed.
 
     Lemma USparseEmbeddingCauseNoCol
