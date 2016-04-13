@@ -911,21 +911,6 @@ Section SigmaHCOLRewriting.
       apply Gather_preserves_P, Xcf.
     Qed.
 
-    (* TODO: move *)
-    Lemma partial_index_f_at_point:
-      ∀ (r d y x : nat)
-        (yc: y<r)
-        (xc: x<d)
-        (fp : index_map d r),
-        ⟦fp⟧ x ≡ y → partial_index_f r d (build_inverse_index_map fp) y ≡ Some x.
-    Proof.
-      intros r d y x yc xc fp H.
-      simpl.
-      induction d.
-      crush.
-      admit. (* TODO *)
-    Qed.
-
     Lemma USparseEmbeddingIsDense
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -971,11 +956,13 @@ Section SigmaHCOLRewriting.
         clear GD gx Koperator kernel.
 
         rewrite Scatter_rev_spec.
-        generalize dependent (⦃f ⦄ p pc). intros fp F.
-        clear f_inj f.
+        apply index_map_family_member_injective with (jc:=pc) in f_inj.
+        generalize dependent (⦃f ⦄ p pc). intros fp fp_inj F.
+        clear f.
 
         assert(ZI: partial_index_f _ _ (build_inverse_index_map fp) oi ≡ Some z)
-          by apply partial_index_f_at_point, F.
+          by (apply build_inverse_index_map_is_left_inverse; assumption).
+        clear fp_inj.
 
         unfold VnthInverseIndexMapped.
         TODO: here.
