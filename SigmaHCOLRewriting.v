@@ -962,12 +962,30 @@ Section SigmaHCOLRewriting.
 
         assert(ZI: partial_index_f _ _ (build_inverse_index_map fp) oi ≡ Some z)
           by (apply build_inverse_index_map_is_left_inverse; assumption).
-        clear fp_inj.
+        clear F fp_inj F.
 
         unfold VnthInverseIndexMapped.
-        TODO: here.
+        (* Ugly code below. needs to be cleaned up *)
+        generalize dependent (build_inverse_index_map fp). intros pm ZI.
 
+        unfold partial_index_f.
+        break_match.
+        simpl.
+        generalize (partial_index_f_spec oi oic). intros.
+        break_match.
+        apply Vforall_nth, KD.
+        simpl in *.
+        congruence.
     Qed.
+
+
+
+
+
+
+
+
+
 
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
