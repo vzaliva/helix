@@ -34,7 +34,6 @@ Record RthetaFlags : Type :=
 
 (* Propositional predicates *)
 Definition IsCollision (x:RthetaFlags) := Is_true (is_collision x).
-Definition IsStruct (x:RthetaFlags) := Is_true (is_struct x).
 Definition IsVal (x:RthetaFlags) := not (Is_true (is_struct x)).
 
 (* mappend *)
@@ -159,9 +158,11 @@ Definition mkSZero : Rtheta := mkStruct 0.
 Definition mkValue (val: CarrierA) : Rtheta :=
   tell (mkRthetaFlags false false) ;; ret val.
 
-Definition Is_Val (x:Rtheta) := (IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
+Definition Is_Val := IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags).
+Definition Is_Struct := not ∘ Is_Val.
 
 Definition Is_Collision (x:Rtheta) := (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
+Definition Not_Collision := not ∘ Is_Collision.
 
 Lemma IsVal_mkValue:
   ∀ v : CarrierA, Is_Val (mkValue v).

@@ -303,7 +303,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-             (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -492,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -878,7 +878,7 @@ Section SigmaHCOLRewriting.
       :
         svector_is_non_collision (@Scatter i o f f_inj x).
     Proof.
-      unfold svector_is_non_collision in *.
+      unfold svector_is_non_collision, Not_Collision in *.
       apply Vforall_nth_intro.
       intros j jp.
       unfold Is_Collision in *.
@@ -979,38 +979,103 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
-
-
-
-
-
-
+    (* Pre-condition for VecUnion not causing any collisions *)
+    Lemma Not_Collision_VecUnion {n}
+          {v: svector n}
+          {VNC: Vforall Not_Collision v}
+      :
+        ((Vforall Is_Struct v) \/
+         (forall (i j : nat) (ic : i < n) (jc : j < n),
+             Is_Val (Vnth v ic) -> (i ≢ j → Is_Struct (Vnth v jc))))
+        ->
+        Not_Collision (VecUnion v).
+    Proof.
+      intros P.
+      destruct P.
+      -
+        induction v.
+        + compute.
+          trivial.
+        +
+          rewrite VecUnion_cons.
+          simpl in H. destruct H as [Hh Hx].
+          simpl in VNC. destruct VNC as [VNCh VNCx].
+          apply UnionCollisionFree.
+          apply IHv. apply VNCx. apply Hx.
+          apply VNCh.
+          unfold Not_Collision, compose in VNCh.
+          crush.
+      -
+        induction v.
+        + compute.
+          trivial.
+        +
+          simpl in VNC. destruct VNC as [VNCh VNCx].
+          rewrite VecUnion_cons.
+          apply UnionCollisionFree.
+          * apply IHv. apply VNCx.
+            intros i j ic jc VI NIJ.
+            admit.
+          * apply VNCh.
+          * crush.
+    Qed.
 
 
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
-          (f: forall k, (k<n) -> index_map ko o)
-          {f_inj : ∀ k (kc: k<n), index_map_injective (f k kc)}
-          (g: forall k, (k<n) -> index_map ki i)
+          (f: index_map_family ko o n)
+          {f_inj: index_map_family_injective f} (* gives non-col *)
+          {f_sur: index_map_family_surjective f} (* gives density *)
+          (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
-          (x: avector i)
-
+          (x: svector i)
+          {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
+          {nz: n ≢ 0}
       :
-        index_family_injective f ->
+
+        (forall j (jc:j<n) k (kc:k<ki), Not_Collision (Vnth x («⦃g⦄ j jc» k kc))) ->
         svector_is_non_collision
-          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+          (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x g_dense nz).
     Proof.
-      intros f_family_inj.
-      unfold svector_is_non_collision.
+      intros GNC.
       apply Vforall_nth_intro.
       intros oi oic.
       unfold compose.
-      unfold USparseEmbedding, SparseEmbedding in *.
+      unfold USparseEmbedding, SparseEmbedding.
       rewrite AbsorbIUnionIndex.
 
-      induction n.
-      - crush.
+
+      destruct n.
+      - congruence.
+      - clear nz.
+        apply Not_Collision_VecUnion.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        induction n.
+      - congruence.
       - rewrite Vbuild_cons.
         rewrite VecUnion_cons.
         apply UnionCollisionFree.
