@@ -978,6 +978,7 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
+    Require Import CoLoR.Util.Logic.LogicUtil.
 
     (* Pre-condition for VecUnion not causing any collisions *)
     Lemma Not_Collision_VecUnion {n}
@@ -985,8 +986,8 @@ Section SigmaHCOLRewriting.
           {VNC: Vforall Not_Collision v}
       :
         ((Vforall Is_Struct v) \/
-         (forall (i j : nat) (ic : i < n) (jc : j < n),
-             Is_Val (Vnth v ic) -> (i ≢ j → Is_Struct (Vnth v jc))))
+         (forall (i j : nat) (ic : i < n) (jc : j < n), (i ≢ j) ->
+             Is_Val (Vnth v ic) -> Is_Struct (Vnth v jc)))
         ->
         Not_Collision (VecUnion v).
     Proof.
@@ -1004,7 +1005,7 @@ Section SigmaHCOLRewriting.
           apply IHv. apply VNCx. apply Hx.
           apply VNCh.
           unfold Not_Collision, compose in VNCh.
-          crush.
+          firstorder.
       -
         induction v.
         + compute.
@@ -1015,9 +1016,21 @@ Section SigmaHCOLRewriting.
           apply UnionCollisionFree.
           * apply IHv. apply VNCx.
             intros i j ic jc VI NIJ.
+            destruct i, j.
+            congruence.
+
             admit.
           * apply VNCh.
-          * crush.
+          * unfold Is_Struct, compose in H.
+            apply IHv in VNCx.
+            admit.
+
+            cut(¬(Is_Val (VecUnion v)) ∧ (¬ (Is_Val h))).
+            firstorder.
+
+            split.
+
+
     Qed.
 
 
