@@ -978,57 +978,35 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
-    Require Import CoLoR.Util.Logic.LogicUtil.
 
     (* Pre-condition for VecUnion not causing any collisions *)
     Lemma Not_Collision_VecUnion {n}
           {v: svector n}
           {VNC: Vforall Not_Collision v}
       :
-        ((Vforall Is_Struct v) \/
-         (forall (i j : nat) (ic : i < n) (jc : j < n), (i ≢ j) ->
-             Is_Val (Vnth v ic) -> Is_Struct (Vnth v jc)))
+        (forall (i j : nat) (ic: i < n) (jc: j < n),
+          (Is_Val (Vnth v ic) /\ Is_Val (Vnth v jc)) -> i ≡ j)
         ->
         Not_Collision (VecUnion v).
     Proof.
-      intros P.
-      destruct P.
-      -
-        induction v.
-        + compute.
-          trivial.
-        +
-          rewrite VecUnion_cons.
-          simpl in H. destruct H as [Hh Hx].
-          simpl in VNC. destruct VNC as [VNCh VNCx].
-          apply UnionCollisionFree.
-          apply IHv. apply VNCx. apply Hx.
-          apply VNCh.
-          unfold Not_Collision, compose in VNCh.
+      intros H.
+      dependent induction n.
+      + dep_destruct v.
+        compute.
+        trivial.
+      +
+        dep_destruct v.
+        rewrite VecUnion_cons.
+        simpl in VNC. destruct VNC as [VNCh VNCx].
+        apply UnionCollisionFree.
+        *
+          apply IHn. apply VNCx.
+          intros i j ic jc [Vi Vj].
+          admit.
+        * apply VNCh.
+        * cut(¬(Is_Val (VecUnion x)) ∧ (¬ (Is_Val h))).
           firstorder.
-      -
-        induction v.
-        + compute.
-          trivial.
-        +
-          simpl in VNC. destruct VNC as [VNCh VNCx].
-          rewrite VecUnion_cons.
-          apply UnionCollisionFree.
-          * apply IHv. apply VNCx.
-            intros i j ic jc VI NIJ.
-            destruct i, j.
-            congruence.
-
-            admit.
-          * apply VNCh.
-          * unfold Is_Struct, compose in H.
-            apply IHv in VNCx.
-            admit.
-
-            cut(¬(Is_Val (VecUnion v)) ∧ (¬ (Is_Val h))).
-            firstorder.
-
-            split.
+          split.
 
 
     Qed.
