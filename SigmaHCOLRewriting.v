@@ -979,14 +979,56 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
+    (* Definition that there is only one element in vector satisfying given predicate *)
+    Definition Vunique {n} {T:Type}
+               (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
+               (v: vector T n) :=
+
+      (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
+          (P (Vnth v ic) /\ P (Vnth v jc)) -> i ≡ j).
+
+    Lemma Vunique_cons {n} {T:Type}
+          (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
+          (h: T) (t: vector T n):
+      Vunique P (Vcons h t) ->
+      (P h /\ (Vforall (not ∘ P) t))
+      \/ Vunique P t.
+    Proof.
+      intros H.
+      unfold Vunique in H.
+      assert(Dh: Decision (P h)) by apply P_dec.
+      destruct Dh as [Dp | Dnp].
+      + left.
+        split.
+        apply Dp.
+        apply Vforall_nth_intro.
+        intros j jc.
+        unfold compose.
+        assert(I0: 0 < S n) by crush.
+        assert(Jsn: j < S n) by crush.
+        specialize (H 0 I0 j Jsn).
+        rewrite Vnth_0 in H.
+        simpl (Vhead (Vcons h t)) in H.
+        destruct j.
+        * admit.
+        *
+          assert(jc': j < n) by crush.
+          rewrite Vnth_Sn with (ip:=Jsn) (ip':=jc') in H.
+      +
+
+      left.
+      split.
+      assumption.
+      admit.
+      right.
+
+    Qed.
+
     (* Pre-condition for VecUnion not causing any collisions *)
     Lemma Not_Collision_VecUnion {n}
           {v: svector n}
           {VNC: Vforall Not_Collision v}
-      :
-        (forall (i j : nat) (ic: i < n) (jc: j < n),
-          (Is_Val (Vnth v ic) /\ Is_Val (Vnth v jc)) -> i ≡ j)
-        ->
+      : Vunique Is_Val v ->
         Not_Collision (VecUnion v).
     Proof.
       intros H.
