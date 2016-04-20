@@ -978,10 +978,11 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
+    Require Import CoLoR.Util.Logic.LogicUtil.
 
-    (* Definition that there is only one element in vector satisfying given predicate *)
+    (* There is only one element in vector satisfying given predicate *)
     Definition Vunique {n} {T:Type}
-               (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
+               (P: T -> Prop)
                (v: vector T n) :=
 
       (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
@@ -990,10 +991,52 @@ Section SigmaHCOLRewriting.
     Lemma Vunique_cons {n} {T:Type}
           (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
           (h: T) (t: vector T n):
-      Vunique P (Vcons h t) ->
-      (P h /\ (Vforall (not ∘ P) t))
-      \/ Vunique P t.
+      ((P h /\ (Vforall (not ∘ P) t)) \/
+       (not (P h) /\ Vunique P t))
+      <->
+      Vunique P (Vcons h t).
     Proof.
+      split.
+
+      (*
+      intros H.
+      destruct H as [H1 | H2].
+      -
+        destruct H1 as [Hh Ht].
+        unfold Vunique.
+        intros i ic j jc H.
+        destruct H as [Ph Pt].
+
+        apply Vforall_nth in Ht.
+
+        admit.
+      -
+        destruct H2 as [Hh Ht].
+        unfold Vunique.
+        intros i ic j jc H.
+        destruct H as [Ph Pt].
+       *)
+
+
+      intros H.
+      destruct H.
+      destruct H as [Hh Ht].
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [Ph Pt].
+
+      HERE
+
+
+
+      
+
+
+
+
+
+
+
       intros H.
       unfold Vunique in H.
       assert(Dh: Decision (P h)) by apply P_dec.
@@ -1002,9 +1045,21 @@ Section SigmaHCOLRewriting.
         split.
         apply Dp.
         apply Vforall_nth_intro.
-        intros j jc.
+        intros k kc. unfold compose.
+        assert(Ksn: k < S n) by crush.
+        assert(Isn: 0 < S n) by crush.
+        specialize (H 0 Isn k Ksn).
+        rewrite Vnth_0 in H.
+        simpl (Vhead (Vcons h t)) in H.
+        destruct k.
+        rewrite Vnth_0 in H.
+        simpl (Vhead (Vcons h t)) in H.
+
+
+
+
+
         unfold compose.
-        assert(I0: 0 < S n) by crush.
         assert(Jsn: j < S n) by crush.
         specialize (H 0 I0 j Jsn).
         rewrite Vnth_0 in H.
