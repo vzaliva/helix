@@ -988,6 +988,38 @@ Section SigmaHCOLRewriting.
       (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
           (P (Vnth v ic) /\ P (Vnth v jc)) -> i ≡ j).
 
+    Lemma Vunique_Vnil (T : Type) (P : T → Prop):
+      Vunique P (@Vnil T).
+    Proof.
+      unfold Vunique.
+      intros i ic j jc H.
+      nat_lt_0_contradiction.
+    Qed.
+
+    Lemma Vforall_notP_Vunique:
+      ∀ (n : nat) (T : Type) (P : T → Prop) (v : vector T n),
+        Vforall (not ∘ P) v → Vunique P v.
+    Proof.
+      intros n T P v.
+      induction v.
+      - intros H.
+        apply Vunique_Vnil.
+      -
+        intros H.
+        unfold Vunique in *.
+        intros i ic j jc V.
+        destruct V.
+        apply Vforall_nth with (i:=i) (ip:=ic) in H.
+        congruence.
+    Qed.
+
+    Lemma P_Vnth_Vcons {T:Type} {P:T->Prop} {n:nat} {h:T} {t:vector T n}:
+      forall i (ic:i<S n) (ic': S i < n),
+        P (Vnth (Vcons h t) ic) -> P h /\ P (Vnth t ic').
+    Proof.
+      admit.
+    Qed.
+
     Lemma Vunique_cons {n} {T:Type}
           (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
           (h: T) (t: vector T n):
@@ -996,8 +1028,8 @@ Section SigmaHCOLRewriting.
       <->
       Vunique P (Vcons h t).
     Proof.
-      split.
 
+      split.
       (*
       intros H.
       destruct H as [H1 | H2].
@@ -1023,7 +1055,15 @@ Section SigmaHCOLRewriting.
       destruct H as [Hh Ht].
       unfold Vunique.
       intros i ic j jc H.
-      destruct H as [Ph Pt].
+      destruct H as [Pi Pj].
+
+      destruct i,j.
+      reflexivity.
+
+      eapply P_Vnth_Vcons in Pi.
+
+      destruct Pi as [Ph Pt].
+      eapply Vforall_nth in Ht.
 
       HERE
 
