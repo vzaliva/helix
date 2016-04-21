@@ -1075,7 +1075,32 @@ Section SigmaHCOLRewriting.
           (h: T) (t: vector T n):
       P h /\ (Vforall (not ∘ P) t) -> Vunique P (Vcons h t).
     Proof.
-      admit.
+      intros H.
+      destruct H as [Ph Pt].
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [Hi Hj].
+
+      destruct i, j.
+      - reflexivity.
+      -
+        assert(jc':j < n) by (apply lt_S_n; apply jc).
+        apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+        congruence.
+      -
+        assert(ic':i < n) by (apply lt_S_n; apply ic).
+        apply Vforall_nth with (i:=i) (ip:=ic') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=ic) (ip':=ic') in Hi.
+        congruence.
+      -
+        assert(jc':j < n) by (apply lt_S_n; apply jc).
+        apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+        congruence.
     Qed.
 
     Lemma Vunique_cons {n} {T:Type}
