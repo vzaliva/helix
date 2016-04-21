@@ -1027,7 +1027,7 @@ Section SigmaHCOLRewriting.
         apply H.
     Qed.
 
-    Lemma P_Vnth_Vcons_not0 {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+    Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
       forall i (ic:i<S n) (ic': (pred i) < n),
         not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
     Proof.
@@ -1057,10 +1057,10 @@ Section SigmaHCOLRewriting.
       - simpl in Hj. congruence.
       -
         assert(ic': pred (S i) < n) by (apply lt_S_n; apply ic).
-        apply P_Vnth_Vcons_not0 with (ic'0:=ic') in Hi; try apply Ph.
+        apply P_Vnth_Vcons_not_head with (ic'0:=ic') in Hi; try apply Ph.
 
         assert(jc': pred (S j) < n) by (apply lt_S_n; apply jc).
-        apply P_Vnth_Vcons_not0 with (ic'0:=jc') in Hj; try apply Ph.
+        apply P_Vnth_Vcons_not_head with (ic'0:=jc') in Hj; try apply Ph.
 
         f_equal.
         unfold Vunique in Pt.
@@ -1068,108 +1068,28 @@ Section SigmaHCOLRewriting.
         split; [apply Hi| apply Hj].
     Qed.
 
+
+    Lemma Vunique_cons_head
+          {n} {T:Type}
+          (P: T -> Prop)
+          (h: T) (t: vector T n):
+      P h /\ (Vforall (not ∘ P) t) -> Vunique P (Vcons h t).
+    Proof.
+      admit.
+    Qed.
+
     Lemma Vunique_cons {n} {T:Type}
-          (P: T -> Prop) `{P_dec: forall x:T, Decision (P x)}
+          (P: T -> Prop)
           (h: T) (t: vector T n):
       ((P h /\ (Vforall (not ∘ P) t)) \/
        (not (P h) /\ Vunique P t))
-      <->
+      ->
       Vunique P (Vcons h t).
     Proof.
-
-      split.
-      (*
-      intros H.
-      destruct H as [H1 | H2].
-      -
-        destruct H1 as [Hh Ht].
-        unfold Vunique.
-        intros i ic j jc H.
-        destruct H as [Ph Pt].
-
-        apply Vforall_nth in Ht.
-
-        admit.
-      -
-        destruct H2 as [Hh Ht].
-        unfold Vunique.
-        intros i ic j jc H.
-        destruct H as [Ph Pt].
-       *)
-
-
       intros H.
       destruct H.
-      destruct H as [Hh Ht].
-      unfold Vunique.
-      intros i ic j jc H.
-      destruct H as [Pi Pj].
-
-
-      destruct i,j.
-      - reflexivity.
-      -
-        assert(ic': pred 0 < n) by crush.
-        apply P_Vnth_Vcons with (i:=0) (ic0:=ic) (ic'0:=ic') (t0:=t) in Pi.
-
-      Check Vforall_nth.
-      apply Vforall_nth with (i:=0) (ip:=ic) in Ht.
-
-
-
-
-      HERE
-
-
-
-      
-
-
-
-
-
-
-
-      intros H.
-      unfold Vunique in H.
-      assert(Dh: Decision (P h)) by apply P_dec.
-      destruct Dh as [Dp | Dnp].
-      + left.
-        split.
-        apply Dp.
-        apply Vforall_nth_intro.
-        intros k kc. unfold compose.
-        assert(Ksn: k < S n) by crush.
-        assert(Isn: 0 < S n) by crush.
-        specialize (H 0 Isn k Ksn).
-        rewrite Vnth_0 in H.
-        simpl (Vhead (Vcons h t)) in H.
-        destruct k.
-        rewrite Vnth_0 in H.
-        simpl (Vhead (Vcons h t)) in H.
-
-
-
-
-
-        unfold compose.
-        assert(Jsn: j < S n) by crush.
-        specialize (H 0 I0 j Jsn).
-        rewrite Vnth_0 in H.
-        simpl (Vhead (Vcons h t)) in H.
-        destruct j.
-        * admit.
-        *
-          assert(jc': j < n) by crush.
-          rewrite Vnth_Sn with (ip:=Jsn) (ip':=jc') in H.
-      +
-
-      left.
-      split.
-      assumption.
-      admit.
-      right.
-
+      apply Vunique_cons_head; auto.
+      apply Vunique_cons_not_head; auto.
     Qed.
 
     (* Pre-condition for VecUnion not causing any collisions *)
