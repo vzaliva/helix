@@ -1014,10 +1014,17 @@ Section SigmaHCOLRewriting.
     Qed.
 
     Lemma P_Vnth_Vcons {T:Type} {P:T->Prop} {n:nat} {h:T} {t:vector T n}:
-      forall i (ic:i<S n) (ic': S i < n),
-        P (Vnth (Vcons h t) ic) -> P h /\ P (Vnth t ic').
+      forall i (ic:i<S n) (ic': (pred i) < n),
+        P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
     Proof.
-      admit.
+      intros i ic ic' H.
+      destruct i.
+      - left.
+        auto.
+      - right.
+        simpl in H.
+        replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
+        apply H.
     Qed.
 
     Lemma Vunique_cons {n} {T:Type}
