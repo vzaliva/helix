@@ -1013,7 +1013,7 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
-    Lemma P_Vnth_Vcons {T:Type} {P:T->Prop} {n:nat} {h:T} {t:vector T n}:
+    Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
       forall i (ic:i<S n) (ic': (pred i) < n),
         P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
     Proof.
@@ -1025,6 +1025,48 @@ Section SigmaHCOLRewriting.
         simpl in H.
         replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
         apply H.
+    Qed.
+
+    Lemma P_Vnth_Vcons_not0 {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+      forall i (ic:i<S n) (ic': (pred i) < n),
+        not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
+    Proof.
+      intros i ic ic' Ph Pt.
+      destruct i.
+      - simpl in Pt; congruence.
+      - simpl in Pt.
+        replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
+        apply Pt.
+    Qed.
+
+    Lemma Vunique_cons_not_head
+          {n} {T:Type}
+          (P: T -> Prop)
+          (h: T) (t: vector T n):
+      not (P h) /\ Vunique P t -> Vunique P (Vcons h t).
+    Proof.
+      intros H.
+      destruct H as [Ph Pt].
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [Hi Hj].
+
+      destruct i,j.
+      - reflexivity.
+      - simpl in Hi. congruence.
+      - simpl in Hj. congruence.
+      -
+        assert(ic': pred (S i) < n) by crush.
+        apply P_Vnth_Vcons_not0 with (ic'0:=ic') in Hi; try apply Ph.
+
+        assert(jc': pred (S j) < n) by crush.
+        apply P_Vnth_Vcons_not0 with (ic'0:=jc') in Hj; try apply Ph.
+        simpl in *.
+
+        f_equal.
+        unfold Vunique in Pt.
+        apply Pt with (ic:=ic') (jc:=jc').
+        split; [apply Hi| apply Hj].
     Qed.
 
     Lemma Vunique_cons {n} {T:Type}
@@ -1064,13 +1106,18 @@ Section SigmaHCOLRewriting.
       intros i ic j jc H.
       destruct H as [Pi Pj].
 
+
       destruct i,j.
-      reflexivity.
+      - reflexivity.
+      -
+        assert(ic': pred 0 < n) by crush.
+        apply P_Vnth_Vcons with (i:=0) (ic0:=ic) (ic'0:=ic') (t0:=t) in Pi.
 
-      eapply P_Vnth_Vcons in Pi.
+      Check Vforall_nth.
+      apply Vforall_nth with (i:=0) (ip:=ic) in Ht.
 
-      destruct Pi as [Ph Pt].
-      eapply Vforall_nth in Ht.
+
+
 
       HERE
 
