@@ -978,8 +978,6 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
-    Require Import CoLoR.Util.Logic.LogicUtil.
-
     (* There is only one element in vector satisfying given predicate *)
     Definition Vunique {n} {T:Type}
                (P: T -> Prop)
