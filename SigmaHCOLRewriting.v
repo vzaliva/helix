@@ -1056,12 +1056,11 @@ Section SigmaHCOLRewriting.
       - simpl in Hi. congruence.
       - simpl in Hj. congruence.
       -
-        assert(ic': pred (S i) < n) by crush.
+        assert(ic': pred (S i) < n) by (apply lt_S_n; apply ic).
         apply P_Vnth_Vcons_not0 with (ic'0:=ic') in Hi; try apply Ph.
 
-        assert(jc': pred (S j) < n) by crush.
+        assert(jc': pred (S j) < n) by (apply lt_S_n; apply jc).
         apply P_Vnth_Vcons_not0 with (ic'0:=jc') in Hj; try apply Ph.
-        simpl in *.
 
         f_equal.
         unfold Vunique in Pt.
