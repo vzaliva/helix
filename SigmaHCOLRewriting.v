@@ -1164,12 +1164,32 @@ Section SigmaHCOLRewriting.
         * cut(¬(Is_Val (VecUnion x)) \/ (¬ (Is_Val h))).
           firstorder.
           specialize (V_dec h).
-          destruct (V_dec).
+          destruct (V_dec) as [Ph | Phn].
           left.
 
-          unfold Vunique in H.
-          specialize (H 0 _ )
+          clear VNCh VNCx IHn.
 
+          unfold not. intros H0.
+          apply Is_Val_VecUnion in H0.
+          apply Vexists_eq in H0.
+          elim H0.
+          intros x0 [V1 V2].
+          apply Vin_nth in V1.
+          elim V1.
+          intros i V3.
+          elim V3.
+          intros ip V4.
+          subst.
+          clear V1 V3.
+
+          assert(jc: 0 < S n) by crush.
+          unfold Vunique in H.
+          assert(ip': S i < S n) by crush.
+          specialize (H 0 jc (S i) ip').
+          simpl (Vnth (Vcons h x) jc) in H.
+          simpl (Vnth (Vcons h x) ip') in H.
+          replace (lt_S_n ip') with ip in H by apply proof_irrelevance.
+          crush.
           right.
           crush.
     Qed.
