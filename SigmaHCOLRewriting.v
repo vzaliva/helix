@@ -1017,9 +1017,9 @@ Section SigmaHCOLRewriting.
     Proof.
       intros i ic ic' H.
       destruct i.
-      - left.
+      + left.
         auto.
-      - right.
+      + right.
         simpl in H.
         replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
         apply H.
@@ -1066,7 +1066,6 @@ Section SigmaHCOLRewriting.
         split; [apply Hi| apply Hj].
     Qed.
 
-
     Lemma Vunique_cons_head
           {n} {T:Type}
           (P: T -> Prop)
@@ -1082,19 +1081,19 @@ Section SigmaHCOLRewriting.
       destruct i, j.
       - reflexivity.
       -
-        assert(jc':j < n) by (apply lt_S_n; apply jc).
+        assert(jc':j < n) by omega.
         apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
         unfold compose in Pt.
         rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
         congruence.
       -
-        assert(ic':i < n) by (apply lt_S_n; apply ic).
+        assert(ic':i < n) by omega.
         apply Vforall_nth with (i:=i) (ip:=ic') in Pt.
         unfold compose in Pt.
         rewrite Vnth_Sn with (ip:=ic) (ip':=ic') in Hi.
         congruence.
       -
-        assert(jc':j < n) by (apply lt_S_n; apply jc).
+        assert(jc':j < n) by omega.
         apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
         unfold compose in Pt.
         rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
@@ -1115,12 +1114,33 @@ Section SigmaHCOLRewriting.
       apply Vunique_cons_not_head; auto.
     Qed.
 
+    Lemma Vunique_cons_tail {n}
+          {T:Type} (P: T -> Prop)
+          (h : T) (t : vector T n):
+        Vunique P (Vcons h t) → Vunique P t.
+    Proof.
+      intros H.
+      unfold Vunique in *.
+      intros i ic j jc [Vi Vj].
+      assert(S i ≡ S j).
+      {
+        assert(ic': S i < S n) by omega.
+        assert(jc': S j < S n) by omega.
+        apply H with (ic:=ic') (jc:=jc').
+        simpl.
+        replace (lt_S_n ic') with ic by apply proof_irrelevance.
+        replace (lt_S_n jc') with jc by apply proof_irrelevance.
+        auto.
+      }
+      auto.
+    Qed.
+
     (* Pre-condition for VecUnion not causing any collisions *)
     Lemma Not_Collision_VecUnion {n}
           {v: svector n}
           {VNC: Vforall Not_Collision v}
-      : Vunique Is_Val v ->
-        Not_Collision (VecUnion v).
+      :
+        Vunique Is_Val v -> Not_Collision (VecUnion v).
     Proof.
       intros H.
       dependent induction n.
@@ -1133,14 +1153,16 @@ Section SigmaHCOLRewriting.
         simpl in VNC. destruct VNC as [VNCh VNCx].
         apply UnionCollisionFree.
         *
-          apply IHn. apply VNCx.
-          intros i j ic jc [Vi Vj].
-          admit.
+          apply IHn.
+          apply VNCx.
+          clear IHn.
+          apply Vunique_cons_tail in H.
+          apply H.
         * apply VNCh.
         * cut(¬(Is_Val (VecUnion x)) ∧ (¬ (Is_Val h))).
           firstorder.
           split.
-
+          HERE.
 
     Qed.
 
