@@ -1136,7 +1136,9 @@ Section SigmaHCOLRewriting.
     Qed.
 
     (* Pre-condition for VecUnion not causing any collisions *)
-    Lemma Not_Collision_VecUnion {n}
+    Lemma Not_Collision_VecUnion
+          `{V_dec: forall x:Rtheta, Decision (Is_Val x)}
+          {n}
           {v: svector n}
           {VNC: Vforall Not_Collision v}
       :
@@ -1159,11 +1161,17 @@ Section SigmaHCOLRewriting.
           apply Vunique_cons_tail in H.
           apply H.
         * apply VNCh.
-        * cut(¬(Is_Val (VecUnion x)) ∧ (¬ (Is_Val h))).
+        * cut(¬(Is_Val (VecUnion x)) \/ (¬ (Is_Val h))).
           firstorder.
-          split.
-          HERE.
+          specialize (V_dec h).
+          destruct (V_dec).
+          left.
 
+          unfold Vunique in H.
+          specialize (H 0 _ )
+
+          right.
+          crush.
     Qed.
 
 
