@@ -1190,6 +1190,18 @@ Section SigmaHCOLRewriting.
              apply Phn.
     Qed.
 
+    (*
+    Instance is_Val_dec `(x: Rtheta) : Decision (Is_Val x).
+    Proof.
+      unfold Decision.
+      unfold Is_Val, compose, IsVal.
+      unfold Bool.Is_true.
+      destruct x.
+      compute.
+      crush.
+    Qed.
+     *)
+
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
