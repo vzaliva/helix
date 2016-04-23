@@ -252,6 +252,25 @@ Proof.
   crush.
 Qed.
 
+Section Decidablitiy.
+
+  Global Instance IsVal_dec `(x: RthetaFlags) : Decision (IsVal x).
+  Proof.
+    unfold Decision, IsVal.
+    destruct x.
+    destr_bool; auto.
+  Qed.
+
+  Global Instance Is_Val_dec `(x: Rtheta) : Decision (Is_Val x).
+  Proof.
+    unfold Decision.
+    unfold Is_Val, compose.
+    generalize (WriterMonadNoT.execWriter x). intros f.
+      apply IsVal_dec.
+  Qed.
+
+End Decidablitiy.
+
 Section Zero_Utils.
 
   Lemma evalWriter_Rtheta_SZero:

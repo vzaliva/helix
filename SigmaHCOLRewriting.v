@@ -303,7 +303,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+             (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -492,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -1117,7 +1117,7 @@ Section SigmaHCOLRewriting.
     Lemma Vunique_cons_tail {n}
           {T:Type} (P: T -> Prop)
           (h : T) (t : vector T n):
-        Vunique P (Vcons h t) → Vunique P t.
+      Vunique P (Vcons h t) → Vunique P t.
     Proof.
       intros H.
       unfold Vunique in *.
@@ -1137,7 +1137,6 @@ Section SigmaHCOLRewriting.
 
     (* Pre-condition for VecUnion not causing any collisions *)
     Lemma Not_Collision_VecUnion
-          `{V_dec: forall x:Rtheta, Decision (Is_Val x)}
           {n}
           {v: svector n}
           {VNC: Vforall Not_Collision v}
@@ -1163,8 +1162,8 @@ Section SigmaHCOLRewriting.
         * apply VNCh.
         * cut(¬(Is_Val (VecUnion x)) \/ (¬ (Is_Val h))).
           firstorder.
-          specialize (V_dec h).
-          destruct (V_dec) as [Ph | Phn].
+          assert(D: Decision (Is_Val h)) by apply Is_Val_dec.
+          destruct D as [Ph | Phn].
           -- left.
              clear VNCh VNCx IHn.
 
@@ -1189,18 +1188,6 @@ Section SigmaHCOLRewriting.
           -- right.
              apply Phn.
     Qed.
-
-    (*
-    Instance is_Val_dec `(x: Rtheta) : Decision (Is_Val x).
-    Proof.
-      unfold Decision.
-      unfold Is_Val, compose, IsVal.
-      unfold Bool.Is_true.
-      destruct x.
-      compute.
-      crush.
-    Qed.
-     *)
 
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
