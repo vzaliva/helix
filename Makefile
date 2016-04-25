@@ -49,7 +49,6 @@ vo_to_obj = $(addsuffix .o,\
 #                        #
 ##########################
 
-
 COQLIBS?=\
   -R "." Top\
   -I "."

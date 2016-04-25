@@ -18,6 +18,7 @@ Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import SpiralTactics.
 Require Import Psatz.
+Require Import Omega.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -50,8 +51,8 @@ Proof.
   unfold Setoid in H.
   constructor. destruct H.
   unfold Reflexive. destruct x; (unfold equiv; crush).
-  unfold Symmetric. intros. destruct x,y; (unfold equiv; crush).
-  unfold Transitive. intros. destruct x,y,z; unfold equiv, opt_Equiv in *; crush.
+  unfold Symmetric. intros x y. destruct x,y; (unfold equiv; crush).
+  unfold Transitive. intros x y z. destruct x,y,z; unfold equiv, opt_Equiv in *; crush.
 Qed.
 
 (* Various definitions related to vector equality and setoid rewriting *)
@@ -288,7 +289,10 @@ Proof.
   setoid_replace (abs a) with (-a) by apply abs_nonpos_s.
   rewrite abs_negate_s.
   auto.
-  assumption. assumption. assumption. assumption.
+  apply Ato.
+  apply Ar.
+  apply ASRO.
+  apply H.
 Qed.
 
 Lemma abs_max_comm_2nd
@@ -337,7 +341,8 @@ Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p :=
   end.
 Program Definition take A n p (a : vector A n) (H : p <= n) : vector A p :=
   take_plus (m := n - p) p a.
-Solve Obligations using auto with arith.
+Next Obligation. auto with arith.
+Defined.
 
 Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m :=
   match p return vector A (p+m) -> vector A m with
@@ -346,7 +351,8 @@ Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m :=
   end.
 Program Definition drop A n p (a : vector A n) (H : p <= n) : vector A (n-p) :=
   drop_plus (m := n - p) p a.
-Solve Obligations using auto with arith.
+Next Obligation. auto with arith.
+Defined.
 
 (* Split vector into a pair: first  'p' elements and the rest. *)
 Definition vector2pair {A:Type} (p:nat) {t:nat} (v:vector A (p+t)) : (vector A p)*(vector A t) :=
@@ -931,22 +937,13 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vfold_left_app : forall {A B:Type} {m n} (f:B → A → B) (l:vector A m) (l': vector A n) (i:B),
-    Vfold_left f i (Vapp l l') ≡ Vfold_left f (Vfold_left f i l') l.
-Proof.
-  intros A B m n f l l' i.
-  induction l; simpl.
-  + reflexivity.
-  + rewrite IHl.
-    reflexivity.
-Qed.
-
 (* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
-Lemma Vfold_left_cons:
+Lemma Vfold_left_rev_cons:
   forall A B {n} (f : B->A->B) (b:B) (x: A) (xs : vector A n),
-    Vfold_left f b (Vcons x xs) ≡ f (Vfold_left f b xs) x.
+    Vfold_left_rev f b (Vcons x xs) ≡ f (Vfold_left_rev f b xs) x.
 Proof.
-  crush.
+  intros A B n f b x xs.
+  reflexivity.
 Qed.
 
 Lemma rev_nil: forall A, rev (@nil A) ≡ [].
@@ -1232,7 +1229,7 @@ Proof.
     destruct V as [i [ip V]].
     rewrite Vbuild_nth in V.
     subst x.
-    exists i ip.
+    exists i, ip.
     apply Px.
   - intros H.
     apply Vexists_eq.
@@ -1241,7 +1238,7 @@ Proof.
     split.
     +
       apply Vin_build.
-      exists i ic.
+      exists i, ic.
       reflexivity.
     + assumption.
 Qed.
@@ -1258,7 +1255,7 @@ Lemma Vbuild_1 B gen:
 Proof.
   unfold Vbuild.
   simpl.
-  replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_Sn 0) by apply proof_irrelevance.
+  replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_Sn 0) by apply proof_irrelevance.
   reflexivity.
 Qed.
 
@@ -1271,11 +1268,11 @@ Lemma Vbuild_2 B gen:
 Proof.
   unfold Vbuild.
   simpl.
-  replace (Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
-  replace (Vbuild_spec_obligation_3 gen eq_refl
-                                    (Vbuild_spec_obligation_4
+  replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
+  replace (VecUtil.Vbuild_spec_obligation_3 gen eq_refl
+                                    (VecUtil.Vbuild_spec_obligation_4
                                        (λ (i : nat) (ip : i < 1),
-                                        gen (S i) (Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
+                                        gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
   reflexivity.
 Qed.
 
@@ -1357,7 +1354,7 @@ Lemma modulo_smaller_than_devisor:
 Proof.
   intros.
   destruct y; try congruence.
-  unfold modulo.
+  unfold PeanoNat.Nat.modulo.
   omega.
 Qed.
 
