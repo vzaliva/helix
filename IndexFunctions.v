@@ -7,6 +7,7 @@ Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
+Import Coq.Arith.PeanoNat.Nat.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
@@ -26,6 +27,7 @@ Require Import CoLoR.Util.List.ListUtil.
 Require Import Spiral.
 
 Global Open Scope nat_scope.
+
 
 (* Index maps (total functions) *)
 
