@@ -1236,6 +1236,15 @@ Section SigmaHCOLRewriting.
         apply Not_Collision_VecUnion.
         +
           clear nz.
+          apply Vforall_Vbuild.
+          intros j jn.
+          unfold compose.
+
+          destruct x.?
+
+          specialize (GNC j).
+
+
 
 
 
