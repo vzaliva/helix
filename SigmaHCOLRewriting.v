@@ -1139,11 +1139,10 @@ Section SigmaHCOLRewriting.
     Lemma Not_Collision_VecUnion
           {n}
           {v: svector n}
-          {VNC: Vforall Not_Collision v}
       :
-        Vunique Is_Val v -> Not_Collision (VecUnion v).
+        Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (VecUnion v).
     Proof.
-      intros H.
+      intros VNC H.
       dependent induction n.
       + dep_destruct v.
         compute.
@@ -1189,6 +1188,23 @@ Section SigmaHCOLRewriting.
              apply Phn.
     Qed.
 
+    (* TODO: move *)
+    Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : ∀ i : nat, i < n → T):
+      Vforall P (Vbuild gen) <-> forall (i : nat) (ip : i < n), P (gen i ip).
+    Proof.
+      split.
+      - intros H i ip.
+        apply Vforall_nth with (ip:=ip) in H.
+        rewrite Vbuild_nth in H.
+        apply H.
+      - intros H.
+        apply Vforall_nth_intro.
+        intros i ip.
+        rewrite Vbuild_nth.
+        apply H.
+    Qed.
+
+
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -1216,8 +1232,10 @@ Section SigmaHCOLRewriting.
 
       destruct n.
       - congruence.
-      - clear nz.
+      - (* driving towards apply Not_Collision_VecUnion. *)
         apply Not_Collision_VecUnion.
+        +
+          clear nz.
 
 
 
@@ -1227,24 +1245,7 @@ Section SigmaHCOLRewriting.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        induction n.
-      - congruence.
-      - rewrite Vbuild_cons.
+        rewrite Vbuild_cons.
         rewrite VecUnion_cons.
         apply UnionCollisionFree.
         + apply IHn.
