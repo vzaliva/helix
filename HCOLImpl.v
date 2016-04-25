@@ -92,7 +92,7 @@ Section HCOL_implementations.
            (a: avector n) (x:CarrierA) : CarrierA  :=
     match a with
       nil => zero
-    | cons a0 p a' => plus a0 (mult x (EvalPolynomial a' x))
+    | a0::a' => plus a0 (mult x (EvalPolynomial a' x))
     end.
 
   (* === HCOL Basic Operators === *)
@@ -201,8 +201,9 @@ Section HCOL_implementation_facts.
     intros.
     unfold ScalarProd.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
-    rewrite Vmap2_comm.
+    setoid_replace (Vmap2 mult a b) with (Vmap2 mult b a).
     reflexivity.
+    apply Vmap2_comm.
   Qed.
 
   (* Currently unused *)

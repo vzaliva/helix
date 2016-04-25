@@ -794,10 +794,11 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap2_comm : forall `{CO:Commutative B A f} `{SB: !Setoid B},
-    forall n:nat, Commutative (Vmap2 f (n:=n)).
+Lemma Vmap2_comm
+      `{CO:Commutative B A f}
+      `{SB: !Setoid B} {n:nat}:
+  Commutative (Vmap2 f (n:=n)).
 Proof.
-  intros.
   unfold Commutative.
   intros a b.
   induction n.
