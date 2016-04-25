@@ -214,43 +214,65 @@ Qed.
 
 (* Conditions under which Union produces value *)
 Lemma ValUnionIsVal (a b : Rtheta):
-  Is_Val a \/ Is_Val b
-  -> Is_Val (Union a b).
+  Is_Val a \/ Is_Val b <-> Is_Val (Union a b).
 Proof.
-  intros [VA | VB];
-    (
-      unfold Union, Is_Val, compose in *;
-      rewrite execWriter_Rtheta_liftM2;
-      destruct (execWriter a) as [str_a col_a];
-      destruct (execWriter b) as [str_b col_b];
-      unfold RthetaFlagsAppend;
-      unfold IsVal in *;
-      destr_bool; auto).
+  split.
+  - intros [VA | VB];
+      (
+        unfold Union, Is_Val, compose in *;
+        rewrite execWriter_Rtheta_liftM2;
+        destruct (execWriter a) as [str_a col_a];
+        destruct (execWriter b) as [str_b col_b];
+        unfold RthetaFlagsAppend;
+        unfold IsVal in *;
+        destr_bool; auto).
+  -
+    intros H.
+    unfold Union, Is_Val, compose in *.
+    rewrite execWriter_Rtheta_liftM2 in *.
+    destruct (execWriter a) as [str_a col_a].
+    destruct (execWriter b) as [str_b col_b].
+    unfold IsVal in *.
+    destr_bool; auto.
 Qed.
 
 Lemma Is_Val_VecUnion {n} {v: svector n}:
-  Vexists Is_Val v -> Is_Val (VecUnion v).
+  Vexists Is_Val v <-> Is_Val (VecUnion v).
 Proof.
-  intros H.
-  apply Vexists_eq in H.
-  unfold VecUnion.
-  destruct H as [x [XI XV]].
-  induction v.
-  - unfold Vin in XI.
-    congruence.
-  - apply Vin_cons in XI.
-    rewrite Vfold_left_cons.
-    destruct XI.
-    + subst h.
-      apply ValUnionIsVal.
-      right.
-      assumption.
-    +
-      clear XV.
+  split.
+  - intros H.
+    apply Vexists_eq in H.
+    unfold VecUnion.
+    destruct H as [x [XI XV]].
+    induction v.
+    + unfold Vin in XI.
+      congruence.
+    + apply Vin_cons in XI.
+      rewrite Vfold_left_cons.
+      destruct XI.
+      * subst h.
+        apply ValUnionIsVal.
+        right.
+        assumption.
+      *
+        clear XV.
+        apply IHv in H.
+        apply ValUnionIsVal.
+        left.
+        assumption.
+  -
+    intros H.
+    induction v.
+    + crush.
+    + simpl in *.
+      rewrite VecUnion_cons in H.
+      apply ValUnionIsVal in H.
+      destruct H.
       apply IHv in H.
-      apply ValUnionIsVal.
+      right.
+      apply H.
       left.
-      assumption.
+      apply H.
 Qed.
 
 Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:

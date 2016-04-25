@@ -303,7 +303,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+             (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -492,8 +492,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -978,59 +978,230 @@ Section SigmaHCOLRewriting.
         congruence.
     Qed.
 
-    Require Import CoLoR.Util.Logic.LogicUtil.
+    (* There is only one element in vector satisfying given predicate *)
+    Definition Vunique {n} {T:Type}
+               (P: T -> Prop)
+               (v: vector T n) :=
+
+      (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
+          (P (Vnth v ic) /\ P (Vnth v jc)) -> i ≡ j).
+
+    Lemma Vunique_Vnil (T : Type) (P : T → Prop):
+      Vunique P (@Vnil T).
+    Proof.
+      unfold Vunique.
+      intros i ic j jc H.
+      nat_lt_0_contradiction.
+    Qed.
+
+    Lemma Vforall_notP_Vunique:
+      ∀ (n : nat) (T : Type) (P : T → Prop) (v : vector T n),
+        Vforall (not ∘ P) v → Vunique P v.
+    Proof.
+      intros n T P v.
+      induction v.
+      - intros H.
+        apply Vunique_Vnil.
+      -
+        intros H.
+        unfold Vunique in *.
+        intros i ic j jc V.
+        destruct V.
+        apply Vforall_nth with (i:=i) (ip:=ic) in H.
+        congruence.
+    Qed.
+
+    Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+      forall i (ic:i<S n) (ic': (pred i) < n),
+        P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
+    Proof.
+      intros i ic ic' H.
+      destruct i.
+      + left.
+        auto.
+      + right.
+        simpl in H.
+        replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
+        apply H.
+    Qed.
+
+    Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+      forall i (ic:i<S n) (ic': (pred i) < n),
+        not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
+    Proof.
+      intros i ic ic' Ph Pt.
+      destruct i.
+      - simpl in Pt; congruence.
+      - simpl in Pt.
+        replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
+        apply Pt.
+    Qed.
+
+    Lemma Vunique_cons_not_head
+          {n} {T:Type}
+          (P: T -> Prop)
+          (h: T) (t: vector T n):
+      not (P h) /\ Vunique P t -> Vunique P (Vcons h t).
+    Proof.
+      intros H.
+      destruct H as [Ph Pt].
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [Hi Hj].
+
+      destruct i,j.
+      - reflexivity.
+      - simpl in Hi. congruence.
+      - simpl in Hj. congruence.
+      -
+        assert(ic': pred (S i) < n) by (apply lt_S_n; apply ic).
+        apply P_Vnth_Vcons_not_head with (ic'0:=ic') in Hi; try apply Ph.
+
+        assert(jc': pred (S j) < n) by (apply lt_S_n; apply jc).
+        apply P_Vnth_Vcons_not_head with (ic'0:=jc') in Hj; try apply Ph.
+
+        f_equal.
+        unfold Vunique in Pt.
+        apply Pt with (ic:=ic') (jc:=jc').
+        split; [apply Hi| apply Hj].
+    Qed.
+
+    Lemma Vunique_cons_head
+          {n} {T:Type}
+          (P: T -> Prop)
+          (h: T) (t: vector T n):
+      P h /\ (Vforall (not ∘ P) t) -> Vunique P (Vcons h t).
+    Proof.
+      intros H.
+      destruct H as [Ph Pt].
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [Hi Hj].
+
+      destruct i, j.
+      - reflexivity.
+      -
+        assert(jc':j < n) by omega.
+        apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+        congruence.
+      -
+        assert(ic':i < n) by omega.
+        apply Vforall_nth with (i:=i) (ip:=ic') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=ic) (ip':=ic') in Hi.
+        congruence.
+      -
+        assert(jc':j < n) by omega.
+        apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+        unfold compose in Pt.
+        rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+        congruence.
+    Qed.
+
+    Lemma Vunique_cons {n} {T:Type}
+          (P: T -> Prop)
+          (h: T) (t: vector T n):
+      ((P h /\ (Vforall (not ∘ P) t)) \/
+       (not (P h) /\ Vunique P t))
+      ->
+      Vunique P (Vcons h t).
+    Proof.
+      intros H.
+      destruct H.
+      apply Vunique_cons_head; auto.
+      apply Vunique_cons_not_head; auto.
+    Qed.
+
+    Lemma Vunique_cons_tail {n}
+          {T:Type} (P: T -> Prop)
+          (h : T) (t : vector T n):
+      Vunique P (Vcons h t) → Vunique P t.
+    Proof.
+      intros H.
+      unfold Vunique in *.
+      intros i ic j jc [Vi Vj].
+      assert(S i ≡ S j).
+      {
+        assert(ic': S i < S n) by omega.
+        assert(jc': S j < S n) by omega.
+        apply H with (ic:=ic') (jc:=jc').
+        simpl.
+        replace (lt_S_n ic') with ic by apply proof_irrelevance.
+        replace (lt_S_n jc') with jc by apply proof_irrelevance.
+        auto.
+      }
+      auto.
+    Qed.
 
     (* Pre-condition for VecUnion not causing any collisions *)
-    Lemma Not_Collision_VecUnion {n}
+    Lemma Not_Collision_VecUnion
+          {n}
           {v: svector n}
-          {VNC: Vforall Not_Collision v}
       :
-        ((Vforall Is_Struct v) \/
-         (forall (i j : nat) (ic : i < n) (jc : j < n), (i ≢ j) ->
-             Is_Val (Vnth v ic) -> Is_Struct (Vnth v jc)))
-        ->
-        Not_Collision (VecUnion v).
+        Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (VecUnion v).
     Proof.
-      intros P.
-      destruct P.
-      -
-        induction v.
-        + compute.
-          trivial.
-        +
-          rewrite VecUnion_cons.
-          simpl in H. destruct H as [Hh Hx].
-          simpl in VNC. destruct VNC as [VNCh VNCx].
-          apply UnionCollisionFree.
-          apply IHv. apply VNCx. apply Hx.
-          apply VNCh.
-          unfold Not_Collision, compose in VNCh.
+      intros VNC H.
+      dependent induction n.
+      + dep_destruct v.
+        compute.
+        trivial.
+      +
+        dep_destruct v.
+        rewrite VecUnion_cons.
+        simpl in VNC. destruct VNC as [VNCh VNCx].
+        apply UnionCollisionFree.
+        *
+          apply IHn.
+          -- apply VNCx.
+          -- clear IHn.
+             apply Vunique_cons_tail in H.
+             apply H.
+        * apply VNCh.
+        * cut(¬(Is_Val (VecUnion x)) \/ (¬ (Is_Val h))).
           firstorder.
-      -
-        induction v.
-        + compute.
-          trivial.
-        +
-          simpl in VNC. destruct VNC as [VNCh VNCx].
-          rewrite VecUnion_cons.
-          apply UnionCollisionFree.
-          * apply IHv. apply VNCx.
-            intros i j ic jc VI NIJ.
-            destruct i, j.
-            congruence.
+          assert(D: Decision (Is_Val h)) by apply Is_Val_dec.
+          destruct D as [Ph | Phn].
+          -- left.
+             clear VNCh VNCx IHn.
 
-            admit.
-          * apply VNCh.
-          * unfold Is_Struct, compose in H.
-            apply IHv in VNCx.
-            admit.
+             unfold not. intros H0.
+             apply Is_Val_VecUnion in H0.
+             apply Vexists_eq in H0.
+             destruct H0 as [x0 [V1 V2]].
+             apply Vin_nth in V1.
+             destruct V1 as [i [ip Vx]].
+             subst x0.
 
-            cut(¬(Is_Val (VecUnion v)) ∧ (¬ (Is_Val h))).
-            firstorder.
+             unfold Vunique in H.
+             assert(jc: 0 < S n) by omega.
+             assert(ip': S i < S n) by omega.
+             specialize (H 0 jc (S i) ip').
+             simpl (Vnth (Vcons h x) jc) in H.
+             simpl (Vnth (Vcons h x) ip') in H.
+             replace (lt_S_n ip') with ip in H by apply proof_irrelevance.
+             assert(H1: Is_Val h ∧ Is_Val (Vnth x ip)) by auto.
+             apply H in H1.
+             congruence.
+          -- right.
+             apply Phn.
+    Qed.
 
-            split.
-
-
+    (* TODO: move *)
+    Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : ∀ i : nat, i < n → T):
+      Vforall P (Vbuild gen) <-> forall (i : nat) (ip : i < n), P (gen i ip).
+    Proof.
+      split.
+      - intros H i ip.
+        apply Vforall_nth with (ip:=ip) in H.
+        rewrite Vbuild_nth in H.
+        apply H.
+      - intros H.
+        apply Vforall_nth_intro.
+        intros i ip.
+        rewrite Vbuild_nth.
+        apply H.
     Qed.
 
 
@@ -1061,8 +1232,18 @@ Section SigmaHCOLRewriting.
 
       destruct n.
       - congruence.
-      - clear nz.
+      - (* driving towards apply Not_Collision_VecUnion. *)
         apply Not_Collision_VecUnion.
+        +
+          clear nz.
+          apply Vforall_Vbuild.
+          intros j jn.
+          unfold compose.
+          specialize (GNC j jn).
+
+
+
+          Set Printing Implicit. Show.
 
 
 
@@ -1070,26 +1251,7 @@ Section SigmaHCOLRewriting.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        induction n.
-      - congruence.
-      - rewrite Vbuild_cons.
+        rewrite Vbuild_cons.
         rewrite VecUnion_cons.
         apply UnionCollisionFree.
         + apply IHn.
