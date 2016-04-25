@@ -1239,14 +1239,11 @@ Section SigmaHCOLRewriting.
           apply Vforall_Vbuild.
           intros j jn.
           unfold compose.
-
-          destruct x.?
-
-          specialize (GNC j).
+          specialize (GNC j jn).
 
 
 
-
+          Set Printing Implicit. Show.
 
 
 
