@@ -4,6 +4,7 @@ Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Structures.Monoid.
 Require Import ExtLib.Data.Monads.WriterMonad.
+Require Import ExtLib.Data.PPair.
 
 Set Implicit Arguments.
 
@@ -15,6 +16,6 @@ Section WriterMonad.
   
   Definition writer := writerT Monoid_s ident.
   Definition runWriter x := unIdent (@runWriterT s Monoid_s ident t x).
-  Definition execWriter x:= snd (runWriter x).
-  Definition evalWriter x:= fst (runWriter x).
+  Definition execWriter x:= psnd (runWriter x).
+  Definition evalWriter x:= pfst (runWriter x).
 End WriterMonad.
