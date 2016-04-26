@@ -186,16 +186,19 @@ Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv in *.
 
 Global Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_equiv.
 Proof.
+  unfold Reflexive.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 
 Global Instance Rtheta_Symmetric_equiv: Symmetric Rtheta_equiv.
 Proof.
+  unfold Symmetric.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 
 Global Instance Rtheta_Transitive_equiv: Transitive Rtheta_equiv.
 Proof.
+  unfold Transitive.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 

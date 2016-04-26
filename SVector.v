@@ -79,7 +79,7 @@ Qed.
 
 (* Unary union of vector's elements (left fold) *)
 Definition VecUnion {n} (v: svector n): Rtheta :=
-  Vfold_left Union mkSZero v.
+  Vfold_left_rev Union mkSZero v.
 
 (* Binary element-wise union of two vectors *)
 Definition Vec2Union {n} (a b: svector n): svector n
@@ -88,7 +88,7 @@ Definition Vec2Union {n} (a b: svector n): svector n
 Definition SumUnion
            {o n}
            (v: vector (svector o) n): svector o
-  :=  Vfold_left Vec2Union (szero_svector o) v.
+  :=  Vfold_left_rev Vec2Union (szero_svector o) v.
 
 Lemma VecUnion_cons:
   ∀ m x (xs : svector m),
@@ -96,7 +96,7 @@ Lemma VecUnion_cons:
 Proof.
   intros m x xs.
   unfold VecUnion.
-  rewrite Vfold_left_cons.
+  rewrite Vfold_left_rev_cons.
   reflexivity.
 Qed.
 
@@ -119,7 +119,7 @@ Lemma SumUnion_cons {m n}
   SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
 Proof.
   unfold SumUnion.
-  apply Vfold_left_cons.
+  apply Vfold_left_rev_cons.
 Qed.
 
 Lemma AbsorbUnionIndexBinary
@@ -248,7 +248,7 @@ Proof.
     + unfold Vin in XI.
       congruence.
     + apply Vin_cons in XI.
-      rewrite Vfold_left_cons.
+      rewrite Vfold_left_rev_cons.
       destruct XI.
       * subst h.
         apply ValUnionIsVal.

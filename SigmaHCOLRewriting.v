@@ -15,6 +15,7 @@ Require Import Coq.Logic.ProofIrrelevance.
 Require Import Program.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
+Require Import Omega.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
@@ -243,7 +244,7 @@ Section SigmaHCOLRewriting.
         rewrite Vbuild_1.
         unfold VnthIndexMapped.
         simpl.
-        generalize (h_index_map_obligation_1 1 n j 1
+        generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
                                              (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
         intros ln.
         simpl in ln.
@@ -762,7 +763,7 @@ Section SigmaHCOLRewriting.
           rewrite Vnth_app.
           break_match.
           generalize (Vnth_app_aux i2
-                                   (h_index_map_obligation_1 i2 (i1 + i2) i1 1
+                                   (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
                                                              (h_bound_second_half i1 i2) i ip) l) as ip'.
           revert ip.
           replace (i1 + i * 1 - i1) with i by omega.
@@ -940,7 +941,7 @@ Section SigmaHCOLRewriting.
         unfold index_map_family_surjective in f_sur.
         specialize (f_sur oi oic).
         destruct f_sur as [z [p [zc [pc F]]]].
-        exists p pc.
+        exists p, pc.
 
         assert(Vforall Is_Val (Gather (⦃g ⦄ p pc) x))
           by apply Gather_dense_constr, g_dense.

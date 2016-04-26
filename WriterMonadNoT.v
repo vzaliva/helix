@@ -7,6 +7,7 @@ Require Import ExtLib.Data.Monads.WriterMonad.
 Require Import ExtLib.Data.PPair.
 
 Set Implicit Arguments.
+Set Universe Polymorphism.
 
 (* Simple wrapper around ExtLib's WriterMonadT trasformed pairing it with Identity monad to simulate classic Writer Monad *)
 
