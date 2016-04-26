@@ -56,10 +56,9 @@ Lemma RthetaFlags_assoc:
     RthetaFlagsAppend (RthetaFlagsAppend a b) c
                       ≡ RthetaFlagsAppend a (RthetaFlagsAppend b c).
 Proof.
-
   intros a b c.
-      destruct a,b,c.
-      destr_bool.
+  destruct a,b,c.
+  destr_bool.
 Qed.
 
 Lemma RthetaFlags_lunit:
