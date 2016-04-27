@@ -1242,63 +1242,65 @@ Section SigmaHCOLRewriting.
           unfold compose.
           specialize (GNC j jn).
 
-
-
-          Set Printing Implicit. Show.
-
-
-
-
-
-
-
-        rewrite Vbuild_cons.
-        rewrite VecUnion_cons.
-        apply UnionCollisionFree.
-        + apply IHn.
-          clear IHn.
-          * unfold index_family_injective in *.
-            admit.
-        + clear IHn.
-          unfold compose.
-
-          (* Get rid of (sparcify x), carring over its properties *)
-          assert(svector_is_non_collision (sparsify x))
-            by apply sparsify_non_coll.
-          assert(svector_is_dense (sparsify x))
-            by apply sparsify_is_dense.
-          generalize dependent (sparsify x).
-          intros sx SXNC SXD.
-
           (* Get rid of Gather, carring over its properties *)
-          assert(svector_is_non_collision (Gather (g 0 (lt_0_Sn n)) sx))
-            by apply GatherCollisionFree, SXNC.
-          assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
-            by apply Gather_preserves_density, SXD.
-          generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
-          intros gx GNC GD.
-          clear sx SXNC SXD.
+          assert(GXD: svector_is_dense (Gather (⦃ g ⦄ j jn) x)).
+          {
+            unfold svector_is_dense.
+            apply Vforall_nth_intro.
+            intros.
+            rewrite Gather_spec.
+            apply g_dense.
+          }
+
+          assert(GXNC: svector_is_non_collision (Gather (⦃ g ⦄ j jn) x)).
+          {
+            unfold svector_is_non_collision.
+            apply Vforall_nth_intro.
+            intros.
+            rewrite Gather_spec.
+            apply GNC.
+          }
+          generalize dependent (Gather (⦃ g ⦄ j jn) x).
+          intros gx GXD GXNC.
+          clear GNC g_dense.
 
           (* Get rid of lifted kernel, carring over its properties *)
-          assert(svector_is_non_collision (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx))
-            by apply liftM_HOperator_DenseCauseNoCol, GD.
-          assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx))
-            by apply liftM_HOperator_DensityPreserving, GD.
-          generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx).
-          intros kx KXNC KXD.
-          clear gx GNC GD.
+          assert(LD: svector_is_dense (liftM_HOperator (kernel j jn) gx))
+            by apply liftM_HOperator_DensityPreserving, GXD.
 
-          (* Get rid of Scatter, carring over non-collision property  *)
-          assert(svector_is_non_collision (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx)).
-          apply ScatterCollisionFree, KXNC.
-          generalize dependent (@Scatter ko o (f 0 (lt_0_Sn n)) (f_inj 0 (lt_0_Sn n)) kx).
-          intros scx SNC.
-          clear kx KXNC KXD.
+          assert(KNC: svector_is_non_collision (liftM_HOperator (kernel j jn) gx)).
+          {
+            apply liftM_HOperator_DenseCauseNoCol, GXNC.
+            apply GXD.
+          }
+          generalize dependent (liftM_HOperator (kernel j jn) gx).
+          intros kx KD KNC.
+          clear GXD GXNC gx.
 
+          (* Get rid of Scatter  *)
+          assert(SNC: svector_is_non_collision (@Scatter ko o (family_f ko o (S n) f j jn)
+                                                         (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx)).
+
+          apply ScatterCollisionFree, KNC.
+          generalize dependent (@Scatter ko o (family_f ko o (S n) f j jn)
+                                                         (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
+          intros sx SNC.
           unfold svector_is_non_collision in SNC.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
-        +  clear IHn.
+        +
+
+
+
+
+
+
+
+
+
+
+
+
            (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
 
            assert(T: forall A B: Prop, not A \/ not B -> not (A /\ B))

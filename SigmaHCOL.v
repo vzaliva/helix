@@ -207,9 +207,8 @@ End SigmaHCOL_Operators.
 Lemma Gather_spec
       {i o: nat}
       (f: index_map o i)
-      (x: svector i)
-      (y: svector o):
-  (Gather f x ≡ y) ->  ∀ n (ip : n < o), Vnth y ip ≡ VnthIndexMapped x f n ip.
+      (x: svector i):
+  ∀ n (ip : n < o), Vnth (Gather f x) ip ≡ VnthIndexMapped x f n ip.
 Proof.
   unfold Gather, Vbuild.
   destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
@@ -228,8 +227,7 @@ Lemma Gather_dense_constr (i ki : nat)
 Proof.
   apply Vforall_nth_intro.
   intros i0 ip.
-  remember (Gather g x) as gx.
-  rewrite Gather_spec with (f:=g) (x0:=x) by (symmetry;apply Heqgx).
+  rewrite Gather_spec.
   apply g_dense.
 Qed.
 
