@@ -1208,15 +1208,39 @@ Section SigmaHCOLRewriting.
 
     (* TODO: maybe iff  *)
     Lemma Is_Val_Scatter
-          {i o: nat}
-          (f: index_map i o)
+          {m n: nat}
+          (f: index_map m n)
           {f_inj: index_map_injective f}
-          (x: svector i)
+          (x: svector m)
           (XD: svector_is_dense x)
-          (j: nat) (jc : j < o):
+          (j: nat) (jc : j < n):
       Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
-      (exists i (ic:i<i), ⟦f⟧ i ≡ j).
+      (exists i (ic:i<m), ⟦f⟧ i ≡ j).
     Proof.
+      intros H.
+      unfold svector_is_dense in XD.
+      (* apply Vforall_nth with (i:=i) in XD. *)
+      unfold Scatter in H.
+      rewrite Vbuild_nth in H.
+      unfold VnthInverseIndexMapped, partial_index_f in H.
+      break_let.
+      simpl in *.
+      generalize dependent (partial_index_f_spec j jc).
+      intros L H.
+
+      unfold build_inverse_index_map in Heqp.
+      inversion  Heqp.
+      clear Heqp.
+
+
+
+      destruct (partial_index_f j).
+      rename n0 into i.
+      generalize dependent (L i eq_refl).
+      intros l H.
+      exists i, l.
+
+
     Admitted.
 
     Lemma USparseEmbeddingCauseNoCol
@@ -1344,7 +1368,7 @@ Section SigmaHCOLRewriting.
           clear gxj GXDj.
 
           (* housekeeping *)
-          clear Koperator g kernel nz x i ki.
+          clear Koperator g kernel nz x i ki f_sur.
           rename i0 into i.
           rename n into k.
           rename kxi into x.
@@ -1358,15 +1382,36 @@ Section SigmaHCOLRewriting.
 
           intros [Hi Hj].
 
-          apply Is_Val_Scatter in Hi; try assumption. (* XD *)
-          apply Is_Val_Scatter in Hj; try assumption. (* YD *)
+          apply Is_Val_Scatter in Hi; try assumption. clear XD.
+          apply Is_Val_Scatter in Hj; try assumption. clear YD.
 
           unfold index_map_family_injective in f_inj.
+          specialize (f_inj i j ic jc).
 
-          apply f_inj with (jc1:=ic) (jc2:=jc).
-          crush.
-          crush.
-          crush.
+          generalize dependent (⦃ f ⦄ i ic).
+          intros fi f_inj Hi.
+          generalize dependent (⦃ f ⦄ j jc).
+          intros fj Hj f_inj.
+
+          apply f_inj. clear f_inj.
+          clear ic jc f k.
+
+          admit.
+          admit.
+
+          elim Hi. clear Hi.
+          intros x0 H.
+          elim H. clear H.
+          intros x0c H0.
+
+          elim Hj. clear Hj.
+          intros x1 H.
+          elim H. clear H.
+          intros x1c H1.
+
+
+
+
     Qed.
 
 
