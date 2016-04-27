@@ -1206,6 +1206,19 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
+    (* TODO: maybe iff  *)
+    Lemma Is_Val_Scatter
+          {i o: nat}
+          (f: index_map i o)
+          {f_inj: index_map_injective f}
+          (x: svector i)
+          (XD: svector_is_dense x)
+          (j: nat) (jc : j < o):
+      Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
+      (exists i (ic:i<i), ⟦f⟧ i ≡ j).
+    Proof.
+    Admitted.
+
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
           (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -1289,49 +1302,71 @@ Section SigmaHCOLRewriting.
           apply Vforall_nth with (ip:=oic) in SNC.
           apply SNC.
         +
+          unfold Vunique.
+          intros i0 ic j jc.
 
+          rewrite 2!Vbuild_nth.
+          unfold compose.
 
+          (* Get rid of Gather, carring over its properties *)
+          assert(GXDi0: svector_is_dense (Gather (⦃ g ⦄ i0 ic) x)).
+          {
+            unfold svector_is_dense.
+            apply Vforall_nth_intro.
+            intros.
+            rewrite Gather_spec.
+            apply g_dense.
+          }
+          generalize dependent (Gather (⦃ g ⦄ i0 ic) x).
+          intros gxi0 GXDi0.
 
+          assert(GXDj: svector_is_dense (Gather (⦃ g ⦄ j jc) x)).
+          {
+            unfold svector_is_dense.
+            apply Vforall_nth_intro.
+            intros.
+            rewrite Gather_spec.
+            apply g_dense.
+          }
+          generalize dependent (Gather (⦃ g ⦄ j jc) x).
+          intros gxj GXDj.
+          clear GNC g_dense.
 
+          (* Get rid of lifted kernel, carring over its properties *)
+          assert(svector_is_dense (@liftM_HOperator ki ko (kernel i0 ic) (Koperator i0 ic) gxi0)) by apply liftM_HOperator_DensityPreserving, GXDi0.
+          generalize dependent (@liftM_HOperator ki ko (kernel i0 ic) (Koperator i0 ic) gxi0).
+          intros kxi KXDi0.
+          clear gxi0 GXDi0.
 
+          assert (svector_is_dense (@liftM_HOperator ki ko (kernel j jc) (Koperator j jc) gxj)) by apply liftM_HOperator_DensityPreserving, GXDj.
+          generalize dependent (@liftM_HOperator ki ko (kernel j jc) (Koperator j jc) gxj).
+          intros kxj KXDj.
+          clear gxj GXDj.
 
+          (* housekeeping *)
+          clear Koperator g kernel nz x i ki.
+          rename i0 into i.
+          rename n into k.
+          rename kxi into x.
+          rename o into n.
+          rename oi into m.
+          rename oic into mc.
+          rename kxj into y.
+          rename KXDj into YD.
+          rename KXDi0 into XD.
+          rename ko into l.
 
+          intros [Hi Hj].
 
+          apply Is_Val_Scatter in Hi; try assumption. (* XD *)
+          apply Is_Val_Scatter in Hj; try assumption. (* YD *)
 
+          unfold index_map_family_injective in f_inj.
 
-
-
-           (* TODO: we need to reason about Is_Val on values, but so far we derived only collision properties. Also in general sparse embedding with n=0 is NOT dense! *)
-
-           assert(T: forall A B: Prop, not A \/ not B -> not (A /\ B))
-             by tauto.
-           apply T.
-
-           unfold index_family_injective in f_family_inj.
-
-
-           (* Partial proof of second djsjunct (for later) *)
-
-           unfold compose.
-           assert(svector_is_dense (sparsify x))
-             by apply sparsify_is_dense.
-           generalize dependent (sparsify x). intros sx SXD.
-
-           assert(svector_is_dense (Gather (g 0 (lt_0_Sn n)) sx))
-             by apply Gather_preserves_density, SXD.
-           generalize dependent (Gather (g 0 (lt_0_Sn n)) sx).
-           intros gx1 GXD1.
-           (* clear sx SXD. *)
-
-           assert(svector_is_dense (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1))
-             by apply liftM_HOperator_DensityPreserving, GXD1.
-           generalize dependent (liftM_HOperator (kernel 0 (lt_0_Sn n)) gx1).
-           intros kx KXD.
-
-
-
-
-
+          apply f_inj with (jc1:=ic) (jc2:=jc).
+          crush.
+          crush.
+          crush.
     Qed.
 
 
