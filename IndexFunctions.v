@@ -205,6 +205,38 @@ definition does not enforce this requirement, and the function produced might no
       + lia.
   Qed.
 
+  (* The following lemma proves that using `buld_inverse_index_map` on
+  surjective index_map produces true "rigt inverse" of it *)
+  Lemma build_inverse_index_map_is_right_inverse
+        {i o: nat}
+        (f: index_map i o)
+        (f_sur: index_map_surjective f):
+    let fp := build_inverse_index_map f in
+    let f' := partial_index_f _ _ fp in
+    forall x y (xc:x<i), f' y ≡ Some x -> ⟦ f ⟧ x ≡ y.
+  Proof.
+    intros fp f' x y xc A.
+    destruct f.
+    unfold index_map_surjective in f_sur.
+    unfold build_inverse_index_map in fp.
+    simpl in *.
+    unfold f' in A.
+    clear fp f'.
+
+    induction i.
+    - nat_lt_0_contradiction.
+    - simpl in *.
+      destruct (PeanoNat.Nat.eq_dec y (index_f0 i)) as [E|N].
+      * crush.
+      *
+
+      apply f_inj in E; auto.
+      apply IHi; auto.
+      destruct (eq_nat_dec x i).
+      + congruence.
+      + lia.
+  Qed.
+
 End Inversions.
 
 
