@@ -219,22 +219,36 @@ definition does not enforce this requirement, and the function produced might no
     destruct f.
     unfold index_map_surjective in f_sur.
     unfold build_inverse_index_map in fp.
+    subst fp.
     simpl in *.
-    unfold f' in A.
-    clear fp f'.
+    subst f'.
+    rename index_f0 into f.
+    rename index_f_spec0 into f_spec.
 
-    induction i.
+    dependent induction i.
     - nat_lt_0_contradiction.
     - simpl in *.
-      destruct (PeanoNat.Nat.eq_dec y (index_f0 i)) as [E|N].
-      * crush.
+      destruct (PeanoNat.Nat.eq_dec y (f i)) as [E|N].
+      * congruence.
       *
+        apply IHi with (o:=o); auto. clear IHi.
+        --
+          apply h'_dom in A.
+          rename A into xc'.
+          clear N y f_spec.
+          intros y yc.
+          specialize (f_sur y yc).
+          exists x, xc'.
+          admit.
 
-      apply f_inj in E; auto.
-      apply IHi; auto.
-      destruct (eq_nat_dec x i).
-      + congruence.
-      + lia.
+          destruct (eq_nat_dec x i).
+          crush.
+          apply f_sur.
+
+
+
+        -- apply h'_dom in A. apply A.
+
   Qed.
 
 End Inversions.
