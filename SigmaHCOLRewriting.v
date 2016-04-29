@@ -1205,6 +1205,11 @@ Section SigmaHCOLRewriting.
         apply H.
     Qed.
 
+    (* TODO: move *)
+    Lemma Is_Val_mkStruct:  forall a, not (Is_Val (mkStruct a)).
+    Proof.
+      crush.
+    Qed.
 
     (* TODO: maybe iff  *)
     Lemma Is_Val_Scatter
@@ -1219,32 +1224,27 @@ Section SigmaHCOLRewriting.
     Proof.
       intros H.
       unfold svector_is_dense in XD.
-      (* apply Vforall_nth with (i:=i) in XD. *)
       rewrite Scatter_rev_spec in H.
       unfold VnthInverseIndexMapped, partial_index_f in H.
 
       break_let.
       simpl in *.
+
       generalize dependent (partial_index_f_spec j jc).
       intros f_spec H.
-
       break_match.
-      exists n0.
-      assert(nc: n0<m).
-      {
-        apply f_spec.
-        reflexivity.
-      }
-
-      exists nc.
-      replace (f_spec n0 eq_refl) with nc in H by apply proof_irrelevance.
-
-      apply build_inverse_index_map_is_right_inverse; auto.
-      inversion Heqp.
-      simpl in *.
-      subst.
-      crush.
-      crush.
+      -
+        exists n0.
+        assert(nc: n0<m) by (apply f_spec; reflexivity).
+        exists nc.
+        replace (f_spec n0 eq_refl) with nc in H by apply proof_irrelevance.
+        apply build_inverse_index_map_is_right_inverse; auto.
+        inversion Heqp.
+        rewrite Heqp.
+        apply Heqo.
+      -
+        apply Is_Val_mkStruct in H.
+        inversion H. (* for some reason congruence fails *)
     Qed.
 
     Lemma USparseEmbeddingCauseNoCol
