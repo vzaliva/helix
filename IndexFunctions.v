@@ -223,10 +223,11 @@ definition does not enforce this requirement, and the function produced might no
     rename index_f0 into f.
     rename index_f_spec0 into f_spec.
     induction i.
-    - crush.
-    - simpl in *.
+    - simpl in A.
+      congruence.
+    - simpl in A.
       destruct (PeanoNat.Nat.eq_dec y (f i)) as [E|N].
-      * clear IHi f_spec.
+      *
         inversion A.
         subst.
         reflexivity.
