@@ -205,50 +205,33 @@ definition does not enforce this requirement, and the function produced might no
       + lia.
   Qed.
 
-  (* The following lemma proves that using `buld_inverse_index_map` on
-  surjective index_map produces true "rigt inverse" of it *)
+
+  (* The following lemma proves that using `buld_inverse_index_map` produces  "right inverse" of it *)
   Lemma build_inverse_index_map_is_right_inverse
         {i o: nat}
-        (f: index_map i o)
-        (f_sur: index_map_surjective f):
+        (f: index_map i o):
     let fp := build_inverse_index_map f in
     let f' := partial_index_f _ _ fp in
-    forall x y (xc:x<i), f' y ≡ Some x -> ⟦ f ⟧ x ≡ y.
+    forall x y (yc:y<o), f' y ≡ Some x -> ⟦ f ⟧ x ≡ y.
   Proof.
-    intros fp f' x y xc A.
+    intros fp f' x y yc A.
     destruct f.
-    unfold index_map_surjective in f_sur.
     unfold build_inverse_index_map in fp.
     subst fp.
     simpl in *.
     subst f'.
     rename index_f0 into f.
     rename index_f_spec0 into f_spec.
-
-    dependent induction i.
-    - nat_lt_0_contradiction.
+    induction i.
+    - crush.
     - simpl in *.
       destruct (PeanoNat.Nat.eq_dec y (f i)) as [E|N].
-      * congruence.
+      * clear IHi f_spec.
+        inversion A.
+        subst.
+        reflexivity.
       *
-        apply IHi with (o:=o); auto. clear IHi.
-        --
-          apply h'_dom in A.
-          rename A into xc'.
-          clear N y f_spec.
-          intros y yc.
-          specialize (f_sur y yc).
-          exists x, xc'.
-          admit.
-
-          destruct (eq_nat_dec x i).
-          crush.
-          apply f_sur.
-
-
-
-        -- apply h'_dom in A. apply A.
-
+        apply IHi; auto.
   Qed.
 
 End Inversions.
