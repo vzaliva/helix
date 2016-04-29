@@ -150,9 +150,10 @@ Section Inversions.
     simpl in *.  congruence.
     simpl in H.
     destruct (eq_nat_dec x (f domain)).
-    inversion H.
-    lia.
-    crush.
+    - inversion H.
+      lia.
+    - apply IHdomain in H.
+      lia.
   Qed.
 
   (* Theoretically, we can only build inverse of injective functions. However this
