@@ -1222,6 +1222,7 @@ Section SigmaHCOLRewriting.
       (* apply Vforall_nth with (i:=i) in XD. *)
       rewrite Scatter_rev_spec in H.
       unfold VnthInverseIndexMapped, partial_index_f in H.
+
       break_let.
       simpl in *.
       generalize dependent (partial_index_f_spec j jc).
@@ -1234,33 +1235,17 @@ Section SigmaHCOLRewriting.
         apply f_spec.
         reflexivity.
       }
+
       exists nc.
-      replace (f_spec n0 eq_refl) with nc in H.
-      apply build_inverse_index_map_is_left_inverse.
+      replace (f_spec n0 eq_refl) with nc in H by apply proof_irrelevance.
 
-      apply proof_irrelevance in H.
-
-
-      unfold VnthInverseIndexMapped, partial_index_f in H.
-      break_let.
+      apply build_inverse_index_map_is_right_inverse; auto.
+      inversion Heqp.
       simpl in *.
-      generalize dependent (partial_index_f_spec j jc).
-      intros L H.
-
-      unfold build_inverse_index_map in Heqp.
-      inversion  Heqp.
-      clear Heqp.
-
-
-
-      destruct (partial_index_f j).
-      rename n0 into i.
-      generalize dependent (L i eq_refl).
-      intros l H.
-      exists i, l.
-
-
-    Admitted.
+      subst.
+      crush.
+      crush.
+    Qed.
 
     Lemma USparseEmbeddingCauseNoCol
           {n i o ki ko}
