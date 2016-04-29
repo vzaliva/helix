@@ -363,7 +363,9 @@ Section Primitive_Functions.
 
     subst_max.
     dependent induction domain.
-    + crush.
+    +
+      simpl in H1.
+      congruence.
     + simpl in E.
       destruct
         (eq_nat_dec y (b + domain * s)) as [yT | yF],
