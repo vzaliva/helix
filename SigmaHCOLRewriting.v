@@ -1389,20 +1389,6 @@ Section SigmaHCOLRewriting.
           apply Is_Val_Scatter in Hi; try assumption. clear XD.
           apply Is_Val_Scatter in Hj; try assumption. clear YD.
 
-          unfold index_map_family_injective in f_inj.
-          specialize (f_inj i j ic jc).
-
-          generalize dependent (⦃ f ⦄ i ic).
-          intros fi f_inj Hi.
-          generalize dependent (⦃ f ⦄ j jc).
-          intros fj Hj f_inj.
-
-          apply f_inj. clear f_inj.
-          clear ic jc f k.
-
-          admit.
-          admit.
-
           elim Hi. clear Hi.
           intros x0 H.
           elim H. clear H.
@@ -1413,7 +1399,13 @@ Section SigmaHCOLRewriting.
           elim H. clear H.
           intros x1c H1.
 
+          subst m. clear mc.
 
+
+          unfold index_map_family_injective in f_inj.
+          symmetry in H1.
+          specialize (f_inj i j ic jc x0 x1 x0c x1c H1).
+          subst.
 
 
     Qed.
