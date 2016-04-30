@@ -254,6 +254,12 @@ Proof.
   crush.
 Qed.
 
+Lemma Is_Val_mkStruct:  forall a, not (Is_Val (mkStruct a)).
+Proof.
+  crush.
+Qed.
+
+
 Section Decidablitiy.
 
   Global Instance IsVal_dec `(x: RthetaFlags) : Decision (IsVal x).

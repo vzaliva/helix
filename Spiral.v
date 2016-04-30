@@ -41,9 +41,9 @@ Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
     match a with
     | None => is_None b
     | Some x => (match b with
-                | None => False
-                | Some y => equiv x y
-                end)
+                 | None => False
+                 | Some y => equiv x y
+                 end)
     end.
 
 Instance opt_Setoid `{Setoid A}: Setoid (@option A).
@@ -1271,9 +1271,9 @@ Proof.
   simpl.
   replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
   replace (VecUtil.Vbuild_spec_obligation_3 gen eq_refl
-                                    (VecUtil.Vbuild_spec_obligation_4
-                                       (λ (i : nat) (ip : i < 1),
-                                        gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
+                                            (VecUtil.Vbuild_spec_obligation_4
+                                               (λ (i : nat) (ip : i < 1),
+                                                gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
   reflexivity.
 Qed.
 
@@ -1350,6 +1350,21 @@ Proof.
   auto.
 Qed.
 
+Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : ∀ i : nat, i < n → T):
+  Vforall P (Vbuild gen) <-> forall (i : nat) (ip : i < n), P (gen i ip).
+Proof.
+  split.
+  - intros H i ip.
+    apply Vforall_nth with (ip:=ip) in H.
+    rewrite Vbuild_nth in H.
+    apply H.
+  - intros H.
+    apply Vforall_nth_intro.
+    intros i ip.
+    rewrite Vbuild_nth.
+    apply H.
+Qed.
+
 Lemma modulo_smaller_than_devisor:
   ∀ x y : nat, 0 ≢ y → x mod y < y.
 Proof.
@@ -1387,49 +1402,79 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+  forall i (ic:i<S n) (ic': (pred i) < n),
+    P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
+Proof.
+  intros i ic ic' H.
+  destruct i.
+  + left.
+    auto.
+  + right.
+    simpl in H.
+    replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
+    apply H.
+Qed.
+
+Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+  forall i (ic:i<S n) (ic': (pred i) < n),
+    not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
+Proof.
+  intros i ic ic' Ph Pt.
+  destruct i.
+  - simpl in Pt; congruence.
+  - simpl in Pt.
+    replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
+    apply Pt.
+Qed.
+
+
+Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+    i1 = i2 -> Vnth v h1 = Vnth v h2.
+
+Proof.
+  induction v; intro; case i1.
+  - intro.
+    nat_lt_0_contradiction; omega.
+  - intros n h1.
+    nat_lt_0_contradiction; omega.
+  - intros.
+    revert h2. rewrite <- H0. intros h2.
+    reflexivity.
+  - intros.
+    revert h2. rewrite <- H0. intros h2.
+    simpl.
+    apply IHv.
+    reflexivity.
+Qed.
+
+Lemma Vnth_arg_equiv:
+  ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
+    (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
+Proof.
+  intros A Ae n v1 v2 i ip E.
+  unfold equiv, vec_equiv in E.
+  apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
+  assumption.
+Qed.
+
+Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+    i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
+Proof.
+  intros n v1 v2 i1 h1 i2 h2 Ei Ev.
+  rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
+  apply Vnth_arg_equiv.
+  assumption.
+Qed.
+
+
 Section VMap2_Indexed.
+
+  Local Open Scope nat_scope.
 
   Definition Vmap2Indexed {A B C : Type} {n}
              (f: nat->A->B->C) (a: vector A n) (b: vector B n)
     := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
-
-  Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-      i1 = i2 -> Vnth v h1 = Vnth v h2.
-
-  Proof.
-    induction v; intro; case i1.
-    - intro.
-      nat_lt_0_contradiction; omega.
-    - intros n h1.
-      nat_lt_0_contradiction; omega.
-    - intros.
-      revert h2. rewrite <- H0. intros h2.
-      reflexivity.
-    - intros.
-      revert h2. rewrite <- H0. intros h2.
-      simpl.
-      apply IHv.
-      reflexivity.
-  Qed.
-
-  Lemma Vnth_arg_equiv:
-    ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
-      (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
-  Proof.
-    intros A Ae n v1 v2 i ip E.
-    unfold equiv, vec_equiv in E.
-    apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
-    assumption.
-  Qed.
-
-  Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-      i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
-  Proof.
-    intros n v1 v2 i1 h1 i2 h2 Ei Ev.
-    rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
-    apply Vnth_arg_equiv.
-    assumption.
-  Qed.
 
   Global Instance Vmap2Indexed_proper
          `{Setoid A, Setoid B, Setoid C} {n:nat}
@@ -1467,6 +1512,137 @@ Section VMap2_Indexed.
 
 End VMap2_Indexed.
 
+Section Vunique.
+  Local Open Scope nat_scope.
 
+  (* There is only one element in vector satisfying given predicate *)
+  Definition Vunique {n} {T:Type}
+             (P: T -> Prop)
+             (v: vector T n) :=
 
+    (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
+        (P (Vnth v ic) /\ P (Vnth v jc)) -> i ≡ j).
 
+  Lemma Vunique_Vnil (T : Type) (P : T → Prop):
+    Vunique P (@Vnil T).
+  Proof.
+    unfold Vunique.
+    intros i ic j jc H.
+    nat_lt_0_contradiction.
+  Qed.
+
+  Lemma Vforall_notP_Vunique:
+    ∀ (n : nat) (T : Type) (P : T → Prop) (v : vector T n),
+      Vforall (not ∘ P) v → Vunique P v.
+  Proof.
+    intros n T P v.
+    induction v.
+    - intros H.
+      apply Vunique_Vnil.
+    -
+      intros H.
+      unfold Vunique in *.
+      intros i ic j jc V.
+      destruct V.
+      apply Vforall_nth with (i:=i) (ip:=ic) in H.
+      congruence.
+  Qed.
+
+  Lemma Vunique_cons_not_head
+        {n} {T:Type}
+        (P: T -> Prop)
+        (h: T) (t: vector T n):
+    not (P h) /\ Vunique P t -> Vunique P (Vcons h t).
+  Proof.
+    intros H.
+    destruct H as [Ph Pt].
+    unfold Vunique.
+    intros i ic j jc H.
+    destruct H as [Hi Hj].
+
+    destruct i,j.
+    - reflexivity.
+    - simpl in Hi. congruence.
+    - simpl in Hj. congruence.
+    -
+      assert(ic': pred (S i) < n) by (apply lt_S_n; apply ic).
+      apply P_Vnth_Vcons_not_head with (ic'0:=ic') in Hi; try apply Ph.
+
+      assert(jc': pred (S j) < n) by (apply lt_S_n; apply jc).
+      apply P_Vnth_Vcons_not_head with (ic'0:=jc') in Hj; try apply Ph.
+
+      f_equal.
+      unfold Vunique in Pt.
+      apply Pt with (ic:=ic') (jc:=jc').
+      split; [apply Hi| apply Hj].
+  Qed.
+
+  Lemma Vunique_cons_head
+        {n} {T:Type}
+        (P: T -> Prop)
+        (h: T) (t: vector T n):
+    P h /\ (Vforall (not ∘ P) t) -> Vunique P (Vcons h t).
+  Proof.
+    intros H.
+    destruct H as [Ph Pt].
+    unfold Vunique.
+    intros i ic j jc H.
+    destruct H as [Hi Hj].
+
+    destruct i, j.
+    - reflexivity.
+    -
+      assert(jc':j < n) by omega.
+      apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+      unfold compose in Pt.
+      rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+      congruence.
+    -
+      assert(ic':i < n) by omega.
+      apply Vforall_nth with (i:=i) (ip:=ic') in Pt.
+      unfold compose in Pt.
+      rewrite Vnth_Sn with (ip:=ic) (ip':=ic') in Hi.
+      congruence.
+    -
+      assert(jc':j < n) by omega.
+      apply Vforall_nth with (i:=j) (ip:=jc') in Pt.
+      unfold compose in Pt.
+      rewrite Vnth_Sn with (ip:=jc) (ip':=jc') in Hj.
+      congruence.
+  Qed.
+
+  Lemma Vunique_cons {n} {T:Type}
+        (P: T -> Prop)
+        (h: T) (t: vector T n):
+    ((P h /\ (Vforall (not ∘ P) t)) \/
+     (not (P h) /\ Vunique P t))
+    ->
+    Vunique P (Vcons h t).
+  Proof.
+    intros H.
+    destruct H.
+    apply Vunique_cons_head; auto.
+    apply Vunique_cons_not_head; auto.
+  Qed.
+
+  Lemma Vunique_cons_tail {n}
+        {T:Type} (P: T -> Prop)
+        (h : T) (t : vector T n):
+    Vunique P (Vcons h t) → Vunique P t.
+  Proof.
+    intros H.
+    unfold Vunique in *.
+    intros i ic j jc [Vi Vj].
+    assert(S i ≡ S j).
+    {
+      assert(ic': S i < S n) by omega.
+      assert(jc': S j < S n) by omega.
+      apply H with (ic:=ic') (jc:=jc').
+      simpl.
+      replace (lt_S_n ic') with ic by apply proof_irrelevance.
+      replace (lt_S_n jc') with jc by apply proof_irrelevance.
+      auto.
+    }
+    auto.
+  Qed.
+End Vunique.
