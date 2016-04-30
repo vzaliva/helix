@@ -1371,36 +1371,33 @@ Section SigmaHCOLRewriting.
           intros kxj KXDj.
           clear gxj GXDj.
 
+
           (* housekeeping *)
           clear Koperator g kernel nz x i ki f_sur.
-          rename i0 into i.
-          rename n into k.
-          rename kxi into x.
-          rename o into n.
-          rename oi into m.
-          rename oic into mc.
-          rename kxj into y.
-          rename KXDj into YD.
-          rename KXDi0 into XD.
-          rename ko into l.
+          rename
+            i0 into i,
+            n into k,
+            kxi into x,
+            o into n,
+            oi into m,
+            oic into mc,
+            kxj into y,
+            KXDj into YD,
+            KXDi0 into XD,
+            ko into l.
 
           intros [Hi Hj].
 
-          apply Is_Val_Scatter in Hi; try assumption. clear XD.
-          apply Is_Val_Scatter in Hj; try assumption. clear YD.
+          apply Is_Val_Scatter in Hi; try assumption; clear XD.
+          apply Is_Val_Scatter in Hj; try assumption; clear YD.
 
-          elim Hi. clear Hi.
-          intros x0 H.
-          elim H. clear H.
-          intros x0c H0.
+          elim Hi; clear Hi; intros x0 H.
+          elim H; clear H; intros x0c H0.
 
-          elim Hj. clear Hj.
-          intros x1 H.
-          elim H. clear H.
-          intros x1c H1.
+          elim Hj; clear Hj; intros x1 H.
+          elim H; clear H; intros x1c H1.
 
-          subst m. clear mc.
-
+          subst m;  clear mc.
 
           unfold index_map_family_injective in f_inj.
           symmetry in H1.
