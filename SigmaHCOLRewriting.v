@@ -1405,9 +1405,8 @@ Section SigmaHCOLRewriting.
           unfold index_map_family_injective in f_inj.
           symmetry in H1.
           specialize (f_inj i j ic jc x0 x1 x0c x1c H1).
-          subst.
 
-
+          apply f_inj.
     Qed.
 
 

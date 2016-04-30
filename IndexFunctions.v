@@ -251,8 +251,8 @@ Section IndexFamilies.
              {n d r: nat}
              (f: index_map_family d r n)
     :=
-      forall (j1 j2: nat) (jc1: j1<n) (jc2: j2<n) (x y:nat) (xc: x<d) (yc: y<d),
-        ⟦ ⦃f⦄ j1 jc1 ⟧ x ≡ ⟦ ⦃f⦄ j2 jc2 ⟧ y → x ≡ y.
+      forall (i j: nat) (ic: i<n) (jc: j<n) (x y:nat) (xc: x<d) (yc: y<d),
+        ⟦ ⦃f⦄ i ic ⟧ x ≡ ⟦ ⦃f⦄ j jc ⟧ y → (x ≡ y) /\ (i = j).
 
   Definition index_map_family_surjective
              {n d r: nat}
