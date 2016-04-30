@@ -1,5 +1,6 @@
 (* Template HCOL. HCOL meta-operators *)
 
+Require Import VecUtil.
 Require Import Spiral.
 Require Import CarrierType.
 Require Import THCOLImpl.

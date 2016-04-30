@@ -1,6 +1,7 @@
 *.vo
 *.glob
 *.v.d
+*.aux
 HCOL.hs
 HCOL.pdf
 lia.cache

@@ -1,5 +1,6 @@
 (* Low-level functions implementing HCOL matrix and vector manupulation operators *)
 
+Require Import VecUtil.
 Require Import Spiral.
 Require Import CarrierType.
 
@@ -92,7 +93,7 @@ Section HCOL_implementations.
            (a: avector n) (x:CarrierA) : CarrierA  :=
     match a with
       nil => zero
-    | a0::a' => plus a0 (mult x (EvalPolynomial a' x))
+    | a0 :: a' => plus a0 (mult x (EvalPolynomial a' x))
     end.
 
   (* === HCOL Basic Operators === *)

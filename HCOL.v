@@ -1,5 +1,6 @@
 (* Coq defintions for HCOL operator language *)
 
+Require Import VecUtil.
 Require Import Spiral.
 Require Import CarrierType.
 Require Import HCOLImpl.
