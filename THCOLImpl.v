@@ -1,6 +1,7 @@
 (* HCOL metaoperators *)
 
 Require Import Spiral.
+Require Import VecSetoid.
 Require Import CarrierType.
 
 Require Import Arith.
@@ -72,7 +73,7 @@ Section THCOL_implementations.
     unfold ZVLess.
     repeat break_let.
     inversion E. simpl in *.
-    unfold equiv, vec_equiv.
+    unfold equiv, vec_Equiv.
     rewrite H0, H.
     reflexivity.
   Qed.

@@ -1,6 +1,7 @@
 (* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import VecUtil.
+Require Import VecSetoid.
 Require Import Spiral.
 Require Import Rtheta.
 Require Import SVector.
@@ -126,7 +127,7 @@ wrt equiv. (TODO: maybe not true anymore)
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
-    unfold equiv, vec_equiv.
+    unfold equiv, vec_Equiv.
     apply Vforall2_intro_nth; intros j jp.
     rewrite 2!Vbuild_nth.
     apply Vnth_arg_equiv.
@@ -171,7 +172,7 @@ wrt equiv. (TODO: maybe not true anymore)
   Proof.
     intros x y E.
     unfold Scatter.
-    unfold equiv, vec_equiv.
+    unfold equiv, vec_Equiv.
     apply Vforall2_intro_nth.
     intros j jp.
     rewrite 2!Vbuild_nth.

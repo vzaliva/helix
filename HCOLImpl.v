@@ -1,6 +1,7 @@
 (* Low-level functions implementing HCOL matrix and vector manupulation operators *)
 
 Require Import VecUtil.
+Require Import VecSetoid.
 Require Import Spiral.
 Require Import CarrierType.
 
@@ -242,7 +243,7 @@ Section HCOL_implementation_facts.
       VOtac.
       simpl.
       symmetry.
-      unfold equiv, vec_equiv, Vforall2, Vforall2_aux.
+      unfold equiv, vec_Equiv, Vforall2, Vforall2_aux.
       split; try trivial.
       ring.
     - Case "S(n)".

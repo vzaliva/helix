@@ -1,5 +1,6 @@
 
 Require Import VecUtil.
+Require Import VecSetoid.
 Require Import Spiral.
 Require Import CarrierType.
 
@@ -49,7 +50,7 @@ Section HCOLBreakdown.
   :
     Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
   Proof.
-    unfold equiv, vec_equiv.
+    unfold equiv, vec_Equiv.
     apply Vforall2_intro_nth.
     intros i ip.
     rewrite Vnth_Vmap2Indexed.

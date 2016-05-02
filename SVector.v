@@ -1,5 +1,6 @@
 
 Require Import VecUtil.
+Require Import VecSetoid.
 Require Import Spiral.
 Require Import Rtheta.
 

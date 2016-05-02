@@ -1,6 +1,7 @@
 (* Coq defintions for HCOL operator language *)
 
 Require Import VecUtil.
+Require Import VecSetoid.
 Require Import Spiral.
 Require Import CarrierType.
 Require Import HCOLImpl.
@@ -137,7 +138,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HAtomic.
-      unfold equiv, vec_equiv.
+      unfold equiv, vec_Equiv.
       apply Vforall2_intro_nth.
       intros.
       simpl.

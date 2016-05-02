@@ -14,6 +14,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
 Require Import VecUtil.
+Require Import VecSetoid.
 
 Require Import CaseNaming.
 Require Import CpdtTactics.
@@ -35,77 +36,6 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-(* Various definitions related to vector equality and setoid rewriting *)
-
-Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
-
-Instance vec_Equivalence `{Ae: Equiv A} {n:nat}
-         `{!Equivalence (@equiv A _)}
-  : Equivalence (@vec_equiv A Ae n).
-Proof.
-  unfold vec_equiv.
-  apply Vforall2_equiv.
-  assumption.
-Qed.
-
-Instance vec_Setoid `{Setoid A} {n}: Setoid (vector A n).
-Proof.
-  unfold Setoid.
-  apply vec_Equivalence.
-Qed.
-
-Section Vfold_right_p.
-  Context
-    `{eqA: Equiv A}
-    `{eqB: Equiv B}.
-
-  Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
-
-  Lemma Vfold_right_to_Vfold_right_reord: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-      Vfold_right f v initial ≡ Vfold_right_reord f v initial.
-  Proof.
-    crush.
-  Qed.
-
-  Global Instance Vfold_right_reord_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> (@vec_equiv A _ n ==> (=) ==> (=)))
-           (@Vfold_right_reord A B n).
-  Proof.
-    intros f f' Ef v v' vEq i i' iEq.
-    unfold Vfold_right_reord.
-    induction v.
-    Case "N=0".
-    VOtac. simpl. assumption.
-    Case "S(N)".
-    revert vEq. VSntac v'. unfold vec_equiv. rewrite Vforall2_cons_eq. intuition. simpl.
-    apply Ef.
-    SCase "Pf - 1".
-    assumption.
-    SCase "Pf - 2".
-    apply IHv. unfold vec_equiv.  assumption.
-  Qed.
-
-End Vfold_right_p.
-
-Section VCons_p.
-  Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
-
-  Lemma Vcons_to_Vcons_reord: forall A n (t: t A n) (h:A), Vcons h t  ≡ Vcons_reord t h.
-  Proof.
-    crush.
-  Qed.
-
-  Global Instance Vcons_reord_proper `{Equiv A} n:
-    Proper ((=) ==> (=) ==> (=))
-           (@Vcons_reord A n).
-  Proof.
-    split.
-    assumption.
-    unfold vec_equiv, Vforall2 in H0.  assumption.
-  Qed.
-
-End VCons_p.
-
 Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
 Proof.
@@ -124,34 +54,34 @@ Proof.
   rewrite H.
   rewrite <- 2!Vcons_to_Vcons_reord.
 
-  unfold equiv, vec_equiv.
+  unfold equiv, vec_Equiv.
   apply Vforall2_cons_eq.
   split. reflexivity.
 
-  unfold equiv, vec_equiv in IHn1.
+  unfold equiv, vec_Equiv in IHn1.
   apply IHn1.
   apply aEq.
 Qed.
 
 
 Instance Vhead_proper A `{H:Equiv A} n:
-  Proper (@equiv (vector A (S n)) (@vec_equiv A H (S n)) ==> @equiv A H) (@Vhead A n).
+  Proper (@equiv (vector A (S n)) (@vec_Equiv A H (S n)) ==> @equiv A H) (@Vhead A n).
 Proof.
   intros a b E.
   dep_destruct a.  dep_destruct b.
-  unfold equiv, vec_equiv, vec_equiv, relation in E.
+  unfold equiv, vec_Equiv, vec_Equiv, relation in E.
   rewrite Vforall2_cons_eq in E.
   intuition.
 Defined.
 
 Instance Vtail_proper `{Equiv A} n:
-  Proper (@vec_equiv A _ (S n) ==> @vec_equiv A _ n)
+  Proper (@vec_Equiv A _ (S n) ==> @vec_Equiv A _ n)
          (@Vtail A n).
 Proof.
   intros a b E.
-  unfold equiv, vec_equiv, vec_equiv, relation in E.
+  unfold equiv, vec_Equiv, vec_Equiv, relation in E.
   apply Vforall2_tail in E.
-  unfold vec_equiv.
+  unfold vec_Equiv.
   assumption.
 Defined.
 
@@ -482,7 +412,7 @@ Proof.
   intros.
   constructor. reflexivity.
   fold (Vforall2 (n:=n) equiv (Vmap f xs) (Vmap f xs)).
-  fold (vec_equiv (Vmap f xs) (Vmap f xs)).
+  fold (vec_Equiv (Vmap f xs) (Vmap f xs)).
   fold (equiv (Vmap f xs) (Vmap f xs)).
   reflexivity.
 Qed.
@@ -582,7 +512,7 @@ Lemma Vcons_single_elim `{Equiv A} : forall a1 a2,
     Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
 Proof.
   intros a1 a2.
-  unfold equiv, vec_equiv.
+  unfold equiv, vec_Equiv.
   rewrite Vforall2_cons_eq.
   assert(Vforall2 equiv (@Vnil A) (@Vnil A)).
   constructor.
@@ -640,10 +570,10 @@ Qed.
 
 Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
          `{fP: !Proper (Me ==> Ne) f} (n:nat):
-  Proper ((@vec_equiv M _ n) ==> (@vec_equiv N _ n)) (@Vmap M N f n).
+  Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
 Proof.
   intros a b Ea.
-  unfold vec_equiv.
+  unfold vec_Equiv.
   induction n.
   Case "N=0".
   VOtac. auto.
@@ -780,7 +710,7 @@ Lemma Vnth_arg_equiv:
     (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
 Proof.
   intros A Ae n v1 v2 i ip E.
-  unfold equiv, vec_equiv in E.
+  unfold equiv, vec_Equiv in E.
   apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
   assumption.
 Qed.
@@ -812,7 +742,7 @@ Section VMap2_Indexed.
     intros fa fb Ef a a' Ea b b' Eb.
     unfold Vmap2Indexed.
 
-    unfold equiv, vec_equiv.
+    unfold equiv, vec_Equiv.
     apply Vforall2_intro_nth.
     intros i ip.
     rewrite 2!Vbuild_nth.
