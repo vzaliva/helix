@@ -20,14 +20,38 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
+Require Import MathClasses.misc.util.
+Require Import MathClasses.interfaces.abstract_algebra.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.List.ListUtil.
 
 Require Import Spiral.
 
-Global Open Scope nat_scope.
 
+(* Setoid equality for option types *)
+Section OptionSetoid.
+  Global Instance option_Equiv `{Equiv A}: Equiv (option A) :=
+    fun a b =>
+      match a with
+      | None => is_None b
+      | Some x => (match b with
+                  | None => False
+                  | Some y => equiv x y
+                  end)
+      end.
+
+  Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
+  Proof.
+    unfold Setoid in H.
+    constructor. destruct H.
+    unfold Reflexive. destruct x; (unfold equiv; crush).
+    unfold Symmetric. intros x y. destruct x,y; (unfold equiv; crush).
+    unfold Transitive. intros x y z. destruct x,y,z; unfold equiv, option_Equiv in *; crush.
+  Qed.
+End OptionSetoid.
+
+Global Open Scope nat_scope.
 
 (* Index maps (total functions) *)
 

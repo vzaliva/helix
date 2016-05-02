@@ -37,26 +37,6 @@ Import VectorNotations.
 
 Global Instance Nat_Spec_Equiv {n:nat}: Equiv {i | (i<n)%nat} := sig_equiv _.
 
-(* equality of option types *)
-Instance opt_Equiv `{Equiv A}: Equiv (option A) :=
-  fun a b =>
-    match a with
-    | None => is_None b
-    | Some x => (match b with
-                 | None => False
-                 | Some y => equiv x y
-                 end)
-    end.
-
-Instance opt_Setoid `{Setoid A}: Setoid (@option A).
-Proof.
-  unfold Setoid in H.
-  constructor. destruct H.
-  unfold Reflexive. destruct x; (unfold equiv; crush).
-  unfold Symmetric. intros x y. destruct x,y; (unfold equiv; crush).
-  unfold Transitive. intros x y z. destruct x,y,z; unfold equiv, opt_Equiv in *; crush.
-Qed.
-
 (* Various definitions related to vector equality and setoid rewriting *)
 
 Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
