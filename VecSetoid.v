@@ -272,7 +272,7 @@ Section VMap_reord.
   Qed.
 
   Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
-           `{fP: !Proper (Me ==> Ne) f} (n:nat):
+         `{fP: !Proper (Me ==> Ne) f} (n:nat):
     Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
   Proof.
     intros a b Ea.
@@ -310,4 +310,64 @@ Proof.
   rewrite E.
   setoid_replace h with h0 by apply vE.
   reflexivity.
+Qed.
+
+Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+    i1 = i2 -> Vnth v h1 = Vnth v h2.
+Proof.
+  induction v; intro; case i1.
+  - intro.
+    nat_lt_0_contradiction; omega.
+  - intros n h1.
+    nat_lt_0_contradiction; omega.
+  - intros.
+    revert h2. rewrite <- H0. intros h2.
+    reflexivity.
+  - intros.
+    revert h2. rewrite <- H0. intros h2.
+    simpl.
+    apply IHv.
+    reflexivity.
+Qed.
+
+Lemma Vnth_arg_equiv:
+  ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
+    (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
+Proof.
+  intros A Ae n v1 v2 i ip E.
+  unfold equiv, vec_Equiv in E.
+  apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
+  assumption.
+Qed.
+
+Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+    i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
+Proof.
+  intros n v1 v2 i1 h1 i2 h2 Ei Ev.
+  rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
+  apply Vnth_arg_equiv.
+  assumption.
+Qed.
+
+Global Instance Vmap2Indexed_proper
+       `{Setoid A, Setoid B, Setoid C} {n:nat}
+  :
+    Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+           (@Vmap2Indexed A B C n).
+Proof.
+  intros fa fb Ef a a' Ea b b' Eb.
+  unfold Vmap2Indexed.
+
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite 2!Vbuild_nth.
+  apply Ef.
+  - reflexivity.
+  - apply Vnth_equiv.
+    reflexivity.
+    assumption.
+  - apply Vnth_equiv.
+    reflexivity.
+    assumption.
 Qed.

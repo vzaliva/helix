@@ -264,23 +264,6 @@ Proof.
     omega.
 Qed.
 
-(*
-Lemma vmap_natrange `{Equiv B} {n:nat} (f: nat->B) (v: vector B n):
-  (Vmap f (rev_natrange n) ≡ v)
-  <->
-  (forall (i:nat) (ip:i<n), Vnth v ip ≡ f ((pred n) - i)).
-Proof.
-  split.
-  + intros M i ip.
-    rewrite <- M.
-    rewrite Vnth_map.
-    rewrite vnth_natrange.
-    reflexivity.
-  + intros M.
-
-Qed.
- *)
-
 Local Close Scope nat_scope.
 
 Lemma hd0: natrange 0 ≡ [].
@@ -389,86 +372,4 @@ Defined.
 Local Close Scope nat_scope.
 
 Close Scope vector_scope.
-
-Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> Vnth v h1 = Vnth v h2.
-Proof.
-  induction v; intro; case i1.
-  - intro.
-    nat_lt_0_contradiction; omega.
-  - intros n h1.
-    nat_lt_0_contradiction; omega.
-  - intros.
-    revert h2. rewrite <- H0. intros h2.
-    reflexivity.
-  - intros.
-    revert h2. rewrite <- H0. intros h2.
-    simpl.
-    apply IHv.
-    reflexivity.
-Qed.
-
-Lemma Vnth_arg_equiv:
-  ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
-    (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
-Proof.
-  intros A Ae n v1 v2 i ip E.
-  unfold equiv, vec_Equiv in E.
-  apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
-  assumption.
-Qed.
-
-Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
-Proof.
-  intros n v1 v2 i1 h1 i2 h2 Ei Ev.
-  rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
-  apply Vnth_arg_equiv.
-  assumption.
-Qed.
-
-
-Section VMap2_Indexed.
-
-  Local Open Scope nat_scope.
-
-  Definition Vmap2Indexed {A B C : Type} {n}
-             (f: nat->A->B->C) (a: vector A n) (b: vector B n)
-    := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
-
-  Global Instance Vmap2Indexed_proper
-         `{Setoid A, Setoid B, Setoid C} {n:nat}
-    :
-      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
-             (@Vmap2Indexed A B C n).
-  Proof.
-    intros fa fb Ef a a' Ea b b' Eb.
-    unfold Vmap2Indexed.
-
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros i ip.
-    rewrite 2!Vbuild_nth.
-    apply Ef.
-    - reflexivity.
-    - apply Vnth_equiv.
-      reflexivity.
-      assumption.
-    - apply Vnth_equiv.
-      reflexivity.
-      assumption.
-  Qed.
-
-  Lemma Vnth_Vmap2Indexed:
-    forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-           (a:vector A n) (b:vector B n),
-      Vnth (Vmap2Indexed f a b) ip ≡ f i (Vnth a ip) (Vnth b ip).
-  Proof.
-    intros A B C n i ip f a b.
-    unfold Vmap2Indexed.
-    rewrite Vbuild_nth.
-    reflexivity.
-  Qed.
-
-End VMap2_Indexed.
 

@@ -159,7 +159,7 @@ Qed.
 
 Lemma VMapp2_app:
   forall {A B} {f: A->A->B} (n m : nat)
-    {a b: vector A m} {a' b':vector A n},
+         {a b: vector A m} {a' b':vector A n},
     Vmap2 f (Vapp a a') (Vapp b b')
     = Vapp (Vmap2 f a b) (Vmap2 f a' b').
 Proof.
@@ -585,9 +585,9 @@ Proof.
   simpl.
   replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
   replace (VecUtil.Vbuild_spec_obligation_3 gen eq_refl
-           (VecUtil.Vbuild_spec_obligation_4
-              (fun (i : nat) (ip : i < 1) =>
-               gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
+                                            (VecUtil.Vbuild_spec_obligation_4
+                                               (fun (i : nat) (ip : i < 1) =>
+                                                  gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
   reflexivity.
 Qed.
 
@@ -809,6 +809,7 @@ End Vunique.
 (* Utlity functions for vector products *)
 
 Section VectorPairs.
+
   Definition Phead {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): A*B
     := match ab with
        | (va,vb) => ((Vhead va), (Vhead vb))
@@ -820,6 +821,26 @@ Section VectorPairs.
        end.
 
 End VectorPairs.
+
+Section VMap2_Indexed.
+
+  Definition Vmap2Indexed {A B C : Type} {n}
+             (f: nat->A->B->C) (a: vector A n) (b: vector B n)
+    := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
+
+  Lemma Vnth_Vmap2Indexed:
+    forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
+      (a:vector A n) (b:vector B n),
+      Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
+  Proof.
+    intros A B C n i ip f a b.
+    unfold Vmap2Indexed.
+    rewrite Vbuild_nth.
+    reflexivity.
+  Qed.
+
+End VMap2_Indexed.
+
 
 Definition Lst {B:Type} (x:B) := [x].
 
