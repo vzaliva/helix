@@ -419,13 +419,6 @@ Proof.
   crush.
 Defined.
 
-Lemma Vin_cons:
-  ∀ (T:Type) (h : T) (n : nat) (v : vector T n) (x : T),
-    Vin x (Vcons h v) → x ≡ h ∨ Vin x v.
-Proof.
-  crush.
-Qed.
-
 Lemma modulo_smaller_than_devisor:
   ∀ x y : nat, 0 ≢ y → x mod y < y.
 Proof.

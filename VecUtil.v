@@ -822,3 +822,10 @@ Section VectorPairs.
 End VectorPairs.
 
 Definition Lst {B:Type} (x:B) := [x].
+
+Lemma Vin_cons:
+  forall (T:Type) (h : T) (n : nat) (v : vector T n) (x : T),
+    Vin x (Vcons h v) -> x = h \/ Vin x v.
+Proof.
+  crush.
+Qed.
