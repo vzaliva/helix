@@ -35,8 +35,6 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Global Instance Nat_Spec_Equiv {n:nat}: Equiv {i | (i<n)%nat} := sig_equiv _.
-
 (* Various definitions related to vector equality and setoid rewriting *)
 
 Instance vec_equiv `{Equiv A} {n}: Equiv (vector A n) := Vforall2 (n:=n) equiv.
