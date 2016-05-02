@@ -29,6 +29,53 @@ Require Import CoLoR.Util.List.ListUtil.
 Require Import Spiral.
 
 
+(* TODO: replace with vector-based natrange *)
+Section Natrange_List.
+  (* Probably will be removed later *)
+
+  (* n-1 ... 0 *)
+  Fixpoint rev_natrange_list (n:nat) : list nat :=
+    match n with
+    | O => List.nil
+    | S p => List.cons p (rev_natrange_list p)
+    end.
+
+  (* 0 ...  n-1  *)
+  Definition natrange_list (n:nat) : list nat :=
+    List.rev (rev_natrange_list n).
+
+  Lemma rev_natrange_len:
+    ∀ i : nat, Datatypes.length (rev_natrange_list i) ≡ i.
+  Proof.
+    intros.
+    induction i.
+    crush.
+    simpl.
+    rewrite IHi.
+    reflexivity.
+  Qed.
+
+  Lemma rev_natrange_list_bound:
+    ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
+  Proof.
+    intros.
+    induction z.
+    + compute in H.
+      contradiction.
+    + crush.
+  Qed.
+
+  Lemma natrange_list_bound:
+    ∀ z x : nat, List.In x (natrange_list z) → (x < z)%nat.
+  Proof.
+    unfold natrange_list.
+    intros z x H.
+    apply <- List.in_rev in H.
+    apply rev_natrange_list_bound.
+    apply H.
+  Qed.
+End Natrange_List.
+
 (* Setoid equality for option types *)
 Section OptionSetoid.
   Global Instance option_Equiv `{Equiv A}: Equiv (option A) :=
@@ -560,7 +607,7 @@ Section Function_Rules.
 
   Program Lemma index_map_rule_40:
     forall n (np: n>0)
-      {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
+           {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
     ,
       @identity_index_map n np = h_index_map 0 1
                                              (range_bound:=range_bound_h_0).
