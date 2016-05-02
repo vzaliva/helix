@@ -805,3 +805,20 @@ Section Vunique.
     auto.
   Qed.
 End Vunique.
+
+(* Utlity functions for vector products *)
+
+Section VectorPairs.
+  Definition Phead {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): A*B
+    := match ab with
+       | (va,vb) => ((Vhead va), (Vhead vb))
+       end.
+
+  Definition Ptail {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): (vector A n)*(vector B n)
+    := match ab with
+       | (va,vb) => ((Vtail va), (Vtail vb))
+       end.
+
+End VectorPairs.
+
+Definition Lst {B:Type} (x:B) := [x].
