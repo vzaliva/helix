@@ -190,137 +190,6 @@ Proof.
 Qed.
 
 
-(* 0 ... n-1*)
-Program Fixpoint natrange (n:nat) : (vector nat n) :=
-  match n return (vector nat n) with
-    0 => Vnil
-  | S p => snoc (natrange p) p
-  end.
-
-(* n-1 ... 0*)
-Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
-  match n return (vector nat n) with
-    0 => Vnil
-  | S p => Vcons p (rev_natrange p)
-  end.
-
-Local Open Scope nat_scope.
-Lemma vin_rev_natrange x n:
-  Vin x (rev_natrange n) <-> (x<n).
-Proof.
-  split.
-  + intros.
-    induction n; crush.
-  + intros.
-    induction n.
-    crush.
-    simpl.
-    assert (XN: x ≡ n \/ x < n).
-    crush.
-    decompose sum XN.
-  - left. auto.
-  - right.
-    apply IHn.
-    assumption.
-Qed.
-
-Lemma vnth_natrange {n} (i:nat) (ip:i<n):
-  Vnth (rev_natrange n) ip ≡ (pred n) - i.
-Proof.
-  revert i ip.
-  dependent induction n.
-  + intros. crush.
-  + simpl (rev_natrange (S n)).
-    intros.
-    simpl (pred (S n)).
-    destruct i.
-    rewrite <- minus_n_O.
-    apply Vnth_cons_head.
-    reflexivity.
-    remember (S i) as j.
-    assert (JP: j>0) by omega.
-    rewrite Vnth_cons_tail with (h2:=JP).
-    rewrite IHn.
-    omega.
-Qed.
-
-Lemma vnth_natrange_sn {n} (i:nat) (ip:i<(S n)):
-  Vnth (rev_natrange (S n)) ip ≡ n - i.
-Proof.
-  revert i ip.
-  dependent induction n.
-  + unfold rev_natrange.
-    intros.
-    apply Vnth_cons_head.
-    omega.
-  + intros.
-    replace (rev_natrange (S (S n))) with (S n :: rev_natrange (S n)) by auto.
-    destruct i.
-    crush.
-    remember (S i) as j.
-    assert (JP: j>0) by omega.
-    rewrite Vnth_cons_tail with (h2:=JP).
-    rewrite IHn.
-    omega.
-Qed.
-
-Local Close Scope nat_scope.
-
-Lemma hd0: natrange 0 ≡ [].
-Proof.
-  reflexivity.
-Qed.
-
-Lemma hd_natrange1: forall n, hd (natrange (S n)) ≡ O.
-Proof.
-  intros.
-  simpl.
-  induction n.
-  auto.
-  rewrite snoc2cons.
-  simpl.
-  apply IHn.
-Qed.
-
-
-Lemma last_natrange: forall n, last (natrange (S n)) ≡ n.
-Proof.
-  intros.
-  induction n.
-  auto.
-  simpl.
-  rewrite last_snoc.
-  reflexivity.
-Qed.
-
-Lemma shifhout_natrange: forall n, shiftout (natrange (S n)) ≡ natrange n.
-Proof.
-  intros.
-  dependent destruction n.
-  auto.
-  simpl.
-  rewrite shiftout_snoc.
-  reflexivity.
-Qed.
-
-Lemma tl_natrange: forall n, tl (natrange (S n)) ≡ map (S) (natrange n).
-Proof.
-  intros.
-  induction n.
-  reflexivity.
-  simpl.
-  simpl in IHn.
-  rewrite tl_snoc1.
-  rewrite IHn. clear IHn.
-  replace (snoc (natrange n) n) with (natrange (S n)) by reflexivity.
-
-  rewrite map_snoc.
-  rewrite last_natrange.
-  rewrite shifhout_natrange.
-  reflexivity.
-Qed.
-
-
 Local Open Scope nat_scope.
 
 Lemma One_ne_Zero: 1 ≢ 0.
@@ -369,7 +238,133 @@ Proof.
   auto with arith.
 Defined.
 
-Local Close Scope nat_scope.
+Section Natrange.
 
-Close Scope vector_scope.
+  (* 0 ... n-1*)
+  Program Fixpoint natrange (n:nat) : (vector nat n) :=
+    match n return (vector nat n) with
+      0 => Vnil
+    | S p => snoc (natrange p) p
+    end.
 
+  (* n-1 ... 0*)
+  Program Fixpoint rev_natrange (n:nat) : (vector nat n) :=
+    match n return (vector nat n) with
+      0 => Vnil
+    | S p => Vcons p (rev_natrange p)
+    end.
+
+  Lemma vin_rev_natrange x n:
+    Vin x (rev_natrange n) <-> (x<n).
+  Proof.
+    split.
+    + intros.
+      induction n; crush.
+    + intros.
+      induction n.
+      crush.
+      simpl.
+      assert (XN: x ≡ n \/ x < n).
+      crush.
+      decompose sum XN.
+    - left. auto.
+    - right.
+      apply IHn.
+      assumption.
+  Qed.
+
+  Lemma vnth_natrange {n} (i:nat) (ip:i<n):
+    Vnth (rev_natrange n) ip ≡ (pred n) - i.
+  Proof.
+    revert i ip.
+    dependent induction n.
+    + intros. crush.
+    + simpl (rev_natrange (S n)).
+      intros.
+      simpl (pred (S n)).
+      destruct i.
+      rewrite <- minus_n_O.
+      apply Vnth_cons_head.
+      reflexivity.
+      remember (S i) as j.
+      assert (JP: j>0) by omega.
+      rewrite Vnth_cons_tail with (h2:=JP).
+      rewrite IHn.
+      omega.
+  Qed.
+
+  Lemma vnth_natrange_sn {n} (i:nat) (ip:i<(S n)):
+    Vnth (rev_natrange (S n)) ip ≡ n - i.
+  Proof.
+    revert i ip.
+    dependent induction n.
+    + unfold rev_natrange.
+      intros.
+      apply Vnth_cons_head.
+      omega.
+    + intros.
+      replace (rev_natrange (S (S n))) with (S n :: rev_natrange (S n)) by auto.
+      destruct i.
+      crush.
+      remember (S i) as j.
+      assert (JP: j>0) by omega.
+      rewrite Vnth_cons_tail with (h2:=JP).
+      rewrite IHn.
+      omega.
+  Qed.
+
+  Lemma hd0: natrange 0 ≡ [].
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma hd_natrange1: forall n, hd (natrange (S n)) ≡ O.
+  Proof.
+    intros.
+    simpl.
+    induction n.
+    auto.
+    rewrite snoc2cons.
+    simpl.
+    apply IHn.
+  Qed.
+
+
+  Lemma last_natrange: forall n, last (natrange (S n)) ≡ n.
+  Proof.
+    intros.
+    induction n.
+    auto.
+    simpl.
+    rewrite last_snoc.
+    reflexivity.
+  Qed.
+
+  Lemma shifhout_natrange: forall n, shiftout (natrange (S n)) ≡ natrange n.
+  Proof.
+    intros.
+    dependent destruction n.
+    auto.
+    simpl.
+    rewrite shiftout_snoc.
+    reflexivity.
+  Qed.
+
+  Lemma tl_natrange: forall n, tl (natrange (S n)) ≡ map (S) (natrange n).
+  Proof.
+    intros.
+    induction n.
+    reflexivity.
+    simpl.
+    simpl in IHn.
+    rewrite tl_snoc1.
+    rewrite IHn. clear IHn.
+    replace (snoc (natrange n) n) with (natrange (S n)) by reflexivity.
+
+    rewrite map_snoc.
+    rewrite last_natrange.
+    rewrite shifhout_natrange.
+    reflexivity.
+  Qed.
+
+End Natrange.
