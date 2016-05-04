@@ -326,15 +326,6 @@ Section IndexFamilies.
       forall (i j: nat) (ic: i<n) (jc: j<n) (x y:nat) (xc: x<d) (yc: y<d),
         ⟦ ⦃f⦄ i ic ⟧ x ≡ ⟦ ⦃f⦄ j jc ⟧ y → (x ≡ y) /\ (i ≡ j).
 
-  Definition index_map_family_injective'
-             {n d r: nat}
-             (f: index_map_family d r n)
-    :=
-      (forall (i:nat) (ic: i<n),
-          index_map_injective (⦃f⦄ i ic)) /\
-      (forall (i j: nat) (ic: i<n) (jc: j<n) (x:nat) (xc: x<d),
-          ⟦ ⦃f⦄ i ic ⟧ x ≡ ⟦ ⦃f⦄ j jc ⟧ x → i ≡ j).
-
   Definition index_map_family_surjective
              {n d r: nat}
              (f: index_map_family d r n)
