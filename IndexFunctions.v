@@ -30,7 +30,6 @@ Require Import CoLoR.Util.List.ListUtil.
 Require Import Spiral.
 
 
-(* TODO: replace with vector-based natrange *)
 Section Natrange_List.
   (* Probably will be removed later *)
 

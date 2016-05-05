@@ -101,11 +101,9 @@ Qed.
 Section SigmaHCOL_Operators.
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
-just Union of two vectors, produced by application of two operators
-to the input.
-In general HTSUMUnion is not HOperator, since Union is not Proper
-wrt equiv. (TODO: maybe not true anymore)
-   *)
+  just Union of two vectors, produced by application of two operators
+  to the input. In general HTSUMUnion is no HOperator, since Union is
+  not Proper wrt equiv. (TODO: maybe not true anymore) *)
   Definition HTSUMUnion {i o}
            (f: svector i -> svector o)
            (g: svector i -> svector o)

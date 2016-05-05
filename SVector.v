@@ -321,8 +321,6 @@ Definition svector_is_collision {n} (v:svector n) :=
 Definition svector_is_non_collision {n} (v:svector n) :=
   Vforall Not_Collision v.
 
-(* TODO: decidable for collision? *)
-
 Lemma sparsify_non_coll: forall n (x:avector n),
     svector_is_non_collision (sparsify x).
 Proof.

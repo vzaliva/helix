@@ -258,7 +258,7 @@ End HCOLBreakdown.
 
 
 (* Our top-level example goal *)
-Lemma DynWinOSPL:  forall (a: avector 3),
+Theorem DynWinOSPL:  forall (a: avector 3),
     (HTLess
        (HEvalPolynomial a)
        (HChebyshevDistance 2))

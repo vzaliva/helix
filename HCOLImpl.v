@@ -164,13 +164,6 @@ Section HCOL_implementation_facts.
     intros; dep_destruct n; reflexivity.
   Qed.
 
-  Lemma EvalPolynomial_0:
-    forall (v:CarrierA), EvalPolynomial (Vnil) v = zero.
-  Proof.
-    intros; unfold EvalPolynomial.
-    reflexivity.
-  Qed.
-
   (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
   Lemma EvalPolynomial_reduce:
     forall n (a: avector (S n)) (x:CarrierA),
@@ -206,29 +199,6 @@ Section HCOL_implementation_facts.
     setoid_replace (Vmap2 mult a b) with (Vmap2 mult b a).
     reflexivity.
     apply Vmap2_comm.
-  Qed.
-
-  (* Currently unused *)
-  Lemma Scale_cons: forall n (s: CarrierA) (v: avector (S n)),
-      Scale (s,v) = Vcons (mult s (Vhead v)) (Scale (s, (Vtail v))).
-  Proof.
-    intros.
-    unfold Scale.
-    dep_destruct v.
-    reflexivity.
-  Qed.
-
-  (* Scale distributivitiy *)
-  (* Currently unused *)
-  Lemma  Scale_dist: forall n a (b: avector (S n)) (k: CarrierA),
-      plus (mult k a) (Vhead (Scale (k,b))) = (mult k (plus a (Vhead b))).
-  Proof.
-    intros.
-    unfold Scale.
-    dep_destruct b.
-    simpl.
-    rewrite plus_mult_distr_l.
-    reflexivity.
   Qed.
 
   Lemma ScalarProduct_descale: forall {n} (a b: avector n) (s:CarrierA),
