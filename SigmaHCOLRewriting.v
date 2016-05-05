@@ -534,8 +534,7 @@ Section SigmaHCOLRewriting.
       lia.
     Qed.
 
-    (* TODO: move to index functions *)
-    Lemma Partial_index_in_range:
+    Lemma Copy_one_half_get_same_part_is_Some:
       ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
         partial_index_f
           ≡ (λ y : nat,
@@ -558,8 +557,7 @@ Section SigmaHCOLRewriting.
       omega.
     Qed.
 
-    (* TODO: move to index functions *)
-    Lemma Partial_index_out_of_range_is_none:
+    Lemma Copy_one_half_get_another_is_None:
       ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
         partial_index_f
           ≡ (λ y : nat,
@@ -631,6 +629,7 @@ Section SigmaHCOLRewriting.
             unfold szero_svector.
             rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
             unfold VnthInverseIndexMapped.
@@ -638,7 +637,7 @@ Section SigmaHCOLRewriting.
             assert (HZI: partial_index_f i ≡ None).
             {
               apply is_None_def.
-              apply Partial_index_out_of_range_is_none with (o1:=0) (o2:=o1).
+              apply Copy_one_half_get_another_is_None with (o1:=0) (o2:=o1).
               assumption.
               simpl.
               omega.
@@ -654,7 +653,7 @@ Section SigmaHCOLRewriting.
             assert (HZI: partial_index_f i ≡ Some i).
             {
               replace (Some i) with (Some (i-0)).
-              apply Partial_index_in_range with (o2:=o1) (o1:=O).
+              apply Copy_one_half_get_same_part_is_Some with (o2:=o1) (o1:=O).
               assumption.
               split; omega.
               f_equal; omega.
@@ -715,7 +714,7 @@ Section SigmaHCOLRewriting.
             unfold VnthInverseIndexMapped; simpl.
             assert (HZI: partial_index_f i ≡ Some (i-o1)).
             {
-              apply Partial_index_in_range with (o2:=o2).
+              apply Copy_one_half_get_same_part_is_Some with (o2:=o2).
               assumption.
               split; assumption.
             }
@@ -745,7 +744,7 @@ Section SigmaHCOLRewriting.
             assert (HZI: partial_index_f i ≡ None).
             {
               apply is_None_def.
-              apply Partial_index_out_of_range_is_none with (o1:=o1) (o2:=o2).
+              apply Copy_one_half_get_another_is_None with (o1:=o1) (o2:=o2).
               assumption.
               omega.
             }
