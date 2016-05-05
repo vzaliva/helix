@@ -21,26 +21,6 @@ Notation "h :: t" := (cons h t) (at level 60, right associativity)
                      : vector_scope.
 
 
-Fixpoint take_plus {A} {m} (p:nat) : vector A (p+m) -> vector A p :=
-  match p return vector A (p+m) -> vector A p with
-    0%nat => fun _ => Vnil
-  | S p' => fun a => Vcons (hd a) (take_plus p' (tl a))
-  end.
-Program Definition take A n p (a : vector A n) (H : p <= n) : vector A p :=
-  take_plus (m := n - p) p a.
-Next Obligation. auto with arith.
-Defined.
-
-Fixpoint drop_plus {A} {m} (p:nat) : vector A (p+m) -> vector A m :=
-  match p return vector A (p+m) -> vector A m with
-    0 => fun a => a
-  | S p' => fun a => drop_plus p' (tl a)
-  end.
-Program Definition drop A n p (a : vector A n) (H : p <= n) : vector A (n-p) :=
-  drop_plus (m := n - p) p a.
-Next Obligation. auto with arith.
-Defined.
-
 (* Split vector into a pair: first  'p' elements and the rest. *)
 Definition vector2pair {A:Type} (p:nat) {t:nat} (v:vector A (p+t)) : (vector A p)*(vector A t) :=
   @Vbreak A p t v.
@@ -61,100 +41,11 @@ Proof.
   apply Vbreak_app.
 Qed.
 
-(* reverse CONS, append single element to the end of the list *)
-Program Fixpoint snoc {A} {n} (l:vector A n) (v:A) : (vector A (S n)) :=
-  match l with
-  | nil => [v]
-  | h' :: t' => Vcons h' (snoc t' v)
-  end.
-
-Lemma hd_cons {A} {n} (h:A) {t: vector A n}: Vhead (Vcons h t) = h.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma hd_snoc0: forall {A} (l:vector A 0) v, hd (snoc l v) = v.
-Proof.
-  intros.
-  dep_destruct l.
-  reflexivity.
-Qed.
-
-Lemma hd_snoc1: forall {A} {n} (l:vector A (S n)) v, hd (snoc l v) = hd l.
-Proof.
-  intros.
-  dep_destruct l.
-  reflexivity.
-Qed.
-
-Lemma tl_snoc1: forall {A} {n} (l:vector A (S n)) v, tl (snoc l v) = snoc (tl l) v.
-Proof.
-  intros.
-  dep_destruct l.
-  reflexivity.
-Qed.
-
-Lemma snoc2cons: forall {A} (n:nat) (l:vector A (S n)) v,
-    snoc l v = @cons _ (hd l) _ (snoc (tl l) v).
-Proof.
-  intros.
-  dep_destruct l.
-  reflexivity.
-Qed.
-
-Lemma last_snoc: forall A n (l:vector A n) v, last (snoc l v) = v.
-Proof.
-  intros.
-  induction l.
-  auto.
-  rewrite snoc2cons.
-  simpl.
-  assumption.
-Qed.
-
-Lemma map_nil: forall A B (f:A->B), map f [] = [].
-Proof.
-  intros.
-  simpl.
-  reflexivity.
-Qed.
-
-Lemma map2_nil: forall A B C (f:A->B->C), map2 f [] [] = [].
-Proof.
-  intros.
-  simpl.
-  reflexivity.
-Qed.
-
-Lemma map_hd: forall A B (f:A->B) n (v:vector A (S n)), hd (map f v) = f (hd v).
-Proof.
-  intros.
-  dep_destruct v.
-  reflexivity.
-Qed.
-
 Lemma Vmap_cons: forall A B (f:A->B) n (x:A) (xs: vector A n),
     Vmap f (Vcons x xs) = Vcons (f x) (Vmap f xs).
 Proof.
   intros.
   constructor.
-Qed.
-
-Lemma map_cons: forall A B n (f:A->B) (v:vector A (S n)),
-    map f v = @cons _ (f (hd v)) _ (map f (tl v)).
-Proof.
-  intros.
-  dep_destruct v.
-  reflexivity.
-Qed.
-
-Lemma map2_cons: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
-    map2 f a b = @cons _ (f (hd a) (hd b)) _ (map2 f (tl a) (tl b)).
-Proof.
-  intros.
-  dep_destruct a.
-  dep_destruct b.
-  reflexivity.
 Qed.
 
 Lemma VMapp2_app:
@@ -173,210 +64,11 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma shifout_tl_swap: forall {A} n (l:vector A (S (S n))),
-    tl (shiftout l) = shiftout (tl l).
-Proof.
-  intros.
-  dep_destruct l.
-  simpl.
-  reflexivity.
-Qed.
-
-Lemma last_tl: forall {A} n (l:vector A (S (S n))),
-    last (tl l) = last l.
-Proof.
-  intros.
-  dep_destruct l.
-  simpl.
-  reflexivity.
-Qed.
-
-Lemma map_snoc: forall A B n (f:A->B) (l:vector A (S n)),
-    map f l = snoc (map f (shiftout l)) (f (last l)).
-Proof.
-  intros.
-  induction n.
-  Case "n=0".
-  dep_destruct l.
-  assert (L: last (h::x) = h).
-  SCase "L".
-  dep_destruct x.
-  reflexivity.
-  rewrite L.
-  assert (S: forall (z:vector A 1), shiftout z = []).
-  SCase "S".
-  intros.
-  dep_destruct z.
-  dep_destruct x0.
-  reflexivity.
-  dep_destruct x.
-  rewrite S.
-  simpl.
-  reflexivity.
-  Case "S n".
-  rewrite map_cons.
-  rewrite IHn.  clear_all.
-  symmetry.
-  rewrite snoc2cons.
-  rewrite map_cons.
-  assert (HS: hd (shiftout l) = hd l).
-  dep_destruct l.
-  reflexivity.
-  rewrite HS. clear_all.
-  simpl (hd (f (hd l) :: map f (tl (shiftout l)))).
-  assert (L:(tl (f (hd l) :: map f (tl (shiftout l)))) = (map f (shiftout (tl l)))).
-  simpl. rewrite shifout_tl_swap. reflexivity.
-  rewrite L. rewrite last_tl. reflexivity.
-Qed.
-
-
-Lemma map2_snoc: forall A B C (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
-    map2 f a b = snoc (map2 f (shiftout a) (shiftout b)) (f (last a) (last b)).
-Proof.
-  intros.
-  induction n.
-  Case "n=0".
-  dep_destruct a.
-  dep_destruct b.
-  assert (L: forall T hl (xl:t T 0), last (hl::xl) = hl).
-  SCase "L".
-  intros.
-  dep_destruct xl.
-  reflexivity.
-  repeat rewrite L.
-  assert (S: forall T (z:t T 1), shiftout z = []).
-  SCase "S".
-  intros.
-  dep_destruct z.
-  dep_destruct x1.
-  reflexivity.
-  dep_destruct x.
-  dep_destruct x0.
-  repeat rewrite S.
-  simpl.
-  reflexivity.
-  Case "S n".
-  rewrite map2_cons.
-  rewrite IHn.  clear_all.
-  symmetry.
-  repeat rewrite snoc2cons.
-  repeat rewrite map2_cons.
-  assert (HS: forall T m (l:t T (S (S m))), hd (shiftout l) = hd l).
-  intros. dep_destruct l. reflexivity.
-  repeat rewrite HS. clear_all.
-  simpl (hd (f (hd a) (hd b) :: map2 f (tl (shiftout a)) (tl (shiftout b)))).
-
-  assert(L:(tl (f (hd a) (hd b) :: map2 f (tl (shiftout a)) (tl (shiftout b)))) = (map2 f (shiftout (tl a)) (shiftout (tl b)))).
-  simpl. repeat rewrite shifout_tl_swap. reflexivity.
-  rewrite L. repeat rewrite last_tl. reflexivity.
-Qed.
-
-
-Lemma map2_comm: forall A B (f:A->A->B) n (a b:vector A n),
-    (forall x y, (f x y) = (f y x)) -> map2 f a b = map2 f b a.
-Proof.
-  intros.
-  induction n.
-  dep_destruct a.
-  dep_destruct b.
-  reflexivity.
-  rewrite -> map2_cons.
-  rewrite H. (* reorder LHS head *)
-  rewrite <- IHn. (* reoder LHS tail *)
-  rewrite <- map2_cons.
-  reflexivity.
-Qed.
-
-(* Shows that two map2 supplied with function which ignores 2nd argument
-will be eqivalent for all values of second list *)
-Lemma map2_ignore_2: forall A B C (f:A->B->C) n (a:vector A n) (b0 b1:vector B n),
-    (forall a' b0' b1', f a' b0' = f a' b1') ->
-    map2 f a b0 = map2 f a b1 .
-Proof.
-  intros.
-  induction a.
-  dep_destruct (map2 f [] b1).
-  dep_destruct (map2 f [] b0).
-  reflexivity.
-  rewrite 2!map2_cons.
-  simpl.
-  rewrite -> H with (a':=h) (b0':=(hd b0)) (b1':=(hd b1)).
-  assert(map2 f a (tl b0) = map2 f a (tl b1)).
-  apply(IHa).
-  rewrite <- H0.
-  reflexivity.
-Qed.
-
-
-(* Shows that two map2 supplied with function which ignores 1st argument
-will be eqivalent for all values of first list *)
-Lemma map2_ignore_1: forall A B C (f:A->B->C) n (a0 a1:vector A n) (b:vector B n),
-    (forall a0' a1' b', f a0' b' = f a1' b') ->
-    map2 f a0 b = map2 f a1 b .
-Proof.
-  intros.
-  induction b.
-  dep_destruct (map2 f a0 []).
-  dep_destruct (map2 f a1 []).
-  reflexivity.
-  rewrite 2!map2_cons.
-  simpl.
-  rewrite -> H with (b':=h) (a0':=(hd a0)) (a1':=(hd a1)).
-  assert(map2 f (tl a0) b = map2 f (tl a1) b).
-  apply(IHb).
-  rewrite <- H0.
-  reflexivity.
-Qed.
-
-Lemma shiftout_snoc: forall A n (l:vector A n) v, shiftout (snoc l v) = l.
-Proof.
-  intros.
-  induction l.
-  auto.
-  simpl.
-  rewrite IHl.
-  reflexivity.
-Qed.
-
-Lemma fold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
-    fold_right f v id = f (hd v) (fold_right f (tl v) id).
-Proof.
-  intros.
-  dep_destruct v.
-  reflexivity.
-Qed.
-
-Lemma Vfold_left_1
-      {B C : Type} (f: C -> B -> C) {z: C} {v:vector B 1}:
-  Vfold_left f z v = f z (Vhead v).
-Proof.
-  dep_destruct v.
-  simpl.
-  replace x with (@Vnil B).
-  simpl.
-  reflexivity.
-  symmetry.
-  dep_destruct x.
-  reflexivity.
-Qed.
-
 Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
     Vfold_right f v id = f (hd v) (Vfold_right f (tl v) id).
 Proof.
   intros.
   dep_destruct v.
-  reflexivity.
-Qed.
-
-Lemma Vfold_right_fold_right: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-    Vfold_right f v initial = @fold_right A B f n v initial.
-Proof.
-  intros.
-  induction v.
-  reflexivity.
-  rewrite fold_right_reduce.
-  simpl.
-  rewrite <- IHv.
   reflexivity.
 Qed.
 
@@ -386,29 +78,6 @@ Lemma Vfold_left_rev_cons:
     Vfold_left_rev f b (Vcons x xs) = f (Vfold_left_rev f b xs) x.
 Proof.
   intros A B n f b x xs.
-  reflexivity.
-Qed.
-
-Lemma rev_nil: forall A, rev (@nil A) = [].
-Proof.
-  intros A.
-  unfold rev.
-  assert (rev_append (@nil A) (@nil A) = (@nil A)).
-  unfold rev_append.
-  assert (rev_append_tail (@nil A) (@nil A) = (@nil A)).
-  auto.
-  rewrite H. clear_all.
-  dep_destruct (plus_tail_plus 0 0).
-  auto.
-  rewrite H. clear_all.
-  dep_destruct (plus_n_O 0).
-  auto.
-Qed.
-
-Lemma hd_eq: forall A n (u v: vector A (S n)), u=v -> (hd u) = (hd v).
-Proof.
-  intros.
-  rewrite H.
   reflexivity.
 Qed.
 
@@ -454,55 +123,6 @@ Proof.
    destruct B as [B0 B1];
    apply B1) ;
     [left | right]; assumption.
-Qed.
-
-Lemma Vforall_hd {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
-  Vforall P v -> P (Vhead v).
-Proof.
-  dep_destruct v.
-  simpl.
-  tauto.
-Qed.
-
-Lemma Vforall_tl {A:Type} {P:A->Prop} {n:nat} {v:vector A (S n)}:
-  Vforall P v -> Vforall P (Vtail v).
-Proof.
-  dep_destruct v.
-  simpl.
-  tauto.
-Qed.
-
-Lemma Vforall_nil:
-  forall B (P:B->Prop), Vforall P (@Vnil B).
-Proof.
-  crush.
-Qed.
-
-Lemma Vforall_cons {B:Type} {P:B->Prop} {n:nat} {x:B} {xs:vector B n}:
-  (P x /\ Vforall P xs) = Vforall P (cons x xs).
-Proof.
-  auto.
-Qed.
-
-Lemma Vforall_1 {B: Type} {P} (v: vector B 1):
-  Vforall P v <-> P (Vhead v).
-Proof.
-  split.
-  +
-    dep_destruct v.
-    simpl.
-    replace (Vforall P x) with True; simpl.
-    tauto.
-    replace x with (@Vnil B).
-    simpl; reflexivity.
-    dep_destruct x; reflexivity.
-  + dep_destruct v.
-    simpl.
-    replace (Vforall P x) with True; simpl.
-    tauto.
-    replace x with (@Vnil B).
-    simpl; reflexivity.
-    dep_destruct x; reflexivity.
 Qed.
 
 Lemma vec_eq_elementwise n B (v1 v2: vector B n):
