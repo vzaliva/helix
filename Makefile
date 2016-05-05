@@ -8,7 +8,7 @@ MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
 VFILES := $(shell find . -name \*.v | grep -v .\# | sed -e 's|^./||g')
 
-default: Makefile.coq
+default: Makefile.coq 
 	$(MAKECOQ)
 
 config Makefile.coq:
@@ -42,6 +42,9 @@ graph.dot: graph.dpd
 
 graph.dpd:
 	"coqtop"  -R "." Top -I "." < depgraph.vcmd
+
+print-unused: graph.dpd
+	dpdusage -with-path graph.dpd 
 
 %.vo: %.v
 	$(MAKECOQ) $@
