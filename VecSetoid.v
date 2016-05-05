@@ -162,17 +162,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap_equiv_cons: forall A B `{Setoid B} (f:A->B) n (x:A) (xs: vector A n),
-    Vmap f (Vcons x xs) = Vcons (f x) (Vmap f xs).
-Proof.
-  intros.
-  constructor. reflexivity.
-  fold (Vforall2 (n:=n) equiv (Vmap f xs) (Vmap f xs)).
-  fold (vec_Equiv (Vmap f xs) (Vmap f xs)).
-  fold (equiv (Vmap f xs) (Vmap f xs)).
-  reflexivity.
-Qed.
-
 Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
     Vmap2 f a b = Vcons (f (Vhead a) (Vhead b)) (Vmap2 f (Vtail a) (Vtail b)).
 Proof.
