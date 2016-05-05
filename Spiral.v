@@ -201,8 +201,3 @@ Proof.
   omega.
 Qed.
 
-Lemma le_pred_l {n m} (H: S n <= m): n <= m.
-Proof.
-  auto with arith.
-Defined.
-

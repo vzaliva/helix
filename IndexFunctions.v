@@ -30,51 +30,12 @@ Require Import CoLoR.Util.List.ListUtil.
 Require Import Spiral.
 
 
-Section Natrange_List.
-  (* Probably will be removed later *)
-
-  (* n-1 ... 0 *)
-  Fixpoint rev_natrange_list (n:nat) : list nat :=
-    match n with
-    | O => List.nil
-    | S p => List.cons p (rev_natrange_list p)
-    end.
-
-  (* 0 ...  n-1  *)
-  Definition natrange_list (n:nat) : list nat :=
-    List.rev (rev_natrange_list n).
-
-  Lemma rev_natrange_len:
-    ∀ i : nat, Datatypes.length (rev_natrange_list i) ≡ i.
-  Proof.
-    intros.
-    induction i.
-    crush.
-    simpl.
-    rewrite IHi.
-    reflexivity.
-  Qed.
-
-  Lemma rev_natrange_list_bound:
-    ∀ z x : nat, List.In x (rev_natrange_list z) → (x < z)%nat.
-  Proof.
-    intros.
-    induction z.
-    + compute in H.
-      contradiction.
-    + crush.
-  Qed.
-
-  Lemma natrange_list_bound:
-    ∀ z x : nat, List.In x (natrange_list z) → (x < z)%nat.
-  Proof.
-    unfold natrange_list.
-    intros z x H.
-    apply <- List.in_rev in H.
-    apply rev_natrange_list_bound.
-    apply H.
-  Qed.
-End Natrange_List.
+(* n-1 ... 0 *)
+Fixpoint rev_natrange_list (n:nat) : list nat :=
+  match n with
+  | O => List.nil
+  | S p => List.cons p (rev_natrange_list p)
+  end.
 
 (* Setoid equality for option types *)
 Section OptionSetoid.
@@ -140,18 +101,6 @@ Instance partial_index_map_equiv {domain range:nat}:
       forall (x:nat) (xd: x<domain), f x = g x.
 
 Section Permutations.
-  Fixpoint natrange_f_spec
-           (n:nat)
-           {i o: nat}
-           (nd: n<=i)
-           (f_spec: index_map i o)
-  : list nat
-    :=
-      match n return n <= i -> list nat with
-      | 0 => fun _ => List.nil
-      | S n' => fun nd => List.cons n' (natrange_f_spec n' (le_pred_l nd) f_spec)
-      end nd.
-
   Program Definition index_map_is_permutation
           {n: nat}
           (f: index_map n n)
