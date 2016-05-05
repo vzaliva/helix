@@ -543,8 +543,7 @@ Section SigmaHCOLRewriting.
                      (λ (x' : nat) (p : option nat),
                       if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
                      (rev_natrange_list o2))
-        → o1 <= i
-        → i < o1 + o2
+        → (o1 <= i) /\ (i < o1 + o2)
         -> partial_index_f i ≡ Some (i-o1).
     Proof.
       intros.
@@ -657,8 +656,7 @@ Section SigmaHCOLRewriting.
               replace (Some i) with (Some (i-0)).
               apply Partial_index_in_range with (o2:=o1) (o1:=O).
               assumption.
-              omega.
-              omega.
+              split; omega.
               f_equal; omega.
             }
             generalize (partial_index_f_spec i ip) as some_spec.
@@ -715,8 +713,12 @@ Section SigmaHCOLRewriting.
             destruct h'.
             inversion Heqh'. rename H0 into H. clear Heqh'.
             unfold VnthInverseIndexMapped; simpl.
-            assert (HZI: partial_index_f i ≡ Some (i-o1))
-              by (apply Partial_index_in_range with (o2:=o2); assumption).
+            assert (HZI: partial_index_f i ≡ Some (i-o1)).
+            {
+              apply Partial_index_in_range with (o2:=o2).
+              assumption.
+              split; assumption.
+            }
             generalize (partial_index_f_spec i ip) as some_spec.
             rewrite HZI.
             intros.

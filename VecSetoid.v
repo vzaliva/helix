@@ -47,7 +47,8 @@ Section VectorSetoid.
 
 End VectorSetoid.
 
-(* TODO: check if needed for Coq-8.5 *)
+
+ (* TODO: check if needed for Coq-8.5 *)
 Section Vfold_right.
   Context
     `{eqA: Equiv A}
@@ -83,6 +84,7 @@ End Vfold_right.
 
 (* TODO: check if needed for Coq-8.5 *)
 Section VCons.
+
   Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
 
   Lemma Vcons_to_Vcons_reord: forall A n (t: t A n) (h:A), Vcons h t  ≡ Vcons_reord t h.
