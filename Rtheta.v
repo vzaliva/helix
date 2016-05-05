@@ -210,7 +210,7 @@ Proof.
   apply Rtheta_Transitive_equiv.
 Qed.
 
-Instance Rtheta_Setoid: Setoid (Rtheta).
+Global Instance Rtheta_Setoid: Setoid (Rtheta).
 Proof.
   apply Rtheta_Equivalence_equiv.
 Qed.
@@ -245,13 +245,6 @@ Lemma evalWriter_Rtheta_liftM2
     evalWriter (liftM2 op a b) ≡ op (evalWriter a) (evalWriter b).
 Proof.
   reflexivity.
-Qed.
-
-Lemma Rtheta_eq_equiv:
-  forall (a b: Rtheta), eq a b -> Rtheta_equiv a b.
-Proof.
-  intros.
-  crush.
 Qed.
 
 Lemma Is_Val_mkStruct:  forall a, not (Is_Val (mkStruct a)).
