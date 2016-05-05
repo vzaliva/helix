@@ -246,7 +246,7 @@ Section SigmaHCOLRewriting.
         unfold VnthIndexMapped.
         simpl.
         generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
-                                             (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
+                                                            (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
         intros ln.
         simpl in ln.
         rewrite Vnth_cast_index with (jc:=jn) by omega.
@@ -337,7 +337,6 @@ Section SigmaHCOLRewriting.
       nia.
     Qed.
 
-    (* TODO: maybe move to HCOL modules *)
     Lemma HBinOp_nth:
       ∀ (n : nat) (x : avector (n + n))
         (f : nat -> CarrierA → CarrierA → CarrierA)
@@ -766,7 +765,7 @@ Section SigmaHCOLRewriting.
           break_match.
           generalize (Vnth_app_aux i2
                                    (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
-                                                             (h_bound_second_half i1 i2) i ip) l) as ip'.
+                                                                            (h_bound_second_half i1 i2) i ip) l) as ip'.
           revert ip.
           replace (i1 + i * 1 - i1) with i by omega.
           intros ip ip'.
@@ -1148,7 +1147,7 @@ Section SigmaHCOLRewriting.
 
           apply ScatterCollisionFree, KNC.
           generalize dependent (@Scatter ko o (family_f ko o (S n) f j jn)
-                                                         (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
+                                         (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
           intros sx SNC.
           unfold svector_is_non_collision in SNC.
           apply Vforall_nth with (ip:=oic) in SNC.
@@ -1200,15 +1199,15 @@ Section SigmaHCOLRewriting.
           clear Koperator g kernel nz x i ki f_sur.
           rename
             i0 into i,
-            n into k,
-            kxi into x,
-            o into n,
-            oi into m,
-            oic into mc,
-            kxj into y,
-            KXDj into YD,
-            KXDi0 into XD,
-            ko into l.
+          n into k,
+          kxi into x,
+          o into n,
+          oi into m,
+          oic into mc,
+          kxj into y,
+          KXDj into YD,
+          KXDi0 into XD,
+          ko into l.
 
           intros [Hi Hj].
 
