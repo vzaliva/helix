@@ -11,6 +11,9 @@ VFILES := $(shell find . -name \*.v | grep -v .\# | sed -e 's|^./||g')
 default: Makefile.coq 
 	$(MAKECOQ)
 
+install-dep:
+	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
+
 config Makefile.coq:
 	coq_makefile -f _CoqProject *.v > Makefile.coq
 
