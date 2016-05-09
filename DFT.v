@@ -35,15 +35,12 @@ Section ShortVectorCooleyTurkeyFFT.
   Local Open Scope matrix_scope.
 
   Definition Eq15 (m n: nat)
-             (mnz: m ≠ 0)
-             (nnz: n ≠ 0)
+    : Matrix (m * n) (m * n)
     := ((DFT m) ⊗ (I n)) * (T (m*n) n) *
        ((I m) ⊗ (DFT n)) * (L (m*n) m).
 
   Program Definition Eq23 (m0 n0 v:nat)
-          (mnz: m0 ≠ 0)
-          (nnz: n0 ≠ 0)
-          (vzz: v ≠ 0)
+    : Matrix ((m0 * v) * (n0 * v)) ((m0 * v) * (n0 * v))
     :=
       let m := (m0 * v)%nat in
       let n := (n0 * v)%nat in
@@ -61,6 +58,16 @@ Section ShortVectorCooleyTurkeyFFT.
   Next Obligation. Proof. ring. Qed.
   Next Obligation. Proof. ring. Qed.
   Next Obligation. Proof. ring. Qed.
+  Next Obligation. Proof. ring. Qed.
+  Next Obligation. Proof. ring. Qed.
 
+  Lemma Eq23FromEq15 (m0 n0 v: nat)
+        (mnz: m0 ≠ 0)
+        (nnz: n0 ≠ 0)
+        (vzz: v ≠ 0):
+    Eq15 (m0 * v) (n0 * v) = Eq23 m0 n0 v.
+  Proof.
+
+  Qed.
 
 End ShortVectorCooleyTurkeyFFT.
