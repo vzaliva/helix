@@ -13,11 +13,6 @@ Definition I (n:nat): Matrix n n. Admitted.
 Definition T (m n:nat): Matrix m m. Admitted.
 Definition L (m n:nat): Matrix m m. Admitted.
 
-(*
-The Kronecker product is a special case of the tensor product, so it is bilinear and associative.
-The Kronecker product is non-commutative.
-*)
-
 Bind Scope matrix_scope with Matrix.
 
 Definition KroneckerProduct {m n p q: nat} (A: Matrix m n) (B: Matrix p q):
@@ -30,8 +25,26 @@ Definition MatrixProduct {m n p: nat} (A: Matrix n m) (B: Matrix m p):
 
 Notation "x * y" := (MatrixProduct x y) : matrix_scope.
 
-Section ShortVectorCooleyTurkeyFFT.
+Section ProductLemmas.
+  Local Open Scope matrix_scope.
 
+(*   Program Fact KroneckerProduct_assoc
+          (xr xc yr yc zr zc: nat)
+          (x: Matrix xr xc) (y: Matrix yr yc) (z: Matrix zr zc):
+    x ⊗ (y ⊗ z) = (x ⊗ y) ⊗ z. *)
+
+End ProductLemmas.
+
+
+Section Table1Lemmas.
+  Local Open Scope matrix_scope.
+
+  Lemma Lemma6:
+    forall m n, I (m*n) = I m ⊗ I n.
+  Admitted.
+End Table1Lemmas.
+
+Section ShortVectorCooleyTurkeyFFT.
   Local Open Scope matrix_scope.
 
   Definition Eq15 (m n: nat)
@@ -39,6 +52,7 @@ Section ShortVectorCooleyTurkeyFFT.
     := ((DFT m) ⊗ (I n)) * (T (m*n) n) *
        ((I m) ⊗ (DFT n)) * (L (m*n) m).
 
+  Obligation Tactic := (Tactics.program_simpl; ring).
   Program Definition Eq23 (m0 n0 v:nat)
     : Matrix ((m0 * v) * (n0 * v)) ((m0 * v) * (n0 * v))
     :=
@@ -54,12 +68,6 @@ Section ShortVectorCooleyTurkeyFFT.
         * ((DFT n) ⊗ (I v))
       ) *
       ((L (m0*n0*v)%nat m0) ⊗ (I v)).
-  Next Obligation. Proof. ring. Qed.
-  Next Obligation. Proof. ring. Qed.
-  Next Obligation. Proof. ring. Qed.
-  Next Obligation. Proof. ring. Qed.
-  Next Obligation. Proof. ring. Qed.
-  Next Obligation. Proof. ring. Qed.
 
   Lemma Eq23FromEq15 (m0 n0 v: nat)
         (mnz: m0 ≠ 0)
@@ -67,7 +75,8 @@ Section ShortVectorCooleyTurkeyFFT.
         (vzz: v ≠ 0):
     Eq15 (m0 * v) (n0 * v) = Eq23 m0 n0 v.
   Proof.
-
+    unfold Eq15.
+    rewrite Lemma6.
   Qed.
 
 End ShortVectorCooleyTurkeyFFT.
