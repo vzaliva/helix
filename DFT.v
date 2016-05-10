@@ -43,19 +43,17 @@ Section Table1Lemmas.
     forall m n, I (m*n) = I m ⊗ I n.
   Admitted.
 
-(*
   Program Lemma Identity1_6b (m n k:nat) (A: Matrix k k):
-    (L (k*m*n) n) * (L (k*m) m * (A ⊗ I m) * I n) =
+    (L (k*m*n) n) * (L (k*m) m * (A ⊗ I m) ⊗ I n) =
     (I n ⊗ L (k*m) m) *
     (L (k*n) n * (A ⊗ I n) ⊗ I m) *
     (I k ⊗ L (m*n) n).
-    .
 
   Program Lemma Identity1_8b (m0 n v:nat) (A: Matrix n n):
     let m := (m0 * v) in
     ((I m ⊗ A) * L (m*n) n) =
-     (I m0 ⊗ L (n*v) v * (A ⊗ I v)) * (L (m0*n) m0 ⊗ I v).
- *)
+    (I m0 ⊗ L (n*v) v * (A ⊗ I v)) * (L (m0*n) m0 ⊗ I v).
+
 End Table1Lemmas.
 
 Section ShortVectorCooleyTurkeyFFT.
