@@ -4,6 +4,9 @@ Require Export Utf8_core.
 Require Import Coq.Arith.Arith.
 
 Require Coq.Program.Tactics.
+Require Import Coq.Program.Equality.
+
+Require Import CpdtTactics.
 
 Record Matrix (m n : nat).
 
@@ -39,6 +42,8 @@ Section ProductLemmas.
           {xr xc yr yc zr zc: nat}
           (x: Matrix xr xc) (y: Matrix yr yc) (z: Matrix zr zc):
     KroneckerProduct_assoc_def x y z.
+  Proof.
+    unfold KroneckerProduct_assoc_def.
   Admitted.
 
 End ProductLemmas.
@@ -64,7 +69,7 @@ Section Table1Lemmas.
 
   Program Definition Identity1_8b_def (m0 n v:nat) (A: Matrix n n) :=
     let m := (m0 * v)%nat in
-    ((I m ⊗ A) * L (m*n) n) =
+    ((I m ⊗ A) * L (m*n) m) =
     (I m0 ⊗ L (n*v) v * (A ⊗ I v)) * (L (m0*n) m0 ⊗ I v).
 
   Program Lemma Identity1_8b (m0 n v:nat) (A: Matrix n n):
@@ -79,7 +84,7 @@ Section ShortVectorCooleyTurkeyFFT.
   Definition Eq15 (m n: nat)
     : Matrix (m * n) (m * n)
     := (DFT m ⊗ I n) * T (m*n) n *
-       (I m ⊗ DFT n) * L (m*n) m.
+       ((I m ⊗ DFT n) * L (m*n) m).
 
   Program Definition Eq23 (m0 n0 v:nat)
     : Matrix ((m0 * v) * (n0 * v)) ((m0 * v) * (n0 * v))
@@ -105,6 +110,10 @@ Section ShortVectorCooleyTurkeyFFT.
   Proof.
     unfold Eq15.
     rewrite Lemma6.
+    (* rewrite KroneckerProduct_assoc. *)
+    (* LHS done *)
+    rewrite Identity1_8b.
+    rewrite Identity1_6b.
   Qed.
 
 End ShortVectorCooleyTurkeyFFT.
