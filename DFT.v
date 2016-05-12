@@ -29,6 +29,7 @@ Definition MatrixProduct {m n p: nat} (A: Matrix n m) (B: Matrix m p):
 Notation "x * y" := (MatrixProduct x y) : matrix_scope.
 
 Obligation Tactic := (Tactics.program_simpl; subst; auto with arith; try ring).
+Set Shrink Obligations.
 
 Section ProductLemmas.
   Local Open Scope matrix_scope.
@@ -36,7 +37,7 @@ Section ProductLemmas.
    Program Definition KroneckerProduct_assoc_def
           {xr xc yr yc zr zc: nat}
           (x: Matrix xr xc) (y: Matrix yr yc) (z: Matrix zr zc) :=
-    x ⊗ (y ⊗ z) = (x ⊗ y) ⊗ z.
+     x ⊗ (y ⊗ z) = (x ⊗ y) ⊗ z.
 
   Fact KroneckerProduct_assoc
           {xr xc yr yc zr zc: nat}
@@ -113,6 +114,8 @@ Section ShortVectorCooleyTurkeyFFT.
     (* rewrite KroneckerProduct_assoc. *)
     (* LHS done *)
     rewrite Identity1_8b.
+    abstract_eq_proofs.
+
     rewrite Identity1_6b.
   Qed.
 
