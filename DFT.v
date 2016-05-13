@@ -57,15 +57,40 @@ Section Table1Lemmas.
     forall m n, I (m*n) = I m ⊗ I n.
   Admitted.
 
+  (*
+  Program Definition Identity1_1c_def (k m n:nat) :=
+    L (k*m*n) (k*m) = (I k ⊗ L (m*n) m) * (L (k*n) k ⊗ I m).
+
+  Lemma Identity1_1c (k m n:nat):
+    Identity1_1c_def k m n.
+  Admitted.
+
   Program Definition Identity1_6b_def (m n k:nat) (A: Matrix k k) :=
     (L (k*m*n) n) * (L (k*m) m * (A ⊗ I m) ⊗ I n) =
     (I n ⊗ L (k*m) m) *
     (L (k*n) n * (A ⊗ I n) ⊗ I m) *
     (I k ⊗ L (m*n) n).
 
-
-  Program Lemma Identity1_6b (m n k:nat) (A: Matrix k k):
+  Lemma Identity1_6b (m n k:nat) (A: Matrix k k):
     Identity1_6b_def m n k A.
+  Admitted.
+
+  Program Definition Identity1_7a_def (n0 v:nat) :=
+    let n := (n0*v)%nat in
+    L (n*v) n = (I n0 ⊗ L (v*v) v) * (L n n0 ⊗ I v).
+
+  Lemma Identity1_7a (n0 v:nat):
+    Identity1_7a_def n0 v.
+  Admitted.
+
+   *)
+
+  Program Definition Identity1_7b_def (n0 v:nat) :=
+    let n := (n0*v)%nat in
+    L (n*v) v = (L n v ⊗ I v) * (I n0 ⊗ L (v*v) v).
+
+  Lemma Identity1_7b (n0 v:nat):
+    Identity1_7b_def n0 v.
   Admitted.
 
   Program Definition Identity1_8b_def (m0 n v:nat) (A: Matrix n n) :=
@@ -73,7 +98,7 @@ Section Table1Lemmas.
     ((I m ⊗ A) * L (m*n) m) =
     (I m0 ⊗ L (n*v) v * (A ⊗ I v)) * (L (m0*n) m0 ⊗ I v).
 
-  Program Lemma Identity1_8b (m0 n v:nat) (A: Matrix n n):
+  Lemma Identity1_8b (m0 n v:nat) (A: Matrix n n):
     Identity1_8b_def m0 n v A.
   Admitted.
 
@@ -110,13 +135,15 @@ Section ShortVectorCooleyTurkeyFFT.
     Eq15 (m0 * v) (n0 * v) = Eq23 m0 n0 v.
   Proof.
     unfold Eq15.
-    rewrite Lemma6.
+    (* LHS *)
+    (* rewrite Lemma6. *)
     (* rewrite KroneckerProduct_assoc. *)
     (* LHS done *)
-    rewrite Identity1_8b.
-    abstract_eq_proofs.
 
-    rewrite Identity1_6b.
+    (* RHS *)
+    rewrite Identity1_8b.
+    rewrite Identity1_7b.
+    abstract_eq_proofs.
   Qed.
 
 End ShortVectorCooleyTurkeyFFT.
