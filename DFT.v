@@ -136,14 +136,16 @@ Section ShortVectorCooleyTurkeyFFT.
   Proof.
     unfold Eq15.
     (* LHS *)
-    (* rewrite Lemma6. *)
-    (* rewrite KroneckerProduct_assoc. *)
-    (* LHS done *)
+    rewrite Lemma6.
+    rewrite KroneckerProduct_assoc.
 
     (* RHS *)
     rewrite Identity1_8b.
     rewrite Identity1_7b.
-    abstract_eq_proofs.
+    unfold Eq23.
+    clear_eq_proofs.
+    simpl_eq.
+    reflexivity.
   Qed.
 
 End ShortVectorCooleyTurkeyFFT.
