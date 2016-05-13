@@ -96,7 +96,7 @@ Section Table1Lemmas.
   Program Definition Identity1_8b_def (m0 n v:nat) (A: Matrix n n) :=
     let m := (m0 * v)%nat in
     ((I m ⊗ A) * L (m*n) m) =
-    (I m0 ⊗ L (n*v) v * (A ⊗ I v)) * (L (m0*n) m0 ⊗ I v).
+    (I m0 ⊗ (L (n*v) v * (A ⊗ I v))) * (L (m0*n) m0 ⊗ I v).
 
   Lemma Identity1_8b (m0 n v:nat) (A: Matrix n n):
     Identity1_8b_def m0 n v A.
@@ -121,10 +121,9 @@ Section ShortVectorCooleyTurkeyFFT.
       *
       (T (m*n) n) *
       (
-        (I m0)
-          ⊗ (I n0 ⊗ L (v*v) v)
-        * (L n n0 ⊗ I v)
-        * (DFT n ⊗ I v)
+        (I m0) ⊗
+               ((L n v ⊗ I v) * (I n0 ⊗ L (v*v) v)
+                * (DFT n ⊗ I v))
       ) *
       (L (m0*n0*v) m0 ⊗ I v).
 
@@ -138,13 +137,18 @@ Section ShortVectorCooleyTurkeyFFT.
     (* LHS *)
     rewrite Lemma6.
     rewrite KroneckerProduct_assoc.
+    clear_eq_proofs.
+
 
     (* RHS *)
     rewrite Identity1_8b.
     rewrite Identity1_7b.
+
     unfold Eq23.
+
     clear_eq_proofs.
     simpl_eq.
+    crush.
     reflexivity.
   Qed.
 
