@@ -5,6 +5,8 @@ Require Import Coq.Arith.Arith.
 
 Require Coq.Program.Tactics.
 Require Import Coq.Program.Equality.
+Require Import Coq.Logic.Eqdep_dec.
+Require Import Coq.Arith.Peano_dec.
 
 Require Import CpdtTactics.
 
@@ -112,18 +114,19 @@ Section ShortVectorCooleyTurkeyFFT.
     := (DFT m ⊗ I n) * T (m*n) n *
        ((I m ⊗ DFT n) * L (m*n) m).
 
+  (* This defintion is corrected, compared to Eq.23 from the paper which contains an error *)
   Program Definition Eq23 (m0 n0 v:nat)
     : Matrix ((m0 * v) * (n0 * v)) ((m0 * v) * (n0 * v))
     :=
       let m := (m0 * v)%nat in
       let n := (n0 * v)%nat in
-      ((DFT m ⊗ I n0) ⊗ I v)
-      *
+      (DFT m ⊗ I n0 ⊗ I v) *
       (T (m*n) n) *
       (
         (I m0) ⊗
-               ((L n v ⊗ I v) * (I n0 ⊗ L (v*v) v)
-                * (DFT n ⊗ I v))
+               ((L n v ⊗ I v) *
+                (I n0 ⊗ L (v*v) v) *
+                (DFT n ⊗ I v))
       ) *
       (L (m0*n0*v) m0 ⊗ I v).
 
@@ -134,11 +137,10 @@ Section ShortVectorCooleyTurkeyFFT.
     Eq15 (m0 * v) (n0 * v) = Eq23 m0 n0 v.
   Proof.
     unfold Eq15.
+
     (* LHS *)
     rewrite Lemma6.
     rewrite KroneckerProduct_assoc.
-    clear_eq_proofs.
-
 
     (* RHS *)
     rewrite Identity1_8b.
@@ -148,7 +150,12 @@ Section ShortVectorCooleyTurkeyFFT.
 
     clear_eq_proofs.
     simpl_eq.
-    crush.
+
+
+
+    (* rewrite <- eq_rect_eq_dec by apply eq_nat_dec. *)
+
+    
     reflexivity.
   Qed.
 
