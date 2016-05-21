@@ -305,7 +305,7 @@ Section SigmaHCOLRewriting.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-             (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -493,8 +493,8 @@ Section SigmaHCOLRewriting.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         sparsify (HBinOp (o:=n) (f) x) =
         SumUnion
           (@Vbuild (svector n) n
@@ -1241,6 +1241,41 @@ Section SigmaHCOLRewriting.
       apply liftM_HOperator_DensityPreserving.
     Qed.
 
+    Lemma h'_first_half_hit {o1 o2 i : nat}:
+      i < o1
+      → @is_Some nat
+                 (partial_index_f (o1 + o2) o1
+                                  (@build_inverse_index_map o1 (o1 + o2)
+                                                            (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i).
+    Proof.
+      intros H.
+      crush.
+      induction o1.
+      - nat_lt_0_contradiction.
+      - simpl.
+        break_if.
+        + crush.
+        + apply IHo1.
+          omega.
+    Qed.
+
+    Lemma h'_second_half_hit {o1 o2 i : nat} (ip: i<o1+o2):
+      ¬ (i < o1)
+      → @is_Some nat
+                 (partial_index_f (o1 + o2) o2
+                                  (@build_inverse_index_map o2 (o1 + o2)
+                                                            (@h_index_map o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2))) i).
+    Proof.
+      intros H.
+      crush.
+      induction o2.
+      - crush.
+      - simpl.
+        break_if.
+        + crush.
+        + apply IHo2.
+          omega.
+    Qed.
 
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
@@ -1309,9 +1344,9 @@ Section SigmaHCOLRewriting.
       destruct (lt_dec i o1).
       -
         left.
-        assert(S: is_Some ((partial_index_f _ _ (@build_inverse_index_map o1 (o1 + o2)
-                                                                          (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)))) i)).
-        admit.
+        assert(S: is_Some ((partial_index_f _ _
+                                            (@build_inverse_index_map o1 (o1 + o2)
+                                                                      (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)))) i)) by apply h'_first_half_hit, l.
 
         destruct (build_inverse_index_map (h_index_map 0 1))
           as [h' h'_spec] eqn:P.
@@ -1327,7 +1362,11 @@ Section SigmaHCOLRewriting.
         right.
         assert(S: is_Some ((partial_index_f _ _ (@build_inverse_index_map o2 (o1 + o2)
                                                                           (@h_index_map o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)))) i)).
-        admit.
+        {
+          apply h'_second_half_hit.
+          apply ip.
+          apply n.
+        }
 
         destruct (build_inverse_index_map (h_index_map o1 1))
           as [h' h'_spec] eqn:P.
@@ -1345,7 +1384,4 @@ Section SigmaHCOLRewriting.
 
 
 End SigmaHCOLRewriting.
-
-
-
 
