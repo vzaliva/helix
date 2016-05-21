@@ -1241,28 +1241,24 @@ Section SigmaHCOLRewriting.
       apply liftM_HOperator_DensityPreserving.
     Qed.
 
-  (*
 
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
-             (f: avector i1 -> mvector o1)
-             (g: avector i2 -> mvector o2)
+             (f: avector i1 -> avector o1)
+             (g: avector i2 -> avector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
-             `{DP1: !DensityPreserving f}
-             `{DP2: !DensityPreserving g}
-      : DensityPreserving
-          (HTSUMUnion
-
-             ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-              ) ∘ f ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-             ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-              ) ∘ g ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+      : DensityPreserving (
+            (HTSUMUnion
+               ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+               ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
-      unfold mvector_is_dense.
-      repeat unfold HCompose, compose.
+
+      unfold svector_is_dense, compose.
       apply Vforall_nth_intro.
       intros i ip.
       unfold HTSUMUnion.
@@ -1272,7 +1268,7 @@ Section SigmaHCOLRewriting.
       remember (@Gather (i1 + i2) i2
                         (@h_index_map i2 (i1 + i2) i1 1
                                       (h_bound_second_half i1 i2)) x) as gx1.
-      assert(Dxg1: mvector_is_dense gx1).
+      assert(Dxg1: svector_is_dense gx1).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -1283,7 +1279,7 @@ Section SigmaHCOLRewriting.
       remember (@Gather (i1 + i2) i1
                         (@h_index_map i1 (i1 + i2) 0 1
                                       (h_bound_first_half i1 i2)) x) as gx2.
-      assert(Dxg2: mvector_is_dense gx2).
+      assert(Dxg2: svector_is_dense gx2).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -1293,48 +1289,57 @@ Section SigmaHCOLRewriting.
       clear Dx x.
 
       (* Generalize nested operators' application *)
-      assert(mvector_is_dense (f gx2)) by apply DP1, Dxg2.
-      generalize dependent (f gx2). intros fgx2 Dfgx2.
-      clear Dxg2 gx2 DP1 hop1 f.
+      assert(svector_is_dense (liftM_HOperator f gx2))
+        by apply liftM_HOperator_DensityPreserving, Dxg2.
+      generalize dependent (liftM_HOperator f gx2). intros fgx2 Dfgx2.
+      clear Dxg2 gx2  hop1 f.
 
-      assert(mvector_is_dense (g gx1)) by apply DP2, Dxg1.
-      generalize dependent (g gx1). intros ggx1 Dggx1.
-      clear Dxg1 gx1 DP2 hop2 g.
+      assert(svector_is_dense (liftM_HOperator g gx1))
+        by apply liftM_HOperator_DensityPreserving, Dxg1.
+      generalize dependent (liftM_HOperator g gx1). intros ggx1 Dggx1.
+      clear Dxg1 gx1 hop2 g.
 
       unfold Vec2Union.
       rewrite Vnth_map2.
 
+      apply ValUnionIsVal.
       unfold ScatH.
       rewrite 2!Scatter_rev_spec.
 
       destruct (lt_dec i o1).
-      assert(ihit:
-               is_Some
-                 ((partial_index_f (o1 + o2) o1
-                                   ((@build_inverse_index_map o1 (o1 + o2)
-                                                              (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))))
-                  ) i)
-            ). admit.
+      -
+        left.
+        assert(S: is_Some ((partial_index_f _ _ (@build_inverse_index_map o1 (o1 + o2)
+                                                                          (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)))) i)).
+        admit.
 
-      assert(imiss:
-               MRtheta_Is_Val
-                 (@VnthInverseIndexMapped o1 (o1 + o2) fgx2
-                                          (@build_inverse_index_map o1 (o1 + o2)
-                                                                    (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i ip)).
-      {
-        destruct (partial_index_f (Peano.plus o1 o2) o1
-                                  (build_inverse_index_map (h_index_map O (S O))) i) eqn: PFI.
-        + unfold VnthInverseIndexMapped.
-          simpl in *.
-          revert PFI.
-          admit.
-        + destruct ihit.
-      }
+        destruct (build_inverse_index_map (h_index_map 0 1))
+          as [h' h'_spec] eqn:P.
+        inversion P. rename H0 into HH. symmetry in HH. clear P.
+        simpl in *.
+        unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
+        generalize (h'_spec i).
+        destruct (h' i); crush.
+        generalize (l0 ip n eq_refl). intros l1.
+        apply Vforall_nth.
+        apply Dfgx2.
+      -
+        right.
+        assert(S: is_Some ((partial_index_f _ _ (@build_inverse_index_map o2 (o1 + o2)
+                                                                          (@h_index_map o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)))) i)).
+        admit.
 
-      admit.
-      admit.
+        destruct (build_inverse_index_map (h_index_map o1 1))
+          as [h' h'_spec] eqn:P.
+        inversion P. rename H0 into HH. symmetry in HH. clear P.
+        simpl in *.
+        unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
+        generalize (h'_spec i).
+        destruct (h' i); crush.
+        generalize (l ip n0 eq_refl). intros l1.
+        apply Vforall_nth.
+        apply Dggx1.
     Qed.
-   *)
 
   End Structural_Correctness.
 
