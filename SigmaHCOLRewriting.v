@@ -1230,12 +1230,23 @@ Section SigmaHCOLRewriting.
     Qed.
 
 
+    Instance HTDirectSum_DensityPreserving
+             {i1 o1 i2 o2}
+             (f: avector i1 -> avector o1)
+             (g: avector i2 -> avector o2)
+             `{hop1: !HOperator f}
+             `{hop2: !HOperator g}
+      : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
+    Proof.
+      apply liftM_HOperator_DensityPreserving.
+    Qed.
+
   (*
 
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
-             (f: mvector i1 -> mvector o1)
-             (g: mvector i2 -> mvector o2)
+             (f: avector i1 -> mvector o1)
+             (g: avector i2 -> mvector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
              `{DP1: !DensityPreserving f}
