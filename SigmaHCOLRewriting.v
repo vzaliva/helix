@@ -32,6 +32,37 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Section SigmaHCOLOperatorRules.
+End SigmaHCOLOperatorRules.
+
+Lemma Gather_composition
+      {i o t: nat}
+      (f: index_map o t)
+      (g: index_map t i):
+  Gather f ∘ Gather g = Gather (index_map_compose g f).
+Proof.
+  assert(SHOperator (Gather f ∘ Gather g)).
+  {
+    apply SHOperator_compose; apply SHOperator_Gather.
+  }
+  apply SHOperator_functional_extensionality.
+  intros v.
+  unfold compose.
+  unfold equiv, VecSetoid.vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros j jp.
+
+  unfold Gather.
+  rewrite 2!Vbuild_nth.
+  unfold VnthIndexMapped.
+  destruct f as [f fspec].
+  destruct g as [g gspec].
+  unfold index_map_compose, compose.
+  simpl.
+  rewrite Vbuild_nth.
+  reflexivity.
+Qed.
+
 Section HTDirectSumExpansion.
 
   Local Open Scope hcol_scope. (* for compose *)

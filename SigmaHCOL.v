@@ -29,6 +29,7 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
+Require Import MathClasses.theory.setoids.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -102,9 +103,22 @@ Qed.
 
 Section SigmaHCOL_Operators.
 
+  Class SHOperator {i o:nat} (op: svector i -> svector o) :=
+    o_setoidmor :> Setoid_Morphism op.
+
+  Lemma SHOperator_functional_extensionality
+        {m n: nat}
+        `{SHOperator m n f}
+        `{SHOperator m n g}:
+    (∀ v, f v = g v) -> f = g.
+  Proof.
+    unfold SHOperator in *.
+    apply ext_equiv_applied_iff.
+  Qed.
+
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
   just Union of two vectors, produced by application of two operators
-  to the input. In general HTSUMUnion is no HOperator, since Union is
+  to the input. In general HTSUMUnion is not an SHOperator, since Union is
   not Proper wrt equiv. (TODO: maybe not true anymore) *)
   Definition HTSUMUnion {i o}
              (f: svector i -> svector o)
@@ -119,11 +133,13 @@ Section SigmaHCOL_Operators.
     svector o
     := Vbuild (VnthIndexMapped x f).
 
-  Global Instance Gather_Proper
-         {i o: nat}
-         (f: index_map o i):
-    Proper((=) ==> (=)) (@Gather i o f).
+  Global Instance SHOperator_Gather
+           {i o: nat}
+           (f: index_map o i):
+    SHOperator (Gather f).
   Proof.
+    unfold SHOperator.
+    split; repeat apply vec_Setoid.
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
@@ -146,13 +162,13 @@ Section SigmaHCOL_Operators.
                           (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
              ).
 
-  Global Instance GathH_Proper
+  Global Instance SHOperator_GathH
          {i o}
          (base stride: nat)
          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-    Proper((=) ==> (=)) (@GathH i o base stride domain_bound).
+    SHOperator (@GathH i o base stride domain_bound).
   Proof.
-    apply Gather_Proper.
+    apply SHOperator_Gather.
   Qed.
 
   Definition Scatter
@@ -164,12 +180,14 @@ Section SigmaHCOL_Operators.
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
-  Global Instance Scatter_Proper
+  Global Instance SHOperator_Scatter
          {i o: nat}
          (f: index_map i o)
          {f_inj: index_map_injective f}:
-    Proper ((=) ==> (=)) (@Scatter i o f f_inj).
+    SHOperator (@Scatter i o f f_inj).
   Proof.
+    unfold SHOperator.
+    split; try apply vec_Setoid.
     intros x y E.
     unfold Scatter.
     unfold equiv, vec_Equiv.
@@ -191,14 +209,30 @@ Section SigmaHCOL_Operators.
       Scatter (h_index_map base stride (range_bound:=range_bound))
               (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
-  Global Instance ScatH_Proper
+  Global Instance SHOperator_ScatH
          {i o}
          (base stride: nat)
          {range_bound: ∀ x : nat, x < i → base + x * stride < o}
          {snzord0: stride ≢ 0 \/ i < 2}:
-    Proper ((=) ==> (=)) (@ScatH i o base stride range_bound snzord0).
+    SHOperator (@ScatH i o base stride range_bound snzord0).
   Proof.
-    apply Scatter_Proper.
+    apply SHOperator_Scatter.
+  Qed.
+
+  Instance SHOperator_compose
+           {i1 o2 o3}
+           (op1: svector o2 -> svector o3)
+           `{S1:!SHOperator op1}
+           (op2: svector i1 -> svector o2)
+           `{S2: !SHOperator op2}:
+    SHOperator (op1 ∘ op2).
+  Proof.
+    unfold SHOperator in *.
+    split; try apply vec_Setoid.
+    intros x y Exy.
+    unfold compose.
+    destruct S1, S2.
+    auto.
   Qed.
 
 End SigmaHCOL_Operators.
