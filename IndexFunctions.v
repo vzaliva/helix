@@ -567,6 +567,26 @@ Section Function_Rules.
     symmetry. apply mult_1_r.
   Qed.
 
+
+  Lemma index_map_compose_injective
+        {i o t: nat}
+        (f: index_map t o)
+        (g: index_map i t)
+        (f_inj: index_map_injective f)
+        (g_inj: index_map_injective g)
+    :
+      index_map_injective (f ∘ g).
+  Proof.
+    unfold index_map_injective in *.
+    intros x y xc yc H.
+    unfold index_map_compose, compose in H. simpl in H.
+    apply g_inj; try assumption.
+    apply f_inj in H; try assumption.
+    apply (index_f_spec), xc.
+    apply (index_f_spec), yc.
+  Qed.
+
+
   Local Close Scope index_f_scope.
 
 End Function_Rules.
