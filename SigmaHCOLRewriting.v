@@ -63,6 +63,41 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Scatter_composition
+      {i o t: nat}
+      (f: index_map o t)
+      (g: index_map t i)
+      {f_inj: index_map_injective f}
+      {g_inj: index_map_injective g}:
+  Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)
+  = Scatter (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
+Proof.
+  assert(SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj))).
+  {
+    apply SHOperator_compose; apply SHOperator_Scatter.
+  }
+  apply SHOperator_functional_extensionality.
+  intros v.
+  unfold compose.
+  unfold equiv, VecSetoid.vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros j jp.
+  unfold Scatter.
+  rewrite 2!Vbuild_nth.
+
+  (* HERE *)
+
+
+
+
+
+
+  destruct f as [f fspec].
+  destruct g as [g gspec].
+  unfold index_map_compose, compose.
+  simpl.
+Qed.
+
 Section HTDirectSumExpansion.
 
   Local Open Scope hcol_scope. (* for compose *)
