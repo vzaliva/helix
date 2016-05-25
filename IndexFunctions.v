@@ -455,6 +455,28 @@ Section Function_Operators.
     auto.
   Defined.
 
+  Lemma build_inverse_index_map_of_compose
+          {i o t: nat}
+          (g: index_map t o)
+          (f: index_map i t):
+    build_inverse_index_map (index_map_compose g f) =
+    partial_index_map_compose
+      (build_inverse_index_map f)
+      (build_inverse_index_map g).
+  Proof.
+    unfold partial_index_map_compose.
+    destruct (build_inverse_index_map (index_map_compose g f)) eqn:H.
+    Opaque build_inverse_index_map.
+    unfold equiv.
+    unfold partial_index_map_equiv.
+    intros x xd.
+    inversion H. clear H.
+    subst.
+    simpl in *.
+  Admitted.
+
+
+
   Definition tensor_product
              (n N: nat)
              {nz: 0 ≢ n}
