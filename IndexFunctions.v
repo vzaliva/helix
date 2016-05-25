@@ -100,6 +100,32 @@ Instance partial_index_map_equiv {domain range:nat}:
       let g := partial_index_f _ _ gp in
       forall (x:nat) (xd: x<domain), f x = g x.
 
+Program Definition partial_index_map_compose
+           {i o t: nat}
+           (g: partial_index_map t o)
+           (f: partial_index_map i t) :
+  partial_index_map i o :=
+  let fimpl := partial_index_f _ _ f in
+  let gimpl := partial_index_f _ _ g in
+  PartialIndexMap i o
+                  (fun x =>
+                     match fimpl x with
+                     | None => None
+                     | Some z => gimpl z
+                     end)
+                      _.
+Next Obligation.
+  destruct g as [g g_spec].
+  destruct f as [f f_spec].
+  simpl in *.
+  break_match_hyp.
+  -
+    apply g_spec with (x:=n); try assumption.
+    apply f_spec with (x:=x); assumption.
+  -
+    congruence.
+Defined.
+
 Section Permutations.
   Program Definition index_map_is_permutation
           {n: nat}
