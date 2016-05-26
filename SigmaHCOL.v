@@ -180,6 +180,107 @@ Section SigmaHCOL_Operators.
       Vbuild (fun n np =>
                 VnthInverseIndexMapped x (build_inverse_index_map f) n np).
 
+  Section ExperimenalNewScatter.
+
+    Inductive index_map_range_set {d r:nat} (f: index_map d r) : Set :=
+    | range_point (i j:nat) (ic: i<r) (jc:j<d) (P: ⟦ f ⟧ j ≡ i) : index_map_range_set f.
+
+    Record inverse_index_map {d r: nat} (f: index_map d r)
+      :=
+        SetIndexMap {
+            inverse_index_f : (index_map_range_set f) -> nat;
+            inverse_index_f_spec: forall x, ((inverse_index_f x) < d)
+          }.
+
+    Definition gen_inverse_index_f {d r: nat} (f: index_map d r)
+               (x: index_map_range_set f): nat.
+    Proof.
+      destruct x.
+      exact j.
+    Defined.
+
+    Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r)
+               (x: index_map_range_set f): (gen_inverse_index_f f x) < d.
+    Proof.
+      destruct x.
+      unfold gen_inverse_index_f.
+      assumption.
+    Defined.
+
+    Definition build_inverse_index_map
+               {d r: nat}
+               (f: index_map d r)
+               {f_inj: index_map_injective f}
+      : inverse_index_map f
+      := let f' := gen_inverse_index_f f in
+         @SetIndexMap d r f f' (gen_inverse_index_f_spec f).
+
+    Definition inverse_index_map_injective
+               {d r: nat} {f: index_map d r}
+               (f': inverse_index_map f)
+      :=
+        let f0 := inverse_index_f f f' in
+        forall (x y:index_map_range_set f) v,
+          (f0 x ≡ v /\ f0 y ≡ v) → x ≡ y.
+
+    Definition inverse_index_map_surjective
+               {d r: nat} {f: index_map d r}
+               (f': inverse_index_map f)
+      :=
+        let f0 := inverse_index_f f f' in
+        forall (y:nat) (yc: y<d), exists x, f0 x ≡ y.
+
+    Definition inverse_index_map_bijective
+               {d r: nat} {f: index_map d r}
+               (f': inverse_index_map f)
+      :=
+        (inverse_index_map_injective f') /\ (inverse_index_map_surjective f').
+
+    Lemma build_inverse_index_map1_is_bijective
+          {d r: nat}
+          (f: index_map d r)
+          {f_inj: index_map_injective f}
+      : inverse_index_map_bijective (build_inverse_index_map f (f_inj:=f_inj)).
+    Proof.
+      unfold inverse_index_map_bijective.
+      split.
+      - unfold inverse_index_map_injective.
+        intros x y v H.
+        unfold build_inverse_index_map in H.
+        destruct H as [Hx Hy].
+        destruct x, y.
+        simpl in *.
+        subst.
+        f_equal; apply proof_irrelevance.
+      - unfold inverse_index_map_surjective.
+        intros y yc.
+        destruct (build_inverse_index_map f) eqn:H.
+        unfold build_inverse_index_map in H.
+        inversion H. clear H.
+        simpl in *.
+        subst.
+        assert(c:⟦ f ⟧ y < r).
+        {
+          destruct f.
+          apply index_f_spec, yc.
+        }
+        exists (range_point f (⟦ f ⟧ y) _ c yc eq_refl).
+        reflexivity.
+    Qed.
+
+    Definition NewScatter
+               {i o: nat}
+               (f: index_map i o)
+               {f_inj: index_map_injective f}
+               (x: svector i) : svector o
+      :=
+        Vbuild (fun n np =>
+                  VnthInverseIndexMapped x (build_inverse_index_map f) n np).
+
+  End ExperimenalNewScatter.
+
+  
+  
   Global Instance SHOperator_Scatter
          {i o: nat}
          (f: index_map i o)

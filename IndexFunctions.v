@@ -137,6 +137,25 @@ End Permutations.
 
 Section Jections.
 
+  Definition function_injective
+             {A B: Set}
+             (f: A->B)
+    :=
+      forall (x y:A),
+        f x ≡ f y → x ≡ y.
+
+  Definition function_surjective
+             {A B: Set}
+             (f: A->B)
+    :=
+      forall (y:B), exists (x:A), f x ≡ y.
+
+  Definition function_bijective
+             {A B: Set}
+             (f: A->B)
+    :=
+      (function_injective f) /\ (function_surjective f).
+
   Definition index_map_injective
              {d r: nat}
              (f: index_map d r)
@@ -455,6 +474,7 @@ Section Function_Operators.
     auto.
   Defined.
 
+  (*
   Lemma build_inverse_index_map_of_compose
           {i o t: nat}
           (g: index_map t o)
@@ -474,7 +494,7 @@ Section Function_Operators.
     subst.
     simpl in *.
   Admitted.
-
+   *)
 
 
   Definition tensor_product
