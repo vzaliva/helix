@@ -8,6 +8,7 @@ Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 
+Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.Bool.
 Require Import Coq.Bool.BoolEq.
@@ -182,14 +183,77 @@ Section SigmaHCOL_Operators.
 
   Section ExperimenalNewScatter.
 
-    Inductive index_map_range_set {d r:nat} (f: index_map d r) : Set :=
-    | range_point (i j:nat) (ic: i<r) (jc:j<d) (P: ⟦ f ⟧ j ≡ i) : index_map_range_set f.
+    Definition shrink_index_map_domain {d r:nat} (f: index_map (S d) r)
+    : index_map d r.
+    Proof.
+      destruct f.
+      assert (new_spec : ∀ x : nat, x < d → index_f x < r) by auto.
+      exact (IndexMap d r index_f new_spec).
+    Defined.
+
+    Definition in_range'
+               {d r:nat} (f: index_map d r)
+               (i:nat)
+      : Prop.
+    Proof.
+      induction d.
+      exact False.
+      destruct (Nat.eq_dec (⟦ f ⟧ d) i).
+      exact True.
+      apply IHd, shrink_index_map_domain, f.
+    Defined.
+
+    Fixpoint in_range  {d r:nat} (f: index_map d r)
+             (i:nat)
+      : Prop :=
+      match d return (index_map d r) -> Prop with
+      | O => fun _ => False
+      | S d' => fun f' =>
+                 match Nat.eq_dec (⟦f⟧ d') i with
+                 | left x => True
+                 | right x => in_range (shrink_index_map_domain f') i
+                 end
+      end f.
+
+    (* Prove that our 2 implementatoins of in_range are compatible *)
+    Lemma in_range_compat  {d r:nat} (f: index_map d r):
+      in_range' f ≡ in_range f.
+    Proof.
+      extensionality i.
+      induction d.
+      - crush.
+      -
+        unfold in_range.
+        rewrite <- IHd.
+        break_if.
+        + simpl.
+          break_if.
+          trivial.
+          congruence.
+        + simpl.
+          break_if.
+          congruence.
+          rewrite IHd.
+          reflexivity.
+    Qed.
+
+    Global Instance in_range_dec {d r:nat} (f: index_map d r) (i:nat) : Decision (in_range f i).
+    Proof.
+      unfold Decision.
+      induction d.
+      crush.
+      simpl.
+      break_if.
+      auto.
+      apply IHd.
+    Qed.
+
 
     Record inverse_index_map {d r: nat} (f: index_map d r)
       :=
-        SetIndexMap {
-            inverse_index_f : (index_map_range_set f) -> nat;
-            inverse_index_f_spec: forall x, ((inverse_index_f x) < d)
+        InverseIndexMap {
+            inverse_index_f : nat -> nat;
+            inverse_index_f_spec: forall x, in_range f x -> ((inverse_index_f x) < d)
           }.
 
     Definition gen_inverse_index_f {d r: nat} (f: index_map d r)
@@ -274,8 +338,11 @@ Section SigmaHCOL_Operators.
                {f_inj: index_map_injective f}
                (x: svector i) : svector o
       :=
+        let f' := build_inverse_index_map f (f_inj:=f_inj) in
         Vbuild (fun n np =>
-                  VnthInverseIndexMapped x (build_inverse_index_map f) n np).
+                  if in_range f n then mkValue (f' n)
+                  else mkSZero).
+
 
   End ExperimenalNewScatter.
 
