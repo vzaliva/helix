@@ -65,18 +65,18 @@ Qed.
 
 Lemma Scatter_composition
       {i o t: nat}
-      (f: index_map o t)
-      (g: index_map t i)
+      (f: index_map i t)
+      (g: index_map t o)
       {f_inj: index_map_injective f}
       {g_inj: index_map_injective g}:
   Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)
   = Scatter (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
 Proof.
-  assert(SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj))).
+  assert(SC: SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj))).
   {
     apply SHOperator_compose; apply SHOperator_Scatter.
   }
-  apply SHOperator_functional_extensionality.
+  apply SHOperator_functional_extensionality. clear SC.
   intros v.
   unfold compose.
   unfold equiv, VecSetoid.vec_Equiv.
@@ -86,16 +86,30 @@ Proof.
   rewrite 2!Vbuild_nth.
 
   (* HERE *)
+  unfold VnthInverseIndexMapped.
+  unfold index_map_compose, compose.
+  clear f_inj g_inj.
+  generalize (build_inverse_index_map g) as g'; intros g'.
+  generalize (build_inverse_index_map f) as f'; intros f'.
+  destruct g' as [g' g'_spec].
+  destruct f' as [f' f'_spec].
+  Opaque build_inverse_index_map.
+  simpl in *.
+  generalize (g'_spec j jp). intros g'_specj.
+  destruct (g' j).
+  repeat rewrite Vbuild_nth.
+  Check (g'_specj n eq_refl).
 
 
+  unfold VnthInverseIndexMapped, index_map_compose, compose.
+  clear f_inj g_inj.
 
-
-
-
+  Opaque build_inverse_index_map.
+  simpl.
   destruct f as [f fspec].
   destruct g as [g gspec].
-  unfold index_map_compose, compose.
-  simpl.
+  simpl in *.
+
 Qed.
 
 Section HTDirectSumExpansion.
