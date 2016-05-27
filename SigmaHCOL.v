@@ -183,6 +183,7 @@ Section SigmaHCOL_Operators.
 
   Section ExperimenalNewScatter.
 
+    (* Restriction on domain *)
     Definition shrink_index_map_domain {d r:nat} (f: index_map (S d) r)
     : index_map d r.
     Proof.
@@ -248,7 +249,6 @@ Section SigmaHCOL_Operators.
       apply IHd.
     Qed.
 
-
     Record inverse_index_map {d r: nat} (f: index_map d r)
       :=
         InverseIndexMap {
@@ -256,35 +256,49 @@ Section SigmaHCOL_Operators.
             inverse_index_f_spec: forall x, in_range f x -> ((inverse_index_f x) < d)
           }.
 
-    Definition gen_inverse_index_f {d r: nat} (f: index_map d r)
-               (x: index_map_range_set f): nat.
-    Proof.
-      destruct x.
-      exact j.
-    Defined.
+    Fixpoint gen_inverse_index_f {d r: nat} (f: index_map d r)
+             (i: nat): nat :=
+      let dummy := O in
+      match d return (index_map d r) -> nat with
+      | O => fun _ => dummy
+      | S d' => fun f' =>
+                 match Nat.eq_dec (⟦f⟧ d') i with
+                 | left x => d'
+                 | right x => gen_inverse_index_f (shrink_index_map_domain f') i
+                 end
+      end f.
 
-    Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r)
-               (x: index_map_range_set f): (gen_inverse_index_f f x) < d.
+    Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
+      forall (i: nat), in_range f i -> (gen_inverse_index_f f i) < d.
     Proof.
-      destruct x.
-      unfold gen_inverse_index_f.
-      assumption.
+      intros x R.
+      induction d.
+      - crush.
+      -
+        simpl.
+        break_if.
+        crush.
+        rewrite IHd.
+        crush.
+        unfold in_range in R.
+        break_if.
+        congruence.
+        apply R.
     Defined.
 
     Definition build_inverse_index_map
                {d r: nat}
                (f: index_map d r)
-               {f_inj: index_map_injective f}
       : inverse_index_map f
       := let f' := gen_inverse_index_f f in
-         @SetIndexMap d r f f' (gen_inverse_index_f_spec f).
+         @InverseIndexMap d r f f' (gen_inverse_index_f_spec f).
 
     Definition inverse_index_map_injective
                {d r: nat} {f: index_map d r}
                (f': inverse_index_map f)
       :=
         let f0 := inverse_index_f f f' in
-        forall (x y:index_map_range_set f) v,
+        forall x y v, in_range f x -> in_range f y ->
           (f0 x ≡ v /\ f0 y ≡ v) → x ≡ y.
 
     Definition inverse_index_map_surjective
@@ -292,7 +306,7 @@ Section SigmaHCOL_Operators.
                (f': inverse_index_map f)
       :=
         let f0 := inverse_index_f f f' in
-        forall (y:nat) (yc: y<d), exists x, f0 x ≡ y.
+        forall (y:nat) (yc: y<d), exists x, in_range f x /\ f0 x ≡ y.
 
     Definition inverse_index_map_bijective
                {d r: nat} {f: index_map d r}
@@ -300,22 +314,80 @@ Section SigmaHCOL_Operators.
       :=
         (inverse_index_map_injective f') /\ (inverse_index_map_surjective f').
 
-    Lemma build_inverse_index_map1_is_bijective
+    Lemma shrink_index_map_preserves_injectivity:
+      ∀ (d r : nat) (f : index_map (S d) r),
+        index_map_injective f → index_map_injective (shrink_index_map_domain f).
+    Proof.
+      intros d r f f_inj.
+      unfold index_map_injective.
+      intros x y xc yc H.
+      apply f_inj; try auto.
+      unfold shrink_index_map_domain in *.
+      break_match.
+      simpl in *.
+      assumption.
+    Qed.
+
+    (* The following lemma proves that using `buld_inverse_index_map` on
+  injective index_map produces true "left inverse" of it *)
+    Lemma build_inverse_index_map_is_left_inverse
+          {d r: nat}
+          (f: index_map d r)
+          (f_inj: index_map_injective f):
+      let fp := build_inverse_index_map f in
+      let f' := inverse_index_f _ fp in
+      forall x y (xc:x<d), ⟦ f ⟧ x ≡ y -> f' y ≡ x.
+    Proof.
+      simpl.
+      intros x y xc H.
+      induction d.
+      - crush.
+      - simpl.
+        break_if.
+        + crush.
+        + apply IHd; clear IHd.
+          *
+            apply shrink_index_map_preserves_injectivity, f_inj.
+          *
+            destruct (Nat.eq_dec x d).
+            congruence.
+            omega.
+          *
+            unfold shrink_index_map_domain.
+            break_match.
+            simpl in *.
+            congruence.
+    Qed.
+
+    Lemma build_inverse_index_map_is_bijective
           {d r: nat}
           (f: index_map d r)
           {f_inj: index_map_injective f}
-      : inverse_index_map_bijective (build_inverse_index_map f (f_inj:=f_inj)).
+      : inverse_index_map_bijective (build_inverse_index_map f).
     Proof.
       unfold inverse_index_map_bijective.
       split.
       - unfold inverse_index_map_injective.
-        intros x y v H.
+        intros x y v Rx Ry H.
         unfold build_inverse_index_map in H.
         destruct H as [Hx Hy].
-        destruct x, y.
         simpl in *.
         subst.
-        f_equal; apply proof_irrelevance.
+
+        induction d.
+        + crush.
+        +
+          assert(index_map_injective (shrink_index_map_domain f))
+            by apply shrink_index_map_preserves_injectivity, f_inj.
+          remember (shrink_index_map_domain f) as f0.
+          apply IHd with (f:=f0).
+          simpl in *.
+          break_if; crush.
+
+          HERE
+
+        apply f_equal in Hy.
+        f_equal. ; apply proof_irrelevance.
       - unfold inverse_index_map_surjective.
         intros y yc.
         destruct (build_inverse_index_map f) eqn:H.
