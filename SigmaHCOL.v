@@ -359,6 +359,32 @@ Section SigmaHCOL_Operators.
             congruence.
     Qed.
 
+
+    (* The following lemma proves that using `buld_inverse_index_map` on
+  injective index_map produces true "right inverse" of it *)
+    Lemma build_inverse_index_map_is_right_inverse
+          {d r: nat}
+          (f: index_map d r)
+          (f_inj: index_map_injective f):
+      let fp := build_inverse_index_map f in
+      let f' := inverse_index_f _ fp in
+      forall x y (rc:in_range f y), f' y ≡ x -> ⟦ f ⟧ x ≡ y.
+    Proof.
+      simpl.
+      intros x y rc H.
+      induction d.
+      - crush.
+      - simpl in *.
+        break_if.
+        + crush.
+        + apply shrink_index_map_preserves_injectivity in f_inj.
+          apply IHd in H; try assumption.
+          unfold shrink_index_map_domain in *.
+          break_match.
+          simpl in *.
+          congruence.
+    Qed.
+
     Lemma build_inverse_index_map_is_bijective
           {d r: nat}
           (f: index_map d r)
