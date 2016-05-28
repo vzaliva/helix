@@ -298,8 +298,8 @@ Section SigmaHCOL_Operators.
                (f': inverse_index_map f)
       :=
         let f0 := inverse_index_f f f' in
-        forall x y v, in_range f x -> in_range f y ->
-          (f0 x ≡ v /\ f0 y ≡ v) → x ≡ y.
+        forall x y, in_range f x -> in_range f y ->
+          f0 x ≡ f0 y → x ≡ y.
 
     Definition inverse_index_map_surjective
                {d r: nat} {f: index_map d r}
@@ -390,7 +390,7 @@ Section SigmaHCOL_Operators.
         in_range f x → x < r.
     Proof.
       intros d r f x Rx.
-      dependent induction d.
+      induction d.
       - crush.
       - destruct (Nat.eq_dec (⟦ f ⟧ d) x).
         + destruct f.
@@ -412,54 +412,14 @@ Section SigmaHCOL_Operators.
     Proof.
       intros d r f f_inj.
       unfold inverse_index_map_injective.
-      intros x y v Rx Ry H.
-      unfold build_inverse_index_map in H.
-      destruct H as [Hx Hy].
-      simpl in *.
-      subst.
+      intros x y Rx Ry H.
+      apply f_inj.
+      remember (inverse_index_f f (build_inverse_index_map f) x) as t eqn:H1.
+      symmetry in H1.
+      symmetry in H.
+      apply build_inverse_index_map_is_right_inverse in H; try assumption.
+      apply build_inverse_index_map_is_right_inverse in H1; try assumption.
 
-      induction d.
-      + crush.
-      +
-
-
-        assert(x<S d).
-
-
-        simpl in *.
-        break_if.
-        break_if.
-        apply f_inj.
-
-
-
-
-
-
-
-        assert(F: index_map_injective (shrink_index_map_domain f))
-          by apply shrink_index_map_preserves_injectivity, f_inj.
-        remember (shrink_index_map_domain f) as f0.
-        rewrite <- in_range_compat in Ry.
-        rewrite <- in_range_compat in Rx.
-
-        apply IHd with (f:=f0). clear IHd.
-        * apply F.
-        *
-
-          simpl in *.
-          destruct (Nat.eq_dec (⟦ f ⟧ d) x) eqn:Bx.
-          crush.
-        *
-          destruct (Nat.eq_dec (⟦ f ⟧ d) y) eqn:By; try assumption.
-
-
-        break_if; crush.
-
-        HERE
-
-          apply f_equal in Hy.
-        f_equal. ; apply proof_irrelevance.
 
     Admitted.
 
