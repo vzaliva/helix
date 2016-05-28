@@ -422,27 +422,34 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
-      Lemma build_inverse_index_map_is_surjective:
-        ∀ (d r : nat) (f : index_map d r), index_map_injective f → inverse_index_map_surjective (build_inverse_index_map f).
-      Proof.
-        intros d r f f_inj.
-        (*
-        unfold inverse_index_map_surjective.
-        intros y yc.
-        destruct (build_inverse_index_map f) eqn:H.
-        unfold build_inverse_index_map in H.
-        inversion H. clear H.
-        simpl in *.
-        subst.
-        assert(c:⟦ f ⟧ y < r).
-        {
-          destruct f.
-          apply index_f_spec, yc.
-        }
-        exists (range_point f (⟦ f ⟧ y) _ c yc eq_refl).
+    Lemma in_range_by_def:
+      ∀ (d r : nat) (f : index_map d r) (y : nat) (yc: y < d), in_range f (⟦ f ⟧ y).
+    Proof.
+      intros d r f y yc.
+      induction d.
+      - crush.
+      - simpl.
+        break_if.
+        + trivial.
+        +
+          HERE
+          apply IHd.
+    Qed.
+
+    Lemma build_inverse_index_map_is_surjective:
+      ∀ (d r : nat) (f : index_map d r), index_map_injective f → inverse_index_map_surjective (build_inverse_index_map f).
+    Proof.
+      intros d r f f_inj.
+      unfold inverse_index_map_surjective.
+      intros y yc.
+      exists (⟦ f ⟧ y).
+      split.
+      -
+        apply in_range_by_def, yc.
+      -
+        apply build_inverse_index_map_is_left_inverse; try assumption.
         reflexivity.
-         *)
-      Admitted.
+    Qed.
 
     Lemma build_inverse_index_map_is_bijective
           {d r: nat}
