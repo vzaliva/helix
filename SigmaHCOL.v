@@ -413,15 +413,14 @@ Section SigmaHCOL_Operators.
       intros d r f f_inj.
       unfold inverse_index_map_injective.
       intros x y Rx Ry H.
-      apply f_inj.
       remember (inverse_index_f f (build_inverse_index_map f) x) as t eqn:H1.
       symmetry in H1.
       symmetry in H.
       apply build_inverse_index_map_is_right_inverse in H; try assumption.
       apply build_inverse_index_map_is_right_inverse in H1; try assumption.
-
-
-    Admitted.
+      subst.
+      reflexivity.
+    Qed.
 
       Lemma build_inverse_index_map_is_surjective:
         ∀ (d r : nat) (f : index_map d r), index_map_injective f → inverse_index_map_surjective (build_inverse_index_map f).
