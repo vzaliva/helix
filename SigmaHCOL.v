@@ -385,34 +385,82 @@ Section SigmaHCOL_Operators.
           congruence.
     Qed.
 
-    Lemma build_inverse_index_map_is_injective:
-      ∀ (d r : nat) (f : index_map d r),
-        index_map_injective f → inverse_index_map_injective (build_inverse_index_map f).
+    Lemma in_range_upper_bound:
+      ∀ (d r : nat) (f : index_map d r) (x : nat),
+        in_range f x → x < r.
     Proof.
-      intros d r f f_inj.
-      (*
-        unfold inverse_index_map_injective.
-        intros x y v Rx Ry H.
-        unfold build_inverse_index_map in H.
-        destruct H as [Hx Hy].
-        simpl in *.
-        subst.
-
-        induction d.
-        + crush.
-        +
-          assert(index_map_injective (shrink_index_map_domain f))
-            by apply shrink_index_map_preserves_injectivity, f_inj.
+      intros d r f x Rx.
+      dependent induction d.
+      - crush.
+      - destruct (Nat.eq_dec (⟦ f ⟧ d) x).
+        + destruct f.
+          subst x.
+          apply index_f_spec.
+          auto.
+        + simpl in *.
           remember (shrink_index_map_domain f) as f0.
           apply IHd with (f:=f0).
+          break_if.
+          * congruence.
+          * apply Rx.
+    Qed.
+
+    Lemma build_inverse_index_map_is_injective:
+      ∀ (d r : nat) (f : index_map d r),
+        index_map_injective f →
+        inverse_index_map_injective (build_inverse_index_map f).
+    Proof.
+      intros d r f f_inj.
+      unfold inverse_index_map_injective.
+      intros x y v Rx Ry H.
+      unfold build_inverse_index_map in H.
+      destruct H as [Hx Hy].
+      simpl in *.
+      subst.
+
+      induction d.
+      + crush.
+      +
+
+
+        assert(x<S d).
+
+
+        simpl in *.
+        break_if.
+        break_if.
+        apply f_inj.
+
+
+
+
+
+
+
+        assert(F: index_map_injective (shrink_index_map_domain f))
+          by apply shrink_index_map_preserves_injectivity, f_inj.
+        remember (shrink_index_map_domain f) as f0.
+        rewrite <- in_range_compat in Ry.
+        rewrite <- in_range_compat in Rx.
+
+        apply IHd with (f:=f0). clear IHd.
+        * apply F.
+        *
+
           simpl in *.
-          break_if; crush.
+          destruct (Nat.eq_dec (⟦ f ⟧ d) x) eqn:Bx.
+          crush.
+        *
+          destruct (Nat.eq_dec (⟦ f ⟧ d) y) eqn:By; try assumption.
 
-          HERE
 
-        apply f_equal in Hy.
+        break_if; crush.
+
+        HERE
+
+          apply f_equal in Hy.
         f_equal. ; apply proof_irrelevance.
-       *)
+
     Admitted.
 
       Lemma build_inverse_index_map_is_surjective:
