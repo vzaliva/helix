@@ -423,17 +423,31 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma in_range_by_def:
-      ∀ (d r : nat) (f : index_map d r) (y : nat) (yc: y < d), in_range f (⟦ f ⟧ y).
+      ∀ (d r : nat) (f : index_map d r) (x : nat) (xc: x < d),
+        in_range f (⟦ f ⟧ x).
     Proof.
-      intros d r f y yc.
-      induction d.
+      intros d r f x xc.
+
+      dependent induction d.
       - crush.
       - simpl.
         break_if.
         + trivial.
         +
-          HERE
+          remember (shrink_index_map_domain f) as f0.
+          case (Nat.eq_dec x d).
+          congruence.
+          intros nx.
+          assert (F: ⟦ f ⟧ x ≡ ⟦ f0 ⟧ x).
+          {
+            subst f0.
+            unfold shrink_index_map_domain.
+            break_match.
+            auto.
+          }
+          rewrite F.
           apply IHd.
+          omega.
     Qed.
 
     Lemma build_inverse_index_map_is_surjective:
