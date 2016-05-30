@@ -491,7 +491,6 @@ Section SigmaHCOL_Operators.
                   | right _ => mkSZero
                   end).
 
-
   End ExperimenalNewScatter.
 
   
