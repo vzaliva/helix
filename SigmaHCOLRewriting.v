@@ -84,32 +84,24 @@ Proof.
   intros j jp.
   unfold Scatter.
   rewrite 2!Vbuild_nth.
-
-  (* HERE *)
-  unfold VnthInverseIndexMapped.
-  unfold index_map_compose, compose.
-  clear f_inj g_inj.
-  generalize (build_inverse_index_map g) as g'; intros g'.
-  generalize (build_inverse_index_map f) as f'; intros f'.
-  destruct g' as [g' g'_spec].
-  destruct f' as [f' f'_spec].
-  Opaque build_inverse_index_map.
-  simpl in *.
-  generalize (g'_spec j jp). intros g'_specj.
-  destruct (g' j).
-  repeat rewrite Vbuild_nth.
-  Check (g'_specj n eq_refl).
-
-
-  unfold VnthInverseIndexMapped, index_map_compose, compose.
-  clear f_inj g_inj.
-
-  Opaque build_inverse_index_map.
-  simpl.
-  destruct f as [f fspec].
-  destruct g as [g gspec].
-  simpl in *.
-
+  break_match.
+  - rewrite Vbuild_nth.
+    simpl in *.
+    break_match.
+    *
+      break_match.
+      apply VecSetoid.Vnth_equiv.
+      -- apply composition_of_inverses_to_invese_of_compositions; assumption.
+      -- reflexivity.
+      -- admit.
+    * break_match.
+      -- admit.
+      -- reflexivity.
+  -
+    simpl.
+    break_match.
+    + admit.
+    + reflexivity.
 Qed.
 
 Section HTDirectSumExpansion.

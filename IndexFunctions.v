@@ -81,6 +81,20 @@ Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
+Definition index_map_compose
+           {i o t: nat}
+           (g: index_map t o)
+           (f: index_map i t) :
+  index_map i o.
+Proof.
+  refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
+  intros.
+  destruct f, g.
+  simpl.
+  unfold compose.
+  auto.
+Defined.
+
 (* Restriction on domain *)
 Definition shrink_index_map_domain {d r:nat} (f: index_map (S d) r)
   : index_map d r.
@@ -437,6 +451,49 @@ definition does not enforce this requirement, and the function produced might no
       ].
   Qed.
 
+
+  Program Definition inverse_index_map_compose
+          {i o t : nat}
+          {f : index_map i t}
+          {g : index_map t o}
+          (f': inverse_index_map f)
+          (g': inverse_index_map g)
+    : inverse_index_map (index_map_compose g f)
+    :=
+      InverseIndexMap _ _ (index_map_compose g f)
+                      ((inverse_index_f f f') ∘ (inverse_index_f g g' )) _.
+  Next Obligation.
+    unfold compose.
+  Defined.
+
+  Lemma composition_of_inverses_to_invese_of_compositions
+        (i o t : nat)
+        (f : index_map i t)
+        (g : index_map t o)
+        (f_inj: index_map_injective f)
+        (g_inj: index_map_injective g)
+        (j : nat)
+        (jc:j < o)
+        (Rg: in_range g j)
+        (R: in_range f (gen_inverse_index_f g j))
+        (Rgf: in_range (index_map_compose g f) j)
+    :
+      gen_inverse_index_f f (gen_inverse_index_f g j) =
+      gen_inverse_index_f (index_map_compose g f) j.
+  Proof.
+    apply build_inverse_index_map_is_left_inverse; try assumption.
+    admit.
+    symmetry.
+    apply build_inverse_index_map_is_left_inverse; try assumption.
+    admit.
+    induction o.
+    crush.
+    apply IHo.
+  Qed.
+
+
+
+
 End Inversions.
 
 
@@ -530,43 +587,6 @@ Section Primitive_Functions.
 End Primitive_Functions.
 
 Section Function_Operators.
-
-  Definition index_map_compose
-             {i o t: nat}
-             (g: index_map t o)
-             (f: index_map i t) :
-    index_map i o.
-  Proof.
-    refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
-    intros.
-    destruct f, g.
-    simpl.
-    unfold compose.
-    auto.
-  Defined.
-
-  (*
-  Lemma build_inverse_index_map_of_compose
-          {i o t: nat}
-          (g: index_map t o)
-          (f: index_map i t):
-    build_inverse_index_map (index_map_compose g f) =
-    partial_index_map_compose
-      (build_inverse_index_map f)
-      (build_inverse_index_map g).
-  Proof.
-    unfold partial_index_map_compose.
-    destruct (build_inverse_index_map (index_map_compose g f)) eqn:H.
-    Opaque build_inverse_index_map.
-    unfold equiv.
-    unfold partial_index_map_equiv.
-    intros x xd.
-    inversion H. clear H.
-    subst.
-    simpl in *.
-  Admitted.
-   *)
-
 
   Definition tensor_product
              (n N: nat)
