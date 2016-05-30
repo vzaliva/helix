@@ -48,7 +48,7 @@ Section VectorSetoid.
 End VectorSetoid.
 
 
- (* TODO: check if needed for Coq-8.5 *)
+(* TODO: check if needed for Coq-8.5 *)
 Section Vfold_right.
   Context
     `{eqA: Equiv A}
@@ -303,42 +303,30 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vnth_index_equiv `{Setoid A}: forall n (v : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> Vnth v h1 = Vnth v h2.
-Proof.
-  induction v; intro; case i1.
-  - intro.
-    nat_lt_0_contradiction; omega.
-  - intros n h1.
-    nat_lt_0_contradiction; omega.
-  - intros.
-    revert h2. rewrite <- H0. intros h2.
-    reflexivity.
-  - intros.
-    revert h2. rewrite <- H0. intros h2.
-    simpl.
-    apply IHv.
-    reflexivity.
-Qed.
+Section Vnth.
 
-Lemma Vnth_arg_equiv:
-  ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
-    (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
-Proof.
-  intros A Ae n v1 v2 i ip E.
-  unfold equiv, vec_Equiv in E.
-  apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
-  assumption.
-Qed.
+  Lemma Vnth_arg_equiv:
+    ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
+      (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
+  Proof.
+    intros A Ae n v1 v2 i ip E.
+    unfold equiv, vec_Equiv in E.
+    apply Vforall2_elim_nth with (i:=i) (ip:=ip) in E.
+    assumption.
+  Qed.
 
-Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-    i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
-Proof.
-  intros n v1 v2 i1 h1 i2 h2 Ei Ev.
-  rewrite (@Vnth_index_equiv A Ae H n v1 i1 h1 i2 h2) by assumption.
-  apply Vnth_arg_equiv.
-  assumption.
-Qed.
+  Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+      i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
+  Proof.
+    intros n v1 v2 i1 h1 i2 h2 Ei Ev.
+    rewrite Vnth_eq with (h2:=h2) by assumption.
+    apply Vnth_arg_equiv.
+    assumption.
+  Qed.
+
+  (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later *)
+
+End Vnth.
 
 Global Instance Vmap2Indexed_proper
        `{Setoid A, Setoid B, Setoid C} {n:nat}
