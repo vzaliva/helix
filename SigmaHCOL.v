@@ -49,59 +49,6 @@ Definition VnthIndexMapped
   : Rtheta
   := Vnth x (« f » n np).
 
-Definition VnthInverseIndexMapped
-           {i o:nat}
-           (x: svector i)
-           (f': partial_index_map o i)
-           (n:nat) (np: n<o)
-  : Rtheta
-  :=
-    let f := partial_index_f _ _ f' in
-    let f_spec := partial_index_f_spec _ _  f' in
-    match (f n) as fn return f n ≡ fn -> Rtheta with
-    | None => fun _ => mkSZero
-    | Some z => fun p => Vnth x (f_spec n np z p)
-    end eq_refl.
-
-Lemma VnthInverseIndexMapped_arg_equiv:
-  ∀ (i o : nat)
-    (x y : svector i) (j : nat)
-    (jp : j < o)
-    (f' : partial_index_map o i),
-    x = y
-    → VnthInverseIndexMapped x f' j jp = VnthInverseIndexMapped y f' j jp.
-Proof.
-  intros i o x y j jp f' H.
-  destruct f'.
-  unfold VnthInverseIndexMapped; simpl.
-  generalize (partial_index_f_spec j jp).
-  destruct (partial_index_f j); intros.
-  apply Vnth_arg_equiv; assumption.
-  reflexivity.
-Qed.
-
-Lemma Vin_VnthInverseIndexMapped
-      (i o : nat)
-      (x : vector Rtheta i)
-      (f : partial_index_map o i)
-      (j : nat) (jp : j < o):
-  Vin (VnthInverseIndexMapped x f j jp) x
-  ∨ VnthInverseIndexMapped x f j jp ≡ mkSZero.
-Proof.
-  unfold VnthInverseIndexMapped, partial_index_f.
-  break_let.
-  simpl in *.
-  clear Heqp f.
-  generalize (partial_index_f_spec j jp).
-  intros l.
-  destruct (partial_index_f j).
-  - left.
-    apply Vnth_in.
-  - right.
-    reflexivity.
-Qed.
-
-
 Section SigmaHCOL_Operators.
 
   Class SHOperator {i o:nat} (op: svector i -> svector o) :=
@@ -135,8 +82,8 @@ Section SigmaHCOL_Operators.
     := Vbuild (VnthIndexMapped x f).
 
   Global Instance SHOperator_Gather
-           {i o: nat}
-           (f: index_map o i):
+         {i o: nat}
+         (f: index_map o i):
     SHOperator (Gather f).
   Proof.
     unfold SHOperator.
@@ -177,13 +124,13 @@ Section SigmaHCOL_Operators.
              (f: index_map i o)
              {f_inj: index_map_injective f}
              (x: svector i) : svector o
-      :=
-        let f' := build_inverse_index_map f in
-        Vbuild (fun n np =>
-                  match decide (in_range f n) with
-                  | left r => Vnth x (inverse_index_f_spec f f' n r)
-                  | right _ => mkSZero
-                  end).
+    :=
+      let f' := build_inverse_index_map f in
+      Vbuild (fun n np =>
+                match decide (in_range f n) with
+                | left r => Vnth x (inverse_index_f_spec f f' n r)
+                | right _ => mkSZero
+                end).
 
   Global Instance SHOperator_Scatter
          {i o: nat}
@@ -199,8 +146,11 @@ Section SigmaHCOL_Operators.
     apply Vforall2_intro_nth.
     intros j jp.
     rewrite 2!Vbuild_nth.
-    apply VnthInverseIndexMapped_arg_equiv.
-    assumption.
+    simpl.
+    break_match.
+    simpl.
+    apply Vnth_arg_equiv, E.
+    reflexivity.
   Qed.
 
   Definition ScatH
@@ -381,46 +331,15 @@ Section OperatorProperies.
     unfold VnthIndexMapped.
     unfold Scatter.
     rewrite Vbuild_nth.
-    assert(L: partial_index_f o i (build_inverse_index_map f) (⟦f ⟧ n) ≡ Some n).
-    {
-      apply build_inverse_index_map_is_left_inverse; try assumption.
-      reflexivity.
-    }
-
-    (* At this point 'rewrite L' should work but it does not, so we will generalize the hell out of it, and remove unnecessary hypothesis to work around this problem *)
-
-    remember (build_inverse_index_map f) as f' eqn:F.
-    unfold VnthInverseIndexMapped.
-
-    generalize (partial_index_f_spec o i f' (⟦f ⟧ n) («f » n ip));  intros l.
-    destruct (partial_index_f o i f' (⟦f ⟧ n)).
-    inversion L.
-    subst n0.
-    generalize (l n eq_refl); intros l0.
-    replace l0 with ip by apply proof_irrelevance.
-    reflexivity.
-    congruence.
-  Qed.
-
-  (* Specification of scatter as mapping from output to input.
-    NOTE: we are using definitional equality here, as Scatter does not
-    perform any operations on elements of type A *)
-  Lemma Scatter_rev_spec
-        {i o: nat}
-        (f: index_map i o)
-        {f_inj: index_map_injective f}
-        (x: svector i)
-        (n: nat)
-        (ip : n < o):
-    Vnth (Scatter f (f_inj:=f_inj) x) ip ≡
-         VnthInverseIndexMapped x (build_inverse_index_map f) n ip.
-  Proof.
-    unfold Scatter, Vbuild.
-    destruct (Vbuild_spec
-                (λ (n : nat) (np : n < o),
-                 VnthInverseIndexMapped x (build_inverse_index_map f) n np)) as [Vv Vs].
+    break_match.
     simpl.
-    auto.
+    apply Vnth_eq.
+    symmetry.
+    apply build_inverse_index_map_is_left_inverse; try assumption.
+    reflexivity.
+    absurd (in_range f (⟦ f ⟧ n)).
+    - assumption.
+    - apply in_range_by_def, ip.
   Qed.
 
   Lemma Scatter_is_almost_endomorphism
@@ -435,7 +354,12 @@ Section OperatorProperies.
     intros j jp.
     unfold Scatter.
     rewrite Vbuild_nth.
-    apply Vin_VnthInverseIndexMapped.
+    simpl.
+    break_match.
+    - left.
+      apply Vnth_in.
+    - right.
+      reflexivity.
   Qed.
 
 End OperatorProperies.
