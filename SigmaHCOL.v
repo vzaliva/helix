@@ -484,10 +484,12 @@ Section SigmaHCOL_Operators.
                {f_inj: index_map_injective f}
                (x: svector i) : svector o
       :=
-        let f' := build_inverse_index_map f (f_inj:=f_inj) in
+        let f' := build_inverse_index_map f in
         Vbuild (fun n np =>
-                  if in_range f n then mkValue (f' n)
-                  else mkSZero).
+                  match decide (in_range f n) with
+                  | left r => Vnth x (inverse_index_f_spec f f' n r)
+                  | right _ => mkSZero
+                  end).
 
 
   End ExperimenalNewScatter.
