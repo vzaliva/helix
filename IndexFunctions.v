@@ -15,6 +15,7 @@ Require Import JRWTactics.
 Require Import CaseNaming.
 Require Import SpiralTactics.
 Require Import Psatz.
+Require Import Omega.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
@@ -80,51 +81,125 @@ Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
-(* Index maps (partial functions) *)
-
-Record partial_index_map (domain range : nat)
-  :=
-    PartialIndexMap { partial_index_f : nat -> option nat; partial_index_f_spec :  forall x, x<domain -> forall z, (((partial_index_f x) ≡ Some z) -> z < range)}.
-
-(* Returns upper domain bound for given `partial_index_map` *)
-Definition patial_index_map_dom {d r:nat} (s: partial_index_map d r) := d.
-
-(* Returns upper rang bound for given `patial_index_map` *)
-Definition partial_index_map_range {d r:nat} (s: partial_index_map d r) := r.
-
-Instance partial_index_map_equiv {domain range:nat}:
-  Equiv (partial_index_map domain range)
-  :=
-    fun fp gp =>
-      let f := partial_index_f _ _ fp in
-      let g := partial_index_f _ _ gp in
-      forall (x:nat) (xd: x<domain), f x = g x.
-
-Program Definition partial_index_map_compose
-           {i o t: nat}
-           (g: partial_index_map t o)
-           (f: partial_index_map i t) :
-  partial_index_map i o :=
-  let fimpl := partial_index_f _ _ f in
-  let gimpl := partial_index_f _ _ g in
-  PartialIndexMap i o
-                  (fun x =>
-                     match fimpl x with
-                     | None => None
-                     | Some z => gimpl z
-                     end)
-                      _.
-Next Obligation.
-  destruct g as [g g_spec].
-  destruct f as [f f_spec].
-  simpl in *.
-  break_match_hyp.
-  -
-    apply g_spec with (x:=n); try assumption.
-    apply f_spec with (x:=x); assumption.
-  -
-    congruence.
+(* Restriction on domain *)
+Definition shrink_index_map_domain {d r:nat} (f: index_map (S d) r)
+  : index_map d r.
+Proof.
+  destruct f.
+  assert (new_spec : ∀ x : nat, x < d → index_f0 x < r) by auto.
+  exact (IndexMap d r index_f0 new_spec).
 Defined.
+
+Section InRange.
+
+  Definition in_range'
+             {d r:nat} (f: index_map d r)
+             (i:nat)
+  : Prop.
+  Proof.
+    induction d.
+    exact False.
+    destruct (Nat.eq_dec (⟦ f ⟧ d) i).
+    exact True.
+    apply IHd, shrink_index_map_domain, f.
+  Defined.
+
+  Fixpoint in_range  {d r:nat} (f: index_map d r)
+           (i:nat)
+    : Prop :=
+    match d return (index_map d r) -> Prop with
+    | O => fun _ => False
+    | S d' => fun f' =>
+               match Nat.eq_dec (⟦f⟧ d') i with
+               | left x => True
+               | right x => in_range (shrink_index_map_domain f') i
+               end
+    end f.
+
+  (* Prove that our 2 implementatoins of in_range are compatible *)
+  Lemma in_range_compat  {d r:nat} (f: index_map d r):
+    in_range' f ≡ in_range f.
+  Proof.
+    extensionality i.
+    induction d.
+    - crush.
+    -
+      unfold in_range.
+      rewrite <- IHd.
+      break_if.
+      + simpl.
+        break_if.
+        trivial.
+        congruence.
+      + simpl.
+        break_if.
+        congruence.
+        rewrite IHd.
+        reflexivity.
+  Qed.
+
+  Global Instance in_range_dec {d r:nat} (f: index_map d r) (i:nat) : Decision (in_range f i).
+  Proof.
+    unfold Decision.
+    induction d.
+    crush.
+    simpl.
+    break_if.
+    auto.
+    apply IHd.
+  Qed.
+
+  Lemma in_range_by_def:
+    ∀ (d r : nat) (f : index_map d r) (x : nat) (xc: x < d),
+      in_range f (⟦ f ⟧ x).
+  Proof.
+    intros d r f x xc.
+
+    dependent induction d.
+    - crush.
+    - simpl.
+      break_if.
+      + trivial.
+      +
+        remember (shrink_index_map_domain f) as f0.
+        case (Nat.eq_dec x d).
+        congruence.
+        intros nx.
+        assert (F: ⟦ f ⟧ x ≡ ⟦ f0 ⟧ x).
+        {
+          subst f0.
+          unfold shrink_index_map_domain.
+          break_match.
+          auto.
+        }
+        rewrite F.
+        apply IHd.
+        omega.
+  Qed.
+
+  Lemma in_range_upper_bound:
+    ∀ (d r : nat) (f : index_map d r) (x : nat),
+      in_range f x → x < r.
+  Proof.
+    intros d r f x Rx.
+    induction d.
+    - crush.
+    - destruct (Nat.eq_dec (⟦ f ⟧ d) x).
+      + destruct f.
+        subst x.
+        apply index_f_spec.
+        auto.
+      + simpl in *.
+        remember (shrink_index_map_domain f) as f0.
+        apply IHd with (f:=f0).
+        break_if.
+        * congruence.
+        * apply Rx.
+  Qed.
+
+
+End InRange.
+
 
 Section Permutations.
   Program Definition index_map_is_permutation
@@ -175,130 +250,191 @@ Section Jections.
     :=
       (index_map_injective f) /\ (index_map_surjective f).
 
-  (* "A partial function is said to be injective or surjective when
-  the total function given by the restriction of the partial function
-  to its domain of definition is." *)
-
-  Definition partial_index_map_injective
-             {d r: nat}
-             (fp: partial_index_map d r)
-    :=
-      let f := partial_index_f _ _ fp in
-      forall (x y:nat) (xc: x<d) (yc: y<d) v,
-        (f x ≡ Some v /\ f y ≡ Some v) → x ≡ y.
-
-  Definition partial_index_map_surjective
-             {d r: nat}
-             (fp: partial_index_map d r)
-    :=
-      let f := partial_index_f _ _ fp in
-      forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d),  f x ≡ Some y.
-
-  Definition partial_index_map_bijective
-             {n: nat}
-             (f: partial_index_map n n)
-    :=
-      (partial_index_map_injective f) /\ (partial_index_map_surjective f).
-
 End Jections.
 
 Section Inversions.
+  Record inverse_index_map {d r: nat} (f: index_map d r)
+    :=
+      InverseIndexMap {
+          inverse_index_f : nat -> nat;
+          inverse_index_f_spec: forall x, in_range f x -> ((inverse_index_f x) < d)
+        }.
 
-  Fact h'_dom (domain x z : nat) (f: nat->nat):
-    List.fold_right
-      (λ (x' : nat) (p : option nat),
-       if eq_nat_dec x (f x') then Some x' else p) None
-      (rev_natrange_list domain) ≡ Some z → z < domain.
+  Fixpoint gen_inverse_index_f {d r: nat} (f: index_map d r)
+           (i: nat): nat :=
+    let dummy := O in
+    match d return (index_map d r) -> nat with
+    | O => fun _ => dummy
+    | S d' => fun f' =>
+               match Nat.eq_dec (⟦f⟧ d') i with
+               | left x => d'
+               | right x => gen_inverse_index_f (shrink_index_map_domain f') i
+               end
+    end f.
+
+  Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
+    forall (i: nat), in_range f i -> (gen_inverse_index_f f i) < d.
   Proof.
-    intros H.
-    induction domain.
-    simpl in *.  congruence.
-    simpl in H.
-    destruct (eq_nat_dec x (f domain)).
-    - inversion H.
-      lia.
-    - apply IHdomain in H.
-      lia.
-  Qed.
+    intros x R.
+    induction d.
+    - crush.
+    -
+      simpl.
+      break_if.
+      crush.
+      rewrite IHd.
+      crush.
+      unfold in_range in R.
+      break_if.
+      congruence.
+      apply R.
+  Defined.
 
   (* Theoretically, we can only build inverse of injective functions. However this
 definition does not enforce this requirement, and the function produced might not be
    true inverse in mathematical sense. To make sure it is, check (index_map_injective f) *)
-  Program Definition build_inverse_index_map
-          {i o: nat}
-          (f: index_map i o)
-    : partial_index_map o i
-    := PartialIndexMap o i (fun y =>
-                              List.fold_right
-                                (fun x' p => if eq_nat_dec y ( ⟦ f ⟧ x') then Some x' else p)
-                                None
-                                (rev_natrange_list i)) _.
-  Next Obligation.
+  Definition build_inverse_index_map
+             {d r: nat}
+             (f: index_map d r)
+    : inverse_index_map f
+    := let f' := gen_inverse_index_f f in
+       @InverseIndexMap d r f f' (gen_inverse_index_f_spec f).
 
-    destruct f.  simpl in *.
-    apply h'_dom with (x:=x) (f:=index_f0).
+  Definition inverse_index_map_injective
+             {d r: nat} {f: index_map d r}
+             (f': inverse_index_map f)
+    :=
+      let f0 := inverse_index_f f f' in
+      forall x y, in_range f x -> in_range f y ->
+             f0 x ≡ f0 y → x ≡ y.
+
+  Definition inverse_index_map_surjective
+             {d r: nat} {f: index_map d r}
+             (f': inverse_index_map f)
+    :=
+      let f0 := inverse_index_f f f' in
+      forall (y:nat) (yc: y<d), exists x, in_range f x /\ f0 x ≡ y.
+
+  Definition inverse_index_map_bijective
+             {d r: nat} {f: index_map d r}
+             (f': inverse_index_map f)
+    :=
+      (inverse_index_map_injective f') /\ (inverse_index_map_surjective f').
+
+  Lemma shrink_index_map_preserves_injectivity:
+    ∀ (d r : nat) (f : index_map (S d) r),
+      index_map_injective f → index_map_injective (shrink_index_map_domain f).
+  Proof.
+    intros d r f f_inj.
+    unfold index_map_injective.
+    intros x y xc yc H.
+    apply f_inj; try auto.
+    unfold shrink_index_map_domain in *.
+    break_match.
+    simpl in *.
     assumption.
-  Defined.
-
+  Qed.
 
   (* The following lemma proves that using `buld_inverse_index_map` on
   injective index_map produces true "left inverse" of it *)
   Lemma build_inverse_index_map_is_left_inverse
-        {i o: nat}
-        (f: index_map i o)
+        {d r: nat}
+        (f: index_map d r)
         (f_inj: index_map_injective f):
     let fp := build_inverse_index_map f in
-    let f' := partial_index_f _ _ fp in
-    forall x y (xc:x<i), ⟦ f ⟧ x ≡ y -> f' y ≡ Some x.
+    let f' := inverse_index_f _ fp in
+    forall x y (xc:x<d), ⟦ f ⟧ x ≡ y -> f' y ≡ x.
   Proof.
-    intros fp f' x y xc A.
-    destruct f.
-    unfold index_map_injective in f_inj.
-    unfold build_inverse_index_map in fp.
-    simpl in *.
-    unfold f'.
-    subst y.
-    clear fp f'.
-
-    induction i.
-    - nat_lt_0_contradiction.
+    simpl.
+    intros x y xc H.
+    induction d.
+    - crush.
     - simpl.
-      destruct (eq_nat_dec (index_f0 x) (index_f0 i)) as [E|N].
-      apply f_inj in E; auto.
-      apply IHi; auto.
-      destruct (eq_nat_dec x i).
-      + congruence.
-      + lia.
+      break_if.
+      + crush.
+      + apply IHd; clear IHd.
+        *
+          apply shrink_index_map_preserves_injectivity, f_inj.
+        *
+          destruct (Nat.eq_dec x d).
+          congruence.
+          omega.
+        *
+          unfold shrink_index_map_domain.
+          break_match.
+          simpl in *.
+          congruence.
   Qed.
 
 
-  (* The following lemma proves that using `buld_inverse_index_map` produces  "right inverse" of it *)
+  (* The following lemma proves that using `buld_inverse_index_map` on
+  injective index_map produces true "right inverse" of it *)
   Lemma build_inverse_index_map_is_right_inverse
-        {i o: nat}
-        (f: index_map i o):
+        {d r: nat}
+        (f: index_map d r)
+        (f_inj: index_map_injective f):
     let fp := build_inverse_index_map f in
-    let f' := partial_index_f _ _ fp in
-    forall x y (yc:y<o), f' y ≡ Some x -> ⟦ f ⟧ x ≡ y.
+    let f' := inverse_index_f _ fp in
+    forall x y (rc:in_range f y), f' y ≡ x -> ⟦ f ⟧ x ≡ y.
   Proof.
-    intros fp f' x y yc A.
-    destruct f.
-    unfold build_inverse_index_map in fp.
-    subst fp.
-    simpl in *.
-    subst f'.
-    rename index_f0 into f.
-    rename index_f_spec0 into f_spec.
-    induction i.
-    - simpl in A.
-      congruence.
-    - simpl in A.
-      destruct (PeanoNat.Nat.eq_dec y (f i)) as [E|N].
-      *
-        inversion A.
-        subst.
-        reflexivity.
-      *
-        apply IHi; auto.
+    simpl.
+    intros x y rc H.
+    induction d.
+    - crush.
+    - simpl in *.
+      break_if.
+      + crush.
+      + apply shrink_index_map_preserves_injectivity in f_inj.
+        apply IHd in H; try assumption.
+        unfold shrink_index_map_domain in *.
+        break_match.
+        simpl in *.
+        congruence.
+  Qed.
+
+  Lemma build_inverse_index_map_is_injective:
+    ∀ (d r : nat) (f : index_map d r),
+      index_map_injective f →
+      inverse_index_map_injective (build_inverse_index_map f).
+  Proof.
+    intros d r f f_inj.
+    unfold inverse_index_map_injective.
+    intros x y Rx Ry H.
+    remember (inverse_index_f f (build_inverse_index_map f) x) as t eqn:H1.
+    symmetry in H1.
+    symmetry in H.
+    apply build_inverse_index_map_is_right_inverse in H; try assumption.
+    apply build_inverse_index_map_is_right_inverse in H1; try assumption.
+    subst.
+    reflexivity.
+  Qed.
+
+  Lemma build_inverse_index_map_is_surjective:
+    ∀ (d r : nat) (f : index_map d r), index_map_injective f → inverse_index_map_surjective (build_inverse_index_map f).
+  Proof.
+    intros d r f f_inj.
+    unfold inverse_index_map_surjective.
+    intros y yc.
+    exists (⟦ f ⟧ y).
+    split.
+    -
+      apply in_range_by_def, yc.
+    -
+      apply build_inverse_index_map_is_left_inverse; try assumption.
+      reflexivity.
+  Qed.
+
+  Lemma build_inverse_index_map_is_bijective
+        {d r: nat}
+        (f: index_map d r)
+        {f_inj: index_map_injective f}
+    : inverse_index_map_bijective (build_inverse_index_map f).
+  Proof.
+    unfold inverse_index_map_bijective.
+    split;
+      [apply build_inverse_index_map_is_injective, f_inj |
+       apply build_inverse_index_map_is_surjective, f_inj
+      ].
   Qed.
 
 End Inversions.
@@ -389,71 +525,6 @@ Section Primitive_Functions.
     intros x y xc yc H.
     simpl in H.
     nia.
-  Qed.
-
-  Fact h'_returns_from_h_domain (r x:nat) (f: nat->nat) l:
-    List.fold_right
-      (λ (x' : nat) (p : option nat),
-       if eq_nat_dec x (f x') then Some x' else p) None
-      l ≡ Some r -> f r ≡ x.
-  Proof.
-    intros.
-    induction l.
-    + simpl in H. congruence.
-    + simpl in H.
-      destruct (eq_nat_dec x (f a)).
-    - inversion H as [R]; rewrite <- R; symmetry; assumption.
-    - apply IHl; assumption.
-  Qed.
-
-  Lemma h_index_map'_is_injective
-        {domain range: nat}
-        (b s: nat)
-        {range_bound: forall x, x<domain -> (b+x*s) < range}:
-    partial_index_map_injective
-      (build_inverse_index_map
-         (@h_index_map domain range b s range_bound)
-      ).
-  Proof.
-    unfold partial_index_map_injective.
-    intros x y xc yc v H.
-    destruct H as [H1 E].
-    rewrite <- H1 in E.
-    remember (build_inverse_index_map (h_index_map b s)) as hp'.
-    unfold build_inverse_index_map in Heqhp'.
-    destruct hp' as [h' h'_spec].
-    simpl in E, H1.
-    inversion Heqhp' as [H]. clear Heqhp'.
-    remember (rev_natrange_list domain) as l.
-
-    subst_max.
-    dependent induction domain.
-    +
-      simpl in H1.
-      congruence.
-    + simpl in E.
-      destruct
-        (eq_nat_dec y (b + domain * s)) as [yT | yF],
-                                           (eq_nat_dec x (b + domain * s)) as [xT | xF].
-
-    - subst x y; reflexivity.
-    - symmetry in E.
-      apply h'_returns_from_h_domain in E.
-      congruence.
-    - apply h'_returns_from_h_domain in E.
-      congruence.
-    - apply IHdomain with (range:=range) (b:=b) (s:=s) (v:=v); try assumption.
-      intros.
-      specialize (range_bound x0).
-      apply range_bound.
-      lia.
-      intros; apply h'_dom with (x:=x0) (f:=fun x' => b+x'*s); assumption.
-      {
-        simpl in H1.
-        destruct (eq_nat_dec x (b + domain * s)).
-        congruence.
-        apply H1.
-      }
   Qed.
 
 End Primitive_Functions.
@@ -624,7 +695,7 @@ Section Function_Rules.
 
   Program Lemma index_map_rule_40:
     forall n (np: n>0)
-           {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
+      {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
     ,
       @identity_index_map n np = h_index_map 0 1
                                              (range_bound:=range_bound_h_0).
