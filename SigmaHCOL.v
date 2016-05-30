@@ -495,29 +495,19 @@ Section StructuralProperies.
       intros kx KD.
       clear GD gx Koperator kernel.
 
-      rewrite Scatter_rev_spec.
+      unfold Scatter; rewrite Vbuild_nth.
+
+
       apply index_map_family_member_injective with (jc:=pc) in f_inj.
       generalize dependent (⦃f ⦄ p pc). intros fp fp_inj F.
       clear f.
-
-      assert(ZI: partial_index_f _ _ (build_inverse_index_map fp) oi ≡ Some z)
-        by (apply build_inverse_index_map_is_left_inverse; assumption).
-      clear F fp_inj F.
-
-      unfold VnthInverseIndexMapped.
-      (* Ugly code below. needs to be cleaned up *)
-      generalize dependent (build_inverse_index_map fp). intros pm ZI.
-
-      unfold partial_index_f.
-      break_match.
-      simpl.
-      generalize (partial_index_f_spec oi oic). intros.
       break_match.
       apply Vforall_nth, KD.
-      simpl in *.
-      congruence.
+      subst oi.
+      absurd (in_range fp (⟦ fp ⟧ z)).
+      + assumption.
+      + apply in_range_by_def, zc.
   Qed.
-
 
   (* Pre-condition for VecUnion not causing any collisions *)
   Lemma Not_Collision_VecUnion
@@ -585,24 +575,13 @@ Section StructuralProperies.
   Proof.
     intros H.
     unfold svector_is_dense in XD.
-    rewrite Scatter_rev_spec in H.
-    unfold VnthInverseIndexMapped, partial_index_f in H.
-
-    break_let.
-    simpl in *.
-
-    generalize dependent (partial_index_f_spec j jc).
-    intros f_spec H.
+    unfold Scatter in H. rewrite Vbuild_nth in H.
     break_match.
+    simpl in *.
     -
-      exists n0.
-      assert(nc: n0<m) by (apply f_spec; reflexivity).
-      exists nc.
-      replace (f_spec n0 eq_refl) with nc in H by apply proof_irrelevance.
+      generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
+      exists (gen_inverse_index_f f j), f_spec.
       apply build_inverse_index_map_is_right_inverse; auto.
-      inversion Heqp.
-      rewrite Heqp.
-      apply Heqo.
     -
       apply Is_Val_mkStruct in H.
       inversion H. (* for some reason congruence fails *)
