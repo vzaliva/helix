@@ -486,11 +486,25 @@ definition does not enforce this requirement, and the function produced might no
    *)
 
   Lemma gen_inverse_revert:
-    ∀ (i t : nat) (f : index_map i t) (v : nat),
+    ∀ (d r : nat) (f : index_map d r) (v : nat),
+      index_map_injective f ->
+      in_range f v ->
       ⟦ f ⟧ (gen_inverse_index_f f v) ≡ v.
   Proof.
-    intros i t f.
-  Admitted.
+    intros d r f v f_inj R.
+    induction d.
+    - crush.
+    - simpl.
+      + break_if.
+        * assumption.
+        * simpl in *.
+          destruct (Nat.eq_dec (⟦ f ⟧ d) v).
+          -- congruence.
+          -- simpl in *.
+             apply shrink_index_map_preserves_injectivity in f_inj.
+             apply IHd.
+  Qed.
+
 
   Lemma composition_of_inverses_to_invese_of_compositions
         (i o t : nat)
@@ -525,7 +539,7 @@ definition does not enforce this requirement, and the function produced might no
     -
       unfold index_map_compose, compose.
       simpl.
-      rewrite 2!gen_inverse_revert.
+      rewrite 2!gen_inverse_revert; try assumption.
       reflexivity.
   Qed.
 
