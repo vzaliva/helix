@@ -527,14 +527,6 @@ definition does not enforce this requirement, and the function produced might no
       gen_inverse_index_f f (gen_inverse_index_f g j) =
       gen_inverse_index_f (index_map_compose g f) j.
   Proof.
-    (*
-    apply build_inverse_index_map_is_left_inverse; try assumption.
-    apply gen_inverse_index_f_spec, Rgf.
-    symmetry.
-    apply build_inverse_index_map_is_left_inverse; try assumption.
-    apply index_f_spec.
-    apply gen_inverse_index_f_spec, Rgf.
-     *)
     symmetry.
     apply build_inverse_index_map_is_left_inverse.
     - apply index_map_compose_injective.
