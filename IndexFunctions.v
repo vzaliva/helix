@@ -502,7 +502,13 @@ definition does not enforce this requirement, and the function produced might no
           -- congruence.
           -- simpl in *.
              apply shrink_index_map_preserves_injectivity in f_inj.
-             apply IHd.
+             remember (shrink_index_map_domain f) as f0.
+             replace (⟦ f ⟧) with (⟦ f0 ⟧).
+             apply IHd; try assumption.
+             subst f0.
+             unfold shrink_index_map_domain.
+             break_match.
+             reflexivity.
   Qed.
 
 
