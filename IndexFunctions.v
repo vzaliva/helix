@@ -264,6 +264,24 @@ Section Jections.
     :=
       (index_map_injective f) /\ (index_map_surjective f).
 
+  Lemma index_map_compose_injective
+        {i o t: nat}
+        (f: index_map t o)
+        (g: index_map i t)
+        (f_inj: index_map_injective f)
+        (g_inj: index_map_injective g)
+    :
+      index_map_injective (index_map_compose f g).
+  Proof.
+    unfold index_map_injective in *.
+    intros x y xc yc H.
+    unfold index_map_compose, compose in H. simpl in H.
+    apply g_inj; try assumption.
+    apply f_inj in H; try assumption.
+    apply (index_f_spec), xc.
+    apply (index_f_spec), yc.
+  Qed.
+
 End Jections.
 
 Section Inversions.
@@ -451,7 +469,7 @@ definition does not enforce this requirement, and the function produced might no
       ].
   Qed.
 
-
+  (*
   Program Definition inverse_index_map_compose
           {i o t : nat}
           {f : index_map i t}
@@ -465,6 +483,14 @@ definition does not enforce this requirement, and the function produced might no
   Next Obligation.
     unfold compose.
   Defined.
+   *)
+
+  Lemma gen_inverse_revert:
+    ∀ (i t : nat) (f : index_map i t) (v : nat),
+      ⟦ f ⟧ (gen_inverse_index_f f v) ≡ v.
+  Proof.
+    intros i t f.
+  Admitted.
 
   Lemma composition_of_inverses_to_invese_of_compositions
         (i o t : nat)
@@ -481,17 +507,27 @@ definition does not enforce this requirement, and the function produced might no
       gen_inverse_index_f f (gen_inverse_index_f g j) =
       gen_inverse_index_f (index_map_compose g f) j.
   Proof.
+    (*
     apply build_inverse_index_map_is_left_inverse; try assumption.
-    admit.
+    apply gen_inverse_index_f_spec, Rgf.
     symmetry.
     apply build_inverse_index_map_is_left_inverse; try assumption.
-    admit.
-    induction o.
-    crush.
-    apply IHo.
+    apply index_f_spec.
+    apply gen_inverse_index_f_spec, Rgf.
+     *)
+    symmetry.
+    apply build_inverse_index_map_is_left_inverse.
+    - apply index_map_compose_injective.
+      apply g_inj.
+      apply f_inj.
+    -
+      apply gen_inverse_index_f_spec, R.
+    -
+      unfold index_map_compose, compose.
+      simpl.
+      rewrite 2!gen_inverse_revert.
+      reflexivity.
   Qed.
-
-
 
 
 End Inversions.
@@ -724,25 +760,6 @@ Section Function_Rules.
     unfold identity_index_map, h_index_map, equiv, index_map_equiv, id.
     intros. simpl.
     symmetry. apply mult_1_r.
-  Qed.
-
-
-  Lemma index_map_compose_injective
-        {i o t: nat}
-        (f: index_map t o)
-        (g: index_map i t)
-        (f_inj: index_map_injective f)
-        (g_inj: index_map_injective g)
-    :
-      index_map_injective (f ∘ g).
-  Proof.
-    unfold index_map_injective in *.
-    intros x y xc yc H.
-    unfold index_map_compose, compose in H. simpl in H.
-    apply g_inj; try assumption.
-    apply f_inj in H; try assumption.
-    apply (index_f_spec), xc.
-    apply (index_f_spec), yc.
   Qed.
 
 
