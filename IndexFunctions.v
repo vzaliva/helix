@@ -104,6 +104,14 @@ Proof.
   exact (IndexMap d r index_f0 new_spec).
 Defined.
 
+Lemma shrink_non_shrink_eq (d r : nat) (f : index_map (S d) r):
+  ⟦ shrink_index_map_domain f ⟧ ≡ ⟦ f ⟧.
+Proof.
+  unfold shrink_index_map_domain.
+  break_match.
+  reflexivity.
+Qed.
+
 Section InRange.
 
   Definition in_range'
@@ -211,6 +219,45 @@ Section InRange.
         * apply Rx.
   Qed.
 
+
+  Lemma in_range_shrink_index_map_domain (d r y : nat) (f : index_map (S d) r):
+    in_range f y → ⟦ f ⟧ d ≢ y → in_range (shrink_index_map_domain f) y.
+  Proof.
+    intros R N.
+    unfold shrink_index_map_domain.
+    break_match.
+    simpl in *.
+    break_if.
+    congruence.
+    apply R.
+  Qed.
+
+  Lemma in_range_exists
+        {d r y: nat}
+        (f: index_map d r):
+    in_range f y -> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
+  Proof.
+    intros H.
+    induction d.
+    - crush.
+    - destruct (Nat.eq_dec (⟦ f ⟧ d) y).
+      + assert(dc: d<S d) by omega.
+        exists d, dc.
+        assumption.
+      +
+        replace (⟦ f ⟧) with (⟦ shrink_index_map_domain f ⟧).
+        assert(S: in_range (shrink_index_map_domain f) y)
+          by (apply in_range_shrink_index_map_domain; try assumption).
+        specialize (IHd (shrink_index_map_domain f) S).
+        elim IHd.
+        intros x H0.
+        elim H0.
+        intros x0 H1.
+        assert(xc: x < (Datatypes.S  d)) by omega.
+        exists x, xc.
+        apply H1.
+        apply shrink_non_shrink_eq.
+  Qed.
 
 End InRange.
 

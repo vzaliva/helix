@@ -93,7 +93,19 @@ Proof.
       apply VecSetoid.Vnth_equiv.
       -- apply composition_of_inverses_to_invese_of_compositions; assumption.
       -- reflexivity.
-      -- admit.
+      -- (* i1 contradicts n *)
+        contradict n.
+        apply in_range_exists in i1.
+        elim i1; intros x H0. clear i1.
+        elim H0. intros xc H. clear H0.
+        symmetry in H.
+        apply build_inverse_index_map_is_right_inverse in H; try assumption.
+        replace (⟦ g ⟧ (⟦ f ⟧ x)) with (⟦ index_map_compose g f ⟧ x) in H.
+        ++ subst j.
+           apply in_range_by_def.
+           apply xc.
+        ++
+          auto.
     * break_match.
       -- admit.
       -- reflexivity.
