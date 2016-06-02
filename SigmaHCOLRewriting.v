@@ -63,6 +63,45 @@ Proof.
   reflexivity.
 Qed.
 
+Local Lemma in_range_index_map_compose {i o t : nat}
+      (f : index_map i t)
+      (g : index_map t o)
+      (f_inj: index_map_injective f)
+      (g_inj: index_map_injective g)
+      (j : nat)
+      (jc: j < o):
+  in_range g j ->
+  in_range (index_map_compose g f) j ->
+  in_range f (gen_inverse_index_f g j).
+Proof.
+  intros Rj Rgf.
+
+  apply in_range_exists in Rj; try assumption.
+  elim Rj; intros x0 H0; clear Rj.
+  elim H0; intros xc0 Gj; clear H0.
+
+  apply in_range_exists in Rgf; try assumption.
+  elim Rgf; intros x1 H1; clear Rgf.
+  elim H1; intros xc1 Rgf; clear H1.
+
+  simpl in Rgf. unfold compose in Rgf.
+  assert(Fx1: ⟦ f ⟧ x1 = x0).
+  {
+    apply g_inj.
+    apply (@index_f_spec i t f x1 xc1).
+    apply xc0.
+    subst j.
+    apply Rgf.
+  }
+
+  apply build_inverse_index_map_is_left_inverse in Gj; try assumption.
+  simpl in Gj.
+  rewrite Gj.
+  rewrite <- Fx1.
+  apply in_range_by_def, xc1.
+Qed.
+
+
 Lemma Scatter_composition
       {i o t: nat}
       (f: index_map i t)
@@ -72,10 +111,8 @@ Lemma Scatter_composition
   Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)
   = Scatter (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
 Proof.
-  assert(SC: SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj))).
-  {
-    apply SHOperator_compose; apply SHOperator_Scatter.
-  }
+  assert(SC: SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)))
+    by (apply SHOperator_compose; apply SHOperator_Scatter).
   apply SHOperator_functional_extensionality. clear SC.
   intros v.
   unfold compose.
@@ -96,8 +133,8 @@ Proof.
       -- (* i1 contradicts n *)
         contradict n.
         apply in_range_exists in i1.
-        elim i1; intros x H0. clear i1.
-        elim H0. intros xc H. clear H0.
+        elim i1; intros x H0; clear i1.
+        elim H0; intros xc H; clear H0.
         symmetry in H.
         apply build_inverse_index_map_is_right_inverse in H; try assumption.
         replace (⟦ g ⟧ (⟦ f ⟧ x)) with (⟦ index_map_compose g f ⟧ x) in H.
@@ -106,13 +143,19 @@ Proof.
            apply xc.
         ++
           auto.
+        ++
+          apply in_range_upper_bound in i1.
+          apply i1.
     * break_match.
-      -- admit.
+      --
+        contradict n.
+        apply in_range_index_map_compose; try assumption.
       -- reflexivity.
   -
     simpl.
     break_match.
-    + admit.
+    +
+      admit.
     + reflexivity.
 Qed.
 

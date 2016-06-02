@@ -234,29 +234,38 @@ Section InRange.
 
   Lemma in_range_exists
         {d r y: nat}
-        (f: index_map d r):
-    in_range f y -> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
+        (f: index_map d r)
+        (yc: y<r)
+    :
+    in_range f y <-> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
   Proof.
-    intros H.
-    induction d.
-    - crush.
-    - destruct (Nat.eq_dec (⟦ f ⟧ d) y).
-      + assert(dc: d<S d) by omega.
-        exists d, dc.
-        assumption.
-      +
-        replace (⟦ f ⟧) with (⟦ shrink_index_map_domain f ⟧).
-        assert(S: in_range (shrink_index_map_domain f) y)
-          by (apply in_range_shrink_index_map_domain; try assumption).
-        specialize (IHd (shrink_index_map_domain f) S).
-        elim IHd.
-        intros x H0.
-        elim H0.
-        intros x0 H1.
-        assert(xc: x < (Datatypes.S  d)) by omega.
-        exists x, xc.
-        apply H1.
-        apply shrink_non_shrink_eq.
+    split.
+    - intros H.
+      induction d.
+      + crush.
+      + destruct (Nat.eq_dec (⟦ f ⟧ d) y).
+        * assert(dc: d<S d) by omega.
+          exists d, dc.
+          assumption.
+        *
+          replace (⟦ f ⟧) with (⟦ shrink_index_map_domain f ⟧).
+          assert(S: in_range (shrink_index_map_domain f) y)
+            by (apply in_range_shrink_index_map_domain; try assumption).
+          specialize (IHd (shrink_index_map_domain f) S).
+          elim IHd.
+          intros x H0.
+          elim H0.
+          intros x0 H1.
+          assert(xc: x < (Datatypes.S  d)) by omega.
+          exists x, xc.
+          apply H1.
+          apply shrink_non_shrink_eq.
+    - intros H.
+      elim H; intros x H0; clear H.
+      elim H0; intros xc H; clear H0.
+      apply in_range_by_def with (f:=f) in xc.
+      subst y.
+      apply xc.
   Qed.
 
 End InRange.
