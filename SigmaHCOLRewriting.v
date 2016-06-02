@@ -63,10 +63,9 @@ Proof.
   reflexivity.
 Qed.
 
-Local Lemma in_range_index_map_compose {i o t : nat}
+Local Lemma in_range_index_map_compose_right {i o t : nat}
       (f : index_map i t)
       (g : index_map t o)
-      (f_inj: index_map_injective f)
       (g_inj: index_map_injective g)
       (j : nat)
       (jc: j < o):
@@ -101,6 +100,23 @@ Proof.
   apply in_range_by_def, xc1.
 Qed.
 
+Local Lemma in_range_index_map_compose_left {i o t : nat}
+      (f : index_map i t)
+      (g : index_map t o)
+      (j : nat)
+      (jc: j<o):
+  in_range (index_map_compose g f) j → in_range g j.
+Proof.
+  intros H.
+  apply in_range_exists in H; try assumption.
+  elim H; intros x0 H0; clear H.
+  elim H0; intros xc0 H; clear H0.
+  simpl in H.
+  unfold compose in H.
+  subst j.
+  apply in_range_by_def.
+  apply index_f_spec, xc0.
+Qed.
 
 Lemma Scatter_composition
       {i o t: nat}
@@ -149,13 +165,14 @@ Proof.
     * break_match.
       --
         contradict n.
-        apply in_range_index_map_compose; try assumption.
+        apply in_range_index_map_compose_right; try assumption.
       -- reflexivity.
   -
     simpl.
     break_match.
     +
-      admit.
+      contradict n.
+      apply in_range_index_map_compose_left in i0; try assumption.
     + reflexivity.
 Qed.
 
