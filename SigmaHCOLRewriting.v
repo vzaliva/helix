@@ -118,6 +118,33 @@ Proof.
   apply index_f_spec, xc0.
 Qed.
 
+Lemma in_range_index_map_compose {i o t : nat}
+      (f : index_map i t)
+      (g : index_map t o)
+      (g_inj: index_map_injective g)
+      (j : nat)
+      (jc: j<o):
+  in_range g j → in_range f (gen_inverse_index_f g j)
+  → in_range (index_map_compose g f) j.
+Proof.
+  intros R0 R1.
+
+  apply in_range_exists in R1.
+  elim R1; intros x H0; clear R1.
+  elim H0; intros xc R1; clear H0.
+  symmetry in R1.
+  apply build_inverse_index_map_is_right_inverse in R1; try assumption.
+  replace (⟦ g ⟧ (⟦ f ⟧ x)) with (⟦ index_map_compose g f ⟧ x) in R1.
+  ++ subst j.
+     apply in_range_by_def.
+     apply xc.
+  ++
+    auto.
+  ++
+    apply in_range_upper_bound in R1.
+    apply R1.
+Qed.
+
 Lemma Scatter_composition
       {i o t: nat}
       (f: index_map i t)
@@ -148,20 +175,7 @@ Proof.
       -- reflexivity.
       -- (* i1 contradicts n *)
         contradict n.
-        apply in_range_exists in i1.
-        elim i1; intros x H0; clear i1.
-        elim H0; intros xc H; clear H0.
-        symmetry in H.
-        apply build_inverse_index_map_is_right_inverse in H; try assumption.
-        replace (⟦ g ⟧ (⟦ f ⟧ x)) with (⟦ index_map_compose g f ⟧ x) in H.
-        ++ subst j.
-           apply in_range_by_def.
-           apply xc.
-        ++
-          auto.
-        ++
-          apply in_range_upper_bound in i1.
-          apply i1.
+        apply in_range_index_map_compose; try assumption.
     * break_match.
       --
         contradict n.
