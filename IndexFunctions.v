@@ -45,9 +45,9 @@ Section OptionSetoid.
       match a with
       | None => is_None b
       | Some x => (match b with
-                  | None => False
-                  | Some y => equiv x y
-                  end)
+                   | None => False
+                   | Some y => equiv x y
+                   end)
       end.
 
   Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
@@ -132,10 +132,10 @@ Section InRange.
     match d return (index_map d r) -> Prop with
     | O => fun _ => False
     | S d' => fun f' =>
-               match Nat.eq_dec (⟦f⟧ d') i with
-               | left x => True
-               | right x => in_range (shrink_index_map_domain f') i
-               end
+                match Nat.eq_dec (⟦f⟧ d') i with
+                | left x => True
+                | right x => in_range (shrink_index_map_domain f') i
+                end
     end f.
 
   (* Prove that our 2 implementatoins of in_range are compatible *)
@@ -237,7 +237,7 @@ Section InRange.
         (f: index_map d r)
         (yc: y<r)
     :
-    in_range f y <-> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
+      in_range f y <-> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
   Proof.
     split.
     - intros H.
@@ -266,6 +266,24 @@ Section InRange.
       apply in_range_by_def with (f:=f) in xc.
       subst y.
       apply xc.
+  Qed.
+
+  Lemma in_range_index_map_compose_left {i o t : nat}
+        (f : index_map i t)
+        (g : index_map t o)
+        (j : nat)
+        (jc: j<o):
+    in_range (index_map_compose g f) j → in_range g j.
+  Proof.
+    intros H.
+    apply in_range_exists in H; try assumption.
+    elim H; intros x0 H0; clear H.
+    elim H0; intros xc0 H; clear H0.
+    simpl in H.
+    unfold compose in H.
+    subst j.
+    apply in_range_by_def.
+    apply index_f_spec, xc0.
   Qed.
 
 End InRange.
@@ -354,10 +372,10 @@ Section Inversions.
     match d return (index_map d r) -> nat with
     | O => fun _ => dummy
     | S d' => fun f' =>
-               match Nat.eq_dec (⟦f⟧ d') i with
-               | left x => d'
-               | right x => gen_inverse_index_f (shrink_index_map_domain f') i
-               end
+                match Nat.eq_dec (⟦f⟧ d') i with
+                | left x => d'
+                | right x => gen_inverse_index_f (shrink_index_map_domain f') i
+                end
     end f.
 
   Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
@@ -394,7 +412,7 @@ definition does not enforce this requirement, and the function produced might no
     :=
       let f0 := inverse_index_f f f' in
       forall x y, in_range f x -> in_range f y ->
-             f0 x ≡ f0 y → x ≡ y.
+                  f0 x ≡ f0 y → x ≡ y.
 
   Definition inverse_index_map_surjective
              {d r: nat} {f: index_map d r}
@@ -596,6 +614,72 @@ definition does not enforce this requirement, and the function produced might no
       rewrite 2!gen_inverse_revert; try assumption.
       reflexivity.
   Qed.
+
+  Lemma in_range_index_map_compose_right {i o t : nat}
+        (f : index_map i t)
+        (g : index_map t o)
+        (g_inj: index_map_injective g)
+        (j : nat)
+        (jc: j < o):
+    in_range g j ->
+    in_range (index_map_compose g f) j ->
+    in_range f (gen_inverse_index_f g j).
+  Proof.
+    intros Rj Rgf.
+
+    apply in_range_exists in Rj; try assumption.
+    elim Rj; intros x0 H0; clear Rj.
+    elim H0; intros xc0 Gj; clear H0.
+
+    apply in_range_exists in Rgf; try assumption.
+    elim Rgf; intros x1 H1; clear Rgf.
+    elim H1; intros xc1 Rgf; clear H1.
+
+    simpl in Rgf. unfold compose in Rgf.
+    assert(Fx1: ⟦ f ⟧ x1 = x0).
+    {
+      apply g_inj.
+      apply (@index_f_spec i t f x1 xc1).
+      apply xc0.
+      subst j.
+      apply Rgf.
+    }
+
+    apply build_inverse_index_map_is_left_inverse in Gj; try assumption.
+    simpl in Gj.
+    rewrite Gj.
+    rewrite <- Fx1.
+    apply in_range_by_def, xc1.
+  Qed.
+
+  Lemma in_range_index_map_compose {i o t : nat}
+        (f : index_map i t)
+        (g : index_map t o)
+        (g_inj: index_map_injective g)
+        (j : nat)
+        (jc: j<o):
+    in_range g j → in_range f (gen_inverse_index_f g j)
+    → in_range (index_map_compose g f) j.
+  Proof.
+    intros R0 R1.
+
+    apply in_range_exists in R1.
+    elim R1; intros x H0; clear R1.
+    elim H0; intros xc R1; clear H0.
+    symmetry in R1.
+    apply build_inverse_index_map_is_right_inverse in R1; try assumption.
+    replace (⟦ g ⟧ (⟦ f ⟧ x)) with (⟦ index_map_compose g f ⟧ x) in R1.
+    ++ subst j.
+       apply in_range_by_def.
+       apply xc.
+    ++
+      auto.
+    ++
+      apply in_range_upper_bound in R1.
+      apply R1.
+  Qed.
+
+
 
 
 End Inversions.
