@@ -354,15 +354,6 @@ Section HTDirectSumExpansion.
       break_match.
       +
         rewrite Vnth_sparsify.
-        generalize (@inverse_index_f_spec 1 n
-           (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))
-           (@build_inverse_index_map 1 n
-              (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))) i i0).
-        generalize (@inverse_index_f 1 n
-           (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))
-           (@build_inverse_index_map 1 n
-              (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))) i).
-        intros l lc.
         rewrite Vnth_1.
         reflexivity.
       +
@@ -534,22 +525,44 @@ Section HTDirectSumExpansion.
         subst.
         rewrite Vbuild_nth.
         unfold ScatH, Scatter.
-        rewrite Vbuild_nth.
-        intros H.
-        simpl.
-        rewrite InverseIndex_1_miss.
-        apply SZero_is_ValZero.
-        auto.
+        rewrite Vbuild_nth; intros H.
+        break_match.
+        - unfold h_index_map in i.
+          simpl in i.
+          destruct (Nat.eq_dec ib 0).
+          +  subst.
+             simpl in i.
+             break_match.
+             congruence.
+             crush.
+          +
+            generalize (@inverse_index_f_spec 1 n
+                                              (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
+                                              (@build_inverse_index_map 1 n
+                                                                        (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) k i).
+            intros l.
+            break_if.
+            rewrite <- plus_n_O in e.
+            congruence.
+            simpl in *.
+            crush.
+        - apply SZero_is_ValZero.
       }
       rewrite SingleValueInZeros with (j:=k) (jc:=kp) by apply L3pre.
       subst b.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
-      simpl.
-      rewrite InverseIndex_1_hit.
-      setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
-      reflexivity.
+      break_match.
+      +
+        rewrite Vnth_sparsify.
+        rewrite Vnth_1.
+        setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
+        reflexivity.
+      +
+        unfold in_range in n0.
+        simpl in n0.
+        break_if; crush.
     Qed.
 
     (*
