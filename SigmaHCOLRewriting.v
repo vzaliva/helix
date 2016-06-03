@@ -114,6 +114,26 @@ Section HTDirectSumExpansion.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
+  Fact ScatH_stride1_constr:
+  forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+  Proof.
+    auto.
+  Qed.
+
+  Fact h_bound_first_half (o1 o2:nat):
+    ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
+  Proof.
+    intros.
+    lia.
+  Qed.
+
+  Fact h_bound_second_half (o1 o2:nat):
+    ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
+  Proof.
+    intros.
+    lia.
+  Qed.
+
   (*
   Section Value_Correctness.
 
@@ -211,12 +231,6 @@ Section HTDirectSumExpansion.
           rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
           specialize SZ with (i:=S i) (ic:=ics).
           auto.
-    Qed.
-
-    Fact ScatH_stride1_constr:
-    forall {a b:nat}, 1 ≢ 0 ∨ a < b.
-    Proof.
-      auto.
     Qed.
 
     Lemma U_SAG1:
@@ -565,20 +579,6 @@ Section HTDirectSumExpansion.
     Qed.
 
 
-    Fact h_bound_first_half (o1 o2:nat):
-      ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
-    Proof.
-      intros.
-      lia.
-    Qed.
-
-    Fact h_bound_second_half (o1 o2:nat):
-      ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
-    Proof.
-      intros.
-      lia.
-    Qed.
-
     Lemma Copy_one_half_get_same_part_is_Some:
       ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
         partial_index_f
@@ -847,42 +847,6 @@ Section HTDirectSumExpansion.
       apply liftM_HOperator_DensityPreserving.
     Qed.
 
-    Lemma h'_first_half_hit {o1 o2 i : nat}:
-      i < o1
-      → @is_Some nat
-                 (partial_index_f (o1 + o2) o1
-                                  (@build_inverse_index_map o1 (o1 + o2)
-                                                            (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2))) i).
-    Proof.
-      intros H.
-      crush.
-      induction o1.
-      - nat_lt_0_contradiction.
-      - simpl.
-        break_if.
-        + crush.
-        + apply IHo1.
-          omega.
-    Qed.
-
-    Lemma h'_second_half_hit {o1 o2 i : nat} (ip: i<o1+o2):
-      ¬ (i < o1)
-      → @is_Some nat
-                 (partial_index_f (o1 + o2) o2
-                                  (@build_inverse_index_map o2 (o1 + o2)
-                                                            (@h_index_map o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2))) i).
-    Proof.
-      intros H.
-      crush.
-      induction o2.
-      - crush.
-      - simpl.
-        break_if.
-        + crush.
-        + apply IHo2.
-          omega.
-    Qed.
-
     Instance HTDirectSumExpansion_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
@@ -891,10 +855,19 @@ Section HTDirectSumExpansion.
              `{hop2: !HOperator g}
       : DensityPreserving (
             (HTSUMUnion
-               ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-               ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
+               ((ScatH 0 1
+                       (snzord0:=ScatH_stride1_constr)
+                       (range_bound := h_bound_first_half o1 o2)
+                ) ∘
+                  (liftM_HOperator f) ∘
+                  (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+
+               ((ScatH o1 1
+                       (snzord0:=ScatH_stride1_constr)
+                       (range_bound := h_bound_second_half o1 o2)
+                ) ∘
+                  (liftM_HOperator g) ∘
+                  (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
@@ -945,45 +918,41 @@ Section HTDirectSumExpansion.
 
       apply ValUnionIsVal.
       unfold ScatH.
-      rewrite 2!Scatter_rev_spec.
 
-      destruct (lt_dec i o1).
+      destruct (Coq.Arith.Compare_dec.lt_dec i o1).
       -
         left.
-        assert(S: is_Some ((partial_index_f _ _
-                                            (@build_inverse_index_map o1 (o1 + o2)
-                                                                      (@h_index_map o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)))) i)) by apply h'_first_half_hit, l.
-
-        destruct (build_inverse_index_map (h_index_map 0 1))
-          as [h' h'_spec] eqn:P.
-        inversion P. rename H0 into HH. symmetry in HH. clear P.
-        simpl in *.
-        unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
-        generalize (h'_spec i).
-        destruct (h' i); crush.
-        generalize (l0 ip n eq_refl). intros l1.
-        apply Vforall_nth.
-        apply Dfgx2.
+        unfold Scatter.
+        rewrite Vbuild_nth.
+        break_match.
+        + simpl.
+          unfold svector_is_dense in Dfgx2.
+          apply Vforall_nth, Dfgx2.
+        +
+          contradict n.
+          apply in_range_exists.
+          apply ip.
+          simpl.
+          exists i,l.
+          lia.
       -
         right.
-        assert(S: is_Some ((partial_index_f _ _ (@build_inverse_index_map o2 (o1 + o2)
-                                                                          (@h_index_map o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)))) i)).
-        {
-          apply h'_second_half_hit.
+        unfold Scatter.
+        rewrite Vbuild_nth.
+        break_match.
+        + simpl.
+          unfold svector_is_dense in Dggx1.
+          apply Vforall_nth, Dggx1.
+        +
+          contradict n0.
+          apply in_range_exists.
           apply ip.
-          apply n.
-        }
-
-        destruct (build_inverse_index_map (h_index_map o1 1))
-          as [h' h'_spec] eqn:P.
-        inversion P. rename H0 into HH. symmetry in HH. clear P.
-        simpl in *.
-        unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
-        generalize (h'_spec i).
-        destruct (h' i); crush.
-        generalize (l ip n0 eq_refl). intros l1.
-        apply Vforall_nth.
-        apply Dggx1.
+          simpl.
+          exists (i-o1).
+          assert(l: (i - o1) < o2).
+          omega.
+          exists l.
+          omega.
     Qed.
 
   End Structural_Correctness.
