@@ -4,8 +4,8 @@ Require Import VecUtil.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics. (* for \circ notation *)
-Require Import Coq.omega.Omega.
 Require Export Coq.Vectors.Vector.
+Require Import Omega.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.

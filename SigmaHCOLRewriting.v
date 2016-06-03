@@ -134,7 +134,7 @@ Section HTDirectSumExpansion.
     lia.
   Qed.
 
-  (*
+
   Section Value_Correctness.
 
     Fact ScatH_1_to_n_range_bound base o stride:
@@ -235,7 +235,8 @@ Section HTDirectSumExpansion.
 
     Lemma U_SAG1:
       ∀ (n : nat) (x : avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (f: { i | i<n} -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (i : nat) (ip : i < n),
         Vnth
           (SumUnion
@@ -352,11 +353,18 @@ Section HTDirectSumExpansion.
       rewrite Vbuild_nth.
       break_match.
       +
-        remember (build_inverse_index_map (h_index_map i 1)) as h'.
-        destruct h'.
-        inversion Heqh'.
-        simpl in *.
-        admit. (* STOPPED HERE *)
+        rewrite Vnth_sparsify.
+        generalize (@inverse_index_f_spec 1 n
+           (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))
+           (@build_inverse_index_map 1 n
+              (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))) i i0).
+        generalize (@inverse_index_f 1 n
+           (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))
+           (@build_inverse_index_map 1 n
+              (@h_index_map 1 n i 1 (ScatH_1_to_n_range_bound i n 1 ip))) i).
+        intros l lc.
+        rewrite Vnth_1.
+        reflexivity.
       +
         unfold in_range in n0.
         simpl in n0.
@@ -365,7 +373,8 @@ Section HTDirectSumExpansion.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA) `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        (f: { i | i<n} -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -832,7 +841,6 @@ Section HTDirectSumExpansion.
     Qed.
 
   End Value_Correctness.
-   *)
 
   Section Structural_Correctness.
 

@@ -222,6 +222,18 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vnth_1
+      {T:Type}
+      (x:T)
+      (i:nat) (ic: Peano.lt i 1)
+  :
+    Vnth [x] ic = x.
+Proof.
+  destruct i.
+    - auto.
+    - omega.
+Qed.
+
 Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
   Vnth (Vcons v vs) ip = Vnth vs ip'.
 Proof.
