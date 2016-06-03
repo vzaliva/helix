@@ -114,6 +114,7 @@ Section HTDirectSumExpansion.
   Open Scope vector_scope.
   Global Open Scope nat_scope.
 
+  (*
   Section Value_Correctness.
 
     Fact ScatH_1_to_n_range_bound base o stride:
@@ -212,57 +213,6 @@ Section HTDirectSumExpansion.
           auto.
     Qed.
 
-    Lemma InverseIndex_1_hit:
-      ∀ (n k s : nat) (kp : k < n) (v : Rtheta),
-        (@VnthInverseIndexMapped 1 n [v]
-                                 (@build_inverse_index_map 1 n
-                                                           (@h_index_map 1 n k s
-                                                                         (ScatH_1_to_n_range_bound k n s kp) )) k kp) ≡ v.
-    Proof.
-      intros n k s kp v.
-      destruct (@build_inverse_index_map 1 n
-                                         (@h_index_map 1 n k s
-                                                       (ScatH_1_to_n_range_bound k n s kp) )) as [h' h'_spec] eqn:P.
-      unfold h_index_map in P.
-      inversion P. rename H0 into HH. symmetry in HH. clear P.
-      assert(PH': h' k ≡ Some 0).
-      {
-        subst h'.
-        break_if; [reflexivity | omega].
-      }
-      unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
-      generalize (h'_spec k).
-      destruct (h' k); crush.
-    Qed.
-
-    Lemma InverseIndex_1_miss:
-      ∀ (n s i j : nat) (ip : i < n) (jp: j<n) (v : Rtheta),
-        i ≢ j ->
-        @VnthInverseIndexMapped 1 n [v]
-                                (@build_inverse_index_map 1 n
-                                                          (@h_index_map 1 n j s
-                                                                        (ScatH_1_to_n_range_bound j n s jp)
-                                ))
-                                i ip ≡ mkSZero.
-    Proof .
-      intros n s i j ip jp v N.
-      destruct (@build_inverse_index_map 1 n
-                                         (@h_index_map 1 n j s
-                                                       (ScatH_1_to_n_range_bound j n s jp)
-               )) as [h' h'_spec] eqn:P.
-      unfold h_index_map in P.
-      inversion P. rename H0 into HH. symmetry in HH.
-      assert(PH': h' i ≡ None).
-      {
-        subst h'.
-        break_if ; [omega | reflexivity ].
-      }
-      assert (N0: i ≢ j + 0) by omega.
-      unfold VnthInverseIndexMapped, partial_index_f, partial_index_f_spec.
-      generalize (h'_spec i).
-      destruct (h' i); crush.
-    Qed.
-
     Fact ScatH_stride1_constr:
     forall {a b:nat}, 1 ≢ 0 ∨ a < b.
     Proof.
@@ -347,6 +297,7 @@ Section HTDirectSumExpansion.
                   (λ (z : nat) (zi : z < n),
                    Vnth (ScatH z 1 (sparsify [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
 
+
       assert
         (L3pre: forall ib (icb:ib<n),
             ib ≢ i -> Is_ValZero (Vnth b icb)).
@@ -356,19 +307,46 @@ Section HTDirectSumExpansion.
         rewrite Vbuild_nth.
         unfold ScatH, Scatter.
         rewrite Vbuild_nth; intros H.
-        simpl.
-        rewrite InverseIndex_1_miss.
-        apply SZero_is_ValZero.
-        auto.
+        break_match.
+        - unfold h_index_map in i0.
+          simpl in i0.
+          destruct (Nat.eq_dec ib 0).
+          +  subst.
+             simpl in i0.
+             break_match.
+             congruence.
+             crush.
+          +
+            generalize (@inverse_index_f_spec 1 n
+                                              (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
+                                              (@build_inverse_index_map 1 n
+                                                                        (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) i
+                                              i0).
+            intros l.
+            break_if.
+            rewrite <- plus_n_O in e.
+            congruence.
+            simpl in *.
+            crush.
+        - apply SZero_is_ValZero.
       }
       rewrite SingleValueInZeros with (j:=i) (jc:=ip) by apply L3pre.
+      clear L3pre.
       subst b.
       rewrite Vbuild_nth.
       unfold ScatH, Scatter.
       rewrite Vbuild_nth.
-      simpl.
-      rewrite InverseIndex_1_hit.
-      reflexivity.
+      break_match.
+      +
+        remember (build_inverse_index_map (h_index_map i 1)) as h'.
+        destruct h'.
+        inversion Heqh'.
+        simpl in *.
+        admit. (* STOPPED HERE *)
+      +
+        unfold in_range in n0.
+        simpl in n0.
+        break_if; crush.
     Qed.
 
     Lemma U_SAG1_PW:
@@ -854,6 +832,7 @@ Section HTDirectSumExpansion.
     Qed.
 
   End Value_Correctness.
+   *)
 
   Section Structural_Correctness.
 
