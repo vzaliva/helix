@@ -730,11 +730,17 @@ Section HTDirectSumExpansion.
               apply Vnth_eq.
               symmetry.
 
-
               apply build_inverse_index_map_is_left_inverse; try assumption.
               apply h_index_map_is_injective; left; auto.
 
               unfold h_index_map.
+              simpl.
+              rewrite Nat.mul_comm, Nat.mul_1_l.
+              reflexivity.
+            * contradict n.
+              apply in_range_of_h.
+              apply ip.
+              exists i, g0.
               simpl.
               rewrite Nat.mul_comm, Nat.mul_1_l.
               reflexivity.
