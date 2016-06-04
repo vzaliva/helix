@@ -32,9 +32,6 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Section SigmaHCOLOperatorRules.
-End SigmaHCOLOperatorRules.
-
 Lemma Gather_composition
       {i o t: nat}
       (f: index_map o t)
