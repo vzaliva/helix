@@ -827,23 +827,22 @@ Section HTDirectSumExpansion.
               crush.
               apply ip.
           + (* First half of x, which is all zeros *)
-            unfold szero_svector.  rewrite Vnth_const.
-            remember ((build_inverse_index_map (h_index_map o1 1))) as h'.
-            destruct h'.
-            inversion Heqh'. rename H0 into H. clear Heqh'.
-            unfold VnthInverseIndexMapped.
-            simpl.
-            assert (HZI: partial_index_f i ≡ None).
-            {
-              apply is_None_def.
-              apply Copy_one_half_get_another_is_None with (o1:=o1) (o2:=o2).
-              assumption.
-              omega.
-            }
-            generalize (partial_index_f_spec i ip).
-            rewrite HZI.
-            reflexivity.
-        - unfold GathH, Gather.
+            unfold szero_svector.
+            break_match.
+            *
+              contradict n.
+              apply in_range_of_h.
+              apply ip.
+              exists (i-o1).
+              assert (oc: i - o1 < o2) by crush.
+              exists oc.
+              rewrite Nat.mul_1_r.
+              HERE
+              admit.
+            *
+              rewrite Vnth_const.
+              reflexivity.
+        - HERE unfold GathH, Gather.
           apply Veq_nth.
           intros.
           rewrite Vbuild_nth.
