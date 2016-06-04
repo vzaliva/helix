@@ -836,9 +836,8 @@ Section HTDirectSumExpansion.
               exists (i-o1).
               assert (oc: i - o1 < o2) by crush.
               exists oc.
-              rewrite Nat.mul_1_r.
-              HERE
-              admit.
+              replace (o1 + (i - o1) * 1) with i by omega.
+              reflexivity.
             *
               rewrite Vnth_const.
               reflexivity.
