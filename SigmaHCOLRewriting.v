@@ -601,53 +601,6 @@ Section HTDirectSumExpansion.
     Qed.
 
 
-    Lemma Copy_one_half_get_same_part_is_Some:
-      ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
-        partial_index_f
-          ≡ (λ y : nat,
-                   List.fold_right
-                     (λ (x' : nat) (p : option nat),
-                      if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
-                     (rev_natrange_list o2))
-        → (o1 <= i) /\ (i < o1 + o2)
-        -> partial_index_f i ≡ Some (i-o1).
-    Proof.
-      intros.
-      subst.
-      induction o2.
-      crush.
-      simpl.
-      break_if.
-      crush.
-      rewrite IHo2.
-      reflexivity.
-      omega.
-    Qed.
-
-    Lemma Copy_one_half_get_another_is_None:
-      ∀ (o1 o2 i : nat) (partial_index_f : nat → option nat),
-        partial_index_f
-          ≡ (λ y : nat,
-                   List.fold_right
-                     (λ (x' : nat) (p : option nat),
-                      if eq_nat_dec y (o1 + x' * 1) then Some x' else p) None
-                     (rev_natrange_list o2))
-        → (o1 > i) \/ (i>=o1+o2)
-        → is_None (partial_index_f i).
-    Proof.
-      intros.
-      subst.
-      apply is_None_def.
-
-      induction o2.
-      crush.
-      simpl.
-      break_if.
-      crush.
-      rewrite IHo2.
-      reflexivity.
-      omega.
-    Qed.
 
     (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(

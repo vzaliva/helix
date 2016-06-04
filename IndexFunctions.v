@@ -70,12 +70,6 @@ Record index_map (domain range : nat) :=
 Notation "⟦ f ⟧" := (@index_f _ _ f).
 Notation "« f »" := (@index_f_spec _ _ f).
 
-(* Returns upper domain bound for given `index_map` *)
-Definition index_map_dom {d r:nat} (s: index_map d r) := d.
-
-(* Returns upper rang bound for given `index_map` *)
-Definition index_map_range {d r:nat} (s: index_map d r) := r.
-
 Instance index_map_equiv {domain range:nat}:
   Equiv (index_map domain range)
   :=

@@ -47,7 +47,7 @@ graph.dpd:
 	"coqtop"  -R "." Top -I "." < depgraph.vcmd
 
 print-unused: graph.dpd
-	dpdusage -with-path graph.dpd 
+	dpdusage -with-path graph.dpd | sort
 
 %.vo: %.v
 	$(MAKECOQ) $@
