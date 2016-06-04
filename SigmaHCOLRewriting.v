@@ -364,8 +364,8 @@ Section HTDirectSumExpansion.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-             (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+        (f: { i | i<n} -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -841,9 +841,9 @@ Section HTDirectSumExpansion.
             *
               rewrite Vnth_const.
               reflexivity.
-        - HERE unfold GathH, Gather.
+        - unfold GathH, Gather.
           apply Veq_nth.
-          intros.
+          intros i ip.
           rewrite Vbuild_nth.
           unfold h_index_map.
           unfold VnthIndexMapped.
@@ -854,15 +854,15 @@ Section HTDirectSumExpansion.
           rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
-          generalize (Vnth_app_aux i2
-                                   (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
-                                                                            (h_bound_second_half i1 i2) i ip) l) as ip'.
-          revert ip.
-          replace (i1 + i * 1 - i1) with i by omega.
-          intros ip ip'.
-          replace ip with ip' by apply proof_irrelevance.
-          reflexivity.
-          crush. (* contradiction in g0 *)
+          + generalize (Vnth_app_aux i2
+                                     (IndexFunctions.h_index_map_obligation_1 i2
+                                                                              (i1 + i2) i1 1 (h_bound_second_half i1 i2) i ip) l) as ip'.
+            revert ip.
+            replace (i1 + i * 1 - i1) with i by omega.
+            intros ip ip'.
+            replace ip with ip' by apply proof_irrelevance.
+            reflexivity.
+          + omega. (* contradiction in g0 *)
       }
       rewrite LS, RS.
       (* destruct Heqp0.*)
