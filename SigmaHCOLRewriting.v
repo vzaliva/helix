@@ -32,6 +32,10 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
+Local Open Scope hcol_scope. (* for compose *)
+Local Open Scope vector_scope.
+Local Open Scope nat_scope.
+
 Lemma Gather_composition
       {i o t: nat}
       (f: index_map o t)
@@ -105,462 +109,458 @@ Proof.
     + reflexivity.
 Qed.
 
-Section HTDirectSumExpansion.
 
-  Local Open Scope hcol_scope. (* for compose *)
-  Open Scope vector_scope.
-  Global Open Scope nat_scope.
+Fact ScatH_stride1_constr:
+forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+Proof.
+  auto.
+Qed.
 
-  Fact ScatH_stride1_constr:
-  forall {a b:nat}, 1 ≢ 0 ∨ a < b.
-  Proof.
-    auto.
-  Qed.
+Fact h_bound_first_half (o1 o2:nat):
+  ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
+Proof.
+  intros.
+  lia.
+Qed.
 
-  Fact h_bound_first_half (o1 o2:nat):
-    ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
-  Proof.
-    intros.
-    lia.
-  Qed.
-
-  Fact h_bound_second_half (o1 o2:nat):
-    ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
-  Proof.
-    intros.
-    lia.
-  Qed.
+Fact h_bound_second_half (o1 o2:nat):
+  ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
+Proof.
+  intros.
+  lia.
+Qed.
 
 
-  Section Value_Correctness.
+Fact ScatH_1_to_n_range_bound base o stride:
+  base < o ->
+  ∀ x : nat, x < 1 → base + x * stride < o.
+Proof.
+  intros.
+  nia.
+Qed.
 
-    Fact ScatH_1_to_n_range_bound base o stride:
-      base < o ->
-      ∀ x : nat, x < 1 → base + x * stride < o.
-    Proof.
-      intros.
-      nia.
-    Qed.
+Fact GathH_j1_domain_bound base i (bc:base<i):
+  ∀ x : nat, x < 1 → base + x * 1 < i.
+Proof.
+  intros.
+  lia.
+Qed.
 
-    Fact GathH_j1_domain_bound base i (bc:base<i):
-      ∀ x : nat, x < 1 → base + x * 1 < i.
-    Proof.
-      intros.
-      lia.
-    Qed.
+Lemma VecUnion_structs:
+  ∀ (m : nat) (x : svector m),
+    Vforall Is_ValZero x → Is_ValZero (VecUnion x).
+Proof.
+  intros m x H.
+  unfold VecUnion.
+  induction x.
+  -
+    unfold Is_ValZero.
+    unfold_Rtheta_equiv.
+    reflexivity.
+  - simpl in H. destruct H as [Hh Hx].
+    Opaque Monad.ret.
+    simpl.
+    Transparent Monad.ret.
+    rewrite Is_ValZero_to_mkSZero in *.
+    rewrite Hh.
+    rewrite Union_SZero_r.
+    apply IHx, Hx.
+Qed.
 
-    Lemma VecUnion_structs:
-      ∀ (m : nat) (x : svector m),
-        Vforall Is_ValZero x → Is_ValZero (VecUnion x).
-    Proof.
-      intros m x H.
-      unfold VecUnion.
-      induction x.
-      -
-        unfold Is_ValZero.
-        unfold_Rtheta_equiv.
-        reflexivity.
-      - simpl in H. destruct H as [Hh Hx].
-        Opaque Monad.ret.
-        simpl.
-        Transparent Monad.ret.
-        rewrite Is_ValZero_to_mkSZero in *.
-        rewrite Hh.
-        rewrite Union_SZero_r.
-        apply IHx, Hx.
-    Qed.
+(* Formerly Lemma3 *)
+Lemma SingleValueInZeros m j (x:svector m) (jc:j<m):
+  (forall i (ic:i<m),
+      i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
+Proof.
+  intros SZ.
+  dependent induction m.
+  - dep_destruct x.
+    destruct j; omega.
+  -
+    dep_destruct x.
+    destruct (eq_nat_dec j 0).
+    +
+      Case ("j=0").
+      rewrite Vnth_cons_head; try assumption.
+      rewrite VecUnion_cons.
+      assert(Vforall Is_ValZero x0).
+      {
+        apply Vforall_nth_intro.
+        intros.
+        assert(ipp:S i < S m) by lia.
+        replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
+        apply SZ; lia.
+      }
 
-    (* Formerly Lemma3 *)
-    Lemma SingleValueInZeros m j (x:svector m) (jc:j<m):
-      (forall i (ic:i<m),
-          i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
-    Proof.
-      intros SZ.
-      dependent induction m.
-      - dep_destruct x.
-        destruct j; omega.
-      -
-        dep_destruct x.
-        destruct (eq_nat_dec j 0).
-        +
-          Case ("j=0").
-          rewrite Vnth_cons_head; try assumption.
-          rewrite VecUnion_cons.
-          assert(Vforall Is_ValZero x0).
-          {
-            apply Vforall_nth_intro.
-            intros.
-            assert(ipp:S i < S m) by lia.
-            replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
-            apply SZ; lia.
-          }
+      assert(UZ: Is_ValZero (VecUnion x0))
+        by apply VecUnion_structs, H.
+      setoid_replace (VecUnion x0) with mkSZero
+        by apply Is_ValZero_to_mkSZero, UZ.
+      clear UZ.
+      apply Union_SZero_l.
+    +
+      Case ("j!=0").
+      rewrite VecUnion_cons.
+      assert(Zc: 0<(S m)) by lia.
 
-          assert(UZ: Is_ValZero (VecUnion x0))
-            by apply VecUnion_structs, H.
-          setoid_replace (VecUnion x0) with mkSZero
-            by apply Is_ValZero_to_mkSZero, UZ.
-          clear UZ.
-          apply Union_SZero_l.
-        +
-          Case ("j!=0").
-          rewrite VecUnion_cons.
-          assert(Zc: 0<(S m)) by lia.
+      assert (HS: Is_ValZero h).
+      {
+        cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
+        rewrite Vnth_0.
+        auto.
+        apply SZ; auto.
+      }
 
-          assert (HS: Is_ValZero h).
-          {
-            cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
-            rewrite Vnth_0.
-            auto.
-            apply SZ; auto.
-          }
+      destruct j; try congruence.
+      simpl.
+      generalize (lt_S_n jc).
+      intros l.
+      rewrite IHm with (jc:=l).
 
-          destruct j; try congruence.
-          simpl.
-          generalize (lt_S_n jc).
-          intros l.
-          rewrite IHm with (jc:=l).
+      setoid_replace h with mkSZero by apply Is_ValZero_to_mkSZero, HS.
+      apply Union_SZero_r.
 
-          setoid_replace h with mkSZero by apply Is_ValZero_to_mkSZero, HS.
-          apply Union_SZero_r.
+      intros i ic.
+      assert(ics: S i < S m) by lia.
+      rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
+      specialize SZ with (i:=S i) (ic:=ics).
+      auto.
+Qed.
 
-          intros i ic.
-          assert(ics: S i < S m) by lia.
-          rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
-          specialize SZ with (i:=S i) (ic:=ics).
-          auto.
-    Qed.
-
-    Lemma U_SAG1:
-      ∀ (n : nat) (x : avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        (i : nat) (ip : i < n),
-        Vnth
-          (SumUnion
-             (Vbuild
-                (λ (i0 : nat) (id : i0 < n),
-                 (
-                   (ScatH i0 1
-                          (snzord0:=ScatH_stride1_constr)
-                          (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                     ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                     ∘ (GathH i0 1
-                              (domain_bound:=GathH_j1_domain_bound i0 n id))
-                 ) (sparsify x)))) ip
-        =
-        mkValue (Vnth (HPointwise f x) ip).
-    Proof.
-      intros n x f pF i ip.
-      remember (λ (i0 : nat) (id : i0 < n),
-                (
-                  (ScatH i0 1
+Lemma U_SAG1:
+  ∀ (n : nat) (x : avector n)
+    (f: { i | i<n} -> CarrierA -> CarrierA)
+    `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    (i : nat) (ip : i < n),
+    Vnth
+      (SumUnion
+         (Vbuild
+            (λ (i0 : nat) (id : i0 < n),
+             (
+               (ScatH i0 1
+                      (snzord0:=ScatH_stride1_constr)
+                      (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
+                 ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                 ∘ (GathH i0 1
+                          (domain_bound:=GathH_j1_domain_bound i0 n id))
+             ) (sparsify x)))) ip
+    =
+    mkValue (Vnth (HPointwise f x) ip).
+Proof.
+  intros n x f pF i ip.
+  remember (λ (i0 : nat) (id : i0 < n),
+            (
+              (ScatH i0 1
+                     (snzord0:=ScatH_stride1_constr)
+                     (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
+                ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                ∘ (GathH i0 1
+                         (domain_bound:=GathH_j1_domain_bound i0 n id))
+            ) (sparsify x)) as bf.
+  assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
+                   ScatH i0 1
                          (snzord0:=ScatH_stride1_constr)
-                         (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id))
-                    ∘ (liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                    ∘ (GathH i0 1
-                             (domain_bound:=GathH_j1_domain_bound i0 n id))
-                ) (sparsify x)) as bf.
-      assert(B1: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                       ScatH i0 1
-                             (snzord0:=ScatH_stride1_constr)
-                             (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)
-                             ((liftM_HOperator (HAtomic (f (i0 ↾ id))))
-                                [Vnth (sparsify x) id]))).
-      {
-        subst bf.
-        extensionality j.
-        extensionality jn.
-        unfold GathH, Gather.
-        unfold compose.
-        rewrite Vbuild_1.
-        unfold VnthIndexMapped.
-        simpl.
-        generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
-                                                            (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
-        intros ln.
-        simpl in ln.
-        rewrite Vnth_cast_index with (jc:=jn) by omega.
-        reflexivity.
-      }
-      assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
-                        ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (sparsify [f (i0 ↾ id) (Vnth x id)]))).
-      {
-        rewrite B1.
-        extensionality j.
-        extensionality jn.
-        unfold liftM_HOperator, HAtomic, compose.
-        unfold sparsify.
-        simpl.
-        rewrite Vnth_map.
-        reflexivity.
-      }
-      rewrite B2.
-      clear B1 B2 Heqbf bf.
+                         (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id)
+                         ((liftM_HOperator (HAtomic (f (i0 ↾ id))))
+                            [Vnth (sparsify x) id]))).
+  {
+    subst bf.
+    extensionality j.
+    extensionality jn.
+    unfold GathH, Gather.
+    unfold compose.
+    rewrite Vbuild_1.
+    unfold VnthIndexMapped.
+    simpl.
+    generalize (IndexFunctions.h_index_map_obligation_1 1 n j 1
+                                                        (GathH_j1_domain_bound j n jn) 0 (lt_0_Sn 0)).
+    intros ln.
+    simpl in ln.
+    rewrite Vnth_cast_index with (jc:=jn) by omega.
+    reflexivity.
+  }
+  assert (B2: bf ≡ (λ (i0 : nat) (id : i0 < n),
+                    ScatH i0 1 (snzord0:=ScatH_stride1_constr) (range_bound:=ScatH_1_to_n_range_bound i0 n 1 id) (sparsify [f (i0 ↾ id) (Vnth x id)]))).
+  {
+    rewrite B1.
+    extensionality j.
+    extensionality jn.
+    unfold liftM_HOperator, HAtomic, compose.
+    unfold sparsify.
+    simpl.
+    rewrite Vnth_map.
+    reflexivity.
+  }
+  rewrite B2.
+  clear B1 B2 Heqbf bf.
 
-      unfold HPointwise.
-      rewrite Vbuild_nth.
+  unfold HPointwise.
+  rewrite Vbuild_nth.
 
-      (* Lemma5 emebdded below *)
-      rewrite AbsorbUnionIndex by solve_proper.
-      rewrite Vmap_Vbuild.
+  (* Lemma5 emebdded below *)
+  rewrite AbsorbUnionIndex by solve_proper.
+  rewrite Vmap_Vbuild.
 
-      (* Preparing to apply Lemma3. Prove some peoperties first. *)
-      remember (Vbuild
-                  (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH z 1 (sparsify [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
+  (* Preparing to apply Lemma3. Prove some peoperties first. *)
+  remember (Vbuild
+              (λ (z : nat) (zi : z < n),
+               Vnth (ScatH z 1 (sparsify [f (z ↾ zi) (Vnth x zi)])) ip)) as b.
 
 
-      assert
-        (L3pre: forall ib (icb:ib<n),
-            ib ≢ i -> Is_ValZero (Vnth b icb)).
-      {
-        intros ib icb.
-        subst.
-        rewrite Vbuild_nth.
-        unfold ScatH, Scatter.
-        rewrite Vbuild_nth; intros H.
-        break_match.
-        - unfold h_index_map in i0.
-          simpl in i0.
-          destruct (Nat.eq_dec ib 0).
-          +  subst.
-             simpl in i0.
-             break_match.
-             congruence.
-             crush.
-          +
-            generalize (@inverse_index_f_spec 1 n
-                                              (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
-                                              (@build_inverse_index_map 1 n
-                                                                        (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) i
-                                              i0).
-            intros l.
-            break_if.
-            rewrite <- plus_n_O in e.
-            congruence.
-            simpl in *.
-            crush.
-        - apply SZero_is_ValZero.
-      }
-      rewrite SingleValueInZeros with (j:=i) (jc:=ip) by apply L3pre.
-      clear L3pre.
-      subst b.
-      rewrite Vbuild_nth.
-      unfold ScatH, Scatter.
-      rewrite Vbuild_nth.
-      break_match.
+  assert
+    (L3pre: forall ib (icb:ib<n),
+        ib ≢ i -> Is_ValZero (Vnth b icb)).
+  {
+    intros ib icb.
+    subst.
+    rewrite Vbuild_nth.
+    unfold ScatH, Scatter.
+    rewrite Vbuild_nth; intros H.
+    break_match.
+    - unfold h_index_map in i0.
+      simpl in i0.
+      destruct (Nat.eq_dec ib 0).
+      +  subst.
+         simpl in i0.
+         break_match.
+         congruence.
+         crush.
       +
-        rewrite Vnth_sparsify.
-        rewrite Vnth_1.
-        reflexivity.
-      +
-        unfold in_range in n0.
-        simpl in n0.
-        break_if; crush.
-    Qed.
-
-    Lemma U_SAG1_PW:
-      forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f},
-        SumUnion
-          (@Vbuild (svector n) n
-                   (fun i id =>
-                      (
-                        (ScatH i 1
-                               (snzord0:=ScatH_stride1_constr)
-                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                          ∘ (liftM_HOperator (HAtomic (f (i ↾ id))))
-                          ∘ (GathH i 1
-                                   (domain_bound:=GathH_j1_domain_bound i n id)
-                            )
-                      ) (sparsify x)
-          ))
-        =
-        sparsify (HPointwise f x).
-    Proof.
-      intros n x f pF.
-      apply Vforall2_intro_nth.
-      intros i ip.
-      rewrite Vnth_sparsify.
-      apply U_SAG1.
-    Qed.
-
-    Fact GathH_jn_domain_bound i n:
-      i < n ->
-      ∀ x : nat, x < 2 → i + x * n < (n+n).
-    Proof.
-      intros.
-      nia.
-    Qed.
-
-    Lemma HBinOp_nth:
-      ∀ (n : nat) (x : avector (n + n))
-        (f : nat -> CarrierA → CarrierA → CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
-        Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
-    Proof.
-      intros n x f f_mor k kp kn knn.
-      unfold HBinOp, compose, vector2pair, HCOLImpl.BinOp.
-      break_let.  rename t into a. rename t0 into b.
-
-      rewrite Vnth_Vmap2Indexed.
-      assert(A: Vnth a kp ≡ Vnth x kn).
-      {
-        apply Vbreak_arg_app in Heqp.
-        subst x.
-        rewrite Vnth_app.
-        break_match.
-        crush.
-        replace kp with g by apply proof_irrelevance.
-        reflexivity.
-      }
-      assert(B: Vnth b kp ≡ Vnth x knn).
-      {
-        apply Vbreak_arg_app in Heqp.
-        subst x.
-        rewrite Vnth_app.
-        break_match.
-        generalize (Vnth_app_aux n knn l) as g.
-        intros.
-        apply Vnth_cast_index.
-        omega.
-        crush.
-      }
-      rewrite A, B.
-      reflexivity.
-    Qed.
-
-    Lemma U_SAG2:
-      ∀ (n : nat) (x : avector (n + n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        (k : nat) (kp : k < n),
-        Vnth
-          (SumUnion
-             (@Vbuild (svector n) n
-                      (fun i id =>
-                         ((ScatH i 1
-                                 (snzord0:=ScatH_stride1_constr)
-                                 (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                            ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
-                            ∘ (GathH i n
-                                     (domain_bound:=GathH_jn_domain_bound i n id))
-                         ) (sparsify x)
-          ))) kp
-        = mkValue (Vnth (HBinOp (o:=n) (f) x) kp).
-    Proof.
-      intros n x f f_mor k kp.
-      unfold compose.
-
-      remember (fun i id =>
-                  ScatH i 1
-                        (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                        (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
-                                         (GathH i n
-                                                (domain_bound:=GathH_jn_domain_bound i n id) (sparsify x))))
-        as bf.
-
-      assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
-      assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
-
-      assert(B1: bf ≡ (fun i id =>
-                         (ScatH i 1
-                                (snzord0:=ScatH_stride1_constr)
-                                (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                                (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
-                                                 [(Vnth (sparsify x) (ILTNN i id));  (Vnth (sparsify x) (INLTNN i id))])))).
-      {
-        subst bf.
-        extensionality j. extensionality jn.
-        unfold GathH, Gather, compose.
-        rewrite Vbuild_2.
-        unfold VnthIndexMapped.
-        generalize
-          (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
-                                                                                                                  , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
-        intros.
+        generalize (@inverse_index_f_spec 1 n
+                                          (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
+                                          (@build_inverse_index_map 1 n
+                                                                    (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) i
+                                          i0).
+        intros l.
+        break_if.
+        rewrite <- plus_n_O in e.
+        congruence.
         simpl in *.
-        rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
-        rewrite Vnth_cast_index with (jc:=l01) (ic:=l1) by omega.
-        reflexivity.
-      }
+        crush.
+    - apply SZero_is_ValZero.
+  }
+  rewrite SingleValueInZeros with (j:=i) (jc:=ip) by apply L3pre.
+  clear L3pre.
+  subst b.
+  rewrite Vbuild_nth.
+  unfold ScatH, Scatter.
+  rewrite Vbuild_nth.
+  break_match.
+  +
+    rewrite Vnth_sparsify.
+    rewrite Vnth_1.
+    reflexivity.
+  +
+    unfold in_range in n0.
+    simpl in n0.
+    break_if; crush.
+Qed.
 
-      assert (B2: bf ≡ (λ (i : nat) (id : i < n),
-                        ScatH i 1
-                              (snzord0:=ScatH_stride1_constr)
-                              (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                              (sparsify
-                                 [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))]))).
-      {
-        rewrite B1.
-        extensionality i.
-        extensionality id.
-        unfold liftM_HOperator, compose, sparsify.
-        rewrite 2!Vnth_map.
-        simpl.
-        reflexivity.
-      }
-      rewrite B2.
-      clear B1 B2 Heqbf bf.
+Lemma U_SAG1_PW:
+  forall n (x:avector n)
+    (f: { i | i<n} -> CarrierA -> CarrierA)
+    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+    SumUnion
+      (@Vbuild (svector n) n
+               (fun i id =>
+                  (
+                    (ScatH i 1
+                           (snzord0:=ScatH_stride1_constr)
+                           (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                      ∘ (liftM_HOperator (HAtomic (f (i ↾ id))))
+                      ∘ (GathH i 1
+                               (domain_bound:=GathH_j1_domain_bound i n id)
+                        )
+                  ) (sparsify x)
+      ))
+    =
+    sparsify (HPointwise f x).
+Proof.
+  intros n x f pF.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite Vnth_sparsify.
+  apply U_SAG1.
+Qed.
 
-      (* Lemma5 embedded below*)
-      rewrite AbsorbUnionIndex by solve_proper.
-      rewrite Vmap_Vbuild.
+Fact GathH_jn_domain_bound i n:
+  i < n ->
+  ∀ x : nat, x < 2 → i + x * n < (n+n).
+Proof.
+  intros.
+  nia.
+Qed.
 
-      (* Preparing to apply Lemma3. Prove some peoperties first. *)
-      remember (Vbuild
-                  (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH z 1 (sparsify [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
+Lemma HBinOp_nth:
+  ∀ (n : nat) (x : avector (n + n))
+    (f : nat -> CarrierA → CarrierA → CarrierA)
+    `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
+    Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
+Proof.
+  intros n x f f_mor k kp kn knn.
+  unfold HBinOp, compose, vector2pair, HCOLImpl.BinOp.
+  break_let.  rename t into a. rename t0 into b.
 
-      assert
-        (L3pre: forall ib (icb:ib<n),
-            ib ≢ k -> Is_ValZero (Vnth b icb)).
-      {
-        intros ib icb.
-        subst.
-        rewrite Vbuild_nth.
-        unfold ScatH, Scatter.
-        rewrite Vbuild_nth; intros H.
-        break_match.
-        - unfold h_index_map in i.
-          simpl in i.
-          destruct (Nat.eq_dec ib 0).
-          +  subst.
-             simpl in i.
-             break_match.
-             congruence.
-             crush.
-          +
-            generalize (@inverse_index_f_spec 1 n
-                                              (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
-                                              (@build_inverse_index_map 1 n
-                                                                        (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) k i).
-            intros l.
-            break_if.
-            rewrite <- plus_n_O in e.
-            congruence.
-            simpl in *.
-            crush.
-        - apply SZero_is_ValZero.
-      }
-      rewrite SingleValueInZeros with (j:=k) (jc:=kp) by apply L3pre.
-      subst b.
-      rewrite Vbuild_nth.
-      unfold ScatH, Scatter.
-      rewrite Vbuild_nth.
-      break_match.
+  rewrite Vnth_Vmap2Indexed.
+  assert(A: Vnth a kp ≡ Vnth x kn).
+  {
+    apply Vbreak_arg_app in Heqp.
+    subst x.
+    rewrite Vnth_app.
+    break_match.
+    crush.
+    replace kp with g by apply proof_irrelevance.
+    reflexivity.
+  }
+  assert(B: Vnth b kp ≡ Vnth x knn).
+  {
+    apply Vbreak_arg_app in Heqp.
+    subst x.
+    rewrite Vnth_app.
+    break_match.
+    generalize (Vnth_app_aux n knn l) as g.
+    intros.
+    apply Vnth_cast_index.
+    omega.
+    crush.
+  }
+  rewrite A, B.
+  reflexivity.
+Qed.
+
+Lemma U_SAG2:
+  ∀ (n : nat) (x : avector (n + n))
+    (f: nat -> CarrierA -> CarrierA -> CarrierA)
+    `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    (k : nat) (kp : k < n),
+    Vnth
+      (SumUnion
+         (@Vbuild (svector n) n
+                  (fun i id =>
+                     ((ScatH i 1
+                             (snzord0:=ScatH_stride1_constr)
+                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                        ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
+                        ∘ (GathH i n
+                                 (domain_bound:=GathH_jn_domain_bound i n id))
+                     ) (sparsify x)
+      ))) kp
+    = mkValue (Vnth (HBinOp (o:=n) (f) x) kp).
+Proof.
+  intros n x f f_mor k kp.
+  unfold compose.
+
+  remember (fun i id =>
+              ScatH i 1
+                    (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
+                    (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                                     (GathH i n
+                                            (domain_bound:=GathH_jn_domain_bound i n id) (sparsify x))))
+    as bf.
+
+  assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
+  assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
+
+  assert(B1: bf ≡ (fun i id =>
+                     (ScatH i 1
+                            (snzord0:=ScatH_stride1_constr)
+                            (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
+                            (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                                             [(Vnth (sparsify x) (ILTNN i id));  (Vnth (sparsify x) (INLTNN i id))])))).
+  {
+    subst bf.
+    extensionality j. extensionality jn.
+    unfold GathH, Gather, compose.
+    rewrite Vbuild_2.
+    unfold VnthIndexMapped.
+    generalize
+      (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
+                                                                                                              , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
+    intros.
+    simpl in *.
+    rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
+    rewrite Vnth_cast_index with (jc:=l01) (ic:=l1) by omega.
+    reflexivity.
+  }
+
+  assert (B2: bf ≡ (λ (i : nat) (id : i < n),
+                    ScatH i 1
+                          (snzord0:=ScatH_stride1_constr)
+                          (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
+                          (sparsify
+                             [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))]))).
+  {
+    rewrite B1.
+    extensionality i.
+    extensionality id.
+    unfold liftM_HOperator, compose, sparsify.
+    rewrite 2!Vnth_map.
+    simpl.
+    reflexivity.
+  }
+  rewrite B2.
+  clear B1 B2 Heqbf bf.
+
+  (* Lemma5 embedded below*)
+  rewrite AbsorbUnionIndex by solve_proper.
+  rewrite Vmap_Vbuild.
+
+  (* Preparing to apply Lemma3. Prove some peoperties first. *)
+  remember (Vbuild
+              (λ (z : nat) (zi : z < n),
+               Vnth (ScatH z 1 (sparsify [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
+
+  assert
+    (L3pre: forall ib (icb:ib<n),
+        ib ≢ k -> Is_ValZero (Vnth b icb)).
+  {
+    intros ib icb.
+    subst.
+    rewrite Vbuild_nth.
+    unfold ScatH, Scatter.
+    rewrite Vbuild_nth; intros H.
+    break_match.
+    - unfold h_index_map in i.
+      simpl in i.
+      destruct (Nat.eq_dec ib 0).
+      +  subst.
+         simpl in i.
+         break_match.
+         congruence.
+         crush.
       +
-        rewrite Vnth_sparsify.
-        rewrite Vnth_1.
-        setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
-        reflexivity.
-      +
-        unfold in_range in n0.
-        simpl in n0.
-        break_if; crush.
-    Qed.
+        generalize (@inverse_index_f_spec 1 n
+                                          (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
+                                          (@build_inverse_index_map 1 n
+                                                                    (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) k i).
+        intros l.
+        break_if.
+        rewrite <- plus_n_O in e.
+        congruence.
+        simpl in *.
+        crush.
+    - apply SZero_is_ValZero.
+  }
+  rewrite SingleValueInZeros with (j:=k) (jc:=kp) by apply L3pre.
+  subst b.
+  rewrite Vbuild_nth.
+  unfold ScatH, Scatter.
+  rewrite Vbuild_nth.
+  break_match.
+  +
+    rewrite Vnth_sparsify.
+    rewrite Vnth_1.
+    setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
+    reflexivity.
+  +
+    unfold in_range in n0.
+    simpl in n0.
+    break_if; crush.
+Qed.
+
+Section SigmaHCOLExpansionRules.
+  Section Value_Correctness.
 
     (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
@@ -952,4 +952,4 @@ Section HTDirectSumExpansion.
   End Structural_Correctness.
 
 
-End HTDirectSumExpansion.
+End SigmaHCOLExpansionRules.
