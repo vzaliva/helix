@@ -684,63 +684,62 @@ Section HTDirectSumExpansion.
       {
         replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) (sparsify x)) with (sparsify x0).
         -
-          unfold ScatH, Scatter.
           apply Veq_nth.
           intros.
+          unfold ScatH, Scatter.
           rewrite Vbuild_nth.
 
           unfold sparsify.
           rewrite Vnth_app.
-          break_match.
+
+          destruct(le_gt_dec o1 i).
           + (* Second half of x, which is all zeros *)
             unfold szero_svector.
             rewrite Vnth_const.
-            remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
+            break_match.
+            *
 
-            destruct h'.
-            inversion Heqh'. rename H0 into H. clear Heqh'.
-            unfold VnthInverseIndexMapped.
-            simpl.
-            assert (HZI: partial_index_f i ≡ None).
-            {
-              apply is_None_def.
-              apply Copy_one_half_get_another_is_None with (o1:=0) (o2:=o1).
-              assumption.
-              simpl.
+              (* get rid of it to be able manipulate dependent hypothesis i0 *)
+              generalize (inverse_index_f_spec (h_index_map 0 1)
+                                               (build_inverse_index_map (h_index_map 0 1)) i i0).
+              apply in_range_of_h in i0.
+              crush.
+              rewrite <- H in l.
               omega.
-            }
-            generalize (partial_index_f_spec i ip).
-            rewrite HZI.
-            reflexivity.
+              apply ip.
+            * reflexivity.
           + (* First half of x, which is fx0 *)
-            remember ((build_inverse_index_map (h_index_map 0 1))) as h'.
-            destruct h'.
-            inversion Heqh'. rename H0 into H. clear Heqh'.
-            unfold VnthInverseIndexMapped; simpl.
-            assert (HZI: partial_index_f i ≡ Some i).
-            {
-              replace (Some i) with (Some (i-0)).
-              apply Copy_one_half_get_same_part_is_Some with (o2:=o1) (o1:=O).
-              assumption.
-              split; omega.
-              f_equal; omega.
-            }
-            generalize (partial_index_f_spec i ip) as some_spec.
-            rewrite HZI.
-            intros.
-            replace (some_spec i eq_refl) with g0 by apply proof_irrelevance.
             rewrite Vnth_map.
-            unfold liftM_HOperator, sparsify, compose.
-            rewrite Vnth_map.
-            unfold densify.
-            rewrite Vmap_map.
+            break_match.
+            * simpl.
+              unfold liftM_HOperator, sparsify, compose.
+              rewrite Vnth_map.
+              unfold densify.
+              rewrite Vmap_map.
+              unfold mkValue, WriterMonadNoT.evalWriter.
+              simpl.
+              replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
+                by (symmetry; apply Vmap_id).
+              replace (Vnth
+                         (f x0)
+                       (gen_inverse_index_f_spec
+                          (h_index_map 0 1) i i0)) with
+              (Vnth (f x0) g0).
+              reflexivity.
+              generalize (f x0) as fx0. intros fx0.
+              apply Vnth_eq.
+              symmetry.
 
-            unfold mkValue, WriterMonadNoT.evalWriter.
-            simpl.
-            replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
-              by (symmetry; apply Vmap_id).
-            reflexivity.
-        - unfold GathH, Gather.
+
+              apply build_inverse_index_map_is_left_inverse; try assumption.
+              apply h_index_map_is_injective; left; auto.
+
+              unfold h_index_map.
+              simpl.
+              rewrite Nat.mul_comm, Nat.mul_1_l.
+              reflexivity.
+        - (HERE)
+          unfold GathH, Gather.
           apply Veq_nth.
           intros.
           rewrite Vbuild_nth.

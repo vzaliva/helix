@@ -45,9 +45,9 @@ Section OptionSetoid.
       match a with
       | None => is_None b
       | Some x => (match b with
-                   | None => False
-                   | Some y => equiv x y
-                   end)
+                  | None => False
+                  | Some y => equiv x y
+                  end)
       end.
 
   Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
@@ -132,10 +132,10 @@ Section InRange.
     match d return (index_map d r) -> Prop with
     | O => fun _ => False
     | S d' => fun f' =>
-                match Nat.eq_dec (⟦f⟧ d') i with
-                | left x => True
-                | right x => in_range (shrink_index_map_domain f') i
-                end
+               match Nat.eq_dec (⟦f⟧ d') i with
+               | left x => True
+               | right x => in_range (shrink_index_map_domain f') i
+               end
     end f.
 
   (* Prove that our 2 implementatoins of in_range are compatible *)
@@ -372,10 +372,10 @@ Section Inversions.
     match d return (index_map d r) -> nat with
     | O => fun _ => dummy
     | S d' => fun f' =>
-                match Nat.eq_dec (⟦f⟧ d') i with
-                | left x => d'
-                | right x => gen_inverse_index_f (shrink_index_map_domain f') i
-                end
+               match Nat.eq_dec (⟦f⟧ d') i with
+               | left x => d'
+               | right x => gen_inverse_index_f (shrink_index_map_domain f') i
+               end
     end f.
 
   Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
@@ -412,7 +412,7 @@ definition does not enforce this requirement, and the function produced might no
     :=
       let f0 := inverse_index_f f f' in
       forall x y, in_range f x -> in_range f y ->
-                  f0 x ≡ f0 y → x ≡ y.
+             f0 x ≡ f0 y → x ≡ y.
 
   Definition inverse_index_map_surjective
              {d r: nat} {f: index_map d r}
@@ -770,6 +770,28 @@ Section Primitive_Functions.
     intros x y xc yc H.
     simpl in H.
     nia.
+  Qed.
+
+  Lemma in_range_of_h
+        {domain range: nat}
+        (b s: nat)
+        {range_bound: forall x, x<domain -> (b+x*s) < range}
+        (y:nat)
+        (yc:y<range)
+    :
+      in_range (@h_index_map domain range b s range_bound) y
+      <-> ∃ x (xc:x<domain), b+x*s = y.
+  Proof.
+    split.
+    - intros H.
+      rewrite in_range_exists in H.
+      auto.
+      apply yc.
+    -
+      intros H.
+      apply in_range_exists.
+      apply yc.
+      apply H.
   Qed.
 
 End Primitive_Functions.
