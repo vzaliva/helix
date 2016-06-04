@@ -364,8 +364,8 @@ Section HTDirectSumExpansion.
 
     Lemma U_SAG1_PW:
       forall n (x:avector n)
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+             (f: { i | i<n} -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f},
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -722,8 +722,8 @@ Section HTDirectSumExpansion.
                 by (symmetry; apply Vmap_id).
               replace (Vnth
                          (f x0)
-                       (gen_inverse_index_f_spec
-                          (h_index_map 0 1) i i0)) with
+                         (gen_inverse_index_f_spec
+                            (h_index_map 0 1) i i0)) with
               (Vnth (f x0) g0).
               reflexivity.
               generalize (f x0) as fx0. intros fx0.
@@ -786,32 +786,46 @@ Section HTDirectSumExpansion.
           rewrite Vnth_app.
           break_match.
           + (* Second half of x, which is gx0 *)
-            remember (build_inverse_index_map (h_index_map o1 1)) as h'.
-            destruct h'.
-            inversion Heqh'. rename H0 into H. clear Heqh'.
-            unfold VnthInverseIndexMapped; simpl.
-            assert (HZI: partial_index_f i ≡ Some (i-o1)).
-            {
-              apply Copy_one_half_get_same_part_is_Some with (o2:=o2).
-              assumption.
-              split; assumption.
-            }
-            generalize (partial_index_f_spec i ip) as some_spec.
-            rewrite HZI.
-            intros.
-            replace (some_spec (i-o1) eq_refl) with (Vnth_app_aux o2 ip l) by apply proof_irrelevance.
+            break_match.
+            * simpl.
+              unfold liftM_HOperator, sparsify, compose.
+              rewrite 2!Vnth_map.
+              unfold densify.
+              rewrite Vmap_map.
+              unfold mkValue, WriterMonadNoT.evalWriter.
+              simpl.
 
-            unfold liftM_HOperator, sparsify, compose.
-            rewrite Vnth_map.
-            unfold densify.
-            rewrite Vmap_map.
+              replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
+                by (symmetry; apply Vmap_id).
+              replace (Vnth
+                         (g x1)
+                         (gen_inverse_index_f_spec
+                            (h_index_map o1 1) i i0)) with
+              (Vnth
+                 (g x1) (Vnth_app_aux o2 ip l)).
+              reflexivity.
+              generalize (g x1) as gx1. intros gx1.
+              apply Vnth_eq.
+              symmetry.
 
-            unfold mkValue, WriterMonadNoT.evalWriter.
-            simpl.
-            rewrite Vnth_map.
-            replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
-              by (symmetry; apply Vmap_id).
-            reflexivity.
+              apply build_inverse_index_map_is_left_inverse; try assumption.
+              apply h_index_map_is_injective; left; auto.
+              lia.
+
+              unfold h_index_map.
+              simpl.
+              lia.
+            *
+              generalize (inverse_index_f_spec (h_index_map o1 1)
+                                               (build_inverse_index_map (h_index_map o1 1)) i i0).
+              generalize (Vnth (szero_svector o1) g0).
+              rewrite in_range_of_h in i0.
+              destruct i0 as [z H].
+              destruct H as [zc H].
+              rewrite Nat.mul_1_r in H.
+              rewrite <- H in g0.
+              crush.
+              apply ip.
           + (* First half of x, which is all zeros *)
             unfold szero_svector.  rewrite Vnth_const.
             remember ((build_inverse_index_map (h_index_map o1 1))) as h'.
