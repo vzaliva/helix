@@ -744,27 +744,33 @@ Section HTDirectSumExpansion.
               simpl.
               rewrite Nat.mul_comm, Nat.mul_1_l.
               reflexivity.
-        - (HERE)
+        -
           unfold GathH, Gather.
           apply Veq_nth.
           intros.
+
+          rewrite Vnth_sparsify.
           rewrite Vbuild_nth.
+
           unfold h_index_map.
           unfold VnthIndexMapped.
           simpl.
+          rewrite Vnth_sparsify.
+
+
+
           apply Vbreak_arg_app in Heqp0.
           subst x.
-          unfold sparsify.
-          rewrite 2!Vnth_map.
           rewrite Vnth_app.
           break_match.
-          omega.
-          revert g0.
-          rewrite Mult.mult_1_r.
-          unfold gt.
-          intros g0.
-          replace g0 with ip by apply proof_irrelevance.
-          reflexivity.
+          + omega.
+          +
+            revert g0.
+            rewrite Mult.mult_1_r.
+            unfold gt.
+            intros g0.
+            replace g0 with ip by apply proof_irrelevance.
+            reflexivity.
       }
 
       assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
