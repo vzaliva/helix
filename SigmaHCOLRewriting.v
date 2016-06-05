@@ -122,6 +122,18 @@ Proof.
   unfold sparsify, densify.
   rewrite Vmap_map.
 
+  unfold equiv, VecSetoid.vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  repeat rewrite Vnth_map.
+  f_equiv.
+  apply VecSetoid.Vnth_arg_equiv.
+  f_equiv.
+  unfold equiv, VecSetoid.vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i0 ip0.
+  repeat rewrite Vnth_map.
+  f_equiv.
 Qed.
 
 Fact ScatH_stride1_constr:
