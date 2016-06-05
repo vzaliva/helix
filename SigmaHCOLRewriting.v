@@ -595,6 +595,8 @@ Section SigmaHCOLExpansionRules.
         BinOp(1, o.op),
         GathH(2*o.N, 2, i, o.N)
         )))),
+
+       This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
     Theorem expand_BinOp:
       forall n (x:avector (n+n))
@@ -982,16 +984,19 @@ End SigmaHCOLExpansionRules.
 
 Require HCOLBreakdown. (* for dywin_SPL *)
 
-Definition dywin_SigmaSPL (a: avector 3) :=
-  liftM_HOperator (HCOLBreakdown.dywin_SPL a).
+Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
+  :=
+    szero_svector 1.
 
+Check dywin_SigmaSPL.
 (* Our top-level example goal *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
     liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
 Proof.
   intros a.
-  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
-
+  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
+  rewrite LiftM_Hoperator_HCompose.
+  unfold liftM_HOperator at 1.unfold compose.
   rewrite expand_BinOp.
 
 Qed.
