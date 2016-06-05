@@ -676,10 +676,8 @@ Section SigmaHCOLExpansionRules.
             rewrite Vnth_const.
             break_match.
             *
-
               (* get rid of it to be able manipulate dependent hypothesis i0 *)
-              generalize (inverse_index_f_spec (h_index_map 0 1)
-                                               (build_inverse_index_map (h_index_map 0 1)) i i0).
+              exfalso.
               apply in_range_of_h in i0.
               crush.
               rewrite <- H in l.
@@ -794,9 +792,7 @@ Section SigmaHCOLExpansionRules.
               simpl.
               lia.
             *
-              generalize (inverse_index_f_spec (h_index_map o1 1)
-                                               (build_inverse_index_map (h_index_map o1 1)) i i0).
-              generalize (Vnth (szero_svector o1) g0).
+              exfalso.
               rewrite in_range_of_h in i0.
               destruct i0 as [z H].
               destruct H as [zc H].
@@ -996,7 +992,7 @@ Proof.
   intros a.
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
   rewrite LiftM_Hoperator_HCompose.
-  unfold liftM_HOperator at 1.unfold compose.
+  unfold liftM_HOperator at 1. unfold compose.
   rewrite expand_BinOp.
 
 Qed.
