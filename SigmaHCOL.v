@@ -174,7 +174,7 @@ Section SigmaHCOL_Operators.
     apply SHOperator_Scatter.
   Qed.
 
-  Instance SHOperator_compose
+  Global Instance SHOperator_compose
            {i1 o2 o3}
            (op1: svector o2 -> svector o3)
            `{S1:!SHOperator op1}
@@ -198,6 +198,21 @@ Definition liftM_HOperator
            `{hop: !HOperator op}
   : svector i -> svector o :=
   sparsify ∘ op ∘ densify.
+
+Global Instance SHOperator_liftM_HOperator
+           {i o}
+           (op: avector i -> avector o)
+           `{hop: !HOperator op}
+  : SHOperator (liftM_HOperator op).
+Proof.
+  unfold SHOperator.
+  split; try apply vec_Setoid.
+  intros x y Exy.
+  unfold liftM_HOperator, compose.
+  unfold sparsify, densify.
+  rewrite Exy.
+  reflexivity.
+Qed.
 
 Definition SparseEmbedding
            {i o ki ko}

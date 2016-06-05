@@ -109,6 +109,20 @@ Proof.
     + reflexivity.
 Qed.
 
+Lemma LiftM_Hoperator_HCompose
+      {i1 o2 o3}
+      `{HOperator o2 o3 op1}
+      `{HOperator i1 o2 op2}
+  :
+    liftM_HOperator (op1 ⊚ op2) = (liftM_HOperator op1) ∘ (liftM_HOperator op2).
+Proof.
+  apply SHOperator_functional_extensionality.
+  intros v.
+  unfold liftM_HOperator, HCompose, compose.
+  unfold sparsify, densify.
+  rewrite Vmap_map.
+
+Qed.
 
 Fact ScatH_stride1_constr:
 forall {a b:nat}, 1 ≢ 0 ∨ a < b.
@@ -953,3 +967,19 @@ Section SigmaHCOLExpansionRules.
 
 
 End SigmaHCOLExpansionRules.
+
+Require HCOLBreakdown. (* for dywin_SPL *)
+
+Definition dywin_SigmaSPL (a: avector 3) :=
+  liftM_HOperator (HCOLBreakdown.dywin_SPL a).
+
+(* Our top-level example goal *)
+Theorem DynWinSigmSPL:  forall (a: avector 3),
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
+Proof.
+  intros a.
+  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
+
+  rewrite expand_BinOp.
+
+Qed.

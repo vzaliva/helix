@@ -256,19 +256,25 @@ Section HCOLBreakdown.
 
 End HCOLBreakdown.
 
+Definition dywin_orig (a: avector 3) :=
+  (HTLess
+     (HEvalPolynomial a)
+     (HChebyshevDistance 2)).
+
+
+Definition dywin_SPL (a: avector 3) :=
+  (HBinOp (IgnoreIndex2 Zless) ⊚
+          HCross
+          ((HReduction plus 0 ⊚ HBinOp (IgnoreIndex2 mult)) ⊚ (HPrepend a ⊚ HInduction _ mult 1))
+          (HReduction MaxAbs 0 ⊚ HBinOp (o:=2) (IgnoreIndex2 pneg))).
+
 
 (* Our top-level example goal *)
 Theorem DynWinOSPL:  forall (a: avector 3),
-    (HTLess
-       (HEvalPolynomial a)
-       (HChebyshevDistance 2))
-    =
-    (HBinOp (IgnoreIndex2 Zless) ⊚
-            HCross
-            ((HReduction plus 0 ⊚ HBinOp (IgnoreIndex2 mult)) ⊚ (HPrepend a ⊚ HInduction _ mult 1))
-            (HReduction MaxAbs 0 ⊚ HBinOp (o:=2) (IgnoreIndex2 pneg))).
+    dywin_orig a = dywin_SPL a.
 Proof.
   intros a.
+  unfold dywin_orig, dywin_SPL.
   rewrite breakdown_OTLess_Base.
   rewrite breakdown_OEvalPolynomial.
   rewrite breakdown_OScalarProd.
