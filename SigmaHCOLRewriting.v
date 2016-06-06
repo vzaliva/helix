@@ -2,6 +2,7 @@
 Require Import VecUtil.
 Require Import Spiral.
 Require Import Rtheta.
+Require Import VecSetoid.
 Require Import SVector.
 Require Import SigmaHCOL.
 Require Import HCOL.
@@ -27,6 +28,8 @@ Require Import SpiralTactics.
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
+Require Import MathClasses.theory.setoids.
+
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -984,7 +987,7 @@ Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
   :=
     szero_svector 1.
 
-Check dywin_SigmaSPL.
+
 (* Our top-level example goal *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
     liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
@@ -992,7 +995,16 @@ Proof.
   intros a.
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
   rewrite LiftM_Hoperator_HCompose.
+
   unfold liftM_HOperator at 1. unfold compose.
+  eapply ext_equiv_applied_iff.
+  intros x.
+
+  unfold liftM_HOperator, compose.
+  rewrite <- HTDirectSumHCrossEq.
+  rewrite expand_HTDirectSum.
+
+
   rewrite expand_BinOp.
 
 Qed.
