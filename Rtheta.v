@@ -157,10 +157,13 @@ Definition mkSZero : Rtheta := mkStruct 0.
 Definition mkValue (val: CarrierA) : Rtheta :=
   tell (mkRthetaFlags false false) ;; ret val.
 
-Definition Is_Val := IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags).
+Definition Is_Val : Rtheta -> Prop :=
+  IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags).
+
 Definition Is_Struct := not ∘ Is_Val.
 
-Definition Is_Collision (x:Rtheta) := (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
+Definition Is_Collision (x:Rtheta) :=
+  (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
 Definition Not_Collision := not ∘ Is_Collision.
 
 Lemma IsVal_mkValue:

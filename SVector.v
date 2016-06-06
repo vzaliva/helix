@@ -29,7 +29,7 @@ Open Scope nat_scope.
 Notation svector n := (vector Rtheta n) (only parsing).
 
 (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
-Definition sparsify {n} (v:vector CarrierA n): svector n :=
+Definition sparsify {n} (v:avector n): svector n :=
   Vmap mkValue v.
 
 Global Instance sparsify_proper {n:nat}:
@@ -42,8 +42,8 @@ Proof.
 Qed.
 
 (* Project out carrier type values from vector of Rheta values *)
-Definition densify {n} (v:svector n): vector CarrierA n :=
-  Vmap (@evalWriter RthetaFlags CarrierA _) v.
+Definition densify {n} (v:svector n): avector n :=
+  Vmap (A:=Rtheta) (@evalWriter _ _ _) v.
 
 Global Instance densify_proper {n:nat}:
     Proper ((=) ==> (=)) (@densify n).
@@ -60,7 +60,6 @@ Definition szero_svector n: svector n := Vconst mkSZero n.
 (* "dense" vector means that it does not contain "structural" values *)
 Definition svector_is_dense {n} (v:svector n) : Prop :=
   Vforall Is_Val v.
-
 
 Local Open Scope bool_scope.
 

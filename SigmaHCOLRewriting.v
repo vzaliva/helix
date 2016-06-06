@@ -988,6 +988,37 @@ Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
     szero_svector 1.
 
 
+(* mkValue on evalWriter on non-collision value is identity *)
+Lemma mkValue_evalWriter_VNC (r : Rtheta):
+  Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
+Proof.
+  intros D N.
+  unfold Is_Val, compose in D.
+  unfold Not_Collision, compose, Is_Collision, compose in N.
+  unfold WriterMonadNoT.execWriter in D.
+  unfold WriterMonadNoT.execWriter in N.
+  unfold WriterMonadNoT.evalWriter.
+  destruct r.
+Admitted.
+
+Lemma sparsify_densify {n} (x:svector n):
+  svector_is_dense x ->
+  svector_is_non_collision x ->
+  (sparsify (densify x)) ≡ x.
+Proof.
+  intros D N.
+  unfold densify, sparsify.
+  rewrite Vmap_map.
+  apply Vmap_eq_nth.
+  intros i ip.
+  unfold svector_is_dense in D.
+  apply Vforall_nth with (ip:=ip) in D.
+  unfold svector_is_non_collision in N.
+  apply Vforall_nth with (ip:=ip) in N.
+  generalize dependent (Vnth x ip). clear ip i.
+  apply mkValue_evalWriter_VNC.
+Qed.
+
 (* Our top-level example goal *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
     liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
@@ -1007,5 +1038,6 @@ Proof.
 
   rewrite expand_HTDirectSum.
   rewrite expand_BinOp.
+  (* rewrite 2!sparsify_densify. *)
 
 Qed.
