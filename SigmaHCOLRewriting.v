@@ -1002,9 +1002,10 @@ Proof.
 
   unfold liftM_HOperator, compose.
   rewrite <- HTDirectSumHCrossEq.
+  (* Set Printing Implicit. Show. *)
+  replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
+
   rewrite expand_HTDirectSum.
-
-
   rewrite expand_BinOp.
 
 Qed.

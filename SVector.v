@@ -32,9 +32,27 @@ Notation svector n := (vector Rtheta n) (only parsing).
 Definition sparsify {n} (v:vector CarrierA n): svector n :=
   Vmap mkValue v.
 
+Global Instance sparsify_proper {n:nat}:
+    Proper ((=) ==> (=)) (@sparsify n).
+Proof.
+  intros x y E.
+  unfold sparsify.
+  rewrite E.
+  reflexivity.
+Qed.
+
 (* Project out carrier type values from vector of Rheta values *)
 Definition densify {n} (v:svector n): vector CarrierA n :=
   Vmap (@evalWriter RthetaFlags CarrierA _) v.
+
+Global Instance densify_proper {n:nat}:
+    Proper ((=) ==> (=)) (@densify n).
+Proof.
+  intros x y E.
+  unfold densify.
+  rewrite E.
+  reflexivity.
+Qed.
 
 (* Construct "Zero svector". All values are structural zeros. *)
 Definition szero_svector n: svector n := Vconst mkSZero n.
