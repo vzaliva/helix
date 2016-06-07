@@ -30,7 +30,6 @@ Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 Open Scope vector_scope.
-Open Scope hcol_scope.
 
 Definition MaxAbs (a b: CarrierA): CarrierA := max (abs a) (abs b).
 
@@ -73,7 +72,7 @@ Section HCOLBreakdown.
   Fact breakdown_OScalarProd: forall {h:nat},
       HScalarProd (h:=h)
       =
-      ((HReduction  (+) 0) ⊚ (HBinOp (IgnoreIndex2 mult))).
+      ((HReduction  (+) 0) ∘ (HBinOp (IgnoreIndex2 mult))).
   Proof.
     intros h.
     apply HOperator_functional_extensionality; intros v.
@@ -112,14 +111,14 @@ Section HCOLBreakdown.
 
   Fact breakdown_OEvalPolynomial: forall (n:nat) (a: avector (S n)),
       HEvalPolynomial a =
-      (HScalarProd ⊚
-                   ((HPrepend  a) ⊚
+      (HScalarProd ∘
+                   ((HPrepend  a) ∘
                                   (HMonomialEnumerator n))).
   Proof.
     intros n a.
     apply HOperator_functional_extensionality; intros v.
     unfold HEvalPolynomial, HScalarProd, HPrepend, HMonomialEnumerator.
-    unfold vector2pair, HCompose, compose, Lst, Scalarize.
+    unfold vector2pair, compose, Lst, Scalarize.
     rewrite Vcons_single_elim, Vbreak_app.
     apply breakdown_EvalPolynomial.
   Qed.
@@ -204,7 +203,7 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OChebyshevDistance:  forall (n:nat),
-      HChebyshevDistance n = (HInfinityNorm ⊚ HVMinus).
+      HChebyshevDistance n = (HInfinityNorm ∘ HVMinus).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -237,12 +236,12 @@ Section HCOLBreakdown.
       {i1 i2 o}
       `{o1pf: !HOperator (o1: avector i1 -> avector o)}
       `{o2pf: !HOperator (o2: avector i2 -> avector o)},
-      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ⊚ HCross o1 o2).
+      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
   Proof.
     intros i1 i2 o o1 po1 o2 po2.
     apply HOperator_functional_extensionality; intros v.
     unfold HTLess, HBinOp, HCross.
-    unfold HCompose, compose, BinOp.
+    unfold compose, BinOp.
     simpl.
     rewrite vp2pv.
     repeat break_let.
@@ -263,10 +262,10 @@ Definition dywin_orig (a: avector 3) :=
 
 
 Definition dywin_SPL (a: avector 3) :=
-  (HBinOp (IgnoreIndex2 Zless) ⊚
+  (HBinOp (IgnoreIndex2 Zless) ∘
           HCross
-          ((HReduction plus 0 ⊚ HBinOp (IgnoreIndex2 mult)) ⊚ (HPrepend a ⊚ HInduction _ mult 1))
-          (HReduction MaxAbs 0 ⊚ HBinOp (o:=2) (IgnoreIndex2 pneg))).
+          ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
+          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 pneg))).
 
 
 (* Our top-level example goal *)

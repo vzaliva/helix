@@ -35,7 +35,6 @@ Require Import MathClasses.theory.setoids.
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Local Open Scope hcol_scope. (* for compose *)
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
@@ -112,16 +111,16 @@ Proof.
     + reflexivity.
 Qed.
 
-Lemma LiftM_Hoperator_HCompose
+Lemma LiftM_Hoperator_compose
       {i1 o2 o3}
       `{HOperator o2 o3 op1}
       `{HOperator i1 o2 op2}
   :
-    liftM_HOperator (op1 ⊚ op2) = (liftM_HOperator op1) ∘ (liftM_HOperator op2).
+    liftM_HOperator (op1 ∘ op2) = (liftM_HOperator op1) ∘ (liftM_HOperator op2).
 Proof.
   apply SHOperator_functional_extensionality.
   intros v.
-  unfold liftM_HOperator, HCompose, compose.
+  unfold liftM_HOperator, compose.
   unfold sparsify, densify.
   rewrite Vmap_map.
 
@@ -652,7 +651,7 @@ Section SigmaHCOLExpansionRules.
             ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
           (sparsify x).
     Proof.
-      unfold HTDirectSum, HCross, THCOLImpl.Cross, HCompose, compose,
+      unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
       HTSUMUnion, pair2vector.
       break_let. break_let.
       rename t1 into x0, t2 into x1.
@@ -994,7 +993,7 @@ Theorem DynWinSigmSPL:  forall (a: avector 3),
 Proof.
   intros a.
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
-  rewrite LiftM_Hoperator_HCompose.
+  rewrite LiftM_Hoperator_compose.
 
   unfold liftM_HOperator at 1. unfold compose.
   eapply ext_equiv_applied_iff.

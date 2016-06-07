@@ -96,36 +96,25 @@ Proof.
   apply Ef; assumption.
 Qed.
 
-Definition HCompose
-           {i1 o2 o3}
-           (op1: avector o2 -> avector o3)
-           (op2: avector i1 -> avector o2)
-  := compose op1 op2.
 
-(* Special compose notation for Hoperator *)
-Notation " g ⊚ f " := (HCompose g f)
-                        (at level 40, left associativity) : hcol_scope.
-
-Local Open Scope hcol_scope.
-
-Instance HCompose_THOperator2 {i1 o2 o3}:
-  THOperator2 (@HCompose i1 o2 o3).
+Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
+  @THOperator2 o2 o3 i1 o2 i1 o3 (compose).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
-  unfold HCompose, compose, pair2vector, vector2pair.
+  unfold compose, pair2vector, vector2pair.
   apply Ef, Eg, Ex.
 Qed.
 
-Instance HCompose_HOperator
+Instance compose_HOperator
          {i1 o2 o3}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
 :
-  HOperator (op1 ⊚ op2).
+  HOperator (op1 ∘ op2).
 Proof.
   unfold HOperator. split; try (apply vec_Setoid).
   intros x y E.
-  unfold HCompose, compose.
+  unfold compose.
   rewrite E.
   reflexivity.
 Qed.
