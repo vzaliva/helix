@@ -998,8 +998,29 @@ Proof.
   unfold WriterMonadNoT.execWriter in D.
   unfold WriterMonadNoT.execWriter in N.
   unfold WriterMonadNoT.evalWriter.
+
+  unfold IsVal in D.
+  unfold IsCollision in N.
+  unfold mkValue.
+  simpl.
+
   destruct r.
-Admitted.
+  destruct runWriterT.
+  simpl in *.
+  apply Bool.negb_prop_intro in D.
+  apply Bool.negb_prop_intro in N.
+  apply Bool.Is_true_eq_true, Bool.negb_true_iff in D.
+  apply Bool.Is_true_eq_true, Bool.negb_true_iff in N.
+
+  destruct unIdent.
+  simpl in *.
+  unfold RthetaFlagsAppend.
+  simpl.
+  destruct psnd.
+  simpl in *.
+  subst.
+  reflexivity.
+Qed.
 
 Lemma sparsify_densify {n} (x:svector n):
   svector_is_dense x ->
