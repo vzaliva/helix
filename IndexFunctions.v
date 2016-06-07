@@ -30,14 +30,6 @@ Require Import CoLoR.Util.List.ListUtil.
 
 Require Import Spiral.
 
-
-(* n-1 ... 0 *)
-Fixpoint rev_natrange_list (n:nat) : list nat :=
-  match n with
-  | O => List.nil
-  | S p => List.cons p (rev_natrange_list p)
-  end.
-
 (* Setoid equality for option types *)
 Section OptionSetoid.
   Global Instance option_Equiv `{Equiv A}: Equiv (option A) :=
@@ -281,16 +273,6 @@ Section InRange.
   Qed.
 
 End InRange.
-
-
-Section Permutations.
-  Program Definition index_map_is_permutation
-          {n: nat}
-          (f: index_map n n)
-    :=
-      let l:=(rev_natrange_list n) in
-      Permutation l (List.map ⟦ f ⟧ l).
-End Permutations.
 
 Section Jections.
 
