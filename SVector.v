@@ -104,6 +104,16 @@ Definition VecUnion {n} (v: svector n): Rtheta :=
 Definition Vec2Union {n} (a b: svector n): svector n
   := Vmap2 Union a b.
 
+Global Instance Vec2Union_proper {n}
+  :
+    Proper ((=) ==> (=) ==> (=)) (Vec2Union (n:=n)).
+Proof.
+  intros a a' Ea b b' Eb.
+  unfold Vec2Union.
+  rewrite Ea, Eb.
+  reflexivity.
+Qed.
+
 Definition SumUnion
            {o n}
            (v: vector (svector o) n): svector o

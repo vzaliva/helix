@@ -1002,13 +1002,17 @@ Proof.
 
   unfold liftM_HOperator, compose.
   rewrite <- HTDirectSumHCrossEq.
-  (* Set Printing Implicit. Show. *)
   replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
 
   rewrite expand_HTDirectSum.
-  rewrite expand_BinOp.
-  setoid_replace (sparsify (densify x)) with x.
-  (* setoid_rewrite 2!sparsify_densify_equiv. *)
-  (* rewrite 2!sparsify_densify *)
 
+  Typeclasses eauto := 5.
+  setoid_rewrite sparsify_densify_equiv.
+
+  (* Typeclasses eauto := 5.
+  Typeclasses eauto := debug.
+  setoid_rewrite sparsify_densify_equiv.
+   *)
+
+  rewrite expand_BinOp.
 Qed.
