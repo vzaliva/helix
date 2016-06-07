@@ -379,6 +379,20 @@ Proof.
   apply mkValue_evalWriter_VNC.
 Qed.
 
+Lemma sparsify_densify_equiv {n} (x:svector n):
+  (sparsify (densify x)) = x.
+Proof.
+  unfold densify, sparsify.
+  rewrite Vmap_map.
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite Vnth_map.
+  generalize dependent (Vnth x ip). clear ip i.
+  intros r.
+  apply mkValue_evalWriter.
+Qed.
+
 
 Close Scope vector_scope.
 Close Scope nat_scope.

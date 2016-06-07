@@ -290,6 +290,26 @@ Proof.
   reflexivity.
 Qed.
 
+(* mkValue on evalWriter equiv wrt values *)
+Lemma mkValue_evalWriter (r : Rtheta):
+  mkValue (WriterMonadNoT.evalWriter r) = r.
+Proof.
+  unfold WriterMonadNoT.evalWriter.
+  unfold_Rtheta_equiv.
+  unfold mkValue.
+  simpl.
+
+  destruct r.
+  destruct runWriterT.
+  simpl in *.
+  destruct unIdent.
+  simpl in *.
+  unfold RthetaFlagsAppend.
+  simpl.
+  destruct psnd.
+  reflexivity.
+Qed.
+
 Section Decidablitiy.
 
   Global Instance IsVal_dec `(x: RthetaFlags) : Decision (IsVal x).

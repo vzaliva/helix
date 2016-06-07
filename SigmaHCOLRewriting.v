@@ -987,7 +987,8 @@ Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
   :=
     szero_svector 1.
 
-(* Our top-level example goal *)
+(* Our top-level example goal.
+Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
     liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
 Proof.
@@ -1006,6 +1007,8 @@ Proof.
 
   rewrite expand_HTDirectSum.
   rewrite expand_BinOp.
+  setoid_replace (sparsify (densify x)) with x.
+  (* setoid_rewrite 2!sparsify_densify_equiv. *)
   (* rewrite 2!sparsify_densify *)
 
 Qed.
