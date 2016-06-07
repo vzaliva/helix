@@ -361,6 +361,23 @@ Proof.
   apply IsVal_mkValue.
 Qed.
 
+Lemma sparsify_densify {n} (x:svector n):
+  svector_is_dense x ->
+  svector_is_non_collision x ->
+  (sparsify (densify x)) ≡ x.
+Proof.
+  intros D N.
+  unfold densify, sparsify.
+  rewrite Vmap_map.
+  apply Vmap_eq_nth.
+  intros i ip.
+  unfold svector_is_dense in D.
+  apply Vforall_nth with (ip:=ip) in D.
+  unfold svector_is_non_collision in N.
+  apply Vforall_nth with (ip:=ip) in N.
+  generalize dependent (Vnth x ip). clear ip i.
+  apply mkValue_evalWriter_VNC.
+Qed.
 
 
 Close Scope vector_scope.

@@ -256,6 +256,40 @@ Proof.
 Qed.
 
 
+(* mkValue on evalWriter on non-collision value is identity *)
+Lemma mkValue_evalWriter_VNC (r : Rtheta):
+  Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
+Proof.
+  intros D N.
+  unfold Is_Val, compose in D.
+  unfold Not_Collision, compose, Is_Collision, compose in N.
+  unfold WriterMonadNoT.execWriter in D.
+  unfold WriterMonadNoT.execWriter in N.
+  unfold WriterMonadNoT.evalWriter.
+
+  unfold IsVal in D.
+  unfold IsCollision in N.
+  unfold mkValue.
+  simpl.
+
+  destruct r.
+  destruct runWriterT.
+  simpl in *.
+  apply Bool.negb_prop_intro in D.
+  apply Bool.negb_prop_intro in N.
+  apply Bool.Is_true_eq_true, Bool.negb_true_iff in D.
+  apply Bool.Is_true_eq_true, Bool.negb_true_iff in N.
+
+  destruct unIdent.
+  simpl in *.
+  unfold RthetaFlagsAppend.
+  simpl.
+  destruct psnd.
+  simpl in *.
+  subst.
+  reflexivity.
+Qed.
+
 Section Decidablitiy.
 
   Global Instance IsVal_dec `(x: RthetaFlags) : Decision (IsVal x).
