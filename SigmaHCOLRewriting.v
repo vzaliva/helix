@@ -989,18 +989,16 @@ Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
 
 Global Instance Vbuild_proper {n:nat}:
   @Proper
-    (forall _ : forall (i : nat) (_ : i < n), t Rtheta n,
-        t (t Rtheta n) n)
+    (forall _ : forall (i : nat) (_ : i < n), svector n,
+        vector (svector n) n)
     (@respectful
-       (forall (i : nat) (_ : i < n), t Rtheta n)
-       (t (t Rtheta n) n)
+       (forall (i : nat) (_ : i < n), svector n)
+       (vector (svector n) n)
        (@forall_relation nat
-                         (fun i : nat =>
-                            forall _ : Peano.lt i n, t Rtheta n)
-                         (fun i : nat =>
-                            @pointwise_relation (i < n)
-                                                (t Rtheta n) (=)))
-       (=)) (@Vbuild (t Rtheta n) n).
+                         (fun i : nat =>  forall _ : i<n, svector n)
+                         (fun i : nat =>  @pointwise_relation (i < n)
+                                                         (svector n) (=)))
+       (=)) (@Vbuild (svector n) n).
 Proof.
 Admitted.
 
