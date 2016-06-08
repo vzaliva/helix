@@ -351,3 +351,24 @@ Proof.
     assumption.
 Qed.
 
+Global Instance Vbuild_proper {n:nat} `{Equiv A}:
+  @Proper
+    (forall _ : forall (i : nat) (_ : i < n), vector A n,
+        vector (vector A n) n)
+    (@respectful
+       (forall (i : nat) (_ : i < n), vector A n)
+       (vector (vector A n) n)
+       (@forall_relation nat
+                         (fun i : nat =>  forall _ : i<n, vector A n)
+                         (fun i : nat =>  @pointwise_relation (i < n)
+                                                         (vector A n) (=)))
+       (=)) (@Vbuild (vector A n) n).
+Proof.
+  intros f f' E.
+  unfold forall_relation, pointwise_relation in E.
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite 2!Vbuild_nth.
+  apply E.
+Qed.

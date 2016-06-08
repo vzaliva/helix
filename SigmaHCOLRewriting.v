@@ -1006,9 +1006,7 @@ Proof.
 
   rewrite expand_HTDirectSum.
 
-  Typeclasses eauto := 7.
   setoid_rewrite sparsify_densify_equiv.
   rewrite expand_BinOp.
-  Typeclasses eauto := 6.
   setoid_rewrite sparsify_densify_equiv.
 Qed.
