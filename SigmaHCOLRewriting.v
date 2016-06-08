@@ -986,6 +986,24 @@ Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
   :=
     szero_svector 1.
 
+
+Global Instance Vbuild_proper {n:nat}:
+  @Proper
+    (forall _ : forall (i : nat) (_ : i < n), t Rtheta n,
+        t (t Rtheta n) n)
+    (@respectful
+       (forall (i : nat) (_ : i < n), t Rtheta n)
+       (t (t Rtheta n) n)
+       (@forall_relation nat
+                         (fun i : nat =>
+                            forall _ : Peano.lt i n, t Rtheta n)
+                         (fun i : nat =>
+                            @pointwise_relation (i < n)
+                                                (t Rtheta n) (=)))
+       (=)) (@Vbuild (t Rtheta n) n).
+Proof.
+Admitted.
+
 (* Our top-level example goal.
 Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
