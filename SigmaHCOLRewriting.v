@@ -1,4 +1,6 @@
 
+Global Generalizable All Variables.
+
 Require Import VecUtil.
 Require Import Spiral.
 Require Import Rtheta.
@@ -37,6 +39,20 @@ Import VectorNotations.
 
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
+
+Lemma ext_equiv_applied_iff'
+      `{Equiv A} `{Equiv B}
+      `(!Setoid_Morphism (f : A → B))
+      `(!Setoid_Morphism (g : A → B)) :
+  f = g ↔ ∀ x, f x = g x.
+Proof.
+  pose proof (setoidmor_a f).
+  pose proof (setoidmor_b f).
+  split; intros E1.
+  now apply ext_equiv_applied.
+  intros x y E2. now rewrite E2.
+Qed.
+
 
 Lemma Gather_composition
       {i o t: nat}
@@ -641,18 +657,34 @@ Section SigmaHCOLExpansionRules.
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
-            (x: avector (i1+i2)) (* input vector *)
       :
-        sparsify (HTDirectSum f g x) =
+        sparsify ∘ (HTDirectSum f g) =
         (HTSUMUnion
            ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
             ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
            ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-            ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))
-          (sparsify x).
+            ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))) ∘ sparsify.
     Proof.
+      unfold compose.
+      eapply ext_equiv_applied_iff'.
+
+      {
+        split; try apply vec_Setoid.
+        intros x y E.
+        rewrite E. reflexivity.
+      }
+
+      {
+        split; try apply vec_Setoid.
+        intros x y E.
+        rewrite E. reflexivity.
+      }
+
+      intros x.
+
       unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
       HTSUMUnion, pair2vector.
+
       break_let. break_let.
       rename t1 into x0, t2 into x1.
       tuple_inversion.
@@ -851,7 +883,6 @@ Section SigmaHCOLExpansionRules.
       apply Vec2Union_szero_svector_l.
       apply Vec2Union_szero_svector_r.
     Qed.
-
   End Value_Correctness.
 
   Section Structural_Correctness.
@@ -983,30 +1014,152 @@ End SigmaHCOLExpansionRules.
 Require HCOLBreakdown. (* for dywin_SPL *)
 
 Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
-  :=
-    szero_svector 1.
+  := szero_svector 1.
 
+Global Instance compose_vec_proper {i1 o2 o3:nat}
+       {A B C: Type}
+       {Ea: Equiv A}
+       {Eb: Equiv B}
+       {Ec: Equiv C}
+  :
+    Proper (((@vec_Equiv B Eb o2) ==> (@vec_Equiv C Ec o3))
+              ==> ((@vec_Equiv A Ea i1) ==> (@vec_Equiv B Eb o2))
+              ==> ((@vec_Equiv A Ea i1) ==> (@vec_Equiv C Ec o3)))
+         (compose) | 0.
+Proof.
+  intros f f' Ef' g g' Eg' c c' Ec'.
+  unfold compose. apply Ef'. apply Eg'. apply Ec'.
+Qed.
 
 (* Our top-level example goal.
 Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = (* dywin_SigmaSPL a. *)
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a).
 Proof.
   intros a.
+
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
-  rewrite LiftM_Hoperator_compose.
+  repeat rewrite LiftM_Hoperator_compose.
+  unfold liftM_HOperator.
+  repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
 
-  unfold liftM_HOperator at 1. unfold compose.
-  eapply ext_equiv_applied_iff.
-  intros x.
+  remember (@compose (t CarrierA (S O))
+                     (t CarrierA (S (S (S (S (S (S O)))))))
+                     (t CarrierA (S O))
+                     (@compose (t CarrierA (S (S (S (S (S (S O)))))))
+                               (t CarrierA (S (S (S O)))) (t CarrierA (S O))
+                               (@HReduction (S (S (S O))) (@plus CarrierA CarrierAplus)
+                          (@sg_op_proper CarrierA CarrierAe CarrierAplus
+                             (@monoid_semigroup CarrierA CarrierAe CarrierAplus
+                                (@zero_is_mon_unit CarrierA CarrierAz)
+                                (@commonoid_mon CarrierA CarrierAe CarrierAplus
+                                   (@zero_is_mon_unit CarrierA CarrierAz)
+                                   (@semiplus_monoid CarrierA CarrierAe
+                                      CarrierAplus CarrierAmult CarrierAz
+                                      CarrierA1
+                                      (@Ring_Semi CarrierA CarrierAe
+                                         CarrierAplus CarrierAmult CarrierAz
+                                         CarrierA1 CarrierAneg CarrierAr)))))
+                          (@zero CarrierA CarrierAz))
+                       (@HBinOp (S (S (S O)))
+                          (@IgnoreIndex2 CarrierA (@mult CarrierA CarrierAmult))
+                          (@IgnoreIndex2_preserves_proper
+                             (@mult CarrierA CarrierAmult)
+                             (@sg_op_proper CarrierA CarrierAe CarrierAmult
+                                (@monoid_semigroup CarrierA CarrierAe
+                                   CarrierAmult
+                                   (@one_is_mon_unit CarrierA CarrierA1)
+                                   (@commonoid_mon CarrierA CarrierAe
+                                      CarrierAmult
+                                      (@one_is_mon_unit CarrierA CarrierA1)
+                                      (@semimult_monoid CarrierA CarrierAe
+                                         CarrierAplus CarrierAmult CarrierAz
+                                         CarrierA1
+                                         (@Ring_Semi CarrierA CarrierAe
+                                            CarrierAplus CarrierAmult CarrierAz
+                                            CarrierA1 CarrierAneg CarrierAr))))))))
+                    (@compose (t CarrierA (S O)) (t CarrierA (S (S (S O))))
+                       (t CarrierA (S (S (S (S (S (S O)))))))
+                       (@HPrepend (S (S (S O))) (S (S (S O))) a)
+                       (@HInduction (S (S (S O))) (@mult CarrierA CarrierAmult)
+                          (@sg_op_proper CarrierA CarrierAe CarrierAmult
+                             (@monoid_semigroup CarrierA CarrierAe CarrierAmult
+                                (@one_is_mon_unit CarrierA CarrierA1)
+                                (@commonoid_mon CarrierA CarrierAe CarrierAmult
+                                   (@one_is_mon_unit CarrierA CarrierA1)
+                                   (@semimult_monoid CarrierA CarrierAe
+                                      CarrierAplus CarrierAmult CarrierAz
+                                      CarrierA1
+                                      (@Ring_Semi CarrierA CarrierAe
+                                         CarrierAplus CarrierAmult CarrierAz
+                                         CarrierA1 CarrierAneg CarrierAr)))))
+                          (@one CarrierA CarrierA1)))) as f.
+    remember (@compose (t CarrierA (S (S (S (S O)))))
+                    (t CarrierA (S (S O))) (t CarrierA (S O))
+                    (@HReduction (S (S O)) HCOLBreakdown.MaxAbs
+                       HCOLBreakdown.MaxAbs_proper (@zero CarrierA CarrierAz))
+                    (@HBinOp (S (S O)) (@IgnoreIndex2 CarrierA HCOLImpl.pneg)
+                       (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
+                          HCOLImpl.CarrierA_pneg_proper))) as g.
 
-  unfold liftM_HOperator, compose.
-  rewrite <- HTDirectSumHCrossEq.
-  replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
+    assert ((@sparsify (Init.Nat.add (S O) (S O))) ∘
+                                                   (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify   =
+            (@sparsify (Init.Nat.add (S O) (S O))) ∘
+                                                   (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify
+           ).
 
-  rewrite expand_HTDirectSum.
+    assert(Setoid_Morphism f). admit.
+    assert(Setoid_Morphism g). admit.
+    assert(forall n, Setoid_Morphism (@densify n)). admit.
+    assert(forall n, Setoid_Morphism (@sparsify n)). admit.
+    Typeclasses eauto := 8.
+    setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
-  setoid_rewrite sparsify_densify_equiv.
-  rewrite expand_BinOp.
-  setoid_rewrite sparsify_densify_equiv.
+
+    Typeclasses eauto := debug.
+    Redirect "log"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    apply ext_equiv_applied_iff'.
+
+  -
+    split; try apply vec_Setoid.
+    intros x y E.
+    unfold compose.
+    rewrite E.
+    reflexivity.
+  -
+    split; try apply vec_Setoid.
+    intros x y E.
+    reflexivity.
+  -
+    intros x.
+    unfold liftM_HOperator.
+    repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
+
+
+
+    Typeclasses eauto := 10.
+    Typeclasses eauto := debug.
+    Redirect "log1.txt" setoid_rewrite expand_HTDirectSum.
+
+    setoid_rewrite sparsify_densify_equiv.
+    rewrite expand_BinOp.
+    setoid_rewrite sparsify_densify_equiv.
+
+    reflexivity.
 Qed.
