@@ -56,7 +56,7 @@ Section HCOL_implementations.
   Definition pneg := plus∘negate.
 
   (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
-  Global Instance CarrierA_neg_proper:
+  Global Instance CarrierA_pneg_proper:
     Proper ((=) ==> (=) ==> (=)) (pneg).
   Proof.
     intros a b Ha x y Hx .
