@@ -153,21 +153,7 @@ same as Cross, where input vectors are passed as concateneated
 vector. Since Coq formalization of HCross is already dfined this way
 we just alias DirectSum to it.
  *)
-Definition HTDirectSum
-           {i1 o1 i2 o2}
-           (f: avector i1 -> avector o1)
-           (g: avector i2 -> avector o2)
-  : avector (i1+i2) -> avector (o1+o2) := HCross f g.
-
-(* Utilitiy lemma stating that they are equal *)
-Definition HTDirectSumHCrossEq
-           {i1 o1 i2 o2}
-           (f: avector i1 -> avector o1)
-           (g: avector i2 -> avector o2)
-  :  HTDirectSum f g ≡ HCross f g.
-Proof.
-  reflexivity.
-Qed.
+Notation HTDirectSum := HCross.
 
 (* Not sure if this is needed *)
 Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
