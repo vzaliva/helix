@@ -105,10 +105,11 @@ Proof.
   apply Ef, Eg, Ex.
 Qed.
 
+
 Instance compose_HOperator
          {i1 o2 o3}
-        `{HOperator o2 o3 op1}
-        `{HOperator i1 o2 op2}
+        `{hop1: HOperator o2 o3 op1}
+        `{hop2: HOperator i1 o2 op2}
 :
   HOperator (op1 ∘ op2).
 Proof.
@@ -118,7 +119,6 @@ Proof.
   rewrite E.
   reflexivity.
 Qed.
-
 
 Definition HTLess {i1 i2 o}
            (f: avector i1 -> avector o)
