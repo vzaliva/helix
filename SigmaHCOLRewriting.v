@@ -1095,28 +1095,28 @@ Proof.
                                                    (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify
            ).
 
-    Typeclasses eauto := 8.
+    assert(Setoid_Morphism f).
+    {
+      split; try apply vec_Setoid.
+      intros x y E.
+      unfold equiv.
+      admit.
+    }
+
+    assert(Setoid_Morphism g).
+    {
+      split; try apply vec_Setoid.
+      intros x y E.
+      unfold equiv.
+      admit.
+    }
+    Typeclasses eauto := 10. (* TODO: remove! *)
     setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
 
-    Typeclasses eauto := debug.
-    Redirect "log"
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    apply ext_equiv_applied_iff'.
 
   -
     split; try apply vec_Setoid.
