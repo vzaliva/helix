@@ -1016,21 +1016,6 @@ Require HCOLBreakdown. (* for dywin_SPL *)
 Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
   := szero_svector 1.
 
-Global Instance compose_vec_proper {i1 o2 o3:nat}
-       {A B C: Type}
-       {Ea: Equiv A}
-       {Eb: Equiv B}
-       {Ec: Equiv C}
-  :
-    Proper (((@vec_Equiv B Eb o2) ==> (@vec_Equiv C Ec o3))
-              ==> ((@vec_Equiv A Ea i1) ==> (@vec_Equiv B Eb o2))
-              ==> ((@vec_Equiv A Ea i1) ==> (@vec_Equiv C Ec o3)))
-         (compose) | 0.
-Proof.
-  intros f f' Ef' g g' Eg' c c' Ec'.
-  unfold compose. apply Ef'. apply Eg'. apply Ec'.
-Qed.
-
 (* Our top-level example goal.
 Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
@@ -1103,16 +1088,13 @@ Proof.
                        (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
+
     assert ((@sparsify (Init.Nat.add (S O) (S O))) ∘
                                                    (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify   =
             (@sparsify (Init.Nat.add (S O) (S O))) ∘
                                                    (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify
            ).
 
-    assert(Setoid_Morphism f). admit.
-    assert(Setoid_Morphism g). admit.
-    assert(forall n, Setoid_Morphism (@densify n)). admit.
-    assert(forall n, Setoid_Morphism (@sparsify n)). admit.
     Typeclasses eauto := 8.
     setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
