@@ -1089,29 +1089,26 @@ Proof.
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
 
-    assert(Setoid_Morphism g)
-      by (split; [apply vec_Setoid | apply vec_Setoid | eapply compose_HOperator]).
+    Hint Extern 10 (Setoid (vector _ _)) => apply vec_Setoid.
+    Hint Extern 10 (Setoid (vector _ _)) => apply vec_Setoid : typeclass_instances.
+    Hint Extern 10 (@HOperator _ _ _) => (split; eauto).
+    Hint Extern 10 (@HOperator _ _ _) => (split; eauto) : typeclass_instances.
+    assert(HOperator g).
+    {
+      subst.
+      eauto.
+    }
+    assert(HOperator f).
+    {
+      subst.
+      split.
+      eauto.
+      eauto.
+      (* eapply compose_proper. *)
+    }
 
-    assert(Setoid_Morphism f)
-      by (split; [apply vec_Setoid | apply vec_Setoid | eapply compose_HOperator]).
-
-    Typeclasses eauto := 12. (* TODO: remove! *)
-    setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    Typeclasses eauto := 100.
+    erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
 
   -
