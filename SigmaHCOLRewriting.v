@@ -1089,29 +1089,25 @@ Proof.
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
 
-    assert ((@sparsify (Init.Nat.add (S O) (S O))) ∘
-                                                   (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify   =
-            (@sparsify (Init.Nat.add (S O) (S O))) ∘
-                                                   (@HCross (S O) (S O) (S (S (S (S O)))) (S O) f g) ∘ densify
-           ).
+    assert(Setoid_Morphism g)
+      by (split; [apply vec_Setoid | apply vec_Setoid | eapply compose_HOperator]).
 
-    assert(Setoid_Morphism f).
-    {
-      split; try apply vec_Setoid.
-      intros x y E.
-      unfold equiv.
-      admit.
-    }
+    assert(Setoid_Morphism f)
+      by (split; [apply vec_Setoid | apply vec_Setoid | eapply compose_HOperator]).
 
-    assert(Setoid_Morphism g).
-    {
-      split; try apply vec_Setoid.
-      intros x y E.
-      unfold equiv.
-      admit.
-    }
-    Typeclasses eauto := 10. (* TODO: remove! *)
+    Typeclasses eauto := 12. (* TODO: remove! *)
     setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+
+
+
+
+
+
+
+
+
+
+
 
 
 
