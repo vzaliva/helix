@@ -1104,7 +1104,23 @@ Proof.
       split.
       eauto.
       eauto.
-      (* eapply compose_proper. *)
+
+      (*
+      Hint Extern 10 (Proper (equiv ==> equiv) (compose ?a ?b)) =>
+      apply compose_proper with (RB:=equiv);
+        eauto;
+        assert(HOperator ?a) by eauto;
+        assert(HOperator ?b) by eauto;
+        eauto.
+
+      eauto.
+       *)
+      apply compose_proper with (RB:=equiv).
+      eauto.
+      assert(HOperator (@HPrepend 3 3 a)) by eauto.
+      assert(HOperator (HInduction 3 mult one)) by eauto.
+      eauto.
+
     }
 
     Typeclasses eauto := 100.
