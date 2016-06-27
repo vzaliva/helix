@@ -1089,44 +1089,54 @@ Proof.
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
 
-    Hint Extern 10 (Setoid (vector _ _)) => apply vec_Setoid.
     Hint Extern 10 (Setoid (vector _ _)) => apply vec_Setoid : typeclass_instances.
-    Hint Extern 10 (@HOperator _ _ _) => (split; eauto).
-    Hint Extern 10 (@HOperator _ _ _) => (split; eauto) : typeclass_instances.
-    assert(HOperator g).
-    {
-      subst.
-      eauto.
-    }
-    assert(HOperator f).
-    {
-      subst.
-      split.
-      eauto.
-      eauto.
+    (* Hint Extern 10 (@HOperator _ _ _) => (split; typeclasses eauto) : typeclass_instances. *)
 
-      (*
-      Hint Extern 10 (Proper (equiv ==> equiv) (compose ?a ?b)) =>
-      apply compose_proper with (RB:=equiv);
-        eauto;
-        assert(HOperator ?a) by eauto;
-        assert(HOperator ?b) by eauto;
-        eauto.
+    (*
+    assert(GO: HOperator g).
+      {
+        subst.
+        typeclasses eauto.
+      }
+     *)
 
-      eauto.
-       *)
-      apply compose_proper with (RB:=equiv).
-      eauto.
-      assert(HOperator (@HPrepend 3 3 a)) by eauto.
-      assert(HOperator (HInduction 3 mult one)) by eauto.
-      eauto.
+      assert(FO: HOperator f).
+      {
+        subst.
+        split.
+        typeclasses eauto.
+        typeclasses eauto.
 
-    }
+      (* make sure this goal resolves with typeclasses eauto.,
+then the FO could be resolved by external hint defined above *)
 
-    Typeclasses eauto := 100.
-    erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+        Set Printing All. Show.
+
+        replace (@HOperator 6) with (@HOperator (Init.Nat.add 3 3)) by apply eq_refl.
+        typeclasses eauto.
 
 
+        Typeclasses eauto := 100.
+        Typeclasses eauto := debug.
+
+
+
+        Set Ltac Debug.
+        typeclasses eauto.
+        Redirect "log1.txt" typeclasses eauto.
+
+
+
+
+
+
+
+
+        Print HintDb typeclass_instances.
+        Redirect "log1.txt" typeclasses eauto.
+
+        Typeclasses eauto := 100.
+        erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   -
     split; try apply vec_Setoid.
     intros x y E.
