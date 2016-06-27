@@ -1089,55 +1089,64 @@ Proof.
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
 
-    Hint Extern 10 (Setoid (vector _ _)) => apply vec_Setoid : typeclass_instances.
-    (* Hint Extern 10 (@HOperator _ _ _) => (split; typeclasses eauto) : typeclass_instances. *)
-
     (*
     assert(GO: HOperator g).
-      {
-        subst.
-        typeclasses eauto.
-      }
-     *)
+    {
+      subst.
+      typeclasses eauto.
+    } *)
 
-      assert(FO: HOperator f).
-      {
-        subst.
-        split.
-        typeclasses eauto.
-        typeclasses eauto.
+    assert(FO: HOperator f).
+    {
+      subst.
+      split.
+      typeclasses eauto.
+      typeclasses eauto.
 
       (* make sure this goal resolves with typeclasses eauto.,
 then the FO could be resolved by external hint defined above *)
 
-        Set Printing All. Show.
-
-        replace (@HOperator 6) with (@HOperator (Init.Nat.add 3 3)) by apply eq_refl.
-        typeclasses eauto.
-
-
-        Typeclasses eauto := 100.
-        Typeclasses eauto := debug.
-
-
-
-        Set Ltac Debug.
-        typeclasses eauto.
-        Redirect "log1.txt" typeclasses eauto.
-
-
-
-
+      Set Printing All. Show.
+      assert (@HOperator (S (S (S (S (S (S O)))))) (S (S (S O)))
+     (@HBinOp (S (S (S O)))
+        (@IgnoreIndex2 CarrierA (@mult CarrierA CarrierAmult))
+        (@IgnoreIndex2_preserves_proper (@mult CarrierA CarrierAmult)
+           (@sg_op_proper CarrierA CarrierAe CarrierAmult
+              (@monoid_semigroup CarrierA CarrierAe CarrierAmult
+                 (@one_is_mon_unit CarrierA CarrierA1)
+                 (@commonoid_mon CarrierA CarrierAe CarrierAmult
+                    (@one_is_mon_unit CarrierA CarrierA1)
+                    (@semimult_monoid CarrierA CarrierAe CarrierAplus
+                       CarrierAmult CarrierAz CarrierA1
+                       (@Ring_Semi CarrierA CarrierAe CarrierAplus CarrierAmult
+                          CarrierAz CarrierA1 CarrierAneg CarrierAr)))))))).
+      replace (@HOperator 6) with (@HOperator (Init.Nat.add 3 3)) by apply eq_refl.
+      typeclasses eauto.
 
 
+      Typeclasses eauto := 100.
+      Typeclasses eauto := debug.
 
 
-        Print HintDb typeclass_instances.
-        Redirect "log1.txt" typeclasses eauto.
 
-        Typeclasses eauto := 100.
-        erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
-  -
+      Set Ltac Debug.
+      typeclasses eauto.
+      Redirect "log1.txt" typeclasses eauto.
+
+
+
+
+
+
+
+
+      Print HintDb typeclass_instances.
+      Redirect "log1.txt" typeclasses eauto.
+
+      Typeclasses eauto := 100.
+      erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+      -
+
     split; try apply vec_Setoid.
     intros x y E.
     unfold compose.
