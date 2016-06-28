@@ -1088,13 +1088,22 @@ Proof.
                        (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
                           HCOLImpl.CarrierA_pneg_proper))) as g.
 
+    Ltac HOperator_HBinOp_2x :=
+      match goal with
+      | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
+        match type of i with
+        | nat => replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
+        end
+      end.
 
-    (*
+    Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_2x : typeclass_instances.
+
+
     assert(GO: HOperator g).
     {
       subst.
       typeclasses eauto.
-    } *)
+    }
 
     assert(FO: HOperator f).
     {
@@ -1102,30 +1111,15 @@ Proof.
       split.
       typeclasses eauto.
       typeclasses eauto.
-
-      (* make sure this goal resolves with typeclasses eauto.,
-then the FO could be resolved by external hint defined above *)
-
-      Set Printing All. Show.
-      assert (@HOperator (S (S (S (S (S (S O)))))) (S (S (S O)))
-     (@HBinOp (S (S (S O)))
-        (@IgnoreIndex2 CarrierA (@mult CarrierA CarrierAmult))
-        (@IgnoreIndex2_preserves_proper (@mult CarrierA CarrierAmult)
-           (@sg_op_proper CarrierA CarrierAe CarrierAmult
-              (@monoid_semigroup CarrierA CarrierAe CarrierAmult
-                 (@one_is_mon_unit CarrierA CarrierA1)
-                 (@commonoid_mon CarrierA CarrierAe CarrierAmult
-                    (@one_is_mon_unit CarrierA CarrierA1)
-                    (@semimult_monoid CarrierA CarrierAe CarrierAplus
-                       CarrierAmult CarrierAz CarrierA1
-                       (@Ring_Semi CarrierA CarrierAe CarrierAplus CarrierAmult
-                          CarrierAz CarrierA1 CarrierAneg CarrierAr)))))))).
-      replace (@HOperator 6) with (@HOperator (Init.Nat.add 3 3)) by apply eq_refl.
       typeclasses eauto.
+    }
+
+    Typeclasses eauto := 100.
+    Typeclasses eauto := debug.
+    Redirect "log1.txt" erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
 
-      Typeclasses eauto := 100.
-      Typeclasses eauto := debug.
+
 
 
 
