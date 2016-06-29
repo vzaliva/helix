@@ -1088,12 +1088,11 @@ Proof.
                               (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
                                                               HCOLImpl.CarrierA_pneg_proper))) as g.
 
+  (* TODO: repplace just nat expr *)
   Ltac HOperator_HBinOp_2x :=
     match goal with
     | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
-      match type of i with
-      | nat => replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
-      end
+      replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
     end.
 
   Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_2x : typeclass_instances.
@@ -1117,9 +1116,38 @@ Proof.
   Typeclasses eauto := debug.
   (* Hint Extern 0 (Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) compose) => apply (@compose_proper (=) (=) (=)). *)
 
-  Set Ltac Debug.
-  erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
 
+  Set Printing All. Show.
+
+  (*
+Actual:
+  (@compose (t CarrierA 5)
+              (t CarrierA 2) (t Rtheta 2)
+              (@sparsify (Init.Nat.add 1 1))
+              (@HCross 1 1 4 1 f g))
+Rule:
+  (@compose (t CarrierA (Init.Nat.add ?i1 ?i2))
+            (t CarrierA (Init.Nat.add ?o1 ?o2))
+            (t Rtheta (Init.Nat.add ?o1 ?o2))
+            (@sparsify (Init.Nat.add ?o1 ?o2))
+            (@HCross ?i1 ?o1 ?i2 ?o2 f0 g0))
+   *)
+
+    match goal with
+    | [ |- (@compose (t CarrierA ?i1i2)
+            (t CarrierA ?o1o2)
+            (t Rtheta ?o1o2)
+            (@sparsify ?o1o2)
+            (@HCross ?i1 ?o1 ?i2 ?o2 ?f ?g)) ] =>
+      replace (i1i2) with (Init.Nat.add i1 i2) by apply eq_refl;
+      replace (o1o2) with (Init.Nat.add o1 o2) by apply eq_refl
+    end.
+
+
+  Unset Ltac Debug.
+  setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+
+  Redirect "log2.txt" setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   Redirect "log1.txt" erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   -
     split; try apply vec_Setoid.
