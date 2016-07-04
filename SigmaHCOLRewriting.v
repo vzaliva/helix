@@ -1014,13 +1014,12 @@ End SigmaHCOLExpansionRules.
 Require HCOLBreakdown. (* for dywin_SPL *)
 
 Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
-  := szero_svector 1.
+  := szero_svector 1. (* fake expression to debug rewriting. To be replaced with real one *)
 
 (* Our top-level example goal.
 Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = (* dywin_SigmaSPL a. *)
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a).
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
 Proof.
   intros a.
 
@@ -1088,7 +1087,6 @@ Proof.
                               (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
                                                               HCOLImpl.CarrierA_pneg_proper))) as g.
 
-  (* TODO: repplace just nat expr *)
   Ltac HOperator_HBinOp_2x :=
     match goal with
     | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
@@ -1111,13 +1109,6 @@ Proof.
     typeclasses eauto.
     typeclasses eauto.
   }
-
-  Typeclasses eauto := 100.
-  Typeclasses eauto := debug.
-  (* Hint Extern 0 (Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) compose) => apply (@compose_proper (=) (=) (=)). *)
-
-
-  Set Printing All. Show.
 
   (*
 Fix types of (sparsify ∘ HCRoss) to match rule
@@ -1159,6 +1150,12 @@ Rule:
             by apply eq_refl
   end.
 
+  Set Printing All. Show.
+
+  Typeclasses eauto := 100.
+  Typeclasses eauto := debug.
+
+  Unset Ltac Debug.
   Redirect "log2.txt" setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   Redirect "log1.txt" erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   -
