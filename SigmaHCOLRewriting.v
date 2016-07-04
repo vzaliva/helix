@@ -1120,9 +1120,12 @@ Proof.
   Set Printing All. Show.
 
   (*
+Fix types of (sparsify ∘ HCRoss) to match rule
+
 Actual:
   (@compose (t CarrierA 5)
-              (t CarrierA 2) (t Rtheta 2)
+              (t CarrierA 2)
+              (t Rtheta 2)
               (@sparsify (Init.Nat.add 1 1))
               (@HCross 1 1 4 1 f g))
 Rule:
@@ -1133,19 +1136,28 @@ Rule:
             (@HCross ?i1 ?o1 ?i2 ?o2 f0 g0))
    *)
 
-    match goal with
-    | [ |- (@compose (t CarrierA ?i1i2)
-            (t CarrierA ?o1o2)
-            (t Rtheta ?o1o2)
-            (@sparsify ?o1o2)
-            (@HCross ?i1 ?o1 ?i2 ?o2 ?f ?g)) ] =>
-      replace (i1i2) with (Init.Nat.add i1 i2) by apply eq_refl;
-      replace (o1o2) with (Init.Nat.add o1 o2) by apply eq_refl
-    end.
+  match goal with
+  | [ |- context [
+            (@compose (t CarrierA ?i1i2)
+                      (t CarrierA ?o1o2)
+                      (t Rtheta ?o1o2)
+                      (@sparsify (Init.Nat.add ?o1 ?o2))
+                      (@HCross ?i1 ?o1 ?i2 ?o2 ?f ?g))
 
-
-  Unset Ltac Debug.
-  setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+    ] ] => replace
+            (@compose (t CarrierA i1i2)
+                      (t CarrierA o1o2)
+                      (t Rtheta o1o2)
+                      (@sparsify (Init.Nat.add o1 o2))
+                      (@HCross i1 o1 i2 o2 f g))
+          with
+          (@compose (t CarrierA (Init.Nat.add i1 i2))
+                      (t CarrierA (Init.Nat.add o1 o2))
+                      (t Rtheta (Init.Nat.add o1 o2))
+                      (@sparsify (Init.Nat.add o1 o2))
+                      (@HCross i1 o1 i2 o2 f g))
+            by apply eq_refl
+  end.
 
   Redirect "log2.txt" setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   Redirect "log1.txt" erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
