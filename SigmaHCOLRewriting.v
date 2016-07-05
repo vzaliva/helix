@@ -1094,22 +1094,6 @@ Proof.
     end.
 
   Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_2x : typeclass_instances.
-
-  assert(GO: HOperator g).
-  {
-    subst.
-    typeclasses eauto.
-  }
-
-  assert(FO: HOperator f).
-  {
-    subst.
-    split.
-    typeclasses eauto.
-    typeclasses eauto.
-    typeclasses eauto.
-  }
-
   (*
 Fix types of (sparsify ∘ HCRoss) to match rule
 
@@ -1150,14 +1134,9 @@ Rule:
             by apply eq_refl
   end.
 
-  Set Printing All. Show.
+  Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
 
-  Typeclasses eauto := 100.
-  Typeclasses eauto := debug.
-
-  Unset Ltac Debug.
-  Redirect "log2.txt" setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
-  Redirect "log1.txt" erewrite expand_HTDirectSum with (f0:=f) (g0:=g).
+  setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
   -
     split; try apply vec_Setoid.
     intros x y E.
