@@ -1028,65 +1028,6 @@ Proof.
   unfold liftM_HOperator.
   repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
 
-  remember (@compose (t CarrierA (S O))
-                     (t CarrierA (S (S (S (S (S (S O)))))))
-                     (t CarrierA (S O))
-                     (@compose (t CarrierA (S (S (S (S (S (S O)))))))
-                               (t CarrierA (S (S (S O)))) (t CarrierA (S O))
-                               (@HReduction (S (S (S O))) (@plus CarrierA CarrierAplus)
-                                            (@sg_op_proper CarrierA CarrierAe CarrierAplus
-                                                           (@monoid_semigroup CarrierA CarrierAe CarrierAplus
-                                                                              (@zero_is_mon_unit CarrierA CarrierAz)
-                                                                              (@commonoid_mon CarrierA CarrierAe CarrierAplus
-                                                                                              (@zero_is_mon_unit CarrierA CarrierAz)
-                                                                                              (@semiplus_monoid CarrierA CarrierAe
-                                                                                                                CarrierAplus CarrierAmult CarrierAz
-                                                                                                                CarrierA1
-                                                                                                                (@Ring_Semi CarrierA CarrierAe
-                                                                                                                            CarrierAplus CarrierAmult CarrierAz
-                                                                                                                            CarrierA1 CarrierAneg CarrierAr)))))
-                                            (@zero CarrierA CarrierAz))
-                               (@HBinOp (S (S (S O)))
-                                        (@IgnoreIndex2 CarrierA (@mult CarrierA CarrierAmult))
-                                        (@IgnoreIndex2_preserves_proper
-                                           (@mult CarrierA CarrierAmult)
-                                           (@sg_op_proper CarrierA CarrierAe CarrierAmult
-                                                          (@monoid_semigroup CarrierA CarrierAe
-                                                                             CarrierAmult
-                                                                             (@one_is_mon_unit CarrierA CarrierA1)
-                                                                             (@commonoid_mon CarrierA CarrierAe
-                                                                                             CarrierAmult
-                                                                                             (@one_is_mon_unit CarrierA CarrierA1)
-                                                                                             (@semimult_monoid CarrierA CarrierAe
-                                                                                                               CarrierAplus CarrierAmult CarrierAz
-                                                                                                               CarrierA1
-                                                                                                               (@Ring_Semi CarrierA CarrierAe
-                                                                                                                           CarrierAplus CarrierAmult CarrierAz
-                                                                                                                           CarrierA1 CarrierAneg CarrierAr))))))))
-                     (@compose (t CarrierA (S O)) (t CarrierA (S (S (S O))))
-                               (t CarrierA (S (S (S (S (S (S O)))))))
-                               (@HPrepend (S (S (S O))) (S (S (S O))) a)
-                               (@HInduction (S (S (S O))) (@mult CarrierA CarrierAmult)
-                                            (@sg_op_proper CarrierA CarrierAe CarrierAmult
-                                                           (@monoid_semigroup CarrierA CarrierAe CarrierAmult
-                                                                              (@one_is_mon_unit CarrierA CarrierA1)
-                                                                              (@commonoid_mon CarrierA CarrierAe CarrierAmult
-                                                                                              (@one_is_mon_unit CarrierA CarrierA1)
-                                                                                              (@semimult_monoid CarrierA CarrierAe
-                                                                                                                CarrierAplus CarrierAmult CarrierAz
-                                                                                                                CarrierA1
-                                                                                                                (@Ring_Semi CarrierA CarrierAe
-                                                                                                                            CarrierAplus CarrierAmult CarrierAz
-                                                                                                                            CarrierA1 CarrierAneg CarrierAr)))))
-                                            (@one CarrierA CarrierA1)))) as f.
-  remember (@compose (t CarrierA (S (S (S (S O)))))
-                     (t CarrierA (S (S O))) (t CarrierA (S O))
-                     (@HReduction (S (S O)) HCOLBreakdown.MaxAbs
-                                  HCOLBreakdown.MaxAbs_proper (@zero CarrierA CarrierAz))
-                     (@HBinOp (S (S O)) (@IgnoreIndex2 CarrierA HCOLImpl.pneg)
-                              (@IgnoreIndex2_preserves_proper HCOLImpl.pneg
-                                                              HCOLImpl.CarrierA_pneg_proper))) as g.
-
   Ltac HOperator_HBinOp_2x :=
     match goal with
     | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
@@ -1136,31 +1077,15 @@ Rule:
 
   Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
 
-  setoid_rewrite expand_HTDirectSum with (f0:=f) (g0:=g).
-  -
-    split; try apply vec_Setoid.
-    intros x y E.
-    unfold compose.
-    rewrite E.
-    reflexivity.
-  -
-    split; try apply vec_Setoid.
-    intros x y E.
-    reflexivity.
-  -
-    intros x.
-    unfold liftM_HOperator.
-    repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
+  setoid_rewrite expand_HTDirectSum.
 
 
-
-    Typeclasses eauto := 10.
-    Typeclasses eauto := debug.
-    Redirect "log1.txt" setoid_rewrite expand_HTDirectSum.
-
-    setoid_rewrite sparsify_densify_equiv.
-    rewrite expand_BinOp.
-    setoid_rewrite sparsify_densify_equiv.
+  (*
+  repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
+  setoid_rewrite expand_BinOp.
+  rewrite expand_BinOp.
+  setoid_rewrite sparsify_densify_equiv.
+   *)
 
     reflexivity.
 Qed.
