@@ -893,6 +893,9 @@ Section SigmaHCOLExpansionRules.
       apply Vec2Union_szero_svector_l.
       apply Vec2Union_szero_svector_r.
     Qed.
+
+
+    (* Tactic to normalize type expressions and apply expand_HTDirectSum rewriting *)
   End Value_Correctness.
 
   Section Structural_Correctness.
@@ -1023,45 +1026,7 @@ End SigmaHCOLExpansionRules.
 
 Require HCOLBreakdown. (* for dywin_SPL *)
 
-Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
-  := szero_svector 1. (* fake expression to debug rewriting. To be replaced with real one *)
-
-(* Our top-level example goal.
-Value correctness. *)
-Theorem DynWinSigmSPL:  forall (a: avector 3),
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
-Proof.
-  intros a.
-
-  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
-  repeat rewrite LiftM_Hoperator_compose.
-  unfold liftM_HOperator.
-
-  Ltac HOperator_HBinOp_Type_Fix :=
-    match goal with
-    | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
-      replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
-    end.
-
-  Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
-
-  (*
-Fix types of (sparsify ∘ HCRoss) to match rule
-
-Actual:
-  (@compose (t CarrierA 5)
-              (t CarrierA 2)
-              (t Rtheta 2)
-              (@sparsify (Init.Nat.add 1 1))
-              (@HCross 1 1 4 1 f g))
-Rule:
-  (@compose (t CarrierA (Init.Nat.add ?i1 ?i2))
-            (t CarrierA (Init.Nat.add ?o1 ?o2))
-            (t Rtheta (Init.Nat.add ?o1 ?o2))
-            (@sparsify (Init.Nat.add ?o1 ?o2))
-            (@HCross ?i1 ?o1 ?i2 ?o2 f0 g0))
-   *)
-
+Ltac expand_HTDirectSum :=
   match goal with
   | [ |- context [
             (@compose (t CarrierA ?i1i2)
@@ -1078,29 +1043,50 @@ Rule:
                       (@HCross i1 o1 i2 o2 f g))
           with
           (@compose (t CarrierA (Init.Nat.add i1 i2))
-                      (t CarrierA (Init.Nat.add o1 o2))
-                      (t Rtheta (Init.Nat.add o1 o2))
-                      (@sparsify (Init.Nat.add o1 o2))
-                      (@HCross i1 o1 i2 o2 f g))
-            by apply eq_refl
-  end.
-
-  Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
-
+                    (t CarrierA (Init.Nat.add o1 o2))
+                    (t Rtheta (Init.Nat.add o1 o2))
+                    (@sparsify (Init.Nat.add o1 o2))
+                    (@HCross i1 o1 i2 o2 f g))
+          by apply eq_refl
+  end;
   setoid_rewrite expand_HTDirectSum.
 
-  Ltac HOperator_HPrepend_Type_Fix :=
-    match goal with
+Ltac HOperator_HBinOp_Type_Fix :=
+  match goal with
+  | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
+    replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
+  end.
+
+Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
+
+Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
+
+Ltac HOperator_HPrepend_Type_Fix :=
+  match goal with
     | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
       replace (@HOperator i o) with (@HOperator i (Init.Nat.add n i)) by apply eq_refl; apply HPrepend_HOperator
     end.
 
-  Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
+Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
 
+Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
+  := szero_svector 1. (* fake expression to debug rewriting. To be replaced with real one *)
+
+
+(* Our top-level example goal. Value correctness. *)
+Theorem DynWinSigmSPL:  forall (a: avector 3),
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
+Proof.
+  intros a.
+
+  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
+  repeat rewrite LiftM_Hoperator_compose.
+  unfold liftM_HOperator.
+
+  (* Actual rewriting *)
+  expand_HTDirectSum.
   setoid_rewrite expand_BinOp.
-
-
 
   reflexivity.
 Qed.
