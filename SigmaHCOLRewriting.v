@@ -617,10 +617,10 @@ Section SigmaHCOLExpansionRules.
        This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
     Theorem expand_BinOp:
-      forall n (x:avector (n+n))
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        sparsify (HBinOp (o:=n) (f) x) =
+      forall (n:nat)
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        sparsify ∘ (HBinOp (o:=n) f) = fun x =>
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -632,17 +632,27 @@ Section SigmaHCOLExpansionRules.
                           ∘ (GathH i n
                                    (domain_bound:=GathH_jn_domain_bound i n id)
                             )
+
                       ) (sparsify x)
           )).
     Proof.
-      intros n x f pF.
+      intros n f pF. unfold compose.
+      apply ext_equiv_applied_iff'.
+      {
+        split; try apply vec_Setoid.
+        solve_proper.
+      }
+      {
+        split; try apply vec_Setoid.
+        solve_proper.
+      }
+      intros x.
       apply Vforall2_intro_nth.
       intros i ip.
       symmetry.
       rewrite Vnth_sparsify.
       apply U_SAG2; assumption.
     Qed.
-
 
 
     (*
@@ -1078,7 +1088,7 @@ Rule:
   Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
 
   setoid_rewrite expand_HTDirectSum.
-
+  unfold liftM_HOperator.
 
   (*
   repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
