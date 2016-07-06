@@ -1089,15 +1089,6 @@ Rule:
   Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
 
   setoid_rewrite expand_HTDirectSum.
-  unfold liftM_HOperator.
-
-  (* Set Printing All. Show. *)
-  Typeclasses eauto := 100.
-  Typeclasses eauto := debug.
-
-  Unset Ltac Debug.
-
-  Print HintDb typeclass_instances.
 
   Ltac HOperator_HPrepend_Type_Fix :=
     match goal with
@@ -1108,7 +1099,8 @@ Rule:
   Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
 
-  Redirect "log.txt" setoid_rewrite expand_BinOp.
+  setoid_rewrite expand_BinOp.
+
 
 
   reflexivity.
