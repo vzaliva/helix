@@ -1038,13 +1038,14 @@ Proof.
   unfold liftM_HOperator.
   repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
 
-  Ltac HOperator_HBinOp_2x :=
+  Ltac HOperator_HBinOp_Type_Fix :=
     match goal with
     | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
       replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
     end.
 
-  Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_2x : typeclass_instances.
+  Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
+
   (*
 Fix types of (sparsify ∘ HCRoss) to match rule
 
@@ -1090,12 +1091,25 @@ Rule:
   setoid_rewrite expand_HTDirectSum.
   unfold liftM_HOperator.
 
-  (*
-  repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
-  setoid_rewrite expand_BinOp.
-  rewrite expand_BinOp.
-  setoid_rewrite sparsify_densify_equiv.
-   *)
+  (* Set Printing All. Show. *)
+  Typeclasses eauto := 100.
+  Typeclasses eauto := debug.
 
-    reflexivity.
+  Unset Ltac Debug.
+
+  Print HintDb typeclass_instances.
+
+  Ltac HOperator_HPrepend_Type_Fix :=
+    match goal with
+    | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
+      replace (@HOperator i o) with (@HOperator i (Init.Nat.add n i)) by apply eq_refl; apply HPrepend_HOperator
+    end.
+
+  Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
+
+
+  Redirect "log.txt" setoid_rewrite expand_BinOp.
+
+
+  reflexivity.
 Qed.

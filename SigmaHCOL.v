@@ -211,6 +211,21 @@ Definition liftM_HOperator
   : svector i -> svector o :=
   sparsify ∘ op ∘ densify.
 
+Global Instance SHOperator_liftM_HOperator'
+           {i o}
+           (op: avector i -> avector o)
+           `{hop: !HOperator op}
+  : SHOperator (sparsify ∘ op ∘ densify).
+Proof.
+  unfold SHOperator.
+  split; try apply vec_Setoid.
+  intros x y Exy.
+  unfold compose.
+  unfold sparsify, densify.
+  rewrite Exy.
+  reflexivity.
+Qed.
+
 Global Instance SHOperator_liftM_HOperator
            {i o}
            (op: avector i -> avector o)
