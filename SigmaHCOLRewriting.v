@@ -1036,7 +1036,6 @@ Proof.
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL. simpl.
   repeat rewrite LiftM_Hoperator_compose.
   unfold liftM_HOperator.
-  repeat replace (@sparsify 2) with (@sparsify (1+1)) by apply eq_refl.
 
   Ltac HOperator_HBinOp_Type_Fix :=
     match goal with
@@ -1068,14 +1067,14 @@ Rule:
             (@compose (t CarrierA ?i1i2)
                       (t CarrierA ?o1o2)
                       (t Rtheta ?o1o2)
-                      (@sparsify (Init.Nat.add ?o1 ?o2))
+                      (@sparsify _)
                       (@HCross ?i1 ?o1 ?i2 ?o2 ?f ?g))
 
     ] ] => replace
             (@compose (t CarrierA i1i2)
                       (t CarrierA o1o2)
                       (t Rtheta o1o2)
-                      (@sparsify (Init.Nat.add o1 o2))
+                      (@sparsify _)
                       (@HCross i1 o1 i2 o2 f g))
           with
           (@compose (t CarrierA (Init.Nat.add i1 i2))
