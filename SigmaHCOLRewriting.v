@@ -1074,9 +1074,15 @@ Proof.
   expand_HTDirectSum.
   setoid_rewrite expand_BinOp.
 
+
+  unfold compose at 2.
+  unfold compose at 1.
+  intros x y E.
+
+
   (*
   repeat rewrite compose_assoc.
-  rewrite sparsify_densify_id_equiv.
+  rewrite sparsify_densify_equiv.
    *)
   reflexivity.
 Qed.
