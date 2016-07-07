@@ -412,6 +412,18 @@ Proof.
   apply mkValue_evalWriter.
 Qed.
 
+Lemma sparsify_densify_id_equiv {n}:
+  (@sparsify n ∘ densify) = id.
+Proof.
+  apply ext_equiv_applied_iff'.
+  split; try apply vec_Setoid.
+  intros x y E.
+  unfold compose.
+  rewrite E.
+  reflexivity.
+  crush.
+  apply sparsify_densify_equiv.
+Qed.
 
 Close Scope vector_scope.
 Close Scope nat_scope.

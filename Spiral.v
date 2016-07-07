@@ -30,6 +30,7 @@ Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.o
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.products.
 Require Import MathClasses.theory.naturals.
+Require Import MathClasses.theory.setoids.
 
 Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
@@ -201,3 +202,15 @@ Proof.
   omega.
 Qed.
 
+Lemma ext_equiv_applied_iff'
+      `{Equiv A} `{Equiv B}
+      `(!Setoid_Morphism (f : A → B))
+      `(!Setoid_Morphism (g : A → B)) :
+  f = g ↔ ∀ x, f x = g x.
+Proof.
+  pose proof (setoidmor_a f).
+  pose proof (setoidmor_b f).
+  split; intros E1.
+  now apply ext_equiv_applied.
+  intros x y E2. now rewrite E2.
+Qed.

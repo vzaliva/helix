@@ -40,20 +40,6 @@ Import VectorNotations.
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
-Lemma ext_equiv_applied_iff'
-      `{Equiv A} `{Equiv B}
-      `(!Setoid_Morphism (f : A → B))
-      `(!Setoid_Morphism (g : A → B)) :
-  f = g ↔ ∀ x, f x = g x.
-Proof.
-  pose proof (setoidmor_a f).
-  pose proof (setoidmor_b f).
-  split; intros E1.
-  now apply ext_equiv_applied.
-  intros x y E2. now rewrite E2.
-Qed.
-
-
 Lemma Gather_composition
       {i o t: nat}
       (f: index_map o t)
@@ -1088,5 +1074,9 @@ Proof.
   expand_HTDirectSum.
   setoid_rewrite expand_BinOp.
 
+  (*
+  repeat rewrite compose_assoc.
+  rewrite sparsify_densify_id_equiv.
+   *)
   reflexivity.
 Qed.
