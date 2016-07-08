@@ -1070,14 +1070,51 @@ Proof.
   repeat rewrite LiftM_Hoperator_compose.
   unfold liftM_HOperator.
 
+  (*
+SPL expression:
+
+BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
+DirectSum(
+  ScalarProd(3, D) o
+  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)),
+  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
+  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
+  BinOp(2, Lambda([ r12, r13 ], sub(r12, r13)))
+)
+   *)
+  
   (* Actual rewriting *)
   expand_HTDirectSum.
+
   setoid_rewrite expand_BinOp.
 
 
   unfold compose at 2.
-  unfold compose at 1.
+  unfold compose at 1. (* TODO: this one is fake, to be removed *)
   intros x y E.
+  clear E y. (* TODO: also fake. *)
+
+  (*
+Final Sigma-SPL expression:
+
+BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
+SUMUnion(
+  ScatHUnion(2, 1, 0, 1) o
+  Reduction(3, (a, b) -> add(a, b), V(0.0), (arg) -> false) o
+  PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
+  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
+  GathH(5, 1, 0, 1),
+  ScatHUnion(2, 1, 1, 1) o
+  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
+  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
+  ISumUnion(i15, 2,
+    ScatHUnion(2, 1, i15, 1) o
+    BinOp(1, Lambda([ r12, r13 ], sub(r12, r13))) o
+    GathH(4, 2, i15, 2)
+  ) o
+  GathH(5, 4, 1, 1)
+)
+*)
 
 
   (*
