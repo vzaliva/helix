@@ -1086,7 +1086,17 @@ DirectSum(
   (* Actual rewriting *)
   expand_HTDirectSum.
 
-  setoid_rewrite expand_BinOp.
+  (* Next: expand (@HBinOp (S (S O))
+                                (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                (@IgnoreIndex2_preserves_proper HCOLImpl.sub
+                                   HCOLImpl.CarrierA_sub_proper)) *)
+
+
+  Typeclasses eauto := debug.
+  Set Printing All.
+  Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 2.
+  unfold liftM_HOperator at 3.
+  setoid_rewrite expand_BinOp at 2.
 
 
   unfold compose at 2.
