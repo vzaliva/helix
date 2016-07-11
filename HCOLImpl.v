@@ -53,14 +53,14 @@ Section HCOL_implementations.
     Vfold_right max (Vmap abs v) zero.
 
   (* Poor man's minus *)
-  Definition pneg := plus∘negate.
+  Definition sub := plus∘negate.
 
   (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
-  Global Instance CarrierA_pneg_proper:
-    Proper ((=) ==> (=) ==> (=)) (pneg).
+  Global Instance CarrierA_sub_proper:
+    Proper ((=) ==> (=) ==> (=)) (sub).
   Proof.
     intros a b Ha x y Hx .
-    unfold pneg, compose.
+    unfold sub, compose.
     rewrite Hx, Ha.
     reflexivity.
   Qed.
@@ -69,7 +69,7 @@ Section HCOL_implementations.
   Definition ChebyshevDistance
              {n} (ab: (avector n)*(avector n)): CarrierA :=
     match ab with
-    | (a, b) => InfinityNorm (Vmap2 pneg a b)
+    | (a, b) => InfinityNorm (Vmap2 sub a b)
     end.
 
   (* --- Vector Subtraction --- *)

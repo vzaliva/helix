@@ -213,7 +213,7 @@ Section HCOLBreakdown.
   Qed.
 
   Theorem breakdown_VMinus:  forall (n:nat) (ab: (avector n)*(avector n)),
-      VMinus ab =  BinOp (IgnoreIndex2 pneg) ab.
+      VMinus ab =  BinOp (IgnoreIndex2 sub) ab.
   Proof.
     intros.
     unfold VMinus, BinOp.
@@ -223,7 +223,7 @@ Section HCOLBreakdown.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),
-      HVMinus = HBinOp (o:=n) (IgnoreIndex2 pneg).
+      HVMinus = HBinOp (o:=n) (IgnoreIndex2 sub).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.
@@ -265,7 +265,7 @@ Definition dywin_SPL (a: avector 3) :=
   (HBinOp (IgnoreIndex2 Zless) ∘
           HCross
           ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 pneg))).
+          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
 
 
 (* Our top-level example goal *)
