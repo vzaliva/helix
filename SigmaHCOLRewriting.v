@@ -1093,7 +1093,10 @@ DirectSum(
 
 
   Typeclasses eauto := debug.
-  Set Printing All.
+  (* Set Printing All. *)
+  Unset Ltac Debug. setoid_rewrite LiftM_Hoperator_compose at 2.
+
+  Unset Ltac Debug.
   Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 2.
   unfold liftM_HOperator at 3.
   setoid_rewrite expand_BinOp at 2.
