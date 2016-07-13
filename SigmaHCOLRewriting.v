@@ -895,6 +895,7 @@ Section SigmaHCOLExpansionRules.
     : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
+      typeclasses eauto.
     Qed.
 
     Instance HTDirectSumExpansion_DensityPreserving
@@ -953,13 +954,21 @@ Section SigmaHCOLExpansionRules.
       clear Dx x.
 
       (* Generalize nested operators' application *)
-      assert(svector_is_dense (liftM_HOperator f gx2))
-        by apply liftM_HOperator_DensityPreserving, Dxg2.
+      assert(svector_is_dense (liftM_HOperator f gx2)).
+      {
+        apply liftM_HOperator_DensityPreserving.
+        apply hop1.
+        apply Dxg2.
+      }
       generalize dependent (liftM_HOperator f gx2). intros fgx2 Dfgx2.
       clear Dxg2 gx2  hop1 f.
 
-      assert(svector_is_dense (liftM_HOperator g gx1))
-        by apply liftM_HOperator_DensityPreserving, Dxg1.
+      assert(svector_is_dense (liftM_HOperator g gx1)).
+      {
+        apply liftM_HOperator_DensityPreserving.
+        apply hop2.
+        apply Dxg1.
+      }
       generalize dependent (liftM_HOperator g gx1). intros ggx1 Dggx1.
       clear Dxg1 gx1 hop2 g.
 
@@ -1035,7 +1044,7 @@ Ltac expand_HTDirectSum :=
                     (@HCross i1 o1 i2 o2 f g))
           by apply eq_refl
   end;
-  setoid_rewrite expand_HTDirectSum.
+  setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
 
 Ltac HOperator_HBinOp_Type_Fix :=
   match goal with
@@ -1058,7 +1067,6 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 
 Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
   := szero_svector 1. (* fake expression to debug rewriting. To be replaced with real one *)
-
 
 (* Our top-level example goal. Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
@@ -1085,7 +1093,6 @@ DirectSum(
   
   (* Actual rewriting *)
   expand_HTDirectSum.
-
   (* Next: expand (@HBinOp (S (S O))
                                 (@IgnoreIndex2 CarrierA HCOLImpl.sub)
                                 (@IgnoreIndex2_preserves_proper HCOLImpl.sub
@@ -1093,9 +1100,7 @@ DirectSum(
 
 
   Typeclasses eauto := debug.
-  (* Set Printing All. *)
-  Unset Ltac Debug. setoid_rewrite LiftM_Hoperator_compose at 2.
-
+  Set Printing All.
   Unset Ltac Debug.
   Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 2.
   unfold liftM_HOperator at 3.

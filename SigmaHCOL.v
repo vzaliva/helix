@@ -52,7 +52,7 @@ Definition VnthIndexMapped
 Section SigmaHCOL_Operators.
 
   Class SHOperator {i o:nat} (op: svector i -> svector o) :=
-    o_setoidmor :> Setoid_Morphism op.
+    SHOperator_setoidmor :> Setoid_Morphism op.
 
   Lemma SHOperator_functional_extensionality
         {m n: nat}
@@ -207,7 +207,6 @@ End SigmaHCOL_Operators.
 Definition liftM_HOperator
            {i o}
            (op: avector i -> avector o)
-           `{hop: !HOperator op}
   : svector i -> svector o :=
   sparsify ∘ op ∘ densify.
 
@@ -530,8 +529,12 @@ Section StructuralProperies.
       intros gx GD.
       clear g_dense g.
 
-      assert(Vforall Is_Val (liftM_HOperator (kernel p pc) gx))
-        by apply liftM_HOperator_DensityPreserving, GD.
+      assert(Vforall Is_Val (liftM_HOperator (kernel p pc) gx)).
+      {
+        apply liftM_HOperator_DensityPreserving.
+        apply Koperator.
+        apply GD.
+      }
 
       generalize dependent (liftM_HOperator (kernel p pc) gx).
       intros kx KD.
@@ -688,12 +691,17 @@ Section StructuralProperies.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(LD: svector_is_dense (liftM_HOperator (kernel j jn) gx))
-          by apply liftM_HOperator_DensityPreserving, GXD.
+        assert(LD: svector_is_dense (liftM_HOperator (kernel j jn) gx)).
+        {
+          apply liftM_HOperator_DensityPreserving.
+          apply Koperator.
+          apply GXD.
+        }
 
         assert(KNC: svector_is_non_collision (liftM_HOperator (kernel j jn) gx)).
         {
           apply liftM_HOperator_DenseCauseNoCol, GXNC.
+          apply Koperator.
           apply GXD.
         }
         generalize dependent (liftM_HOperator (kernel j jn) gx).
@@ -743,13 +751,23 @@ Section StructuralProperies.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(svector_is_dense (@liftM_HOperator ki ko (kernel i0 ic) (Koperator i0 ic) gxi0)) by apply liftM_HOperator_DensityPreserving, GXDi0.
-        generalize dependent (@liftM_HOperator ki ko (kernel i0 ic) (Koperator i0 ic) gxi0).
+        assert(svector_is_dense (@liftM_HOperator ki ko (kernel i0 ic) gxi0)).
+        {
+          apply liftM_HOperator_DensityPreserving.
+          apply Koperator.
+          apply GXDi0.
+        }
+        generalize dependent (@liftM_HOperator ki ko (kernel i0 ic) gxi0).
         intros kxi KXDi0.
         clear gxi0 GXDi0.
 
-        assert (svector_is_dense (@liftM_HOperator ki ko (kernel j jc) (Koperator j jc) gxj)) by apply liftM_HOperator_DensityPreserving, GXDj.
-        generalize dependent (@liftM_HOperator ki ko (kernel j jc) (Koperator j jc) gxj).
+        assert (svector_is_dense (@liftM_HOperator ki ko (kernel j jc) gxj)).
+        {
+          apply liftM_HOperator_DensityPreserving.
+          apply Koperator.
+          apply GXDj.
+        }
+        generalize dependent (@liftM_HOperator ki ko (kernel j jc) gxj).
         intros kxj KXDj.
         clear gxj GXDj.
 

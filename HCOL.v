@@ -33,7 +33,7 @@ Open Scope vector_scope.
 Section HCOL_Language.
 
   Class HOperator {i o:nat} (op: avector i -> avector o) :=
-    o_setoidmor :> Setoid_Morphism op.
+    HOperator_setoidmor :> Setoid_Morphism op.
 
   Lemma HOperator_functional_extensionality
         {m n: nat}
