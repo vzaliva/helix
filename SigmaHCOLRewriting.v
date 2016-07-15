@@ -1093,7 +1093,7 @@ DirectSum(
    *)
   
   (* Actual rewriting *)
-  setoid_rewrite expand_HTDirectSum.
+  setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
   (* Next: expand (@HBinOp (S (S O))
                                 (@IgnoreIndex2 CarrierA HCOLImpl.sub)
                                 (@IgnoreIndex2_preserves_proper HCOLImpl.sub
