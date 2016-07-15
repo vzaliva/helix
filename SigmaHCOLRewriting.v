@@ -460,7 +460,7 @@ Proof.
 Qed.
 
 Lemma U_SAG2:
-  ∀ (n : nat) (x : avector (n + n))
+  ∀ (n : nat) (x : svector (n + n))
     (f: nat -> CarrierA -> CarrierA -> CarrierA)
     `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     (k : nat) (kp : k < n),
@@ -474,9 +474,9 @@ Lemma U_SAG2:
                         ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
                         ∘ (GathH i n
                                  (domain_bound:=GathH_jn_domain_bound i n id))
-                     ) (sparsify x)
+                     ) x
       ))) kp
-    = mkValue (Vnth (HBinOp (o:=n) (f) x) kp).
+    = Vnth (liftM_HOperator (HBinOp (o:=n) f) x) kp.
 Proof.
   intros n x f f_mor k kp.
   unfold compose.
@@ -486,7 +486,7 @@ Proof.
                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                     (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
                                      (GathH i n
-                                            (domain_bound:=GathH_jn_domain_bound i n id) (sparsify x))))
+                                            (domain_bound:=GathH_jn_domain_bound i n id) x)))
     as bf.
 
   assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
@@ -497,7 +497,7 @@ Proof.
                             (snzord0:=ScatH_stride1_constr)
                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                             (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
-                                             [(Vnth (sparsify x) (ILTNN i id));  (Vnth (sparsify x) (INLTNN i id))])))).
+                                             [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
   {
     subst bf.
     extensionality j. extensionality jn.
@@ -519,13 +519,14 @@ Proof.
                           (snzord0:=ScatH_stride1_constr)
                           (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                           (sparsify
-                             [ f i (Vnth x (ILTNN i id)) (Vnth x (INLTNN i id))]))).
+                             [ f i
+                                 (WriterMonadNoT.evalWriter (Vnth x (ILTNN i id)))
+                                 (WriterMonadNoT.evalWriter (Vnth x (INLTNN i id)))]))).
   {
     rewrite B1.
     extensionality i.
     extensionality id.
     unfold liftM_HOperator, compose, sparsify.
-    rewrite 2!Vnth_map.
     simpl.
     reflexivity.
   }
@@ -539,7 +540,8 @@ Proof.
   (* Preparing to apply Lemma3. Prove some peoperties first. *)
   remember (Vbuild
               (λ (z : nat) (zi : z < n),
-               Vnth (ScatH z 1 (sparsify [f z (Vnth x (ILTNN z zi)) (Vnth x (INLTNN z zi))])) kp)) as b.
+               Vnth (ScatH z 1 (sparsify [f z
+                                            (WriterMonadNoT.evalWriter (Vnth x (ILTNN z zi))) (WriterMonadNoT.evalWriter (Vnth x (INLTNN z zi)))])) kp)) as b.
 
   assert
     (L3pre: forall ib (icb:ib<n),
@@ -581,7 +583,11 @@ Proof.
   +
     rewrite Vnth_sparsify.
     rewrite Vnth_1.
+    unfold liftM_HOperator, compose, sparsify.
+    rewrite Vnth_map.
     setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
+    unfold densify.
+    rewrite 2!Vnth_map.
     reflexivity.
   +
     unfold in_range in n0.
@@ -606,7 +612,7 @@ Section SigmaHCOLExpansionRules.
       forall (n:nat)
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        sparsify ∘ (HBinOp (o:=n) f) = fun x =>
+        liftM_HOperator (HBinOp (o:=n) f) = fun x =>
         SumUnion
           (@Vbuild (svector n) n
                    (fun i id =>
@@ -619,10 +625,10 @@ Section SigmaHCOLExpansionRules.
                                    (domain_bound:=GathH_jn_domain_bound i n id)
                             )
 
-                      ) (sparsify x)
+                      ) x
           )).
     Proof.
-      intros n f pF. unfold compose.
+      intros n f pF.
       apply ext_equiv_applied_iff'.
       {
         split; try apply vec_Setoid.
@@ -636,7 +642,6 @@ Section SigmaHCOLExpansionRules.
       apply Vforall2_intro_nth.
       intros i ip.
       symmetry.
-      rewrite Vnth_sparsify.
       apply U_SAG2; assumption.
     Qed.
 
