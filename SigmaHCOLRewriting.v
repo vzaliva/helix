@@ -6,9 +6,10 @@ Require Import Spiral.
 Require Import Rtheta.
 Require Import VecSetoid.
 Require Import SVector.
-Require Import SigmaHCOL.
 Require Import HCOL.
 Require Import THCOL.
+Require Import SigmaHCOL.
+Require Import TSigmaHCOL.
 Require Import IndexFunctions.
 
 Require Import Coq.Arith.Arith.
@@ -1071,9 +1072,24 @@ Ltac HOperator_HPrepend_Type_Fix :=
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
-
-Definition dywin_SigmaSPL (a: avector 3) (x: svector (1 + (2 + 2)))
-  := szero_svector 1. (* fake expression to debug rewriting. To be replaced with real one *)
+Definition dywin_SigmaSPL (a: avector 3) :=
+liftM_HOperator (HBinOp (IgnoreIndex2 THCOLImpl.Zless))
+                ∘ HTSUMUnion
+                (ScatH 0 1
+                       ∘ liftM_HOperator
+                       (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
+                                   ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
+                       GathH 0 1)
+                (ScatH 1 1
+                       ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)
+                                          ∘ (λ x : vector Rtheta 4,
+                                                   SumUnion
+                                                     (Vbuild
+                                                        (λ (i : nat) (id : i < 2),
+                                                         (ScatH i 1
+                                                                ∘ liftM_HOperator
+                                                                (HBinOp (SwapIndex2 i (IgnoreIndex2 HCOLImpl.sub)))
+                                                                ∘ GathH i 2) x)))) ∘ GathH 1 1).
 
 (* Our top-level example goal. Value correctness. *)
 Theorem DynWinSigmSPL:  forall (a: avector 3),
@@ -1084,39 +1100,11 @@ Proof.
   unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
   repeat rewrite LiftM_Hoperator_compose.
 
-  (*
-SPL expression:
-
-BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
-DirectSum(
-  ScalarProd(3, D) o
-  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)),
-  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
-  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
-  BinOp(2, Lambda([ r12, r13 ], sub(r12, r13)))
-)
-   *)
-  
   (* Actual rewriting *)
   setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
-  (* Next: expand (@HBinOp (S (S O))
-                                (@IgnoreIndex2 CarrierA HCOLImpl.sub)
-                                (@IgnoreIndex2_preserves_proper HCOLImpl.sub
-                                   HCOLImpl.CarrierA_sub_proper)) *)
-
-
-  Typeclasses eauto := debug.
-  Set Printing All.
-  Unset Ltac Debug.
-  Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 2.
-  unfold liftM_HOperator at 3.
+  setoid_rewrite LiftM_Hoperator_compose at 2.
   setoid_rewrite expand_BinOp at 2.
-
-
-  unfold compose at 2.
-  unfold compose at 1. (* TODO: this one is fake, to be removed *)
-  intros x y E.
-  clear E y. (* TODO: also fake. *)
+  simpl.
 
   (*
 Final Sigma-SPL expression:
@@ -1139,11 +1127,4 @@ SUMUnion(
   GathH(5, 4, 1, 1)
 )
 *)
-
-
-  (*
-  repeat rewrite compose_assoc.
-  rewrite sparsify_densify_equiv.
-   *)
-  reflexivity.
 Qed.

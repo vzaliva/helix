@@ -32,7 +32,7 @@ Open Scope vector_scope.
 
 (* Templete HCOL operator which uses two HOperators to build a new HOperator *)
 Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (avector i1 -> avector o1) -> (avector i2 -> avector o2) -> avector ix -> avector ox) :=
-  mop_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
+  THOperator2_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
 
 (* Curried Templete HCOL operator with arity 2 is HOperators *)
 Instance THOperator_HOperator

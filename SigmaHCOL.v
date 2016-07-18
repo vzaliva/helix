@@ -64,28 +64,6 @@ Section SigmaHCOL_Operators.
     apply ext_equiv_applied_iff.
   Qed.
 
-  (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
-  just Union of two vectors, produced by application of two operators
-  to the input. *)
-  Definition HTSUMUnion {i o}
-             (f: svector i -> svector o)
-             (g: svector i -> svector o)
-             (x: svector i): svector o
-    :=  Vec2Union (f x) (g x).
-
-  Global Instance SHOperator_HTSUMUnion {i o}
-        `{SHOperator i o f}
-        `{SHOperator i o g}:
-    SHOperator (HTSUMUnion f g).
-  Proof.
-    unfold SHOperator.
-    split; repeat apply vec_Setoid.
-    intros x y E.
-    unfold HTSUMUnion.
-    rewrite E.
-    reflexivity.
-  Qed.
-
   Definition Gather
              {i o: nat}
              (f: index_map o i)

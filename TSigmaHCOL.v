@@ -3,8 +3,10 @@
 Require Import VecUtil.
 Require Import VecSetoid.
 Require Import Spiral.
-Require Import CarrierType.
-Require Import SigmaHCOL.
+Require Import Rtheta.
+Require Import SVector.
+Require Import IndexFunctions.
+Require Import SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
 
 Require Import Arith.
 Require Import Program. (* compose *)
