@@ -611,23 +611,23 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         liftM_HOperator (HBinOp (o:=n) f) = fun x =>
-        SumUnion
-          (@Vbuild (svector n) n
-                   (fun i id =>
-                      (
-                        (ScatH i 1
-                               (snzord0:=ScatH_stride1_constr)
-                               (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                          ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
-                          ∘ (GathH i n
-                                   (domain_bound:=GathH_jn_domain_bound i n id)
-                            )
+                                              SumUnion
+                                                (@Vbuild (svector n) n
+                                                         (fun i id =>
+                                                            (
+                                                              (ScatH i 1
+                                                                     (snzord0:=ScatH_stride1_constr)
+                                                                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                                                                ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
+                                                                ∘ (GathH i n
+                                                                         (domain_bound:=GathH_jn_domain_bound i n id)
+                                                                  )
 
-                      ) x
-          )).
+                                                            ) x
+                                                )).
     Proof.
       intros n f pF.
       apply ext_equiv_applied_iff'.
@@ -1066,47 +1066,13 @@ Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (
 
 Ltac HOperator_HPrepend_Type_Fix :=
   match goal with
-    | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
-      replace (@HOperator i o) with (@HOperator i (Init.Nat.add n i)) by apply eq_refl; apply HPrepend_HOperator
-    end.
+  | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
+    replace (@HOperator i o) with (@HOperator i (Init.Nat.add n i)) by apply eq_refl; apply HPrepend_HOperator
+  end.
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
-Definition dywin_SigmaSPL (a: avector 3) :=
-liftM_HOperator (HBinOp (IgnoreIndex2 THCOLImpl.Zless))
-                ∘ HTSUMUnion
-                (ScatH 0 1
-                       ∘ liftM_HOperator
-                       (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
-                                   ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
-                       GathH 0 1)
-                (ScatH 1 1
-                       ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)
-                                          ∘ (λ x : vector Rtheta 4,
-                                                   SumUnion
-                                                     (Vbuild
-                                                        (λ (i : nat) (id : i < 2),
-                                                         (ScatH i 1
-                                                                ∘ liftM_HOperator
-                                                                (HBinOp (SwapIndex2 i (IgnoreIndex2 HCOLImpl.sub)))
-                                                                ∘ GathH i 2) x)))) ∘ GathH 1 1).
-
-(* Our top-level example goal. Value correctness. *)
-Theorem DynWinSigmSPL:  forall (a: avector 3),
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
-Proof.
-  intros a.
-
-  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
-  repeat rewrite LiftM_Hoperator_compose.
-
-  (* Actual rewriting *)
-  setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
-  setoid_rewrite LiftM_Hoperator_compose at 2.
-  setoid_rewrite expand_BinOp at 2.
-  simpl.
-
-  (*
+(*
 Final Sigma-SPL expression:
 
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
@@ -1126,5 +1092,56 @@ SUMUnion(
   ) o
   GathH(5, 4, 1, 1)
 )
-*)
+ *)
+Definition dywin_SigmaSPL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
+  :=
+    liftM_HOperator (HBinOp (IgnoreIndex2 THCOLImpl.Zless))
+                    ∘ HTSUMUnion
+                    (ScatH 0 1
+                           (range_bound := h_bound_first_half 1 1)
+                           (snzord0 := @ScatH_stride1_constr 1 2)
+                           ∘ liftM_HOperator
+                           (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
+                                       ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
+                           GathH 0 1
+                           (domain_bound := h_bound_first_half 1 (2+2))
+
+                    )
+                    (ScatH 1 1
+                           (range_bound := h_bound_second_half 1 1)
+                           (snzord0 := @ScatH_stride1_constr 1 2)
+                           ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)
+                                              ∘ (λ x : svector 4,
+                                                       SumUnion
+                                                         (Vbuild
+                                                            (λ (i : nat) (id : i < 2),
+                                                             (ScatH i 1
+
+                                                                    (range_bound := ScatH_1_to_n_range_bound i 2 1 id)
+                                                                    (snzord0 := @ScatH_stride1_constr 1 2)
+                                                                    ∘ liftM_HOperator
+                                                                    (HBinOp (SwapIndex2 i (IgnoreIndex2 HCOLImpl.sub)))
+                                                                    ∘ GathH i 2
+                                                                    (domain_bound := GathH_jn_domain_bound i 2 id)
+                                                             ) x)))) ∘ GathH 1 1
+                           (domain_bound := h_bound_second_half 1 (2+2))
+                    ).
+
+
+(* Our top-level example goal. Value correctness. *)
+Theorem DynWinSigmSPL:  forall (a: avector 3),
+    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
+Proof.
+  intros a.
+
+  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
+  rewrite LiftM_Hoperator_compose.
+
+  (* Actual rewriting *)
+  setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
+  setoid_rewrite LiftM_Hoperator_compose at 2.
+  setoid_rewrite expand_BinOp at 2.
+
+  eapply SHOperator_functional_extensionality.
+  reflexivity.
 Qed.
