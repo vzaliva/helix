@@ -1142,6 +1142,33 @@ Proof.
   setoid_rewrite LiftM_Hoperator_compose at 2.
   setoid_rewrite expand_BinOp at 2.
 
-  eapply SHOperator_functional_extensionality.
+  unshelve eapply SHOperator_functional_extensionality.
+
+
+  (* Proof sketch *)
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  unshelve eapply THOperator2_SHOperator.
+  unshelve eapply SHOperator_compose.
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  admit.
+  typeclasses eauto.
+
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  unshelve eapply THOperator2_SHOperator.
+  unshelve eapply SHOperator_compose.
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  unshelve eapply SHOperator_compose.
+  typeclasses eauto.
+  admit.
+  typeclasses eauto.
+  (* end Proof sketch *)
+
+
   reflexivity.
 Qed.
