@@ -599,6 +599,22 @@ Qed.
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
+    Lemma h_j_1_family_injective {n}:
+      index_map_family_injective
+        (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc)))).
+    Proof.
+      unfold index_map_family_injective.
+      crush.
+    Qed.
+
+    Lemma h_j_n_dense {n} {x:svector (n+n)}:
+      ∀ (j : nat) (jc : j < n) (k : nat) (kc : k < 1 + 1),
+        Is_Val
+          (Vnth x
+                (« ⦃ IndexMapFamily _ (n+n) n (fun i ic => h_index_map i n (range_bound:=GathH_jn_domain_bound i n ic)) ⦄ j jc » k kc)).
+    Proof.
+    Admitted.
+
     (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
@@ -610,26 +626,24 @@ Section SigmaHCOLExpansionRules.
        This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
     Theorem expand_BinOp:
-      forall (n:nat)
+      forall (n:nat) {nz: n ≢ 0}
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        liftM_HOperator (HBinOp (o:=n) f) = fun x =>
-                                              SumUnion
-                                                (@Vbuild (svector n) n
-                                                         (fun i id =>
-                                                            (
-                                                              (ScatH i 1
-                                                                     (snzord0:=ScatH_stride1_constr)
-                                                                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                                                                ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
-                                                                ∘ (GathH i n
-                                                                         (domain_bound:=GathH_jn_domain_bound i n id)
-                                                                  )
+        liftM_HOperator (HBinOp (o:=n) f)
 
-                                                            ) x
-                                                )).
+        =
+        (fun x =>
+        USparseEmbedding (i:=n+n) (o:=n)
+          (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
+          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+          (f_inj := h_j_1_family_injective)
+          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+          x
+          (g_dense := h_j_n_dense)
+          (nz := nz))
+    .
     Proof.
-      intros n f pF.
+      intros n nz f pF.
       apply ext_equiv_applied_iff'.
       {
         split; try apply vec_Setoid.
@@ -637,6 +651,7 @@ Section SigmaHCOLExpansionRules.
       }
       {
         split; try apply vec_Setoid.
+        unfold USparseEmbedding, SparseEmbedding.
         solve_proper.
       }
       intros x.
@@ -1071,6 +1086,7 @@ Ltac HOperator_HPrepend_Type_Fix :=
   end.
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
+
 
 (*
 Final Sigma-SPL expression:
