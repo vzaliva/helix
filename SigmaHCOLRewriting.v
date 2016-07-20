@@ -618,7 +618,7 @@ Section SigmaHCOLExpansionRules.
        This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
     Theorem expand_BinOp:
-      forall (n:nat) {nz: n ≢ 0}
+      forall (n:nat)
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         liftM_HOperator (HBinOp (o:=n) f)
@@ -627,11 +627,9 @@ Section SigmaHCOLExpansionRules.
                          (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (f_inj := h_j_1_family_injective)
-                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
-                         (nz := nz)
-    .
+                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
-      intros n nz f pF.
+      intros n f pF.
       apply ext_equiv_applied_iff'.
       {
         split; try apply vec_Setoid.
@@ -1075,12 +1073,6 @@ Ltac HOperator_HPrepend_Type_Fix :=
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
-Fact two_ne_zero:
-  2 ≢ 0.
-Proof.
-  auto.
-Qed.
-
 (*
 Final Sigma-SPL expression:
 
@@ -1126,9 +1118,7 @@ Definition dywin_SigmaSPL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
                               (fun j _ => HBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
                               (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                               (f_inj := h_j_1_family_injective)
-                              (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc)))
-                              (nz := two_ne_zero)
-                           )
+                              (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
                            ∘ GathH 1 1
                            (domain_bound := h_bound_second_half 1 (2+2))
                     ).
@@ -1146,7 +1136,6 @@ Proof.
   (* Actual rewriting *)
   setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
   setoid_rewrite LiftM_Hoperator_compose at 2.
-  Set Printing All.
   setoid_rewrite expand_BinOp at 2 .
 
   eapply SHOperator_functional_extensionality.
