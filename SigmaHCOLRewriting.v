@@ -607,14 +607,6 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
-    Lemma h_j_n_dense {n} {x:svector (n+n)}:
-      ∀ (j : nat) (jc : j < n) (k : nat) (kc : k < 1 + 1),
-        Is_Val
-          (Vnth x
-                (« ⦃ IndexMapFamily _ (n+n) n (fun i ic => h_index_map i n (range_bound:=GathH_jn_domain_bound i n ic)) ⦄ j jc » k kc)).
-    Proof.
-    Admitted.
-
     (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
@@ -627,20 +619,16 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat) {nz: n ≢ 0}
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         liftM_HOperator (HBinOp (o:=n) f)
-
         =
-        (fun x =>
         USparseEmbedding (i:=n+n) (o:=n)
-          (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
-          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-          (f_inj := h_j_1_family_injective)
-          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
-          x
-          (g_dense := h_j_n_dense)
-          (nz := nz))
+                         (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
+                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                         (f_inj := h_j_1_family_injective)
+                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+                         (nz := nz)
     .
     Proof.
       intros n nz f pF.
@@ -1184,7 +1172,6 @@ Proof.
   admit.
   typeclasses eauto.
   (* end Proof sketch *)
-
 
   reflexivity.
 Qed.

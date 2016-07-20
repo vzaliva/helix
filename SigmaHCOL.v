@@ -226,8 +226,6 @@ Definition SparseEmbedding
            (g: index_map ki i)
            `{Koperator: @HOperator ki ko kernel}
            (x: svector i)
-           {g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))}
-
   :=
     (Scatter f (f_inj:=f_inj)
              ∘ (liftM_HOperator kernel)
@@ -242,14 +240,12 @@ Definition USparseEmbedding
            `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
            {nz: n ≢ 0} (* only defined for non-empty iterator *)
            (x: svector i)
-           {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
   :=
     (SumUnion
        (Vbuild
           (λ (j:nat) (jc:j<n),
            SparseEmbedding
              (f_inj:=index_map_family_member_injective f_inj j jc)
-             (g_dense:=g_dense j jc)
              (kernel j jc)
              ( ⦃f⦄ j jc)
              ( ⦃g⦄ j jc)
@@ -479,12 +475,13 @@ Section StructuralProperies.
         (g: index_map_family ki i n)
         `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
         (x: svector i)
-        {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
         {nz: n ≢ 0}
     :
+      (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       svector_is_dense
-        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator nz x g_dense).
+        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator nz x).
   Proof.
+    intros g_dense.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
@@ -619,15 +616,14 @@ Section StructuralProperies.
         (g: index_map_family ki i n)
         `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
         (x: svector i)
-        {g_dense: forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))}
         {nz: n ≢ 0}
     :
-
+      (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       (forall j (jc:j<n) k (kc:k<ki), Not_Collision (Vnth x («⦃g⦄ j jc» k kc))) ->
       svector_is_non_collision
-        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator nz x g_dense).
+        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator nz x).
   Proof.
-    intros GNC.
+    intros g_dense GNC.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
