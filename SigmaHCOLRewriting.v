@@ -1075,6 +1075,11 @@ Ltac HOperator_HPrepend_Type_Fix :=
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
+Fact two_ne_zero:
+  2 ≢ 0.
+Proof.
+  auto.
+Qed.
 
 (*
 Final Sigma-SPL expression:
@@ -1114,20 +1119,17 @@ Definition dywin_SigmaSPL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
                     (ScatH 1 1
                            (range_bound := h_bound_second_half 1 1)
                            (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)
-                                              ∘ (λ x : svector 4,
-                                                       SumUnion
-                                                         (Vbuild
-                                                            (λ (i : nat) (id : i < 2),
-                                                             (ScatH i 1
+                           ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)) ∘
 
-                                                                    (range_bound := ScatH_1_to_n_range_bound i 2 1 id)
-                                                                    (snzord0 := @ScatH_stride1_constr 1 2)
-                                                                    ∘ liftM_HOperator
-                                                                    (HBinOp (SwapIndex2 i (IgnoreIndex2 HCOLImpl.sub)))
-                                                                    ∘ GathH i 2
-                                                                    (domain_bound := GathH_jn_domain_bound i 2 id)
-                                                             ) x)))) ∘ GathH 1 1
+                           (USparseEmbedding
+                              (n:=2)
+                              (fun j _ => HBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                              (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
+                              (f_inj := h_j_1_family_injective)
+                              (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc)))
+                              (nz := two_ne_zero)
+                           )
+                           ∘ GathH 1 1
                            (domain_bound := h_bound_second_half 1 (2+2))
                     ).
 
@@ -1165,8 +1167,6 @@ Proof.
   typeclasses eauto.
   unshelve eapply THOperator2_SHOperator.
   unshelve eapply SHOperator_compose.
-  unshelve eapply SHOperator_compose.
-  typeclasses eauto.
   unshelve eapply SHOperator_compose.
   typeclasses eauto.
   admit.
