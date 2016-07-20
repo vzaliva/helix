@@ -165,11 +165,11 @@ Section SigmaHCOL_Operators.
   Qed.
 
   Global Instance SHOperator_compose
-           {i1 o2 o3}
-           (op1: svector o2 -> svector o3)
-           `{S1:!SHOperator op1}
-           (op2: svector i1 -> svector o2)
-           `{S2: !SHOperator op2}:
+         {i1 o2 o3}
+         (op1: svector o2 -> svector o3)
+         `{S1:!SHOperator op1}
+         (op2: svector i1 -> svector o2)
+         `{S2: !SHOperator op2}:
     SHOperator (op1 ∘ op2).
   Proof.
     unfold SHOperator in *.
@@ -189,9 +189,9 @@ Definition liftM_HOperator
   sparsify ∘ op ∘ densify.
 
 Global Instance SHOperator_liftM_HOperator'
-           {i o}
-           (op: avector i -> avector o)
-           `{hop: !HOperator op}
+       {i o}
+       (op: avector i -> avector o)
+       `{hop: !HOperator op}
   : SHOperator (sparsify ∘ op ∘ densify).
 Proof.
   unfold SHOperator.
@@ -204,9 +204,9 @@ Proof.
 Qed.
 
 Global Instance SHOperator_liftM_HOperator
-           {i o}
-           (op: avector i -> avector o)
-           `{hop: !HOperator op}
+       {i o}
+       (op: avector i -> avector o)
+       `{hop: !HOperator op}
   : SHOperator (liftM_HOperator op).
 Proof.
   unfold SHOperator.
