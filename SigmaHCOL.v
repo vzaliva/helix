@@ -252,6 +252,24 @@ Definition USparseEmbedding
              x
     ))).
 
+Global Instance SHOperator_USparseEmbedding
+       {n i o ki ko}
+       (kernel: forall k, (k<n) -> avector ki -> avector ko)
+       (f: index_map_family ko o n)
+       {f_inj : index_map_family_injective f}
+       (g: index_map_family ki i n)
+       `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+       {nz: n ≢ 0}:
+  SHOperator (@USparseEmbedding
+                n i o ki ko
+                kernel
+                f f_inj
+                g
+                Koperator
+                nz).
+Proof.
+Admitted.
+
 
 Section OperatorProperies.
   (* Specification of gather as mapping from ouptu to input. NOTE:
