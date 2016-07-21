@@ -13,7 +13,6 @@ Require Import Morphisms.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

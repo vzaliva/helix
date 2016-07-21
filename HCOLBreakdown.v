@@ -16,7 +16,6 @@ Require Import Program.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import SpiralTactics.
 
 Require Import Coq.Logic.FunctionalExtensionality.

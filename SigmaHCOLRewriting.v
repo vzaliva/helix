@@ -24,7 +24,6 @@ Require Import Omega.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import SpiralTactics.
 
 (* CoRN Math-classes *)
@@ -211,7 +210,7 @@ Proof.
     dep_destruct x.
     destruct (eq_nat_dec j 0).
     +
-      Case ("j=0").
+      (* Case ("j=0"). *)
       rewrite Vnth_cons_head; try assumption.
       rewrite VecUnion_cons.
       assert(Vforall Is_ValZero x0).
@@ -230,7 +229,7 @@ Proof.
       clear UZ.
       apply Union_SZero_l.
     +
-      Case ("j!=0").
+      (* Case ("j!=0"). *)
       rewrite VecUnion_cons.
       assert(Zc: 0<(S m)) by lia.
 

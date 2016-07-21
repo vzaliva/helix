@@ -10,7 +10,6 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import SpiralTactics.
 
 Require Import MathClasses.interfaces.canonical_names.

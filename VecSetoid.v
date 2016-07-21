@@ -18,7 +18,6 @@ Require Import MathClasses.theory.naturals.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import CaseNaming.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import SpiralTactics.
@@ -69,14 +68,14 @@ Section Vfold_right.
     intros f f' Ef v v' vEq i i' iEq.
     unfold Vfold_right_reord.
     induction v.
-    Case "N=0".
+    (* Case "N=0". *)
     VOtac. simpl. assumption.
-    Case "S(N)".
+    (* Case "S(N)".*)
     revert vEq. VSntac v'. unfold vec_Equiv. rewrite Vforall2_cons_eq. intuition. simpl.
     apply Ef.
-    SCase "Pf - 1".
+    (* SCase "Pf - 1". *)
     assumption.
-    SCase "Pf - 2".
+    (* SCase "Pf - 2". *)
     apply IHv. unfold vec_Equiv.  assumption.
   Qed.
 
@@ -253,9 +252,9 @@ Section VMap_reord.
   Proof.
     intros f g Eext a b Ev.
     induction n.
-    Case "N=0".
+    (* Case "N=0". *)
     VOtac. auto.
-    Case "S N".
+    (* Case "S N". *)
     dep_destruct a. dep_destruct b.
     split.
     apply Eext, Ev.
@@ -269,9 +268,9 @@ Section VMap_reord.
     intros a b Ea.
     unfold vec_Equiv.
     induction n.
-    Case "N=0".
+    (* Case "N=0". *)
     VOtac. auto.
-    Case "S N".
+    (* Case "S N". *)
     dep_destruct a. dep_destruct b.
     split.
     apply fP, Ea.

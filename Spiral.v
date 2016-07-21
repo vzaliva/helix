@@ -15,7 +15,6 @@ Require Import Coq.Strings.String.
 Require Import VecUtil.
 Require Import VecSetoid.
 
-Require Import CaseNaming.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import SpiralTactics.
@@ -174,7 +173,7 @@ Proof.
   unfold max, sort, decide_rel.
   destruct (Aledec (abs y) x).
 
-  Case "abs y <= x".
+  (* Case "abs y <= x". *)
   unfold abs, abs_sig.
   simpl.
   destruct (Aabs x) as [z1 [Ez1 Fz1]].
@@ -184,7 +183,7 @@ Proof.
   revert Ez1.
   auto.
 
-  Case "abs y > x".
+  (* Case "abs y > x". *)
   simpl.
   rewrite unary_idempotency.
   reflexivity.

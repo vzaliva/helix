@@ -14,7 +14,6 @@ Require Import Relations.
 Require Import CpdtTactics.
 Require Import SpiralTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -208,7 +207,7 @@ Section HCOL_implementation_facts.
     unfold Scale, ScalarProd.
     simpl.
     induction n.
-    - Case "n=0".
+    - (* Case "n=0". *)
       crush.
       VOtac.
       simpl.
@@ -216,7 +215,7 @@ Section HCOL_implementation_facts.
       unfold equiv, vec_Equiv, Vforall2, Vforall2_aux.
       split; try trivial.
       ring.
-    - Case "S(n)".
+    - (* Case "S(n)". *)
       VSntac a.  VSntac b.
       simpl.
       symmetry.
@@ -261,10 +260,10 @@ Section HCOL_implementation_proper.
     simpl in H0, H1.
     unfold Scale.
     induction n.
-    Case "n=0".
+    (* Case "n=0". *)
     VOtac.
     reflexivity.
-    Case "S n".
+    (* Case "S n". *)
 
     dep_destruct xb.  dep_destruct yb.  split.
     assert (HH: h=h0) by apply H1.

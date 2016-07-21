@@ -18,7 +18,6 @@ Require Import Coq.Numbers.Natural.Peano.NPeano.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import SpiralTactics.
 Require Import Psatz.
 Require Import Omega.

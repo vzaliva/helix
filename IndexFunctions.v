@@ -12,7 +12,6 @@ Import Coq.Arith.PeanoNat.Nat.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import CaseNaming.
 Require Import SpiralTactics.
 Require Import Psatz.
 Require Import Omega.
