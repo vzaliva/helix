@@ -1103,8 +1103,6 @@ Section SigmaHCOLExpansionRules.
 
 End SigmaHCOLExpansionRules.
 
-Require HCOLBreakdown. (* for dywin_SPL *)
-
 Ltac HOperator_HBinOp_Type_Fix :=
   match goal with
   | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
@@ -1123,71 +1121,3 @@ Ltac HOperator_HPrepend_Type_Fix :=
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
-(*
-Final Sigma-SPL expression:
-
-BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
-SUMUnion(
-  ScatHUnion(2, 1, 0, 1) o
-  Reduction(3, (a, b) -> add(a, b), V(0.0), (arg) -> false) o
-  PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
-  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
-  GathH(5, 1, 0, 1),
-  ScatHUnion(2, 1, 1, 1) o
-  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
-  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
-  ISumUnion(i15, 2,
-    ScatHUnion(2, 1, i15, 1) o
-    BinOp(1, Lambda([ r12, r13 ], sub(r12, r13))) o
-    GathH(4, 2, i15, 2)
-  ) o
-  GathH(5, 4, 1, 1)
-)
- *)
-Definition dywin_SigmaSPL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
-  :=
-    liftM_HOperator (HBinOp (IgnoreIndex2 THCOLImpl.Zless))
-                    ∘ HTSUMUnion
-                    (ScatH 0 1
-                           (range_bound := h_bound_first_half 1 1)
-                           (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ liftM_HOperator
-                           (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
-                                       ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
-                           GathH 0 1
-                           (domain_bound := h_bound_first_half 1 (2+2))
-
-                    )
-                    (ScatH 1 1
-                           (range_bound := h_bound_second_half 1 1)
-                           (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)) ∘
-
-                           (USparseEmbedding
-                              (n:=2)
-                              (fun j _ => HBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
-                              (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                              (f_inj := h_j_1_family_injective)
-                              (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                           ∘ GathH 1 1
-                           (domain_bound := h_bound_second_half 1 (2+2))
-                    ).
-
-
-(* Our top-level example goal. Value correctness. *)
-Theorem DynWinSigmSPL:  forall (a: avector 3),
-    liftM_HOperator (HCOLBreakdown.dywin_SPL a) = dywin_SigmaSPL a.
-Proof.
-  intros a.
-
-  unfold dywin_SigmaSPL, HCOLBreakdown.dywin_SPL.
-  rewrite LiftM_Hoperator_compose.
-
-  (* Actual rewriting *)
-  setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
-  setoid_rewrite LiftM_Hoperator_compose at 2.
-  setoid_rewrite expand_BinOp at 2 .
-
-  eapply SHOperator_functional_extensionality.
-  reflexivity.
-Qed.
