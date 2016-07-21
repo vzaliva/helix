@@ -389,8 +389,8 @@ Qed.
 
 Lemma U_SAG1_PW:
   forall n (x:avector n)
-         (f: { i | i<n} -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+    (f: { i | i<n} -> CarrierA -> CarrierA)
+    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
     SumUnion
       (@Vbuild (svector n) n
                (fun i id =>
@@ -619,8 +619,8 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         liftM_HOperator (HBinOp (o:=n) f)
         =
         USparseEmbedding (i:=n+n) (o:=n)
@@ -930,19 +930,59 @@ Section SigmaHCOLExpansionRules.
       typeclasses eauto.
     Qed.
 
+    Instance HBinOp_expansion_DensityPreserving
+             (n:nat)
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+             (nz: n ≢ 0) (* Additional constraint! *)
+      :
+        DensityPreserving (
+            USparseEmbedding (i:=n+n) (o:=n)
+                             (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
+                             (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                             (f_inj := h_j_1_family_injective)
+                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))).
+    Proof.
+      unfold DensityPreserving.
+      intros x Dx.
+      apply USparseEmbeddingIsDense.
+
+      - unfold index_map_family_surjective.
+        unfold h_index_map.
+        simpl.
+        intros y yc.
+        exists 0, y.
+        eexists.
+        auto.
+        eexists.
+        assumption.
+        auto.
+      -
+        assumption.
+      - simpl.
+        intros j jc k kc.
+        unfold svector_is_dense in Dx.
+        generalize ((IndexFunctions.h_index_map_obligation_1 2 (n + n) j n
+                                                             (GathH_jn_domain_bound j n jc) k kc)).
+        intros l.
+        eapply Vforall_nth in Dx.
+        apply Dx.
+    Qed.
+
+
     Instance HTDirectSum_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
              (g: avector i2 -> avector o2)
              `{hop1: !HOperator f}
              `{hop2: !HOperator g}
-    : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
+      : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
       typeclasses eauto.
     Qed.
 
-    Instance HTDirectSumExpansion_DensityPreserving
+    Instance HTDirectSum_expansion_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
              (g: avector i2 -> avector o2)
