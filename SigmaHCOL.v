@@ -231,6 +231,29 @@ Definition SparseEmbedding
              ∘ (liftM_HOperator kernel)
              ∘ (Gather g)) x.
 
+Global Instance SHOperator_SparseEmbedding
+       {i o ki ko}
+       (kernel: avector ki -> avector ko)
+       (f: index_map ko o)
+       {f_inj : index_map_injective f}
+       (g: index_map ki i)
+       `{Koperator: @HOperator ki ko kernel}:
+  SHOperator (@SparseEmbedding
+                i o ki ko
+                kernel
+                f
+                f_inj
+                g
+                Koperator).
+Proof.
+  unfold SHOperator.
+  split; repeat apply vec_Setoid.
+  intros x y E.
+  unfold SparseEmbedding.
+  rewrite E.
+  reflexivity.
+Qed.
+
 Definition USparseEmbedding
            {n i o ki ko}
            (kernel: forall k, (k<n) -> avector ki -> avector ko)
@@ -265,7 +288,24 @@ Global Instance SHOperator_USparseEmbedding
                 g
                 Koperator).
 Proof.
-Admitted.
+  unfold SHOperator.
+  split; repeat apply vec_Setoid.
+  intros x y E.
+  unfold USparseEmbedding.
+  apply ext_equiv_applied_iff'.
+  split; repeat apply vec_Setoid.
+  apply SumUnion_proper.
+  split; repeat apply vec_Setoid.
+  apply SumUnion_proper.
+  reflexivity.
+
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros j jc.
+  rewrite 2!Vbuild_nth.
+  rewrite E.
+  reflexivity.
+Qed.
 
 
 Section OperatorProperies.
