@@ -920,6 +920,16 @@ Section SigmaHCOLExpansionRules.
 
   Section Structural_Correctness.
 
+    Instance HBinOp_DensityPreserving
+             (n:nat)
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+      DensityPreserving (liftM_HOperator (HBinOp (o:=n) f)).
+    Proof.
+      apply liftM_HOperator_DensityPreserving.
+      typeclasses eauto.
+    Qed.
+
     Instance HTDirectSum_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
