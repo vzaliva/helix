@@ -35,20 +35,20 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
+Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.
 Proof.
   solve_proper.
 Qed.
 
-Instance negate_proper A `{Ar: Ring A} `{!Setoid A}:
+Global Instance negate_proper A `{Ar: Ring A} `{!Setoid A}:
   Setoid_Morphism (negate).
 Proof.
   split;try assumption.
   solve_proper.
 Qed.
 
-Instance abs_setoid_proper A
+Global Instance abs_Setoid_Morphism A
          `{Ar: Ring A}
          `{Asetoid: !Setoid A}
          `{Ato: !@TotalOrder A Ae Ale}
@@ -128,7 +128,7 @@ Proof with trivial.
   apply flip_nonpos_negate...
 Qed.
 
-Instance abs_idempotent
+Global Instance abs_idempotent
          `{Ae: Equiv A}
          `{Az: Zero A} `{A1: One A}
          `{Aplus: Plus A} `{Amult: Mult A}
