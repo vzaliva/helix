@@ -323,9 +323,17 @@ Section IgnoreIndex_wrapper.
     reflexivity.
   Qed.
 
-
   (* Wrapper to ignore index parameter for HPointwise kernel. *)
-  Definition IgnoreIndex {A B:Type} (f:A->A) := fun (_:B) => f.
+  Definition IgnoreIndex {A:Type} {n:nat} (f:A->A) := fun (_:@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n)) => f.
 
+  Global Instance IgnoredIndex_Proper {n:nat}:
+    (Proper
+       (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) (IgnoreIndex (n:=n))).
+  Proof.
+    simpl_relation.
+    unfold IgnoreIndex.
+    apply H.
+    assumption.
+  Qed.
 
 End IgnoreIndex_wrapper.

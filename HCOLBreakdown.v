@@ -111,20 +111,6 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Global Instance IgnoredIndex_abs_Proper:
-    (Proper (A :=
-         (forall
-            (_ : @sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
-            (_ : CarrierA), CarrierA))
-
-            ((=) ==> (=) ==> (=)) (IgnoreIndex abs)).
-  Proof.
-    simpl_relation.
-    unfold IgnoreIndex.
-    rewrite H0.
-    reflexivity.
-  Qed.
-
   Theorem breakdown_TInfinityNorm: forall (n:nat) (v:avector n),
       InfinityNorm (n:=n) v = ((Reduction max 0) ∘ (HPointwise (IgnoreIndex abs))) v.
   Proof.
