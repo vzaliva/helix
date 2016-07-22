@@ -97,8 +97,8 @@ Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
                     (ScatH 1 1
                            (range_bound := h_bound_second_half 1 1)
                            (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ (liftM_HOperator (HReduction HCOLBreakdown.MaxAbs zero)) ∘
-
+                           ∘ liftM_HOperator (
+                             (HReduction minmax.max 0) ∘ (HPointwise (IgnoreIndex abs))) ∘
                            (USparseEmbedding
                               (n:=2)
                               (fun j _ => HBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
