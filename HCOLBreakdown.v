@@ -111,22 +111,13 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Global Instance IgnoredIndex_abs_Proper: @Proper
-                                             (forall
-                                                 (_ : @sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
-                                                 (_ : CarrierA), CarrierA)
-                                             (@respectful
-                                                (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
-                                                (forall _ : CarrierA, CarrierA)
-                                                (@equiv
-                                                   (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
-                                                   (@sig_equiv nat peano_naturals.nat_equiv
-                                                               (fun i : nat => @lt nat peano_naturals.nat_lt i n)))
-                                                (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
-                                                             (@equiv CarrierA CarrierAe)))
-                                             (@IgnoreIndex CarrierA
-                                                           (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
-                                                           (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg CarrierAabs)).
+  Global Instance IgnoredIndex_abs_Proper:
+    (Proper (A :=
+         (forall
+            (_ : @sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
+            (_ : CarrierA), CarrierA))
+
+            ((=) ==> (=) ==> (=)) (IgnoreIndex abs)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex.
