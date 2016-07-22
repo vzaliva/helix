@@ -303,24 +303,13 @@ Section IgnoreIndex_wrapper.
     apply f_mor.
   Qed.
 
-  (* TODO: Seems incorrect. Check! *)
-  Global Instance IgnoreIndex2_proper:
-    (Proper (((=) ==> (=)) ==> (=)) IgnoreIndex2).
-  Proof.
-    simpl_relation.
-    apply H; assumption.
-  Qed.
-
-  Global Instance IgnoreIndex2_preserves_proper
-         (f: CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+  Global Instance IgnoreIndex2_proper
     :
-      (Proper ((=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2 f)).
+      (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex2.
-    rewrite H0, H1.
-    reflexivity.
+    apply H; assumption.
   Qed.
 
   (* Wrapper to ignore index parameter for HPointwise kernel. *)
