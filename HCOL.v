@@ -278,7 +278,7 @@ End HCOL_Language.
 
 Section IgnoreIndex_wrapper.
 
-  (* Wrapper to replace index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
+  (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := fun (_:nat) => f i.
 
   Global Instance SwapIndex2_proper `{Setoid A} (i:nat)
@@ -303,6 +303,7 @@ Section IgnoreIndex_wrapper.
     apply f_mor.
   Qed.
 
+  (* TODO: Seems incorrect. Check! *)
   Global Instance IgnoreIndex2_proper:
     (Proper (((=) ==> (=)) ==> (=)) IgnoreIndex2).
   Proof.
@@ -323,5 +324,8 @@ Section IgnoreIndex_wrapper.
   Qed.
 
 
-End IgnoreIndex_wrapper.
+  (* Wrapper to ignore index parameter for HPointwise kernel. *)
+  Definition IgnoreIndex {A B:Type} (f:A->A) := fun (_:B) => f.
 
+
+End IgnoreIndex_wrapper.

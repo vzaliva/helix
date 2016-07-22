@@ -30,17 +30,6 @@ Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 Open Scope vector_scope.
 
-Definition MaxAbs (a b: CarrierA): CarrierA := max (abs a) (abs b).
-
-Global Instance MaxAbs_proper:
-  Proper ((=) ==> (=) ==> (=)) (MaxAbs).
-Proof.
-  intros a a' aE b b' bE.
-  unfold MaxAbs.
-  rewrite aE, bE.
-  reflexivity.
-Qed.
-
 Section HCOLBreakdown.
 
   Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b: vector A n}
@@ -122,36 +111,42 @@ Section HCOLBreakdown.
     apply breakdown_EvalPolynomial.
   Qed.
 
-  Theorem breakdown_TInfinityNorm: forall (n:nat) (v: avector n),
-      InfinityNorm v = (Reduction MaxAbs 0) v.
+  Global Instance IgnoredIndex_abs_Proper: @Proper
+                                             (forall
+                                                 (_ : @sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
+                                                 (_ : CarrierA), CarrierA)
+                                             (@respectful
+                                                (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv
+                                                   (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
+                                                   (@sig_equiv nat peano_naturals.nat_equiv
+                                                               (fun i : nat => @lt nat peano_naturals.nat_lt i n)))
+                                                (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                                                             (@equiv CarrierA CarrierAe)))
+                                             (@IgnoreIndex CarrierA
+                                                           (@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n))
+                                                           (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg CarrierAabs)).
   Proof.
-    intros.
-    unfold InfinityNorm, Reduction.
-    dependent induction v.
-    - reflexivity.
-    - rewrite Vfold_right_reduce.
-      rewrite_clear IHv.
-      simpl.
+    simpl_relation.
+    unfold IgnoreIndex.
+    rewrite H0.
+    reflexivity.
+  Qed.
 
-      assert(ABH: (abs (Vfold_right MaxAbs v 0)) =
-                  (Vfold_right MaxAbs v 0)).
-      {
-        unfold MaxAbs.
-        dependent induction v.
-        + simpl.
-          apply abs_0_s.
-        + apply CarrierAto.
-          rewrite Vfold_right_reduce, IHv, <- abs_max_comm_2nd.
-          reflexivity.
-      }
-      unfold MaxAbs.
-      rewrite_clear ABH.
-      reflexivity.
+  Theorem breakdown_TInfinityNorm: forall (n:nat) (v:avector n),
+      InfinityNorm (n:=n) v = ((Reduction max 0) ∘ (HPointwise (IgnoreIndex abs))) v.
+  Proof.
+    intros n v.
+    unfold InfinityNorm, Reduction, compose, IgnoreIndex, HPointwise.
+    rewrite 2!Vfold_right_to_Vfold_right_reord.
+    rewrite Vmap_as_Vbuild.
+    reflexivity.
   Qed.
 
   Fact breakdown_OTInfinityNorm:  forall (n:nat),
       HInfinityNorm =
-      HReduction MaxAbs 0 (i:=n).
+      (HReduction max 0 (i:=n) ∘ (HPointwise (IgnoreIndex abs))).
   Proof.
     intros n.
     apply HOperator_functional_extensionality; intros v.

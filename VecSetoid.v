@@ -163,6 +163,19 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
+  ∀ (n : nat) (v : vector A n) (f:A->B),
+    Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
+Proof.
+  intros n v f.
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros i ip.
+  rewrite Vnth_map.
+  rewrite Vbuild_nth.
+  reflexivity.
+Qed.
+
 Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
     Vmap2 f a b = Vcons (f (Vhead a) (Vhead b)) (Vmap2 f (Vtail a) (Vtail b)).
 Proof.

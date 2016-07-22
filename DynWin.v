@@ -39,7 +39,7 @@ Definition dynwin_HCOL (a: avector 3) :=
   (HBinOp (IgnoreIndex2 Zless) ∘
           HCross
           ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-          (HReduction MaxAbs 0 ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
+          (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
 
 
 (* Initial HCOL breakdown proof *)
