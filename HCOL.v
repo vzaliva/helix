@@ -281,13 +281,11 @@ Section IgnoreIndex_wrapper.
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := fun (_:nat) => f i.
 
-  Global Instance SwapIndex2_proper `{Setoid A} (i:nat)
-         (f:nat->A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A i f).
+  Global Instance SwapIndex2_proper `{Setoid A}:
+    Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A).
   Proof.
-    intros a a' Ea b b' Eb y y' Ey.
-    unfold SwapIndex2.
-    f_equiv; assumption.
+    simpl_relation.
+    apply H1; assumption.
   Qed.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
@@ -303,9 +301,8 @@ Section IgnoreIndex_wrapper.
     apply f_mor.
   Qed.
 
-  Global Instance IgnoreIndex2_proper
-    :
-      (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2)).
+  Global Instance IgnoreIndex2_proper:
+    (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex2.
