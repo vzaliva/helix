@@ -371,31 +371,18 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
-
-  (* TODO: move pf into Proper *)
-  Global Instance Induction_proper
-         (f:CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f} (n:nat):
-    Proper ((=) ==> (=) ==> (=))  (@Induction n f).
+  Global Instance Induction_proper {n:nat}:
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Induction n).
   Proof.
-    intros ini ini' iniEq v v' vEq.
+    intros f f' fEq ini ini' iniEq v v' vEq.
     induction n.
     reflexivity.
-
     rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    assert (RP: Proper ((=) ==> (=)) (λ x, f x v)) by solve_proper.
-    rewrite IHn,  iniEq.
-
-    assert (EE: ext_equiv (λ x, f x v)  (λ x, f x v')).
-    {
-      unfold ext_equiv.
-      intros z z' zE.
-      rewrite vEq, zE.
-      reflexivity.
-    }
-
-    rewrite EE.
-    reflexivity.
+    f_equiv; try assumption.
+    f_equiv; try apply IHn.
+    unfold respectful.
+    intros x y H.
+    apply fEq; assumption.
   Qed.
 
   Global Instance VMinus_proper (n:nat):
