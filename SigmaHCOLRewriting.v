@@ -1120,3 +1120,51 @@ Ltac HOperator_HPrepend_Type_Fix :=
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
 
+Section SigmaHCOLRewritingRules.
+  Section Value_Correctness.
+
+    Lemma rewrite_PointWise_ISumUnion
+          {n i o ki ko}
+          (pf: { j | j<o} -> CarrierA -> CarrierA)
+          `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+          (kernel: forall k, (k<n) -> avector ki -> avector ko)
+          (f: index_map_family ko o n)
+          {f_inj : index_map_family_injective f}
+          (g: index_map_family ki i n)
+          `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+    :
+      liftM_HOperator (HPointwise pf) ∘
+                      (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator)
+      =
+      fun v =>
+        (SumUnion
+           (Vbuild
+              (λ (j:nat) (jc:j<n),
+               (Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                        ∘ (liftM_HOperator (kernel j jc))
+                        ∘ (Gather (⦃ g ⦄ j jc))) v
+        ))).
+    Proof.
+      unfold USparseEmbedding.
+      unfold SparseEmbedding.
+      unfold compose at 1.
+      apply ext_equiv_applied_iff'.
+      -
+        (* apply SHOperator_liftM_HOperator. *)
+        admit.
+      -
+        admit.
+      -
+        intros x.
+        unfold liftM_HOperator at 1.
+        unfold compose.
+        unfold HPointwise, sparsify, densify, SumUnion.
+
+        induction x.
+
+
+
+    Qed.
+
+  End Value_Correctness.
+End SigmaHCOLRewritingRules.
