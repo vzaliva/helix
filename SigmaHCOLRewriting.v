@@ -1140,28 +1140,57 @@ Section SigmaHCOLRewritingRules.
         (SumUnion
            (Vbuild
               (λ (j:nat) (jc:j<n),
-               (Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                        ∘ (liftM_HOperator (kernel j jc))
-                        ∘ (Gather (⦃ g ⦄ j jc))) v
+               (liftM_HOperator (HPointwise pf) ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                                ∘ (liftM_HOperator (kernel j jc))
+                                ∘ (Gather (⦃ g ⦄ j jc))) v
+
         ))).
     Proof.
-      unfold USparseEmbedding.
-      unfold SparseEmbedding.
-      unfold compose at 1.
       apply ext_equiv_applied_iff'.
       -
-        (* apply SHOperator_liftM_HOperator. *)
-        admit.
+        typeclasses eauto.
       -
-        admit.
+        split; repeat apply vec_Setoid.
+        intros x y E.
+        f_equiv.
+        unfold equiv, vec_Equiv.
+        apply Vforall2_intro_nth.
+        intros j jc.
+        rewrite 2!Vbuild_nth.
+        rewrite E.
+        reflexivity.
       -
         intros x.
-        unfold liftM_HOperator at 1.
+        unfold compose at 1.
+        unfold USparseEmbedding, SparseEmbedding.
+
+        unfold equiv, vec_Equiv.
+        apply Vforall2_intro_nth.
+        intros j jc.
+
         unfold compose.
-        unfold HPointwise, sparsify, densify, SumUnion.
+        rewrite <- Vmap_Vbuild.
 
-        induction x.
 
+
+        (* apply Vnth_arg_equiv. *)
+
+
+        rewrite AbsorbUnionIndex.
+        rewrite Vmap_map.
+        rewrite Vmap_Vbuild.
+
+
+
+AbsorbUnionIndex:
+  ∀ (m n : nat) (x : vector (vector Rtheta m) n) (k : nat)
+  (kc : k < m),
+  Vnth (SumUnion x) kc = VecUnion (Vmap (λ v : vector Rtheta m, Vnth v kc) x)
+AbsorbIUnionIndex:
+  ∀ (o n : nat) (body : ∀ i : nat, i < n → vector Rtheta o)
+  (k : nat) (kc : k < o),
+  Vnth (SumUnion (Vbuild body)) kc
+  ≡ VecUnion (Vbuild (λ (i : nat) (ic : i < n), Vnth (body i ic) kc))
 
 
     Qed.
