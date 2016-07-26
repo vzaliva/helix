@@ -257,6 +257,7 @@ Proof.
       auto.
 Qed.
 
+(* TODO: Currently unused except in U_SAG1_PW. Remove? *)
 Lemma U_SAG1:
   ∀ (n : nat) (x : avector n)
     (f: { i | i<n} -> CarrierA -> CarrierA)
@@ -386,6 +387,7 @@ Proof.
     break_if; crush.
 Qed.
 
+(* TODO: Currently unused. Remove? *)
 Lemma U_SAG1_PW:
   forall n (x:avector n)
     (f: { i | i<n} -> CarrierA -> CarrierA)
@@ -412,6 +414,7 @@ Proof.
   rewrite Vnth_sparsify.
   apply U_SAG1.
 Qed.
+
 
 Fact GathH_jn_domain_bound i n:
   i < n ->
@@ -1172,9 +1175,9 @@ Section SigmaHCOLRewritingRules.
         rewrite <- Vmap_Vbuild.
 
 
+        (* HERE: apply Vnth_arg_equiv. *)
 
-        (* apply Vnth_arg_equiv. *)
-
+        (*
 
         rewrite AbsorbUnionIndex.
         rewrite Vmap_map.
@@ -1194,6 +1197,7 @@ AbsorbIUnionIndex:
 
 
     Qed.
-
+         *)
+        Admitted.
   End Value_Correctness.
 End SigmaHCOLRewritingRules.

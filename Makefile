@@ -43,7 +43,7 @@ graph.svg: graph.dot
 graph.dot: graph.dpd
 	dpd2dot graph.dpd
 
-graph.dpd:
+graph.dpd: depgraph.vcmd
 	"coqtop"  -R "." Top -I "." < depgraph.vcmd
 
 print-unused: graph.dpd
