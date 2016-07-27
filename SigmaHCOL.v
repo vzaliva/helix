@@ -212,7 +212,8 @@ Section SigmaHCOL_Operators.
     apply E.
   Qed.
 
-  Definition SHBinOp {o}
+  Definition SHBinOp
+             {o}
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
              (v:svector (o+o)): svector o
@@ -531,6 +532,60 @@ Section OperatorProperies.
     unfold sparsify; rewrite Vnth_map.
     rewrite HPointwise_nth.
     unfold densify; rewrite Vnth_map.
+    reflexivity.
+  Qed.
+
+  Lemma SHBinOp_nth
+        {o}
+          {f: nat -> CarrierA -> CarrierA -> CarrierA}
+          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+          {v: svector (o+o)}
+          {j:nat}
+          {jc: j<o}
+          {jc1:j<o+o}
+          {jc2: (j+o)<o+o}
+    :
+      Vnth (@SHBinOp o f pF v) jc = liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+  Proof.
+    unfold SHBinOp, vector2pair.
+
+    break_let.
+
+    replace t with (fst (Vbreak v)) by crush.
+    replace t0 with (snd (Vbreak v)) by crush.
+    clear Heqp.
+
+    rewrite Vbuild_nth.
+    f_equiv.
+
+    apply Vnth_fst_Vbreak with (jc3:=jc1).
+    apply Vnth_snd_Vbreak with (jc3:=jc2).
+  Qed.
+
+  Lemma SHBinOp_equiv_lifted_HBinOp {o}
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    @SHBinOp o f pF = liftM_HOperator (@HBinOp o f pF).
+  Proof.
+    apply ext_equiv_applied_iff'; try typeclasses eauto.
+    intros x.
+
+    unfold equiv, vec_Equiv.
+    apply Vforall2_intro_nth.
+    intros j jc.
+
+    assert(jc1: j<o+o) by omega.
+    assert(jc2: j+o<o+o) by omega.
+    rewrite (@SHBinOp_nth o f pF x j jc jc1 jc2).
+
+    unfold liftM_HOperator.
+    unfold compose.
+    unfold sparsify; rewrite Vnth_map.
+    rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
+    unfold densify; rewrite 2!Vnth_map.
+
+    rewrite <- evalWriter_Rtheta_liftM2.
+    rewrite mkValue_evalWriter.
     reflexivity.
   Qed.
 

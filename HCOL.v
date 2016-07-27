@@ -339,4 +339,31 @@ Section HCOL_Operator_Lemmas.
     reflexivity.
   Qed.
 
+  Lemma HBinOp_nth
+        {o}
+        {f: nat -> CarrierA -> CarrierA -> CarrierA}
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+        {v: avector (o+o)}
+        {j:nat}
+        {jc: j<o}
+        {jc1:j<o+o}
+        {jc2: (j+o)<o+o}
+    :
+      Vnth (@HBinOp o f pF v) jc = f j (Vnth v jc1) (Vnth v jc2).
+  Proof.
+    unfold HBinOp, compose, vector2pair, HBinOp, HCOLImpl.BinOp.
+
+    break_let.
+
+    replace t with (fst (Vbreak v)) by crush.
+    replace t0 with (snd (Vbreak v)) by crush.
+    clear Heqp.
+
+    rewrite Vnth_Vmap2Indexed.
+    f_equiv.
+
+    rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.
+    rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
+  Qed.
+
 End HCOL_Operator_Lemmas.

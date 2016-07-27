@@ -80,49 +80,96 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vbreak_arg_app:
-  forall {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
-    Vbreak x = (a, b) -> x = Vapp a b.
-Proof.
-  intros B m n x a b V.
-  rewrite Vbreak_eq_app with (v:=x).
-  rewrite V.
-  reflexivity.
-Qed.
+Section VBreak.
+  Lemma Vbreak_arg_app:
+    forall {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
+      Vbreak x = (a, b) -> x = Vapp a b.
+  Proof.
+    intros B m n x a b V.
+    rewrite Vbreak_eq_app with (v:=x).
+    rewrite V.
+    reflexivity.
+  Qed.
 
-Lemma Vbreak_preserves_values {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1}:
-  Vbreak x = (x0, x1) ->
-  forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
-Proof.
-  intros B a.
-  apply Vbreak_arg_app in B.
-  subst.
-  split.
-  apply Vin_app.
-  intros.
-  destruct H.
-  apply Vin_appl; assumption.
-  apply Vin_appr; assumption.
-Qed.
+  Lemma Vbreak_preserves_values {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1}:
+    Vbreak x = (x0, x1) ->
+    forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
+  Proof.
+    intros B a.
+    apply Vbreak_arg_app in B.
+    subst.
+    split.
+    apply Vin_app.
+    intros.
+    destruct H.
+    apply Vin_appl; assumption.
+    apply Vin_appr; assumption.
+  Qed.
 
-Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
-  Vbreak x = (x0, x1) ->
-  (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
-Proof.
-  intros B D.
-  assert(N: forall a, Vin a x -> P a).
-  {
-    intros a.
-    apply Vforall_in with (v:=x); assumption.
-  }
-  (split;
-   apply Vforall_intro; intros x2 H;
-   apply N;
-   apply Vbreak_preserves_values with (a:=x2) in B;
-   destruct B as [B0 B1];
-   apply B1) ;
-    [left | right]; assumption.
-Qed.
+  Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
+    Vbreak x = (x0, x1) ->
+    (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
+  Proof.
+    intros B D.
+    assert(N: forall a, Vin a x -> P a).
+    {
+      intros a.
+      apply Vforall_in with (v:=x); assumption.
+    }
+    (split;
+     apply Vforall_intro; intros x2 H;
+     apply N;
+     apply Vbreak_preserves_values with (a:=x2) in B;
+     destruct B as [B0 B1];
+     apply B1) ;
+      [left | right]; assumption.
+  Qed.
+
+  (* special case of even break. could be proven more generaly *)
+  Lemma Vnth_fst_Vbreak
+        {A:Type}
+        (o : nat) (v : vector A (o + o)) (j : nat)
+        (jc : j < o) (jc1 : j < o + o):
+    Vnth (fst (Vbreak v)) jc = Vnth v jc1.
+  Proof.
+    replace (Vnth v) with (Vnth (Vapp (fst (Vbreak v)) (snd (Vbreak v)))).
+    -
+      rewrite Vnth_app.
+      break_match.
+      + omega.
+      + replace g with jc by apply proof_irrelevance.
+        reflexivity.
+    -
+      f_equal. symmetry.
+      apply Vbreak_eq_app.
+  Qed.
+
+  (* special case of even break. could be proven more generaly *)
+  Lemma Vnth_snd_Vbreak
+        {A: Type}
+        (o : nat) (v : vector A (o + o)) (j : nat)
+        (jc : j < o) (jc2 : j + o < o + o):
+    Vnth (snd (Vbreak v)) jc = Vnth v jc2.
+  Proof.
+    replace (Vnth v) with (Vnth (Vapp (fst (Vbreak v)) (snd (Vbreak v)))).
+    -
+      rewrite Vnth_app.
+      break_match.
+      +
+        generalize (Vnth_app_aux o jc2 l) as g.
+
+        assert(E: j + o - o = j) by omega.
+        rewrite E.
+        intros g.
+        replace g with jc by apply proof_irrelevance.
+        reflexivity.
+      + omega.
+    -
+      f_equal. symmetry.
+      apply Vbreak_eq_app.
+  Qed.
+
+End VBreak.
 
 Lemma vec_eq_elementwise n B (v1 v2: vector B n):
   Vforall2 eq v1 v2 -> (v1 = v2).
@@ -229,8 +276,8 @@ Lemma Vnth_1
     Vnth [x] ic = x.
 Proof.
   destruct i.
-    - auto.
-    - omega.
+  - auto.
+  - omega.
 Qed.
 
 Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
@@ -461,7 +508,7 @@ Section VMap2_Indexed.
 
   Lemma Vnth_Vmap2Indexed:
     forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-      (a:vector A n) (b:vector B n),
+           (a:vector A n) (b:vector B n),
       Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
   Proof.
     intros A B C n i ip f a b.
