@@ -1209,8 +1209,6 @@ Section SigmaHCOLRewritingRules.
         apply Vforall2_intro_nth.
         intros j jc.
 
-
-
         (* HERE *)
 
         setoid_rewrite SHPointwise_nth.
@@ -1220,6 +1218,11 @@ Section SigmaHCOLRewritingRules.
         rewrite 2!Vmap_Vbuild.
         unfold compose.
 
+        induction n.
+        rewrite 2!Vbuild_0.
+        unfold VecUnion.
+        simpl.
+        compute.
 
         Admitted.
   End Value_Correctness.
