@@ -1126,6 +1126,44 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
+    (* Shortcut for lifted version of HPointwise. TODO: move *)
+    Definition SHPointwise
+               {n: nat}
+               (f: { i | i<n} -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      := liftM_HOperator (@HPointwise n f pF).
+
+    Lemma HPointwise_nth
+             {n: nat}
+             (f: { i | i<n} -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             {j:nat} {jc:j<n}
+             (x: avector n):
+      Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
+    Proof.
+      unfold HPointwise.
+      rewrite Vbuild_nth.
+      reflexivity.
+    Qed.
+
+    Lemma SHPointwise_nth
+          {n: nat}
+          (f: { i | i<n} -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+          {j:nat} {jc:j<n}
+          (x: svector n):
+      Vnth (SHPointwise f x) jc =   mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth x jc))).
+    Proof.
+      unfold SHPointwise, liftM_HOperator, compose.
+      unfold sparsify.
+      rewrite Vnth_map.
+      rewrite HPointwise_nth.
+      unfold densify.
+      rewrite Vnth_map.
+      reflexivity.
+    Qed.
+
+
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1136,16 +1174,16 @@ Section SigmaHCOLRewritingRules.
           (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
     :
-      liftM_HOperator (HPointwise pf) ∘
-                      (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator)
+      SHPointwise pf ∘
+                  (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator)
       =
       fun v =>
         (SumUnion
            (Vbuild
               (λ (j:nat) (jc:j<n),
-               (liftM_HOperator (HPointwise pf) ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                                ∘ (liftM_HOperator (kernel j jc))
-                                ∘ (Gather (⦃ g ⦄ j jc))) v
+               (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                            ∘ (liftM_HOperator (kernel j jc))
+                            ∘ (Gather (⦃ g ⦄ j jc))) v
 
         ))).
     Proof.
@@ -1171,33 +1209,18 @@ Section SigmaHCOLRewritingRules.
         apply Vforall2_intro_nth.
         intros j jc.
 
+
+
+        (* HERE *)
+
+        setoid_rewrite SHPointwise_nth.
+        rewrite 2!AbsorbUnionIndex.
+        (* Now we are dealing with VecUnions only *)
+
+        rewrite 2!Vmap_Vbuild.
         unfold compose.
-        rewrite <- Vmap_Vbuild.
 
 
-        (* HERE: apply Vnth_arg_equiv. *)
-
-        (*
-
-        rewrite AbsorbUnionIndex.
-        rewrite Vmap_map.
-        rewrite Vmap_Vbuild.
-
-
-
-AbsorbUnionIndex:
-  ∀ (m n : nat) (x : vector (vector Rtheta m) n) (k : nat)
-  (kc : k < m),
-  Vnth (SumUnion x) kc = VecUnion (Vmap (λ v : vector Rtheta m, Vnth v kc) x)
-AbsorbIUnionIndex:
-  ∀ (o n : nat) (body : ∀ i : nat, i < n → vector Rtheta o)
-  (k : nat) (kc : k < o),
-  Vnth (SumUnion (Vbuild body)) kc
-  ≡ VecUnion (Vbuild (λ (i : nat) (ic : i < n), Vnth (body i ic) kc))
-
-
-    Qed.
-         *)
         Admitted.
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
