@@ -187,6 +187,7 @@ Qed.
 
 Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv in *.
 
+
 Global Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_equiv.
 Proof.
   unfold Reflexive.

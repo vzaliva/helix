@@ -32,6 +32,8 @@ Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.o
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.setoids.
 
+(* Ext Lib *)
+Require Import ExtLib.Structures.Monad.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -1126,12 +1128,36 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-    (* Shortcut for lifted version of HPointwise. TODO: move *)
+    (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise
                {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := liftM_HOperator (@HPointwise n f pF).
+               (x: svector n): svector n
+      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
+
+    Global Instance SHOperator_SHPointwise
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      SHOperator (SHPointwise f).
+    Proof.
+      split; try apply vec_Setoid.
+      intros x y E.
+      unfold SHPointwise.
+      unfold equiv, vec_Equiv.
+      apply Vforall2_intro_nth.
+      intros j jc.
+      rewrite 2!Vbuild_nth.
+
+      unfold_Rtheta_equiv.
+      rewrite 2!evalWriter_Rtheta_liftM.
+
+      f_equiv.
+      apply evalWriter_proper.
+      apply Vnth_arg_equiv.
+      apply E.
+    Qed.
 
     Lemma HPointwise_nth
              {n: nat}
@@ -1151,18 +1177,38 @@ Section SigmaHCOLRewritingRules.
           (f: { i | i<n} -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           {j:nat} {jc:j<n}
-          (x: svector n):
-      Vnth (SHPointwise f x) jc =   mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth x jc))).
+          (v: svector n):
+      Vnth (SHPointwise f v) jc =   mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
     Proof.
-      unfold SHPointwise, liftM_HOperator, compose.
-      unfold sparsify.
-      rewrite Vnth_map.
-      rewrite HPointwise_nth.
-      unfold densify.
-      rewrite Vnth_map.
+      unfold SHPointwise.
+      rewrite Vbuild_nth.
+      generalize (Vnth v jc) as x. intros x. clear v.
+      rewrite <- evalWriter_Rtheta_liftM.
+      rewrite mkValue_evalWriter.
       reflexivity.
     Qed.
 
+    Lemma SHPointwise_equiv_lifted_HPointwise
+               {n: nat}
+               (f: { i | i<n} -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      SHPointwise f = liftM_HOperator (@HPointwise n f pF).
+    Proof.
+      apply ext_equiv_applied_iff'; try typeclasses eauto.
+      intros x.
+
+      unfold equiv, vec_Equiv.
+      apply Vforall2_intro_nth.
+      intros j jc.
+      rewrite SHPointwise_nth.
+
+      unfold liftM_HOperator.
+      unfold compose.
+      unfold sparsify; rewrite Vnth_map.
+      rewrite HPointwise_nth.
+      unfold densify; rewrite Vnth_map.
+      reflexivity.
+    Qed.
 
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
