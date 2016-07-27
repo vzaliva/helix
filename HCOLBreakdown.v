@@ -37,9 +37,7 @@ Section HCOLBreakdown.
   :
     Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
   Proof.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros i ip.
+    vec_index_equiv i ip.
     rewrite Vnth_Vmap2Indexed.
     rewrite Vnth_map2.
     reflexivity.

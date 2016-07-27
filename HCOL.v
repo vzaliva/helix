@@ -120,8 +120,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HPointwise.
-      apply Vforall2_intro_nth.
-      intros i ip.
+      vec_index_equiv i ip.
       rewrite 2!Vbuild_nth.
       assert(Vnth x ip = Vnth y ip).
       apply Vnth_arg_equiv; assumption.
@@ -137,9 +136,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HAtomic.
-      unfold equiv, vec_Equiv.
-      apply Vforall2_intro_nth.
-      intros.
+      vec_index_equiv i ip.
       simpl.
       dep_destruct i.
       rewrite E.

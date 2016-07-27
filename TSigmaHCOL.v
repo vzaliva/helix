@@ -62,9 +62,7 @@ Section TSigmaHCOLOperators.
     intros f f' Ef g g' Eg x y Ex.
     unfold HTSUMUnion.
     unfold Vec2Union.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jp.
+    vec_index_equiv j jp.
     rewrite 2!Vnth_map2.
     setoid_replace (Vnth (f x) jp) with (Vnth (f' y) jp).
     setoid_replace (Vnth (g x) jp) with (Vnth (g' y) jp).

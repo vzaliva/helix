@@ -163,14 +163,15 @@ Proof.
   reflexivity.
 Qed.
 
+(* Handy tactics to break down equality of two vectors into element-wise equality of theirm elements using index *)
+Ltac vec_index_equiv j jc :=   unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
+
 Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
   ∀ (n : nat) (v : vector A n) (f:A->B),
     Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
 Proof.
   intros n v f.
-  unfold equiv, vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros i ip.
+  vec_index_equiv i ip.
   rewrite Vnth_map.
   rewrite Vbuild_nth.
   reflexivity.
@@ -357,9 +358,7 @@ Proof.
   intros fa fb Ef a a' Ea b b' Eb.
   unfold Vmap2Indexed.
 
-  unfold equiv, vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros i ip.
+  vec_index_equiv i ip.
   rewrite 2!Vbuild_nth.
   apply Ef.
   - reflexivity.
@@ -386,9 +385,7 @@ Global Instance Vbuild_proper {n:nat} `{Equiv A}:
 Proof.
   intros f f' E.
   unfold forall_relation, pointwise_relation in E.
-  unfold equiv, vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros i ip.
+  vec_index_equiv i ip.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.

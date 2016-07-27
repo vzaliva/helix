@@ -52,9 +52,7 @@ Proof.
   apply SHOperator_functional_extensionality.
   intros v.
   unfold compose.
-  unfold equiv, VecSetoid.vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros j jp.
+  vec_index_equiv j jp.
 
   unfold Gather.
   rewrite 2!Vbuild_nth.
@@ -81,9 +79,7 @@ Proof.
   apply SHOperator_functional_extensionality. clear SC.
   intros v.
   unfold compose.
-  unfold equiv, VecSetoid.vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros j jp.
+  vec_index_equiv j jp.
   unfold Scatter.
   rewrite 2!Vbuild_nth.
   break_match.
@@ -125,16 +121,12 @@ Proof.
   unfold sparsify, densify.
   rewrite Vmap_map.
 
-  unfold equiv, VecSetoid.vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros i ip.
+  vec_index_equiv i ip.
   repeat rewrite Vnth_map.
   f_equiv.
   apply VecSetoid.Vnth_arg_equiv.
   f_equiv.
-  unfold equiv, VecSetoid.vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros i0 ip0.
+  vec_index_equiv i0 ip0.
   repeat rewrite Vnth_map.
   f_equiv.
 Qed.
@@ -408,8 +400,7 @@ Lemma U_SAG1_PW:
     sparsify (HPointwise f x).
 Proof.
   intros n x f pF.
-  apply Vforall2_intro_nth.
-  intros i ip.
+  vec_index_equiv i ip.
   rewrite Vnth_sparsify.
   apply U_SAG1.
 Qed.
@@ -642,8 +633,7 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
       }
       intros x.
-      apply Vforall2_intro_nth.
-      intros i ip.
+      vec_index_equiv i ip.
       symmetry.
       apply U_SAG2; assumption.
     Qed.
@@ -701,9 +691,7 @@ Section SigmaHCOLExpansionRules.
       {
         setoid_replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify x0).
         -
-          unfold equiv, vec_Equiv.
-          apply Vforall2_intro_nth.
-          intros.
+          vec_index_equiv i ip.
           unfold ScatH, Scatter.
           rewrite Vbuild_nth.
 
@@ -762,9 +750,7 @@ Section SigmaHCOLExpansionRules.
               reflexivity.
         -
           unfold GathH, Gather.
-          unfold equiv, vec_Equiv.
-          apply Vforall2_intro_nth.
-          intros.
+          vec_index_equiv i ip.
 
           rewrite Vnth_sparsify.
           rewrite Vbuild_nth.
@@ -799,9 +785,7 @@ Section SigmaHCOLExpansionRules.
         setoid_replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify x1).
         -
           unfold ScatH, Scatter.
-          unfold equiv, vec_Equiv.
-          apply Vforall2_intro_nth.
-          intros.
+          vec_index_equiv i ip.
           rewrite Vbuild_nth.
           rewrite Vnth_app.
           break_match.
@@ -860,9 +844,7 @@ Section SigmaHCOLExpansionRules.
               rewrite Vnth_const.
               reflexivity.
         - unfold GathH, Gather.
-          unfold equiv, vec_Equiv.
-          apply Vforall2_intro_nth.
-          intros i ip.
+          vec_index_equiv i ip.
           rewrite Vbuild_nth.
           unfold h_index_map.
           unfold VnthIndexMapped.
@@ -1155,9 +1137,7 @@ Section SigmaHCOLRewritingRules.
         split; repeat apply vec_Setoid.
         intros x y E.
         f_equiv.
-        unfold equiv, vec_Equiv.
-        apply Vforall2_intro_nth.
-        intros j jc.
+        vec_index_equiv j jc.
         rewrite 2!Vbuild_nth.
         rewrite E.
         reflexivity.
@@ -1166,9 +1146,7 @@ Section SigmaHCOLRewritingRules.
         unfold compose at 1.
         unfold USparseEmbedding, SparseEmbedding.
 
-        unfold equiv, vec_Equiv.
-        apply Vforall2_intro_nth.
-        intros j jc.
+        vec_index_equiv j jc.
 
         (* HERE *)
 

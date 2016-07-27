@@ -82,8 +82,7 @@ Section SigmaHCOL_Operators.
     intros x y E.
     unfold Gather.
     unfold VnthIndexMapped.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth; intros j jp.
+    vec_index_equiv j jp.
     rewrite 2!Vbuild_nth.
     apply Vnth_arg_equiv.
     rewrite E.
@@ -133,9 +132,7 @@ Section SigmaHCOL_Operators.
     split; try apply vec_Setoid.
     intros x y E.
     unfold Scatter.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jp.
+    vec_index_equiv j jp.
     rewrite 2!Vbuild_nth.
     simpl.
     break_match.
@@ -198,9 +195,7 @@ Section SigmaHCOL_Operators.
     split; try apply vec_Setoid.
     intros x y E.
     unfold SHPointwise.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jc.
+    vec_index_equiv j jc.
     rewrite 2!Vbuild_nth.
 
     unfold_Rtheta_equiv.
@@ -230,9 +225,7 @@ Section SigmaHCOL_Operators.
 
     intros x y E.
     unfold SHBinOp.
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jc.
+    vec_index_equiv j jc.
     unfold vector2pair.
 
 
@@ -364,9 +357,7 @@ Proof.
   apply SumUnion_proper.
   reflexivity.
 
-  unfold equiv, vec_Equiv.
-  apply Vforall2_intro_nth.
-  intros j jc.
+  vec_index_equiv j jc.
   rewrite 2!Vbuild_nth.
   rewrite E.
   reflexivity.
@@ -522,9 +513,7 @@ Section OperatorProperies.
     apply ext_equiv_applied_iff'; try typeclasses eauto.
     intros x.
 
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jc.
+    vec_index_equiv j jc.
     rewrite SHPointwise_nth.
 
     unfold liftM_HOperator.
@@ -570,9 +559,7 @@ Section OperatorProperies.
     apply ext_equiv_applied_iff'; try typeclasses eauto.
     intros x.
 
-    unfold equiv, vec_Equiv.
-    apply Vforall2_intro_nth.
-    intros j jc.
+    vec_index_equiv j jc.
 
     assert(jc1: j<o+o) by omega.
     assert(jc2: j+o<o+o) by omega.
