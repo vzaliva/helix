@@ -32,9 +32,6 @@ Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.o
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.setoids.
 
-(* Ext Lib *)
-Require Import ExtLib.Structures.Monad.
-
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -392,8 +389,8 @@ Qed.
 (* TODO: Currently unused. Remove? *)
 Lemma U_SAG1_PW:
   forall n (x:avector n)
-    (f: { i | i<n} -> CarrierA -> CarrierA)
-    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+         (f: { i | i<n} -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f},
     SumUnion
       (@Vbuild (svector n) n
                (fun i id =>
@@ -1128,88 +1125,6 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-    (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-    Definition SHPointwise
-               {n: nat}
-               (f: { i | i<n} -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (x: svector n): svector n
-      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
-
-    Global Instance SHOperator_SHPointwise
-           {n: nat}
-           (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator (SHPointwise f).
-    Proof.
-      split; try apply vec_Setoid.
-      intros x y E.
-      unfold SHPointwise.
-      unfold equiv, vec_Equiv.
-      apply Vforall2_intro_nth.
-      intros j jc.
-      rewrite 2!Vbuild_nth.
-
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM.
-
-      f_equiv.
-      apply evalWriter_proper.
-      apply Vnth_arg_equiv.
-      apply E.
-    Qed.
-
-    Lemma HPointwise_nth
-             {n: nat}
-             (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             {j:nat} {jc:j<n}
-             (x: avector n):
-      Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
-    Proof.
-      unfold HPointwise.
-      rewrite Vbuild_nth.
-      reflexivity.
-    Qed.
-
-    Lemma SHPointwise_nth
-          {n: nat}
-          (f: { i | i<n} -> CarrierA -> CarrierA)
-          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-          {j:nat} {jc:j<n}
-          (v: svector n):
-      Vnth (SHPointwise f v) jc =   mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
-    Proof.
-      unfold SHPointwise.
-      rewrite Vbuild_nth.
-      generalize (Vnth v jc) as x. intros x. clear v.
-      rewrite <- evalWriter_Rtheta_liftM.
-      rewrite mkValue_evalWriter.
-      reflexivity.
-    Qed.
-
-    Lemma SHPointwise_equiv_lifted_HPointwise
-               {n: nat}
-               (f: { i | i<n} -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHPointwise f = liftM_HOperator (@HPointwise n f pF).
-    Proof.
-      apply ext_equiv_applied_iff'; try typeclasses eauto.
-      intros x.
-
-      unfold equiv, vec_Equiv.
-      apply Vforall2_intro_nth.
-      intros j jc.
-      rewrite SHPointwise_nth.
-
-      unfold liftM_HOperator.
-      unfold compose.
-      unfold sparsify; rewrite Vnth_map.
-      rewrite HPointwise_nth.
-      unfold densify; rewrite Vnth_map.
-      reflexivity.
-    Qed.
-
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1270,6 +1185,6 @@ Section SigmaHCOLRewritingRules.
         simpl.
         compute.
 
-        Admitted.
+    Admitted.
   End Value_Correctness.
 End SigmaHCOLRewritingRules.

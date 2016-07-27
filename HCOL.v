@@ -323,3 +323,20 @@ Section IgnoreIndex_wrapper.
   Qed.
 
 End IgnoreIndex_wrapper.
+
+Section HCOL_Operator_Lemmas.
+
+  Lemma HPointwise_nth
+        {n: nat}
+        (f: { i | i<n} -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        {j:nat} {jc:j<n}
+        (x: avector n):
+    Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
+  Proof.
+    unfold HPointwise.
+    rewrite Vbuild_nth.
+    reflexivity.
+  Qed.
+
+End HCOL_Operator_Lemmas.
