@@ -212,6 +212,52 @@ Section SigmaHCOL_Operators.
     apply E.
   Qed.
 
+  Definition SHBinOp {o}
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+             (v:svector (o+o)): svector o
+    :=  match (vector2pair o v) with
+        | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
+        end.
+
+  Global Instance SHOperator_SHBinOp {o}
+         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    SHOperator (@SHBinOp o f pF).
+  Proof.
+    split; try apply vec_Setoid.
+
+    intros x y E.
+    unfold SHBinOp.
+    unfold equiv, vec_Equiv.
+    apply Vforall2_intro_nth.
+    intros j jc.
+    unfold vector2pair.
+
+
+    repeat break_let.
+
+    replace t with (fst (Vbreak x)) by crush.
+    replace t0 with (snd (Vbreak x)) by crush.
+    replace t1 with (fst (Vbreak y)) by crush.
+    replace t2 with (snd (Vbreak y)) by crush.
+    clear Heqp Heqp0.
+
+    rewrite 2!Vbuild_nth.
+
+    unfold_Rtheta_equiv.
+    rewrite 2!evalWriter_Rtheta_liftM2.
+
+    f_equiv.
+    - apply evalWriter_proper.
+      apply Vnth_arg_equiv.
+      rewrite E.
+      reflexivity.
+    - apply evalWriter_proper.
+      apply Vnth_arg_equiv.
+      rewrite E.
+      reflexivity.
+  Qed.
 
 End SigmaHCOL_Operators.
 
