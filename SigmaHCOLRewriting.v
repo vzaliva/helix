@@ -1165,47 +1165,35 @@ Section SigmaHCOLRewritingRules.
 
 
     Lemma rewrite_PointWise_ISumUnion
-          {n i o}
-          (f: { j | j<o} -> CarrierA -> CarrierA)
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          (g: forall {j:nat}, (j<n) -> svector i -> svector o)
-          `{gSHoperator: forall k (kc: k<n), @SHOperator i o (g kc)}
+          {n i o ki ko}
+          (pf: { j | j<o} -> CarrierA -> CarrierA)
+          `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+          (kernel: forall k, (k<n) -> avector ki -> avector ko)
+          (f: index_map_family ko o n)
+          {f_inj : index_map_family_injective f}
+          (g: index_map_family ki i n)
+          `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+    :
+      SHPointwise pf ∘
+                  (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator)
+      =
+      fun v =>
+        (SumUnion
+           (Vbuild
+              (λ (j:nat) (jc:j<n),
+               (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                            ∘ (liftM_HOperator (kernel j jc))
+                            ∘ (Gather (⦃ g ⦄ j jc))) v
 
-      :
-        (SHPointwise f) ∘
-                        (fun v => (SumUnion
-                                  (Vbuild
-                                     (λ (j:nat) (jc:j<n), g jc v))))
-        =
-        (fun v =>
-           (SumUnion
-              (Vbuild
-                 (λ (j:nat) (jc:j<n),
-                  (SHPointwise f ∘ (g jc)) v)))
-
-        ).
+        ))).
     Proof.
       apply ext_equiv_applied_iff'.
       -
-        split; repeat apply vec_Setoid.
-        intros x y E.
-        f_equiv.
-        eauto.
-        intros a b Eab.
-        f_equiv.
-
-        unfold equiv, vec_Equiv.
-        apply Vforall2_intro_nth.
-        intros j jc.
-        rewrite 2!Vbuild_nth.
-        rewrite Eab.
-        reflexivity.
-        assumption.
+        typeclasses eauto.
       -
         split; repeat apply vec_Setoid.
         intros x y E.
         f_equiv.
-
         unfold equiv, vec_Equiv.
         apply Vforall2_intro_nth.
         intros j jc.
@@ -1214,20 +1202,23 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
       -
         intros x.
-        unfold compose.
+        unfold compose at 1.
+        unfold USparseEmbedding, SparseEmbedding.
 
         unfold equiv, vec_Equiv.
         apply Vforall2_intro_nth.
         intros j jc.
+
+
+
+        (* HERE *)
 
         setoid_rewrite SHPointwise_nth.
         rewrite 2!AbsorbUnionIndex.
         (* Now we are dealing with VecUnions only *)
 
         rewrite 2!Vmap_Vbuild.
-
-        (* HERE *)
-        setoid_rewrite SHPointwise_nth.
+        unfold compose.
 
 
         Admitted.
