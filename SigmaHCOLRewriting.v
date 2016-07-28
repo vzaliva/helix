@@ -414,44 +414,6 @@ Proof.
   nia.
 Qed.
 
-Lemma HBinOp_nth:
-  ∀ (n : nat) (x : avector (n + n))
-    (f : nat -> CarrierA → CarrierA → CarrierA)
-    `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    (k : nat) (kp : k < n) (kn: k < n + n) (knn: k + n < n + n),
-    Vnth (HBinOp f x) kp ≡ f k (Vnth x kn) (Vnth x knn).
-Proof.
-  intros n x f f_mor k kp kn knn.
-  unfold HBinOp, compose, vector2pair, HCOLImpl.BinOp.
-  break_let.  rename t into a. rename t0 into b.
-
-  rewrite Vnth_Vmap2Indexed.
-  assert(A: Vnth a kp ≡ Vnth x kn).
-  {
-    apply Vbreak_arg_app in Heqp.
-    subst x.
-    rewrite Vnth_app.
-    break_match.
-    crush.
-    replace kp with g by apply proof_irrelevance.
-    reflexivity.
-  }
-  assert(B: Vnth b kp ≡ Vnth x knn).
-  {
-    apply Vbreak_arg_app in Heqp.
-    subst x.
-    rewrite Vnth_app.
-    break_match.
-    generalize (Vnth_app_aux n knn l) as g.
-    intros.
-    apply Vnth_cast_index.
-    omega.
-    crush.
-  }
-  rewrite A, B.
-  reflexivity.
-Qed.
-
 Lemma U_SAG2:
   ∀ (n : nat) (x : svector (n + n))
     (f: nat -> CarrierA -> CarrierA -> CarrierA)
@@ -464,12 +426,12 @@ Lemma U_SAG2:
                      ((ScatH i 1
                              (snzord0:=ScatH_stride1_constr)
                              (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                        ∘ (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f)))
+                        ∘ (SHBinOp (o:=1) (SwapIndex2 i f))
                         ∘ (GathH i n
                                  (domain_bound:=GathH_jn_domain_bound i n id))
                      ) x
       ))) kp
-    = Vnth (liftM_HOperator (HBinOp (o:=n) f) x) kp.
+    = Vnth ((SHBinOp (o:=n) f) x) kp.
 Proof.
   intros n x f f_mor k kp.
   unfold compose.
@@ -477,7 +439,7 @@ Proof.
   remember (fun i id =>
               ScatH i 1
                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                    (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                    (SHBinOp (o:=1) (SwapIndex2 i f)
                                      (GathH i n
                                             (domain_bound:=GathH_jn_domain_bound i n id) x)))
     as bf.
@@ -489,7 +451,7 @@ Proof.
                      (ScatH i 1
                             (snzord0:=ScatH_stride1_constr)
                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                            (liftM_HOperator (HBinOp (o:=1) (SwapIndex2 i f))
+                            (SHBinOp (o:=1) (SwapIndex2 i f)
                                              [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
   {
     subst bf.
@@ -511,16 +473,22 @@ Proof.
                     ScatH i 1
                           (snzord0:=ScatH_stride1_constr)
                           (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                          (sparsify
-                             [ f i
-                                 (WriterMonadNoT.evalWriter (Vnth x (ILTNN i id)))
-                                 (WriterMonadNoT.evalWriter (Vnth x (INLTNN i id)))]))).
+                          [Monad.liftM2 (SwapIndex2 i f 0) (Vnth x (ILTNN i id))
+                                        (Vnth x (INLTNN i id))]
+         )).
   {
     rewrite B1.
     extensionality i.
     extensionality id.
-    unfold liftM_HOperator, compose, sparsify.
-    simpl.
+    unfold sparsify.
+    unfold SHBinOp, vector2pair.
+    break_let.
+    simpl in Heqp.
+    inversion Heqp.
+    subst t t0.
+    rewrite Vbuild_1.
+    simpl ((Vnth [Vnth x (ILTNN i id)] (Nat.lt_0_succ 0))).
+    simpl (Vnth [Vnth x (INLTNN i id)] (Nat.lt_0_succ 0)).
     reflexivity.
   }
   rewrite B2.
@@ -533,8 +501,8 @@ Proof.
   (* Preparing to apply Lemma3. Prove some peoperties first. *)
   remember (Vbuild
               (λ (z : nat) (zi : z < n),
-               Vnth (ScatH z 1 (sparsify [f z
-                                            (WriterMonadNoT.evalWriter (Vnth x (ILTNN z zi))) (WriterMonadNoT.evalWriter (Vnth x (INLTNN z zi)))])) kp)) as b.
+               Vnth (ScatH z 1 [Monad.liftM2 (SwapIndex2 z f 0) (Vnth x (ILTNN z zi))
+                (Vnth x (INLTNN z zi))]) kp)) as b.
 
   assert
     (L3pre: forall ib (icb:ib<n),
@@ -574,13 +542,8 @@ Proof.
   rewrite Vbuild_nth.
   break_match.
   +
-    rewrite Vnth_sparsify.
     rewrite Vnth_1.
-    unfold liftM_HOperator, compose, sparsify.
-    rewrite Vnth_map.
-    setoid_rewrite HBinOp_nth with (kn:=(ILTNN k kp)) (knn:=(INLTNN k kp)).
-    unfold densify.
-    rewrite 2!Vnth_map.
+    rewrite (@SHBinOp_nth n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
     reflexivity.
   +
     unfold in_range in n0.
@@ -599,6 +562,7 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
+
     (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
@@ -609,14 +573,14 @@ Section SigmaHCOLExpansionRules.
 
        This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
-    Theorem expand_BinOp:
+    Program Theorem expand_BinOp:
       forall (n:nat)
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        liftM_HOperator (HBinOp (o:=n) f)
+        SHBinOp (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
-                         (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
+                         (fun j _ => SHBinOp (o:=1) (SwapIndex2 j f))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (f_inj := h_j_1_family_injective)
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
@@ -624,8 +588,7 @@ Section SigmaHCOLExpansionRules.
       intros n f pF.
       apply ext_equiv_applied_iff'.
       {
-        split; try apply vec_Setoid.
-        solve_proper.
+        typeclasses eauto.
       }
       {
         split; try apply vec_Setoid.
@@ -635,6 +598,7 @@ Section SigmaHCOLExpansionRules.
       intros x.
       vec_index_equiv i ip.
       symmetry.
+      unfold USparseEmbedding, SparseEmbedding. simpl.
       apply U_SAG2; assumption.
     Qed.
 
@@ -921,7 +885,7 @@ Section SigmaHCOLExpansionRules.
       :
         DensityPreserving (
             USparseEmbedding (i:=n+n) (o:=n)
-                             (fun j _ => HBinOp (o:=1) (SwapIndex2 j f))
+                             (fun j _ => SHBinOp (o:=1) (SwapIndex2 j f))
                              (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                              (f_inj := h_j_1_family_injective)
                              (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))).
@@ -1111,21 +1075,22 @@ Section SigmaHCOLRewritingRules.
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          (kernel: forall k, (k<n) -> avector ki -> avector ko)
+          (kernel: forall k, (k<n) -> svector ki -> svector ko)
+          `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
           (g: index_map_family ki i n)
-          `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+          `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
     :
       SHPointwise pf ∘
-                  (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator)
+                  (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
       =
       fun v =>
         (SumUnion
            (Vbuild
               (λ (j:nat) (jc:j<n),
                (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                            ∘ (liftM_HOperator (kernel j jc))
+                            ∘ (kernel j jc)
                             ∘ (Gather (⦃ g ⦄ j jc))) v
 
         ))).

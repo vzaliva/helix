@@ -101,7 +101,7 @@ Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
                              (HReduction minmax.max 0) ∘ (HPointwise (IgnoreIndex abs))) ∘
                            (USparseEmbedding
                               (n:=2)
-                              (fun j _ => HBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                              (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
                               (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                               (f_inj := h_j_1_family_injective)
                               (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))

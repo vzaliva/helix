@@ -55,6 +55,18 @@ Section SigmaHCOL_Operators.
   Class SHOperator {i o:nat} (op: svector i -> svector o) :=
     SHOperator_setoidmor :> Setoid_Morphism op.
 
+  (* Strong condition: operator preserves vectors' density *)
+  Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
+    o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
+
+  (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
+  Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
+    o_den_non_col : forall x,
+      svector_is_dense x ->
+      svector_is_non_collision x ->
+      svector_is_non_collision (op x).
+
+
   Lemma SHOperator_functional_extensionality
         {m n: nat}
         `{SHOperator m n f}
@@ -278,27 +290,30 @@ Qed.
 
 Definition SparseEmbedding
            {i o ki ko}
-           (kernel: avector ki -> avector ko)
+           (kernel: svector ki -> svector ko)
+           `{KD: @DensityPreserving ki ko kernel}
            (f: index_map ko o)
            {f_inj : index_map_injective f}
            (g: index_map ki i)
-           `{Koperator: @HOperator ki ko kernel}
+           `{Koperator: @SHOperator ki ko kernel}
            (x: svector i)
   :=
     (Scatter f (f_inj:=f_inj)
-             ∘ (liftM_HOperator kernel)
+             ∘ kernel
              ∘ (Gather g)) x.
 
 Global Instance SHOperator_SparseEmbedding
        {i o ki ko}
-       (kernel: avector ki -> avector ko)
+       (kernel: svector ki -> svector ko)
+       `{KD: @DensityPreserving ki ko kernel}
        (f: index_map ko o)
        {f_inj : index_map_injective f}
        (g: index_map ki i)
-       `{Koperator: @HOperator ki ko kernel}:
+       `{Koperator: @SHOperator ki ko kernel}:
   SHOperator (@SparseEmbedding
                 i o ki ko
                 kernel
+                KD
                 f
                 f_inj
                 g
@@ -314,11 +329,12 @@ Qed.
 
 Definition USparseEmbedding
            {n i o ki ko}
-           (kernel: forall k, (k<n) -> avector ki -> avector ko)
+           (kernel: forall k, (k<n) -> svector ki -> svector ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
            (x: svector i)
   :=
     (SumUnion
@@ -334,14 +350,15 @@ Definition USparseEmbedding
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
-       (kernel: forall k, (k<n) -> avector ki -> avector ko)
+       (kernel: forall k, (k<n) -> svector ki -> svector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}:
+       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}:
   SHOperator (@USparseEmbedding
                 n i o ki ko
-                kernel
+                kernel KD
                 f f_inj
                 g
                 Koperator).
@@ -398,9 +415,9 @@ Section OperatorProperies.
   Lemma Gather_is_endomorphism:
     ∀ (i o : nat)
       (x : svector i),
-    ∀ (f: index_map o i),
-      Vforall (Vin_aux x)
-              (Gather f x).
+      ∀ (f: index_map o i),
+        Vforall (Vin_aux x)
+                (Gather f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -488,13 +505,14 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
+  (* TODO: consider stronger equality *)
   Lemma SHPointwise_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
         (v: svector n):
-    Vnth (SHPointwise f v) jc =   mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+    Vnth (SHPointwise f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
     unfold SHPointwise.
     rewrite Vbuild_nth.
@@ -526,15 +544,15 @@ Section OperatorProperies.
 
   Lemma SHBinOp_nth
         {o}
-          {f: nat -> CarrierA -> CarrierA -> CarrierA}
-          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-          {v: svector (o+o)}
-          {j:nat}
-          {jc: j<o}
-          {jc1:j<o+o}
-          {jc2: (j+o)<o+o}
+        {f: nat -> CarrierA -> CarrierA -> CarrierA}
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+        {v: svector (o+o)}
+        {j:nat}
+        {jc: j<o}
+        {jc1:j<o+o}
+        {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp o f pF v) jc = liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold SHBinOp, vector2pair.
 
@@ -579,16 +597,12 @@ Section OperatorProperies.
 End OperatorProperies.
 
 Section StructuralProperies.
-  (* Strong condition: operator preserves vectors' density *)
-  Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
-    o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
-
   (* All lifted HOperators are naturally density preserving *)
   Instance liftM_HOperator_DensityPreserving
            {i o}
            (op: avector i -> avector o)
            `{hop: !HOperator op}
-    : DensityPreserving (liftM_HOperator op).
+  : DensityPreserving (liftM_HOperator op).
   Proof.
     unfold DensityPreserving.
     intros x D.
@@ -603,13 +617,6 @@ Section StructuralProperies.
   Qed.
 
 
-  (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
-  Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
-    o_den_non_col : forall x,
-      svector_is_dense x ->
-      svector_is_non_collision x ->
-      svector_is_non_collision (op x).
-
   Instance liftM_HOperator_DenseCauseNoCol
            {i o}
            (op: avector i -> avector o)
@@ -620,6 +627,43 @@ Section StructuralProperies.
     intros x D NC.
     unfold liftM_HOperator, compose.
     apply sparsify_non_coll.
+  Qed.
+
+  Lemma Is_Val_LiftM2
+        (f : CarrierA → CarrierA → CarrierA)
+        (v1 v2 : Rtheta)
+        (V1: Is_Val v1)
+        (V2: Is_Val v2):
+    Is_Val (liftM2 f v2 v1).
+  Proof.
+    unfold Is_Val, compose, IsVal in *.
+    rewrite execWriter_Rtheta_liftM2.
+    simpl in *.
+    generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
+    generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
+    intros f1 V1 f2 V2.
+    destr_bool.
+  Qed.
+
+  Global Instance SHBinOp_DensityPreserving {o}
+         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    DensityPreserving (@SHBinOp o f pF).
+  Proof.
+    unfold DensityPreserving.
+    intros x D.
+    unfold svector_is_dense.
+    apply Vforall_nth_intro.
+    intros j jc.
+    assert (jc1 : j < o + o) by omega.
+    assert (jc2 : j + o < o + o) by omega.
+    erewrite (@SHBinOp_nth o f pF x j jc jc1 jc2).
+    assert(V1: Is_Val (Vnth x jc1)) by apply Vforall_nth, D.
+    assert(V2: Is_Val (Vnth x jc2)) by apply Vforall_nth, D.
+    generalize dependent (Vnth x jc1).
+    generalize dependent (Vnth x jc2).
+    intros v1 V1 v2 V2.
+    apply Is_Val_LiftM2; assumption.
   Qed.
 
   (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
@@ -667,18 +711,19 @@ Section StructuralProperies.
 
   Lemma USparseEmbeddingIsDense
         {n i o ki ko}
-        (kernel: forall k, (k<n) -> avector ki -> avector ko)
+        (kernel: forall k, (k<n) -> svector ki -> svector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
         (f: index_map_family ko o n)
         {f_inj: index_map_family_injective f} (* gives non-col *)
         {f_sur: index_map_family_surjective f} (* gives density *)
         (g: index_map_family ki i n)
-        `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
         (x: svector i)
         {nz: n ≢ 0}
     :
       (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       svector_is_dense
-        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+        (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
   Proof.
     intros g_dense.
     apply Vforall_nth_intro.
@@ -703,16 +748,15 @@ Section StructuralProperies.
       intros gx GD.
       clear g_dense g.
 
-      assert(Vforall Is_Val (liftM_HOperator (kernel p pc) gx)).
+      assert(Vforall Is_Val ((kernel p pc) gx)).
       {
-        apply liftM_HOperator_DensityPreserving.
-        apply Koperator.
+        apply KD.
         apply GD.
       }
 
-      generalize dependent (liftM_HOperator (kernel p pc) gx).
-      intros kx KD.
-      clear GD gx Koperator kernel.
+      generalize dependent ((kernel p pc) gx).
+      intros kx KD1.
+      clear KD GD gx Koperator kernel.
 
       unfold Scatter; rewrite Vbuild_nth.
 
@@ -721,7 +765,7 @@ Section StructuralProperies.
       generalize dependent (⦃f ⦄ p pc). intros fp fp_inj F.
       clear f.
       break_match.
-      apply Vforall_nth, KD.
+      apply Vforall_nth, KD1.
       subst oi.
       absurd (in_range fp (⟦ fp ⟧ z)).
       + assumption.
@@ -808,19 +852,21 @@ Section StructuralProperies.
 
   Lemma USparseEmbeddingCauseNoCol
         {n i o ki ko}
-        (kernel: forall k, (k<n) -> avector ki -> avector ko)
+        (kernel: forall k, (k<n) -> svector ki -> svector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+        `{KNC: forall k (kc: k<n), DenseCauseNoCol (kernel k kc)}
         (f: index_map_family ko o n)
         {f_inj: index_map_family_injective f} (* gives non-col *)
         {f_sur: index_map_family_surjective f} (* gives density *)
         (g: index_map_family ki i n)
-        `{Koperator: forall k (kc: k<n), @HOperator ki ko (kernel k kc)}
+        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
         (x: svector i)
         {nz: n ≢ 0}
     :
       (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       (forall j (jc:j<n) k (kc:k<ki), Not_Collision (Vnth x («⦃g⦄ j jc» k kc))) ->
       svector_is_non_collision
-        (@USparseEmbedding n i o ki ko kernel f f_inj g Koperator x).
+        (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
   Proof.
     intros g_dense GNC.
     apply Vforall_nth_intro.
@@ -864,28 +910,27 @@ Section StructuralProperies.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(LD: svector_is_dense (liftM_HOperator (kernel j jn) gx)).
+        assert(LD: svector_is_dense ((kernel j jn) gx)).
         {
-          apply liftM_HOperator_DensityPreserving.
-          apply Koperator.
+          apply KD.
           apply GXD.
         }
 
-        assert(KNC: svector_is_non_collision (liftM_HOperator (kernel j jn) gx)).
+        assert(KNC1: svector_is_non_collision ((kernel j jn) gx)).
         {
-          apply liftM_HOperator_DenseCauseNoCol, GXNC.
-          apply Koperator.
+          apply KNC.
           apply GXD.
+          apply GXNC.
         }
-        generalize dependent (liftM_HOperator (kernel j jn) gx).
-        intros kx KD KNC.
+        generalize dependent ((kernel j jn) gx).
+        intros kx KD1 KNC1.
         clear GXD GXNC gx.
 
         (* Get rid of Scatter  *)
         assert(SNC: svector_is_non_collision (@Scatter ko o (family_f ko o (S n) f j jn)
                                                        (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx)).
 
-        apply ScatterCollisionFree, KNC.
+        apply ScatterCollisionFree, KNC1.
         generalize dependent (@Scatter ko o (family_f ko o (S n) f j jn)
                                        (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
         intros sx SNC.
@@ -924,29 +969,26 @@ Section StructuralProperies.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(svector_is_dense (@liftM_HOperator ki ko (kernel i0 ic) gxi0)).
+        assert(svector_is_dense ((kernel i0 ic) gxi0)).
         {
-          apply liftM_HOperator_DensityPreserving.
-          apply Koperator.
+          apply KD.
           apply GXDi0.
         }
-        generalize dependent (@liftM_HOperator ki ko (kernel i0 ic) gxi0).
+        generalize dependent ((kernel i0 ic) gxi0).
         intros kxi KXDi0.
         clear gxi0 GXDi0.
 
-        assert (svector_is_dense (@liftM_HOperator ki ko (kernel j jc) gxj)).
+        assert (svector_is_dense ( (kernel j jc) gxj)).
         {
-          apply liftM_HOperator_DensityPreserving.
-          apply Koperator.
+          apply KD.
           apply GXDj.
         }
-        generalize dependent (@liftM_HOperator ki ko (kernel j jc) gxj).
+        generalize dependent ((kernel j jc) gxj).
         intros kxj KXDj.
         clear gxj GXDj.
 
-
         (* housekeeping *)
-        clear Koperator g kernel nz x i ki f_sur.
+        clear KD KNC Koperator g kernel nz x i ki f_sur.
         rename
           i0 into i,
         n into k,
