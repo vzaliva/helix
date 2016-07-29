@@ -82,31 +82,31 @@ SUMUnion(
 Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
   :=
     SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-                    ∘ HTSUMUnion
-                    (ScatH 0 1
-                           (range_bound := h_bound_first_half 1 1)
-                           (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ liftM_HOperator
-                           (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
-                                       ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
-                           GathH 0 1
-                           (domain_bound := h_bound_first_half 1 (2+2))
+            ∘ HTSUMUnion
+            (ScatH 0 1
+                   (range_bound := h_bound_first_half 1 1)
+                   (snzord0 := @ScatH_stride1_constr 1 2)
+                   ∘ liftM_HOperator
+                   (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
+                               ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
+                   GathH 0 1
+                   (domain_bound := h_bound_first_half 1 (2+2))
 
-                    )
-                    (ScatH 1 1
-                           (range_bound := h_bound_second_half 1 1)
-                           (snzord0 := @ScatH_stride1_constr 1 2)
-                           ∘ liftM_HOperator (
-                             (HReduction minmax.max 0) ∘ (HPointwise (IgnoreIndex abs))) ∘
-                           (USparseEmbedding
-                              (n:=2)
-                              (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
-                              (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                              (f_inj := h_j_1_family_injective)
-                              (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                           ∘ GathH 1 1
-                           (domain_bound := h_bound_second_half 1 (2+2))
-                    ).
+            )
+            (ScatH 1 1
+                   (range_bound := h_bound_second_half 1 1)
+                   (snzord0 := @ScatH_stride1_constr 1 2)
+                   ∘ liftM_HOperator (
+                     (HReduction minmax.max 0) ∘ (HPointwise (IgnoreIndex abs))) ∘
+                   (USparseEmbedding
+                      (n:=2)
+                      (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                      (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
+                      (f_inj := h_j_1_family_injective)
+                      (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
+                   ∘ GathH 1 1
+                   (domain_bound := h_bound_second_half 1 (2+2))
+            ).
 
 (* HCOL -> SigmaHCOL Value correctness. *)
 Theorem DynWinSigmaHCOL:  forall (a: avector 3),
@@ -123,6 +123,5 @@ Proof.
   setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
-  eapply (@SHOperator_Reflexivity (1+(2+2)) 1).
-  typeclasses eauto.
+  SHOperator_reflexivity.
 Qed.

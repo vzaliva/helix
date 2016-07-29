@@ -267,7 +267,6 @@ Section SigmaHCOL_Operators.
 End SigmaHCOL_Operators.
 
 
-(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
 
 Lemma SHOperator_Reflexivity
       {m n: nat}
@@ -281,7 +280,18 @@ Proof.
   reflexivity.
 Qed.
 
-Ltac SHOperator_reflexivity := eapply SHOperator_Reflexivity.
+(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
+Ltac SHOperator_reflexivity :=
+  match goal with
+  | [ |- (@equiv
+           (forall _ : svector ?m, svector ?n)
+           (@ext_equiv
+              (svector ?m)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
+              (svector ?n)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
+    ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
+  end.
 
 Definition liftM_HOperator
            {i o}
@@ -615,9 +625,9 @@ End OperatorProperies.
 Section StructuralProperies.
   (* All lifted HOperators are naturally density preserving *)
   Global Instance liftM_HOperator_DensityPreserving
-           {i o}
-           (op: avector i -> avector o)
-           `{hop: !HOperator op}
+         {i o}
+         (op: avector i -> avector o)
+         `{hop: !HOperator op}
   : DensityPreserving (liftM_HOperator op).
   Proof.
     unfold DensityPreserving.
@@ -634,9 +644,9 @@ Section StructuralProperies.
 
 
   Global Instance liftM_HOperator_DenseCauseNoCol
-           {i o}
-           (op: avector i -> avector o)
-           `{hop: !HOperator op}
+         {i o}
+         (op: avector i -> avector o)
+         `{hop: !HOperator op}
     : DenseCauseNoCol (liftM_HOperator op).
   Proof.
     unfold DenseCauseNoCol.
