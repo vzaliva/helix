@@ -108,7 +108,6 @@ Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
                            (domain_bound := h_bound_second_half 1 (2+2))
                     ).
 
-
 (* HCOL -> SigmaHCOL Value correctness. *)
 Theorem DynWinSigmaHCOL:  forall (a: avector 3),
     liftM_HOperator (dynwin_HCOL a) = dynwin_SigmaHCOL a.
@@ -124,60 +123,6 @@ Proof.
   setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
-(* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
-*)
-
-  eapply (@SHOperator_functional_extensionality (1+(2+2)) 1).
-  -
-    HERE
-    apply SHOperator_compose.
-    split.
-    typeclasses eauto.
-    typeclasses eauto.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    Print HintDb typeclass_instances.
-
-    Hint Extern 0 (respectful equiv equiv (SHBinOp _) (SHBinOp _)) => apply SHOperator_SHBinOp : typeclass_instances.
-
-    Typeclasses eauto := debug.
-    typeclasses eauto.
-    apply TSHOperator2_HTSUMUnion.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_ScatH.
-    apply SHOperator_liftM_HOperator.
-    typeclasses eauto.
-    apply SHOperator_GathH.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_ScatH.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_liftM_HOperator.
-    typeclasses eauto.
-    apply SHOperator_USparseEmbedding.
-    apply SHOperator_GathH.
-  -
-    split.
-    apply vec_Setoid.
-    apply vec_Setoid.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_SHBinOp.
-    apply TSHOperator2_HTSUMUnion.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_ScatH.
-    apply SHOperator_liftM_HOperator.
-    typeclasses eauto.
-    apply SHOperator_GathH.
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_ScatH.
-    apply SHOperator_liftM_HOperator.
-    typeclasses eauto.
-    apply SHOperator_USparseEmbedding.
-    apply SHOperator_GathH.
-  -
-    reflexivity.
-  (* SHOperator_reflexivity *)
+  eapply (@SHOperator_Reflexivity (1+(2+2)) 1).
+  typeclasses eauto.
 Qed.

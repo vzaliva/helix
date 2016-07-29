@@ -266,8 +266,22 @@ Section SigmaHCOL_Operators.
 
 End SigmaHCOL_Operators.
 
+
 (* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
-Ltac SHOperator_reflexivity := eapply SHOperator_functional_extensionality; reflexivity.
+
+Lemma SHOperator_Reflexivity
+      {m n: nat}
+      `{SHOperator m n f}:
+  f = f.
+Proof.
+  apply (@SHOperator_functional_extensionality m n).
+  assumption.
+  assumption.
+  intros.
+  reflexivity.
+Qed.
+
+Ltac SHOperator_reflexivity := eapply SHOperator_Reflexivity.
 
 Definition liftM_HOperator
            {i o}
