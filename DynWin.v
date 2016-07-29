@@ -124,14 +124,49 @@ Proof.
   setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
-
-  Typeclasses eauto := debug.
-  Set Ltac Debug.
-  eapply SHOperator_functional_extensionality.
-
-  Redirect "log.txt" eapply SHOperator_functional_extensionality.
-  reflexivity.
-   *)
+  class_apply (@SHOperator_functional_extensionality (1+(2+2)) 1).
+  -
+    split.
+    apply vec_Setoid.
+    apply vec_Setoid.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_SHBinOp.
+    apply TSHOperator2_HTSUMUnion.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_ScatH.
+    apply SHOperator_liftM_HOperator.
+    typeclasses eauto.
+    apply SHOperator_GathH.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_ScatH.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_liftM_HOperator.
+    typeclasses eauto.
+    apply SHOperator_USparseEmbedding.
+    apply SHOperator_GathH.
+  -
+    split.
+    apply vec_Setoid.
+    apply vec_Setoid.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_SHBinOp.
+    apply TSHOperator2_HTSUMUnion.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_ScatH.
+    apply SHOperator_liftM_HOperator.
+    typeclasses eauto.
+    apply SHOperator_GathH.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
+    apply SHOperator_ScatH.
+    apply SHOperator_liftM_HOperator.
+    typeclasses eauto.
+    apply SHOperator_USparseEmbedding.
+    apply SHOperator_GathH.
+  -
+    reflexivity.
   (* SHOperator_reflexivity *)
-
 Qed.
