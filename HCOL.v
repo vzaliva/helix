@@ -273,6 +273,9 @@ Section HCOL_Language.
   End HCOL_operators.
 End HCOL_Language.
 
+(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by HOperator class *)
+Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflexivity.
+
 Section IgnoreIndex_wrapper.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
@@ -364,3 +367,4 @@ Section HCOL_Operator_Lemmas.
   Qed.
 
 End HCOL_Operator_Lemmas.
+

@@ -66,7 +66,6 @@ Section SigmaHCOL_Operators.
       svector_is_non_collision x ->
       svector_is_non_collision (op x).
 
-
   Lemma SHOperator_functional_extensionality
         {m n: nat}
         `{SHOperator m n f}
@@ -266,6 +265,9 @@ Section SigmaHCOL_Operators.
   Qed.
 
 End SigmaHCOL_Operators.
+
+(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
+Ltac SHOperator_reflexivity := eapply SHOperator_functional_extensionality; reflexivity.
 
 Definition liftM_HOperator
            {i o}

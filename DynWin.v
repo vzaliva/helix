@@ -55,8 +55,7 @@ Proof.
   rewrite breakdown_OChebyshevDistance.
   rewrite breakdown_OVMinus.
   rewrite breakdown_OTInfinityNorm.
-  apply HOperator_functional_extensionality.
-  reflexivity.
+  HOperator_reflexivity.
 Qed.
 
 (*
@@ -82,7 +81,7 @@ SUMUnion(
  *)
 Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
   :=
-    liftM_HOperator (HBinOp (IgnoreIndex2 THCOLImpl.Zless))
+    SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
                     ∘ HTSUMUnion
                     (ScatH 0 1
                            (range_bound := h_bound_first_half 1 1)
@@ -122,8 +121,17 @@ Proof.
   (* Actual rewriting *)
   setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
   setoid_rewrite LiftM_Hoperator_compose at 2.
+  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
+
+  Typeclasses eauto := debug.
+  Set Ltac Debug.
   eapply SHOperator_functional_extensionality.
+
+  Redirect "log.txt" eapply SHOperator_functional_extensionality.
   reflexivity.
+   *)
+  (* SHOperator_reflexivity *)
+
 Qed.
