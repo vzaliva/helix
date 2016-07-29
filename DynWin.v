@@ -124,11 +124,11 @@ Proof.
   setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
-  class_apply (@SHOperator_functional_extensionality (1+(2+2)) 1).
+  eapply (@SHOperator_functional_extensionality (1+(2+2)) 1).
   -
     split.
-    apply vec_Setoid.
-    apply vec_Setoid.
+    typeclasses eauto.
+    typeclasses eauto.
     apply compose_proper with (RA:=equiv) (RB:=equiv).
     apply SHOperator_SHBinOp.
     apply TSHOperator2_HTSUMUnion.
@@ -159,6 +159,7 @@ Proof.
     apply SHOperator_liftM_HOperator.
     typeclasses eauto.
     apply SHOperator_GathH.
+    apply compose_proper with (RA:=equiv) (RB:=equiv).
     apply compose_proper with (RA:=equiv) (RB:=equiv).
     apply compose_proper with (RA:=equiv) (RB:=equiv).
     apply SHOperator_ScatH.

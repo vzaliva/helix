@@ -1058,13 +1058,14 @@ Ltac HOperator_HBinOp_Type_Fix :=
 
 Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
 
-Ltac SHOperator_SHBinOp_Type_Fix :=
+(* Ltac SHOperator_SHBinOp_Type_Fix :=
   match goal with
   | [ |- (@SHOperator ?i ?o (@SHBinOp ?o _ _)) ] =>
     replace (@SHOperator i) with (@SHOperator (Init.Nat.add o o)) by apply eq_refl; apply SHOperator_SHBinOp
   end.
 
 Hint Extern 0 (@SHOperator _ ?o (@SHBinOp ?o _ _)) => SHOperator_SHBinOp_Type_Fix : typeclass_instances.
+*)
 
 Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
 
