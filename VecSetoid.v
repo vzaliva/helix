@@ -102,7 +102,7 @@ Section VCons.
 
 End VCons.
 
-Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
+Global Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
 Proof.
   intros a0 a1 aEq b0 b1 bEq.
@@ -129,7 +129,7 @@ Proof.
   apply aEq.
 Qed.
 
-Instance Vhead_proper A `{H:Equiv A} n:
+Global Instance Vhead_proper A `{H:Equiv A} n:
   Proper (@equiv (vector A (S n)) (@vec_Equiv A H (S n)) ==> @equiv A H) (@Vhead A n).
 Proof.
   intros a b E.
@@ -139,7 +139,7 @@ Proof.
   intuition.
 Defined.
 
-Instance Vtail_proper `{Equiv A} n:
+Global Instance Vtail_proper `{Equiv A} n:
   Proper (@vec_Equiv A _ (S n) ==> @vec_Equiv A _ n)
          (@Vtail A n).
 Proof.
@@ -150,7 +150,7 @@ Proof.
   assumption.
 Defined.
 
-Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
+Global Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
   Proper ((=) ==> (=)) (@Ptail A B n).
 Proof.
   intros x y E.
@@ -294,7 +294,7 @@ Section VMap_reord.
 End VMap_reord.
 
 
-Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
+Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
   Proper ((=) ==> (=)) (@Vbreak A n1 n2).
 Proof.
   intros v v1 vE.

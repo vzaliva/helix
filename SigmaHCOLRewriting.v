@@ -867,7 +867,7 @@ Section SigmaHCOLExpansionRules.
 
   Section Structural_Correctness.
 
-    Instance HBinOp_DensityPreserving
+    Global Instance HBinOp_DensityPreserving
              (n:nat)
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
@@ -877,7 +877,7 @@ Section SigmaHCOLExpansionRules.
       typeclasses eauto.
     Qed.
 
-    Instance HBinOp_expansion_DensityPreserving
+    Global Instance HBinOp_expansion_DensityPreserving
              (n:nat)
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
@@ -917,7 +917,7 @@ Section SigmaHCOLExpansionRules.
     Qed.
 
 
-    Instance HTDirectSum_DensityPreserving
+    Global Instance HTDirectSum_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
              (g: avector i2 -> avector o2)
@@ -929,7 +929,7 @@ Section SigmaHCOLExpansionRules.
       typeclasses eauto.
     Qed.
 
-    Instance HTDirectSum_expansion_DensityPreserving
+    Global Instance HTDirectSum_expansion_DensityPreserving
              {i1 o1 i2 o2}
              (f: avector i1 -> avector o1)
              (g: avector i2 -> avector o2)
@@ -1067,7 +1067,8 @@ Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : 
 Hint Extern 0 (@SHOperator _ ?o (@SHBinOp ?o _ _)) => SHOperator_SHBinOp_Type_Fix : typeclass_instances.
 *)
 
-Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
+(* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
+*)
 
 Ltac HOperator_HPrepend_Type_Fix :=
   match goal with

@@ -600,7 +600,7 @@ End OperatorProperies.
 
 Section StructuralProperies.
   (* All lifted HOperators are naturally density preserving *)
-  Instance liftM_HOperator_DensityPreserving
+  Global Instance liftM_HOperator_DensityPreserving
            {i o}
            (op: avector i -> avector o)
            `{hop: !HOperator op}
@@ -619,7 +619,7 @@ Section StructuralProperies.
   Qed.
 
 
-  Instance liftM_HOperator_DenseCauseNoCol
+  Global Instance liftM_HOperator_DenseCauseNoCol
            {i o}
            (op: avector i -> avector o)
            `{hop: !HOperator op}

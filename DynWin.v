@@ -124,13 +124,23 @@ Proof.
   setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
   setoid_rewrite expand_BinOp at 2 .
 
+(* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
+*)
+
   eapply (@SHOperator_functional_extensionality (1+(2+2)) 1).
   -
+    HERE
+    apply SHOperator_compose.
     split.
     typeclasses eauto.
     typeclasses eauto.
     apply compose_proper with (RA:=equiv) (RB:=equiv).
-    apply SHOperator_SHBinOp.
+    Print HintDb typeclass_instances.
+
+    Hint Extern 0 (respectful equiv equiv (SHBinOp _) (SHBinOp _)) => apply SHOperator_SHBinOp : typeclass_instances.
+
+    Typeclasses eauto := debug.
+    typeclasses eauto.
     apply TSHOperator2_HTSUMUnion.
     apply compose_proper with (RA:=equiv) (RB:=equiv).
     apply compose_proper with (RA:=equiv) (RB:=equiv).

@@ -61,7 +61,7 @@ Record index_map (domain range : nat) :=
 Notation "⟦ f ⟧" := (@index_f _ _ f).
 Notation "« f »" := (@index_f_spec _ _ f).
 
-Instance index_map_equiv {domain range:nat}:
+Global Instance index_map_equiv {domain range:nat}:
   Equiv (index_map domain range)
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.

@@ -34,7 +34,7 @@ Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (avector i1 -> avector o1) -> (avect
   THOperator2_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
 
 (* Curried Templete HCOL operator with arity 2 is HOperators *)
-Instance THOperator_HOperator
+Global Instance THOperator_HOperator
          `{O1: @HOperator i1 o1 op1}
          `{O2: @HOperator i2 o2 op2}
          `{T: @THOperator2 i1 o1 i2 o2 ix ox to}:
@@ -51,7 +51,7 @@ Definition HCross
   avector (i1+i2) -> avector (o1+o2)
   := pair2vector ∘ Cross (f, g) ∘ (@Vbreak CarrierA i1 i2).
 
-Instance HCross_THOperator2 {i1 o1 i2 o2}:
+Global Instance HCross_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HCross i1 o1 i2 o2).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
@@ -83,7 +83,7 @@ Definition HStack
   : avector i1 -> avector (o1+o2) :=
   fun x =>  pair2vector (Stack (f, g) x).
 
-Instance HStack_THOperator2 {i1 o1 o2}:
+Global Instance HStack_THOperator2 {i1 o1 o2}:
   THOperator2 (@HStack i1 o1 o2).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
@@ -96,7 +96,7 @@ Proof.
 Qed.
 
 
-Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
+Global Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
   @THOperator2 o2 o3 i1 o2 i1 o3 (compose).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
@@ -105,7 +105,7 @@ Proof.
 Qed.
 
 
-Instance compose_HOperator
+Global Instance compose_HOperator
          {i1 o2 o3}
         `{hop1: HOperator o2 o3 op1}
         `{hop2: HOperator i1 o2 op2}
@@ -126,7 +126,7 @@ Definition HTLess {i1 i2 o}
   := fun v0 => let (v1,v2) := vector2pair i1 v0 in
                ZVLess (f v1, g v2).
 
-Instance HTLess_THOperator2 {i1 i2 o}:
+Global Instance HTLess_THOperator2 {i1 i2 o}:
   THOperator2 (@HTLess i1 i2 o).
 Proof.
   intros f f' Ef g g' Eg x y Ex.
@@ -155,5 +155,5 @@ we just alias DirectSum to it.
 Notation HTDirectSum := HCross.
 
 (* Not sure if this is needed *)
-Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
+Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
