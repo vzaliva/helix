@@ -118,20 +118,10 @@ Proof.
   rewrite LiftM_Hoperator_compose.
 
   (* Actual rewriting *)
-  setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
-
-  setoid_rewrite LiftM_Hoperator_compose at 1.
-  setoid_rewrite LiftM_Hoperator_compose at 1.
-  setoid_rewrite LiftM_Hoperator_compose at 1.
-  setoid_rewrite LiftM_Hoperator_compose at 1.
-  setoid_rewrite LiftM_Hoperator_compose at 1.
-
-  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
-  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
-  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
-
-  setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise.
-
+  setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
+  repeat setoid_rewrite LiftM_Hoperator_compose at 1.
+  repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+  repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
   setoid_rewrite expand_BinOp at 3.
 
   SHOperator_reflexivity.
