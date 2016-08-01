@@ -2,11 +2,13 @@ LIBNAME := Spiral
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-all clean-doc tags doc install-doc install-dist targz graph
+.PHONY: default config clean clean-dep clean-all clean-doc tags doc install-doc install-dist targz graph wc
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
-VFILES := $(shell find . -name \*.v | grep -v .\# | sed -e 's|^./||g')
+LIBVFILES := CpdtTactics.v JRWTactics.v
+VFILES := $(shell find . -maxdepth 1 -name \*.v | grep -v .\# | sed -e 's|^./||g')
+MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
 default: Makefile.coq 
 	$(MAKECOQ)
@@ -35,6 +37,12 @@ clean-doc:
 doc:
 	coqdoc --html -g -d doc -R . $(LIBNAME) *.v
 
+depgraph.vcmd:
+	rm -f depgraph.vcmd
+	echo "Require dpdgraph.dpdgraph." > depgraph.vcmd
+	echo "Require $(MYVFILES)." >> depgraph.vcmd
+	echo "Print FileDependGraph $(MYVFILES)." >> depgraph.vcmd
+
 graph: graph.svg
 
 graph.svg: graph.dot
@@ -45,6 +53,9 @@ graph.dot: graph.dpd
 
 graph.dpd: depgraph.vcmd
 	"coqtop"  -R "." Top -I "." < depgraph.vcmd
+
+wc:
+	coqwc $(MYVFILES)
 
 print-unused: graph.dpd
 	dpdusage -with-path graph.dpd | sort
