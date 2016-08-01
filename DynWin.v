@@ -86,9 +86,10 @@ Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
             (ScatH 0 1
                    (range_bound := h_bound_first_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ liftM_HOperator
-                   (HReduction plus zero ∘ HBinOp (IgnoreIndex2 mult)
-                               ∘ (HPrepend a ∘ HInduction 3 mult one)) ∘
+                   ∘ (liftM_HOperator (HReduction plus zero) ∘
+                                      SHBinOp (IgnoreIndex2 mult) ∘
+                                      liftM_HOperator (HPrepend a ) ∘
+                                      liftM_HOperator (HInduction 3 mult one)) ∘
                    GathH 0 1
                    (domain_bound := h_bound_first_half 1 (2+2))
 
@@ -96,8 +97,7 @@ Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
             (ScatH 1 1
                    (range_bound := h_bound_second_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ liftM_HOperator (
-                     (HReduction minmax.max 0)) ∘ (SHPointwise (IgnoreIndex abs)) ∘
+                   ∘ liftM_HOperator (HReduction minmax.max 0) ∘ (SHPointwise (IgnoreIndex abs)) ∘
                    (USparseEmbedding
                       (n:=2)
                       (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
@@ -119,11 +119,20 @@ Proof.
 
   (* Actual rewriting *)
   setoid_rewrite expand_HTDirectSum at 1; try typeclasses eauto.
-  setoid_rewrite LiftM_Hoperator_compose at 2.
-  setoid_rewrite LiftM_Hoperator_compose at 2.
-  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp.
+
+  setoid_rewrite LiftM_Hoperator_compose at 1.
+  setoid_rewrite LiftM_Hoperator_compose at 1.
+  setoid_rewrite LiftM_Hoperator_compose at 1.
+  setoid_rewrite LiftM_Hoperator_compose at 1.
+  setoid_rewrite LiftM_Hoperator_compose at 1.
+
+  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+  setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+
   setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise.
-  setoid_rewrite expand_BinOp at 2 .
+
+  setoid_rewrite expand_BinOp at 3.
 
   SHOperator_reflexivity.
 Qed.
