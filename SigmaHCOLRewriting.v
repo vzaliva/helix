@@ -1240,11 +1240,24 @@ Section SigmaHCOLRewritingRules.
 
             rewrite Scatter_eq_mkSZero; try apply R.
             rewrite Union_SZero_r.
-            (* clear R? *)
 
-            (* apply IHn.*)
+            rewrite SHPointwise_nth_eq.
+            rewrite Scatter_eq_mkSZero; try apply R.
 
+            clear R.
 
+            setoid_replace (Monad.liftM (pf (j ↾ jc)) mkSZero) with mkSZero.
+            rewrite Union_SZero_r.
+
+            (* apply IHn. *)
+
+            {
+              (* proving Monad.liftM (pf (j ↾ jc)) mkSZero = mkSZero *)
+              unfold_Rtheta_equiv.
+              rewrite evalWriter_Rtheta_liftM.
+              rewrite evalWriter_Rtheta_SZero.
+              apply pfzn.
+            }
 
     Admitted.
   End Value_Correctness.
