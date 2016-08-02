@@ -1096,7 +1096,20 @@ Section SigmaHCOLRewritingRules.
 
     (* TODO: move *)
     Definition Is_SZero (x:Rtheta) :=
-      x ≡ mkSZero.
+      (WriterMonadNoT.evalWriter x = zero) /\
+      (WriterMonadNoT.execWriter x = RthetaFlagsZero).
+
+    Lemma Is_SZero_mkSZero:
+      Is_SZero mkSZero.
+    Proof.
+      unfold Is_SZero.
+      split.
+      apply evalWriter_Rtheta_SZero.
+      unfold mkSZero.
+      unfold WriterMonadNoT.execWriter.
+      unfold equiv.
+      reflexivity.
+    Qed.
 
     (* TODO: move *)
     Lemma Is_SZero_Scatter
@@ -1109,6 +1122,22 @@ Section SigmaHCOLRewritingRules.
       Is_SZero (Vnth (Scatter f (f_inj:=f_inj) x) jc).
     Proof.
       intros R.
+      unfold Scatter.
+      rewrite Vbuild_nth.
+      break_match.
+      congruence.
+      apply Is_SZero_mkSZero.
+    Qed.
+
+    Lemma Scatter_eq_mkSZero
+          {m n: nat}
+          (f: index_map m n)
+          {f_inj: index_map_injective f}
+          (x: svector m)
+          (j: nat) (jc : j < n)
+          (R: not (in_range f j)):
+      Vnth (Scatter f (f_inj:=f_inj) x) jc ≡ mkSZero.
+    Proof.
       unfold Scatter.
       rewrite Vbuild_nth.
       break_match.
@@ -1236,9 +1265,6 @@ Section SigmaHCOLRewritingRules.
               rewrite Vbuild_nth.
               apply Is_ValZero_to_mkSZero.
 
-              assert(H: forall x, Is_SZero x -> x = mkSZero)
-                by crush.
-              apply H.
               apply Is_SZero_Scatter.
               crush.
 
@@ -1277,11 +1303,28 @@ Section SigmaHCOLRewritingRules.
               rewrite Vbuild_nth.
               apply Is_ValZero_to_mkSZero.
 
-              assert(H: forall x, Is_SZero x -> x = mkSZero)
-                by crush.
-              apply H.
-              rewrite SHPointwise_nth.
-              apply Is_SZero_Scatter.
+
+              (* TODO: move *)
+              Lemma SHPointwise_nth'
+                    {n: nat}
+                    (f: { i | i<n} -> CarrierA -> CarrierA)
+                    `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+                    {j:nat} {jc:j<n}
+                    (v: svector n):
+                Vnth (SHPointwise f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
+              Proof.
+                unfold SHPointwise.
+                rewrite Vbuild_nth.
+                reflexivity.
+              Qed.
+
+              rewrite SHPointwise_nth'.
+              rewrite Scatter_eq_mkSZero.
+
+              unfold_Rtheta_equiv.
+              rewrite evalWriter_Rtheta_SZero.
+              rewrite evalWriter_Rtheta_liftM.
+              apply pfzn.
               crush.
 
               apply index_map_family_injective_in_range_once
@@ -1290,7 +1333,6 @@ Section SigmaHCOLRewritingRules.
                            (y:=j)
                 in f_inj; try assumption.
               congruence.
-
             }
 
             unfold_Rtheta_equiv.
@@ -1306,18 +1348,12 @@ Section SigmaHCOLRewritingRules.
             ring_simplify.
             reflexivity.
           * (* 1st argument of Union has value *)
-            assert (Is_SZero (Vnth
-                                (Scatter (f_inj:=(@index_map_family_member_injective ko o
-                                                                                     (S n) f f_inj O (Nat.lt_0_succ n))) (⦃ f ⦄ 0 (Nat.lt_0_succ n))
-                                         (kernel 0 (Nat.lt_0_succ n)
-                                                 (Gather (⦃ g ⦄ 0 (Nat.lt_0_succ n)) x))) jc)).
-            apply Is_SZero_Scatter, R.
-            unfold Is_SZero in H.
-            rewrite H, Union_SZero_r.
-            clear R H.
 
+            rewrite Scatter_eq_mkSZero; try apply R.
+            rewrite Union_SZero_r.
+            (* clear R? *)
 
-            class_apply IHn.
+            apply IHn.
 
 
 
