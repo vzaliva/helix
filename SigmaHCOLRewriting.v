@@ -1147,6 +1147,7 @@ Section SigmaHCOLRewritingRules.
       assumption.
     Qed.
 
+
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1200,21 +1201,22 @@ Section SigmaHCOLRewritingRules.
         unfold compose.
 
         induction n.
-        + rewrite 2!Vbuild_0.
+        + (* prove induction hypothesis *)
+          rewrite 2!Vbuild_0.
           unfold VecUnion.
           crush.
           unfold mkSZero.
           unfold_Rtheta_equiv.
           reflexivity.
         +
-          rewrite Vbuild_cons.
-          rewrite VecUnion_cons.
-          (* rewrite evalWriterUnion. *)
+          rewrite 2!Vbuild_cons.
+          rewrite 2!VecUnion_cons.
 
-          case (@decide (in_range (⦃ f ⦄ 0 (Nat.lt_0_succ n)) j)).
-          * apply in_range_dec.
-          * intros R.
-            assert(H: Is_ValZero (@VecUnion n
+          (* -- Only one element of Union has value. Perform case analysis -- *)
+          case (in_range_dec (⦃ f ⦄ 0 (Nat.lt_0_succ n)) j); intros R.
+          * (* 2nd argument of Union has value *)
+            (* LHS *)
+            assert(HL: Is_ValZero (@VecUnion n
                    (@Vbuild Rtheta n
                       (fun (i0 : nat) (ip : Peano.lt i0 n) =>
                        @Vnth Rtheta o
@@ -1247,13 +1249,63 @@ Section SigmaHCOLRewritingRules.
                 in f_inj; try assumption.
               congruence.
             }
-            unfold Is_ValZero in H.
-            rewrite H.
-            Union_SZero_l.
-            clear R H.
+            rewrite evalWriterUnion.
+            unfold Is_ValZero in HL.
+            rewrite_clear HL.
+            (* TODO remove 0+ using rewrite right_absorb. *)
 
-          * intros R.
+            (* RHS *)
 
+            assert(HR: Is_ValZero
+                         (@VecUnion n
+                                    (@Vbuild Rtheta n
+                                             (fun (i0 : nat) (ip : Peano.lt i0 n) =>
+                                                @Vnth Rtheta o
+                                                      (@SHPointwise o pf pf_mor
+                                                                    (@Scatter ko o
+                                                                              (family_f ko o (S n) f (S i0) (@lt_n_S i0 n ip))
+                                                                              (@index_map_family_member_injective ko o
+                                                                                                                  (S n) f f_inj (S i0) (@lt_n_S i0 n ip))
+                                                                              (kernel (S i0) (@lt_n_S i0 n ip)
+                                                                                      (@Gather i ki
+                                                                                               (family_f ki i (S n) g (S i0) (@lt_n_S i0 n ip)) x))))
+                                                      j jc)))).
+            {
+              apply VecUnion_structs.
+              apply Vforall_nth_intro.
+              intros t tc.
+              rewrite Vbuild_nth.
+              apply Is_ValZero_to_mkSZero.
+
+              assert(H: forall x, Is_SZero x -> x = mkSZero)
+                by crush.
+              apply H.
+              rewrite SHPointwise_nth.
+              apply Is_SZero_Scatter.
+              crush.
+
+              apply index_map_family_injective_in_range_once
+              with (i0:=0) (ic:=Nat.lt_0_succ n)
+                           (j0:=S t) (jc0:=lt_n_S tc)
+                           (y:=j)
+                in f_inj; try assumption.
+              congruence.
+
+            }
+
+            unfold_Rtheta_equiv.
+            rewrite evalWriterUnion.
+            unfold Is_ValZero in HR.
+            rewrite_clear HR.
+
+            ring_simplify.
+            rewrite SHPointwise_nth.
+            f_equiv.
+            f_equiv.
+            f_equiv.
+            ring_simplify.
+            reflexivity.
+          * (* 1st argument of Union has value *)
             assert (Is_SZero (Vnth
                                 (Scatter (f_inj:=(@index_map_family_member_injective ko o
                                                                                      (S n) f f_inj O (Nat.lt_0_succ n))) (⦃ f ⦄ 0 (Nat.lt_0_succ n))
