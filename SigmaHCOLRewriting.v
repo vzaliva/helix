@@ -1081,9 +1081,45 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
+
+    (* TODO: move *)
+    Lemma evalWriterUnion {a b: Rtheta}:
+      WriterMonadNoT.evalWriter (Union a b) =
+            plus (WriterMonadNoT.evalWriter a)
+                 (WriterMonadNoT.evalWriter b).
+    Proof.
+            unfold Union.
+            rewrite evalWriter_Rtheta_liftM2.
+            reflexivity.
+    Qed.
+
+
+    (* TODO: move *)
+    Definition Is_SZero (x:Rtheta) :=
+      x ≡ mkSZero.
+
+    (* TODO: move *)
+    Lemma Is_SZero_Scatter
+          {m n: nat}
+          (f: index_map m n)
+          {f_inj: index_map_injective f}
+          (x: svector m)
+          (j: nat) (jc : j < n):
+      not (in_range f j) ->
+      Is_SZero (Vnth (Scatter f (f_inj:=f_inj) x) jc).
+    Proof.
+      intros R.
+      unfold Scatter.
+      rewrite Vbuild_nth.
+      break_match.
+      congruence.
+      reflexivity.
+    Qed.
+
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
+          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
           (kernel: forall k, (k<n) -> svector ki -> svector ko)
           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
@@ -1133,10 +1169,37 @@ Section SigmaHCOLRewritingRules.
         unfold compose.
 
         induction n.
-        rewrite 2!Vbuild_0.
-        unfold VecUnion.
-        simpl.
-        compute.
+        + rewrite 2!Vbuild_0.
+          unfold VecUnion.
+          crush.
+          unfold mkSZero.
+          unfold_Rtheta_equiv.
+          reflexivity.
+        +
+          rewrite Vbuild_cons.
+          rewrite VecUnion_cons.
+          (* rewrite evalWriterUnion. *)
+
+          case (@decide (in_range (⦃ f ⦄ 0 (Nat.lt_0_succ n)) j)).
+          * apply in_range_dec.
+          * intros R.
+            admit.
+          * intros R.
+
+            assert (Is_SZero (Vnth
+                                (Scatter (f_inj:=(@index_map_family_member_injective ko o
+                                                                                     (S n) f f_inj O (Nat.lt_0_succ n))) (⦃ f ⦄ 0 (Nat.lt_0_succ n))
+                                         (kernel 0 (Nat.lt_0_succ n)
+                                                 (Gather (⦃ g ⦄ 0 (Nat.lt_0_succ n)) x))) jc)).
+            apply Is_SZero_Scatter, R.
+            unfold Is_SZero in H.
+            rewrite H, Union_SZero_r.
+            clear R H.
+
+
+            class_apply IHn.
+
+
 
     Admitted.
   End Value_Correctness.
