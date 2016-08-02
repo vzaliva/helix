@@ -1249,7 +1249,7 @@ Section SigmaHCOLRewritingRules.
             setoid_replace (Monad.liftM (pf (j ↾ jc)) mkSZero) with mkSZero.
             rewrite Union_SZero_r.
 
-            (* apply IHn. *)
+            admit.
 
             {
               (* proving Monad.liftM (pf (j ↾ jc)) mkSZero = mkSZero *)
