@@ -32,7 +32,7 @@ Definition sparsify {n} (v:avector n): svector n :=
   Vmap mkValue v.
 
 Global Instance sparsify_proper {n:nat}:
-    Proper ((=) ==> (=)) (@sparsify n).
+  Proper ((=) ==> (=)) (@sparsify n).
 Proof.
   intros x y E.
   unfold sparsify.
@@ -45,7 +45,7 @@ Definition densify {n} (v:svector n): avector n :=
   Vmap (A:=Rtheta) (@evalWriter _ _ _) v.
 
 Global Instance densify_proper {n:nat}:
-    Proper ((=) ==> (=)) (@densify n).
+  Proper ((=) ==> (=)) (@densify n).
 Proof.
   intros x y E.
   unfold densify.
@@ -82,6 +82,16 @@ Proof.
   unfold Union, equiv, Rtheta_equiv.
   rewrite 2!evalWriter_Rtheta_liftM2.
   ring.
+Qed.
+
+Lemma evalWriterUnion {a b: Rtheta}:
+  evalWriter (Union a b) =
+  plus (evalWriter a)
+       (evalWriter b).
+Proof.
+  unfold Union.
+  rewrite evalWriter_Rtheta_liftM2.
+  reflexivity.
 Qed.
 
 Global Instance Union_proper

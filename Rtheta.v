@@ -325,7 +325,7 @@ Section Decidablitiy.
     unfold Decision.
     unfold Is_Val, compose.
     generalize (WriterMonadNoT.execWriter x). intros f.
-      apply IsVal_dec.
+    apply IsVal_dec.
   Qed.
 
 End Decidablitiy.
@@ -365,5 +365,23 @@ Section Zero_Utils.
     compute.
     reflexivity.
   Qed.
+
+  (* Using setoid equalities on both components *)
+  Definition Is_SZero (x:Rtheta) :=
+    (evalWriter x = zero) /\
+    (execWriter x = RthetaFlagsZero).
+
+  Lemma Is_SZero_mkSZero:
+    Is_SZero mkSZero.
+  Proof.
+    unfold Is_SZero.
+    split.
+    apply evalWriter_Rtheta_SZero.
+    unfold mkSZero.
+    unfold execWriter.
+    unfold equiv.
+    reflexivity.
+  Qed.
+
 
 End Zero_Utils.

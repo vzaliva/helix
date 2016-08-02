@@ -381,8 +381,8 @@ Qed.
 (* TODO: Currently unused. Remove? *)
 Lemma U_SAG1_PW:
   forall n (x:avector n)
-         (f: { i | i<n} -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+    (f: { i | i<n} -> CarrierA -> CarrierA)
+    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
     SumUnion
       (@Vbuild (svector n) n
                (fun i id =>
@@ -575,8 +575,8 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         SHBinOp (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
@@ -1081,102 +1081,6 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-
-    (* TODO: move *)
-    Lemma evalWriterUnion {a b: Rtheta}:
-      WriterMonadNoT.evalWriter (Union a b) =
-      plus (WriterMonadNoT.evalWriter a)
-           (WriterMonadNoT.evalWriter b).
-    Proof.
-      unfold Union.
-      rewrite evalWriter_Rtheta_liftM2.
-      reflexivity.
-    Qed.
-
-
-    (* TODO: move *)
-    Definition Is_SZero (x:Rtheta) :=
-      (WriterMonadNoT.evalWriter x = zero) /\
-      (WriterMonadNoT.execWriter x = RthetaFlagsZero).
-
-    Lemma Is_SZero_mkSZero:
-      Is_SZero mkSZero.
-    Proof.
-      unfold Is_SZero.
-      split.
-      apply evalWriter_Rtheta_SZero.
-      unfold mkSZero.
-      unfold WriterMonadNoT.execWriter.
-      unfold equiv.
-      reflexivity.
-    Qed.
-
-    (* TODO: move *)
-    Lemma Is_SZero_Scatter
-          {m n: nat}
-          (f: index_map m n)
-          {f_inj: index_map_injective f}
-          (x: svector m)
-          (j: nat) (jc : j < n):
-      not (in_range f j) ->
-      Is_SZero (Vnth (Scatter f (f_inj:=f_inj) x) jc).
-    Proof.
-      intros R.
-      unfold Scatter.
-      rewrite Vbuild_nth.
-      break_match.
-      congruence.
-      apply Is_SZero_mkSZero.
-    Qed.
-
-    Lemma Scatter_eq_mkSZero
-          {m n: nat}
-          (f: index_map m n)
-          {f_inj: index_map_injective f}
-          (x: svector m)
-          (j: nat) (jc : j < n)
-          (R: not (in_range f j)):
-      Vnth (Scatter f (f_inj:=f_inj) x) jc ≡ mkSZero.
-    Proof.
-      unfold Scatter.
-      rewrite Vbuild_nth.
-      break_match.
-      congruence.
-      reflexivity.
-    Qed.
-
-    (* TODO: move *)
-    Lemma index_map_family_injective_in_range_once
-          {n d r: nat}
-          (f: index_map_family d r n)
-          (i j: nat)
-          {ic jc}
-          {y}
-          {yc:y<r}
-      :
-        index_map_family_injective f ->
-        in_range  (⦃ f ⦄ i ic) y ->
-        in_range  (⦃ f ⦄ j jc) y -> i ≡ j.
-    Proof.
-      intros f_inj r0 r1.
-
-      apply in_range_exists in r0; try assumption.
-      apply in_range_exists in r1; try assumption.
-
-      elim r0; intros x0; clear r0; intros r0.
-      elim r0; intros x0c; clear r0; intros r0.
-
-      elim r1; intros x1; clear r1; intros r1.
-      elim r1; intros x1c; clear r1; intros r1.
-
-      rewrite <- r1 in r0; clear r1.
-
-      specialize (f_inj i j ic jc x0 x1 x0c x1c r0).
-      destruct f_inj.
-      assumption.
-    Qed.
-
-
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1188,19 +1092,19 @@ Section SigmaHCOLRewritingRules.
           {f_inj : index_map_family_injective f}
           (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-      :
-        SHPointwise pf ∘
-                    (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
-        =
-        fun v =>
-          (SumUnion
-             (Vbuild
-                (λ (j:nat) (jc:j<n),
-                 (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                              ∘ (kernel j jc)
-                              ∘ (Gather (⦃ g ⦄ j jc))) v
+    :
+      SHPointwise pf ∘
+                  (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
+      =
+      fun v =>
+        (SumUnion
+           (Vbuild
+              (λ (j:nat) (jc:j<n),
+               (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                            ∘ (kernel j jc)
+                            ∘ (Gather (⦃ g ⦄ j jc))) v
 
-          ))).
+        ))).
     Proof.
       apply ext_equiv_applied_iff'.
       -
@@ -1246,18 +1150,18 @@ Section SigmaHCOLRewritingRules.
           * (* 2nd argument of Union has value *)
             (* LHS *)
             assert(HL: Is_ValZero (@VecUnion n
-                   (@Vbuild Rtheta n
-                      (fun (i0 : nat) (ip : Peano.lt i0 n) =>
-                       @Vnth Rtheta o
-                         (@Scatter ko o
-                            (family_f ko o (S n) f (S i0) (@lt_n_S i0 n ip))
-                            (@index_map_family_member_injective ko o
-                               (S n) f f_inj (S i0)
-                               (@lt_n_S i0 n ip))
-                            (kernel (S i0) (@lt_n_S i0 n ip)
-                               (@Gather i ki
-                                  (family_f ki i (S n) g
-                                            (S i0) (@lt_n_S i0 n ip)) x))) j jc)))).
+                                             (@Vbuild Rtheta n
+                                                      (fun (i0 : nat) (ip : Peano.lt i0 n) =>
+                                                         @Vnth Rtheta o
+                                                               (@Scatter ko o
+                                                                         (family_f ko o (S n) f (S i0) (@lt_n_S i0 n ip))
+                                                                         (@index_map_family_member_injective ko o
+                                                                                                             (S n) f f_inj (S i0)
+                                                                                                             (@lt_n_S i0 n ip))
+                                                                         (kernel (S i0) (@lt_n_S i0 n ip)
+                                                                                 (@Gather i ki
+                                                                                          (family_f ki i (S n) g
+                                                                                                    (S i0) (@lt_n_S i0 n ip)) x))) j jc)))).
             {
               apply VecUnion_structs.
               apply Vforall_nth_intro.
@@ -1303,22 +1207,7 @@ Section SigmaHCOLRewritingRules.
               rewrite Vbuild_nth.
               apply Is_ValZero_to_mkSZero.
 
-
-              (* TODO: move *)
-              Lemma SHPointwise_nth'
-                    {n: nat}
-                    (f: { i | i<n} -> CarrierA -> CarrierA)
-                    `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-                    {j:nat} {jc:j<n}
-                    (v: svector n):
-                Vnth (SHPointwise f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
-              Proof.
-                unfold SHPointwise.
-                rewrite Vbuild_nth.
-                reflexivity.
-              Qed.
-
-              rewrite SHPointwise_nth'.
+              rewrite SHPointwise_nth_eq.
               rewrite Scatter_eq_mkSZero.
 
               unfold_Rtheta_equiv.
@@ -1353,7 +1242,7 @@ Section SigmaHCOLRewritingRules.
             rewrite Union_SZero_r.
             (* clear R? *)
 
-            apply IHn.
+            (* apply IHn.*)
 
 
 

@@ -284,12 +284,12 @@ Qed.
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-           (forall _ : svector ?m, svector ?n)
-           (@ext_equiv
-              (svector ?m)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
-              (svector ?n)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
+            (forall _ : svector ?m, svector ?n)
+            (@ext_equiv
+               (svector ?m)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
+               (svector ?n)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
@@ -531,7 +531,6 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  (* TODO: consider stronger equality *)
   Lemma SHPointwise_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
@@ -545,6 +544,19 @@ Section OperatorProperies.
     generalize (Vnth v jc) as x. intros x. clear v.
     rewrite <- evalWriter_Rtheta_liftM.
     rewrite mkValue_evalWriter.
+    reflexivity.
+  Qed.
+
+  Lemma SHPointwise_nth_eq
+        {n: nat}
+        (f: { i | i<n} -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        {j:nat} {jc:j<n}
+        (v: svector n):
+    Vnth (SHPointwise f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
+  Proof.
+    unfold SHPointwise.
+    rewrite Vbuild_nth.
     reflexivity.
   Qed.
 
@@ -875,6 +887,40 @@ Section StructuralProperies.
       apply Is_Val_mkStruct in H.
       inversion H. (* for some reason congruence fails *)
   Qed.
+
+  Lemma Is_SZero_Scatter
+        {m n: nat}
+        (f: index_map m n)
+        {f_inj: index_map_injective f}
+        (x: svector m)
+        (j: nat) (jc : j < n):
+    not (in_range f j) ->
+    Is_SZero (Vnth (Scatter f (f_inj:=f_inj) x) jc).
+  Proof.
+    intros R.
+    unfold Scatter.
+    rewrite Vbuild_nth.
+    break_match.
+    congruence.
+    apply Is_SZero_mkSZero.
+  Qed.
+
+  Lemma Scatter_eq_mkSZero
+        {m n: nat}
+        (f: index_map m n)
+        {f_inj: index_map_injective f}
+        (x: svector m)
+        (j: nat) (jc : j < n)
+        (R: not (in_range f j)):
+    Vnth (Scatter f (f_inj:=f_inj) x) jc ≡ mkSZero.
+  Proof.
+    unfold Scatter.
+    rewrite Vbuild_nth.
+    break_match.
+    congruence.
+    reflexivity.
+  Qed.
+
 
   Lemma USparseEmbeddingCauseNoCol
         {n i o ki ko}

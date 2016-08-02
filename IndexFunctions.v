@@ -36,9 +36,9 @@ Section OptionSetoid.
       match a with
       | None => is_None b
       | Some x => (match b with
-                  | None => False
-                  | Some y => equiv x y
-                  end)
+                   | None => False
+                   | Some y => equiv x y
+                   end)
       end.
 
   Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
@@ -347,10 +347,10 @@ Section Inversions.
     match d return (index_map d r) -> nat with
     | O => fun _ => dummy
     | S d' => fun f' =>
-               match Nat.eq_dec (⟦f⟧ d') i with
-               | left x => d'
-               | right x => gen_inverse_index_f (shrink_index_map_domain f') i
-               end
+                match Nat.eq_dec (⟦f⟧ d') i with
+                | left x => d'
+                | right x => gen_inverse_index_f (shrink_index_map_domain f') i
+                end
     end f.
 
   Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
@@ -387,7 +387,7 @@ definition does not enforce this requirement, and the function produced might no
     :=
       let f0 := inverse_index_f f f' in
       forall x y, in_range f x -> in_range f y ->
-             f0 x ≡ f0 y → x ≡ y.
+                  f0 x ≡ f0 y → x ≡ y.
 
   Definition inverse_index_map_surjective
              {d r: nat} {f: index_map d r}
@@ -698,6 +698,37 @@ Section IndexFamilies.
     apply H.
   Qed.
 
+  (* TODO: move *)
+  Lemma index_map_family_injective_in_range_once
+        {n d r: nat}
+        (f: index_map_family d r n)
+        (i j: nat)
+        {ic jc}
+        {y}
+        {yc:y<r}
+    :
+      index_map_family_injective f ->
+      in_range  (⦃ f ⦄ i ic) y ->
+      in_range  (⦃ f ⦄ j jc) y -> i ≡ j.
+  Proof.
+    intros f_inj r0 r1.
+
+    apply in_range_exists in r0; try assumption.
+    apply in_range_exists in r1; try assumption.
+
+    elim r0; intros x0; clear r0; intros r0.
+    elim r0; intros x0c; clear r0; intros r0.
+
+    elim r1; intros x1; clear r1; intros r1.
+    elim r1; intros x1c; clear r1; intros r1.
+
+    rewrite <- r1 in r0; clear r1.
+
+    specialize (f_inj i j ic jc x0 x1 x0c x1c r0).
+    destruct f_inj.
+    assumption.
+  Qed.
+
 End IndexFamilies.
 
 
@@ -900,7 +931,7 @@ Section Function_Rules.
 
   Program Lemma index_map_rule_40:
     forall n (np: n>0)
-      {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
+           {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
     ,
       @identity_index_map n np = h_index_map 0 1
                                              (range_bound:=range_bound_h_0).
