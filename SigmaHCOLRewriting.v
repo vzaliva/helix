@@ -440,8 +440,8 @@ Proof.
               ScatH i 1
                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                     (SHBinOp (o:=1) (SwapIndex2 i f)
-                                     (GathH i n
-                                            (domain_bound:=GathH_jn_domain_bound i n id) x)))
+                             (GathH i n
+                                    (domain_bound:=GathH_jn_domain_bound i n id) x)))
     as bf.
 
   assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
@@ -452,7 +452,7 @@ Proof.
                             (snzord0:=ScatH_stride1_constr)
                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                             (SHBinOp (o:=1) (SwapIndex2 i f)
-                                             [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
+                                     [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
   {
     subst bf.
     extensionality j. extensionality jn.
@@ -502,7 +502,7 @@ Proof.
   remember (Vbuild
               (λ (z : nat) (zi : z < n),
                Vnth (ScatH z 1 [Monad.liftM2 (SwapIndex2 z f 0) (Vnth x (ILTNN z zi))
-                (Vnth x (INLTNN z zi))]) kp)) as b.
+                                             (Vnth x (INLTNN z zi))]) kp)) as b.
 
   assert
     (L3pre: forall ib (icb:ib<n),
@@ -868,9 +868,9 @@ Section SigmaHCOLExpansionRules.
   Section Structural_Correctness.
 
     Global Instance HBinOp_DensityPreserving
-             (n:nat)
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+           (n:nat)
+           (f: nat -> CarrierA -> CarrierA -> CarrierA)
+           `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       DensityPreserving (liftM_HOperator (HBinOp (o:=n) f)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
@@ -878,10 +878,10 @@ Section SigmaHCOLExpansionRules.
     Qed.
 
     Global Instance HBinOp_expansion_DensityPreserving
-             (n:nat)
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-             (nz: n ≢ 0) (* Additional constraint! *)
+           (n:nat)
+           (f: nat -> CarrierA -> CarrierA -> CarrierA)
+           `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+           (nz: n ≢ 0) (* Additional constraint! *)
       :
         DensityPreserving (
             USparseEmbedding (i:=n+n) (o:=n)
@@ -918,11 +918,11 @@ Section SigmaHCOLExpansionRules.
 
 
     Global Instance HTDirectSum_DensityPreserving
-             {i1 o1 i2 o2}
-             (f: avector i1 -> avector o1)
-             (g: avector i2 -> avector o2)
-             `{hop1: !HOperator f}
-             `{hop2: !HOperator g}
+           {i1 o1 i2 o2}
+           (f: avector i1 -> avector o1)
+           (g: avector i2 -> avector o2)
+           `{hop1: !HOperator f}
+           `{hop2: !HOperator g}
       : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
@@ -930,11 +930,11 @@ Section SigmaHCOLExpansionRules.
     Qed.
 
     Global Instance HTDirectSum_expansion_DensityPreserving
-             {i1 o1 i2 o2}
-             (f: avector i1 -> avector o1)
-             (g: avector i2 -> avector o2)
-             `{hop1: !HOperator f}
-             `{hop2: !HOperator g}
+           {i1 o1 i2 o2}
+           (f: avector i1 -> avector o1)
+           (g: avector i2 -> avector o2)
+           `{hop1: !HOperator f}
+           `{hop2: !HOperator g}
       : DensityPreserving (
             (HTSUMUnion
                ((ScatH 0 1
@@ -1065,10 +1065,10 @@ Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : 
   end.
 
 Hint Extern 0 (@SHOperator _ ?o (@SHBinOp ?o _ _)) => SHOperator_SHBinOp_Type_Fix : typeclass_instances.
-*)
+ *)
 
 (* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
-*)
+ *)
 
 Ltac HOperator_HPrepend_Type_Fix :=
   match goal with
@@ -1085,12 +1085,12 @@ Section SigmaHCOLRewritingRules.
     (* TODO: move *)
     Lemma evalWriterUnion {a b: Rtheta}:
       WriterMonadNoT.evalWriter (Union a b) =
-            plus (WriterMonadNoT.evalWriter a)
-                 (WriterMonadNoT.evalWriter b).
+      plus (WriterMonadNoT.evalWriter a)
+           (WriterMonadNoT.evalWriter b).
     Proof.
-            unfold Union.
-            rewrite evalWriter_Rtheta_liftM2.
-            reflexivity.
+      unfold Union.
+      rewrite evalWriter_Rtheta_liftM2.
+      reflexivity.
     Qed.
 
 
@@ -1116,6 +1116,37 @@ Section SigmaHCOLRewritingRules.
       reflexivity.
     Qed.
 
+    (* TODO: move *)
+    Lemma index_map_family_injective_in_range_once
+          {n d r: nat}
+          (f: index_map_family d r n)
+          (i j: nat)
+          {ic jc}
+          {y}
+          {yc:y<r}
+      :
+        index_map_family_injective f ->
+        in_range  (⦃ f ⦄ i ic) y ->
+        in_range  (⦃ f ⦄ j jc) y -> i ≡ j.
+    Proof.
+      intros f_inj r0 r1.
+
+      apply in_range_exists in r0; try assumption.
+      apply in_range_exists in r1; try assumption.
+
+      elim r0; intros x0; clear r0; intros r0.
+      elim r0; intros x0c; clear r0; intros r0.
+
+      elim r1; intros x1; clear r1; intros r1.
+      elim r1; intros x1c; clear r1; intros r1.
+
+      rewrite <- r1 in r0; clear r1.
+
+      specialize (f_inj i j ic jc x0 x1 x0c x1c r0).
+      destruct f_inj.
+      assumption.
+    Qed.
+
     Lemma rewrite_PointWise_ISumUnion
           {n i o ki ko}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1127,19 +1158,19 @@ Section SigmaHCOLRewritingRules.
           {f_inj : index_map_family_injective f}
           (g: index_map_family ki i n)
           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-    :
-      SHPointwise pf ∘
-                  (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
-      =
-      fun v =>
-        (SumUnion
-           (Vbuild
-              (λ (j:nat) (jc:j<n),
-               (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                            ∘ (kernel j jc)
-                            ∘ (Gather (⦃ g ⦄ j jc))) v
+      :
+        SHPointwise pf ∘
+                    (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
+        =
+        fun v =>
+          (SumUnion
+             (Vbuild
+                (λ (j:nat) (jc:j<n),
+                 (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
+                              ∘ (kernel j jc)
+                              ∘ (Gather (⦃ g ⦄ j jc))) v
 
-        ))).
+          ))).
     Proof.
       apply ext_equiv_applied_iff'.
       -
@@ -1183,7 +1214,44 @@ Section SigmaHCOLRewritingRules.
           case (@decide (in_range (⦃ f ⦄ 0 (Nat.lt_0_succ n)) j)).
           * apply in_range_dec.
           * intros R.
-            admit.
+            assert(H: Is_ValZero (@VecUnion n
+                   (@Vbuild Rtheta n
+                      (fun (i0 : nat) (ip : Peano.lt i0 n) =>
+                       @Vnth Rtheta o
+                         (@Scatter ko o
+                            (family_f ko o (S n) f (S i0) (@lt_n_S i0 n ip))
+                            (@index_map_family_member_injective ko o
+                               (S n) f f_inj (S i0)
+                               (@lt_n_S i0 n ip))
+                            (kernel (S i0) (@lt_n_S i0 n ip)
+                               (@Gather i ki
+                                  (family_f ki i (S n) g
+                                            (S i0) (@lt_n_S i0 n ip)) x))) j jc)))).
+            {
+              apply VecUnion_structs.
+              apply Vforall_nth_intro.
+              intros t tc.
+              rewrite Vbuild_nth.
+              apply Is_ValZero_to_mkSZero.
+
+              assert(H: forall x, Is_SZero x -> x = mkSZero)
+                by crush.
+              apply H.
+              apply Is_SZero_Scatter.
+              crush.
+
+              apply index_map_family_injective_in_range_once
+              with (i0:=0) (ic:=Nat.lt_0_succ n)
+                           (j0:=S t) (jc0:=lt_n_S tc)
+                           (y:=j)
+                in f_inj; try assumption.
+              congruence.
+            }
+            unfold Is_ValZero in H.
+            rewrite H.
+            Union_SZero_l.
+            clear R H.
+
           * intros R.
 
             assert (Is_SZero (Vnth
