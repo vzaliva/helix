@@ -1087,7 +1087,6 @@ Section SigmaHCOLRewritingRules.
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
           (kernel: forall k, (k<n) -> svector i -> svector ko)
-          `{KD: forall k (kc: k<n), @DensityPreserving i ko (kernel k kc)}
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
           `{Koperator: forall k (kc: k<n), @SHOperator i ko (kernel k kc)}
