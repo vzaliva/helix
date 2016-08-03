@@ -880,19 +880,17 @@ Section StructuralProperies.
            apply Phn.
   Qed.
 
-  (* TODO: maybe iff  *)
+  (* TODO: maybe <->  *)
   Lemma Is_Val_Scatter
         {m n: nat}
         (f: index_map m n)
         {f_inj: index_map_injective f}
         (x: svector m)
-        (XD: svector_is_dense x)
         (j: nat) (jc : j < n):
     Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
     (exists i (ic:i<m), ⟦f⟧ i ≡ j).
   Proof.
     intros H.
-    unfold svector_is_dense in XD.
     unfold Scatter in H. rewrite Vbuild_nth in H.
     break_match.
     simpl in *.
@@ -902,7 +900,7 @@ Section StructuralProperies.
       apply build_inverse_index_map_is_right_inverse; auto.
     -
       apply Is_Val_mkStruct in H.
-      inversion H. (* for some reason congruence fails *)
+      inversion H.
   Qed.
 
   Lemma Is_SZero_Scatter
@@ -1112,10 +1110,56 @@ Section StructuralProperies.
 
 
   (* Matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
-  Definition Union_Friendly
+  Definition UnionFriendly
              {m n}
              (a: smatrix m n) :=
     Vforall (Vunique Is_Val) (transpose a).
+
+  Lemma SparseEmbeddingMatrix_UnionFriendly
+        {n gi go ki ko}
+        (kernel: forall k, (k<n) -> svector ki -> svector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+        (f: index_map_family ko go n)
+        {f_inj : index_map_family_injective f}
+        (g: index_map_family ki gi n)
+        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+        (x: svector gi)
+    :
+      UnionFriendly (@SparseEmbeddingMatrix
+                       n gi go ki ko
+                       kernel KD
+                       f f_inj
+                       g
+                       Koperator
+                       x).
+  Proof.
+    unfold UnionFriendly.
+    apply Vforall_nth_intro.
+    intros j jc.
+    unfold Vunique.
+    intros i0 ic0 i1 ic1.
+    unfold transpose.
+    rewrite Vbuild_nth.
+    unfold row.
+    rewrite 2!Vnth_map.
+    unfold SparseEmbeddingMatrix.
+    rewrite 2!Vbuild_nth.
+    unfold Vnth_aux.
+    unfold SparseEmbedding.
+    unfold compose.
+    generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
+    generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
+    intros x0 x1.
+    intros [V0 V1].
+    apply Is_Val_Scatter in V0.
+    apply Is_Val_Scatter in V1.
+    crush.
+    unfold index_map_family_injective in f_inj.
+    specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+    destruct f_inj.
+    congruence.
+    assumption.
+  Qed.
 
 
 End StructuralProperies.
