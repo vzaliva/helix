@@ -1094,4 +1094,10 @@ Section StructuralProperies.
   Qed.
 
 
+  (* Matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
+  Definition Union_Friendly
+             {m n}
+             (a: smatrix m n) :=
+    Vforall (Vunique Is_Val) (transpose a).
+
 End StructuralProperies.

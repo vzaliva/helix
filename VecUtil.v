@@ -260,43 +260,78 @@ Qed.
 
 Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
-Lemma Vnth_0 {B} {n} (v:vector B (S n)) (ip: 0<(S n)):
-  Vnth (i:=0) v ip = Vhead v.
-Proof.
-  dep_destruct v.
-  simpl.
-  reflexivity.
-Qed.
+Section Vnth.
 
-Lemma Vnth_1
-      {T:Type}
-      (x:T)
-      (i:nat) (ic: Peano.lt i 1)
-  :
-    Vnth [x] ic = x.
-Proof.
-  destruct i.
-  - auto.
-  - omega.
-Qed.
+  (* Convenience method, swapping arguments on Vnth *)
+  Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
+    Vnth a ic.
 
-Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
-  Vnth (Vcons v vs) ip = Vnth vs ip'.
-Proof.
-  simpl.
-  replace (lt_S_n ip) with ip' by apply proof_irrelevance.
-  reflexivity.
-Qed.
+  Lemma Vnth_0
+        {B} {n} (v:vector B (S n)) (ip: 0<(S n)):
+    Vnth (i:=0) v ip = Vhead v.
+  Proof.
+    dep_destruct v.
+    simpl.
+    reflexivity.
+  Qed.
 
-Lemma Vnth_cast_index:
-  forall {B} {n : nat} i j (ic: i<n) (jc: j<n) (x : vector B n),
-    i = j -> Vnth x ic = Vnth x jc.
-Proof.
-  intros B n i j ic jc x E.
-  crush.
-  replace ic with jc by apply proof_irrelevance.
-  reflexivity.
-Qed.
+  Lemma Vnth_1
+        {T:Type}
+        (x:T)
+        (i:nat) (ic: Peano.lt i 1)
+    :
+      Vnth [x] ic = x.
+  Proof.
+    destruct i.
+    - auto.
+    - omega.
+  Qed.
+
+  Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
+    Vnth (Vcons v vs) ip = Vnth vs ip'.
+  Proof.
+    simpl.
+    replace (lt_S_n ip) with ip' by apply proof_irrelevance.
+    reflexivity.
+  Qed.
+
+  Lemma Vnth_cast_index:
+    forall {B} {n : nat} i j (ic: i<n) (jc: j<n) (x : vector B n),
+      i = j -> Vnth x ic = Vnth x jc.
+  Proof.
+    intros B n i j ic jc x E.
+    crush.
+    replace ic with jc by apply proof_irrelevance.
+    reflexivity.
+  Qed.
+
+  Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+    forall i (ic:i<S n) (ic': (pred i) < n),
+      P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
+  Proof.
+    intros i ic ic' H.
+    destruct i.
+    + left.
+      auto.
+    + right.
+      simpl in H.
+      replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
+      apply H.
+  Qed.
+
+  Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
+    forall i (ic:i<S n) (ic': (pred i) < n),
+      not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
+  Proof.
+    intros i ic ic' Ph Pt.
+    destruct i.
+    - simpl in Pt; congruence.
+    - simpl in Pt.
+      replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
+      apply Pt.
+  Qed.
+
+End Vnth.
 
 Lemma Vbuild_cons:
   forall B n (gen : forall i, i < S n -> B),
@@ -321,32 +356,6 @@ Proof.
     intros i ip.
     rewrite Vbuild_nth.
     apply H.
-Qed.
-
-Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
-  forall i (ic:i<S n) (ic': (pred i) < n),
-    P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
-Proof.
-  intros i ic ic' H.
-  destruct i.
-  + left.
-    auto.
-  + right.
-    simpl in H.
-    replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
-    apply H.
-Qed.
-
-Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
-  forall i (ic:i<S n) (ic': (pred i) < n),
-    not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
-Proof.
-  intros i ic ic' Ph Pt.
-  destruct i.
-  - simpl in Pt; congruence.
-  - simpl in Pt.
-    replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
-    apply Pt.
 Qed.
 
 Section Vunique.
