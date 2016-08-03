@@ -575,8 +575,8 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         SHBinOp (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
@@ -1082,34 +1082,49 @@ Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
     Lemma rewrite_PointWise_ISumUnion
-          {n i o ki ko}
+          {n o i ko: nat}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          (kernel: forall k, (k<n) -> svector ki -> svector ko)
-          `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+          (kernel: forall k, (k<n) -> svector i -> svector ko)
+          `{KD: forall k (kc: k<n), @DensityPreserving i ko (kernel k kc)}
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
-          (g: index_map_family ki i n)
-          `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+          `{Koperator: forall k (kc: k<n), @SHOperator i ko (kernel k kc)}
     :
-      SHPointwise pf ∘
-                  (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator)
+      SHPointwise pf ∘ (fun v =>
+                          (SumUnion
+                             (Vbuild
+                                (λ (j:nat) (jc:j<n),
+                                 (Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc) ∘ (kernel j jc)) v
+                       ))))
       =
-      fun v =>
-        (SumUnion
-           (Vbuild
-              (λ (j:nat) (jc:j<n),
-               (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc)
-                            ∘ (kernel j jc)
-                            ∘ (Gather (⦃ g ⦄ j jc))) v
+      (fun v =>
+         (SumUnion
+            (Vbuild
+               (λ (j:nat) (jc:j<n),
+                (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc) ∘ (kernel j jc)) v
 
-        ))).
+      )))).
     Proof.
       apply ext_equiv_applied_iff'.
       -
-        typeclasses eauto.
+        (* LHS Setoid_Morphism *)
+        apply SHOperator_compose.
+        + typeclasses eauto.
+        +
+          split; repeat apply vec_Setoid.
+          intros x y E.
+          apply ext_equiv_applied_iff'.
+          split; repeat apply vec_Setoid. apply SumUnion_proper.
+          split; repeat apply vec_Setoid. apply SumUnion_proper.
+          reflexivity.
+          vec_index_equiv j jc.
+          rewrite 2!Vbuild_nth.
+          rewrite E.
+          reflexivity.
       -
+        (* RHS Setoid_Morphism *)
         split; repeat apply vec_Setoid.
         intros x y E.
         f_equiv.
@@ -1119,14 +1134,10 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
       -
         intros x.
-        unfold compose at 1.
-        unfold USparseEmbedding, SparseEmbedding.
-
         vec_index_equiv j jc.
-
-        (* HERE *)
-
+        unfold compose at 1.
         setoid_rewrite SHPointwise_nth.
+
         rewrite 2!AbsorbUnionIndex.
         (* Now we are dealing with VecUnions only *)
 
@@ -1159,9 +1170,7 @@ Section SigmaHCOLRewritingRules.
                                                                                                              (S n) f f_inj (S i0)
                                                                                                              (@lt_n_S i0 n ip))
                                                                          (kernel (S i0) (@lt_n_S i0 n ip)
-                                                                                 (@Gather i ki
-                                                                                          (family_f ki i (S n) g
-                                                                                                    (S i0) (@lt_n_S i0 n ip)) x))) j jc)))).
+                                                                                 x)) j jc)))).
             {
               apply VecUnion_structs.
               apply Vforall_nth_intro.
@@ -1197,8 +1206,7 @@ Section SigmaHCOLRewritingRules.
                                                                               (@index_map_family_member_injective ko o
                                                                                                                   (S n) f f_inj (S i0) (@lt_n_S i0 n ip))
                                                                               (kernel (S i0) (@lt_n_S i0 n ip)
-                                                                                      (@Gather i ki
-                                                                                               (family_f ki i (S n) g (S i0) (@lt_n_S i0 n ip)) x))))
+                                                                                      x)))
                                                       j jc)))).
             {
               apply VecUnion_structs.
