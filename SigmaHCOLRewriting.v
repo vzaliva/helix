@@ -1133,15 +1133,33 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
       -
         intros x.
+        unfold compose.
         vec_index_equiv j jc.
-        unfold compose at 1.
         setoid_rewrite SHPointwise_nth.
+        rewrite 2!AbsorbIUnionIndex.
 
-        rewrite 2!AbsorbUnionIndex.
         (* Now we are dealing with VecUnions only *)
 
-        rewrite 2!Vmap_Vbuild.
-        unfold compose.
+        (*   Vmap fm (Vbuild fb) = Vbuild (fun z zi => fm (fb z zi)). *)
+
+        HERE
+        rewrite <- Vmap_Vbuild.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         induction n.
         + (* prove induction hypothesis *)
