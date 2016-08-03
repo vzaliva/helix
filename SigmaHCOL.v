@@ -353,6 +353,26 @@ Proof.
   reflexivity.
 Qed.
 
+Definition SparseEmbeddingMatrix
+           {n i o ki ko}
+           (kernel: forall k, (k<n) -> svector ki -> svector ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+           (f: index_map_family ko o n)
+           {f_inj : index_map_family_injective f}
+           (g: index_map_family ki i n)
+           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+           (x: svector i)
+  :=
+    (Vbuild
+          (λ (j:nat) (jc:j<n),
+           SparseEmbedding
+             (f_inj:=index_map_family_member_injective f_inj j jc)
+             (kernel j jc)
+             ( ⦃f⦄ j jc)
+             ( ⦃g⦄ j jc)
+             x
+    )).
+
 Definition USparseEmbedding
            {n i o ki ko}
            (kernel: forall k, (k<n) -> svector ki -> svector ko)
@@ -363,16 +383,13 @@ Definition USparseEmbedding
            `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
            (x: svector i)
   :=
-    (SumUnion
-       (Vbuild
-          (λ (j:nat) (jc:j<n),
-           SparseEmbedding
-             (f_inj:=index_map_family_member_injective f_inj j jc)
-             (kernel j jc)
-             ( ⦃f⦄ j jc)
-             ( ⦃g⦄ j jc)
-             x
-    ))).
+    SumUnion (@SparseEmbeddingMatrix
+           n i o ki ko
+           kernel KD
+           f f_inj
+           g
+           Koperator
+           x).
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
@@ -392,7 +409,7 @@ Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
   intros x y E.
-  unfold USparseEmbedding.
+  unfold USparseEmbedding, SparseEmbeddingMatrix.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
   apply SumUnion_proper.
@@ -767,7 +784,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, SparseEmbedding.
+    unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
@@ -944,7 +961,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, SparseEmbedding.
+    unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
 
 
@@ -1099,5 +1116,6 @@ Section StructuralProperies.
              {m n}
              (a: smatrix m n) :=
     Vforall (Vunique Is_Val) (transpose a).
+
 
 End StructuralProperies.

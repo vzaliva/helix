@@ -592,13 +592,13 @@ Section SigmaHCOLExpansionRules.
       }
       {
         split; try apply vec_Setoid.
-        unfold USparseEmbedding, SparseEmbedding.
+        unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
         solve_proper.
       }
       intros x.
       vec_index_equiv i ip.
       symmetry.
-      unfold USparseEmbedding, SparseEmbedding. simpl.
+      unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding. simpl.
       apply U_SAG2; assumption.
     Qed.
 
