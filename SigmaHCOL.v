@@ -66,6 +66,12 @@ Section SigmaHCOL_Operators.
       svector_is_non_collision x ->
       svector_is_non_collision (op x).
 
+  (* Even weaker condition: applied to a vector without collisions does not produce strucural collisions *)
+  Class CauseNoCol {i o:nat} (op: svector i -> svector o) :=
+    o_non_col : forall x,
+      svector_is_non_collision x ->
+      svector_is_non_collision (op x).
+
   Lemma SHOperator_functional_extensionality
         {m n: nat}
         `{SHOperator m n f}
@@ -1130,6 +1136,48 @@ Section StructuralProperies.
     destruct f_inj.
     congruence.
     assumption.
+  Qed.
+
+
+  (* Union of UnionFriendly family of operators and collision-free vector will not cause any collisions *)
+  Lemma Union_UnionFriendly_CollisionFree
+        {i o n}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+        (x: svector i)
+        (Xcf: svector_is_non_collision x):
+
+    (Apply_Family_UnionFriendly op_family) ->
+    svector_is_non_collision (SumUnion (Apply_Family op_family x)).
+  Proof.
+    intros Uf.
+    unfold Apply_Family_UnionFriendly in Uf.
+    specialize (Uf x).
+    unfold svector_is_non_collision.
+    apply Vforall_nth_intro.
+    intros j jc.
+    unfold Apply_Family.
+    rewrite AbsorbIUnionIndex.
+    apply Not_Collision_VecUnion.
+
+    -
+      unfold CauseNoCol in NC.
+      apply Vforall_nth_intro.
+      intros k kc.
+      rewrite Vbuild_nth.
+      unfold svector_is_non_collision in NC.
+      specialize (NC k kc x Xcf).
+      apply Vforall_nth.
+      apply NC.
+
+    - apply Vforall_nth with (ip:=jc) in Uf.
+      unfold Apply_Family, transpose in Uf.
+      rewrite Vbuild_nth in Uf.
+      unfold row in Uf.
+      rewrite Vmap_Vbuild in Uf.
+      unfold Vnth_aux in Uf.
+      apply Uf.
   Qed.
 
 End StructuralProperies.
