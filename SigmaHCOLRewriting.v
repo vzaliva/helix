@@ -592,13 +592,13 @@ Section SigmaHCOLExpansionRules.
       }
       {
         split; try apply vec_Setoid.
-        unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
+        unfold USparseEmbedding, Apply_Family, SparseEmbedding.
         solve_proper.
       }
       intros x.
       vec_index_equiv i ip.
       symmetry.
-      unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding. simpl.
+      unfold USparseEmbedding, Apply_Family, SparseEmbedding. simpl.
       apply U_SAG2; assumption.
     Qed.
 
@@ -1080,7 +1080,7 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
-
+(*
     Lemma rewrite_PointWise_ISumUnion
           {n o i ko: nat}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -1285,5 +1285,6 @@ Section SigmaHCOLRewritingRules.
             }
 
     Admitted.
+ *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
