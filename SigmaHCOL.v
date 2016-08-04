@@ -1161,5 +1161,32 @@ Section StructuralProperies.
     assumption.
   Qed.
 
+  (* --- Experimenal stuff belof --- *)
+
+  Definition twoD_index_function_injective
+             {A: Set}
+             {m n: nat}
+             (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<m), A)
+    :=
+      forall (i0 i1 j0 j1:nat)
+        (ic0: i0<n) (ic1: i1<n)
+        (jc0: j0<m) (jc1: j1<m),
+        (f i0 ic0 j0 jc0 ≡ f i1 ic1 j1 jc1) → (i0 ≡ i1 /\ j0 ≡ j1).
+
+  Lemma Operator_UnionFriendly
+        {n gi go}
+        (kernel: forall k, (k<n) -> svector gi -> svector go)
+        (is_val_2D: forall (i:nat) (ic: i<n) (j:nat) (jc: j<go), Prop)
+        {f_inj : twoD_index_function_injective is_val_2D}
+        `{Koperator: forall k (kc: k<n), @SHOperator gi go (kernel k kc)}
+        (x: svector gi)
+    :
+      (forall (i:nat) (ic: i<n) (j:nat) (jc: j<go),
+          Is_Val (Vnth ((kernel i ic) x) jc) -> is_val_2D i ic j jc) ->
+      UnionFriendly(
+          (Vbuild (λ (i:nat) (ic:i<n), (kernel i ic) x))).
+  Proof.
+    intros H.
+  Qed.
 
 End StructuralProperies.
