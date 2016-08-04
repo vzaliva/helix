@@ -1163,30 +1163,51 @@ Section StructuralProperies.
 
   (* --- Experimenal stuff belof --- *)
 
-  Definition twoD_index_function_injective
-             {A: Set}
+  Definition twoD_index_predicate_injective
              {m n: nat}
-             (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<m), A)
+             (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<m), Prop)
     :=
       forall (i0 i1 j0 j1:nat)
         (ic0: i0<n) (ic1: i1<n)
         (jc0: j0<m) (jc1: j1<m),
-        (f i0 ic0 j0 jc0 ≡ f i1 ic1 j1 jc1) → (i0 ≡ i1 /\ j0 ≡ j1).
+        (f i0 ic0 j0 jc0 /\ f i1 ic1 j1 jc1) → (i0 ≡ i1 /\ j0 ≡ j1).
 
   Lemma Operator_UnionFriendly
         {n gi go}
         (kernel: forall k, (k<n) -> svector gi -> svector go)
-        (is_val_2D: forall (i:nat) (ic: i<n) (j:nat) (jc: j<go), Prop)
-        {f_inj : twoD_index_function_injective is_val_2D}
+        (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<go), Prop)
+        {f_inj : twoD_index_predicate_injective f}
         `{Koperator: forall k (kc: k<n), @SHOperator gi go (kernel k kc)}
         (x: svector gi)
     :
       (forall (i:nat) (ic: i<n) (j:nat) (jc: j<go),
-          Is_Val (Vnth ((kernel i ic) x) jc) -> is_val_2D i ic j jc) ->
+          Is_Val (Vnth ((kernel i ic) x) jc) -> f i ic j jc) ->
       UnionFriendly(
           (Vbuild (λ (i:nat) (ic:i<n), (kernel i ic) x))).
   Proof.
     intros H.
+    unfold UnionFriendly.
+    apply Vforall_nth_intro.
+    intros j jc.
+    unfold Vunique.
+    intros i0 ic0 i1 ic1.
+    unfold transpose.
+    rewrite Vbuild_nth.
+    unfold row.
+    rewrite 2!Vnth_map.
+    rewrite 2!Vbuild_nth.
+    unfold Vnth_aux.
+    unfold compose.
+
+    intros [V0 V1].
+    unfold twoD_index_predicate_injective in f_inj.
+    apply H in V0.
+    apply H in V1.
+
+    specialize (f_inj i0 i1 j j ic0 ic1 jc jc).
+    destruct f_inj.
+    split ; [apply V0 | apply V1].
+    assumption.
   Qed.
 
 End StructuralProperies.
