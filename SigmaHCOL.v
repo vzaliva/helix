@@ -314,20 +314,23 @@ Proof.
   reflexivity.
 Qed.
 
+(* Family of operators *)
 Definition SparseEmbedding
-           {i o ki ko}
-           (kernel: svector ki -> svector ko)
-           `{KD: @DensityPreserving ki ko kernel}
-           (f: index_map ko o)
-           {f_inj : index_map_injective f}
-           (g: index_map ki i)
-           `{Koperator: @SHOperator ki ko kernel}
-           (x: svector i)
+           {n i o ki ko}
+           (kernel: forall k, (k<n) -> svector ki -> svector ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+           (f: index_map_family ko o n)
+           {f_inj : index_map_family_injective f}
+           (g: index_map_family ki i n)
+           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+           (j:nat) (jc:j<n)
   :=
-    (Scatter f (f_inj:=f_inj)
-             ∘ kernel
-             ∘ (Gather g)) x.
+    Scatter (⦃f⦄ j jc)
+            (f_inj:=index_map_family_member_injective f_inj j jc)
+            ∘ (kernel j jc)
+            ∘ (Gather (⦃g⦄ j jc)).
 
+(*
 Global Instance SHOperator_SparseEmbedding
        {i o ki ko}
        (kernel: svector ki -> svector ko)
@@ -352,26 +355,17 @@ Proof.
   rewrite E.
   reflexivity.
 Qed.
+ *)
 
-Definition SparseEmbeddingMatrix
-           {n i o ki ko}
-           (kernel: forall k, (k<n) -> svector ki -> svector ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+(* Apply family of operators to same fector and return matrix of results *)
+Definition Apply_Family
+           {i o n}
+           (op_family: forall k, (k<n) -> svector i -> svector o)
+           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
            (x: svector i)
   :=
     (Vbuild
-          (λ (j:nat) (jc:j<n),
-           SparseEmbedding
-             (f_inj:=index_map_family_member_injective f_inj j jc)
-             (kernel j jc)
-             ( ⦃f⦄ j jc)
-             ( ⦃g⦄ j jc)
-             x
-    )).
+       (λ (j:nat) (jc:j<n),  op_family j jc x)).
 
 Definition USparseEmbedding
            {n i o ki ko}
@@ -383,13 +377,13 @@ Definition USparseEmbedding
            `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
            (x: svector i)
   :=
-    SumUnion (@SparseEmbeddingMatrix
-           n i o ki ko
-           kernel KD
-           f f_inj
-           g
-           Koperator
-           x).
+    SumUnion (Apply_Family
+                (@SparseEmbedding
+                   n i o ki ko
+                   kernel KD
+                   f f_inj
+                   g
+                   Koperator) x).
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
@@ -409,14 +403,13 @@ Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
   intros x y E.
-  unfold USparseEmbedding, SparseEmbeddingMatrix.
+  unfold USparseEmbedding, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
   apply SumUnion_proper.
   split; repeat apply vec_Setoid.
   apply SumUnion_proper.
   reflexivity.
-
   vec_index_equiv j jc.
   rewrite 2!Vbuild_nth.
   rewrite E.
@@ -784,7 +777,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
+    unfold USparseEmbedding, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
@@ -959,7 +952,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, SparseEmbeddingMatrix, SparseEmbedding.
+    unfold USparseEmbedding, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
 
 
@@ -1109,13 +1102,18 @@ Section StructuralProperies.
   Qed.
 
 
-  (* Matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
-  Definition UnionFriendly
-             {m n}
-             (a: smatrix m n) :=
-    Vforall (Vunique Is_Val) (transpose a).
+  (* Apply operator family to a vector produced a matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
+  Definition Apply_Family_UnionFriendly
+             {i o n}
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+    :=
+      forall x, Vforall (Vunique Is_Val)
+                   (transpose
+                      (Apply_Family op_family x)
+                   ).
 
-  Lemma SparseEmbeddingMatrix_UnionFriendly
+  Lemma Apply_Family_SparseEmbedding_UnionFriendly
         {n gi go ki ko}
         (kernel: forall k, (k<n) -> svector ki -> svector ko)
         `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
@@ -1123,17 +1121,17 @@ Section StructuralProperies.
         {f_inj : index_map_family_injective f}
         (g: index_map_family ki gi n)
         `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-        (x: svector gi)
     :
-      UnionFriendly (@SparseEmbeddingMatrix
-                       n gi go ki ko
-                       kernel KD
-                       f f_inj
-                       g
-                       Koperator
-                       x).
+      Apply_Family_UnionFriendly
+        (@SparseEmbedding
+           n gi go ki ko
+           kernel KD
+           f f_inj
+           g
+           Koperator).
   Proof.
-    unfold UnionFriendly.
+    unfold Apply_Family_UnionFriendly.
+    intros x.
     apply Vforall_nth_intro.
     intros j jc.
     unfold Vunique.
@@ -1142,7 +1140,7 @@ Section StructuralProperies.
     rewrite Vbuild_nth.
     unfold row.
     rewrite 2!Vnth_map.
-    unfold SparseEmbeddingMatrix.
+    unfold Apply_Family.
     rewrite 2!Vbuild_nth.
     unfold Vnth_aux.
     unfold SparseEmbedding.
@@ -1159,114 +1157,6 @@ Section StructuralProperies.
     destruct f_inj.
     congruence.
     assumption.
-  Qed.
-
-  (* --- Experimenal stuff below --- *)
-
-  WRONG DEF BELOW: states unique i,j
-
-  Definition twoD_index_predicate_injective
-             {m n: nat}
-             (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<m), Prop)
-    :=
-      forall (i0 i1 j0 j1:nat)
-        (ic0: i0<n) (ic1: i1<n)
-        (jc0: j0<m) (jc1: j1<m),
-        (f i0 ic0 j0 jc0 /\ f i1 ic1 j1 jc1) → (i0 ≡ i1 /\ j0 ≡ j1).
-
-  Lemma Operator_UnionFriendly
-        {n gi go}
-        (op: forall k, (k<n) -> svector gi -> svector go)
-        (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<go), Prop)
-        {f_inj : twoD_index_predicate_injective f}
-        `{Ooperator: forall k (kc: k<n), @SHOperator gi go (op k kc)}
-        (x: svector gi)
-    :
-      (forall (i:nat) (ic: i<n) (j:nat) (jc: j<go),
-          Is_Val (Vnth ((op i ic) x) jc) -> f i ic j jc) ->
-      UnionFriendly(
-          (Vbuild (λ (i:nat) (ic:i<n), (op i ic) x))).
-  Proof.
-    intros H.
-    unfold UnionFriendly.
-    apply Vforall_nth_intro.
-    intros j jc.
-    unfold Vunique.
-    intros i0 ic0 i1 ic1.
-    unfold transpose.
-    rewrite Vbuild_nth.
-    unfold row.
-    rewrite 2!Vnth_map.
-    rewrite 2!Vbuild_nth.
-    unfold Vnth_aux.
-    unfold compose.
-
-    intros [V0 V1].
-    unfold twoD_index_predicate_injective in f_inj.
-    apply H in V0.
-    apply H in V1.
-
-    specialize (f_inj i0 i1 j j ic0 ic1 jc jc).
-    destruct f_inj.
-    split ; [apply V0 | apply V1].
-    assumption.
-  Qed.
-
-  Definition SparseEmbeddingMatrix_value_index_predicate
-             {n d r}
-             (f: index_map_family d r n)
-             (f_inj : index_map_family_injective f)
-             (i:nat) (ic: i<n)
-             (j:nat) (_: j<r)
-    :=
-      in_range (⦃ f ⦄ i ic) j.
-
-  Lemma SparseEmbeddingMatrix_value_index_predicate_injective:
-    ∀ (n d r : nat) (f : index_map_family d r n)
-      (f_inj : index_map_family_injective f),
-      twoD_index_predicate_injective
-        (SparseEmbeddingMatrix_value_index_predicate f f_inj).
-  Proof.
-    intros n d r f f_inj.
-    unfold twoD_index_predicate_injective, SparseEmbeddingMatrix_value_index_predicate.
-    intros i0 i1 j0 j1 ic0 ic1 jc0 jc1 [V0 V1].
-    unfold index_map_family_injective in f_inj.
-    apply in_range_exists in V0; try assumption.
-    apply in_range_exists in V1; try assumption.
-    break_exists.
-    specialize (f_inj i0 i1 ic0 ic1 x1 x x2 x0).
-    split.
-    apply f_inj.
-  Qed.
-
-  Lemma SparseEmbeddingMatrix_UnionFriendly'
-        {n gi go ki ko}
-        (kernel: forall k, (k<n) -> svector ki -> svector ko)
-        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-        (f: index_map_family ko go n)
-        {f_inj : index_map_family_injective f}
-        (g: index_map_family ki gi n)
-        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-        (x: svector gi)
-    :
-      UnionFriendly (@SparseEmbeddingMatrix
-                       n gi go ki ko
-                       kernel KD
-                       f f_inj
-                       g
-                       Koperator
-                       x).
-  Proof.
-    unfold SparseEmbeddingMatrix.
-    apply Operator_UnionFriendly with
-    (op:=
-       (λ (j : nat) (jc : j < n),
-        SparseEmbedding (kernel j jc) (⦃ f ⦄ j jc) (⦃ g ⦄ j jc)))
-      (f0 := SparseEmbeddingMatrix_value_index_predicate f f_inj).
-    apply SparseEmbeddingMatrix_value_index_predicate_injective.
-    typeclasses eauto.
-
-
   Qed.
 
 End StructuralProperies.
