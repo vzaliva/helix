@@ -1161,7 +1161,9 @@ Section StructuralProperies.
     assumption.
   Qed.
 
-  (* --- Experimenal stuff belof --- *)
+  (* --- Experimenal stuff below --- *)
+
+  WRONG DEF BELOW: states unique i,j
 
   Definition twoD_index_predicate_injective
              {m n: nat}
@@ -1174,16 +1176,16 @@ Section StructuralProperies.
 
   Lemma Operator_UnionFriendly
         {n gi go}
-        (kernel: forall k, (k<n) -> svector gi -> svector go)
+        (op: forall k, (k<n) -> svector gi -> svector go)
         (f: forall (i:nat) (ic: i<n) (j:nat) (jc: j<go), Prop)
         {f_inj : twoD_index_predicate_injective f}
-        `{Koperator: forall k (kc: k<n), @SHOperator gi go (kernel k kc)}
+        `{Ooperator: forall k (kc: k<n), @SHOperator gi go (op k kc)}
         (x: svector gi)
     :
       (forall (i:nat) (ic: i<n) (j:nat) (jc: j<go),
-          Is_Val (Vnth ((kernel i ic) x) jc) -> f i ic j jc) ->
+          Is_Val (Vnth ((op i ic) x) jc) -> f i ic j jc) ->
       UnionFriendly(
-          (Vbuild (λ (i:nat) (ic:i<n), (kernel i ic) x))).
+          (Vbuild (λ (i:nat) (ic:i<n), (op i ic) x))).
   Proof.
     intros H.
     unfold UnionFriendly.
@@ -1208,6 +1210,63 @@ Section StructuralProperies.
     destruct f_inj.
     split ; [apply V0 | apply V1].
     assumption.
+  Qed.
+
+  Definition SparseEmbeddingMatrix_value_index_predicate
+             {n d r}
+             (f: index_map_family d r n)
+             (f_inj : index_map_family_injective f)
+             (i:nat) (ic: i<n)
+             (j:nat) (_: j<r)
+    :=
+      in_range (⦃ f ⦄ i ic) j.
+
+  Lemma SparseEmbeddingMatrix_value_index_predicate_injective:
+    ∀ (n d r : nat) (f : index_map_family d r n)
+      (f_inj : index_map_family_injective f),
+      twoD_index_predicate_injective
+        (SparseEmbeddingMatrix_value_index_predicate f f_inj).
+  Proof.
+    intros n d r f f_inj.
+    unfold twoD_index_predicate_injective, SparseEmbeddingMatrix_value_index_predicate.
+    intros i0 i1 j0 j1 ic0 ic1 jc0 jc1 [V0 V1].
+    unfold index_map_family_injective in f_inj.
+    apply in_range_exists in V0; try assumption.
+    apply in_range_exists in V1; try assumption.
+    break_exists.
+    specialize (f_inj i0 i1 ic0 ic1 x1 x x2 x0).
+    split.
+    apply f_inj.
+  Qed.
+
+  Lemma SparseEmbeddingMatrix_UnionFriendly'
+        {n gi go ki ko}
+        (kernel: forall k, (k<n) -> svector ki -> svector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+        (f: index_map_family ko go n)
+        {f_inj : index_map_family_injective f}
+        (g: index_map_family ki gi n)
+        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+        (x: svector gi)
+    :
+      UnionFriendly (@SparseEmbeddingMatrix
+                       n gi go ki ko
+                       kernel KD
+                       f f_inj
+                       g
+                       Koperator
+                       x).
+  Proof.
+    unfold SparseEmbeddingMatrix.
+    apply Operator_UnionFriendly with
+    (op:=
+       (λ (j : nat) (jc : j < n),
+        SparseEmbedding (kernel j jc) (⦃ f ⦄ j jc) (⦃ g ⦄ j jc)))
+      (f0 := SparseEmbeddingMatrix_value_index_predicate f f_inj).
+    apply SparseEmbeddingMatrix_value_index_predicate_injective.
+    typeclasses eauto.
+
+
   Qed.
 
 End StructuralProperies.
