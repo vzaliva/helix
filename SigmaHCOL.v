@@ -330,33 +330,6 @@ Definition SparseEmbedding
             ∘ (kernel j jc)
             ∘ (Gather (⦃g⦄ j jc)).
 
-(*
-Global Instance SHOperator_SparseEmbedding
-       {i o ki ko}
-       (kernel: svector ki -> svector ko)
-       `{KD: @DensityPreserving ki ko kernel}
-       (f: index_map ko o)
-       {f_inj : index_map_injective f}
-       (g: index_map ki i)
-       `{Koperator: @SHOperator ki ko kernel}:
-  SHOperator (@SparseEmbedding
-                i o ki ko
-                kernel
-                KD
-                f
-                f_inj
-                g
-                Koperator).
-Proof.
-  unfold SHOperator.
-  split; repeat apply vec_Setoid.
-  intros x y E.
-  unfold SparseEmbedding.
-  rewrite E.
-  reflexivity.
-Qed.
- *)
-
 (* Apply family of operators to same fector and return matrix of results *)
 Definition Apply_Family
            {i o n}
