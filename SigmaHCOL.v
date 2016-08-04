@@ -1140,6 +1140,7 @@ Section StructuralProperies.
 
 
   (* Union of UnionFriendly family of operators and collision-free vector will not cause any collisions *)
+  (* TODO: Perhaps Apply_Family_UnionFriendly should be class. In this case this one is just instance of CauseNoCol *)
   Lemma Union_UnionFriendly_CollisionFree
         {i o n}
         (op_family: forall k, (k<n) -> svector i -> svector o)
