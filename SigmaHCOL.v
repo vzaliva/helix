@@ -346,6 +346,20 @@ Definition Apply_Family
     (Vbuild
        (λ (j:nat) (jc:j<n),  op_family j jc x)).
 
+Global Instance Apply_Family_proper
+       {i o n}
+       (op_family: forall k, (k<n) -> svector i -> svector o)
+       `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
+  Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
+Proof.
+  intros x y E.
+  unfold Apply_Family.
+  vec_index_equiv j jc.
+  rewrite 2!Vbuild_nth.
+  rewrite E.
+  reflexivity.
+Qed.
+
 Definition USparseEmbedding
            {n i o ki ko}
            (kernel: forall k, (k<n) -> svector ki -> svector ko)

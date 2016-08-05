@@ -1080,70 +1080,89 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
-(*
+
+
+    (*
+    Lemma Vunique_cases
+          {n}
+          (x:svector n):
+
+      Vunique Is_Val x ->
+      {Vforall (not ∘ Is_Val) x} + {∃ i (ic: i<n), Is_Val (Vnth x ic)}.
+    Proof.
+      intros U.
+      unfold Vunique in U.
+
+      apply Vforall_notP_Vunique.
+
+
+    Qed.
+     *)
+
     Lemma rewrite_PointWise_ISumUnion
-          {n o i ko: nat}
+          {i o n}
+          (op_family: forall k, (k<n) -> svector i -> svector o)
+          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+          `{Uf: !Apply_Family_SumUnionFriendly op_family}
+          {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
-          `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          (kernel: forall k, (k<n) -> svector i -> svector ko)
-          (f: index_map_family ko o n)
-          {f_inj : index_map_family_injective f}
-          `{Koperator: forall k (kc: k<n), @SHOperator i ko (kernel k kc)}
-    :
-      SHPointwise pf ∘ (fun v =>
-                          (SumUnion
-                             (Vbuild
-                                (λ (j:nat) (jc:j<n),
-                                 (Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc) ∘ (kernel j jc)) v
-                       ))))
-      =
-      (fun v =>
-         (SumUnion
-            (Vbuild
-               (λ (j:nat) (jc:j<n),
-                (SHPointwise pf ∘ Scatter (f_inj:=index_map_family_member_injective f_inj j jc) (⦃ f ⦄ j jc) ∘ (kernel j jc)) v
-
-      )))).
+          `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}:
+      
+      SHPointwise pf ∘ SumUnion ∘ Apply_Family op_family =
+      SumUnion ∘ (Apply_Family (fun j jc =>
+                                  SHPointwise pf ∘ op_family j jc)
+                 ).
     Proof.
       apply ext_equiv_applied_iff'.
       -
         (* LHS Setoid_Morphism *)
-        apply SHOperator_compose.
-        + typeclasses eauto.
-        +
-          split; repeat apply vec_Setoid.
-          intros x y E.
-          apply ext_equiv_applied_iff'.
-          split; repeat apply vec_Setoid. apply SumUnion_proper.
-          split; repeat apply vec_Setoid. apply SumUnion_proper.
-          reflexivity.
-          vec_index_equiv j jc.
-          rewrite 2!Vbuild_nth.
-          rewrite E.
-          reflexivity.
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply SHOperator_SHPointwise.
+        apply SumUnion_proper.
+        apply Apply_Family_proper.
       -
         (* RHS Setoid_Morphism *)
-        split; repeat apply vec_Setoid.
-        intros x y E.
-        f_equiv.
-        vec_index_equiv j jc.
-        rewrite 2!Vbuild_nth.
-        rewrite E.
-        reflexivity.
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply SumUnion_proper.
+        apply Apply_Family_proper.
       -
         intros x.
         unfold compose.
-        vec_index_equiv j jc.
+        vec_index_equiv j jc. (* fix column *)
         setoid_rewrite SHPointwise_nth.
+
+        unfold Apply_Family.
         rewrite 2!AbsorbIUnionIndex.
 
-        (* Now we are dealing with VecUnions only *)
+        (* -- Now we are dealing with VecUnions only -- *)
 
-        (*   Vmap fm (Vbuild fb) = Vbuild (fun z zi => fm (fb z zi)). *)
+        (*
+        SingleValueInZeros
+          : ∀ (m j : nat) (x : vector Rtheta m) (jc : j < m),
+            (∀ (i : nat) (ic : i < m), i ≢ j → Is_ValZero (Vnth x ic))
+            → VecUnion x = Vnth x jc *)
+
+
+
+        unfold Apply_Family_SumUnionFriendly in Uf.
+        specialize (Uf x).
+        apply Vforall_nth with (ip:=jc) in Uf.
+        unfold Apply_Family, transpose in Uf.
+        rewrite Vbuild_nth in Uf.
+        unfold row in Uf.
+        rewrite Vmap_Vbuild in Uf.
+        unfold Vnth_aux in Uf.
+
 
         HERE
-        rewrite <- Vmap_Vbuild.
+        erewrite SingleValueInZeros.
+
+
+    Qed.
 
 
 
@@ -1161,6 +1180,19 @@ Section SigmaHCOLRewritingRules.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  (*
         induction n.
         + (* prove induction hypothesis *)
           rewrite 2!Vbuild_0.
