@@ -290,12 +290,12 @@ Qed.
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-            (forall _ : svector ?m, svector ?n)
-            (@ext_equiv
-               (svector ?m)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
-               (svector ?n)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
+           (forall _ : svector ?m, svector ?n)
+           (@ext_equiv
+              (svector ?m)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
+              (svector ?n)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
@@ -1082,26 +1082,26 @@ Section StructuralProperies.
 
 
   (* Apply operator family to a vector produced a matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
-  Definition Apply_Family_UnionFriendly
-             {i o n}
-             (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+  Class Apply_Family_SumUnionFriendly
+        {i o n}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
-      forall x, Vforall (Vunique Is_Val)
-                   (transpose
-                      (Apply_Family op_family x)
-                   ).
+      apply_family_union_friendly: forall x, Vforall (Vunique Is_Val)
+                                                (transpose
+                                                   (Apply_Family op_family x)
+                                                ).
 
-  Lemma Apply_Family_SparseEmbedding_UnionFriendly
-        {n gi go ki ko}
-        (kernel: forall k, (k<n) -> svector ki -> svector ko)
-        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-        (f: index_map_family ko go n)
-        {f_inj : index_map_family_injective f}
-        (g: index_map_family ki gi n)
-        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+  Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
+         {n gi go ki ko}
+         (kernel: forall k, (k<n) -> svector ki -> svector ko)
+         `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+         (f: index_map_family ko go n)
+         {f_inj : index_map_family_injective f}
+         (g: index_map_family ki gi n)
+         `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
     :
-      Apply_Family_UnionFriendly
+      Apply_Family_SumUnionFriendly
         (@SparseEmbedding
            n gi go ki ko
            kernel KD
@@ -1109,7 +1109,7 @@ Section StructuralProperies.
            g
            Koperator).
   Proof.
-    unfold Apply_Family_UnionFriendly.
+    unfold Apply_Family_SumUnionFriendly.
     intros x.
     apply Vforall_nth_intro.
     intros j jc.
@@ -1140,20 +1140,17 @@ Section StructuralProperies.
 
 
   (* Union of UnionFriendly family of operators and collision-free vector will not cause any collisions *)
-  (* TODO: Perhaps Apply_Family_UnionFriendly should be class. In this case this one is just instance of CauseNoCol *)
-  Lemma Union_UnionFriendly_CollisionFree
-        {i o n}
-        (op_family: forall k, (k<n) -> svector i -> svector o)
-        {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}
-        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-        (x: svector i)
-        (Xcf: svector_is_non_collision x):
-
-    (Apply_Family_UnionFriendly op_family) ->
-    svector_is_non_collision (SumUnion (Apply_Family op_family x)).
+  Global Instance SumUnion_SumUnionFriendly_CauseNoCol
+         {i o n}
+         (op_family: forall k, (k<n) -> svector i -> svector o)
+         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+         `{Uf: !Apply_Family_SumUnionFriendly op_family}
+         {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}:
+    CauseNoCol (SumUnion ∘ (Apply_Family op_family)).
   Proof.
-    intros Uf.
-    unfold Apply_Family_UnionFriendly in Uf.
+    unfold compose, CauseNoCol.
+    intros x Xcf.
+    unfold Apply_Family_SumUnionFriendly in Uf.
     specialize (Uf x).
     unfold svector_is_non_collision.
     apply Vforall_nth_intro.
