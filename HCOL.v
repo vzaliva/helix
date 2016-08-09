@@ -278,8 +278,8 @@ Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflex
 
 Section IgnoreIndex_wrapper.
 
-  (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
-  Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := fun (_:nat) => f i.
+  (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f' *)
+  Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := const (B:=nat) (f i).
 
   Global Instance SwapIndex2_proper `{Setoid A}:
     Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A).
@@ -289,7 +289,7 @@ Section IgnoreIndex_wrapper.
   Qed.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
-  Definition IgnoreIndex2 {A} (f:A->A->A) := fun (i:nat) => f.
+  Definition IgnoreIndex2 {A} (f:A->A->A) := const (B:=nat) f.
 
   Lemma IgnoreIndex2_ignores `{Setoid A}
         (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
@@ -310,7 +310,7 @@ Section IgnoreIndex_wrapper.
   Qed.
 
   (* Wrapper to ignore index parameter for HPointwise kernel. *)
-  Definition IgnoreIndex {A:Type} {n:nat} (f:A->A) := fun (_:@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n)) => f.
+  Definition IgnoreIndex {A:Type} {n:nat} (f:A->A) := const (B:=@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n)) f.
 
   Global Instance IgnoredIndex_Proper {n:nat}:
     (Proper

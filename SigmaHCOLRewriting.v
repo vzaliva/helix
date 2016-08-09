@@ -1082,7 +1082,6 @@ Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
 
-    (*
     Lemma Vunique_cases
           {n}
           (x:svector n):
@@ -1093,17 +1092,24 @@ Section SigmaHCOLRewritingRules.
       intros U.
       unfold Vunique in U.
 
-      apply Vforall_notP_Vunique.
+      induction x.
+      crush.
+
+      simpl.
+      destruct(Is_Val_dec h).
 
 
-    Qed.
-     *)
+
+
+      (* apply Vforall_notP_Vunique. *)
+
+    Admitted.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-          `{Uf: !Apply_Family_SumUnionFriendly op_family}
+          `{Uf: !Apply_Family_SumUnionFriendly op_family} <---- NEED zeroes!
           {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
@@ -1158,8 +1164,12 @@ Section SigmaHCOLRewritingRules.
         unfold Vnth_aux in Uf.
 
 
-        HERE
+        (* HERE *)
+        apply Vunique_cases in Uf.
+        destruct Uf.
+
         erewrite SingleValueInZeros.
+        rewrite Vbuild_nth.
 
 
     Qed.
@@ -1227,7 +1237,7 @@ Section SigmaHCOLRewritingRules.
               rewrite Vbuild_nth.
               apply Is_ValZero_to_mkSZero.
 
-              apply Is_SZero_Scatter.
+              apply Is_SZero_Scatter_out_of_range.
               crush.
 
               apply index_map_family_injective_in_range_once

@@ -889,7 +889,31 @@ Section StructuralProperies.
       inversion H.
   Qed.
 
-  Lemma Is_SZero_Scatter
+  (* TODO: maybe <->  *)
+  Lemma Is_Not_Zero_Scatter
+        {m n: nat}
+        (f: index_map m n)
+        {f_inj: index_map_injective f}
+        (x: svector m)
+        (j: nat) (jc : j < n):
+    (not ∘ Is_ValZero) (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
+    (exists i (ic:i<m), ⟦f⟧ i ≡ j).
+  Proof.
+    intros H.
+    unfold Scatter in H. rewrite Vbuild_nth in H.
+    break_match.
+    simpl in *.
+    -
+      generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
+      exists (gen_inverse_index_f f j), f_spec.
+      apply build_inverse_index_map_is_right_inverse; auto.
+    -
+      unfold compose in H.
+      assert(C: Is_ValZero mkSZero) by apply SZero_is_ValZero.
+      congruence.
+  Qed.
+
+  Lemma Is_SZero_Scatter_out_of_range
         {m n: nat}
         (f: index_map m n)
         {f_inj: index_map_injective f}
@@ -1193,3 +1217,66 @@ Section StructuralProperies.
   Qed.
 
 End StructuralProperies.
+
+Section ValueProperties.
+
+  (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
+  Class Apply_Family_Single_NonZero_Per_Row
+        {i o n}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+    :=
+      apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
+                                                (transpose
+                                                   (Apply_Family op_family x)
+                                                ).
+
+  Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
+         {n gi go ki ko}
+         (kernel: forall k, (k<n) -> svector ki -> svector ko)
+         `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+         (f: index_map_family ko go n)
+         {f_inj : index_map_family_injective f}
+         (g: index_map_family ki gi n)
+         `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+    :
+      Apply_Family_Single_NonZero_Per_Row
+        (@SparseEmbedding
+           n gi go ki ko
+           kernel KD
+           f f_inj
+           g
+           Koperator).
+  Proof.
+    unfold Apply_Family_Single_NonZero_Per_Row.
+    intros x.
+    apply Vforall_nth_intro.
+    intros j jc.
+    unfold Vunique.
+    intros i0 ic0 i1 ic1.
+    unfold transpose.
+    rewrite Vbuild_nth.
+    unfold row.
+    rewrite 2!Vnth_map.
+    unfold Apply_Family.
+    rewrite 2!Vbuild_nth.
+    unfold Vnth_aux.
+    unfold SparseEmbedding.
+    unfold compose.
+    generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
+    generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
+    intros x0 x1.
+    intros [V0 V1].
+
+    apply Is_Not_Zero_Scatter in V0.
+    apply Is_Not_Zero_Scatter in V1.
+    crush.
+    unfold index_map_family_injective in f_inj.
+    specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+    destruct f_inj.
+    congruence.
+    assumption.
+  Qed.
+
+
+End ValueProperties.
