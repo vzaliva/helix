@@ -12,9 +12,6 @@ Require Import Coq.Program.Program.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
 
-Require Import VecUtil.
-Require Import VecSetoid.
-
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import SpiralTactics.
@@ -31,9 +28,6 @@ Require Import MathClasses.theory.products.
 Require Import MathClasses.theory.naturals.
 Require Import MathClasses.theory.setoids.
 
-Require Export Coq.Vectors.Vector.
-Require Export CoLoR.Util.Vector.VecUtil.
-Import VectorNotations.
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.
@@ -212,4 +206,11 @@ Proof.
   split; intros E1.
   now apply ext_equiv_applied.
   intros x y E2. now rewrite E2.
+Qed.
+
+Lemma zero_lt_Sn:
+  forall n:nat, 0<S n.
+Proof.
+  intros.
+  omega.
 Qed.

@@ -381,8 +381,8 @@ Qed.
 (* TODO: Currently unused. Remove? *)
 Lemma U_SAG1_PW:
   forall n (x:avector n)
-    (f: { i | i<n} -> CarrierA -> CarrierA)
-    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+         (f: { i | i<n} -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f},
     SumUnion
       (@Vbuild (svector n) n
                (fun i id =>
@@ -1081,40 +1081,23 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-
-    Lemma Vunique_cases
-          {n}
-          (x:svector n):
-
-      Vunique Is_Val x ->
-      {Vforall (not ∘ Is_Val) x} + {∃ i (ic: i<n), Is_Val (Vnth x ic)}.
+    Lemma sumbool_induction (A B C D: Prop)
+          (P1: A -> C)
+          (P2: B -> D):
+      ({A}+{B}) -> ({C}+{D}).
     Proof.
-      intros U.
-      unfold Vunique in U.
-
-      induction x.
       crush.
-
-      simpl.
-      destruct(Is_Val_dec h).
-
-
-
-
-      (* apply Vforall_notP_Vunique. *)
-
-    Admitted.
+    Defined.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-          `{Uf: !Apply_Family_SumUnionFriendly op_family} <---- NEED zeroes!
-          {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}
+          `{Uf: !Apply_Family_Single_NonZero_Per_Row op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}:
-      
+
       SHPointwise pf ∘ SumUnion ∘ Apply_Family op_family =
       SumUnion ∘ (Apply_Family (fun j jc =>
                                   SHPointwise pf ∘ op_family j jc)
@@ -1154,7 +1137,7 @@ Section SigmaHCOLRewritingRules.
 
 
 
-        unfold Apply_Family_SumUnionFriendly in Uf.
+        unfold Apply_Family_Single_NonZero_Per_Row in Uf.
         specialize (Uf x).
         apply Vforall_nth with (ip:=jc) in Uf.
         unfold Apply_Family, transpose in Uf.
@@ -1327,6 +1310,6 @@ Section SigmaHCOLRewritingRules.
             }
 
     Admitted.
- *)
+   *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.

@@ -1,7 +1,9 @@
+Require Import Coq.Unicode.Utf8.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics. (* for \circ notation *)
 Require Import Coq.omega.Omega.
+Require Import Coq.Logic.Decidable.
 
 Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
@@ -10,6 +12,8 @@ Import VectorNotations.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 Require Import SpiralTactics.
+
+Require Import Spiral.
 
 
 Local Open Scope program_scope. (* for \circ notation *)
@@ -491,6 +495,41 @@ Section Vunique.
     }
     auto.
   Qed.
+
+  Lemma Vunique_cases
+        {n} {T:Type}
+        (P: T -> Prop)
+        `{D: forall (a:T), {P a}+{¬P a}}
+        (x: vector T n):
+    Vunique P x ->
+    {Vforall (not ∘ P) x} + {∃ i (ic: i<n), P (Vnth x ic)}.
+  Proof.
+    intros U.
+    induction x.
+    - left.
+      crush.
+    -
+      destruct (D h).
+      + right.
+        exists 0, (@zero_lt_Sn n).
+        auto.
+      +
+        apply Vunique_cons_tail in U.
+        specialize (IHx U).
+        clear U.
+        destruct IHx.
+        * left.
+          crush.
+        * right.
+          inversion e.
+          inversion H.
+          clear e H.
+          assert(sx0: S x0 < S n) by omega.
+          exists (S x0), sx0.
+          rewrite Vnth_Sn with (ip:=sx0) (ip':=x1).
+          apply H0.
+  Qed.
+
 End Vunique.
 
 (* Utlity functions for vector products *)
