@@ -1129,14 +1129,6 @@ Section SigmaHCOLRewritingRules.
 
         (* -- Now we are dealing with VecUnions only -- *)
 
-        (*
-        SingleValueInZeros
-          : ∀ (m j : nat) (x : vector Rtheta m) (jc : j < m),
-            (∀ (i : nat) (ic : i < m), i ≢ j → Is_ValZero (Vnth x ic))
-            → VecUnion x = Vnth x jc *)
-
-
-
         unfold Apply_Family_Single_NonZero_Per_Row in Uf.
         specialize (Uf x).
         apply Vforall_nth with (ip:=jc) in Uf.
@@ -1146,15 +1138,28 @@ Section SigmaHCOLRewritingRules.
         rewrite Vmap_Vbuild in Uf.
         unfold Vnth_aux in Uf.
 
-
-        (* HERE *)
         apply Vunique_cases in Uf.
-        destruct Uf.
-
-        erewrite SingleValueInZeros.
-        rewrite Vbuild_nth.
-
-
+        destruct Uf as [Uzeros | Uone].
+        +
+          (* all zeros in in vbuild *)
+          (* prove both sides are 0 *)
+          admit.
+        +
+          (* one non zero in vbuild. *)
+          (* Prove both sides are this value *)
+          (* erewrite SingleValueInZeros.
+          rewrite Vbuild_nth. *)
+          admit.
+        +
+          intros.
+          unfold compose, Is_ValZero.
+          generalize (WriterMonadNoT.evalWriter a).
+          intros c.
+          assert(Z: Decision (c=zero)) by apply CarrierAequivdec.
+          unfold Decision in Z.
+          destruct Z.
+          right; auto.
+          left; auto.
     Qed.
 
 

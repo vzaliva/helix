@@ -27,6 +27,7 @@ Parameter CarrierAabs: @Abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg.
 Parameter CarrierAr: Ring CarrierA.
 Parameter CarrierAltdec: ∀ x y: CarrierA, Decision (x < y).
 Parameter CarrierAledec: ∀ x y: CarrierA, Decision (x ≤ y).
+Parameter CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y).
 Parameter CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt.
 Parameter CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle.
 
