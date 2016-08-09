@@ -1081,14 +1081,6 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-    Lemma sumbool_induction (A B C D: Prop)
-          (P1: A -> C)
-          (P2: B -> D):
-      ({A}+{B}) -> ({C}+{D}).
-    Proof.
-      crush.
-    Defined.
-
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
@@ -1143,7 +1135,49 @@ Section SigmaHCOLRewritingRules.
         +
           (* all zeros in in vbuild *)
           (* prove both sides are 0 *)
-          admit.
+          revert Uzeros.
+          set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
+          intros Uzeros.
+          assert(H:VecUnion vl = mkSZero).
+          {
+            generalize dependent vl.
+            intros vl Uzeros.
+            unfold VecUnion.
+            induction vl.
+            -
+              crush.
+            - simpl in Uzeros. destruct Uzeros as [Hh Hx].
+              Opaque Monad.ret.
+              simpl.
+              Transparent Monad.ret.
+              rewrite IHvl.
+              *
+                rewrite Union_SZero_l.
+                unfold compose, Is_ValZero in Hh.
+                unfold_Rtheta_equiv.
+                rewrite evalWriter_Rtheta_SZero.
+                unfold equiv.
+                destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
+                crush.
+                crush.
+              * typeclasses eauto.
+              * apply Hx.
+          }
+          rewrite_clear H.
+          rewrite evalWriter_Rtheta_SZero.
+          rewrite pfzn.
+
+          set (vr:=Vbuild
+                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
+          assert(H: VecUnion vr = mkSZero).
+          {
+            (* rewrite SHPointwise_nth. *)
+            admit.
+          }
+          rewrite_clear H.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_SZero.
+          reflexivity.
         +
           (* one non zero in vbuild. *)
           (* Prove both sides are this value *)
