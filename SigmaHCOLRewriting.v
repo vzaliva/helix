@@ -1172,7 +1172,6 @@ Section SigmaHCOLRewritingRules.
           assert(H: VecUnion vr = mkSZero).
           {
             subst vl vr.
-            unfold VecUnion.
             assert(H: (Vbuild
                       (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)) =
                    (Vbuild
@@ -1183,14 +1182,44 @@ Section SigmaHCOLRewritingRules.
               rewrite SHPointwise_nth.
               reflexivity.
             }
+            unfold VecUnion.
             rewrite_clear H.
-            induction n.
-            reflexivity.
-            rewrite Vbuild_cons.
-            simpl.
-            HERE
-            rewrite IHn.
-            apply Vforall_nth with (ip:=jc) in Uzeros.
+            rewrite Vforall_Vbuild in Uzeros.
+            rewrite <- 3!Vmap_Vbuild.
+            rewrite 2!Vmap_map.
+
+            assert(H: (Vmap
+                         (λ
+                            x0 : WriterMonad.writerT Monoid_RthetaFlags IdentityMonad.ident CarrierA,
+                                 mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter x0)))
+                         (Vbuild (λ (z : nat) (zi : z < n), Vnth (op_family z zi x) jc))) = szero_svector n).
+            {
+              unfold szero_svector.
+              vec_index_equiv k kc.
+              rewrite Vnth_map.
+              rewrite Vnth_const.
+              rewrite Vbuild_nth.
+              specialize (Uzeros k kc).
+              setoid_replace (Vnth (op_family k kc x) jc) with mkSZero.
+              rewrite evalWriter_Rtheta_SZero.
+              rewrite pfzn.
+              unfold_Rtheta_equiv.
+              rewrite  evalWriter_Rtheta_SZero.
+              reflexivity.
+              unfold compose, Is_ValZero in Uzeros.
+              unfold_Rtheta_equiv.
+              rewrite evalWriter_Rtheta_SZero.
+              unfold equiv.
+              generalize dependent (Vnth (op_family k kc x) jc).
+              intros h Uzeros.
+              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
+              crush.
+              crush.
+            }
+            rewrite_clear H.
+            fold (@VecUnion n (szero_svector n)).
+            apply VecUnion_structs.
+            apply szero_svector_all_zeros.
           }
           rewrite_clear H.
           unfold_Rtheta_equiv.

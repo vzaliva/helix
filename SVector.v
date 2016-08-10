@@ -360,6 +360,18 @@ Proof.
   crush.
 Qed.
 
+
+Lemma szero_svector_all_zeros:
+  ∀ n : nat, Vforall Is_ValZero (szero_svector n).
+Proof.
+  intros n.
+  apply Vforall_nth_intro.
+  intros i ip.
+  unfold szero_svector.
+  rewrite Vnth_const.
+  apply SZero_is_ValZero.
+Qed.
+
 Definition svector_is_collision {n} (v:svector n) :=
   Vexists Is_Collision v.
 
