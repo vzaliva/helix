@@ -189,9 +189,9 @@ Proof.
 Qed.
 
 (* Formerly Lemma3 *)
-Lemma SingleValueInZeros m j (x:svector m) (jc:j<m):
-  (forall i (ic:i<m),
-      i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
+Lemma SingleValueInZeros
+      {m} (x:svector m) j (jc:j<m):
+  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
 Proof.
   intros SZ.
   dependent induction m.
