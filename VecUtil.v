@@ -620,25 +620,16 @@ Section Vunique.
       + right.
         apply Vunique_cons_tail in U.
         specialize (IHx U). clear U.
-        exists 0, (zero_lt_Sn n).
+        exists 0, (zero_lt_Sn n). (* only 0 element could be ^P *)
         destruct IHx as [H0 | H1].
-        * apply Vforall_VAllButOne_P0; assumption.
+        *
+          apply Vforall_VAllButOne_P0; assumption.
         *
           inversion H1. rename x0 into i.
           inversion H. rename x0 into ic.
           clear H1 H.
-
-          unfold VAllButOne in *.
-          intros j jc H0.
-          destruct j.
-          congruence.
-          assert(jc': j < n) by omega.
-          rewrite Vnth_Sn with (ip':=jc').
-          inversion H1. rename x0 into i.
-          inversion H. rename x0 into ic.
-          clear H1 H.
-          apply H2.
-        apply apply VAllButOne_Sn'.
+          apply Vforall_VAllButOne_P0; try assumption.
+          COULD NOT BE PROVEN!
       +
         apply Vunique_cons_tail in U.
         specialize (IHx U).
