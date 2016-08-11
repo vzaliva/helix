@@ -365,8 +365,9 @@ Qed.
 Section Vunique.
   Local Open Scope nat_scope.
 
-  (* There is only one element in vector satisfying given predicate *)
-  Definition Vunique {n} {T:Type}
+  (* There is at most one element in vector satisfying given predicate *)
+  Definition Vunique
+             {n} {T:Type}
              (P: T -> Prop)
              (v: vector T n) :=
 
@@ -496,6 +497,59 @@ Section Vunique.
     auto.
   Qed.
 
+  (* All vector's element except one with given index satisfy given perdicate. It is not known wether the remaining element satisfy it is or not *)
+  Definition VAllButOne
+             {n} {T:Type}
+             (P: T -> Prop)
+             (x: vector T n)
+             i (jc:i<n) :=
+    (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
+
+  Lemma VallButOne_Vunique
+        {n} {T:Type}
+        (P: T -> Prop)
+        {Pdec: forall a, {P a}+{¬(P a)}}
+        (x: vector T n)
+    :
+      (exists i ic, VAllButOne (not∘P) x i ic) ->
+      Vunique P x.
+  Proof.
+    intros V.
+    elim V. clear V. intros k V.
+    elim V. clear V. intros kc V.
+    destruct n.
+    -
+      dep_destruct x.
+      apply Vunique_Vnil.
+    -
+      unfold VAllButOne in V.
+      unfold Vunique.
+      intros i ic j jc H.
+      destruct H as [H0 H1].
+
+      assert(V1:=V).
+      rename V into V0.
+      specialize (V0 i ic).
+      specialize (V1 j jc).
+
+      generalize dependent (Vnth x ic).
+      intros x0 V0 H0. unfold compose in V0.
+      generalize dependent (Vnth x jc).
+      intros x1 H1 V1. unfold compose in V1.
+      clear x ic jc kc.
+      destruct (Pdec x0), (Pdec x1); try congruence.
+      clear Pdec.
+
+      destruct(eq_nat_dec k j).
+      + subst j.
+        destruct(eq_nat_dec k i).
+        subst i.
+        reflexivity.
+        crush.
+      + crush.
+  Qed.
+
+  (* TODO: Too weak. does not guarantee ^P in second disjunct *)
   Lemma Vunique_cases
         {n} {T:Type}
         (P: T -> Prop)
@@ -556,7 +610,7 @@ Section VMap2_Indexed.
 
   Lemma Vnth_Vmap2Indexed:
     forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-           (a:vector A n) (b:vector B n),
+      (a:vector A n) (b:vector B n),
       Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
   Proof.
     intros A B C n i ip f a b.
