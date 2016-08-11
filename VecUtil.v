@@ -621,7 +621,6 @@ Section Vunique.
       + crush.
   Qed.
 
-  (* TODO: Too weak. does not guarantee ^P in second disjunct *)
   Lemma Vunique_cases
         {n} {T:Type}
         (P: T -> Prop)
@@ -640,13 +639,10 @@ Section Vunique.
         assert(Ux := U); apply Vunique_cons_tail in Ux.
         specialize (IHx Ux); clear Ux.
         exists 0, (zero_lt_Sn n). (* only 0 element could be ^P *)
-        destruct IHx as [H0 | H1].
-        *
-          apply Vforall_VAllButOne_P0; assumption.
-        *
-          apply Vforall_VAllButOne_P0; try assumption.
-          apply Vunique_P_Vforall_notP with (h:=h).
-          split; assumption.
+
+        apply Vforall_VAllButOne_P0; try assumption.
+        apply Vunique_P_Vforall_notP with (h:=h).
+        split; assumption.
       +
         apply Vunique_cons_tail in U.
         specialize (IHx U).
