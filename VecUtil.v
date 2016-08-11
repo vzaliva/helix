@@ -502,8 +502,49 @@ Section Vunique.
              {n} {T:Type}
              (P: T -> Prop)
              (x: vector T n)
-             i (jc:i<n) :=
+             i (ic:i<n) :=
     (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
+
+  (* Always works in this direction *)
+  Definition VAllButOne_Sn
+             {n} {T:Type}
+             (P: T -> Prop)
+             (h: T)
+             (t: vector T n)
+             i (ic: S i < S n) (ic': i < n):
+    VAllButOne P (Vcons h t) (S i) ic -> VAllButOne P t i ic'.
+  Proof.
+    intros H.
+    unfold VAllButOne in *.
+    intros j jc N.
+    assert(jc': S j < S n) by omega.
+    assert(N':S i ≠ S j) by omega.
+    specialize (H (S j) jc' N').
+    rewrite <- Vnth_Sn with (v:=h) (ip:=jc').
+    assumption.
+  Qed.
+
+  (* In this direction requires additional assumtion  ¬ P h *)
+  Lemma VAllButOne_Sn'
+        (T : Type)
+        (P : T → Prop)
+        (h : T)
+        (n : nat)
+        (x : vector T n)
+        (N: ¬ P h)
+        (i : nat) (ic : i < n) (ic': S i < S n):
+    VAllButOne (not ∘ P) x i ic -> VAllButOne (not ∘ P) (h :: x) (S i) ic'.
+  Proof.
+    intros H.
+    unfold VAllButOne in *.
+    intros j jc H0.
+    destruct j.
+    crush.
+    assert(jc': j < n) by omega.
+    rewrite Vnth_Sn with (ip':=jc').
+    apply H.
+    omega.
+  Qed.
 
   Lemma VallButOne_Vunique
         {n} {T:Type}
@@ -556,7 +597,7 @@ Section Vunique.
         `{D: forall (a:T), {P a}+{¬P a}}
         (x: vector T n):
     Vunique P x ->
-    {Vforall (not ∘ P) x} + {∃ i (ic: i<n), P (Vnth x ic)}.
+    ({Vforall (not ∘ P) x}+{exists i ic, VAllButOne (not∘P) x i ic}).
   Proof.
     intros U.
     induction x.
@@ -566,7 +607,7 @@ Section Vunique.
       destruct (D h).
       + right.
         exists 0, (@zero_lt_Sn n).
-        auto.
+        admit.
       +
         apply Vunique_cons_tail in U.
         specialize (IHx U).
@@ -580,8 +621,7 @@ Section Vunique.
           clear e H.
           assert(sx0: S x0 < S n) by omega.
           exists (S x0), sx0.
-          rewrite Vnth_Sn with (ip:=sx0) (ip':=x1).
-          apply H0.
+          apply VAllButOne_Sn' with (ic':=sx0) (ic:=x1); assumption.
   Qed.
 
 End Vunique.
