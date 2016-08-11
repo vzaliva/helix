@@ -546,6 +546,18 @@ Section Vunique.
     omega.
   Qed.
 
+  (* In this direction requires additional assumtion  P h *)
+  Lemma Vforall_VAllButOne_P0
+        (T : Type)
+        (P : T → Prop)
+        (h : T)
+        (n : nat)
+        (x : vector T n)
+        (N: P h):
+    Vforall (not ∘ P) x -> VAllButOne (not ∘ P) (h :: x) 0 (zero_lt_Sn n).
+  Proof.
+  Admitted.
+
   Lemma VallButOne_Vunique
         {n} {T:Type}
         (P: T -> Prop)
@@ -606,8 +618,27 @@ Section Vunique.
     -
       destruct (D h).
       + right.
-        exists 0, (@zero_lt_Sn n).
-        admit.
+        apply Vunique_cons_tail in U.
+        specialize (IHx U). clear U.
+        exists 0, (zero_lt_Sn n).
+        destruct IHx as [H0 | H1].
+        * apply Vforall_VAllButOne_P0; assumption.
+        *
+          inversion H1. rename x0 into i.
+          inversion H. rename x0 into ic.
+          clear H1 H.
+
+          unfold VAllButOne in *.
+          intros j jc H0.
+          destruct j.
+          congruence.
+          assert(jc': j < n) by omega.
+          rewrite Vnth_Sn with (ip':=jc').
+          inversion H1. rename x0 into i.
+          inversion H. rename x0 into ic.
+          clear H1 H.
+          apply H2.
+        apply apply VAllButOne_Sn'.
       +
         apply Vunique_cons_tail in U.
         specialize (IHx U).
