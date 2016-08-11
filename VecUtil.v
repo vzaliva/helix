@@ -399,6 +399,26 @@ Section Vunique.
       congruence.
   Qed.
 
+
+  Lemma Vunique_P_Vforall_notP:
+    forall (n : nat) (T : Type) (P : T -> Prop) (h:T) (x : vector T n),
+      P(h) /\ Vunique P (h::x) -> Vforall (not ∘ P) x.
+  Proof.
+    intros n T P h x [H V].
+    unfold Vunique in V.
+    specialize (V 0 (zero_lt_Sn n)).
+    simpl (Vnth (h :: x) (zero_lt_Sn n)) in V.
+    apply Vforall_nth_intro; intros i ip.
+    unfold compose.
+    specialize (V (S i) (lt_n_S ip)).
+    replace (Vnth (h :: x) (lt_n_S ip)) with (Vnth x ip) in V.
+    contradict V.
+    crush.
+    simpl.
+    replace (lt_S_n (lt_n_S ip)) with ip by apply proof_irrelevance.
+    reflexivity.
+  Qed.
+
   Lemma Vunique_cons_not_head
         {n} {T:Type}
         (P: T -> Prop)
@@ -475,7 +495,6 @@ Section Vunique.
     apply Vunique_cons_head; auto.
     apply Vunique_cons_not_head; auto.
   Qed.
-
   Lemma Vunique_cons_tail {n}
         {T:Type} (P: T -> Prop)
         (h : T) (t : vector T n):
@@ -618,18 +637,16 @@ Section Vunique.
     -
       destruct (D h).
       + right.
-        apply Vunique_cons_tail in U.
-        specialize (IHx U). clear U.
+        assert(Ux := U); apply Vunique_cons_tail in Ux.
+        specialize (IHx Ux); clear Ux.
         exists 0, (zero_lt_Sn n). (* only 0 element could be ^P *)
         destruct IHx as [H0 | H1].
         *
           apply Vforall_VAllButOne_P0; assumption.
         *
-          inversion H1. rename x0 into i.
-          inversion H. rename x0 into ic.
-          clear H1 H.
           apply Vforall_VAllButOne_P0; try assumption.
-          COULD NOT BE PROVEN!
+          apply Vunique_P_Vforall_notP with (h:=h).
+          split; assumption.
       +
         apply Vunique_cons_tail in U.
         specialize (IHx U).
