@@ -383,5 +383,29 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
+  (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter *)
+  Lemma Is_ValZero_not_not:
+    ((not ∘ (not ∘ Is_ValZero)) = Is_ValZero).
+  Proof.
+    unfold compose, equiv, ext_equiv.
+    simpl_relation.
+    unfold Is_ValZero.
+    rewrite H; clear H.
+    generalize dependent (evalWriter y).
+    intros c.
+    split.
+    + intros.
+      destruct (CarrierAequivdec c zero).
+      assumption.
+      contradict H.
+      assumption.
+    +
+      intros.
+      destruct (CarrierAequivdec c zero).
+      contradict H.
+      assumption.
+      congruence.
+  Qed.
+
 
 End Zero_Utils.

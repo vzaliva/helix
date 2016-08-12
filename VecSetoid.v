@@ -389,3 +389,12 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
+
+
+(*
+Global Instance VAllButOne_proper
+       {n} {T:Type}
+  : Proper (((=) ==> (iff)) ==> (=) ==> (=) ==> (=) ==> ((=) ==> (iff))) (@VAllButOne n T).
+Proof.
+Qed.
+*)

@@ -188,7 +188,63 @@ Proof.
     apply IHx, Hx.
 Qed.
 
-(* Formerly Lemma3 *)
+Lemma VecUnion_VallButOne:
+  ∀ {n : nat} (v : vector Rtheta n) {k : nat} (kc : k < n),
+    VAllButOne (Is_ValZero) v k kc → VecUnion v = Vnth v kc.
+Proof.
+  intros n v i ic U.
+
+  dependent induction n.
+  - crush.
+  -
+    dep_destruct v.
+    destruct (eq_nat_dec i 0).
+    +
+      (* Case ("i=0"). *)
+      rewrite Vnth_cons_head; try assumption.
+      rewrite VecUnion_cons.
+      assert(Vforall Is_ValZero x).
+      {
+        apply Vforall_nth_intro.
+        intros j jp.
+        assert(ipp:S j < S n) by lia.
+        replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+        apply U.
+        omega.
+      }
+
+      assert(UZ: Is_ValZero (VecUnion x))
+        by apply VecUnion_structs, H.
+      setoid_replace (VecUnion x) with mkSZero
+        by apply Is_ValZero_to_mkSZero, UZ.
+      clear UZ.
+      apply Union_SZero_l.
+    +
+      (* Case ("i!=0"). *)
+      rewrite VecUnion_cons.
+      assert (HS: Is_ValZero h).
+      {
+        cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
+        rewrite Vnth_0.
+        auto.
+        apply U; auto.
+      }
+
+      destruct i; try congruence.
+      simpl.
+      generalize (lt_S_n ic).
+      intros l.
+      rewrite IHn with (ic:=l).
+
+      setoid_replace h with mkSZero by apply Is_ValZero_to_mkSZero, HS.
+      apply Union_SZero_r.
+
+      apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+      apply U.
+Qed.
+
+
+(* Formerly Lemma3. Probably will be replaced by VecUnion_VallButOne *)
 Lemma SingleValueInZeros
       {m} (x:svector m) j (jc:j<m):
   (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
@@ -381,8 +437,8 @@ Qed.
 (* TODO: Currently unused. Remove? *)
 Lemma U_SAG1_PW:
   forall n (x:avector n)
-         (f: { i | i<n} -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f},
+    (f: { i | i<n} -> CarrierA -> CarrierA)
+    `{pF: !Proper ((=) ==> (=) ==> (=)) f},
     SumUnion
       (@Vbuild (svector n) n
                (fun i id =>
@@ -575,8 +631,8 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         SHBinOp (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
@@ -1173,9 +1229,9 @@ Section SigmaHCOLRewritingRules.
           {
             subst vl vr.
             assert(H: (Vbuild
-                      (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)) =
-                   (Vbuild
-                      (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op_family i0 ic x) jc)))))).
+                         (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)) =
+                      (Vbuild
+                         (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op_family i0 ic x) jc)))))).
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
@@ -1228,8 +1284,33 @@ Section SigmaHCOLRewritingRules.
         +
           (* one non zero in vbuild. *)
           (* Prove both sides are this value *)
-          (* erewrite SingleValueInZeros.
-          rewrite Vbuild_nth. *)
+
+          (* lhs *)
+          revert Uone.
+          set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
+          intros Uone.
+          inversion Uone; rename x0 into k; clear Uone.
+          inversion H; rename x0  into kc; clear H.
+          rename H0 into Uone.
+          (* rewrite Is_ValZero_not_not in Uone. *)
+          rewrite VecUnion_VallButOne with (kc0:=kc).
+          subst vl.
+          rewrite Vbuild_nth.
+
+          (* rhs *)
+          set (vr:=Vbuild
+                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
+
+          assert(H: VAllButOne Is_ValZero vr k kc).
+          {
+            admit.
+          }
+
+          rewrite VecUnion_VallButOne with (kc0:=kc) by apply H.
+          subst vr.
+          rewrite Vbuild_nth.
+          rewrite SHPointwise_nth.
+          reflexivity.
           admit.
         +
           intros.

@@ -128,6 +128,7 @@ Definition SumUnion
            (v: vector (svector o) n): svector o
   :=  Vfold_left_rev Vec2Union (szero_svector o) v.
 
+
 Global Instance SumUnion_proper {o n}
   : Proper ((=) ==> (=)) (@SumUnion o n).
 Proof.
