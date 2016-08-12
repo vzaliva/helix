@@ -407,5 +407,14 @@ Section Zero_Utils.
       congruence.
   Qed.
 
+  (* Double negation on inValZero. *)
+  Lemma Is_ValZero_not_not_impl:
+    forall x, (not ∘ (not ∘ (Is_ValZero))) x <-> Is_ValZero x.
+  Proof.
+    intros x.
+    unfold compose, Is_ValZero.
+    destruct (CarrierAequivdec (evalWriter x) zero); crush.
+  Qed.
+
 
 End Zero_Utils.

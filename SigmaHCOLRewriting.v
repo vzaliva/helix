@@ -1303,7 +1303,20 @@ Section SigmaHCOLRewritingRules.
 
           assert(H: VAllButOne Is_ValZero vr k kc).
           {
-            admit.
+            subst vr.
+            unfold VAllButOne.
+            intros t tc H.
+            rewrite Vbuild_nth.
+            unfold Is_ValZero.
+            rewrite SHPointwise_nth.
+
+            unfold VAllButOne in Uone.
+            specialize (Uone t tc H).
+            rewrite Vbuild_nth in Uone.
+
+            apply Is_ValZero_not_not_impl in Uone.
+            crush.
+            reflexivity.
           }
 
           rewrite VecUnion_VallButOne with (kc0:=kc) by apply H.
