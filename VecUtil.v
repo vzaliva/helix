@@ -595,7 +595,15 @@ Section Vunique.
         (N: P h):
     Vforall (not ∘ P) x -> VAllButOne 0 (zero_lt_Sn n) (not ∘ P) (h :: x).
   Proof.
-  Admitted.
+    intros H.
+    unfold VAllButOne.
+    intros j jc H0.
+    simpl.
+    break_match.
+    congruence.
+    apply Vforall_nth with (ip:=(lt_S_n jc)) in H.
+    assumption.
+  Qed.
 
   Lemma VallButOne_Vunique
         {n} {T:Type}
