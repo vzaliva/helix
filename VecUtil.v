@@ -53,7 +53,7 @@ Qed.
 
 Lemma VMapp2_app:
   forall {A B} {f: A->A->B} (n m : nat)
-         {a b: vector A m} {a' b':vector A n},
+    {a b: vector A m} {a' b':vector A n},
     Vmap2 f (Vapp a a') (Vapp b b')
     = Vapp (Vmap2 f a b) (Vmap2 f a' b').
 Proof.
@@ -523,7 +523,7 @@ Section Vunique.
              (P: T -> Prop)
              (x: vector T n)
     :=
-    (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
+      (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
 
   (* Always works in this direction *)
   Definition VAllButOne_Sn
@@ -542,6 +542,25 @@ Section Vunique.
     specialize (H (S j) jc' N').
     rewrite <- Vnth_Sn with (v:=h) (ip:=jc').
     assumption.
+  Qed.
+
+  Lemma VallButOneSimpl
+        {T}
+        n
+        (vl : vector T n)
+        (k : nat)
+        (kc : k < n)
+        (P0: T -> Prop)
+        (P1: T -> Prop)
+        (Pimpl: forall x, P0 x -> P1 x)
+    :
+      VAllButOne k kc P0 vl → VAllButOne k kc P1 vl.
+  Proof.
+    unfold VAllButOne.
+    intros H j jc H0.
+    specialize (H j jc H0).
+    apply Pimpl.
+    apply H.
   Qed.
 
   (* In this direction requires additional assumtion  ¬ P h *)
@@ -686,7 +705,7 @@ Section VMap2_Indexed.
 
   Lemma Vnth_Vmap2Indexed:
     forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-      (a:vector A n) (b:vector B n),
+           (a:vector A n) (b:vector B n),
       Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
   Proof.
     intros A B C n i ip f a b.

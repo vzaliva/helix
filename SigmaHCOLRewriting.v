@@ -607,25 +607,6 @@ Proof.
     break_if; crush.
 Qed.
 
-Lemma VallButOneSimpl
-      {T}
-      n
-      (vl : vector T n)
-      (k : nat)
-      (kc : k < n)
-      (P0: T -> Prop)
-      (P1: T -> Prop)
-      (Pimpl: forall x, P0 x -> P1 x)
-  :
-    VAllButOne k kc P0 vl → VAllButOne k kc P1 vl.
-Proof.
-  unfold VAllButOne.
-  intros H j jc H0.
-  specialize (H j jc H0).
-  apply Pimpl.
-  apply H.
-Qed.
-
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
