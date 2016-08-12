@@ -519,9 +519,10 @@ Section Vunique.
   (* All vector's element except one with given index satisfy given perdicate. It is not known wether the remaining element satisfy it is or not *)
   Definition VAllButOne
              {n} {T:Type}
+             i (ic:i<n)
              (P: T -> Prop)
              (x: vector T n)
-             i (ic:i<n) :=
+    :=
     (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
 
   (* Always works in this direction *)
@@ -531,7 +532,7 @@ Section Vunique.
              (h: T)
              (t: vector T n)
              i (ic: S i < S n) (ic': i < n):
-    VAllButOne P (Vcons h t) (S i) ic -> VAllButOne P t i ic'.
+    VAllButOne (S i) ic P (Vcons h t) -> VAllButOne i ic' P t .
   Proof.
     intros H.
     unfold VAllButOne in *.
@@ -552,7 +553,7 @@ Section Vunique.
         (x : vector T n)
         (N: ¬ P h)
         (i : nat) (ic : i < n) (ic': S i < S n):
-    VAllButOne (not ∘ P) x i ic -> VAllButOne (not ∘ P) (h :: x) (S i) ic'.
+    VAllButOne i ic  (not ∘ P) x -> VAllButOne (S i) ic' (not ∘ P) (h :: x).
   Proof.
     intros H.
     unfold VAllButOne in *.
@@ -573,7 +574,7 @@ Section Vunique.
         (n : nat)
         (x : vector T n)
         (N: P h):
-    Vforall (not ∘ P) x -> VAllButOne (not ∘ P) (h :: x) 0 (zero_lt_Sn n).
+    Vforall (not ∘ P) x -> VAllButOne 0 (zero_lt_Sn n) (not ∘ P) (h :: x).
   Proof.
   Admitted.
 
@@ -583,7 +584,7 @@ Section Vunique.
         {Pdec: forall a, {P a}+{¬(P a)}}
         (x: vector T n)
     :
-      (exists i ic, VAllButOne (not∘P) x i ic) ->
+      (exists i ic, VAllButOne i ic (not∘P) x) ->
       Vunique P x.
   Proof.
     intros V.
@@ -627,7 +628,7 @@ Section Vunique.
         `{D: forall (a:T), {P a}+{¬P a}}
         (x: vector T n):
     Vunique P x ->
-    ({Vforall (not ∘ P) x}+{exists i ic, VAllButOne (not∘P) x i ic}).
+    ({Vforall (not ∘ P) x}+{exists i ic, VAllButOne i ic (not∘P) x}).
   Proof.
     intros U.
     induction x.

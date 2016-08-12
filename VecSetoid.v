@@ -391,10 +391,3 @@ Proof.
 Qed.
 
 
-(*
-Global Instance VAllButOne_proper
-       {n} {T:Type}
-  : Proper (((=) ==> (iff)) ==> (=) ==> (=) ==> (=) ==> ((=) ==> (iff))) (@VAllButOne n T).
-Proof.
-Qed.
-*)

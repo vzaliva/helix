@@ -190,7 +190,7 @@ Qed.
 
 Lemma VecUnion_VallButOne:
   ∀ {n : nat} (v : vector Rtheta n) {k : nat} (kc : k < n),
-    VAllButOne (Is_ValZero) v k kc → VecUnion v = Vnth v kc.
+    VAllButOne k kc (Is_ValZero) v → VecUnion v = Vnth v kc.
 Proof.
   intros n v i ic U.
 
@@ -605,6 +605,25 @@ Proof.
     unfold in_range in n0.
     simpl in n0.
     break_if; crush.
+Qed.
+
+Lemma VallButOneSimpl
+      {T}
+      n
+      (vl : vector T n)
+      (k : nat)
+      (kc : k < n)
+      (P0: T -> Prop)
+      (P1: T -> Prop)
+      (Pimpl: forall x, P0 x -> P1 x)
+  :
+    VAllButOne k kc P0 vl → VAllButOne k kc P1 vl.
+Proof.
+  unfold VAllButOne.
+  intros H j jc H0.
+  specialize (H j jc H0).
+  apply Pimpl.
+  apply H.
 Qed.
 
 Section SigmaHCOLExpansionRules.
@@ -1216,7 +1235,10 @@ Section SigmaHCOLRewritingRules.
                 destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
                 crush.
                 crush.
-              * typeclasses eauto.
+              *  unshelve typeclasses eauto.
+                 exact k.
+                 omega.
+              (* TODO: hacky. Clean up! *)
               * apply Hx.
           }
           rewrite_clear H.
@@ -1301,7 +1323,7 @@ Section SigmaHCOLRewritingRules.
           set (vr:=Vbuild
                      (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
 
-          assert(H: VAllButOne Is_ValZero vr k kc).
+          assert(H: VAllButOne k kc Is_ValZero vr).
           {
             subst vr.
             unfold VAllButOne.
@@ -1324,7 +1346,9 @@ Section SigmaHCOLRewritingRules.
           rewrite Vbuild_nth.
           rewrite SHPointwise_nth.
           reflexivity.
-          admit.
+          apply VallButOneSimpl with (P0:=(not ∘ (not ∘ Is_ValZero))).
+          apply Is_ValZero_not_not_impl.
+          apply Uone.
         +
           intros.
           unfold compose, Is_ValZero.
