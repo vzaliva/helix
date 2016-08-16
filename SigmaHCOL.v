@@ -368,15 +368,15 @@ Definition USparseEmbedding
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
            `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-           (x: svector i)
+  : svector i -> svector o
   :=
-    SumUnion (Apply_Family
-                (@SparseEmbedding
-                   n i o ki ko
-                   kernel KD
-                   f f_inj
-                   g
-                   Koperator) x).
+    SumUnion ∘ (Apply_Family
+                  (@SparseEmbedding
+                     n i o ki ko
+                     kernel KD
+                     f f_inj
+                     g
+                     Koperator)).
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
@@ -396,7 +396,7 @@ Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
   intros x y E.
-  unfold USparseEmbedding, Apply_Family.
+  unfold USparseEmbedding, compose, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
   apply SumUnion_proper.
@@ -770,7 +770,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, compose, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
@@ -969,7 +969,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, compose, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
 
 
