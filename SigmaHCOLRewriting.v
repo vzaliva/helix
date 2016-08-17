@@ -2265,6 +2265,6 @@ Proof.
     auto.
   }
 
-  rewrite rewrite_PointWise_ISumUnion ; [apply apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row | apply Pre1].
+  rewrite rewrite_PointWise_ISumUnion ; [apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row | apply Pre1].
 
 Qed.
