@@ -2265,6 +2265,9 @@ Proof.
     auto.
   }
 
-  Typeclasses eauto := debug.
-  Redirect "log.txt" rewrite rewrite_PointWise_ISumUnion.
+  unshelve rewrite rewrite_PointWise_ISumUnion.
+  Focus 2.
+  typeclasses eauto.
+  Focus 2.
+  assumption.
 Qed.
