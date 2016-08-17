@@ -2256,7 +2256,7 @@ Proof.
 
   unfold USparseEmbedding.
 
-  Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
+  (* Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances. *)
 
   assert(Pre1: forall (j : nat) (jc : j < 2), IgnoreIndex abs (j ↾ jc) zero = zero).
   {
@@ -2265,9 +2265,6 @@ Proof.
     auto.
   }
 
-  unshelve rewrite rewrite_PointWise_ISumUnion.
-  Focus 2.
-  typeclasses eauto.
-  Focus 2.
-  assumption.
+  rewrite rewrite_PointWise_ISumUnion ; [apply apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row | apply Pre1].
+
 Qed.
