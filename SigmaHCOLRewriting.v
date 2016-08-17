@@ -1390,9 +1390,7 @@ Proof.
   intros a.
   unfold tmp_dynwin_SigmaHCOL.
 
-  Unset Printing Notations. Show.
   repeat rewrite compose_assoc.
-
 
   replace (@compose
                    (t Rtheta
@@ -2257,7 +2255,440 @@ Proof.
                                  (D:=t Rtheta (S (S O))).
 
   unfold USparseEmbedding.
-  Typeclasses eauto := debug.
 
-  Redirect "log.txt" rewrite rewrite_PointWise_ISumUnion.
+  assert(Pre1: ∀ (j : nat) (jc : j < 2), IgnoreIndex abs (j ↾ jc) zero = zero).
+  {
+    intros j jc.
+    unfold IgnoreIndex, abs, const.
+    auto.
+  }
+
+  assert(Pre2:
+           Apply_Family_Single_NonZero_Per_Row
+             (@SparseEmbedding (S (S O))
+                              (Init.Nat.add (S (S O)) (S (S O)))
+                              (S (S O)) (Init.Nat.add (S O) (S O))
+                              (S O)
+                              (fun (j : nat) (_ : Peano.lt j (S (S O))) =>
+                               @SHBinOp (S O)
+                                 (@SwapIndex2 CarrierA j
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@SwapIndex2 CarrierA j)
+                                    (@Reflexive_partial_app_morphism nat
+                                       (forall
+                                          (_ : forall
+                                                 (_ : nat)
+                                                 (_ : CarrierA)
+                                                 (_ : CarrierA), CarrierA)
+                                          (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe)))))
+                                       (@SwapIndex2 CarrierA)
+                                       (@SwapIndex2_proper CarrierA CarrierAe
+                                          CarrierAsetoid) j
+                                       (@eq_proper_proxy nat j))
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                    (@proper_proper_proxy
+                                       (forall (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                       (@respectful nat
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (@equiv nat peano_naturals.nat_equiv)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe))))
+                                       (@Reflexive_partial_app_morphism
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@ext_equiv CarrierA CarrierAe
+                                                   CarrierA CarrierAe)))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@IgnoreIndex2 CarrierA)
+                                          IgnoreIndex2_proper HCOLImpl.sub
+                                          (@proper_proper_proxy
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             HCOLImpl.sub
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv
+                                                   (forall _ : CarrierA,
+                                                   CarrierA)
+                                                   (@ext_equiv CarrierA
+                                                   CarrierAe CarrierA CarrierAe)))
+                                             HCOLImpl.CarrierA_sub_proper)))))
+                              (fun (k : nat) (_ : Peano.lt k (S (S O))) =>
+                               @SHBinOp_DensityPreserving
+                                 (S O)
+                                 (@SwapIndex2 CarrierA k
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@SwapIndex2 CarrierA k)
+                                    (@Reflexive_partial_app_morphism nat
+                                       (forall
+                                          (_ : forall
+                                                 (_ : nat)
+                                                 (_ : CarrierA)
+                                                 (_ : CarrierA), CarrierA)
+                                          (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe)))))
+                                       (@SwapIndex2 CarrierA)
+                                       (@SwapIndex2_proper CarrierA CarrierAe
+                                          CarrierAsetoid) k
+                                       (@eq_proper_proxy nat k))
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                    (@proper_proper_proxy
+                                       (forall (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                       (@respectful nat
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (@equiv nat peano_naturals.nat_equiv)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe))))
+                                       (@Reflexive_partial_app_morphism
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@ext_equiv CarrierA CarrierAe
+                                                   CarrierA CarrierAe)))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@IgnoreIndex2 CarrierA)
+                                          IgnoreIndex2_proper HCOLImpl.sub
+                                          (@proper_proper_proxy
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             HCOLImpl.sub
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv
+                                                   (forall _ : CarrierA,
+                                                   CarrierA)
+                                                   (@ext_equiv CarrierA
+                                                   CarrierAe CarrierA CarrierAe)))
+                                             HCOLImpl.CarrierA_sub_proper)))))
+                              (IndexMapFamily (S O)
+                                 (S (S O)) (S (S O))
+                                 (fun (j : nat) (jc : Peano.lt j (S (S O))) =>
+                                  @h_index_map (S O)
+                                    (S (S O)) j (S O)
+                                    (ScatH_1_to_n_range_bound j
+                                       (S (S O)) (S O) jc)))
+                              (@h_j_1_family_injective (S (S O)))
+                              (IndexMapFamily (S (S O))
+                                 (Init.Nat.add (S (S O)) (S (S O)))
+                                 (S (S O))
+                                 (fun (j : nat) (jc : Peano.lt j (S (S O))) =>
+                                  @h_index_map (S (S O))
+                                    (Init.Nat.add (S (S O)) (S (S O))) j
+                                    (S (S O))
+                                    (GathH_jn_domain_bound j (S (S O)) jc)))
+                              (fun (k : nat) (_ : Peano.lt k (S (S O))) =>
+                               @SHOperator_SHBinOp (S O)
+                                 (@SwapIndex2 CarrierA k
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (forall (_ : nat)
+                                       (_ : CarrierA)
+                                       (_ : CarrierA), CarrierA)
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@respectful nat
+                                       (forall (_ : CarrierA) (_ : CarrierA),
+                                        CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@SwapIndex2 CarrierA k)
+                                    (@Reflexive_partial_app_morphism nat
+                                       (forall
+                                          (_ : forall
+                                                 (_ : nat)
+                                                 (_ : CarrierA)
+                                                 (_ : CarrierA), CarrierA)
+                                          (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@equiv nat peano_naturals.nat_equiv)
+                                       (@respectful
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe)))))
+                                       (@SwapIndex2 CarrierA)
+                                       (@SwapIndex2_proper CarrierA CarrierAe
+                                          CarrierAsetoid) k
+                                       (@eq_proper_proxy nat k))
+                                    (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                    (@proper_proper_proxy
+                                       (forall (_ : nat)
+                                          (_ : CarrierA)
+                                          (_ : CarrierA), CarrierA)
+                                       (@IgnoreIndex2 CarrierA HCOLImpl.sub)
+                                       (@respectful nat
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (@equiv nat peano_naturals.nat_equiv)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe))))
+                                       (@Reflexive_partial_app_morphism
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (forall (_ : nat)
+                                             (_ : CarrierA)
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@ext_equiv CarrierA CarrierAe
+                                                   CarrierA CarrierAe)))
+                                          (@respectful nat
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             (@equiv nat
+                                                peano_naturals.nat_equiv)
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@IgnoreIndex2 CarrierA)
+                                          IgnoreIndex2_proper HCOLImpl.sub
+                                          (@proper_proper_proxy
+                                             (forall
+                                                (_ : CarrierA)
+                                                (_ : CarrierA), CarrierA)
+                                             HCOLImpl.sub
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv
+                                                   (forall _ : CarrierA,
+                                                   CarrierA)
+                                                   (@ext_equiv CarrierA
+                                                   CarrierAe CarrierA CarrierAe)))
+                                             HCOLImpl.CarrierA_sub_proper))))))
+        ) by apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row.
+
+  rewrite (@rewrite_PointWise_ISumUnion  _ _ _ _ _ Pre2  _ Pre1).
 Qed.
