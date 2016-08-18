@@ -1379,6 +1379,9 @@ Definition tmp_dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svecto
                    (domain_bound := h_bound_second_half 1 (2+2))
             ).
 
+Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
+
+
 Definition dynwin_rewritten_SigmaHCOL (_: avector 3):
   vector Rtheta.Rtheta (1 + (2 + 2)) → vector Rtheta.Rtheta 1 :=
   fun _ => szero_svector 1.
@@ -1399,8 +1402,6 @@ Proof.
 
   unfold USparseEmbedding.
 
-  (* Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances. *)
-
   assert(Pre1: forall (j : nat) (jc : j < 2), IgnoreIndex abs (j ↾ jc) zero = zero).
   {
     intros j jc.
@@ -1408,11 +1409,6 @@ Proof.
     auto.
   }
 
-  rewrite rewrite_PointWise_ISumUnion.
-
-  admit.
-
-  apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row.
-  apply Pre1.
+  rewrite (@rewrite_PointWise_ISumUnion _ _  _ _ _ _ _ Pre1).
 
 Admitted.
