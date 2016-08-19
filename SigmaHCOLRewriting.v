@@ -1395,10 +1395,8 @@ Proof.
 
   repeat rewrite compose_assoc.
 
-
-  remember (compose (SHPointwise _ ) _) as c1 eqn: Hc1.
-  rewrite <- compose_assoc in Hc1.
-  subst c1.
+  Set Typeclasses Depth 4.
+  setoid_rewrite <- compose_assoc at 12.
 
   unfold USparseEmbedding.
 
@@ -1409,6 +1407,7 @@ Proof.
     auto.
   }
 
+  Set Typeclasses Depth 99.
   rewrite (@rewrite_PointWise_ISumUnion _ _  _ _ _ _ _ Pre1).
 
 Admitted.
