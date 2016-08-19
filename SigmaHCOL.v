@@ -82,6 +82,41 @@ Section SigmaHCOL_Operators.
     apply ext_equiv_applied_iff.
   Qed.
 
+  (* Apply family of operators to same fector and return matrix of results *)
+  Local Definition Apply_Family
+        {i o n}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+        (x: svector i)
+    :=
+      (Vbuild
+         (λ (j:nat) (jc:j<n),  op_family j jc x)).
+
+  Global Instance Apply_Family_proper
+         {i o n}
+         (op_family: forall k, (k<n) -> svector i -> svector o)
+         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
+    Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
+  Proof.
+    intros x y E.
+    unfold Apply_Family.
+    vec_index_equiv j jc.
+    rewrite 2!Vbuild_nth.
+    rewrite E.
+    reflexivity.
+  Qed.
+
+  (* Apply operator family to a vector produced a matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
+  Class Apply_Family_SumUnionFriendly
+        {i o n}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+    :=
+      apply_family_union_friendly: forall x, Vforall (Vunique Is_Val)
+                                                (transpose
+                                                   (Apply_Family op_family x)
+                                                ).
+
   Definition Gather
              {i o: nat}
              (f: index_map o i)
@@ -270,6 +305,16 @@ Section SigmaHCOL_Operators.
       reflexivity.
   Qed.
 
+  Definition ISumUnion
+             {i o n}
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+             `{Uf: !Apply_Family_SumUnionFriendly op_family}
+             (x: svector i)
+    :=
+      SumUnion (@Apply_Family i o n op_family Koperator x).
+
+
 End SigmaHCOL_Operators.
 
 
@@ -336,29 +381,106 @@ Definition SparseEmbedding
             ∘ (kernel j jc)
             ∘ (Gather (⦃g⦄ j jc)).
 
-(* Apply family of operators to same fector and return matrix of results *)
-Definition Apply_Family
-           {i o n}
-           (op_family: forall k, (k<n) -> svector i -> svector o)
-           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-           (x: svector i)
-  :=
-    (Vbuild
-       (λ (j:nat) (jc:j<n),  op_family j jc x)).
 
-Global Instance Apply_Family_proper
-       {i o n}
-       (op_family: forall k, (k<n) -> svector i -> svector o)
-       `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
-  Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
+Global Instance SHOperator_SparseEmbedding
+       {n i o ki ko}
+       (kernel: forall k, (k<n) -> svector ki -> svector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+       (f: index_map_family ko o n)
+       {f_inj : index_map_family_injective f}
+       (g: index_map_family ki i n)
+       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+       (j:nat) (jc:j<n):
+  SHOperator
+    (@SparseEmbedding
+       n i o ki ko
+       kernel
+       KD
+       f
+       f_inj
+       g
+       Koperator
+       j jc).
 Proof.
+  unfold SHOperator.
+  split; repeat apply vec_Setoid.
   intros x y E.
-  unfold Apply_Family.
-  vec_index_equiv j jc.
-  rewrite 2!Vbuild_nth.
   rewrite E.
   reflexivity.
 Qed.
+
+
+
+(* TODO: maybe <->  *)
+Lemma Is_Val_Scatter
+      {m n: nat}
+      (f: index_map m n)
+      {f_inj: index_map_injective f}
+      (x: svector m)
+      (j: nat) (jc : j < n):
+  Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
+  (exists i (ic:i<m), ⟦f⟧ i ≡ j).
+Proof.
+  intros H.
+  unfold Scatter in H. rewrite Vbuild_nth in H.
+  break_match.
+  simpl in *.
+  -
+    generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
+    exists (gen_inverse_index_f f j), f_spec.
+    apply build_inverse_index_map_is_right_inverse; auto.
+  -
+    apply Is_Val_mkStruct in H.
+    inversion H.
+Qed.
+
+
+Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
+       {n gi go ki ko}
+       (kernel: forall k, (k<n) -> svector ki -> svector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+       (f: index_map_family ko go n)
+       {f_inj : index_map_family_injective f}
+       (g: index_map_family ki gi n)
+       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+  :
+    Apply_Family_SumUnionFriendly
+      (@SparseEmbedding
+         n gi go ki ko
+         kernel KD
+         f f_inj
+         g
+         Koperator).
+Proof.
+  unfold Apply_Family_SumUnionFriendly.
+  intros x.
+  apply Vforall_nth_intro.
+  intros j jc.
+  unfold Vunique.
+  intros i0 ic0 i1 ic1.
+  unfold transpose.
+  rewrite Vbuild_nth.
+  unfold row.
+  rewrite 2!Vnth_map.
+  unfold Apply_Family.
+  rewrite 2!Vbuild_nth.
+  unfold Vnth_aux.
+  unfold SparseEmbedding.
+  unfold compose.
+  generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
+  generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
+  intros x0 x1.
+  intros [V0 V1].
+  apply Is_Val_Scatter in V0.
+  apply Is_Val_Scatter in V1.
+  crush.
+  unfold index_map_family_injective in f_inj.
+  specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+  destruct f_inj.
+  congruence.
+  assumption.
+Qed.
+
 
 Definition USparseEmbedding
            {n i o ki ko}
@@ -370,13 +492,13 @@ Definition USparseEmbedding
            `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
   : svector i -> svector o
   :=
-    SumUnion ∘ (Apply_Family
-                  (@SparseEmbedding
-                     n i o ki ko
-                     kernel KD
-                     f f_inj
-                     g
-                     Koperator)).
+    @ISumUnion i o n
+               (@SparseEmbedding n i o ki ko
+                                 kernel KD
+                                 f f_inj g
+                                 Koperator)
+               (SHOperator_SparseEmbedding kernel f g)
+               (Apply_Family_SparseEmbedding_SumUnionFriendly  kernel f g).
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
@@ -396,7 +518,7 @@ Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
   intros x y E.
-  unfold USparseEmbedding, compose, Apply_Family.
+  unfold USparseEmbedding, ISumUnion, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
   apply SumUnion_proper.
@@ -408,7 +530,6 @@ Proof.
   rewrite E.
   reflexivity.
 Qed.
-
 
 Section OperatorProperies.
   (* Specification of gather as mapping from output to input. NOTE:
@@ -770,7 +891,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, compose, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
@@ -867,29 +988,6 @@ Section StructuralProperies.
   Qed.
 
   (* TODO: maybe <->  *)
-  Lemma Is_Val_Scatter
-        {m n: nat}
-        (f: index_map m n)
-        {f_inj: index_map_injective f}
-        (x: svector m)
-        (j: nat) (jc : j < n):
-    Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
-    (exists i (ic:i<m), ⟦f⟧ i ≡ j).
-  Proof.
-    intros H.
-    unfold Scatter in H. rewrite Vbuild_nth in H.
-    break_match.
-    simpl in *.
-    -
-      generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
-      exists (gen_inverse_index_f f j), f_spec.
-      apply build_inverse_index_map_is_right_inverse; auto.
-    -
-      apply Is_Val_mkStruct in H.
-      inversion H.
-  Qed.
-
-  (* TODO: maybe <->  *)
   Lemma Is_Not_Zero_Scatter
         {m n: nat}
         (f: index_map m n)
@@ -946,7 +1044,6 @@ Section StructuralProperies.
     reflexivity.
   Qed.
 
-
   Lemma USparseEmbeddingCauseNoCol
         {n i o ki ko}
         (kernel: forall k, (k<n) -> svector ki -> svector ko)
@@ -969,9 +1066,8 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, compose, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
-
 
     destruct n.
     - congruence.
@@ -1119,64 +1215,6 @@ Section StructuralProperies.
   Qed.
 
 
-  (* Apply operator family to a vector produced a matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
-  Class Apply_Family_SumUnionFriendly
-        {i o n}
-        (op_family: forall k, (k<n) -> svector i -> svector o)
-        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-    :=
-      apply_family_union_friendly: forall x, Vforall (Vunique Is_Val)
-                                                (transpose
-                                                   (Apply_Family op_family x)
-                                                ).
-
-  Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
-         {n gi go ki ko}
-         (kernel: forall k, (k<n) -> svector ki -> svector ko)
-         `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-         (f: index_map_family ko go n)
-         {f_inj : index_map_family_injective f}
-         (g: index_map_family ki gi n)
-         `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-    :
-      Apply_Family_SumUnionFriendly
-        (@SparseEmbedding
-           n gi go ki ko
-           kernel KD
-           f f_inj
-           g
-           Koperator).
-  Proof.
-    unfold Apply_Family_SumUnionFriendly.
-    intros x.
-    apply Vforall_nth_intro.
-    intros j jc.
-    unfold Vunique.
-    intros i0 ic0 i1 ic1.
-    unfold transpose.
-    rewrite Vbuild_nth.
-    unfold row.
-    rewrite 2!Vnth_map.
-    unfold Apply_Family.
-    rewrite 2!Vbuild_nth.
-    unfold Vnth_aux.
-    unfold SparseEmbedding.
-    unfold compose.
-    generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
-    generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
-    intros x0 x1.
-    intros [V0 V1].
-    apply Is_Val_Scatter in V0.
-    apply Is_Val_Scatter in V1.
-    crush.
-    unfold index_map_family_injective in f_inj.
-    specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
-    destruct f_inj.
-    congruence.
-    assumption.
-  Qed.
-
-
   (* Union of UnionFriendly family of operators and collision-free vector will not cause any collisions *)
   Global Instance SumUnion_SumUnionFriendly_CauseNoCol
          {i o n}
@@ -1227,9 +1265,9 @@ Section ValueProperties.
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
       apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                                (transpose
-                                                   (Apply_Family op_family x)
-                                                ).
+                                               (transpose
+                                                  (Apply_Family op_family x)
+                                               ).
 
   Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
          {n gi go ki ko}
@@ -1280,3 +1318,4 @@ Section ValueProperties.
 
 
 End ValueProperties.
+
