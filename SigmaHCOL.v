@@ -83,7 +83,7 @@ Section SigmaHCOL_Operators.
   Qed.
 
   (* Apply family of operators to same fector and return matrix of results *)
-  Local Definition Apply_Family
+  Definition Apply_Family
         {i o n}
         (op_family: forall k, (k<n) -> svector i -> svector o)
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}

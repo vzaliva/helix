@@ -352,6 +352,13 @@ Section Zero_Utils.
 
   Definition Is_ValZero (x:Rtheta) := (evalWriter x) = 0.
 
+  Global Instance Is_ValZero_Proper:
+    Proper ((=) ==> (iff)) (Is_ValZero).
+  Proof.
+    unfold Is_ValZero.
+    solve_proper.
+  Qed.
+
   Lemma Is_ValZero_to_mkSZero (x:Rtheta):
     (Is_ValZero x) <-> (x = mkSZero).
   Proof.
