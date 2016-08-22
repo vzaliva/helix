@@ -1265,24 +1265,22 @@ Section SigmaHCOLRewritingRules.
         ISumUnion (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
                   (fun j jc => SHPointwise pf ∘ op_family j jc).
     Proof.
-      rewrite <- compose_assoc.
       apply ext_equiv_applied_iff'.
       -
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply SHOperator_SHPointwise.
-        apply SumUnion_proper.
-        apply Apply_Family_proper.
+        unfold ISumUnion.
+        solve_proper.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply SumUnion_proper.
-        apply Apply_Family_proper.
+        unfold ISumUnion.
+        solve_proper.
       -
         intros x.
+        unfold ISumUnion.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
         setoid_rewrite SHPointwise_nth.
@@ -1292,17 +1290,17 @@ Section SigmaHCOLRewritingRules.
 
         (* -- Now we are dealing with VecUnions only -- *)
 
-        unfold Apply_Family_Single_NonZero_Per_Row in Uf.
-        specialize (Uf x).
-        apply Vforall_nth with (ip:=jc) in Uf.
-        unfold Apply_Family, transpose in Uf.
-        rewrite Vbuild_nth in Uf.
-        unfold row in Uf.
-        rewrite Vmap_Vbuild in Uf.
-        unfold Vnth_aux in Uf.
+        unfold Apply_Family_Single_NonZero_Per_Row in Uz.
+        specialize (Uz x).
+        apply Vforall_nth with (ip:=jc) in Uz.
+        unfold Apply_Family, transpose in Uz.
+        rewrite Vbuild_nth in Uz.
+        unfold row in Uz.
+        rewrite Vmap_Vbuild in Uz.
+        unfold Vnth_aux in Uz.
 
-        apply Vunique_cases in Uf.
-        destruct Uf as [Uzeros | Uone].
+        apply Vunique_cases in Uz.
+        destruct Uz as [Uzeros | Uone].
         +
           (* all zeros in in vbuild *)
           (* prove both sides are 0 *)
@@ -1314,6 +1312,7 @@ Section SigmaHCOLRewritingRules.
             generalize dependent vl.
             intros vl Uzeros.
             unfold VecUnion.
+            clear Uf op_family Koperator.
             induction vl.
             -
               crush.
@@ -1331,11 +1330,8 @@ Section SigmaHCOLRewritingRules.
                 destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
                 crush.
                 crush.
-              *  unshelve typeclasses eauto.
-                 exact k.
-                 omega.
-              (* TODO: hacky. Clean up! *)
-              * apply Hx.
+              *
+                apply Hx.
           }
           rewrite_clear H.
           rewrite evalWriter_Rtheta_SZero.
@@ -1521,7 +1517,7 @@ Proof.
     auto.
   }
 
-  Set Typeclasses Depth 99.
+  Set Typeclasses Depth 4.
   rewrite (@rewrite_PointWise_ISumUnion _ _  _ _ _ _ _ Pre1).
 
 Admitted.
