@@ -1518,26 +1518,6 @@ Proof.
     unfold IgnoreIndex, abs, const.
     auto.
   }
-
-  assert(PreUz: Apply_Family_Single_NonZero_Per_Row
-                  (SparseEmbedding
-                     (λ (j : nat) (_ : j < 2),
-                      SHBinOp (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
-                     (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                     (f_inj := h_j_1_family_injective)
-                     (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))).
-  {
-    unshelve typeclasses eauto.
-  }
-
-  remember (SHPointwise (IgnoreIndex abs) ∘ ISumUnion _) as tmp.
-  assert(SHOperator tmp).
-  {
-    subst tmp.
-    apply SHOperator_compose; typeclasses eauto.
-  }
-  subst tmp.
-
-  rewrite (@rewrite_PointWise_ISumUnion _ _ _ _ _ PreUz _ _ Pre1).
+  rewrite (@rewrite_PointWise_ISumUnion _ _ _ _ _ _ _ _ Pre1).
 
 Admitted.
