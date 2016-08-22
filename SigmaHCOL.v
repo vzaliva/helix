@@ -315,6 +315,20 @@ Section SigmaHCOL_Operators.
       SumUnion (@Apply_Family i o n op_family Koperator x).
 
 
+  Global Instance SHOperator_ISumUnion
+         {i o n}
+         (op_family: forall k, (k<n) -> svector i -> svector o)
+         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+         `{Uf: !Apply_Family_SumUnionFriendly op_family}:
+    SHOperator (@ISumUnion i o n op_family Koperator Uf).
+  Proof.
+    unfold SHOperator.
+    split; repeat apply vec_Setoid.
+    unfold ISumUnion.
+    solve_proper.
+  Qed.
+
+
 End SigmaHCOL_Operators.
 
 
