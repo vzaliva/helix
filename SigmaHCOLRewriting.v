@@ -1145,9 +1145,9 @@ Section SigmaHCOLRewritingRules.
            (pf: { j | j<o} -> CarrierA -> CarrierA)
            (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-      :
-        Apply_Family_Single_NonZero_Per_Row
-          (fun j jc => SHPointwise pf ∘ op_family j jc).
+    :
+      Apply_Family_Single_NonZero_Per_Row
+        (fun j jc => SHPointwise pf ∘ op_family j jc).
     Proof.
       unfold Apply_Family_Single_NonZero_Per_Row.
       intros x.
@@ -1198,19 +1198,72 @@ Section SigmaHCOLRewritingRules.
         rewrite pfzn.
         unfold Is_ValZero.
         reflexivity.
-  Qed.
+    Qed.
+
+    Global Instance Apply_Family_Pointwise_compose_SumUnionFriendly
+           {i o n}
+           (op_family: forall k, (k<n) -> svector i -> svector o)
+           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+           `{Uf: !Apply_Family_SumUnionFriendly op_family}
+           (pf: { j | j<o} -> CarrierA -> CarrierA)
+           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
+           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+    :
+      Apply_Family_SumUnionFriendly
+        (fun j jc => SHPointwise pf ∘ op_family j jc).
+    Proof.
+      unfold Apply_Family_SumUnionFriendly.
+      intros x.
+      apply Vforall_nth_intro.
+      intros j jc.
+      unfold Vunique.
+      intros i0 ic0 i1 ic1.
+      unfold transpose.
+      rewrite Vbuild_nth.
+      unfold row.
+      rewrite 2!Vnth_map.
+      unfold Apply_Family.
+      rewrite 2!Vbuild_nth.
+      unfold Vnth_aux.
+      unfold compose.
+      rewrite 2!SHPointwise_nth_eq.
+
+      unfold Apply_Family_SumUnionFriendly in Uf.
+      specialize (Uf x).
+      apply Vforall_nth with (ip:=jc) in Uf.
+      unfold Vunique in Uf.
+      specialize (Uf i0 ic0 i1 ic1).
+
+      unfold transpose, Apply_Family, compose, row in Uf.
+      rewrite Vbuild_nth in Uf.
+      rewrite 2!Vnth_map in Uf.
+      unfold Vnth_aux in Uf.
+      rewrite 2!Vbuild_nth in Uf.
+
+      generalize dependent (Vnth (op_family i0 ic0 x) jc).
+      generalize dependent (Vnth (op_family i1 ic1 x) jc).
+      intros x0 x1 Uf. clear x.
+      intros [H0 H1].
+      apply Uf. clear Uf.
+
+      unfold Is_Val, IsVal, compose in *.
+      rewrite <- execWriter_liftM with (f:=pf (j ↾ jc)).
+      crush.
+    Qed.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-          `{Uf: !Apply_Family_Single_NonZero_Per_Row op_family}
+          `{Uz: !Apply_Family_Single_NonZero_Per_Row op_family}
+          `{Uf: !Apply_Family_SumUnionFriendly op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-    :
-      SHPointwise pf ∘ (ISumUnion op_family) =
-      ISumUnion (fun j jc => SHPointwise pf ∘ op_family j jc).
+      :
+        SHPointwise pf ∘ (ISumUnion op_family) =
+        ISumUnion (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
+                  (fun j jc => SHPointwise pf ∘ op_family j jc).
     Proof.
       rewrite <- compose_assoc.
       apply ext_equiv_applied_iff'.

@@ -187,7 +187,6 @@ Qed.
 
 Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv in *.
 
-
 Global Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_equiv.
 Proof.
   unfold Reflexive.
@@ -227,6 +226,19 @@ Lemma evalWriter_Rtheta_liftM
     evalWriter (liftM op a) ≡ op (evalWriter a).
 Proof.
   reflexivity.
+Qed.
+
+Lemma execWriter_liftM:
+  ∀ (f : CarrierA → CarrierA)
+    (x : Rtheta),
+    execWriter (Monad.liftM f x) ≡ execWriter x.
+Proof.
+      intros f x.
+      unfold Monad.liftM, execWriter.
+      destruct x.
+      simpl.
+      rewrite RthetaFlags_runit.
+      crush.
 Qed.
 
 Lemma execWriter_Rtheta_liftM2
