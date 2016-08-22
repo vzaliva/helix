@@ -1491,6 +1491,7 @@ Definition tmp_dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svecto
 
 Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
 
+Hint Extern 0 (Apply_Family_SumUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
 
 Definition dynwin_rewritten_SigmaHCOL (_: avector 3):
   vector Rtheta.Rtheta (1 + (2 + 2)) → vector Rtheta.Rtheta 1 :=
@@ -1507,6 +1508,7 @@ Proof.
 
   Set Typeclasses Depth 4.
   setoid_rewrite <- compose_assoc at 12.
+  Set Typeclasses Depth 99.
 
   unfold USparseEmbedding.
 
@@ -1517,7 +1519,25 @@ Proof.
     auto.
   }
 
-  Set Typeclasses Depth 4.
-  rewrite (@rewrite_PointWise_ISumUnion _ _  _ _ _ _ _ Pre1).
+  assert(PreUz: Apply_Family_Single_NonZero_Per_Row
+                  (SparseEmbedding
+                     (λ (j : nat) (_ : j < 2),
+                      SHBinOp (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                     (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
+                     (f_inj := h_j_1_family_injective)
+                     (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))).
+  {
+    unshelve typeclasses eauto.
+  }
+
+  remember (SHPointwise (IgnoreIndex abs) ∘ ISumUnion _) as tmp.
+  assert(SHOperator tmp).
+  {
+    subst tmp.
+    apply SHOperator_compose; typeclasses eauto.
+  }
+  subst tmp.
+
+  rewrite (@rewrite_PointWise_ISumUnion _ _ _ _ _ PreUz _ _ Pre1).
 
 Admitted.
