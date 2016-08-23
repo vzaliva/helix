@@ -305,6 +305,20 @@ Section SigmaHCOL_Operators.
       reflexivity.
   Qed.
 
+  Definition ISumReduction
+             {i o n}
+             (f: Rtheta -> Rtheta -> Rtheta)
+             (id: Rtheta)
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+             `{Uf: !Apply_Family_SumUnionFriendly op_family}
+             (x: svector i)
+    :=
+      VecUnion
+        (Vmap (Vfold_right_aux f id)
+         (transpose
+            (@Apply_Family i o n op_family Koperator x))).
+
   Definition ISumUnion
              {i o n}
              (op_family: forall k, (k<n) -> svector i -> svector o)
