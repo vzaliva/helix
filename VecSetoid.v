@@ -62,7 +62,7 @@ Section Vfold_right.
   Qed.
 
   Global Instance Vfold_right_reord_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> (@vec_Equiv A _ n ==> (=) ==> (=)))
+    Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
            (@Vfold_right_reord A B n).
   Proof.
     intros f f' Ef v v' vEq i i' iEq.
@@ -71,12 +71,22 @@ Section Vfold_right.
     (* Case "N=0". *)
     VOtac. simpl. assumption.
     (* Case "S(N)".*)
-    revert vEq. VSntac v'. unfold vec_Equiv. rewrite Vforall2_cons_eq. intuition. simpl.
+    revert vEq. VSntac v'. unfold equiv, vec_Equiv. rewrite Vforall2_cons_eq. intuition. simpl.
     apply Ef.
     (* SCase "Pf - 1". *)
     assumption.
     (* SCase "Pf - 2". *)
-    apply IHv. unfold vec_Equiv.  assumption.
+    apply IHv. unfold equiv, vec_Equiv; assumption.
+  Qed.
+
+  Global Instance Vfold_right_aux_proper n :
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+           (@Vfold_right_aux A B n).
+  Proof.
+    simpl_relation.
+    unfold Vfold_right_aux.
+    rewrite Vfold_right_to_Vfold_right_reord.
+    apply Vfold_right_reord_proper; assumption.
   Qed.
 
 End Vfold_right.
