@@ -1452,6 +1452,23 @@ Section SigmaHCOLRewritingRules.
           right; auto.
           left; auto.
     Qed.
+
+    (*
+    Lemma rewrite_Reduction_ISumReduction
+          {i o n}
+          (op_family: forall k, (k<n) -> svector i -> svector o)
+          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+          `{Uz: !Apply_Family_Single_NonZero_Per_Row op_family}
+          `{Uf: !Apply_Family_SumUnionFriendly op_family}
+          (f: Rtheta -> Rtheta -> Rtheta)
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+      :
+        Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) ∘ (ISumUnion op_family) =
+        ISumReduction (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
+                  (fun j jc => Reduction ∘ op_family j jc).
+    Proof.
+    Qed.
+     *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
 
