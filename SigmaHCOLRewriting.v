@@ -1512,12 +1512,9 @@ Proof.
 
   unfold USparseEmbedding.
 
-  assert(Pre1: forall (j : nat) (jc : j < 2), IgnoreIndex abs (j ↾ jc) zero = zero).
-  {
-    intros j jc.
-    unfold IgnoreIndex, abs, const.
-    auto.
-  }
-  rewrite (@rewrite_PointWise_ISumUnion _ _ _ _ _ _ _ _ Pre1).
+  rewrite rewrite_PointWise_ISumUnion.
+
+  Focus 2.
+  apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row.
 
 Admitted.
