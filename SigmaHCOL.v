@@ -308,10 +308,10 @@ Section SigmaHCOL_Operators.
   Definition ISumReduction
              {i o n}
              (f: Rtheta -> Rtheta -> Rtheta)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
              (id: Rtheta)
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             `{Uf: !Apply_Family_SumUnionFriendly op_family}
              (x: svector i)
     :=
       VecUnion
