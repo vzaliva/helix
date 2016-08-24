@@ -33,4 +33,16 @@ Parameter CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmu
 
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
+Global Instance CarrierPlusMonoid:
+  @Monoid CarrierA CarrierAe plus_is_sg_op zero_is_mon_unit.
+Proof.
+  typeclasses eauto.
+Qed.
+
+Global Instance CarrierMultMonoid:
+  @Monoid CarrierA CarrierAe mult_is_sg_op one_is_mon_unit.
+Proof.
+  typeclasses eauto.
+Qed.
+
 Notation avector n := (vector CarrierA n) (only parsing).
