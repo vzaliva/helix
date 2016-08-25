@@ -1,44 +1,50 @@
-Require Import Coq.Bool.Bool.
+Require Import Coq.ZArith.ZArith.
 
-Definition T:Type := prod (prod (prod (prod bool bool) bool) bool) bool.
-Definition t0:T := (true, false, false, false, false).
+Local Open Scope Z_scope.
 
-Definition op (a b: T) : T :=
-  match a,b with
-    (s0,c0_00,c0_01,c0_10,c0_11), (s1,c1_00,c1_01,c1_10,c1_11) =>
-    (andb s0 s1,
-     (orb (orb c0_00 c0_00) (andb s0 s1)) , (* struct col *)
-     (orb (orb c0_01 c1_01) (negb (orb s0 s1))), (* value col *)
-     (orb (orb c0_01 c0_01) (andb s0 (negb s1))), (* left value col *)
-     (orb (orb c0_11 c0_11) (andb s1 (negb s0))) (* right value col *)
-    )
-  end.
+Class ZMonoid (dot : Z -> Z -> Z) (one : Z)
+  := {
+      zdot_assoc: forall x y z, dot x (dot y z) = dot (dot x y) z;
+      zone_left: forall x, dot one x = x;
+      zone_right: forall x, dot x one = x
+    }.
 
-(* Only works for value collision *)
-Lemma Tident: forall a:T,
-    (op a t0) = a /\ (op t0 a) = a.
+(* An existing defintion ZFoo which requires function along with neutral element which form a Monoid. *)
+Definition ZFoo (f: Z->Z->Z) (id:Z) `{ZMonoid f id} (x:Z) : Z. Admitted.
+
+(* Let use ZFoo from ZBar for (+) and (0) *)
+Instance ZMplus: ZMonoid Zplus 0. Proof. split;intros;ring. Qed.
+Definition ZBar0 (x:Z) := ZFoo Zplus 0 x.
+
+(* So far, so good. Let us try to use ZFoo with `abs` and 0 in the context where the argument is always non-negative. *)
+
+(* We can prove that for non-negate integers 'abs' always absorbs 0 *)
+
+Lemma Zmax_zero_left (x:Z):
+  (x>=0) -> Z.max 0 x = x.
 Proof.
-  intros a.
+  intros.
+  unfold Z.max.
+  simpl; destruct x; try reflexivity.
+  contradiction H; apply Zlt_neg_0.
+Qed.
+
+Lemma Zmax_zero_right (x:Z):
+  (x>=0) -> Z.max x 0 = x.
+Proof.
+  intros.
+  rewrite Z.max_comm.
+  apply Zmax_zero_left, H.
+Qed.
+
+(* However we could not create Zmonoid instance as there is no way to constrain 'abs` arguments to be non-negative *)
+Instance Mmax: ZMonoid Zmax 0.
+Proof.
   split.
-  -
-    destruct a as [[[[s c1] c2] c3] c4].
-    unfold t0, op.
-    destr_bool; reflexivity.
+  - apply Zmax_assoc.
+  - intros; (* apply Zmax_zero_left. *) admit.
+  - intros; (* eapply Zmax_zero_right. *) admit.
+Admitted.
 
-  -
-    destruct a as [[[[s c1] c2] c3] c4].
-    unfold t0, op.
-    destr_bool; reflexivity.
-Qed.
-
-
-Lemma Tassoc: forall a b c:T,
-    op (op a b) c = op a (op b c).
-Proof.
-  intros a b c.
-  destruct a as [[[[sa ca1] ca2] ca3] ca4].
-  destruct b as [[[[sb cb1] cb2] cb3] cb4].
-  destruct c as [[[[sc cc1] cc2] cc3] cc4].
-  destr_bool.
-Qed.
-
+(* So this would work: *)
+Definition Bar1 (x:Z) := ZFoo Zmax 0 (Zabs x).
