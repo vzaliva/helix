@@ -28,6 +28,7 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
+Require Import MathClasses.orders.semirings.
 Require Import MathClasses.theory.setoids.
 
 (* Ext Lib *)
@@ -332,41 +333,72 @@ Class Associative `{Equiv A} f := simple_associativity:> HeteroAssociative f f f
 
 
   Section PartialMonoids.
-    (* Restriction of type 'B' by predicate 'restrict' *)
-    Class SubType (B:Type) :=
-      restrict: B -> Prop.
 
-    (* Operation 'op' closed on restricted type 'B' *)
-    Class SubTypeOp `{!SubType B} (op: B → B → B) :=
-      subtype_closed: forall a b, restrict a -> restrict b -> restrict (op a b).
+    Class SubType {B:Type} (restrict:B->Prop).
 
-    Class PartialLeftIdentity {A} `{Equiv B} `{!SubType B}
+    Class PartialLeftIdentity {A} `{Equiv B} `{SubType B}
           (op : A → B → B) (x : A)
       := {
           left_identity: ∀ y, restrict y -> op x y = y
         }.
 
-    Class PartialRightIdentity `{Equiv A} {B} `{!SubType A}
+    Class PartialRightIdentity `{Equiv A} {B} `{SubType A}
           (op : A → B → A) (y : B)
       := {
           right_identity: ∀ x, restrict x -> op x y = x
         }.
 
-    Class PartialAssociative {A} `{Equiv A}
-          (f: A → A → A) `{SubTypeOp A f}
+    (* Operation 'op' closed on restricted type 'B' *)
+    Class SubTypeOp `{SubType B} (op: B → B → B) :=
+      subtype_closed: forall a b, restrict a -> restrict b -> restrict (op a b).
+
+    Class PartialAssociative {A} `{Equiv A} `{SubType A}
+          (f: A → A → A) `{!SubTypeOp f}
       := {
           associativity : ∀ x y z, f x (f y z) = f (f x y) z
         }.
 
-    Class PartialSemiGroup {A} `{Equiv A} (f: A → A → A) `{SubTypeOp A f} :=
+    Class PartialSemiGroup {A} `{Equiv A} `{SubType A}
+          (f: A → A → A) `{!SubTypeOp f} :=
       { psg_setoid :> Setoid A
         ; psg_ass :> Associative f
         ; psg_op_proper :> Proper ((=) ==> (=) ==> (=)) f }.
 
-    Class PartialMonoid {A} `{Equiv A} (f: A → A → A) `{SubTypeOp A f} (pmon_unit:A) : Prop :=
+    Class PartialMonoid {A} `{Equiv A} `{SubType A}
+          (f: A → A → A) `{!SubTypeOp f} (pmon_unit:A) : Prop :=
       { monoid_semigroup :> PartialSemiGroup f
         ; monoid_left_id :> PartialLeftIdentity f pmon_unit
         ; monoid_right_id :> PartialRightIdentity f pmon_unit }.
+
+    Instance CarrierAPositiveSubType: @SubType CarrierA (le zero).
+
+    Instance CarrierAPositivePlus:
+      SubTypeOp (B:=CarrierA) plus.
+    Proof.
+      unfold SubTypeOp.
+      apply nonneg_plus_compat; assumption.
+    Qed.
+
+    Parameter CarrierAPlusProper: Proper (equiv ==> equiv ==> equiv)
+                                         (plus: CarrierA -> CarrierA ->CarrierA).
+    Instance CarriearPlusPartialMonoid:
+      PartialMonoid plus zero.
+    Proof.
+      split.
+      -
+        split.
+        apply CarrierAsetoid.
+        apply plus_assoc.
+        apply CarrierAPlusProper.
+      -
+        split.
+        intros y H. clear H.
+        ring.
+      -
+        split.
+        intros y H. clear H.
+        ring.
+    Qed.
 
   End PartialMonoids.
 
