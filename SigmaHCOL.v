@@ -322,16 +322,6 @@ Section SigmaHCOL_Operators.
             (@Apply_Family i o n op_family Koperator x))).
    *)
 
-  (*
-Class LeftIdentity {A} `{Equiv B} (op : A → B → B) (x : A): Prop := left_identity: ∀ y, op x y = y.
-Class RightIdentity `{Equiv A} {B} (op : A → B → A) (y : B): Prop := right_identity: ∀ x, op x y = x.
-Class HeteroAssociative {A B C AB BC} `{Equiv ABC}
-     (fA_BC: A → BC → ABC) (fBC: B → C → BC) (fAB_C: AB → C → ABC) (fAB : A → B → AB): Prop
-   := associativity : ∀ x y z, fA_BC x (fBC y z) = fAB_C (fAB x y) z.
-Class Associative `{Equiv A} f := simple_associativity:> HeteroAssociative f f f f.
-   *)
-
-
   Section PartialMonoids.
 
     Class SubType {B:Type} (restrict:B->Prop).
@@ -423,14 +413,13 @@ Class Associative `{Equiv A} f := simple_associativity:> HeteroAssociative f f f
 
     Class IMonoid {A:Type}
           `{!Equiv A} (dot : A -> A -> A) (one : A)
-          (pred: A -> Prop)
       := {
-          idot_assoc: forall x y z, IMonoidRestriction dot one pred x ->
+          idot_assoc (pred: A -> Prop): forall x y z, IMonoidRestriction dot one pred x ->
                                IMonoidRestriction dot one pred y ->
                                IMonoidRestriction dot one pred z ->
                                dot x (dot y z) = dot (dot x y) z;
-          ione_left: forall x, IMonoidRestriction dot one pred x -> dot one x = x;
-          ione_right: forall x, IMonoidRestriction dot one pred x -> dot x one = x
+          ione_left (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot one x = x;
+          ione_right (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot x one = x
         }.
 
   End InductivePartialMonoids.
@@ -439,14 +428,12 @@ Class Associative `{Equiv A} f := simple_associativity:> HeteroAssociative f f f
 
   Definition ISumUnion
              {i o n}
+
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (one: CarrierA)
+             {DotMonoid: IMonoid dot one}
+
              (op_family: forall k, (k<n) -> svector i -> svector o)
-
-             {Kmonoid: forall k (kc: k<n),
-                 Vin x v ->
-                 (op_family k kc)
-             }
-
-
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              `{Uf: !Apply_Family_SumUnionFriendly op_family}
              (v: svector i)
