@@ -400,16 +400,58 @@ Class Associative `{Equiv A} f := simple_associativity:> HeteroAssociative f f f
         ring.
     Qed.
 
+    (* Problem: closure property is not represented *)
   End PartialMonoids.
+
+
+  Section InductivePartialMonoids.
+
+    (** Inductive type, restricting set to elements with either:
+ 1. Special value 'one' (neutral element)
+ 2. Elements of parent set, satisfying given predicate 'restrict'
+ 3. Is a result of apply binary operation 'dot' to 2 other elements from the same restricted set (closed under 'dot'
+     *)
+    Inductive IMonoidRestriction {A:Type}
+              (dot : A -> A -> A) (one : A)
+              (pred: A -> Prop)
+    :
+      A -> Prop  :=
+    | im_restr_one: IMonoidRestriction dot one pred one
+    | im_restr_new a: pred a -> IMonoidRestriction dot one pred a
+    | im_restr_close a b: IMonoidRestriction dot one pred a -> IMonoidRestriction dot one pred b -> IMonoidRestriction dot one pred (dot a b).
+
+
+    Class IMonoid {A:Type}
+          `{!Equiv A} (dot : A -> A -> A) (one : A)
+          (pred: A -> Prop)
+      := {
+          idot_assoc: forall x y z, IMonoidRestriction dot one pred x ->
+                               IMonoidRestriction dot one pred y ->
+                               IMonoidRestriction dot one pred z ->
+                               dot x (dot y z) = dot (dot x y) z;
+          ione_left: forall x, IMonoidRestriction dot one pred x -> dot one x = x;
+          ione_right: forall x, IMonoidRestriction dot one pred x -> dot x one = x
+        }.
+
+  End InductivePartialMonoids.
+
+
 
   Definition ISumUnion
              {i o n}
              (op_family: forall k, (k<n) -> svector i -> svector o)
+
+             {Kmonoid: forall k (kc: k<n),
+                 Vin x v ->
+                 (op_family k kc)
+             }
+
+
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              `{Uf: !Apply_Family_SumUnionFriendly op_family}
-             (x: svector i)
+             (v: svector i)
     :=
-      SumUnion (@Apply_Family i o n op_family Koperator x).
+      SumUnion (@Apply_Family i o n op_family Koperator v).
 
 
   Global Instance SHOperator_ISumUnion
