@@ -81,6 +81,40 @@ Section Vfold_left.
 
 End Vfold_left.
 
+(* TODO: check if needed for Coq-8.5 *)
+Section Vfold_left_rev.
+  Context
+    `{eqA: Equiv A}
+    `{eqB: Equiv B}.
+
+  Definition Vfold_left_rev_reord {A B:Type} {n} (f:A->B->A) (initial:A) (v: vector B n): A := @Vfold_left_rev A B f n initial v.
+
+  Lemma Vfold_left_rev_to_Vfold_left_rev_reord: forall {A B:Type} {n} (f:A->B->A) (v: vector B n) (initial:A),
+      Vfold_left_rev f initial v ≡ Vfold_left_rev_reord f initial v.
+  Proof.
+    crush.
+  Qed.
+
+  Global Instance Vfold_left_rev_reord_proper n :
+    Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
+           (@Vfold_left_rev_reord A B n).
+  Proof.
+    intros f f' Ef i i' iEq v v' vEq .
+    revert i i' iEq.
+    induction v; simpl; intros.
+    -
+      VOtac; assumption.
+    -
+      revert vEq.
+      VSntac v'.
+      unfold equiv, vec_Equiv.
+      rewrite Vforall2_cons_eq; intros [h1 h2]; simpl.
+      apply Ef.
+      apply IHv; assumption.
+      assumption.
+  Qed.
+
+End Vfold_left_rev.
 
 (* TODO: check if needed for Coq-8.5 *)
 Section Vfold_right.
