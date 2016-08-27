@@ -73,20 +73,52 @@ Proof.
   apply Vnth_map.
 Qed.
 
-Definition Union: Rtheta -> Rtheta -> Rtheta := liftM2 plus.
+Section PartialMonoids.
 
-Lemma Union_comm:
-  Commutative Union.
+  (** Inductive type, restricting set to elements with either:
+ 1. Special value 'one' (neutral element)
+ 2. Elements of parent set, satisfying given predicate 'restrict'
+ 3. Is a result of apply binary operation 'dot' to 2 other elements from the same restricted set (closed under 'dot'
+   *)
+  Inductive IMonoidRestriction {A:Type}
+            (dot : A -> A -> A) (one : A)
+            (pred: A -> Prop)
+  :
+    A -> Prop  :=
+  | im_restr_one: IMonoidRestriction dot one pred one
+  | im_restr_new a: pred a -> IMonoidRestriction dot one pred a
+  | im_restr_close a b: IMonoidRestriction dot one pred a -> IMonoidRestriction dot one pred b -> IMonoidRestriction dot one pred (dot a b).
+
+
+  Class IMonoid {A:Type}
+        `{!Equiv A} (dot : A -> A -> A) (one : A)
+    := {
+        idot_assoc (pred: A -> Prop): forall x y z, IMonoidRestriction dot one pred x ->
+                                           IMonoidRestriction dot one pred y ->
+                                           IMonoidRestriction dot one pred z ->
+                                           dot x (dot y z) = dot (dot x y) z;
+        ione_left (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot one x = x;
+        ione_right (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot x one = x
+      }.
+
+End PartialMonoids.
+
+Definition Union (dot : CarrierA -> CarrierA -> CarrierA)
+  : Rtheta -> Rtheta -> Rtheta := liftM2 dot.
+
+Lemma Union_comm (dot : CarrierA -> CarrierA -> CarrierA)
+      `{C: !Commutative dot}:
+  Commutative (Union dot).
 Proof.
   intros x y.
   unfold Union, equiv, Rtheta_equiv.
   rewrite 2!evalWriter_Rtheta_liftM2.
-  ring.
+  apply C.
 Qed.
 
-Lemma evalWriterUnion {a b: Rtheta}:
-  evalWriter (Union a b) =
-  plus (evalWriter a)
+Lemma evalWriterUnion {a b: Rtheta} {dot}:
+  evalWriter (Union dot a b) =
+  dot (evalWriter a)
        (evalWriter b).
 Proof.
   unfold Union.
@@ -94,40 +126,74 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance Union_proper
-  :
-    Proper ((=) ==> (=) ==> (=)) Union.
+Global Instance Union_proper:
+  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) Union.
 Proof.
-  intros a b H x y E.
+  intros dot dot' DP a b H x y E.
   unfold Union, equiv, Rtheta_equiv in *.
   rewrite 2!evalWriter_Rtheta_liftM2.
-  rewrite E, H.
-  reflexivity.
+  apply DP.
+  apply H.
+  apply E.
 Qed.
 
 (* Unary union of vector's elements (left fold) *)
-Definition VecUnion {n} (v: svector n): Rtheta :=
-  Vfold_left_rev Union mkSZero v.
+Definition VecUnion
+           {n}
+           (dot:CarrierA->CarrierA->CarrierA)
+           (neutral:CarrierA)
+           (v: svector n): Rtheta :=
+  Vfold_left_rev (Union dot) (mkStruct neutral) v.
 
 (* Binary element-wise union of two vectors *)
-Definition Vec2Union {n} (a b: svector n): svector n
-  := Vmap2 Union a b.
+Definition Vec2Union
+           {n}
+           (dot:CarrierA->CarrierA->CarrierA)
+           (a b: svector n): svector n
+  := Vmap2 (Union dot) a b.
 
 Global Instance Vec2Union_proper {n}
   :
-    Proper ((=) ==> (=) ==> (=)) (Vec2Union (n:=n)).
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (Vec2Union (n:=n)).
 Proof.
-  intros a a' Ea b b' Eb.
-  unfold Vec2Union.
-  rewrite Ea, Eb.
-  reflexivity.
+  intros dot dot' Ed a a' Ea b b' Eb.
+  unfold Vec2Union, Union.
+  (* TODO: vec_index_equiv from VecSetoid. Move all vector-related stuff there *)
+  unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
+  rewrite 2!Vnth_map2.
+  unfold_Rtheta_equiv.
+  rewrite 2!evalWriter_Rtheta_liftM2.
+  apply Ed; apply evalWriter_proper; apply Vnth_arg_equiv; assumption.
+Qed.
+
+
+(* Matrix-union. Generalized SumUnion *)
+Definition MUnion
+           {o n}
+           (dot:CarrierA->CarrierA->CarrierA)
+           (neutral:CarrierA)
+           (v: vector (svector o) n): svector o
+  :=  Vfold_left_rev (Vec2Union dot) (Vconst (mkStruct neutral) o) v.
+
+Global Instance MUnion_proper {o n}
+  : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion o n).
+Proof.
+  intros dot dot' Ed one one' Eo x y E.
+  unfold MUnion.
+  rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
+  apply Vfold_left_rev_reord_proper.
+  apply Vec2Union_proper.
+  apply Ed.
+  rewrite 2!Vconst_to_Vconst_reord.
+  apply Vconst_reord_proper.
+  rewrite Eo; reflexivity.
+  assumption.
 Qed.
 
 Definition SumUnion
            {o n}
            (v: vector (svector o) n): svector o
-  :=  Vfold_left_rev Vec2Union (szero_svector o) v.
-
+  := MUnion plus zero v.
 
 Global Instance SumUnion_proper {o n}
   : Proper ((=) ==> (=)) (@SumUnion o n).
@@ -138,18 +204,23 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma VecUnion_cons:
-  ∀ m x (xs : svector m),
-    VecUnion (Vcons x xs) ≡ Union (VecUnion xs) x.
+Lemma VecUnion_cons
+      m x (xs : svector m)
+      (dot:CarrierA->CarrierA->CarrierA)
+      (neutral:CarrierA):
+  VecUnion dot neutral (Vcons x xs) ≡ Union dot (VecUnion dot neutral xs) x.
 Proof.
-  intros m x xs.
   unfold VecUnion.
   rewrite Vfold_left_rev_cons.
   reflexivity.
 Qed.
 
-Lemma Vec2Union_comm {n}:
-  @Commutative (svector n) _ (svector n) Vec2Union.
+Lemma Vec2Union_comm
+      {n}
+      (dot:CarrierA->CarrierA->CarrierA)
+      `{C: !Commutative dot}
+  :
+  @Commutative (svector n) _ (svector n) (Vec2Union dot).
 Proof.
   intros a b.
   induction n.
@@ -159,12 +230,12 @@ Proof.
   rewrite 2!Vcons_to_Vcons_reord.
   apply Vcons_reord_proper.
   apply IHn.
-  apply Union_comm; apply C.
+  apply Union_comm, C.
 Qed.
 
 Lemma SumUnion_cons {m n}
       (x: svector m) (xs: vector (svector m) n):
-  SumUnion (Vcons x xs) ≡ Vec2Union (SumUnion xs) x.
+  SumUnion (Vcons x xs) ≡ Vec2Union plus (SumUnion xs) x.
 Proof.
   unfold SumUnion.
   apply Vfold_left_rev_cons.
@@ -173,8 +244,9 @@ Qed.
 Lemma AbsorbUnionIndexBinary
       (m k : nat)
       (kc : k < m)
+      {dot}
       (a b : svector m):
-  Vnth (Vec2Union a b) kc ≡ Union (Vnth a kc) (Vnth b kc).
+  Vnth (Vec2Union dot a b) kc ≡ Union dot (Vnth a kc) (Vnth b kc).
 Proof.
   unfold Vec2Union.
   apply Vnth_map2.
@@ -182,11 +254,11 @@ Qed.
 
 Lemma AbsorbUnionIndex
       m n (x: vector (svector m) n) k (kc: k<m):
-  Vnth (SumUnion x) kc = VecUnion (Vmap (fun v => Vnth v kc) x).
+  Vnth (SumUnion x) kc = VecUnion plus zero (Vmap (fun v => Vnth v kc) x).
 Proof.
   induction n.
   + dep_destruct x.
-    unfold VecUnion, SumUnion, szero_svector; simpl.
+    unfold VecUnion, SumUnion, MUnion, szero_svector; simpl.
     rewrite Vnth_const; reflexivity.
   + dep_destruct x.
     rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
@@ -201,7 +273,7 @@ Lemma AbsorbIUnionIndex
   :
     Vnth
       (SumUnion (Vbuild body)) kc ≡
-      VecUnion
+      VecUnion plus zero
       (Vbuild
          (fun (i : nat) (ic : i < n) =>
             Vnth (body i ic) kc
@@ -223,7 +295,7 @@ Qed.
 
 
 Lemma Union_SZero_r x:
-  (Union x mkSZero) = x.
+  (Union plus x mkSZero) = x.
 Proof.
   unfold Union.
   unfold_Rtheta_equiv.
@@ -233,7 +305,7 @@ Proof.
 Qed.
 
 Lemma Union_SZero_l x:
-  (Union mkSZero x) = x.
+  (Union plus mkSZero x) = x.
 Proof.
   unfold Union.
   unfold_Rtheta_equiv.
@@ -242,11 +314,11 @@ Proof.
   ring.
 Qed.
 
-Lemma UnionCollisionFree (a b : Rtheta):
+Lemma UnionCollisionFree (a b : Rtheta) {dot}:
   ¬Is_Collision a →
   ¬Is_Collision b →
   ¬(Is_Val a ∧ Is_Val b)
-  → ¬Is_Collision (Union a b).
+  → ¬Is_Collision (Union dot a b).
 Proof.
   intros CA CB C.
   unfold Union, Is_Collision, compose.
@@ -261,8 +333,8 @@ Proof.
 Qed.
 
 (* Conditions under which Union produces value *)
-Lemma ValUnionIsVal (a b : Rtheta):
-  Is_Val a \/ Is_Val b <-> Is_Val (Union a b).
+Lemma ValUnionIsVal (a b : Rtheta) {dot}:
+  Is_Val a \/ Is_Val b <-> Is_Val (Union dot a b).
 Proof.
   split.
   - intros [VA | VB];
@@ -284,8 +356,8 @@ Proof.
     destr_bool; auto.
 Qed.
 
-Lemma Is_Val_VecUnion {n} {v: svector n}:
-  Vexists Is_Val v <-> Is_Val (VecUnion v).
+Lemma Is_Val_VecUnion {n} {v: svector n} {dot} {neutral}:
+  Vexists Is_Val v <-> Is_Val (VecUnion dot neutral v).
 Proof.
   split.
   - intros H.
@@ -332,7 +404,7 @@ Proof.
 Qed.
 
 Lemma Vec2Union_szero_svector_r {n} {a: svector n}:
-  Vec2Union a (szero_svector n) = a.
+  Vec2Union plus a (szero_svector n) = a.
 Proof.
   unfold szero_svector.
   induction n.
@@ -347,7 +419,7 @@ Proof.
 Qed.
 
 Lemma Vec2Union_szero_svector_l {n} {a: svector n}:
-  Vec2Union (szero_svector n) a = a.
+  Vec2Union plus (szero_svector n) a = a.
 Proof.
   unfold szero_svector.
   induction n.
@@ -360,7 +432,6 @@ Proof.
   dep_destruct a.
   crush.
 Qed.
-
 
 Lemma szero_svector_all_zeros:
   ∀ n : nat, Vforall Is_ValZero (szero_svector n).

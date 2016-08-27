@@ -33,4 +33,11 @@ Parameter CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmu
 
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
+
+Global Instance CarrierAPlus_proper:
+  Proper ((=) ==> (=) ==> (=)) (plus).
+Proof.
+  solve_proper.
+Qed.
+
 Notation avector n := (vector CarrierA n) (only parsing).

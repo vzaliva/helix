@@ -114,9 +114,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
       apply_family_union_friendly: forall x, Vforall (Vunique Is_Val)
-                                                (transpose
-                                                   (Apply_Family op_family x)
-                                                ).
+                                                     (transpose
+                                                        (Apply_Family op_family x)
+                                                     ).
 
   Definition Gather
              {i o: nat}
@@ -322,123 +322,43 @@ Section SigmaHCOL_Operators.
             (@Apply_Family i o n op_family Koperator x))).
    *)
 
-  Section PartialMonoids.
 
-    Class SubType {B:Type} (restrict:B->Prop).
-
-    Class PartialLeftIdentity {A} `{Equiv B} `{SubType B}
-          (op : A → B → B) (x : A)
-      := {
-          left_identity: ∀ y, restrict y -> op x y = y
-        }.
-
-    Class PartialRightIdentity `{Equiv A} {B} `{SubType A}
-          (op : A → B → A) (y : B)
-      := {
-          right_identity: ∀ x, restrict x -> op x y = x
-        }.
-
-    (* Operation 'op' closed on restricted type 'B' *)
-    Class SubTypeOp `{SubType B} (op: B → B → B) :=
-      subtype_closed: forall a b, restrict a -> restrict b -> restrict (op a b).
-
-    Class PartialAssociative {A} `{Equiv A} `{SubType A}
-          (f: A → A → A) `{!SubTypeOp f}
-      := {
-          associativity : ∀ x y z, f x (f y z) = f (f x y) z
-        }.
-
-    Class PartialSemiGroup {A} `{Equiv A} `{SubType A}
-          (f: A → A → A) `{!SubTypeOp f} :=
-      { psg_setoid :> Setoid A
-        ; psg_ass :> Associative f
-        ; psg_op_proper :> Proper ((=) ==> (=) ==> (=)) f }.
-
-    Class PartialMonoid {A} `{Equiv A} `{SubType A}
-          (f: A → A → A) `{!SubTypeOp f} (pmon_unit:A) : Prop :=
-      { monoid_semigroup :> PartialSemiGroup f
-        ; monoid_left_id :> PartialLeftIdentity f pmon_unit
-        ; monoid_right_id :> PartialRightIdentity f pmon_unit }.
-
-    Instance CarrierAPositiveSubType: @SubType CarrierA (le zero).
-
-    Instance CarrierAPositivePlus:
-      SubTypeOp (B:=CarrierA) plus.
-    Proof.
-      unfold SubTypeOp.
-      apply nonneg_plus_compat; assumption.
-    Qed.
-
-    Parameter CarrierAPlusProper: Proper (equiv ==> equiv ==> equiv)
-                                         (plus: CarrierA -> CarrierA ->CarrierA).
-    Instance CarriearPlusPartialMonoid:
-      PartialMonoid plus zero.
-    Proof.
-      split.
-      -
-        split.
-        apply CarrierAsetoid.
-        apply plus_assoc.
-        apply CarrierAPlusProper.
-      -
-        split.
-        intros y H. clear H.
-        ring.
-      -
-        split.
-        intros y H. clear H.
-        ring.
-    Qed.
-
-    (* Problem: closure property is not represented *)
-  End PartialMonoids.
-
-
-  Section InductivePartialMonoids.
-
-    (** Inductive type, restricting set to elements with either:
- 1. Special value 'one' (neutral element)
- 2. Elements of parent set, satisfying given predicate 'restrict'
- 3. Is a result of apply binary operation 'dot' to 2 other elements from the same restricted set (closed under 'dot'
-     *)
-    Inductive IMonoidRestriction {A:Type}
-              (dot : A -> A -> A) (one : A)
-              (pred: A -> Prop)
-    :
-      A -> Prop  :=
-    | im_restr_one: IMonoidRestriction dot one pred one
-    | im_restr_new a: pred a -> IMonoidRestriction dot one pred a
-    | im_restr_close a b: IMonoidRestriction dot one pred a -> IMonoidRestriction dot one pred b -> IMonoidRestriction dot one pred (dot a b).
-
-
-    Class IMonoid {A:Type}
-          `{!Equiv A} (dot : A -> A -> A) (one : A)
-      := {
-          idot_assoc (pred: A -> Prop): forall x y z, IMonoidRestriction dot one pred x ->
-                               IMonoidRestriction dot one pred y ->
-                               IMonoidRestriction dot one pred z ->
-                               dot x (dot y z) = dot (dot x y) z;
-          ione_left (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot one x = x;
-          ione_right (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot x one = x
-        }.
-
-  End InductivePartialMonoids.
-
-
-
-  Definition ISumUnion
+  Definition IUnion
              {i o n}
-
              (dot: CarrierA -> CarrierA -> CarrierA)
-             (one: CarrierA)
-             {DotMonoid: IMonoid dot one}
-
+             (neutral: CarrierA)
+             {DotMonoid: IMonoid dot neutral}
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              `{Uf: !Apply_Family_SumUnionFriendly op_family}
              (v: svector i)
     :=
-      SumUnion (@Apply_Family i o n op_family Koperator v).
+      MUnion dot neutral (@Apply_Family i o n op_family Koperator v).
+
+
+  Global Instance IMonoid_plus_0:
+    IMonoid plus (zero:CarrierA).
+  Proof.
+    split.
+    -
+      intros pred x y z H H0 H1.
+      ring.
+    -
+      intros pred x H.
+      apply plus_0_l.
+    -
+      intros pred x H.
+      apply plus_0_r.
+  Qed.
+
+  Definition ISumUnion
+             {i o n}
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+             `{Uf: !Apply_Family_SumUnionFriendly op_family}
+             (v: svector i)
+    :=
+      @IUnion i o n plus zero IMonoid_plus_0 op_family Koperator Uf v.
 
 
   Global Instance SHOperator_ISumUnion
@@ -450,7 +370,7 @@ Section SigmaHCOL_Operators.
   Proof.
     unfold SHOperator.
     split; repeat apply vec_Setoid.
-    unfold ISumUnion.
+    unfold ISumUnion, IUnion.
     solve_proper.
   Qed.
 
@@ -658,12 +578,12 @@ Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
   intros x y E.
-  unfold USparseEmbedding, ISumUnion, Apply_Family.
+  unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
-  apply SumUnion_proper.
+  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
   split; repeat apply vec_Setoid.
-  apply SumUnion_proper.
+  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
   reflexivity.
   vec_index_equiv j jc.
   rewrite 2!Vbuild_nth.
