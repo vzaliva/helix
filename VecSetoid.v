@@ -46,6 +46,37 @@ Section VectorSetoid.
 
 End VectorSetoid.
 
+
+Section Vconst.
+  Context
+    `{eqA: Equiv A}.
+
+  Definition Vconst_reord {n} (x:A): vector A n :=
+    Vconst x n.
+
+  Lemma Vconst_to_Vconst_reord {n} (x:A):
+    Vconst x n ≡ @Vconst_reord n x.
+  Proof.
+    crush.
+  Qed.
+
+  Global Instance Vconst_reord_proper {n}:
+    Proper ((=)==>(=)) (@Vconst_reord n).
+  Proof.
+    intros a a' aa'.
+    unfold Vconst_reord.
+    induction n.
+    crush.
+    simpl.
+    unfold equiv, vec_Equiv.
+    rewrite Vforall2_cons_eq.
+    split; assumption.
+  Qed.
+
+End Vconst.
+
+
+
 (* TODO: check if needed for Coq-8.5 *)
 Section Vfold_left.
   Context
