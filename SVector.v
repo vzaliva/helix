@@ -90,15 +90,16 @@ Section PartialMonoids.
   | im_restr_close a b: IMonoidRestriction dot one pred a -> IMonoidRestriction dot one pred b -> IMonoidRestriction dot one pred (dot a b).
 
 
-  Class IMonoid {A:Type}
-        `{!Equiv A} (dot : A -> A -> A) (one : A)
+  Class IMonoid {A:Type} `{!Equiv A}
+        (pred: A -> Prop)
+        (dot : A -> A -> A) (one : A)
     := {
-        idot_assoc (pred: A -> Prop): forall x y z, IMonoidRestriction dot one pred x ->
+        idot_assoc: forall x y z, IMonoidRestriction dot one pred x ->
                                            IMonoidRestriction dot one pred y ->
                                            IMonoidRestriction dot one pred z ->
                                            dot x (dot y z) = dot (dot x y) z;
-        ione_left (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot one x = x;
-        ione_right (pred: A -> Prop): forall x, IMonoidRestriction dot one pred x -> dot x one = x
+        ione_left: forall x, IMonoidRestriction dot one pred x -> dot one x = x;
+        ione_right: forall x, IMonoidRestriction dot one pred x -> dot x one = x
       }.
 
 End PartialMonoids.

@@ -306,48 +306,38 @@ Section SigmaHCOL_Operators.
       reflexivity.
   Qed.
 
-  (*
-  Definition ISumReduction
-             {i o n}
-             (f: Rtheta -> Rtheta -> Rtheta)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-             (id: Rtheta)
-             (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             (x: svector i)
-    :=
-      VecUnion
-        (Vmap (Vfold_right_aux f id)
-         (transpose
-            (@Apply_Family i o n op_family Koperator x))).
-   *)
-
+  (* TODO: move to SVector *)
+  Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
+    match v with
+    | Vnil => False
+    | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
+    end.
 
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (neutral: CarrierA)
-             {DotMonoid: IMonoid dot neutral}
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              `{Uf: !Apply_Family_SumUnionFriendly op_family}
              (v: svector i)
+             {DotMonoid: IMonoid (Vin_Rtheta_Val v) dot neutral}
     :=
       MUnion dot neutral (@Apply_Family i o n op_family Koperator v).
 
 
-  Global Instance IMonoid_plus_0:
-    IMonoid plus (zero:CarrierA).
+  Global Instance IMonoid_plus_0 (pred: CarrierA -> Prop):
+    IMonoid pred plus (zero:CarrierA).
   Proof.
     split.
     -
-      intros pred x y z H H0 H1.
+      intros x y z H H0 H1.
       ring.
     -
-      intros pred x H.
+      intros x H.
       apply plus_0_l.
     -
-      intros pred x H.
+      intros x H.
       apply plus_0_r.
   Qed.
 
@@ -358,8 +348,7 @@ Section SigmaHCOL_Operators.
              `{Uf: !Apply_Family_SumUnionFriendly op_family}
              (v: svector i)
     :=
-      @IUnion i o n plus zero IMonoid_plus_0 op_family Koperator Uf v.
-
+      @IUnion i o n plus zero op_family Koperator Uf v (IMonoid_plus_0 (Vin_Rtheta_Val v)).
 
   Global Instance SHOperator_ISumUnion
          {i o n}
@@ -374,6 +363,21 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
+    (*
+  Definition ISumReduction
+             {i o n}
+             (f: Rtheta -> Rtheta -> Rtheta)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+             (id: Rtheta)
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+             (x: svector i)
+    :=
+      VecUnion
+        (Vmap (Vfold_right_aux f id)
+         (transpose
+            (@Apply_Family i o n op_family Koperator x))).
+   *)
 
 End SigmaHCOL_Operators.
 
