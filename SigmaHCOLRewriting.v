@@ -507,17 +507,16 @@ Section SigmaHCOLExpansionRules.
             self(ch[i], opts),
             GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
      *)
+    (* TODO: perhaps could be generalized for generic operation, not just plus *)
     Theorem expand_HTDirectSum
             {i1 o1 i2 o2}
-            {dot:CarrierA->CarrierA->CarrierA}
-            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
             (f: avector i1 -> avector o1)
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
       :
         liftM_HOperator (HTDirectSum f g) =
-        (HTSUMUnion dot
+        (HTSUMUnion plus
            ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
             ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
            ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
@@ -752,8 +751,8 @@ Section SigmaHCOLExpansionRules.
       rewrite LS, RS.
       (* destruct Heqp0.*)
       unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union dot) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
-      setoid_replace (Vmap2 (Union dot) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
+      setoid_replace (Vmap2 (Union plus) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
+      setoid_replace (Vmap2 (Union plus) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
       unfold sparsify.
       rewrite Vmap_app.
       reflexivity.
@@ -836,7 +835,7 @@ Section SigmaHCOLExpansionRules.
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
       : DensityPreserving (
-            (HTSUMUnion
+            (HTSUMUnion plus
                ((ScatH 0 1
                        (snzord0:=ScatH_stride1_constr)
                        (range_bound := h_bound_first_half o1 o2)
@@ -1115,16 +1114,16 @@ Section SigmaHCOLRewritingRules.
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply SHOperator_SHPointwise.
-        unfold ISumUnion.
+        unfold ISumUnion, IUnion.
         solve_proper.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        unfold ISumUnion.
+        unfold ISumUnion, IUnion.
         solve_proper.
       -
         intros x.
-        unfold ISumUnion.
+        unfold ISumUnion, IUnion.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
         setoid_rewrite SHPointwise_nth.
@@ -1151,7 +1150,7 @@ Section SigmaHCOLRewritingRules.
           revert Uzeros.
           set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
           intros Uzeros.
-          assert(H:VecUnion vl = mkSZero).
+          assert(H:VecUnion plus zero vl = mkSZero).
           {
             generalize dependent vl.
             intros vl Uzeros.
@@ -1159,7 +1158,8 @@ Section SigmaHCOLRewritingRules.
             clear Uf op_family Koperator.
             induction vl.
             -
-              crush.
+              unfold mkSZero.
+              reflexivity.
             - simpl in Uzeros. destruct Uzeros as [Hh Hx].
               Opaque Monad.ret.
               simpl.
@@ -1183,7 +1183,7 @@ Section SigmaHCOLRewritingRules.
 
           set (vr:=Vbuild
                      (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
-          assert(H: VecUnion vr = mkSZero).
+          assert(H: VecUnion plus zero vr = mkSZero).
           {
             subst vl vr.
             assert(H: (Vbuild
@@ -1231,7 +1231,7 @@ Section SigmaHCOLRewritingRules.
               crush.
             }
             rewrite_clear H.
-            fold (@VecUnion n (szero_svector n)).
+            fold (@VecUnion n plus zero (szero_svector n)).
             apply VecUnion_zero_structs.
             apply szero_svector_all_zeros.
           }
@@ -1324,7 +1324,7 @@ End SigmaHCOLRewritingRules.
 Definition tmp_dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
   :=
     SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-            ∘ HTSUMUnion
+            ∘ HTSUMUnion plus
             (ScatH 0 1
                    (range_bound := h_bound_first_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
