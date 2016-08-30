@@ -167,11 +167,11 @@ Proof.
   lia.
 Qed.
 
-Lemma VecUnion_structs:
-  ∀ (m : nat) (x : svector m),
-    Vforall Is_ValZero x → Is_ValZero (VecUnion x).
+Lemma VecUnion_zero_structs
+      (m : nat) (x : svector m):
+  Vforall Is_ValZero x → Is_ValZero (VecUnion plus zero x).
 Proof.
-  intros m x H.
+  intros H.
   unfold VecUnion.
   induction x.
   -
@@ -188,9 +188,9 @@ Proof.
     apply IHx, Hx.
 Qed.
 
-Lemma VecUnion_VallButOne:
+Lemma VecUnion_VallButOne_zero:
   ∀ {n : nat} (v : vector Rtheta n) {k : nat} (kc : k < n),
-    VAllButOne k kc (Is_ValZero) v → VecUnion v = Vnth v kc.
+    VAllButOne k kc (Is_ValZero) v → VecUnion plus zero v = Vnth v kc.
 Proof.
   intros n v i ic U.
 
@@ -213,9 +213,9 @@ Proof.
         omega.
       }
 
-      assert(UZ: Is_ValZero (VecUnion x))
-        by apply VecUnion_structs, H.
-      setoid_replace (VecUnion x) with mkSZero
+      assert(UZ: Is_ValZero (VecUnion plus zero x))
+        by apply VecUnion_zero_structs, H.
+      setoid_replace (VecUnion plus zero x) with mkSZero
         by apply Is_ValZero_to_mkSZero, UZ.
       clear UZ.
       apply Union_SZero_l.
@@ -247,7 +247,7 @@ Qed.
 (* Formerly Lemma3. Probably will be replaced by VecUnion_VallButOne *)
 Lemma SingleValueInZeros
       {m} (x:svector m) j (jc:j<m):
-  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion x = Vnth x jc).
+  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion plus zero x = Vnth x jc).
 Proof.
   intros SZ.
   dependent induction m.
@@ -269,9 +269,9 @@ Proof.
         apply SZ; lia.
       }
 
-      assert(UZ: Is_ValZero (VecUnion x0))
-        by apply VecUnion_structs, H.
-      setoid_replace (VecUnion x0) with mkSZero
+      assert(UZ: Is_ValZero (VecUnion plus zero x0))
+        by apply VecUnion_zero_structs, H.
+      setoid_replace (VecUnion plus zero x0) with mkSZero
         by apply Is_ValZero_to_mkSZero, UZ.
       clear UZ.
       apply Union_SZero_l.
@@ -393,7 +393,7 @@ Proof.
   clear B1 B2 Heqbf bf.
 
   (* Lemma5 embedded below*)
-  rewrite AbsorbUnionIndex by solve_proper.
+  rewrite AbsorbSumUnionIndex by solve_proper.
   rewrite Vmap_Vbuild.
 
   (* Preparing to apply Lemma3. Prove some peoperties first. *)
@@ -490,7 +490,7 @@ Section SigmaHCOLExpansionRules.
       }
       {
         split; try apply vec_Setoid.
-        unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding.
+        unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
         solve_proper.
       }
       intros x.
@@ -509,13 +509,15 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_HTDirectSum
             {i1 o1 i2 o2}
+            {dot:CarrierA->CarrierA->CarrierA}
+            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
             (f: avector i1 -> avector o1)
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
       :
         liftM_HOperator (HTDirectSum f g) =
-        (HTSUMUnion
+        (HTSUMUnion dot
            ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
             ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
            ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
@@ -750,8 +752,8 @@ Section SigmaHCOLExpansionRules.
       rewrite LS, RS.
       (* destruct Heqp0.*)
       unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
-      setoid_replace (Vmap2 (Union) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
+      setoid_replace (Vmap2 (Union dot) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
+      setoid_replace (Vmap2 (Union dot) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
       unfold sparsify.
       rewrite Vmap_app.
       reflexivity.
@@ -1230,7 +1232,7 @@ Section SigmaHCOLRewritingRules.
             }
             rewrite_clear H.
             fold (@VecUnion n (szero_svector n)).
-            apply VecUnion_structs.
+            apply VecUnion_zero_structs.
             apply szero_svector_all_zeros.
           }
           rewrite_clear H.
@@ -1249,7 +1251,7 @@ Section SigmaHCOLRewritingRules.
           inversion H; rename x0  into kc; clear H.
           rename H0 into Uone.
           (* rewrite Is_ValZero_not_not in Uone. *)
-          rewrite VecUnion_VallButOne with (kc0:=kc).
+          rewrite VecUnion_VallButOne_zero with (kc0:=kc).
           subst vl.
           rewrite Vbuild_nth.
 
@@ -1275,7 +1277,7 @@ Section SigmaHCOLRewritingRules.
             reflexivity.
           }
 
-          rewrite VecUnion_VallButOne with (kc0:=kc) by apply H.
+          rewrite VecUnion_VallButOne_zero with (kc0:=kc) by apply H.
           subst vr.
           rewrite Vbuild_nth.
           rewrite SHPointwise_nth.
