@@ -50,14 +50,18 @@ Section TSigmaHCOLOperators.
   just Union of two vectors, produced by application of two operators
   to the input. *)
   Definition HTSUMUnion {i o}
+             (dot:CarrierA->CarrierA->CarrierA)
              (f: svector i -> svector o)
              (g: svector i -> svector o)
              (x: svector i): svector o
-    :=  Vec2Union (f x) (g x).
+    :=  Vec2Union dot (f x) (g x).
 
 
-  Global Instance TSHOperator2_HTSUMUnion {i o}:
-    TSHOperator2 (@HTSUMUnion i o).
+  Global Instance TSHOperator2_HTSUMUnion {i o}
+         (dot:CarrierA->CarrierA->CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+    :
+    TSHOperator2 (@HTSUMUnion i o dot).
   Proof.
     intros f f' Ef g g' Eg x y Ex.
     unfold HTSUMUnion.
