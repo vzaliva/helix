@@ -234,12 +234,22 @@ Proof.
   apply Union_comm, C.
 Qed.
 
+Lemma MUnion_cons {m n}
+      (dot:CarrierA->CarrierA->CarrierA)
+      (neutral:CarrierA)
+      (x: svector m) (xs: vector (svector m) n):
+  MUnion dot neutral (Vcons x xs) ≡ Vec2Union dot (MUnion dot neutral xs) x.
+Proof.
+  unfold MUnion.
+  apply Vfold_left_rev_cons.
+Qed.
+
 Lemma SumUnion_cons {m n}
       (x: svector m) (xs: vector (svector m) n):
   SumUnion (Vcons x xs) ≡ Vec2Union plus (SumUnion xs) x.
 Proof.
   unfold SumUnion.
-  apply Vfold_left_rev_cons.
+  apply MUnion_cons.
 Qed.
 
 Lemma AbsorbUnionIndexBinary
@@ -253,17 +263,31 @@ Proof.
   apply Vnth_map2.
 Qed.
 
-Lemma AbsorbUnionIndex
-      m n (x: vector (svector m) n) k (kc: k<m):
-  Vnth (SumUnion x) kc = VecUnion plus zero (Vmap (fun v => Vnth v kc) x).
+Lemma AbsorbMUnionIndex
+      (dot:CarrierA->CarrierA->CarrierA)
+      `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+
+      (neutral:CarrierA)
+      {m n:nat}
+      (x: vector (svector m) n) k (kc: k<m):
+  Vnth (MUnion dot neutral x) kc = VecUnion dot neutral (Vmap (fun v => Vnth v kc) x).
 Proof.
   induction n.
   + dep_destruct x.
-    unfold VecUnion, SumUnion, MUnion, szero_svector; simpl.
+    unfold VecUnion, MUnion, szero_svector; simpl.
     rewrite Vnth_const; reflexivity.
   + dep_destruct x.
-    rewrite Vmap_cons, SumUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
+    rewrite Vmap_cons, MUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
     reflexivity.
+Qed.
+
+Lemma AbsorbSumUnionIndex
+      m n (x: vector (svector m) n) k (kc: k<m):
+  Vnth (SumUnion x) kc = VecUnion plus zero (Vmap (fun v => Vnth v kc) x).
+Proof.
+  unfold SumUnion.
+  apply AbsorbMUnionIndex.
+  apply CarrierAPlus_proper.
 Qed.
 
 (* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)

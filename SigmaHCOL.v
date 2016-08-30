@@ -955,7 +955,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, ISumUnion, IUnion, MUnion, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
