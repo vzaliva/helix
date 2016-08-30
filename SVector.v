@@ -95,9 +95,9 @@ Section PartialMonoids.
         (dot : A -> A -> A) (one : A)
     := {
         idot_assoc: forall x y z, IMonoidRestriction dot one pred x ->
-                                           IMonoidRestriction dot one pred y ->
-                                           IMonoidRestriction dot one pred z ->
-                                           dot x (dot y z) = dot (dot x y) z;
+                             IMonoidRestriction dot one pred y ->
+                             IMonoidRestriction dot one pred z ->
+                             dot x (dot y z) = dot (dot x y) z;
         ione_left: forall x, IMonoidRestriction dot one pred x -> dot one x = x;
         ione_right: forall x, IMonoidRestriction dot one pred x -> dot x one = x
       }.
@@ -120,7 +120,7 @@ Qed.
 Lemma evalWriterUnion {a b: Rtheta} {dot}:
   evalWriter (Union dot a b) =
   dot (evalWriter a)
-       (evalWriter b).
+      (evalWriter b).
 Proof.
   unfold Union.
   rewrite evalWriter_Rtheta_liftM2.
@@ -221,7 +221,7 @@ Lemma Vec2Union_comm
       (dot:CarrierA->CarrierA->CarrierA)
       `{C: !Commutative dot}
   :
-  @Commutative (svector n) _ (svector n) (Vec2Union dot).
+    @Commutative (svector n) _ (svector n) (Vec2Union dot).
 Proof.
   intros a b.
   induction n.
@@ -290,8 +290,37 @@ Proof.
   apply CarrierAPlus_proper.
 Qed.
 
-(* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
+(* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes.
+TODO: rename. No actual IUnion here.
+ *)
 Lemma AbsorbIUnionIndex
+      {o n}
+      (dot:CarrierA->CarrierA->CarrierA)
+      (neutral:CarrierA)
+      (body: forall (i : nat) (ic : i < n), svector o)
+      k (kc: k<o)
+  :
+    Vnth (MUnion dot neutral (Vbuild body)) kc ≡
+         VecUnion dot neutral
+         (Vbuild
+            (fun (i : nat) (ic : i < n) =>
+               Vnth (body i ic) kc
+         )).
+Proof.
+  induction n.
+  - rewrite 2!Vbuild_0.
+    apply Vnth_const.
+  -
+    rewrite Vbuild_cons.
+    rewrite MUnion_cons.
+    rewrite AbsorbUnionIndexBinary.
+    rewrite IHn.
+    rewrite <- VecUnion_cons.
+    rewrite Vbuild_cons.
+    reflexivity.
+Qed.
+
+Lemma AbsorbISumUnionIndex
       {o n}
       (body: forall (i : nat) (ic : i < n), svector o)
       k (kc: k<o)
@@ -304,18 +333,7 @@ Lemma AbsorbIUnionIndex
             Vnth (body i ic) kc
       )).
 Proof.
-  induction n.
-  - rewrite 2!Vbuild_0.
-    unfold VecUnion, SumUnion, szero_svector, mkSZero.
-    apply Vnth_const.
-  -
-    rewrite Vbuild_cons.
-    rewrite SumUnion_cons.
-    rewrite AbsorbUnionIndexBinary.
-    rewrite IHn.
-    rewrite <- VecUnion_cons.
-    rewrite Vbuild_cons.
-    reflexivity.
+  apply AbsorbIUnionIndex.
 Qed.
 
 

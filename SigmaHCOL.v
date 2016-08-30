@@ -363,7 +363,7 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
-    (*
+(*
   Definition ISumReduction
              {i o n}
              (f: Rtheta -> Rtheta -> Rtheta)
@@ -377,7 +377,7 @@ Section SigmaHCOL_Operators.
         (Vmap (Vfold_right_aux f id)
          (transpose
             (@Apply_Family i o n op_family Koperator x))).
-   *)
+ *)
 
 End SigmaHCOL_Operators.
 
@@ -955,7 +955,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, ISumUnion, IUnion, MUnion, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
     unfold compose.
     destruct n.
@@ -1001,9 +1001,11 @@ Section StructuralProperies.
   (* Pre-condition for VecUnion not causing any collisions *)
   Lemma Not_Collision_VecUnion
         {n}
+        {dot:CarrierA->CarrierA->CarrierA}
+        {neutral:CarrierA}
         {v: svector n}
     :
-      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (VecUnion v).
+      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (VecUnion dot neutral v).
   Proof.
     intros VNC H.
     dependent induction n.
@@ -1022,7 +1024,7 @@ Section StructuralProperies.
            apply Vunique_cons_tail in H.
            apply H.
       * apply VNCh.
-      * cut(¬(Is_Val (VecUnion x)) \/ (¬ (Is_Val h))).
+      * cut(¬(Is_Val (VecUnion dot neutral x)) \/ (¬ (Is_Val h))).
         firstorder.
         assert(D: Decision (Is_Val h)) by apply Is_Val_dec.
         destruct D as [Ph | Phn].
@@ -1130,7 +1132,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding.
+    unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
     rewrite AbsorbIUnionIndex.
 
     destruct n.
@@ -1296,7 +1298,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros j jc.
     unfold Apply_Family.
-    rewrite AbsorbIUnionIndex.
+    rewrite AbsorbISumUnionIndex.
     apply Not_Collision_VecUnion.
 
     -
@@ -1329,9 +1331,9 @@ Section ValueProperties.
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
       apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                                    (transpose
-                                                       (Apply_Family op_family x)
-                                                    ).
+                                               (transpose
+                                                  (Apply_Family op_family x)
+                                               ).
 
   Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
          {n gi go ki ko}
