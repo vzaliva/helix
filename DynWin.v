@@ -82,7 +82,7 @@ SUMUnion(
 Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
   :=
     SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-            ∘ HTSUMUnion
+            ∘ HTSUMUnion plus
             (ScatH 0 1
                    (range_bound := h_bound_first_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
