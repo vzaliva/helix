@@ -77,4 +77,18 @@ Section TSigmaHCOLOperators.
       apply Ef, Ex.
   Qed.
 
+  (* Maybe redundant wrt TSHOperator2_HTSUMUnion *)
+  Global Instance HTSUMUnion_proper {i o}:
+    Proper (((=)==>(=) ==>(=)) ==> ((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (@HTSUMUnion i o).
+  Proof.
+    intros dot dot' Edot f f' Ef g g' Eg x y Ex.
+    unfold HTSUMUnion.
+    unfold Vec2Union.
+    vec_index_equiv j jp.
+    rewrite 2!Vnth_map2.
+    f_equiv. apply Edot.
+    apply Vnth_arg_equiv; apply Ef, Ex.
+    apply Vnth_arg_equiv; apply Eg, Ex.
+  Qed.
+
 End TSigmaHCOLOperators.
