@@ -363,6 +363,17 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
+  Definition IReduction
+             {i o n}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (neutral: CarrierA)
+             (op_family: forall k, (k<n) -> svector i -> svector o)
+             TODO: always dense op_family
+             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+             (v: svector i)
+    :=
+      MUnion dot neutral (@Apply_Family i o n op_family Koperator v).
+
 (*
   Definition ISumReduction
              {i o n}
