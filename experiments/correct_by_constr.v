@@ -1,10 +1,10 @@
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Basics.
 Require Import Coq.Init.Specif.
-Require Import Coq.Bool.Bool.
 Require Import Coq.ZArith.ZArith.
 Local Open Scope program_scope.
 Local Open Scope Z_scope.
+
 
 (* Integer functoins used in this example:
 Z.sqrt - square root. For negative values returns 0.
@@ -24,7 +24,7 @@ Qed.
 (* Some helpful facts about zabs *)
 Section ZAbs_facts.
 
-  Fact zabs_always_pos: forall x, (Z.abs x) >= 0.
+  Fact zabs_always_nneg: forall x, (Z.abs x) >= 0.
   Proof.
     intros.
     unfold Z.abs.
@@ -34,7 +34,7 @@ Section ZAbs_facts.
     - induction p;auto;omega.
   Qed.
 
-  Fact zabs_pos: forall x, x>=0 -> Z.abs x = x.
+  Fact zabs_nneg: forall x, x>=0 -> Z.abs x = x.
   Proof.
     intros.
     destruct x.
@@ -55,7 +55,7 @@ Section Simple.
     (Z.sqrt ∘ Z.abs) x = Z.sqrt x.
   Proof.
     unfold compose.
-    rewrite zabs_pos.
+    rewrite zabs_nneg.
     - reflexivity.
     - apply xp.
   Qed.
@@ -71,10 +71,10 @@ Section PreCondition.
 
   (* This is lemma about composition of 'zsqrt_p' and 'Z.abs'. Unfortunately we could not write this in pointfree style using functoin composition *)
   Lemma foo_p (x:Z) (xp:x>=0):
-    @zsqrt_p (Z.abs x) (zabs_always_pos x) = @zsqrt_p x xp.
+    @zsqrt_p (Z.abs x) (zabs_always_nneg x) = @zsqrt_p x xp.
   Proof.
     unfold zsqrt_p.
-    rewrite zabs_pos.
+    rewrite zabs_nneg.
     - reflexivity.
     - apply xp.
   Qed.
@@ -87,7 +87,7 @@ Section Specs.
   (* "Refined" with specifications versions of sqrt and abs *)
   Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
   Definition zabs_s: Z -> {x:Z|x>=0} :=
-    fun a => exist _ (Z.abs a) (zabs_always_pos a).
+    fun a => exist _ (Z.abs a) (zabs_always_nneg a).
 
   (* Helper syntactic sugar to make sure projection types are properly guessed *)
   Definition proj1_sig_ge0 (a:{x:Z|x>=0}): Z := proj1_sig a.
@@ -100,7 +100,7 @@ Section Specs.
     intros a.
     unfold compose, proj1_sig_ge0, zsqrt_s, zabs_s.
     simpl.
-    rewrite zabs_pos.
+    rewrite zabs_nneg.
     - reflexivity.
     - apply (proj2_sig a).
   Qed.
@@ -110,28 +110,28 @@ End Specs.
 (* Typelcass approach. Using type classes to refine types of arguments of sqrt *)
 Section Typeclasses.
 
-  Class PosZ (val:Z) :=
-    pos :> val>=0.
+  (* Type class denoting nonnegative numbers *)
+  Class NnegZ (val:Z) := nneg: val>=0.
 
-  (* Argument of sqrt is constrained by typeclass PosZ *)
-  Definition zsqrt_t (a:Z) `{!PosZ a} := Z.sqrt a.
+  (* Argument of sqrt is constrained by typeclass NnegZ *)
+  Definition zsqrt_t (a:Z) `{NnegZ a} : Z := Z.sqrt a.
 
-  (* PosZ class instance for Z.abs, stating that Z.abs always positive *)
-  Local Instance Zabs_PosZ:
-    forall x, PosZ (Z.abs x).
+  (* NnegZ class instance for Z.abs, stating that Z.abs always positive *)
+  Global Instance Zabs_nnegZ:
+    forall x, NnegZ (Z.abs x).
   Proof.
     intros.
-    unfold PosZ.
-    apply zabs_always_pos.
+    unfold NnegZ.
+    apply zabs_always_nneg.
   Qed.
 
-  Lemma foo_t (x:Z) `{PosZ x}:
+  Lemma foo_t (x:Z) `{PZ:NnegZ x}:
     zsqrt_t (Z.abs x) = zsqrt_t x.
   Proof.
     unfold compose, zsqrt_t.
-    rewrite zabs_pos.
+    rewrite zabs_nneg.
     - reflexivity.
-    - apply H.
+    - apply PZ.
   Qed.
 
 End Typeclasses.
