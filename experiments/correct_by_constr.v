@@ -6,9 +6,8 @@ Require Import Coq.ZArith.ZArith.
 Local Open Scope program_scope.
 Local Open Scope Z_scope.
 
-(* Functoins used in this example:
-Z.sqrt - unconstrained square root
-zsqrt - "correct by construction" square root, which requires non-negative argument.
+(* Integer functoins used in this example:
+Z.sqrt - square root. For negative values returns 0.
 Z.abs - absolute value.
 Z.sgn - sign (returns -1|0|1).
  *)
@@ -48,38 +47,58 @@ Section ZAbs_facts.
 End ZAbs_facts.
 
 
-Section SimplePreCondition.
+(* Simple approach. No preconditions on sqrt. *)
+Section Simple.
 
-  (* Version of sqrt with pre-condition *)
-  Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
-
-  (* This is lemma about composition of 'zsqrt' and 'zabs'. Unfortunately we could not write this in pointfree style using functoin composition *)
+  (* We can use composition, but not pointfree because of constraint x>=0 *)
   Lemma foo (x:Z) (xp:x>=0):
-    @zsqrt (Z.abs x) (zabs_always_pos x) = @zsqrt x xp.
+    (Z.sqrt ∘ Z.abs) x = Z.sqrt x.
   Proof.
-    unfold zsqrt.
+    unfold compose.
     rewrite zabs_pos.
     - reflexivity.
     - apply xp.
   Qed.
 
-End SimplePreCondition.
+End Simple.
 
+
+(* Pre-conditoins approach. Simple preconditions on sqrt. *)
+Section PreCondition.
+
+  (* Version of sqrt with pre-condition *)
+  Definition zsqrt_p (x:Z) {ac:x>=0} := Z.sqrt x.
+
+  (* This is lemma about composition of 'zsqrt_p' and 'Z.abs'. Unfortunately we could not write this in pointfree style using functoin composition *)
+  Lemma foo_p (x:Z) (xp:x>=0):
+    @zsqrt_p (Z.abs x) (zabs_always_pos x) = @zsqrt_p x xp.
+  Proof.
+    unfold zsqrt_p.
+    rewrite zabs_pos.
+    - reflexivity.
+    - apply xp.
+  Qed.
+
+End PreCondition.
+
+(* Spec approach. Using specifications to refine types of arguments of sqrt as well as return value of abs *)
 Section Specs.
 
-  (* "Refined" with specifications versions of sqrt and abst *)
+  (* "Refined" with specifications versions of sqrt and abs *)
   Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
   Definition zabs_s: Z -> {x:Z|x>=0} :=
     fun a => exist _ (Z.abs a) (zabs_always_pos a).
 
-  Definition pos_val_s (a:{x:Z|x>=0}): Z := proj1_sig a.
+  (* Helper syntactic sugar to make sure projection types are properly guessed *)
+  Definition proj1_sig_ge0 (a:{x:Z|x>=0}): Z := proj1_sig a.
 
+  (* Using specifications we can use pointfree style, but we have to add as projection function as zabs_s takes a value without any specification *)
   Lemma foo_s:
-    zsqrt_s ∘ zabs_s ∘ pos_val_s  = @zsqrt_s.
+    zsqrt_s ∘ zabs_s ∘ proj1_sig_ge0  = @zsqrt_s.
   Proof.
     apply functional_extensionality.
     intros a.
-    unfold compose, pos_val_s, zsqrt_s, zabs_s.
+    unfold compose, proj1_sig_ge0, zsqrt_s, zabs_s.
     simpl.
     rewrite zabs_pos.
     - reflexivity.
