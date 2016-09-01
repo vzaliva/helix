@@ -48,9 +48,9 @@ Section ZAbs_facts.
 End ZAbs_facts.
 
 
-Section SimpleConstrain.
+Section SimplePreCondition.
 
-  (* "Refined" version of sqrt *)
+  (* Version of sqrt with pre-condition *)
   Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
 
   (* This is lemma about composition of 'zsqrt' and 'zabs'. Unfortunately we could not write this in pointfree style using functoin composition *)
@@ -63,4 +63,27 @@ Section SimpleConstrain.
     - apply xp.
   Qed.
 
-End SimpleConstrain.
+End SimplePreCondition.
+
+Section Specs.
+
+  (* "Refined" with specifications versions of sqrt and abst *)
+  Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
+  Definition zabs_s: Z -> {x:Z|x>=0} :=
+    fun a => exist _ (Z.abs a) (zabs_always_pos a).
+
+  Definition pos_val_s (a:{x:Z|x>=0}): Z := proj1_sig a.
+
+  Lemma foo_s:
+    zsqrt_s ∘ zabs_s ∘ pos_val_s  = @zsqrt_s.
+  Proof.
+    apply functional_extensionality.
+    intros a.
+    unfold compose, pos_val_s, zsqrt_s, zabs_s.
+    simpl.
+    rewrite zabs_pos.
+    - reflexivity.
+    - apply (proj2_sig a).
+  Qed.
+
+End Specs.
