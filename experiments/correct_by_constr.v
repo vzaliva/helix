@@ -5,14 +5,15 @@ Require Import Coq.ZArith.ZArith.
 Local Open Scope program_scope.
 Local Open Scope Z_scope.
 
-
 (* Integer functoins used in this example:
-Z.sqrt - square root. For negative values returns 0.
-Z.abs - absolute value.
-Z.sgn - sign (returns -1|0|1).
+       Z.sqrt - square root. For negative values returns 0.
+       Z.abs - absolute value.
+       Z.sgn - sign (returns -1|0|1).
  *)
 
-(* Sample lemma showing how we can reason about function composition using function extensionality. SPIRAL rules could be written like that *)
+(* Unrelated simple lemma showing use of function composition, and
+pointfree style,proven using function extensionality. SPIRAL ideally
+should be written like that. *)
 Lemma abs_sgn_comm: (Z.abs ∘ Z.sgn) = (Z.sgn ∘ Z.abs).
 Proof.
   apply functional_extensionality.
@@ -21,7 +22,7 @@ Proof.
   destruct x; auto.
 Qed.
 
-(* Some helpful facts about zabs *)
+(* -- Some helpful facts about zabs, used int this example -- *)
 Section ZAbs_facts.
 
   Fact zabs_always_nneg: forall x, (Z.abs x) >= 0.
@@ -47,8 +48,19 @@ Section ZAbs_facts.
 End ZAbs_facts.
 
 
-(* Simple approach. No preconditions on sqrt. *)
-Section Simple.
+(* -- Naive approach. No preconditions on sqrt. --
+PROS:
+  * can use composition notation
+  * can define experessions before reasoning about them.
+CONS:
+  * not pointfree
+  * allows to construct incorrect expresions. E.g. 'bar' below.
+  * does not allow to express post-conditions
+  *)
+Section Naive.
+
+  (* example of incorrect expression *)
+  Definition bar := Z.sqrt (-1234).
 
   (* We can use composition, but not pointfree because of constraint x>=0 *)
   Lemma foo (x:Z) (xp:x>=0):
@@ -60,14 +72,27 @@ Section Simple.
     - apply xp.
   Qed.
 
-End Simple.
+End Naive.
 
 
-(* Pre-conditoins approach. Simple preconditions on sqrt. *)
+(* -- Pre-conditoins approach. Simple precondition on sqrt. --
+PROS:
+  * does not allow to construct incorrect expresions.
+  * all preconditions are clearly spelled and have to be proven manually before constructing the expression. No automatic proof search.
+CONS:
+  * can not easily compose experessions before reasoning about them.
+  * can not use composition notation
+  * not pointfree
+  * does not allow to express post-conditions
+  *)
 Section PreCondition.
 
   (* Version of sqrt with pre-condition *)
   Definition zsqrt_p (x:Z) {ac:x>=0} := Z.sqrt x.
+
+  (* Fails: Cannot infer the implicit parameter ac of zsqrt_p whose type is  "-1234 >= 0". Since it is unporovable, this experession could not be constructed.
+   *)
+  Fail Definition bar := zsqrt_p (-1234).
 
   (* This is lemma about composition of 'zsqrt_p' and 'Z.abs'. Unfortunately we could not write this in pointfree style using functoin composition *)
   Lemma foo_p (x:Z) (xp:x>=0):
@@ -81,13 +106,28 @@ Section PreCondition.
 
 End PreCondition.
 
-(* Spec approach. Using specifications to refine types of arguments of sqrt as well as return value of abs *)
+(* -- Spec approach. Using specifications to refine types of arguments of sqrt as well as return value of abs --
+PROS:
+  * allows to use composition
+  * pointfree
+  * values along with their properties are nicely bundled using `sig` or {|}.
+  * does not allow to construct incorrect expresions.
+  * all preconditions are clearly spelled out. Constructing correct expression is just a matter of correctly matching parameter and return types of expressions.
+CONS:
+  * requires a bit of syntactic sugar here and there (e.g. use of `proj1_sig_ge0` in 'foo_s'.
+  * predicates in spec must match exactly. For example if we have value {a|a>0} we could not directly use it instead of {a|a>=0}.
+  * there is no logical inference performed on specs. Not even simple structural rules application https://en.wikipedia.org/wiki/Structural_rule. For example {a|(P1 a)/\(P2 a)} could not be used in place of {a|(P2 a)/\(P1 a)} or {a|P1 a}
+  * Return values could contain only one spec. Multiple post-conditions have to be bundled together.
+  *)
 Section Specs.
 
   (* "Refined" with specifications versions of sqrt and abs *)
   Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
   Definition zabs_s: Z -> {x:Z|x>=0} :=
     fun a => exist _ (Z.abs a) (zabs_always_nneg a).
+
+  (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
+  Fail Definition bar := zsqrt_s (exist _ (-1234) _).
 
   (* Helper syntactic sugar to make sure projection types are properly guessed *)
   Definition proj1_sig_ge0 (a:{x:Z|x>=0}): Z := proj1_sig a.
@@ -107,7 +147,18 @@ Section Specs.
 
 End Specs.
 
-(* Typelcass approach. Using type classes to refine types of arguments of sqrt *)
+(* -- Typelcass approach. Using type classes to refine types of arguments of sqrt --
+PROS:
+  * properies are hidden and in some cases could be resolved implicitly.
+  * does not allow to construct incorrect expresions.
+  * One have to ballance between specifying type class instances explicitly or let them implicit and letting typeclass resolution to resolve them automatically.
+  * Multiple post-conditions can be specified using multiple type class instances.
+CONS:
+  * does not allow to use composition
+  * not pointfree
+  * Automatic type class resolution sometimes difficult to debug. It is not very transparent and difficult to guide it in right direction.
+  * It is difficult to construct even correct impression. The burden of proofs imposed by pre-conditions is a significant barrier.
+  *)
 Section Typeclasses.
 
   (* Type class denoting nonnegative numbers *)
@@ -115,6 +166,12 @@ Section Typeclasses.
 
   (* Argument of sqrt is constrained by typeclass NnegZ *)
   Definition zsqrt_t (a:Z) `{NnegZ a} : Z := Z.sqrt a.
+
+  (* Fails:
+         Unable to satisfy the following constraints:
+         ?H : "NnegZ (-1234)"
+   *)
+  Fail Definition bar := zsqrt_t (-1234).
 
   (* NnegZ class instance for Z.abs, stating that Z.abs always positive *)
   Global Instance Zabs_nnegZ:
