@@ -106,3 +106,32 @@ Section Specs.
   Qed.
 
 End Specs.
+
+(* Typelcass approach. Using type classes to refine types of arguments of sqrt *)
+Section Typeclasses.
+
+  Class PosZ (val:Z) :=
+    pos :> val>=0.
+
+  (* Argument of sqrt is constrained by typeclass PosZ *)
+  Definition zsqrt_t (a:Z) `{!PosZ a} := Z.sqrt a.
+
+  (* PosZ class instance for Z.abs, stating that Z.abs always positive *)
+  Local Instance Zabs_PosZ:
+    forall x, PosZ (Z.abs x).
+  Proof.
+    intros.
+    unfold PosZ.
+    apply zabs_always_pos.
+  Qed.
+
+  Lemma foo_t (x:Z) `{PosZ x}:
+    zsqrt_t (Z.abs x) = zsqrt_t x.
+  Proof.
+    unfold compose, zsqrt_t.
+    rewrite zabs_pos.
+    - reflexivity.
+    - apply H.
+  Qed.
+
+End Typeclasses.
