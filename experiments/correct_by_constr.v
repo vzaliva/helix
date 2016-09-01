@@ -7,13 +7,11 @@ Local Open Scope program_scope.
 Local Open Scope Z_scope.
 
 (* Functoins used in this example:
+Z.sqrt - unconstrained square root
 zsqrt - "correct by construction" square root, which requires non-negative argument.
 Z.abs - absolute value.
 Z.sgn - sign (returns -1|0|1).
  *)
-
-(* "Refined" version of sqrt *)
-Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
 
 (* Sample lemma showing how we can reason about function composition using function extensionality. SPIRAL rules could be written like that *)
 Lemma abs_sgn_comm: (Z.abs ∘ Z.sgn) = (Z.sgn ∘ Z.abs).
@@ -49,12 +47,20 @@ Section ZAbs_facts.
 
 End ZAbs_facts.
 
-(* This is lemma about composition of 'zsqrt' and 'zabs'. Unfortunately we could not write this in pointfree style using functoin composition *)
-Lemma foo (x:Z) (xp:x>=0):
-  @zsqrt (Z.abs x) (zabs_always_pos x) = @zsqrt x xp.
-Proof.
-  unfold zsqrt.
-  rewrite zabs_pos.
-  - reflexivity.
-  - apply xp.
-Qed.
+
+Section SimpleConstrain.
+
+  (* "Refined" version of sqrt *)
+  Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
+
+  (* This is lemma about composition of 'zsqrt' and 'zabs'. Unfortunately we could not write this in pointfree style using functoin composition *)
+  Lemma foo (x:Z) (xp:x>=0):
+    @zsqrt (Z.abs x) (zabs_always_pos x) = @zsqrt x xp.
+  Proof.
+    unfold zsqrt.
+    rewrite zabs_pos.
+    - reflexivity.
+    - apply xp.
+  Qed.
+
+End SimpleConstrain.
