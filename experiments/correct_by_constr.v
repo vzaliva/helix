@@ -13,7 +13,7 @@ Z.sgn - sign (returns -1|0|1).
  *)
 
 (* "Refined" version of sqrt *)
-Definition zsqrt (x:Z) (ac:x>=0) := Z.sqrt x.
+Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
 
 (* Sample lemma showing how we can reason about function composition using function extensionality. SPIRAL rules could be written like that *)
 Lemma abs_sgn_comm: (Z.abs ∘ Z.sgn) = (Z.sgn ∘ Z.abs).
@@ -51,7 +51,7 @@ End ZAbs_facts.
 
 (* This is lemma about composition of 'zsqrt' and 'zabs'. Unfortunately we could not write this in pointfree style using functoin composition *)
 Lemma foo (x:Z) (xp:x>=0):
-  zsqrt (Z.abs x) (zabs_always_pos x) = zsqrt x xp.
+  @zsqrt (Z.abs x) (zabs_always_pos x) = @zsqrt x xp.
 Proof.
   unfold zsqrt.
   rewrite zabs_pos.
