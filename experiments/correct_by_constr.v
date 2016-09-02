@@ -207,7 +207,7 @@ Section ImplicitTypeclasses.
    *)
   Fail Definition bar := zsqrt_x (-1234).
 
-  Lemma foo1_t:
+  Lemma foo1_x:
     exists PA, forall (x:Z) `{PZ:NnegZ_x x}, @zsqrt_x (Z.abs x) (PA x) = @zsqrt_x x PZ.
   Proof.
     unshelve eexists.
