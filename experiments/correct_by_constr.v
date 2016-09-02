@@ -174,7 +174,7 @@ Section Typeclasses.
   Fail Definition bar := zsqrt_t (-1234).
 
   (* NnegZ class instance for Z.abs, stating that Z.abs always positive *)
-  Global Instance Zabs_nnegZ:
+  Local Instance Zabs_nnegZ:
     forall x, NnegZ (Z.abs x).
   Proof.
     intros.
@@ -192,3 +192,34 @@ Section Typeclasses.
   Qed.
 
 End Typeclasses.
+
+Section ImplicitTypeclasses.
+
+  (* Type class denoting nonnegative numbers *)
+  Class NnegZ_x (val:Z) := nneg_x: val>=0.
+
+  (* Argument of sqrt is constrained by typeclass NnegZ *)
+  Definition zsqrt_x (a:Z) `{NN: NnegZ_x a} : Z := Z.sqrt a.
+
+  (* Fails:
+         Unable to satisfy the following constraints:
+         ?H : "NnegZ (-1234)"
+   *)
+  Fail Definition bar := zsqrt_x (-1234).
+
+  Lemma foo1_t:
+    exists PA, forall (x:Z) `{PZ:NnegZ_x x}, @zsqrt_x (Z.abs x) (PA x) = @zsqrt_x x PZ.
+  Proof.
+    unshelve eexists.
+    -
+      unfold NnegZ.
+      apply zabs_always_nneg.
+    -
+      intros x PZ.
+      unfold zsqrt_x.
+      rewrite zabs_nneg.
+      + reflexivity.
+      + apply PZ.
+  Qed.
+
+End ImplicitTypeclasses.
