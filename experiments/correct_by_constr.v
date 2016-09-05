@@ -57,7 +57,7 @@ CONS:
   * allows to construct incorrect expresions. E.g. 'bar' below.
   * does not allow to express post-conditions
   *)
-Section Naive.
+Module Naive.
 
   (* example of incorrect expression *)
   Definition bar := Z.sqrt (-1234).
@@ -85,7 +85,7 @@ CONS:
   * not pointfree
   * does not allow to express post-conditions
   *)
-Section PreCondition.
+Module PreCondition.
 
   (* Version of sqrt with pre-condition *)
   Definition zsqrt_p (x:Z) {ac:x>=0} := Z.sqrt x.
@@ -119,7 +119,7 @@ CONS:
   * there is no logical inference performed on specs. Not even simple structural rules application https://en.wikipedia.org/wiki/Structural_rule. For example {a|(P1 a)/\(P2 a)} could not be used in place of {a|(P2 a)/\(P1 a)} or {a|P1 a}
   * Return values could contain only one spec. Multiple post-conditions have to be bundled together.
   *)
-Section Specs.
+Module Specs.
 
   (* "Refined" with specifications versions of sqrt and abs *)
   Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
@@ -159,7 +159,7 @@ CONS:
   * Automatic type class resolution sometimes difficult to debug. It is not very transparent and difficult to guide it in right direction.
   * It is difficult to construct even correct impression. The burden of proofs imposed by pre-conditions is a significant barrier.
   *)
-Section Typeclasses.
+Module Typeclasses.
 
   (* Type class denoting nonnegative numbers *)
   Class NnegZ (val:Z) := nneg: val>=0.
@@ -193,7 +193,18 @@ Section Typeclasses.
 
 End Typeclasses.
 
-Section ImplicitTypeclasses.
+(* -- Implicit Typelcass approach. Using type classes to refine types of arguments of sqrt, but resolve tem manually --
+PROS:
+  * does not allow to construct incorrect expresions.
+  * Multiple post-conditions can be specified using multiple type class instances.
+CONS:
+  * does not allow to use composition
+  * not pointfree
+  * when constructing expressions all implicit parameters have to be specified making them complex and diffcult to parse
+  * when multiple type classes are used multiple 'exists' constructs has to be specified, intricately dependent on each other.
+  * Resulting lemmas could not be used directly for rewriting. Need some special handling (using 'unshelve eexists') before applied.
+  *)
+Module ImplicitTypeclasses.
 
   (* Type class denoting nonnegative numbers *)
   Class NnegZ_x (val:Z) := nneg_x: val>=0.
@@ -212,7 +223,7 @@ Section ImplicitTypeclasses.
   Proof.
     unshelve eexists.
     -
-      unfold NnegZ.
+      unfold NnegZ_x.
       apply zabs_always_nneg.
     -
       intros x PZ.
