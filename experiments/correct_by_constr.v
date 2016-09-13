@@ -22,8 +22,15 @@ Proof.
   destruct x; auto.
 Qed.
 
-(* -- Some helpful facts about zabs, used int this example -- *)
-Section ZAbs_facts.
+(* -- Some helpful facts about function used int this example -- *)
+Section Arith_facts.
+
+  Fact zsqrt_always_nneg: forall x, (Z.sqrt x) >= 0.
+  Proof.
+    intros.
+    apply Z.ge_le_iff.
+    apply Z.sqrt_nonneg.
+  Qed.
 
   Fact zabs_always_nneg: forall x, (Z.abs x) >= 0.
   Proof.
@@ -45,7 +52,7 @@ Section ZAbs_facts.
       omega.
   Qed.
 
-End ZAbs_facts.
+End Arith_facts.
 
 
 (* -- Naive approach. No preconditions on sqrt. --
@@ -146,6 +153,40 @@ Module Specs.
   Qed.
 
 End Specs.
+
+
+Module Specs1.
+  (* "Refined" with specifications versions of sqrt and abs *)
+
+  (* Sqrt has both post and pre-conditions *)
+  Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0}
+    := exist _ (Z.sqrt (proj1_sig a)) (zsqrt_always_nneg (proj1_sig a)).
+
+  (* Abs as only post-condition *)
+  Definition zabs_s: Z -> {x:Z|x>=0} :=
+    fun a => exist _ (Z.abs a) (zabs_always_nneg a).
+
+  (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
+  Fail Definition bar := zsqrt_s (exist _ (-1234) _).
+
+
+  (*
+  https://coq.inria.fr/bugs/show_bug.cgi?id=4114
+  Definition witness {P : Z -> Prop} (x : sig P) := proj1_sig x.
+  Coercion witness : sig >-> Z.
+   *)
+  Lemma foo_s:
+    forall a : {x : Z | x >= 0}, (zsqrt_s ∘ zabs_s) (proj1_sig a) = zsqrt_s a.
+  Proof.
+    intros a.
+    unfold compose, zsqrt_s, zabs_s.
+    simpl.
+    rewrite zabs_nneg.
+    - reflexivity.
+    - apply (proj2_sig a).
+  Qed.
+
+End Specs1.
 
 (* -- Typelcass approach. Using type classes to refine types of arguments of sqrt --
 PROS:
