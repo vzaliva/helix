@@ -32,6 +32,11 @@ Section Arith_facts.
     apply Z.sqrt_nonneg.
   Qed.
 
+  Fact zsqrt_0: Z.sqrt 0 = 0.
+  Proof.
+    reflexivity.
+  Qed.
+
   Fact zabs_always_nneg: forall x, (Z.abs x) >= 0.
   Proof.
     intros.
@@ -136,16 +141,29 @@ Module Specs.
   (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
   Fail Definition bar := zsqrt_s (exist _ (-1234) _).
 
-  (* Helper syntactic sugar to make sure projection types are properly guessed *)
-  Definition proj1_sig_ge0 (a:{x:Z|x>=0}): Z := proj1_sig a.
+  (* The implicit agrument (which we will make explicit by applying
+  'functional_extensionality' has type {x:Z|x>=0}. To use it in zabs_s
+  we have to project witness from it. We are doing this by composing
+  with (@proj1_sig Z _). It is a bit bulky and I wish I did not have
+  to specify arguments Z and _ but Coq could not infer them
+  automatically.
 
-  (* Using specifications we can use pointfree style, but we have to add as projection function as zabs_s takes a value without any specification *)
+  Another way to do this would be via automatic coercion mechanism,
+  by defining something like this:
+
+  Definition witness {P : Z -> Prop} (x : sig P) := proj1_sig x.
+  Coercion witness : sig >-> Z.
+
+  Unfortunately, this does not currently work due to this Coq bug:
+
+  https://coq.inria.fr/bugs/show_bug.cgi?id=4114
+   *)
   Lemma foo_s:
-    zsqrt_s ∘ zabs_s ∘ proj1_sig_ge0  = @zsqrt_s.
+    zsqrt_s ∘ zabs_s ∘ (@proj1_sig Z _) = zsqrt_s.
   Proof.
     apply functional_extensionality.
     intros a.
-    unfold compose, proj1_sig_ge0, zsqrt_s, zabs_s.
+    unfold compose, zsqrt_s, zabs_s.
     simpl.
     rewrite zabs_nneg.
     - reflexivity.
@@ -154,13 +172,28 @@ Module Specs.
 
 End Specs.
 
-
+(* TODO: document *)
 Module Specs1.
   (* "Refined" with specifications versions of sqrt and abs *)
 
-  (* Sqrt has both post and pre-conditions *)
-  Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0}
-    := exist _ (Z.sqrt (proj1_sig a)) (zsqrt_always_nneg (proj1_sig a)).
+  (* Sqrt has both post and pre-conditions. *)
+  (* For demonstration purposes we will solve obligation manually. *)
+  Local Obligation Tactic := idtac.
+  (* There are 2 alternative approaches:
+     1. 2nd obligation could be solved automatically.
+     2. Both obligations' proofs could be specified explicitly, instead of _
+   *)
+  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & (proj1_sig a)=0 -> y=0}
+    := exist2 _ _ (Z.sqrt (proj1_sig a))
+              _  _.
+  Next Obligation.
+    intros a.
+    simpl; apply zsqrt_always_nneg.
+  Defined.
+  Next Obligation.
+    simpl; intros a H.
+    rewrite H; apply zsqrt_0.
+  Defined.
 
   (* Abs as only post-condition *)
   Definition zabs_s: Z -> {x:Z|x>=0} :=
@@ -169,14 +202,9 @@ Module Specs1.
   (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
   Fail Definition bar := zsqrt_s (exist _ (-1234) _).
 
-
-  (*
-  https://coq.inria.fr/bugs/show_bug.cgi?id=4114
-  Definition witness {P : Z -> Prop} (x : sig P) := proj1_sig x.
-  Coercion witness : sig >-> Z.
-   *)
-  Lemma foo_s:
-    forall a : {x : Z | x >= 0}, (zsqrt_s ∘ zabs_s) (proj1_sig a) = zsqrt_s a.
+  Lemma foo_s (b : {x : Z | x >= 0}):
+    (zsqrt_s ∘ zabs_s) (proj1_sig b) = zsqrt_s b.
+    (* forall a : {x : Z | x >= 0}, (zsqrt_s ∘ zabs_s) (proj1_sig a) = zsqrt_s a. *)
   Proof.
     intros a.
     unfold compose, zsqrt_s, zabs_s.
