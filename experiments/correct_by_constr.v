@@ -150,7 +150,9 @@ Module Specs.
 
   (* "Refined" with specifications versions of sqrt and abs *)
 
-  (* Sqrt has both post and pre-conditions. To show how multiple post-conditions could be specified we specify 2nd post-condition which is could be proven to be the same as the first. *)
+  (* Sqrt has both post and pre-conditions. To show how multiple
+  post-conditions could be specified we specify 2nd post-condition
+  which is could be proven to be the same as the first. *)
 
   (* When definiging our version of `zsqrt_s` we need to provide the
   proofs that it indeeds satisfies post-conditions.
@@ -161,7 +163,7 @@ Module Specs.
   obligations' proofs could be specified explicitly, instead of _ *)
 
   Local Obligation Tactic := idtac.
-  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & not (y<0)}
+  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & ~(y<0)}
     := exist2 _ _ (Z.sqrt (proj1_sig a))
               _  _.
   Next Obligation.
@@ -208,6 +210,48 @@ Module Specs.
     apply functional_extensionality.
     intros b.
     unfold compose, zsqrt_s, zabs_s.
+    destruct b as [x H].
+    simpl.
+    apply subset2_eq.
+    simpl.
+    rewrite zabs_nneg.
+    - reflexivity.
+    - apply H.
+  Qed.
+
+
+  (* Let us try to change Abs post condition to semantically equivalent (it even happens to use the same proof!) *)
+  (*
+  Definition zabs_s': Z -> {x:Z|~(x<0)} :=
+    fun a => exist _ (Z.abs a) (zabs_always_nneg a).
+   *)
+
+  (* Let us try to change Abs post condition to semantically equivalent *)
+  Program Definition zabs_s': Z -> {x:Z|x>=0-x} :=
+    fun a => exist _ (Z.abs a) _.
+  Next Obligation.
+    simpl.
+    intros a.
+    assert (Z.abs a >= 0) by apply zabs_always_nneg.
+    omega.
+  Qed.
+
+  (* We are no longer allowed to compose (zsqrt_s ∘ zabs_s') as their
+  types do not match. We will add a glue to convert them *)
+  Fact zsqrt_zabs_glue: {x : Z | x >= 0 - x} -> {x : Z | x >= 0}.
+  Proof.
+    intros [ x H].
+    exists x.
+    omega.
+  Defined.
+
+  (* Now we can prove our lemma *)
+  Lemma foo_s':
+    zsqrt_s ∘ zsqrt_zabs_glue ∘ zabs_s' ∘ (@proj1_sig Z _) = zsqrt_s.
+  Proof.
+    apply functional_extensionality.
+    intros b.
+    unfold compose, zsqrt_s, zabs_s', zsqrt_zabs_glue.
     destruct b as [x H].
     simpl.
     apply subset2_eq.
