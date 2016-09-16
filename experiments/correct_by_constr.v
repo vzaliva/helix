@@ -1,6 +1,10 @@
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Basics.
 Require Import Coq.Init.Specif.
+
+Require Import Coq.Program.Equality.
+Require Import Coq.Program.Subset.
+
 Require Import Coq.ZArith.ZArith.
 Local Open Scope program_scope.
 Local Open Scope Z_scope.
@@ -179,11 +183,9 @@ Module Specs1.
   (* Sqrt has both post and pre-conditions. *)
   (* For demonstration purposes we will solve obligation manually. *)
   Local Obligation Tactic := idtac.
-  (* There are 2 alternative approaches:
-     1. 2nd obligation could be solved automatically.
-     2. Both obligations' proofs could be specified explicitly, instead of _
+  (* Alternatively both obligations' proofs could be specified explicitly, instead of _
    *)
-  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & (proj1_sig a)=0 -> y=0}
+  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & not (y<0)}
     := exist2 _ _ (Z.sqrt (proj1_sig a))
               _  _.
   Next Obligation.
@@ -192,8 +194,11 @@ Module Specs1.
   Defined.
   Next Obligation.
     simpl; intros a H.
-    rewrite H; apply zsqrt_0.
+    assert (Z.sqrt (proj1_sig a)>=0) by
+        apply zsqrt_always_nneg.
+    congruence.
   Defined.
+
 
   (* Abs as only post-condition *)
   Definition zabs_s: Z -> {x:Z|x>=0} :=
@@ -202,16 +207,33 @@ Module Specs1.
   (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
   Fail Definition bar := zsqrt_s (exist _ (-1234) _).
 
+
+  (* Helper lemma: same as subset_eq bug for sig2 *)
+  Lemma subset2_eq : forall A (P Q: A -> Prop) (n m : sig2 P Q),
+      n = m <-> proj1_sig (sig_of_sig2 n) = proj1_sig (sig_of_sig2 m).
+  Proof.
+    destruct n as (x,p).
+    destruct m as (x',p').
+    simpl.
+    split ; intros ; subst.
+
+    inversion H.
+    reflexivity.
+
+    pi.
+  Qed.
+
   Lemma foo_s (b : {x : Z | x >= 0}):
     (zsqrt_s ∘ zabs_s) (proj1_sig b) = zsqrt_s b.
-    (* forall a : {x : Z | x >= 0}, (zsqrt_s ∘ zabs_s) (proj1_sig a) = zsqrt_s a. *)
   Proof.
-    intros a.
     unfold compose, zsqrt_s, zabs_s.
+    destruct b as [x H].
+    simpl.
+    apply subset2_eq.
     simpl.
     rewrite zabs_nneg.
     - reflexivity.
-    - apply (proj2_sig a).
+    - apply H.
   Qed.
 
 End Specs1.
