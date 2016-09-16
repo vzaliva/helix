@@ -149,7 +149,35 @@ CONS:
 Module Specs.
 
   (* "Refined" with specifications versions of sqrt and abs *)
-  Definition zsqrt_s (a:{x:Z|x>=0}) := Z.sqrt (proj1_sig a).
+
+  (* Sqrt has both post and pre-conditions. To show how multiple post-conditions could be specified we specify 2nd post-condition which is could be proven to be the same as the first. *)
+
+  (* When definiging our version of `zsqrt_s` we need to provide the
+  proofs that it indeeds satisfies post-conditions.
+
+  For demonstration purposes we will use Coq `Program` mechanism which
+  will generates sub-goals for each post conndition (an obligation)
+  which we will proceed to solve manually. Alternatively both
+  obligations' proofs could be specified explicitly, instead of _ *)
+
+  Local Obligation Tactic := idtac.
+  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & not (y<0)}
+    := exist2 _ _ (Z.sqrt (proj1_sig a))
+              _  _.
+  Next Obligation.
+    intros a.
+    simpl; apply zsqrt_always_nneg.
+  Defined.
+  Next Obligation.
+    simpl; intros a H.
+    assert (Z.sqrt (proj1_sig a)>=0) by
+        apply zsqrt_always_nneg.
+    congruence.
+  Defined.
+
+  (* Abs does not have pre-condition but has a single
+  post-condition. In this case we provide the proof explicitly without
+  generating and proovig a subgoal. *)
   Definition zabs_s: Z -> {x:Z|x>=0} :=
     fun a => exist _ (Z.abs a) (zabs_always_nneg a).
 
@@ -176,51 +204,9 @@ Module Specs.
   Lemma foo_s:
     zsqrt_s ∘ zabs_s ∘ (@proj1_sig Z _) = zsqrt_s.
   Proof.
+    Print Coercions.
     apply functional_extensionality.
-    intros a.
-    unfold compose, zsqrt_s, zabs_s.
-    simpl.
-    rewrite zabs_nneg.
-    - reflexivity.
-    - apply (proj2_sig a).
-  Qed.
-
-End Specs.
-
-(* TODO: document *)
-Module Specs1.
-  (* "Refined" with specifications versions of sqrt and abs *)
-
-  (* Sqrt has both post and pre-conditions. *)
-  (* For demonstration purposes we will solve obligation manually. *)
-  Local Obligation Tactic := idtac.
-  (* Alternatively both obligations' proofs could be specified explicitly, instead of _
-   *)
-  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & not (y<0)}
-    := exist2 _ _ (Z.sqrt (proj1_sig a))
-              _  _.
-  Next Obligation.
-    intros a.
-    simpl; apply zsqrt_always_nneg.
-  Defined.
-  Next Obligation.
-    simpl; intros a H.
-    assert (Z.sqrt (proj1_sig a)>=0) by
-        apply zsqrt_always_nneg.
-    congruence.
-  Defined.
-
-
-  (* Abs as only post-condition *)
-  Definition zabs_s: Z -> {x:Z|x>=0} :=
-    fun a => exist _ (Z.abs a) (zabs_always_nneg a).
-
-  (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
-  Fail Definition bar := zsqrt_s (exist _ (-1234) _).
-
-  Lemma foo_s (b : {x : Z | x >= 0}):
-    (zsqrt_s ∘ zabs_s) (proj1_sig b) = zsqrt_s b.
-  Proof.
+    intros b.
     unfold compose, zsqrt_s, zabs_s.
     destruct b as [x H].
     simpl.
@@ -231,7 +217,7 @@ Module Specs1.
     - apply H.
   Qed.
 
-End Specs1.
+End Specs.
 
 (* -- Typelcass approach. Using type classes to refine types of arguments of sqrt --
 PROS:
