@@ -1,10 +1,6 @@
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Basics.
-Require Import Coq.Init.Specif.
-
-Require Import Coq.Program.Equality.
-Require Import Coq.Program.Subset.
-
+Require Import Coq.Init.Specif Coq.Program.Subset.
 Require Import Coq.ZArith.ZArith.
 Local Open Scope program_scope.
 Local Open Scope Z_scope.
@@ -59,6 +55,21 @@ Section Arith_facts.
     - auto.
     - assert(Z.neg p < 0) by apply Pos2Z.neg_is_neg.
       omega.
+  Qed.
+
+  (* Helper lemma: same as subset_eq bug for sig2 *)
+  Lemma subset2_eq : forall A (P Q: A -> Prop) (n m : sig2 P Q),
+      n = m <-> proj1_sig (sig_of_sig2 n) = proj1_sig (sig_of_sig2 m).
+  Proof.
+    destruct n as (x,p).
+    destruct m as (x',p').
+    simpl.
+    split ; intros ; subst.
+
+    inversion H.
+    reflexivity.
+
+    pi.
   Qed.
 
 End Arith_facts.
@@ -206,22 +217,6 @@ Module Specs1.
 
   (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
   Fail Definition bar := zsqrt_s (exist _ (-1234) _).
-
-
-  (* Helper lemma: same as subset_eq bug for sig2 *)
-  Lemma subset2_eq : forall A (P Q: A -> Prop) (n m : sig2 P Q),
-      n = m <-> proj1_sig (sig_of_sig2 n) = proj1_sig (sig_of_sig2 m).
-  Proof.
-    destruct n as (x,p).
-    destruct m as (x',p').
-    simpl.
-    split ; intros ; subst.
-
-    inversion H.
-    reflexivity.
-
-    pi.
-  Qed.
 
   Lemma foo_s (b : {x : Z | x >= 0}):
     (zsqrt_s ∘ zabs_s) (proj1_sig b) = zsqrt_s b.
