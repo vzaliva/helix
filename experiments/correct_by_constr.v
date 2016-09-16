@@ -73,16 +73,16 @@ Section Arith_facts.
 End Arith_facts.
 
 
-(* -- Naive approach. No preconditions on sqrt. --
+(* -- GIGO (Garbage-in-Garbage-out) approach. No preconditions on sqrt. --
 PROS:
   * can use composition notation
   * can define experessions before reasoning about them.
 CONS:
   * not pointfree
   * allows to construct incorrect expresions. E.g. 'bar' below.
-  * does not allow to express post-conditions
+  * does not allow to express pre and post-conditions
   *)
-Module Naive.
+Module GIGO.
 
   (* example of incorrect expression *)
   Definition bar := Z.sqrt (-1234).
@@ -97,10 +97,10 @@ Module Naive.
     - apply xp.
   Qed.
 
-End Naive.
+End GIGO.
 
 
-(* -- Pre-conditoins approach. Simple precondition on sqrt. --
+(* -- Naive approach. Simple precondition on sqrt. --
 PROS:
   * does not allow to construct incorrect expresions.
   * all preconditions are clearly spelled and have to be proven manually before constructing the expression. No automatic proof search.
@@ -110,7 +110,7 @@ CONS:
   * not pointfree
   * does not allow to express post-conditions
   *)
-Module PreCondition.
+Module Naive.
 
   (* Version of sqrt with pre-condition *)
   Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
@@ -129,7 +129,7 @@ Module PreCondition.
     - apply xp.
   Qed.
 
-End PreCondition.
+End Naive.
 
 (* -- Spec approach. Using specifications to refine types of arguments of sqrt as well as return value of abs --
 PROS:
@@ -139,21 +139,20 @@ PROS:
   * does not allow to construct incorrect expresions.
   * all preconditions are clearly spelled out. Constructing correct expression is just a matter of correctly matching parameter and return types of expressions.
 CONS:
-  * requires a bit of syntactic sugar here and there (e.g. use of `proj1_sig_ge0` in 'foo_s'.
-  * predicates in spec must match exactly. For example if we have value {a|a>0} we could not directly use it instead of {a|a>=0}.
+  * requires a bit of type glue here and there (e.g. use of `zsqrt_zabs_glue` in foo_s'.
+  * Propositions in spec must match exactly. If not, as seen in foo' a glue is required.
   * there is no logical inference performed on specs. Not even simple structural rules application https://en.wikipedia.org/wiki/Structural_rule. For example {a|(P1 a)/\(P2 a)} could not be used in place of {a|(P2 a)/\(P1 a)} or {a|P1 a}
-  * Return values could contain only one spec. Multiple post-conditions have to be bundled together.
   *)
 Module Specs.
 
-  (* "Refined" with specifications versions of sqrt and abs *)
+  (* "Refined" using specifications versions of sqrt and abs *)
 
   (* Sqrt has both post and pre-conditions. To show how multiple
   post-conditions could be specified we specify 2nd post-condition
-  which is could be proven to be the same as the first. *)
+  even though it could be proven to be the same as the first. *)
 
-  (* When definiging our version of `zsqrt` we need to provide the
-  proofs that it indeeds satisfies post-conditions.
+  (* When defining our version of `zsqrt` we need to provide the
+  proofs that the result indeeds satisfies the post-conditions.
 
   For demonstration purposes we will use Coq `Program` mechanism which
   will generates sub-goals for each post conndition (an obligation)
@@ -162,8 +161,7 @@ Module Specs.
 
   Local Obligation Tactic := idtac.
   Program Definition zsqrt (a:{x:Z|x>=0}): {y:Z|y>=0 & ~(y<0)}
-    := exist2 _ _ (Z.sqrt (proj1_sig a))
-              _  _.
+    := exist2 _ _ (Z.sqrt (proj1_sig a))  _  _.
   Next Obligation.
     intros a.
     simpl; apply zsqrt_always_nneg.
@@ -175,9 +173,9 @@ Module Specs.
     congruence.
   Defined.
 
-  (* Abs does not have pre-condition but has a single
+  (* Abs does not have any pre-condition but has a single
   post-condition. In this case we provide the proof explicitly without
-  generating and proovig a subgoal. *)
+  generating and prooving a subgoal. *)
   Definition zabs: Z -> {x:Z|x>=0} :=
     fun a => exist _ (Z.abs a) (zabs_always_nneg a).
 
@@ -186,7 +184,7 @@ Module Specs.
 
   (* The implicit agrument (which we will make explicit by applying
   'functional_extensionality' has type {x:Z|x>=0}. To use it in zabs
-  we have to project witness from it. We are doing this by composing
+  we have to project a witness from it. We are doing this by composing
   with (@proj1_sig Z _). It is a bit bulky and I wish I did not have
   to specify arguments Z and _ but Coq could not infer them
   automatically.
@@ -197,14 +195,13 @@ Module Specs.
   Definition witness {P : Z -> Prop} (x : sig P) := proj1_sig x.
   Coercion witness : sig >-> Z.
 
-  Unfortunately, this does not currently work due to this Coq bug:
+  Unfortunately, this does not currently work due to the bug in Coq:
 
   https://coq.inria.fr/bugs/show_bug.cgi?id=4114
    *)
   Lemma foo:
     zsqrt ∘ zabs ∘ (@proj1_sig Z _) = zsqrt.
   Proof.
-    Print Coercions.
     apply functional_extensionality.
     intros b.
     unfold compose, zsqrt, zabs.
@@ -218,7 +215,8 @@ Module Specs.
   Qed.
 
 
-  (* Let us try to change Abs post condition to semantically equivalent *)
+  (* Let us try to change Abs post-condition to semantically
+  equivalent, but syntaxically different one: *)
   Program Definition zabs': Z -> {x:Z|x>=0-x} :=
     fun a => exist _ (Z.abs a) _.
   Next Obligation.
@@ -229,7 +227,7 @@ Module Specs.
   Qed.
 
   (* We are no longer allowed to compose (zsqrt ∘ zabs') as their
-  types do not match. We will add a glue to convert them *)
+  types do not match. We will add a glue to convert between them *)
   Fact zsqrt_zabs_glue: {x : Z | x >= 0 - x} -> {x : Z | x >= 0}.
   Proof.
     intros [ x H].
@@ -257,15 +255,15 @@ End Specs.
 
 (* -- Typelcass approach. Using type classes to refine types of arguments of sqrt --
 PROS:
-  * properies are hidden and in some cases could be resolved implicitly.
-  * does not allow to construct incorrect expresions.
-  * One have to ballance between specifying type class instances explicitly or let them implicit and letting typeclass resolution to resolve them automatically.
-  * Multiple post-conditions can be specified using multiple type class instances.
+  * Properies are hidden and in some cases could be resolved implicitly.
+  * Does not allow to construct incorrect expresions.
+  * One have to ballance between specifying type class instances explicitly or leaving them implicit and letting typeclass resolution to resolve them automatically.
 CONS:
-  * does not allow to use composition
-  * not pointfree
+  * Does not allow to use composition
+  * Not pointfree
   * Automatic type class resolution sometimes difficult to debug. It is not very transparent and difficult to guide it in right direction.
   * It is difficult to construct even correct impression. The burden of proofs imposed by pre-conditions is a significant barrier.
+  * Type classes instances could not be defined for refined types (refined by a predicate in the context
   *)
 Module Typeclasses.
 
@@ -300,46 +298,4 @@ Module Typeclasses.
   Qed.
 
 End Typeclasses.
-
-(* -- Implicit Typelcass approach. Using type classes to refine types of arguments of sqrt, but resolve tem manually --
-PROS:
-  * does not allow to construct incorrect expresions.
-  * Multiple post-conditions can be specified using multiple type class instances.
-CONS:
-  * does not allow to use composition
-  * not pointfree
-  * when constructing expressions all implicit parameters have to be specified making them complex and diffcult to parse
-  * when multiple type classes are used multiple 'exists' constructs has to be specified, intricately dependent on each other.
-  * Resulting lemmas could not be used directly for rewriting. Need some special handling (using 'unshelve eexists') before applied.
-  *)
-Module ImplicitTypeclasses.
-
-  (* Type class denoting nonnegative numbers *)
-  Class NnegZ (val:Z) := nneg: val>=0.
-
-  (* Argument of sqrt is constrained by typeclass NnegZ *)
-  Definition zsqrt (a:Z) `{NN: NnegZ a} : Z := Z.sqrt a.
-
-  (* Fails:
-         Unable to satisfy the following constraints:
-         ?H : "NnegZ (-1234)"
-   *)
-  Fail Definition bar := zsqrt (-1234).
-
-  Lemma foo1:
-    exists PA, forall (x:Z) `{PZ:NnegZ x}, @zsqrt (Z.abs x) (PA x) = @zsqrt x PZ.
-  Proof.
-    unshelve eexists.
-    -
-      unfold NnegZ.
-      apply zabs_always_nneg.
-    -
-      intros x PZ.
-      unfold zsqrt.
-      rewrite zabs_nneg.
-      + reflexivity.
-      + apply PZ.
-  Qed.
-
-End ImplicitTypeclasses.
 
