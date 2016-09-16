@@ -65,10 +65,8 @@ Section Arith_facts.
     destruct m as (x',p').
     simpl.
     split ; intros ; subst.
-
     inversion H.
     reflexivity.
-
     pi.
   Qed.
 
@@ -115,17 +113,17 @@ CONS:
 Module PreCondition.
 
   (* Version of sqrt with pre-condition *)
-  Definition zsqrt_p (x:Z) {ac:x>=0} := Z.sqrt x.
+  Definition zsqrt (x:Z) {ac:x>=0} := Z.sqrt x.
 
-  (* Fails: Cannot infer the implicit parameter ac of zsqrt_p whose type is  "-1234 >= 0". Since it is unporovable, this experession could not be constructed.
+  (* Fails: Cannot infer the implicit parameter ac of zsqrt whose type is  "-1234 >= 0". Since it is unporovable, this experession could not be constructed.
    *)
-  Fail Definition bar := zsqrt_p (-1234).
+  Fail Definition bar := zsqrt (-1234).
 
-  (* This is lemma about composition of 'zsqrt_p' and 'Z.abs'. Unfortunately we could not write this in pointfree style using functoin composition *)
-  Lemma foo_p (x:Z) (xp:x>=0):
-    @zsqrt_p (Z.abs x) (zabs_always_nneg x) = @zsqrt_p x xp.
+  (* This is lemma about composition of 'zsqrt' and 'Z.abs'. Unfortunately we could not write this in pointfree style using functoin composition *)
+  Lemma foo (x:Z) (xp:x>=0):
+    @zsqrt (Z.abs x) (zabs_always_nneg x) = @zsqrt x xp.
   Proof.
-    unfold zsqrt_p.
+    unfold zsqrt.
     rewrite zabs_nneg.
     - reflexivity.
     - apply xp.
@@ -154,7 +152,7 @@ Module Specs.
   post-conditions could be specified we specify 2nd post-condition
   which is could be proven to be the same as the first. *)
 
-  (* When definiging our version of `zsqrt_s` we need to provide the
+  (* When definiging our version of `zsqrt` we need to provide the
   proofs that it indeeds satisfies post-conditions.
 
   For demonstration purposes we will use Coq `Program` mechanism which
@@ -163,7 +161,7 @@ Module Specs.
   obligations' proofs could be specified explicitly, instead of _ *)
 
   Local Obligation Tactic := idtac.
-  Program Definition zsqrt_s (a:{x:Z|x>=0}): {y:Z|y>=0 & ~(y<0)}
+  Program Definition zsqrt (a:{x:Z|x>=0}): {y:Z|y>=0 & ~(y<0)}
     := exist2 _ _ (Z.sqrt (proj1_sig a))
               _  _.
   Next Obligation.
@@ -180,14 +178,14 @@ Module Specs.
   (* Abs does not have pre-condition but has a single
   post-condition. In this case we provide the proof explicitly without
   generating and proovig a subgoal. *)
-  Definition zabs_s: Z -> {x:Z|x>=0} :=
+  Definition zabs: Z -> {x:Z|x>=0} :=
     fun a => exist _ (Z.abs a) (zabs_always_nneg a).
 
   (* Fails: Cannot infer this placeholder of type "(fun x : Z => x >= 0) (-1234)". *)
-  Fail Definition bar := zsqrt_s (exist _ (-1234) _).
+  Fail Definition bar := zsqrt (exist _ (-1234) _).
 
   (* The implicit agrument (which we will make explicit by applying
-  'functional_extensionality' has type {x:Z|x>=0}. To use it in zabs_s
+  'functional_extensionality' has type {x:Z|x>=0}. To use it in zabs
   we have to project witness from it. We are doing this by composing
   with (@proj1_sig Z _). It is a bit bulky and I wish I did not have
   to specify arguments Z and _ but Coq could not infer them
@@ -203,13 +201,13 @@ Module Specs.
 
   https://coq.inria.fr/bugs/show_bug.cgi?id=4114
    *)
-  Lemma foo_s:
-    zsqrt_s ∘ zabs_s ∘ (@proj1_sig Z _) = zsqrt_s.
+  Lemma foo:
+    zsqrt ∘ zabs ∘ (@proj1_sig Z _) = zsqrt.
   Proof.
     Print Coercions.
     apply functional_extensionality.
     intros b.
-    unfold compose, zsqrt_s, zabs_s.
+    unfold compose, zsqrt, zabs.
     destruct b as [x H].
     simpl.
     apply subset2_eq.
@@ -220,14 +218,8 @@ Module Specs.
   Qed.
 
 
-  (* Let us try to change Abs post condition to semantically equivalent (it even happens to use the same proof!) *)
-  (*
-  Definition zabs_s': Z -> {x:Z|~(x<0)} :=
-    fun a => exist _ (Z.abs a) (zabs_always_nneg a).
-   *)
-
   (* Let us try to change Abs post condition to semantically equivalent *)
-  Program Definition zabs_s': Z -> {x:Z|x>=0-x} :=
+  Program Definition zabs': Z -> {x:Z|x>=0-x} :=
     fun a => exist _ (Z.abs a) _.
   Next Obligation.
     simpl.
@@ -236,7 +228,7 @@ Module Specs.
     omega.
   Qed.
 
-  (* We are no longer allowed to compose (zsqrt_s ∘ zabs_s') as their
+  (* We are no longer allowed to compose (zsqrt ∘ zabs') as their
   types do not match. We will add a glue to convert them *)
   Fact zsqrt_zabs_glue: {x : Z | x >= 0 - x} -> {x : Z | x >= 0}.
   Proof.
@@ -246,12 +238,12 @@ Module Specs.
   Defined.
 
   (* Now we can prove our lemma *)
-  Lemma foo_s':
-    zsqrt_s ∘ zsqrt_zabs_glue ∘ zabs_s' ∘ (@proj1_sig Z _) = zsqrt_s.
+  Lemma foo':
+    zsqrt ∘ zsqrt_zabs_glue ∘ zabs' ∘ (@proj1_sig Z _) = zsqrt.
   Proof.
     apply functional_extensionality.
     intros b.
-    unfold compose, zsqrt_s, zabs_s', zsqrt_zabs_glue.
+    unfold compose, zsqrt, zabs', zsqrt_zabs_glue.
     destruct b as [x H].
     simpl.
     apply subset2_eq.
@@ -281,13 +273,13 @@ Module Typeclasses.
   Class NnegZ (val:Z) := nneg: val>=0.
 
   (* Argument of sqrt is constrained by typeclass NnegZ *)
-  Definition zsqrt_t (a:Z) `{NnegZ a} : Z := Z.sqrt a.
+  Definition zsqrt (a:Z) `{NnegZ a} : Z := Z.sqrt a.
 
   (* Fails:
          Unable to satisfy the following constraints:
          ?H : "NnegZ (-1234)"
    *)
-  Fail Definition bar := zsqrt_t (-1234).
+  Fail Definition bar := zsqrt (-1234).
 
   (* NnegZ class instance for Z.abs, stating that Z.abs always positive *)
   Local Instance Zabs_nnegZ:
@@ -298,10 +290,10 @@ Module Typeclasses.
     apply zabs_always_nneg.
   Qed.
 
-  Lemma foo_t (x:Z) `{PZ:NnegZ x}:
-    zsqrt_t (Z.abs x) = zsqrt_t x.
+  Lemma foo (x:Z) `{PZ:NnegZ x}:
+    zsqrt (Z.abs x) = zsqrt x.
   Proof.
-    unfold compose, zsqrt_t.
+    unfold compose, zsqrt.
     rewrite zabs_nneg.
     - reflexivity.
     - apply PZ.
@@ -323,27 +315,27 @@ CONS:
 Module ImplicitTypeclasses.
 
   (* Type class denoting nonnegative numbers *)
-  Class NnegZ_x (val:Z) := nneg_x: val>=0.
+  Class NnegZ (val:Z) := nneg: val>=0.
 
   (* Argument of sqrt is constrained by typeclass NnegZ *)
-  Definition zsqrt_x (a:Z) `{NN: NnegZ_x a} : Z := Z.sqrt a.
+  Definition zsqrt (a:Z) `{NN: NnegZ a} : Z := Z.sqrt a.
 
   (* Fails:
          Unable to satisfy the following constraints:
          ?H : "NnegZ (-1234)"
    *)
-  Fail Definition bar := zsqrt_x (-1234).
+  Fail Definition bar := zsqrt (-1234).
 
-  Lemma foo1_x:
-    exists PA, forall (x:Z) `{PZ:NnegZ_x x}, @zsqrt_x (Z.abs x) (PA x) = @zsqrt_x x PZ.
+  Lemma foo1:
+    exists PA, forall (x:Z) `{PZ:NnegZ x}, @zsqrt (Z.abs x) (PA x) = @zsqrt x PZ.
   Proof.
     unshelve eexists.
     -
-      unfold NnegZ_x.
+      unfold NnegZ.
       apply zabs_always_nneg.
     -
       intros x PZ.
-      unfold zsqrt_x.
+      unfold zsqrt.
       rewrite zabs_nneg.
       + reflexivity.
       + apply PZ.
