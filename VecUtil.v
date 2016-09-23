@@ -3,7 +3,6 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics. (* for \circ notation *)
 Require Import Coq.omega.Omega.
-Require Import Coq.Logic.Decidable.
 
 Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
@@ -14,6 +13,7 @@ Require Import JRWTactics.
 Require Import SpiralTactics.
 
 Require Import Spiral.
+
 
 
 Local Open Scope program_scope. (* for \circ notation *)
@@ -738,3 +738,4 @@ Lemma Vin_cons:
 Proof.
   crush.
 Qed.
+

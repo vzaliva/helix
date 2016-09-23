@@ -25,8 +25,8 @@ Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.or
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.products.
-Require Import MathClasses.theory.naturals.
 Require Import MathClasses.theory.setoids.
+
 
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
