@@ -56,6 +56,10 @@ Section SigmaHCOL_Operators.
   Class SHOperator {i o:nat} (op: svector i -> svector o) :=
     SHOperator_setoidmor :> Setoid_Morphism op.
 
+  (* Strong condition: operator always produce dense output *)
+  Class AlwaysDense {i o:nat} (op: svector i -> svector o) :=
+    o_dense : forall x, svector_is_dense (op x).
+
   (* Strong condition: operator preserves vectors' density *)
   Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
     o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
@@ -344,34 +348,13 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
-  (** A matrix produced by applying family of operators will have at
-  at most one non-structural element per row. All other elements must
-  be structural zeros. The name alludes to the fact that doing
-  ISumReduction on such matrix will not lead to collisions. It should be
-  noted that this is structural constraint. It does not impose any
-  restriction in actual values (of CarrierA type) *)
-  Class IReductionFriendly
-        {i o n}
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        (neutral: CarrierA)
-        `{@Monoid CarrierA CarrierAe dot neutral}
-        (op_family: forall k, (k<n) -> svector i -> svector o)
-        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-    := {
-      ireduction_iunion_friendly: @IUnionFriendly i o n op_family Koperator;
-      ireduction_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family op_family x)
-                                    )
-      }.
-
   Definition IReduction
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (neutral: CarrierA)
              `{@Monoid CarrierA CarrierAe dot neutral}
              (op_family: forall k, (k<n) -> svector i -> svector o)
-             TODO: always dense op_family
+             `{FamilyAlwaysDense: forall k (kc: k<n), AlwaysDense (op_family k kc)}
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              (v: svector i)
     :=
