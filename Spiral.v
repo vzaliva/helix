@@ -24,9 +24,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
-
 Require Import MathClasses.theory.setoids.
-
 
 
 

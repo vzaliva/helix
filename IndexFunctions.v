@@ -24,11 +24,7 @@ Require Import MathClasses.orders.orders.
 Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.abstract_algebra.
 
-(*  CoLoR *)
-
-
 Require Import Spiral.
-
 
 (* Setoid equality for option types *)
 Section OptionSetoid.

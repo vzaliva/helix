@@ -15,13 +15,10 @@ Require Import SpiralTactics.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 
-
 Import VectorNotations.
 
 Require Import ExtLib.Structures.Monads.
-
 Require Import WriterMonadNoT.
-
 
 Open Scope vector_scope.
 Open Scope nat_scope.

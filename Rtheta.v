@@ -20,8 +20,6 @@ Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
 Require Import CpdtTactics.
 
-
-
 Import MonadNotation.
 Local Open Scope monad_scope.
 

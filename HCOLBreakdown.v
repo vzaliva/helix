@@ -25,8 +25,6 @@ Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.or
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 
-(*  CoLoR *)
-
 Import VectorNotations.
 Open Scope vector_scope.
 

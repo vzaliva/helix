@@ -22,12 +22,8 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 
-(*  CoLoR *)
-
 Import VectorNotations.
-
 Open Scope vector_scope.
-
 
 (* Templete HCOL operator which uses two HOperators to build a new HOperator *)
 Class THOperator2 {i1 o1 i2 o2 ix ox} (top: (avector i1 -> avector o1) -> (avector i2 -> avector o2) -> avector ix -> avector ox) :=

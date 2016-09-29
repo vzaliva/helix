@@ -21,8 +21,6 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.naturals.
 
-(*  CoLoR *)
-
 Import VectorNotations.
 
 Open Scope vector_scope.

@@ -19,10 +19,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 
-(*  CoLoR *)
-
 Import VectorNotations.
-
 Open Scope vector_scope.
 
 Section THCOL_implementations.

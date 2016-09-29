@@ -21,7 +21,6 @@ Import VectorNotations.
 Require Import CpdtTactics.
 Require Import JRWTactics.
 
-
 (* Various definitions related to vector equality and setoid rewriting *)
 
 Section VectorSetoid.

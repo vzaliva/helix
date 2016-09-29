@@ -3,18 +3,12 @@ Carrier type used in all our proofs. Could be real of Float in future.
  *)
 
 Require Import Coq.Bool.Bool.
-
-
 Require Import CoLoR.Util.Vector.VecUtil.
-
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
-
 Require Import MathClasses.theory.rings.
-
 Require Import MathClasses.interfaces.orders.
-
 
 
 Parameter CarrierA: Type.

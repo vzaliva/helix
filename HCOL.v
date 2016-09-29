@@ -22,8 +22,6 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.setoids.
 
-(*  CoLoR *)
-
 Import VectorNotations.
 Open Scope vector_scope.
 
