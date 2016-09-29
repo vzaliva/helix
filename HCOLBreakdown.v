@@ -26,7 +26,7 @@ Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.o
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 Open Scope vector_scope.
 
@@ -223,4 +223,5 @@ Section HCOLBreakdown.
   Qed.
 
 End HCOLBreakdown.
+
 

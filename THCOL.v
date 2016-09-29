@@ -23,7 +23,7 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 
 Open Scope vector_scope.
@@ -157,4 +157,5 @@ Notation HTDirectSum := HCross.
 (* Not sure if this is needed *)
 Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
+
 

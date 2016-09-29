@@ -20,7 +20,7 @@ Import VectorNotations.
 
 Require Import CpdtTactics.
 Require Import JRWTactics.
-Require Import SpiralTactics.
+
 
 (* Various definitions related to vector equality and setoid rewriting *)
 
@@ -499,5 +499,6 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
+
 
 

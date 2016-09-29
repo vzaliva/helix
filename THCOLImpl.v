@@ -20,7 +20,7 @@ Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 
 Open Scope vector_scope.
@@ -109,3 +109,4 @@ Section THCOL_implementation_proper.
   Qed.
 
 End THCOL_implementation_proper.
+

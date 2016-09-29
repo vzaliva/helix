@@ -23,7 +23,7 @@ Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.setoids.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 Open Scope vector_scope.
 
@@ -367,4 +367,5 @@ Section HCOL_Operator_Lemmas.
   Qed.
 
 End HCOL_Operator_Lemmas.
+
 

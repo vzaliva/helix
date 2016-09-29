@@ -1,10 +1,14 @@
 
 Require Import Coq.Arith.EqNat.
-Require Import ExtLib.Structures.Monads.
+
 Require Import ExtLib.Data.Monads.IdentityMonad.
+
 Require Import ExtLib.Structures.Monoid.
+
 Require Import ExtLib.Data.Monads.WriterMonad.
+
 Require Import ExtLib.Data.PPair.
+
 
 Set Implicit Arguments.
 Set Universe Polymorphism.
@@ -20,3 +24,4 @@ Section WriterMonad.
   Definition execWriter x:= psnd (runWriter x).
   Definition evalWriter x:= pfst (runWriter x).
 End WriterMonad.
+

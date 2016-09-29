@@ -22,7 +22,7 @@ Require Import MathClasses.theory.rings.
 Require Import MathClasses.theory.naturals.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 
 Open Scope vector_scope.
@@ -401,3 +401,4 @@ End HCOL_implementation_proper.
 
 Close Scope nat_scope.
 Close Scope vector_scope.
+

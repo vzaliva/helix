@@ -1,18 +1,25 @@
 Require Import Coq.Unicode.Utf8.
-Require Import Coq.Arith.Arith.
+
 Require Import Coq.Logic.ProofIrrelevance.
-Require Import Coq.Program.Basics. (* for \circ notation *)
+
+Require Import Coq.Program.Basics.
+ (* for \circ notation *)
 Require Import Coq.omega.Omega.
+
 
 Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Require Import CpdtTactics.
+
 Require Import JRWTactics.
+
 Require Import SpiralTactics.
 
+
 Require Import Spiral.
+
 
 
 
@@ -738,4 +745,5 @@ Lemma Vin_cons:
 Proof.
   crush.
 Qed.
+
 

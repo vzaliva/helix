@@ -25,9 +25,10 @@ Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.List.ListUtil.
+
 
 Require Import Spiral.
+
 
 (* Setoid equality for option types *)
 Section OptionSetoid.
@@ -946,5 +947,6 @@ Section Function_Rules.
   Local Close Scope index_f_scope.
 
 End Function_Rules.
+
 
 
