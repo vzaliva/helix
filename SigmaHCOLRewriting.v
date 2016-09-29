@@ -1047,15 +1047,15 @@ Section SigmaHCOLRewritingRules.
            {i o n}
            (op_family: forall k, (k<n) -> svector i -> svector o)
            `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-           `{Uf: !Apply_Family_SumUnionFriendly op_family}
+           `{Uf: !IUnionFriendly op_family}
            (pf: { j | j<o} -> CarrierA -> CarrierA)
            (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
     :
-      Apply_Family_SumUnionFriendly
+      IUnionFriendly
         (fun j jc => SHPointwise pf ∘ op_family j jc).
     Proof.
-      unfold Apply_Family_SumUnionFriendly.
+      unfold IUnionFriendly.
       intros x.
       apply Vforall_nth_intro.
       intros j jc.
@@ -1071,7 +1071,7 @@ Section SigmaHCOLRewritingRules.
       unfold compose.
       rewrite 2!SHPointwise_nth_eq.
 
-      unfold Apply_Family_SumUnionFriendly in Uf.
+      unfold IUnionFriendly in Uf.
       specialize (Uf x).
       apply Vforall_nth with (ip:=jc) in Uf.
       unfold Vunique in Uf.
@@ -1099,7 +1099,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: forall k, (k<n) -> svector i -> svector o)
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
           `{Uz: !Apply_Family_Single_NonZero_Per_Row op_family}
-          `{Uf: !Apply_Family_SumUnionFriendly op_family}
+          `{Uf: !IUnionFriendly op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
@@ -1303,7 +1303,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: forall k, (k<n) -> svector i -> svector o)
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
           `{Uz: !Apply_Family_Single_NonZero_Per_Row op_family}
-          `{Uf: !Apply_Family_SumUnionFriendly op_family}
+          `{Uf: !IUnionFriendly op_family}
           (f: Rtheta -> Rtheta -> Rtheta)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
@@ -1352,7 +1352,7 @@ Definition tmp_dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svecto
 
 Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
 
-Hint Extern 0 (Apply_Family_SumUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
+Hint Extern 0 (IUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
 
 Definition dynwin_rewritten_SigmaHCOL (_: avector 3):
   vector Rtheta.Rtheta (1 + (2 + 2)) → vector Rtheta.Rtheta 1 :=

@@ -83,7 +83,7 @@ Section SigmaHCOL_Operators.
     apply ext_equiv_applied_iff.
   Qed.
 
-  (* Apply family of operators to same fector and return matrix of results *)
+  (** Apply family of operators to same fector and return matrix of results *)
   Definition Apply_Family
              {i o n}
              (op_family: forall k, (k<n) -> svector i -> svector o)
@@ -107,17 +107,21 @@ Section SigmaHCOL_Operators.
     reflexivity.
   Qed.
 
-  (* Apply operator family to a vector produced a matrix which have at most one non-structural element per row. The name alludes to the fact that doing SumUnion on such matrix will not lead to collisions. *)
-  Class Apply_Family_SumUnionFriendly
+  (** A matrix produced by applying family of operators will have at
+  at most one non-structural element per row. The name alludes to the
+  fact that doing ISumUnion on such matrix will not lead to
+  collisions. It should be noted that this is structural
+  constraint. It does not impose any restriction in actual values (of
+  CarrierA type) *)
+  Class IUnionFriendly
         {i o n}
         (op_family: forall k, (k<n) -> svector i -> svector o)
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
-      apply_family_union_friendly: forall x, Vforall (Vunique Is_Val)
-                                                     (transpose
-                                                        (Apply_Family op_family x)
-                                                     ).
-
+      iunion_friendly: forall x, Vforall (Vunique Is_Val)
+                                    (transpose
+                                       (Apply_Family op_family x)
+                                    ).
   Definition Gather
              {i o: nat}
              (f: index_map o i)
@@ -319,7 +323,7 @@ Section SigmaHCOL_Operators.
              (neutral: CarrierA)
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             `{Uf: !Apply_Family_SumUnionFriendly op_family}
+             `{Uf: !IUnionFriendly op_family}
              (v: svector i)
              {DotMonoid: IMonoid (Vin_Rtheta_Val v) dot neutral}
     :=
@@ -345,7 +349,7 @@ Section SigmaHCOL_Operators.
              {i o n}
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             `{Uf: !Apply_Family_SumUnionFriendly op_family}
+             `{Uf: !IUnionFriendly op_family}
              (v: svector i)
     :=
       @IUnion i o n plus zero op_family Koperator Uf v (IMonoid_plus_0 (Vin_Rtheta_Val v)).
@@ -354,7 +358,7 @@ Section SigmaHCOL_Operators.
          {i o n}
          (op_family: forall k, (k<n) -> svector i -> svector o)
          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-         `{Uf: !Apply_Family_SumUnionFriendly op_family}:
+         `{Uf: !IUnionFriendly op_family}:
     SHOperator (@ISumUnion i o n op_family Koperator Uf).
   Proof.
     unfold SHOperator.
@@ -363,10 +367,32 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
+  (** A matrix produced by applying family of operators will have at
+  at most one non-structural element per row. All other elements must
+  be structural zeros. The name alludes to the fact that doing
+  ISumReduction on such matrix will not lead to collisions. It should be
+  noted that this is structural constraint. It does not impose any
+  restriction in actual values (of CarrierA type) *)
+  Class IReductionFriendly
+        {i o n}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        (neutral: CarrierA)
+        `{@Monoid CarrierA CarrierAe dot neutral}
+        (op_family: forall k, (k<n) -> svector i -> svector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+    := {
+      ireduction_iunion_friendly: @IUnionFriendly i o n op_family Koperator;
+      ireduction_friendly: forall x, Vforall (Vunique Is_Val)
+                                    (transpose
+                                       (Apply_Family op_family x)
+                                    )
+      }.
+
   Definition IReduction
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (neutral: CarrierA)
+             `{@Monoid CarrierA CarrierAe dot neutral}
              (op_family: forall k, (k<n) -> svector i -> svector o)
              TODO: always dense op_family
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
@@ -519,7 +545,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        (g: index_map_family ki gi n)
        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
   :
-    Apply_Family_SumUnionFriendly
+    IUnionFriendly
       (@SparseEmbedding
          n gi go ki ko
          kernel KD
@@ -527,7 +553,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
          g
          Koperator).
 Proof.
-  unfold Apply_Family_SumUnionFriendly.
+  unfold IUnionFriendly.
   intros x.
   apply Vforall_nth_intro.
   intros j jc.
@@ -1297,13 +1323,13 @@ Section StructuralProperies.
          {i o n}
          (op_family: forall k, (k<n) -> svector i -> svector o)
          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-         `{Uf: !Apply_Family_SumUnionFriendly op_family}
+         `{Uf: !IUnionFriendly op_family}
          {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}:
     CauseNoCol (SumUnion ∘ (Apply_Family op_family)).
   Proof.
     unfold compose, CauseNoCol.
     intros x Xcf.
-    unfold Apply_Family_SumUnionFriendly in Uf.
+    unfold IUnionFriendly in Uf.
     specialize (Uf x).
     unfold svector_is_non_collision.
     apply Vforall_nth_intro.
