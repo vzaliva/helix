@@ -1,4 +1,3 @@
-Require Import Coq.Unicode.Utf8.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics.
 Require Import Coq.omega.Omega.
@@ -525,7 +524,7 @@ Section Vunique.
              (P: T -> Prop)
              (x: vector T n)
     :=
-      (forall j (jc:j<n), ¬(i = j) -> P (Vnth x jc)).
+      (forall j (jc:j<n), ~(i = j) -> P (Vnth x jc)).
 
   (* Always works in this direction *)
   Definition VAllButOne_Sn
@@ -540,7 +539,7 @@ Section Vunique.
     unfold VAllButOne in *.
     intros j jc N.
     assert(jc': S j < S n) by omega.
-    assert(N':S i ≠ S j) by omega.
+    assert(N':S i <> S j) by omega.
     specialize (H (S j) jc' N').
     rewrite <- Vnth_Sn with (v:=h) (ip:=jc').
     assumption.
@@ -556,7 +555,7 @@ Section Vunique.
         (P1: T -> Prop)
         (Pimpl: forall x, P0 x -> P1 x)
     :
-      VAllButOne k kc P0 vl → VAllButOne k kc P1 vl.
+      VAllButOne k kc P0 vl -> VAllButOne k kc P1 vl.
   Proof.
     unfold VAllButOne.
     intros H j jc H0.
@@ -568,11 +567,11 @@ Section Vunique.
   (* In this direction requires additional assumtion  ¬ P h *)
   Lemma VAllButOne_Sn'
         (T : Type)
-        (P : T → Prop)
+        (P : T -> Prop)
         (h : T)
         (n : nat)
         (x : vector T n)
-        (N: ¬ P h)
+        (N: ~P h)
         (i : nat) (ic : i < n) (ic': S i < S n):
     VAllButOne i ic  (not ∘ P) x -> VAllButOne (S i) ic' (not ∘ P) (h :: x).
   Proof.
@@ -590,7 +589,7 @@ Section Vunique.
   (* In this direction requires additional assumtion  P h *)
   Lemma Vforall_VAllButOne_P0
         (T : Type)
-        (P : T → Prop)
+        (P : T -> Prop)
         (h : T)
         (n : nat)
         (x : vector T n)
@@ -610,7 +609,7 @@ Section Vunique.
   Lemma VallButOne_Vunique
         {n} {T:Type}
         (P: T -> Prop)
-        {Pdec: forall a, {P a}+{¬(P a)}}
+        {Pdec: forall a, {P a}+{~(P a)}}
         (x: vector T n)
     :
       (exists i ic, VAllButOne i ic (not∘P) x) ->
@@ -654,7 +653,7 @@ Section Vunique.
   Lemma Vunique_cases
         {n} {T:Type}
         (P: T -> Prop)
-        `{D: forall (a:T), {P a}+{¬P a}}
+        `{D: forall (a:T), {P a}+{~P a}}
         (x: vector T n):
     Vunique P x ->
     ({Vforall (not ∘ P) x}+{exists i ic, VAllButOne i ic (not∘P) x}).
