@@ -106,6 +106,12 @@ Proof.
   apply E.
 Qed.
 
+Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
+  match v with
+  | Vnil => False
+  | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
+  end.
+
 (** Unary union of vector's elements (left fold) *)
 Definition UnionFold
            {n}

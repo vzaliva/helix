@@ -310,40 +310,17 @@ Section SigmaHCOL_Operators.
       reflexivity.
   Qed.
 
-  (* TODO: move to SVector *)
-  Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
-    match v with
-    | Vnil => False
-    | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
-    end.
-
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
-             (neutral: CarrierA)
+             (initial: CarrierA)
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
              (v: svector i)
-             {DotMonoid: IMonoid (Vin_Rtheta_Val v) dot neutral}
     :=
-      MUnion dot neutral (@Apply_Family i o n op_family Koperator v).
+      MUnion dot initial (@Apply_Family i o n op_family Koperator v).
 
-
-  Global Instance IMonoid_plus_0 (pred: CarrierA -> Prop):
-    IMonoid pred plus (zero:CarrierA).
-  Proof.
-    split.
-    -
-      intros x y z H H0 H1.
-      ring.
-    -
-      intros x H.
-      apply plus_0_l.
-    -
-      intros x H.
-      apply plus_0_r.
-  Qed.
 
   Definition ISumUnion
              {i o n}
@@ -352,7 +329,7 @@ Section SigmaHCOL_Operators.
              `{Uf: !IUnionFriendly op_family}
              (v: svector i)
     :=
-      @IUnion i o n plus zero op_family Koperator Uf v (IMonoid_plus_0 (Vin_Rtheta_Val v)).
+      @IUnion i o n plus zero op_family Koperator Uf v.
 
   Global Instance SHOperator_ISumUnion
          {i o n}
