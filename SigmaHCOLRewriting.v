@@ -167,12 +167,12 @@ Proof.
   lia.
 Qed.
 
-Lemma VecUnion_zero_structs
+Lemma UnionFold_zero_structs
       (m : nat) (x : svector m):
-  Vforall Is_ValZero x → Is_ValZero (VecUnion plus zero x).
+  Vforall Is_ValZero x → Is_ValZero (UnionFold plus zero x).
 Proof.
   intros H.
-  unfold VecUnion.
+  unfold UnionFold.
   induction x.
   -
     unfold Is_ValZero.
@@ -188,9 +188,9 @@ Proof.
     apply IHx, Hx.
 Qed.
 
-Lemma VecUnion_VallButOne_zero:
+Lemma UnionFold_VallButOne_zero:
   ∀ {n : nat} (v : vector Rtheta n) {k : nat} (kc : k < n),
-    VAllButOne k kc (Is_ValZero) v → VecUnion plus zero v = Vnth v kc.
+    VAllButOne k kc (Is_ValZero) v → UnionFold plus zero v = Vnth v kc.
 Proof.
   intros n v i ic U.
 
@@ -202,7 +202,7 @@ Proof.
     +
       (* Case ("i=0"). *)
       rewrite Vnth_cons_head; try assumption.
-      rewrite VecUnion_cons.
+      rewrite UnionFold_cons.
       assert(Vforall Is_ValZero x).
       {
         apply Vforall_nth_intro.
@@ -213,15 +213,15 @@ Proof.
         omega.
       }
 
-      assert(UZ: Is_ValZero (VecUnion plus zero x))
-        by apply VecUnion_zero_structs, H.
-      setoid_replace (VecUnion plus zero x) with mkSZero
+      assert(UZ: Is_ValZero (UnionFold plus zero x))
+        by apply UnionFold_zero_structs, H.
+      setoid_replace (UnionFold plus zero x) with mkSZero
         by apply Is_ValZero_to_mkSZero, UZ.
       clear UZ.
       apply Union_SZero_l.
     +
       (* Case ("i!=0"). *)
-      rewrite VecUnion_cons.
+      rewrite UnionFold_cons.
       assert (HS: Is_ValZero h).
       {
         cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
@@ -244,10 +244,10 @@ Proof.
 Qed.
 
 
-(* Formerly Lemma3. Probably will be replaced by VecUnion_VallButOne *)
+(* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
 Lemma SingleValueInZeros
       {m} (x:svector m) j (jc:j<m):
-  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (VecUnion plus zero x = Vnth x jc).
+  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold plus zero x = Vnth x jc).
 Proof.
   intros SZ.
   dependent induction m.
@@ -259,7 +259,7 @@ Proof.
     +
       (* Case ("j=0"). *)
       rewrite Vnth_cons_head; try assumption.
-      rewrite VecUnion_cons.
+      rewrite UnionFold_cons.
       assert(Vforall Is_ValZero x0).
       {
         apply Vforall_nth_intro.
@@ -269,15 +269,15 @@ Proof.
         apply SZ; lia.
       }
 
-      assert(UZ: Is_ValZero (VecUnion plus zero x0))
-        by apply VecUnion_zero_structs, H.
-      setoid_replace (VecUnion plus zero x0) with mkSZero
+      assert(UZ: Is_ValZero (UnionFold plus zero x0))
+        by apply UnionFold_zero_structs, H.
+      setoid_replace (UnionFold plus zero x0) with mkSZero
         by apply Is_ValZero_to_mkSZero, UZ.
       clear UZ.
       apply Union_SZero_l.
     +
       (* Case ("j!=0"). *)
-      rewrite VecUnion_cons.
+      rewrite UnionFold_cons.
       assert(Zc: 0<(S m)) by lia.
 
       assert (HS: Is_ValZero h).
@@ -1129,9 +1129,9 @@ Section SigmaHCOLRewritingRules.
         setoid_rewrite SHPointwise_nth.
 
         unfold Apply_Family.
-        rewrite 2!AbsorbIUnionIndex.
+        rewrite 2!AbsorbMUnionIndex.
 
-        (* -- Now we are dealing with VecUnions only -- *)
+        (* -- Now we are dealing with UnionFolds only -- *)
 
         unfold Apply_Family_Single_NonZero_Per_Row in Uz.
         specialize (Uz x).
@@ -1150,11 +1150,11 @@ Section SigmaHCOLRewritingRules.
           revert Uzeros.
           set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
           intros Uzeros.
-          assert(H:VecUnion plus zero vl = mkSZero).
+          assert(H:UnionFold plus zero vl = mkSZero).
           {
             generalize dependent vl.
             intros vl Uzeros.
-            unfold VecUnion.
+            unfold UnionFold.
             clear Uf op_family Koperator.
             induction vl.
             -
@@ -1183,7 +1183,7 @@ Section SigmaHCOLRewritingRules.
 
           set (vr:=Vbuild
                      (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
-          assert(H: VecUnion plus zero vr = mkSZero).
+          assert(H: UnionFold plus zero vr = mkSZero).
           {
             subst vl vr.
             assert(H: (Vbuild
@@ -1196,7 +1196,7 @@ Section SigmaHCOLRewritingRules.
               rewrite SHPointwise_nth.
               reflexivity.
             }
-            unfold VecUnion.
+            unfold UnionFold.
             rewrite_clear H.
             rewrite Vforall_Vbuild in Uzeros.
             rewrite <- 3!Vmap_Vbuild.
@@ -1231,8 +1231,8 @@ Section SigmaHCOLRewritingRules.
               crush.
             }
             rewrite_clear H.
-            fold (@VecUnion n plus zero (szero_svector n)).
-            apply VecUnion_zero_structs.
+            fold (@UnionFold n plus zero (szero_svector n)).
+            apply UnionFold_zero_structs.
             apply szero_svector_all_zeros.
           }
           rewrite_clear H.
@@ -1251,7 +1251,7 @@ Section SigmaHCOLRewritingRules.
           inversion H; rename x0  into kc; clear H.
           rename H0 into Uone.
           (* rewrite Is_ValZero_not_not in Uone. *)
-          rewrite VecUnion_VallButOne_zero with (kc0:=kc).
+          rewrite UnionFold_VallButOne_zero with (kc0:=kc).
           subst vl.
           rewrite Vbuild_nth.
 
@@ -1277,7 +1277,7 @@ Section SigmaHCOLRewritingRules.
             reflexivity.
           }
 
-          rewrite VecUnion_VallButOne_zero with (kc0:=kc) by apply H.
+          rewrite UnionFold_VallButOne_zero with (kc0:=kc) by apply H.
           subst vr.
           rewrite Vbuild_nth.
           rewrite SHPointwise_nth.

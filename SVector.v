@@ -72,37 +72,6 @@ Proof.
   apply Vnth_map.
 Qed.
 
-Section PartialMonoids.
-
-  (** Inductive type, restricting set to elements with either:
- 1. Special value 'one' (neutral element)
- 2. Elements of parent set, satisfying given predicate 'restrict'
- 3. Is a result of apply binary operation 'dot' to 2 other elements from the same restricted set (closed under 'dot'
-   *)
-  Inductive IMonoidRestriction {A:Type}
-            (dot : A -> A -> A) (one : A)
-            (pred: A -> Prop)
-  :
-    A -> Prop  :=
-  | im_restr_one: IMonoidRestriction dot one pred one
-  | im_restr_new a: pred a -> IMonoidRestriction dot one pred a
-  | im_restr_close a b: IMonoidRestriction dot one pred a -> IMonoidRestriction dot one pred b -> IMonoidRestriction dot one pred (dot a b).
-
-
-  Class IMonoid {A:Type} `{!Equiv A}
-        (pred: A -> Prop)
-        (dot : A -> A -> A) (one : A)
-    := {
-        idot_assoc: forall x y z, IMonoidRestriction dot one pred x ->
-                             IMonoidRestriction dot one pred y ->
-                             IMonoidRestriction dot one pred z ->
-                             dot x (dot y z) = dot (dot x y) z;
-        ione_left: forall x, IMonoidRestriction dot one pred x -> dot one x = x;
-        ione_right: forall x, IMonoidRestriction dot one pred x -> dot x one = x
-      }.
-
-End PartialMonoids.
-
 Definition Union (dot : CarrierA -> CarrierA -> CarrierA)
   : Rtheta -> Rtheta -> Rtheta := liftM2 dot.
 
@@ -137,15 +106,15 @@ Proof.
   apply E.
 Qed.
 
-(* Unary union of vector's elements (left fold) *)
-Definition VecUnion
+(** Unary union of vector's elements (left fold) *)
+Definition UnionFold
            {n}
            (dot:CarrierA->CarrierA->CarrierA)
-           (neutral:CarrierA)
+           (initial:CarrierA)
            (v: svector n): Rtheta :=
-  Vfold_left_rev (Union dot) (mkStruct neutral) v.
+  Vfold_left_rev (Union dot) (mkStruct initial) v.
 
-(* Binary element-wise union of two vectors *)
+(** Pointwise union of two vectors *)
 Definition Vec2Union
            {n}
            (dot:CarrierA->CarrierA->CarrierA)
@@ -166,14 +135,13 @@ Proof.
   apply Ed; apply evalWriter_proper; apply Vnth_arg_equiv; assumption.
 Qed.
 
-
-(* Matrix-union. Generalized SumUnion *)
+(** Matrix-union. *)
 Definition MUnion
            {o n}
            (dot:CarrierA->CarrierA->CarrierA)
-           (neutral:CarrierA)
+           (initial:CarrierA)
            (v: vector (svector o) n): svector o
-  :=  Vfold_left_rev (Vec2Union dot) (Vconst (mkStruct neutral) o) v.
+  :=  Vfold_left_rev (Vec2Union dot) (Vconst (mkStruct initial) o) v.
 
 Global Instance MUnion_proper {o n}
   : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion o n).
@@ -204,13 +172,13 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma VecUnion_cons
+Lemma UnionFold_cons
       m x (xs : svector m)
       (dot:CarrierA->CarrierA->CarrierA)
       (neutral:CarrierA):
-  VecUnion dot neutral (Vcons x xs) ≡ Union dot (VecUnion dot neutral xs) x.
+  UnionFold dot neutral (Vcons x xs) ≡ Union dot (UnionFold dot neutral xs) x.
 Proof.
-  unfold VecUnion.
+  unfold UnionFold.
   rewrite Vfold_left_rev_cons.
   reflexivity.
 Qed.
@@ -262,37 +230,7 @@ Proof.
   apply Vnth_map2.
 Qed.
 
-Lemma AbsorbMUnionIndex
-      (dot:CarrierA->CarrierA->CarrierA)
-      `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-
-      (neutral:CarrierA)
-      {m n:nat}
-      (x: vector (svector m) n) k (kc: k<m):
-  Vnth (MUnion dot neutral x) kc = VecUnion dot neutral (Vmap (fun v => Vnth v kc) x).
-Proof.
-  induction n.
-  + dep_destruct x.
-    unfold VecUnion, MUnion, szero_svector; simpl.
-    rewrite Vnth_const; reflexivity.
-  + dep_destruct x.
-    rewrite Vmap_cons, MUnion_cons, AbsorbUnionIndexBinary, IHn, VecUnion_cons.
-    reflexivity.
-Qed.
-
-Lemma AbsorbSumUnionIndex
-      m n (x: vector (svector m) n) k (kc: k<m):
-  Vnth (SumUnion x) kc = VecUnion plus zero (Vmap (fun v => Vnth v kc) x).
-Proof.
-  unfold SumUnion.
-  apply AbsorbMUnionIndex.
-  apply CarrierAPlus_proper.
-Qed.
-
-(* Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes.
-TODO: rename. No actual IUnion here.
- *)
-Lemma AbsorbIUnionIndex
+Lemma AbsorbMUnionIndex_Vbuild
       {o n}
       (dot:CarrierA->CarrierA->CarrierA)
       (neutral:CarrierA)
@@ -300,7 +238,7 @@ Lemma AbsorbIUnionIndex
       k (kc: k<o)
   :
     Vnth (MUnion dot neutral (Vbuild body)) kc ≡
-         VecUnion dot neutral
+         UnionFold dot neutral
          (Vbuild
             (fun (i : nat) (ic : i < n) =>
                Vnth (body i ic) kc
@@ -314,27 +252,53 @@ Proof.
     rewrite MUnion_cons.
     rewrite AbsorbUnionIndexBinary.
     rewrite IHn.
-    rewrite <- VecUnion_cons.
+    rewrite <- UnionFold_cons.
     rewrite Vbuild_cons.
     reflexivity.
 Qed.
 
-Lemma AbsorbISumUnionIndex
+(** Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
+Lemma AbsorbMUnionIndex_Vmap
+      (dot:CarrierA->CarrierA->CarrierA)
+      (neutral:CarrierA)
+      {m n:nat}
+      (x: vector (svector m) n) k (kc: k<m):
+  Vnth (MUnion dot neutral x) kc ≡
+       UnionFold dot neutral
+       (Vmap (fun v => Vnth v kc) x).
+Proof.
+  induction n.
+  + dep_destruct x.
+    unfold UnionFold, MUnion, szero_svector; simpl.
+    rewrite Vnth_const; reflexivity.
+  + dep_destruct x.
+    rewrite Vmap_cons, MUnion_cons, AbsorbUnionIndexBinary, IHn, UnionFold_cons.
+    reflexivity.
+Qed.
+
+Lemma AbsorbSumUnionIndex_Vmap
+      m n (x: vector (svector m) n) k (kc: k<m):
+  Vnth (SumUnion x) kc ≡ UnionFold plus zero (Vmap (fun v => Vnth v kc) x).
+Proof.
+  unfold SumUnion.
+  apply AbsorbMUnionIndex_Vmap.
+Qed.
+
+Lemma AbsorbISumUnionIndex_Vbuild
       {o n}
       (body: forall (i : nat) (ic : i < n), svector o)
       k (kc: k<o)
   :
     Vnth
       (SumUnion (Vbuild body)) kc ≡
-      VecUnion plus zero
+      UnionFold plus zero
       (Vbuild
          (fun (i : nat) (ic : i < n) =>
             Vnth (body i ic) kc
       )).
 Proof.
-  apply AbsorbIUnionIndex.
+  apply AbsorbMUnionIndex_Vbuild.
 Qed.
-
 
 Lemma Union_SZero_r x:
   (Union plus x mkSZero) = x.
@@ -398,13 +362,13 @@ Proof.
     destr_bool; auto.
 Qed.
 
-Lemma Is_Val_VecUnion {n} {v: svector n} {dot} {neutral}:
-  Vexists Is_Val v <-> Is_Val (VecUnion dot neutral v).
+Lemma Is_Val_UnionFold {n} {v: svector n} {dot} {neutral}:
+  Vexists Is_Val v <-> Is_Val (UnionFold dot neutral v).
 Proof.
   split.
   - intros H.
     apply Vexists_eq in H.
-    unfold VecUnion.
+    unfold UnionFold.
     destruct H as [x [XI XV]].
     induction v.
     + unfold Vin in XI.
@@ -427,7 +391,7 @@ Proof.
     induction v.
     + crush.
     + simpl in *.
-      rewrite VecUnion_cons in H.
+      rewrite UnionFold_cons in H.
       apply ValUnionIsVal in H.
       destruct H.
       apply IHv in H.

@@ -410,7 +410,7 @@ Section SigmaHCOL_Operators.
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              (x: svector i)
     :=
-      VecUnion
+      UnionFold
         (Vmap (Vfold_right_aux f id)
          (transpose
             (@Apply_Family i o n op_family Koperator x))).
@@ -993,12 +993,12 @@ Section StructuralProperies.
     intros oi oic.
     unfold compose.
     unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
-    rewrite AbsorbIUnionIndex.
+    rewrite AbsorbMUnionIndex.
     unfold compose.
     destruct n.
     - congruence.
     - clear nz.
-      apply Is_Val_VecUnion.
+      apply Is_Val_UnionFold.
       apply Vexists_Vbuild.
       unfold index_map_family_surjective in f_sur.
       specialize (f_sur oi oic).
@@ -1035,14 +1035,14 @@ Section StructuralProperies.
       + apply in_range_by_def, zc.
   Qed.
 
-  (* Pre-condition for VecUnion not causing any collisions *)
-  Lemma Not_Collision_VecUnion
+  (* Pre-condition for UnionFold not causing any collisions *)
+  Lemma Not_Collision_UnionFold
         {n}
         {dot:CarrierA->CarrierA->CarrierA}
         {neutral:CarrierA}
         {v: svector n}
     :
-      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (VecUnion dot neutral v).
+      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (UnionFold dot neutral v).
   Proof.
     intros VNC H.
     dependent induction n.
@@ -1051,7 +1051,7 @@ Section StructuralProperies.
       trivial.
     +
       dep_destruct v.
-      rewrite VecUnion_cons.
+      rewrite UnionFold_cons.
       simpl in VNC. destruct VNC as [VNCh VNCx].
       apply UnionCollisionFree.
       *
@@ -1061,7 +1061,7 @@ Section StructuralProperies.
            apply Vunique_cons_tail in H.
            apply H.
       * apply VNCh.
-      * cut(¬(Is_Val (VecUnion dot neutral x)) \/ (¬ (Is_Val h))).
+      * cut(¬(Is_Val (UnionFold dot neutral x)) \/ (¬ (Is_Val h))).
         firstorder.
         assert(D: Decision (Is_Val h)) by apply Is_Val_dec.
         destruct D as [Ph | Phn].
@@ -1069,7 +1069,7 @@ Section StructuralProperies.
            clear VNCh VNCx IHn.
 
            unfold not. intros H0.
-           apply Is_Val_VecUnion in H0.
+           apply Is_Val_UnionFold in H0.
            apply Vexists_eq in H0.
            destruct H0 as [x0 [V1 V2]].
            apply Vin_nth in V1.
@@ -1170,12 +1170,12 @@ Section StructuralProperies.
     intros oi oic.
     unfold compose.
     unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
-    rewrite AbsorbIUnionIndex.
+    rewrite AbsorbMUnionIndex.
 
     destruct n.
     - congruence.
-    - (* driving towards apply Not_Collision_VecUnion. *)
-      apply Not_Collision_VecUnion.
+    - (* driving towards apply Not_Collision_UnionFold. *)
+      apply Not_Collision_UnionFold.
       +
         clear nz.
         apply Vforall_Vbuild.
@@ -1336,7 +1336,7 @@ Section StructuralProperies.
     intros j jc.
     unfold Apply_Family.
     rewrite AbsorbISumUnionIndex.
-    apply Not_Collision_VecUnion.
+    apply Not_Collision_UnionFold.
 
     -
       unfold CauseNoCol in NC.
