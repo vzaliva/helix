@@ -348,17 +348,17 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
+  (** Each row is folded using 'dot'. Technically same as IUnion, although we do not treat the situation of more that one non-structural value per row as a collision.
+   *)
   Definition IReduction
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
-             (neutral: CarrierA)
-             `{@Monoid CarrierA CarrierAe dot neutral}
+             (initial: CarrierA)
              (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{FamilyAlwaysDense: forall k (kc: k<n), AlwaysDense (op_family k kc)}
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              (v: svector i)
     :=
-      MUnion dot neutral (@Apply_Family i o n op_family Koperator v).
+      MUnion dot initial (@Apply_Family i o n op_family Koperator v).
 
 (*
   Definition ISumReduction
