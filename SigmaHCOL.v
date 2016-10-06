@@ -348,7 +348,11 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
-  (** Each row is folded using 'dot'. Technically same as IUnion, although we do not treat the situation of more that one non-structural value per row as a collision.
+  (** IReduction does not have any constraints. Specifically no
+  density or Monoid. It just extracts values from Monad and folds them
+  row-wise. For example if for (+) id value is 0 and all structural
+  values are structural zeros it will do row sums. It could not
+  produce new errors, but should propagate errors from before.
    *)
   Definition IReduction
              {i o n}
