@@ -70,6 +70,7 @@ testCases = [
  ("c10", (plus (plus (struct 1) (struct 2)) (value 0)),   (3,False,False)),
  ("c11", (union (union (struct 1) (struct 2)) (value 0)), (3,False,False))]
 
+runCases :: [(String, SInt, (Int, Bool, Bool))] -> [Test]
 runCases l = [TestCase $ assertEqual n (runW a) b | (n,a,b) <- l]
 
 main :: IO Counts
