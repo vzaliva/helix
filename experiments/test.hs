@@ -48,26 +48,22 @@ runW :: SInt -> (Int, Bool, Bool)
 runW x = let (v, (F s c)) = runWriter x in
          (v, s, c)
          
-{- simple lifted (+), without collision tracking -}         
-plus :: SInt -> SInt -> SInt
-plus = liftM2 (+)
-       
 {- Union operator, which is basically (+) with collision tracking -}         
 union :: SInt -> SInt -> SInt
-union = plus
+union = liftM2 (+)
 
 testCases :: [(String, WriterT F Identity Int, (Int, Bool, Bool))]
 testCases = [
- ("c1",  (plus (struct 2) (struct 1)),                    (3,True,False)),
- ("c2",  (plus (struct 0) (value 2)),                     (2,False,False)),
- ("c3",  (plus (value 2) (struct 3)),                     (5,False,False)),
- ("c4",  (plus (value 1) (value 2)),                      (3,False,True)),
- ("c5",  (plus (value 0) (value 2)),                      (2,False,True)),
- ("c6",  (plus (plus (value 1) (value 2)) (value 2)),     (5,False,True)),
- ("c7",  (plus (plus (value 0) (value 2)) (struct 2)),    (4,False,True)),
- ("c8",  (plus (plus (struct 1) (value 2)) (value 0)),    (3,False,True)),
- ("c9",  (plus (plus (struct 1) (value 2)) (struct 0)),   (3,False,False)),
- ("c10", (plus (plus (struct 1) (struct 2)) (value 0)),   (3,False,False)),
+ ("c1",  (union (struct 2) (struct 1)),                    (3,True,False)),
+ ("c2",  (union (struct 0) (value 2)),                     (2,False,False)),
+ ("c3",  (union (value 2) (struct 3)),                     (5,False,False)),
+ ("c4",  (union (value 1) (value 2)),                      (3,False,True)),
+ ("c5",  (union (value 0) (value 2)),                      (2,False,True)),
+ ("c6",  (union (union (value 1) (value 2)) (value 2)),     (5,False,True)),
+ ("c7",  (union (union (value 0) (value 2)) (struct 2)),    (4,False,True)),
+ ("c8",  (union (union (struct 1) (value 2)) (value 0)),    (3,False,True)),
+ ("c9",  (union (union (struct 1) (value 2)) (struct 0)),   (3,False,False)),
+ ("c10", (union (union (struct 1) (struct 2)) (value 0)),   (3,False,False)),
  ("c11", (union (union (struct 1) (struct 2)) (value 0)), (3,False,False))]
 
 runCases :: [(String, SInt, (Int, Bool, Bool))] -> [Test]
