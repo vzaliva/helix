@@ -4,12 +4,9 @@
 
 import Control.Monad.Identity
 import Control.Monad.Writer
-import Data.Monoid
-import Data.Maybe
-import Control.Monad.Trans.Maybe
 import Test.HUnit
 
-{- Structural flag is All: a Boolean monoid under conjunction ('&&'). 
+{- Structural flag is 'All': a Boolean monoid under conjunction ('&&'). 
 The initial value is 'True' and values are combined using &&.
 
 So simple structural Writer monad is:
@@ -17,7 +14,7 @@ So simple structural Writer monad is:
  type W = Writer All
  type WInt = W Int
 
-Collision flag is Any: A Boolean monoind under disjunction ('||').
+Collision flag is 'Any': A Boolean monoind under disjunction ('||').
 The initial value is 'False' and values are combined using ||
 
 F (flags) type combines structural and collision flags
