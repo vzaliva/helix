@@ -393,7 +393,7 @@ Proof.
   clear B1 B2 Heqbf bf.
 
   (* Lemma5 embedded below*)
-  rewrite AbsorbSumUnionIndex by solve_proper.
+  rewrite AbsorbSumUnionIndex_Vmap by solve_proper.
   rewrite Vmap_Vbuild.
 
   (* Preparing to apply Lemma3. Prove some peoperties first. *)
@@ -1129,7 +1129,7 @@ Section SigmaHCOLRewritingRules.
         setoid_rewrite SHPointwise_nth.
 
         unfold Apply_Family.
-        rewrite 2!AbsorbMUnionIndex.
+        rewrite 2!AbsorbMUnionIndex_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
 

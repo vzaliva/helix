@@ -989,7 +989,7 @@ Section StructuralProperies.
     intros oi oic.
     unfold compose.
     unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
-    rewrite AbsorbMUnionIndex.
+    rewrite AbsorbMUnionIndex_Vbuild.
     unfold compose.
     destruct n.
     - congruence.
@@ -1166,7 +1166,7 @@ Section StructuralProperies.
     intros oi oic.
     unfold compose.
     unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
-    rewrite AbsorbMUnionIndex.
+    rewrite AbsorbMUnionIndex_Vbuild.
 
     destruct n.
     - congruence.
@@ -1331,7 +1331,7 @@ Section StructuralProperies.
     apply Vforall_nth_intro.
     intros j jc.
     unfold Apply_Family.
-    rewrite AbsorbISumUnionIndex.
+    rewrite AbsorbISumUnionIndex_Vbuild.
     apply Not_Collision_UnionFold.
 
     -
