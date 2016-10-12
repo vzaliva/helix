@@ -348,6 +348,47 @@ Section SigmaHCOL_Operators.
     solve_proper.
   Qed.
 
+  (** Experimental implementation of "safe" union, which does not cause any new collisions but preserves existing ones *)
+  Section SafeDot.
+
+    Import MonadNotation.
+    Local Open Scope monad_scope.
+    Import WriterMonadNoT.
+    Import ExtLib.Structures.MonadWriter.
+    Import ExtLib.Data.PPair.
+
+    Definition RthetaFlagsSafeAppend (a b: RthetaFlags) : RthetaFlags :=
+      mkRthetaFlags
+        (andb (is_struct a) (is_struct b))
+        (orb (is_collision a) (is_collision b)).
+
+    Definition SafeDot (dot : CarrierA -> CarrierA -> CarrierA)
+               (x y: Rtheta): Rtheta :=
+      let xp := runWriter x in
+      let yp := runWriter x in
+      let xv := pfst xp in
+      let xf := psnd xp in
+      let yv := pfst yp in
+      let yf := psnd yp in
+      tell (RthetaFlagsSafeAppend xf yf) ;; ret (dot xv yv).
+
+  (** Safe 2 Vector union. *)
+  Definition SafeVec2Union
+             {n}
+             (dot:CarrierA->CarrierA->CarrierA)
+             (a b: svector n): svector n
+    := Vmap2 (SafeDot dot) a b.
+
+  (** Safe Matrix union. *)
+  Definition SafeMUnion
+             {o n}
+             (dot:CarrierA->CarrierA->CarrierA)
+             (initial:CarrierA)
+             (v: vector (svector o) n): svector o
+    :=  Vfold_left_rev (SafeVec2Union dot) (Vconst (mkStruct initial) o) v.
+
+  End SafeDot.
+
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
   row-wise. For example if for (+) id value is 0 and all structural
@@ -362,26 +403,17 @@ Section SigmaHCOL_Operators.
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
              (v: svector i)
     :=
-      MUnion dot initial (@Apply_Family i o n op_family Koperator v).
+      SafeMUnion dot initial (@Apply_Family i o n op_family Koperator v).
 
-(*
   Definition ISumReduction
              {i o n}
-             (f: Rtheta -> Rtheta -> Rtheta)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-             (id: Rtheta)
              (op_family: forall k, (k<n) -> svector i -> svector o)
              `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             (x: svector i)
+             (v: svector i)
     :=
-      UnionFold
-        (Vmap (Vfold_right_aux f id)
-         (transpose
-            (@Apply_Family i o n op_family Koperator x))).
- *)
+      IReduction plus zero op_family v.
 
 End SigmaHCOL_Operators.
-
 
 
 Lemma SHOperator_Reflexivity

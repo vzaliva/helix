@@ -30,6 +30,14 @@ instance Monoid F where
     (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1)
                                     (c0 || c1 || not (s0 || s1))
 
+{-
+Alternative "safe" Monoid:
+
+instance Monoid F where
+    mempty =  F True False
+    (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1) (c0 || c1)
+-}
+                                    
 type S = Writer F
 type SInt = S Int
 
