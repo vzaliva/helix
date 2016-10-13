@@ -25,6 +25,10 @@ data F = F Bool Bool
 instance Show F where
     show (F a b) = show (a,b)
 
+instance Eq F where
+    (==) (F s0 c0) (F s1 c1) = s0 == s1 && c0 == c1
+    (/=) (F s0 c0) (F s1 c1) = s0 /= s1 || c0 /= c1
+
 instance Monoid F where
     mempty =  F True False
     (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1)
