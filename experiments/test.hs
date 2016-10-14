@@ -20,16 +20,16 @@ The initial value is 'False' and values are combined using ||
 F (flags) type combines structural and collision flags
 -}
 
-data F = F Bool Bool
+data RFlags = F Bool Bool
 
-instance Show F where
+instance Show RFlags where
     show (F a b) = show (a,b)
 
-instance Eq F where
+instance Eq RFlags where
     (==) (F s0 c0) (F s1 c1) = s0 == s1 && c0 == c1
     (/=) (F s0 c0) (F s1 c1) = s0 /= s1 || c0 /= c1
 
-instance Monoid F where
+instance Monoid RFlags where
     mempty =  F True False
     (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1)
                                     (c0 || c1 || not (s0 || s1))
@@ -42,13 +42,12 @@ instance Monoid F where
     (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1) (c0 || c1)
 -}
                                     
-type S = Writer F
-type SInt = S Int
+type SInt = Writer RFlags Int
 
-struct :: a -> S a
+struct :: Int -> SInt
 struct x = return x
     
-value :: a -> S a
+value :: Int -> SInt
 value x = do (tell (F False False)) ; return x
 
 v::SInt
@@ -64,7 +63,7 @@ runW x = let (v, (F s c)) = runWriter x in
 union :: SInt -> SInt -> SInt
 union = liftM2 (+)
 
-testCases :: [(String, WriterT F Identity Int, (Int, Bool, Bool))]
+testCases :: [(String, WriterT RFlags Identity Int, (Int, Bool, Bool))]
 testCases = [
  ("c1",  (union (struct 2) (struct 1)),                    (3,True,False)),
  ("c2",  (union (struct 0) (value 2)),                     (2,False,False)),
