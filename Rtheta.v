@@ -12,6 +12,7 @@ Require Import ExtLib.Data.Monads.WriterMonad.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import WriterMonadNoT.
 Require Import ExtLib.Structures.MonadLaws.
+Require Import ExtLib.Data.PPair.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -205,6 +206,20 @@ Definition Rtheta' (m:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) m Ca
 
 Definition Rtheta := Rtheta' Monoid_RthetaFlags.
 Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
+
+(* Monad morhisms *)
+
+Definition Rtheta2RStheta (r:Rtheta): RStheta :=
+  let ap := runWriter r in
+  let v := pfst ap in
+  let f := psnd ap in
+  tell f ;; ret v.
+
+Definition RStheta2Rtheta (r:RStheta): Rtheta :=
+  let ap := runWriter r in
+  let v := pfst ap in
+  let f := psnd ap in
+  tell f ;; ret v.
 
 (* Some convenience constructros *)
 
