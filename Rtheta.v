@@ -23,6 +23,8 @@ Require Import CpdtTactics.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Both safe and collision tracking flags monads share same underlying data structure *)
+
 Record RthetaFlags : Type :=
   mkRthetaFlags
     {
@@ -34,64 +36,124 @@ Record RthetaFlags : Type :=
 Definition IsCollision (x:RthetaFlags) := Is_true (is_collision x).
 Definition IsVal (x:RthetaFlags) := not (Is_true (is_struct x)).
 
-(* mappend *)
-Definition RthetaFlagsAppend (a b: RthetaFlags) : RthetaFlags :=
-  mkRthetaFlags
-    (andb (is_struct a) (is_struct b))
-    (orb (is_collision a) (orb (is_collision b)
-                               (negb (orb (is_struct a) (is_struct b))))).
-
 (* mzero *)
 Definition RthetaFlagsZero := mkRthetaFlags true false.
-
-Definition Monoid_RthetaFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
 Global Instance RthetaFlags_type:
   type RthetaFlags := type_libniz RthetaFlags.
 
-Lemma RthetaFlags_assoc:
-  ∀ a b c : RthetaFlags,
-    RthetaFlagsAppend (RthetaFlagsAppend a b) c
-                      ≡ RthetaFlagsAppend a (RthetaFlagsAppend b c).
-Proof.
-  intros a b c.
-  destruct a,b,c.
-  destr_bool.
-Qed.
 
-Lemma RthetaFlags_lunit:
-  ∀ a : RthetaFlags, RthetaFlagsAppend RthetaFlagsZero a ≡ a.
-Proof.
-  intros a.
-  destruct a.
-  destr_bool.
-Qed.
+Section CollisionTrackingRthetaFlags.
+  (* mappend which tracks collisions *)
+  Definition RthetaFlagsAppend (a b: RthetaFlags) : RthetaFlags :=
+    mkRthetaFlags
+      (andb (is_struct a) (is_struct b))
+      (orb (is_collision a) (orb (is_collision b)
+                                 (negb (orb (is_struct a) (is_struct b))))).
 
-Lemma RthetaFlags_runit:
-  ∀ a : RthetaFlags, RthetaFlagsAppend a RthetaFlagsZero ≡ a.
-Proof.
-  intros a.
-  destruct a.
-  destr_bool.
-Qed.
+  Definition Monoid_RthetaFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
-Global Instance MonoidLaws_RthetaFlags:
-  MonoidLaws Monoid_RthetaFlags.
-Proof.
-  split.
-  - (* monoid_assoc *)
-    simpl.
-    unfold BinOps.Associative.
-    apply RthetaFlags_assoc.
-  - (* monoid_lunit *)
-    simpl.
-    unfold BinOps.LeftUnit.
-    apply RthetaFlags_lunit.
-  - (* monoid_runit *)
-    simpl.
-    unfold BinOps.RightUnit.
-    apply RthetaFlags_runit.
-Qed.
+  Lemma RthetaFlags_assoc:
+    ∀ a b c : RthetaFlags,
+      RthetaFlagsAppend (RthetaFlagsAppend a b) c
+                        ≡ RthetaFlagsAppend a (RthetaFlagsAppend b c).
+  Proof.
+    intros a b c.
+    destruct a,b,c.
+    destr_bool.
+  Qed.
+
+  Lemma RthetaFlags_lunit:
+    ∀ a : RthetaFlags, RthetaFlagsAppend RthetaFlagsZero a ≡ a.
+  Proof.
+    intros a.
+    destruct a.
+    destr_bool.
+  Qed.
+
+  Lemma RthetaFlags_runit:
+    ∀ a : RthetaFlags, RthetaFlagsAppend a RthetaFlagsZero ≡ a.
+  Proof.
+    intros a.
+    destruct a.
+    destr_bool.
+  Qed.
+
+  Global Instance MonoidLaws_RthetaFlags:
+    MonoidLaws Monoid_RthetaFlags.
+  Proof.
+    split.
+    - (* monoid_assoc *)
+      simpl.
+      unfold BinOps.Associative.
+      apply RthetaFlags_assoc.
+    - (* monoid_lunit *)
+      simpl.
+      unfold BinOps.LeftUnit.
+      apply RthetaFlags_lunit.
+    - (* monoid_runit *)
+      simpl.
+      unfold BinOps.RightUnit.
+      apply RthetaFlags_runit.
+  Qed.
+End CollisionTrackingRthetaFlags.
+
+Section SafeRthetaFlags.
+
+  (* mappend which does not track collisions *)
+  Definition RthetaFlagsSafeAppend (a b: RthetaFlags) : RthetaFlags :=
+    mkRthetaFlags
+      (andb (is_struct a) (is_struct b))
+      (orb (is_collision a) (is_collision b)).
+
+  Definition Monoid_RthetaSafeFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsSafeAppend RthetaFlagsZero.
+
+  Lemma RthetaFlags_safe_assoc:
+    ∀ a b c : RthetaFlags,
+      RthetaFlagsSafeAppend (RthetaFlagsSafeAppend a b) c
+                        ≡ RthetaFlagsSafeAppend a (RthetaFlagsSafeAppend b c).
+  Proof.
+    intros a b c.
+    destruct a,b,c.
+    destr_bool.
+  Qed.
+
+  Lemma RthetaFlags_safe_lunit:
+    ∀ a : RthetaFlags, RthetaFlagsSafeAppend RthetaFlagsZero a ≡ a.
+  Proof.
+    intros a.
+    destruct a.
+    destr_bool.
+  Qed.
+
+  Lemma RthetaFlags_safe_runit:
+    ∀ a : RthetaFlags, RthetaFlagsSafeAppend a RthetaFlagsZero ≡ a.
+  Proof.
+    intros a.
+    destruct a.
+    destr_bool.
+  Qed.
+
+  Global Instance MonoidLaws_SafeRthetaFlags:
+    MonoidLaws Monoid_RthetaSafeFlags.
+  Proof.
+    split.
+    - (* monoid_assoc *)
+      simpl.
+      unfold BinOps.Associative.
+      apply RthetaFlags_safe_assoc.
+    - (* monoid_lunit *)
+      simpl.
+      unfold BinOps.LeftUnit.
+      apply RthetaFlags_safe_lunit.
+    - (* monoid_runit *)
+      simpl.
+      unfold BinOps.RightUnit.
+      apply RthetaFlags_safe_runit.
+  Qed.
+
+End SafeRthetaFlags.
+
 
 Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
 
@@ -231,12 +293,12 @@ Lemma execWriter_liftM:
     (x : Rtheta),
     execWriter (Monad.liftM f x) ≡ execWriter x.
 Proof.
-      intros f x.
-      unfold Monad.liftM, execWriter.
-      destruct x.
-      simpl.
-      rewrite RthetaFlags_runit.
-      crush.
+  intros f x.
+  unfold Monad.liftM, execWriter.
+  destruct x.
+  simpl.
+  rewrite RthetaFlags_runit.
+  crush.
 Qed.
 
 Lemma execWriter_Rtheta_liftM2
