@@ -200,11 +200,8 @@ Section SafeRthetaFlags.
 
 End SafeRthetaFlags.
 
-(* Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
-Definition flags_m {m}: Type -> Type := writer (s:=RthetaFlags) m.
-
-(* Generic Rtheta *)
-Definition Rtheta' (m:Monoid.Monoid RthetaFlags) := @flags_m m CarrierA.
+(* Generic Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
+Definition Rtheta' (m:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) m CarrierA.
 
 Definition Rtheta := Rtheta' Monoid_RthetaFlags.
 Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
