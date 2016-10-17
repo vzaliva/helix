@@ -202,7 +202,7 @@ Section SafeRthetaFlags.
 End SafeRthetaFlags.
 
 (* Generic Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
-Definition Rtheta' (m:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) m CarrierA.
+Definition Rtheta' (fm:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) fm CarrierA.
 
 Definition Rtheta := Rtheta' Monoid_RthetaFlags.
 Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
@@ -223,62 +223,73 @@ Definition RStheta2Rtheta (r:RStheta): Rtheta :=
 
 (* Some convenience constructros *)
 
-Definition mkStruct (val: CarrierA) : Rtheta := ret val.
+Definition mkStruct {fm} (val: CarrierA) : Rtheta' fm := ret val.
 
-Definition mkSZero : Rtheta := mkStruct 0.
+Definition mkSZero {fm} : Rtheta' fm := mkStruct 0.
 
-Definition mkValue (val: CarrierA) : Rtheta :=
+Definition mkValue {fm} (val: CarrierA) : Rtheta' fm :=
   tell (mkRthetaFlags false false) ;; ret val.
 
-Definition Is_Val : Rtheta -> Prop :=
-  IsVal ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags).
+Definition Is_Val {fm}: (Rtheta' fm) -> Prop :=
+  IsVal ∘ (@execWriter RthetaFlags CarrierA fm).
 
-Definition Is_Struct := not ∘ Is_Val.
+Definition Is_Struct {fm}:= not ∘ @Is_Val fm.
 
-Definition Is_Collision (x:Rtheta) :=
-  (IsCollision ∘ (@execWriter RthetaFlags CarrierA Monoid_RthetaFlags)) x.
-Definition Not_Collision := not ∘ Is_Collision.
+Definition Is_Collision {fm} (x:Rtheta' fm) :=
+  (IsCollision ∘ (@execWriter RthetaFlags CarrierA fm)) x.
+Definition Not_Collision {fm} := not ∘ @Is_Collision fm.
 
-Lemma IsVal_mkValue:
-  ∀ v : CarrierA, Is_Val (mkValue v).
+Lemma IsVal_mkValue {fm:Monoid.Monoid RthetaFlags} `{fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}:
+  ∀ (v:CarrierA), @Is_Val fm (@mkValue fm v).
 Proof.
   intros v.
   unfold Is_Val, IsVal, mkValue.
-  apply Bool.negb_prop_elim.
   simpl.
-  trivial.
+  replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
+                        (@monoid_unit RthetaFlags fm)) with
+  (mkRthetaFlags false false).
+  - apply Bool.negb_prop_elim.
+    simpl.
+    trivial.
+  -
+    symmetry.
+    apply fml.
 Qed.
 
-Global Instance Rtheta_equiv: Equiv (Rtheta) :=
+Global Instance Rtheta'_equiv {fm}: Equiv (Rtheta' fm) :=
   fun am bm => (evalWriter am) = (evalWriter bm).
 
-Global Instance evalWriter_proper:
-  Proper ((=) ==> (=)) (@evalWriter RthetaFlags CarrierA _).
+Global Instance evalWriter_proper {fm}:
+  Proper ((=) ==> (=)) (@evalWriter RthetaFlags CarrierA fm).
 Proof.
   simpl_relation.
 Qed.
 
-Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv in *.
+Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta'_equiv in *.
 
-Global Instance Rtheta_Reflexive_equiv: Reflexive Rtheta_equiv.
+Global Instance Rtheta_Reflexive_equiv {fm}:
+  @Reflexive (Rtheta' fm) Rtheta'_equiv.
 Proof.
   unfold Reflexive.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Symmetric_equiv: Symmetric Rtheta_equiv.
+Global Instance Rtheta_Symmetric_equiv {fm}:
+  @Symmetric (Rtheta' fm) Rtheta'_equiv.
 Proof.
   unfold Symmetric.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Transitive_equiv: Transitive Rtheta_equiv.
+Global Instance Rtheta_Transitive_equiv {fm}:
+  @Transitive (Rtheta' fm) Rtheta'_equiv.
 Proof.
   unfold Transitive.
   destruct x; (unfold_Rtheta_equiv; crush).
 Qed.
 
-Global Instance Rtheta_Equivalence_equiv: Equivalence Rtheta_equiv.
+Global Instance Rtheta_Equivalence_equiv {fm}:
+  @Equivalence (Rtheta' fm) Rtheta'_equiv.
 Proof.
   split.
   apply Rtheta_Reflexive_equiv.
@@ -286,7 +297,8 @@ Proof.
   apply Rtheta_Transitive_equiv.
 Qed.
 
-Global Instance Rtheta_Setoid: Setoid (Rtheta).
+Global Instance Rtheta_Setoid {fm}:
+  @Setoid (Rtheta' fm) Rtheta'_equiv.
 Proof.
   apply Rtheta_Equivalence_equiv.
 Qed.
