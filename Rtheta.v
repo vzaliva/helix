@@ -23,6 +23,7 @@ Require Import CpdtTactics.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+
 (* Both safe and collision tracking flags monads share same underlying data structure *)
 
 Record RthetaFlags : Type :=
@@ -36,12 +37,57 @@ Record RthetaFlags : Type :=
 Definition IsCollision (x:RthetaFlags) := Is_true (is_collision x).
 Definition IsVal (x:RthetaFlags) := not (Is_true (is_struct x)).
 
+Global Instance RthetaFlags_equiv:
+  Equiv RthetaFlags :=
+  fun a b =>
+    is_collision a ≡ is_collision b /\
+    is_struct a ≡ is_struct b.
+
+Global Instance RthetaFlags_Reflexive_equiv: Reflexive RthetaFlags_equiv.
+Proof.
+  unfold Reflexive.
+  intros x.
+  destruct x.
+  unfold equiv, RthetaFlags_equiv.
+  auto.
+Qed.
+
+Global Instance RthetaFlags_Symmetric_equiv: Symmetric RthetaFlags_equiv.
+Proof.
+  unfold Symmetric.
+  intros x y H.
+  destruct x,y.
+  unfold equiv, RthetaFlags_equiv in *.
+  simpl in *.
+  split; crush.
+Qed.
+
+Global Instance RthetaFlags_Transitive_equiv: Transitive RthetaFlags_equiv.
+Proof.
+  unfold Transitive.
+  intros x y z H0 H1.
+  unfold equiv, RthetaFlags_equiv in *.
+  crush.
+Qed.
+
+Global Instance RthetaFlags_Equivalence_equiv: Equivalence RthetaFlags_equiv.
+Proof.
+  split.
+  apply RthetaFlags_Reflexive_equiv.
+  apply RthetaFlags_Symmetric_equiv.
+  apply RthetaFlags_Transitive_equiv.
+Qed.
+
+Global Instance RthetaFlags_Setoid: @Setoid RthetaFlags RthetaFlags_equiv.
+Proof.
+  apply RthetaFlags_Equivalence_equiv.
+Qed.
+
 (* mzero *)
 Definition RthetaFlagsZero := mkRthetaFlags true false.
 
 Global Instance RthetaFlags_type:
   type RthetaFlags := type_libniz RthetaFlags.
-
 
 Section CollisionTrackingRthetaFlags.
   (* mappend which tracks collisions *)
@@ -154,59 +200,14 @@ Section SafeRthetaFlags.
 
 End SafeRthetaFlags.
 
+(* Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
+Definition flags_m {m}: Type -> Type := writer (s:=RthetaFlags) m.
 
-Definition flags_m : Type -> Type := writer Monoid_RthetaFlags.
+(* Generic Rtheta *)
+Definition Rtheta' (m:Monoid.Monoid RthetaFlags) := @flags_m m CarrierA.
 
-(* Global Instance Writer_flags: MonadWriter Monoid_RthetaFlags flags_m
-  := Writer_writerT Monoid_RthetaFlags. *)
-
-Definition Rtheta := flags_m CarrierA.
-
-Global Instance RthetaFlags_equiv:
-  Equiv RthetaFlags :=
-  fun a b =>
-    is_collision a ≡ is_collision b /\
-    is_struct a ≡ is_struct b.
-
-Global Instance RthetaFlags_Reflexive_equiv: Reflexive RthetaFlags_equiv.
-Proof.
-  unfold Reflexive.
-  intros x.
-  destruct x.
-  unfold equiv, RthetaFlags_equiv.
-  auto.
-Qed.
-
-Global Instance RthetaFlags_Symmetric_equiv: Symmetric RthetaFlags_equiv.
-Proof.
-  unfold Symmetric.
-  intros x y H.
-  destruct x,y.
-  unfold equiv, RthetaFlags_equiv in *.
-  simpl in *.
-  split; crush.
-Qed.
-
-Global Instance RthetaFlags_Transitive_equiv: Transitive RthetaFlags_equiv.
-Proof.
-  unfold Transitive.
-  intros x y z H0 H1.
-  unfold equiv, RthetaFlags_equiv in *.
-  crush.
-Qed.
-
-Global Instance RthetaFlags_Equivalence_equiv: Equivalence RthetaFlags_equiv.
-Proof.
-  split.
-  apply RthetaFlags_Reflexive_equiv.
-  apply RthetaFlags_Symmetric_equiv.
-  apply RthetaFlags_Transitive_equiv.
-Qed.
-
-Global Instance RthetaFlags_Setoid: @Setoid RthetaFlags RthetaFlags_equiv.
-Proof.
-  apply RthetaFlags_Equivalence_equiv.
-Qed.
+Definition Rtheta := Rtheta' Monoid_RthetaFlags.
+Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
 
 (* Some convenience constructros *)
 
