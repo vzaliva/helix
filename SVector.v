@@ -23,60 +23,62 @@ Require Import WriterMonadNoT.
 Open Scope vector_scope.
 Open Scope nat_scope.
 
-(* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
-Notation svector n := (vector Rtheta n) (only parsing).
 
-(* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
-Definition sparsify {n} (v:avector n): svector n :=
-  Vmap mkValue v.
+Section SvectorBasics.
+  Parameter fm:Monoid.Monoid RthetaFlags.
 
-Global Instance sparsify_proper {n:nat}:
-  Proper ((=) ==> (=)) (@sparsify n).
-Proof.
-  intros x y E.
-  unfold sparsify.
-  rewrite E.
-  reflexivity.
-Qed.
+  (* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
+  Definition svector n := (vector (Rtheta' fm) n).
 
-(* Project out carrier type values from vector of Rheta values *)
-Definition densify {n} (v:svector n): avector n :=
-  Vmap (A:=Rtheta) (@evalWriter _ _ _) v.
+  (* Construct vector of Rtheta values from vector of raw values of it's carrier type *)
+  Definition sparsify {n} (v:avector n): svector n :=
+    Vmap mkValue v.
 
-Global Instance densify_proper {n:nat}:
-  Proper ((=) ==> (=)) (@densify n).
-Proof.
-  intros x y E.
-  unfold densify.
-  rewrite E.
-  reflexivity.
-Qed.
+  Global Instance sparsify_proper {n:nat}:
+    Proper ((=) ==> (=)) (@sparsify n).
+  Proof.
+    intros x y E.
+    unfold sparsify.
+    rewrite E.
+    reflexivity.
+  Qed.
 
-(* Construct "Zero svector". All values are structural zeros. *)
-Definition szero_svector n: svector n := Vconst mkSZero n.
+  (* Project out carrier type values from vector of Rheta values *)
+  Definition densify {n} (v:svector n): avector n :=
+    Vmap (A:=(Rtheta' fm)) (@evalWriter _ _ _) v.
 
-(* "dense" vector means that it does not contain "structural" values *)
-Definition svector_is_dense {n} (v:svector n) : Prop :=
-  Vforall Is_Val v.
+  Global Instance densify_proper {n:nat}:
+    Proper ((=) ==> (=)) (@densify n).
+  Proof.
+    intros x y E.
+    unfold densify.
+    rewrite E.
+    reflexivity.
+  Qed.
 
-Local Open Scope bool_scope.
+  (* Construct "Zero svector". All values are structural zeros. *)
+  Definition szero_svector n: svector n := Vconst mkSZero n.
 
-Set Implicit Arguments.
+  (* "dense" vector means that it does not contain "structural" values *)
+  Definition svector_is_dense {n} (v:svector n) : Prop :=
+    Vforall (@Is_Val fm)  v.
 
-Lemma Vnth_sparsify:
-  ∀ (n i : nat) (ip : i < n) (v : vector CarrierA n),
-    Vnth (sparsify v) ip ≡ mkValue (Vnth v ip).
-Proof.
-  intros n i ip v.
-  unfold sparsify.
-  apply Vnth_map.
-Qed.
+  Lemma Vnth_sparsify:
+    ∀ (n i : nat) (ip : i < n) (v : avector n),
+      Vnth (sparsify v) ip ≡ mkValue (Vnth v ip).
+  Proof.
+    intros n i ip v.
+    unfold sparsify.
+    apply Vnth_map.
+  Qed.
 
-Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
-  match v with
-  | Vnil => False
-  | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
-  end.
+  Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
+    match v with
+    | Vnil => False
+    | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
+    end.
+
+End SvectorBasics.
 
 Section ExclusiveUnion.
 
