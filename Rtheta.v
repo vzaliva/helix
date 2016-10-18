@@ -201,8 +201,11 @@ Section SafeRthetaFlags.
 
 End SafeRthetaFlags.
 
+(* RthetaFlagsMonad is just a Writer Monad for RthetaFlags *)
+Definition RthetaFlagsMonad (fm:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) fm.
+
 (* Generic Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
-Definition Rtheta' (fm:Monoid.Monoid RthetaFlags) := writer (s:=RthetaFlags) fm CarrierA.
+Definition Rtheta' (fm:Monoid.Monoid RthetaFlags) := RthetaFlagsMonad fm CarrierA.
 
 Definition Rtheta := Rtheta' Monoid_RthetaFlags.
 Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
@@ -223,7 +226,8 @@ Definition RStheta2Rtheta (r:RStheta): Rtheta :=
 
 (* Some convenience constructros *)
 
-Definition mkStruct {fm} (val: CarrierA) : Rtheta' fm := ret val.
+Definition mkStruct {fm} (val: CarrierA) : Rtheta' fm
+  := tell (mkRthetaFlags true false) ;; ret val.
 
 Definition mkSZero {fm} : Rtheta' fm := mkStruct 0.
 
@@ -239,7 +243,7 @@ Definition Is_Collision {fm} (x:Rtheta' fm) :=
   (IsCollision ∘ (@execWriter RthetaFlags CarrierA fm)) x.
 Definition Not_Collision {fm} := not ∘ @Is_Collision fm.
 
-Lemma IsVal_mkValue {fm:Monoid.Monoid RthetaFlags} `{fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}:
+Lemma IsVal_mkValue {fm:Monoid.Monoid RthetaFlags} {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}:
   ∀ (v:CarrierA), @Is_Val fm (@mkValue fm v).
 Proof.
   intros v.
@@ -306,7 +310,7 @@ Qed.
 (* Note: definitional equality *)
 Lemma evalWriter_Rtheta_liftM
       (op: CarrierA -> CarrierA)
-      {a: Rtheta}
+      `{a: Rtheta' fm}
   :
     evalWriter (liftM op a) ≡ op (evalWriter a).
 Proof.
@@ -315,48 +319,69 @@ Qed.
 
 Lemma execWriter_liftM:
   ∀ (f : CarrierA → CarrierA)
-    (x : Rtheta),
+    {fm:Monoid.Monoid RthetaFlags}
+    {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
+    (x : Rtheta' fm),
     execWriter (Monad.liftM f x) ≡ execWriter x.
 Proof.
-  intros f x.
+  intros f fm fml x.
   unfold Monad.liftM, execWriter.
   destruct x.
   simpl.
-  rewrite RthetaFlags_runit.
-  crush.
+  apply fml.
 Qed.
 
 Lemma execWriter_Rtheta_liftM2
       (op: CarrierA -> CarrierA -> CarrierA)
-      {a b: Rtheta}
+      {fm:Monoid.Monoid RthetaFlags}
+      {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
+      {a b: Rtheta' fm}
   :
-    execWriter (liftM2 op a b) ≡ RthetaFlagsAppend (execWriter a) (execWriter b).
+    execWriter (liftM2 op a b) ≡ monoid_plus fm
+               (@execWriter _ _ fm a) (@execWriter _ _ fm b).
 Proof.
   unfold execWriter, liftM2.
   simpl.
-  rewrite RthetaFlags_runit.
+  destruct fml.
+  rewrite monoid_runit.
   reflexivity.
 Qed.
 
 (* Note: definitional equality *)
 Lemma evalWriter_Rtheta_liftM2
       (op: CarrierA -> CarrierA -> CarrierA)
-      {a b: Rtheta}
+      {fm:Monoid.Monoid RthetaFlags}
+      {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
+      {a b: Rtheta' fm}
   :
     evalWriter (liftM2 op a b) ≡ op (evalWriter a) (evalWriter b).
 Proof.
   reflexivity.
 Qed.
 
-Lemma Is_Val_mkStruct:  forall a, not (Is_Val (mkStruct a)).
+Lemma Is_Val_mkStruct
+      {fm:Monoid.Monoid RthetaFlags}
+      {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+  :
+    forall a, not (@Is_Val fm (@mkStruct fm a)).
 Proof.
-  crush.
+  intros a.
+  unfold Is_Val, compose, mkStruct, IsVal, execWriter, runWriter.
+  simpl.
+  destruct fm, fml.
+  rewrite monoid_runit.
+  simpl.
+  tauto.
 Qed.
 
 
 (* mkValue on evalWriter on non-collision value is identity *)
-Lemma mkValue_evalWriter_VNC (r : Rtheta):
-  Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
+Lemma mkValue_evalWriter_VNC
+      {fm:Monoid.Monoid RthetaFlags}
+      {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+      (r : Rtheta' fm)
+  :
+    Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
 Proof.
   intros D N.
   unfold Is_Val, compose in D.
@@ -380,16 +405,21 @@ Proof.
 
   destruct unIdent.
   simpl in *.
-  unfold RthetaFlagsAppend.
+  destruct fm, fml.
   simpl.
   destruct psnd.
   simpl in *.
   subst.
+  rewrite monoid_runit.
   reflexivity.
 Qed.
 
+
 (* mkValue on evalWriter equiv wrt values *)
-Lemma mkValue_evalWriter (r : Rtheta):
+Lemma mkValue_evalWriter
+      {fm:Monoid.Monoid RthetaFlags}
+      {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+      (r: Rtheta' fm):
   mkValue (WriterMonadNoT.evalWriter r) = r.
 Proof.
   unfold WriterMonadNoT.evalWriter.
@@ -402,9 +432,6 @@ Proof.
   simpl in *.
   destruct unIdent.
   simpl in *.
-  unfold RthetaFlagsAppend.
-  simpl.
-  destruct psnd.
   reflexivity.
 Qed.
 
