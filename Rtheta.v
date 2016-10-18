@@ -436,15 +436,17 @@ Proof.
 Qed.
 
 Section Decidablitiy.
-
-  Global Instance IsVal_dec `(x: RthetaFlags) : Decision (IsVal x).
+  Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
   Proof.
     unfold Decision, IsVal.
     destruct x.
     destr_bool; auto.
   Qed.
 
-  Global Instance Is_Val_dec `(x: Rtheta) : Decision (Is_Val x).
+  Global Instance Is_Val_dec
+         {fm:Monoid.Monoid RthetaFlags}
+         (x: Rtheta' fm):
+    Decision (Is_Val x).
   Proof.
     unfold Decision.
     unfold Is_Val, compose.
