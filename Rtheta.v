@@ -20,6 +20,7 @@ Require Import MathClasses.theory.rings.
 Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
 Require Import CpdtTactics.
+Require Import SpiralTactics.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -458,41 +459,53 @@ End Decidablitiy.
 
 Section Zero_Utils.
 
-  Lemma evalWriter_Rtheta_SZero:
-    evalWriter mkSZero = zero.
+  Lemma evalWriter_Rtheta_SZero
+        {fm:Monoid.Monoid RthetaFlags}
+  :
+    @evalWriter _ _ fm mkSZero = zero.
   Proof.
     reflexivity.
   Qed.
 
-  Global Instance mkValue_Proper:
-    Proper((=) ==> (=)) mkValue.
+  Global Instance mkValue_Proper
+         {fm:Monoid.Monoid RthetaFlags}
+    :
+      Proper((=) ==> (=)) (@mkValue fm).
   Proof.
     simpl_relation.
   Qed.
 
-  Global Instance mkStruct_Proper:
-    Proper((=) ==> (=)) mkStruct.
+  Global Instance mkStruct_Proper
+         {fm:Monoid.Monoid RthetaFlags}
+    :
+      Proper((=) ==> (=)) (@mkStruct fm).
   Proof.
     simpl_relation.
   Qed.
 
-  Definition Is_ValZero (x:Rtheta) := (evalWriter x) = 0.
+  Definition Is_ValZero {fm:Monoid.Monoid RthetaFlags} (x:Rtheta' fm)
+    := (evalWriter x) = 0.
 
-  Global Instance Is_ValZero_Proper:
-    Proper ((=) ==> (iff)) (Is_ValZero).
+  Global Instance Is_ValZero_Proper
+         {fm:Monoid.Monoid RthetaFlags}
+    :
+      Proper ((=) ==> (iff)) (@Is_ValZero fm).
   Proof.
     unfold Is_ValZero.
     solve_proper.
   Qed.
 
-  Lemma Is_ValZero_to_mkSZero (x:Rtheta):
+  Lemma Is_ValZero_to_mkSZero
+        {fm:Monoid.Monoid RthetaFlags}
+        (x:Rtheta' fm):
     (Is_ValZero x) <-> (x = mkSZero).
   Proof.
     split; auto.
   Qed.
 
-  Lemma SZero_is_ValZero:
-    Is_ValZero mkSZero.
+  Lemma SZero_is_ValZero
+        {fm:Monoid.Monoid RthetaFlags}:
+    @Is_ValZero fm mkSZero.
   Proof.
     unfold Is_ValZero.
     compute.
@@ -500,12 +513,18 @@ Section Zero_Utils.
   Qed.
 
   (* Using setoid equalities on both components *)
-  Definition Is_SZero (x:Rtheta) :=
+  Definition Is_SZero
+             {fm:Monoid.Monoid RthetaFlags}
+             (x:Rtheta' fm)
+    :=
     (evalWriter x = zero) /\
     (execWriter x = RthetaFlagsZero).
 
-  Lemma Is_SZero_mkSZero:
-    Is_SZero mkSZero.
+  Lemma Is_SZero_mkSZero
+        {fm:Monoid.Monoid RthetaFlags}
+        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+    :
+      @Is_SZero fm mkSZero.
   Proof.
     unfold Is_SZero.
     split.
@@ -513,17 +532,22 @@ Section Zero_Utils.
     unfold mkSZero.
     unfold execWriter.
     unfold equiv.
+    simpl.
+    destruct fml.
+    rewrite monoid_runit.
     reflexivity.
   Qed.
 
   (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter *)
-  Lemma Is_ValZero_not_not:
-    ((not ∘ (not ∘ Is_ValZero)) = Is_ValZero).
+  Lemma Is_ValZero_not_not
+        {fm:Monoid.Monoid RthetaFlags}
+    :
+      ((not ∘ (not ∘ @Is_ValZero fm)) = Is_ValZero).
   Proof.
     unfold compose, equiv, ext_equiv.
     simpl_relation.
     unfold Is_ValZero.
-    rewrite H; clear H.
+    rewrite_clear H.
     generalize dependent (evalWriter y).
     intros c.
     split.
@@ -541,8 +565,10 @@ Section Zero_Utils.
   Qed.
 
   (* Double negation on inValZero. *)
-  Lemma Is_ValZero_not_not_impl:
-    forall x, (not ∘ (not ∘ (Is_ValZero))) x <-> Is_ValZero x.
+  Lemma Is_ValZero_not_not_impl
+        {fm:Monoid.Monoid RthetaFlags}
+    :
+      forall x, (not ∘ (not ∘ (@Is_ValZero fm))) x <-> Is_ValZero x.
   Proof.
     intros x.
     unfold compose, Is_ValZero.
