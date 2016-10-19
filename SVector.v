@@ -24,8 +24,10 @@ Require Import WriterMonadNoT.
 Open Scope vector_scope.
 Open Scope nat_scope.
 
-
+(* Vector using Rtheta (exlusive) *)
 Notation rvector n := (vector Rtheta n) (only parsing).
+(* Vector using RStheta (safe) *)
+Notation rsvector n := (vector RStheta n) (only parsing).
 
 Section SvectorBasics.
   Variable fm:Monoid.Monoid RthetaFlags.

@@ -371,17 +371,17 @@ Section SigmaHCOL_Operators.
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             (v: svector i)
+             (op_family: forall k, (k<n) -> rsvector i -> rsvector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o (op_family k kc)}
+             (v: rsvector i)
     :=
-      SafeMUnion dot initial (@Apply_Family i o n op_family Koperator v).
+      MUnion Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n op_family Koperator v).
 
   Definition ISumReduction
              {i o n}
-             (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             (v: svector i)
+             (op_family: forall k, (k<n) -> rsvector i -> rsvector o)
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o (op_family k kc)}
+             (v: rsvector i)
     :=
       IReduction plus zero op_family v.
 
