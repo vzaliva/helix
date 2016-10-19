@@ -687,9 +687,9 @@ Section OperatorProperies.
         {i o: nat}
         (f: index_map i o)
         {f_inj: index_map_injective f}
-        (x: svector i)
+        (x: svector fm i)
         (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (Scatter f (f_inj:=f_inj) x) f n ip.
+    Vnth x ip ≡ VnthIndexMapped (Scatter fm f (f_inj:=f_inj) x) f n ip.
   Proof.
     unfold VnthIndexMapped.
     unfold Scatter.
@@ -707,11 +707,11 @@ Section OperatorProperies.
 
   Lemma Scatter_is_almost_endomorphism
         (i o : nat)
-        (x : svector i)
+        (x : svector fm i)
         (f: index_map i o)
         {f_inj : index_map_injective f}:
     Vforall (fun p => (Vin p x) \/ (p ≡ mkSZero))
-            (Scatter f (f_inj:=f_inj) x).
+            (Scatter fm f (f_inj:=f_inj) x).
   Proof.
     apply Vforall_nth_intro.
     intros j jp.
@@ -730,8 +730,8 @@ Section OperatorProperies.
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
-        (v: svector n):
-    Vnth (SHPointwise f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+        (v: svector fm n):
+    Vnth (SHPointwise fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
     unfold SHPointwise.
     rewrite Vbuild_nth.
@@ -746,8 +746,8 @@ Section OperatorProperies.
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
-        (v: svector n):
-    Vnth (SHPointwise f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
+        (v: svector fm n):
+    Vnth (SHPointwise fm f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
   Proof.
     unfold SHPointwise.
     rewrite Vbuild_nth.
@@ -758,7 +758,7 @@ Section OperatorProperies.
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHPointwise f = liftM_HOperator (@HPointwise n f pF).
+    SHPointwise fm f = liftM_HOperator fm (@HPointwise n f pF).
   Proof.
     apply ext_equiv_applied_iff'; try typeclasses eauto.
     intros x.
@@ -778,13 +778,13 @@ Section OperatorProperies.
         {o}
         {f: nat -> CarrierA -> CarrierA -> CarrierA}
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        {v: svector (o+o)}
+        {v: svector fm (o+o)}
         {j:nat}
         {jc: j<o}
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp fm o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold SHBinOp, vector2pair.
 
@@ -804,7 +804,7 @@ Section OperatorProperies.
   Lemma SHBinOp_equiv_lifted_HBinOp {o}
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    @SHBinOp o f pF = liftM_HOperator (@HBinOp o f pF).
+    @SHBinOp fm o f pF = liftM_HOperator fm (@HBinOp o f pF).
   Proof.
     apply ext_equiv_applied_iff'; try typeclasses eauto.
     intros x.
@@ -821,7 +821,7 @@ Section OperatorProperies.
     rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
     unfold densify; rewrite 2!Vnth_map.
 
-    rewrite <- evalWriter_Rtheta_liftM2.
+    rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
     rewrite mkValue_evalWriter.
     reflexivity.
   Qed.
