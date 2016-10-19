@@ -829,37 +829,154 @@ Section OperatorProperies.
 End OperatorProperies.
 
 Section StructuralProperies.
-  (* All lifted HOperators are naturally density preserving *)
-  Global Instance liftM_HOperator_DensityPreserving
-         {i o}
-         (op: avector i -> avector o)
-         `{hop: !HOperator op}
-  : DensityPreserving (liftM_HOperator op).
-  Proof.
-    unfold DensityPreserving.
-    intros x D.
 
-    unfold liftM_HOperator, compose.
-    generalize (op (densify x)) as y. intros y.
-    unfold svector_is_dense, sparsify.
-    apply Vforall_map_intro.
-    apply Vforall_nth_intro.
-    intros i0 ip.
-    apply IsVal_mkValue.
-  Qed.
+  Section FlagsMonoidGenericStructuralProperties.
+    Variable fm:Monoid.Monoid RthetaFlags.
+    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+
+    (* All lifted HOperators are naturally density preserving *)
+    Global Instance liftM_HOperator_DensityPreserving
+           {i o}
+           (op: avector i -> avector o)
+           `{hop: !HOperator op}
+      : DensityPreserving fm (liftM_HOperator fm op).
+    Proof.
+      unfold DensityPreserving.
+      intros x D.
+
+      unfold liftM_HOperator, compose.
+      generalize (op (densify _ x)) as y. intros y.
+      unfold svector_is_dense, sparsify.
+      apply Vforall_map_intro.
+      apply Vforall_nth_intro.
+      intros i0 ip.
+      apply IsVal_mkValue.
+    Qed.
+
+    Global Instance liftM_HOperator_DenseCauseNoCol
+           {i o}
+           (op: avector i -> avector o)
+           `{hop: !HOperator op}
+      : DenseCauseNoCol fm (liftM_HOperator fm op).
+    Proof.
+      unfold DenseCauseNoCol.
+      intros x D NC.
+      unfold liftM_HOperator, compose.
+      apply sparsify_non_coll.
+      apply fml.
+    Qed.
 
 
-  Global Instance liftM_HOperator_DenseCauseNoCol
-         {i o}
-         (op: avector i -> avector o)
-         `{hop: !HOperator op}
-    : DenseCauseNoCol (liftM_HOperator op).
-  Proof.
-    unfold DenseCauseNoCol.
-    intros x D NC.
-    unfold liftM_HOperator, compose.
-    apply sparsify_non_coll.
-  Qed.
+    (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
+    Lemma ScatterCollisionFree
+          {i o}
+          (f: index_map i o)
+          {f_inj: index_map_injective f}
+          (x: svector fm i)
+          (Xcf: svector_is_non_collision fm x)
+      :
+        svector_is_non_collision fm (@Scatter fm i o f f_inj x).
+    Proof.
+      unfold svector_is_non_collision, Not_Collision in *.
+      apply Vforall_nth_intro.
+      intros j jp.
+      unfold Is_Collision in *.
+
+      assert(E: Vforall
+                  (fun p => (Vin p x) \/ (p ≡ mkSZero))
+                  (Scatter fm f (f_inj:=f_inj) x)) by
+          apply Scatter_is_almost_endomorphism.
+
+      apply Vforall_nth with (ip:=jp) in E.
+
+      generalize dependent (Vnth (Scatter fm f (f_inj:=f_inj) x) jp).
+      intros v E.
+      destruct E.
+      -
+        apply Vforall_in with (v:=x); assumption.
+      -
+        rewrite_clear H.
+
+        unfold mkSZero, mkStruct, compose.
+        unfold WriterMonadNoT.execWriter, WriterMonadNoT.runWriter.
+        unfold WriterMonad.runWriterT, IsCollision.
+        simpl.
+        destruct fml.
+        erewrite monoid_runit.
+        auto.
+    Qed.
+
+    Lemma GatherCollisionFree
+          {i o: nat}
+          (x: svector fm i)
+          (Xcf: svector_is_non_collision fm x)
+      :
+        forall f, svector_is_non_collision fm (@Gather fm i o f x).
+    Proof.
+      apply Gather_preserves_P, Xcf.
+    Qed.
+
+    (* TODO: maybe <->  *)
+    Lemma Is_Not_Zero_Scatter
+          {m n: nat}
+          (f: index_map m n)
+          {f_inj: index_map_injective f}
+          (x: svector fm m)
+          (j: nat) (jc : j < n):
+      (not ∘ Is_ValZero) (Vnth (Scatter fm f (f_inj:=f_inj) x) jc) ->
+      (exists i (ic:i<m), ⟦f⟧ i ≡ j).
+    Proof.
+      intros H.
+      unfold Scatter in H. rewrite Vbuild_nth in H.
+      break_match.
+      simpl in *.
+      -
+        generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
+        exists (gen_inverse_index_f f j), f_spec.
+        apply build_inverse_index_map_is_right_inverse; auto.
+      -
+        unfold compose in H.
+        assert(C: Is_ValZero (@mkSZero fm)) by apply SZero_is_ValZero.
+        congruence.
+    Qed.
+
+
+    Lemma Is_SZero_Scatter_out_of_range
+          {m n: nat}
+          (f: index_map m n)
+          {f_inj: index_map_injective f}
+          (x: svector fm m)
+          (j: nat) (jc : j < n):
+      not (in_range f j) ->
+      Is_SZero (Vnth (Scatter _ f (f_inj:=f_inj) x) jc).
+    Proof.
+      intros R.
+      unfold Scatter.
+      rewrite Vbuild_nth.
+      break_match.
+      congruence.
+      apply Is_SZero_mkSZero.
+    Qed.
+
+
+    Lemma Scatter_eq_mkSZero
+          {m n: nat}
+          (f: index_map m n)
+          {f_inj: index_map_injective f}
+          (x: svector fm m)
+          (j: nat) (jc : j < n)
+          (R: not (in_range f j)):
+      Vnth (Scatter _ f (f_inj:=f_inj) x) jc ≡ mkSZero.
+    Proof.
+      unfold Scatter.
+      rewrite Vbuild_nth.
+      break_match.
+      congruence.
+      reflexivity.
+    Qed.
+
+  End FlagsMonoidGenericStructuralProperties.
+
 
   Lemma Is_Val_LiftM2
         (f : CarrierA → CarrierA → CarrierA)
@@ -870,17 +987,18 @@ Section StructuralProperies.
   Proof.
     unfold Is_Val, compose, IsVal in *.
     rewrite execWriter_Rtheta_liftM2.
-    simpl in *.
-    generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
-    generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
-    intros f1 V1 f2 V2.
-    destr_bool.
+    - simpl in *.
+      generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
+      generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
+      intros f1 V1 f2 V2.
+      destr_bool.
+    - apply MonoidLaws_RthetaFlags.
   Qed.
 
   Global Instance SHBinOp_DensityPreserving {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    DensityPreserving (@SHBinOp o f pF).
+    DensityPreserving Monoid_RthetaFlags (@SHBinOp _ o f pF).
   Proof.
     unfold DensityPreserving.
     intros x D.
@@ -889,7 +1007,7 @@ Section StructuralProperies.
     intros j jc.
     assert (jc1 : j < o + o) by omega.
     assert (jc2 : j + o < o + o) by omega.
-    erewrite (@SHBinOp_nth o f pF x j jc jc1 jc2).
+    erewrite (@SHBinOp_nth _ o f pF x j jc jc1 jc2).
     assert(V1: Is_Val (Vnth x jc1)) by apply Vforall_nth, D.
     assert(V2: Is_Val (Vnth x jc2)) by apply Vforall_nth, D.
     generalize dependent (Vnth x jc1).
@@ -898,64 +1016,21 @@ Section StructuralProperies.
     apply Is_Val_LiftM2; assumption.
   Qed.
 
-  (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
-  Lemma ScatterCollisionFree
-        {i o}
-        (f: index_map i o)
-        {f_inj: index_map_injective f}
-        (x: svector i)
-        (Xcf: svector_is_non_collision x)
-    :
-      svector_is_non_collision (@Scatter i o f f_inj x).
-  Proof.
-    unfold svector_is_non_collision, Not_Collision in *.
-    apply Vforall_nth_intro.
-    intros j jp.
-    unfold Is_Collision in *.
-
-    assert(E: Vforall
-                (fun p => (Vin p x) \/ (p ≡ mkSZero))
-                (Scatter f (f_inj:=f_inj) x)) by
-        apply Scatter_is_almost_endomorphism.
-
-    apply Vforall_nth with (ip:=jp) in E.
-
-    generalize dependent (Vnth (Scatter f (f_inj:=f_inj) x) jp).
-    intros v E.
-    destruct E.
-    -
-      unfold svector_is_non_collision in Xcf.
-      apply Vforall_in with (v:=x); assumption.
-    -
-      rewrite_clear H.
-      auto.
-  Qed.
-
-  Lemma GatherCollisionFree
-        {i o: nat}
-        (x: svector i)
-        (Xcf: svector_is_non_collision x)
-    :
-      forall f, svector_is_non_collision (@Gather i o f x).
-  Proof.
-    apply Gather_preserves_P, Xcf.
-  Qed.
-
   Lemma USparseEmbeddingIsDense
         {n i o ki ko}
-        (kernel: forall k, (k<n) -> svector ki -> svector ko)
-        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+        (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving _ ki ko (kernel k kc)}
         (f: index_map_family ko o n)
         {f_inj: index_map_family_injective f} (* gives non-col *)
         {f_sur: index_map_family_surjective f} (* gives density *)
         (g: index_map_family ki i n)
-        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-        (x: svector i)
+        `{Koperator: forall k (kc: k<n), @SHOperator _ ki ko (kernel k kc)}
+        (x: rvector i)
         {nz: n ≢ 0}
     :
       (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
-      svector_is_dense
-        (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
+      svector_is_dense _
+                       (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
   Proof.
     intros g_dense.
     apply Vforall_nth_intro.
@@ -974,9 +1049,9 @@ Section StructuralProperies.
       destruct f_sur as [z [p [zc [pc F]]]].
       exists p, pc.
 
-      assert(Vforall Is_Val (Gather (⦃g ⦄ p pc) x))
+      assert(Vforall Is_Val (Gather _ (⦃g ⦄ p pc) x))
         by apply Gather_dense_constr, g_dense.
-      generalize dependent (Gather (⦃g ⦄ p pc) x).
+      generalize dependent (Gather _ (⦃g ⦄ p pc) x).
       intros gx GD.
       clear g_dense g.
 
@@ -1007,11 +1082,11 @@ Section StructuralProperies.
   (* Pre-condition for UnionFold not causing any collisions *)
   Lemma Not_Collision_UnionFold
         {n}
-        {dot:CarrierA->CarrierA->CarrierA}
+        {dot:CarrierA -> CarrierA -> CarrierA}
         {neutral:CarrierA}
-        {v: svector n}
+        {v: rvector n}
     :
-      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (UnionFold dot neutral v).
+      Vforall Not_Collision v -> Vunique Is_Val v -> Not_Collision (UnionFold _ dot neutral v).
   Proof.
     intros VNC H.
     dependent induction n.
@@ -1030,7 +1105,7 @@ Section StructuralProperies.
            apply Vunique_cons_tail in H.
            apply H.
       * apply VNCh.
-      * cut(¬(Is_Val (UnionFold dot neutral x)) \/ (¬ (Is_Val h))).
+      * cut(¬(Is_Val (UnionFold _ dot neutral x)) \/ (¬ (Is_Val h))).
         firstorder.
         assert(D: Decision (Is_Val h)) by apply Is_Val_dec.
         destruct D as [Ph | Phn].
@@ -1059,80 +1134,23 @@ Section StructuralProperies.
            apply Phn.
   Qed.
 
-  (* TODO: maybe <->  *)
-  Lemma Is_Not_Zero_Scatter
-        {m n: nat}
-        (f: index_map m n)
-        {f_inj: index_map_injective f}
-        (x: svector m)
-        (j: nat) (jc : j < n):
-    (not ∘ Is_ValZero) (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
-    (exists i (ic:i<m), ⟦f⟧ i ≡ j).
-  Proof.
-    intros H.
-    unfold Scatter in H. rewrite Vbuild_nth in H.
-    break_match.
-    simpl in *.
-    -
-      generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
-      exists (gen_inverse_index_f f j), f_spec.
-      apply build_inverse_index_map_is_right_inverse; auto.
-    -
-      unfold compose in H.
-      assert(C: Is_ValZero mkSZero) by apply SZero_is_ValZero.
-      congruence.
-  Qed.
-
-  Lemma Is_SZero_Scatter_out_of_range
-        {m n: nat}
-        (f: index_map m n)
-        {f_inj: index_map_injective f}
-        (x: svector m)
-        (j: nat) (jc : j < n):
-    not (in_range f j) ->
-    Is_SZero (Vnth (Scatter f (f_inj:=f_inj) x) jc).
-  Proof.
-    intros R.
-    unfold Scatter.
-    rewrite Vbuild_nth.
-    break_match.
-    congruence.
-    apply Is_SZero_mkSZero.
-  Qed.
-
-  Lemma Scatter_eq_mkSZero
-        {m n: nat}
-        (f: index_map m n)
-        {f_inj: index_map_injective f}
-        (x: svector m)
-        (j: nat) (jc : j < n)
-        (R: not (in_range f j)):
-    Vnth (Scatter f (f_inj:=f_inj) x) jc ≡ mkSZero.
-  Proof.
-    unfold Scatter.
-    rewrite Vbuild_nth.
-    break_match.
-    congruence.
-    reflexivity.
-  Qed.
-
   Lemma USparseEmbeddingCauseNoCol
         {n i o ki ko}
-        (kernel: forall k, (k<n) -> svector ki -> svector ko)
-        `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-        `{KNC: forall k (kc: k<n), DenseCauseNoCol (kernel k kc)}
+        (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+        `{KD: forall k (kc: k<n), @DensityPreserving _ ki ko (kernel k kc)}
+        `{KNC: forall k (kc: k<n), DenseCauseNoCol _ (kernel k kc)}
         (f: index_map_family ko o n)
         {f_inj: index_map_family_injective f} (* gives non-col *)
         {f_sur: index_map_family_surjective f} (* gives density *)
         (g: index_map_family ki i n)
-        `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-        (x: svector i)
+        `{Koperator: forall k (kc: k<n), @SHOperator _ ki ko (kernel k kc)}
+        (x: rvector i)
         {nz: n ≢ 0}
     :
       (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       (forall j (jc:j<n) k (kc:k<ki), Not_Collision (Vnth x («⦃g⦄ j jc» k kc))) ->
-      svector_is_non_collision
-        (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
+      svector_is_non_collision _
+                               (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
   Proof.
     intros g_dense GNC.
     apply Vforall_nth_intro.
@@ -1153,7 +1171,7 @@ Section StructuralProperies.
         specialize (GNC j jn).
 
         (* Get rid of Gather, carring over its properties *)
-        assert(GXD: svector_is_dense (Gather (⦃ g ⦄ j jn) x)).
+        assert(GXD: svector_is_dense _ (Gather Monoid_RthetaFlags (⦃ g ⦄ j jn) x)).
         {
           unfold svector_is_dense.
           apply Vforall_nth_intro.
@@ -1162,7 +1180,7 @@ Section StructuralProperies.
           apply g_dense.
         }
 
-        assert(GXNC: svector_is_non_collision (Gather (⦃ g ⦄ j jn) x)).
+        assert(GXNC: svector_is_non_collision _ (Gather Monoid_RthetaFlags (⦃ g ⦄ j jn) x)).
         {
           unfold svector_is_non_collision.
           apply Vforall_nth_intro.
@@ -1170,18 +1188,18 @@ Section StructuralProperies.
           rewrite Gather_spec.
           apply GNC.
         }
-        generalize dependent (Gather (⦃ g ⦄ j jn) x).
+        generalize dependent (Gather _ (⦃ g ⦄ j jn) x).
         intros gx GXD GXNC.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(LD: svector_is_dense ((kernel j jn) gx)).
+        assert(LD: svector_is_dense Monoid_RthetaFlags ((kernel j jn) gx)).
         {
           apply KD.
           apply GXD.
         }
 
-        assert(KNC1: svector_is_non_collision ((kernel j jn) gx)).
+        assert(KNC1: svector_is_non_collision Monoid_RthetaFlags ((kernel j jn) gx)).
         {
           apply KNC.
           apply GXD.
@@ -1192,11 +1210,12 @@ Section StructuralProperies.
         clear GXD GXNC gx.
 
         (* Get rid of Scatter  *)
-        assert(SNC: svector_is_non_collision (@Scatter ko o (family_f ko o (S n) f j jn)
-                                                       (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx)).
+        assert(SNC: svector_is_non_collision Monoid_RthetaFlags (@Scatter _ ko o (family_f ko o (S n) f j jn)
+                                                                          (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx)).
 
         apply ScatterCollisionFree, KNC1.
-        generalize dependent (@Scatter ko o (family_f ko o (S n) f j jn)
+        apply MonoidLaws_RthetaFlags.
+        generalize dependent (@Scatter Monoid_RthetaFlags ko o (family_f ko o (S n) f j jn)
                                        (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
         intros sx SNC.
         unfold svector_is_non_collision in SNC.
@@ -1210,7 +1229,7 @@ Section StructuralProperies.
         unfold compose.
 
         (* Get rid of Gather, carring over its properties *)
-        assert(GXDi0: svector_is_dense (Gather (⦃ g ⦄ i0 ic) x)).
+        assert(GXDi0: svector_is_dense _ (Gather Monoid_RthetaFlags (⦃ g ⦄ i0 ic) x)).
         {
           unfold svector_is_dense.
           apply Vforall_nth_intro.
@@ -1218,10 +1237,10 @@ Section StructuralProperies.
           rewrite Gather_spec.
           apply g_dense.
         }
-        generalize dependent (Gather (⦃ g ⦄ i0 ic) x).
+        generalize dependent (Gather _ (⦃ g ⦄ i0 ic) x).
         intros gxi0 GXDi0.
 
-        assert(GXDj: svector_is_dense (Gather (⦃ g ⦄ j jc) x)).
+        assert(GXDj: svector_is_dense _ (Gather Monoid_RthetaFlags (⦃ g ⦄ j jc) x)).
         {
           unfold svector_is_dense.
           apply Vforall_nth_intro.
@@ -1229,12 +1248,12 @@ Section StructuralProperies.
           rewrite Gather_spec.
           apply g_dense.
         }
-        generalize dependent (Gather (⦃ g ⦄ j jc) x).
+        generalize dependent (Gather _ (⦃ g ⦄ j jc) x).
         intros gxj GXDj.
         clear GNC g_dense.
 
         (* Get rid of lifted kernel, carring over its properties *)
-        assert(svector_is_dense ((kernel i0 ic) gxi0)).
+        assert(svector_is_dense Monoid_RthetaFlags ((kernel i0 ic) gxi0)).
         {
           apply KD.
           apply GXDi0.
@@ -1243,7 +1262,7 @@ Section StructuralProperies.
         intros kxi KXDi0.
         clear gxi0 GXDi0.
 
-        assert (svector_is_dense ( (kernel j jc) gxj)).
+        assert (svector_is_dense Monoid_RthetaFlags ( (kernel j jc) gxj)).
         {
           apply KD.
           apply GXDj.
@@ -1290,11 +1309,11 @@ Section StructuralProperies.
   (* Union of UnionFriendly family of operators and collision-free vector will not cause any collisions *)
   Global Instance SumUnion_SumUnionFriendly_CauseNoCol
          {i o n}
-         (op_family: forall k, (k<n) -> svector i -> svector o)
-         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+         (op_family: forall k, (k<n) -> rvector i -> rvector o)
+         `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
          `{Uf: !IUnionFriendly op_family}
-         {NC: forall k (kc: k<n), CauseNoCol (op_family k kc)}:
-    CauseNoCol (SumUnion ∘ (Apply_Family op_family)).
+         {NC: forall k (kc: k<n), CauseNoCol _ (op_family k kc)}:
+    CauseNoCol _ (SumUnion _ ∘ (Apply_Family _ op_family)).
   Proof.
     unfold compose, CauseNoCol.
     intros x Xcf.
@@ -1306,7 +1325,6 @@ Section StructuralProperies.
     unfold Apply_Family.
     rewrite AbsorbISumUnionIndex_Vbuild.
     apply Not_Collision_UnionFold.
-
     -
       unfold CauseNoCol in NC.
       apply Vforall_nth_intro.
@@ -1337,9 +1355,9 @@ Section ValueProperties.
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
       apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                                    (transpose
-                                                       (Apply_Family op_family x)
-                                                    ).
+                                               (transpose
+                                                  (Apply_Family op_family x)
+                                               ).
 
   Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
          {n gi go ki ko}
