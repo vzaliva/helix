@@ -94,6 +94,39 @@ Section SigmaHCOL_Operators.
       apply ext_equiv_applied_iff.
     Qed.
 
+    Lemma SHOperator_Reflexivity
+          {m n: nat}
+          `{SHOperator m n f}:
+      f = f.
+    Proof.
+      apply (@SHOperator_functional_extensionality m n).
+      assumption.
+      assumption.
+      intros.
+      reflexivity.
+    Qed.
+
+    Definition liftM_HOperator
+               {i o}
+               (op: avector i -> avector o)
+      : svector fm i -> svector fm o :=
+      sparsify fm ∘ op ∘ densify fm.
+
+    Global Instance SHOperator_liftM_HOperator
+           {i o}
+           (op: avector i -> avector o)
+           `{hop: !HOperator op}
+      : SHOperator (liftM_HOperator op).
+    Proof.
+      unfold SHOperator.
+      split; try apply vec_Setoid.
+      intros x y Exy.
+      unfold liftM_HOperator, compose.
+      unfold sparsify, densify.
+      rewrite Exy.
+      reflexivity.
+    Qed.
+
     (** Apply family of operators to same fector and return matrix of results *)
     Definition Apply_Family
                {i o n}
@@ -324,9 +357,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)
-                                    ).
+                                         (transpose
+                                            (Apply_Family Monoid_RthetaFlags op_family x)
+                                         ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -388,88 +421,55 @@ Section SigmaHCOL_Operators.
 End SigmaHCOL_Operators.
 
 
-Lemma SHOperator_Reflexivity
-      {m n: nat}
-      `{SHOperator m n f}:
-  f = f.
-Proof.
-  apply (@SHOperator_functional_extensionality m n).
-  assumption.
-  assumption.
-  intros.
-  reflexivity.
-Qed.
-
 (* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-            (forall _ : svector ?m, svector ?n)
-            (@ext_equiv
-               (svector ?m)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
-               (svector ?n)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
+           (forall _ : svector ?fm ?m, svector ?fm ?n)
+           (@ext_equiv
+              (svector ?m)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
+              (svector ?n)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
-Definition liftM_HOperator
-           {i o}
-           (op: avector i -> avector o)
-  : svector i -> svector o :=
-  sparsify ∘ op ∘ densify.
 
-Global Instance SHOperator_liftM_HOperator
-       {i o}
-       (op: avector i -> avector o)
-       `{hop: !HOperator op}
-  : SHOperator (liftM_HOperator op).
-Proof.
-  unfold SHOperator.
-  split; try apply vec_Setoid.
-  intros x y Exy.
-  unfold liftM_HOperator, compose.
-  unfold sparsify, densify.
-  rewrite Exy.
-  reflexivity.
-Qed.
-
-(* Family of operators *)
+(* TODO: For now we define SparseEmbedding on Rtheta. It might be need to defined more generally on (Rtheta fm) *)
 Definition SparseEmbedding
            {n i o ki ko}
-           (kernel: forall k, (k<n) -> svector ki -> svector ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+           (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
            (j:nat) (jc:j<n)
   :=
-    Scatter (⦃f⦄ j jc)
+    Scatter Monoid_RthetaFlags (⦃f⦄ j jc)
             (f_inj:=index_map_family_member_injective f_inj j jc)
             ∘ (kernel j jc)
-            ∘ (Gather (⦃g⦄ j jc)).
-
+            ∘ (Gather Monoid_RthetaFlags (⦃g⦄ j jc)).
 
 Global Instance SHOperator_SparseEmbedding
        {n i o ki ko}
-       (kernel: forall k, (k<n) -> svector ki -> svector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
        (j:nat) (jc:j<n):
-  SHOperator
-    (@SparseEmbedding
-       n i o ki ko
-       kernel
-       KD
-       f
-       f_inj
-       g
-       Koperator
-       j jc).
+  SHOperator Monoid_RthetaFlags
+             (@SparseEmbedding
+                n i o ki ko
+                kernel
+                KD
+                f
+                f_inj
+                g
+                Koperator
+                j jc).
 Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
@@ -478,16 +478,15 @@ Proof.
   reflexivity.
 Qed.
 
-
-
 (* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
       {m n: nat}
+      {fm:Monoid.Monoid RthetaFlags} {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
       (f: index_map m n)
       {f_inj: index_map_injective f}
-      (x: svector m)
+      (x: svector fm m)
       (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter f (f_inj:=f_inj) x) jc) ->
+  Is_Val (Vnth (Scatter fm f (f_inj:=f_inj) x) jc) ->
   (exists i (ic:i<m), ⟦f⟧ i ≡ j).
 Proof.
   intros H.
@@ -503,15 +502,14 @@ Proof.
     inversion H.
 Qed.
 
-
 Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        {n gi go ki ko}
-       (kernel: forall k, (k<n) -> svector ki -> svector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
        (f: index_map_family ko go n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki gi n)
-       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
   :
     IUnionFriendly
       (@SparseEmbedding
@@ -536,8 +534,8 @@ Proof.
   unfold Vnth_aux.
   unfold SparseEmbedding.
   unfold compose.
-  generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
-  generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
+  generalize (kernel i0 ic0 (Gather _ (⦃ g ⦄ i0 ic0) x)) as x0.
+  generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) x)) as x1.
   intros x0 x1.
   intros [V0 V1].
   apply Is_Val_Scatter in V0.
@@ -550,16 +548,15 @@ Proof.
   assumption.
 Qed.
 
-
 Definition USparseEmbedding
            {n i o ki ko}
-           (kernel: forall k, (k<n) -> svector ki -> svector ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+           (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-  : svector i -> svector o
+           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
+  : rvector i -> rvector o
   :=
     @ISumUnion i o n
                (@SparseEmbedding n i o ki ko
@@ -571,18 +568,18 @@ Definition USparseEmbedding
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
-       (kernel: forall k, (k<n) -> svector ki -> svector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}:
-  SHOperator (@USparseEmbedding
-                n i o ki ko
-                kernel KD
-                f f_inj
-                g
-                Koperator).
+       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}:
+  SHOperator Monoid_RthetaFlags (@USparseEmbedding
+                                   n i o ki ko
+                                   kernel KD
+                                   f f_inj
+                                   g
+                                   Koperator).
 Proof.
   unfold SHOperator.
   split; repeat apply vec_Setoid.
@@ -590,9 +587,9 @@ Proof.
   unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
+  apply MUnion_proper ; [ apply MonoidLaws_RthetaFlags | apply CarrierAPlus_proper | reflexivity].
   split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
+  apply MUnion_proper ; [apply MonoidLaws_RthetaFlags | apply CarrierAPlus_proper | reflexivity].
   reflexivity.
   vec_index_equiv j jc.
   rewrite 2!Vbuild_nth.
