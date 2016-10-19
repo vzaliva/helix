@@ -357,9 +357,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                         (transpose
-                                            (Apply_Family Monoid_RthetaFlags op_family x)
-                                         ).
+                                    (transpose
+                                       (Apply_Family Monoid_RthetaFlags op_family x)
+                                    ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -598,14 +598,18 @@ Proof.
 Qed.
 
 Section OperatorProperies.
+
+  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
   Lemma Gather_spec
         {i o: nat}
         (f: index_map o i)
-        (x: svector i):
-    ∀ n (ip : n < o), Vnth (Gather f x) ip ≡ VnthIndexMapped x f n ip.
+        (x: svector fm i):
+    ∀ n (ip : n < o), Vnth (Gather fm f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
     unfold Gather, Vbuild.
     destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
@@ -618,9 +622,9 @@ Section OperatorProperies.
   (* Index-function based condition under which Gather output is dense *)
   Lemma Gather_dense_constr (i ki : nat)
         (g: index_map ki i)
-        (x: svector i)
+        (x: svector fm i)
         (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather g x).
+    Vforall Is_Val (Gather fm g x).
   Proof.
     apply Vforall_nth_intro.
     intros i0 ip.
@@ -630,10 +634,10 @@ Section OperatorProperies.
 
   Lemma Gather_is_endomorphism:
     ∀ (i o : nat)
-      (x : svector i),
+      (x : svector fm i),
       ∀ (f: index_map o i),
         Vforall (Vin_aux x)
-                (Gather f x).
+                (Gather fm f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -647,15 +651,15 @@ Section OperatorProperies.
   Qed.
 
   Lemma Gather_preserves_P:
-    ∀ (i o : nat) (x : svector i) (P: Rtheta -> Prop),
+    ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
       Vforall P x
       → ∀ f : index_map o i,
-        Vforall P (Gather f x).
+        Vforall P (Gather fm f x).
   Proof.
     intros.
-    assert(Vforall (Vin_aux x) (Gather f x))
+    assert(Vforall (Vin_aux x) (Gather _ f x))
       by apply Gather_is_endomorphism.
-    generalize dependent (Gather f x).
+    generalize dependent (Gather _ f x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
@@ -665,10 +669,10 @@ Section OperatorProperies.
   Qed.
 
   Lemma Gather_preserves_density:
-    ∀ (i o : nat) (x : svector i)
+    ∀ (i o : nat) (x : svector fm i)
       (f: index_map o i),
-      svector_is_dense x ->
-      svector_is_dense (Gather f x).
+      svector_is_dense fm x ->
+      svector_is_dense fm (Gather fm f x).
   Proof.
     intros.
     unfold svector_is_dense in *.
