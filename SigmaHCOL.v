@@ -33,6 +33,7 @@ Require Import MathClasses.theory.setoids.
 
 (* Ext Lib *)
 Require Import ExtLib.Structures.Monad.
+Require Import ExtLib.Structures.Monoid.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -45,71 +46,271 @@ Global Open Scope nat_scope.
 natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
            {i o:nat}
-           (x: svector i)
+           {A: Type}
+           (x: vector A i)
            (f: index_map o i)
            (n:nat) (np: n<o)
-  : Rtheta
+  : A
   := Vnth x (« f » n np).
 
 Section SigmaHCOL_Operators.
 
-  Class SHOperator {i o:nat} (op: svector i -> svector o) :=
-    SHOperator_setoidmor :> Setoid_Morphism op.
+  Section FlagsMonoidGenericOperators.
 
-  (* Strong condition: operator always produce dense output *)
-  Class AlwaysDense {i o:nat} (op: svector i -> svector o) :=
-    o_dense : forall x, svector_is_dense (op x).
+    Variable fm:Monoid.Monoid RthetaFlags.
+    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-  (* Strong condition: operator preserves vectors' density *)
-  Class DensityPreserving {i o:nat} (op: svector i -> svector o) :=
-    o_den_pres : forall x, svector_is_dense x -> svector_is_dense (op x).
+    Class SHOperator {i o:nat} (op: svector fm i -> svector fm o) :=
+      SHOperator_setoidmor :> Setoid_Morphism op.
 
-  (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
-  Class DenseCauseNoCol {i o:nat} (op: svector i -> svector o) :=
-    o_den_non_col : forall x,
-      svector_is_dense x ->
-      svector_is_non_collision x ->
-      svector_is_non_collision (op x).
+    (* Strong condition: operator always produce dense output *)
+    Class AlwaysDense {i o:nat} (op: svector fm i -> svector fm o) :=
+      o_dense : forall x, svector_is_dense fm (op x).
 
-  (* Even weaker condition: applied to a vector without collisions does not produce strucural collisions *)
-  Class CauseNoCol {i o:nat} (op: svector i -> svector o) :=
-    o_non_col : forall x,
-      svector_is_non_collision x ->
-      svector_is_non_collision (op x).
+    (* Strong condition: operator preserves vectors' density *)
+    Class DensityPreserving {i o:nat} (op: svector fm i -> svector fm o) :=
+      o_den_pres : forall x, svector_is_dense fm x -> svector_is_dense fm (op x).
 
-  Lemma SHOperator_functional_extensionality
-        {m n: nat}
-        `{SHOperator m n f}
-        `{SHOperator m n g}:
-    (∀ v, f v = g v) -> f = g.
-  Proof.
-    unfold SHOperator in *.
-    apply ext_equiv_applied_iff.
-  Qed.
+    (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
+    Class DenseCauseNoCol {i o:nat} (op: svector fm i -> svector fm o) :=
+      o_den_non_col : forall x,
+        svector_is_dense fm x ->
+        svector_is_non_collision fm x ->
+        svector_is_non_collision fm (op x).
 
-  (** Apply family of operators to same fector and return matrix of results *)
-  Definition Apply_Family
-             {i o n}
-             (op_family: forall k, (k<n) -> svector i -> svector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-             (x: svector i)
-    :=
-      (Vbuild
-         (λ (j:nat) (jc:j<n),  op_family j jc x)).
+    (* Even weaker condition: applied to a vector without collisions does not produce strucural collisions *)
+    Class CauseNoCol {i o:nat} (op: svector fm i -> svector fm o) :=
+      o_non_col : forall x,
+        svector_is_non_collision fm x ->
+        svector_is_non_collision fm (op x).
 
-  Global Instance Apply_Family_proper
-         {i o n}
-         (op_family: forall k, (k<n) -> svector i -> svector o)
-         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
-    Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
-  Proof.
-    intros x y E.
-    unfold Apply_Family.
-    vec_index_equiv j jc.
-    rewrite 2!Vbuild_nth.
-    rewrite E.
-    reflexivity.
-  Qed.
+    Lemma SHOperator_functional_extensionality
+          {m n: nat}
+          `{SHOperator m n f}
+          `{SHOperator m n g}:
+      (∀ v, f v = g v) -> f = g.
+    Proof.
+      unfold SHOperator in *.
+      apply ext_equiv_applied_iff.
+    Qed.
+
+    (** Apply family of operators to same fector and return matrix of results *)
+    Definition Apply_Family
+               {i o n}
+               (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+               `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+               (x: svector fm i)
+      :=
+        (Vbuild
+           (λ (j:nat) (jc:j<n),  op_family j jc x)).
+
+    Global Instance Apply_Family_proper
+           {i o n}
+           (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
+      Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
+    Proof.
+      intros x y E.
+      unfold Apply_Family.
+      vec_index_equiv j jc.
+      rewrite 2!Vbuild_nth.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Definition Gather
+               {i o: nat}
+               (f: index_map o i)
+               (x: svector fm i):
+      svector fm o
+      := Vbuild (VnthIndexMapped x f).
+
+    Global Instance SHOperator_Gather
+           {i o: nat}
+           (f: index_map o i):
+      SHOperator (Gather f).
+    Proof.
+      unfold SHOperator.
+      split; repeat apply vec_Setoid.
+      intros x y E.
+      unfold Gather.
+      unfold VnthIndexMapped.
+      vec_index_equiv j jp.
+      rewrite 2!Vbuild_nth.
+      apply Vnth_arg_equiv.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Definition GathH
+               {i o}
+               (base stride: nat)
+               {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+      :
+        (svector fm i) -> svector fm o
+      :=
+        Gather (h_index_map base stride
+                            (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
+               ).
+
+    Global Instance SHOperator_GathH
+           {i o}
+           (base stride: nat)
+           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
+      SHOperator (@GathH i o base stride domain_bound).
+    Proof.
+      apply SHOperator_Gather.
+    Qed.
+
+
+    Definition Scatter
+               {i o: nat}
+               (f: index_map i o)
+               {f_inj: index_map_injective f}
+               (x: svector fm i) : svector fm o
+      :=
+        let f' := build_inverse_index_map f in
+        Vbuild (fun n np =>
+                  match decide (in_range f n) with
+                  | left r => Vnth x (inverse_index_f_spec f f' n r)
+                  | right _ => mkSZero
+                  end).
+
+    Global Instance SHOperator_Scatter
+           {i o: nat}
+           (f: index_map i o)
+           {f_inj: index_map_injective f}:
+      SHOperator (@Scatter i o f f_inj).
+    Proof.
+      unfold SHOperator.
+      split; try apply vec_Setoid.
+      intros x y E.
+      unfold Scatter.
+      vec_index_equiv j jp.
+      rewrite 2!Vbuild_nth.
+      simpl.
+      break_match.
+      simpl.
+      apply Vnth_arg_equiv, E.
+      reflexivity.
+    Qed.
+
+    Definition ScatH
+               {i o}
+               (base stride: nat)
+               {range_bound: ∀ x : nat, x < i → base + x * stride < o}
+               {snzord0: stride ≢ 0 \/ i < 2}
+      :
+        (svector fm i) -> svector fm o
+      :=
+        Scatter (h_index_map base stride (range_bound:=range_bound))
+                (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
+
+    Global Instance SHOperator_ScatH
+           {i o}
+           (base stride: nat)
+           {range_bound: ∀ x : nat, x < i → base + x * stride < o}
+           {snzord0: stride ≢ 0 \/ i < 2}:
+      SHOperator (@ScatH i o base stride range_bound snzord0).
+    Proof.
+      apply SHOperator_Scatter.
+    Qed.
+
+    Global Instance SHOperator_compose
+           {i1 o2 o3}
+           (op1: svector fm o2 -> svector fm o3)
+           `{S1:!SHOperator op1}
+           (op2: svector fm i1 -> svector fm o2)
+           `{S2: !SHOperator op2}:
+      SHOperator (op1 ∘ op2).
+    Proof.
+      unfold SHOperator in *.
+      split; try apply vec_Setoid.
+      intros x y Exy.
+      unfold compose.
+      destruct S1, S2.
+      auto.
+    Qed.
+
+    (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
+    Definition SHPointwise
+               {n: nat}
+               (f: { i | i<n} -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (x: svector fm n): svector fm n
+      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
+
+    Global Instance SHOperator_SHPointwise
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      SHOperator (SHPointwise f).
+    Proof.
+      split; try apply vec_Setoid.
+      intros x y E.
+      unfold SHPointwise.
+      vec_index_equiv j jc.
+      rewrite 2!Vbuild_nth.
+
+      unfold_Rtheta_equiv.
+      rewrite 2!evalWriter_Rtheta_liftM.
+
+      f_equiv.
+      apply evalWriter_proper.
+      apply Vnth_arg_equiv.
+      apply E.
+    Qed.
+
+    Definition SHBinOp
+               {o}
+               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               (v:svector fm (o+o)): svector fm o
+      :=  match (vector2pair o v) with
+          | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
+          end.
+
+    Global Instance SHOperator_SHBinOp {o}
+           (f: nat -> CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+      SHOperator (@SHBinOp o f pF).
+    Proof.
+      split; try apply vec_Setoid.
+
+      intros x y E.
+      unfold SHBinOp.
+      vec_index_equiv j jc.
+      unfold vector2pair.
+
+
+      repeat break_let.
+
+      replace t with (fst (Vbreak x)) by crush.
+      replace t0 with (snd (Vbreak x)) by crush.
+      replace t1 with (fst (Vbreak y)) by crush.
+      replace t2 with (snd (Vbreak y)) by crush.
+      clear Heqp Heqp0.
+
+      rewrite 2!Vbuild_nth.
+
+      unfold_Rtheta_equiv.
+      rewrite 2!evalWriter_Rtheta_liftM2.
+
+      f_equiv.
+      - apply evalWriter_proper.
+        apply Vnth_arg_equiv.
+        rewrite E.
+        reflexivity.
+      - apply evalWriter_proper.
+        apply Vnth_arg_equiv.
+        rewrite E.
+        reflexivity.
+      - apply fml.
+      - apply fml.
+    Qed.
+
+
+  End FlagsMonoidGenericOperators.
 
   (** A matrix produced by applying family of operators will have at
   at most one non-structural element per row. The name alludes to the
@@ -119,201 +320,13 @@ Section SigmaHCOL_Operators.
   CarrierA type) *)
   Class IUnionFriendly
         {i o n}
-        (op_family: forall k, (k<n) -> svector i -> svector o)
-        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+        (op_family: forall k, (k<n) -> rvector i -> rvector o)
+        `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
                                     (transpose
-                                       (Apply_Family op_family x)
+                                       (Apply_Family Monoid_RthetaFlags op_family x)
                                     ).
-  Definition Gather
-             {i o: nat}
-             (f: index_map o i)
-             (x: svector i):
-    svector o
-    := Vbuild (VnthIndexMapped x f).
-
-  Global Instance SHOperator_Gather
-         {i o: nat}
-         (f: index_map o i):
-    SHOperator (Gather f).
-  Proof.
-    unfold SHOperator.
-    split; repeat apply vec_Setoid.
-    intros x y E.
-    unfold Gather.
-    unfold VnthIndexMapped.
-    vec_index_equiv j jp.
-    rewrite 2!Vbuild_nth.
-    apply Vnth_arg_equiv.
-    rewrite E.
-    reflexivity.
-  Qed.
-
-  Definition GathH
-             {i o}
-             (base stride: nat)
-             {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
-    :
-      (svector i) -> svector o
-    :=
-      Gather (h_index_map base stride
-                          (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
-             ).
-
-  Global Instance SHOperator_GathH
-         {i o}
-         (base stride: nat)
-         {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-    SHOperator (@GathH i o base stride domain_bound).
-  Proof.
-    apply SHOperator_Gather.
-  Qed.
-
-  Definition Scatter
-             {i o: nat}
-             (f: index_map i o)
-             {f_inj: index_map_injective f}
-             (x: svector i) : svector o
-    :=
-      let f' := build_inverse_index_map f in
-      Vbuild (fun n np =>
-                match decide (in_range f n) with
-                | left r => Vnth x (inverse_index_f_spec f f' n r)
-                | right _ => mkSZero
-                end).
-
-  Global Instance SHOperator_Scatter
-         {i o: nat}
-         (f: index_map i o)
-         {f_inj: index_map_injective f}:
-    SHOperator (@Scatter i o f f_inj).
-  Proof.
-    unfold SHOperator.
-    split; try apply vec_Setoid.
-    intros x y E.
-    unfold Scatter.
-    vec_index_equiv j jp.
-    rewrite 2!Vbuild_nth.
-    simpl.
-    break_match.
-    simpl.
-    apply Vnth_arg_equiv, E.
-    reflexivity.
-  Qed.
-
-  Definition ScatH
-             {i o}
-             (base stride: nat)
-             {range_bound: ∀ x : nat, x < i → base + x * stride < o}
-             {snzord0: stride ≢ 0 \/ i < 2}
-    :
-      (svector i) -> svector o
-    :=
-      Scatter (h_index_map base stride (range_bound:=range_bound))
-              (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
-
-  Global Instance SHOperator_ScatH
-         {i o}
-         (base stride: nat)
-         {range_bound: ∀ x : nat, x < i → base + x * stride < o}
-         {snzord0: stride ≢ 0 \/ i < 2}:
-    SHOperator (@ScatH i o base stride range_bound snzord0).
-  Proof.
-    apply SHOperator_Scatter.
-  Qed.
-
-  Global Instance SHOperator_compose
-         {i1 o2 o3}
-         (op1: svector o2 -> svector o3)
-         `{S1:!SHOperator op1}
-         (op2: svector i1 -> svector o2)
-         `{S2: !SHOperator op2}:
-    SHOperator (op1 ∘ op2).
-  Proof.
-    unfold SHOperator in *.
-    split; try apply vec_Setoid.
-    intros x y Exy.
-    unfold compose.
-    destruct S1, S2.
-    auto.
-  Qed.
-
-  (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-  Definition SHPointwise
-             {n: nat}
-             (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-             (x: svector n): svector n
-    := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
-
-  Global Instance SHOperator_SHPointwise
-         {n: nat}
-         (f: { i | i<n} -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHOperator (SHPointwise f).
-  Proof.
-    split; try apply vec_Setoid.
-    intros x y E.
-    unfold SHPointwise.
-    vec_index_equiv j jc.
-    rewrite 2!Vbuild_nth.
-
-    unfold_Rtheta_equiv.
-    rewrite 2!evalWriter_Rtheta_liftM.
-
-    f_equiv.
-    apply evalWriter_proper.
-    apply Vnth_arg_equiv.
-    apply E.
-  Qed.
-
-  Definition SHBinOp
-             {o}
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-             (v:svector (o+o)): svector o
-    :=  match (vector2pair o v) with
-        | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
-        end.
-
-  Global Instance SHOperator_SHBinOp {o}
-         (f: nat -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator (@SHBinOp o f pF).
-  Proof.
-    split; try apply vec_Setoid.
-
-    intros x y E.
-    unfold SHBinOp.
-    vec_index_equiv j jc.
-    unfold vector2pair.
-
-
-    repeat break_let.
-
-    replace t with (fst (Vbreak x)) by crush.
-    replace t0 with (snd (Vbreak x)) by crush.
-    replace t1 with (fst (Vbreak y)) by crush.
-    replace t2 with (snd (Vbreak y)) by crush.
-    clear Heqp Heqp0.
-
-    rewrite 2!Vbuild_nth.
-
-    unfold_Rtheta_equiv.
-    rewrite 2!evalWriter_Rtheta_liftM2.
-
-    f_equiv.
-    - apply evalWriter_proper.
-      apply Vnth_arg_equiv.
-      rewrite E.
-      reflexivity.
-    - apply evalWriter_proper.
-      apply Vnth_arg_equiv.
-      rewrite E.
-      reflexivity.
-  Qed.
-
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -372,20 +385,20 @@ Section SigmaHCOL_Operators.
       let yf := psnd yp in
       tell (RthetaFlagsSafeAppend xf yf) ;; ret (dot xv yv).
 
-  (** Safe 2 Vector union. *)
-  Definition SafeVec2Union
-             {n}
-             (dot:CarrierA->CarrierA->CarrierA)
-             (a b: svector n): svector n
-    := Vmap2 (SafeDot dot) a b.
+    (** Safe 2 Vector union. *)
+    Definition SafeVec2Union
+               {n}
+               (dot:CarrierA->CarrierA->CarrierA)
+               (a b: svector n): svector n
+      := Vmap2 (SafeDot dot) a b.
 
-  (** Safe Matrix union. *)
-  Definition SafeMUnion
-             {o n}
-             (dot:CarrierA->CarrierA->CarrierA)
-             (initial:CarrierA)
-             (v: vector (svector o) n): svector o
-    :=  Vfold_left_rev (SafeVec2Union dot) (Vconst (mkStruct initial) o) v.
+    (** Safe Matrix union. *)
+    Definition SafeMUnion
+               {o n}
+               (dot:CarrierA->CarrierA->CarrierA)
+               (initial:CarrierA)
+               (v: vector (svector o) n): svector o
+      :=  Vfold_left_rev (SafeVec2Union dot) (Vconst (mkStruct initial) o) v.
 
   End SafeDot.
 
@@ -432,12 +445,12 @@ Qed.
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-           (forall _ : svector ?m, svector ?n)
-           (@ext_equiv
-              (svector ?m)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
-              (svector ?n)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
+            (forall _ : svector ?m, svector ?n)
+            (@ext_equiv
+               (svector ?m)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?m)
+               (svector ?n)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
@@ -1364,9 +1377,9 @@ Section ValueProperties.
         `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
     :=
       apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                               (transpose
-                                                  (Apply_Family op_family x)
-                                               ).
+                                                    (transpose
+                                                       (Apply_Family op_family x)
+                                                    ).
 
   Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
          {n gi go ki ko}
