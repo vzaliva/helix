@@ -151,6 +151,17 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
+    (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
+    Class Apply_Family_Single_NonZero_Per_Row
+          {i o n}
+          (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+      :=
+        apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
+                                                 (transpose
+                                                    (Apply_Family op_family x)
+                                                 ).
+
     Definition Gather
                {i o: nat}
                (f: index_map o i)
@@ -343,6 +354,48 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
+    Definition SparseEmbedding
+               {n i o ki ko}
+               (kernel: forall k, (k<n) -> svector fm ki -> svector fm ko)
+               `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+               (f: index_map_family ko o n)
+               {f_inj : index_map_family_injective f}
+               (g: index_map_family ki i n)
+               `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+               (j:nat) (jc:j<n)
+      :=
+        Scatter (⦃f⦄ j jc)
+                (f_inj:=index_map_family_member_injective f_inj j jc)
+                ∘ (kernel j jc)
+                ∘ (Gather (⦃g⦄ j jc)).
+
+    Global Instance SHOperator_SparseEmbedding
+           {n i o ki ko}
+           (kernel: forall k, (k<n) -> svector fm ki -> svector fm ko)
+           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+           (f: index_map_family ko o n)
+           {f_inj : index_map_family_injective f}
+           (g: index_map_family ki i n)
+           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+           (j:nat) (jc:j<n):
+      SHOperator
+        (@SparseEmbedding
+           n i o ki ko
+           kernel
+           KD
+           f
+           f_inj
+           g
+           Koperator
+           j jc).
+    Proof.
+      unfold SHOperator.
+      split; repeat apply vec_Setoid.
+      intros x y E.
+      rewrite E.
+      reflexivity.
+    Qed.
+
   End FlagsMonoidGenericOperators.
 
   (** A matrix produced by applying family of operators will have at
@@ -435,49 +488,6 @@ Ltac SHOperator_reflexivity :=
   end.
 
 
-(* TODO: For now we define SparseEmbedding on Rtheta. It might be need to defined more generally on (Rtheta fm) *)
-Definition SparseEmbedding
-           {n i o ki ko}
-           (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
-           (j:nat) (jc:j<n)
-  :=
-    Scatter Monoid_RthetaFlags (⦃f⦄ j jc)
-            (f_inj:=index_map_family_member_injective f_inj j jc)
-            ∘ (kernel j jc)
-            ∘ (Gather Monoid_RthetaFlags (⦃g⦄ j jc)).
-
-Global Instance SHOperator_SparseEmbedding
-       {n i o ki ko}
-       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
-       (f: index_map_family ko o n)
-       {f_inj : index_map_family_injective f}
-       (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
-       (j:nat) (jc:j<n):
-  SHOperator Monoid_RthetaFlags
-             (@SparseEmbedding
-                n i o ki ko
-                kernel
-                KD
-                f
-                f_inj
-                g
-                Koperator
-                j jc).
-Proof.
-  unfold SHOperator.
-  split; repeat apply vec_Setoid.
-  intros x y E.
-  rewrite E.
-  reflexivity.
-Qed.
-
 (* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
       {m n: nat}
@@ -512,12 +522,12 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
   :
     IUnionFriendly
-      (@SparseEmbedding
-         n gi go ki ko
-         kernel KD
-         f f_inj
-         g
-         Koperator).
+      (@SparseEmbedding _
+                        n gi go ki ko
+                        kernel KD
+                        f f_inj
+                        g
+                        Koperator).
 Proof.
   unfold IUnionFriendly.
   intros x.
@@ -559,11 +569,11 @@ Definition USparseEmbedding
   : rvector i -> rvector o
   :=
     @ISumUnion i o n
-               (@SparseEmbedding n i o ki ko
+               (@SparseEmbedding _ n i o ki ko
                                  kernel KD
                                  f f_inj g
                                  Koperator)
-               (SHOperator_SparseEmbedding kernel f g)
+               (SHOperator_SparseEmbedding _ kernel f g)
                (Apply_Family_SparseEmbedding_SumUnionFriendly  kernel f g).
 
 Global Instance SHOperator_USparseEmbedding
@@ -801,7 +811,8 @@ Section OperatorProperies.
     apply Vnth_snd_Vbreak with (jc3:=jc2).
   Qed.
 
-  Lemma SHBinOp_equiv_lifted_HBinOp {o}
+  Lemma SHBinOp_equiv_lifted_HBinOp
+        {o}
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     @SHBinOp fm o f pF = liftM_HOperator fm (@HBinOp o f pF).
@@ -824,6 +835,78 @@ Section OperatorProperies.
     rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
     rewrite mkValue_evalWriter.
     reflexivity.
+  Qed.
+
+  (* TODO: maybe <->  *)
+  Lemma Is_Not_Zero_Scatter
+        {m n: nat}
+        (f: index_map m n)
+        {f_inj: index_map_injective f}
+        (x: svector fm m)
+        (j: nat) (jc : j < n):
+    (not ∘ Is_ValZero) (Vnth (Scatter fm f (f_inj:=f_inj) x) jc) ->
+    (exists i (ic:i<m), ⟦f⟧ i ≡ j).
+  Proof.
+    intros H.
+    unfold Scatter in H. rewrite Vbuild_nth in H.
+    break_match.
+    simpl in *.
+    -
+      generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
+      exists (gen_inverse_index_f f j), f_spec.
+      apply build_inverse_index_map_is_right_inverse; auto.
+    -
+      unfold compose in H.
+      assert(C: Is_ValZero (@mkSZero fm)) by apply SZero_is_ValZero.
+      congruence.
+  Qed.
+
+
+  Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
+         {n gi go ki ko}
+         (kernel: forall k, (k<n) -> svector fm ki -> svector fm ko)
+         `{KD: forall k (kc: k<n), @DensityPreserving _ ki ko (kernel k kc)}
+         (f: index_map_family ko go n)
+         {f_inj : index_map_family_injective f}
+         (g: index_map_family ki gi n)
+         `{Koperator: forall k (kc: k<n), @SHOperator _ ki ko (kernel k kc)}
+    :
+      Apply_Family_Single_NonZero_Per_Row _
+                                          (@SparseEmbedding _
+                                                            n gi go ki ko
+                                                            kernel KD
+                                                            f f_inj
+                                                            g
+                                                            Koperator).
+  Proof.
+    unfold Apply_Family_Single_NonZero_Per_Row.
+    intros x.
+    apply Vforall_nth_intro.
+    intros j jc.
+    unfold Vunique.
+    intros i0 ic0 i1 ic1.
+    unfold transpose.
+    rewrite Vbuild_nth.
+    unfold row.
+    rewrite 2!Vnth_map.
+    unfold Apply_Family.
+    rewrite 2!Vbuild_nth.
+    unfold Vnth_aux.
+    unfold SparseEmbedding.
+    unfold compose.
+    generalize (kernel i0 ic0 (Gather _ (⦃ g ⦄ i0 ic0) x)) as x0.
+    generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) x)) as x1.
+    intros x0 x1.
+    intros [V0 V1].
+
+    apply Is_Not_Zero_Scatter in V0.
+    apply Is_Not_Zero_Scatter in V1.
+    crush.
+    unfold index_map_family_injective in f_inj.
+    specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+    destruct f_inj.
+    congruence.
+    assumption.
   Qed.
 
 End OperatorProperies.
@@ -915,31 +998,6 @@ Section StructuralProperies.
     Proof.
       apply Gather_preserves_P, Xcf.
     Qed.
-
-    (* TODO: maybe <->  *)
-    Lemma Is_Not_Zero_Scatter
-          {m n: nat}
-          (f: index_map m n)
-          {f_inj: index_map_injective f}
-          (x: svector fm m)
-          (j: nat) (jc : j < n):
-      (not ∘ Is_ValZero) (Vnth (Scatter fm f (f_inj:=f_inj) x) jc) ->
-      (exists i (ic:i<m), ⟦f⟧ i ≡ j).
-    Proof.
-      intros H.
-      unfold Scatter in H. rewrite Vbuild_nth in H.
-      break_match.
-      simpl in *.
-      -
-        generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
-        exists (gen_inverse_index_f f j), f_spec.
-        apply build_inverse_index_map_is_right_inverse; auto.
-      -
-        unfold compose in H.
-        assert(C: Is_ValZero (@mkSZero fm)) by apply SZero_is_ValZero.
-        congruence.
-    Qed.
-
 
     Lemma Is_SZero_Scatter_out_of_range
           {m n: nat}
@@ -1346,65 +1404,3 @@ Section StructuralProperies.
 
 End StructuralProperies.
 
-Section ValueProperties.
-
-  (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
-  Class Apply_Family_Single_NonZero_Per_Row
-        {i o n}
-        (op_family: forall k, (k<n) -> svector i -> svector o)
-        `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-    :=
-      apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                               (transpose
-                                                  (Apply_Family op_family x)
-                                               ).
-
-  Global Instance Apply_Family_SparseEmbedding_Single_NonZero_Per_Row
-         {n gi go ki ko}
-         (kernel: forall k, (k<n) -> svector ki -> svector ko)
-         `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-         (f: index_map_family ko go n)
-         {f_inj : index_map_family_injective f}
-         (g: index_map_family ki gi n)
-         `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-    :
-      Apply_Family_Single_NonZero_Per_Row
-        (@SparseEmbedding
-           n gi go ki ko
-           kernel KD
-           f f_inj
-           g
-           Koperator).
-  Proof.
-    unfold Apply_Family_Single_NonZero_Per_Row.
-    intros x.
-    apply Vforall_nth_intro.
-    intros j jc.
-    unfold Vunique.
-    intros i0 ic0 i1 ic1.
-    unfold transpose.
-    rewrite Vbuild_nth.
-    unfold row.
-    rewrite 2!Vnth_map.
-    unfold Apply_Family.
-    rewrite 2!Vbuild_nth.
-    unfold Vnth_aux.
-    unfold SparseEmbedding.
-    unfold compose.
-    generalize (kernel i0 ic0 (Gather (⦃ g ⦄ i0 ic0) x)) as x0.
-    generalize (kernel i1 ic1 (Gather (⦃ g ⦄ i1 ic1) x)) as x1.
-    intros x0 x1.
-    intros [V0 V1].
-
-    apply Is_Not_Zero_Scatter in V0.
-    apply Is_Not_Zero_Scatter in V1.
-    crush.
-    unfold index_map_family_injective in f_inj.
-    specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
-    destruct f_inj.
-    congruence.
-    assumption.
-  Qed.
-
-
-End ValueProperties.
