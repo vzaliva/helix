@@ -23,13 +23,11 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
 
+(* ExtLib *)
 Require Import ExtLib.Structures.Monoid.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
-Import VectorNotations.
-
-Open Scope vector_scope.
 
 Section TSigmaHCOLOperators.
 
@@ -49,7 +47,6 @@ Section TSigmaHCOLOperators.
     split; try apply vec_Setoid.
     apply T ; [apply O1 | apply O2].
   Qed.
-
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
   just Union of two vectors, produced by application of two operators
