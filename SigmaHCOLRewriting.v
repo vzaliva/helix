@@ -337,32 +337,32 @@ Section SigmaHCOLHelperLemmas.
 End SigmaHCOLHelperLemmas.
 
 Lemma U_SAG2:
-  ∀ (n : nat) (x : svector (n + n))
+  ∀ (n : nat) (x : rvector (n + n))
     (f: nat -> CarrierA -> CarrierA -> CarrierA)
     `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     (k : nat) (kp : k < n),
     Vnth
-      (SumUnion
-         (@Vbuild (svector n) n
-                  (fun i id =>
-                     ((ScatH i 1
-                             (snzord0:=ScatH_stride1_constr)
-                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
-                        ∘ (SHBinOp (o:=1) (SwapIndex2 i f))
-                        ∘ (GathH i n
-                                 (domain_bound:=GathH_jn_domain_bound i n id))
-                     ) x
+      (SumUnion _
+                (@Vbuild (rvector n) n
+                         (fun i id =>
+                            ((ScatH _ i 1
+                                    (snzord0:=ScatH_stride1_constr)
+                                    (range_bound:=ScatH_1_to_n_range_bound i n 1 id))
+                               ∘ (SHBinOp _ (o:=1) (SwapIndex2 i f))
+                               ∘ (GathH _ i n
+                                        (domain_bound:=GathH_jn_domain_bound i n id))
+                            ) x
       ))) kp
-    = Vnth ((SHBinOp (o:=n) f) x) kp.
+    = Vnth ((SHBinOp _ (o:=n) f) x) kp.
 Proof.
   intros n x f f_mor k kp.
   unfold compose.
 
   remember (fun i id =>
-              ScatH i 1
+              ScatH _ i 1
                     (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                    (SHBinOp (o:=1) (SwapIndex2 i f)
-                             (GathH i n
+                    (SHBinOp _ (o:=1) (SwapIndex2 i f)
+                             (GathH _ i n
                                     (domain_bound:=GathH_jn_domain_bound i n id) x)))
     as bf.
 
@@ -370,10 +370,10 @@ Proof.
   assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
 
   assert(B1: bf ≡ (fun i id =>
-                     (ScatH i 1
+                     (ScatH _ i 1
                             (snzord0:=ScatH_stride1_constr)
                             (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                            (SHBinOp (o:=1) (SwapIndex2 i f)
+                            (SHBinOp _ (o:=1) (SwapIndex2 i f)
                                      [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
   {
     subst bf.
@@ -392,7 +392,7 @@ Proof.
   }
 
   assert (B2: bf ≡ (λ (i : nat) (id : i < n),
-                    ScatH i 1
+                    ScatH _ i 1
                           (snzord0:=ScatH_stride1_constr)
                           (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
                           [Monad.liftM2 (SwapIndex2 i f 0) (Vnth x (ILTNN i id))
@@ -423,8 +423,8 @@ Proof.
   (* Preparing to apply Lemma3. Prove some peoperties first. *)
   remember (Vbuild
               (λ (z : nat) (zi : z < n),
-               Vnth (ScatH z 1 [Monad.liftM2 (SwapIndex2 z f 0) (Vnth x (ILTNN z zi))
-                                             (Vnth x (INLTNN z zi))]) kp)) as b.
+               Vnth (ScatH _ z 1 [Monad.liftM2 (SwapIndex2 z f 0) (Vnth x (ILTNN z zi))
+                                               (Vnth x (INLTNN z zi))]) kp)) as b.
 
   assert
     (L3pre: forall ib (icb:ib<n),
@@ -457,20 +457,23 @@ Proof.
         crush.
     - apply SZero_is_ValZero.
   }
-  rewrite SingleValueInZeros with (j:=k) (jc:=kp) by apply L3pre.
-  subst b.
-  rewrite Vbuild_nth.
-  unfold ScatH, Scatter.
-  rewrite Vbuild_nth.
-  break_match.
-  +
-    rewrite Vnth_1.
-    rewrite (@SHBinOp_nth n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
-    reflexivity.
-  +
-    unfold in_range in n0.
-    simpl in n0.
-    break_if; crush.
+  rewrite SingleValueInZeros with (j:=k) (jc:=kp).
+  -  subst b.
+     rewrite Vbuild_nth.
+     unfold ScatH, Scatter.
+     rewrite Vbuild_nth.
+     break_match.
+     +
+       rewrite Vnth_1.
+       rewrite (@SHBinOp_nth _ n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
+       reflexivity.
+     +
+       unfold in_range in n0.
+       simpl in n0.
+       break_if; crush.
+  -
+    apply MonoidLaws_RthetaFlags.
+  - apply L3pre.
 Qed.
 
 Section SigmaHCOLExpansionRules.
@@ -497,8 +500,8 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         SHBinOp (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
