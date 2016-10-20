@@ -502,29 +502,28 @@ Section SigmaHCOLExpansionRules.
       forall (n:nat)
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        SHBinOp (o:=n) f
+        SHBinOp _ (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
-                         (fun j _ => SHBinOp (o:=1) (SwapIndex2 j f))
+                         (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j f))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (f_inj := h_j_1_family_injective)
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
       intros n f pF.
       apply ext_equiv_applied_iff'.
-      {
+      -
         typeclasses eauto.
-      }
-      {
+      -
         split; try apply vec_Setoid.
-        unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
+        unfold USparseEmbedding, ISumUnion, IUnion, MUnion, Apply_Family, SparseEmbedding.
         solve_proper.
-      }
-      intros x.
-      vec_index_equiv i ip.
-      symmetry.
-      unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding. simpl.
-      apply U_SAG2; assumption.
+      -
+        intros x.
+        vec_index_equiv i ip.
+        symmetry.
+        unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding. simpl.
+        apply U_SAG2; assumption.
     Qed.
 
 
