@@ -32,6 +32,9 @@ Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.o
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.setoids.
 
+(* ExtLib *)
+Require Import ExtLib.Structures.Monoid.
+
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -39,278 +42,299 @@ Import VectorNotations.
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
-Lemma Gather_composition
-      {i o t: nat}
-      (f: index_map o t)
-      (g: index_map t i):
-  Gather f ∘ Gather g = Gather (index_map_compose g f).
-Proof.
-  assert(SHOperator (Gather f ∘ Gather g)).
-  {
-    apply SHOperator_compose; apply SHOperator_Gather.
-  }
-  apply SHOperator_functional_extensionality.
-  intros v.
-  unfold compose.
-  vec_index_equiv j jp.
+Section SigmaHCOLHelperLemmas.
 
-  unfold Gather.
-  rewrite 2!Vbuild_nth.
-  unfold VnthIndexMapped.
-  destruct f as [f fspec].
-  destruct g as [g gspec].
-  unfold index_map_compose, compose.
-  simpl.
-  rewrite Vbuild_nth.
-  reflexivity.
-Qed.
+  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-Lemma Scatter_composition
-      {i o t: nat}
-      (f: index_map i t)
-      (g: index_map t o)
-      {f_inj: index_map_injective f}
-      {g_inj: index_map_injective g}:
-  Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)
-  = Scatter (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
-Proof.
-  assert(SC: SHOperator (Scatter g (f_inj:=g_inj) ∘ Scatter f (f_inj:=f_inj)))
-    by (apply SHOperator_compose; apply SHOperator_Scatter).
-  apply SHOperator_functional_extensionality. clear SC.
-  intros v.
-  unfold compose.
-  vec_index_equiv j jp.
-  unfold Scatter.
-  rewrite 2!Vbuild_nth.
-  break_match.
-  - rewrite Vbuild_nth.
-    simpl in *.
-    break_match.
-    *
+  Lemma Gather_composition
+        {i o t: nat}
+        (f: index_map o t)
+        (g: index_map t i):
+    Gather fm f ∘ Gather fm g = Gather fm (index_map_compose g f).
+  Proof.
+    apply SHOperator_functional_extensionality.
+    -
+      apply SHOperator_compose.
+      apply SHOperator_Gather.
+      apply SHOperator_Gather.
+    -
+      apply SHOperator_Gather.
+    -
+      intros v.
+      unfold compose.
+      vec_index_equiv j jp.
+
+      unfold Gather.
+      rewrite 2!Vbuild_nth.
+      unfold VnthIndexMapped.
+      destruct f as [f fspec].
+      destruct g as [g gspec].
+      unfold index_map_compose, compose.
+      simpl.
+      rewrite Vbuild_nth.
+      reflexivity.
+  Qed.
+
+  Lemma Scatter_composition
+        {i o t: nat}
+        (f: index_map i t)
+        (g: index_map t o)
+        {f_inj: index_map_injective f}
+        {g_inj: index_map_injective g}:
+    Scatter fm g (f_inj:=g_inj) ∘ Scatter fm f (f_inj:=f_inj)
+    = Scatter fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
+  Proof.
+    apply SHOperator_functional_extensionality.
+    -
+      apply SHOperator_compose.
+      apply SHOperator_Scatter.
+      apply SHOperator_Scatter.
+    -
+      apply SHOperator_Scatter.
+    -
+      intros v.
+      unfold compose.
+      vec_index_equiv j jp.
+      unfold Scatter.
+      rewrite 2!Vbuild_nth.
       break_match.
-      apply VecSetoid.Vnth_equiv.
-      -- apply composition_of_inverses_to_invese_of_compositions; assumption.
-      -- reflexivity.
-      -- (* i1 contradicts n *)
+      + rewrite Vbuild_nth.
+        simpl in *.
+        break_match.
+        *
+          break_match.
+          apply VecSetoid.Vnth_equiv.
+          -- apply composition_of_inverses_to_invese_of_compositions; assumption.
+          -- reflexivity.
+          -- (* i1 contradicts n *)
+            contradict n.
+            apply in_range_index_map_compose; try assumption.
+        * break_match.
+          --
+            contradict n.
+            apply in_range_index_map_compose_right; try assumption.
+          -- reflexivity.
+      +
+        simpl.
+        break_match.
         contradict n.
-        apply in_range_index_map_compose; try assumption.
-    * break_match.
-      --
-        contradict n.
-        apply in_range_index_map_compose_right; try assumption.
-      -- reflexivity.
-  -
-    simpl.
-    break_match.
-    +
-      contradict n.
-      apply in_range_index_map_compose_left in i0; try assumption.
-    + reflexivity.
-Qed.
+        apply in_range_index_map_compose_left in i0; try assumption.
+        reflexivity.
+  Qed.
 
-Lemma LiftM_Hoperator_compose
-      {i1 o2 o3}
-      `{HOperator o2 o3 op1}
-      `{HOperator i1 o2 op2}
-  :
-    liftM_HOperator (op1 ∘ op2) = (liftM_HOperator op1) ∘ (liftM_HOperator op2).
-Proof.
-  apply SHOperator_functional_extensionality.
-  intros v.
-  unfold liftM_HOperator, compose.
-  unfold sparsify, densify.
-  rewrite Vmap_map.
+  Lemma LiftM_Hoperator_compose
+        {i1 o2 o3: nat}
+        `{HOperator o2 o3 op1}
+        `{HOperator i1 o2 op2}
+    :
+      liftM_HOperator fm (op1 ∘ op2) = (liftM_HOperator fm op1) ∘ (liftM_HOperator fm op2).
+  Proof.
+    apply SHOperator_functional_extensionality.
+    - typeclasses eauto.
+    - typeclasses eauto.
+    -
+      intros v.
+      unfold liftM_HOperator, compose.
+      unfold sparsify, densify.
+      rewrite Vmap_map.
 
-  vec_index_equiv i ip.
-  repeat rewrite Vnth_map.
-  f_equiv.
-  apply VecSetoid.Vnth_arg_equiv.
-  f_equiv.
-  vec_index_equiv i0 ip0.
-  repeat rewrite Vnth_map.
-  f_equiv.
-Qed.
+      vec_index_equiv i ip.
+      repeat rewrite Vnth_map.
+      f_equiv.
+      apply VecSetoid.Vnth_arg_equiv.
+      f_equiv.
+      vec_index_equiv i0 ip0.
+      repeat rewrite Vnth_map.
+      f_equiv.
+  Qed.
 
-Fact ScatH_stride1_constr:
-forall {a b:nat}, 1 ≢ 0 ∨ a < b.
-Proof.
-  auto.
-Qed.
+  Fact ScatH_stride1_constr:
+  forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+  Proof.
+    auto.
+  Qed.
 
-Fact h_bound_first_half (o1 o2:nat):
-  ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
-Proof.
-  intros.
-  lia.
-Qed.
+  Fact h_bound_first_half (o1 o2:nat):
+    ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
+  Proof.
+    intros.
+    lia.
+  Qed.
 
-Fact h_bound_second_half (o1 o2:nat):
-  ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
-Proof.
-  intros.
-  lia.
-Qed.
+  Fact h_bound_second_half (o1 o2:nat):
+    ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
+  Proof.
+    intros.
+    lia.
+  Qed.
 
+  Fact ScatH_1_to_n_range_bound base o stride:
+    base < o ->
+    ∀ x : nat, x < 1 → base + x * stride < o.
+  Proof.
+    intros.
+    nia.
+  Qed.
 
-Fact ScatH_1_to_n_range_bound base o stride:
-  base < o ->
-  ∀ x : nat, x < 1 → base + x * stride < o.
-Proof.
-  intros.
-  nia.
-Qed.
+  Fact GathH_j1_domain_bound base i (bc:base<i):
+    ∀ x : nat, x < 1 → base + x * 1 < i.
+  Proof.
+    intros.
+    lia.
+  Qed.
 
-Fact GathH_j1_domain_bound base i (bc:base<i):
-  ∀ x : nat, x < 1 → base + x * 1 < i.
-Proof.
-  intros.
-  lia.
-Qed.
+  Lemma UnionFold_zero_structs
+        (m : nat) (x : svector fm m):
+    Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
+  Proof.
+    intros H.
+    unfold UnionFold.
+    induction x.
+    -
+      unfold Is_ValZero.
+      unfold_Rtheta_equiv.
+      reflexivity.
+    - simpl in H. destruct H as [Hh Hx].
+      Opaque Monad.ret.
+      simpl.
+      Transparent Monad.ret.
+      rewrite Is_ValZero_to_mkSZero in Hh.
+      rewrite Is_ValZero_to_mkSZero.
+      rewrite Hh.
+      rewrite Union_SZero_r.
+      apply IHx, Hx.
+      apply fml.
+  Qed.
 
-Lemma UnionFold_zero_structs
-      (m : nat) (x : svector m):
-  Vforall Is_ValZero x → Is_ValZero (UnionFold plus zero x).
-Proof.
-  intros H.
-  unfold UnionFold.
-  induction x.
-  -
-    unfold Is_ValZero.
-    unfold_Rtheta_equiv.
-    reflexivity.
-  - simpl in H. destruct H as [Hh Hx].
-    Opaque Monad.ret.
-    simpl.
-    Transparent Monad.ret.
-    rewrite Is_ValZero_to_mkSZero in *.
-    rewrite Hh.
-    rewrite Union_SZero_r.
-    apply IHx, Hx.
-Qed.
+  Lemma UnionFold_VallButOne_zero:
+    ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
+      VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
+  Proof.
+    intros n v i ic U.
 
-Lemma UnionFold_VallButOne_zero:
-  ∀ {n : nat} (v : vector Rtheta n) {k : nat} (kc : k < n),
-    VAllButOne k kc (Is_ValZero) v → UnionFold plus zero v = Vnth v kc.
-Proof.
-  intros n v i ic U.
+    dependent induction n.
+    - crush.
+    -
+      dep_destruct v.
+      destruct (eq_nat_dec i 0).
+      +
+        (* Case ("i=0"). *)
+        rewrite Vnth_cons_head; try assumption.
+        rewrite UnionFold_cons.
+        assert(Vforall Is_ValZero x).
+        {
+          apply Vforall_nth_intro.
+          intros j jp.
+          assert(ipp:S j < S n) by lia.
+          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+          apply U.
+          omega.
+        }
 
-  dependent induction n.
-  - crush.
-  -
-    dep_destruct v.
-    destruct (eq_nat_dec i 0).
-    +
-      (* Case ("i=0"). *)
-      rewrite Vnth_cons_head; try assumption.
-      rewrite UnionFold_cons.
-      assert(Vforall Is_ValZero x).
-      {
-        apply Vforall_nth_intro.
-        intros j jp.
-        assert(ipp:S j < S n) by lia.
-        replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+        assert(UZ: Is_ValZero (UnionFold fm plus zero x))
+          by apply UnionFold_zero_structs, H.
+        setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
+          by apply Is_ValZero_to_mkSZero, UZ.
+        clear UZ.
+        apply Union_SZero_l.
+        apply fml.
+      +
+        (* Case ("i!=0"). *)
+        rewrite UnionFold_cons.
+        assert (HS: Is_ValZero h).
+        {
+          cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
+          rewrite Vnth_0.
+          auto.
+          apply U; auto.
+        }
+
+        destruct i; try congruence.
+        simpl.
+        generalize (lt_S_n ic).
+        intros l.
+        rewrite IHn with (ic:=l).
+
+        setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
+        apply Union_SZero_r.
+        apply fml.
+        apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
         apply U.
-        omega.
-      }
+  Qed.
 
-      assert(UZ: Is_ValZero (UnionFold plus zero x))
-        by apply UnionFold_zero_structs, H.
-      setoid_replace (UnionFold plus zero x) with mkSZero
-        by apply Is_ValZero_to_mkSZero, UZ.
-      clear UZ.
-      apply Union_SZero_l.
-    +
-      (* Case ("i!=0"). *)
-      rewrite UnionFold_cons.
-      assert (HS: Is_ValZero h).
-      {
-        cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
-        rewrite Vnth_0.
+
+  (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
+  Lemma SingleValueInZeros
+        {m} (x:svector fm m) j (jc:j<m):
+    (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
+  Proof.
+    intros SZ.
+    dependent induction m.
+    - dep_destruct x.
+      destruct j; omega.
+    -
+      dep_destruct x.
+      destruct (eq_nat_dec j 0).
+      +
+        (* Case ("j=0"). *)
+        rewrite Vnth_cons_head; try assumption.
+        rewrite UnionFold_cons.
+        assert(Vforall Is_ValZero x0).
+        {
+          apply Vforall_nth_intro.
+          intros.
+          assert(ipp:S i < S m) by lia.
+          replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
+          apply SZ; lia.
+        }
+
+        assert(UZ: Is_ValZero (UnionFold fm plus zero x0))
+          by apply UnionFold_zero_structs, H.
+        setoid_replace (UnionFold fm plus zero x0) with (@mkSZero fm)
+          by apply Is_ValZero_to_mkSZero, UZ.
+        clear UZ.
+        apply Union_SZero_l.
+        apply fml.
+      +
+        (* Case ("j!=0"). *)
+        rewrite UnionFold_cons.
+        assert(Zc: 0<(S m)) by lia.
+
+        assert (HS: Is_ValZero h).
+        {
+          cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
+          rewrite Vnth_0.
+          auto.
+          apply SZ; auto.
+        }
+
+        destruct j; try congruence.
+        simpl.
+        generalize (lt_S_n jc).
+        intros l.
+        rewrite IHm with (jc:=l).
+
+        setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
+        apply Union_SZero_r.
+        apply fml.
+
+        intros i ic.
+        assert(ics: S i < S m) by lia.
+        rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
+        specialize SZ with (i:=S i) (ic:=ics).
         auto.
-        apply U; auto.
-      }
+  Qed.
 
-      destruct i; try congruence.
-      simpl.
-      generalize (lt_S_n ic).
-      intros l.
-      rewrite IHn with (ic:=l).
+  Fact GathH_jn_domain_bound i n:
+    i < n ->
+    ∀ x : nat, x < 2 → i + x * n < (n+n).
+  Proof.
+    intros.
+    nia.
+  Qed.
 
-      setoid_replace h with mkSZero by apply Is_ValZero_to_mkSZero, HS.
-      apply Union_SZero_r.
-
-      apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-      apply U.
-Qed.
-
-
-(* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
-Lemma SingleValueInZeros
-      {m} (x:svector m) j (jc:j<m):
-  (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold plus zero x = Vnth x jc).
-Proof.
-  intros SZ.
-  dependent induction m.
-  - dep_destruct x.
-    destruct j; omega.
-  -
-    dep_destruct x.
-    destruct (eq_nat_dec j 0).
-    +
-      (* Case ("j=0"). *)
-      rewrite Vnth_cons_head; try assumption.
-      rewrite UnionFold_cons.
-      assert(Vforall Is_ValZero x0).
-      {
-        apply Vforall_nth_intro.
-        intros.
-        assert(ipp:S i < S m) by lia.
-        replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
-        apply SZ; lia.
-      }
-
-      assert(UZ: Is_ValZero (UnionFold plus zero x0))
-        by apply UnionFold_zero_structs, H.
-      setoid_replace (UnionFold plus zero x0) with mkSZero
-        by apply Is_ValZero_to_mkSZero, UZ.
-      clear UZ.
-      apply Union_SZero_l.
-    +
-      (* Case ("j!=0"). *)
-      rewrite UnionFold_cons.
-      assert(Zc: 0<(S m)) by lia.
-
-      assert (HS: Is_ValZero h).
-      {
-        cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
-        rewrite Vnth_0.
-        auto.
-        apply SZ; auto.
-      }
-
-      destruct j; try congruence.
-      simpl.
-      generalize (lt_S_n jc).
-      intros l.
-      rewrite IHm with (jc:=l).
-
-      setoid_replace h with mkSZero by apply Is_ValZero_to_mkSZero, HS.
-      apply Union_SZero_r.
-
-      intros i ic.
-      assert(ics: S i < S m) by lia.
-      rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
-      specialize SZ with (i:=S i) (ic:=ics).
-      auto.
-Qed.
-
-Fact GathH_jn_domain_bound i n:
-  i < n ->
-  ∀ x : nat, x < 2 → i + x * n < (n+n).
-Proof.
-  intros.
-  nia.
-Qed.
+End SigmaHCOLHelperLemmas.
 
 Lemma U_SAG2:
   ∀ (n : nat) (x : svector (n + n))
@@ -517,10 +541,10 @@ Section SigmaHCOLExpansionRules.
       :
         liftM_HOperator (HTDirectSum f g) =
         (HTSUMUnion plus
-           ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-            ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-           ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-            ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+                    ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                     ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                    ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                     ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
     Proof.
       eapply ext_equiv_applied_iff'.
 
@@ -836,19 +860,19 @@ Section SigmaHCOLExpansionRules.
            `{hop2: !HOperator g}
       : DensityPreserving (
             (HTSUMUnion plus
-               ((ScatH 0 1
-                       (snzord0:=ScatH_stride1_constr)
-                       (range_bound := h_bound_first_half o1 o2)
-                ) ∘
-                  (liftM_HOperator f) ∘
-                  (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                        ((ScatH 0 1
+                                (snzord0:=ScatH_stride1_constr)
+                                (range_bound := h_bound_first_half o1 o2)
+                         ) ∘
+                           (liftM_HOperator f) ∘
+                           (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
 
-               ((ScatH o1 1
-                       (snzord0:=ScatH_stride1_constr)
-                       (range_bound := h_bound_second_half o1 o2)
-                ) ∘
-                  (liftM_HOperator g) ∘
-                  (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
+                        ((ScatH o1 1
+                                (snzord0:=ScatH_stride1_constr)
+                                (range_bound := h_bound_second_half o1 o2)
+                         ) ∘
+                           (liftM_HOperator g) ∘
+                           (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
@@ -1051,9 +1075,9 @@ Section SigmaHCOLRewritingRules.
            (pf: { j | j<o} -> CarrierA -> CarrierA)
            (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-    :
-      IUnionFriendly
-        (fun j jc => SHPointwise pf ∘ op_family j jc).
+      :
+        IUnionFriendly
+          (fun j jc => SHPointwise pf ∘ op_family j jc).
     Proof.
       unfold IUnionFriendly.
       intros x.
@@ -1297,7 +1321,7 @@ Section SigmaHCOLRewritingRules.
           left; auto.
     Qed.
 
-    (*
+  (*
     Lemma rewrite_Reduction_ISumReduction
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
@@ -1312,7 +1336,7 @@ Section SigmaHCOLRewritingRules.
                   (fun j jc => Reduction ∘ op_family j jc).
     Proof.
     Qed.
-     *)
+   *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
 
