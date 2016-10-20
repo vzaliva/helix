@@ -495,13 +495,11 @@ Section SigmaHCOLExpansionRules.
         BinOp(1, o.op),
         GathH(2*o.N, 2, i, o.N)
         )))),
-
-       This is not typical operaror extensional equality, as implicit argument x must be provided and will be embedded in RHS expression.
      *)
     Theorem expand_BinOp:
       forall (n:nat)
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
         SHBinOp _ (o:=n) f
         =
         USparseEmbedding (i:=n+n) (o:=n)
@@ -535,255 +533,249 @@ Section SigmaHCOLExpansionRules.
      *)
     (* TODO: perhaps could be generalized for generic operation, not just plus *)
     Theorem expand_HTDirectSum
+            {fm: Monoid.Monoid RthetaFlags}
+            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
             {i1 o1 i2 o2}
             (f: avector i1 -> avector o1)
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
       :
-        liftM_HOperator (HTDirectSum f g) =
-        (HTSUMUnion plus
-                    ((ScatH 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                     ) ∘ (liftM_HOperator f) ∘ (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
-                    ((ScatH o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                     ) ∘ (liftM_HOperator g) ∘ (GathH i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+        liftM_HOperator fm (HTDirectSum f g) =
+        (HTSUMUnion _ plus
+                    ((ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                     ) ∘ (liftM_HOperator _ f) ∘ (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                    ((ScatH _ o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                     ) ∘ (liftM_HOperator _ g) ∘ (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2)))).
     Proof.
       eapply ext_equiv_applied_iff'.
-
-      {
+      -
         split; try apply vec_Setoid.
-        intros x y E.
-        rewrite E. reflexivity.
-      }
-
-      {
+        solve_proper.
+      -
         split; try apply vec_Setoid.
-        intros x y E.
-        rewrite E. reflexivity.
-      }
+        solve_proper.
+      -
+        intros x.
+        unfold liftM_HOperator at 1.
+        unfold compose.
+        unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
+        HTSUMUnion, pair2vector.
 
-      intros x.
+        break_let. break_let.
+        rename t1 into x0, t2 into x1.
+        tuple_inversion.
+        symmetry.
 
-      unfold liftM_HOperator at 1.
-      unfold compose.
-      unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-      HTSUMUnion, pair2vector.
+        assert(LS: @ScatH fm o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
+                          (@ScatH_stride1_constr o1 2)
+                          (liftM_HOperator fm f (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
+        {
+          setoid_replace (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify fm x0).
+          -
+            vec_index_equiv i ip.
+            unfold ScatH, Scatter.
+            rewrite Vbuild_nth.
 
-      break_let. break_let.
-      rename t1 into x0, t2 into x1.
-      tuple_inversion.
-      symmetry.
+            unfold sparsify.
+            rewrite Vnth_app.
 
-      assert(LS: @ScatH o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
-                        (@ScatH_stride1_constr o1 2)
-                        (liftM_HOperator f (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) = Vapp (sparsify (f x0)) (szero_svector o2)).
-      {
-        setoid_replace (@GathH (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify x0).
-        -
-          vec_index_equiv i ip.
-          unfold ScatH, Scatter.
-          rewrite Vbuild_nth.
-
-          unfold sparsify.
-          rewrite Vnth_app.
-
-          destruct(le_gt_dec o1 i).
-          + (* Second half of x, which is all zeros *)
-            unfold szero_svector.
-            rewrite Vnth_const.
-            break_match.
-            *
-              (* get rid of it to be able manipulate dependent hypothesis i0 *)
-              exfalso.
-              apply in_range_of_h in i0.
-              crush.
-              rewrite <- H in l.
-              omega.
-              apply ip.
-            * reflexivity.
-          + (* First half of x, which is fx0 *)
-            rewrite Vnth_map.
-            break_match.
-            * simpl.
-              unfold liftM_HOperator, sparsify, compose.
-              rewrite Vnth_map.
-              unfold densify.
-              rewrite Vmap_map.
-              unfold mkValue, WriterMonadNoT.evalWriter.
-              simpl.
-              replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
-                by (symmetry; apply Vmap_id).
-              replace (Vnth
-                         (f x0)
-                         (gen_inverse_index_f_spec
-                            (h_index_map 0 1) i i0)) with
-              (Vnth (f x0) g0).
-              reflexivity.
-              generalize (f x0) as fx0. intros fx0.
-              apply Vnth_eq.
-              symmetry.
-
-              apply build_inverse_index_map_is_left_inverse; try assumption.
-              apply h_index_map_is_injective; left; auto.
-
-              unfold h_index_map.
-              simpl.
-              rewrite Nat.mul_comm, Nat.mul_1_l.
-              reflexivity.
-            * contradict n.
-              apply in_range_of_h.
-              apply ip.
-              exists i, g0.
-              simpl.
-              rewrite Nat.mul_comm, Nat.mul_1_l.
-              reflexivity.
-        -
-          unfold GathH, Gather.
-          vec_index_equiv i ip.
-
-          rewrite Vnth_sparsify.
-          rewrite Vbuild_nth.
-
-          unfold h_index_map.
-          unfold VnthIndexMapped.
-          simpl.
-
-          rename Heqp0 into H.
-          apply Vbreak_arg_app in H.
-          assert(ip1: S i <= i1 + i2) by omega.
-          apply Vnth_arg_eq with (ip:=ip1) in H.
-          rewrite Vnth_app in H.
-          break_match.
-          crush.
-          replace g0 with ip in H.
-          rewrite <- H.
-          clear H g0.
-          unfold densify.
-          rewrite Vnth_map.
-          rewrite mkValue_evalWriter.
-          apply Vnth_equiv.
-          rewrite Mult.mult_1_r; reflexivity.
-          reflexivity.
-          apply proof_irrelevance.
-      }
-
-      assert(RS: @ScatH o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
-                        (@ScatH_stride1_constr o2 2)
-                        (liftM_HOperator g (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) = Vapp (szero_svector o1) (sparsify (g x1))).
-      {
-        setoid_replace (@GathH (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify x1).
-        -
-          unfold ScatH, Scatter.
-          vec_index_equiv i ip.
-          rewrite Vbuild_nth.
-          rewrite Vnth_app.
-          break_match.
-          + (* Second half of x, which is gx0 *)
-            break_match.
-            * simpl.
-              unfold liftM_HOperator, sparsify, compose.
-              rewrite 2!Vnth_map.
-              unfold densify.
-              rewrite Vmap_map.
-              unfold mkValue, WriterMonadNoT.evalWriter.
-              simpl.
-
-              replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
-                by (symmetry; apply Vmap_id).
-              replace (Vnth
-                         (g x1)
-                         (gen_inverse_index_f_spec
-                            (h_index_map o1 1) i i0)) with
-              (Vnth
-                 (g x1) (Vnth_app_aux o2 ip l)).
-              reflexivity.
-              generalize (g x1) as gx1. intros gx1.
-              apply Vnth_eq.
-              symmetry.
-
-              apply build_inverse_index_map_is_left_inverse; try assumption.
-              apply h_index_map_is_injective; left; auto.
-              lia.
-
-              unfold h_index_map.
-              simpl.
-              lia.
-            *
-              exfalso.
-              rewrite in_range_of_h in i0.
-              destruct i0 as [z H].
-              destruct H as [zc H].
-              rewrite Nat.mul_1_r in H.
-              rewrite <- H in g0.
-              crush.
-              apply ip.
-          + (* First half of x, which is all zeros *)
-            unfold szero_svector.
-            break_match.
-            *
-              contradict n.
-              apply in_range_of_h.
-              apply ip.
-              exists (i-o1).
-              assert (oc: i - o1 < o2) by crush.
-              exists oc.
-              replace (o1 + (i - o1) * 1) with i by omega.
-              reflexivity.
-            *
+            destruct(le_gt_dec o1 i).
+            + (* Second half of x, which is all zeros *)
+              unfold szero_svector.
               rewrite Vnth_const.
-              reflexivity.
-        - unfold GathH, Gather.
-          vec_index_equiv i ip.
-          rewrite Vbuild_nth.
-          unfold h_index_map.
-          unfold VnthIndexMapped.
-          simpl.
+              break_match.
+              *
+                (* get rid of it to be able manipulate dependent hypothesis i0 *)
+                exfalso.
+                apply in_range_of_h in i0.
+                crush.
+                rewrite <- H in l.
+                omega.
+                apply ip.
+              * reflexivity.
+            + (* First half of x, which is fx0 *)
+              rewrite Vnth_map.
+              break_match.
+              * simpl.
+                unfold liftM_HOperator, sparsify, compose.
+                rewrite Vnth_map.
+                unfold densify.
+                rewrite Vmap_map.
+                unfold mkValue, WriterMonadNoT.evalWriter.
+                simpl.
+                replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
+                  by (symmetry; apply Vmap_id).
+                replace (Vnth
+                           (f x0)
+                           (gen_inverse_index_f_spec
+                              (h_index_map 0 1) i i0)) with
+                (Vnth (f x0) g0).
+                reflexivity.
+                generalize (f x0) as fx0. intros fx0.
+                apply Vnth_eq.
+                symmetry.
 
+                apply build_inverse_index_map_is_left_inverse; try assumption.
+                apply h_index_map_is_injective; left; auto.
 
-          rename Heqp0 into H.
-          apply Vbreak_arg_app in H.
-          unfold sparsify.
-          rewrite Vnth_map.
+                unfold h_index_map.
+                simpl.
+                rewrite Nat.mul_comm, Nat.mul_1_l.
+                reflexivity.
+              * contradict n.
+                apply in_range_of_h.
+                apply ip.
+                exists i, g0.
+                simpl.
+                rewrite Nat.mul_comm, Nat.mul_1_l.
+                reflexivity.
+          -
+            unfold GathH, Gather.
+            vec_index_equiv i ip.
 
-          (*
+            rewrite Vnth_sparsify.
+            rewrite Vbuild_nth.
+
+            unfold h_index_map.
+            unfold VnthIndexMapped.
+            simpl.
+
+            rename Heqp0 into H.
+            apply Vbreak_arg_app in H.
+            assert(ip1: S i <= i1 + i2) by omega.
+            apply Vnth_arg_eq with (ip:=ip1) in H.
+            rewrite Vnth_app in H.
+            break_match.
+            crush.
+            replace g0 with ip in H.
+            rewrite <- H.
+            clear H g0.
+            unfold densify.
+            rewrite Vnth_map.
+            rewrite mkValue_evalWriter.
+            apply Vnth_equiv.
+            rewrite Mult.mult_1_r; reflexivity.
+            reflexivity.
+            apply proof_irrelevance.
+        }
+
+        assert(RS: @ScatH fm o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
+                          (@ScatH_stride1_constr o2 2)
+                          (liftM_HOperator fm g (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
+        {
+          setoid_replace (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify fm x1).
+          -
+            unfold ScatH, Scatter.
+            vec_index_equiv i ip.
+            rewrite Vbuild_nth.
+            rewrite Vnth_app.
+            break_match.
+            + (* Second half of x, which is gx0 *)
+              break_match.
+              * simpl.
+                unfold liftM_HOperator, sparsify, compose.
+                rewrite 2!Vnth_map.
+                unfold densify.
+                rewrite Vmap_map.
+                unfold mkValue, WriterMonadNoT.evalWriter.
+                simpl.
+
+                replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
+                  by (symmetry; apply Vmap_id).
+                replace (Vnth
+                           (g x1)
+                           (gen_inverse_index_f_spec
+                              (h_index_map o1 1) i i0)) with
+                (Vnth
+                   (g x1) (Vnth_app_aux o2 ip l)).
+                reflexivity.
+                generalize (g x1) as gx1. intros gx1.
+                apply Vnth_eq.
+                symmetry.
+
+                apply build_inverse_index_map_is_left_inverse; try assumption.
+                apply h_index_map_is_injective; left; auto.
+                lia.
+
+                unfold h_index_map.
+                simpl.
+                lia.
+              *
+                exfalso.
+                rewrite in_range_of_h in i0.
+                destruct i0 as [z H].
+                destruct H as [zc H].
+                rewrite Nat.mul_1_r in H.
+                rewrite <- H in g0.
+                crush.
+                apply ip.
+            + (* First half of x, which is all zeros *)
+              unfold szero_svector.
+              break_match.
+              *
+                contradict n.
+                apply in_range_of_h.
+                apply ip.
+                exists (i-o1).
+                assert (oc: i - o1 < o2) by crush.
+                exists oc.
+                replace (o1 + (i - o1) * 1) with i by omega.
+                reflexivity.
+              *
+                rewrite Vnth_const.
+                reflexivity.
+          - unfold GathH, Gather.
+            vec_index_equiv i ip.
+            rewrite Vbuild_nth.
+            unfold h_index_map.
+            unfold VnthIndexMapped.
+            simpl.
+
+            rename Heqp0 into H.
+            apply Vbreak_arg_app in H.
+            unfold sparsify.
+            rewrite Vnth_map.
+
+            (*
           generalize (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
        (h_bound_second_half i1 i2) i ip) as l.
           intros l.
-           *)
+             *)
 
-          assert(ip1: i+i1 < i1 + i2) by omega.
-          apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
-          unfold densify in H.
-          rewrite Vnth_map in H.
-          rewrite Vnth_app in H.
-          break_match.
-          revert H.
-          generalize (Vnth_app_aux i2 ip1 l).
-          intros g0 H.
-          assert(M: (Vnth x1 ip) ≡ (Vnth x1 g0)).
-          {
-            apply Vnth_eq.
+            assert(ip1: i+i1 < i1 + i2) by omega.
+            apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
+            unfold densify in H.
+            rewrite Vnth_map in H.
+            rewrite Vnth_app in H.
+            break_match.
+            revert H.
+            generalize (Vnth_app_aux i2 ip1 l).
+            intros g0 H.
+            assert(M: (Vnth x1 ip) ≡ (Vnth x1 g0)).
+            {
+              apply Vnth_eq.
+              crush.
+            }
+            rewrite <- M in H.
+            rewrite <- H.
+            clear M H g0.
+            rewrite mkValue_evalWriter.
+            apply Vnth_equiv.
+            rewrite Mult.mult_1_r,  Plus.plus_comm; reflexivity.
+            reflexivity.
             crush.
-          }
-          rewrite <- M in H.
-          rewrite <- H.
-          clear M H g0.
-          rewrite mkValue_evalWriter.
-          apply Vnth_equiv.
-          rewrite Mult.mult_1_r,  Plus.plus_comm; reflexivity.
-          reflexivity.
-          crush.
-      }
-      rewrite LS, RS.
-      (* destruct Heqp0.*)
-      unfold Vec2Union. rewrite VMapp2_app.
-      setoid_replace (Vmap2 (Union plus) (sparsify (f x0)) (szero_svector o1)) with (sparsify (f x0)).
-      setoid_replace (Vmap2 (Union plus) (szero_svector o2) (sparsify (g x1))) with (sparsify (g x1)).
-      unfold sparsify.
-      rewrite Vmap_app.
-      reflexivity.
-      apply Vec2Union_szero_svector_l.
-      apply Vec2Union_szero_svector_r.
+        }
+        rewrite LS, RS.
+        (* destruct Heqp0.*)
+        unfold Vec2Union. rewrite VMapp2_app.
+        setoid_replace (Vmap2 (Union _ plus) (sparsify _ (f x0)) (szero_svector fm o1)) with (sparsify fm (f x0)).
+        setoid_replace (Vmap2 (Union _ plus) (szero_svector fm o2) (sparsify fm (g x1))) with (sparsify fm (g x1)).
+        unfold sparsify.
+        rewrite Vmap_app.
+        reflexivity.
+        apply Vec2Union_szero_svector_l, fml.
+        apply Vec2Union_szero_svector_r, fml.
     Qed.
 
 
