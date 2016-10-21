@@ -1002,16 +1002,18 @@ Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
     Global Instance Apply_Family_Pointwise_compose_Single_NonZero_Per_Row
+           {fm: Monoid.Monoid RthetaFlags}
+           {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
            {i o n}
-           (op_family: forall k, (k<n) -> svector i -> svector o)
-           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-           `{Uf: !Apply_Family_Single_NonZero_Per_Row op_family}
+           (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+           `{Koperator: forall k (kc: k<n), @SHOperator fm i o (op_family k kc)}
+           `{Uf: !Apply_Family_Single_NonZero_Per_Row fm op_family}
            (pf: { j | j<o} -> CarrierA -> CarrierA)
            (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
     :
-      Apply_Family_Single_NonZero_Per_Row
-        (fun j jc => SHPointwise pf ∘ op_family j jc).
+      Apply_Family_Single_NonZero_Per_Row fm
+        (fun j jc => SHPointwise fm pf ∘ op_family j jc).
     Proof.
       unfold Apply_Family_Single_NonZero_Per_Row.
       intros x.
@@ -1027,7 +1029,7 @@ Section SigmaHCOLRewritingRules.
       rewrite 2!Vbuild_nth.
       unfold Vnth_aux.
       unfold compose.
-      rewrite 2!SHPointwise_nth.
+      rewrite 2!SHPointwise_nth; try apply fml.
 
       unfold Apply_Family_Single_NonZero_Per_Row in Uf.
       specialize (Uf x).
