@@ -1116,37 +1116,33 @@ Section SigmaHCOLRewritingRules.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
-          (op_family: forall k, (k<n) -> svector i -> svector o)
-          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-          `{Uz: !Apply_Family_Single_NonZero_Per_Row op_family}
+          (op_family: forall k, (k<n) -> rvector i -> rvector o)
+          `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
+          `{Uz: !Apply_Family_Single_NonZero_Per_Row _ op_family}
           `{Uf: !IUnionFriendly op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
       :
-        SHPointwise pf ∘ (ISumUnion op_family) =
+        SHPointwise _ pf ∘ (ISumUnion op_family) =
         ISumUnion (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
-                  (fun j jc => SHPointwise pf ∘ op_family j jc).
+                  (fun j jc => SHPointwise _ pf ∘ op_family j jc).
     Proof.
       apply ext_equiv_applied_iff'.
       -
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply SHOperator_SHPointwise.
-        unfold ISumUnion, IUnion.
         solve_proper.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        unfold ISumUnion, IUnion.
         solve_proper.
       -
         intros x.
         unfold ISumUnion, IUnion.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
-        setoid_rewrite SHPointwise_nth.
+        setoid_rewrite SHPointwise_nth; try apply MonoidLaws_RthetaFlags.
 
         unfold Apply_Family.
         rewrite 2!AbsorbMUnionIndex_Vbuild.
@@ -1168,9 +1164,11 @@ Section SigmaHCOLRewritingRules.
           (* all zeros in in vbuild *)
           (* prove both sides are 0 *)
           revert Uzeros.
-          set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
+          set (vl:=@Vbuild (Rtheta' Monoid_RthetaFlags) n
+                            (fun (z : nat) (zi : Peano.lt z n) =>
+                               @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family z zi x) j jc)).
           intros Uzeros.
-          assert(H:UnionFold plus zero vl = mkSZero).
+          assert(H:UnionFold _ plus zero vl = mkSZero).
           {
             generalize dependent vl.
             intros vl Uzeros.
@@ -1186,13 +1184,13 @@ Section SigmaHCOLRewritingRules.
               Transparent Monad.ret.
               rewrite IHvl.
               *
-                rewrite Union_SZero_l.
+                rewrite Union_SZero_l by apply MonoidLaws_RthetaFlags.
                 unfold compose, Is_ValZero in Hh.
                 unfold_Rtheta_equiv.
                 rewrite evalWriter_Rtheta_SZero.
                 unfold equiv.
-                destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
-                crush.
+                destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero) as [E | NE].
+                apply E.
                 crush.
               *
                 apply Hx.
@@ -1202,18 +1200,18 @@ Section SigmaHCOLRewritingRules.
           rewrite pfzn.
 
           set (vr:=Vbuild
-                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
-          assert(H: UnionFold plus zero vr = mkSZero).
+                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise _ pf (op_family i0 ic x)) jc)).
+          assert(H: UnionFold _ plus zero vr = mkSZero).
           {
             subst vl vr.
             assert(H: (Vbuild
-                         (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)) =
+                         (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise _ pf (op_family i0 ic x)) jc)) =
                       (Vbuild
                          (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op_family i0 ic x) jc)))))).
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
-              rewrite SHPointwise_nth.
+              rewrite SHPointwise_nth by apply MonoidLaws_RthetaFlags.
               reflexivity.
             }
             unfold UnionFold.
@@ -1226,7 +1224,7 @@ Section SigmaHCOLRewritingRules.
                          (λ
                             x0 : WriterMonad.writerT Monoid_RthetaFlags IdentityMonad.ident CarrierA,
                                  mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter x0)))
-                         (Vbuild (λ (z : nat) (zi : z < n), Vnth (op_family z zi x) jc))) = szero_svector n).
+                         (Vbuild (λ (z : nat) (zi : z < n), Vnth (op_family z zi x) jc))) = szero_svector Monoid_RthetaFlags n).
             {
               unfold szero_svector.
               vec_index_equiv k kc.
@@ -1234,25 +1232,28 @@ Section SigmaHCOLRewritingRules.
               rewrite Vnth_const.
               rewrite Vbuild_nth.
               specialize (Uzeros k kc).
-              setoid_replace (Vnth (op_family k kc x) jc) with mkSZero.
-              rewrite evalWriter_Rtheta_SZero.
-              rewrite pfzn.
-              unfold_Rtheta_equiv.
-              rewrite  evalWriter_Rtheta_SZero.
-              reflexivity.
-              unfold compose, Is_ValZero in Uzeros.
-              unfold_Rtheta_equiv.
-              rewrite evalWriter_Rtheta_SZero.
-              unfold equiv.
-              generalize dependent (Vnth (op_family k kc x) jc).
-              intros h Uzeros.
-              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero).
-              crush.
-              crush.
+              setoid_replace (Vnth (op_family k kc x) jc) with (@mkSZero Monoid_RthetaFlags).
+              -
+                rewrite evalWriter_Rtheta_SZero.
+                rewrite pfzn.
+                unfold_Rtheta_equiv.
+                rewrite  evalWriter_Rtheta_SZero.
+                reflexivity.
+              -
+                unfold compose, Is_ValZero in Uzeros.
+                unfold_Rtheta_equiv.
+                rewrite evalWriter_Rtheta_SZero.
+                unfold equiv.
+                unfold Rtheta.
+                generalize dependent (@Vnth (Rtheta' Monoid_RthetaFlags)  o (op_family k kc x) j jc).
+                intros h Uzeros.
+                destruct (CarrierAequivdec (WriterMonadNoT.evalWriter h) zero) as [E | NE].
+                apply E.
+                crush.
             }
             rewrite_clear H.
-            fold (@UnionFold n plus zero (szero_svector n)).
-            apply UnionFold_zero_structs.
+            fold (@UnionFold Monoid_RthetaFlags n plus zero (szero_svector _ n)).
+            apply UnionFold_zero_structs; try apply MonoidLaws_RthetaFlags.
             apply szero_svector_all_zeros.
           }
           rewrite_clear H.
@@ -1265,19 +1266,22 @@ Section SigmaHCOLRewritingRules.
 
           (* lhs *)
           revert Uone.
-          set (vl:=Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (op_family i0 ic x) jc)).
+          set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
+                   (fun (i0 : nat) (ic : Peano.lt i0 n) =>
+                    @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family i0 ic x) j jc))).
           intros Uone.
           inversion Uone; rename x0 into k; clear Uone.
           inversion H; rename x0  into kc; clear H.
           rename H0 into Uone.
           (* rewrite Is_ValZero_not_not in Uone. *)
-          rewrite UnionFold_VallButOne_zero with (kc0:=kc).
-          subst vl.
-          rewrite Vbuild_nth.
+          rewrite UnionFold_VallButOne_zero with (kc:=kc).
+          *
+            subst vl.
+            rewrite Vbuild_nth.
 
           (* rhs *)
           set (vr:=Vbuild
-                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise pf (op_family i0 ic x)) jc)).
+                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise _ pf (op_family i0 ic x)) jc)).
 
           assert(H: VAllButOne k kc Is_ValZero vr).
           {
@@ -1286,7 +1290,7 @@ Section SigmaHCOLRewritingRules.
             intros t tc H.
             rewrite Vbuild_nth.
             unfold Is_ValZero.
-            rewrite SHPointwise_nth.
+            rewrite SHPointwise_nth by apply MonoidLaws_RthetaFlags.
 
             unfold VAllButOne in Uone.
             specialize (Uone t tc H).
@@ -1297,14 +1301,19 @@ Section SigmaHCOLRewritingRules.
             reflexivity.
           }
 
-          rewrite UnionFold_VallButOne_zero with (kc0:=kc) by apply H.
-          subst vr.
-          rewrite Vbuild_nth.
-          rewrite SHPointwise_nth.
-          reflexivity.
-          apply VallButOneSimpl with (P0:=(not ∘ (not ∘ Is_ValZero))).
-          apply Is_ValZero_not_not_impl.
-          apply Uone.
+          rewrite UnionFold_VallButOne_zero with (kc:=kc).
+            ** subst vr.
+               rewrite Vbuild_nth.
+               rewrite SHPointwise_nth.
+               reflexivity.
+               apply MonoidLaws_RthetaFlags.
+            ** apply MonoidLaws_RthetaFlags.
+            ** apply H.
+          * apply MonoidLaws_RthetaFlags.
+          *
+            apply VallButOneSimpl with (P0:=(not ∘ (not ∘ Is_ValZero))).
+            apply Is_ValZero_not_not_impl.
+            apply Uone.
         +
           intros.
           unfold compose, Is_ValZero.
