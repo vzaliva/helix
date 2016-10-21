@@ -788,10 +788,9 @@ Section SigmaHCOLExpansionRules.
            (n:nat)
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      DensityPreserving (liftM_HOperator (HBinOp (o:=n) f)).
+      DensityPreserving Monoid_RthetaFlags (liftM_HOperator _ (HBinOp (o:=n) f)).
     Proof.
-      apply liftM_HOperator_DensityPreserving.
-      typeclasses eauto.
+      apply liftM_HOperator_DensityPreserving; typeclasses eauto.
     Qed.
 
     Global Instance HBinOp_expansion_DensityPreserving
@@ -800,12 +799,12 @@ Section SigmaHCOLExpansionRules.
            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
            (nz: n ≢ 0) (* Additional constraint! *)
       :
-        DensityPreserving (
-            USparseEmbedding (i:=n+n) (o:=n)
-                             (fun j _ => SHBinOp (o:=1) (SwapIndex2 j f))
-                             (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-                             (f_inj := h_j_1_family_injective)
-                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))).
+        DensityPreserving _ (
+                            USparseEmbedding (i:=n+n) (o:=n)
+                                             (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j f))
+                                             (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                                             (f_inj := h_j_1_family_injective)
+                                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
@@ -833,16 +832,18 @@ Section SigmaHCOLExpansionRules.
         apply Dx.
     Qed.
 
-
     Global Instance HTDirectSum_DensityPreserving
+           {fm: Monoid.Monoid RthetaFlags}
+           {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
            {i1 o1 i2 o2}
            (f: avector i1 -> avector o1)
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
-      : DensityPreserving (liftM_HOperator (HTDirectSum f g)).
+      : DensityPreserving fm (liftM_HOperator fm (HTDirectSum f g)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
+      apply fml.
       typeclasses eauto.
     Qed.
 
@@ -852,21 +853,21 @@ Section SigmaHCOLExpansionRules.
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
-      : DensityPreserving (
-            (HTSUMUnion plus
-                        ((ScatH 0 1
-                                (snzord0:=ScatH_stride1_constr)
-                                (range_bound := h_bound_first_half o1 o2)
-                         ) ∘
-                           (liftM_HOperator f) ∘
-                           (GathH 0 1 (domain_bound := h_bound_first_half i1 i2)))
+      : DensityPreserving Monoid_RthetaFlags (
+                            (HTSUMUnion _ plus
+                                        ((ScatH _ 0 1
+                                                (snzord0:=ScatH_stride1_constr)
+                                                (range_bound := h_bound_first_half o1 o2)
+                                         ) ∘
+                                           (liftM_HOperator _ f) ∘
+                                           (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
 
-                        ((ScatH o1 1
-                                (snzord0:=ScatH_stride1_constr)
-                                (range_bound := h_bound_second_half o1 o2)
-                         ) ∘
-                           (liftM_HOperator g) ∘
-                           (GathH i1 1 (domain_bound := h_bound_second_half i1 i2))))).
+                                        ((ScatH _ o1 1
+                                                (snzord0:=ScatH_stride1_constr)
+                                                (range_bound := h_bound_second_half o1 o2)
+                                         ) ∘
+                                           (liftM_HOperator _ g) ∘
+                                           (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2))))).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
@@ -878,10 +879,10 @@ Section SigmaHCOLExpansionRules.
       unfold GathH.
 
       (* Generalize Gathers *)
-      remember (@Gather (i1 + i2) i2
+      remember (@Gather _ (i1 + i2) i2
                         (@h_index_map i2 (i1 + i2) i1 1
                                       (h_bound_second_half i1 i2)) x) as gx1.
-      assert(Dxg1: svector_is_dense gx1).
+      assert(Dxg1: svector_is_dense _ gx1).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -889,10 +890,10 @@ Section SigmaHCOLExpansionRules.
       generalize dependent gx1.
       intros gx1 Heqgx Dxg1. clear Heqgx.
 
-      remember (@Gather (i1 + i2) i1
+      remember (@Gather _ (i1 + i2) i1
                         (@h_index_map i1 (i1 + i2) 0 1
                                       (h_bound_first_half i1 i2)) x) as gx2.
-      assert(Dxg2: svector_is_dense gx2).
+      assert(Dxg2: svector_is_dense _ gx2).
       {
         subst.
         apply Gather_preserves_density, Dx.
@@ -902,22 +903,24 @@ Section SigmaHCOLExpansionRules.
       clear Dx x.
 
       (* Generalize nested operators' application *)
-      assert(svector_is_dense (liftM_HOperator f gx2)).
+      assert(svector_is_dense _ (liftM_HOperator _ f gx2)).
       {
         apply liftM_HOperator_DensityPreserving.
+        apply MonoidLaws_RthetaFlags.
         apply hop1.
         apply Dxg2.
       }
-      generalize dependent (liftM_HOperator f gx2). intros fgx2 Dfgx2.
+      generalize dependent (liftM_HOperator _ f gx2). intros fgx2 Dfgx2.
       clear Dxg2 gx2  hop1 f.
 
-      assert(svector_is_dense (liftM_HOperator g gx1)).
+      assert(svector_is_dense _ (liftM_HOperator _ g gx1)).
       {
         apply liftM_HOperator_DensityPreserving.
+        apply MonoidLaws_RthetaFlags.
         apply hop2.
         apply Dxg1.
       }
-      generalize dependent (liftM_HOperator g gx1). intros ggx1 Dggx1.
+      generalize dependent (liftM_HOperator _ g gx1). intros ggx1 Dggx1.
       clear Dxg1 gx1 hop2 g.
 
       unfold Vec2Union.
