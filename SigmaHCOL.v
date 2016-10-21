@@ -158,9 +158,9 @@ Section SigmaHCOL_Operators.
           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
       :=
         apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                                 (transpose
-                                                    (Apply_Family op_family x)
-                                                 ).
+                                                      (transpose
+                                                         (Apply_Family op_family x)
+                                                      ).
 
     Definition Gather
                {i o: nat}
@@ -410,9 +410,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)
-                                    ).
+                                         (transpose
+                                            (Apply_Family Monoid_RthetaFlags op_family x)
+                                         ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -478,12 +478,12 @@ End SigmaHCOL_Operators.
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-           (forall _ : svector ?fm ?m, svector ?fm ?n)
-           (@ext_equiv
-              (svector ?m)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
-              (svector ?n)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
+            (forall _ : svector ?fm ?m, svector ?fm ?n)
+            (@ext_equiv
+               (svector ?m)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
+               (svector ?n)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
@@ -491,12 +491,11 @@ Ltac SHOperator_reflexivity :=
 (* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
       {m n: nat}
-      {fm:Monoid.Monoid RthetaFlags} {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
       (f: index_map m n)
       {f_inj: index_map_injective f}
-      (x: svector fm m)
+      (x: rvector m)
       (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter fm f (f_inj:=f_inj) x) jc) ->
+  Is_Val (Vnth (Scatter _ f (f_inj:=f_inj) x) jc) ->
   (exists i (ic:i<m), ⟦f⟧ i ≡ j).
 Proof.
   intros H.
@@ -913,6 +912,56 @@ End OperatorProperies.
 
 Section StructuralProperies.
 
+  Lemma ScatterCollisionFree
+        {i o}
+        (f: index_map i o)
+        {f_inj: index_map_injective f}
+        (x: rvector i)
+        (Xcf: svector_is_non_collision _ x)
+  :
+    svector_is_non_collision _ (@Scatter _ i o f f_inj x).
+  Proof.
+    unfold svector_is_non_collision, Not_Collision in *.
+    apply Vforall_nth_intro.
+    intros j jp.
+    unfold Is_Collision in *.
+
+    assert(E: Vforall
+                (fun p => (Vin p x) \/ (p ≡ mkSZero))
+                (Scatter _ f (f_inj:=f_inj) x)) by
+        apply Scatter_is_almost_endomorphism.
+
+    apply Vforall_nth with (ip:=jp) in E.
+
+    repeat unfold Rtheta', Rtheta in *.
+    generalize dependent (@Vnth (RthetaFlagsMonad Monoid_RthetaFlags CarrierA) o (@Scatter Monoid_RthetaFlags i o f f_inj x) j jp).
+    intros v E.
+    destruct E.
+    -
+      apply Vforall_in with (v:=x); assumption.
+    -
+      rewrite_clear H.
+      unfold mkSZero, mkStruct, compose.
+      tauto.
+  Qed.
+
+  Lemma Is_SZero_Scatter_out_of_range
+        {m n: nat}
+        (f: index_map m n)
+        {f_inj: index_map_injective f}
+        (x: rvector m)
+        (j: nat) (jc : j < n):
+    not (in_range f j) ->
+    Is_SZero (Vnth (Scatter _ f (f_inj:=f_inj) x) jc).
+  Proof.
+    intros R.
+    unfold Scatter.
+    rewrite Vbuild_nth.
+    break_match.
+    congruence.
+    apply Is_SZero_mkSZero.
+  Qed.
+
   Section FlagsMonoidGenericStructuralProperties.
     Variable fm:Monoid.Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
@@ -951,44 +1000,6 @@ Section StructuralProperies.
 
 
     (* Applying Scatter to collision-free vector, using injective family of functions will not cause any collisions *)
-    Lemma ScatterCollisionFree
-          {i o}
-          (f: index_map i o)
-          {f_inj: index_map_injective f}
-          (x: svector fm i)
-          (Xcf: svector_is_non_collision fm x)
-      :
-        svector_is_non_collision fm (@Scatter fm i o f f_inj x).
-    Proof.
-      unfold svector_is_non_collision, Not_Collision in *.
-      apply Vforall_nth_intro.
-      intros j jp.
-      unfold Is_Collision in *.
-
-      assert(E: Vforall
-                  (fun p => (Vin p x) \/ (p ≡ mkSZero))
-                  (Scatter fm f (f_inj:=f_inj) x)) by
-          apply Scatter_is_almost_endomorphism.
-
-      apply Vforall_nth with (ip:=jp) in E.
-
-      generalize dependent (Vnth (Scatter fm f (f_inj:=f_inj) x) jp).
-      intros v E.
-      destruct E.
-      -
-        apply Vforall_in with (v:=x); assumption.
-      -
-        rewrite_clear H.
-
-        unfold mkSZero, mkStruct, compose.
-        unfold WriterMonadNoT.execWriter, WriterMonadNoT.runWriter.
-        unfold WriterMonad.runWriterT, IsCollision.
-        simpl.
-        destruct fml.
-        erewrite monoid_runit.
-        auto.
-    Qed.
-
     Lemma GatherCollisionFree
           {i o: nat}
           (x: svector fm i)
@@ -997,23 +1008,6 @@ Section StructuralProperies.
         forall f, svector_is_non_collision fm (@Gather fm i o f x).
     Proof.
       apply Gather_preserves_P, Xcf.
-    Qed.
-
-    Lemma Is_SZero_Scatter_out_of_range
-          {m n: nat}
-          (f: index_map m n)
-          {f_inj: index_map_injective f}
-          (x: svector fm m)
-          (j: nat) (jc : j < n):
-      not (in_range f j) ->
-      Is_SZero (Vnth (Scatter _ f (f_inj:=f_inj) x) jc).
-    Proof.
-      intros R.
-      unfold Scatter.
-      rewrite Vbuild_nth.
-      break_match.
-      congruence.
-      apply Is_SZero_mkSZero.
     Qed.
 
 
@@ -1272,7 +1266,6 @@ Section StructuralProperies.
                                                                           (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx)).
 
         apply ScatterCollisionFree, KNC1.
-        apply MonoidLaws_RthetaFlags.
         generalize dependent (@Scatter Monoid_RthetaFlags ko o (family_f ko o (S n) f j jn)
                                        (@index_map_family_member_injective ko o (S n) f f_inj j jn) kx).
         intros sx SNC.

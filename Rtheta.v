@@ -228,8 +228,9 @@ Definition RStheta2Rtheta (r:RStheta): Rtheta :=
 (* Some convenience constructros *)
 
 Definition mkStruct {fm} (val: CarrierA) : Rtheta' fm
-  := tell (mkRthetaFlags true false) ;; ret val.
+  := ret val.
 
+(* Structural zero is 0 value combined with 'mzero' monoid flags *)
 Definition mkSZero {fm} : Rtheta' fm := mkStruct 0.
 
 Definition mkValue {fm} (val: CarrierA) : Rtheta' fm :=
@@ -360,21 +361,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Is_Val_mkStruct
-      {fm:Monoid.Monoid RthetaFlags}
-      {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
-  :
-    forall a, not (@Is_Val fm (@mkStruct fm a)).
+Lemma Is_Val_mkStruct:
+    forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
 Proof.
   intros a.
   unfold Is_Val, compose, mkStruct, IsVal, execWriter, runWriter.
   simpl.
-  destruct fm, fml.
-  rewrite monoid_runit.
-  simpl.
   tauto.
 Qed.
-
 
 (* mkValue on evalWriter on non-collision value is identity *)
 Lemma mkValue_evalWriter_VNC
@@ -520,11 +514,8 @@ Section Zero_Utils.
     (evalWriter x = zero) /\
     (execWriter x = RthetaFlagsZero).
 
-  Lemma Is_SZero_mkSZero
-        {fm:Monoid.Monoid RthetaFlags}
-        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
-    :
-      @Is_SZero fm mkSZero.
+  Lemma Is_SZero_mkSZero:
+      @Is_SZero Monoid_RthetaFlags mkSZero.
   Proof.
     unfold Is_SZero.
     split.
@@ -533,8 +524,6 @@ Section Zero_Utils.
     unfold execWriter.
     unfold equiv.
     simpl.
-    destruct fml.
-    rewrite monoid_runit.
     reflexivity.
   Qed.
 
