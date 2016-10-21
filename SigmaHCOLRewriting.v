@@ -1350,32 +1350,32 @@ End SigmaHCOLRewritingRules.
 (* Testing code below. To be moved to DynWin.v. Currently kept here for performance reasons *)
 
 (* Dupulicate definition from DynWin! *)
-Definition tmp_dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
+Definition tmp_dynwin_SigmaHCOL (a: avector 3) : rvector (1 + (2 + 2)) -> rvector 1
   :=
-    SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-            ∘ HTSUMUnion plus
-            (ScatH 0 1
+    SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless)
+            ∘ HTSUMUnion _ plus
+            (ScatH _ 0 1
                    (range_bound := h_bound_first_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ (liftM_HOperator (HReduction plus zero) ∘
-                                      SHBinOp (IgnoreIndex2 mult) ∘
-                                      liftM_HOperator (HPrepend a ) ∘
-                                      liftM_HOperator (HInduction 3 mult one)) ∘
-                   GathH 0 1
+                   ∘ (liftM_HOperator _ (HReduction plus zero) ∘
+                                      SHBinOp _ (IgnoreIndex2 mult) ∘
+                                      liftM_HOperator _ (HPrepend a ) ∘
+                                      liftM_HOperator _ (HInduction 3 mult one)) ∘
+                   GathH _ 0 1
                    (domain_bound := h_bound_first_half 1 (2+2))
 
             )
-            (ScatH 1 1
+            (ScatH _ 1 1
                    (range_bound := h_bound_second_half 1 1)
                    (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ liftM_HOperator (HReduction minmax.max zero) ∘ (SHPointwise (IgnoreIndex abs)) ∘
+                   ∘ liftM_HOperator _ (HReduction minmax.max zero) ∘ (SHPointwise _ (IgnoreIndex abs)) ∘
                    (USparseEmbedding
                       (n:=2)
-                      (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                      (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
                       (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                       (f_inj := h_j_1_family_injective)
                       (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                   ∘ GathH 1 1
+                   ∘ GathH _ 1 1
                    (domain_bound := h_bound_second_half 1 (2+2))
             ).
 
@@ -1384,8 +1384,8 @@ Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => a
 Hint Extern 0 (IUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
 
 Definition dynwin_rewritten_SigmaHCOL (_: avector 3):
-  vector Rtheta.Rtheta (1 + (2 + 2)) → vector Rtheta.Rtheta 1 :=
-  fun _ => szero_svector 1.
+  rvector (1 + (2 + 2)) → rvector 1 :=
+  fun _ => szero_svector _ 1.
 
 (* SigmaHCOL -> SigmaHCOL Value correctness. *)
 Theorem DynWinSigmaHCOLRewriting:  forall (a: avector 3),
