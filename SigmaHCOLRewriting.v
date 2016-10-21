@@ -1068,15 +1068,15 @@ Section SigmaHCOLRewritingRules.
 
     Global Instance Apply_Family_Pointwise_compose_SumUnionFriendly
            {i o n}
-           (op_family: forall k, (k<n) -> svector i -> svector o)
-           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+           (op_family: forall k, (k<n) -> rvector i -> rvector o)
+           `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
            `{Uf: !IUnionFriendly op_family}
            (pf: { j | j<o} -> CarrierA -> CarrierA)
            (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
       :
         IUnionFriendly
-          (fun j jc => SHPointwise pf ∘ op_family j jc).
+          (fun j jc => SHPointwise _ pf ∘ op_family j jc).
     Proof.
       unfold IUnionFriendly.
       intros x.
@@ -1108,12 +1108,9 @@ Section SigmaHCOLRewritingRules.
 
       generalize dependent (Vnth (op_family i0 ic0 x) jc).
       generalize dependent (Vnth (op_family i1 ic1 x) jc).
-      intros x0 x1 Uf. clear x.
-      intros [H0 H1].
+      intros x0 x1 [H0 H1].
       apply Uf. clear Uf.
-
       unfold Is_Val, IsVal, compose in *.
-      rewrite <- execWriter_liftM with (f:=pf (j ↾ jc)).
       crush.
     Qed.
 
