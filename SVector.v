@@ -20,6 +20,7 @@ Import VectorNotations.
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Structures.Monoid.
 Require Import WriterMonadNoT.
+Import Monoid.
 
 Open Scope vector_scope.
 Open Scope nat_scope.
@@ -30,7 +31,7 @@ Notation rvector n := (vector Rtheta n) (only parsing).
 Notation rsvector n := (vector RStheta n) (only parsing).
 
 Section SvectorBasics.
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   (* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
@@ -170,7 +171,7 @@ End SvectorBasics.
 
 Section Union.
 
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Definition Union (dot : CarrierA -> CarrierA -> CarrierA)

@@ -25,13 +25,14 @@ Require Import MathClasses.theory.rings.
 
 (* ExtLib *)
 Require Import ExtLib.Structures.Monoid.
+Import Monoid.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 
 Section TSigmaHCOLOperators.
 
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Class TSHOperator2 {i1 o1 i2 o2 ix ox} (top: (svector fm i1 -> svector fm o1) -> (svector fm i2 -> svector fm o2) -> svector fm ix -> svector fm ox) :=

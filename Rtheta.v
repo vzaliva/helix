@@ -23,6 +23,7 @@ Require Import CpdtTactics.
 Require Import SpiralTactics.
 
 Import MonadNotation.
+Import Monoid.
 Local Open Scope monad_scope.
 
 
@@ -99,7 +100,7 @@ Section CollisionTrackingRthetaFlags.
       (is_collision a || (is_collision b ||
                           (negb (is_struct a || is_struct b)))).
 
-  Definition Monoid_RthetaFlags : Monoid.Monoid RthetaFlags := Monoid.Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
+  Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
   Lemma RthetaFlags_assoc:
     ∀ a b c : RthetaFlags,
@@ -154,7 +155,7 @@ Section SafeRthetaFlags.
       (andb (is_struct a) (is_struct b))
       (orb (is_collision a) (is_collision b)).
 
-  Definition Monoid_RthetaSafeFlags : ExtLib.Structures.Monoid.Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsSafeAppend RthetaFlagsZero.
+  Definition Monoid_RthetaSafeFlags : Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsSafeAppend RthetaFlagsZero.
 
   Lemma RthetaFlags_safe_assoc:
     ∀ a b c : RthetaFlags,
@@ -203,7 +204,7 @@ Section SafeRthetaFlags.
 End SafeRthetaFlags.
 
 Section RMonad.
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   (* Monad_RthetaFlags is just a Writer Monad for RthetaFlags *)
   Definition Monad_RthetaFlags := writer fm.
 
@@ -231,7 +232,7 @@ Definition RStheta2Rtheta (r:RStheta): Rtheta :=
 (* Some convenience constructros *)
 
 Section Rtheta'Utils.
-  Context {fm:Monoid.Monoid RthetaFlags}.
+  Context {fm:Monoid RthetaFlags}.
   Context {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}.
 
   Definition mkStruct (val: CarrierA) : Rtheta' fm
@@ -441,7 +442,7 @@ Section Decidablitiy.
   Qed.
 
   Global Instance Is_Val_dec
-         {fm:Monoid.Monoid RthetaFlags}
+         {fm:Monoid RthetaFlags}
          (x: Rtheta' fm):
     Decision (Is_Val x).
   Proof.
@@ -456,7 +457,7 @@ End Decidablitiy.
 Section Zero_Utils.
 
   Lemma evalWriter_Rtheta_SZero
-        {fm:Monoid.Monoid RthetaFlags}
+        {fm:Monoid RthetaFlags}
   :
     @evalWriter _ _ fm mkSZero = zero.
   Proof.
@@ -464,7 +465,7 @@ Section Zero_Utils.
   Qed.
 
   Global Instance mkValue_Proper
-         {fm:Monoid.Monoid RthetaFlags}
+         {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkValue fm).
   Proof.
@@ -472,18 +473,18 @@ Section Zero_Utils.
   Qed.
 
   Global Instance mkStruct_Proper
-         {fm:Monoid.Monoid RthetaFlags}
+         {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkStruct fm).
   Proof.
     simpl_relation.
   Qed.
 
-  Definition Is_ValZero {fm:Monoid.Monoid RthetaFlags} (x:Rtheta' fm)
+  Definition Is_ValZero {fm:Monoid RthetaFlags} (x:Rtheta' fm)
     := (evalWriter x) = 0.
 
   Global Instance Is_ValZero_Proper
-         {fm:Monoid.Monoid RthetaFlags}
+         {fm:Monoid RthetaFlags}
     :
       Proper ((=) ==> (iff)) (@Is_ValZero fm).
   Proof.
@@ -492,7 +493,7 @@ Section Zero_Utils.
   Qed.
 
   Lemma Is_ValZero_to_mkSZero
-        {fm:Monoid.Monoid RthetaFlags}
+        {fm:Monoid RthetaFlags}
         (x:Rtheta' fm):
     (Is_ValZero x) <-> (x = mkSZero).
   Proof.
@@ -500,7 +501,7 @@ Section Zero_Utils.
   Qed.
 
   Lemma SZero_is_ValZero
-        {fm:Monoid.Monoid RthetaFlags}:
+        {fm:Monoid RthetaFlags}:
     @Is_ValZero fm mkSZero.
   Proof.
     unfold Is_ValZero.
@@ -510,7 +511,7 @@ Section Zero_Utils.
 
   (* Using setoid equalities on both components *)
   Definition Is_SZero
-             {fm:Monoid.Monoid RthetaFlags}
+             {fm:Monoid RthetaFlags}
              (x:Rtheta' fm)
     :=
       (evalWriter x = zero) /\
@@ -531,7 +532,7 @@ Section Zero_Utils.
 
   (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter *)
   Lemma Is_ValZero_not_not
-        {fm:Monoid.Monoid RthetaFlags}
+        {fm:Monoid RthetaFlags}
     :
       ((not ∘ (not ∘ @Is_ValZero fm)) = Is_ValZero).
   Proof.
@@ -557,7 +558,7 @@ Section Zero_Utils.
 
   (* Double negation on inValZero. *)
   Lemma Is_ValZero_not_not_impl
-        {fm:Monoid.Monoid RthetaFlags}
+        {fm:Monoid RthetaFlags}
     :
       forall x, (not ∘ (not ∘ (@Is_ValZero fm))) x <-> Is_ValZero x.
   Proof.

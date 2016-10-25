@@ -34,6 +34,7 @@ Require Import MathClasses.theory.setoids.
 
 (* ExtLib *)
 Require Import ExtLib.Structures.Monoid.
+Import Monoid.
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -44,7 +45,7 @@ Local Open Scope nat_scope.
 
 Section SigmaHCOLHelperLemmas.
 
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Lemma Gather_composition
@@ -527,7 +528,7 @@ Section SigmaHCOLExpansionRules.
      *)
     (* TODO: perhaps could be generalized for generic operation, not just plus *)
     Theorem expand_HTDirectSum
-            {fm: Monoid.Monoid RthetaFlags}
+            {fm: Monoid RthetaFlags}
             {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
             {i1 o1 i2 o2}
             (f: avector i1 -> avector o1)
@@ -827,7 +828,7 @@ Section SigmaHCOLExpansionRules.
     Qed.
 
     Global Instance HTDirectSum_DensityPreserving
-           {fm: Monoid.Monoid RthetaFlags}
+           {fm: Monoid RthetaFlags}
            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
            {i1 o1 i2 o2}
            (f: avector i1 -> avector o1)
@@ -996,7 +997,7 @@ Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
     Global Instance Apply_Family_Pointwise_compose_Single_NonZero_Per_Row
-           {fm: Monoid.Monoid RthetaFlags}
+           {fm: Monoid RthetaFlags}
            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
            {i o n}
            (op_family: forall k, (k<n) -> svector fm i -> svector fm o)

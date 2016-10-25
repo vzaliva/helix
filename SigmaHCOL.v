@@ -35,6 +35,8 @@ Require Import MathClasses.theory.setoids.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
 
+Import Monoid.
+
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -57,7 +59,7 @@ Section SigmaHCOL_Operators.
 
   Section FlagsMonoidGenericOperators.
 
-    Variable fm:Monoid.Monoid RthetaFlags.
+    Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
     Class SHOperator {i o:nat} (op: svector fm i -> svector fm o) :=
@@ -606,7 +608,7 @@ Qed.
 
 Section OperatorProperies.
 
-  Variable fm:Monoid.Monoid RthetaFlags.
+  Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   (* Specification of gather as mapping from output to input. NOTE:
@@ -961,7 +963,7 @@ Section StructuralProperies.
   Qed.
 
   Section FlagsMonoidGenericStructuralProperties.
-    Variable fm:Monoid.Monoid RthetaFlags.
+    Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
     (* All lifted HOperators are naturally density preserving *)
