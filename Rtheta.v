@@ -97,7 +97,7 @@ Section CollisionTrackingRthetaFlags.
     mkRthetaFlags
       (is_struct a && is_struct b)
       (is_collision a || (is_collision b ||
-                         (negb (is_struct a || is_struct b)))).
+                          (negb (is_struct a || is_struct b)))).
 
   Definition Monoid_RthetaFlags : Monoid.Monoid RthetaFlags := Monoid.Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
@@ -336,21 +336,6 @@ Section Rtheta'Utils.
     destruct x.
     simpl.
     apply fml.
-  Qed.
-
-  (* For paper *)
-  Theorem For_Paper_1:
-    forall (op: CarrierA -> CarrierA -> CarrierA)
-      (a b: Rtheta),
-      execWriter (liftM2 op a b) ≡
-                 RthetaFlagsAppend (execWriter a) (execWriter b).
-
-  Proof.
-    intros op a b.
-    unfold execWriter, liftM2.
-    simpl.
-    rewrite RthetaFlags_runit.
-    reflexivity.
   Qed.
 
   Lemma execWriter_Rtheta_liftM2
