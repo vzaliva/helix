@@ -349,8 +349,6 @@ Section SigmaHCOL_Operators.
         apply Vnth_arg_equiv.
         rewrite E.
         reflexivity.
-      - apply fml.
-      - apply fml.
     Qed.
 
 
@@ -596,9 +594,9 @@ Proof.
   unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family.
   apply ext_equiv_applied_iff'.
   split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [ apply MonoidLaws_RthetaFlags | apply CarrierAPlus_proper | reflexivity].
+  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
   split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [apply MonoidLaws_RthetaFlags | apply CarrierAPlus_proper | reflexivity].
+  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
   reflexivity.
   vec_index_equiv j jc.
   rewrite 2!Vbuild_nth.
@@ -934,7 +932,7 @@ Section StructuralProperies.
     apply Vforall_nth with (ip:=jp) in E.
 
     repeat unfold Rtheta', Rtheta in *.
-    generalize dependent (@Vnth (RthetaFlagsMonad Monoid_RthetaFlags CarrierA) o (@Scatter Monoid_RthetaFlags i o f f_inj x) j jp).
+    generalize dependent (@Vnth (Monad_RthetaFlags Monoid_RthetaFlags CarrierA) o (@Scatter Monoid_RthetaFlags i o f f_inj x) j jp).
     intros v E.
     destruct E.
     -
@@ -1039,12 +1037,11 @@ Section StructuralProperies.
   Proof.
     unfold Is_Val, compose, IsVal in *.
     rewrite execWriter_Rtheta_liftM2.
-    - simpl in *.
-      generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
-      generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
-      intros f1 V1 f2 V2.
-      destr_bool.
-    - apply MonoidLaws_RthetaFlags.
+    simpl in *.
+    generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
+    generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
+    intros f1 V1 f2 V2.
+    destr_bool.
   Qed.
 
   Global Instance SHBinOp_DensityPreserving {o}

@@ -204,7 +204,6 @@ Section SigmaHCOLHelperLemmas.
       rewrite Hh.
       rewrite Union_SZero_r.
       apply IHx, Hx.
-      apply fml.
   Qed.
 
   Lemma UnionFold_VallButOne_zero:
@@ -238,7 +237,6 @@ Section SigmaHCOLHelperLemmas.
           by apply Is_ValZero_to_mkSZero, UZ.
         clear UZ.
         apply Union_SZero_l.
-        apply fml.
       +
         (* Case ("i!=0"). *)
         rewrite UnionFold_cons.
@@ -258,7 +256,6 @@ Section SigmaHCOLHelperLemmas.
 
         setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
         apply Union_SZero_r.
-        apply fml.
         apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
         apply U.
   Qed.
@@ -295,7 +292,6 @@ Section SigmaHCOLHelperLemmas.
           by apply Is_ValZero_to_mkSZero, UZ.
         clear UZ.
         apply Union_SZero_l.
-        apply fml.
       +
         (* Case ("j!=0"). *)
         rewrite UnionFold_cons.
@@ -317,7 +313,6 @@ Section SigmaHCOLHelperLemmas.
 
         setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
         apply Union_SZero_r.
-        apply fml.
 
         intros i ic.
         assert(ics: S i < S m) by lia.
@@ -472,8 +467,7 @@ Proof.
        simpl in n0.
        break_if; crush.
   -
-    apply MonoidLaws_RthetaFlags.
-  - apply L3pre.
+    apply L3pre.
 Qed.
 
 Section SigmaHCOLExpansionRules.
@@ -774,8 +768,8 @@ Section SigmaHCOLExpansionRules.
         unfold sparsify.
         rewrite Vmap_app.
         reflexivity.
-        apply Vec2Union_szero_svector_l, fml.
-        apply Vec2Union_szero_svector_r, fml.
+        apply Vec2Union_szero_svector_l.
+        apply Vec2Union_szero_svector_r.
     Qed.
 
 
@@ -1306,10 +1300,7 @@ Section SigmaHCOLRewritingRules.
                rewrite Vbuild_nth.
                rewrite SHPointwise_nth.
                reflexivity.
-               apply MonoidLaws_RthetaFlags.
-            ** apply MonoidLaws_RthetaFlags.
             ** apply H.
-          * apply MonoidLaws_RthetaFlags.
           *
             apply VallButOneSimpl with (P0:=(not ∘ (not ∘ Is_ValZero))).
             apply Is_ValZero_not_not_impl.

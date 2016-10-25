@@ -183,9 +183,7 @@ Section Union.
     intros x y.
     unfold Union, equiv, Rtheta'_equiv.
     rewrite 2!evalWriter_Rtheta_liftM2.
-    - apply C.
-    - apply fml.
-    - apply fml.
+    apply C.
   Qed.
 
   Lemma evalWriterUnion {a b: Rtheta' fm} {dot}:
@@ -195,8 +193,7 @@ Section Union.
   Proof.
     unfold Union.
     rewrite evalWriter_Rtheta_liftM2.
-    - reflexivity.
-    - apply fml.
+    reflexivity.
   Qed.
 
   Global Instance Union_proper:
@@ -208,8 +205,6 @@ Section Union.
     - apply DP.
       + apply H.
       + apply E.
-    - apply fml.
-    - apply fml.
   Qed.
 
   (** Unary union of vector's elements (left fold) *)
@@ -238,9 +233,7 @@ Section Union.
     rewrite 2!Vnth_map2.
     unfold_Rtheta_equiv.
     rewrite 2!evalWriter_Rtheta_liftM2.
-    - apply Ed; apply evalWriter_proper; apply Vnth_arg_equiv; assumption.
-    - apply fml.
-    - apply fml.
+    apply Ed; apply evalWriter_proper; apply Vnth_arg_equiv; assumption.
   Qed.
 
   (** Matrix-union. *)
@@ -414,9 +407,8 @@ Section Union.
     unfold Union.
     unfold_Rtheta_equiv.
     rewrite evalWriter_Rtheta_liftM2.
-    - rewrite evalWriter_Rtheta_SZero.
-      ring.
-    - apply fml.
+    rewrite evalWriter_Rtheta_SZero.
+    ring.
   Qed.
 
   Lemma Union_SZero_l x:
@@ -425,9 +417,8 @@ Section Union.
     unfold Union.
     unfold_Rtheta_equiv.
     rewrite evalWriter_Rtheta_liftM2.
-    - rewrite evalWriter_Rtheta_SZero.
-      ring.
-    - apply fml.
+    rewrite evalWriter_Rtheta_SZero.
+    ring.
   Qed.
 
   Lemma Vec2Union_szero_svector_r {n} {a: svector fm n}:
@@ -473,14 +464,13 @@ Section ExclusiveUnion.
     intros CA CB C.
     unfold Union, Is_Collision, compose.
     rewrite execWriter_Rtheta_liftM2.
-    - unfold Is_Collision, Is_Val, compose in *.
-      destruct (execWriter a) as [str_a col_a].
-      destruct (execWriter b) as [str_b col_b].
-      unfold RthetaFlagsAppend.
-      unfold IsCollision, IsVal in *.
-      destr_bool.
-      auto.
-    - apply MonoidLaws_RthetaFlags.
+    unfold Is_Collision, Is_Val, compose in *.
+    destruct (execWriter a) as [str_a col_a].
+    destruct (execWriter b) as [str_b col_b].
+    unfold RthetaFlagsAppend.
+    unfold IsCollision, IsVal in *.
+    destr_bool.
+    auto.
   Qed.
 
   (* Conditions under which Union produces value *)
@@ -488,24 +478,22 @@ Section ExclusiveUnion.
     Is_Val a \/ Is_Val b <-> Is_Val (Union Monoid_RthetaFlags dot a b).
   Proof.
     split.
-    - intros [VA | VB];
-        (
+    - intros [VA | VB]; (
           unfold Union, Is_Val, compose in *;
           rewrite execWriter_Rtheta_liftM2;
           destruct (execWriter a) as [str_a col_a];
           destruct (execWriter b) as [str_b col_b];
           unfold RthetaFlagsAppend;
           unfold IsVal in *;
-          destr_bool; auto); try apply MonoidLaws_RthetaFlags.
+          destr_bool; auto).
     -
       intros H.
       unfold Union, Is_Val, compose in *.
-      rewrite execWriter_Rtheta_liftM2 in *.
-      + destruct (execWriter a) as [str_a col_a].
-        destruct (execWriter b) as [str_b col_b].
-        unfold IsVal in *.
-        destr_bool; auto.
-      + apply MonoidLaws_RthetaFlags.
+      rewrite execWriter_Rtheta_liftM2 in H.
+      destruct (execWriter a) as [str_a col_a].
+      destruct (execWriter b) as [str_b col_b].
+      unfold IsVal in *.
+      destr_bool; auto.
   Qed.
 
   Lemma Is_Val_UnionFold {n} {v: rvector n} {dot} {neutral}:
