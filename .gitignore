@@ -2,6 +2,9 @@
 *.glob
 *.v.d
 *.aux
+experiments/*.hi
+experiments/*.o
+experiments/test
 HCOL.hs
 HCOL.pdf
 lia.cache
