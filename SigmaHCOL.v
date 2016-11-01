@@ -62,12 +62,8 @@ Section SigmaHCOL_Operators.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Class SHOperator {i o:nat} (op: svector fm i -> svector fm o) :=
+    Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: (@sig (svector fm i) P) -> (@sig (svector fm o) Q)) :=
       SHOperator_setoidmor :> Setoid_Morphism op.
-
-    (* Strong condition: operator always produce dense output *)
-    Class AlwaysDense {i o:nat} (op: svector fm i -> svector fm o) :=
-      o_dense : forall x, svector_is_dense fm (op x).
 
     (* Strong condition: operator preserves vectors' density *)
     Class DensityPreserving {i o:nat} (op: svector fm i -> svector fm o) :=
@@ -87,9 +83,9 @@ Section SigmaHCOL_Operators.
         svector_is_non_collision fm (op x).
 
     Lemma SHOperator_functional_extensionality
-          {m n: nat}
-          `{SHOperator m n f}
-          `{SHOperator m n g}:
+          {m n: nat} {P Q}
+          `{SHOperator m n P Q f}
+          `{SHOperator m n P Q g}:
       (∀ v, f v = g v) -> f = g.
     Proof.
       unfold SHOperator in *.
@@ -97,8 +93,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma SHOperator_Reflexivity
-          {m n: nat}
-          `{SHOperator m n f}:
+          {m n: nat} {P Q}
+          `{SHOperator m n P Q f}:
       f = f.
     Proof.
       apply (@SHOperator_functional_extensionality m n).
@@ -108,23 +104,38 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
+    Definition SVTrue (i:nat): svector fm i → Prop := fun _ => True.
+
+    Lemma SVTrueAlways {i}:
+      forall (v:svector fm i), SVTrue i v.
+    Proof.
+      unfold SVTrue.
+      auto.
+    Qed.
+
     Definition liftM_HOperator
-               {i o}
+               {i o} {P}
                (op: avector i -> avector o)
-      : svector fm i -> svector fm o :=
-      sparsify fm ∘ op ∘ densify fm.
+      : (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+      := fun (x:(@sig (svector fm i) P)) =>
+           let y := (sparsify fm (op (densify fm (proj1_sig x)))) in
+           @exist _ _ y (SVTrueAlways y).
 
     Global Instance SHOperator_liftM_HOperator
            {i o}
            (op: avector i -> avector o)
            `{hop: !HOperator op}
-      : SHOperator (liftM_HOperator op).
+      : SHOperator (SVTrue i) (SVTrue o) (liftM_HOperator op).
     Proof.
       unfold SHOperator.
-      split; try apply vec_Setoid.
-      intros x y Exy.
+      Print Instances Setoid.
+      split; try apply sig_setoid.
+      intros [x Xp] [y Yp] Exy.
+      replace Xp with Yp in * by apply proof_irrelevance. clear Xp.
+      unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold liftM_HOperator, compose.
       unfold sparsify, densify.
+      simpl_sig_equiv; simpl.
       rewrite Exy.
       reflexivity.
     Qed.
