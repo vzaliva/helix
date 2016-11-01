@@ -122,16 +122,14 @@ Section SigmaHCOL_Operators.
            @exist _ _ y (SVTrueAlways y).
 
     Global Instance SHOperator_liftM_HOperator
-           {i o}
+           {i o} {P}
            (op: avector i -> avector o)
            `{hop: !HOperator op}
-      : SHOperator (SVTrue i) (SVTrue o) (liftM_HOperator op).
+      : SHOperator P (SVTrue o) (liftM_HOperator op).
     Proof.
       unfold SHOperator.
-      Print Instances Setoid.
       split; try apply sig_setoid.
       intros [x Xp] [y Yp] Exy.
-      replace Xp with Yp in * by apply proof_irrelevance. clear Xp.
       unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold liftM_HOperator, compose.
       unfold sparsify, densify.
