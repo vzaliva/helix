@@ -65,8 +65,12 @@ Section SigmaHCOL_Operators.
     Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: (@sig (svector fm i) P) -> (@sig (svector fm o) Q)) :=
       SHOperator_setoidmor :> Setoid_Morphism op.
 
+    (*
     (* Strong condition: operator preserves vectors' density *)
-    Class DensityPreserving {i o:nat} (op: svector fm i -> svector fm o) :=
+    Definition DensityPreserving {i o:nat}
+               (op: {x:svector fm i |svector_is_dense fm x} ->
+                    {y:svector fm o | svector_is_dense fm y}) : Prop.
+        :=
       o_den_pres : forall x, svector_is_dense fm x -> svector_is_dense fm (op x).
 
     (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
@@ -81,7 +85,7 @@ Section SigmaHCOL_Operators.
       o_non_col : forall x,
         svector_is_non_collision fm x ->
         svector_is_non_collision fm (op x).
-
+     *)
     Lemma SHOperator_functional_extensionality
           {m n: nat} {P Q}
           `{SHOperator m n P Q f}
@@ -113,6 +117,7 @@ Section SigmaHCOL_Operators.
       auto.
     Qed.
 
+    (* TODO: maybe post-condition is svector_is_dense? *)
     Definition liftM_HOperator
                {i o} {P}
                (op: avector i -> avector o)
@@ -140,19 +145,19 @@ Section SigmaHCOL_Operators.
 
     (** Apply family of operators to same fector and return matrix of results *)
     Definition Apply_Family
-               {i o n}
-               (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
-               `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-               (x: svector fm i)
+               {i o n} {P Q}
+               (op_family: forall k, (k<n) -> {x : svector fm i | P x} → {x : svector fm o | Q x})
+               `{Koperator: forall k (kc: k<n), @SHOperator i o P Q (op_family k kc)}
+               (v: {x : svector fm i | P x})
       :=
         (Vbuild
-           (λ (j:nat) (jc:j<n),  op_family j jc x)).
+           (λ (j:nat) (jc:j<n),  op_family j jc v)).
 
     Global Instance Apply_Family_proper
-           {i o n}
-           (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
-           `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}:
-      Proper ((=) ==> (=)) (@Apply_Family i o n op_family Koperator).
+           {i o n} {P Q}
+           (op_family: forall k, (k<n) -> {x : svector fm i | P x} → {x : svector fm o | Q x})
+           `{Koperator: forall k (kc: k<n), @SHOperator i o P Q(op_family k kc)}:
+      Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family Koperator).
     Proof.
       intros x y E.
       unfold Apply_Family.
@@ -162,6 +167,7 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
+    (*
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
     Class Apply_Family_Single_NonZero_Per_Row
           {i o n}
@@ -172,51 +178,54 @@ Section SigmaHCOL_Operators.
                                                       (transpose
                                                          (Apply_Family op_family x)
                                                       ).
-
+     *)
     Definition Gather
-               {i o: nat}
-               (f: index_map o i)
-               (x: svector fm i):
-      svector fm o
-      := Vbuild (VnthIndexMapped x f).
+               {i o: nat} {P}
+               (f: index_map o i):
+      (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o)).
+    Proof.
+      intros [x Xp].
+      exists (Vbuild (VnthIndexMapped x f)).
+      apply SVTrueAlways.
+    Defined.
 
     Global Instance SHOperator_Gather
-           {i o: nat}
+           {i o: nat} {P}
            (f: index_map o i):
-      SHOperator (Gather f).
+      SHOperator P (SVTrue o) (Gather f).
     Proof.
       unfold SHOperator.
-      split; repeat apply vec_Setoid.
-      intros x y E.
+      split; repeat apply sig_setoid.
+      intros [x Px] [y Qy] Exy.
+      unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold Gather.
       unfold VnthIndexMapped.
       vec_index_equiv j jp.
+      simpl.
       rewrite 2!Vbuild_nth.
       apply Vnth_arg_equiv.
-      rewrite E.
-      reflexivity.
+      apply Exy.
     Qed.
 
     Definition GathH
-               {i o}
+               {i o} {P}
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :
-        (svector fm i) -> svector fm o
+        (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
-               ).
+                 ).
 
     Global Instance SHOperator_GathH
-           {i o}
+           {i o} {P}
            (base stride: nat)
            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-      SHOperator (@GathH i o base stride domain_bound).
+      SHOperator P (SVTrue o) (@GathH i o P base stride domain_bound).
     Proof.
       apply SHOperator_Gather.
     Qed.
-
 
     Definition Scatter
                {i o: nat}
