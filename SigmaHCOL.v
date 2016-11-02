@@ -222,60 +222,64 @@ Section SigmaHCOL_Operators.
            {i o} {P}
            (base stride: nat)
            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-      SHOperator P (SVTrue o) (@GathH i o P base stride domain_bound).
+      SHOperator _ _ (@GathH i o P base stride domain_bound).
     Proof.
       apply SHOperator_Gather.
     Qed.
 
     Definition Scatter
-               {i o: nat}
+               {i o: nat} {P}
                (f: index_map i o)
-               {f_inj: index_map_injective f}
-               (x: svector fm i) : svector fm o
-      :=
-        let f' := build_inverse_index_map f in
-        Vbuild (fun n np =>
-                  match decide (in_range f n) with
-                  | left r => Vnth x (inverse_index_f_spec f f' n r)
-                  | right _ => mkSZero
-                  end).
+               {f_inj: index_map_injective f}:
+      (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+      := fun x =>
+           let f' := build_inverse_index_map f in
+           let x' := proj1_sig x in
+           let y :=
+               Vbuild (fun n np =>
+                         match decide (in_range f n) with
+                         | left r => Vnth x' (inverse_index_f_spec f f' n r)
+                         | right _ => mkSZero
+                         end) in
+           @exist _ _ y (SVTrueAlways y).
+
 
     Global Instance SHOperator_Scatter
-           {i o: nat}
+           {i o: nat} {P}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      SHOperator (@Scatter i o f f_inj).
+      SHOperator P (SVTrue o) (@Scatter i o P f f_inj).
     Proof.
       unfold SHOperator.
-      split; try apply vec_Setoid.
-      intros x y E.
+      split; try apply sig_setoid.
+      intros [x Px] [y Qy] Exy.
+      unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold Scatter.
       vec_index_equiv j jp.
+      simpl.
       rewrite 2!Vbuild_nth.
-      simpl.
       break_match.
-      simpl.
-      apply Vnth_arg_equiv, E.
-      reflexivity.
+      - apply Vnth_arg_equiv, Exy.
+      - reflexivity.
     Qed.
 
     Definition ScatH
-               {i o}
+               {i o} {P}
                (base stride: nat)
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
       :
-        (svector fm i) -> svector fm o
+        (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
     Global Instance SHOperator_ScatH
-           {i o}
+           {i o} {P}
            (base stride: nat)
            {range_bound: ∀ x : nat, x < i → base + x * stride < o}
            {snzord0: stride ≢ 0 \/ i < 2}:
-      SHOperator (@ScatH i o base stride range_bound snzord0).
+      SHOperator _ _ (@ScatH i o P base stride range_bound snzord0).
     Proof.
       apply SHOperator_Scatter.
     Qed.
