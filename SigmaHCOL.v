@@ -285,16 +285,17 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperator_compose
-           {i1 o2 o3}
-           (op1: svector fm o2 -> svector fm o3)
-           `{S1:!SHOperator op1}
-           (op2: svector fm i1 -> svector fm o2)
-           `{S2: !SHOperator op2}:
-      SHOperator (op1 ∘ op2).
+           {i1 o2 o3} {P R Q}
+           (op1: (@sig (svector fm o2) R) -> (@sig (svector fm o3) Q))
+           `{S1:!SHOperator _ _ op1}
+           (op2: (@sig (svector fm i1) P) -> (@sig (svector fm o2) R))
+           `{S2: !SHOperator _ _ op2}:
+      SHOperator P Q (op1 ∘ op2).
     Proof.
       unfold SHOperator in *.
-      split; try apply vec_Setoid.
-      intros x y Exy.
+      split; try apply sig_setoid.
+      intros [x Px] [y Qy] Exy.
+      unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold compose.
       destruct S1, S2.
       auto.
