@@ -342,35 +342,35 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Definition SHBinOp
-               {o}
+               {o} {P}
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-               (v:svector fm (o+o)): svector fm o
-      :=  match (vector2pair o v) with
-          | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
-          end.
+               (v:psvector fm (o+o) P): psvector fm o (SVTrue o)
+      := let y :=
+             match (vector2pair o (proj1_sig v)) with
+             | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
+             end in
+         @exist _ _ y (SVTrueAlways y).
 
-    Global Instance SHOperator_SHBinOp {o}
+    Global Instance SHOperator_SHBinOp {o} {P}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      SHOperator (@SHBinOp o f pF).
+      SHOperator P _ (@SHBinOp o P f pF).
     Proof.
-      split; try apply vec_Setoid.
-
-      intros x y E.
+      split; try apply sig_setoid.
+      intros [x Px] [y Qy] E.
+      unfold equiv, sig_equiv in E. simpl in E.
       unfold SHBinOp.
       vec_index_equiv j jc.
       unfold vector2pair.
-
-
       repeat break_let.
-
       replace t with (fst (Vbreak x)) by crush.
       replace t0 with (snd (Vbreak x)) by crush.
       replace t1 with (fst (Vbreak y)) by crush.
       replace t2 with (snd (Vbreak y)) by crush.
       clear Heqp Heqp0.
 
+      repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
 
       unfold_Rtheta_equiv.
