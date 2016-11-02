@@ -55,6 +55,8 @@ Definition VnthIndexMapped
   : A
   := Vnth x (« f » n np).
 
+Notation psvector fm n P := (@sig (svector fm n) P) (only parsing).
+
 Section SigmaHCOL_Operators.
 
   Section FlagsMonoidGenericOperators.
@@ -62,7 +64,7 @@ Section SigmaHCOL_Operators.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: (@sig (svector fm i) P) -> (@sig (svector fm o) Q)) :=
+    Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: psvector fm i P -> psvector fm o Q) :=
       SHOperator_setoidmor :> Setoid_Morphism op.
 
     (*
@@ -121,7 +123,7 @@ Section SigmaHCOL_Operators.
     Definition liftM_HOperator
                {i o} {P}
                (op: avector i -> avector o)
-      : (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+      : psvector fm i P -> psvector fm o (SVTrue o)
       := fun (x:(@sig (svector fm i) P)) =>
            let y := (sparsify fm (op (densify fm (proj1_sig x)))) in
            @exist _ _ y (SVTrueAlways y).
@@ -146,7 +148,7 @@ Section SigmaHCOL_Operators.
     (** Apply family of operators to same fector and return matrix of results *)
     Definition Apply_Family
                {i o n} {P Q}
-               (op_family: forall k, (k<n) -> {x : svector fm i | P x} → {x : svector fm o | Q x})
+               (op_family: forall k, (k<n) -> psvector fm i P → psvector fm o Q)
                `{Koperator: forall k (kc: k<n), @SHOperator i o P Q (op_family k kc)}
                (v: {x : svector fm i | P x})
       :=
@@ -155,7 +157,7 @@ Section SigmaHCOL_Operators.
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
-           (op_family: forall k, (k<n) -> {x : svector fm i | P x} → {x : svector fm o | Q x})
+           (op_family: forall k, (k<n) -> psvector fm i P → psvector fm o Q)
            `{Koperator: forall k (kc: k<n), @SHOperator i o P Q(op_family k kc)}:
       Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family Koperator).
     Proof.
@@ -182,7 +184,7 @@ Section SigmaHCOL_Operators.
     Definition Gather
                {i o: nat} {P}
                (f: index_map o i):
-      (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o)).
+      psvector fm i P -> psvector fm o (SVTrue o).
     Proof.
       intros [x Xp].
       exists (Vbuild (VnthIndexMapped x f)).
@@ -212,11 +214,11 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :
-        (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+        psvector fm i P -> psvector fm o (SVTrue o)
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
-                 ).
+               ).
 
     Global Instance SHOperator_GathH
            {i o} {P}
@@ -231,7 +233,7 @@ Section SigmaHCOL_Operators.
                {i o: nat} {P}
                (f: index_map i o)
                {f_inj: index_map_injective f}:
-      (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+      psvector fm i P -> psvector fm o (SVTrue o)
       := fun x =>
            let f' := build_inverse_index_map f in
            let x' := proj1_sig x in
@@ -269,7 +271,7 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
       :
-        (@sig (svector fm i) P) -> (@sig (svector fm o) (SVTrue o))
+        psvector fm i P -> psvector fm o (SVTrue o)
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
@@ -286,9 +288,9 @@ Section SigmaHCOL_Operators.
 
     Global Instance SHOperator_compose
            {i1 o2 o3} {P R Q}
-           (op1: (@sig (svector fm o2) R) -> (@sig (svector fm o3) Q))
+           (op1: psvector fm o2 R -> psvector fm o3 Q)
            `{S1:!SHOperator _ _ op1}
-           (op2: (@sig (svector fm i1) P) -> (@sig (svector fm o2) R))
+           (op2: psvector fm i1 P -> psvector fm o2 R)
            `{S2: !SHOperator _ _ op2}:
       SHOperator P Q (op1 ∘ op2).
     Proof.
