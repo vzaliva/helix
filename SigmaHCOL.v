@@ -124,7 +124,7 @@ Section SigmaHCOL_Operators.
                {i o} {P}
                (op: avector i -> avector o)
       : psvector fm i P -> psvector fm o (SVTrue o)
-      := fun (x:(@sig (svector fm i) P)) =>
+      := fun (x:psvector fm i P) =>
            let y := (sparsify fm (op (densify fm (proj1_sig x)))) in
            @exist _ _ y (SVTrueAlways y).
 
@@ -303,33 +303,42 @@ Section SigmaHCOL_Operators.
       auto.
     Qed.
 
+    (* TODO: move *)
+    Lemma proj1_sig_exists {A:Type} {x:A} {P} {PA}:
+      proj1_sig (@exist A P x PA) ≡ x.
+    Proof.
+      reflexivity.
+    Qed.
+
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise
-               {n: nat}
+               {n: nat} {P}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (x: svector fm n): svector fm n
-      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
+               (x: psvector fm n P): psvector fm n (SVTrue n)
+      := let x' := proj1_sig x in
+         let y := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x' jd)) in
+         @exist _ _ y (SVTrueAlways y).
 
     Global Instance SHOperator_SHPointwise
-           {n: nat}
+           {n: nat} {P}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator (SHPointwise f).
+      SHOperator P _ (SHPointwise f).
     Proof.
-      split; try apply vec_Setoid.
-      intros x y E.
+      split; try apply sig_setoid.
+      intros [x Px] [y Qy] Exy.
+      unfold equiv, sig_equiv in Exy. simpl in Exy.
       unfold SHPointwise.
       vec_index_equiv j jc.
+      repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
-
       unfold_Rtheta_equiv.
       rewrite 2!evalWriter_Rtheta_liftM.
-
       f_equiv.
       apply evalWriter_proper.
       apply Vnth_arg_equiv.
-      apply E.
+      apply Exy.
     Qed.
 
     Definition SHBinOp
