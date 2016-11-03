@@ -258,42 +258,55 @@ Section SigmaHCOL_Operators.
                ) PQ.
 
     Global Instance SHOperator_GathH
-           {i o} {P}
+           {i o}
+           {P: svector fm i -> Prop}
+           {Q: svector fm o -> Prop}
            (base stride: nat)
-           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-      SHOperator _ _ (@GathH i o P base stride domain_bound).
+           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+           (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
+                                                   (range_bound:=domain_bound)) x)):
+      SHOperator _ _ (@GathH i o P Q base stride domain_bound PQ).
     Proof.
       apply SHOperator_Gather.
     Qed.
 
-    Definition Scatter
-               {i o: nat} {P}
+    Definition Scatter'
+               {i o: nat}
                (f: index_map i o)
-               {f_inj: index_map_injective f}:
-      psvector fm i P -> psvector fm o (SVTrue o)
-      := fun x =>
-           let f' := build_inverse_index_map f in
-           let x' := proj1_sig x in
-           let y :=
-               Vbuild (fun n np =>
-                         match decide (in_range f n) with
-                         | left r => Vnth x' (inverse_index_f_spec f f' n r)
-                         | right _ => mkSZero
-                         end) in
-           @exist _ _ y (SVTrueAlways y).
+               {f_inj: index_map_injective f}
+               (x: svector fm i) : svector fm o
+      :=
+        let f' := build_inverse_index_map f in
+        Vbuild (fun n np =>
+                  match decide (in_range f n) with
+                  | left r => Vnth x (inverse_index_f_spec f f' n r)
+                  | right _ => mkSZero
+                  end).
 
+    Definition Scatter
+               {i o: nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: index_map i o)
+               {f_inj: index_map_injective f}
+               (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
+      psvector fm i P -> psvector fm o Q
+      :=  AddPrePost (Scatter' f (f_inj:=f_inj)) PQ.
 
     Global Instance SHOperator_Scatter
-           {i o: nat} {P}
+           {i o: nat}
+           {P: svector fm i -> Prop}
+           {Q: svector fm o -> Prop}
            (f: index_map i o)
-           {f_inj: index_map_injective f}:
-      SHOperator P (SVTrue o) (@Scatter i o P f f_inj).
+           {f_inj: index_map_injective f}
+           (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
+      SHOperator P Q (@Scatter i o P Q f f_inj PQ).
     Proof.
       unfold SHOperator.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] Exy.
       unfold equiv, sig_equiv in Exy. simpl in Exy.
-      unfold Scatter.
+      unfold Scatter, Scatter', AddPrePost.
       vec_index_equiv j jp.
       simpl.
       rewrite 2!Vbuild_nth.
@@ -303,22 +316,32 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Definition ScatH
-               {i o} {P}
+               {i o}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
                (base stride: nat)
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
+               (PQ: forall x, P x -> Q (Scatter'
+                                    (h_index_map base stride (range_bound:=range_bound))
+                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :
-        psvector fm i P -> psvector fm o (SVTrue o)
+        psvector fm i P -> psvector fm o Q
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
-                (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
+                (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
 
     Global Instance SHOperator_ScatH
-           {i o} {P}
+           {i o}
+           {P: svector fm i -> Prop}
+           {Q: svector fm o -> Prop}
            (base stride: nat)
            {range_bound: ∀ x : nat, x < i → base + x * stride < o}
-           {snzord0: stride ≢ 0 \/ i < 2}:
-      SHOperator _ _ (@ScatH i o P base stride range_bound snzord0).
+           {snzord0: stride ≢ 0 \/ i < 2}
+           (PQ: forall x, P x -> Q (Scatter'
+                                (h_index_map base stride (range_bound:=range_bound))
+                                (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x)):
+      SHOperator _ _ (@ScatH i o P Q base stride range_bound snzord0 PQ).
     Proof.
       apply SHOperator_Scatter.
     Qed.
