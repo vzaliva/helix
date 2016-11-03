@@ -203,26 +203,37 @@ Section SigmaHCOL_Operators.
                                                          (Apply_Family op_family x)
                                                       ).
      *)
+
+    Definition Gather'
+               {i o: nat}
+               (f: index_map o i)
+               (x: svector fm i):
+      svector fm o
+      := Vbuild (VnthIndexMapped x f).
+
+
     Definition Gather
-               {i o: nat} {P}
-               (f: index_map o i):
-      psvector fm i P -> psvector fm o (SVTrue o).
-    Proof.
-      intros [x Xp].
-      exists (Vbuild (VnthIndexMapped x f)).
-      apply SVTrueAlways.
-    Defined.
+               {i o: nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: index_map o i)
+               (PQ: forall x, P x -> Q (Gather' f x)):
+      psvector fm i P -> psvector fm o Q :=
+      AddPrePost (Gather' f) PQ.
 
     Global Instance SHOperator_Gather
-           {i o: nat} {P}
-           (f: index_map o i):
-      SHOperator P (SVTrue o) (Gather f).
+           {i o: nat}
+           {P: svector fm i -> Prop}
+           {Q: svector fm o -> Prop}
+           (f: index_map o i)
+           (PQ: forall x, P x -> Q (Gather' f x)):
+      SHOperator P Q (Gather f PQ).
     Proof.
       unfold SHOperator.
       split; repeat apply sig_setoid.
       intros [x Px] [y Qy] Exy.
       unfold equiv, sig_equiv in Exy. simpl in Exy.
-      unfold Gather.
+      unfold Gather, Gather', AddPrePost.
       unfold VnthIndexMapped.
       vec_index_equiv j jp.
       simpl.
@@ -232,15 +243,19 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Definition GathH
-               {i o} {P}
+               {i o}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+               (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
+                            (range_bound:=domain_bound)) x))
       :
-        psvector fm i P -> psvector fm o (SVTrue o)
+        psvector fm i P -> psvector fm o Q
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
-               ).
+               ) PQ.
 
     Global Instance SHOperator_GathH
            {i o} {P}
@@ -466,9 +481,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                         (transpose
-                                            (Apply_Family Monoid_RthetaFlags op_family x)
-                                         ).
+                                    (transpose
+                                       (Apply_Family Monoid_RthetaFlags op_family x)
+                                    ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
