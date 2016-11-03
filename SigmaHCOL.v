@@ -119,26 +119,48 @@ Section SigmaHCOL_Operators.
       auto.
     Qed.
 
+
+    Definition AddPrePost
+               {i o}
+               (op: svector fm i -> svector fm o)
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               (PQ: forall x, P x -> Q (op x))
+      : psvector fm i P -> psvector fm o Q.
+    Proof.
+      intros [x Px].
+      eexists (op x).
+      apply PQ, Px.
+    Defined.
+
+    Definition liftM_HOperator'
+               {i o}
+               (op: avector i -> avector o)
+      : svector fm i -> svector fm o :=
+      sparsify fm ∘ op ∘ densify fm.
+
     (* TODO: maybe post-condition is svector_is_dense? *)
     Definition liftM_HOperator
-               {i o} {P}
+               {i o}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
                (op: avector i -> avector o)
-      : psvector fm i P -> psvector fm o (SVTrue o)
-      := fun (x:psvector fm i P) =>
-           let y := (sparsify fm (op (densify fm (proj1_sig x)))) in
-           @exist _ _ y (SVTrueAlways y).
+               (PQ: forall x, P x -> Q (liftM_HOperator' op x))
+      : psvector fm i P -> psvector fm o Q
+      := AddPrePost (liftM_HOperator' op) PQ.
 
     Global Instance SHOperator_liftM_HOperator
-           {i o} {P}
-           (op: avector i -> avector o)
+           {i o} {P Q}
+           (op: avector i -> avector o) {PQ}
            `{hop: !HOperator op}
-      : SHOperator P (SVTrue o) (liftM_HOperator op).
+      : SHOperator P Q (liftM_HOperator op PQ).
     Proof.
       unfold SHOperator.
       split; try apply sig_setoid.
       intros [x Xp] [y Yp] Exy.
       unfold equiv, sig_equiv in Exy. simpl in Exy.
-      unfold liftM_HOperator, compose.
+      unfold liftM_HOperator, AddPrePost.
+      unfold liftM_HOperator', compose.
       unfold sparsify, densify.
       simpl_sig_equiv; simpl.
       rewrite Exy.
@@ -389,13 +411,13 @@ Section SigmaHCOL_Operators.
 
 
     Definition SparseEmbedding
-               {n i o ki ko}
-               (kernel: forall k, (k<n) -> svector fm ki -> svector fm ko)
+               {n i o ki ko} {P Q}
+               (kernel: forall k, (k<n) -> psvector fm ki P -> psvector fm ko Q)
                `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
                (g: index_map_family ki i n)
-               `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
+               `{Koperator: forall k (kc: k<n), @SHOperator ki ko P Q (kernel k kc)}
                (j:nat) (jc:j<n)
       :=
         Scatter (⦃f⦄ j jc)
