@@ -531,27 +531,52 @@ Section SigmaHCOL_Operators.
                 ⊚(KG) (Gather (⦃g⦄ j jc) PQg).
 
     Global Instance SHOperator_SparseEmbedding
-           {n i o ki ko}
-           (kernel: forall k, (k<n) -> svector fm ki -> svector fm ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator ki ko (kernel k kc)}
-           (j:nat) (jc:j<n):
-      SHOperator
+               {n i o ki ko}
+               (* kernel pre and post conditions *)
+               {Pk: svector fm ki → Prop}
+               {Qk: svector fm ko → Prop}
+               (* scatter pre and post conditions *)
+               {Ps: svector fm ko → Prop}
+               {Qs: svector fm o → Prop}
+               (* gather pre and post conditions *)
+               {Pg: svector fm i → Prop}
+               {Qg: svector fm ki → Prop}
+               (* Scatter-to-Kernel glue *)
+               {SK: ∀ x : svector fm ko, Qk x → Ps x}
+               (* Kernel-to-Gather glue *)
+               {KG: ∀ x : svector fm ki, Qg x → Pk x}
+               (* Kernel *)
+               (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
+               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
+               (* Scatter index map *)
+               (f: index_map_family ko o n)
+               {f_inj : index_map_family_injective f}
+               (* Gather index map *)
+               (g: index_map_family ki i n)
+               `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
+               (* Family index *)
+               (j:nat) (jc:j<n)
+               (* Gather pre and post conditions relation *)
+               {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
+               (* Scatter pre and post conditions relation *)
+               {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}:
+      SHOperator Pg Qs
         (@SparseEmbedding
            n i o ki ko
+           Pk Qk Ps Qs Pg Qg
+           SK KG
            kernel
            KD
            f
            f_inj
            g
            Koperator
-           j jc).
+           j jc
+           PQg PQs
+        ).
     Proof.
       unfold SHOperator.
-      split; repeat apply vec_Setoid.
+      split; repeat apply sig_setoid.
       intros x y E.
       rewrite E.
       reflexivity.
