@@ -110,16 +110,6 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
-    Definition SVTrue (i:nat): svector fm i → Prop := fun _ => True.
-
-    Lemma SVTrueAlways {i}:
-      forall (v:svector fm i), SVTrue i v.
-    Proof.
-      unfold SVTrue.
-      auto.
-    Qed.
-
-
     Definition AddPrePost
                {i o}
                (op: svector fm i -> svector fm o)
@@ -158,7 +148,7 @@ Section SigmaHCOL_Operators.
       unfold SHOperator.
       split; try apply sig_setoid.
       intros [x Xp] [y Yp] Exy.
-      unfold equiv, sig_equiv in Exy. simpl in Exy.
+      unfold equiv, sig_equiv in Exy; simpl in Exy.
       unfold liftM_HOperator, AddPrePost.
       unfold liftM_HOperator', compose.
       unfold sparsify, densify.
@@ -232,7 +222,7 @@ Section SigmaHCOL_Operators.
       unfold SHOperator.
       split; repeat apply sig_setoid.
       intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy. simpl in Exy.
+      unfold equiv, sig_equiv in Exy; simpl in Exy.
       unfold Gather, Gather', AddPrePost.
       unfold VnthIndexMapped.
       vec_index_equiv j jp.
@@ -249,7 +239,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                            (range_bound:=domain_bound)) x))
+                                                             (range_bound:=domain_bound)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -305,7 +295,7 @@ Section SigmaHCOL_Operators.
       unfold SHOperator.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy. simpl in Exy.
+      unfold equiv, sig_equiv in Exy; simpl in Exy.
       unfold Scatter, Scatter', AddPrePost.
       vec_index_equiv j jp.
       simpl.
@@ -323,8 +313,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                    (h_index_map base stride (range_bound:=range_bound))
-                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                          (h_index_map base stride (range_bound:=range_bound))
+                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -339,29 +329,59 @@ Section SigmaHCOL_Operators.
            {range_bound: ∀ x : nat, x < i → base + x * stride < o}
            {snzord0: stride ≢ 0 \/ i < 2}
            (PQ: forall x, P x -> Q (Scatter'
-                                (h_index_map base stride (range_bound:=range_bound))
-                                (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x)):
+                                      (h_index_map base stride (range_bound:=range_bound))
+                                      (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x)):
       SHOperator _ _ (@ScatH i o P Q base stride range_bound snzord0 PQ).
     Proof.
       apply SHOperator_Scatter.
     Qed.
 
-    Global Instance SHOperator_compose
-           {i1 o2 o3} {P R Q}
-           (op1: psvector fm o2 R -> psvector fm o3 Q)
+
+    Definition SHCompose
+               {i1 o2 o3}
+               {P1 Q1}
+               (op1: psvector fm o2 P1 -> psvector fm o3 Q1)
+               `{S1:!SHOperator _ _ op1}
+               {P2 Q2}
+               (op2: psvector fm i1 P2 -> psvector fm o2 Q2)
+               `{S2: !SHOperator _ _ op2}
+               {QP: forall x, Q2 x -> P1 x}
+      : psvector fm i1 P2 -> psvector fm o3 Q1
+      := fun x =>
+           let (y',Q2y) := op2 x in
+           op1 (@exist _ _ y' (QP y' Q2y)).
+
+    Notation "g ∘( q ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ q) (at level 90) : type_scope.
+
+    Global Instance SHOperator_SHCompose
+           {i1 o2 o3} {P1 Q1}
+           (op1: psvector fm o2 P1 -> psvector fm o3 Q1)
            `{S1:!SHOperator _ _ op1}
-           (op2: psvector fm i1 P -> psvector fm o2 R)
-           `{S2: !SHOperator _ _ op2}:
-      SHOperator P Q (op1 ∘ op2).
+           {P2 Q2}
+           (op2: psvector fm i1 P2 -> psvector fm o2 Q2)
+           `{S2: !SHOperator _ _ op2}
+           {QP: forall y, Q2 y -> P1 y}:
+      SHOperator P2 Q1 (op1 ∘(QP) op2).
     Proof.
       unfold SHOperator in *.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy. simpl in Exy.
-      unfold compose.
-      destruct S1, S2.
-      auto.
+      unfold equiv, sig_equiv in Exy; simpl in Exy.
+      unfold SHCompose.
+      repeat break_let.
+      f_equiv.
+      simpl_sig_equiv.
+      assert(H: (x ↾ Px) = (y ↾ Qy))
+        by (simpl_sig_equiv; apply Exy).
+      assert(H1: op2 (x ↾ Px) = x0 ↾ q)
+        by (rewrite Heqs; reflexivity).
+      rewrite H in H1.
+      rewrite Heqs0 in H1.
+      unfold equiv, sig_equiv in H1.
+      simpl in H1.
+      symmetry. apply H1.
     Qed.
+
 
     (* TODO: move *)
     Lemma proj1_sig_exists {A:Type} {x:A} {P} {PA}:
@@ -388,7 +408,7 @@ Section SigmaHCOL_Operators.
     Proof.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy. simpl in Exy.
+      unfold equiv, sig_equiv in Exy; simpl in Exy.
       unfold SHPointwise.
       vec_index_equiv j jc.
       repeat rewrite proj1_sig_exists.
@@ -419,7 +439,7 @@ Section SigmaHCOL_Operators.
     Proof.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] E.
-      unfold equiv, sig_equiv in E. simpl in E.
+      unfold equiv, sig_equiv in E; simpl in E.
       unfold SHBinOp.
       vec_index_equiv j jc.
       unfold vector2pair.
@@ -504,9 +524,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)
-                                    ).
+                                         (transpose
+                                            (Apply_Family Monoid_RthetaFlags op_family x)
+                                         ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
