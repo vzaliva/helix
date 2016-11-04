@@ -67,13 +67,10 @@ Section SigmaHCOL_Operators.
     Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: psvector fm i P -> psvector fm o Q) :=
       SHOperator_setoidmor :> Setoid_Morphism op.
 
+    Class DensityPreserving {i o:nat} {P Q} (op: psvector fm i P -> psvector fm o Q) :=
+      o_den_pres : forall x, svector_is_dense fm (proj1_sig x) -> svector_is_dense fm (proj1_sig (op x)).
+
     (*
-    (* Strong condition: operator preserves vectors' density *)
-    Definition DensityPreserving {i o:nat}
-               (op: {x:svector fm i |svector_is_dense fm x} ->
-                    {y:svector fm o | svector_is_dense fm y}) : Prop.
-        :=
-      o_den_pres : forall x, svector_is_dense fm x -> svector_is_dense fm (op x).
 
     (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
     Class DenseCauseNoCol {i o:nat} (op: svector fm i -> svector fm o) :=
@@ -239,7 +236,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                             (range_bound:=domain_bound)) x))
+                                                       (range_bound:=domain_bound)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -254,7 +251,7 @@ Section SigmaHCOL_Operators.
            (base stride: nat)
            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
            (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                         (range_bound:=domain_bound)) x)):
+                                                   (range_bound:=domain_bound)) x)):
       SHOperator _ _ (@GathH i o P Q base stride domain_bound PQ).
     Proof.
       apply SHOperator_Gather.
@@ -313,8 +310,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                          (h_index_map base stride (range_bound:=range_bound))
-                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                    (h_index_map base stride (range_bound:=range_bound))
+                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -352,7 +349,7 @@ Section SigmaHCOL_Operators.
            op1 (@exist _ _ y' (QP y' Q2y)).
 
     (* TODO: move outside section *)
-    Notation "g ∘( q ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ q) (at level 90) : type_scope.
+    Notation "g ⊚ ( q ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ q) (at level 90) : type_scope.
 
     Global Instance SHOperator_SHCompose
            {i1 o2 o3} {P1 Q1}
@@ -362,7 +359,7 @@ Section SigmaHCOL_Operators.
            (op2: psvector fm i1 P2 -> psvector fm o2 Q2)
            `{S2: !SHOperator _ _ op2}
            {QP: forall y, Q2 y -> P1 y}:
-      SHOperator P2 Q1 (op1 ∘(QP) op2).
+      SHOperator P2 Q1 (op1 ⊚(QP) op2).
     Proof.
       unfold SHOperator in *.
       split; try apply sig_setoid.
@@ -496,21 +493,42 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-
     Definition SparseEmbedding
-               {n i o ki ko} {P Q}
-               (kernel: forall k, (k<n) -> psvector fm ki P -> psvector fm ko Q)
-               `{KD: forall k (kc: k<n), @DensityPreserving ki ko (kernel k kc)}
+               {n i o ki ko}
+               (* kernel pre and post conditions *)
+               {Pk: svector fm ki → Prop}
+               {Qk: svector fm ko → Prop}
+               (* scatter pre and post conditions *)
+               {Ps: svector fm ko → Prop}
+               {Qs: svector fm o → Prop}
+               (* gather pre and post conditions *)
+               {Pg: svector fm i → Prop}
+               {Qg: svector fm ki → Prop}
+               (* Scatter-to-Kernel glue *)
+               {SK: ∀ x : svector fm ko, Qk x → Ps x}
+               (* Kernel-to-Gather glue *)
+               {KG: ∀ x : svector fm ki, Qg x → Pk x}
+               (* Kernel *)
+               (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
+               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
+               (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
+               (* Gather index map *)
                (g: index_map_family ki i n)
-               `{Koperator: forall k (kc: k<n), @SHOperator ki ko P Q (kernel k kc)}
+               `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
+               (* Family index *)
                (j:nat) (jc:j<n)
+               (* Gather pre and post conditions relation *)
+               {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
+               (* Scatter pre and post conditions relation *)
+               {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}
       :=
         Scatter (⦃f⦄ j jc)
                 (f_inj:=index_map_family_member_injective f_inj j jc)
-                ∘ (kernel j jc)
-                ∘ (Gather (⦃g⦄ j jc)).
+                PQs
+                ⊚(SK) (kernel j jc)
+                ⊚(KG) (Gather (⦃g⦄ j jc) PQg).
 
     Global Instance SHOperator_SparseEmbedding
            {n i o ki ko}
@@ -553,9 +571,9 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                         (transpose
-                                            (Apply_Family Monoid_RthetaFlags op_family x)
-                                         ).
+                                    (transpose
+                                       (Apply_Family Monoid_RthetaFlags op_family x)
+                                    ).
   Definition IUnion
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
