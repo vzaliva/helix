@@ -351,6 +351,7 @@ Section SigmaHCOL_Operators.
            let (y',Q2y) := op2 x in
            op1 (@exist _ _ y' (QP y' Q2y)).
 
+    (* TODO: move outside section *)
     Notation "g ∘( q ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ q) (at level 90) : type_scope.
 
     Global Instance SHOperator_SHCompose
@@ -391,25 +392,36 @@ Section SigmaHCOL_Operators.
     Qed.
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-    Definition SHPointwise
-               {n: nat} {P}
+    Definition SHPointwise'
+               {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (x: psvector fm n P): psvector fm n (SVTrue n)
-      := let x' := proj1_sig x in
-         let y := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x' jd)) in
-         @exist _ _ y (SVTrueAlways y).
+               (x: svector fm n): svector fm n
+      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
+
+    Definition SHPointwise
+               {n: nat}
+               {P: svector fm n -> Prop}
+               {Q: svector fm n -> Prop}
+               (f: { i | i<n} -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (PQ: forall x, P x -> Q (SHPointwise' f x)):
+      (psvector fm n P) -> psvector fm n Q
+      := AddPrePost (SHPointwise' f) PQ.
 
     Global Instance SHOperator_SHPointwise
-           {n: nat} {P}
+           {n: nat}
+           {P: svector fm n -> Prop}
+           {Q: svector fm n -> Prop}
            (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator P _ (SHPointwise f).
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (PQ: forall x, P x -> Q (SHPointwise' f x)):
+      SHOperator P Q (SHPointwise f PQ).
     Proof.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] Exy.
       unfold equiv, sig_equiv in Exy; simpl in Exy.
-      unfold SHPointwise.
+      unfold SHPointwise, SHPointwise', AddPrePost.
       vec_index_equiv j jc.
       repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
