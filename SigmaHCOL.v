@@ -254,7 +254,7 @@ Section SigmaHCOL_Operators.
            (base stride: nat)
            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
            (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                   (range_bound:=domain_bound)) x)):
+                                                         (range_bound:=domain_bound)) x)):
       SHOperator _ _ (@GathH i o P Q base stride domain_bound PQ).
     Proof.
       apply SHOperator_Gather.
@@ -433,34 +433,51 @@ Section SigmaHCOL_Operators.
       apply Exy.
     Qed.
 
-    Definition SHBinOp
-               {o} {P}
+    Definition SHBinOp'
+               {o}
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-               (v:psvector fm (o+o) P): psvector fm o (SVTrue o)
-      := let y :=
-             match (vector2pair o (proj1_sig v)) with
-             | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
-             end in
-         @exist _ _ y (SVTrueAlways y).
+               (v:svector fm (o+o)): svector fm o
+      :=  match (vector2pair o v) with
+          | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
+          end.
 
-    Global Instance SHOperator_SHBinOp {o} {P}
+    Definition SHBinOp
+               {o}
+               {P: svector fm (o+o) -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               (PQ: forall x, P x -> Q (SHBinOp' f x)):
+      psvector fm (o+o) P -> psvector fm o Q
+      := AddPrePost (SHBinOp' f) PQ.
+
+    Global Instance SHOperator_SHBinOp {o}
+           {P: svector fm (o+o) -> Prop}
+           {Q: svector fm o -> Prop}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      SHOperator P _ (@SHBinOp o P f pF).
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+           (PQ: forall x, P x -> Q (SHBinOp' f x)):
+      SHOperator P Q (SHBinOp f PQ).
     Proof.
       split; try apply sig_setoid.
       intros [x Px] [y Qy] E.
       unfold equiv, sig_equiv in E; simpl in E.
-      unfold SHBinOp.
+      unfold SHBinOp, AddPrePost.
+      simpl_sig_equiv.
+      unfold SHBinOp'.
+
       vec_index_equiv j jc.
       unfold vector2pair.
+
       repeat break_let.
-      replace t with (fst (Vbreak x)) by crush.
-      replace t0 with (snd (Vbreak x)) by crush.
-      replace t1 with (fst (Vbreak y)) by crush.
-      replace t2 with (snd (Vbreak y)) by crush.
-      clear Heqp Heqp0.
+      rename Heqp into H0, Heqp0 into H1.
+
+      replace t with (fst (Vbreak x)) by (rewrite H0 ; reflexivity).
+      replace t0 with (snd (Vbreak x)) by (rewrite H0 ; reflexivity).
+      replace t1 with (fst (Vbreak y)) by (rewrite H1 ; reflexivity).
+      replace t2 with (snd (Vbreak y)) by (rewrite H1 ; reflexivity).
+      clear H0 H1.
 
       repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
