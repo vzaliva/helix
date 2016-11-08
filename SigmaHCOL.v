@@ -663,13 +663,14 @@ Section SigmaHCOL_Operators.
              (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v).
 
   Definition ISumUnion
-             {i o n} {P Q}
+             {i o n} {P Q R}
              (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
              `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
+             {PQ}
              (v: {x:rvector i| P x})
     :=
-      @IUnion i o n P Q plus zero op_family Koperator Uf v.
+      @IUnion i o n P Q R plus zero op_family Koperator Uf PQ v.
 
   Global Instance SHOperator_ISumUnion
          {i o n} {P Q}
