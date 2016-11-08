@@ -256,7 +256,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                       (range_bound:=domain_bound)) x))
+                                                             (range_bound:=domain_bound)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -330,8 +330,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                    (h_index_map base stride (range_bound:=range_bound))
-                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                          (h_index_map base stride (range_bound:=range_bound))
+                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :
         psvector fm i P -> psvector fm o Q
       :=
@@ -551,49 +551,49 @@ Section SigmaHCOL_Operators.
                 ⊚(KG) (Gather (⦃g⦄ j jc) PQg).
 
     Global Instance SHOperator_SparseEmbedding
-               {n i o ki ko}
-               (* kernel pre and post conditions *)
-               {Pk: svector fm ki → Prop}
-               {Qk: svector fm ko → Prop}
-               (* scatter pre and post conditions *)
-               {Ps: svector fm ko → Prop}
-               {Qs: svector fm o → Prop}
-               (* gather pre and post conditions *)
-               {Pg: svector fm i → Prop}
-               {Qg: svector fm ki → Prop}
-               (* Scatter-to-Kernel glue *)
-               {SK: ∀ x : svector fm ko, Qk x → Ps x}
-               (* Kernel-to-Gather glue *)
-               {KG: ∀ x : svector fm ki, Qg x → Pk x}
-               (* Kernel *)
-               (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
-               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
-               (* Scatter index map *)
-               (f: index_map_family ko o n)
-               {f_inj : index_map_family_injective f}
-               (* Gather index map *)
-               (g: index_map_family ki i n)
-               `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
-               (* Family index *)
-               (j:nat) (jc:j<n)
-               (* Gather pre and post conditions relation *)
-               {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
-               (* Scatter pre and post conditions relation *)
-               {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}:
+           {n i o ki ko}
+           (* kernel pre and post conditions *)
+           {Pk: svector fm ki → Prop}
+           {Qk: svector fm ko → Prop}
+           (* scatter pre and post conditions *)
+           {Ps: svector fm ko → Prop}
+           {Qs: svector fm o → Prop}
+           (* gather pre and post conditions *)
+           {Pg: svector fm i → Prop}
+           {Qg: svector fm ki → Prop}
+           (* Scatter-to-Kernel glue *)
+           {SK: ∀ x : svector fm ko, Qk x → Ps x}
+           (* Kernel-to-Gather glue *)
+           {KG: ∀ x : svector fm ki, Qg x → Pk x}
+           (* Kernel *)
+           (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
+           `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
+           (* Scatter index map *)
+           (f: index_map_family ko o n)
+           {f_inj : index_map_family_injective f}
+           (* Gather index map *)
+           (g: index_map_family ki i n)
+           `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
+           (* Family index *)
+           (j:nat) (jc:j<n)
+           (* Gather pre and post conditions relation *)
+           {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
+           (* Scatter pre and post conditions relation *)
+           {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}:
       SHOperator Pg Qs
-        (@SparseEmbedding
-           n i o ki ko
-           Pk Qk Ps Qs Pg Qg
-           SK KG
-           kernel
-           KD
-           f
-           f_inj
-           g
-           Koperator
-           j jc
-           PQg PQs
-        ).
+                 (@SparseEmbedding
+                    n i o ki ko
+                    Pk Qk Ps Qs Pg Qg
+                    SK KG
+                    kernel
+                    KD
+                    f
+                    f_inj
+                    g
+                    Koperator
+                    j jc
+                    PQg PQs
+                 ).
     Proof.
       unfold SHOperator.
       split; repeat apply sig_setoid.
@@ -670,16 +670,16 @@ Section SigmaHCOL_Operators.
   Definition IUnion
              {i o n}
              (* op_family pre and post conditions *)
-             {P: svector Monoid_RthetaFlags i → Prop}
-             {Q: svector Monoid_RthetaFlags o → Prop}
+             {P: rvector i → Prop}
+             {Q: rvector o → Prop}
              (* IUnion post-condition *)
-             {R: svector Monoid_RthetaFlags o → Prop}
+             {R: rvector o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
              (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
              `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
-             {PQ: forall x : vector (svector Monoid_RthetaFlags o) n,  Vforall Q x → R (MUnion' Monoid_RthetaFlags dot initial x)}
+             {PQ: forall x : vector (rvector o) n,  Vforall Q x → R (MUnion' Monoid_RthetaFlags dot initial x)}
              (v: {x:rvector i| P x})
     :=
       MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaFlags dot initial
@@ -688,10 +688,10 @@ Section SigmaHCOL_Operators.
   Definition ISumUnion
              {i o n}
              (* op_family pre and post conditions *)
-             {P: svector Monoid_RthetaFlags i → Prop}
-             {Q: svector Monoid_RthetaFlags o → Prop}
+             {P: rvector i → Prop}
+             {Q: rvector o → Prop}
              (* IUnion post-condition *)
-             {R: svector Monoid_RthetaFlags o → Prop}
+             {R: rvector o → Prop}
              (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
              `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
@@ -721,21 +721,34 @@ Section SigmaHCOL_Operators.
    *)
   Definition IReduction
              {i o n}
+             (* op_family pre and post conditions *)
+             {P: rsvector i → Prop}
+             {Q: rsvector o → Prop}
+             (* IUnion post-condition *)
+             {R: rsvector o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (op_family: forall k, (k<n) -> rsvector i -> rsvector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o (op_family k kc)}
-             (v: rsvector i)
+
+             (op_family: forall k, (k<n) -> {x:rsvector i|P x} -> {y:rsvector o|Q y})
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q (op_family k kc)}
+             {PQ: forall x : vector (rsvector o) n,  Vforall Q x → R (MUnion' Monoid_RthetaSafeFlags dot initial x)}
+             (v: {x:rsvector i | P x})
     :=
-      MUnion Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n op_family Koperator v).
+      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n P Q op_family Koperator v).
 
   Definition ISumReduction
              {i o n}
-             (op_family: forall k, (k<n) -> rsvector i -> rsvector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o (op_family k kc)}
-             (v: rsvector i)
+             (* op_family pre and post conditions *)
+             {P: rsvector i → Prop}
+             {Q: rsvector o → Prop}
+             (* IUnion post-condition *)
+             {R: rsvector o → Prop}
+             (op_family: forall k, (k<n) -> {x:rsvector i|P x} -> {y:rsvector o|Q y})
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q (op_family k kc)}
+             {PQ}
+             (v: {x:rsvector i | P x})
     :=
-      IReduction plus zero op_family v.
+      @IReduction i o n P Q R plus zero op_family Koperator PQ v.
 
 End SigmaHCOL_Operators.
 
@@ -744,12 +757,12 @@ End SigmaHCOL_Operators.
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-            (forall _ : svector ?fm ?m, svector ?fm ?n)
-            (@ext_equiv
-               (svector ?m)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
-               (svector ?n)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
+           (forall _ : svector ?fm ?m, svector ?fm ?n)
+           (@ext_equiv
+              (svector ?m)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
+              (svector ?n)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
