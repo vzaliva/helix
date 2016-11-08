@@ -159,10 +159,27 @@ Section SigmaHCOL_Operators.
                {i o n} {P Q}
                (op_family: forall k, (k<n) -> psvector fm i P → psvector fm o Q)
                `{Koperator: forall k (kc: k<n), @SHOperator i o P Q (op_family k kc)}
-               (v: {x : svector fm i | P x})
-      :=
-        (Vbuild
-           (λ (j:nat) (jc:j<n),  op_family j jc v)).
+               (v: {x : svector fm i | P x}) :
+      {u:vector (svector fm o) n| Vforall Q u}.
+    Proof.
+      eexists (Vbuild
+                 (λ (j:nat) (jc:j<n),  proj1_sig (op_family j jc v))).
+      apply Vforall_Vbuild.
+      intros j jc.
+      trivial.
+    Defined.
+
+    (* TODO: move *)
+    Global Instance proj1_sig_Proper
+           {A:Type}
+           `{Setoid A}
+           {P:A->Prop}
+      : Proper ((=) ==> (=)) (@proj1_sig A P).
+    Proof.
+      intros x y E.
+      unfold proj1_sig.
+      auto.
+    Qed.
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
@@ -173,7 +190,10 @@ Section SigmaHCOL_Operators.
       intros x y E.
       unfold Apply_Family.
       vec_index_equiv j jc.
+      unfold proj1_sig.
       rewrite 2!Vbuild_nth.
+      fold (proj1_sig (op_family j jc x)).
+      fold (proj1_sig (op_family j jc y)).
       rewrite E.
       reflexivity.
     Qed.
@@ -591,41 +611,44 @@ Section SigmaHCOL_Operators.
   constraint. It does not impose any restriction in actual values (of
   CarrierA type) *)
   Class IUnionFriendly
-        {i o n}
-        (op_family: forall k, (k<n) -> rvector i -> rvector o)
-        `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
+        {i o n} {P Q}
+        (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
+        `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
                                     (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)
-                                    ).
+                                       (proj1_sig (Apply_Family Monoid_RthetaFlags op_family x))).
+
+  (** Matrix-union. *)
+  (* TODO: density preserving? *)
   Definition IUnion
-             {i o n}
+             {i o n} {P Q}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (op_family: forall k, (k<n) -> rvector i -> rvector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
+             (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
-             (v: rvector i)
+             (v: {x:rvector i| P x})
     :=
-      MUnion Monoid_RthetaFlags dot initial (@Apply_Family Monoid_RthetaFlags i o n op_family Koperator v).
-
+      MUnion Monoid_RthetaFlags dot initial
+             (proj1_sig
+                (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v)).
 
   Definition ISumUnion
-             {i o n}
-             (op_family: forall k, (k<n) -> rvector i -> rvector o)
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
+             {i o n} {P Q}
+             (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
+             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
-             (v: rvector i)
+             (v: {x:rvector i| P x})
     :=
-      @IUnion i o n plus zero op_family Koperator Uf v.
+      @IUnion i o n P Q plus zero op_family Koperator Uf v.
 
   Global Instance SHOperator_ISumUnion
-         {i o n}
-         (op_family: forall k, (k<n) -> rvector i -> rvector o)
-         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o (op_family k kc)}
+         {i o n} {P Q}
+         (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
+         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
          `{Uf: !IUnionFriendly op_family}:
-    SHOperator Monoid_RthetaFlags (@ISumUnion i o n op_family Koperator Uf).
+    SHOperator Monoid_RthetaFlags P Q (@ISumUnion i o n P Q op_family Koperator Uf).
   Proof.
     unfold SHOperator.
     split; repeat apply vec_Setoid.
