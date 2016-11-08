@@ -238,18 +238,18 @@ Section Union.
   Qed.
 
   (** Matrix-union. *)
-  Definition MUnion
+  Definition MUnion'
              {o n}
              (dot:CarrierA->CarrierA->CarrierA)
              (initial:CarrierA)
              (v: vector (svector fm o) n): svector fm o
     :=  Vfold_left_rev (Vec2Union dot) (Vconst (mkStruct initial) o) v.
 
-  Global Instance MUnion_proper {o n}
-    : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion o n).
+  Global Instance MUnion'_proper {o n}
+    : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion' o n).
   Proof.
     intros dot dot' Ed one one' Eo x y E.
-    unfold MUnion.
+    unfold MUnion'.
     rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
     apply Vfold_left_rev_reord_proper.
     apply Vec2Union_proper.
@@ -263,7 +263,7 @@ Section Union.
   Definition SumUnion
              {o n}
              (v: vector (svector fm o) n): svector fm o
-    := MUnion plus zero v.
+    := MUnion' plus zero v.
 
   Global Instance SumUnion_proper {o n}
     : Proper ((=) ==> (=)) (@SumUnion o n).
@@ -303,13 +303,13 @@ Section Union.
     apply Union_comm, C.
   Qed.
 
-  Lemma MUnion_cons {m n}
+  Lemma MUnion'_cons {m n}
         (dot: CarrierA -> CarrierA -> CarrierA)
         (neutral:CarrierA)
         (x: svector fm m) (xs: vector (svector fm m) n):
-    MUnion dot neutral (Vcons x xs) ≡ Vec2Union dot (MUnion dot neutral xs) x.
+    MUnion' dot neutral (Vcons x xs) ≡ Vec2Union dot (MUnion' dot neutral xs) x.
   Proof.
-    unfold MUnion.
+    unfold MUnion'.
     apply Vfold_left_rev_cons.
   Qed.
 
@@ -318,7 +318,7 @@ Section Union.
     SumUnion (Vcons x xs) ≡ Vec2Union plus (SumUnion xs) x.
   Proof.
     unfold SumUnion.
-    apply MUnion_cons.
+    apply MUnion'_cons.
   Qed.
 
   Lemma AbsorbUnionIndexBinary
@@ -332,14 +332,14 @@ Section Union.
     apply Vnth_map2.
   Qed.
 
-  Lemma AbsorbMUnionIndex_Vbuild
+  Lemma AbsorbMUnion'Index_Vbuild
         {o n}
         (dot:CarrierA -> CarrierA -> CarrierA)
         (neutral:CarrierA)
         (body: forall (i : nat) (ic : i < n), svector fm o)
         k (kc: k<o)
     :
-      Vnth (MUnion dot neutral (Vbuild body)) kc ≡
+      Vnth (MUnion' dot neutral (Vbuild body)) kc ≡
            UnionFold dot neutral
            (Vbuild
               (fun (i : nat) (ic : i < n) =>
@@ -351,7 +351,7 @@ Section Union.
       apply Vnth_const.
     -
       rewrite Vbuild_cons.
-      rewrite MUnion_cons.
+      rewrite MUnion'_cons.
       rewrite AbsorbUnionIndexBinary.
       rewrite IHn.
       rewrite <- UnionFold_cons.
@@ -360,21 +360,21 @@ Section Union.
   Qed.
 
   (** Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
-  Lemma AbsorbMUnionIndex_Vmap
+  Lemma AbsorbMUnion'Index_Vmap
         (dot: CarrierA -> CarrierA -> CarrierA)
         (neutral: CarrierA)
         {m n:nat}
         (x: vector (svector fm m) n) k (kc: k<m):
-    Vnth (MUnion dot neutral x) kc ≡
+    Vnth (MUnion' dot neutral x) kc ≡
          UnionFold dot neutral
          (Vmap (fun v => Vnth v kc) x).
   Proof.
     induction n.
     + dep_destruct x.
-      unfold UnionFold, MUnion, szero_svector; simpl.
+      unfold UnionFold, MUnion', szero_svector; simpl.
       rewrite Vnth_const; reflexivity.
     + dep_destruct x.
-      rewrite Vmap_cons, MUnion_cons, AbsorbUnionIndexBinary, IHn, UnionFold_cons.
+      rewrite Vmap_cons, MUnion'_cons, AbsorbUnionIndexBinary, IHn, UnionFold_cons.
       reflexivity.
   Qed.
 
@@ -383,7 +383,7 @@ Section Union.
     Vnth (SumUnion x) kc ≡ UnionFold plus zero (Vmap (fun v => Vnth v kc) x).
   Proof.
     unfold SumUnion.
-    apply AbsorbMUnionIndex_Vmap.
+    apply AbsorbMUnion'Index_Vmap.
   Qed.
 
   Lemma AbsorbISumUnionIndex_Vbuild
@@ -399,7 +399,7 @@ Section Union.
               Vnth (body i ic) kc
         )).
   Proof.
-    apply AbsorbMUnionIndex_Vbuild.
+    apply AbsorbMUnion'Index_Vbuild.
   Qed.
 
   Lemma Union_SZero_r x:

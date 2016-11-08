@@ -604,6 +604,33 @@ Section SigmaHCOL_Operators.
 
   End FlagsMonoidGenericOperators.
 
+  Section MUnion.
+
+    Variable fm:Monoid RthetaFlags.
+
+    Definition AddMPrePost
+               {o n}
+               (op: vector (svector fm o) n -> svector fm o)
+               {P: svector fm o -> Prop}
+               {Q: svector fm o -> Prop}
+               (PQ: forall x, Vforall P x -> Q (op x)):
+      {u: vector (svector fm o) n | Vforall P u} -> psvector fm o Q.
+    Proof.
+      intros [x Px].
+      eexists (op x).
+      apply PQ, Px.
+    Defined.
+
+    Definition MUnion
+               {o n} {P Q}
+               (dot: CarrierA->CarrierA->CarrierA)
+               (initial: CarrierA)
+               {PQ}:
+      {u: vector (svector fm o) n | Vforall P u} -> psvector fm o Q
+      := AddMPrePost (MUnion' fm dot initial) PQ.
+
+  End MUnion.
+
   (** A matrix produced by applying family of operators will have at
   at most one non-structural element per row. The name alludes to the
   fact that doing ISumUnion on such matrix will not lead to
@@ -623,16 +650,17 @@ Section SigmaHCOL_Operators.
   (* TODO: density preserving? *)
   Definition IUnion
              {i o n} {P Q}
+             {R: svector Monoid_RthetaFlags o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
              (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
              `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
+             {PQ: forall x : vector (svector Monoid_RthetaFlags o) n,  Vforall Q x → R (MUnion' Monoid_RthetaFlags dot initial x)}
              (v: {x:rvector i| P x})
     :=
-      MUnion Monoid_RthetaFlags dot initial
-             (proj1_sig
-                (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v)).
+      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaFlags dot initial
+             (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v).
 
   Definition ISumUnion
              {i o n} {P Q}
