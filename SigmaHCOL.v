@@ -629,6 +629,25 @@ Section SigmaHCOL_Operators.
       {u: vector (svector fm o) n | Vforall P u} -> psvector fm o Q
       := AddMPrePost (MUnion' fm dot initial) PQ.
 
+    Global Instance MUnion_proper
+           {o n} {P Q}
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           (initial: CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           {PQ}:
+      Proper ((=) ==> (=)) (@MUnion o n P Q dot initial PQ).
+    Proof.
+      intros x y E.
+      unfold MUnion.
+      unfold AddMPrePost.
+      destruct x eqn: Hx.
+      destruct y eqn: Hy.
+      simpl_sig_equiv.
+      unfold equiv, sig_equiv in E; simpl in E.
+      rewrite E.
+      reflexivity.
+    Qed.
+
   End MUnion.
 
   (** A matrix produced by applying family of operators will have at
@@ -649,7 +668,11 @@ Section SigmaHCOL_Operators.
   (** Matrix-union. *)
   (* TODO: density preserving? *)
   Definition IUnion
-             {i o n} {P Q}
+             {i o n}
+             (* op_family pre and post conditions *)
+             {P: svector Monoid_RthetaFlags i → Prop}
+             {Q: svector Monoid_RthetaFlags o → Prop}
+             (* IUnion post-condition *)
              {R: svector Monoid_RthetaFlags o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
@@ -663,7 +686,12 @@ Section SigmaHCOL_Operators.
              (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v).
 
   Definition ISumUnion
-             {i o n} {P Q R}
+             {i o n}
+             (* op_family pre and post conditions *)
+             {P: svector Monoid_RthetaFlags i → Prop}
+             {Q: svector Monoid_RthetaFlags o → Prop}
+             (* IUnion post-condition *)
+             {R: svector Monoid_RthetaFlags o → Prop}
              (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
              `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
              `{Uf: !IUnionFriendly op_family}
@@ -673,14 +701,14 @@ Section SigmaHCOL_Operators.
       @IUnion i o n P Q R plus zero op_family Koperator Uf PQ v.
 
   Global Instance SHOperator_ISumUnion
-         {i o n} {P Q}
+         {i o n} {P Q R PQ}
          (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
          `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
          `{Uf: !IUnionFriendly op_family}:
-    SHOperator Monoid_RthetaFlags P Q (@ISumUnion i o n P Q op_family Koperator Uf).
+    SHOperator Monoid_RthetaFlags P R (@ISumUnion i o n P Q R op_family Koperator Uf PQ).
   Proof.
     unfold SHOperator.
-    split; repeat apply vec_Setoid.
+    split; repeat apply sig_setoid.
     unfold ISumUnion, IUnion.
     solve_proper.
   Qed.
