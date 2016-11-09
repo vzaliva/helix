@@ -513,6 +513,7 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
+    (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
                {n i o ki ko}
                (* kernel pre and post conditions *)
@@ -537,18 +538,15 @@ Section SigmaHCOL_Operators.
                (* Gather index map *)
                (g: index_map_family ki i n)
                `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
-               (* Family index *)
-               (j:nat) (jc:j<n)
                (* Gather pre and post conditions relation *)
-               {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
+               {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
-               {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}
-      :=
+               {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}   := fun (j:nat) (jc:j<n) =>
         Scatter (⦃f⦄ j jc)
                 (f_inj:=index_map_family_member_injective f_inj j jc)
-                PQs
+                (PQs j jc)
                 ⊚(SK) (kernel j jc)
-                ⊚(KG) (Gather (⦃g⦄ j jc) PQg).
+                ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
 
     Global Instance SHOperator_SparseEmbedding
            {n i o ki ko}
@@ -574,12 +572,12 @@ Section SigmaHCOL_Operators.
            (* Gather index map *)
            (g: index_map_family ki i n)
            `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
-           (* Family index *)
-           (j:nat) (jc:j<n)
            (* Gather pre and post conditions relation *)
-           {PQg: ∀ y : svector fm i, Pg y → Qg (Gather' (⦃ g ⦄ j jc) y)}
+           {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
            (* Scatter pre and post conditions relation *)
-           {PQs: ∀ y : svector fm ko, Ps y → Qs (Scatter' (⦃ f ⦄ j jc) y)}:
+           {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
+           (* Family index *)
+           (j:nat) (jc:j<n):
       SHOperator Pg Qs
                  (@SparseEmbedding
                     n i o ki ko
@@ -591,8 +589,8 @@ Section SigmaHCOL_Operators.
                     f_inj
                     g
                     Koperator
-                    j jc
                     PQg PQs
+                    j jc
                  ).
     Proof.
       unfold SHOperator.
@@ -650,7 +648,8 @@ Section SigmaHCOL_Operators.
 
   End MUnion.
 
-  (** A matrix produced by applying family of operators will have at
+  (** This class postulates a property of an operator family.
+  A matrix produced by applying family of operators will have at
   at most one non-structural element per row. The name alludes to the
   fact that doing ISumUnion on such matrix will not lead to
   collisions. It should be noted that this is structural
@@ -768,6 +767,7 @@ Ltac SHOperator_reflexivity :=
 
 
 (* TODO: maybe <->  *)
+(*
 Lemma Is_Val_Scatter
       {m n: nat}
       (f: index_map m n)
@@ -789,23 +789,42 @@ Proof.
     apply Is_Val_mkStruct in H.
     inversion H.
 Qed.
+ *)
 
 Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
-       {n gi go ki ko}
-       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
-       (f: index_map_family ko go n)
+       {n i o ki ko}
+       (* kernel pre and post conditions *)
+       {Pk: rvector ki → Prop}
+       {Qk: rvector ko → Prop}
+       (* scatter pre and post conditions *)
+       {Ps: rvector ko → Prop}
+       {Qs: rvector o → Prop}
+       (* gather pre and post conditions *)
+       {Pg: rvector i → Prop}
+       {Qg: rvector ki → Prop}
+       (* Scatter-to-Kernel glue *)
+       {SK: ∀ x : rvector ko, Qk x → Ps x}
+       (* Kernel-to-Gather glue *)
+       {KG: ∀ x : rvector ki, Qg x → Pk x}
+       (* Kernel *)
+       (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+       (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
-       (g: index_map_family ki gi n)
-       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
+       (g: index_map_family ki i n)
+       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+       (* Gather pre and post conditions relation *)
+       {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+       (* Scatter pre and post conditions relation *)
+       {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
   :
     IUnionFriendly
-      (@SparseEmbedding _
-                        n gi go ki ko
+      (@SparseEmbedding Monoid_RthetaFlags
+                        n i o ki ko Pk Qk Ps Qs Pg Qg SK KG
                         kernel KD
                         f f_inj
                         g
-                        Koperator).
+                        Koperator PQg PQs).
 Proof.
   unfold IUnionFriendly.
   intros x.
@@ -818,12 +837,13 @@ Proof.
   unfold row.
   rewrite 2!Vnth_map.
   unfold Apply_Family.
+  simpl.
   rewrite 2!Vbuild_nth.
   unfold Vnth_aux.
   unfold SparseEmbedding.
   unfold compose.
-  generalize (kernel i0 ic0 (Gather _ (⦃ g ⦄ i0 ic0) x)) as x0.
-  generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) x)) as x1.
+  generalize (kernel i0 ic0 ((Gather _ (⦃ g ⦄ i0 ic0) (PQg i0 ic0)) x)) as x0.
+  generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) _ x)) as x1.
   intros x0 x1.
   intros [V0 V1].
   apply Is_Val_Scatter in V0.
