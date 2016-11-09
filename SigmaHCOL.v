@@ -767,18 +767,17 @@ Ltac SHOperator_reflexivity :=
 
 
 (* TODO: maybe <->  *)
-(*
 Lemma Is_Val_Scatter
       {m n: nat}
       (f: index_map m n)
       {f_inj: index_map_injective f}
       (x: rvector m)
       (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter _ f (f_inj:=f_inj) x) jc) ->
+  Is_Val (Vnth (Scatter' _ f (f_inj:=f_inj) x) jc) ->
   (exists i (ic:i<m), ⟦f⟧ i ≡ j).
 Proof.
   intros H.
-  unfold Scatter in H. rewrite Vbuild_nth in H.
+  unfold Scatter' in H. rewrite Vbuild_nth in H.
   break_match.
   simpl in *.
   -
@@ -789,7 +788,6 @@ Proof.
     apply Is_Val_mkStruct in H.
     inversion H.
 Qed.
- *)
 
 Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        {n i o ki ko}
@@ -841,16 +839,20 @@ Proof.
   rewrite 2!Vbuild_nth.
   unfold Vnth_aux.
   unfold SparseEmbedding.
-  unfold compose.
-  generalize (kernel i0 ic0 ((Gather _ (⦃ g ⦄ i0 ic0) (PQg i0 ic0)) x)) as x0.
-  generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) _ x)) as x1.
-  intros x0 x1.
+  unfold SHCompose, compose.
+  simpl.
+  generalize ((Gather Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) (PQg i0 ic0)) x) as x0.
+  destruct x0 as [x0 Qgx0].
+  generalize (Gather Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) (PQg i1 ic1) x) as x1.
+  destruct x1 as [x1 Qgx1].
+  repeat break_let; repeat rewrite proj1_sig_exists.
   intros [V0 V1].
   apply Is_Val_Scatter in V0.
   apply Is_Val_Scatter in V1.
   crush.
   unfold index_map_family_injective in f_inj.
-  specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+  clear PQs.
+  specialize (f_inj i0 i1 ic0 ic1 x6 x4 x7 x5).
   destruct f_inj.
   congruence.
   assumption.
