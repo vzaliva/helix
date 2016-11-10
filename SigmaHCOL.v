@@ -960,6 +960,7 @@ Proof.
   reflexivity.
 Qed.
 
+(*
 Section OperatorProperies.
 
   Variable fm:Monoid RthetaFlags.
@@ -1749,4 +1750,4 @@ Section StructuralProperies.
   Qed.
 
 End StructuralProperies.
-
+ *)
