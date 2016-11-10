@@ -271,7 +271,7 @@ Section SigmaHCOL_Operators.
            (base stride: nat)
            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
            (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                   (range_bound:=domain_bound)) x)):
+                                                         (range_bound:=domain_bound)) x)):
       SHOperator _ _ (@GathH i o P Q base stride domain_bound PQ).
     Proof.
       apply SHOperator_Gather.
@@ -542,11 +542,11 @@ Section SigmaHCOL_Operators.
                {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
                {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}   := fun (j:nat) (jc:j<n) =>
-        Scatter (⦃f⦄ j jc)
-                (f_inj:=index_map_family_member_injective f_inj j jc)
-                (PQs j jc)
-                ⊚(SK) (kernel j jc)
-                ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
+                                                                                           Scatter (⦃f⦄ j jc)
+                                                                                                   (f_inj:=index_map_family_member_injective f_inj j jc)
+                                                                                                   (PQs j jc)
+                                                                                                   ⊚(SK) (kernel j jc)
+                                                                                                   ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
 
     Global Instance SHOperator_SparseEmbedding
            {n i o ki ko}
@@ -860,21 +860,44 @@ Qed.
 
 Definition USparseEmbedding
            {n i o ki ko}
-           (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
+           (* kernel pre and post conditions *)
+           {Pk: rvector ki → Prop}
+           {Qk: rvector ko → Prop}
+           (* scatter pre and post conditions *)
+           {Ps: rvector ko → Prop}
+           {Qs: rvector o → Prop}
+           (* gather pre and post conditions *)
+           {Pg: rvector i → Prop}
+           {Qg: rvector ki → Prop}
+           (* Scatter-to-Kernel glue *)
+           {SK: ∀ x : rvector ko, Qk x → Ps x}
+           (* Kernel-to-Gather glue *)
+           {KG: ∀ x : rvector ki, Qg x → Pk x}
+           (* Kernel *)
+           (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
+           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}
-  : rvector i -> rvector o
+           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+           (* Gather pre and post conditions relation *)
+           {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+           (* Scatter pre and post conditions relation *)
+           {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+           (* ISumUnion post-condition *)
+           {R: vector Rtheta o → Prop}
+           (* ISumUnion glue *)
+           {PQ: forall x : vector (rvector o) n,  Vforall Qs x → R (MUnion' Monoid_RthetaFlags plus zero x)}
+  : {x : rvector i | Pg x} → {x : rvector o | R x}
   :=
-    @ISumUnion i o n
-               (@SparseEmbedding _ n i o ki ko
-                                 kernel KD
-                                 f f_inj g
-                                 Koperator)
-               (SHOperator_SparseEmbedding _ kernel f g)
-               (Apply_Family_SparseEmbedding_SumUnionFriendly  kernel f g).
+    ISumUnion (PQ:=PQ)
+              (@SparseEmbedding Monoid_RthetaFlags
+                                n i o ki ko Pk Qk Ps Qs Pg Qg SK KG
+                                kernel KD
+                                f f_inj
+                                g
+                                Koperator PQg PQs).
+
 
 Global Instance SHOperator_USparseEmbedding
        {n i o ki ko}
