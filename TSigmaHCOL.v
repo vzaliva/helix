@@ -108,4 +108,6 @@ Section TSigmaHCOLOperators.
       apply Ef, Ex.
   Qed.
 
+  (* TODO: SHComposer should be instance of TSHOperator2 *)
+
 End TSigmaHCOLOperators.
