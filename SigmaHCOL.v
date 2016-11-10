@@ -900,31 +900,61 @@ Definition USparseEmbedding
 
 
 Global Instance SHOperator_USparseEmbedding
-       {n i o ki ko}
-       (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko (kernel k kc)}
-       (f: index_map_family ko o n)
-       {f_inj : index_map_family_injective f}
-       (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko (kernel k kc)}:
-  SHOperator Monoid_RthetaFlags (@USparseEmbedding
-                                   n i o ki ko
-                                   kernel KD
-                                   f f_inj
-                                   g
-                                   Koperator).
+           {n i o ki ko}
+           (* kernel pre and post conditions *)
+           {Pk: rvector ki → Prop}
+           {Qk: rvector ko → Prop}
+           (* scatter pre and post conditions *)
+           {Ps: rvector ko → Prop}
+           {Qs: rvector o → Prop}
+           (* gather pre and post conditions *)
+           {Pg: rvector i → Prop}
+           {Qg: rvector ki → Prop}
+           (* Scatter-to-Kernel glue *)
+           {SK: ∀ x : rvector ko, Qk x → Ps x}
+           (* Kernel-to-Gather glue *)
+           {KG: ∀ x : rvector ki, Qg x → Pk x}
+           (* Kernel *)
+           (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
+           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+           (f: index_map_family ko o n)
+           {f_inj : index_map_family_injective f}
+           (g: index_map_family ki i n)
+           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+           (* Gather pre and post conditions relation *)
+           {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+           (* Scatter pre and post conditions relation *)
+           {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+           (* ISumUnion post-condition *)
+           {R: vector Rtheta o → Prop}
+           (* ISumUnion glue *)
+           {PQ: forall x : vector (rvector o) n,  Vforall Qs x → R (MUnion' Monoid_RthetaFlags plus zero x)}:
+  SHOperator Monoid_RthetaFlags Pg R (
+               @USparseEmbedding
+                 n i o ki ko
+                 Pk Qk
+                 Ps Qs
+                 Pg Qg
+                 SK KG
+                 kernel KD
+                 f f_inj
+                 g
+                 Koperator
+                 PQg PQs
+                 R PQ
+             ).
 Proof.
   unfold SHOperator.
-  split; repeat apply vec_Setoid.
+  split; repeat apply sig_setoid.
   intros x y E.
   unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family.
   apply ext_equiv_applied_iff'.
-  split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
-  split; repeat apply vec_Setoid.
-  apply MUnion_proper ; [ apply CarrierAPlus_proper | reflexivity].
+
+  split ; try apply sig_setoid; apply MUnion_proper ; apply CarrierAPlus_proper.
+  split ; try apply sig_setoid; apply MUnion_proper ; apply CarrierAPlus_proper.
   reflexivity.
   vec_index_equiv j jc.
+  simpl.
   rewrite 2!Vbuild_nth.
   rewrite E.
   reflexivity.
