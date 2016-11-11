@@ -43,6 +43,7 @@ Import VectorNotations.
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
+(*
 Section SigmaHCOLHelperLemmas.
 
   Variable fm:Monoid RthetaFlags.
@@ -470,7 +471,7 @@ Proof.
   -
     apply L3pre.
 Qed.
-
+*)
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
