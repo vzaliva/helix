@@ -43,8 +43,8 @@ Import VectorNotations.
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
-(*
 Section SigmaHCOLHelperLemmas.
+  (*
 
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
@@ -150,7 +150,7 @@ Section SigmaHCOLHelperLemmas.
       repeat rewrite Vnth_map.
       f_equiv.
   Qed.
-
+   *)
   Fact ScatH_stride1_constr:
   forall {a b:nat}, 1 ≢ 0 ∨ a < b.
   Proof.
@@ -185,7 +185,7 @@ Section SigmaHCOLHelperLemmas.
     intros.
     lia.
   Qed.
-
+  (*
   Lemma UnionFold_zero_structs
         (m : nat) (x : svector fm m):
     Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
@@ -323,6 +323,7 @@ Section SigmaHCOLHelperLemmas.
         auto.
   Qed.
 
+   *)
   Fact GathH_jn_domain_bound i n:
     i < n ->
     ∀ x : nat, x < 2 → i + x * n < (n+n).
@@ -333,6 +334,7 @@ Section SigmaHCOLHelperLemmas.
 
 End SigmaHCOLHelperLemmas.
 
+(*
 Lemma U_SAG2:
   ∀ (n : nat) (x : rvector (n + n))
     (f: nat -> CarrierA -> CarrierA -> CarrierA)
@@ -471,7 +473,7 @@ Proof.
   -
     apply L3pre.
 Qed.
-*)
+ *)
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
@@ -495,14 +497,49 @@ Section SigmaHCOLExpansionRules.
     Theorem expand_BinOp:
       forall (n:nat)
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f},
-        SHBinOp _ (o:=n) f
+        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+        {P: rvector (n + n) → Prop}
+        {Q: rvector n → Prop}
+        {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
+        {P1 : rvector (1 + 1) → Prop}
+        {Q1 : rvector 1 → Prop}
+        {Qg: vector Rtheta (1 + 1) → Prop}
+        {Pk: vector Rtheta (1 + 1) → Prop}
+        {Qk: rvector 1 → Prop}
+        {Ps: rvector 1 → Prop}
+        {Qs}
+        {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
+        {SK: forall x : rvector 1, Qk x → Ps x}
+        {PQ1: forall j (x: rvector (1 + 1)),
+            Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) x)}
+        {PQ2: forall x : vector (rvector n) n,
+            Vforall Qs x → Q (MUnion' Monoid_RthetaFlags plus zero x)}
+        {KD: forall j (jc: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))}
+        {Koperator: forall j (jc: j<n), SHOperator Monoid_RthetaFlags Pk Qk (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))}
+
+        {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
+
+        {PQs}
+      ,
+        @SHBinOp Monoid_RthetaFlags n P Q f f_mor PQo
         =
-        USparseEmbedding (i:=n+n) (o:=n)
-                         (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j f))
-                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-                         (f_inj := h_j_1_family_injective)
-                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
+        @USparseEmbedding
+          n
+          (n+n) n
+          (1+1) 1
+          Pk Qk
+          Ps Qs
+          P
+          Qg
+          SK KG
+          (fun j _ => @SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))
+          KD
+          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+          h_j_1_family_injective
+          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+          Koperator
+          PQg PQs
+          Q PQ2.
     Proof.
       intros n f pF.
       apply ext_equiv_applied_iff'.
@@ -1009,7 +1046,7 @@ Section SigmaHCOLRewritingRules.
            `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
     :
       Apply_Family_Single_NonZero_Per_Row fm
-        (fun j jc => SHPointwise fm pf ∘ op_family j jc).
+                                          (fun j jc => SHPointwise fm pf ∘ op_family j jc).
     Proof.
       unfold Apply_Family_Single_NonZero_Per_Row.
       intros x.
@@ -1161,8 +1198,8 @@ Section SigmaHCOLRewritingRules.
           (* prove both sides are 0 *)
           revert Uzeros.
           set (vl:=@Vbuild (Rtheta' Monoid_RthetaFlags) n
-                            (fun (z : nat) (zi : Peano.lt z n) =>
-                               @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family z zi x) j jc)).
+                           (fun (z : nat) (zi : Peano.lt z n) =>
+                              @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family z zi x) j jc)).
           intros Uzeros.
           assert(H:UnionFold _ plus zero vl = mkSZero).
           {
@@ -1263,8 +1300,8 @@ Section SigmaHCOLRewritingRules.
           (* lhs *)
           revert Uone.
           set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
-                   (fun (i0 : nat) (ic : Peano.lt i0 n) =>
-                    @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family i0 ic x) j jc))).
+                            (fun (i0 : nat) (ic : Peano.lt i0 n) =>
+                               @Vnth (Rtheta' Monoid_RthetaFlags) o (op_family i0 ic x) j jc))).
           intros Uone.
           inversion Uone; rename x0 into k; clear Uone.
           inversion H; rename x0  into kc; clear H.
@@ -1275,29 +1312,29 @@ Section SigmaHCOLRewritingRules.
             subst vl.
             rewrite Vbuild_nth.
 
-          (* rhs *)
-          set (vr:=Vbuild
-                     (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise _ pf (op_family i0 ic x)) jc)).
+            (* rhs *)
+            set (vr:=Vbuild
+                       (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise _ pf (op_family i0 ic x)) jc)).
 
-          assert(H: VAllButOne k kc Is_ValZero vr).
-          {
-            subst vr.
-            unfold VAllButOne.
-            intros t tc H.
-            rewrite Vbuild_nth.
-            unfold Is_ValZero.
-            rewrite SHPointwise_nth by apply MonoidLaws_RthetaFlags.
+            assert(H: VAllButOne k kc Is_ValZero vr).
+            {
+              subst vr.
+              unfold VAllButOne.
+              intros t tc H.
+              rewrite Vbuild_nth.
+              unfold Is_ValZero.
+              rewrite SHPointwise_nth by apply MonoidLaws_RthetaFlags.
 
-            unfold VAllButOne in Uone.
-            specialize (Uone t tc H).
-            rewrite Vbuild_nth in Uone.
+              unfold VAllButOne in Uone.
+              specialize (Uone t tc H).
+              rewrite Vbuild_nth in Uone.
 
-            apply Is_ValZero_not_not_impl in Uone.
-            crush.
-            reflexivity.
-          }
+              apply Is_ValZero_not_not_impl in Uone.
+              crush.
+              reflexivity.
+            }
 
-          rewrite UnionFold_VallButOne_zero with (kc:=kc).
+            rewrite UnionFold_VallButOne_zero with (kc:=kc).
             ** subst vr.
                rewrite Vbuild_nth.
                rewrite SHPointwise_nth.
