@@ -1037,16 +1037,18 @@ Section Subtyping.
   Defined.
 
   Example SigSubtypeEx0
-          (A:{x:nat|x>1})
-          (B:{x:nat|x>5}):
-    JM_subtype A B.
+          (a:{x:nat|x>5})
+          (b:{x:nat|x>1}):
+    `a=`b -> JM_subtype a b.
   Proof.
+    intro Peq.
     unfold JM_subtype.
-    break_let.
-    break_let.
+    repeat break_let.
     split.
-    admit.
+    apply Peq.
     unfold subtype, Subtype_Prop.
+    unfold proj1_sig in Peq.
+    rewrite Peq.
     lia.
   Qed.
 
