@@ -64,11 +64,17 @@ Section SigmaHCOL_Operators.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Class SHOperator {i o:nat} (P : svector fm i → Prop) (Q : svector fm o → Prop) (op: psvector fm i P -> psvector fm o Q) :=
-      SHOperator_setoidmor :> Setoid_Morphism op.
+    Class SHOperator
+          {i o:nat}
+          (P : svector fm i → Prop) (Q : svector fm o → Prop)
+          (op: psvector fm i P -> psvector fm o Q)
+      :=
+        SHOperator_setoidmor :> Setoid_Morphism op.
 
-    Class DensityPreserving {i o:nat} {P Q} (op: psvector fm i P -> psvector fm o Q) :=
-      o_den_pres : forall x, svector_is_dense fm (proj1_sig x) -> svector_is_dense fm (proj1_sig (op x)).
+    Class DensityPreserving
+          {i o:nat} {P Q} (op: psvector fm i P -> psvector fm o Q)
+      :=
+        o_den_pres : forall x, svector_is_dense fm (proj1_sig x) -> svector_is_dense fm (proj1_sig (op x)).
 
     (*
 
@@ -959,6 +965,131 @@ Proof.
   rewrite E.
   reflexivity.
 Qed.
+
+Reserved Notation "T '<:' U" (at level 40).
+
+Section Subtyping.
+
+  (* Equality *)
+
+  Class Subtype A := subtype: relation A.
+
+  (* Revert to transparency to allow conversions during unification. *)
+  Typeclasses Transparent Subtype.
+
+  Class SubtypeRelation {A:Type} (R : relation A) : Prop := {
+    Subtype_Reflexive :> Reflexive R ;
+    Subtype_Asymmetric :> Asymmetric R ;
+    Subtype_Transitive :> Transitive R ;
+  }.
+
+  Infix "<:" := subtype : type_scope.
+  Notation "(<:)" := subtype (only parsing) : type_scope.
+
+  Definition TrueP {A} := fun (_:A) => True.
+
+  Global Instance Subtype_Prop:
+    Subtype (Prop).
+  Proof.
+    unfold Subtype.
+    unfold relation.
+    intros X Y.
+    exact (X -> Y).
+  Defined.
+
+  Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
+  Proof.
+    unfold subtype, Subtype_Prop.
+    lia.
+  Qed.
+
+  Example PropSubtypeEx2 (x:nat): (x<1) <: True.
+  Proof.
+    unfold subtype, Subtype_Prop.
+    tauto.
+  Qed.
+
+  Example PropSubtypeEx4 (x:nat): False <: (x<1).
+  Proof.
+    unfold subtype.
+    unfold Subtype_Prop.
+    tauto.
+  Qed.
+
+  Global Instance Subtype_sig (A:Type) `{Equiv A}:
+    Subtype (@sig A P).
+  Proof.
+    unfold Subtype.
+    unfold relation.
+    intros P x y.
+    destruct x as [x Px].
+    destruct y as [y Py].
+    exact (x=y /\ P x <: P y).
+  Defined.
+
+  Definition JM_subtype {A:Type} `{Equiv A} {P1 P2:A -> Prop}:
+    (@sig A P1) -> (@sig A P2) -> Prop.
+  Proof.
+    intros x y.
+    destruct x as [x Px].
+    destruct y as [y Py].
+    exact (x=y /\ P1 x <: P2 y).
+  Defined.
+
+  Example SigSubtypeEx0
+          (A:{x:nat|x>1})
+          (B:{x:nat|x>5}):
+    JM_subtype A B.
+  Proof.
+    unfold JM_subtype.
+    break_let.
+    break_let.
+    split.
+    admit.
+    unfold subtype, Subtype_Prop.
+    lia.
+  Qed.
+
+  Example SigSubtypeEx1
+          (A:{x|x>1})
+          (B:{x|x>5}):
+    A <: B.
+
+
+
+  Global Instance Subtype_psvector {fm} {n} {P}:
+    Subtype (@sig (svector fm n) P).
+  Proof.
+    unfold Subtype.
+    unfold relation.
+    intros x y.
+    destruct x as [x Px].
+    destruct y as [y Py].
+    exact (forall (z:svector fm n), (P z <: P z)).
+  Defined.
+
+
+  Set Printing All.
+  Definition sig_subtype `{Subtype A} `{Equiv A} (P: A → Prop) : Subtype (sig P) := λ x y, (proj1_sig x = proj1_sig y) /\ ((proj2_sig x) -> (proj2_sig y)).
+
+  Definition sig_equiv `{Equiv A} (P: A → Prop) : Equiv (sig P) := λ x y, `x = `y.
+
+
+
+  Global Instance Subtype_psvector {fm} {n}:
+    Subtype (psvectorT fm n P).
+  Proof.
+    unfold Subtype.
+    unfold relation.
+    intros A B.
+    destruct A,B.
+  Qed.
+
+  Notation psvector fm n P := (@sig (svector fm n) P) (only parsing).
+
+
+End Subtyping.
+
 
 (*
 Section OperatorProperies.
