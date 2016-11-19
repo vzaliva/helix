@@ -1053,9 +1053,9 @@ Section Subtyping.
   Qed.
 
   Example SigSubtypeEx1
-          (A:{x|x>1})
-          (B:{x|x>5}):
-    A <: B.
+          (a:{x|x>5})
+          (b:{x|x>1}):
+    a <: b.
 
 
 
