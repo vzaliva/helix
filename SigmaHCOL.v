@@ -991,8 +991,7 @@ Section Subtyping.
   Global Instance Subtype_Prop:
     Subtype (Prop).
   Proof.
-    unfold Subtype.
-    unfold relation.
+    unfold Subtype, relation.
     intros X Y.
     exact (X -> Y).
   Defined.
@@ -1015,6 +1014,7 @@ Section Subtyping.
     unfold Subtype_Prop.
     tauto.
   Qed.
+
 
   Global Instance Subtype_sig (A:Type) `{Equiv A}:
     Subtype (@sig A P).
