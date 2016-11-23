@@ -375,7 +375,7 @@ Section SigmaHCOL_Operators.
            op1 (@exist _ _ y' (QP y' Q2y)).
 
     (* TODO: move outside section *)
-    Notation "g ⊚ ( q ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ q) (at level 90) : type_scope.
+    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
 
     Global Instance SHOperator_SHCompose
            {i1 o2 o3} {P1 Q1}
@@ -972,16 +972,10 @@ Section Subtyping.
 
   (* Equality *)
 
-  Class Subtype A := subtype: relation A.
+  Class Subtype A B := subtype: A -> B -> Prop.
 
   (* Revert to transparency to allow conversions during unification. *)
   Typeclasses Transparent Subtype.
-
-  Class SubtypeRelation {A:Type} (R : relation A) : Prop := {
-    Subtype_Reflexive :> Reflexive R ;
-    Subtype_Asymmetric :> Asymmetric R ;
-    Subtype_Transitive :> Transitive R ;
-  }.
 
   Infix "<:" := subtype : type_scope.
   Notation "(<:)" := subtype (only parsing) : type_scope.
@@ -989,7 +983,7 @@ Section Subtyping.
   Definition TrueP {A} := fun (_:A) => True.
 
   Global Instance Subtype_Prop:
-    Subtype (Prop).
+    Subtype Prop Prop.
   Proof.
     unfold Subtype, relation.
     intros X Y.
@@ -1015,34 +1009,23 @@ Section Subtyping.
     tauto.
   Qed.
 
-
   Global Instance Subtype_sig (A:Type) `{Equiv A}:
-    Subtype (@sig A P).
+    Subtype (@sig A P1) (@sig A P2).
   Proof.
     unfold Subtype.
-    unfold relation.
-    intros P x y.
+    intros P1 P2 x y.
     destruct x as [x Px].
     destruct y as [y Py].
-    exact (x=y /\ P x <: P y).
-  Defined.
-
-  Definition JM_subtype {A:Type} `{Equiv A} {P1 P2:A -> Prop}:
-    (@sig A P1) -> (@sig A P2) -> Prop.
-  Proof.
-    intros x y.
-    destruct x as [x Px].
-    destruct y as [y Py].
-    exact (x=y /\ P1 x <: P2 y).
+    exact (x=y /\ P1 x  <: P2 y).
   Defined.
 
   Example SigSubtypeEx0
           (a:{x:nat|x>5})
           (b:{x:nat|x>1}):
-    `a=`b -> JM_subtype a b.
+    `a=`b -> subtype a b.
   Proof.
     intro Peq.
-    unfold JM_subtype.
+    unfold subtype, Subtype_sig.
     repeat break_let.
     split.
     apply Peq.
@@ -1052,43 +1035,12 @@ Section Subtyping.
     lia.
   Qed.
 
-  Example SigSubtypeEx1
-          (a:{x|x>5})
-          (b:{x|x>1}):
-    a <: b.
-
-
-
-  Global Instance Subtype_psvector {fm} {n} {P}:
-    Subtype (@sig (svector fm n) P).
+  Global Instance Subtype_psvector {fm} {n} {P1 P2}:
+    Subtype (@sig (svector fm n) P1) (@sig (svector fm n) P2).
   Proof.
-    unfold Subtype.
-    unfold relation.
-    intros x y.
-    destruct x as [x Px].
-    destruct y as [y Py].
-    exact (forall (z:svector fm n), (P z <: P z)).
+    apply Subtype_sig.
+    apply vec_Equiv.
   Defined.
-
-
-  Set Printing All.
-  Definition sig_subtype `{Subtype A} `{Equiv A} (P: A → Prop) : Subtype (sig P) := λ x y, (proj1_sig x = proj1_sig y) /\ ((proj2_sig x) -> (proj2_sig y)).
-
-  Definition sig_equiv `{Equiv A} (P: A → Prop) : Equiv (sig P) := λ x y, `x = `y.
-
-
-
-  Global Instance Subtype_psvector {fm} {n}:
-    Subtype (psvectorT fm n P).
-  Proof.
-    unfold Subtype.
-    unfold relation.
-    intros A B.
-    destruct A,B.
-  Qed.
-
-  Notation psvector fm n P := (@sig (svector fm n) P) (only parsing).
-
 
 End Subtyping.
 
