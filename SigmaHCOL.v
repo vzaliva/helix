@@ -359,7 +359,6 @@ Section SigmaHCOL_Operators.
       apply SHOperator_Scatter.
     Qed.
 
-
     Definition SHCompose
                {i1 o2 o3}
                {P1 Q1}
@@ -374,7 +373,6 @@ Section SigmaHCOL_Operators.
            let (y',Q2y) := op2 x in
            op1 (@exist _ _ y' (QP y' Q2y)).
 
-    (* TODO: move outside section *)
     Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
 
     Global Instance SHOperator_SHCompose
@@ -608,6 +606,9 @@ Section SigmaHCOL_Operators.
 
   End FlagsMonoidGenericOperators.
 
+  (* re-define notation outside a section *)
+  Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
+
   Section MUnion.
 
     Variable fm:Monoid RthetaFlags.
@@ -757,6 +758,8 @@ Section SigmaHCOL_Operators.
 
 End SigmaHCOL_Operators.
 
+(* re-define notation outside a section *)
+Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
 
 (* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
 Ltac SHOperator_reflexivity :=
@@ -966,26 +969,24 @@ Proof.
   reflexivity.
 Qed.
 
-Reserved Notation "T '<:' U" (at level 40).
-
 Section Subtyping.
 
   (* Equality *)
 
-  Class Subtype A B := subtype: A -> B -> Prop.
+  Global Class Subtype A B := subtype: A -> B -> Prop.
 
   (* Revert to transparency to allow conversions during unification. *)
   Typeclasses Transparent Subtype.
 
-  Infix "<:" := subtype : type_scope.
-  Notation "(<:)" := subtype (only parsing) : type_scope.
+  Infix "<:" := subtype (at level 40) : type_scope.
+  Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
 
   Definition TrueP {A} := fun (_:A) => True.
 
   Global Instance Subtype_Prop:
     Subtype Prop Prop.
   Proof.
-    unfold Subtype, relation.
+    unfold Subtype.
     intros X Y.
     exact (X -> Y).
   Defined.
@@ -1016,13 +1017,29 @@ Section Subtyping.
     intros P1 P2 x y.
     destruct x as [x Px].
     destruct y as [y Py].
-    exact (x=y /\ P1 x  <: P2 y).
+    exact (x=y /\ P1 x <: P2 y).
   Defined.
+
+  Lemma Subtype_sig_simpl
+        `{EqA: Equiv A}
+        {P1 P2}
+        (a:{x:A|P1 x})
+        (b:{y:A|P2 y}):
+    (`a=`b) /\ (a <: b) ->
+    P1 (`a) -> P2 (`b).
+  Proof.
+    intros [E S] H.
+    unfold subtype, Subtype_sig in S.
+    repeat break_let.
+    destruct S as [E1 S1].
+    unfold subtype, Subtype_Prop in S1.
+    apply S1, H.
+  Qed.
 
   Example SigSubtypeEx0
           (a:{x:nat|x>5})
           (b:{x:nat|x>1}):
-    `a=`b -> subtype a b.
+    `a=`b -> a <: b.
   Proof.
     intro Peq.
     unfold subtype, Subtype_sig.
@@ -1035,6 +1052,8 @@ Section Subtyping.
     lia.
   Qed.
 
+
+
   Global Instance Subtype_psvector {fm} {n} {P1 P2}:
     Subtype (@sig (svector fm n) P1) (@sig (svector fm n) P2).
   Proof.
@@ -1042,8 +1061,66 @@ Section Subtyping.
     apply vec_Equiv.
   Defined.
 
+  Global Instance Subtype_Arrow
+         `{SA: Subtype T1 S1}
+         `{SB: Subtype S2 T2}:
+    Subtype (S1->S2) (T1->T2).
+  Proof.
+    unfold Subtype in *.
+    intros X Y.
+    exact True.
+  Defined.
+
 End Subtyping.
 
+(* re-define notation outside the section *)
+Infix "<:" := subtype (at level 40) : type_scope.
+Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
+
+
+Section SubtypingArrows.
+  Variable fm : Monoid RthetaFlags.
+  Variable i1 o2 o3 : nat.
+
+  Variable P1 : svector fm o2 → Prop.
+  Variable Q1 : svector fm o3 → Prop.
+  Variable op1 : {x : svector fm o2 | P1 x} → {x : svector fm o3 | Q1 x}.
+  Variable op1_SHOperator : SHOperator fm P1 Q1 op1.
+
+  Variable P2 : svector fm i1 → Prop.
+  Variable Q2 : svector fm o2 → Prop.
+  Variable op2 : {x : svector fm i1 | P2 x} → {x : svector fm o2 | Q2 x}.
+  Variable op2_SHOperator : SHOperator fm P2 Q2 op2.
+
+  Variable QP : ∀ x : svector fm o2, Q2 x → P1 x.
+
+  Section Rewrite2ndArg.
+    Variable P2' : svector fm i1 → Prop.
+    Variable Q2' : svector fm o2 → Prop.
+    Variable op2' : {x : svector fm i1 | P2' x} → {x : svector fm o2 | Q2' x}.
+    Variable op2'_SHOperator : SHOperator fm P2' Q2' op2'.
+
+
+    Lemma SHCompose_subtype_2nd (S: op2' <: op2):
+      (@SHCompose
+         fm
+         i1 o2 o3
+         P1 Q1 op1 op1_SHOperator
+         P2 Q2 op2 op2_SHOperator
+         QP)
+    <:
+      (@SHCompose
+         fm
+         i1 o2 o3
+         P1 Q1 op1 op1_SHOperator
+         P2' Q2' op2' op2'_SHOperator
+         (Subtype_sig QP)).
+
+
+
+  End Rewrite2ndArg.
+
+End SubtypingArrows.
 
 (*
 Section OperatorProperies.
