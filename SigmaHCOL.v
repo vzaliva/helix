@@ -668,8 +668,8 @@ Section SigmaHCOL_Operators.
         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (proj1_sig (Apply_Family Monoid_RthetaFlags op_family x))).
+                                         (transpose
+                                            (proj1_sig (Apply_Family Monoid_RthetaFlags op_family x))).
 
   (** Matrix-union. *)
   (* TODO: density preserving? *)
@@ -765,12 +765,12 @@ Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90)
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-           (forall _ : svector ?fm ?m, svector ?fm ?n)
-           (@ext_equiv
-              (svector ?m)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
-              (svector ?n)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
+            (forall _ : svector ?fm ?m, svector ?fm ?n)
+            (@ext_equiv
+               (svector ?m)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
+               (svector ?n)
+               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
@@ -909,35 +909,35 @@ Definition USparseEmbedding
 
 
 Global Instance SHOperator_USparseEmbedding
-           {n i o ki ko}
-           (* kernel pre and post conditions *)
-           {Pk: rvector ki → Prop}
-           {Qk: rvector ko → Prop}
-           (* scatter pre and post conditions *)
-           {Ps: rvector ko → Prop}
-           {Qs: rvector o → Prop}
-           (* gather pre and post conditions *)
-           {Pg: rvector i → Prop}
-           {Qg: rvector ki → Prop}
-           (* Scatter-to-Kernel glue *)
-           {SK: ∀ x : rvector ko, Qk x → Ps x}
-           (* Kernel-to-Gather glue *)
-           {KG: ∀ x : rvector ki, Qg x → Pk x}
-           (* Kernel *)
-           (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
-           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
-           (* Gather pre and post conditions relation *)
-           {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
-           (* Scatter pre and post conditions relation *)
-           {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
-           (* ISumUnion post-condition *)
-           {R: vector Rtheta o → Prop}
-           (* ISumUnion glue *)
-           {PQ: forall x : vector (rvector o) n,  Vforall Qs x → R (MUnion' Monoid_RthetaFlags plus zero x)}:
+       {n i o ki ko}
+       (* kernel pre and post conditions *)
+       {Pk: rvector ki → Prop}
+       {Qk: rvector ko → Prop}
+       (* scatter pre and post conditions *)
+       {Ps: rvector ko → Prop}
+       {Qs: rvector o → Prop}
+       (* gather pre and post conditions *)
+       {Pg: rvector i → Prop}
+       {Qg: rvector ki → Prop}
+       (* Scatter-to-Kernel glue *)
+       {SK: ∀ x : rvector ko, Qk x → Ps x}
+       (* Kernel-to-Gather glue *)
+       {KG: ∀ x : rvector ki, Qg x → Pk x}
+       (* Kernel *)
+       (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+       (f: index_map_family ko o n)
+       {f_inj : index_map_family_injective f}
+       (g: index_map_family ki i n)
+       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+       (* Gather pre and post conditions relation *)
+       {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+       (* Scatter pre and post conditions relation *)
+       {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+       (* ISumUnion post-condition *)
+       {R: vector Rtheta o → Prop}
+       (* ISumUnion glue *)
+       {PQ: forall x : vector (rvector o) n,  Vforall Qs x → R (MUnion' Monoid_RthetaFlags plus zero x)}:
   SHOperator Monoid_RthetaFlags Pg R (
                @USparseEmbedding
                  n i o ki ko
@@ -971,8 +971,7 @@ Qed.
 
 Section Subtyping.
 
-  (* Equality *)
-
+  (* Subtyping relation between types A and B *)
   Global Class Subtype A B := subtype: A -> B -> Prop.
 
   (* Revert to transparency to allow conversions during unification. *)
@@ -1010,16 +1009,9 @@ Section Subtyping.
     tauto.
   Qed.
 
-  Global Instance Subtype_sig (A:Type) `{Equiv A}:
-    Subtype (@sig A P1) (@sig A P2).
-  Proof.
-    intros P1 P2.
-    unfold Subtype.
-    intros x y.
-    destruct x as [x Px].
-    destruct y as [y Py].
-    exact (x=y /\ (forall z, P1 z -> P2 z)).
-  Defined.
+  Global Instance Subtype_sig (A:Type) `{Equiv A} {P1 P2}:
+    Subtype (@sig A P1) (@sig A P2) :=
+    fun a b => `a=`b /\ (forall z, P1 z -> P2 z).
 
   Example SigSubtypeEx0
           (a:{x:nat|x>5})
@@ -1057,14 +1049,20 @@ Section Subtyping.
   Defined.
 
   Global Instance Subtype_sig_arrow
-         {A B: Type}
+         {A: Type}
+         `{Equiv B}
          {Ps1 Pt1: A -> Prop}
          {Ps2 Pt2: B -> Prop}:
     Subtype (@sig A Ps1 -> @sig B Ps2) (@sig A Pt1 -> @sig B Pt2).
   Proof.
     unfold Subtype.
     intros a b.
-    exact ((forall z, Pt1 z -> Ps1 z) /\ (forall z, Ps2 z -> Pt2 z)).
+    exact (
+        (forall z, Pt1 z -> Ps1 z) (* pre-conditions are coercable *)
+        /\
+        (forall z (Ps1z: Ps1 z) (pt1z: Pt1 z), subtype (a (exist Ps1z)) (b (exist pt1z))) (* functional exensionality *)
+      ).
+
   Defined.
 
 End Subtyping.
