@@ -1013,28 +1013,13 @@ Section Subtyping.
   Global Instance Subtype_sig (A:Type) `{Equiv A}:
     Subtype (@sig A P1) (@sig A P2).
   Proof.
+    intros P1 P2.
     unfold Subtype.
-    intros P1 P2 x y.
+    intros x y.
     destruct x as [x Px].
     destruct y as [y Py].
-    exact (x=y /\ P1 x <: P2 y).
+    exact (x=y /\ (forall z, P1 z -> P2 z)).
   Defined.
-
-  Lemma Subtype_sig_simpl
-        `{EqA: Equiv A}
-        {P1 P2}
-        (a:{x:A|P1 x})
-        (b:{y:A|P2 y}):
-    (`a=`b) /\ (a <: b) ->
-    P1 (`a) -> P2 (`b).
-  Proof.
-    intros [E S] H.
-    unfold subtype, Subtype_sig in S.
-    repeat break_let.
-    destruct S as [E1 S1].
-    unfold subtype, Subtype_Prop in S1.
-    apply S1, H.
-  Qed.
 
   Example SigSubtypeEx0
           (a:{x:nat|x>5})
@@ -1045,14 +1030,24 @@ Section Subtyping.
     unfold subtype, Subtype_sig.
     repeat break_let.
     split.
-    apply Peq.
-    unfold subtype, Subtype_Prop.
-    unfold proj1_sig in Peq.
-    rewrite Peq.
-    lia.
+    - apply Peq.
+    - intros z.
+      lia.
   Qed.
 
-
+  Lemma Subtype_sig_simpl
+        `{EqA: Equiv A}
+        {P1 P2}
+        (a:{x:A|P1 x})
+        (b:{y:A|P2 y}):
+    (a <: b) -> (`a=`b) /\ forall z, P1 z -> P2 z.
+  Proof.
+    intros S.
+    unfold subtype, Subtype_sig in S.
+    repeat break_let.
+    destruct S as [E1 S1].
+    split; [apply E1 | apply S1].
+  Qed.
 
   Global Instance Subtype_psvector {fm} {n} {P1 P2}:
     Subtype (@sig (svector fm n) P1) (@sig (svector fm n) P2).
@@ -1061,14 +1056,15 @@ Section Subtyping.
     apply vec_Equiv.
   Defined.
 
-  Global Instance Subtype_Arrow
-         `{SA: Subtype T1 S1}
-         `{SB: Subtype S2 T2}:
-    Subtype (S1->S2) (T1->T2).
+  Global Instance Subtype_sig_arrow
+         {A B: Type}
+         {Ps1 Pt1: A -> Prop}
+         {Ps2 Pt2: B -> Prop}:
+    Subtype (@sig A Ps1 -> @sig B Ps2) (@sig A Pt1 -> @sig B Pt2).
   Proof.
-    unfold Subtype in *.
-    intros X Y.
-    exact True.
+    unfold Subtype.
+    intros a b.
+    exact ((forall z, Pt1 z -> Ps1 z) /\ (forall z, Ps2 z -> Pt2 z)).
   Defined.
 
 End Subtyping.
@@ -1114,7 +1110,7 @@ Section SubtypingArrows.
          i1 o2 o3
          P1 Q1 op1 op1_SHOperator
          P2' Q2' op2' op2'_SHOperator
-         (Subtype_sig QP)).
+         (Subtype_sig_simpl QP)).
 
 
 
