@@ -971,8 +971,9 @@ Qed.
 
 Section Subtyping.
 
+  Set Printing Universes.
   (* Subtyping relation between types A and B *)
-  Global Class Subtype A B := subtype: A -> B -> Prop.
+  Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
 
   (* Revert to transparency to allow conversions during unification. *)
   Typeclasses Transparent Subtype.
@@ -986,8 +987,8 @@ Section Subtyping.
     Subtype Prop Prop.
   Proof.
     unfold Subtype.
-    intros X Y.
-    exact (X -> Y).
+    intros a b.
+    exact (a -> b).
   Defined.
 
   Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
