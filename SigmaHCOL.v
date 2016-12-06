@@ -359,6 +359,13 @@ Section SigmaHCOL_Operators.
       apply SHOperator_Scatter.
     Qed.
 
+    Definition SHCompose'
+               {i1 o2 o3}
+               (op1: svector fm o2 -> svector fm o3)
+               (op2: svector fm i1 -> svector fm o2)
+      : svector fm i1 -> svector fm o3
+      := compose op1 op2.
+
     Definition SHCompose
                {i1 o2 o3}
                {P1 Q1}
@@ -369,6 +376,9 @@ Section SigmaHCOL_Operators.
                `{S2: !SHOperator _ _ op2}
                {QP: forall x, Q2 x -> P1 x}
       : psvector fm i1 P2 -> psvector fm o3 Q1
+      := AddPrePost SHCompose' QP.
+
+
       := fun x =>
            let (y',Q2y) := op2 x in
            op1 (@exist _ _ y' (QP y' Q2y)).
