@@ -73,12 +73,14 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op
            }.
 
-    (*
     Class DensityPreserving
-          {i o:nat} {P Q} (op: psvector fm i P -> psvector fm o Q)
+          {i o:nat}
+          {P Q}
+          (f: @SHOperator i o P Q)
       :=
-        o_den_pres : forall x, svector_is_dense fm (proj1_sig x) -> svector_is_dense fm (proj1_sig (op x)).
+        o_den_pres : forall x, svector_is_dense fm x -> svector_is_dense fm (op f x).
 
+    (*
 
     (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
     Class DenseCauseNoCol {i o:nat} (op: svector fm i -> svector fm o) :=
@@ -323,7 +325,7 @@ Section SigmaHCOL_Operators.
       - eapply compose_proper; [apply op1| apply op2].
     Defined.
 
-    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ g f qp) (at level 90) : type_scope.
+    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 90) : type_scope.
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise'
@@ -433,81 +435,28 @@ Section SigmaHCOL_Operators.
                (* Kernel-to-Gather glue *)
                {KG: ∀ x : svector fm ki, Qg x → Pk x}
                (* Kernel *)
-               (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
+               (kernel: forall k, (k<n) -> @SHOperator ki ko Pk Qk)
                `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
                (* Gather index map *)
                (g: index_map_family ki i n)
-               `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
                (* Gather pre and post conditions relation *)
                {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
                {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
       := fun (j:nat) (jc:j<n) =>
-           Scatter (⦃f⦄ j jc)
+           (Scatter (⦃f⦄ j jc)
                    (f_inj:=index_map_family_member_injective f_inj j jc)
-                   (PQs j jc)
+                   (PQs j jc))
                    ⊚(SK) (kernel j jc)
                    ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
-
-    Global Instance SHOperator_SparseEmbedding
-           {n i o ki ko}
-           (* kernel pre and post conditions *)
-           {Pk: svector fm ki → Prop}
-           {Qk: svector fm ko → Prop}
-           (* scatter pre and post conditions *)
-           {Ps: svector fm ko → Prop}
-           {Qs: svector fm o → Prop}
-           (* gather pre and post conditions *)
-           {Pg: svector fm i → Prop}
-           {Qg: svector fm ki → Prop}
-           (* Scatter-to-Kernel glue *)
-           {SK: ∀ x : svector fm ko, Qk x → Ps x}
-           (* Kernel-to-Gather glue *)
-           {KG: ∀ x : svector fm ki, Qg x → Pk x}
-           (* Kernel *)
-           (kernel: forall k, (k<n) -> psvector fm ki Pk -> psvector fm ko Qk)
-           `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
-           (* Scatter index map *)
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (* Gather index map *)
-           (g: index_map_family ki i n)
-           `{Koperator: forall k (kc: k<n), @SHOperator ki ko Pk Qk (kernel k kc)}
-           (* Gather pre and post conditions relation *)
-           {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
-           (* Scatter pre and post conditions relation *)
-           {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
-           (* Family index *)
-           (j:nat) (jc:j<n):
-      SHOperator Pg Qs
-                 (@SparseEmbedding
-                    n i o ki ko
-                    Pk Qk Ps Qs Pg Qg
-                    SK KG
-                    kernel
-                    KD
-                    f
-                    f_inj
-                    g
-                    Koperator
-                    PQg PQs
-                    j jc
-                 ).
-    Proof.
-      unfold SHOperator.
-      split; repeat apply sig_setoid.
-      intros x y E.
-      rewrite E.
-      reflexivity.
-    Qed.
 
   End FlagsMonoidGenericOperators.
 
   (* re-define notation outside a section *)
-  Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
+  Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 90) : type_scope.
 
   Section MUnion.
 
