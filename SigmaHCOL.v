@@ -266,30 +266,14 @@ Section SigmaHCOL_Operators.
                   | right _ => mkSZero
                   end).
 
-    Definition Scatter
+    Global Instance Scatter'_Proper
                {i o: nat}
-               {P: svector fm i -> Prop}
-               {Q: svector fm o -> Prop}
                (f: index_map i o)
-               {f_inj: index_map_injective f}
-               (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
-      psvector fm i P -> psvector fm o Q
-      :=  AddPrePost (Scatter' f (f_inj:=f_inj)) PQ.
-
-    Global Instance SHOperator_Scatter
-           {i o: nat}
-           {P: svector fm i -> Prop}
-           {Q: svector fm o -> Prop}
-           (f: index_map i o)
-           {f_inj: index_map_injective f}
-           (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
-      SHOperator P Q (@Scatter i o P Q f f_inj PQ).
+               {f_inj: index_map_injective f}:
+      Proper ((=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
     Proof.
-      unfold SHOperator.
-      split; try apply sig_setoid.
-      intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy; simpl in Exy.
-      unfold Scatter, Scatter', AddPrePost.
+      intros x y Exy.
+      unfold Scatter'.
       vec_index_equiv j jp.
       simpl.
       rewrite 2!Vbuild_nth.
@@ -297,6 +281,17 @@ Section SigmaHCOL_Operators.
       - apply Vnth_arg_equiv, Exy.
       - reflexivity.
     Qed.
+
+    Definition Scatter
+               {i o: nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: index_map i o)
+               {f_inj: index_map_injective f}
+               (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
+      SHOperator
+      := mkSHOperator i o P Q (Scatter' f (f_inj:=f_inj)) PQ _.
+
 
     Definition ScatH
                {i o}
@@ -308,89 +303,32 @@ Section SigmaHCOL_Operators.
                (PQ: forall x, P x -> Q (Scatter'
                                           (h_index_map base stride (range_bound:=range_bound))
                                           (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
-      :
-        psvector fm i P -> psvector fm o Q
+      : SHOperator
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
 
-    Global Instance SHOperator_ScatH
-           {i o}
-           {P: svector fm i -> Prop}
-           {Q: svector fm o -> Prop}
-           (base stride: nat)
-           {range_bound: ∀ x : nat, x < i → base + x * stride < o}
-           {snzord0: stride ≢ 0 \/ i < 2}
-           (PQ: forall x, P x -> Q (Scatter'
-                                      (h_index_map base stride (range_bound:=range_bound))
-                                      (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x)):
-      SHOperator _ _ (@ScatH i o P Q base stride range_bound snzord0 PQ).
-    Proof.
-      apply SHOperator_Scatter.
-    Qed.
-
-    Definition SHCompose'
-               {i1 o2 o3}
-               (op1: svector fm o2 -> svector fm o3)
-               (op2: svector fm i1 -> svector fm o2)
-      : svector fm i1 -> svector fm o3
-      := compose op1 op2.
 
     Definition SHCompose
                {i1 o2 o3}
-               {P1 Q1}
-               (op1: psvector fm o2 P1 -> psvector fm o3 Q1)
-               `{S1:!SHOperator _ _ op1}
-               {P2 Q2}
-               (op2: psvector fm i1 P2 -> psvector fm o2 Q2)
-               `{S2: !SHOperator _ _ op2}
-               {QP: forall x, Q2 x -> P1 x}
-      : psvector fm i1 P2 -> psvector fm o3 Q1
-      := AddPrePost SHCompose' QP.
-
-
-      := fun x =>
-           let (y',Q2y) := op2 x in
-           op1 (@exist _ _ y' (QP y' Q2y)).
-
-    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
-
-    Global Instance SHOperator_SHCompose
-           {i1 o2 o3} {P1 Q1}
-           (op1: psvector fm o2 P1 -> psvector fm o3 Q1)
-           `{S1:!SHOperator _ _ op1}
-           {P2 Q2}
-           (op2: psvector fm i1 P2 -> psvector fm o2 Q2)
-           `{S2: !SHOperator _ _ op2}
-           {QP: forall y, Q2 y -> P1 y}:
-      SHOperator P2 Q1 (op1 ⊚(QP) op2).
+               (op1: @SHOperator o2 o3)
+               (op2: @SHOperator i1 o2)
+               {QP: forall x, (postCond op2) x -> (preCond op1) x}
+      : @SHOperator i1 o3.
     Proof.
-      unfold SHOperator in *.
-      split; try apply sig_setoid.
-      intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy; simpl in Exy.
-      unfold SHCompose.
-      repeat break_let.
-      f_equiv.
-      simpl_sig_equiv.
-      assert(H: (x ↾ Px) = (y ↾ Qy))
-        by (simpl_sig_equiv; apply Exy).
-      assert(H1: op2 (x ↾ Px) = x0 ↾ q)
-        by (rewrite Heqs; reflexivity).
-      rewrite H in H1.
-      rewrite Heqs0 in H1.
-      unfold equiv, sig_equiv in H1.
-      simpl in H1.
-      symmetry. apply H1.
-    Qed.
+      refine (mkSHOperator i1 o3 (preCond op2) (postCond op1) (compose (op op1) (op op2)) _ _).
+      -
+        intros x P.
+        unfold compose.
+        destruct op1, op2.
+        simpl in *.
+        auto.
+      - eapply compose_proper.
+        + apply op1.
+        + apply op2.
+    Defined.
 
-
-    (* TODO: move *)
-    Lemma proj1_sig_exists {A:Type} {x:A} {P} {PA}:
-      proj1_sig (@exist A P x PA) ≡ x.
-    Proof.
-      reflexivity.
-    Qed.
+    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ g f qp) (at level 90) : type_scope.
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise'
@@ -400,31 +338,15 @@ Section SigmaHCOL_Operators.
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-    Definition SHPointwise
+    Global Instance SHPointwise'_Proper
                {n: nat}
-               {P: svector fm n -> Prop}
-               {Q: svector fm n -> Prop}
                (f: { i | i<n} -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-               (PQ: forall x, P x -> Q (SHPointwise' f x)):
-      (psvector fm n P) -> psvector fm n Q
-      := AddPrePost (SHPointwise' f) PQ.
-
-    Global Instance SHOperator_SHPointwise
-           {n: nat}
-           {P: svector fm n -> Prop}
-           {Q: svector fm n -> Prop}
-           (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-           (PQ: forall x, P x -> Q (SHPointwise' f x)):
-      SHOperator P Q (SHPointwise f PQ).
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      Proper ((=) ==> (=)) (SHPointwise' f).
     Proof.
-      split; try apply sig_setoid.
-      intros [x Px] [y Qy] Exy.
-      unfold equiv, sig_equiv in Exy; simpl in Exy.
-      unfold SHPointwise, SHPointwise', AddPrePost.
+      intros x y Exy.
+      unfold SHPointwise'.
       vec_index_equiv j jc.
-      repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
       unfold_Rtheta_equiv.
       rewrite 2!evalWriter_Rtheta_liftM.
@@ -433,6 +355,16 @@ Section SigmaHCOL_Operators.
       apply Vnth_arg_equiv.
       apply Exy.
     Qed.
+
+    Definition SHPointwise
+               {n: nat}
+               {P: svector fm n -> Prop}
+               {Q: svector fm n -> Prop}
+               (f: { i | i<n} -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (PQ: forall x, P x -> Q (SHPointwise' f x))
+      : SHOperator
+      := mkSHOperator n n P Q (SHPointwise' f) PQ _.
 
     Definition SHBinOp'
                {o}
@@ -443,29 +375,13 @@ Section SigmaHCOL_Operators.
           | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
           end.
 
-    Definition SHBinOp
-               {o}
-               {P: svector fm (o+o) -> Prop}
-               {Q: svector fm o -> Prop}
-               (f: nat -> CarrierA -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-               (PQ: forall x, P x -> Q (SHBinOp' f x)):
-      psvector fm (o+o) P -> psvector fm o Q
-      := AddPrePost (SHBinOp' f) PQ.
-
-    Global Instance SHOperator_SHBinOp {o}
-           {P: svector fm (o+o) -> Prop}
-           {Q: svector fm o -> Prop}
+    Global Instance SHBinOp'_Proper
+           {o}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-           (PQ: forall x, P x -> Q (SHBinOp' f x)):
-      SHOperator P Q (SHBinOp f PQ).
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+      Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
     Proof.
-      split; try apply sig_setoid.
-      intros [x Px] [y Qy] E.
-      unfold equiv, sig_equiv in E; simpl in E.
-      unfold SHBinOp, AddPrePost.
-      simpl_sig_equiv.
+      intros x y E.
       unfold SHBinOp'.
 
       vec_index_equiv j jc.
@@ -480,7 +396,6 @@ Section SigmaHCOL_Operators.
       replace t2 with (snd (Vbreak y)) by (rewrite H1 ; reflexivity).
       clear H0 H1.
 
-      repeat rewrite proj1_sig_exists.
       rewrite 2!Vbuild_nth.
 
       unfold_Rtheta_equiv.
@@ -496,6 +411,17 @@ Section SigmaHCOL_Operators.
         rewrite E.
         reflexivity.
     Qed.
+
+    Definition SHBinOp
+               {o}
+               {P: svector fm (o+o) -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               (PQ: forall x, P x -> Q (SHBinOp' f x)):
+      @SHOperator (o+o) o
+      := mkSHOperator (o+o) o P Q (SHBinOp' f) PQ _.
+
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
