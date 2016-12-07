@@ -62,10 +62,12 @@ Section SigmaHCOL_Operators.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Record SHOperator {i o: nat}: Type
+    Record SHOperator
+           {i o: nat}
+           {preCond : svector fm i → Prop}
+           {postCond : svector fm o → Prop}
+      : Type
       := mkSHOperator {
-             preCond : svector fm i → Prop ;
-             postCond : svector fm o → Prop ;
              op: svector fm i -> svector fm o ;
              pre_post: forall (x:svector fm i), preCond x -> postCond (op x) ;
              op_proper: Proper ((=) ==> (=)) op
@@ -160,7 +162,6 @@ Section SigmaHCOL_Operators.
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
                (PQ: forall x, P x -> Q (liftM_HOperator' op x))
-      : SHOperator
       := mkSHOperator i o P Q (liftM_HOperator' op) PQ (@liftM_HOperator'_Proper i o op HOP).
 
     (* TODO:
@@ -235,8 +236,7 @@ Section SigmaHCOL_Operators.
                {P: svector fm i -> Prop}
                {Q: svector fm o -> Prop}
                (f: index_map o i)
-               (PQ: forall x, P x -> Q (Gather' f x)):
-      SHOperator
+               (PQ: forall x, P x -> Q (Gather' f x))
       := mkSHOperator i o P Q (Gather' f) PQ _.
 
     Definition GathH
@@ -247,7 +247,6 @@ Section SigmaHCOL_Operators.
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
                                                        (range_bound:=domain_bound)) x))
-      : SHOperator
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
@@ -288,10 +287,8 @@ Section SigmaHCOL_Operators.
                {Q: svector fm o -> Prop}
                (f: index_map i o)
                {f_inj: index_map_injective f}
-               (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x)):
-      SHOperator
+               (PQ: forall x, P x -> Q (Scatter' f (f_inj:=f_inj) x))
       := mkSHOperator i o P Q (Scatter' f (f_inj:=f_inj)) PQ _.
-
 
     Definition ScatH
                {i o}
@@ -303,7 +300,6 @@ Section SigmaHCOL_Operators.
                (PQ: forall x, P x -> Q (Scatter'
                                           (h_index_map base stride (range_bound:=range_bound))
                                           (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
-      : SHOperator
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
@@ -311,21 +307,20 @@ Section SigmaHCOL_Operators.
 
     Definition SHCompose
                {i1 o2 o3}
-               (op1: @SHOperator o2 o3)
-               (op2: @SHOperator i1 o2)
-               {QP: forall x, (postCond op2) x -> (preCond op1) x}
-      : @SHOperator i1 o3.
+               {P1 Q1 P2 Q2}
+               (op1: @SHOperator o2 o3 P1 Q1)
+               (op2: @SHOperator i1 o2 P2 Q2)
+               {QP: forall x, Q2 x -> P1 x}
+      : @SHOperator i1 o3 P2 Q1.
     Proof.
-      refine (mkSHOperator i1 o3 (preCond op2) (postCond op1) (compose (op op1) (op op2)) _ _).
+      refine (mkSHOperator i1 o3 P2 Q1 (compose (op op1) (op op2)) _ _).
       -
         intros x P.
         unfold compose.
         destruct op1, op2.
         simpl in *.
         auto.
-      - eapply compose_proper.
-        + apply op1.
-        + apply op2.
+      - eapply compose_proper; [apply op1| apply op2].
     Defined.
 
     Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ g f qp) (at level 90) : type_scope.
@@ -363,7 +358,6 @@ Section SigmaHCOL_Operators.
                (f: { i | i<n} -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (PQ: forall x, P x -> Q (SHPointwise' f x))
-      : SHOperator
       := mkSHOperator n n P Q (SHPointwise' f) PQ _.
 
     Definition SHBinOp'
@@ -418,8 +412,7 @@ Section SigmaHCOL_Operators.
                {Q: svector fm o -> Prop}
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-               (PQ: forall x, P x -> Q (SHBinOp' f x)):
-      @SHOperator (o+o) o
+               (PQ: forall x, P x -> Q (SHBinOp' f x))
       := mkSHOperator (o+o) o P Q (SHBinOp' f) PQ _.
 
 
@@ -451,12 +444,13 @@ Section SigmaHCOL_Operators.
                (* Gather pre and post conditions relation *)
                {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
-               {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}   := fun (j:nat) (jc:j<n) =>
-                                                                                           Scatter (⦃f⦄ j jc)
-                                                                                                   (f_inj:=index_map_family_member_injective f_inj j jc)
-                                                                                                   (PQs j jc)
-                                                                                                   ⊚(SK) (kernel j jc)
-                                                                                                   ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
+               {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
+      := fun (j:nat) (jc:j<n) =>
+           Scatter (⦃f⦄ j jc)
+                   (f_inj:=index_map_family_member_injective f_inj j jc)
+                   (PQs j jc)
+                   ⊚(SK) (kernel j jc)
+                   ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
 
     Global Instance SHOperator_SparseEmbedding
            {n i o ki ko}
