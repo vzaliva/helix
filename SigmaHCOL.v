@@ -462,45 +462,26 @@ Section SigmaHCOL_Operators.
 
     Variable fm:Monoid RthetaFlags.
 
-    Definition AddMPrePost
-               {o n}
-               (op: vector (svector fm o) n -> svector fm o)
-               {P: svector fm o -> Prop}
-               {Q: svector fm o -> Prop}
-               (PQ: forall x, Vforall P x -> Q (op x)):
-      {u: vector (svector fm o) n | Vforall P u} -> psvector fm o Q.
-    Proof.
-      intros [x Px].
-      eexists (op x).
-      apply PQ, Px.
-    Defined.
+    (* An operator applied to a list of vectors (matrix) with uniform pre and post conditions *)
+    Record MSHOperator
+           {o n: nat}
+           {mPreCond : svector fm o → Prop}
+           {mPostCond : svector fm o → Prop}
+      : Type
+      := mkMSHOperator {
+             mop: vector (svector fm o) n -> svector fm o ;
+             m_pre_post: forall x, Vforall mPreCond x -> mPostCond (mop x) ;
+             mop_proper: Proper ((=) ==> (=)) mop
+           }.
 
     Definition MUnion
                {o n} {P Q}
                (dot: CarrierA->CarrierA->CarrierA)
+               `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
                (initial: CarrierA)
-               {PQ}:
-      {u: vector (svector fm o) n | Vforall P u} -> psvector fm o Q
-      := AddMPrePost (MUnion' fm dot initial) PQ.
+               {PQ} :=
+      @mkMSHOperator o n P Q (MUnion' fm dot initial) PQ _.
 
-    Global Instance MUnion_proper
-           {o n} {P Q}
-           (dot: CarrierA -> CarrierA -> CarrierA)
-           (initial: CarrierA)
-           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           {PQ}:
-      Proper ((=) ==> (=)) (@MUnion o n P Q dot initial PQ).
-    Proof.
-      intros x y E.
-      unfold MUnion.
-      unfold AddMPrePost.
-      destruct x eqn: Hx.
-      destruct y eqn: Hy.
-      simpl_sig_equiv.
-      unfold equiv, sig_equiv in E; simpl in E.
-      rewrite E.
-      reflexivity.
-    Qed.
 
   End MUnion.
 
