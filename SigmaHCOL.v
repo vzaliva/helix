@@ -166,39 +166,26 @@ Section SigmaHCOL_Operators.
                (PQ: forall x, P x -> Q (liftM_HOperator' op x))
       := mkSHOperator i o P Q (liftM_HOperator' op) PQ (@liftM_HOperator'_Proper i o op HOP).
 
-    (* TODO:
     (** Apply family of operators to same fector and return matrix of results *)
     Definition Apply_Family
                {i o n} {P Q}
-               (op_family: forall k, (k<n) -> psvector fm i P → psvector fm o Q)
-               `{Koperator: forall k (kc: k<n), @SHOperator i o P Q (op_family k kc)}
-               (v: {x : svector fm i | P x}) :
-      {u:vector (svector fm o) n| Vforall Q u}.
-    Proof.
-      eexists (Vbuild
-                 (λ (j:nat) (jc:j<n),  proj1_sig (op_family j jc v))).
-      apply Vforall_Vbuild.
-      intros j jc.
-      trivial.
-    Defined.
+               (op_family: forall k, (k<n) -> @SHOperator i o P Q)
+               (v: svector fm i) :
+      vector (svector fm o) n :=
+      Vbuild
+        (λ (j:nat) (jc:j<n),  op (op_family j jc) v).
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
-           (op_family: forall k, (k<n) -> psvector fm i P → psvector fm o Q)
-           `{Koperator: forall k (kc: k<n), @SHOperator i o P Q(op_family k kc)}:
-      Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family Koperator).
+           (op_family: forall k, (k<n) -> @SHOperator i o P Q):
+      Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family).
     Proof.
       intros x y E.
       unfold Apply_Family.
       vec_index_equiv j jc.
-      unfold proj1_sig.
       rewrite 2!Vbuild_nth.
-      fold (proj1_sig (op_family j jc x)).
-      fold (proj1_sig (op_family j jc y)).
-      rewrite E.
-      reflexivity.
+      apply op_proper, E.
     Qed.
-     *)
 
     (*
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
@@ -494,12 +481,11 @@ Section SigmaHCOL_Operators.
   CarrierA type) *)
   Class IUnionFriendly
         {i o n} {P Q}
-        (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
-        `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
+        (op_family: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q)
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                         (transpose
-                                            (proj1_sig (Apply_Family Monoid_RthetaFlags op_family x))).
+                                    (transpose
+                                       (Apply_Family Monoid_RthetaFlags op_family x)).
 
   (** Matrix-union. *)
   (* TODO: density preserving? *)
