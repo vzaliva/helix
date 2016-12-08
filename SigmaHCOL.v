@@ -166,14 +166,42 @@ Section SigmaHCOL_Operators.
                (PQ: forall x, P x -> Q (liftM_HOperator' op x))
       := mkSHOperator i o P Q (liftM_HOperator' op) PQ (@liftM_HOperator'_Proper i o op HOP).
 
-    (** Apply family of operators to same fector and return matrix of results *)
-    Definition Apply_Family
-               {i o n} {P Q}
-               (op_family: forall k, (k<n) -> @SHOperator i o P Q)
+    (** Apply family of functions to same fector and return matrix of results *)
+    Definition Apply_Family'
+               {i o n}
+               (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
                (v: svector fm i) :
       vector (svector fm o) n :=
       Vbuild
-        (λ (j:nat) (jc:j<n),  op (op_family j jc) v).
+        (λ (j:nat) (jc:j<n),  (op_family j jc) v).
+
+    Global Instance Apply_Family'_proper
+           {i o n}
+           (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+           (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
+      :
+        Proper ((=) ==> (=)) (@Apply_Family' i o n op_family).
+    Proof.
+      intros x y E.
+      unfold Apply_Family'.
+      vec_index_equiv j jc.
+      rewrite 2!Vbuild_nth.
+      apply op_family_proper, E.
+    Qed.
+
+    (* Mapping SHOperator family to family of underlying "raw" functions *)
+    Definition op_family_op
+               {i o n} {P Q}
+               (op_family: forall k, (k<n) -> @SHOperator i o P Q):
+      forall j (jc:j<n), svector fm i -> svector fm o
+      := fun j (jc:j<n) => op (op_family j jc).
+
+    (** Apply family of SHOperator's to same fector and return matrix of results *)
+    Definition Apply_Family
+               {i o n} {P Q}
+               (op_family: forall k, (k<n) -> @SHOperator i o P Q)
+               :=
+      Apply_Family' (op_family_op op_family).
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
@@ -181,10 +209,10 @@ Section SigmaHCOL_Operators.
       Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family).
     Proof.
       intros x y E.
-      unfold Apply_Family.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      apply op_proper, E.
+      apply Apply_Family'_proper.
+      - intros k kc.
+        apply op_family.
+      - apply E.
     Qed.
 
     (*
@@ -488,6 +516,31 @@ Section SigmaHCOL_Operators.
                                        (Apply_Family Monoid_RthetaFlags op_family x)).
 
   (** Matrix-union. *)
+
+  Definition IUnion'
+             {i o n}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA)
+             (op_family: forall k (kc:k<n), rvector i -> rvector o)
+             (v:rvector i): rvector o
+    :=
+      MUnion' Monoid_RthetaFlags dot initial (@Apply_Family' Monoid_RthetaFlags i o n op_family v).
+
+  Global Instance IUnion'_Proper
+             {i o n}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+             (initial: CarrierA)
+             (op_family: forall k (kc:k<n), rvector i -> rvector o)
+             (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
+    : Proper ((=) ==> (=)) (IUnion' dot initial op_family).
+  Proof.
+    intros x y E.
+    unfold IUnion'.
+    apply MUnion'_proper; auto.
+    apply Apply_Family'_proper; auto.
+  Qed.
+
   (* TODO: density preserving? *)
   Definition IUnion
              {i o n}
@@ -497,15 +550,23 @@ Section SigmaHCOL_Operators.
              (* IUnion post-condition *)
              {R: rvector o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
+             `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
-             (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
-             `{Uf: !IUnionFriendly op_family}
-             {PQ: forall x : vector (rvector o) n,  Vforall Q x → R (MUnion' Monoid_RthetaFlags dot initial x)}
-             (v: {x:rvector i| P x})
-    :=
-      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaFlags dot initial
-             (@Apply_Family Monoid_RthetaFlags i o n P Q op_family Koperator v).
+             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaFlags i o P Q)
+             `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
+             {PQ: forall x:rvector i, P x -> R (IUnion' dot initial (op_family_op Monoid_RthetaFlags op_family) x)}
+
+    : @SHOperator Monoid_RthetaFlags i o P R.
+  Proof.
+    refine(
+        mkSHOperator Monoid_RthetaFlags i o P R
+                     (IUnion' dot initial (op_family_op Monoid_RthetaFlags op_family))
+                     PQ _).
+    apply IUnion'_Proper.
+    apply pdot.
+    apply op_family.
+  Defined.
+
 
   Definition ISumUnion
              {i o n}
