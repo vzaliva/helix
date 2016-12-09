@@ -13,3 +13,6 @@ Makefile.coq
 graph.dot
 graph.dpd
 graph.svg
+.lia.cache
+.nia.cache
+
