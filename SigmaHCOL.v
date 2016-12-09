@@ -567,7 +567,6 @@ Section SigmaHCOL_Operators.
     apply op_family.
   Defined.
 
-
   Definition ISumUnion
              {i o n}
              (* op_family pre and post conditions *)
@@ -575,26 +574,11 @@ Section SigmaHCOL_Operators.
              {Q: rvector o → Prop}
              (* IUnion post-condition *)
              {R: rvector o → Prop}
-             (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
+             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaFlags i o P Q)
              `{Uf: !IUnionFriendly op_family}
              {PQ}
-             (v: {x:rvector i| P x})
     :=
-      @IUnion i o n P Q R plus zero op_family Koperator Uf PQ v.
-
-  Global Instance SHOperator_ISumUnion
-         {i o n} {P Q R PQ}
-         (op_family: forall k, (k<n) -> {x:rvector i|P x} -> {y:rvector o|Q y})
-         `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q (op_family k kc)}
-         `{Uf: !IUnionFriendly op_family}:
-    SHOperator Monoid_RthetaFlags P R (@ISumUnion i o n P Q R op_family Koperator Uf PQ).
-  Proof.
-    unfold SHOperator.
-    split; repeat apply sig_setoid.
-    unfold ISumUnion, IUnion.
-    solve_proper.
-  Qed.
+      @IUnion i o n P Q R plus _ zero op_family Uf PQ .
 
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
@@ -611,13 +595,11 @@ Section SigmaHCOL_Operators.
              {R: rsvector o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-
-             (op_family: forall k, (k<n) -> {x:rsvector i|P x} -> {y:rsvector o|Q y})
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q (op_family k kc)}
+             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q)
              {PQ: forall x : vector (rsvector o) n,  Vforall Q x → R (MUnion' Monoid_RthetaSafeFlags dot initial x)}
-             (v: {x:rsvector i | P x})
+             (v:rsvector i)
     :=
-      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n P Q op_family Koperator v).
+      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n P Q op_family v).
 
   Definition ISumReduction
              {i o n}
