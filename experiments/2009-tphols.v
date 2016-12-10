@@ -47,17 +47,20 @@ Section HoareState.
           match c1 s1 with (x, s2) => c2 x s2 end.
   Next Obligation.
   Proof.
-    rename Heq_anonymous into H.
-    unfold proj1_sig in H.
-    elim H; auto.
-  Qed.
-
+    apply p0.
+    destruct c1 as [H1 H2].
+    simpl in *.
+    subst H1.
+    apply H2.
+  Defined.
   Next Obligation.
-  Proof with simpl in *; trivial.
-    destruct_call c1...
-    destruct H as [P1s P2rh].
-    apply (P2rh x s2).
-    rewrite <- Heq_anonymous in y...
+  Proof with simpl in *.
+    destruct c1 as [H1 H2]...
+    destruct c2 as [P1s P2rh]...
+    destruct P1s.
+    subst.
+    exists x, s2.
+    auto.
   Qed.
 
   Next Obligation.
