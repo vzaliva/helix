@@ -14,8 +14,8 @@ Inductive Tree (a : Set) : Set :=
 | Leaf : a -> Tree a
 | Node : Tree a -> Tree a -> Tree a.
 
-Implicit Arguments Leaf [a].
-Implicit Arguments Node [a].
+Arguments Leaf [a] _.
+Arguments Node [a] _ _.
 
 Fixpoint flatten (a : Set) (t : Tree a) : list a
   :=  match t with
@@ -69,23 +69,24 @@ Section HoareState.
 
   Program Definition put (x : s) : HoareState top unit (fun _ _ f => f = x)
     := fun _ => (tt, x).
+
 End HoareState.
 
 
-Implicit Arguments returns [a s].
-Implicit Arguments bind [a b P1 P2 Q1 Q2 s].
+Arguments returns [s a] _ _.
+Arguments bind [s a b] {P1} {P2} {Q1} {Q2} _ _ _.
 Infix ">>=" := bind (at level 80, right associativity).
 Notation "c >> d" := (bind c (fun _ => d))
                        (at level 80, right associativity).
-Implicit Arguments get [s].
-Implicit Arguments put [s].
+Arguments get [s] i.
+Arguments put [s] x i.
 
 Fixpoint size (a : Set) (t : Tree a) : nat :=
   match t with
   | Leaf x => 1
   | Node l r => size (a) l + size (a) r end.
 
-Implicit  Arguments size [a].
+Arguments size [a] t.
 
 Fixpoint seq (x n : nat) : list nat :=
   match n with
