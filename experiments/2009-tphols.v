@@ -53,24 +53,17 @@ Section HoareState.
     subst H1.
     apply H2.
   Defined.
+
   Next Obligation.
   Proof with simpl in *.
     destruct c1 as [H1 H2]...
-    destruct c2 as [P1s P2rh]...
-    destruct P1s.
+    destruct c2 as [[b0 s0] P2rh]...
     subst.
     exists x, s2.
     auto.
-  Qed.
+  Defined.
 
-  Next Obligation.
-  Proof with simpl in *; trivial.
-    destruct_call c2...
-    destruct_call c1 in Heq_anonymous...
-    rewrite <- Heq_anonymous in y0...
-    destruct x0 as [x2  f0].
-    exists x; exists s2; split...
-  Qed.
+
   Program Definition get : HoareState top s (fun i x f => i = f /\ x = i)
     := fun s => (s, s).
 
