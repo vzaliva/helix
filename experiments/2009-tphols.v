@@ -55,11 +55,11 @@ Section HoareState.
   Defined.
   Next Obligation.
   Proof with simpl in *.
-    destruct c1 as [H1 H2]...
-    destruct c2 as [[b0 s0] P2rh]...
-    subst.
-    exists x, s2.
-    auto.
+  destruct c1 as [H1 H2]...
+  destruct c2 as [[b0 s0] P2rh]...
+  subst.
+  exists x, s2.
+  auto.
   Defined.
 
   Program Definition get : HoareState top s (fun i x f => i = f /\ x = i)
@@ -97,11 +97,11 @@ Program Fixpoint relabel (a : Set) (t : Tree a) :
              (fun i t f => f = i + size t /\ flatten (nat) t = seq i (size t))
   := match t with
      | Leaf x =>  get (s := nat) >>= fun n =>
-                                       put (n + 1) >>
-                                           returns (Leaf n)
+                                    put (n + 1) >>
+                                        returns (Leaf n)
      | Node l r =>  relabel (a) l >>= fun l' =>
-                                        relabel (a) r >>= fun r' =>
-                                                            returns (Node l' r') end.
+                                       relabel (a) r >>= fun r' =>
+                                                           returns (Node l' r') end.
 
 Lemma SeqSplit : forall y x z, seq x (y + z) = seq x y ++ seq (x + y) z.
 Proof with simpl; auto.
