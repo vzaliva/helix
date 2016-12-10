@@ -515,28 +515,30 @@ Section SigmaHCOL_Operators.
                                     (transpose
                                        (Apply_Family Monoid_RthetaFlags op_family x)).
 
-  (** Matrix-union. *)
-
-  Definition IUnion'
+  (** Matrix-union. This is a common implementations for IUnion and IReduction *)
+  Definition Diamond'
              {i o n}
+             {fm}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (op_family: forall k (kc:k<n), rvector i -> rvector o)
-             (v:rvector i): rvector o
+             (op_family: forall k (kc:k<n), svector fm i -> svector fm o)
+             (v:svector fm i): svector fm o
     :=
-      MUnion' Monoid_RthetaFlags dot initial (@Apply_Family' Monoid_RthetaFlags i o n op_family v).
+      MUnion' fm dot initial (@Apply_Family' fm i o n op_family v).
 
-  Global Instance IUnion'_Proper
-             {i o n}
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-             (initial: CarrierA)
-             (op_family: forall k (kc:k<n), rvector i -> rvector o)
-             (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
-    : Proper ((=) ==> (=)) (IUnion' dot initial op_family).
+
+  Global Instance Diamond'_Proper
+         {i o n}
+         {fm}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (initial: CarrierA)
+         (op_family: forall k (kc:k<n), svector fm i -> svector fm o)
+         (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
+    : Proper ((=) ==> (=)) (Diamond' dot initial op_family).
   Proof.
     intros x y E.
-    unfold IUnion'.
+    unfold Diamond'.
     apply MUnion'_proper; auto.
     apply Apply_Family'_proper; auto.
   Qed.
@@ -554,15 +556,15 @@ Section SigmaHCOL_Operators.
              (initial: CarrierA)
              (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaFlags i o P Q)
              `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
-             {PQ: forall x:rvector i, P x -> R (IUnion' dot initial (op_family_op Monoid_RthetaFlags op_family) x)}
+             {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (op_family_op Monoid_RthetaFlags op_family) x)}
 
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
-                     (IUnion' dot initial (op_family_op Monoid_RthetaFlags op_family))
+                     (Diamond' dot initial (op_family_op Monoid_RthetaFlags op_family))
                      PQ _).
-    apply IUnion'_Proper.
+    apply Diamond'_Proper.
     apply pdot.
     apply op_family.
   Defined.
@@ -591,15 +593,24 @@ Section SigmaHCOL_Operators.
              (* op_family pre and post conditions *)
              {P: rsvector i → Prop}
              {Q: rsvector o → Prop}
-             (* IUnion post-condition *)
+             (* IReduction post-condition *)
              {R: rsvector o → Prop}
              (dot: CarrierA -> CarrierA -> CarrierA)
+             `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
              (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q)
-             {PQ: forall x : vector (rsvector o) n,  Vforall Q x → R (MUnion' Monoid_RthetaSafeFlags dot initial x)}
-             (v:rsvector i)
-    :=
-      MUnion (P:=Q) (Q:=R) (PQ:=PQ) Monoid_RthetaSafeFlags dot initial (@Apply_Family Monoid_RthetaSafeFlags i o n P Q op_family v).
+             {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (op_family_op Monoid_RthetaSafeFlags op_family) x)}
+    : @SHOperator Monoid_RthetaSafeFlags i o P R.
+  Proof.
+    refine(
+        mkSHOperator Monoid_RthetaSafeFlags i o P R
+                     (Diamond' dot initial (op_family_op Monoid_RthetaSafeFlags op_family))
+                     PQ _).
+    apply Diamond'_Proper.
+    apply pdot.
+    apply op_family.
+  Defined.
+
 
   Definition ISumReduction
              {i o n}
