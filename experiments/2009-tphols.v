@@ -53,7 +53,6 @@ Section HoareState.
     subst H1.
     apply H2.
   Defined.
-
   Next Obligation.
   Proof with simpl in *.
     destruct c1 as [H1 H2]...
@@ -62,7 +61,6 @@ Section HoareState.
     exists x, s2.
     auto.
   Defined.
-
 
   Program Definition get : HoareState top s (fun i x f => i = f /\ x = i)
     := fun s => (s, s).
@@ -74,19 +72,19 @@ End HoareState.
 
 
 Arguments returns [s a] _ _.
-Arguments bind [s a b] {P1} {P2} {Q1} {Q2} _ _ _.
+Arguments bind [s a b] {P1 P2 Q1 Q2} _ _ _.
 Infix ">>=" := bind (at level 80, right associativity).
 Notation "c >> d" := (bind c (fun _ => d))
                        (at level 80, right associativity).
-Arguments get [s] i.
-Arguments put [s] x i.
+Arguments get [s] _.
+Arguments put [s] _ _.
 
 Fixpoint size (a : Set) (t : Tree a) : nat :=
   match t with
   | Leaf x => 1
   | Node l r => size (a) l + size (a) r end.
 
-Arguments size [a] t.
+Arguments size [a] _.
 
 Fixpoint seq (x n : nat) : list nat :=
   match n with
@@ -126,7 +124,7 @@ Proof with simpl in *; auto.
   rewrite flattenL, flattenR, sizeL, SeqSplit...
 Defined.
 
-Implicit Arguments flatten [a].
+Arguments flatten [a] _.
 
 Program Definition do (s a : Set) (P1 P2 : Pre s) (Q1 Q2 : Post s a) :
   (forall i, P2 i -> P1 i) -> (forall i x f, Q1 i x f -> Q2 i x f) ->
@@ -137,8 +135,7 @@ Proof with simpl; auto.
   destruct_call c...
   destruct x0 as [x1 f]...
 Defined.
-Implicit Arguments do [s a P1 P2 Q1 Q2].
-
+Arguments do [s a P1 P2 Q1 Q2] _ _ _ _.
 
 Program Fixpoint final (a : Set) (t : Tree a) :
   HoareState (nat) (top nat) (Tree nat) (fun i t f => NoDup (flatten t))
