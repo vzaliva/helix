@@ -200,8 +200,8 @@ Section SigmaHCOL_Operators.
     Definition Apply_Family
                {i o n} {P Q}
                (op_family: forall k, (k<n) -> @SHOperator i o P Q)
-               :=
-      Apply_Family' (op_family_op op_family).
+      :=
+        Apply_Family' (op_family_op op_family).
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
@@ -263,7 +263,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                       (range_bound:=domain_bound)) x))
+                                                             (range_bound:=domain_bound)) x))
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
@@ -283,9 +283,9 @@ Section SigmaHCOL_Operators.
                   end).
 
     Global Instance Scatter'_Proper
-               {i o: nat}
-               (f: index_map i o)
-               {f_inj: index_map_injective f}:
+           {i o: nat}
+           (f: index_map i o)
+           {f_inj: index_map_injective f}:
       Proper ((=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
     Proof.
       intros x y Exy.
@@ -351,9 +351,9 @@ Section SigmaHCOL_Operators.
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
     Global Instance SHPointwise'_Proper
-               {n: nat}
-               (f: { i | i<n} -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
       Proper ((=) ==> (=)) (SHPointwise' f).
     Proof.
       intros x y Exy.
@@ -463,10 +463,10 @@ Section SigmaHCOL_Operators.
                {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
       := fun (j:nat) (jc:j<n) =>
            (Scatter (⦃f⦄ j jc)
-                   (f_inj:=index_map_family_member_injective f_inj j jc)
-                   (PQs j jc))
-                   ⊚(SK) (kernel j jc)
-                   ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
+                    (f_inj:=index_map_family_member_injective f_inj j jc)
+                    (PQs j jc))
+             ⊚(SK) (kernel j jc)
+             ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
 
   End FlagsMonoidGenericOperators.
 
@@ -611,7 +611,6 @@ Section SigmaHCOL_Operators.
     apply op_family.
   Defined.
 
-
   Definition ISumReduction
              {i o n}
              (* op_family pre and post conditions *)
@@ -619,12 +618,10 @@ Section SigmaHCOL_Operators.
              {Q: rsvector o → Prop}
              (* IUnion post-condition *)
              {R: rsvector o → Prop}
-             (op_family: forall k, (k<n) -> {x:rsvector i|P x} -> {y:rsvector o|Q y})
-             `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q (op_family k kc)}
+             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q)
              {PQ}
-             (v: {x:rsvector i | P x})
     :=
-      @IReduction i o n P Q R plus zero op_family Koperator PQ v.
+      @IReduction i o n P Q R plus _ zero op_family PQ.
 
 End SigmaHCOL_Operators.
 
@@ -635,12 +632,12 @@ Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90)
 Ltac SHOperator_reflexivity :=
   match goal with
   | [ |- (@equiv
-            (forall _ : svector ?fm ?m, svector ?fm ?n)
-            (@ext_equiv
-               (svector ?m)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
-               (svector ?n)
-               (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
+           (forall _ : svector ?fm ?m, svector ?fm ?n)
+           (@ext_equiv
+              (svector ?m)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
+              (svector ?n)
+              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
     ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
   end.
 
