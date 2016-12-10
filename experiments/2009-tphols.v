@@ -2,7 +2,7 @@
 Copyright (c) 2009 Wouter Swierstra.
 All rights reserved.
 
-Tested with Coq version 8.2.
+Tested with Coq version 8.5pl3
  *)
 
 Require Import Program.
@@ -92,7 +92,7 @@ Fixpoint seq (x n : nat) : list nat :=
   | S k => x :: seq (S x) k end.
 
 Program Fixpoint relabel (a : Set) (t : Tree a) :
-  HoareState nat  (top nat)
+  HoareState nat (top nat)
              (Tree nat)
              (fun i t f => f = i + size t /\ flatten (nat) t = seq i (size t))
   := match t with
@@ -157,7 +157,8 @@ Lemma NElemLemma : forall n i, ~ In i (seq (S i) n).
 Qed.
 
 Lemma NoDupSeq (n i : nat) : NoDup (seq i n).
-  induction n; simpl; constructor.
+Proof.
+  dependent induction n; simpl; constructor.
   apply NElemLemma.
   apply IHn.
 Qed.
