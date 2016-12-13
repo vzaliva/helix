@@ -96,6 +96,13 @@ Section SigmaHCOL_Operators.
         svector_is_non_collision fm (op x).
      *)
 
+    (* Evaluation semantics for SHOperator defined used sigma types *)
+    Definition evalSHOperator {i o} {P} {Q} (f:@SHOperator i o P Q):
+      {x: svector fm i | P x} -> {y: svector fm o | Q y}
+      := fun a => let (v,p) := a in
+               @exist (svector fm o) Q (op f v)
+                      (pre_post f v p).
+
     (*
     Lemma SHOperator_functional_extensionality
           {m n: nat} {P Q}
@@ -626,7 +633,9 @@ Section SigmaHCOL_Operators.
 End SigmaHCOL_Operators.
 
 (* re-define notation outside a section *)
-Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ g _ _ _ f _ qp) (at level 90) : type_scope.
+Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 90) : type_scope.
+
+
 
 (* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
 Ltac SHOperator_reflexivity :=
