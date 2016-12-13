@@ -122,34 +122,43 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
-    Global Instance SHOPerator_equiv_Reflexive
+    Global Instance SHOperator_equiv_Reflexive
            {i o: nat} {P Q}:
       Reflexive (@SHOperator_equiv i o P Q).
     Proof.
       intros x.
       unfold SHOperator_equiv.
-      destruct x as [x_op x_prepost x_proper].
-      simpl.
-      apply ext_equiv_applied_iff'.
-      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
-      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
-      reflexivity.
+      destruct x.
+      auto.
     Qed.
 
-    Global Instance SHOPerator_equiv_Symmetric
+    Global Instance SHOperator_equiv_Symmetric
            {i o: nat} {P Q}:
       Symmetric (@SHOperator_equiv i o P Q).
     Proof.
       intros x y.
       unfold SHOperator_equiv.
-      destruct x as [x_op x_prepost x_proper].
-      simpl.
-      apply ext_equiv_applied_iff'.
-      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
-      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
-      reflexivity.
+      auto.
     Qed.
 
+    Global Instance SHOperator_equiv_Transitive
+           {i o: nat} {P Q}:
+      Transitive (@SHOperator_equiv i o P Q).
+    Proof.
+      intros x y z.
+      unfold SHOperator_equiv.
+      auto.
+    Qed.
+
+    Global Instance SHOperator_equiv_Equivalence
+           {i o: nat} {P Q}:
+      Equivalence (@SHOperator_equiv i o P Q).
+    Proof.
+      split.
+      apply SHOperator_equiv_Reflexive.
+      apply SHOperator_equiv_Symmetric.
+      apply SHOperator_equiv_Transitive.
+    Qed.
 
     Definition liftM_HOperator'
                {i o}
