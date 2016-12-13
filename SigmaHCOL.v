@@ -103,15 +103,23 @@ Section SigmaHCOL_Operators.
                @exist (svector fm o) Q (op f v)
                       (pre_post f v p).
 
-    (*
-    Lemma SHOperator_functional_extensionality
-          {m n: nat} {P Q}
-          `{SHOperator m n P Q f}
-          `{SHOperator m n P Q g}:
-      (∀ v, f v = g v) -> f = g.
+    (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
+    Global Instance SHOperator_Equiv
+           {i o: nat} {P Q}:
+      Equiv (@SHOperator i o P Q) :=
+      fun a b => op a = op b.
+
+    Lemma SHOperator_ext_equiv_applied
+      {i o: nat} {P Q}
+      (f g: @SHOperator i o P Q):
+      (f=g) -> (forall v, evalSHOperator f v = evalSHOperator g v).
     Proof.
-      unfold SHOperator in *.
-      apply ext_equiv_applied_iff.
+      intros H v.
+      unfold equiv, SHOperator_Equiv in H.
+      unfold evalSHOperator, equiv, sig_equiv.
+      destruct v.
+      apply H.
+      reflexivity.
     Qed.
 
     Lemma SHOperator_Reflexivity
@@ -125,22 +133,6 @@ Section SigmaHCOL_Operators.
       intros.
       reflexivity.
     Qed.
-     *)
-
-    (*
-    Definition AddPrePost
-               {i o}
-               (op: svector fm i -> svector fm o)
-               {P: svector fm i -> Prop}
-               {Q: svector fm o -> Prop}
-               (PQ: forall x, P x -> Q (op x))
-      : psvector fm i P -> psvector fm o Q.
-    Proof.
-      intros [x Px].
-      eexists (op x).
-      apply PQ, Px.
-    Defined.
-     *)
 
     Definition liftM_HOperator'
                {i o}
