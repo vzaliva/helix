@@ -655,20 +655,6 @@ Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 90) : t
 
 
 
-(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by SHOperator class *)
-Ltac SHOperator_reflexivity :=
-  match goal with
-  | [ |- (@equiv
-           (forall _ : svector ?fm ?m, svector ?fm ?n)
-           (@ext_equiv
-              (svector ?m)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?m)
-              (svector ?n)
-              (@vec_Equiv Rtheta.Rtheta Rtheta.Rtheta'_equiv ?n)) _ _)
-    ] => eapply (@SHOperator_Reflexivity m n); typeclasses eauto
-  end.
-
-
 (* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
       {m n: nat}
