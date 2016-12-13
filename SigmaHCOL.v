@@ -104,7 +104,7 @@ Section SigmaHCOL_Operators.
                       (pre_post f v p).
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
-    Global Instance SHOperator_Equiv
+    Global Instance SHOperator_equiv
            {i o: nat} {P Q}:
       Equiv (@SHOperator i o P Q) :=
       fun a b => op a = op b.
@@ -115,24 +115,27 @@ Section SigmaHCOL_Operators.
       (f=g) -> (forall v, evalSHOperator f v = evalSHOperator g v).
     Proof.
       intros H v.
-      unfold equiv, SHOperator_Equiv in H.
+      unfold equiv, SHOperator_equiv in H.
       unfold evalSHOperator, equiv, sig_equiv.
       destruct v.
       apply H.
       reflexivity.
     Qed.
 
-    Lemma SHOperator_Reflexivity
-          {m n: nat} {P Q}
-          `{SHOperator m n P Q f}:
-      f = f.
+    Global Instance SHOPerator_equiv_Reflexive
+           {i o: nat} {P Q}:
+      Reflexive (@SHOperator_equiv i o P Q).
     Proof.
-      apply (@SHOperator_functional_extensionality m n).
-      assumption.
-      assumption.
-      intros.
+      intros x.
+      unfold SHOperator_equiv.
+      destruct x as [x_op x_prepost x_proper].
+      simpl.
+      apply ext_equiv_applied_iff'.
+      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
+      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
       reflexivity.
     Qed.
+
 
     Definition liftM_HOperator'
                {i o}
