@@ -136,6 +136,20 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
+    Global Instance SHOPerator_equiv_Symmetric
+           {i o: nat} {P Q}:
+      Symmetric (@SHOperator_equiv i o P Q).
+    Proof.
+      intros x y.
+      unfold SHOperator_equiv.
+      destruct x as [x_op x_prepost x_proper].
+      simpl.
+      apply ext_equiv_applied_iff'.
+      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
+      split ; [ apply vec_Setoid| apply vec_Setoid| apply x_proper].
+      reflexivity.
+    Qed.
+
 
     Definition liftM_HOperator'
                {i o}
