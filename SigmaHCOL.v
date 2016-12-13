@@ -110,8 +110,8 @@ Section SigmaHCOL_Operators.
       fun a b => op a = op b.
 
     Lemma SHOperator_ext_equiv_applied
-      {i o: nat} {P Q}
-      (f g: @SHOperator i o P Q):
+          {i o: nat} {P Q}
+          (f g: @SHOperator i o P Q):
       (f=g) -> (forall v, evalSHOperator f v = evalSHOperator g v).
     Proof.
       intros H v.
@@ -159,6 +159,76 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Symmetric.
       apply SHOperator_equiv_Transitive.
     Qed.
+
+    Section Subtyping.
+
+      (* Subtyping relation between types A and B *)
+      Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
+
+      (* Revert to transparency to allow conversions during unification. *)
+      Typeclasses Transparent Subtype.
+
+      Infix "<:" := subtype (at level 40) : type_scope.
+      Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
+
+      Definition TrueP {A} := fun (_:A) => True.
+
+      Global Instance Subtype_Prop:
+        Subtype Prop Prop.
+      Proof.
+        unfold Subtype.
+        intros a b.
+        exact (a -> b).
+      Defined.
+
+      Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
+      Proof.
+        unfold subtype, Subtype_Prop.
+        lia.
+      Qed.
+
+      Example PropSubtypeEx2 (x:nat): (x<1) <: True.
+      Proof.
+        unfold subtype, Subtype_Prop.
+        tauto.
+      Qed.
+
+      Example PropSubtypeEx4 (x:nat): False <: (x<1).
+      Proof.
+        unfold subtype.
+        unfold Subtype_Prop.
+        tauto.
+      Qed.
+
+      Global Instance Subtype_SHOperator:
+        Subtype (@SHOperator i1 o1 P1 Q1) (@SHOperator i2 o2 P2 Q2).
+      Proof.
+        intros i1 o1 P1 Q1 i2 o2 P2 Q2.
+        intros [op1 PQ1 op1_proper] [op2 PQ2 op2_proper].
+
+        case (eq_nat_dec i1 i2). case (eq_nat_dec o1 o2).
+        -
+          intros Ei Eo.
+          clear PQ1 PQ2.
+          subst i1 o1.
+          exact (
+              (op1 = op2) /\
+              (forall x, P1 x -> P2 x) /\
+              (forall y, Q2 y -> Q1 y)
+            ).
+        -
+          intros Ei Eo.
+          exact (False).
+        -
+          intros Ei.
+          exact (False).
+      Defined.
+
+    End Subtyping.
+
+    (* re-define notation outside the section *)
+    Infix "<:" := subtype (at level 40) : type_scope.
+    Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
 
     Definition liftM_HOperator'
                {i o}
@@ -288,7 +358,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                             (range_bound:=domain_bound)) x))
+                                                       (range_bound:=domain_bound)) x))
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
@@ -340,8 +410,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                          (h_index_map base stride (range_bound:=range_bound))
-                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                    (h_index_map base stride (range_bound:=range_bound))
+                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
@@ -848,154 +918,6 @@ Proof.
   rewrite E.
   reflexivity.
 Qed.
-
-Section Subtyping.
-
-  Set Printing Universes.
-  (* Subtyping relation between types A and B *)
-  Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
-
-  (* Revert to transparency to allow conversions during unification. *)
-  Typeclasses Transparent Subtype.
-
-  Infix "<:" := subtype (at level 40) : type_scope.
-  Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
-  Definition TrueP {A} := fun (_:A) => True.
-
-  Global Instance Subtype_Prop:
-    Subtype Prop Prop.
-  Proof.
-    unfold Subtype.
-    intros a b.
-    exact (a -> b).
-  Defined.
-
-  Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
-  Proof.
-    unfold subtype, Subtype_Prop.
-    lia.
-  Qed.
-
-  Example PropSubtypeEx2 (x:nat): (x<1) <: True.
-  Proof.
-    unfold subtype, Subtype_Prop.
-    tauto.
-  Qed.
-
-  Example PropSubtypeEx4 (x:nat): False <: (x<1).
-  Proof.
-    unfold subtype.
-    unfold Subtype_Prop.
-    tauto.
-  Qed.
-
-  Global Instance Subtype_sig (A:Type) `{Equiv A} {P1 P2}:
-    Subtype (@sig A P1) (@sig A P2) :=
-    fun a b => `a=`b /\ (forall z, P1 z -> P2 z).
-
-  Example SigSubtypeEx0
-          (a:{x:nat|x>5})
-          (b:{x:nat|x>1}):
-    `a=`b -> a <: b.
-  Proof.
-    intro Peq.
-    unfold subtype, Subtype_sig.
-    repeat break_let.
-    split.
-    - apply Peq.
-    - intros z.
-      lia.
-  Qed.
-
-  Lemma Subtype_sig_simpl
-        `{EqA: Equiv A}
-        {P1 P2}
-        (a:{x:A|P1 x})
-        (b:{y:A|P2 y}):
-    (a <: b) -> (`a=`b) /\ forall z, P1 z -> P2 z.
-  Proof.
-    intros S.
-    unfold subtype, Subtype_sig in S.
-    repeat break_let.
-    destruct S as [E1 S1].
-    split; [apply E1 | apply S1].
-  Qed.
-
-  Global Instance Subtype_psvector {fm} {n} {P1 P2}:
-    Subtype (@sig (svector fm n) P1) (@sig (svector fm n) P2).
-  Proof.
-    apply Subtype_sig.
-    apply vec_Equiv.
-  Defined.
-
-  Global Instance Subtype_sig_arrow
-         {A: Type}
-         `{Equiv B}
-         {Ps1 Pt1: A -> Prop}
-         {Ps2 Pt2: B -> Prop}:
-    Subtype (@sig A Ps1 -> @sig B Ps2) (@sig A Pt1 -> @sig B Pt2).
-  Proof.
-    unfold Subtype.
-    intros a b.
-    exact (
-        (forall z, Pt1 z -> Ps1 z) (* pre-conditions are coercable *)
-        /\
-        (forall z (Ps1z: Ps1 z) (pt1z: Pt1 z), subtype (a (exist Ps1z)) (b (exist pt1z))) (* functional exensionality *)
-      ).
-
-  Defined.
-
-End Subtyping.
-
-(* re-define notation outside the section *)
-Infix "<:" := subtype (at level 40) : type_scope.
-Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
-
-Section SubtypingArrows.
-  Variable fm : Monoid RthetaFlags.
-  Variable i1 o2 o3 : nat.
-
-  Variable P1 : svector fm o2 → Prop.
-  Variable Q1 : svector fm o3 → Prop.
-  Variable op1 : {x : svector fm o2 | P1 x} → {x : svector fm o3 | Q1 x}.
-  Variable op1_SHOperator : SHOperator fm P1 Q1 op1.
-
-  Variable P2 : svector fm i1 → Prop.
-  Variable Q2 : svector fm o2 → Prop.
-  Variable op2 : {x : svector fm i1 | P2 x} → {x : svector fm o2 | Q2 x}.
-  Variable op2_SHOperator : SHOperator fm P2 Q2 op2.
-
-  Variable QP : ∀ x : svector fm o2, Q2 x → P1 x.
-
-  Section Rewrite2ndArg.
-    Variable P2' : svector fm i1 → Prop.
-    Variable Q2' : svector fm o2 → Prop.
-    Variable op2' : {x : svector fm i1 | P2' x} → {x : svector fm o2 | Q2' x}.
-    Variable op2'_SHOperator : SHOperator fm P2' Q2' op2'.
-
-
-    Lemma SHCompose_subtype_2nd (S: op2' <: op2):
-      (@SHCompose
-         fm
-         i1 o2 o3
-         P1 Q1 op1 op1_SHOperator
-         P2 Q2 op2 op2_SHOperator
-         QP)
-    <:
-      (@SHCompose
-         fm
-         i1 o2 o3
-         P1 Q1 op1 op1_SHOperator
-         P2' Q2' op2' op2'_SHOperator
-         (Subtype_sig_simpl QP)).
-
-
-
-  End Rewrite2ndArg.
-
-End SubtypingArrows.
 
 (*
 Section OperatorProperies.
