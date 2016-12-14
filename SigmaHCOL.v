@@ -202,7 +202,7 @@ Section SigmaHCOL_Operators.
 
 
       Global Instance Subtype_SHOperator
-        {i o} {P1} {P2} {Q1} {Q2}:
+             {i o} {P1} {P2} {Q1} {Q2}:
         Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
         :=
           fun a b =>
@@ -450,7 +450,7 @@ Section SigmaHCOL_Operators.
         Qed.
 
         Lemma SHCompose_rewrite_2nd
-                   (S: op2 <: op2'):
+              (S: op2 <: op2'):
           (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_Q2'P1 S ) op2').
         Proof.
           split.
@@ -486,7 +486,7 @@ Section SigmaHCOL_Operators.
         Qed.
 
         Lemma SHCompose_rewrite_1st
-                   (S: op1 <: op1'):
+              (S: op1 <: op1'):
           (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S) op2).
         Proof.
           split.
@@ -680,8 +680,8 @@ Section SigmaHCOL_Operators.
         (op_family: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q)
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)).
+                                         (transpose
+                                            (Apply_Family Monoid_RthetaFlags op_family x)).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
