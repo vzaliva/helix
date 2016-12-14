@@ -162,6 +162,7 @@ Section SigmaHCOL_Operators.
 
     Section Subtyping.
 
+
       (* Subtyping relation between types A and B *)
       Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
 
@@ -199,7 +200,6 @@ Section SigmaHCOL_Operators.
         unfold Subtype_Prop.
         tauto.
       Qed.
-
 
       Global Instance Subtype_SHOperator
              {i o} {P1} {P2} {Q1} {Q2}:
@@ -447,6 +447,10 @@ Section SigmaHCOL_Operators.
           auto.
         Qed.
 
+        (*
+         LHS: @SHOperator i1 o3 P2 Q1
+         RHS: @SHOperator i1 o3 P2' Q1
+         *)
         Lemma SHCompose_rewrite_2nd
               (S: op2 <: op2'):
           (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_Q2'P1 S ) op2').
@@ -464,7 +468,6 @@ Section SigmaHCOL_Operators.
         Variable Q1' : svector fm o3 → Prop.
         Variable op1' : @SHOperator o2 o3 P1' Q1'.
 
-
         Lemma SHOperator_subtype_Q2P1':
           (op1 <: op1') -> (op op1 = op op1') -> (forall x : svector fm o2, Q2 x → P1' x).
         Proof.
@@ -473,6 +476,10 @@ Section SigmaHCOL_Operators.
           auto.
         Qed.
 
+        (*
+          LHS: @SHOperator i1 o3 P2 Q1
+          RHS: @SHOperator i1 o3 P2 Q1'
+         *)
         Lemma SHCompose_rewrite_1st
               (S: op1 <: op1')
               (E: op op1 = op op1')
