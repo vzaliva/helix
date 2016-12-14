@@ -206,7 +206,6 @@ Section SigmaHCOL_Operators.
         Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
         :=
           fun a b =>
-            (op a = op b) /\
             (forall x, P1 x -> P2 x) /\
             (forall y, Q2 y -> Q1 y).
 
@@ -444,8 +443,7 @@ Section SigmaHCOL_Operators.
         Lemma SHOperator_subtype_Q2'P1:
           (op2 <: op2') -> (forall x : svector fm o2, Q2' x → P1 x).
         Proof.
-          intros S x H.
-          inversion S as [H0 [H1 H2]].
+          intros [H1 H2] x H.
           auto.
         Qed.
 
@@ -454,19 +452,9 @@ Section SigmaHCOL_Operators.
           (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_Q2'P1 S ) op2').
         Proof.
           split.
-          - inversion S as [Hv Hp].
-            simpl.
-            destruct op1, op2, op2'.
-            rewrite Hv.
-            unfold equiv, ext_equiv, compose.
-            auto.
-          -
-            split.
-            +
-              inversion S as [H0 [H1 H2]].
-              apply H1.
-            +
-              auto.
+          inversion S as [H1 H2].
+          - auto.
+          - auto.
         Qed.
 
       End Rewrite2ndArg.
@@ -478,31 +466,23 @@ Section SigmaHCOL_Operators.
 
 
         Lemma SHOperator_subtype_Q2P1':
-          (op1 <: op1') -> (forall x : svector fm o2, Q2 x → P1' x).
+          (op1 <: op1') -> (op op1 = op op1') -> (forall x : svector fm o2, Q2 x → P1' x).
         Proof.
-          intros S x H.
-          inversion S as [H0 [H1 H2]].
+          intros S E x H.
+          inversion S.
           auto.
         Qed.
 
         Lemma SHCompose_rewrite_1st
-              (S: op1 <: op1'):
-          (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S) op2).
+              (S: op1 <: op1')
+              (E: op op1 = op op1')
+          :
+            (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S E) op2).
         Proof.
           split.
-          - inversion S as [Hv Hp].
-            simpl.
-            destruct op1, op2, op1'.
-            rewrite Hv.
-            unfold equiv, ext_equiv, compose.
+          - auto.
+          - inversion S.
             auto.
-          -
-            split.
-            +
-              auto.
-            +
-              inversion S as [H0 [H1 H2]].
-              apply H2.
         Qed.
 
       End Rewrite1stArg.
