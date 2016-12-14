@@ -447,9 +447,9 @@ Section SigmaHCOL_Operators.
           intros S x H.
           inversion S as [H0 [H1 H2]].
           auto.
-        Defined.
+        Qed.
 
-        Definition SHCompose_rewrite_2nd
+        Lemma SHCompose_rewrite_2nd
                    (S: op2 <: op2'):
           (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_Q2'P1 S ) op2').
         Proof.
@@ -485,8 +485,7 @@ Section SigmaHCOL_Operators.
           auto.
         Qed.
 
-
-        Definition SHCompose_rewrite_1st
+        Lemma SHCompose_rewrite_1st
                    (S: op1 <: op1'):
           (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S) op2).
         Proof.
