@@ -441,8 +441,8 @@ Section SigmaHCOL_Operators.
         Variable Q2' : svector fm o2 → Prop.
         Variable op2' : @SHOperator i1 o2 P2' Q2'.
 
-        Lemma SHOperator_subtype_QP:
-          (op2 <: op2') -> (∀ x : svector fm o2, Q2' x → P1 x).
+        Lemma SHOperator_subtype_Q2'P1:
+          (op2 <: op2') -> (forall x : svector fm o2, Q2' x → P1 x).
         Proof.
           intros S x H.
           inversion S as [H0 [H1 H2]].
@@ -451,7 +451,7 @@ Section SigmaHCOL_Operators.
 
         Definition SHCompose_rewrite_2nd
                    (S: op2 <: op2'):
-          (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_QP S ) op2').
+          (op1 ⊚ ( QP ) op2) <: (op1 ⊚ (SHOperator_subtype_Q2'P1 S ) op2').
         Proof.
           split.
           - inversion S as [Hv Hp].
@@ -470,6 +470,43 @@ Section SigmaHCOL_Operators.
         Qed.
 
       End Rewrite2ndArg.
+
+      Section Rewrite1stArg.
+        Variable P1' : svector fm o2 → Prop.
+        Variable Q1' : svector fm o3 → Prop.
+        Variable op1' : @SHOperator o2 o3 P1' Q1'.
+
+
+        Lemma SHOperator_subtype_Q2P1':
+          (op1 <: op1') -> (forall x : svector fm o2, Q2 x → P1' x).
+        Proof.
+          intros S x H.
+          inversion S as [H0 [H1 H2]].
+          auto.
+        Qed.
+
+
+        Definition SHCompose_rewrite_1st
+                   (S: op1 <: op1'):
+          (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S) op2).
+        Proof.
+          split.
+          - inversion S as [Hv Hp].
+            simpl.
+            destruct op1, op2, op1'.
+            rewrite Hv.
+            unfold equiv, ext_equiv, compose.
+            auto.
+          -
+            split.
+            +
+              auto.
+            +
+              inversion S as [H0 [H1 H2]].
+              apply H2.
+        Qed.
+
+      End Rewrite1stArg.
 
     End RewritingComposion.
 
