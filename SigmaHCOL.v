@@ -162,17 +162,24 @@ Section SigmaHCOL_Operators.
 
     Section Subtyping.
 
+      Definition TrueP {A} := fun (_:A) => True.
 
       (* Subtyping relation between types A and B *)
       Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
 
       (* Revert to transparency to allow conversions during unification. *)
-      Typeclasses Transparent Subtype.
+      (* Typeclasses Transparent Subtype. *)
 
       Infix "<:" := subtype (at level 40) : type_scope.
       Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
 
-      Definition TrueP {A} := fun (_:A) => True.
+      Class SubtypeTransitive
+            (V U T: Type)
+            `{SVU: Subtype V U}
+            `{SUT: Subtype U T}
+            `{SVT: Subtype V T}
+        : Prop
+        := hetero_transitivity: forall v u t, subtype v u → subtype u t → subtype v t.
 
       Global Instance Subtype_Prop:
         Subtype Prop Prop.
@@ -181,6 +188,15 @@ Section SigmaHCOL_Operators.
         intros a b.
         exact (a -> b).
       Defined.
+
+      Global Instance SubtypeTransitive_Prop:
+        SubtypeTransitive Prop Prop Prop.
+      Proof.
+        intros v u t.
+        intros H1 H2.
+        unfold subtype, Subtype_Prop in *.
+        tauto.
+      Qed.
 
       Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
       Proof.
@@ -202,12 +218,22 @@ Section SigmaHCOL_Operators.
       Qed.
 
       Global Instance Subtype_SHOperator
-             {i o} {P1} {P2} {Q1} {Q2}:
+             {i o} {P1 P2 Q1 Q2}:
         Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
         :=
           fun a b =>
             (forall x, P1 x -> P2 x) /\
             (forall y, Q2 y -> Q1 y).
+
+      Global Instance SubtypeTransitive_PropSHOperator
+             {i o} {P1 P2 P3 Q1 Q2 Q3}:
+        SubtypeTransitive (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2) (@SHOperator i o P3 Q3).
+      Proof.
+        intros v u t.
+        intros [H1P H1Q] [H2P H2Q].
+        unfold subtype, Subtype_SHOperator in *.
+        auto.
+      Qed.
 
     End Subtyping.
 
