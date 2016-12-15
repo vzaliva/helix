@@ -834,16 +834,14 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        (* Kernel-to-Gather glue *)
        {KG: ∀ x : rvector ki, Qg x → Pk x}
        (* Kernel *)
-       (kernel: forall k, (k<n) -> {x:rvector ki| Pk x} -> {y:rvector ko| Qk y})
+       (kernel: forall k, (k<n) -> @SHOperator Monoid_RthetaFlags ki ko Pk Qk)
        `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
-       `{Koperator: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
-       (* Gather pre and post conditions relation *)
-       {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+       {PQg: ∀ t tc (y:svector Monoid_RthetaFlags i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
        (* Scatter pre and post conditions relation *)
-       {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' (f_inj:=index_map_family_member_injective f_inj t tc) Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+       {PQs: ∀ t tc (y:svector Monoid_RthetaFlags ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
   :
     IUnionFriendly
       (@SparseEmbedding Monoid_RthetaFlags
@@ -851,7 +849,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
                         kernel KD
                         f f_inj
                         g
-                        Koperator PQg PQs).
+                        PQg PQs).
 Proof.
   unfold IUnionFriendly.
   intros x.
@@ -863,13 +861,15 @@ Proof.
   rewrite Vbuild_nth.
   unfold row.
   rewrite 2!Vnth_map.
-  unfold Apply_Family.
-  simpl.
+  unfold Apply_Family, Apply_Family'.
   rewrite 2!Vbuild_nth.
   unfold Vnth_aux.
   unfold SparseEmbedding.
   unfold SHCompose, compose.
   simpl.
+
+
+
   generalize ((Gather Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) (PQg i0 ic0)) x) as x0.
   destruct x0 as [x0 Qgx0].
   generalize (Gather Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) (PQg i1 ic1) x) as x1.
