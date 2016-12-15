@@ -448,6 +448,23 @@ Section SigmaHCOL_Operators.
 
     Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 90) : type_scope.
 
+    Lemma SHCompose_val_equal_compose
+          {i1 o2 o3}
+          {P1 Q1 P2 Q2}
+          (op1: @SHOperator o2 o3 P1 Q1)
+          (op2: @SHOperator i1 o2 P2 Q2)
+          {QP: forall x, Q2 x -> P1 x}
+      :
+        (op op1) ∘ (op op2) = op (op1 ⊚ ( QP ) op2).
+    Proof.
+      destruct op1, op2.
+      simpl in *.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite E.
+      reflexivity.
+    Qed.
+
     Section SubtypeComposion.
       Variable i1 o2 o3 : nat.
 
