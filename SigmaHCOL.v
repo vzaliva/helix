@@ -495,9 +495,9 @@ Section SigmaHCOL_Operators.
         Variable op1' : @SHOperator o2 o3 P1' Q1'.
 
         Lemma SHOperator_subtype_Q2P1':
-          (op1 <: op1') -> (op op1 = op op1') -> (forall x : svector fm o2, Q2 x → P1' x).
+          (op1 <: op1') -> (forall x : svector fm o2, Q2 x → P1' x).
         Proof.
-          intros S E x H.
+          intros S x H.
           inversion S.
           auto.
         Qed.
@@ -510,7 +510,7 @@ Section SigmaHCOL_Operators.
               (S: op1 <: op1')
               (E: op op1 = op op1')
           :
-            (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S E) op2).
+            (op1 ⊚ ( QP ) op2) <: (op1' ⊚ (SHOperator_subtype_Q2P1' S) op2).
         Proof.
           split.
           - auto.
