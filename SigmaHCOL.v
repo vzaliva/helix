@@ -866,22 +866,18 @@ Proof.
   unfold Vnth_aux.
   unfold SparseEmbedding.
   unfold SHCompose, compose.
+  unfold op_family_op.
   simpl.
 
-
-
-  generalize ((Gather Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) (PQg i0 ic0)) x) as x0.
-  destruct x0 as [x0 Qgx0].
-  generalize (Gather Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) (PQg i1 ic1) x) as x1.
-  destruct x1 as [x1 Qgx1].
-  repeat break_let; repeat rewrite proj1_sig_exists.
+  generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) x) as x0; intros x0.
+  generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) x) as x1; intros x1.
   intros [V0 V1].
   apply Is_Val_Scatter in V0.
   apply Is_Val_Scatter in V1.
-  crush.
+  crush. (* TODO: elaborate *)
   unfold index_map_family_injective in f_inj.
   clear PQs.
-  specialize (f_inj i0 i1 ic0 ic1 x6 x4 x7 x5).
+  specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
   destruct f_inj.
   congruence.
   assumption.
