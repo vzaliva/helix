@@ -31,31 +31,61 @@ Import Monoid.
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 
+(* For now we are not define special type for TSigmahcolOperators, like we did for SHOperator. Currently we have only 2 of these: SHCompose and HTSumunion. We will generalize in future, if needed *)
 Section TSigmaHCOLOperators.
 
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-  Class TSHOperator2 {i1 o1 i2 o2 ix ox}
-        {P1 Q1 P2 Q2}
-        (P : svector fm ix → Prop)
-        (Q : svector fm ox → Prop)
-        (top: (psvector fm i1 P1 -> psvector fm o1 Q1) -> (psvector fm i2 P2 -> psvector fm o2 Q2) -> psvector fm ix P -> psvector fm ox Q) :=
-    TSHOperator2_proper :> Proper (((=) ==> (=)) ==> ((=) ==> (=)) ==> (=) ==> (=)) (top).
+  Definition HTSUMUnion' {i o}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (op1: svector fm i -> svector fm o)
+             (op2: svector fm i -> svector fm o):
+    svector fm i -> svector fm o
+    := fun x => Vec2Union fm dot (op1 x) (op2 x).
 
-  (* Curried Templete SigmaHCOL operator with arity 2 is SHOperators *)
-  Global Instance THOperator2_SHOperator
-         {i1 o1 i2 o2 ix ox}
-         {P1 Q1 P2 Q2}
-         (P : svector fm ix → Prop)
-         (Q : svector fm ox → Prop)
-         `{O1: @SHOperator fm i1 o1 P1 Q1 op1}
-         `{O2: @SHOperator fm i2 o2 P2 Q2 op2}
-         `{T: @TSHOperator2 i1 o1 i2 o2 ix ox P1 Q1 P2 Q2 P Q to}:
-    SHOperator fm P Q (to op1 op2).
+  Global Instance HTSUMUnion'_Proper {i o}
+         (op1: svector fm i -> svector fm o)
+         (op2: svector fm i -> svector fm o)
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+    : Proper ((=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot).
   Proof.
-    split; try apply sig_setoid.
-    apply T ; [apply O1 | apply O2].
+    intros f f' Ef g g' Eg x y Ex.
+    unfold HTSUMUnion'.
+    unfold Vec2Union.
+    vec_index_equiv j jp.
+    rewrite 2!Vnth_map2.
+    setoid_replace (Vnth (f x) jp) with (Vnth (f' y) jp).
+    setoid_replace (Vnth (g x) jp) with (Vnth (g' y) jp).
+    reflexivity.
+    - apply Vnth_arg_equiv.
+      apply Eg, Ex.
+    - apply Vnth_arg_equiv.
+      apply Ef, Ex.
+  Qed.
+
+  Global Instance HTSUMUnion'_arg_Proper {i o}
+         (op1: svector fm i -> svector fm o)
+         `{op1_proper: !Proper ((=) ==> (=)) op1}
+         (op2: svector fm i -> svector fm o)
+         `{op2_proper: !Proper ((=) ==> (=)) op2}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+    : Proper ((=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot op1 op2).
+  Proof.
+    intros x y Ex.
+    unfold HTSUMUnion'.
+    unfold Vec2Union.
+    vec_index_equiv j jp.
+    rewrite 2!Vnth_map2.
+
+    setoid_replace (Vnth (op1 x) jp) with (Vnth (op1 y) jp).
+    setoid_replace (Vnth (op2 x) jp) with (Vnth (op2 y) jp).
+    reflexivity.
+
+    apply Vnth_arg_equiv; rewrite Ex; reflexivity.
+    apply Vnth_arg_equiv; rewrite Ex; reflexivity.
   Qed.
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
@@ -69,45 +99,19 @@ Section TSigmaHCOLOperators.
   Definition HTSUMUnion {i o}
              {Q1 Q2 P}
              {Q: svector fm o -> Prop}
+             (op1: @SHOperator fm i o P Q1)
+             (op2: @SHOperator fm i o P Q2)
              (dot: CarrierA -> CarrierA -> CarrierA)
-             {PQ: forall (a:psvector fm o Q1) (b:psvector fm o Q2),
-                 Q (Vec2Union fm dot (proj1_sig a) (proj1_sig b))
-             }             (op1: psvector fm i P -> psvector fm o Q1)
-             (op2: psvector fm i P -> psvector fm o Q2)
-    :
-      psvector fm i P -> psvector fm o Q
-    := fun x =>
-         let a := op1 x in
-         let a' := proj1_sig a in
-         let b := op2 x in
-         let b' := proj1_sig b in
-         @exist _ _ (Vec2Union fm dot a' b') (PQ a b).
+             `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+             {PQ} (*: forall (a:svector fm o) (b:psvector fm o),
+                 Q (Vec2Union fm dot (proj1_sig a) (proj1_sig b)) }*)
 
-  Global Instance TSHOperator2_HTSUMUnion {i o}
-         {P: svector fm i → Prop}
-         {Q Q1 Q2: svector fm o → Prop}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         {PQ: forall (a: {x:svector fm o | Q1 x}) (b : {x:svector fm o | Q2 x}),
-             Q (Vec2Union fm dot (` a) (` b))}
-         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-    :
-      TSHOperator2 P Q (@HTSUMUnion i o Q1 Q2 P Q dot PQ).
-  Proof.
-    intros f f' Ef g g' Eg x y Ex.
-    unfold HTSUMUnion.
-    unfold Vec2Union.
-    vec_index_equiv j jp.
-    simpl.
-    rewrite 2!Vnth_map2.
-    setoid_replace (Vnth (proj1_sig (f x)) jp) with (Vnth (proj1_sig (f' y)) jp).
-    setoid_replace (Vnth (proj1_sig (g x)) jp) with (Vnth (proj1_sig (g' y)) jp).
-    reflexivity.
-    - apply Vnth_arg_equiv.
-      apply Eg, Ex.
-    - apply Vnth_arg_equiv.
-      apply Ef, Ex.
-  Qed.
+    : @SHOperator fm i o P Q
+    := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) PQ
+                    (@HTSUMUnion'_arg_Proper i o
+                                             (op fm op1) (op_proper fm op1)
+                                             (op fm op2) (op_proper fm op2)
+                                             dot dot_mor).
 
-  (* TODO: SHCompose should be instance of TSHOperator2 *)
 
 End TSigmaHCOLOperators.
