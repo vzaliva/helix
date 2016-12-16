@@ -677,8 +677,8 @@ Section SigmaHCOL_Operators.
         (op_family: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q)
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                         (transpose
-                                            (Apply_Family Monoid_RthetaFlags op_family x)).
+                                    (transpose
+                                       (Apply_Family Monoid_RthetaFlags op_family x)).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -872,12 +872,15 @@ Proof.
   generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) x) as x0; intros x0.
   generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) x) as x1; intros x1.
   intros [V0 V1].
-  apply Is_Val_Scatter in V0.
-  apply Is_Val_Scatter in V1.
-  crush. (* TODO: elaborate *)
+  apply Is_Val_Scatter in V0. apply Is_Val_Scatter in V1.
+
+  inversion_clear V0 as [x2 V0']; inversion_clear V0' as [x3 V0''].
+  inversion_clear V1  as [x4 V1']; inversion_clear V1' as [x5 V1''].
+  subst j.
+
   unfold index_map_family_injective in f_inj.
   clear PQs.
-  specialize (f_inj i0 i1 ic0 ic1 x4 x2 x5 x3).
+  specialize (f_inj i0 i1 ic0 ic1 x2 x4 x3 x5).
   destruct f_inj.
   congruence.
   assumption.
