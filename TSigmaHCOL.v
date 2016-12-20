@@ -76,9 +76,12 @@ Section TSigmaHCOLOperators.
   Proof.
     partial_application_tactic. instantiate (1 := equiv).
     partial_application_tactic. instantiate (1 := equiv).
-    apply HTSUMUnion'_Proper; auto.
-    auto.
-    auto.
+    apply HTSUMUnion'_Proper.
+    - apply op1.
+    - apply op2.
+    - apply dot_mor.
+    - apply op1_proper.
+    - apply op2_proper.
   Qed.
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
