@@ -74,18 +74,11 @@ Section TSigmaHCOLOperators.
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot op1 op2).
   Proof.
-    intros x y Ex.
-    unfold HTSUMUnion'.
-    unfold Vec2Union.
-    vec_index_equiv j jp.
-    rewrite 2!Vnth_map2.
-
-    setoid_replace (Vnth (op1 x) jp) with (Vnth (op1 y) jp).
-    setoid_replace (Vnth (op2 x) jp) with (Vnth (op2 y) jp).
-    reflexivity.
-
-    apply Vnth_arg_equiv; rewrite Ex; reflexivity.
-    apply Vnth_arg_equiv; rewrite Ex; reflexivity.
+    partial_application_tactic. instantiate (1 := equiv).
+    partial_application_tactic. instantiate (1 := equiv).
+    apply HTSUMUnion'_Proper; auto.
+    auto.
+    auto.
   Qed.
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
