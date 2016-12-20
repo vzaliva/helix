@@ -745,7 +745,7 @@ Section SigmaHCOL_Operators.
              `{Uf: !IUnionFriendly op_family}
              {PQ}
     :=
-      @IUnion i o n P Q R plus _ zero op_family Uf PQ .
+      @IUnion i o n P Q R CarrierAplus _ zero op_family Uf PQ .
 
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
@@ -915,7 +915,10 @@ Definition USparseEmbedding
            (* ISumUnion post-condition *)
            {R: vector Rtheta o → Prop}
            (* ISumUnion glue *)
-           {PQ}
+           {PQ: forall (x:vector Rtheta i),
+               Pg x -> R (Diamond' CarrierAplus zero
+                                  (op_family_op Monoid_RthetaFlags
+                                                (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
   : @SHOperator Monoid_RthetaFlags i o Pg R
   :=
     ISumUnion (PQ:=PQ)
