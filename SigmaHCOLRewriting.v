@@ -485,6 +485,19 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
+
+    (* TODO: should be deriavale from 'h_j_1_family_injective' and 'index_map_family_member_injective' *)
+    Lemma h_j_1_family_member_injective {n}:
+      forall t (tc:t<n),
+        @index_map_injective 1 n
+                             ((fun (j:nat) (jc:j<n) =>
+                                 @h_index_map 1 n j 1 (ScatH_1_to_n_range_bound j n (S O) jc)) t tc).
+    Proof.
+      unfold index_map_injective.
+      crush.
+    Qed.
+
+
     Definition expand_BinOp_lhs
                (n:nat)
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
@@ -518,7 +531,7 @@ Section SigmaHCOLExpansionRules.
 
                {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
 
-               {PQs: ∀ t tc (y:svector Monoid_RthetaFlags 1), Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_injective) y)}
+               {PQs: ∀ t tc (y:svector Monoid_RthetaFlags 1), Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
 
                (* {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))} *)
                {KD : forall (k : nat) (kc : Peano.lt k n),
