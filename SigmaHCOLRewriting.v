@@ -485,342 +485,414 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
+    Definition expand_BinOp_lhs
+               (n:nat)
+               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               {P: rvector (n + n) → Prop}
+               {Q: rvector n → Prop}
+               {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
+               :@SHOperator Monoid_RthetaFlags (n+n) n P Q
+      := @SHBinOp Monoid_RthetaFlags n P Q f f_mor PQo.
 
-    (*
+    Set Printing All.
+
+    Definition expand_BinOp_rhs
+               (n:nat)
+               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               {P: rvector (n + n) → Prop} (* AKA Pg *)
+               {Qg: vector Rtheta (1 + 1) → Prop}
+
+               {Pk: vector Rtheta (1 + 1) → Prop}
+               {Qk: rvector 1 → Prop}
+
+               {Ps: rvector 1 → Prop}
+               {Qs: rvector n → Prop}
+
+               {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
+               {SK: forall x : rvector 1, Qk x → Ps x}
+               {PQ1: forall j (x: rvector (1 + 1)), Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
+
+               {Q: rvector n → Prop} (* AKA R *)
+
+               {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
+
+               {PQs: ∀ t tc (y:svector Monoid_RthetaFlags 1), Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_injective) y)}
+
+               (* {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))} *)
+               {KD : forall (k : nat) (kc : Peano.lt k n),
+                   @DensityPreserving Monoid_RthetaFlags (Init.Nat.add (S O) (S O))
+                                      (S O) Pk Qk
+                                      ((fun (j : nat) (_ : Peano.lt j n) =>
+                                          @SHBinOp Monoid_RthetaFlags (S O) Pk Qk (@SwapIndex2 CarrierA j f)
+                                                   (@SwapIndex2_specialized_proper CarrierA CarrierAe CarrierAsetoid j f f_mor)
+                                                   (PQ1 j)) k kc)}
+
+
+
+
+               {PQ2: forall x, P x -> Q (Diamond' CarrierAplus zero
+                                            (op_family_op Monoid_RthetaFlags (P:=P) (Q:=Q)
+                                                          (SparseEmbedding Monoid_RthetaFlags (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG) (PQg:=PQg)
+                                                                           (λ (j : nat) (_ : j < n),
+                                                                            SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
+                                                                           (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                                                                           (f_inj:=h_j_1_family_injective)
+                                                                           (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+                                            )) x)}
+
+      : @SHOperator Monoid_RthetaFlags (n+n) n P Q.
+
+
+          := @USparseEmbedding
+               n
+               (n+n) n
+               (1+1) 1
+               Pk Qk
+               Ps Qs
+               P  Qg
+               SK KG
+               (fun j _ => @SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))
+               KD
+               (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+               h_j_1_family_injective
+               (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+               PQg PQs
+               Q PQ2.
+
+
+          (*
     BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
         ISumUnion(i, i.range, OLCompose(
         ScatHUnion(o.N, 1, i, 1),
         BinOp(1, o.op),
         GathH(2*o.N, 2, i, o.N)
         )))),
-     *)
-    Theorem expand_BinOp:
-      forall (n:nat)
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        {P: rvector (n + n) → Prop}
-        {Q: rvector n → Prop}
-        {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
-        {P1 : rvector (1 + 1) → Prop}
-        {Q1 : rvector 1 → Prop}
-        {Qg: vector Rtheta (1 + 1) → Prop}
-        {Pk: vector Rtheta (1 + 1) → Prop}
-        {Qk: rvector 1 → Prop}
-        {Ps: rvector 1 → Prop}
-        {Qs}
-        {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
-        {SK: forall x : rvector 1, Qk x → Ps x}
-        {PQ1: forall j (x: rvector (1 + 1)), Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=
-                                                                                                   (SwapIndex2_proper f_mor)
+           *)
+          Theorem expand_BinOp:
+            forall (n:nat)
+              (f: nat -> CarrierA -> CarrierA -> CarrierA)
+              `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+              {P: rvector (n + n) → Prop}
+              {Q: rvector n → Prop}
+              {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
+              {P1 : rvector (1 + 1) → Prop}
+              {Q1 : rvector 1 → Prop}
+              {Qg: vector Rtheta (1 + 1) → Prop}
+              {Pk: vector Rtheta (1 + 1) → Prop}
+              {Qk: rvector 1 → Prop}
+              {Ps: rvector 1 → Prop}
+              {Qs}
+              {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
+              {SK: forall x : rvector 1, Qk x → Ps x}
+              {PQ1: forall j (x: rvector (1 + 1)), Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
+              {PQ2: forall x, P x -> Q (Diamond' CarrierAplus zero
+                                           (op_family_op Monoid_RthetaFlags
+                                                         (SparseEmbedding Monoid_RthetaFlags
+                                                                          (λ (j : nat) (_ : j < n),
+                                                                           SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
+                                                                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                                                                          (f_inj:=h_j_1_family_injective)
+                                                                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+                                           )) x)}
+              {KD: forall j (jc: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))}
+
+              {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
+
+              {PQs}
+            ,
+              @SHBinOp Monoid_RthetaFlags n P Q f f_mor PQo
+              =
+              @USparseEmbedding
+                n
+                (n+n) n
+                (1+1) 1
+                Pk Qk
+                Ps Qs
+                P
+                Qg
+                SK KG
+                (fun j _ => @SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))
+                KD
+                (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                h_j_1_family_injective
+                (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+                PQg PQs
+                Q PQ2.
+          Proof.
+            intros n f pF.
+            apply ext_equiv_applied_iff'.
+            -
+              typeclasses eauto.
+            -
+              split; try apply vec_Setoid.
+              unfold USparseEmbedding, ISumUnion, IUnion, MUnion, Apply_Family, SparseEmbedding.
+              solve_proper.
+            -
+              intros x.
+              vec_index_equiv i ip.
+              symmetry.
+              unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding. simpl.
+              apply U_SAG2; assumption.
+          Qed.
 
 
-
-                                                                                                ) x)}
-        {PQ2: forall x, P x -> Q (Diamond' CarrierAplus zero
-                                     (op_family_op Monoid_RthetaFlags
-                                                   (SparseEmbedding Monoid_RthetaFlags
-                                                                    (λ (j : nat) (_ : j < n),
-                                                                     SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
-                                                                    (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-                                                                    (f_inj:=h_j_1_family_injective)
-                                                                    (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
-                                     )) x)}
-        {KD: forall j (jc: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))}
-        {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
-
-        {PQs}
-      ,
-        @SHBinOp Monoid_RthetaFlags n P Q f f_mor PQo
-        =
-        @USparseEmbedding
-          n
-          (n+n) n
-          (1+1) 1
-          Pk Qk
-          Ps Qs
-          P
-          Qg
-          SK KG
-          (fun j _ => @SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) _ (PQ1 j))
-          KD
-          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-          h_j_1_family_injective
-          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
-          PQg PQs
-          Q PQ2.
-    Proof.
-      intros n f pF.
-      apply ext_equiv_applied_iff'.
-      -
-        typeclasses eauto.
-      -
-        split; try apply vec_Setoid.
-        unfold USparseEmbedding, ISumUnion, IUnion, MUnion, Apply_Family, SparseEmbedding.
-        solve_proper.
-      -
-        intros x.
-        vec_index_equiv i ip.
-        symmetry.
-        unfold USparseEmbedding, ISumUnion, Apply_Family, SparseEmbedding. simpl.
-        apply U_SAG2; assumption.
-    Qed.
-
-
-    (*
+          (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
             self(ch[i], opts),
             GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
-     *)
-    (* TODO: perhaps could be generalized for generic operation, not just plus *)
-    Theorem expand_HTDirectSum
-            {fm: Monoid RthetaFlags}
-            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
-            {i1 o1 i2 o2}
-            (f: avector i1 -> avector o1)
-            (g: avector i2 -> avector o2)
-            `{hop1: !HOperator f}
-            `{hop2: !HOperator g}
-      :
-        liftM_HOperator fm (HTDirectSum f g) =
-        (HTSUMUnion _ plus
-                    ((ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                     ) ∘ (liftM_HOperator _ f) ∘ (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
-                    ((ScatH _ o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                     ) ∘ (liftM_HOperator _ g) ∘ (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2)))).
-    Proof.
-      eapply ext_equiv_applied_iff'.
-      -
-        split; try apply vec_Setoid.
-        solve_proper.
-      -
-        split; try apply vec_Setoid.
-        solve_proper.
-      -
-        intros x.
-        unfold liftM_HOperator at 1.
-        unfold compose.
-        unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-        HTSUMUnion, pair2vector.
+           *)
+          (* TODO: perhaps could be generalized for generic operation, not just plus *)
+          Theorem expand_HTDirectSum
+                  {fm: Monoid RthetaFlags}
+                  {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
+                  {i1 o1 i2 o2}
+                  (f: avector i1 -> avector o1)
+                  (g: avector i2 -> avector o2)
+                  `{hop1: !HOperator f}
+                  `{hop2: !HOperator g}
+            :
+              liftM_HOperator fm (HTDirectSum f g) =
+              (HTSUMUnion _ plus
+                          ((ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
+                           ) ∘ (liftM_HOperator _ f) ∘ (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                          ((ScatH _ o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
+                           ) ∘ (liftM_HOperator _ g) ∘ (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+          Proof.
+            eapply ext_equiv_applied_iff'.
+            -
+              split; try apply vec_Setoid.
+              solve_proper.
+            -
+              split; try apply vec_Setoid.
+              solve_proper.
+            -
+              intros x.
+              unfold liftM_HOperator at 1.
+              unfold compose.
+              unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
+              HTSUMUnion, pair2vector.
 
-        break_let. break_let.
-        rename t1 into x0, t2 into x1.
-        tuple_inversion.
-        symmetry.
+              break_let. break_let.
+              rename t1 into x0, t2 into x1.
+              tuple_inversion.
+              symmetry.
 
-        assert(LS: @ScatH fm o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
-                          (@ScatH_stride1_constr o1 2)
-                          (liftM_HOperator fm f (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
-        {
-          setoid_replace (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify fm x0).
-          -
-            vec_index_equiv i ip.
-            unfold ScatH, Scatter.
-            rewrite Vbuild_nth.
+              assert(LS: @ScatH fm o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
+                                (@ScatH_stride1_constr o1 2)
+                                (liftM_HOperator fm f (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
+              {
+                setoid_replace (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify fm x0).
+                -
+                  vec_index_equiv i ip.
+                  unfold ScatH, Scatter.
+                  rewrite Vbuild_nth.
 
-            unfold sparsify.
-            rewrite Vnth_app.
+                  unfold sparsify.
+                  rewrite Vnth_app.
 
-            destruct(le_gt_dec o1 i).
-            + (* Second half of x, which is all zeros *)
-              unfold szero_svector.
-              rewrite Vnth_const.
-              break_match.
-              *
-                (* get rid of it to be able manipulate dependent hypothesis i0 *)
-                exfalso.
-                apply in_range_of_h in i0.
-                crush.
-                rewrite <- H in l.
-                omega.
-                apply ip.
-              * reflexivity.
-            + (* First half of x, which is fx0 *)
-              rewrite Vnth_map.
-              break_match.
-              * simpl.
-                unfold liftM_HOperator, sparsify, compose.
-                rewrite Vnth_map.
-                unfold densify.
-                rewrite Vmap_map.
-                unfold mkValue, WriterMonadNoT.evalWriter.
-                simpl.
-                replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
-                  by (symmetry; apply Vmap_id).
-                replace (Vnth
-                           (f x0)
-                           (gen_inverse_index_f_spec
-                              (h_index_map 0 1) i i0)) with
-                (Vnth (f x0) g0).
-                reflexivity.
-                generalize (f x0) as fx0. intros fx0.
-                apply Vnth_eq.
-                symmetry.
+                  destruct(le_gt_dec o1 i).
+                  + (* Second half of x, which is all zeros *)
+                    unfold szero_svector.
+                    rewrite Vnth_const.
+                    break_match.
+                    *
+                      (* get rid of it to be able manipulate dependent hypothesis i0 *)
+                      exfalso.
+                      apply in_range_of_h in i0.
+                      crush.
+                      rewrite <- H in l.
+                      omega.
+                      apply ip.
+                    * reflexivity.
+                  + (* First half of x, which is fx0 *)
+                    rewrite Vnth_map.
+                    break_match.
+                    * simpl.
+                      unfold liftM_HOperator, sparsify, compose.
+                      rewrite Vnth_map.
+                      unfold densify.
+                      rewrite Vmap_map.
+                      unfold mkValue, WriterMonadNoT.evalWriter.
+                      simpl.
+                      replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
+                        by (symmetry; apply Vmap_id).
+                      replace (Vnth
+                                 (f x0)
+                                 (gen_inverse_index_f_spec
+                                    (h_index_map 0 1) i i0)) with
+                      (Vnth (f x0) g0).
+                      reflexivity.
+                      generalize (f x0) as fx0. intros fx0.
+                      apply Vnth_eq.
+                      symmetry.
 
-                apply build_inverse_index_map_is_left_inverse; try assumption.
-                apply h_index_map_is_injective; left; auto.
+                      apply build_inverse_index_map_is_left_inverse; try assumption.
+                      apply h_index_map_is_injective; left; auto.
 
-                unfold h_index_map.
-                simpl.
-                rewrite Nat.mul_comm, Nat.mul_1_l.
-                reflexivity.
-              * contradict n.
-                apply in_range_of_h.
-                apply ip.
-                exists i, g0.
-                simpl.
-                rewrite Nat.mul_comm, Nat.mul_1_l.
-                reflexivity.
-          -
-            unfold GathH, Gather.
-            vec_index_equiv i ip.
+                      unfold h_index_map.
+                      simpl.
+                      rewrite Nat.mul_comm, Nat.mul_1_l.
+                      reflexivity.
+                    * contradict n.
+                      apply in_range_of_h.
+                      apply ip.
+                      exists i, g0.
+                      simpl.
+                      rewrite Nat.mul_comm, Nat.mul_1_l.
+                      reflexivity.
+                -
+                  unfold GathH, Gather.
+                  vec_index_equiv i ip.
 
-            rewrite Vnth_sparsify.
-            rewrite Vbuild_nth.
+                  rewrite Vnth_sparsify.
+                  rewrite Vbuild_nth.
 
-            unfold h_index_map.
-            unfold VnthIndexMapped.
-            simpl.
+                  unfold h_index_map.
+                  unfold VnthIndexMapped.
+                  simpl.
 
-            rename Heqp0 into H.
-            apply Vbreak_arg_app in H.
-            assert(ip1: S i <= i1 + i2) by omega.
-            apply Vnth_arg_eq with (ip:=ip1) in H.
-            rewrite Vnth_app in H.
-            break_match.
-            crush.
-            replace g0 with ip in H.
-            rewrite <- H.
-            clear H g0.
-            unfold densify.
-            rewrite Vnth_map.
-            rewrite mkValue_evalWriter.
-            apply Vnth_equiv.
-            rewrite Mult.mult_1_r; reflexivity.
-            reflexivity.
-            apply proof_irrelevance.
-        }
+                  rename Heqp0 into H.
+                  apply Vbreak_arg_app in H.
+                  assert(ip1: S i <= i1 + i2) by omega.
+                  apply Vnth_arg_eq with (ip:=ip1) in H.
+                  rewrite Vnth_app in H.
+                  break_match.
+                  crush.
+                  replace g0 with ip in H.
+                  rewrite <- H.
+                  clear H g0.
+                  unfold densify.
+                  rewrite Vnth_map.
+                  rewrite mkValue_evalWriter.
+                  apply Vnth_equiv.
+                  rewrite Mult.mult_1_r; reflexivity.
+                  reflexivity.
+                  apply proof_irrelevance.
+              }
 
-        assert(RS: @ScatH fm o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
-                          (@ScatH_stride1_constr o2 2)
-                          (liftM_HOperator fm g (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
-        {
-          setoid_replace (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify fm x1).
-          -
-            unfold ScatH, Scatter.
-            vec_index_equiv i ip.
-            rewrite Vbuild_nth.
-            rewrite Vnth_app.
-            break_match.
-            + (* Second half of x, which is gx0 *)
-              break_match.
-              * simpl.
-                unfold liftM_HOperator, sparsify, compose.
-                rewrite 2!Vnth_map.
-                unfold densify.
-                rewrite Vmap_map.
-                unfold mkValue, WriterMonadNoT.evalWriter.
-                simpl.
+              assert(RS: @ScatH fm o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
+                                (@ScatH_stride1_constr o2 2)
+                                (liftM_HOperator fm g (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
+              {
+                setoid_replace (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify fm x1).
+                -
+                  unfold ScatH, Scatter.
+                  vec_index_equiv i ip.
+                  rewrite Vbuild_nth.
+                  rewrite Vnth_app.
+                  break_match.
+                  + (* Second half of x, which is gx0 *)
+                    break_match.
+                    * simpl.
+                      unfold liftM_HOperator, sparsify, compose.
+                      rewrite 2!Vnth_map.
+                      unfold densify.
+                      rewrite Vmap_map.
+                      unfold mkValue, WriterMonadNoT.evalWriter.
+                      simpl.
 
-                replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
-                  by (symmetry; apply Vmap_id).
-                replace (Vnth
-                           (g x1)
-                           (gen_inverse_index_f_spec
-                              (h_index_map o1 1) i i0)) with
-                (Vnth
-                   (g x1) (Vnth_app_aux o2 ip l)).
-                reflexivity.
-                generalize (g x1) as gx1. intros gx1.
-                apply Vnth_eq.
-                symmetry.
+                      replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
+                        by (symmetry; apply Vmap_id).
+                      replace (Vnth
+                                 (g x1)
+                                 (gen_inverse_index_f_spec
+                                    (h_index_map o1 1) i i0)) with
+                      (Vnth
+                         (g x1) (Vnth_app_aux o2 ip l)).
+                      reflexivity.
+                      generalize (g x1) as gx1. intros gx1.
+                      apply Vnth_eq.
+                      symmetry.
 
-                apply build_inverse_index_map_is_left_inverse; try assumption.
-                apply h_index_map_is_injective; left; auto.
-                lia.
+                      apply build_inverse_index_map_is_left_inverse; try assumption.
+                      apply h_index_map_is_injective; left; auto.
+                      lia.
 
-                unfold h_index_map.
-                simpl.
-                lia.
-              *
-                exfalso.
-                rewrite in_range_of_h in i0.
-                destruct i0 as [z H].
-                destruct H as [zc H].
-                rewrite Nat.mul_1_r in H.
-                rewrite <- H in g0.
-                crush.
-                apply ip.
-            + (* First half of x, which is all zeros *)
-              unfold szero_svector.
-              break_match.
-              *
-                contradict n.
-                apply in_range_of_h.
-                apply ip.
-                exists (i-o1).
-                assert (oc: i - o1 < o2) by crush.
-                exists oc.
-                replace (o1 + (i - o1) * 1) with i by omega.
-                reflexivity.
-              *
-                rewrite Vnth_const.
-                reflexivity.
-          - unfold GathH, Gather.
-            vec_index_equiv i ip.
-            rewrite Vbuild_nth.
-            unfold h_index_map.
-            unfold VnthIndexMapped.
-            simpl.
+                      unfold h_index_map.
+                      simpl.
+                      lia.
+                    *
+                      exfalso.
+                      rewrite in_range_of_h in i0.
+                      destruct i0 as [z H].
+                      destruct H as [zc H].
+                      rewrite Nat.mul_1_r in H.
+                      rewrite <- H in g0.
+                      crush.
+                      apply ip.
+                  + (* First half of x, which is all zeros *)
+                    unfold szero_svector.
+                    break_match.
+                    *
+                      contradict n.
+                      apply in_range_of_h.
+                      apply ip.
+                      exists (i-o1).
+                      assert (oc: i - o1 < o2) by crush.
+                      exists oc.
+                      replace (o1 + (i - o1) * 1) with i by omega.
+                      reflexivity.
+                    *
+                      rewrite Vnth_const.
+                      reflexivity.
+                - unfold GathH, Gather.
+                  vec_index_equiv i ip.
+                  rewrite Vbuild_nth.
+                  unfold h_index_map.
+                  unfold VnthIndexMapped.
+                  simpl.
 
-            rename Heqp0 into H.
-            apply Vbreak_arg_app in H.
-            unfold sparsify.
-            rewrite Vnth_map.
+                  rename Heqp0 into H.
+                  apply Vbreak_arg_app in H.
+                  unfold sparsify.
+                  rewrite Vnth_map.
 
-            (*
+                  (*
           generalize (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
        (h_bound_second_half i1 i2) i ip) as l.
           intros l.
-             *)
+                   *)
 
-            assert(ip1: i+i1 < i1 + i2) by omega.
-            apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
-            unfold densify in H.
-            rewrite Vnth_map in H.
-            rewrite Vnth_app in H.
-            break_match.
-            revert H.
-            generalize (Vnth_app_aux i2 ip1 l).
-            intros g0 H.
-            assert(M: (Vnth x1 ip) ≡ (Vnth x1 g0)).
-            {
-              apply Vnth_eq.
-              crush.
-            }
-            rewrite <- M in H.
-            rewrite <- H.
-            clear M H g0.
-            rewrite mkValue_evalWriter.
-            apply Vnth_equiv.
-            rewrite Mult.mult_1_r,  Plus.plus_comm; reflexivity.
-            reflexivity.
-            crush.
-        }
-        rewrite LS, RS.
-        (* destruct Heqp0.*)
-        unfold Vec2Union. rewrite VMapp2_app.
-        setoid_replace (Vmap2 (Union _ plus) (sparsify _ (f x0)) (szero_svector fm o1)) with (sparsify fm (f x0)).
-        setoid_replace (Vmap2 (Union _ plus) (szero_svector fm o2) (sparsify fm (g x1))) with (sparsify fm (g x1)).
-        unfold sparsify.
-        rewrite Vmap_app.
-        reflexivity.
-        apply Vec2Union_szero_svector_l.
-        apply Vec2Union_szero_svector_r.
-    Qed.
+                  assert(ip1: i+i1 < i1 + i2) by omega.
+                  apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
+                  unfold densify in H.
+                  rewrite Vnth_map in H.
+                  rewrite Vnth_app in H.
+                  break_match.
+                  revert H.
+                  generalize (Vnth_app_aux i2 ip1 l).
+                  intros g0 H.
+                  assert(M: (Vnth x1 ip) ≡ (Vnth x1 g0)).
+                  {
+                    apply Vnth_eq.
+                    crush.
+                  }
+                  rewrite <- M in H.
+                  rewrite <- H.
+                  clear M H g0.
+                  rewrite mkValue_evalWriter.
+                  apply Vnth_equiv.
+                  rewrite Mult.mult_1_r,  Plus.plus_comm; reflexivity.
+                  reflexivity.
+                  crush.
+              }
+              rewrite LS, RS.
+              (* destruct Heqp0.*)
+              unfold Vec2Union. rewrite VMapp2_app.
+              setoid_replace (Vmap2 (Union _ plus) (sparsify _ (f x0)) (szero_svector fm o1)) with (sparsify fm (f x0)).
+              setoid_replace (Vmap2 (Union _ plus) (szero_svector fm o2) (sparsify fm (g x1))) with (sparsify fm (g x1)).
+              unfold sparsify.
+              rewrite Vmap_app.
+              reflexivity.
+              apply Vec2Union_szero_svector_l.
+              apply Vec2Union_szero_svector_r.
+          Qed.
 
 
-    (* Tactic to normalize type expressions and apply expand_HTDirectSum rewriting *)
+          (* Tactic to normalize type expressions and apply expand_HTDirectSum rewriting *)
   End Value_Correctness.
 
   Section Structural_Correctness.
