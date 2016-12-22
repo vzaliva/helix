@@ -626,6 +626,7 @@ Section SigmaHCOL_Operators.
                {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
                {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
+      : forall (j:nat) (jc:j<n), @SHOperator i o Pg Qs
       := fun (j:nat) (jc:j<n) =>
            (Scatter (⦃f⦄ j jc)
                     (f_inj:=index_map_family_member_injective f_inj j jc)

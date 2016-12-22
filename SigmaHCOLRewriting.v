@@ -546,8 +546,8 @@ Section SigmaHCOLExpansionRules.
 
 
                {PQ2: forall x, P x -> Q (Diamond' CarrierAplus zero
-                                            (op_family_op Monoid_RthetaFlags (P:=P) (Q:=Q)
-                                                          (SparseEmbedding Monoid_RthetaFlags (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG) (PQg:=PQg)
+                                            (op_family_op Monoid_RthetaFlags (P:=P) (Q:=Qs)
+                                                          (SparseEmbedding Monoid_RthetaFlags (Pg:=P) (Qs:=Qs) (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG) (PQg:=PQg) (PQs:=PQs)
                                                                            (λ (j : nat) (_ : j < n),
                                                                             SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
                                                                            (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
@@ -555,7 +555,7 @@ Section SigmaHCOLExpansionRules.
                                                                            (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
                                             )) x)}
 
-      : @SHOperator Monoid_RthetaFlags (n+n) n P Q.
+      : @SHOperator Monoid_RthetaFlags (n+n) n P Q
 
 
           := @USparseEmbedding
