@@ -637,7 +637,7 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
       -
         intros x.
-        unfold liftM_HOperator at 1.
+        unfold liftM_HOperator' at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
         HTSUMUnion, pair2vector.
