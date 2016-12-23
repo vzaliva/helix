@@ -511,13 +511,10 @@ Section SigmaHCOLExpansionRules.
             (f: nat -> CarrierA -> CarrierA -> CarrierA)
             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
             {P: rvector (n + n) → Prop}
-            {Q: rvector n → Prop}
+            {Q Qs: rvector n → Prop}
+            {Qg Pk: vector Rtheta (1 + 1) → Prop}
+            {Qk Ps: rvector 1 → Prop}
             {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
-            {Qg: vector Rtheta (1 + 1) → Prop}
-            {Pk: vector Rtheta (1 + 1) → Prop}
-            {Qk: rvector 1 → Prop}
-            {Ps: rvector 1 → Prop}
-            {Qs: rvector n → Prop}
             {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
             {SK: forall x : rvector 1, Qk x → Ps x}
             {PQ1: forall j (x: rvector (1 + 1)), Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
