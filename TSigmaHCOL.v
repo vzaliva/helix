@@ -93,15 +93,13 @@ Section TSigmaHCOLOperators.
      we are using for SigmaHCOL with AddPrepost wrapper.
    *)
   Definition HTSUMUnion {i o}
-             {Q1 Q2 P}
-             {Q: svector fm o -> Prop}
+             {P: svector fm i -> Prop}
+             {Q Q1 Q2: svector fm o -> Prop}
              (op1: @SHOperator fm i o P Q1)
              (op2: @SHOperator fm i o P Q2)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             {PQ} (*: forall (a:svector fm o) (b:psvector fm o),
-                 Q (Vec2Union fm dot (proj1_sig a) (proj1_sig b)) }*)
-
+             (PQ: forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x))
     : @SHOperator fm i o P Q
     := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) PQ
                     (@HTSUMUnion'_arg_Proper i o

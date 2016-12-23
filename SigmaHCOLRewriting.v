@@ -577,14 +577,57 @@ Section SigmaHCOLExpansionRules.
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
+            {P: svector fm (i1 + i2) -> Prop}
+            {Q: svector fm (o1 + o2) -> Prop}
+            {Q1: svector fm (o1 + o2) -> Prop}
+            {Q2: svector fm (o1 + o2) -> Prop}
+            {PQd: forall x : svector fm (i1 + i2), P x -> Q (liftM_HOperator' fm (HTDirectSum f g) x)}
+            {Pf: svector fm i1 -> Prop}
+            {Qf: svector fm o1 -> Prop}
+            {Pg: svector fm i2 → Prop}
+            {Qg: svector fm o2 -> Prop}
+            {Qg2: svector fm i2 -> Prop}
+            {PQf: forall x : svector fm i1, Pf x -> Qf (liftM_HOperator' fm f x)}
+            {PQg: forall x : svector fm i2, Pg x -> Qg (liftM_HOperator' fm g x)}
+            {PQg2: forall x : svector fm (i1 + i2), P x -> Qg2 (Gather' fm (h_index_map i1 1) x)}
+            {PS1: svector fm o1 -> Prop}
+            {PS2: svector fm o2 -> Prop}
+            {Qg1: svector fm i1 -> Prop}
+            {PQg1: forall x : svector fm (i1 + i2), P x -> Qg1 (Gather' fm (h_index_map 0 1) x)}
+            {PQs1: forall x : svector fm o1, PS1 x → Q1 (Scatter' fm (h_index_map 0 1) x)}
+            {QP1: forall x : svector fm i1, Qg1 x -> Pf x}
+            {QP2: forall x : svector fm o1, Qf x -> PS1 x}
+            {PQs2: forall x : svector fm o2, PS2 x -> Q2 (Scatter' fm (h_index_map o1 1) x)}
+            {QP3: forall x : svector fm i2, Qg2 x → Pg x}
+            {QP4: forall x : svector fm o2, Qg x -> PS2 x}
+            {PQh}
       :
-        liftM_HOperator fm (HTDirectSum f g) =
-        (HTSUMUnion _ plus
-                    ((ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2)
-                     ) ∘ (liftM_HOperator _ f) ∘ (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
-                    ((ScatH _ o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2)
-                     ) ∘ (liftM_HOperator _ g) ∘ (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2)))).
+        liftM_HOperator fm (HTDirectSum f g) PQd (* SHoperator P Q *)
+        =
+        HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) fm (* SHoperator P Q *)
+                   (SHCompose fm (P1:=PS1) (P2:=P) (Q1:=Q1)
+                              (ScatH fm 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
+                              (SHCompose fm (P2:=P) (P1:=Pf)
+                                         (liftM_HOperator fm (P:=Pf) (Q:=Qf) f PQf)
+                                         (GathH fm 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)
+                                         QP1)
+                              QP2)
+
+                   (SHCompose fm (P1:=PS2) (P2:=P) (Q1:=Q2)
+                              (ScatH fm o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
+                              (SHCompose fm (P2:=P) (P1:=Pg)
+                                         (liftM_HOperator fm (P:=Pg) (Q:=Qg) g PQg)
+                                         (GathH fm i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)
+                                         QP3
+                              )
+                              QP4)
+                   plus
+                   PQh
+    .
+
     Proof.
+      unfold equiv, SHOperator_equiv.
+      simpl.
       eapply ext_equiv_applied_iff'.
       -
         split; try apply vec_Setoid.
