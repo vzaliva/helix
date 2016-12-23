@@ -514,16 +514,16 @@ Section SigmaHCOLExpansionRules.
             {Q Qs: rvector n → Prop}
             {Qg Pk: vector Rtheta (1 + 1) → Prop}
             {Qk Ps: rvector 1 → Prop}
-            {PQo: forall x : rvector (n + n), P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
-            {KG: forall x : vector Rtheta (1 + 1), Qg x → Pk x}
-            {SK: forall x : rvector 1, Qk x → Ps x}
-            {PQ1: forall j (x: rvector (1 + 1)), Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
-            {PQg: ∀ t tc (y:rvector (n+n)), P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
-            {PQs: ∀ t tc (y:svector Monoid_RthetaFlags 1), Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
-            {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (@SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))}
+            {PQo: forall x, P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
+            {KG: forall x, Qg x → Pk x}
+            {SK: forall x, Qk x → Ps x}
+            {PQ1: forall j x, Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
+            {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
+            {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
+            {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))}
             {PQ2: forall x, P x -> Q (Diamond' CarrierAplus zero
-                                         (op_family_op Monoid_RthetaFlags (P:=P) (Q:=Qs)
-                                                       (SparseEmbedding Monoid_RthetaFlags (Pg:=P) (Qs:=Qs) (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG) (PQg:=PQg) (PQs:=PQs)
+                                         (op_family_op Monoid_RthetaFlags
+                                                       (SparseEmbedding Monoid_RthetaFlags (SK:=SK) (KG:=KG) (PQg:=PQg) (PQs:=PQs)
                                                                         (λ (j : nat) (_ : j < n),
                                                                          SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
                                                                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
@@ -531,23 +531,12 @@ Section SigmaHCOLExpansionRules.
                                                                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
                                          )) x)}
       :
-        @SHBinOp Monoid_RthetaFlags n P Q f f_mor PQo
+        SHBinOp Monoid_RthetaFlags f PQo
         =
-        @USparseEmbedding
-          n
-          (n+n) n
-          (1+1) 1
-          Pk Qk
-          Ps Qs
-          P  Qg
-          SK KG
-          (fun j _ => @SHBinOp Monoid_RthetaFlags 1 Pk Qk (SwapIndex2 j f) (SwapIndex2_specialized_proper j f (f_mor:=f_mor)) (PQ1 j))
-          KD
-          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-          h_j_1_family_injective
-          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
-          PQg PQs
-          Q PQ2.
+        USparseEmbedding (PQ:=PQ2)
+                         (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))
+                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
       unfold equiv, SHOperator_equiv.
       simpl.
@@ -567,9 +556,9 @@ Section SigmaHCOLExpansionRules.
         symmetry.
         unfold SparseEmbedding, Diamond', Apply_Family', MUnion'. simpl.
         admit.
-        (*
+    (*
         apply U_SAG2; assumption.
-         *)
+     *)
     Admitted.
 
 
