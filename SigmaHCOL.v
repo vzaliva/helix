@@ -73,6 +73,15 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op
            }.
 
+    Record SHOperatorFamily
+           {i o n: nat}
+           {fPreCond: svector fm i → Prop}
+           {fPostCond: svector fm o → Prop}
+      : Type
+      := mkSHOperatorFamily {
+             family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
+           }.
+
     Class DensityPreserving
           {i o:nat}
           {P Q}
@@ -275,49 +284,55 @@ Section SigmaHCOL_Operators.
     (** Apply family of functions to same fector and return matrix of results *)
     Definition Apply_Family'
                {i o n}
-               (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
+               (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
                (v: svector fm i) :
       vector (svector fm o) n :=
       Vbuild
-        (λ (j:nat) (jc:j<n),  (op_family j jc) v).
+        (λ (j:nat) (jc:j<n),  (op_family_f j jc) v).
 
     Global Instance Apply_Family'_proper
            {i o n}
-           (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
-           (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
+           (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
+           (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
       :
-        Proper ((=) ==> (=)) (@Apply_Family' i o n op_family).
+        Proper ((=) ==> (=)) (@Apply_Family' i o n op_family_f).
     Proof.
       intros x y E.
       unfold Apply_Family'.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
-      apply op_family_proper, E.
+      apply op_family_f_proper, E.
     Qed.
 
     (* Mapping SHOperator family to family of underlying "raw" functions *)
-    Definition op_family_op
+    Definition get_family_op
                {i o n} {P Q}
-               (op_family: forall k, (k<n) -> @SHOperator i o P Q):
+               (op_family: @SHOperatorFamily i o n P Q):
       forall j (jc:j<n), svector fm i -> svector fm o
-      := fun j (jc:j<n) => op (op_family j jc).
+      := fun j (jc:j<n) => op (family_member op_family j jc).
+
+    Definition get_family_proper
+               {i o n} {P Q}
+               (op_family: @SHOperatorFamily i o n P Q):
+      forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
+      := fun j (jc:j<n) => op_proper (family_member op_family j jc).
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
     Definition Apply_Family
                {i o n} {P Q}
-               (op_family: forall k, (k<n) -> @SHOperator i o P Q)
+               (op_family: @SHOperatorFamily i o n P Q)
       :=
-        Apply_Family' (op_family_op op_family).
+        Apply_Family' (get_family_op op_family).
 
     Global Instance Apply_Family_proper
            {i o n} {P Q}
-           (op_family: forall k, (k<n) -> @SHOperator i o P Q):
+           (op_family: @SHOperatorFamily i o n P Q):
       Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family).
     Proof.
       intros x y E.
       apply Apply_Family'_proper.
       - intros k kc.
-        apply op_family.
+        apply get_family_proper.
       - apply E.
     Qed.
 
@@ -615,8 +630,9 @@ Section SigmaHCOL_Operators.
                (* Kernel-to-Gather glue *)
                {KG: ∀ x : svector fm ki, Qg x → Pk x}
                (* Kernel *)
-               (kernel: forall k, (k<n) -> @SHOperator ki ko Pk Qk)
-               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (kernel k kc)}
+               (kernel: @SHOperatorFamily ki ko n Pk Qk)
+               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (family_member
+                                                                      kernel k kc)}
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
@@ -626,13 +642,14 @@ Section SigmaHCOL_Operators.
                {PQg: ∀ t tc (y:svector fm i), Pg y → Qg (Gather' (⦃ g ⦄ t tc) y)}
                (* Scatter pre and post conditions relation *)
                {PQs: ∀ t tc (y:svector fm ko), Ps y → Qs (Scatter' (⦃ f ⦄ t tc) y)}
-      : forall (j:nat) (jc:j<n), @SHOperator i o Pg Qs
-      := fun (j:nat) (jc:j<n) =>
-           (Scatter (⦃f⦄ j jc)
-                    (f_inj:=index_map_family_member_injective f_inj j jc)
-                    (PQs j jc))
-             ⊚(SK) (kernel j jc)
-             ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc)).
+      : @SHOperatorFamily i o n Pg Qs
+      := mkSHOperatorFamily i o n Pg Qs
+                            (fun (j:nat) (jc:j<n) =>
+                               (Scatter (⦃f⦄ j jc)
+                                        (f_inj:=index_map_family_member_injective f_inj j jc)
+                                        (PQs j jc))
+                                 ⊚(SK) (family_member kernel j jc)
+                                 ⊚(KG) (Gather (⦃g⦄ j jc) (PQg j jc))).
 
   End FlagsMonoidGenericOperators.
 
@@ -675,7 +692,7 @@ Section SigmaHCOL_Operators.
   CarrierA type) *)
   Class IUnionFriendly
         {i o n} {P Q}
-        (op_family: forall k (kc: k<n), @SHOperator Monoid_RthetaFlags i o P Q)
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
     :=
       iunion_friendly: forall x, Vforall (Vunique Is_Val)
                                     (transpose
@@ -687,10 +704,10 @@ Section SigmaHCOL_Operators.
              {fm}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (op_family: forall k (kc:k<n), svector fm i -> svector fm o)
+             (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
              (v:svector fm i): svector fm o
     :=
-      MUnion' fm dot initial (@Apply_Family' fm i o n op_family v).
+      MUnion' fm dot initial (@Apply_Family' fm i o n op_family_f v).
 
 
   Global Instance Diamond'_Proper
@@ -699,9 +716,9 @@ Section SigmaHCOL_Operators.
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
-         (op_family: forall k (kc:k<n), svector fm i -> svector fm o)
-         (op_family_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family k kc))
-    : Proper ((=) ==> (=)) (Diamond' dot initial op_family).
+         (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
+         (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
+    : Proper ((=) ==> (=)) (Diamond' dot initial op_family_f).
   Proof.
     intros x y E.
     unfold Diamond'.
@@ -720,19 +737,19 @@ Section SigmaHCOL_Operators.
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
-             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaFlags i o P Q)
+             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
-             {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (op_family_op Monoid_RthetaFlags op_family) x)}
+             {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
 
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
-                     (Diamond' dot initial (op_family_op Monoid_RthetaFlags op_family))
+                     (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
                      PQ _).
     apply Diamond'_Proper.
     apply pdot.
-    apply op_family.
+    apply get_family_proper.
   Defined.
 
   Definition ISumUnion
@@ -742,7 +759,7 @@ Section SigmaHCOL_Operators.
              {Q: rvector o → Prop}
              (* IUnion post-condition *)
              {R: rvector o → Prop}
-             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaFlags i o P Q)
+             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !IUnionFriendly op_family}
              {PQ}
     :=
@@ -764,17 +781,17 @@ Section SigmaHCOL_Operators.
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
-             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q)
-             {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (op_family_op Monoid_RthetaSafeFlags op_family) x)}
+             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n P Q)
+             {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family) x)}
     : @SHOperator Monoid_RthetaSafeFlags i o P R.
   Proof.
     refine(
         mkSHOperator Monoid_RthetaSafeFlags i o P R
-                     (Diamond' dot initial (op_family_op Monoid_RthetaSafeFlags op_family))
+                     (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                      PQ _).
     apply Diamond'_Proper.
     apply pdot.
-    apply op_family.
+    apply get_family_proper.
   Defined.
 
   Definition ISumReduction
@@ -784,7 +801,7 @@ Section SigmaHCOL_Operators.
              {Q: rsvector o → Prop}
              (* IUnion post-condition *)
              {R: rsvector o → Prop}
-             (op_family: forall k (kc:k<n), @SHOperator Monoid_RthetaSafeFlags i o P Q)
+             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n P Q)
              {PQ}
     :=
       @IReduction i o n P Q R plus _ zero op_family PQ.
@@ -835,8 +852,8 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        (* Kernel-to-Gather glue *)
        {KG: ∀ x : rvector ki, Qg x → Pk x}
        (* Kernel *)
-       (kernel: forall k, (k<n) -> @SHOperator Monoid_RthetaFlags ki ko Pk Qk)
-       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+       (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
+       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
@@ -868,7 +885,7 @@ Proof.
   unfold Vnth_aux.
   unfold SparseEmbedding.
   unfold SHCompose, compose.
-  unfold op_family_op.
+  unfold get_family_op.
   simpl.
 
   generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) x) as x0; intros x0.
@@ -904,8 +921,8 @@ Definition USparseEmbedding
            (* Kernel-to-Gather glue *)
            {KG: ∀ x : rvector ki, Qg x → Pk x}
            (* Kernel *)
-           (kernel: forall k, (k<n) -> @SHOperator Monoid_RthetaFlags ki ko Pk Qk)
-           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (kernel k kc)}
+           (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
+           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
@@ -918,8 +935,8 @@ Definition USparseEmbedding
            (* ISumUnion glue *)
            {PQ: forall (x:vector Rtheta i),
                Pg x -> R (Diamond' CarrierAplus zero
-                                  (op_family_op Monoid_RthetaFlags
-                                                (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
+                                  (get_family_op Monoid_RthetaFlags
+                                                 (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
   : @SHOperator Monoid_RthetaFlags i o Pg R
   :=
     ISumUnion (PQ:=PQ)
