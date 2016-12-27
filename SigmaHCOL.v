@@ -234,7 +234,7 @@ Section SigmaHCOL_Operators.
             (forall x, P1 x -> P2 x) /\
             (forall y, Q2 y -> Q1 y).
 
-      Global Instance SubtypeTransitive_PropSHOperator
+      Global Instance SubtypeTransitive_SHOperator
              {i o} {P1 P2 P3 Q1 Q2 Q3}:
         SubtypeTransitive (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2) (@SHOperator i o P3 Q3).
       Proof.
@@ -243,6 +243,25 @@ Section SigmaHCOL_Operators.
         unfold subtype, Subtype_SHOperator in *.
         auto.
       Qed.
+
+      Global Instance Subtype_SHOperatorFamily
+             {i o n} {P1 P2 Q1 Q2}:
+        Subtype (@SHOperatorFamily i o n P1 Q1) (@SHOperatorFamily i o n P2 Q2)
+        :=
+          fun a b =>
+            (forall x, P1 x -> P2 x) /\
+            (forall y, Q2 y -> Q1 y).
+
+      Global Instance SubtypeTransitive_SHOperatorFamily
+             {i o n} {P1 P2 P3 Q1 Q2 Q3}:
+        SubtypeTransitive (@SHOperatorFamily i o n P1 Q1) (@SHOperatorFamily i o n P2 Q2) (@SHOperatorFamily i o n P3 Q3).
+      Proof.
+        intros v u t.
+        intros [H1P H1Q] [H2P H2Q].
+        unfold subtype, Subtype_SHOperatorFamily in *.
+        auto.
+      Qed.
+
 
     End Subtyping.
 
