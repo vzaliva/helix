@@ -810,7 +810,9 @@ End SigmaHCOL_Operators.
 
 (* re-define notation outside a section *)
 Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
-
+(* re-define notation outside the section *)
+Infix "<:" := subtype (at level 40) : type_scope.
+Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
 
 
 (* TODO: maybe <->  *)

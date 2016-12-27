@@ -87,10 +87,6 @@ Section TSigmaHCOLOperators.
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
   just Union of two vectors, produced by application of two operators
   to the input.
-
-     This is very specialized implementation. In future, if we have more
-     TSHOperator2 instances, it makes sense to use approach similar to what
-     we are using for SigmaHCOL with AddPrepost wrapper.
    *)
   Definition HTSUMUnion {i o}
              {P: svector fm i -> Prop}
@@ -107,5 +103,35 @@ Section TSigmaHCOLOperators.
                                              (op fm op2) (op_proper fm op2)
                                              dot dot_mor).
 
+  Section SubtypeHTSUMUnion.
+    Variable i o : nat.
+    Variable dot: CarrierA -> CarrierA -> CarrierA.
+    Variable dot_mor: Proper ((=) ==> (=) ==> (=)) dot.
+
+    Variable P: svector fm i -> Prop.
+    Variable Q Q1 Q2: svector fm o -> Prop.
+    Variable op1: @SHOperator fm i o P Q1.
+    Variable op2: @SHOperator fm i o P Q2.
+    Variable PQ: forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x).
+
+    Variable P': svector fm i -> Prop.
+    Variable Q' Q1' Q2': svector fm o -> Prop.
+    Variable op1': @SHOperator fm i o P' Q1'.
+    Variable op2': @SHOperator fm i o P' Q2'.
+    Variable PQ': forall x : svector fm i, P' x → Q' (HTSUMUnion' dot (op fm op1') (op fm op2') x).
+
+    Lemma HTSUMUnion_subtype
+          (S1: op1 <: op1')
+          (S2: op2 <: op2')
+          (QQ: forall y, Q' y -> Q y)
+      :
+      (HTSUMUnion op1 op2 dot PQ) <: (HTSUMUnion op1' op2' dot PQ').
+    Proof.
+      split.
+      apply S1.
+      apply QQ.
+    Qed.
+
+  End SubtypeHTSUMUnion.
 
 End TSigmaHCOLOperators.
