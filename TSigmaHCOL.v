@@ -144,13 +144,14 @@ Section TSigmaHCOLOperators.
           {op2: @SHOperator fm i o P Q2}
           {dot: CarrierA -> CarrierA -> CarrierA}:
       (forall y1 y2 : svector fm o,
-          Q1 y1 /\ Q2 y2 → Q (Vmap2 (Union fm dot) y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
+          Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
     Proof.
       intros QQQ x Px.
-      unfold HTSUMUnion', Vec2Union.
+      unfold HTSUMUnion'.
+      unfold Vec2Union in *.
       destruct op1, op2.
       auto.
-    Defined.
+    Qed.
 
     Definition AltHTSUMUnion {i o}
                {P: svector fm i -> Prop}
@@ -161,7 +162,7 @@ Section TSigmaHCOLOperators.
                `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
                (PQ:
                   forall y1 y2 : svector fm o,
-                    Q1 y1 /\ Q2 y2 → Q (Vmap2 (Union fm dot) y1 y2))
+                    Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2))
       : @SHOperator fm i o P Q
       := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (SimplHTSUMUnionPQ PQ)
                       (@HTSUMUnion'_arg_Proper i o
