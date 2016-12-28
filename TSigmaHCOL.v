@@ -37,6 +37,10 @@ Section TSigmaHCOLOperators.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
+  (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
+  just Union of two vectors, produced by application of two operators
+  to the input.
+   *)
   Definition HTSUMUnion' {i o}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (op1: svector fm i -> svector fm o)
@@ -84,11 +88,39 @@ Section TSigmaHCOLOperators.
     - apply op2_proper.
   Qed.
 
-  (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
-  just Union of two vectors, produced by application of two operators
-  to the input.
-   *)
+  Lemma TightenHTSUMUnionPQ {i o}
+        {P: svector fm i -> Prop}
+        {Q Q1 Q2: svector fm o -> Prop}
+        {op1: @SHOperator fm i o P Q1}
+        {op2: @SHOperator fm i o P Q2}
+        {dot: CarrierA -> CarrierA -> CarrierA}:
+    (forall y1 y2 : svector fm o,
+        Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
+  Proof.
+    intros QQQ x Px.
+    unfold HTSUMUnion'.
+    unfold Vec2Union in *.
+    destruct op1, op2.
+    auto.
+  Qed.
+
   Definition HTSUMUnion {i o}
+             {P: svector fm i -> Prop}
+             {Q Q1 Q2: svector fm o -> Prop}
+             (op1: @SHOperator fm i o P Q1)
+             (op2: @SHOperator fm i o P Q2)
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+             (PQ: forall y1 y2 : svector fm o,  Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2))
+    : @SHOperator fm i o P Q
+    := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (TightenHTSUMUnionPQ PQ)
+                    (@HTSUMUnion'_arg_Proper i o
+                                             (op fm op1) (op_proper fm op1)
+                                             (op fm op2) (op_proper fm op2)
+                                             dot dot_mor).
+
+  (* This is strict version of HTSUmunion. While it produces the same SHOperator instance as the regular one, it takes more strict PQ parameter, which could depend on actual values produced by operators. For comparison, HTSUMUnion's PQ only dependes on operators' pre- and post- conditions *)
+  Definition StrictHTSUMUnion {i o}
              {P: svector fm i -> Prop}
              {Q Q1 Q2: svector fm o -> Prop}
              (op1: @SHOperator fm i o P Q1)
@@ -112,20 +144,38 @@ Section TSigmaHCOLOperators.
     Variable Q Q1 Q2: svector fm o -> Prop.
     Variable op1: @SHOperator fm i o P Q1.
     Variable op2: @SHOperator fm i o P Q2.
-    Variable PQ: forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x).
 
     Variable P': svector fm i -> Prop.
     Variable Q' Q1' Q2': svector fm o -> Prop.
     Variable op1': @SHOperator fm i o P' Q1'.
     Variable op2': @SHOperator fm i o P' Q2'.
-    Variable PQ': forall x : svector fm i, P' x → Q' (HTSUMUnion' dot (op fm op1') (op fm op2') x).
 
+    Lemma StrictHTSUMUnion_subtype
+          (S1: op1 <: op1')
+          (S2: op2 <: op2')
+          {PQ : forall x : svector fm i, P  x → Q  (HTSUMUnion' dot (op fm op1 ) (op fm op2 ) x)}
+          {PQ': forall x : svector fm i, P' x → Q' (HTSUMUnion' dot (op fm op1') (op fm op2') x)}
+          (QQ: forall y, Q' y -> Q y)
+      :
+        (StrictHTSUMUnion op1 op2 dot PQ) <: (StrictHTSUMUnion op1' op2' dot PQ').
+    Proof.
+      split.
+      apply S1.
+      apply QQ.
+    Qed.
+
+    (* It is not possible to use QQ in the form:
+         (forall y1 y2, Q1 y1 /\ Q2 y2 -> Q1' y1 /\ Q2' y2)
+       Since SHOperator instrnally store strcter for of PQ which could not be generalized back to his one.
+     *)
     Lemma HTSUMUnion_subtype
           (S1: op1 <: op1')
           (S2: op2 <: op2')
+          (PQ:  forall y1 y2 : svector fm o, Q1  y1 /\ Q2  y2 → Q  (Vec2Union fm dot y1 y2))
+          (PQ': forall y1 y2 : svector fm o, Q1' y1 /\ Q2' y2 → Q' (Vec2Union fm dot y1 y2))
           (QQ: forall y, Q' y -> Q y)
       :
-      (HTSUMUnion op1 op2 dot PQ) <: (HTSUMUnion op1' op2' dot PQ').
+        (HTSUMUnion op1 op2 dot PQ) <: (HTSUMUnion op1' op2' dot PQ').
     Proof.
       split.
       apply S1.
@@ -134,41 +184,5 @@ Section TSigmaHCOLOperators.
 
   End SubtypeHTSUMUnion.
 
-
-  Section AltHTSUMUnion.
-
-    Lemma SimplHTSUMUnionPQ {i o}
-          {P: svector fm i -> Prop}
-          {Q Q1 Q2: svector fm o -> Prop}
-          {op1: @SHOperator fm i o P Q1}
-          {op2: @SHOperator fm i o P Q2}
-          {dot: CarrierA -> CarrierA -> CarrierA}:
-      (forall y1 y2 : svector fm o,
-          Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
-    Proof.
-      intros QQQ x Px.
-      unfold HTSUMUnion'.
-      unfold Vec2Union in *.
-      destruct op1, op2.
-      auto.
-    Qed.
-
-    Definition AltHTSUMUnion {i o}
-               {P: svector fm i -> Prop}
-               {Q Q1 Q2: svector fm o -> Prop}
-               (op1: @SHOperator fm i o P Q1)
-               (op2: @SHOperator fm i o P Q2)
-               (dot: CarrierA -> CarrierA -> CarrierA)
-               `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-               (PQ:
-                  forall y1 y2 : svector fm o,
-                    Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2))
-      : @SHOperator fm i o P Q
-      := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (SimplHTSUMUnionPQ PQ)
-                      (@HTSUMUnion'_arg_Proper i o
-                                               (op fm op1) (op_proper fm op1)
-                                               (op fm op2) (op_proper fm op2)
-                                               dot dot_mor).
-  End AltHTSUMUnion.
 
 End TSigmaHCOLOperators.
