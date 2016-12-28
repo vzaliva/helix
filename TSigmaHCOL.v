@@ -134,4 +134,40 @@ Section TSigmaHCOLOperators.
 
   End SubtypeHTSUMUnion.
 
+
+  Section AltHTSUMUnion.
+
+    Lemma SimplHTSUMUnionPQ {i o}
+          {P: svector fm i -> Prop}
+          {Q Q1 Q2: svector fm o -> Prop}
+          {op1: @SHOperator fm i o P Q1}
+          {op2: @SHOperator fm i o P Q2}
+          {dot: CarrierA -> CarrierA -> CarrierA}:
+      (forall y1 y2 : svector fm o,
+          Q1 y1 /\ Q2 y2 → Q (Vmap2 (Union fm dot) y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
+    Proof.
+      intros QQQ x Px.
+      unfold HTSUMUnion', Vec2Union.
+      destruct op1, op2.
+      auto.
+    Defined.
+
+    Definition AltHTSUMUnion {i o}
+               {P: svector fm i -> Prop}
+               {Q Q1 Q2: svector fm o -> Prop}
+               (op1: @SHOperator fm i o P Q1)
+               (op2: @SHOperator fm i o P Q2)
+               (dot: CarrierA -> CarrierA -> CarrierA)
+               `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+               (PQ:
+                  forall y1 y2 : svector fm o,
+                    Q1 y1 /\ Q2 y2 → Q (Vmap2 (Union fm dot) y1 y2))
+      : @SHOperator fm i o P Q
+      := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (SimplHTSUMUnionPQ PQ)
+                      (@HTSUMUnion'_arg_Proper i o
+                                               (op fm op1) (op_proper fm op1)
+                                               (op fm op2) (op_proper fm op2)
+                                               dot dot_mor).
+  End AltHTSUMUnion.
+
 End TSigmaHCOLOperators.
