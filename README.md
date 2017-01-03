@@ -9,5 +9,6 @@ BRANCH INFO: porting to Coq-8.5.1
 * [CoLoR](http://color.inria.fr/)
 * [ExtLib](https://github.com/coq-ext-lib/coq-ext-lib)
 * [math-classes](https://github.com/math-classes/math-classes)
+* [coq-dpdgraph] (https://github.com/Karmaki/coq-dpdgraph) (optional)
 
 Questions: [Vadim Zaliva](mailto:vzaliva@cmu.edu)
