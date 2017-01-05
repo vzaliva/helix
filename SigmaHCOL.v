@@ -674,6 +674,8 @@ Section SigmaHCOL_Operators.
 
   (* re-define notation outside a section *)
   Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+  Infix "<:" := subtype (at level 40) : type_scope.
+  Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
 
   Section MUnion.
 
@@ -770,6 +772,34 @@ Section SigmaHCOL_Operators.
     apply pdot.
     apply get_family_proper.
   Defined.
+
+
+  Lemma IUnion_subtype
+        {i o n}
+        (* op_family pre and post conditions *)
+        {P P': rvector i → Prop}
+        {Q Q': rvector o → Prop}
+        (* IUnion post-condition *)
+        {R R': rvector o → Prop}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+        (initial: CarrierA)
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
+        (op_family': @SHOperatorFamily Monoid_RthetaFlags i o n P' Q')
+        `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
+        `{Uf': !IUnionFriendly op_family'} (* This is artificial constraint *)
+        {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
+        {PQ': forall x:rvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family') x)}
+        (S: op_family <: op_family')
+        (RR: forall y, R' y -> R y)
+
+    :
+      (IUnion dot initial op_family (R:=R) (PQ:=PQ)) <: (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
+  Proof.
+    split.
+    apply S.
+    apply RR.
+  Qed.
 
   Definition ISumUnion
              {i o n}
