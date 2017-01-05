@@ -792,7 +792,6 @@ Section SigmaHCOL_Operators.
         {PQ': forall x:rvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family') x)}
         (S: op_family <: op_family')
         (RR: forall y, R' y -> R y)
-
     :
       (IUnion dot initial op_family (R:=R) (PQ:=PQ)) <: (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
@@ -842,6 +841,32 @@ Section SigmaHCOL_Operators.
     apply pdot.
     apply get_family_proper.
   Defined.
+
+
+  Lemma IReduction_subtype
+        {i o n}
+        (* op_family pre and post conditions *)
+        {P P': rsvector i → Prop}
+        {Q Q': rsvector o → Prop}
+        (* IReduction post-condition *)
+        {R R': rsvector o → Prop}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+        (initial: CarrierA)
+        (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n P Q)
+        (op_family': @SHOperatorFamily Monoid_RthetaSafeFlags i o n P' Q')
+        {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family) x)}
+        {PQ': forall x:rsvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family') x)}
+        (S: op_family <: op_family')
+        (RR: forall y, R' y -> R y)
+    :
+      (IReduction dot initial op_family (R:=R) (PQ:=PQ)) <: (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
+  Proof.
+    split.
+    apply S.
+    apply RR.
+  Qed.
+
 
   Definition ISumReduction
              {i o n}
@@ -986,8 +1011,8 @@ Definition USparseEmbedding
            (* ISumUnion glue *)
            {PQ: forall (x:vector Rtheta i),
                Pg x -> R (Diamond' CarrierAplus zero
-                                  (get_family_op Monoid_RthetaFlags
-                                                 (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
+                                   (get_family_op Monoid_RthetaFlags
+                                                  (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
   : @SHOperator Monoid_RthetaFlags i o Pg R
   :=
     ISumUnion (PQ:=PQ)
