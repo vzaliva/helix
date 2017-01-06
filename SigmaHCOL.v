@@ -770,17 +770,42 @@ row. *)
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
-             {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
-
+             {PQ: forall (mat: vector (rvector o) n),
+                 (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
+                 R (MUnion' Monoid_RthetaFlags dot initial mat)
+             }
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
                      (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
-                     PQ _).
-    apply Diamond'_Proper.
-    apply pdot.
-    apply get_family_proper.
+                     _ _).
+    -
+      intros x Px.
+      unfold Diamond'.
+      remember (Apply_Family' Monoid_RthetaFlags (get_family_op Monoid_RthetaFlags op_family) x) as mat'.
+      assert(M1: Vforall Q mat').
+      {
+        subst mat'.
+        unfold Apply_Family'.
+        apply Vforall_Vbuild.
+        intros j jc.
+        destruct op_family.
+        unfold get_family_op.
+        generalize (family_member Monoid_RthetaFlags {| family_member := family_member0 |} j jc) as f.
+        intros f.
+        destruct f.
+        auto.
+      }
+      assert(M2: MatrixWithNoRowCollisions mat').
+      {
+        subst mat'.
+        apply Uf, Px.
+      }
+      auto.
+    - apply Diamond'_Proper.
+      apply pdot.
+      apply get_family_proper.
   Defined.
 
 
@@ -798,8 +823,14 @@ row. *)
         (op_family': @SHOperatorFamily Monoid_RthetaFlags i o n P' Q')
         `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
         `{Uf': !FamilyIUnionFriendly op_family'} (* This is artificial constraint *)
-        {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
-        {PQ': forall x:rvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family') x)}
+        {PQ: forall (mat: vector (rvector o) n),
+            (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
+            R (MUnion' Monoid_RthetaFlags dot initial mat)
+        }
+        {PQ': forall (mat: vector (rvector o) n),
+            (Vforall Q' mat /\ MatrixWithNoRowCollisions mat) ->
+            R' (MUnion' Monoid_RthetaFlags dot initial mat)
+        }
         (S: op_family <: op_family')
         (RR: forall y, R' y -> R y)
     :
@@ -819,8 +850,7 @@ row. *)
              {R: rvector o → Prop}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !FamilyIUnionFriendly op_family}
-             {PQ : forall x : vector Rtheta i,
-                 P x → R (Diamond' CarrierAplus zero (get_family_op Monoid_RthetaFlags op_family) x)}
+             {PQ}
     :=
       @IUnion i o n P Q R CarrierAplus _ zero op_family Uf PQ .
 
@@ -945,9 +975,9 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
        (* Gather pre and post conditions relation *)
-       {PQg: ∀ t tc (y:svector Monoid_RthetaFlags i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+       {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
        (* Scatter pre and post conditions relation *)
-       {PQs: ∀ t tc (y:svector Monoid_RthetaFlags ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+       {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
   :
     FamilyIUnionFriendly
       (@SparseEmbedding Monoid_RthetaFlags
@@ -1015,16 +1045,13 @@ Definition USparseEmbedding
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
            (* Gather pre and post conditions relation *)
-           {PQg: ∀ t tc (y:svector Monoid_RthetaFlags i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+           {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
            (* Scatter pre and post conditions relation *)
-           {PQs: ∀ t tc (y:svector Monoid_RthetaFlags ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+           {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
            (* ISumUnion post-condition *)
            {R: vector Rtheta o → Prop}
            (* ISumUnion glue *)
-           {PQ: forall (x:vector Rtheta i),
-               Pg x -> R (Diamond' CarrierAplus zero
-                                   (get_family_op Monoid_RthetaFlags
-                                                  (SparseEmbedding Monoid_RthetaFlags kernel f g)) x)}
+           {PQ}
   : @SHOperator Monoid_RthetaFlags i o Pg R
   :=
     ISumUnion (PQ:=PQ)
