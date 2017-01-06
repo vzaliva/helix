@@ -714,11 +714,11 @@ Section SigmaHCOL_Operators.
   CarrierA type) *)
   Class IUnionFriendly
         {i o n} {P Q}
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
-      iunion_friendly: forall x, Vforall (Vunique Is_Val)
-                                    (transpose
-                                       (Apply_Family Monoid_RthetaFlags op_family x)).
+      iunion_friendly: forall x, P x -> Vforall (Vunique Is_Val)
+                                          (transpose
+                                             (Apply_Family Monoid_RthetaFlags op_family x)).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -810,7 +810,8 @@ Section SigmaHCOL_Operators.
              {R: rvector o → Prop}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !IUnionFriendly op_family}
-             {PQ}
+             {PQ : forall x : vector Rtheta i,
+                 P x → R (Diamond' CarrierAplus zero (get_family_op Monoid_RthetaFlags op_family) x)}
     :=
       @IUnion i o n P Q R CarrierAplus _ zero op_family Uf PQ .
 
@@ -949,6 +950,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
 Proof.
   unfold IUnionFriendly.
   intros x.
+  intros Pgx.
   apply Vforall_nth_intro.
   intros j jc.
   unfold Vunique.
