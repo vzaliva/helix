@@ -705,6 +705,16 @@ Section SigmaHCOL_Operators.
 
   End MUnion.
 
+  (** This is a definition of a structiral property of a sparse matrix
+stating that it will have at at most one non-structural element per
+row. *)
+  Definition MatrixWithNoRowCollisions
+             {m n: nat}
+             {fm: Monoid RthetaFlags}
+             (mat: vector (svector fm m) n) : Prop
+    :=
+      Vforall (Vunique Is_Val) (transpose mat).
+
   (** This class postulates a property of an operator family.
   A matrix produced by applying family of operators will have at
   at most one non-structural element per row. The name alludes to the
@@ -712,13 +722,12 @@ Section SigmaHCOL_Operators.
   collisions. It should be noted that this is structural
   constraint. It does not impose any restriction in actual values (of
   CarrierA type) *)
-  Class IUnionFriendly
+  Class FamilyIUnionFriendly
         {i o n} {P Q}
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
-      iunion_friendly: forall x, P x -> Vforall (Vunique Is_Val)
-                                          (transpose
-                                             (Apply_Family Monoid_RthetaFlags op_family x)).
+      iunion_friendly: forall x, P x -> MatrixWithNoRowCollisions
+                                    (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -760,7 +769,7 @@ Section SigmaHCOL_Operators.
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
+             `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
              {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
 
     : @SHOperator Monoid_RthetaFlags i o P R.
@@ -787,8 +796,8 @@ Section SigmaHCOL_Operators.
         (initial: CarrierA)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
         (op_family': @SHOperatorFamily Monoid_RthetaFlags i o n P' Q')
-        `{Uf: !IUnionFriendly op_family} (* This is artificial constraint *)
-        `{Uf': !IUnionFriendly op_family'} (* This is artificial constraint *)
+        `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
+        `{Uf': !FamilyIUnionFriendly op_family'} (* This is artificial constraint *)
         {PQ: forall x:rvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family) x)}
         {PQ': forall x:rvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family') x)}
         (S: op_family <: op_family')
@@ -809,7 +818,7 @@ Section SigmaHCOL_Operators.
              (* IUnion post-condition *)
              {R: rvector o → Prop}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             `{Uf: !IUnionFriendly op_family}
+             `{Uf: !FamilyIUnionFriendly op_family}
              {PQ : forall x : vector Rtheta i,
                  P x → R (Diamond' CarrierAplus zero (get_family_op Monoid_RthetaFlags op_family) x)}
     :=
@@ -940,7 +949,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        (* Scatter pre and post conditions relation *)
        {PQs: ∀ t tc (y:svector Monoid_RthetaFlags ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
   :
-    IUnionFriendly
+    FamilyIUnionFriendly
       (@SparseEmbedding Monoid_RthetaFlags
                         n i o ki ko Pk Qk Ps Qs Pg Qg SK KG
                         kernel KD
@@ -948,7 +957,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
                         g
                         PQg PQs).
 Proof.
-  unfold IUnionFriendly.
+  unfold FamilyIUnionFriendly.
   intros x.
   intros Pgx.
   apply Vforall_nth_intro.
@@ -1783,13 +1792,13 @@ Section StructuralProperies.
          {i o n}
          (op_family: forall k, (k<n) -> rvector i -> rvector o)
          `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
-         `{Uf: !IUnionFriendly op_family}
+         `{Uf: !FamilyIUnionFriendly op_family}
          {NC: forall k (kc: k<n), CauseNoCol _ (op_family k kc)}:
     CauseNoCol _ (SumUnion _ ∘ (Apply_Family _ op_family)).
   Proof.
     unfold compose, CauseNoCol.
     intros x Xcf.
-    unfold IUnionFriendly in Uf.
+    unfold FamilyIUnionFriendly in Uf.
     specialize (Uf x).
     unfold svector_is_non_collision.
     apply Vforall_nth_intro.
