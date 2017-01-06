@@ -521,9 +521,9 @@ Section SigmaHCOLExpansionRules.
             {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
             {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
             {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))}
-            {PQ2: ∀ mat : vector (svector Monoid_RthetaFlags n) n,
+            {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
                 Vforall Qs mat ∧ MatrixWithNoRowCollisions mat
-                → Q (MUnion' Monoid_RthetaFlags CarrierAplus zero mat)}
+                → Q (MUnion' Monoid_RthetaFlags d ini mat)}
 
       :
         SHBinOp Monoid_RthetaFlags f PQo

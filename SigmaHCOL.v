@@ -769,10 +769,10 @@ row. *)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
-             {PQ: forall (mat: vector (rvector o) n),
+             `{Uf: !FamilyIUnionFriendly op_family}
+             {PQ: forall (mat: vector (rvector o) n) d i,
                  (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
-                 R (MUnion' Monoid_RthetaFlags dot initial mat)
+                 R (MUnion' Monoid_RthetaFlags d i mat)
              }
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
@@ -821,15 +821,15 @@ row. *)
         (initial: CarrierA)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
         (op_family': @SHOperatorFamily Monoid_RthetaFlags i o n P' Q')
-        `{Uf: !FamilyIUnionFriendly op_family} (* This is artificial constraint *)
-        `{Uf': !FamilyIUnionFriendly op_family'} (* This is artificial constraint *)
-        {PQ: forall (mat: vector (rvector o) n),
+        `{Uf: !FamilyIUnionFriendly op_family}
+        `{Uf': !FamilyIUnionFriendly op_family'}
+        {PQ: forall (mat: vector (rvector o) n) d i,
             (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
-            R (MUnion' Monoid_RthetaFlags dot initial mat)
+            R (MUnion' Monoid_RthetaFlags d i mat)
         }
-        {PQ': forall (mat: vector (rvector o) n),
+        {PQ': forall (mat: vector (rvector o) n) d i,
             (Vforall Q' mat /\ MatrixWithNoRowCollisions mat) ->
-            R' (MUnion' Monoid_RthetaFlags dot initial mat)
+            R' (MUnion' Monoid_RthetaFlags d i mat)
         }
         (S: op_family <: op_family')
         (RR: forall y, R' y -> R y)
