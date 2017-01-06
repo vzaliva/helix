@@ -226,6 +226,7 @@ Section SigmaHCOL_Operators.
         tauto.
       Qed.
 
+      (* f <: f' *)
       Global Instance Subtype_SHOperator
              {i o} {P1 P2 Q1 Q2}:
         Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
@@ -235,8 +236,8 @@ Section SigmaHCOL_Operators.
             (forall y, Q2 y -> Q1 y).
 
       Global Instance SubtypeTransitive_SHOperator
-             {i o} {P1 P2 P3 Q1 Q2 Q3}:
-        SubtypeTransitive (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2) (@SHOperator i o P3 Q3).
+             {i o} {Pv Pu Pt Qv Qu Qt}:
+        SubtypeTransitive (@SHOperator i o Pv Qv) (@SHOperator i o Pu Qu) (@SHOperator i o Pt Qt).
       Proof.
         intros v u t.
         intros [H1P H1Q] [H2P H2Q].
