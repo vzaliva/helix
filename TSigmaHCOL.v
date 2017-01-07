@@ -94,8 +94,8 @@ Section TSigmaHCOLOperators.
         {op1: @SHOperator fm i o P Q1}
         {op2: @SHOperator fm i o P Q2}
         {dot: CarrierA -> CarrierA -> CarrierA}:
-    (forall y1 y2 : svector fm o,
-        Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
+    (forall (y1 y2 : svector fm o) d,
+        Q1 y1 /\ Q2 y2 → Q (Vec2Union fm d y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
   Proof.
     intros QQQ x Px.
     unfold HTSUMUnion'.
@@ -111,7 +111,7 @@ Section TSigmaHCOLOperators.
              (op2: @SHOperator fm i o P Q2)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (PQ: forall y1 y2 : svector fm o,  Q1 y1 /\ Q2 y2 → Q (Vec2Union fm dot y1 y2))
+             (PQ: forall (y1 y2 : svector fm o) d,  Q1 y1 /\ Q2 y2 → Q (Vec2Union fm d y1 y2))
     : @SHOperator fm i o P Q
     := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (TightenHTSUMUnionPQ PQ)
                     (@HTSUMUnion'_arg_Proper i o
@@ -171,8 +171,8 @@ Section TSigmaHCOLOperators.
     Lemma HTSUMUnion_subtype
           (S1: op1 <: op1')
           (S2: op2 <: op2')
-          (PQ:  forall y1 y2 : svector fm o, Q1  y1 /\ Q2  y2 → Q  (Vec2Union fm dot y1 y2))
-          (PQ': forall y1 y2 : svector fm o, Q1' y1 /\ Q2' y2 → Q' (Vec2Union fm dot y1 y2))
+          (PQ:  forall (y1 y2 : svector fm o) d, Q1  y1 /\ Q2  y2 → Q  (Vec2Union fm d y1 y2))
+          (PQ': forall (y1 y2 : svector fm o) d, Q1' y1 /\ Q2' y2 → Q' (Vec2Union fm d y1 y2))
           (QQ: forall y, Q' y -> Q y)
       :
         (HTSUMUnion op1 op2 dot PQ) <: (HTSUMUnion op1' op2' dot PQ').
