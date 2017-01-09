@@ -43,6 +43,25 @@ Import VectorNotations.
 Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
+
+Section Coercions.
+  Global Class Coerce (A B:Type) := coerce: A -> B -> Prop.
+
+  Infix "<:=" := coerce (at level 30) : type_scope.
+  Notation "(<:=)" := coerce (at level 30, only parsing) : type_scope.
+
+  (* f could be replaced with f'. Check both types (subtype) and
+  values (equiv). It is not symmetric *)
+  Global Instance Coerce_SHOperator
+         {i o} {fm} {P1 P2 Q1 Q2}
+         `{Subtype (@SHOperator fm i o P1 Q1) (@SHOperator fm i o P2 Q2)}
+    :
+      Coerce (@SHOperator fm i o P1 Q1) (@SHOperator fm i o P2 Q2)
+    :=
+      fun a b => (op fm a) = (op fm b).
+End Coercions.
+
+
 Section SigmaHCOLHelperLemmas.
   (*
 

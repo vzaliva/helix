@@ -88,22 +88,6 @@ Section TSigmaHCOLOperators.
     - apply op2_proper.
   Qed.
 
-  Lemma TightenHTSUMUnionPQ {i o}
-        {P: svector fm i -> Prop}
-        {Q Q1 Q2: svector fm o -> Prop}
-        {op1: @SHOperator fm i o P Q1}
-        {op2: @SHOperator fm i o P Q2}
-        {dot: CarrierA -> CarrierA -> CarrierA}:
-    (forall (y1 y2 : svector fm o) d,
-        Q1 y1 /\ Q2 y2 → Q (Vec2Union fm d y1 y2)) -> (forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x)).
-  Proof.
-    intros QQQ x Px.
-    unfold HTSUMUnion'.
-    unfold Vec2Union in *.
-    destruct op1, op2.
-    auto.
-  Qed.
-
   Definition HTSUMUnion {i o}
              {P: svector fm i -> Prop}
              {Q Q1 Q2: svector fm o -> Prop}
@@ -111,29 +95,21 @@ Section TSigmaHCOLOperators.
              (op2: @SHOperator fm i o P Q2)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (PQ: forall (y1 y2 : svector fm o) d,  Q1 y1 /\ Q2 y2 → Q (Vec2Union fm d y1 y2))
-    : @SHOperator fm i o P Q
-    := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) (TightenHTSUMUnionPQ PQ)
-                    (@HTSUMUnion'_arg_Proper i o
-                                             (op fm op1) (op_proper fm op1)
-                                             (op fm op2) (op_proper fm op2)
-                                             dot dot_mor).
-
-  (* This is strict version of HTSUmunion. While it produces the same SHOperator instance as the regular one, it takes more strict PQ parameter, which could depend on actual values produced by operators. For comparison, HTSUMUnion's PQ only dependes on operators' pre- and post- conditions *)
-  Definition StrictHTSUMUnion {i o}
-             {P: svector fm i -> Prop}
-             {Q Q1 Q2: svector fm o -> Prop}
-             (op1: @SHOperator fm i o P Q1)
-             (op2: @SHOperator fm i o P Q2)
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (PQ: forall x : svector fm i, P x → Q (HTSUMUnion' dot (op fm op1) (op fm op2) x))
-    : @SHOperator fm i o P Q
-    := mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) PQ
-                    (@HTSUMUnion'_arg_Proper i o
-                                             (op fm op1) (op_proper fm op1)
-                                             (op fm op2) (op_proper fm op2)
-                                             dot dot_mor).
+             (PQ: forall (y1 y2 : svector fm o) d,  (Q1 y1 /\ Q2 y2) → Q (Vec2Union fm d y1 y2))
+    : @SHOperator fm i o P Q.
+  Proof.
+    refine (
+        mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) _
+                     (@HTSUMUnion'_arg_Proper i o
+                                              (op fm op1) (op_proper fm op1)
+                                              (op fm op2) (op_proper fm op2)
+                                              dot dot_mor)).
+    intros x Px.
+    unfold HTSUMUnion'.
+    unfold Vec2Union in *.
+    destruct op1, op2.
+    auto.
+  Defined.
 
   Section SubtypeHTSUMUnion.
     Variable i o : nat.
@@ -150,24 +126,6 @@ Section TSigmaHCOLOperators.
     Variable op1': @SHOperator fm i o P' Q1'.
     Variable op2': @SHOperator fm i o P' Q2'.
 
-    Lemma StrictHTSUMUnion_subtype
-          (S1: op1 <: op1')
-          (S2: op2 <: op2')
-          {PQ : forall x : svector fm i, P  x → Q  (HTSUMUnion' dot (op fm op1 ) (op fm op2 ) x)}
-          {PQ': forall x : svector fm i, P' x → Q' (HTSUMUnion' dot (op fm op1') (op fm op2') x)}
-          (QQ: forall y, Q' y -> Q y)
-      :
-        (StrictHTSUMUnion op1 op2 dot PQ) <: (StrictHTSUMUnion op1' op2' dot PQ').
-    Proof.
-      split.
-      apply S1.
-      apply QQ.
-    Qed.
-
-    (* It is not possible to use QQ in the form:
-         (forall y1 y2, Q1 y1 /\ Q2 y2 -> Q1' y1 /\ Q2' y2)
-       Since SHOperator instrnally store strcter for of PQ which could not be generalized back to his one.
-     *)
     Lemma HTSUMUnion_subtype
           (S1: op1 <: op1')
           (S2: op2 <: op2')
