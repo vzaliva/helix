@@ -246,7 +246,7 @@ from Coq standard library. TODO: move to separate module  *)
              {i o} {P1 P2 Q1 Q2}:
         Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
         :=
-          fun a b =>
+          fun _ _ => (* does not depend on actual values. just types *)
             (forall x, P1 x -> P2 x) /\
             (forall y, Q2 y -> Q1 y).
 
@@ -264,7 +264,7 @@ from Coq standard library. TODO: move to separate module  *)
              {i o n} {P1 P2 Q1 Q2}:
         Subtype (@SHOperatorFamily i o n P1 Q1) (@SHOperatorFamily i o n P2 Q2)
         :=
-          fun a b =>
+          fun _ _ => (* does not depend on actual values. just types *)
             (forall x, P1 x -> P2 x) /\
             (forall y, Q2 y -> Q1 y).
 
