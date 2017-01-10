@@ -187,8 +187,6 @@ from Coq standard library. TODO: move to separate module  *)
 
     Section Subtyping.
 
-      Definition TrueP {A} := fun (_:A) => True.
-
       (* Subtyping relation between types A and B *)
       Global Class Subtype (A B:Type) := subtype: hrelation A B.
 
@@ -204,42 +202,6 @@ from Coq standard library. TODO: move to separate module  *)
             `{SUT: Subtype U T}
             `{SVT: Subtype V T} :=
         subclass_transitivity: HTransitive SVU SUT SVT.
-
-      Global Instance Subtype_Prop:
-        Subtype Prop Prop.
-      Proof.
-        unfold Subtype, hrelation.
-        intros a b.
-        exact (a -> b).
-      Defined.
-
-      Global Instance SubtypeTransitive_Prop:
-        SubtypeTransitive Prop Prop Prop.
-      Proof.
-        intros v u t.
-        intros H1 H2.
-        unfold subtype, Subtype_Prop in *.
-        tauto.
-      Qed.
-
-      Example PropSubtypeEx1 (x:nat): (x<1) <: (x<5).
-      Proof.
-        unfold subtype, Subtype_Prop.
-        lia.
-      Qed.
-
-      Example PropSubtypeEx2 (x:nat): (x<1) <: True.
-      Proof.
-        unfold subtype, Subtype_Prop.
-        tauto.
-      Qed.
-
-      Example PropSubtypeEx4 (x:nat): False <: (x<1).
-      Proof.
-        unfold subtype.
-        unfold Subtype_Prop.
-        tauto.
-      Qed.
 
       (* f <: f' *)
       Global Instance Subtype_SHOperator
