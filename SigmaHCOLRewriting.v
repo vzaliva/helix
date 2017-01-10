@@ -45,7 +45,7 @@ Local Open Scope nat_scope.
 
 
 Section Coercions.
-  Global Class Coerce (A B:Type) := coerce: A -> B -> Prop.
+  Global Class Coerce (A B:Type) := coerce: hrelation A B.
 
   Infix "<:=" := coerce (at level 30) : type_scope.
   Notation "(<:=)" := coerce (at level 30, only parsing) : type_scope.
@@ -59,6 +59,8 @@ Section Coercions.
       Coerce (@SHOperator fm i o P1 Q1) (@SHOperator fm i o P2 Q2)
     :=
       fun a b => (op fm a) = (op fm b).
+
+
 End Coercions.
 
 
