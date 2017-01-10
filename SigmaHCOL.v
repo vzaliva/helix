@@ -169,12 +169,28 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Transitive.
     Qed.
 
+
+    Section Heterogeneous_Relations.
+      (* Simple placholder for heterogenous relations definitions missing
+from Coq standard library. TODO: move to separate module  *)
+      Definition hrelation (A B : Type) := A -> B -> Prop.
+
+      Class HTransitive
+            {V U T: Type}
+            (R_VU: hrelation V U)
+            (R_UT: hrelation U T)
+            (R_VT: hrelation V T)
+        : Prop
+        := hetero_transitivity: forall v u t, R_VU v u → R_UT u t → R_VT v t.
+
+    End Heterogeneous_Relations.
+
     Section Subtyping.
 
       Definition TrueP {A} := fun (_:A) => True.
 
       (* Subtyping relation between types A and B *)
-      Global Class Subtype (A B:Type) := subtype: A -> B -> Prop.
+      Global Class Subtype (A B:Type) := subtype: hrelation A B.
 
       (* Revert to transparency to allow conversions during unification. *)
       (* Typeclasses Transparent Subtype. *)
@@ -186,14 +202,13 @@ Section SigmaHCOL_Operators.
             (V U T: Type)
             `{SVU: Subtype V U}
             `{SUT: Subtype U T}
-            `{SVT: Subtype V T}
-        : Prop
-        := hetero_transitivity: forall v u t, subtype v u → subtype u t → subtype v t.
+            `{SVT: Subtype V T} :=
+        subclass_transitivity: HTransitive SVU SUT SVT.
 
       Global Instance Subtype_Prop:
         Subtype Prop Prop.
       Proof.
-        unfold Subtype.
+        unfold Subtype, hrelation.
         intros a b.
         exact (a -> b).
       Defined.
