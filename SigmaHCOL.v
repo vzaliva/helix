@@ -44,6 +44,32 @@ Open Scope vector_scope.
 
 Global Open Scope nat_scope.
 
+Section Heterogeneous_Relations.
+  (* Simple placholder for heterogenous relations definitions missing
+from Coq standard library. TODO: move to separate module  *)
+  Definition hrelation (A B : Type) := A -> B -> Prop.
+
+  Class HTransitive
+        {V U T: Type}
+        (R_VU: hrelation V U)
+        (R_UT: hrelation U T)
+        (R_VT: hrelation V T)
+    : Prop
+    := hetero_transitivity: forall v u t, R_VU v u → R_UT u t → R_VT v t.
+
+  Section Relations_of_Relations.
+
+    Definition hinclusion {A B} (R1 R2:hrelation A B) : Prop :=
+      forall x y, R1 x y -> R2 x y.
+
+    Definition hsame_relation {A B} (R1 R2: hrelation A B) : Prop :=
+      hinclusion R1 R2 /\ hinclusion R2 R1.
+
+  End Relations_of_Relations.
+
+End Heterogeneous_Relations.
+
+
 (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
@@ -82,12 +108,16 @@ Section SigmaHCOL_Operators.
              family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
            }.
 
+    (* Operator's density preservatoin property defined as: if from pre-conditions it follows that the input is dense then from postconditions it must also follow the output is dense as well *)
     Class DensityPreserving
           {i o:nat}
-          {P Q}
+          {P: svector fm i -> Prop}
+          {Q: svector fm o -> Prop}
           (f: @SHOperator i o P Q)
       :=
-        o_den_pres : forall x, svector_is_dense fm x -> svector_is_dense fm (op f x).
+        o_den_pres : (forall x, P x -> svector_is_dense fm x) ->
+                     (forall x, P x -> Q (op f x) -> svector_is_dense fm (op f x)).
+
 
     (*
 
@@ -169,21 +199,6 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Transitive.
     Qed.
 
-
-    Section Heterogeneous_Relations.
-      (* Simple placholder for heterogenous relations definitions missing
-from Coq standard library. TODO: move to separate module  *)
-      Definition hrelation (A B : Type) := A -> B -> Prop.
-
-      Class HTransitive
-            {V U T: Type}
-            (R_VU: hrelation V U)
-            (R_UT: hrelation U T)
-            (R_VT: hrelation V T)
-        : Prop
-        := hetero_transitivity: forall v u t, R_VU v u → R_UT u t → R_VT v t.
-
-    End Heterogeneous_Relations.
 
     Section Subtyping.
 
@@ -268,7 +283,6 @@ from Coq standard library. TODO: move to separate module  *)
       reflexivity.
     Qed.
 
-    (* TODO: maybe post-condition is svector_is_dense? *)
     Definition liftM_HOperator
                {i o}
                {P: svector fm i -> Prop}
@@ -1342,11 +1356,12 @@ Section OperatorProperies.
     congruence.
     assumption.
   Qed.
-
 End OperatorProperies.
+*)
 
 Section StructuralProperies.
 
+(*
   Lemma ScatterCollisionFree
         {i o}
         (f: index_map i o)
@@ -1397,6 +1412,8 @@ Section StructuralProperies.
     apply Is_SZero_mkSZero.
   Qed.
 
+*)
+
   Section FlagsMonoidGenericStructuralProperties.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
@@ -1404,22 +1421,29 @@ Section StructuralProperies.
     (* All lifted HOperators are naturally density preserving *)
     Global Instance liftM_HOperator_DensityPreserving
            {i o}
-           (op: avector i -> avector o)
-           `{hop: !HOperator op}
-      : DensityPreserving fm (liftM_HOperator fm op).
+           {P: svector fm i -> Prop}
+           {Q: svector fm o -> Prop}
+           (f: avector i -> avector o)
+           `{HOP: HOperator i o f}
+           (PQ: forall x, P x -> Q (liftM_HOperator' fm f x))
+      : DensityPreserving fm (liftM_HOperator fm f PQ).
     Proof.
       unfold DensityPreserving.
-      intros x D.
+      intros D x Px Qy.
+      unfold liftM_HOperator in *.
+      simpl in *.
+      specialize (PQ x Px).
+      specialize (D x Px).
 
-      unfold liftM_HOperator, compose.
-      generalize (op (densify _ x)) as y. intros y.
+      unfold liftM_HOperator', compose.
+      generalize (f (densify fm x)) as y. intros y.
       unfold svector_is_dense, sparsify.
       apply Vforall_map_intro.
       apply Vforall_nth_intro.
       intros i0 ip.
       apply IsVal_mkValue.
     Qed.
-
+(*
     Global Instance liftM_HOperator_DenseCauseNoCol
            {i o}
            (op: avector i -> avector o)
@@ -1461,10 +1485,10 @@ Section StructuralProperies.
       congruence.
       reflexivity.
     Qed.
-
+*)
   End FlagsMonoidGenericStructuralProperties.
 
-
+(*
   Lemma Is_Val_LiftM2
         (f : CarrierA → CarrierA → CarrierA)
         (v1 v2 : Rtheta)
@@ -1828,6 +1852,6 @@ Section StructuralProperies.
       unfold Vnth_aux in Uf.
       apply Uf.
   Qed.
+ *)
 
 End StructuralProperies.
- *)
