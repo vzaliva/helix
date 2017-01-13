@@ -115,8 +115,7 @@ Section SigmaHCOL_Operators.
           {Q: svector fm o -> Prop}
           (f: @SHOperator i o P Q)
       :=
-        o_den_pres : (forall x, P x -> svector_is_dense fm x) ->
-                     (forall x, P x -> Q (op f x) -> svector_is_dense fm (op f x)).
+        o_den_pres : forall x, P x -> svector_is_dense fm x -> svector_is_dense fm (op f x).
 
 
     (*
@@ -1429,12 +1428,9 @@ Section StructuralProperies.
       : DensityPreserving fm (liftM_HOperator fm f PQ).
     Proof.
       unfold DensityPreserving.
-      intros D x Px Qy.
+      intros x Px Dx.
       unfold liftM_HOperator in *.
       simpl in *.
-      specialize (PQ x Px).
-      specialize (D x Px).
-
       unfold liftM_HOperator', compose.
       generalize (f (densify fm x)) as y. intros y.
       unfold svector_is_dense, sparsify.
