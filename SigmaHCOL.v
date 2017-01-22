@@ -108,16 +108,6 @@ Section SigmaHCOL_Operators.
              family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
            }.
 
-    (* Operator's density preservatoin property defined as: if from pre-conditions it follows that the input is dense then from postconditions it must also follow the output is dense as well *)
-    Class DensityPreserving
-          {i o:nat}
-          {P: svector fm i -> Prop}
-          {Q: svector fm o -> Prop}
-          (f: @SHOperator i o P Q)
-      :=
-        o_den_pres : forall x, P x -> svector_is_dense fm x -> svector_is_dense fm (op f x).
-
-
     (*
 
     (* Weaker condition: applied to a dense vector without collisions does not produce strucural collisions *)
@@ -260,6 +250,120 @@ Section SigmaHCOL_Operators.
     (* re-define notation outside the section *)
     Infix "<:" := subtype (at level 40) : type_scope.
     Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
+
+
+    (* Operator's density preservatoin property defined as: if from pre-conditions it follows that the input is dense then from postconditions it must also follow the output is dense as well *)
+
+    Definition widen_SHOperator
+               {i o:nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               {P': svector fm i -> Prop}
+               {Q': svector fm o -> Prop}
+               (f: @SHOperator i o P Q)
+               (PQ': ∀ x : svector fm i, P' x → Q' (op f x))
+      :
+        @SHOperator i o
+                    (fun x => P x /\ P' x)
+                    (fun y => Q y /\ Q' y).
+    Proof.
+      refine (
+          mkSHOperator _ _ _ _
+                       (op f)
+                       _
+                       (op_proper f)).
+      intros x [Px P'x].
+      split.
+      apply f, Px.
+      apply PQ', P'x.
+    Defined.
+
+    Definition densify_SHOperator
+               {i o:nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               (f: @SHOperator i o P Q)
+               (DD: forall x, svector_is_dense fm x -> svector_is_dense fm (op f x))
+      := widen_SHOperator f DD.
+
+    Definition narrow_SHOperator
+               {i o:nat}
+               {P: svector fm i -> Prop}
+               {Q: svector fm o -> Prop}
+               {P': svector fm i -> Prop}
+               {Q': svector fm o -> Prop}
+               (f: @SHOperator i o
+                               (fun x => P x /\ P' x)
+                               (fun y => Q y /\ Q' y))
+               (PP': ∀ x : svector fm i, P x → P' x)
+      : @SHOperator i o P Q.
+    Proof.
+      refine (
+          mkSHOperator _ _ _ _
+                       (op f)
+                       _
+                       (op_proper f)).
+      intros x Px.
+      apply f.
+      split.
+      - apply Px.
+      - apply PP'.
+        apply Px.
+    Defined.
+
+    Fact densify_is_subtype
+         {i o:nat}
+         {P: svector fm i -> Prop}
+         {Q: svector fm o -> Prop}
+         (f: @SHOperator i o P Q)
+         {DD}
+      :
+        (densify_SHOperator f DD) <: f.
+    Proof.
+      unfold subtype, Subtype_SHOperator.
+      split.
+      - tauto.
+      -
+        intros y H.
+
+
+
+
+      unfold subtype, Subtype_SHOperator.
+      split.
+      - tauto.
+      -
+        intros y Qy.
+        split.
+        +
+          apply Qy.
+        +
+    Qed
+
+    (* Direct definition
+
+    Class DensityPreserving
+          {i o:nat}
+          {P: svector fm i -> Prop}
+          {Q: svector fm o -> Prop}
+          (f: @SHOperator i o P Q)
+      :=
+        o_den_pres :
+          forall x, P x -> svector_is_dense fm x -> svector_is_dense fm (op f x).
+     *)
+
+    (* More generic definition. However this one has a problem as it require (Q y) to hold on all values of 'y', not just in range of (op f)
+    Class DensityPreserving
+          {i o:nat}
+          {P: svector fm i -> Prop}
+          {Q: svector fm o -> Prop}
+          (f: @SHOperator i o P Q)
+      :=
+        o_den_pres :
+            (forall x, P x -> svector_is_dense fm x) /\
+            (forall y, Q y -> svector_is_dense fm y).
+     *)
+
 
     Definition liftM_HOperator'
                {i o}
