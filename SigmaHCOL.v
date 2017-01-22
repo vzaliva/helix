@@ -90,8 +90,8 @@ Section SigmaHCOL_Operators.
 
     Record SHOperator
            {i o: nat}
-           {preCond : svector fm i → Prop}
-           {postCond : svector fm o → Prop}
+           {preCond : svector fm i -> Prop}
+           {postCond : svector fm o -> Prop}
       : Type
       := mkSHOperator {
              op: svector fm i -> svector fm o ;
