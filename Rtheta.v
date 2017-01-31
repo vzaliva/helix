@@ -102,6 +102,14 @@ Section CollisionTrackingRthetaFlags.
 
   Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
+
+  (* Monoid is just a record and equivalence is established pointwise on fields *)
+  Global Instance Monoid_equiv `{Equiv f}:
+    Equiv (Monoid f) :=
+    fun a b =>
+      (monoid_plus a = monoid_plus b) /\
+      (monoid_unit a = monoid_unit b).
+
   Lemma RthetaFlags_assoc:
     ∀ a b c : RthetaFlags,
       RthetaFlagsAppend (RthetaFlagsAppend a b) c

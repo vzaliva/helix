@@ -44,32 +44,6 @@ Open Scope vector_scope.
 
 Global Open Scope nat_scope.
 
-Section Heterogeneous_Relations.
-  (* Simple placholder for heterogenous relations definitions missing
-from Coq standard library. TODO: move to separate module  *)
-  Definition hrelation (A B : Type) := A -> B -> Prop.
-
-  Class HTransitive
-        {V U T: Type}
-        (R_VU: hrelation V U)
-        (R_UT: hrelation U T)
-        (R_VT: hrelation V T)
-    : Prop
-    := hetero_transitivity: forall v u t, R_VU v u → R_UT u t → R_VT v t.
-
-  Section Relations_of_Relations.
-
-    Definition hinclusion {A B} (R1 R2:hrelation A B) : Prop :=
-      forall x y, R1 x y -> R2 x y.
-
-    Definition hsame_relation {A B} (R1 R2: hrelation A B) : Prop :=
-      hinclusion R1 R2 /\ hinclusion R2 R1.
-
-  End Relations_of_Relations.
-
-End Heterogeneous_Relations.
-
-
 (* Returns an element of the vector 'x' which is result of mapping of given
 natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
@@ -99,6 +73,15 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op
            }.
 
+    Global Instance SHOperator_op_proper {i o P Q} (a:@SHOperator i o P Q):
+      Proper ((=) ==> (=)) (op a).
+    Proof.
+      intros v v' E.
+      destruct a.
+      rewrite E.
+      reflexivity.
+    Qed.
+
     Record SHOperatorFamily
            {i o n: nat}
            {fPreCond: svector fm i → Prop}
@@ -107,6 +90,21 @@ Section SigmaHCOL_Operators.
       := mkSHOperatorFamily {
              family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
            }.
+
+    (* Mapping SHOperator family to family of underlying "raw" functions *)
+    Definition get_family_op
+               {i o n} {P Q}
+               (op_family: @SHOperatorFamily i o n P Q):
+      forall j (jc:j<n), svector fm i -> svector fm o
+      := fun j (jc:j<n) => op (family_member op_family j jc).
+
+    Definition get_family_proper
+               {i o n} {P Q}
+               (op_family: @SHOperatorFamily i o n P Q):
+      forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
+      := fun j (jc:j<n) => op_proper (family_member op_family j jc).
+
+
 
     (*
 
@@ -191,156 +189,56 @@ Section SigmaHCOL_Operators.
 
     Section Subtyping.
 
-      (* Subtyping relation between types A and B *)
-      Global Class Subtype (A B:Type) := subtype: hrelation A B.
-
-      (* Revert to transparency to allow conversions during unification. *)
-      (* Typeclasses Transparent Subtype. *)
-
-      Infix "<:" := subtype (at level 40) : type_scope.
-      Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
-      Class SubtypeTransitive
-            (V U T: Type)
-            `{SVU: Subtype V U}
-            `{SUT: Subtype U T}
-            `{SVT: Subtype V T} :=
-        subclass_transitivity: HTransitive SVU SUT SVT.
-
-      (* f <: f' *)
-      Global Instance Subtype_SHOperator
-             {i o} {P1 P2 Q1 Q2}:
-        Subtype (@SHOperator i o P1 Q1) (@SHOperator i o P2 Q2)
+      (* a' <: a *)
+      Definition SHOperator_subtype
+                 {i o} {P1 P2 Q1 Q2}
+                 (a': @SHOperator i o P1 Q1) (a: @SHOperator i o P2 Q2): Prop
         :=
-          fun _ _ => (* does not depend on actual values. just types *)
-            (forall x, P1 x -> P2 x) /\
-            (forall y, Q2 y -> Q1 y).
+          (op a' = op a) /\
+          (forall x, P1 x -> P2 x) /\
+          (forall y, Q2 y -> Q1 y).
 
-      Global Instance SubtypeTransitive_SHOperator
-             {i o} {Pv Pu Pt Qv Qu Qt}:
-        SubtypeTransitive (@SHOperator i o Pv Qv) (@SHOperator i o Pu Qu) (@SHOperator i o Pt Qt).
+      Lemma SHOperator_subtype_transitive
+            {i o} {Pv Pu Pt Qv Qu Qt}
+            (a: @SHOperator i o Pv Qv)
+            (b: @SHOperator i o Pu Qu)
+            (c: @SHOperator i o Pt Qt):
+        SHOperator_subtype a b -> SHOperator_subtype b c -> SHOperator_subtype a c.
       Proof.
-        intros v u t.
-        intros [H1P H1Q] [H2P H2Q].
-        unfold subtype, Subtype_SHOperator in *.
-        auto.
+        unfold SHOperator_subtype.
+        crush.
       Qed.
 
-      Global Instance Subtype_SHOperatorFamily
-             {i o n} {P1 P2 Q1 Q2}:
-        Subtype (@SHOperatorFamily i o n P1 Q1) (@SHOperatorFamily i o n P2 Q2)
+      (* a' <: a *)
+      Definition SHOperatorFamily_subtype
+                 {i o n} {P1 P2 Q1 Q2}
+                 (a':@SHOperatorFamily i o n P1 Q1) (a:@SHOperatorFamily i o n P2 Q2): Prop
         :=
-          fun _ _ => (* does not depend on actual values. just types *)
-            (forall x, P1 x -> P2 x) /\
-            (forall y, Q2 y -> Q1 y).
+          (forall j (jc:j<n),
+              get_family_op a' j jc = get_family_op a j jc) /\
+          (forall x, P1 x -> P2 x) /\
+          (forall y, Q2 y -> Q1 y).
 
-      Global Instance SubtypeTransitive_SHOperatorFamily
-             {i o n} {P1 P2 P3 Q1 Q2 Q3}:
-        SubtypeTransitive (@SHOperatorFamily i o n P1 Q1) (@SHOperatorFamily i o n P2 Q2) (@SHOperatorFamily i o n P3 Q3).
+      Lemma SHOperatorFamily_subtype_transitive
+            {i o n} {P1 P2 P3 Q1 Q2 Q3}
+            (a: @SHOperatorFamily i o n P1 Q1)
+            (b: @SHOperatorFamily i o n P2 Q2)
+            (c: @SHOperatorFamily i o n P3 Q3):
+        SHOperatorFamily_subtype a b -> SHOperatorFamily_subtype b c -> SHOperatorFamily_subtype a c.
       Proof.
-        intros v u t.
-        intros [H1P H1Q] [H2P H2Q].
-        unfold subtype, Subtype_SHOperatorFamily in *.
-        auto.
+        unfold SHOperatorFamily_subtype, get_family_op.
+        intros [Rab0 [Rab1 Rab2]] [Rbc0 [Rbc1 Rbc2]].
+        split.
+        -
+          intros j jc.
+          rewrite Rab0, Rbc0.
+          apply op_proper.
+        -
+          auto.
       Qed.
 
 
     End Subtyping.
-
-    (* re-define notation outside the section *)
-    Infix "<:" := subtype (at level 40) : type_scope.
-    Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
-
-    (* Operator's density preservatoin property defined as: if from pre-conditions it follows that the input is dense then from postconditions it must also follow the output is dense as well *)
-
-    Definition widen_SHOperator
-               {i o:nat}
-               {P: svector fm i -> Prop}
-               {Q: svector fm o -> Prop}
-               {P': svector fm i -> Prop}
-               {Q': svector fm o -> Prop}
-               (f: @SHOperator i o P Q)
-               (PQ': ∀ x : svector fm i, P' x → Q' (op f x))
-      :
-        @SHOperator i o
-                    (fun x => P x /\ P' x)
-                    (fun y => Q y /\ Q' y).
-    Proof.
-      refine (
-          mkSHOperator _ _ _ _
-                       (op f)
-                       _
-                       (op_proper f)).
-      intros x [Px P'x].
-      split.
-      apply f, Px.
-      apply PQ', P'x.
-    Defined.
-
-    Definition densify_SHOperator
-               {i o:nat}
-               {P: svector fm i -> Prop}
-               {Q: svector fm o -> Prop}
-               (f: @SHOperator i o P Q)
-               (DD: forall x, svector_is_dense fm x -> svector_is_dense fm (op f x))
-      := widen_SHOperator f DD.
-
-    Definition narrow_SHOperator
-               {i o:nat}
-               {P: svector fm i -> Prop}
-               {Q: svector fm o -> Prop}
-               {P': svector fm i -> Prop}
-               {Q': svector fm o -> Prop}
-               (f: @SHOperator i o
-                               (fun x => P x /\ P' x)
-                               (fun y => Q y /\ Q' y))
-               (PP': ∀ x : svector fm i, P x → P' x)
-      : @SHOperator i o P Q.
-    Proof.
-      refine (
-          mkSHOperator _ _ _ _
-                       (op f)
-                       _
-                       (op_proper f)).
-      intros x Px.
-      apply f.
-      split.
-      - apply Px.
-      - apply PP'.
-        apply Px.
-    Defined.
-
-    Fact densify_is_subtype
-         {i o:nat}
-         {P: svector fm i -> Prop}
-         {Q: svector fm o -> Prop}
-         (f: @SHOperator i o P Q)
-         {DD}
-      :
-        (densify_SHOperator f DD) <: f.
-    Proof.
-      unfold subtype, Subtype_SHOperator.
-      split.
-      - tauto.
-      -
-        intros y H.
-
-
-
-
-      unfold subtype, Subtype_SHOperator.
-      split.
-      - tauto.
-      -
-        intros y Qy.
-        split.
-        +
-          apply Qy.
-        +
-    Qed
-
-    (* Direct definition
 
     Class DensityPreserving
           {i o:nat}
@@ -350,7 +248,6 @@ Section SigmaHCOL_Operators.
       :=
         o_den_pres :
           forall x, P x -> svector_is_dense fm x -> svector_is_dense fm (op f x).
-     *)
 
     (* More generic definition. However this one has a problem as it require (Q y) to hold on all values of 'y', not just in range of (op f)
     Class DensityPreserving
@@ -363,7 +260,6 @@ Section SigmaHCOL_Operators.
             (forall x, P x -> svector_is_dense fm x) /\
             (forall y, Q y -> svector_is_dense fm y).
      *)
-
 
     Definition liftM_HOperator'
                {i o}
@@ -417,19 +313,6 @@ Section SigmaHCOL_Operators.
       rewrite 2!Vbuild_nth.
       apply op_family_f_proper, E.
     Qed.
-
-    (* Mapping SHOperator family to family of underlying "raw" functions *)
-    Definition get_family_op
-               {i o n} {P Q}
-               (op_family: @SHOperatorFamily i o n P Q):
-      forall j (jc:j<n), svector fm i -> svector fm o
-      := fun j (jc:j<n) => op (family_member op_family j jc).
-
-    Definition get_family_proper
-               {i o n} {P Q}
-               (op_family: @SHOperatorFamily i o n P Q):
-      forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
-      := fun j (jc:j<n) => op_proper (family_member op_family j jc).
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
     Definition Apply_Family
@@ -572,7 +455,6 @@ Section SigmaHCOL_Operators.
         destruct op1, op2.
         simpl in *.
         auto.
-      - eapply compose_proper; [apply op1| apply op2].
     Defined.
 
     Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
@@ -616,21 +498,23 @@ Section SigmaHCOL_Operators.
       Variable op1' : @SHOperator o2 o3 P1' Q1'.
 
       Definition SHOperator_subtype_Q2'P1'
-                 (S1: op1 <: op1')
-                 (S2: op2 <: op2'):
+                 (S1: SHOperator_subtype op1 op1')
+                 (S2: SHOperator_subtype op2 op2'):
         (forall x : svector fm o2, Q2' x → P1' x).
       Proof.
         inversion S1.
         inversion S2.
-        auto.
+        crush.
       Defined.
 
       Lemma SHCompose_subtype
-            (S1: op1 <: op1')
-            (S2: op2 <: op2'):
-        (op1 ⊚ ( QP ) op2) <: (op1' ⊚( SHOperator_subtype_Q2'P1' S1 S2 ) op2').
+            (S1: SHOperator_subtype op1 op1')
+            (S2: SHOperator_subtype op2 op2'):
+        SHOperator_subtype (op1 ⊚ ( QP ) op2) (op1' ⊚( SHOperator_subtype_Q2'P1' S1 S2 ) op2').
       Proof.
-        split ;inversion S1; inversion S2; auto.
+        split ;inversion S1; inversion S2; crush.
+        apply compose_proper with (RA:=equiv) (RB:=equiv);
+          apply op_proper.
       Qed.
 
     End SubtypeComposion.
@@ -767,11 +651,6 @@ Section SigmaHCOL_Operators.
 
   End FlagsMonoidGenericOperators.
 
-  (* re-define notation outside a section *)
-  Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
-  Infix "<:" := subtype (at level 40) : type_scope.
-  Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
   Section MUnion.
 
     Variable fm:Monoid RthetaFlags.
@@ -897,11 +776,7 @@ row. *)
         apply Uf, Px.
       }
       auto.
-    - apply Diamond'_Proper.
-      apply pdot.
-      apply get_family_proper.
   Defined.
-
 
   Lemma IUnion_subtype
         {i o n}
@@ -925,14 +800,37 @@ row. *)
             (Vforall Q' mat /\ MatrixWithNoRowCollisions mat) ->
             R' (MUnion' Monoid_RthetaFlags d i mat)
         }
-        (S: op_family <: op_family')
+        (S: SHOperatorFamily_subtype Monoid_RthetaFlags op_family op_family')
         (RR: forall y, R' y -> R y)
     :
-      (IUnion dot initial op_family (R:=R) (PQ:=PQ)) <: (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
+      SHOperator_subtype Monoid_RthetaFlags
+        (IUnion dot initial op_family (R:=R) (PQ:=PQ))
+        (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
     split.
-    apply S.
-    apply RR.
+    -
+      crush.
+      apply Diamond'_proper.
+      f_equiv.
+      + admit.
+      + apply pdot.
+      + apply eq_refl.
+      +
+        unfold SHOperatorFamily_subtype in S.
+        destruct S as [H [H0 H1]].
+        apply ext_equiv_applied_iff with (x:=jc).
+        (*
+        unfold IUnion, Diamond', MUnion', Apply_Family';  simpl.
+        unfold equiv, ext_equiv.
+        simpl_relation.
+         *)
+
+    -
+      split.
+      unfold SHOperatorFamily_subtype in S.
+      destruct S as [H [H0 H1]].
+      apply H0.
+      apply RR.
   Qed.
 
   Definition ISumUnion
