@@ -73,7 +73,24 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op
            }.
 
-    Global Instance SHOperator_op_proper {i o P Q} (a:@SHOperator i o P Q):
+    (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
+    Global Instance SHOperator_equiv
+           {i o: nat} {P Q}:
+      Equiv (@SHOperator i o P Q) :=
+      fun a b => op a = op b.
+
+    Global Instance SHOperator_op_proper {i o P Q} :
+      Proper ((=) ==> (=) ==> (=)) (op (i:=i) (o:=o) (preCond:=P) (postCond:=Q)).
+    Proof.
+      intros f f' Ef v v' Ev.
+      destruct f as [fop op_pre_post op_proper].
+      destruct f' as [fop' op_pre_post' op_proper'].
+      simpl.
+      crush.
+    Qed.
+
+    (* TODO: is it really needed in presence of SHOperator_op_proper ? *)
+    Global Instance SHOperator_op_arg_proper {i o P Q} (a:@SHOperator i o P Q):
       Proper ((=) ==> (=)) (op a).
     Proof.
       intros v v' E.
@@ -91,7 +108,12 @@ Section SigmaHCOL_Operators.
              family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
            }.
 
-    (* Mapping SHOperator family to family of underlying "raw" functions *)
+    Global Instance SHOperatorFamily_equiv
+           {i o n: nat} {P Q}:
+      Equiv (@SHOperatorFamily i o n P Q) :=
+      fun a b => forall j (jc:j<n), family_member a j jc = family_member b j jc.
+
+    (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
                {i o n} {P Q}
                (op_family: @SHOperatorFamily i o n P Q):
@@ -103,7 +125,6 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n P Q):
       forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
       := fun j (jc:j<n) => op_proper (family_member op_family j jc).
-
 
 
     (*
@@ -128,12 +149,6 @@ Section SigmaHCOL_Operators.
       := fun a => let (v,p) := a in
                @exist (svector fm o) Q (op f v)
                       (pre_post f v p).
-
-    (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
-    Global Instance SHOperator_equiv
-           {i o: nat} {P Q}:
-      Equiv (@SHOperator i o P Q) :=
-      fun a b => op a = op b.
 
     Lemma SHOperator_ext_equiv_applied
           {i o: nat} {P Q}
@@ -300,7 +315,8 @@ Section SigmaHCOL_Operators.
       Vbuild
         (λ (j:nat) (jc:j<n),  (op_family_f j jc) v).
 
-    Global Instance Apply_Family'_proper
+
+    Global Instance Apply_Family'_arg_proper
            {i o n}
            (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
            (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
@@ -322,12 +338,33 @@ Section SigmaHCOL_Operators.
         Apply_Family' (get_family_op op_family).
 
     Global Instance Apply_Family_proper
+           {i o n} {P Q}:
+      Proper ((=) ==> (=) ==> (=)) (@Apply_Family i o n P Q).
+    Proof.
+      intros f f' Ef v v' Ev.
+      unfold Apply_Family, Apply_Family'.
+      vec_index_equiv j jc.
+      rewrite 2!Vbuild_nth.
+      unfold get_family_op.
+      destruct f as [fmem].
+      destruct f' as [fmem'].
+      simpl.
+      unfold equiv, SHOperatorFamily_equiv in Ef. simpl in Ef.
+      rewrite <- Ev.
+      specialize (Ef j jc).
+      apply SHOperator_op_proper.
+      apply Ef.
+      reflexivity.
+    Qed.
+
+    (* Do we need this in presence of Apply_Family_proper ? *)
+    Global Instance Apply_Family_arg_proper
            {i o n} {P Q}
            (op_family: @SHOperatorFamily i o n P Q):
       Proper ((=) ==> (=)) (@Apply_Family i o n P Q op_family).
     Proof.
       intros x y E.
-      apply Apply_Family'_proper.
+      apply Apply_Family'_arg_proper.
       - intros k kc.
         apply get_family_proper.
       - apply E.
@@ -713,8 +750,23 @@ row. *)
     :=
       MUnion' fm dot initial (@Apply_Family' fm i o n op_family_f v).
 
-
   Global Instance Diamond'_Proper
+         {i o n} {fm}
+    : Proper (
+          (=) ==> (=) ==>
+              (@forall_relation nat
+                                (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
+                                    (fun k : nat =>  @pointwise_relation (k < n)
+                                                                    (svector fm i -> svector fm o) (=)))
+              ==> (=) ==> (=)) (@Diamond' i o n fm).
+  Proof.
+    intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
+    unfold Diamond'.
+    apply MUnion'_proper; auto.
+    apply Apply_Family'_proper; auto.
+  Qed.
+
+  Global Instance Diamond'_arg_Proper
          {i o n}
          {fm}
          (dot: CarrierA -> CarrierA -> CarrierA)
