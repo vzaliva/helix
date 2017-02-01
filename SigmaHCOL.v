@@ -899,7 +899,7 @@ row. *)
              `{Uf: !FamilyIUnionFriendly op_family}
              {PQ}
     :=
-      @IUnion i o n P Q R CarrierAplus _ zero op_family Uf PQ .
+      @IUnion i o n P Q R PQ CarrierAplus _ zero op_family Uf.
 
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
@@ -919,17 +919,10 @@ row. *)
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n P Q)
              {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family) x)}
-    : @SHOperator Monoid_RthetaSafeFlags i o P R.
-  Proof.
-    refine(
-        mkSHOperator Monoid_RthetaSafeFlags i o P R
-                     (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
-                     PQ _).
-    apply Diamond'_Proper.
-    apply pdot.
-    apply get_family_proper.
-  Defined.
-
+    : @SHOperator Monoid_RthetaSafeFlags i o P R :=
+    mkSHOperator Monoid_RthetaSafeFlags i o P R
+                 (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
+                 PQ _.
 
   Lemma IReduction_subtype
         {i o n}
@@ -945,16 +938,33 @@ row. *)
         (op_family': @SHOperatorFamily Monoid_RthetaSafeFlags i o n P' Q')
         {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family) x)}
         {PQ': forall x:rsvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family') x)}
-        (S: op_family <: op_family')
+        (S: SHOperatorFamily_subtype Monoid_RthetaSafeFlags op_family op_family')
         (RR: forall y, R' y -> R y)
     :
-      (IReduction dot initial op_family (R:=R) (PQ:=PQ)) <: (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
+      SHOperator_subtype Monoid_RthetaSafeFlags
+        (IReduction dot initial op_family (R:=R) (PQ:=PQ))
+        (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
+    (* NB: Same proof as IUnion_subtype! *)
     split.
-    apply S.
-    apply RR.
-  Qed.
+    -
+      destruct S as [S [_ _]].
+      unfold get_family_op in S.
 
+      simpl.
+      apply Diamond'_proper.
+      + apply pdot.
+      + apply reflexivity.
+      +
+        unfold forall_relation, pointwise_relation.
+        apply S.
+    -
+      split.
+      unfold SHOperatorFamily_subtype in S.
+      destruct S as [H [H0 H1]].
+      apply H0.
+      apply RR.
+  Qed.
 
   Definition ISumReduction
              {i o n}
@@ -972,10 +982,6 @@ End SigmaHCOL_Operators.
 
 (* re-define notation outside a section *)
 Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
-(* re-define notation outside the section *)
-Infix "<:" := subtype (at level 40) : type_scope.
-Notation "(<:)" := subtype (at level 40, only parsing) : type_scope.
-
 
 (* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
