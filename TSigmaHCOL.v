@@ -48,9 +48,9 @@ Section TSigmaHCOLOperators.
     svector fm i -> svector fm o
     := fun x => Vec2Union fm dot (op1 x) (op2 x).
 
-  Global Instance HTSUMUnion'_Proper {i o}
-         (op1: svector fm i -> svector fm o)
-         (op2: svector fm i -> svector fm o)
+
+  (* TODO: make dot part of morphism *)
+  Global Instance HTSUMUnion'_proper {i o}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot).
@@ -69,7 +69,7 @@ Section TSigmaHCOLOperators.
       apply Ef, Ex.
   Qed.
 
-  Global Instance HTSUMUnion'_arg_Proper {i o}
+  Global Instance HTSUMUnion'_arg_proper {i o}
          (op1: svector fm i -> svector fm o)
          `{op1_proper: !Proper ((=) ==> (=)) op1}
          (op2: svector fm i -> svector fm o)
@@ -80,9 +80,7 @@ Section TSigmaHCOLOperators.
   Proof.
     partial_application_tactic. instantiate (1 := equiv).
     partial_application_tactic. instantiate (1 := equiv).
-    apply HTSUMUnion'_Proper.
-    - apply op1.
-    - apply op2.
+    apply HTSUMUnion'_proper.
     - apply dot_mor.
     - apply op1_proper.
     - apply op2_proper.
@@ -100,7 +98,7 @@ Section TSigmaHCOLOperators.
   Proof.
     refine (
         mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) _
-                     (@HTSUMUnion'_arg_Proper i o
+                     (@HTSUMUnion'_arg_proper i o
                                               (op fm op1) (op_proper fm op1)
                                               (op fm op2) (op_proper fm op2)
                                               dot dot_mor)).
@@ -111,7 +109,7 @@ Section TSigmaHCOLOperators.
     auto.
   Defined.
 
-  Section SubtypeHTSUMUnion.
+  Section CoerceHTSUMUnion.
     Variable i o : nat.
     Variable dot: CarrierA -> CarrierA -> CarrierA.
     Variable dot_mor: Proper ((=) ==> (=) ==> (=)) dot.
@@ -126,21 +124,31 @@ Section TSigmaHCOLOperators.
     Variable op1': @SHOperator fm i o P' Q1'.
     Variable op2': @SHOperator fm i o P' Q2'.
 
-    Lemma HTSUMUnion_subtype
-          (S1: op1 <: op1')
-          (S2: op2 <: op2')
+    Lemma coerce_HTSUMUnion
+          (S1: coerce_SHOperator fm op1 op1')
+          (S2: coerce_SHOperator fm op2 op2')
           (PQ:  forall (y1 y2 : svector fm o) d, Q1  y1 /\ Q2  y2 → Q  (Vec2Union fm d y1 y2))
           (PQ': forall (y1 y2 : svector fm o) d, Q1' y1 /\ Q2' y2 → Q' (Vec2Union fm d y1 y2))
           (QQ: forall y, Q' y -> Q y)
       :
-        (HTSUMUnion op1 op2 dot PQ) <: (HTSUMUnion op1' op2' dot PQ').
+        coerce_SHOperator fm
+                          (HTSUMUnion op1 op2 dot PQ)
+                          (HTSUMUnion op1' op2' dot PQ').
     Proof.
       split.
-      apply S1.
-      apply QQ.
+      -
+        simpl.
+        apply HTSUMUnion'_proper.
+        + apply dot_mor.
+        + apply S1.
+        + apply S2.
+      -
+        unfold coerce_SHOperator in S1.
+        destruct S1 as [H0 [H1 H2]].
+        tauto.
     Qed.
 
-  End SubtypeHTSUMUnion.
+  End CoerceHTSUMUnion.
 
 
 End TSigmaHCOLOperators.
