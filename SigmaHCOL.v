@@ -213,17 +213,6 @@ Section SigmaHCOL_Operators.
           (forall x, P1 x -> P2 x) /\
           (forall y, Q2 y -> Q1 y).
 
-      Lemma coerce_SHOperator_transitive
-            {i o} {Pv Pu Pt Qv Qu Qt}
-            (a: @SHOperator i o Pv Qv)
-            (b: @SHOperator i o Pu Qu)
-            (c: @SHOperator i o Pt Qt):
-        coerce_SHOperator a b -> coerce_SHOperator b c -> coerce_SHOperator a c.
-      Proof.
-        unfold coerce_SHOperator.
-        crush.
-      Qed.
-
       (* (a' <: a) /\ a=a' *)
       Definition coerce_SHOperatorFamily
                  {i o n} {P1 P2 Q1 Q2}
@@ -234,24 +223,69 @@ Section SigmaHCOL_Operators.
           (forall x, P1 x -> P2 x) /\
           (forall y, Q2 y -> Q1 y).
 
-      Lemma coerce_SHOperatorFamily_transitive
-            {i o n} {P1 P2 P3 Q1 Q2 Q3}
-            (a: @SHOperatorFamily i o n P1 Q1)
-            (b: @SHOperatorFamily i o n P2 Q2)
-            (c: @SHOperatorFamily i o n P3 Q3):
-        coerce_SHOperatorFamily a b -> coerce_SHOperatorFamily b c -> coerce_SHOperatorFamily a c.
-      Proof.
-        unfold coerce_SHOperatorFamily, get_family_op.
-        intros [Rab0 [Rab1 Rab2]] [Rbc0 [Rbc1 Rbc2]].
-        split.
-        -
-          intros j jc.
-          rewrite Rab0, Rbc0.
-          apply op_proper.
-        -
-          auto.
-      Qed.
 
+
+      (* Both SHOperator and SHOperatorFamily are pre-orders as they are Reflexive and Transitive as proven above *)
+      Section PreOrders.
+
+        Lemma coerce_SHOperator_transitive
+              {i o} {Pv Pu Pt Qv Qu Qt}
+              (a: @SHOperator i o Pv Qv)
+              (b: @SHOperator i o Pu Qu)
+              (c: @SHOperator i o Pt Qt):
+          coerce_SHOperator a b -> coerce_SHOperator b c -> coerce_SHOperator a c.
+        Proof.
+          unfold coerce_SHOperator.
+          crush.
+        Qed.
+
+        Lemma coerce_SHOperator_reflexive
+              {i o} {P Q}
+              (a: @SHOperator i o P Q):
+          coerce_SHOperator a a.
+        Proof.
+          unfold coerce_SHOperator.
+          split.
+          -
+            destruct a as [f pre_post op_proper].
+            apply op_proper.
+          - auto.
+        Qed.
+
+        Lemma coerce_SHOperatorFamily_transitive
+              {i o n} {P1 P2 P3 Q1 Q2 Q3}
+              (a: @SHOperatorFamily i o n P1 Q1)
+              (b: @SHOperatorFamily i o n P2 Q2)
+              (c: @SHOperatorFamily i o n P3 Q3):
+          coerce_SHOperatorFamily a b -> coerce_SHOperatorFamily b c -> coerce_SHOperatorFamily a c.
+        Proof.
+          unfold coerce_SHOperatorFamily, get_family_op.
+          intros [Rab0 [Rab1 Rab2]] [Rbc0 [Rbc1 Rbc2]].
+          split.
+          -
+            intros j jc.
+            rewrite Rab0, Rbc0.
+            apply op_proper.
+          -
+            auto.
+        Qed.
+
+        Lemma coerce_SHOperatorFamily_reflexive
+              {i o n} {P Q}
+              (a: @SHOperatorFamily i o n P Q):
+          coerce_SHOperatorFamily a a.
+        Proof.
+          unfold coerce_SHOperatorFamily.
+          split.
+          -
+            intros j jc.
+            unfold get_family_op.
+            f_equiv.
+          -
+            auto.
+        Qed.
+
+      End PreOrders.
 
     End Coercions.
 
@@ -418,7 +452,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                       (range_bound:=domain_bound)) x))
+                                                             (range_bound:=domain_bound)) x))
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
@@ -470,8 +504,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                    (h_index_map base stride (range_bound:=range_bound))
-                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                          (h_index_map base stride (range_bound:=range_bound))
+                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
@@ -667,7 +701,7 @@ Section SigmaHCOL_Operators.
                (* Kernel *)
                (kernel: @SHOperatorFamily ki ko n Pk Qk)
                `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (family_member
-                                                                      kernel k kc)}
+                                                                           kernel k kc)}
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
@@ -737,7 +771,7 @@ row. *)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
       iunion_friendly: forall x, P x -> MatrixWithNoRowCollisions
-                                    (Apply_Family Monoid_RthetaFlags op_family x).
+                                          (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -758,7 +792,7 @@ row. *)
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
+                                                                     (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -865,8 +899,8 @@ row. *)
         (RR: forall y, R' y -> R y)
     :
       coerce_SHOperator Monoid_RthetaFlags
-                         (IUnion dot initial op_family (R:=R) (PQ:=PQ))
-                         (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
+                        (IUnion dot initial op_family (R:=R) (PQ:=PQ))
+                        (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
     split.
     -
@@ -942,8 +976,8 @@ row. *)
         (RR: forall y, R' y -> R y)
     :
       coerce_SHOperator Monoid_RthetaSafeFlags
-        (IReduction dot initial op_family (R:=R) (PQ:=PQ))
-        (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
+                        (IReduction dot initial op_family (R:=R) (PQ:=PQ))
+                        (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
     (* NB: Same proof as coerce_IUnion! *)
     split.
