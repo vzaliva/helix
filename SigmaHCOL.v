@@ -750,22 +750,29 @@ row. *)
     :=
       MUnion' fm dot initial (@Apply_Family' fm i o n op_family_f v).
 
-  Global Instance Diamond'_Proper
+
+  Global Instance Diamond'_proper
          {i o n} {fm}
     : Proper (
           (=) ==> (=) ==>
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
-                                    (fun k : nat =>  @pointwise_relation (k < n)
-                                                                    (svector fm i -> svector fm o) (=)))
+                                (fun k : nat =>  @pointwise_relation (k < n)
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
     unfold Diamond'.
     apply MUnion'_proper; auto.
-    apply Apply_Family'_proper; auto.
+
+    unfold Apply_Family'.
+    vec_index_equiv j jc.
+    rewrite 2!Vbuild_nth.
+    unfold forall_relation, pointwise_relation in Ef.
+    apply Ef, Ev.
   Qed.
 
+  (* TODO: Do we need this in presence of Diamond'_proper? *)
   Global Instance Diamond'_arg_Proper
          {i o n}
          {fm}
@@ -779,7 +786,7 @@ row. *)
     intros x y E.
     unfold Diamond'.
     apply MUnion'_proper; auto.
-    apply Apply_Family'_proper; auto.
+    apply Apply_Family'_arg_proper; auto.
   Qed.
 
   (* TODO: density preserving? *)
@@ -790,15 +797,16 @@ row. *)
              {Q: rvector o → Prop}
              (* IUnion post-condition *)
              {R: rvector o → Prop}
+             {PQ: forall (mat: vector (rvector o) n) d i,
+                 (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
+                 R (MUnion' Monoid_RthetaFlags d i mat)
+             }
+             (* Functional parameters *)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
              `{Uf: !FamilyIUnionFriendly op_family}
-             {PQ: forall (mat: vector (rvector o) n) d i,
-                 (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
-                 R (MUnion' Monoid_RthetaFlags d i mat)
-             }
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
     refine(
@@ -830,6 +838,7 @@ row. *)
       auto.
   Defined.
 
+
   Lemma IUnion_subtype
         {i o n}
         (* op_family pre and post conditions *)
@@ -856,27 +865,21 @@ row. *)
         (RR: forall y, R' y -> R y)
     :
       SHOperator_subtype Monoid_RthetaFlags
-        (IUnion dot initial op_family (R:=R) (PQ:=PQ))
-        (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
+                         (IUnion dot initial op_family (R:=R) (PQ:=PQ))
+                         (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
     split.
     -
-      crush.
-      apply Diamond'_proper.
-      f_equiv.
-      + admit.
-      + apply pdot.
-      + apply eq_refl.
-      +
-        unfold SHOperatorFamily_subtype in S.
-        destruct S as [H [H0 H1]].
-        apply ext_equiv_applied_iff with (x:=jc).
-        (*
-        unfold IUnion, Diamond', MUnion', Apply_Family';  simpl.
-        unfold equiv, ext_equiv.
-        simpl_relation.
-         *)
+      destruct S as [S [_ _]].
+      unfold get_family_op in S.
 
+      simpl.
+      apply Diamond'_proper.
+      + apply pdot.
+      + apply reflexivity.
+      +
+        unfold forall_relation, pointwise_relation.
+        apply S.
     -
       split.
       unfold SHOperatorFamily_subtype in S.
@@ -1410,11 +1413,11 @@ Section OperatorProperies.
     assumption.
   Qed.
 End OperatorProperies.
-*)
+ *)
 
 Section StructuralProperies.
 
-(*
+  (*
   Lemma ScatterCollisionFree
         {i o}
         (f: index_map i o)
@@ -1465,7 +1468,7 @@ Section StructuralProperies.
     apply Is_SZero_mkSZero.
   Qed.
 
-*)
+   *)
 
   Section FlagsMonoidGenericStructuralProperties.
     Variable fm:Monoid RthetaFlags.
@@ -1493,7 +1496,7 @@ Section StructuralProperies.
       intros i0 ip.
       apply IsVal_mkValue.
     Qed.
-(*
+  (*
     Global Instance liftM_HOperator_DenseCauseNoCol
            {i o}
            (op: avector i -> avector o)
@@ -1535,7 +1538,7 @@ Section StructuralProperies.
       congruence.
       reflexivity.
     Qed.
-*)
+   *)
   End FlagsMonoidGenericStructuralProperties.
 
 (*
