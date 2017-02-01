@@ -202,10 +202,10 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
-    Section Subtyping.
+    Section Coercions.
 
-      (* a' <: a *)
-      Definition SHOperator_subtype
+      (* (a' <: a) /\ a=a' *)
+      Definition coerce_SHOperator
                  {i o} {P1 P2 Q1 Q2}
                  (a': @SHOperator i o P1 Q1) (a: @SHOperator i o P2 Q2): Prop
         :=
@@ -213,19 +213,19 @@ Section SigmaHCOL_Operators.
           (forall x, P1 x -> P2 x) /\
           (forall y, Q2 y -> Q1 y).
 
-      Lemma SHOperator_subtype_transitive
+      Lemma coerce_SHOperator_transitive
             {i o} {Pv Pu Pt Qv Qu Qt}
             (a: @SHOperator i o Pv Qv)
             (b: @SHOperator i o Pu Qu)
             (c: @SHOperator i o Pt Qt):
-        SHOperator_subtype a b -> SHOperator_subtype b c -> SHOperator_subtype a c.
+        coerce_SHOperator a b -> coerce_SHOperator b c -> coerce_SHOperator a c.
       Proof.
-        unfold SHOperator_subtype.
+        unfold coerce_SHOperator.
         crush.
       Qed.
 
-      (* a' <: a *)
-      Definition SHOperatorFamily_subtype
+      (* (a' <: a) /\ a=a' *)
+      Definition coerce_SHOperatorFamily
                  {i o n} {P1 P2 Q1 Q2}
                  (a':@SHOperatorFamily i o n P1 Q1) (a:@SHOperatorFamily i o n P2 Q2): Prop
         :=
@@ -234,14 +234,14 @@ Section SigmaHCOL_Operators.
           (forall x, P1 x -> P2 x) /\
           (forall y, Q2 y -> Q1 y).
 
-      Lemma SHOperatorFamily_subtype_transitive
+      Lemma coerce_SHOperatorFamily_transitive
             {i o n} {P1 P2 P3 Q1 Q2 Q3}
             (a: @SHOperatorFamily i o n P1 Q1)
             (b: @SHOperatorFamily i o n P2 Q2)
             (c: @SHOperatorFamily i o n P3 Q3):
-        SHOperatorFamily_subtype a b -> SHOperatorFamily_subtype b c -> SHOperatorFamily_subtype a c.
+        coerce_SHOperatorFamily a b -> coerce_SHOperatorFamily b c -> coerce_SHOperatorFamily a c.
       Proof.
-        unfold SHOperatorFamily_subtype, get_family_op.
+        unfold coerce_SHOperatorFamily, get_family_op.
         intros [Rab0 [Rab1 Rab2]] [Rbc0 [Rbc1 Rbc2]].
         split.
         -
@@ -253,7 +253,7 @@ Section SigmaHCOL_Operators.
       Qed.
 
 
-    End Subtyping.
+    End Coercions.
 
     Class DensityPreserving
           {i o:nat}
@@ -513,7 +513,7 @@ Section SigmaHCOL_Operators.
       reflexivity.
     Qed.
 
-    Section SubtypeComposion.
+    Section CoerceComposion.
       Variable i1 o2 o3 : nat.
 
       Variable P1 : svector fm o2 → Prop.
@@ -534,9 +534,9 @@ Section SigmaHCOL_Operators.
       Variable Q1' : svector fm o3 → Prop.
       Variable op1' : @SHOperator o2 o3 P1' Q1'.
 
-      Definition SHOperator_subtype_Q2'P1'
-                 (S1: SHOperator_subtype op1 op1')
-                 (S2: SHOperator_subtype op2 op2'):
+      Definition coerce_SHOperator_Q2'P1'
+                 (S1: coerce_SHOperator op1 op1')
+                 (S2: coerce_SHOperator op2 op2'):
         (forall x : svector fm o2, Q2' x → P1' x).
       Proof.
         inversion S1.
@@ -544,17 +544,17 @@ Section SigmaHCOL_Operators.
         crush.
       Defined.
 
-      Lemma SHCompose_subtype
-            (S1: SHOperator_subtype op1 op1')
-            (S2: SHOperator_subtype op2 op2'):
-        SHOperator_subtype (op1 ⊚ ( QP ) op2) (op1' ⊚( SHOperator_subtype_Q2'P1' S1 S2 ) op2').
+      Lemma coerce_SHCompose
+            (S1: coerce_SHOperator op1 op1')
+            (S2: coerce_SHOperator op2 op2'):
+        coerce_SHOperator (op1 ⊚ ( QP ) op2) (op1' ⊚( coerce_SHOperator_Q2'P1' S1 S2 ) op2').
       Proof.
         split ;inversion S1; inversion S2; crush.
         apply compose_proper with (RA:=equiv) (RB:=equiv);
           apply op_proper.
       Qed.
 
-    End SubtypeComposion.
+    End CoerceComposion.
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
@@ -839,7 +839,7 @@ row. *)
   Defined.
 
 
-  Lemma IUnion_subtype
+  Lemma coerce_IUnion
         {i o n}
         (* op_family pre and post conditions *)
         {P P': rvector i → Prop}
@@ -861,10 +861,10 @@ row. *)
             (Vforall Q' mat /\ MatrixWithNoRowCollisions mat) ->
             R' (MUnion' Monoid_RthetaFlags d i mat)
         }
-        (S: SHOperatorFamily_subtype Monoid_RthetaFlags op_family op_family')
+        (S: coerce_SHOperatorFamily Monoid_RthetaFlags op_family op_family')
         (RR: forall y, R' y -> R y)
     :
-      SHOperator_subtype Monoid_RthetaFlags
+      coerce_SHOperator Monoid_RthetaFlags
                          (IUnion dot initial op_family (R:=R) (PQ:=PQ))
                          (IUnion dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
@@ -882,7 +882,7 @@ row. *)
         apply S.
     -
       split.
-      unfold SHOperatorFamily_subtype in S.
+      unfold coerce_SHOperatorFamily in S.
       destruct S as [H [H0 H1]].
       apply H0.
       apply RR.
@@ -924,7 +924,7 @@ row. *)
                  (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  PQ _.
 
-  Lemma IReduction_subtype
+  Lemma coerce_IReduction
         {i o n}
         (* op_family pre and post conditions *)
         {P P': rsvector i → Prop}
@@ -938,14 +938,14 @@ row. *)
         (op_family': @SHOperatorFamily Monoid_RthetaSafeFlags i o n P' Q')
         {PQ: forall x:rsvector i, P x -> R (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family) x)}
         {PQ': forall x:rsvector i, P' x -> R' (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family') x)}
-        (S: SHOperatorFamily_subtype Monoid_RthetaSafeFlags op_family op_family')
+        (S: coerce_SHOperatorFamily Monoid_RthetaSafeFlags op_family op_family')
         (RR: forall y, R' y -> R y)
     :
-      SHOperator_subtype Monoid_RthetaSafeFlags
+      coerce_SHOperator Monoid_RthetaSafeFlags
         (IReduction dot initial op_family (R:=R) (PQ:=PQ))
         (IReduction dot initial op_family' (R:=R') (PQ:=PQ')).
   Proof.
-    (* NB: Same proof as IUnion_subtype! *)
+    (* NB: Same proof as coerce_IUnion! *)
     split.
     -
       destruct S as [S [_ _]].
@@ -960,7 +960,7 @@ row. *)
         apply S.
     -
       split.
-      unfold SHOperatorFamily_subtype in S.
+      unfold coerce_SHOperatorFamily in S.
       destruct S as [H [H0 H1]].
       apply H0.
       apply RR.
