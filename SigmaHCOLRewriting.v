@@ -881,16 +881,37 @@ Section SigmaHCOLExpansionRules.
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
            (nz: n ≢ 0) (* Additional constraint! *)
+
+           (* Some of these might be unused! *)
+           {P: rvector (n + n) → Prop}
+           {Q Qs: rvector n → Prop}
+           {Qg Pk: vector Rtheta (1 + 1) → Prop}
+           {Qk Ps: rvector 1 → Prop}
+           {PQo: forall x, P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
+           {KG: forall x, Qg x → Pk x}
+           {SK: forall x, Qk x → Ps x}
+           {PQ1: forall j x, Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
+           {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
+           {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
+           {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))}
+           {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
+               Vforall Qs mat ∧ MatrixWithNoRowCollisions mat
+               → Q (MUnion' Monoid_RthetaFlags d ini mat)}
       :
         DensityPreserving _ (
-                            USparseEmbedding (i:=n+n) (o:=n)
-                                             (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j f))
+
+                            USparseEmbedding (PQ:=PQ2) (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG)
+                                             (PQg:=PQg) (PQs:=PQs)
+                                             (f_inj:=h_j_1_family_injective)
+                                             (mkSHOperatorFamily Monoid_RthetaFlags _ _ _ _ _
+                                                                 (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j)))
                                              (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-                                             (f_inj := h_j_1_family_injective)
-                                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))).
+                                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+
+                          ).
     Proof.
       unfold DensityPreserving.
-      intros x Dx.
+      intros x Px Dx.
       apply USparseEmbeddingIsDense.
 
       - unfold index_map_family_surjective.
