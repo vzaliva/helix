@@ -544,7 +544,7 @@ Section SigmaHCOLExpansionRules.
         apply (SHBinOp'_Proper Monoid_RthetaFlags f).
       -
         split; try apply vec_Setoid.
-        apply Diamond'_Proper.
+        apply Diamond'_arg_Proper.
         apply CarrierAPlus_proper.
         intros k kc.
         admit.
@@ -865,9 +865,13 @@ Section SigmaHCOLExpansionRules.
 
     Global Instance HBinOp_DensityPreserving
            (n:nat)
+           {P Q}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
-           `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      DensityPreserving Monoid_RthetaFlags (liftM_HOperator _ (HBinOp (o:=n) f)).
+           `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+           {PQ}
+    :
+      DensityPreserving Monoid_RthetaFlags
+                        (liftM_HOperator _ (P:=P) (Q:=Q) (HBinOp (o:=n) f) PQ).
     Proof.
       apply liftM_HOperator_DensityPreserving; typeclasses eauto.
     Qed.
