@@ -944,11 +944,12 @@ Section SigmaHCOLExpansionRules.
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
-      : DensityPreserving fm (liftM_HOperator fm (HTDirectSum f g)).
+           {P Q}
+           {PQ}
+      : DensityPreserving fm (liftM_HOperator fm (P:=P) (Q:=Q) (HTDirectSum f g) PQ).
     Proof.
       apply liftM_HOperator_DensityPreserving.
       apply fml.
-      typeclasses eauto.
     Qed.
 
     Global Instance HTDirectSum_expansion_DensityPreserving
