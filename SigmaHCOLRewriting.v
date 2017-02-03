@@ -913,7 +913,7 @@ Section SigmaHCOLExpansionRules.
       unfold DensityPreserving.
       intros x Px Dx.
       apply USparseEmbeddingIsDense.
-
+      - apply nz.
       - unfold index_map_family_surjective.
         unfold h_index_map.
         simpl.
@@ -925,7 +925,7 @@ Section SigmaHCOLExpansionRules.
         assumption.
         auto.
       -
-        assumption.
+        apply Px.
       - simpl.
         intros j jc k kc.
         unfold svector_is_dense in Dx.
