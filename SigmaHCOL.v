@@ -201,6 +201,15 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Transitive.
     Qed.
 
+    Lemma SM_op_SHOperator
+          (i o : nat)
+          {P Q}:
+      forall (a:@SHOperator i o P Q), Setoid_Morphism (op a).
+    Proof.
+      intros a.
+      destruct a as [f pre_post f_proper].
+      split; try typeclasses eauto.
+    Qed.
 
     Section Coercions.
 
@@ -1234,21 +1243,20 @@ Section OperatorProperies.
     assumption.
   Qed.
 
-(*
 
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Scatter_spec
+  Lemma Scatter'_spec
         {i o: nat}
         (f: index_map i o)
         {f_inj: index_map_injective f}
         (x: svector fm i)
         (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (Scatter fm f (f_inj:=f_inj) x) f n ip.
+    Vnth x ip ≡ VnthIndexMapped (Scatter' fm f (f_inj:=f_inj) x) f n ip.
   Proof.
     unfold VnthIndexMapped.
-    unfold Scatter.
+    unfold Scatter'.
     rewrite Vbuild_nth.
     break_match.
     simpl.
@@ -1261,17 +1269,18 @@ Section OperatorProperies.
     - apply in_range_by_def, ip.
   Qed.
 
-  Lemma Scatter_is_almost_endomorphism
+
+  Lemma Scatter'_is_almost_endomorphism
         (i o : nat)
         (x : svector fm i)
         (f: index_map i o)
         {f_inj : index_map_injective f}:
     Vforall (fun p => (Vin p x) \/ (p ≡ mkSZero))
-            (Scatter fm f (f_inj:=f_inj) x).
+            (Scatter' fm f (f_inj:=f_inj) x).
   Proof.
     apply Vforall_nth_intro.
     intros j jp.
-    unfold Scatter.
+    unfold Scatter'.
     rewrite Vbuild_nth.
     simpl.
     break_match.
@@ -1281,15 +1290,15 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  Lemma SHPointwise_nth
+  Lemma SHPointwise'_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (SHPointwise fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+    Vnth (SHPointwise' fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
-    unfold SHPointwise.
+    unfold SHPointwise'.
     rewrite Vbuild_nth.
     generalize (Vnth v jc) as x. intros x. clear v.
     rewrite <- evalWriter_Rtheta_liftM.
@@ -1301,11 +1310,13 @@ Section OperatorProperies.
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        {P Q PQ}
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (SHPointwise fm f v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
+    Vnth (op _ (SHPointwise (P:=P) (Q:=Q) fm f PQ) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
   Proof.
-    unfold SHPointwise.
+    simpl.
+    unfold SHPointwise'.
     rewrite Vbuild_nth.
     reflexivity.
   Qed.
@@ -1313,23 +1324,28 @@ Section OperatorProperies.
   Lemma SHPointwise_equiv_lifted_HPointwise
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHPointwise fm f = liftM_HOperator fm (@HPointwise n f pF).
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        {P Q PQ PQ1}:
+    SHPointwise (P:=P) (Q:=Q) fm f PQ =
+    liftM_HOperator fm (@HPointwise n f pF) PQ1.
   Proof.
-    apply ext_equiv_applied_iff'; try typeclasses eauto.
-    intros x.
-
-    vec_index_equiv j jc.
-    rewrite SHPointwise_nth.
-
-    unfold liftM_HOperator.
-    unfold compose.
-    unfold sparsify; rewrite Vnth_map.
-    rewrite HPointwise_nth.
-    unfold densify; rewrite Vnth_map.
-    reflexivity.
+    apply ext_equiv_applied_iff'.
+    - apply SM_op_SHOperator.
+    - apply SM_op_SHOperator.
+    -
+      intros x.
+      simpl.
+      vec_index_equiv j jc.
+      rewrite SHPointwise'_nth.
+      unfold liftM_HOperator'.
+      unfold compose.
+      unfold sparsify; rewrite Vnth_map.
+      rewrite HPointwise_nth.
+      unfold densify; rewrite Vnth_map.
+      reflexivity.
   Qed.
 
+  (*
   Lemma SHBinOp_nth
         {o}
         {f: nat -> CarrierA -> CarrierA -> CarrierA}
