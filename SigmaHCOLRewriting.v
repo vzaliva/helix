@@ -958,21 +958,52 @@ Section SigmaHCOLExpansionRules.
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
+           {P: rvector (i1 + i2) -> Prop}
+           {Q: rvector (o1 + o2) -> Prop}
+           {Q1: rvector (o1 + o2) -> Prop}
+           {Q2: rvector (o1 + o2) -> Prop}
+           {PQd: forall x : rvector (i1 + i2), P x -> Q (liftM_HOperator' _ (HTDirectSum f g) x)}
+           {Pf: rvector i1 -> Prop}
+           {Qf: rvector o1 -> Prop}
+           {Pg: rvector i2 → Prop}
+           {Qg: rvector o2 -> Prop}
+           {Qg2: rvector i2 -> Prop}
+           {PQf: forall x : rvector i1, Pf x -> Qf (liftM_HOperator' _ f x)}
+           {PQg: forall x : rvector i2, Pg x -> Qg (liftM_HOperator' _ g x)}
+           {PQg2: forall x : rvector (i1 + i2), P x -> Qg2 (Gather' _ (h_index_map i1 1) x)}
+           {PS1: rvector o1 -> Prop}
+           {PS2: rvector o2 -> Prop}
+           {Qg1: rvector i1 -> Prop}
+           {PQg1: forall x : rvector (i1 + i2), P x -> Qg1 (Gather' _ (h_index_map 0 1) x)}
+           {PQs1: forall x : rvector o1, PS1 x → Q1 (Scatter' _ (h_index_map 0 1) x)}
+           {QP1: forall x : rvector i1, Qg1 x -> Pf x}
+           {QP2: forall x : rvector o1, Qf x -> PS1 x}
+           {PQs2: forall x : rvector o2, PS2 x -> Q2 (Scatter' _ (h_index_map o1 1) x)}
+           {QP3: forall x : rvector i2, Qg2 x → Pg x}
+           {QP4: forall x : rvector o2, Qg x -> PS2 x}
+           {PQh}
       : DensityPreserving Monoid_RthetaFlags (
-                            (HTSUMUnion _ plus
-                                        ((ScatH _ 0 1
-                                                (snzord0:=ScatH_stride1_constr)
-                                                (range_bound := h_bound_first_half o1 o2)
-                                         ) ∘
-                                           (liftM_HOperator _ f) ∘
-                                           (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2)))
+                            HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) _ (* SHoperator P Q *)
+                                       (SHCompose _ (P1:=PS1) (P2:=P) (Q1:=Q1)
+                                                  (ScatH _ 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
+                                                  (SHCompose _ (P2:=P) (P1:=Pf)
+                                                             (liftM_HOperator _ (P:=Pf) (Q:=Qf) f PQf)
+                                                             (GathH _ 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)
+                                                             QP1)
+                                                  QP2)
 
-                                        ((ScatH _ o1 1
-                                                (snzord0:=ScatH_stride1_constr)
-                                                (range_bound := h_bound_second_half o1 o2)
-                                         ) ∘
-                                           (liftM_HOperator _ g) ∘
-                                           (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2))))).
+                                       (SHCompose _ (P1:=PS2) (P2:=P) (Q1:=Q2)
+                                                  (ScatH _ o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
+                                                  (SHCompose _ (P2:=P) (P1:=Pg)
+                                                             (liftM_HOperator _ (P:=Pg) (Q:=Qg) g PQg)
+                                                             (GathH _ i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)
+                                                             QP3
+                                                  )
+                                                  QP4)
+                                       plus
+                                       PQh
+
+                          ).
     Proof.
       unfold DensityPreserving.
       intros x Dx.
