@@ -452,7 +452,7 @@ Section SigmaHCOL_Operators.
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
                (PQ: forall x, P x -> Q (Gather' (h_index_map base stride
-                                                             (range_bound:=domain_bound)) x))
+                                                       (range_bound:=domain_bound)) x))
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
@@ -504,8 +504,8 @@ Section SigmaHCOL_Operators.
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
                (PQ: forall x, P x -> Q (Scatter'
-                                          (h_index_map base stride (range_bound:=range_bound))
-                                          (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
+                                    (h_index_map base stride (range_bound:=range_bound))
+                                    (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) x))
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)) PQ.
@@ -701,7 +701,7 @@ Section SigmaHCOL_Operators.
                (* Kernel *)
                (kernel: @SHOperatorFamily ki ko n Pk Qk)
                `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (family_member
-                                                                           kernel k kc)}
+                                                                      kernel k kc)}
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
@@ -771,7 +771,7 @@ row. *)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
       iunion_friendly: forall x, P x -> MatrixWithNoRowCollisions
-                                          (Apply_Family Monoid_RthetaFlags op_family x).
+                                    (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -792,7 +792,7 @@ row. *)
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1582,7 +1582,7 @@ Section StructuralProperies.
    *)
   End FlagsMonoidGenericStructuralProperties.
 
-(*
+  (*
   Lemma Is_Val_LiftM2
         (f : CarrierA → CarrierA → CarrierA)
         (v1 v2 : Rtheta)
@@ -1619,7 +1619,7 @@ Section StructuralProperies.
     intros v1 V1 v2 V2.
     apply Is_Val_LiftM2; assumption.
   Qed.
-*)
+   *)
 
   Lemma USparseEmbeddingIsDense
         {n i o ki ko}
@@ -1655,17 +1655,17 @@ Section StructuralProperies.
         {nz: n ≢ 0}
         {f_sur: index_map_family_surjective f} (* gives density *)
     :
-      forall (x: rvector i),
+      forall (x: rvector i) (Pgx: Pg x),
         (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
-      svector_is_dense _
-                       (op _ (@USparseEmbedding n i o ki ko
-                                                Pk Qk Ps Qs Pg Qg
-                                                SK KG
-                                                kernel KD f f_inj g
-                                                PQg PQs R PQ
-                             ) x).
+        svector_is_dense _
+                         (op _ (@USparseEmbedding n i o ki ko
+                                                  Pk Qk Ps Qs Pg Qg
+                                                  SK KG
+                                                  kernel KD f f_inj g
+                                                  PQg PQs R PQ
+                               ) x).
   Proof.
-    intros x g_dense.
+    intros x Pgx g_dense.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
@@ -1685,32 +1685,27 @@ Section StructuralProperies.
 
       assert(Vforall Is_Val (Gather' _ (⦃g ⦄ p pc) x))
         by apply Gather'_dense_constr, g_dense.
+
+      specialize (PQg p pc x).
       generalize dependent (Gather' _ (⦃g ⦄ p pc) x).
-      intros gx GD.
+      intros gx PQg GD.
       clear g_dense.
 
 
       assert(Vforall Is_Val (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags kernel p pc) gx)).
       {
         apply KD.
-        admit.
+        apply KG, PQg, Pgx.
         apply GD.
       }
 
-      assert(Vforall Is_Val ((kernel p pc) gx)).
-
-      {
-        apply KD.
-        apply GD.
-      }
-
-      generalize dependent ((kernel p pc) gx).
+      generalize dependent (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags kernel p pc) gx).
       intros kx KD1.
-      clear KD GD gx Koperator kernel.
+      clear KD GD.
 
-      unfold Scatter; rewrite Vbuild_nth.
+      unfold Scatter'; rewrite Vbuild_nth.
 
-
+      clear PQs.
       apply index_map_family_member_injective with (jc:=pc) in f_inj.
       generalize dependent (⦃f ⦄ p pc). intros fp fp_inj F.
       clear f.
@@ -1722,7 +1717,7 @@ Section StructuralProperies.
       + apply in_range_by_def, zc.
   Qed.
 
-  (*
+(*
   (* Pre-condition for UnionFold not causing any collisions *)
   Lemma Not_Collision_UnionFold
         {n}
