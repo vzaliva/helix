@@ -1011,12 +1011,12 @@ Section SigmaHCOLExpansionRules.
       unfold svector_is_dense, SHCompose, compose; simpl.
       apply Vforall_nth_intro.
       intros i ip.
-      unfold HTSUMUnion.
+      unfold HTSUMUnion'.
 
       (* Generalize Gathers *)
       remember (@Gather' _ (i1 + i2) i2
-                        (@h_index_map i2 (i1 + i2) i1 1
-                                      (h_bound_second_half i1 i2)) x) as gx1.
+                         (@h_index_map i2 (i1 + i2) i1 1
+                                       (h_bound_second_half i1 i2)) x) as gx1.
       assert(Dxg1: svector_is_dense _ gx1).
       {
         subst.
@@ -1025,49 +1025,46 @@ Section SigmaHCOLExpansionRules.
       generalize dependent gx1.
       intros gx1 Heqgx Dxg1. clear Heqgx.
 
-      remember (@Gather _ (i1 + i2) i1
-                        (@h_index_map i1 (i1 + i2) 0 1
-                                      (h_bound_first_half i1 i2)) x) as gx2.
+      remember (@Gather' _ (i1 + i2) i1
+                         (@h_index_map i1 (i1 + i2) 0 1
+                                       (h_bound_first_half i1 i2)) x) as gx2.
       assert(Dxg2: svector_is_dense _ gx2).
       {
         subst.
-        apply Gather_preserves_density, Dx.
+        apply Gather'_preserves_density, Dx.
       }
       generalize dependent gx2.
       intros gx2 Heqgx Dxg2. clear Heqgx.
-      clear Dx x.
+      clear Dx.
 
       (* Generalize nested operators' application *)
-      assert(svector_is_dense _ (liftM_HOperator _ f gx2)).
+      assert(svector_is_dense _ (liftM_HOperator' _ f gx2)).
       {
-        apply liftM_HOperator_DensityPreserving.
+        apply liftM_HOperator'_preserves_density.
         apply MonoidLaws_RthetaFlags.
-        apply hop1.
         apply Dxg2.
       }
-      generalize dependent (liftM_HOperator _ f gx2). intros fgx2 Dfgx2.
-      clear Dxg2 gx2  hop1 f.
+      generalize dependent (liftM_HOperator' _ f gx2). intros fgx2 Dfgx2.
+      clear Dxg2 gx2 hop1.
 
-      assert(svector_is_dense _ (liftM_HOperator _ g gx1)).
+      assert(svector_is_dense _ (liftM_HOperator' _ g gx1)).
       {
-        apply liftM_HOperator_DensityPreserving.
+        apply liftM_HOperator'_preserves_density.
         apply MonoidLaws_RthetaFlags.
-        apply hop2.
         apply Dxg1.
       }
-      generalize dependent (liftM_HOperator _ g gx1). intros ggx1 Dggx1.
-      clear Dxg1 gx1 hop2 g.
+      generalize dependent (liftM_HOperator' _ g gx1). intros ggx1 Dggx1.
+      clear Dxg1 gx1 hop2.
 
       unfold Vec2Union.
       rewrite Vnth_map2.
 
       apply ValUnionIsVal.
-      unfold ScatH.
 
       destruct (Coq.Arith.Compare_dec.lt_dec i o1).
       -
         left.
-        unfold Scatter.
+        unfold Scatter'.
         rewrite Vbuild_nth.
         break_match.
         + simpl.
@@ -1082,7 +1079,7 @@ Section SigmaHCOLExpansionRules.
           lia.
       -
         right.
-        unfold Scatter.
+        unfold Scatter'.
         rewrite Vbuild_nth.
         break_match.
         + simpl.

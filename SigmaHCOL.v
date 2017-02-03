@@ -1516,6 +1516,24 @@ Section StructuralProperies.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
+
+    Lemma liftM_HOperator'_preserves_density
+          {i o: nat}
+          (f: avector i -> avector o)
+      :
+        forall x,
+          svector_is_dense fm x -> svector_is_dense fm (liftM_HOperator' fm f x).
+    Proof.
+      intros x Dx.
+      unfold liftM_HOperator', compose.
+      generalize (f (densify fm x)) as y. intros y.
+      unfold svector_is_dense, sparsify.
+      apply Vforall_map_intro.
+      apply Vforall_nth_intro.
+      intros i0 ip.
+      apply IsVal_mkValue.
+    Qed.
+
     (* All lifted HOperators are naturally density preserving *)
     Global Instance liftM_HOperator_DensityPreserving
            {i o}
@@ -1530,13 +1548,7 @@ Section StructuralProperies.
       intros x Px Dx.
       unfold liftM_HOperator in *.
       simpl in *.
-      unfold liftM_HOperator', compose.
-      generalize (f (densify fm x)) as y. intros y.
-      unfold svector_is_dense, sparsify.
-      apply Vforall_map_intro.
-      apply Vforall_nth_intro.
-      intros i0 ip.
-      apply IsVal_mkValue.
+      apply liftM_HOperator'_preserves_density, Dx.
     Qed.
   (*
     Global Instance liftM_HOperator_DenseCauseNoCol
