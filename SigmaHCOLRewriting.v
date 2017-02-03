@@ -1006,22 +1006,21 @@ Section SigmaHCOLExpansionRules.
                           ).
     Proof.
       unfold DensityPreserving.
-      intros x Dx.
+      intros x Px Dx.
 
-      unfold svector_is_dense, compose.
+      unfold svector_is_dense, SHCompose, compose; simpl.
       apply Vforall_nth_intro.
       intros i ip.
       unfold HTSUMUnion.
-      unfold GathH.
 
       (* Generalize Gathers *)
-      remember (@Gather _ (i1 + i2) i2
+      remember (@Gather' _ (i1 + i2) i2
                         (@h_index_map i2 (i1 + i2) i1 1
                                       (h_bound_second_half i1 i2)) x) as gx1.
       assert(Dxg1: svector_is_dense _ gx1).
       {
         subst.
-        apply Gather_preserves_density, Dx.
+        apply Gather'_preserves_density, Dx.
       }
       generalize dependent gx1.
       intros gx1 Heqgx Dxg1. clear Heqgx.

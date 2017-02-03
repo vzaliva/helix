@@ -147,8 +147,8 @@ Section SigmaHCOL_Operators.
     Definition evalSHOperator {i o} {P} {Q} (f:@SHOperator i o P Q):
       {x: svector fm i | P x} -> {y: svector fm o | Q y}
       := fun a => let (v,p) := a in
-               @exist (svector fm o) Q (op f v)
-                      (pre_post f v p).
+                  @exist (svector fm o) Q (op f v)
+                         (pre_post f v p).
 
     Lemma SHOperator_ext_equiv_applied
           {i o: nat} {P Q}
@@ -771,7 +771,7 @@ row. *)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
       iunion_friendly: forall x, P x -> MatrixWithNoRowCollisions
-                                    (Apply_Family Monoid_RthetaFlags op_family x).
+                                          (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -1185,14 +1185,13 @@ Section OperatorProperies.
     apply g_dense.
   Qed.
 
-(*
 
-  Lemma Gather_is_endomorphism:
+  Lemma Gather'_is_endomorphism:
     ∀ (i o : nat)
       (x : svector fm i),
       ∀ (f: index_map o i),
         Vforall (Vin_aux x)
-                (Gather fm f x).
+                (Gather' fm f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -1205,35 +1204,37 @@ Section OperatorProperies.
     apply Vnth_in.
   Qed.
 
-  Lemma Gather_preserves_P:
+  Lemma Gather'_preserves_P:
     ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
       Vforall P x
       → ∀ f : index_map o i,
-        Vforall P (Gather fm f x).
+        Vforall P (Gather' fm f x).
   Proof.
     intros.
-    assert(Vforall (Vin_aux x) (Gather _ f x))
-      by apply Gather_is_endomorphism.
-    generalize dependent (Gather _ f x).
+    assert(Vforall (Vin_aux x) (Gather' _ f x))
+      by apply Gather'_is_endomorphism.
+    generalize dependent (Gather' _ f x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
     assert (Vin_aux x x0) by (apply H0; assumption).
     rewrite Vforall_eq in H.
-    crush.
+    auto.
   Qed.
 
-  Lemma Gather_preserves_density:
+  Lemma Gather'_preserves_density:
     ∀ (i o : nat) (x : svector fm i)
       (f: index_map o i),
       svector_is_dense fm x ->
-      svector_is_dense fm (Gather fm f x).
+      svector_is_dense fm (Gather' fm f x).
   Proof.
     intros.
     unfold svector_is_dense in *.
-    apply Gather_preserves_P.
+    apply Gather'_preserves_P.
     assumption.
   Qed.
+
+(*
 
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
