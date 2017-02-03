@@ -709,8 +709,6 @@ Section SigmaHCOL_Operators.
                {KG: ∀ x : svector fm ki, Qg x → Pk x}
                (* Kernel *)
                (kernel: @SHOperatorFamily ki ko n Pk Qk)
-               `{KD: forall k (kc: k<n), @DensityPreserving ki ko Pk Qk (family_member
-                                                                      kernel k kc)}
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
@@ -1066,7 +1064,6 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
        {KG: ∀ x : rvector ki, Qg x → Pk x}
        (* Kernel *)
        (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
-       `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
        (f: index_map_family ko o n)
        {f_inj : index_map_family_injective f}
        (g: index_map_family ki i n)
@@ -1078,7 +1075,7 @@ Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
     FamilyIUnionFriendly
       (@SparseEmbedding Monoid_RthetaFlags
                         n i o ki ko Pk Qk Ps Qs Pg Qg SK KG
-                        kernel KD
+                        kernel
                         f f_inj
                         g
                         PQg PQs).
@@ -1136,7 +1133,6 @@ Definition USparseEmbedding
            {KG: ∀ x : rvector ki, Qg x → Pk x}
            (* Kernel *)
            (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
-           `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
            (g: index_map_family ki i n)
@@ -1153,7 +1149,7 @@ Definition USparseEmbedding
     ISumUnion (PQ:=PQ)
               (@SparseEmbedding Monoid_RthetaFlags
                                 n i o ki ko Pk Qk Ps Qs Pg Qg SK KG
-                                kernel KD
+                                kernel
                                 f f_inj
                                 g
                                 PQg PQs).
@@ -1345,8 +1341,7 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  (*
-  Lemma SHBinOp_nth
+  Lemma SHBinOp'_nth
         {o}
         {f: nat -> CarrierA -> CarrierA -> CarrierA}
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
@@ -1356,22 +1351,20 @@ Section OperatorProperies.
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp fm o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp' fm o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
   Proof.
-    unfold SHBinOp, vector2pair.
-
+    unfold SHBinOp', vector2pair.
     break_let.
-
     replace t with (fst (Vbreak v)) by crush.
     replace t0 with (snd (Vbreak v)) by crush.
     clear Heqp.
-
     rewrite Vbuild_nth.
     f_equiv.
-
     apply Vnth_fst_Vbreak with (jc3:=jc1).
     apply Vnth_snd_Vbreak with (jc3:=jc2).
   Qed.
+
+  (*
 
   Lemma SHBinOp_equiv_lifted_HBinOp
         {o}
@@ -1611,7 +1604,6 @@ Section StructuralProperies.
    *)
   End FlagsMonoidGenericStructuralProperties.
 
-  (*
   Lemma Is_Val_LiftM2
         (f : CarrierA → CarrierA → CarrierA)
         (v1 v2 : Rtheta)
@@ -1628,19 +1620,25 @@ Section StructuralProperies.
     destr_bool.
   Qed.
 
-  Global Instance SHBinOp_DensityPreserving {o}
+
+  Global Instance SHBinOp_DensityPreserving
+         {o}
+         {P: rvector (o+o) -> Prop}
+         {Q: rvector o -> Prop}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    DensityPreserving Monoid_RthetaFlags (@SHBinOp _ o f pF).
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+         (PQ: forall x, P x -> Q (SHBinOp' _ f x)):
+    DensityPreserving Monoid_RthetaFlags (@SHBinOp _ o P Q f pF PQ).
   Proof.
     unfold DensityPreserving.
-    intros x D.
+    intros x Px D.
     unfold svector_is_dense.
     apply Vforall_nth_intro.
     intros j jc.
     assert (jc1 : j < o + o) by omega.
     assert (jc2 : j + o < o + o) by omega.
-    erewrite (@SHBinOp_nth _ o f pF x j jc jc1 jc2).
+    simpl.
+    erewrite (@SHBinOp'_nth _ o f pF x j jc jc1 jc2).
     assert(V1: Is_Val (Vnth x jc1)) by apply Vforall_nth, D.
     assert(V2: Is_Val (Vnth x jc2)) by apply Vforall_nth, D.
     generalize dependent (Vnth x jc1).
@@ -1648,7 +1646,7 @@ Section StructuralProperies.
     intros v1 V1 v2 V2.
     apply Is_Val_LiftM2; assumption.
   Qed.
-   *)
+
 
   Lemma USparseEmbeddingIsDense
         {n i o ki ko}
@@ -1667,7 +1665,6 @@ Section StructuralProperies.
         {KG: ∀ x : rvector ki, Qg x → Pk x}
         (* Kernel *)
         (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
-        `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
         (f: index_map_family ko o n)
         {f_inj : index_map_family_injective f}
         (g: index_map_family ki i n)
@@ -1684,17 +1681,18 @@ Section StructuralProperies.
         {nz: n ≢ 0}
         {f_sur: index_map_family_surjective f} (* gives density *)
     :
+      (forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)) ->
       forall (x: rvector i) (Pgx: Pg x),
         (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
         svector_is_dense _
                          (op _ (@USparseEmbedding n i o ki ko
                                                   Pk Qk Ps Qs Pg Qg
                                                   SK KG
-                                                  kernel KD f f_inj g
+                                                  kernel f f_inj g
                                                   PQg PQs R PQ
                                ) x).
   Proof.
-    intros x Pgx g_dense.
+    intros KD x Pgx g_dense.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
