@@ -1150,7 +1150,6 @@ Definition USparseEmbedding
                                 PQg PQs).
 
 
-(*
 Section OperatorProperies.
 
   Variable fm:Monoid RthetaFlags.
@@ -1159,13 +1158,13 @@ Section OperatorProperies.
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Gather_spec
+  Lemma Gather'_spec
         {i o: nat}
         (f: index_map o i)
         (x: svector fm i):
-    ∀ n (ip : n < o), Vnth (Gather fm f x) ip ≡ VnthIndexMapped x f n ip.
+    ∀ n (ip : n < o), Vnth (Gather' fm f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
-    unfold Gather, Vbuild.
+    unfold Gather', Vbuild.
     destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
     simpl.
     intros.
@@ -1174,17 +1173,19 @@ Section OperatorProperies.
   Qed.
 
   (* Index-function based condition under which Gather output is dense *)
-  Lemma Gather_dense_constr (i ki : nat)
+  Lemma Gather'_dense_constr (i ki : nat)
         (g: index_map ki i)
         (x: svector fm i)
         (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather fm g x).
+    Vforall Is_Val (Gather' fm g x).
   Proof.
     apply Vforall_nth_intro.
     intros i0 ip.
-    rewrite Gather_spec.
+    rewrite Gather'_spec.
     apply g_dense.
   Qed.
+
+(*
 
   Lemma Gather_is_endomorphism:
     ∀ (i o : nat)
@@ -1452,8 +1453,8 @@ Section OperatorProperies.
     congruence.
     assumption.
   Qed.
-End OperatorProperies.
  *)
+End OperatorProperies.
 
 Section StructuralProperies.
 
@@ -1618,29 +1619,59 @@ Section StructuralProperies.
     intros v1 V1 v2 V2.
     apply Is_Val_LiftM2; assumption.
   Qed.
+*)
 
   Lemma USparseEmbeddingIsDense
         {n i o ki ko}
-        (kernel: forall k, (k<n) -> rvector ki -> rvector ko)
-        `{KD: forall k (kc: k<n), @DensityPreserving _ ki ko (kernel k kc)}
+        (* kernel pre and post conditions *)
+        {Pk: rvector ki → Prop}
+        {Qk: rvector ko → Prop}
+        (* scatter pre and post conditions *)
+        {Ps: rvector ko → Prop}
+        {Qs: rvector o → Prop}
+        (* gather pre and post conditions *)
+        {Pg: rvector i → Prop}
+        {Qg: rvector ki → Prop}
+        (* Scatter-to-Kernel glue *)
+        {SK: ∀ x : rvector ko, Qk x → Ps x}
+        (* Kernel-to-Gather glue *)
+        {KG: ∀ x : rvector ki, Qg x → Pk x}
+        (* Kernel *)
+        (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n Pk Qk)
+        `{KD: forall k (kc: k<n), @DensityPreserving Monoid_RthetaFlags ki ko Pk Qk (family_member Monoid_RthetaFlags kernel k kc)}
         (f: index_map_family ko o n)
-        {f_inj: index_map_family_injective f} (* gives non-col *)
-        {f_sur: index_map_family_surjective f} (* gives density *)
+        {f_inj : index_map_family_injective f}
         (g: index_map_family ki i n)
-        `{Koperator: forall k (kc: k<n), @SHOperator _ ki ko (kernel k kc)}
-        (x: rvector i)
+        (* Gather pre and post conditions relation *)
+        {PQg: ∀ t tc (y:rvector i), Pg y → Qg (Gather' Monoid_RthetaFlags (⦃ g ⦄ t tc) y)}
+        (* Scatter pre and post conditions relation *)
+        {PQs: ∀ t tc (y:rvector ko), Ps y → Qs (Scatter' Monoid_RthetaFlags (⦃ f ⦄ t tc) y)}
+        (* ISumUnion post-condition *)
+        {R: vector Rtheta o → Prop}
+        (* ISumUnion glue *)
+        {PQ}
+
+        (* Extra constraints *)
         {nz: n ≢ 0}
+        {f_sur: index_map_family_surjective f} (* gives density *)
     :
-      (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
+      forall (x: rvector i),
+        (forall j (jc:j<n) k (kc:k<ki), Is_Val (Vnth x («⦃g⦄ j jc» k kc))) ->
       svector_is_dense _
-                       (@USparseEmbedding n i o ki ko kernel KD f f_inj g Koperator x).
+                       (op _ (@USparseEmbedding n i o ki ko
+                                                Pk Qk Ps Qs Pg Qg
+                                                SK KG
+                                                kernel KD f f_inj g
+                                                PQg PQs R PQ
+                             ) x).
   Proof.
-    intros g_dense.
+    intros x g_dense.
     apply Vforall_nth_intro.
     intros oi oic.
     unfold compose.
-    unfold USparseEmbedding, ISumUnion, IUnion, Apply_Family, SparseEmbedding.
-    rewrite AbsorbMUnionIndex_Vbuild.
+    unfold USparseEmbedding, ISumUnion, IUnion, SparseEmbedding, Diamond', Apply_Family'.
+    unfold get_family_op;simpl.
+    rewrite AbsorbMUnion'Index_Vbuild.
     unfold compose.
     destruct n.
     - congruence.
@@ -1652,13 +1683,22 @@ Section StructuralProperies.
       destruct f_sur as [z [p [zc [pc F]]]].
       exists p, pc.
 
-      assert(Vforall Is_Val (Gather _ (⦃g ⦄ p pc) x))
-        by apply Gather_dense_constr, g_dense.
-      generalize dependent (Gather _ (⦃g ⦄ p pc) x).
+      assert(Vforall Is_Val (Gather' _ (⦃g ⦄ p pc) x))
+        by apply Gather'_dense_constr, g_dense.
+      generalize dependent (Gather' _ (⦃g ⦄ p pc) x).
       intros gx GD.
-      clear g_dense g.
+      clear g_dense.
+
+
+      assert(Vforall Is_Val (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags kernel p pc) gx)).
+      {
+        apply KD.
+        admit.
+        apply GD.
+      }
 
       assert(Vforall Is_Val ((kernel p pc) gx)).
+
       {
         apply KD.
         apply GD.
@@ -1682,6 +1722,7 @@ Section StructuralProperies.
       + apply in_range_by_def, zc.
   Qed.
 
+  (*
   (* Pre-condition for UnionFold not causing any collisions *)
   Lemma Not_Collision_UnionFold
         {n}
