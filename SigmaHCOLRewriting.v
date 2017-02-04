@@ -546,7 +546,30 @@ Section SigmaHCOLExpansionRules.
         apply Diamond'_arg_Proper.
         apply CarrierAPlus_proper.
         intros k kc.
-        admit.
+        unfold get_family_op. simpl.
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        + apply Scatter'_Proper.
+        +
+          replace
+            (@equiv (svector Monoid_RthetaFlags (S (S O)))
+                    (@vec_Equiv (Rtheta' Monoid_RthetaFlags) (@Rtheta'_equiv Monoid_RthetaFlags)
+                                (S (S O))))
+          with
+          (@equiv (svector Monoid_RthetaFlags (Init.Nat.add (S O) (S O)))
+                  (@vec_Equiv (Rtheta' Monoid_RthetaFlags) (@Rtheta'_equiv Monoid_RthetaFlags)
+                              (Init.Nat.add (S O) (S O)))).
+
+
+          (* TODO: automate *)
+          match goal with
+          | [ |- (@respectful (svector Monoid_RthetaFlags (S (S O))) ?a ?b ?c ?d ?e) ] =>
+            replace (@respectful (svector Monoid_RthetaFlags (S (S O))) a b c d e) with (@respectful (svector Monoid_RthetaFlags (Init.Nat.add (S O) (S O))) a b c d e)
+          end.
+
+          eapply SHBinOp'_Proper.
+          reflexivity. reflexivity.
+        + apply Gather'_Proper.
       -
         intros x.
         vec_index_equiv i ip.
