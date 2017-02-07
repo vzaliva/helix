@@ -1170,6 +1170,7 @@ Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fi
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
+    (*
     Global Instance Apply_Family_Pointwise_compose_Single_NonZero_Per_Row
            {fm: Monoid RthetaFlags}
            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
@@ -1282,6 +1283,8 @@ Section SigmaHCOLRewritingRules.
       unfold Is_Val, IsVal, compose in *.
       crush.
     Qed.
+
+*)
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
