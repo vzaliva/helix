@@ -1316,14 +1316,15 @@ Section SigmaHCOLRewritingRules.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
-          (op_family: forall k, (k<n) -> rvector i -> rvector o)
-          `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
+          {P Q}
+          {FOO}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
           `{Uz: !Apply_Family_Single_NonZero_Per_Row _ op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
       :
-        SHPointwise _ pf ∘ (ISumUnion op_family) =
+        SHPointwise _ pf  ⊚ (FOO) (ISumUnion _ op_family _) ==
         ISumUnion (fun j jc => SHPointwise _ pf ∘ op_family j jc).
     Proof.
       apply ext_equiv_applied_iff'.
