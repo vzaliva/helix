@@ -1353,33 +1353,53 @@ Section OperatorProperies.
     apply Vnth_snd_Vbreak with (jc3:=jc2).
   Qed.
 
-  (*
-
   Lemma SHBinOp_equiv_lifted_HBinOp
         {o}
+        {P: svector fm (o + o) → Prop}
+        {Q: svector fm o → Prop}
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    @SHBinOp fm o f pF = liftM_HOperator fm (@HBinOp o f pF).
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+        {PQ: forall x : svector fm (o + o), P x -> Q (SHBinOp' fm f x)}
+        {PQ'}
+    :
+      @SHBinOp fm o P Q f pF PQ = @liftM_HOperator fm (o+o) o P Q (@HBinOp o f pF) _ PQ'.
   Proof.
-    apply ext_equiv_applied_iff'; try typeclasses eauto.
-    intros x.
+    apply ext_equiv_applied_iff'.
+    -
+      simpl.
+      split.
+      + apply vec_Setoid.
+      + apply vec_Setoid.
+      + apply SHBinOp'_Proper.
+    -
+      simpl.
+      split.
+      + apply vec_Setoid.
+      + apply vec_Setoid.
+      + apply liftM_HOperator'_Proper.
+        apply HBinOp_HOperator.
+    -
+      intros x.
+      simpl.
+      vec_index_equiv j jc.
 
-    vec_index_equiv j jc.
+      assert(jc1: j<o+o) by omega.
+      assert(jc2: j+o<o+o) by omega.
+      rewrite (@SHBinOp'_nth o f pF x j jc jc1 jc2).
 
-    assert(jc1: j<o+o) by omega.
-    assert(jc2: j+o<o+o) by omega.
-    rewrite (@SHBinOp_nth o f pF x j jc jc1 jc2).
+      unfold liftM_HOperator'.
+      unfold compose.
+      unfold sparsify; rewrite Vnth_map.
+      rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
+      unfold densify; rewrite 2!Vnth_map.
 
-    unfold liftM_HOperator.
-    unfold compose.
-    unfold sparsify; rewrite Vnth_map.
-    rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
-    unfold densify; rewrite 2!Vnth_map.
-
-    rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
-    rewrite mkValue_evalWriter.
-    reflexivity.
+      rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
+      rewrite mkValue_evalWriter.
+      reflexivity.
   Qed.
+
+  (*
+
 
   (* TODO: maybe <->  *)
   Lemma Is_Not_Zero_Scatter
