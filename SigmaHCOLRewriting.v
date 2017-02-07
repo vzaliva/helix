@@ -536,7 +536,6 @@ Section SigmaHCOLExpansionRules.
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
       unfold equiv, SHOperator_equiv.
-      simpl.
       apply ext_equiv_applied_iff'.
       -
         split; try apply vec_Setoid.
@@ -573,8 +572,21 @@ Section SigmaHCOLExpansionRules.
       -
         intros x.
         vec_index_equiv i ip.
-        symmetry.
-        unfold SparseEmbedding, Diamond', Apply_Family', MUnion'. simpl.
+        simpl.
+        erewrite SHBinOp'_nth.
+        unfold Diamond'.
+        rewrite AbsorbMUnion'Index_Vmap.
+        (* OR rewrite AbsorbMUnion'Index_Vbuild.*)
+        unfold Apply_Family'.
+        rewrite Vmap_Vbuild.
+
+        (*
+        unfold SparseEmbedding, Diamond', Apply_Family', MUnion'.
+        unfold SHCompose, compose, get_family_op.
+        simpl.
+        unfold SHBinOp', Scatter', Gather'.
+        simpl.
+         *)
         admit.
     (*
         apply U_SAG2; assumption.
