@@ -766,18 +766,18 @@ row. *)
     :=
       Vforall (Vunique Is_Val) (transpose mat).
 
-  (** This class postulates a property of an operator family.
+  (** This postulates a property of an operator family.
   A matrix produced by applying family of operators will have at
   at most one non-structural element per row. The name alludes to the
   fact that doing ISumUnion on such matrix will not lead to
   collisions. It should be noted that this is structural
   constraint. It does not impose any restriction in actual values (of
   CarrierA type) *)
-  Class FamilyIUnionFriendly
-        {i o n} {P Q}
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
+  Definition FamilyIUnionFriendly
+             {i o n} {P Q}
+             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q): Prop
     :=
-      iunion_friendly: forall x, P x -> MatrixWithNoRowCollisions
+       forall x, P x -> MatrixWithNoRowCollisions
                                           (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
@@ -830,7 +830,6 @@ row. *)
     apply Apply_Family'_arg_proper; auto.
   Qed.
 
-  (* TODO: density preserving? *)
   Definition IUnion
              {i o n}
              (* op_family pre and post conditions *)
@@ -839,7 +838,7 @@ row. *)
              (* IUnion post-condition *)
              {R: rvector o → Prop}
              {PQ: forall (mat: vector (rvector o) n) d i,
-                 (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
+                 (Vforall Q mat) ->
                  R (MUnion' Monoid_RthetaFlags d i mat)
              }
              (* Functional parameters *)
@@ -847,7 +846,6 @@ row. *)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             `{Uf: !FamilyIUnionFriendly op_family}
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
     refine(
@@ -871,14 +869,8 @@ row. *)
         destruct f.
         auto.
       }
-      assert(M2: MatrixWithNoRowCollisions mat').
-      {
-        subst mat'.
-        apply Uf, Px.
-      }
-      auto.
+      apply PQ, M1.
   Defined.
-
 
   Lemma coerce_IUnion
         {i o n}
@@ -892,14 +884,12 @@ row. *)
         (initial: CarrierA)
         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
         (op_family': @SHOperatorFamily Monoid_RthetaFlags i o n P' Q')
-        `{Uf: !FamilyIUnionFriendly op_family}
-        `{Uf': !FamilyIUnionFriendly op_family'}
         {PQ: forall (mat: vector (rvector o) n) d i,
-            (Vforall Q mat /\ MatrixWithNoRowCollisions mat) ->
+            (Vforall Q mat) ->
             R (MUnion' Monoid_RthetaFlags d i mat)
         }
         {PQ': forall (mat: vector (rvector o) n) d i,
-            (Vforall Q' mat /\ MatrixWithNoRowCollisions mat) ->
+            (Vforall Q' mat) ->
             R' (MUnion' Monoid_RthetaFlags d i mat)
         }
         (S: coerce_SHOperatorFamily Monoid_RthetaFlags op_family op_family')
@@ -937,10 +927,9 @@ row. *)
              (* IUnion post-condition *)
              {R: rvector o → Prop}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             `{Uf: !FamilyIUnionFriendly op_family}
              {PQ}
     :=
-      @IUnion i o n P Q R PQ CarrierAplus _ zero op_family Uf.
+      @IUnion i o n P Q R PQ CarrierAplus _ zero op_family.
 
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
@@ -1047,7 +1036,7 @@ Proof.
     inversion H.
 Qed.
 
-Global Instance Apply_Family_SparseEmbedding_SumUnionFriendly
+Lemma Apply_Family_SparseEmbedding_SumUnionFriendly
        {n i o ki ko}
        (* kernel pre and post conditions *)
        {Pk: rvector ki → Prop}

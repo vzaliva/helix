@@ -521,8 +521,7 @@ Section SigmaHCOLExpansionRules.
             {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
             {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
             {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
-                Vforall Qs mat ∧ MatrixWithNoRowCollisions mat
-                → Q (MUnion' Monoid_RthetaFlags d ini mat)}
+                Vforall Qs mat → Q (MUnion' Monoid_RthetaFlags d ini mat)}
 
       :
         SHBinOp Monoid_RthetaFlags f PQo
@@ -897,6 +896,36 @@ Section SigmaHCOLExpansionRules.
 
   Section Structural_Correctness.
 
+    (*
+    Global Instance iUnion_DensityPreserving
+           {i o n}
+           (* op_family pre and post conditions *)
+           {P: rvector i → Prop}
+           {Q: rvector o → Prop}
+           (* IUnion post-condition *)
+           {R: rvector o → Prop}
+           {PQ: forall (mat: vector (rvector o) n) d i,
+               (Vforall Q mat) ->
+               R (MUnion' Monoid_RthetaFlags d i mat)
+           }
+           (* Functional parameters *)
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (initial: CarrierA)
+           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
+           `{Uf: !FamilyIUnionFriendly op_family}
+    :
+      @DensityPreserving _ i o P R (IUnion dot initial op_family (PQ:=PQ)).
+    Proof.
+      unfold DensityPreserving.
+      intros x Px Dx.
+      specialize (Uf x Px).
+      unfold IUnion, Diamond', MUnion'; simpl.
+
+    Qed.
+     *)
+
+
     Global Instance HBinOp_DensityPreserving
            (n:nat)
            {P Q}
@@ -929,8 +958,7 @@ Section SigmaHCOLExpansionRules.
            {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
            {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))}
            {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
-               Vforall Qs mat ∧ MatrixWithNoRowCollisions mat
-               → Q (MUnion' Monoid_RthetaFlags d ini mat)}
+               Vforall Qs mat → Q (MUnion' Monoid_RthetaFlags d ini mat)}
       :
         DensityPreserving _ (
 
@@ -1291,14 +1319,12 @@ Section SigmaHCOLRewritingRules.
           (op_family: forall k, (k<n) -> rvector i -> rvector o)
           `{Koperator: forall k (kc: k<n), @SHOperator _ i o (op_family k kc)}
           `{Uz: !Apply_Family_Single_NonZero_Per_Row _ op_family}
-          `{Uf: !FamilyIUnionFriendly op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
       :
         SHPointwise _ pf ∘ (ISumUnion op_family) =
-        ISumUnion (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
-                  (fun j jc => SHPointwise _ pf ∘ op_family j jc).
+        ISumUnion (fun j jc => SHPointwise _ pf ∘ op_family j jc).
     Proof.
       apply ext_equiv_applied_iff'.
       -
