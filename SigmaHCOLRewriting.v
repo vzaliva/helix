@@ -1312,20 +1312,39 @@ Section SigmaHCOLRewritingRules.
       crush.
     Qed.
 
-*)
+     *)
+
+
+    Set Printing All.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
-          {P Q}
-          {FOO}
+          {P Q R PQ}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-          `{Uz: !Apply_Family_Single_NonZero_Per_Row _ op_family}
+          (* `{Uz: !Apply_Family_Single_NonZero_Per_Row _ op_family} *)
           (pf: { j | j<o} -> CarrierA -> CarrierA)
-          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
+          (* (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero) *)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-      :
-        SHPointwise _ pf  ⊚ (FOO) (ISumUnion _ op_family _) ==
-        ISumUnion (fun j jc => SHPointwise _ pf ∘ op_family j jc).
+          {P' Q': svector Monoid_RthetaFlags o → Prop}
+          {PQ'}
+          {Q''}
+          {P'Q''}
+          {FOO}
+    :
+      SHOperator_hequiv _
+        (SHCompose _
+                   (@SHPointwise _ o P' Q' pf pf_mor PQ')
+                   (@ISumUnion i o n P Q R op_family PQ)
+                   (FOO))
+
+        (@ISumUnion i o n P Q'' Q'
+                    (mkSHOperatorFamily _ i o n P Q''
+                                        (fun (j:nat) (jc:j<n) =>
+                                           (@mkSHOperator _ i o P Q''
+                                                          ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) _ _)
+                    ))
+                    _
+        ).
     Proof.
       apply ext_equiv_applied_iff'.
       -

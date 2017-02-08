@@ -83,7 +83,7 @@ Section SigmaHCOL_Operators.
                {i o: nat}
                {P Q P' Q'}:
       (@SHOperator i o P Q) -> (@SHOperator i o P' Q') -> Prop :=
-      fun a b =>  op a = op b.
+      fun a b => op a = op b.
 
     Global Instance SHOperator_op_proper {i o P Q} :
       Proper ((=) ==> (=) ==> (=)) (op (i:=i) (o:=o) (preCond:=P) (postCond:=Q)).
@@ -118,9 +118,6 @@ Section SigmaHCOL_Operators.
            {i o n: nat} {P Q}:
       Equiv (@SHOperatorFamily i o n P Q) :=
       fun a b => forall j (jc:j<n), family_member a j jc = family_member b j jc.
-
-    Infix "==" := SHOperator_hequiv (at level 70, no associativity).
-
 
     (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
@@ -227,7 +224,7 @@ Section SigmaHCOL_Operators.
                  {i o} {P1 P2 Q1 Q2}
                  (a': @SHOperator i o P1 Q1) (a: @SHOperator i o P2 Q2): Prop
         :=
-          (a' == a) /\
+          (SHOperator_hequiv a' a) /\
           (forall x, P1 x -> P2 x) /\
           (forall y, Q2 y -> Q1 y).
 
@@ -253,7 +250,7 @@ Section SigmaHCOL_Operators.
           coerce_SHOperator a b -> coerce_SHOperator b c -> coerce_SHOperator a c.
         Proof.
           unfold coerce_SHOperator.
-          unfold "==".
+          unfold SHOperator_hequiv.
           crush.
         Qed.
 
@@ -602,7 +599,7 @@ Section SigmaHCOL_Operators.
         coerce_SHOperator (op1 ⊚ ( QP ) op2) (op1' ⊚( coerce_SHOperator_Q2'P1' S1 S2 ) op2').
       Proof.
         split ;inversion S1; inversion S2; crush.
-        unfold "==" in *.
+        unfold SHOperator_hequiv in *.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply H.
         apply H1.
@@ -938,7 +935,7 @@ row. *)
              (* IUnion post-condition *)
              {R: rvector o → Prop}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
-             {PQ}
+             {PQ} : @SHOperator Monoid_RthetaFlags i o P R
     :=
       @IUnion i o n P Q R PQ CarrierAplus _ zero op_family.
 
@@ -1023,7 +1020,7 @@ End SigmaHCOL_Operators.
 
 (* re-define notation outside a section *)
 Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
-Infix "==" := SHOperator_hequiv (at level 70, no associativity).
+(* Infix "==" := SHOperator_hequiv (at level 70, no associativity). *)
 
 
 (* TODO: maybe <->  *)
