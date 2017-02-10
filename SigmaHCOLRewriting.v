@@ -1352,7 +1352,6 @@ Section SigmaHCOLRewritingRules.
                         ).
     Proof.
       unfold SHOperator_hequiv, SHCompose; simpl.
-
       apply ext_equiv_applied_iff'.
       -
         (* LHS Setoid_Morphism *)
@@ -1406,11 +1405,13 @@ Section SigmaHCOLRewritingRules.
             generalize dependent vl.
             intros vl Uzeros.
             unfold UnionFold.
+            clear R PQ P' Q' PQ' Q'' P'Q'' PQ'' Q''Q' C op_family P Q.
             induction vl.
             -
               unfold mkSZero.
               reflexivity.
-            - simpl in Uzeros. destruct Uzeros as [Hh Hx].
+            -
+              simpl in Uzeros. destruct Uzeros as [Hh Hx].
               Opaque Monad.ret. simpl. Transparent Monad.ret.
               rewrite IHvl.
               *
@@ -1422,12 +1423,6 @@ Section SigmaHCOLRewritingRules.
                 destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) zero) as [E | NE].
                 apply E.
                 crush.
-              *
-                admit.
-              *
-                admit.
-              *
-                admit.
               *
                 apply Hx.
           }

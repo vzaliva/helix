@@ -85,6 +85,36 @@ Section SigmaHCOL_Operators.
       (@SHOperator i o P Q) -> (@SHOperator i o P' Q') -> Prop :=
       fun a b => op a = op b.
 
+
+    (*
+    Lemma SHOperator_hequiv_ext_equiv
+          {i o: nat}
+          {P Q P' Q'}
+          (a: @SHOperator i o P Q)
+          (b: @SHOperator i o P' Q'):
+      (forall x, (P x) /\ (P' x) -> op a x = op b x) -> SHOperator_hequiv a b.
+    Proof.
+      intros H.
+      unfold SHOperator_hequiv.
+      apply ext_equiv_applied_iff'.
+      -
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply (op_proper a).
+      -
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply (op_proper b).
+      -
+
+    Qed.
+     *)
+
+
+    
+
     Global Instance SHOperator_op_proper {i o P Q} :
       Proper ((=) ==> (=) ==> (=)) (op (i:=i) (o:=o) (preCond:=P) (postCond:=Q)).
     Proof.
