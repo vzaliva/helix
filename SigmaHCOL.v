@@ -419,18 +419,16 @@ Section SigmaHCOL_Operators.
       - apply E.
     Qed.
 
-    (*
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
-    Class Apply_Family_Single_NonZero_Per_Row
-          {i o n}
-          (op_family: forall k, (k<n) -> svector fm i -> svector fm o)
-          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
+    Definition Apply_Family_Single_NonZero_Per_Row
+               {i o n}
+               {P Q}
+               (op_family: @SHOperatorFamily i o n P Q)
       :=
-        apply_family_single_row_nz: forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                                                      (transpose
-                                                         (Apply_Family op_family x)
-                                                      ).
-     *)
+        forall x, Vforall (Vunique (not ∘ Is_ValZero))
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
