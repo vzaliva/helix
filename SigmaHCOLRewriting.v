@@ -1328,13 +1328,7 @@ Section SigmaHCOLRewritingRules.
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          {P' Q': svector Monoid_RthetaFlags o → Prop}
-          {PQ'}
-          {Q''}
-          {P'Q''}
-          {PQ''}
-          {Q''Q'}
-          {C}
+          {P' Q' PQ' Q'' P'Q'' PQ'' Q''Q' C}
     :
       SHOperator_hequiv _
                         (SHCompose _
