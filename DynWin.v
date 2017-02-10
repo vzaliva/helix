@@ -27,38 +27,44 @@ Require Import SigmaHCOLRewriting.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
 
+Section HCOL_breakdown.
 
-(* Original dynamic window expression *)
-Definition dynwin_orig (a: avector 3) :=
-  (HTLess
-     (HEvalPolynomial a)
-     (HChebyshevDistance 2)).
+  (* Original dynamic window expression *)
+  Definition dynwin_orig (a: avector 3) :=
+    (HTLess
+       (HEvalPolynomial a)
+       (HChebyshevDistance 2)).
 
-(* dynamic window HCOL expression *)
-Definition dynwin_HCOL (a: avector 3) :=
-  (HBinOp (IgnoreIndex2 Zless) ∘
-          HCross
-          ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-          (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
+  (* dynamic window HCOL expression *)
+  Definition dynwin_HCOL (a: avector 3) :=
+    (HBinOp (IgnoreIndex2 Zless) ∘
+            HCross
+            ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
+            (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
 
 
-(* Initial HCOL breakdown proof *)
-Theorem DynWinOHCOL:  forall (a: avector 3),
-    dynwin_orig a = dynwin_HCOL a.
-Proof.
-  intros a.
-  unfold dynwin_orig, dynwin_HCOL.
-  rewrite breakdown_OTLess_Base.
-  rewrite breakdown_OEvalPolynomial.
-  rewrite breakdown_OScalarProd.
-  rewrite breakdown_OMonomialEnumerator.
-  rewrite breakdown_OChebyshevDistance.
-  rewrite breakdown_OVMinus.
-  rewrite breakdown_OTInfinityNorm.
-  HOperator_reflexivity.
-Qed.
+  (* Initial HCOL breakdown proof *)
+  Theorem DynWinOHCOL:  forall (a: avector 3),
+      dynwin_orig a = dynwin_HCOL a.
+  Proof.
+    intros a.
+    unfold dynwin_orig, dynwin_HCOL.
+    rewrite breakdown_OTLess_Base.
+    rewrite breakdown_OEvalPolynomial.
+    rewrite breakdown_OScalarProd.
+    rewrite breakdown_OMonomialEnumerator.
+    rewrite breakdown_OChebyshevDistance.
+    rewrite breakdown_OVMinus.
+    rewrite breakdown_OTInfinityNorm.
+    HOperator_reflexivity.
+  Qed.
 
-(*
+End HCOL_breakdown.
+
+
+Section SigmaHCOL_rewriting.
+
+  (*
 Final Sigma-HCOL expression:
 
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
@@ -78,52 +84,53 @@ SUMUnion(
   ) o
   GathH(5, 4, 1, 1)
 )
- *)
-Definition dynwin_SigmaHCOL (a: avector 3) : svector (1 + (2 + 2)) -> svector 1
-  :=
-    SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-            ∘ HTSUMUnion plus
-            (ScatH 0 1
-                   (range_bound := h_bound_first_half 1 1)
-                   (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ (liftM_HOperator (HReduction plus zero) ∘
-                                      SHBinOp (IgnoreIndex2 mult) ∘
-                                      liftM_HOperator (HPrepend a ) ∘
-                                      liftM_HOperator (HInduction 3 mult one)) ∘
-                   GathH 0 1
-                   (domain_bound := h_bound_first_half 1 (2+2))
+   *)
+  Definition dynwin_SigmaHCOL (a: avector 3) : rvector (1 + (2 + 2)) -> rvector 1
+    :=
+      SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
+              ∘ HTSUMUnion plus
+              (ScatH 0 1
+                     (range_bound := h_bound_first_half 1 1)
+                     (snzord0 := @ScatH_stride1_constr 1 2)
+                     ∘ (liftM_HOperator (HReduction plus zero) ∘
+                                        SHBinOp (IgnoreIndex2 mult) ∘
+                                        liftM_HOperator (HPrepend a ) ∘
+                                        liftM_HOperator (HInduction 3 mult one)) ∘
+                     GathH 0 1
+                     (domain_bound := h_bound_first_half 1 (2+2))
 
-            )
-            (ScatH 1 1
-                   (range_bound := h_bound_second_half 1 1)
-                   (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ liftM_HOperator (HReduction minmax.max 0) ∘ (SHPointwise (IgnoreIndex abs)) ∘
-                   (USparseEmbedding
-                      (n:=2)
-                      (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
-                      (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                      (f_inj := h_j_1_family_injective)
-                      (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                   ∘ GathH 1 1
-                   (domain_bound := h_bound_second_half 1 (2+2))
-            ).
+              )
+              (ScatH 1 1
+                     (range_bound := h_bound_second_half 1 1)
+                     (snzord0 := @ScatH_stride1_constr 1 2)
+                     ∘ liftM_HOperator (HReduction minmax.max 0) ∘ (SHPointwise (IgnoreIndex abs)) ∘
+                     (USparseEmbedding
+                        (n:=2)
+                        (fun j _ => SHBinOp (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
+                        (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
+                        (f_inj := h_j_1_family_injective)
+                        (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
+                     ∘ GathH 1 1
+                     (domain_bound := h_bound_second_half 1 (2+2))
+              ).
 
-(* HCOL -> SigmaHCOL Value correctness. *)
-Theorem DynWinSigmaHCOL:  forall (a: avector 3),
-    liftM_HOperator (dynwin_HCOL a) = dynwin_SigmaHCOL a.
-Proof.
-  intros a.
+  (* HCOL -> SigmaHCOL Value correctness. *)
+  Theorem DynWinSigmaHCOL:  forall (a: avector 3),
+      liftM_HOperator (dynwin_HCOL a) = dynwin_SigmaHCOL a.
+  Proof.
+    intros a.
 
-  unfold dynwin_SigmaHCOL, dynwin_HCOL.
-  rewrite LiftM_Hoperator_compose.
+    unfold dynwin_SigmaHCOL, dynwin_HCOL.
+    rewrite LiftM_Hoperator_compose.
 
-  (* Actual rewriting *)
-  setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
-  repeat setoid_rewrite LiftM_Hoperator_compose at 1.
-  repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
-  repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
-  setoid_rewrite expand_BinOp at 3.
+    (* Actual rewriting *)
+    setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
+    repeat setoid_rewrite LiftM_Hoperator_compose at 1.
+    repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+    repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
+    setoid_rewrite expand_BinOp at 3.
 
-  SHOperator_reflexivity.
-Qed.
+    SHOperator_reflexivity.
+  Qed.
 
+End SigmaHCOL_rewriting.

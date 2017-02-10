@@ -1172,6 +1172,7 @@ Section SigmaHCOLExpansionRules.
 
 End SigmaHCOLExpansionRules.
 
+(*
 Ltac HOperator_HBinOp_Type_Fix :=
   match goal with
   | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
@@ -1180,7 +1181,7 @@ Ltac HOperator_HBinOp_Type_Fix :=
 
 Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
 
-(* Ltac SHOperator_SHBinOp_Type_Fix :=
+Ltac SHOperator_SHBinOp_Type_Fix :=
   match goal with
   | [ |- (@SHOperator ?i ?o (@SHBinOp ?o _ _)) ] =>
     replace (@SHOperator i) with (@SHOperator (Init.Nat.add o o)) by apply eq_refl; apply SHOperator_SHBinOp
@@ -1192,6 +1193,7 @@ Hint Extern 0 (@SHOperator _ ?o (@SHBinOp ?o _ _)) => SHOperator_SHBinOp_Type_Fi
 (* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
  *)
 
+(*
 Ltac HOperator_HPrepend_Type_Fix :=
   match goal with
   | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
@@ -1199,6 +1201,7 @@ Ltac HOperator_HPrepend_Type_Fix :=
   end.
 
 Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
+ *)
 
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
@@ -1550,7 +1553,8 @@ Section SigmaHCOLRewritingRules.
           left; auto.
     Qed.
 
-  (*
+
+    (*
     Lemma rewrite_Reduction_ISumReduction
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
@@ -1560,75 +1564,18 @@ Section SigmaHCOLRewritingRules.
           (f: Rtheta -> Rtheta -> Rtheta)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
+      SHOperator_hequiv _
         Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) ∘ (ISumUnion op_family) =
         ISumReduction (Uf := Apply_Family_Pointwise_compose_SumUnionFriendly op_family pf pfzn)
                   (fun j jc => Reduction ∘ op_family j jc).
     Proof.
     Qed.
-   *)
+     *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
 
-
-
-(* Testing code below. To be moved to DynWin.v. Currently kept here for performance reasons *)
-
-(* Dupulicate definition from DynWin! *)
-Definition tmp_dynwin_SigmaHCOL (a: avector 3) : rvector (1 + (2 + 2)) -> rvector 1
-  :=
-    SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless)
-            ∘ HTSUMUnion _ plus
-            (ScatH _ 0 1
-                   (range_bound := h_bound_first_half 1 1)
-                   (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ (liftM_HOperator _ (HReduction plus zero) ∘
-                                      SHBinOp _ (IgnoreIndex2 mult) ∘
-                                      liftM_HOperator _ (HPrepend a ) ∘
-                                      liftM_HOperator _ (HInduction 3 mult one)) ∘
-                   GathH _ 0 1
-                   (domain_bound := h_bound_first_half 1 (2+2))
-
-            )
-            (ScatH _ 1 1
-                   (range_bound := h_bound_second_half 1 1)
-                   (snzord0 := @ScatH_stride1_constr 1 2)
-                   ∘ liftM_HOperator _ (HReduction minmax.max zero) ∘ (SHPointwise _ (IgnoreIndex abs)) ∘
-                   (USparseEmbedding
-                      (n:=2)
-                      (fun j _ => SHBinOp _ (o:=1) (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))
-                      (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                      (f_inj := h_j_1_family_injective)
-                      (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                   ∘ GathH _ 1 1
-                   (domain_bound := h_bound_second_half 1 (2+2))
-            ).
-
+(*
 Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
 
 Hint Extern 0 (FamilyIUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
-
-Definition dynwin_rewritten_SigmaHCOL (_: avector 3):
-  rvector (1 + (2 + 2)) → rvector 1 :=
-  fun _ => szero_svector _ 1.
-
-(* SigmaHCOL -> SigmaHCOL Value correctness. *)
-Theorem DynWinSigmaHCOLRewriting:  forall (a: avector 3),
-    tmp_dynwin_SigmaHCOL a = dynwin_rewritten_SigmaHCOL a.
-Proof.
-  intros a.
-  unfold tmp_dynwin_SigmaHCOL.
-
-  repeat rewrite compose_assoc.
-
-  Set Typeclasses Depth 4.
-  setoid_rewrite <- compose_assoc at 12.
-  Set Typeclasses Depth 99.
-
-  unfold USparseEmbedding.
-
-  rewrite rewrite_PointWise_ISumUnion.
-
-  Focus 2.
-  apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row.
-
-Admitted.
+*)
