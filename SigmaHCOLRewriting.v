@@ -1322,6 +1322,11 @@ Section SigmaHCOLRewritingRules.
 
      *)
 
+    Local Infix "==" :=
+      (@SHOperator_hequiv Monoid_RthetaFlags _ _ _ _ _ _)
+                         (at level 90, no associativity).
+
+    Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
@@ -1332,21 +1337,19 @@ Section SigmaHCOLRewritingRules.
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
           {P' Q' PQ' Q'' P'Q'' PQ'' Q''Q' C}
-    :
-      SHOperator_hequiv _
-                        (SHCompose _
-                                   (@SHPointwise _ o P' Q' pf pf_mor PQ')
-                                   (@ISumUnion i o n P Q R op_family PQ)
-                                   (C))
+      :
+        (@SHPointwise _ o P' Q' pf pf_mor PQ') ⊚ ( C ) (@ISumUnion i o n P Q R op_family PQ)
 
-                        (@ISumUnion i o n P Q'' Q'
-                                    (mkSHOperatorFamily _ i o n P Q''
-                                                        (fun (j:nat) (jc:j<n) =>
-                                                           (@mkSHOperator _ i o P Q''
-                                                                          ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) (PQ'' j jc) _)
-                                    ))
-                                    Q''Q'
-                        ).
+      ==
+
+      (@ISumUnion i o n P Q'' Q'
+                  (mkSHOperatorFamily _ i o n P Q''
+                                      (fun (j:nat) (jc:j<n) =>
+                                         (@mkSHOperator _ i o P Q''
+                                                        ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) (PQ'' j jc) _)
+                  ))
+                  Q''Q'
+      ).
     Proof.
       unfold SHOperator_hequiv, SHCompose; simpl.
       apply ext_equiv_applied_iff'.

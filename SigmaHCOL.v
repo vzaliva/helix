@@ -571,7 +571,7 @@ Section SigmaHCOL_Operators.
         auto.
     Defined.
 
-    Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
 
     Lemma SHCompose_val_equal_compose
           {i1 o2 o3}

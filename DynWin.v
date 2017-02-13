@@ -8,6 +8,7 @@ Require Import HCOL.
 Require Import HCOLImpl.
 Require Import THCOL.
 Require Import THCOLImpl.
+Require Import Rtheta.
 Require Import SigmaHCOL.
 Require Import TSigmaHCOL.
 Require Import IndexFunctions.
@@ -64,6 +65,13 @@ End HCOL_breakdown.
 
 Section SigmaHCOL_rewriting.
 
+  Local Infix "==" :=
+    (@SHOperator_hequiv Monoid_RthetaFlags _ _ _ _ _ _)
+      (at level 90, no associativity).
+
+  Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+e
+
   (*
 Final Sigma-HCOL expression:
 
@@ -85,10 +93,15 @@ SUMUnion(
   GathH(5, 4, 1, 1)
 )
    *)
-  Definition dynwin_SigmaHCOL (a: avector 3) : rvector (1 + (2 + 2)) -> rvector 1
+  Definition dynwin_SigmaHCOL
+             (a: avector 3)
+             {P: rvector (1 + (2 + 2)) -> Prop}
+             {Q: rvector 1 -> Prop}
+             :
+    @SHOperator Monoid_RthetaFlags (1 + (2 + 2)) (1) P Q
     :=
       SHBinOp (IgnoreIndex2 THCOLImpl.Zless)
-              ∘ HTSUMUnion plus
+              ⊚ (C ) HTSUMUnion plus
               (ScatH 0 1
                      (range_bound := h_bound_first_half 1 1)
                      (snzord0 := @ScatH_stride1_constr 1 2)
