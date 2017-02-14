@@ -93,18 +93,29 @@ SUMUnion(
   GathH(5, 4, 1, 1)
 )
    *)
-  Definition dynwin_SigmaHCOL
-             (a: avector 3)
-             {P1 Q1 Q2 P3 Q3 P4 Q4 P5 Q5 P6 Q6 P7 Q7 P8 Q8}
-             {P9 Q9 P10 Q10 P11 Q11 Q12 P13 Q13}
-             {Ps Qs Pg Qg}
-             {SK KG R}
-             {C1 C2 C3 C4 C5 C6 C7 C8 C9 C10}
-             {PQ1 PQ2 PQ3 PQ4 PQ5 PQ6 PQ7 PQ8 PQ9 PQ10 PQ11 PQ12 PQ13 PQ14}
-             {PQg PQs}
+  (* HCOL -> SigmaHCOL Value correctness. *)
+  Theorem DynWinSigmaHCOL
+          (a: avector 3)
+
+          (* LHS arguments *)
+          {P: svector Monoid_RthetaFlags (1 + (2 + 2)) -> Prop}
+          {Q: svector Monoid_RthetaFlags 1 -> Prop}
+          {PQ: forall x : svector Monoid_RthetaFlags (1 + (2 + 2)),
+              P x -> Q (liftM_HOperator' Monoid_RthetaFlags (dynwin_HCOL a) x)}
+
+          (* RHS arguments *)
+          {P1 Q1 Q2 P3 Q3 P4 Q4 P5 Q5 P6 Q6 P7 Q7 P8 Q8}
+          {P9 Q9 P10 Q10 P11 Q11 Q12 P13 Q13}
+          {Ps Qs Pg Qg}
+          {SK KG R}
+          {C1 C2 C3 C4 C5 C6 C7 C8 C9 C10}
+          {PQ1 PQ2 PQ3 PQ4 PQ5 PQ6 PQ7 PQ8 PQ9 PQ10 PQ11 PQ12 PQ13 PQ14}
+          {PQg PQs}
     :
-      @SHOperator Monoid_RthetaFlags (1 + (2 + 2)) (1) P8 Q1
-    :=
+      liftM_HOperator Monoid_RthetaFlags (P:=P) (Q:=Q) (dynwin_HCOL a) PQ
+
+      ==
+
       (SHBinOp _ (P:=P1) (Q:=Q1) (IgnoreIndex2 THCOLImpl.Zless) PQ1)
         ⊚(C1)
         (HTSUMUnion _ (P:=P8) (Q1:=Q5) (Q2:=Q9) (Q:=Q2)
@@ -153,14 +164,8 @@ SUMUnion(
                     plus
                     PQ2
         ).
-
-  (* HCOL -> SigmaHCOL Value correctness. *)
-  Theorem DynWinSigmaHCOL:  forall (a: avector 3),
-      liftM_HOperator (dynwin_HCOL a) = dynwin_SigmaHCOL a.
   Proof.
-    intros a.
-
-    unfold dynwin_SigmaHCOL, dynwin_HCOL.
+    unfold dynwin_HCOL.
     rewrite LiftM_Hoperator_compose.
 
     (* Actual rewriting *)
