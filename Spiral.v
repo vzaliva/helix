@@ -12,8 +12,6 @@ Require Import Coq.Program.Program.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 Require Import Psatz.
 Require Import Omega.

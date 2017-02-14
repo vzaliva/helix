@@ -18,8 +18,7 @@ Require Import MathClasses.theory.naturals.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
+Require Import SpiralTactics.
 
 (* Various definitions related to vector equality and setoid rewriting *)
 

@@ -10,8 +10,7 @@ Require Import Morphisms.
 Require Import RelationClasses.
 Require Import Relations.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
+Require Import SpiralTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

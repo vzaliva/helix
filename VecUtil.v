@@ -6,8 +6,6 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 
 Require Import Spiral.

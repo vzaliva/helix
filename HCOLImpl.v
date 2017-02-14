@@ -11,9 +11,7 @@ Require Import Morphisms.
 Require Import RelationClasses.
 Require Import Relations.
 
-Require Import CpdtTactics.
 Require Import SpiralTactics.
-Require Import JRWTactics.
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.

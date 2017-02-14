@@ -1,5 +1,8 @@
 (* ----------- Some handy tactics ----------- *)
 
+Require Export Spiral.CpdtTactics.
+Require Export Spiral.JRWTactics.
+
 Require Import Coq.Arith.Lt.
 
 Require Import MathClasses.interfaces.canonical_names.

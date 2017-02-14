@@ -16,8 +16,6 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 Require Import Psatz.
 Require Import Omega.

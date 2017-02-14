@@ -19,7 +19,6 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
 
-Require Import CpdtTactics.
 Require Import SpiralTactics.
 
 Import MonadNotation.

@@ -18,8 +18,6 @@ Require Import Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 Require Import Program.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 
 Require Import HCOLBreakdown.

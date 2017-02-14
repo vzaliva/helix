@@ -22,8 +22,6 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
 Require Import Omega.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 
 (* CoRN Math-classes *)

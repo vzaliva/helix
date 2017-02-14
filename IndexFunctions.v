@@ -10,8 +10,6 @@ Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
 Import Coq.Arith.PeanoNat.Nat.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 Require Import Psatz.
 Require Import Omega.

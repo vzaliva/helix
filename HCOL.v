@@ -11,8 +11,7 @@ Require Import Coq.Arith.Plus.
 Require Import Program. (* compose *)
 Require Import Morphisms.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
+Require Import SpiralTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

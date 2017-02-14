@@ -8,8 +8,6 @@ Require Import Coq.Bool.Bool.
 Require Import Arith.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Require Import CpdtTactics.
-Require Import JRWTactics.
 Require Import SpiralTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
