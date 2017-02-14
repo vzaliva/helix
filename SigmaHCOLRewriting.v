@@ -125,19 +125,41 @@ Section SigmaHCOLHelperLemmas.
         reflexivity.
   Qed.
 
+   *)
+
   Lemma LiftM_Hoperator_compose
+        {fm: Monoid RthetaFlags}
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
-    :
-      liftM_HOperator fm (op1 ∘ op2) = (liftM_HOperator fm op1) ∘ (liftM_HOperator fm op2).
+        {P Q Q'}
+        {PQ1 PQ2 PQ3}
+        {C}
+  :
+    liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ1 =
+    SHCompose fm
+              (liftM_HOperator fm (P:=Q') (Q:=Q) op1 PQ2)
+              (liftM_HOperator fm (P:=P) (Q:=Q') op2 PQ3)
+              C.
   Proof.
-    apply SHOperator_functional_extensionality.
-    - typeclasses eauto.
-    - typeclasses eauto.
+    unfold equiv, SHOperator_equiv; simpl.
+    apply ext_equiv_applied_iff'.
+    -
+      split.
+      + apply vec_Setoid.
+      + apply vec_Setoid.
+      + apply liftM_HOperator'_Proper.
+        apply compose_HOperator.
+    -
+      split.
+      + apply vec_Setoid.
+      + apply vec_Setoid.
+      + apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply liftM_HOperator'_Proper; assumption.
+        apply liftM_HOperator'_Proper; assumption.
     -
       intros v.
-      unfold liftM_HOperator, compose.
+      unfold liftM_HOperator', compose.
       unfold sparsify, densify.
       rewrite Vmap_map.
 
@@ -150,7 +172,7 @@ Section SigmaHCOLHelperLemmas.
       repeat rewrite Vnth_map.
       f_equiv.
   Qed.
-   *)
+
   Fact ScatH_stride1_constr:
   forall {a b:nat}, 1 ≢ 0 ∨ a < b.
   Proof.
