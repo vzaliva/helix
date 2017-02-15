@@ -67,7 +67,7 @@ Section SigmaHCOL_rewriting.
     (@SHOperator_hequiv Monoid_RthetaFlags _ _ _ _ _ _)
       (at level 90, no associativity).
 
-  Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+  Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ qp g f) (at level 40, left associativity) : type_scope.
 
 
   (*
@@ -164,10 +164,10 @@ SUMUnion(
         ).
   Proof.
     unfold dynwin_HCOL.
-    rewrite (@LiftM_Hoperator_compose _ _ _).
+    setoid_rewrite LiftM_Hoperator_compose.
 
     (* Actual rewriting *)
-    setoid_rewrite expand_HTDirectSum; try typeclasses eauto.
+    setoid_rewrite expand_HTDirectSum.
     repeat setoid_rewrite LiftM_Hoperator_compose at 1.
     repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
     repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.

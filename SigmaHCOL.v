@@ -570,10 +570,13 @@ Section SigmaHCOL_Operators.
 
     Definition SHCompose
                {i1 o2 o3}
-               {P1 Q1 P2 Q2}
+               {P1: svector fm o2 -> Prop}
+               {Q1 : svector fm o3 -> Prop}
+               {P2 : svector fm i1 -> Prop}
+               {Q2: svector fm o2 -> Prop}
+               (QP: forall x, Q2 x -> P1 x)
                (op1: @SHOperator o2 o3 P1 Q1)
                (op2: @SHOperator i1 o2 P2 Q2)
-               (QP: forall x, Q2 x -> P1 x)
       : @SHOperator i1 o3 P2 Q1.
     Proof.
       refine (mkSHOperator i1 o3 P2 Q1 (compose (op op1) (op op2)) _ _).
@@ -585,7 +588,7 @@ Section SigmaHCOL_Operators.
         auto.
     Defined.
 
-    Local Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ qp g f) (at level 40, left associativity) : type_scope.
 
     Lemma SHCompose_val_equal_compose
           {i1 o2 o3}
@@ -602,6 +605,23 @@ Section SigmaHCOL_Operators.
       intros x y E.
       rewrite E.
       reflexivity.
+    Qed.
+
+    Global Instance SHCompose_proper
+           {i1 o2 o3 P1 Q1 P2 Q2 QP}
+      :
+      Proper ((=) ==> (=) ==> (=)) (@SHCompose i1 o2 o3 P1 Q1 P2 Q2 QP).
+    Proof.
+      intros x x' Ex y y' Ey.
+      unfold SHCompose.
+      unfold equiv, SHOperator_equiv in *.
+      destruct x, y, x', y'.
+      simpl in *.
+      rewrite <- Ey, <- Ex.
+      unfold equiv, ext_equiv.
+      apply compose_proper with (RA:=equiv) (RB:=equiv).
+      + apply op_proper0.
+      + apply op_proper1.
     Qed.
 
     Section CoerceComposion.

@@ -138,10 +138,10 @@ Section SigmaHCOLHelperLemmas.
         (PT : forall x : svector fm i1, P x -> T (liftM_HOperator' fm op2 x))
   :
     liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ =
-    SHCompose fm
+    SHCompose fm (fun _ => @id _)
               (liftM_HOperator fm (P:=T) (Q:=Q) op1 TQ)
               (liftM_HOperator fm (P:=P) (Q:=T) op2 PT)
-              (fun _ => @id _).
+  .
   Proof.
     unfold equiv, SHOperator_equiv; simpl.
     apply ext_equiv_applied_iff'.
@@ -664,22 +664,17 @@ Section SigmaHCOLExpansionRules.
         liftM_HOperator fm (HTDirectSum f g) PQd (* SHoperator P Q *)
         =
         HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) fm (* SHoperator P Q *)
-                   (SHCompose fm (P1:=PS1) (P2:=P) (Q1:=Q1)
+                   (SHCompose fm (P1:=PS1) (P2:=P) (Q1:=Q1) QP2
                               (ScatH fm 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
-                              (SHCompose fm (P2:=P) (P1:=Pf)
+                              (SHCompose fm (P2:=P) (P1:=Pf) QP1
                                          (liftM_HOperator fm (P:=Pf) (Q:=Qf) f PQf)
-                                         (GathH fm 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)
-                                         QP1)
-                              QP2)
+                                         (GathH fm 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)))
 
-                   (SHCompose fm (P1:=PS2) (P2:=P) (Q1:=Q2)
+                   (SHCompose fm (P1:=PS2) (P2:=P) (Q1:=Q2) QP4
                               (ScatH fm o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
-                              (SHCompose fm (P2:=P) (P1:=Pg)
+                              (SHCompose fm (P2:=P) (P1:=Pg) QP3
                                          (liftM_HOperator fm (P:=Pg) (Q:=Qg) g PQg)
-                                         (GathH fm i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)
-                                         QP3
-                              )
-                              QP4)
+                                         (GathH fm i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)))
                    plus
                    PQh
     .
@@ -1077,22 +1072,17 @@ Section SigmaHCOLExpansionRules.
            {PQh}
       : DensityPreserving Monoid_RthetaFlags (
                             HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) _ (* SHoperator P Q *)
-                                       (SHCompose _ (P1:=PS1) (P2:=P) (Q1:=Q1)
+                                       (SHCompose _ (P1:=PS1) (P2:=P) (Q1:=Q1) QP2
                                                   (ScatH _ 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
-                                                  (SHCompose _ (P2:=P) (P1:=Pf)
+                                                  (SHCompose _ (P2:=P) (P1:=Pf) QP1
                                                              (liftM_HOperator _ (P:=Pf) (Q:=Qf) f PQf)
-                                                             (GathH _ 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)
-                                                             QP1)
-                                                  QP2)
+                                                             (GathH _ 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)))
 
-                                       (SHCompose _ (P1:=PS2) (P2:=P) (Q1:=Q2)
+                                       (SHCompose _ (P1:=PS2) (P2:=P) (Q1:=Q2) QP4
                                                   (ScatH _ o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
-                                                  (SHCompose _ (P2:=P) (P1:=Pg)
+                                                  (SHCompose _ (P2:=P) (P1:=Pg) QP3
                                                              (liftM_HOperator _ (P:=Pg) (Q:=Qg) g PQg)
-                                                             (GathH _ i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)
-                                                             QP3
-                                                  )
-                                                  QP4)
+                                                             (GathH _ i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)))
                                        plus
                                        PQh
 
@@ -1347,9 +1337,9 @@ Section SigmaHCOLRewritingRules.
 
     Local Infix "==" :=
       (@SHOperator_hequiv Monoid_RthetaFlags _ _ _ _ _ _)
-                         (at level 90, no associativity).
+        (at level 90, no associativity).
 
-    Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ qp g f) (at level 40, left associativity) : type_scope.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
@@ -1363,16 +1353,16 @@ Section SigmaHCOLRewritingRules.
       :
         (@SHPointwise _ o P' Q' pf pf_mor PQ') ⊚ ( C ) (@ISumUnion i o n P Q R op_family PQ)
 
-      ==
+        ==
 
-      (@ISumUnion i o n P Q'' Q'
-                  (mkSHOperatorFamily _ i o n P Q''
-                                      (fun (j:nat) (jc:j<n) =>
-                                         (@mkSHOperator _ i o P Q''
-                                                        ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) (PQ'' j jc) _)
-                  ))
-                  Q''Q'
-      ).
+        (@ISumUnion i o n P Q'' Q'
+                    (mkSHOperatorFamily _ i o n P Q''
+                                        (fun (j:nat) (jc:j<n) =>
+                                           (@mkSHOperator _ i o P Q''
+                                                          ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) (PQ'' j jc) _)
+                    ))
+                    Q''Q'
+        ).
     Proof.
       unfold SHOperator_hequiv, SHCompose; simpl.
       apply ext_equiv_applied_iff'.
@@ -1580,7 +1570,7 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
-    (*
+  (*
     Lemma rewrite_Reduction_ISumReduction
           {i o n}
           (op_family: forall k, (k<n) -> svector i -> svector o)
@@ -1596,7 +1586,7 @@ Section SigmaHCOLRewritingRules.
                   (fun j jc => Reduction ∘ op_family j jc).
     Proof.
     Qed.
-     *)
+   *)
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
 
@@ -1604,4 +1594,4 @@ End SigmaHCOLRewritingRules.
 Hint Extern 0 (Apply_Family_Single_NonZero_Per_Row (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_Single_NonZero_Per_Row : typeclass_instances.
 
 Hint Extern 0 (FamilyIUnionFriendly (SparseEmbedding _ _ _)) => apply Apply_Family_SparseEmbedding_SumUnionFriendly : typeclass_instances.
-*)
+ *)
