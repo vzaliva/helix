@@ -83,7 +83,6 @@ Section SigmaHCOL_Operators.
       (@SHOperator i o P Q) -> (@SHOperator i o P' Q') -> Prop :=
       fun a b => op a = op b.
 
-
     (*
     Lemma SHOperator_hequiv_ext_equiv
           {i o: nat}
@@ -109,9 +108,6 @@ Section SigmaHCOL_Operators.
 
     Qed.
      *)
-
-
-    
 
     Global Instance SHOperator_op_proper {i o P Q} :
       Proper ((=) ==> (=) ==> (=)) (op (i:=i) (o:=o) (preCond:=P) (postCond:=Q)).
@@ -243,6 +239,26 @@ Section SigmaHCOL_Operators.
       intros a.
       destruct a as [f pre_post f_proper].
       split; try typeclasses eauto.
+    Qed.
+
+    Global Instance SHOperator_hequiv_proper
+          {i o: nat}
+          {P Q P' Q'}:
+      Proper ((=) ==> (=) ==> (iff)) (@SHOperator_hequiv i o P Q P' Q').
+    Proof.
+      simpl_relation.
+      unfold SHOperator_hequiv.
+      unfold equiv, SHOperator_equiv in H, H0.
+      split; intros.
+      -
+        destruct x, y, x0, y0.
+        simpl in *.
+        rewrite <- H0, <- H1.
+        symmetry.
+        apply H.
+      -
+        rewrite H0, <-H1.
+        apply H.
     Qed.
 
     Section Coercions.

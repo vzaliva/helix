@@ -164,7 +164,7 @@ SUMUnion(
         ).
   Proof.
     unfold dynwin_HCOL.
-    erewrite LiftM_Hoperator_compose.
+    rewrite (@LiftM_Hoperator_compose _ _ _).
 
     (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum; try typeclasses eauto.

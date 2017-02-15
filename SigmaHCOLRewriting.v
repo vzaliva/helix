@@ -130,8 +130,12 @@ Section SigmaHCOLHelperLemmas.
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
-        {P Q T}
-        {PQ TQ PT}
+        {P: svector fm i1 -> Prop}
+        {Q: svector fm o3 -> Prop}
+        {PQ}
+        (T : svector fm o2 → Prop)
+        (TQ : forall x : svector fm o2, T x -> Q (liftM_HOperator' fm op1 x))
+        (PT : forall x : svector fm i1, P x -> T (liftM_HOperator' fm op2 x))
   :
     liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ =
     SHCompose fm
