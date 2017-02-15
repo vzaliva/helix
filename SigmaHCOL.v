@@ -1045,7 +1045,7 @@ row. *)
 End SigmaHCOL_Operators.
 
 (* re-define notation outside a section *)
-Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope.
+(* Notation "g ⊚ ( qp ) f" := (@SHCompose _ _ _ _ _ _ _ g f qp) (at level 40, left associativity) : type_scope. *)
 (* Infix "==" := SHOperator_hequiv (at level 70, no associativity). *)
 
 

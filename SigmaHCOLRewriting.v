@@ -125,20 +125,26 @@ Section SigmaHCOLHelperLemmas.
 
    *)
 
+  (* Dependent reflexivity for Prop? *)
+  Definition prop_dep_refl
+             {A: Type}
+             (T : A → Prop) : forall (x : A), T x → T x
+    :=
+      fun (x : A) (H : T x) => H.
+
   Lemma LiftM_Hoperator_compose
         {fm: Monoid RthetaFlags}
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
-        {P Q Q'}
-        {PQ1 PQ2 PQ3}
-        {C}
+        {P Q T}
+        {PQ TQ PT}
   :
-    liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ1 =
+    liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ =
     SHCompose fm
-              (liftM_HOperator fm (P:=Q') (Q:=Q) op1 PQ2)
-              (liftM_HOperator fm (P:=P) (Q:=Q') op2 PQ3)
-              C.
+              (liftM_HOperator fm (P:=T) (Q:=Q) op1 TQ)
+              (liftM_HOperator fm (P:=P) (Q:=T) op2 PT)
+              (prop_dep_refl T).
   Proof.
     unfold equiv, SHOperator_equiv; simpl.
     apply ext_equiv_applied_iff'.
