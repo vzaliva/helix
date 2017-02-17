@@ -858,7 +858,7 @@ row. *)
     apply Ef, Ev.
   Qed.
 
-  (* TODO: Do we need this in presence of Diamond'_proper? *)
+  (* TODO: is it really needed? One my think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
   Global Instance Diamond'_arg_Proper
          {i o n}
          {fm}
