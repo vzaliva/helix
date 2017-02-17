@@ -170,8 +170,7 @@ SUMUnion(
     setoid_rewrite expand_HTDirectSum.
 
 
-
-    Set Typeclasses Depth None.
+    Unset Typeclasses Depth.
     Set Typeclasses Debug.
     Set Typeclasses Debug Verbosity 99.
     Set Printing All.
