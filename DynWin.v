@@ -168,6 +168,17 @@ SUMUnion(
 
     (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum.
+
+
+
+    Set Typeclasses Depth None.
+    Set Typeclasses Debug.
+    Set Typeclasses Debug Verbosity 99.
+    Set Printing All.
+    Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 1.
+
+
+
     repeat setoid_rewrite LiftM_Hoperator_compose at 1.
     repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
     repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
