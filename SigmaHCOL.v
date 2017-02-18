@@ -113,11 +113,6 @@ Section SigmaHCOL_Operators.
              family_member: (forall j (jc:j<n), @SHOperator i o fPreCond fPostCond)
            }.
 
-    Global Instance SHOperatorFamily_equiv
-           {i o n: nat} {P Q}:
-      Equiv (@SHOperatorFamily i o n P Q) :=
-      fun a b => forall j (jc:j<n), family_member a j jc = family_member b j jc.
-
     (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
                {i o n} {P Q}
@@ -204,6 +199,53 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Reflexive.
       apply SHOperator_equiv_Symmetric.
       apply SHOperator_equiv_Transitive.
+    Qed.
+
+    Global Instance SHOperatorFamily_equiv
+           {i o n: nat} {P Q}:
+      Equiv (@SHOperatorFamily i o n P Q) :=
+      fun a b => forall j (jc:j<n), family_member a j jc = family_member b j jc.
+
+    Global Instance SHOperatorFamily_equiv_Reflexive
+           {i o n: nat} {P Q}:
+      Reflexive (@SHOperatorFamily_equiv i o n P Q).
+    Proof.
+      intros x.
+      unfold SHOperatorFamily_equiv.
+      auto.
+    Qed.
+
+    Global Instance SHOperatorFamily_equiv_Symmetric
+           {i o n: nat} {P Q}:
+      Symmetric (@SHOperatorFamily_equiv i o n P Q).
+    Proof.
+      intros x y.
+      unfold SHOperatorFamily_equiv.
+      intros H j jc.
+      specialize (H j jc).
+      auto.
+    Qed.
+
+    Global Instance SHOperatorFamily_equiv_Transitive
+           {i o n: nat} {P Q}:
+      Transitive (@SHOperatorFamily_equiv i o n P Q).
+    Proof.
+      intros x y z.
+      unfold SHOperatorFamily_equiv.
+      intros H H0 j jc.
+      specialize (H j jc).
+      specialize (H0 j jc).
+      auto.
+    Qed.
+
+    Global Instance SHOperatorFamily_equiv_Equivalence
+           {i o n: nat} {P Q}:
+      Equivalence (@SHOperatorFamily_equiv i o n P Q).
+    Proof.
+      split.
+      apply SHOperatorFamily_equiv_Reflexive.
+      apply SHOperatorFamily_equiv_Symmetric.
+      apply SHOperatorFamily_equiv_Transitive.
     Qed.
 
     Lemma SM_op_SHOperator
@@ -893,6 +935,13 @@ row. *)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
+    (*
+    Unset Typeclasses Depth.
+    Set Typeclasses Debug.
+    Set Typeclasses Debug Verbosity 1.
+
+    Redirect "refine_log.txt"
+     *)
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
                      (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
@@ -915,7 +964,20 @@ row. *)
         auto.
       }
       apply PQ, M1.
+      (*  the following is needed if SHOperator_op_arg_proper not defined!
+    -
+      apply Diamond'_proper.
+      +
+        apply pdot.
+      +
+        reflexivity.
+      +
+        typeclasses eauto.
+        unfold forall_relation, pointwise_relation.
+        apply get_family_proper.
+       *)
   Defined.
+
 
   Lemma coerce_IUnion
         {i o n}

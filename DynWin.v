@@ -168,12 +168,12 @@ SUMUnion(
 
     (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum.
-
+    Print Options.
 
     Unset Typeclasses Depth.
     Set Typeclasses Debug.
     Set Typeclasses Debug Verbosity 99.
-    Set Printing All.
+
     Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 1.
 
 
