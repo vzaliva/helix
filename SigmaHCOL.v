@@ -85,7 +85,7 @@ Section SigmaHCOL_Operators.
 
 
     Global Instance SHOperator_op_proper {i o P Q} :
-      Proper ((=) ==> (=) ==> (=)) (op (i:=i) (o:=o) (preCond:=P) (postCond:=Q)).
+      Proper ((=) ==> (=) ==> (=)) (@op i o P Q).
     Proof.
       intros f f' Ef v v' Ev.
       destruct f as [fop op_pre_post op_proper].
@@ -939,8 +939,9 @@ row. *)
     Unset Typeclasses Depth.
     Set Typeclasses Debug.
     Set Typeclasses Debug Verbosity 1.
+    Set Printing All.
 
-    Redirect "refine_log.txt"
+    Redirect "refine_fail_log.txt"
      *)
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
