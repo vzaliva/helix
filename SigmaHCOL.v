@@ -248,13 +248,18 @@ Section SigmaHCOL_Operators.
       apply Ev.
     Qed.
 
-    (* TODO: is it really needed in presence of SHOperator_op_proper ?
-    Global Instance SHOperator_op_arg_proper {i o P Q} (a:@SHOperator i o P Q):
-      Proper ((=) ==> (=)) (op a).
+    Global Instance get_family_op_proper {i o n P Q} :
+      Proper ((=) ==>
+                  (forall_relation (λ j : nat, pointwise_relation (j < n) (=))))
+             (@get_family_op i o n P Q).
     Proof.
+      intros a a' Ea.
+      unfold forall_relation, pointwise_relation.
+      intros j jc.
+      unfold get_family_op.
       apply SHOperator_op_proper.
-      reflexivity.
-    Qed. *)
+      apply Ea.
+    Qed.
 
     Global Instance SHOperator_hequiv_proper
           {i o: nat}
@@ -934,15 +939,6 @@ row. *)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
-
-
-    Unset Typeclasses Depth.
-    Set Typeclasses Debug.
-    Set Typeclasses Debug Verbosity 2.
-    Set Printing All.
-    Set Debug Auto.
-    Set Debug Eauto.
-
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
                      (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
@@ -965,18 +961,6 @@ row. *)
         auto.
       }
       apply PQ, M1.
-      (*  the following is needed if SHOperator_op_arg_proper not defined!
-    -
-      apply Diamond'_proper.
-      +
-        apply pdot.
-      +
-        reflexivity.
-      +
-        typeclasses eauto.
-        unfold forall_relation, pointwise_relation.
-        apply get_family_proper.
-       *)
   Defined.
 
 
