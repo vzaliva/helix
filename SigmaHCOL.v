@@ -84,26 +84,6 @@ Section SigmaHCOL_Operators.
       fun a b => op a = op b.
 
 
-    Global Instance SHOperator_op_proper {i o P Q} :
-      Proper ((=) ==> (=) ==> (=)) (@op i o P Q).
-    Proof.
-      intros f f' Ef v v' Ev.
-      destruct f as [fop op_pre_post op_proper].
-      destruct f' as [fop' op_pre_post' op_proper'].
-      simpl.
-      crush.
-    Qed.
-
-    (* TODO: is it really needed in presence of SHOperator_op_proper ? *)
-    Global Instance SHOperator_op_arg_proper {i o P Q} (a:@SHOperator i o P Q):
-      Proper ((=) ==> (=)) (op a).
-    Proof.
-      intros v v' E.
-      destruct a.
-      rewrite E.
-      reflexivity.
-    Qed.
-
     Record SHOperatorFamily
            {i o n: nat}
            {fPreCond: svector fm i → Prop}
@@ -256,6 +236,25 @@ Section SigmaHCOL_Operators.
       intros a.
       destruct a as [f pre_post f_proper].
       split; try typeclasses eauto.
+    Qed.
+
+    Global Instance SHOperator_op_proper {i o P Q} :
+      Proper ((=) ==> (=) ==> (=)) (@op i o P Q).
+    Proof.
+      intros f f' Ef v v' Ev.
+      destruct f as [fop op_pre_post op_proper].
+      destruct f' as [fop' op_pre_post' op_proper'].
+      simpl.
+      apply Ef.
+      apply Ev.
+    Qed.
+
+    (* TODO: is it really needed in presence of SHOperator_op_proper ? *)
+    Global Instance SHOperator_op_arg_proper {i o P Q} (a:@SHOperator i o P Q):
+      Proper ((=) ==> (=)) (op a).
+    Proof.
+      apply SHOperator_op_proper.
+      reflexivity.
     Qed.
 
     Global Instance SHOperator_hequiv_proper
