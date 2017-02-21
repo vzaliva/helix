@@ -322,7 +322,7 @@ Section IgnoreIndex_wrapper.
   (* Wrapper to ignore index parameter for HPointwise kernel. *)
   Definition IgnoreIndex {A:Type} {n:nat} (f:A->A) := const (B:=@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n)) f.
 
-  Global Instance IgnoredIndex_Proper {n:nat}:
+  Global Instance IgnoredIndex_proper {n:nat}:
     (Proper
        (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) (IgnoreIndex (n:=n))).
   Proof.

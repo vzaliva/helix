@@ -390,7 +390,7 @@ Section SigmaHCOL_Operators.
       : svector fm i -> svector fm o :=
       sparsify fm ∘ op ∘ densify fm.
 
-    Global Instance liftM_HOperator'_Proper
+    Global Instance liftM_HOperator'_proper
            {i o}
            (op: avector i -> avector o)
            `{HOP: HOperator i o op}
@@ -412,7 +412,7 @@ Section SigmaHCOL_Operators.
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
                (PQ: forall x, P x -> Q (liftM_HOperator' op x))
-      := mkSHOperator i o P Q (liftM_HOperator' op) PQ (@liftM_HOperator'_Proper i o op HOP).
+      := mkSHOperator i o P Q (liftM_HOperator' op) PQ (@liftM_HOperator'_proper i o op HOP).
 
     (** Apply family of functions to same fector and return matrix of results *)
     Definition Apply_Family'
@@ -496,7 +496,7 @@ Section SigmaHCOL_Operators.
       svector fm o
       := Vbuild (VnthIndexMapped x f).
 
-    Global Instance Gather'_Proper
+    Global Instance Gather'_proper
            {i o: nat}
            (f: index_map o i):
       Proper ((=) ==> (=)) (Gather' f).
@@ -543,7 +543,7 @@ Section SigmaHCOL_Operators.
                   | right _ => mkSZero
                   end).
 
-    Global Instance Scatter'_Proper
+    Global Instance Scatter'_proper
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
@@ -693,7 +693,7 @@ Section SigmaHCOL_Operators.
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-    Global Instance SHPointwise'_Proper
+    Global Instance SHPointwise'_proper
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
@@ -729,7 +729,7 @@ Section SigmaHCOL_Operators.
           | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
           end.
 
-    Global Instance SHBinOp'_Proper
+    Global Instance SHBinOp'_proper
            {o}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
@@ -899,7 +899,7 @@ row. *)
   Qed.
 
   (* TODO: is it really needed? One my think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
-  Global Instance Diamond'_arg_Proper
+  Global Instance Diamond'_arg_proper
          {i o n}
          {fm}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1480,13 +1480,13 @@ Section OperatorProperies.
       split.
       + apply vec_Setoid.
       + apply vec_Setoid.
-      + apply SHBinOp'_Proper.
+      + apply SHBinOp'_proper.
     -
       simpl.
       split.
       + apply vec_Setoid.
       + apply vec_Setoid.
-      + apply liftM_HOperator'_Proper.
+      + apply liftM_HOperator'_proper.
         apply HBinOp_HOperator.
     -
       intros x.

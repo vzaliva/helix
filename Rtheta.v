@@ -471,7 +471,7 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
-  Global Instance mkValue_Proper
+  Global Instance mkValue_proper
          {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkValue fm).
@@ -479,7 +479,7 @@ Section Zero_Utils.
     simpl_relation.
   Qed.
 
-  Global Instance mkStruct_Proper
+  Global Instance mkStruct_proper
          {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkStruct fm).
@@ -490,7 +490,7 @@ Section Zero_Utils.
   Definition Is_ValZero {fm:Monoid RthetaFlags} (x:Rtheta' fm)
     := (evalWriter x) = 0.
 
-  Global Instance Is_ValZero_Proper
+  Global Instance Is_ValZero_proper
          {fm:Monoid RthetaFlags}
     :
       Proper ((=) ==> (iff)) (@Is_ValZero fm).

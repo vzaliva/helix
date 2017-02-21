@@ -246,9 +246,10 @@ End HCOL_implementation_facts.
 
 Section HCOL_implementation_proper.
 
-  Global Instance Scale_proper `{!Proper ((=) ==> (=) ==> (=)) mult} (n:nat):
-    Proper ((=) ==> (=))
-           (Scale (n:=n)).
+  Global Instance Scale_proper
+         `{!Proper ((=) ==> (=) ==> (=)) mult} (n:nat)
+  :
+    Proper ((=) ==> (=)) (Scale (n:=n)).
   Proof.
     intros x y Ex.
     destruct x as [xa xb]. destruct y as [ya yb].
