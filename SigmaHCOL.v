@@ -8,7 +8,6 @@ Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 
-
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.Bool.
@@ -35,9 +34,6 @@ Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
 
 Import Monoid.
-
-
-
 
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
@@ -258,8 +254,7 @@ Section SigmaHCOL_Operators.
     Proof.
       apply SHOperator_op_proper.
       reflexivity.
-    Qed.
-     *)
+    Qed. *)
 
     Global Instance SHOperator_hequiv_proper
           {i o: nat}
@@ -914,10 +909,11 @@ row. *)
          (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
     : Proper ((=) ==> (=)) (Diamond' dot initial op_family_f).
   Proof.
-    intros x y E.
-    unfold Diamond'.
-    apply MUnion'_proper; auto.
-    apply Apply_Family'_arg_proper; auto.
+    apply Diamond'_proper.
+    - apply pdot.
+    - reflexivity.
+    - unfold forall_relation, pointwise_relation.
+      apply op_family_f_proper.
   Qed.
 
   Definition IUnion
