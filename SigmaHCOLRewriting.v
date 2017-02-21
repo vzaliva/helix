@@ -149,15 +149,15 @@ Section SigmaHCOLHelperLemmas.
       split.
       + apply vec_Setoid.
       + apply vec_Setoid.
-      + apply liftM_HOperator'_Proper.
+      + apply liftM_HOperator'_proper.
         apply compose_HOperator.
     -
       split.
       + apply vec_Setoid.
       + apply vec_Setoid.
       + apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply liftM_HOperator'_Proper; assumption.
-        apply liftM_HOperator'_Proper; assumption.
+        apply liftM_HOperator'_proper; assumption.
+        apply liftM_HOperator'_proper; assumption.
     -
       intros v.
       unfold liftM_HOperator', compose.
@@ -562,41 +562,15 @@ Section SigmaHCOLExpansionRules.
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
-      unfold equiv, SHOperator_equiv.
       apply ext_equiv_applied_iff'.
       -
         split; try apply vec_Setoid.
-        apply (SHBinOp'_Proper Monoid_RthetaFlags f).
+        apply (SHBinOp'_proper Monoid_RthetaFlags f).
       -
         split; try apply vec_Setoid.
-        apply Diamond'_arg_Proper.
-        apply CarrierAPlus_proper.
-        intros k kc.
-        unfold get_family_op. simpl.
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
-        + apply Scatter'_Proper.
-        +
-          replace
-            (@equiv (svector Monoid_RthetaFlags (S (S O)))
-                    (@vec_Equiv (Rtheta' Monoid_RthetaFlags) (@Rtheta'_equiv Monoid_RthetaFlags)
-                                (S (S O))))
-          with
-          (@equiv (svector Monoid_RthetaFlags (Init.Nat.add (S O) (S O)))
-                  (@vec_Equiv (Rtheta' Monoid_RthetaFlags) (@Rtheta'_equiv Monoid_RthetaFlags)
-                              (Init.Nat.add (S O) (S O)))).
-
-
-          (* TODO: automate *)
-          match goal with
-          | [ |- (@respectful (svector Monoid_RthetaFlags (S (S O))) ?a ?b ?c ?d ?e) ] =>
-            replace (@respectful (svector Monoid_RthetaFlags (S (S O))) a b c d e) with (@respectful (svector Monoid_RthetaFlags (Init.Nat.add (S O) (S O))) a b c d e)
-          end.
-
-          eapply SHBinOp'_Proper.
-          reflexivity. reflexivity.
-        + apply Gather'_Proper.
+        apply SHOperator_op_proper. reflexivity.
       -
+        simpl.
         intros x.
         vec_index_equiv i ip.
         simpl.
@@ -607,13 +581,13 @@ Section SigmaHCOLExpansionRules.
         unfold Apply_Family'.
         rewrite Vmap_Vbuild.
 
-        (*
+        (* Not sure below here *)
         unfold SparseEmbedding, Diamond', Apply_Family', MUnion'.
         unfold SHCompose, compose, get_family_op.
         simpl.
         unfold SHBinOp', Scatter', Gather'.
         simpl.
-         *)
+        crush.
         admit.
     (*
         apply U_SAG2; assumption.
@@ -1370,15 +1344,15 @@ Section SigmaHCOLRewritingRules.
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply SHPointwise'_Proper.
-        apply Diamond'_arg_Proper.
+        apply SHPointwise'_proper.
+        apply Diamond'_arg_proper.
         apply CarrierAPlus_proper.
         intros k kc.
         apply op_proper.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        apply Diamond'_arg_Proper.
+        apply Diamond'_arg_proper.
         apply CarrierAPlus_proper.
         intros k kc.
         apply op_proper.

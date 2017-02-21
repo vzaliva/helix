@@ -903,7 +903,7 @@ row. *)
     apply Ef, Ev.
   Qed.
 
-  (* TODO: is it really needed? One my think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
+  (* TODO: is it really needed? One my think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper
   Global Instance Diamond'_arg_proper
          {i o n}
          {fm}
@@ -919,7 +919,7 @@ row. *)
     - reflexivity.
     - unfold forall_relation, pointwise_relation.
       apply op_family_f_proper.
-  Qed.
+  Qed. *)
 
   Definition IUnion
              {i o n}
