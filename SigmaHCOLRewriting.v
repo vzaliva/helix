@@ -1345,17 +1345,19 @@ Section SigmaHCOLRewritingRules.
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply SHPointwise'_proper.
-        apply Diamond'_arg_proper.
-        apply CarrierAPlus_proper.
-        intros k kc.
-        apply op_proper.
+        apply Diamond'_proper.
+        + apply CarrierAPlus_proper.
+        + reflexivity.
+        + intros k kc.
+          apply op_proper.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        apply Diamond'_arg_proper.
-        apply CarrierAPlus_proper.
-        intros k kc.
-        apply op_proper.
+        apply Diamond'_proper.
+        + apply CarrierAPlus_proper.
+        + reflexivity.
+        + intros k kc.
+          apply op_proper.
       -
         intros x.
         unfold Diamond'.

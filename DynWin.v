@@ -168,7 +168,6 @@ SUMUnion(
 
     (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum.
-    Print Options.
 
     Unset Typeclasses Depth.
     Set Typeclasses Debug.
