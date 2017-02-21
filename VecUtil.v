@@ -7,8 +7,8 @@ Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Require Import SpiralTactics.
-
 Require Import Spiral.
+
 
 Local Open Scope program_scope. (* for \circ notation *)
 Open Scope vector_scope.

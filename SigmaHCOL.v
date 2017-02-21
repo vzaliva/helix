@@ -8,6 +8,7 @@ Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 
+
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Bool.Bool.
@@ -35,6 +36,9 @@ Require Import ExtLib.Structures.Monoid.
 
 Import Monoid.
 
+
+
+
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -58,7 +62,6 @@ Section SigmaHCOL_Operators.
   Section FlagsMonoidGenericOperators.
 
     Variable fm:Monoid RthetaFlags.
-    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
     Record SHOperator
            {i o: nat}
@@ -249,13 +252,14 @@ Section SigmaHCOL_Operators.
       apply Ev.
     Qed.
 
-    (* TODO: is it really needed in presence of SHOperator_op_proper ? *)
+    (* TODO: is it really needed in presence of SHOperator_op_proper ?
     Global Instance SHOperator_op_arg_proper {i o P Q} (a:@SHOperator i o P Q):
       Proper ((=) ==> (=)) (op a).
     Proof.
       apply SHOperator_op_proper.
       reflexivity.
     Qed.
+     *)
 
     Global Instance SHOperator_hequiv_proper
           {i o: nat}
@@ -934,14 +938,15 @@ row. *)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
     : @SHOperator Monoid_RthetaFlags i o P R.
   Proof.
-    (*
+
+
     Unset Typeclasses Depth.
     Set Typeclasses Debug.
-    Set Typeclasses Debug Verbosity 1.
+    Set Typeclasses Debug Verbosity 2.
     Set Printing All.
+    Set Debug Auto.
+    Set Debug Eauto.
 
-    Redirect "refine_fail_log.txt"
-     *)
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
                      (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
