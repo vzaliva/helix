@@ -1,0 +1,9 @@
+include $(STDLIB)/build/Common
+include $(STDLIB)/build/OCaml
+
+# Redefine the command-line variables
+DefineCommandVars(.)
+
+# The current directory is part of the project
+.SUBDIRS: .
+
