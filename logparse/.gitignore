@@ -1,0 +1,7 @@
+.omakedb
+.omakedb.lock
+*.omc
+*.cmi
+*.cmo
+*.run
+parselog
