@@ -167,7 +167,7 @@ SUMUnion(
     setoid_rewrite LiftM_Hoperator_compose.
 
     (* Actual rewriting *)
-    setoid_rewrite expand_HTDirectSum.
+    setoid_rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
 
     Unset Typeclasses Depth.
     Set Typeclasses Debug.
