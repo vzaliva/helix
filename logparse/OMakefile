@@ -6,17 +6,17 @@ OCAMLCFLAGS += -g -thread
 USE_OCAMLFIND = true
 OCAMLPACKS[] = extlib batteries
 
-FILES = coq_min_imports dirtools
+FILES = parselog
 
 .PHONY: clean distclean run
 
 clean:
-	rm -f *.cmo *.cmi coq_min_imports *.run
+	rm -f *.cmo *.cmi parselog *.run
 
-run: coq_min_imports
-	./coq_min_imports -cmi-verbose -q Test.v
+run: parselog
+	./parselog -d -v -f ../refine_log.txt.out
 
 #Build the program
-OCamlProgram(coq_min_imports, $(FILES))
-.DEFAULT: coq_min_imports
+OCamlProgram(parselog, $(FILES))
+.DEFAULT: parselog
 
