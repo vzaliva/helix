@@ -17,7 +17,8 @@ let process_line l n =
     let m = (string_after l me) in
     print_endline (string_of_int n ^ ":" ^ b)
   else
-    raise (UnparseableLine (l,n))
+    if !debug then print_endline (string_of_int n ^ ":" ^ l)
+    else raise (UnparseableLine (l,n))
 
 let process_file filename =
   let chan = open_in filename in
@@ -39,7 +40,7 @@ let process_file filename =
 let main =
   begin
   let speclist = [("-v", Arg.Set verbose, "Enables verbose mode");
-                  ("-d", Arg.Set verbose, "Enables debug mode");
+                  ("-d", Arg.Set debug, "Enables debug mode");
                   ("-f", Arg.Set_string fname, "File to process");
                  ]
   in let usage_msg = "Parse log file. Options available:"
