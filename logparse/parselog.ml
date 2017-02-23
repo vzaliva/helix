@@ -2,30 +2,37 @@ open Std
 open Str
 open String
 
-let debug_regexp = Str.regexp "^Debug: ?[0-9]+\\(\\.[0-9]+\\)* ?:"
+let debug_regexp = Str.regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
 
 let verbose = ref false
 let debug = ref false
 let fname = ref ""
 
-let process_line l =
+exception UnparseableLine of (string*int)
+
+let process_line l n =
   if string_match debug_regexp l 0 then
-    print_endline ("OK " ^ l)
+    let b = (matched_group 1 l) in
+    let me = match_end () in
+    let m = (string_after l me) in
+    print_endline (string_of_int n ^ ":" ^ b)
   else
-    print_endline ("ERR " ^ l)
+    raise (UnparseableLine (l,n))
 
 let process_file filename =
   let chan = open_in filename in
-  let rec loop m = 
+  let rec loop m start current = 
     let s = input_line chan in
     let open BatString in
     if not (is_empty m) && starts_with s "Debug" then
-      (process_line m ; loop s)
+      begin
+        process_line m start ; loop s current (current+1)
+      end
     else
-      loop (m ^ s)
+      loop (m ^ s) start (current+1)
   in
   try
-    loop ""
+    loop "" 1 1
   with End_of_file ->
     close_in chan
 
