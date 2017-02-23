@@ -14,7 +14,11 @@ clean:
 	rm -f *.cmo *.cmi parselog *.run
 
 run: parselog
-	./parselog -d -v -f ../refine_log.txt.out
+	./parselog -d -v -f ../refine.txt.out
+
+run1: parselog
+	./parselog -d -v -f ../refine_fail.txt.out
+
 
 #Build the program
 OCamlProgram(parselog, $(FILES))

@@ -948,7 +948,7 @@ row. *)
     refine(
         mkSHOperator Monoid_RthetaFlags i o P R
                      (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
-                     _ _).
+                     _ _). (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
     -
       intros x Px.
       unfold Diamond'.

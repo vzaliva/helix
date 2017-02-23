@@ -15,7 +15,7 @@ let process_line l n =
     let b = (matched_group 1 l) in
     let me = match_end () in
     let m = (string_after l me) in
-    print_endline (string_of_int n ^ ":" ^ b)
+    print_endline b
   else
     if !debug then print_endline (string_of_int n ^ ":" ^ l)
     else raise (UnparseableLine (l,n))
