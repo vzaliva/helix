@@ -1,6 +1,7 @@
 open Batteries
 open String
 open Str
+open Printf
 
 let debug_regexp = regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
 
@@ -91,18 +92,18 @@ let process_line l n =
     let me = match_end () in
     let m = string_after l me in
     let k = classify m in
-    print_endline (string_of_int n ^ ":" ^ bs ^ ":" ^ string_of_kind k ^ ":" ^ m) ;
+    printf "%d:%s:%s:%s\n" n bs (string_of_kind k) m ;
     if Stack.is_empty stack || seq_starts_with b (Stack.top stack)
     then
       begin
         Stack.push b stack;
-        if !debug then print_endline ("\t\tPUSH:" ^ bs)
+        if !debug then printf "\t\tPUSH: %s, stack size %d\n" bs (Stack.length stack)
       end
     else
       (* TODO: pop and process here *)
-      if !debug then print_endline ("\t\t!seq_starts_with:" ^ bs ^ " " ^ (string_of_seq (Stack.top stack)))
+      if !debug then printf "\t\t!seq_starts_with: %s %s\n" bs (string_of_seq (Stack.top stack))
       else
-        if !debug && !verbose then print_endline ("Not numbered: " ^ string_of_int n ^ ":" ^ l)
+        if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
 
 let process_file ifilename ofilename =
   let ic = open_in ifilename in
@@ -117,11 +118,11 @@ let process_file ifilename ofilename =
       loop (m ^ s) start (current+1)
   in
   try
-    Printf.fprintf oc "graph {\n" ;
+    fprintf oc "graph {\n" ;
     loop "" 1 1
   with End_of_file ->
     begin
-      Printf.fprintf oc "}\n" ;
+      fprintf oc "}\n" ;
       close_in ic ;
       close_out oc
     end
