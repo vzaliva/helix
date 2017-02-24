@@ -1,8 +1,7 @@
-open Std
 open Str
-open String
+open BatString
 
-let debug_regexp = Str.regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
+let debug_regexp = regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
 
 let verbose = ref false
 let debug = ref false
@@ -36,17 +35,17 @@ let string_of_kind = function
   | Unknown      -> "???"
 
 let classifiers = [
-    (Str.regexp "^looking for", Looking) ;
-    (Str.regexp "^simple apply .* failed with", SimpleApply false) ;
-    (Str.regexp "^simple apply", SimpleApply true) ;
-    (Str.regexp "^simple eapply .* failed with", SimpleEapply false) ;
-    (Str.regexp "^simple eapply", SimpleEapply true) ;
-    (Str.regexp "^(\\*external\\*) .* failed with", External false) ;
-    (Str.regexp "^(\\*external\\*)", External true) ;
-    (Str.regexp "^no match for", NoMatch) ;
-    (Str.regexp "^(", Goal) ;
-    (Str.regexp "^exact .* failed with", Exact false) ;
-    (Str.regexp "^exact ", Exact true) ;
+    (regexp "^looking for", Looking) ;
+    (regexp "^simple apply .* failed with", SimpleApply false) ;
+    (regexp "^simple apply", SimpleApply true) ;
+    (regexp "^simple eapply .* failed with", SimpleEapply false) ;
+    (regexp "^simple eapply", SimpleEapply true) ;
+    (regexp "^(\\*external\\*) .* failed with", External false) ;
+    (regexp "^(\\*external\\*)", External true) ;
+    (regexp "^no match for", NoMatch) ;
+    (regexp "^(", Goal) ;
+    (regexp "^exact .* failed with", Exact false) ;
+    (regexp "^exact ", Exact true) ;
   ]
 
 let classify l =
@@ -71,7 +70,6 @@ let process_file ifilename ofilename =
   let oc = open_out ofilename in
   let rec loop m start current =
     let s = input_line ic in
-    let open BatString in
     if not (is_empty m) && starts_with s "Debug" then
       begin
         process_line m start ; loop s current (current+1)
@@ -98,8 +96,8 @@ let main =
                  ]
   in let usage_msg = "Parse log file. Options available:"
      in Arg.parse speclist print_endline usage_msg;
-        if BatString.is_empty !ifname then raise (MissingArg "Must specify -f") ;
-        if BatString.is_empty !ofname then raise (MissingArg "Must specify -o") ;
+        if is_empty !ifname then raise (MissingArg "Must specify -f") ;
+        if is_empty !ofname then raise (MissingArg "Must specify -o") ;
         process_file !ifname !ofname
   end
 
