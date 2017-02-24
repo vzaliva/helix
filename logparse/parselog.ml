@@ -56,7 +56,8 @@ let classify l =
   in
   loop classifiers
 
-let s:(string Stack.t) = Stack.create ()
+(* Seqence type and functions *)
+
 type seq = int list
 
 let string_of_seq = BatString.join "." %
@@ -65,13 +66,41 @@ let string_of_seq = BatString.join "." %
 let seq_of_string = BatList.map int_of_string %
                       BatString.split_on_char '.'
 
+let rec seq_eq a b =
+  match a, b with
+  | (x::xs), (y::ys) -> x=y && seq_eq xs ys
+  | [], [] -> true
+  | [], (_::_) -> false
+  | (_::_), [] -> false
+
+(* True if 'h' starts with 'n', but not exactly the same *)
+let rec seq_starts_with h n =
+  match h, n with
+  | (h::hs), (n::ns) -> n=h && seq_starts_with hs ns
+  | [], [] -> false
+  | [], (_::_) -> false
+  | (_::_), [] -> true
+
+(* Stack of states for DFS *)
+let stack:(seq Stack.t) = Stack.create ()
+
 let process_line l n =
   if string_match debug_regexp l 0 then
-    let b:seq = seq_of_string (matched_group 1 l) in
+    let bs = matched_group 1 l in
+    let b:seq = seq_of_string bs in
     let me = match_end () in
     let m = string_after l me in
     let k = classify m in
-    print_endline (string_of_int n ^ ":" ^ string_of_seq b ^ ":" ^ string_of_kind k ^ ":" ^ m)
+    print_endline (string_of_int n ^ ":" ^ bs ^ ":" ^ string_of_kind k ^ ":" ^ m) ;
+    if Stack.is_empty stack || seq_starts_with b (Stack.top stack)
+    then
+      begin
+        Stack.push b stack;
+        if !debug then print_endline ("\t\tPUSH:" ^ bs)
+      end
+    else
+      (* TODO: pop and process here *)
+      if !debug then print_endline ("\t\t!seq_starts_with:" ^ bs ^ " " ^ (string_of_seq (Stack.top stack)))
   else
     if !debug && !verbose then print_endline ("Not numbered: " ^ string_of_int n ^ ":" ^ l)
 
