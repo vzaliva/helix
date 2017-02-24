@@ -67,17 +67,17 @@ let string_of_seq = BatString.join "." %
 let seq_of_string = BatList.map int_of_string %
                       BatString.split_on_char '.'
 
-let rec seq_eq a b =
+let rec ( =@ ) a b =
   match a, b with
-  | (x::xs), (y::ys) -> x=y && seq_eq xs ys
+  | (x::xs), (y::ys) -> x=y && xs=@ys
   | [], [] -> true
   | [], (_::_) -> false
   | (_::_), [] -> false
 
 (* True if 'h' starts with 'n', but not exactly the same *)
-let rec seq_starts_with h n =
+let rec ( >@ ) h n =
   match h, n with
-  | (h::hs), (n::ns) -> n=h && seq_starts_with hs ns
+  | (h::hs), (n::ns) -> n=h && hs >@ ns
   | [], [] -> false
   | [], (_::_) -> false
   | (_::_), [] -> true
@@ -88,12 +88,12 @@ let stack:(seq Stack.t) = Stack.create ()
 let process_line l n =
   if string_match debug_regexp l 0 then
     let bs = matched_group 1 l in
-    let b:seq = seq_of_string bs in
+    let b = seq_of_string bs in
     let me = match_end () in
     let m = string_after l me in
     let k = classify m in
-    printf "%d:%s:%s:%s\n" n bs (string_of_kind k) m ;
-    if Stack.is_empty stack || seq_starts_with b (Stack.top stack)
+    printf "%d:%s:%s:%s\n" n bs (string_of_kind k) (if !verbose then m else "");
+    if Stack.is_empty stack || b >@ (Stack.top stack)
     then
       begin
         Stack.push b stack;
