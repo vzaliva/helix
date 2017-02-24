@@ -83,27 +83,47 @@ let rec ( >@ ) h n =
   | (_::_), [] -> true
 
 (* Stack of states for DFS *)
-let stack:(seq Stack.t) = Stack.create ()
+type entry = {
+    line: int;
+    seq: seq;
+    kind: kind;
+    msg: string
+  }
 
-let process_line l n =
+let string_of_entry e =
+  sprintf "%d:%s:%s:[%s]" e.line (string_of_seq e.seq) (string_of_kind e.kind)
+          (if !verbose then e.msg else "TODO")
+
+let stack:(entry Stack.t) = Stack.create ()
+
+let gen_entry l n =
   if string_match debug_regexp l 0 then
     let bs = matched_group 1 l in
-    let b = seq_of_string bs in
     let me = match_end () in
     let m = string_after l me in
-    let k = classify m in
-    printf "%d:%s:%s:%s\n" n bs (string_of_kind k) (if !verbose then m else "");
-    if Stack.is_empty stack || b >@ (Stack.top stack)
-    then
-      begin
-        Stack.push b stack;
-        if !debug then printf "\t\tPUSH: %s, stack size %d\n" bs (Stack.length stack)
-      end
-    else
-      (* TODO: pop and process here *)
-      if !debug then printf "\t\t!seq_starts_with: %s %s\n" bs (string_of_seq (Stack.top stack))
-      else
-        if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
+    Some { line = n;
+           seq = seq_of_string bs;
+           kind = classify m;
+           msg = "" ; (* TODO *)
+         }
+  else
+    None
+
+let process_line l n =
+  match gen_entry l n with
+  | Some e ->
+     printf "%s\n" (string_of_entry e);
+     if Stack.is_empty stack || e.seq >@ (Stack.top stack).seq
+     then
+       begin
+         Stack.push e stack;
+         if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.seq) (Stack.length stack)
+       end
+     else
+       (* TODO: pop and process here *)
+       if !debug then printf "\t\t!seq_starts_with: %s %s\n" (string_of_seq e.seq) (string_of_seq (Stack.top stack).seq)
+  | None ->
+     if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
 
 let process_file ifilename ofilename =
   let ic = open_in ifilename in
