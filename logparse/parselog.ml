@@ -1,5 +1,6 @@
+open Batteries
+open String
 open Str
-open BatString
 
 let debug_regexp = regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
 
@@ -54,6 +55,8 @@ let classify l =
     | (r,c)::rs -> if string_match r l 0 then c else loop rs
   in
   loop classifiers
+
+let s:(string Stack.t) = Stack.create ()
 
 let process_line l n =
   if string_match debug_regexp l 0 then
