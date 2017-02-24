@@ -57,14 +57,21 @@ let classify l =
   loop classifiers
 
 let s:(string Stack.t) = Stack.create ()
+type seq = int list
+
+let string_of_seq = BatString.join "." %
+                      BatList.map string_of_int
+
+let seq_of_string = BatList.map int_of_string %
+                      BatString.split_on_char '.'
 
 let process_line l n =
   if string_match debug_regexp l 0 then
-    let b = matched_group 1 l in
+    let b:seq = seq_of_string (matched_group 1 l) in
     let me = match_end () in
     let m = string_after l me in
     let k = classify m in
-    print_endline (string_of_int n ^ ":" ^ b ^ ":" ^ (string_of_kind k) ^ ":" ^ m)
+    print_endline (string_of_int n ^ ":" ^ string_of_seq b ^ ":" ^ string_of_kind k ^ ":" ^ m)
   else
     if !debug && !verbose then print_endline ("Not numbered: " ^ string_of_int n ^ ":" ^ l)
 
