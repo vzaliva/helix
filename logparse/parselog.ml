@@ -26,14 +26,14 @@ let ok_fail_of_bool = function
   | false -> "[Fail]"
 
 let string_of_kind = function
-  | Looking      -> "Looking"
+  | Looking        -> "Looking"
   | SimpleApply x  -> ok_fail_of_bool x ^ "SimpleApply"
   | SimpleEapply x -> ok_fail_of_bool x ^ "SimpleEapply"
   | External x     -> ok_fail_of_bool x ^ "External"
-  | NoMatch      -> "NoMatch"
-  | Exact x       -> ok_fail_of_bool x ^ "Exact"
-  | Goal         -> "Goal"
-  | Unknown      -> "???"
+  | NoMatch        -> "NoMatch"
+  | Exact x        -> ok_fail_of_bool x ^ "Exact"
+  | Goal           -> "Goal"
+  | Unknown        -> "???"
 
 let classifiers = [
     (regexp "^looking for", Looking) ;
@@ -101,8 +101,8 @@ let process_line l n =
     else
       (* TODO: pop and process here *)
       if !debug then print_endline ("\t\t!seq_starts_with:" ^ bs ^ " " ^ (string_of_seq (Stack.top stack)))
-  else
-    if !debug && !verbose then print_endline ("Not numbered: " ^ string_of_int n ^ ":" ^ l)
+      else
+        if !debug && !verbose then print_endline ("Not numbered: " ^ string_of_int n ^ ":" ^ l)
 
 let process_file ifilename ofilename =
   let ic = open_in ifilename in
@@ -120,24 +120,24 @@ let process_file ifilename ofilename =
     Printf.fprintf oc "graph {\n" ;
     loop "" 1 1
   with End_of_file ->
-       begin
-         Printf.fprintf oc "}\n" ;
-         close_in ic ;
-         close_out oc
-       end
+    begin
+      Printf.fprintf oc "}\n" ;
+      close_in ic ;
+      close_out oc
+    end
 
 let main =
   begin
-  let speclist = [("-v", Arg.Set verbose, "Enables verbose mode");
-                  ("-d", Arg.Set debug, "Enables debug mode");
-                  ("-f", Arg.Set_string ifname, "File to process");
-                  ("-o", Arg.Set_string ofname, "Output file");
-                 ]
-  in let usage_msg = "Parse log file. Options available:"
-     in Arg.parse speclist print_endline usage_msg;
-        if is_empty !ifname then raise (MissingArg "Must specify -f") ;
-        if is_empty !ofname then raise (MissingArg "Must specify -o") ;
-        process_file !ifname !ofname
+    let speclist = [("-v", Arg.Set verbose, "Enables verbose mode");
+                    ("-d", Arg.Set debug, "Enables debug mode");
+                    ("-f", Arg.Set_string ifname, "File to process");
+                    ("-o", Arg.Set_string ofname, "Output file");
+                   ]
+    in let usage_msg = "Parse log file. Options available:"
+       in Arg.parse speclist print_endline usage_msg;
+          if is_empty !ifname then raise (MissingArg "Must specify -f") ;
+          if is_empty !ofname then raise (MissingArg "Must specify -o") ;
+          process_file !ifname !ofname
   end
 
 let () = main
