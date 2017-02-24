@@ -14,31 +14,39 @@ exception MissingArg of string
 type kind =
   | Goal
   | Looking
-  | SimpleApply
-  | SimpleEapply
-  | External
+  | SimpleApply of bool
+  | SimpleEapply of bool
+  | External of bool
   | NoMatch
-  | Exact
+  | Exact of bool
   | Unknown
+
+let ok_fail_of_bool = function
+  | true -> "[OK]"
+  | false -> "[Fail]"
 
 let string_of_kind = function
   | Looking      -> "Looking"
-  | SimpleApply  -> "SimpleApply"
-  | SimpleEapply -> "SimpleEapply"
-  | External     -> "External"
+  | SimpleApply x  -> ok_fail_of_bool x ^ "SimpleApply"
+  | SimpleEapply x -> ok_fail_of_bool x ^ "SimpleEapply"
+  | External x     -> ok_fail_of_bool x ^ "External"
   | NoMatch      -> "NoMatch"
-  | Exact        -> "Exact"
+  | Exact x       -> ok_fail_of_bool x ^ "Exact"
   | Goal         -> "Goal"
   | Unknown      -> "???"
 
 let classifiers = [
     (Str.regexp "^looking for", Looking) ;
-    (Str.regexp "^simple apply", SimpleApply) ;
-    (Str.regexp "^simple eapply", SimpleEapply) ;
-    (Str.regexp "^(\\*external\\*)", External) ;
+    (Str.regexp "^simple apply .* failed with", SimpleApply false) ;
+    (Str.regexp "^simple apply", SimpleApply true) ;
+    (Str.regexp "^simple eapply .* failed with", SimpleEapply false) ;
+    (Str.regexp "^simple eapply", SimpleEapply true) ;
+    (Str.regexp "^(\\*external\\*) .* failed with", External false) ;
+    (Str.regexp "^(\\*external\\*)", External true) ;
     (Str.regexp "^no match for", NoMatch) ;
     (Str.regexp "^(", Goal) ;
-    (Str.regexp "^exact ", Exact) ;
+    (Str.regexp "^exact .* failed with", Exact false) ;
+    (Str.regexp "^exact ", Exact true) ;
   ]
 
 let classify l =
@@ -50,9 +58,9 @@ let classify l =
 
 let process_line l n =
   if string_match debug_regexp l 0 then
-    let b = (matched_group 1 l) in
+    let b = matched_group 1 l in
     let me = match_end () in
-    let m = (string_after l me) in
+    let m = string_after l me in
     let k = classify m in
     print_endline (string_of_int n ^ ":" ^ b ^ ":" ^ (string_of_kind k) ^ ":" ^ m)
   else
