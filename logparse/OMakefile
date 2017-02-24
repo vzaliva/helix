@@ -8,16 +8,16 @@ OCAMLPACKS[] = extlib batteries
 
 FILES = parselog
 
-.PHONY: clean distclean run
+.PHONY: clean distclean run run1
 
 clean:
 	rm -f *.cmo *.cmi parselog *.run
 
 run: parselog
-	./parselog -d -v -f ../refine.txt.out
+	./parselog -d -f ../refine.txt.out -o refine.dot
 
 run1: parselog
-	./parselog -d -v -f ../refine_fail.txt.out
+	./parselog -d -f ../refine_fail.txt.out -o refine_fail.dot
 
 
 #Build the program
