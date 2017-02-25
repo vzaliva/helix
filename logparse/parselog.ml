@@ -36,6 +36,10 @@ let string_of_kind = function
   | Goal           -> "Goal"
   | Unknown        -> "???"
 
+let is_err = function
+  | Looking | NoMatch | Goal | Unknown -> false
+  | SimpleApply x | SimpleEapply x | External x | Exact x -> not x
+
 let classifiers = [
     (regexp "^looking for", Looking) ;
     (regexp "^simple apply .* failed with", SimpleApply false) ;
@@ -101,17 +105,14 @@ let gen_entry l n =
     let bs = matched_group 1 l in
     let me = match_end () in
     let m = string_after l me in
+    let k = classify m in
     Some { line = n;
            b = seq_of_string bs;
-           kind = classify m;
-           msg = "" ; (* TODO *)
+           kind = k;
+           msg = string_of_kind k ; (* TODO *)
          }
   else
     None
-
-(* Ever incrementing counter to generate unique node names for failed branches *)
-let counter = ref 0
-let get_counter = let r = !counter in counter := r+1 ; r
 
 (* TODO: add styles *)
 let dot_style_of_kind k =
@@ -129,18 +130,19 @@ let dot_style_of_kind k =
 
 let dot_of_entry {line; b; kind; msg} =
   let bs = string_of_seq b in
-  sprintf "%s %s [label=%s\\n%s]" bs
+  sprintf "L%d %s [label=\"%s\\n%s\"]" line
           (dot_style_of_kind kind)
           msg bs
 
-let process_line l n =
+let process_line oc l n =
   match gen_entry l n with
   | Some e ->
      printf "%s\n" (string_of_entry e);
      (* Pop/process pending entries (if any) *)
      while not (Stack.is_empty stack) && not (e.b >@ (Stack.top stack).b) do
        let x = Stack.pop stack in
-       if !debug then printf "\t\tPOP %s\n" (string_of_entry x);
+       (* if !debug then printf "\t\tPOP %s\n" (string_of_entry x); *)
+       fprintf oc "\t%s\n" (dot_of_entry x);
      done;
      (* now push new entry *)
      Stack.push e stack;
@@ -155,7 +157,7 @@ let process_file ifilename ofilename =
     let s = input_line ic in
     if not (is_empty m) && starts_with s "Debug" then
       begin
-        process_line m start ; loop s current (current+1)
+        process_line oc m start ; loop s current (current+1)
       end
     else
       loop (m ^ s) start (current+1)

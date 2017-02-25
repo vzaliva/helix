@@ -11,13 +11,26 @@ FILES = parselog
 .PHONY: clean distclean run run1
 
 clean:
-	rm -f *.cmo *.cmi parselog *.run
+	rm -f *.cmo *.cmi parselog *.run *.dot *.pdf
 
-run: parselog
+refine.dot: parselog
 	./parselog -d -f ../refine.txt.out -o refine.dot
 
-run1: parselog
+refine.pdf: refine.dot
+	dot -Tpdf refine.dot -orefine.pdf
+
+refine_fail.dot: parselog
 	./parselog -d -f ../refine_fail.txt.out -o refine_fail.dot
+
+refine_fail.pdf: refine_fail.dot
+	dot -Tpdf refine_fail.dot -orefine_fail.pdf
+
+# helpers
+run: refine.pdf
+	xdg-open refine.pdf
+
+run1: refine_fail.pdf
+	xdg-open refine_fail.pdf
 
 
 #Build the program

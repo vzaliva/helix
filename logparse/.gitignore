@@ -4,4 +4,6 @@
 *.cmi
 *.cmo
 *.run
+*.dot
+*.pdf
 parselog
