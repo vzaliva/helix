@@ -33,13 +33,13 @@ refine_fail.svg: refine_fail.dot OMakefile
 
 # helpers
 run: refine.pdf
-	xdg-open refine.pdf
+	xpdf refine.pdf
 
 runs: refine.svg
 	geeqie refine.svg
 
 run1: refine_fail.pdf
-	xdg-open refine_fail.pdf
+	xpdf refine_fail.pdf
 
 run1s: refine_fail.svg
 	geeqie refine_fail.svg
