@@ -113,15 +113,14 @@ let process_line l n =
   match gen_entry l n with
   | Some e ->
      printf "%s\n" (string_of_entry e);
-     if Stack.is_empty stack || e.seq >@ (Stack.top stack).seq
-     then
-       begin
-         Stack.push e stack;
-         if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.seq) (Stack.length stack)
-       end
-     else
-       (* TODO: pop and process here *)
-       if !debug then printf "\t\t!seq_starts_with: %s %s\n" (string_of_seq e.seq) (string_of_seq (Stack.top stack).seq)
+     (* Pop/process pending entries (if any) *)
+     while not (Stack.is_empty stack) && not (e.seq >@ (Stack.top stack).seq) do
+       let x = Stack.pop stack in
+       if !debug then printf "\t\tPOP %s\n" (string_of_entry x);
+     done;
+     (* now push new entry *)
+     Stack.push e stack;
+     if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.seq) (Stack.length stack)
   | None ->
      if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
 
