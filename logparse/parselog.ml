@@ -136,7 +136,7 @@ let dot_of_entry {line; b; kind; msg} =
 
 let rec dump_dot oc msibling prev =
   let link a mb = match mb with
-    | Some b -> fprintf oc "\tL%d -> L%d\n" a.line b.line;
+    | Some b -> fprintf oc "\tL%d -> L%d;\n" a.line b.line;
     | None -> ()
   in
   if not (Stack.is_empty stack) then
@@ -152,7 +152,7 @@ let rec dump_dot oc msibling prev =
       begin
         let x = Stack.pop stack in
         (* if !debug then printf "\t\tPOP %s\n" (string_of_entry x); *)
-        fprintf oc "\t%s\n" (dot_of_entry x);
+        fprintf oc "\t%s;\n" (dot_of_entry x);
         link x prev;
         dump_dot oc msibling (Some p)
       end
@@ -183,6 +183,7 @@ let process_file ifilename ofilename =
   in
   try
     fprintf oc "digraph {\n" ;
+    fprintf oc "\trankdir=\"LR\";\n" ;
     loop "" 1 1
   with End_of_file ->
     begin
