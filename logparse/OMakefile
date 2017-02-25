@@ -19,18 +19,24 @@ refine.dot: parselog OMakefile
 refine.pdf: refine.dot OMakefile
 	neato -Tpdf refine.dot -orefine.pdf
 
+refine.svg: refine.dot OMakefile
+	neato -Tsvg refine.dot -orefine.svg
+
 refine_fail.dot: parselog OMakefile
 	./parselog -d -f ../refine_fail.txt.out -o refine_fail.dot
 
 refine_fail.pdf: refine_fail.dot OMakefile
 	neato -Tpdf refine_fail.dot -orefine_fail.pdf
 
-# helpers
-run: refine.pdf
-	xdg-open refine.pdf
+refine_fail.svg: refine_fail.dot OMakefile
+	neato -Tsvg refine_fail.dot -orefine_fail.svg
 
-run1: refine_fail.pdf
-	xdg-open refine_fail.pdf
+# helpers
+run: refine.svg
+	geeqie refine.pdf
+
+run1: refine_fail.svg
+	geeqie refine_fail.pdf
 
 
 #Build the program
