@@ -85,13 +85,13 @@ let rec ( >@ ) h n =
 (* Stack of states for DFS *)
 type entry = {
     line: int;
-    seq: seq;
+    b: seq;
     kind: kind;
     msg: string
   }
 
 let string_of_entry e =
-  sprintf "%d:%s:%s:[%s]" e.line (string_of_seq e.seq) (string_of_kind e.kind)
+  sprintf "%d:%s:%s:[%s]" e.line (string_of_seq e.b) (string_of_kind e.kind)
           (if !verbose then e.msg else "TODO")
 
 let stack:(entry Stack.t) = Stack.create ()
@@ -102,25 +102,49 @@ let gen_entry l n =
     let me = match_end () in
     let m = string_after l me in
     Some { line = n;
-           seq = seq_of_string bs;
+           b = seq_of_string bs;
            kind = classify m;
            msg = "" ; (* TODO *)
          }
   else
     None
 
+(* Ever incrementing counter to generate unique node names for failed branches *)
+let counter = ref 0
+let get_counter = let r = !counter in counter := r+1 ; r
+
+(* TODO: add styles *)
+let dot_style_of_kind k =
+  let col c = "[color=" ^ c ^ "]" in
+  let errc c x = col (if x then c else "red") in
+  match k with
+  | Looking        -> col "black"
+  | SimpleApply x  -> errc "blue" x
+  | SimpleEapply x -> errc "blue" x
+  | External x     -> errc "pink" x
+  | NoMatch        -> col "red"
+  | Exact x        -> col "green"
+  | Goal           -> col "yellow"
+  | Unknown        -> col "red"
+
+let dot_of_entry {line; b; kind; msg} =
+  let bs = string_of_seq b in
+  sprintf "%s %s [label=%s\\n%s]" bs
+          (dot_style_of_kind kind)
+          msg bs
+
 let process_line l n =
   match gen_entry l n with
   | Some e ->
      printf "%s\n" (string_of_entry e);
      (* Pop/process pending entries (if any) *)
-     while not (Stack.is_empty stack) && not (e.seq >@ (Stack.top stack).seq) do
+     while not (Stack.is_empty stack) && not (e.b >@ (Stack.top stack).b) do
        let x = Stack.pop stack in
        if !debug then printf "\t\tPOP %s\n" (string_of_entry x);
      done;
      (* now push new entry *)
      Stack.push e stack;
-     if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.seq) (Stack.length stack)
+     if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.b) (Stack.length stack)
   | None ->
      if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
 
@@ -137,7 +161,7 @@ let process_file ifilename ofilename =
       loop (m ^ s) start (current+1)
   in
   try
-    fprintf oc "graph {\n" ;
+    fprintf oc "digraph {\n" ;
     loop "" 1 1
   with End_of_file ->
     begin
