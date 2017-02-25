@@ -4,7 +4,7 @@ NATIVE_ENABLED = false
 OCAMLCFLAGS += -g -thread -annot
 
 USE_OCAMLFIND = true
-OCAMLPACKS[] = extlib batteries
+OCAMLPACKS[] = batteries
 
 FILES = parselog
 
