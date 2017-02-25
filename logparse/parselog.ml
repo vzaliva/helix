@@ -134,16 +134,35 @@ let dot_of_entry {line; b; kind; msg} =
           (dot_style_of_kind kind)
           msg bs
 
+let rec dump_dot oc msibling prev =
+  let link a mb = match mb with
+    | Some b -> fprintf oc "\tL%d -> L%d\n" a.line b.line;
+    | None -> ()
+  in
+  if not (Stack.is_empty stack) then
+    let p = Stack.top stack in
+    if
+      (match msibling with
+       | Some sibling ->  sibling.b >@ p.b
+       | None -> false)
+    then
+      (* we are at common parent. just link from it *)
+      link p prev
+    else
+      begin
+        let x = Stack.pop stack in
+        (* if !debug then printf "\t\tPOP %s\n" (string_of_entry x); *)
+        fprintf oc "\t%s\n" (dot_of_entry x);
+        link x prev;
+        dump_dot oc msibling (Some p)
+      end
+
 let process_line oc l n =
   match gen_entry l n with
   | Some e ->
      printf "%s\n" (string_of_entry e);
      (* Pop/process pending entries (if any) *)
-     while not (Stack.is_empty stack) && not (e.b >@ (Stack.top stack).b) do
-       let x = Stack.pop stack in
-       (* if !debug then printf "\t\tPOP %s\n" (string_of_entry x); *)
-       fprintf oc "\t%s\n" (dot_of_entry x);
-     done;
+     dump_dot oc (Some e) None;
      (* now push new entry *)
      Stack.push e stack;
      if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.b) (Stack.length stack)
@@ -167,6 +186,8 @@ let process_file ifilename ofilename =
     loop "" 1 1
   with End_of_file ->
     begin
+      (* TODO: dump remaining stack *)
+      dump_dot oc None None ;
       fprintf oc "}\n" ;
       close_in ic ;
       close_out oc

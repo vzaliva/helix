@@ -13,17 +13,17 @@ FILES = parselog
 clean:
 	rm -f *.cmo *.cmi parselog *.run *.dot *.pdf
 
-refine.dot: parselog
+refine.dot: parselog OMakefile
 	./parselog -d -f ../refine.txt.out -o refine.dot
 
-refine.pdf: refine.dot
-	dot -Tpdf refine.dot -orefine.pdf
+refine.pdf: refine.dot OMakefile
+	neato -Tpdf refine.dot -orefine.pdf
 
-refine_fail.dot: parselog
+refine_fail.dot: parselog OMakefile
 	./parselog -d -f ../refine_fail.txt.out -o refine_fail.dot
 
-refine_fail.pdf: refine_fail.dot
-	dot -Tpdf refine_fail.dot -orefine_fail.pdf
+refine_fail.pdf: refine_fail.dot OMakefile
+	neato -Tpdf refine_fail.dot -orefine_fail.pdf
 
 # helpers
 run: refine.pdf
