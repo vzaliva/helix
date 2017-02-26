@@ -23,7 +23,7 @@ refine.svg: refine.dot OMakefile
 	dot -Tsvg refine.dot -orefine.svg
 
 refine_fail.dot: parselog OMakefile
-	./parselog -d -f ../refine_fail.txt.out -o refine_fail.dot
+	./parselog -d -x -f ../refine_fail.txt.out -o refine_fail.dot
 
 refine_fail.pdf: refine_fail.dot OMakefile
 	dot -Tpdf refine_fail.dot -orefine_fail.pdf
