@@ -38,7 +38,7 @@ let string_of_kind = function
 
 let is_err = function
   | Looking | NoMatch | Goal | Unknown -> false
-  | SimpleApply x | SimpleEapply x | External x | Exact x -> not x
+  | SimpleApply x | SimpleEapply x | External x | Exact x  -> not x
 
 let classifiers = [
     (regexp "^looking for", Looking) ;
@@ -124,7 +124,7 @@ let dot_style_of_kind k =
   | SimpleEapply x -> errc "blue" x
   | External x     -> errc "pink" x
   | NoMatch        -> col "red"
-  | Exact x        -> col "green"
+  | Exact x        -> errc "green" x
   | Goal           -> col "yellow"
   | Unknown        -> col "red"
 
