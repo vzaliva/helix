@@ -117,16 +117,17 @@ let gen_entry l n =
 (* TODO: add styles *)
 let dot_style_of_kind k =
   let col c = "[color=" ^ c ^ "]" in
+  let sha s = "[shape=" ^ s ^ "]" in
   let errc c x = col (if x then c else "red") in
   match k with
-  | Looking        -> col "black"
-  | SimpleApply x  -> errc "blue" x
-  | SimpleEapply x -> errc "blue" x
-  | External x     -> errc "pink" x
-  | NoMatch        -> col "red"
-  | Exact x        -> errc "green" x
-  | Goal           -> col "yellow"
-  | Unknown        -> col "red"
+  | Looking        -> sha "parallelogram" ^ col "black"
+  | SimpleApply x  -> sha "ellipse" ^ errc "blue" x
+  | SimpleEapply x -> sha "ellipse" ^ errc "blue" x
+  | External x     -> sha "ellipse" ^ errc "pink" x
+  | NoMatch        -> sha "trapezium" ^ col "red"
+  | Exact x        -> sha "polygon" ^ errc "green" x
+  | Goal           -> sha "box" ^ col "yellow"
+  | Unknown        -> sha "point" ^ col "red"
 
 let dot_of_entry {line; b; kind; msg} =
   let bs = string_of_seq b in
