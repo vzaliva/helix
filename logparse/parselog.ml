@@ -24,7 +24,7 @@ type kind =
   | Unknown
 
 let ok_fail_of_bool = function
-  | true -> "[OK]"
+  | true -> ""
   | false -> "[Fail]"
 
 let string_of_kind = function
@@ -132,9 +132,12 @@ let dot_style_of_kind k =
 
 let dot_of_entry {line; b; kind; msg} =
   let bs = string_of_seq b in
-  sprintf "L%d %s [label=\"%s\\n%s\"]" line
+  sprintf "L%d %s [label=\"%s%s\\n%s\"]"
+          line
           (dot_style_of_kind kind)
-          msg bs
+          (if !debug then (string_of_int line) ^ ":" else "")
+          (string_of_kind kind)
+          bs
 
 let rec dump_dot oc msibling prev =
   let link a mb = match mb with
