@@ -5,4 +5,5 @@
 *.cmo
 *.run
 *.dot
+*.annot
 parselog
