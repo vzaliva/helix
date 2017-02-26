@@ -128,7 +128,7 @@ let dot_style_of_kind k =
   | NoMatch        -> sha "trapezium" ^ col "red"
   | Exact x        -> sha "polygon" ^ errc "green" x
   | Goal           -> sha "box" ^ col "yellow"
-  | Unknown        -> sha "point" ^ col "red"
+  | Unknown        -> sha "doublecircle" ^ col "red"
 
 let dot_of_entry {line; b; kind; msg} =
   let bs = string_of_seq b in
@@ -169,9 +169,9 @@ let process_line oc l n =
      (* Pop/process pending entries (if any) *)
      dump_dot oc (Some e) None;
      (* now push new entry *)
-     if not !nofail || not (is_err e.kind) then
+     if e.kind != Unknown && e.kind != Goal && (not !nofail || not (is_err e.kind)) then
        Stack.push e stack;
-     if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.b) (Stack.length stack)
+  (* if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.b) (Stack.length stack) *)
   | None ->
      if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
 
