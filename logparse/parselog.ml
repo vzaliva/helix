@@ -7,6 +7,7 @@ let debug_regexp = regexp "^Debug: ?\\([0-9]+\\(\\.[0-9]+\\)*\\) ?: *"
 
 let verbose = ref false
 let debug = ref false
+let nofail = ref false
 let ifname = ref ""
 let ofname = ref ""
 
@@ -165,7 +166,8 @@ let process_line oc l n =
      (* Pop/process pending entries (if any) *)
      dump_dot oc (Some e) None;
      (* now push new entry *)
-     Stack.push e stack;
+     if not !nofail || not (is_err e.kind) then
+       Stack.push e stack;
      if !debug then printf "\t\tPUSH: %s, stack size %d\n" (string_of_seq e.b) (Stack.length stack)
   | None ->
      if !debug && !verbose then printf "Not numbered: %d: %s\n" n l
@@ -177,7 +179,8 @@ let process_file ifilename ofilename =
     let s = input_line ic in
     if not (is_empty m) && starts_with s "Debug" then
       begin
-        process_line oc m start ; loop s current (current+1)
+        process_line oc m start ;
+        loop s current (current+1)
       end
     else
       loop (m ^ s) start (current+1)
@@ -199,6 +202,7 @@ let main =
   begin
     let speclist = [("-v", Arg.Set verbose, "Enables verbose mode");
                     ("-d", Arg.Set debug, "Enables debug mode");
+                    ("-x", Arg.Set nofail, "Exclude failed applications");
                     ("-f", Arg.Set_string ifname, "File to process");
                     ("-o", Arg.Set_string ofname, "Output file");
                    ]

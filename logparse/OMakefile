@@ -14,7 +14,7 @@ clean:
 	rm -f *.cmo *.cmi parselog *.run *.dot *.pdf
 
 refine.dot: parselog OMakefile
-	./parselog -d -f ../refine.txt.out -o refine.dot
+	./parselog -d -x -f ../refine.txt.out -o refine.dot
 
 refine.pdf: refine.dot OMakefile
 	dot -Tpdf refine.dot -orefine.pdf
