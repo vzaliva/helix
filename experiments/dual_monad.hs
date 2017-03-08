@@ -43,7 +43,9 @@ type SInt = SM Int
 type CM = Writer Collision
 type CSInt = CM SInt
 
-{- see https://github.com/ekmett/comonad -}
+{- see https://github.com/ekmett/comonad 
+It is not really needed here yet, except that we might need 'extract' in future
+-}
 instance (Monoid w) => Comonad (Writer w) where
     extract x = fst $ runWriter x
     extend f wa = do {tell $ execWriter wa ; return (f wa)}
