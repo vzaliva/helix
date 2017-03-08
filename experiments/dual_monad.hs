@@ -68,11 +68,6 @@ isStruct x = let (_, S s) = runWriter x in s
 mkCollision :: t -> Writer Collision t
 mkCollision x = tell (C True) >> return x
 
-v::CSInt
-v = csvalue 2
-s::CSInt
-s = csstruct 2
-
 liftCSInt2 :: (Int -> Int -> Int) -> CSInt -> CSInt -> CSInt
 liftCSInt2 f m1 m2 = do {
                        s1 <- m1 ;
