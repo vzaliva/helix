@@ -49,7 +49,8 @@ It is not really needed here yet, except that we might need 'extract' in future
 -}
 instance (Monoid w) => Comonad (Writer w) where
     extract x = fst $ runWriter x
-    extend f wa = do {tell $ execWriter wa ; return (f wa)}
+    extend f wa = (tell $ execWriter wa) >> return (f wa)
+    duplicate wa = (tell $ execWriter wa) >> return wa
 
 sstruct :: Int -> SInt
 sstruct x = return x
