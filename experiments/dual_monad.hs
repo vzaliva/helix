@@ -7,7 +7,8 @@ import Test.HUnit
 
 {- see 
 http://stackoverflow.com/questions/42660343/writermonad-unsequence/
-http://stackoverflow.com/questions/27342863/unsequence-monad-function-within-haskell 
+http://stackoverflow.com/questions/27342863/unsequence-monad-function-within-haskell
+https://www.olivierverdier.com/posts/2014/12/31/reader-writer-monad-comonad/ 
 -}
 
 {- For Collisions -}
@@ -76,6 +77,12 @@ liftCSInt2 f m1 m2 = do {
                        return $liftM2 f s1 s2
                      }
 
+foldSM :: [CSInt] -> CM [SInt]
+foldSM = sequence
+
+itemizeSM :: CM [SInt] -> [CSInt]
+itemizeSM = sequence
+    
 {- Union operator, which is basically (+) with collision tracking -}
 union :: CSInt -> CSInt -> CSInt
 union = liftCSInt2 (+)
@@ -85,14 +92,8 @@ union = liftCSInt2 (+)
 map2 :: (a->b->c) -> [a] -> [b] -> [c]
 map2 f a b = map (uncurry f) $ zip a b
 
-foldSM :: [CSInt] -> CM [SInt]
-foldSM = sequence
-
-itemizeSM :: CM [SInt] -> [CSInt]
-itemizeSM = sequence
-
-{- umap2 :: SM [SInt] -> SM [SInt] -> SM [SInt]
-umap2 a b = liftM2 (map2 union) -}
+umap2 :: CM [SInt] -> CM [SInt] -> CM [SInt]
+umap2 a b = foldSM $ map2 union (itemizeSM a) (itemizeSM b)
 
 {- Unit tests below -}
 
