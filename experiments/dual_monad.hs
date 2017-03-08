@@ -1,16 +1,14 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 
 import Control.Monad.Writer
-import Test.HUnit
 import Control.Comonad
-import Data.Functor.Identity
+import Test.HUnit
 
-{- Utils -}
-{- see http://stackoverflow.com/questions/27342863/unsequence-monad-function-within-haskell -}
-unsequence :: (Comonad w, Monad m) => w [a] -> [m a]
-unsequence = (map return) . extract
+{- see 
+http://stackoverflow.com/questions/42660343/writermonad-unsequence/
+http://stackoverflow.com/questions/27342863/unsequence-monad-function-within-haskell 
+-}
 
 {- For Collisions -}
 
@@ -45,20 +43,10 @@ type SInt = SM Int
 type CM = Writer Collision
 type CSInt = CM SInt
 
-{- TODO: Make sure it satisfies co-monad laws:
-see https://github.com/ekmett/comonad
-
-extend extract      = id
-extract . extend f  = f
-extend f . extend g = extend (f . extend g)
-
--}
+{- see https://github.com/ekmett/comonad -}
 instance (Monoid w) => Comonad (Writer w) where
-    {- extract :: Writer w a -> a -}
     extract x = fst $ runWriter x
-    {- extend :: (Writer w a -> b) -> Writer w a -> Writer w b -}
     extend f wa = do {tell $ execWriter wa ; return (f wa)}
-    {- duplicate x = do { tell $ execWriter x ; return x}  -}
 
 sstruct :: Int -> SInt
 sstruct x = return x
@@ -98,14 +86,13 @@ union = liftCSInt2 (+)
 {- Simple map2 wich we will use as an example underlying function to lift
    in various ways -}
 map2 :: (a->b->c) -> [a] -> [b] -> [c]
-map2 f a b = map (\(x,y) -> f x y) $ zip a b
+map2 f a b = map (uncurry f) $ zip a b
 
 foldSM :: [CSInt] -> CM [SInt]
 foldSM = sequence
 
 itemizeSM :: CM [SInt] -> [CSInt]
-itemizeSM a = let (l,f) = runWriter a in
-              map (\x -> tell f >> return x) l
+itemizeSM = sequence
 
 {- umap2 :: SM [SInt] -> SM [SInt] -> SM [SInt]
 umap2 a b = liftM2 (map2 union) -}
