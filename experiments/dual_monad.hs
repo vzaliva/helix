@@ -57,7 +57,7 @@ instance (Monoid w) => Comonad (Writer w) where
     {- extract :: Writer w a -> a -}
     extract x = fst $ runWriter x
     {- extend :: (Writer w a -> b) -> Writer w a -> Writer w b -}
-    extend f wa = do { tell $ execWriter wa ; return (f wa)}
+    extend f wa = do {tell $ execWriter wa ; return (f wa)}
     {- duplicate x = do { tell $ execWriter x ; return x}  -}
 
 sstruct :: Int -> SInt
@@ -67,7 +67,7 @@ csstruct :: Int -> CSInt
 csstruct x = return $ sstruct x
 
 svalue :: Int -> SInt
-svalue x = do (tell (S False)) ; return x
+svalue x = tell (S False) >> return x
 
 csvalue :: Int -> CSInt
 csvalue x = return $ svalue x
@@ -76,7 +76,7 @@ isStruct :: SInt -> Bool
 isStruct x = let (_, S s) = runWriter x in s
 
 mkCollision :: t -> Writer Collision t
-mkCollision x = do (tell (C True)) ; return x
+mkCollision x = tell (C True) >> return x
 
 v::CSInt
 v = csvalue 2
@@ -105,7 +105,7 @@ foldSM = sequence
 
 itemizeSM :: CM [SInt] -> [CSInt]
 itemizeSM a = let (l,f) = runWriter a in
-              map (\x -> do { tell f ; return x}) l
+              map (\x -> tell f >> return x) l
 
 {- umap2 :: SM [SInt] -> SM [SInt] -> SM [SInt]
 umap2 a b = liftM2 (map2 union) -}
