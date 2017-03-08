@@ -1,0 +1,6 @@
+{dense & nocol} liftM(any HCOL) {dense & nocol}
+{*} LiftM_Hoperator_compose {*} (* lift distributes over compose *)
+{dense & nocol} expand_HTDirectSum {dense * nocol} (* LHS is liftM *)
+{dense & nocol} SHBinOp_equiv_lifted_HBinOp {dense & nocol} (* RHS is liftM *)
+{dense & nocol} SHPointwise_equiv_lifted_HPointwise {dense & nocol}  (* RHS is liftM *)
+{}expand_BinOp{} (* USparseEmbedding on the left *)
