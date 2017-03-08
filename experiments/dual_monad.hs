@@ -4,12 +4,7 @@
 import Control.Monad.Writer
 import Control.Comonad
 import Test.HUnit
-
-{- see 
-http://stackoverflow.com/questions/42660343/writermonad-unsequence/
-http://stackoverflow.com/questions/27342863/unsequence-monad-function-within-haskell
-https://www.olivierverdier.com/posts/2014/12/31/reader-writer-monad-comonad/ 
--}
+    
 
 {- For Collisions -}
 
@@ -44,9 +39,7 @@ type SInt = SM Int
 type CM = Writer Collision
 type CSInt = CM SInt
 
-{- see https://github.com/ekmett/comonad 
-It is not really needed here yet, except that we might need 'extract' in future
--}
+{-  It is not really used yet, except that we might need 'extract' in future -}
 instance (Monoid w) => Comonad (Writer w) where
     extract x = fst $ runWriter x
     extend f wa = (tell $ execWriter wa) >> return (f wa)
