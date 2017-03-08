@@ -134,6 +134,7 @@ foldTestCases = [
           (C False)
           (execWriter (foldSM [csstruct 1, csstruct 2]))]
 
+
 itemizeTestCases = [
  TestCase $ assertEqual "itemize1"
           [(1,False,False),(2,False,False)]
@@ -142,10 +143,33 @@ itemizeTestCases = [
           [(1,False,True),(2,False,True)]
           (map runW (itemizeSM $ mkCollision [svalue 1, svalue 2]))]
 
+umapTestCases = [
+ TestCase $ assertEqual "umap1"
+          (C True)
+          (execWriter
+           (umap2
+            (return [svalue 1, svalue 2])
+            (return [sstruct 1, svalue 2]))
+          ),
+ TestCase $ assertEqual "umap2"
+          (C False)
+          (execWriter
+           (umap2
+            (return [svalue 1, sstruct 2])
+            (return [sstruct 1, svalue 2]))
+          ),
+ TestCase $ assertEqual "umap3"
+          (C True)
+          (execWriter
+           (umap2
+            (mkCollision [svalue 1, sstruct 2])
+            (return [sstruct 1, svalue 2]))
+          )]
+
 runCases :: [(String, CSInt, (Int, Bool, Bool))] -> [Test]
 runCases l = [TestCase $ assertEqual n b (runW a) | (n,a,b) <- l]
 
-allcases = (runCases csintTestCases) ++ foldTestCases ++ itemizeTestCases
+allcases = (runCases csintTestCases) ++ foldTestCases ++ itemizeTestCases ++ umapTestCases
 
 main :: IO Counts
 main = runTestTT $ TestList allcases
