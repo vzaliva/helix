@@ -13,7 +13,7 @@ Import MonadNotation.
 Local Open Scope program_scope.
 Local Open Scope monad_scope.
 
-Section WriterMonad.
+Section Writer_Monad.
   Variable s t : Type.
   Variable Monoid_s : Monoid s.
 
@@ -21,7 +21,7 @@ Section WriterMonad.
   Definition runWriter x := unIdent (@runWriterT s Monoid_s ident t x).
   Definition execWriter x:= psnd (runWriter x).
   Definition evalWriter x:= pfst (runWriter x).
-End WriterMonad.
+End Writer_Monad.
 
 Section CoMonad_Laws.
   Variable m : Type -> Type.
@@ -45,29 +45,31 @@ Section CoMonad_Laws.
     }.
 End CoMonad_Laws.
 
-Instance WriterCoMonad {w:Type} {m: Monoid w}:
-  CoMonad (@writer w m) :=
-  {
-    coret A x := evalWriter x ;
-    cobind A B wa f := tell (execWriter wa) ;; ret (f wa)
-  }.
+Section Writer_Comonad.
+  Global Instance WriterCoMonad {w:Type} {m: Monoid w}:
+    CoMonad (@writer w m) :=
+    {
+      coret A x := evalWriter x ;
+      cobind A B wa f := tell (execWriter wa) ;; ret (f wa)
+    }.
 
-Instance WriterCoMonadLaws {w:Type} {m: Monoid w}:
-  CoMonadLaws (@WriterCoMonad w m).
-Proof.
-  split.
-  -
-    intros A B.
-    extensionality x.
-    admit.
-  -
-    intros A B f.
-    extensionality x.
-    unfold compose.
-    admit.
-  -
-    intros A B f g.
-    extensionality x.
-    unfold compose.
-    admit.
-Qed.
+  Global Instance WriterCoMonadLaws {w:Type} {m: Monoid w}:
+    CoMonadLaws (@WriterCoMonad w m).
+  Proof.
+    split.
+    -
+      intros A B.
+      extensionality x.
+      admit.
+    -
+      intros A B f.
+      extensionality x.
+      unfold compose.
+      admit.
+    -
+      intros A B f g.
+      extensionality x.
+      unfold compose.
+      admit.
+  Qed.
+End Writer_Comonad.
