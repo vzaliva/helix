@@ -1,5 +1,3 @@
-Require Import Coq.Arith.EqNat.
-
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Structures.Monoid.
@@ -8,7 +6,6 @@ Require Import ExtLib.Data.PPair.
 Require Import ExtLib.Structures.CoMonad.
 
 Set Implicit Arguments.
-Set Universe Polymorphism.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
@@ -36,6 +33,6 @@ Class CoMonad (m : Type → Type) : Type :=
 Instance WriterCoMonad {w:Type} {m: Monoid w}:
   CoMonad (@writer w m) :=
   {
-    coret a := @evalWriter w a m ;
-    cobind a b wa f := tell (execWriter wa) ;; ret (f wa)
+    coret A x := evalWriter x ;
+    cobind A B wa f := tell (execWriter wa) ;; ret (f wa)
   }.
