@@ -11,7 +11,8 @@ SPIRAL formalization in Coq
 
 To install all required dependenceis:
 
-        opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph
 
 
 Questions: [Vadim Zaliva](mailto:vzaliva@cmu.edu)
