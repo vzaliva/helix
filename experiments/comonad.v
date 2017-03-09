@@ -69,10 +69,8 @@ Section Writer_Comonad.
       intros A B.
       unfold extract, extend.
       extensionality x.
-      unfold id; simpl id.
-      unfold coret, cobind, WriterCoMonad.
-      unfold evalWriter, execWriter.
-      unfold runWriter.
+      unfold coret, cobind, WriterCoMonad, id.
+      unfold evalWriter, execWriter, runWriter.
       destruct x, runWriterT, unIdent.
       simpl.
       repeat f_equal.
