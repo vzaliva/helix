@@ -51,7 +51,7 @@ Section Writer_Comonad.
 
   Variable w: Type.
   Variable m: Monoid w.
-  Variable w_type: type w.
+  Local Instance w_type: type w := type_libniz w.
   Variable ml: MonoidLaws m.
 
   Global Instance WriterCoMonad:
@@ -72,25 +72,19 @@ Section Writer_Comonad.
       unfold id; simpl id.
       unfold coret, cobind, WriterCoMonad.
       unfold evalWriter, execWriter.
-      generalize (runWriter x) as r. intros r.
-      destruct r.
-      simpl PPair.psnd. simpl PPair.pfst.
-      admit.
+      unfold runWriter.
+      destruct x, runWriterT, unIdent.
+      simpl.
+      repeat f_equal.
+      apply ml.
     -
       reflexivity.
     -
       intros A B f g.
       unfold extract, extend, compose.
-      extensionality x.
-
       unfold coret, cobind, WriterCoMonad.
-      unfold evalWriter, execWriter.
-      unfold runWriter.
-      destruct runWriterT.
-      destruct unIdent.
-      destruct x.
-      simpl.
+      extensionality x.
       repeat f_equal.
-      admit.
+      apply ml.
   Qed.
 End Writer_Comonad.
