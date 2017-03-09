@@ -23,15 +23,6 @@ Section WriterMonad.
   Definition evalWriter x:= pfst (runWriter x).
 End WriterMonad.
 
-(*
-
-Class CoMonad (m : Type → Type) : Type :=
-{ coret : ∀ {A}, m A → A
-; cobind : ∀ {A B}, m A → (m A → B) → m B
-}.
-
-*)
-
 Section CoMonad_Laws.
   Variable m : Type -> Type.
   Variable C : CoMonad m.
@@ -43,8 +34,12 @@ Section CoMonad_Laws.
 
   Class CoMonadLaws : Type :=
     {
-      extend_extract: forall (A B:Type), extend (B:=A) extract = id ;
-      extract_extend: forall (A B:Type) {f}, extract ∘ (@extend A B) f = f;
+      extend_extract: forall (A B:Type),
+        extend (B:=A) extract = id ;
+
+      extract_extend: forall (A B:Type) {f},
+          extract ∘ (@extend A B) f = f;
+
       extend_extend:forall (A B:Type) {f g},
           (@extend B A) f ∘ (@extend A B) g = extend (f ∘ extend g)
     }.
