@@ -51,8 +51,6 @@ Section Writer_Comonad.
 
   Variable w: Type.
   Variable m: Monoid w.
-  Local Instance w_type: type w := type_libniz w.
-  Variable ml: MonoidLaws m.
 
   Global Instance WriterCoMonad:
     CoMonad (@writer w m) :=
@@ -60,6 +58,9 @@ Section Writer_Comonad.
       coret A x := evalWriter x ;
       cobind A B wa f := tell (execWriter wa) ;; ret (f wa)
     }.
+
+  Local Instance w_type: type w := type_libniz w.
+  Variable ml: MonoidLaws m.
 
   Global Instance WriterCoMonadLaws:
     CoMonadLaws (@WriterCoMonad).
