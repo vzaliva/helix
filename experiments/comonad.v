@@ -1,11 +1,13 @@
+Require Import Coq.Program.Basics.
+Require Import Coq.Logic.FunctionalExtensionality.
+
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Structures.Monoid.
 Require Import ExtLib.Data.Monads.WriterMonad.
 Require Import ExtLib.Data.PPair.
 Require Import ExtLib.Structures.CoMonad.
-Require Import Coq.Program.Basics.
-Require Import Coq.Logic.FunctionalExtensionality.
+Require Import ExtLib.Core.Type.
 
 Set Implicit Arguments.
 
@@ -46,30 +48,49 @@ Section CoMonad_Laws.
 End CoMonad_Laws.
 
 Section Writer_Comonad.
-  Global Instance WriterCoMonad {w:Type} {m: Monoid w}:
+
+  Variable w: Type.
+  Variable m: Monoid w.
+  Variable w_type: type w.
+  Variable ml: MonoidLaws m.
+
+  Global Instance WriterCoMonad:
     CoMonad (@writer w m) :=
     {
       coret A x := evalWriter x ;
       cobind A B wa f := tell (execWriter wa) ;; ret (f wa)
     }.
 
-  Global Instance WriterCoMonadLaws {w:Type} {m: Monoid w}:
-    CoMonadLaws (@WriterCoMonad w m).
+  Global Instance WriterCoMonadLaws:
+    CoMonadLaws (@WriterCoMonad).
   Proof.
     split.
     -
       intros A B.
+      unfold extract, extend.
       extensionality x.
+      unfold id; simpl id.
+      unfold coret, cobind, WriterCoMonad.
+      unfold evalWriter, execWriter.
+      generalize (runWriter x) as r. intros r.
+      destruct r.
+      simpl PPair.psnd. simpl PPair.pfst.
       admit.
     -
-      intros A B f.
-      extensionality x.
-      unfold compose.
-      admit.
+      reflexivity.
     -
       intros A B f g.
+      unfold extract, extend, compose.
       extensionality x.
-      unfold compose.
+
+      unfold coret, cobind, WriterCoMonad.
+      unfold evalWriter, execWriter.
+      unfold runWriter.
+      destruct runWriterT.
+      destruct unIdent.
+      destruct x.
+      simpl.
+      repeat f_equal.
       admit.
   Qed.
 End Writer_Comonad.
