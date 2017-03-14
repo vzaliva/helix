@@ -169,12 +169,18 @@ SUMUnion(
     (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
 
-    (* Unset Typeclasses Depth.
+    (*
+    Unset Typeclasses Depth.
     Set Typeclasses Debug.
     Set Typeclasses Debug Verbosity 99.
 
-    Redirect "log.txt" *) setoid_rewrite LiftM_Hoperator_compose at 1.
+    Redirect "log.txt" setoid_rewrite LiftM_Hoperator_compose at 1.
+     *)
 
+    Set Typeclasses Depth 1.
+    Set Typeclasses Debug.
+    Set Typeclasses Debug Verbosity 99.
+    setoid_rewrite LiftM_Hoperator_compose at 1.
 
 
     repeat setoid_rewrite LiftM_Hoperator_compose at 1.
