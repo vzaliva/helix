@@ -42,8 +42,27 @@ Open Scope vector_scope.
 
 Global Open Scope nat_scope.
 
-(* Returns an element of the vector 'x' which is result of mapping of given
-natrual number by index mapping function f_spec. *)
+(* Not currenly used. For future *)
+Section BVector.
+  Notation bvector n := (vector bool n).
+
+  Definition false_bvector (n:nat) : bvector n := Vconst false n.
+  Definition true_bvector (n:nat) : bvector n := Vconst true n.
+  Definition or_bvector (n:nat) (a b: bvector n) :=
+    Vmap2 orb a b.
+  Definition and_bvector (n:nat) (a b: bvector n) :=
+    Vmap2 andb a b.
+
+  Definition Monoid_bvector_false_or (n:nat) : Monoid (bvector n) :=
+    Build_Monoid (or_bvector n) (false_bvector n).
+
+  Definition Monoid_bvector_true_and (n:nat) : Monoid (bvector n) :=
+    Build_Monoid (and_bvector n) (true_bvector n).
+
+Section BVector.
+
+(* Returns an element of the vector 'x' which is result of mapping of
+given natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
            {i o:nat}
            {A: Type}
@@ -52,6 +71,7 @@ Definition VnthIndexMapped
            (n:nat) (np: n<o)
   : A
   := Vnth x (« f » n np).
+
 
 Section SigmaHCOL_Operators.
 
