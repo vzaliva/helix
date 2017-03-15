@@ -86,68 +86,16 @@ Section TSigmaHCOLOperators.
   Qed.
 
   Definition HTSUMUnion {i o}
-             {P: svector fm i -> Prop}
-             {Q Q1 Q2: svector fm o -> Prop}
-             (op1: @SHOperator fm i o P Q1)
-             (op2: @SHOperator fm i o P Q2)
+             (op1 op2: @SHOperator fm i o)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (PQ: forall (y1 y2 : svector fm o) d,  (Q1 y1 /\ Q2 y2) → Q (Vec2Union fm d y1 y2))
-    : @SHOperator fm i o P Q.
-  Proof.
-    refine (
-        mkSHOperator fm i o P Q (HTSUMUnion' dot (op fm op1) (op fm op2)) _
-                     (@HTSUMUnion'_arg_proper i o
-                                              (op fm op1) (op_proper fm op1)
-                                              (op fm op2) (op_proper fm op2)
-                                              dot dot_mor)).
-    intros x Px.
-    unfold HTSUMUnion'.
-    unfold Vec2Union in *.
-    destruct op1, op2.
-    auto.
-  Defined.
-
-  Section CoerceHTSUMUnion.
-    Variable i o : nat.
-    Variable dot: CarrierA -> CarrierA -> CarrierA.
-    Variable dot_mor: Proper ((=) ==> (=) ==> (=)) dot.
-
-    Variable P: svector fm i -> Prop.
-    Variable Q Q1 Q2: svector fm o -> Prop.
-    Variable op1: @SHOperator fm i o P Q1.
-    Variable op2: @SHOperator fm i o P Q2.
-
-    Variable P': svector fm i -> Prop.
-    Variable Q' Q1' Q2': svector fm o -> Prop.
-    Variable op1': @SHOperator fm i o P' Q1'.
-    Variable op2': @SHOperator fm i o P' Q2'.
-
-    Lemma coerce_HTSUMUnion
-          (S1: coerce_SHOperator fm op1 op1')
-          (S2: coerce_SHOperator fm op2 op2')
-          (PQ:  forall (y1 y2 : svector fm o) d, Q1  y1 /\ Q2  y2 → Q  (Vec2Union fm d y1 y2))
-          (PQ': forall (y1 y2 : svector fm o) d, Q1' y1 /\ Q2' y2 → Q' (Vec2Union fm d y1 y2))
-          (QQ: forall y, Q' y -> Q y)
-      :
-        coerce_SHOperator fm
-                          (HTSUMUnion op1 op2 dot PQ)
-                          (HTSUMUnion op1' op2' dot PQ').
-    Proof.
-      split.
-      -
-        simpl.
-        apply HTSUMUnion'_proper.
-        + apply dot_mor.
-        + apply S1.
-        + apply S2.
-      -
-        unfold coerce_SHOperator in S1.
-        destruct S1 as [H0 [H1 H2]].
-        tauto.
-    Qed.
-
-  End CoerceHTSUMUnion.
+    : @SHOperator fm i o
+    :=
+      mkSHOperator fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
+                   (@HTSUMUnion'_arg_proper i o
+                                            (op fm op1) (op_proper fm op1)
+                                            (op fm op2) (op_proper fm op2)
+                                            dot dot_mor).
 
 
 End TSigmaHCOLOperators.
