@@ -130,18 +130,11 @@ Section SigmaHCOLHelperLemmas.
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
-        {P: svector fm i1 -> Prop}
-        {Q: svector fm o3 -> Prop}
-        {PQ}
-        (T : svector fm o2 → Prop)
-        (TQ : forall x : svector fm o2, T x -> Q (liftM_HOperator' fm op1 x))
-        (PT : forall x : svector fm i1, P x -> T (liftM_HOperator' fm op2 x))
   :
-    liftM_HOperator fm (P:=P) (Q:=Q) (op1 ∘ op2) PQ =
-    SHCompose fm (fun _ => @id _)
-              (liftM_HOperator fm (P:=T) (Q:=Q) op1 TQ)
-              (liftM_HOperator fm (P:=P) (Q:=T) op2 PT)
-  .
+    liftM_HOperator fm (op1 ∘ op2) =
+    SHCompose fm
+              (liftM_HOperator fm op1)
+              (liftM_HOperator fm op2).
   Proof.
     unfold equiv, SHOperator_equiv; simpl.
     apply ext_equiv_applied_iff'.
@@ -538,27 +531,12 @@ Section SigmaHCOLExpansionRules.
             (n:nat)
             (f: nat -> CarrierA -> CarrierA -> CarrierA)
             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-            {P: rvector (n + n) → Prop}
-            {Q Qs: rvector n → Prop}
-            {Qg Pk: vector Rtheta (1 + 1) → Prop}
-            {Qk Ps: rvector 1 → Prop}
-            {PQo: forall x, P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
-            {KG: forall x, Qg x → Pk x}
-            {SK: forall x, Qk x → Ps x}
-            {PQ1: forall j x, Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
-            {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
-            {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
-            {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
-                Vforall Qs mat → Q (MUnion' Monoid_RthetaFlags d ini mat)}
-
       :
-        SHBinOp Monoid_RthetaFlags f PQo
+        SHBinOp Monoid_RthetaFlags f
         =
-        USparseEmbedding (PQ:=PQ2) (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG)
-                         (PQg:=PQg) (PQs:=PQs)
-                         (f_inj:=h_j_1_family_injective)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _ _ _
-                                             (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j)))
+        USparseEmbedding (f_inj:=h_j_1_family_injective)
+                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
+                                             (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f)))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
@@ -610,49 +588,22 @@ Section SigmaHCOLExpansionRules.
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
-            {P: svector fm (i1 + i2) -> Prop}
-            {Q: svector fm (o1 + o2) -> Prop}
-            {Q1: svector fm (o1 + o2) -> Prop}
-            {Q2: svector fm (o1 + o2) -> Prop}
-            {PQd: forall x : svector fm (i1 + i2), P x -> Q (liftM_HOperator' fm (HTDirectSum f g) x)}
-            {Pf: svector fm i1 -> Prop}
-            {Qf: svector fm o1 -> Prop}
-            {Pg: svector fm i2 → Prop}
-            {Qg: svector fm o2 -> Prop}
-            {Qg2: svector fm i2 -> Prop}
-            {PQf: forall x : svector fm i1, Pf x -> Qf (liftM_HOperator' fm f x)}
-            {PQg: forall x : svector fm i2, Pg x -> Qg (liftM_HOperator' fm g x)}
-            {PQg2: forall x : svector fm (i1 + i2), P x -> Qg2 (Gather' fm (h_index_map i1 1) x)}
-            {PS1: svector fm o1 -> Prop}
-            {PS2: svector fm o2 -> Prop}
-            {Qg1: svector fm i1 -> Prop}
-            {PQg1: forall x : svector fm (i1 + i2), P x -> Qg1 (Gather' fm (h_index_map 0 1) x)}
-            {PQs1: forall x : svector fm o1, PS1 x → Q1 (Scatter' fm (h_index_map 0 1) x)}
-            {QP1: forall x : svector fm i1, Qg1 x -> Pf x}
-            {QP2: forall x : svector fm o1, Qf x -> PS1 x}
-            {PQs2: forall x : svector fm o2, PS2 x -> Q2 (Scatter' fm (h_index_map o1 1) x)}
-            {QP3: forall x : svector fm i2, Qg2 x → Pg x}
-            {QP4: forall x : svector fm o2, Qg x -> PS2 x}
-            {PQh}
       :
-        liftM_HOperator fm (HTDirectSum f g) PQd (* SHoperator P Q *)
+        liftM_HOperator fm (HTDirectSum f g)
         =
-        HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) fm (* SHoperator P Q *)
-                   (SHCompose fm (P1:=PS1) (P2:=P) (Q1:=Q1) QP2
-                              (ScatH fm 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
-                              (SHCompose fm (P2:=P) (P1:=Pf) QP1
-                                         (liftM_HOperator fm (P:=Pf) (Q:=Qf) f PQf)
-                                         (GathH fm 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)))
+        HTSUMUnion _
+                   (SHCompose fm
+                              (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
+                              (SHCompose fm
+                                         (liftM_HOperator fm f)
+                                         (GathH fm 0 1 (domain_bound := h_bound_first_half i1 i2))))
 
-                   (SHCompose fm (P1:=PS2) (P2:=P) (Q1:=Q2) QP4
-                              (ScatH fm o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
-                              (SHCompose fm (P2:=P) (P1:=Pg) QP3
-                                         (liftM_HOperator fm (P:=Pg) (Q:=Qg) g PQg)
-                                         (GathH fm i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)))
-                   plus
-                   PQh
-    .
-
+                   (SHCompose fm
+                              (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
+                              (SHCompose fm
+                                         (liftM_HOperator fm g)
+                                         (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2))))
+                   plus.
     Proof.
     Admitted.
   (*
@@ -925,13 +876,11 @@ Section SigmaHCOLExpansionRules.
 
     Global Instance HBinOp_DensityPreserving
            (n:nat)
-           {P Q}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-           {PQ}
     :
       DensityPreserving Monoid_RthetaFlags
-                        (liftM_HOperator _ (P:=P) (Q:=Q) (HBinOp (o:=n) f) PQ).
+                        (liftM_HOperator _ (HBinOp (o:=n) f)).
     Proof.
       apply liftM_HOperator_DensityPreserving; typeclasses eauto.
     Qed.
@@ -942,35 +891,21 @@ Section SigmaHCOLExpansionRules.
            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
            (nz: n ≢ 0) (* Additional constraint! *)
 
-           (* Some of these might be unused! *)
-           {P: rvector (n + n) → Prop}
-           {Q Qs: rvector n → Prop}
-           {Qg Pk: vector Rtheta (1 + 1) → Prop}
-           {Qk Ps: rvector 1 → Prop}
-           {PQo: forall x, P x → Q (SHBinOp' Monoid_RthetaFlags f x)}
-           {KG: forall x, Qg x → Pk x}
-           {SK: forall x, Qk x → Ps x}
-           {PQ1: forall j x, Pk x → Qk (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f) (pF:=SwapIndex2_specialized_proper j f (f_mor:=f_mor)) x)}
-           {PQg: ∀ t tc y, P y → Qg (Gather' Monoid_RthetaFlags (⦃ (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))) ⦄ t tc) y)}
-           {PQs: ∀ t tc y, Ps y → Qs (Scatter' Monoid_RthetaFlags ((fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))) t tc) (f_inj:=h_j_1_family_member_injective t tc) y)}
-           {KD: forall j (_: j<n), DensityPreserving Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j))}
-           {PQ2: forall (mat : vector (svector Monoid_RthetaFlags n) n) d ini,
-               Vforall Qs mat → Q (MUnion' Monoid_RthetaFlags d ini mat)}
+      (* Some of these might be unused! *)
       :
         DensityPreserving _ (
 
-                            USparseEmbedding (PQ:=PQ2) (Ps:=Ps) (Qg:=Qg) (SK:=SK) (KG:=KG)
-                                             (PQg:=PQg) (PQs:=PQs)
-                                             (f_inj:=h_j_1_family_injective)
-                                             (mkSHOperatorFamily Monoid_RthetaFlags _ _ _ _ _
-                                                                 (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f) (PQ1 j)))
-                                             (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
-                                             (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
+                            USparseEmbedding
+                              (f_inj:=h_j_1_family_injective)
+                              (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
+                                                  (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f)))
+                              (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                              (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)))
 
                           ).
     Proof.
       unfold DensityPreserving.
-      intros x Px Dx.
+      intros x Dx.
       apply USparseEmbeddingIsDense.
       - apply nz.
       - unfold index_map_family_surjective.
@@ -986,8 +921,6 @@ Section SigmaHCOLExpansionRules.
       -
         intros k kc.
         apply SHBinOp_DensityPreserving.
-      -
-        apply Px.
       - simpl.
         intros j jc k kc.
         unfold svector_is_dense in Dx.
@@ -1006,9 +939,7 @@ Section SigmaHCOLExpansionRules.
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
-           {P Q}
-           {PQ}
-      : DensityPreserving fm (liftM_HOperator fm (P:=P) (Q:=Q) (HTDirectSum f g) PQ).
+      : DensityPreserving fm (liftM_HOperator fm (HTDirectSum f g)).
     Proof.
       apply liftM_HOperator_DensityPreserving.
       apply fml.
@@ -1020,50 +951,24 @@ Section SigmaHCOLExpansionRules.
            (g: avector i2 -> avector o2)
            `{hop1: !HOperator f}
            `{hop2: !HOperator g}
-           {P: rvector (i1 + i2) -> Prop}
-           {Q: rvector (o1 + o2) -> Prop}
-           {Q1: rvector (o1 + o2) -> Prop}
-           {Q2: rvector (o1 + o2) -> Prop}
-           {PQd: forall x : rvector (i1 + i2), P x -> Q (liftM_HOperator' _ (HTDirectSum f g) x)}
-           {Pf: rvector i1 -> Prop}
-           {Qf: rvector o1 -> Prop}
-           {Pg: rvector i2 → Prop}
-           {Qg: rvector o2 -> Prop}
-           {Qg2: rvector i2 -> Prop}
-           {PQf: forall x : rvector i1, Pf x -> Qf (liftM_HOperator' _ f x)}
-           {PQg: forall x : rvector i2, Pg x -> Qg (liftM_HOperator' _ g x)}
-           {PQg2: forall x : rvector (i1 + i2), P x -> Qg2 (Gather' _ (h_index_map i1 1) x)}
-           {PS1: rvector o1 -> Prop}
-           {PS2: rvector o2 -> Prop}
-           {Qg1: rvector i1 -> Prop}
-           {PQg1: forall x : rvector (i1 + i2), P x -> Qg1 (Gather' _ (h_index_map 0 1) x)}
-           {PQs1: forall x : rvector o1, PS1 x → Q1 (Scatter' _ (h_index_map 0 1) x)}
-           {QP1: forall x : rvector i1, Qg1 x -> Pf x}
-           {QP2: forall x : rvector o1, Qf x -> PS1 x}
-           {PQs2: forall x : rvector o2, PS2 x -> Q2 (Scatter' _ (h_index_map o1 1) x)}
-           {QP3: forall x : rvector i2, Qg2 x → Pg x}
-           {QP4: forall x : rvector o2, Qg x -> PS2 x}
-           {PQh}
       : DensityPreserving Monoid_RthetaFlags (
-                            HTSUMUnion (P:=P) (Q:=Q) (Q1:=Q1) (Q2:=Q2) _ (* SHoperator P Q *)
-                                       (SHCompose _ (P1:=PS1) (P2:=P) (Q1:=Q1) QP2
-                                                  (ScatH _ 0 1 (P:=PS1) (Q:=Q1) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) PQs1)
-                                                  (SHCompose _ (P2:=P) (P1:=Pf) QP1
-                                                             (liftM_HOperator _ (P:=Pf) (Q:=Qf) f PQf)
-                                                             (GathH _ 0 1 (P:=P) (Q:=Qg1) (domain_bound := h_bound_first_half i1 i2) PQg1)))
+                            HTSUMUnion _
+                                       (SHCompose _
+                                                  (ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
+                                                  (SHCompose _
+                                                             (liftM_HOperator _ f)
+                                                             (GathH _ 0 1 (domain_bound := h_bound_first_half i1 i2))))
 
-                                       (SHCompose _ (P1:=PS2) (P2:=P) (Q1:=Q2) QP4
-                                                  (ScatH _ o1 1 (P:=PS2) (Q:=Q2) (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) PQs2)
-                                                  (SHCompose _ (P2:=P) (P1:=Pg) QP3
-                                                             (liftM_HOperator _ (P:=Pg) (Q:=Qg) g PQg)
-                                                             (GathH _ i1 1 (P:=P) (Q:=Qg2) (domain_bound := h_bound_second_half i1 i2) PQg2)))
+                                       (SHCompose _
+                                                  (ScatH _ o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
+                                                  (SHCompose _
+                                                             (liftM_HOperator _ g)
+                                                             (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2))))
                                        plus
-                                       PQh
-
                           ).
     Proof.
       unfold DensityPreserving.
-      intros x Px Dx.
+      intros x Dx.
 
       unfold svector_is_dense, SHCompose, compose; simpl.
       apply Vforall_nth_intro.
@@ -1309,36 +1214,29 @@ Section SigmaHCOLRewritingRules.
 
      *)
 
-    Local Infix "==" :=
-      (@SHOperator_hequiv Monoid_RthetaFlags _ _ _ _ _ _)
-        (at level 90, no associativity).
-
-    Local Notation "g ⊚ ( qp ) f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ _ _ _ qp g f) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
-          {P Q R PQ}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n P Q)
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           {Uz: Apply_Family_Single_NonZero_Per_Row _ op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          {P' Q' PQ' Q'' P'Q'' PQ'' Q''Q' C}
       :
-        (@SHPointwise _ o P' Q' pf pf_mor PQ') ⊚ ( C ) (@ISumUnion i o n P Q R op_family PQ)
+        (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
 
-        ==
+        =
 
-        (@ISumUnion i o n P Q'' Q'
-                    (mkSHOperatorFamily _ i o n P Q''
+        (@ISumUnion i o n
+                    (mkSHOperatorFamily _ i o n
                                         (fun (j:nat) (jc:j<n) =>
-                                           (@mkSHOperator _ i o P Q''
-                                                          ((op _ (@SHPointwise _ o P' Q'' pf pf_mor P'Q'')) ∘ (get_family_op _ op_family j jc)) (PQ'' j jc) _)
+                                           (@mkSHOperator _ i o
+                                                          ((op _ (@SHPointwise _ o pf pf_mor)) ∘ (get_family_op _ op_family j jc)) _)
                     ))
-                    Q''Q'
         ).
     Proof.
-      unfold SHOperator_hequiv, SHCompose; simpl.
+      unfold equiv, SHOperator_equiv, SHCompose; simpl.
       apply ext_equiv_applied_iff'.
       -
         (* LHS Setoid_Morphism *)
@@ -1387,14 +1285,14 @@ Section SigmaHCOLRewritingRules.
           set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
                             (fun (z : nat) (zi : Peano.lt z n) =>
                                @Vnth (Rtheta' Monoid_RthetaFlags) o
-                                     (@get_family_op Monoid_RthetaFlags i o n P Q op_family z zi x) j jc))).
+                                     (@get_family_op Monoid_RthetaFlags i o n op_family z zi x) j jc))).
           intros Uzeros.
           assert(H:UnionFold _ plus zero vl = mkSZero).
           {
             generalize dependent vl.
             intros vl Uzeros.
             unfold UnionFold.
-            clear R PQ P' Q' PQ' Q'' P'Q'' PQ'' Q''Q' C op_family P Q.
+            clear op_family.
             induction vl.
             -
               unfold mkSZero.
