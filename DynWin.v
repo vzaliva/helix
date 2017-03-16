@@ -144,6 +144,9 @@ SUMUnion(
     repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
     setoid_rewrite expand_BinOp at 3.
 
+    (* normalize associativity of composition *)
+    repeat rewrite <- SHCompose_assoc.
+
 
 
     reflexivity.

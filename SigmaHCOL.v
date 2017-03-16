@@ -839,6 +839,18 @@ Section OperatorProperies.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
+  Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+
+  Lemma SHCompose_assoc
+               {i1 o2 o3 o4}
+               (h: @SHOperator fm o3 o4)
+               (g: @SHOperator fm o2 o3)
+               (f: @SHOperator fm i1 o2):
+    h ⊚ g ⊚ f = h ⊚ (g ⊚ f).
+  Proof.
+    f_equiv.
+  Qed.
+
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
