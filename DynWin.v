@@ -97,7 +97,7 @@ SUMUnion(
 
       (SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless))
         ⊚
-        (HTSUMUnion _ (
+        (HTSUMUnion _ plus (
                       ScatH _ 0 1
                             (range_bound := h_bound_first_half 1 1)
                             (snzord0 := @ScatH_stride1_constr 1 2)
@@ -134,20 +134,19 @@ SUMUnion(
                         (GathH _ 1 1
                                (domain_bound := h_bound_second_half 1 (2+2)))
                     )
-                    plus
         ).
   Proof.
     unfold dynwin_HCOL.
     setoid_rewrite LiftM_Hoperator_compose.
-
-    (* Actual rewriting *)
     setoid_rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
-    repeat setoid_rewrite LiftM_Hoperator_compose at 1.
+    repeat setoid_rewrite LiftM_Hoperator_compose.
     repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
     repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
     setoid_rewrite expand_BinOp at 3.
 
-    SHOperator_reflexivity.
+
+
+    reflexivity.
   Qed.
 
 End SigmaHCOL_rewriting.

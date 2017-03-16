@@ -86,9 +86,9 @@ Section TSigmaHCOLOperators.
   Qed.
 
   Definition HTSUMUnion {i o}
-             (op1 op2: @SHOperator fm i o)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+             (op1 op2: @SHOperator fm i o)
     : @SHOperator fm i o
     :=
       mkSHOperator fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
@@ -97,5 +97,19 @@ Section TSigmaHCOLOperators.
                                             (op fm op2) (op_proper fm op2)
                                             dot dot_mor).
 
+  Global Instance HTSUMUnion_proper
+         {i o}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+    : Proper ((=) ==> (=) ==> (=))
+             (@HTSUMUnion i o dot dot_mor).
+  Proof.
+    intros x x' Ex y y' Ey.
+    unfold HTSUMUnion.
+    unfold equiv, SHOperator_equiv in *.
+    destruct x, y, x', y'.
+    simpl in *.
+    apply HTSUMUnion'_proper; assumption.
+  Qed.
 
 End TSigmaHCOLOperators.

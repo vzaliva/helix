@@ -591,19 +591,20 @@ Section SigmaHCOLExpansionRules.
       :
         liftM_HOperator fm (HTDirectSum f g)
         =
-        HTSUMUnion _
-                   (SHCompose fm
-                              (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
-                              (SHCompose fm
-                                         (liftM_HOperator fm f)
-                                         (GathH fm 0 1 (domain_bound := h_bound_first_half i1 i2))))
+        HTSUMUnion
+          _
+          plus
+          (SHCompose fm
+                     (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
+                     (SHCompose fm
+                                (liftM_HOperator fm f)
+                                (GathH fm 0 1 (domain_bound := h_bound_first_half i1 i2))))
 
-                   (SHCompose fm
-                              (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
-                              (SHCompose fm
-                                         (liftM_HOperator fm g)
-                                         (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2))))
-                   plus.
+          (SHCompose fm
+                     (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
+                     (SHCompose fm
+                                (liftM_HOperator fm g)
+                                (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2)))).
     Proof.
     Admitted.
   (*
@@ -953,6 +954,7 @@ Section SigmaHCOLExpansionRules.
            `{hop2: !HOperator g}
       : DensityPreserving Monoid_RthetaFlags (
                             HTSUMUnion _
+                                       plus
                                        (SHCompose _
                                                   (ScatH _ 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
                                                   (SHCompose _
@@ -964,7 +966,6 @@ Section SigmaHCOLExpansionRules.
                                                   (SHCompose _
                                                              (liftM_HOperator _ g)
                                                              (GathH _ i1 1 (domain_bound := h_bound_second_half i1 i2))))
-                                       plus
                           ).
     Proof.
       unfold DensityPreserving.
