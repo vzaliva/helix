@@ -281,11 +281,10 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
 
-  (*
-
 
   (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
   Lemma SingleValueInZeros
+        {fm:Monoid RthetaFlags}
         {m} (x:svector fm m) j (jc:j<m):
     (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
   Proof.
@@ -344,7 +343,7 @@ Section SigmaHCOLHelperLemmas.
         auto.
   Qed.
 
-   *)
+
   Fact GathH_jn_domain_bound i n:
     i < n ->
     ∀ x : nat, x < 2 → i + x * n < (n+n).
@@ -354,6 +353,7 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
 End SigmaHCOLHelperLemmas.
+
 
 (*
 Lemma U_SAG2:
@@ -495,6 +495,7 @@ Proof.
     apply L3pre.
 Qed.
  *)
+
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 

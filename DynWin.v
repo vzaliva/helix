@@ -147,8 +147,6 @@ SUMUnion(
     (* normalize associativity of composition *)
     repeat rewrite <- SHCompose_assoc.
 
-
-
     reflexivity.
   Qed.
 
