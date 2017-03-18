@@ -401,56 +401,67 @@ Section SigmaHCOLExpansionRules.
                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
-      (*
-      intros n x f f_mor k kp.
-      unfold compose.
 
-      remember (fun i id =>
-                  ScatH _ i 1
-                        (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                        (SHBinOp _ (o:=1) (SwapIndex2 i f)
-                                 (GathH _ i n
-                                        (domain_bound:=GathH_jn_domain_bound i n id) x)))
-        as bf.
+      intros n x f f_mor k kp.
+
+
+      remember (fun i jc => Scatter' _  _ _) as bf.
 
       assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
       assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
 
-      assert(B1: bf ≡ (fun i id =>
-                         (ScatH _ i 1
-                                (snzord0:=ScatH_stride1_constr)
-                                (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                                (SHBinOp _ (o:=1) (SwapIndex2 i f)
-                                         [(Vnth x (ILTNN i id));  (Vnth x (INLTNN i id))])))).
+      (* replacing Gather *)
+      assert (B1: bf ≡
+                     (fun (i : nat) (jc : Peano.lt i n) =>
+                        @Scatter' Monoid_RthetaFlags (S O) n
+                                  (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
+                                  (@index_map_family_member_injective (S O) n n
+                                                                      (IndexMapFamily (S O) n n
+                                                                                      (fun (j0 : nat) (jc0 : Peano.lt j0 n) =>
+                                                                                         @h_index_map (S O) n j0 (S O)
+                                                                                                      (ScatH_1_to_n_range_bound j0 n (S O) jc0)))
+                                                                      (@h_j_1_family_injective n) i jc)
+                                  (@SHBinOp' Monoid_RthetaFlags (S O) (@SwapIndex2 CarrierA i f)
+                                             (@SwapIndex2_specialized_proper CarrierA CarrierAe CarrierAsetoid i f
+                                                                             f_mor)
+                                             [(Vnth x (ILTNN i jc));  (Vnth x (INLTNN i jc))]))).
       {
         subst bf.
         extensionality j. extensionality jn.
-        unfold GathH, Gather, compose.
+        unfold Gather'.
         rewrite Vbuild_2.
         unfold VnthIndexMapped.
-        generalize
-          (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 0  (lt_0_SSn 0)) as l0
-                                                                                                                  , (index_f_spec 2 (n + n) (@h_index_map 2 (n + n) j n (GathH_jn_domain_bound j n jn)) 1  (lt_1_SSn 0)) as l1,  (ILTNN j jn) as l00, (INLTNN j jn) as l01.
-        intros.
+        simpl.
+        unfold IndexFunctions.h_index_map_obligation_1.
         simpl in *.
-        rewrite Vnth_cast_index with (jc:=l00) (ic:=l0) by omega.
-        rewrite Vnth_cast_index with (jc:=l01) (ic:=l1) by omega.
-        reflexivity.
+        f_equal.
+        f_equal.
+        f_equal.
+        apply Vnth_cast_index; omega.
+        f_equal.
+        apply Vnth_cast_index; omega.
       }
 
-      assert (B2: bf ≡ (λ (i : nat) (id : i < n),
-                        ScatH _ i 1
-                              (snzord0:=ScatH_stride1_constr)
-                              (range_bound:=ScatH_1_to_n_range_bound i n 1 id)
-                              [Monad.liftM2 (SwapIndex2 i f 0) (Vnth x (ILTNN i id))
-                                            (Vnth x (INLTNN i id))]
+      (* Replacing SHBinOp' *)
+      assert (B2: bf ≡
+                     (fun (i : nat) (jc : Peano.lt i n) =>
+                        @Scatter' Monoid_RthetaFlags (S O) n
+                                  (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
+                                  (@index_map_family_member_injective (S O) n n
+                                                                      (IndexMapFamily (S O) n n
+                                                                                      (fun (j0 : nat) (jc0 : Peano.lt j0 n) =>
+                                                                                         @h_index_map (S O) n j0 (S O)
+                                                                                                      (ScatH_1_to_n_range_bound j0 n (S O) jc0)))
+                                                                      (@h_j_1_family_injective n) i jc)
+                                  [Monad.liftM2 (SwapIndex2 i f 0) (Vnth x (ILTNN i jc))
+                                                (Vnth x (INLTNN i jc))]
+
              )).
       {
         rewrite B1.
         extensionality i.
         extensionality id.
-        unfold sparsify.
-        unfold SHBinOp, vector2pair.
+        unfold SHBinOp', vector2pair.
         break_let.
         simpl in Heqp.
         inversion Heqp.
@@ -468,10 +479,7 @@ Section SigmaHCOLExpansionRules.
       rewrite Vmap_Vbuild.
 
       (* Preparing to apply Lemma3. Prove some peoperties first. *)
-      remember (Vbuild
-                  (λ (z : nat) (zi : z < n),
-                   Vnth (ScatH _ z 1 [Monad.liftM2 (SwapIndex2 z f 0) (Vnth x (ILTNN z zi))
-                                                   (Vnth x (INLTNN z zi))]) kp)) as b.
+      remember (Vbuild  _ ) as b.
 
       assert
         (L3pre: forall ib (icb:ib<n),
@@ -480,7 +488,7 @@ Section SigmaHCOLExpansionRules.
         intros ib icb.
         subst.
         rewrite Vbuild_nth.
-        unfold ScatH, Scatter.
+        unfold Scatter'.
         rewrite Vbuild_nth; intros H.
         break_match.
         - unfold h_index_map in i.
@@ -492,10 +500,12 @@ Section SigmaHCOLExpansionRules.
              congruence.
              crush.
           +
-            generalize (@inverse_index_f_spec 1 n
-                                              (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))
-                                              (@build_inverse_index_map 1 n
-                                                                        (@h_index_map 1 n ib 1 (ScatH_1_to_n_range_bound ib n 1 icb))) k i).
+
+            generalize (@inverse_index_f_spec (S O) n
+          (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))
+          (@build_inverse_index_map (S O) n
+             (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))) k
+          i) as l.
             intros l.
             break_if.
             rewrite <- plus_n_O in e.
@@ -507,12 +517,12 @@ Section SigmaHCOLExpansionRules.
       rewrite SingleValueInZeros with (j:=k) (jc:=kp).
       -  subst b.
          rewrite Vbuild_nth.
-         unfold ScatH, Scatter.
+         unfold Scatter'.
          rewrite Vbuild_nth.
          break_match.
          +
            rewrite Vnth_1.
-           rewrite (@SHBinOp_nth _ n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
+           rewrite (@SHBinOp'_nth _ n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
            reflexivity.
          +
            unfold in_range in n0.
@@ -521,8 +531,6 @@ Section SigmaHCOLExpansionRules.
       -
         apply L3pre.
     Qed.
-       *)
-    Admitted.
 
 
     (*
