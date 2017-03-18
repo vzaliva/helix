@@ -622,8 +622,6 @@ Section SigmaHCOLExpansionRules.
                                 (liftM_HOperator fm g)
                                 (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2)))).
     Proof.
-    Admitted.
-  (*
       unfold equiv, SHOperator_equiv.
       simpl.
       eapply ext_equiv_applied_iff'.
@@ -632,27 +630,71 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
       -
         split; try apply vec_Setoid.
+        apply HTSUMUnion'_proper.
         solve_proper.
+        +
+          apply ext_equiv_applied_iff'.
+
+          split; try apply vec_Setoid.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          solve_proper.
+
+          split; try apply vec_Setoid.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          solve_proper.
+          intros.
+          reflexivity.
+        +
+          apply ext_equiv_applied_iff'.
+
+          split; try apply vec_Setoid.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          solve_proper.
+
+          split; try apply vec_Setoid.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          solve_proper.
+          solve_proper.
+          intros.
+          reflexivity.
       -
         intros x.
         unfold liftM_HOperator' at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
-        HTSUMUnion, pair2vector.
+        HTSUMUnion', pair2vector.
 
         break_let. break_let.
         rename t1 into x0, t2 into x1.
         tuple_inversion.
         symmetry.
 
-        assert(LS: @ScatH fm o1 (o1 + o2) 0 1 (h_bound_first_half o1 o2)
-                          (@ScatH_stride1_constr o1 2)
-                          (liftM_HOperator fm f (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x)) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
+        assert(LS: (@Scatter' fm o1 (Init.Nat.add o1 o2)
+                              (@h_index_map o1 (Init.Nat.add o1 o2) O (S O) (h_bound_first_half o1 o2))
+                              (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
+                                                         (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
+                              (@liftM_HOperator' fm i1 o1 f
+                                                 (@Gather' fm (Init.Nat.add i1 i2) i1
+                                                           (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
+                                                           x))) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
         {
-          setoid_replace (@GathH fm (i1 + i2) i1 0 1 (h_bound_first_half i1 i2) x) with (sparsify fm x0).
+          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i1
+                                   (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
+                                   x) with (sparsify fm x0).
           -
             vec_index_equiv i ip.
-            unfold ScatH, Scatter.
+            unfold Scatter'.
             rewrite Vbuild_nth.
 
             unfold sparsify.
@@ -676,7 +718,7 @@ Section SigmaHCOLExpansionRules.
               rewrite Vnth_map.
               break_match.
               * simpl.
-                unfold liftM_HOperator, sparsify, compose.
+                unfold liftM_HOperator', sparsify, compose.
                 rewrite Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -688,7 +730,7 @@ Section SigmaHCOLExpansionRules.
                            (f x0)
                            (gen_inverse_index_f_spec
                               (h_index_map 0 1) i i0)) with
-                (Vnth (f x0) g0).
+                    (Vnth (f x0) g0).
                 reflexivity.
                 generalize (f x0) as fx0. intros fx0.
                 apply Vnth_eq.
@@ -709,7 +751,7 @@ Section SigmaHCOLExpansionRules.
                 rewrite Nat.mul_comm, Nat.mul_1_l.
                 reflexivity.
           -
-            unfold GathH, Gather.
+            unfold Gather'.
             vec_index_equiv i ip.
 
             rewrite Vnth_sparsify.
@@ -738,13 +780,20 @@ Section SigmaHCOLExpansionRules.
             apply proof_irrelevance.
         }
 
-        assert(RS: @ScatH fm o2 (o1 + o2) o1 1 (h_bound_second_half o1 o2)
-                          (@ScatH_stride1_constr o2 2)
-                          (liftM_HOperator fm g (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x)) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
+        assert(RS: (@Scatter' fm o2 (Init.Nat.add o1 o2)
+                              (@h_index_map o2 (Init.Nat.add o1 o2) o1 (S O) (h_bound_second_half o1 o2))
+                              (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
+                                                         (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
+                              (@liftM_HOperator' fm i2 o2 g
+                                                 (@Gather' fm (Init.Nat.add i1 i2) i2
+                                                           (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
+                                                                         (h_bound_second_half i1 i2)) x))) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
         {
-          setoid_replace (@GathH fm (i1 + i2) i2 i1 1 (h_bound_second_half i1 i2) x) with (sparsify fm x1).
+          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i2
+                                   (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
+                                                 (h_bound_second_half i1 i2)) x) with (sparsify fm x1).
           -
-            unfold ScatH, Scatter.
+            unfold Scatter'.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             rewrite Vnth_app.
@@ -752,7 +801,7 @@ Section SigmaHCOLExpansionRules.
             + (* Second half of x, which is gx0 *)
               break_match.
               * simpl.
-                unfold liftM_HOperator, sparsify, compose.
+                unfold liftM_HOperator', sparsify, compose.
                 rewrite 2!Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -765,8 +814,8 @@ Section SigmaHCOLExpansionRules.
                            (g x1)
                            (gen_inverse_index_f_spec
                               (h_index_map o1 1) i i0)) with
-                (Vnth
-                   (g x1) (Vnth_app_aux o2 ip l)).
+                    (Vnth
+                       (g x1) (Vnth_app_aux o2 ip l)).
                 reflexivity.
                 generalize (g x1) as gx1. intros gx1.
                 apply Vnth_eq.
@@ -803,7 +852,7 @@ Section SigmaHCOLExpansionRules.
               *
                 rewrite Vnth_const.
                 reflexivity.
-          - unfold GathH, Gather.
+          - unfold Gather'.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             unfold h_index_map.
@@ -814,12 +863,6 @@ Section SigmaHCOLExpansionRules.
             apply Vbreak_arg_app in H.
             unfold sparsify.
             rewrite Vnth_map.
-
-            (*
-          generalize (IndexFunctions.h_index_map_obligation_1 i2 (i1 + i2) i1 1
-       (h_bound_second_half i1 i2) i ip) as l.
-          intros l.
-   *)
 
             assert(ip1: i+i1 < i1 + i2) by omega.
             apply Vnth_arg_eq with (i:=i+i1) (ip:=ip1) in H.
@@ -855,7 +898,6 @@ Section SigmaHCOLExpansionRules.
         apply Vec2Union_szero_svector_l.
         apply Vec2Union_szero_svector_r.
     Qed.
-   *)
 
   End Value_Correctness.
 
