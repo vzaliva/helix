@@ -502,10 +502,10 @@ Section SigmaHCOLExpansionRules.
           +
 
             generalize (@inverse_index_f_spec (S O) n
-          (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))
-          (@build_inverse_index_map (S O) n
-             (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))) k
-          i) as l.
+                                              (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))
+                                              (@build_inverse_index_map (S O) n
+                                                                        (@h_index_map (S O) n ib (S O) (ScatH_1_to_n_range_bound ib n (S O) icb))) k
+                                              i) as l.
             intros l.
             break_if.
             rewrite <- plus_n_O in e.
