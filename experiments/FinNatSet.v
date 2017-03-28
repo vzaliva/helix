@@ -22,10 +22,14 @@ Proof.
   unfold not.
   intros H.
   destruct H as [x H1 H2].
+  unfold In in *.
 
-    
   induction x.
   -
+    congruence.
+  -
+
+
+
 
 Qed.
-
