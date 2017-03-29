@@ -1,35 +1,26 @@
 Require Import Coq.Sets.Ensembles.
-Require Import Coq.Vectors.Fin.
+Require Import Coq.Init.Specif.
+Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Arith.Compare_dec.
 
-(*
-Inductive FinNatSet (n:nat) : Ensemble (Fin.t n) :=
-  FinNatSet_defn : forall x:(Fin.t n), In (Fin.t n) (FinNatSet n) x.
-*)
 
-Definition FinNatSet (n:nat) := Ensemble (Fin.t n).
 
-Definition singleS (x n:nat): FinNatSet n :=
-  (fun fn : t n =>
-     match (@to_nat n fn) return Prop with
-     | exist _ i _ => i=x
-     end).
+Section Ensemble_set.
 
-Example Foo1: Disjoint (Fin.t 5) (singleS 1 5) (singleS 2 5).
-Proof.
-  split.
-  intros x.
-  unfold In.
-  unfold not.
-  intros H.
-  destruct H as [x H1 H2].
-  unfold In in *.
+  Definition EFinNatSet (n:nat) : Type := Ensemble {x:nat | (x<n)}.
 
-  induction x.
-  -
+  Definition singleS (n:nat) (i:nat): EFinNatSet n :=
+    fun x => proj1_sig x = i.
+
+  Example Foo: Disjoint _ (singleS 5 1) (singleS 5 2).
+  Proof.
+    split.
+    intros x.
+    unfold In.
+    unfold not.
+    intros H.
+    destruct H as [x H1 H2].
     congruence.
-  -
+  Qed.
 
-
-
-
-Qed.
+End Ensemble_set.
