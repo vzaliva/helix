@@ -66,8 +66,7 @@ Section MSet_set.
   Proof.
     simpl.
     unfold Empty.
-    intros a.
-    intros H.
+    intros a H.
     apply inter_spec in H.
     destruct H as [H1 H2].
     apply singleton_spec in H1.
