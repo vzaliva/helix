@@ -33,37 +33,49 @@ Module NatSet := Make Nat_as_OT.
 
 Section MSet_set.
 
-  Definition has_upper_bound n := NatSet.For_all (gt n).
+  Import NatSet.
+
+  Definition has_upper_bound n
+    := For_all (gt n).
 
   Definition MFinNatSet (n:nat) : Type
-    := {s: NatSet.t | has_upper_bound n s}.
+    := {s: t | has_upper_bound n s}.
 
   Definition MsingleS (n:nat) (i:nat): MFinNatSet n.
   Proof.
     unfold MFinNatSet.
     case (lt_dec i n); intros H.
     -
-      exists (NatSet.singleton i).
+      exists (singleton i).
       unfold has_upper_bound.
-      unfold NatSet.For_all, NatSet.elt.
+      unfold For_all, elt.
       intros x I.
-      apply NatSet.singleton_spec in I.
+      apply singleton_spec in I.
       rewrite I.
       auto.
     -
-      exists NatSet.empty.
+      exists empty.
       unfold has_upper_bound.
-      unfold NatSet.For_all.
+      unfold For_all.
       intros x I.
-      apply NatSet.empty_spec in I.
+      apply empty_spec in I.
       contradiction I.
   Defined.
 
-  Example MFoo: NatSet.is_empty (NatSet.inter
-                             (proj1_sig (MsingleS 5 2))
-                             (proj1_sig (MsingleS 5 1))) = true.
+  Example MFoo: Empty (inter
+                         (proj1_sig (MsingleS 5 2))
+                         (proj1_sig (MsingleS 5 1))).
   Proof.
-    auto.
+    simpl.
+    unfold Empty.
+    intros a.
+    unfold not.
+    intros H.
+    apply inter_spec in H.
+    destruct H as [H1 H2].
+    apply singleton_spec in H1.
+    apply singleton_spec in H2.
+    congruence.
   Qed.
 
 End MSet_set.
