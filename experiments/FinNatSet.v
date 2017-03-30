@@ -28,6 +28,7 @@ Require Import Orders.
 Require Import OrdersEx.
 Require Import MSets.
 Require Import Arith.
+Require Import Omega.
 
 Module NatSet := Make Nat_as_OT.
 
@@ -47,16 +48,13 @@ Section MSet_set.
     case (lt_dec i n); intros H.
     -
       exists (singleton i).
-      unfold has_upper_bound.
-      unfold For_all, elt.
+      unfold has_upper_bound, For_all.
       intros x I.
       apply singleton_spec in I.
-      rewrite I.
-      auto.
+      omega.
     -
       exists empty.
-      unfold has_upper_bound.
-      unfold For_all.
+      unfold has_upper_bound, For_all.
       intros x I.
       apply empty_spec in I.
       contradiction I.
@@ -69,7 +67,6 @@ Section MSet_set.
     simpl.
     unfold Empty.
     intros a.
-    unfold not.
     intros H.
     apply inter_spec in H.
     destruct H as [H1 H2].
