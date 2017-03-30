@@ -24,42 +24,30 @@ Section Ensemble_set.
 End Ensemble_set.
 
 
-Require Import Coq.MSets.MSets.
-Require Import Coq.MSets.MSetList.
+Require Import Orders.
+Require Import OrdersEx.
+Require Import MSets.
+Require Import Arith.
 
-Print OrderedTypeWithLeibniz.
-
-Module OWL.
-  Definition t := nat.
-  Definition eq := @eq t.
-  Instance eq_equiv : Equivalence eq := eq_equivalence.
-  Definition lt := Peano.lt.
-  Instance lt_strorder : StrictOrder lt := Nat_as_DT.lt_strorder.
-  Instance lt_compat : Proper (eq ==> eq ==> iff) lt.
-  Proof.
-    now unfold eq; split; subst.
-  Qed.
-  Definition compare := Compare_dec.nat_compare.
-  Lemma compare_spec : forall x y, CompSpec eq lt x y (compare x y).
-  Proof.
-    intros; case_eq (compare x y); constructor.
-    now apply Compare_dec.nat_compare_eq.
-    now apply Compare_dec.nat_compare_Lt_lt.
-    now apply Compare_dec.nat_compare_Gt_gt.
-  Qed.
-  Definition eq_dec := Peano_dec.eq_nat_dec.
-  Definition eq_leibniz a b (H:eq a b) := H.
-End OWL.
-
-Module NatSet := MakeWithLeibniz OWL.
+Module M := Make Nat_as_OT.
 
 Section MSet_set.
 
-  Definition <FinNatSet (n:nat) : Type :=
-    Ensemble {x:nat | (x<n)}.
+  Definition has_upper_bound s n := M.fold (fun m b => (m <=? n) && b) s true.
+  Definition MFinNatSet n := {s : M.t | has_upper_bound s n = true}.
 
-  Definition singleS (n:nat) (i:nat): MFinNatSet n :=
-    fun x => proj1_sig x = i.
+  Definition MsingleS (n:nat) (i:nat): MFinNatSet n.
+  Proof.
+    unfold MFinNatSet.
+
+    case (lt_dec i n); intros.
+    -
+      exists (M.singleton i).
+      admit.
+    -
+      exists M.empty.
+      auto.
+  Defined.
 
   Example Foo: Disjoint _ (singleS 5 1) (singleS 5 2).
   Proof.
