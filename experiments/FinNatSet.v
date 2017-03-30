@@ -29,40 +29,37 @@ Require Import OrdersEx.
 Require Import MSets.
 Require Import Arith.
 
-Module M := Make Nat_as_OT.
+Module NatSet := Make Nat_as_OT.
 
 Section MSet_set.
 
-  Definition has_upper_bound s n : bool
-    := M.fold (fun m b => (m <=? n) && b) s true.
+  Definition has_upper_bound n := NatSet.For_all (gt n).
 
   Definition MFinNatSet (n:nat) : Type
-    := {s : M.t | has_upper_bound s n = true}.
+    := {s: NatSet.t | has_upper_bound n s}.
 
   Definition MsingleS (n:nat) (i:nat): MFinNatSet n.
   Proof.
     unfold MFinNatSet.
-    case (lt_dec i n); intros.
+    case (lt_dec i n); intros H.
     -
-      exists (M.singleton i).
+      exists (NatSet.singleton i).
       unfold has_upper_bound.
-      rewrite M.fold_spec.
-      simpl.
-      assert(l1: i<=n).
-      {
-        apply Nat.le_lteq.
-        left.
-        apply l.
-      }
-      apply Nat_as_DT.leb_le in l1.
-      rewrite l1.
+      unfold NatSet.For_all, NatSet.elt.
+      intros x I.
+      apply NatSet.singleton_spec in I.
+      rewrite I.
       auto.
     -
-      exists M.empty.
-      auto.
+      exists NatSet.empty.
+      unfold has_upper_bound.
+      unfold NatSet.For_all.
+      intros x I.
+      apply NatSet.empty_spec in I.
+      contradiction I.
   Defined.
 
-  Example MFoo: M.is_empty (M.inter
+  Example MFoo: NatSet.is_empty (NatSet.inter
                              (proj1_sig (MsingleS 5 2))
                              (proj1_sig (MsingleS 5 1))) = true.
   Proof.
