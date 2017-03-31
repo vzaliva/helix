@@ -13,17 +13,14 @@ Section Ensemble_set.
   Example Foo: Disjoint {x:nat | (x<5)} (Esingleton 1) (Esingleton 2).
   Proof.
     split.
-    intros x.
+    intros y.
     unfold In.
-    unfold not.
-    intros H.
-    destruct H as [x H1 H2].
+    intros [x H1 H2].
     congruence.
   Qed.
 
   Definition Efull {n:nat} : EFinNatSet n :=
     fun _ => True.
-
 
 End Ensemble_set.
 
