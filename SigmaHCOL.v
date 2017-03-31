@@ -1,4 +1,4 @@
-1(* Coq defintions for Sigma-HCOL operator language *)
+(* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import VecUtil.
 Require Import VecSetoid.
@@ -1189,6 +1189,23 @@ Section AccessPatterns.
       := index_map_range_set f.
 
   End Gather.
+
+  Section Scatter.
+
+    (* Scatter always reads evertying *)
+    Definition Scatter'_read_set
+               {i o: nat}
+               (f: index_map i o): FinNatSet i
+      := Full_set (FinNat i).
+
+
+    (* Write pattern is governed by index function *)
+    Definition Scatter'_write_set
+               {i o: nat}
+               (f: index_map i o): FinNatSet o
+      := index_map_range_set f.
+
+  End Scatter.
 
 
 End AccessPatterns.
