@@ -137,6 +137,9 @@ Section MSet_set.
   Lemma singleton_upper_bound:
     forall n, has_upper_bound (S n) (singleton n).
   Proof.
+    intros n.
+    unfold has_upper_bound, For_all.
+    intros x H.
 
   Admitted.
 
