@@ -57,7 +57,7 @@ Section MSet_set.
       unfold has_upper_bound, For_all.
       intros x I.
       apply empty_spec in I.
-      contradiction I.
+      contradiction.
   Defined.
 
   Example MFoo: Empty (inter
@@ -73,5 +73,77 @@ Section MSet_set.
     apply singleton_spec in H2.
     congruence.
   Qed.
+
+
+  (* Unbounded version *)
+  Fixpoint NatSet_indexf (n:nat) (f: nat -> bool): NatSet.t :=
+    match n with
+    | O => empty
+    | S j => union
+              (if f j then singleton j else empty)
+              (NatSet_indexf j f)
+    end.
+
+
+  Lemma empty_upper_bound:
+    has_upper_bound 0 empty.
+  Proof.
+    unfold has_upper_bound.
+    unfold For_all.
+    intros x H.
+    apply empty_spec in H.
+    contradiction.
+  Qed.
+
+  Lemma union_upper_bound
+        (ba bb:nat)
+        (a b: t):
+    has_upper_bound ba a -> has_upper_bound bb b ->
+    has_upper_bound (max ba bb) (union a b).
+  Proof.
+  Admitted.
+
+  Lemma singleton_upper_bound:
+    forall n, has_upper_bound (S n) (singleton n).
+  Proof.
+  Admitted.
+
+  Lemma weaken_upper_bound:
+    forall s n m, m>=n -> has_upper_bound n s -> has_upper_bound m s.
+  Proof.
+  Admitted.
+
+  Lemma max_sn_n:
+    forall n : nat, Init.Nat.max (S n) n = S n.
+  Proof.
+    intros n.
+    induction n.
+    reflexivity.
+    rewrite <- IHn at 3.
+    rewrite Max.succ_max_distr.
+    reflexivity.
+  Qed.
+
+  Definition FinNatSet_indexf (n:nat) (f: nat -> bool): MFinNatSet n.
+  Proof.
+    exists (NatSet_indexf n f).
+    induction n.
+    -
+      apply empty_upper_bound.
+    -
+      simpl.
+      replace (S n) with (max (S n) n).
+      apply union_upper_bound.
+      case (f n).
+      + apply singleton_upper_bound.
+      + assert (E: has_upper_bound 0 empty) by apply empty_upper_bound.
+        apply weaken_upper_bound with (m:=S n) in E.
+        apply E.
+        omega.
+      + apply IHn.
+      + apply max_sn_n.
+  Defined.
+
+  Definition MLinear (n:nat) (m b:nat): MFinNatSet n.
 
 End MSet_set.
