@@ -169,7 +169,7 @@ Section MSet_set.
     reflexivity.
   Qed.
 
-  Definition FinNatSet_indexf (n:nat) (f: nat -> bool): MFinNatSet n.
+  Definition build_FinNatSet (n:nat) (f: nat -> bool): MFinNatSet n.
   Proof.
     exists (NatSet_indexf n f).
     induction n.
@@ -189,6 +189,8 @@ Section MSet_set.
       + apply max_sn_n.
   Defined.
 
-  Definition MLinear (n:nat) (m b:nat): MFinNatSet n.
+  Definition full_set (n:nat) (m b:nat): MFinNatSet n :=
+    build_FinNatSet n (fun _ => true).
+
 
 End MSet_set.
