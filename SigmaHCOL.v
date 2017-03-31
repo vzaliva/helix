@@ -1,4 +1,4 @@
-(* Coq defintions for Sigma-HCOL operator language *)
+1(* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import VecUtil.
 Require Import VecSetoid.

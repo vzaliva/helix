@@ -1,30 +1,4 @@
-Require Import Coq.Init.Specif.
-Require Import Coq.Arith.Peano_dec.
-Require Import Coq.Arith.Compare_dec.
-
-Section Ensemble_set.
-  Require Import Coq.Sets.Ensembles.
-
-  Notation EFinNatSet n := Ensemble {x:nat | (x<n)}.
-
-  Definition Esingleton {n:nat} (i:nat): EFinNatSet n :=
-    fun x => proj1_sig x = i.
-
-  Example Foo: Disjoint {x:nat | (x<5)} (Esingleton 1) (Esingleton 2).
-  Proof.
-    split.
-    intros y.
-    unfold In.
-    intros [x H1 H2].
-    congruence.
-  Qed.
-
-  Definition Efull {n:nat} : EFinNatSet n :=
-    fun _ => True.
-
-End Ensemble_set.
-
-
+Require Import Specif.
 Require Import Orders.
 Require Import OrdersEx.
 Require Import MSets.
@@ -32,6 +6,7 @@ Require Import Arith.
 Require Import Omega.
 
 Module NatSet := Make Nat_as_OT.
+Module NatSetFacts := Facts NatSet.
 
 Section MSet_set.
 
