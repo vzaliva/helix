@@ -106,12 +106,16 @@ Section MSet_set.
   Lemma max_lb_l: forall n m p : nat, n > p -> max n m > p.
   Proof.
     intros n m p H.
-  Admitted.
+    assert (D: n < m /\ Nat.max n m = m \/ m <= n /\ Nat.max n m = n) by apply Max.max_spec.
+    destruct D; omega.
+  Qed.
 
   Lemma max_lb_r: forall n m p : nat, m > p -> max n m > p.
   Proof.
     intros n m p H.
-  Admitted.
+    assert (D: n < m /\ Nat.max n m = m \/ m <= n /\ Nat.max n m = n) by apply Max.max_spec.
+    destruct D; omega.
+  Qed.
 
   Lemma union_upper_bound
         (ba bb:nat)
