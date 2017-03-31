@@ -5,7 +5,7 @@ Require Import Coq.Arith.Compare_dec.
 Section Ensemble_set.
   Require Import Coq.Sets.Ensembles.
 
-  Definition EFinNatSet (n:nat) : Type := Ensemble {x:nat | (x<n)}.
+  Notation EFinNatSet n := Ensemble {x:nat | (x<n)}.
 
   Definition Esingleton {n:nat} (i:nat): EFinNatSet n :=
     fun x => proj1_sig x = i.
