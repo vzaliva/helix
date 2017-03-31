@@ -95,17 +95,49 @@ Section MSet_set.
     contradiction.
   Qed.
 
+  Lemma lt_gt:
+    forall m n, m < n <-> n > m.
+  Proof.
+    intros m n.
+    split; intros;omega.
+  Qed.
+
+
+  Lemma max_lb_l: forall n m p : nat, n > p -> max n m > p.
+  Proof.
+    intros n m p H.
+  Admitted.
+
+  Lemma max_lb_r: forall n m p : nat, m > p -> max n m > p.
+  Proof.
+    intros n m p H.
+  Admitted.
+
   Lemma union_upper_bound
         (ba bb:nat)
         (a b: t):
     has_upper_bound ba a -> has_upper_bound bb b ->
     has_upper_bound (max ba bb) (union a b).
   Proof.
-  Admitted.
+    intros A B.
+    unfold has_upper_bound, For_all in *.
+    intros x I.
+    specialize (A x).
+    specialize (B x).
+    rewrite union_spec in *.
+    destruct I as [IA | IB].
+    -
+      apply A in IA.
+      apply max_lb_l, IA.
+    -
+      apply B in IB.
+      apply max_lb_r, IB.
+  Qed.
 
   Lemma singleton_upper_bound:
     forall n, has_upper_bound (S n) (singleton n).
   Proof.
+
   Admitted.
 
   Lemma weaken_upper_bound:
