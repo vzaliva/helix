@@ -140,13 +140,19 @@ Section MSet_set.
     intros n.
     unfold has_upper_bound, For_all.
     intros x H.
-
-  Admitted.
+    apply singleton_spec in H.
+    omega.
+  Qed.
 
   Lemma weaken_upper_bound:
     forall s n m, m>=n -> has_upper_bound n s -> has_upper_bound m s.
   Proof.
-  Admitted.
+    intros s n m D U.
+    unfold has_upper_bound, For_all in *.
+    intros x H.
+    specialize (U x H).
+    omega.
+  Qed.
 
   Lemma max_sn_n:
     forall n : nat, Init.Nat.max (S n) n = S n.
