@@ -7,10 +7,10 @@ Section Ensemble_set.
 
   Definition EFinNatSet (n:nat) : Type := Ensemble {x:nat | (x<n)}.
 
-  Definition singleS (n:nat) (i:nat): EFinNatSet n :=
+  Definition Esingleton {n:nat} (i:nat): EFinNatSet n :=
     fun x => proj1_sig x = i.
 
-  Example Foo: Disjoint _ (singleS 5 1) (singleS 5 2).
+  Example Foo: Disjoint {x:nat | (x<5)} (Esingleton 1) (Esingleton 2).
   Proof.
     split.
     intros x.
@@ -20,6 +20,10 @@ Section Ensemble_set.
     destruct H as [x H1 H2].
     congruence.
   Qed.
+
+  Definition Efull {n:nat} : EFinNatSet n :=
+    fun _ => True.
+
 
 End Ensemble_set.
 
