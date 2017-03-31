@@ -23,6 +23,7 @@ Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Spiral.
+Require Import FinNatSet.
 
 (* Setoid equality for option types *)
 Section OptionSetoid.
@@ -51,7 +52,11 @@ Global Open Scope nat_scope.
 (* Index maps (total functions) *)
 
 Record index_map (domain range : nat) :=
-  IndexMap { index_f : nat -> nat; index_f_spec : forall x, x<domain -> (index_f x) < range }.
+  IndexMap
+    {
+      index_f : nat -> nat;
+      index_f_spec : forall x, x<domain -> (index_f x) < range;
+    }.
 
 Notation "⟦ f ⟧" := (@index_f _ _ f).
 Notation "« f »" := (@index_f_spec _ _ f).
@@ -942,5 +947,16 @@ Section Function_Rules.
 
 End Function_Rules.
 
+Section IndexMapSets.
 
+  Fixpoint index_map_range_set
+           {d r: nat}
+           (f: index_map d r): FinNatSet r :=
+    match d return (index_map d r) -> FinNatSet r with
+    | 0 => fun _ => Empty_set (FinNat r)
+    | S d' => fun f' => Union (FinNat r)
+                          (singleton (⟦f⟧ d'))
+                          (index_map_range_set (shrink_index_map_domain f'))
+    end f.
 
+End IndexMapSets.

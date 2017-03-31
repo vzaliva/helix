@@ -7,6 +7,7 @@ Require Import Rtheta.
 Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
+Require Import FinNatSet.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
@@ -1170,6 +1171,27 @@ Section OperatorProperies.
   Qed.
  *)
 End OperatorProperies.
+
+Section AccessPatterns.
+  (* Experimental! *)
+  Section Gather.
+
+    (* Gater always writes everywhere *)
+    Definition Gather'_write_set
+               {i o: nat}
+               (f: index_map o i): FinNatSet o
+      := Full_set (FinNat o).
+
+    (* Read pattern is governed by index function *)
+    Definition Gather'_read_set
+               {i o: nat}
+               (f: index_map o i): FinNatSet i
+      := index_map_range_set f.
+
+  End Gather.
+
+
+End AccessPatterns.
 
 Section StructuralProperies.
 

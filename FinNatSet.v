@@ -1,8 +1,9 @@
-Require Import Coq.Init.Specif.
-Require Import Coq.Sets.Ensembles.
+Require Export Coq.Init.Specif.
+Require Export Coq.Sets.Ensembles.
 
-Notation EFinNatSet n := (Ensemble {x:nat | (x<n)}).
+Notation FinNat n := {x:nat | (x<n)}.
+Notation FinNatSet n := (Ensemble (FinNat n)).
 
-Definition Nsingleton {n:nat} (i:nat): EFinNatSet n :=
+Definition singleton {n:nat} (i:nat): FinNatSet n :=
   fun x => proj1_sig x = i.
 
