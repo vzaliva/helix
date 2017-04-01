@@ -323,7 +323,8 @@ Section SigmaHCOL_Operators.
                {i o}
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
-      := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper i o op HOP).
+      := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper i o op HOP)
+                      (Full_set _) (Full_set _).
 
     (** Apply family of functions to same fector and return matrix of results *)
     Definition Apply_Family'
@@ -395,9 +396,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
@@ -422,7 +423,9 @@ Section SigmaHCOL_Operators.
     Definition Gather
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator i o (Gather' f) _.
+      := mkSHOperator i o (Gather' f) _
+                      (index_map_range_set f) (* Read pattern is governed by index function *)
+                      (Full_set _) (* Gater always writes everywhere *).
 
     Definition GathH
                {i o}
@@ -466,7 +469,9 @@ Section SigmaHCOL_Operators.
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
-      := mkSHOperator i o (Scatter' f (f_inj:=f_inj)) _.
+      := mkSHOperator i o (Scatter' f (f_inj:=f_inj)) _
+                      (Full_set _) (* Scatter always reads evertying *)
+                      (index_map_range_set f) (* Write pattern is governed by index function *).
 
     Definition ScatH
                {i o}
@@ -668,7 +673,7 @@ row. *)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n): Prop
     :=
       forall x, MatrixWithNoRowCollisions
-                  (Apply_Family Monoid_RthetaFlags op_family x).
+             (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -689,7 +694,7 @@ row. *)
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -862,10 +867,10 @@ Section OperatorProperies.
   Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
   Lemma SHCompose_assoc
-               {i1 o2 o3 o4}
-               (h: @SHOperator fm o3 o4)
-               (g: @SHOperator fm o2 o3)
-               (f: @SHOperator fm i1 o2):
+        {i1 o2 o3 o4}
+        (h: @SHOperator fm o3 o4)
+        (g: @SHOperator fm o2 o3)
+        (f: @SHOperator fm i1 o2):
     h ⊚ g ⊚ f = h ⊚ (g ⊚ f).
   Proof.
     f_equiv.
@@ -1190,44 +1195,6 @@ Section OperatorProperies.
   Qed.
  *)
 End OperatorProperies.
-
-Section AccessPatterns.
-  (* Experimental! *)
-  Section Gather.
-
-    (* Gater always writes everywhere *)
-    Definition Gather'_write_set
-               {i o: nat}
-               (f: index_map o i): FinNatSet o
-      := Full_set (FinNat o).
-
-    (* Read pattern is governed by index function *)
-    Definition Gather'_read_set
-               {i o: nat}
-               (f: index_map o i): FinNatSet i
-      := index_map_range_set f.
-
-  End Gather.
-
-  Section Scatter.
-
-    (* Scatter always reads evertying *)
-    Definition Scatter'_read_set
-               {i o: nat}
-               (f: index_map i o): FinNatSet i
-      := Full_set (FinNat i).
-
-
-    (* Write pattern is governed by index function *)
-    Definition Scatter'_write_set
-               {i o: nat}
-               (f: index_map i o): FinNatSet o
-      := index_map_range_set f.
-
-  End Scatter.
-
-
-End AccessPatterns.
 
 Section StructuralProperies.
 
