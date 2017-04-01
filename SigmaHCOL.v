@@ -85,7 +85,9 @@ Section SigmaHCOL_Operators.
       : Type
       := mkSHOperator {
              op: svector fm i -> svector fm o ;
-             op_proper: Proper ((=) ==> (=)) op
+             op_proper: Proper ((=) ==> (=)) op;
+             in_index_set: FinNatSet i ;
+             out_index_set: FinNatSet o
            }.
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
@@ -114,6 +116,23 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
       := fun j (jc:j<n) => op_proper (family_member op_family j jc).
 
+    Definition family_in_index_set
+               {i o n}
+               (op_family: @SHOperatorFamily i o n): FinNatSet i
+      := Vfold_left (Union _) (Empty_set _)
+                    (Vbuild
+                       (λ (j:nat) (jc:j<n),
+                        in_index_set (family_member op_family j jc
+                    ))).
+
+    Definition family_out_index_set
+               {i o n}
+               (op_family: @SHOperatorFamily i o n): FinNatSet o
+      := Vfold_left (Union _) (Empty_set _)
+                    (Vbuild
+                       (λ (j:nat) (jc:j<n),
+                        out_index_set (family_member op_family j jc
+                    ))).
 
     (*
 
