@@ -488,7 +488,9 @@ Section SigmaHCOL_Operators.
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
       : @SHOperator i1 o3 :=
-      mkSHOperator i1 o3 (compose (op op1) (op op2)) _.
+      mkSHOperator i1 o3 (compose (op op1) (op op2)) _
+                   (in_index_set op2)
+                   (out_index_set op1).
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -554,7 +556,7 @@ Section SigmaHCOL_Operators.
                {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator n n (SHPointwise' f) _.
+      := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
 
     Definition SHBinOp'
                {o}
@@ -606,7 +608,7 @@ Section SigmaHCOL_Operators.
                {o}
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o (SHBinOp' f) _.
+      := mkSHOperator (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
@@ -737,7 +739,11 @@ row. *)
     :=
       mkSHOperator Monoid_RthetaFlags i o
                    (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
-                   _. (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
+                   _
+                   (family_in_index_set _ op_family)
+                   (family_out_index_set _ op_family)
+  . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
+
   Definition ISumUnion
              {i o n}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -760,7 +766,10 @@ row. *)
     : @SHOperator Monoid_RthetaSafeFlags i o:=
     mkSHOperator Monoid_RthetaSafeFlags i o
                  (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
-                 _.
+                 _
+                 (family_in_index_set _ op_family)
+                 (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
+  .
 
   Definition ISumReduction
              {i o n}
