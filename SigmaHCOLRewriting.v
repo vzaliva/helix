@@ -1282,6 +1282,7 @@ Section SigmaHCOLRewritingRules.
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+          {iset oset}
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
 
@@ -1291,7 +1292,7 @@ Section SigmaHCOLRewritingRules.
                     (mkSHOperatorFamily _ i o n
                                         (fun (j:nat) (jc:j<n) =>
                                            (@mkSHOperator _ i o
-                                                          ((op _ (@SHPointwise _ o pf pf_mor)) ∘ (get_family_op _ op_family j jc)) _)
+                                                          ((op _ (@SHPointwise _ o pf pf_mor)) ∘ (get_family_op _ op_family j jc)) _ iset oset)
                     ))
         ).
     Proof.
