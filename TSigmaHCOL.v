@@ -95,7 +95,9 @@ Section TSigmaHCOLOperators.
                    (@HTSUMUnion'_arg_proper i o
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)
-                                            dot dot_mor).
+                                            dot dot_mor)
+                   (Ensembles.Union _ (in_index_set _ op1) (in_index_set _ op2))
+                   (Ensembles.Union _ (out_index_set _ op1) (out_index_set _ op2)).
 
   Global Instance HTSUMUnion_proper
          {i o}
