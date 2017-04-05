@@ -88,19 +88,23 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op;
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
+       }.
 
-             in_as_domain:
-               forall x y,
-                 (forall j (jc:j<i),
-                     in_index_set (mkFinNat jc) -> Vnth x jc = Vnth y jc) ->
-                 op x = op y;
+    Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
+      {
+        in_as_domain:
+          forall x y,
+            (forall j (jc:j<i),
+                in_index_set xop (mkFinNat jc) -> Vnth x jc = Vnth y jc) ->
+            op xop x = op xop y;
 
-             out_as_range: forall v,
-                 (forall j (jc:j<i), in_index_set (mkFinNat jc) -> Is_Val (Vnth v jc))
-                 ->
-                 (forall j (jc:j<o), out_index_set (mkFinNat jc) ->
-                                               Is_Val (Vnth (op v) jc));
-           }.
+        out_as_range: forall v,
+            (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
+            ->
+            (forall j (jc:j<o), out_index_set xop (mkFinNat jc) ->
+                           Is_Val (Vnth (op xop v) jc));
+      }.
+
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
     Global Instance SHOperator_equiv
@@ -499,33 +503,9 @@ Section SigmaHCOL_Operators.
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
-      : @SHOperator i1 o3.
-    Proof.
-      refine (mkSHOperator i1 o3 (compose (op op1) (op op2)) _
-                          (in_index_set op2)
-                          (out_index_set op1)
-                          _ _).
-
-      (* in_as_domain *)
-      - intros x y H.
-        vec_index_equiv j jc.
-        unfold compose.
-        destruct op1, op2.
-        simpl in *.
-        admit.
-
-      (* out_as_range *)
-      - intros v D j jc S.
-        unfold compose.
-        destruct op1, op2.
-        simpl in *.
-        apply out_as_range0.
-
-        + intros.
-          apply out_as_range1.
-
-        + apply S.
-    Defined.
+      : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
+                                          (in_index_set op2)
+                                          (out_index_set op1).
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -559,6 +539,40 @@ Section SigmaHCOL_Operators.
       apply compose_proper with (RA:=equiv) (RB:=equiv).
       + apply op_proper0.
       + apply op_proper1.
+    Qed.
+
+    Global Instance SHCompose_Facts
+           {i1 o2 o3}
+           (op1: @SHOperator o2 o3)
+           (op2: @SHOperator i1 o2)
+           `{fop1: SHOperator_Facts _ _ op1}
+           `{fop2: SHOperator_Facts _ _ op2}
+           (compat: Included _ (in_index_set op1) (out_index_set op2))
+      : SHOperator_Facts (op1 ⊚ op2).
+    Proof.
+      split.
+      - intros x y H.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply in_as_domain0.
+        intros j jc H0.
+        apply Vnth_arg_equiv.
+        apply in_as_domain1.
+        intros j0 jc0 H1.
+        apply H.
+
+      - intros v D j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply out_as_range0.
+        + intros.
+          apply out_as_range1.
+          apply D.
+          apply compat.
+          apply H.
+        + apply S.
     Qed.
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
