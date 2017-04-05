@@ -87,7 +87,17 @@ Section SigmaHCOL_Operators.
              op: svector fm i -> svector fm o ;
              op_proper: Proper ((=) ==> (=)) op;
              in_index_set: FinNatSet i ;
-             out_index_set: FinNatSet o
+             out_index_set: FinNatSet o;
+
+             in_as_domain:
+               forall x y,
+                 (forall j (jc:j<i),
+                     in_index_set (mkFinNat jc) -> Vnth x jc = Vnth y jc) ->
+                 op x = op y;
+
+             out_as_range: forall v, svector_is_dense fm v ->
+                                (forall j (jc:j<o), out_index_set (mkFinNat jc) ->
+                                               Is_Val (Vnth (op v) jc));
            }.
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
