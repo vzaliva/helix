@@ -560,8 +560,7 @@ Section SigmaHCOL_Operators.
         apply Vnth_arg_equiv.
         apply in_as_domain1.
         intros j0 jc0 H1.
-        apply H.
-
+        apply H, H1.
       - intros v D j jc S.
         destruct op1, op2, fop1, fop2.
         simpl in *.
@@ -1012,6 +1011,24 @@ Section OperatorProperies.
     apply Gather'_preserves_P.
     assumption.
   Qed.
+
+  Global Instance Gather_Facts
+         {i o: nat}
+         (f: index_map o i)
+    : SHOperator_Facts fm (Gather fm f).
+  Proof.
+    split.
+    - intros x y H.
+      simpl in *.
+      vec_index_equiv j jc.
+      rewrite 2!Gather'_spec.
+      unfold VnthIndexMapped.
+      apply H.
+      unfold mkFinNat.
+      apply index_map_range_set_id.
+    - intros v D j jc S.
+      simpl.
+    Qed.
 
 
   (* Specification of scatter as mapping from input to output. NOTE:

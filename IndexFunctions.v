@@ -959,4 +959,17 @@ Section IndexMapSets.
                           (index_map_range_set (shrink_index_map_domain f'))
     end f.
 
+
+  Lemma index_map_range_set_id:
+    ∀ (i o : nat) (f : index_map i o) (j : nat) (jc : j < i),
+      index_map_range_set f (⟦ f ⟧ j ↾ « f » j jc).
+  Proof.
+    intros i o f j jc.
+    induction i.
+    inversion jc.
+    simpl.
+    admit.
+  Admitted.
+
+
 End IndexMapSets.
