@@ -95,8 +95,10 @@ Section SigmaHCOL_Operators.
                      in_index_set (mkFinNat jc) -> Vnth x jc = Vnth y jc) ->
                  op x = op y;
 
-             out_as_range: forall v, svector_is_dense fm v ->
-                                (forall j (jc:j<o), out_index_set (mkFinNat jc) ->
+             out_as_range: forall v,
+                 (forall j (jc:j<i), in_index_set (mkFinNat jc) -> Is_Val (Vnth v jc))
+                 ->
+                 (forall j (jc:j<o), out_index_set (mkFinNat jc) ->
                                                Is_Val (Vnth (op v) jc));
            }.
 
@@ -497,10 +499,33 @@ Section SigmaHCOL_Operators.
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
-      : @SHOperator i1 o3 :=
-      mkSHOperator i1 o3 (compose (op op1) (op op2)) _
-                   (in_index_set op2)
-                   (out_index_set op1).
+      : @SHOperator i1 o3.
+    Proof.
+      refine (mkSHOperator i1 o3 (compose (op op1) (op op2)) _
+                          (in_index_set op2)
+                          (out_index_set op1)
+                          _ _).
+
+      (* in_as_domain *)
+      - intros x y H.
+        vec_index_equiv j jc.
+        unfold compose.
+        destruct op1, op2.
+        simpl in *.
+        admit.
+
+      (* out_as_range *)
+      - intros v D j jc S.
+        unfold compose.
+        destruct op1, op2.
+        simpl in *.
+        apply out_as_range0.
+
+        + intros.
+          apply out_as_range1.
+
+        + apply S.
+    Defined.
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
