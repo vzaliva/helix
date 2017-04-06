@@ -541,39 +541,6 @@ Section SigmaHCOL_Operators.
       + apply op_proper1.
     Qed.
 
-    Global Instance SHCompose_Facts
-           {i1 o2 o3}
-           (op1: @SHOperator o2 o3)
-           (op2: @SHOperator i1 o2)
-           `{fop1: SHOperator_Facts _ _ op1}
-           `{fop2: SHOperator_Facts _ _ op2}
-           (compat: Included _ (in_index_set op1) (out_index_set op2))
-      : SHOperator_Facts (op1 ⊚ op2).
-    Proof.
-      split.
-      - intros x y H.
-        destruct op1, op2, fop1, fop2.
-        simpl in *.
-        unfold compose in *.
-        apply in_as_domain0.
-        intros j jc H0.
-        apply Vnth_arg_equiv.
-        apply in_as_domain1.
-        intros j0 jc0 H1.
-        apply H, H1.
-      - intros v D j jc S.
-        destruct op1, op2, fop1, fop2.
-        simpl in *.
-        unfold compose in *.
-        apply out_as_range0.
-        + intros.
-          apply out_as_range1.
-          apply D.
-          apply compat.
-          apply H.
-        + apply S.
-    Qed.
-
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise'
                {n: nat}
@@ -1012,30 +979,6 @@ Section OperatorProperies.
     assumption.
   Qed.
 
-  Global Instance Gather_Facts
-         {i o: nat}
-         (f: index_map o i)
-    : SHOperator_Facts fm (Gather fm f).
-  Proof.
-    split.
-    - intros x y H.
-      simpl in *.
-      vec_index_equiv j jc.
-      rewrite 2!Gather'_spec.
-      unfold VnthIndexMapped.
-      apply H.
-      unfold mkFinNat.
-      apply index_map_range_set_id.
-    - intros v D j jc S.
-      simpl.
-      rewrite Gather'_spec.
-      unfold VnthIndexMapped.
-      apply D.
-      simpl.
-      unfold mkFinNat.
-      apply index_map_range_set_id.
-  Qed.
-
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
@@ -1079,39 +1022,6 @@ Section OperatorProperies.
       apply Vnth_in.
     - right.
       reflexivity.
-  Qed.
-
-  Global Instance Scatter_Facts
-         {i o: nat}
-         (f: index_map i o)
-         {f_inj: index_map_injective f}:
-    SHOperator_Facts fm (Scatter fm f (f_inj:=f_inj)).
-  Proof.
-    split.
-    - intros x y H.
-      simpl in *.
-      assert (E: x=y).
-      {
-        vec_index_equiv j jc.
-        apply H.
-        constructor.
-      }
-      rewrite E.
-      reflexivity.
-    - intros v D j jc S.
-      simpl.
-      unfold Scatter' in *.
-      rewrite Vbuild_nth.
-      break_match.
-      + simpl in *.
-        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
-        apply D.
-        constructor.
-      +
-        simpl in *.
-        unfold index_map_range_set in S.
-        simpl in *.
-        congruence.
   Qed.
 
   Lemma SHPointwise'_nth
@@ -1165,33 +1075,6 @@ Section OperatorProperies.
       rewrite HPointwise_nth.
       unfold densify; rewrite Vnth_map.
       reflexivity.
-  Qed.
-
-  Global Instance SHPointwise_Facts
-             {n: nat}
-             (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts fm (SHPointwise fm f).
-  Proof.
-    split.
-    intros x y H.
-    -
-      simpl in *.
-      assert (E: x=y).
-      {
-        vec_index_equiv j jc.
-        apply H.
-        constructor.
-      }
-      rewrite E.
-      reflexivity.
-    -
-      intros v D j jc S.
-      simpl in *.
-      unfold SHPointwise'.
-      rewrite Vbuild_nth.
-      apply Is_Val_liftM.
-      apply D, S.
   Qed.
 
   Lemma SHBinOp'_nth
@@ -1420,6 +1303,126 @@ Section StructuralProperies.
         apply IsVal_mkValue.
     Qed.
 
+    Global Instance SHCompose_Facts
+           {i1 o2 o3}
+           (op1: @SHOperator fm o2 o3)
+           (op2: @SHOperator fm i1 o2)
+           `{fop1: SHOperator_Facts fm _ _ op1}
+           `{fop2: SHOperator_Facts fm _ _ op2}
+           (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+      : SHOperator_Facts fm (SHCompose fm op1 op2).
+    Proof.
+      split.
+      - intros x y H.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply in_as_domain0.
+        intros j jc H0.
+        apply Vnth_arg_equiv.
+        apply in_as_domain1.
+        intros j0 jc0 H1.
+        apply H, H1.
+      - intros v D j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply out_as_range0.
+        + intros.
+          apply out_as_range1.
+          apply D.
+          apply compat.
+          apply H.
+        + apply S.
+    Qed.
+
+    Global Instance Gather_Facts
+           {i o: nat}
+           (f: index_map o i)
+      : SHOperator_Facts fm (Gather fm f).
+    Proof.
+      split.
+      - intros x y H.
+        simpl in *.
+        vec_index_equiv j jc.
+        rewrite 2!Gather'_spec.
+        unfold VnthIndexMapped.
+        apply H.
+        unfold mkFinNat.
+        apply index_map_range_set_id.
+      - intros v D j jc S.
+        simpl.
+        rewrite Gather'_spec.
+        unfold VnthIndexMapped.
+        apply D.
+        simpl.
+        unfold mkFinNat.
+        apply index_map_range_set_id.
+    Qed.
+
+    Global Instance Scatter_Facts
+           {i o: nat}
+           (f: index_map i o)
+           {f_inj: index_map_injective f}:
+      SHOperator_Facts fm (Scatter fm f (f_inj:=f_inj)).
+    Proof.
+      split.
+      - intros x y H.
+        simpl in *.
+        assert (E: x=y).
+        {
+          vec_index_equiv j jc.
+          apply H.
+          constructor.
+        }
+        rewrite E.
+        reflexivity.
+      - intros v D j jc S.
+        simpl.
+        unfold Scatter' in *.
+        rewrite Vbuild_nth.
+        break_match.
+        + simpl in *.
+          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+          apply D.
+          constructor.
+        +
+          simpl in *.
+          unfold index_map_range_set in S.
+          simpl in *.
+          congruence.
+    Qed.
+
+
+    Global Instance SHPointwise_Facts
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      SHOperator_Facts fm (SHPointwise fm f).
+    Proof.
+      split.
+      intros x y H.
+      -
+        simpl in *.
+        assert (E: x=y).
+        {
+          vec_index_equiv j jc.
+          apply H.
+          constructor.
+        }
+        rewrite E.
+        reflexivity.
+      -
+        intros v D j jc S.
+        simpl in *.
+        unfold SHPointwise'.
+        rewrite Vbuild_nth.
+        apply Is_Val_liftM.
+        apply D, S.
+    Qed.
+
+
+
     Lemma liftM_HOperator'_preserves_density
           {i o: nat}
           (f: avector i -> avector o)
@@ -1542,7 +1545,7 @@ Section StructuralProperies.
     generalize dependent (Vnth x jc1).
     generalize dependent (Vnth x jc2).
     intros v1 V1 v2 V2.
-    apply Is_Val_LiftM2; assumption.
+    apply Is_Val_liftM2; assumption.
   Qed.
 
 
