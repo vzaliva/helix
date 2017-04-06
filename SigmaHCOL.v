@@ -1258,33 +1258,6 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  Global Instance SHBinOp_Facts
-         {o}
-         (f: nat -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts fm (SHBinOp fm f (o:=o)).
-  Proof.
-    split.
-    intros x y H.
-    -
-      simpl in *.
-      assert (E: x=y).
-      {
-        vec_index_equiv j jc.
-        apply H.
-        constructor.
-      }
-      rewrite E.
-      reflexivity.
-    -
-      intros v D j jc S.
-      simpl in *.
-      assert(jc2: (j+o)<o+o) by omega.
-      assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth o f pF v j jc jc1 jc2).
-      apply Is_Val_liftM2.
-  Qed.
-
 (*
 
 
@@ -1522,22 +1495,32 @@ Section StructuralProperies.
    *)
   End FlagsMonoidGenericStructuralProperties.
 
-  Lemma Is_Val_LiftM2
-        (f : CarrierA → CarrierA → CarrierA)
-        (v1 v2 : Rtheta)
-        (V1: Is_Val v1)
-        (V2: Is_Val v2):
-    Is_Val (liftM2 f v2 v1).
+  Global Instance SHBinOp_Facts
+         {o}
+         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    SHOperator_Facts Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags f (o:=o)).
   Proof.
-    unfold Is_Val, compose, IsVal in *.
-    rewrite execWriter_Rtheta_liftM2.
-    simpl in *.
-    generalize dependent (is_struct (WriterMonadNoT.execWriter v1)); clear v1.
-    generalize dependent (is_struct (WriterMonadNoT.execWriter v2)); clear v2.
-    intros f1 V1 f2 V2.
-    destr_bool.
+    split.
+    intros x y H.
+    -
+      simpl in *.
+      assert (E: x=y).
+      {
+        vec_index_equiv j jc.
+        apply H.
+        constructor.
+      }
+      rewrite E.
+      reflexivity.
+    -
+      intros v D j jc S.
+      simpl in *.
+      assert(jc2: (j+o)<o+o) by omega.
+      assert(jc1:j<o+o) by omega.
+      rewrite (@SHBinOp'_nth Monoid_RthetaFlags o f pF v j jc jc1 jc2).
+      apply Is_Val_liftM2; (apply D; constructor).
   Qed.
-
 
   Global Instance SHBinOp_DensityPreserving
          {o}
