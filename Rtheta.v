@@ -268,7 +268,7 @@ Section Rtheta'Utils.
     simpl.
     replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
                           (@monoid_unit RthetaFlags fm)) with
-    (mkRthetaFlags false false).
+        (mkRthetaFlags false false).
     - apply Bool.negb_prop_elim.
       simpl.
       trivial.
@@ -449,6 +449,26 @@ Proof.
   unfold Is_Val, compose, mkStruct, IsVal, execWriter, runWriter.
   simpl.
   tauto.
+Qed.
+
+Lemma Is_Val_liftM2
+      (f: CarrierA → CarrierA → CarrierA)
+      (a b : Rtheta):
+  Is_Val a → Is_Val b → Is_Val (liftM2 f a b).
+Proof.
+  intros Ha Hb.
+  unfold Is_Val, compose in *.
+  rewrite execWriter_Rtheta_liftM2.
+  simpl.
+  unfold RthetaFlagsAppend.
+  unfold IsVal, Is_true, not in *.
+  simpl in *.
+  generalize dependent (is_struct (WriterMonadNoT.execWriter a)).
+  generalize dependent (is_struct (WriterMonadNoT.execWriter b)).
+  clear a b f.
+  intros a Hb b Ha H.
+  destr_bool.
+  congruence.
 Qed.
 
 Section Decidablitiy.

@@ -1258,6 +1258,33 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
+  Global Instance SHBinOp_Facts
+         {o}
+         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
+    SHOperator_Facts fm (SHBinOp fm f (o:=o)).
+  Proof.
+    split.
+    intros x y H.
+    -
+      simpl in *.
+      assert (E: x=y).
+      {
+        vec_index_equiv j jc.
+        apply H.
+        constructor.
+      }
+      rewrite E.
+      reflexivity.
+    -
+      intros v D j jc S.
+      simpl in *.
+      assert(jc2: (j+o)<o+o) by omega.
+      assert(jc1:j<o+o) by omega.
+      rewrite (@SHBinOp'_nth o f pF v j jc jc1 jc2).
+      apply Is_Val_liftM2.
+  Qed.
+
 (*
 
 
