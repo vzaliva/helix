@@ -1335,6 +1335,31 @@ Section StructuralProperies.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
+    Global Instance liftM_HOperator_Facts
+           {i o}
+           (hop: avector i -> avector o)
+           `{HOP: HOperator i o hop}
+    : SHOperator_Facts fm (liftM_HOperator fm hop).
+    Proof.
+      split.
+      intros x y H.
+      -
+        simpl in *.
+        assert (E: x=y).
+        {
+          vec_index_equiv j jc.
+          apply H.
+          split.
+        }
+        rewrite E.
+        reflexivity.
+      -
+        intros v D j jc S.
+        simpl in *.
+        unfold liftM_HOperator', compose, sparsify, densify.
+        rewrite Vnth_map.
+        apply IsVal_mkValue.
+    Qed.
 
     Lemma liftM_HOperator'_preserves_density
           {i o: nat}
