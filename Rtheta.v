@@ -346,6 +346,17 @@ Section Rtheta'Utils.
     apply fml.
   Qed.
 
+  Lemma Is_Val_liftM
+        (f: CarrierA → CarrierA)
+        (r : Rtheta' fm):
+    Is_Val r → Is_Val (liftM f r).
+  Proof.
+    intros H.
+    unfold Is_Val, compose in *.
+    rewrite execWriter_liftM.
+    apply H.
+  Qed.
+
   Lemma execWriter_Rtheta_liftM2
         (op: CarrierA -> CarrierA -> CarrierA)
         {a b: Rtheta' fm}

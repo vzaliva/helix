@@ -1167,6 +1167,33 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
+  Global Instance SHPointwise_Facts
+             {n: nat}
+             (f: { i | i<n} -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+    SHOperator_Facts fm (SHPointwise fm f).
+  Proof.
+    split.
+    intros x y H.
+    -
+      simpl in *.
+      assert (E: x=y).
+      {
+        vec_index_equiv j jc.
+        apply H.
+        constructor.
+      }
+      rewrite E.
+      reflexivity.
+    -
+      intros v D j jc S.
+      simpl in *.
+      unfold SHPointwise'.
+      rewrite Vbuild_nth.
+      apply Is_Val_liftM.
+      apply D, S.
+  Qed.
+
   Lemma SHBinOp'_nth
         {o}
         {f: nat -> CarrierA -> CarrierA -> CarrierA}
