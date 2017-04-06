@@ -1028,8 +1028,13 @@ Section OperatorProperies.
       apply index_map_range_set_id.
     - intros v D j jc S.
       simpl.
-    Qed.
-
+      rewrite Gather'_spec.
+      unfold VnthIndexMapped.
+      apply D.
+      simpl.
+      unfold mkFinNat.
+      apply index_map_range_set_id.
+  Qed.
 
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not

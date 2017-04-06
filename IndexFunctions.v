@@ -97,6 +97,27 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma shrink_index_map_domain_exists_eq {i o : nat}
+      (f : index_map (S i) o)
+      (j : nat)
+      (jc : Peano.lt j (S i))
+      (jc1 : Peano.lt j i):
+  (@exist nat (fun x : nat => Peano.lt x o)
+          (index_f i o (@shrink_index_map_domain i o f) j)
+          (index_f_spec i o (@shrink_index_map_domain i o f) j jc1))
+    ≡
+    (@exist nat (fun x : nat => Peano.lt x o)
+            (index_f (S i) o f j)
+            (index_f_spec (S i) o f j jc)
+    ).
+Proof.
+  destruct f.
+  simpl.
+  repeat f_equiv.
+  clear index_f_spec0 index_f0 o.
+  apply proof_irrelevance.
+Qed.
+
 Section InRange.
 
   Definition in_range'
@@ -966,10 +987,25 @@ Section IndexMapSets.
   Proof.
     intros i o f j jc.
     induction i.
-    inversion jc.
-    simpl.
-    admit.
-  Admitted.
+    - inversion jc.
+    - simpl.
+      destruct (eq_nat_dec j i) as [E|NE].
+      +
+        left.
+        unfold singleton, In.
+        simpl.
+        auto.
+      +
+        right.
+        unfold In.
+        assert (jc1:j<i) by omega.
+        replace (@exist nat (fun x : nat => Peano.lt x o) (index_f (S i) o f j)
+                        (index_f_spec (S i) o f j jc)) with
+            (@exist nat (fun x : nat => Peano.lt x o) (index_f i o (@shrink_index_map_domain i o f) j)
+                    (index_f_spec i o (@shrink_index_map_domain i o f) j jc1)).
+        apply IHi.
+        apply shrink_index_map_domain_exists_eq.
+  Qed.
 
 
 End IndexMapSets.
