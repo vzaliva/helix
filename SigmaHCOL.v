@@ -90,12 +90,21 @@ Section SigmaHCOL_Operators.
              out_index_set: FinNatSet o;
            }.
 
+
+    (* Two vectors (=) at indices at given set *)
+    Definition vec_equiv_at_set
+               {n:nat}
+               (x y: svector fm n)
+               (s: FinNatSet n)
+      :=
+        (forall j (jc:j<n),
+            s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
+
     Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
       {
         in_as_domain:
           forall x y,
-            (forall j (jc:j<i),
-                in_index_set xop (mkFinNat jc) -> Vnth x jc = Vnth y jc) ->
+            vec_equiv_at_set x y (in_index_set xop) ->
             op xop x = op xop y;
 
         out_as_range: forall v,
@@ -1444,7 +1453,13 @@ Section StructuralProperies.
     -
       intros x y H.
       simpl in *.
-      admit.
+      vec_index_equiv j jc.
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      unfold UnionFold.
+
     -
       intros v D j jc S.
       simpl in *.
