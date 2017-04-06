@@ -120,18 +120,6 @@ Qed.
 
 Section InRange.
 
-  Definition in_range'
-             {d r:nat} (f: index_map d r)
-             (i:nat)
-  : Prop.
-  Proof.
-    induction d.
-    exact False.
-    destruct (Nat.eq_dec (⟦ f ⟧ d) i).
-    exact True.
-    apply IHd, shrink_index_map_domain, f.
-  Defined.
-
   Fixpoint in_range  {d r:nat} (f: index_map d r)
            (i:nat)
     : Prop :=
@@ -143,28 +131,6 @@ Section InRange.
                | right x => in_range (shrink_index_map_domain f') i
                end
     end f.
-
-  (* Prove that our 2 implementatoins of in_range are compatible *)
-  Lemma in_range_compat  {d r:nat} (f: index_map d r):
-    in_range' f ≡ in_range f.
-  Proof.
-    extensionality i.
-    induction d.
-    - crush.
-    -
-      unfold in_range.
-      rewrite <- IHd.
-      break_if.
-      + simpl.
-        break_if.
-        trivial.
-        congruence.
-      + simpl.
-        break_if.
-        congruence.
-        rewrite IHd.
-        reflexivity.
-  Qed.
 
   Global Instance in_range_dec {d r:nat} (f: index_map d r) (i:nat) : Decision (in_range f i).
   Proof.
@@ -970,42 +936,26 @@ End Function_Rules.
 
 Section IndexMapSets.
 
-  Fixpoint index_map_range_set
-           {d r: nat}
-           (f: index_map d r): FinNatSet r :=
-    match d return (index_map d r) -> FinNatSet r with
-    | 0 => fun _ => Empty_set (FinNat r)
-    | S d' => fun f' => Union (FinNat r)
-                          (singleton (⟦f⟧ d'))
-                          (index_map_range_set (shrink_index_map_domain f'))
-    end f.
-
+  Definition index_map_range_set
+             {d r: nat}
+             (f: index_map d r): FinNatSet r :=
+    fun x => in_range f (proj1_sig x).
 
   Lemma index_map_range_set_id:
     ∀ (i o : nat) (f : index_map i o) (j : nat) (jc : j < i),
       index_map_range_set f (⟦ f ⟧ j ↾ « f » j jc).
   Proof.
     intros i o f j jc.
+    unfold index_map_range_set.
     induction i.
     - inversion jc.
     - simpl.
-      destruct (eq_nat_dec j i) as [E|NE].
-      +
-        left.
-        unfold singleton, In.
-        simpl.
-        auto.
-      +
-        right.
-        unfold In.
-        assert (jc1:j<i) by omega.
-        replace (@exist nat (fun x : nat => Peano.lt x o) (index_f (S i) o f j)
-                        (index_f_spec (S i) o f j jc)) with
-            (@exist nat (fun x : nat => Peano.lt x o) (index_f i o (@shrink_index_map_domain i o f) j)
-                    (index_f_spec i o (@shrink_index_map_domain i o f) j jc1)).
-        apply IHi.
-        apply shrink_index_map_domain_exists_eq.
+      break_if.
+      auto.
+      apply in_range_shrink_index_map_domain.
+      apply in_range_by_def.
+      omega.
+      assumption.
   Qed.
-
 
 End IndexMapSets.

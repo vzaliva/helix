@@ -88,7 +88,7 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op;
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
-       }.
+           }.
 
     Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
       {
@@ -1061,7 +1061,6 @@ Section OperatorProperies.
     - apply in_range_by_def, ip.
   Qed.
 
-
   Lemma Scatter'_is_almost_endomorphism
         (i o : nat)
         (x : svector fm i)
@@ -1080,6 +1079,39 @@ Section OperatorProperies.
       apply Vnth_in.
     - right.
       reflexivity.
+  Qed.
+
+  Global Instance Scatter_Facts
+         {i o: nat}
+         (f: index_map i o)
+         {f_inj: index_map_injective f}:
+    SHOperator_Facts fm (Scatter fm f (f_inj:=f_inj)).
+  Proof.
+    split.
+    - intros x y H.
+      simpl in *.
+      assert (E: x=y).
+      {
+        vec_index_equiv j jc.
+        apply H.
+        constructor.
+      }
+      rewrite E.
+      reflexivity.
+    - intros v D j jc S.
+      simpl.
+      unfold Scatter' in *.
+      rewrite Vbuild_nth.
+      break_match.
+      + simpl in *.
+        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+        apply D.
+        constructor.
+      +
+        simpl in *.
+        unfold index_map_range_set in S.
+        simpl in *.
+        congruence.
   Qed.
 
   Lemma SHPointwise'_nth
@@ -1339,7 +1371,7 @@ Section StructuralProperies.
            {i o}
            (hop: avector i -> avector o)
            `{HOP: HOperator i o hop}
-    : SHOperator_Facts fm (liftM_HOperator fm hop).
+      : SHOperator_Facts fm (liftM_HOperator fm hop).
     Proof.
       split.
       intros x y H.
@@ -1349,7 +1381,7 @@ Section StructuralProperies.
         {
           vec_index_equiv j jc.
           apply H.
-          split.
+          constructor.
         }
         rewrite E.
         reflexivity.
