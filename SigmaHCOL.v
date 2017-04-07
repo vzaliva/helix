@@ -183,13 +183,12 @@ Section SigmaHCOL_Operators.
       unfold Included, In.
       intros x H.
 
-      induction k.
-      - crush.
-      -
-        rewrite Vfold_right_reduce.
-        rewrite Vbuild_head.
-        rewrite Vbuild_tail.
 
+      induction k.
+      - inversion jc.
+      -
+        rewrite Vbuild_cons.
+        rewrite Vfold_right_cons.
         destruct j.
         + left.
           unfold In.
@@ -199,6 +198,7 @@ Section SigmaHCOL_Operators.
         +
           right.
           unfold In.
+
           admit.
     Admitted.
 
@@ -211,7 +211,9 @@ Section SigmaHCOL_Operators.
         out_index_set (family_member op_family t tc)
                       (mkFinNat jc).
     Proof.
-    Admitted.
+      intros H.
+      unfold family_out_index_set in H.
+    Admitted
 
 
     (* Evaluation semantics for SHOperator defined used sigma types *)

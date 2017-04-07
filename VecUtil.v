@@ -65,6 +65,13 @@ Section VFold.
   (* Right fold with vector argument last, so it is easier to use in point-free notation, for example in Vmap *)
   Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
 
+  Lemma Vfold_right_cons: forall A B n (f:A->B->B) (id:B) (h:A) (v:vector A n),
+      Vfold_right f (Vcons h v) id = f h (Vfold_right f v id).
+  Proof.
+    intros.
+    reflexivity.
+  Qed.
+
   Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
       Vfold_right f v id = f (hd v) (Vfold_right f (tl v) id).
   Proof.
@@ -72,6 +79,7 @@ Section VFold.
     dep_destruct v.
     reflexivity.
   Qed.
+
 
   (* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
   Lemma Vfold_left_rev_cons:
