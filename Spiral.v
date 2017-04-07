@@ -211,3 +211,10 @@ Proof.
   omega.
 Qed.
 
+Lemma S_j_lt_n {n j:nat}:
+  S j ≡ n -> j < n.
+Proof.
+  intros H.
+  rewrite <- H.
+  auto.
+Defined.

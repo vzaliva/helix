@@ -153,14 +153,25 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
       := fun j (jc:j<n) => op_proper (family_member op_family j jc).
 
-    Definition family_in_index_set
+    Definition shrink_op_family
+               {i o n}
+               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n :=
+      match op_family with
+      | mkSHOperatorFamily _ _ _ m =>
+        mkSHOperatorFamily i o n
+                           (fun (j:nat) (jc:j<n) => m j (@le_S (S j) n jc))
+      end.
+
+    Fixpoint family_in_index_set
                {i o n}
                (op_family: @SHOperatorFamily i o n): FinNatSet i
-      := Vfold_right (Union _)
-                     (Vbuild
-                        (λ (j:nat) (jc:j<n),
-                         in_index_set (family_member op_family j jc
-                     ))) (Empty_set _).
+      :=
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
+        | O => fun _ _ => (Empty_set _)
+        | S j => fun E f => Union _
+                              (in_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_in_index_set (shrink_op_family f))
+        end (eq_refl n) op_family.
 
     Definition family_out_index_set
                {i o n}
@@ -179,17 +190,20 @@ Section SigmaHCOL_Operators.
                  (family_in_index_set op_family).
     Proof.
       intros i o k op_family j jc.
-      unfold family_in_index_set.
       unfold Included, In.
       intros x H.
-
 
       induction k.
       - inversion jc.
       -
-        rewrite Vbuild_cons.
-        rewrite Vfold_right_cons.
-        destruct j.
+        simpl.
+        destruct (eq_nat_dec j k).
+        +
+          left.
+          unfold In.
+          generalize (le_n (S k)) as jc1; intros jc1.
+
+
         + left.
           unfold In.
           generalize (PeanoNat.Nat.lt_0_succ k). intros jc1.
@@ -198,6 +212,7 @@ Section SigmaHCOL_Operators.
         +
           right.
           unfold In.
+          apply IHk.
 
           admit.
     Admitted.
