@@ -1499,10 +1499,10 @@ Section StructuralProperies.
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-         (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
+         (* compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
                                                             (out_index_set _ (family_member _ op_family m mc))
                                                             (out_index_set _ (family_member _ op_family n nc))
-         )
+         *)
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
