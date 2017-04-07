@@ -157,10 +157,19 @@ Section SigmaHCOL_Operators.
                {i o n}
                (op_family: @SHOperatorFamily i o n): FinNatSet i
       := Vfold_right (Union _)
+                     (Vbuild
+                        (λ (j:nat) (jc:j<n),
+                         in_index_set (family_member op_family j jc
+                     ))) (Empty_set _).
+
+    Definition family_out_index_set
+               {i o n}
+               (op_family: @SHOperatorFamily i o n): FinNatSet o
+      := Vfold_left (Union _) (Empty_set _)
                     (Vbuild
                        (λ (j:nat) (jc:j<n),
-                        in_index_set (family_member op_family j jc
-                    ))) (Empty_set _).
+                        out_index_set (family_member op_family j jc
+                    ))).
 
     Lemma family_in_set_includes_members:
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
@@ -193,14 +202,17 @@ Section SigmaHCOL_Operators.
           admit.
     Admitted.
 
-    Definition family_out_index_set
-               {i o n}
-               (op_family: @SHOperatorFamily i o n): FinNatSet o
-      := Vfold_left (Union _) (Empty_set _)
-                    (Vbuild
-                       (λ (j:nat) (jc:j<n),
-                        out_index_set (family_member op_family j jc
-                    ))).
+    Lemma family_out_set_implies_members
+          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (j : nat) (jc : j < o):
+
+      family_out_index_set op_family (mkFinNat jc) ->
+      ∃ (t : nat) (tc : t < k),
+        out_index_set (family_member op_family t tc)
+                      (mkFinNat jc).
+    Proof.
+    Admitted.
+
 
     (* Evaluation semantics for SHOperator defined used sigma types *)
     Definition evalSHOperator {i o} (f:@SHOperator i o):
@@ -1479,6 +1491,7 @@ Section StructuralProperies.
       apply Is_Val_liftM2; (apply D; constructor).
   Qed.
 
+
   Global Instance IUnion_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1518,7 +1531,30 @@ Section StructuralProperies.
     -
       intros v D j jc S.
       simpl in *.
-      admit.
+
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply Is_Val_UnionFold.
+
+      apply family_out_set_implies_members in S.
+      destruct S as [x X].
+      destruct X as [xc X].
+
+      apply Vexists_Vbuild.
+      eexists.
+      eexists.
+
+      apply out_as_range.
+      + apply op_family_facts.
+      + intros j0 jc0 H.
+        apply D.
+        eapply family_in_set_includes_members.
+        unfold In.
+        apply H.
+      +
+        apply X.
   Qed.
 
 End StructuralProperies.
