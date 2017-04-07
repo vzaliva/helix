@@ -75,7 +75,7 @@ End Vconst.
 
 
 
-(* TODO: check if needed for Coq-8.5 *)
+(* TODO: check if needed for Coq-8.6 *)
 Section Vfold_left.
   Context
     `{eqA: Equiv A}
@@ -110,7 +110,7 @@ Section Vfold_left.
 
 End Vfold_left.
 
-(* TODO: check if needed for Coq-8.5 *)
+(* TODO: check if needed for Coq-8.6 *)
 Section Vfold_left_rev.
   Context
     `{eqA: Equiv A}
@@ -145,7 +145,7 @@ Section Vfold_left_rev.
 
 End Vfold_left_rev.
 
-(* TODO: check if needed for Coq-8.5 *)
+(* TODO: check if needed for Coq-8.6 *)
 Section Vfold_right.
   Context
     `{eqA: Equiv A}
@@ -189,7 +189,7 @@ Section Vfold_right.
 
 End Vfold_right.
 
-(* TODO: check if needed for Coq-8.5 *)
+(* TODO: check if needed for Coq-8.6 *)
 Section VCons.
 
   Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
@@ -358,7 +358,7 @@ Proof.
   split; tauto.
 Qed.
 
-(* TODO: Check if it is still needed in Coq-8.5 *)
+(* TODO: Check if it is still needed in Coq-8.6 *)
 Section VMap_reord.
 
   Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.

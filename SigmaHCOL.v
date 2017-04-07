@@ -100,6 +100,18 @@ Section SigmaHCOL_Operators.
         (forall j (jc:j<n),
             s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
 
+    Lemma vec_equiv_at_subset
+          {k:nat}
+          (x y: svector fm k)
+          (n h: FinNatSet k):
+      Included _ n h -> vec_equiv_at_set x y h -> vec_equiv_at_set x y n.
+    Proof.
+      intros S E.
+      unfold vec_equiv_at_set.
+      intros j jc H.
+      apply E, S, H.
+    Qed.
+
     Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
       {
         in_as_domain:
@@ -144,11 +156,42 @@ Section SigmaHCOL_Operators.
     Definition family_in_index_set
                {i o n}
                (op_family: @SHOperatorFamily i o n): FinNatSet i
-      := Vfold_left (Union _) (Empty_set _)
+      := Vfold_right (Union _)
                     (Vbuild
                        (λ (j:nat) (jc:j<n),
                         in_index_set (family_member op_family j jc
-                    ))).
+                    ))) (Empty_set _).
+
+    Lemma family_in_set_includes_members:
+      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+        (j : nat) (jc : j < k),
+        Included (FinNat i)
+                 (in_index_set (family_member op_family j jc))
+                 (family_in_index_set op_family).
+    Proof.
+      intros i o k op_family j jc.
+      unfold family_in_index_set.
+      unfold Included, In.
+      intros x H.
+
+      induction k.
+      - crush.
+      -
+        rewrite Vfold_right_reduce.
+        rewrite Vbuild_head.
+        rewrite Vbuild_tail.
+
+        destruct j.
+        + left.
+          unfold In.
+          generalize (PeanoNat.Nat.lt_0_succ k). intros jc1.
+          replace jc1 with jc by apply proof_irrelevance.
+          apply H.
+        +
+          right.
+          unfold In.
+          admit.
+    Admitted.
 
     Definition family_out_index_set
                {i o n}
@@ -1460,6 +1503,18 @@ Section StructuralProperies.
       rewrite 2!AbsorbMUnion'Index_Vbuild.
       unfold UnionFold.
 
+      f_equiv.
+      apply Vforall2_intro_nth.
+      intros i0 ip.
+      rewrite 2!Vbuild_nth.
+      apply Vnth_arg_equiv.
+      clear j jc; rename i0 into j, ip into jc.
+
+      apply op_family_facts.
+
+      apply vec_equiv_at_subset with (h:=(family_in_index_set Monoid_RthetaFlags op_family)).
+      apply family_in_set_includes_members.
+      apply H.
     -
       intros v D j jc S.
       simpl in *.
