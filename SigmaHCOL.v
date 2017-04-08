@@ -197,25 +197,22 @@ Section SigmaHCOL_Operators.
       - inversion jc.
       -
         simpl.
-        destruct (eq_nat_dec j k).
+        destruct (eq_nat_dec j k) as [E | NE].
         +
           left.
-          unfold In.
-          generalize (le_n (S k)) as jc1; intros jc1.
-
-
-        + left.
-          unfold In.
-          generalize (PeanoNat.Nat.lt_0_succ k). intros jc1.
-          replace jc1 with jc by apply proof_irrelevance.
+          subst.
+          replace (le_n (S k)) with jc by apply proof_irrelevance.
           apply H.
         +
           right.
-          unfold In.
-          apply IHk.
-
-          admit.
-    Admitted.
+          assert(jc1: j<k) by omega.
+          apply IHk with (jc:=jc1).
+          unfold shrink_op_family.
+          destruct op_family.
+          simpl in *.
+          replace (le_S jc1) with jc by apply proof_irrelevance.
+          apply H.
+    Qed.
 
     Lemma family_out_set_implies_members
           (i o k : nat) (op_family : @SHOperatorFamily i o k)
