@@ -163,8 +163,8 @@ Section SigmaHCOL_Operators.
       end.
 
     Fixpoint family_in_index_set
-               {i o n}
-               (op_family: @SHOperatorFamily i o n): FinNatSet i
+             {i o n}
+             (op_family: @SHOperatorFamily i o n): FinNatSet i
       :=
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
@@ -173,14 +173,16 @@ Section SigmaHCOL_Operators.
                               (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
-    Definition family_out_index_set
-               {i o n}
-               (op_family: @SHOperatorFamily i o n): FinNatSet o
-      := Vfold_left (Union _) (Empty_set _)
-                    (Vbuild
-                       (λ (j:nat) (jc:j<n),
-                        out_index_set (family_member op_family j jc
-                    ))).
+    Fixpoint family_out_index_set
+             {i o n}
+             (op_family: @SHOperatorFamily i o n): FinNatSet o
+      :=
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
+        | O => fun _ _ => (Empty_set _)
+        | S j => fun E f => Union _
+                              (out_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_out_index_set (shrink_op_family f))
+        end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
@@ -224,8 +226,31 @@ Section SigmaHCOL_Operators.
                       (mkFinNat jc).
     Proof.
       intros H.
-      unfold family_out_index_set in H.
-    Admitted
+      induction k.
+      -
+        inversion H.
+      -
+        simpl in H.
+        inversion_clear H as [H0 | H1].
+        +
+          subst.
+          unfold In in H1.
+          exists k, (le_n (S k)).
+          apply H1.
+        +
+          subst.
+          specialize (IHk (shrink_op_family op_family) H0).
+          destruct IHk as [t [tc  IHk]].
+          exists t.
+          assert(tc1: t < S k) by omega.
+          exists tc1.
+
+          unfold shrink_op_family.
+          destruct op_family.
+          simpl in *.
+          replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
+          apply IHk.
+    Qed.
 
 
     (* Evaluation semantics for SHOperator defined used sigma types *)
@@ -467,9 +492,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (transpose
+                             (Apply_Family op_family x)
+                          ).
 
     Definition Gather'
                {i o: nat}
@@ -745,7 +770,7 @@ row. *)
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n): Prop
     :=
       forall x, MatrixWithNoRowCollisions
-             (Apply_Family Monoid_RthetaFlags op_family x).
+                  (Apply_Family Monoid_RthetaFlags op_family x).
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
@@ -766,7 +791,7 @@ row. *)
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
+                                                                     (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1513,10 +1538,10 @@ Section StructuralProperies.
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-         (* compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
+    (* compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
                                                             (out_index_set _ (family_member _ op_family m mc))
                                                             (out_index_set _ (family_member _ op_family n nc))
-         *)
+     *)
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
