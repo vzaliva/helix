@@ -112,6 +112,28 @@ Section SigmaHCOL_Operators.
       apply E, S, H.
     Qed.
 
+    Lemma vec_equiv_at_Union
+          {i : nat}
+          (s0 s1 : FinNatSet i)
+          (x y : svector fm i):
+      vec_equiv_at_set x y (Union _ s0 s1)
+      → (vec_equiv_at_set x y s0 /\ vec_equiv_at_set x y s1).
+    Proof.
+      intros H.
+      unfold vec_equiv_at_set in *.
+      split.
+      -
+        intros j jc H0.
+        apply H.
+        left.
+        apply H0.
+      -
+        intros j jc H0.
+        apply H.
+        right.
+        apply H0.
+    Qed.
+
     Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
       {
         in_as_domain:

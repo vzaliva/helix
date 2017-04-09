@@ -7,6 +7,8 @@ Require Import Rtheta.
 Require Import SVector.
 Require Import IndexFunctions.
 Require Import SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
+Require Import FinNatSet.
+
 
 Require Import Arith.
 Require Import Program. (* compose *)
@@ -115,3 +117,55 @@ Section TSigmaHCOLOperators.
   Qed.
 
 End TSigmaHCOLOperators.
+
+Global Instance HTSUMUnion_Facts
+       {i o}
+       (dot: CarrierA -> CarrierA -> CarrierA)
+       `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+       (op1 op2: @SHOperator Monoid_RthetaFlags i o)
+       `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
+       `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
+  : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+Proof.
+  split.
+  - intros x y H.
+    destruct op1, op2, fop1, fop2.
+    simpl in *.
+    unfold HTSUMUnion', Vec2Union in *.
+    vec_index_equiv j jc.
+    rewrite 2!Vnth_map2.
+    f_equiv.
+    + apply dot_mor.
+    +
+      apply Vnth_arg_equiv.
+      apply in_as_domain.
+      apply vec_equiv_at_Union in H.
+      apply H.
+    +
+      apply Vnth_arg_equiv.
+      apply in_as_domain0.
+      apply vec_equiv_at_Union in H.
+      apply H.
+  - intros v D j jc S.
+    simpl in *.
+    unfold HTSUMUnion', Vec2Union in *.
+    rewrite Vnth_map2.
+    apply ValUnionIsVal.
+    destruct op1, op2, fop1, fop2.
+    simpl in *.
+    dep_destruct S.
+    + left.
+      apply out_as_range.
+      intros j0 jc0 H0.
+      apply D.
+      left.
+      apply H0.
+      apply i0.
+    + right.
+      apply out_as_range0.
+      intros j0 jc0 H0.
+      apply D.
+      right.
+      apply H0.
+      apply i0.
+Qed.
