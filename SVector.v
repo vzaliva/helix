@@ -478,13 +478,13 @@ Section ExclusiveUnion.
   Proof.
     split.
     - intros [VA | VB]; (
-          unfold Union, Is_Val, compose in *;
-          rewrite execWriter_Rtheta_liftM2;
-          destruct (execWriter a) as [str_a col_a];
-          destruct (execWriter b) as [str_b col_b];
-          unfold RthetaFlagsAppend;
-          unfold IsVal in *;
-          destr_bool; auto).
+        unfold Union, Is_Val, compose in *;
+        rewrite execWriter_Rtheta_liftM2;
+        destruct (execWriter a) as [str_a col_a];
+        destruct (execWriter b) as [str_b col_b];
+        unfold RthetaFlagsAppend;
+        unfold IsVal in *;
+        destr_bool; auto).
     -
       intros H.
       unfold Union, Is_Val, compose in *.
@@ -535,6 +535,73 @@ Section ExclusiveUnion.
   Qed.
 
 End ExclusiveUnion.
+
+
+Section NonExclusiveUnion.
+
+  (* Conditions under which Union produces value *)
+  Lemma ValUnionIsVal_Safe (a b : RStheta) {dot}:
+    Is_Val a \/ Is_Val b <-> Is_Val (Union Monoid_RthetaSafeFlags dot a b).
+  Proof.
+    split.
+    - intros [VA | VB]; (
+        unfold Union, Is_Val, compose in *;
+        rewrite execWriter_Rtheta_liftM2;
+        destruct (execWriter a) as [str_a col_a];
+        destruct (execWriter b) as [str_b col_b];
+        unfold RthetaFlagsAppend;
+        unfold IsVal in *;
+        destr_bool; auto).
+    -
+      intros H.
+      unfold Union, Is_Val, compose in *.
+      rewrite execWriter_Rtheta_liftM2 in H.
+      destruct (execWriter a) as [str_a col_a].
+      destruct (execWriter b) as [str_b col_b].
+      unfold IsVal in *.
+      destr_bool; auto.
+  Qed.
+
+  Lemma Is_Val_UnionFold_Safe {n} {v: rsvector n} {dot} {neutral}:
+    Vexists Is_Val v <-> Is_Val (UnionFold Monoid_RthetaSafeFlags dot neutral v).
+  Proof.
+    split.
+    - intros H.
+      apply Vexists_eq in H.
+      unfold UnionFold.
+      destruct H as [x [XI XV]].
+      induction v.
+      + unfold Vin in XI.
+        congruence.
+      + apply Vin_cons in XI.
+        rewrite Vfold_left_rev_cons.
+        destruct XI.
+        * subst h.
+          apply ValUnionIsVal_Safe.
+          right.
+          assumption.
+        *
+          clear XV.
+          apply IHv in H.
+          apply ValUnionIsVal_Safe.
+          left.
+          assumption.
+    -
+      intros H.
+      induction v.
+      + crush.
+      + simpl in *.
+        rewrite UnionFold_cons in H.
+        apply ValUnionIsVal_Safe in H.
+        destruct H.
+        apply IHv in H.
+        right.
+        apply H.
+        left.
+        apply H.
+  Qed.
+
+End NonExclusiveUnion.
 
 Section Matrix.
   (* Poor man's matrix is vector of vectors.

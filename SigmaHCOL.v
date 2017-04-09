@@ -1596,4 +1596,66 @@ Section StructuralProperies.
         apply X.
   Qed.
 
+  Global Instance IReduction_Facts
+         {i o k}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (initial: CarrierA)
+         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+    (* TODO: compat  *)
+    : SHOperator_Facts _ (IReduction dot initial op_family).
+  Proof.
+    split.
+    -
+      intros x y H.
+      simpl in *.
+      vec_index_equiv j jc.
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      unfold UnionFold.
+
+      f_equiv.
+      apply Vforall2_intro_nth.
+      intros i0 ip.
+      rewrite 2!Vbuild_nth.
+      apply Vnth_arg_equiv.
+      clear j jc; rename i0 into j, ip into jc.
+
+      apply op_family_facts.
+
+      apply vec_equiv_at_subset with (h:=(family_in_index_set Monoid_RthetaSafeFlags op_family)).
+      apply family_in_set_includes_members.
+      apply H.
+    -
+      intros v D j jc S.
+      simpl in *.
+
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply Is_Val_UnionFold_Safe.
+
+      apply family_out_set_implies_members in S.
+      destruct S as [x X].
+      destruct X as [xc X].
+
+      apply Vexists_Vbuild.
+      eexists.
+      eexists.
+
+      apply out_as_range.
+      + apply op_family_facts.
+      + intros j0 jc0 H.
+        apply D.
+        eapply family_in_set_includes_members.
+        unfold In.
+        apply H.
+      +
+        apply X.
+  Qed.
+
 End StructuralProperies.
