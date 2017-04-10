@@ -148,6 +148,13 @@ Section SigmaHCOL_Operators.
                            Is_Val (Vnth (op xop v) jc));
       }.
 
+    Class SHOperator_Collision_Guarantees {i o:nat} (xop: @SHOperator i o) :=
+      {
+        no_coll: forall v,
+          (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
+          ->
+          (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
+      }.
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
     Global Instance SHOperator_equiv
@@ -1405,6 +1412,20 @@ Section StructuralProperies.
         apply IsVal_mkValue.
     Qed.
 
+    Global Instance liftM_HOperator_Collision_Guarantees
+           {i o}
+           (hop: avector i -> avector o)
+           `{HOP: HOperator i o hop}
+      : SHOperator_Collision_Guarantees fm (liftM_HOperator fm hop).
+    Proof.
+      split.
+      intros v D j jc S.
+      simpl in *.
+      unfold liftM_HOperator', compose, sparsify, densify.
+      rewrite Vnth_map.
+      apply Not_Collision_mkValue.
+    Qed.
+
     Global Instance SHCompose_Facts
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3)
@@ -1436,6 +1457,31 @@ Section StructuralProperies.
           apply compat.
           apply H.
         + apply S.
+    Qed.
+
+    Global Instance SHCompose_Collision_Guarantees
+           {i1 o2 o3}
+           (op1: @SHOperator fm o2 o3)
+           (op2: @SHOperator fm i1 o2)
+           `{fop1: SHOperator_Collision_Guarantees fm _ _ op1}
+           `{fop2: SHOperator_Collision_Guarantees fm _ _ op2}
+           (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+      : SHOperator_Collision_Guarantees fm (SHCompose fm op1 op2).
+    Proof.
+      split.
+      intros v D j jc S.
+      destruct op1, op2, fop1, fop2.
+      simpl in *.
+      unfold compose in *.
+      apply no_coll0.
+      intros j0 jc0 H.
+      apply no_coll1.
+      intros j1 jc1 H0.
+      apply D.
+      apply H0.
+      apply compat.
+      apply H.
+      apply S.
     Qed.
 
     Global Instance Gather_Facts

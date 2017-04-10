@@ -277,6 +277,23 @@ Section Rtheta'Utils.
       apply fml.
   Qed.
 
+  Lemma Not_Collision_mkValue:
+    ∀ (v:CarrierA), Not_Collision (mkValue v).
+  Proof.
+    intros v.
+    unfold Not_Collision, Is_Collision, not, mkValue.
+    simpl.
+    replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
+                          (@monoid_unit RthetaFlags fm)) with
+        (mkRthetaFlags false false).
+    - apply Bool.negb_prop_elim.
+      simpl.
+      trivial.
+    -
+      symmetry.
+      apply fml.
+  Qed.
+
   Global Instance Rtheta'_equiv: Equiv (Rtheta' fm) :=
     fun am bm => (evalWriter am) = (evalWriter bm).
 
