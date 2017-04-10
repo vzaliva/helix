@@ -374,6 +374,17 @@ Section Rtheta'Utils.
     apply H.
   Qed.
 
+  Lemma Not_Collision_liftM
+        (f: CarrierA → CarrierA)
+        (r : Rtheta' fm):
+    Not_Collision r -> Not_Collision (liftM f r).
+  Proof.
+    intros H.
+    unfold Not_Collision, not, Is_Collision, IsCollision, compose in *.
+    rewrite execWriter_liftM.
+    apply H.
+  Qed.
+
   Lemma execWriter_Rtheta_liftM2
         (op: CarrierA -> CarrierA -> CarrierA)
         {a b: Rtheta' fm}

@@ -145,7 +145,7 @@ Section SigmaHCOL_Operators.
             (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
             ->
             (forall j (jc:j<o), out_index_set xop (mkFinNat jc) ->
-                           Is_Val (Vnth (op xop v) jc));
+                                Is_Val (Vnth (op xop v) jc));
       }.
 
     Class SHOperator_Collision_Guarantees {i o:nat} (xop: @SHOperator i o) :=
@@ -209,8 +209,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (out_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_out_index_set (shrink_op_family f))
+                                  (out_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
@@ -1508,6 +1508,22 @@ Section StructuralProperies.
         apply index_map_range_set_id.
     Qed.
 
+    Global Instance Gather_Collision_Guarantees
+           {i o: nat}
+           (f: index_map o i)
+      : SHOperator_Collision_Guarantees fm (Gather fm f).
+    Proof.
+      split.
+      intros v D j jc S.
+      simpl.
+      rewrite Gather'_spec.
+      unfold VnthIndexMapped.
+      apply D.
+      simpl.
+      unfold mkFinNat.
+      apply index_map_range_set_id.
+    Qed.
+
     Global Instance Scatter_Facts
            {i o: nat}
            (f: index_map i o)
@@ -1541,6 +1557,28 @@ Section StructuralProperies.
           congruence.
     Qed.
 
+    Global Instance Scatter_Collision_Guarantees
+           {i o: nat}
+           (f: index_map i o)
+           {f_inj: index_map_injective f}:
+      SHOperator_Collision_Guarantees fm (Scatter fm f (f_inj:=f_inj)).
+    Proof.
+      split.
+      intros v D j jc S.
+      simpl.
+      unfold Scatter' in *.
+      rewrite Vbuild_nth.
+      break_match.
+      + simpl in *.
+        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+        apply D.
+        constructor.
+      +
+        simpl in *.
+        unfold index_map_range_set in S.
+        simpl in *.
+        congruence.
+    Qed.
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -1567,6 +1605,21 @@ Section StructuralProperies.
         rewrite Vbuild_nth.
         apply Is_Val_liftM.
         apply D, S.
+    Qed.
+
+    Global Instance SHPointwise_Collision_Guarantees
+           {n: nat}
+           (f: { i | i<n} -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
+      SHOperator_Collision_Guarantees fm (SHPointwise fm f).
+    Proof.
+      split.
+      intros v D j jc S.
+      simpl in *.
+      unfold SHPointwise'.
+      rewrite Vbuild_nth.
+      apply Not_Collision_liftM.
+      apply D, S.
     Qed.
 
   End FlagsMonoidGenericStructuralProperties.
