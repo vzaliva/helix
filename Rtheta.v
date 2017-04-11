@@ -499,6 +499,29 @@ Proof.
   congruence.
 Qed.
 
+Lemma Not_Collision_liftM2
+      (f: CarrierA → CarrierA → CarrierA)
+      (a b : Rtheta):
+  Not_Collision a → Not_Collision b →
+  (Is_Struct a \/ Is_Struct b) ->
+  Not_Collision (liftM2 f a b).
+Proof.
+  intros Ha Hb Hab.
+  unfold Not_Collision, Is_Collision, not, compose in *.
+  rewrite execWriter_Rtheta_liftM2.
+  simpl.
+  unfold RthetaFlagsAppend.
+  unfold IsCollision, Is_true, not in *.
+  unfold Is_Struct, Is_Val, compose, IsVal, Is_true, not in *.
+  simpl in *.
+  generalize dependent (is_struct (WriterMonadNoT.execWriter a)).
+  generalize dependent (is_struct (WriterMonadNoT.execWriter b)).
+  generalize dependent (is_collision (WriterMonadNoT.execWriter a)).
+  generalize dependent (is_collision (WriterMonadNoT.execWriter b)).
+  destr_bool; try congruence.
+  tauto.
+Qed.
+
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
   Proof.

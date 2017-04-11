@@ -148,7 +148,10 @@ Section SigmaHCOL_Operators.
                                 Is_Val (Vnth (op xop v) jc));
       }.
 
-    Class SHOperator_Collision_Guarantees {i o:nat} (xop: @SHOperator i o) :=
+    Class SHOperator_Collision_Guarantees
+          {i o:nat}
+          (xop: @SHOperator i o)
+      :=
       {
         no_coll: forall v,
           (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
@@ -1651,6 +1654,28 @@ Section StructuralProperies.
       apply Is_Val_liftM2; (apply D; constructor).
   Qed.
 
+  Global Instance SHBinOp_Collision_Guarantees
+         {o}
+         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+
+         (* compat: forall j (jc1 : j < o + o) (jc2 : j + o < o + o),
+             Is_Struct (Vnth v jc1) ∨ Is_Struct (Vnth v jc2) *)
+    :
+    SHOperator_Collision_Guarantees Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags f (o:=o)).
+  Proof.
+    split.
+    intros v D j jc S.
+    simpl in *.
+    assert(jc2: (j+o)<o+o) by omega.
+    assert(jc1:j<o+o) by omega.
+    rewrite (@SHBinOp'_nth Monoid_RthetaFlags o f pF v j jc jc1 jc2).
+    apply Not_Collision_liftM2.
+    - apply D; constructor.
+    - apply D; constructor.
+    -
+
+  Qed.
 
   Global Instance IUnion_Facts
          {i o k}
