@@ -532,8 +532,30 @@ Section Vunique.
     :=
       (forall j (jc:j<n), ~(i = j) -> P (Vnth x jc)).
 
+  Lemma VAllButOne_0_Vforall
+        {T}
+        n
+        (v: T)
+        (vs : vector T n)
+        (kc : 0 < S n)
+        (P: T -> Prop)
+    :
+      VAllButOne 0 kc P (Vcons v vs) -> Vforall P vs.
+  Proof.
+    intros H.
+    unfold VAllButOne in H.
+    apply Vforall_nth_intro.
+    intros i ip.
+    assert (ip1: S i < S n) by omega.
+    assert (ip2: 0 <> S i) by omega.
+    specialize (H (S i) ip1 ip2).
+    simpl in *.
+    replace ip with (lt_S_n ip1) by apply proof_irrelevance.
+    apply H.
+  Qed.
+
   (* Always works in this direction *)
-  Definition VAllButOne_Sn
+  Lemma VAllButOne_Sn
              {n} {T:Type}
              (P: T -> Prop)
              (h: T)
@@ -741,4 +763,18 @@ Proof.
   crush.
 Qed.
 
-
+Lemma Vforall_not_Vexists
+      {n} {T}
+      (v: vector T n)
+      (P: T -> Prop) :
+  Vforall (not ∘ P) v -> not (Vexists P v).
+Proof.
+  intros A.
+  unfold not.
+  intros E.
+  apply Vexists_eq in E.
+  destruct E as [x [E E1]].
+  apply Vforall_in with (x:=x) in A.
+  congruence.
+  apply E.
+Qed.

@@ -1674,8 +1674,8 @@ Section StructuralProperies.
     - apply D; constructor.
     - apply D; constructor.
     -
-
-  Qed.
+      admit.
+  Admitted.
 
   Global Instance IUnion_Facts
          {i o k}
@@ -1684,10 +1684,6 @@ Section StructuralProperies.
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-    (* compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
-                                                            (out_index_set _ (family_member _ op_family m mc))
-                                                            (out_index_set _ (family_member _ op_family n nc))
-     *)
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
@@ -1740,6 +1736,133 @@ Section StructuralProperies.
         apply H.
       +
         apply X.
+  Qed.
+
+  Lemma UnionFold_Non_Collision
+        (k : nat)
+        (dot : CarrierA → CarrierA → CarrierA)
+        (initial : CarrierA)
+        (v : rvector  k)
+        (Vnc: Vforall Not_Collision v)
+        (Vu: Vunique Is_Val v)
+    :
+      Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
+  Proof.
+    apply Vunique_cases in Vu .
+    destruct Vu as [V0 | V1].
+    -
+      (* Vforall case *)
+      induction v.
+      +
+        unfold UnionFold.
+        vm_compute.
+        auto.
+      +
+        rewrite UnionFold_cons.
+        apply UnionCollisionFree.
+        * apply IHv.
+          simpl in *.
+          apply Vnc.
+          apply V0.
+        *
+          simpl in *.
+          apply Vnc.
+        *
+          crush.
+    -
+      (* VAllButOne case *)
+      induction v.
+      +
+        unfold UnionFold.
+        vm_compute.
+        auto.
+      +
+        rewrite UnionFold_cons.
+        apply UnionCollisionFree.
+        * apply IHv.
+          -- simpl in *.
+             apply Vnc.
+          --
+            clear IHv Vnc.
+            destruct V1 as [i [ic E]].
+            destruct i.
+            ++
+              ???
+            ++ assert (ic1: i < n) by omega.
+               exists i, ic1.
+               eapply VAllButOne_Sn in E.
+               apply E.
+        *
+          simpl in *.
+          apply Vnc.
+        *
+          crush.
+
+
+
+
+
+
+
+
+
+      dependent induction k.
+      + inversion ic.
+      +
+        dep_destruct v.
+        destruct (eq_nat_dec i 0).
+        simpl in *.
+        rewrite UnionFold_cons.
+        apply UnionCollisionFree.
+        *
+          admit.
+        *
+          apply Vnc.
+        *
+          subst i.
+          crush.
+          apply Is_Val_UnionFold in H2.
+          apply VAllButOne_0_Vforall in V1.
+          apply Vforall_not_Vexists in V1.
+          congruence.
+        *
+          simpl in *.
+          rewrite UnionFold_cons.
+          apply UnionCollisionFree.
+          apply IHk.
+  Qed.
+
+
+
+
+
+  Global Instance IUnion_Collision_Guarantees
+         {i o k}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (initial: CarrierA)
+         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
+         (op_family_cg: forall j (jc:j<k), SHOperator_Collision_Guarantees Monoid_RthetaFlags (family_member _ op_family j jc))
+         (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
+                                                            (out_index_set _ (family_member _ op_family m mc))
+                                                            (out_index_set _ (family_member _ op_family n nc))
+         )
+    : SHOperator_Collision_Guarantees _ (IUnion dot initial op_family).
+  Proof.
+    split.
+    intros v D j jc S.
+    simpl in *.
+    unfold Diamond'.
+    unfold Apply_Family'.
+
+    rewrite AbsorbMUnion'Index_Vbuild.
+
+    remember (Vbuild _) as b.
+    assert(Vnc: Vforall Not_Collision b). admit.
+    assert(V1: Vunique Is_Val b). admit.
+
+    apply UnionFold_Non_Collision.
   Qed.
 
   Global Instance IReduction_Facts
