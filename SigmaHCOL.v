@@ -1787,7 +1787,7 @@ Section StructuralProperies.
             destruct V1 as [i [ic E]].
             destruct i.
             ++
-              ???
+              admit.
             ++ assert (ic1: i < n) by omega.
                exists i, ic1.
                eapply VAllButOne_Sn in E.
@@ -1801,7 +1801,7 @@ Section StructuralProperies.
 
 
 
-
+          (*
 
 
 
@@ -1830,11 +1830,8 @@ Section StructuralProperies.
           rewrite UnionFold_cons.
           apply UnionCollisionFree.
           apply IHk.
-  Qed.
-
-
-
-
+           *)
+  Admitted.
 
   Global Instance IUnion_Collision_Guarantees
          {i o k}
@@ -1863,7 +1860,7 @@ Section StructuralProperies.
     assert(V1: Vunique Is_Val b). admit.
 
     apply UnionFold_Non_Collision.
-  Qed.
+  Admitted.
 
   Global Instance IReduction_Facts
          {i o k}
