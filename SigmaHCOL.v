@@ -518,15 +518,16 @@ Section SigmaHCOL_Operators.
       - apply E.
     Qed.
 
-    (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row. Strictly *)
+    (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row.
+       TODO: This could be expressed via set disjointness? *)
     Definition Apply_Family_Single_NonZero_Per_Row
                {i o n}
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
@@ -780,30 +781,6 @@ Section SigmaHCOL_Operators.
 
   End MUnion.
 
-  (** This is a definition of a structiral property of a sparse matrix
-stating that it will have at at most one non-structural element per
-row. *)
-  Definition MatrixWithNoRowCollisions
-             {m n: nat}
-             {fm: Monoid RthetaFlags}
-             (mat: vector (svector fm m) n) : Prop
-    :=
-      Vforall (Vunique Is_Val) (transpose mat).
-
-  (** This postulates a property of an operator family.
-  A matrix produced by applying family of operators will have at
-  at most one non-structural element per row. The name alludes to the
-  fact that doing ISumUnion on such matrix will not lead to
-  collisions. It should be noted that this is structural
-  constraint. It does not impose any restriction in actual values (of
-  CarrierA type) *)
-  Definition FamilyIUnionFriendly
-             {i o n}
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n): Prop
-    :=
-      forall x, MatrixWithNoRowCollisions
-                  (Apply_Family Monoid_RthetaFlags op_family x).
-
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
              {i o n}
@@ -927,56 +904,6 @@ Proof.
   -
     apply Is_Val_mkStruct in H.
     inversion H.
-Qed.
-
-Lemma Apply_Family_SparseEmbedding_SumUnionFriendly
-      {n i o ki ko}
-      (* Kernel *)
-      (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n)
-      (f: index_map_family ko o n)
-      {f_inj : index_map_family_injective f}
-      (g: index_map_family ki i n)
-  (* Gather pre and post conditions relation *)
-  :
-    FamilyIUnionFriendly
-      (@SparseEmbedding Monoid_RthetaFlags
-                        n i o ki ko
-                        kernel
-                        f f_inj
-                        g).
-Proof.
-  unfold FamilyIUnionFriendly.
-  intros x.
-  apply Vforall_nth_intro.
-  intros j jc.
-  unfold Vunique.
-  intros i0 ic0 i1 ic1.
-  unfold transpose.
-  rewrite Vbuild_nth.
-  unfold row.
-  rewrite 2!Vnth_map.
-  unfold Apply_Family, Apply_Family'.
-  rewrite 2!Vbuild_nth.
-  unfold Vnth_aux.
-  unfold SparseEmbedding.
-  unfold SHCompose, compose.
-  unfold get_family_op.
-  simpl.
-
-  generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i0 ic0) x) as x0; intros x0.
-  generalize (Gather' Monoid_RthetaFlags (⦃ g ⦄ i1 ic1) x) as x1; intros x1.
-  intros [V0 V1].
-  apply Is_Val_Scatter in V0. apply Is_Val_Scatter in V1.
-
-  inversion_clear V0 as [x2 V0']; inversion_clear V0' as [x3 V0''].
-  inversion_clear V1  as [x4 V1']; inversion_clear V1' as [x5 V1''].
-  subst j.
-
-  unfold index_map_family_injective in f_inj.
-  specialize (f_inj i0 i1 ic0 ic1 x2 x4 x3 x5).
-  destruct f_inj.
-  congruence.
-  assumption.
 Qed.
 
 Definition USparseEmbedding
