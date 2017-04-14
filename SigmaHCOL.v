@@ -152,12 +152,12 @@ Section SigmaHCOL_Operators.
           {i o:nat}
           (xop: @SHOperator i o)
       :=
-      {
-        no_coll: forall v,
-          (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
-          ->
-          (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
-      }.
+        {
+          no_coll: forall v,
+            (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
+            ->
+            (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
+        }.
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
     Global Instance SHOperator_equiv
@@ -732,12 +732,6 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-    Definition SHBinOp
-               {o}
-               (f: nat -> CarrierA -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
-
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
                {n i o ki ko}
@@ -757,6 +751,13 @@ Section SigmaHCOL_Operators.
                                  ⊚ (Gather (⦃g⦄ j jc))).
 
   End FlagsMonoidGenericOperators.
+
+  Definition SHBinOp
+             {o}
+             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    := mkSHOperator Monoid_RthetaSafeFlags
+                    (o+o) o (SHBinOp' Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
 
   Section MUnion.
 
@@ -800,7 +801,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1139,47 +1140,6 @@ Section OperatorProperies.
     apply Vnth_snd_Vbreak with (jc3:=jc2).
   Qed.
 
-  Lemma SHBinOp_equiv_lifted_HBinOp
-        {o}
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-      @SHBinOp fm o f pF = @liftM_HOperator fm (o+o) o (@HBinOp o f pF) _ .
-  Proof.
-    apply ext_equiv_applied_iff'.
-    -
-      simpl.
-      split.
-      + apply vec_Setoid.
-      + apply vec_Setoid.
-      + apply SHBinOp'_proper.
-    -
-      simpl.
-      split.
-      + apply vec_Setoid.
-      + apply vec_Setoid.
-      + apply liftM_HOperator'_proper.
-        apply HBinOp_HOperator.
-    -
-      intros x.
-      simpl.
-      vec_index_equiv j jc.
-
-      assert(jc1: j<o+o) by omega.
-      assert(jc2: j+o<o+o) by omega.
-      rewrite (@SHBinOp'_nth o f pF x j jc jc1 jc2).
-
-      unfold liftM_HOperator'.
-      unfold compose.
-      unfold sparsify; rewrite Vnth_map.
-      rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
-      unfold densify; rewrite 2!Vnth_map.
-
-      rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
-      rewrite mkValue_evalWriter.
-      reflexivity.
-  Qed.
-
 (*
 
 
@@ -1256,6 +1216,48 @@ Section OperatorProperies.
   Qed.
  *)
 End OperatorProperies.
+
+Lemma SHBinOp_equiv_lifted_HBinOp
+      {o}
+      (f: nat -> CarrierA -> CarrierA -> CarrierA)
+      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+  :
+    @SHBinOp o f pF = @liftM_HOperator Monoid_RthetaSafeFlags (o+o) o (@HBinOp o f pF) _ .
+Proof.
+  apply ext_equiv_applied_iff'.
+  -
+    simpl.
+    split.
+    + apply vec_Setoid.
+    + apply vec_Setoid.
+    + apply SHBinOp'_proper.
+  -
+    simpl.
+    split.
+    + apply vec_Setoid.
+    + apply vec_Setoid.
+    + apply liftM_HOperator'_proper.
+      apply HBinOp_HOperator.
+  -
+    intros x.
+    simpl.
+    vec_index_equiv j jc.
+
+    assert(jc1: j<o+o) by omega.
+    assert(jc2: j+o<o+o) by omega.
+    rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF x j jc jc1 jc2).
+
+    unfold liftM_HOperator'.
+    unfold compose.
+    unfold sparsify; rewrite Vnth_map.
+    rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
+    unfold densify; rewrite 2!Vnth_map.
+
+    rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
+    rewrite mkValue_evalWriter.
+    reflexivity.
+Qed.
+
 
 Section StructuralProperies.
 
@@ -1558,7 +1560,7 @@ Section StructuralProperies.
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags f (o:=o)).
+    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp  f (o:=o)).
   Proof.
     split.
     intros x y H.
@@ -1577,32 +1579,27 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth Monoid_RthetaFlags o f pF v j jc jc1 jc2).
-      apply Is_Val_liftM2; (apply D; constructor).
+      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
+      apply Is_Val_Safe_liftM2; (apply D; constructor).
   Qed.
 
   Global Instance SHBinOp_Collision_Guarantees
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-
-         (* compat: forall j (jc1 : j < o + o) (jc2 : j + o < o + o),
-             Is_Struct (Vnth v jc1) ∨ Is_Struct (Vnth v jc2) *)
     :
-    SHOperator_Collision_Guarantees Monoid_RthetaFlags (SHBinOp Monoid_RthetaFlags f (o:=o)).
+      SHOperator_Collision_Guarantees Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
     intros v D j jc S.
     simpl in *.
     assert(jc2: (j+o)<o+o) by omega.
     assert(jc1:j<o+o) by omega.
-    rewrite (@SHBinOp'_nth Monoid_RthetaFlags o f pF v j jc jc1 jc2).
-    apply Not_Collision_liftM2.
+    rewrite (@SHBinOp'_nth _  o f pF v j jc jc1 jc2).
+    apply Not_Collision_Safe_liftM2.
     - apply D; constructor.
     - apply D; constructor.
-    -
-      admit.
-  Admitted.
+  Qed.
 
   Global Instance IUnion_Facts
          {i o k}
@@ -1728,7 +1725,7 @@ Section StructuralProperies.
 
 
 
-          (*
+  (*
 
 
 
@@ -1757,7 +1754,7 @@ Section StructuralProperies.
           rewrite UnionFold_cons.
           apply UnionCollisionFree.
           apply IHk.
-           *)
+   *)
   Admitted.
 
   Global Instance IUnion_Collision_Guarantees
@@ -1769,8 +1766,8 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Collision_Guarantees Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
-                                                            (out_index_set _ (family_member _ op_family m mc))
-                                                            (out_index_set _ (family_member _ op_family n nc))
+                                                                  (out_index_set _ (family_member _ op_family m mc))
+                                                                  (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Collision_Guarantees _ (IUnion dot initial op_family).
   Proof.

@@ -499,6 +499,27 @@ Proof.
   congruence.
 Qed.
 
+Lemma Is_Val_Safe_liftM2
+      (f: CarrierA → CarrierA → CarrierA)
+      (a b : RStheta):
+  Is_Val a → Is_Val b → Is_Val (liftM2 f a b).
+Proof.
+  intros Ha Hb.
+  unfold Is_Val, compose in *.
+  rewrite execWriter_Rtheta_liftM2.
+  simpl.
+  unfold RthetaFlagsAppend.
+  unfold IsVal, Is_true, not in *.
+  simpl in *.
+  generalize dependent (is_struct (WriterMonadNoT.execWriter a)).
+  generalize dependent (is_struct (WriterMonadNoT.execWriter b)).
+  clear a b f.
+  intros a Hb b Ha H.
+  destr_bool.
+  congruence.
+Qed.
+
+
 Lemma Not_Collision_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : Rtheta):
@@ -520,6 +541,26 @@ Proof.
   generalize dependent (is_collision (WriterMonadNoT.execWriter b)).
   destr_bool; try congruence.
   tauto.
+Qed.
+
+
+Lemma Not_Collision_Safe_liftM2
+      (f: CarrierA → CarrierA → CarrierA)
+      (a b : RStheta):
+  Not_Collision a → Not_Collision b →
+  Not_Collision (liftM2 f a b).
+Proof.
+  intros Ha Hb.
+  unfold Not_Collision, Is_Collision, not, compose in *.
+  rewrite execWriter_Rtheta_liftM2.
+  simpl.
+  unfold RthetaFlagsSafeAppend.
+  unfold IsCollision, Is_true, not in *.
+  unfold Is_Struct, Is_Val, compose, IsVal, Is_true, not in *.
+  simpl in *.
+  generalize dependent (is_collision (WriterMonadNoT.execWriter a)).
+  generalize dependent (is_collision (WriterMonadNoT.execWriter b)).
+  destr_bool; congruence.
 Qed.
 
 Section Decidablitiy.
