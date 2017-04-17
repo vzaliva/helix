@@ -546,11 +546,11 @@ Section SigmaHCOLExpansionRules.
             (f: nat -> CarrierA -> CarrierA -> CarrierA)
             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       :
-        SHBinOp Monoid_RthetaFlags f
+        SHBinOp f
         =
         USparseEmbedding (f_inj:=h_j_1_family_injective)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SHBinOp Monoid_RthetaFlags (SwapIndex2 j f)))
+                         (mkSHOperatorFamily Monoid_RthetaSafeFlags _ _ _
+                                             (fun j _ => SHBinOp (SwapIndex2 j f)))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
