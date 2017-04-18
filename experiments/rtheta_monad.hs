@@ -32,30 +32,40 @@ instance Monoid RFlags where
                                     (c0 || c1 || not (s0 || s1)))
  
 
+type RInt = Writer RFlags Int
+
+{- Union operator, which is basically (+) with structural and collision tracking -}         
+union :: RInt -> RInt -> RInt
+union = liftM2 (+)
+
 {- Alternative "safe" Monoid: -}
 
-newtype RSFlags = SF (Bool, Bool)
-
-instance Monoid RSFlags where
+newtype SFlags = SF (Bool, Bool)
+    
+instance Monoid SFlags where
     mempty =  SF (True, False)
     (SF (s0, c0)) `mappend` (SF (s1, c1)) = SF ((s0 && s1), (c0 || c1))
-                                    
-type SInt = Writer RFlags Int
 
-struct :: Int -> SInt
+type SInt = Writer SFlags Int
+                                            
+{- Safe Union operator, which is basically (+) with structural tracking, but without collision tracking -}         
+sunion :: SInt -> SInt -> SInt
+sunion = liftM2 (+)
+
+{- convinience functoins -}
+         
+struct :: Int -> RInt
 struct x = return x
     
-value :: Int -> SInt
+value :: Int -> RInt
 value x = do (tell (F (False, False))) ; return x
 
-runW :: SInt -> (Int, Bool, Bool)
+{- Unit tests -}
+
+runW :: RInt -> (Int, Bool, Bool)
 runW x = let (v, (F (s, c))) = runWriter x in
          (v, s, c)
          
-{- Union operator, which is basically (+) with collision tracking -}         
-union :: SInt -> SInt -> SInt
-union = liftM2 (+)
-
 testCases :: [(String, WriterT RFlags Identity Int, (Int, Bool, Bool))]
 testCases = [
  ("c1",  (union (struct 2) (struct 1)),                    (3,True,False)),
@@ -70,7 +80,7 @@ testCases = [
  ("c10", (union (union (struct 1) (struct 2)) (value 0)),   (3,False,False)),
  ("c11", (union (union (struct 1) (struct 2)) (value 0)), (3,False,False))]
 
-runCases :: [(String, SInt, (Int, Bool, Bool))] -> [Test]
+runCases :: [(String, RInt, (Int, Bool, Bool))] -> [Test]
 runCases l = [TestCase $ assertEqual n (runW a) b | (n,a,b) <- l]
 
 main :: IO Counts
