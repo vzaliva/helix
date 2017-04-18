@@ -6,13 +6,10 @@ import Control.Monad.Identity
 import Control.Monad.Writer
 import Test.HUnit
 
-{- Structural flag is 'All': a Boolean monoid under conjunction ('&&'). 
-The initial value is 'True' and values are combined using &&.
+{- 
 
-So simple structural Writer monad is:
-    
- type W = Writer All
- type WInt = W Int
+Structural flag is 'All': a Boolean monoid under conjunction ('&&'). 
+The initial value is 'True' and values are combined using &&.
 
 Collision flag is 'Any': A Boolean monoind under disjunction ('||').
 The initial value is 'False' and values are combined using ||
@@ -20,27 +17,28 @@ The initial value is 'False' and values are combined using ||
 F (flags) type combines structural and collision flags
 -}
 
-data RFlags = F Bool Bool
-
+newtype RFlags = F (Bool, Bool)
+            
 instance Show RFlags where
-    show (F a b) = show (a,b)
+    show (F (a,b)) = show (a,b)
 
 instance Eq RFlags where
-    (==) (F s0 c0) (F s1 c1) = s0 == s1 && c0 == c1
-    (/=) (F s0 c0) (F s1 c1) = s0 /= s1 || c0 /= c1
+    (==) (F (s0, c0)) (F (s1, c1)) = s0 == s1 && c0 == c1
+    (/=) (F (s0, c0)) (F (s1, c1)) = s0 /= s1 || c0 /= c1
 
 instance Monoid RFlags where
-    mempty =  F True False
-    (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1)
-                                    (c0 || c1 || not (s0 || s1))
+    mempty =  F (True, False)
+    (F (s0, c0)) `mappend` (F (s1, c1)) = F ((s0 && s1),
+                                    (c0 || c1 || not (s0 || s1)))
+ 
 
-{-
-Alternative "safe" Monoid:
+{- Alternative "safe" Monoid: -}
 
-instance Monoid F where
-    mempty =  F True False
-    (F s0 c0) `mappend` (F s1 c1) = F (s0 && s1) (c0 || c1)
--}
+newtype RSFlags = SF (Bool, Bool)
+
+instance Monoid RSFlags where
+    mempty =  SF (True, False)
+    (SF (s0, c0)) `mappend` (SF (s1, c1)) = SF ((s0 && s1), (c0 || c1))
                                     
 type SInt = Writer RFlags Int
 
@@ -48,15 +46,10 @@ struct :: Int -> SInt
 struct x = return x
     
 value :: Int -> SInt
-value x = do (tell (F False False)) ; return x
+value x = do (tell (F (False, False))) ; return x
 
-v::SInt
-v = value 2
-s::SInt
-s = struct 2
-                                
 runW :: SInt -> (Int, Bool, Bool)
-runW x = let (v, (F s c)) = runWriter x in
+runW x = let (v, (F (s, c))) = runWriter x in
          (v, s, c)
          
 {- Union operator, which is basically (+) with collision tracking -}         
