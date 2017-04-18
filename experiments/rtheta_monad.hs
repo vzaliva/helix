@@ -20,28 +20,28 @@ data Flags = F Bool Bool
 
 {- Collision-tracking monoid -}
 
-newtype RFlags = RF Flags
+newtype RFlags = XF Flags
 
 instance Monoid RFlags where
-    mempty =  RF (F True False)
-    (RF (F s0 c0)) `mappend` (RF (F s1 c1)) = RF (F (s0 && s1)
+    mempty =  XF (F True False)
+    (XF (F s0 c0)) `mappend` (XF (F s1 c1)) = XF (F (s0 && s1)
                                     (c0 || c1 || not (s0 || s1)))
  
-type RInt = Writer RFlags Int
+type XInt = Writer RFlags Int
 
 {- Union operator, which is basically (+) with structural and collision tracking -}         
-union :: RInt -> RInt -> RInt
+union :: XInt -> XInt -> XInt
 union = liftM2 (+)
 
 {- Alternative, "safe" Monoid: -}
 
-newtype SFlags = SF Flags
+newtype XFlags = SF Flags
     
-instance Monoid SFlags where
+instance Monoid XFlags where
     mempty =  SF (F True False)
     (SF (F s0 c0)) `mappend` (SF (F s1 c1)) = SF (F (s0 && s1) (c0 || c1))
 
-type SInt = Writer SFlags Int
+type SInt = Writer XFlags Int
                                             
 {- Safe Union operator, which is basically (+) with structural tracking, but without collision tracking -}         
 sunion :: SInt -> SInt -> SInt
@@ -49,16 +49,16 @@ sunion = liftM2 (+)
 
 {- convinience functoins -}
          
-struct :: Int -> RInt
+struct :: Int -> XInt
 struct x = return x
     
-value :: Int -> RInt
-value x = do (tell (RF (F False False))) ; return x
+value :: Int -> XInt
+value x = do (tell (XF (F False False))) ; return x
 
 {- Unit tests -}
 
-runW :: RInt -> (Int, Bool, Bool)
-runW x = let (v, (RF (F s c))) = runWriter x in
+runW :: XInt -> (Int, Bool, Bool)
+runW x = let (v, (XF (F s c))) = runWriter x in
          (v, s, c)
          
 testCases :: [(String, WriterT RFlags Identity Int, (Int, Bool, Bool))]
@@ -75,7 +75,7 @@ testCases = [
  ("c10", (union (union (struct 1) (struct 2)) (value 0)),   (3,False,False)),
  ("c11", (union (union (struct 1) (struct 2)) (value 0)), (3,False,False))]
 
-runCases :: [(String, RInt, (Int, Bool, Bool))] -> [Test]
+runCases :: [(String, XInt, (Int, Bool, Bool))] -> [Test]
 runCases l = [TestCase $ assertEqual n (runW a) b | (n,a,b) <- l]
 
 main :: IO Counts
