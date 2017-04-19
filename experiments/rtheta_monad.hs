@@ -39,23 +39,19 @@ sunion = liftM2 (+)
 
 {- experimental -}
 
-type XSInt = WriterT XFlags (WriterT SFlags Identity) Int
-type SXInt = WriterT SFlags (WriterT XFlags Identity) Int
+sFromX :: XInt -> SInt
+sFromX = mapWriter (\(x, XF fs) -> (x, SF fs))
 
-xsstruct :: Int -> XSInt
-xsstruct x = return x
+xFromS :: SInt -> XInt
+xFromS = mapWriter (\(x, SF fs) -> (x, XF fs))
 
-sxstruct :: Int -> SXInt
-sxstruct x = return x
-
-                 
 {- convinience functoins -}
          
-struct :: Int -> XInt
-struct x = return x
+xstruct :: Int -> XInt
+xstruct x = return x
     
-value :: Int -> XInt
-value x = do (tell (XF (F False False))) ; return x
+xvalue :: Int -> XInt
+xvalue x = do (tell (XF (F False False))) ; return x
 
 {- Unit tests -}
 
@@ -65,17 +61,17 @@ runW x = let (v, (XF (F s c))) = runIdentity (runWriterT x) in
          
 testCases :: [(String, WriterT XFlags Identity Int, (Int, Bool, Bool))]
 testCases = [
- ("c1",  (union (struct 2) (struct 1)),                    (3,True,False)),
- ("c2",  (union (struct 0) (value 2)),                     (2,False,False)),
- ("c3",  (union (value 2) (struct 3)),                     (5,False,False)),
- ("c4",  (union (value 1) (value 2)),                      (3,False,True)),
- ("c5",  (union (value 0) (value 2)),                      (2,False,True)),
- ("c6",  (union (union (value 1) (value 2)) (value 2)),     (5,False,True)),
- ("c7",  (union (union (value 0) (value 2)) (struct 2)),    (4,False,True)),
- ("c8",  (union (union (struct 1) (value 2)) (value 0)),    (3,False,True)),
- ("c9",  (union (union (struct 1) (value 2)) (struct 0)),   (3,False,False)),
- ("c10", (union (union (struct 1) (struct 2)) (value 0)),   (3,False,False)),
- ("c11", (union (union (struct 1) (struct 2)) (value 0)), (3,False,False))]
+ ("x1",  (union (xstruct 2) (xstruct 1)),                    (3,True,False)),
+ ("x2",  (union (xstruct 0) (xvalue 2)),                     (2,False,False)),
+ ("x3",  (union (xvalue 2) (xstruct 3)),                     (5,False,False)),
+ ("x4",  (union (xvalue 1) (xvalue 2)),                      (3,False,True)),
+ ("x5",  (union (xvalue 0) (xvalue 2)),                      (2,False,True)),
+ ("x6",  (union (union (xvalue 1) (xvalue 2)) (xvalue 2)),     (5,False,True)),
+ ("x7",  (union (union (xvalue 0) (xvalue 2)) (xstruct 2)),    (4,False,True)),
+ ("x8",  (union (union (xstruct 1) (xvalue 2)) (xvalue 0)),    (3,False,True)),
+ ("x9",  (union (union (xstruct 1) (xvalue 2)) (xstruct 0)),   (3,False,False)),
+ ("x10", (union (union (xstruct 1) (xstruct 2)) (xvalue 0)),   (3,False,False)),
+ ("x11", (union (union (xstruct 1) (xstruct 2)) (xvalue 0)), (3,False,False))]
 
 runCases :: [(String, XInt, (Int, Bool, Bool))] -> [Test]
 runCases l = [TestCase $ assertEqual n (runW a) b | (n,a,b) <- l]
