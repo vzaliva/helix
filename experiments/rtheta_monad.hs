@@ -53,6 +53,12 @@ xstruct x = return x
 xvalue :: Int -> XInt
 xvalue x = do (tell (XF (F False False))) ; return x
 
+sstruct :: Int -> SInt
+sstruct x = return x
+    
+svalue :: Int -> SInt
+svalue x = do (tell (SF (F False False))) ; return x
+                                          
 {- Unit tests -}
 
 runW :: XInt -> (Int, Bool, Bool)
@@ -66,6 +72,8 @@ testCases = [
  ("x3",  (union (xvalue 2) (xstruct 3)),                     (5,False,False)),
  ("x4",  (union (xvalue 1) (xvalue 2)),                      (3,False,True)),
  ("x5",  (union (xvalue 0) (xvalue 2)),                      (2,False,True)),
+ ("s5",  xFromS (sunion (svalue 0) (svalue 2)),              (2,False,False)),
+ ("s6",  xFromS (sunion (sstruct 1) (svalue 2)),             (3,False,False)),
  ("x6",  (union (union (xvalue 1) (xvalue 2)) (xvalue 2)),     (5,False,True)),
  ("x7",  (union (union (xvalue 0) (xvalue 2)) (xstruct 2)),    (4,False,True)),
  ("x8",  (union (union (xstruct 1) (xvalue 2)) (xvalue 0)),    (3,False,True)),
