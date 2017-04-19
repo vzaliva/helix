@@ -1,21 +1,25 @@
 import Control.Monad.Writer  
     
-type WInt = Writer [String] Int
+type WInt = Writer Bool Int
+
+instance Monoid Bool where
+    mempty =  False
+    mappend  = (||)
     
 wplus :: WInt -> WInt -> WInt
 wplus wa wb = 
     do {
       a <- wa ;
       b <- wb ;
-      tell ["plus " ++ show a ++ " " ++ show b] ;
+      tell (a == 0 || b==0) ;
       return (a+b)
     }
 
 foo = (wplus
-        (wplus (return 8) (return 2))
+        (wplus (return 1) (return 2))
         (return 3)
        )
            
-main = mapM_ putStrLn $ snd $ runWriter foo
+main = putStrLn $ show $ snd $ runWriter foo
        
              

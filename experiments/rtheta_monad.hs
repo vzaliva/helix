@@ -6,16 +6,6 @@ import Control.Monad.Identity
 import Control.Monad.Writer
 import Test.HUnit
 
-{- 
-Structural flag is 'All': a Boolean monoid under conjunction ('&&'). 
-The initial value is 'True' and values are combined using &&.
-
-Collision flag is 'Any': A Boolean monoind under disjunction ('||').
-The initial value is 'False' and values are combined using ||
-
-F (flags) type combines structural and collision flags
--}
-
 data Flags = F Bool Bool
 
 {- Collision-tracking monoid -}
