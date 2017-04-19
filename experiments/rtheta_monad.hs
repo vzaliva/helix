@@ -20,14 +20,14 @@ data Flags = F Bool Bool
 
 {- Collision-tracking monoid -}
 
-newtype RFlags = XF Flags
+newtype XFlags = XF Flags
 
-instance Monoid RFlags where
+instance Monoid XFlags where
     mempty =  XF (F True False)
     (XF (F s0 c0)) `mappend` (XF (F s1 c1)) = XF (F (s0 && s1)
                                     (c0 || c1 || not (s0 || s1)))
  
-type XInt = Writer RFlags Int
+type XInt = WriterT XFlags Identity Int
 
 {- Union operator, which is basically (+) with structural and collision tracking -}         
 union :: XInt -> XInt -> XInt
@@ -35,18 +35,30 @@ union = liftM2 (+)
 
 {- Alternative, "safe" Monoid: -}
 
-newtype XFlags = SF Flags
+newtype SFlags = SF Flags
     
-instance Monoid XFlags where
+instance Monoid SFlags where
     mempty =  SF (F True False)
     (SF (F s0 c0)) `mappend` (SF (F s1 c1)) = SF (F (s0 && s1) (c0 || c1))
 
-type SInt = Writer XFlags Int
+type SInt = WriterT SFlags Identity Int
                                             
 {- Safe Union operator, which is basically (+) with structural tracking, but without collision tracking -}         
 sunion :: SInt -> SInt -> SInt
 sunion = liftM2 (+)
 
+{- experimental -}
+
+type XSInt = WriterT XFlags (WriterT SFlags Identity) Int
+type SXInt = WriterT SFlags (WriterT XFlags Identity) Int
+
+xsstruct :: Int -> XSInt
+xsstruct x = return x
+
+sxstruct :: Int -> SXInt
+sxstruct x = return x
+
+                 
 {- convinience functoins -}
          
 struct :: Int -> XInt
@@ -58,10 +70,10 @@ value x = do (tell (XF (F False False))) ; return x
 {- Unit tests -}
 
 runW :: XInt -> (Int, Bool, Bool)
-runW x = let (v, (XF (F s c))) = runWriter x in
+runW x = let (v, (XF (F s c))) = runIdentity (runWriterT x) in
          (v, s, c)
          
-testCases :: [(String, WriterT RFlags Identity Int, (Int, Bool, Bool))]
+testCases :: [(String, WriterT XFlags Identity Int, (Int, Bool, Bool))]
 testCases = [
  ("c1",  (union (struct 2) (struct 1)),                    (3,True,False)),
  ("c2",  (union (struct 0) (value 2)),                     (2,False,False)),
