@@ -64,11 +64,11 @@ Section WriterMonad.
 End WriterMonad.
 
 Section MapWriter.
-  Polymorphic Universe g s d c.
+  Polymorphic Universe g s d.
   Variable A B: Type@{g}.
   Variable W W' : Type@{s}.
-  Variable Monoid_W : Monoid@{d} W.
-  Variable Monoid_W' : Monoid@{d} W'.
+  Variable Monoid_W: Monoid@{d} W.
+  Variable Monoid_W': Monoid@{d} W'.
 
   Open Scope program_scope.
 
@@ -83,7 +83,7 @@ Section MapWriter.
 End MapWriter.
 
 Section CastWriter.
-  Polymorphic Universe g s d c.
+  Polymorphic Universe g s d.
   Variable A: Type@{g}.
   Variable W : Type@{s}.
   Variable Monoid_W Monoid_W': Monoid@{d} W.
