@@ -9,12 +9,11 @@ Set Implicit Arguments.
 Set Universe Polymorphism.
 
 Section MapWriterT.
-  Polymorphic Universe g s d c.
-  Variable A B: Type@{g}.
-  Variable W W': Type@{s}.
-  Variable Monoid_W : Monoid@{d} W.
-  Variable Monoid_W' : Monoid@{d} W'.
-  Variable m n : Type@{d} -> Type@{c}.
+  Variable A B: Type.
+  Variable W W': Type.
+  Variable Monoid_W : Monoid W.
+  Variable Monoid_W' : Monoid W'.
+  Variable m n : Type -> Type.
 
   Open Scope program_scope.
 
@@ -30,11 +29,10 @@ End MapWriterT.
 
 
 Section CastWriterT.
-  Polymorphic Universe g s d c.
-  Variable A: Type@{g}.
-  Variable W : Type@{s}.
-  Variable Monoid_W Monoid_W': Monoid@{d} W.
-  Variable m : Type@{d} -> Type@{c}.
+  Variable A: Type.
+  Variable W : Type.
+  Variable Monoid_W Monoid_W': Monoid W.
+  Variable m : Type -> Type.
 
   Open Scope program_scope.
 
@@ -48,11 +46,10 @@ End CastWriterT.
 
 (** Simple wrapper around ExtLib's WriterMonadT trasformed pairing it with Identity monad to simulate classic Writer Monad *)
 Section WriterMonad.
-  Polymorphic Universe s d c.
 
-  Variable W: Type@{s}.
-  Variable A: Type@{d}.
-  Variable Monoid_W : Monoid@{c} W.
+  Variable W: Type.
+  Variable A: Type.
+  Variable Monoid_W : Monoid W.
 
   Open Scope program_scope.
 
@@ -64,11 +61,10 @@ Section WriterMonad.
 End WriterMonad.
 
 Section MapWriter.
-  Polymorphic Universe g s d.
-  Variable A B: Type@{g}.
-  Variable W W' : Type@{s}.
-  Variable Monoid_W: Monoid@{d} W.
-  Variable Monoid_W': Monoid@{d} W'.
+  Variable A B: Type.
+  Variable W W' : Type.
+  Variable Monoid_W: Monoid W.
+  Variable Monoid_W': Monoid W'.
 
   Open Scope program_scope.
 
@@ -83,10 +79,9 @@ Section MapWriter.
 End MapWriter.
 
 Section CastWriter.
-  Polymorphic Universe g s d.
-  Variable A: Type@{g}.
-  Variable W : Type@{s}.
-  Variable Monoid_W Monoid_W': Monoid@{d} W.
+  Variable A: Type.
+  Variable W : Type.
+  Variable Monoid_W Monoid_W': Monoid W.
 
   Open Scope program_scope.
 
