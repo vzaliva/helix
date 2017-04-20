@@ -28,6 +28,9 @@ Notation rvector n := (vector Rtheta n) (only parsing).
 (* Vector using RStheta (safe) *)
 Notation rsvector n := (vector RStheta n) (only parsing).
 
+Definition rvector2rsvector := Vmap Rtheta2RStheta.
+Definition rsvector2rvector := Vmap RStheta2Rtheta.
+
 Section SvectorBasics.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.

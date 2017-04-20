@@ -97,7 +97,7 @@ Section CollisionTrackingRthetaFlags.
     mkRthetaFlags
       (is_struct a && is_struct b)
       (is_collision a || (is_collision b ||
-                          (negb (is_struct a || is_struct b)))).
+                         (negb (is_struct a || is_struct b)))).
 
   Definition Monoid_RthetaFlags : Monoid RthetaFlags := Build_Monoid RthetaFlagsAppend RthetaFlagsZero.
 
@@ -224,17 +224,9 @@ Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
 
 (* Monad morhisms *)
 
-Definition Rtheta2RStheta (r:Rtheta): RStheta :=
-  let ap := runWriter r in
-  let v := pfst ap in
-  let f := psnd ap in
-  tell f ;; ret v.
+Definition Rtheta2RStheta: Rtheta -> RStheta := castWriter Monoid_RthetaSafeFlags.
 
-Definition RStheta2Rtheta (r:RStheta): Rtheta :=
-  let ap := runWriter r in
-  let v := pfst ap in
-  let f := psnd ap in
-  tell f ;; ret v.
+Definition RStheta2Rtheta: RStheta -> Rtheta := castWriter Monoid_RthetaFlags.
 
 (* Some convenience constructros *)
 
