@@ -1,4 +1,4 @@
-Require Import Coq.Program.Basics. (* for compose *)
+Require Import Coq.Program.Basics. (* for (∘) *)
 
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Data.Monads.WriterMonad.
@@ -10,22 +10,21 @@ Set Universe Polymorphism.
 
 Section MapWriterT.
   Polymorphic Universe g s d c.
-  Variable A: Type@{g}.
-  Variable B : Type@{g}.
-  Variable W : Type@{s}.
-  Variable W' : Type@{s}.
+  Variable A B: Type@{g}.
+  Variable W W': Type@{s}.
   Variable Monoid_W : Monoid@{d} W.
   Variable Monoid_W' : Monoid@{d} W'.
-  Variable m : Type@{d} -> Type@{c}.
-  Variable n : Type@{d} -> Type@{c}.
+  Variable m n : Type@{d} -> Type@{c}.
+
+  Open Scope program_scope.
 
   (** Map both the return value and output of a computation using the given function.
         [[ 'runWriterT' ('mapWriterT' f m) = f ('runWriterT' m) ]]
    *)
-  Definition mapWriterT (f: (m (pprod A W)%type) -> (n (pprod B W')%type))
-             (x: writerT Monoid_W m A): writerT Monoid_W' n B
+  Definition mapWriterT (f: (m (pprod A W)%type) -> (n (pprod B W')%type)):
+    (writerT Monoid_W m A) -> writerT Monoid_W' n B
     :=
-      mkWriterT _ (f (runWriterT x)).
+      mkWriterT Monoid_W' ∘ f ∘ runWriterT.
 
 End MapWriterT.
 
@@ -34,16 +33,17 @@ Section CastWriterT.
   Polymorphic Universe g s d c.
   Variable A: Type@{g}.
   Variable W : Type@{s}.
-  Variable Monoid_W : Monoid@{d} W.
-  Variable Monoid_W' : Monoid@{d} W.
+  Variable Monoid_W Monoid_W': Monoid@{d} W.
   Variable m : Type@{d} -> Type@{c}.
 
-(* Special case of mapWriterT where mapping functoin is identity *)
-  Definition castWriterT (x: writerT Monoid_W m A): writerT Monoid_W' m A
-    := mkWriterT _ (runWriterT x).
+  Open Scope program_scope.
+
+  (* Special case of mapWriterT where mapping functoin is identity *)
+  Definition castWriterT:
+    writerT Monoid_W m A -> writerT Monoid_W' m A
+    := mkWriterT Monoid_W' ∘ runWriterT.
 
 End CastWriterT.
-
 
 
 (** Simple wrapper around ExtLib's WriterMonadT trasformed pairing it with Identity monad to simulate classic Writer Monad *)
@@ -65,10 +65,8 @@ End WriterMonad.
 
 Section MapWriter.
   Polymorphic Universe g s d c.
-  Variable A: Type@{g}.
-  Variable B : Type@{g}.
-  Variable W : Type@{s}.
-  Variable W' : Type@{s}.
+  Variable A B: Type@{g}.
+  Variable W W' : Type@{s}.
   Variable Monoid_W : Monoid@{d} W.
   Variable Monoid_W' : Monoid@{d} W'.
 
@@ -88,8 +86,7 @@ Section CastWriter.
   Polymorphic Universe g s d c.
   Variable A: Type@{g}.
   Variable W : Type@{s}.
-  Variable Monoid_W : Monoid@{d} W.
-  Variable Monoid_W' : Monoid@{d} W.
+  Variable Monoid_W Monoid_W': Monoid@{d} W.
 
   Open Scope program_scope.
 
