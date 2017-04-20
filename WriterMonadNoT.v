@@ -30,6 +30,22 @@ Section MapWriterT.
 End MapWriterT.
 
 
+Section CastWriterT.
+  Polymorphic Universe g s d c.
+  Variable A: Type@{g}.
+  Variable W : Type@{s}.
+  Variable Monoid_W : Monoid@{d} W.
+  Variable Monoid_W' : Monoid@{d} W.
+  Variable m : Type@{d} -> Type@{c}.
+
+(* Special case of mapWriterT where mapping functoin is identity *)
+  Definition castWriterT (x: writerT Monoid_W m A): writerT Monoid_W' m A
+    := mkWriterT _ (runWriterT x).
+
+End CastWriterT.
+
+
+
 (** Simple wrapper around ExtLib's WriterMonadT trasformed pairing it with Identity monad to simulate classic Writer Monad *)
 Section WriterMonad.
   Polymorphic Universe s d c.
@@ -67,3 +83,17 @@ Section MapWriter.
       mapWriterT B Monoid_W' ident (mkIdent ∘ f ∘ unIdent).
 
 End MapWriter.
+
+Section CastWriter.
+  Polymorphic Universe g s d c.
+  Variable A: Type@{g}.
+  Variable W : Type@{s}.
+  Variable Monoid_W : Monoid@{d} W.
+  Variable Monoid_W' : Monoid@{d} W.
+
+  Open Scope program_scope.
+
+  Definition castWriter: writer Monoid_W A -> writer Monoid_W' A
+    := mapWriterT A Monoid_W' ident id.
+
+End CastWriter.
