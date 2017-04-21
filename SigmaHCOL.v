@@ -1199,7 +1199,7 @@ Section OperatorProperies.
     rewrite 2!Vbuild_nth.
     unfold Vnth_aux.
     unfold SparseEmbedding.
-    unfold compose.
+3    unfold compose.
     generalize (kernel i0 ic0 (Gather _ (⦃ g ⦄ i0 ic0) x)) as x0.
     generalize (kernel i1 ic1 (Gather _ (⦃ g ⦄ i1 ic1) x)) as x1.
     intros x0 x1.

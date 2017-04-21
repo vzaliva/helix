@@ -32,6 +32,49 @@ Import Monoid.
 (*  CoLoR *)
 Require Import CoLoR.Util.Vector.VecUtil.
 
+
+Section RthetaSafetyCast.
+
+  Definition SafeCast'
+             {o i}
+             (f: rsvector i -> rsvector o):
+    rvector i -> rvector o
+    := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
+
+  Lemma proper_SafeCast' (i o : nat)
+        (op : svector Monoid_RthetaSafeFlags i → svector Monoid_RthetaSafeFlags o)
+        (op_proper: Proper (equiv ==> equiv) (op))
+    :
+      Proper (equiv ==> equiv) (SafeCast' op).
+  Proof.
+    intros v v' Ev.
+    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
+    f_equiv.
+    f_equiv.
+    f_equiv.
+    apply Ev.
+  Qed.
+
+  Definition SafeCast {i o}
+             (f: @SHOperator Monoid_RthetaSafeFlags i o)
+  : @SHOperator Monoid_RthetaFlags i o.
+  Proof.
+    refine (mkSHOperator Monoid_RthetaFlags i o
+                         (SafeCast' (op Monoid_RthetaSafeFlags f))
+                         _  _ _).
+    -
+      destruct f.
+      simpl.
+      apply proper_SafeCast', op_proper.
+    -
+      apply f.
+    -
+      apply f.
+  Defined.
+
+End RthetaSafetyCast.
+
+
 (* For now we are not define special type for TSigmahcolOperators, like we did for SHOperator. Currently we have only 2 of these: SHCompose and HTSumunion. We will generalize in future, if needed *)
 Section TSigmaHCOLOperators.
 
