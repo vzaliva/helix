@@ -554,19 +554,18 @@ Section SigmaHCOLExpansionRules.
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
-      apply ext_equiv_applied_iff'.
-      -
-        split; try apply vec_Setoid.
-        apply (SHBinOp'_proper Monoid_RthetaFlags f).
-      -
-        split; try apply vec_Setoid.
-        apply SHOperator_op_proper. reflexivity.
+
+      apply SHOperator_ext_equiv_applied.
       -
         simpl.
         intros x.
         vec_index_equiv i ip.
-        simpl.
-        erewrite SHBinOp'_nth.
+
+        unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
+        rewrite Vnth_map.
+        setoid_rewrite SHBinOp'_nth.
+
+
         unfold Diamond'.
         rewrite AbsorbMUnion'Index_Vmap.
         (* OR rewrite AbsorbMUnion'Index_Vbuild.*)
@@ -579,9 +578,8 @@ Section SigmaHCOLExpansionRules.
         simpl.
 
         rewrite <- AbsorbISumUnionIndex_Vbuild.
-        unfold UnionFold.
 
-        rewrite U_SAG2.
+        setoid_rewrite U_SAG2.
         unshelve erewrite SHBinOp'_nth with (jc:=ip).
         omega.
         omega.

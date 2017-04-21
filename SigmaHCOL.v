@@ -285,21 +285,22 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
-    (* Evaluation semantics for SHOperator defined used sigma types *)
-    Definition evalSHOperator {i o} (f:@SHOperator i o):
-      svector fm i -> svector fm o
-      := op f.
-
     Lemma SHOperator_ext_equiv_applied
           {i o: nat}
           (f g: @SHOperator i o):
-      (f=g) -> (forall v, evalSHOperator f v = evalSHOperator g v).
+      (f=g) <-> (forall v, op f v = op g v).
     Proof.
-      intros H v.
-      unfold equiv, SHOperator_equiv in H.
-      unfold evalSHOperator.
-      apply H.
-      reflexivity.
+      split.
+      - intros H v.
+        unfold equiv, SHOperator_equiv in H.
+        apply H.
+        reflexivity.
+      -
+        intros H.
+        apply ext_equiv_applied_iff'.
+        split ; try apply vec_Setoid. apply f.
+        split ; try apply vec_Setoid. apply g.
+        apply H.
     Qed.
 
     Global Instance SHOperator_equiv_Reflexive
