@@ -563,7 +563,10 @@ Section SigmaHCOLExpansionRules.
 
         unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
         rewrite Vnth_map.
-        setoid_rewrite SHBinOp'_nth.
+
+        assert(ip1: i<n+n) by omega.
+        assert(ip2: (i+n) < (n+n)) by omega.
+        setoid_rewrite SHBinOp'_nth with (jc1:=ip1) (jc2:=ip2).
 
 
         unfold Diamond'.
