@@ -85,7 +85,8 @@ Section CastWriter.
 
   Open Scope program_scope.
 
+  (* Special case of mapWriter where mapping functoin is identity *)
   Definition castWriter: writer Monoid_W A -> writer Monoid_W' A
-    := mapWriterT A Monoid_W' ident id.
+    := castWriterT Monoid_W' (m:=ident).
 
 End CastWriter.
