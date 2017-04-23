@@ -379,7 +379,6 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
-
     Lemma U_SAG2:
       ∀ (n : nat) (x : rvector (n + n))
         (f: nat -> CarrierA -> CarrierA -> CarrierA)
@@ -397,11 +396,12 @@ Section SigmaHCOLExpansionRules.
                                                                                              (fun (j0 : nat) (jc0 : j0<n) =>
                                                                                                 @h_index_map 1 n j0 1
                                                                                                              (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc)
-                                 (SHBinOp' Monoid_RthetaFlags (SwapIndex2 j f)
+                                 (SafeCast' (SHBinOp' Monoid_RthetaSafeFlags (SwapIndex2 j f))
                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
-
+    Admitted.
+    (* TODO: temp
       intros n x f f_mor k kp.
 
 
@@ -530,7 +530,7 @@ Section SigmaHCOLExpansionRules.
            break_if; crush.
       -
         apply L3pre.
-    Qed.
+    Qed. *)
 
 
     (*
@@ -583,9 +583,14 @@ Section SigmaHCOLExpansionRules.
         rewrite <- AbsorbISumUnionIndex_Vbuild.
 
         setoid_rewrite U_SAG2.
-        unshelve erewrite SHBinOp'_nth with (jc:=ip).
-        omega.
-        omega.
+        setoid_rewrite SHBinOp'_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
+
+        unfold RStheta2Rtheta, WriterMonadNoT.castWriter, WriterMonadNoT.castWriterT.
+        unfold compose, Rtheta.
+        repeat rewrite Vnth_map.
+        simpl.
+        rewrite RthetaFlags_runit.
+        rewrite RthetaFlags_safe_runit.
         simpl.
         reflexivity.
     Qed.

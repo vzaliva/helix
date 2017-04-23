@@ -1663,6 +1663,80 @@ Section StructuralProperies.
         apply X.
   Qed.
 
+  Lemma UnionFold_empty_Non_Collision
+        (k : nat)
+        (dot : CarrierA → CarrierA → CarrierA)
+        (initial : CarrierA)
+        (v : vector Rtheta k):
+    Vforall Not_Collision v
+    → Vforall (not ∘ Is_Val) v
+    → Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
+  Proof.
+    intros Vnc Vempty.
+    induction v.
+    +
+      unfold UnionFold.
+      compute.
+      tauto.
+    +
+      rewrite UnionFold_cons.
+      apply UnionCollisionFree.
+      * apply IHv.
+        apply Vnc.
+        apply Vempty.
+      *
+        apply Vnc.
+      *
+        clear IHv.
+        intros [H H1].
+        destruct Vempty as [Vh Vt].
+        unfold compose, not in Vh.
+        tauto.
+  Qed.
+
+  Lemma UnionFold_VAllBytOne_Non_Collision
+        (k : nat)
+        (dot : CarrierA → CarrierA → CarrierA) (initial : CarrierA)
+        (v : vector Rtheta k)
+        (Vnc: Vforall Not_Collision v)
+        (i : nat)
+        (ic : i < k)
+        (Vv: VAllButOne i ic (not ∘ Is_Val) v):
+    Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
+  Proof.
+    (*
+    intros Vnc [i [ic Vv]].
+    dependent induction k.
+    + inversion ic.
+    +
+      dep_destruct v.
+      destruct (eq_nat_dec i 0).
+      simpl in *.
+      rewrite UnionFold_cons.
+      apply UnionCollisionFree.
+      *
+        subst.
+        eapply IHk.
+        -- apply Vnc.
+        --
+          apply VAllButOne_0_Vforall in Vv.
+          admit.
+      *
+        apply Vnc.
+      *
+        subst.
+        crush.
+        apply VAllButOne_0_Vforall in Vv.
+        apply Vforall_not_Vexists in Vv.
+        admit.
+      *
+        subst.
+        simpl in *.
+        rewrite UnionFold_cons.
+        apply UnionCollisionFree.
+     *)
+  Admitted.
+
   Lemma UnionFold_Non_Collision
         (k : nat)
         (dot : CarrierA → CarrierA → CarrierA)
@@ -1677,86 +1751,18 @@ Section StructuralProperies.
     destruct Vu as [V0 | V1].
     -
       (* Vforall case *)
-      induction v.
-      +
-        unfold UnionFold.
-        vm_compute.
-        auto.
-      +
-        rewrite UnionFold_cons.
-        apply UnionCollisionFree.
-        * apply IHv.
-          simpl in *.
-          apply Vnc.
-          apply V0.
-        *
-          simpl in *.
-          apply Vnc.
-        *
-          crush.
+      apply UnionFold_empty_Non_Collision.
+      apply Vnc.
+      apply V0.
     -
       (* VAllButOne case *)
-      induction v.
-      +
-        unfold UnionFold.
-        vm_compute.
-        auto.
-      +
-        rewrite UnionFold_cons.
-        apply UnionCollisionFree.
-        * apply IHv.
-          -- simpl in *.
-             apply Vnc.
-          --
-            clear IHv Vnc.
-            destruct V1 as [i [ic E]].
-            destruct i.
-            ++
-              admit.
-            ++ assert (ic1: i < n) by omega.
-               exists i, ic1.
-               eapply VAllButOne_Sn in E.
-               apply E.
-        *
-          simpl in *.
-          apply Vnc.
-        *
-          crush.
-
-
-
-
-  (*
-
-
-
-
-      dependent induction k.
-      + inversion ic.
-      +
-        dep_destruct v.
-        destruct (eq_nat_dec i 0).
-        simpl in *.
-        rewrite UnionFold_cons.
-        apply UnionCollisionFree.
-        *
-          admit.
-        *
-          apply Vnc.
-        *
-          subst i.
-          crush.
-          apply Is_Val_UnionFold in H2.
-          apply VAllButOne_0_Vforall in V1.
-          apply Vforall_not_Vexists in V1.
-          congruence.
-        *
-          simpl in *.
-          rewrite UnionFold_cons.
-          apply UnionCollisionFree.
-          apply IHk.
-   *)
-  Admitted.
+      destruct V1 as [i [ic H]].
+      apply UnionFold_VAllBytOne_Non_Collision with (ic:=ic).
+      apply Vnc.
+      apply H.
+    -
+      apply Is_Val_dec.
+  Qed.
 
   Global Instance IUnion_Collision_Guarantees
          {i o k}
