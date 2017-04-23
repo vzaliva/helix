@@ -1704,37 +1704,6 @@ Section StructuralProperies.
         (Vv: VAllButOne i ic (not ∘ Is_Val) v):
     Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
   Proof.
-    (*
-    intros Vnc [i [ic Vv]].
-    dependent induction k.
-    + inversion ic.
-    +
-      dep_destruct v.
-      destruct (eq_nat_dec i 0).
-      simpl in *.
-      rewrite UnionFold_cons.
-      apply UnionCollisionFree.
-      *
-        subst.
-        eapply IHk.
-        -- apply Vnc.
-        --
-          apply VAllButOne_0_Vforall in Vv.
-          admit.
-      *
-        apply Vnc.
-      *
-        subst.
-        crush.
-        apply VAllButOne_0_Vforall in Vv.
-        apply Vforall_not_Vexists in Vv.
-        admit.
-      *
-        subst.
-        simpl in *.
-        rewrite UnionFold_cons.
-        apply UnionCollisionFree.
-     *)
   Admitted.
 
   Lemma UnionFold_Non_Collision
