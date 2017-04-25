@@ -248,6 +248,38 @@ Section SigmaHCOL_Operators.
           apply H.
     Qed.
 
+    Lemma family_out_set_includes_members:
+      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+        (j : nat) (jc : j < k),
+        Included (FinNat o)
+                 (out_index_set (family_member op_family j jc))
+                 (family_out_index_set op_family).
+    Proof.
+      intros i o k op_family j jc.
+      unfold Included, In.
+      intros x H.
+
+      induction k.
+      - inversion jc.
+      -
+        simpl.
+        destruct (eq_nat_dec j k) as [E | NE].
+        +
+          left.
+          subst.
+          replace (le_n (S k)) with jc by apply proof_irrelevance.
+          apply H.
+        +
+          right.
+          assert(jc1: j<k) by omega.
+          apply IHk with (jc:=jc1).
+          unfold shrink_op_family.
+          destruct op_family.
+          simpl in *.
+          replace (le_S jc1) with jc by apply proof_irrelevance.
+          apply H.
+    Qed.
+
     Lemma family_out_set_implies_members
           (i o k : nat) (op_family : @SHOperatorFamily i o k)
           (j : nat) (jc : j < o):
@@ -1822,12 +1854,45 @@ Section StructuralProperies.
     unfold Apply_Family'.
 
     rewrite AbsorbMUnion'Index_Vbuild.
-
-    remember (Vbuild _) as b.
-    assert(Vnc: Vforall Not_Collision b). admit.
-    assert(V1: Vunique Is_Val b). admit.
-
     apply UnionFold_Non_Collision.
+    -
+      apply Vforall_Vbuild.
+      intros t tc.
+
+      destruct (op_family_cg t tc).
+      apply (op_family_cg t tc).
+      +
+        intros m mc.
+        specialize (D m mc).
+        intros H.
+        apply D.
+        eapply family_in_set_includes_members.
+        apply H.
+      +
+        eapply family_out_set_implies_members in S.
+        destruct S as [tt [ttc S]].
+
+        destruct (eq_nat_dec t tt).
+        *
+          subst.
+          replace ttc with tc in S.
+          apply S.
+          apply proof_irrelevance.
+        *
+          specialize (compat t tc tt ttc n).
+          inversion compat as [H].
+          clear compat no_coll0 D op_family_cg op_family_facts.
+          specialize (H (mkFinNat jc)).
+          unfold In, not in H.
+
+
+
+
+
+
+    -
+
+      admit.
   Admitted.
 
   Global Instance IReduction_Facts
