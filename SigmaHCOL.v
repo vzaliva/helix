@@ -1694,6 +1694,33 @@ Section StructuralProperies.
         tauto.
   Qed.
 
+  Lemma UnionFold_empty_Not_Val
+        (k : nat)
+        (dot : CarrierA → CarrierA → CarrierA)
+        (initial : CarrierA)
+        (v : vector Rtheta k):
+    Vforall Not_Collision v
+    → Vforall (not ∘ Is_Val) v
+    → ¬ Is_Val (UnionFold Monoid_RthetaFlags dot initial v).
+  Proof.
+    intros Vnc Vempty.
+    induction v.
+    +
+      unfold UnionFold.
+      compute.
+      tauto.
+    +
+      rewrite UnionFold_cons.
+      unfold not.
+      intros H.
+      apply ValUnionIsVal in H.
+      destruct H as [H0| H1].
+      *
+        crush.
+      *
+        crush.
+  Qed.
+
   Lemma UnionFold_VAllBytOne_Non_Collision
         (k : nat)
         (dot : CarrierA → CarrierA → CarrierA) (initial : CarrierA)
@@ -1704,7 +1731,39 @@ Section StructuralProperies.
         (Vv: VAllButOne i ic (not ∘ Is_Val) v):
     Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
   Proof.
-  Admitted.
+    induction i.
+    -
+      dep_destruct v.
+      + inversion ic.
+      +
+        rewrite UnionFold_cons.
+        apply UnionCollisionFree.
+        *
+          apply VAllButOne_0_Vforall in Vv.
+          apply UnionFold_empty_Non_Collision.
+          apply Vnc.
+          apply Vv.
+        *
+          apply Vnc.
+        *
+          unfold not.
+          intros [H1 H2].
+          apply VAllButOne_0_Vforall in Vv.
+          apply UnionFold_empty_Not_Val with (dot:=dot) (initial:=initial) in Vv.
+          tauto.
+          apply Vnc.
+    -
+      dep_destruct v.
+      inversion ic.
+      assert (ic0: i<n) by omega.
+      apply VAllButOne_Sn with (ic':=ic0) in Vv.
+
+
+      assert(ic1: i < S n) by omega.
+      apply IHi with (ic:=ic1); clear IHi.
+
+
+  Qed.
 
   Lemma UnionFold_Non_Collision
         (k : nat)
