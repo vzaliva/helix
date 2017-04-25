@@ -532,6 +532,24 @@ Section Vunique.
     :=
       (forall j (jc:j<n), ~(i = j) -> P (Vnth x jc)).
 
+  Lemma VallButOne_Sn_cons_not_head
+        {T: Type}
+        (h : T)
+        (n : nat)
+        (v : vector T n)
+        (P: T -> Prop)
+        (i : nat)
+        (ic : S i < S n):
+    VAllButOne (S i) ic (not ∘ P) (Vcons h v) -> not (P h).
+  Proof.
+    intros H.
+    unfold VAllButOne in H.
+    specialize (H 0).
+    unfold compose in H.
+    simpl in H.
+    apply H ; omega.
+  Qed.
+
   Lemma VAllButOne_0_Vforall
         {T}
         n
@@ -556,11 +574,11 @@ Section Vunique.
 
   (* Always works in this direction *)
   Lemma VAllButOne_Sn
-             {n} {T:Type}
-             (P: T -> Prop)
-             (h: T)
-             (t: vector T n)
-             i (ic: S i < S n) (ic': i < n):
+        {n} {T:Type}
+        (P: T -> Prop)
+        (h: T)
+        (t: vector T n)
+        i (ic: S i < S n) (ic': i < n):
     VAllButOne (S i) ic P (Vcons h t) -> VAllButOne i ic' P t .
   Proof.
     intros H.
@@ -678,6 +696,34 @@ Section Vunique.
       + crush.
   Qed.
 
+  Lemma VallButOne_Sn_cases
+        {T: Type}
+        (h : T)
+        (n : nat)
+        (v : vector T n)
+        (P: T -> Prop)
+        (i : nat)
+        (ic : S i < S n)
+        (ic' : i < n):
+    VAllButOne (S i) ic (not ∘ P) (Vcons h v) <->
+    (not (P h) /\ VAllButOne i ic' (not ∘ P) v).
+  Proof.
+    split.
+    -
+      intros H.
+      split.
+      + apply VallButOne_Sn_cons_not_head in H.
+        apply H.
+      +
+        apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+        apply H.
+    -
+      intros [H0 H1].
+      apply VAllButOne_Sn' with (ic:=ic').
+      apply H0.
+      apply H1.
+  Qed.
+
   Lemma Vunique_cases
         {n} {T:Type}
         (P: T -> Prop)
@@ -742,7 +788,7 @@ Section VMap2_Indexed.
 
   Lemma Vnth_Vmap2Indexed:
     forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-           (a:vector A n) (b:vector B n),
+      (a:vector A n) (b:vector B n),
       Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
   Proof.
     intros A B C n i ip f a b.

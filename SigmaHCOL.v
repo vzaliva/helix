@@ -201,8 +201,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (in_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_in_index_set (shrink_op_family f))
+                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -212,8 +212,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (out_index_set (family_member op_family j (S_j_lt_n E)))
-                                  (family_out_index_set (shrink_op_family f))
+                              (out_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
@@ -526,9 +526,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (transpose
+                             (Apply_Family op_family x)
+                          ).
 
     Definition Gather'
                {i o: nat}
@@ -802,7 +802,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
+                                                                     (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1696,9 +1696,9 @@ Section StructuralProperies.
 
   Lemma UnionFold_empty_Not_Val
         (k : nat)
-        (dot : CarrierA → CarrierA → CarrierA)
-        (initial : CarrierA)
-        (v : vector Rtheta k):
+        {dot : CarrierA → CarrierA → CarrierA}
+        {initial : CarrierA}
+        {v : vector Rtheta k}:
     Vforall Not_Collision v
     → Vforall (not ∘ Is_Val) v
     → ¬ Is_Val (UnionFold Monoid_RthetaFlags dot initial v).
@@ -1731,38 +1731,47 @@ Section StructuralProperies.
         (Vv: VAllButOne i ic (not ∘ Is_Val) v):
     Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
   Proof.
-    induction i.
+    dependent induction v.
+    - inversion ic.
     -
-      dep_destruct v.
-      + inversion ic.
+      rewrite UnionFold_cons.
+      apply UnionCollisionFree.
       +
-        rewrite UnionFold_cons.
-        apply UnionCollisionFree.
+        destruct i.
         *
           apply VAllButOne_0_Vforall in Vv.
           apply UnionFold_empty_Non_Collision.
           apply Vnc.
           apply Vv.
         *
+          assert(¬ Is_Val h).
+          {
+            apply VallButOne_Sn_cons_not_head in Vv.
+            apply Vv.
+          }
+          assert(ic' : i < n) by omega.
+          assert(VAllButOne i ic' (not ∘ Is_Val) v).
+          {
+            eapply VallButOne_Sn_cases.
+            eapply Vv.
+          }
+          eapply IHv.
+          apply Vnc.
+          eapply H0.
+      +
+        apply Vnc.
+      +
+        intros [H0 H1].
+        destruct i.
+        *
+          clear H1. (* unused in this branch *)
+          apply VAllButOne_0_Vforall in Vv.
+          eapply UnionFold_empty_Not_Val with (dot:=dot) (initial:=initial) in Vv.
+          auto.
           apply Vnc.
         *
-          unfold not.
-          intros [H1 H2].
-          apply VAllButOne_0_Vforall in Vv.
-          apply UnionFold_empty_Not_Val with (dot:=dot) (initial:=initial) in Vv.
+          apply VallButOne_Sn_cons_not_head in Vv.
           tauto.
-          apply Vnc.
-    -
-      dep_destruct v.
-      inversion ic.
-      assert (ic0: i<n) by omega.
-      apply VAllButOne_Sn with (ic':=ic0) in Vv.
-
-
-      assert(ic1: i < S n) by omega.
-      apply IHi with (ic:=ic1); clear IHi.
-
-
   Qed.
 
   Lemma UnionFold_Non_Collision
