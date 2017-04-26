@@ -1885,8 +1885,7 @@ Section StructuralProperies.
           specialize (H (mkFinNat jc)).
           unfold In, not in H.
 
-
-
+          admit.
 
 
 
@@ -1895,7 +1894,6 @@ Section StructuralProperies.
 
 
     -
-
       admit.
   Admitted.
 
