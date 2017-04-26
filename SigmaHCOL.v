@@ -1859,8 +1859,7 @@ Section StructuralProperies.
       apply Vforall_Vbuild.
       intros t tc.
 
-      destruct (op_family_cg t tc).
-      apply (op_family_cg t tc).
+      apply op_family_cg.
       +
         intros m mc.
         specialize (D m mc).
@@ -1874,16 +1873,21 @@ Section StructuralProperies.
 
         destruct (eq_nat_dec t tt).
         *
+          (* the member in S happens to be the same as in our goal *)
           subst.
-          replace ttc with tc in S.
+          replace ttc with tc in S by apply proof_irrelevance.
           apply S.
-          apply proof_irrelevance.
         *
+          (* the member is different *)
           specialize (compat t tc tt ttc n).
-          inversion compat as [H].
-          clear compat no_coll0 D op_family_cg op_family_facts.
+          clear D op_family_cg.
+          inversion compat as [H]. clear compat.
           specialize (H (mkFinNat jc)).
           unfold In, not in H.
+
+
+
+
 
 
 
