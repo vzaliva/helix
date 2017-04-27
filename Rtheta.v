@@ -471,6 +471,13 @@ Proof.
   tauto.
 Qed.
 
+Lemma Is_Val_mkSZero:
+  @Is_Val _ (@mkSZero Monoid_RthetaFlags) -> False.
+Proof.
+  unfold mkSZero.
+  apply Is_Val_mkStruct.
+Qed.
+
 Lemma Is_Val_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : Rtheta):

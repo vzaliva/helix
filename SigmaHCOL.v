@@ -211,8 +211,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (in_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_in_index_set (shrink_op_family f))
+                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -222,8 +222,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (out_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_out_index_set (shrink_op_family f))
+                                  (out_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
@@ -568,9 +568,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (transpose
+                             (Apply_Family op_family x)
+                          ).
 
     Definition Gather'
                {i o: nat}
@@ -1488,6 +1488,12 @@ Section StructuralProperies.
         apply H.
         apply S.
       -
+        intros v j jc H.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply no_coll_at_sparse0.
+        apply H.
     Qed.
 
     Global Instance Gather_Facts
@@ -1504,14 +1510,20 @@ Section StructuralProperies.
         apply H.
         unfold mkFinNat.
         apply index_map_range_set_id.
-      - intros v D j jc S.
-        simpl.
-        rewrite Gather'_spec.
-        unfold VnthIndexMapped.
-        apply D.
-        simpl.
-        unfold mkFinNat.
-        apply index_map_range_set_id.
+      -
+        split.
+        + intros S.
+          simpl.
+          rewrite Gather'_spec.
+          unfold VnthIndexMapped.
+          apply H.
+          simpl.
+          unfold mkFinNat.
+          apply index_map_range_set_id.
+        +
+          intros S.
+          simpl in *.
+          split.
     Qed.
 
     Global Instance Gather_Structural_Facts
@@ -1520,70 +1532,20 @@ Section StructuralProperies.
       : SHOperator_Structural_Facts fm (Gather fm f).
     Proof.
       split.
-      intros v D j jc S.
-      simpl.
-      rewrite Gather'_spec.
-      unfold VnthIndexMapped.
-      apply D.
-      simpl.
-      unfold mkFinNat.
-      apply index_map_range_set_id.
-    Qed.
-
-    Global Instance Scatter_Facts
-           {i o: nat}
-           (f: index_map i o)
-           {f_inj: index_map_injective f}:
-      SHOperator_Value_Facts fm (Scatter fm f (f_inj:=f_inj)).
-    Proof.
-      split.
-      - intros x y H.
-        simpl in *.
-        assert (E: x=y).
-        {
-          vec_index_equiv j jc.
-          apply H.
-          constructor.
-        }
-        rewrite E.
-        reflexivity.
-      - intros v D j jc S.
+      -
+        intros v D j jc S.
         simpl.
-        unfold Scatter' in *.
-        rewrite Vbuild_nth.
-        break_match.
-        + simpl in *.
-          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
-          apply D.
-          constructor.
-        +
-          simpl in *.
-          unfold index_map_range_set in S.
-          simpl in *.
-          congruence.
-    Qed.
-
-    Global Instance Scatter_Structural_Facts
-           {i o: nat}
-           (f: index_map i o)
-           {f_inj: index_map_injective f}:
-      SHOperator_Structural_Facts fm (Scatter fm f (f_inj:=f_inj)).
-    Proof.
-      split.
-      intros v D j jc S.
-      simpl.
-      unfold Scatter' in *.
-      rewrite Vbuild_nth.
-      break_match.
-      + simpl in *.
-        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+        rewrite Gather'_spec.
+        unfold VnthIndexMapped.
         apply D.
-        constructor.
-      +
+        simpl.
+        unfold mkFinNat.
+        apply index_map_range_set_id.
+      -
+        intros v j jc H.
         simpl in *.
-        unfold index_map_range_set in S.
-        simpl in *.
-        congruence.
+        destruct H.
+        split.
     Qed.
 
     Global Instance SHPointwise_Facts
@@ -1605,12 +1567,18 @@ Section StructuralProperies.
         rewrite E.
         reflexivity.
       -
-        intros v D j jc S.
-        simpl in *.
-        unfold SHPointwise'.
-        rewrite Vbuild_nth.
-        apply Is_Val_liftM.
-        apply D, S.
+        split.
+        +
+          intros S.
+          simpl in *.
+          unfold SHPointwise'.
+          rewrite Vbuild_nth.
+          apply Is_Val_liftM.
+          apply H, S.
+        +
+          intros S.
+          simpl in *.
+          split.
     Qed.
 
     Global Instance SHPointwise_Structural_Facts
@@ -1620,21 +1588,105 @@ Section StructuralProperies.
       SHOperator_Structural_Facts fm (SHPointwise fm f).
     Proof.
       split.
-      intros v D j jc S.
-      simpl in *.
-      unfold SHPointwise'.
-      rewrite Vbuild_nth.
-      apply Not_Collision_liftM.
-      apply D, S.
+      - intros v D j jc S.
+        simpl in *.
+        unfold SHPointwise'.
+        rewrite Vbuild_nth.
+        apply Not_Collision_liftM.
+        apply D, S.
+      - intros v D j jc S.
+        simpl in *.
+        destruct jc.
+        split.
     Qed.
 
   End FlagsMonoidGenericStructuralProperties.
 
-  Global Instance SHBinOp_Facts
+  Global Instance Scatter_Rtheta_Facts
+         {i o: nat}
+         (f: index_map i o)
+         {f_inj: index_map_injective f}:
+    SHOperator_Value_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)).
+  Proof.
+    split.
+    - intros x y H.
+      simpl in *.
+      assert (E: x=y).
+      {
+        vec_index_equiv j jc.
+        apply H.
+        constructor.
+      }
+      rewrite E.
+      reflexivity.
+    -
+      split.
+      +
+        intros S.
+        simpl.
+        unfold Scatter' in *.
+        rewrite Vbuild_nth.
+        break_match.
+        * simpl in *.
+          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+          apply H.
+          constructor.
+        *
+          simpl in *.
+          unfold index_map_range_set in S.
+          simpl in *.
+          congruence.
+      +
+        intros S.
+        simpl in *.
+
+        unfold index_map_range_set.
+        simpl.
+        unfold Scatter' in S.
+        rewrite Vbuild_nth in S.
+        break_match.
+        *
+          assumption.
+        *
+          apply Is_Val_mkSZero in S.
+          tauto.
+  Qed.
+
+  Global Instance Scatter_Rtheta_Structural_Facts
+         {i o: nat}
+         (f: index_map i o)
+         {f_inj: index_map_injective f}:
+    SHOperator_Structural_Facts Monoid_RthetaFlags (Scatter _ f (f_inj:=f_inj)).
+  Proof.
+    split.
+    - intros v D j jc S.
+      simpl.
+      unfold Scatter' in *.
+      rewrite Vbuild_nth.
+      break_match.
+      + simpl in *.
+        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+        apply D.
+        constructor.
+      +
+        simpl in *.
+        unfold index_map_range_set in S.
+        simpl in *.
+        congruence.
+    -
+      intros v D j jc S.
+      simpl in *.
+      unfold Scatter' in *.
+      rewrite Vbuild_nth in S.
+      break_match; crush.
+  Qed.
+
+
+  Global Instance SHBinOp_RthetaSafe_Facts
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Value_Facts Monoid_RthetaSafeFlags (SHBinOp  f (o:=o)).
+    SHOperator_Value_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
     intros x y H.
@@ -1649,15 +1701,20 @@ Section StructuralProperies.
       rewrite E.
       reflexivity.
     -
-      intros v D j jc S.
-      simpl in *.
-      assert(jc2: (j+o)<o+o) by omega.
-      assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
-      apply Is_Val_Safe_liftM2; (apply D; constructor).
+      split.
+      + intros S.
+        simpl in *.
+        assert(jc2: (j+o)<o+o) by omega.
+        assert(jc1:j<o+o) by omega.
+        rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
+        apply Is_Val_Safe_liftM2; (apply H; constructor).
+      +
+        intros S.
+        simpl in *.
+        split.
   Qed.
 
-  Global Instance SHBinOp_Structural_Facts
+  Global Instance SHBinOp_RthetaSafe_Structural_Facts
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
@@ -1665,14 +1722,17 @@ Section StructuralProperies.
       SHOperator_Structural_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
-    intros v D j jc S.
-    simpl in *.
-    assert(jc2: (j+o)<o+o) by omega.
-    assert(jc1:j<o+o) by omega.
-    rewrite (@SHBinOp'_nth _  o f pF v j jc jc1 jc2).
-    apply Not_Collision_Safe_liftM2.
-    - apply D; constructor.
-    - apply D; constructor.
+    - intros v D j jc S.
+      simpl in *.
+      assert(jc2: (j+o)<o+o) by omega.
+      assert(jc1:j<o+o) by omega.
+      rewrite (@SHBinOp'_nth _  o f pF v j jc jc1 jc2).
+      apply Not_Collision_Safe_liftM2; apply D; constructor.
+    -
+      intros v D j jc S.
+      simpl in *.
+      destruct jc.
+      split.
   Qed.
 
   Global Instance IUnion_Facts
