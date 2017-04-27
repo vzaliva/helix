@@ -166,9 +166,9 @@ Global Instance HTSUMUnion_Facts
        (dot: CarrierA -> CarrierA -> CarrierA)
        `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
        (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-       `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
-       `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
-  : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+       `{fop1: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op1}
+       `{fop2: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op2}
+  : SHOperator_Value_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
 Proof.
   split.
   - intros x y H.

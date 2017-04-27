@@ -134,29 +134,39 @@ Section SigmaHCOL_Operators.
         apply H0.
     Qed.
 
-    Class SHOperator_Facts {i o:nat} (xop: @SHOperator i o) :=
-      {
-        in_as_domain:
-          forall x y,
-            vec_equiv_at_set x y (in_index_set xop) ->
-            op xop x = op xop y;
-
-        out_as_range: forall v,
-            (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
-            ->
-            (forall j (jc:j<o), out_index_set xop (mkFinNat jc) ->
-                                Is_Val (Vnth (op xop v) jc));
-      }.
-
-    Class SHOperator_Collision_Guarantees
+    Class SHOperator_Value_Facts
           {i o:nat}
           (xop: @SHOperator i o)
       :=
         {
-          no_coll: forall v,
+          (* only values in [in_index_set] affect output *)
+          in_as_domain:
+            forall x y,
+              vec_equiv_at_set x y (in_index_set xop) ->
+              op xop x = op xop y;
+
+          (* sufficiently (values in right places, no info on empty
+          spaces) filled input vector guarantees properly (values are
+          only where values expected) filled output vector *)
+          out_as_range: forall v,
+              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
+              ->
+              (forall j (jc:j<o), out_index_set xop (mkFinNat jc) <-> Is_Val (Vnth (op xop v) jc));
+        }.
+
+    Class SHOperator_Structural_Facts
+          {i o:nat}
+          (xop: @SHOperator i o)
+      :=
+        {
+          (* As long there are no collisions in expected non-sparse places, none is expected in nonsparce places on outpyt*)
+          no_coll_range: forall v,
             (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
             ->
             (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
+          (* Never generate collisions on sparse places *)
+          no_coll_at_sparse: forall v,
+              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
         }.
 
     (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
@@ -201,8 +211,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
-                                  (family_in_index_set (shrink_op_family f))
+                              (in_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -558,9 +568,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
@@ -834,7 +844,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1355,7 +1365,7 @@ Section StructuralProperies.
            {i o}
            (hop: avector i -> avector o)
            `{HOP: HOperator i o hop}
-      : SHOperator_Facts fm (liftM_HOperator fm hop).
+      : SHOperator_Value_Facts fm (liftM_HOperator fm hop).
     Proof.
       split.
       intros x y H.
@@ -1370,35 +1380,49 @@ Section StructuralProperies.
         rewrite E.
         reflexivity.
       -
+        split.
+        +
+          intros S.
+          simpl in *.
+          unfold liftM_HOperator', compose, sparsify, densify.
+          rewrite Vnth_map.
+          apply IsVal_mkValue.
+        +
+          intros S.
+          simpl in *.
+          unfold liftM_HOperator', compose, sparsify, densify.
+          split.
+    Qed.
+
+
+    Global Instance liftM_HOperator_Structural_Facts
+           {i o}
+           (hop: avector i -> avector o)
+           `{HOP: HOperator i o hop}
+      : SHOperator_Structural_Facts fm (liftM_HOperator fm hop).
+    Proof.
+      split.
+      -
         intros v D j jc S.
         simpl in *.
         unfold liftM_HOperator', compose, sparsify, densify.
         rewrite Vnth_map.
-        apply IsVal_mkValue.
-    Qed.
-
-    Global Instance liftM_HOperator_Collision_Guarantees
-           {i o}
-           (hop: avector i -> avector o)
-           `{HOP: HOperator i o hop}
-      : SHOperator_Collision_Guarantees fm (liftM_HOperator fm hop).
-    Proof.
-      split.
-      intros v D j jc S.
-      simpl in *.
-      unfold liftM_HOperator', compose, sparsify, densify.
-      rewrite Vnth_map.
-      apply Not_Collision_mkValue.
+        apply Not_Collision_mkValue.
+      -
+        intros v j jc H.
+        unfold not in H.
+        destruct H.
+        split.
     Qed.
 
     Global Instance SHCompose_Facts
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3)
            (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Facts fm _ _ op1}
-           `{fop2: SHOperator_Facts fm _ _ op2}
+           `{fop1: SHOperator_Value_Facts fm _ _ op1}
+           `{fop2: SHOperator_Value_Facts fm _ _ op2}
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
-      : SHOperator_Facts fm (SHCompose fm op1 op2).
+      : SHOperator_Value_Facts fm (SHCompose fm op1 op2).
     Proof.
       split.
       - intros x y H.
@@ -1411,48 +1435,65 @@ Section StructuralProperies.
         apply in_as_domain1.
         intros j0 jc0 H1.
         apply H, H1.
-      - intros v D j jc S.
-        destruct op1, op2, fop1, fop2.
-        simpl in *.
-        unfold compose in *.
-        apply out_as_range0.
-        + intros.
-          apply out_as_range1.
-          apply D.
-          apply compat.
-          apply H.
-        + apply S.
+      -
+        split.
+        +
+          intros S.
+          destruct op1, op2, fop1, fop2.
+          simpl in *.
+          unfold compose in *.
+          apply out_as_range0.
+          * intros.
+            apply out_as_range1.
+            apply H.
+            apply compat.
+            apply H0.
+          * apply S.
+        +
+          intros V.
+          destruct op1, op2, fop1, fop2.
+          simpl in *.
+          unfold compose in *.
+          apply out_as_range0 in V.
+          * apply V.
+          * intros j0 jc0 H1.
+            apply out_as_range1.
+            apply H.
+            apply compat.
+            apply H1.
     Qed.
 
-    Global Instance SHCompose_Collision_Guarantees
+    Global Instance SHCompose_Structural_Facts
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3)
            (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Collision_Guarantees fm _ _ op1}
-           `{fop2: SHOperator_Collision_Guarantees fm _ _ op2}
+           `{fop1: SHOperator_Structural_Facts fm _ _ op1}
+           `{fop2: SHOperator_Structural_Facts fm _ _ op2}
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
-      : SHOperator_Collision_Guarantees fm (SHCompose fm op1 op2).
+      : SHOperator_Structural_Facts fm (SHCompose fm op1 op2).
     Proof.
       split.
-      intros v D j jc S.
-      destruct op1, op2, fop1, fop2.
-      simpl in *.
-      unfold compose in *.
-      apply no_coll0.
-      intros j0 jc0 H.
-      apply no_coll1.
-      intros j1 jc1 H0.
-      apply D.
-      apply H0.
-      apply compat.
-      apply H.
-      apply S.
+      -
+        intros v D j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply no_coll_range0.
+        intros j0 jc0 H.
+        apply no_coll_range1.
+        intros j1 jc1 H0.
+        apply D.
+        apply H0.
+        apply compat.
+        apply H.
+        apply S.
+      -
     Qed.
 
     Global Instance Gather_Facts
            {i o: nat}
            (f: index_map o i)
-      : SHOperator_Facts fm (Gather fm f).
+      : SHOperator_Value_Facts fm (Gather fm f).
     Proof.
       split.
       - intros x y H.
@@ -1473,10 +1514,10 @@ Section StructuralProperies.
         apply index_map_range_set_id.
     Qed.
 
-    Global Instance Gather_Collision_Guarantees
+    Global Instance Gather_Structural_Facts
            {i o: nat}
            (f: index_map o i)
-      : SHOperator_Collision_Guarantees fm (Gather fm f).
+      : SHOperator_Structural_Facts fm (Gather fm f).
     Proof.
       split.
       intros v D j jc S.
@@ -1493,7 +1534,7 @@ Section StructuralProperies.
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      SHOperator_Facts fm (Scatter fm f (f_inj:=f_inj)).
+      SHOperator_Value_Facts fm (Scatter fm f (f_inj:=f_inj)).
     Proof.
       split.
       - intros x y H.
@@ -1522,11 +1563,11 @@ Section StructuralProperies.
           congruence.
     Qed.
 
-    Global Instance Scatter_Collision_Guarantees
+    Global Instance Scatter_Structural_Facts
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      SHOperator_Collision_Guarantees fm (Scatter fm f (f_inj:=f_inj)).
+      SHOperator_Structural_Facts fm (Scatter fm f (f_inj:=f_inj)).
     Proof.
       split.
       intros v D j jc S.
@@ -1549,7 +1590,7 @@ Section StructuralProperies.
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator_Facts fm (SHPointwise fm f).
+      SHOperator_Value_Facts fm (SHPointwise fm f).
     Proof.
       split.
       intros x y H.
@@ -1572,11 +1613,11 @@ Section StructuralProperies.
         apply D, S.
     Qed.
 
-    Global Instance SHPointwise_Collision_Guarantees
+    Global Instance SHPointwise_Structural_Facts
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator_Collision_Guarantees fm (SHPointwise fm f).
+      SHOperator_Structural_Facts fm (SHPointwise fm f).
     Proof.
       split.
       intros v D j jc S.
@@ -1593,7 +1634,7 @@ Section StructuralProperies.
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp  f (o:=o)).
+    SHOperator_Value_Facts Monoid_RthetaSafeFlags (SHBinOp  f (o:=o)).
   Proof.
     split.
     intros x y H.
@@ -1616,12 +1657,12 @@ Section StructuralProperies.
       apply Is_Val_Safe_liftM2; (apply D; constructor).
   Qed.
 
-  Global Instance SHBinOp_Collision_Guarantees
+  Global Instance SHBinOp_Structural_Facts
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-      SHOperator_Collision_Guarantees Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
+      SHOperator_Structural_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
     intros v D j jc S.
@@ -1640,8 +1681,8 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-    : SHOperator_Facts _ (IUnion dot initial op_family).
+         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
+    : SHOperator_Value_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
     -
@@ -1833,19 +1874,19 @@ Section StructuralProperies.
       apply Is_Val_dec.
   Qed.
 
-  Global Instance IUnion_Collision_Guarantees
+  Global Instance IUnion_Structural_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-         (op_family_cg: forall j (jc:j<k), SHOperator_Collision_Guarantees Monoid_RthetaFlags (family_member _ op_family j jc))
+         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
+         (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
-                                                                  (out_index_set _ (family_member _ op_family m mc))
-                                                                  (out_index_set _ (family_member _ op_family n nc))
+                                                            (out_index_set _ (family_member _ op_family m mc))
+                                                            (out_index_set _ (family_member _ op_family n nc))
          )
-    : SHOperator_Collision_Guarantees _ (IUnion dot initial op_family).
+    : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
     intros v D j jc S.
@@ -1903,9 +1944,9 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
     (* TODO: compat  *)
-    : SHOperator_Facts _ (IReduction dot initial op_family).
+    : SHOperator_Value_Facts _ (IReduction dot initial op_family).
   Proof.
     split.
     -
