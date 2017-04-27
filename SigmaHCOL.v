@@ -258,6 +258,42 @@ Section SigmaHCOL_Operators.
           apply H.
     Qed.
 
+    Lemma family_in_set_implies_members
+          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (j : nat) (jc : j < i):
+
+      family_in_index_set op_family (mkFinNat jc) ->
+      ∃ (t : nat) (tc : t < k),
+        in_index_set (family_member op_family t tc)
+                      (mkFinNat jc).
+    Proof.
+      intros H.
+      induction k.
+      -
+        inversion H.
+      -
+        simpl in H.
+        inversion_clear H as [H0 | H1].
+        +
+          subst.
+          unfold In in H1.
+          exists k, (le_n (S k)).
+          apply H1.
+        +
+          subst.
+          specialize (IHk (shrink_op_family op_family) H0).
+          destruct IHk as [t [tc  IHk]].
+          exists t.
+          assert(tc1: t < S k) by omega.
+          exists tc1.
+
+          unfold shrink_op_family.
+          destruct op_family.
+          simpl in *.
+          replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
+          apply IHk.
+    Qed.
+
     Lemma family_out_set_includes_members:
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
         (j : nat) (jc : j < k),
@@ -1768,32 +1804,53 @@ Section StructuralProperies.
       apply family_in_set_includes_members.
       apply H.
     -
-      intros v D j jc S.
-      simpl in *.
+      split.
+      + intros S.
+        simpl in *.
 
-      unfold Diamond'.
-      unfold Apply_Family'.
+        unfold Diamond'.
+        unfold Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
-      apply Is_Val_UnionFold.
+        rewrite AbsorbMUnion'Index_Vbuild.
+        apply Is_Val_UnionFold.
 
-      apply family_out_set_implies_members in S.
-      destruct S as [x X].
-      destruct X as [xc X].
+        apply family_out_set_implies_members in S.
+        destruct S as [x X].
+        destruct X as [xc X].
 
-      apply Vexists_Vbuild.
-      eexists.
-      eexists.
+        apply Vexists_Vbuild.
+        eexists.
+        eexists.
 
-      apply out_as_range.
-      + apply op_family_facts.
-      + intros j0 jc0 H.
-        apply D.
-        eapply family_in_set_includes_members.
-        unfold In.
-        apply H.
+        apply out_as_range.
+        * apply op_family_facts.
+        * intros j0 jc0 H0.
+          apply H.
+          eapply family_in_set_includes_members.
+          unfold In.
+          apply H0.
+        *
+          apply X.
       +
-        apply X.
+        intros S.
+        simpl in *.
+        unfold Diamond' in S.
+        unfold Apply_Family' in S.
+
+        rewrite AbsorbMUnion'Index_Vbuild in S.
+        apply Is_Val_UnionFold in S.
+
+        apply Vexists_Vbuild in S.
+        destruct S as [t [tc S]].
+        apply op_family_facts in S.
+        *
+          apply family_out_set_includes_members in S.
+          auto.
+        *
+          intros p pc Z.
+          apply H.
+          apply family_in_set_includes_members in Z.
+          apply Z.
   Qed.
 
   Lemma UnionFold_empty_Non_Collision
