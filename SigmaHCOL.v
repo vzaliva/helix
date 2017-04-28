@@ -2015,29 +2015,37 @@ Section StructuralProperies.
       apply UnionFold_Non_Collision.
       +
         (* no collisions on j-th row accross all families *)
+
+        apply family_out_set_implies_members in S.
+        destruct S as [d [dc S]].
+
         apply Vforall_Vbuild.
         intros t tc.
 
-        apply op_family_cg.
+        destruct (eq_nat_dec d t).
         *
-          intros m mc H.
-          eapply D, family_in_set_includes_members, H.
-        *
-          eapply family_out_set_implies_members in S.
-          destruct S as [tt [ttc S]].
-
-          destruct (eq_nat_dec t tt).
+          (* family member in out set *)
+          apply no_coll_range.
           --
-            (* the member in S happens to be the same as in our goal *)
+            auto.
+          --
+            intros m mc H.
+            eapply D, family_in_set_includes_members, H.
+          --
             subst.
-            replace ttc with tc in S by apply proof_irrelevance.
+            replace tc with dc by apply proof_irrelevance.
             apply S.
+        *
+        (* family member in out set *)
+          apply no_coll_at_sparse.
           --
-            (* the member is different *)
-            specialize (compat t tc tt ttc n).
-            inversion compat as [H]. clear compat.
-            specialize (H (mkFinNat jc)). unfold In, not in H.
-            admit.
+            auto.
+          --
+            specialize (compat d dc t tc n).
+            inversion compat as [C]; clear compat.
+            specialize (C (mkFinNat jc)). unfold In in C.
+            contradict C.
+            split; assumption.
       +
         admit.
     -
