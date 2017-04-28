@@ -2006,51 +2006,40 @@ Section StructuralProperies.
     : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
-    intros v D j jc S.
-    simpl in *.
-    unfold Diamond'.
-    unfold Apply_Family'.
-
-    rewrite AbsorbMUnion'Index_Vbuild.
-    apply UnionFold_Non_Collision.
     -
-      apply Vforall_Vbuild.
-      intros t tc.
+      intros v D j jc S.
+      simpl in *.
+      unfold Diamond', Apply_Family'.
 
-      apply op_family_cg.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply UnionFold_Non_Collision.
       +
-        intros m mc.
-        specialize (D m mc).
-        intros H.
-        apply D.
-        eapply family_in_set_includes_members.
-        apply H.
+        (* no collisions on j-th row accross all families *)
+        apply Vforall_Vbuild.
+        intros t tc.
+
+        apply op_family_cg.
+        *
+          intros m mc H.
+          eapply D, family_in_set_includes_members, H.
+        *
+          eapply family_out_set_implies_members in S.
+          destruct S as [tt [ttc S]].
+
+          destruct (eq_nat_dec t tt).
+          --
+            (* the member in S happens to be the same as in our goal *)
+            subst.
+            replace ttc with tc in S by apply proof_irrelevance.
+            apply S.
+          --
+            (* the member is different *)
+            specialize (compat t tc tt ttc n).
+            inversion compat as [H]. clear compat.
+            specialize (H (mkFinNat jc)). unfold In, not in H.
+            admit.
       +
-        eapply family_out_set_implies_members in S.
-        destruct S as [tt [ttc S]].
-
-        destruct (eq_nat_dec t tt).
-        *
-          (* the member in S happens to be the same as in our goal *)
-          subst.
-          replace ttc with tc in S by apply proof_irrelevance.
-          apply S.
-        *
-          (* the member is different *)
-          specialize (compat t tc tt ttc n).
-          clear D op_family_cg.
-          inversion compat as [H]. clear compat.
-          specialize (H (mkFinNat jc)).
-          unfold In, not in H.
-
-          admit.
-
-
-
-
-
-
-
+        admit.
     -
       admit.
   Admitted.
