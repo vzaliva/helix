@@ -151,7 +151,11 @@ Section SigmaHCOL_Operators.
           out_as_range: forall v,
               (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
               ->
-              (forall j (jc:j<o), out_index_set xop (mkFinNat jc) <-> Is_Val (Vnth (op xop v) jc));
+              (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Is_Val (Vnth (op xop v) jc));
+
+          (* never generate values at sparse positions of output vector *)
+          no_vals_at_sparse: forall v,
+              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Is_Struct (Vnth (op xop v) jc));
         }.
 
     Class SHOperator_Structural_Facts
@@ -265,7 +269,7 @@ Section SigmaHCOL_Operators.
       family_in_index_set op_family (mkFinNat jc) ->
       ∃ (t : nat) (tc : t < k),
         in_index_set (family_member op_family t tc)
-                      (mkFinNat jc).
+                     (mkFinNat jc).
     Proof.
       intros H.
       induction k.
@@ -880,7 +884,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
+                                                                     (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1416,18 +1420,15 @@ Section StructuralProperies.
         rewrite E.
         reflexivity.
       -
+        intros v H j jc H0.
+        simpl in *.
+        unfold liftM_HOperator', compose, sparsify, densify.
+        rewrite Vnth_map.
+        apply IsVal_mkValue.
+      -
+        intros v j jc H.
+        contradict H.
         split.
-        +
-          intros S.
-          simpl in *.
-          unfold liftM_HOperator', compose, sparsify, densify.
-          rewrite Vnth_map.
-          apply IsVal_mkValue.
-        +
-          intros S.
-          simpl in *.
-          unfold liftM_HOperator', compose, sparsify, densify.
-          split.
     Qed.
 
 
@@ -1472,31 +1473,24 @@ Section StructuralProperies.
         intros j0 jc0 H1.
         apply H, H1.
       -
-        split.
-        +
-          intros S.
-          destruct op1, op2, fop1, fop2.
-          simpl in *.
-          unfold compose in *.
-          apply out_as_range0.
-          * intros.
-            apply out_as_range1.
-            apply H.
-            apply compat.
-            apply H0.
-          * apply S.
-        +
-          intros V.
-          destruct op1, op2, fop1, fop2.
-          simpl in *.
-          unfold compose in *.
-          apply out_as_range0 in V.
-          * apply V.
-          * intros j0 jc0 H1.
-            apply out_as_range1.
-            apply H.
-            apply compat.
-            apply H1.
+        intros v D j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply out_as_range0.
+        + intros.
+          apply out_as_range1.
+          apply D.
+          apply compat.
+          apply H.
+        + apply S.
+      -
+        intros v j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        apply no_vals_at_sparse0.
+        apply S.
     Qed.
 
     Global Instance SHCompose_Structural_Facts
@@ -1547,19 +1541,19 @@ Section StructuralProperies.
         unfold mkFinNat.
         apply index_map_range_set_id.
       -
+        intros v H j jc S.
+        simpl.
+        rewrite Gather'_spec.
+        unfold VnthIndexMapped.
+        apply H.
+        simpl.
+        unfold mkFinNat.
+        apply index_map_range_set_id.
+      -
+        intros v j jc S.
+        contradict S.
+        simpl.
         split.
-        + intros S.
-          simpl.
-          rewrite Gather'_spec.
-          unfold VnthIndexMapped.
-          apply H.
-          simpl.
-          unfold mkFinNat.
-          apply index_map_range_set_id.
-        +
-          intros S.
-          simpl in *.
-          split.
     Qed.
 
     Global Instance Gather_Structural_Facts
@@ -1603,18 +1597,17 @@ Section StructuralProperies.
         rewrite E.
         reflexivity.
       -
+        intros v H j jc S.
+        simpl in *.
+        unfold SHPointwise'.
+        rewrite Vbuild_nth.
+        apply Is_Val_liftM.
+        apply H, S.
+      -
+        intros v j jc S.
+        contradict S.
+        simpl.
         split.
-        +
-          intros S.
-          simpl in *.
-          unfold SHPointwise'.
-          rewrite Vbuild_nth.
-          apply Is_Val_liftM.
-          apply H, S.
-        +
-          intros S.
-          simpl in *.
-          split.
     Qed.
 
     Global Instance SHPointwise_Structural_Facts
@@ -1656,36 +1649,33 @@ Section StructuralProperies.
       rewrite E.
       reflexivity.
     -
-      split.
+      intros v H j jc S.
+      simpl.
+      unfold Scatter' in *.
+      rewrite Vbuild_nth.
+      break_match.
+      + simpl in *.
+        generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
+        apply H.
+        constructor.
       +
-        intros S.
-        simpl.
-        unfold Scatter' in *.
-        rewrite Vbuild_nth.
-        break_match.
-        * simpl in *.
-          generalize dependent (gen_inverse_index_f_spec f j i0); intros f_spec.
-          apply H.
-          constructor.
-        *
-          simpl in *.
-          unfold index_map_range_set in S.
-          simpl in *.
-          congruence.
-      +
-        intros S.
         simpl in *.
+        unfold index_map_range_set in S.
+        simpl in *.
+        congruence.
+    -
+      intros v j jc S.
+      simpl in *.
 
-        unfold index_map_range_set.
-        simpl.
-        unfold Scatter' in S.
-        rewrite Vbuild_nth in S.
-        break_match.
-        *
-          assumption.
-        *
-          apply Is_Val_mkSZero in S.
-          tauto.
+      unfold index_map_range_set in S.
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      break_match.
+      *
+        simpl in S.
+        congruence.
+      *
+        apply Is_Struct_mkSZero.
   Qed.
 
   Global Instance Scatter_Rtheta_Structural_Facts
@@ -1737,17 +1727,17 @@ Section StructuralProperies.
       rewrite E.
       reflexivity.
     -
+      intros v H j jc S.
+      simpl in *.
+      assert(jc2: (j+o)<o+o) by omega.
+      assert(jc1:j<o+o) by omega.
+      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
+      apply Is_Val_Safe_liftM2; (apply H; constructor).
+    -
+      intros v j jc S.
+      contradict S.
+      simpl.
       split.
-      + intros S.
-        simpl in *.
-        assert(jc2: (j+o)<o+o) by omega.
-        assert(jc1:j<o+o) by omega.
-        rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
-        apply Is_Val_Safe_liftM2; (apply H; constructor).
-      +
-        intros S.
-        simpl in *.
-        split.
   Qed.
 
   Global Instance SHBinOp_RthetaSafe_Structural_Facts
@@ -1804,53 +1794,61 @@ Section StructuralProperies.
       apply family_in_set_includes_members.
       apply H.
     -
-      split.
-      + intros S.
-        simpl in *.
+      intros v H j jc S.
+      simpl in *.
 
-        unfold Diamond'.
-        unfold Apply_Family'.
+      unfold Diamond'.
+      unfold Apply_Family'.
 
-        rewrite AbsorbMUnion'Index_Vbuild.
-        apply Is_Val_UnionFold.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply Is_Val_UnionFold.
 
-        apply family_out_set_implies_members in S.
-        destruct S as [x X].
-        destruct X as [xc X].
+      apply family_out_set_implies_members in S.
+      destruct S as [x X].
+      destruct X as [xc X].
 
-        apply Vexists_Vbuild.
-        eexists.
-        eexists.
+      apply Vexists_Vbuild.
+      eexists.
+      eexists.
 
-        apply out_as_range.
-        * apply op_family_facts.
-        * intros j0 jc0 H0.
-          apply H.
-          eapply family_in_set_includes_members.
-          unfold In.
-          apply H0.
-        *
-          apply X.
+      apply out_as_range.
+      + apply op_family_facts.
+      + intros j0 jc0 H0.
+        apply H.
+        eapply family_in_set_includes_members.
+        unfold In.
+        apply H0.
       +
-        intros S.
-        simpl in *.
-        unfold Diamond' in S.
-        unfold Apply_Family' in S.
+        apply X.
+    -
+      intros v j jc S.
+      simpl in *.
 
-        rewrite AbsorbMUnion'Index_Vbuild in S.
-        apply Is_Val_UnionFold in S.
-
-        apply Vexists_Vbuild in S.
-        destruct S as [t [tc S]].
-        apply op_family_facts in S.
-        *
+      unfold IUnion, Diamond', Apply_Family'.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      unfold Is_Struct, compose, not.
+      intros G.
+      apply Is_Val_UnionFold in G.
+      apply Vexists_Vbuild in G.
+      destruct G as [t [tc G]].
+      apply op_family_facts in G.
+      * tauto.
+      *
+        (* G and S contradict *)
+        assert(N: ¬ out_index_set Monoid_RthetaFlags
+                    (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
+        {
+          contradict S.
           apply family_out_set_includes_members in S.
           auto.
-        *
-          intros p pc Z.
-          apply H.
-          apply family_in_set_includes_members in Z.
-          apply Z.
+        }
+        apply no_vals_at_sparse with (v:=v) in N.
+        unfold Is_Struct, compose, not in N.
+
+        unfold get_family_op in G.
+        auto.
+
+        apply op_family_facts.
   Qed.
 
   Lemma UnionFold_empty_Non_Collision
@@ -2000,8 +1998,8 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
-                                                            (out_index_set _ (family_member _ op_family m mc))
-                                                            (out_index_set _ (family_member _ op_family n nc))
+                                                                  (out_index_set _ (family_member _ op_family m mc))
+                                                                  (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
@@ -2015,7 +2013,6 @@ Section StructuralProperies.
       apply UnionFold_Non_Collision.
       +
         (* no collisions on j-th row accross all families *)
-
         apply family_out_set_implies_members in S.
         destruct S as [d [dc S]].
 
@@ -2036,7 +2033,7 @@ Section StructuralProperies.
             replace tc with dc by apply proof_irrelevance.
             apply S.
         *
-        (* family member in out set *)
+          (* family member in out set *)
           apply no_coll_at_sparse.
           --
             auto.
@@ -2047,7 +2044,23 @@ Section StructuralProperies.
             contradict C.
             split; assumption.
       +
-        admit.
+        unfold Vunique.
+
+        intros m mc n nc.
+        intros [M N].
+
+        rewrite Vbuild_nth in M.
+        apply op_family_facts in M.
+
+        rewrite Vbuild_nth in N.
+        apply op_family_facts in N.
+
+        admit. (* will prove via Disjoint *)
+
+
+
+
+
     -
       admit.
   Admitted.

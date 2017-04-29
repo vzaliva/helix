@@ -478,6 +478,13 @@ Proof.
   apply Is_Val_mkStruct.
 Qed.
 
+Lemma Is_Struct_mkSZero:
+  @Is_Struct _ (@mkSZero Monoid_RthetaFlags).
+Proof.
+  unfold Is_Struct, compose, not.
+  apply Is_Val_mkSZero.
+Qed.
+
 Lemma Is_Val_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : Rtheta):
