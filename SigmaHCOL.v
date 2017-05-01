@@ -139,6 +139,13 @@ Section SigmaHCOL_Operators.
           (xop: @SHOperator i o)
       :=
         {
+
+          (* [in_index_set] membership is decidabe *)
+          in_dec: FinNatSet_dec (in_index_set xop);
+
+          (* [out_index_set] membership is decidabe *)
+          out_dec: FinNatSet_dec (out_index_set xop);
+
           (* only values in [in_index_set] affect output *)
           in_as_domain:
             forall x y,
@@ -1408,8 +1415,13 @@ Section StructuralProperies.
       : SHOperator_Value_Facts fm (liftM_HOperator fm hop).
     Proof.
       split.
-      intros x y H.
       -
+        apply Full_FinNatSet_dec.
+      -
+        apply Full_FinNatSet_dec.
+      -
+        intros x y H.
+
         simpl in *.
         assert (E: x=y).
         {
@@ -1462,6 +1474,10 @@ Section StructuralProperies.
       : SHOperator_Value_Facts fm (SHCompose fm op1 op2).
     Proof.
       split.
+      -
+        apply fop2.
+      -
+        apply fop1.
       - intros x y H.
         destruct op1, op2, fop1, fop2.
         simpl in *.
@@ -1532,6 +1548,16 @@ Section StructuralProperies.
       : SHOperator_Value_Facts fm (Gather fm f).
     Proof.
       split.
+      -
+        unfold in_index_set.
+        unfold index_map_range_set.
+        unfold FinNatSet_dec.
+        intros x.
+        apply Decidable_decision.
+        apply in_range_dec.
+      -
+        simpl.
+        apply Full_FinNatSet_dec.
       - intros x y H.
         simpl in *.
         vec_index_equiv j jc.
@@ -1585,8 +1611,14 @@ Section StructuralProperies.
       SHOperator_Value_Facts fm (SHPointwise fm f).
     Proof.
       split.
-      intros x y H.
       -
+        simpl.
+        apply Full_FinNatSet_dec.
+      -
+        simpl.
+        apply Full_FinNatSet_dec.
+      -
+        intros x y H.
         simpl in *.
         assert (E: x=y).
         {
@@ -1638,6 +1670,16 @@ Section StructuralProperies.
     SHOperator_Value_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)).
   Proof.
     split.
+    -
+      simpl.
+      apply Full_FinNatSet_dec.
+    -
+      unfold out_index_set.
+      unfold index_map_range_set.
+      unfold FinNatSet_dec.
+      intros x.
+      apply Decidable_decision.
+      apply in_range_dec.
     - intros x y H.
       simpl in *.
       assert (E: x=y).
@@ -1715,8 +1757,12 @@ Section StructuralProperies.
     SHOperator_Value_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
-    intros x y H.
     -
+      apply Full_FinNatSet_dec.
+    -
+      apply Full_FinNatSet_dec.
+    -
+      intros x y H.
       simpl in *.
       assert (E: x=y).
       {
@@ -1771,6 +1817,10 @@ Section StructuralProperies.
     : SHOperator_Value_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
+    -
+      TODO.
+    -
+      TODO.
     -
       intros x y H.
       simpl in *.

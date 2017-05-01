@@ -11,3 +11,13 @@ Definition singleton {n:nat} (i:nat): FinNatSet n :=
   fun x => proj1_sig x = i.
 
 Definition FinNatSet_dec {n: nat} (s: FinNatSet n) := forall x, decidable (s x).
+
+Lemma Full_FinNatSet_dec:
+  forall i : nat, FinNatSet_dec (Full_set (FinNat i)).
+Proof.
+  unfold FinNatSet_dec.
+  intros i x.
+  unfold decidable.
+  left.
+  split.
+Qed.

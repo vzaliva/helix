@@ -10,6 +10,7 @@ Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Program.Program.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
+Require Import Coq.Logic.Decidable.
 
 Require Import SpiralTactics.
 
@@ -218,3 +219,12 @@ Proof.
   rewrite <- H.
   auto.
 Defined.
+
+Lemma Decidable_decision
+      (P:Prop):
+  Decision P -> decidable P.
+Proof.
+  intros D.
+  unfold decidable.
+  destruct D; tauto.
+Qed.
