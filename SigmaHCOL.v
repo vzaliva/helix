@@ -1989,7 +1989,8 @@ Section StructuralProperies.
       apply Is_Val_dec.
   Qed.
 
-  Lemma Is_Val_In_outset_TODO
+  (* TODO: move *)
+  Lemma Is_Val_In_outset
         (i o : nat)
         (v : rvector i)
         (j : nat) (jc : j < o)
@@ -2091,21 +2092,13 @@ Section StructuralProperies.
                              (family_member Monoid_RthetaFlags op_family m mc) (mkFinNat jc)).
         unfold get_family_op in M.
         unfold get_family_op in N.
-        specialize (op_family_facts m mc).
-        generalize dependent (family_member Monoid_RthetaFlags op_family m mc).
-        intros O op_family_facts compat M C.
-        apply Is_Val_out_set.
 
+        apply Is_Val_In_outset in M; try apply op_family_facts.
+        apply Is_Val_In_outset in N; try apply op_family_facts.
 
-
-
-
-
-        apply op_family_facts in M.
+        destruct C.
         crush.
 
-
-        apply op_family_facts in N.
 
         admit. (* will prove via Disjoint *)
 
