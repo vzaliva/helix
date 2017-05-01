@@ -1989,6 +1989,31 @@ Section StructuralProperies.
       apply Is_Val_dec.
   Qed.
 
+  Lemma Is_Val_In_outset_TODO
+        (i o : nat)
+        (v : rvector i)
+        (j : nat) (jc : j < o)
+        (O : SHOperator Monoid_RthetaFlags)
+        (F: SHOperator_Value_Facts Monoid_RthetaFlags O)
+        (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
+    :
+    Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
+  Proof.
+    intros V.
+    destruct F as [_ _ S].
+    specialize (S v j jc).
+    unfold Is_Struct, compose in S.
+
+    specialize (D (mkFinNat jc)).
+    destruct D.
+    -
+      apply H.
+    -
+      specialize (S H).
+      crush.
+  Qed.
+
+
   Global Instance IUnion_Structural_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1997,7 +2022,7 @@ Section StructuralProperies.
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-         (compat: forall m (mc:m<k) n (nc:n<k), m ≠ n -> Disjoint _
+         (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                                   (out_index_set _ (family_member _ op_family m mc))
                                                                   (out_index_set _ (family_member _ op_family n nc))
          )
@@ -2045,14 +2070,41 @@ Section StructuralProperies.
             split; assumption.
       +
         unfold Vunique.
-
-        intros m mc n nc.
-        intros [M N].
-
+        intros m mc n nc [M N].
         rewrite Vbuild_nth in M.
-        apply op_family_facts in M.
-
         rewrite Vbuild_nth in N.
+
+        destruct (eq_nat_dec m n) as [E | NE].
+        apply E.
+
+        specialize (compat m mc n nc NE).
+        inversion compat as [C].
+        specialize (C (mkFinNat jc)).
+
+
+
+
+
+
+
+        assert(out_index_set Monoid_RthetaFlags
+                             (family_member Monoid_RthetaFlags op_family m mc) (mkFinNat jc)).
+        unfold get_family_op in M.
+        unfold get_family_op in N.
+        specialize (op_family_facts m mc).
+        generalize dependent (family_member Monoid_RthetaFlags op_family m mc).
+        intros O op_family_facts compat M C.
+        apply Is_Val_out_set.
+
+
+
+
+
+
+        apply op_family_facts in M.
+        crush.
+
+
         apply op_family_facts in N.
 
         admit. (* will prove via Disjoint *)
