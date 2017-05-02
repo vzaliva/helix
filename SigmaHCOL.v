@@ -240,8 +240,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
-                                  (family_in_index_set (shrink_op_family f))
+                              (in_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -251,8 +251,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (out_index_set (family_member op_family j (S_j_lt_n E)))
-                                  (family_out_index_set (shrink_op_family f))
+                              (out_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
@@ -633,9 +633,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
@@ -909,7 +909,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1848,6 +1848,29 @@ Section StructuralProperies.
         apply op_family_facts.
   Qed.
 
+  Lemma fmaily_out_index_set_dec
+        (i o k : nat)
+        (op_family : @SHOperatorFamily Monoid_RthetaFlags i o k)
+        (op_family_facts: forall (j : nat) (jc : j < k),
+            SHOperator_Value_Facts Monoid_RthetaFlags
+                                   (family_member Monoid_RthetaFlags op_family j jc)):
+    FinNatSet_dec (family_out_index_set Monoid_RthetaFlags op_family).
+  Proof.
+    induction k.
+    -
+      apply Empty_FinNatSet_dec.
+    -
+      simpl.
+      unfold decidable.
+      apply Union_FinNatSet_dec.
+      +
+        apply op_family_facts.
+      +
+        apply IHk.
+        apply shrink_op_family_facts.
+        apply op_family_facts.
+  Qed.
+
   Global Instance IUnion_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1863,7 +1886,9 @@ Section StructuralProperies.
       apply fmaily_in_index_set_dec.
       apply op_family_facts.
     -
-      TODO.
+      simpl in *.
+      apply fmaily_out_index_set_dec.
+      apply op_family_facts.
     -
       intros x y H.
       simpl in *.
@@ -2091,7 +2116,7 @@ Section StructuralProperies.
         (F: SHOperator_Value_Facts Monoid_RthetaFlags O)
         (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
     :
-    Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
+      Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
   Proof.
     intros V.
     destruct F as [_ _ S].
@@ -2117,8 +2142,8 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                                  (out_index_set _ (family_member _ op_family m mc))
-                                                                  (out_index_set _ (family_member _ op_family n nc))
+                                                            (out_index_set _ (family_member _ op_family m mc))
+                                                            (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
