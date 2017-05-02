@@ -16,6 +16,8 @@ Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
+Require Import Coq.Logic.Decidable.
+
 
 Require Import SpiralTactics.
 Require Import Psatz.
@@ -1807,6 +1809,52 @@ Section StructuralProperies.
       split.
   Qed.
 
+  Lemma shrink_op_family_facts
+        (i o k : nat)
+        (op_family : SHOperatorFamily Monoid_RthetaFlags):
+
+    (∀ (j : nat) (jc : j < S k),
+        @SHOperator_Value_Facts Monoid_RthetaFlags i o
+                                (family_member Monoid_RthetaFlags op_family j jc))
+    → ∀ (j : nat) (jc : j < k),
+      @SHOperator_Value_Facts Monoid_RthetaFlags i o
+                              (family_member Monoid_RthetaFlags (shrink_op_family Monoid_RthetaFlags op_family) j jc).
+  Proof.
+    intros H.
+    intros j jc.
+    assert(jc1: j<S k) by omega.
+    specialize (H j jc1).
+    replace (family_member Monoid_RthetaFlags (shrink_op_family Monoid_RthetaFlags op_family) j
+                           jc) with (family_member Monoid_RthetaFlags op_family j jc1).
+    apply H.
+
+
+
+  Admitted.
+
+  Lemma fmaily_in_index_set_dec
+        (i o k : nat)
+        (op_family : @SHOperatorFamily Monoid_RthetaFlags i o k)
+        (op_family_facts: forall (j : nat) (jc : j < k),
+            SHOperator_Value_Facts Monoid_RthetaFlags
+                                   (family_member Monoid_RthetaFlags op_family j jc)):
+    FinNatSet_dec (family_in_index_set Monoid_RthetaFlags op_family).
+  Proof.
+    induction k.
+    -
+      apply Empty_FinNatSet_dec.
+    -
+      simpl.
+      unfold decidable.
+      apply Union_FinNatSet_dec.
+      +
+        apply op_family_facts.
+      +
+        apply IHk.
+        apply shrink_op_family_facts.
+        apply op_family_facts.
+  Qed.
+
   Global Instance IUnion_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1818,7 +1866,9 @@ Section StructuralProperies.
   Proof.
     split.
     -
-      TODO.
+      simpl in *.
+      apply fmaily_in_index_set_dec.
+      apply op_family_facts.
     -
       TODO.
     -
