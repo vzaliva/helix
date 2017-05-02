@@ -2119,7 +2119,7 @@ Section StructuralProperies.
       Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
   Proof.
     intros V.
-    destruct F as [_ _ S].
+    destruct F as [_ _ _ _ S].
     specialize (S v j jc).
     unfold Is_Struct, compose in S.
 
