@@ -217,6 +217,27 @@ Section SigmaHCOL_Operators.
                            (fun (j:nat) (jc:j<n) => m j (@le_S (S j) n jc))
       end.
 
+    Lemma shrink_op_family_facts
+          (i o k : nat)
+          (op_family : SHOperatorFamily)
+          (facts: ∀ (j : nat) (jc : j < S k),
+              @SHOperator_Value_Facts i o (family_member op_family j jc)):
+      (forall (j : nat) (jc : j < k),
+          @SHOperator_Value_Facts i o (family_member (shrink_op_family op_family) j jc)).
+    Proof.
+      intros j jc.
+      assert(jc1: j<S k) by omega.
+      specialize (facts j jc1).
+      replace (family_member (shrink_op_family op_family) j
+                             jc) with (family_member op_family j jc1).
+      apply facts.
+      clear facts.
+      destruct op_family.
+      simpl in *.
+      f_equal.
+      apply proof_irrelevance.
+    Defined.
+
     Fixpoint family_in_index_set
              {i o n}
              (op_family: @SHOperatorFamily i o n): FinNatSet i
@@ -1808,29 +1829,6 @@ Section StructuralProperies.
       destruct jc.
       split.
   Qed.
-
-  Lemma shrink_op_family_facts
-        (i o k : nat)
-        (op_family : SHOperatorFamily Monoid_RthetaFlags):
-
-    (∀ (j : nat) (jc : j < S k),
-        @SHOperator_Value_Facts Monoid_RthetaFlags i o
-                                (family_member Monoid_RthetaFlags op_family j jc))
-    → ∀ (j : nat) (jc : j < k),
-      @SHOperator_Value_Facts Monoid_RthetaFlags i o
-                              (family_member Monoid_RthetaFlags (shrink_op_family Monoid_RthetaFlags op_family) j jc).
-  Proof.
-    intros H.
-    intros j jc.
-    assert(jc1: j<S k) by omega.
-    specialize (H j jc1).
-    replace (family_member Monoid_RthetaFlags (shrink_op_family Monoid_RthetaFlags op_family) j
-                           jc) with (family_member Monoid_RthetaFlags op_family j jc1).
-    apply H.
-
-
-
-  Admitted.
 
   Lemma fmaily_in_index_set_dec
         (i o k : nat)
