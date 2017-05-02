@@ -226,16 +226,11 @@ Section SigmaHCOL_Operators.
           @SHOperator_Value_Facts i o (family_member (shrink_op_family op_family) j jc)).
     Proof.
       intros j jc.
-      assert(jc1: j<S k) by omega.
-      specialize (facts j jc1).
       replace (family_member (shrink_op_family op_family) j
-                             jc) with (family_member op_family j jc1).
-      apply facts.
-      clear facts.
-      destruct op_family.
-      simpl in *.
-      f_equal.
-      apply proof_irrelevance.
+                             jc) with (family_member op_family j (le_S jc)).
+      - apply facts.
+      - destruct op_family.
+        reflexivity.
     Defined.
 
     Fixpoint family_in_index_set
