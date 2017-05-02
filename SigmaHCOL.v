@@ -2149,6 +2149,7 @@ Section StructuralProperies.
   Proof.
     split.
     -
+      (* no_coll_range *)
       intros v D j jc S.
       simpl in *.
       unfold Diamond', Apply_Family'.
@@ -2200,31 +2201,21 @@ Section StructuralProperies.
         inversion compat as [C].
         specialize (C (mkFinNat jc)).
 
-
-
-
-
-
-
-        assert(out_index_set Monoid_RthetaFlags
-                             (family_member Monoid_RthetaFlags op_family m mc) (mkFinNat jc)).
         unfold get_family_op in M.
         unfold get_family_op in N.
 
         apply Is_Val_In_outset in M; try apply op_family_facts.
         apply Is_Val_In_outset in N; try apply op_family_facts.
 
-        destruct C.
-        crush.
+        contradict C.
 
-
-        admit. (* will prove via Disjoint *)
-
-
-
-
-
+        unfold In.
+        apply Intersection_intro.
+        apply M.
+        apply N.
     -
+      (* no_coll_at_sparse *)
+
       admit.
   Admitted.
 
