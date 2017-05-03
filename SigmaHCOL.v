@@ -2110,6 +2110,29 @@ Section StructuralProperies.
       apply Is_Val_dec.
   Qed.
 
+  Lemma UnionFold_Safe_Non_Collision
+        (k : nat)
+        (dot : CarrierA → CarrierA → CarrierA)
+        (initial : CarrierA)
+        (v : rsvector  k)
+        (Vnc: Vforall Not_Collision v)
+    :
+      Not_Collision (UnionFold Monoid_RthetaSafeFlags dot initial v).
+  Proof.
+    dependent induction v.
+    - unfold UnionFold.
+      simpl.
+      apply Not_Collision_Safe_mkStruct.
+    -
+      rewrite UnionFold_cons.
+      apply UnionCollisionFree_Safe.
+      +
+        apply IHv.
+        apply Vnc.
+      +
+        apply Vnc.
+  Qed.
+
   (* TODO: move *)
   Lemma Is_Val_In_outset
         (i o : nat)
@@ -2262,7 +2285,6 @@ Section StructuralProperies.
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
-    (* TODO: compat  *)
     : SHOperator_Value_Facts _ (IReduction dot initial op_family).
   Proof.
     split.
@@ -2355,6 +2377,100 @@ Section StructuralProperies.
         apply op_family_facts.
   Qed.
 
-  (* TODO: IReduction_Structural_Facts *)
+  Global Instance IReduction_Structural_Facts
+         {i o k}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (initial: CarrierA)
+         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
+         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+         (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+
+    : SHOperator_Structural_Facts _ (IReduction dot initial op_family).
+  Proof.
+    split.
+    -
+      (* no_coll_range *)
+      intros v D j jc S.
+      simpl in *.
+      unfold Diamond', Apply_Family'.
+
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply UnionFold_Safe_Non_Collision.
+
+
+      HERE
+
+      (* no collisions on j-th row accross all families *)
+      apply family_out_set_implies_members in S.
+      destruct S as [d [dc S]].
+
+      apply Vforall_Vbuild.
+      intros t tc.
+
+      destruct (eq_nat_dec d t).
+      +
+        (* family member in out set *)
+        apply no_coll_range.
+        *
+          auto.
+        *
+          intros m mc H.
+          eapply D, family_in_set_includes_members, H.
+        *
+          subst.
+          replace tc with dc by apply proof_irrelevance.
+          apply S.
+      +
+        (* family member in out set *)
+        apply no_coll_at_sparse.
+        *
+          auto.
+        *
+
+          specialize (compat d dc t tc n).
+          inversion compat as [C]; clear compat.
+          specialize (C (mkFinNat jc)). unfold In in C.
+          contradict C.
+          split; assumption.
+    -
+      (* no_coll_at_sparse *)
+      intros v j jc S.
+      simpl in *.
+      unfold Diamond', Apply_Family'.
+
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply UnionFold_Non_Collision.
+
+      +
+        (* no collisions on j-th row accross all families *)
+        assert(forall  (t : nat) (tc : t < k),
+                  not (out_index_set Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family t tc)
+                                     (mkFinNat jc))).
+        {
+          intros t tc.
+          contradict S.
+          apply family_out_set_implies_members.
+          exists t, tc.
+          apply S.
+        }
+
+        apply Vforall_Vbuild.
+        intros t tc.
+
+        unfold get_family_op.
+        apply no_coll_at_sparse.
+        apply op_family_cg.
+        apply H.
+      +
+        intros m mc n _ [M _].
+        rewrite Vbuild_nth in M.
+        unfold get_family_op in M.
+        apply Is_Val_In_outset in M; try apply op_family_facts.
+        contradict S.
+        apply family_out_set_implies_members.
+        exists m, mc.
+        apply M.
+  Qed.
 
 End StructuralProperies.

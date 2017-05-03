@@ -549,7 +549,6 @@ Proof.
   tauto.
 Qed.
 
-
 Lemma Not_Collision_Safe_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : RStheta):
@@ -567,6 +566,15 @@ Proof.
   generalize dependent (is_collision (WriterMonadNoT.execWriter a)).
   generalize dependent (is_collision (WriterMonadNoT.execWriter b)).
   destr_bool; congruence.
+Qed.
+
+Lemma Not_Collision_Safe_mkStruct:
+  ∀ (v:CarrierA), @Not_Collision Monoid_RthetaSafeFlags (mkStruct v).
+Proof.
+  intros v.
+  unfold Not_Collision, Is_Collision, not, mkStruct, compose.
+  simpl.
+  trivial.
 Qed.
 
 Section Decidablitiy.

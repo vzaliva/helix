@@ -604,6 +604,20 @@ Section NonExclusiveUnion.
         apply H.
   Qed.
 
+  Lemma UnionCollisionFree_Safe (a b : RStheta) {dot}:
+    ¬Is_Collision a →
+    ¬Is_Collision b →
+    ¬Is_Collision (Union Monoid_RthetaSafeFlags dot a b).
+  Proof.
+    intros CA CB.
+    unfold Union, Is_Collision, compose.
+    rewrite execWriter_Rtheta_liftM2.
+    unfold Is_Collision, Is_Val, compose in *.
+    destruct (execWriter a) as [str_a col_a].
+    destruct (execWriter b) as [str_b col_b].
+    destr_bool.
+  Qed.
+
 End NonExclusiveUnion.
 
 Section Matrix.
