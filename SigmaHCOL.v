@@ -240,8 +240,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (in_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_in_index_set (shrink_op_family f))
+                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -397,6 +397,49 @@ Section SigmaHCOL_Operators.
         auto.
     Qed.
 
+    Lemma fmaily_in_index_set_dec
+          (i o k : nat)
+          (op_family : @SHOperatorFamily i o k)
+          (op_family_facts: forall (j : nat) (jc : j < k),
+              SHOperator_Value_Facts (family_member op_family j jc)):
+      FinNatSet_dec (family_in_index_set op_family).
+    Proof.
+      induction k.
+      -
+        apply Empty_FinNatSet_dec.
+      -
+        simpl.
+        unfold decidable.
+        apply Union_FinNatSet_dec.
+        +
+          apply op_family_facts.
+        +
+          apply IHk.
+          apply shrink_op_family_facts.
+          apply op_family_facts.
+    Qed.
+
+    Lemma fmaily_out_index_set_dec
+          (i o k : nat)
+          (op_family : @SHOperatorFamily i o k)
+          (op_family_facts: forall (j : nat) (jc : j < k),
+              SHOperator_Value_Facts (family_member op_family j jc)):
+      FinNatSet_dec (family_out_index_set op_family).
+    Proof.
+      induction k.
+      -
+        apply Empty_FinNatSet_dec.
+      -
+        simpl.
+        unfold decidable.
+        apply Union_FinNatSet_dec.
+        +
+          apply op_family_facts.
+        +
+          apply IHk.
+          apply shrink_op_family_facts.
+          apply op_family_facts.
+    Qed.
 
     Lemma SHOperator_ext_equiv_applied
           {i o: nat}
@@ -639,9 +682,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (transpose
+                             (Apply_Family op_family x)
+                          ).
 
     Definition Gather'
                {i o: nat}
@@ -915,7 +958,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
+                                                                     (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -1831,52 +1874,6 @@ Section StructuralProperies.
       split.
   Qed.
 
-  Lemma fmaily_in_index_set_dec
-        (i o k : nat)
-        (op_family : @SHOperatorFamily Monoid_RthetaFlags i o k)
-        (op_family_facts: forall (j : nat) (jc : j < k),
-            SHOperator_Value_Facts Monoid_RthetaFlags
-                                   (family_member Monoid_RthetaFlags op_family j jc)):
-    FinNatSet_dec (family_in_index_set Monoid_RthetaFlags op_family).
-  Proof.
-    induction k.
-    -
-      apply Empty_FinNatSet_dec.
-    -
-      simpl.
-      unfold decidable.
-      apply Union_FinNatSet_dec.
-      +
-        apply op_family_facts.
-      +
-        apply IHk.
-        apply shrink_op_family_facts.
-        apply op_family_facts.
-  Qed.
-
-  Lemma fmaily_out_index_set_dec
-        (i o k : nat)
-        (op_family : @SHOperatorFamily Monoid_RthetaFlags i o k)
-        (op_family_facts: forall (j : nat) (jc : j < k),
-            SHOperator_Value_Facts Monoid_RthetaFlags
-                                   (family_member Monoid_RthetaFlags op_family j jc)):
-    FinNatSet_dec (family_out_index_set Monoid_RthetaFlags op_family).
-  Proof.
-    induction k.
-    -
-      apply Empty_FinNatSet_dec.
-    -
-      simpl.
-      unfold decidable.
-      apply Union_FinNatSet_dec.
-      +
-        apply op_family_facts.
-      +
-        apply IHk.
-        apply shrink_op_family_facts.
-        apply op_family_facts.
-  Qed.
-
   Global Instance IUnion_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2148,8 +2145,8 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                            (out_index_set _ (family_member _ op_family m mc))
-                                                            (out_index_set _ (family_member _ op_family n nc))
+                                                                  (out_index_set _ (family_member _ op_family m mc))
+                                                                  (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
@@ -2270,6 +2267,14 @@ Section StructuralProperies.
   Proof.
     split.
     -
+      simpl in *.
+      apply fmaily_in_index_set_dec.
+      apply op_family_facts.
+    -
+      simpl in *.
+      apply fmaily_out_index_set_dec.
+      apply op_family_facts.
+    -
       intros x y H.
       simpl in *.
       vec_index_equiv j jc.
@@ -2318,6 +2323,36 @@ Section StructuralProperies.
         apply H.
       +
         apply X.
+    -
+      intros v j jc S.
+      simpl in *.
+
+      unfold IUnion, Diamond', Apply_Family'.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      unfold Is_Struct, compose, not.
+      intros G.
+
+      apply Is_Val_UnionFold_Safe in G.
+      apply Vexists_Vbuild in G.
+      destruct G as [t [tc G]].
+      apply op_family_facts in G.
+      * tauto.
+      *
+        (* G and S contradict *)
+        assert(N: ¬ out_index_set Monoid_RthetaSafeFlags
+                    (family_member Monoid_RthetaSafeFlags op_family t tc) (mkFinNat jc)).
+        {
+          contradict S.
+          apply family_out_set_includes_members in S.
+          auto.
+        }
+        apply no_vals_at_sparse with (v:=v) in N.
+        unfold Is_Struct, compose, not in N.
+
+        unfold get_family_op in G.
+        auto.
+
+        apply op_family_facts.
   Qed.
 
 End StructuralProperies.
