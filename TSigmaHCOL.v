@@ -57,7 +57,7 @@ Section RthetaSafetyCast.
 
   Definition SafeCast {i o}
              (f: @SHOperator Monoid_RthetaSafeFlags i o)
-  : @SHOperator Monoid_RthetaFlags i o.
+    : @SHOperator Monoid_RthetaFlags i o.
   Proof.
     refine (mkSHOperator Monoid_RthetaFlags i o
                          (SafeCast' (op Monoid_RthetaSafeFlags f))
@@ -171,6 +171,14 @@ Global Instance HTSUMUnion_Facts
   : SHOperator_Value_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
 Proof.
   split.
+  -
+    apply Union_FinNatSet_dec.
+    apply fop1.
+    apply fop2.
+  -
+    apply Union_FinNatSet_dec.
+    apply fop1.
+    apply fop2.
   - intros x y H.
     destruct op1, op2, fop1, fop2.
     simpl in *.
@@ -211,4 +219,44 @@ Proof.
       right.
       apply H0.
       apply i0.
+  -
+    intros v j jc S.
+    unfold HTSUMUnion, HTSUMUnion', Vec2Union.
+    simpl.
+    rewrite Vnth_map2.
+    apply StructUnionIsStruct.
+    unfold Is_Struct, compose, not.
+    split.
+    +
+      intros H.
+      apply fop1 in H.
+      inversion H.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+      simpl in *.
+      unfold not in S.
+      contradict S.
+      apply Union_introl.
+      apply S.
+    +
+      intros H.
+      apply fop2 in H.
+      inversion H.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+      simpl in *.
+      unfold not in S.
+      contradict S.
+      apply Union_intror.
+      apply S.
 Qed.
+
+(*
+Global Instance HTSUMUnion_Structural_Facts
+       {i o}
+       (dot: CarrierA -> CarrierA -> CarrierA)
+       `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+       (op1 op2: @SHOperator Monoid_RthetaFlags i o)
+       `{fop1: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op1}
+       `{fop2: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op2}
+  : SHOperator_Structural_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+Proof.
+ *)

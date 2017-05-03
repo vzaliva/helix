@@ -498,6 +498,31 @@ Section ExclusiveUnion.
       destr_bool; auto.
   Qed.
 
+  (* Conditions under which Union produces struct *)
+  Lemma StructUnionIsStruct (a b : Rtheta) {dot}:
+    Is_Struct a /\ Is_Struct b <-> Is_Struct (Union Monoid_RthetaFlags dot a b).
+  Proof.
+    split.
+    -
+      intros [SA SB].
+      unfold Union, Is_Struct, Is_Val, compose in *.
+      rewrite execWriter_Rtheta_liftM2.
+      destruct (execWriter a) as [str_a col_a].
+      destruct (execWriter b) as [str_b col_b].
+      unfold RthetaFlagsAppend.
+      destr_bool.
+    -
+      intros H.
+      unfold Union, Is_Struct, Is_Val, compose in *.
+      rewrite execWriter_Rtheta_liftM2 in H.
+      destruct (execWriter a) as [str_a col_a].
+      destruct (execWriter b) as [str_b col_b].
+      simpl in *.
+      unfold RthetaFlagsAppend in H.
+      unfold IsVal in *.
+      destr_bool; auto.
+  Qed.
+
   Lemma Is_Val_UnionFold {n} {v: rvector n} {dot} {neutral}:
     Vexists Is_Val v <-> Is_Val (UnionFold Monoid_RthetaFlags dot neutral v).
   Proof.
