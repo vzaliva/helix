@@ -2355,4 +2355,6 @@ Section StructuralProperies.
         apply op_family_facts.
   Qed.
 
+  (* TODO: IReduction_Structural_Facts *)
+
 End StructuralProperies.
