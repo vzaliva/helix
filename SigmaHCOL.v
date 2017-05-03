@@ -359,36 +359,42 @@ Section SigmaHCOL_Operators.
           (i o k : nat) (op_family : @SHOperatorFamily i o k)
           (j : nat) (jc : j < o):
 
-      family_out_index_set op_family (mkFinNat jc) ->
+      family_out_index_set op_family (mkFinNat jc) <->
       ∃ (t : nat) (tc : t < k),
         out_index_set (family_member op_family t tc)
                       (mkFinNat jc).
     Proof.
-      intros H.
-      induction k.
-      -
-        inversion H.
-      -
-        simpl in H.
-        inversion_clear H as [H0 | H1].
+      split.
+      - intros H.
+        induction k.
         +
-          subst.
-          unfold In in H1.
-          exists k, (le_n (S k)).
-          apply H1.
+          inversion H.
         +
-          subst.
-          specialize (IHk (shrink_op_family op_family) H0).
-          destruct IHk as [t [tc  IHk]].
-          exists t.
-          assert(tc1: t < S k) by omega.
-          exists tc1.
+          simpl in H.
+          inversion_clear H as [H0 | H1].
+          *
+            subst.
+            unfold In in H1.
+            exists k, (le_n (S k)).
+            apply H1.
+          *
+            subst.
+            specialize (IHk (shrink_op_family op_family) H0).
+            destruct IHk as [t [tc  IHk]].
+            exists t.
+            assert(tc1: t < S k) by omega.
+            exists tc1.
 
-          unfold shrink_op_family.
-          destruct op_family.
-          simpl in *.
-          replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
-          apply IHk.
+            unfold shrink_op_family.
+            destruct op_family.
+            simpl in *.
+            replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
+            apply IHk.
+      -
+        intros H.
+        destruct H as [x [xc H]].
+        apply family_out_set_includes_members in H.
+        auto.
     Qed.
 
 
@@ -2189,7 +2195,6 @@ Section StructuralProperies.
             contradict C.
             split; assumption.
       +
-        unfold Vunique.
         intros m mc n nc [M N].
         rewrite Vbuild_nth in M.
         rewrite Vbuild_nth in N.
@@ -2215,9 +2220,43 @@ Section StructuralProperies.
         apply N.
     -
       (* no_coll_at_sparse *)
+      intros v j jc S.
+      simpl in *.
+      unfold Diamond', Apply_Family'.
 
-      admit.
-  Admitted.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply UnionFold_Non_Collision.
+
+      +
+        (* no collisions on j-th row accross all families *)
+        assert(forall  (t : nat) (tc : t < k),
+                  not (out_index_set Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family t tc)
+                                     (mkFinNat jc))).
+        {
+          intros t tc.
+          contradict S.
+          apply family_out_set_implies_members.
+          exists t, tc.
+          apply S.
+        }
+
+        apply Vforall_Vbuild.
+        intros t tc.
+
+        unfold get_family_op.
+        apply no_coll_at_sparse.
+        apply op_family_cg.
+        apply H.
+      +
+        intros m mc n _ [M _].
+        rewrite Vbuild_nth in M.
+        unfold get_family_op in M.
+        apply Is_Val_In_outset in M; try apply op_family_facts.
+        contradict S.
+        apply family_out_set_implies_members.
+        exists m, mc.
+        apply M.
+  Qed.
 
   Global Instance IReduction_Facts
          {i o k}
