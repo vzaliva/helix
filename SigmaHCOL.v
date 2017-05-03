@@ -240,8 +240,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
-                                  (family_in_index_set (shrink_op_family f))
+                              (in_index_set (family_member op_family j (S_j_lt_n E)))
+                              (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -682,9 +682,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
 
     Definition Gather'
                {i o: nat}
@@ -958,7 +958,7 @@ Section SigmaHCOL_Operators.
               (@forall_relation nat
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
-                                                                     (svector fm i -> svector fm o) (=)))
+                                                                (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
@@ -2168,8 +2168,8 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                                  (out_index_set _ (family_member _ op_family m mc))
-                                                                  (out_index_set _ (family_member _ op_family n nc))
+                                                            (out_index_set _ (family_member _ op_family m mc))
+                                                            (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
   Proof.
@@ -2398,41 +2398,21 @@ Section StructuralProperies.
       rewrite AbsorbMUnion'Index_Vbuild.
       apply UnionFold_Safe_Non_Collision.
 
-
-      HERE
-
       (* no collisions on j-th row accross all families *)
-      apply family_out_set_implies_members in S.
-      destruct S as [d [dc S]].
-
       apply Vforall_Vbuild.
       intros t tc.
 
-      destruct (eq_nat_dec d t).
-      +
-        (* family member in out set *)
-        apply no_coll_range.
-        *
-          auto.
-        *
-          intros m mc H.
-          eapply D, family_in_set_includes_members, H.
-        *
-          subst.
-          replace tc with dc by apply proof_irrelevance.
-          apply S.
-      +
-        (* family member in out set *)
-        apply no_coll_at_sparse.
-        *
-          auto.
-        *
+      destruct (op_family_facts t tc).
+      specialize (out_dec0 (mkFinNat jc)).
+      destruct out_dec0 as [O | NO].
 
-          specialize (compat d dc t tc n).
-          inversion compat as [C]; clear compat.
-          specialize (C (mkFinNat jc)). unfold In in C.
-          contradict C.
-          split; assumption.
+      + apply no_coll_range.
+        * auto.
+        * intros m mc H.
+          eapply D, family_in_set_includes_members, H.
+        * auto.
+      +
+        apply no_coll_at_sparse; auto.
     -
       (* no_coll_at_sparse *)
       intros v j jc S.
@@ -2440,12 +2420,11 @@ Section StructuralProperies.
       unfold Diamond', Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
-      apply UnionFold_Non_Collision.
-
+      apply UnionFold_Safe_Non_Collision.
       +
         (* no collisions on j-th row accross all families *)
         assert(forall  (t : nat) (tc : t < k),
-                  not (out_index_set Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family t tc)
+                  not (out_index_set Monoid_RthetaSafeFlags (family_member Monoid_RthetaSafeFlags op_family t tc)
                                      (mkFinNat jc))).
         {
           intros t tc.
@@ -2462,15 +2441,6 @@ Section StructuralProperies.
         apply no_coll_at_sparse.
         apply op_family_cg.
         apply H.
-      +
-        intros m mc n _ [M _].
-        rewrite Vbuild_nth in M.
-        unfold get_family_op in M.
-        apply Is_Val_In_outset in M; try apply op_family_facts.
-        contradict S.
-        apply family_out_set_implies_members.
-        exists m, mc.
-        apply M.
   Qed.
 
 End StructuralProperies.
