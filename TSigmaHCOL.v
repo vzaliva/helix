@@ -249,7 +249,7 @@ Proof.
       apply S.
 Qed.
 
-(*
+
 Global Instance HTSUMUnion_Structural_Facts
        {i o}
        (dot: CarrierA -> CarrierA -> CarrierA)
@@ -257,6 +257,92 @@ Global Instance HTSUMUnion_Structural_Facts
        (op1 op2: @SHOperator Monoid_RthetaFlags i o)
        `{fop1: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op1}
        `{fop2: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op2}
+       `{sop1: SHOperator_Structural_Facts Monoid_RthetaFlags _ _ op1}
+       `{sop2: SHOperator_Structural_Facts Monoid_RthetaFlags _ _ op2}
+       (compat: Disjoint _
+                         (out_index_set _ op1)
+                         (out_index_set _ op2)
+       )
+
   : SHOperator_Structural_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
 Proof.
- *)
+  split.
+  -
+    (* no_coll_range *)
+    intros v D j jc S.
+    unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+    simpl in *.
+    rewrite Vnth_map2.
+    apply UnionCollisionFree.
+    +
+      destruct fop1.
+      destruct (out_dec (mkFinNat jc)).
+      * apply no_coll_range.
+        apply sop1.
+        intros t tc I.
+        specialize (D t tc).
+        apply D.
+        apply Union_introl.
+        apply I.
+        apply H.
+      * apply no_coll_at_sparse.
+        apply sop1.
+        apply H.
+    +
+      destruct fop2.
+      destruct (out_dec (mkFinNat jc)).
+      * apply no_coll_range.
+        apply sop2.
+        intros t tc I.
+        specialize (D t tc).
+        apply D.
+        apply Union_intror.
+        apply I.
+        apply H.
+      * apply no_coll_at_sparse.
+        apply sop2.
+        apply H.
+    +
+      intros [A B].
+
+      destruct compat as [C].
+      specialize (C (mkFinNat jc)).
+      unfold In in C.
+
+      apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
+      apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+
+      contradict C.
+      apply Intersection_intro; auto.
+  -
+    (* no_coll_at_sparse *)
+    intros v j jc S.
+    unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+    simpl in *.
+    rewrite Vnth_map2.
+    apply UnionCollisionFree.
+    +
+      apply no_coll_at_sparse.
+      apply sop1.
+      contradict S.
+      apply Union_introl.
+      apply S.
+    +
+      apply no_coll_at_sparse.
+      apply sop2.
+      contradict S.
+      apply Union_intror.
+      apply S.
+    +
+      intros [A B].
+
+      destruct compat as [C].
+      specialize (C (mkFinNat jc)).
+      unfold In in C.
+
+      apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
+      apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+
+      contradict C.
+      apply Intersection_intro; auto.
+Qed.
