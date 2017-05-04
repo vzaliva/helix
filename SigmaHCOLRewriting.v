@@ -591,7 +591,11 @@ Section SigmaHCOLExpansionRules.
         simpl.
         rewrite RthetaFlags_runit.
         rewrite RthetaFlags_safe_runit.
-        simpl.
+
+        (* Sides of equality differ only in Flags Append function *)
+        unfold equiv, Rtheta'_equiv.
+        unfold WriterMonadNoT.evalWriter, compose, WriterMonadNoT.runWriter.
+
         reflexivity.
     Qed.
 
