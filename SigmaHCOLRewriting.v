@@ -733,14 +733,19 @@ Section SigmaHCOLExpansionRules.
                 unfold densify.
                 rewrite Vmap_map.
                 unfold mkValue, WriterMonadNoT.evalWriter.
+                unfold equiv, Rtheta'_equiv.
+                unfold WriterMonadNoT.evalWriter, compose, WriterMonadNoT.runWriter.
                 simpl.
+
                 replace (Vmap (λ x2 : CarrierA, x2) x0) with x0
                   by (symmetry; apply Vmap_id).
+
                 replace (Vnth
                            (f x0)
                            (gen_inverse_index_f_spec
                               (h_index_map 0 1) i i0)) with
                     (Vnth (f x0) g0).
+
                 reflexivity.
                 generalize (f x0) as fx0. intros fx0.
                 apply Vnth_eq.
@@ -816,6 +821,8 @@ Section SigmaHCOLExpansionRules.
                 unfold densify.
                 rewrite Vmap_map.
                 unfold mkValue, WriterMonadNoT.evalWriter.
+                unfold equiv, Rtheta'_equiv.
+                unfold WriterMonadNoT.evalWriter, compose, WriterMonadNoT.runWriter.
                 simpl.
 
                 replace (Vmap (λ x2 : CarrierA, x2) x1) with x1
