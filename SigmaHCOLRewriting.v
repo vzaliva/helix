@@ -436,6 +436,7 @@ Section SigmaHCOLExpansionRules.
         simpl.
         unfold IndexFunctions.h_index_map_obligation_1.
 
+
         unfold SafeCast', compose, rsvector2rvector.
         unfold SHBinOp', vector2pair, rvector2rsvector.
 

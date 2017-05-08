@@ -42,7 +42,7 @@ Section RthetaSafetyCast.
     := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
 
   Lemma proper_SafeCast' (i o : nat)
-        (op : svector Monoid_RthetaSafeFlags i → svector Monoid_RthetaSafeFlags o)
+        (op : rsvector i → rsvector o)
         (op_proper: Proper (equiv ==> equiv) (op))
     :
       Proper (equiv ==> equiv) (SafeCast' op).
