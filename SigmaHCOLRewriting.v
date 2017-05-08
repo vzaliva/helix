@@ -404,14 +404,15 @@ Section SigmaHCOLExpansionRules.
 
       remember (fun i jc => Scatter' _  _ _) as bf.
 
+
+      (*
       assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
       assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
 
-
       (* replacing Gather *)
       assert (B1: bf =
-                     (fun (i : nat) (jc : Peano.lt i n) =>
-                        @Scatter' Monoid_RthetaFlags (S O) n
+                  (fun (i : nat) (jc : Peano.lt i n) =>
+                     (@Scatter' Monoid_RthetaFlags (S O) n
                                   (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
                                   (@index_map_family_member_injective (S O) n n
                                                                       (IndexMapFamily (S O) n n
@@ -422,7 +423,7 @@ Section SigmaHCOLExpansionRules.
                                   (@SHBinOp' Monoid_RthetaFlags (S O) (@SwapIndex2 CarrierA i f)
                                              (@SwapIndex2_specialized_proper CarrierA CarrierAe CarrierAsetoid i f
                                                                              f_mor)
-                                             [(Vnth x (ILTNN i jc));  (Vnth x (INLTNN i jc))]))).
+                                             [(Vnth x (ILTNN i jc));  (Vnth x (INLTNN i jc))])))).
       {
         subst bf.
         unfold equiv, indexed_vector_equiv, forall_relation.
@@ -491,11 +492,13 @@ Section SigmaHCOLExpansionRules.
         ring_simplify; reflexivity.
         reflexivity.
         reflexivity.
-
       }
 
+
+
+
       (* Replacing SHBinOp' *)
-      assert (B2: bf ≡
+      assert (B2: bf =
                      (fun (i : nat) (jc : Peano.lt i n) =>
                         @Scatter' Monoid_RthetaFlags (S O) n
                                   (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
@@ -510,6 +513,7 @@ Section SigmaHCOLExpansionRules.
 
              )).
       {
+        (*
         rewrite B1.
         extensionality i.
         extensionality id.
@@ -522,10 +526,17 @@ Section SigmaHCOLExpansionRules.
         simpl ((Vnth [Vnth x (ILTNN i id)] (Nat.lt_0_succ 0))).
         simpl (Vnth [Vnth x (INLTNN i id)] (Nat.lt_0_succ 0)).
         reflexivity.
+         *)
+        admit.
       }
+      (*
+      subst.
       rewrite B2.
       clear B1 B2 Heqbf bf.
+       *)
 
+      clear B1 B2.
+       *)
       (* Lemma5 embedded below*)
       rewrite AbsorbSumUnionIndex_Vmap by solve_proper.
       rewrite Vmap_Vbuild.
@@ -569,13 +580,36 @@ Section SigmaHCOLExpansionRules.
       rewrite SingleValueInZeros with (j:=k) (jc:=kp).
       -  subst b.
          rewrite Vbuild_nth.
+         subst bf.
          unfold Scatter'.
          rewrite Vbuild_nth.
          break_match.
          +
-           rewrite Vnth_1.
-           rewrite (@SHBinOp'_nth _ n f _ x _ kp (ILTNN k kp) (INLTNN k kp)).
-           reflexivity.
+           clear L3pre.
+
+           unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
+           rewrite Vnth_map.
+
+           erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
+           rewrite 2!Vnth_map.
+           erewrite SHBinOp'_nth.
+           rewrite 2!Gather'_spec with (fm:=Monoid_RthetaFlags).
+           unfold VnthIndexMapped.
+
+
+           unfold SwapIndex2, inverse_index_f, build_inverse_index_map, const.
+           unfold h_index_map.
+
+           Opaque Rtheta2RStheta Monad.liftM2.
+           unfold IndexFunctions.h_index_map_obligation_1.
+           simpl.
+
+           assert(jc10: k < n + n) by omega.
+           assert(jc20: k + n < n + n) by omega.
+
+           apply RStheta2Rtheta_liftM2.
+           solve_proper.
+
          +
            unfold in_range in n0.
            simpl in n0.
