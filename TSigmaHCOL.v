@@ -41,7 +41,7 @@ Section RthetaSafetyCast.
     rvector i -> rvector o
     := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
 
-  Lemma proper_SafeCast' (i o : nat)
+  Lemma SafeCast_proper' (i o : nat)
         (op : rsvector i → rsvector o)
         (op_proper: Proper (equiv ==> equiv) (op))
     :
@@ -65,7 +65,7 @@ Section RthetaSafetyCast.
     -
       destruct f.
       simpl.
-      apply proper_SafeCast', op_proper.
+      apply SafeCast'_proper, op_proper.
     -
       apply f.
     -
