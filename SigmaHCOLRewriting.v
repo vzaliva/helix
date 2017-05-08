@@ -436,17 +436,43 @@ Section SigmaHCOLExpansionRules.
         simpl.
         unfold IndexFunctions.h_index_map_obligation_1.
 
-        HERE
-
         unfold SafeCast', compose, rsvector2rvector.
-        unfold SHBinOp', vector2pair, rvector2rsvector.
 
 
-        f_equal.
-        f_equal.
-        apply Vnth_cast_index; omega.
-        f_equal.
-        apply Vnth_cast_index; omega.
+        unfold equiv, vec_Equiv; apply Vforall2_intro_nth.
+        intros t tc.
+        rewrite Vnth_map.
+
+        assert(jc1': S t <= 1 + 1) by omega.
+        assert(jc2': S (t + 1) <= 1 + 1) by omega.
+
+        rewrite SHBinOp'_nth with (o:=1) (jc:=tc) (jc1:=jc1') (jc2:=jc2').
+        rewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags) (jc:=tc) (jc1:=jc1') (jc2:=jc2').
+
+        unfold rvector2rsvector.
+        rewrite 2!Vnth_map.
+
+        setoid_replace (Vnth [Vnth x (ILTNN j jc); Vnth x (INLTNN j jc)] jc2')
+          with
+            (Vnth
+               [Vnth x (GathH_jn_domain_bound j n jc 0 (lt_0_SSn 0));
+                Vnth x (GathH_jn_domain_bound j n jc 1 (lt_1_SSn 0))] jc2').
+
+
+        setoid_replace (Vnth [Vnth x (ILTNN j jc); Vnth x (INLTNN j jc)] jc1')
+          with
+            (Vnth
+               [Vnth x (GathH_jn_domain_bound j n jc 0 (lt_0_SSn 0));
+                Vnth x (GathH_jn_domain_bound j n jc 1 (lt_1_SSn 0))] jc1').
+
+        apply RStheta2Rtheta_liftM2.
+        solve_proper.
+
+        apply Vnth_arg_equiv.
+        admit.
+
+        apply Vnth_arg_equiv.
+        admit.
       }
 
       (* Replacing SHBinOp' *)

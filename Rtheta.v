@@ -462,6 +462,20 @@ End Rtheta'Utils.
 (* Re-define to be visible outside the sectoin *)
 Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta'_equiv in *.
 
+Lemma RStheta2Rtheta_liftM2
+      (f : CarrierA → CarrierA → CarrierA)
+      (f_mor: Proper (equiv ==> equiv ==> equiv) f)
+      {a b: Rtheta}
+  :
+    RStheta2Rtheta (Monad.liftM2 f (Rtheta2RStheta a) (Rtheta2RStheta b)) =
+    Monad.liftM2 f a b.
+Proof.
+  unfold RStheta2Rtheta, Rtheta2RStheta.
+  unfold_Rtheta_equiv.
+  reflexivity.
+Qed.
+
+
 Lemma Is_Val_mkStruct:
   forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
 Proof.
