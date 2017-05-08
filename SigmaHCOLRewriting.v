@@ -469,10 +469,29 @@ Section SigmaHCOLExpansionRules.
         solve_proper.
 
         apply Vnth_arg_equiv.
-        admit.
+        apply Vcons_equiv_intro.
+        apply Vnth_equiv.
+        ring_simplify; reflexivity.
+        reflexivity.
+
+        apply Vcons_equiv_intro.
+        apply Vnth_equiv.
+        ring_simplify; reflexivity.
+        reflexivity.
+        reflexivity.
 
         apply Vnth_arg_equiv.
-        admit.
+        apply Vcons_equiv_intro.
+        apply Vnth_equiv.
+        ring_simplify; reflexivity.
+        reflexivity.
+
+        apply Vcons_equiv_intro.
+        apply Vnth_equiv.
+        ring_simplify; reflexivity.
+        reflexivity.
+        reflexivity.
+
       }
 
       (* Replacing SHBinOp' *)
