@@ -478,6 +478,13 @@ Proof.
     assumption.
 Qed.
 
+Global Instance indexed_vector_equiv `{Equiv A} {n}:
+  Equiv (∀ i : nat, i < n → vector A n)
+  :=  @forall_relation nat
+                       (fun i : nat =>  forall _ : i<n, vector A n)
+                       (fun i : nat =>  @pointwise_relation (i < n)
+                                                       (vector A n) (=)).
+
 Global Instance Vbuild_proper {n:nat} `{Equiv A}:
   @Proper
     (forall _ : forall (i : nat) (_ : i < n), vector A n,
@@ -497,6 +504,4 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
-
-
 

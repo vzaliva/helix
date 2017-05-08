@@ -192,7 +192,7 @@ Proof.
   omega.
 Qed.
 
-Lemma ext_equiv_applied_iff'
+Lemma ext_equiv_applied_equiv
       `{Equiv A} `{Equiv B}
       `(!Setoid_Morphism (f : A → B))
       `(!Setoid_Morphism (g : A → B)) :

@@ -453,7 +453,7 @@ Section SigmaHCOL_Operators.
         reflexivity.
       -
         intros H.
-        apply ext_equiv_applied_iff'.
+        apply ext_equiv_applied_equiv.
         split ; try apply vec_Setoid. apply f.
         split ; try apply vec_Setoid. apply g.
         apply H.
@@ -1258,7 +1258,7 @@ Section OperatorProperies.
     SHPointwise fm f =
     liftM_HOperator fm (@HPointwise n f pF).
   Proof.
-    apply ext_equiv_applied_iff'.
+    apply ext_equiv_applied_equiv.
     - apply SM_op_SHOperator.
     - apply SM_op_SHOperator.
     -
@@ -1381,7 +1381,7 @@ Lemma SHBinOp_equiv_lifted_HBinOp
   :
     @SHBinOp o f pF = @liftM_HOperator Monoid_RthetaSafeFlags (o+o) o (@HBinOp o f pF) _ .
 Proof.
-  apply ext_equiv_applied_iff'.
+  apply ext_equiv_applied_equiv.
   -
     simpl.
     split.

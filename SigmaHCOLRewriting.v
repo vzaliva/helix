@@ -137,7 +137,7 @@ Section SigmaHCOLHelperLemmas.
               (liftM_HOperator fm op2).
   Proof.
     unfold equiv, SHOperator_equiv; simpl.
-    apply ext_equiv_applied_iff'.
+    apply ext_equiv_applied_equiv.
     -
       split.
       + apply vec_Setoid.
@@ -400,18 +400,16 @@ Section SigmaHCOLExpansionRules.
                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
-    Admitted.
-    (* TODO: temp
       intros n x f f_mor k kp.
-
 
       remember (fun i jc => Scatter' _  _ _) as bf.
 
       assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
       assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
 
+
       (* replacing Gather *)
-      assert (B1: bf ≡
+      assert (B1: bf =
                      (fun (i : nat) (jc : Peano.lt i n) =>
                         @Scatter' Monoid_RthetaFlags (S O) n
                                   (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
@@ -427,14 +425,21 @@ Section SigmaHCOLExpansionRules.
                                              [(Vnth x (ILTNN i jc));  (Vnth x (INLTNN i jc))]))).
       {
         subst bf.
-        extensionality j. extensionality jn.
+        unfold equiv, indexed_vector_equiv, forall_relation.
+        intros j jc.
+
+        eapply Scatter'_proper.
+
         unfold Gather'.
         rewrite Vbuild_2.
         unfold VnthIndexMapped.
         simpl.
         unfold IndexFunctions.h_index_map_obligation_1.
-        simpl in *.
-        f_equal.
+
+        unfold SafeCast', compose, rsvector2rvector.
+        unfold SHBinOp', vector2pair, rvector2rsvector.
+
+
         f_equal.
         f_equal.
         apply Vnth_cast_index; omega.
@@ -530,7 +535,7 @@ Section SigmaHCOLExpansionRules.
            break_if; crush.
       -
         apply L3pre.
-    Qed. *)
+    Qed.
 
 
     (*
@@ -634,7 +639,7 @@ Section SigmaHCOLExpansionRules.
     Proof.
       unfold equiv, SHOperator_equiv.
       simpl.
-      eapply ext_equiv_applied_iff'.
+      eapply ext_equiv_applied_equiv.
       -
         split; try apply vec_Setoid.
         solve_proper.
@@ -643,7 +648,7 @@ Section SigmaHCOLExpansionRules.
         apply HTSUMUnion'_proper.
         solve_proper.
         +
-          apply ext_equiv_applied_iff'.
+          apply ext_equiv_applied_equiv.
 
           split; try apply vec_Setoid.
           apply compose_proper with (RA:=equiv) (RB:=equiv).
@@ -661,7 +666,7 @@ Section SigmaHCOLExpansionRules.
           intros.
           reflexivity.
         +
-          apply ext_equiv_applied_iff'.
+          apply ext_equiv_applied_equiv.
 
           split; try apply vec_Setoid.
           apply compose_proper with (RA:=equiv) (RB:=equiv).
@@ -1101,7 +1106,7 @@ Section SigmaHCOLRewritingRules.
         ).
     Proof.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
-      apply ext_equiv_applied_iff'.
+      apply ext_equiv_applied_equiv.
       -
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
