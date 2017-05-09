@@ -397,7 +397,7 @@ Section SigmaHCOLExpansionRules.
                                                                                                 @h_index_map 1 n j0 1
                                                                                                              (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc)
                                  (SafeCast' (SHBinOp' Monoid_RthetaSafeFlags (SwapIndex2 j f))
-                                           (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
+                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
       intros n x f f_mor k kp.
@@ -405,138 +405,6 @@ Section SigmaHCOLExpansionRules.
       remember (fun i jc => Scatter' _  _ _) as bf.
 
 
-      (*
-      assert(ILTNN: forall y:nat,  y<n -> y<(n+n)) by (intros; omega).
-      assert(INLTNN: forall y:nat,  y<n -> y+n<(n+n)) by (intros; omega).
-
-      (* replacing Gather *)
-      assert (B1: bf =
-                  (fun (i : nat) (jc : Peano.lt i n) =>
-                     (@Scatter' Monoid_RthetaFlags (S O) n
-                                  (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
-                                  (@index_map_family_member_injective (S O) n n
-                                                                      (IndexMapFamily (S O) n n
-                                                                                      (fun (j0 : nat) (jc0 : Peano.lt j0 n) =>
-                                                                                         @h_index_map (S O) n j0 (S O)
-                                                                                                      (ScatH_1_to_n_range_bound j0 n (S O) jc0)))
-                                                                      (@h_j_1_family_injective n) i jc)
-                                  (@SHBinOp' Monoid_RthetaFlags (S O) (@SwapIndex2 CarrierA i f)
-                                             (@SwapIndex2_specialized_proper CarrierA CarrierAe CarrierAsetoid i f
-                                                                             f_mor)
-                                             [(Vnth x (ILTNN i jc));  (Vnth x (INLTNN i jc))])))).
-      {
-        subst bf.
-        unfold equiv, indexed_vector_equiv, forall_relation.
-        intros j jc.
-
-        eapply Scatter'_proper.
-
-        unfold Gather'.
-        rewrite Vbuild_2.
-        unfold VnthIndexMapped.
-        simpl.
-        unfold IndexFunctions.h_index_map_obligation_1.
-
-        unfold SafeCast', compose, rsvector2rvector.
-
-
-        unfold equiv, vec_Equiv; apply Vforall2_intro_nth.
-        intros t tc.
-        rewrite Vnth_map.
-
-        assert(jc1': S t <= 1 + 1) by omega.
-        assert(jc2': S (t + 1) <= 1 + 1) by omega.
-
-        rewrite SHBinOp'_nth with (o:=1) (jc:=tc) (jc1:=jc1') (jc2:=jc2').
-        rewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags) (jc:=tc) (jc1:=jc1') (jc2:=jc2').
-
-        unfold rvector2rsvector.
-        rewrite 2!Vnth_map.
-
-        setoid_replace (Vnth [Vnth x (ILTNN j jc); Vnth x (INLTNN j jc)] jc2')
-          with
-            (Vnth
-               [Vnth x (GathH_jn_domain_bound j n jc 0 (lt_0_SSn 0));
-                Vnth x (GathH_jn_domain_bound j n jc 1 (lt_1_SSn 0))] jc2').
-
-
-        setoid_replace (Vnth [Vnth x (ILTNN j jc); Vnth x (INLTNN j jc)] jc1')
-          with
-            (Vnth
-               [Vnth x (GathH_jn_domain_bound j n jc 0 (lt_0_SSn 0));
-                Vnth x (GathH_jn_domain_bound j n jc 1 (lt_1_SSn 0))] jc1').
-
-        apply RStheta2Rtheta_liftM2.
-        solve_proper.
-
-        apply Vnth_arg_equiv.
-        apply Vcons_equiv_intro.
-        apply Vnth_equiv.
-        ring_simplify; reflexivity.
-        reflexivity.
-
-        apply Vcons_equiv_intro.
-        apply Vnth_equiv.
-        ring_simplify; reflexivity.
-        reflexivity.
-        reflexivity.
-
-        apply Vnth_arg_equiv.
-        apply Vcons_equiv_intro.
-        apply Vnth_equiv.
-        ring_simplify; reflexivity.
-        reflexivity.
-
-        apply Vcons_equiv_intro.
-        apply Vnth_equiv.
-        ring_simplify; reflexivity.
-        reflexivity.
-        reflexivity.
-      }
-
-
-
-
-      (* Replacing SHBinOp' *)
-      assert (B2: bf =
-                     (fun (i : nat) (jc : Peano.lt i n) =>
-                        @Scatter' Monoid_RthetaFlags (S O) n
-                                  (@h_index_map (S O) n i (S O) (ScatH_1_to_n_range_bound i n (S O) jc))
-                                  (@index_map_family_member_injective (S O) n n
-                                                                      (IndexMapFamily (S O) n n
-                                                                                      (fun (j0 : nat) (jc0 : Peano.lt j0 n) =>
-                                                                                         @h_index_map (S O) n j0 (S O)
-                                                                                                      (ScatH_1_to_n_range_bound j0 n (S O) jc0)))
-                                                                      (@h_j_1_family_injective n) i jc)
-                                  [Monad.liftM2 (SwapIndex2 i f 0) (Vnth x (ILTNN i jc))
-                                                (Vnth x (INLTNN i jc))]
-
-             )).
-      {
-        (*
-        rewrite B1.
-        extensionality i.
-        extensionality id.
-        unfold SHBinOp', vector2pair.
-        break_let.
-        simpl in Heqp.
-        inversion Heqp.
-        subst t t0.
-        rewrite Vbuild_1.
-        simpl ((Vnth [Vnth x (ILTNN i id)] (Nat.lt_0_succ 0))).
-        simpl (Vnth [Vnth x (INLTNN i id)] (Nat.lt_0_succ 0)).
-        reflexivity.
-         *)
-        admit.
-      }
-      (*
-      subst.
-      rewrite B2.
-      clear B1 B2 Heqbf bf.
-       *)
-
-      clear B1 B2.
-       *)
       (* Lemma5 embedded below*)
       rewrite AbsorbSumUnionIndex_Vmap by solve_proper.
       rewrite Vmap_Vbuild.
