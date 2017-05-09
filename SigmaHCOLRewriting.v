@@ -559,17 +559,9 @@ Section SigmaHCOLExpansionRules.
         setoid_rewrite U_SAG2.
         setoid_rewrite SHBinOp'_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
 
-        unfold RStheta2Rtheta, WriterMonadNoT.castWriter, WriterMonadNoT.castWriterT.
-        unfold compose, Rtheta.
         repeat rewrite Vnth_map.
-        simpl.
-        rewrite RthetaFlags_runit.
-        rewrite RthetaFlags_safe_runit.
-
-        (* Sides of equality differ only in Flags Append function *)
-        unfold equiv, Rtheta'_equiv.
-        unfold WriterMonadNoT.evalWriter, compose, WriterMonadNoT.runWriter.
-
+        apply RStheta2Rtheta_liftM2.
+        apply f_mor.
         reflexivity.
     Qed.
 
