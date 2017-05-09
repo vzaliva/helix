@@ -590,12 +590,25 @@ Section SigmaHCOLExpansionRules.
            unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
            rewrite Vnth_map.
 
-           erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
+           unshelve erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
+           crush.
+           destruct (NPeano.Nat.eq_dec (k + 0) k).
+           auto.
+           tauto.
+
+           crush.
+           destruct (NPeano.Nat.eq_dec (k + 0) k).
+           auto.
+           tauto.
+
            rewrite 2!Vnth_map.
-           erewrite SHBinOp'_nth.
+           unshelve erewrite SHBinOp'_nth.
+           crush.
+           crush.
+
+
            rewrite 2!Gather'_spec with (fm:=Monoid_RthetaFlags).
            unfold VnthIndexMapped.
-
 
            unfold SwapIndex2, inverse_index_f, build_inverse_index_map, const.
            unfold h_index_map.
@@ -604,12 +617,19 @@ Section SigmaHCOLExpansionRules.
            unfold IndexFunctions.h_index_map_obligation_1.
            simpl.
 
-           assert(jc10: k < n + n) by omega.
-           assert(jc20: k + n < n + n) by omega.
+
+           generalize (lt_plus_trans k n n kp) as kc1.
+           generalize (Plus.plus_lt_compat_r k n n kp) as kc2.
+           intros kc2 kc1.
+
+           rewrite Vnth_cast_index with (j:=k) (jc:=kc1).
+           setoid_rewrite Vnth_cast_index with (j:=k+n) (jc:=kc2) at 2.
 
            apply RStheta2Rtheta_liftM2.
            solve_proper.
 
+           break_if; crush.
+           break_if; crush.
          +
            unfold in_range in n0.
            simpl in n0.
