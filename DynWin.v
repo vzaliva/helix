@@ -65,7 +65,6 @@ Section SigmaHCOL_rewriting.
 
   Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-
   (*
 Final Sigma-HCOL expression:
 
@@ -88,56 +87,57 @@ SUMUnion(
   GathH(5, 4, 1, 1)
 )
    *)
+  Definition dynwin_SHCOL (a: avector 3) :=
+    (SafeCast (SHBinOp (IgnoreIndex2 THCOLImpl.Zless)))
+      ⊚
+      (HTSUMUnion _ plus (
+                    ScatH _ 0 1
+                          (range_bound := h_bound_first_half 1 1)
+                          (snzord0 := @ScatH_stride1_constr 1 2)
+                          ⊚
+                          (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
+                                           SafeCast (SHBinOp (IgnoreIndex2 mult))
+                                           ⊚
+                                           liftM_HOperator _ (HPrepend a )
+                                           ⊚
+                                           liftM_HOperator _ (HInduction 3 mult one))
+                          ⊚
+                          (GathH _ 0 1
+                                 (domain_bound := h_bound_first_half 1 (2+2)))
+                  )
+
+                  (
+                    (ScatH _ 1 1
+                           (range_bound := h_bound_second_half 1 1)
+                           (snzord0 := @ScatH_stride1_constr 1 2))
+                      ⊚
+                      (liftM_HOperator _ (@HReduction _ minmax.max _ 0))
+                      ⊚
+                      (SHPointwise _ (IgnoreIndex abs))
+                      ⊚
+                      (USparseEmbedding
+                         (n:=2)
+                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
+                                             (fun j _ => SafeCast (SHBinOp (o:=1)
+                                                                        (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
+                         (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
+                         (f_inj := h_j_1_family_injective)
+                         (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
+                      ⊚
+                      (GathH _ 1 1
+                             (domain_bound := h_bound_second_half 1 (2+2)))
+                  )
+      ).
+
   (* HCOL -> SigmaHCOL Value correctness. *)
-  Theorem DynWinSigmaHCOL
+  Theorem DynWinSigmaHCOL_Value_Correctness
           (a: avector 3)
     :
       liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a)
-
       =
-
-      (SafeCast (SHBinOp (IgnoreIndex2 THCOLImpl.Zless)))
-        ⊚
-        (HTSUMUnion _ plus (
-                      ScatH _ 0 1
-                            (range_bound := h_bound_first_half 1 1)
-                            (snzord0 := @ScatH_stride1_constr 1 2)
-                            ⊚
-                            (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
-                                             SafeCast (SHBinOp (IgnoreIndex2 mult))
-                                             ⊚
-                                             liftM_HOperator _ (HPrepend a )
-                                             ⊚
-                                             liftM_HOperator _ (HInduction 3 mult one))
-                            ⊚
-                            (GathH _ 0 1
-                                   (domain_bound := h_bound_first_half 1 (2+2)))
-                    )
-
-                    (
-                      (ScatH _ 1 1
-                             (range_bound := h_bound_second_half 1 1)
-                             (snzord0 := @ScatH_stride1_constr 1 2))
-                        ⊚
-                        (liftM_HOperator _ (@HReduction _ minmax.max _ 0))
-                        ⊚
-                        (SHPointwise _ (IgnoreIndex abs))
-                        ⊚
-                        (USparseEmbedding
-                           (n:=2)
-                           (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                               (fun j _ => SafeCast (SHBinOp (o:=1)
-                                                                          (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
-                           (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
-                           (f_inj := h_j_1_family_injective)
-                           (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
-                        ⊚
-                        (GathH _ 1 1
-                               (domain_bound := h_bound_second_half 1 (2+2)))
-                    )
-        ).
+      dynwin_SHCOL a.
   Proof.
-    unfold dynwin_HCOL.
+    unfold dynwin_HCOL, dynwin_SHCOL.
     setoid_rewrite LiftM_Hoperator_compose.
     setoid_rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
     repeat setoid_rewrite LiftM_Hoperator_compose.
@@ -150,5 +150,10 @@ SUMUnion(
 
     reflexivity.
   Qed.
+
+
+
+
+
 
 End SigmaHCOL_rewriting.
