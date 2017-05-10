@@ -359,6 +359,53 @@ End SigmaHCOLHelperLemmas.
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
+    Lemma SHBinOp_equiv_lifted_HBinOp
+          {o}
+          (f: nat -> CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    :
+      SafeCast (@SHBinOp o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
+    Proof.
+      (*
+      apply ext_equiv_applied_equiv.
+      -
+        simpl.
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply SHBinOp'_proper.
+      -
+        simpl.
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply liftM_HOperator'_proper.
+          apply HBinOp_HOperator.
+      -
+        intros x.
+        simpl.
+        vec_index_equiv j jc.
+
+        assert(jc1: j<o+o) by omega.
+        assert(jc2: j+o<o+o) by omega.
+        rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF x j jc jc1 jc2).
+
+        unfold liftM_HOperator'.
+        unfold compose.
+        unfold sparsify; rewrite Vnth_map.
+        rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
+        unfold densify; rewrite 2!Vnth_map.
+
+        rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
+        rewrite mkValue_evalWriter.
+        reflexivity.
+    Qed.
+       *)
+      Admitted.
+
+
+
+
     Lemma h_j_1_family_injective {n}:
       index_map_family_injective
         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc)))).
