@@ -63,7 +63,7 @@ End HCOL_breakdown.
 
 Section SigmaHCOL_rewriting.
 
-    Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+  Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 
   (*
@@ -76,6 +76,7 @@ SUMUnion(
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
   Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
   GathH(5, 1, 0, 1),
+
   ScatHUnion(2, 1, 1, 1) o
   Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
   PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
@@ -95,7 +96,7 @@ SUMUnion(
 
       =
 
-      (SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless))
+      (SafeCast (SHBinOp (IgnoreIndex2 THCOLImpl.Zless)))
         ⊚
         (HTSUMUnion _ plus (
                       ScatH _ 0 1
@@ -103,7 +104,7 @@ SUMUnion(
                             (snzord0 := @ScatH_stride1_constr 1 2)
                             ⊚
                             (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
-                                             SHBinOp _ (IgnoreIndex2 mult)
+                                             SafeCast (SHBinOp (IgnoreIndex2 mult))
                                              ⊚
                                              liftM_HOperator _ (HPrepend a )
                                              ⊚
@@ -125,8 +126,8 @@ SUMUnion(
                         (USparseEmbedding
                            (n:=2)
                            (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                               (fun j _ => SHBinOp _ (o:=1)
-                                                                (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub))))
+                                               (fun j _ => SafeCast (SHBinOp (o:=1)
+                                                                          (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
                            (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                            (f_inj := h_j_1_family_injective)
                            (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
