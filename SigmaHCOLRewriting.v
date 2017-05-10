@@ -366,14 +366,14 @@ Section SigmaHCOLExpansionRules.
     :
       SafeCast (@SHBinOp o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
     Proof.
-      (*
       apply ext_equiv_applied_equiv.
       -
         simpl.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply SHBinOp'_proper.
+        + apply SafeCast'_proper;
+            apply SHBinOp'_proper.
       -
         simpl.
         split.
@@ -384,26 +384,32 @@ Section SigmaHCOLExpansionRules.
       -
         intros x.
         simpl.
+
         vec_index_equiv j jc.
+
+        unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
+        rewrite Vnth_map.
+
 
         assert(jc1: j<o+o) by omega.
         assert(jc2: j+o<o+o) by omega.
-        rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF x j jc jc1 jc2).
+        rewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags)
+                                  (jc1:=jc1) (jc2:=jc2).
+
 
         unfold liftM_HOperator'.
         unfold compose.
-        unfold sparsify; rewrite Vnth_map.
+        unfold sparsify.
+        repeat rewrite Vnth_map.
         rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
         unfold densify; rewrite 2!Vnth_map.
 
         rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
         rewrite mkValue_evalWriter.
+        apply RStheta2Rtheta_liftM2.
+        apply pF.
         reflexivity.
     Qed.
-       *)
-      Admitted.
-
-
 
 
     Lemma h_j_1_family_injective {n}:
