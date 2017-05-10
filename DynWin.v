@@ -151,6 +151,42 @@ SUMUnion(
     reflexivity.
   Qed.
 
+  Require Import FinNatSet.
+
+  (*Ltac break_Union :=
+    match goal with
+    | Union _ ?a ?b; idtac a
+    end.
+   *)
+
+  Theorem DynWinSigmaHCOL_dense_input
+          (a: avector 3)
+    : Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
+  Proof.
+    split.
+    -
+      unfold Included.
+      intros [x xc].
+      intros H.
+      apply Full_intro.
+    -
+      unfold Included.
+      intros x.
+      intros H. clear H.
+      unfold In in *.
+      simpl.
+      destruct x as [x xc].
+      destruct x.
+      +
+        apply Union_introl.
+        compute; tauto.
+      +
+        apply Union_intror.
+        compute in xc.
+        unfold In.
+        unfold index_map_range_set.
+        repeat (destruct x; crush).
+  Qed.
 
 
 
