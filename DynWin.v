@@ -188,6 +188,24 @@ SUMUnion(
         repeat (destruct x; crush).
   Qed.
 
+  Theorem DynWinSigmaHCOL_dense_output
+          (a: avector 3)
+    : Same_set _ (out_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
+  Proof.
+    split.
+    -
+      unfold Included.
+      intros [x xc].
+      intros H.
+      apply Full_intro.
+    -
+      unfold Included.
+      intros x.
+      intros H. clear H.
+      unfold In in *.
+      simpl.
+      apply Full_intro.
+  Qed.
 
 
 
