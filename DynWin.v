@@ -208,6 +208,25 @@ SUMUnion(
   Qed.
 
 
+  Instance DynWinSigmaHCOL_Value_Facts
+           (a: avector 3):
+    SHOperator_Value_Facts _ (dynwin_SHCOL a).
+  Proof.
+    split.
+    -
+      apply Union_FinNatSet_dec.
+      crush.
+      admit.
+      crush.
+      admit.
+    -
+      simpl.
+      apply Full_FinNatSet_dec.
+    -
+      intros x y H.
+      crush.
+  Qed
+
 
 
 End SigmaHCOL_rewriting.
