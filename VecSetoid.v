@@ -272,7 +272,10 @@ Proof.
 Qed.
 
 (* Handy tactics to break down equality of two vectors into element-wise equality of theirm elements using index *)
-Ltac vec_index_equiv j jc :=   unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
+Ltac vec_index_equiv j jc :=
+  let j' := fresh j in
+  let jc' := fresh jc in
+  unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j' jc'.
 
 Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
   ∀ (n : nat) (v : vector A n) (f:A->B),
