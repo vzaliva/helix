@@ -295,27 +295,28 @@ Section Rtheta'Utils.
     simpl_relation.
   Qed.
 
-  Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta'_equiv in *.
+
+  Ltac unfold_Rtheta'_equiv := unfold equiv, Rtheta'_equiv in *.
 
   Global Instance Rtheta_Reflexive_equiv:
     @Reflexive (Rtheta' fm) Rtheta'_equiv.
   Proof.
     unfold Reflexive.
-    destruct x; (unfold_Rtheta_equiv; crush).
+    destruct x; (unfold_Rtheta'_equiv; crush).
   Qed.
 
   Global Instance Rtheta_Symmetric_equiv:
     @Symmetric (Rtheta' fm) Rtheta'_equiv.
   Proof.
     unfold Symmetric.
-    destruct x; (unfold_Rtheta_equiv; crush).
+    destruct x; (unfold_Rtheta'_equiv; crush).
   Qed.
 
   Global Instance Rtheta_Transitive_equiv:
     @Transitive (Rtheta' fm) Rtheta'_equiv.
   Proof.
     unfold Transitive.
-    destruct x; (unfold_Rtheta_equiv; crush).
+    destruct x; (unfold_Rtheta'_equiv; crush).
   Qed.
 
   Global Instance Rtheta_Equivalence_equiv:
@@ -445,7 +446,7 @@ Section Rtheta'Utils.
     mkValue (WriterMonadNoT.evalWriter r) = r.
   Proof.
     unfold WriterMonadNoT.evalWriter.
-    unfold_Rtheta_equiv.
+    unfold_Rtheta'_equiv.
     unfold mkValue.
     simpl.
 
@@ -457,10 +458,27 @@ Section Rtheta'Utils.
     reflexivity.
   Qed.
 
+
 End Rtheta'Utils.
 
-(* Re-define to be visible outside the sectoin *)
-Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta'_equiv in *.
+(* For some reason class resolver could not figure this out on it's own *)
+Global Instance Rtheta_equiv: Equiv (Rtheta) := Rtheta'_equiv.
+Global Instance RStheta_equiv: Equiv (RStheta) := Rtheta'_equiv.
+
+Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv, Rtheta'_equiv in *.
+Ltac unfold_RStheta_equiv := unfold equiv, RStheta_equiv, Rtheta'_equiv in *.
+
+Global Instance Rtheta2RStheta_proper
+  : Proper ((=) ==> (=)) (Rtheta2RStheta).
+Proof.
+  simpl_relation.
+Qed.
+
+Global Instance RStheta2Rtheta_proper
+  : Proper ((=) ==> (=)) (RStheta2Rtheta).
+Proof.
+  simpl_relation.
+Qed.
 
 Lemma RStheta2Rtheta_liftM2
       (f : CarrierA → CarrierA → CarrierA)
@@ -474,7 +492,6 @@ Proof.
   unfold_Rtheta_equiv.
   reflexivity.
 Qed.
-
 
 Lemma Is_Val_mkStruct:
   forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).

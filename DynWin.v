@@ -212,6 +212,9 @@ SUMUnion(
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).
   Proof.
+    unfold dynwin_SHCOL.
+
+    Print Instances SHOperator_Value_Facts.
     split.
     -
       apply Union_FinNatSet_dec.

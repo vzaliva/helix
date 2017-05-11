@@ -161,6 +161,23 @@ Section TSigmaHCOLOperators.
 
 End TSigmaHCOLOperators.
 
+Global Instance SafeCast_Facts
+       {i o}
+       (xop: @SHOperator Monoid_RthetaSafeFlags i o)
+       `{fop: SHOperator_Value_Facts Monoid_RthetaSafeFlags _ _ xop}
+  :
+    SHOperator_Value_Facts Monoid_RthetaFlags (SafeCast xop).
+Proof.
+  split.
+  - apply fop.
+  - apply fop.
+  - intros x y H.
+    simpl.
+    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
+    f_equiv.
+Qed.
+
+
 Global Instance HTSUMUnion_Facts
        {i o}
        (dot: CarrierA -> CarrierA -> CarrierA)
