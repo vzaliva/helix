@@ -136,6 +136,41 @@ Section SigmaHCOL_Operators.
         apply H0.
     Qed.
 
+    Lemma vec_equiv_at_Full_set {i : nat}
+          (x y : svector fm i):
+      vec_equiv_at_set x y (Full_set (FinNat i)) <-> x = y.
+    Proof.
+      split.
+      -
+        intros H.
+        vec_index_equiv j jc.
+        apply (H j jc).
+        apply Full_intro.
+      -
+        intros H.
+        unfold equiv, vec_Equiv in H.
+        unfold vec_equiv_at_set.
+        intros j jc F.
+        apply Vforall2_elim_nth with (ip:=jc) in H.
+        apply H.
+    Qed.
+
+    Lemma vec_equiv_at_set_narrowing
+          {n : nat}
+          (s0 : FinNatSet n)
+          (s1 : FinNatSet n)
+          (C: Included (FinNat n) s0 s1):
+      forall x y : svector fm n,
+        vec_equiv_at_set x y s1 → vec_equiv_at_set x y s0.
+    Proof.
+      intros x y E.
+      unfold vec_equiv_at_set in *.
+      intros j jc H.
+      apply C in H.
+      apply E.
+      apply H.
+    Qed.
+
     Class SHOperator_Value_Facts
           {i o:nat}
           (xop: @SHOperator i o)
