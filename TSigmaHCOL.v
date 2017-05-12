@@ -161,6 +161,7 @@ Section TSigmaHCOLOperators.
 
 End TSigmaHCOLOperators.
 
+
 Global Instance SafeCast_Facts
        {i o}
        (xop: @SHOperator Monoid_RthetaSafeFlags i o)
@@ -184,6 +185,16 @@ Proof.
     rewrite 2!Vnth_map.
     f_equiv.
     apply H.
+  -
+    intros v H j jc S.
+    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+    rewrite Vnth_map.
+    apply Is_Val_RStheta2Rtheta.
+    HERE
+    apply fop.
+    intros t tc S1.
+
 Qed.
 
 

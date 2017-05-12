@@ -556,6 +556,12 @@ Proof.
   congruence.
 Qed.
 
+Lemma Is_Val_RStheta2Rtheta
+      {x:RStheta}:
+  Is_Val x -> Is_Val (RStheta2Rtheta x).
+Proof.
+  auto.
+Qed.
 
 Lemma Not_Collision_liftM2
       (f: CarrierA → CarrierA → CarrierA)
