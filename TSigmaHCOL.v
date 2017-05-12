@@ -173,8 +173,17 @@ Proof.
   - apply fop.
   - intros x y H.
     simpl.
-    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
+    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
     f_equiv.
+    apply fop.
+    simpl in *.
+
+    unfold vec_equiv_at_set.
+    intros j jc S.
+    specialize (H j jc S).
+    rewrite 2!Vnth_map.
+    f_equiv.
+    apply H.
 Qed.
 
 
