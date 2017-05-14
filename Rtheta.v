@@ -565,6 +565,15 @@ Proof.
   - auto.
 Qed.
 
+Lemma Is_Val_Rtheta2RStheta
+      {x:Rtheta}:
+  Is_Val x <-> Is_Val (Rtheta2RStheta x).
+Proof.
+  split.
+  - auto.
+  - auto.
+Qed.
+
 Lemma Not_Collision_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : Rtheta):
