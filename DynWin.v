@@ -207,29 +207,79 @@ SUMUnion(
       apply Full_intro.
   Qed.
 
-
-  Instance DynWinSigmaHCOL_Value_Facts
+  Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).
   Proof.
     unfold dynwin_SHCOL.
 
-    Print Instances SHOperator_Value_Facts.
-    split.
-    -
-      apply Union_FinNatSet_dec.
-      crush.
-      admit.
-      crush.
-      admit.
-    -
-      simpl.
-      apply Full_FinNatSet_dec.
-    -
-      intros x y H.
-      crush.
-  Qed
+    apply SHCompose_Facts.
+    apply SafeCast_Facts.
+    apply SHBinOp_RthetaSafe_Facts.
+    apply HTSUMUnion_Facts.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply Scatter_Rtheta_Facts.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
+    apply SafeCast_Facts.
+    apply SHBinOp_RthetaSafe_Facts.
+    crush.
+    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
+    crush.
+    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
+    crush.
+    crush.
+    apply Gather_Facts.
+    crush.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply Scatter_Rtheta_Facts.
+    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
+    crush.
+    apply SHPointwise_Facts. apply MonoidLaws_RthetaFlags.
+    crush.
+    unfold USparseEmbedding.
+    apply IUnion_Facts.
 
+    intros.
+    crush.
+    apply SHCompose_Facts.
+    apply SHCompose_Facts.
+    apply Scatter_Rtheta_Facts.
+    apply SafeCast_Facts.
+
+    {
+      match goal with
+      | [ |- @SHOperator_Value_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+        replace (@SHOperator_Value_Facts m i) with (@SHOperator_Value_Facts m (Init.Nat.add o o)) by apply eq_refl
+      end.
+      apply SHBinOp_RthetaSafe_Facts.
+    }
+
+    crush.
+    apply Gather_Facts.
+    crush.
+    {
+      crush.
+      admit.
+    }
+    apply Gather_Facts.
+    {
+      crush.
+      admit.
+    }
+
+    {
+      crush.
+      admit.
+    }
+
+  Qed.
 
 
 End SigmaHCOL_rewriting.
