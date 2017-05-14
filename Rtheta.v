@@ -560,18 +560,28 @@ Lemma Is_Val_RStheta2Rtheta
       {x:RStheta}:
   Is_Val x <-> Is_Val (RStheta2Rtheta x).
 Proof.
-  split.
-  - auto.
-  - auto.
+  split; auto.
 Qed.
 
 Lemma Is_Val_Rtheta2RStheta
       {x:Rtheta}:
   Is_Val x <-> Is_Val (Rtheta2RStheta x).
 Proof.
-  split.
-  - auto.
-  - auto.
+  split; auto.
+Qed.
+
+Lemma Is_Struct_RStheta2Rtheta
+      {x:RStheta}:
+  Is_Struct x <-> Is_Struct (RStheta2Rtheta x).
+Proof.
+  split; auto.
+Qed.
+
+Lemma Is_Struct_Rtheta2RStheta
+      {x:Rtheta}:
+  Is_Struct x <-> Is_Struct (Rtheta2RStheta x).
+Proof.
+  split; auto.
 Qed.
 
 Lemma Not_Collision_liftM2
