@@ -208,50 +208,6 @@ SUMUnion(
   Qed.
 
   (* TODO: move *)
-  Lemma Union_Empty_set_runit:
-    forall n B, FinNatSet_dec B ->
-           Same_set _ (Union (FinNat n) B (Empty_set (FinNat n))) B.
-  Proof.
-    intros n B D.
-    split.
-    -
-      unfold Included.
-      intros x H.
-      unfold In in *.
-      destruct H.
-      apply H.
-      destruct H.
-    -
-      unfold Included.
-      intros x H.
-      unfold In in *.
-      apply Union_introl.
-      apply H.
-  Qed.
-
-  (* TODO: move *)
-  Lemma Union_Empty_set_lunit:
-    forall n B, FinNatSet_dec B ->
-           Same_set _ B (Union (FinNat n) B (Empty_set (FinNat n))).
-  Proof.
-    intros n B D.
-    split.
-    -
-      unfold Included.
-      intros x H.
-      unfold In in *.
-      apply Union_introl.
-      apply H.
-    -
-      unfold Included.
-      intros x H.
-      unfold In in *.
-      destruct H.
-      apply H.
-      destruct H.
-  Qed.
-
-  (* TODO: move *)
   Lemma h_index_map_range_set_dec
         {domain range: nat}
         (b s: nat)
@@ -273,34 +229,6 @@ SUMUnion(
     -
       admit.
   Admitted.
-
-  (* TODO: move *)
-  Lemma Union_comm
-        {U:Type}
-        {B C: Ensemble U}:
-    forall x, In _ (Union U B C) x <-> In _ (Union U C B) x.
-  Proof.
-    intros x.
-    split.
-    -
-      intros H.
-      destruct H.
-      +
-        apply Union_intror.
-        apply H.
-      +
-        apply Union_introl.
-        apply H.
-    -
-      intros H.
-      destruct H.
-      +
-        apply Union_intror.
-        apply H.
-      +
-        apply Union_introl.
-        apply H.
-  Qed.
 
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
