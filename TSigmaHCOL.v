@@ -187,10 +187,18 @@ Proof.
     apply H.
   -
     intros v H j jc S.
+    apply out_as_range with (jc:=jc) in H.
     unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
     simpl in *.
+    remember (Vmap Rtheta2RStheta v) as vs.
+    rewrite Vnth_map in H.
     rewrite Vnth_map.
+
+    apply Is_Val_RStheta2Rtheta in H.
+    (* Looks like a Coq bug. [apply Is_Val_RStheta2Rtheta] should have worked *)
+    cut (Is_Val (RStheta2Rtheta (Vnth (op Monoid_RthetaSafeFlags xop vs) jc)));
     apply Is_Val_RStheta2Rtheta.
+
     HERE
     apply fop.
     intros t tc S1.

@@ -558,9 +558,11 @@ Qed.
 
 Lemma Is_Val_RStheta2Rtheta
       {x:RStheta}:
-  Is_Val x -> Is_Val (RStheta2Rtheta x).
+  Is_Val x <-> Is_Val (RStheta2Rtheta x).
 Proof.
-  auto.
+  split.
+  - auto.
+  - auto.
 Qed.
 
 Lemma Not_Collision_liftM2
