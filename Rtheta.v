@@ -584,6 +584,21 @@ Proof.
   split; auto.
 Qed.
 
+Lemma Not_Collision_RStheta2Rtheta
+      {x:RStheta}:
+  Not_Collision x <-> Not_Collision (RStheta2Rtheta x).
+Proof.
+  split; auto.
+Qed.
+
+Lemma Not_Collision_Rtheta2RStheta
+      {x:Rtheta}:
+  Not_Collision x <-> Not_Collision (Rtheta2RStheta x).
+Proof.
+  split; auto.
+Qed.
+
+
 Lemma Not_Collision_liftM2
       (f: CarrierA → CarrierA → CarrierA)
       (a b : Rtheta):

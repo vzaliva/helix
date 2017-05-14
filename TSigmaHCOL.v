@@ -205,6 +205,33 @@ Proof.
     apply no_vals_at_sparse; assumption.
 Qed.
 
+Global Instance SafeCast_Structual_Facts
+       {i o}
+       (xop: @SHOperator Monoid_RthetaSafeFlags i o)
+       `{fop: @SHOperator_Structural_Facts Monoid_RthetaSafeFlags _ _ xop}
+  :
+    @SHOperator_Structural_Facts Monoid_RthetaFlags _ _ (SafeCast xop).
+Proof.
+  split.
+  -
+    intros v H j jc S.
+    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+    apply no_coll_range; try assumption.
+    intros t tc I.
+
+    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
+    apply H, I.
+  -
+    intros v j jc S.
+    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+    apply no_coll_at_sparse; assumption.
+Qed.
 
 Global Instance HTSUMUnion_Facts
        {i o}
