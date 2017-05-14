@@ -207,6 +207,101 @@ SUMUnion(
       apply Full_intro.
   Qed.
 
+  (* TODO: move *)
+  Lemma Union_Empty_set_runit:
+    forall n B, FinNatSet_dec B ->
+           Same_set _ (Union (FinNat n) B (Empty_set (FinNat n))) B.
+  Proof.
+    intros n B D.
+    split.
+    -
+      unfold Included.
+      intros x H.
+      unfold In in *.
+      destruct H.
+      apply H.
+      destruct H.
+    -
+      unfold Included.
+      intros x H.
+      unfold In in *.
+      apply Union_introl.
+      apply H.
+  Qed.
+
+  (* TODO: move *)
+  Lemma Union_Empty_set_lunit:
+    forall n B, FinNatSet_dec B ->
+           Same_set _ B (Union (FinNat n) B (Empty_set (FinNat n))).
+  Proof.
+    intros n B D.
+    split.
+    -
+      unfold Included.
+      intros x H.
+      unfold In in *.
+      apply Union_introl.
+      apply H.
+    -
+      unfold Included.
+      intros x H.
+      unfold In in *.
+      destruct H.
+      apply H.
+      destruct H.
+  Qed.
+
+  (* TODO: move *)
+  Lemma h_index_map_range_set_dec
+        {domain range: nat}
+        (b s: nat)
+        {range_bound: forall x, x<domain -> (b+x*s) < range}:
+    FinNatSet_dec (index_map_range_set (@h_index_map domain range b s range_bound)).
+  Proof.
+    unfold FinNatSet_dec.
+    intros y.
+    unfold Decidable.decidable.
+    unfold index_map_range_set.
+
+    destruct y as [y yr].
+    simpl.
+
+    induction domain.
+    -
+      right.
+      auto.
+    -
+      admit.
+  Admitted.
+
+  (* TODO: move *)
+  Lemma Union_comm
+        {U:Type}
+        {B C: Ensemble U}:
+    forall x, In _ (Union U B C) x <-> In _ (Union U C B) x.
+  Proof.
+    intros x.
+    split.
+    -
+      intros H.
+      destruct H.
+      +
+        apply Union_intror.
+        apply H.
+      +
+        apply Union_introl.
+        apply H.
+    -
+      intros H.
+      destruct H.
+      +
+        apply Union_intror.
+        apply H.
+      +
+        apply Union_introl.
+        apply H.
+  Qed.
+
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).
@@ -266,16 +361,34 @@ SUMUnion(
     crush.
     {
       crush.
-      admit.
+      unfold Included, In.
+      intros x H.
+      replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O))
+                                                                                                                           (@h_index_map (S O) (S (S O)) O (S O)
+                                                                                                                                         (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
+      -
+        clear H.
+        (* TODO: combine index maps using linear algebra *)
+        admit.
+      -
+        apply Extensionality_Ensembles.
+        apply Union_Empty_set_lunit.
+        apply h_index_map_range_set_dec.
     }
     apply Gather_Facts.
     {
       crush.
-      admit.
+      unfold Included.
+      intros x H.
+      apply Full_intro.
     }
 
     {
       crush.
+      unfold Included.
+      intros x _.
+      apply Union_comm.
+      (* TODO: combine index maps using linear algebra *)
       admit.
     }
 
