@@ -190,33 +190,19 @@ Proof.
     unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
     simpl in *.
 
-    remember (Vmap Rtheta2RStheta v) as vs.
-    rewrite Vnth_map.
-    (* Looks like a Coq bug. [apply Is_Val_RStheta2Rtheta] should have worked *)
-    cut (Is_Val (Vnth (op Monoid_RthetaSafeFlags xop vs) jc)).
-    apply Is_Val_RStheta2Rtheta.
-
+    rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
     apply out_as_range; try assumption.
     intros t tc I.
 
-    subst vs.
-    rewrite Vnth_map.
-    cut(Is_Val (Vnth v tc)).
-    apply Is_Val_Rtheta2RStheta.
-    apply H.
-    apply I.
+    rewrite Vnth_map, <- Is_Val_Rtheta2RStheta.
+    apply H, I.
   -
     intros v j jc S.
     unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
     simpl in *.
 
-    remember (Vmap Rtheta2RStheta v) as vs.
-    rewrite Vnth_map.
-    (* Looks like a Coq bug. [apply Is_Val_RStheta2Rtheta] should have worked *)
-    cut (Is_Struct (Vnth (op Monoid_RthetaSafeFlags xop vs) jc)).
-    apply Is_Struct_RStheta2Rtheta.
-
-    apply no_vals_at_sparse; try assumption.
+    rewrite Vnth_map, <- Is_Struct_RStheta2Rtheta.
+    apply no_vals_at_sparse; assumption.
 Qed.
 
 
