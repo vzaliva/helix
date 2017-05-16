@@ -42,30 +42,30 @@ Local Open Scope vector_scope.
 Local Open Scope nat_scope.
 
 Section SigmaHCOLHelperLemmas.
-  (*
 
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-  Lemma Gather_composition
+  Lemma Gather'_composition
         {i o t: nat}
         (f: index_map o t)
         (g: index_map t i):
-    Gather fm f ∘ Gather fm g = Gather fm (index_map_compose g f).
+    Gather' fm f ∘ Gather' fm g = Gather' fm (index_map_compose g f).
   Proof.
-    apply SHOperator_functional_extensionality.
+    apply ext_equiv_applied_equiv.
     -
-      apply SHOperator_compose.
-      apply SHOperator_Gather.
-      apply SHOperator_Gather.
+      split; try apply vec_Setoid.
+      apply compose_proper with (RA:=equiv) (RB:=equiv);
+        apply Gather'_proper.
     -
-      apply SHOperator_Gather.
+      split; try apply vec_Setoid.
+      apply Gather'_proper.
     -
       intros v.
       unfold compose.
       vec_index_equiv j jp.
 
-      unfold Gather.
+      unfold Gather'.
       rewrite 2!Vbuild_nth.
       unfold VnthIndexMapped.
       destruct f as [f fspec].
@@ -76,6 +76,7 @@ Section SigmaHCOLHelperLemmas.
       reflexivity.
   Qed.
 
+  (*
   Lemma Scatter_composition
         {i o t: nat}
         (f: index_map i t)
