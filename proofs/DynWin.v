@@ -281,6 +281,14 @@ SUMUnion(
     crush.
   Qed.
 
+  (* Presently the following proof is not automated. However it lends itself to automation. Few ideas for future:
+      1. Reister _Facts class instances in a separate namespace
+      2. Write a tactic which attempts to apply approriate instance
+      3. Tactic should work repeatedly. For non-instance goals it encounter:
+          1. Try [crush]
+          2. Try [auto with typeclass_instances
+          3. Look at goal after [crush] and if it is a set membership statement try to deveop custom tactics solving these types of problems specific to our application (with [index_range_set], [h_index_map], etc.)
+   *)
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).
@@ -370,7 +378,8 @@ SUMUnion(
     }
   Qed.
 
-  Instance DynWinSigmaHCOL_Structul_Facts
+  (* Presently the following proof is not automated. However it lends itself to automation in a manner similar to one described for [DynWinSigmaHCOL_Facts] *)
+  Instance DynWinSigmaHCOL_Structural_Facts
            (a: avector 3):
     SHOperator_Structural_Facts _ (dynwin_SHCOL a).
   Proof.
