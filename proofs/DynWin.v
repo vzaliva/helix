@@ -341,5 +341,189 @@ SUMUnion(
     }
   Qed.
 
+  Instance DynWinSigmaHCOL_Structul_Facts
+           (a: avector 3):
+    SHOperator_Structural_Facts _ (dynwin_SHCOL a).
+  Proof.
+    unfold dynwin_SHCOL.
+
+    apply SHCompose_Structural_Facts.
+    apply SafeCast_Structual_Facts.
+    apply SHBinOp_RthetaSafe_Structural_Facts.
+    apply HTSUMUnion_Structural_Facts.
+
+    {
+      (* Need to prove some value facts *)
+      repeat apply SHCompose_Facts.
+      apply Scatter_Rtheta_Facts.
+      repeat apply SHCompose_Facts.
+      apply liftM_HOperator_Facts.
+      apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+      apply SafeCast_Facts.
+      apply SHBinOp_RthetaSafe_Facts.
+      crush.
+      apply liftM_HOperator_Facts.
+      apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+      crush.
+      apply liftM_HOperator_Facts.
+      apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+      crush.
+      crush.
+      apply Gather_Facts.
+      crush.
+    }
+
+    {
+      repeat apply SHCompose_Facts.
+      apply Scatter_Rtheta_Facts.
+      apply liftM_HOperator_Facts.
+      apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+      crush.
+      apply SHPointwise_Facts.
+      apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+      crush.
+      unfold USparseEmbedding.
+      apply IUnion_Facts.
+      intros.
+      crush.
+      repeat apply SHCompose_Facts.
+      apply Scatter_Rtheta_Facts.
+      apply SafeCast_Facts.
+      {
+        (* copypaste from DynWinSigmaHCOL_Facts *)
+        match goal with
+        | [ |- @SHOperator_Value_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+          replace (@SHOperator_Value_Facts m i) with (@SHOperator_Value_Facts m (Init.Nat.add o o)) by apply eq_refl
+        end.
+        apply SHBinOp_RthetaSafe_Facts.
+      }
+      crush.
+      apply Gather_Facts.
+      crush.
+      {
+        (* copypaste from DynWinSigmaHCOL_Facts *)
+        crush.
+        unfold Included, In.
+        intros x H.
+        replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O))
+                                                                                                                             (@h_index_map (S O) (S (S O)) O (S O)
+                                                                                                                                           (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
+        -
+          apply two_index_maps_span_I_2.
+        -
+          apply Extensionality_Ensembles.
+          apply Union_Empty_set_lunit.
+          apply h_index_map_range_set_dec.
+      }
+      apply Gather_Facts.
+      {
+        (* copypaste from DynWinSigmaHCOL_Facts *)
+        crush.
+        unfold Included.
+        intros x H.
+        apply Full_intro.
+      }
+    }
+    repeat apply SHCompose_Structural_Facts.
+    apply Scatter_Rtheta_Structural_Facts.
+    apply liftM_HOperator_Structural_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+    apply SafeCast_Structual_Facts.
+    apply SHBinOp_RthetaSafe_Structural_Facts.
+    crush.
+    apply liftM_HOperator_Structural_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+    crush.
+    apply liftM_HOperator_Structural_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+    crush.
+    crush.
+    apply Gather_Structural_Facts.
+    crush.
+    repeat apply SHCompose_Structural_Facts.
+    apply Scatter_Rtheta_Structural_Facts.
+    apply liftM_HOperator_Structural_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+    crush.
+    apply SHPointwise_Structural_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
+    crush.
+    apply IUnion_Structural_Facts.
+    intros.
+    crush.
+    {
+      (* more value facts to prove *)
+      repeat apply SHCompose_Facts.
+      apply Scatter_Rtheta_Facts.
+      apply SafeCast_Facts.
+      {
+        (* copypaste from DynWinSigmaHCOL_Facts *)
+        match goal with
+        | [ |- @SHOperator_Value_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+          replace (@SHOperator_Value_Facts m i) with (@SHOperator_Value_Facts m (Init.Nat.add o o)) by apply eq_refl
+        end.
+        apply SHBinOp_RthetaSafe_Facts.
+      }
+      crush.
+      apply Gather_Facts.
+      crush.
+    }
+
+    intros j jc.
+    crush.
+    repeat apply SHCompose_Structural_Facts.
+    apply Scatter_Rtheta_Structural_Facts.
+    apply SafeCast_Structual_Facts.
+    {
+      (* Similar to fragment in DynWinSigmaHCOL_Facts but uses Structural instead of Value facts *)
+      match goal with
+      | [ |- @SHOperator_Structural_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+        replace (@SHOperator_Structural_Facts m i) with (@SHOperator_Structural_Facts m (Init.Nat.add o o)) by apply eq_refl
+        end.
+      apply SHBinOp_RthetaSafe_Structural_Facts.
+    }
+    crush.
+    apply Gather_Structural_Facts.
+    crush.
+    {
+      crush.
+      admit.
+    }
+    {
+      (* copypaste from DynWinSigmaHCOL_Facts *)
+      crush.
+      unfold Included, In.
+      intros x H.
+      replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O))
+                                                                                                                           (@h_index_map (S O) (S (S O)) O (S O)
+                                                                                                                                         (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
+      -
+        apply two_index_maps_span_I_2.
+      -
+        apply Extensionality_Ensembles.
+        apply Union_Empty_set_lunit.
+        apply h_index_map_range_set_dec.
+    }
+    apply Gather_Structural_Facts.
+    {
+      (* copypaste from DynWinSigmaHCOL_Facts *)
+      crush.
+      unfold Included.
+      intros x H.
+      apply Full_intro.
+    }
+    {
+      crush.
+      admit.
+    }
+
+    {
+      crush.
+      unfold Included, In.
+      intros x H.
+      apply Union_comm.
+      apply two_index_maps_span_I_2.
+    }
+Qed.
 
 End SigmaHCOL_rewriting.
