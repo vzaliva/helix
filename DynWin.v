@@ -246,7 +246,8 @@ SUMUnion(
     apply SHCompose_Facts.
     apply SHCompose_Facts.
     apply SHCompose_Facts.
-    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
+    apply liftM_HOperator_Facts.
+    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
     apply SafeCast_Facts.
     apply SHBinOp_RthetaSafe_Facts.
     crush.
@@ -319,7 +320,6 @@ SUMUnion(
       (* TODO: combine index maps using linear algebra *)
       admit.
     }
-
   Qed.
 
 
