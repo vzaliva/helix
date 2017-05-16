@@ -207,29 +207,6 @@ SUMUnion(
       apply Full_intro.
   Qed.
 
-  (* TODO: move *)
-  Lemma h_index_map_range_set_dec
-        {domain range: nat}
-        (b s: nat)
-        {range_bound: forall x, x<domain -> (b+x*s) < range}:
-    FinNatSet_dec (index_map_range_set (@h_index_map domain range b s range_bound)).
-  Proof.
-    unfold FinNatSet_dec.
-    intros y.
-    unfold Decidable.decidable.
-    unfold index_map_range_set.
-
-    destruct y as [y yr].
-    simpl.
-
-    induction domain.
-    -
-      right.
-      auto.
-    -
-      admit.
-  Admitted.
-
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).

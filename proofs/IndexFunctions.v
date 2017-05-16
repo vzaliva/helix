@@ -958,4 +958,17 @@ Section IndexMapSets.
       assumption.
   Qed.
 
+  Lemma h_index_map_range_set_dec
+        {domain range: nat}
+        (b s: nat)
+        {range_bound: forall x, x<domain -> (b+x*s) < range}:
+    FinNatSet_dec (index_map_range_set (@h_index_map domain range b s range_bound)).
+  Proof.
+    unfold FinNatSet_dec.
+    intros y.
+    unfold index_map_range_set.
+    apply Decidable_decision.
+    apply in_range_dec.
+  Qed.
+
 End IndexMapSets.
