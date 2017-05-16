@@ -209,10 +209,8 @@ SUMUnion(
 
   Fact two_index_maps_span_I_2
        (x : FinNat 2)
-       (b2 : forall (x0 : nat) (_ : x0 < 1),
-           Peano.lt (0 + (x0 * (S O))) (S (S O)))
-       (b1 : forall (x0 : nat) (_ : x0 < 1),
-           Peano.lt (1 + (x0 * (S O))) (S (S O)))
+       (b2 : forall (x : nat) (_ : x < 1), 0 + (x * 1) < 2)
+       (b1 : forall (x : nat) (_ : x < 1), 1 + (x * 1) < 2)
     :
       Union (@sig nat (fun x0 : nat => x0 < 2))
             (@index_map_range_set 1 2 (@h_index_map 1 2 1 1 b1))
@@ -250,6 +248,37 @@ SUMUnion(
         apply H.
       +
         crush.
+  Qed.
+
+  Fact two_h_index_maps_disjoint
+       (m n: nat)
+       (mnen : m ≢ n)
+       (b2 : forall (x : nat) (_ : x < 1), n + (x*1) < 2)
+       (b1 : forall (x : nat) (_ : x < 1), m + (x*1) < 2)
+    :
+      Disjoint (FinNat 2)
+               (@index_map_range_set 1 2 (@h_index_map 1 2 m 1 b1))
+               (@index_map_range_set 1 2 (@h_index_map 1 2 n 1 b2)).
+  Proof.
+    apply Disjoint_intro.
+    intros x.
+    unfold not, In.
+    intros H.
+    inversion H. clear H.
+    subst.
+    unfold In in *.
+    unfold index_map_range_set in *.
+    apply in_range_exists in H0.
+    apply in_range_exists in H1.
+
+    destruct H0 as [x0 [x0c H0]].
+    destruct H1 as [x1 [x1c H1]].
+    destruct x as [x xc].
+    simpl in *.
+    subst.
+    crush.
+    crush.
+    crush.
   Qed.
 
   Instance DynWinSigmaHCOL_Facts
@@ -487,7 +516,7 @@ SUMUnion(
     crush.
     {
       crush.
-      admit.
+      apply two_h_index_maps_disjoint; assumption.
     }
     {
       (* copypaste from DynWinSigmaHCOL_Facts *)
@@ -514,7 +543,10 @@ SUMUnion(
     }
     {
       crush.
-      admit.
+      apply two_h_index_maps_disjoint.
+      unfold peano_naturals.nat_lt, peano_naturals.nat_plus,
+      peano_naturals.nat_1, one, plus, lt.
+      crush.
     }
 
     {
