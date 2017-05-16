@@ -207,6 +207,51 @@ SUMUnion(
       apply Full_intro.
   Qed.
 
+  Fact two_index_maps_span_I_2
+       (x : FinNat 2)
+       (b2 : forall (x0 : nat) (_ : x0 < 1),
+           Peano.lt (0 + (x0 * (S O))) (S (S O)))
+       (b1 : forall (x0 : nat) (_ : x0 < 1),
+           Peano.lt (1 + (x0 * (S O))) (S (S O)))
+    :
+      Union (@sig nat (fun x0 : nat => x0 < 2))
+            (@index_map_range_set 1 2 (@h_index_map 1 2 1 1 b1))
+            (@index_map_range_set 1 2 (@h_index_map 1 2 O 1 b2)) x.
+  Proof.
+    let lu := fresh "LU" in
+    let ru := fresh "RU" in
+    match goal with
+    | [ |- Union ?t ?a ?b ?x] => remember a as lu; remember b as ru
+    end.
+
+    destruct x as [x xc].
+    dep_destruct x.
+    -
+      assert(H: RU (@mkFinNat 2 0 xc)).
+      {
+        subst RU.
+        compute.
+        tauto.
+      }
+      apply Union_introl with (C:=LU) in H.
+      apply Union_comm.
+      apply H.
+    -
+      destruct x0.
+      +
+        assert(H: LU (@mkFinNat 2 1 xc)).
+        {
+          subst LU.
+          compute.
+          tauto.
+        }
+        apply Union_intror with (B:=RU) in H.
+        apply Union_comm.
+        apply H.
+      +
+        crush.
+  Qed.
+
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Value_Facts _ (dynwin_SHCOL a).
@@ -273,9 +318,7 @@ SUMUnion(
                                                                                                                            (@h_index_map (S O) (S (S O)) O (S O)
                                                                                                                                          (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
       -
-        clear H.
-        (* TODO: combine index maps using linear algebra *)
-        admit.
+        apply two_index_maps_span_I_2.
       -
         apply Extensionality_Ensembles.
         apply Union_Empty_set_lunit.
@@ -291,11 +334,10 @@ SUMUnion(
 
     {
       crush.
-      unfold Included.
-      intros x _.
+      unfold Included, In.
+      intros x H.
       apply Union_comm.
-      (* TODO: combine index maps using linear algebra *)
-      admit.
+      apply two_index_maps_span_I_2.
     }
   Qed.
 
