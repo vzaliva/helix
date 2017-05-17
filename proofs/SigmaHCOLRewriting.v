@@ -76,28 +76,28 @@ Section SigmaHCOLHelperLemmas.
       reflexivity.
   Qed.
 
-  (*
-  Lemma Scatter_composition
+  Lemma Scatter'_composition
         {i o t: nat}
         (f: index_map i t)
         (g: index_map t o)
         {f_inj: index_map_injective f}
         {g_inj: index_map_injective g}:
-    Scatter fm g (f_inj:=g_inj) ∘ Scatter fm f (f_inj:=f_inj)
-    = Scatter fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
+    Scatter' fm g (f_inj:=g_inj) ∘ Scatter' fm f (f_inj:=f_inj)
+    = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
   Proof.
-    apply SHOperator_functional_extensionality.
+    apply ext_equiv_applied_equiv.
     -
-      apply SHOperator_compose.
-      apply SHOperator_Scatter.
-      apply SHOperator_Scatter.
+      split; try apply vec_Setoid.
+      apply compose_proper with (RA:=equiv) (RB:=equiv);
+        apply Scatter'_proper.
     -
-      apply SHOperator_Scatter.
+      split; try apply vec_Setoid.
+      apply Scatter'_proper.
     -
       intros v.
       unfold compose.
       vec_index_equiv j jp.
-      unfold Scatter.
+      unfold Scatter'.
       rewrite 2!Vbuild_nth.
       break_match.
       + rewrite Vbuild_nth.
@@ -123,8 +123,6 @@ Section SigmaHCOLHelperLemmas.
         apply in_range_index_map_compose_left in i0; try assumption.
         reflexivity.
   Qed.
-
-   *)
 
   Lemma LiftM_Hoperator_compose
         {fm: Monoid RthetaFlags}
