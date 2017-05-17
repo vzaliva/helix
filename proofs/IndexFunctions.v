@@ -685,7 +685,6 @@ Section IndexFamilies.
     apply H.
   Qed.
 
-  (* TODO: move *)
   Lemma index_map_family_injective_in_range_once
         {n d r: nat}
         (f: index_map_family d r n)
