@@ -165,9 +165,9 @@ End TSigmaHCOLOperators.
 Global Instance SafeCast_Facts
        {i o}
        (xop: @SHOperator Monoid_RthetaSafeFlags i o)
-       `{fop: SHOperator_Value_Facts Monoid_RthetaSafeFlags _ _ xop}
+       `{fop: SHOperator_Facts Monoid_RthetaSafeFlags _ _ xop}
   :
-    SHOperator_Value_Facts Monoid_RthetaFlags (SafeCast xop).
+    SHOperator_Facts Monoid_RthetaFlags (SafeCast xop).
 Proof.
   split.
   - apply fop.
@@ -203,16 +203,6 @@ Proof.
 
     rewrite Vnth_map, <- Is_Struct_RStheta2Rtheta.
     apply no_vals_at_sparse; assumption.
-Qed.
-
-Global Instance SafeCast_Structual_Facts
-       {i o}
-       (xop: @SHOperator Monoid_RthetaSafeFlags i o)
-       `{fop: @SHOperator_Structural_Facts Monoid_RthetaSafeFlags _ _ xop}
-  :
-    @SHOperator_Structural_Facts Monoid_RthetaFlags _ _ (SafeCast xop).
-Proof.
-  split.
   -
     intros v H j jc S.
     unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
@@ -238,9 +228,13 @@ Global Instance HTSUMUnion_Facts
        (dot: CarrierA -> CarrierA -> CarrierA)
        `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
        (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-       `{fop1: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op1}
-       `{fop2: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op2}
-  : SHOperator_Value_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+       `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
+       `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
+       (compat: Disjoint _
+                         (out_index_set _ op1)
+                         (out_index_set _ op2)
+       )
+  : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
 Proof.
   split.
   -
@@ -319,26 +313,6 @@ Proof.
       contradict S.
       apply Union_intror.
       apply S.
-Qed.
-
-
-Global Instance HTSUMUnion_Structural_Facts
-       {i o}
-       (dot: CarrierA -> CarrierA -> CarrierA)
-       `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-       (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-       `{fop1: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op1}
-       `{fop2: SHOperator_Value_Facts Monoid_RthetaFlags _ _ op2}
-       `{sop1: SHOperator_Structural_Facts Monoid_RthetaFlags _ _ op1}
-       `{sop2: SHOperator_Structural_Facts Monoid_RthetaFlags _ _ op2}
-       (compat: Disjoint _
-                         (out_index_set _ op1)
-                         (out_index_set _ op2)
-       )
-
-  : SHOperator_Structural_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
-Proof.
-  split.
   -
     (* no_coll_range *)
     intros v D j jc S.
@@ -350,7 +324,6 @@ Proof.
       destruct fop1.
       destruct (out_dec (mkFinNat jc)).
       * apply no_coll_range.
-        apply sop1.
         intros t tc I.
         specialize (D t tc).
         apply D.
@@ -358,13 +331,11 @@ Proof.
         apply I.
         apply H.
       * apply no_coll_at_sparse.
-        apply sop1.
         apply H.
     +
       destruct fop2.
       destruct (out_dec (mkFinNat jc)).
       * apply no_coll_range.
-        apply sop2.
         intros t tc I.
         specialize (D t tc).
         apply D.
@@ -372,7 +343,6 @@ Proof.
         apply I.
         apply H.
       * apply no_coll_at_sparse.
-        apply sop2.
         apply H.
     +
       intros [A B].
@@ -395,13 +365,13 @@ Proof.
     apply UnionCollisionFree.
     +
       apply no_coll_at_sparse.
-      apply sop1.
+      apply fop1.
       contradict S.
       apply Union_introl.
       apply S.
     +
       apply no_coll_at_sparse.
-      apply sop2.
+      apply fop2.
       contradict S.
       apply Union_intror.
       apply S.

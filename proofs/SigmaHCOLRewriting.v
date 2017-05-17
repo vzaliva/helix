@@ -125,15 +125,14 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma LiftM_Hoperator_compose
-        {fm: Monoid RthetaFlags}
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
         `{HOperator i1 o2 op2}
-  :
-    liftM_HOperator fm (op1 ∘ op2) =
-    SHCompose fm
-              (liftM_HOperator fm op1)
-              (liftM_HOperator fm op2).
+    :
+      liftM_HOperator fm (op1 ∘ op2) =
+      SHCompose fm
+                (liftM_HOperator fm op1)
+                (liftM_HOperator fm op2).
   Proof.
     unfold equiv, SHOperator_equiv; simpl.
     apply ext_equiv_applied_equiv.
@@ -202,7 +201,6 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma UnionFold_zero_structs
-        {fm:Monoid RthetaFlags}
         (m : nat) (x : svector fm m):
     Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
   Proof.
@@ -224,8 +222,7 @@ Section SigmaHCOLHelperLemmas.
       apply IHx, Hx.
   Qed.
 
-  Lemma UnionFold_VallButOne_zero
-        {fm:Monoid RthetaFlags}:
+  Lemma UnionFold_VallButOne_zero:
     ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
       VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
   Proof.
@@ -283,7 +280,6 @@ Section SigmaHCOLHelperLemmas.
 
   (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
   Lemma SingleValueInZeros
-        {fm:Monoid RthetaFlags}
         {m} (x:svector fm m) j (jc:j<m):
     (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
   Proof.
@@ -1161,7 +1157,7 @@ Section SigmaHCOLRewritingRules.
           inversion Uone as [k H]; clear Uone.
           inversion H as [kc Uone]; clear H.
           (* rewrite Is_ValZero_not_not in Uone. *)
-          rewrite UnionFold_VallButOne_zero with (kc0:=kc).
+          rewrite UnionFold_VallButOne_zero with (kc:=kc).
           *
             subst vl.
             rewrite Vbuild_nth.
@@ -1187,7 +1183,7 @@ Section SigmaHCOLRewritingRules.
               reflexivity.
             }
 
-            rewrite UnionFold_VallButOne_zero with (kc0:=kc).
+            rewrite UnionFold_VallButOne_zero with (kc:=kc).
             ** subst vr.
                rewrite Vbuild_nth.
                rewrite SHPointwise'_nth.

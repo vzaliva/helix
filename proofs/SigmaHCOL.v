@@ -171,12 +171,11 @@ Section SigmaHCOL_Operators.
       apply H.
     Qed.
 
-    Class SHOperator_Value_Facts
+    Class SHOperator_Facts
           {i o:nat}
           (xop: @SHOperator i o)
       :=
         {
-
           (* [in_index_set] membership is decidabe *)
           in_dec: FinNatSet_dec (in_index_set xop);
 
@@ -200,18 +199,12 @@ Section SigmaHCOL_Operators.
           (* never generate values at sparse positions of output vector *)
           no_vals_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Is_Struct (Vnth (op xop v) jc));
-        }.
 
-    Class SHOperator_Structural_Facts
-          {i o:nat}
-          (xop: @SHOperator i o)
-      :=
-        {
           (* As long there are no collisions in expected non-sparse places, none is expected in nonsparce places on outpyt*)
           no_coll_range: forall v,
-            (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
-            ->
-            (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
+              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Not_Collision (Vnth v jc))
+              ->
+              (forall j (jc:j<o), out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
           (* Never generate collisions on sparse places *)
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
@@ -256,9 +249,9 @@ Section SigmaHCOL_Operators.
           (i o k : nat)
           (op_family : SHOperatorFamily)
           (facts: ∀ (j : nat) (jc : j < S k),
-              @SHOperator_Value_Facts i o (family_member op_family j jc)):
+              @SHOperator_Facts i o (family_member op_family j jc)):
       (forall (j : nat) (jc : j < k),
-          @SHOperator_Value_Facts i o (family_member (shrink_op_family op_family) j jc)).
+          @SHOperator_Facts i o (family_member (shrink_op_family op_family) j jc)).
     Proof.
       intros j jc.
       replace (family_member (shrink_op_family op_family) j
@@ -436,7 +429,7 @@ Section SigmaHCOL_Operators.
           (i o k : nat)
           (op_family : @SHOperatorFamily i o k)
           (op_family_facts: forall (j : nat) (jc : j < k),
-              SHOperator_Value_Facts (family_member op_family j jc)):
+              SHOperator_Facts (family_member op_family j jc)):
       FinNatSet_dec (family_in_index_set op_family).
     Proof.
       induction k.
@@ -458,7 +451,7 @@ Section SigmaHCOL_Operators.
           (i o k : nat)
           (op_family : @SHOperatorFamily i o k)
           (op_family_facts: forall (j : nat) (jc : j < k),
-              SHOperator_Value_Facts (family_member op_family j jc)):
+              SHOperator_Facts (family_member op_family j jc)):
       FinNatSet_dec (family_out_index_set op_family).
     Proof.
       induction k.
@@ -1344,7 +1337,7 @@ Section StructuralProperies.
            {i o}
            (hop: avector i -> avector o)
            `{HOP: HOperator i o hop}
-      : SHOperator_Value_Facts fm (liftM_HOperator fm hop).
+      : SHOperator_Facts fm (liftM_HOperator fm hop).
     Proof.
       split.
       -
@@ -1373,16 +1366,6 @@ Section StructuralProperies.
         intros v j jc H.
         contradict H.
         split.
-    Qed.
-
-
-    Global Instance liftM_HOperator_Structural_Facts
-           {i o}
-           (hop: avector i -> avector o)
-           `{HOP: HOperator i o hop}
-      : SHOperator_Structural_Facts fm (liftM_HOperator fm hop).
-    Proof.
-      split.
       -
         intros v D j jc S.
         simpl in *.
@@ -1400,10 +1383,10 @@ Section StructuralProperies.
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3)
            (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Value_Facts fm _ _ op1}
-           `{fop2: SHOperator_Value_Facts fm _ _ op2}
+           `{fop1: SHOperator_Facts fm _ _ op1}
+           `{fop2: SHOperator_Facts fm _ _ op2}
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
-      : SHOperator_Value_Facts fm (SHCompose fm op1 op2).
+      : SHOperator_Facts fm (SHCompose fm op1 op2).
     Proof.
       split.
       -
@@ -1439,18 +1422,6 @@ Section StructuralProperies.
         unfold compose in *.
         apply no_vals_at_sparse0.
         apply S.
-    Qed.
-
-    Global Instance SHCompose_Structural_Facts
-           {i1 o2 o3}
-           (op1: @SHOperator fm o2 o3)
-           (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Structural_Facts fm _ _ op1}
-           `{fop2: SHOperator_Structural_Facts fm _ _ op2}
-           (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
-      : SHOperator_Structural_Facts fm (SHCompose fm op1 op2).
-    Proof.
-      split.
       -
         intros v D j jc S.
         destruct op1, op2, fop1, fop2.
@@ -1477,7 +1448,7 @@ Section StructuralProperies.
     Global Instance Gather_Facts
            {i o: nat}
            (f: index_map o i)
-      : SHOperator_Value_Facts fm (Gather fm f).
+      : SHOperator_Facts fm (Gather fm f).
     Proof.
       split.
       -
@@ -1512,14 +1483,6 @@ Section StructuralProperies.
         contradict S.
         simpl.
         split.
-    Qed.
-
-    Global Instance Gather_Structural_Facts
-           {i o: nat}
-           (f: index_map o i)
-      : SHOperator_Structural_Facts fm (Gather fm f).
-    Proof.
-      split.
       -
         intros v D j jc S.
         simpl.
@@ -1540,7 +1503,7 @@ Section StructuralProperies.
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator_Value_Facts fm (SHPointwise fm f).
+      SHOperator_Facts fm (SHPointwise fm f).
     Proof.
       split.
       -
@@ -1572,15 +1535,6 @@ Section StructuralProperies.
         contradict S.
         simpl.
         split.
-    Qed.
-
-    Global Instance SHPointwise_Structural_Facts
-           {n: nat}
-           (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator_Structural_Facts fm (SHPointwise fm f).
-    Proof.
-      split.
       - intros v D j jc S.
         simpl in *.
         unfold SHPointwise'.
@@ -1599,7 +1553,7 @@ Section StructuralProperies.
          {i o: nat}
          (f: index_map i o)
          {f_inj: index_map_injective f}:
-    SHOperator_Value_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)).
+    SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)).
   Proof.
     split.
     -
@@ -1650,15 +1604,6 @@ Section StructuralProperies.
         congruence.
       *
         apply Is_Struct_mkSZero.
-  Qed.
-
-  Global Instance Scatter_Rtheta_Structural_Facts
-         {i o: nat}
-         (f: index_map i o)
-         {f_inj: index_map_injective f}:
-    SHOperator_Structural_Facts Monoid_RthetaFlags (Scatter _ f (f_inj:=f_inj)).
-  Proof.
-    split.
     - intros v D j jc S.
       simpl.
       unfold Scatter' in *.
@@ -1686,7 +1631,7 @@ Section StructuralProperies.
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Value_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
+    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
   Proof.
     split.
     -
@@ -1716,16 +1661,6 @@ Section StructuralProperies.
       contradict S.
       simpl.
       split.
-  Qed.
-
-  Global Instance SHBinOp_RthetaSafe_Structural_Facts
-         {o}
-         (f: nat -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-      SHOperator_Structural_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
-  Proof.
-    split.
     - intros v D j jc S.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
@@ -1737,104 +1672,6 @@ Section StructuralProperies.
       simpl in *.
       destruct jc.
       split.
-  Qed.
-
-  Global Instance IUnion_Facts
-         {i o k}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial: CarrierA)
-         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-    : SHOperator_Value_Facts _ (IUnion dot initial op_family).
-  Proof.
-    split.
-    -
-      simpl in *.
-      apply fmaily_in_index_set_dec.
-      apply op_family_facts.
-    -
-      simpl in *.
-      apply fmaily_out_index_set_dec.
-      apply op_family_facts.
-    -
-      intros x y H.
-      simpl in *.
-      vec_index_equiv j jc.
-      unfold Diamond'.
-      unfold Apply_Family'.
-
-      rewrite 2!AbsorbMUnion'Index_Vbuild.
-      unfold UnionFold.
-
-      f_equiv.
-      apply Vforall2_intro_nth.
-      intros i0 ip.
-      rewrite 2!Vbuild_nth.
-      apply Vnth_arg_equiv.
-      clear j jc; rename i0 into j, ip into jc.
-
-      apply op_family_facts.
-
-      apply vec_equiv_at_subset with (h:=(family_in_index_set Monoid_RthetaFlags op_family)).
-      apply family_in_set_includes_members.
-      apply H.
-    -
-      intros v H j jc S.
-      simpl in *.
-
-      unfold Diamond'.
-      unfold Apply_Family'.
-
-      rewrite AbsorbMUnion'Index_Vbuild.
-      apply Is_Val_UnionFold.
-
-      apply family_out_set_implies_members in S.
-      destruct S as [x X].
-      destruct X as [xc X].
-
-      apply Vexists_Vbuild.
-      eexists.
-      eexists.
-
-      apply out_as_range.
-      + apply op_family_facts.
-      + intros j0 jc0 H0.
-        apply H.
-        eapply family_in_set_includes_members.
-        unfold In.
-        apply H0.
-      +
-        apply X.
-    -
-      intros v j jc S.
-      simpl in *.
-
-      unfold IUnion, Diamond', Apply_Family'.
-      rewrite AbsorbMUnion'Index_Vbuild.
-      unfold Is_Struct, compose, not.
-      intros G.
-      apply Is_Val_UnionFold in G.
-      apply Vexists_Vbuild in G.
-      destruct G as [t [tc G]].
-      apply op_family_facts in G.
-      * tauto.
-      *
-        (* G and S contradict *)
-        assert(N: ¬ out_index_set Monoid_RthetaFlags
-                    (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
-        {
-          contradict S.
-          apply family_out_set_includes_members in S.
-          auto.
-        }
-        apply no_vals_at_sparse with (v:=v) in N.
-        unfold Is_Struct, compose, not in N.
-
-        unfold get_family_op in G.
-        auto.
-
-        apply op_family_facts.
   Qed.
 
   Lemma UnionFold_empty_Non_Collision
@@ -2004,7 +1841,7 @@ Section StructuralProperies.
         (v : rvector i)
         (j : nat) (jc : j < o)
         (O : SHOperator Monoid_RthetaFlags)
-        (F: SHOperator_Value_Facts Monoid_RthetaFlags O)
+        (F: SHOperator_Facts Monoid_RthetaFlags O)
         (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
     :
       Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
@@ -2023,22 +1860,106 @@ Section StructuralProperies.
       crush.
   Qed.
 
-
-  Global Instance IUnion_Structural_Facts
+  Global Instance IUnion_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
-         (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                             (out_index_set _ (family_member _ op_family m mc))
                                                             (out_index_set _ (family_member _ op_family n nc))
          )
-    : SHOperator_Structural_Facts _ (IUnion dot initial op_family).
+    : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
+    -
+      simpl in *.
+      apply fmaily_in_index_set_dec.
+      apply op_family_facts.
+    -
+      simpl in *.
+      apply fmaily_out_index_set_dec.
+      apply op_family_facts.
+    -
+      intros x y H.
+      simpl in *.
+      vec_index_equiv j jc.
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      unfold UnionFold.
+
+      f_equiv.
+      apply Vforall2_intro_nth.
+      intros i0 ip.
+      rewrite 2!Vbuild_nth.
+      apply Vnth_arg_equiv.
+      clear j jc; rename i0 into j, ip into jc.
+
+      apply op_family_facts.
+
+      apply vec_equiv_at_subset with (h:=(family_in_index_set Monoid_RthetaFlags op_family)).
+      apply family_in_set_includes_members.
+      apply H.
+    -
+      intros v H j jc S.
+      simpl in *.
+
+      unfold Diamond'.
+      unfold Apply_Family'.
+
+      rewrite AbsorbMUnion'Index_Vbuild.
+      apply Is_Val_UnionFold.
+
+      apply family_out_set_implies_members in S.
+      destruct S as [x X].
+      destruct X as [xc X].
+
+      apply Vexists_Vbuild.
+      eexists.
+      eexists.
+
+      apply out_as_range.
+      + apply op_family_facts.
+      + intros j0 jc0 H0.
+        apply H.
+        eapply family_in_set_includes_members.
+        unfold In.
+        apply H0.
+      +
+        apply X.
+    -
+      intros v j jc S.
+      simpl in *.
+
+      unfold IUnion, Diamond', Apply_Family'.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      unfold Is_Struct, compose, not.
+      intros G.
+      apply Is_Val_UnionFold in G.
+      apply Vexists_Vbuild in G.
+      destruct G as [t [tc G]].
+      apply op_family_facts in G.
+      * tauto.
+      *
+        (* G and S contradict *)
+        assert(N: ¬ out_index_set Monoid_RthetaFlags
+                    (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
+        {
+          contradict S.
+          apply family_out_set_includes_members in S.
+          auto.
+        }
+        apply no_vals_at_sparse with (v:=v) in N.
+        unfold Is_Struct, compose, not in N.
+
+        unfold get_family_op in G.
+        auto.
+
+        apply op_family_facts.
     -
       (* no_coll_range *)
       intros v D j jc S.
@@ -2130,7 +2051,7 @@ Section StructuralProperies.
 
         unfold get_family_op.
         apply no_coll_at_sparse.
-        apply op_family_cg.
+        apply op_family_facts.
         apply H.
       +
         intros m mc n _ [M _].
@@ -2149,8 +2070,8 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
-    : SHOperator_Value_Facts _ (IReduction dot initial op_family).
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+    : SHOperator_Facts _ (IReduction dot initial op_family).
   Proof.
     split.
     -
@@ -2240,20 +2161,6 @@ Section StructuralProperies.
         auto.
 
         apply op_family_facts.
-  Qed.
-
-  Global Instance IReduction_Structural_Facts
-         {i o k}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial: CarrierA)
-         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Value_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
-         (op_family_cg: forall j (jc:j<k), SHOperator_Structural_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
-
-    : SHOperator_Structural_Facts _ (IReduction dot initial op_family).
-  Proof.
-    split.
     -
       (* no_coll_range *)
       intros v D j jc S.
@@ -2304,7 +2211,7 @@ Section StructuralProperies.
 
         unfold get_family_op.
         apply no_coll_at_sparse.
-        apply op_family_cg.
+        apply op_family_facts.
         apply H.
   Qed.
 
