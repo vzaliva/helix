@@ -12,7 +12,7 @@ OCAMLFINDFLAGS =
 
 OCAMLPACKS[] = 
 
-FILES = parser lexer main
+FILES = parser lexer ast main
 
 OCamlGeneratedFiles(lexer.ml parser.ml parser.mli)
 

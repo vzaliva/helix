@@ -3,4 +3,8 @@
 OMakefile.omc
 OMakeroot.omc
 lexer.ml
-
+parser.ml
+parser.mli
+*.cmo
+*.cmi
+*.run

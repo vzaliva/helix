@@ -1,3 +1,7 @@
+%{
+    open Ast
+%}
+
 %token <float> FLOAT
 %token <int> INT
 
@@ -11,5 +15,9 @@
 %token <string> IDENTIFIER
 %token EOF
 
+%start <Ast.i_program list> source
+
 %%
 
+source:
+    | EOF { [] }
