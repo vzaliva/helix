@@ -29,7 +29,7 @@ rule token = parse
 | ']'
     { RBRACKET }
 | '"'
-     { let buffer = Buffer.create 1 in
+     { let buffer = Buffer.create 10 in
          STRING (stringl buffer lexbuf)
      }   
  and  stringl buffer = parse
