@@ -1,0 +1,6 @@
+.omakedb
+.omakedb.lock
+OMakefile.omc
+OMakeroot.omc
+lexer.ml
+

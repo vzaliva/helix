@@ -1,0 +1,22 @@
+
+BYTE_ENABLED = true
+NATIVE_ENABLED = false
+OCAMLCFLAGS += -g -thread
+
+USE_OCAMLFIND = true
+OCAMLPACKS[] = 
+
+FILES = lexer.mll
+
+OCamlGeneratedFiles(lexer.ml)
+
+.PHONY: clean distclean run
+
+clean:
+	rm -f *.cmo *.cmi lexer.ml icodec *.run
+
+
+#Build the program
+#OCamlProgram(coq_min_imports, $(FILES))
+#.DEFAULT: icodec
+
