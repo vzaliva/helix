@@ -50,7 +50,7 @@ rule token = parse
 | "creturn" { CRETURN }
 
 | ((lowercase | uppercase) (identchar+)) as i
-    { IDENTIFIER as i }
+    { IDENTIFIER i }
     
 | eof
     { EOF }
