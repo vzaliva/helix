@@ -1,22 +1,32 @@
+PROGRAM = icodec
 
 BYTE_ENABLED = true
 NATIVE_ENABLED = false
 OCAMLCFLAGS += -g -thread
 
+MENHIR_ENABLED = true
+MENHIR_FLAGS += --infer
+
 USE_OCAMLFIND = true
 OCAMLPACKS[] = 
 
-FILES = lexer.mll
+FILES = parser lexer main
 
-OCamlGeneratedFiles(lexer.ml)
+OCamlGeneratedFiles(lexer.ml parser.ml parser.mli)
+
+# Compile into an executable
+OCamlProgram($(PROGRAM), $(FILES))
+
+# Default target: compile into bytecode or native code, or both
+.DEFAULT: $(if $(BYTE_ENABLED), $(PROGRAM).run) \
+          $(if $(NATIVE_ENABLED), $(PROGRAM).opt)
 
 .PHONY: clean distclean run
 
 clean:
-	rm -f *.cmo *.cmi lexer.ml icodec *.run
+  rm -f \
+	 *.omc \
+     $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
+     $(PROGRAM).run $(PROGRAM).opt
 
-
-#Build the program
-#OCamlProgram(coq_min_imports, $(FILES))
-#.DEFAULT: icodec
 
