@@ -8,6 +8,8 @@ MENHIR_ENABLED = true
 MENHIR_FLAGS += --infer
 
 USE_OCAMLFIND = true
+OCAMLFINDFLAGS = 
+
 OCAMLPACKS[] = 
 
 FILES = parser lexer main
