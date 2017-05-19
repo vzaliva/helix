@@ -15,9 +15,9 @@
 %token <string> IDENTIFIER
 %token EOF
 
-%start <Ast.i_program list> source
+%start <Ast.i_program> source
 
 %%
 
 source:
-    | EOF { [] }
+    | EOF { Program [] }
