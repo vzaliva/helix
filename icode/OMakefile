@@ -9,7 +9,7 @@ EXE = $(if $(BYTE_ENABLED), $(PROGRAM).run) \
 OCAMLCFLAGS += -g -thread
 
 MENHIR_ENABLED = true
-MENHIR_FLAGS += --infer --trace
+MENHIR_FLAGS += --infer --trace -v
 
 USE_OCAMLFIND = true
 OCAMLFINDFLAGS = 

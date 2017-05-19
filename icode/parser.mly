@@ -32,16 +32,16 @@ i_var:
    ;
 
 i_stmt:
-  | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) LBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
+  | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
   | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}
   | ASSIGN LPAREN n=i_var COMMA e=i_expr RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_expr RPAREN { Return i }
+  | LOOP LPAREN v=IDENTIFIER LBRACKET f=INT TWODOT t=INT RBRACKET RPAREN
+    {Loop (Var (v,None),f,t)}
   ;
 
 i_expr:
   | n=IDENTIFIER LPAREN a=separated_list(COMMA, i_expr) RPAREN {FunCall (n,a)}
   | f=FLOAT {FConst f}
   | i=INT {IConst i}
-  | LOOP LPAREN v=IDENTIFIER LBRACKET f=INT TWODOT t=INT RBRACKET RPAREN
-    {Loop (Var (v,None),f,t)}
   ;

@@ -5,6 +5,7 @@ OMakeroot.omc
 lexer.ml
 parser.ml
 parser.mli
+parser.automaton
 *.cmo
 *.cmi
 *.run

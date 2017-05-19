@@ -41,7 +41,7 @@ rule main = parse
          STRING (stringl buffer lexbuf)
      }   
  
-| ((lowercase | uppercase) (identchar+)) as i
+| ((lowercase | uppercase) (identchar*)) as i
     { IDENTIFIER i }
     
 | eof
