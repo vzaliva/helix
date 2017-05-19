@@ -19,8 +19,10 @@
 
 %%
 
+(* At top level we only allow function definitions. Chained or standalone *)
 i_program:
-    | f=i_function* EOF { Program f }
+    | f=i_function EOF { Program [f] }
+    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_function) RPAREN EOF {Program fs}
     ;
 
 i_function:

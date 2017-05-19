@@ -33,6 +33,8 @@ run: $(EXE)
 
 clean:
   rm -f \
+	lexer.ml \
+	parser.ml parser.mli parser.dot parser.automaton \
 	 *.omc \
      $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
      $(PROGRAM).run $(PROGRAM).opt
