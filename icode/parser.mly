@@ -11,7 +11,7 @@
 %token LPAREN RPAREN
 %token LBRACKET RBRACKET
 
-%token DECL CHAIN ASSIGN LOOP FUNC NTH CRETURN EOF
+%token DECL CHAIN ASSIGN LOOP FUNC NTH SKIP CRETURN EOF
 %token <string> IDENTIFIER
 
 %start <Ast.iprogram> i_program
@@ -41,6 +41,7 @@ i_lvalue:
   ;
 
 i_stmt:
+  | SKIP {Skip}
   | FUNC LPAREN t=IDENTIFIER COMMA n=STRING COMMA LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Function (n,Some t,a,b)}
   | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
   | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}

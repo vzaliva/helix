@@ -17,6 +17,7 @@ type lvalue =
 
 type istmt =
   | Function of string*itype*(ivar list)*istmt
+  | Skip
   | Decl of (ivar list)*istmt
   | Chain of (istmt list)
   | Assign of lvalue*rvalue

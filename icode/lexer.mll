@@ -34,6 +34,7 @@ rule main = parse
 | "loop"    { LOOP    }
 | "func"    { FUNC    }
 | "nth"     { NTH     }
+| "skip"    { SKIP    }
 | "creturn" { CRETURN }
 
 (* string literals *)
