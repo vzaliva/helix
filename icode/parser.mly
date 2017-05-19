@@ -24,7 +24,7 @@ i_program:
     ;
 
 i_function:
-    | FUNC LPAREN t=IDENTIFIER COMMA n=STRING COMMA LBRACKET a=separated_list(i_var,COMMA) RBRACKET COMMA b=i_stmt RPAREN {Function (n,t,a,b)}
+    | FUNC LPAREN t=IDENTIFIER COMMA n=STRING COMMA LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Function (n,Some t,a,b)}
     ;
 
 i_var:
@@ -32,15 +32,16 @@ i_var:
    ;
 
 i_stmt:
-  | DECL LPAREN LBRACKET a=separated_list(i_var,COMMA) LBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
-  | CHAIN LPAREN c=separated_nonempty_list(i_stmt, COMMA) RPAREN {Chain c}
+  | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) LBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
+  | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}
   | ASSIGN LPAREN n=i_var COMMA e=i_expr RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_expr RPAREN { Return i }
   ;
 
 i_expr:
-  | n=IDENTIFIER LPAREN a=separated_list(i_expr, COMMA) RPAREN {FunCall (n,a)}
+  | n=IDENTIFIER LPAREN a=separated_list(COMMA, i_expr) RPAREN {FunCall (n,a)}
   | f=FLOAT {FConst f}
   | i=INT {IConst i}
-  | LOOP LPAREN v=IDENTIFIER LBRACKET f=INT TWODOT t=INT RBRACKET RPAREN {Loop (v,f,t)}
+  | LOOP LPAREN v=IDENTIFIER LBRACKET f=INT TWODOT t=INT RBRACKET RPAREN
+    {Loop (Var (v,None),f,t)}
   ;

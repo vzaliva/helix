@@ -17,6 +17,6 @@ type istmt =
   | Return of iexpr
 
 (* function definition: name, type, args, body *)
-type ifunction = Functoin of string*itype*(ivar list)*istmt
+type ifunction = Function of string*itype*(ivar list)*istmt
 
 type iprogram = Program of ifunction list

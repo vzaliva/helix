@@ -4,7 +4,7 @@ let () =
     let inBuffer = open_in filename in
     let lineBuffer = Lexing.from_channel inBuffer in
     try
-        let ast = Parser.source Lexer.main lineBuffer in
+        let ast = Parser.i_program Lexer.main lineBuffer in
         print_string "OK!\n"
     with
         | Lexer.Error msg -> Printf.fprintf stderr "%s%!\n" msg
