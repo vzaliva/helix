@@ -6,6 +6,7 @@ type ivar = Var of string*itype
 
 type iexpr =
   | FunCall of string*(iexpr list)
+  | VarValue of ivar
   | FConst of float
   | IConst of int
 
@@ -13,7 +14,7 @@ type istmt =
   | Decl of (ivar list)*istmt
   | Chain of (istmt list)
   | Assign of ivar*iexpr
-  | Loop of ivar*int*int
+  | Loop of ivar*int*int*istmt
   | Return of iexpr
 
 (* function definition: name, type, args, body *)
