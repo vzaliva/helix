@@ -20,7 +20,7 @@
 %%
 
 i_program:
-    | f=list(i_function) EOF { Program f }
+    | f=i_function* EOF { Program f }
     ;
 
 i_function:
@@ -33,7 +33,7 @@ i_var:
 
 i_stmt:
   | DECL LPAREN LBRACKET a=separated_list(i_var,COMMA) LBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
-  | CHAIN LPAREN l=separated_list(i_stmt, COMMA) RPAREN {Chain l}
+  | CHAIN LPAREN c=separated_nonempty_list(i_stmt, COMMA) RPAREN {Chain c}
   | ASSIGN LPAREN n=i_var COMMA e=i_expr RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_expr RPAREN { Return i }
   ;
