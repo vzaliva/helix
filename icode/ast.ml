@@ -16,13 +16,12 @@ type lvalue =
   | NthLvalue of lvalue*rvalue
 
 type istmt =
+  | Function of string*itype*(ivar list)*istmt
   | Decl of (ivar list)*istmt
   | Chain of (istmt list)
   | Assign of lvalue*rvalue
-  | Loop of ivar*int*int*istmt
+  | Loop of ivar*rvalue*rvalue*istmt (* 'int' type for bounds, and a<=b will be checked later *)
   | Return of rvalue
 
-(* function definition: name, type, args, body *)
-type ifunction = Function of string*itype*(ivar list)*istmt
 
-type iprogram = Program of ifunction list
+type iprogram = Program of istmt list
