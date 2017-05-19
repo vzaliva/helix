@@ -33,6 +33,7 @@ rule main = parse
 | "assign"  { ASSIGN  }
 | "loop"    { LOOP    }
 | "func"    { FUNC    }
+| "nth"     { NTH     }
 | "creturn" { CRETURN }
 
 (* string literals *)

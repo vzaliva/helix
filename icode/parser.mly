@@ -11,7 +11,7 @@
 %token LBRACKET RBRACKET
 %token <string> STRING
 
-%token DECL CHAIN ASSIGN LOOP FUNC CRETURN
+%token DECL CHAIN ASSIGN LOOP FUNC NTH CRETURN
 %token <string> IDENTIFIER
 %token EOF
 
@@ -33,18 +33,25 @@ i_var:
    | i=IDENTIFIER { Var (i,None) } (* will be extended by type annotatoins later *)
    ;
 
+i_rvalue:
+  | n=IDENTIFIER LPAREN a=separated_list(COMMA, i_rvalue) RPAREN {FunCall (n,a)}
+  | v=i_var {VarRValue v}
+  | f=FLOAT {FConst f}
+  | i=INT {IConst i}
+  | NTH LPAREN a=i_rvalue COMMA i=i_rvalue RPAREN { NthRvalue (a,i) }
+  ;
+
+i_lvalue:
+  | v=i_var {VarLValue v}
+  | NTH LPAREN a=i_lvalue COMMA i=i_rvalue RPAREN { NthLvalue (a,i) }
+  ;
+
 i_stmt:
   | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
   | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}
-  | ASSIGN LPAREN n=i_var COMMA e=i_expr RPAREN {Assign (n,e)}
-  | CRETURN LPAREN i=i_expr RPAREN { Return i }
+  | ASSIGN LPAREN n=i_lvalue COMMA e=i_rvalue RPAREN {Assign (n,e)}
+  | CRETURN LPAREN i=i_rvalue RPAREN { Return i }
   | LOOP LPAREN v=i_var COMMA LBRACKET f=INT TWODOT t=INT RBRACKET COMMA b=i_stmt RPAREN
     {Loop (v,f,t,b)}
   ;
 
-i_expr:
-  | n=IDENTIFIER LPAREN a=separated_list(COMMA, i_expr) RPAREN {FunCall (n,a)}
-  | v=i_var {VarValue v}
-  | f=FLOAT {FConst f}
-  | i=INT {IConst i}
-  ;
