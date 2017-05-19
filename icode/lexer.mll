@@ -30,6 +30,7 @@ rule main = parse
 (* some reserved words below *)    
 | "decl"    { DECL    }
 | "chain"   { CHAIN   }
+| "data"    { DATA    }
 | "assign"  { ASSIGN  }
 | "loop"    { LOOP    }
 | "func"    { FUNC    }
