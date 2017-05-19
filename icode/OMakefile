@@ -2,10 +2,14 @@ PROGRAM = icodec
 
 BYTE_ENABLED = true
 NATIVE_ENABLED = false
+
+EXE = $(if $(BYTE_ENABLED), $(PROGRAM).run) \
+          $(if $(NATIVE_ENABLED), $(PROGRAM).opt)
+
 OCAMLCFLAGS += -g -thread
 
 MENHIR_ENABLED = true
-MENHIR_FLAGS += --infer
+MENHIR_FLAGS += --infer --trace
 
 USE_OCAMLFIND = true
 OCAMLFINDFLAGS = 
@@ -19,11 +23,13 @@ OCamlGeneratedFiles(lexer.ml parser.ml parser.mli)
 # Compile into an executable
 OCamlProgram($(PROGRAM), $(FILES))
 
-# Default target: compile into bytecode or native code, or both
-.DEFAULT: $(if $(BYTE_ENABLED), $(PROGRAM).run) \
-          $(if $(NATIVE_ENABLED), $(PROGRAM).opt)
-
 .PHONY: clean distclean run
+
+# Default target: compile into bytecode or native code, or both
+.DEFAULT: $(EXE)
+
+run: $(EXE)
+	./$(EXE) ../artefacts/transform.i
 
 clean:
   rm -f \
