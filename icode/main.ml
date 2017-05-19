@@ -5,7 +5,7 @@ let () =
     let lineBuffer = Lexing.from_channel inBuffer in
     try
         let ast = Parser.i_program Lexer.main lineBuffer in
-        print_string "OK!\n"
+        print_string "Parsing OK! \n"
     with
         | Lexer.Error msg -> Printf.fprintf stderr "%s%!\n" msg
         | Parser.Error -> Printf.fprintf stderr "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lineBuffer)
