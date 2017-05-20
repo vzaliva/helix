@@ -1,11 +1,17 @@
+open Typechecker
+open Format
+
 let filename = Sys.argv.(1)
 
 let () =
     let inBuffer = open_in filename in
     let lineBuffer = Lexing.from_channel inBuffer in
     try
-        let ast = Parser.i_program Lexer.main lineBuffer in
-        print_string "Parsing OK! \n"
+      let ast = Parser.i_program Lexer.main lineBuffer in
+      let types = Typechecker.collect_types ast in
+      List.map (Ast.pr_itype std_formatter) types ;
+        print_string "\n"
     with
-        | Lexer.Error msg -> Printf.fprintf stderr "%s%!\n" msg
-        | Parser.Error -> Printf.fprintf stderr "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lineBuffer)
+        | Typechecker.Error msg -> Printf.fprintf stderr "Type check failed: %s%!\n" msg
+        | Lexer.Error msg -> Printf.fprintf stderr "Lexer error %s%!\n" msg
+        | Parser.Error -> Printf.fprintf stderr "Parsing error at offset %d: syntax error.\n%!" (Lexing.lexeme_start lineBuffer)

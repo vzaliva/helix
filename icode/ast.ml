@@ -33,3 +33,11 @@ type istmt =
 
 type iprogram = Program of istmt list
 
+open Format
+
+let pr_itype ppf = function
+  | RealType -> fprintf ppf "@[TReal@]"
+  | IntType -> fprintf ppf "@[TInt@]"
+  | BoolType -> fprintf ppf "@[TBool@]"
+  | OtherType n -> fprintf ppf "@[%s@]" n
+  | UnknownType -> fprintf ppf "@[?@]"

@@ -15,9 +15,9 @@ MENHIR_FLAGS += --infer -v --graph
 USE_OCAMLFIND = true
 OCAMLFINDFLAGS = 
 
-OCAMLPACKS[] = 
+OCAMLPACKS[] = core
 
-FILES = parser lexer ast main
+FILES = parser lexer ast typechecker main
 
 OCamlGeneratedFiles(lexer.ml parser.ml parser.mli)
 
