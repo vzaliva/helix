@@ -1,5 +1,7 @@
 %{
     open Ast
+
+    exception TypeError of string
 %}
 
 %token <float> FLOAT
@@ -58,6 +60,13 @@ i_stmt:
   | ASSIGN LPAREN n=i_lvalue COMMA e=i_rvalue RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_rvalue RPAREN { Return i }
   | LOOP LPAREN v=i_var COMMA LBRACKET f=i_rvalue TWODOT t=i_rvalue RBRACKET COMMA b=i_stmt RPAREN
-    {Loop (v,f,t,b)}
-  ;
-
+    {
+      let iv =
+        match v with
+        | Var (n, t) -> (match t with
+            | IntType | UnknownType -> Var (n, IntType)
+            | _ -> raise (TypeError "Loop variable type mismatch. Must be int"))
+        in
+        Loop (iv,f,t,b)
+    }
+    ;
