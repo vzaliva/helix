@@ -38,6 +38,11 @@ rule main = parse
 | "skip"    { SKIP    }
 | "creturn" { CRETURN }
 
+(* type names *)
+| "TInt"    { TINT  }
+| "TReal"   { TREAL }
+| "TBool"   { TBOOL }
+
 (* string literals *)
 | '"'
      { let buffer = Buffer.create 10 in

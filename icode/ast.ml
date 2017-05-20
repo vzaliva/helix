@@ -1,6 +1,11 @@
 (* I-code AST *)
 
-type itype = string option
+type itype =
+  | RealType
+  | IntType
+  | BoolType
+  | OtherType of string
+  | UnknownType
 
 type ivar = Var of string*itype
 
@@ -27,3 +32,4 @@ type istmt =
 
 
 type iprogram = Program of istmt list
+

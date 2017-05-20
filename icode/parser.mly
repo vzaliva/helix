@@ -12,6 +12,8 @@
 %token LBRACKET RBRACKET
 
 %token DECL CHAIN DATA ASSIGN LOOP FUNC NTH SKIP CRETURN EOF
+%token TINT TREAL TBOOL
+
 %token <string> IDENTIFIER
 
 %start <Ast.iprogram> i_program
@@ -24,7 +26,7 @@ i_program:
     ;
 
 i_var:
-   | i=IDENTIFIER { Var (i,None) } (* will be extended by type annotatoins later *)
+   | i=IDENTIFIER { Var (i,UnknownType) } (* will be extended by type annotatoins later *)
    ;
 
 i_rvalue:
@@ -40,9 +42,16 @@ i_lvalue:
   | NTH LPAREN a=i_lvalue COMMA i=i_rvalue RPAREN { NthLvalue (a,i) }
   ;
 
+i_type:
+  | TINT   {IntType}
+  | TREAL  {RealType}
+  | TBOOL  {BoolType}
+  | n=IDENTIFIER {OtherType n}
+  ;
+
 i_stmt:
   | SKIP {Skip}
-  | FUNC LPAREN t=IDENTIFIER COMMA n=STRING COMMA LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Function (n,Some t,a,b)}
+  | FUNC LPAREN t=i_type COMMA n=STRING COMMA LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Function (n,t,a,b)}
   | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
   | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}
   | DATA n=i_var COMMA v=separated_list(COMMA, i_rvalue) COMMA b=i_stmt LPAREN RPAREN {Data (n,v,b)}
