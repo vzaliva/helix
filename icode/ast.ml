@@ -11,13 +11,13 @@ type ivar = Var of string*itype
 
 type rvalue =
   | FunCall of string*(rvalue list)
-  | VarRValue of ivar
+  | VarRValue of string
   | FConst of float
   | IConst of int
   | NthRvalue of rvalue*rvalue (* 'int' type for index will be checked later *)
 
 type lvalue =
-  | VarLValue of ivar
+  | VarLValue of string
   | NthLvalue of lvalue*rvalue
 
 type istmt =
@@ -41,3 +41,6 @@ let pr_itype ppf = function
   | BoolType -> fprintf ppf "@[TBool@]"
   | OtherType n -> fprintf ppf "@[%s@]" n
   | UnknownType -> fprintf ppf "@[?@]"
+
+let pr_ivar ppf = function
+  | Var (n,t) -> fprintf ppf "@[%s:%a@]" n pr_itype t

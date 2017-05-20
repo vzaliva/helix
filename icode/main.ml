@@ -8,9 +8,11 @@ let () =
     let lineBuffer = Lexing.from_channel inBuffer in
     try
       let ast = Parser.i_program Lexer.main lineBuffer in
-      let types = Typechecker.collect_types ast in
-      List.map (Ast.pr_itype std_formatter) types ;
-        print_string "\n"
+      let types = Typechecker.collect_vars ast in
+      ignore (List.map (fun i ->
+          Ast.pr_ivar std_formatter i ;
+          print_string "\n"
+        ) types )
     with
         | Typechecker.Error msg -> Printf.fprintf stderr "Type check failed: %s%!\n" msg
         | Lexer.Error msg -> Printf.fprintf stderr "Lexer error %s%!\n" msg

@@ -31,14 +31,14 @@ i_var:
 
 i_rvalue:
   | n=IDENTIFIER LPAREN a=separated_list(COMMA, i_rvalue) RPAREN {FunCall (n,a)}
-  | v=i_var {VarRValue v}
+  | v=IDENTIFIER {VarRValue v}
   | f=FLOAT {FConst f}
   | i=INT {IConst i}
   | NTH LPAREN a=i_rvalue COMMA i=i_rvalue RPAREN { NthRvalue (a,i) }
   ;
 
 i_lvalue:
-  | v=i_var {VarLValue v}
+  | v=IDENTIFIER {VarLValue v}
   | NTH LPAREN a=i_lvalue COMMA i=i_rvalue RPAREN { NthLvalue (a,i) }
   ;
 
