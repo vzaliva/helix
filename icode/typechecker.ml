@@ -40,5 +40,3 @@ let rec fix_operator_types = function
          fix_operator_types stmt)
   | Loop (v, f, t, stmt) -> Loop (var_enforce_int v, f, t, fix_operator_types stmt)
   | _ as x -> x
-
-
