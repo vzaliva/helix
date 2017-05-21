@@ -6,6 +6,7 @@ type itype =
   | BoolType
   | OtherType of string
   | UnknownType
+  | ArrayType of itype*(int option)
 
 type ivar = Var of string*itype
 
@@ -33,12 +34,17 @@ type istmt =
 
 open Format
 
-let pr_itype ppf = function
+let rec pr_itype ppf = function
   | RealType -> fprintf ppf "@[TReal@]"
   | IntType -> fprintf ppf "@[TInt@]"
   | BoolType -> fprintf ppf "@[TBool@]"
   | OtherType n -> fprintf ppf "@[%s@]" n
   | UnknownType -> fprintf ppf "@[?@]"
+  | ArrayType (t,s) -> fprintf ppf "@[%a[%s]@]" pr_itype t
+                               (match s with
+                               | None -> "?"
+                               | Some d -> string_of_int d)
+
 
 let pr_ivar ppf = function
   | Var (n,t) -> fprintf ppf "@[%s:%a@]" n pr_itype t

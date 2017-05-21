@@ -13,3 +13,4 @@ and collect_vars_istmt = function
   | Data (v, _, stmt) -> v :: (collect_vars_istmt stmt)
   | Loop (v, _, _, stmt) -> v :: (collect_vars_istmt stmt)
   | _ -> []
+
