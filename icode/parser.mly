@@ -1,7 +1,5 @@
 %{
     open Ast
-
-    exception TypeError of string
 %}
 
 %token <float> FLOAT
@@ -18,13 +16,13 @@
 
 %token <string> IDENTIFIER
 
-%start <Ast.istmt list> i_program
+%start <Ast.istmt> i_program
 
 %%
 
 i_program:
-    | f=i_stmt EOF { [f] }
-    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_stmt) RPAREN EOF {fs}
+    | f=i_stmt EOF { Chain [f] }
+    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_stmt) RPAREN EOF {Chain fs}
     ;
 
 i_var:
@@ -59,14 +57,5 @@ i_stmt:
   | DATA n=i_var COMMA v=separated_list(COMMA, i_rvalue) COMMA b=i_stmt LPAREN RPAREN {Data (n,v,b)}
   | ASSIGN LPAREN n=i_lvalue COMMA e=i_rvalue RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_rvalue RPAREN { Return i }
-  | LOOP LPAREN v=i_var COMMA LBRACKET f=i_rvalue TWODOT t=i_rvalue RBRACKET COMMA b=i_stmt RPAREN
-    {
-      let iv =
-        match v with
-        | Var (n, t) -> (match t with
-            | IntType | UnknownType -> Var (n, IntType)
-            | _ -> raise (TypeError "Loop variable type mismatch. Must be int"))
-        in
-        Loop (iv,f,t,b)
-    }
-    ;
+  | LOOP LPAREN v=i_var COMMA LBRACKET f=i_rvalue TWODOT t=i_rvalue RBRACKET COMMA b=i_stmt RPAREN  { Loop (v,f,t,b) }
+  ;
