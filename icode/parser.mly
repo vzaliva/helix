@@ -18,13 +18,13 @@
 
 %token <string> IDENTIFIER
 
-%start <Ast.iprogram> i_program
+%start <Ast.istmt list> i_program
 
 %%
 
 i_program:
-    | f=i_stmt EOF { Program [f] }
-    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_stmt) RPAREN EOF {Program fs}
+    | f=i_stmt EOF { [f] }
+    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_stmt) RPAREN EOF {fs}
     ;
 
 i_var:

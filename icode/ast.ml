@@ -31,8 +31,6 @@ type istmt =
   | Return of rvalue
 
 
-type iprogram = Program of istmt list
-
 open Format
 
 let pr_itype ppf = function
