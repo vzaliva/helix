@@ -8,6 +8,7 @@ let () =
     let lineBuffer = Lexing.from_channel inBuffer in
     try
       let ast = Parser.i_program Lexer.main lineBuffer in
+      let ast = fix_operator_types ast in
       let types = Typechecker.collect_vars ast in
       pp_print_list ~pp_sep:pp_print_newline Ast.pr_ivar std_formatter types
     with

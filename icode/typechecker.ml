@@ -12,11 +12,33 @@ let rec collect_vars = function
   | Loop (v, _, _, stmt) -> v :: (collect_vars stmt)
   | _ -> []
 
-(*
-      let iv =
-        match v with
-        | Var (n, t) -> (match t with
-            | IntType | UnknownType -> Var (n, IntType)
-            | _ -> raise (TypeError "Loop variable type mismatch. Must be int"))
-        in
- *)
+let var_enforce_int = function
+  | Var (n, t) -> (match t with
+                   | IntType | UnknownType -> Var (n, IntType)
+                   | _ -> raise (Error "Loop variable type mismatch. Must be int"))
+
+let var_enforce_array d = function
+  | Var (n, t) -> (match t with
+                   | ArrayType (at,ado) ->
+                      (match ado with
+                      | None -> Var (n, ArrayType (at, Some d))
+                      | Some ad -> if ad = d then
+                                     Var (n, ArrayType (at, Some d))
+                                   else
+                                     raise (Error "Array size mismatch"))
+                   | UnknownType -> Var (n, ArrayType (UnknownType, Some d))
+                   | _ -> raise (Error "Loop variable type mismatch. Must be array"))
+
+let rec fix_operator_types = function
+  | Function (n, t, args, stmt) -> Function (n, t, args, fix_operator_types stmt)
+  | Decl (vars, stmt) -> Decl (vars, fix_operator_types stmt)
+  | Chain stmts ->  Chain (List.map stmts fix_operator_types)
+  | Data (v, values, stmt) ->
+     Data (
+         var_enforce_array (List.length values) v,
+         values,
+         fix_operator_types stmt)
+  | Loop (v, f, t, stmt) -> Loop (var_enforce_int v, f, t, fix_operator_types stmt)
+  | _ as x -> x
+
+
