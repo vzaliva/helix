@@ -10,6 +10,7 @@ let rec collect_vars = function
   | Chain stmts -> List.concat_map stmts collect_vars
   | Data (v, _, stmt) -> v :: (collect_vars stmt)
   | Loop (v, _, _, stmt) -> v :: (collect_vars stmt)
+  | If (_, then_stmt, else_stmt) -> collect_vars then_stmt @ collect_vars else_stmt
   | _ -> []
 
 let var_enforce_int = function
@@ -39,4 +40,5 @@ let rec fix_operator_types = function
          values,
          fix_operator_types stmt)
   | Loop (v, f, t, stmt) -> Loop (var_enforce_int v, f, t, fix_operator_types stmt)
+  | If (rv, then_stmt, else_stmt) -> If (rv, fix_operator_types then_stmt, fix_operator_types else_stmt)
   | _ as x -> x

@@ -30,6 +30,7 @@ type istmt =
   | Data of ivar*(rvalue list)*istmt (* homogenity of rvalues to be checked later *)
   | Assign of lvalue*rvalue
   | Loop of ivar*rvalue*rvalue*istmt (* 'int' type for bounds, and a<=b will be checked later *)
+  | If of rvalue*istmt*istmt
   | Return of rvalue
 
 

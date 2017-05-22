@@ -36,6 +36,7 @@ rule main = parse
 | "func"    { FUNC    }
 | "nth"     { NTH     }
 | "skip"    { SKIP    }
+| "if"      { IF      }
 | "creturn" { CRETURN }
 
 (* type names *)

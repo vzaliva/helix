@@ -11,7 +11,7 @@
 %token LPAREN RPAREN
 %token LBRACKET RBRACKET
 
-%token DECL CHAIN DATA ASSIGN LOOP FUNC NTH SKIP CRETURN EOF
+%token DECL CHAIN DATA ASSIGN LOOP FUNC NTH SKIP IF CRETURN EOF
 %token TVOID TINT TREAL TBOOL
 
 %token <string> IDENTIFIER
@@ -58,5 +58,6 @@ i_stmt:
   | DATA n=i_var COMMA v=separated_list(COMMA, i_rvalue) COMMA b=i_stmt LPAREN RPAREN {Data (n,v,b)}
   | ASSIGN LPAREN n=i_lvalue COMMA e=i_rvalue RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_rvalue RPAREN { Return i }
+  | IF LPAREN v=i_rvalue COMMA t=i_stmt COMMA e=i_stmt RPAREN { If (v,t,e) }
   | LOOP LPAREN v=i_var COMMA LBRACKET f=i_rvalue TWODOT t=i_rvalue RBRACKET COMMA b=i_stmt RPAREN  { Loop (v,f,t,b) }
   ;
