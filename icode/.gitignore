@@ -6,6 +6,7 @@ lexer.ml
 parser.ml
 parser.mli
 parser.automaton
+parser.conflicts
 parser.dot
 *.cmo
 *.cmi
