@@ -1,6 +1,7 @@
 (* I-code AST *)
 
 type itype =
+  | VoidType
   | RealType
   | IntType
   | BoolType
@@ -35,6 +36,7 @@ type istmt =
 open Format
 
 let rec pr_itype ppf = function
+  | VoidType -> fprintf ppf "@[TVoid@]"
   | RealType -> fprintf ppf "@[TReal@]"
   | IntType -> fprintf ppf "@[TInt@]"
   | BoolType -> fprintf ppf "@[TBool@]"

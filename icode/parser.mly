@@ -12,7 +12,7 @@
 %token LBRACKET RBRACKET
 
 %token DECL CHAIN DATA ASSIGN LOOP FUNC NTH SKIP CRETURN EOF
-%token TINT TREAL TBOOL
+%token TVOID TINT TREAL TBOOL
 
 %token <string> IDENTIFIER
 
@@ -46,6 +46,7 @@ i_type:
   | TINT   {IntType}
   | TREAL  {RealType}
   | TBOOL  {BoolType}
+  | TVOID  {VoidType}
   | n=IDENTIFIER {OtherType n}
   ;
 
@@ -53,7 +54,7 @@ i_stmt:
   | SKIP {Skip}
   | FUNC LPAREN t=i_type COMMA n=STRING COMMA LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Function (n,t,a,b)}
   | DECL LPAREN LBRACKET a=separated_list(COMMA, i_var) RBRACKET COMMA b=i_stmt RPAREN {Decl (a,b)}
-  | CHAIN LPAREN c=separated_nonempty_list(COMMA, i_stmt) RPAREN {Chain c}
+  | CHAIN LPAREN c=separated_list(COMMA, i_stmt) RPAREN {Chain c}
   | DATA n=i_var COMMA v=separated_list(COMMA, i_rvalue) COMMA b=i_stmt LPAREN RPAREN {Data (n,v,b)}
   | ASSIGN LPAREN n=i_lvalue COMMA e=i_rvalue RPAREN {Assign (n,e)}
   | CRETURN LPAREN i=i_rvalue RPAREN { Return i }
