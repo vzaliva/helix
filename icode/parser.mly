@@ -21,9 +21,8 @@
 %%
 
 i_program:
-    | EOF { Chain [] }
     | f=i_stmt EOF { Chain [f] }
-    | CHAIN LPAREN fs=separated_nonempty_list(COMMA, i_stmt) RPAREN EOF {Chain fs}
+    | EOF { Chain [] }
     ;
 
 i_var:
