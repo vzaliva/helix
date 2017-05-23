@@ -409,6 +409,9 @@ SUMUnion(
     repeat rewrite <- SHCompose_assoc.
     rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
     setoid_rewrite rewrite_PointWise_ISumUnion.
+
+    simpl.
+
   Admitted.
 
 End SigmaHCOL_rewriting.
