@@ -844,13 +844,12 @@ Section SigmaHCOL_Operators.
                {i1 o2 o3 n}
                (f: @SHOperatorFamily o2 o3 n)
                (g: @SHOperatorFamily i1 o2 n)
-      : @SHOperatorFamily i1 o3 n.
-    Proof.
-      destruct f, g.
-      split.
-      intros j jc.
-      exact (SHCompose (family_member0 j jc) (family_member1 j jc)).
-    Defined.
+      : @SHOperatorFamily i1 o3 n
+      :=
+        mkSHOperatorFamily _ _ _
+                           (fun (j : nat) (jc : j < n) =>
+                              family_member f j jc  ⊚ family_member g j jc).
+
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
     Definition SHPointwise'
