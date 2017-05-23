@@ -1125,6 +1125,18 @@ Section OperatorProperies.
     f_equiv.
   Qed.
 
+  Lemma SHCompose_mid_assoc
+        {i1 o1 o2 o3 o4}
+        (h: @SHOperator fm o3 o4)
+        (g: @SHOperator fm o2 o3)
+        (f: @SHOperator fm o1 o2)
+        (k: @SHOperator fm i1 o1):
+    h ⊚ g ⊚ f ⊚ k = h ⊚ (g ⊚ f) ⊚ k.
+  Proof.
+    repeat f_equiv.
+  Qed.
+
+
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)

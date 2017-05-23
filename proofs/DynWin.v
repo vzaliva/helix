@@ -43,7 +43,7 @@ Section HCOL_breakdown.
 
 
   (* Initial HCOL breakdown proof *)
-  Theorem DynWinOHCOL:  forall (a: avector 3),
+  Theorem DynWinHCOL:  forall (a: avector 3),
       dynwin_orig a = dynwin_HCOL a.
   Proof.
     intros a.
@@ -64,6 +64,8 @@ End HCOL_breakdown.
 Section SigmaHCOL_rewriting.
 
   Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+
+  (* --- HCOL -> Sigma->HCOL --- *)
 
   (*
 Final Sigma-HCOL expression:
@@ -128,6 +130,7 @@ SUMUnion(
                              (domain_bound := h_bound_second_half 1 (2+2)))
                   )
       ).
+
 
   (* HCOL -> SigmaHCOL Value correctness. *)
   Theorem DynWinSigmaHCOL_Value_Correctness
@@ -388,5 +391,24 @@ SUMUnion(
     }
   Qed.
 
+  (* --- SigmaHCOL -> Sigma->HCOL --- *)
+
+  Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
+
+  Theorem DynWinSigmaHCOL1_Value_Correctness
+          (a: avector 3)
+    :
+      dynwin_SHCOL a
+      =
+      dynwin_SHCOL1 a.
+  Proof.
+    unfold dynwin_SHCOL.
+    unfold USparseEmbedding.
+
+    (* normalize to left-associativity of compose *)
+    repeat rewrite <- SHCompose_assoc.
+    rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
+    setoid_rewrite rewrite_PointWise_ISumUnion.
+  Admitted.
 
 End SigmaHCOL_rewriting.
