@@ -839,6 +839,13 @@ Section SigmaHCOL_Operators.
       + apply op_proper1.
     Qed.
 
+    Definition Constant_Family
+               {i o n}
+               (f: @SHOperator i o)
+      : @SHOperatorFamily i o n
+      :=
+        mkSHOperatorFamily _ _ _  (fun (j : nat) (_ : j < n) => f).
+
     (* Family composition *)
     Definition SHFCompose
                {i1 o2 o3 n}
