@@ -8,6 +8,7 @@ type itype =
   | OtherType of string
   | UnknownType
   | ArrayType of itype*(int option)
+  | PtrType of itype
 
 type ivar = Var of string*itype
 
@@ -47,6 +48,7 @@ let rec pr_itype ppf = function
                                (match s with
                                | None -> "?"
                                | Some d -> string_of_int d)
+  | PtrType t -> fprintf ppf "@[%a@]" pr_itype t
 
 
 let pr_ivar ppf = function
