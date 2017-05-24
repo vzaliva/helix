@@ -977,9 +977,6 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    Local Notation "g ⊛ f" := (@SHFCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
-
-
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -990,12 +987,13 @@ Section SigmaHCOLRewritingRules.
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
         =
-        @ISumUnion i o n (
-                     Constant_Family _ (@SHPointwise Monoid_RthetaFlags o pf pf_mor)
-                                     ⊛ op_family
-                   ).
+        (@ISumUnion i o n
+                    (SHOperatorFamilyCompose _
+                                             (@SHPointwise _ o pf pf_mor)
+                                             op_family)
+        ).
     Proof.
-      unfold SHFCompose, Constant_Family.
+      unfold SHOperatorFamilyCompose.
       unfold SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       apply ext_equiv_applied_equiv.

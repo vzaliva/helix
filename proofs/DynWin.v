@@ -405,23 +405,19 @@ SUMUnion(
     unfold dynwin_SHCOL.
     unfold USparseEmbedding.
 
-    {
-      (* normalize to left-associativity of compose *)
-      repeat rewrite <- SHCompose_assoc.
-      rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
+    (* normalize to left-associativity of compose *)
+    repeat rewrite <- SHCompose_assoc.
+    rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
 
-      setoid_rewrite rewrite_PointWise_ISumUnion.
-      -
-        admit.
-      -
-        (* TODO: See if singe non-zero per row could be derived from SparseEmbedding *)
-        admit.
-      -
-        intros j jc.
-        unfold IgnoreIndex.
-        unfold const.
-        apply abs_0_s.
-    }
+    setoid_rewrite rewrite_PointWise_ISumUnion.
+    -
+      admit.
+    -
+      (* TODO: See if singe non-zero per row could be derived from SparseEmbedding *)
+      admit.
+    -
+      intros j jc.
+      apply abs_0_s.
 
 
 

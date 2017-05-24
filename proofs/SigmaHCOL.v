@@ -847,7 +847,7 @@ Section SigmaHCOL_Operators.
         mkSHOperatorFamily _ _ _  (fun (j : nat) (_ : j < n) => f).
 
     (* Family composition *)
-    Definition SHFCompose
+    Definition SHFamilyFamilyCompose
                {i1 o2 o3 n}
                (f: @SHOperatorFamily o2 o3 n)
                (g: @SHOperatorFamily i1 o2 n)
@@ -856,6 +856,28 @@ Section SigmaHCOL_Operators.
         mkSHOperatorFamily _ _ _
                            (fun (j : nat) (jc : j < n) =>
                               family_member f j jc  ⊚ family_member g j jc).
+
+    (* Family/operator composition *)
+    Definition  SHOperatorFamilyCompose
+                {i1 o2 o3 n}
+                (f: @SHOperator o2 o3)
+                (g: @SHOperatorFamily i1 o2 n)
+      : @SHOperatorFamily i1 o3 n
+      :=
+        mkSHOperatorFamily _ _ _
+                           (fun (j : nat) (jc : j < n) =>
+                              f  ⊚ family_member g j jc).
+
+
+    Definition  SHFamilyOperatorCompose
+                {i1 o2 o3 n}
+                (f: @SHOperatorFamily o2 o3 n)
+                (g: @SHOperator i1 o2)
+      : @SHOperatorFamily i1 o3 n
+      :=
+        mkSHOperatorFamily _ _ _
+                           (fun (j : nat) (jc : j < n) =>
+                              family_member f j jc  ⊚ g).
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
