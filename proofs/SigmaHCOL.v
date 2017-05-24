@@ -976,6 +976,49 @@ Section SigmaHCOL_Operators.
                                  ⊚ (family_member kernel j jc)
                                  ⊚ (Gather (⦃g⦄ j jc))).
 
+
+    Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
+          {n i o ki ko}
+          (* Kernel *)
+          (kernel: @SHOperatorFamily ki ko n)
+          (* Scatter index map *)
+          (f: index_map_family ko o n)
+          {f_inj : index_map_family_injective f}
+          (* Gather index map *)
+          (g: index_map_family ki i n):
+      Apply_Family_Single_NonZero_Per_Row
+        (SparseEmbedding kernel f (f_inj:=f_inj) g).
+    Proof.
+      unfold Apply_Family_Single_NonZero_Per_Row.
+      intros x.
+
+      unfold Apply_Family, Apply_Family', SparseEmbedding, get_family_op, transpose, row, Vnth_aux.
+      rewrite Vforall_Vbuild.
+      intros k kc.
+      rewrite Vmap_Vbuild.
+      simpl.
+
+      unfold Vunique.
+      intros j0 jc0 j1 jc1.
+      rewrite 2!Vbuild_nth.
+
+      unfold compose.
+
+      generalize (@op ki ko (@family_member ki ko n kernel j0 jc0)
+                      (@Gather' i ki (family_f ki i n g j0 jc0) x)) as x0.
+
+      generalize (@op ki ko (@family_member ki ko n kernel j1 jc1)
+                      (@Gather' i ki (family_f ki i n g j1 jc1) x)) as x1.
+      intros x0 x1.
+      intros [H0 H1].
+      clear kernel g i x ki.
+      rename ko into i.
+
+      unfold index_map_family_injective in f_inj.
+
+    Qed.
+
+
   End FlagsMonoidGenericOperators.
 
   Definition SHBinOp
