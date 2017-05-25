@@ -977,6 +977,49 @@ Section SigmaHCOL_Operators.
                                  ⊚ (Gather (⦃g⦄ j jc))).
 
 
+    (* TODO: move? *)
+    Lemma Scatter'_Zero_at_sparse
+          {i o: nat}
+          (f: index_map i o)
+          {f_inj: index_map_injective f}
+          (x: svector fm i)
+          (k:nat)
+          (kc:k<o):
+      ¬ in_range f k -> Is_ValZero (Vnth (Scatter' f (f_inj:=f_inj) x) kc).
+    Proof.
+      intros R.
+
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      break_match.
+      -
+        congruence.
+      -
+        apply SZero_is_ValZero.
+    Qed.
+
+    (* TODO: move? *)
+    Lemma Scatter'_NonZero_in_range
+          {i o: nat}
+          (f: index_map i o)
+          {f_inj: index_map_injective f}
+          (x: svector fm i)
+          (k:nat)
+          (kc:k<o):
+      ¬ Is_ValZero (Vnth (Scatter' f (f_inj:=f_inj) x) kc) -> in_range f k.
+    Proof.
+      intros H.
+
+      unfold Scatter' in H.
+      rewrite Vbuild_nth in H.
+      break_match.
+      -
+        assumption.
+      -
+        contradict H.
+        apply SZero_is_ValZero.
+    Qed.
+
     Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
           {n i o ki ko}
           (* Kernel *)
@@ -1010,12 +1053,31 @@ Section SigmaHCOL_Operators.
       generalize (@op ki ko (@family_member ki ko n kernel j1 jc1)
                       (@Gather' i ki (family_f ki i n g j1 jc1) x)) as x1.
       intros x0 x1.
-      intros [H0 H1].
+
       clear kernel g i x ki.
       rename ko into i.
 
-      unfold index_map_family_injective in f_inj.
+      generalize dependent (@index_map_family_member_injective i o n f f_inj j0 jc0).
+      generalize dependent (@index_map_family_member_injective i o n f f_inj j1 jc1).
+      intros i0 i1.
+      intros [H0 H1].
 
+      specialize (f_inj j0 j1 jc0 jc1).
+      unfold index_map_injective in *.
+
+
+      apply Scatter'_NonZero_in_range in H0.
+      apply Scatter'_NonZero_in_range in H1.
+
+      apply in_range_exists in H0; try apply kc.
+      destruct H0 as [x [xc H0]].
+      apply in_range_exists in H1; try apply kc.
+      destruct H1 as [y [yc H1]].
+
+      subst k.
+      symmetry in H1.
+      specialize (f_inj x y xc yc H1).
+      apply f_inj.
     Qed.
 
 
