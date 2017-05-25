@@ -268,8 +268,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (in_index_set (family_member op_family j (S_j_lt_n E)))
-                              (family_in_index_set (shrink_op_family f))
+                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Fixpoint family_out_index_set
@@ -710,9 +710,9 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n)
       :=
         forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (transpose
+                             (Apply_Family op_family x)
+                          ).
 
     Definition Gather'
                {i o: nat}
@@ -2011,8 +2011,8 @@ Section StructuralProperies.
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                            (out_index_set _ (family_member _ op_family m mc))
-                                                            (out_index_set _ (family_member _ op_family n nc))
+                                                                  (out_index_set _ (family_member _ op_family m mc))
+                                                                  (out_index_set _ (family_member _ op_family n nc))
          )
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
