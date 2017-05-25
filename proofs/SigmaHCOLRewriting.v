@@ -977,12 +977,14 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
+    (* TODO : pfzn and Uz should be typeclasses *)
+
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (pf: { j | j<o} -> CarrierA -> CarrierA)
-          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
