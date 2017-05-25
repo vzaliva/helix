@@ -1047,39 +1047,24 @@ Section SigmaHCOL_Operators.
 
       unfold compose.
 
-      generalize (@op ki ko (@family_member ki ko n kernel j0 jc0)
-                      (@Gather' i ki (family_f ki i n g j0 jc0) x)) as x0.
-
-      generalize (@op ki ko (@family_member ki ko n kernel j1 jc1)
-                      (@Gather' i ki (family_f ki i n g j1 jc1) x)) as x1.
+      generalize
+        (@op ki ko (@family_member ki ko n kernel j0 jc0)
+             (@Gather' i ki (family_f ki i n g j0 jc0) x)),
+      (@op ki ko (@family_member ki ko n kernel j1 jc1)
+           (@Gather' i ki (family_f ki i n g j1 jc1) x)).
       intros x0 x1.
 
-      clear kernel g i x ki.
-      rename ko into i.
+      clear kernel g i x ki. rename ko into i.
 
-      generalize dependent (@index_map_family_member_injective i o n f f_inj j0 jc0).
-      generalize dependent (@index_map_family_member_injective i o n f f_inj j1 jc1).
-      intros i0 i1.
       intros [H0 H1].
-
-      specialize (f_inj j0 j1 jc0 jc1).
-      unfold index_map_injective in *.
-
-
-      apply Scatter'_NonZero_in_range in H0.
-      apply Scatter'_NonZero_in_range in H1.
-
-      apply in_range_exists in H0; try apply kc.
+      apply Scatter'_NonZero_in_range, in_range_exists in H0; try assumption.
+      apply Scatter'_NonZero_in_range, in_range_exists in H1; try assumption.
       destruct H0 as [x [xc H0]].
-      apply in_range_exists in H1; try apply kc.
       destruct H1 as [y [yc H1]].
-
-      subst k.
-      symmetry in H1.
-      specialize (f_inj x y xc yc H1).
+      rewrite <- H1 in H0.
+      specialize (f_inj j0 j1 jc0 jc1 x y xc yc H0).
       apply f_inj.
     Qed.
-
 
   End FlagsMonoidGenericOperators.
 
