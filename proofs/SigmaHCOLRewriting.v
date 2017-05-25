@@ -980,10 +980,10 @@ Section SigmaHCOLRewritingRules.
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          {Uz: Apply_Family_Single_NonZero_Per_Row _ op_family}
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
+          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
         =

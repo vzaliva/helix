@@ -410,22 +410,13 @@ SUMUnion(
     rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
 
     setoid_rewrite rewrite_PointWise_ISumUnion.
-    -
-      admit.
-    -
-      (* TODO: See if singe non-zero per row could be derived from SparseEmbedding *)
-      admit.
-    -
-      intros j jc.
-      apply abs_0_s.
+    Focus 2.
+    intros j jc.
+    apply abs_0_s.
+    Focus 2.
+    apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
 
 
-
-
-
-
-
-    simpl.
 
   Admitted.
 
