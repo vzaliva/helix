@@ -41,7 +41,8 @@ Section RthetaSafetyCast.
     rvector i -> rvector o
     := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
 
-  Lemma SafeCast'_proper (i o : nat)
+  (* TODO: maybe not necessary in presene of SafeCast'_proper *)
+  Lemma SafeCast'_arg_proper (i o : nat)
         (op : rsvector i → rsvector o)
         (op_proper: Proper (equiv ==> equiv) (op))
     :
@@ -51,6 +52,20 @@ Section RthetaSafetyCast.
     unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
     f_equiv.
     f_equiv.
+    f_equiv.
+    apply Ev.
+  Qed.
+
+  Lemma SafeCast'_proper (i o : nat):
+    Proper (equiv ==> equiv ==> equiv) (@SafeCast' i o).
+  Proof.
+    intros f f' Ef v v' Ev.
+    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
+    f_equiv.
+    vec_index_equiv j jc.
+    apply Vnth_arg_equiv.
+    unfold equiv, ext_equiv, respectful in Ef.
+    apply Ef.
     f_equiv.
     apply Ev.
   Qed.
@@ -80,6 +95,21 @@ Section RthetaSafetyCast.
                          (fun (j : nat) (jc : j < n) =>
                             SafeCast (family_member Monoid_RthetaSafeFlags f j jc)).
 
+  Lemma SafeFamilyCast_proper (i o:nat):
+    Proper (equiv ==> equiv) (@SafeCast i o).
+  Proof.
+    intros f f' Ev.
+    unfold SafeCast.
+    unfold equiv, SHOperator_equiv.
+    simpl.
+
+    destruct f, f'.
+    unfold equiv, SHOperator_equiv in Ev.
+    simpl in *.
+
+    apply SafeCast'_proper.
+    apply Ev.
+  Qed.
 
   Definition UnSafeCast'
              {o i}
@@ -88,7 +118,8 @@ Section RthetaSafetyCast.
     := (rvector2rsvector o) ∘ f ∘ (rsvector2rvector i).
 
 
-  Lemma UnSafeCast'_proper (i o : nat)
+  (* TODO: maybe not necessary in presene of UnSafeCast'_proper *)
+  Lemma UnSafeCast'_arg_proper (i o : nat)
         (op : rvector i → rvector o)
         (op_proper: Proper (equiv ==> equiv) (op))
     :
@@ -98,6 +129,20 @@ Section RthetaSafetyCast.
     unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
     f_equiv.
     f_equiv.
+    f_equiv.
+    apply Ev.
+  Qed.
+
+  Lemma UnSafeCast'_proper (i o : nat):
+    Proper (equiv ==> equiv ==> equiv) (@UnSafeCast' i o).
+  Proof.
+    intros f f' Ef v v' Ev.
+    unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
+    f_equiv.
+    vec_index_equiv j jc.
+    apply Vnth_arg_equiv.
+    unfold equiv, ext_equiv, respectful in Ef.
+    apply Ef.
     f_equiv.
     apply Ev.
   Qed.
@@ -126,6 +171,23 @@ Section RthetaSafetyCast.
       mkSHOperatorFamily _ _ _ _
                          (fun (j : nat) (jc : j < n) =>
                             UnSafeCast (family_member Monoid_RthetaFlags f j jc)).
+
+
+  Lemma UnSafeFamilyCast_proper (i o:nat):
+    Proper (equiv ==> equiv) (@UnSafeCast i o).
+  Proof.
+    intros f f' Ev.
+    unfold UnSafeCast.
+    unfold equiv, SHOperator_equiv.
+    simpl.
+
+    destruct f, f'.
+    unfold equiv, SHOperator_equiv in Ev.
+    simpl in *.
+
+    apply UnSafeCast'_proper.
+    apply Ev.
+  Qed.
 
 End RthetaSafetyCast.
 
