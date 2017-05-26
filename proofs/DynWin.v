@@ -409,6 +409,7 @@ SUMUnion(
     repeat rewrite <- SHCompose_assoc.
     rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
 
+    (* ### RULE: Reduction_ISumReduction *)
     setoid_rewrite rewrite_PointWise_ISumUnion.
     Focus 2.
     intros j jc.
@@ -416,7 +417,8 @@ SUMUnion(
     Focus 2.
     apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
 
-
+    (* ### RULE: Reduction_ISumReduction *)
+    setoid_rewrite rewrite_Reduction_ISumReduction.
 
 
   Admitted.

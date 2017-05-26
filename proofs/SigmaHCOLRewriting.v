@@ -984,7 +984,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero)
+          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero) (* function with the fixed point 0 *)
           (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
@@ -1217,7 +1217,7 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
     Proof.
-    Qed.
+    Admitted.
 
 
   End Value_Correctness.

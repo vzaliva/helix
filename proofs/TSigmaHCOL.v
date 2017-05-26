@@ -80,6 +80,7 @@ Section RthetaSafetyCast.
                          (fun (j : nat) (jc : j < n) =>
                             SafeCast (family_member Monoid_RthetaSafeFlags f j jc)).
 
+
   Definition UnSafeCast'
              {o i}
              (f: rvector i -> rvector o):
