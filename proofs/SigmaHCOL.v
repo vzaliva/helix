@@ -839,6 +839,7 @@ Section SigmaHCOL_Operators.
       + apply op_proper1.
     Qed.
 
+
     Definition Constant_Family
                {i o n}
                (f: @SHOperator i o)
@@ -857,6 +858,23 @@ Section SigmaHCOL_Operators.
                            (fun (j : nat) (jc : j < n) =>
                               family_member f j jc  ⊚ family_member g j jc).
 
+    Global Instance SHFamilyFamilyCompose_proper
+           {i1 o2 o3 n: nat}
+      :
+        Proper ((=) ==> (=) ==> (=)) (@SHFamilyFamilyCompose i1 o2 o3 n).
+    Proof.
+      intros f f' Ef g g' Eg.
+      unfold equiv, SHOperatorFamily_equiv.
+      intros j jc.
+      unfold SHFamilyFamilyCompose; simpl.
+
+      apply SHCompose_proper.
+      unfold equiv, ext_equiv, respectful in Ef.
+      apply Ef.
+      unfold equiv, ext_equiv, respectful in Eg.
+      apply Eg.
+    Qed.
+
     (* Family/operator composition *)
     Definition  SHOperatorFamilyCompose
                 {i1 o2 o3 n}
@@ -868,6 +886,21 @@ Section SigmaHCOL_Operators.
                            (fun (j : nat) (jc : j < n) =>
                               f  ⊚ family_member g j jc).
 
+    Global Instance SHOperatorFamilyCompose_proper
+           {i1 o2 o3 n: nat}
+      :
+        Proper ((=) ==> (=) ==> (=)) (@SHOperatorFamilyCompose i1 o2 o3 n).
+    Proof.
+      intros f f' Ef g g' Eg.
+      unfold equiv, SHOperatorFamily_equiv.
+      intros j jc.
+      unfold SHFamilyFamilyCompose; simpl.
+
+      apply SHCompose_proper.
+      apply Ef.
+      unfold equiv, ext_equiv, respectful in Eg.
+      apply Eg.
+    Qed.
 
     Definition  SHFamilyOperatorCompose
                 {i1 o2 o3 n}
@@ -878,6 +911,22 @@ Section SigmaHCOL_Operators.
         mkSHOperatorFamily _ _ _
                            (fun (j : nat) (jc : j < n) =>
                               family_member f j jc  ⊚ g).
+
+    Global Instance SHFamilyOperatorCompose_proper
+           {i1 o2 o3 n: nat}
+      :
+        Proper ((=) ==> (=) ==> (=)) (@SHFamilyOperatorCompose i1 o2 o3 n).
+    Proof.
+      intros f f' Ef g g' Eg.
+      unfold equiv, SHOperatorFamily_equiv.
+      intros j jc.
+      unfold SHFamilyFamilyCompose; simpl.
+
+      apply SHCompose_proper.
+      unfold equiv, ext_equiv, respectful in Ef.
+      apply Ef.
+      apply Eg.
+    Qed.
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
