@@ -1204,22 +1204,21 @@ Section SigmaHCOLRewritingRules.
           left; auto.
     Qed.
 
-    (*
     Lemma rewrite_Reduction_ISumReduction
           {i o n}
-          (op_family: forall k, (k<n) -> srvector i -> srvector o)
-          `{Koperator: forall k (kc: k<n), @SHOperator i o (op_family k kc)}
-          (f: Rtheta -> Rtheta -> Rtheta)
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+          (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
-        (liftM_HOperator Monoid_RthetaSafeFlags (@HReduction _ f f_mor zero))
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
           ⊚ (ISumUnion op_family)
         =
-        ISumReduction
-                  (fun j jc => Reduction ∘ op_family j jc).
+        SafeCast (ISumReduction
+                    (UnSafeFamilyCast
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
     Proof.
     Qed.
-     *)
+
 
   End Value_Correctness.
 End SigmaHCOLRewritingRules.

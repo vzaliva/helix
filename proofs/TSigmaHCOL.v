@@ -72,6 +72,60 @@ Section RthetaSafetyCast.
       apply f.
   Defined.
 
+  Definition SafeFamilyCast {i o n}
+             (f: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+    : @SHOperatorFamily Monoid_RthetaFlags i o n
+    :=
+      mkSHOperatorFamily _ _ _ _
+                         (fun (j : nat) (jc : j < n) =>
+                            SafeCast (family_member Monoid_RthetaSafeFlags f j jc)).
+
+  Definition UnSafeCast'
+             {o i}
+             (f: rvector i -> rvector o):
+    rsvector i -> rsvector o
+    := (rvector2rsvector o) ∘ f ∘ (rsvector2rvector i).
+
+
+  Lemma UnSafeCast'_proper (i o : nat)
+        (op : rvector i → rvector o)
+        (op_proper: Proper (equiv ==> equiv) (op))
+    :
+      Proper (equiv ==> equiv) (UnSafeCast' op).
+  Proof.
+    intros v v' Ev.
+    unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
+    f_equiv.
+    f_equiv.
+    f_equiv.
+    apply Ev.
+  Qed.
+
+  Definition UnSafeCast {i o}
+             (f: @SHOperator Monoid_RthetaFlags i o)
+    : @SHOperator Monoid_RthetaSafeFlags i o.
+  Proof.
+    refine (mkSHOperator Monoid_RthetaSafeFlags i o
+                         (UnSafeCast' (op Monoid_RthetaFlags f))
+                         _  _ _).
+    -
+      destruct f.
+      simpl.
+      apply UnSafeCast'_proper, op_proper.
+    -
+      apply f.
+    -
+      apply f.
+  Defined.
+
+  Definition UnSafeFamilyCast {i o n}
+             (f: @SHOperatorFamily Monoid_RthetaFlags i o n)
+    : @SHOperatorFamily Monoid_RthetaSafeFlags i o n
+    :=
+      mkSHOperatorFamily _ _ _ _
+                         (fun (j : nat) (jc : j < n) =>
+                            UnSafeCast (family_member Monoid_RthetaFlags f j jc)).
+
 End RthetaSafetyCast.
 
 
@@ -220,6 +274,67 @@ Proof.
     simpl in *.
 
     rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+    apply no_coll_at_sparse; assumption.
+Qed.
+
+Global Instance UnSafeCast_Facts
+       {i o}
+       (xop: @SHOperator Monoid_RthetaFlags i o)
+       `{fop: SHOperator_Facts Monoid_RthetaFlags _ _ xop}
+  :
+    SHOperator_Facts Monoid_RthetaSafeFlags (UnSafeCast xop).
+Proof.
+  split.
+  - apply fop.
+  - apply fop.
+  - intros x y H.
+    simpl.
+    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    f_equiv.
+    apply fop.
+    simpl in *.
+
+    unfold vec_equiv_at_set.
+    intros j jc S.
+    specialize (H j jc S).
+    rewrite 2!Vnth_map.
+    f_equiv.
+    apply H.
+  -
+    intros v H j jc S.
+    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map. rewrite <- Is_Val_Rtheta2RStheta.
+    apply out_as_range; try assumption.
+    intros t tc I.
+
+    rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
+    apply H, I.
+  -
+    intros v j jc S.
+    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map, <- Is_Struct_Rtheta2RStheta.
+    apply no_vals_at_sparse; assumption.
+  -
+    intros v H j jc S.
+    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
+    apply no_coll_range; try assumption.
+    intros t tc I.
+
+    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+    apply H, I.
+  -
+    intros v j jc S.
+    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+    simpl in *.
+
+    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
     apply no_coll_at_sparse; assumption.
 Qed.
 
