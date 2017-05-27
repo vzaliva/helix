@@ -41,21 +41,6 @@ Section RthetaSafetyCast.
     rvector i -> rvector o
     := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
 
-  (* TODO: maybe not necessary in presene of SafeCast'_proper *)
-  Lemma SafeCast'_arg_proper (i o : nat)
-        (op : rsvector i → rsvector o)
-        (op_proper: Proper (equiv ==> equiv) (op))
-    :
-      Proper (equiv ==> equiv) (SafeCast' op).
-  Proof.
-    intros v v' Ev.
-    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
-    f_equiv.
-    f_equiv.
-    f_equiv.
-    apply Ev.
-  Qed.
-
   Lemma SafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@SafeCast' i o).
   Proof.
@@ -117,21 +102,6 @@ Section RthetaSafetyCast.
     rsvector i -> rsvector o
     := (rvector2rsvector o) ∘ f ∘ (rsvector2rvector i).
 
-
-  (* TODO: maybe not necessary in presene of UnSafeCast'_proper *)
-  Lemma UnSafeCast'_arg_proper (i o : nat)
-        (op : rvector i → rvector o)
-        (op_proper: Proper (equiv ==> equiv) (op))
-    :
-      Proper (equiv ==> equiv) (UnSafeCast' op).
-  Proof.
-    intros v v' Ev.
-    unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
-    f_equiv.
-    f_equiv.
-    f_equiv.
-    apply Ev.
-  Qed.
 
   Lemma UnSafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@UnSafeCast' i o).
