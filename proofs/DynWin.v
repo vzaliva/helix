@@ -418,6 +418,8 @@ SUMUnion(
     apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
 
     (* ### RULE: Reduction_ISumReduction *)
+    rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
+
     setoid_rewrite rewrite_Reduction_ISumReduction.
 
 
