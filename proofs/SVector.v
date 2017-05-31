@@ -304,9 +304,20 @@ Section Union.
     apply Union_comm, C.
   Qed.
 
+  Lemma MUnion'_0
+        {o: nat}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        (initial: CarrierA)
+        (v: vector (svector fm o) 0):
+    MUnion' dot initial v ≡ Vconst (mkStruct initial) o.
+  Proof.
+    dep_destruct v.
+    crush.
+  Qed.
+
   Lemma MUnion'_cons {m n}
         (dot: CarrierA -> CarrierA -> CarrierA)
-        (neutral:CarrierA)
+        (neutral: CarrierA)
         (x: svector fm m) (xs: vector (svector fm m) n):
     MUnion' dot neutral (Vcons x xs) ≡ Vec2Union dot (MUnion' dot neutral xs) x.
   Proof.

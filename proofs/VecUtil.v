@@ -89,6 +89,24 @@ Section VFold.
     intros A B n f b x xs.
     reflexivity.
   Qed.
+
+  Lemma Vfold_right_Vmap
+        {A B C: Type}
+        {n: nat}
+        (f : A->B->B)
+        (g : C->A)
+        (x : vector C n)
+        (z:B)
+    : Vfold_right f (Vmap g x) z = Vfold_right (f∘g) x z.
+  Proof.
+    induction x.
+    - crush.
+    - simpl.
+      rewrite IHx.
+      unfold compose.
+      reflexivity.
+  Qed.
+
 End VFold.
 
 Section VBreak.

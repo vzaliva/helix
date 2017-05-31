@@ -1209,6 +1209,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          `{f_zz: f zero zero = zero}
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
           ⊚ (ISumUnion op_family)
@@ -1217,7 +1218,100 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
     Proof.
+      unfold SHOperatorFamilyCompose.
+      unfold SHCompose.
+      unfold equiv, SHOperator_equiv, SHCompose; simpl.
+      unfold UnSafeFamilyCast, get_family_op.
+      simpl.
+      apply ext_equiv_applied_equiv.
+
+      -
+        (* LHS Setoid_Morphism *)
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply liftM_HOperator'_proper.
+        apply HReduction_HOperator.
+        apply Diamond'_proper.
+        + apply CarrierAPlus_proper.
+        + reflexivity.
+        + intros k kc.
+          apply op_proper.
+      -
+        (* RHS Setoid_Morphism *)
+        split; try apply vec_Setoid.
+        apply SafeCast'_proper.
+        apply Diamond'_proper.
+        + apply CarrierAPlus_proper.
+        + reflexivity.
+        + intros k kc.
+          apply UnSafeCast'_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          *
+            apply liftM_HOperator'_proper.
+            apply HReduction_HOperator.
+          *
+            apply op_proper.
+      -
+        intros x.
+
+        vec_index_equiv j jc.
+
+        unfold SafeCast', rsvector2rvector, compose.
+        unfold liftM_HOperator', compose, sparsify.
+        rewrite 2!Vnth_map.
+
+        unfold HReduction, compose, HCOLImpl.Vectorize.
+        rewrite Vnth_1.
+        unfold UnSafeCast'.
+        unfold compose.
+        unfold rvector2rsvector.
+        simpl.
+
+        unfold densify.
+        unfold HCOLImpl.Reduction.
+
+        rewrite Vfold_right_Vmap.
+
+        induction n.
+        +
+          simpl.
+          dep_destruct j.
+          *
+            unfold Diamond'.
+            rewrite MUnion'_0.
+            clear op_family.
+
+            {
+              induction o.
+              -
+                simpl.
+                compute.
+                reflexivity.
+              -
+                simpl (Vconst (mkStruct zero) (S o)).
+                rewrite Vfold_right_cons.
+
+                unfold mkValue,RStheta2Rtheta in *.
+                unfold WriterMonadNoT.castWriter, WriterMonadNoT.castWriterT in *.
+                unfold mkStruct, compose in *.
+                unfold WriterMonadNoT.evalWriter in *.
+                unfold equiv, Rtheta'_equiv in *.
+                unfold WriterMonadNoT.evalWriter in *.
+                unfold compose in *.
+                simpl in *.
+                rewrite IHo.
+                apply f_zz.
+            }
+          *
+            crush.
+        +
+          dep_destruct j.
+          *
+            rewrite IHn.
+          *
+            crush.
     Admitted.
+
 
 
   End Value_Correctness.
