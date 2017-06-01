@@ -1204,6 +1204,38 @@ Section SigmaHCOLRewritingRules.
           left; auto.
     Qed.
 
+
+    Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
+          {n:nat}
+          {v:rsvector n}
+      :
+      RStheta2Rtheta
+        (Vfold_left_rev (Union Monoid_RthetaSafeFlags plus) (mkStruct zero) v) =
+      mkValue
+        (Vfold_left_rev plus zero (densify _ v)).
+    Proof.
+      induction v.
+      -
+        compute.
+        reflexivity.
+      -
+        rewrite Vfold_left_rev_cons.
+        rewrite RStheta2Rtheta_over_Union.
+        rewrite IHv. clear IHv.
+
+        unfold densify.
+        simpl.
+
+        generalize (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
+                (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags)
+                n v).
+        intros t.
+        clear v.
+        compute.
+
+        reflexivity.
+    Qed.
+
     Lemma rewrite_Reduction_ISumReduction
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -1272,44 +1304,30 @@ Section SigmaHCOLRewritingRules.
 
         rewrite Vfold_right_Vmap.
 
-        induction n.
-        +
-          simpl.
-          dep_destruct j.
-          *
-            unfold Diamond'.
-            rewrite MUnion'_0.
-            clear op_family.
+        dep_destruct j; [idtac | crush].
 
-            {
-              induction o.
-              -
-                simpl.
-                compute.
-                reflexivity.
-              -
-                simpl (Vconst (mkStruct zero) (S o)).
-                rewrite Vfold_right_cons.
+        unfold Diamond'.
+        unfold Apply_Family'.
+        unfold RStheta.
+        rewrite AbsorbMUnion'Index_Vbuild.
+        simpl.
 
-                unfold mkValue,RStheta2Rtheta in *.
-                unfold WriterMonadNoT.castWriter, WriterMonadNoT.castWriterT in *.
-                unfold mkStruct, compose in *.
-                unfold WriterMonadNoT.evalWriter in *.
-                unfold equiv, Rtheta'_equiv in *.
-                unfold WriterMonadNoT.evalWriter in *.
-                unfold compose in *.
-                simpl in *.
-                rewrite IHo.
-                apply f_zz.
-            }
-          *
-            crush.
-        +
-          dep_destruct j.
-          *
-            rewrite IHn.
-          *
-            crush.
+        unfold UnionFold.
+        unfold MUnion'.
+
+        rewrite RStheta2Rtheta_Vfold_left_rev_mkValue.
+        f_equiv.
+
+        unfold densify.
+        rewrite Vmap_Vbuild.
+
+
+        (* rewrite Vfold_right_Vmap. *)
+        (* rewrite evalWriter_Rtheta2RStheta_mkValue. *)
+
+
+
+
     Admitted.
 
 

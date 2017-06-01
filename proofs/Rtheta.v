@@ -650,6 +650,13 @@ Proof.
   trivial.
 Qed.
 
+Lemma evalWriter_Rtheta2RStheta_mkValue
+      {x}:
+  (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) ≡ x.
+Proof.
+  crush.
+Qed.
+
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
   Proof.

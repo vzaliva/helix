@@ -656,6 +656,17 @@ Section NonExclusiveUnion.
 
 End NonExclusiveUnion.
 
+(* RStheta2Rtheta distributes over Union *)
+Lemma RStheta2Rtheta_over_Union {f a b}:
+  RStheta2Rtheta
+    (Union Monoid_RthetaSafeFlags f a b) =
+  (Union Monoid_RthetaFlags f (RStheta2Rtheta a) (RStheta2Rtheta b)).
+Proof.
+  compute.
+  reflexivity.
+Qed.
+
+
 Section Matrix.
   (* Poor man's matrix is vector of vectors.
      TODO: If it grows, move to separate module. *)
