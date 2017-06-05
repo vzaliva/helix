@@ -1241,7 +1241,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          `{f_zz: f zero zero = zero}
+          {FM: @abstract_algebra.Monoid CarrierA _ f zero}
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
           ⊚ (ISumUnion op_family)
@@ -1250,8 +1250,7 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
     Proof.
-      unfold SHOperatorFamilyCompose.
-      unfold SHCompose.
+      unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
       simpl.
@@ -1268,6 +1267,7 @@ Section SigmaHCOLRewritingRules.
         + reflexivity.
         + intros k kc.
           apply op_proper.
+
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
@@ -1283,6 +1283,7 @@ Section SigmaHCOLRewritingRules.
             apply HReduction_HOperator.
           *
             apply op_proper.
+
       -
         intros x.
 
@@ -1385,6 +1386,8 @@ Section SigmaHCOLRewritingRules.
         extensionality z.
         rewrite RStheta2Rtheta_Rtheta2RStheta.
         auto.
+
+
 
         HERE.
 
