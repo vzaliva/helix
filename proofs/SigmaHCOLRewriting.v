@@ -1371,7 +1371,22 @@ Section SigmaHCOLRewritingRules.
         ; [ idtac | extensionality z; extensionality zi; symmetry; apply Vfold_right_Vmap].
         clear jc j.
 
-        HERE
+
+
+        unfold rsvector2rvector.
+        rewrite Vmap_map.
+
+        replace (Vmap (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) x)
+          with x.
+        Focus 2.
+        replace (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) with (@id Rtheta).
+        symmetry.
+        apply Vmap_id.
+        extensionality z.
+        rewrite RStheta2Rtheta_Rtheta2RStheta.
+        auto.
+
+        HERE.
 
     Admitted.
 

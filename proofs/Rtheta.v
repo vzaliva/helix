@@ -493,6 +493,28 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma RStheta2Rtheta_Rtheta2RStheta {x}:
+  RStheta2Rtheta (Rtheta2RStheta x) ≡ x.
+Proof.
+  unfold Rtheta2RStheta, RStheta2Rtheta.
+  unfold WriterMonadNoT.castWriter.
+  unfold WriterMonadNoT.castWriterT.
+  unfold compose.
+  destruct x.
+  auto.
+Qed.
+
+Lemma RStheta2Rtheta_Rtheta2RStheta_equiv {x}:
+  RStheta2Rtheta (Rtheta2RStheta x) = x.
+Proof.
+  unfold Rtheta2RStheta, RStheta2Rtheta.
+  unfold WriterMonadNoT.castWriter.
+  unfold WriterMonadNoT.castWriterT.
+  unfold compose.
+  destruct x.
+  reflexivity.
+Qed.
+
 Lemma Is_Val_mkStruct:
   forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
 Proof.
