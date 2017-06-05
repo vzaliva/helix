@@ -1369,6 +1369,7 @@ Section SigmaHCOLRewritingRules.
                       (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags) Rtheta2RStheta i x)))
              (@zero CarrierA CarrierAz))
         ; [ idtac | extensionality z; extensionality zi; symmetry; apply Vfold_right_Vmap].
+        clear jc j.
 
         HERE
 
