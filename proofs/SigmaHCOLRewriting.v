@@ -1241,7 +1241,7 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          {FM: @abstract_algebra.Monoid CarrierA _ f zero}
+          `{FM: @abstract_algebra.Monoid CarrierA _ f zero}
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
           ⊚ (ISumUnion op_family)
@@ -1386,8 +1386,6 @@ Section SigmaHCOLRewritingRules.
         extensionality z.
         rewrite RStheta2Rtheta_Rtheta2RStheta.
         auto.
-
-
 
         HERE.
 
