@@ -1236,20 +1236,23 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-    Lemma rewrite_Reduction_ISumReduction
+    (* In SPIRAL it is called [Reduction_ISumReduction] *)
+    Lemma rewrite_Reduction_IReduction
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          `{FM: @abstract_algebra.Monoid CarrierA _ f zero}
+          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
+          (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family) (* lower bound *)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
           ⊚ (ISumUnion op_family)
         =
-        SafeCast (ISumReduction
+        SafeCast (IReduction f zero
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
     Proof.
+      (*
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
@@ -1372,13 +1375,11 @@ Section SigmaHCOLRewritingRules.
         ; [ idtac | extensionality z; extensionality zi; symmetry; apply Vfold_right_Vmap].
         clear jc j.
 
-
-
         unfold rsvector2rvector.
         rewrite Vmap_map.
 
-        replace (Vmap (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) x)
-          with x.
+        replace (Vmap (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) x) with x.
+
         Focus 2.
         replace (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) with (@id Rtheta).
         symmetry.
@@ -1387,7 +1388,9 @@ Section SigmaHCOLRewritingRules.
         rewrite RStheta2Rtheta_Rtheta2RStheta.
         auto.
 
-        HERE.
+        unfold Vec2Union.
+       *)
+
 
     Admitted.
 

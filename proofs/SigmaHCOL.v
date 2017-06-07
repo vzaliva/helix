@@ -714,6 +714,14 @@ Section SigmaHCOL_Operators.
                              (Apply_Family op_family x)
                           ).
 
+    (* States that given [P] holds for all elements of all outputs of this family *)
+    Definition Apply_Family_Vforall_P
+               {i o n}
+               (P: Rtheta' fm -> Prop)
+               (op_family: @SHOperatorFamily i o n)
+      :=
+        forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
+
     Definition Gather'
                {i o: nat}
                (f: index_map o i)
@@ -1241,11 +1249,16 @@ Section SigmaHCOL_Operators.
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .
 
+  (*
+
+  In SPIRAL [ISumReduction] is what we call [ISumReduction] and strictly speaking there is no equivalent to [ISumReduction] as defined below. [ISumReduction] defined below is basically row-wise sum. To avoid confusion we will not use [ISumReduction] name for now.
+
   Definition ISumReduction
              {i o n}
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
     :=
       @IReduction i o n plus _ zero op_family.
+   *)
 
 End SigmaHCOL_Operators.
 

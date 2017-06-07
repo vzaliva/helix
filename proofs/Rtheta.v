@@ -252,6 +252,9 @@ Section Rtheta'Utils.
 
   Definition Not_Collision := not ∘ Is_Collision.
 
+  Definition Is_NonNegative (x:Rtheta' fm) : Prop :=
+    le 0 (evalWriter x).
+
   Lemma IsVal_mkValue:
     ∀ (v:CarrierA), Is_Val (mkValue v).
   Proof.
