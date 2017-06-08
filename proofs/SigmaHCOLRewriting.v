@@ -1398,4 +1398,3 @@ Section SigmaHCOLRewritingRules.
 
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
-

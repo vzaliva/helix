@@ -417,9 +417,9 @@ SUMUnion(
     Focus 2.
     apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
 
-    (* ### RULE: Reduction_ISumReduction *)
     rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
 
+    (* ### RULE: Reduction_ISumReduction *)
     Time (setoid_rewrite rewrite_Reduction_IReduction).
 
 
