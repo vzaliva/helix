@@ -80,7 +80,6 @@ Section VFold.
     reflexivity.
   Qed.
 
-
   (* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
   Lemma Vfold_left_rev_cons:
     forall A B {n} (f : B->A->B) (b:B) (x: A) (xs : vector A n),
