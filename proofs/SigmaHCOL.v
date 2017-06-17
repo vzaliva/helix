@@ -92,12 +92,21 @@ Section SigmaHCOL_Operators.
              out_index_set: FinNatSet o;
            }.
 
+    (** GMM: [op_proper] is provable for all functions, so it doesn't need
+     ** to be a record member.
+     **)
+    Lemma all_are_proper : forall T U (f : T -> U),
+        Proper (@eq T ==> @eq U) f.
+    Proof.
+      compute. intros. subst. reflexivity.
+    Qed.
 
     (* Two vectors (=) at indices at given set *)
     Definition vec_equiv_at_set
                {n:nat}
                (x y: svector fm n)
-               (s: FinNatSet n)
+               (s: FinNatSet n) (* GMM: if you move this argument before x and y, the
+                                   signature will be the signature of a relation. *)
       :=
         (forall j (jc:j<n),
             s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
@@ -184,7 +193,7 @@ Section SigmaHCOL_Operators.
 
           (* only values in [in_index_set] affect output *)
           in_as_domain:
-            forall x y,
+            forall x y, (** GMM: This could be phrased as a Proper *)
               vec_equiv_at_set x y (in_index_set xop) ->
               op xop x = op xop y;
 
