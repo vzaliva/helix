@@ -1431,11 +1431,10 @@ Section SigmaHCOLRewritingRules.
     Proof.
       apply rewrite_Reduction_IReduction; try typeclasses eauto.
       -
-        split.
-        split.
+        admit.
       -
         apply Uz.
-    Qed.
+    Admitted.
 
 
   End Value_Correctness.

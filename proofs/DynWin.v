@@ -421,7 +421,7 @@ SUMUnion(
 
     (* ### RULE: Reduction_ISumReduction *)
 
-    Time (setoid_rewrite rewrite_Reduction_IReduction).
+    Time (setoid_rewrite rewrite_Reduction_IReduction_max_plus).
 
 
   Admitted.
