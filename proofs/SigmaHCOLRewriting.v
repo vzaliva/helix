@@ -1247,20 +1247,32 @@ Section SigmaHCOLRewritingRules.
     Lemma rewrite_Reduction_IReduction
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          (f: CarrierA -> CarrierA -> CarrierA)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f uf_zero}
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          (fzl: forall a, f zero a = a)
-          (fzr: forall a, f a zero = a)
+          `{f_assoc: @Associative _ CarrierAe f}
+
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ u uf_zero}
+          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
+          `{u_assoc: @Associative _ CarrierAe u}
+
           (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
-          (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family) (* lower bound *)
       :
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero))
-          ⊚ (ISumUnion op_family)
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero))
+          ⊚ (@IUnion i o n u u_mor uf_zero op_family)
         =
-        SafeCast (IReduction f zero
+        SafeCast (IReduction f uf_zero
                     (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor zero)) op_family))).
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero)) op_family))).
     Proof.
+      (*
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
@@ -1394,12 +1406,36 @@ Section SigmaHCOLRewritingRules.
         rewrite RStheta2Rtheta_Rtheta2RStheta.
         auto.
 
-        unfold Vec2Union.
+        (* unfold Vec2Union. *)
+        specialize (Uz x).
 
+       *)
 
 
     Admitted.
 
+
+    (* Specialized version of rewrite_Reduction_IReduction *)
+    Lemma rewrite_Reduction_IReduction_max_plus
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
+          (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
+      :
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ minmax.max _ zero))
+          ⊚ (ISumUnion op_family)
+        =
+        SafeCast (IReduction minmax.max zero
+                    (UnSafeFamilyCast
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ minmax.max _ zero)) op_family))).
+    Proof.
+      apply rewrite_Reduction_IReduction; try typeclasses eauto.
+      -
+        split.
+        split.
+      -
+        apply Uz.
+    Qed.
 
 
   End Value_Correctness.

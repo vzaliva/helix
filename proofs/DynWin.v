@@ -420,6 +420,7 @@ SUMUnion(
     rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
 
     (* ### RULE: Reduction_ISumReduction *)
+
     Time (setoid_rewrite rewrite_Reduction_IReduction).
 
 
