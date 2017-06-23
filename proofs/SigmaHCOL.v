@@ -8,6 +8,7 @@ Require Import SVector.
 Require Import IndexFunctions.
 Require Import HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import FinNatSet.
+Require Import WriterMonadNoT.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
@@ -705,14 +706,16 @@ Section SigmaHCOL_Operators.
 
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row.
        TODO: This could be expressed via set disjointness? *)
-    Definition Apply_Family_Single_NonZero_Per_Row
+    Definition Apply_Family_Single_NonUnit_Per_Row
                {i o n}
                (op_family: @SHOperatorFamily i o n)
+               (aunit: CarrierA)
       :=
-        forall x, Vforall (Vunique (not ∘ Is_ValZero))
-                          (transpose
-                             (Apply_Family op_family x)
-                          ).
+        forall x, Vforall (Vunique (not ∘ (equiv aunit) ∘ (@evalWriter _ _ fm)))
+                     (transpose
+                        (Apply_Family op_family x)
+                     ).
+
 
     (* States that given [P] holds for all elements of all outputs of this family *)
     Definition Apply_Family_Vforall_P
@@ -1063,7 +1066,7 @@ Section SigmaHCOL_Operators.
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      ¬ Is_ValZero (Vnth (Scatter' f (f_inj:=f_inj) x) kc) -> in_range f k.
+      zero ≠ evalWriter (Vnth (Scatter' f (f_inj:=f_inj) x) kc) -> in_range f k.
     Proof.
       intros H.
 
@@ -1074,7 +1077,8 @@ Section SigmaHCOL_Operators.
         assumption.
       -
         contradict H.
-        apply SZero_is_ValZero.
+        compute.
+        reflexivity.
     Qed.
 
     Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
@@ -1086,10 +1090,10 @@ Section SigmaHCOL_Operators.
           {f_inj : index_map_family_injective f}
           (* Gather index map *)
           (g: index_map_family ki i n):
-      Apply_Family_Single_NonZero_Per_Row
-        (SparseEmbedding kernel f (f_inj:=f_inj) g).
+      Apply_Family_Single_NonUnit_Per_Row
+        (SparseEmbedding kernel f (f_inj:=f_inj) g) zero.
     Proof.
-      unfold Apply_Family_Single_NonZero_Per_Row.
+      unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
 
       unfold Apply_Family, Apply_Family', SparseEmbedding, get_family_op, transpose, row, Vnth_aux.

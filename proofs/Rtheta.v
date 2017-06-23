@@ -732,6 +732,15 @@ Section Zero_Utils.
   Definition Is_ValZero {fm:Monoid RthetaFlags} (x:Rtheta' fm)
     := (evalWriter x) = 0.
 
+
+  Global Instance Is_ValZero_dec {fm:Monoid RthetaFlags} (x:Rtheta' fm):
+    Decision (Is_ValZero x).
+  Proof.
+    unfold Is_ValZero.
+    unfold Decision.
+    destruct (CarrierAequivdec (evalWriter x) zero); crush.
+  Qed.
+
   Global Instance Is_ValZero_proper
          {fm:Monoid RthetaFlags}
     :
@@ -805,17 +814,19 @@ Section Zero_Utils.
       congruence.
   Qed.
 
+
   (* Double negation on inValZero. *)
-  Lemma Is_ValZero_not_not_impl
-        {fm:Monoid RthetaFlags}
+  Lemma not_not_on_decidable
+        {A:Type}
+        {P: A->Prop}
+        `{forall x:A, Decision (P x)}
     :
-      forall x, (not ∘ (not ∘ (@Is_ValZero fm))) x <-> Is_ValZero x.
+      forall x, (not ∘ (not ∘ P)) x <-> P x.
   Proof.
     intros x.
-    unfold compose, Is_ValZero.
-    destruct (CarrierAequivdec (evalWriter x) zero); crush.
+    unfold compose.
+    specialize (H x).
+    destruct H; crush.
   Qed.
 
-
 End Zero_Utils.
-

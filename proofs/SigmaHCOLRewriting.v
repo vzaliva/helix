@@ -985,7 +985,7 @@ Section SigmaHCOLRewritingRules.
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero) (* function with the fixed point 0 *)
-          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
       :
         (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
         =
@@ -1028,7 +1028,7 @@ Section SigmaHCOLRewritingRules.
         rewrite 2!AbsorbMUnion'Index_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
-        unfold Apply_Family_Single_NonZero_Per_Row in Uz.
+        unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
         specialize (Uz x).
         apply Vforall_nth with (ip:=jc) in Uz.
         unfold Apply_Family, Apply_Family', transpose in Uz.
@@ -1134,7 +1134,7 @@ Section SigmaHCOLRewritingRules.
                 intros h Uzeros.
                 destruct (CarrierAequivdec (WriterMonadNoT.evalWriter h) zero) as [E | NE].
                 apply E.
-                tauto.
+                crush.
             }
             rewrite_clear H.
             fold (@UnionFold Monoid_RthetaFlags n plus zero (szero_svector _ n)).
@@ -1177,7 +1177,8 @@ Section SigmaHCOLRewritingRules.
               specialize (Uone t tc H).
               rewrite Vbuild_nth in Uone.
 
-              apply Is_ValZero_not_not_impl in Uone.
+              apply not_not_on_decidable in Uone.
+              symmetry in Uone.
               crush.
               reflexivity.
             }
@@ -1189,9 +1190,14 @@ Section SigmaHCOLRewritingRules.
                reflexivity.
             ** apply H.
           *
-            apply VallButOneSimpl with (P0:=(not ∘ (not ∘ Is_ValZero))).
-            apply Is_ValZero_not_not_impl.
+            apply VallButOneSimpl with (P1:=Is_ValZero) in Uone.
             apply Uone.
+
+            intros x0 H.
+            apply not_not_on_decidable in H.
+            unfold Is_ValZero.
+            symmetry.
+            apply H.
         +
           intros.
           unfold compose, Is_ValZero.
@@ -1263,7 +1269,7 @@ Section SigmaHCOLRewritingRules.
           `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
           `{u_assoc: @Associative _ CarrierAe u}
 
-          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero))
           ⊚ (@IUnion i o n u u_mor uf_zero op_family)
@@ -1419,7 +1425,7 @@ Section SigmaHCOLRewritingRules.
     Lemma rewrite_Reduction_IReduction_max_plus
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          (Uz: Apply_Family_Single_NonZero_Per_Row _ op_family)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ minmax.max _ zero))
@@ -1431,6 +1437,9 @@ Section SigmaHCOLRewritingRules.
     Proof.
       apply rewrite_Reduction_IReduction; try typeclasses eauto.
       -
+        (* Here we are asked to prove that (max,0) forms a
+monoid. This is not true in general, but in our case we need to show
+it only for positive numbers, thanks to Upoz. *)
         admit.
       -
         apply Uz.
