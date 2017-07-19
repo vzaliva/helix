@@ -141,11 +141,11 @@ SUMUnion(
       dynwin_SHCOL a.
   Proof.
     unfold dynwin_HCOL, dynwin_SHCOL.
-    setoid_rewrite LiftM_Hoperator_compose.
-    setoid_rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
-    repeat setoid_rewrite LiftM_Hoperator_compose.
-    repeat setoid_rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
-    repeat setoid_rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
+    rewrite LiftM_Hoperator_compose.
+    rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
+    repeat rewrite LiftM_Hoperator_compose.
+    repeat rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
+    repeat rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
     setoid_rewrite expand_BinOp at 3.
 
     (* normalize associativity of composition *)
@@ -410,7 +410,7 @@ SUMUnion(
     rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
 
     (* ### RULE: Reduction_ISumReduction *)
-    setoid_rewrite rewrite_PointWise_ISumUnion.
+    rewrite rewrite_PointWise_ISumUnion.
     Focus 2.
     intros j jc.
     apply abs_0_s.
@@ -421,7 +421,7 @@ SUMUnion(
 
     (* ### RULE: Reduction_ISumReduction *)
 
-    Time (setoid_rewrite rewrite_Reduction_IReduction_max_plus).
+    rewrite rewrite_Reduction_IReduction_max_plus.
 
 
   Admitted.
