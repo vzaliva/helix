@@ -414,7 +414,7 @@ SUMUnion(
     all:revgoals.
     (* solve 2 sub-dependent goals *)
     { apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row. }
-    { intros j jc; apply abs_0_s.}
+    { intros j jc; apply abs_0_s. }
 
     (* Re-associate compositions before applying next rule *)
     rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
