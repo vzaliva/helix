@@ -410,13 +410,13 @@ SUMUnion(
     rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _).
 
     (* ### RULE: Reduction_ISumReduction *)
-    rewrite rewrite_PointWise_ISumUnion.
-    Focus 2.
-    intros j jc.
-    apply abs_0_s.
-    Focus 2.
-    apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
+    rewrite rewrite_PointWise_ISumUnion; [
+      idtac |
+      intros j jc; apply abs_0_s |
+      apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row].
 
+
+    (* Re-associate compositions before applying next rule *)
     rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
 
     (* ### RULE: Reduction_ISumReduction *)
