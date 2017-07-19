@@ -37,11 +37,11 @@ clean-doc:
 doc:
 	coqdoc --html -g -d doc -R . $(LIBNAME) *.v
 
-depgraph.vcmd:
+depgraph.vcmd: *.vo
 	rm -f depgraph.vcmd
 	echo "Require dpdgraph.dpdgraph." > depgraph.vcmd
-	echo "Require $(MYVFILES)." >> depgraph.vcmd
-	echo "Print FileDependGraph $(MYVFILES)." >> depgraph.vcmd
+	echo "Require $(MYVFILES:.v=)." >> depgraph.vcmd
+	echo "Print FileDependGraph $(MYVFILES:.v=)." >> depgraph.vcmd
 
 graph: graph.svg
 
@@ -52,7 +52,7 @@ graph.dot: graph.dpd
 	dpd2dot graph.dpd
 
 graph.dpd: depgraph.vcmd
-	"coqtop"  -R "." Top -I "." < depgraph.vcmd
+	"coqtop"  -R "." Spiral -I "." < depgraph.vcmd
 
 wc:
 	coqwc $(MYVFILES)
