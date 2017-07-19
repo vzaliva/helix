@@ -5,6 +5,7 @@
 experiments/*.hi
 experiments/*.o
 experiments/test
+proofs/depgraph.vcmd
 HCOL.hs
 HCOL.pdf
 lia.cache
