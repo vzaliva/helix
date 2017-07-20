@@ -245,7 +245,7 @@ Proof.
   unfold equiv, vec_Equiv, vec_Equiv, relation in E.
   rewrite Vforall2_cons_eq in E.
   intuition.
-Defined.
+Qed.
 
 Global Instance Vtail_proper `{Equiv A} n:
   Proper (@vec_Equiv A _ (S n) ==> @vec_Equiv A _ n)
@@ -256,7 +256,7 @@ Proof.
   apply Vforall2_tail in E.
   unfold vec_Equiv.
   assumption.
-Defined.
+Qed.
 
 Global Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
   Proper ((=) ==> (=)) (@Ptail A B n).
