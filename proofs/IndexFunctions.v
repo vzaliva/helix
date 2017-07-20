@@ -340,7 +340,7 @@ Section Inversions.
                 end
     end f.
 
-  Definition gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
+  Lemma gen_inverse_index_f_spec {d r: nat} (f: index_map d r):
     forall (i: nat), in_range f i -> (gen_inverse_index_f f i) < d.
   Proof.
     intros x R.
@@ -356,7 +356,7 @@ Section Inversions.
       break_if.
       congruence.
       apply R.
-  Defined.
+  Qed.
 
   (* Theoretically, we can only build inverse of injective functions. However this
 definition does not enforce this requirement, and the function produced might not be
