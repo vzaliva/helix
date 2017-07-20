@@ -218,7 +218,7 @@ Proof.
   intros H.
   rewrite <- H.
   auto.
-Defined.
+Qed.
 
 Lemma Decidable_decision
       (P:Prop):

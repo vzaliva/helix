@@ -303,7 +303,7 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          replace (le_n (S k)) with jc by apply proof_irrelevance.
+          replace (S_j_lt_n _) with jc by apply proof_irrelevance.
           apply H.
         +
           right.
@@ -336,6 +336,7 @@ Section SigmaHCOL_Operators.
           subst.
           unfold In in H1.
           exists k, (le_n (S k)).
+          replace (le_n (S k)) with (@S_j_lt_n (S k) k (@eq_refl nat (S k))) by apply proof_irrelevance.
           apply H1.
         +
           subst.
@@ -371,7 +372,7 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          replace (le_n (S k)) with jc by apply proof_irrelevance.
+          replace (S_j_lt_n _) with jc by apply proof_irrelevance.
           apply H.
         +
           right.
@@ -405,6 +406,7 @@ Section SigmaHCOL_Operators.
             subst.
             unfold In in H1.
             exists k, (le_n (S k)).
+            replace (S_j_lt_n _) with (le_n (S k)) in H1 by apply proof_irrelevance.
             apply H1.
           *
             subst.
