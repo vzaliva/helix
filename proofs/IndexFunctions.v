@@ -732,15 +732,20 @@ Section Primitive_Functions.
     index_map 1 range
     := IndexMap 1 range (fun _ => j) _.
 
-  Program Definition add_index_map
-          {domain range: nat}
-          (k: nat)
-          {kdep: k+domain <= range}:
-    index_map domain range
-    := IndexMap domain range (fun i => i+k) _.
-  Next Obligation.
+
+  Fact add_index_map_spec_conv {d r k: nat}:
+    k + d <= r → ∀ x : nat, x < d → x + k < r.
+  Proof.
+    intros H x H0.
     lia.
-  Defined.
+  Qed.
+
+  Definition add_index_map
+             {domain range: nat}
+             (k: nat)
+             {kdep: k+domain <= range}:
+    index_map domain range
+    := IndexMap domain range (fun i => i+k) (add_index_map_spec_conv kdep).
 
   Program Definition h_index_map
           {domain range: nat}
