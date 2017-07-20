@@ -237,8 +237,8 @@ Proof.
   apply aEq.
 Qed.
 
-Global Instance Vhead_proper A `{H:Equiv A} n:
-  Proper (@equiv (vector A (S n)) (@vec_Equiv A H (S n)) ==> @equiv A H) (@Vhead A n).
+Global Instance Vhead_proper `{Equiv A} n:
+  Proper ((=) ==> (=)) (@Vhead A n).
 Proof.
   intros a b E.
   dep_destruct a.  dep_destruct b.
@@ -248,8 +248,7 @@ Proof.
 Qed.
 
 Global Instance Vtail_proper `{Equiv A} n:
-  Proper (@vec_Equiv A _ (S n) ==> @vec_Equiv A _ n)
-         (@Vtail A n).
+  Proper ((=) ==> (=)) (@Vtail A n).
 Proof.
   intros a b E.
   unfold equiv, vec_Equiv, vec_Equiv, relation in E.
