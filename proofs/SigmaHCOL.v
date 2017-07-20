@@ -260,7 +260,7 @@ Section SigmaHCOL_Operators.
       - apply facts.
       - destruct op_family.
         reflexivity.
-    Defined.
+    Qed.
 
     Fixpoint family_in_index_set
              {i o n}
