@@ -1,7 +1,7 @@
 (* ----------- Some handy tactics ----------- *)
 
 Require Export Spiral.CpdtTactics.
-Require Export Spiral.JRWTactics.
+Require Export Spiral.StructTactics.
 
 Require Import Coq.Arith.Lt.
 
