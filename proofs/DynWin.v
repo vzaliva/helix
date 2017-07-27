@@ -354,12 +354,25 @@ SUMUnion(
 
   Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
 
-  Theorem DynWinSigmaHCOL1_Value_Correctness
-          (a: avector 3)
+  Lemma Apply_Family_Vforall_P_move_P
+        {fm} {P:Rtheta' fm → Prop}
+        {i1 o2 o3 n}
+        (f: @SHOperator fm  o2 o3)
+        (g: @SHOperatorFamily fm i1 o2 n)
     :
-      dynwin_SHCOL a
-      =
-      dynwin_SHCOL1 a.
+      (forall x, Vforall P ((op fm f) x)) ->
+      Apply_Family_Vforall_P fm P (SHOperatorFamilyCompose fm f g).
+  Proof.
+    unfold Apply_Family_Vforall_P.
+    intros H x j jc.
+    apply Vforall_nth_intro.
+    intros t tc.
+    (* TODO: move *)
+  Admitted.
+
+
+  Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
+    : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
     unfold USparseEmbedding.
@@ -383,7 +396,21 @@ SUMUnion(
     rewrite rewrite_Reduction_IReduction_max_plus.
     all:revgoals.
     {
-      admit.
+      remember (SparseEmbedding _ _ _ _) as t.
+      generalize t.
+      clear t Heqt a.
+      intros fam.
+
+      apply Apply_Family_Vforall_P_move_P.
+      intros x.
+
+      apply Vforall_nth_intro.
+      intros t tc.
+      rewrite SHPointwise_nth_eq.
+      unfold Is_NonNegative.
+      rewrite evalWriter_Rtheta_liftM.
+      unfold IgnoreIndex, const.
+      apply abs_always_nonneg.
     }
     {
       admit.
