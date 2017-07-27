@@ -354,6 +354,7 @@ SUMUnion(
 
   Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
 
+  (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
         {fm} {P:Rtheta' fm → Prop}
         {i1 o2 o3 n}
@@ -367,9 +368,18 @@ SUMUnion(
     intros H x j jc.
     apply Vforall_nth_intro.
     intros t tc.
-    (* TODO: move *)
-  Admitted.
 
+    unfold SHOperatorFamilyCompose.
+    unfold get_family_op.
+    simpl.
+
+    unfold compose.
+    generalize (op fm (family_member fm g j jc) x).
+    clear x. intros x.
+    specialize (H x).
+    eapply Vforall_nth in H.
+    apply H.
+  Qed.
 
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
