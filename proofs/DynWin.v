@@ -381,22 +381,6 @@ SUMUnion(
     apply H.
   Qed.
 
-  (* TODO: generalize and move to Spiral.v *)
-  Lemma abs_nz_nz:
-    forall v : CarrierA, v ≠ zero → abs v ≠ zero.
-  Proof.
-    intros v V.
-    destruct (CarrierAledec zero v).
-    -
-      apply abs_nonneg_s in l.
-      rewrite l.
-      apply V.
-    -
-      apply orders.le_flip in n.
-      rewrite abs_nonpos_s; auto.
-      apply rings.flip_negate_ne_0, V.
-  Qed.
-
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.

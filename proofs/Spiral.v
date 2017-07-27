@@ -111,12 +111,43 @@ Lemma abs_negate_s A (x:A)
   : abs (-x) = abs x.
 Proof with trivial.
   destruct (total (≤) 0 x).
-  rewrite (abs_nonneg x), abs_nonpos...
-  apply rings.negate_involutive.
-  apply flip_nonneg_negate...
-  rewrite (abs_nonneg (-x)), abs_nonpos...
-  reflexivity.
-  apply flip_nonpos_negate...
+  -
+    rewrite (abs_nonneg x), abs_nonpos.
+    apply rings.negate_involutive.
+    apply flip_nonneg_negate.
+    apply H.
+    apply H.
+  -
+    rewrite (abs_nonneg (-x)), abs_nonpos.
+    reflexivity.
+    apply H.
+    apply flip_nonpos_negate.
+    apply H.
+Qed.
+
+Lemma abs_nz_nz
+      `{Ae: Equiv A}
+      `{Az: Zero A} `{A1: One A}
+      `{Aplus: Plus A} `{Amult: Mult A}
+      `{Aneg: Negate A}
+      `{Ale: Le A}
+      `{Ato: !@TotalOrder A Ae Ale}
+      `{Aabs: !@Abs A Ae Ale Az Aneg}
+      `{Ar: !Ring A}
+      `{Aledec: ∀ x y: A, Decision (x ≤ y)}
+  :
+    forall v : A, v ≠ zero → abs v ≠ zero.
+Proof.
+  intros v V.
+  destruct (Aledec zero v).
+  -
+    apply abs_nonneg_s in l.
+    rewrite l.
+    apply V.
+  -
+    apply orders.le_flip in n.
+    rewrite abs_nonpos_s; auto.
+    apply rings.flip_negate_ne_0, V.
 Qed.
 
 Global Instance abs_idempotent
