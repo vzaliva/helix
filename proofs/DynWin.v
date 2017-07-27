@@ -322,7 +322,8 @@ SUMUnion(
     -
       unfold Included, In.
       intros x H.
-      replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O)) (@h_index_map (S O) (S (S O)) O (S O) (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
+
+      replace (Union _ _ (Empty_set _)) with (@index_map_range_set 1 2 (@h_index_map 1 2 0 1 (ScatH_1_to_n_range_bound 0 2 1 (@le_S 1 1 (le_n 1))))).
       +
         apply two_index_maps_span_I_2.
       +
