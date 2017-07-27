@@ -304,58 +304,49 @@ SUMUnion(
            | _ => crush
            end.
 
-  (* Presently the following proof is not automated. However it lends itself to automation. Few ideas for future:
-      1. Reister _Facts class instances in a separate namespace
-      2. Write a tactic which attempts to apply approriate instance
-      3. Tactic should work repeatedly. For non-instance goals it encounter:
-          1. Try [crush]
-          2. Try [auto with typeclass_instances
-          3. Look at goal after [crush] and if it is a set membership statement try to deveop custom tactics solving these types of problems specific to our application (with [index_range_set], [h_index_map], etc.)
-   *)
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL a).
   Proof.
     unfold dynwin_SHCOL.
+
+    (* First resolve all SHOperator_Facts typeclass instances *)
     solve_facs.
 
-    {
-      apply two_h_index_maps_disjoint; assumption.
-    }
+    (* Now let's take care of remaining proof obligations *)
 
-    {
+    -
+      apply two_h_index_maps_disjoint.
+      assumption.
+
+    -
       unfold Included, In.
       intros x H.
-      replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O))
-                                                                                                                           (@h_index_map (S O) (S (S O)) O (S O)
-                                                                                                                                         (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
-      -
+      replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O)) (@h_index_map (S O) (S (S O)) O (S O) (ScatH_1_to_n_range_bound O (S (S O)) (S O) (@le_S (S O) (S O) (le_n (S O)))))).
+      +
         apply two_index_maps_span_I_2.
-      -
+      +
         apply Extensionality_Ensembles.
         apply Union_Empty_set_lunit.
         apply h_index_map_range_set_dec.
-    }
 
-    {
+    -
       unfold Included.
       intros x H.
       apply Full_intro.
-    }
 
-    {
+    -
       apply two_h_index_maps_disjoint.
       unfold peano_naturals.nat_lt, peano_naturals.nat_plus,
       peano_naturals.nat_1, one, plus, lt.
       crush.
-    }
 
-    {
+    -
       unfold Included, In.
       intros x H.
       apply Union_comm.
       apply two_index_maps_span_I_2.
-    }
+
   Qed.
 
   (* --- SigmaHCOL -> Sigma->HCOL --- *)
