@@ -284,6 +284,26 @@ SUMUnion(
     crush.
   Qed.
 
+  Ltac solve_facs :=
+    repeat match goal with
+           | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
+           | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+             replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
+           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
+           | [ |- SHOperator_Facts _ (USparseEmbedding _ _) ] => unfold USparseEmbedding
+
+           | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
+           | _ => crush
+           end.
+
   (* Presently the following proof is not automated. However it lends itself to automation. Few ideas for future:
       1. Reister _Facts class instances in a separate namespace
       2. Write a tactic which attempts to apply approriate instance
@@ -297,65 +317,13 @@ SUMUnion(
     SHOperator_Facts _ (dynwin_SHCOL a).
   Proof.
     unfold dynwin_SHCOL.
-
-    apply SHCompose_Facts.
-    apply SafeCast_Facts.
-    apply SHBinOp_RthetaSafe_Facts.
-    apply HTSUMUnion_Facts.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply Scatter_Rtheta_Facts.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply liftM_HOperator_Facts.
-    apply MonoidLaws_RthetaFlags. (* or [auto with typeclass_instances]. *)
-    apply SafeCast_Facts.
-    apply SHBinOp_RthetaSafe_Facts.
-    crush.
-    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
-    crush.
-    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
-    crush.
-    crush.
-    apply Gather_Facts.
-    crush.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply Scatter_Rtheta_Facts.
-    apply liftM_HOperator_Facts. apply MonoidLaws_RthetaFlags.
-    crush.
-    apply SHPointwise_Facts. apply MonoidLaws_RthetaFlags.
-    crush.
-    unfold USparseEmbedding.
-    apply IUnion_Facts.
-
-    intros.
-    crush.
-    apply SHCompose_Facts.
-    apply SHCompose_Facts.
-    apply Scatter_Rtheta_Facts.
-    apply SafeCast_Facts.
+    solve_facs.
 
     {
-      match goal with
-      | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
-        replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
-      end.
-      apply SHBinOp_RthetaSafe_Facts.
-    }
-
-    crush.
-    apply Gather_Facts.
-    crush.
-    {
-      crush.
       apply two_h_index_maps_disjoint; assumption.
     }
+
     {
-      crush.
       unfold Included, In.
       intros x H.
       replace (Union (FinNat 2) (index_map_range_set (h_index_map 0 1)) (Empty_set (FinNat 2))) with (@index_map_range_set (S O) (S (S O))
@@ -368,22 +336,21 @@ SUMUnion(
         apply Union_Empty_set_lunit.
         apply h_index_map_range_set_dec.
     }
-    apply Gather_Facts.
+
     {
-      crush.
       unfold Included.
       intros x H.
       apply Full_intro.
     }
+
     {
-      crush.
       apply two_h_index_maps_disjoint.
       unfold peano_naturals.nat_lt, peano_naturals.nat_plus,
       peano_naturals.nat_1, one, plus, lt.
       crush.
     }
+
     {
-      crush.
       unfold Included, In.
       intros x H.
       apply Union_comm.
