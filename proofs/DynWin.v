@@ -381,6 +381,22 @@ SUMUnion(
     apply H.
   Qed.
 
+  (* TODO: generalize and move to Spiral.v *)
+  Lemma abs_nz_nz:
+    forall v : CarrierA, v ≠ zero → abs v ≠ zero.
+  Proof.
+    intros v V.
+    destruct (CarrierAledec zero v).
+    -
+      apply abs_nonneg_s in l.
+      rewrite l.
+      apply V.
+    -
+      apply orders.le_flip in n.
+      rewrite abs_nonpos_s; auto.
+      apply rings.flip_negate_ne_0, V.
+  Qed.
+
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
@@ -407,9 +423,8 @@ SUMUnion(
     all:revgoals.
     {
       remember (SparseEmbedding _ _ _ _) as t.
-      generalize t.
-      clear t Heqt a.
-      intros fam.
+      generalize dependent t.
+      intros fam _.
 
       apply Apply_Family_Vforall_P_move_P.
       intros x.
@@ -423,7 +438,29 @@ SUMUnion(
       apply abs_always_nonneg.
     }
     {
-      admit.
+      remember (SparseEmbedding _ _ _ _ ) as fam.
+
+      assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0).
+      {
+        subst fam.
+        apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
+      }
+      generalize dependent fam.
+      intros fam _ H. clear a.
+      assert(A: forall v n (i:nat) (ic:i<n),  v ≠ 0 -> ((IgnoreIndex (n:=n) abs) (exist ic) v) ≠ 0).
+      {
+        intros v n i ic V.
+        unfold IgnoreIndex, const.
+
+        apply abs_nz_nz, V.
+      }
+
+      (* the rest of the proof below could be separate lemma *)
+      unfold Apply_Family_Single_NonUnit_Per_Row.
+
+      intros x.
+
+
     }
 
 
