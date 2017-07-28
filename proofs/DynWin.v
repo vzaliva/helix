@@ -435,13 +435,13 @@ SUMUnion(
       {
         intros v n i ic V.
         unfold IgnoreIndex, const.
-
         apply abs_nz_nz, V.
       }
 
       (* the rest of the proof below could be separate lemma *)
       unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
+
       admit.
     }
 
