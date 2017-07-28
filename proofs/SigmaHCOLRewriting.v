@@ -1215,12 +1215,13 @@ Section SigmaHCOLRewritingRules.
           {n:nat}
           {v:rsvector n}
           {f: CarrierA -> CarrierA -> CarrierA}
+          {initial: CarrierA}
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
       RStheta2Rtheta
-        (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct zero) v) =
+        (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
       mkValue
-        (Vfold_left_rev f zero (densify _ v)).
+        (Vfold_left_rev f initial (densify _ v)).
     Proof.
       induction v.
       -
@@ -1234,8 +1235,8 @@ Section SigmaHCOLRewritingRules.
         unfold densify.
         simpl.
 
-        generalize (@Vfold_left_rev CarrierA CarrierA f n (@zero CarrierA CarrierAz)
-             (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
+        generalize (@Vfold_left_rev CarrierA CarrierA f n initial
+                                    (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
                 (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags)
                 n v)).
         intros c. clear v.
@@ -1278,7 +1279,6 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero)) op_family))).
     Proof.
-      (*
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
@@ -1292,7 +1292,7 @@ Section SigmaHCOLRewritingRules.
         apply liftM_HOperator'_proper.
         apply HReduction_HOperator.
         apply Diamond'_proper.
-        + apply CarrierAPlus_proper.
+        + apply u_mor.
         + reflexivity.
         + intros k kc.
           apply op_proper.
@@ -1415,7 +1415,6 @@ Section SigmaHCOLRewritingRules.
         (* unfold Vec2Union. *)
         specialize (Uz x).
 
-       *)
 
 
     Admitted.
