@@ -1375,7 +1375,7 @@ Section SigmaHCOLRewritingRules.
                             (rsvector2rvector i
                                (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags)
                                       Rtheta2RStheta i x)))) uf_zero))
-        ; [idtac | crush].
+        ; [idtac |  f_equiv].
 
         (* We would want to just [rewrite Vfold_right_Vmap] but it does not work under binders here *)
         replace (fun (z : nat) (zi : Peano.lt z n) =>
@@ -1387,8 +1387,6 @@ Section SigmaHCOLRewritingRules.
                    (rsvector2rvector i
                       (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags) Rtheta2RStheta i x))))
              uf_zero) with
-
-
             (fun (z : nat) (zi : Peano.lt z n) =>
                @Vfold_right _ _
                             (f ∘ (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaFlags)) o
@@ -1416,9 +1414,6 @@ Section SigmaHCOLRewritingRules.
 
         (* unfold Vec2Union. *)
         specialize (Uz x).
-
-
-
     Admitted.
 
 
