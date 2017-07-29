@@ -506,3 +506,13 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
+
+(* --- Tactics --- *)
+
+Ltac vec_to_vec_reord := repeat match goal with
+                                | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
+                                | [ |- context [Vfold_left]] => setoid_rewrite Vfold_left_to_Vfold_left_reord
+                                | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
+                                | [ |- context [Vconst]] => setoid_rewrite Vconst_to_Vconst_reord
+                                | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord
+                                end.
