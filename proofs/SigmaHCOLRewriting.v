@@ -1351,6 +1351,15 @@ Section SigmaHCOLRewritingRules.
 
         (* We would want to just [rewrite evalWriter_Rtheta2RStheta_mkValue] but it does not work under binders here *)
 
+        Lemma evalWriter_Rtheta2RStheta_mkValue_equiv {x}:
+          (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) = x.
+        Proof.
+          rewrite evalWriter_Rtheta2RStheta_mkValue.
+          reflexivity.
+        Qed.
+
+        Fail setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv at 2.
+
         replace (fun (z : nat) (zi : Peano.lt z n) =>
            @WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags
              (Rtheta2RStheta
@@ -1373,8 +1382,7 @@ Section SigmaHCOLRewritingRules.
                          (@op Monoid_RthetaFlags i o
                             (@family_member Monoid_RthetaFlags i o n op_family z zi)
                             (rsvector2rvector i
-                               (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags)
-                                      Rtheta2RStheta i x)))) uf_zero))
+                                              (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags)                                      Rtheta2RStheta i x)))) uf_zero))
         ; [idtac |  f_equiv].
 
         (* We would want to just [rewrite Vfold_right_Vmap] but it does not work under binders here *)
