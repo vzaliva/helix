@@ -1349,7 +1349,7 @@ Section SigmaHCOLRewritingRules.
         unfold densify.
         rewrite Vmap_Vbuild.
 
-        (* We would want to just [rewrite evalWriter_Rtheta2RStheta_mkValue] but it does not work under binders here *)
+        (* We would want to just [rewrite evalWriter_Rtheta2RStheta_mkValue_equiv] but it does not work under binders here *)
         replace (fun (z : nat) (zi : Peano.lt z n) =>
            @WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags
              (Rtheta2RStheta
