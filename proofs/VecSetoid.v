@@ -487,18 +487,11 @@ Global Instance indexed_vector_equiv `{Equiv A} {n}:
                        (fun i : nat =>  @pointwise_relation (i < n)
                                                        (vector A n) (=)).
 
-Global Instance Vbuild_proper {n:nat} {A:Type} `{Equiv A}:
-  @Proper
-    (forall _ : forall (i : nat) (_ : i < n), A,
-        vector A n)
-    (@respectful
-       (forall (i : nat) (_ : i < n), A)
-       (vector A n)
-       (@forall_relation nat
-                         (fun i : nat =>  forall _ : i<n, A)
-                         (fun i : nat =>  @pointwise_relation (i < n)
-                                                         A (=)))
-       (=)) (Vbuild (A:=A) (n:=n) ).
+(* @jwiegley version *)
+Global Instance Vbuild_proper {n : nat} {A:Type} `{Equiv A}:
+  Proper ((forall_relation
+             (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv)
+         (@Vbuild A n).
 Proof.
   intros f f' E.
   unfold forall_relation, pointwise_relation in E.
@@ -506,6 +499,7 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
+
 
 (* --- Tactics --- *)
 
