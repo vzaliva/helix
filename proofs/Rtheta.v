@@ -682,6 +682,13 @@ Proof.
   crush.
 Qed.
 
+Lemma evalWriter_Rtheta2RStheta_mkValue_equiv {x}:
+  (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) = x.
+Proof.
+  rewrite evalWriter_Rtheta2RStheta_mkValue.
+  reflexivity.
+Qed.
+
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
   Proof.

@@ -1350,16 +1350,6 @@ Section SigmaHCOLRewritingRules.
         rewrite Vmap_Vbuild.
 
         (* We would want to just [rewrite evalWriter_Rtheta2RStheta_mkValue] but it does not work under binders here *)
-
-        Lemma evalWriter_Rtheta2RStheta_mkValue_equiv {x}:
-          (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) = x.
-        Proof.
-          rewrite evalWriter_Rtheta2RStheta_mkValue.
-          reflexivity.
-        Qed.
-
-        Fail setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv at 2.
-
         replace (fun (z : nat) (zi : Peano.lt z n) =>
            @WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags
              (Rtheta2RStheta
