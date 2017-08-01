@@ -1350,26 +1350,7 @@ Section SigmaHCOLRewritingRules.
 
         Local Opaque WriterMonadNoT.evalWriter.
         setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv.
-
-        (* We would want to just [rewrite Vfold_right_Vmap] but it does not work under binders here *)
-        replace (fun (z : nat) (zi : Peano.lt z n) =>
-           @Vfold_right CarrierA CarrierA f o
-             (@Vmap (Rtheta' Monoid_RthetaFlags) CarrierA
-                (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaFlags) o
-                (@op Monoid_RthetaFlags i o
-                   (@family_member Monoid_RthetaFlags i o n op_family z zi)
-                   (rsvector2rvector i
-                      (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags) Rtheta2RStheta i x))))
-             uf_zero) with
-            (fun (z : nat) (zi : Peano.lt z n) =>
-               @Vfold_right _ _
-                            (f ∘ (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaFlags)) o
-                (@op Monoid_RthetaFlags i o
-                   (@family_member Monoid_RthetaFlags i o n op_family z zi)
-                   (rsvector2rvector i
-                      (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags) Rtheta2RStheta i x)))
-             uf_zero)
-        ; [ idtac | extensionality z; extensionality zi; symmetry; apply Vfold_right_Vmap].
+        setoid_rewrite Vfold_right_Vmap_equiv.
         clear jc j.
 
         unfold rsvector2rvector.

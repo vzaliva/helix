@@ -276,6 +276,20 @@ Ltac vec_index_equiv j jc :=
   let jc' := fresh jc in
   unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j' jc'.
 
+Lemma Vfold_right_Vmap_equiv
+      {A B C: Type}
+      `{Setoid B}
+      {n: nat}
+      (f : A->B->B)
+      (g : C->A)
+      (x : vector C n)
+      (z:B)
+  : Vfold_right f (Vmap g x) z = Vfold_right (f∘g) x z.
+Proof.
+  rewrite Vfold_right_Vmap.
+  reflexivity.
+Qed.
+
 Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
   ∀ (n : nat) (v : vector A n) (f:A->B),
     Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
