@@ -1210,7 +1210,6 @@ Section SigmaHCOLRewritingRules.
           left; auto.
     Qed.
 
-
     Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
           {n:nat}
           {v:rsvector n}
@@ -1349,31 +1348,8 @@ Section SigmaHCOLRewritingRules.
         unfold densify.
         rewrite Vmap_Vbuild.
 
-        (* We would want to just [rewrite evalWriter_Rtheta2RStheta_mkValue_equiv] but it does not work under binders here *)
-        replace (fun (z : nat) (zi : Peano.lt z n) =>
-           @WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags
-             (Rtheta2RStheta
-                (@mkValue Monoid_RthetaFlags
-                   (@Vfold_right CarrierA CarrierA f o
-                      (@Vmap (Rtheta' Monoid_RthetaFlags) CarrierA
-                         (@WriterMonadNoT.evalWriter RthetaFlags CarrierA
-                            Monoid_RthetaFlags) o
-                         (@op Monoid_RthetaFlags i o
-                            (@family_member Monoid_RthetaFlags i o n op_family z zi)
-                            (rsvector2rvector i
-                               (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags)
-                                      Rtheta2RStheta i x)))) uf_zero))))
-          with
-            (fun (z : nat) (zi : Peano.lt z n) =>
-                   (@Vfold_right CarrierA CarrierA f o
-                      (@Vmap (Rtheta' Monoid_RthetaFlags) CarrierA
-                         (@WriterMonadNoT.evalWriter RthetaFlags CarrierA
-                            Monoid_RthetaFlags) o
-                         (@op Monoid_RthetaFlags i o
-                            (@family_member Monoid_RthetaFlags i o n op_family z zi)
-                            (rsvector2rvector i
-                                              (@Vmap Rtheta (Rtheta' Monoid_RthetaSafeFlags)                                      Rtheta2RStheta i x)))) uf_zero))
-        ; [idtac |  f_equiv].
+        Local Opaque WriterMonadNoT.evalWriter.
+        setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv.
 
         (* We would want to just [rewrite Vfold_right_Vmap] but it does not work under binders here *)
         replace (fun (z : nat) (zi : Peano.lt z n) =>
