@@ -399,6 +399,7 @@ Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
     crush.
   Qed.
 
+
   Global Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
     Proper (((=) ==> (=)) ==> (=) ==> (=))
            (@Vmap_reord M N n).
@@ -413,6 +414,7 @@ Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
       + apply Eext, Ev.
       + apply IHn, Ev.
   Qed.
+
 
   Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
          `{fP: !Proper (Me ==> Ne) f} (n:nat):
