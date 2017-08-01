@@ -301,7 +301,6 @@ Section HCOL_implementation_proper.
     intros a b E1.
     unfold InfinityNorm.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
-    rewrite 2!Vmap_to_Vmap_reord.
     rewrite E1.
     reflexivity.
   Qed.

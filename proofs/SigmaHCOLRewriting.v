@@ -1356,6 +1356,9 @@ Section SigmaHCOLRewritingRules.
         unfold rsvector2rvector.
         rewrite Vmap_map.
 
+        (* vec_to_vec_reord.
+        setoid_rewrite RStheta2Rtheta_Rtheta2RStheta_equiv. *)
+
         replace (Vmap (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) x) with x.
         all:revgoals.
         {

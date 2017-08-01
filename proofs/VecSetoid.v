@@ -377,6 +377,21 @@ Qed.
 (* TODO: Check if it is still needed in Coq-8.6 *)
 Section VMap_reord.
 
+  (*
+   The following Proper for dependent-typed Vmap does not work.
+   As workaround we reorder parameters and define simple typed
+   version of [Vmap_reord] for given [A,B,n].
+
+   This general technique was first suggested to us in coq-club mailing
+   list by Daniel Schepler <dschepler@gmail.com> in 11/2014
+
+Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
+  Proper (
+      ((=) ==> (=)) ==> (forall_relation
+                       (fun (n : nat) => (@vec_Equiv A _ n) ==> (@vec_Equiv B _ n))))
+         (@Vmap A B).
+*)
+
   Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.
 
   Lemma Vmap_to_Vmap_reord: forall (A B: Type) (n:nat) (f:A->B) (x: vector A n), @Vmap A B f n x ≡ @Vmap_reord A B n f x.
@@ -390,13 +405,13 @@ Section VMap_reord.
   Proof.
     intros f g Eext a b Ev.
     induction n.
-    (* Case "N=0". *)
-    VOtac. auto.
-    (* Case "S N". *)
-    dep_destruct a. dep_destruct b.
-    split.
-    apply Eext, Ev.
-    apply IHn, Ev.
+    -
+      VOtac; auto.
+    -
+      dep_destruct a. dep_destruct b.
+      split.
+      + apply Eext, Ev.
+      + apply IHn, Ev.
   Qed.
 
   Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
@@ -404,15 +419,14 @@ Section VMap_reord.
     Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
   Proof.
     intros a b Ea.
-    unfold vec_Equiv.
     induction n.
-    (* Case "N=0". *)
-    VOtac. auto.
-    (* Case "S N". *)
-    dep_destruct a. dep_destruct b.
-    split.
-    apply fP, Ea.
-    apply IHn, Ea.
+    -
+      VOtac; auto.
+    -
+      dep_destruct a. dep_destruct b.
+      split.
+      apply fP, Ea.
+      apply IHn, Ea.
   Qed.
 
 End VMap_reord.
@@ -513,7 +527,6 @@ Proof.
   rewrite 2!Vbuild_nth.
   apply E.
 Qed.
-
 
 (* --- Tactics --- *)
 
