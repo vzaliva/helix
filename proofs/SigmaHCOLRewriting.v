@@ -1372,18 +1372,16 @@ Section SigmaHCOLRewritingRules.
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
       :
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ minmax.max _ zero))
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero))
           ⊚ (ISumUnion op_family)
         =
-        SafeCast (IReduction minmax.max zero
+        SafeCast (IReduction max zero
                     (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ minmax.max _ zero)) op_family))).
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
       apply rewrite_Reduction_IReduction; try typeclasses eauto.
       -
-        (* Here we are asked to prove that (max,0) forms a
-monoid. This is not true in general, but in our case we need to show
-it only for positive numbers, thanks to Upoz. *)
+        (* Here we are asked to prove that (max,0) forms a monoid. This is not true in general, but in our case we need to show it only for positive numbers, thanks to Upoz. For that we need to go from [CarrierA] to [{a:CarrierA| a >= CarrierAz}] type. *)
         admit.
       -
         apply Uz.
