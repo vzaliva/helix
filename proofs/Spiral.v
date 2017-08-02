@@ -39,6 +39,12 @@ Proof.
   solve_proper.
 Qed.
 
+Lemma ne_sym {T:Type} `{E: Equiv T} `{S: @Setoid T E} {a b: T}:
+  (a ≠ b) <-> (b ≠ a).
+Proof.
+  crush.
+Qed.
+
 Global Instance abs_Setoid_Morphism A
          `{Ar: Ring A}
          `{Asetoid: !Setoid A}
@@ -136,18 +142,33 @@ Lemma abs_nz_nz
       `{Ar: !Ring A}
       `{Aledec: ∀ x y: A, Decision (x ≤ y)}
   :
-    forall v : A, v ≠ zero → abs v ≠ zero.
+    forall v : A, v ≠ zero <-> abs v ≠ zero.
 Proof.
-  intros v V.
-  destruct (Aledec zero v).
+  split.
   -
-    apply abs_nonneg_s in l.
-    rewrite l.
-    apply V.
+    intros V.
+    destruct (Aledec zero v).
+    +
+      apply abs_nonneg_s in l.
+      rewrite l.
+      apply V.
+    +
+      apply orders.le_flip in n.
+      rewrite abs_nonpos_s; auto.
+      apply rings.flip_negate_ne_0, V.
   -
-    apply orders.le_flip in n.
-    rewrite abs_nonpos_s; auto.
-    apply rings.flip_negate_ne_0, V.
+    intros V.
+    destruct (Aledec zero v) as [E | N].
+    +
+      apply abs_nonneg_s in E.
+      rewrite <- E.
+      apply V.
+    +
+      apply orders.le_flip in N.
+      apply abs_nonpos_s in N.
+      apply rings.flip_negate_ne_0.
+      rewrite <- N.
+      apply V.
 Qed.
 
 Global Instance abs_idempotent

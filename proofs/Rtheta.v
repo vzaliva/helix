@@ -461,6 +461,12 @@ Section Rtheta'Utils.
     reflexivity.
   Qed.
 
+  Lemma evalWriter_mkValue
+        (x:CarrierA):
+    WriterMonadNoT.evalWriter (mkValue x) ≡ x.
+  Proof.
+      reflexivity.
+  Qed.
 
 End Rtheta'Utils.
 

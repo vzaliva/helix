@@ -400,9 +400,9 @@ SUMUnion(
         {i1 o2 n}
         (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n)
         (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0)
-        (f: { i | i<o2} -> CarrierA -> CarrierA)
+        (f: FinNat o2 -> CarrierA -> CarrierA)
         {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-        (A: forall (v : CarrierA) (n i : nat) (ic : i < o2), v ≠ 0 → f (exist ic) v ≠ 0):
+        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), 0 ≠ f (mkFinNat ic) v -> 0 ≠ v):
     Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags
                                         (SHOperatorFamilyCompose
                                            Monoid_RthetaFlags
@@ -410,7 +410,6 @@ SUMUnion(
                                            fam)
                                             zero.
   Proof.
-
     unfold Apply_Family_Single_NonUnit_Per_Row in *.
     intros x.
 
@@ -437,13 +436,13 @@ SUMUnion(
     specialize (H k kc).
     unfold Vunique in H.
     specialize (H j0 jc0 j1 jc1).
+
     repeat rewrite Vnth_map in H.
-    apply H.
+    apply H. clear H.
+    unfold compose in *.
+    rewrite evalWriter_mkValue in H0,H1.
 
-    generalize dependent (Vnth (Vnth x jc0) kc).
-
-
-
+    split; eapply A; [apply H0 | apply H1].
   Qed.
 
 
@@ -503,11 +502,11 @@ SUMUnion(
       +
         apply H.
       +
-      {
-        intros v n i ic V.
-        unfold IgnoreIndex, const.
+        intros i ic v V.
+        unfold IgnoreIndex, const in V.
+        apply ne_sym in V.
+        apply ne_sym.
         apply abs_nz_nz, V.
-      }
     }
 
 
