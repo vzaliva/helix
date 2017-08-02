@@ -381,6 +381,25 @@ SUMUnion(
     apply H.
   Qed.
 
+  Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
+        {i1 o2 n}
+        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n)
+        (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0)
+        (f: { i | i<o2} -> CarrierA -> CarrierA)
+        {f_mor: Proper (equiv ==> equiv ==> equiv) f}
+        (A: forall (v : CarrierA) (n i : nat) (ic : i < o2), v ≠ 0 → f (exist ic) v ≠ 0):
+    Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags
+                                        (SHOperatorFamilyCompose
+                                           Monoid_RthetaFlags
+                                           (SHPointwise Monoid_RthetaFlags f (n:=o2))
+                                           fam)
+                                            zero.
+  Proof.
+    unfold Apply_Family_Single_NonUnit_Per_Row.
+    intros x.
+  Admitted.
+
+
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
@@ -421,6 +440,7 @@ SUMUnion(
       unfold IgnoreIndex, const.
       apply abs_always_nonneg.
     }
+
     {
       remember (SparseEmbedding _ _ _ _ ) as fam.
 
@@ -431,18 +451,16 @@ SUMUnion(
       }
       generalize dependent fam.
       intros fam _ H. clear a.
-      assert(A: forall v n (i:nat) (ic:i<n),  v ≠ 0 -> ((IgnoreIndex (n:=n) abs) (exist ic) v) ≠ 0).
+
+      apply SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row.
+      +
+        apply H.
+      +
       {
         intros v n i ic V.
         unfold IgnoreIndex, const.
         apply abs_nz_nz, V.
       }
-
-      (* the rest of the proof below could be separate lemma *)
-      unfold Apply_Family_Single_NonUnit_Per_Row.
-      intros x.
-
-      admit.
     }
 
 
