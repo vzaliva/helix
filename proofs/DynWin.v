@@ -420,8 +420,31 @@ SUMUnion(
     clear x.
     intros x H.
 
+    unfold transpose, row, Vnth_aux.
+    rewrite Vforall_Vbuild.
+    intros k kc.
+    rewrite Vmap_map.
+    simpl.
+    unfold Vunique.
+    intros j0 jc0 j1 jc1.
+    repeat rewrite Vnth_map.
+    intros [H0 H1].
+    rewrite SHPointwise'_nth in H0, H1.
 
-  Admitted.
+
+    unfold transpose, row, Vnth_aux in H.
+    rewrite Vforall_Vbuild in H.
+    specialize (H k kc).
+    unfold Vunique in H.
+    specialize (H j0 jc0 j1 jc1).
+    repeat rewrite Vnth_map in H.
+    apply H.
+
+    generalize dependent (Vnth (Vnth x jc0) kc).
+
+
+
+  Qed.
 
 
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
