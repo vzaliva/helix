@@ -1453,7 +1453,8 @@ Section SigmaHCOLRewritingRules.
       Global Instance Setoid_NN:
         Setoid {x : CarrierA | NN x}.
       Proof.
-      Admitted.
+        split; auto.
+      Qed.
 
       Global Instance Monoid_max_NN:
         @abstract_algebra.Monoid {x : CarrierA | NN x} _ max NN_zero.
