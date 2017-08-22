@@ -1380,7 +1380,7 @@ Section SigmaHCOLRewritingRules.
 
       Definition NN := CarrierAle CarrierAz.
 
-      Global Instance NNLe: Le {x : CarrierA | NN x} := fun x y => CarrierAle (` x) (` y).
+      Global Instance NNLe: Le {x : CarrierA | NN x} := fun x y => (` x) ≤ (` y).
 
       Lemma max_proj:
         ∀ a b : {x : CarrierA | NN x}, ` (max a b) ≡ max (` a) (` b).
@@ -1392,22 +1392,16 @@ Section SigmaHCOLRewritingRules.
 
       Lemma NNZ: NN zero.
       Proof.
-        admit.
-      Admitted.
+        unfold NN, zero.
+        reflexivity.
+      Qed.
 
       Global Instance NN_zero: Zero {x:CarrierA | NN x} := exist NNZ.
 
       Global Instance Monoid_max_NN:
-        @abstract_algebra.Monoid (@sig CarrierA (fun x : CarrierA => NN x))
-                                 (@sig_equiv CarrierA CarrierAe (fun x : CarrierA => NN x))
-                                 (@max (@sig CarrierA (fun x : CarrierA => NN x)) NNLe
-                                       (fun (x : @sig CarrierA (fun x : CarrierA => NN x))
-                                          (y : @sig CarrierA (fun x0 : CarrierA => NN x0)) =>
-                                          CarrierAledec (@proj1_sig CarrierA (fun x0 : CarrierA => NN x0) x)
-                                                        (@proj1_sig CarrierA (fun x0 : CarrierA => NN x0) y))) NN_zero.
+        @abstract_algebra.Monoid {x : CarrierA | NN x} _ max NN_zero.
       Proof.
       Admitted.
-
 
     End NN.
 
