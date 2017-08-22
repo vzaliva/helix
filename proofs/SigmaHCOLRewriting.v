@@ -1401,7 +1401,54 @@ Section SigmaHCOLRewritingRules.
       Global Instance TotalOrder_NNLe:
         TotalOrder NNLe.
       Proof.
-      Admitted.
+        repeat split; crush.
+        -
+          destruct x,y,x0,y0.
+          unfold equiv, sig_equiv in *.
+          unfold le, NNLe in *.
+          simpl in *.
+          rewrite <- H, <- H0.
+          apply H1.
+        -
+          destruct x,y,x0,y0.
+          unfold equiv, sig_equiv in *.
+          unfold le, NNLe in *.
+          simpl in *.
+          rewrite H, H0.
+          apply H1.
+        -
+          unfold Reflexive.
+          intros x.
+          destruct x.
+          unfold equiv, sig_equiv in *.
+          unfold le, NNLe in *.
+          simpl.
+          auto.
+        -
+          unfold Transitive.
+          intros x y z H H0.
+          destruct x,y,z.
+          unfold le, NNLe in *.
+          simpl in *.
+          auto.
+        -
+          unfold AntiSymmetric.
+          intros x y H H0.
+          destruct x,y.
+          unfold le, NNLe in *.
+          unfold equiv, sig_equiv in *.
+          simpl in *.
+          apply eq_iff_le.
+          auto.
+        -
+          unfold TotalRelation.
+          intros x y.
+          destruct x,y.
+          unfold le, NNLe in *.
+          unfold NN in *.
+          simpl in *.
+          apply CarrierAto.
+      Qed.
 
       Global Instance Setoid_NN:
         Setoid {x : CarrierA | NN x}.
