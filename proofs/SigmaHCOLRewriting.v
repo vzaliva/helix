@@ -1259,7 +1259,18 @@ Section SigmaHCOLRewritingRules.
 
           (* 1st Monoid. Used in reduction *)
           `{f: SgOp CarrierA}
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f uf_zero}
+
+          (* Subtyped Non-negative version of f *)
+          {P: CarrierA -> Prop}
+          `{f': SgOp {x:CarrierA | P x} }
+          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
+          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+
+          (* Subtyped zero *)
+          {uf_zero': MonUnit {x:CarrierA | P x} }
+          {UD: (` uf_zero') ≡ uf_zero}
+
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f' uf_zero'}
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
           `{f_assoc: @Associative _ CarrierAe f}
 
@@ -1283,7 +1294,6 @@ Section SigmaHCOLRewritingRules.
       unfold UnSafeFamilyCast, get_family_op.
       simpl.
       apply ext_equiv_applied_equiv.
-
       -
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
@@ -1365,6 +1375,57 @@ Section SigmaHCOLRewritingRules.
     Admitted.
 
 
+    Section NN.
+      (* Non-negative CarrierA subtype *)
+
+      Definition NN := CarrierAle CarrierAz.
+
+      Global Instance NNLe: Le {x : CarrierA | NN x} := fun x y => CarrierAle (` x) (` y).
+
+      Lemma max_proj:
+        ∀ a b : {x : CarrierA | NN x}, ` (max a b) ≡ max (` a) (` b).
+      Proof.
+        intros a b.
+        unfold proj1_sig, max, sort.
+        repeat break_if; crush.
+      Qed.
+
+      Lemma NNZ: NN zero.
+      Proof.
+        admit.
+      Admitted.
+
+      Global Instance NN_zero: Zero {x:CarrierA | NN x} := exist NNZ.
+
+      Global Instance Monoid_max_NN:
+        @abstract_algebra.Monoid (@sig CarrierA (fun x : CarrierA => NN x))
+                                 (@sig_equiv CarrierA CarrierAe (fun x : CarrierA => NN x))
+                                 (@max (@sig CarrierA (fun x : CarrierA => NN x)) NNLe
+                                       (fun (x : @sig CarrierA (fun x : CarrierA => NN x))
+                                          (y : @sig CarrierA (fun x0 : CarrierA => NN x0)) =>
+                                          CarrierAledec (@proj1_sig CarrierA (fun x0 : CarrierA => NN x0) x)
+                                                        (@proj1_sig CarrierA (fun x0 : CarrierA => NN x0) y))) NN_zero.
+      Proof.
+      Admitted.
+
+
+    End NN.
+
+    Global Instance max_Assoc:
+      @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
+    Proof.
+      unfold Associative, HeteroAssociative.
+      intros x y z.
+      unfold max, sort.
+      repeat break_if; unfold snd in *; crush.
+      clear Heqd Heqd0 Heqd1 Heqd2.
+      clear_dups.
+      apply le_flip in n.
+      apply le_flip in n0.
+      apply eq_iff_le.
+      auto.
+    Qed.
+
     (* Specialized version of rewrite_Reduction_IReduction *)
     Lemma rewrite_Reduction_IReduction_max_plus
           {i o n}
@@ -1379,14 +1440,33 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
-      apply rewrite_Reduction_IReduction; try typeclasses eauto.
+      apply rewrite_Reduction_IReduction with (P:=NN) (f':=max) (uf_zero':=NN_zero).
       -
-        (* Here we are asked to prove that (max,0) forms a monoid. This is not true in general, but in our case we need to show it only for positive numbers, thanks to Upoz. For that we need to go from [CarrierA] to [{a:CarrierA| a >= CarrierAz}] type. *)
-        admit.
+        intros a b Na Nb.
+        unfold NN in *.
+        unfold max.
+        unfold sort.
+        break_if; crush.
+      -
+        intros a b.
+        unfold join_is_sg_op.
+        apply max_proj.
+      -
+        auto.
+      -
+        apply Monoid_max_NN.
+      -
+        apply max_Assoc.
+      -
+        apply abstract_algebra.group_monoid with (Anegate:=CarrierAneg).
+        apply abgroup_group.
+        apply ring_group with (Amult:=CarrierAmult) (Aone:=CarrierA1).
+        apply CarrierAr.
+      -
+        apply plus_assoc.
       -
         apply Uz.
-    Admitted.
-
+    Qed.
 
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
