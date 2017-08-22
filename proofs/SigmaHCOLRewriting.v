@@ -1398,10 +1398,62 @@ Section SigmaHCOLRewritingRules.
 
       Global Instance NN_zero: Zero {x:CarrierA | NN x} := exist NNZ.
 
+      Global Instance TotalOrder_NNLe:
+        TotalOrder NNLe.
+      Proof.
+      Admitted.
+
+      Global Instance Setoid_NN:
+        Setoid {x : CarrierA | NN x}.
+      Proof.
+      Admitted.
+
       Global Instance Monoid_max_NN:
         @abstract_algebra.Monoid {x : CarrierA | NN x} _ max NN_zero.
       Proof.
-      Admitted.
+        repeat split; crush.
+        -
+          unfold sg_op.
+          unfold Associative, HeteroAssociative.
+          intros x y z.
+
+          unfold equiv, sig_equiv; simpl.
+          repeat rewrite max_proj.
+          destruct x,y,z.
+          unfold max, sort.
+          repeat break_if; unfold snd in *; crush.
+
+
+          clear Heqd Heqd0 Heqd1 Heqd2.
+          clear_dups.
+          apply le_flip in n3.
+          apply le_flip in n2.
+          apply eq_iff_le.
+          auto.
+        -
+          unfold sg_op.
+          apply max_proper; typeclasses eauto.
+        -
+          unfold sg_op, mon_unit, NN_zero.
+          unfold LeftIdentity.
+          intros y.
+          destruct y.
+          unfold NN in *.
+          unfold max, equiv, sig_equiv, sort.
+          break_if; crush.
+        -
+          unfold sg_op, mon_unit, NN_zero.
+          unfold RightIdentity.
+          intros y.
+          destruct y.
+          unfold NN in *.
+          unfold max, equiv, sig_equiv, sort.
+          break_if; crush.
+
+          unfold le, NNLe in l. simpl in l.
+          apply eq_iff_le.
+          auto.
+      Qed.
 
     End NN.
 
