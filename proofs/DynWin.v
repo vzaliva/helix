@@ -446,6 +446,27 @@ SUMUnion(
   Qed.
 
 
+  Lemma compose_equiv_under_restriction
+        {i1 o1 o2}
+        {fm}
+        (g: @SHOperator fm i1 o1)
+        (f f': @SHOperator fm o1 o2)
+        {P: svector fm o1 -> Prop}
+    :
+      (forall x, P (op fm g x)) ->
+      (forall y, P y -> op fm f y = op fm f' y) ->
+      (SHCompose fm f g = SHCompose fm f' g).
+  Proof.
+    intros H1 H2.
+    unfold SHCompose, SHOperator_equiv, equiv, ext_equiv, respectful.
+    simpl.
+    intros x y H.
+    unfold compose.
+    rewrite <- H.
+    apply H2, H1.
+  Qed.
+
+
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.

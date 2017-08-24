@@ -1520,6 +1520,7 @@ Section SigmaHCOLRewritingRules.
       auto.
     Qed.
 
+
     (* Specialized version of rewrite_Reduction_IReduction *)
     Lemma rewrite_Reduction_IReduction_max_plus
           {i o n}
