@@ -1373,6 +1373,8 @@ Section SigmaHCOLRewritingRules.
 
         (* unfold Vec2Union. *)
         specialize (Uz x).
+        specialize (Upoz x).
+
     Admitted.
 
 
