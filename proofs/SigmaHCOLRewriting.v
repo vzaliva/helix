@@ -1281,6 +1281,7 @@ Section SigmaHCOLRewritingRules.
           `{u_assoc: @Associative _ CarrierAe u}
 
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero))
           ⊚ (@IUnion i o n u u_mor uf_zero op_family)
@@ -1561,6 +1562,8 @@ Section SigmaHCOLRewritingRules.
         apply plus_assoc.
       -
         apply Uz.
+      -
+        apply Upoz.
     Qed.
 
   End Value_Correctness.
