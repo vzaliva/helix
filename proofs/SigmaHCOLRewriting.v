@@ -1249,6 +1249,7 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -1374,6 +1375,33 @@ Section SigmaHCOLRewritingRules.
         (* unfold Vec2Union. *)
         specialize (Uz x).
         specialize (Upoz x).
+
+        setoid_rewrite <- Vfold_right_Vmap_equiv.
+        unfold Vec2Union.
+        unfold Union.
+
+        replace
+          (λ a b : svector Monoid_RthetaFlags o, Vmap2 (Monad.liftM2 u) a b)
+          with (@Vmap2 (Rtheta' Monoid_RthetaFlags) _ _  (Monad.liftM2 u) o)
+          by auto.
+
+        (* LHS:
+            1. Build matrix
+            2. Vfold_left_rev vectors with Vec2Union
+               [Due to Uz, there will be no collisions and all non-sparse values will end up in result]
+            3. densify
+            4. Vfold_right with 'f'
+         *)
+        remember (Vmap _ _) as rowsums eqn:RU.
+        (* RHS:
+            1. Build matrix (imaginary)
+            2. Densify vectors
+            3. Fold each vector (column) with 'f'
+            4. Vfold_left_rev with 'f'
+         *)
+        remember (@Vbuild CarrierA n _) as colsums eqn:CS.
+
+
 
     Admitted.
 
