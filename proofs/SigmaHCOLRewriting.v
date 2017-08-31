@@ -1271,15 +1271,13 @@ Section SigmaHCOLRewritingRules.
           {uf_zero': MonUnit {x:CarrierA | P x} }
           {UD: (` uf_zero') ≡ uf_zero}
 
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f' uf_zero'}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          `{f_assoc: @Associative _ CarrierAe f}
 
           (* 2nd Monoid. Used in IUnion *)
           `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ u uf_zero}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
           `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
-          `{u_assoc: @Associative _ CarrierAe u}
 
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
@@ -1406,6 +1404,38 @@ Section SigmaHCOLRewritingRules.
     Admitted.
 
 
+    Global Instance max_Assoc:
+      @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
+    Proof.
+      unfold Associative, HeteroAssociative.
+      intros x y z.
+      unfold max, sort.
+      repeat break_if; unfold snd in *; crush.
+      clear Heqd Heqd0 Heqd1 Heqd2.
+      clear_dups.
+      apply le_flip in n.
+      apply le_flip in n0.
+      apply eq_iff_le.
+      auto.
+    Qed.
+
+    Global Instance max_Comm:
+      @Commutative CarrierA CarrierAe CarrierA (@max CarrierA CarrierAle CarrierAledec).
+    Proof.
+      unfold Commutative.
+      intros x y.
+      unfold max, sort.
+      repeat break_if; unfold snd; auto.
+      -
+        apply eq_iff_le; auto.
+      -
+        clear Heqd Heqd0.
+        apply le_flip in n.
+        apply le_flip in n0.
+        apply eq_iff_le.
+        auto.
+    Qed.
+
     Section NN.
       (* Non-negative CarrierA subtype *)
 
@@ -1488,7 +1518,7 @@ Section SigmaHCOLRewritingRules.
       Qed.
 
       Global Instance Monoid_max_NN:
-        @abstract_algebra.Monoid {x : CarrierA | NN x} _ max NN_zero.
+        @abstract_algebra.Monoid {x : CarrierA | NN x} _  max NN_zero.
       Proof.
         repeat split; crush.
         -
@@ -1534,23 +1564,14 @@ Section SigmaHCOLRewritingRules.
           auto.
       Qed.
 
+      Global Instance CommutativeMonoid_max_NN:
+        @abstract_algebra.CommutativeMonoid {x : CarrierA | NN x} _ max NN_zero.
+      Proof.
+        split; typeclasses eauto.
+      Qed.
+
+
     End NN.
-
-    Global Instance max_Assoc:
-      @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
-    Proof.
-      unfold Associative, HeteroAssociative.
-      intros x y z.
-      unfold max, sort.
-      repeat break_if; unfold snd in *; crush.
-      clear Heqd Heqd0 Heqd1 Heqd2.
-      clear_dups.
-      apply le_flip in n.
-      apply le_flip in n0.
-      apply eq_iff_le.
-      auto.
-    Qed.
-
 
     (* Specialized version of rewrite_Reduction_IReduction *)
     Lemma rewrite_Reduction_IReduction_max_plus
@@ -1580,16 +1601,9 @@ Section SigmaHCOLRewritingRules.
       -
         auto.
       -
-        apply Monoid_max_NN.
+        split; typeclasses eauto.
       -
-        apply max_Assoc.
-      -
-        apply abstract_algebra.group_monoid with (Anegate:=CarrierAneg).
-        apply abgroup_group.
-        apply ring_group with (Amult:=CarrierAmult) (Aone:=CarrierA1).
-        apply CarrierAr.
-      -
-        apply plus_assoc.
+        typeclasses eauto.
       -
         apply Uz.
       -
