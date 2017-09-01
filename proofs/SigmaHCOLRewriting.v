@@ -1250,6 +1250,266 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
+    (* Basically states that 'IUnion' applied to a family which guarantees
+       single-non zero value per row dows not depend on function implementation *)
+    Lemma IUnion_f_subst
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f uf_zero}
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+      :
+        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
+        ->
+        (@IUnion i o n f _ uf_zero op_family = @IUnion i o n u _ uf_zero op_family).
+    Proof.
+      intros Uz.
+      intros x y E.
+      simpl.
+      rewrite <- E; clear E y.
+      unfold Diamond'.
+
+      (*
+      unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
+      unfold Apply_Family in Uz.
+       *)
+
+
+      vec_index_equiv j jc.
+      unfold Apply_Family'.
+      rewrite 2!AbsorbMUnion'Index_Vbuild.
+
+      (* -- Now we are dealing with UnionFolds only -- *)
+      unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
+      specialize (Uz x).
+      apply Vforall_nth with (ip:=jc) in Uz.
+      unfold Apply_Family, Apply_Family', transpose in Uz.
+      rewrite Vbuild_nth in Uz.
+      unfold row in Uz.
+      rewrite Vmap_Vbuild in Uz.
+      unfold Vnth_aux in Uz.
+
+      (* huge copypaste below! *)
+
+      apply Vunique_cases in Uz.
+      destruct Uz as [Uzeros | Uone].
+      -
+        (* all zeros in in vbuild *)
+        (* prove both sides are 0 *)
+        revert Uzeros.
+        set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
+                          (fun (z : nat) (zi : Peano.lt z n) =>
+                             @Vnth (Rtheta' Monoid_RthetaFlags) o
+                                   (@get_family_op Monoid_RthetaFlags i o n op_family z zi x) j jc))).
+        intros Uzeros.
+        assert(Hf:UnionFold _ f uf_zero vl = mkStruct uf_zero).
+        {
+          generalize dependent vl.
+          intros vl Uzeros.
+          unfold UnionFold.
+          clear op_family.
+          induction vl.
+          -
+            unfold mkStruct.
+            reflexivity.
+          -
+            simpl in Uzeros. destruct Uzeros as [Hh Hx].
+            Opaque Monad.ret. simpl. Transparent Monad.ret.
+            rewrite_clear IHvl.
+            +
+              unfold Union.
+              unfold_Rtheta_equiv.
+              rewrite evalWriter_Rtheta_liftM2.
+              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
+              *
+                rewrite E.
+                apply monoid_left_id.
+                apply f_mon.
+              *
+                crush.
+            +
+              apply Hx.
+        }
+        rewrite_clear Hf.
+        assert(Hu:UnionFold _ u uf_zero vl = mkStruct uf_zero).
+        {
+          generalize dependent vl.
+          intros vl Uzeros.
+          unfold UnionFold.
+          clear op_family.
+          induction vl.
+          -
+            unfold mkStruct.
+            reflexivity.
+          -
+            simpl in Uzeros. destruct Uzeros as [Hh Hx].
+            Opaque Monad.ret. simpl. Transparent Monad.ret.
+            rewrite_clear IHvl.
+            +
+              unfold Union.
+              unfold_Rtheta_equiv.
+              rewrite evalWriter_Rtheta_liftM2.
+              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
+              *
+                rewrite E.
+                apply monoid_left_id.
+                apply u_mon.
+              *
+                crush.
+            +
+              apply Hx.
+        }
+          rewrite_clear Hu.
+          reflexivity.
+      -
+        (* one non zero in vbuild. *)
+        (* Prove both sides are this value *)
+
+        (* lhs *)
+        revert Uone.
+        set (vl:=Vbuild _).
+        intros Uone.
+        inversion Uone as [k H]; clear Uone.
+        inversion H as [kc Uone]; clear H.
+
+        HERE
+
+        rewrite UnionFold_VallButOne_zero with (kc:=kc).
+        *
+          subst vl.
+          rewrite Vbuild_nth.
+
+          (* rhs *)
+          unfold get_family_op; simpl.
+          set (vr:=Vbuild _).
+          assert(H: VAllButOne k kc Is_ValZero vr).
+          {
+            subst vr.
+            unfold VAllButOne.
+            intros t tc H.
+            rewrite Vbuild_nth.
+            unfold Is_ValZero.
+            rewrite SHPointwise'_nth by apply MonoidLaws_RthetaFlags.
+
+            unfold VAllButOne in Uone.
+            specialize (Uone t tc H).
+            rewrite Vbuild_nth in Uone.
+
+            apply not_not_on_decidable in Uone.
+            symmetry in Uone.
+            crush.
+            reflexivity.
+          }
+
+          rewrite UnionFold_VallButOne_zero with (kc:=kc).
+          ** subst vr.
+             rewrite Vbuild_nth.
+             rewrite SHPointwise'_nth.
+             reflexivity.
+          ** apply H.
+        *
+          apply VallButOneSimpl with (P1:=Is_ValZero) in Uone.
+          apply Uone.
+
+          intros x0 H.
+          apply not_not_on_decidable in H.
+          unfold Is_ValZero.
+          symmetry.
+          apply H.
+        +
+          intros.
+          unfold compose, Is_ValZero.
+          generalize (WriterMonadNoT.evalWriter a).
+          intros c.
+          assert(Z: Decision (c=zero)) by apply CarrierAequivdec.
+          unfold Decision in Z.
+          destruct Z.
+          right; auto.
+          left; auto.
+    Qed.
+
+
+    Lemma IUnion_f_subst_under_P
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+
+          (* Subtyped Non-negative version of f *)
+          {P: CarrierA -> Prop}
+          `{f': SgOp {x:CarrierA | P x} }
+          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
+          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+
+          (* Subtyped zero *)
+          {uf_zero': MonUnit {x:CarrierA | P x} }
+          {UD: (` uf_zero') ≡ uf_zero}
+
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+      :
+        @IUnion i o n f f_mor uf_zero op_family
+        =
+        @IUnion i o n u u_mor uf_zero op_family.
+    Proof.
+    Qed.
+
+    (*
+    Lemma IUnion_to_IReduction
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+
+          (* Subtyped Non-negative version of f *)
+          {P: CarrierA -> Prop}
+          `{f': SgOp {x:CarrierA | P x} }
+          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
+          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+
+          (* Subtyped zero *)
+          {uf_zero': MonUnit {x:CarrierA | P x} }
+          {UD: (` uf_zero') ≡ uf_zero}
+
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
+
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+      :
+        @IUnion i o n u u_mor uf_zero op_family
+        =
+        SafeCast (IReduction f uf_zero (UnSafeFamilyCast op_family)).
+    Proof.
+    Qed.
+     *)
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
