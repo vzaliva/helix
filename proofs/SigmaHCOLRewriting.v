@@ -1356,6 +1356,8 @@ Section SigmaHCOLRewritingRules.
          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
          `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
       :
         VAllButOne i ic
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
@@ -1364,13 +1366,38 @@ Section SigmaHCOLRewritingRules.
       dependent induction n.
       - crush.
       -
+        (* This is generalized version of Is_ValZero_not_not. Consider moving out *)
+        assert(NN: (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero).
+        {
+          unfold Is_ValX.
+          unfold compose, equiv, ext_equiv.
+          simpl_relation.
+          rewrite_clear H.
+          unfold MonUnit.
+          generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
+          intros c.
+          split.
+          + intros.
+            destruct (CarrierAequivdec uf_zero c).
+            assumption.
+            contradict H.
+            assumption.
+          +
+            intros.
+            destruct (CarrierAequivdec c zero).
+            contradict H.
+            assumption.
+            congruence.
+        }
+
         dep_destruct v.
         destruct (eq_nat_dec i 0).
         +
           (* Case ("i=0"). *)
           rewrite Vnth_cons_head by assumption.
           rewrite UnionFold_cons.
-          assert(Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+
+          assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
           {
             apply Vforall_nth_intro.
             intros j jp.
@@ -1380,30 +1407,6 @@ Section SigmaHCOLRewritingRules.
             replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
             apply U.
             omega.
-          }
-
-          (* This is generalized version of Is_ValZero_not_not. Consider moving out *)
-          assert(NN: (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero).
-          {
-            unfold Is_ValX.
-            unfold compose, equiv, ext_equiv.
-            simpl_relation.
-            rewrite_clear H0. clear x0.
-            unfold MonUnit.
-            generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
-            intros c.
-            split.
-            + intros.
-              destruct (CarrierAequivdec uf_zero c).
-              assumption.
-              contradict H0.
-              assumption.
-            +
-              intros.
-              destruct (CarrierAequivdec c zero).
-              contradict H0.
-              assumption.
-              congruence.
           }
 
           assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
@@ -1419,32 +1422,42 @@ Section SigmaHCOLRewritingRules.
             specialize (NN x0).
             apply NN; auto.
           }
-          HERE
-          setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
-            by apply Is_ValZero_to_mkSZero, UZ.
-          clear UZ.
-          apply Union_SZero_l.
+
+          unfold_Rtheta_equiv.
+          rewrite evalWriterUnion.
+
+          unfold Is_ValX in UZ.
+          rewrite <- UZ.
+          apply f_left_id.
         +
           (* Case ("i!=0"). *)
           rewrite UnionFold_cons.
-          assert (HS: Is_ValZero h).
+          assert (HS: Is_ValX uf_zero h).
           {
-            cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
+            cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
             rewrite Vnth_0.
             auto.
-            apply U; auto.
+            unfold VAllButOne in U.
+            assert(jc: 0 < S n) by omega.
+            specialize (U 0 jc n0).
+            apply not_not_on_decidable.
+            apply U.
           }
 
           destruct i; try congruence.
           simpl.
           generalize (lt_S_n ic).
           intros l.
-          rewrite IHn with (ic:=l).
-
-          setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
-          apply Union_SZero_r.
-          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-          apply U.
+          rewrite IHn with (ic:=l); try typeclasses eauto.
+          *
+            unfold_Rtheta_equiv.
+            rewrite evalWriterUnion.
+            unfold Is_ValX in HS.
+            rewrite <- HS.
+            apply f_right_id.
+          *
+            apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+            apply U.
     Qed.
 
 
