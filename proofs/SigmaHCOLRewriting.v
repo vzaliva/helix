@@ -1406,16 +1406,20 @@ Section SigmaHCOLRewritingRules.
               congruence.
           }
 
-          assert(UZ: Is_ValX uf_zero  (UnionFold fm f uf_zero x)).
+          assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
           {
             apply UnionFold_a_zero_structs.
             apply f_mor.
             apply f_left_id.
-            (* TODO: Need Vforall proper *)
-            rewrite <- NN.
-            HERE
-            apply H.
+
+            (* Roundabout way to do:  [rewrite <- NN ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
+            rewrite Vforall_eq.
+            rewrite Vforall_eq in H.
+            intros x0 H0.
+            specialize (NN x0).
+            apply NN; auto.
           }
+          HERE
           setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
             by apply Is_ValZero_to_mkSZero, UZ.
           clear UZ.
