@@ -1427,6 +1427,7 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
+    (*
     Lemma IUnion_f_subst_under_P
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -1461,6 +1462,7 @@ Section SigmaHCOLRewritingRules.
         @IUnion i o n u u_mor uf_zero op_family.
     Proof.
     Qed.
+     *)
 
     (*
     Lemma IUnion_to_IReduction
