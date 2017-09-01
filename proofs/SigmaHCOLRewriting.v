@@ -1288,8 +1288,17 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    Definition Is_ValX {fm:Monoid RthetaFlags} (x:CarrierA)
-      := fun (x:Rtheta' fm) => (WriterMonadNoT.evalWriter z) = x.
+    Definition Is_ValX {fm:Monoid RthetaFlags} (z:CarrierA)
+      := fun (x:Rtheta' fm) => z = (WriterMonadNoT.evalWriter x).
+
+    Global Instance Is_ValX_proper
+           {fm:Monoid RthetaFlags}
+      :
+        Proper ((=) ==> (=) ==> (iff)) (@Is_ValX fm).
+    Proof.
+      unfold Is_ValX.
+      solve_proper.
+    Qed.
 
     (* Generalized version of UnionFold_a_zero_structs. TODO: rework specific version proof via this generic one *)
     Fact UnionFold_a_zero_structs
@@ -1299,9 +1308,12 @@ Section SigmaHCOLRewritingRules.
          `{uf_zero: MonUnit CarrierA}
          `{f: SgOp CarrierA}
          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-         (* NOTE: Could be also porven with RightIdentity *)
          `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+         (* NOTE: also could be provne with right identity
+         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+          *)
       :
         Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
     Proof.
@@ -1313,9 +1325,7 @@ Section SigmaHCOLRewritingRules.
         unfold_Rtheta_equiv.
         reflexivity.
       - simpl in H. destruct H as [Hh Hx].
-        Opaque Monad.ret.
-        simpl.
-        Transparent Monad.ret.
+        Opaque Monad.ret. simpl. Transparent Monad.ret.
 
         unfold Is_ValX.
         decide_CarrierA_equality E NE.
@@ -1324,11 +1334,12 @@ Section SigmaHCOLRewritingRules.
         +
           unfold Is_ValX in Hh.
           rewrite evalWriterUnion in NE.
-          rewrite Hh in NE.
+          rewrite <- Hh in NE.
           specialize (IHx Hx).
           unfold Is_ValX in IHx.
-          rewrite IHx in NE.
+          rewrite <- IHx in NE.
           contradict NE.
+          symmetry.
           apply f_left_id.
     Qed.
 
@@ -1371,34 +1382,28 @@ Section SigmaHCOLRewritingRules.
             omega.
           }
 
+          (* This is generalized version of Is_ValZero_not_not. Consider moving out *)
           assert(NN: (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero).
           {
             unfold Is_ValX.
             unfold compose, equiv, ext_equiv.
             simpl_relation.
             rewrite_clear H0. clear x0.
-            generalize dependent (WriterMonadNoT.evalWriter y).
+            unfold MonUnit.
+            generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
             intros c.
             split.
             + intros.
-              destruct (CarrierAequivdec c zero).
+              destruct (CarrierAequivdec uf_zero c).
               assumption.
-              contradict H.
+              contradict H0.
               assumption.
             +
               intros.
               destruct (CarrierAequivdec c zero).
-              contradict H.
+              contradict H0.
               assumption.
               congruence.
-
-            unfold compose.
-            extensionality p.
-            unfold MonUnit.
-            destruct (CarrierAequivdec (WriterMonadNoT.evalWriter p) uf_zero) as [E0| NE0].
-            destruct (CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter p)) as [E1| NE1].
-            apply not_not_on_decidable in E1. unfold compose in E1.
-
           }
 
           assert(UZ: Is_ValX uf_zero  (UnionFold fm f uf_zero x)).
@@ -1406,7 +1411,9 @@ Section SigmaHCOLRewritingRules.
             apply UnionFold_a_zero_structs.
             apply f_mor.
             apply f_left_id.
-            rewrite NN in H.
+            (* TODO: Need Vforall proper *)
+            rewrite <- NN.
+            HERE
             apply H.
           }
           setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
