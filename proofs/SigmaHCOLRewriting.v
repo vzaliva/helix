@@ -1288,8 +1288,51 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    (* generic version of UnionFold_VallButOne_zero. TODO: rework specific version proof via this generic one *)
+    Definition Is_ValX {fm:Monoid RthetaFlags} (x:CarrierA)
+      := fun (x:Rtheta' fm) => (WriterMonadNoT.evalWriter z) = x.
 
+    (* Generalized version of UnionFold_a_zero_structs. TODO: rework specific version proof via this generic one *)
+    Fact UnionFold_a_zero_structs
+         (m : nat)
+         {fm}
+         (x : svector fm m)
+         `{uf_zero: MonUnit CarrierA}
+         `{f: SgOp CarrierA}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+         (* NOTE: Could be also porven with RightIdentity *)
+         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+      :
+        Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
+    Proof.
+      intros H.
+      unfold UnionFold.
+      induction x.
+      -
+        unfold Is_ValX.
+        unfold_Rtheta_equiv.
+        reflexivity.
+      - simpl in H. destruct H as [Hh Hx].
+        Opaque Monad.ret.
+        simpl.
+        Transparent Monad.ret.
+
+        unfold Is_ValX.
+        decide_CarrierA_equality E NE.
+        +
+          auto.
+        +
+          unfold Is_ValX in Hh.
+          rewrite evalWriterUnion in NE.
+          rewrite Hh in NE.
+          specialize (IHx Hx).
+          unfold Is_ValX in IHx.
+          rewrite IHx in NE.
+          contradict NE.
+          apply f_left_id.
+    Qed.
+
+    (* generic version of UnionFold_VallButOne_zero. TODO: rework specific version proof via this generic one *)
     Fact UnionFold_VallButOne_a_zero
          {n : nat}
          {fm}
@@ -1307,7 +1350,6 @@ Section SigmaHCOLRewritingRules.
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
     Proof.
       intros U.
-      (*
       dependent induction n.
       - crush.
       -
@@ -1315,20 +1357,58 @@ Section SigmaHCOLRewritingRules.
         destruct (eq_nat_dec i 0).
         +
           (* Case ("i=0"). *)
-          rewrite Vnth_cons_head; try assumption.
+          rewrite Vnth_cons_head by assumption.
           rewrite UnionFold_cons.
-          assert(Vforall Is_ValZero x).
+          assert(Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
           {
             apply Vforall_nth_intro.
             intros j jp.
             assert(ipp:S j < S n) by lia.
+            unfold MonUnit in *.
+            unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
             replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
             apply U.
             omega.
           }
 
-          assert(UZ: Is_ValZero (UnionFold fm plus zero x))
-            by apply UnionFold_zero_structs, H.
+          assert(NN: (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero).
+          {
+            unfold Is_ValX.
+            unfold compose, equiv, ext_equiv.
+            simpl_relation.
+            rewrite_clear H0. clear x0.
+            generalize dependent (WriterMonadNoT.evalWriter y).
+            intros c.
+            split.
+            + intros.
+              destruct (CarrierAequivdec c zero).
+              assumption.
+              contradict H.
+              assumption.
+            +
+              intros.
+              destruct (CarrierAequivdec c zero).
+              contradict H.
+              assumption.
+              congruence.
+
+            unfold compose.
+            extensionality p.
+            unfold MonUnit.
+            destruct (CarrierAequivdec (WriterMonadNoT.evalWriter p) uf_zero) as [E0| NE0].
+            destruct (CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter p)) as [E1| NE1].
+            apply not_not_on_decidable in E1. unfold compose in E1.
+
+          }
+
+          assert(UZ: Is_ValX uf_zero  (UnionFold fm f uf_zero x)).
+          {
+            apply UnionFold_a_zero_structs.
+            apply f_mor.
+            apply f_left_id.
+            rewrite NN in H.
+            apply H.
+          }
           setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
             by apply Is_ValZero_to_mkSZero, UZ.
           clear UZ.
@@ -1355,8 +1435,7 @@ Section SigmaHCOLRewritingRules.
           apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
           apply U.
     Qed.
-       *)
-      Admitted.
+
 
     (* Basically states that 'IUnion' applied to a family which guarantees
        single-non zero value per row dows not depend on function implementation *)

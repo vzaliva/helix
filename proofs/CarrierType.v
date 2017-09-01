@@ -41,4 +41,10 @@ Qed.
 
 Notation avector n := (vector CarrierA n) (only parsing).
 
+Ltac decide_CarrierA_equality E NE :=
+  let E' := fresh E in
+  let NE' := fresh NE in
+  match goal with
+  | [ |- @equiv CarrierA CarrierAe ?A ?B ] => destruct (CarrierAequivdec A B) as [E'|NE']
+  end.
 
