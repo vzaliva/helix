@@ -1250,7 +1250,8 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
-    Fact UnionFold_all_zeroes {i o n : nat}
+    Fact UnionFold_all_zeroes
+         {n:nat}
          `{uf_zero: MonUnit CarrierA}
          `{f: SgOp CarrierA}
          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
@@ -1287,6 +1288,75 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
+    (* generic version of UnionFold_VallButOne_zero. TODO: rework specific version proof via this generic one *)
+
+    Fact UnionFold_VallButOne_a_zero
+         {n : nat}
+         {fm}
+         (v : svector fm n)
+         {i : nat}
+         (ic : i < n)
+
+         `{uf_zero: MonUnit CarrierA}
+         `{f: SgOp CarrierA}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+      :
+        VAllButOne i ic
+                   (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
+    Proof.
+      intros U.
+      (*
+      dependent induction n.
+      - crush.
+      -
+        dep_destruct v.
+        destruct (eq_nat_dec i 0).
+        +
+          (* Case ("i=0"). *)
+          rewrite Vnth_cons_head; try assumption.
+          rewrite UnionFold_cons.
+          assert(Vforall Is_ValZero x).
+          {
+            apply Vforall_nth_intro.
+            intros j jp.
+            assert(ipp:S j < S n) by lia.
+            replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+            apply U.
+            omega.
+          }
+
+          assert(UZ: Is_ValZero (UnionFold fm plus zero x))
+            by apply UnionFold_zero_structs, H.
+          setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
+            by apply Is_ValZero_to_mkSZero, UZ.
+          clear UZ.
+          apply Union_SZero_l.
+        +
+          (* Case ("i!=0"). *)
+          rewrite UnionFold_cons.
+          assert (HS: Is_ValZero h).
+          {
+            cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
+            rewrite Vnth_0.
+            auto.
+            apply U; auto.
+          }
+
+          destruct i; try congruence.
+          simpl.
+          generalize (lt_S_n ic).
+          intros l.
+          rewrite IHn with (ic:=l).
+
+          setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
+          apply Union_SZero_r.
+          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+          apply U.
+    Qed.
+       *)
+      Admitted.
 
     (* Basically states that 'IUnion' applied to a family which guarantees
        single-non zero value per row dows not depend on function implementation *)
@@ -1332,7 +1402,6 @@ Section SigmaHCOLRewritingRules.
       destruct Uz as [Uzeros | Uone].
       -
         (* all zeros in in vbuild *)
-        (* prove both sides are 0 *)
         revert Uzeros.
         set (vl:=Vbuild _).
         generalize dependent vl.
@@ -1340,71 +1409,23 @@ Section SigmaHCOLRewritingRules.
         erewrite 2!UnionFold_all_zeroes; auto.
       -
         (* one non zero in vbuild. *)
-        (* Prove both sides are this value *)
-
-        (* lhs *)
         revert Uone.
         set (vl:=Vbuild _).
         intros Uone.
         inversion Uone as [k H]; clear Uone.
         inversion H as [kc Uone]; clear H.
 
-        HERE
-
-        rewrite UnionFold_VallButOne_zero with (kc:=kc).
-        *
-          subst vl.
-          rewrite Vbuild_nth.
-
-          (* rhs *)
-          unfold get_family_op; simpl.
-          set (vr:=Vbuild _).
-          assert(H: VAllButOne k kc Is_ValZero vr).
-          {
-            subst vr.
-            unfold VAllButOne.
-            intros t tc H.
-            rewrite Vbuild_nth.
-            unfold Is_ValZero.
-            rewrite SHPointwise'_nth by apply MonoidLaws_RthetaFlags.
-
-            unfold VAllButOne in Uone.
-            specialize (Uone t tc H).
-            rewrite Vbuild_nth in Uone.
-
-            apply not_not_on_decidable in Uone.
-            symmetry in Uone.
-            crush.
-            reflexivity.
-          }
-
-          rewrite UnionFold_VallButOne_zero with (kc:=kc).
-          ** subst vr.
-             rewrite Vbuild_nth.
-             rewrite SHPointwise'_nth.
-             reflexivity.
-          ** apply H.
-        *
-          apply VallButOneSimpl with (P1:=Is_ValZero) in Uone.
-          apply Uone.
-
-          intros x0 H.
-          apply not_not_on_decidable in H.
-          unfold Is_ValZero.
-          symmetry.
-          apply H.
-        +
-          intros.
-          unfold compose, Is_ValZero.
-          generalize (WriterMonadNoT.evalWriter a).
-          intros c.
-          assert(Z: Decision (c=zero)) by apply CarrierAequivdec.
-          unfold Decision in Z.
-          destruct Z.
-          right; auto.
-          left; auto.
+        rewrite 2!UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
+        reflexivity.
+        apply Uone.
+        apply Uone.
+      -
+        intros a.
+        unfold not, compose.
+        destruct(CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter a)) as [E | NE].
+        right; auto.
+        left; auto.
     Qed.
-
 
     Lemma IUnion_f_subst_under_P
           {i o n}
