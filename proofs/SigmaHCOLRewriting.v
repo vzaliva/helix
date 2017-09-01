@@ -1250,6 +1250,44 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
+    Fact UnionFold_all_zeroes {i o n : nat}
+         `{uf_zero: MonUnit CarrierA}
+         `{f: SgOp CarrierA}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+
+         (vl : vector (Rtheta' Monoid_RthetaFlags) n)
+         (Uzeros : Vforall
+                     (not
+                        ∘ (not ∘ equiv uf_zero
+                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))) vl)
+      :
+        UnionFold Monoid_RthetaFlags f uf_zero vl = mkStruct uf_zero.
+    Proof.
+      unfold UnionFold.
+      induction vl.
+      -
+        unfold mkStruct.
+        reflexivity.
+      -
+        simpl in Uzeros. destruct Uzeros as [Hh Hx].
+        Opaque Monad.ret. simpl. Transparent Monad.ret.
+        specialize (IHvl Hx).
+        rewrite_clear IHvl.
+        +
+          unfold Union.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_liftM2.
+          destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
+          *
+            rewrite E.
+            apply f_left_id.
+          *
+            crush.
+    Qed.
+
+
     (* Basically states that 'IUnion' applied to a family which guarantees
        single-non zero value per row dows not depend on function implementation *)
     Lemma IUnion_f_subst
@@ -1276,12 +1314,6 @@ Section SigmaHCOLRewritingRules.
       rewrite <- E; clear E y.
       unfold Diamond'.
 
-      (*
-      unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
-      unfold Apply_Family in Uz.
-       *)
-
-
       vec_index_equiv j jc.
       unfold Apply_Family'.
       rewrite 2!AbsorbMUnion'Index_Vbuild.
@@ -1296,78 +1328,16 @@ Section SigmaHCOLRewritingRules.
       rewrite Vmap_Vbuild in Uz.
       unfold Vnth_aux in Uz.
 
-      (* huge copypaste below! *)
-
       apply Vunique_cases in Uz.
       destruct Uz as [Uzeros | Uone].
       -
         (* all zeros in in vbuild *)
         (* prove both sides are 0 *)
         revert Uzeros.
-        set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
-                          (fun (z : nat) (zi : Peano.lt z n) =>
-                             @Vnth (Rtheta' Monoid_RthetaFlags) o
-                                   (@get_family_op Monoid_RthetaFlags i o n op_family z zi x) j jc))).
-        intros Uzeros.
-        assert(Hf:UnionFold _ f uf_zero vl = mkStruct uf_zero).
-        {
-          generalize dependent vl.
-          intros vl Uzeros.
-          unfold UnionFold.
-          clear op_family.
-          induction vl.
-          -
-            unfold mkStruct.
-            reflexivity.
-          -
-            simpl in Uzeros. destruct Uzeros as [Hh Hx].
-            Opaque Monad.ret. simpl. Transparent Monad.ret.
-            rewrite_clear IHvl.
-            +
-              unfold Union.
-              unfold_Rtheta_equiv.
-              rewrite evalWriter_Rtheta_liftM2.
-              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
-              *
-                rewrite E.
-                apply monoid_left_id.
-                apply f_mon.
-              *
-                crush.
-            +
-              apply Hx.
-        }
-        rewrite_clear Hf.
-        assert(Hu:UnionFold _ u uf_zero vl = mkStruct uf_zero).
-        {
-          generalize dependent vl.
-          intros vl Uzeros.
-          unfold UnionFold.
-          clear op_family.
-          induction vl.
-          -
-            unfold mkStruct.
-            reflexivity.
-          -
-            simpl in Uzeros. destruct Uzeros as [Hh Hx].
-            Opaque Monad.ret. simpl. Transparent Monad.ret.
-            rewrite_clear IHvl.
-            +
-              unfold Union.
-              unfold_Rtheta_equiv.
-              rewrite evalWriter_Rtheta_liftM2.
-              destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
-              *
-                rewrite E.
-                apply monoid_left_id.
-                apply u_mon.
-              *
-                crush.
-            +
-              apply Hx.
-        }
-          rewrite_clear Hu.
-          reflexivity.
+        set (vl:=Vbuild _).
+        generalize dependent vl.
+        intros vl Uzeros.
+        erewrite 2!UnionFold_all_zeroes; auto.
       -
         (* one non zero in vbuild. *)
         (* Prove both sides are this value *)
