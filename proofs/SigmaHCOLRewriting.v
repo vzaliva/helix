@@ -356,61 +356,25 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
 
-  (* Specialized version of [UnionFold_VallButOne_a_zero]. TODO: express via one: UnionFold_VallButOne_a_zero *)
+  (* Specialized version of [UnionFold_VallButOne_a_zero]. *)
   Lemma UnionFold_VallButOne_zero:
     ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
       VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
   Proof.
     intros n v i ic U.
-    (* TODO: should be apply UnionFold_VallButOne_a_zero; try typeclasses eauto. *)
-    dependent induction n.
-    - crush.
-    -
-      dep_destruct v.
-      destruct (eq_nat_dec i 0).
-      +
-        (* Case ("i=0"). *)
-        rewrite Vnth_cons_head; try assumption.
-        rewrite UnionFold_cons.
-        assert(Vforall Is_ValZero x).
-        {
-          apply Vforall_nth_intro.
-          intros j jp.
-          assert(ipp:S j < S n) by lia.
-          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
-          apply U.
-          omega.
-        }
-
-        assert(UZ: Is_ValZero (UnionFold fm plus zero x))
-          by apply UnionFold_zero_structs, H.
-        setoid_replace (UnionFold fm plus zero x) with (@mkSZero fm)
-          by apply Is_ValZero_to_mkSZero, UZ.
-        clear UZ.
-        apply Union_SZero_l.
-      +
-        (* Case ("i!=0"). *)
-        rewrite UnionFold_cons.
-        assert (HS: Is_ValZero h).
-        {
-          cut (Is_ValZero (Vnth (Vcons h x) (zero_lt_Sn n))).
-          rewrite Vnth_0.
-          auto.
-          apply U; auto.
-        }
-
-        destruct i; try congruence.
-        simpl.
-        generalize (lt_S_n ic).
-        intros l.
-        rewrite IHn with (ic:=l).
-
-        setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
-        apply Union_SZero_r.
-        apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-        apply U.
+    apply UnionFold_VallButOne_a_zero; try typeclasses eauto.
+    unfold VAllButOne in *.
+    intros j jc H.
+    specialize (U j jc H).
+    unfold MonUnit.
+    unfold Rtheta', Monad_RthetaFlags, WriterMonadNoT.writer in U.
+    generalize dependent (@Vnth (@WriterMonad.writerT RthetaFlags fm IdentityMonad.ident CarrierA) n v j jc).
+    intros x U.
+    clear H j jc i ic v n.
+    unfold compose.
+    unfold Is_ValZero in U.
+    crush.
   Qed.
-
 
 
   (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
