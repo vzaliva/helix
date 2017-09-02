@@ -265,12 +265,104 @@ Section SigmaHCOLHelperLemmas.
       apply IHx, Hx.
   Qed.
 
+  Lemma UnionFold_VallButOne_a_zero
+       {n : nat}
+       (v : svector fm n)
+       {i : nat}
+       (ic : i < n)
+
+       `{uf_zero: MonUnit CarrierA}
+       `{f: SgOp CarrierA}
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                   (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+       `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+    :
+      VAllButOne i ic
+                 (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
+  Proof.
+    intros U.
+    dependent induction n.
+    - crush.
+    -
+      dep_destruct v.
+      destruct (eq_nat_dec i 0).
+      +
+        (* Case ("i=0"). *)
+        rewrite Vnth_cons_head by assumption.
+        rewrite UnionFold_cons.
+
+        assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+        {
+          apply Vforall_nth_intro.
+          intros j jp.
+          assert(ipp:S j < S n) by lia.
+          unfold MonUnit in *.
+          unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
+          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+          apply U.
+          omega.
+        }
+
+        assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
+        {
+          apply UnionFold_a_zero_structs.
+          apply f_mor.
+          apply f_left_id.
+
+          (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
+          rewrite Vforall_eq.
+          rewrite Vforall_eq in H.
+          intros x0 H0.
+          apply (Is_ValX_not_not x0); auto.
+        }
+
+        unfold_Rtheta_equiv.
+        rewrite evalWriterUnion.
+
+        unfold Is_ValX in UZ.
+        rewrite <- UZ.
+        apply f_left_id.
+      +
+        (* Case ("i!=0"). *)
+        rewrite UnionFold_cons.
+        assert (HS: Is_ValX uf_zero h).
+        {
+          cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
+          rewrite Vnth_0.
+          auto.
+          unfold VAllButOne in U.
+          assert(jc: 0 < S n) by omega.
+          specialize (U 0 jc n0).
+          apply not_not_on_decidable.
+          apply U.
+        }
+
+        destruct i; try congruence.
+        simpl.
+        generalize (lt_S_n ic).
+        intros l.
+        rewrite IHn with (ic:=l); try typeclasses eauto.
+        *
+          unfold_Rtheta_equiv.
+          rewrite evalWriterUnion.
+          unfold Is_ValX in HS.
+          rewrite <- HS.
+          apply f_right_id.
+        *
+          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+          apply U.
+  Qed.
+
+
+  (* Specialized version of [UnionFold_VallButOne_a_zero]. TODO: express via one: UnionFold_VallButOne_a_zero *)
   Lemma UnionFold_VallButOne_zero:
     ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
       VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
   Proof.
     intros n v i ic U.
-
+    (* TODO: should be apply UnionFold_VallButOne_a_zero; try typeclasses eauto. *)
     dependent induction n.
     - crush.
     -
@@ -1328,124 +1420,6 @@ Section SigmaHCOLRewritingRules.
           *
             crush.
     Qed.
-
-    (* generic version of UnionFold_VallButOne_zero. TODO: rework specific version proof via this generic one *)
-    Fact UnionFold_VallButOne_a_zero
-         {n : nat}
-         {fm}
-         (v : svector fm n)
-         {i : nat}
-         (ic : i < n)
-
-         `{uf_zero: MonUnit CarrierA}
-         `{f: SgOp CarrierA}
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-      :
-        VAllButOne i ic
-                   (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
-    Proof.
-      intros U.
-      dependent induction n.
-      - crush.
-      -
-        (* This is generalized version of Is_ValZero_not_not. Consider moving out *)
-        assert(NN: (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero).
-        {
-          unfold Is_ValX.
-          unfold compose, equiv, ext_equiv.
-          simpl_relation.
-          rewrite_clear H.
-          unfold MonUnit.
-          generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
-          intros c.
-          split.
-          + intros.
-            destruct (CarrierAequivdec uf_zero c).
-            assumption.
-            contradict H.
-            assumption.
-          +
-            intros.
-            destruct (CarrierAequivdec c zero).
-            contradict H.
-            assumption.
-            congruence.
-        }
-
-        dep_destruct v.
-        destruct (eq_nat_dec i 0).
-        +
-          (* Case ("i=0"). *)
-          rewrite Vnth_cons_head by assumption.
-          rewrite UnionFold_cons.
-
-          assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
-          {
-            apply Vforall_nth_intro.
-            intros j jp.
-            assert(ipp:S j < S n) by lia.
-            unfold MonUnit in *.
-            unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
-            replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
-            apply U.
-            omega.
-          }
-
-          assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
-          {
-            apply UnionFold_a_zero_structs.
-            apply f_mor.
-            apply f_left_id.
-
-            (* Roundabout way to do:  [rewrite <- NN ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
-            rewrite Vforall_eq.
-            rewrite Vforall_eq in H.
-            intros x0 H0.
-            specialize (NN x0).
-            apply NN; auto.
-          }
-
-          unfold_Rtheta_equiv.
-          rewrite evalWriterUnion.
-
-          unfold Is_ValX in UZ.
-          rewrite <- UZ.
-          apply f_left_id.
-        +
-          (* Case ("i!=0"). *)
-          rewrite UnionFold_cons.
-          assert (HS: Is_ValX uf_zero h).
-          {
-            cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
-            rewrite Vnth_0.
-            auto.
-            unfold VAllButOne in U.
-            assert(jc: 0 < S n) by omega.
-            specialize (U 0 jc n0).
-            apply not_not_on_decidable.
-            apply U.
-          }
-
-          destruct i; try congruence.
-          simpl.
-          generalize (lt_S_n ic).
-          intros l.
-          rewrite IHn with (ic:=l); try typeclasses eauto.
-          *
-            unfold_Rtheta_equiv.
-            rewrite evalWriterUnion.
-            unfold Is_ValX in HS.
-            rewrite <- HS.
-            apply f_right_id.
-          *
-            apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-            apply U.
-    Qed.
-
 
     (* Basically states that 'IUnion' applied to a family which guarantees
        single-non zero value per row dows not depend on function implementation *)

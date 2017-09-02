@@ -812,7 +812,35 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
-  (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter *)
+  (* TODO: TODO: Very similar to [Is_ValZero_not_not]*)
+  Lemma Is_ValX_not_not
+        {fm:Monoid RthetaFlags}
+        `{uf_zero: MonUnit CarrierA}:
+    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero.
+  Proof.
+    unfold Is_ValX.
+    unfold compose, equiv, ext_equiv.
+    simpl_relation.
+    rewrite_clear H.
+    unfold MonUnit.
+    generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
+    intros c.
+    split.
+    + intros.
+      destruct (CarrierAequivdec uf_zero c).
+      assumption.
+      contradict H.
+      assumption.
+    +
+      intros.
+      destruct (CarrierAequivdec c zero).
+      contradict H.
+      assumption.
+      congruence.
+  Qed.
+
+
+  (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter. TODO: Very similar to [Is_ValX_not_not] *)
   Lemma Is_ValZero_not_not
         {fm:Monoid RthetaFlags}
     :
