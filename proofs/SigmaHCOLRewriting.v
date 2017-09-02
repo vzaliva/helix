@@ -200,6 +200,49 @@ Section SigmaHCOLHelperLemmas.
     lia.
   Qed.
 
+  Lemma UnionFold_a_zero_structs
+       (m : nat)
+       (x : svector fm m)
+       `{uf_zero: MonUnit CarrierA}
+       `{f: SgOp CarrierA}
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                   (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+    (* NOTE: also could be provne with right identity
+         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+     *)
+    :
+      Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
+  Proof.
+    intros H.
+    unfold UnionFold.
+    induction x.
+    -
+      unfold Is_ValX.
+      unfold_Rtheta_equiv.
+      reflexivity.
+    - simpl in H. destruct H as [Hh Hx].
+      Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+      unfold Is_ValX.
+      decide_CarrierA_equality E NE.
+      +
+        auto.
+      +
+        unfold Is_ValX in Hh.
+        rewrite evalWriterUnion in NE.
+        rewrite <- Hh in NE.
+        specialize (IHx Hx).
+        unfold Is_ValX in IHx.
+        rewrite <- IHx in NE.
+        contradict NE.
+        symmetry.
+        apply f_left_id.
+  Qed.
+
+
+  (* Specialized version of [UnionFold_a_zero_structs]. Unfortunately it could not be directly exprssed via the formed because [Is_ValZero] and [Is_ValX] are defined differently (in order of comparison). TODO: Perhaps this should be fixed later by changing them to be the same... *)
   Lemma UnionFold_zero_structs
         (m : nat) (x : svector fm m):
     Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
@@ -977,8 +1020,6 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    (* TODO : pfzn and Uz should be typeclasses *)
-
     Lemma rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -1286,49 +1327,6 @@ Section SigmaHCOLRewritingRules.
             apply f_left_id.
           *
             crush.
-    Qed.
-
-    (* Generalized version of UnionFold_a_zero_structs. TODO: rework specific version proof via this generic one *)
-    Fact UnionFold_a_zero_structs
-         (m : nat)
-         {fm}
-         (x : svector fm m)
-         `{uf_zero: MonUnit CarrierA}
-         `{f: SgOp CarrierA}
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-         (* NOTE: also could be provne with right identity
-         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-          *)
-      :
-        Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
-    Proof.
-      intros H.
-      unfold UnionFold.
-      induction x.
-      -
-        unfold Is_ValX.
-        unfold_Rtheta_equiv.
-        reflexivity.
-      - simpl in H. destruct H as [Hh Hx].
-        Opaque Monad.ret. simpl. Transparent Monad.ret.
-
-        unfold Is_ValX.
-        decide_CarrierA_equality E NE.
-        +
-          auto.
-        +
-          unfold Is_ValX in Hh.
-          rewrite evalWriterUnion in NE.
-          rewrite <- Hh in NE.
-          specialize (IHx Hx).
-          unfold Is_ValX in IHx.
-          rewrite <- IHx in NE.
-          contradict NE.
-          symmetry.
-          apply f_left_id.
     Qed.
 
     (* generic version of UnionFold_VallButOne_zero. TODO: rework specific version proof via this generic one *)
