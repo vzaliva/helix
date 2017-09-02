@@ -257,6 +257,9 @@ Section Rtheta'Utils.
 
   Definition Is_NonNegative (x:Rtheta' fm) : Prop := liftRthetaP (le 0) x.
 
+  Definition Is_ValX (z:CarrierA)
+    := fun (x:Rtheta' fm) => z = (WriterMonadNoT.evalWriter x).
+
   Lemma IsVal_mkValue:
     ∀ (v:CarrierA), Is_Val (mkValue v).
   Proof.
@@ -300,6 +303,12 @@ Section Rtheta'Utils.
     simpl_relation.
   Qed.
 
+  Global Instance Is_ValX_proper:
+      Proper ((=) ==> (=) ==> (iff)) (Is_ValX).
+  Proof.
+    unfold Is_ValX.
+    solve_proper.
+  Qed.
 
   Ltac unfold_Rtheta'_equiv := unfold equiv, Rtheta'_equiv in *.
 

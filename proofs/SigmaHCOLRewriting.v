@@ -1288,18 +1288,6 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    Definition Is_ValX {fm:Monoid RthetaFlags} (z:CarrierA)
-      := fun (x:Rtheta' fm) => z = (WriterMonadNoT.evalWriter x).
-
-    Global Instance Is_ValX_proper
-           {fm:Monoid RthetaFlags}
-      :
-        Proper ((=) ==> (=) ==> (iff)) (@Is_ValX fm).
-    Proof.
-      unfold Is_ValX.
-      solve_proper.
-    Qed.
-
     (* Generalized version of UnionFold_a_zero_structs. TODO: rework specific version proof via this generic one *)
     Fact UnionFold_a_zero_structs
          (m : nat)
