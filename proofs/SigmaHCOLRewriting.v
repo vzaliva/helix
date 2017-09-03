@@ -208,10 +208,6 @@ Section SigmaHCOLHelperLemmas.
        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-    (* NOTE: also could be provne with right identity
-         `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-     *)
     :
       Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
   Proof.
@@ -235,34 +231,18 @@ Section SigmaHCOLHelperLemmas.
         rewrite <- Hh in NE.
         specialize (IHx Hx).
         unfold Is_ValX in IHx.
-        rewrite <- IHx in NE.
         contradict NE.
-        symmetry.
+        rewrite Hh.
+        rewrite IHx.
         apply f_left_id.
   Qed.
 
-
-  (* Specialized version of [UnionFold_a_zero_structs]. Unfortunately it could not be directly exprssed via the formed because [Is_ValZero] and [Is_ValX] are defined differently (in order of comparison). TODO: Perhaps this should be fixed later by changing them to be the same... *)
+  (* Specialized version of [UnionFold_a_zero_structs]. *)
   Lemma UnionFold_zero_structs
         (m : nat) (x : svector fm m):
     Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
   Proof.
-    intros H.
-    unfold UnionFold.
-    induction x.
-    -
-      unfold Is_ValZero.
-      unfold_Rtheta_equiv.
-      reflexivity.
-    - simpl in H. destruct H as [Hh Hx].
-      Opaque Monad.ret.
-      simpl.
-      Transparent Monad.ret.
-      rewrite Is_ValZero_to_mkSZero in Hh.
-      rewrite Is_ValZero_to_mkSZero.
-      rewrite Hh.
-      rewrite Union_SZero_r.
-      apply IHx, Hx.
+    apply UnionFold_a_zero_structs; typeclasses eauto.
   Qed.
 
   Lemma UnionFold_VallButOne_a_zero
@@ -315,14 +295,13 @@ Section SigmaHCOLHelperLemmas.
           rewrite Vforall_eq.
           rewrite Vforall_eq in H.
           intros x0 H0.
-          apply (Is_ValX_not_not x0); auto.
+          apply (Is_ValX_not_not' x0); auto.
         }
 
         unfold_Rtheta_equiv.
         rewrite evalWriterUnion.
-
         unfold Is_ValX in UZ.
-        rewrite <- UZ.
+        setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
         apply f_left_id.
       +
         (* Case ("i!=0"). *)
@@ -336,7 +315,15 @@ Section SigmaHCOLHelperLemmas.
           assert(jc: 0 < S n) by omega.
           specialize (U 0 jc n0).
           apply not_not_on_decidable.
-          apply U.
+          unfold Is_ValX.
+
+          setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
+                  with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
+
+          * apply U.
+          *
+            unfold compose.
+
         }
 
         destruct i; try congruence.

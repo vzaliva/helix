@@ -258,7 +258,7 @@ Section Rtheta'Utils.
   Definition Is_NonNegative (x:Rtheta' fm) : Prop := liftRthetaP (le 0) x.
 
   Definition Is_ValX (z:CarrierA)
-    := fun (x:Rtheta' fm) => z = (WriterMonadNoT.evalWriter x).
+    := fun (x:Rtheta' fm) => (WriterMonadNoT.evalWriter x) = z.
 
   Lemma IsVal_mkValue:
     ∀ (v:CarrierA), Is_Val (mkValue v).
@@ -753,9 +753,8 @@ Section Zero_Utils.
     simpl_relation.
   Qed.
 
-  Definition Is_ValZero {fm:Monoid RthetaFlags} (x:Rtheta' fm)
-    := (evalWriter x) = 0.
-
+  Definition Is_ValZero {fm:Monoid RthetaFlags}
+    := @Is_ValX fm 0.
 
   Global Instance Is_ValZero_dec {fm:Monoid RthetaFlags} (x:Rtheta' fm):
     Decision (Is_ValZero x).
@@ -812,8 +811,23 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
-  (* TODO: TODO: Very similar to [Is_ValZero_not_not]*)
   Lemma Is_ValX_not_not
+        {fm:Monoid RthetaFlags}
+        `{uf_zero: MonUnit CarrierA}:
+    not ∘ (not ∘ (@Is_ValX fm uf_zero)) = Is_ValX uf_zero.
+  Proof.
+    unfold Is_ValX.
+    unfold compose, equiv, ext_equiv.
+    simpl_relation.
+    rewrite_clear H.
+    unfold MonUnit.
+    generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
+    intros c.
+    destruct (CarrierAequivdec uf_zero c) as [E|NE]; crush.
+  Qed.
+
+  (* TODO: See if we need this *)
+  Lemma Is_ValX_not_not'
         {fm:Monoid RthetaFlags}
         `{uf_zero: MonUnit CarrierA}:
     (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero.
@@ -825,18 +839,7 @@ Section Zero_Utils.
     unfold MonUnit.
     generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
     intros c.
-    split.
-    + intros.
-      destruct (CarrierAequivdec uf_zero c).
-      assumption.
-      contradict H.
-      assumption.
-    +
-      intros.
-      destruct (CarrierAequivdec c zero).
-      contradict H.
-      assumption.
-      congruence.
+    destruct (CarrierAequivdec uf_zero c) as [E|NE]; crush.
   Qed.
 
 
@@ -846,24 +849,8 @@ Section Zero_Utils.
     :
       ((not ∘ (not ∘ @Is_ValZero fm)) = Is_ValZero).
   Proof.
-    unfold compose, equiv, ext_equiv.
-    simpl_relation.
     unfold Is_ValZero.
-    rewrite_clear H.
-    generalize dependent (evalWriter y).
-    intros c.
-    split.
-    + intros.
-      destruct (CarrierAequivdec c zero).
-      assumption.
-      contradict H.
-      assumption.
-    +
-      intros.
-      destruct (CarrierAequivdec c zero).
-      contradict H.
-      assumption.
-      congruence.
+    apply Is_ValX_not_not.
   Qed.
 
 
