@@ -366,6 +366,8 @@ Section SigmaHCOLHelperLemmas.
     unfold Rtheta', Monad_RthetaFlags, WriterMonadNoT.writer in U.
     generalize dependent (@Vnth (@WriterMonad.writerT RthetaFlags fm IdentityMonad.ident CarrierA) n v j jc).
     unfold compose, Is_ValZero.
+    intros w.
+    unfold Is_ValX.
     auto.
   Qed.
 
