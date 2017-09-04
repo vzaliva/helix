@@ -323,7 +323,16 @@ Section SigmaHCOLHelperLemmas.
           * apply U.
           *
             unfold compose.
+            apply ext_equiv_applied_equiv.
+            split; try typeclasses eauto.
+            solve_proper.
+            split; try typeclasses eauto.
+            solve_proper.
+            intros x0.
 
+            unfold equiv.
+            unfold Equiv_instance_0.
+            split; intros H; symmetry; apply H.
         }
 
         destruct i; try congruence.
@@ -335,7 +344,7 @@ Section SigmaHCOLHelperLemmas.
           unfold_Rtheta_equiv.
           rewrite evalWriterUnion.
           unfold Is_ValX in HS.
-          rewrite <- HS.
+          rewrite HS.
           apply f_right_id.
         *
           apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
