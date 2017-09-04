@@ -1262,7 +1262,7 @@ Section SigmaHCOLRewritingRules.
               unfold VAllButOne.
               intros t tc H.
               rewrite Vbuild_nth.
-              unfold Is_ValZero.
+              unfold Is_ValZero, Is_ValX.
               rewrite SHPointwise'_nth by apply MonoidLaws_RthetaFlags.
 
               unfold VAllButOne in Uone.
@@ -1287,7 +1287,7 @@ Section SigmaHCOLRewritingRules.
 
             intros x0 H.
             apply not_not_on_decidable in H.
-            unfold Is_ValZero.
+            unfold Is_ValZero, Is_ValX.
             symmetry.
             apply H.
         +
