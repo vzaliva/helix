@@ -1341,7 +1341,6 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-
     Fact UnionFold_all_zeroes
          {n:nat}
          `{uf_zero: MonUnit CarrierA}
@@ -1382,7 +1381,7 @@ Section SigmaHCOLRewritingRules.
 
     (* Basically states that 'Diamon' applied to a family which guarantees
        single-non zero value per row dows not depend on the function implementation *)
-    Lemma Diamond_f_subst
+    Lemma Diamond'_f_subst
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
@@ -1473,22 +1472,20 @@ Section SigmaHCOLRewritingRules.
       intros x y E.
       simpl.
       rewrite <- E; clear E y.
-      apply Diamond_f_subst; auto.
+      apply Diamond'_f_subst; auto.
     Qed.
 
-
-    (*
-    Lemma IUnion_f_subst_under_P
+    Lemma Diamond'_f_subst_under_P
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
           (* Common unit for both monoids *)
           `{uf_zero: MonUnit CarrierA}
 
-          (* 1st Monoid. Used in reduction *)
           `{f: SgOp CarrierA}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
 
-          (* Subtyped Non-negative version of f *)
+          (* f' is estriction of f under P *)
           {P: CarrierA -> Prop}
           `{f': SgOp {x:CarrierA | P x} }
           {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
@@ -1498,24 +1495,20 @@ Section SigmaHCOLRewritingRules.
           {uf_zero': MonUnit {x:CarrierA | P x} }
           {UD: (` uf_zero') ≡ uf_zero}
 
+          (* Monoid on restrictoin of f *)
           `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
 
-          (* 2nd Monoid. Used in IUnion *)
+          (* 2nd Monoid *)
           `{u: SgOp CarrierA}
           `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
 
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
       :
-        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
-        ->
-        (@IUnion i o n f f_mor uf_zero op_family
-        =
-        @IUnion i o n u _ uf_zero op_family).
+        Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
+        Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
     Proof.
     Admitted.
-    *)
-
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
@@ -1534,7 +1527,7 @@ Section SigmaHCOLRewritingRules.
           {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
           {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
 
-          (* Subtyped zero *)
+          (* Subtyped zero. *)
           {uf_zero': MonUnit {x:CarrierA | P x} }
           {UD: (` uf_zero') ≡ uf_zero}
 
@@ -1560,7 +1553,16 @@ Section SigmaHCOLRewritingRules.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
       simpl.
-      (* Noramlized form. Diamonds all around *)
+      (* Noramlized form. Diamond' all around *)
+
+      (* To use Diamond'_f_subst_under_P we need to convert body_f back to operator family *)
+      replace (λ (j : nat) (jc : j < n),
+               op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
+
+      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P) (uf_zero'0:=uf_zero'); auto.
+      clear u u_mor u_mon.
+      (* No more 'u' *)
+
       apply ext_equiv_applied_equiv.
       -
         (* LHS Setoid_Morphism *)
@@ -1570,7 +1572,7 @@ Section SigmaHCOLRewritingRules.
         apply HReduction_HOperator.
         apply Diamond'_proper.
         +
-          apply u_mon.
+          apply f_mor.
         +
           reflexivity.
         + intros k kc.
@@ -1649,8 +1651,8 @@ Section SigmaHCOLRewritingRules.
         unfold Union.
 
         replace
-          (λ a b : svector Monoid_RthetaFlags o, Vmap2 (Monad.liftM2 u) a b)
-          with (@Vmap2 (Rtheta' Monoid_RthetaFlags) _ _  (Monad.liftM2 u) o)
+          (λ a b : svector Monoid_RthetaFlags o, Vmap2 (Monad.liftM2 f) a b)
+          with (@Vmap2 (Rtheta' Monoid_RthetaFlags) _ _  (Monad.liftM2 f) o)
           by auto.
 
         (* LHS:
