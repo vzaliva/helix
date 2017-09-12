@@ -1448,33 +1448,6 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
-    (* Specialized version of Diamond_f_subst expressed in terms of operators, not evaluation functions.
-     TODO: Maybe not required. *)
-    Lemma IUnion_f_subst
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
-
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f uf_zero}
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-      :
-        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
-        ->
-        (@IUnion i o n f _ uf_zero op_family = @IUnion i o n u _ uf_zero op_family).
-    Proof.
-      intros Uz.
-      intros x y E.
-      simpl.
-      rewrite <- E; clear E y.
-      apply Diamond'_f_subst; auto.
-    Qed.
-
     Lemma Diamond'_f_subst_under_P
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
