@@ -1516,44 +1516,6 @@ Section SigmaHCOLRewritingRules.
     Admitted.
     *)
 
-    (*
-    Lemma IUnion_to_IReduction
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
-
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
-
-          (* Subtyped Non-negative version of f *)
-          {P: CarrierA -> Prop}
-          `{f': SgOp {x:CarrierA | P x} }
-          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
-          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
-
-          (* Subtyped zero *)
-          {uf_zero': MonUnit {x:CarrierA | P x} }
-          {UD: (` uf_zero') ≡ uf_zero}
-
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
-
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-      :
-        @IUnion i o n u u_mor uf_zero op_family
-        =
-        SafeCast (IReduction f uf_zero (UnSafeFamilyCast op_family)).
-    Proof.
-    Qed.
-     *)
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
