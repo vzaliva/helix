@@ -1471,20 +1471,22 @@ Section SigmaHCOLRewritingRules.
           {UD: (` uf_zero') ≡ uf_zero}
 
           `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
 
           (* 2nd Monoid. Used in IUnion *)
           `{u: SgOp CarrierA}
           `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
 
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
-        @IUnion i o n f f_mor uf_zero op_family
+        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
+        ->
+        (@IUnion i o n f f_mor uf_zero op_family
         =
-        @IUnion i o n u u_mor uf_zero op_family.
+        @IUnion i o n u _ uf_zero op_family).
     Proof.
-    Qed.
-     *)
+    Admitted.
+    *)
 
     (*
     Lemma IUnion_to_IReduction
@@ -1552,13 +1554,13 @@ Section SigmaHCOLRewritingRules.
           (* 2nd Monoid. Used in IUnion *)
           `{u: SgOp CarrierA}
           `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u}
+          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u} (* TODO: Not needed! Part of u_mon *)
 
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero))
-          ⊚ (@IUnion i o n u u_mor uf_zero op_family)
+          ⊚ (@IUnion i o n u _ uf_zero op_family)
         =
         SafeCast (IReduction f uf_zero
                     (UnSafeFamilyCast
@@ -1576,8 +1578,10 @@ Section SigmaHCOLRewritingRules.
         apply liftM_HOperator'_proper.
         apply HReduction_HOperator.
         apply Diamond'_proper.
-        + apply u_mor.
-        + reflexivity.
+        +
+          apply u_mon.
+        +
+          reflexivity.
         + intros k kc.
           apply op_proper.
       -
@@ -1733,6 +1737,7 @@ Section SigmaHCOLRewritingRules.
       Qed.
 
       Global Instance NN_zero: Zero {x:CarrierA | NN x} := exist NNZ.
+      Global Instance MonUnit_NNZ: MonUnit {x:CarrierA | NN x} :=  exist NNZ.
 
       Global Instance TotalOrder_NNLe:
         TotalOrder NNLe.
@@ -1862,7 +1867,7 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
-      apply rewrite_Reduction_IReduction with (P:=NN) (f':=max) (uf_zero':=NN_zero).
+      eapply rewrite_Reduction_IReduction with (P:=NN) (f':=max) (uf_zero':=NN_zero).
       -
         intros a b Na Nb.
         unfold NN in *.
