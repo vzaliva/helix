@@ -1380,9 +1380,9 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    (* Basically states that 'IUnion' applied to a family which guarantees
-       single-non zero value per row dows not depend on function implementation *)
-    Lemma IUnion_f_subst
+    (* Basically states that 'Diamon' applied to a family which guarantees
+       single-non zero value per row dows not depend on the function implementation *)
+    Lemma Diamond_f_subst
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
@@ -1398,12 +1398,12 @@ Section SigmaHCOLRewritingRules.
       :
         Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
         ->
-        (@IUnion i o n f _ uf_zero op_family = @IUnion i o n u _ uf_zero op_family).
+        Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
+        Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
     Proof.
       intros Uz.
-      intros x y E.
-      simpl.
-      rewrite <- E; clear E y.
+      apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
+      intros x.
       unfold Diamond'.
 
       vec_index_equiv j jc.
@@ -1448,6 +1448,34 @@ Section SigmaHCOLRewritingRules.
         right; auto.
         left; auto.
     Qed.
+
+    (* Specialized version of Diamond_f_subst expressed in terms of operators, not evaluation functions.
+     TODO: Maybe not required. *)
+    Lemma IUnion_f_subst
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f uf_zero}
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+      :
+        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
+        ->
+        (@IUnion i o n f _ uf_zero op_family = @IUnion i o n u _ uf_zero op_family).
+    Proof.
+      intros Uz.
+      intros x y E.
+      simpl.
+      rewrite <- E; clear E y.
+      apply Diamond_f_subst; auto.
+    Qed.
+
 
     (*
     Lemma IUnion_f_subst_under_P
@@ -1570,6 +1598,7 @@ Section SigmaHCOLRewritingRules.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
       simpl.
+      (* Noramlized form. Diamonds all around *)
       apply ext_equiv_applied_equiv.
       -
         (* LHS Setoid_Morphism *)
@@ -1677,7 +1706,6 @@ Section SigmaHCOLRewritingRules.
             4. Vfold_left_rev with 'f'
          *)
         remember (@Vbuild CarrierA n _) as colsums eqn:CS.
-
 
 
     Admitted.
