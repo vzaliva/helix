@@ -1481,7 +1481,86 @@ Section SigmaHCOLRewritingRules.
         Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
         Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
     Proof.
-    Admitted.
+      apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
+      intros x.
+      unfold Diamond'.
+
+      vec_index_equiv j jc.
+      unfold Apply_Family'.
+      rewrite 2!AbsorbMUnion'Index_Vbuild.
+
+      (* -- Now we are dealing with UnionFolds only -- *)
+      unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
+      specialize (Uz x).
+      apply Vforall_nth with (ip:=jc) in Uz.
+      unfold Apply_Family, Apply_Family', transpose in Uz.
+      rewrite Vbuild_nth in Uz.
+      unfold row in Uz.
+      rewrite Vmap_Vbuild in Uz.
+      unfold Vnth_aux in Uz.
+
+      apply Vunique_cases in Uz.
+      destruct Uz as [Uzeros | Uone].
+      -
+        (* all zeros in in vbuild *)
+        revert Uzeros.
+        set (vl:=Vbuild _).
+        generalize dependent vl.
+        intros vl Uzeros.
+        rewrite UnionFold_all_zeroes; auto.
+
+        (* Variant of UnionFold_all_zeroes taking into account restrictoin *)
+        unfold UnionFold.
+        Set Printing All.
+        dependent induction n.
+        +
+          dep_destruct vl.1
+          reflexivity.
+        +
+          dep_destruct vl.
+
+          simpl in Uzeros. destruct Uzeros as [Hh Hx].
+          Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+          assert(op_family1: @SHOperatorFamily Monoid_RthetaFlags i o n).
+          {
+            apply shrink_op_family.
+            apply op_family.
+          }
+          specialize (IHvl op_family1).
+          specialize (IHvl Hx).
+          rewrite_clear IHvl.
+          *
+            unfold Union.
+            unfold_Rtheta_equiv.
+            rewrite evalWriter_Rtheta_liftM2.
+            destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
+            --
+              rewrite E.
+              apply f_left_id.
+            --
+              crush.
+
+
+      -
+        (* one non zero in vbuild. *)
+        revert Uone.
+        set (vl:=Vbuild _).
+        intros Uone.
+        inversion Uone as [k H]; clear Uone.
+        inversion H as [kc Uone]; clear H.
+
+        rewrite 2!UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
+        reflexivity.
+        apply Uone.
+        apply Uone.
+      -
+        intros a.
+        unfold not, compose.
+        destruct(CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter a)) as [E | NE].
+        right; auto.
+        left; auto.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
