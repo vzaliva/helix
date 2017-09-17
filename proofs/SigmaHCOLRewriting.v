@@ -1468,7 +1468,7 @@ Section SigmaHCOLRewritingRules.
           {uf_zero': MonUnit {x:CarrierA | P x} }
           {UD: (` uf_zero') ≡ uf_zero}
 
-          (* Monoid on restrictoin of f *)
+          (* Monoid on restriction on f *)
           `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
 
           (* 2nd Monoid *)
@@ -1509,7 +1509,7 @@ Section SigmaHCOLRewritingRules.
         intros vl Uzeros.
         rewrite UnionFold_all_zeroes; auto.
 
-        (* Variant of UnionFold_all_zeroes taking into account restrictoin *)
+        (* Variant of UnionFold_all_zeroes taking into account restriction *)
         unfold UnionFold.
         dependent induction n.
         +
@@ -1573,12 +1573,17 @@ Section SigmaHCOLRewritingRules.
         inversion Uone as [k H]; clear Uone.
         inversion H as [kc Uone]; clear H.
 
-        rewrite 2!UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
+        (* RHS rewrites OK, as we have a Monoid there for [u] *)
+        setoid_rewrite UnionFold_VallButOne_a_zero with (ic:=kc) at 2; try typeclasses eauto; try apply Uone.
+
+
+        (* TODO: [... A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
+
+        rewrite UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
+
+
+        (* TODO: ...] Finally reflexivity *)
         reflexivity.
-        apply Uone.
-        admit. (* TODO: Use f_mon proving the value is positive? *)
-        admit.  (* TODO: Use f_mon proving the value is positive? *)
-        apply Uone.
       -
         intros a.
         unfold not, compose.
