@@ -1586,26 +1586,39 @@ Section SigmaHCOLRewritingRules.
 
           assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
           {
-            rewrite UnionFold_all_zeroes_under_P.
+            rewrite UnionFold_all_zeroes_under_P; eauto.
             -
-              unfold Is_ValX.
-              rewrite evalWriter_mkStruct.
+              apply evalWriter_mkStruct.
             -
-            apply f_mor.
-            apply f_left_id.
-
-            (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
-            rewrite Vforall_eq.
-            rewrite Vforall_eq in H.
-            intros x0 H0.
-            apply (Is_ValX_not_not' x0); auto.
+              crush.
           }
 
           unfold_Rtheta_equiv.
           rewrite evalWriterUnion.
           unfold Is_ValX in UZ.
           setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
-          apply f_left_id.
+
+          remember (WriterMonadNoT.evalWriter h) as hc.
+          rewrite <- UD.
+          assert(PHC: P hc) by crush.
+          replace hc with (` (exist PHC)).
+          rewrite <- FD.
+          destruct f_mon, commonoid_mon.
+          apply ext_equiv_applied_equiv; eauto.
+          *
+            split; try typeclasses eauto.
+            intros a b Eab.
+            destruct a, b.
+            apply Eab.
+          *
+            split; try typeclasses eauto.
+            intros a b Eab.
+            destruct a, b.
+            apply Eab.
+          *
+            reflexivity.
+          *
+            reflexivity.
         +
           (* Case ("i!=0"). *)
           rewrite UnionFold_cons.
