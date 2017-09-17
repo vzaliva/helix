@@ -1379,6 +1379,88 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
+    Fact UnionFold_all_zeroes_under_P
+         {n:nat}
+         `{uf_zero: MonUnit CarrierA}
+         `{f: SgOp CarrierA}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+
+         (vl : vector (Rtheta' Monoid_RthetaFlags) n)
+         (* f' is estriction of f under P *)
+
+         {P: CarrierA -> Prop}
+         `{f': SgOp {x:CarrierA | P x} }
+         {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
+         {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+
+         (* Subtyped zero *)
+         {uf_zero': MonUnit {x:CarrierA | P x} }
+         {UD: (` uf_zero') ≡ uf_zero}
+
+         (* Monoid on restriction on f *)
+         `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+
+         `{Fpos: Vforall (liftRthetaP P) vl}
+
+         (Uzeros : Vforall
+                     (not
+                        ∘ (not ∘ equiv uf_zero
+                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))) vl)
+      :
+        UnionFold Monoid_RthetaFlags f uf_zero vl = mkStruct uf_zero.
+    Proof.
+      unfold UnionFold.
+      dependent induction n.
+      +
+        dep_destruct vl.
+        reflexivity.
+      +
+        dep_destruct vl.
+        rename h into v0, x into vs.
+
+        simpl in Uzeros. destruct Uzeros as [Hh Hx].
+        Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+        rewrite_clear IHn; try eauto.
+        *
+          unfold Union.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_liftM2.
+          destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
+          --
+            rewrite E.
+            remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
+
+            rewrite <- UD.
+            assert(PZ: P z).
+            {
+              subst z.
+              crush.
+            }
+            replace z with (` (exist PZ)).
+            rewrite <- FD.
+            destruct f_mon, commonoid_mon.
+            apply ext_equiv_applied_equiv; eauto.
+            ++
+              split; try typeclasses eauto.
+              intros a b Eab.
+              destruct a, b.
+              apply Eab.
+            ++
+              split; try typeclasses eauto.
+              intros a b Eab.
+              destruct a, b.
+              apply Eab.
+            ++
+              reflexivity.
+            ++
+              reflexivity.
+          --
+            crush.
+        *
+          crush.
+    Qed.
+
     (* Basically states that 'Diamon' applied to a family which guarantees
        single-non zero value per row dows not depend on the function implementation *)
     Lemma Diamond'_f_subst
@@ -1478,94 +1560,7 @@ Section SigmaHCOLRewritingRules.
         VAllButOne i ic
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
     Proof.
-    intros U.
-    dependent induction n.
-    - crush.
-    -
-      dep_destruct v.
-      destruct (eq_nat_dec i 0).
-      +
-        (* Case ("i=0"). *)
-        rewrite Vnth_cons_head by assumption.
-        rewrite UnionFold_cons.
-
-        assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
-        {
-          apply Vforall_nth_intro.
-          intros j jp.
-          assert(ipp:S j < S n) by lia.
-          unfold MonUnit in *.
-          unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
-          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
-          apply U.
-          omega.
-        }
-
-        assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
-        {
-          apply UnionFold_a_zero_structs.
-          apply f_mor.
-          apply f_left_id.
-
-          (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
-          rewrite Vforall_eq.
-          rewrite Vforall_eq in H.
-          intros x0 H0.
-          apply (Is_ValX_not_not' x0); auto.
-        }
-
-        unfold_Rtheta_equiv.
-        rewrite evalWriterUnion.
-        unfold Is_ValX in UZ.
-        setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
-        apply f_left_id.
-      +
-        (* Case ("i!=0"). *)
-        rewrite UnionFold_cons.
-        assert (HS: Is_ValX uf_zero h).
-        {
-          cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
-          rewrite Vnth_0.
-          auto.
-          unfold VAllButOne in U.
-          assert(jc: 0 < S n) by omega.
-          specialize (U 0 jc n0).
-          apply not_not_on_decidable.
-          unfold Is_ValX.
-
-          setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
-                  with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
-
-          * apply U.
-          *
-            unfold compose.
-            apply ext_equiv_applied_equiv.
-            split; try typeclasses eauto.
-            solve_proper.
-            split; try typeclasses eauto.
-            solve_proper.
-            intros x0.
-
-            unfold equiv.
-            unfold Equiv_instance_0.
-            split; intros H; symmetry; apply H.
-        }
-
-        destruct i; try congruence.
-        simpl.
-        generalize (lt_S_n ic).
-        intros l.
-        rewrite IHn with (ic:=l); try typeclasses eauto.
-        *
-          unfold_Rtheta_equiv.
-          rewrite evalWriterUnion.
-          unfold Is_ValX in HS.
-          rewrite HS.
-          apply f_right_id.
-        *
-          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-          apply U.
-    Qed.
+    Admitted.
 
     Lemma Diamond'_f_subst_under_P
           {i o n}
@@ -1624,68 +1619,21 @@ Section SigmaHCOLRewritingRules.
         (* all zeros in in vbuild *)
         revert Uzeros.
         set (vl:=Vbuild _).
+        assert(Fpos: Vforall (liftRthetaP P) vl).
+        {
+          subst vl.
+          apply Vforall_Vbuild.
+          intros t tc.
+          unfold Apply_Family_Vforall_P in Upoz.
+          specialize (Upoz x t tc).
+          apply Vforall_nth.
+          apply Upoz.
+        }
+
         generalize dependent vl.
-        intros vl Uzeros.
-        rewrite UnionFold_all_zeroes; auto.
-
-        (* TODO: [--- move to separate lemma: Variant of UnionFold_all_zeroes taking into account restriction *)
-        unfold UnionFold.
-        dependent induction n.
-        +
-          dep_destruct vl.
-          reflexivity.
-        +
-          dep_destruct vl.
-          rename h into v0, x0 into vs.
-
-          simpl in Uzeros. destruct Uzeros as [Hh Hx].
-          Opaque Monad.ret. simpl. Transparent Monad.ret.
-
-          specialize (IHn (shrink_op_family _ op_family)).
-          rewrite_clear IHn; try eauto.
-          *
-            unfold Union.
-            unfold_Rtheta_equiv.
-            rewrite evalWriter_Rtheta_liftM2.
-            destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
-            --
-              rewrite E.
-              remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
-
-              rewrite <- UD.
-              assert(PZ: P z).
-              {
-                subst z.
-                crush.
-              }
-              replace z with (` (exist PZ)).
-              rewrite <- FD.
-              destruct f_mon, commonoid_mon.
-              apply ext_equiv_applied_equiv; eauto.
-              ++
-                split; try typeclasses eauto.
-                intros a b Eab.
-                destruct a, b.
-                apply Eab.
-              ++
-                split; try typeclasses eauto.
-                intros a b Eab.
-                destruct a, b.
-                apply Eab.
-              ++
-                reflexivity.
-              ++
-                reflexivity.
-            --
-              crush.
-          *
-            unfold shrink_op_family.
-            break_match.
-            unfold Apply_Family_Vforall_P in *.
-            intros x0 j0 jc0.
-            apply Upoz.
-
-          (* TODO: ---] *)
+        intros vl Uzeros Uone.
+        rewrite UnionFold_all_zeroes_under_P; eauto.
+        rewrite UnionFold_all_zeroes; eauto.
       -
         (* one non zero in vbuild. *)
         revert Uone.
