@@ -472,6 +472,34 @@ Section Rtheta'Utils.
     reflexivity.
   Qed.
 
+  (* mkStruct on evalWriter equiv wrt values *)
+  Lemma mkStruct_evalWriter
+        (r: Rtheta' fm):
+    mkStruct (WriterMonadNoT.evalWriter r) = r.
+  Proof.
+    unfold WriterMonadNoT.evalWriter.
+    unfold_Rtheta'_equiv.
+    unfold mkStruct.
+    simpl.
+
+    destruct r.
+    destruct runWriterT.
+    simpl in *.
+    destruct unIdent.
+    simpl in *.
+    reflexivity.
+  Qed.
+
+  (* evalWriter on mkStruct equiv wrt values *)
+  Lemma evalWriter_mkStruct
+        (c: CarrierA):
+     WriterMonadNoT.evalWriter (mkStruct c) = c.
+  Proof.
+    unfold WriterMonadNoT.evalWriter, runWriter, runWriterT, compose, unIdent.
+    unfold mkStruct, ret.
+    reflexivity.
+  Qed.
+
   Lemma evalWriter_mkValue
         (x:CarrierA):
     WriterMonadNoT.evalWriter (mkValue x) ≡ x.

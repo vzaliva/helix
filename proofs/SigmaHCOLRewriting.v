@@ -1561,7 +1561,6 @@ Section SigmaHCOLRewritingRules.
         VAllButOne i ic
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
     Proof.
-      (*
       intros U.
       dependent induction n.
       - crush.
@@ -1588,7 +1587,10 @@ Section SigmaHCOLRewritingRules.
           assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
           {
             rewrite UnionFold_all_zeroes_under_P.
- apply UnionFold_a_zero_structs.
+            -
+              unfold Is_ValX.
+              rewrite evalWriter_mkStruct.
+            -
             apply f_mor.
             apply f_left_id.
 
@@ -1651,8 +1653,7 @@ Section SigmaHCOLRewritingRules.
             apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
             apply U.
     Qed.
-       *)
-      Admitted.
+
 
     Lemma Diamond'_f_subst_under_P
           {i o n}
