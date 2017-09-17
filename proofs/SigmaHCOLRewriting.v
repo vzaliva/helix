@@ -1531,9 +1531,32 @@ Section SigmaHCOLRewritingRules.
             destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
             --
               rewrite E.
-              (* TODO: Use f_mon, switching types first *)
-              (* apply f_left_id.*)
-              admit.
+              remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
+
+              rewrite <- UD.
+              assert(PZ: P z).
+              {
+                subst z.
+                crush.
+              }
+              replace z with (` (exist PZ)).
+              rewrite <- FD.
+              destruct f_mon, commonoid_mon.
+              apply ext_equiv_applied_equiv; eauto.
+              ++
+                split; try typeclasses eauto.
+                intros a b Eab.
+                destruct a, b.
+                apply Eab.
+              ++
+                split; try typeclasses eauto.
+                intros a b Eab.
+                destruct a, b.
+                apply Eab.
+              ++
+                reflexivity.
+              ++
+                reflexivity.
             --
               crush.
           *
