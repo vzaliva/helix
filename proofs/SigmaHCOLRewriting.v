@@ -1522,28 +1522,26 @@ Section SigmaHCOLRewritingRules.
           simpl in Uzeros. destruct Uzeros as [Hh Hx].
           Opaque Monad.ret. simpl. Transparent Monad.ret.
 
-          assert(op_family1: @SHOperatorFamily Monoid_RthetaFlags i o n).
-          {
-            apply shrink_op_family.
-            apply op_family.
-          }
-          assert(Upoz1: Apply_Family_Vforall_P Monoid_RthetaFlags (liftRthetaP P) op_family1).
-          {
-            admit.
-          }
-
+          specialize (IHn (shrink_op_family _ op_family)).
           rewrite_clear IHn; try eauto.
-          unfold Union.
-          unfold_Rtheta_equiv.
-          rewrite evalWriter_Rtheta_liftM2.
-          destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
           *
-            rewrite E.
-            (* TODO: Use f_mon, switching types first *)
-            (* apply f_left_id.*)
-            admit.
+            unfold Union.
+            unfold_Rtheta_equiv.
+            rewrite evalWriter_Rtheta_liftM2.
+            destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
+            --
+              rewrite E.
+              (* TODO: Use f_mon, switching types first *)
+              (* apply f_left_id.*)
+              admit.
+            --
+              crush.
           *
-            crush.
+            unfold shrink_op_family.
+            break_match.
+            unfold Apply_Family_Vforall_P in *.
+            intros x0 j0 jc0.
+            apply Upoz.
       -
         (* one non zero in vbuild. *)
         revert Uone.
@@ -1555,6 +1553,8 @@ Section SigmaHCOLRewritingRules.
         rewrite 2!UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
         reflexivity.
         apply Uone.
+        admit. (* TODO: Use f_mon proving the value is positive? *)
+        admit.  (* TODO: Use f_mon proving the value is positive? *)
         apply Uone.
       -
         intros a.
