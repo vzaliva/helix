@@ -1380,12 +1380,13 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     Fact UnionFold_all_zeroes_under_P
+         {fm}
          {n:nat}
          `{uf_zero: MonUnit CarrierA}
          `{f: SgOp CarrierA}
          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
 
-         (vl : vector (Rtheta' Monoid_RthetaFlags) n)
+         (vl : vector (Rtheta' fm) n)
          (* f' is estriction of f under P *)
 
          {P: CarrierA -> Prop}
@@ -1405,9 +1406,9 @@ Section SigmaHCOLRewritingRules.
          (Uzeros : Vforall
                      (not
                         ∘ (not ∘ equiv uf_zero
-                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))) vl)
+                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) vl)
       :
-        UnionFold Monoid_RthetaFlags f uf_zero vl = mkStruct uf_zero.
+        UnionFold fm f uf_zero vl = mkStruct uf_zero.
     Proof.
       unfold UnionFold.
       dependent induction n.
@@ -1560,7 +1561,98 @@ Section SigmaHCOLRewritingRules.
         VAllButOne i ic
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
     Proof.
-    Admitted.
+      (*
+      intros U.
+      dependent induction n.
+      - crush.
+      -
+        dep_destruct v.
+        destruct (eq_nat_dec i 0).
+        +
+          (* Case ("i=0"). *)
+          rewrite Vnth_cons_head by assumption.
+          rewrite UnionFold_cons.
+
+          assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+          {
+            apply Vforall_nth_intro.
+            intros j jp.
+            assert(ipp:S j < S n) by lia.
+            unfold MonUnit in *.
+            unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
+            replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+            apply U.
+            omega.
+          }
+
+          assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
+          {
+            rewrite UnionFold_all_zeroes_under_P.
+ apply UnionFold_a_zero_structs.
+            apply f_mor.
+            apply f_left_id.
+
+            (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
+            rewrite Vforall_eq.
+            rewrite Vforall_eq in H.
+            intros x0 H0.
+            apply (Is_ValX_not_not' x0); auto.
+          }
+
+          unfold_Rtheta_equiv.
+          rewrite evalWriterUnion.
+          unfold Is_ValX in UZ.
+          setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
+          apply f_left_id.
+        +
+          (* Case ("i!=0"). *)
+          rewrite UnionFold_cons.
+          assert (HS: Is_ValX uf_zero h).
+          {
+            cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
+            rewrite Vnth_0.
+            auto.
+            unfold VAllButOne in U.
+            assert(jc: 0 < S n) by omega.
+            specialize (U 0 jc n0).
+            apply not_not_on_decidable.
+            unfold Is_ValX.
+
+            setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
+              with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
+
+            * apply U.
+            *
+              unfold compose.
+              apply ext_equiv_applied_equiv.
+              split; try typeclasses eauto.
+              solve_proper.
+              split; try typeclasses eauto.
+              solve_proper.
+              intros x0.
+
+              unfold equiv.
+              unfold Equiv_instance_0.
+              split; intros H; symmetry; apply H.
+          }
+
+          destruct i; try congruence.
+          simpl.
+          generalize (lt_S_n ic).
+          intros l.
+          rewrite IHn with (ic:=l); try typeclasses eauto.
+          *
+            unfold_Rtheta_equiv.
+            rewrite evalWriterUnion.
+            unfold Is_ValX in HS.
+            rewrite HS.
+            apply f_right_id.
+          *
+            apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+            apply U.
+    Qed.
+       *)
+      Admitted.
 
     Lemma Diamond'_f_subst_under_P
           {i o n}
