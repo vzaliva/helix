@@ -1448,6 +1448,125 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
+    (* A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
+    Lemma UnionFold_VallButOne_a_zero_under_P
+          {fm}
+          {n : nat}
+          (v : svector fm n)
+          {i : nat}
+          (ic : i < n)
+
+          `{uf_zero: MonUnit CarrierA}
+          `{f: SgOp CarrierA}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+
+          (* f' is estriction of f under P *)
+          {P: CarrierA -> Prop}
+          `{f': SgOp {x:CarrierA | P x} }
+          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
+          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+
+          (* Subtyped zero *)
+          {uf_zero': MonUnit {x:CarrierA | P x} }
+          {UD: (` uf_zero') ≡ uf_zero}
+
+          (* Monoid on restriction on f *)
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+
+          `{Fpos: Vforall (liftRthetaP P) v}
+      :
+        VAllButOne i ic
+                   (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
+    Proof.
+    intros U.
+    dependent induction n.
+    - crush.
+    -
+      dep_destruct v.
+      destruct (eq_nat_dec i 0).
+      +
+        (* Case ("i=0"). *)
+        rewrite Vnth_cons_head by assumption.
+        rewrite UnionFold_cons.
+
+        assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+        {
+          apply Vforall_nth_intro.
+          intros j jp.
+          assert(ipp:S j < S n) by lia.
+          unfold MonUnit in *.
+          unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
+          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+          apply U.
+          omega.
+        }
+
+        assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
+        {
+          apply UnionFold_a_zero_structs.
+          apply f_mor.
+          apply f_left_id.
+
+          (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
+          rewrite Vforall_eq.
+          rewrite Vforall_eq in H.
+          intros x0 H0.
+          apply (Is_ValX_not_not' x0); auto.
+        }
+
+        unfold_Rtheta_equiv.
+        rewrite evalWriterUnion.
+        unfold Is_ValX in UZ.
+        setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
+        apply f_left_id.
+      +
+        (* Case ("i!=0"). *)
+        rewrite UnionFold_cons.
+        assert (HS: Is_ValX uf_zero h).
+        {
+          cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
+          rewrite Vnth_0.
+          auto.
+          unfold VAllButOne in U.
+          assert(jc: 0 < S n) by omega.
+          specialize (U 0 jc n0).
+          apply not_not_on_decidable.
+          unfold Is_ValX.
+
+          setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
+                  with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
+
+          * apply U.
+          *
+            unfold compose.
+            apply ext_equiv_applied_equiv.
+            split; try typeclasses eauto.
+            solve_proper.
+            split; try typeclasses eauto.
+            solve_proper.
+            intros x0.
+
+            unfold equiv.
+            unfold Equiv_instance_0.
+            split; intros H; symmetry; apply H.
+        }
+
+        destruct i; try congruence.
+        simpl.
+        generalize (lt_S_n ic).
+        intros l.
+        rewrite IHn with (ic:=l); try typeclasses eauto.
+        *
+          unfold_Rtheta_equiv.
+          rewrite evalWriterUnion.
+          unfold Is_ValX in HS.
+          rewrite HS.
+          apply f_right_id.
+        *
+          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+          apply U.
+    Qed.
+
     Lemma Diamond'_f_subst_under_P
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
@@ -1509,7 +1628,7 @@ Section SigmaHCOLRewritingRules.
         intros vl Uzeros.
         rewrite UnionFold_all_zeroes; auto.
 
-        (* Variant of UnionFold_all_zeroes taking into account restriction *)
+        (* TODO: [--- move to separate lemma: Variant of UnionFold_all_zeroes taking into account restriction *)
         unfold UnionFold.
         dependent induction n.
         +
@@ -1565,6 +1684,8 @@ Section SigmaHCOLRewritingRules.
             unfold Apply_Family_Vforall_P in *.
             intros x0 j0 jc0.
             apply Upoz.
+
+          (* TODO: ---] *)
       -
         (* one non zero in vbuild. *)
         revert Uone.
@@ -1576,14 +1697,18 @@ Section SigmaHCOLRewritingRules.
         (* RHS rewrites OK, as we have a Monoid there for [u] *)
         setoid_rewrite UnionFold_VallButOne_a_zero with (ic:=kc) at 2; try typeclasses eauto; try apply Uone.
 
-
-        (* TODO: [... A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
-
-        rewrite UnionFold_VallButOne_a_zero with (ic:=kc); try typeclasses eauto.
-
-
-        (* TODO: ...] Finally reflexivity *)
-        reflexivity.
+        assert(Fpos: Vforall (liftRthetaP P) vl).
+        {
+          clear Uone.
+          subst vl.
+          apply Vforall_Vbuild.
+          intros t tc.
+          unfold Apply_Family_Vforall_P in Upoz.
+          specialize (Upoz x t tc).
+          apply Vforall_nth.
+          apply Upoz.
+        }
+        rewrite UnionFold_VallButOne_a_zero_under_P with (ic:=kc);  eauto.
       -
         intros a.
         unfold not, compose.
