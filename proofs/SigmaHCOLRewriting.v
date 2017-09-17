@@ -1599,6 +1599,7 @@ Section SigmaHCOLRewritingRules.
           setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
 
           remember (WriterMonadNoT.evalWriter h) as hc.
+          (*TODO: the following proof along with sub-bullets is used several times and should be generalized *)
           rewrite <- UD.
           assert(PHC: P hc) by crush.
           replace hc with (` (exist PHC)).
@@ -1655,18 +1656,50 @@ Section SigmaHCOLRewritingRules.
           simpl.
           generalize (lt_S_n ic).
           intros l.
-          rewrite IHn with (ic:=l); try typeclasses eauto.
+          rewrite IHn with (ic:=l); eauto.
           *
             unfold_Rtheta_equiv.
             rewrite evalWriterUnion.
             unfold Is_ValX in HS.
             rewrite HS.
-            apply f_right_id.
+
+
+            remember (WriterMonadNoT.evalWriter (Vnth x l)) as hc.
+            (*TODO: the following proof along with sub-bullets is used several times and should be generalized *)
+            rewrite <- UD.
+            assert(PHC: P hc).
+            {
+              subst hc.
+              assert(l': S i < S n) by auto.
+              apply Vforall_nth with (ip:=l') in Fpos.
+              simpl in Fpos.
+              replace l with (lt_S_n l') by apply proof_irrelevance.
+              apply Fpos.
+            }
+            replace hc with (` (exist PHC)).
+            rewrite <- FD.
+            destruct f_mon, commonoid_mon.
+            apply ext_equiv_applied_equiv; eauto.
+            --
+              split; try typeclasses eauto.
+              intros a b Eab.
+              destruct a, b.
+              apply Eab.
+            --
+              split; try typeclasses eauto.
+              intros a b Eab.
+              destruct a, b.
+              apply Eab.
+            --
+              reflexivity.
+            --
+              reflexivity.
+          *
+            crush.
           *
             apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
             apply U.
     Qed.
-
 
     Lemma Diamond'_f_subst_under_P
           {i o n}
