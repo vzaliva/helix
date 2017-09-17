@@ -1511,13 +1511,13 @@ Section SigmaHCOLRewritingRules.
 
         (* Variant of UnionFold_all_zeroes taking into account restrictoin *)
         unfold UnionFold.
-        Set Printing All.
         dependent induction n.
         +
-          dep_destruct vl.1
+          dep_destruct vl.
           reflexivity.
         +
           dep_destruct vl.
+          rename h into v0, x0 into vs.
 
           simpl in Uzeros. destruct Uzeros as [Hh Hx].
           Opaque Monad.ret. simpl. Transparent Monad.ret.
@@ -1527,21 +1527,23 @@ Section SigmaHCOLRewritingRules.
             apply shrink_op_family.
             apply op_family.
           }
-          specialize (IHvl op_family1).
-          specialize (IHvl Hx).
-          rewrite_clear IHvl.
+          assert(Upoz1: Apply_Family_Vforall_P Monoid_RthetaFlags (liftRthetaP P) op_family1).
+          {
+            admit.
+          }
+
+          rewrite_clear IHn; try eauto.
+          unfold Union.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_liftM2.
+          destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
           *
-            unfold Union.
-            unfold_Rtheta_equiv.
-            rewrite evalWriter_Rtheta_liftM2.
-            destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
-            --
-              rewrite E.
-              apply f_left_id.
-            --
-              crush.
-
-
+            rewrite E.
+            (* TODO: Use f_mon, switching types first *)
+            (* apply f_left_id.*)
+            admit.
+          *
+            crush.
       -
         (* one non zero in vbuild. *)
         revert Uone.
