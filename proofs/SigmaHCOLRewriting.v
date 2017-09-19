@@ -1854,8 +1854,8 @@ Section SigmaHCOLRewritingRules.
                op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
 
       rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P) (uf_zero'0:=uf_zero'); auto.
-      clear u u_mor u_mon.
-      (* No more 'u' *)
+      clear u u_mor u_mon.  (* No more 'u' *)
+      clear Uz. (* Single non-unit per row constaint no longer needed *)
 
       apply ext_equiv_applied_equiv.
       -
@@ -1937,7 +1937,6 @@ Section SigmaHCOLRewritingRules.
         setoid_rewrite Vmap_id.
 
         (* unfold Vec2Union. *)
-        specialize (Uz x).
         specialize (Upoz x).
 
         setoid_rewrite <- Vfold_right_Vmap_equiv.
@@ -1964,6 +1963,9 @@ Section SigmaHCOLRewritingRules.
             4. Vfold_left_rev with 'f'
          *)
         remember (@Vbuild CarrierA n _) as colsums eqn:CS.
+
+        (* Get rid of [get_family_op] *)
+        unfold get_family_op in *.
 
 
     Admitted.
