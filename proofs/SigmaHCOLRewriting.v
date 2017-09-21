@@ -11,6 +11,7 @@ Require Import THCOL.
 Require Import SigmaHCOL.
 Require Import TSigmaHCOL.
 Require Import IndexFunctions.
+Require Import MonoidalRestriction.
 
 Require Import Coq.Arith.Arith.
 Require Import Compare_dec.
@@ -1384,22 +1385,13 @@ Section SigmaHCOLRewritingRules.
          {n:nat}
          `{uf_zero: MonUnit CarrierA}
          `{f: SgOp CarrierA}
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
 
          (vl : vector (Rtheta' fm) n)
-         (* f' is estriction of f under P *)
-
-         {P: CarrierA -> Prop}
-         `{f': SgOp {x:CarrierA | P x} }
-         {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
-         {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
-
-         (* Subtyped zero *)
-         {uf_zero': MonUnit {x:CarrierA | P x} }
-         {UD: (` uf_zero') ≡ uf_zero}
 
          (* Monoid on restriction on f *)
-         `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+         {P: CarrierA -> Prop}
+         `{f_mon: @RMonoid _ _ f uf_zero P}
 
          `{Fpos: Vforall (liftRthetaP P) vl}
 
@@ -1431,31 +1423,10 @@ Section SigmaHCOLRewritingRules.
           --
             rewrite E.
             remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
-
-            rewrite <- UD.
-            assert(PZ: P z).
-            {
-              subst z.
-              crush.
-            }
-            replace z with (` (exist PZ)).
-            rewrite <- FD.
-            destruct f_mon, commonoid_mon.
-            apply ext_equiv_applied_equiv; eauto.
-            ++
-              split; try typeclasses eauto.
-              intros a b Eab.
-              destruct a, b.
-              apply Eab.
-            ++
-              split; try typeclasses eauto.
-              intros a b Eab.
-              destruct a, b.
-              apply Eab.
-            ++
-              reflexivity.
-            ++
-              reflexivity.
+            destruct f_mon.
+            apply rmonoid_right_id.
+            subst z.
+            apply rmonoid_unit_P.
           --
             crush.
         *
@@ -1541,20 +1512,11 @@ Section SigmaHCOLRewritingRules.
 
           `{uf_zero: MonUnit CarrierA}
           `{f: SgOp CarrierA}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-
-          (* f' is estriction of f under P *)
-          {P: CarrierA -> Prop}
-          `{f': SgOp {x:CarrierA | P x} }
-          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
-          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
-
-          (* Subtyped zero *)
-          {uf_zero': MonUnit {x:CarrierA | P x} }
-          {UD: (` uf_zero') ≡ uf_zero}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
 
           (* Monoid on restriction on f *)
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+          {P: CarrierA -> Prop}
+          `{f_mon: @RMonoid _ _ f uf_zero P}
 
           `{Fpos: Vforall (liftRthetaP P) v}
       :
@@ -1599,27 +1561,9 @@ Section SigmaHCOLRewritingRules.
           setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
 
           remember (WriterMonadNoT.evalWriter h) as hc.
-          (*TODO: the following proof along with sub-bullets is used several times and should be generalized *)
-          rewrite <- UD.
-          assert(PHC: P hc) by crush.
-          replace hc with (` (exist PHC)).
-          rewrite <- FD.
-          destruct f_mon, commonoid_mon.
-          apply ext_equiv_applied_equiv; eauto.
-          *
-            split; try typeclasses eauto.
-            intros a b Eab.
-            destruct a, b.
-            apply Eab.
-          *
-            split; try typeclasses eauto.
-            intros a b Eab.
-            destruct a, b.
-            apply Eab.
-          *
-            reflexivity.
-          *
-            reflexivity.
+          destruct f_mon.
+          apply rmonoid_left_id.
+          crush.
         +
           (* Case ("i!=0"). *)
           rewrite UnionFold_cons.
@@ -1663,37 +1607,14 @@ Section SigmaHCOLRewritingRules.
             unfold Is_ValX in HS.
             rewrite HS.
 
-
-            remember (WriterMonadNoT.evalWriter (Vnth x l)) as hc.
-            (*TODO: the following proof along with sub-bullets is used several times and should be generalized *)
-            rewrite <- UD.
-            assert(PHC: P hc).
-            {
-              subst hc.
+            destruct f_mon.
+            apply rmonoid_right_id.
+            --
               assert(l': S i < S n) by auto.
               apply Vforall_nth with (ip:=l') in Fpos.
               simpl in Fpos.
               replace l with (lt_S_n l') by apply proof_irrelevance.
               apply Fpos.
-            }
-            replace hc with (` (exist PHC)).
-            rewrite <- FD.
-            destruct f_mon, commonoid_mon.
-            apply ext_equiv_applied_equiv; eauto.
-            --
-              split; try typeclasses eauto.
-              intros a b Eab.
-              destruct a, b.
-              apply Eab.
-            --
-              split; try typeclasses eauto.
-              intros a b Eab.
-              destruct a, b.
-              apply Eab.
-            --
-              reflexivity.
-            --
-              reflexivity.
           *
             crush.
           *
@@ -1709,20 +1630,11 @@ Section SigmaHCOLRewritingRules.
           `{uf_zero: MonUnit CarrierA}
 
           `{f: SgOp CarrierA}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-
-          (* f' is estriction of f under P *)
-          {P: CarrierA -> Prop}
-          `{f': SgOp {x:CarrierA | P x} }
-          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
-          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
-
-          (* Subtyped zero *)
-          {uf_zero': MonUnit {x:CarrierA | P x} }
-          {UD: (` uf_zero') ≡ uf_zero}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
 
           (* Monoid on restriction on f *)
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
+          {P: CarrierA -> Prop}
+          `{f_mon: @RMonoid _ _ f uf_zero P}
 
           (* 2nd Monoid *)
           `{u: SgOp CarrierA}
@@ -1815,18 +1727,11 @@ Section SigmaHCOLRewritingRules.
           (* 1st Monoid. Used in reduction *)
           `{f: SgOp CarrierA}
 
-          (* Subtyped Non-negative version of f *)
+          (* Monoid on restriction on f *)
           {P: CarrierA -> Prop}
-          `{f': SgOp {x:CarrierA | P x} }
-          {FC: forall a b, P a -> P b -> P (f a b)} (* closed *)
-          {FD: forall a b, (` (f' a b)) ≡ f (` a) (` b)} (* subtype *)
+          `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
 
-          (* Subtyped zero. *)
-          {uf_zero': MonUnit {x:CarrierA | P x} }
-          {UD: (` uf_zero') ≡ uf_zero}
-
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f' uf_zero'}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant as it is a part of f_mon *)
 
           (* 2nd Monoid. Used in IUnion *)
           `{u: SgOp CarrierA}
@@ -1853,7 +1758,7 @@ Section SigmaHCOLRewritingRules.
       replace (λ (j : nat) (jc : j < n),
                op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
 
-      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P) (uf_zero'0:=uf_zero'); auto.
+      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
       clear u u_mor u_mon.  (* No more 'u' *)
       clear Uz. (* Single non-unit per row constaint no longer needed *)
 
@@ -1950,7 +1855,6 @@ Section SigmaHCOLRewritingRules.
 
         setoid_rewrite Vfold_right_Vmap.
 
-
     Admitted.
 
 
@@ -1991,136 +1895,56 @@ Section SigmaHCOLRewritingRules.
 
       Definition NN := CarrierAle CarrierAz.
 
-      Global Instance NNLe: Le {x : CarrierA | NN x} := fun x y => (` x) ≤ (` y).
-
-      Lemma max_proj:
-        ∀ a b : {x : CarrierA | NN x}, ` (max a b) ≡ max (` a) (` b).
+      Global Instance RMonoid_max_NN:
+        @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.
-        intros a b.
-        unfold proj1_sig, max, sort.
-        repeat break_if; crush.
-      Qed.
-
-      Lemma NNZ: NN zero.
-      Proof.
-        unfold NN, zero.
-        reflexivity.
-      Qed.
-
-      Global Instance NN_zero: Zero {x:CarrierA | NN x} := exist NNZ.
-      Global Instance MonUnit_NNZ: MonUnit {x:CarrierA | NN x} :=  exist NNZ.
-
-      Global Instance TotalOrder_NNLe:
-        TotalOrder NNLe.
-      Proof.
-        repeat split; crush.
+        repeat split; try typeclasses eauto.
         -
-          destruct x,y,x0,y0.
-          unfold equiv, sig_equiv in *.
-          unfold le, NNLe in *.
-          simpl in *.
-          rewrite <- H, <- H0.
-          apply H1.
-        -
-          destruct x,y,x0,y0.
-          unfold equiv, sig_equiv in *.
-          unfold le, NNLe in *.
-          simpl in *.
-          rewrite H, H0.
-          apply H1.
-        -
-          unfold Reflexive.
-          intros x.
-          destruct x.
-          unfold equiv, sig_equiv in *.
-          unfold le, NNLe in *.
-          simpl.
-          auto.
-        -
-          unfold Transitive.
-          intros x y z H H0.
-          destruct x,y,z.
-          unfold le, NNLe in *.
-          simpl in *.
-          auto.
-        -
-          unfold AntiSymmetric.
-          intros x y H H0.
-          destruct x,y.
-          unfold le, NNLe in *.
-          unfold equiv, sig_equiv in *.
-          simpl in *.
-          apply eq_iff_le.
-          auto.
-        -
-          unfold TotalRelation.
-          intros x y.
-          destruct x,y.
-          unfold le, NNLe in *.
-          unfold NN in *.
-          simpl in *.
-          apply CarrierAto.
-      Qed.
-
-      Global Instance Setoid_NN:
-        Setoid {x : CarrierA | NN x}.
-      Proof.
-        split; auto.
-      Qed.
-
-      Global Instance Monoid_max_NN:
-        @abstract_algebra.Monoid {x : CarrierA | NN x} _  max NN_zero.
-      Proof.
-        repeat split; crush.
-        -
-          unfold sg_op.
-          unfold Associative, HeteroAssociative.
-          intros x y z.
-
-          unfold equiv, sig_equiv; simpl.
-          repeat rewrite max_proj.
-          destruct x,y,z.
-          unfold max, sort.
+          (* assoc *)
+          intros x y z H H0 H1.
+          unfold sg_op, max, sort.
           repeat break_if; unfold snd in *; crush.
-
-
           clear Heqd Heqd0 Heqd1 Heqd2.
           clear_dups.
-          apply le_flip in n3.
-          apply le_flip in n2.
+          apply le_flip in n0.
+          apply le_flip in n.
           apply eq_iff_le.
           auto.
         -
-          unfold sg_op.
-          apply max_proper; typeclasses eauto.
-        -
-          unfold sg_op, mon_unit, NN_zero.
-          unfold LeftIdentity.
-          intros y.
-          destruct y.
-          unfold NN in *.
-          unfold max, equiv, sig_equiv, sort.
+          (* left_unit *)
+          intros y H.
+          unfold sg_op, max, equiv, mon_unit, sort.
           break_if; crush.
         -
-          unfold sg_op, mon_unit, NN_zero.
-          unfold RightIdentity.
-          intros y.
-          destruct y.
-          unfold NN in *.
-          unfold max, equiv, sig_equiv, sort.
+          (* right_unit *)
+          intros x H.
+          unfold sg_op, max, equiv, mon_unit, sort.
           break_if; crush.
-
-          unfold le, NNLe in l. simpl in l.
+          unfold le in l.
           apply eq_iff_le.
           auto.
+        -
+          (* zero in P *)
+          unfold rmonoid_P, mon_unit, NN.
+          reflexivity.
+        -
+          (* closed *)
+          intros a b M0 M1.
+          unfold sg_op, max, equiv, mon_unit, sort.
+          break_if; crush.
       Qed.
 
-      Global Instance CommutativeMonoid_max_NN:
-        @abstract_algebra.CommutativeMonoid {x : CarrierA | NN x} _ max NN_zero.
+      Global Instance CommutativeRMonoid_max_NN:
+        @CommutativeRMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.
-        split; typeclasses eauto.
+        split.
+        -
+          apply RMonoid_max_NN.
+        -
+          (* commutativity *)
+          intros x y H H0.
+          apply max_Comm.
       Qed.
-
 
     End NN.
 
@@ -2138,27 +1962,7 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
-      eapply rewrite_Reduction_IReduction with (P:=NN) (f':=max) (uf_zero':=NN_zero).
-      -
-        intros a b Na Nb.
-        unfold NN in *.
-        unfold max.
-        unfold sort.
-        break_if; crush.
-      -
-        intros a b.
-        unfold join_is_sg_op.
-        apply max_proj.
-      -
-        auto.
-      -
-        split; typeclasses eauto.
-      -
-        typeclasses eauto.
-      -
-        apply Uz.
-      -
-        apply Upoz.
+      eapply rewrite_Reduction_IReduction with (P:=NN); auto ; typeclasses eauto.
     Qed.
 
   End Value_Correctness.
