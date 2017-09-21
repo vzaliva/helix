@@ -1426,7 +1426,7 @@ Section SigmaHCOLRewritingRules.
             destruct f_mon.
             apply rmonoid_right_id.
             subst z.
-            apply rmonoid_unit_P.
+            apply mon_restriction.
           --
             crush.
         *
@@ -1900,6 +1900,15 @@ Section SigmaHCOLRewritingRules.
       Proof.
         repeat split; try typeclasses eauto.
         -
+          (* zero in P *)
+          unfold sg_P, mon_unit, NN.
+          reflexivity.
+        -
+          (* closed *)
+          intros a b M0 M1.
+          unfold sg_op, max, equiv, mon_unit, sort.
+          break_if; crush.
+        -
           (* assoc *)
           intros x y z H H0 H1.
           unfold sg_op, max, sort.
@@ -1923,15 +1932,6 @@ Section SigmaHCOLRewritingRules.
           unfold le in l.
           apply eq_iff_le.
           auto.
-        -
-          (* zero in P *)
-          unfold rmonoid_P, mon_unit, NN.
-          reflexivity.
-        -
-          (* closed *)
-          intros a b M0 M1.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
       Qed.
 
       Global Instance CommutativeRMonoid_max_NN:
