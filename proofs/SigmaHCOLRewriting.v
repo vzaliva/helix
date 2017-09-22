@@ -1981,19 +1981,19 @@ Section SigmaHCOLRewritingRules.
           ⊚ (ISumUnion op_family)
         =
         SafeCast (IReduction max zero
-                    (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
+                             (UnSafeFamilyCast
+                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
       unfold ISumUnion.
-      (*
-      Set Printing All.
-      apply rewrite_Reduction_IReduction with
-          (u:=CarrierAplus) (u_mon:=CommutativeMonoid_plus_zero)
-          (P:=NN) (f:=max) (f_mon:=CommutativeRMonoid_max_NN).
-      ; auto ; typeclasses eauto.
+      replace (@sg_op_proper _ _ _ _) with (@rsg_op_proper CarrierA CarrierAe max zero NN
+                                                           (@comrmonoid_rmon CarrierA CarrierAe max zero NN CommutativeRMonoid_max_NN)) by apply proof_irrelevance.
+
+      replace CarrierAPlus_proper with (@sg_op_proper CarrierA CarrierAe CarrierAplus
+                                                      (@monoid_semigroup CarrierA CarrierAe CarrierAplus zero
+                                                                         (@commonoid_mon CarrierA CarrierAe CarrierAplus zero CommutativeMonoid_plus_zero))) by apply proof_irrelevance.
+
+      eapply rewrite_Reduction_IReduction; auto.
     Qed.
-       *)
-      Admitted.
 
   End Value_Correctness.
 End SigmaHCOLRewritingRules.
