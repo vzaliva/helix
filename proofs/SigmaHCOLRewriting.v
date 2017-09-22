@@ -1385,12 +1385,10 @@ Section SigmaHCOLRewritingRules.
          {n:nat}
          `{uf_zero: MonUnit CarrierA}
          `{f: SgOp CarrierA}
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
-
          (vl : vector (Rtheta' fm) n)
 
          (* Monoid on restriction on f *)
-         {P: CarrierA -> Prop}
+         {P: SgPred CarrierA}
          `{f_mon: @RMonoid _ _ f uf_zero P}
 
          `{Fpos: Vforall (liftRthetaP P) vl}
@@ -1413,6 +1411,12 @@ Section SigmaHCOLRewritingRules.
 
         simpl in Uzeros. destruct Uzeros as [Hh Hx].
         Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+        assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
+        {
+          destruct f_mon.
+          apply rsg_op_proper.
+        }
 
         rewrite_clear IHn; try eauto.
         *
@@ -1512,10 +1516,9 @@ Section SigmaHCOLRewritingRules.
 
           `{uf_zero: MonUnit CarrierA}
           `{f: SgOp CarrierA}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
 
           (* Monoid on restriction on f *)
-          {P: CarrierA -> Prop}
+          {P: SgPred CarrierA}
           `{f_mon: @RMonoid _ _ f uf_zero P}
 
           `{Fpos: Vforall (liftRthetaP P) v}
@@ -1524,6 +1527,13 @@ Section SigmaHCOLRewritingRules.
                    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
     Proof.
       intros U.
+
+      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
+      {
+        destruct f_mon.
+        apply rsg_op_proper.
+      }
+
       dependent induction n.
       - crush.
       -
@@ -1630,10 +1640,9 @@ Section SigmaHCOLRewritingRules.
           `{uf_zero: MonUnit CarrierA}
 
           `{f: SgOp CarrierA}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant, as included in f_mon *)
 
           (* Monoid on restriction on f *)
-          {P: CarrierA -> Prop}
+          {P: SgPred CarrierA}
           `{f_mon: @RMonoid _ _ f uf_zero P}
 
           (* 2nd Monoid *)
@@ -1646,6 +1655,13 @@ Section SigmaHCOLRewritingRules.
         Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
         Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
     Proof.
+
+      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
+      {
+        destruct f_mon.
+        apply rsg_op_proper.
+      }
+
       apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
       intros x.
       unfold Diamond'.
@@ -1716,6 +1732,7 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -1728,26 +1745,28 @@ Section SigmaHCOLRewritingRules.
           `{f: SgOp CarrierA}
 
           (* Monoid on restriction on f *)
-          {P: CarrierA -> Prop}
+          `{P: SgPred CarrierA}
           `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
-
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f} (* TODO: redundant as it is a part of f_mon *)
 
           (* 2nd Monoid. Used in IUnion *)
           `{u: SgOp CarrierA}
           `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-          `{u_mor: !Proper ((=) ==> (=) ==> (=)) u} (* TODO: Not needed! Part of u_mon *)
-
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero))
+
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f (rsg_op_proper CarrierA) uf_zero))
           ⊚ (@IUnion i o n u _ uf_zero op_family)
         =
         SafeCast (IReduction f uf_zero
                     (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f f_mor uf_zero)) op_family))).
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f (rsg_op_proper CarrierA) uf_zero)) op_family))).
     Proof.
+      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f)
+        by apply (rsg_op_proper CarrierA).
+      assert(u_mor : Proper (equiv ==> equiv ==> equiv) u)
+        by apply (sg_op_proper).
+
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
@@ -1893,7 +1912,8 @@ Section SigmaHCOLRewritingRules.
     Section NN.
       (* Non-negative CarrierA subtype *)
 
-      Definition NN := CarrierAle CarrierAz.
+      Global Instance NN:
+        SgPred CarrierA := CarrierAle CarrierAz.
 
       Global Instance RMonoid_max_NN:
         @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
@@ -1962,7 +1982,17 @@ Section SigmaHCOLRewritingRules.
                     (UnSafeFamilyCast
                        (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
-      eapply rewrite_Reduction_IReduction with (P:=NN); auto ; typeclasses eauto.
+
+      unfold ISumUnion.
+
+      Set Printing All.
+      Set Typeclasses Depth 1.
+      Set Typeclasses Debug.
+      Set Debug Eauto.
+      eapply rewrite_Reduction_IReduction with
+          (u:=CarrierAplus) (u_mon:=CommutativeMonoid_plus_zero)
+          (P:=NN) (f:=max) (f_mon:=CommutativeRMonoid_max_NN).
+      ; auto ; typeclasses eauto.
     Qed.
 
   End Value_Correctness.

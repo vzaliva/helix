@@ -16,7 +16,7 @@ Section MonoidalRestriction.
   Class RMonoid {Aop : SgOp A} {Aunit : MonUnit A} {Apred: SgPred A} :=
     {  sg_setoid :> Setoid A
        ; mon_restriction :> MonRestriction
-       ; sg_op_proper :> Proper ((=) ==> (=) ==> (=)) (&)
+       ; rsg_op_proper :> Proper ((=) ==> (=) ==> (=)) (&)
 
        ; rmonoid_ass: forall x y z,
            sg_P x -> sg_P y -> sg_P z -> x & (y & z) = (x & y) & z
