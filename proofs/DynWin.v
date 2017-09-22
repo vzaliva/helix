@@ -467,7 +467,6 @@ SUMUnion(
     rewrite SHCompose_mid_assoc with (f:=ISumUnion _).
 
     (* ### RULE: Reduction_ISumReduction *)
-
     rewrite rewrite_Reduction_IReduction_max_plus.
     all:revgoals.
     {
@@ -481,7 +480,7 @@ SUMUnion(
       apply Vforall_nth_intro.
       intros t tc.
       rewrite SHPointwise_nth_eq.
-      unfold Is_NonNegative.
+      unfold Is_NonNegative, liftRthetaP.
       rewrite evalWriter_Rtheta_liftM.
       unfold IgnoreIndex, const.
       apply abs_always_nonneg.
