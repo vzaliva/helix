@@ -31,3 +31,5 @@ Section MonoidalRestriction.
     }.
 
 End MonoidalRestriction.
+
+Arguments rsg_op_proper {A Ae Aop Aunit Apred RMonoid}.

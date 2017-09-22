@@ -1755,17 +1755,17 @@ Section SigmaHCOLRewritingRules.
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
 
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f (rsg_op_proper CarrierA) uf_zero))
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f rsg_op_proper uf_zero))
           ⊚ (@IUnion i o n u _ uf_zero op_family)
         =
         SafeCast (IReduction f uf_zero
                     (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f (rsg_op_proper CarrierA) uf_zero)) op_family))).
+                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f rsg_op_proper uf_zero)) op_family))).
     Proof.
       assert(f_mor : Proper (equiv ==> equiv ==> equiv) f)
-        by apply (rsg_op_proper CarrierA).
+        by apply rsg_op_proper.
       assert(u_mor : Proper (equiv ==> equiv ==> equiv) u)
-        by apply (sg_op_proper).
+        by apply sg_op_proper.
 
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
