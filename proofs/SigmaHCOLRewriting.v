@@ -1732,6 +1732,21 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
+    Fact eval_2D_Fold
+         {o n : nat}
+         (uf_zero : CarrierA) (f : CarrierA -> CarrierA -> CarrierA)
+         (lst : vector (rvector o) n):
+
+      Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+           (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
+                           (Vconst (mkStruct uf_zero) o)
+                           lst)
+      =
+      Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
+                     (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
+    Proof.
+    Admitted.
+
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
@@ -1874,15 +1889,18 @@ Section SigmaHCOLRewritingRules.
 
         eta_reduce_all.
 
-        setoid_rewrite Vfold_right_Vmap.
+        (* 1. In LHS push [evalWriter] all the way down to [get_family_op] *)
+        rewrite Vfold_right_to_Vfold_right_reord, eval_2D_Fold, <- Vfold_right_to_Vfold_right_reord.
+        rewrite Vmap_Vbuild.
+        
 
-        remember (Vfold_right _ _ _) as lhs.
         remember (Vfold_left_rev f _ _) as rhs.
+        remember (Vfold_right _ _ _) as lhs.
 
-        (*
-           1. Prove [Vfold_right] = [Vfold_left_rev] for Monoid.
-           2. In LHS push [evalWriter] all the way down to [get_family_op]
-         *)
+        (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
+
+
+
 
 
     Admitted.
