@@ -641,9 +641,6 @@ definition does not enforce this requirement, and the function produced might no
       apply R1.
   Qed.
 
-
-
-
 End Inversions.
 
 

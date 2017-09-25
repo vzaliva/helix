@@ -1870,11 +1870,20 @@ Section SigmaHCOLRewritingRules.
         unfold Union.
 
         (* Get rid of [get_family_op] *)
-        (* unfold get_family_op in *. *)
+        unfold get_family_op in *.
 
         eta_reduce_all.
 
         setoid_rewrite Vfold_right_Vmap.
+
+        remember (Vfold_right _ _ _) as lhs.
+        remember (Vfold_left_rev f _ _) as rhs.
+
+        (*
+           1. Prove [Vfold_right] = [Vfold_left_rev] for Monoid.
+           2. In LHS push [evalWriter] all the way down to [get_family_op]
+         *)
+
 
     Admitted.
 
