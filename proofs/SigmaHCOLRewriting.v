@@ -1734,7 +1734,9 @@ Section SigmaHCOLRewritingRules.
 
     Fact eval_2D_Fold
          {o n : nat}
-         (uf_zero : CarrierA) (f : CarrierA -> CarrierA -> CarrierA)
+         (uf_zero : CarrierA)
+         (f : CarrierA -> CarrierA -> CarrierA)
+         (f_mor : Proper (equiv ==> equiv ==> equiv) f)
          (lst : vector (rvector o) n)
       :
         Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
@@ -1759,35 +1761,24 @@ Section SigmaHCOLRewritingRules.
         simpl.
         specialize (IHn x).
 
-        (* Simulated [rewrite <- IHn] *)
-        replace
-          (Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
-                          (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) x))
-          with
-            (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                  (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o)) (Vconst (mkStruct uf_zero) o) x)).
-        clear IHn.
+        rewrite <- IHn; clear IHn.
 
         (* Vconst as Vmap *)
         replace (Vconst (mkStruct (fm:=Monoid_RthetaFlags) uf_zero) o) with
             (Vmap (mkStruct (fm:=Monoid_RthetaFlags)) (Vconst uf_zero o)) at 1
-        by apply Vmap_Vconst.
+          by apply Vmap_Vconst.
 
         rewrite Vmap2_Vmap.
 
         replace (fun a b => _)
           with (fun a b => WriterMonadNoT.evalWriter
                           (Monad.liftM2 f a b)) by auto.
-
-
-
-
-      repeat rewrite Vfold_left_rev_to_Vfold_left_rev_reord.
-      repeat rewrite Vmap_to_Vmap_reord.
-      repeat rewrite Vconst_to_Vconst_reord.
-
-
-    Admitted.
+        rewrite Vmap_Vconst.
+        vec_index_equiv j jc.
+        repeat rewrite Vnth_map.
+        repeat rewrite Vnth_map2.
+        reflexivity.
+    Qed.
 
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
