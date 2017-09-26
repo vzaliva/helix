@@ -1923,16 +1923,17 @@ Section SigmaHCOLRewritingRules.
         eta_reduce_all.
 
         (* 1. In LHS push [evalWriter] all the way down to [get_family_op] *)
-        rewrite Vfold_right_to_Vfold_right_reord, eval_2D_Fold, <- Vfold_right_to_Vfold_right_reord.
+
+        rewrite Vfold_right_to_Vfold_right_reord.
+        rewrite eval_2D_Fold by apply f_mon.
+        rewrite <- Vfold_right_to_Vfold_right_reord.
+
         rewrite Vmap_Vbuild.
-        
 
         remember (Vfold_left_rev f _ _) as rhs.
         remember (Vfold_right _ _ _) as lhs.
 
         (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
-
-
 
 
 
