@@ -61,6 +61,32 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma Vmap2_Vmap
+      {A1 A2 B1 B2 C: Type}
+      {n: nat}
+      {x1: vector A1 n}
+      {x2: vector A2 n}
+      {g1: A1->B1}
+      {g2: A2->B2}
+      {f: B1 -> B2 -> C}
+  :
+    Vmap2 f
+          (Vmap g1 x1)
+          (Vmap g2 x2)
+    =
+    Vmap2 (fun a b => f (g1 a) (g2 b)) x1 x2.
+Proof.
+  induction n.
+  -
+    reflexivity.
+  -
+    simpl.
+    rewrite <- IHn.
+    dep_destruct  x1.
+    dep_destruct  x2.
+    reflexivity.
+Qed.
+
 Section VFold.
   (* Right fold with vector argument last, so it is easier to use in point-free notation, for example in Vmap *)
   Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
