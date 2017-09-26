@@ -1735,16 +1735,58 @@ Section SigmaHCOLRewritingRules.
     Fact eval_2D_Fold
          {o n : nat}
          (uf_zero : CarrierA) (f : CarrierA -> CarrierA -> CarrierA)
-         (lst : vector (rvector o) n):
-
-      Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-           (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
-                           (Vconst (mkStruct uf_zero) o)
-                           lst)
-      =
-      Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
-                     (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
+         (lst : vector (rvector o) n)
+      :
+        Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+             (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
+                             (Vconst (mkStruct uf_zero) o)
+                             lst)
+        =
+        Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
+                       (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
     Proof.
+
+      induction n.
+      -
+        dep_destruct lst.
+        simpl.
+        vec_index_equiv j jc.
+        rewrite Vnth_map.
+        repeat rewrite Vnth_const.
+        apply evalWriter_mkStruct.
+      -
+        dep_destruct lst. clear lst.
+        simpl.
+        specialize (IHn x).
+
+        (* Simulated [rewrite <- IHn] *)
+        replace
+          (Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
+                          (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) x))
+          with
+            (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                  (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o)) (Vconst (mkStruct uf_zero) o) x)).
+        clear IHn.
+
+        (* Vconst as Vmap *)
+        replace (Vconst (mkStruct (fm:=Monoid_RthetaFlags) uf_zero) o) with
+            (Vmap (mkStruct (fm:=Monoid_RthetaFlags)) (Vconst uf_zero o)) at 1
+        by apply Vmap_Vconst.
+
+        rewrite Vmap2_Vmap.
+
+        replace (fun a b => _)
+          with (fun a b => WriterMonadNoT.evalWriter
+                          (Monad.liftM2 f a b)) by auto.
+
+
+
+
+      repeat rewrite Vfold_left_rev_to_Vfold_left_rev_reord.
+      repeat rewrite Vmap_to_Vmap_reord.
+      repeat rewrite Vconst_to_Vconst_reord.
+
+
     Admitted.
 
 

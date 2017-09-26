@@ -45,6 +45,22 @@ Proof.
   constructor.
 Qed.
 
+Lemma Vmap_Vconst
+      {n : nat}
+      {A B: Type}
+      {f: A -> B}
+      (x : A):
+  Vmap f (Vconst x n) = Vconst (f x) n.
+Proof.
+  induction n.
+  -
+    auto.
+  -
+    simpl.
+    rewrite IHn.
+    reflexivity.
+Qed.
+
 Lemma VMapp2_app:
   forall {A B} {f: A->A->B} (n m : nat)
     {a b: vector A m} {a' b':vector A n},
