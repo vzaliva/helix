@@ -1930,6 +1930,18 @@ Section SigmaHCOLRewritingRules.
 
         rewrite Vmap_Vbuild.
 
+        assert(Upoz': forall (j : nat) (jc : j < n), Vforall P
+                                                      (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))).
+        {
+          intros j jc.
+          specialize (Upoz j jc).
+          unfold liftRthetaP in Upoz.
+          apply Vforall_map_intro in Upoz.
+          apply Upoz.
+        }
+        clear Upoz. rename Upoz' into Upoz.
+
         remember (Vfold_left_rev f _ _) as rhs.
         remember (Vfold_right _ _ _) as lhs.
 
