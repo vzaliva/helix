@@ -1942,6 +1942,8 @@ Section SigmaHCOLRewritingRules.
         }
         clear Upoz. rename Upoz' into Upoz.
 
+
+
         remember (Vfold_left_rev f _ _) as rhs.
         remember (Vfold_right _ _ _) as lhs.
 
