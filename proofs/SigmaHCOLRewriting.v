@@ -1780,7 +1780,6 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -1981,11 +1980,11 @@ Section SigmaHCOLRewritingRules.
                 (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
                       (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) as gen.
 
+        (* cleanup *)
         intros gen Upoz.
-        clear x op_family.
-
+        clear x op_family i.
+        rename o into m.
         eta_reduce_all.
-
 
         (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
 
@@ -1993,10 +1992,56 @@ Section SigmaHCOLRewritingRules.
         remember (Vfold_right _ _ _) as lhs.
 
 
+        (* Check ⟦ ⦃ matrixFlattenByColFamily ⦄ _ _ ⟧ . *)
 
+        assert(tmd: forall t, t < m * n -> t / m < n).
+        {
+          intros t H.
+          apply Nat.div_lt_upper_bound; auto.
+          destruct m;auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
 
+        assert(tmm: forall t,t < m * n -> t mod m < m).
+        {
+          intros t H.
+          apply NPeano.Nat.mod_upper_bound.
+          destruct m; auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
 
-    Admitted.
+        assert(NR: rhs =
+               Vfold_right f (Vbuild
+                                (fun (t:nat) (it:t < (m*n)) =>
+                                   @Vnth CarrierA m
+                                         (gen (t/m) (tmd t it))
+                                         (t mod m)
+                                         (tmm t it)
+                                )
+                             ) uf_zero).
+        {
+          admit.
+        }
+
+        assert(NL: lhs =
+               Vfold_right f (Vbuild
+                                (fun (t:nat) (it:t < (m*n)) =>
+                                   @Vnth CarrierA m
+                                         (gen (t/m) (tmd t it))
+                                         (t mod m)
+                                         (tmm t it)
+                                )
+                             ) uf_zero).
+        {
+          admit.
+        }
+
+        rewrite NR.
+        rewrite NL.
+        reflexivity.
+    Qed.
 
 
     Global Instance max_Assoc:
