@@ -790,6 +790,19 @@ Section Primitive_Functions.
 
 End Primitive_Functions.
 
+
+Section PracticalFamilies.
+
+  (* Flattens m-by-n matrix into flat vector of size m*n by column *)
+  Program Definition matrixFlattenByColFamily {m n:nat}: index_map_family m (m*n) n
+    := (IndexMapFamily m (m*n) n (fun k kc => h_index_map (range_bound:=_)  (k*m) 1)).
+  Next Obligation.
+    nia.
+  Defined.
+
+End PracticalFamilies.
+
+
 Section Function_Operators.
 
   Definition tensor_product
