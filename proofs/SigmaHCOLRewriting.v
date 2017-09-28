@@ -1943,11 +1943,16 @@ Section SigmaHCOLRewritingRules.
         clear Upoz. rename Upoz' into Upoz.
 
 
+        (* TODO: generalize [(Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+             (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family _ _) x))]
+         *)
+
+        (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
 
         remember (Vfold_left_rev f _ _) as rhs.
         remember (Vfold_right _ _ _) as lhs.
 
-        (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
+
 
 
 
