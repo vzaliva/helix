@@ -2022,6 +2022,8 @@ Section SigmaHCOLRewritingRules.
                                 )
                              ) uf_zero).
         {
+          subst rhs.
+          clear lhs Heqlhs.
           admit.
         }
 
@@ -2035,6 +2037,8 @@ Section SigmaHCOLRewritingRules.
                                 )
                              ) uf_zero).
         {
+          subst lhs.
+          clear rhs Heqrhs NR.
           admit.
         }
 
