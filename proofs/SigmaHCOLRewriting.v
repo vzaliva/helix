@@ -1943,9 +1943,49 @@ Section SigmaHCOLRewritingRules.
         clear Upoz. rename Upoz' into Upoz.
 
 
-        (* TODO: generalize [(Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-             (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family _ _) x))]
-         *)
+        (* TODO:  Manual generalization. Try to automate. See https://stackoverflow.com/questions/46458710/generalizing-expressions-under-binders   *)
+
+        change (Vbuild
+          (λ (z : nat) (zi : z < n),
+           Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))) with (Vbuild
+            (λ (z : nat) (zi : z < n),
+             (fun p pi =>
+                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)).
+
+        change (Vbuild
+       (λ (z : nat) (zi : z < n),
+        Vfold_right f
+          (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+             (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))
+          uf_zero)) with (Vbuild
+       (λ (z : nat) (zi : z < n),
+        Vfold_right f
+          ((fun p pi =>
+                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)
+          uf_zero)).
+
+        revert Upoz.
+
+        change (∀ (j : nat) (jc : j < n), Vforall P
+     (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+           (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))) with   (∀ (j : nat) (jc : j < n),
+   Vforall P
+     ((fun p pi =>
+                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) j jc)).
+
+        generalize (fun p pi =>
+                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) as gen.
+
+        intros gen Upoz.
+        clear x op_family.
+
+        eta_reduce_all.
+
 
         (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
 
