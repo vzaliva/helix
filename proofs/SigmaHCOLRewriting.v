@@ -1986,13 +1986,10 @@ Section SigmaHCOLRewritingRules.
         rename o into m.
         eta_reduce_all.
 
-        (* 2. Prove [Vfold_right] = [Vfold_left_rev] for RMonoid. *)
+        (* 2. Prove equality using RMonoid. *)
 
-        remember (Vfold_left_rev f _ _) as rhs.
-        remember (Vfold_right _ _ _) as lhs.
-
-
-        (* Check ⟦ ⦃ matrixFlattenByColFamily ⦄ _ _ ⟧ . *)
+        set (rhs := Vfold_left_rev f _ _).
+        set (lhs := Vfold_right _ _ _).
 
         assert(tmd: forall t, t < m * n -> t / m < n).
         {
@@ -2012,38 +2009,30 @@ Section SigmaHCOLRewritingRules.
           nat_lt_0_contradiction.
         }
 
-        assert(NR: rhs =
-               Vfold_right f (Vbuild
-                                (fun (t:nat) (it:t < (m*n)) =>
-                                   @Vnth CarrierA m
-                                         (gen (t/m) (tmd t it))
-                                         (t mod m)
-                                         (tmm t it)
-                                )
-                             ) uf_zero).
+        pose (norm := Vfold_right f (Vbuild
+                                       (fun (t:nat) (it:t < (m*n)) =>
+                                          @Vnth CarrierA m
+                                                (gen (t/m) (tmd t it))
+                                                (t mod m)
+                                                (tmm t it)
+                                       )
+                                    ) uf_zero).
+
+        assert(NR: rhs = norm).
         {
-          subst rhs.
-          clear lhs Heqlhs.
+          subst rhs norm.
+          clear lhs.
           admit.
         }
 
-        assert(NL: lhs =
-               Vfold_right f (Vbuild
-                                (fun (t:nat) (it:t < (m*n)) =>
-                                   @Vnth CarrierA m
-                                         (gen (t/m) (tmd t it))
-                                         (t mod m)
-                                         (tmm t it)
-                                )
-                             ) uf_zero).
+        assert(NL: lhs = norm).
         {
-          subst lhs.
-          clear rhs Heqrhs NR.
+          subst lhs norm.
+          clear rhs NR.
           admit.
         }
 
-        rewrite NR.
-        rewrite NL.
+        rewrite NR, NL.
         reflexivity.
     Qed.
 
