@@ -1780,6 +1780,20 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+    Lemma Vfold_right_left_rev_under_P
+          {A: Type} `{Ae: Equiv A}
+          `{z: MonUnit A}
+          `{f: SgOp A}
+          `{P: SgPred A}
+          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          {n:nat}
+          (v:vector A n)
+          (U: Vforall P v):
+      Vfold_left_rev f z v = Vfold_right f v z.
+    Proof.
+    Admitted.
+
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2049,6 +2063,7 @@ Section SigmaHCOLRewritingRules.
         {
           subst rhs rnorm.
           clear lhs.
+          rewrite Vfold_right_left_rev_under_P; try apply CP.
           admit.
         }
 
