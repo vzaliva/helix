@@ -2009,18 +2009,45 @@ Section SigmaHCOLRewritingRules.
           nat_lt_0_contradiction.
         }
 
-        pose (norm := Vfold_right f (Vbuild
-                                       (fun (t:nat) (it:t < (m*n)) =>
-                                          @Vnth CarrierA m
-                                                (gen (t/m) (tmd t it))
-                                                (t mod m)
-                                                (tmm t it)
-                                       )
-                                    ) uf_zero).
 
-        assert(NR: rhs = norm).
+        remember (Vbuild (λ (z : nat) (zi : z < n), Vfold_right f (gen z zi) uf_zero)) as lcols.
+        assert(CP: Vforall P lcols).
         {
-          subst rhs norm.
+          clear rhs lhs tmd tmm.
+          subst lcols.
+          apply Vforall_Vbuild.
+          intros i ip.
+          specialize (Upoz i ip).
+          generalize dependent (gen i ip).
+          intros v Upoz.
+          clear i ip gen.
+
+          induction v.
+          -
+            apply f_mon.
+          -
+            simpl.
+            apply f_mon.
+            +
+              apply Upoz.
+            +
+              apply IHv.
+              apply Upoz.
+        }
+
+        (* linear shaped equivalent of RHS *)
+        pose (rnorm := Vfold_right f (Vbuild
+                                        (fun (t:nat) (it:t < (m*n)) =>
+                                           @Vnth CarrierA m
+                                                 (gen (t/m) (tmd t it))
+                                                 (t mod m)
+                                                 (tmm t it)
+                                        )
+                                     ) uf_zero ).
+
+        assert(NR: rhs = rnorm).
+        {
+          subst rhs rnorm.
           clear lhs.
           admit.
         }
