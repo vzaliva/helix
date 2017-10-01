@@ -823,6 +823,35 @@ Section Vunique.
 
 End Vunique.
 
+Section Vforall.
+
+  Variable A : Type.
+  Variable P: A -> Prop.
+  Variable n: nat.
+
+  Lemma Vforall_Vhead
+        {v:vector A (S n)}:
+    Vforall P v -> P (Vhead v).
+  Proof.
+    intros H.
+    eapply Vforall_nth with (i:=0) in H.
+    rewrite Vhead_nth.
+    apply H.
+  Qed.
+
+  Lemma Vforall_Vtail
+        {v:vector A (S n)}:
+    Vforall P v -> Vforall P (Vtail v).
+  Proof.
+    intros H.
+    dep_destruct v.
+    apply H.
+  Qed.
+
+End Vforall.
+
+
+
 (* Utlity functions for vector products *)
 
 Section VectorPairs.
