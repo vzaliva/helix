@@ -1780,6 +1780,30 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+    Lemma Vfold_right_under_P
+          {A: Type} `{Ae: Equiv A}
+          `{z: MonUnit A}
+          `{f: SgOp A}
+          `{P: SgPred A}
+          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          {n:nat}
+          (v:vector A n):
+      Vforall P v → P (Vfold_right f v z).
+    Proof.
+      intros U.
+      induction v.
+      -
+        apply f_mon.
+      -
+        simpl.
+        apply f_mon.
+        +
+          apply U.
+        +
+          apply IHv.
+          apply U.
+    Qed.
+
     Lemma Vfold_right_left_rev_under_P
           {A: Type} `{Ae: Equiv A}
           `{z: MonUnit A}
@@ -1791,6 +1815,18 @@ Section SigmaHCOLRewritingRules.
           (U: Vforall P v):
       Vfold_left_rev f z v = Vfold_right f v z.
     Proof.
+      induction v.
+      -
+        crush.
+      -
+        simpl.
+        rewrite IHv.
+        (*
+        apply rcommutativity.
+        simpl in *.
+        apply Vfold_right_under_P.
+         *)
+
     Admitted.
 
 
@@ -2035,18 +2071,8 @@ Section SigmaHCOLRewritingRules.
           generalize dependent (gen i ip).
           intros v Upoz.
           clear i ip gen.
-
-          induction v.
-          -
-            apply f_mon.
-          -
-            simpl.
-            apply f_mon.
-            +
-              apply Upoz.
-            +
-              apply IHv.
-              apply Upoz.
+          apply Vfold_right_under_P.
+          apply Upoz.
         }
 
         (* linear shaped equivalent of RHS *)
