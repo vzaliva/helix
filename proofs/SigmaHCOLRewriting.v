@@ -1821,14 +1821,14 @@ Section SigmaHCOLRewritingRules.
       -
         simpl.
         rewrite IHv.
-        (*
+        destruct f_mon eqn:F.
         apply rcommutativity.
         simpl in *.
         apply Vfold_right_under_P.
-         *)
-
-    Admitted.
-
+        apply U.
+        apply U.
+        apply U.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
