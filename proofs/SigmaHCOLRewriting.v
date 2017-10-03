@@ -1830,6 +1830,48 @@ Section SigmaHCOLRewritingRules.
         apply U.
     Qed.
 
+
+    Lemma VFold_right_split_under_P
+          {A: Type}
+          `{Ae: Equiv A}
+          {m n : nat}
+          `{z: MonUnit A}
+          `{f: SgOp A}
+          `{P: SgPred A}
+          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          (h : vector A m)
+          (t : vector A n)
+          (Uh: Vforall P h)
+          (Ut: Vforall P t)
+      :
+      f (Vfold_right f h z)
+        (Vfold_right f t z)
+      =
+      Vfold_right f (Vapp h t) z.
+    Proof.
+      remember (Vapp h t) as ht.
+      assert(Uht:  Vforall P ht).
+      {
+        subst ht.
+        apply Vforall_app.
+        auto.
+      }
+      replace h with (fst (@Vbreak _ m n ht)).
+      replace t with (snd (@Vbreak _ m n ht)).
+      -
+        clear Heqht h t Uh Ut.
+        admit.
+      -
+        subst ht.
+        rewrite Vbreak_app.
+        auto.
+      -
+        subst ht.
+        rewrite Vbreak_app.
+        auto.
+    Admitted.
+
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2059,7 +2101,6 @@ Section SigmaHCOLRewritingRules.
           nat_lt_0_contradiction.
         }
 
-
         remember (Vbuild (λ (z : nat) (zi : z < n), Vfold_right f (gen z zi) uf_zero)) as lcols.
         assert(CP: Vforall P lcols).
         {
@@ -2144,6 +2185,20 @@ Section SigmaHCOLRewritingRules.
             clear IHn.
             +
               unfold gen'.
+              subst h; remember (gen 0 (Nat.lt_0_succ n)) as h.
+              remember (Vbuild (λ (t : nat) (it : t < m * n),
+                                Vnth (gen (S (t / m)) (lt_n_S (tmd' t it))) (tmm' t it))) as t.
+
+              assert (F: m * S n ≡ m + m * n) by lia.
+              rewrite F.
+
+              (* remember (Vbuild
+                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmd t0 it)) (tmm t0 it))) as ht. *)
+
+              replace ht with (Vapp h t).
+              apply VFold_right_split_under_P.
+
+
               admit.
             +
               subst x.
