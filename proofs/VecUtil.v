@@ -195,11 +195,12 @@ Section VBreak.
       [left | right]; assumption.
   Qed.
 
-  (* special case of even break. could be proven more generaly *)
-  Lemma Vnth_fst_Vbreak_sym
+  Lemma Vnth_fst_Vbreak
         {A:Type}
-        (o : nat) (v : vector A (o + o)) (j : nat)
-        (jc : j < o) (jc1 : j < o + o):
+        (m n : nat)
+        (v : vector A (m + n))
+        (j : nat) (jc : j < m)
+        (jc1 : j < m + n):
     Vnth (fst (Vbreak v)) jc = Vnth v jc1.
   Proof.
     replace (Vnth v) with (Vnth (Vapp (fst (Vbreak v)) (snd (Vbreak v)))).
@@ -214,11 +215,12 @@ Section VBreak.
       apply Vbreak_eq_app.
   Qed.
 
-  (* special case of even break. could be proven more generaly *)
-  Lemma Vnth_snd_Vbreak_sym
+  Lemma Vnth_snd_Vbreak
         {A: Type}
-        (o : nat) (v : vector A (o + o)) (j : nat)
-        (jc : j < o) (jc2 : j + o < o + o):
+        (m n : nat)
+        (v : vector A (m + n)) (j : nat)
+        (jc : j < n)
+        (jc2 : j + m < m + n):
     Vnth (snd (Vbreak v)) jc = Vnth v jc2.
   Proof.
     replace (Vnth v) with (Vnth (Vapp (fst (Vbreak v)) (snd (Vbreak v)))).
@@ -226,9 +228,13 @@ Section VBreak.
       rewrite Vnth_app.
       break_match.
       +
-        generalize (Vnth_app_aux o jc2 l) as g.
+        generalize (Vnth_app_aux n jc2 l) as g.
 
-        assert(E: j + o - o = j) by omega.
+        assert(E: j + m - m = j).
+        {
+          rewrite NatUtil.plus_minus_eq.
+          reflexivity.
+        }
         rewrite E.
         intros g.
         replace g with jc by apply proof_irrelevance.
