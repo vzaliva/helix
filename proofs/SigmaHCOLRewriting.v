@@ -1922,6 +1922,7 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2240,16 +2241,41 @@ Section SigmaHCOLRewritingRules.
                                 Vnth (gen (S (t / m)) (lt_n_S (tmd' t it))) (tmm' t it))) as t.
 
               assert (F: m * S n ≡ m + m * n) by lia.
-              rewrite F.
-
-              (* remember (Vbuild
-                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmd t0 it)) (tmm t0 it))) as ht. *)
-
-              replace ht with (Vapp h t).
+              remember (Vbuild
+                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmd t0 it)) (tmm t0 it))) as ht.
+              assert(C:m * S n ≡ m + m*n) by omega.
+              replace (Vfold_right f ht uf_zero) with
+                  (Vfold_right f
+                               (@Vcast _ _ ht _ C)
+                               uf_zero).
+              replace (Vcast ht C) with (Vapp h t).
               apply VFold_right_split_under_P.
-
-
-              admit.
+              *
+                subst h.
+                apply Upoz.
+              *
+                subst t.
+                apply Vforall_Vbuild.
+                intros i ip.
+                apply Vforall_nth.
+                apply Upoz.
+              *
+                subst.
+                apply Veq_nth.
+                intros i ip.
+                rewrite Vnth_app.
+                break_match.
+                --
+                  rewrite Vbuild_nth.
+                  rewrite Vnth_cast.
+                  rewrite Vbuild_nth.
+                  admit.
+                --
+                  rewrite Vnth_cast.
+                  rewrite Vbuild_nth.
+                  admit.
+              *
+                admit.
             +
               subst x.
               reflexivity.
