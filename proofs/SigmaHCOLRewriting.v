@@ -1843,10 +1843,10 @@ Section SigmaHCOLRewritingRules.
           (Uh: Vforall P h)
           (Ut: Vforall P t)
       :
-      f (Vfold_right f h z)
-        (Vfold_right f t z)
-      =
-      Vfold_right f (Vapp h t) z.
+        f (Vfold_right f h z)
+          (Vfold_right f t z)
+        =
+        Vfold_right f (Vapp h t) z.
     Proof.
       remember (Vapp h t) as ht.
       assert(Uht:  Vforall P ht).
