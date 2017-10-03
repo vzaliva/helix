@@ -1830,7 +1830,6 @@ Section SigmaHCOLRewritingRules.
         apply U.
     Qed.
 
-
     Lemma VFold_right_split_under_P
           {A: Type}
           `{Ae: Equiv A}
@@ -1860,17 +1859,68 @@ Section SigmaHCOLRewritingRules.
       replace t with (snd (@Vbreak _ m n ht)).
       -
         clear Heqht h t Uh Ut.
-        admit.
-      -
-        subst ht.
-        rewrite Vbreak_app.
-        auto.
-      -
-        subst ht.
-        rewrite Vbreak_app.
-        auto.
-    Admitted.
+        induction m.
+        +
+          simpl.
+          destruct f_mon eqn:F.
+          destruct comrmonoid_rmon.
+          apply rmonoid_left_id.
+          apply Vfold_right_under_P.
+          apply Uht.
+        +
+          assert(C:S m + n ≡ S (m + n)) by omega.
+          replace (@Vfold_right A A f (S m + n) ht z)
+            with (@Vfold_right A A f (S (m + n)) (@Vcast _ _ ht (S (m + n)) C) z)
+            by
+              (rewrite Vcast_refl; reflexivity).
 
+          replace (Vfold_right f (Vcast ht C) z)
+            with (f (Vhead (Vcast ht C)) (Vfold_right f (Vtail (Vcast ht C)) z))
+            by
+              (rewrite Vfold_right_reduce; reflexivity).
+          rewrite <- IHm.
+          *
+            simpl.
+            destruct f_mon eqn: FM, comrmonoid_rmon.
+            repeat rewrite Vcast_refl.
+            rewrite rmonoid_ass.
+            --
+              reflexivity.
+            --
+              apply Vforall_Vhead.
+              apply Uht.
+            --
+              apply Vfold_right_under_P.
+              apply Vforall_nth_intro.
+              intros i ip.
+              assert(ip': i < m + n) by lia.
+              rewrite Vnth_fst_Vbreak with (jc1:=ip').
+              rewrite Vnth_tail.
+              apply Vforall_nth.
+              apply Uht.
+            --
+              apply Vfold_right_under_P.
+              apply Vforall_nth_intro.
+              intros i ip.
+              assert(ip': i + m < m + n) by lia.
+              rewrite Vnth_snd_Vbreak with (jc2:=ip').
+              rewrite Vnth_tail.
+              apply Vforall_nth.
+              apply Uht.
+          *
+            rewrite Vcast_refl.
+            apply Vforall_Vtail.
+            apply Uht.
+      -
+
+        subst ht.
+        rewrite Vbreak_app.
+        auto.
+      -
+        subst ht.
+        rewrite Vbreak_app.
+        auto.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
