@@ -372,8 +372,8 @@ Section HCOL_Operator_Lemmas.
     rewrite Vnth_Vmap2Indexed.
     f_equiv.
 
-    rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.
-    rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
+    rewrite Vnth_fst_Vbreak_sym with (jc3:=jc1); reflexivity.
+    rewrite Vnth_snd_Vbreak_sym with (jc3:=jc2); reflexivity.
   Qed.
 
 End HCOL_Operator_Lemmas.

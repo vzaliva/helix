@@ -1532,8 +1532,8 @@ Section OperatorProperies.
     clear Heqp.
     rewrite Vbuild_nth.
     f_equiv.
-    apply Vnth_fst_Vbreak with (jc3:=jc1).
-    apply Vnth_snd_Vbreak with (jc3:=jc2).
+    apply Vnth_fst_Vbreak_sym with (jc3:=jc1).
+    apply Vnth_snd_Vbreak_sym with (jc3:=jc2).
   Qed.
 
 End OperatorProperies.

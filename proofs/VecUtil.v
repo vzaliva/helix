@@ -196,7 +196,7 @@ Section VBreak.
   Qed.
 
   (* special case of even break. could be proven more generaly *)
-  Lemma Vnth_fst_Vbreak
+  Lemma Vnth_fst_Vbreak_sym
         {A:Type}
         (o : nat) (v : vector A (o + o)) (j : nat)
         (jc : j < o) (jc1 : j < o + o):
@@ -215,7 +215,7 @@ Section VBreak.
   Qed.
 
   (* special case of even break. could be proven more generaly *)
-  Lemma Vnth_snd_Vbreak
+  Lemma Vnth_snd_Vbreak_sym
         {A: Type}
         (o : nat) (v : vector A (o + o)) (j : nat)
         (jc : j < o) (jc2 : j + o < o + o):
