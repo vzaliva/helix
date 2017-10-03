@@ -2090,7 +2090,66 @@ Section SigmaHCOLRewritingRules.
           subst rhs rnorm.
           clear lhs.
           rewrite Vfold_right_left_rev_under_P; try apply CP.
-          admit.
+
+          induction n.
+          -
+            crush.
+            destruct (Vbuild _).
+            crush.
+            specialize (tmd 0 (Nat.lt_0_succ n)).
+            nat_lt_0_contradiction.
+          -
+            dep_destruct lcols.
+            simpl.
+            pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
+
+            assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
+            {
+              intros j jc.
+              subst gen'.
+              apply Vforall_nth_intro.
+              intros i ip.
+              specialize (Upoz (S j) (lt_n_S jc)).
+              apply Vforall_nth with (ip:=ip) in Upoz.
+              apply Upoz.
+            }
+
+            simpl in CP.
+            destruct CP as [Ph Px].
+
+            assert(tmd' : forall t : nat, t < m * n → t / m < n).
+            {
+              intros t H.
+              apply Nat.div_lt_upper_bound; auto.
+              destruct m;auto.
+              ring_simplify in H.
+              nat_lt_0_contradiction.
+            }
+
+            assert(tmm': forall t,t < m * n -> t mod m < m).
+            {
+              intros t H.
+              apply NPeano.Nat.mod_upper_bound.
+              destruct m; auto.
+              ring_simplify in H.
+              nat_lt_0_contradiction.
+            }
+
+
+            specialize (IHn gen' Upoz' x).
+            rewrite IHn with (tmd:=tmd') (tmm:=tmm');
+              (rewrite Vbuild_cons in Heqlcols;
+              apply Vcons_eq_elim in Heqlcols;
+              destruct Heqlcols as [Hh Hx]).
+            clear IHn.
+            +
+              unfold gen'.
+              admit.
+            +
+              subst x.
+              reflexivity.
+            +
+              apply Px.
         }
 
         assert(NL: lhs = norm).
