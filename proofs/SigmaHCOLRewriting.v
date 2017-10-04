@@ -2278,7 +2278,7 @@ Section SigmaHCOLRewritingRules.
                   ++
                     assert (E: (i - m) mod m ≡ i mod m).
                     {
-                      revert l MNZ. clear_all. intros H MNZ.
+                      revert l MNZ; clear_all; intros H MNZ.
                       rewrite <- NPeano.Nat.mod_add with (a:=i-m) (b:=1).
                       replace (i - m + 1 * m) with i by omega.
                       reflexivity.
@@ -2298,13 +2298,34 @@ Section SigmaHCOLRewritingRules.
                     (* m ≢ 0 *)
                     assert (E: S ((i - m) / m) ≡ i / m).
                     {
-                      revert l MNZ. clear_all. intros H MNZ.
-                      dep_destruct m.
+                      revert l MNZ; clear_all; intros H MNZ.
+                      replace ((i - m) / m) with (i/m - m/m).
                       -
-                        congruence.
+                        rewrite NPeano.Nat.div_same by apply MNZ.
+                        assert(X: i ≢ 0 -> i/m > 1).
+                        {
+                          intros H0.
+                          admit.
+                        }
+
+                        assert(X1: i/m>=0) by lia.
+                        generalize dependent (i/m).
+                        intros n X.
+
+
+                        rewrite Nat.sub_1_r.
+                        intros X1.
+                        dep_destruct i.
+                        crush.
+                        assert (n>1).
+                        apply X.
+                        auto.
+
+                        unfold Nat.pred.
+                        destruct n.
+                        crush.
+                        reflexivity.
                       -
-                        clear MNZ.
-                        ring_simplify.
                         admit.
                     }
 
