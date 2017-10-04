@@ -2342,7 +2342,14 @@ Section SigmaHCOLRewritingRules.
                     rewrite (proof_irrelevance _ lc rc).
                     reflexivity.
               *
-                admit.
+                (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
+                remember (Vcast _ _) as ht'.
+                remember (m * S n) as Q.
+                rewrite C in HeqQ.
+                subst Q.
+                subst.
+                rewrite Vcast_refl.
+                reflexivity.
             +
               subst x.
               reflexivity.
