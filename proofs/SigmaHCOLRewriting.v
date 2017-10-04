@@ -1922,7 +1922,6 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
-
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2227,7 +2226,6 @@ Section SigmaHCOLRewritingRules.
               nat_lt_0_contradiction.
             }
 
-
             specialize (IHn gen' Upoz' x).
             rewrite IHn with (tmd:=tmd') (tmm:=tmm');
               (rewrite Vbuild_cons in Heqlcols;
@@ -2240,10 +2238,11 @@ Section SigmaHCOLRewritingRules.
               remember (Vbuild (λ (t : nat) (it : t < m * n),
                                 Vnth (gen (S (t / m)) (lt_n_S (tmd' t it))) (tmm' t it))) as t.
 
-              assert (F: m * S n ≡ m + m * n) by lia.
               remember (Vbuild
                           (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmd t0 it)) (tmm t0 it))) as ht.
+              assert (F: m * S n ≡ m + m * n) by lia.
               assert(C:m * S n ≡ m + m*n) by omega.
+              clear F. (*TODO: weird shit. cleanup later *)
               replace (Vfold_right f ht uf_zero) with
                   (Vfold_right f
                                (@Vcast _ _ ht _ C)
@@ -2273,7 +2272,28 @@ Section SigmaHCOLRewritingRules.
                 --
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
-                  admit.
+                  remember (gen 0 _) as lgen.
+                  remember (gen (i/m) _) as rgen.
+                  generalize (Vnth_cast_aux C ip).
+                  intros gr.
+                  replace lgen with rgen.
+                  ++
+                    apply Vnth_eq.
+                    symmetry.
+                    apply NPeano.Nat.mod_small.
+                    auto.
+                  ++
+                    subst.
+                    generalize (Nat.lt_0_succ n) as rc.
+                    generalize (tmd i (Vnth_cast_aux C ip)) as lc.
+                    intros lc rc.
+
+                    assert (E: i/m ≡ 0) by apply Nat.div_small, g.
+                    remember (i/m) as Q.
+                    rewrite E in HeqQ.
+                    subst Q.
+                    rewrite (proof_irrelevance _ lc rc).
+                    reflexivity.
               *
                 admit.
             +
