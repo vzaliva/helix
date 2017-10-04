@@ -1924,12 +1924,11 @@ Section SigmaHCOLRewritingRules.
 
 
     Lemma div_iff_0:
-      forall m i : nat, m ≢ 0 → i/m≡0 -> (i≡0 \/ m>i).
+      forall m i : nat, m ≢ 0 → i/m≡0 -> m>i.
     Proof.
       intros m i M H.
       destruct (Compare_dec.dec_lt i m) as [HL|HGE].
       -
-        right.
         omega.
       -
         apply Nat.nlt_ge in HGE.
@@ -1953,9 +1952,9 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     Lemma div_ne_0:
-      ∀ m i : nat, m <= i → m ≢ 0 → i ≢ 0 → i / m ≢ 0.
+      ∀ m i : nat, m <= i → m ≢ 0 → i / m ≢ 0.
     Proof.
-      intros m i H MZ IZ.
+      intros m i H MZ.
       unfold not.
       intros M.
       apply div_iff_0 in M.
@@ -2345,7 +2344,7 @@ Section SigmaHCOLRewritingRules.
                         rewrite Nat.div_same by apply MNZ.
                         rewrite Nat.sub_1_r.
 
-                        assert(X: i ≢ 0 -> i/m ≢ 0) by (apply div_ne_0; assumption).
+                        assert(X: i/m ≢ 0) by (apply div_ne_0; assumption).
                         revert X.
                         destruct (i/m); lia.
                       -
@@ -2361,11 +2360,7 @@ Section SigmaHCOLRewritingRules.
                           simpl.
                           dep_destruct m; try congruence.
                           clear m i.
-                          assert (S x/S x0 ≢ 0).
-                          {
-                            apply div_ne_0; try assumption.
-                            lia.
-                          }
+                          assert (S x/S x0 ≢ 0) by (apply div_ne_0; try assumption).
 
                           admit.
                     }
