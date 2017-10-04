@@ -2276,23 +2276,45 @@ Section SigmaHCOLRewritingRules.
                     simpl in *.
                     nat_lt_0_contradiction.
                   ++
-                    (* m ≢ 0 *)
-                    assert (E0: S ((i - m) / m) ≡ i / m).
-                    {
-                      revert l MNZ. clear_all. intros H MNZ.
-                      admit.
-                    }
-
-                    assert (E1: (i - m) mod m ≡ i mod m).
+                    assert (E: (i - m) mod m ≡ i mod m).
                     {
                       revert l MNZ. clear_all. intros H MNZ.
                       rewrite 2!Nat.mod_eq by apply MNZ.
                       admit.
                     }
 
-                    (* TODO: do dep type magics as below*)
+                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
+                    generalize (tmm' (i - m) (Vnth_app_aux (m * n) ip l)) as lc.
+                    generalize (tmm i (Vnth_cast_aux C ip)) as rc.
+                    intros rc lc.
+                    remember ((i - m) mod m) as Q.
+                    rewrite E in HeqQ.
+                    subst Q.
+                    rewrite (proof_irrelevance _ lc rc).
+                    apply Vnth_arg_eq. clear rc lc HeqQ.
 
-                    admit.
+                    (* m ≢ 0 *)
+                    assert (E: S ((i - m) / m) ≡ i / m).
+                    {
+                      revert l MNZ. clear_all. intros H MNZ.
+                      dep_destruct m.
+                      -
+                        congruence.
+                      -
+                        clear MNZ.
+                        ring_simplify.
+                        admit.
+                    }
+
+                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
+                    generalize (lt_n_S (tmd' (i - m) (Vnth_app_aux (m * n) ip l))) as lc.
+                    generalize (tmd i (Vnth_cast_aux C ip)) as rc.
+                    intros rc lc.
+                    remember (S ((i - m) / m)) as Q.
+                    rewrite E in HeqQ.
+                    subst Q.
+                    rewrite (proof_irrelevance _ lc rc).
+                    reflexivity.
                 --
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
@@ -2308,10 +2330,11 @@ Section SigmaHCOLRewritingRules.
                     auto.
                   ++
                     subst.
+
+                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
                     generalize (Nat.lt_0_succ n) as rc.
                     generalize (tmd i (Vnth_cast_aux C ip)) as lc.
                     intros lc rc.
-
                     assert (E: i/m ≡ 0) by apply Nat.div_small, g.
                     remember (i/m) as Q.
                     rewrite E in HeqQ.
