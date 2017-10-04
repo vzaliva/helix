@@ -2279,8 +2279,10 @@ Section SigmaHCOLRewritingRules.
                     assert (E: (i - m) mod m ≡ i mod m).
                     {
                       revert l MNZ. clear_all. intros H MNZ.
-                      rewrite 2!Nat.mod_eq by apply MNZ.
-                      admit.
+                      rewrite <- NPeano.Nat.mod_add with (a:=i-m) (b:=1).
+                      replace (i - m + 1 * m) with i by omega.
+                      reflexivity.
+                      apply MNZ.
                     }
 
                     (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
