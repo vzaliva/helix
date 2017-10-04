@@ -1922,6 +1922,47 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+
+    Lemma div_iff_0:
+      forall m i : nat, m ≢ 0 → i/m=0 -> (i=0 \/ m>i).
+    Proof.
+      intros m i M H.
+      destruct (Compare_dec.dec_lt i m) as [HL|HGE].
+      -
+        right.
+        omega.
+      -
+        apply Nat.nlt_ge in HGE.
+        destruct (eq_nat_dec i m).
+        *
+          subst i.
+          rewrite Nat.div_same in H.
+          congruence.
+          apply M.
+        *
+          assert(G:i>m) by crush.
+          apply NatUtil.gt_plus in G.
+          destruct G.
+          rename x into k.
+          subst i.
+          replace (k + 1 + m) with (1*m+(k+1)) in H by ring.
+          rewrite Nat.div_add_l in H.
+          simpl in H.
+          congruence.
+          apply M.
+    Qed.
+
+    Lemma div_ne_0:
+      ∀ m i : nat, m <= i → m ≢ 0 → i ≢ 0 → i / m ≢ 0.
+    Proof.
+      intros m i H MZ IZ.
+      unfold not.
+      intros M.
+      apply div_iff_0 in M.
+      destruct M; crush.
+      apply MZ.
+    Qed.
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2301,18 +2342,32 @@ Section SigmaHCOLRewritingRules.
                       revert l MNZ; clear_all; intros H MNZ.
                       replace ((i - m) / m) with (i/m - m/m).
                       -
-                        rewrite NPeano.Nat.div_same by apply MNZ.
+                        rewrite Nat.div_same by apply MNZ.
                         rewrite Nat.sub_1_r.
 
-                        assert(X: i ≢ 0 -> i/m > 1).
-                        {
-                          intros H0.
-                          admit.
-                        }
+                        assert(X: i ≢ 0 -> i/m ≢ 0) by (apply div_ne_0; assumption).
                         revert X.
                         destruct (i/m); lia.
                       -
-                        admit.
+                        rewrite Nat.div_same by apply MNZ.
+                        (* TODO: prove this. Below is experimental code *)
+                        rewrite Nat.sub_1_r.
+                        dep_destruct i.
+                        +
+                          simpl.
+                          rewrite Nat.div_0_l by apply MNZ.
+                          apply Nat.pred_0.
+                        +
+                          simpl.
+                          dep_destruct m; try congruence.
+                          clear m i.
+                          assert (S x/S x0 ≢ 0).
+                          {
+                            apply div_ne_0; try assumption.
+                            lia.
+                          }
+
+                          admit.
                     }
 
                     (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
