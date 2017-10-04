@@ -2268,7 +2268,31 @@ Section SigmaHCOLRewritingRules.
                   rewrite Vbuild_nth.
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
-                  admit.
+
+                  destruct (eq_nat_dec m 0) as [MZ | MNZ].
+                  ++
+                    (* Get rid of m=0 case *)
+                    subst m.
+                    simpl in *.
+                    nat_lt_0_contradiction.
+                  ++
+                    (* m ≢ 0 *)
+                    assert (E0: S ((i - m) / m) ≡ i / m).
+                    {
+                      revert l MNZ. clear_all. intros H MNZ.
+                      admit.
+                    }
+
+                    assert (E1: (i - m) mod m ≡ i mod m).
+                    {
+                      revert l MNZ. clear_all. intros H MNZ.
+                      rewrite 2!Nat.mod_eq by apply MNZ.
+                      admit.
+                    }
+
+                    (* TODO: do dep type magics as below*)
+
+                    admit.
                 --
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
