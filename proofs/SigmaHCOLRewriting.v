@@ -1924,7 +1924,7 @@ Section SigmaHCOLRewritingRules.
 
 
     Lemma div_iff_0:
-      forall m i : nat, m ≢ 0 → i/m=0 -> (i=0 \/ m>i).
+      forall m i : nat, m ≢ 0 → i/m≡0 -> (i≡0 \/ m>i).
     Proof.
       intros m i M H.
       destruct (Compare_dec.dec_lt i m) as [HL|HGE].
