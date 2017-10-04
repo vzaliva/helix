@@ -2302,29 +2302,15 @@ Section SigmaHCOLRewritingRules.
                       replace ((i - m) / m) with (i/m - m/m).
                       -
                         rewrite NPeano.Nat.div_same by apply MNZ.
+                        rewrite Nat.sub_1_r.
+
                         assert(X: i ≢ 0 -> i/m > 1).
                         {
                           intros H0.
                           admit.
                         }
-
-                        assert(X1: i/m>=0) by lia.
-                        generalize dependent (i/m).
-                        intros n X.
-
-
-                        rewrite Nat.sub_1_r.
-                        intros X1.
-                        dep_destruct i.
-                        crush.
-                        assert (n>1).
-                        apply X.
-                        auto.
-
-                        unfold Nat.pred.
-                        destruct n.
-                        crush.
-                        reflexivity.
+                        revert X.
+                        destruct (i/m); lia.
                       -
                         admit.
                     }
