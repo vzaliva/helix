@@ -2299,30 +2299,13 @@ Section SigmaHCOLRewritingRules.
                     assert (E: S ((i - m) / m) ≡ i / m).
                     {
                       revert l MNZ; clear_all; intros H MNZ.
-                      replace ((i - m) / m) with (i/m - m/m).
-                      -
-                        rewrite Nat.div_same by apply MNZ.
-                        rewrite Nat.sub_1_r.
-
-                        assert(X: i/m ≢ 0) by (apply div_ne_0; assumption).
-                        revert X.
-                        destruct (i/m); lia.
-                      -
-                        rewrite Nat.div_same by apply MNZ.
-                        (* TODO: prove this. Below is experimental code *)
-                        rewrite Nat.sub_1_r.
-                        dep_destruct i.
-                        +
-                          simpl.
-                          rewrite Nat.div_0_l by apply MNZ.
-                          apply Nat.pred_0.
-                        +
-                          simpl.
-                          dep_destruct m; try congruence.
-                          clear m i.
-                          assert (X: S x/S x0 ≢ 0) by (apply div_ne_0; try assumption).
-
-                          admit.
+                      rewrite <- NatUtil.plus_1_S.
+                      rewrite <- Nat.div_add by apply MNZ.
+                      ring_simplify (i - m + 1 * m).
+                      rewrite Nat.add_comm.
+                      rewrite Nat.add_sub_assoc by apply H.
+                      rewrite minus_plus.
+                      reflexivity.
                     }
 
                     (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
