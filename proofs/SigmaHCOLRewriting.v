@@ -1,4 +1,4 @@
-q
+
 Global Generalizable All Variables.
 
 Require Import VecUtil.
@@ -1923,22 +1923,18 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
-    (*Global Instance Vforall_SgPred {n:nat} (P:SgPred CarrierA):
-      SgPred (vector CarrierA n) := Vforall P (n:=n).
-
-    Global Instance Vmap2_SgOp {n:nat} (f:SgOp CarrierA):
-      SgOp (vector CarrierA n) := @Vmap2 _ _ _ f n.
-     *)
-    Global Instance VecCommutativeRMonoid
+    Global Instance VecCommutativeRMonoidMap2
            {n:nat}
-           `{Ve: Equiv (vector CarrierA n)}
-           `{z: MonUnit CarrierA}
-           `{f: SgOp CarrierA}
-           `{P: SgPred CarrierA}
-           `{f_mon: @CommutativeRMonoid CarrierA CarrierAe f z P}
+           {A: Type}
+           `{Ae: Equiv A}
+           `{Ve: Equiv (vector A n)}
+           `{z: MonUnit A}
+           `{f: SgOp A}
+           `{P: SgPred A}
+           `{f_mon: @CommutativeRMonoid A Ae f z P}
       :
         @CommutativeRMonoid
-          (vector CarrierA n)
+          (vector A n)
           Ve
           (Vmap2 f (n:=n))
           (Vconst z n)
@@ -2405,7 +2401,7 @@ Section SigmaHCOLRewritingRules.
           -
             admit.
           -
-            exact (VecCommutativeRMonoid (n:=m)).
+            exact (VecCommutativeRMonoidMap2 (n:=m)).
           -
             apply Vforall_Vbuild, Upoz.
         }
