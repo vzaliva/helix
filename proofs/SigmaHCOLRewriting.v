@@ -1922,54 +1922,122 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+    Section VecMap2CommutativeRMonoid.
 
-    Global Instance VecCommutativeRMonoidMap2
-           {n:nat}
-           {A: Type}
-           {Ae : Equiv A}
-           {As : @Setoid A Ae}
-           {z: MonUnit A}
-           {f: SgOp A}
-           (P: SgPred A)
-           {f_mon: @CommutativeRMonoid A Ae f z P}
-      :
-        @CommutativeRMonoid
+      Variable n:nat.
+      Variable A: Type.
+      Variable Ae: Equiv A.
+      Variable As: @Setoid A Ae.
+      Variable z: MonUnit A.
+      Variable f: SgOp A.
+      Variable P: SgPred A.
+
+      Global Instance VecMonRestrictionMap2
+             {f_mon: @MonRestriction A f z P}:
+        @MonRestriction
           (vector A n)
-          (=)
           (Vmap2 f (n:=n))
           (Vconst z n)
           (Vforall P (n:=n)).
-    Proof.
-      split.
-      -
-        admit.
-      -
-        intros a b Hx Hy.
-        unfold sg_op.
-        induction n.
+      Proof.
+        split.
         +
-          dep_destruct a.
-          dep_destruct b.
-          reflexivity.
+          unfold sg_P, mon_unit.
+          apply Vforall_Vconst.
+          apply f_mon.
         +
-          simpl.
-          rewrite Vcons_to_Vcons_reord.
+          intros a b Ha Hb.
+          apply Vforall_Vmap2.
+          apply f_mon.
+          apply Ha.
+          apply Hb.
+      Qed.
+
+      Global Instance VecRMonoidMap2
+             {f_mon: @RMonoid A Ae f z P}
+        :
+          @RMonoid
+            (vector A n)
+            (=)
+            (Vmap2 f (n:=n))
+            (Vconst z n)
+            (Vforall P (n:=n)).
+      Proof.
+        split; try typeclasses eauto.
+        +
+          intros a b c Ha Hb Hc.
+          unfold sg_op.
+          vec_index_equiv j jc.
+          repeat rewrite Vnth_map2.
           destruct f_mon.
+          apply rmonoid_ass.
+          apply Vforall_nth, Ha.
+          apply Vforall_nth, Hb.
+          apply Vforall_nth, Hc.
+        +
+          intros y H.
+          unfold sg_op.
+          vec_index_equiv j jc.
+          rewrite Vnth_map2.
+          destruct f_mon.
+          unfold mon_unit. rewrite Vnth_const.
+          apply rmonoid_left_id.
+          apply Vforall_nth, H.
+        +
+          intros y H.
+          unfold sg_op.
+          vec_index_equiv j jc.
+          rewrite Vnth_map2.
+          destruct f_mon.
+          unfold mon_unit. rewrite Vnth_const.
+          apply rmonoid_right_id.
+          apply Vforall_nth, H.
+      Qed.
 
-          assert(@sg_P A P (Vhead a))
-            by apply Vforall_Vhead, Hx.
-          assert(@sg_P A P (Vhead b))
-            by apply Vforall_Vhead, Hy.
-          assert(@sg_P (vector A n) (@Vforall A P n) (Vtail a))
-            by apply Vforall_Vtail, Hx.
-          assert(@sg_P (vector A n) (@Vforall A P n) (Vtail b))
-            by apply Vforall_Vtail, Hy.
+      Global Instance VecCommutativeRMonoidMap2
+             {f_mon: @CommutativeRMonoid A Ae f z P}
+        :
+          @CommutativeRMonoid
+            (vector A n)
+            (=)
+            (Vmap2 f (n:=n))
+            (Vconst z n)
+            (Vforall P (n:=n)).
+      Proof.
+        split.
+        -
+          apply VecRMonoidMap2.
+        -
+          intros a b Hx Hy.
+          unfold sg_op.
+          induction n.
+          +
+            dep_destruct a.
+            dep_destruct b.
+            reflexivity.
+          +
+            simpl.
+            rewrite Vcons_to_Vcons_reord.
+            destruct f_mon.
 
-          rewrite rcommutativity; try assumption.
-          rewrite <- IHn; try assumption.
-          rewrite Vcons_to_Vcons_reord.
-          reflexivity.
-    Admitted.
+            assert(@sg_P A P (Vhead a))
+              by apply Vforall_Vhead, Hx.
+            assert(@sg_P A P (Vhead b))
+              by apply Vforall_Vhead, Hy.
+
+            assert(@sg_P (vector A n0) (@Vforall A P n0) (Vtail a))
+              by apply Vforall_Vtail, Hx.
+            assert(@sg_P (vector A n0) (@Vforall A P n0) (Vtail b))
+              by apply Vforall_Vtail, Hy.
+
+
+            rewrite rcommutativity; try assumption.
+            rewrite <- IHn0; try assumption.
+            rewrite Vcons_to_Vcons_reord.
+            reflexivity.
+      Qed.
+
+    End VecMap2CommutativeRMonoid.
 
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
