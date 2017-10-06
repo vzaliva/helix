@@ -2251,7 +2251,7 @@ Section SigmaHCOLRewritingRules.
         set (rhs := Vfold_left_rev f _ _).
         set (lhs := Vfold_right _ _ _).
 
-        assert(tmd: forall t, t < m * n -> t / m < n).
+        assert(tmdn: forall t, t < m * n -> t / m < n).
         {
           intros t H.
           apply Nat.div_lt_upper_bound; auto.
@@ -2272,7 +2272,7 @@ Section SigmaHCOLRewritingRules.
         remember (Vbuild (λ (z : nat) (zi : z < n), Vfold_right f (gen z zi) uf_zero)) as lcols.
         assert(CP: Vforall P lcols).
         {
-          clear rhs lhs tmd tmm.
+          clear rhs lhs tmdn tmm.
           subst lcols.
           apply Vforall_Vbuild.
           intros i ip.
@@ -2288,7 +2288,7 @@ Section SigmaHCOLRewritingRules.
         pose (rnorm := Vfold_right f (Vbuild
                                         (fun (t:nat) (it:t < (m*n)) =>
                                            @Vnth CarrierA m
-                                                 (gen (t/m) (tmd t it))
+                                                 (gen (t/m) (tmdn t it))
                                                  (t mod m)
                                                  (tmm t it)
                                         )
@@ -2305,7 +2305,7 @@ Section SigmaHCOLRewritingRules.
             crush.
             destruct (Vbuild _).
             crush.
-            specialize (tmd 0 (Nat.lt_0_succ n)).
+            specialize (tmdn 0 (Nat.lt_0_succ n)).
             nat_lt_0_contradiction.
           -
             dep_destruct lcols.
@@ -2326,7 +2326,7 @@ Section SigmaHCOLRewritingRules.
             simpl in CP.
             destruct CP as [Ph Px].
 
-            assert(tmd' : forall t : nat, t < m * n → t / m < n).
+            assert(tmdn' : forall t : nat, t < m * n → t / m < n).
             {
               intros t H.
               apply Nat.div_lt_upper_bound; auto.
@@ -2345,7 +2345,7 @@ Section SigmaHCOLRewritingRules.
             }
 
             specialize (IHn gen' Upoz' x).
-            rewrite IHn with (tmd:=tmd') (tmm:=tmm');
+            rewrite IHn with (tmdn:=tmdn') (tmm:=tmm');
               (rewrite Vbuild_cons in Heqlcols;
               apply Vcons_eq_elim in Heqlcols;
               destruct Heqlcols as [Hh Hx]).
@@ -2354,10 +2354,10 @@ Section SigmaHCOLRewritingRules.
               unfold gen'.
               subst h; remember (gen 0 (Nat.lt_0_succ n)) as h.
               remember (Vbuild (λ (t : nat) (it : t < m * n),
-                                Vnth (gen (S (t / m)) (lt_n_S (tmd' t it))) (tmm' t it))) as t.
+                                Vnth (gen (S (t / m)) (lt_n_S (tmdn' t it))) (tmm' t it))) as t.
 
               remember (Vbuild
-                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmd t0 it)) (tmm t0 it))) as ht.
+                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmdn t0 it)) (tmm t0 it))) as ht.
               assert (F: m * S n ≡ m + m * n) by lia.
               assert(C:m * S n ≡ m + m*n) by omega.
               clear F. (*TODO: weird shit. cleanup later *)
@@ -2427,8 +2427,8 @@ Section SigmaHCOLRewritingRules.
                     }
 
                     (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
-                    generalize (lt_n_S (tmd' (i - m) (Vnth_app_aux (m * n) ip l))) as lc.
-                    generalize (tmd i (Vnth_cast_aux C ip)) as rc.
+                    generalize (lt_n_S (tmdn' (i - m) (Vnth_app_aux (m * n) ip l))) as lc.
+                    generalize (tmdn i (Vnth_cast_aux C ip)) as rc.
                     intros rc lc.
                     remember (S ((i - m) / m)) as Q.
                     rewrite E in HeqQ.
@@ -2453,7 +2453,7 @@ Section SigmaHCOLRewritingRules.
 
                     (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
                     generalize (Nat.lt_0_succ n) as rc.
-                    generalize (tmd i (Vnth_cast_aux C ip)) as lc.
+                    generalize (tmdn i (Vnth_cast_aux C ip)) as lc.
                     intros lc rc.
                     assert (E: i/m ≡ 0) by apply Nat.div_small, g.
                     remember (i/m) as Q.
@@ -2477,13 +2477,33 @@ Section SigmaHCOLRewritingRules.
               apply Px.
         }
 
+
+        assert(tmn: forall t,t < m * n -> t mod n < n).
+        {
+          intros t H.
+          apply NPeano.Nat.mod_upper_bound.
+          destruct n; auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
+
+        assert(tndm: forall t, t < m * n -> t / n < m).
+        {
+          intros t H.
+          apply Nat.div_lt_upper_bound; auto.
+          destruct n;auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+          rewrite Nat.mul_comm.
+          apply H.
+        }
+
         (* linear shaped equivalent of LHS *)
         pose (lnorm := Vfold_right f (Vbuild
                                         (fun (t:nat) (it:t < (m*n)) =>
                                            @Vnth CarrierA m
-                                                 (gen (t/m) (tmd t it))
-                                                 (t mod m)
-                                                 (tmm t it)
+                                                 (gen (t mod n) (tmn t it))
+                                                 (t/n) (tndm t it)
                                         )
                                      ) uf_zero ).
 
@@ -2502,6 +2522,7 @@ Section SigmaHCOLRewritingRules.
         }
 
         rewrite NR, NL.
+        (* TODO: prove that rnorm and lnorm are equaul being permutations *)
         reflexivity.
     Qed.
 
