@@ -919,11 +919,36 @@ Proof.
   apply E.
 Qed.
 
-Lemma Vforall_Vconst {A:Type} {n:nat} {z:A} {P:A->Prop}: P z -> Vforall P (Vconst z n).
+Lemma Vforall_Vconst
+      {A: Type}
+      {n: nat}
+      {z: A}
+      {P: A->Prop}:
+  P z -> Vforall P (Vconst z n).
 Proof.
   intros Pz.
   apply Vforall_nth_intro.
   intros i ip.
   rewrite Vnth_const.
   apply Pz.
+Qed.
+
+Lemma Vforall_Vmap2
+      {A: Type}
+      {n: nat}
+      {P: A->Prop}
+      {f: A->A->A}
+      (C: forall x y : A, P x -> P y -> P (f x y))
+      {a b: vector A n}
+      (PA: Vforall P a)
+      (PB: Vforall P b)
+  :
+    Vforall P (Vmap2 f a b).
+Proof.
+  apply Vforall_nth_intro.
+  intros i ip.
+  rewrite Vnth_map2.
+  apply C.
+  apply Vforall_nth, PA.
+  apply Vforall_nth, PB.
 Qed.
