@@ -1,4 +1,4 @@
-
+q
 Global Generalizable All Variables.
 
 Require Import VecUtil.
@@ -1922,6 +1922,31 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+
+    (*Global Instance Vforall_SgPred {n:nat} (P:SgPred CarrierA):
+      SgPred (vector CarrierA n) := Vforall P (n:=n).
+
+    Global Instance Vmap2_SgOp {n:nat} (f:SgOp CarrierA):
+      SgOp (vector CarrierA n) := @Vmap2 _ _ _ f n.
+     *)
+    Global Instance VecCommutativeRMonoid
+           {n:nat}
+           `{Ve: Equiv (vector CarrierA n)}
+           `{z: MonUnit CarrierA}
+           `{f: SgOp CarrierA}
+           `{P: SgPred CarrierA}
+           `{f_mon: @CommutativeRMonoid CarrierA CarrierAe f z P}
+      :
+        @CommutativeRMonoid
+          (vector CarrierA n)
+          Ve
+          (Vmap2 f (n:=n))
+          (Vconst z n)
+          (Vforall P (n:=n)).
+    Proof.
+    Admitted.
+
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -2359,11 +2384,30 @@ Section SigmaHCOLRewritingRules.
               apply Px.
         }
 
-        assert(NL: lhs = norm).
+        (* linear shaped equivalent of LHS *)
+        pose (lnorm := Vfold_right f (Vbuild
+                                        (fun (t:nat) (it:t < (m*n)) =>
+                                           @Vnth CarrierA m
+                                                 (gen (t/m) (tmd t it))
+                                                 (t mod m)
+                                                 (tmm t it)
+                                        )
+                                     ) uf_zero ).
+
+        assert(NL: lhs = lnorm).
         {
-          subst lhs norm.
-          clear rhs NR.
-          admit.
+          subst lhs lnorm.
+          clear rhs NR Heqlcols CP lcols.
+
+          unshelve rewrite @Vfold_right_left_rev_under_P.
+          -
+            exact (Vforall P (n:=m)).
+          -
+            admit.
+          -
+            exact (VecCommutativeRMonoid (n:=m)).
+          -
+            apply Vforall_Vbuild, Upoz.
         }
 
         rewrite NR, NL.
