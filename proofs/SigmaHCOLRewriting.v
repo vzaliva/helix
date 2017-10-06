@@ -1782,10 +1782,10 @@ Section SigmaHCOLRewritingRules.
 
     Lemma Vfold_right_under_P
           {A: Type} `{Ae: Equiv A}
-          `{z: MonUnit A}
-          `{f: SgOp A}
-          `{P: SgPred A}
-          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          {z: MonUnit A}
+          {f: SgOp A}
+          (P: SgPred A)
+          {f_mon: @CommutativeRMonoid _ _ f z P}
           {n:nat}
           (v:vector A n):
       Vforall P v → P (Vfold_right f v z).
@@ -1806,10 +1806,10 @@ Section SigmaHCOLRewritingRules.
 
     Lemma Vfold_right_left_rev_under_P
           {A: Type} `{Ae: Equiv A}
-          `{z: MonUnit A}
-          `{f: SgOp A}
-          `{P: SgPred A}
-          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          {z: MonUnit A}
+          {f: SgOp A}
+          (P: SgPred A)
+          {f_mon: @CommutativeRMonoid _ _ f z P}
           {n:nat}
           (v:vector A n)
           (U: Vforall P v):
@@ -1824,7 +1824,7 @@ Section SigmaHCOLRewritingRules.
         destruct f_mon eqn:F.
         apply rcommutativity.
         simpl in *.
-        apply Vfold_right_under_P.
+        apply (Vfold_right_under_P P).
         apply U.
         apply U.
         apply U.
@@ -1832,12 +1832,12 @@ Section SigmaHCOLRewritingRules.
 
     Lemma VFold_right_split_under_P
           {A: Type}
-          `{Ae: Equiv A}
+          {Ae: Equiv A}
           {m n : nat}
-          `{z: MonUnit A}
-          `{f: SgOp A}
-          `{P: SgPred A}
-          `{f_mon: @CommutativeRMonoid _ _ f z P}
+          {z: MonUnit A}
+          {f: SgOp A}
+          (P: SgPred A)
+          {f_mon: @CommutativeRMonoid _ _ f z P}
           (h : vector A m)
           (t : vector A n)
           (Uh: Vforall P h)
@@ -1865,7 +1865,7 @@ Section SigmaHCOLRewritingRules.
           destruct f_mon eqn:F.
           destruct comrmonoid_rmon.
           apply rmonoid_left_id.
-          apply Vfold_right_under_P.
+          apply (Vfold_right_under_P P).
           apply Uht.
         +
           assert(C:S m + n ≡ S (m + n)) by omega.
@@ -1890,7 +1890,7 @@ Section SigmaHCOLRewritingRules.
               apply Vforall_Vhead.
               apply Uht.
             --
-              apply Vfold_right_under_P.
+              apply (Vfold_right_under_P P).
               apply Vforall_nth_intro.
               intros i ip.
               assert(ip': i < m + n) by lia.
@@ -1899,7 +1899,7 @@ Section SigmaHCOLRewritingRules.
               apply Vforall_nth.
               apply Uht.
             --
-              apply Vfold_right_under_P.
+              apply (Vfold_right_under_P P).
               apply Vforall_nth_intro.
               intros i ip.
               assert(ip': i + m < m + n) by lia.
@@ -1926,20 +1926,49 @@ Section SigmaHCOLRewritingRules.
     Global Instance VecCommutativeRMonoidMap2
            {n:nat}
            {A: Type}
-           `{Ae: Equiv A}
-           `{Ve: Equiv (vector A n)}
-           `{z: MonUnit A}
-           `{f: SgOp A}
-           `{P: SgPred A}
-           `{f_mon: @CommutativeRMonoid A Ae f z P}
+           {Ae : Equiv A}
+           {As : @Setoid A Ae}
+           {z: MonUnit A}
+           {f: SgOp A}
+           (P: SgPred A)
+           {f_mon: @CommutativeRMonoid A Ae f z P}
       :
         @CommutativeRMonoid
           (vector A n)
-          Ve
+          (=)
           (Vmap2 f (n:=n))
           (Vconst z n)
           (Vforall P (n:=n)).
     Proof.
+      split.
+      -
+        admit.
+      -
+        intros a b Hx Hy.
+        unfold sg_op.
+        induction n.
+        +
+          dep_destruct a.
+          dep_destruct b.
+          reflexivity.
+        +
+          simpl.
+          rewrite Vcons_to_Vcons_reord.
+          destruct f_mon.
+
+          assert(@sg_P A P (Vhead a))
+            by apply Vforall_Vhead, Hx.
+          assert(@sg_P A P (Vhead b))
+            by apply Vforall_Vhead, Hy.
+          assert(@sg_P (vector A n) (@Vforall A P n) (Vtail a))
+            by apply Vforall_Vtail, Hx.
+          assert(@sg_P (vector A n) (@Vforall A P n) (Vtail b))
+            by apply Vforall_Vtail, Hy.
+
+          rewrite rcommutativity; try assumption.
+          rewrite <- IHn; try assumption.
+          rewrite Vcons_to_Vcons_reord.
+          reflexivity.
     Admitted.
 
 
@@ -2183,7 +2212,7 @@ Section SigmaHCOLRewritingRules.
           generalize dependent (gen i ip).
           intros v Upoz.
           clear i ip gen.
-          apply Vfold_right_under_P.
+          apply (Vfold_right_under_P P).
           apply Upoz.
         }
 
@@ -2201,7 +2230,7 @@ Section SigmaHCOLRewritingRules.
         {
           subst rhs rnorm.
           clear lhs.
-          rewrite Vfold_right_left_rev_under_P; try apply CP.
+          rewrite (Vfold_right_left_rev_under_P P); try apply CP.
 
           induction n.
           -
@@ -2269,7 +2298,7 @@ Section SigmaHCOLRewritingRules.
                                (@Vcast _ _ ht _ C)
                                uf_zero).
               replace (Vcast ht C) with (Vapp h t).
-              apply VFold_right_split_under_P.
+              apply (VFold_right_split_under_P P).
               *
                 subst h.
                 apply Upoz.
@@ -2395,13 +2424,11 @@ Section SigmaHCOLRewritingRules.
           subst lhs lnorm.
           clear rhs NR Heqlcols CP lcols.
 
-          unshelve rewrite @Vfold_right_left_rev_under_P.
-          -
-            exact (Vforall P (n:=m)).
+          setoid_rewrite Vfold_right_to_Vfold_right_reord.
+          rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
+          setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
           -
             admit.
-          -
-            exact (VecCommutativeRMonoidMap2 (n:=m)).
           -
             apply Vforall_Vbuild, Upoz.
         }
