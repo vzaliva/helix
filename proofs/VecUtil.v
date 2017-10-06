@@ -918,3 +918,12 @@ Proof.
   congruence.
   apply E.
 Qed.
+
+Lemma Vforall_Vconst {A:Type} {n:nat} {z:A} {P:A->Prop}: P z -> Vforall P (Vconst z n).
+Proof.
+  intros Pz.
+  apply Vforall_nth_intro.
+  intros i ip.
+  rewrite Vnth_const.
+  apply Pz.
+Qed.
