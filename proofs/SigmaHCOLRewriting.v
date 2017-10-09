@@ -2515,9 +2515,78 @@ Section SigmaHCOLRewritingRules.
           setoid_rewrite Vfold_right_to_Vfold_right_reord.
           rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
           setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
+
+
+          (*
+          remember (Vfold_right _ (Vbuild gen) _) as lrows.
           -
-            induction m.
+            induction n.
             +
+              (* n=0 *)
+              subst lrows.
+              simpl.
+
+              remember (m * 0) as Q.
+              rewrite Nat.mul_0_r in HeqQ.
+              subst Q.
+              rewrite Vbuild_0.
+              simpl.
+              induction m.
+              *
+                crush.
+              *
+                simpl.
+                rewrite IHm.
+                destruct f_mon, comrmonoid_rmon.
+                apply rmonoid_left_id.
+                apply mon_restriction.
+                crush.
+                crush.
+            +
+              (* n=S n0 *)
+
+              pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
+
+              assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
+              {
+                intros j jc.
+                subst gen'.
+                apply Vforall_nth_intro.
+                intros i ip.
+                specialize (Upoz (S j) (lt_n_S jc)).
+                apply Vforall_nth with (ip:=ip) in Upoz.
+                apply Upoz.
+              }
+
+              assert(tmn': forall t : nat, t < m * n → t mod n < n).
+              admit.
+
+              assert(tndm' : forall t : nat, t < m * n → t / n < m).
+              admit.
+
+              specialize (IHn gen' Upoz' tmn' tndm').
+              repeat rewrite Vbuild_cons.
+              repeat rewrite Vfold_right_cons.
+              erewrite IHn.
+              *
+                admit.
+              *
+                subst x.
+                unfold gen'.
+                induction m.
+                --
+                  simpl.
+                  induction n ; [crush | reflexivity].
+                --
+                  rewrite Vbuild_cons.
+                  rewrite Vfold_right_cons.
+                  rewrite <- IHm.
+
+              *)
+
+          remember (Vfold_right _ (Vbuild gen) _) as lrows.
+          induction m.
+          +
               simpl.
               dep_destruct (Vbuild gen); crush.
             +
@@ -2540,10 +2609,18 @@ Section SigmaHCOLRewritingRules.
               assert(tndm' : forall t : nat, t < m * n → t / n < m).
               admit.
 
-              specialize (IHm gen' Upoz' tmn' tndm').
+              dep_destruct lrows.
+              specialize (IHm gen' Upoz' tmn' tndm' x).
               simpl.
-              (* rewrite Vfold_right_Vmap. *)
-              admit.
+              rewrite_clear IHm.
+              *
+                admit.
+              *
+                rewrite VSn_eq in Heqlrows.
+                Veqtac.
+                subst x.
+
+
           -
             apply Vforall_Vbuild, Upoz.
         }
