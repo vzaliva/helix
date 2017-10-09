@@ -2510,18 +2510,47 @@ Section SigmaHCOLRewritingRules.
         assert(NL: lhs = lnorm).
         {
           subst lhs lnorm.
-          clear rhs NR Heqlcols CP lcols.
+          clear rhs NR Heqlcols CP lcols rnorm tmm tmdn.
 
           setoid_rewrite Vfold_right_to_Vfold_right_reord.
           rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
           setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
           -
-            admit.
+            induction m.
+            +
+              simpl.
+              dep_destruct (Vbuild gen); crush.
+            +
+              pose (gen' := (fun p (pc:p<n) => Vtail (gen p pc))).
+
+              assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
+              {
+                intros j jc.
+                subst gen'.
+                apply Vforall_nth_intro.
+                intros i ip.
+                rewrite Vnth_tail.
+                eapply Vforall_nth in Upoz.
+                apply Upoz.
+              }
+
+              assert(tmn' : forall t : nat, t < m * n → t mod n < n).
+              admit.
+
+              assert(tndm' : forall t : nat, t < m * n → t / n < m).
+              admit.
+
+              specialize (IHm gen' Upoz' tmn' tndm').
+              simpl.
+              (* rewrite Vfold_right_Vmap. *)
+              admit.
           -
             apply Vforall_Vbuild, Upoz.
         }
 
         rewrite NR, NL.
+        clear  rhs lhs NR NL lcols Heqlcols CP.
+        subst lnorm rnorm.
         (* TODO: prove that rnorm and lnorm are equaul being permutations *)
         reflexivity.
     Qed.
