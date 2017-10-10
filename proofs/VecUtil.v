@@ -952,3 +952,22 @@ Proof.
   apply Vforall_nth, PA.
   apply Vforall_nth, PB.
 Qed.
+
+Lemma Vtail_1:
+  forall {A:Type} (x:vector A 1), (Vtail x = @Vnil A).
+Proof.
+  intros A x.
+  dep_destruct x.
+  dep_destruct x0.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma V0_V0_eq:
+  forall {A:Type} (x y:vector A 0), x=y.
+Proof.
+  intros A x y.
+  dep_destruct x.
+  dep_destruct y.
+  reflexivity.
+Qed.
