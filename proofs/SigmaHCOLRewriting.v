@@ -2062,6 +2062,17 @@ Section SigmaHCOLRewritingRules.
         admit.
     Admitted.
 
+    Lemma Vbuild_Vapp
+          {A: Type}
+          {n m: nat}
+          {f: forall (t:nat), (t<n+m) -> A}
+      : Vbuild f ≡
+               @Vapp A n m
+               (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
+               (Vbuild (fun t (tc:t<m) => f t (Nat.lt_lt_add_l t m n tc))).
+    Proof.
+    Admitted.
+
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
@@ -2593,7 +2604,57 @@ Section SigmaHCOLRewritingRules.
               simpl.
               rewrite_clear IHm.
               *
-                admit.
+                rewrite Vbuild_Vapp.
+                rewrite <- VFold_right_split_under_P.
+                --
+                  rewrite VSn_eq in Heqlrows.
+                  Veqtac.
+                  clear x H1.
+                  replace (Vfold_right f
+                                       (Vbuild
+                                          (λ (t : nat) (tc : t < n),
+                                           Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
+                                                (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) uf_zero) with h.
+
+                  replace (Vfold_right f
+       (Vbuild
+          (λ (t : nat) (it : t < m * n), Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)))
+       uf_zero) with (Vfold_right f
+       (Vbuild
+          (λ (t : nat) (tc : t < m * n),
+           Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_l t (m * n) n tc)))
+             (tndm t (Nat.lt_lt_add_l t (m * n) n tc)))) uf_zero).
+                  reflexivity.
+                  ++
+
+                    replace (fun (t : nat) (tc : t < m * n) => Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_l t (m * n) n tc))) (tndm t (Nat.lt_lt_add_l t (m * n) n tc)))
+                      with
+                        (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)).
+                    reflexivity.
+                    extensionality j.
+                    extensionality jc.
+                    unfold gen'.
+                    rewrite Vnth_tail.
+                    replace (tmn _ _) with (tmn' j jc) by apply proof_irrelevance.
+
+                    generalize (lt_n_S (tndm' j jc)).
+                    generalize (tndm j (Nat.lt_lt_add_l j (m * n) n jc)).
+                    intros i0 i1.
+                    admit.
+                  ++
+                    admit.
+                --
+                  typeclasses eauto.
+                --
+                  apply Vforall_Vbuild.
+                  intros i ip.
+                  apply Vforall_nth.
+                  auto.
+                --
+                  apply Vforall_Vbuild.
+                  intros i ip.
+                  apply Vforall_nth.
+                  auto.
               *
                 rewrite VSn_eq in Heqlrows.
                 Veqtac.
