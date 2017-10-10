@@ -2039,6 +2039,29 @@ Section SigmaHCOLRewritingRules.
 
     End VecMap2CommutativeRMonoid.
 
+    Lemma Vtail_Vfold_right_Vmap2
+          {A:Type}
+          (m n : nat)
+          (z : A)
+          (f : A -> A -> A)
+          (gen : ∀ p : nat, p < n → vector A (S m)):
+      Vtail
+        (Vfold_right
+           (λ v1 v2 : vector A (S m),
+                      Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
+           (Vbuild gen) (Vcons z (Vconst z m)))
+        ≡ Vfold_right (Vmap2 f (n:=m)) (Vbuild (λ (p : nat) (pc : p < n), Vtail (gen p pc)))
+        (Vconst z m).
+    Proof.
+      induction m.
+      -
+        simpl.
+        apply V0_V0_eq.
+      -
+        simpl.
+        admit.
+    Admitted.
+
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
@@ -2328,6 +2351,7 @@ Section SigmaHCOLRewritingRules.
 
             assert(tmdn' : forall t : nat, t < m * n → t / m < n).
             {
+              clear_all.
               intros t H.
               apply Nat.div_lt_upper_bound; auto.
               destruct m;auto.
@@ -2337,6 +2361,7 @@ Section SigmaHCOLRewritingRules.
 
             assert(tmm': forall t,t < m * n -> t mod m < m).
             {
+              clear_all.
               intros t H.
               apply NPeano.Nat.mod_upper_bound.
               destruct m; auto.
@@ -2516,74 +2541,6 @@ Section SigmaHCOLRewritingRules.
           rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
           setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
 
-
-          (*
-          remember (Vfold_right _ (Vbuild gen) _) as lrows.
-          -
-            induction n.
-            +
-              (* n=0 *)
-              subst lrows.
-              simpl.
-
-              remember (m * 0) as Q.
-              rewrite Nat.mul_0_r in HeqQ.
-              subst Q.
-              rewrite Vbuild_0.
-              simpl.
-              induction m.
-              *
-                crush.
-              *
-                simpl.
-                rewrite IHm.
-                destruct f_mon, comrmonoid_rmon.
-                apply rmonoid_left_id.
-                apply mon_restriction.
-                crush.
-                crush.
-            +
-              (* n=S n0 *)
-
-              pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
-
-              assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
-              {
-                intros j jc.
-                subst gen'.
-                apply Vforall_nth_intro.
-                intros i ip.
-                specialize (Upoz (S j) (lt_n_S jc)).
-                apply Vforall_nth with (ip:=ip) in Upoz.
-                apply Upoz.
-              }
-
-              assert(tmn': forall t : nat, t < m * n → t mod n < n).
-              admit.
-
-              assert(tndm' : forall t : nat, t < m * n → t / n < m).
-              admit.
-
-              specialize (IHn gen' Upoz' tmn' tndm').
-              repeat rewrite Vbuild_cons.
-              repeat rewrite Vfold_right_cons.
-              erewrite IHn.
-              *
-                admit.
-              *
-                subst x.
-                unfold gen'.
-                induction m.
-                --
-                  simpl.
-                  induction n ; [crush | reflexivity].
-                --
-                  rewrite Vbuild_cons.
-                  rewrite Vfold_right_cons.
-                  rewrite <- IHm.
-
-              *)
-
           remember (Vfold_right _ (Vbuild gen) _) as lrows.
           induction m.
           +
@@ -2604,10 +2561,32 @@ Section SigmaHCOLRewritingRules.
               }
 
               assert(tmn' : forall t : nat, t < m * n → t mod n < n).
-              admit.
+              {
+                clear_all.
+                intros t H.
+                apply modulo_smaller_than_devisor.
+                destruct n.
+                rewrite Nat.mul_0_r in H.
+                nat_lt_0_contradiction.
+                auto.
+              }
 
               assert(tndm' : forall t : nat, t < m * n → t / n < m).
-              admit.
+              {
+                clear_all.
+                intros t H.
+                destruct (eq_nat_dec n 0).
+                -
+                  dep_destruct n.
+                  rewrite Nat.mul_0_r in H.
+                  nat_lt_0_contradiction.
+                  crush.
+                -
+                  apply Nat.div_lt_upper_bound.
+                  assumption.
+                  rewrite Nat.mul_comm.
+                  apply H.
+              }
 
               dep_destruct lrows.
               specialize (IHm gen' Upoz' tmn' tndm' x).
@@ -2619,10 +2598,11 @@ Section SigmaHCOLRewritingRules.
                 rewrite VSn_eq in Heqlrows.
                 Veqtac.
                 subst x.
-
-
-          -
-            apply Vforall_Vbuild, Upoz.
+                clear h H0.
+                unfold gen'.
+                apply Vtail_Vfold_right_Vmap2.
+            +
+              apply Vforall_Vbuild, Upoz.
         }
 
         rewrite NR, NL.
