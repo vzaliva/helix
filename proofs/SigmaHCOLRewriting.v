@@ -2039,6 +2039,51 @@ Section SigmaHCOLRewritingRules.
 
     End VecMap2CommutativeRMonoid.
 
+    Fact Vhead_Vfold_right_Vmap2
+         {A:Type}
+         (m n : nat)
+         (z : A)
+         (f : A -> A -> A)
+         (gen : forall p : nat, p < n → vector A (S m))
+         (tmn : ∀ t : nat, t < S m * n → t mod n < n)
+          (tndm : ∀ t : nat, t < S m * n → t / n < S m)
+      :
+        Vhead
+          (Vfold_right
+             (λ v1 v2 : vector A (S m),
+                        Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
+             (Vbuild gen) (Vcons z (Vconst z m)))
+          ≡ Vfold_right f
+          (Vbuild
+             (λ (t : nat) (tc : t < n),
+              Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
+                   (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) z.
+    Proof.
+      replace (fun v1 v2 : vector A (S m) => Vcons (f (Vhead v1) (Vhead v2)) (@Vmap2 A A A f m (Vtail v1) (Vtail v2)))
+        with (@Vmap2 A A A f (S m)) by reflexivity.
+      replace (Vcons z (Vconst z m)) with (Vconst z (S m)) by reflexivity.
+
+      replace (fun (t : nat) (tc : t < n) =>
+          Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
+               (tndm t (Nat.lt_lt_add_r t n (m * n) tc))) with
+      (fun (t : nat) (tc : t < n) =>
+          Vhead (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))).
+      -
+        clear tndm.
+        admit.
+      -
+        extensionality t.
+        extensionality tc.
+        generalize (tndm t (Nat.lt_lt_add_r t n (m * n) tc)) as zc.
+        intros zc.
+        remember (t/n) as Q.
+        rewrite Nat.div_small in HeqQ by apply tc.
+        subst Q.
+        rewrite Vnth_0.
+        reflexivity.
+    Qed.
+
+
     Lemma Vtail_Vfold_right_Vmap2
           {A:Type}
           (m n : nat)
@@ -2062,27 +2107,6 @@ Section SigmaHCOLRewritingRules.
         admit.
     Admitted.
 
-    Fact Vhead_Vfold_right_Vmap2
-          {A:Type}
-          (m n : nat)
-          (z : A)
-          (f : A -> A -> A)
-          (gen : forall p : nat, p < n → vector A (S m))
-          (tmn : ∀ t : nat, t < S m * n → t mod n < n)
-          (tndm : ∀ t : nat, t < S m * n → t / n < S m)
-      :
-        Vhead
-          (Vfold_right
-             (λ v1 v2 : vector A (S m),
-                        Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
-             (Vbuild gen) (Vcons z (Vconst z m)))
-          ≡ Vfold_right f
-          (Vbuild
-             (λ (t : nat) (tc : t < n),
-              Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
-                   (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) z.
-    Proof.
-    Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
