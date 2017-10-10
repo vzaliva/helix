@@ -2084,25 +2084,6 @@ Section SigmaHCOLRewritingRules.
     Proof.
     Admitted.
 
-    Fact add_lt_lt
-         {n m t : nat}:
-      (t < m) ->  (t + n < n + m).
-    Proof.
-      omega.
-    Qed.
-
-    Lemma Vbuild_Vapp
-          {A: Type}
-          {n m: nat}
-          {f: forall (t:nat), (t<n+m) -> A}
-      : Vbuild f ≡
-               @Vapp A n m
-               (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
-               (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
-    Proof.
-    Admitted.
-
-
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
