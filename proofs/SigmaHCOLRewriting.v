@@ -2062,6 +2062,14 @@ Section SigmaHCOLRewritingRules.
         admit.
     Admitted.
 
+
+    Fact add_lt_lt
+         {n m t : nat}:
+      (t < m) ->  (t + n < n + m).
+    Proof.
+      omega.
+    Qed.
+
     Lemma Vbuild_Vapp
           {A: Type}
           {n m: nat}
@@ -2069,7 +2077,7 @@ Section SigmaHCOLRewritingRules.
       : Vbuild f ≡
                @Vapp A n m
                (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
-               (Vbuild (fun t (tc:t<m) => f t (Nat.lt_lt_add_l t m n tc))).
+               (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
     Proof.
     Admitted.
 
@@ -2609,39 +2617,44 @@ Section SigmaHCOLRewritingRules.
                 --
                   rewrite VSn_eq in Heqlrows.
                   Veqtac.
-                  clear x H1.
-                  replace (Vfold_right f
-                                       (Vbuild
-                                          (λ (t : nat) (tc : t < n),
-                                           Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
-                                                (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) uf_zero) with h.
-
-                  replace (Vfold_right f
-       (Vbuild
-          (λ (t : nat) (it : t < m * n), Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)))
-       uf_zero) with (Vfold_right f
-       (Vbuild
-          (λ (t : nat) (tc : t < m * n),
-           Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_l t (m * n) n tc)))
-             (tndm t (Nat.lt_lt_add_l t (m * n) n tc)))) uf_zero).
-                  reflexivity.
+                  replace (Vfold_right f (Vbuild (fun (t : nat) (tc : t < n) => Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc))) (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) uf_zero) with h.
+                  replace (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it))) with (Vbuild (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc)))).
                   ++
-
-                    replace (fun (t : nat) (tc : t < m * n) => Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_l t (m * n) n tc))) (tndm t (Nat.lt_lt_add_l t (m * n) n tc)))
-                      with
-                        (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)).
+                    reflexivity.
+                  ++
+                    replace  (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc))) with (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)).
                     reflexivity.
                     extensionality j.
                     extensionality jc.
                     unfold gen'.
                     rewrite Vnth_tail.
-                    replace (tmn _ _) with (tmn' j jc) by apply proof_irrelevance.
-
                     generalize (lt_n_S (tndm' j jc)).
-                    generalize (tndm j (Nat.lt_lt_add_l j (m * n) n jc)).
+                    generalize (tndm (j + n) (add_lt_lt jc)).
                     intros i0 i1.
-                    admit.
+                    remember ((j + n) / n) as Q.
+                    replace ((j + n) / n) with (S (j / n)) in HeqQ.
+                    subst Q.
+                    replace i1 with i0 by apply proof_irrelevance. clear i1.
+                    apply Vnth_arg_eq.
+                    **
+                      generalize (tmn' j jc).
+                      generalize (tmn (j + n) (add_lt_lt jc)).
+                      intros k0 k1.
+                      remember ((j + n) mod n) as Q.
+                      rewrite <- Nat.mul_1_l with (n:=n) in HeqQ at 1.
+                      rewrite Nat.mod_add in HeqQ.
+                      subst Q.
+                      replace k1 with k0 by apply proof_irrelevance. clear k1.
+                      reflexivity.
+                      crush.
+                    **
+                      rewrite <- Nat.mul_1_l with (n:=n) at 2.
+                      rewrite Nat.div_add with (a:=j) (b:=1) (c:=n).
+                      ring.
+                      crush.
                   ++
+                    subst h.
+                    clear x H1.
                     admit.
                 --
                   typeclasses eauto.
