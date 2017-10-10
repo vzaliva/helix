@@ -2062,6 +2062,27 @@ Section SigmaHCOLRewritingRules.
         admit.
     Admitted.
 
+    Fact Vhead_Vfold_right_Vmap2
+          {A:Type}
+          (m n : nat)
+          (z : A)
+          (f : A -> A -> A)
+          (gen : forall p : nat, p < n → vector A (S m))
+          (tmn : ∀ t : nat, t < S m * n → t mod n < n)
+          (tndm : ∀ t : nat, t < S m * n → t / n < S m)
+      :
+        Vhead
+          (Vfold_right
+             (λ v1 v2 : vector A (S m),
+                        Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
+             (Vbuild gen) (Vcons z (Vconst z m)))
+          ≡ Vfold_right f
+          (Vbuild
+             (λ (t : nat) (tc : t < n),
+              Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
+                   (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) z.
+    Proof.
+    Admitted.
 
     Fact add_lt_lt
          {n m t : nat}:
@@ -2654,8 +2675,8 @@ Section SigmaHCOLRewritingRules.
                       crush.
                   ++
                     subst h.
-                    clear x H1.
-                    admit.
+                    clear x H1 gen' Upoz' tmn' tndm'.
+                    apply Vhead_Vfold_right_Vmap2.
                 --
                   typeclasses eauto.
                 --
