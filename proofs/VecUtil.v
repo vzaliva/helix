@@ -8,7 +8,7 @@ Import VectorNotations.
 
 Require Import SpiralTactics.
 Require Import Spiral.
-
+Require Import Lia.
 
 Local Open Scope program_scope. (* for \circ notation *)
 Open Scope vector_scope.
@@ -432,6 +432,37 @@ Proof.
     intros i ip.
     rewrite Vbuild_nth.
     apply H.
+Qed.
+
+Lemma Vbuild_Vapp
+      {A: Type}
+      {n m: nat}
+      {f: forall (t:nat), (t<n+m) -> A}
+  : Vbuild f =
+           @Vapp A n m
+           (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
+           (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
+Proof.
+  apply Veq_nth.
+  intros i ip.
+  rewrite Vbuild_nth.
+  rewrite Vnth_app.
+  break_match.
+  -
+    rewrite Vbuild_nth.
+    generalize (@add_lt_lt n m (i - n) (@Vnth_app_aux n m i ip l)).
+    intros ic.
+    remember (i - n + n) as Q.
+    replace (i - n + n) with i in HeqQ.
+    subst Q.
+    replace ic with ip by apply proof_irrelevance.
+    reflexivity.
+    clear Q HeqQ ic f.
+    lia.
+  -
+    rewrite Vbuild_nth.
+    replace ip with (Nat.lt_lt_add_r i n m g) by apply proof_irrelevance.
+    reflexivity.
 Qed.
 
 Section Vunique.
