@@ -321,3 +321,10 @@ Proof.
   destruct M; crush.
   apply MZ.
 Qed.
+
+Lemma add_lt_lt
+     {n m t : nat}:
+  (t < m) ->  (t + n < n + m).
+Proof.
+  omega.
+Qed.
