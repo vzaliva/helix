@@ -2182,15 +2182,35 @@ Section SigmaHCOLRewritingRules.
         ≡ Vfold_right (Vmap2 f (n:=m)) (Vbuild (λ (p : nat) (pc : p < n), Vtail (gen p pc)))
         (Vconst z m).
     Proof.
-      induction m.
-      -
-        simpl.
-        apply V0_V0_eq.
-      -
-        simpl.
-        admit.
-    Admitted.
+      replace (fun v1 v2 : vector A (S m) => Vcons (f (Vhead v1) (Vhead v2)) (@Vmap2 A A A f m (Vtail v1) (Vtail v2)))
+        with (@Vmap2 A A A f (S m)) by reflexivity.
+      replace (Vcons z (Vconst z m)) with (Vconst z (S m)) by reflexivity.
 
+      induction n.
+      -
+        reflexivity.
+      -
+        pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
+
+        specialize (IHn gen' ).
+        setoid_rewrite Vbuild_cons at 2.
+        rewrite Vfold_right_cons.
+        replace (Vbuild (λ (i : nat) (ip : i < n), Vtail (gen (S i) (lt_n_S ip))))
+          with (Vbuild (λ (p : nat) (pc : p < n), Vtail (gen' p pc))) by reflexivity.
+
+        rewrite <- IHn. clear IHn.
+        subst gen'.
+
+        setoid_rewrite Vbuild_cons.
+        rewrite Vfold_right_cons.
+
+        apply Veq_nth.
+        intros i ip.
+        rewrite Vnth_tail.
+        rewrite 2!Vnth_map2.
+        rewrite 2!Vnth_tail.
+        reflexivity.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
