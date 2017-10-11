@@ -2813,6 +2813,34 @@ Section SigmaHCOLRewritingRules.
         clear  rhs lhs NR NL lcols Heqlcols CP.
         subst lnorm rnorm.
         (* TODO: prove that rnorm and lnorm are equaul being permutations *)
+
+        pose (mat := fun y (yc:y<n) x (xc:x<m) => Vnth (gen y yc) xc).
+
+        replace
+          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t mod n) (tmn t it)) (tndm t it)))
+          with
+            (Vbuild (fun (t : nat) (it : t < m * n) =>
+                       mat (t mod n) (tmn t it) (t/n) (tndm t it)
+            )) by reflexivity.
+
+        replace
+          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t / m) (tmdn t it)) (tmm t it)))
+          with
+            (Vbuild (fun (t : nat) (it : t < m * n) => mat (t / m) (tmdn t it) (t mod m) (tmm t it))) by reflexivity.
+
+        assert(Mpos: forall y (yc:y<n) x (xc:x<m), P (mat y yc x xc)).
+        {
+          intros y yc x xc.
+          unfold mat.
+          apply Vforall_nth.
+          apply Upoz.
+        }
+
+        generalize dependent mat.
+        intros mat Mpoz.
+        clear Upoz gen.
+
+
         reflexivity.
     Qed.
 
