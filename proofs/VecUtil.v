@@ -1,4 +1,3 @@
-Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics.
 Require Import Coq.omega.Omega.
 

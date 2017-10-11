@@ -2,7 +2,6 @@
 Require Import VecUtil.
 
 Require Import Coq.Arith.Arith.
-Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Program.Basics. (* for \circ notation *)
 Require Export Coq.Vectors.Vector.
 Require Import Omega.
