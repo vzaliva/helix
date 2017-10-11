@@ -2829,10 +2829,7 @@ Section SigmaHCOLRewritingRules.
         generalize dependent mat.
         intros mat Mpoz.
         clear Upoz gen.
-
-
-        reflexivity.
-    Qed.
+    Admitted.
 
 
     Global Instance max_Assoc:
@@ -2941,6 +2938,8 @@ Section SigmaHCOLRewritingRules.
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
     Proof.
       unfold ISumUnion.
+
+      (* TODO: see if I can get rid of proof_irreleance here *)
       replace (@sg_op_proper _ _ _ _) with (@rsg_op_proper CarrierA CarrierAe max zero NN
                                                            (@comrmonoid_rmon CarrierA CarrierAe max zero NN CommutativeRMonoid_max_NN)) by apply proof_irrelevance.
 
