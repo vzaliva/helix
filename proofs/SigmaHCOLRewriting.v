@@ -2129,13 +2129,8 @@ Section SigmaHCOLRewritingRules.
               generalize (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) as ic1.
               intros ic0 ic1.
               clear gen' tmn f z.
-
-              (*
-              remember (gen (n-n)) as Q.
-              remember (n-n) as Q1.
-              rewrite Nat.sub_diag in HeqQ1.
-               *)
-              admit.
+              revert ic0 ic1; simpl; rewrite Nat.sub_diag; intros ic0 ic1.
+              apply f_equal, le_unique.
           *
             extensionality t.
             extensionality tc.
@@ -2165,7 +2160,7 @@ Section SigmaHCOLRewritingRules.
         subst Q.
         rewrite Vnth_0.
         reflexivity.
-    Admitted.
+    Qed.
 
 
     Lemma Vtail_Vfold_right_Vmap2
