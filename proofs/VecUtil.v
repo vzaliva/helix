@@ -1007,3 +1007,27 @@ Proof.
   dep_destruct y.
   reflexivity.
 Qed.
+
+
+(* --- Some tactics --- *)
+
+
+(* Given a [Vnth x i0 ic0 = Vnth y i1 ic0] and a hypotheis [i0=i1] reduces goal to [x=y].
+TODO: See if could be generalized to [forall_n_lt_eq] *)
+Ltac Vnth_eq_index_to_val_eq :=
+  let lc := fresh in
+  let rc := fresh in
+  let Q := fresh in
+  let HeqQ := fresh in
+  match goal with
+  | [ H: ?i0 = ?i1 |- @Vnth ?t ?s ?v0 ?i0 ?ic0 = @Vnth ?t ?s ?v1 ?i1 ?ic1] =>
+    generalize ic0 as lc;
+    generalize ic1 as rc;
+    intros rc lc ;
+    remember i0 as Q eqn:HeqQ;
+    rewrite H in HeqQ;
+    subst Q;
+    rewrite (le_unique _ _ lc rc);
+    apply Vnth_arg_eq;
+    clear rc lc HeqQ
+  end.

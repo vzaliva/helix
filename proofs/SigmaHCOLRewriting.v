@@ -2568,17 +2568,10 @@ Section SigmaHCOLRewritingRules.
                       replace (i - m + 1 * m) with i by omega.
                       reflexivity.
                       apply MNZ.
+
                     }
 
-                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
-                    generalize (tmm' (i - m) (Vnth_app_aux (m * n) ip l)) as lc.
-                    generalize (tmm i (Vnth_cast_aux C ip)) as rc.
-                    intros rc lc.
-                    remember ((i - m) mod m) as Q.
-                    rewrite E in HeqQ.
-                    subst Q.
-                    rewrite (le_unique _ _ lc rc).
-                    apply Vnth_arg_eq. clear rc lc HeqQ.
+                    Vnth_eq_index_to_val_eq.
 
                     (* m ≢ 0 *)
                     assert (E: S ((i - m) / m) ≡ i / m).
@@ -2593,14 +2586,7 @@ Section SigmaHCOLRewritingRules.
                       reflexivity.
                     }
 
-                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
-                    generalize (lt_n_S (tmdn' (i - m) (Vnth_app_aux (m * n) ip l))) as lc.
-                    generalize (tmdn i (Vnth_cast_aux C ip)) as rc.
-                    intros rc lc.
-                    remember (S ((i - m) / m)) as Q.
-                    rewrite E in HeqQ.
-                    subst Q.
-                    apply f_equal, le_unique.
+                    forall_n_lt_eq.
                 --
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
@@ -2617,15 +2603,8 @@ Section SigmaHCOLRewritingRules.
                   ++
                     subst.
 
-                    (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
-                    generalize (Nat.lt_0_succ n) as rc.
-                    generalize (tmdn i (Vnth_cast_aux C ip)) as lc.
-                    intros lc rc.
                     assert (E: i/m ≡ 0) by apply Nat.div_small, g.
-                    remember (i/m) as Q.
-                    rewrite E in HeqQ.
-                    subst Q.
-                    apply f_equal, le_unique.
+                    forall_n_lt_eq.
               *
                 (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
                 remember (Vcast _ _) as ht'.
