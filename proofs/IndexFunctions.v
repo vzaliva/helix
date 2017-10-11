@@ -114,8 +114,7 @@ Proof.
   destruct f.
   simpl.
   repeat f_equiv.
-  clear index_f_spec0 index_f0 o.
-  apply proof_irrelevance.
+  apply le_unique.
 Qed.
 
 Section InRange.

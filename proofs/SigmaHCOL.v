@@ -303,7 +303,7 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          replace (S_j_lt_n _) with jc by apply proof_irrelevance.
+          rewrite (le_unique _ _ (S_j_lt_n _) jc).
           apply H.
         +
           right.
@@ -312,7 +312,7 @@ Section SigmaHCOL_Operators.
           unfold shrink_op_family.
           destruct op_family.
           simpl in *.
-          replace (le_S jc1) with jc by apply proof_irrelevance.
+          rewrite (le_unique _ _ (le_S jc1) jc).
           apply H.
     Qed.
 
@@ -336,7 +336,7 @@ Section SigmaHCOL_Operators.
           subst.
           unfold In in H1.
           exists k, (le_n (S k)).
-          replace (le_n (S k)) with (@S_j_lt_n (S k) k (@eq_refl nat (S k))) by apply proof_irrelevance.
+          rewrite (le_unique _ _  (le_n (S k)) (@S_j_lt_n (S k) k (@eq_refl nat (S k)))).
           apply H1.
         +
           subst.
@@ -349,7 +349,7 @@ Section SigmaHCOL_Operators.
           unfold shrink_op_family.
           destruct op_family.
           simpl in *.
-          replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
+          rewrite (le_unique _ _ tc1 (le_S tc)).
           apply IHk.
     Qed.
 
@@ -372,7 +372,7 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          replace (S_j_lt_n _) with jc by apply proof_irrelevance.
+          rewrite (le_unique _ _ (S_j_lt_n _) jc).
           apply H.
         +
           right.
@@ -381,7 +381,7 @@ Section SigmaHCOL_Operators.
           unfold shrink_op_family.
           destruct op_family.
           simpl in *.
-          replace (le_S jc1) with jc by apply proof_irrelevance.
+          rewrite (le_unique _ _ (le_S jc1) jc).
           apply H.
     Qed.
 
@@ -406,7 +406,7 @@ Section SigmaHCOL_Operators.
             subst.
             unfold In in H1.
             exists k, (le_n (S k)).
-            replace (S_j_lt_n _) with (le_n (S k)) in H1 by apply proof_irrelevance.
+            replace (S_j_lt_n _) with (le_n (S k)) in H1 by apply le_unique.
             apply H1.
           *
             subst.
@@ -419,7 +419,7 @@ Section SigmaHCOL_Operators.
             unfold shrink_op_family.
             destruct op_family.
             simpl in *.
-            replace (le_S tc) with tc1 in IHk by apply proof_irrelevance.
+            replace (le_S tc) with tc1 in IHk by apply le_unique.
             apply IHk.
       -
         intros H.
@@ -2198,7 +2198,7 @@ Section StructuralProperies.
             eapply D, family_in_set_includes_members, H.
           --
             subst.
-            replace tc with dc by apply proof_irrelevance.
+            replace tc with dc by apply le_unique.
             apply S.
         *
           (* family member in out set *)

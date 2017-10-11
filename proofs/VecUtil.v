@@ -208,8 +208,7 @@ Section VBreak.
       rewrite Vnth_app.
       break_match.
       + omega.
-      + replace g with jc by apply proof_irrelevance.
-        reflexivity.
+      + apply f_equal, le_unique.
     -
       f_equal. symmetry.
       apply Vbreak_eq_app.
@@ -237,8 +236,7 @@ Section VBreak.
         }
         rewrite E.
         intros g.
-        replace g with jc by apply proof_irrelevance.
-        reflexivity.
+        apply f_equal, le_unique.
       + omega.
     -
       f_equal. symmetry.
@@ -312,8 +310,11 @@ Lemma Vbuild_1 B gen:
 Proof.
   unfold Vbuild.
   simpl.
-  replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_Sn 0) by apply proof_irrelevance.
-  reflexivity.
+
+  apply Vcons_eq.
+  split.
+  - apply f_equal, le_unique.
+  - reflexivity.
 Qed.
 
 Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros;omega. Qed.
@@ -325,12 +326,15 @@ Lemma Vbuild_2 B gen:
 Proof.
   unfold Vbuild.
   simpl.
-  replace (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) with (lt_0_SSn 0) by apply proof_irrelevance.
-  replace (VecUtil.Vbuild_spec_obligation_3 gen eq_refl
-                                            (VecUtil.Vbuild_spec_obligation_4
-                                               (fun (i : nat) (ip : i < 1) =>
-                                                  gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip)) eq_refl)) with (lt_1_SSn 0) by apply proof_irrelevance.
-  reflexivity.
+
+
+  apply Vcons_eq.
+  split.
+  - apply f_equal, le_unique.
+  - apply Vcons_eq.
+    split.
+    + apply f_equal, le_unique.
+    + reflexivity.
 Qed.
 
 
@@ -367,8 +371,7 @@ Section Vnth.
     Vnth (Vcons v vs) ip = Vnth vs ip'.
   Proof.
     simpl.
-    replace (lt_S_n ip) with ip' by apply proof_irrelevance.
-    reflexivity.
+    apply f_equal, le_unique.
   Qed.
 
   Lemma Vnth_cast_index:
@@ -377,8 +380,7 @@ Section Vnth.
   Proof.
     intros B n i j ic jc x E.
     crush.
-    replace ic with jc by apply proof_irrelevance.
-    reflexivity.
+    apply f_equal, le_unique.
   Qed.
 
   Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
@@ -391,7 +393,7 @@ Section Vnth.
       auto.
     + right.
       simpl in H.
-      replace (lt_S_n ic) with ic' in H by apply proof_irrelevance.
+      rewrite (le_unique _ _ ic' (lt_S_n ic)).
       apply H.
   Qed.
 
@@ -403,7 +405,7 @@ Section Vnth.
     destruct i.
     - simpl in Pt; congruence.
     - simpl in Pt.
-      replace (lt_S_n ic) with ic' in Pt by apply proof_irrelevance.
+      rewrite (le_unique _ _ ic' (lt_S_n ic)).
       apply Pt.
   Qed.
 
@@ -455,14 +457,11 @@ Proof.
     remember (i - n + n) as Q.
     replace (i - n + n) with i in HeqQ.
     subst Q.
-    replace ic with ip by apply proof_irrelevance.
-    reflexivity.
-    clear Q HeqQ ic f.
+    apply f_equal, le_unique.
     lia.
   -
     rewrite Vbuild_nth.
-    replace ip with (Nat.lt_lt_add_r i n m g) by apply proof_irrelevance.
-    reflexivity.
+    apply f_equal, le_unique.
 Qed.
 
 Section Vunique.
@@ -518,8 +517,7 @@ Section Vunique.
     contradict V.
     crush.
     simpl.
-    replace (lt_S_n (lt_n_S ip)) with ip by apply proof_irrelevance.
-    reflexivity.
+    apply f_equal, le_unique.
   Qed.
 
   Lemma Vunique_cons_not_head
@@ -612,8 +610,8 @@ Section Vunique.
       assert(jc': S j < S n) by omega.
       apply H with (ic:=ic') (jc:=jc').
       simpl.
-      replace (lt_S_n ic') with ic by apply proof_irrelevance.
-      replace (lt_S_n jc') with jc by apply proof_irrelevance.
+      rewrite (le_unique _ _ (lt_S_n ic') ic).
+      rewrite (le_unique _ _ (lt_S_n jc') jc).
       auto.
     }
     auto.
@@ -664,7 +662,7 @@ Section Vunique.
     assert (ip2: 0 <> S i) by omega.
     specialize (H (S i) ip1 ip2).
     simpl in *.
-    replace ip with (lt_S_n ip1) by apply proof_irrelevance.
+    rewrite (le_unique _ _  ip (lt_S_n ip1)).
     apply H.
   Qed.
 

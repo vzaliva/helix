@@ -901,7 +901,7 @@ Section SigmaHCOLExpansionRules.
             apply Vnth_equiv.
             rewrite Mult.mult_1_r; reflexivity.
             reflexivity.
-            apply proof_irrelevance.
+            apply le_unique.
         }
 
         assert(RS: (@Scatter' fm o2 (Init.Nat.add o1 o2)
@@ -1623,7 +1623,7 @@ Section SigmaHCOLRewritingRules.
               assert(l': S i < S n) by auto.
               apply Vforall_nth with (ip:=l') in Fpos.
               simpl in Fpos.
-              replace l with (lt_S_n l') by apply proof_irrelevance.
+              replace l with (lt_S_n l') by apply le_unique.
               apply Fpos.
           *
             crush.
@@ -2120,8 +2120,7 @@ Section SigmaHCOLRewritingRules.
               simpl.
               rewrite e.
               unfold gen'.
-              replace (lt_n_S ip) with (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip) by apply proof_irrelevance.
-              reflexivity.
+              apply f_equal, le_unique.
             --
               reflexivity.
             --
@@ -2148,8 +2147,7 @@ Section SigmaHCOLRewritingRules.
             subst Q.
 
             unfold gen'.
-            replace (lt_n_S i1) with i0 by apply proof_irrelevance.
-            reflexivity.
+            apply f_equal, f_equal, le_unique.
       -
         extensionality t.
         extensionality tc.
@@ -2579,7 +2577,7 @@ Section SigmaHCOLRewritingRules.
                     remember ((i - m) mod m) as Q.
                     rewrite E in HeqQ.
                     subst Q.
-                    rewrite (proof_irrelevance _ lc rc).
+                    rewrite (le_unique _ _ lc rc).
                     apply Vnth_arg_eq. clear rc lc HeqQ.
 
                     (* m ≢ 0 *)
@@ -2602,8 +2600,7 @@ Section SigmaHCOLRewritingRules.
                     remember (S ((i - m) / m)) as Q.
                     rewrite E in HeqQ.
                     subst Q.
-                    rewrite (proof_irrelevance _ lc rc).
-                    reflexivity.
+                    apply f_equal, le_unique.
                 --
                   rewrite Vnth_cast.
                   rewrite Vbuild_nth.
@@ -2628,8 +2625,7 @@ Section SigmaHCOLRewritingRules.
                     remember (i/m) as Q.
                     rewrite E in HeqQ.
                     subst Q.
-                    rewrite (proof_irrelevance _ lc rc).
-                    reflexivity.
+                    apply f_equal, le_unique.
               *
                 (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
                 remember (Vcast _ _) as ht'.
@@ -2759,7 +2755,7 @@ Section SigmaHCOLRewritingRules.
                     remember ((j + n) / n) as Q.
                     replace ((j + n) / n) with (S (j / n)) in HeqQ.
                     subst Q.
-                    replace i1 with i0 by apply proof_irrelevance. clear i1.
+                    rewrite (le_unique _ _ i1 i0). clear i1.
                     apply Vnth_arg_eq.
                     **
                       generalize (tmn' j jc).
@@ -2769,8 +2765,7 @@ Section SigmaHCOLRewritingRules.
                       rewrite <- Nat.mul_1_l with (n:=n) in HeqQ at 1.
                       rewrite Nat.mod_add in HeqQ.
                       subst Q.
-                      replace k1 with k0 by apply proof_irrelevance. clear k1.
-                      reflexivity.
+                      apply f_equal, le_unique.
                       crush.
                     **
                       rewrite <- Nat.mul_1_l with (n:=n) at 2.
