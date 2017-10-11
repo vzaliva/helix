@@ -2808,6 +2808,7 @@ Section SigmaHCOLRewritingRules.
         generalize dependent mat.
         intros mat Mpoz.
         clear Upoz gen.
+        rename uf_zero into z.
     Admitted.
 
 
