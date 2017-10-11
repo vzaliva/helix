@@ -468,14 +468,6 @@ Section Vnth.
     assumption.
   Qed.
 
-  (* Maybe should be in Spiral.v *)
-  Lemma Vnth_arg_eq:
-    ∀ (A : Type) (n : nat) (v1 v2 : vector A n)
-      (i : nat) (ip : i < n), v1 ≡ v2 → Vnth v1 ip ≡ Vnth v2 ip.
-  Proof.
-    crush.
-  Qed.
-
   Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
       i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
   Proof.

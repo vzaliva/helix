@@ -342,6 +342,13 @@ Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
 Section Vnth.
 
+  Lemma Vnth_arg_eq:
+    forall (A : Type) (n : nat) (v1 v2 : vector A n)
+      (i : nat) (ip : i < n), v1 = v2 -> Vnth v1 ip = Vnth v2 ip.
+  Proof.
+    crush.
+  Qed.
+
   (* Convenience method, swapping arguments on Vnth *)
   Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
     Vnth a ic.
