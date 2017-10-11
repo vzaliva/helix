@@ -2046,7 +2046,7 @@ Section SigmaHCOLRewritingRules.
          (f : A -> A -> A)
          (gen : forall p : nat, p < n → vector A (S m))
          (tmn : ∀ t : nat, t < S m * n → t mod n < n)
-          (tndm : ∀ t : nat, t < S m * n → t / n < S m)
+         (tndm : ∀ t : nat, t < S m * n → t / n < S m)
       :
         Vhead
           (Vfold_right
@@ -2064,13 +2064,97 @@ Section SigmaHCOLRewritingRules.
       replace (Vcons z (Vconst z m)) with (Vconst z (S m)) by reflexivity.
 
       replace (fun (t : nat) (tc : t < n) =>
-          Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
-               (tndm t (Nat.lt_lt_add_r t n (m * n) tc))) with
-      (fun (t : nat) (tc : t < n) =>
-          Vhead (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))).
+                 Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
+                      (tndm t (Nat.lt_lt_add_r t n (m * n) tc))) with
+          (fun (t : nat) (tc : t < n) =>
+             Vhead (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))).
       -
         clear tndm.
-        admit.
+        induction n.
+        +
+          reflexivity.
+        +
+
+          setoid_rewrite Vbuild_cons at 2.
+          rewrite Vfold_right_cons.
+
+          pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
+
+          assert(tmn' : forall t : nat, t < S m * n → t mod n < n).
+          {
+            intros t H.
+            apply modulo_smaller_than_devisor.
+            crush.
+          }
+
+          specialize (IHn gen' tmn').
+
+          replace (fun (i : nat) (ip : i < n) =>
+                     Vhead
+                       (gen (S i mod S n)
+                            (tmn (S i) (Nat.lt_lt_add_r (S i) (S n) (m * S n) (lt_n_S ip)))))
+            with
+              (fun (t : nat) (tc : t < n) =>
+                 Vhead (gen' (t mod n) (tmn' t (Nat.lt_lt_add_r t n (m * n) tc)))).
+          *
+            rewrite <- IHn.
+            clear IHn tmn'.
+            simpl.
+            replace (gen 0 (VecUtil.Vbuild_spec_obligation_4 gen eq_refl))
+              with
+                (gen (n - n) (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n)))).
+            replace (fun v1 v2 : vector A (S m) =>
+                       Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
+              with (fun v1 v2 : vector A (S m) =>
+                      Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2))).
+
+            replace (` (Vbuild_spec (fun (i : nat) (ip : i < n) => gen (S i) (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip))))
+              with
+                (Vbuild gen').
+            reflexivity.
+            --
+              apply Veq_nth.
+              intros i ip.
+              rewrite Vbuild_nth.
+              destruct (Vbuild_spec _).
+              simpl.
+              rewrite e.
+              unfold gen'.
+              replace (lt_n_S ip) with (VecUtil.Vbuild_spec_obligation_3 gen eq_refl ip) by apply proof_irrelevance.
+              reflexivity.
+            --
+              reflexivity.
+            --
+              generalize (tmn 0 (Nat.lt_lt_add_r 0 (S n) (m * S n) (Nat.lt_0_succ n))) as ic0.
+              generalize (VecUtil.Vbuild_spec_obligation_4 gen eq_refl) as ic1.
+              intros ic0 ic1.
+              clear gen' tmn f z.
+
+              (*
+              remember (gen (n-n)) as Q.
+              remember (n-n) as Q1.
+              rewrite Nat.sub_diag in HeqQ1.
+               *)
+              admit.
+          *
+            extensionality t.
+            extensionality tc.
+
+            generalize (tmn' t (Nat.lt_lt_add_r t n (m * n) tc)).
+            generalize (tmn (S t) (Nat.lt_lt_add_r (S t) (S n) (m * S n) (lt_n_S tc))).
+            intros i0 i1.
+
+            remember (S t mod S n) as Q.
+            rewrite Nat.mod_small in HeqQ by lia.
+            subst Q.
+
+            remember (t mod n) as Q.
+            rewrite Nat.mod_small in HeqQ by auto.
+            subst Q.
+
+            unfold gen'.
+            replace (lt_n_S i1) with i0 by apply proof_irrelevance.
+            reflexivity.
       -
         extensionality t.
         extensionality tc.
@@ -2081,7 +2165,7 @@ Section SigmaHCOLRewritingRules.
         subst Q.
         rewrite Vnth_0.
         reflexivity.
-    Qed.
+    Admitted.
 
 
     Lemma Vtail_Vfold_right_Vmap2
