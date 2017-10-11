@@ -604,12 +604,12 @@ Section SigmaHCOLExpansionRules.
 
            unshelve erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
            crush.
-           destruct (NPeano.Nat.eq_dec (k + 0) k).
+           destruct (Nat.eq_dec (k + 0) k).
            auto.
            tauto.
 
            crush.
-           destruct (NPeano.Nat.eq_dec (k + 0) k).
+           destruct (Nat.eq_dec (k + 0) k).
            auto.
            tauto.
 
@@ -2399,7 +2399,7 @@ Section SigmaHCOLRewritingRules.
         assert(tmm: forall t,t < m * n -> t mod m < m).
         {
           intros t H.
-          apply NPeano.Nat.mod_upper_bound.
+          apply Nat.mod_upper_bound.
           destruct m; auto.
           ring_simplify in H.
           nat_lt_0_contradiction.
@@ -2476,7 +2476,7 @@ Section SigmaHCOLRewritingRules.
             {
               clear_all.
               intros t H.
-              apply NPeano.Nat.mod_upper_bound.
+              apply Nat.mod_upper_bound.
               destruct m; auto.
               ring_simplify in H.
               nat_lt_0_contradiction.
@@ -2535,7 +2535,7 @@ Section SigmaHCOLRewritingRules.
                     assert (E: (i - m) mod m ≡ i mod m).
                     {
                       revert l MNZ; clear_all; intros H MNZ.
-                      rewrite <- NPeano.Nat.mod_add with (a:=i-m) (b:=1).
+                      rewrite <- Nat.mod_add with (a:=i-m) (b:=1).
                       replace (i - m + 1 * m) with i by omega.
                       reflexivity.
                       apply MNZ.
@@ -2569,7 +2569,7 @@ Section SigmaHCOLRewritingRules.
                   ++
                     apply Vnth_eq.
                     symmetry.
-                    apply NPeano.Nat.mod_small.
+                    apply Nat.mod_small.
                     auto.
                   ++
                     subst.
@@ -2596,7 +2596,7 @@ Section SigmaHCOLRewritingRules.
         assert(tmn: forall t,t < m * n -> t mod n < n).
         {
           intros t H.
-          apply NPeano.Nat.mod_upper_bound.
+          apply Nat.mod_upper_bound.
           destruct n; auto.
           ring_simplify in H.
           nat_lt_0_contradiction.
