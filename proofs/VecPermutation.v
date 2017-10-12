@@ -3,6 +3,8 @@ Require Import VecUtil.
 Require Import Coq.Arith.Arith.
 Require Export Coq.Vectors.Vector.
 
+Require Import Setoid Morphisms.
+
 (* CoLoR *)
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
@@ -56,3 +58,20 @@ Section VPermutation.
 End VPermutation.
 
 Hint Resolve VPermutation_refl vperm_nil vperm_skip.
+
+(* These hints do not reduce the size of the problem to solve and they
+   must be used with care to avoid combinatoric explosions *)
+
+Local Hint Resolve vperm_swap vperm_trans.
+Local Hint Resolve VPermutation_sym VPermutation_trans.
+
+(* This provides reflexivity, symmetry and transitivity and rewriting
+   on morphims to come *)
+
+Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 := {
+  Equivalence_Reflexive := @VPermutation_refl A n ;
+  Equivalence_Symmetric := @VPermutation_sym A n ;
+  Equivalence_Transitive := @VPermutation_trans A n }.
+
+
+
