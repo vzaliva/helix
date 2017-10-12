@@ -1036,37 +1036,6 @@ Section SigmaHCOLExpansionRules.
 
 End SigmaHCOLExpansionRules.
 
-(*
-Ltac HOperator_HBinOp_Type_Fix :=
-  match goal with
-  | [ |- (@HOperator ?i ?o (@HBinOp ?o _ _)) ] =>
-    replace (@HOperator i) with (@HOperator (Init.Nat.add o o)) by apply eq_refl; apply HBinOp_HOperator
-  end.
-
-Hint Extern 0 (@HOperator _ ?o (@HBinOp ?o _ _)) => HOperator_HBinOp_Type_Fix : typeclass_instances.
-
-Ltac SHOperator_SHBinOp_Type_Fix :=
-  match goal with
-  | [ |- (@SHOperator ?i ?o (@SHBinOp ?o _ _)) ] =>
-    replace (@SHOperator i) with (@SHOperator (Init.Nat.add o o)) by apply eq_refl; apply SHOperator_SHBinOp
-  end.
-
-Hint Extern 0 (@SHOperator _ ?o (@SHBinOp ?o _ _)) => SHOperator_SHBinOp_Type_Fix : typeclass_instances.
- *)
-
-(* Hint Extern 0 (@Proper _ _ (compose)) => apply compose_proper with (RA:=equiv) (RB:=equiv) : typeclass_instances.
- *)
-
-(*
-Ltac HOperator_HPrepend_Type_Fix :=
-  match goal with
-  | [ |- (@HOperator ?i ?o (@HPrepend ?n ?i ?a)) ] =>
-    replace (@HOperator i o) with (@HOperator i (Init.Nat.add n i)) by apply eq_refl; apply HPrepend_HOperator
-  end.
-
-Hint Extern 0 (@HOperator ?i _ (@HPrepend _ ?i _)) => HOperator_HPrepend_Type_Fix : typeclass_instances.
- *)
-
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
