@@ -2891,13 +2891,42 @@ Section SigmaHCOLRewritingRules.
         crush.
       -
         rewrite Vbuild_cons.
+
+        (* TODO: k should be t' 0 *).
+
         pose (k:= ⟦ t ⟧ 0).
         pose (kc:=(« t » 0 (Nat.lt_0_succ n))).
         assert(L: k<S n) by apply kc.
 
-        assert(E: k+ (S (n - k)) ≡ S n) by lia.
-        rewrite Vbuild_range_cast with (E0:=E).
+        assert(E0: k+ (S (n - k)) ≡ S n) by lia.
+        rewrite Vbuild_range_cast with (E:=E0).
         rewrite Vbuild_split_at.
+
+        match goal with
+          [ |- VPermutation _ _ ?l ?r ] => remember l as lhs; remember r as rhs
+        end.
+
+        assert(E1: (S (k + (n - k))) ≡ S n) by lia.
+        assert(T1: VPermutation A _
+                               (Vcast
+                                  (Vcons (f k (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k))))
+                                         (Vapp
+                                            (Vbuild (fun (t : nat) (tc : t < k) =>
+                                                       f t
+                                                         (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_1 k (n - k) t tc))))
+                                            (Vbuild (fun (t : nat) (tc : t < n - k) =>
+                                                       f (t + 1 + k)
+                                                         (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_3 k (n - k) t tc)))))) E1)
+
+                               rhs).
+        {
+          admit.
+        }
+        remember (Vcast _ _) as t1 in T1.
+        apply vperm_trans with (l':=t1), T1.
+
+        apply vperm_skip.
+
 
 
     Qed.
