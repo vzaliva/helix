@@ -328,3 +328,7 @@ Lemma add_lt_lt
 Proof.
   omega.
 Qed.
+
+(* Similar to `Vnth_cast_aux` but arguments in equality hypotheis are swapped *)
+Lemma eq_lt_lt {n m k: nat} : n ≡ m -> k < n -> k < m.
+Proof. intros; omega. Qed.
