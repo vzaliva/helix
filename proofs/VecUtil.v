@@ -447,9 +447,9 @@ Lemma Vbuild_Vapp
       {n m: nat}
       {f: forall (t:nat), (t<n+m) -> A}
   : Vbuild f =
-           @Vapp A n m
-           (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
-           (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
+    @Vapp A n m
+          (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
+          (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
 Proof.
   apply Veq_nth.
   intros i ip.
@@ -468,6 +468,52 @@ Proof.
   -
     rewrite Vbuild_nth.
     apply f_equal, le_unique.
+Qed.
+
+Program Definition Vbuild_split_at_def
+        {A: Type}
+        {n m: nat}
+        {f: forall (t:nat), (t<n+(S m)) -> A}
+  := Vbuild f =
+            @Vapp A n (S m)
+            (Vbuild (fun t (tc:t<n) => f t _))
+            (Vcons
+               (f n _)
+               (Vbuild (fun t (tc:t<m) => f (t+1+n) _))
+            ).
+Next Obligation. lia. Qed.
+Next Obligation. lia. Qed.
+Next Obligation. lia. Qed.
+
+Lemma Vbuild_split_at
+      {A: Type}
+      {n m: nat}
+      {f: forall (t:nat), (t<n+(S m)) -> A}: @Vbuild_split_at_def A n m f.
+
+Proof.
+  unfold Vbuild_split_at_def.
+  rewrite Vbuild_Vapp.
+  f_equal.
+  -
+    apply Veq_nth.
+    intros i ip.
+    rewrite 2!Vbuild_nth.
+    f_equal.
+    apply le_unique.
+  -
+    rewrite Vbuild_cons.
+    simpl.
+    f_equal.
+    +
+      f_equal.
+      apply le_unique.
+    +
+      apply Veq_nth.
+      intros i ip.
+      rewrite 2!Vbuild_nth.
+      assert(E: i+1+n = S (i+n) ) by omega.
+      symmetry.
+      forall_n_lt_eq.
 Qed.
 
 Section Vunique.
