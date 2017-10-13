@@ -470,6 +470,25 @@ Proof.
     apply f_equal, le_unique.
 Qed.
 
+Lemma Vbuild_range_cast
+      {A: Type}
+      {n m: nat}
+      {f: forall (t:nat), (t<n) -> A}
+      {E: m=n}
+:
+  @Vbuild A n f =
+  Vcast (
+      @Vbuild A m (fun t tc => f t (eq_lt_lt E tc))
+    ) E.
+Proof.
+  apply Veq_nth.
+  intros i ip.
+  rewrite Vnth_cast.
+  rewrite 2!Vbuild_nth.
+  f_equal.
+  apply le_unique.
+Qed.
+
 Program Definition Vbuild_split_at_def
         {A: Type}
         {n m: nat}
