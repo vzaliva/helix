@@ -1891,6 +1891,7 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+    (* TODO: move this and other helper lemmas to SigmaHCOLHelperLemmas section above *)
     Section VecMap2CommutativeRMonoid.
 
       Variable n:nat.
