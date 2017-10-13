@@ -12,6 +12,7 @@ Require Import SigmaHCOL.
 Require Import TSigmaHCOL.
 Require Import IndexFunctions.
 Require Import MonoidalRestriction.
+Require Import VecPermutation.
 
 Require Import Coq.Arith.Arith.
 Require Import Compare_dec.
@@ -2872,6 +2873,34 @@ Section SigmaHCOLRewritingRules.
       Qed.
 
     End NN.
+
+    Lemma Vbuild_permutation
+          {A: Type}
+          {n: nat}
+          {f: forall i : nat, i < n -> A}
+          {t: index_map n n}
+          {P: index_map_bijective t}
+      :
+        VPermutation A n (Vbuild f) (Vbuild (fun i ic =>
+                                               f (⟦t⟧ i) («t» i ic)
+                                    )).
+    Proof.
+      symmetry.
+      induction n.
+      -
+        crush.
+      -
+        rewrite Vbuild_cons.
+        pose (k:= ⟦ t ⟧ 0).
+        pose (kc:=(« t » 0 (Nat.lt_0_succ n))).
+        assert(L: k<S n) by apply kc.
+
+        assert(E: (pred k)+(S (n - pred k)) ≡ S n ) by lia.
+        rewrite Vbuild_range_cast with (E0:=E).
+        rewrite Vbuild_split_at.
+
+    Qed.
+
 
     (* Specialized version of rewrite_Reduction_IReduction *)
     Lemma rewrite_Reduction_IReduction_max_plus
