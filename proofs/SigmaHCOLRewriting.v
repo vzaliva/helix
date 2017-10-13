@@ -2895,9 +2895,10 @@ Section SigmaHCOLRewritingRules.
         pose (kc:=(« t » 0 (Nat.lt_0_succ n))).
         assert(L: k<S n) by apply kc.
 
-        assert(E: (pred k)+(S (n - pred k)) ≡ S n ) by lia.
+        assert(E: k+ (S (n - k)) ≡ S n) by lia.
         rewrite Vbuild_range_cast with (E0:=E).
         rewrite Vbuild_split_at.
+
 
     Qed.
 
