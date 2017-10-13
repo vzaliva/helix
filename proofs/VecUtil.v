@@ -474,7 +474,7 @@ Lemma Vbuild_range_cast
       {A: Type}
       {n m: nat}
       {f: forall (t:nat), (t<n) -> A}
-      {E: m=n}
+      (E: m=n)
 :
   @Vbuild A n f =
   Vcast (
@@ -506,7 +506,7 @@ Next Obligation. lia. Qed.
 
 Lemma Vbuild_split_at
       {A: Type}
-      {n m: nat}
+      (n m: nat)
       {f: forall (t:nat), (t<n+(S m)) -> A}: @Vbuild_split_at_def A n m f.
 
 Proof.
