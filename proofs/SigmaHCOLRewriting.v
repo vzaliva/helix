@@ -2892,13 +2892,37 @@ Section SigmaHCOLRewritingRules.
       -
         rewrite Vbuild_cons.
 
-        (* TODO: k should be t' 0 *).
+        pose(t' := build_inverse_index_map t).
+        assert(P': inverse_index_map_bijective t')
+              by apply build_inverse_index_map_is_bijective, P.
 
-        pose (k:= ⟦ t ⟧ 0).
-        pose (kc:=(« t » 0 (Nat.lt_0_succ n))).
-        assert(L: k<S n) by apply kc.
+        pose (k := inverse_index_f _ t' 0).
+        assert(L: k<S n).
+        {
+          apply inverse_index_f_spec.
+          apply in_range_exists.
+          +
+            apply zero_lt_Sn.
+          +
+            apply P.
+            apply zero_lt_Sn.
+        }
 
-        assert(E0: k+ (S (n - k)) ≡ S n) by lia.
+        assert(K: ⟦ t ⟧ k ≡ 0).
+        {
+          subst k t'.
+          apply build_inverse_index_map_is_right_inverse.
+          -
+            apply P.
+          -
+            apply index_map_surjective_in_range.
+            apply P.
+            apply zero_lt_Sn.
+          -
+            reflexivity.
+        }
+
+        assert(E0: k + (S (n - k)) ≡ S n) by lia.
         rewrite Vbuild_range_cast with (E:=E0).
         rewrite Vbuild_split_at.
 
@@ -2924,10 +2948,8 @@ Section SigmaHCOLRewritingRules.
         }
         remember (Vcast _ _) as t1 in T1.
         apply vperm_trans with (l':=t1), T1.
-
+        rewrite K in Heqlhs.
         apply vperm_skip.
-
-
 
     Qed.
 
