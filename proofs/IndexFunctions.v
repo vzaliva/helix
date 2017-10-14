@@ -317,6 +317,16 @@ Section Jections.
     apply (index_f_spec), yc.
   Qed.
 
+  Lemma index_map_surjective_in_range
+        {d r: nat}
+        (f: index_map d r)
+        {S: index_map_surjective f}:
+    forall x, x<r -> in_range f x.
+  Proof.
+    intros x H.
+    apply in_range_exists; auto.
+  Qed.
+
 End Jections.
 
 Section Inversions.
