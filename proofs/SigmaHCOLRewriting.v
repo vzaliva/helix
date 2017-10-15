@@ -2967,6 +2967,40 @@ Section SigmaHCOLRewritingRules.
         +
           subst lhs t1.
           eapply vperm_skip.
+          pose(f' := fun i (ic:i<n) => f (S i) (lt_n_S ic)).
+          specialize (IHn f').
+          unfold f' in IHn.
+
+          (* construct t' such it excludes 'k' *)
+
+          pose(t_func := fun x => match eq_nat_dec x k with
+                               | in_left => 0 (* never happens *)
+                               | in_right => pred (⟦ t ⟧ x)
+                               end
+              ).
+
+          assert(t_spec: forall x, x<n -> (t_func x) < n).
+          {
+            intros x H.
+            unfold t_func.
+            break_match.
+            - lia.
+            -
+              destruct t.
+              simpl in *.
+              assert(SL: index_f x  < S n) by auto.
+              crush.
+          }
+          pose(h':= IndexMap _ _ t_func t_spec).
+          assert(H'_b: index_map_bijective h').
+          {
+            admit.
+          }
+          specialize (IHn h' H'_b).
+
+
+          rewrite IHn.
+
           admit.
 
         +
