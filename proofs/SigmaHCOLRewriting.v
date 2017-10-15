@@ -2885,7 +2885,6 @@ Section SigmaHCOLRewritingRules.
                                                f (⟦t⟧ i) («t» i ic)
                                     )).
     Proof.
-      symmetry.
       induction n.
       -
         crush.
@@ -2930,27 +2929,50 @@ Section SigmaHCOLRewritingRules.
           [ |- VPermutation _ _ ?l ?r ] => remember l as lhs; remember r as rhs
         end.
 
-        assert(E1: (S (k + (n - k))) ≡ S n) by lia.
+        assert(E1: (k + (n - k)) ≡ n) by lia.
         assert(T1: VPermutation A _
-                               (Vcast
-                                  (Vcons (f k (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k))))
-                                         (Vapp
-                                            (Vbuild (fun (t : nat) (tc : t < k) =>
-                                                       f t
-                                                         (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_1 k (n - k) t tc))))
-                                            (Vbuild (fun (t : nat) (tc : t < n - k) =>
-                                                       f (t + 1 + k)
-                                                         (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_3 k (n - k) t tc)))))) E1)
+                                (Vcons
+                                   (f (⟦ t ⟧ k)
+                                      (« t » k
+                                         (eq_lt_lt E0
+                                                   (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
+                                   (Vcast
+                                      (Vapp
+                                         (Vbuild
+                                            (λ (t0 : nat) (tc : t0 < k),
+                                             f (⟦ t ⟧ t0)
+                                               (« t » t0
+                                                  (eq_lt_lt E0
+                                                            (VecUtil.Vbuild_split_at_def_obligation_1 k (n - k) t0 tc)))))
 
-                               rhs).
+                                         (Vbuild
+                                            (λ (t0 : nat) (tc : t0 < n - k),
+                                             f (⟦ t ⟧ (t0 + 1 + k))
+                                               (« t » (t0 + 1 + k)
+                                                  (eq_lt_lt E0
+                                                            (VecUtil.Vbuild_split_at_def_obligation_3 k
+                                                                                                      (n - k) t0 tc)))))) E1))
+
+                                rhs).
         {
           admit.
         }
-        remember (Vcast _ _) as t1 in T1.
-        apply vperm_trans with (l':=t1), T1.
-        rewrite K in Heqlhs.
-        apply vperm_skip.
+        remember (Vcons _ _) as t1 in T1.
+        apply vperm_trans with (l':=t1), T1; clear rhs Heqrhs T1.
 
+        replace (f (⟦ t ⟧ k)
+                 (« t » k
+                    (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
+          with (f 0 (Nat.lt_0_succ n)) in Heqt1.
+        +
+          subst lhs t1.
+          eapply vperm_skip.
+          admit.
+
+        +
+          symmetry.
+          clear Heqt1.
+          forall_n_lt_eq.
     Qed.
 
 
