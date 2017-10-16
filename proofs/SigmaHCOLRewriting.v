@@ -3054,31 +3054,39 @@ Section SigmaHCOLRewritingRules.
               +
                 (* x,y > k *)
                 apply eq_add_S.
-                apply Pi; auto.
-                assert(⟦ t ⟧ (S x) ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
+                apply Pi; try lia.
+
+                destruct (eq_nat_dec k (S x)), (eq_nat_dec k (S y)).
+                *
+                  rewrite <- e, <- e0.
+                  reflexivity.
+                *
                   crush.
-                }
+                *
+                  crush.
+                *
+                  assert(⟦ t ⟧ (S x) ≢ 0).
+                  {
+                    apply NK.
+                    lia.
+                    auto.
+                  }
 
-                assert(⟦ t ⟧ y ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
-                }
+                  assert(⟦ t ⟧ (S y) ≢ 0).
+                  {
+                    apply NK; auto.
+                    lia.
+                  }
 
-
-                destruct (⟦ t ⟧ (S x)); try congruence.
-                destruct (⟦ t ⟧ (S y)); try congruence.
-
-                auto.
-
-
+                  destruct (⟦ t ⟧ (S x)); try congruence.
+                  destruct (⟦ t ⟧ (S y)); try congruence.
+                  rewrite <- 2!pred_Sn in H.
+                  auto.
               +
-
+                admit.
             -
               (* surjectivity *)
+              admit.
 
           }
           specialize (IHn h H_b).
