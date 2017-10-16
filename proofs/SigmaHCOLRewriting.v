@@ -2971,11 +2971,9 @@ Section SigmaHCOLRewritingRules.
           specialize (IHn f').
           unfold f' in IHn.
 
-          (* construct t' such it excludes 'k' *)
-
-          pose(t_func := fun x => match eq_nat_dec x k with
-                               | in_left => 0 (* never happens *)
-                               | in_right => pred (⟦ t ⟧ x)
+          pose(t_func := fun x => match Compare_dec.lt_dec x k  with
+                               | in_left => pred (⟦ t ⟧ x)
+                               | in_right => pred (⟦ t ⟧ (S x))
                                end
               ).
 
@@ -2984,25 +2982,122 @@ Section SigmaHCOLRewritingRules.
             intros x H.
             unfold t_func.
             break_match.
-            - lia.
             -
               destruct t.
               simpl in *.
               assert(SL: index_f x  < S n) by auto.
               crush.
+            -
+              destruct t.
+              simpl in *.
+              assert(SL: index_f (S x) < S n).
+              crush.
+              crush.
           }
-          pose(h':= IndexMap _ _ t_func t_spec).
-          assert(H'_b: index_map_bijective h').
+          pose(h := IndexMap _ _ t_func t_spec).
+          assert(H_b: index_map_bijective h).
           {
-            admit.
+
+            assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
+            {
+              intros p pc H.
+              contradict H.
+              apply P; auto.
+              rewrite K, H.
+              reflexivity.
+            }
+
+            split.
+            -
+              (* injectivity *)
+              destruct P as [Pi Ps].
+              unfold index_map_injective in *.
+              intros x y xc yc H.
+              simpl in *. clear h.
+
+              unfold t_func in H.
+              destruct (le_lt_dec x k) as [Ax | Bx].
+              repeat break_if.
+              +
+                (* x,y < k *)
+                apply Pi; auto.
+                assert(⟦ t ⟧ x ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                }
+
+                assert(⟦ t ⟧ y ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                }
+
+                destruct (⟦ t ⟧ x); try congruence.
+                destruct (⟦ t ⟧ y); try congruence.
+                rewrite <- 2!pred_Sn in H.
+                auto.
+              +
+                (* impossible case: x,y on different sizes of k *)
+                revert n0 l.
+                clear_all.
+                generalize k; clear k; intros k.
+                intros H0 H1.
+                admit.
+              +
+                (* impossible case: x,y on different sizes of k *)
+                revert n0 l.
+                clear_all.
+                generalize k; clear k; intros k.
+                intros H0 H1.
+                admit.
+              +
+                (* x,y > k *)
+                apply eq_add_S.
+                apply Pi; auto.
+                assert(⟦ t ⟧ (S x) ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                  crush.
+                }
+
+                assert(⟦ t ⟧ y ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                }
+
+
+                destruct (⟦ t ⟧ (S x)); try congruence.
+                destruct (⟦ t ⟧ (S y)); try congruence.
+
+                auto.
+
+
+              +
+
+            -
+              (* surjectivity *)
+
           }
-          specialize (IHn h' H'_b).
+          specialize (IHn h H_b).
+          rewrite_clear IHn.
+          remember (Vcast _ _) as l1.
+          replace (Vbuild _ ) with l1.
+          apply VPermutation_refl.
+          subst l1.
 
 
-          rewrite IHn.
-
-          admit.
-
+          induction n.
+          *
+            rewrite Vbuild_0.
+            apply VO_eq.
+          *
+            apply Veq_nth.
+            intros i ip.
+            rewrite Vbuild_nth.
+            admit.
         +
           symmetry.
           clear Heqt1.
