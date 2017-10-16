@@ -3016,8 +3016,7 @@ Section SigmaHCOLRewritingRules.
               simpl in *. clear h.
 
               unfold t_func in H.
-              destruct (le_lt_dec x k) as [Ax | Bx].
-              repeat break_if.
+              destruct (Compare_dec.lt_dec x), (Compare_dec.lt_dec y).
               +
                 (* x,y < k *)
                 apply Pi; auto.
@@ -3082,8 +3081,6 @@ Section SigmaHCOLRewritingRules.
                   destruct (⟦ t ⟧ (S y)); try congruence.
                   rewrite <- 2!pred_Sn in H.
                   auto.
-              +
-                admit.
             -
               (* surjectivity *)
               admit.
