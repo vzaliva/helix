@@ -3016,7 +3016,7 @@ Section SigmaHCOLRewritingRules.
               simpl in *. clear h.
 
               unfold t_func in H.
-              destruct (Compare_dec.lt_dec x), (Compare_dec.lt_dec y).
+              repeat break_match.
               +
                 (* x,y < k *)
                 apply Pi; auto.
