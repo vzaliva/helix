@@ -2997,7 +2997,6 @@ Section SigmaHCOLRewritingRules.
           pose(h := IndexMap _ _ t_func t_spec).
           assert(H_b: index_map_bijective h).
           {
-
             assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
             {
               intros p pc H.
@@ -3037,14 +3036,46 @@ Section SigmaHCOLRewritingRules.
                 rewrite <- 2!pred_Sn in H.
                 auto.
               +
-                (* impossible case: x,y on different sizes of k *)
-                revert n0 l.
-                clear_all.
-                generalize k; clear k; intros k.
-                intros H0 H1.
-                admit.
+                (* impossible case: x,y on different sides of k *)
+                clear E0 E1 t_func t_spec IHn P' f' t'.
+                generalize dependent k.
+                intros k L K NK l n0.
+
+                assert(⟦ t ⟧ x ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                }
+
+                destruct (eq_nat_dec k (S y)) as [Ek | NEk].
+                *
+                  rewrite <- Ek in H.
+                  rewrite K in H.
+                  destruct (⟦ t ⟧ x) eqn:Hx.
+                  --
+                    congruence.
+                  --
+                    lia.
+                *
+                  destruct (⟦ t ⟧ x) eqn:Hx, (⟦ t ⟧ (S y)) eqn:Hy; try congruence.
+                  --
+                    rewrite <- K in Hy.
+                    apply index_map_bijective_iff in Hy; crush.
+                  --
+                    rewrite <- 2!pred_Sn in H.
+                    subst_max.
+                    rewrite <- Hy in Hx.
+                    apply index_map_bijective_iff in Hx; auto.
+                    ++
+                      lia.
+                    ++
+                      split.
+                      unfold index_map_injective; apply Pi.
+                      unfold index_map_surjective; apply Ps.
+                    ++
+                      lia.
               +
-                (* impossible case: x,y on different sizes of k *)
+                (* impossible case: x,y on different sides of k *)
                 revert n0 l.
                 clear_all.
                 generalize k; clear k; intros k.
@@ -3083,6 +3114,15 @@ Section SigmaHCOLRewritingRules.
                   auto.
             -
               (* surjectivity *)
+              destruct P as [Pi Ps].
+              unfold index_map_surjective in *.
+              intros y yc.
+              simpl in *. clear h.
+
+              unfold t_func in *.
+
+              +
+
               admit.
 
           }
