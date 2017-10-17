@@ -3076,11 +3076,43 @@ Section SigmaHCOLRewritingRules.
                       lia.
               +
                 (* impossible case: x,y on different sides of k *)
-                revert n0 l.
-                clear_all.
-                generalize k; clear k; intros k.
-                intros H0 H1.
-                admit.
+                clear E0 E1 t_func t_spec IHn P' f' t'.
+                generalize dependent k.
+                intros k L K NK l n0.
+
+                assert(⟦ t ⟧ y ≢ 0).
+                {
+                  apply NK; auto.
+                  apply Nat.le_neq; auto.
+                }
+
+                destruct (eq_nat_dec k (S x)) as [Ek | NEk].
+                *
+                  rewrite <- Ek in H.
+                  rewrite K in H.
+                  destruct (⟦ t ⟧ y) eqn:Hx.
+                  --
+                    congruence.
+                  --
+                    lia.
+                *
+                  destruct (⟦ t ⟧ y) eqn:Hx, (⟦ t ⟧ (S x)) eqn:Hy; try congruence.
+                  --
+                    rewrite <- K in Hy.
+                    apply index_map_bijective_iff in Hy; crush.
+                  --
+                    rewrite <- 2!pred_Sn in H.
+                    subst_max.
+                    rewrite <- Hy in Hx.
+                    apply index_map_bijective_iff in Hx; auto.
+                    ++
+                      lia.
+                    ++
+                      split.
+                      unfold index_map_injective; apply Pi.
+                      unfold index_map_surjective; apply Ps.
+                    ++
+                      lia.
               +
                 (* x,y > k *)
                 apply eq_add_S.
