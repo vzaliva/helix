@@ -3006,8 +3006,8 @@ Section SigmaHCOLRewritingRules.
               reflexivity.
             }
 
-            split.
-            -
+            assert(Hinj: index_map_injective h).
+            {
               (* injectivity *)
               destruct P as [Pi Ps].
               unfold index_map_injective in *.
@@ -3144,19 +3144,30 @@ Section SigmaHCOLRewritingRules.
                   destruct (⟦ t ⟧ (S y)); try congruence.
                   rewrite <- 2!pred_Sn in H.
                   auto.
+            }
+            split.
+            -
+              apply Hinj.
             -
               (* surjectivity *)
-              destruct P as [Pi Ps].
-              unfold index_map_surjective in *.
-              intros y yc.
-              simpl in *. clear h.
+              pose(h':= build_inverse_index_map h).
+              assert(H': inverse_index_map_bijective t')
+                by apply build_inverse_index_map_is_bijective, P.
+              unfold index_map_surjective.
+              intros x xc.
+              exists (inverse_index_f h h' x).
+              assert(xr: in_range h x).
+              {
+                clear IHn h' H'.
+                induction n.
+                -
+                  nat_lt_0_contradiction.
+                -
+                  simpl.
 
-              unfold t_func in *.
-
-              +
-
-              admit.
-
+              }
+              exists (inverse_index_f_spec h h' x xr).
+              apply build_inverse_index_map_is_right_inverse; auto.
           }
           specialize (IHn h H_b).
           rewrite_clear IHn.
