@@ -666,6 +666,27 @@ definition does not enforce this requirement, and the function produced might no
       apply R1.
   Qed.
 
+  Lemma inverse_index_map_bijective_iff
+        {n: nat} {f: index_map n n}
+        (f': inverse_index_map f):
+    index_map_bijective f -> (* TODO: this assumption might be redundant *)
+    inverse_index_map_bijective f' ->
+    (forall x (xc: x<n) y (yc: y<n),
+        (inverse_index_f f f' x) ≡ (inverse_index_f f f' y) <-> x ≡ y).
+  Proof.
+    intros B B' x xc y yc.
+    split.
+    -
+      intros H.
+      apply B'; auto.
+      apply index_map_surjective_in_range; auto; apply B.
+      apply index_map_surjective_in_range; auto; apply B.
+    -
+      intros H.
+      rewrite H.
+      reflexivity.
+  Qed.
+
 End Inversions.
 
 
