@@ -2971,16 +2971,16 @@ Section SigmaHCOLRewritingRules.
           specialize (IHn f').
           unfold f' in IHn.
 
-          pose(t_func := fun x => match Compare_dec.lt_dec x k  with
+          pose(h_func := fun x => match Compare_dec.lt_dec x k  with
                                | in_left => pred (⟦ t ⟧ x)
                                | in_right => pred (⟦ t ⟧ (S x))
                                end
               ).
 
-          assert(t_spec: forall x, x<n -> (t_func x) < n).
+          assert(h_spec: forall x, x<n -> (h_func x) < n).
           {
             intros x H.
-            unfold t_func.
+            unfold h_func.
             break_match.
             -
               destruct t.
@@ -2994,7 +2994,7 @@ Section SigmaHCOLRewritingRules.
               crush.
               crush.
           }
-          pose(h := IndexMap _ _ t_func t_spec).
+          pose(h := IndexMap _ _ h_func h_spec).
           assert(H_b: index_map_bijective h).
           {
             assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
@@ -3014,7 +3014,7 @@ Section SigmaHCOLRewritingRules.
               intros x y xc yc H.
               simpl in *. clear h.
 
-              unfold t_func in H.
+              unfold h_func in H.
               repeat break_match.
               +
                 (* x,y < k *)
@@ -3037,7 +3037,7 @@ Section SigmaHCOLRewritingRules.
                 auto.
               +
                 (* impossible case: x,y on different sides of k *)
-                clear E0 E1 t_func t_spec IHn P' f' t'.
+                clear E0 E1 h_func h_spec IHn P' f' t'.
                 generalize dependent k.
                 intros k L K NK l n0.
 
@@ -3076,7 +3076,7 @@ Section SigmaHCOLRewritingRules.
                       lia.
               +
                 (* impossible case: x,y on different sides of k *)
-                clear E0 E1 t_func t_spec IHn P' f' t'.
+                clear E0 E1 h_func h_spec IHn P' f' t'.
                 generalize dependent k.
                 intros k L K NK l n0.
 
