@@ -3150,6 +3150,28 @@ Section SigmaHCOLRewritingRules.
               apply Hinj.
             -
               (* surjectivity *)
+              clear IHn f'.
+
+              unfold index_map_surjective in *.
+              intros y yc.
+              simpl in *.
+              unfold h_func.
+
+
+              pose(h':= build_inverse_index_map h).
+              assert(H': inverse_index_map_bijective t')
+                by apply build_inverse_index_map_is_bijective, P.
+
+              pose(xk := inverse_index_f h h' k).
+              destruct (Compare_dec.lt_dec xk k) as [Klt | Kge].
+              +
+                (* we are in the left branch of [h_func] *)
+                pose(xl := inverse_index_f t t' (S y)).
+                exists xl.
+                (* bummer! *)
+                admit.
+              +
+              (*
               pose(h':= build_inverse_index_map h).
               assert(H': inverse_index_map_bijective t')
                 by apply build_inverse_index_map_is_bijective, P.
@@ -3164,10 +3186,13 @@ Section SigmaHCOLRewritingRules.
                   nat_lt_0_contradiction.
                 -
                   simpl.
+                  TODO.
 
               }
               exists (inverse_index_f_spec h h' x xr).
               apply build_inverse_index_map_is_right_inverse; auto.
+               *)
+
           }
           specialize (IHn h H_b).
           rewrite_clear IHn.
