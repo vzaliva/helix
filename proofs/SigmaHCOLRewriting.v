@@ -3040,7 +3040,7 @@ Section SigmaHCOLRewritingRules.
                 (* impossible case: x,y on different sides of k *)
                 clear E0 E1 h_func h_spec IHn P' f' t'.
                 generalize dependent k.
-                intros k L K NK l n0.
+                intros k L K NK l n1.
 
                 assert(⟦ t ⟧ x ≢ 0).
                 {
@@ -3152,8 +3152,93 @@ Section SigmaHCOLRewritingRules.
               clear IHn E0 E1 f f'.
               unfold index_map_surjective in *.
               intros y yc.
-              apply in_range_exists; auto.
-              admit.
+
+              pose(h'_func := fun y => let x0 := (inverse_index_f t t' (S y)) in
+                                    match Compare_dec.lt_dec x0 k  with
+                                    | in_left => x0
+                                    | in_right => pred x0
+                                    end).
+              exists (h'_func y).
+
+              assert(h'_spec: h'_func y < n).
+              {
+                unfold h'_func.
+                break_if.
+                - lia.
+                -
+                  assert (inverse_index_f t t' (S y) < S n).
+                  {
+                    apply (inverse_index_f_spec t t' (S y)).
+                    apply index_map_surjective_in_range.
+                    apply P.
+                    apply lt_n_S, yc.
+                  }
+                  lia.
+              }
+              exists h'_spec.
+
+
+              assert(K': inverse_index_f t t' 0 ≡ k).
+              {
+                apply build_inverse_index_map_is_left_inverse.
+                apply P.
+                apply L.
+                apply K.
+              }
+
+              assert(NK': forall p, p < S n -> p ≢ 0 -> (inverse_index_f t t' p ≢ k)).
+              {
+                intros p pc H.
+                contradict H.
+                apply P'; try lia.
+                apply index_map_surjective_in_range.
+                apply P. apply pc.
+                apply index_map_surjective_in_range.
+                apply P. lia.
+              }
+
+              simpl.
+              unfold h_func, h'_func.
+              repeat break_if.
+              -
+                assert(H: ⟦ t ⟧ (inverse_index_f t t' (S y)) ≢ 0).
+                {
+                  apply NK.
+                  apply (inverse_index_f_spec t t' (S y)).
+                  apply index_map_surjective_in_range.
+                  apply P.
+                  apply lt_n_S, yc.
+                  apply NK'.
+                  lia.
+                  auto.
+                }
+
+                apply eq_add_S.
+                assert(M: 0 < ⟦ t ⟧ (inverse_index_f t t' (S y))) by lia.
+                rewrite <- S_pred with (m:=0) by apply M.
+                apply build_inverse_index_map_is_right_inverse; auto.
+                apply P.
+                apply index_map_surjective_in_range.
+                apply P.
+                lia.
+              -
+                assert(KK: inverse_index_f t t' (S y) ≡ k) by lia.
+                rewrite <- KK in K'.
+                apply P' in K'.
+                +
+                  congruence.
+                +
+                  apply index_map_surjective_in_range.
+                  apply P.
+                  lia.
+                +
+                  apply index_map_surjective_in_range.
+                  apply P.
+                  lia.
+              -
+                lia.
+              -
+                admit.
             }
             split; auto.
           }
