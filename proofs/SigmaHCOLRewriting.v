@@ -3148,37 +3148,14 @@ Section SigmaHCOLRewritingRules.
 
             assert(Hsurj: index_map_surjective h).
             {
-              admit.
-            }
-
-            split.
-            -
-              apply Hinj.
-            -
-              (* surjectivity *)
-              clear IHn f'.
-
+              clear IHn E0 E1 f f'.
               unfold index_map_surjective in *.
               intros y yc.
-              pose(h':= build_inverse_index_map h).
-              assert(H': inverse_index_map_bijective t')
-                by apply build_inverse_index_map_is_bijective, P.
+              apply in_range_exists; auto.
+            }
 
-              pose(xy := inverse_index_f h h' y).
-              exists xy.
-              assert(xyc: xy<n).
-              {
-                clear E0 E1.
-                subst xy.
-                apply (inverse_index_f_spec h h' y).
-                apply index_map_surjective_in_range; auto.
-              }
-              exists xyc.
-              subst xy.
 
-              apply gen_inverse_revert.
-              apply Hinj.
-              apply index_map_surjective_in_range; auto.
+            split; auto.
           }
           specialize (IHn h H_b).
           rewrite_clear IHn.
