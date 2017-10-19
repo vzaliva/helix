@@ -3145,6 +3145,12 @@ Section SigmaHCOLRewritingRules.
                   rewrite <- 2!pred_Sn in H.
                   auto.
             }
+
+            assert(Hsurj: index_map_surjective h).
+            {
+              admit.
+            }
+
             split.
             -
               apply Hinj.
@@ -3154,81 +3160,25 @@ Section SigmaHCOLRewritingRules.
 
               unfold index_map_surjective in *.
               intros y yc.
-              simpl in *.
-              unfold h_func.
-
-              pose(h' := fun y =>
-                           let x0 := inverse_index_f t t' (S y) in
-                           if Compare_dec.lt_dec x0 k then x0
-                           else (pred x0)).
-              exists (h' y).
-              assert(h'yc: h' y < n).
-              {
-                clear E0 E1.
-                unfold h'.
-                subst k.
-                simpl.
-                repeat break_if; try lia.
-                -
-                  contradict n0.
-                  apply gen_inverse_index_f_spec.
-                  apply in_range_shrink_index_map_domain.
-                  +
-                    admit.
-                  +
-                    assumption.
-                -
-                  apply lt_S_n.
-                  remember (gen_inverse_index_f (shrink_index_map_domain t)) as t'_func.
-
-                  apply not_lt in n0.
-                  unfold ge in n0.
-                  apply le_lt_eq_dec in n0.
-                  destruct n0 as [NA | NB]
-                  +
-                    rewrite <- S_pred with (m:=t'_func 0) by auto.
-                    subst t'_func.
-                    assert(gen_inverse_index_f (shrink_index_map_domain t) (S y) < n).
-                    {
-                      apply gen_inverse_index_f_spec.
-                      apply in_range_shrink_index_map_domain.
-                      -
-                        apply index_map_surjective_in_range.
-                        apply P.
-                        apply lt_n_S, yc.
-                      -
-                        assumption.
-                    }
-                    lia.
-                  +
-                    admit.
-                    (* apply inverse_index_map_bijective_iff in NB. *)
-              }
-              exists h'yc.
-
-              break_if.
-              +
-                unfold h'.
-
-              +
-
-          (*
-
               pose(h':= build_inverse_index_map h).
               assert(H': inverse_index_map_bijective t')
                 by apply build_inverse_index_map_is_bijective, P.
 
-              pose(xk := inverse_index_f h h' k).
-              destruct (Compare_dec.lt_dec xk k) as [Klt | Kge].
-              +
-                (* we are in the left branch of [h_func] *)
-                pose(xl := inverse_index_f t t' (S y)).
-                exists xl.
-                (* bummer! *)
-                admit.
-              +
-                admit.
-               *)
+              pose(xy := inverse_index_f h h' y).
+              exists xy.
+              assert(xyc: xy<n).
+              {
+                clear E0 E1.
+                subst xy.
+                apply (inverse_index_f_spec h h' y).
+                apply index_map_surjective_in_range; auto.
+              }
+              exists xyc.
+              subst xy.
+
+              apply gen_inverse_revert.
+              apply Hinj.
+              apply index_map_surjective_in_range; auto.
           }
           specialize (IHn h H_b).
           rewrite_clear IHn.
@@ -3236,7 +3186,6 @@ Section SigmaHCOLRewritingRules.
           replace (Vbuild _ ) with l1.
           apply VPermutation_refl.
           subst l1.
-
 
           induction n.
           *
