@@ -332,3 +332,12 @@ Qed.
 (* Similar to `Vnth_cast_aux` but arguments in equality hypotheis are swapped *)
 Lemma eq_lt_lt {n m k: nat} : n ≡ m -> k < n -> k < m.
 Proof. intros; omega. Qed.
+
+Lemma S_pred_simpl:
+  forall n : nat, n ≢ 0 -> S (Init.Nat.pred n) ≡ n.
+Proof.
+  intros n H.
+  destruct n.
+  - congruence.
+  - auto.
+Qed.
