@@ -3214,8 +3214,7 @@ Section SigmaHCOLRewritingRules.
                 }
 
                 apply eq_add_S.
-                assert(M: 0 < ⟦ t ⟧ (inverse_index_f t t' (S y))) by lia.
-                rewrite <- S_pred with (m:=0) by apply M.
+                rewrite S_pred_simpl by apply H.
                 apply build_inverse_index_map_is_right_inverse; auto.
                 apply P.
                 apply index_map_surjective_in_range.
@@ -3238,7 +3237,58 @@ Section SigmaHCOLRewritingRules.
               -
                 lia.
               -
-                admit.
+                remember (inverse_index_f t t' (S y)) as x0.
+                remember (Init.Nat.pred x0) as x1.
+                apply eq_add_S.
+                rewrite S_pred_simpl.
+                +
+                  subst x1.
+                  destruct x0.
+                  *
+                    (* x0 = 0? *)
+                    clear n0. (* same as n1 *)
+                    simpl.
+                    destruct k.
+                    --
+                      rewrite <- K' in Heqx0.
+                      apply P' in Heqx0.
+                      ++
+                        congruence.
+                      ++
+                        apply index_map_surjective_in_range.
+                        apply P.
+                        lia.
+                      ++
+                        apply index_map_surjective_in_range.
+                        apply P.
+                        lia.
+                    --
+                      lia.
+                  *
+                    rewrite S_pred_simpl.
+                    --
+                      apply build_inverse_index_map_is_right_inverse.
+                      apply P.
+                      apply index_map_surjective_in_range.
+                      apply P.
+                      lia.
+                      rewrite Heqx0.
+                      reflexivity.
+                    --
+                      lia.
+                +
+                  intros H.
+                  rewrite <- K in H.
+                  apply P in H; try lia.
+                  assert(x0 < S n).
+                  {
+                    subst x0.
+                    apply (inverse_index_f_spec t t' (S y)).
+                    apply index_map_surjective_in_range.
+                    apply P.
+                    lia.
+                  }
+                  lia.
             }
             split; auto.
           }
@@ -3248,7 +3298,6 @@ Section SigmaHCOLRewritingRules.
           replace (Vbuild _ ) with l1.
           apply VPermutation_refl.
           subst l1.
-
 
           apply Veq_nth.
           intros i ip.
