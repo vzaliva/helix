@@ -2995,17 +2995,18 @@ Section SigmaHCOLRewritingRules.
               crush.
           }
           pose(h := IndexMap _ _ h_func h_spec).
+
+          assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
+          {
+            intros p pc H.
+            contradict H.
+            apply P; auto.
+            rewrite K, H.
+            reflexivity.
+          }
+
           assert(H_b: index_map_bijective h).
           {
-            assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
-            {
-              intros p pc H.
-              contradict H.
-              apply P; auto.
-              rewrite K, H.
-              reflexivity.
-            }
-
             assert(Hinj: index_map_injective h).
             {
               (* injectivity *)
@@ -3152,9 +3153,8 @@ Section SigmaHCOLRewritingRules.
               unfold index_map_surjective in *.
               intros y yc.
               apply in_range_exists; auto.
+              admit.
             }
-
-
             split; auto.
           }
           specialize (IHn h H_b).
@@ -3164,15 +3164,55 @@ Section SigmaHCOLRewritingRules.
           apply VPermutation_refl.
           subst l1.
 
-          induction n.
+
+          apply Veq_nth.
+          intros i ip.
+          rewrite Vbuild_nth.
+          rewrite Vnth_cast.
+          rewrite Vnth_app.
+          break_match.
           *
-            rewrite Vbuild_0.
-            apply VO_eq.
-          *
-            apply Veq_nth.
-            intros i ip.
             rewrite Vbuild_nth.
-            admit.
+            subst h.
+            unfold h_func.
+            simpl.
+            assert(E: (⟦ t ⟧ (i - k + 1 + k)) ≡ (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i))))).
+            {
+              break_if.
+              - crush.
+              -
+                replace (i - k + 1 + k) with (S i) by omega.
+                destruct (⟦ t ⟧ (S i)) eqn:T.
+                +
+                  rewrite <- K in T.
+                  apply index_map_bijective_iff in T; auto.
+                  *
+                    crush.
+                  *
+                    apply lt_n_S.
+                    auto.
+                +
+                  reflexivity.
+            }
+            forall_n_lt_eq.
+          *
+            rewrite Vbuild_nth.
+            subst h.
+            unfold h_func.
+            simpl.
+            symmetry.
+            assert(E: (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i)))) ≡⟦ t ⟧ i ).
+            {
+              break_if; try omega.
+              destruct (⟦ t ⟧ i) eqn:T.
+              +
+                rewrite <- K in T.
+                apply index_map_bijective_iff in T; auto.
+                omega.
+              +
+                reflexivity.
+            }
+            forall_n_lt_eq.
         +
           symmetry.
           clear Heqt1.
