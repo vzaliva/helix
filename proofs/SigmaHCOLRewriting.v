@@ -2971,10 +2971,10 @@ Section SigmaHCOLRewritingRules.
           specialize (IHn f').
           unfold f' in IHn.
 
-          pose(h_func := fun x => match Compare_dec.lt_dec x k  with
-                               | in_left => pred (⟦ t ⟧ x)
-                               | in_right => pred (⟦ t ⟧ (S x))
-                               end
+          pose(h_func := fun x => pred (match Compare_dec.lt_dec x k  with
+                                     | in_left => ⟦ t ⟧ x
+                                     | in_right => ⟦ t ⟧ (S x)
+                                     end)
               ).
 
           assert(h_spec: forall x, x<n -> (h_func x) < n).
@@ -3157,6 +3157,62 @@ Section SigmaHCOLRewritingRules.
               simpl in *.
               unfold h_func.
 
+              pose(h' := fun y =>
+                           let x0 := inverse_index_f t t' (S y) in
+                           if Compare_dec.lt_dec x0 k then x0
+                           else (pred x0)).
+              exists (h' y).
+              assert(h'yc: h' y < n).
+              {
+                clear E0 E1.
+                unfold h'.
+                subst k.
+                simpl.
+                repeat break_if; try lia.
+                -
+                  contradict n0.
+                  apply gen_inverse_index_f_spec.
+                  apply in_range_shrink_index_map_domain.
+                  +
+                    admit.
+                  +
+                    assumption.
+                -
+                  apply lt_S_n.
+                  remember (gen_inverse_index_f (shrink_index_map_domain t)) as t'_func.
+
+                  apply not_lt in n0.
+                  unfold ge in n0.
+                  apply le_lt_eq_dec in n0.
+                  destruct n0 as [NA | NB]
+                  +
+                    rewrite <- S_pred with (m:=t'_func 0) by auto.
+                    subst t'_func.
+                    assert(gen_inverse_index_f (shrink_index_map_domain t) (S y) < n).
+                    {
+                      apply gen_inverse_index_f_spec.
+                      apply in_range_shrink_index_map_domain.
+                      -
+                        apply index_map_surjective_in_range.
+                        apply P.
+                        apply lt_n_S, yc.
+                      -
+                        assumption.
+                    }
+                    lia.
+                  +
+                    admit.
+                    (* apply inverse_index_map_bijective_iff in NB. *)
+              }
+              exists h'yc.
+
+              break_if.
+              +
+                unfold h'.
+
+              +
+
+          (*
 
               pose(h':= build_inverse_index_map h).
               assert(H': inverse_index_map_bijective t')
@@ -3171,28 +3227,8 @@ Section SigmaHCOLRewritingRules.
                 (* bummer! *)
                 admit.
               +
-              (*
-              pose(h':= build_inverse_index_map h).
-              assert(H': inverse_index_map_bijective t')
-                by apply build_inverse_index_map_is_bijective, P.
-              unfold index_map_surjective.
-              intros x xc.
-              exists (inverse_index_f h h' x).
-              assert(xr: in_range h x).
-              {
-                clear IHn h' H'.
-                induction n.
-                -
-                  nat_lt_0_contradiction.
-                -
-                  simpl.
-                  TODO.
-
-              }
-              exists (inverse_index_f_spec h h' x xr).
-              apply build_inverse_index_map_is_right_inverse; auto.
+                admit.
                *)
-
           }
           specialize (IHn h H_b).
           rewrite_clear IHn.
