@@ -2955,6 +2955,8 @@ Section SigmaHCOLRewritingRules.
 
                                 rhs).
         {
+          subst rhs.
+          (* apply VPermutation_middle. *)
           admit.
         }
         remember (Vcons _ _) as t1 in T1.
