@@ -1,15 +1,19 @@
-Require Import VecUtil.
 
 Require Import Coq.Arith.Arith.
 Require Export Coq.Vectors.Vector.
-
+Require Import Coq.Program.Equality. (* for dependent induction *)
 Require Import Setoid Morphisms.
 
-(* CoLoR *)
+(* CoLoR: `opam install coq-color`  *)
 Require Export CoLoR.Util.Vector.VecUtil.
-Import VectorNotations.
 
-Require Import SpiralTactics.
+Open Scope vector_scope.
+
+(* Re-define :: List notation for vectors. Probably not such a good idea *)
+Notation "h :: t" := (cons h t) (at level 60, right associativity)
+                     : vector_scope.
+
+Import VectorNotations.
 
 Section VPermutation.
 
@@ -29,8 +33,8 @@ Section VPermutation.
   Theorem VPermutation_nil : forall (l : vector A 0), VPermutation 0 [] l -> l = [].
   Proof.
     intros l HF.
-    dep_destruct l.
-    auto.
+    dependent destruction l.
+    reflexivity.
   Qed.
 
   (** VPermutation over vectors is a equivalence relation *)
@@ -68,10 +72,56 @@ Local Hint Resolve VPermutation_sym VPermutation_trans.
 (* This provides reflexivity, symmetry and transitivity and rewriting
    on morphims to come *)
 
-Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 := {
-  Equivalence_Reflexive := @VPermutation_refl A n ;
-  Equivalence_Symmetric := @VPermutation_sym A n ;
-  Equivalence_Transitive := @VPermutation_trans A n }.
+Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
+  {
+    Equivalence_Reflexive := @VPermutation_refl A n ;
+    Equivalence_Symmetric := @VPermutation_sym A n ;
+    Equivalence_Transitive := @VPermutation_trans A n
+  }.
+
+Section VPermutation_properties.
+
+  Require Import Sorting.Permutation.
+
+  Variable A:Type.
+
+  Lemma ListVecPermutation {n} {l1 l2} {v1 v2}:
+    l1 = list_of_vec v1 ->
+    l2 = list_of_vec v2 ->
+    Permutation l1 l2 ->
+    VPermutation A n v1 v2.
+  Proof.
+    intros H1 H2 P.
+    revert H1 H2.
+    dependent induction P.
+    -
+      intros H1 H2.
+      dependent destruction v1; auto.
+      dependent destruction v2; auto.
+      inversion H1.
+    -
+      intros H1 H2.
+      dependent destruction v1; auto.
+      inversion H1.
+      dependent destruction v2; auto.
+      inversion H1.
+      inversion H2.
+      subst.
+      apply vperm_skip.
+      (* apply IHP. *)
+  Admitted.
+
+  Theorem VPermutation_middle
+          {m n}
+          (v1: vector A m)
+          (v2:vector A n)
+          {a: A}:
+    VPermutation _ _ (a :: (Vapp v1 v2)) (Vcast
+                                            (Vapp v1 (a :: v2))
+                                            (Nat.add_succ_r _ _)
+                                         ).
+  Proof.
+  Admitted.
 
 
-
+End VPermutation_properties.
