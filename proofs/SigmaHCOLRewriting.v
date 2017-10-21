@@ -2818,6 +2818,30 @@ Section SigmaHCOLRewritingRules.
             clear lrm.
             subst lr.
             cbv beta in *.
+
+            assert(x mod n < n) by auto.
+            assert(x/n < m) by auto.
+            assert(x mod m < m) by auto.
+            assert(x/m < n) by auto.
+
+            assert(y mod n < n) by auto.
+            assert(y/n < m) by auto.
+            assert(y mod m < m) by auto.
+            assert(y/m < n) by auto.
+
+            assert(n≢0) by lia.
+            assert(m≢0) by lia.
+            assert(0<n) by lia.
+            assert(0<m) by lia.
+
+            assert(x / n + x mod n * m < m*n) by (apply lrc; auto).
+            assert(y / n + y mod n * m < m*n) by (apply lrc; auto).
+
+            clear lrc rlc rl.
+            clear tmdn tmm tmn tndm.
+
+            nia.
+
             admit.
           -
             (* surjectivity *)
