@@ -2782,35 +2782,59 @@ Section SigmaHCOLRewritingRules.
         rename uf_zero into z.
 
         pose(lr := fun x => x/n+(x mod n)*m).
-        assert(lc: forall x (xc:x<m*n), lr x < m*n).
+        assert(lrc: forall x (xc:x<m*n), lr x < m*n).
         {
-
+          clear z f P f_mon mat Mpoz.
           subst lr.
-          revert tmn tndm.
-          clear_all.
-          intros tmn tndm.
           intros x xc.
           assert(x mod n < n) by auto.
           assert(x/n < m) by auto.
           cbv beta.
           nia.
         }
+        pose(lrm := IndexMap _ _ lr lrc).
 
-        pose(lrm := IndexMap _ _ lr lc).
+        pose(rl := fun x => x/m + (x mod m)*n).
+        assert(rlc: forall x (xc:x<m*n), rl x < m*n).
+        {
+          clear z f P f_mon mat Mpoz.
+          subst rl.
+          intros x xc.
+          assert(x mod m < m) by auto.
+          assert(x/m < n) by auto.
+          cbv beta.
+          nia.
+        }
 
         assert(index_map_bijective lrm).
         {
+          clear z f P f_mon mat Mpoz.
           split.
           -
             (* injectivity *)
             unfold index_map_injective.
+            intros x y xc yc H.
+            simpl in *.
+            clear lrm.
+            subst lr.
+            cbv beta in *.
             admit.
           -
             (* surjectivity *)
             unfold index_map_surjective.
-            admit.
+            intros y yc.
+            simpl in *.
+            clear lrm.
+            subst lr.
+            cbv beta in *.
+            exists (rl y).
+            eexists.
+            + apply (rlc y), yc.
+            +
+              subst rl.
+              cbv beta in *.
+              admit.
         }
-
 
     Admitted.
 
