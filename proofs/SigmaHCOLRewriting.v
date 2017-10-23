@@ -2837,9 +2837,15 @@ Section SigmaHCOLRewritingRules.
             assert(x / n + x mod n * m < m*n) by (apply lrc; auto).
             assert(y / n + y mod n * m < m*n) by (apply lrc; auto).
 
-            destruct n; try congruence.
             clear lrc rlc rl.
             clear tmdn tmm tmn tndm.
+
+            remember (x/n) as rx.
+            remember (x mod n) as cx.
+            remember (y/n) as ry.
+            remember (y mod n) as cy.
+
+            destruct n; try congruence.
             unfold Nat.modulo, Nat.div in *.
             generalize (Nat.divmod_spec x n 0 n).
             generalize (Nat.divmod_spec y n 0 n).
@@ -2857,9 +2863,8 @@ Section SigmaHCOLRewritingRules.
             ring_simplify in H.
             rewrite Nat.sub_diag, Nat.add_0_r in H14, H15.
             clear Heqp Heqp0 H2 H3 H6 H7 H8 H9.
-            subst x y.
-
-
+            subst_max.
+            admit.
           -
             (* surjectivity *)
             unfold index_map_surjective.
