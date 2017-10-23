@@ -2839,10 +2839,27 @@ Section SigmaHCOLRewritingRules.
 
             clear lrc rlc rl.
             clear tmdn tmm tmn tndm.
-
-            nia.
-
-            admit.
+            unfold Nat.modulo, Nat.div in *.
+            destruct n,m ; try congruence.
+            +
+              generalize (Nat.divmod_spec x n 0 n).
+              generalize (Nat.divmod_spec y n 0 n).
+              intros H14 H15.
+              assert(NN: n<=n) by auto; specialize (H14 NN); specialize (H15 NN); clear NN.
+              break_let; rename n0 into qx, n1 into ux.
+              break_let; rename n0 into qy, n1 into uy.
+              simpl in *.
+              destruct H14, H15.
+              ring_simplify in H12.
+              ring_simplify in H13.
+              ring_simplify in H14.
+              ring_simplify in H14.
+              ring_simplify in H15.
+              ring_simplify in H.
+              rewrite Nat.sub_diag, Nat.add_0_r in H14, H15.
+              clear Heqp Heqp0 H2 H3 H6 H7 H8 H9.
+              subst x y.
+              nia.
           -
             (* surjectivity *)
             unfold index_map_surjective.
