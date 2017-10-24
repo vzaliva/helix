@@ -82,6 +82,7 @@ Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
 Section VPermutation_properties.
 
   Require Import Sorting.Permutation.
+  Require Import VecUtil.
 
   Variable A:Type.
 
@@ -91,25 +92,31 @@ Section VPermutation_properties.
     Permutation l1 l2 ->
     VPermutation A n v1 v2.
   Proof.
-    intros H1 H2 P.
-    revert H1 H2.
-    dependent induction P.
-    -
-      intros H1 H2.
-      dependent destruction v1; auto.
-      dependent destruction v2; auto.
-      inversion H1.
-    -
-      intros H1 H2.
-      dependent destruction v1; auto.
-      inversion H1.
-      dependent destruction v2; auto.
-      inversion H1.
-      inversion H2.
-      subst.
+    intros H1 H2 P; revert n v1 v2 H1 H2.
+    dependent induction P; intros n v1 v2 H1 H2.
+    - dependent destruction v1; inversion H1; subst.
+      dependent destruction v2; inversion H2; subst.
+      apply vperm_nil.
+    - dependent destruction v1; inversion H1; subst.
+      dependent destruction v2; inversion H2; subst.
       apply vperm_skip.
-      (* apply IHP. *)
-  Admitted.
+      now apply IHP.
+    - do 2 (dependent destruction v1; inversion H1; subst).
+      do 2 (dependent destruction v2; inversion H2; subst).
+      apply list_of_vec_eq in H5; subst.
+      apply vperm_swap.
+    - assert (n = length l').
+      { pose proof (Permutation_length P1) as len.
+        subst.
+        now rewrite list_of_vec_length in len.
+      }
+      subst.
+      apply vperm_trans with (l' := vec_of_list l').
+      -- apply IHP1; auto.
+         now rewrite list_of_vec_vec_of_list.
+      -- apply IHP2; auto.
+         now rewrite list_of_vec_vec_of_list.
+  Qed.
 
   Theorem VPermutation_middle
           {m n}
