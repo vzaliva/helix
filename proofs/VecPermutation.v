@@ -128,7 +128,11 @@ Section VPermutation_properties.
                                             (Nat.add_succ_r _ _)
                                          ).
   Proof.
-  Admitted.
-
+    eapply ListVecPermutation; auto.
+    simpl.
+    rewrite list_of_vec_Vcast.
+    rewrite 2!list_of_vec_Vapp.
+    apply Permutation_middle.
+  Qed.
 
 End VPermutation_properties.
