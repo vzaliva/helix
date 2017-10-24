@@ -1095,3 +1095,52 @@ Ltac Vnth_eq_index_to_val_eq :=
     apply Vnth_arg_eq;
     clear rc lc HeqQ
   end.
+
+Section List_of_Vec.
+
+  Parameter A : Type.
+  Parameter n : nat.
+
+  Lemma list_of_vec_eq (v1 v2 : vector A n) :
+    list_of_vec v1 = list_of_vec v2 -> v1 = v2.
+  Proof.
+    induction n.
+    -
+      dep_destruct v1.
+      dep_destruct v2.
+      reflexivity.
+    -
+      intros H.
+      dep_destruct v1.
+      dep_destruct v2.
+      inversion H.
+      apply Vcons_eq_intro; auto.
+  Qed.
+
+  Lemma list_of_vec_length {v : vector A n} :
+    length (list_of_vec v) = n.
+  Proof.
+    induction n.
+    -
+      dep_destruct v.
+      reflexivity.
+    -
+      dep_destruct v.
+      simpl.
+      apply eq_S.
+      auto.
+  Qed.
+
+  Lemma list_of_vec_vec_of_list {l : list A} :
+    list_of_vec (vec_of_list l) = l.
+  Proof.
+    induction l.
+    -
+      reflexivity.
+    -
+      simpl.
+      rewrite IHl.
+      reflexivity.
+  Qed.
+
+End List_of_Vec.
