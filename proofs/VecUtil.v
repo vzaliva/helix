@@ -1,6 +1,7 @@
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality. (* for dependent induction *)
 Require Import Coq.omega.Omega.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
@@ -1099,7 +1100,7 @@ Ltac Vnth_eq_index_to_val_eq :=
 
 Section List_of_Vec.
 
-  Require Export CoLoR.Util.List.ListUtil.
+  Require Import CoLoR.Util.List.ListUtil.
 
   Lemma list_of_vec_eq {A:Type} {n:nat} (v1 v2 : vector A n) :
     list_of_vec v1 = list_of_vec v2 -> v1 = v2.
@@ -1159,10 +1160,98 @@ Section List_of_Vec.
       eapply IHm.
   Qed.
 
+  (* Note: no [default] param for [nth] is not specified *)
+  Lemma nth_cons {A:Type} (l: list A) (a:A) (i:nat):
+    nth (S i) (a::l) = nth i l.
+  Proof.
+    crush.
+  Qed.
+
+  (* Note: no [default] param for [nth] is not specified *)
+  Lemma list_eq_nth {A:Type} (l1 l2: list A):
+    (length l1 = length l2) ->
+    (forall i (ic1:i<length l1), nth i l1 = nth i l2) ->
+    l1 = l2.
+  Proof.
+    revert l1 l2.
+    induction l1.
+    -
+      intros L N.
+      simpl in L.
+      symmetry.
+      apply length_zero_iff_nil.
+      auto.
+    -
+      intros l2 L F.
+      destruct l2.
+      crush.
+      apply cons_eq.
+      +
+        assert(H1: 0 < length (a :: l1)) by crush.
+        specialize (F 0 H1).
+        simpl in F.
+        apply equal_f in F.
+        auto.
+        exact a0.
+      +
+        apply IHl1.
+        *
+          auto.
+        *
+          intros i ic1.
+          rewrite <- nth_cons with (a1:=a).
+          rewrite <- nth_cons with (a1:=a0) (l:=l2).
+          apply F; crush.
+  Qed.
+
+  (* Note: no [default] param for [nth] is not specified *)
+  Lemma nth_Vnth {A:Type} {n:nat} {v:vector A n} (i:nat) (ic:i<n):
+    nth i (list_of_vec (v)) = fun _ => Vnth v ic.
+  Proof.
+    revert i ic.
+    dependent induction v.
+    -
+      intros i ic.
+      nat_lt_0_contradiction.
+    -
+      intros i ic.
+      destruct i.
+      +
+        reflexivity.
+      +
+        simpl.
+        apply IHv.
+  Qed.
+
   Lemma list_of_vec_Vapp {A:Type} {m n:nat} {v1: vector A m} {v2: vector A n}:
     list_of_vec (Vapp v1 v2) = List.app (list_of_vec v1) (list_of_vec v2).
   Proof.
-
-  Admitted.
+    apply list_eq_nth.
+    -
+      rewrite app_length.
+      repeat rewrite list_of_vec_length.
+      auto.
+    -
+      intros i ic1.
+      rewrite list_of_vec_length in ic1.
+      rewrite nth_Vnth with (ic:=ic1).
+      rewrite Vnth_app.
+      break_match.
+      +
+        rewrite <- nth_Vnth.
+        extensionality x.
+        rewrite app_nth2.
+        rewrite list_of_vec_length.
+        reflexivity.
+        rewrite list_of_vec_length.
+        auto.
+      +
+        rewrite <- nth_Vnth.
+        extensionality x.
+        rewrite app_nth1.
+        reflexivity.
+        rewrite list_of_vec_length.
+        auto.
+  Qed.
 
 End List_of_Vec.
