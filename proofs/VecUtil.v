@@ -1098,10 +1098,7 @@ Ltac Vnth_eq_index_to_val_eq :=
 
 Section List_of_Vec.
 
-  Parameter A : Type.
-  Parameter n : nat.
-
-  Lemma list_of_vec_eq (v1 v2 : vector A n) :
+  Lemma list_of_vec_eq {A:Type} {n:nat} (v1 v2 : vector A n) :
     list_of_vec v1 = list_of_vec v2 -> v1 = v2.
   Proof.
     induction n.
@@ -1117,7 +1114,7 @@ Section List_of_Vec.
       apply Vcons_eq_intro; auto.
   Qed.
 
-  Lemma list_of_vec_length {v : vector A n} :
+  Lemma list_of_vec_length {A:Type} {n:nat} {v : vector A n} :
     length (list_of_vec v) = n.
   Proof.
     induction n.
@@ -1131,7 +1128,7 @@ Section List_of_Vec.
       auto.
   Qed.
 
-  Lemma list_of_vec_vec_of_list {l : list A} :
+  Lemma list_of_vec_vec_of_list {A:Type} {l : list A} :
     list_of_vec (vec_of_list l) = l.
   Proof.
     induction l.
