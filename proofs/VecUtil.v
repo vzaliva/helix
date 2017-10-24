@@ -1158,4 +1158,11 @@ Section List_of_Vec.
       apply tail_eq.
       eapply IHm.
   Qed.
+
+  Lemma list_of_vec_Vapp {A:Type} {m n:nat} {v1: vector A m} {v2: vector A n}:
+    list_of_vec (Vapp v1 v2) = List.app (list_of_vec v1) (list_of_vec v2).
+  Proof.
+
+  Admitted.
+
 End List_of_Vec.
