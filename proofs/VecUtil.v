@@ -1,4 +1,5 @@
 Require Import Coq.Program.Basics.
+Require Import Coq.Program.Equality. (* for dependent induction *)
 Require Import Coq.omega.Omega.
 
 Require Export Coq.Vectors.Vector.
@@ -1098,6 +1099,8 @@ Ltac Vnth_eq_index_to_val_eq :=
 
 Section List_of_Vec.
 
+  Require Export CoLoR.Util.List.ListUtil.
+
   Lemma list_of_vec_eq {A:Type} {n:nat} (v1 v2 : vector A n) :
     list_of_vec v1 = list_of_vec v2 -> v1 = v2.
   Proof.
@@ -1140,4 +1143,19 @@ Section List_of_Vec.
       reflexivity.
   Qed.
 
+  Lemma list_of_vec_Vcast {A:Type} {m n:nat} (v : vector A m) {E:m=n}:
+    list_of_vec (Vcast v E) = list_of_vec v.
+  Proof.
+    dependent induction m.
+    -
+      crush.
+    -
+      destruct n; try congruence.
+      dep_destruct v.
+      simpl.
+      rewrite Vcast_cons.
+      simpl.
+      apply tail_eq.
+      eapply IHm.
+  Qed.
 End List_of_Vec.
