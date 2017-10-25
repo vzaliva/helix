@@ -2812,12 +2812,15 @@ Section SigmaHCOLRewritingRules.
           split.
           -
             (* injectivity *)
+
             unfold index_map_injective.
             intros x y xc yc H.
             simpl in *.
             clear lrm.
             subst lr.
             cbv beta in *.
+
+            clear rlc rl.
 
             assert(x mod n < n) by auto.
             assert(x/n < m) by auto.
@@ -2836,8 +2839,8 @@ Section SigmaHCOLRewritingRules.
 
             assert(x / n + x mod n * m < m*n) by (apply lrc; auto).
             assert(y / n + y mod n * m < m*n) by (apply lrc; auto).
+            clear lrc.
 
-            clear lrc rlc rl.
             clear tmdn tmm tmn tndm.
 
             remember (x/n) as rx.
@@ -2877,8 +2880,42 @@ Section SigmaHCOLRewritingRules.
             eexists.
             + apply (rlc y), yc.
             +
+              (* assert(y mod n < n) by auto.
+              assert(y/n < m) by auto. *)
+              assert(y mod m < m) by auto.
+              assert(y/m < n) by auto.
+
+              (* assert(y / m + y mod m * m < m*n) by (apply lrc; auto). *)
+              clear lrc rlc tmdn tmm tmn tndm.
+
               subst rl.
-              cbv beta in *.
+              cbv beta.
+              unfold Nat.modulo, Nat.div in *.
+              destruct m,n; try (ring_simplify in yc; nat_lt_0_contradiction).
+              generalize dependent (Nat.divmod_spec y m 0 m).
+              intros X.
+              assert(MM: m<=m) by auto; specialize (X MM); clear MM.
+              break_let; rename n0 into qy, n1 into uy.
+              simpl.
+              destruct X as [X1 X2].
+              ring_simplify in X1.
+              rewrite Nat.sub_diag, Nat.add_0_r in X1.
+              subst y.
+              ring_simplify.
+
+              generalize dependent (Nat.divmod_spec (qy + (m - uy) * (1 + n)) n 0 n).
+              intros X.
+              assert(NN: n<=n) by auto; specialize (X NN); clear NN.
+              break_let; rename n0 into q1, n1 into u1.
+              simpl in *.
+              destruct X as [X3 X4].
+              rewrite Nat.mul_0_r, Nat.sub_diag, 2!Nat.add_0_r in X3.
+              ring_simplify in X3.
+              clear Heqp0 Heqp.
+              (* assert(Z: qy ≡ n * q1 + q1 + (n - u1) - (m - uy)*n - (m - uy) ).
+              admit. clear X3 yc.
+              subst qy. *)
+
               admit.
         }
 
