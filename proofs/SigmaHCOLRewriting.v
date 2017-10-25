@@ -2832,11 +2832,6 @@ Section SigmaHCOLRewritingRules.
             assert(y mod m < m) by auto.
             assert(y/m < n) by auto.
 
-            assert(n≢0) by lia.
-            assert(m≢0) by lia.
-            assert(0<n) by lia.
-            assert(0<m) by lia.
-
             assert(x / n + x mod n * m < m*n) by (apply lrc; auto).
             assert(y / n + y mod n * m < m*n) by (apply lrc; auto).
             clear lrc.
@@ -2844,11 +2839,8 @@ Section SigmaHCOLRewritingRules.
             clear tmdn tmm tmn tndm.
 
 
-
-
-
+            destruct m,n; try nat_lt_0_contradiction.
             unfold Nat.modulo, Nat.div in *.
-            destruct m,n; try congruence.
 
             generalize (Nat.divmod_spec x n 0 n).
             generalize (Nat.divmod_spec y n 0 n).
@@ -2863,16 +2855,16 @@ Section SigmaHCOLRewritingRules.
             break_let; rename n0 into qmy, n1 into umy.
             simpl in *.
             destruct H14, H15, H16, H17.
-            rewrite Nat.sub_diag, Nat.mul_0_r, 2!Nat.add_0_r in H14, H15, H16, H17.
+            rewrite Nat.sub_diag, Nat.mul_0_r, 2!Nat.add_0_r in H10, H12, H14, H16.
 
+            ring_simplify in H8.
+            ring_simplify in H9.
+            ring_simplify in H10.
             ring_simplify in H12.
-            ring_simplify in H13.
             ring_simplify in H14.
-            ring_simplify in H15.
             ring_simplify in H16.
-            ring_simplify in H17.
             ring_simplify in H.
-            clear Heqp Heqp0 Heqp1 Heqp2 H8 H9 H10 H11 .
+            clear Heqp Heqp0 Heqp1 Heqp2.
             subst.
 
           -
