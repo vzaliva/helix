@@ -2843,31 +2843,38 @@ Section SigmaHCOLRewritingRules.
 
             clear tmdn tmm tmn tndm.
 
-            remember (x/n) as rx.
-            remember (x mod n) as cx.
-            remember (y/n) as ry.
-            remember (y mod n) as cy.
 
-            destruct n; try congruence.
+
+
+
             unfold Nat.modulo, Nat.div in *.
+            destruct m,n; try congruence.
+
             generalize (Nat.divmod_spec x n 0 n).
             generalize (Nat.divmod_spec y n 0 n).
-            intros H14 H15.
+            generalize (Nat.divmod_spec x m 0 m).
+            generalize (Nat.divmod_spec y m 0 m).
+            intros H16 H17 H14 H15.
             assert(NN: n<=n) by auto; specialize (H14 NN); specialize (H15 NN); clear NN.
-            break_let; rename n0 into qx, n1 into ux.
-            break_let; rename n0 into qy, n1 into uy.
+            assert(MM: m<=m) by auto; specialize (H16 MM); specialize (H17 MM); clear MM.
+            break_let; rename n0 into qnx, n1 into unx.
+            break_let; rename n0 into qny, n1 into uny.
+            break_let; rename n0 into qmx, n1 into umx.
+            break_let; rename n0 into qmy, n1 into umy.
             simpl in *.
-            destruct H14, H15.
+            destruct H14, H15, H16, H17.
+            rewrite Nat.sub_diag, Nat.mul_0_r, 2!Nat.add_0_r in H14, H15, H16, H17.
+
             ring_simplify in H12.
             ring_simplify in H13.
             ring_simplify in H14.
-            ring_simplify in H14.
             ring_simplify in H15.
+            ring_simplify in H16.
+            ring_simplify in H17.
             ring_simplify in H.
-            rewrite Nat.sub_diag, Nat.add_0_r in H14, H15.
-            clear Heqp Heqp0 H2 H3 H6 H7 H8 H9.
-            subst_max.
-            admit.
+            clear Heqp Heqp0 Heqp1 Heqp2 H8 H9 H10 H11 .
+            subst.
+
           -
             (* surjectivity *)
             unfold index_map_surjective.
