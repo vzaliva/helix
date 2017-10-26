@@ -2839,34 +2839,46 @@ Section SigmaHCOLRewritingRules.
             clear tmdn tmm tmn tndm.
 
 
-            destruct m,n; try nat_lt_0_contradiction.
-            unfold Nat.modulo, Nat.div in *.
+            destruct (eq_nat_dec x y); auto.
+            destruct (Compare_dec.lt_dec y x) as [XY | YX].
+            +
+              assert(EU: exists u, x ≡ y+u) by (exists (x-y); lia).
+              destruct EU as [u EU].
+              assert(UNZ: u≢0) by lia.
 
-            generalize (Nat.divmod_spec x n 0 n).
-            generalize (Nat.divmod_spec y n 0 n).
-            generalize (Nat.divmod_spec x m 0 m).
-            generalize (Nat.divmod_spec y m 0 m).
-            intros H16 H17 H14 H15.
-            assert(NN: n<=n) by auto; specialize (H14 NN); specialize (H15 NN); clear NN.
-            assert(MM: m<=m) by auto; specialize (H16 MM); specialize (H17 MM); clear MM.
-            break_let; rename n0 into qnx, n1 into unx.
-            break_let; rename n0 into qny, n1 into uny.
-            break_let; rename n0 into qmx, n1 into umx.
-            break_let; rename n0 into qmy, n1 into umy.
-            simpl in *.
-            destruct H14, H15, H16, H17.
-            rewrite Nat.sub_diag, Nat.mul_0_r, 2!Nat.add_0_r in H10, H12, H14, H16.
+              assert(Lx: y+u = ((y+u)/n)*n+((y+u) mod n)).
+              {
+                rewrite Nat.mul_comm.
+                apply Nat.div_mod.
+                lia.
+              }
 
-            ring_simplify in H8.
-            ring_simplify in H9.
-            ring_simplify in H10.
-            ring_simplify in H12.
-            ring_simplify in H14.
-            ring_simplify in H16.
-            ring_simplify in H.
-            clear Heqp Heqp0 Heqp1 Heqp2.
-            subst.
+              rewrite <- EU in Lx at 1.
+              rewrite Lx in H.
+              assert(NNZ: n ≢ 0) by lia.
+              assert(MNZ: m ≢ 0) by lia.
+              rewrite Nat.div_add_l in H; auto.
 
+              replace ((y + u) mod n / n) with 0 in H.
+              *
+                rewrite Nat.add_0_r in H.
+                (* diverges from whiteboard notes here *)
+                rewrite Nat.add_mod_idemp_r in H; auto.
+                setoid_rewrite Nat.add_comm in H at 3.
+                rewrite Nat.mod_add in H; auto.
+                (* same results as [rewrite EU in H]! *)
+                crush.
+                admit.
+              *
+                symmetry.
+                apply Nat.div_small.
+                rewrite EU in H0.
+                apply H0.
+            +
+              (* y>=x *)
+              admit.
+
+            admit.
           -
             (* surjectivity *)
             unfold index_map_surjective.
