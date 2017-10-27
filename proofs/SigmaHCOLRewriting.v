@@ -3210,20 +3210,12 @@ Section SigmaHCOLRewritingRules.
                   destruct (⟦ t ⟧ x) eqn:Hx, (⟦ t ⟧ (S y)) eqn:Hy; try congruence.
                   --
                     rewrite <- K in Hy.
-                    apply index_map_bijective_iff in Hy; crush.
+                    crush.
                   --
                     rewrite <- 2!pred_Sn in H.
                     subst_max.
                     rewrite <- Hy in Hx.
-                    apply index_map_bijective_iff in Hx; auto.
-                    ++
-                      lia.
-                    ++
-                      split.
-                      unfold index_map_injective; apply Pi.
-                      unfold index_map_surjective; apply Ps.
-                    ++
-                      lia.
+                    apply Pi in Hx; crush.
               +
                 (* impossible case: x,y on different sides of k *)
                 clear E0 E1 h_func h_spec IHn P' f' t'.
@@ -3249,20 +3241,12 @@ Section SigmaHCOLRewritingRules.
                   destruct (⟦ t ⟧ y) eqn:Hx, (⟦ t ⟧ (S x)) eqn:Hy; try congruence.
                   --
                     rewrite <- K in Hy.
-                    apply index_map_bijective_iff in Hy; crush.
+                    crush.
                   --
                     rewrite <- 2!pred_Sn in H.
                     subst_max.
                     rewrite <- Hy in Hx.
-                    apply index_map_bijective_iff in Hx; auto.
-                    ++
-                      lia.
-                    ++
-                      split.
-                      unfold index_map_injective; apply Pi.
-                      unfold index_map_surjective; apply Ps.
-                    ++
-                      lia.
+                    apply Pi in Hx; crush.
               +
                 (* x,y > k *)
                 apply eq_add_S.
@@ -3468,12 +3452,7 @@ Section SigmaHCOLRewritingRules.
                 destruct (⟦ t ⟧ (S i)) eqn:T.
                 +
                   rewrite <- K in T.
-                  apply index_map_bijective_iff in T; auto.
-                  *
-                    crush.
-                  *
-                    apply lt_n_S.
-                    auto.
+                  apply P in T; crush.
                 +
                   reflexivity.
             }
@@ -3490,8 +3469,7 @@ Section SigmaHCOLRewritingRules.
               destruct (⟦ t ⟧ i) eqn:T.
               +
                 rewrite <- K in T.
-                apply index_map_bijective_iff in T; auto.
-                omega.
+                apply P in T; crush.
               +
                 reflexivity.
             }

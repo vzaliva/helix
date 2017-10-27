@@ -327,22 +327,6 @@ Section Jections.
     apply in_range_exists; auto.
   Qed.
 
-  Lemma index_map_bijective_iff
-             {n: nat}
-             (f: index_map n n):
-    index_map_bijective f -> (forall x (xc: x<n) y (yc: y<n), ⟦ f ⟧ x ≡ ⟦ f ⟧ y <-> x ≡ y).
-  Proof.
-    intros B x xc y yc.
-    split.
-    -
-      intros H.
-      apply B; auto.
-    -
-      intros H.
-      rewrite H.
-      reflexivity.
-  Qed.
-
 End Jections.
 
 Section Inversions.
