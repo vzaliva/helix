@@ -17,12 +17,10 @@ Ltac nat_lt_0_contradiction :=
   | [H: MathClasses.interfaces.canonical_names.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
   end.
 
-Ltac eta_reduce_all :=
-  repeat lazymatch goal with
-         | |- context ctx [fun x => ?f x] => change (fun x => f x) with f
-         | |- context ctx [fun x y => ?f x y] => change (fun x y => f x y) with f
-         | |- context ctx [fun x y z => ?f x y z] => change (fun x y z => f x y z) with f
-         end.
+(* See https://stackoverflow.com/questions/46311353/eta-conversion-tactics/46326616 *)
+(* h is a dummy argument to make Coq happy, it gets shadowed with `?h` *)
+Ltac eta_reduce_all_private h := repeat change (fun x => ?h x) with h.
+Ltac eta_reduce_all := eta_reduce_all_private idtac.
 
 (*
 Give equality of two functions of type [∀ p : nat, p < n → A] and and a hypotheis [i0=i1] solves the goal.
