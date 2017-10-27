@@ -2867,7 +2867,6 @@ Section SigmaHCOLRewritingRules.
                 setoid_rewrite Nat.add_comm in H at 3.
                 rewrite Nat.mod_add in H; auto.
                 (* same results as [rewrite EU in H]! *)
-                crush.
                 admit.
               *
                 symmetry.
@@ -2877,8 +2876,6 @@ Section SigmaHCOLRewritingRules.
             +
               (* y>=x *)
               admit.
-
-            admit.
           -
             (* surjectivity *)
             unfold index_map_surjective.
@@ -3503,7 +3500,7 @@ Section SigmaHCOLRewritingRules.
           symmetry.
           clear Heqt1.
           forall_n_lt_eq.
-    Qed.
+    Admitted.
 
 
     (* Specialized version of rewrite_Reduction_IReduction *)
