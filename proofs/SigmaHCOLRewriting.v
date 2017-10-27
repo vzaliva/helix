@@ -2806,127 +2806,50 @@ Section SigmaHCOLRewritingRules.
           nia.
         }
 
+        assert(RLR: forall x (xc:x<m*n), lr (rl x) ≡ x).
+        {
+          intros x xc.
+          clear z f P f_mon mat Mpoz lrm.
+          subst lr rl.
+          simpl in *.
+          admit.
+        }
+
+        assert(LRL: forall x (xc:x<m*n), rl (lr x) ≡ x).
+        {
+          intros x xc.
+          clear z f P f_mon mat Mpoz lrm RLR.
+          subst lr rl.
+          simpl in *.
+          admit.
+        }
+
         assert(index_map_bijective lrm).
         {
           clear z f P f_mon mat Mpoz.
           split.
           -
             (* injectivity *)
-
             unfold index_map_injective.
             intros x y xc yc H.
             simpl in *.
             clear lrm.
-            subst lr.
-            cbv beta in *.
 
-            clear rlc rl.
-
-            assert(x mod n < n) by auto.
-            assert(x/n < m) by auto.
-            assert(x mod m < m) by auto.
-            assert(x/m < n) by auto.
-
-            assert(y mod n < n) by auto.
-            assert(y/n < m) by auto.
-            assert(y mod m < m) by auto.
-            assert(y/m < n) by auto.
-
-            assert(x / n + x mod n * m < m*n) by (apply lrc; auto).
-            assert(y / n + y mod n * m < m*n) by (apply lrc; auto).
-            clear lrc.
-
-            clear tmdn tmm tmn tndm.
-
-
-            destruct (eq_nat_dec x y); auto.
-            destruct (Compare_dec.lt_dec y x) as [XY | YX].
-            +
-              assert(EU: exists u, x ≡ y+u) by (exists (x-y); lia).
-              destruct EU as [u EU].
-              assert(UNZ: u≢0) by lia.
-
-              assert(Lx: y+u = ((y+u)/n)*n+((y+u) mod n)).
-              {
-                rewrite Nat.mul_comm.
-                apply Nat.div_mod.
-                lia.
-              }
-
-              rewrite <- EU in Lx at 1.
-              rewrite Lx in H.
-              assert(NNZ: n ≢ 0) by lia.
-              assert(MNZ: m ≢ 0) by lia.
-              rewrite Nat.div_add_l in H; auto.
-
-              replace ((y + u) mod n / n) with 0 in H.
-              *
-                rewrite Nat.add_0_r in H.
-                (* diverges from whiteboard notes here *)
-                rewrite Nat.add_mod_idemp_r in H; auto.
-                setoid_rewrite Nat.add_comm in H at 3.
-                rewrite Nat.mod_add in H; auto.
-                (* same results as [rewrite EU in H]! *)
-                admit.
-              *
-                symmetry.
-                apply Nat.div_small.
-                rewrite EU in H0.
-                apply H0.
-            +
-              (* y>=x *)
-              admit.
+            rewrite <- LRL by apply yc.
+            replace x with (rl (lr x)) by apply LRL, xc.
+            rewrite H.
+            reflexivity.
           -
             (* surjectivity *)
             unfold index_map_surjective.
             intros y yc.
             simpl in *.
-            clear lrm.
-            subst lr.
-            cbv beta in *.
+            clear lrm LRL.
             exists (rl y).
             eexists.
             + apply (rlc y), yc.
-            +
-              (* assert(y mod n < n) by auto.
-              assert(y/n < m) by auto. *)
-              assert(y mod m < m) by auto.
-              assert(y/m < n) by auto.
-
-              (* assert(y / m + y mod m * m < m*n) by (apply lrc; auto). *)
-              clear lrc rlc tmdn tmm tmn tndm.
-
-              subst rl.
-              cbv beta.
-              unfold Nat.modulo, Nat.div in *.
-              destruct m,n; try (ring_simplify in yc; nat_lt_0_contradiction).
-              generalize dependent (Nat.divmod_spec y m 0 m).
-              intros X.
-              assert(MM: m<=m) by auto; specialize (X MM); clear MM.
-              break_let; rename n0 into qy, n1 into uy.
-              simpl.
-              destruct X as [X1 X2].
-              ring_simplify in X1.
-              rewrite Nat.sub_diag, Nat.add_0_r in X1.
-              subst y.
-              ring_simplify.
-
-              generalize dependent (Nat.divmod_spec (qy + (m - uy) * (1 + n)) n 0 n).
-              intros X.
-              assert(NN: n<=n) by auto; specialize (X NN); clear NN.
-              break_let; rename n0 into q1, n1 into u1.
-              simpl in *.
-              destruct X as [X3 X4].
-              rewrite Nat.mul_0_r, Nat.sub_diag, 2!Nat.add_0_r in X3.
-              ring_simplify in X3.
-              clear Heqp0 Heqp.
-              (* assert(Z: qy ≡ n * q1 + q1 + (n - u1) - (m - uy)*n - (m - uy) ).
-              admit. clear X3 yc.
-              subst qy. *)
-
-              admit.
+            + apply RLR, yc.
         }
-
     Admitted.
 
 
