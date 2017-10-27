@@ -2835,7 +2835,21 @@ Section SigmaHCOLRewritingRules.
           clear z f P f_mon mat Mpoz lrm RLR.
           subst lr rl.
           simpl in *.
-          admit.
+          assert(NZ: n ≢ 0) by crush.
+          assert(MZ: m ≢ 0) by crush.
+          rewrite Nat.div_add; auto.
+          rewrite Nat.div_div; auto.
+          rewrite Nat.div_small; try lia.
+          rewrite Nat.add_0_l.
+          rewrite Nat.add_mod; auto.
+          rewrite Nat.mod_mul; auto.
+          rewrite Nat.add_0_r.
+          rewrite Nat.mod_mod; auto.
+          setoid_rewrite Nat.mod_small at 2; auto.
+          symmetry.
+          rewrite Nat.add_comm.
+          rewrite Nat.mul_comm.
+          apply Nat.div_mod; auto.
         }
 
         assert(index_map_bijective lrm).
