@@ -6,7 +6,6 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Minus.
 Require Import Coq.Arith.EqNat.
 Require Import Coq.Arith.Lt.
-Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Program.Program.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.

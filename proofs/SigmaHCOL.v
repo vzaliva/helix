@@ -16,7 +16,6 @@ Require Import Coq.Bool.Bool.
 Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
-Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Logic.Decidable.
 
 

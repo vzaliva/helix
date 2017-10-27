@@ -4,7 +4,6 @@
 Require Import Coq.Arith.Arith.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
-Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Sorting.Permutation.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
