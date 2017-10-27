@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-m =273
+m = 273
 n = 82
 
 def l(t1):
@@ -20,10 +20,19 @@ for t in range(0,m*n):
     lhs = l(t)
     rhs = r(lr(t))
     if lhs != rhs:
-        print "> (%s,%s)\t(%s,%s)" % (lhs+rhs)
+        print "!> (%s,%s)\t(%s,%s)" % (lhs+rhs)
+        
     # right to left
     rhs = r(t)
     lhs = l(rl(t))
     if lhs != rhs:
-        print "< (%s,%s)\t(%s,%s)" % (lhs+rhs)
+        print "<! (%s,%s)\t(%s,%s)" % (lhs+rhs)
+
+    tt=lr(rl(t))
+    if tt != t:
+        print ">> %s %s" % (t,tt)
+        
+    tt=rl(lr(t))
+    if tt != t:
+        print "<< %s %s" % (t,tt)
         
