@@ -118,21 +118,4 @@ Section VPermutation_properties.
          now rewrite list_of_vec_vec_of_list.
   Qed.
 
-  Theorem VPermutation_middle
-          {m n}
-          (v1: vector A m)
-          (v2:vector A n)
-          {a: A}:
-    VPermutation _ _ (a :: (Vapp v1 v2)) (Vcast
-                                            (Vapp v1 (a :: v2))
-                                            (Nat.add_succ_r _ _)
-                                         ).
-  Proof.
-    eapply ListVecPermutation; auto.
-    simpl.
-    rewrite list_of_vec_Vcast.
-    rewrite 2!list_of_vec_Vapp.
-    apply Permutation_middle.
-  Qed.
-
 End VPermutation_properties.
