@@ -41,3 +41,34 @@ Ltac forall_n_lt_eq :=
     apply f_equal, le_unique;
     clear rc lc HeqQ
   end.
+
+(*
+ Two-dimensional case of [forall_nm_lt_eq]
+*)
+Ltac forall_nm_lt_eq :=
+  let lcj := fresh in
+  let rcj := fresh in
+  let lci := fresh in
+  let rci := fresh in
+  let Q := fresh in
+  let HeqQ := fresh in
+  let R := fresh in
+  let HeqR := fresh in
+  match goal with
+  | [ H1: ?i0 ≡ ?i1, H2 : ?j0 ≡ ?j1 |- ?gen ?i0 ?ic0 ?j0 ?jc0 ≡ ?gen ?i1 ?ic1 ?j1 ?jc1] =>
+    generalize ic0 as lci;
+    generalize ic1 as rci;
+    generalize jc0 as lcj;
+    generalize jc1 as rcj;
+    intros rci lci rcj lcj ;
+    remember i0 as Q eqn:HeqQ;
+    remember j0 as R eqn:HeqR;
+    rewrite H1 in HeqQ;
+    rewrite H2 in HeqR;
+    subst Q;
+    subst R;
+    replace lcj with rcj by apply le_unique;
+    replace lci with rci by apply le_unique;
+    reflexivity;
+    clear rci lci rcj lcj HeqQ HeqR
+  end.
