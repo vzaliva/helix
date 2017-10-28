@@ -2181,8 +2181,8 @@ Section SigmaHCOLRewritingRules.
           {A: Type}
           {n: nat}
           {f: forall i : nat, i < n -> A}
-          {t: index_map n n}
-          {P: index_map_bijective t}
+          (t: index_map n n)
+          (P: index_map_bijective t)
       :
         VPermutation A n (Vbuild f) (Vbuild (fun i ic =>
                                                f (⟦t⟧ i) («t» i ic)
@@ -3315,19 +3315,23 @@ Section SigmaHCOLRewritingRules.
           apply Nat.div_mod; auto.
         }
 
-        assert(index_map_bijective lrm).
+        remember (λ (t : nat) (it : t < m * n), mat (t mod n) (tmn t it) (t / n) (tndm t it)) as l.
+        remember (λ (t : nat) (it : t < m * n), mat (t / m) (tmdn t it) (t mod m) (tmm t it)) as r.
+
+        pose(rlm := IndexMap _ _ rl rlc).
+        assert(RLMB: index_map_bijective rlm).
         {
-          clear z f P f_mon mat Mpoz.
+          clear z f P f_mon mat Mpoz Heql Heqr.
           split.
           -
             (* injectivity *)
             unfold index_map_injective.
             intros x y xc yc H.
             simpl in *.
-            clear lrm.
+            clear rlm.
 
-            rewrite <- LRL by apply yc.
-            replace x with (rl (lr x)) by apply LRL, xc.
+            rewrite <- RLR by apply yc.
+            replace x with (lr (rl x)) by apply RLR, xc.
             rewrite H.
             reflexivity.
           -
@@ -3335,17 +3339,52 @@ Section SigmaHCOLRewritingRules.
             unfold index_map_surjective.
             intros y yc.
             simpl in *.
-            clear lrm LRL.
-            exists (rl y).
+            clear lrm RLR.
+            exists (lr y).
             eexists.
-            + apply (rlc y), yc.
-            + apply RLR, yc.
+            + apply (lrc y), yc.
+            + apply LRL, yc.
         }
 
-        remember (Vbuild _) as b1.
-        remember (Vbuild (λ (t : nat) (it : t < m * n), mat (t / m) (tmdn t it) (t mod m) (tmm t it))) as b2.
-        (* HERE assert (VPermutation CarrierA (m*n) b1 b2) by apply Vbuild_permutation. *)
+        replace (Vbuild r) with (Vbuild (fun t it => l (⟦ rlm ⟧ t) (« rlm » t it))).
+        *
+          remember (Vbuild l) as b1.
+          remember (Vbuild (λ (t : nat) (it : t < m * n), l (⟦ rlm ⟧ t) (« rlm » t it))) as b2.
+          assert(VPermutation CarrierA (m*n) b1 b2).
+          {
+            subst b1 b2.
+            apply Vbuild_permutation with (t:=rlm).
+            auto.
+          }
+          (* HERE: prove fold equality based on permutations *)
+          admit.
+        *
+          apply Veq_nth.
+          intros i ip.
+          rewrite 2!Vbuild_nth.
+          subst r l rl.
+          simpl.
+          assert (YE: (i / m + i mod m * n) mod n ≡ i/m).
+          {
+            assert(NZ: n ≢ 0) by crush.
+            assert(MZ: m ≢ 0) by crush.
+            rewrite Nat.add_mod; auto.
+            rewrite Nat.mod_mul; auto.
+            rewrite Nat.add_0_r.
+            rewrite Nat.mod_mod; auto.
+            setoid_rewrite Nat.mod_small; auto.
+          }
 
+          assert (XE: (i / m + i mod m * n) / n ≡ i mod m).
+          {
+            assert(NZ: n ≢ 0) by crush.
+            assert(MZ: m ≢ 0) by crush.
+            rewrite Nat.div_add; auto.
+            rewrite Nat.div_div; auto.
+            rewrite Nat.div_small; try lia.
+          }
+
+          forall_n_lt_eq.
     Admitted.
 
 
