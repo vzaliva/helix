@@ -2678,9 +2678,30 @@ Section SigmaHCOLRewritingRules.
           (v1 v2 : vector A n)
           (P1: Vforall P v1)
           (P2: Vforall P v2):
-      VPermutation A n v1 v2 ->Vfold_right f v1 z = Vfold_right f v2 z.
+      VPermutation A n v1 v2 -> Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
       intros V.
+      pose(AS := sig P).
+
+      destruct f_mon, comrmonoid_rmon, mon_restriction.
+      assert(Pz: P z). apply rmonoid_unit_P.
+      pose(sz := @exist A P z Pz).
+      pose(sv1 := Vsig_of_forall P1).
+      pose(sv2 := Vsig_of_forall P1).
+      pose(sf:= fun (xs ys: AS) =>
+                  let x := proj1_sig xs in
+                  let y := proj1_sig ys in
+                  @exist A P (f x y)
+                        (rmonoid_plus_closed x y (proj2_sig xs) (proj2_sig ys))
+          ).
+
+      pose(ASE := fun (xs ys: AS) => (proj1_sig xs) = (proj1_sig ys)).
+
+      assert(CA: @CommutativeMonoid AS ASE sf sz).
+      {
+        admit.
+      }
+      (* TODO: lift Vfold_right to to AS, then apply [Vfold_VPermutation] *)
     Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
