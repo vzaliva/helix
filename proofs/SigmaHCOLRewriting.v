@@ -2674,35 +2674,13 @@ Section SigmaHCOLRewritingRules.
           (z : MonUnit A)
           (f : SgOp A)
           (P : SgPred A)
-          (f_mon: CommutativeRMonoid A):
-      forall v1 v2 : vector A n,
-        VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
+          (f_mon: CommutativeRMonoid A)
+          (v1 v2 : vector A n)
+          (P1: Vforall P v1)
+          (P2: Vforall P v2):
+      VPermutation A n v1 v2 ->Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
-      intros v1 v2 V.
-      induction V.
-      -
-        crush.
-      -
-        simpl.
-        rewrite IHV.
-        reflexivity.
-      -
-        simpl.
-        destruct f_mon, comrmonoid_rmon.
-        repeat rewrite rmonoid_ass.
-        setoid_replace (y & x) with (x & y).
-        reflexivity.
-        apply rcommutativity.
-        admit.
-        admit.
-        admit.
-        admit.
-        admit.
-        admit.
-        admit.
-        admit.
-      -
-        auto.
+      intros V.
     Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
@@ -3420,6 +3398,22 @@ Section SigmaHCOLRewritingRules.
             subst b1 b2.
             apply Vbuild_permutation with (t:=rlm).
             auto.
+          }
+          assert(Bb1: Vforall P (b1)).
+          {
+            subst b1.
+            apply Vforall_Vbuild.
+            intros i ip.
+            subst l.
+            apply Mpoz.
+          }
+          assert(Bb2: Vforall P (b2)).
+          {
+            subst b2.
+            apply Vforall_Vbuild.
+            intros i ip.
+            subst l.
+            apply Mpoz.
           }
           apply Vfold_VPermutation_CM with (P0:=P); assumption.
         *
