@@ -203,13 +203,13 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma UnionFold_a_zero_structs
-       (m : nat)
-       (x : svector fm m)
-       `{uf_zero: MonUnit CarrierA}
-       `{f: SgOp CarrierA}
-       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-       `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                   (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+        (m : nat)
+        (x : svector fm m)
+        `{uf_zero: MonUnit CarrierA}
+        `{f: SgOp CarrierA}
+        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
     :
       Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
   Proof.
@@ -248,18 +248,18 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma UnionFold_VallButOne_a_zero
-       {n : nat}
-       (v : svector fm n)
-       {i : nat}
-       (ic : i < n)
+        {n : nat}
+        (v : svector fm n)
+        {i : nat}
+        (ic : i < n)
 
-       `{uf_zero: MonUnit CarrierA}
-       `{f: SgOp CarrierA}
-       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-       `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                   (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-       `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+        `{uf_zero: MonUnit CarrierA}
+        `{f: SgOp CarrierA}
+        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+        `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
     :
       VAllButOne i ic
                  (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
@@ -320,7 +320,7 @@ Section SigmaHCOLHelperLemmas.
           unfold Is_ValX.
 
           setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
-                  with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
+            with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
 
           * apply U.
           *
@@ -1280,10 +1280,10 @@ Section SigmaHCOLRewritingRules.
           {initial: CarrierA}
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
-      RStheta2Rtheta
-        (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
-      mkValue
-        (Vfold_left_rev f initial (densify _ v)).
+        RStheta2Rtheta
+          (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
+        mkValue
+          (Vfold_left_rev f initial (densify _ v)).
     Proof.
       induction v.
       -
@@ -1299,8 +1299,8 @@ Section SigmaHCOLRewritingRules.
 
         generalize (@Vfold_left_rev CarrierA CarrierA f n initial
                                     (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
-                (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags)
-                n v)).
+                                           (@WriterMonadNoT.evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags)
+                                           n v)).
         intros c. clear v.
 
         unfold Union, Monad.liftM2, mkValue.
@@ -2176,802 +2176,7 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-    (* In SPIRAL it is called [Reduction_ISumReduction] *)
-    Lemma rewrite_Reduction_IReduction
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
-
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
-
-          (* Monoid on restriction on f *)
-          `{P: SgPred CarrierA}
-          `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
-
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-      :
-
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero))
-          ⊚ (@IUnion i o n u _ uf_zero op_family)
-        =
-        SafeCast (IReduction f uf_zero
-                    (UnSafeFamilyCast
-                       (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero)) op_family))).
-    Proof.
-      (*
-      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f)
-        by apply rsg_op_proper.
-      assert(u_mor : Proper (equiv ==> equiv ==> equiv) u)
-        by apply sg_op_proper.
-       *)
-      unfold SHOperatorFamilyCompose, SHCompose.
-      unfold equiv, SHOperator_equiv, SHCompose; simpl.
-      unfold UnSafeFamilyCast, get_family_op.
-      simpl.
-      (* Noramlized form. Diamond' all around *)
-
-      (* To use Diamond'_f_subst_under_P we need to convert body_f back to operator family *)
-      replace (λ (j : nat) (jc : j < n),
-               op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
-
-      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
-      clear u u_mon.  (* No more 'u' *)
-      clear Uz. (* Single non-unit per row constaint no longer needed *)
-
-      apply ext_equiv_applied_equiv.
-      -
-        (* LHS Setoid_Morphism *)
-        split; try apply vec_Setoid.
-        apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply liftM_HOperator'_proper.
-        apply HReduction_HOperator.
-        apply Diamond'_proper.
-        +
-          apply f_mon.
-        +
-          reflexivity.
-        + intros k kc.
-          apply op_proper.
-      -
-        (* RHS Setoid_Morphism *)
-        split; try apply vec_Setoid.
-        apply SafeCast'_proper.
-        apply Diamond'_proper.
-        + apply f_mon.
-        + reflexivity.
-        + intros k kc.
-          apply UnSafeCast'_proper.
-          apply compose_proper with (RA:=equiv) (RB:=equiv).
-          *
-            apply liftM_HOperator'_proper.
-            apply HReduction_HOperator.
-          *
-            apply op_proper.
-      -
-        intros x.
-
-        vec_index_equiv j jc.
-
-        unfold SafeCast', rsvector2rvector, compose.
-        unfold liftM_HOperator', compose, sparsify.
-        rewrite 2!Vnth_map.
-
-        unfold HReduction, compose, HCOLImpl.Vectorize.
-        rewrite Vnth_1.
-        unfold UnSafeCast'.
-        unfold compose.
-        unfold rvector2rsvector.
-        simpl.
-
-        unfold densify.
-        unfold HCOLImpl.Reduction.
-
-        rewrite Vfold_right_Vmap.
-
-        dep_destruct j; [idtac | crush].
-
-        unfold Diamond'.
-        unfold Apply_Family'.
-        unfold RStheta.
-        rewrite AbsorbMUnion'Index_Vbuild.
-        simpl.
-
-        unfold UnionFold.
-        unfold MUnion'.
-
-        rewrite RStheta2Rtheta_Vfold_left_rev_mkValue.
-        f_equiv.
-
-        unfold densify.
-        rewrite Vmap_Vbuild.
-
-        Local Opaque WriterMonadNoT.evalWriter.
-        setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv.
-        setoid_rewrite Vfold_right_Vmap_equiv.
-        clear jc j.
-
-        unfold rsvector2rvector.
-        rewrite Vmap_map.
-
-        replace (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) with (@id Rtheta) by
-        (extensionality z; rewrite RStheta2Rtheta_Rtheta2RStheta; reflexivity).
-        setoid_rewrite Vmap_id.
-
-        (* unfold Vec2Union. *)
-        specialize (Upoz x).
-
-        setoid_rewrite <- Vfold_right_Vmap_equiv.
-        unfold Vec2Union.
-        unfold Union.
-
-        (* Get rid of [get_family_op] *)
-        unfold get_family_op in *.
-
-        eta_reduce_all.
-
-        (* 1. In LHS push [evalWriter] all the way down to [get_family_op] *)
-
-        rewrite Vfold_right_to_Vfold_right_reord.
-        rewrite eval_2D_Fold by apply f_mon.
-        rewrite <- Vfold_right_to_Vfold_right_reord.
-
-        rewrite Vmap_Vbuild.
-
-        assert(Upoz': forall (j : nat) (jc : j < n), Vforall P
-                                                      (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))).
-        {
-          intros j jc.
-          specialize (Upoz j jc).
-          unfold liftRthetaP in Upoz.
-          apply Vforall_map_intro in Upoz.
-          apply Upoz.
-        }
-        clear Upoz. rename Upoz' into Upoz.
-
-
-        (* TODO:  Manual generalization. Try to automate. See https://stackoverflow.com/questions/46458710/generalizing-expressions-under-binders   *)
-
-        change (Vbuild
-          (λ (z : nat) (zi : z < n),
-           Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))) with (Vbuild
-            (λ (z : nat) (zi : z < n),
-             (fun p pi =>
-                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)).
-
-        change (Vbuild
-       (λ (z : nat) (zi : z < n),
-        Vfold_right f
-          (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-             (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))
-          uf_zero)) with (Vbuild
-       (λ (z : nat) (zi : z < n),
-        Vfold_right f
-          ((fun p pi =>
-                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)
-          uf_zero)).
-
-        revert Upoz.
-
-        change (∀ (j : nat) (jc : j < n), Vforall P
-     (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-           (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))) with   (∀ (j : nat) (jc : j < n),
-   Vforall P
-     ((fun p pi =>
-                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) j jc)).
-
-        generalize (fun p pi =>
-                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) as gen.
-
-        (* cleanup *)
-        intros gen Upoz.
-        clear x op_family i.
-        rename o into m.
-        eta_reduce_all.
-
-        (* 2. Prove equality using RMonoid. *)
-
-        set (rhs := Vfold_left_rev f _ _).
-        set (lhs := Vfold_right _ _ _).
-
-        assert(tmdn: forall t, t < m * n -> t / m < n).
-        {
-          intros t H.
-          apply Nat.div_lt_upper_bound; auto.
-          destruct m;auto.
-          ring_simplify in H.
-          nat_lt_0_contradiction.
-        }
-
-        assert(tmm: forall t,t < m * n -> t mod m < m).
-        {
-          intros t H.
-          apply Nat.mod_upper_bound.
-          destruct m; auto.
-          ring_simplify in H.
-          nat_lt_0_contradiction.
-        }
-
-        remember (Vbuild (λ (z : nat) (zi : z < n), Vfold_right f (gen z zi) uf_zero)) as lcols.
-        assert(CP: Vforall P lcols).
-        {
-          clear rhs lhs tmdn tmm.
-          subst lcols.
-          apply Vforall_Vbuild.
-          intros i ip.
-          specialize (Upoz i ip).
-          generalize dependent (gen i ip).
-          intros v Upoz.
-          clear i ip gen.
-          apply (Vfold_right_under_P P).
-          apply Upoz.
-        }
-
-        (* linear shaped equivalent of RHS *)
-        pose (rnorm := Vfold_right f (Vbuild
-                                        (fun (t:nat) (it:t < (m*n)) =>
-                                           @Vnth CarrierA m
-                                                 (gen (t/m) (tmdn t it))
-                                                 (t mod m)
-                                                 (tmm t it)
-                                        )
-                                     ) uf_zero ).
-
-        assert(NR: rhs = rnorm).
-        {
-          subst rhs rnorm.
-          clear lhs.
-          rewrite (Vfold_right_left_rev_under_P P); try apply CP.
-
-          induction n.
-          -
-            crush.
-            destruct (Vbuild _).
-            crush.
-            specialize (tmdn 0 (Nat.lt_0_succ n)).
-            nat_lt_0_contradiction.
-          -
-            dep_destruct lcols.
-            simpl.
-            pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
-
-            assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
-            {
-              intros j jc.
-              subst gen'.
-              apply Vforall_nth_intro.
-              intros i ip.
-              specialize (Upoz (S j) (lt_n_S jc)).
-              apply Vforall_nth with (ip:=ip) in Upoz.
-              apply Upoz.
-            }
-
-            simpl in CP.
-            destruct CP as [Ph Px].
-
-            assert(tmdn' : forall t : nat, t < m * n → t / m < n).
-            {
-              clear_all.
-              intros t H.
-              apply Nat.div_lt_upper_bound; auto.
-              destruct m;auto.
-              ring_simplify in H.
-              nat_lt_0_contradiction.
-            }
-
-            assert(tmm': forall t,t < m * n -> t mod m < m).
-            {
-              clear_all.
-              intros t H.
-              apply Nat.mod_upper_bound.
-              destruct m; auto.
-              ring_simplify in H.
-              nat_lt_0_contradiction.
-            }
-
-            specialize (IHn gen' Upoz' x).
-            rewrite IHn with (tmdn:=tmdn') (tmm:=tmm');
-              (rewrite Vbuild_cons in Heqlcols;
-              apply Vcons_eq_elim in Heqlcols;
-              destruct Heqlcols as [Hh Hx]).
-            clear IHn.
-            +
-              unfold gen'.
-              subst h; remember (gen 0 (Nat.lt_0_succ n)) as h.
-              remember (Vbuild (λ (t : nat) (it : t < m * n),
-                                Vnth (gen (S (t / m)) (lt_n_S (tmdn' t it))) (tmm' t it))) as t.
-
-              remember (Vbuild
-                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmdn t0 it)) (tmm t0 it))) as ht.
-              assert (F: m * S n ≡ m + m * n) by lia.
-              assert(C:m * S n ≡ m + m*n) by omega.
-              clear F. (*TODO: weird shit. cleanup later *)
-              replace (Vfold_right f ht uf_zero) with
-                  (Vfold_right f
-                               (@Vcast _ _ ht _ C)
-                               uf_zero).
-              replace (Vcast ht C) with (Vapp h t).
-              apply (VFold_right_split_under_P P).
-              *
-                subst h.
-                apply Upoz.
-              *
-                subst t.
-                apply Vforall_Vbuild.
-                intros i ip.
-                apply Vforall_nth.
-                apply Upoz.
-              *
-                subst.
-                apply Veq_nth.
-                intros i ip.
-                rewrite Vnth_app.
-                break_match.
-                --
-                  rewrite Vbuild_nth.
-                  rewrite Vnth_cast.
-                  rewrite Vbuild_nth.
-
-                  destruct (eq_nat_dec m 0) as [MZ | MNZ].
-                  ++
-                    (* Get rid of m=0 case *)
-                    subst m.
-                    simpl in *.
-                    nat_lt_0_contradiction.
-                  ++
-                    assert (E: (i - m) mod m ≡ i mod m).
-                    {
-                      revert l MNZ; clear_all; intros H MNZ.
-                      rewrite <- Nat.mod_add with (a:=i-m) (b:=1).
-                      replace (i - m + 1 * m) with i by omega.
-                      reflexivity.
-                      apply MNZ.
-
-                    }
-
-                    Vnth_eq_index_to_val_eq.
-
-                    (* m ≢ 0 *)
-                    assert (E: S ((i - m) / m) ≡ i / m).
-                    {
-                      revert l MNZ; clear_all; intros H MNZ.
-                      rewrite <- NatUtil.plus_1_S.
-                      rewrite <- Nat.div_add by apply MNZ.
-                      ring_simplify (i - m + 1 * m).
-                      rewrite Nat.add_comm.
-                      rewrite Nat.add_sub_assoc by apply H.
-                      rewrite minus_plus.
-                      reflexivity.
-                    }
-
-                    forall_n_lt_eq.
-                --
-                  rewrite Vnth_cast.
-                  rewrite Vbuild_nth.
-                  remember (gen 0 _) as lgen.
-                  remember (gen (i/m) _) as rgen.
-                  generalize (Vnth_cast_aux C ip).
-                  intros gr.
-                  replace lgen with rgen.
-                  ++
-                    apply Vnth_eq.
-                    symmetry.
-                    apply Nat.mod_small.
-                    auto.
-                  ++
-                    subst.
-
-                    assert (E: i/m ≡ 0) by apply Nat.div_small, g.
-                    forall_n_lt_eq.
-              *
-                (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
-                remember (Vcast _ _) as ht'.
-                remember (m * S n) as Q.
-                rewrite C in HeqQ.
-                subst Q.
-                subst.
-                rewrite Vcast_refl.
-                reflexivity.
-            +
-              subst x.
-              reflexivity.
-            +
-              apply Px.
-        }
-
-
-        assert(tmn: forall t,t < m * n -> t mod n < n).
-        {
-          intros t H.
-          apply Nat.mod_upper_bound.
-          destruct n; auto.
-          ring_simplify in H.
-          nat_lt_0_contradiction.
-        }
-
-        assert(tndm: forall t, t < m * n -> t / n < m).
-        {
-          intros t H.
-          apply Nat.div_lt_upper_bound; auto.
-          destruct n;auto.
-          ring_simplify in H.
-          nat_lt_0_contradiction.
-          rewrite Nat.mul_comm.
-          apply H.
-        }
-
-        (* linear shaped equivalent of LHS *)
-        pose (lnorm := Vfold_right f (Vbuild
-                                        (fun (t:nat) (it:t < (m*n)) =>
-                                           @Vnth CarrierA m
-                                                 (gen (t mod n) (tmn t it))
-                                                 (t/n) (tndm t it)
-                                        )
-                                     ) uf_zero ).
-
-        assert(NL: lhs = lnorm).
-        {
-          subst lhs lnorm.
-          clear rhs NR Heqlcols CP lcols rnorm tmm tmdn.
-
-          setoid_rewrite Vfold_right_to_Vfold_right_reord.
-          rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
-          setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
-
-          remember (Vfold_right _ (Vbuild gen) _) as lrows.
-          induction m.
-          +
-              simpl.
-              dep_destruct (Vbuild gen); crush.
-            +
-              pose (gen' := (fun p (pc:p<n) => Vtail (gen p pc))).
-
-              assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
-              {
-                intros j jc.
-                subst gen'.
-                apply Vforall_nth_intro.
-                intros i ip.
-                rewrite Vnth_tail.
-                eapply Vforall_nth in Upoz.
-                apply Upoz.
-              }
-
-              assert(tmn' : forall t : nat, t < m * n → t mod n < n).
-              {
-                clear_all.
-                intros t H.
-                apply modulo_smaller_than_devisor.
-                destruct n.
-                rewrite Nat.mul_0_r in H.
-                nat_lt_0_contradiction.
-                auto.
-              }
-
-              assert(tndm' : forall t : nat, t < m * n → t / n < m).
-              {
-                clear_all.
-                intros t H.
-                destruct (eq_nat_dec n 0).
-                -
-                  dep_destruct n.
-                  rewrite Nat.mul_0_r in H.
-                  nat_lt_0_contradiction.
-                  crush.
-                -
-                  apply Nat.div_lt_upper_bound.
-                  assumption.
-                  rewrite Nat.mul_comm.
-                  apply H.
-              }
-
-              dep_destruct lrows.
-              specialize (IHm gen' Upoz' tmn' tndm' x).
-              simpl.
-              rewrite_clear IHm.
-              *
-                rewrite Vbuild_Vapp.
-                rewrite <- VFold_right_split_under_P.
-                --
-                  rewrite VSn_eq in Heqlrows.
-                  Veqtac.
-                  replace (Vfold_right f (Vbuild (fun (t : nat) (tc : t < n) => Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc))) (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) uf_zero) with h.
-                  replace (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it))) with (Vbuild (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc)))).
-                  ++
-                    reflexivity.
-                  ++
-                    replace  (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc))) with (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)).
-                    reflexivity.
-                    extensionality j.
-                    extensionality jc.
-                    unfold gen'.
-                    rewrite Vnth_tail.
-                    generalize (lt_n_S (tndm' j jc)).
-                    generalize (tndm (j + n) (add_lt_lt jc)).
-                    intros i0 i1.
-                    remember ((j + n) / n) as Q.
-                    replace ((j + n) / n) with (S (j / n)) in HeqQ.
-                    subst Q.
-                    rewrite (le_unique _ _ i1 i0). clear i1.
-                    apply Vnth_arg_eq.
-                    **
-                      generalize (tmn' j jc).
-                      generalize (tmn (j + n) (add_lt_lt jc)).
-                      intros k0 k1.
-                      remember ((j + n) mod n) as Q.
-                      rewrite <- Nat.mul_1_l with (n:=n) in HeqQ at 1.
-                      rewrite Nat.mod_add in HeqQ.
-                      subst Q.
-                      apply f_equal, le_unique.
-                      crush.
-                    **
-                      rewrite <- Nat.mul_1_l with (n:=n) at 2.
-                      rewrite Nat.div_add with (a:=j) (b:=1) (c:=n).
-                      ring.
-                      crush.
-                  ++
-                    subst h.
-                    clear x H1 gen' Upoz' tmn' tndm'.
-                    apply Vhead_Vfold_right_Vmap2.
-                --
-                  typeclasses eauto.
-                --
-                  apply Vforall_Vbuild.
-                  intros i ip.
-                  apply Vforall_nth.
-                  auto.
-                --
-                  apply Vforall_Vbuild.
-                  intros i ip.
-                  apply Vforall_nth.
-                  auto.
-              *
-                rewrite VSn_eq in Heqlrows.
-                Veqtac.
-                subst x.
-                clear h H0.
-                unfold gen'.
-                apply Vtail_Vfold_right_Vmap2.
-            +
-              apply Vforall_Vbuild, Upoz.
-        }
-
-        rewrite NR, NL.
-        clear  rhs lhs NR NL lcols Heqlcols CP.
-        subst lnorm rnorm.
-        (* TODO: prove that rnorm and lnorm are equaul being permutations *)
-
-        pose (mat := fun y (yc:y<n) x (xc:x<m) => Vnth (gen y yc) xc).
-
-        replace
-          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t mod n) (tmn t it)) (tndm t it)))
-          with
-            (Vbuild (fun (t : nat) (it : t < m * n) =>
-                       mat (t mod n) (tmn t it) (t/n) (tndm t it)
-            )) by reflexivity.
-
-        replace
-          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t / m) (tmdn t it)) (tmm t it)))
-          with
-            (Vbuild (fun (t : nat) (it : t < m * n) => mat (t / m) (tmdn t it) (t mod m) (tmm t it))) by reflexivity.
-
-        assert(Mpos: forall y (yc:y<n) x (xc:x<m), P (mat y yc x xc)).
-        {
-          intros y yc x xc.
-          unfold mat.
-          apply Vforall_nth.
-          apply Upoz.
-        }
-
-        generalize dependent mat.
-        intros mat Mpoz.
-        clear Upoz gen.
-        rename uf_zero into z.
-
-        pose(lr := fun x => x/n+(x mod n)*m).
-        assert(lrc: forall x (xc:x<m*n), lr x < m*n).
-        {
-          clear z f P f_mon mat Mpoz.
-          subst lr.
-          intros x xc.
-          assert(x mod n < n) by auto.
-          assert(x/n < m) by auto.
-          cbv beta.
-          nia.
-        }
-        pose(lrm := IndexMap _ _ lr lrc).
-
-        pose(rl := fun x => x/m + (x mod m)*n).
-        assert(rlc: forall x (xc:x<m*n), rl x < m*n).
-        {
-          clear z f P f_mon mat Mpoz.
-          subst rl.
-          intros x xc.
-          assert(x mod m < m) by auto.
-          assert(x/m < n) by auto.
-          cbv beta.
-          nia.
-        }
-
-        assert(RLR: forall x (xc:x<m*n), lr (rl x) ≡ x).
-        {
-          intros x xc.
-          clear z f P f_mon mat Mpoz lrm.
-          subst lr rl.
-          simpl in *.
-          assert(NZ: n ≢ 0) by crush.
-          assert(MZ: m ≢ 0) by crush.
-          rewrite Nat.div_add; auto.
-          rewrite Nat.div_div; auto.
-          rewrite Nat.div_small; auto.
-          rewrite Nat.add_0_l.
-          rewrite Nat.add_mod; auto.
-          rewrite Nat.mod_mul; auto.
-          rewrite Nat.add_0_r.
-          rewrite Nat.mod_mod; auto.
-          setoid_rewrite Nat.mod_small at 2; auto.
-          symmetry.
-          rewrite Nat.add_comm.
-          rewrite Nat.mul_comm.
-          apply Nat.div_mod; auto.
-        }
-
-        assert(LRL: forall x (xc:x<m*n), rl (lr x) ≡ x).
-        {
-          intros x xc.
-          clear z f P f_mon mat Mpoz lrm RLR.
-          subst lr rl.
-          simpl in *.
-          assert(NZ: n ≢ 0) by crush.
-          assert(MZ: m ≢ 0) by crush.
-          rewrite Nat.div_add; auto.
-          rewrite Nat.div_div; auto.
-          rewrite Nat.div_small; try lia.
-          rewrite Nat.add_0_l.
-          rewrite Nat.add_mod; auto.
-          rewrite Nat.mod_mul; auto.
-          rewrite Nat.add_0_r.
-          rewrite Nat.mod_mod; auto.
-          setoid_rewrite Nat.mod_small at 2; auto.
-          symmetry.
-          rewrite Nat.add_comm.
-          rewrite Nat.mul_comm.
-          apply Nat.div_mod; auto.
-        }
-
-        assert(index_map_bijective lrm).
-        {
-          clear z f P f_mon mat Mpoz.
-          split.
-          -
-            (* injectivity *)
-            unfold index_map_injective.
-            intros x y xc yc H.
-            simpl in *.
-            clear lrm.
-
-            rewrite <- LRL by apply yc.
-            replace x with (rl (lr x)) by apply LRL, xc.
-            rewrite H.
-            reflexivity.
-          -
-            (* surjectivity *)
-            unfold index_map_surjective.
-            intros y yc.
-            simpl in *.
-            clear lrm LRL.
-            exists (rl y).
-            eexists.
-            + apply (rlc y), yc.
-            + apply RLR, yc.
-        }
-    Admitted.
-
-
-    Global Instance max_Assoc:
-      @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
-    Proof.
-      unfold Associative, HeteroAssociative.
-      intros x y z.
-      unfold max, sort.
-      repeat break_if; unfold snd in *; crush.
-      clear Heqd Heqd0 Heqd1 Heqd2.
-      clear_dups.
-      apply le_flip in n.
-      apply le_flip in n0.
-      apply eq_iff_le.
-      auto.
-    Qed.
-
-    Global Instance max_Comm:
-      @Commutative CarrierA CarrierAe CarrierA (@max CarrierA CarrierAle CarrierAledec).
-    Proof.
-      unfold Commutative.
-      intros x y.
-      unfold max, sort.
-      repeat break_if; unfold snd; auto.
-      -
-        apply eq_iff_le; auto.
-      -
-        clear Heqd Heqd0.
-        apply le_flip in n.
-        apply le_flip in n0.
-        apply eq_iff_le.
-        auto.
-    Qed.
-
-    Section NN.
-      (* Non-negative CarrierA subtype *)
-
-      Global Instance NN:
-        SgPred CarrierA := CarrierAle CarrierAz.
-
-      Global Instance RMonoid_max_NN:
-        @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
-      Proof.
-        repeat split; try typeclasses eauto.
-        -
-          (* zero in P *)
-          unfold sg_P, mon_unit, NN.
-          reflexivity.
-        -
-          (* closed *)
-          intros a b M0 M1.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-        -
-          (* assoc *)
-          intros x y z H H0 H1.
-          unfold sg_op, max, sort.
-          repeat break_if; unfold snd in *; crush.
-          clear Heqd Heqd0 Heqd1 Heqd2.
-          clear_dups.
-          apply le_flip in n0.
-          apply le_flip in n.
-          apply eq_iff_le.
-          auto.
-        -
-          (* left_unit *)
-          intros y H.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-        -
-          (* right_unit *)
-          intros x H.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-          unfold le in l.
-          apply eq_iff_le.
-          auto.
-      Qed.
-
-      Global Instance CommutativeRMonoid_max_NN:
-        @CommutativeRMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
-      Proof.
-        split.
-        -
-          apply RMonoid_max_NN.
-        -
-          (* commutativity *)
-          intros x y H H0.
-          apply max_Comm.
-      Qed.
-
-    End NN.
-
+    (* TODO: think of good place to move this. Depdens on both [IndexFunctions] and [VecPermutation] *)
     Lemma Vbuild_permutation
           {A: Type}
           {n: nat}
@@ -2991,7 +2196,7 @@ Section SigmaHCOLRewritingRules.
 
         pose(t' := build_inverse_index_map t).
         assert(P': inverse_index_map_bijective t')
-              by apply build_inverse_index_map_is_bijective, P.
+          by apply build_inverse_index_map_is_bijective, P.
 
         pose (k := inverse_index_f _ t' 0).
         assert(L: k<S n).
@@ -3064,8 +2269,8 @@ Section SigmaHCOLRewritingRules.
         apply vperm_trans with (l':=t1), T1; clear rhs Heqrhs T1.
 
         replace (f (⟦ t ⟧ k)
-                 (« t » k
-                    (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
+                   (« t » k
+                      (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
           with (f 0 (Nat.lt_0_succ n)) in Heqt1.
         +
           subst lhs t1.
@@ -3434,6 +2639,806 @@ Section SigmaHCOLRewritingRules.
           forall_n_lt_eq.
     Qed.
 
+    (* In SPIRAL it is called [Reduction_ISumReduction] *)
+    Lemma rewrite_Reduction_IReduction
+          {i o n}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+          (* Common unit for both monoids *)
+          `{uf_zero: MonUnit CarrierA}
+
+          (* 1st Monoid. Used in reduction *)
+          `{f: SgOp CarrierA}
+
+          (* Monoid on restriction on f *)
+          `{P: SgPred CarrierA}
+          `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
+
+          (* 2nd Monoid. Used in IUnion *)
+          `{u: SgOp CarrierA}
+          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+      :
+
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero))
+          ⊚ (@IUnion i o n u _ uf_zero op_family)
+        =
+        SafeCast (IReduction f uf_zero
+                             (UnSafeFamilyCast
+                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero)) op_family))).
+    Proof.
+      (*
+      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f)
+        by apply rsg_op_proper.
+      assert(u_mor : Proper (equiv ==> equiv ==> equiv) u)
+        by apply sg_op_proper.
+       *)
+      unfold SHOperatorFamilyCompose, SHCompose.
+      unfold equiv, SHOperator_equiv, SHCompose; simpl.
+      unfold UnSafeFamilyCast, get_family_op.
+      simpl.
+      (* Noramlized form. Diamond' all around *)
+
+      (* To use Diamond'_f_subst_under_P we need to convert body_f back to operator family *)
+      replace (λ (j : nat) (jc : j < n),
+               op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
+
+      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
+      clear u u_mon.  (* No more 'u' *)
+      clear Uz. (* Single non-unit per row constaint no longer needed *)
+
+      apply ext_equiv_applied_equiv.
+      -
+        (* LHS Setoid_Morphism *)
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv).
+        apply liftM_HOperator'_proper.
+        apply HReduction_HOperator.
+        apply Diamond'_proper.
+        +
+          apply f_mon.
+        +
+          reflexivity.
+        + intros k kc.
+          apply op_proper.
+      -
+        (* RHS Setoid_Morphism *)
+        split; try apply vec_Setoid.
+        apply SafeCast'_proper.
+        apply Diamond'_proper.
+        + apply f_mon.
+        + reflexivity.
+        + intros k kc.
+          apply UnSafeCast'_proper.
+          apply compose_proper with (RA:=equiv) (RB:=equiv).
+          *
+            apply liftM_HOperator'_proper.
+            apply HReduction_HOperator.
+          *
+            apply op_proper.
+      -
+        intros x.
+
+        vec_index_equiv j jc.
+
+        unfold SafeCast', rsvector2rvector, compose.
+        unfold liftM_HOperator', compose, sparsify.
+        rewrite 2!Vnth_map.
+
+        unfold HReduction, compose, HCOLImpl.Vectorize.
+        rewrite Vnth_1.
+        unfold UnSafeCast'.
+        unfold compose.
+        unfold rvector2rsvector.
+        simpl.
+
+        unfold densify.
+        unfold HCOLImpl.Reduction.
+
+        rewrite Vfold_right_Vmap.
+
+        dep_destruct j; [idtac | crush].
+
+        unfold Diamond'.
+        unfold Apply_Family'.
+        unfold RStheta.
+        rewrite AbsorbMUnion'Index_Vbuild.
+        simpl.
+
+        unfold UnionFold.
+        unfold MUnion'.
+
+        rewrite RStheta2Rtheta_Vfold_left_rev_mkValue.
+        f_equiv.
+
+        unfold densify.
+        rewrite Vmap_Vbuild.
+
+        Local Opaque WriterMonadNoT.evalWriter.
+        setoid_rewrite evalWriter_Rtheta2RStheta_mkValue_equiv.
+        setoid_rewrite Vfold_right_Vmap_equiv.
+        clear jc j.
+
+        unfold rsvector2rvector.
+        rewrite Vmap_map.
+
+        replace (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0)) with (@id Rtheta) by
+            (extensionality z; rewrite RStheta2Rtheta_Rtheta2RStheta; reflexivity).
+        setoid_rewrite Vmap_id.
+
+        (* unfold Vec2Union. *)
+        specialize (Upoz x).
+
+        setoid_rewrite <- Vfold_right_Vmap_equiv.
+        unfold Vec2Union.
+        unfold Union.
+
+        (* Get rid of [get_family_op] *)
+        unfold get_family_op in *.
+
+        eta_reduce_all.
+
+        (* 1. In LHS push [evalWriter] all the way down to [get_family_op] *)
+
+        rewrite Vfold_right_to_Vfold_right_reord.
+        rewrite eval_2D_Fold by apply f_mon.
+        rewrite <- Vfold_right_to_Vfold_right_reord.
+
+        rewrite Vmap_Vbuild.
+
+        assert(Upoz': forall (j : nat) (jc : j < n), Vforall P
+                                                      (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))).
+        {
+          intros j jc.
+          specialize (Upoz j jc).
+          unfold liftRthetaP in Upoz.
+          apply Vforall_map_intro in Upoz.
+          apply Upoz.
+        }
+        clear Upoz. rename Upoz' into Upoz.
+
+
+        (* TODO:  Manual generalization. Try to automate. See https://stackoverflow.com/questions/46458710/generalizing-expressions-under-binders   *)
+
+        change (Vbuild
+                  (λ (z : nat) (zi : z < n),
+                   Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))) with (Vbuild
+                                                                                                              (λ (z : nat) (zi : z < n),
+                                                                                                               (fun p pi =>
+                                                                                                                  (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                                                                                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)).
+
+        change (Vbuild
+                  (λ (z : nat) (zi : z < n),
+                   Vfold_right f
+                               (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                     (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))
+                               uf_zero)) with (Vbuild
+                                                 (λ (z : nat) (zi : z < n),
+                                                  Vfold_right f
+                                                              ((fun p pi =>
+                                                                  (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)
+                                                              uf_zero)).
+
+        revert Upoz.
+
+        change (∀ (j : nat) (jc : j < n), Vforall P
+                                                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))) with   (∀ (j : nat) (jc : j < n),
+                                                                                                                                               Vforall P
+                                                                                                                                                       ((fun p pi =>
+                                                                                                                                                           (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                                                                                                                                                                 (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) j jc)).
+
+        generalize (fun p pi =>
+                      (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) as gen.
+
+        (* cleanup *)
+        intros gen Upoz.
+        clear x op_family i.
+        rename o into m.
+        eta_reduce_all.
+
+        (* 2. Prove equality using RMonoid. *)
+
+        set (rhs := Vfold_left_rev f _ _).
+        set (lhs := Vfold_right _ _ _).
+
+        assert(tmdn: forall t, t < m * n -> t / m < n).
+        {
+          intros t H.
+          apply Nat.div_lt_upper_bound; auto.
+          destruct m;auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
+
+        assert(tmm: forall t,t < m * n -> t mod m < m).
+        {
+          intros t H.
+          apply Nat.mod_upper_bound.
+          destruct m; auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
+
+        remember (Vbuild (λ (z : nat) (zi : z < n), Vfold_right f (gen z zi) uf_zero)) as lcols.
+        assert(CP: Vforall P lcols).
+        {
+          clear rhs lhs tmdn tmm.
+          subst lcols.
+          apply Vforall_Vbuild.
+          intros i ip.
+          specialize (Upoz i ip).
+          generalize dependent (gen i ip).
+          intros v Upoz.
+          clear i ip gen.
+          apply (Vfold_right_under_P P).
+          apply Upoz.
+        }
+
+        (* linear shaped equivalent of RHS *)
+        pose (rnorm := Vfold_right f (Vbuild
+                                        (fun (t:nat) (it:t < (m*n)) =>
+                                           @Vnth CarrierA m
+                                                 (gen (t/m) (tmdn t it))
+                                                 (t mod m)
+                                                 (tmm t it)
+                                        )
+                                     ) uf_zero ).
+
+        assert(NR: rhs = rnorm).
+        {
+          subst rhs rnorm.
+          clear lhs.
+          rewrite (Vfold_right_left_rev_under_P P); try apply CP.
+
+          induction n.
+          -
+            crush.
+            destruct (Vbuild _).
+            crush.
+            specialize (tmdn 0 (Nat.lt_0_succ n)).
+            nat_lt_0_contradiction.
+          -
+            dep_destruct lcols.
+            simpl.
+            pose (gen' := (fun p pc => gen (S p) (lt_n_S pc))).
+
+            assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
+            {
+              intros j jc.
+              subst gen'.
+              apply Vforall_nth_intro.
+              intros i ip.
+              specialize (Upoz (S j) (lt_n_S jc)).
+              apply Vforall_nth with (ip:=ip) in Upoz.
+              apply Upoz.
+            }
+
+            simpl in CP.
+            destruct CP as [Ph Px].
+
+            assert(tmdn' : forall t : nat, t < m * n → t / m < n).
+            {
+              clear_all.
+              intros t H.
+              apply Nat.div_lt_upper_bound; auto.
+              destruct m;auto.
+              ring_simplify in H.
+              nat_lt_0_contradiction.
+            }
+
+            assert(tmm': forall t,t < m * n -> t mod m < m).
+            {
+              clear_all.
+              intros t H.
+              apply Nat.mod_upper_bound.
+              destruct m; auto.
+              ring_simplify in H.
+              nat_lt_0_contradiction.
+            }
+
+            specialize (IHn gen' Upoz' x).
+            rewrite IHn with (tmdn:=tmdn') (tmm:=tmm');
+              (rewrite Vbuild_cons in Heqlcols;
+               apply Vcons_eq_elim in Heqlcols;
+               destruct Heqlcols as [Hh Hx]).
+            clear IHn.
+            +
+              unfold gen'.
+              subst h; remember (gen 0 (Nat.lt_0_succ n)) as h.
+              remember (Vbuild (λ (t : nat) (it : t < m * n),
+                                Vnth (gen (S (t / m)) (lt_n_S (tmdn' t it))) (tmm' t it))) as t.
+
+              remember (Vbuild
+                          (λ (t0 : nat) (it : t0 < m * S n), Vnth (gen (t0 / m) (tmdn t0 it)) (tmm t0 it))) as ht.
+              assert (F: m * S n ≡ m + m * n) by lia.
+              assert(C:m * S n ≡ m + m*n) by omega.
+              clear F. (*TODO: weird shit. cleanup later *)
+              replace (Vfold_right f ht uf_zero) with
+                  (Vfold_right f
+                               (@Vcast _ _ ht _ C)
+                               uf_zero).
+              replace (Vcast ht C) with (Vapp h t).
+              apply (VFold_right_split_under_P P).
+              *
+                subst h.
+                apply Upoz.
+              *
+                subst t.
+                apply Vforall_Vbuild.
+                intros i ip.
+                apply Vforall_nth.
+                apply Upoz.
+              *
+                subst.
+                apply Veq_nth.
+                intros i ip.
+                rewrite Vnth_app.
+                break_match.
+                --
+                  rewrite Vbuild_nth.
+                  rewrite Vnth_cast.
+                  rewrite Vbuild_nth.
+
+                  destruct (eq_nat_dec m 0) as [MZ | MNZ].
+                  ++
+                    (* Get rid of m=0 case *)
+                    subst m.
+                    simpl in *.
+                    nat_lt_0_contradiction.
+                  ++
+                    assert (E: (i - m) mod m ≡ i mod m).
+                    {
+                      revert l MNZ; clear_all; intros H MNZ.
+                      rewrite <- Nat.mod_add with (a:=i-m) (b:=1).
+                      replace (i - m + 1 * m) with i by omega.
+                      reflexivity.
+                      apply MNZ.
+
+                    }
+
+                    Vnth_eq_index_to_val_eq.
+
+                    (* m ≢ 0 *)
+                    assert (E: S ((i - m) / m) ≡ i / m).
+                    {
+                      revert l MNZ; clear_all; intros H MNZ.
+                      rewrite <- NatUtil.plus_1_S.
+                      rewrite <- Nat.div_add by apply MNZ.
+                      ring_simplify (i - m + 1 * m).
+                      rewrite Nat.add_comm.
+                      rewrite Nat.add_sub_assoc by apply H.
+                      rewrite minus_plus.
+                      reflexivity.
+                    }
+
+                    forall_n_lt_eq.
+                --
+                  rewrite Vnth_cast.
+                  rewrite Vbuild_nth.
+                  remember (gen 0 _) as lgen.
+                  remember (gen (i/m) _) as rgen.
+                  generalize (Vnth_cast_aux C ip).
+                  intros gr.
+                  replace lgen with rgen.
+                  ++
+                    apply Vnth_eq.
+                    symmetry.
+                    apply Nat.mod_small.
+                    auto.
+                  ++
+                    subst.
+
+                    assert (E: i/m ≡ 0) by apply Nat.div_small, g.
+                    forall_n_lt_eq.
+              *
+                (* TODO: The following could be generalized as LTAC. Used in few more places in this proof. *)
+                remember (Vcast _ _) as ht'.
+                remember (m * S n) as Q.
+                rewrite C in HeqQ.
+                subst Q.
+                subst.
+                rewrite Vcast_refl.
+                reflexivity.
+            +
+              subst x.
+              reflexivity.
+            +
+              apply Px.
+        }
+
+
+        assert(tmn: forall t,t < m * n -> t mod n < n).
+        {
+          intros t H.
+          apply Nat.mod_upper_bound.
+          destruct n; auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+        }
+
+        assert(tndm: forall t, t < m * n -> t / n < m).
+        {
+          intros t H.
+          apply Nat.div_lt_upper_bound; auto.
+          destruct n;auto.
+          ring_simplify in H.
+          nat_lt_0_contradiction.
+          rewrite Nat.mul_comm.
+          apply H.
+        }
+
+        (* linear shaped equivalent of LHS *)
+        pose (lnorm := Vfold_right f (Vbuild
+                                        (fun (t:nat) (it:t < (m*n)) =>
+                                           @Vnth CarrierA m
+                                                 (gen (t mod n) (tmn t it))
+                                                 (t/n) (tndm t it)
+                                        )
+                                     ) uf_zero ).
+
+        assert(NL: lhs = lnorm).
+        {
+          subst lhs lnorm.
+          clear rhs NR Heqlcols CP lcols rnorm tmm tmdn.
+
+          setoid_rewrite Vfold_right_to_Vfold_right_reord.
+          rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
+          setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
+
+          remember (Vfold_right _ (Vbuild gen) _) as lrows.
+          induction m.
+          +
+            simpl.
+            dep_destruct (Vbuild gen); crush.
+          +
+            pose (gen' := (fun p (pc:p<n) => Vtail (gen p pc))).
+
+            assert(Upoz': forall (j : nat) (jc : j < n), Vforall P (gen' j jc)).
+            {
+              intros j jc.
+              subst gen'.
+              apply Vforall_nth_intro.
+              intros i ip.
+              rewrite Vnth_tail.
+              eapply Vforall_nth in Upoz.
+              apply Upoz.
+            }
+
+            assert(tmn' : forall t : nat, t < m * n → t mod n < n).
+            {
+              clear_all.
+              intros t H.
+              apply modulo_smaller_than_devisor.
+              destruct n.
+              rewrite Nat.mul_0_r in H.
+              nat_lt_0_contradiction.
+              auto.
+            }
+
+            assert(tndm' : forall t : nat, t < m * n → t / n < m).
+            {
+              clear_all.
+              intros t H.
+              destruct (eq_nat_dec n 0).
+              -
+                dep_destruct n.
+                rewrite Nat.mul_0_r in H.
+                nat_lt_0_contradiction.
+                crush.
+              -
+                apply Nat.div_lt_upper_bound.
+                assumption.
+                rewrite Nat.mul_comm.
+                apply H.
+            }
+
+            dep_destruct lrows.
+            specialize (IHm gen' Upoz' tmn' tndm' x).
+            simpl.
+            rewrite_clear IHm.
+            *
+              rewrite Vbuild_Vapp.
+              rewrite <- VFold_right_split_under_P.
+              --
+                rewrite VSn_eq in Heqlrows.
+                Veqtac.
+                replace (Vfold_right f (Vbuild (fun (t : nat) (tc : t < n) => Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc))) (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) uf_zero) with h.
+                replace (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it))) with (Vbuild (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc)))).
+                ++
+                  reflexivity.
+                ++
+                  replace  (fun (t : nat) (tc : t < m * n) => Vnth (gen ((t + n) mod n) (tmn (t + n) (add_lt_lt tc))) (tndm (t + n) (add_lt_lt tc))) with (fun (t : nat) (it : t < m * n) => Vnth (gen' (t mod n) (tmn' t it)) (tndm' t it)).
+                  reflexivity.
+                  extensionality j.
+                  extensionality jc.
+                  unfold gen'.
+                  rewrite Vnth_tail.
+                  generalize (lt_n_S (tndm' j jc)).
+                  generalize (tndm (j + n) (add_lt_lt jc)).
+                  intros i0 i1.
+                  remember ((j + n) / n) as Q.
+                  replace ((j + n) / n) with (S (j / n)) in HeqQ.
+                  subst Q.
+                  rewrite (le_unique _ _ i1 i0). clear i1.
+                  apply Vnth_arg_eq.
+                  **
+                    generalize (tmn' j jc).
+                    generalize (tmn (j + n) (add_lt_lt jc)).
+                    intros k0 k1.
+                    remember ((j + n) mod n) as Q.
+                    rewrite <- Nat.mul_1_l with (n:=n) in HeqQ at 1.
+                    rewrite Nat.mod_add in HeqQ.
+                    subst Q.
+                    apply f_equal, le_unique.
+                    crush.
+                  **
+                    rewrite <- Nat.mul_1_l with (n:=n) at 2.
+                    rewrite Nat.div_add with (a:=j) (b:=1) (c:=n).
+                    ring.
+                    crush.
+                ++
+                  subst h.
+                  clear x H1 gen' Upoz' tmn' tndm'.
+                  apply Vhead_Vfold_right_Vmap2.
+              --
+                typeclasses eauto.
+              --
+                apply Vforall_Vbuild.
+                intros i ip.
+                apply Vforall_nth.
+                auto.
+              --
+                apply Vforall_Vbuild.
+                intros i ip.
+                apply Vforall_nth.
+                auto.
+            *
+              rewrite VSn_eq in Heqlrows.
+              Veqtac.
+              subst x.
+              clear h H0.
+              unfold gen'.
+              apply Vtail_Vfold_right_Vmap2.
+          +
+            apply Vforall_Vbuild, Upoz.
+        }
+
+        rewrite NR, NL.
+        clear  rhs lhs NR NL lcols Heqlcols CP.
+        subst lnorm rnorm.
+        (* TODO: prove that rnorm and lnorm are equaul being permutations *)
+
+        pose (mat := fun y (yc:y<n) x (xc:x<m) => Vnth (gen y yc) xc).
+
+        replace
+          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t mod n) (tmn t it)) (tndm t it)))
+          with
+            (Vbuild (fun (t : nat) (it : t < m * n) =>
+                       mat (t mod n) (tmn t it) (t/n) (tndm t it)
+            )) by reflexivity.
+
+        replace
+          (Vbuild (fun (t : nat) (it : t < m * n) => Vnth (gen (t / m) (tmdn t it)) (tmm t it)))
+          with
+            (Vbuild (fun (t : nat) (it : t < m * n) => mat (t / m) (tmdn t it) (t mod m) (tmm t it))) by reflexivity.
+
+        assert(Mpos: forall y (yc:y<n) x (xc:x<m), P (mat y yc x xc)).
+        {
+          intros y yc x xc.
+          unfold mat.
+          apply Vforall_nth.
+          apply Upoz.
+        }
+
+        generalize dependent mat.
+        intros mat Mpoz.
+        clear Upoz gen.
+        rename uf_zero into z.
+
+        pose(lr := fun x => x/n+(x mod n)*m).
+        assert(lrc: forall x (xc:x<m*n), lr x < m*n).
+        {
+          clear z f P f_mon mat Mpoz.
+          subst lr.
+          intros x xc.
+          assert(x mod n < n) by auto.
+          assert(x/n < m) by auto.
+          cbv beta.
+          nia.
+        }
+        pose(lrm := IndexMap _ _ lr lrc).
+
+        pose(rl := fun x => x/m + (x mod m)*n).
+        assert(rlc: forall x (xc:x<m*n), rl x < m*n).
+        {
+          clear z f P f_mon mat Mpoz.
+          subst rl.
+          intros x xc.
+          assert(x mod m < m) by auto.
+          assert(x/m < n) by auto.
+          cbv beta.
+          nia.
+        }
+
+        assert(RLR: forall x (xc:x<m*n), lr (rl x) ≡ x).
+        {
+          intros x xc.
+          clear z f P f_mon mat Mpoz lrm.
+          subst lr rl.
+          simpl in *.
+          assert(NZ: n ≢ 0) by crush.
+          assert(MZ: m ≢ 0) by crush.
+          rewrite Nat.div_add; auto.
+          rewrite Nat.div_div; auto.
+          rewrite Nat.div_small; auto.
+          rewrite Nat.add_0_l.
+          rewrite Nat.add_mod; auto.
+          rewrite Nat.mod_mul; auto.
+          rewrite Nat.add_0_r.
+          rewrite Nat.mod_mod; auto.
+          setoid_rewrite Nat.mod_small at 2; auto.
+          symmetry.
+          rewrite Nat.add_comm.
+          rewrite Nat.mul_comm.
+          apply Nat.div_mod; auto.
+        }
+
+        assert(LRL: forall x (xc:x<m*n), rl (lr x) ≡ x).
+        {
+          intros x xc.
+          clear z f P f_mon mat Mpoz lrm RLR.
+          subst lr rl.
+          simpl in *.
+          assert(NZ: n ≢ 0) by crush.
+          assert(MZ: m ≢ 0) by crush.
+          rewrite Nat.div_add; auto.
+          rewrite Nat.div_div; auto.
+          rewrite Nat.div_small; try lia.
+          rewrite Nat.add_0_l.
+          rewrite Nat.add_mod; auto.
+          rewrite Nat.mod_mul; auto.
+          rewrite Nat.add_0_r.
+          rewrite Nat.mod_mod; auto.
+          setoid_rewrite Nat.mod_small at 2; auto.
+          symmetry.
+          rewrite Nat.add_comm.
+          rewrite Nat.mul_comm.
+          apply Nat.div_mod; auto.
+        }
+
+        assert(index_map_bijective lrm).
+        {
+          clear z f P f_mon mat Mpoz.
+          split.
+          -
+            (* injectivity *)
+            unfold index_map_injective.
+            intros x y xc yc H.
+            simpl in *.
+            clear lrm.
+
+            rewrite <- LRL by apply yc.
+            replace x with (rl (lr x)) by apply LRL, xc.
+            rewrite H.
+            reflexivity.
+          -
+            (* surjectivity *)
+            unfold index_map_surjective.
+            intros y yc.
+            simpl in *.
+            clear lrm LRL.
+            exists (rl y).
+            eexists.
+            + apply (rlc y), yc.
+            + apply RLR, yc.
+        }
+
+        remember (Vbuild _) as b1.
+        remember (Vbuild (λ (t : nat) (it : t < m * n), mat (t / m) (tmdn t it) (t mod m) (tmm t it))) as b2.
+        (* HERE assert (VPermutation CarrierA (m*n) b1 b2) by apply Vbuild_permutation. *)
+
+    Admitted.
+
+
+    Global Instance max_Assoc:
+      @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
+    Proof.
+      unfold Associative, HeteroAssociative.
+      intros x y z.
+      unfold max, sort.
+      repeat break_if; unfold snd in *; crush.
+      clear Heqd Heqd0 Heqd1 Heqd2.
+      clear_dups.
+      apply le_flip in n.
+      apply le_flip in n0.
+      apply eq_iff_le.
+      auto.
+    Qed.
+
+    Global Instance max_Comm:
+      @Commutative CarrierA CarrierAe CarrierA (@max CarrierA CarrierAle CarrierAledec).
+    Proof.
+      unfold Commutative.
+      intros x y.
+      unfold max, sort.
+      repeat break_if; unfold snd; auto.
+      -
+        apply eq_iff_le; auto.
+      -
+        clear Heqd Heqd0.
+        apply le_flip in n.
+        apply le_flip in n0.
+        apply eq_iff_le.
+        auto.
+    Qed.
+
+    Section NN.
+      (* Non-negative CarrierA subtype *)
+
+      Global Instance NN:
+        SgPred CarrierA := CarrierAle CarrierAz.
+
+      Global Instance RMonoid_max_NN:
+        @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
+      Proof.
+        repeat split; try typeclasses eauto.
+        -
+          (* zero in P *)
+          unfold sg_P, mon_unit, NN.
+          reflexivity.
+        -
+          (* closed *)
+          intros a b M0 M1.
+          unfold sg_op, max, equiv, mon_unit, sort.
+          break_if; crush.
+        -
+          (* assoc *)
+          intros x y z H H0 H1.
+          unfold sg_op, max, sort.
+          repeat break_if; unfold snd in *; crush.
+          clear Heqd Heqd0 Heqd1 Heqd2.
+          clear_dups.
+          apply le_flip in n0.
+          apply le_flip in n.
+          apply eq_iff_le.
+          auto.
+        -
+          (* left_unit *)
+          intros y H.
+          unfold sg_op, max, equiv, mon_unit, sort.
+          break_if; crush.
+        -
+          (* right_unit *)
+          intros x H.
+          unfold sg_op, max, equiv, mon_unit, sort.
+          break_if; crush.
+          unfold le in l.
+          apply eq_iff_le.
+          auto.
+      Qed.
+
+      Global Instance CommutativeRMonoid_max_NN:
+        @CommutativeRMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
+      Proof.
+        split.
+        -
+          apply RMonoid_max_NN.
+        -
+          (* commutativity *)
+          intros x y H H0.
+          apply max_Comm.
+      Qed.
+
+    End NN.
 
     (* Specialized version of rewrite_Reduction_IReduction *)
     Lemma rewrite_Reduction_IReduction_max_plus
