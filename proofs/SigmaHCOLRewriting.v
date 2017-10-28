@@ -2639,6 +2639,17 @@ Section SigmaHCOLRewritingRules.
           forall_n_lt_eq.
     Qed.
 
+    Lemma Vfold_VPermutation_CM
+          {n : nat}
+          (z : MonUnit CarrierA)
+          (f : SgOp CarrierA)
+          (P : SgPred CarrierA)
+          (f_mon: CommutativeRMonoid CarrierA):
+      forall b1 b2 : vector CarrierA n,
+        VPermutation CarrierA n b1 b2 → Vfold_right f b1 z = Vfold_right f b2 z.
+    Proof.
+    Admitted.
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
           {i o n}
@@ -3055,7 +3066,6 @@ Section SigmaHCOLRewritingRules.
               apply Px.
         }
 
-
         assert(tmn: forall t,t < m * n -> t mod n < n).
         {
           intros t H.
@@ -3356,8 +3366,7 @@ Section SigmaHCOLRewritingRules.
             apply Vbuild_permutation with (t:=rlm).
             auto.
           }
-          (* HERE: prove fold equality based on permutations *)
-          admit.
+          apply Vfold_VPermutation_CM with (P0:=P); assumption.
         *
           apply Veq_nth.
           intros i ip.
@@ -3385,8 +3394,7 @@ Section SigmaHCOLRewritingRules.
           }
 
           forall_nm_lt_eq.
-    Admitted.
-
+    Qed.
 
     Global Instance max_Assoc:
       @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
