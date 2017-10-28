@@ -2639,6 +2639,35 @@ Section SigmaHCOLRewritingRules.
           forall_n_lt_eq.
     Qed.
 
+    Lemma Vfold_VPermutation
+          {n : nat}
+          {A: Type} `{Ae: Equiv A}
+          (z : MonUnit A)
+          (f : SgOp A)
+          (P : SgPred A)
+          (f_mon: CommutativeMonoid A):
+      forall v1 v2 : vector A n,
+        VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
+    Proof.
+      intros v1 v2 V.
+      induction V.
+      -
+        reflexivity.
+      -
+        simpl.
+        rewrite IHV.
+        reflexivity.
+      -
+        simpl.
+        destruct f_mon, commonoid_mon, monoid_semigroup.
+        repeat rewrite sg_ass.
+        setoid_replace (y & x) with (x & y).
+        reflexivity.
+        apply commonoid_commutative.
+      -
+        auto.
+    Qed.
+
     Lemma Vfold_VPermutation_CM
           {n : nat}
           {A: Type} `{Ae: Equiv A}
