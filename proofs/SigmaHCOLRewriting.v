@@ -2641,13 +2641,15 @@ Section SigmaHCOLRewritingRules.
 
     Lemma Vfold_VPermutation_CM
           {n : nat}
-          (z : MonUnit CarrierA)
-          (f : SgOp CarrierA)
-          (P : SgPred CarrierA)
-          (f_mon: CommutativeRMonoid CarrierA):
-      forall b1 b2 : vector CarrierA n,
-        VPermutation CarrierA n b1 b2 → Vfold_right f b1 z = Vfold_right f b2 z.
+          {A: Type} `{Ae: Equiv A}
+          (z : MonUnit A)
+          (f : SgOp A)
+          (P : SgPred A)
+          (f_mon: CommutativeRMonoid A):
+      forall v1 v2 : vector A n,
+        VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
+      intros v1 v2 V.
     Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
