@@ -2650,6 +2650,30 @@ Section SigmaHCOLRewritingRules.
         VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
       intros v1 v2 V.
+      induction V.
+      -
+        crush.
+      -
+        simpl.
+        rewrite IHV.
+        reflexivity.
+      -
+        simpl.
+        destruct f_mon, comrmonoid_rmon.
+        repeat rewrite rmonoid_ass.
+        setoid_replace (y & x) with (x & y).
+        reflexivity.
+        apply rcommutativity.
+        admit.
+        admit.
+        admit.
+        admit.
+        admit.
+        admit.
+        admit.
+        admit.
+      -
+        auto.
     Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
