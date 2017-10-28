@@ -3384,7 +3384,7 @@ Section SigmaHCOLRewritingRules.
             rewrite Nat.div_small; try lia.
           }
 
-          forall_n_lt_eq.
+          forall_nm_lt_eq.
     Admitted.
 
 
