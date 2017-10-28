@@ -3054,8 +3054,11 @@ Section SigmaHCOLRewritingRules.
                                 rhs).
         {
           subst rhs.
-          (* apply VPermutation_middle. *)
-          admit.
+          eapply ListVecPermutation; auto.
+          simpl.
+          repeat rewrite list_of_vec_Vcast.
+          rewrite 2!list_of_vec_Vapp.
+          apply Permutation.Permutation_middle.
         }
         remember (Vcons _ _) as t1 in T1.
         apply vperm_trans with (l':=t1), T1; clear rhs Heqrhs T1.
@@ -3429,7 +3432,7 @@ Section SigmaHCOLRewritingRules.
           symmetry.
           clear Heqt1.
           forall_n_lt_eq.
-    Admitted.
+    Qed.
 
 
     (* Specialized version of rewrite_Reduction_IReduction *)
