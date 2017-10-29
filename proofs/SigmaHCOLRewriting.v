@@ -2644,7 +2644,6 @@ Section SigmaHCOLRewritingRules.
           {A: Type} `{Ae: Equiv A}
           (z : MonUnit A)
           (f : SgOp A)
-          (P : SgPred A)
           (f_mon: CommutativeMonoid A):
       forall v1 v2 : vector A n,
         VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
