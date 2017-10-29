@@ -89,33 +89,51 @@ Section VPermutation_properties.
   Lemma ListVecPermutation {n} {l1 l2} {v1 v2}:
     l1 = list_of_vec v1 ->
     l2 = list_of_vec v2 ->
-    Permutation l1 l2 ->
+    Permutation l1 l2 <->
     VPermutation A n v1 v2.
   Proof.
-    intros H1 H2 P; revert n v1 v2 H1 H2.
-    dependent induction P; intros n v1 v2 H1 H2.
-    - dependent destruction v1; inversion H1; subst.
-      dependent destruction v2; inversion H2; subst.
-      apply vperm_nil.
-    - dependent destruction v1; inversion H1; subst.
-      dependent destruction v2; inversion H2; subst.
-      apply vperm_skip.
-      now apply IHP.
-    - do 2 (dependent destruction v1; inversion H1; subst).
-      do 2 (dependent destruction v2; inversion H2; subst).
-      apply list_of_vec_eq in H5; subst.
-      apply vperm_swap.
-    - assert (n = length l').
-      { pose proof (Permutation_length P1) as len.
+    intros H1 H2.
+    split.
+    -
+      intros P; revert n v1 v2 H1 H2.
+      dependent induction P; intros n v1 v2 H1 H2.
+      + dependent destruction v1; inversion H1; subst.
+        dependent destruction v2; inversion H2; subst.
+        apply vperm_nil.
+      + dependent destruction v1; inversion H1; subst.
+        dependent destruction v2; inversion H2; subst.
+        apply vperm_skip.
+        now apply IHP.
+      + do 2 (dependent destruction v1; inversion H1; subst).
+        do 2 (dependent destruction v2; inversion H2; subst).
+        apply list_of_vec_eq in H5; subst.
+        apply vperm_swap.
+      + assert (n = length l').
+        { pose proof (Permutation_length P1) as len.
+          subst.
+          now rewrite list_of_vec_length in len.
+        }
         subst.
-        now rewrite list_of_vec_length in len.
-      }
-      subst.
-      apply vperm_trans with (l' := vec_of_list l').
-      -- apply IHP1; auto.
-         now rewrite list_of_vec_vec_of_list.
-      -- apply IHP2; auto.
-         now rewrite list_of_vec_vec_of_list.
+        apply vperm_trans with (l' := vec_of_list l').
+        * apply IHP1; auto.
+          now rewrite list_of_vec_vec_of_list.
+        * apply IHP2; auto.
+          now rewrite list_of_vec_vec_of_list.
+    -
+      subst l1 l2.
+      intros P.
+      dependent induction P.
+      +
+        subst; auto.
+      +
+        simpl.
+        apply perm_skip.
+        apply IHP.
+      +
+        simpl.
+        apply perm_swap.
+      +
+        apply perm_trans with (l':=list_of_vec l'); auto.
   Qed.
 
 End VPermutation_properties.
