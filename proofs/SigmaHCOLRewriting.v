@@ -2672,7 +2672,8 @@ Section SigmaHCOLRewritingRules.
 
     Lemma Vfold_VPermutation_CM
           {n : nat}
-          {A: Type} `{Ae: Equiv A}
+          {A: Type}
+          `{As: Setoid A}
           (z : MonUnit A)
           (f : SgOp A)
           (P : SgPred A)
@@ -2702,13 +2703,52 @@ Section SigmaHCOLRewritingRules.
 
       cut(Vfold_right sf (Vsig_of_forall P1) sz = Vfold_right sf (Vsig_of_forall P2) sz).
       {
-        admit.
+        unfold SgPred, SgOp, sg_op, sg_P, MonUnit in *.
+        revert rsg_op_proper As.
+        clear_all.
+        intros f_mor As H.
+        rename rmonoid_plus_closed into f_P_closed.
+
+        dependent induction n.
+        -
+          dep_destruct v1.
+          dep_destruct v2.
+          auto.
+        -
+          dep_destruct v1; rename h into h1, x into x1.
+          dep_destruct v2; rename h into h2, x into x2.
+          destruct P1 as [P1h P1x] eqn:P1E.
+          destruct P2 as [P2h P2x] eqn:P2E.
+
+          simpl.
+
+          rewrite IHn with (v1:=x1) (v2:=x2) (P:=P)
+                           (f_P_closed:=f_P_closed)
+                           (Pz:=Pz)
+                           (P1:=P1x)
+                           (P2:=P2x)
+          ; auto.
+          +
+            apply f_mor.
+            *
+              simpl in H.
+              admit.
+            *
+              reflexivity.
+          +
+            unfold sf, sz in H.
+            rewrite 2!Vsig_of_forall_cons in H.
+            rewrite Vfold_right_cons in H.
+            eapply H.
+
+
+
       }
       apply Vfold_VPermutation.
       apply CA.
 
       apply VPermutation_Vsig_of_forall, V.
-    Qed.
+    Admitted.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
