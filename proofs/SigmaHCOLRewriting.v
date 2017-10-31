@@ -2686,16 +2686,24 @@ Section SigmaHCOLRewritingRules.
           {f_mor: Proper (equiv ==> equiv ==> equiv) f}
           (P : A → Prop)
           (f_P_closed: forall a b : A, P a → P b → P (f a b))
-          (v1 : vector A n) (P1 : Vforall P v1)
+          (v : vector A n) (P1 : Vforall P v)
           (z : A) (Pz: P z):
-      Vfold_right f v1 z =
+      Vfold_right f v z =
       `
         (Vfold_right
            (λ xs ys : {x : A | P x},
                       f (` xs) (` ys) ↾ f_P_closed (` xs) (` ys) (proj2_sig xs) (proj2_sig ys))
            (Vsig_of_forall P1) (z ↾ Pz)).
     Proof.
-    Admitted.
+      induction v.
+      -
+        crush.
+      -
+        simpl.
+        rewrite IHv.
+        reflexivity.
+    Qed.
+
 
     Lemma Vfold_VPermutation_CM
           {n : nat}
