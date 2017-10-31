@@ -2667,6 +2667,9 @@ Section SigmaHCOLRewritingRules.
         auto.
     Qed.
 
+    Instance Sig_Equiv {A:Type} {Ae : Equiv A} {P:A->Prop}:
+      Equiv (@sig A P) := fun a b => (proj1_sig a) = (proj1_sig b).
+
     Lemma Vfold_VPermutation_CM
           {n : nat}
           {A: Type} `{Ae: Equiv A}
@@ -2680,28 +2683,32 @@ Section SigmaHCOLRewritingRules.
       VPermutation A n v1 v2 -> Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
       intros V.
-      pose(AS := sig P).
-
       destruct f_mon, comrmonoid_rmon, mon_restriction.
       assert(Pz: P z). apply rmonoid_unit_P.
       pose(sz := @exist A P z Pz).
       pose(sv1 := Vsig_of_forall P1).
       pose(sv2 := Vsig_of_forall P1).
-      pose(sf:= fun (xs ys: AS) =>
+      pose(sf:= fun (xs ys: sig P) =>
                   let x := proj1_sig xs in
                   let y := proj1_sig ys in
                   @exist A P (f x y)
                         (rmonoid_plus_closed x y (proj2_sig xs) (proj2_sig ys))
           ).
 
-      pose(ASE := fun (xs ys: AS) => (proj1_sig xs) = (proj1_sig ys)).
-
-      assert(CA: @CommutativeMonoid AS ASE sf sz).
+      assert(CA: @CommutativeMonoid (sig P) (Sig_Equiv) sf sz).
       {
         admit.
       }
-      (* TODO: lift Vfold_right to to AS, then apply [Vfold_VPermutation] *)
-    Admitted.
+
+      cut(Vfold_right sf (Vsig_of_forall P1) sz = Vfold_right sf (Vsig_of_forall P2) sz).
+      {
+        admit.
+      }
+      apply Vfold_VPermutation.
+      apply CA.
+
+      apply VPermutation_Vsig_of_forall, V.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
