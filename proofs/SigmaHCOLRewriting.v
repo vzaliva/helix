@@ -2735,36 +2735,32 @@ Section SigmaHCOLRewritingRules.
       VPermutation A n v1 v2 -> Vfold_right f v1 z = Vfold_right f v2 z.
     Proof.
       intros V.
-      destruct f_mon, comrmonoid_rmon, mon_restriction.
-      assert(Pz: P z). apply rmonoid_unit_P.
-      pose(sz := @exist A P z Pz).
+
+      pose(sz := z ↾ (rmonoid_unit_P _)).
       pose(sv1 := Vsig_of_forall P1).
       pose(sv2 := Vsig_of_forall P1).
       pose(sf:= fun (xs ys: sig P) =>
                   let x := proj1_sig xs in
                   let y := proj1_sig ys in
                   @exist A P (f x y)
-                        (rmonoid_plus_closed x y (proj2_sig xs) (proj2_sig ys))
+                         (rmonoid_plus_closed _ x y (proj2_sig xs) (proj2_sig ys))
           ).
 
-      assert(CA: @CommutativeMonoid (sig P) (Sig_Equiv) sf sz).
-      {
-        admit.
-      }
+      assert(CA: @CommutativeMonoid (sig P) (Sig_Equiv) sf sz)
+        by apply ComutativeRMonoid_to_sig_CommutativeMonoid.
 
       (* Not sure why Coq does not properly guess varables here... *)
-      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz0:=Pz) (f0:=f) (f_P_closed:=rmonoid_plus_closed) (P3:=P1) by apply rsg_op_proper.
+      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P1) by apply rsg_op_proper.
       rewrite Vfold_right_to_Vfold_right_reord.
-      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz0:=Pz) (f0:=f) (f_P_closed:=rmonoid_plus_closed) (P3:=P2) by apply rsg_op_proper.
+      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P2) by apply rsg_op_proper.
       rewrite <- Vfold_right_to_Vfold_right_reord.
 
       f_equiv.
 
       apply Vfold_VPermutation.
       apply CA.
-
       apply VPermutation_Vsig_of_forall, V.
-    Admitted.
+    Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Lemma rewrite_Reduction_IReduction
