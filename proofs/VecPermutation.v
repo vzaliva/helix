@@ -3,6 +3,7 @@ Require Import Coq.Arith.Arith.
 Require Export Coq.Vectors.Vector.
 Require Import Coq.Program.Equality. (* for dependent induction *)
 Require Import Setoid Morphisms.
+Require Import ProofIrrelevance.
 
 (* CoLoR: `opam install coq-color`  *)
 Require Export CoLoR.Util.Vector.VecUtil.
@@ -137,3 +138,74 @@ Section VPermutation_properties.
   Qed.
 
 End VPermutation_properties.
+
+Lemma Vsig_of_forall_cons
+      {A : Type}
+      {n : nat}
+      (P : A->Prop)
+      (x : A)
+      (l : vector A n)
+      (P1h : P x)
+      (P1x : @Vforall A P n l):
+  (@Vsig_of_forall A P (S n) (@cons A x n l) (@conj (P x) (@Vforall A P n l) P1h P1x)) =
+  (Vcons (@exist A P x P1h) (Vsig_of_forall P1x)).
+Proof.
+  simpl.
+  f_equal.
+  apply subset_eq_compat.
+  reflexivity.
+  f_equal.
+  apply proof_irrelevance.
+Qed.
+
+Lemma VPermutation_Vsig_of_forall
+      {n: nat}
+      {A: Type}
+      (P: A->Prop)
+      (v1 v2 : vector A n)
+      (P1 : Vforall P v1)
+      (P2 : Vforall P v2):
+  VPermutation A n v1 v2
+  -> VPermutation {x : A | P x} n (Vsig_of_forall P1) (Vsig_of_forall P2).
+Proof.
+  intros V.
+  revert P1 P2.
+  dependent induction V; intros P1 P2.
+  -
+    apply vperm_nil.
+  -
+    destruct P1 as [P1h P1x].
+    destruct P2 as [P2h P2x].
+    rewrite 2!Vsig_of_forall_cons.
+    replace P1h with P2h by apply proof_irrelevance.
+    apply vperm_skip.
+    apply IHV.
+  -
+    destruct P1 as [P1y [P1x P1l]].
+    destruct P2 as [P1x' [P1y' P1l']].
+
+    repeat rewrite Vsig_of_forall_cons.
+
+    replace P1y' with P1y by apply proof_irrelevance.
+    replace P1x' with P1x by apply proof_irrelevance.
+    replace P1l' with P1l by apply proof_irrelevance.
+    apply vperm_swap.
+  -
+    assert(Vforall P l').
+    {
+      apply Vforall_intro.
+      intros x H.
+      apply list_of_vec_in in H.
+      eapply ListVecPermutation in V1; auto.
+      apply Permutation_in with (l':=(list_of_vec l)) in H.
+      +
+        apply Vforall_lforall in P1.
+        apply ListUtil.lforall_in with (l:=(list_of_vec l)); auto.
+      +
+        symmetry.
+        auto.
+    }
+    (* Looks like a coq bug here. It should find H automatically *)
+    unshelve eauto.
+    apply H.
+Qed.
