@@ -2718,8 +2718,39 @@ Section SigmaHCOLRewritingRules.
                             f x y ↾ rmonoid_plus_closed A x y (@proj2_sig A P xs) (@proj2_sig A P ys))
                            (z ↾ (rmonoid_unit_P _)).
     Proof.
+      destruct CMR, comrmonoid_rmon, mon_restriction.
 
-    Admitted.
+      split.
+      split.
+      split.
+      -
+        apply sig_setoid.
+      -
+        intros a b c.
+        apply rmonoid_ass; auto.
+      -
+        unfold sg_op.
+        simpl.
+        simpl_relation.
+        unfold equiv, Sig_Equiv in H; simpl in H.
+        unfold equiv, Sig_Equiv in H0; simpl in H0.
+        rewrite H, H0.
+        reflexivity.
+      -
+        intros a.
+        destruct a.
+        apply rmonoid_left_id.
+        auto.
+      -
+        intros a.
+        destruct a.
+        apply rmonoid_right_id.
+        auto.
+      -
+        intros a b.
+        destruct a,b.
+        apply rcommutativity; auto.
+    Qed.
 
     Lemma Vfold_VPermutation_CM
           {n : nat}
