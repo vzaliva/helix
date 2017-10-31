@@ -2704,6 +2704,22 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+    Lemma ComutativeRMonoid_to_sig_CommutativeMonoid
+          {A : Type}
+          {Ae: Equiv A}
+          {As: @Setoid A Ae}
+          (z : MonUnit A)
+          (f : SgOp A)
+          (P : SgPred A)
+          (CMR: @CommutativeRMonoid A Ae f z P)
+      :
+        @CommutativeMonoid {x : A | P x} (@Sig_Equiv A Ae P)
+                           (λ (xs ys : {x : A | P x}) (x:=` xs) (y:=` ys),
+                            f x y ↾ rmonoid_plus_closed A x y (@proj2_sig A P xs) (@proj2_sig A P ys))
+                           (z ↾ (rmonoid_unit_P _)).
+    Proof.
+
+    Admitted.
 
     Lemma Vfold_VPermutation_CM
           {n : nat}
