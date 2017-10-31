@@ -2678,6 +2678,25 @@ Section SigmaHCOLRewritingRules.
       auto.
     Qed.
 
+    Lemma Vold_right_sig_wrap_equiv
+          {n : nat}
+          {A : Type}
+          `{As: Setoid A}
+          (f : A → A → A)
+          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
+          (P : A → Prop)
+          (f_P_closed: forall a b : A, P a → P b → P (f a b))
+          (v1 : vector A n) (P1 : Vforall P v1)
+          (z : A) (Pz: P z):
+      Vfold_right f v1 z =
+      `
+        (Vfold_right
+           (λ xs ys : {x : A | P x},
+                      f (` xs) (` ys) ↾ f_P_closed (` xs) (` ys) (proj2_sig xs) (proj2_sig ys))
+           (Vsig_of_forall P1) (z ↾ Pz)).
+    Proof.
+    Admitted.
+
     Lemma Vfold_VPermutation_CM
           {n : nat}
           {A: Type}
@@ -2709,49 +2728,14 @@ Section SigmaHCOLRewritingRules.
         admit.
       }
 
-      cut(Vfold_right sf (Vsig_of_forall P1) sz = Vfold_right sf (Vsig_of_forall P2) sz).
-      {
-        unfold SgPred, SgOp, sg_op, sg_P, MonUnit in *.
-        revert rsg_op_proper As.
-        clear_all.
-        intros f_mor As H.
-        rename rmonoid_plus_closed into f_P_closed.
+      (* Not sure why Coq does not properly guess varables here... *)
+      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz0:=Pz) (f0:=f) (f_P_closed:=rmonoid_plus_closed) (P3:=P1) by apply rsg_op_proper.
+      rewrite Vfold_right_to_Vfold_right_reord.
+      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz0:=Pz) (f0:=f) (f_P_closed:=rmonoid_plus_closed) (P3:=P2) by apply rsg_op_proper.
+      rewrite <- Vfold_right_to_Vfold_right_reord.
 
-        dependent induction n.
-        -
-          dep_destruct v1.
-          dep_destruct v2.
-          auto.
-        -
-          dep_destruct v1; rename h into h1, x into x1.
-          dep_destruct v2; rename h into h2, x into x2.
-          destruct P1 as [P1h P1x] eqn:P1E.
-          destruct P2 as [P2h P2x] eqn:P2E.
+      f_equiv.
 
-          simpl.
-
-          rewrite IHn with (v1:=x1) (v2:=x2) (P:=P)
-                           (f_P_closed:=f_P_closed)
-                           (Pz:=Pz)
-                           (P1:=P1x)
-                           (P2:=P2x)
-          ; auto.
-          +
-            apply f_mor.
-            *
-              simpl in H.
-              admit.
-            *
-              reflexivity.
-          +
-            unfold sf, sz in H.
-            rewrite 2!Vsig_of_forall_cons in H.
-            rewrite Vfold_right_cons in H.
-            eapply H.
-
-
-
-      }
       apply Vfold_VPermutation.
       apply CA.
 
