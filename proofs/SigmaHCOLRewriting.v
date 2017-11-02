@@ -1350,63 +1350,6 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    Fact UnionFold_all_zeroes_under_P
-         {fm}
-         {n:nat}
-         `{uf_zero: MonUnit CarrierA}
-         `{f: SgOp CarrierA}
-         (vl : vector (Rtheta' fm) n)
-
-         (* Monoid on restriction on f *)
-         {P: SgPred CarrierA}
-         `{f_mon: @RMonoid _ _ f uf_zero P}
-
-         `{Fpos: Vforall (liftRthetaP P) vl}
-
-         (Uzeros : Vforall
-                     (not
-                        ∘ (not ∘ equiv uf_zero
-                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) vl)
-      :
-        UnionFold fm f uf_zero vl = mkStruct uf_zero.
-    Proof.
-      unfold UnionFold.
-      dependent induction n.
-      +
-        dep_destruct vl.
-        reflexivity.
-      +
-        dep_destruct vl.
-        rename h into v0, x into vs.
-
-        simpl in Uzeros. destruct Uzeros as [Hh Hx].
-        Opaque Monad.ret. simpl. Transparent Monad.ret.
-
-        assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
-        {
-          destruct f_mon.
-          apply rsg_op_proper.
-        }
-
-        rewrite_clear IHn; try eauto.
-        *
-          unfold Union.
-          unfold_Rtheta_equiv.
-          rewrite evalWriter_Rtheta_liftM2.
-          destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
-          --
-            rewrite E.
-            remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
-            destruct f_mon.
-            apply rmonoid_right_id.
-            subst z.
-            apply mon_restriction.
-          --
-            crush.
-        *
-          crush.
-    Qed.
-
     (* Basically states that 'Diamon' applied to a family which guarantees
        single-non zero value per row dows not depend on the function implementation *)
     Lemma Diamond'_f_subst
@@ -1476,421 +1419,485 @@ Section SigmaHCOLRewritingRules.
         left; auto.
     Qed.
 
-    (* A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
-    Lemma UnionFold_VallButOne_a_zero_under_P
-          {fm}
-          {n : nat}
-          (v : svector fm n)
-          {i : nat}
-          (ic : i < n)
 
-          `{uf_zero: MonUnit CarrierA}
-          `{f: SgOp CarrierA}
+    (* An unfortunatly named section for a group on lemmas related to operations on a type constrained by predicate. *)
+    Section Under_P.
 
-          (* Monoid on restriction on f *)
-          {P: SgPred CarrierA}
-          `{f_mon: @RMonoid _ _ f uf_zero P}
+      Fact UnionFold_all_zeroes_under_P
+           {fm}
+           {n:nat}
+           `{uf_zero: MonUnit CarrierA}
+           `{f: SgOp CarrierA}
+           (vl : vector (Rtheta' fm) n)
 
-          `{Fpos: Vforall (liftRthetaP P) v}
+           (* Monoid on restriction on f *)
+           {P: SgPred CarrierA}
+           `{f_mon: @RMonoid _ _ f uf_zero P}
+
+           `{Fpos: Vforall (liftRthetaP P) vl}
+
+           (Uzeros : Vforall
+                       (not
+                          ∘ (not ∘ equiv uf_zero
+                                 ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) vl)
       :
-        VAllButOne i ic
-                   (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
-    Proof.
-      intros U.
-
-      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
-      {
-        destruct f_mon.
-        apply rsg_op_proper.
-      }
-
-      dependent induction n.
-      - crush.
-      -
-        dep_destruct v.
-        destruct (eq_nat_dec i 0).
+        UnionFold fm f uf_zero vl = mkStruct uf_zero.
+      Proof.
+        unfold UnionFold.
+        dependent induction n.
         +
-          (* Case ("i=0"). *)
-          rewrite Vnth_cons_head by assumption.
-          rewrite UnionFold_cons.
-
-          assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
-          {
-            apply Vforall_nth_intro.
-            intros j jp.
-            assert(ipp:S j < S n) by lia.
-            unfold MonUnit in *.
-            unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
-            replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
-            apply U.
-            omega.
-          }
-
-          assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
-          {
-            rewrite UnionFold_all_zeroes_under_P; eauto.
-            -
-              apply evalWriter_mkStruct.
-            -
-              crush.
-          }
-
-          unfold_Rtheta_equiv.
-          rewrite evalWriterUnion.
-          unfold Is_ValX in UZ.
-          setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
-
-          remember (WriterMonadNoT.evalWriter h) as hc.
-          destruct f_mon.
-          apply rmonoid_left_id.
-          crush.
+          dep_destruct vl.
+          reflexivity.
         +
-          (* Case ("i!=0"). *)
-          rewrite UnionFold_cons.
-          assert (HS: Is_ValX uf_zero h).
+          dep_destruct vl.
+          rename h into v0, x into vs.
+
+          simpl in Uzeros. destruct Uzeros as [Hh Hx].
+          Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+          assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
           {
-            cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
-            rewrite Vnth_0.
-            auto.
-            unfold VAllButOne in U.
-            assert(jc: 0 < S n) by omega.
-            specialize (U 0 jc n0).
-            apply not_not_on_decidable.
-            unfold Is_ValX.
-
-            setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
-              with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
-
-            * apply U.
-            *
-              unfold compose.
-              apply ext_equiv_applied_equiv.
-              split; try typeclasses eauto.
-              solve_proper.
-              split; try typeclasses eauto.
-              solve_proper.
-              intros x0.
-
-              unfold equiv.
-              unfold Equiv_instance_0.
-              split; intros H; symmetry; apply H.
-          }
-
-          destruct i; try congruence.
-          simpl.
-          generalize (lt_S_n ic).
-          intros l.
-          rewrite IHn with (ic:=l); eauto.
-          *
-            unfold_Rtheta_equiv.
-            rewrite evalWriterUnion.
-            unfold Is_ValX in HS.
-            rewrite HS.
-
             destruct f_mon.
-            apply rmonoid_right_id.
+            apply rsg_op_proper.
+          }
+
+          rewrite_clear IHn; try eauto.
+          *
+            unfold Union.
+            unfold_Rtheta_equiv.
+            rewrite evalWriter_Rtheta_liftM2.
+            destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
             --
-              assert(l': S i < S n) by auto.
-              apply Vforall_nth with (ip:=l') in Fpos.
-              simpl in Fpos.
-              replace l with (lt_S_n l') by apply le_unique.
-              apply Fpos.
+              rewrite E.
+              remember (WriterMonadNoT.evalWriter (mkStruct uf_zero)) as z.
+              destruct f_mon.
+              apply rmonoid_right_id.
+              subst z.
+              apply mon_restriction.
+            --
+              crush.
           *
             crush.
-          *
-            apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-            apply U.
-    Qed.
+      Qed.
 
-    Lemma Diamond'_f_subst_under_P
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+      (* A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
+      Lemma UnionFold_VallButOne_a_zero_under_P
+            {fm}
+            {n : nat}
+            (v : svector fm n)
+            {i : nat}
+            (ic : i < n)
 
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
+            `{uf_zero: MonUnit CarrierA}
+            `{f: SgOp CarrierA}
 
-          `{f: SgOp CarrierA}
+            (* Monoid on restriction on f *)
+            {P: SgPred CarrierA}
+            `{f_mon: @RMonoid _ _ f uf_zero P}
 
-          (* Monoid on restriction on f *)
-          {P: SgPred CarrierA}
-          `{f_mon: @RMonoid _ _ f uf_zero P}
+            `{Fpos: Vforall (liftRthetaP P) v}
+        :
+          VAllButOne i ic
+                     (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
+      Proof.
+        intros U.
 
-          (* 2nd Monoid *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-
-          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-      :
-        Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
-        Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
-    Proof.
-
-      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
-      {
-        destruct f_mon.
-        apply rsg_op_proper.
-      }
-
-      apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
-      intros x.
-      unfold Diamond'.
-
-      vec_index_equiv j jc.
-      unfold Apply_Family'.
-      rewrite 2!AbsorbMUnion'Index_Vbuild.
-
-      (* -- Now we are dealing with UnionFolds only -- *)
-      unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
-      specialize (Uz x).
-      apply Vforall_nth with (ip:=jc) in Uz.
-      unfold Apply_Family, Apply_Family', transpose in Uz.
-      rewrite Vbuild_nth in Uz.
-      unfold row in Uz.
-      rewrite Vmap_Vbuild in Uz.
-      unfold Vnth_aux in Uz.
-
-      apply Vunique_cases in Uz.
-      destruct Uz as [Uzeros | Uone].
-      -
-        (* all zeros in in vbuild *)
-        revert Uzeros.
-        set (vl:=Vbuild _).
-        assert(Fpos: Vforall (liftRthetaP P) vl).
+        assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
         {
-          subst vl.
-          apply Vforall_Vbuild.
-          intros t tc.
-          unfold Apply_Family_Vforall_P in Upoz.
-          specialize (Upoz x t tc).
-          apply Vforall_nth.
-          apply Upoz.
+          destruct f_mon.
+          apply rsg_op_proper.
         }
 
-        generalize dependent vl.
-        intros vl Uzeros Uone.
-        rewrite UnionFold_all_zeroes_under_P; eauto.
-        rewrite UnionFold_all_zeroes; eauto.
-      -
-        (* one non zero in vbuild. *)
-        revert Uone.
-        set (vl:=Vbuild _).
-        intros Uone.
-        inversion Uone as [k H]; clear Uone.
-        inversion H as [kc Uone]; clear H.
+        dependent induction n.
+        - crush.
+        -
+          dep_destruct v.
+          destruct (eq_nat_dec i 0).
+          +
+            (* Case ("i=0"). *)
+            rewrite Vnth_cons_head by assumption.
+            rewrite UnionFold_cons.
 
-        (* RHS rewrites OK, as we have a Monoid there for [u] *)
-        setoid_rewrite UnionFold_VallButOne_a_zero with (ic:=kc) at 2; try typeclasses eauto; try apply Uone.
+            assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+            {
+              apply Vforall_nth_intro.
+              intros j jp.
+              assert(ipp:S j < S n) by lia.
+              unfold MonUnit in *.
+              unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
+              replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+              apply U.
+              omega.
+            }
 
-        assert(Fpos: Vforall (liftRthetaP P) vl).
-        {
-          clear Uone.
-          subst vl.
-          apply Vforall_Vbuild.
-          intros t tc.
-          unfold Apply_Family_Vforall_P in Upoz.
-          specialize (Upoz x t tc).
-          apply Vforall_nth.
-          apply Upoz.
-        }
-        rewrite UnionFold_VallButOne_a_zero_under_P with (ic:=kc);  eauto.
-      -
-        intros a.
-        unfold not, compose.
-        destruct(CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter a)) as [E | NE].
-        right; auto.
-        left; auto.
-    Qed.
+            assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
+            {
+              rewrite UnionFold_all_zeroes_under_P; eauto.
+              -
+                apply evalWriter_mkStruct.
+              -
+                crush.
+            }
 
-    Fact eval_2D_Fold
-         {o n : nat}
-         (uf_zero : CarrierA)
-         (f : CarrierA -> CarrierA -> CarrierA)
-         (f_mor : Proper (equiv ==> equiv ==> equiv) f)
-         (lst : vector (rvector o) n)
-      :
-        Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-             (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
-                             (Vconst (mkStruct uf_zero) o)
-                             lst)
-        =
-        Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
-                       (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
-    Proof.
+            unfold_Rtheta_equiv.
+            rewrite evalWriterUnion.
+            unfold Is_ValX in UZ.
+            setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
 
-      induction n.
-      -
-        dep_destruct lst.
-        simpl.
-        vec_index_equiv j jc.
-        rewrite Vnth_map.
-        repeat rewrite Vnth_const.
-        apply evalWriter_mkStruct.
-      -
-        dep_destruct lst. clear lst.
-        simpl.
-        specialize (IHn x).
+            remember (WriterMonadNoT.evalWriter h) as hc.
+            destruct f_mon.
+            apply rmonoid_left_id.
+            crush.
+          +
+            (* Case ("i!=0"). *)
+            rewrite UnionFold_cons.
+            assert (HS: Is_ValX uf_zero h).
+            {
+              cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
+              rewrite Vnth_0.
+              auto.
+              unfold VAllButOne in U.
+              assert(jc: 0 < S n) by omega.
+              specialize (U 0 jc n0).
+              apply not_not_on_decidable.
+              unfold Is_ValX.
 
-        rewrite <- IHn; clear IHn.
+              setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
+                with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
 
-        (* Vconst as Vmap *)
-        replace (Vconst (mkStruct (fm:=Monoid_RthetaFlags) uf_zero) o) with
-            (Vmap (mkStruct (fm:=Monoid_RthetaFlags)) (Vconst uf_zero o)) at 1
-          by apply Vmap_Vconst.
+              * apply U.
+              *
+                unfold compose.
+                apply ext_equiv_applied_equiv.
+                split; try typeclasses eauto.
+                solve_proper.
+                split; try typeclasses eauto.
+                solve_proper.
+                intros x0.
 
-        rewrite Vmap2_Vmap.
+                unfold equiv.
+                unfold Equiv_instance_0.
+                split; intros H; symmetry; apply H.
+            }
 
-        replace (fun a b => _)
-          with (fun a b => WriterMonadNoT.evalWriter
-                          (Monad.liftM2 f a b)) by auto.
-        rewrite Vmap_Vconst.
-        vec_index_equiv j jc.
-        repeat rewrite Vnth_map.
-        repeat rewrite Vnth_map2.
-        reflexivity.
-    Qed.
-
-    Lemma Vfold_right_under_P
-          {A: Type} `{Ae: Equiv A}
-          {z: MonUnit A}
-          {f: SgOp A}
-          (P: SgPred A)
-          {f_mon: @CommutativeRMonoid _ _ f z P}
-          {n:nat}
-          (v:vector A n):
-      Vforall P v → P (Vfold_right f v z).
-    Proof.
-      intros U.
-      induction v.
-      -
-        apply f_mon.
-      -
-        simpl.
-        apply f_mon.
-        +
-          apply U.
-        +
-          apply IHv.
-          apply U.
-    Qed.
-
-    Lemma Vfold_right_left_rev_under_P
-          {A: Type} `{Ae: Equiv A}
-          {z: MonUnit A}
-          {f: SgOp A}
-          (P: SgPred A)
-          {f_mon: @CommutativeRMonoid _ _ f z P}
-          {n:nat}
-          (v:vector A n)
-          (U: Vforall P v):
-      Vfold_left_rev f z v = Vfold_right f v z.
-    Proof.
-      induction v.
-      -
-        crush.
-      -
-        simpl.
-        rewrite IHv.
-        destruct f_mon eqn:F.
-        apply rcommutativity.
-        simpl in *.
-        apply (Vfold_right_under_P P).
-        apply U.
-        apply U.
-        apply U.
-    Qed.
-
-    Lemma VFold_right_split_under_P
-          {A: Type}
-          {Ae: Equiv A}
-          {m n : nat}
-          {z: MonUnit A}
-          {f: SgOp A}
-          (P: SgPred A)
-          {f_mon: @CommutativeRMonoid _ _ f z P}
-          (h : vector A m)
-          (t : vector A n)
-          (Uh: Vforall P h)
-          (Ut: Vforall P t)
-      :
-        f (Vfold_right f h z)
-          (Vfold_right f t z)
-        =
-        Vfold_right f (Vapp h t) z.
-    Proof.
-      remember (Vapp h t) as ht.
-      assert(Uht:  Vforall P ht).
-      {
-        subst ht.
-        apply Vforall_app.
-        auto.
-      }
-      replace h with (fst (@Vbreak _ m n ht)).
-      replace t with (snd (@Vbreak _ m n ht)).
-      -
-        clear Heqht h t Uh Ut.
-        induction m.
-        +
-          simpl.
-          destruct f_mon eqn:F.
-          destruct comrmonoid_rmon.
-          apply rmonoid_left_id.
-          apply (Vfold_right_under_P P).
-          apply Uht.
-        +
-          assert(C:S m + n ≡ S (m + n)) by omega.
-          replace (@Vfold_right A A f (S m + n) ht z)
-            with (@Vfold_right A A f (S (m + n)) (@Vcast _ _ ht (S (m + n)) C) z)
-            by
-              (rewrite Vcast_refl; reflexivity).
-
-          replace (Vfold_right f (Vcast ht C) z)
-            with (f (Vhead (Vcast ht C)) (Vfold_right f (Vtail (Vcast ht C)) z))
-            by
-              (rewrite Vfold_right_reduce; reflexivity).
-          rewrite <- IHm.
-          *
+            destruct i; try congruence.
             simpl.
-            destruct f_mon eqn: FM, comrmonoid_rmon.
-            repeat rewrite Vcast_refl.
-            rewrite rmonoid_ass.
-            --
-              reflexivity.
-            --
-              apply Vforall_Vhead.
-              apply Uht.
-            --
-              apply (Vfold_right_under_P P).
-              apply Vforall_nth_intro.
-              intros i ip.
-              assert(ip': i < m + n) by lia.
-              rewrite Vnth_fst_Vbreak with (jc1:=ip').
-              rewrite Vnth_tail.
-              apply Vforall_nth.
-              apply Uht.
-            --
-              apply (Vfold_right_under_P P).
-              apply Vforall_nth_intro.
-              intros i ip.
-              assert(ip': i + m < m + n) by lia.
-              rewrite Vnth_snd_Vbreak with (jc2:=ip').
-              rewrite Vnth_tail.
-              apply Vforall_nth.
-              apply Uht.
-          *
-            rewrite Vcast_refl.
-            apply Vforall_Vtail.
-            apply Uht.
-      -
+            generalize (lt_S_n ic).
+            intros l.
+            rewrite IHn with (ic:=l); eauto.
+            *
+              unfold_Rtheta_equiv.
+              rewrite evalWriterUnion.
+              unfold Is_ValX in HS.
+              rewrite HS.
 
-        subst ht.
-        rewrite Vbreak_app.
-        auto.
-      -
-        subst ht.
-        rewrite Vbreak_app.
-        auto.
-    Qed.
+              destruct f_mon.
+              apply rmonoid_right_id.
+              --
+                assert(l': S i < S n) by auto.
+                apply Vforall_nth with (ip:=l') in Fpos.
+                simpl in Fpos.
+                replace l with (lt_S_n l') by apply le_unique.
+                apply Fpos.
+            *
+              crush.
+            *
+              apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+              apply U.
+      Qed.
+
+      Lemma Diamond'_f_subst_under_P
+            {i o n}
+            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+
+            (* Common unit for both monoids *)
+            `{uf_zero: MonUnit CarrierA}
+
+            `{f: SgOp CarrierA}
+
+            (* Monoid on restriction on f *)
+            {P: SgPred CarrierA}
+            `{f_mon: @RMonoid _ _ f uf_zero P}
+
+            (* 2nd Monoid *)
+            `{u: SgOp CarrierA}
+            `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+
+            (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+            (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+        :
+          Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
+          Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
+      Proof.
+
+        assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
+        {
+          destruct f_mon.
+          apply rsg_op_proper.
+        }
+
+        apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
+        intros x.
+        unfold Diamond'.
+
+        vec_index_equiv j jc.
+        unfold Apply_Family'.
+        rewrite 2!AbsorbMUnion'Index_Vbuild.
+
+        (* -- Now we are dealing with UnionFolds only -- *)
+        unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
+        specialize (Uz x).
+        apply Vforall_nth with (ip:=jc) in Uz.
+        unfold Apply_Family, Apply_Family', transpose in Uz.
+        rewrite Vbuild_nth in Uz.
+        unfold row in Uz.
+        rewrite Vmap_Vbuild in Uz.
+        unfold Vnth_aux in Uz.
+
+        apply Vunique_cases in Uz.
+        destruct Uz as [Uzeros | Uone].
+        -
+          (* all zeros in in vbuild *)
+          revert Uzeros.
+          set (vl:=Vbuild _).
+          assert(Fpos: Vforall (liftRthetaP P) vl).
+          {
+            subst vl.
+            apply Vforall_Vbuild.
+            intros t tc.
+            unfold Apply_Family_Vforall_P in Upoz.
+            specialize (Upoz x t tc).
+            apply Vforall_nth.
+            apply Upoz.
+          }
+
+          generalize dependent vl.
+          intros vl Uzeros Uone.
+          rewrite UnionFold_all_zeroes_under_P; eauto.
+          rewrite UnionFold_all_zeroes; eauto.
+        -
+          (* one non zero in vbuild. *)
+          revert Uone.
+          set (vl:=Vbuild _).
+          intros Uone.
+          inversion Uone as [k H]; clear Uone.
+          inversion H as [kc Uone]; clear H.
+
+          (* RHS rewrites OK, as we have a Monoid there for [u] *)
+          setoid_rewrite UnionFold_VallButOne_a_zero with (ic:=kc) at 2; try typeclasses eauto; try apply Uone.
+
+          assert(Fpos: Vforall (liftRthetaP P) vl).
+          {
+            clear Uone.
+            subst vl.
+            apply Vforall_Vbuild.
+            intros t tc.
+            unfold Apply_Family_Vforall_P in Upoz.
+            specialize (Upoz x t tc).
+            apply Vforall_nth.
+            apply Upoz.
+          }
+          rewrite UnionFold_VallButOne_a_zero_under_P with (ic:=kc);  eauto.
+        -
+          intros a.
+          unfold not, compose.
+          destruct(CarrierAequivdec uf_zero (WriterMonadNoT.evalWriter a)) as [E | NE].
+          right; auto.
+          left; auto.
+      Qed.
+
+      Fact eval_2D_Fold
+           {o n : nat}
+           (uf_zero : CarrierA)
+           (f : CarrierA -> CarrierA -> CarrierA)
+           (f_mor : Proper (equiv ==> equiv ==> equiv) f)
+           (lst : vector (rvector o) n)
+        :
+          Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
+               (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
+                               (Vconst (mkStruct uf_zero) o)
+                               lst)
+          =
+          Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
+                         (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
+      Proof.
+
+        induction n.
+        -
+          dep_destruct lst.
+          simpl.
+          vec_index_equiv j jc.
+          rewrite Vnth_map.
+          repeat rewrite Vnth_const.
+          apply evalWriter_mkStruct.
+        -
+          dep_destruct lst. clear lst.
+          simpl.
+          specialize (IHn x).
+
+          rewrite <- IHn; clear IHn.
+
+          (* Vconst as Vmap *)
+          replace (Vconst (mkStruct (fm:=Monoid_RthetaFlags) uf_zero) o) with
+              (Vmap (mkStruct (fm:=Monoid_RthetaFlags)) (Vconst uf_zero o)) at 1
+            by apply Vmap_Vconst.
+
+          rewrite Vmap2_Vmap.
+
+          replace (fun a b => _)
+            with (fun a b => WriterMonadNoT.evalWriter
+                            (Monad.liftM2 f a b)) by auto.
+          rewrite Vmap_Vconst.
+          vec_index_equiv j jc.
+          repeat rewrite Vnth_map.
+          repeat rewrite Vnth_map2.
+          reflexivity.
+      Qed.
+
+      Lemma Vfold_right_under_P
+            {A: Type} `{Ae: Equiv A}
+            {z: MonUnit A}
+            {f: SgOp A}
+            (P: SgPred A)
+            {f_mon: @CommutativeRMonoid _ _ f z P}
+            {n:nat}
+            (v:vector A n):
+        Vforall P v → P (Vfold_right f v z).
+      Proof.
+        intros U.
+        induction v.
+        -
+          apply f_mon.
+        -
+          simpl.
+          apply f_mon.
+          +
+            apply U.
+          +
+            apply IHv.
+            apply U.
+      Qed.
+
+      Lemma Vfold_right_left_rev_under_P
+            {A: Type} `{Ae: Equiv A}
+            {z: MonUnit A}
+            {f: SgOp A}
+            (P: SgPred A)
+            {f_mon: @CommutativeRMonoid _ _ f z P}
+            {n:nat}
+            (v:vector A n)
+            (U: Vforall P v):
+        Vfold_left_rev f z v = Vfold_right f v z.
+      Proof.
+        induction v.
+        -
+          crush.
+        -
+          simpl.
+          rewrite IHv.
+          destruct f_mon eqn:F.
+          apply rcommutativity.
+          simpl in *.
+          apply (Vfold_right_under_P P).
+          apply U.
+          apply U.
+          apply U.
+      Qed.
+
+      Lemma VFold_right_split_under_P
+            {A: Type}
+            {Ae: Equiv A}
+            {m n : nat}
+            {z: MonUnit A}
+            {f: SgOp A}
+            (P: SgPred A)
+            {f_mon: @CommutativeRMonoid _ _ f z P}
+            (h : vector A m)
+            (t : vector A n)
+            (Uh: Vforall P h)
+            (Ut: Vforall P t)
+        :
+          f (Vfold_right f h z)
+            (Vfold_right f t z)
+          =
+          Vfold_right f (Vapp h t) z.
+      Proof.
+        remember (Vapp h t) as ht.
+        assert(Uht:  Vforall P ht).
+        {
+          subst ht.
+          apply Vforall_app.
+          auto.
+        }
+        replace h with (fst (@Vbreak _ m n ht)).
+        replace t with (snd (@Vbreak _ m n ht)).
+        -
+          clear Heqht h t Uh Ut.
+          induction m.
+          +
+            simpl.
+            destruct f_mon eqn:F.
+            destruct comrmonoid_rmon.
+            apply rmonoid_left_id.
+            apply (Vfold_right_under_P P).
+            apply Uht.
+          +
+            assert(C:S m + n ≡ S (m + n)) by omega.
+            replace (@Vfold_right A A f (S m + n) ht z)
+              with (@Vfold_right A A f (S (m + n)) (@Vcast _ _ ht (S (m + n)) C) z)
+              by
+                (rewrite Vcast_refl; reflexivity).
+
+            replace (Vfold_right f (Vcast ht C) z)
+              with (f (Vhead (Vcast ht C)) (Vfold_right f (Vtail (Vcast ht C)) z))
+              by
+                (rewrite Vfold_right_reduce; reflexivity).
+            rewrite <- IHm.
+            *
+              simpl.
+              destruct f_mon eqn: FM, comrmonoid_rmon.
+              repeat rewrite Vcast_refl.
+              rewrite rmonoid_ass.
+              --
+                reflexivity.
+              --
+                apply Vforall_Vhead.
+                apply Uht.
+              --
+                apply (Vfold_right_under_P P).
+                apply Vforall_nth_intro.
+                intros i ip.
+                assert(ip': i < m + n) by lia.
+                rewrite Vnth_fst_Vbreak with (jc1:=ip').
+                rewrite Vnth_tail.
+                apply Vforall_nth.
+                apply Uht.
+              --
+                apply (Vfold_right_under_P P).
+                apply Vforall_nth_intro.
+                intros i ip.
+                assert(ip': i + m < m + n) by lia.
+                rewrite Vnth_snd_Vbreak with (jc2:=ip').
+                rewrite Vnth_tail.
+                apply Vforall_nth.
+                apply Uht.
+            *
+              rewrite Vcast_refl.
+              apply Vforall_Vtail.
+              apply Uht.
+        -
+
+          subst ht.
+          rewrite Vbreak_app.
+          auto.
+        -
+          subst ht.
+          rewrite Vbreak_app.
+          auto.
+      Qed.
+
+    End Under_P.
+
 
     (* TODO: move this and other helper lemmas to SigmaHCOLHelperLemmas section above *)
     Section VecMap2CommutativeRMonoid.
@@ -2176,507 +2183,500 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-    (* TODO: think of good place to move this. Depdens on both [IndexFunctions] and [VecPermutation] *)
-    Lemma Vbuild_permutation
-          {A: Type}
-          {n: nat}
-          {f: forall i : nat, i < n -> A}
-          (t: index_map n n)
-          (P: index_map_bijective t)
+
+    Section Vec_Permutations.
+      (* TODO: think of good place to move this. Depdens on both [IndexFunctions] and [VecPermutation] *)
+      Lemma Vbuild_permutation
+            {A: Type}
+            {n: nat}
+            {f: forall i : nat, i < n -> A}
+            (t: index_map n n)
+            (P: index_map_bijective t)
       :
         VPermutation A n (Vbuild f) (Vbuild (fun i ic =>
                                                f (⟦t⟧ i) («t» i ic)
                                     )).
-    Proof.
-      induction n.
-      -
-        crush.
-      -
-        rewrite Vbuild_cons.
+      Proof.
+        induction n.
+        -
+          crush.
+        -
+          rewrite Vbuild_cons.
 
-        pose(t' := build_inverse_index_map t).
-        assert(P': inverse_index_map_bijective t')
-          by apply build_inverse_index_map_is_bijective, P.
+          pose(t' := build_inverse_index_map t).
+          assert(P': inverse_index_map_bijective t')
+            by apply build_inverse_index_map_is_bijective, P.
 
-        pose (k := inverse_index_f _ t' 0).
-        assert(L: k<S n).
-        {
-          apply inverse_index_f_spec.
-          apply in_range_exists.
-          +
-            apply zero_lt_Sn.
-          +
-            apply P.
-            apply zero_lt_Sn.
-        }
-
-        assert(K: ⟦ t ⟧ k ≡ 0).
-        {
-          subst k t'.
-          apply build_inverse_index_map_is_right_inverse.
-          -
-            apply P.
-          -
-            apply index_map_surjective_in_range.
-            apply P.
-            apply zero_lt_Sn.
-          -
-            reflexivity.
-        }
-
-        assert(E0: k + (S (n - k)) ≡ S n) by lia.
-        rewrite Vbuild_range_cast with (E:=E0).
-        rewrite Vbuild_split_at.
-
-        match goal with
-          [ |- VPermutation _ _ ?l ?r ] => remember l as lhs; remember r as rhs
-        end.
-
-        assert(E1: (k + (n - k)) ≡ n) by lia.
-        assert(T1: VPermutation A _
-                                (Vcons
-                                   (f (⟦ t ⟧ k)
-                                      (« t » k
-                                         (eq_lt_lt E0
-                                                   (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
-                                   (Vcast
-                                      (Vapp
-                                         (Vbuild
-                                            (λ (t0 : nat) (tc : t0 < k),
-                                             f (⟦ t ⟧ t0)
-                                               (« t » t0
-                                                  (eq_lt_lt E0
-                                                            (VecUtil.Vbuild_split_at_def_obligation_1 k (n - k) t0 tc)))))
-
-                                         (Vbuild
-                                            (λ (t0 : nat) (tc : t0 < n - k),
-                                             f (⟦ t ⟧ (t0 + 1 + k))
-                                               (« t » (t0 + 1 + k)
-                                                  (eq_lt_lt E0
-                                                            (VecUtil.Vbuild_split_at_def_obligation_3 k
-                                                                                                      (n - k) t0 tc)))))) E1))
-
-                                rhs).
-        {
-          subst rhs.
-          eapply ListVecPermutation; auto.
-          simpl.
-          repeat rewrite list_of_vec_Vcast.
-          rewrite 2!list_of_vec_Vapp.
-          apply Permutation.Permutation_middle.
-        }
-        remember (Vcons _ _) as t1 in T1.
-        apply vperm_trans with (l':=t1), T1; clear rhs Heqrhs T1.
-
-        replace (f (⟦ t ⟧ k)
-                   (« t » k
-                      (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
-          with (f 0 (Nat.lt_0_succ n)) in Heqt1.
-        +
-          subst lhs t1.
-          eapply vperm_skip.
-          pose(f' := fun i (ic:i<n) => f (S i) (lt_n_S ic)).
-          specialize (IHn f').
-          unfold f' in IHn.
-
-          pose(h_func := fun x => pred (match Compare_dec.lt_dec x k  with
-                                     | in_left => ⟦ t ⟧ x
-                                     | in_right => ⟦ t ⟧ (S x)
-                                     end)
-              ).
-
-          assert(h_spec: forall x, x<n -> (h_func x) < n).
+          pose (k := inverse_index_f _ t' 0).
+          assert(L: k<S n).
           {
-            intros x H.
-            unfold h_func.
-            break_match.
-            -
-              destruct t.
-              simpl in *.
-              assert(SL: index_f x  < S n) by auto.
-              crush.
-            -
-              destruct t.
-              simpl in *.
-              assert(SL: index_f (S x) < S n).
-              crush.
-              crush.
-          }
-          pose(h := IndexMap _ _ h_func h_spec).
-
-          assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
-          {
-            intros p pc H.
-            contradict H.
-            apply P; auto.
-            rewrite K, H.
-            reflexivity.
+            apply inverse_index_f_spec.
+            apply in_range_exists.
+            +
+              apply zero_lt_Sn.
+            +
+              apply P.
+              apply zero_lt_Sn.
           }
 
-          assert(H_b: index_map_bijective h).
+          assert(K: ⟦ t ⟧ k ≡ 0).
           {
-            assert(Hinj: index_map_injective h).
+            subst k t'.
+            apply build_inverse_index_map_is_right_inverse.
+            -
+              apply P.
+            -
+              apply index_map_surjective_in_range.
+              apply P.
+              apply zero_lt_Sn.
+            -
+              reflexivity.
+          }
+
+          assert(E0: k + (S (n - k)) ≡ S n) by lia.
+          rewrite Vbuild_range_cast with (E:=E0).
+          rewrite Vbuild_split_at.
+
+          match goal with
+            [ |- VPermutation _ _ ?l ?r ] => remember l as lhs; remember r as rhs
+          end.
+
+          assert(E1: (k + (n - k)) ≡ n) by lia.
+          assert(T1: VPermutation A _
+                                  (Vcons
+                                     (f (⟦ t ⟧ k)
+                                        (« t » k
+                                           (eq_lt_lt E0
+                                                     (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
+                                     (Vcast
+                                        (Vapp
+                                           (Vbuild
+                                              (λ (t0 : nat) (tc : t0 < k),
+                                               f (⟦ t ⟧ t0)
+                                                 (« t » t0
+                                                    (eq_lt_lt E0
+                                                              (VecUtil.Vbuild_split_at_def_obligation_1 k (n - k) t0 tc)))))
+
+                                           (Vbuild
+                                              (λ (t0 : nat) (tc : t0 < n - k),
+                                               f (⟦ t ⟧ (t0 + 1 + k))
+                                                 (« t » (t0 + 1 + k)
+                                                    (eq_lt_lt E0
+                                                              (VecUtil.Vbuild_split_at_def_obligation_3 k
+                                                                                                        (n - k) t0 tc)))))) E1))
+
+                                  rhs).
+          {
+            subst rhs.
+            eapply ListVecPermutation; auto.
+            simpl.
+            repeat rewrite list_of_vec_Vcast.
+            rewrite 2!list_of_vec_Vapp.
+            apply Permutation.Permutation_middle.
+          }
+          remember (Vcons _ _) as t1 in T1.
+          apply vperm_trans with (l':=t1), T1; clear rhs Heqrhs T1.
+
+          replace (f (⟦ t ⟧ k)
+                     (« t » k
+                        (eq_lt_lt E0 (VecUtil.Vbuild_split_at_def_obligation_2 k (n - k)))))
+            with (f 0 (Nat.lt_0_succ n)) in Heqt1.
+          +
+            subst lhs t1.
+            eapply vperm_skip.
+            pose(f' := fun i (ic:i<n) => f (S i) (lt_n_S ic)).
+            specialize (IHn f').
+            unfold f' in IHn.
+
+            pose(h_func := fun x => pred (match Compare_dec.lt_dec x k  with
+                                       | in_left => ⟦ t ⟧ x
+                                       | in_right => ⟦ t ⟧ (S x)
+                                       end)
+                ).
+
+            assert(h_spec: forall x, x<n -> (h_func x) < n).
             {
-              (* injectivity *)
-              destruct P as [Pi Ps].
-              unfold index_map_injective in *.
-              intros x y xc yc H.
-              simpl in *. clear h.
+              intros x H.
+              unfold h_func.
+              break_match.
+              -
+                destruct t.
+                simpl in *.
+                assert(SL: index_f x  < S n) by auto.
+                crush.
+              -
+                destruct t.
+                simpl in *.
+                assert(SL: index_f (S x) < S n).
+                crush.
+                crush.
+            }
+            pose(h := IndexMap _ _ h_func h_spec).
 
-              unfold h_func in H.
-              repeat break_match.
-              +
-                (* x,y < k *)
-                apply Pi; auto.
-                assert(⟦ t ⟧ x ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
-                }
-
-                assert(⟦ t ⟧ y ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
-                }
-
-                destruct (⟦ t ⟧ x); try congruence.
-                destruct (⟦ t ⟧ y); try congruence.
-                rewrite <- 2!pred_Sn in H.
-                auto.
-              +
-                (* impossible case: x,y on different sides of k *)
-                clear E0 E1 h_func h_spec IHn P' f' t'.
-                generalize dependent k.
-                intros k L K NK l n1.
-
-                assert(⟦ t ⟧ x ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
-                }
-
-                destruct (eq_nat_dec k (S y)) as [Ek | NEk].
-                *
-                  rewrite <- Ek in H.
-                  rewrite K in H.
-                  destruct (⟦ t ⟧ x) eqn:Hx.
-                  --
-                    congruence.
-                  --
-                    lia.
-                *
-                  destruct (⟦ t ⟧ x) eqn:Hx, (⟦ t ⟧ (S y)) eqn:Hy; try congruence.
-                  --
-                    rewrite <- K in Hy.
-                    crush.
-                  --
-                    rewrite <- 2!pred_Sn in H.
-                    subst_max.
-                    rewrite <- Hy in Hx.
-                    apply Pi in Hx; crush.
-              +
-                (* impossible case: x,y on different sides of k *)
-                clear E0 E1 h_func h_spec IHn P' f' t'.
-                generalize dependent k.
-                intros k L K NK l n0.
-
-                assert(⟦ t ⟧ y ≢ 0).
-                {
-                  apply NK; auto.
-                  apply Nat.le_neq; auto.
-                }
-
-                destruct (eq_nat_dec k (S x)) as [Ek | NEk].
-                *
-                  rewrite <- Ek in H.
-                  rewrite K in H.
-                  destruct (⟦ t ⟧ y) eqn:Hx.
-                  --
-                    congruence.
-                  --
-                    lia.
-                *
-                  destruct (⟦ t ⟧ y) eqn:Hx, (⟦ t ⟧ (S x)) eqn:Hy; try congruence.
-                  --
-                    rewrite <- K in Hy.
-                    crush.
-                  --
-                    rewrite <- 2!pred_Sn in H.
-                    subst_max.
-                    rewrite <- Hy in Hx.
-                    apply Pi in Hx; crush.
-              +
-                (* x,y > k *)
-                apply eq_add_S.
-                apply Pi; try lia.
-
-                destruct (eq_nat_dec k (S x)), (eq_nat_dec k (S y)).
-                *
-                  rewrite <- e, <- e0.
-                  reflexivity.
-                *
-                  crush.
-                *
-                  crush.
-                *
-                  assert(⟦ t ⟧ (S x) ≢ 0).
-                  {
-                    apply NK.
-                    lia.
-                    auto.
-                  }
-
-                  assert(⟦ t ⟧ (S y) ≢ 0).
-                  {
-                    apply NK; auto.
-                    lia.
-                  }
-
-                  destruct (⟦ t ⟧ (S x)); try congruence.
-                  destruct (⟦ t ⟧ (S y)); try congruence.
-                  rewrite <- 2!pred_Sn in H.
-                  auto.
+            assert(NK: forall p, p < S n -> p ≢ k -> ⟦ t ⟧ p ≢ 0).
+            {
+              intros p pc H.
+              contradict H.
+              apply P; auto.
+              rewrite K, H.
+              reflexivity.
             }
 
-            assert(Hsurj: index_map_surjective h).
+            assert(H_b: index_map_bijective h).
             {
-              clear IHn E0 E1 f f'.
-              unfold index_map_surjective in *.
-              intros y yc.
-
-              pose(h'_func := fun y => let x0 := (inverse_index_f t t' (S y)) in
-                                    match Compare_dec.lt_dec x0 k  with
-                                    | in_left => x0
-                                    | in_right => pred x0
-                                    end).
-              exists (h'_func y).
-
-              assert(h'_spec: h'_func y < n).
+              assert(Hinj: index_map_injective h).
               {
-                unfold h'_func.
-                break_if.
-                - lia.
-                -
-                  assert (inverse_index_f t t' (S y) < S n).
+                (* injectivity *)
+                destruct P as [Pi Ps].
+                unfold index_map_injective in *.
+                intros x y xc yc H.
+                simpl in *. clear h.
+
+                unfold h_func in H.
+                repeat break_match.
+                +
+                  (* x,y < k *)
+                  apply Pi; auto.
+                  assert(⟦ t ⟧ x ≢ 0).
                   {
+                    apply NK; auto.
+                    apply Nat.le_neq; auto.
+                  }
+
+                  assert(⟦ t ⟧ y ≢ 0).
+                  {
+                    apply NK; auto.
+                    apply Nat.le_neq; auto.
+                  }
+
+                  destruct (⟦ t ⟧ x); try congruence.
+                  destruct (⟦ t ⟧ y); try congruence.
+                  rewrite <- 2!pred_Sn in H.
+                  auto.
+                +
+                  (* impossible case: x,y on different sides of k *)
+                  clear E0 E1 h_func h_spec IHn P' f' t'.
+                  generalize dependent k.
+                  intros k L K NK l n1.
+
+                  assert(⟦ t ⟧ x ≢ 0).
+                  {
+                    apply NK; auto.
+                    apply Nat.le_neq; auto.
+                  }
+
+                  destruct (eq_nat_dec k (S y)) as [Ek | NEk].
+                  *
+                    rewrite <- Ek in H.
+                    rewrite K in H.
+                    destruct (⟦ t ⟧ x) eqn:Hx.
+                    --
+                      congruence.
+                    --
+                      lia.
+                  *
+                    destruct (⟦ t ⟧ x) eqn:Hx, (⟦ t ⟧ (S y)) eqn:Hy; try congruence.
+                    --
+                      rewrite <- K in Hy.
+                      crush.
+                    --
+                      rewrite <- 2!pred_Sn in H.
+                      subst_max.
+                      rewrite <- Hy in Hx.
+                      apply Pi in Hx; crush.
+                +
+                  (* impossible case: x,y on different sides of k *)
+                  clear E0 E1 h_func h_spec IHn P' f' t'.
+                  generalize dependent k.
+                  intros k L K NK l n0.
+
+                  assert(⟦ t ⟧ y ≢ 0).
+                  {
+                    apply NK; auto.
+                    apply Nat.le_neq; auto.
+                  }
+
+                  destruct (eq_nat_dec k (S x)) as [Ek | NEk].
+                  *
+                    rewrite <- Ek in H.
+                    rewrite K in H.
+                    destruct (⟦ t ⟧ y) eqn:Hx.
+                    --
+                      congruence.
+                    --
+                      lia.
+                  *
+                    destruct (⟦ t ⟧ y) eqn:Hx, (⟦ t ⟧ (S x)) eqn:Hy; try congruence.
+                    --
+                      rewrite <- K in Hy.
+                      crush.
+                    --
+                      rewrite <- 2!pred_Sn in H.
+                      subst_max.
+                      rewrite <- Hy in Hx.
+                      apply Pi in Hx; crush.
+                +
+                  (* x,y > k *)
+                  apply eq_add_S.
+                  apply Pi; try lia.
+
+                  destruct (eq_nat_dec k (S x)), (eq_nat_dec k (S y)).
+                  *
+                    rewrite <- e, <- e0.
+                    reflexivity.
+                  *
+                    crush.
+                  *
+                    crush.
+                  *
+                    assert(⟦ t ⟧ (S x) ≢ 0).
+                    {
+                      apply NK.
+                      lia.
+                      auto.
+                    }
+
+                    assert(⟦ t ⟧ (S y) ≢ 0).
+                    {
+                      apply NK; auto.
+                      lia.
+                    }
+
+                    destruct (⟦ t ⟧ (S x)); try congruence.
+                    destruct (⟦ t ⟧ (S y)); try congruence.
+                    rewrite <- 2!pred_Sn in H.
+                    auto.
+              }
+
+              assert(Hsurj: index_map_surjective h).
+              {
+                clear IHn E0 E1 f f'.
+                unfold index_map_surjective in *.
+                intros y yc.
+
+                pose(h'_func := fun y => let x0 := (inverse_index_f t t' (S y)) in
+                                      match Compare_dec.lt_dec x0 k  with
+                                      | in_left => x0
+                                      | in_right => pred x0
+                                      end).
+                exists (h'_func y).
+
+                assert(h'_spec: h'_func y < n).
+                {
+                  unfold h'_func.
+                  break_if.
+                  - lia.
+                  -
+                    assert (inverse_index_f t t' (S y) < S n).
+                    {
+                      apply (inverse_index_f_spec t t' (S y)).
+                      apply index_map_surjective_in_range.
+                      apply P.
+                      apply lt_n_S, yc.
+                    }
+                    lia.
+                }
+                exists h'_spec.
+
+
+                assert(K': inverse_index_f t t' 0 ≡ k).
+                {
+                  apply build_inverse_index_map_is_left_inverse.
+                  apply P.
+                  apply L.
+                  apply K.
+                }
+
+                assert(NK': forall p, p < S n -> p ≢ 0 -> (inverse_index_f t t' p ≢ k)).
+                {
+                  intros p pc H.
+                  contradict H.
+                  apply P'; try lia.
+                  apply index_map_surjective_in_range.
+                  apply P. apply pc.
+                  apply index_map_surjective_in_range.
+                  apply P. lia.
+                }
+
+                simpl.
+                unfold h_func, h'_func.
+                repeat break_if.
+                -
+                  assert(H: ⟦ t ⟧ (inverse_index_f t t' (S y)) ≢ 0).
+                  {
+                    apply NK.
                     apply (inverse_index_f_spec t t' (S y)).
                     apply index_map_surjective_in_range.
                     apply P.
                     apply lt_n_S, yc.
+                    apply NK'.
+                    lia.
+                    auto.
                   }
-                  lia.
-              }
-              exists h'_spec.
 
-
-              assert(K': inverse_index_f t t' 0 ≡ k).
-              {
-                apply build_inverse_index_map_is_left_inverse.
-                apply P.
-                apply L.
-                apply K.
-              }
-
-              assert(NK': forall p, p < S n -> p ≢ 0 -> (inverse_index_f t t' p ≢ k)).
-              {
-                intros p pc H.
-                contradict H.
-                apply P'; try lia.
-                apply index_map_surjective_in_range.
-                apply P. apply pc.
-                apply index_map_surjective_in_range.
-                apply P. lia.
-              }
-
-              simpl.
-              unfold h_func, h'_func.
-              repeat break_if.
-              -
-                assert(H: ⟦ t ⟧ (inverse_index_f t t' (S y)) ≢ 0).
-                {
-                  apply NK.
-                  apply (inverse_index_f_spec t t' (S y)).
-                  apply index_map_surjective_in_range.
+                  apply eq_add_S.
+                  rewrite S_pred_simpl by apply H.
+                  apply build_inverse_index_map_is_right_inverse; auto.
                   apply P.
-                  apply lt_n_S, yc.
-                  apply NK'.
-                  lia.
-                  auto.
-                }
-
-                apply eq_add_S.
-                rewrite S_pred_simpl by apply H.
-                apply build_inverse_index_map_is_right_inverse; auto.
-                apply P.
-                apply index_map_surjective_in_range.
-                apply P.
-                lia.
-              -
-                assert(KK: inverse_index_f t t' (S y) ≡ k) by lia.
-                rewrite <- KK in K'.
-                apply P' in K'.
-                +
-                  congruence.
-                +
                   apply index_map_surjective_in_range.
                   apply P.
                   lia.
-                +
-                  apply index_map_surjective_in_range.
-                  apply P.
-                  lia.
-              -
-                lia.
-              -
-                remember (inverse_index_f t t' (S y)) as x0.
-                remember (Init.Nat.pred x0) as x1.
-                apply eq_add_S.
-                rewrite S_pred_simpl.
-                +
-                  subst x1.
-                  destruct x0.
-                  *
-                    (* x0 = 0? *)
-                    clear n0. (* same as n1 *)
-                    simpl.
-                    destruct k.
-                    --
-                      rewrite <- K' in Heqx0.
-                      apply P' in Heqx0.
-                      ++
-                        congruence.
-                      ++
-                        apply index_map_surjective_in_range.
-                        apply P.
-                        lia.
-                      ++
-                        apply index_map_surjective_in_range.
-                        apply P.
-                        lia.
-                    --
-                      lia.
-                  *
-                    rewrite S_pred_simpl.
-                    --
-                      apply build_inverse_index_map_is_right_inverse.
-                      apply P.
-                      apply index_map_surjective_in_range.
-                      apply P.
-                      lia.
-                      rewrite Heqx0.
-                      reflexivity.
-                    --
-                      lia.
-                +
-                  intros H.
-                  rewrite <- K in H.
-                  apply P in H; try lia.
-                  assert(x0 < S n).
-                  {
-                    subst x0.
-                    apply (inverse_index_f_spec t t' (S y)).
+                -
+                  assert(KK: inverse_index_f t t' (S y) ≡ k) by lia.
+                  rewrite <- KK in K'.
+                  apply P' in K'.
+                  +
+                    congruence.
+                  +
                     apply index_map_surjective_in_range.
                     apply P.
                     lia.
-                  }
+                  +
+                    apply index_map_surjective_in_range.
+                    apply P.
+                    lia.
+                -
                   lia.
+                -
+                  remember (inverse_index_f t t' (S y)) as x0.
+                  remember (Init.Nat.pred x0) as x1.
+                  apply eq_add_S.
+                  rewrite S_pred_simpl.
+                  +
+                    subst x1.
+                    destruct x0.
+                    *
+                      (* x0 = 0? *)
+                      clear n0. (* same as n1 *)
+                      simpl.
+                      destruct k.
+                      --
+                        rewrite <- K' in Heqx0.
+                        apply P' in Heqx0.
+                        ++
+                          congruence.
+                        ++
+                          apply index_map_surjective_in_range.
+                          apply P.
+                          lia.
+                        ++
+                          apply index_map_surjective_in_range.
+                          apply P.
+                          lia.
+                      --
+                        lia.
+                    *
+                      rewrite S_pred_simpl.
+                      --
+                        apply build_inverse_index_map_is_right_inverse.
+                        apply P.
+                        apply index_map_surjective_in_range.
+                        apply P.
+                        lia.
+                        rewrite Heqx0.
+                        reflexivity.
+                      --
+                        lia.
+                  +
+                    intros H.
+                    rewrite <- K in H.
+                    apply P in H; try lia.
+                    assert(x0 < S n).
+                    {
+                      subst x0.
+                      apply (inverse_index_f_spec t t' (S y)).
+                      apply index_map_surjective_in_range.
+                      apply P.
+                      lia.
+                    }
+                    lia.
+              }
+              split; auto.
             }
-            split; auto.
-          }
-          specialize (IHn h H_b).
-          rewrite_clear IHn.
-          remember (Vcast _ _) as l1.
-          replace (Vbuild _ ) with l1.
-          apply VPermutation_refl.
-          subst l1.
+            specialize (IHn h H_b).
+            rewrite_clear IHn.
+            remember (Vcast _ _) as l1.
+            replace (Vbuild _ ) with l1.
+            apply VPermutation_refl.
+            subst l1.
 
-          apply Veq_nth.
-          intros i ip.
-          rewrite Vbuild_nth.
-          rewrite Vnth_cast.
-          rewrite Vnth_app.
-          break_match.
-          *
+            apply Veq_nth.
+            intros i ip.
             rewrite Vbuild_nth.
-            subst h.
-            unfold h_func.
-            simpl.
-            assert(E: (⟦ t ⟧ (i - k + 1 + k)) ≡ (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i))))).
-            {
-              break_if.
-              - crush.
-              -
-                replace (i - k + 1 + k) with (S i) by omega.
-                destruct (⟦ t ⟧ (S i)) eqn:T.
+            rewrite Vnth_cast.
+            rewrite Vnth_app.
+            break_match.
+            *
+              rewrite Vbuild_nth.
+              subst h.
+              unfold h_func.
+              simpl.
+              assert(E: (⟦ t ⟧ (i - k + 1 + k)) ≡ (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i))))).
+              {
+                break_if.
+                - crush.
+                -
+                  replace (i - k + 1 + k) with (S i) by omega.
+                  destruct (⟦ t ⟧ (S i)) eqn:T.
+                  +
+                    rewrite <- K in T.
+                    apply P in T; crush.
+                  +
+                    reflexivity.
+              }
+              forall_n_lt_eq.
+            *
+              rewrite Vbuild_nth.
+              subst h.
+              unfold h_func.
+              simpl.
+              symmetry.
+              assert(E: (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i)))) ≡⟦ t ⟧ i ).
+              {
+                break_if; try omega.
+                destruct (⟦ t ⟧ i) eqn:T.
                 +
                   rewrite <- K in T.
                   apply P in T; crush.
                 +
                   reflexivity.
-            }
-            forall_n_lt_eq.
-          *
-            rewrite Vbuild_nth.
-            subst h.
-            unfold h_func.
-            simpl.
+              }
+              forall_n_lt_eq.
+          +
             symmetry.
-            assert(E: (S (Init.Nat.pred (if Compare_dec.lt_dec i k then ⟦ t ⟧ i else ⟦ t ⟧ (S i)))) ≡⟦ t ⟧ i ).
-            {
-              break_if; try omega.
-              destruct (⟦ t ⟧ i) eqn:T.
-              +
-                rewrite <- K in T.
-                apply P in T; crush.
-              +
-                reflexivity.
-            }
+            clear Heqt1.
             forall_n_lt_eq.
-        +
-          symmetry.
-          clear Heqt1.
-          forall_n_lt_eq.
-    Qed.
+      Qed.
 
-    Lemma Vfold_VPermutation
-          {n : nat}
-          {A: Type} `{Ae: Equiv A}
-          (z : MonUnit A)
-          (f : SgOp A)
-          (f_mon: CommutativeMonoid A):
-      forall v1 v2 : vector A n,
-        VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
-    Proof.
-      intros v1 v2 V.
-      induction V.
-      -
-        reflexivity.
-      -
-        simpl.
-        rewrite IHV.
-        reflexivity.
-      -
-        simpl.
-        destruct f_mon, commonoid_mon, monoid_semigroup.
-        repeat rewrite sg_ass.
-        setoid_replace (y & x) with (x & y).
-        reflexivity.
-        apply commonoid_commutative.
-      -
-        auto.
-    Qed.
+      Lemma Vfold_VPermutation
+            {n : nat}
+            {A: Type} `{Ae: Equiv A}
+            (z : MonUnit A)
+            (f : SgOp A)
+            (f_mon: CommutativeMonoid A):
+        forall v1 v2 : vector A n,
+          VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
+      Proof.
+        intros v1 v2 V.
+        induction V.
+        -
+          reflexivity.
+        -
+          simpl.
+          rewrite IHV.
+          reflexivity.
+        -
+          simpl.
+          destruct f_mon, commonoid_mon, monoid_semigroup.
+          repeat rewrite sg_ass.
+          setoid_replace (y & x) with (x & y).
+          reflexivity.
+          apply commonoid_commutative.
+        -
+          auto.
+      Qed.
 
-    Instance Sig_Equiv {A:Type} {Ae : Equiv A} {P:A->Prop}:
-      Equiv (@sig A P) := fun a b => (proj1_sig a) = (proj1_sig b).
-
-    Instance proj1_Proper {A:Type} {Ae : Equiv A} {P:A->Prop}:
-      Proper ((=)==>(=)) (@proj1_sig A P).
-    Proof.
-      intros x y E.
-      unfold equiv, Sig_Equiv in E.
-      auto.
-    Qed.
+    End Vec_Permutations.
 
     Lemma Vold_right_sig_wrap_equiv
           {n : nat}
@@ -3674,4 +3674,5 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
   End Value_Correctness.
+
 End SigmaHCOLRewritingRules.
