@@ -210,7 +210,7 @@ Section SigmaHCOL_Operators.
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
         }.
 
-    (* Equivalence of two SHOperators with same pre and post conditions is defined via functional extensionality *)
+    (* Equivalence of two SHOperators is defined via functional extensionality *)
     Global Instance SHOperator_equiv
            {i o: nat}:
       Equiv (@SHOperator i o) :=
