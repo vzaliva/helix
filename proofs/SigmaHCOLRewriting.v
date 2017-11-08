@@ -3673,6 +3673,29 @@ Section SigmaHCOLRewritingRules.
       eapply rewrite_Reduction_IReduction; auto.
     Qed.
 
+    (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
+    Lemma rewrite_ISumXXX_YYY_IReduction_GatH
+          {i0 i o n b s : nat}
+          {db}
+          (dot: CarrierA -> CarrierA -> CarrierA)
+          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+          (initial: CarrierA)
+          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+      :
+        SHCompose Monoid_RthetaFlags
+                  (SafeCast (IReduction dot initial op_family))
+                  (@GathH Monoid_RthetaFlags i0 i b s db)
+        =
+        SafeCast
+          (IReduction dot initial
+                      (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
+                                               op_family
+                                               (GathH Monoid_RthetaSafeFlags b s (domain_bound:=db))
+                      )).
+    Proof.
+    Admitted.
+
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.

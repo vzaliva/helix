@@ -508,6 +508,10 @@ SUMUnion(
         apply abs_nz_nz, V.
     }
 
+    repeat rewrite SHCompose_assoc.
+    rewrite rewrite_ISumXXX_YYY_IReduction_GatH.
+    repeat rewrite <- SHCompose_assoc.
+
 
   Admitted.
 
