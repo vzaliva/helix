@@ -3674,7 +3674,7 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
-    Lemma rewrite_ISumXXX_YYY_IReduction_GatH
+    Lemma rewrite_ISumXXX_YYY_IReduction_GathH
           {i0 i o n b s : nat}
           {db}
           (dot: CarrierA -> CarrierA -> CarrierA)
@@ -3691,10 +3691,48 @@ Section SigmaHCOLRewritingRules.
                       (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
                                                op_family
                                                (GathH Monoid_RthetaSafeFlags b s (domain_bound:=db))
-                      )).
+          )).
     Proof.
-    Admitted.
+      unfold IReduction, SafeCast, equiv, SHOperator_equiv, Diamond'.
+      simpl.
+      unfold SafeCast', compose.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite_clear E.
+      f_equiv.
+      unfold vec_Equiv; apply Vforall2_intro_nth; intros j jc; apply Vnth_arg_equiv; clear j jc.
 
+      (* f_equiv. apply pdot.  f_equiv. *)
+      destruct op_family.
+      induction n.
+      -
+        reflexivity.
+      -
+        unfold Apply_Family' in *.
+        rewrite Vbuild_cons.
+        rewrite MUnion'_cons.
+        unfold get_family_op in *.
+        simpl in *.
+        erewrite IHn.
+
+        rewrite Vbuild_cons.
+        rewrite MUnion'_cons.
+        unfold compose.
+        simpl.
+        f_equiv.
+        apply pdot.
+        f_equiv.
+
+        unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
+        unfold rvector2rsvector.
+        rewrite Vnth_map.
+
+        rewrite Gather'_spec.
+        unfold Rtheta; rewrite Gather'_spec.
+        unfold VnthIndexMapped.
+        rewrite Vnth_map.
+        reflexivity.
+    Qed.
 
   End Value_Correctness.
 

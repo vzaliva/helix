@@ -509,7 +509,7 @@ SUMUnion(
     }
 
     repeat rewrite SHCompose_assoc.
-    rewrite rewrite_ISumXXX_YYY_IReduction_GatH.
+    rewrite rewrite_ISumXXX_YYY_IReduction_GathH.
     repeat rewrite <- SHCompose_assoc.
 
 
