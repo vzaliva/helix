@@ -3009,7 +3009,7 @@ Section SigmaHCOLRewritingRules.
           intros t H.
           apply Nat.div_lt_upper_bound; auto.
           destruct m;auto.
-          ring_simplify in H.
+          simpl in H.
           nat_lt_0_contradiction.
         }
 
@@ -3018,7 +3018,7 @@ Section SigmaHCOLRewritingRules.
           intros t H.
           apply Nat.mod_upper_bound.
           destruct m; auto.
-          ring_simplify in H.
+          simpl in H.
           nat_lt_0_contradiction.
         }
 
@@ -3085,7 +3085,7 @@ Section SigmaHCOLRewritingRules.
               intros t H.
               apply Nat.div_lt_upper_bound; auto.
               destruct m;auto.
-              ring_simplify in H.
+              simpl in H.
               nat_lt_0_contradiction.
             }
 
@@ -3095,7 +3095,7 @@ Section SigmaHCOLRewritingRules.
               intros t H.
               apply Nat.mod_upper_bound.
               destruct m; auto.
-              ring_simplify in H.
+              simpl in H.
               nat_lt_0_contradiction.
             }
 
@@ -3214,7 +3214,7 @@ Section SigmaHCOLRewritingRules.
           intros t H.
           apply Nat.mod_upper_bound.
           destruct n; auto.
-          ring_simplify in H.
+          rewrite Nat.mul_0_r in H.
           nat_lt_0_contradiction.
         }
 
@@ -3223,7 +3223,7 @@ Section SigmaHCOLRewritingRules.
           intros t H.
           apply Nat.div_lt_upper_bound; auto.
           destruct n;auto.
-          ring_simplify in H.
+          rewrite Nat.mul_0_r in H.
           nat_lt_0_contradiction.
           rewrite Nat.mul_comm.
           apply H.

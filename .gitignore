@@ -17,3 +17,5 @@ graph.svg
 .lia.cache
 .nia.cache
 proofs/nohup.out
+proofs/CoqMakefile.conf
+proofs/Makefile.coq.conf

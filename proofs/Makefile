@@ -17,7 +17,7 @@ install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
 
 config Makefile.coq:
-	coq_makefile -f _CoqProject *.v > Makefile.coq
+	coq_makefile -f _CoqProject *.v -o Makefile.coq
 
 clean:
 	rm -f `find . -name \*~`
