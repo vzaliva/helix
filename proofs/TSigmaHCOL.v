@@ -41,7 +41,7 @@ Section RthetaSafetyCast.
     rvector i -> rvector o
     := (rsvector2rvector o) ∘ f ∘ (rvector2rsvector i).
 
-  Lemma SafeCast'_proper (i o : nat):
+  Global Instance SafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@SafeCast' i o).
   Proof.
     intros f f' Ef v v' Ev.
@@ -63,10 +63,6 @@ Section RthetaSafetyCast.
                          (SafeCast' (op Monoid_RthetaSafeFlags f))
                          _  _ _).
     -
-      destruct f.
-      simpl.
-      apply SafeCast'_proper, op_proper.
-    -
       apply f.
     -
       apply f.
@@ -80,7 +76,7 @@ Section RthetaSafetyCast.
                          (fun (j : nat) (jc : j < n) =>
                             SafeCast (family_member Monoid_RthetaSafeFlags f j jc)).
 
-  Lemma SafeFamilyCast_proper (i o:nat):
+  Global Instance SafeFamilyCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@SafeCast i o).
   Proof.
     intros f f' Ev.
@@ -103,7 +99,7 @@ Section RthetaSafetyCast.
     := (rvector2rsvector o) ∘ f ∘ (rsvector2rvector i).
 
 
-  Lemma UnSafeCast'_proper (i o : nat):
+  Global Instance UnSafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@UnSafeCast' i o).
   Proof.
     intros f f' Ef v v' Ev.
@@ -125,10 +121,6 @@ Section RthetaSafetyCast.
                          (UnSafeCast' (op Monoid_RthetaFlags f))
                          _  _ _).
     -
-      destruct f.
-      simpl.
-      apply UnSafeCast'_proper, op_proper.
-    -
       apply f.
     -
       apply f.
@@ -143,7 +135,7 @@ Section RthetaSafetyCast.
                             UnSafeCast (family_member Monoid_RthetaFlags f j jc)).
 
 
-  Lemma UnSafeFamilyCast_proper (i o:nat):
+  Global Instance UnSafeFamilyCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@UnSafeCast i o).
   Proof.
     intros f f' Ev.
