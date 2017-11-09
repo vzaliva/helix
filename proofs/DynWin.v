@@ -156,12 +156,6 @@ SUMUnion(
 
   Require Import FinNatSet.
 
-  (*Ltac break_Union :=
-    match goal with
-    | Union _ ?a ?b; idtac a
-    end.
-   *)
-
   Theorem DynWinSigmaHCOL_dense_input
           (a: avector 3)
     : Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
