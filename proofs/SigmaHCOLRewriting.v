@@ -3734,6 +3734,35 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+    Lemma PointWise_ScatHUnion
+          {fm: Monoid RthetaFlags}
+
+          (* -- SE params -- *)
+          {n i o ki ko}
+          (* Kernel *)
+          (kernel: @SHOperatorFamily fm ki ko n)
+          (* Scatter index map *)
+          (f: index_map_family ko o n)
+          {f_inj : index_map_family_injective f}
+          (* Gather index map *)
+          (g: index_map_family ki i n)
+
+          (* -- Scatter params -- *)
+          (pf: CarrierA -> CarrierA)
+          `{pf_mor: !Proper ((=) ==> (=)) pf}
+      :
+        SHOperatorFamilyCompose fm
+                                (SHPointwise fm (IgnoreIndex pf))
+                                (SparseEmbedding fm kernel f g (f_inj:=f_inj))
+        =
+        SparseEmbedding fm
+                        (SHOperatorFamilyCompose fm
+                                                 (SHPointwise fm (IgnoreIndex pf))
+                                                 kernel)
+                        f g (f_inj:=f_inj).
+    Proof.
+    Admitted.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.

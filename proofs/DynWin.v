@@ -506,6 +506,8 @@ SUMUnion(
     rewrite rewrite_ISumXXX_YYY_IReduction_GathH.
     repeat rewrite <- SHCompose_assoc.
 
+    (* Typeclasses eauto := debug. *)
+    erewrite PointWise_ScatHUnion.
 
   Admitted.
 
