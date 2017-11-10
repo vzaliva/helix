@@ -3738,12 +3738,18 @@ Section SigmaHCOLRewritingRules.
           {o i : nat}
           (pf : CarrierA → CarrierA)
           (pf_mor : Proper (equiv ==> equiv) pf)
+          (pfzn: pf zero = zero) (* function with the fixed point 0 *)
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
       SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f v (f_inj:=f_inj)) =
       Scatter' fm f (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
     Proof.
+      vec_index_equiv j jc.
+      rewrite SHPointwise'_nth.
+      unfold equiv, Rtheta'_equiv.
+      rewrite evalWriter_mkValue.
+      unfold IgnoreIndex, const.
     Admitted.
 
     Lemma rewrite_PointWise_ScatHUnion
@@ -3762,6 +3768,7 @@ Section SigmaHCOLRewritingRules.
           (* -- Scatter params -- *)
           (pf: CarrierA -> CarrierA)
           `{pf_mor: !Proper ((=) ==> (=)) pf}
+          (pfzn: pf zero = zero) (* function with the fixed point 0 *)
       :
         SHOperatorFamilyCompose fm
                                 (SHPointwise fm (IgnoreIndex pf))
@@ -3780,7 +3787,7 @@ Section SigmaHCOLRewritingRules.
       intros x y E.
       simpl.
       rewrite_clear E.
-      apply SHPointwise'_distr_over_Scatter'.
+      apply SHPointwise'_distr_over_Scatter', pfzn.
     Qed.
 
   End Value_Correctness.

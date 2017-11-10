@@ -506,7 +506,7 @@ SUMUnion(
     rewrite rewrite_ISumXXX_YYY_IReduction_GathH.
     repeat rewrite <- SHCompose_assoc.
 
-    rewrite rewrite_PointWise_ScatHUnion.
+    rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
 
   Admitted.
 
