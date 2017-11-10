@@ -3702,7 +3702,6 @@ Section SigmaHCOLRewritingRules.
       f_equiv.
       unfold vec_Equiv; apply Vforall2_intro_nth; intros j jc; apply Vnth_arg_equiv; clear j jc.
 
-      (* f_equiv. apply pdot.  f_equiv. *)
       destruct op_family.
       induction n.
       -
@@ -3761,6 +3760,8 @@ Section SigmaHCOLRewritingRules.
                                                  kernel)
                         f g (f_inj:=f_inj).
     Proof.
+
+
     Admitted.
 
   End Value_Correctness.
