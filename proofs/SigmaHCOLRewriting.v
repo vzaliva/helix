@@ -3749,8 +3749,48 @@ Section SigmaHCOLRewritingRules.
       rewrite SHPointwise'_nth.
       unfold equiv, Rtheta'_equiv.
       rewrite evalWriter_mkValue.
-      unfold IgnoreIndex, const.
-    Admitted.
+      (* unfold IgnoreIndex, const. *)
+
+      destruct (in_range_dec f j) as [R | NR].
+      -
+        (* `j` in dense position *)
+        unfold Scatter'.
+        simpl.
+        rewrite 2!Vbuild_nth.
+        break_match; auto.
+        unfold IgnoreIndex, const.
+        rewrite SHPointwise'_nth.
+        rewrite evalWriter_mkValue.
+        reflexivity.
+      -
+        (* `j` in sparse position *)
+        remember (Scatter' fm f v (f_inj:=f_inj)) as s0.
+        assert(VZ0: Is_ValZero (Vnth s0 jc)).
+        {
+          subst s0.
+          apply Scatter'_Zero_at_sparse; assumption.
+        }
+        setoid_replace (WriterMonadNoT.evalWriter (Vnth s0 jc) ) with CarrierAz.
+        Focus 2.
+        rewrite Is_ValZero_to_mkSZero in VZ0.
+        rewrite_clear VZ0.
+        rewrite evalWriter_Rtheta_SZero.
+        reflexivity.
+
+        rewrite pfzn.
+        remember (Scatter' fm f (SHPointwise' fm (IgnoreIndex pf) v)) as s1.
+        assert(VZ1: Is_ValZero (Vnth s1 jc)).
+        {
+          subst s1.
+          apply Scatter'_Zero_at_sparse; assumption.
+        }
+        setoid_replace (WriterMonadNoT.evalWriter (Vnth s1 jc) ) with CarrierAz.
+        reflexivity.
+        rewrite Is_ValZero_to_mkSZero in VZ1.
+        rewrite_clear VZ1.
+        rewrite evalWriter_Rtheta_SZero.
+        reflexivity.
+    Qed.
 
     Lemma rewrite_PointWise_ScatHUnion
           {fm: Monoid RthetaFlags}
