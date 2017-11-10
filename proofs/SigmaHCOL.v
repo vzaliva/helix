@@ -1265,6 +1265,23 @@ Section SigmaHCOL_Operators.
       @IReduction i o n plus _ zero op_family.
    *)
 
+  (* TODO: make `dot` part of Morphism *)
+  Global Instance IReduction_proper
+         {i o n: nat}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+    :
+      Proper ((=) ==> (=) ==> (=)) (@IReduction i o n dot pdot).
+  Proof.
+    intros i0 i1 Ei x y E.
+    unfold IReduction, equiv,  SHOperator_equiv.
+    simpl.
+    rewrite E, Ei.
+    f_equiv; auto.
+    f_equiv; auto.
+  Qed.
+
+
 End SigmaHCOL_Operators.
 
 (* TODO: maybe <->  *)
