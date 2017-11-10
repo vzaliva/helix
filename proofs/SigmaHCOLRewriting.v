@@ -3733,7 +3733,20 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-    Lemma PointWise_ScatHUnion
+    Lemma SHPointwise'_distr_over_Scatter'
+          {fm : Monoid RthetaFlags}
+          {o i : nat}
+          (pf : CarrierA → CarrierA)
+          (pf_mor : Proper (equiv ==> equiv) pf)
+          (v : svector fm i)
+          (f : index_map i o)
+          (f_inj : index_map_injective f):
+      SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f v (f_inj:=f_inj)) =
+      Scatter' fm f (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
+    Proof.
+    Admitted.
+
+    Lemma rewrite_PointWise_ScatHUnion
           {fm: Monoid RthetaFlags}
 
           (* -- SE params -- *)
@@ -3760,9 +3773,15 @@ Section SigmaHCOLRewritingRules.
                                                  kernel)
                         f g (f_inj:=f_inj).
     Proof.
-
-
-    Admitted.
+      unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, SHOperator_equiv, Diamond'.
+      intros j jc.
+      simpl.
+      unfold SHCompose, compose, equiv, ext_equiv.
+      intros x y E.
+      simpl.
+      rewrite_clear E.
+      apply SHPointwise'_distr_over_Scatter'.
+    Qed.
 
   End Value_Correctness.
 
