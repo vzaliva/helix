@@ -613,6 +613,16 @@ Section SigmaHCOL_Operators.
       solve_proper.
     Qed.
 
+    Global Instance mkSHOperatorFamily_proper
+           {i o n: nat}:
+      Proper (forall_relation (λ i : nat, pointwise_relation (i < n) equiv) ==> equiv)
+             (mkSHOperatorFamily i o n).
+    Proof.
+      intros f0 f1 Ef.
+      unfold equiv, SHOperatorFamily_equiv.
+      auto.
+    Qed.
+
     Definition liftM_HOperator'
                {i o}
                (op: avector i -> avector o)
