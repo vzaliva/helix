@@ -3830,6 +3830,28 @@ Section SigmaHCOLRewritingRules.
       apply SHPointwise'_distr_over_Scatter', pfzn.
     Qed.
 
+
+    Lemma rewrite_Reduction_ScatHUnion
+          {n:nat}
+          {fm: Monoid RthetaFlags}
+
+          `{g: SgOp CarrierA}
+          `{mzero: MonUnit CarrierA}
+          `{P: SgPred CarrierA}
+          `{g_mon: @CommutativeRMonoid _ _ g mzero P}
+
+          {f:index_map 1 n}
+          {f_inj: index_map_injective f}
+
+      :
+        SHCompose _
+                  (liftM_HOperator fm (HReduction g mzero))
+                  (Scatter fm f (f_inj:=f_inj))
+        =
+        IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _).
+    Proof.
+    Admitted.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
