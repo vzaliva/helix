@@ -756,6 +756,11 @@ Section SigmaHCOL_Operators.
       apply Exy.
     Qed.
 
+    Definition IdOp
+               {n: nat}
+               (in_set out_set:FinNatSet n)
+      := mkSHOperator n n id _ in_set out_set.
+
     Definition Gather
                {i o: nat}
                (f: index_map o i)
