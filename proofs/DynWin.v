@@ -508,6 +508,9 @@ SUMUnion(
 
     rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
 
+    unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
+    repeat setoid_rewrite <- SHCompose_assoc.
+
   Admitted.
 
 End SigmaHCOL_rewriting.
