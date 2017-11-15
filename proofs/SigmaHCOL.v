@@ -216,6 +216,14 @@ Section SigmaHCOL_Operators.
       Equiv (@SHOperator i o) :=
       fun a b => op a = op b.
 
+    Definition op_Vforall_P
+               {i o: nat}
+               (P: Rtheta' fm -> Prop)
+               (f: @SHOperator i o)
+      :=
+        forall x, Vforall P ((op f) x).
+
+    
     Record SHOperatorFamily
            {i o n: nat}
       : Type

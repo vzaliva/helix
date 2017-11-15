@@ -3832,25 +3832,47 @@ Section SigmaHCOLRewritingRules.
 
 
     Lemma rewrite_Reduction_ScatHUnion
-          {n:nat}
+          {n m:nat}
           {fm: Monoid RthetaFlags}
 
           `{g: SgOp CarrierA}
           `{mzero: MonUnit CarrierA}
           `{P: SgPred CarrierA}
           `{g_mon: @CommutativeRMonoid _ _ g mzero P}
-
+          (F: @SHOperator fm m 1)
           {f:index_map 1 n}
           {f_inj: index_map_injective f}
+          (FP: op_Vforall_P fm (liftRthetaP P) F)
 
       :
-        SHCompose _
+        SHCompose fm
                   (liftM_HOperator fm (HReduction g mzero))
-                  (Scatter fm f (f_inj:=f_inj))
+                  (SHCompose fm
+                             (Scatter fm f (f_inj:=f_inj))
+                             F)
         =
-        IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _).
+        SHCompose fm
+                  (IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _))
+                  F.
     Proof.
+      Set Printing Implicit.
     Admitted.
+
+    Lemma rewrite_SHCompose_IdOp
+          {n m: nat}
+          {fm}
+          (in_set out_set: FinNatSet.FinNatSet n)
+          (F: @SHOperator fm n m)
+      :
+      SHCompose fm
+                F
+                (IdOp fm in_set out_set)
+      =
+      F.
+    Proof.
+      unfold SHCompose, compose, equiv, SHOperator_equiv; simpl.
+      f_equiv.
+    Qed.
 
   End Value_Correctness.
 
