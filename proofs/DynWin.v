@@ -439,6 +439,28 @@ SUMUnion(
     split; eapply A; [apply H0 | apply H1].
   Qed.
 
+  Lemma rewrite_Reduction_ScatHUnion_max_zero
+        (n m: nat)
+        (fm: Monoid.Monoid RthetaFlags)
+        (F: @SHOperator fm m 1)
+        (f: index_map 1 n)
+        (f_inj: index_map_injective f)
+        (FP: op_Vforall_P fm Is_NonNegative F)
+
+    :
+      SHCompose fm
+                (liftM_HOperator fm (HReduction minmax.max zero))
+                (SHCompose fm
+                           (Scatter fm f (f_inj:=f_inj))
+                           F)
+      =
+      SHCompose fm
+                (IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _))
+                F.
+  Proof.
+  Admitted.
+
+
 
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
@@ -509,7 +531,83 @@ SUMUnion(
     rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
 
     unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
-    repeat setoid_rewrite <- SHCompose_assoc.
+    repeat setoid_rewrite SHCompose_assoc.
+
+
+
+    generalize dependent (ScatH_1_to_n_range_bound).
+    intros range_bound.
+    generalize dependent (@index_map_family_member_injective).
+    intros f_inj.
+    generalize dependent (@h_j_1_family_injective ).
+    intros hfamily_injective.
+
+    generalize (@h_index_map ).
+
+    Set Printing All.
+
+
+    (@Scatter Monoid_RthetaFlags
+              1 2
+              (@h_index_map 1 2 j 1
+                            (range_bound j 2 1 jc))
+              (@index_map_family_member_injective 1 2 2
+                 (IndexMapFamily 1 2 2
+                            (fun (j : nat) (jc : Peano.lt j 2
+                                             =>
+                                             @h_index_map 1
+                                                          2 j 1
+                                                          (range_bound j 2 1 jc)))
+                                 (@h_j_1_family_injective 2) j jc))
+
+
+    Set Printing All.
+
+
+    generalize dependent (@h_index_map).
+    simpl.
+    generalize dependent (@IndexMapFamily _ _ _).
+    erewrite rewrite_Reduction_ScatHUnion_max_zero with
+        (fm:=Monoid_RthetaFlags)
+        (f:=h_index_map _ 1)
+        (m:=S (S (S (S O))))
+        (n:=S (S O))
+    .
+
+
+
+
+    match goal with
+    | [ |- context[ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+      match f with
+      | (fun a b => ?c ) => idtac c
+      end
+    end.
+
+    match goal with
+    | [ |- context[ mkSHOperatorFamily _ _ _ _ ?f ]] => remember f as F
+    end.
+
+
+    match goal with
+    | [ |- context[ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+      match f with
+      | (fun a b => ?c ) => idtac c
+      end
+    end.
+
+    Set Printing All.
+
+    erewrite rewrite_Reduction_ScatHUnion_max_zero with
+        (fm:=Monoid_RthetaFlags)
+        (f:=h_index_map _ 1)
+        (m:=S (S (S (S O))))
+        (n:=S (S O))
+    .
+
+
+
+    (rewrite rewrite_SHCompose_IdOp.
 
   Admitted.
 
