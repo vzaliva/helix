@@ -455,11 +455,10 @@ SUMUnion(
                            F)
       =
       SHCompose fm
-                (IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _))
+                (IdOp fm (Ensembles.Full_set _))
                 F.
   Proof.
   Admitted.
-
 
 
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
