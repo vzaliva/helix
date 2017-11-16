@@ -3852,21 +3852,20 @@ Section SigmaHCOLRewritingRules.
                              F)
         =
         SHCompose fm
-                  (IdOp fm (Ensembles.Full_set _) (Ensembles.Full_set _))
+                  (IdOp fm (Ensembles.Full_set _))
                   F.
     Proof.
-      Set Printing Implicit.
     Admitted.
 
     Lemma rewrite_SHCompose_IdOp
           {n m: nat}
           {fm}
-          (in_set out_set: FinNatSet.FinNatSet n)
+          (in_out_set: FinNatSet.FinNatSet n)
           (F: @SHOperator fm n m)
       :
       SHCompose fm
                 F
-                (IdOp fm in_set out_set)
+                (IdOp fm in_out_set)
       =
       F.
     Proof.

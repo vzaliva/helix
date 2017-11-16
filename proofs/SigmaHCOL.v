@@ -766,8 +766,8 @@ Section SigmaHCOL_Operators.
 
     Definition IdOp
                {n: nat}
-               (in_set out_set:FinNatSet n)
-      := mkSHOperator n n id _ in_set out_set.
+               (in_out_set:FinNatSet n)
+      := mkSHOperator n n id _ in_out_set in_out_set.
 
     Definition Gather
                {i o: nat}
