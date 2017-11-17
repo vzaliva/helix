@@ -3846,14 +3846,12 @@ Section SigmaHCOLRewritingRules.
 
       :
         SHCompose fm
-                  (liftM_HOperator fm (HReduction g mzero))
                   (SHCompose fm
-                             (Scatter fm f (f_inj:=f_inj))
-                             F)
+                             (liftM_HOperator fm (HReduction g mzero))
+                             (Scatter fm f (f_inj:=f_inj)))
+                  F
         =
-        SHCompose fm
-                  (IdOp fm (Ensembles.Full_set _))
-                  F.
+        F.
     Proof.
     Admitted.
 
