@@ -531,17 +531,40 @@ SUMUnion(
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
+
+    (*
+    match goal with
+    | [ |- context g [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+      match f with
+      | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
+        setoid_replace f with
+            (fun (j:nat) (jc:j<2) => UnSafeCast rest)
+            using relation (forall_relation (λ k : nat, pointwise_relation (k < (1+1)) equiv))
+      end
+    end.
+     *)
+
+    (*
     match goal with
     | [ |- context[ mkSHOperatorFamily _ _ _ _ ?f ]] =>
       match f with
       | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
-        idtac j jc torewrite
+        assert(P: forall j (jc:j<2), op_Vforall_P _ Is_NonNegative rest)
       end
     end.
+    admit.
+
+    setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
+        (fm := Monoid_RthetaFlags)
+        (m := S (S (S (S O)))) (n := S (S O))
+        (FP:=P)
+    .
+     *)
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
         (m := S (S (S (S O)))) (n := S (S O)).
+
 
 
   Admitted.
