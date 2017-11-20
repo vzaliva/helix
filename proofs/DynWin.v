@@ -538,7 +538,7 @@ SUMUnion(
         (fm := Monoid_RthetaFlags)
         (m := S (S (S (S O)))) (n := S (S O)).
 
-     But it does not (hangs forewer), so we have to do some manual rewriting
+     But it does not (hangs forever), so we have to do some manual rewriting
      *)
 
     match goal with
