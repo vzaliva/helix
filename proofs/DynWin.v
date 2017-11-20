@@ -445,7 +445,7 @@ SUMUnion(
         (F: @SHOperator fm m 1)
         (f: index_map 1 n)
         (f_inj: index_map_injective f)
-        (* FP: op_Vforall_P fm Is_NonNegative F *)
+        ( FP: op_Vforall_P fm Is_NonNegative F )
 
     :
       SHCompose fm
@@ -531,39 +531,37 @@ SUMUnion(
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
-
     (*
-    match goal with
-    | [ |- context g [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
-      match f with
-      | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
-        setoid_replace f with
-            (fun (j:nat) (jc:j<2) => UnSafeCast rest)
-            using relation (forall_relation (λ k : nat, pointwise_relation (k < (1+1)) equiv))
-      end
-    end.
-     *)
-
-    (*
-    match goal with
-    | [ |- context[ mkSHOperatorFamily _ _ _ _ ?f ]] =>
-      match f with
-      | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
-        assert(P: forall j (jc:j<2), op_Vforall_P _ Is_NonNegative rest)
-      end
-    end.
-    admit.
-
-    setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
-        (fm := Monoid_RthetaFlags)
-        (m := S (S (S (S O)))) (n := S (S O))
-        (FP:=P)
-    .
-     *)
+    I would expect the following to work here:
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
         (m := S (S (S (S O)))) (n := S (S O)).
+
+     But it does not, so we have to do some manual rewriting
+     *)
+
+    match goal with
+    | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+      match f with
+      | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
+        setoid_replace
+          (mkSHOperatorFamily _ _ _ _ f) with
+            (mkSHOperatorFamily _ _ _ _
+                                (fun (j:nat) (jc:j<2) => UnSafeCast rest))
+      end
+    end.
+    all:revgoals.
+    {
+      f_equiv.
+      intros j jc.
+      f_equiv.
+      apply rewrite_Reduction_ScatHUnion_max_zero.
+
+      (* Now we need  to prove `op_Vforall` on `Pointwise_abs`. *)
+      admit.
+    }
+
 
 
 
