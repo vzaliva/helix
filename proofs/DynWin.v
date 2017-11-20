@@ -531,14 +531,14 @@ SUMUnion(
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
-    (*
+    (* --- BEGIN: hack ---
     I would expect the following to work here:
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
         (m := S (S (S (S O)))) (n := S (S O)).
 
-     But it does not, so we have to do some manual rewriting
+     But it does not (hangs forewer), so we have to do some manual rewriting
      *)
 
     match goal with
@@ -552,15 +552,13 @@ SUMUnion(
       end
     end.
     all:revgoals.
-    {
-      f_equiv.
-      intros j jc.
-      f_equiv.
-      apply rewrite_Reduction_ScatHUnion_max_zero.
+    f_equiv.
+    intros j jc.
+    f_equiv.
+    apply rewrite_Reduction_ScatHUnion_max_zero.
 
-      (* Now we need  to prove `op_Vforall` on `Pointwise_abs`. *)
-      admit.
-    }
+    (* --- END: hack --- *)
+
 
 
 
