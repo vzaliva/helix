@@ -223,7 +223,6 @@ Section SigmaHCOL_Operators.
       :=
         forall x, Vforall P ((op f) x).
 
-    
     Record SHOperatorFamily
            {i o n: nat}
       : Type
@@ -629,6 +628,27 @@ Section SigmaHCOL_Operators.
       intros f0 f1 Ef.
       unfold equiv, SHOperatorFamily_equiv.
       auto.
+    Qed.
+
+    Global Instance op_Vforall_P_arg_proper
+           {i o: nat}
+           (P: Rtheta' fm -> Prop)
+           (P_mor: Proper ((=) ==> impl) P):
+      Proper ((=) ==> impl) (@op_Vforall_P i o P).
+    Proof.
+      intros x y E.
+      unfold impl.
+      unfold op_Vforall_P.
+      intros H x0.
+      specialize (H x0).
+      apply Vforall_nth_intro.
+      intros i0 ip.
+      apply Vforall_nth with (ip:=ip) in H.
+      setoid_replace (Vnth (op y x0) ip) with (Vnth (op x x0) ip).
+      apply H.
+      apply Vnth_arg_equiv.
+      rewrite E.
+      reflexivity.
     Qed.
 
     Definition liftM_HOperator'
