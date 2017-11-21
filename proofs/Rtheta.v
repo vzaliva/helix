@@ -303,6 +303,16 @@ Section Rtheta'Utils.
     simpl_relation.
   Qed.
 
+  Global Instance liftRthetaP_proper
+         (P: CarrierA -> Prop)
+         (P_mor: Proper ((=) ==> iff) P)
+    :
+      Proper ((=) ==> iff) (@liftRthetaP P).
+  Proof.
+    unfold liftRthetaP.
+    solve_proper.
+  Qed.
+
   Global Instance Is_ValX_proper:
       Proper ((=) ==> (=) ==> (iff)) (Is_ValX).
   Proof.
