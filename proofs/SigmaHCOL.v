@@ -633,22 +633,34 @@ Section SigmaHCOL_Operators.
     Global Instance op_Vforall_P_arg_proper
            {i o: nat}
            (P: Rtheta' fm -> Prop)
-           (P_mor: Proper ((=) ==> impl) P):
-      Proper ((=) ==> impl) (@op_Vforall_P i o P).
+           (P_mor: Proper ((=) ==> iff) P):
+      Proper ((=) ==> iff) (@op_Vforall_P i o P).
     Proof.
       intros x y E.
-      unfold impl.
       unfold op_Vforall_P.
-      intros H x0.
-      specialize (H x0).
-      apply Vforall_nth_intro.
-      intros i0 ip.
-      apply Vforall_nth with (ip:=ip) in H.
-      setoid_replace (Vnth (op y x0) ip) with (Vnth (op x x0) ip).
-      apply H.
-      apply Vnth_arg_equiv.
-      rewrite E.
-      reflexivity.
+      split.
+      -
+        intros H x0.
+        specialize (H x0).
+        apply Vforall_nth_intro.
+        intros i0 ip.
+        apply Vforall_nth with (ip:=ip) in H.
+        setoid_replace (Vnth (op y x0) ip) with (Vnth (op x x0) ip).
+        apply H.
+        apply Vnth_arg_equiv.
+        rewrite E.
+        reflexivity.
+      -
+        intros H x0.
+        specialize (H x0).
+        apply Vforall_nth_intro.
+        intros i0 ip.
+        apply Vforall_nth with (ip:=ip) in H.
+        setoid_replace (Vnth (op x x0) ip) with (Vnth (op y x0) ip).
+        apply H.
+        apply Vnth_arg_equiv.
+        rewrite E.
+        reflexivity.
     Qed.
 
     Definition liftM_HOperator'

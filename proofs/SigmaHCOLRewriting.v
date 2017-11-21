@@ -329,7 +329,6 @@ Section SigmaHCOLHelperLemmas.
             split; try typeclasses eauto.
             solve_proper.
             split; try typeclasses eauto.
-            solve_proper.
             intros x0.
 
             unfold equiv.
@@ -1572,7 +1571,6 @@ Section SigmaHCOLRewritingRules.
                 split; try typeclasses eauto.
                 solve_proper.
                 split; try typeclasses eauto.
-                solve_proper.
                 intros x0.
 
                 unfold equiv.
