@@ -3631,7 +3631,7 @@ Section SigmaHCOLRewritingRules.
       Qed.
 
       Global Instance CommutativeRMonoid_max_NN:
-        @CommutativeRMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
+        @CommutativeRMonoid CarrierA CarrierAe (@minmax.max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.
         split.
         -
@@ -3836,10 +3836,11 @@ Section SigmaHCOLRewritingRules.
           `{g: SgOp CarrierA}
           `{mzero: MonUnit CarrierA}
           `{P: SgPred CarrierA}
-          `{g_mon: @CommutativeRMonoid _ _ g mzero P}
+          `(g_mon: @CommutativeRMonoid _ _ g mzero P)
+
           (F: @SHOperator fm m 1)
-          {f:index_map 1 n}
-          {f_inj: index_map_injective f}
+          (f:index_map 1 n)
+          (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm (liftRthetaP P) F)
 
       :
@@ -3853,14 +3854,13 @@ Section SigmaHCOLRewritingRules.
     Proof.
     Admitted.
 
-
     Lemma rewrite_Reduction_ScatHUnion_max_zero
           (n m: nat)
           (fm: Monoid.Monoid RthetaFlags)
           (F: @SHOperator fm m 1)
           (f: index_map 1 n)
           (f_inj: index_map_injective f)
-          ( FP: op_Vforall_P fm Is_NonNegative F )
+          (FP: op_Vforall_P fm Is_NonNegative F)
 
       :
         SHCompose fm
@@ -3871,9 +3871,9 @@ Section SigmaHCOLRewritingRules.
         =
         F.
     Proof.
-      (* eapply rewrite_Reduction_ScatHUnion. *)
-    Admitted.
-
+      replace (@Is_NonNegative fm) with (@liftRthetaP fm NN) in FP by auto.
+      apply (rewrite_Reduction_ScatHUnion CommutativeRMonoid_max_NN F f f_inj FP).
+    Qed.
 
     Lemma rewrite_SHCompose_IdOp
           {n m: nat}
