@@ -459,6 +459,39 @@ SUMUnion(
   Admitted.
 
 
+  Lemma op_Vforall_P_SHPointwise
+        {m n: nat}
+        {fm: Monoid.Monoid RthetaFlags}
+        {f: CarrierA -> CarrierA}
+        `{f_mor: !Proper ((=) ==> (=)) f}
+        {P: CarrierA -> Prop}
+        (F: @SHOperator fm m n)
+    :
+      (forall x, P (f x)) ->
+           op_Vforall_P fm (liftRthetaP P)
+                        (SHCompose fm
+                                   (SHPointwise (n:=n) fm (IgnoreIndex f))
+                                   F).
+  Proof.
+    intros H.
+    unfold op_Vforall_P.
+    intros x.
+    apply Vforall_nth_intro.
+    intros i ip.
+
+    unfold SHCompose.
+    simpl.
+    unfold compose.
+    generalize (op fm F x).
+    intros v.
+    unfold SHPointwise'.
+    rewrite Vbuild_nth.
+    unfold liftRthetaP.
+    rewrite evalWriter_Rtheta_liftM.
+    unfold IgnoreIndex, const.
+    apply H.
+  Qed.
+
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
@@ -559,7 +592,8 @@ SUMUnion(
 
     (* --- END: hack --- *)
 
-
+    setoid_rewrite SHCompose_assoc.
+    eapply op_Vforall_P_SHPointwise, abs_always_nonneg.
 
 
 
