@@ -376,6 +376,16 @@ Section HCOL_Operator_Lemmas.
     rewrite Vnth_snd_Vbreak with (jc3:=jc2); reflexivity.
   Qed.
 
+  Lemma HReduction_nil
+        (f: CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (idv: CarrierA):
+    HReduction f idv [] ≡ [idv].
+  Proof.
+    reflexivity.
+  Qed.
+
+
 End HCOL_Operator_Lemmas.
 
 
