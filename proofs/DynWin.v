@@ -439,26 +439,6 @@ SUMUnion(
     split; eapply A; [apply H0 | apply H1].
   Qed.
 
-  Lemma rewrite_Reduction_ScatHUnion_max_zero
-        (n m: nat)
-        (fm: Monoid.Monoid RthetaFlags)
-        (F: @SHOperator fm m 1)
-        (f: index_map 1 n)
-        (f_inj: index_map_injective f)
-        ( FP: op_Vforall_P fm Is_NonNegative F )
-
-    :
-      SHCompose fm
-                (SHCompose fm
-                           (liftM_HOperator fm (HReduction minmax.max zero))
-                           (Scatter fm f (f_inj:=f_inj)))
-                F
-      =
-      F.
-  Proof.
-  Admitted.
-
-
   Lemma op_Vforall_P_SHPointwise
         {m n: nat}
         {fm: Monoid.Monoid RthetaFlags}
