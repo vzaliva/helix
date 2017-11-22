@@ -363,6 +363,20 @@ Section Vnth.
     reflexivity.
   Qed.
 
+  Lemma Vnth_1_Vhead
+        {T:Type}
+        (x:vector T 1)
+        (i:nat) (ic: Peano.lt i 1)
+    :
+      Vnth x ic = Vhead x.
+  Proof.
+    destruct i.
+    -
+      rewrite Vnth_0.
+      reflexivity.
+    - omega.
+  Qed.
+
   Lemma Vnth_1
         {T:Type}
         (x:T)
