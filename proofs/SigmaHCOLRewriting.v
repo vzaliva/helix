@@ -1183,7 +1183,7 @@ Section SigmaHCOLRewritingRules.
                 rewrite evalWriter_Rtheta_SZero.
                 rewrite pfzn.
                 unfold_Rtheta_equiv.
-                rewrite  evalWriter_Rtheta_SZero.
+                rewrite evalWriter_Rtheta_SZero.
                 reflexivity.
               -
                 unfold compose, Is_ValZero in Uzeros.

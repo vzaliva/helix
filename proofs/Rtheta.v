@@ -768,9 +768,9 @@ End Decidablitiy.
 Section Zero_Utils.
 
   Lemma evalWriter_Rtheta_SZero
-        {fm:Monoid RthetaFlags}
+        (fm:Monoid RthetaFlags)
   :
-    @evalWriter _ _ fm mkSZero = zero.
+    @evalWriter _ _ fm (@mkSZero fm) ≡ zero.
   Proof.
     reflexivity.
   Qed.
@@ -841,7 +841,7 @@ Section Zero_Utils.
   Proof.
     unfold Is_SZero.
     split.
-    apply evalWriter_Rtheta_SZero.
+    rewrite evalWriter_Rtheta_SZero; reflexivity.
     unfold mkSZero.
     unfold execWriter.
     unfold equiv.
