@@ -3841,10 +3841,9 @@ Section SigmaHCOLRewritingRules.
           `(g_mon: @CommutativeRMonoid _ _ g mzero P)
 
           (F: @SHOperator fm m 1)
-          (f:index_map 1 n)
+          (f:index_map 1 (S n))
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm (liftRthetaP P) F)
-          (* NP: n ≢ 0 *)
       :
         SHCompose fm
                   (SHCompose fm
@@ -3926,7 +3925,7 @@ Section SigmaHCOLRewritingRules.
           (n m: nat)
           (fm: Monoid.Monoid RthetaFlags)
           (F: @SHOperator fm m 1)
-          (f: index_map 1 n)
+          (f: index_map 1 (S n))
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm Is_NonNegative F)
 
