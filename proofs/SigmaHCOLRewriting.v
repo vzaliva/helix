@@ -3828,7 +3828,6 @@ Section SigmaHCOLRewritingRules.
       apply SHPointwise'_distr_over_Scatter', pfzn.
     Qed.
 
-
     Lemma rewrite_Reduction_ScatHUnion
           {n m:nat}
           {fm: Monoid RthetaFlags}
@@ -3842,7 +3841,7 @@ Section SigmaHCOLRewritingRules.
           (f:index_map 1 n)
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm (liftRthetaP P) F)
-
+          (NP: n ≢ 0)
       :
         SHCompose fm
                   (SHCompose fm
@@ -3852,6 +3851,70 @@ Section SigmaHCOLRewritingRules.
         =
         F.
     Proof.
+      unfold_Rtheta_equiv.
+      unfold SHOperator_equiv.
+      unfold SHCompose.
+      simpl.
+      unfold compose.
+      intros x y E.
+      rewrite <- E; clear y E.
+      specialize (FP x).
+
+      generalize dependent (op fm F x).
+      intros y FP.
+      clear x F.
+
+      vec_index_equiv j jc.
+      unfold liftM_HOperator', compose.
+      rewrite Vnth_sparsify.
+      unfold densify.
+
+
+      destruct n as [n|n].
+      -
+        congruence.
+      -
+        induction n.
+        +
+          simpl.
+          break_match; simpl.
+          *
+            unfold decide.
+            break_match; simpl.
+            --
+              rewrite Vnth_0 ; clear j jc Heqn.
+              rewrite Vnth_1_Vhead.
+              unfold HCOLImpl.Reduction.
+              simpl.
+              apply Vforall_Vhead in FP.
+              destruct g_mon, comrmonoid_rmon.
+              rewrite rmonoid_right_id; try auto.
+              rewrite mkValue_evalWriter.
+              reflexivity.
+            --
+              rewrite Vnth_0 ; clear j jc Heqn.
+              rewrite evalWriter_Rtheta_SZero.
+              unfold HCOLImpl.Reduction.
+              simpl.
+              destruct g_mon, comrmonoid_rmon, mon_restriction.
+              rewrite rmonoid_right_id.
+              admit.
+              unfold mon_unit, mzero in rmonoid_unit_P.
+              apply rmonoid_unit_P.
+          *
+            crush.
+
+
+
+          rewrite Scatter'_spec with (f_inj:=f_inj).
+          unfold VnthIndexMapped.
+          remember (Scatter' fm f y) as s.
+          unfold equiv, Rtheta'_equiv.
+          rewrite evalWriter_mkValue.
+
+          rewrite Vnth_1.
+
+
     Admitted.
 
     Lemma rewrite_Reduction_ScatHUnion_max_zero
