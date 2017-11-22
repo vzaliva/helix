@@ -3871,53 +3871,45 @@ Section SigmaHCOLRewritingRules.
       rewrite Vnth_sparsify.
       unfold densify.
 
-
-      (*
-      destruct n as [n|n].
-      -
-        congruence.
-      -
-        induction n.
-        +
-          simpl.
+      induction n.
+      +
+        simpl.
+        break_match; simpl.
+        *
+          unfold decide.
           break_match; simpl.
-          *
-            unfold decide.
-            break_match; simpl.
-            --
-              rewrite Vnth_0 ; clear j jc Heqn.
-              rewrite Vnth_1_Vhead.
-              unfold HCOLImpl.Reduction.
-              simpl.
-              apply Vforall_Vhead in FP.
-              destruct g_mon, comrmonoid_rmon.
-              rewrite rmonoid_right_id; try auto.
-              rewrite mkValue_evalWriter.
-              reflexivity.
-            --
-              rewrite Vnth_0 ; clear j jc Heqn.
-              rewrite evalWriter_Rtheta_SZero.
-              unfold HCOLImpl.Reduction.
-              simpl.
-              destruct g_mon, comrmonoid_rmon, mon_restriction.
-              rewrite rmonoid_right_id.
-              admit.
-              unfold mon_unit, mzero in rmonoid_unit_P.
-              apply rmonoid_unit_P.
-          *
-            crush.
+          --
+            rewrite Vnth_0 ; clear j jc Heqn.
+            rewrite Vnth_1_Vhead.
+            unfold HCOLImpl.Reduction.
+            simpl.
+            apply Vforall_Vhead in FP.
+            destruct g_mon, comrmonoid_rmon.
+            rewrite rmonoid_right_id; try auto.
+            rewrite mkValue_evalWriter.
+            reflexivity.
+          --
+            contradiction n.
+            apply in_range_exists; auto.
+            eexists 0.
+            eexists; auto.
+            destruct f.
+            simpl in *.
+            assert(index_f 0 < 1).
+            {
+              apply index_f_spec.
+              auto.
+            }
 
-
-
-          rewrite Scatter'_spec with (f_inj:=f_inj).
-          unfold VnthIndexMapped.
-          remember (Scatter' fm f y) as s.
-          unfold equiv, Rtheta'_equiv.
-          rewrite evalWriter_mkValue.
-
-          rewrite Vnth_1.
-       *)
-
+            clear Heqd.
+            dep_destruct (index_f 0).
+            reflexivity.
+            omega.
+        *
+          crush.
+      +
+        symmetry.
+        try (apply IHn).
 
     Admitted.
 
