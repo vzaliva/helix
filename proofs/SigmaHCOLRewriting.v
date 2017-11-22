@@ -83,18 +83,19 @@ Section SigmaHCOLHelperLemmas.
         (f: index_map i t)
         (g: index_map t o)
         {f_inj: index_map_injective f}
-        {g_inj: index_map_injective g}:
-    Scatter' fm g (f_inj:=g_inj) ∘ Scatter' fm f (f_inj:=f_inj)
-    = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj).
+        {g_inj: index_map_injective g}
+        (idv: CarrierA):
+    Scatter' fm g (f_inj:=g_inj) idv ∘ Scatter' fm f (f_inj:=f_inj) idv
+    = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj) idv.
   Proof.
     apply ext_equiv_applied_equiv.
     -
       split; try apply vec_Setoid.
       apply compose_proper with (RA:=equiv) (RB:=equiv);
-        apply Scatter'_proper.
+        apply Scatter'_proper; reflexivity.
     -
       split; try apply vec_Setoid.
-      apply Scatter'_proper.
+      apply Scatter'_proper; reflexivity.
     -
       intros v.
       unfold compose.
@@ -538,14 +539,14 @@ Section SigmaHCOLExpansionRules.
                                     @index_map_family_member_injective 1 n n (IndexMapFamily 1 n n
                                                                                              (fun (j0 : nat) (jc0 : j0<n) =>
                                                                                                 @h_index_map 1 n j0 1
-                                                                                                             (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc)
+                                                                                                             (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc) zero
                                  (SafeCast' (SHBinOp' Monoid_RthetaSafeFlags (SwapIndex2 j f))
                                             (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
       intros n x f f_mor k kp.
 
-      remember (fun i jc => Scatter' _  _ _) as bf.
+      remember (fun i jc => Scatter' _ _ _ _) as bf.
 
 
       (* Lemma5 embedded below*)
@@ -669,9 +670,9 @@ Section SigmaHCOLExpansionRules.
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
                                              (fun j _ => SafeCast (SHBinOp (SwapIndex2 j f))))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                         zero
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
     Proof.
-
       apply SHOperator_ext_equiv_applied.
       -
         simpl.
@@ -730,13 +731,13 @@ Section SigmaHCOLExpansionRules.
           _
           plus
           (SHCompose fm
-                     (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
+                     (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) zero)
                      (SHCompose fm
                                 (liftM_HOperator fm f)
                                 (GathH fm 0 1 (domain_bound := h_bound_first_half i1 i2))))
 
           (SHCompose fm
-                     (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
+                     (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) zero)
                      (SHCompose fm
                                 (liftM_HOperator fm g)
                                 (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2)))).
@@ -803,6 +804,7 @@ Section SigmaHCOLExpansionRules.
                               (@h_index_map o1 (Init.Nat.add o1 o2) O (S O) (h_bound_first_half o1 o2))
                               (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
                                                          (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
+                              zero
                               (@liftM_HOperator' fm i1 o1 f
                                                  (@Gather' fm (Init.Nat.add i1 i2) i1
                                                            (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
@@ -908,6 +910,7 @@ Section SigmaHCOLExpansionRules.
                               (@h_index_map o2 (Init.Nat.add o1 o2) o1 (S O) (h_bound_second_half o1 o2))
                               (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
                                                          (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
+                              zero
                               (@liftM_HOperator' fm i2 o2 g
                                                  (@Gather' fm (Init.Nat.add i1 i2) i2
                                                            (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
@@ -3740,8 +3743,8 @@ Section SigmaHCOLRewritingRules.
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
-      SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f v (f_inj:=f_inj)) =
-      Scatter' fm f (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
+      SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f zero (f_inj:=f_inj) v) =
+      Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
     Proof.
       vec_index_equiv j jc.
       rewrite SHPointwise'_nth.
@@ -3762,7 +3765,7 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
       -
         (* `j` in sparse position *)
-        remember (Scatter' fm f v (f_inj:=f_inj)) as s0.
+        remember (Scatter' fm f zero (f_inj:=f_inj) v) as s0.
         assert(VZ0: Is_ValZero (Vnth s0 jc)).
         {
           subst s0.
@@ -3776,7 +3779,7 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
 
         rewrite pfzn.
-        remember (Scatter' fm f (SHPointwise' fm (IgnoreIndex pf) v)) as s1.
+        remember (Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v)) as s1.
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
@@ -3810,13 +3813,13 @@ Section SigmaHCOLRewritingRules.
       :
         SHOperatorFamilyCompose fm
                                 (SHPointwise fm (IgnoreIndex pf))
-                                (SparseEmbedding fm kernel f g (f_inj:=f_inj))
+                                (SparseEmbedding fm kernel f zero g (f_inj:=f_inj))
         =
         SparseEmbedding fm
                         (SHOperatorFamilyCompose fm
                                                  (SHPointwise fm (IgnoreIndex pf))
                                                  kernel)
-                        f g (f_inj:=f_inj).
+                        f zero g (f_inj:=f_inj).
     Proof.
       unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, SHOperator_equiv, Diamond'.
       intros j jc.
@@ -3841,12 +3844,12 @@ Section SigmaHCOLRewritingRules.
           (f:index_map 1 n)
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm (liftRthetaP P) F)
-          (NP: n ≢ 0)
+          (* NP: n ≢ 0 *)
       :
         SHCompose fm
                   (SHCompose fm
                              (liftM_HOperator fm (HReduction g mzero))
-                             (Scatter fm f (f_inj:=f_inj)))
+                             (Scatter fm f mzero (f_inj:=f_inj)))
                   F
         =
         F.
@@ -3870,6 +3873,7 @@ Section SigmaHCOLRewritingRules.
       unfold densify.
 
 
+      (*
       destruct n as [n|n].
       -
         congruence.
@@ -3913,6 +3917,7 @@ Section SigmaHCOLRewritingRules.
           rewrite evalWriter_mkValue.
 
           rewrite Vnth_1.
+       *)
 
 
     Admitted.
@@ -3929,7 +3934,7 @@ Section SigmaHCOLRewritingRules.
         SHCompose fm
                   (SHCompose fm
                              (liftM_HOperator fm (HReduction minmax.max zero))
-                             (Scatter fm f (f_inj:=f_inj)))
+                             (Scatter fm f zero (f_inj:=f_inj)))
                   F
         =
         F.

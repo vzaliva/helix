@@ -96,6 +96,7 @@ SUMUnion(
                     ScatH _ 0 1
                           (range_bound := h_bound_first_half 1 1)
                           (snzord0 := @ScatH_stride1_constr 1 2)
+                          zero
                           ⊚
                           (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
                                            SafeCast (SHBinOp (IgnoreIndex2 mult))
@@ -111,7 +112,8 @@ SUMUnion(
                   (
                     (ScatH _ 1 1
                            (range_bound := h_bound_second_half 1 1)
-                           (snzord0 := @ScatH_stride1_constr 1 2))
+                           (snzord0 := @ScatH_stride1_constr 1 2)
+                           zero)
                       ⊚
                       (liftM_HOperator _ (@HReduction _ minmax.max _ 0))
                       ⊚
@@ -124,6 +126,7 @@ SUMUnion(
                                                                         (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
                          (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                          (f_inj := h_j_1_family_injective)
+                         zero
                          (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc))))
                       ⊚
                       (GathH _ 1 1
@@ -513,7 +516,7 @@ SUMUnion(
     }
 
     {
-      remember (SparseEmbedding _ _ _ _ ) as fam.
+      remember (SparseEmbedding _ _ _ _ _) as fam.
 
       assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0).
       {

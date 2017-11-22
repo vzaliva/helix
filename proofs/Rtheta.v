@@ -828,6 +828,17 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
+  Lemma Is_ValX_mkStruct
+        {fm:Monoid RthetaFlags}:
+    forall x,
+      @Is_ValX fm x (mkStruct x).
+  Proof.
+    intros x.
+    unfold mkStruct, Is_ValX.
+    compute.
+    reflexivity.
+  Qed.
+
   (* Using setoid equalities on both components *)
   Definition Is_SZero
              {fm:Monoid RthetaFlags}

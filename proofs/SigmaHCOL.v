@@ -821,36 +821,39 @@ Section SigmaHCOL_Operators.
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
+               (idv: CarrierA)
                (x: svector fm i) : svector fm o
       :=
         let f' := build_inverse_index_map f in
         Vbuild (fun n np =>
                   match decide (in_range f n) with
                   | left r => Vnth x (inverse_index_f_spec f f' n r)
-                  | right _ => mkSZero
+                  | right _ => mkStruct idv
                   end).
 
     Global Instance Scatter'_proper
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      Proper ((=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
+      Proper ((=) ==> (=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
     Proof.
-      intros x y Exy.
+      intros z0 z1 Ez x y Exy.
       unfold Scatter'.
       vec_index_equiv j jp.
       simpl.
       rewrite 2!Vbuild_nth.
       break_match.
       - apply Vnth_arg_equiv, Exy.
-      - reflexivity.
+      - rewrite Ez.
+        reflexivity.
     Qed.
 
     Definition Scatter
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
-      := mkSHOperator i o (Scatter' f (f_inj:=f_inj)) _
+               (idv: CarrierA)
+      := mkSHOperator i o (Scatter' f (f_inj:=f_inj) idv) _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -862,7 +865,6 @@ Section SigmaHCOL_Operators.
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
-
 
     Definition SHCompose
                {i1 o2 o3}
@@ -1082,26 +1084,28 @@ Section SigmaHCOL_Operators.
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
+               (idv: CarrierA)
                (* Gather index map *)
                (g: index_map_family ki i n)
       : @SHOperatorFamily i o n
       := mkSHOperatorFamily i o n
                             (fun (j:nat) (jc:j<n) =>
                                (Scatter (⦃f⦄ j jc)
-                                        (f_inj:=index_map_family_member_injective f_inj j jc))
+                                        (f_inj:=index_map_family_member_injective f_inj j jc) idv)
                                  ⊚ (family_member kernel j jc)
                                  ⊚ (Gather (⦃g⦄ j jc))).
 
 
-    (* TODO: move? *)
+    (* TODO: rename since Zero changed to IDV *)
     Lemma Scatter'_Zero_at_sparse
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
+          (idv: CarrierA)
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      ¬ in_range f k -> Is_ValZero (Vnth (Scatter' f (f_inj:=f_inj) x) kc).
+      ¬ in_range f k -> (Is_ValX idv) (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc).
     Proof.
       intros R.
 
@@ -1111,18 +1115,20 @@ Section SigmaHCOL_Operators.
       -
         congruence.
       -
-        apply SZero_is_ValZero.
+        
+        apply Is_ValX_mkStruct.
     Qed.
 
-    (* TODO: move? *)
+    (* TODO: rename since Zero changed to IDV *)
     Lemma Scatter'_NonZero_in_range
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
+          (idv: CarrierA)
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      zero ≠ evalWriter (Vnth (Scatter' f (f_inj:=f_inj) x) kc) -> in_range f k.
+      idv ≠ evalWriter (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc) -> in_range f k.
     Proof.
       intros H.
 
@@ -1137,6 +1143,7 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
+    (* TODO: rename since Zero changed to IDV *)
     Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
           {n i o ki ko}
           (* Kernel *)
@@ -1144,10 +1151,11 @@ Section SigmaHCOL_Operators.
           (* Scatter index map *)
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
+          (idv: CarrierA)
           (* Gather index map *)
           (g: index_map_family ki i n):
       Apply_Family_Single_NonUnit_Per_Row
-        (SparseEmbedding kernel f (f_inj:=f_inj) g) zero.
+        (SparseEmbedding kernel f (f_inj:=f_inj) idv g) idv.
     Proof.
       unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
@@ -1344,9 +1352,10 @@ Lemma Is_Val_Scatter
       {m n: nat}
       (f: index_map m n)
       {f_inj: index_map_injective f}
+      (idv: CarrierA)
       (x: rvector m)
       (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter' _ f (f_inj:=f_inj) x) jc) ->
+  Is_Val (Vnth (Scatter' _ f (f_inj:=f_inj) idv x) jc) ->
   (exists i (ic:i<m), ⟦f⟧ i ≡ j).
 Proof.
   intros H.
@@ -1368,6 +1377,7 @@ Definition USparseEmbedding
            (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n)
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
+           (idv: CarrierA)
            (g: index_map_family ki i n)
   : @SHOperator Monoid_RthetaFlags i o
   :=
@@ -1375,7 +1385,7 @@ Definition USparseEmbedding
       (@SparseEmbedding Monoid_RthetaFlags
                         n i o ki ko
                         kernel
-                        f f_inj
+                        f f_inj idv
                         g).
 
 Section OperatorProperies.
@@ -1493,9 +1503,10 @@ Section OperatorProperies.
         {i o: nat}
         (f: index_map i o)
         {f_inj: index_map_injective f}
+        (idv: CarrierA)
         (x: svector fm i)
         (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (Scatter' fm f (f_inj:=f_inj) x) f n ip.
+    Vnth x ip ≡ VnthIndexMapped (Scatter' fm f (f_inj:=f_inj) idv x) f n ip.
   Proof.
     unfold VnthIndexMapped.
     unfold Scatter'.
@@ -1515,9 +1526,10 @@ Section OperatorProperies.
         (i o : nat)
         (x : svector fm i)
         (f: index_map i o)
-        {f_inj : index_map_injective f}:
-    Vforall (fun p => (Vin p x) \/ (p ≡ mkSZero))
-            (Scatter' fm f (f_inj:=f_inj) x).
+        {f_inj : index_map_injective f}
+        (idv: CarrierA):
+    Vforall (fun p => (Vin p x) \/ (p ≡ mkStruct idv))
+            (Scatter' fm f (f_inj:=f_inj) idv x).
   Proof.
     apply Vforall_nth_intro.
     intros j jp.
@@ -1834,8 +1846,10 @@ Section StructuralProperies.
   Global Instance Scatter_Rtheta_Facts
          {i o: nat}
          (f: index_map i o)
-         {f_inj: index_map_injective f}:
-    SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)).
+         {f_inj: index_map_injective f}
+         (idv: CarrierA)
+    :
+    SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj) idv).
   Proof.
     split.
     -
