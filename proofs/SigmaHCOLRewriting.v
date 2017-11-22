@@ -1536,9 +1536,9 @@ Section SigmaHCOLRewritingRules.
             {
               rewrite UnionFold_all_zeroes_under_P; eauto.
               -
-                apply evalWriter_mkStruct.
+                apply Is_ValX_mkStruct.
               -
-                crush.
+                apply Fpos.
             }
 
             unfold_Rtheta_equiv.
@@ -1730,7 +1730,7 @@ Section SigmaHCOLRewritingRules.
           vec_index_equiv j jc.
           rewrite Vnth_map.
           repeat rewrite Vnth_const.
-          apply evalWriter_mkStruct.
+          rewrite evalWriter_mkStruct; reflexivity.
         -
           dep_destruct lst. clear lst.
           simpl.

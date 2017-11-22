@@ -503,7 +503,7 @@ Section Rtheta'Utils.
   (* evalWriter on mkStruct equiv wrt values *)
   Lemma evalWriter_mkStruct
         (c: CarrierA):
-     WriterMonadNoT.evalWriter (mkStruct c) = c.
+     WriterMonadNoT.evalWriter (mkStruct c) ≡ c.
   Proof.
     unfold WriterMonadNoT.evalWriter, runWriter, runWriterT, compose, unIdent.
     unfold mkStruct, ret.
