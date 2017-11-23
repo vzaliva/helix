@@ -3831,6 +3831,7 @@ Section SigmaHCOLRewritingRules.
       apply SHPointwise'_distr_over_Scatter', pfzn.
     Qed.
 
+    (* TODO: Move *)
     Definition shrink_index_map_1_range {r:nat} (f: index_map 1 (S r)) (NZ: ⟦ f ⟧ 0 ≢ 0)
       : index_map 1 r.
     Proof.
@@ -3853,6 +3854,7 @@ Section SigmaHCOLRewritingRules.
       exact (IndexMap 1 r index_f' new_spec).
     Defined.
 
+    (* TODO: Move *)
     Lemma shrink_index_map_1_range_inj
           {r:nat}
           (f: index_map 1 (S r))
@@ -3880,7 +3882,7 @@ Section SigmaHCOLRewritingRules.
           (idv: CarrierA)
           (x: svector fm 1):
       Scatter' fm f (f_inj:=f_inj) idv x
-      =
+      ≡
       match Nat.eq_dec (⟦ f ⟧ 0) 0 with
       | in_left =>
         Vcons
@@ -3892,6 +3894,23 @@ Section SigmaHCOLRewritingRules.
           (mkStruct idv)
           (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
       end.
+    Proof.
+    Admitted.
+
+    Lemma Vin_1
+          (A: Type)
+          (a:A)
+          (v:vector A 1)
+      :
+        Vin a v -> a ≡ Vhead v.
+    Proof.
+      intros H.
+      dep_destruct v.
+      dep_destruct x.
+      destruct H.
+      - auto.
+      - contradiction.
+    Qed.
 
     Lemma rewrite_Reduction_ScatHUnion
           {n m:nat}
@@ -3970,10 +3989,75 @@ Section SigmaHCOLRewritingRules.
         *
           crush.
       +
-        symmetry.
-        try (apply IHn).
+        remember (S n) as sn.
+        erewrite Scatter'_1_Sn.
 
-    Admitted.
+        break_match.
+        *
+          simpl.
+          break_match.
+          --
+            unfold HCOLImpl.Reduction.
+            rewrite Vmap_Vconst.
+            simpl.
+            match goal with
+            | [ |- context[g _ ?f]] => setoid_replace f with mzero
+            end.
+            ++
+              destruct g_mon eqn:H1, comrmonoid_rmon eqn:H2.
+              rewrite rmonoid_right_id.
+              rewrite mkValue_evalWriter.
+              rewrite Vnth_0.
+              reflexivity.
+              apply Vforall_Vhead.
+              apply FP.
+            ++
+              symmetry.
+              clear IHn f f_inj e j jc Heqn0 Heqsn.
+              induction sn.
+              ** crush.
+              ** simpl.
+                 rewrite <- IHsn.
+                 destruct g_mon eqn:H1, comrmonoid_rmon eqn:H2.
+                 rewrite rmonoid_left_id; auto.
+                 apply mon_restriction.
+          --
+            crush.
+        *
+          erewrite <- IHn with (f:=shrink_index_map_1_range f n0).
+          f_equiv.
+          apply Vnth_arg_equiv.
+          rewrite Vmap_cons.
+          unfold HReduction, compose.
+          unfold HCOLImpl.Reduction.
+          simpl.
+
+          destruct g_mon eqn:H1, comrmonoid_rmon eqn:H2.
+          rewrite rmonoid_left_id.
+          --
+            reflexivity.
+          --
+            apply Vfold_right_under_P; auto.
+            apply Vforall_nth_intro.
+            intros i ip.
+
+            assert(H: Vforall (fun p => (Vin p y) \/ (p ≡ mkStruct mzero))
+                              (Scatter' fm (shrink_index_map_1_range f n0)
+                                        (f_inj:=shrink_index_map_1_range_inj f n0 f_inj)
+                                        mzero y)) by apply Scatter'_is_almost_endomorphism.
+            apply Vforall_nth with (ip:=ip) in H.
+            destruct H.
+            ++
+              apply Vin_1 with (v:=y) in H.
+              rewrite Vnth_map.
+              rewrite H.
+              apply Vforall_Vhead.
+              apply FP.
+            ++
+              rewrite Vnth_map.
+              rewrite H.
+              apply mon_restriction.
+    Qed.
 
     Lemma rewrite_Reduction_ScatHUnion_max_zero
           (n m: nat)
