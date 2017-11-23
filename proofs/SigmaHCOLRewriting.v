@@ -3831,6 +3831,68 @@ Section SigmaHCOLRewritingRules.
       apply SHPointwise'_distr_over_Scatter', pfzn.
     Qed.
 
+    Definition shrink_index_map_1_range {r:nat} (f: index_map 1 (S r)) (NZ: ⟦ f ⟧ 0 ≢ 0)
+      : index_map 1 r.
+    Proof.
+      destruct f.
+      simpl in *.
+
+      set (index_f' := Nat.pred ∘ index_f).
+      assert (new_spec : ∀ x : nat, x < 1 → index_f' x < r).
+      {
+        intros x xc.
+        unfold index_f', compose.
+        destruct (index_f x) eqn:E.
+        -
+          destruct x; omega.
+        -
+          rewrite Nat.pred_succ.
+          specialize (index_f_spec x xc).
+          omega.
+      }
+      exact (IndexMap 1 r index_f' new_spec).
+    Defined.
+
+    Lemma shrink_index_map_1_range_inj
+          {r:nat}
+          (f: index_map 1 (S r))
+          (NZ: ⟦ f ⟧ 0 ≢ 0):
+      index_map_injective f ->
+      index_map_injective (shrink_index_map_1_range f NZ).
+    Proof.
+      intros E.
+      unfold index_map_injective.
+      intros x y xc yc H.
+      apply E; auto.
+
+      unfold shrink_index_map_1_range in *.
+      break_match.
+      simpl in *.
+      unfold compose in H.
+      destruct x,y; omega.
+    Qed.
+
+    Lemma Scatter'_1_Sn
+          {n: nat}
+          {fm}
+          (f: index_map 1 (S n))
+          {f_inj: index_map_injective f}
+          (idv: CarrierA)
+          (x: svector fm 1):
+      Scatter' fm f (f_inj:=f_inj) idv x
+      =
+      match Nat.eq_dec (⟦ f ⟧ 0) 0 with
+      | in_left =>
+        Vcons
+          (Vhead x)
+          (Vconst (mkStruct idv) n)
+      | right fc =>
+        let f' := (shrink_index_map_1_range f fc) in
+        Vcons
+          (mkStruct idv)
+          (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
+      end.
+
     Lemma rewrite_Reduction_ScatHUnion
           {n m:nat}
           {fm: Monoid RthetaFlags}
