@@ -1543,6 +1543,57 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
+  Lemma Scatter'_1_1
+        (f : index_map 1 1)
+        (f_inj : index_map_injective f)
+        (idv : CarrierA)
+        (h : Rtheta' fm):
+    Scatter' fm f (f_inj:=f_inj) idv [h] ≡ [h].
+  Proof.
+    unfold Scatter'.
+    rewrite Vbuild_1.
+    break_match.
+    -
+      rewrite Vnth_1.
+      reflexivity.
+    -
+      contradict n.
+      apply in_range_exists.
+      auto.
+      exists 0.
+      eexists; auto.
+      destruct (eq_nat_dec (⟦ f ⟧ 0) 0); auto.
+      apply not_eq in n.
+      destruct n.
+      +
+        nat_lt_0_contradiction.
+      +
+        destruct f.
+        simpl in *.
+        clear f_inj.
+        specialize (index_f_spec 0).
+        omega.
+  Qed.
+  Lemma Scatter'_1_Sn
+        {n: nat}
+        (f: index_map 1 (S n))
+        {f_inj: index_map_injective f}
+        (idv: CarrierA)
+        (x: svector fm 1):
+    Scatter' fm f (f_inj:=f_inj) idv x
+             ≡
+             match Nat.eq_dec (⟦ f ⟧ 0) 0 with
+             | in_left =>
+               Vcons
+                 (Vhead x)
+                 (Vconst (mkStruct idv) n)
+             | right fc =>
+               let f' := (shrink_index_map_1_range f fc) in
+               Vcons
+                 (mkStruct idv)
+                 (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
+             end.
+  Proof.
   Lemma SHPointwise'_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
