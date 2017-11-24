@@ -1574,6 +1574,7 @@ Section OperatorProperies.
         specialize (index_f_spec 0).
         omega.
   Qed.
+
   Lemma Scatter'_1_Sn
         {n: nat}
         (f: index_map 1 (S n))
@@ -1594,6 +1595,49 @@ Section OperatorProperies.
                  (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
              end.
   Proof.
+    break_match.
+    -
+      (* considering [ ⟦ f ⟧ 0 ≡ 0 ] case *)
+      apply vec_eq_elementwise.
+      apply Vforall2_intro_nth.
+      intros i ip.
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      destruct (eq_nat_dec i 0).
+      +
+        (* eq at head *)
+        break_match.
+        *
+          rewrite Vnth_1_Vhead.
+          crush.
+        *
+          contradict n0.
+          subst i.
+          apply in_range_exists.
+          auto.
+          exists 0.
+          eexists; auto.
+      +
+        (* eq remaining elements (tail) *)
+        break_match.
+        *
+          destruct i as [_|i]; try congruence.
+          clear n0.
+          rename i0 into H.
+          assert(HH: ∃ x (xc:x<1), ⟦ f ⟧ x ≡ S i) by
+              apply (@in_range_exists 1 (S n) (S i) f ip), H.
+          destruct HH as [j [jc HH]].
+          dep_destruct j; omega.
+        *
+          dep_destruct i; try omega.
+          simpl.
+          rewrite Vnth_const.
+          reflexivity.
+    -
+      simpl.
+  Admitted.
+
+
   Lemma SHPointwise'_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
