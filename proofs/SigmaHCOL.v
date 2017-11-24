@@ -1634,9 +1634,72 @@ Section OperatorProperies.
           rewrite Vnth_const.
           reflexivity.
     -
+      (* considering ⟦ f ⟧ 0 ≢ 0 case *)
       simpl.
-  Admitted.
-
+      apply vec_eq_elementwise.
+      apply Vforall2_intro_nth.
+      intros i ip.
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      destruct (eq_nat_dec i 0).
+      +
+        (* i=0 *)
+        subst i.
+        simpl.
+        unfold decide.
+        break_match; clear Heqd.
+        *
+          rename i into H.
+          assert(HH: ∃ x (xc:x<1), ⟦ f ⟧ x ≡ 0).
+          {
+            apply in_range_exists.
+            apply ip.
+            apply H.
+          }
+          destruct HH as [j [jc HH]].
+          dep_destruct j; omega.
+        *
+          reflexivity.
+      +
+        unfold decide.
+        break_match; clear Heqd.
+        *
+          (* in_range f 1 *)
+          destruct i as [_|i]; try congruence.
+          simpl.
+          rewrite Vbuild_nth.
+          rewrite Vnth_1_Vhead.
+          break_match; clear Heqd.
+          --
+            rewrite Vnth_1_Vhead.
+            reflexivity.
+          --
+            clear n1.
+            contradict n2.
+            unfold shrink_index_map_1_range.
+            break_match; simpl in *.
+            unfold compose.
+            break_if; auto.
+            destruct (index_f 0) eqn:Hi; auto.
+            break_if; auto.
+        *
+          (* ¬ in_range f i *)
+          destruct i as [_|i]; try congruence.
+          simpl.
+          rewrite Vbuild_nth.
+          break_match; clear Heqd.
+          --
+            clear n1.
+            contradict n2.
+            unfold shrink_index_map_1_range in i0.
+            break_match; simpl in *.
+            unfold compose in i0.
+            break_if; auto.
+            destruct (index_f 0) eqn:Hi; auto.
+            break_if; auto.
+          --
+            reflexivity.
+  Qed.
 
   Lemma SHPointwise'_nth
         {n: nat}
