@@ -116,6 +116,28 @@ Proof.
   apply le_unique.
 Qed.
 
+Definition shrink_index_map_1_range {r:nat} (f: index_map 1 (S r)) (NZ: ⟦ f ⟧ 0 ≢ 0)
+  : index_map 1 r.
+Proof.
+  destruct f.
+  simpl in *.
+
+  set (index_f' := compose Nat.pred index_f0).
+  assert (new_spec : ∀ x : nat, x < 1 → index_f' x < r).
+  {
+    intros x xc.
+    unfold index_f', compose.
+    destruct (index_f0 x) eqn:E.
+    -
+      destruct x; omega.
+    -
+      rewrite Nat.pred_succ.
+      specialize (index_f_spec0 x xc).
+      omega.
+  }
+  exact (IndexMap 1 r index_f' new_spec).
+Defined.
+
 Section InRange.
 
   Fixpoint in_range  {d r:nat} (f: index_map d r)
@@ -324,6 +346,25 @@ Section Jections.
   Proof.
     intros x H.
     apply in_range_exists; auto.
+  Qed.
+
+  Lemma shrink_index_map_1_range_inj
+        {r:nat}
+        (f: index_map 1 (S r))
+        (NZ: ⟦ f ⟧ 0 ≢ 0):
+    index_map_injective f ->
+    index_map_injective (shrink_index_map_1_range f NZ).
+  Proof.
+    intros E.
+    unfold index_map_injective.
+    intros x y xc yc H.
+    apply E; auto.
+
+    unfold shrink_index_map_1_range in *.
+    break_match.
+    simpl in *.
+    unfold compose in H.
+    destruct x,y; omega.
   Qed.
 
 End Jections.
