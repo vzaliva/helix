@@ -1019,6 +1019,21 @@ Proof.
   crush.
 Qed.
 
+Lemma Vin_1
+      (A: Type)
+      (a:A)
+      (v:vector A 1)
+  :
+    Vin a v -> a = Vhead v.
+Proof.
+      intros H.
+      dep_destruct v.
+      dep_destruct x.
+      destruct H.
+      - auto.
+      - contradiction.
+Qed.
+
 Lemma Vforall_not_Vexists
       {n} {T}
       (v: vector T n)
