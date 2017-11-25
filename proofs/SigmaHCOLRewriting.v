@@ -37,7 +37,7 @@ Require Import ExtLib.Structures.Monoid.
 Import Monoid.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 
 Local Open Scope vector_scope.
@@ -4018,3 +4018,4 @@ Section SigmaHCOLRewritingRules.
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
+

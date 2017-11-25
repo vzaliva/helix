@@ -10,14 +10,16 @@ Require Import Omega.
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
-Require Import MathClasses.theory.products.
+
 Require Import MathClasses.theory.naturals.
+
 
 (* CoLoR *)
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Require Import SpiralTactics.
+
 
 (* Various definitions related to vector equality and setoid rewriting *)
 
@@ -530,3 +532,4 @@ Ltac vec_to_vec_reord := repeat match goal with
                                 | [ |- context [Vconst]] => setoid_rewrite Vconst_to_Vconst_reord
                                 | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord
                                 end.
+

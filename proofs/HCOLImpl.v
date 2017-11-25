@@ -17,7 +17,7 @@ Require Import SpiralTactics.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
-Require Import MathClasses.theory.naturals.
+
 
 Import VectorNotations.
 
@@ -397,4 +397,5 @@ End HCOL_implementation_proper.
 
 Close Scope nat_scope.
 Close Scope vector_scope.
+
 

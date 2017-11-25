@@ -1,5 +1,5 @@
 Require Import MathClasses.interfaces.abstract_algebra.
-Require Import MathClasses.theory.setoids.
+
 
 Section MonoidalRestriction.
   Context A {Ae : Equiv A}.
@@ -33,3 +33,4 @@ Section MonoidalRestriction.
 End MonoidalRestriction.
 
 Arguments rsg_op_proper {A Ae Aop Aunit Apred RMonoid}.
+

@@ -16,15 +16,19 @@ Require Import IndexFunctions.
 Require Import Arith.
 Require Import Compare_dec.
 Require Import Coq.Arith.Peano_dec.
-Require Import Program.
+
 
 Require Import SpiralTactics.
 
+
 Require Import HCOLBreakdown.
+
 Require Import SigmaHCOLRewriting.
+
 
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
+
 
 Section HCOL_breakdown.
 
@@ -157,7 +161,8 @@ SUMUnion(
     reflexivity.
   Qed.
 
-  Require Import FinNatSet.
+Require Import FinNatSet.
+
 
   Theorem DynWinSigmaHCOL_dense_input
           (a: avector 3)
@@ -583,3 +588,4 @@ SUMUnion(
   Admitted.
 
 End SigmaHCOL_rewriting.
+

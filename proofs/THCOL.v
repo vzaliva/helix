@@ -19,7 +19,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
-Require Import MathClasses.theory.rings.
+
 
 Import VectorNotations.
 Open Scope vector_scope.
@@ -152,5 +152,6 @@ Notation HTDirectSum := HCross.
 (* Not sure if this is needed *)
 Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
+
 
 

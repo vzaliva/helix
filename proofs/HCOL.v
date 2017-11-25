@@ -18,8 +18,9 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
-Require Import MathClasses.theory.rings.
+
 Require Import MathClasses.theory.setoids.
+
 
 Import VectorNotations.
 Open Scope vector_scope.
@@ -387,5 +388,6 @@ Section HCOL_Operator_Lemmas.
 
 
 End HCOL_Operator_Lemmas.
+
 
 

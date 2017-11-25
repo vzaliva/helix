@@ -30,7 +30,7 @@ Require Import ExtLib.Structures.Monoid.
 Import Monoid.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 
 
 Section RthetaSafetyCast.

@@ -18,11 +18,14 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
-Require Import MathClasses.misc.util.
+
 Require Import MathClasses.interfaces.abstract_algebra.
 
+
 Require Import Spiral.
+
 Require Import FinNatSet.
+
 
 (* Setoid equality for option types *)
 Section OptionSetoid.
@@ -1035,3 +1038,4 @@ Section IndexMapSets.
   Qed.
 
 End IndexMapSets.
+

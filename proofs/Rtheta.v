@@ -17,9 +17,10 @@ Require Import ExtLib.Data.PPair.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
-Require Import MathClasses.interfaces.orders MathClasses.orders.orders.
+
 
 Require Import SpiralTactics.
+
 
 Import MonadNotation.
 Import Monoid.
@@ -918,3 +919,4 @@ Section Zero_Utils.
   Qed.
 
 End Zero_Utils.
+

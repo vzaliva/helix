@@ -39,7 +39,7 @@ Require Import ExtLib.Structures.Monoid.
 Import Monoid.
 
 (*  CoLoR *)
-Require Import CoLoR.Util.Vector.VecUtil.
+
 Import VectorNotations.
 Open Scope vector_scope.
 
@@ -2670,3 +2670,4 @@ Section StructuralProperies.
   Qed.
 
 End StructuralProperies.
+

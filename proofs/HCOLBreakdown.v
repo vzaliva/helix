@@ -21,7 +21,8 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
-Require Import MathClasses.theory.rings MathClasses.theory.abs.
+Require Import MathClasses.theory.rings.
+
 
 Import VectorNotations.
 Open Scope vector_scope.
@@ -219,5 +220,6 @@ Section HCOLBreakdown.
   Qed.
 
 End HCOLBreakdown.
+
 
 

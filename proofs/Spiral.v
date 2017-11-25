@@ -21,10 +21,13 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
-Require Import MathClasses.theory.rings MathClasses.theory.abs.
+Require Import MathClasses.theory.abs.
+
 Require Import MathClasses.theory.setoids.
 
+
 Require Import CoLoR.Util.Nat.NatUtil.
+
 
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
@@ -352,3 +355,4 @@ Proof.
   unfold equiv, Sig_Equiv in E.
   auto.
 Qed.
+
