@@ -312,8 +312,8 @@ Section IgnoreIndex_wrapper.
     apply f_mor.
   Qed.
 
-  Global Instance IgnoreIndex2_proper:
-    (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (IgnoreIndex2)).
+  Global Instance IgnoreIndex2_proper `{Ae:Equiv A}:
+    (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex2 A)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex2.
