@@ -1621,7 +1621,7 @@ Section OperatorProperies.
         (* eq remaining elements (tail) *)
         break_match.
         *
-          destruct i as [_|i]; try congruence.
+          destruct i as [|i]; try congruence.
           clear n0.
           rename i0 into H.
           assert(HH: ∃ x (xc:x<1), ⟦ f ⟧ x ≡ S i) by
@@ -1665,7 +1665,7 @@ Section OperatorProperies.
         break_match; clear Heqd.
         *
           (* in_range f 1 *)
-          destruct i as [_|i]; try congruence.
+          destruct i as [|i]; try congruence.
           simpl.
           rewrite Vbuild_nth.
           rewrite Vnth_1_Vhead.
@@ -1684,7 +1684,7 @@ Section OperatorProperies.
             break_if; auto.
         *
           (* ¬ in_range f i *)
-          destruct i as [_|i]; try congruence.
+          destruct i as [|i]; try congruence.
           simpl.
           rewrite Vbuild_nth.
           break_match; clear Heqd.
