@@ -1,7 +1,7 @@
 
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality. (* for dependent induction *)
-Require Import Coq.omega.Omega.
+Require Import Omega.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 Require Export Coq.Vectors.Vector.
