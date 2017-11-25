@@ -1,30 +1,30 @@
 
 Global Generalizable All Variables.
 
-Require Import VecUtil.
-Require Import Spiral.
-Require Import Rtheta.
-Require Import VecSetoid.
-Require Import SVector.
-Require Import HCOL.
-Require Import THCOL.
-Require Import SigmaHCOL.
-Require Import TSigmaHCOL.
-Require Import IndexFunctions.
-Require Import MonoidalRestriction.
-Require Import VecPermutation.
+Require Import Spiral.VecUtil.
+Require Import Spiral.Spiral.
+Require Import Spiral.Rtheta.
+Require Import Spiral.VecSetoid.
+Require Import Spiral.SVector.
+Require Import Spiral.HCOL.
+Require Import Spiral.THCOL.
+Require Import Spiral.SigmaHCOL.
+Require Import Spiral.TSigmaHCOL.
+Require Import Spiral.IndexFunctions.
+Require Import Spiral.MonoidalRestriction.
+Require Import Spiral.VecPermutation.
 
 Require Import Coq.Arith.Arith.
-Require Import Compare_dec.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Logic.ProofIrrelevance.
-Require Import Program.
+Require Import Coq.Program.Program.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
 Require Import Omega.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 
 (* CoRN Math-classes *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.

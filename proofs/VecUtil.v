@@ -1,3 +1,4 @@
+
 Require Import Coq.Program.Basics.
 Require Import Coq.Program.Equality. (* for dependent induction *)
 Require Import Coq.omega.Omega.
@@ -7,8 +8,9 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import SpiralTactics.
-Require Import Spiral.
+Require Import Spiral.SpiralTactics.
+Require Import Spiral.Spiral.
+
 Require Import Lia.
 
 Local Open Scope program_scope. (* for \circ notation *)

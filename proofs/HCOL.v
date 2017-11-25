@@ -1,17 +1,17 @@
 (* Coq defintions for HCOL operator language *)
 
-Require Import VecUtil.
-Require Import VecSetoid.
-Require Import Spiral.
-Require Import CarrierType.
-Require Import HCOLImpl.
+Require Import Spiral.VecUtil.
+Require Import Spiral.VecSetoid.
+Require Import Spiral.Spiral.
+Require Import Spiral.CarrierType.
+Require Import Spiral.HCOLImpl.
 
-Require Import Arith.
+Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Plus.
-Require Import Program. (* compose *)
-Require Import Morphisms.
+Require Import Coq.Program.Program.
+Require Import Coq.Classes.Morphisms.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

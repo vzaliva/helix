@@ -2,9 +2,8 @@
 Require Import Coq.Arith.Arith.
 Require Export Coq.Vectors.Vector.
 Require Import Coq.Program.Equality. (* for dependent induction *)
-Require Import Setoid.
-
-Require Import ProofIrrelevance.
+Require Import Coq.Setoids.Setoid.
+Require Import Coq.Logic.ProofIrrelevance.
 
 
 (* CoLoR: `opam install coq-color`  *)
@@ -84,9 +83,8 @@ Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
 
 Section VPermutation_properties.
 
-Require Import Sorting.Permutation.
-
-Require Import VecUtil.
+Require Import Coq.Sorting.Permutation.
+Require Import Spiral.VecUtil.
 
 
   Variable A:Type.

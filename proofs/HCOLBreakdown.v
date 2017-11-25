@@ -1,20 +1,20 @@
 
-Require Import VecUtil.
-Require Import VecSetoid.
-Require Import Spiral.
-Require Import CarrierType.
+Require Import Spiral.VecUtil.
+Require Import Spiral.VecSetoid.
+Require Import Spiral.Spiral.
+Require Import Spiral.CarrierType.
 
-Require Import HCOL.
-Require Import HCOLImpl.
-Require Import THCOL.
-Require Import THCOLImpl.
+Require Import Spiral.HCOL.
+Require Import Spiral.HCOLImpl.
+Require Import Spiral.THCOL.
+Require Import Spiral.THCOLImpl.
 
-Require Import Arith.
-Require Import Compare_dec.
+Require Import Coq.Arith.Arith.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
-Require Import Program.
+Require Import Coq.Program.Program.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 

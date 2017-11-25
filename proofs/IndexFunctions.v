@@ -9,11 +9,10 @@ Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
 Import Coq.Arith.PeanoNat.Nat.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 Require Import Psatz.
 Require Import Omega.
 
-(* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
@@ -21,10 +20,8 @@ Require Import MathClasses.orders.orders.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
-
-Require Import Spiral.
-
-Require Import FinNatSet.
+Require Import Spiral.Spiral.
+Require Import Spiral.FinNatSet.
 
 
 (* Setoid equality for option types *)

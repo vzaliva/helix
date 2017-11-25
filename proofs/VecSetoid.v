@@ -1,5 +1,5 @@
 
-Require Import VecUtil.
+Require Import Spiral.VecUtil.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Basics. (* for \circ notation *)
@@ -10,7 +10,6 @@ Require Import Omega.
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
-
 Require Import MathClasses.theory.naturals.
 
 
@@ -18,7 +17,7 @@ Require Import MathClasses.theory.naturals.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 
 
 (* Various definitions related to vector equality and setoid rewriting *)

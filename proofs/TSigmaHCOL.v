@@ -1,22 +1,22 @@
 (* Template HCOL. HCOL meta-operators *)
 
-Require Import VecUtil.
-Require Import VecSetoid.
-Require Import Spiral.
-Require Import Rtheta.
-Require Import SVector.
-Require Import IndexFunctions.
-Require Import SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
-Require Import FinNatSet.
+Require Import Spiral.VecUtil.
+Require Import Spiral.VecSetoid.
+Require Import Spiral.Spiral.
+Require Import Spiral.Rtheta.
+Require Import Spiral.SVector.
+Require Import Spiral.IndexFunctions.
+Require Import Spiral.SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
+Require Import Spiral.FinNatSet.
 
 
-Require Import Arith.
-Require Import Program. (* compose *)
-Require Import Morphisms.
-Require Import RelationClasses.
-Require Import Relations.
+Require Import Coq.Arith.Arith.
+Require Import Coq.Program.Program.
+Require Import Coq.Classes.Morphisms.
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Relations.Relations.
 
-Require Import SpiralTactics.
+Require Import Spiral.SpiralTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -28,10 +28,6 @@ Require Import MathClasses.theory.setoids.
 (* ExtLib *)
 Require Import ExtLib.Structures.Monoid.
 Import Monoid.
-
-(*  CoLoR *)
-
-
 
 Section RthetaSafetyCast.
 

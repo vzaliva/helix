@@ -1,32 +1,27 @@
-Require Import VecUtil.
-Require Import VecSetoid.
-Require Import SVector.
-Require Import Spiral.
-Require Import CarrierType.
 
-Require Import HCOL.
-Require Import HCOLImpl.
-Require Import THCOL.
-Require Import THCOLImpl.
-Require Import Rtheta.
-Require Import SigmaHCOL.
-Require Import TSigmaHCOL.
-Require Import IndexFunctions.
+Require Import Spiral.VecUtil.
+Require Import Spiral.VecSetoid.
+Require Import Spiral.SVector.
+Require Import Spiral.Spiral.
+Require Import Spiral.CarrierType.
 
-Require Import Arith.
-Require Import Compare_dec.
+Require Import Spiral.HCOL.
+Require Import Spiral.HCOLImpl.
+Require Import Spiral.THCOL.
+Require Import Spiral.THCOLImpl.
+Require Import Spiral.Rtheta.
+Require Import Spiral.SigmaHCOL.
+Require Import Spiral.TSigmaHCOL.
+Require Import Spiral.IndexFunctions.
+
+Require Import Coq.Arith.Arith.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 
+Require Import Spiral.SpiralTactics.
+Require Import Spiral.HCOLBreakdown.
+Require Import Spiral.SigmaHCOLRewriting.
 
-Require Import SpiralTactics.
-
-
-Require Import HCOLBreakdown.
-
-Require Import SigmaHCOLRewriting.
-
-
-(* CoRN MathClasses *)
 Require Import MathClasses.interfaces.canonical_names.
 
 
@@ -161,7 +156,7 @@ SUMUnion(
     reflexivity.
   Qed.
 
-Require Import FinNatSet.
+Require Import Spiral.FinNatSet.
 
 
   Theorem DynWinSigmaHCOL_dense_input
