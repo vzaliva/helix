@@ -16008,8 +16008,7 @@ Import Spiral_DOT_FinNatSet.Spiral.FinNatSet.
   Qed.
 
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
-    : dynwin_SHCOL a = dynwin_SHCOL1 a.
-  Proof.
+    : dynwin_SHCOL a = dynwin_SHCOL1 a. Proof.
     unfold dynwin_SHCOL.
     unfold USparseEmbedding.
 
