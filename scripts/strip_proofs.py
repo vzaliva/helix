@@ -7,7 +7,7 @@ inproof = False
 
 for s in sys.stdin:
     if inproof:
-        if s.strip() == "Qed.":
+        if s.strip() == "Qed."  or s.strip() == "Admitted.":
             sys.stdout.write("Admitted.\n")
             proof = ""
             inproof = False
