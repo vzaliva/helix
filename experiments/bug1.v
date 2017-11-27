@@ -1048,16 +1048,11 @@ Import CoLoR.Util.Nat.NatUtil.
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.
-Proof.
-  solve_proper.
-Qed.
+Admitted.
 
 Global Instance negate_proper A `{Ar: Ring A} `{!Setoid A}:
   Setoid_Morphism (negate).
-Proof.
-  split;try assumption.
-  solve_proper.
-Qed.
+Admitted.
 
 Lemma ne_sym {T:Type} `{E: Equiv T} `{S: @Setoid T E} {a b: T}:
   (a ≠ b) <-> (b ≠ a).
