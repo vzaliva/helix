@@ -1,25 +1,39 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
+import re
+
+STRIP_INSTANCE_PROOFS = False
 
 proof=""
 inproof = False
+isintance = False
+
+lemma = re.compile(r"^\s*((Global|Local)\s+)?(Lemma|Theorem|Fact|Remark|Corollary|Proposition)\s+.*")
+instance = re.compile(r"^\s*((Global|Local)\s+)?(Instance)\s+.*")
 
 for s in sys.stdin:
+    ss = s.strip()
     if inproof:
-        if s.strip() == "Qed."  or s.strip() == "Admitted.":
+        if ss == "Qed." or ss == "Admitted.":
             sys.stdout.write("Admitted.\n")
             proof = ""
             inproof = False
-        elif s.strip() == "Defined.":
+            isintance = False
+        elif ss == "Defined.":
             sys.stdout.write(proof)
             sys.stdout.write(s)
             proof = ""
             inproof = False
+            isintance = False
         else:
             proof += s
     else:
-        if s.strip() == "Proof.":
+        if re.fullmatch(lemma,ss):
+            isintance = False
+        if re.fullmatch(instance,ss):
+            isintance = True
+        if ss == "Proof." and (not(isintance) or STRIP_INSTANCE_PROOFS):
             inproof = True
             proof += s
         else:
