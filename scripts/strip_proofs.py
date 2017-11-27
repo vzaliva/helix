@@ -3,7 +3,7 @@
 import sys
 import re
 
-STRIP_INSTANCE_PROOFS = False
+STRIP_INSTANCE_PROOFS = True
 
 proof=""
 inproof = False
