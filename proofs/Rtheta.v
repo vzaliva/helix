@@ -233,7 +233,6 @@ Definition RStheta2Rtheta: RStheta -> Rtheta := castWriter Monoid_RthetaFlags.
 
 Section Rtheta'Utils.
   Context {fm:Monoid RthetaFlags}.
-  Context {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}.
 
   Definition mkStruct (val: CarrierA) : Rtheta' fm
     := ret val.
@@ -260,40 +259,6 @@ Section Rtheta'Utils.
 
   Definition Is_ValX (z:CarrierA)
     := fun (x:Rtheta' fm) => (WriterMonadNoT.evalWriter x) = z.
-
-  Lemma IsVal_mkValue:
-    ∀ (v:CarrierA), Is_Val (mkValue v).
-  Proof.
-    intros v.
-    unfold Is_Val, IsVal, mkValue.
-    simpl.
-    replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
-                          (@monoid_unit RthetaFlags fm)) with
-        (mkRthetaFlags false false).
-    - apply Bool.negb_prop_elim.
-      simpl.
-      trivial.
-    -
-      symmetry.
-      apply fml.
-  Qed.
-
-  Lemma Not_Collision_mkValue:
-    ∀ (v:CarrierA), Not_Collision (mkValue v).
-  Proof.
-    intros v.
-    unfold Not_Collision, Is_Collision, not, mkValue.
-    simpl.
-    replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
-                          (@monoid_unit RthetaFlags fm)) with
-        (mkRthetaFlags false false).
-    - apply Bool.negb_prop_elim.
-      simpl.
-      trivial.
-    -
-      symmetry.
-      apply fml.
-  Qed.
 
   Global Instance Rtheta'_equiv: Equiv (Rtheta' fm) :=
     fun am bm => (evalWriter am) = (evalWriter bm).
@@ -369,54 +334,6 @@ Section Rtheta'Utils.
     reflexivity.
   Qed.
 
-  Lemma execWriter_liftM:
-    ∀ (f : CarrierA → CarrierA)
-      (x : Rtheta' fm),
-      execWriter (Monad.liftM f x) ≡ execWriter x.
-  Proof.
-    intros f x.
-    unfold Monad.liftM, execWriter.
-    destruct x.
-    simpl.
-    apply fml.
-  Qed.
-
-  Lemma Is_Val_liftM
-        (f: CarrierA → CarrierA)
-        (r : Rtheta' fm):
-    Is_Val r → Is_Val (liftM f r).
-  Proof.
-    intros H.
-    unfold Is_Val, compose in *.
-    rewrite execWriter_liftM.
-    apply H.
-  Qed.
-
-  Lemma Not_Collision_liftM
-        (f: CarrierA → CarrierA)
-        (r : Rtheta' fm):
-    Not_Collision r -> Not_Collision (liftM f r).
-  Proof.
-    intros H.
-    unfold Not_Collision, not, Is_Collision, IsCollision, compose in *.
-    rewrite execWriter_liftM.
-    apply H.
-  Qed.
-
-  Lemma execWriter_Rtheta_liftM2
-        (op: CarrierA -> CarrierA -> CarrierA)
-        {a b: Rtheta' fm}
-    :
-      execWriter (liftM2 op a b) ≡ monoid_plus fm
-                 (@execWriter _ _ fm a) (@execWriter _ _ fm b).
-  Proof.
-    unfold execWriter, liftM2.
-    simpl.
-    destruct fml.
-    rewrite monoid_runit.
-    reflexivity.
-  Qed.
-
   (* Note: definitional equality *)
   Lemma evalWriter_Rtheta_liftM2
         (op: CarrierA -> CarrierA -> CarrierA)
@@ -426,44 +343,6 @@ Section Rtheta'Utils.
   Proof.
     reflexivity.
   Qed.
-
-  (* mkValue on evalWriter on non-collision value is identity *)
-  Lemma mkValue_evalWriter_VNC
-        (r : Rtheta' fm)
-    :
-      Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
-  Proof.
-    intros D N.
-    unfold Is_Val, compose in D.
-    unfold Not_Collision, compose, Is_Collision, compose in N.
-    unfold WriterMonadNoT.execWriter in D.
-    unfold WriterMonadNoT.execWriter in N.
-    unfold WriterMonadNoT.evalWriter.
-
-    unfold IsVal in D.
-    unfold IsCollision in N.
-    unfold mkValue.
-    simpl.
-
-    destruct r.
-    destruct runWriterT.
-    simpl in *.
-    apply Bool.negb_prop_intro in D.
-    apply Bool.negb_prop_intro in N.
-    apply Bool.Is_true_eq_true, Bool.negb_true_iff in D.
-    apply Bool.Is_true_eq_true, Bool.negb_true_iff in N.
-
-    destruct unIdent.
-    simpl in *.
-    destruct fm, fml.
-    simpl.
-    destruct psnd.
-    simpl in *.
-    subst.
-    rewrite monoid_runit.
-    reflexivity.
-  Qed.
-
 
   (* mkValue on evalWriter equiv wrt values *)
   Lemma mkValue_evalWriter
@@ -517,6 +396,130 @@ Section Rtheta'Utils.
   Proof.
       reflexivity.
   Qed.
+
+  Section WithMonoid.
+    Context {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}.
+
+    Lemma IsVal_mkValue:
+      ∀ (v:CarrierA), Is_Val (mkValue v).
+    Proof.
+      intros v.
+      unfold Is_Val, IsVal, mkValue.
+      simpl.
+      replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
+                            (@monoid_unit RthetaFlags fm)) with
+          (mkRthetaFlags false false).
+      - apply Bool.negb_prop_elim.
+        simpl.
+        trivial.
+      -
+        symmetry.
+        apply fml.
+    Qed.
+
+    Lemma Not_Collision_mkValue:
+      ∀ (v:CarrierA), Not_Collision (mkValue v).
+    Proof.
+      intros v.
+      unfold Not_Collision, Is_Collision, not, mkValue.
+      simpl.
+      replace (@monoid_plus RthetaFlags fm (mkRthetaFlags false false)
+                            (@monoid_unit RthetaFlags fm)) with
+          (mkRthetaFlags false false).
+      - apply Bool.negb_prop_elim.
+        simpl.
+        trivial.
+      -
+        symmetry.
+        apply fml.
+    Qed.
+
+    Lemma execWriter_liftM:
+      ∀ (f : CarrierA → CarrierA)
+        (x : Rtheta' fm),
+        execWriter (Monad.liftM f x) ≡ execWriter x.
+    Proof.
+      intros f x.
+      unfold Monad.liftM, execWriter.
+      destruct x.
+      simpl.
+      apply fml.
+    Qed.
+
+    Lemma execWriter_Rtheta_liftM2
+          (op: CarrierA -> CarrierA -> CarrierA)
+          {a b: Rtheta' fm}
+      :
+        execWriter (liftM2 op a b) ≡ monoid_plus fm
+                   (@execWriter _ _ fm a) (@execWriter _ _ fm b).
+    Proof.
+      unfold execWriter, liftM2.
+      simpl.
+      destruct fml.
+      rewrite monoid_runit.
+      reflexivity.
+    Qed.
+
+    (* mkValue on evalWriter on non-collision value is identity *)
+    Lemma mkValue_evalWriter_VNC
+          (r : Rtheta' fm)
+      :
+        Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
+    Proof.
+      intros D N.
+      unfold Is_Val, compose in D.
+      unfold Not_Collision, compose, Is_Collision, compose in N.
+      unfold WriterMonadNoT.execWriter in D.
+      unfold WriterMonadNoT.execWriter in N.
+      unfold WriterMonadNoT.evalWriter.
+
+      unfold IsVal in D.
+      unfold IsCollision in N.
+      unfold mkValue.
+      simpl.
+
+      destruct r.
+      destruct runWriterT.
+      simpl in *.
+      apply Bool.negb_prop_intro in D.
+      apply Bool.negb_prop_intro in N.
+      apply Bool.Is_true_eq_true, Bool.negb_true_iff in D.
+      apply Bool.Is_true_eq_true, Bool.negb_true_iff in N.
+
+      destruct unIdent.
+      simpl in *.
+      destruct fm, fml.
+      simpl.
+      destruct psnd.
+      simpl in *.
+      subst.
+      rewrite monoid_runit.
+      reflexivity.
+    Qed.
+
+    Lemma Is_Val_liftM
+          (f: CarrierA → CarrierA)
+          (r : Rtheta' fm):
+      Is_Val r → Is_Val (liftM f r).
+    Proof.
+      intros H.
+      unfold Is_Val, compose in *.
+      rewrite execWriter_liftM.
+      apply H.
+    Qed.
+
+    Lemma Not_Collision_liftM
+          (f: CarrierA → CarrierA)
+          (r : Rtheta' fm):
+      Not_Collision r -> Not_Collision (liftM f r).
+    Proof.
+      intros H.
+      unfold Not_Collision, not, Is_Collision, IsCollision, compose in *.
+      rewrite execWriter_liftM.
+      apply H.
+    Qed.
+
+  End WithMonoid.
 
 End Rtheta'Utils.
 
