@@ -9,7 +9,7 @@ proof=""
 inproof = False
 isintance = False
 
-lemma = re.compile(r"^\s*((Global|Local)\s+)?(Lemma|Theorem|Fact|Remark|Corollary|Proposition)\s+.*")
+lemma = re.compile(r"^\s*((Global|Local)\s+)?(Lemma|Theorem|Fact|Remark|Corollary|Proposition|Definition)\s+.*")
 instance = re.compile(r"^\s*((Global|Local)\s+)?(Instance)\s+.*")
 
 for s in sys.stdin:
