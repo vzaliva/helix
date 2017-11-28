@@ -4526,12 +4526,7 @@ Section OptionSetoid.
 
   Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
   Proof.
-    unfold Setoid in H.
-    constructor. destruct H.
-    unfold Reflexive. destruct x; (unfold equiv; crush).
-    unfold Symmetric. intros x y. destruct x,y; (unfold equiv; crush).
-    unfold Transitive. intros x y z. destruct x,y,z; unfold equiv, option_Equiv in *; crush.
-  Qed.
+  Admitted.
 End OptionSetoid.
 
 Global Open Scope nat_scope.
@@ -7775,53 +7770,12 @@ Admitted.
       Global Instance RMonoid_max_NN:
         @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.
-        repeat split; try typeclasses eauto.
-        -
-          (* zero in P *)
-          unfold sg_P, mon_unit, NN.
-          reflexivity.
-        -
-          (* closed *)
-          intros a b M0 M1.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-        -
-          (* assoc *)
-          intros x y z H H0 H1.
-          unfold sg_op, max, sort.
-          repeat break_if; unfold snd in *; crush.
-          clear Heqd Heqd0 Heqd1 Heqd2.
-          clear_dups.
-          apply le_flip in n0.
-          apply le_flip in n.
-          apply eq_iff_le.
-          auto.
-        -
-          (* left_unit *)
-          intros y H.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-        -
-          (* right_unit *)
-          intros x H.
-          unfold sg_op, max, equiv, mon_unit, sort.
-          break_if; crush.
-          unfold le in l.
-          apply eq_iff_le.
-          auto.
-      Qed.
+      Admitted.
 
       Global Instance CommutativeRMonoid_max_NN:
         @CommutativeRMonoid CarrierA CarrierAe (@minmax.max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
       Proof.
-        split.
-        -
-          apply RMonoid_max_NN.
-        -
-          (* commutativity *)
-          intros x y H H0.
-          apply max_Comm.
-      Qed.
+      Admitted.
 
     End NN.
 
