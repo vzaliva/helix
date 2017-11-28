@@ -3292,8 +3292,7 @@ Section OptionSetoid.
       end.
 
   Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
-  Proof.
-  Admitted.
+Admitted.
 End OptionSetoid.
 
 Global Open Scope nat_scope.
@@ -4150,40 +4149,22 @@ Admitted.
     Global Instance SHOperator_equiv_Reflexive
            {i o: nat}:
       Reflexive (@SHOperator_equiv i o).
-    Proof.
-      intros x.
-      unfold SHOperator_equiv.
-      destruct x.
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperator_equiv_Symmetric
            {i o: nat}:
       Symmetric (@SHOperator_equiv i o).
-    Proof.
-      intros x y.
-      unfold SHOperator_equiv.
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperator_equiv_Transitive
            {i o: nat}:
       Transitive (@SHOperator_equiv i o).
-    Proof.
-      intros x y z.
-      unfold SHOperator_equiv.
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperator_equiv_Equivalence
            {i o: nat}:
       Equivalence (@SHOperator_equiv i o).
-    Proof.
-      split.
-      apply SHOperator_equiv_Reflexive.
-      apply SHOperator_equiv_Symmetric.
-      apply SHOperator_equiv_Transitive.
-    Qed.
+Admitted.
 
     Global Instance SHOperatorFamily_equiv
            {i o n: nat}:
@@ -4193,44 +4174,22 @@ Admitted.
     Global Instance SHOperatorFamily_equiv_Reflexive
            {i o n: nat}:
       Reflexive (@SHOperatorFamily_equiv i o n).
-    Proof.
-      intros x.
-      unfold SHOperatorFamily_equiv.
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperatorFamily_equiv_Symmetric
            {i o n: nat}:
       Symmetric (@SHOperatorFamily_equiv i o n).
-    Proof.
-      intros x y.
-      unfold SHOperatorFamily_equiv.
-      intros H j jc.
-      specialize (H j jc).
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperatorFamily_equiv_Transitive
            {i o n: nat}:
       Transitive (@SHOperatorFamily_equiv i o n).
-    Proof.
-      intros x y z.
-      unfold SHOperatorFamily_equiv.
-      intros H H0 j jc.
-      specialize (H j jc).
-      specialize (H0 j jc).
-      auto.
-    Qed.
+Admitted.
 
     Global Instance SHOperatorFamily_equiv_Equivalence
            {i o n: nat}:
       Equivalence (@SHOperatorFamily_equiv i o n).
-    Proof.
-      split.
-      apply SHOperatorFamily_equiv_Reflexive.
-      apply SHOperatorFamily_equiv_Symmetric.
-      apply SHOperatorFamily_equiv_Transitive.
-    Qed.
+Admitted.
 
     Lemma SM_op_SHOperator
           (i o : nat):
@@ -4239,76 +4198,30 @@ Admitted.
 
     Global Instance SHOperator_op_proper {i o} :
       Proper ((=) ==> (=) ==> (=)) (@op i o).
-    Proof.
-      intros f f' Ef v v' Ev.
-      destruct f as [fop op_pre_post op_proper].
-      destruct f' as [fop' op_pre_post' op_proper'].
-      simpl.
-      apply Ef.
-      apply Ev.
-    Qed.
+Admitted.
 
     Global Instance get_family_op_proper {i o n} :
       Proper ((=) ==>
                   (forall_relation (λ j : nat, pointwise_relation (j < n) (=))))
              (@get_family_op i o n).
-    Proof.
-      intros a a' Ea.
-      unfold forall_relation, pointwise_relation.
-      intros j jc.
-      unfold get_family_op.
-      apply SHOperator_op_proper.
-      apply Ea.
-    Qed.
+Admitted.
 
     Global Instance SHOperator_op_arg_proper {i o} (a:@SHOperator i o):
       Proper ((=) ==> (=)) (op a).
-    Proof.
-      solve_proper.
-    Qed.
+Admitted.
 
     Global Instance mkSHOperatorFamily_proper
            {i o n: nat}:
       Proper (forall_relation (λ i : nat, pointwise_relation (i < n) equiv) ==> equiv)
              (mkSHOperatorFamily i o n).
-    Proof.
-      intros f0 f1 Ef.
-      unfold equiv, SHOperatorFamily_equiv.
-      auto.
-    Qed.
+Admitted.
 
     Global Instance op_Vforall_P_arg_proper
            {i o: nat}
            (P: Rtheta' fm -> Prop)
            (P_mor: Proper ((=) ==> iff) P):
       Proper ((=) ==> iff) (@op_Vforall_P i o P).
-    Proof.
-      intros x y E.
-      unfold op_Vforall_P.
-      split.
-      -
-        intros H x0.
-        specialize (H x0).
-        apply Vforall_nth_intro.
-        intros i0 ip.
-        apply Vforall_nth with (ip:=ip) in H.
-        setoid_replace (Vnth (op y x0) ip) with (Vnth (op x x0) ip).
-        apply H.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-      -
-        intros H x0.
-        specialize (H x0).
-        apply Vforall_nth_intro.
-        intros i0 ip.
-        apply Vforall_nth with (ip:=ip) in H.
-        setoid_replace (Vnth (op x x0) ip) with (Vnth (op y x0) ip).
-        apply H.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-    Qed.
+Admitted.
 
     Definition liftM_HOperator'
                {i o}
@@ -4322,14 +4235,7 @@ Admitted.
            `{HOP: HOperator i o op}
       :
         Proper ((=) ==> (=)) (liftM_HOperator' op).
-    Proof.
-      intros x y H.
-      unfold liftM_HOperator'.
-      unfold compose.
-      f_equiv.
-      rewrite H.
-      reflexivity.
-    Qed.
+Admitted.
 
     Definition liftM_HOperator
                {i o}
@@ -4354,13 +4260,7 @@ Admitted.
            (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
       :
         Proper ((=) ==> (=)) (@Apply_Family' i o n op_family_f).
-    Proof.
-      intros x y E.
-      unfold Apply_Family'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      apply op_family_f_proper, E.
-    Qed.
+Admitted.
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
     Definition Apply_Family
@@ -4372,35 +4272,14 @@ Admitted.
     Global Instance Apply_Family_proper
            {i o n}:
       Proper ((=) ==> (=) ==> (=)) (@Apply_Family i o n).
-    Proof.
-      intros f f' Ef v v' Ev.
-      unfold Apply_Family, Apply_Family'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      unfold get_family_op.
-      destruct f as [fmem].
-      destruct f' as [fmem'].
-      simpl.
-      unfold equiv, SHOperatorFamily_equiv in Ef. simpl in Ef.
-      rewrite <- Ev.
-      specialize (Ef j jc).
-      apply SHOperator_op_proper.
-      apply Ef.
-      reflexivity.
-    Qed.
+Admitted.
 
     (* Do we need this in presence of Apply_Family_proper ? *)
     Global Instance Apply_Family_arg_proper
            {i o n}
            (op_family: @SHOperatorFamily i o n):
       Proper ((=) ==> (=)) (@Apply_Family i o n op_family).
-    Proof.
-      intros x y E.
-      apply Apply_Family'_arg_proper.
-      - intros k kc.
-        apply get_family_proper.
-      - apply E.
-    Qed.
+Admitted.
 
     (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row.
        TODO: This could be expressed via set disjointness? *)
@@ -4434,14 +4313,7 @@ Admitted.
            {i o: nat}
            (f: index_map o i):
       Proper ((=) ==> (=)) (Gather' f).
-    Proof.
-      intros x y Exy.
-      unfold Gather', VnthIndexMapped.
-      vec_index_equiv j jp.
-      rewrite 2!Vbuild_nth.
-      apply Vnth_arg_equiv.
-      apply Exy.
-    Qed.
+Admitted.
 
     Definition IdOp
                {n: nat}
@@ -4483,17 +4355,7 @@ Admitted.
            (f: index_map i o)
            {f_inj: index_map_injective f}:
       Proper ((=) ==> (=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
-    Proof.
-      intros z0 z1 Ez x y Exy.
-      unfold Scatter'.
-      vec_index_equiv j jp.
-      simpl.
-      rewrite 2!Vbuild_nth.
-      break_match.
-      - apply Vnth_arg_equiv, Exy.
-      - rewrite Ez.
-        reflexivity.
-    Qed.
+Admitted.
 
     Definition Scatter
                {i o: nat}
@@ -4535,18 +4397,7 @@ Admitted.
            {i1 o2 o3}
       :
         Proper ((=) ==> (=) ==> (=)) (@SHCompose i1 o2 o3).
-    Proof.
-      intros x x' Ex y y' Ey.
-      unfold SHCompose.
-      unfold equiv, SHOperator_equiv in *.
-      destruct x, y, x', y'.
-      simpl in *.
-      rewrite <- Ey, <- Ex.
-      unfold equiv, ext_equiv.
-      apply compose_proper with (RA:=equiv) (RB:=equiv).
-      + apply op_proper0.
-      + apply op_proper1.
-    Qed.
+Admitted.
 
 
     Definition Constant_Family
@@ -4571,18 +4422,7 @@ Admitted.
            {i1 o2 o3 n: nat}
       :
         Proper ((=) ==> (=) ==> (=)) (@SHFamilyFamilyCompose i1 o2 o3 n).
-    Proof.
-      intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
-      intros j jc.
-      unfold SHFamilyFamilyCompose; simpl.
-
-      apply SHCompose_proper.
-      unfold equiv, ext_equiv, respectful in Ef.
-      apply Ef.
-      unfold equiv, ext_equiv, respectful in Eg.
-      apply Eg.
-    Qed.
+Admitted.
 
     (* Family/operator composition *)
     Definition  SHOperatorFamilyCompose
@@ -4599,17 +4439,7 @@ Admitted.
            {i1 o2 o3 n: nat}
       :
         Proper ((=) ==> (=) ==> (=)) (@SHOperatorFamilyCompose i1 o2 o3 n).
-    Proof.
-      intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
-      intros j jc.
-      unfold SHFamilyFamilyCompose; simpl.
-
-      apply SHCompose_proper.
-      apply Ef.
-      unfold equiv, ext_equiv, respectful in Eg.
-      apply Eg.
-    Qed.
+Admitted.
 
     Definition  SHFamilyOperatorCompose
                 {i1 o2 o3 n}
@@ -4625,17 +4455,7 @@ Admitted.
            {i1 o2 o3 n: nat}
       :
         Proper ((=) ==> (=) ==> (=)) (@SHFamilyOperatorCompose i1 o2 o3 n).
-    Proof.
-      intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
-      intros j jc.
-      unfold SHFamilyFamilyCompose; simpl.
-
-      apply SHCompose_proper.
-      unfold equiv, ext_equiv, respectful in Ef.
-      apply Ef.
-      apply Eg.
-    Qed.
+Admitted.
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
@@ -4651,18 +4471,7 @@ Admitted.
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
       Proper ((=) ==> (=)) (SHPointwise' f).
-    Proof.
-      intros x y Exy.
-      unfold SHPointwise'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM.
-      f_equiv.
-      apply evalWriter_proper.
-      apply Vnth_arg_equiv.
-      apply Exy.
-    Qed.
+Admitted.
 
     Definition SHPointwise
                {n: nat}
@@ -4684,37 +4493,7 @@ Admitted.
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
-    Proof.
-      intros x y E.
-      unfold SHBinOp'.
-
-      vec_index_equiv j jc.
-      unfold vector2pair.
-
-      repeat break_let.
-      rename Heqp into H0, Heqp0 into H1.
-
-      replace t with (fst (Vbreak x)) by (rewrite H0 ; reflexivity).
-      replace t0 with (snd (Vbreak x)) by (rewrite H0 ; reflexivity).
-      replace t1 with (fst (Vbreak y)) by (rewrite H1 ; reflexivity).
-      replace t2 with (snd (Vbreak y)) by (rewrite H1 ; reflexivity).
-      clear H0 H1.
-
-      rewrite 2!Vbuild_nth.
-
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM2.
-
-      f_equiv.
-      - apply evalWriter_proper.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-      - apply evalWriter_proper.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-    Qed.
+Admitted.
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
@@ -4828,17 +4607,7 @@ Admitted.
                                 (fun k : nat =>  @pointwise_relation (k < n)
                                                                 (svector fm i -> svector fm o) (=)))
               ==> (=) ==> (=)) (@Diamond' i o n fm).
-  Proof.
-    intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
-    unfold Diamond'.
-    apply MUnion'_proper; auto.
-
-    unfold Apply_Family'.
-    vec_index_equiv j jc.
-    rewrite 2!Vbuild_nth.
-    unfold forall_relation, pointwise_relation in Ef.
-    apply Ef, Ev.
-  Qed.
+Admitted.
 
   (* One might think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
   Global Instance Diamond'_arg_proper
@@ -4850,13 +4619,7 @@ Admitted.
          (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
          (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
     : Proper ((=) ==> (=)) (Diamond' dot initial op_family_f).
-  Proof.
-    apply Diamond'_proper.
-    - apply pdot.
-    - reflexivity.
-    - unfold forall_relation, pointwise_relation.
-      apply op_family_f_proper.
-  Qed.
+Admitted.
 
   Definition IUnion
              {i o n}
@@ -4919,14 +4682,7 @@ Admitted.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
     :
       Proper ((=) ==> (=) ==> (=)) (@IReduction i o n dot pdot).
-  Proof.
-    intros i0 i1 Ei x y E.
-    unfold IReduction, equiv,  SHOperator_equiv.
-    simpl.
-    rewrite E, Ei.
-    f_equiv; auto.
-    f_equiv; auto.
-  Qed.
+Admitted.
 
 
 End SigmaHCOL_Operators.
@@ -5250,17 +5006,7 @@ Section RthetaSafetyCast.
 
   Global Instance SafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@SafeCast' i o).
-  Proof.
-    intros f f' Ef v v' Ev.
-    unfold SafeCast', compose, rsvector2rvector, rvector2rsvector.
-    f_equiv.
-    vec_index_equiv j jc.
-    apply Vnth_arg_equiv.
-    unfold equiv, ext_equiv, respectful in Ef.
-    apply Ef.
-    f_equiv.
-    apply Ev.
-  Qed.
+Admitted.
 
   Definition SafeCast {i o}
              (f: @SHOperator Monoid_RthetaSafeFlags i o)
@@ -5277,19 +5023,7 @@ Section RthetaSafetyCast.
 
   Global Instance SafeCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@SafeCast i o).
-  Proof.
-    intros f f' Ev.
-    unfold SafeCast.
-    unfold equiv, SHOperator_equiv.
-    simpl.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
-
-    apply SafeCast'_proper.
-    apply Ev.
-  Qed.
+Admitted.
 
   Definition SafeFamilyCast {i o n}
              (f: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
@@ -5301,20 +5035,7 @@ Section RthetaSafetyCast.
 
   Global Instance SafeFamilyCast_proper (i o n:nat):
     Proper (equiv ==> equiv) (@SafeFamilyCast i o n).
-  Proof.
-    intros f f' Ev.
-    unfold SafeFamilyCast.
-    unfold equiv, SHOperatorFamily_equiv.
-    simpl.
-    intros j jc.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
-
-    apply SafeCast'_proper.
-    apply Ev.
-  Qed.
+Admitted.
 
   Definition UnSafeCast'
              {o i}
@@ -5325,17 +5046,7 @@ Section RthetaSafetyCast.
 
   Global Instance UnSafeCast'_proper (i o : nat):
     Proper (equiv ==> equiv ==> equiv) (@UnSafeCast' i o).
-  Proof.
-    intros f f' Ef v v' Ev.
-    unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
-    f_equiv.
-    vec_index_equiv j jc.
-    apply Vnth_arg_equiv.
-    unfold equiv, ext_equiv, respectful in Ef.
-    apply Ef.
-    f_equiv.
-    apply Ev.
-  Qed.
+Admitted.
 
   Definition UnSafeCast {i o}
              (f: @SHOperator Monoid_RthetaFlags i o)
@@ -5352,19 +5063,7 @@ Section RthetaSafetyCast.
 
   Global Instance UnSafeCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@UnSafeCast i o).
-  Proof.
-    intros f f' Ev.
-    unfold UnSafeCast.
-    unfold equiv, SHOperator_equiv.
-    simpl.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
-
-    apply UnSafeCast'_proper.
-    apply Ev.
-  Qed.
+Admitted.
 
 
   Definition UnSafeFamilyCast {i o n}
@@ -5378,20 +5077,7 @@ Section RthetaSafetyCast.
 
   Global Instance UnSafeFamilyCast_proper (i o n:nat):
     Proper (equiv ==> equiv) (@UnSafeFamilyCast i o n).
-  Proof.
-    intros f f' Ev.
-    unfold UnSafeFamilyCast.
-    unfold equiv, SHOperatorFamily_equiv.
-    simpl.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
-    intros j jc.
-
-    apply UnSafeCast'_proper.
-    apply Ev.
-  Qed.
+Admitted.
 
 End RthetaSafetyCast.
 
@@ -6886,8 +6572,7 @@ Import Spiral_DOT_FinNatSet.Spiral.FinNatSet.
                          (S (S (S (S O)))) (S O) (S O)
                          (h_bound_second_half Monoid_RthetaSafeFlags
                             MonoidLaws_SafeRthetaFlags (S O)
-                            (S (S (S (S O)))))))))))) (dynwin_SHCOL1 a).
-  Proof.
+                            (S (S (S (S O)))))))))))) (dynwin_SHCOL1 a).  Proof.
 
     (* --- BEGIN: hack ---
     I would expect the following to work here:
