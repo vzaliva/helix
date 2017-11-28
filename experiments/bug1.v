@@ -5104,20 +5104,7 @@ Section TSigmaHCOLOperators.
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot).
-  Proof.
-    intros f f' Ef g g' Eg x y Ex.
-    unfold HTSUMUnion'.
-    unfold Vec2Union.
-    vec_index_equiv j jp.
-    rewrite 2!Vnth_map2.
-    setoid_replace (Vnth (f x) jp) with (Vnth (f' y) jp).
-    setoid_replace (Vnth (g x) jp) with (Vnth (g' y) jp).
-    reflexivity.
-    - apply Vnth_arg_equiv.
-      apply Eg, Ex.
-    - apply Vnth_arg_equiv.
-      apply Ef, Ex.
-  Qed.
+Admitted.
 
   Global Instance HTSUMUnion'_arg_proper {i o}
          (op1: svector fm i -> svector fm o)
@@ -5127,14 +5114,7 @@ Section TSigmaHCOLOperators.
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot op1 op2).
-  Proof.
-    partial_application_tactic. instantiate (1 := equiv).
-    partial_application_tactic. instantiate (1 := equiv).
-    apply HTSUMUnion'_proper.
-    - apply dot_mor.
-    - apply op1_proper.
-    - apply op2_proper.
-  Qed.
+Admitted.
 
   Definition HTSUMUnion {i o}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -5156,14 +5136,7 @@ Section TSigmaHCOLOperators.
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=) ==> (=))
              (@HTSUMUnion i o dot dot_mor).
-  Proof.
-    intros x x' Ex y y' Ey.
-    unfold HTSUMUnion.
-    unfold equiv, SHOperator_equiv in *.
-    destruct x, y, x', y'.
-    simpl in *.
-    apply HTSUMUnion'_proper; assumption.
-  Qed.
+Admitted.
 
 End TSigmaHCOLOperators.
 
@@ -5836,19 +5809,7 @@ Admitted.
           (Vmap2 f (n:=n))
           (Vconst z n)
           (Vforall P (n:=n)).
-      Proof.
-        split.
-        +
-          unfold sg_P, mon_unit.
-          apply Vforall_Vconst.
-          apply f_mon.
-        +
-          intros a b Ha Hb.
-          apply Vforall_Vmap2.
-          apply f_mon.
-          apply Ha.
-          apply Hb.
-      Qed.
+Admitted.
 
       Global Instance VecRMonoidMap2
              {f_mon: @RMonoid A Ae f z P}
@@ -5859,37 +5820,7 @@ Admitted.
             (Vmap2 f (n:=n))
             (Vconst z n)
             (Vforall P (n:=n)).
-      Proof.
-        split; try typeclasses eauto.
-        +
-          intros a b c Ha Hb Hc.
-          unfold sg_op.
-          vec_index_equiv j jc.
-          repeat rewrite Vnth_map2.
-          destruct f_mon.
-          apply rmonoid_ass0.
-          apply Vforall_nth, Ha.
-          apply Vforall_nth, Hb.
-          apply Vforall_nth, Hc.
-        +
-          intros y H.
-          unfold sg_op.
-          vec_index_equiv j jc.
-          rewrite Vnth_map2.
-          destruct f_mon.
-          unfold mon_unit. rewrite Vnth_const.
-          apply rmonoid_left_id0.
-          apply Vforall_nth, H.
-        +
-          intros y H.
-          unfold sg_op.
-          vec_index_equiv j jc.
-          rewrite Vnth_map2.
-          destruct f_mon.
-          unfold mon_unit. rewrite Vnth_const.
-          apply rmonoid_right_id0.
-          apply Vforall_nth, H.
-      Qed.
+Admitted.
 
       Global Instance VecCommutativeRMonoidMap2
              {f_mon: @CommutativeRMonoid A Ae f z P}
@@ -6031,13 +5962,11 @@ Admitted.
 
       Global Instance RMonoid_max_NN:
         @RMonoid CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
-      Proof.
-      Admitted.
+Admitted.
 
       Global Instance CommutativeRMonoid_max_NN:
         @CommutativeRMonoid CarrierA CarrierAe (@minmax.max CarrierA CarrierAle CarrierAledec) CarrierAz NN.
-      Proof.
-      Admitted.
+Admitted.
 
     End NN.
 
