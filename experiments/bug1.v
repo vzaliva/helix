@@ -2862,119 +2862,47 @@ Admitted.
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
       HOperator (@HPointwise n f pF).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HPointwise.
-      vec_index_equiv i ip.
-      rewrite 2!Vbuild_nth.
-      assert(Vnth x ip = Vnth y ip).
-      apply Vnth_arg_equiv; assumption.
-      rewrite H.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HScalarProd.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HBinOp_HOperator {o}
            (f: nat -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f pF).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HBinOp.
-      unfold compose, Lst, vector2pair.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HReduction_HOperator {i}
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (idv: CarrierA):
       HOperator (@HReduction i f pF idv).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HReduction .
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HEvalPolynomial_HOperator {n} (a: avector n):
       HOperator (@HEvalPolynomial n a).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HEvalPolynomial.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HPrepend_HOperator {i n} (a:avector n):
       HOperator (@HPrepend i n a).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HPrepend.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HMonomialEnumerator_HOperator n:
       HOperator (@HMonomialEnumerator n).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HMonomialEnumerator.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HInduction_HOperator {n:nat}
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (initial: CarrierA):
       HOperator (HInduction n f initial).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HInduction.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
     Global Instance HVMinus_HOperator h:
       HOperator (@HVMinus h).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HVMinus.
-      unfold compose, Lst, vector2pair.
-      rewrite E.
-      reflexivity.
-    Qed.
+    Admitted.
 
   End HCOL_operators.
 End HCOL_Language.
