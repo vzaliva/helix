@@ -830,47 +830,6 @@ Lemma abs_always_nonneg
   : forall x, 0 ≤ abs x.
 Admitted.
 
-Lemma abs_negate_s A (x:A)
-      `{Ae: Equiv A}
-      `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A}
-      `{Aneg: Negate A}
-      `{Ale: Le A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Az Aneg}
-      `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-  : abs (-x) = abs x.
-Proof with trivial.
-  destruct (total (≤) 0 x).
-  -
-    rewrite (abs_nonneg x), abs_nonpos.
-    apply rings.negate_involutive.
-    apply flip_nonneg_negate.
-    apply H.
-    apply H.
-  -
-    rewrite (abs_nonneg (-x)), abs_nonpos.
-    reflexivity.
-    apply H.
-    apply flip_nonpos_negate.
-    apply H.
-Qed.
-
-Lemma abs_nz_nz
-      `{Ae: Equiv A}
-      `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A}
-      `{Aneg: Negate A}
-      `{Ale: Le A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Az Aneg}
-      `{Ar: !Ring A}
-      `{Aledec: ∀ x y: A, Decision (x ≤ y)}
-  :
-    forall v : A, v ≠ zero <-> abs v ≠ zero.
-Admitted.
-
 Global Instance abs_idempotent
          `{Ae: Equiv A}
          `{Az: Zero A} `{A1: One A}
@@ -940,7 +899,7 @@ Admitted.
 
 (* Similar to `Vnth_cast_aux` but arguments in equality hypotheis are swapped *)
 Lemma eq_lt_lt {n m k: nat} : n ≡ m -> k < n -> k < m.
-Proof. intros; omega. Qed.
+Admitted.
 
 Lemma S_pred_simpl:
   forall n : nat, n ≢ 0 -> S (Init.Nat.pred n) ≡ n.
@@ -1125,9 +1084,8 @@ Lemma Vbuild_1 B gen:
   @Vbuild B 1 gen = [gen 0 (lt_0_Sn 0)].
 Admitted.
 
-Fact lt_0_SSn:  forall n:nat, 0<S (S n). Proof. intros;omega. Qed.
-
-Fact lt_1_SSn:  forall n:nat, 1<S (S n). Proof. intros; omega. Qed.
+Fact lt_0_SSn:  forall n:nat, 0<S (S n). Admitted.
+Fact lt_1_SSn:  forall n:nat, 1<S (S n). Admitted.
 
 Lemma Vbuild_2 B gen:
   @Vbuild B 2 gen = [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
