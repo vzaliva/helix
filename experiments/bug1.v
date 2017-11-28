@@ -9638,78 +9638,410 @@ Admitted.
                                    F).
 Admitted.
 
-  Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
-    : dynwin_SHCOL a = dynwin_SHCOL1 a. Proof.
-    unfold dynwin_SHCOL.
-    unfold USparseEmbedding.
 
-    (* normalize to left-associativity of compose *)
-    repeat rewrite <- SHCompose_assoc; try apply MonoidLaws_RthetaFlags.
-    rewrite SHCompose_mid_assoc with (g:=SHPointwise _ _); try apply MonoidLaws_RthetaFlags.
-
-    (* ### RULE: Reduction_ISumReduction *)
-    rewrite rewrite_PointWise_ISumUnion.
-    all:revgoals.
-    (* solve 2 sub-dependent goals *)
-    { apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row. }
-    { intros j jc; apply abs_0_s. }
-
-    (* Re-associate compositions before applying next rule *)
-    rewrite SHCompose_mid_assoc with (f:=ISumUnion _); try apply MonoidLaws_RthetaFlags.
-
-    (* ### RULE: Reduction_ISumReduction *)
-    rewrite rewrite_Reduction_IReduction_max_plus.
-    all:revgoals.
-    {
-      remember (SparseEmbedding  _ _ _ _) as t.
-      generalize dependent t.
-      intros fam _.
-
-      apply Apply_Family_Vforall_P_move_P.
-      intros x.
-
-      apply Vforall_nth_intro.
-      intros t tc.
-      rewrite SHPointwise_nth_eq.
-      unfold Is_NonNegative, liftRthetaP.
-      rewrite evalWriter_Rtheta_liftM.
-      unfold IgnoreIndex, const.
-      apply abs_always_nonneg.
-      apply MonoidLaws_RthetaFlags.
-    }
-
-    {
-      remember (SparseEmbedding _ _ _ _ _) as fam.
-
-      assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0).
-      {
-        subst fam.
-        apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
-      }
-      generalize dependent fam.
-      intros fam _ H. clear a.
-
-      apply SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row.
-      +
-        apply H.
-      +
-        intros i ic v V.
-        unfold IgnoreIndex, const in V.
-        apply ne_sym in V.
-        apply ne_sym.
-        apply abs_nz_nz, V.
-    }
-
-    repeat rewrite SHCompose_assoc; try apply MonoidLaws_RthetaFlags.
-    rewrite rewrite_ISumXXX_YYY_IReduction_GathH.
-    repeat rewrite <- SHCompose_assoc; try apply MonoidLaws_RthetaFlags.
-
-    rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
-
-    unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
-    setoid_rewrite SHCompose_assoc at 5; try apply MonoidLaws_RthetaFlags.
-    setoid_rewrite <- SHCompose_assoc at 1; try apply MonoidLaws_RthetaFlags.
-
+  Lemma Bug: forall a : vector CarrierA (S (S (S O))),
+  @equiv (@SHOperator Monoid_RthetaFlags (S (S (S (S (S O))))) (S O))
+    (@SHOperator_equiv Monoid_RthetaFlags (S (S (S (S (S O))))) (S O))
+    (@SHCompose Monoid_RthetaFlags (S (S (S (S (S O))))) (S (S O))
+       (S O)
+       (@SafeCast (S (S O)) (S O)
+          (@SHBinOp (S O) (@IgnoreIndex2 CarrierA Zless)
+             (@Reflexive_partial_app_morphism
+                (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                (forall (_ : nat) (_ : CarrierA) (_ : CarrierA), CarrierA)
+                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                   (@equiv CarrierA CarrierAe)
+                   (@equiv (forall _ : CarrierA, CarrierA)
+                      (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                (@respectful nat (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                   (@equiv nat peano_naturals.nat_equiv)
+                   (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                      (@equiv CarrierA CarrierAe)
+                      (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                         (@equiv CarrierA CarrierAe)))) (@IgnoreIndex2 CarrierA)
+                (@IgnoreIndex2_proper CarrierA CarrierAe) Zless
+                (@proper_proper_proxy (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                   Zless
+                   (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                      (@equiv CarrierA CarrierAe)
+                      (@equiv (forall _ : CarrierA, CarrierA)
+                         (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                   Zless_proper))))
+       (@HTSUMUnion Monoid_RthetaFlags (S (S (S (S (S O)))))
+          (S (S O)) (@plus CarrierA CarrierAplus) CarrierAPlus_proper
+          (@SHCompose Monoid_RthetaFlags (S (S (S (S (S O)))))
+             (S O) (S (S O))
+             (@SHCompose Monoid_RthetaFlags (S O) (S (S (S O)))
+                (S (S O))
+                (@SHCompose Monoid_RthetaFlags (S (S (S O)))
+                   (S (S (S (S (S (S O)))))) (S (S O))
+                   (@SHCompose Monoid_RthetaFlags (S (S (S (S (S (S O))))))
+                      (S (S (S O))) (S (S O))
+                      (@SHCompose Monoid_RthetaFlags (S (S (S O)))
+                         (S O) (S (S O))
+                         (@ScatH Monoid_RthetaFlags (S O) (S (S O)) O
+                            (S O)
+                            (h_bound_first_half Monoid_RthetaSafeFlags
+                               MonoidLaws_SafeRthetaFlags (S O)
+                               (S O))
+                            (@ScatH_stride1_constr Monoid_RthetaSafeFlags
+                               MonoidLaws_SafeRthetaFlags (S O)
+                               (S (S O))) (@zero CarrierA CarrierAz))
+                         (@liftM_HOperator Monoid_RthetaFlags
+                            (S (S (S O))) (S O)
+                            (@HReduction (S (S (S O))) (@plus CarrierA CarrierAplus)
+                               CarrierAPlus_proper (@zero CarrierA CarrierAz))
+                            (@HReduction_HOperator (S (S (S O)))
+                               (@plus CarrierA CarrierAplus) CarrierAPlus_proper
+                               (@zero CarrierA CarrierAz))))
+                      (@SafeCast (S (S (S (S (S (S O)))))) (S (S (S O)))
+                         (@SHBinOp (S (S (S O)))
+                            (@IgnoreIndex2 CarrierA (@mult CarrierA CarrierAmult))
+                            (@Reflexive_partial_app_morphism
+                               (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                               (forall (_ : nat) (_ : CarrierA) (_ : CarrierA), CarrierA)
+                               (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                  (@equiv CarrierA CarrierAe)
+                                  (@equiv (forall _ : CarrierA, CarrierA)
+                                     (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                               (@respectful nat
+                                  (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                  (@equiv nat peano_naturals.nat_equiv)
+                                  (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                     (@equiv CarrierA CarrierAe)
+                                     (@respectful CarrierA CarrierA
+                                        (@equiv CarrierA CarrierAe)
+                                        (@equiv CarrierA CarrierAe))))
+                               (@IgnoreIndex2 CarrierA)
+                               (@IgnoreIndex2_proper CarrierA CarrierAe)
+                               (@mult CarrierA CarrierAmult)
+                               (@proper_proper_proxy
+                                  (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                  (@mult CarrierA CarrierAmult)
+                                  (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                     (@equiv CarrierA CarrierAe)
+                                     (@equiv (forall _ : CarrierA, CarrierA)
+                                        (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                                  (@abstract_algebra.sg_op_proper CarrierA CarrierAe
+                                     CarrierAmult
+                                     (@abstract_algebra.monoid_semigroup CarrierA
+                                        CarrierAe CarrierAmult
+                                        (@one_is_mon_unit CarrierA CarrierA1)
+                                        (@abstract_algebra.commonoid_mon CarrierA
+                                           CarrierAe CarrierAmult
+                                           (@one_is_mon_unit CarrierA CarrierA1)
+                                           (@abstract_algebra.semimult_monoid CarrierA
+                                              CarrierAe CarrierAplus CarrierAmult
+                                              CarrierAz CarrierA1
+                                              (@rings.Ring_Semi CarrierA CarrierAe
+                                                 CarrierAplus CarrierAmult CarrierAz
+                                                 CarrierA1 CarrierAneg CarrierAr))))))))))
+                   (@liftM_HOperator Monoid_RthetaFlags (S (S (S O)))
+                      (S (S (S (S (S (S O)))))) (@HPrepend (S (S (S O))) (S (S (S O))) a)
+                      (@HPrepend_HOperator (S (S (S O))) (S (S (S O))) a)))
+                (@liftM_HOperator Monoid_RthetaFlags (S O) (S (S (S O)))
+                   (@HInduction (S (S (S O))) (@mult CarrierA CarrierAmult)
+                      (@abstract_algebra.sg_op_proper CarrierA CarrierAe CarrierAmult
+                         (@abstract_algebra.monoid_semigroup CarrierA CarrierAe
+                            CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                            (@abstract_algebra.commonoid_mon CarrierA CarrierAe
+                               CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                               (@abstract_algebra.semimult_monoid CarrierA CarrierAe
+                                  CarrierAplus CarrierAmult CarrierAz CarrierA1
+                                  (@rings.Ring_Semi CarrierA CarrierAe CarrierAplus
+                                     CarrierAmult CarrierAz CarrierA1 CarrierAneg
+                                     CarrierAr))))) (@one CarrierA CarrierA1))
+                   (@HInduction_HOperator (S (S (S O))) (@mult CarrierA CarrierAmult)
+                      (@abstract_algebra.sg_op_proper CarrierA CarrierAe CarrierAmult
+                         (@abstract_algebra.monoid_semigroup CarrierA CarrierAe
+                            CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                            (@abstract_algebra.commonoid_mon CarrierA CarrierAe
+                               CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                               (@abstract_algebra.semimult_monoid CarrierA CarrierAe
+                                  CarrierAplus CarrierAmult CarrierAz CarrierA1
+                                  (@rings.Ring_Semi CarrierA CarrierAe CarrierAplus
+                                     CarrierAmult CarrierAz CarrierA1 CarrierAneg
+                                     CarrierAr))))) (@one CarrierA CarrierA1))))
+             (@GathH Monoid_RthetaFlags (S (S (S (S (S O)))))
+                (S O) O (S O)
+                (h_bound_first_half Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags
+                   (S O) (S (S (S (S O)))))))
+          (@SHCompose Monoid_RthetaFlags (S (S (S (S (S O)))))
+             (S O) (S (S O))
+             (@ScatH Monoid_RthetaFlags (S O) (S (S O)) (S O)
+                (S O)
+                (h_bound_second_half Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags
+                   (S O) (S O))
+                (@ScatH_stride1_constr Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags
+                   (S O) (S (S O))) (@zero CarrierA CarrierAz))
+             (@SafeCast (S (S (S (S (S O))))) (S O)
+                (@IReduction (S (S (S (S (S O))))) (S O) (S (S O))
+                   (@minmax.max CarrierA CarrierAle CarrierAledec)
+                   (@abstract_algebra.sg_op_proper CarrierA CarrierAe
+                      (fun x y : CarrierA =>
+                       @snd CarrierA CarrierA
+                         (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                      (@abstract_algebra.comsg_setoid CarrierA CarrierAe
+                         (fun x y : CarrierA =>
+                          @snd CarrierA CarrierA
+                            (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                         (@abstract_algebra.semilattice_sg CarrierA CarrierAe
+                            (fun x y : CarrierA =>
+                             @snd CarrierA CarrierA
+                               (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                            (@abstract_algebra.join_semilattice CarrierA CarrierAe
+                               (fun x y : CarrierA =>
+                                @snd CarrierA CarrierA
+                                  (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                               (@abstract_algebra.lattice_join CarrierA CarrierAe
+                                  (fun x y : CarrierA =>
+                                   @snd CarrierA CarrierA
+                                     (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                                  (@minmax.min CarrierA CarrierAle CarrierAledec)
+                                  (@abstract_algebra.distr_lattice_lattice CarrierA
+                                     CarrierAe
+                                     (fun x y : CarrierA =>
+                                      @snd CarrierA CarrierA
+                                        (@minmax.sort CarrierA CarrierAle CarrierAledec x
+                                           y))
+                                     (@minmax.min CarrierA CarrierAle CarrierAledec)
+                                     (@minmax.DistributiveLattice_instance_0 CarrierA
+                                        CarrierAe CarrierAle CarrierAto CarrierAledec)))))))
+                   (@zero CarrierA CarrierAz)
+                   (@SHFamilyOperatorCompose Monoid_RthetaSafeFlags
+                      (S (S (S (S (S O))))) (S (S (S (S O))))
+                      (S O) (S (S O))
+                      (mkSHOperatorFamily Monoid_RthetaSafeFlags
+                         (S (S (S (S O)))) (S O) (S (S O))
+                         (fun (j : nat) (jc : @lt nat Peano.lt j (S (S O))) =>
+                          @UnSafeCast (S (S (S (S O)))) (S O)
+                            (@SHCompose Monoid_RthetaFlags (S (S (S (S O))))
+                               (S O) (S O)
+                               (@SHCompose Monoid_RthetaFlags
+                                  (S O) (S (S O)) (S O)
+                                  (@liftM_HOperator Monoid_RthetaFlags
+                                     (S (S O)) (S O)
+                                     (@HReduction (S (S O))
+                                        (@minmax.max CarrierA CarrierAle CarrierAledec)
+                                        (@abstract_algebra.sg_op_proper CarrierA
+                                           CarrierAe
+                                           (fun x y : CarrierA =>
+                                            @snd CarrierA CarrierA
+                                              (@minmax.sort CarrierA CarrierAle
+                                                 CarrierAledec x y))
+                                           (@abstract_algebra.comsg_setoid CarrierA
+                                              CarrierAe
+                                              (fun x y : CarrierA =>
+                                               @snd CarrierA CarrierA
+                                                 (@minmax.sort CarrierA CarrierAle
+                                                    CarrierAledec x y))
+                                              (@abstract_algebra.semilattice_sg CarrierA
+                                                 CarrierAe
+                                                 (fun x y : CarrierA =>
+                                                  @snd CarrierA CarrierA
+                                                    (@minmax.sort CarrierA CarrierAle
+                                                       CarrierAledec x y))
+                                                 (@abstract_algebra.join_semilattice
+                                                    CarrierA CarrierAe
+                                                    (fun x y : CarrierA =>
+                                                     @snd CarrierA CarrierA
+                                                       (@minmax.sort CarrierA CarrierAle
+                                                          CarrierAledec x y))
+                                                    (@abstract_algebra.lattice_join
+                                                       CarrierA CarrierAe
+                                                       (fun x y : CarrierA =>
+                                                        @snd CarrierA CarrierA
+                                                          (@minmax.sort CarrierA
+                                                            CarrierAle CarrierAledec x y))
+                                                       (@minmax.min CarrierA CarrierAle
+                                                          CarrierAledec)
+                                                       (@abstract_algebra.distr_lattice_lattice
+                                                          CarrierA CarrierAe
+                                                          (fun x y : CarrierA =>
+                                                           @snd CarrierA CarrierA
+                                                            (@minmax.sort CarrierA
+                                                            CarrierAle CarrierAledec x y))
+                                                          (@minmax.min CarrierA
+                                                            CarrierAle CarrierAledec)
+                                                          (@minmax.DistributiveLattice_instance_0
+                                                            CarrierA CarrierAe CarrierAle
+                                                            CarrierAto CarrierAledec)))))))
+                                        (@zero CarrierA CarrierAz))
+                                     (@HReduction_HOperator (S (S O))
+                                        (@minmax.max CarrierA CarrierAle CarrierAledec)
+                                        (@abstract_algebra.sg_op_proper CarrierA
+                                           CarrierAe
+                                           (fun x y : CarrierA =>
+                                            @snd CarrierA CarrierA
+                                              (@minmax.sort CarrierA CarrierAle
+                                                 CarrierAledec x y))
+                                           (@abstract_algebra.comsg_setoid CarrierA
+                                              CarrierAe
+                                              (fun x y : CarrierA =>
+                                               @snd CarrierA CarrierA
+                                                 (@minmax.sort CarrierA CarrierAle
+                                                    CarrierAledec x y))
+                                              (@abstract_algebra.semilattice_sg CarrierA
+                                                 CarrierAe
+                                                 (fun x y : CarrierA =>
+                                                  @snd CarrierA CarrierA
+                                                    (@minmax.sort CarrierA CarrierAle
+                                                       CarrierAledec x y))
+                                                 (@abstract_algebra.join_semilattice
+                                                    CarrierA CarrierAe
+                                                    (fun x y : CarrierA =>
+                                                     @snd CarrierA CarrierA
+                                                       (@minmax.sort CarrierA CarrierAle
+                                                          CarrierAledec x y))
+                                                    (@abstract_algebra.lattice_join
+                                                       CarrierA CarrierAe
+                                                       (fun x y : CarrierA =>
+                                                        @snd CarrierA CarrierA
+                                                          (@minmax.sort CarrierA
+                                                            CarrierAle CarrierAledec x y))
+                                                       (@minmax.min CarrierA CarrierAle
+                                                          CarrierAledec)
+                                                       (@abstract_algebra.distr_lattice_lattice
+                                                          CarrierA CarrierAe
+                                                          (fun x y : CarrierA =>
+                                                           @snd CarrierA CarrierA
+                                                            (@minmax.sort CarrierA
+                                                            CarrierAle CarrierAledec x y))
+                                                          (@minmax.min CarrierA
+                                                            CarrierAle CarrierAledec)
+                                                          (@minmax.DistributiveLattice_instance_0
+                                                            CarrierA CarrierAe CarrierAle
+                                                            CarrierAto CarrierAledec)))))))
+                                        (@zero CarrierA CarrierAz)))
+                                  (@Scatter Monoid_RthetaFlags
+                                     (S O) (S (S O))
+                                     (@h_index_map (S O) (S (S O)) j
+                                        (S O)
+                                        (ScatH_1_to_n_range_bound Monoid_RthetaSafeFlags
+                                           MonoidLaws_SafeRthetaFlags j
+                                           (S (S O)) (S O) jc))
+                                     (@index_map_family_member_injective
+                                        (S O) (S (S O)) (S (S O))
+                                        (IndexMapFamily (S O)
+                                           (S (S O)) (S (S O))
+                                           (fun (j0 : nat) (jc0 : Peano.lt j0 (S (S O)))
+                                            =>
+                                            @h_index_map (S O)
+                                              (S (S O)) j0 (S O)
+                                              (ScatH_1_to_n_range_bound
+                                                 Monoid_RthetaSafeFlags
+                                                 MonoidLaws_SafeRthetaFlags j0
+                                                 (S (S O)) (S O) jc0)))
+                                        (@h_j_1_family_injective (S (S O))) j jc)
+                                     (@zero CarrierA CarrierAz)))
+                               (@SHCompose Monoid_RthetaFlags
+                                  (S (S (S (S O)))) (S (S O))
+                                  (S O)
+                                  (@SHCompose Monoid_RthetaFlags
+                                     (S (S O)) (S O) (S O)
+                                     (@SHPointwise Monoid_RthetaFlags
+                                        (S O)
+                                        (@IgnoreIndex CarrierA
+                                           (S O)
+                                           (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                              CarrierAneg CarrierAabs))
+                                        (@Reflexive_partial_app_morphism
+                                           (forall _ : CarrierA, CarrierA)
+                                           (forall
+                                              (_ : @sig nat
+                                                     (fun i : nat => Peano.lt i (S O)))
+                                              (_ : CarrierA), CarrierA)
+                                           (@respectful CarrierA CarrierA
+                                              (@equiv CarrierA CarrierAe)
+                                              (@equiv CarrierA CarrierAe))
+                                           (@respectful
+                                              (@sig nat (fun i : nat => Peano.lt i (S O)))
+                                              (forall _ : CarrierA, CarrierA)
+                                              (@equiv
+                                                 (@sig nat
+                                                    (fun i : nat => Peano.lt i (S O)))
+                                                 (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                    (fun i : nat => Peano.lt i (S O))))
+                                              (@respectful CarrierA CarrierA
+                                                 (@equiv CarrierA CarrierAe)
+                                                 (@equiv CarrierA CarrierAe)))
+                                           (@IgnoreIndex CarrierA (S O))
+                                           (@IgnoredIndex_proper (S O) CarrierA CarrierAe)
+                                           (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                              CarrierAneg CarrierAabs)
+                                           (@proper_proper_proxy
+                                              (forall _ : CarrierA, CarrierA)
+                                              (@abs CarrierA CarrierAe CarrierAle
+                                                 CarrierAz CarrierAneg CarrierAabs)
+                                              (@respectful CarrierA CarrierA
+                                                 (@equiv CarrierA CarrierAe)
+                                                 (@equiv CarrierA CarrierAe))
+                                              (@abstract_algebra.sm_proper CarrierA
+                                                 CarrierA CarrierAe CarrierAe
+                                                 (@abs CarrierA CarrierAe CarrierAle
+                                                    CarrierAz CarrierAneg CarrierAabs)
+                                                 (@abs_Setoid_Morphism CarrierA CarrierAe
+                                                    CarrierAplus CarrierAmult CarrierAz
+                                                    CarrierA1 CarrierAneg CarrierAr
+                                                    CarrierAsetoid CarrierAle CarrierAto
+                                                    CarrierAabs)))))
+                                     (@SafeCast (S (S O)) (S O)
+                                        (@SHBinOp (S O)
+                                           (@SwapIndex2 CarrierA j
+                                              (@IgnoreIndex2 CarrierA sub))
+                                           (@SwapIndex2_specialized_proper CarrierA
+                                              CarrierAe CarrierAsetoid j
+                                              (@IgnoreIndex2 CarrierA sub)
+                                              (@Reflexive_partial_app_morphism
+                                                 (forall (_ : CarrierA) (_ : CarrierA),
+                                                  CarrierA)
+                                                 (forall (_ : nat)
+                                                    (_ : CarrierA)
+                                                    (_ : CarrierA), CarrierA)
+                                                 (@respectful CarrierA
+                                                    (forall _ : CarrierA, CarrierA)
+                                                    (@equiv CarrierA CarrierAe)
+                                                    (@equiv
+                                                       (forall _ : CarrierA, CarrierA)
+                                                       (@ext_equiv CarrierA CarrierAe
+                                                          CarrierA CarrierAe)))
+                                                 (@respectful nat
+                                                    (forall (_ : CarrierA) (_ : CarrierA),
+                                                     CarrierA)
+                                                    (@equiv nat peano_naturals.nat_equiv)
+                                                    (@respectful CarrierA
+                                                       (forall _ : CarrierA, CarrierA)
+                                                       (@equiv CarrierA CarrierAe)
+                                                       (@respectful CarrierA CarrierA
+                                                          (@equiv CarrierA CarrierAe)
+                                                          (@equiv CarrierA CarrierAe))))
+                                                 (@IgnoreIndex2 CarrierA)
+                                                 (@IgnoreIndex2_proper CarrierA CarrierAe)
+                                                 sub
+                                                 (@proper_proper_proxy
+                                                    (forall (_ : CarrierA) (_ : CarrierA),
+                                                     CarrierA) sub
+                                                    (@respectful CarrierA
+                                                       (forall _ : CarrierA, CarrierA)
+                                                       (@equiv CarrierA CarrierAe)
+                                                       (@equiv
+                                                          (forall _ : CarrierA, CarrierA)
+                                                          (@ext_equiv CarrierA CarrierAe
+                                                            CarrierA CarrierAe)))
+                                                    CarrierA_sub_proper))))))
+                                  (@Gather Monoid_RthetaFlags
+                                     (S (S (S (S O)))) (S (S O))
+                                     (@h_index_map (S (S O))
+                                        (S (S (S (S O)))) j (S (S O))
+                                        (GathH_jn_domain_bound Monoid_RthetaSafeFlags
+                                           MonoidLaws_SafeRthetaFlags j
+                                           (S (S O)) jc)))))))
+                      (@GathH Monoid_RthetaSafeFlags (S (S (S (S (S O)))))
+                         (S (S (S (S O)))) (S O) (S O)
+                         (h_bound_second_half Monoid_RthetaSafeFlags
+                            MonoidLaws_SafeRthetaFlags (S O)
+                            (S (S (S (S O)))))))))))) (dynwin_SHCOL1 a).
+  Proof.
     (* --- BEGIN: hack ---
     I would expect the following to work here:
 
@@ -9737,11 +10069,6 @@ Admitted.
     apply rewrite_Reduction_ScatHUnion_max_zero.
 
     (* --- END: hack --- *)
-
-    setoid_rewrite SHCompose_assoc.
-    eapply op_Vforall_P_SHPointwise, abs_always_nonneg.
-
-
 
   Admitted.
 
