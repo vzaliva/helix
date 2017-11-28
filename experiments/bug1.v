@@ -3595,22 +3595,6 @@ Admitted.
     : inverse_index_map_bijective (build_inverse_index_map f).
 Admitted.
 
-  (*
-  Program Definition inverse_index_map_compose
-          {i o t : nat}
-          {f : index_map i t}
-          {g : index_map t o}
-          (f': inverse_index_map f)
-          (g': inverse_index_map g)
-    : inverse_index_map (index_map_compose g f)
-    :=
-      InverseIndexMap _ _ (index_map_compose g f)
-                      ((inverse_index_f f f') ∘ (inverse_index_f g g' )) _.
-  Next Obligation.
-    unfold compose.
-  Defined.
-   *)
-
   Lemma gen_inverse_revert:
     ∀ (d r : nat) (f : index_map d r) (v : nat),
       index_map_injective f ->
@@ -3763,105 +3747,6 @@ Admitted.
 Admitted.
 
 End Primitive_Functions.
-
-Section Function_Operators.
-
-  Definition tensor_product
-             (n N: nat)
-             {nz: 0 ≢ n}
-             (f: nat -> nat)
-             (g: nat -> nat)
-             (i: nat): nat
-    :=  N * (f (i / n)) + (g (i mod n)).
-
-  Program Definition index_map_tensor_product
-          {m n M N: nat}
-          {nz: 0 ≢ n}
-          (f: index_map m M)
-          (g: index_map n N):
-    index_map (m*n) (M*N)
-    := IndexMap (m*n) (M*N)  (tensor_product n N ⟦f⟧ ⟦g⟧ (nz:=nz))  _.
-  Next Obligation.
-    destruct f,g.
-    unfold tensor_product, div, modulo.
-    assert ((fst (divmod x (pred n) 0 (pred n))) < m).
-    {
-      destruct n.
-      congruence. clear nz.
-      simpl.
-      generalize (divmod_spec x n 0 n).
-      destruct divmod as (q,u).
-      simpl.
-      nia.
-    }
-    assert (index_f0 (fst (divmod x (pred n) 0 (pred n))) < M) by auto.
-
-    assert ((pred n - snd (divmod x (pred n) 0 (pred n))) < n).
-    {
-      destruct n.
-      congruence. clear nz.
-      simpl.
-      generalize (divmod_spec x n 0 n).
-      destruct divmod as (q,u).
-      simpl.
-      nia.
-    }
-    assert (index_f1 (pred n - snd (divmod x (pred n) 0 (pred n))) < N) by auto.
-    simpl.
-    replace (match n with
-             | 0 => n
-             | S y' => fst (divmod x y' 0 y')
-             end) with (fst (divmod x (pred n) 0 (pred n))).
-    replace (match n with
-             | 0 => n
-             | S y' => y' - snd (divmod x y' 0 y') end) with
-    ((pred n) - snd (divmod x (pred n) 0 (pred n))).
-    nia.
-    break_match; auto.
-    break_match; auto.
-    congruence.
-  Defined.
-
-End Function_Operators.
-
-Notation "g ∘ f" := (index_map_compose g f) : index_f_scope.
-Notation "x ⊗ y" := (index_map_tensor_product x y) (at level 90) : index_f_scope.
-
-Section Function_Rules.
-
-  Local Open Scope index_f_scope.
-
-  Lemma index_map_rule_39
-        {rf0 rf1 dg0 dg1 rg0 rg1:nat}
-        {g0: index_map dg0 rg0}
-        {g1: index_map dg1 rg1}
-        {f0: index_map rg0 rf0}
-        {f1: index_map rg1 rf1}
-        {ndg1: 0 ≢ dg1}
-        {nrg1: 0 ≢ rg1}
-        {ls:  (dg0 * dg1) ≡ (rf0 * rf1)}
-    :
-      (index_map_tensor_product f0 f1 (nz:=nrg1))
-        ∘ (index_map_tensor_product g0 g1 (nz:=ndg1))
-      =
-      index_map_tensor_product
-        (f0 ∘ g0)
-        (f1 ∘ g1)
-        (nz := ndg1).
-Admitted.
-
-  Program Lemma index_map_rule_40:
-    forall n (np: n>0)
-           {range_bound_h_0: ∀ x : nat, x < n → 0 + x * 1 < n}
-    ,
-      @identity_index_map n np = h_index_map 0 1
-                                             (range_bound:=range_bound_h_0).
-Admitted.
-
-
-  Local Close Scope index_f_scope.
-
-End Function_Rules.
 
 Section IndexMapSets.
 
