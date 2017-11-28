@@ -2309,25 +2309,6 @@ Open Scope vector_scope.
 
 Global Open Scope nat_scope.
 
-(* Not currenly used. For future *)
-Section BVector.
-  Notation bvector n := (vector bool n).
-
-  Definition false_bvector (n:nat) : bvector n := Vconst false n.
-  Definition true_bvector (n:nat) : bvector n := Vconst true n.
-  Definition or_bvector (n:nat) (a b: bvector n) :=
-    Vmap2 orb a b.
-  Definition and_bvector (n:nat) (a b: bvector n) :=
-    Vmap2 andb a b.
-
-  Definition Monoid_bvector_false_or (n:nat) : Monoid (bvector n) :=
-    Build_Monoid (or_bvector n) (false_bvector n).
-
-  Definition Monoid_bvector_true_and (n:nat) : Monoid (bvector n) :=
-    Build_Monoid (and_bvector n) (true_bvector n).
-
-End BVector.
-
 (* Returns an element of the vector 'x' which is result of mapping of
 given natrual number by index mapping function f_spec. *)
 Definition VnthIndexMapped
@@ -2570,27 +2551,6 @@ Admitted.
       Proper ((=) ==> (=)) (@Apply_Family i o n op_family).
 Admitted.
 
-    (* Apply operator family to a vector produced a matrix which have at most one non-zero element per row.
-       TODO: This could be expressed via set disjointness? *)
-    Definition Apply_Family_Single_NonUnit_Per_Row
-               {i o n}
-               (op_family: @SHOperatorFamily i o n)
-               (aunit: CarrierA)
-      :=
-        forall x, Vforall (Vunique (not ∘ (equiv aunit) ∘ (@evalWriter _ _ fm)))
-                     (transpose
-                        (Apply_Family op_family x)
-                     ).
-
-
-    (* States that given [P] holds for all elements of all outputs of this family *)
-    Definition Apply_Family_Vforall_P
-               {i o n}
-               (P: Rtheta' fm -> Prop)
-               (op_family: @SHOperatorFamily i o n)
-      :=
-        forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
-
     Definition Gather'
                {i o: nat}
                (f: index_map o i)
@@ -2603,11 +2563,6 @@ Admitted.
            (f: index_map o i):
       Proper ((=) ==> (=)) (Gather' f).
 Admitted.
-
-    Definition IdOp
-               {n: nat}
-               (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _ in_out_set in_out_set.
 
     Definition Gather
                {i o: nat}
@@ -2682,14 +2637,6 @@ Admitted.
 Admitted.
 
 
-    Definition Constant_Family
-               {i o n}
-               (f: @SHOperator i o)
-      : @SHOperatorFamily i o n
-      :=
-        mkSHOperatorFamily _ _ _  (fun (j : nat) (_ : j < n) => f).
-
-    (* Family composition *)
     Definition SHFamilyFamilyCompose
                {i1 o2 o3 n}
                (f: @SHOperatorFamily o2 o3 n)
@@ -4051,4 +3998,3 @@ End DynWin.
 End Spiral.
 
 End Spiral_DOT_DynWin.
-
