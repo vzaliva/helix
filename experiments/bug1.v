@@ -2364,14 +2364,7 @@ Admitted.
 
   Global Instance Union_proper:
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) Union.
-  Proof.
-    intros dot dot' DP a b H x y E.
-    unfold Union, equiv, Rtheta'_equiv in *.
-    rewrite 2!evalWriter_Rtheta_liftM2.
-    - apply DP.
-      + apply H.
-      + apply E.
-  Qed.
+  Admitted.
 
   (** Unary union of vector's elements (left fold) *)
   Definition UnionFold
@@ -2391,16 +2384,7 @@ Admitted.
   Global Instance Vec2Union_proper {n}
     :
       Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (Vec2Union (n:=n)).
-  Proof.
-    intros dot dot' Ed a a' Ea b b' Eb.
-    unfold Vec2Union, Union.
-    (* TODO: vec_index_equiv from VecSetoid. Move all vector-related stuff there *)
-    unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
-    rewrite 2!Vnth_map2.
-    unfold_Rtheta_equiv.
-    rewrite 2!evalWriter_Rtheta_liftM2.
-    apply Ed; apply evalWriter_proper; apply Vnth_arg_equiv; assumption.
-  Qed.
+  Admitted.
 
   (** Matrix-union. *)
   Definition MUnion'
@@ -2412,18 +2396,7 @@ Admitted.
 
   Global Instance MUnion'_proper {o n}
     : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion' o n).
-  Proof.
-    intros dot dot' Ed one one' Eo x y E.
-    unfold MUnion'.
-    rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
-    apply Vfold_left_rev_reord_proper.
-    apply Vec2Union_proper.
-    apply Ed.
-    rewrite 2!Vconst_to_Vconst_reord.
-    apply Vconst_reord_proper.
-    rewrite Eo; reflexivity.
-    apply E.
-  Qed.
+  Admitted.
 
   Definition SumUnion
              {o n}
@@ -2432,12 +2405,7 @@ Admitted.
 
   Global Instance SumUnion_proper {o n}
     : Proper ((=) ==> (=)) (@SumUnion o n).
-  Proof.
-    intros x y E.
-    unfold SumUnion.
-    rewrite E.
-    reflexivity.
-  Qed.
+  Admitted.
 
   Lemma UnionFold_cons
         m x (xs : svector fm m)
@@ -2472,59 +2440,6 @@ Admitted.
   Lemma SumUnion_cons {m n}
         (x: svector fm m) (xs: vector (svector fm m) n):
     SumUnion (Vcons x xs) ≡ Vec2Union plus (SumUnion xs) x.
-Admitted.
-
-  Lemma AbsorbUnionIndexBinary
-        (m k : nat)
-        (kc : k < m)
-        {dot}
-        (a b : svector fm m):
-    Vnth (Vec2Union dot a b) kc ≡ Union dot (Vnth a kc) (Vnth b kc).
-Admitted.
-
-  Lemma AbsorbMUnion'Index_Vbuild
-        {o n}
-        (dot:CarrierA -> CarrierA -> CarrierA)
-        (neutral:CarrierA)
-        (body: forall (i : nat) (ic : i < n), svector fm o)
-        k (kc: k<o)
-    :
-      Vnth (MUnion' dot neutral (Vbuild body)) kc ≡
-           UnionFold dot neutral
-           (Vbuild
-              (fun (i : nat) (ic : i < n) =>
-                 Vnth (body i ic) kc
-           )).
-Admitted.
-
-  (** Move indexing from outside of Union into the loop. Called 'union_index' in Vadim's paper notes. *)
-  Lemma AbsorbMUnion'Index_Vmap
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        (neutral: CarrierA)
-        {m n:nat}
-        (x: vector (svector fm m) n) k (kc: k<m):
-    Vnth (MUnion' dot neutral x) kc ≡
-         UnionFold dot neutral
-         (Vmap (fun v => Vnth v kc) x).
-Admitted.
-
-  Lemma AbsorbSumUnionIndex_Vmap
-        m n (x: vector (svector fm m) n) k (kc: k<m):
-    Vnth (SumUnion x) kc ≡ UnionFold plus zero (Vmap (fun v => Vnth v kc) x).
-Admitted.
-
-  Lemma AbsorbISumUnionIndex_Vbuild
-        {o n}
-        (body: forall (i : nat) (ic : i < n), svector fm o)
-        k (kc: k<o)
-    :
-      Vnth
-        (SumUnion (Vbuild body)) kc ≡
-        UnionFold plus zero
-        (Vbuild
-           (fun (i : nat) (ic : i < n) =>
-              Vnth (body i ic) kc
-        )).
 Admitted.
 
   Lemma Union_SZero_r x:
