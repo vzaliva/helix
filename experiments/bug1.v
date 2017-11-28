@@ -1,6 +1,6 @@
 Require Coq.Program.Basics.
 Require Coq.Program.Equality.
-Require Coq.omega.Omega.
+Require Omega.
 Require Coq.Logic.FunctionalExtensionality.
 Require Coq.Vectors.Vector.
 Require CoLoR.Util.Vector.VecUtil.
@@ -68,7 +68,7 @@ Import Coq.Classes.Morphisms.
 Import Coq.Strings.String.
 Import Coq.Logic.Decidable.
 Import Coq.micromega.Psatz.
-Import Coq.omega.Omega.
+Import Omega.
 Import Coq.Logic.FunctionalExtensionality.
 Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
@@ -140,7 +140,7 @@ Import Spiral_DOT_Spiral.
 Import Spiral_DOT_Spiral.Spiral.
 Import Coq.Program.Basics.
 Import Coq.Program.Equality. (* for dependent induction *)
-Import Coq.omega.Omega.
+Import Omega.
 Import Coq.Logic.FunctionalExtensionality.
 Export Coq.Vectors.Vector.
 Export CoLoR.Util.Vector.VecUtil.
@@ -209,7 +209,7 @@ Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Coq.Arith.Arith.
 Import Coq.Program.Basics. (* for \circ notation *)
 Export Coq.Vectors.Vector.
-Import Coq.omega.Omega.
+Import Omega.
 
 (* CoRN MathClasses *)
 Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
@@ -1585,7 +1585,7 @@ Import Coq.Lists.List.
 Import Coq.Logic.FunctionalExtensionality.
 Import Coq.Arith.PeanoNat.Nat.
 Import Coq.micromega.Psatz.
-Import Coq.omega.Omega.
+Import Omega.
 Import MathClasses.interfaces.canonical_names.
 Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Import MathClasses.implementations.peano_naturals.
@@ -1812,7 +1812,7 @@ Import Coq.Strings.String.
 Import Coq.Arith.Peano_dec.
 Import Coq.Logic.Decidable.
 Import Coq.micromega.Psatz.
-Import Coq.omega.Omega.
+Import Omega.
 
 (* CoRN MathClasses *)
 Import MathClasses.interfaces.abstract_algebra.
@@ -2697,7 +2697,7 @@ Import Coq.Logic.ProofIrrelevance.
 Import Coq.Program.Program.
 Import Coq.Logic.FunctionalExtensionality.
 Import Coq.micromega.Psatz.
-Import Coq.omega.Omega.
+Import Omega.
 
 (* CoRN Math-classes *)
 Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
