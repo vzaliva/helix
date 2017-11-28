@@ -6765,74 +6765,6 @@ End Spiral.
 
 End Spiral_DOT_TSigmaHCOL.
 
-Module Spiral_DOT_HCOLBreakdown.
-Module Spiral.
-Module HCOLBreakdown.
-Import Spiral_DOT_CpdtTactics.
-Import Spiral_DOT_StructTactics.
-Import Spiral_DOT_SpiralTactics.
-Import Spiral_DOT_Spiral.
-Import Spiral_DOT_VecUtil.
-Import Spiral_DOT_VecSetoid.
-Import Spiral_DOT_CarrierType.
-Import Spiral_DOT_WriterMonadNoT.
-Import Spiral_DOT_Rtheta.
-Import Spiral_DOT_SVector.
-Import Spiral_DOT_HCOLImpl.
-Import Spiral_DOT_HCOL.
-Import Spiral_DOT_THCOLImpl.
-Import Spiral_DOT_THCOL.
-Import Spiral_DOT_FinNatSet.
-Import Spiral_DOT_IndexFunctions.
-Import Spiral_DOT_SigmaHCOL.
-Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_TSigmaHCOL.Spiral.
-Import Spiral_DOT_SigmaHCOL.Spiral.
-Import Spiral_DOT_IndexFunctions.Spiral.
-Import Spiral_DOT_FinNatSet.Spiral.
-Import Spiral_DOT_THCOL.Spiral.
-Import Spiral_DOT_THCOLImpl.Spiral.
-Import Spiral_DOT_HCOL.Spiral.
-Import Spiral_DOT_HCOLImpl.Spiral.
-Import Spiral_DOT_SVector.Spiral.
-Import Spiral_DOT_Rtheta.Spiral.
-Import Spiral_DOT_WriterMonadNoT.Spiral.
-Import Spiral_DOT_CarrierType.Spiral.
-Import Spiral_DOT_VecSetoid.Spiral.
-Import Spiral_DOT_VecUtil.Spiral.
-Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
-Import Spiral_DOT_StructTactics.Spiral.
-Import Spiral_DOT_CpdtTactics.Spiral.
-Import Spiral_DOT_VecUtil.Spiral.VecUtil.
-Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
-Import Spiral_DOT_Spiral.Spiral.Spiral.
-Import Spiral_DOT_CarrierType.Spiral.CarrierType.
-Import Spiral_DOT_HCOL.Spiral.HCOL.
-Import Spiral_DOT_HCOLImpl.Spiral.HCOLImpl.
-Import Spiral_DOT_THCOL.Spiral.THCOL.
-Import Spiral_DOT_THCOLImpl.Spiral.THCOLImpl.
-Import Coq.Arith.Arith.
-Import Coq.Arith.Compare_dec.
-Import Coq.Arith.Peano_dec.
-Import Coq.Program.Program.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
-Import Coq.Logic.FunctionalExtensionality.
-
-(* CoRN MathClasses *)
-Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
-Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
-Import MathClasses.theory.rings.
-
-
-Import VectorNotations.
-Open Scope vector_scope.
-
-End HCOLBreakdown.
-
-End Spiral.
-
-End Spiral_DOT_HCOLBreakdown.
 
 Module Spiral_DOT_MonoidalRestriction.
 Module Spiral.
@@ -6855,8 +6787,6 @@ Import Spiral_DOT_FinNatSet.
 Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_HCOLBreakdown.
-Import Spiral_DOT_HCOLBreakdown.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
 Import Spiral_DOT_IndexFunctions.Spiral.
@@ -6939,10 +6869,8 @@ Import Spiral_DOT_FinNatSet.
 Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_HCOLBreakdown.
 Import Spiral_DOT_MonoidalRestriction.
 Import Spiral_DOT_MonoidalRestriction.Spiral.
-Import Spiral_DOT_HCOLBreakdown.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
 Import Spiral_DOT_IndexFunctions.Spiral.
@@ -7099,12 +7027,10 @@ Import Spiral_DOT_FinNatSet.
 Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_HCOLBreakdown.
 Import Spiral_DOT_MonoidalRestriction.
 Import Spiral_DOT_VecPermutation.
 Import Spiral_DOT_VecPermutation.Spiral.
 Import Spiral_DOT_MonoidalRestriction.Spiral.
-Import Spiral_DOT_HCOLBreakdown.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
 Import Spiral_DOT_IndexFunctions.Spiral.
@@ -7975,14 +7901,12 @@ Import Spiral_DOT_FinNatSet.
 Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_HCOLBreakdown.
 Import Spiral_DOT_MonoidalRestriction.
 Import Spiral_DOT_VecPermutation.
 Import Spiral_DOT_SigmaHCOLRewriting.
 Import Spiral_DOT_SigmaHCOLRewriting.Spiral.
 Import Spiral_DOT_VecPermutation.Spiral.
 Import Spiral_DOT_MonoidalRestriction.Spiral.
-Import Spiral_DOT_HCOLBreakdown.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
 Import Spiral_DOT_IndexFunctions.Spiral.
@@ -8018,7 +7942,6 @@ Import Coq.Arith.Arith.
 Import Coq.Arith.Compare_dec.
 Import Coq.Arith.Peano_dec.
 Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
-Import Spiral_DOT_HCOLBreakdown.Spiral.HCOLBreakdown.
 Import Spiral_DOT_SigmaHCOLRewriting.Spiral.SigmaHCOLRewriting.
 Import MathClasses.interfaces.canonical_names.
 
