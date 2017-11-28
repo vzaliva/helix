@@ -34,7 +34,6 @@ Definition rsvector2rvector := Vmap RStheta2Rtheta.
 
 Section SvectorBasics.
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   (* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
   Definition svector n := (vector (Rtheta' fm) n).
@@ -112,51 +111,6 @@ Section SvectorBasics.
   Definition svector_is_non_collision {n} (v:svector n) :=
     Vforall Not_Collision v.
 
-  Lemma sparsify_non_coll: forall n (x:avector n),
-      svector_is_non_collision (sparsify x).
-  Proof.
-    intros n x.
-    unfold sparsify.
-    unfold svector_is_non_collision, Not_Collision, compose.
-    apply Vforall_map_intro.
-    apply Vforall_intro.
-    intros v N.
-    unfold mkValue.
-    simpl.
-    destruct fml.
-    rewrite monoid_runit.
-    auto.
-  Qed.
-
-  Lemma sparsify_is_dense:
-    ∀ (i : nat) (x : vector CarrierA i), svector_is_dense (sparsify x).
-  Proof.
-    intros i x.
-    unfold sparsify, svector_is_dense.
-    apply Vforall_map_intro.
-    apply Vforall_intro.
-    intros v N.
-    apply IsVal_mkValue.
-  Qed.
-
-  Lemma sparsify_densify {n} (x:svector n):
-    svector_is_dense x ->
-    svector_is_non_collision x ->
-    (sparsify (densify x)) ≡ x.
-  Proof.
-    intros D N.
-    unfold densify, sparsify.
-    rewrite Vmap_map.
-    apply Vmap_eq_nth.
-    intros i ip.
-    unfold svector_is_dense in D.
-    apply Vforall_nth with (ip:=ip) in D.
-    unfold svector_is_non_collision in N.
-    apply Vforall_nth with (ip:=ip) in N.
-    generalize dependent (Vnth x ip). clear ip i.
-    apply mkValue_evalWriter_VNC.
-  Qed.
-
   Lemma sparsify_densify_equiv {n} (x:svector n):
     (sparsify (densify x)) = x.
   Proof.
@@ -169,12 +123,61 @@ Section SvectorBasics.
     apply mkValue_evalWriter.
   Qed.
 
+  Section WithMonoid.
+    Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+
+    Lemma sparsify_non_coll: forall n (x:avector n),
+        svector_is_non_collision (sparsify x).
+    Proof.
+      intros n x.
+      unfold sparsify.
+      unfold svector_is_non_collision, Not_Collision, compose.
+      apply Vforall_map_intro.
+      apply Vforall_intro.
+      intros v N.
+      unfold mkValue.
+      simpl.
+      destruct fml.
+      rewrite monoid_runit.
+      auto.
+    Qed.
+
+    Lemma sparsify_is_dense:
+      ∀ (i : nat) (x : vector CarrierA i), svector_is_dense (sparsify x).
+    Proof.
+      intros i x.
+      unfold sparsify, svector_is_dense.
+      apply Vforall_map_intro.
+      apply Vforall_intro.
+      intros v N.
+      apply IsVal_mkValue.
+    Qed.
+
+    Lemma sparsify_densify {n} (x:svector n):
+      svector_is_dense x ->
+      svector_is_non_collision x ->
+      (sparsify (densify x)) ≡ x.
+    Proof.
+      intros D N.
+      unfold densify, sparsify.
+      rewrite Vmap_map.
+      apply Vmap_eq_nth.
+      intros i ip.
+      unfold svector_is_dense in D.
+      apply Vforall_nth with (ip:=ip) in D.
+      unfold svector_is_non_collision in N.
+      apply Vforall_nth with (ip:=ip) in N.
+      generalize dependent (Vnth x ip). clear ip i.
+      apply mkValue_evalWriter_VNC.
+    Qed.
+
+  End WithMonoid.
+
 End SvectorBasics.
 
 Section Union.
 
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Definition Union (dot : CarrierA -> CarrierA -> CarrierA)
     : Rtheta' fm -> Rtheta' fm -> Rtheta' fm := liftM2 dot.
