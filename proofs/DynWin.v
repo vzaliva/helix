@@ -552,7 +552,8 @@ Require Import Spiral.FinNatSet.
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
-        (m := S (S (S (S O)))) (n := S (S O)).
+        (m := 4%nat)
+        (n := 1%nat).
 
      But it does not (hangs forever), so we have to do some manual rewriting
      *)

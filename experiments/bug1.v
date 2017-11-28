@@ -9775,12 +9775,16 @@ Admitted.
                             MonoidLaws_SafeRthetaFlags (S O)
                             (S (S (S (S O)))))))))))) (dynwin_SHCOL1 a).
   Proof.
+
+
+
     (* --- BEGIN: hack ---
     I would expect the following to work here:
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
-        (m := S (S (S (S O)))) (n := S (S O)).
+        (m := 4%nat)
+        (n := 1%nat).
 
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
