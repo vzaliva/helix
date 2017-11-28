@@ -4365,11 +4365,6 @@ Proof.
   reflexivity.
 Qed.
 
-Notation HTDirectSum := HCross.
-
-Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
-  THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
-
 End THCOL.
 
 End Spiral.
