@@ -2613,30 +2613,13 @@ Section HCOL_implementations.
     | (a, b) => Vfold_right plus (Vmap2 mult a b) zero
     end.
 
-  (* --- Infinity Norm --- *)
-  Definition InfinityNorm
-             {n} (v: avector n) : CarrierA :=
-    Vfold_right max (Vmap abs v) zero.
-
   (* Poor man's minus *)
   Definition sub := plus∘negate.
 
   (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
   Global Instance CarrierA_sub_proper:
     Proper ((=) ==> (=) ==> (=)) (sub).
-  Proof.
-    intros a b Ha x y Hx .
-    unfold sub, compose.
-    rewrite Hx, Ha.
-    reflexivity.
-  Qed.
-
-  (* --- Chebyshev Distance --- *)
-  Definition ChebyshevDistance
-             {n} (ab: (avector n)*(avector n)): CarrierA :=
-    match ab with
-    | (a, b) => InfinityNorm (Vmap2 sub a b)
-    end.
+  Admitted.
 
   (* --- Vector Subtraction --- *)
   Definition VMinus
@@ -2727,52 +2710,14 @@ Section HCOL_implementation_proper.
   Global Instance ScalarProd_proper (n:nat):
     Proper ((=) ==> (=))
            (ScalarProd (n:=n)).
-  Proof.
-    intros x y Ex.
-    destruct x as [xa xb].
-    destruct y as [ya yb].
-    unfold ScalarProd.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
-    destruct Ex as [H0 H1].
-    simpl in H0, H1.
-    rewrite H0, H1.
-    reflexivity.
-  Qed.
-
-  Global Instance InfinityNorm_proper {n:nat}:
-    Proper ((=) ==> (=))
-           (InfinityNorm (n:=n)).
-  Proof.
-    unfold Proper.
-    intros a b E1.
-    unfold InfinityNorm.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
-    rewrite E1.
-    reflexivity.
-  Qed.
+  Admitted.
 
   Global Instance BinOp_proper {n:nat}:
     Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (BinOp (n:=n)).
-  Proof.
-    intros fa fb Ef a b Ea.
-    unfold BinOp.
-    destruct a. destruct b.
-    destruct Ea as [E1 E2]. simpl in *.
-    apply Vmap2Indexed_proper; assumption.
-  Qed.
+  Admitted.
 
   Global Instance Reduction_proper {n:nat}:
     Proper (((=) ==> (=) ==>  (=)) ==> (=) ==> (=) ==> (=)) (Reduction (n:=n)).
-  Proof.
-    unfold Proper.
-    intros fa fb Ef a b E1 x y E2.
-    unfold Reduction.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
-    apply Vfold_right_reord_proper; assumption.
-  Qed.
-
-  Global Instance ChebyshevDistance_proper  (n:nat):
-    Proper ((=) ==> (=))  (ChebyshevDistance (n:=n)).
   Admitted.
 
   Global Instance EvalPolynomial_proper (n:nat):
@@ -2785,29 +2730,12 @@ Section HCOL_implementation_proper.
 
   Global Instance Induction_proper {n:nat}:
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Induction n).
-  Proof.
-    intros f f' fEq ini ini' iniEq v v' vEq.
-    induction n.
-    reflexivity.
-    rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    f_equiv; try assumption.
-    f_equiv; try apply IHn.
-    unfold respectful.
-    intros x y H.
-    apply fEq; assumption.
-  Qed.
+  Admitted.
 
   Global Instance VMinus_proper (n:nat):
     Proper ((=) ==> (=))
            (@VMinus n).
-  Proof.
-    intros a b E.
-    unfold VMinus.
-    repeat break_let.
-    destruct E as [E1 E2]; simpl in *.
-    rewrite E1, E2.
-    reflexivity.
-  Qed.
+  Admitted.
 
 End HCOL_implementation_proper.
 
@@ -2885,10 +2813,6 @@ Admitted.
     : avector i -> avector (n+i)
     := Vapp a.
 
-  Definition HInfinityNorm {i}
-    : avector i -> avector 1
-    := Vectorize ∘ InfinityNorm.
-
   Definition HReduction {i}
              (f: CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -2912,10 +2836,6 @@ Admitted.
   Definition HMonomialEnumerator n
     : avector 1 -> avector (S n)
     := MonomialEnumerator n ∘ Scalarize.
-
-  Definition HChebyshevDistance h
-    : avector (h+h) -> avector 1
-    := Lst ∘ ChebyshevDistance ∘ (vector2pair h).
 
   Definition HScalarProd {h}
     : avector (h+h) -> avector 1
@@ -3030,18 +2950,6 @@ Admitted.
       reflexivity.
     Qed.
 
-    Global Instance HInfinityNorm_HOperator n:
-      HOperator (@HInfinityNorm n).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HInfinityNorm.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
-
     Global Instance HInduction_HOperator {n:nat}
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -3051,18 +2959,6 @@ Admitted.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInduction.
-      unfold compose, Lst, vector2pair.
-      apply Vcons_single_elim.
-      rewrite E.
-      reflexivity.
-    Qed.
-
-    Global Instance HChebyshevDistance_HOperator h:
-      HOperator (HChebyshevDistance h).
-    Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
-      intros x y E.
-      unfold HChebyshevDistance.
       unfold compose, Lst, vector2pair.
       apply Vcons_single_elim.
       rewrite E.
