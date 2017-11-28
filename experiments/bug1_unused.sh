@@ -11,4 +11,4 @@ echo "Print FileDependGraph bug1." >> depgraph.vcmd
 
 coqtop  < depgraph.vcmd
 
-dpdusage -with-path graph.dpd | sort > unused.txt
+dpdusage -with-path graph.dpd | grep -v -i proper | sort > unused.txt
