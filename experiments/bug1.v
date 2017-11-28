@@ -176,10 +176,6 @@ Global Instance abs_Setoid_Morphism A
   : Setoid_Morphism abs | 0.
 Admitted.
 
-
-
-
-
 Global Instance abs_idempotent
          `{Ae: Equiv A}
          `{Az: Zero A} `{A1: One A}
@@ -193,37 +189,8 @@ Global Instance abs_idempotent
   :UnaryIdempotent abs.
 Admitted.
 
-Lemma abs_max_comm_2nd
-      `{Ae: Equiv A}
-      `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A}
-      `{Aneg: Negate A}
-      `{Ale: Le A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Az Aneg}
-      `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-      `{Aledec: !∀ x y: A, Decision (x ≤ y)}
-  : forall (x y:A),  max (abs y) x = abs (max (abs y) x).
-Admitted.
-
 
 Local Open Scope nat_scope.
-
-Lemma modulo_smaller_than_devisor:
-  ∀ x y : nat, 0 ≢ y → x mod y < y.
-Admitted.
-
-Lemma ext_equiv_applied_equiv
-      `{Equiv A} `{Equiv B}
-      `(!Setoid_Morphism (f : A → B))
-      `(!Setoid_Morphism (g : A → B)) :
-  f = g ↔ ∀ x, f x = g x.
-Admitted.
-
-Lemma zero_lt_Sn:
-  forall n:nat, 0<S n.
-Admitted.
 
 Lemma S_j_lt_n {n j:nat}:
   S j ≡ n -> j < n.
@@ -233,28 +200,6 @@ Lemma Decidable_decision
       (P:Prop):
   Decision P -> decidable P.
 Admitted.
-
-Lemma div_iff_0:
-  forall m i : nat, m ≢ 0 → i/m≡0 -> m>i.
-Admitted.
-
-Lemma div_ne_0:
-  ∀ m i : nat, m <= i → m ≢ 0 → i / m ≢ 0.
-Admitted.
-
-Lemma add_lt_lt
-     {n m t : nat}:
-  (t < m) ->  (t + n < n + m).
-Admitted.
-
-(* Similar to `Vnth_cast_aux` but arguments in equality hypotheis are swapped *)
-Lemma eq_lt_lt {n m k: nat} : n ≡ m -> k < n -> k < m.
-Admitted.
-
-Lemma S_pred_simpl:
-  forall n : nat, n ≢ 0 -> S (Init.Nat.pred n) ≡ n.
-Admitted.
-
 
 Global Instance Sig_Equiv {A:Type} {Ae : Equiv A} {P:A->Prop}:
   Equiv (@sig A P) := fun a b => (proj1_sig a) = (proj1_sig b).
@@ -300,44 +245,11 @@ Notation "h :: t" := (cons h t) (at level 60, right associativity)
 Definition vector2pair {A:Type} (p:nat) {t:nat} (v:vector A (p+t)) : (vector A p)*(vector A t) :=
   @Vbreak A p t v.
 
-(* Split vector into a pair: first  'p' elements and the rest. *)
-Definition pair2vector {A:Type} {i j:nat} (p:(vector A i)*(vector A j)) : (vector A (i+j))  :=
-  match p with
-    (a,b) => Vapp a b
-  end.
-
-
-
-
-
 
 Section VFold.
   (* Right fold with vector argument last, so it is easier to use in point-free notation, for example in Vmap *)
   Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
-
-
-
-  (* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
-
-
 End VFold.
-
-Section VBreak.
-
-
-
-
-
-End VBreak.
-
-
-
-
-
-
-
-
-Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
 Section Vnth.
 
@@ -347,29 +259,6 @@ Section Vnth.
     Vnth a ic.
 
 End Vnth.
-
-Section Vunique.
-  Local Open Scope nat_scope.
-
-  (* There is at most one element in vector satisfying given predicate *)
-  Definition Vunique
-             {n} {T:Type}
-             (P: T -> Prop)
-             (v: vector T n) :=
-
-    (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
-        (P (Vnth v ic) /\ P (Vnth v jc)) -> i = j).
-
-  Definition VAllButOne
-             {n} {T:Type}
-             i (ic:i<n)
-             (P: T -> Prop)
-             (x: vector T n)
-    :=
-      (forall j (jc:j<n), ~(i = j) -> P (Vnth x jc)).
-
-End Vunique.
-
 Section VectorPairs.
 
   Definition Ptail {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): (vector A n)*(vector B n)
@@ -1180,32 +1069,6 @@ Admitted.
     Proper ((=) ==> (=)) (@densify n).
   Admitted.
 
-  (* Construct "Zero svector". All values are structural zeros. *)
-  Definition szero_svector n: svector n := Vconst mkSZero n.
-
-  (* "dense" vector means that it does not contain "structural" values *)
-  Definition svector_is_dense {n} (v:svector n) : Prop :=
-    Vforall (@Is_Val fm)  v.
-
-
-  Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
-    match v with
-    | Vnil => False
-    | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
-    end.
-
-
-
-  Definition svector_is_collision {n} (v:svector n) :=
-    Vexists Is_Collision v.
-
-  Definition svector_is_non_collision {n} (v:svector n) :=
-    Vforall Not_Collision v.
-
-
-
-
-
 End SvectorBasics.
 
 Section Union.
@@ -1247,54 +1110,12 @@ End Union.
 
 Section ExclusiveUnion.
 
-
-  (* Conditions under which Union produces value *)
-
-  (* Conditions under which Union produces struct *)
-
-
 End ExclusiveUnion.
 
 
 Section NonExclusiveUnion.
 
-  (* Conditions under which Union produces value *)
-
-
-
 End NonExclusiveUnion.
-
-(* RStheta2Rtheta distributes over Union *)
-
-
-Section Matrix.
-  (* Poor man's matrix is vector of vectors.
-     TODO: If it grows, move to separate module. *)
-
-  Set Implicit Arguments.
-  Variables (A: Type) (m n:nat).
-
-  Definition row
-             {i:nat} (ic: i<m)
-             (a: vector (vector A m) n)
-    :=
-      Vmap (Vnth_aux ic) a.
-
-  Definition col
-             {i:nat} (ic: i<n)
-             (a: vector (vector A m) n)
-    :=
-      Vnth a ic.
-
-  Definition transpose
-             (a: vector (vector A m) n)
-    :=
-      Vbuild (fun j jc => row jc a).
-
-End Matrix.
-
-(* "sparse" matrix 'm' rows by 'n' columns *)
-Notation smatrix m n := (vector (svector m) n) (only parsing).
 
 
 Close Scope vector_scope.
@@ -2760,18 +2581,6 @@ Admitted.
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .
 
-  (*
-
-  In SPIRAL [ISumReduction] is what we call [ISumReduction] and strictly speaking there is no equivalent to [ISumReduction] as defined below. [ISumReduction] defined below is basically row-wise sum. To avoid confusion we will not use [ISumReduction] name for now.
-
-  Definition ISumReduction
-             {i o n}
-             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-    :=
-      @IReduction i o n plus _ zero op_family.
-   *)
-
-  (* TODO: make `dot` part of Morphism *)
   Global Instance IReduction_proper
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2783,56 +2592,12 @@ Admitted.
 
 End SigmaHCOL_Operators.
 
-(* TODO: maybe <->  *)
-
-Definition USparseEmbedding
-           {n i o ki ko}
-           (* Kernel *)
-           (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n)
-           (f: index_map_family ko o n)
-           {f_inj : index_map_family_injective f}
-           (idv: CarrierA)
-           (g: index_map_family ki i n)
-  : @SHOperator Monoid_RthetaFlags i o
-  :=
-    ISumUnion
-      (@SparseEmbedding Monoid_RthetaFlags
-                        n i o ki ko
-                        kernel
-                        f f_inj idv
-                        g).
-
 Section OperatorProperies.
 
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
-
-
-
-
-  (* Specification of gather as mapping from output to input. NOTE:
-    we are using definitional equality here, as Scatter does not
-    perform any operations on elements of type A *)
-
-  (* Index-function based condition under which Gather output is dense *)
-
-
-
-
-
-  (* Specification of scatter as mapping from input to output. NOTE:
-    we are using definitional equality here, as Scatter does not
-    perform any operations on elements of type A *)
-
-
-
-
-
-
-
-
 End OperatorProperies.
 
 
