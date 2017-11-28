@@ -5321,7 +5321,7 @@ Import Spiral_DOT_FinNatSet.Spiral.FinNatSet.
 
   Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
 
-  Lemma Bug: forall a : vector CarrierA (S (S (S O))),
+  Goal forall a : vector CarrierA (S (S (S O))),
   @equiv (@SHOperator Monoid_RthetaFlags (S (S (S (S (S O))))) (S O))
     (@SHOperator_equiv Monoid_RthetaFlags (S (S (S (S (S O))))) (S O))
     (@SHCompose Monoid_RthetaFlags (S (S (S (S (S O))))) (S (S O))
