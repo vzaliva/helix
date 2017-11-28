@@ -1233,7 +1233,6 @@ Section Union.
       Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (Vec2Union (n:=n)).
   Admitted.
 
-  (** Matrix-union. *)
   Definition MUnion'
              {o n}
              (dot:CarrierA->CarrierA->CarrierA)
@@ -1244,25 +1243,6 @@ Section Union.
   Global Instance MUnion'_proper {o n}
     : Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@MUnion' o n).
   Admitted.
-
-  Definition SumUnion
-             {o n}
-             (v: vector (svector fm o) n): svector fm o
-    := MUnion' plus zero v.
-
-  Global Instance SumUnion_proper {o n}
-    : Proper ((=) ==> (=)) (@SumUnion o n).
-  Admitted.
-
-
-
-
-
-
-
-
-
-
 End Union.
 
 Section ExclusiveUnion.
@@ -2758,29 +2738,6 @@ Admitted.
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     := mkSHOperator Monoid_RthetaSafeFlags
                     (o+o) o (SHBinOp' Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
-
-  Section MUnion.
-
-    Variable fm:Monoid RthetaFlags.
-
-    (* An operator applied to a list of vectors (matrix) with uniform pre and post conditions *)
-    Record MSHOperator
-           {o n: nat}
-      : Type
-      := mkMSHOperator {
-             mop: vector (svector fm o) n -> svector fm o ;
-             mop_proper: Proper ((=) ==> (=)) mop
-           }.
-
-    Definition MUnion
-               {o n}
-               (dot: CarrierA->CarrierA->CarrierA)
-               `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-               (initial: CarrierA)
-      :=
-        @mkMSHOperator o n (MUnion' fm dot initial) _.
-
-  End MUnion.
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
   Definition Diamond'
