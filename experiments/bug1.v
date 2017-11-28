@@ -8613,23 +8613,6 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    Lemma rewrite_PointWise_ISumUnion
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          (pf: { j | j<o} -> CarrierA -> CarrierA)
-          `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
-          (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero) (* function with the fixed point 0 *)
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
-      :
-        (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
-        =
-        (@ISumUnion i o n
-                    (SHOperatorFamilyCompose _
-                                             (@SHPointwise _ o pf pf_mor)
-                                             op_family)
-        ).
-Admitted.
-
     Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
           {n:nat}
           {v:rsvector n}
@@ -9042,37 +9025,6 @@ Admitted.
       VPermutation A n v1 v2 -> Vfold_right f v1 z = Vfold_right f v2 z.
 Admitted.
 
-    (* In SPIRAL it is called [Reduction_ISumReduction] *)
-    Lemma rewrite_Reduction_IReduction
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
-
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
-
-          (* Monoid on restriction on f *)
-          `{P: SgPred CarrierA}
-          `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
-
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-      :
-
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero))
-          ⊚ (@IUnion i o n u _ uf_zero op_family)
-        =
-        SafeCast (IReduction f uf_zero
-                             (UnSafeFamilyCast
-                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero)) op_family))).
-Admitted.
-
     Global Instance max_Assoc:
       @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
     Proof.
@@ -9164,42 +9116,6 @@ Admitted.
 
     End NN.
 
-    (* Specialized version of rewrite_Reduction_IReduction *)
-    Lemma rewrite_Reduction_IReduction_max_plus
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
-          (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
-      :
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero))
-          ⊚ (ISumUnion op_family)
-        =
-        SafeCast (IReduction max zero
-                             (UnSafeFamilyCast
-                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
-Admitted.
-
-    (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
-    Lemma rewrite_ISumXXX_YYY_IReduction_GathH
-          {i0 i o n b s : nat}
-          {db}
-          (dot: CarrierA -> CarrierA -> CarrierA)
-          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-          (initial: CarrierA)
-          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-      :
-        SHCompose Monoid_RthetaFlags
-                  (SafeCast (IReduction dot initial op_family))
-                  (@GathH Monoid_RthetaFlags i0 i b s db)
-        =
-        SafeCast
-          (IReduction dot initial
-                      (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
-                                               op_family
-                                               (GathH Monoid_RthetaSafeFlags b s (domain_bound:=db))
-          )).
-Admitted.
-
     Lemma SHPointwise'_distr_over_Scatter'
           {fm : Monoid RthetaFlags}
           {o i : nat}
@@ -9211,58 +9127,6 @@ Admitted.
           (f_inj : index_map_injective f):
       SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f zero (f_inj:=f_inj) v) =
       Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
-Admitted.
-
-    Lemma rewrite_PointWise_ScatHUnion
-          {fm: Monoid RthetaFlags}
-
-          (* -- SE params -- *)
-          {n i o ki ko}
-          (* Kernel *)
-          (kernel: @SHOperatorFamily fm ki ko n)
-          (* Scatter index map *)
-          (f: index_map_family ko o n)
-          {f_inj : index_map_family_injective f}
-          (* Gather index map *)
-          (g: index_map_family ki i n)
-
-          (* -- Scatter params -- *)
-          (pf: CarrierA -> CarrierA)
-          `{pf_mor: !Proper ((=) ==> (=)) pf}
-          (pfzn: pf zero = zero) (* function with the fixed point 0 *)
-      :
-        SHOperatorFamilyCompose fm
-                                (SHPointwise fm (IgnoreIndex pf))
-                                (SparseEmbedding fm kernel f zero g (f_inj:=f_inj))
-        =
-        SparseEmbedding fm
-                        (SHOperatorFamilyCompose fm
-                                                 (SHPointwise fm (IgnoreIndex pf))
-                                                 kernel)
-                        f zero g (f_inj:=f_inj).
-Admitted.
-
-    Lemma rewrite_Reduction_ScatHUnion
-          {n m:nat}
-          {fm: Monoid RthetaFlags}
-
-          `{g: SgOp CarrierA}
-          `{mzero: MonUnit CarrierA}
-          `{P: SgPred CarrierA}
-          `(g_mon: @CommutativeRMonoid _ _ g mzero P)
-
-          (F: @SHOperator fm m 1)
-          (f:index_map 1 (S n))
-          (f_inj: index_map_injective f)
-          (FP: op_Vforall_P fm (liftRthetaP P) F)
-      :
-        SHCompose fm
-                  (SHCompose fm
-                             (liftM_HOperator fm (HReduction g mzero))
-                             (Scatter fm f mzero (f_inj:=f_inj)))
-                  F
-        =
-        F.
 Admitted.
 
     Lemma rewrite_Reduction_ScatHUnion_max_zero
@@ -9376,30 +9240,6 @@ Import Spiral_DOT_SigmaHCOLRewriting.Spiral.SigmaHCOLRewriting.
 Import MathClasses.interfaces.canonical_names.
 
 
-Section HCOL_breakdown.
-
-  (* Original dynamic window expression *)
-  Definition dynwin_orig (a: avector 3) :=
-    (HTLess
-       (HEvalPolynomial a)
-       (HChebyshevDistance 2)).
-
-  (* dynamic window HCOL expression *)
-  Definition dynwin_HCOL (a: avector 3) :=
-    (HBinOp (IgnoreIndex2 Zless) ∘
-            HCross
-            ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
-            (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
-
-
-  (* Initial HCOL breakdown proof *)
-  Theorem DynWinHCOL:  forall (a: avector 3),
-      dynwin_orig a = dynwin_HCOL a.
-Admitted.
-
-End HCOL_breakdown.
-
-
 Section SigmaHCOL_rewriting.
 
   Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
@@ -9474,115 +9314,8 @@ SUMUnion(
       ).
 
 
-  (* HCOL -> SigmaHCOL Value correctness. *)
-  Theorem DynWinSigmaHCOL_Value_Correctness
-          (a: avector 3)
-    :
-      liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a)
-      =
-      dynwin_SHCOL a.
-Admitted.
 Import Spiral_DOT_FinNatSet.Spiral.FinNatSet.
 
-
-  Theorem DynWinSigmaHCOL_dense_input
-          (a: avector 3)
-    : Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
-Admitted.
-
-  Theorem DynWinSigmaHCOL_dense_output
-          (a: avector 3)
-    : Same_set _ (out_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
-Admitted.
-
-  Fact two_index_maps_span_I_2
-       (x : FinNat 2)
-       (b2 : forall (x : nat) (_ : x < 1), 0 + (x * 1) < 2)
-       (b1 : forall (x : nat) (_ : x < 1), 1 + (x * 1) < 2)
-    :
-      Union (@sig nat (fun x0 : nat => x0 < 2))
-            (@index_map_range_set 1 2 (@h_index_map 1 2 1 1 b1))
-            (@index_map_range_set 1 2 (@h_index_map 1 2 O 1 b2)) x.
-Admitted.
-
-  Fact two_h_index_maps_disjoint
-       (m n: nat)
-       (mnen : m ≢ n)
-       (b2 : forall (x : nat) (_ : x < 1), n + (x*1) < 2)
-       (b1 : forall (x : nat) (_ : x < 1), m + (x*1) < 2)
-    :
-      Disjoint (FinNat 2)
-               (@index_map_range_set 1 2 (@h_index_map 1 2 m 1 b1))
-               (@index_map_range_set 1 2 (@h_index_map 1 2 n 1 b2)).
-Admitted.
-
-  Ltac solve_facs :=
-    repeat match goal with
-           | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
-           | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
-             replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
-           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
-           | [ |- SHOperator_Facts _ (USparseEmbedding _ _) ] => unfold USparseEmbedding
-
-           | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
-           | _ => crush
-           end.
-
-  Instance DynWinSigmaHCOL_Facts
-           (a: avector 3):
-    SHOperator_Facts _ (dynwin_SHCOL a).
-  Proof.
-    unfold dynwin_SHCOL.
-
-    (* First resolve all SHOperator_Facts typeclass instances *)
-    solve_facs.
-
-    (* Now let's take care of remaining proof obligations *)
-
-    -
-      apply two_h_index_maps_disjoint.
-      assumption.
-
-    -
-      unfold Included, In.
-      intros x H.
-
-      replace (Union _ _ (Empty_set _)) with (@index_map_range_set 1 2 (@h_index_map 1 2 0 1 (ScatH_1_to_n_range_bound _ _ 0 2 1 (@le_S 1 1 (le_n 1))))).
-      +
-        apply two_index_maps_span_I_2.
-      +
-        apply Extensionality_Ensembles.
-        apply Union_Empty_set_lunit.
-        apply h_index_map_range_set_dec.
-
-    -
-      unfold Included.
-      intros x H.
-      apply Full_intro.
-
-    -
-      apply two_h_index_maps_disjoint.
-      unfold peano_naturals.nat_lt, peano_naturals.nat_plus,
-      peano_naturals.nat_1, one, plus, lt.
-      crush.
-
-    -
-      unfold Included, In.
-      intros x H.
-      apply Union_comm.
-      apply two_index_maps_span_I_2.
-
-  Qed.
-
-  (* --- SigmaHCOL -> Sigma->HCOL --- *)
 
   Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
 
