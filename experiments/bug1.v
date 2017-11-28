@@ -2271,7 +2271,6 @@ Definition rsvector2rvector := Vmap RStheta2Rtheta.
 
 Section SvectorBasics.
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   (* "sparse" vector for CarrierA type elements could be simulated using Rtheta *)
   Definition svector n := (vector (Rtheta' fm) n).
@@ -2290,12 +2289,7 @@ Admitted.
 
   Global Instance densify_proper {n:nat}:
     Proper ((=) ==> (=)) (@densify n).
-  Proof.
-    intros x y E.
-    unfold densify.
-    rewrite E.
-    reflexivity.
-  Qed.
+  Admitted.
 
   (* Construct "Zero svector". All values are structural zeros. *)
   Definition szero_svector n: svector n := Vconst mkSZero n.
@@ -2353,7 +2347,6 @@ End SvectorBasics.
 Section Union.
 
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Definition Union (dot : CarrierA -> CarrierA -> CarrierA)
     : Rtheta' fm -> Rtheta' fm -> Rtheta' fm := liftM2 dot.
