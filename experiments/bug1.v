@@ -954,8 +954,6 @@ Section Rtheta'Utils.
   Definition Is_Val: (Rtheta' fm) -> Prop :=
     IsVal ∘ (@execWriter RthetaFlags CarrierA fm).
 
-  Definition Is_Struct:= not ∘ Is_Val.
-
   Definition Is_Collision (x:Rtheta' fm) :=
     (IsCollision ∘ (@execWriter RthetaFlags CarrierA fm)) x.
 
@@ -1106,27 +1104,6 @@ Admitted.
       Proper ((=) ==> (iff)) (@Is_ValZero fm).
 Admitted.
 
-
-
-
-  (* Using setoid equalities on both components *)
-  Definition Is_SZero
-             {fm:Monoid RthetaFlags}
-             (x:Rtheta' fm)
-    :=
-      (evalWriter x = zero) /\
-      (execWriter x = RthetaFlagsZero).
-
-
-
-  (* TODO: See if we need this *)
-
-
-  (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter. TODO: Very similar to [Is_ValX_not_not] *)
-
-
-  (* Double negation on inValZero. *)
-
 End Zero_Utils.
 
 
@@ -1243,14 +1220,6 @@ Section Union.
   Global Instance Union_proper:
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) Union.
   Admitted.
-
-  (** Unary union of vector's elements (left fold) *)
-  Definition UnionFold
-             {n}
-             (dot:CarrierA->CarrierA->CarrierA)
-             (initial:CarrierA)
-             (v: svector fm n): Rtheta' fm :=
-    Vfold_left_rev (Union dot) (mkStruct initial) v.
 
   (** Pointwise union of two vectors *)
   Definition Vec2Union
@@ -3404,24 +3373,6 @@ Section SigmaHCOLHelperLemmas.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-  Lemma Gather'_composition
-        {i o t: nat}
-        (f: index_map o t)
-        (g: index_map t i):
-    Gather' fm f ∘ Gather' fm g = Gather' fm (index_map_compose g f).
-Admitted.
-
-  Lemma Scatter'_composition
-        {i o t: nat}
-        (f: index_map i t)
-        (g: index_map t o)
-        {f_inj: index_map_injective f}
-        {g_inj: index_map_injective g}
-        (idv: CarrierA):
-    Scatter' fm g (f_inj:=g_inj) idv ∘ Scatter' fm f (f_inj:=f_inj) idv
-    = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj) idv.
-Admitted.
-
   Lemma LiftM_Hoperator_compose
         {i1 o2 o3: nat}
         `{HOperator o2 o3 op1}
@@ -3450,61 +3401,6 @@ Admitted.
     ∀ x : nat, x < 1 → base + x * stride < o.
 Admitted.
 
-  Fact GathH_j1_domain_bound base i (bc:base<i):
-    ∀ x : nat, x < 1 → base + x * 1 < i.
-Admitted.
-
-  Lemma UnionFold_a_zero_structs
-        (m : nat)
-        (x : svector fm m)
-        `{uf_zero: MonUnit CarrierA}
-        `{f: SgOp CarrierA}
-        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-    :
-      Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
-Admitted.
-
-  (* Specialized version of [UnionFold_a_zero_structs]. *)
-  Lemma UnionFold_zero_structs
-        (m : nat) (x : svector fm m):
-    Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
-Admitted.
-
-  Lemma UnionFold_VallButOne_a_zero
-        {n : nat}
-        (v : svector fm n)
-        {i : nat}
-        (ic : i < n)
-
-        `{uf_zero: MonUnit CarrierA}
-        `{f: SgOp CarrierA}
-        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-        `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-    :
-      VAllButOne i ic
-                 (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
-Admitted.
-
-
-  (* Specialized version of [UnionFold_VallButOne_a_zero]. *)
-  Lemma UnionFold_VallButOne_zero:
-    ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
-      VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
-Admitted.
-
-
-  (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
-  Lemma SingleValueInZeros
-        {m} (x:svector fm m) j (jc:j<m):
-    (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
-Admitted.
-
-
   Fact GathH_jn_domain_bound i n:
     i < n ->
     ∀ x : nat, x < 2 → i + x * n < (n+n).
@@ -3522,15 +3418,6 @@ Section SigmaHCOLExpansionRules.
         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound _ _ j n 1 jc)))).
 Admitted.
 
-
-    (* TODO: should be deriavale from 'h_j_1_family_injective' and 'index_map_family_member_injective' *)
-    Lemma h_j_1_family_member_injective {n}:
-      forall t (tc:t<n),
-        @index_map_injective 1 n
-                             ((fun (j:nat) (jc:j<n) =>
-                                 @h_index_map 1 n j 1 (ScatH_1_to_n_range_bound _ _ j n (S O) jc)) t tc).
-Admitted.
-
   End Value_Correctness.
 
 
@@ -3540,25 +3427,6 @@ Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
-
-
-
-    (* Basically states that 'Diamon' applied to a family which guarantees
-       single-non zero value per row dows not depend on the function implementation *)
-
-
-    (* An unfortunatly named section for a group on lemmas related to operations on a type constrained by predicate. *)
-    Section Under_P.
-
-
-      (* A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
-
-
-
-
-
-
-    End Under_P.
 
 
     (* TODO: move this and other helper lemmas to SigmaHCOLHelperLemmas section above *)
