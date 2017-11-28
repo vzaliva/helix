@@ -54,90 +54,9 @@ Require Coq.Setoids.Setoid.
 Require Coq.Logic.ProofIrrelevance.
 Require Coq.Logic.Eqdep_dec.
 
-Module Spiral_DOT_SpiralTactics.
-Module Spiral.
-Module SpiralTactics.
-Import Coq.Arith.Lt.
-Import Coq.Arith.Peano_dec.
-Import MathClasses.interfaces.canonical_names.
-
-Ltac rewrite_clear H := rewrite H; clear H.
-
-Ltac nat_lt_0_contradiction := 
-  let H' := fresh in
-  match goal with
-  | [H: Peano.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
-  | [H: MathClasses.interfaces.canonical_names.lt ?x O |- _ ] => pose(H' := H); apply lt_n_0 in H'; contradiction H'
-  end.
-
-(* See https://stackoverflow.com/questions/46311353/eta-conversion-tactics/46326616 *)
-(* h is a dummy argument to make Coq happy, it gets shadowed with `?h` *)
-Ltac eta_reduce_all_private h := repeat change (fun x => ?h x) with h.
-Ltac eta_reduce_all := eta_reduce_all_private idtac.
-
-(*
-Give equality of two functions of type [∀ p : nat, p < n → A] and and a hypotheis [i0=i1] solves the goal.
-*)
-Ltac forall_n_lt_eq :=
-  let lc := fresh in
-  let rc := fresh in
-  let Q := fresh in
-  let HeqQ := fresh in
-  match goal with
-  | [ H: ?i0 ≡ ?i1 |-  ?gen ?i0 ?ic0 ≡ ?gen ?i1 ?ic1] =>
-    generalize ic0 as lc;
-    generalize ic1 as rc;
-    intros rc lc ;
-    remember i0 as Q eqn:HeqQ;
-    rewrite H in HeqQ;
-    subst Q;
-    apply f_equal, le_unique;
-    clear rc lc HeqQ
-  end.
-
-(*
- Two-dimensional case of [forall_nm_lt_eq]
-*)
-Ltac forall_nm_lt_eq :=
-  let lcj := fresh in
-  let rcj := fresh in
-  let lci := fresh in
-  let rci := fresh in
-  let Q := fresh in
-  let HeqQ := fresh in
-  let R := fresh in
-  let HeqR := fresh in
-  match goal with
-  | [ H1: ?i0 ≡ ?i1, H2 : ?j0 ≡ ?j1 |- ?gen ?i0 ?ic0 ?j0 ?jc0 ≡ ?gen ?i1 ?ic1 ?j1 ?jc1] =>
-    generalize ic0 as lci;
-    generalize ic1 as rci;
-    generalize jc0 as lcj;
-    generalize jc1 as rcj;
-    intros rci lci rcj lcj ;
-    remember i0 as Q eqn:HeqQ;
-    remember j0 as R eqn:HeqR;
-    rewrite H1 in HeqQ;
-    rewrite H2 in HeqR;
-    subst Q;
-    subst R;
-    replace lcj with rcj by apply le_unique;
-    replace lci with rci by apply le_unique;
-    reflexivity;
-    clear rci lci rcj lcj HeqQ HeqR
-  end.
-
-End SpiralTactics.
-
-End Spiral.
-
-End Spiral_DOT_SpiralTactics.
-
 Module Spiral_DOT_Spiral.
 Module Spiral.
 Module Spiral.
-Import Spiral_DOT_SpiralTactics.
-Import Spiral_DOT_SpiralTactics.Spiral.
-(* Base Spiral defintions: data types, utility functions, lemmas *)
 
 Global Generalizable All Variables.
 Import Coq.Arith.Arith.
@@ -148,7 +67,6 @@ Import Coq.Program.Program.
 Import Coq.Classes.Morphisms.
 Import Coq.Strings.String.
 Import Coq.Logic.Decidable.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.micromega.Psatz.
 Import Coq.omega.Omega.
 Import Coq.Logic.FunctionalExtensionality.
@@ -218,10 +136,8 @@ End Spiral_DOT_Spiral.
 Module Spiral_DOT_VecUtil.
 Module Spiral.
 Module VecUtil.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Coq.Program.Basics.
 Import Coq.Program.Equality. (* for dependent induction *)
 Import Coq.omega.Omega.
@@ -229,7 +145,6 @@ Import Coq.Logic.FunctionalExtensionality.
 Export Coq.Vectors.Vector.
 Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
 Import Coq.micromega.Lia.
 
@@ -286,12 +201,10 @@ End Spiral_DOT_VecUtil.
 Module Spiral_DOT_VecSetoid.
 Module Spiral.
 Module VecSetoid.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Coq.Arith.Arith.
 Import Coq.Program.Basics. (* for \circ notation *)
@@ -308,7 +221,6 @@ Import MathClasses.theory.naturals.
 (* CoLoR *)
 Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 
 
 (* Various definitions related to vector equality and setoid rewriting *)
@@ -427,21 +339,6 @@ Global Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
   Proper ((=) ==> (=)) (@Ptail A B n).
 Admitted.
 
-(* Handy tactics to break down equality of two vectors into element-wise equality of theirm elements using index *)
-Ltac vec_index_equiv j jc :=
-  let j' := fresh j in
-  let jc' := fresh jc in
-  unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j' jc'.
-
-
-
-
-
-
-
-
-
-
 (* TODO: Check if it is still needed in Coq-8.6 *)
 Section VMap_reord.
 
@@ -523,14 +420,12 @@ End Spiral_DOT_VecSetoid.
 Module Spiral_DOT_CarrierType.
 Module Spiral.
 Module CarrierType.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 (*
 Carrier type used in all our proofs. Could be real of Float in future.
  *)
@@ -570,15 +465,6 @@ Admitted.
 
 Notation avector n := (vector CarrierA n) (only parsing).
 
-Ltac decide_CarrierA_equality E NE :=
-  let E' := fresh E in
-  let NE' := fresh NE in
-  match goal with
-  | [ |- @equiv CarrierA CarrierAe ?A ?B ] => destruct (CarrierAequivdec A B) as [E'|NE']
-  end.
-
-
-
 End CarrierType.
 
 End Spiral.
@@ -588,7 +474,6 @@ End Spiral_DOT_CarrierType.
 Module Spiral_DOT_WriterMonadNoT.
 Module Spiral.
 Module WriterMonadNoT.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -597,7 +482,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Coq.Program.Basics. (* for (∘) *)
 Import ExtLib.Data.Monads.IdentityMonad.
 Import ExtLib.Data.Monads.WriterMonad.
@@ -681,7 +565,6 @@ End Spiral_DOT_WriterMonadNoT.
 Module Spiral_DOT_Rtheta.
 Module Spiral.
 Module Rtheta.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -692,7 +575,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Export Spiral_DOT_CarrierType.Spiral.CarrierType.
 Import Coq.Bool.Bool.
 Import Coq.setoid_ring.Ring.
@@ -708,7 +590,6 @@ Import ExtLib.Data.PPair.
 (* CoRN MathClasses *)
 Import MathClasses.interfaces.abstract_algebra.
 Import MathClasses.theory.rings.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 
 
 Import MonadNotation.
@@ -864,8 +745,6 @@ Admitted.
       Proper ((=) ==> (=) ==> (iff)) (Is_ValX).
 Admitted.
 
-  Ltac unfold_Rtheta'_equiv := unfold equiv, Rtheta'_equiv in *.
-
   Global Instance Rtheta_Reflexive_equiv:
     @Reflexive (Rtheta' fm) Rtheta'_equiv.
 Admitted.
@@ -886,32 +765,11 @@ Admitted.
     @Setoid (Rtheta' fm) Rtheta'_equiv.
 Admitted.
 
-  (* Note: definitional equality *)
-
-
-
-
-
-  (* Note: definitional equality *)
-
-  (* mkValue on evalWriter on non-collision value is identity *)
-
-
-  (* mkValue on evalWriter equiv wrt values *)
-
-  (* mkStruct on evalWriter equiv wrt values *)
-
-  (* evalWriter on mkStruct equiv wrt values *)
-
-
 End Rtheta'Utils.
 
 (* For some reason class resolver could not figure this out on it's own *)
 Global Instance Rtheta_equiv: Equiv (Rtheta) := Rtheta'_equiv.
 Global Instance RStheta_equiv: Equiv (RStheta) := Rtheta'_equiv.
-
-Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv, Rtheta'_equiv in *.
-Ltac unfold_RStheta_equiv := unfold equiv, RStheta_equiv, Rtheta'_equiv in *.
 
 Global Instance Rtheta2RStheta_proper
   : Proper ((=) ==> (=)) (Rtheta2RStheta).
@@ -920,26 +778,6 @@ Admitted.
 Global Instance RStheta2Rtheta_proper
   : Proper ((=) ==> (=)) (RStheta2Rtheta).
 Admitted.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
@@ -993,7 +831,6 @@ End Spiral_DOT_Rtheta.
 Module Spiral_DOT_SVector.
 Module Spiral.
 Module SVector.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1006,7 +843,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -1014,7 +850,6 @@ Import Spiral_DOT_Rtheta.Spiral.Rtheta.
 Import Coq.Bool.Bool.
 Import Coq.Arith.Arith.
 Import Coq.Logic.FunctionalExtensionality.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import MathClasses.interfaces.canonical_names.
 Import MathClasses.interfaces.abstract_algebra.
 
@@ -1119,7 +954,6 @@ End Spiral_DOT_SVector.
 Module Spiral_DOT_HCOLImpl.
 Module Spiral.
 Module HCOLImpl.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1134,7 +968,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -1144,7 +977,6 @@ Import Coq.Program.Program. (* compose *)
 Import Coq.Classes.Morphisms.
 Import Coq.Classes.RelationClasses.
 Import Coq.Relations.Relations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import MathClasses.interfaces.abstract_algebra.
 Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Import MathClasses.theory.rings.
@@ -1303,7 +1135,6 @@ End Spiral_DOT_HCOLImpl.
 Module Spiral_DOT_HCOL.
 Module Spiral.
 Module HCOL.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1320,7 +1151,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -1330,7 +1160,6 @@ Import Coq.Arith.Arith.
 Import Coq.Arith.Plus.
 Import Coq.Program.Program.
 Import Coq.Classes.Morphisms.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -1503,7 +1332,6 @@ End Spiral_DOT_HCOL.
 Module Spiral_DOT_THCOLImpl.
 Module Spiral.
 Module THCOLImpl.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1522,7 +1350,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_CarrierType.Spiral.CarrierType.
@@ -1531,7 +1358,6 @@ Import Coq.Program.Program. (* compose *)
 Import Coq.Classes.Morphisms.
 Import Coq.Classes.RelationClasses.
 Import Coq.Relations.Relations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -1610,7 +1436,6 @@ End Spiral_DOT_THCOLImpl.
 Module Spiral_DOT_THCOL.
 Module Spiral.
 Module THCOL.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1631,7 +1456,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -1643,7 +1467,6 @@ Import Coq.Program.Program.
 Import Coq.Classes.Morphisms.
 Import Coq.Classes.RelationClasses.
 Import Coq.Relations.Relations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -1688,7 +1511,6 @@ End Spiral_DOT_THCOL.
 Module Spiral_DOT_FinNatSet.
 Module Spiral.
 Module FinNatSet.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1711,7 +1533,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Export Coq.Init.Specif.
 Export Coq.Sets.Ensembles.
 Import Coq.Logic.Decidable.
@@ -1730,7 +1551,6 @@ End Spiral_DOT_FinNatSet.
 Module Spiral_DOT_IndexFunctions.
 Module Spiral.
 Module IndexFunctions.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1755,7 +1575,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 
 (* Coq defintions for Sigma-HCOL operator language *)
 Import Coq.Arith.Arith.
@@ -1765,7 +1584,6 @@ Import Coq.Sorting.Permutation.
 Import Coq.Lists.List.
 Import Coq.Logic.FunctionalExtensionality.
 Import Coq.Arith.PeanoNat.Nat.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.micromega.Psatz.
 Import Coq.omega.Omega.
 Import MathClasses.interfaces.canonical_names.
@@ -1951,7 +1769,6 @@ End Spiral_DOT_IndexFunctions.
 Module Spiral_DOT_SigmaHCOL.
 Module Spiral.
 Module SigmaHCOL.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -1978,7 +1795,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -1995,7 +1811,6 @@ Import Coq.Bool.BoolEq.
 Import Coq.Strings.String.
 Import Coq.Arith.Peano_dec.
 Import Coq.Logic.Decidable.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.micromega.Psatz.
 Import Coq.omega.Omega.
 
@@ -2545,7 +2360,6 @@ End Spiral_DOT_SigmaHCOL.
 Module Spiral_DOT_TSigmaHCOL.
 Module Spiral.
 Module TSigmaHCOL.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -2574,7 +2388,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_Spiral.Spiral.Spiral.
@@ -2588,7 +2401,6 @@ Import Coq.Program.Program.
 Import Coq.Classes.Morphisms.
 Import Coq.Classes.RelationClasses.
 Import Coq.Relations.Relations.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)
@@ -2755,7 +2567,6 @@ End Spiral_DOT_TSigmaHCOL.
 Module Spiral_DOT_MonoidalRestriction.
 Module Spiral.
 Module MonoidalRestriction.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -2786,7 +2597,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import MathClasses.interfaces.abstract_algebra.
 
 
@@ -2834,7 +2644,6 @@ End Spiral_DOT_MonoidalRestriction.
 Module Spiral_DOT_SigmaHCOLRewriting.
 Module Spiral.
 Module SigmaHCOLRewriting.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -2867,7 +2676,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 
 Global Generalizable All Variables.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
@@ -2890,7 +2698,6 @@ Import Coq.Program.Program.
 Import Coq.Logic.FunctionalExtensionality.
 Import Coq.micromega.Psatz.
 Import Coq.omega.Omega.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 
 (* CoRN Math-classes *)
 Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
@@ -3073,7 +2880,6 @@ End Spiral_DOT_SigmaHCOLRewriting.
 Module Spiral_DOT_DynWin.
 Module Spiral.
 Module DynWin.
-Import Spiral_DOT_SpiralTactics.
 Import Spiral_DOT_Spiral.
 Import Spiral_DOT_VecUtil.
 Import Spiral_DOT_VecSetoid.
@@ -3108,7 +2914,6 @@ Import Spiral_DOT_CarrierType.Spiral.
 Import Spiral_DOT_VecSetoid.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.
 Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
 Import Spiral_DOT_VecUtil.Spiral.VecUtil.
 Import Spiral_DOT_VecSetoid.Spiral.VecSetoid.
 Import Spiral_DOT_SVector.Spiral.SVector.
@@ -3125,7 +2930,6 @@ Import Spiral_DOT_IndexFunctions.Spiral.IndexFunctions.
 Import Coq.Arith.Arith.
 Import Coq.Arith.Compare_dec.
 Import Coq.Arith.Peano_dec.
-Import Spiral_DOT_SpiralTactics.Spiral.SpiralTactics.
 Import Spiral_DOT_SigmaHCOLRewriting.Spiral.SigmaHCOLRewriting.
 Import MathClasses.interfaces.canonical_names.
 
