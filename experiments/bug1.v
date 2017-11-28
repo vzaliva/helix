@@ -3057,14 +3057,7 @@ Section THCOL_implementations.
 
   Global Instance Zless_proper:
     Proper ((=) ==> (=) ==> (=)) (Zless).
-  Proof.
-    unfold Proper.
-    intros a a' aE z z' zE.
-    unfold Zless.
-    destruct (CarrierAltdec a z), (CarrierAltdec a' z'); auto.
-    rewrite aE, zE in l; contradiction.
-    rewrite <- aE, <- zE in l; contradiction.
-  Qed.
+  Admitted.
 
   (* --- Pointwise Comparison --- *)
 
@@ -3077,16 +3070,7 @@ Section THCOL_implementations.
 
   Global Instance ZVLess_proper {n:nat}:
     Proper ((=) ==> (=))  (@ZVLess n).
-  Proof.
-    (* solve_proper. *)
-    intros x y E.
-    unfold ZVLess.
-    repeat break_let.
-    inversion E. simpl in *.
-    unfold equiv, vec_Equiv.
-    rewrite H0, H.
-    reflexivity.
-  Qed.
+  Admitted.
 
 End THCOL_implementations.
 
@@ -3098,26 +3082,14 @@ Section THCOL_implementation_proper.
          `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
          `{pG: !Proper ((=) ==> (=)) (g: E -> F)}:
     Proper ((=) ==> (=))  (Cross (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    destruct fg, fg'.
-    destruct fgE as [M2 M1]. simpl in *.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
+  Admitted.
 
   Global Instance Stack_arg_proper
          `{Equiv D,Equiv R,Equiv F}
          `{pF: !Proper ((=) ==> (=)) (f: D -> R)}
          `{pG: !Proper ((=) ==> (=)) (g: D -> F)}:
     Proper ((=) ==> (=))  (Stack (f,g)).
-  Proof.
-    intros fg fg' fgE.
-    split; simpl.
-    apply pF; assumption.
-    apply pG; assumption.
-  Qed.
+  Admitted.
 
 End THCOL_implementation_proper.
 
