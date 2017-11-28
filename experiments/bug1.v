@@ -1107,21 +1107,6 @@ Admitted.
 
 End Vnth.
 
-Program Definition Vbuild_split_at_def
-        {A: Type}
-        {n m: nat}
-        {f: forall (t:nat), (t<n+(S m)) -> A}
-  := Vbuild f =
-            @Vapp A n (S m)
-            (Vbuild (fun t (tc:t<n) => f t _))
-            (Vcons
-               (f n _)
-               (Vbuild (fun t (tc:t<m) => f (t+1+n) _))
-            ).
-Next Obligation. lia. Qed.
-Next Obligation. lia. Qed.
-Next Obligation. lia. Qed.
-
 Section Vunique.
   Local Open Scope nat_scope.
 
