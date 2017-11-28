@@ -1963,8 +1963,6 @@ Notation FinNatSet n := (Ensemble (FinNat n)).
 
 Definition mkFinNat {n} {j:nat} (jc:j<n) : FinNat n := @exist _ (gt n) j jc.
 
-Definition FinNatSet_dec {n: nat} (s: FinNatSet n) := forall x, decidable (s x).
-
 End FinNatSet.
 
 End Spiral.
@@ -2079,30 +2077,6 @@ Proof.
   exact (IndexMap d r index_f0 new_spec).
 Defined.
 
-
-
-Definition shrink_index_map_1_range {r:nat} (f: index_map 1 (S r)) (NZ: ⟦ f ⟧ 0 ≢ 0)
-  : index_map 1 r.
-Proof.
-  destruct f.
-  simpl in *.
-
-  set (index_f' := compose Nat.pred index_f0).
-  assert (new_spec : ∀ x : nat, x < 1 → index_f' x < r).
-  {
-    intros x xc.
-    unfold index_f', compose.
-    destruct (index_f0 x) eqn:E.
-    -
-      destruct x; omega.
-    -
-      rewrite Nat.pred_succ.
-      specialize (index_f_spec0 x xc).
-      omega.
-  }
-  exact (IndexMap 1 r index_f' new_spec).
-Defined.
-
 Section InRange.
 
   Fixpoint in_range  {d r:nat} (f: index_map d r)
@@ -2119,12 +2093,6 @@ Section InRange.
 
   Global Instance in_range_dec {d r:nat} (f: index_map d r) (i:nat) : Decision (in_range f i).
   Admitted.
-
-
-
-
-
-
 
 End InRange.
 
@@ -2143,12 +2111,6 @@ Section Jections.
     :=
       forall (y:B), exists (x:A), f x ≡ y.
 
-  Definition function_bijective
-             {A B: Set}
-             (f: A->B)
-    :=
-      (function_injective f) /\ (function_surjective f).
-
   Definition index_map_injective
              {d r: nat}
              (f: index_map d r)
@@ -2161,12 +2123,6 @@ Section Jections.
              (f: index_map d r)
     :=
       forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d), ⟦ f ⟧ x ≡ y.
-
-  Definition index_map_bijective
-             {n: nat}
-             (f: index_map n n)
-    :=
-      (index_map_injective f) /\ (index_map_surjective f).
 
   Lemma index_map_compose_injective
         {i o t: nat}
@@ -2183,14 +2139,6 @@ Admitted.
         (f: index_map d r)
         {S: index_map_surjective f}:
     forall x, x<r -> in_range f x.
-Admitted.
-
-  Lemma shrink_index_map_1_range_inj
-        {r:nat}
-        (f: index_map 1 (S r))
-        (NZ: ⟦ f ⟧ 0 ≢ 0):
-    index_map_injective f ->
-    index_map_injective (shrink_index_map_1_range f NZ).
 Admitted.
 
 End Jections.
@@ -2244,28 +2192,6 @@ definition does not enforce this requirement, and the function produced might no
       let f0 := inverse_index_f f f' in
       forall (y:nat) (yc: y<d), exists x, in_range f x /\ f0 x ≡ y.
 
-  Definition inverse_index_map_bijective
-             {d r: nat} {f: index_map d r}
-             (f': inverse_index_map f)
-    :=
-      (inverse_index_map_injective f') /\ (inverse_index_map_surjective f').
-
-
-  (* The following lemma proves that using `buld_inverse_index_map` on
-  injective index_map produces true "left inverse" of it *)
-
-
-  (* The following lemma proves that using `buld_inverse_index_map` on
-  injective index_map produces true "right inverse" of it *)
-
-
-
-
-
-
-
-
-
 End Inversions.
 
 
@@ -2290,29 +2216,10 @@ Section IndexFamilies.
     :=
       forall (y:nat) (yc: y<r), exists (x j:nat) (xc: x<d) (jc: j<n), ⟦ ⦃f⦄ j jc ⟧ x ≡ y.
 
-  Definition index_map_family_bijective
-             {n d r}
-             (f: index_map_family d r n)
-    :=
-      (index_map_family_injective f) /\ (index_map_family_surjective f).
-
   Lemma index_map_family_member_injective
         {d r n: nat}
         {f: index_map_family d r n}:
     index_map_family_injective f -> forall j (jc:j<n), index_map_injective (⦃f⦄ j jc).
-Admitted.
-
-  Lemma index_map_family_injective_in_range_once
-        {n d r: nat}
-        (f: index_map_family d r n)
-        (i j: nat)
-        {ic jc}
-        {y}
-        {yc:y<r}
-    :
-      index_map_family_injective f ->
-      in_range  (⦃ f ⦄ i ic) y ->
-      in_range  (⦃ f ⦄ j jc) y -> i ≡ j.
 Admitted.
 
 End IndexFamilies.
@@ -2324,25 +2231,6 @@ Section Primitive_Functions.
           (dr: nat) {dp: dr>0}:
     index_map dr dr
     := IndexMap dr dr (id) _.
-
-  Program Definition constant_index_map
-          {range: nat}
-          (j: nat)
-          {jdep: j<range}:
-    index_map 1 range
-    := IndexMap 1 range (fun _ => j) _.
-
-
-  Fact add_index_map_spec_conv {d r k: nat}:
-    k + d <= r → ∀ x : nat, x < d → x + k < r.
-Admitted.
-
-  Definition add_index_map
-             {domain range: nat}
-             (k: nat)
-             {kdep: k+domain <= range}:
-    index_map domain range
-    := IndexMap domain range (fun i => i+k) (add_index_map_spec_conv kdep).
 
   Program Definition h_index_map
           {domain range: nat}
@@ -2359,17 +2247,6 @@ Admitted.
         {snzord0: s ≢ 0 \/ domain < 2} (* without this it is not injective! *)
     :
       index_map_injective  (@h_index_map domain range b s range_bound).
-Admitted.
-
-  Lemma in_range_of_h
-        {domain range: nat}
-        (b s: nat)
-        {range_bound: forall x, x<domain -> (b+x*s) < range}
-        (y:nat)
-        (yc:y<range)
-    :
-      in_range (@h_index_map domain range b s range_bound) y
-      <-> ∃ x (xc:x<domain), b+x*s = y.
 Admitted.
 
 End Primitive_Functions.
