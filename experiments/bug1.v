@@ -1105,78 +1105,7 @@ Admitted.
   Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
     Vnth a ic.
 
-  Lemma Vnth_0
-        {B} {n} (v:vector B (S n)) (ip: 0<(S n)):
-    Vnth (i:=0) v ip = Vhead v.
-Admitted.
-
-  Lemma Vnth_1_Vhead
-        {T:Type}
-        (x:vector T 1)
-        (i:nat) (ic: Peano.lt i 1)
-    :
-      Vnth x ic = Vhead x.
-Admitted.
-
-  Lemma Vnth_1
-        {T:Type}
-        (x:T)
-        (i:nat) (ic: Peano.lt i 1)
-    :
-      Vnth [x] ic = x.
-Admitted.
-
-  Lemma Vnth_Sn {B} (n i:nat) (v:B) (vs:vector B n) (ip: S i< S n) (ip': i< n):
-    Vnth (Vcons v vs) ip = Vnth vs ip'.
-Admitted.
-
-  Lemma Vnth_cast_index:
-    forall {B} {n : nat} i j (ic: i<n) (jc: j<n) (x : vector B n),
-      i = j -> Vnth x ic = Vnth x jc.
-Admitted.
-
-  Lemma P_Vnth_Vcons {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
-    forall i (ic:i<S n) (ic': (pred i) < n),
-      P (Vnth (Vcons h t) ic) -> P h \/ P (Vnth t ic').
-Admitted.
-
-  Lemma P_Vnth_Vcons_not_head {T:Type} {P:T -> Prop} {n:nat} (h:T) (t:vector T n):
-    forall i (ic:i<S n) (ic': (pred i) < n),
-      not (P h) -> P (Vnth (Vcons h t) ic) -> P (Vnth t ic').
-Admitted.
-
 End Vnth.
-
-Lemma Vbuild_cons:
-  forall B n (gen : forall i, i < S n -> B),
-    Vbuild gen = Vcons (gen 0 (lt_O_Sn n)) (Vbuild (fun i ip => gen (S i) (lt_n_S ip))).
-Admitted.
-
-Lemma Vforall_Vbuild (T : Type) (P:T -> Prop) (n : nat) (gen : forall i : nat, i < n -> T):
-  Vforall P (Vbuild gen) <-> forall (i : nat) (ip : i < n), P (gen i ip).
-Admitted.
-
-Lemma Vbuild_Vapp
-      {A: Type}
-      {n m: nat}
-      {f: forall (t:nat), (t<n+m) -> A}
-  : Vbuild f =
-    @Vapp A n m
-          (Vbuild (fun t (tc:t<n) => f t (Nat.lt_lt_add_r t n m tc)))
-          (Vbuild (fun t (tc:t<m) => f (t+n) (add_lt_lt tc))).
-Admitted.
-
-Lemma Vbuild_range_cast
-      {A: Type}
-      {n m: nat}
-      {f: forall (t:nat), (t<n) -> A}
-      (E: m=n)
-:
-  @Vbuild A n f =
-  Vcast (
-      @Vbuild A m (fun t tc => f t (eq_lt_lt E tc))
-    ) E.
-Admitted.
 
 Program Definition Vbuild_split_at_def
         {A: Type}
@@ -1193,13 +1122,6 @@ Next Obligation. lia. Qed.
 Next Obligation. lia. Qed.
 Next Obligation. lia. Qed.
 
-Lemma Vbuild_split_at
-      {A: Type}
-      (n m: nat)
-      {f: forall (t:nat), (t<n+(S m)) -> A}: @Vbuild_split_at_def A n m f.
-
-Admitted.
-
 Section Vunique.
   Local Open Scope nat_scope.
 
@@ -1212,50 +1134,6 @@ Section Vunique.
     (forall (i: nat) (ic: i < n) (j: nat) (jc: j < n),
         (P (Vnth v ic) /\ P (Vnth v jc)) -> i = j).
 
-  Lemma Vunique_Vnil (T : Type) (P : T -> Prop):
-    Vunique P (@Vnil T).
-Admitted.
-
-  Lemma Vforall_notP_Vunique:
-    forall (n : nat) (T : Type) (P : T -> Prop) (v : vector T n),
-      Vforall (not ∘ P) v -> Vunique P v.
-Admitted.
-
-
-  Lemma Vunique_P_Vforall_notP:
-    forall (n : nat) (T : Type) (P : T -> Prop) (h:T) (x : vector T n),
-      P(h) /\ Vunique P (h::x) -> Vforall (not ∘ P) x.
-Admitted.
-
-  Lemma Vunique_cons_not_head
-        {n} {T:Type}
-        (P: T -> Prop)
-        (h: T) (t: vector T n):
-    not (P h) /\ Vunique P t -> Vunique P (Vcons h t).
-Admitted.
-
-  Lemma Vunique_cons_head
-        {n} {T:Type}
-        (P: T -> Prop)
-        (h: T) (t: vector T n):
-    P h /\ (Vforall (not ∘ P) t) -> Vunique P (Vcons h t).
-Admitted.
-
-  Lemma Vunique_cons {n} {T:Type}
-        (P: T -> Prop)
-        (h: T) (t: vector T n):
-    ((P h /\ (Vforall (not ∘ P) t)) \/
-     (not (P h) /\ Vunique P t))
-    ->
-    Vunique P (Vcons h t).
-Admitted.
-  Lemma Vunique_cons_tail {n}
-        {T:Type} (P: T -> Prop)
-        (h : T) (t : vector T n):
-    Vunique P (Vcons h t) -> Vunique P t.
-Admitted.
-
-  (* All vector's element except one with given index satisfy given perdicate. It is not known wether the remaining element satisfy it is or not *)
   Definition VAllButOne
              {n} {T:Type}
              i (ic:i<n)
@@ -1264,136 +1142,9 @@ Admitted.
     :=
       (forall j (jc:j<n), ~(i = j) -> P (Vnth x jc)).
 
-  Lemma VallButOne_Sn_cons_not_head
-        {T: Type}
-        (h : T)
-        (n : nat)
-        (v : vector T n)
-        (P: T -> Prop)
-        (i : nat)
-        (ic : S i < S n):
-    VAllButOne (S i) ic (not ∘ P) (Vcons h v) -> not (P h).
-Admitted.
-
-  Lemma VAllButOne_0_Vforall
-        {T}
-        n
-        (v: T)
-        (vs : vector T n)
-        (kc : 0 < S n)
-        (P: T -> Prop)
-    :
-      VAllButOne 0 kc P (Vcons v vs) -> Vforall P vs.
-Admitted.
-
-  (* Always works in this direction *)
-  Lemma VAllButOne_Sn
-        {n} {T:Type}
-        (P: T -> Prop)
-        (h: T)
-        (t: vector T n)
-        i (ic: S i < S n) (ic': i < n):
-    VAllButOne (S i) ic P (Vcons h t) -> VAllButOne i ic' P t .
-Admitted.
-
-  Lemma VallButOneSimpl
-        {T}
-        n
-        (vl : vector T n)
-        (k : nat)
-        (kc : k < n)
-        (P0: T -> Prop)
-        (P1: T -> Prop)
-        (Pimpl: forall x, P0 x -> P1 x)
-    :
-      VAllButOne k kc P0 vl -> VAllButOne k kc P1 vl.
-Admitted.
-
-  (* In this direction requires additional assumtion  ¬ P h *)
-  Lemma VAllButOne_Sn'
-        (T : Type)
-        (P : T -> Prop)
-        (h : T)
-        (n : nat)
-        (x : vector T n)
-        (N: ~P h)
-        (i : nat) (ic : i < n) (ic': S i < S n):
-    VAllButOne i ic  (not ∘ P) x -> VAllButOne (S i) ic' (not ∘ P) (h :: x).
-Admitted.
-
-  (* In this direction requires additional assumtion  P h *)
-  Lemma Vforall_VAllButOne_P0
-        (T : Type)
-        (P : T -> Prop)
-        (h : T)
-        (n : nat)
-        (x : vector T n)
-        (N: P h):
-    Vforall (not ∘ P) x -> VAllButOne 0 (zero_lt_Sn n) (not ∘ P) (h :: x).
-Admitted.
-
-  Lemma VallButOne_Vunique
-        {n} {T:Type}
-        (P: T -> Prop)
-        {Pdec: forall a, {P a}+{~(P a)}}
-        (x: vector T n)
-    :
-      (exists i ic, VAllButOne i ic (not∘P) x) ->
-      Vunique P x.
-Admitted.
-
-  Lemma VallButOne_Sn_cases
-        {T: Type}
-        (h : T)
-        (n : nat)
-        (v : vector T n)
-        (P: T -> Prop)
-        (i : nat)
-        (ic : S i < S n)
-        (ic' : i < n):
-    VAllButOne (S i) ic (not ∘ P) (Vcons h v) <->
-    (not (P h) /\ VAllButOne i ic' (not ∘ P) v).
-Admitted.
-
-  Lemma Vunique_cases
-        {n} {T:Type}
-        (P: T -> Prop)
-        `{D: forall (a:T), {P a}+{~P a}}
-        (x: vector T n):
-    Vunique P x ->
-    ({Vforall (not ∘ P) x}+{exists i ic, VAllButOne i ic (not∘P) x}).
-Admitted.
-
 End Vunique.
 
-Section Vforall.
-
-  Variable A : Type.
-  Variable P: A -> Prop.
-  Variable n: nat.
-
-  Lemma Vforall_Vhead
-        {v:vector A (S n)}:
-    Vforall P v -> P (Vhead v).
-Admitted.
-
-  Lemma Vforall_Vtail
-        {v:vector A (S n)}:
-    Vforall P v -> Vforall P (Vtail v).
-Admitted.
-
-End Vforall.
-
-
-
-(* Utlity functions for vector products *)
-
 Section VectorPairs.
-
-  Definition Phead {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): A*B
-    := match ab with
-       | (va,vb) => ((Vhead va), (Vhead vb))
-       end.
 
   Definition Ptail {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): (vector A n)*(vector B n)
     := match ab with
@@ -1408,36 +1159,10 @@ Section VMap2_Indexed.
              (f: nat->A->B->C) (a: vector A n) (b: vector B n)
     := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
 
-  Lemma Vnth_Vmap2Indexed:
-    forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
-      (a:vector A n) (b:vector B n),
-      Vnth (Vmap2Indexed f a b) ip = f i (Vnth a ip) (Vnth b ip).
-Admitted.
-
 End VMap2_Indexed.
 
 
 Definition Lst {B:Type} (x:B) := [x].
-
-Lemma Vin_cons:
-  forall (T:Type) (h : T) (n : nat) (v : vector T n) (x : T),
-    Vin x (Vcons h v) -> x = h \/ Vin x v.
-Admitted.
-
-Lemma Vin_1
-      (A: Type)
-      (a:A)
-      (v:vector A 1)
-  :
-    Vin a v -> a = Vhead v.
-Admitted.
-
-Lemma Vforall_not_Vexists
-      {n} {T}
-      (v: vector T n)
-      (P: T -> Prop) :
-  Vforall (not ∘ P) v -> not (Vexists P v).
-Admitted.
 
 Lemma Vforall_Vconst
       {A: Type}
@@ -1458,14 +1183,6 @@ Lemma Vforall_Vmap2
       (PB: Vforall P b)
   :
     Vforall P (Vmap2 f a b).
-Admitted.
-
-Lemma Vtail_1:
-  forall {A:Type} (x:vector A 1), (Vtail x = @Vnil A).
-Admitted.
-
-Lemma V0_V0_eq:
-  forall {A:Type} (x y:vector A 0), x=y.
 Admitted.
 
 
@@ -4391,19 +4108,6 @@ Admitted.
 
 End Primitive_Functions.
 
-
-Section PracticalFamilies.
-
-  (* Flattens m-by-n matrix into flat vector of size m*n by column *)
-  Program Definition matrixFlattenByColFamily {m n:nat}: index_map_family m (m*n) n
-    := (IndexMapFamily m (m*n) n (fun k kc => h_index_map (range_bound:=_)  (k*m) 1)).
-  Next Obligation.
-    nia.
-  Defined.
-
-End PracticalFamilies.
-
-
 Section Function_Operators.
 
   Definition tensor_product
@@ -4509,18 +4213,6 @@ Section IndexMapSets.
              {d r: nat}
              (f: index_map d r): FinNatSet r :=
     fun x => in_range f (proj1_sig x).
-
-  Lemma index_map_range_set_id:
-    ∀ (i o : nat) (f : index_map i o) (j : nat) (jc : j < i),
-      index_map_range_set f (⟦ f ⟧ j ↾ « f » j jc).
-Admitted.
-
-  Lemma h_index_map_range_set_dec
-        {domain range: nat}
-        (b s: nat)
-        {range_bound: forall x, x<domain -> (b+x*s) < range}:
-    FinNatSet_dec (index_map_range_set (@h_index_map domain range b s range_bound)).
-Admitted.
 
 End IndexMapSets.
 
