@@ -167,9 +167,6 @@ Global Instance negate_proper A `{Ar: Ring A} `{!Setoid A}:
   Setoid_Morphism (negate).
 Admitted.
 
-Lemma ne_sym {T:Type} `{E: Equiv T} `{S: @Setoid T E} {a b: T}:
-  (a ≠ b) <-> (b ≠ a).
-Admitted.
 
 Global Instance abs_Setoid_Morphism A
          `{Ar: Ring A}
@@ -179,31 +176,9 @@ Global Instance abs_Setoid_Morphism A
   : Setoid_Morphism abs | 0.
 Admitted.
 
-Lemma abs_nonneg_s `{Aabs: Abs A}: forall (x : A), 0 ≤ x → abs x = x.
-Admitted.
 
-Lemma abs_nonpos_s `{Aabs: Abs A} (x : A): x ≤ 0 → abs x = -x.
-Admitted.
 
-Lemma abs_0_s
-      `{Ae: Equiv A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Azero Anegate}
-  : abs 0 = 0.
-Admitted.
 
-Lemma abs_always_nonneg
-      `{Ae: Equiv A}
-      `{Az: Zero A} `{A1: One A}
-      `{Aplus: Plus A} `{Amult: Mult A}
-      `{Aneg: Negate A}
-      `{Ale: Le A}
-      `{Ato: !@TotalOrder A Ae Ale}
-      `{Aabs: !@Abs A Ae Ale Az Aneg}
-      `{Ar: !Ring A}
-      `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
-  : forall x, 0 ≤ abs x.
-Admitted.
 
 Global Instance abs_idempotent
          `{Ae: Equiv A}
@@ -331,148 +306,41 @@ Definition pair2vector {A:Type} {i j:nat} (p:(vector A i)*(vector A j)) : (vecto
     (a,b) => Vapp a b
   end.
 
-Lemma vp2pv: forall {T:Type} i1 i2 (p:((vector T i1)*(vector T i2))),
-    vector2pair i1 (pair2vector p) = p.
-Admitted.
 
-Lemma Vmap_cons: forall A B (f:A->B) n (x:A) (xs: vector A n),
-    Vmap f (Vcons x xs) = Vcons (f x) (Vmap f xs).
-Admitted.
 
-Lemma Vmap_Vconst
-      {n : nat}
-      {A B: Type}
-      {f: A -> B}
-      (x : A):
-  Vmap f (Vconst x n) = Vconst (f x) n.
-Admitted.
 
-Lemma VMapp2_app:
-  forall {A B} {f: A->A->B} (n m : nat)
-    {a b: vector A m} {a' b':vector A n},
-    Vmap2 f (Vapp a a') (Vapp b b')
-    = Vapp (Vmap2 f a b) (Vmap2 f a' b').
-Admitted.
 
-Lemma Vmap2_Vmap
-      {A1 A2 B1 B2 C: Type}
-      {n: nat}
-      {x1: vector A1 n}
-      {x2: vector A2 n}
-      {g1: A1->B1}
-      {g2: A2->B2}
-      {f: B1 -> B2 -> C}
-  :
-    Vmap2 f
-          (Vmap g1 x1)
-          (Vmap g2 x2)
-    =
-    Vmap2 (fun a b => f (g1 a) (g2 b)) x1 x2.
-Admitted.
 
 Section VFold.
   (* Right fold with vector argument last, so it is easier to use in point-free notation, for example in Vmap *)
   Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
 
-  Lemma Vfold_right_cons: forall A B n (f:A->B->B) (id:B) (h:A) (v:vector A n),
-      Vfold_right f (Vcons h v) id = f h (Vfold_right f v id).
-Admitted.
 
-  Lemma Vfold_right_reduce: forall A B n (f:A->B->B) (id:B) (v:vector A (S n)),
-      Vfold_right f v id = f (hd v) (Vfold_right f (tl v) id).
-Admitted.
 
   (* It directly follows from definition, but haiving it as sepearate lemma helps to do rewiring *)
-  Lemma Vfold_left_rev_cons:
-    forall A B {n} (f : B->A->B) (b:B) (x: A) (xs : vector A n),
-      Vfold_left_rev f b (Vcons x xs) = f (Vfold_left_rev f b xs) x.
-Admitted.
 
-  Lemma Vfold_right_Vmap
-        {A B C: Type}
-        {n: nat}
-        (f : A->B->B)
-        (g : C->A)
-        (x : vector C n)
-        (z:B)
-    : Vfold_right f (Vmap g x) z = Vfold_right (f∘g) x z.
-Admitted.
 
 End VFold.
 
 Section VBreak.
-  Lemma Vbreak_arg_app:
-    forall {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
-      Vbreak x = (a, b) -> x = Vapp a b.
-Admitted.
 
-  Lemma Vbreak_preserves_values {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1}:
-    Vbreak x = (x0, x1) ->
-    forall a, Vin a x <-> ((Vin a x0) \/ (Vin a x1)).
-Admitted.
 
-  Lemma Vbreak_preserves_P {A} {n1 n2} {x: vector A (n1+n2)} {x0 x1} {P}:
-    Vbreak x = (x0, x1) ->
-    (Vforall P x -> ((Vforall P x0) /\ (Vforall P x1))).
-Admitted.
 
-  Lemma Vnth_fst_Vbreak
-        {A:Type}
-        (m n : nat)
-        (v : vector A (m + n))
-        (j : nat) (jc : j < m)
-        (jc1 : j < m + n):
-    Vnth (fst (Vbreak v)) jc = Vnth v jc1.
-Admitted.
 
-  Lemma Vnth_snd_Vbreak
-        {A: Type}
-        (m n : nat)
-        (v : vector A (m + n)) (j : nat)
-        (jc : j < n)
-        (jc2 : j + m < m + n):
-    Vnth (snd (Vbreak v)) jc = Vnth v jc2.
-Admitted.
 
 End VBreak.
 
-Lemma vec_eq_elementwise n B (v1 v2: vector B n):
-  Vforall2 eq v1 v2 -> (v1 = v2).
-Admitted.
 
-Lemma Vmap_Vbuild n B C (fm: B->C) (fb : forall i : nat, i < n -> B):
-  Vmap fm (Vbuild fb) = Vbuild (fun z zi => fm (fb z zi)).
-Admitted.
 
-Lemma Vexists_Vbuild:
-  forall (T:Type) (P: T -> Prop) (n:nat) {f},
-    Vexists P (Vbuild (n:=n) f) <-> exists i (ic:i<n), P (f i ic).
-Admitted.
 
-Lemma Vbuild_0:
-  forall B gen, @Vbuild B 0 gen = @Vnil B.
-Admitted.
 
-Lemma Vbuild_1 B gen:
-  @Vbuild B 1 gen = [gen 0 (lt_0_Sn 0)].
-Admitted.
 
-Fact lt_0_SSn:  forall n:nat, 0<S (S n). Admitted.
-Fact lt_1_SSn:  forall n:nat, 1<S (S n). Admitted.
-
-Lemma Vbuild_2 B gen:
-  @Vbuild B 2 gen = [gen 0 (lt_0_SSn 0) ; gen 1 (lt_1_SSn 0)].
-Admitted.
 
 
 Definition Vin_aux {A} {n} (v : vector A n) (x : A) : Prop := Vin x v.
 
 Section Vnth.
 
-  Lemma Vnth_arg_eq:
-    forall (A : Type) (n : nat) (v1 v2 : vector A n)
-      (i : nat) (ip : i < n), v1 = v2 -> Vnth v1 ip = Vnth v2 ip.
-Admitted.
 
   (* Convenience method, swapping arguments on Vnth *)
   Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
@@ -522,50 +390,11 @@ End VMap2_Indexed.
 
 Definition Lst {B:Type} (x:B) := [x].
 
-Lemma Vforall_Vconst
-      {A: Type}
-      {n: nat}
-      {z: A}
-      {P: A->Prop}:
-  P z -> Vforall P (Vconst z n).
-Admitted.
 
-Lemma Vforall_Vmap2
-      {A: Type}
-      {n: nat}
-      {P: A->Prop}
-      {f: A->A->A}
-      (C: forall x y : A, P x -> P y -> P (f x y))
-      {a b: vector A n}
-      (PA: Vforall P a)
-      (PB: Vforall P b)
-  :
-    Vforall P (Vmap2 f a b).
-Admitted.
 
 
 (* --- Some tactics --- *)
 
-
-(* Given a [Vnth x i0 ic0 = Vnth y i1 ic0] and a hypotheis [i0=i1] reduces goal to [x=y].
-TODO: See if could be generalized to [forall_n_lt_eq] *)
-Ltac Vnth_eq_index_to_val_eq :=
-  let lc := fresh in
-  let rc := fresh in
-  let Q := fresh in
-  let HeqQ := fresh in
-  match goal with
-  | [ H: ?i0 = ?i1 |- @Vnth ?t ?s ?v0 ?i0 ?ic0 = @Vnth ?t ?s ?v1 ?i1 ?ic1] =>
-    generalize ic0 as lc;
-    generalize ic1 as rc;
-    intros rc lc ;
-    remember i0 as Q eqn:HeqQ;
-    rewrite H in HeqQ;
-    subst Q;
-    rewrite (le_unique _ _ lc rc);
-    apply Vnth_arg_eq;
-    clear rc lc HeqQ
-  end.
 
 End VecUtil.
 
@@ -626,9 +455,6 @@ Section Vconst.
   Definition Vconst_reord {n} (x:A): vector A n :=
     Vconst x n.
 
-  Lemma Vconst_to_Vconst_reord {n} (x:A):
-    Vconst x n ≡ @Vconst_reord n x.
-Admitted.
 
   Global Instance Vconst_reord_proper {n}:
     Proper ((=)==>(=)) (@Vconst_reord n).
@@ -646,9 +472,6 @@ Section Vfold_left.
 
   Definition Vfold_left_reord {A B:Type} {n} (f:A->B->A) (initial:A) (v: vector B n): A := @Vfold_left A B f n initial v.
 
-  Lemma Vfold_left_to_Vfold_left_reord: forall {A B:Type} {n} (f:A->B->A) (v: vector B n) (initial:A),
-      Vfold_left f initial v ≡ Vfold_left_reord f initial v.
-Admitted.
 
   Global Instance Vfold_left_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
@@ -665,9 +488,6 @@ Section Vfold_left_rev.
 
   Definition Vfold_left_rev_reord {A B:Type} {n} (f:A->B->A) (initial:A) (v: vector B n): A := @Vfold_left_rev A B f n initial v.
 
-  Lemma Vfold_left_rev_to_Vfold_left_rev_reord: forall {A B:Type} {n} (f:A->B->A) (v: vector B n) (initial:A),
-      Vfold_left_rev f initial v ≡ Vfold_left_rev_reord f initial v.
-Admitted.
 
   Global Instance Vfold_left_rev_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
@@ -684,9 +504,6 @@ Section Vfold_right.
 
   Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
 
-  Lemma Vfold_right_to_Vfold_right_reord: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-      Vfold_right f v initial ≡ Vfold_right_reord f v initial.
-Admitted.
 
   Global Instance Vfold_right_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
@@ -705,8 +522,6 @@ Section VCons.
 
   Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
 
-  Lemma Vcons_to_Vcons_reord: forall A n (t: t A n) (h:A), Vcons h t  ≡ Vcons_reord t h.
-Admitted.
 
   Global Instance Vcons_reord_proper `{Equiv A} n:
     Proper ((=) ==> (=) ==> (=))
@@ -737,50 +552,14 @@ Ltac vec_index_equiv j jc :=
   let jc' := fresh jc in
   unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j' jc'.
 
-Lemma Vfold_right_Vmap_equiv
-      {A B C: Type}
-      `{Setoid B}
-      {n: nat}
-      (f : A->B->B)
-      (g : C->A)
-      (x : vector C n)
-      (z:B)
-  : Vfold_right f (Vmap g x) z = Vfold_right (f∘g) x z.
-Admitted.
 
-Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
-  ∀ (n : nat) (v : vector A n) (f:A->B),
-    Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
-Admitted.
 
-Lemma Vmap2_cons_hd: forall A B C `{Setoid C} (f:A->B->C) n (a:vector A (S n)) (b:vector B (S n)),
-    Vmap2 f a b = Vcons (f (Vhead a) (Vhead b)) (Vmap2 f (Vtail a) (Vtail b)).
-Admitted.
 
-Lemma Vmap2_cons: forall A B C `{Setoid C} (f:A->B->C) n (a:A) (b:B) (a':vector A n) (b':vector B n),
-    Vmap2 f (Vcons a a') (Vcons b b') = Vcons (f a b) (Vmap2 f a' b').
-Admitted.
 
-Lemma Vmap2_comm
-      `{CO:Commutative B A f}
-      `{SB: !Setoid B} {n:nat}:
-  Commutative (Vmap2 f (n:=n)).
-Admitted.
 
-Lemma hd_equiv: forall `{Setoid A} {n} (u v: vector A (S n)), u=v -> (Vhead u) = (Vhead v).
-Admitted.
 
-Lemma Vcons_equiv_elim `{Equiv A}: forall a1 a2 n (v1 v2 : vector A n),
-    Vcons a1 v1 = Vcons a2 v2 -> a1 = a2 /\ v1 = v2.
-Admitted.
 
-Lemma Vcons_equiv_intro `{Setoid A} : forall a1 a2 n (v1 v2 : vector A n),
-    a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
-Admitted.
 
-Lemma Vcons_single_elim `{Equiv A} : forall a1 a2,
-    Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
-Admitted.
 
 (* TODO: Check if it is still needed in Coq-8.6 *)
 Section VMap_reord.
@@ -802,8 +581,6 @@ Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
 
   Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.
 
-  Lemma Vmap_to_Vmap_reord: forall (A B: Type) (n:nat) (f:A->B) (x: vector A n), @Vmap A B f n x ≡ @Vmap_reord A B n f x.
-Admitted.
 
 
   Global Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
@@ -826,14 +603,7 @@ Admitted.
 
 Section Vnth.
 
-  Lemma Vnth_arg_equiv:
-    ∀ (A : Type) (Ae : Equiv A) (n : nat) (v1 v2 : vector A n)
-      (i : nat) (ip : i < n), v1 = v2 → Vnth v1 ip = Vnth v2 ip.
-Admitted.
 
-  Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
-      i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
-Admitted.
 
   (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later *)
 
@@ -861,14 +631,6 @@ Global Instance Vbuild_proper {n : nat} {A:Type} `{Equiv A}:
 Admitted.
 
 (* --- Tactics --- *)
-
-Ltac vec_to_vec_reord := repeat match goal with
-                                | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
-                                | [ |- context [Vfold_left]] => setoid_rewrite Vfold_left_to_Vfold_left_reord
-                                | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
-                                | [ |- context [Vconst]] => setoid_rewrite Vconst_to_Vconst_reord
-                                | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord
-                                end.
 
 
 End VecSetoid.
@@ -1131,19 +893,8 @@ Section CollisionTrackingRthetaFlags.
       (monoid_plus a = monoid_plus b) /\
       (monoid_unit a = monoid_unit b).
 
-  Lemma RthetaFlags_assoc:
-    ∀ a b c : RthetaFlags,
-      RthetaFlagsAppend (RthetaFlagsAppend a b) c
-                        ≡ RthetaFlagsAppend a (RthetaFlagsAppend b c).
-Admitted.
 
-  Lemma RthetaFlags_lunit:
-    ∀ a : RthetaFlags, RthetaFlagsAppend RthetaFlagsZero a ≡ a.
-Admitted.
 
-  Lemma RthetaFlags_runit:
-    ∀ a : RthetaFlags, RthetaFlagsAppend a RthetaFlagsZero ≡ a.
-Admitted.
 
   Global Instance MonoidLaws_RthetaFlags:
     MonoidLaws Monoid_RthetaFlags.
@@ -1160,19 +911,8 @@ Section SafeRthetaFlags.
 
   Definition Monoid_RthetaSafeFlags : Monoid RthetaFlags := ExtLib.Structures.Monoid.Build_Monoid RthetaFlagsSafeAppend RthetaFlagsZero.
 
-  Lemma RthetaFlags_safe_assoc:
-    ∀ a b c : RthetaFlags,
-      RthetaFlagsSafeAppend (RthetaFlagsSafeAppend a b) c
-                            ≡ RthetaFlagsSafeAppend a (RthetaFlagsSafeAppend b c).
-Admitted.
 
-  Lemma RthetaFlags_safe_lunit:
-    ∀ a : RthetaFlags, RthetaFlagsSafeAppend RthetaFlagsZero a ≡ a.
-Admitted.
 
-  Lemma RthetaFlags_safe_runit:
-    ∀ a : RthetaFlags, RthetaFlagsSafeAppend a RthetaFlagsZero ≡ a.
-Admitted.
 
   Global Instance MonoidLaws_SafeRthetaFlags:
     MonoidLaws Monoid_RthetaSafeFlags.
@@ -1229,14 +969,7 @@ Section Rtheta'Utils.
   Definition Is_ValX (z:CarrierA)
     := fun (x:Rtheta' fm) => (WriterMonadNoT.evalWriter x) = z.
 
-  Lemma IsVal_mkValue {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
-:
-    ∀ (v:CarrierA), Is_Val (mkValue v).
-Admitted.
 
-  Lemma Not_Collision_mkValue {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}:
-    ∀ (v:CarrierA), Not_Collision (mkValue v).
-Admitted.
 
   Global Instance Rtheta'_equiv: Equiv (Rtheta' fm) :=
     fun am bm => (evalWriter am) = (evalWriter bm).
@@ -1279,81 +1012,22 @@ Admitted.
 Admitted.
 
   (* Note: definitional equality *)
-  Lemma evalWriter_Rtheta_liftM
-        (op: CarrierA -> CarrierA)
-        `{a: Rtheta' fm}
-    :
-      evalWriter (liftM op a) ≡ op (evalWriter a).
-Admitted.
 
-  Lemma execWriter_liftM {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}:
-    ∀ (f : CarrierA → CarrierA)
-      (x : Rtheta' fm),
-      execWriter (Monad.liftM f x) ≡ execWriter x.
-Admitted.
 
-  Lemma Is_Val_liftM
-        {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
-        (f: CarrierA → CarrierA)
-        (r : Rtheta' fm):
-    Is_Val r → Is_Val (liftM f r).
-Admitted.
 
-  Lemma Not_Collision_liftM
-        {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
-        (f: CarrierA → CarrierA)
-        (r : Rtheta' fm):
-    Not_Collision r -> Not_Collision (liftM f r).
-Admitted.
 
-  Lemma execWriter_Rtheta_liftM2
-        {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
-        (op: CarrierA -> CarrierA -> CarrierA)
-        {a b: Rtheta' fm}
-    :
-      execWriter (liftM2 op a b) ≡ monoid_plus fm
-                 (@execWriter _ _ fm a) (@execWriter _ _ fm b).
-Admitted.
 
   (* Note: definitional equality *)
-  Lemma evalWriter_Rtheta_liftM2
-        (op: CarrierA -> CarrierA -> CarrierA)
-        {a b: Rtheta' fm}
-    :
-      evalWriter (liftM2 op a b) ≡ op (evalWriter a) (evalWriter b).
-Admitted.
 
   (* mkValue on evalWriter on non-collision value is identity *)
-  Lemma mkValue_evalWriter_VNC
-        {fml:@MonoidLaws RthetaFlags  RthetaFlags_type fm}
-        (r : Rtheta' fm)
-    :
-      Is_Val r → Not_Collision r -> mkValue (WriterMonadNoT.evalWriter r) ≡ r.
-Admitted.
 
 
   (* mkValue on evalWriter equiv wrt values *)
-  Lemma mkValue_evalWriter
-        (r: Rtheta' fm):
-    mkValue (WriterMonadNoT.evalWriter r) = r.
-Admitted.
 
   (* mkStruct on evalWriter equiv wrt values *)
-  Lemma mkStruct_evalWriter
-        (r: Rtheta' fm):
-    mkStruct (WriterMonadNoT.evalWriter r) = r.
-Admitted.
 
   (* evalWriter on mkStruct equiv wrt values *)
-  Lemma evalWriter_mkStruct
-        (c: CarrierA):
-     WriterMonadNoT.evalWriter (mkStruct c) ≡ c.
-Admitted.
 
-  Lemma evalWriter_mkValue
-        (x:CarrierA):
-    WriterMonadNoT.evalWriter (mkValue x) ≡ x.
-Admitted.
 
 End Rtheta'Utils.
 
@@ -1372,105 +1046,25 @@ Global Instance RStheta2Rtheta_proper
   : Proper ((=) ==> (=)) (RStheta2Rtheta).
 Admitted.
 
-Lemma RStheta2Rtheta_liftM2
-      (f : CarrierA → CarrierA → CarrierA)
-      (f_mor: Proper (equiv ==> equiv ==> equiv) f)
-      {a b: Rtheta}
-  :
-    RStheta2Rtheta (Monad.liftM2 f (Rtheta2RStheta a) (Rtheta2RStheta b)) =
-    Monad.liftM2 f a b.
-Admitted.
-
-Lemma RStheta2Rtheta_Rtheta2RStheta {x}:
-  RStheta2Rtheta (Rtheta2RStheta x) ≡ x.
-Admitted.
-
-Lemma RStheta2Rtheta_Rtheta2RStheta_equiv {x}:
-  RStheta2Rtheta (Rtheta2RStheta x) = x.
-Admitted.
-
-Lemma Is_Val_mkStruct:
-  forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
-Admitted.
-
-Lemma Is_Val_mkSZero:
-  @Is_Val _ (@mkSZero Monoid_RthetaFlags) -> False.
-Admitted.
-
-Lemma Is_Struct_mkSZero:
-  @Is_Struct _ (@mkSZero Monoid_RthetaFlags).
-Admitted.
-
-Lemma Is_Val_liftM2
-      (f: CarrierA → CarrierA → CarrierA)
-      (a b : Rtheta):
-  Is_Val a → Is_Val b → Is_Val (liftM2 f a b).
-Admitted.
-
-Lemma Is_Val_Safe_liftM2
-      (f: CarrierA → CarrierA → CarrierA)
-      (a b : RStheta):
-  Is_Val a → Is_Val b → Is_Val (liftM2 f a b).
-Admitted.
-
-Lemma Is_Val_RStheta2Rtheta
-      {x:RStheta}:
-  Is_Val x <-> Is_Val (RStheta2Rtheta x).
-Admitted.
-
-Lemma Is_Val_Rtheta2RStheta
-      {x:Rtheta}:
-  Is_Val x <-> Is_Val (Rtheta2RStheta x).
-Admitted.
-
-Lemma Is_Struct_RStheta2Rtheta
-      {x:RStheta}:
-  Is_Struct x <-> Is_Struct (RStheta2Rtheta x).
-Admitted.
-
-Lemma Is_Struct_Rtheta2RStheta
-      {x:Rtheta}:
-  Is_Struct x <-> Is_Struct (Rtheta2RStheta x).
-Admitted.
-
-Lemma Not_Collision_RStheta2Rtheta
-      {x:RStheta}:
-  Not_Collision x <-> Not_Collision (RStheta2Rtheta x).
-Admitted.
-
-Lemma Not_Collision_Rtheta2RStheta
-      {x:Rtheta}:
-  Not_Collision x <-> Not_Collision (Rtheta2RStheta x).
-Admitted.
 
 
-Lemma Not_Collision_liftM2
-      (f: CarrierA → CarrierA → CarrierA)
-      (a b : Rtheta):
-  Not_Collision a → Not_Collision b →
-  (Is_Struct a \/ Is_Struct b) ->
-  Not_Collision (liftM2 f a b).
-Admitted.
 
-Lemma Not_Collision_Safe_liftM2
-      (f: CarrierA → CarrierA → CarrierA)
-      (a b : RStheta):
-  Not_Collision a → Not_Collision b →
-  Not_Collision (liftM2 f a b).
-Admitted.
 
-Lemma Not_Collision_Safe_mkStruct:
-  ∀ (v:CarrierA), @Not_Collision Monoid_RthetaSafeFlags (mkStruct v).
-Admitted.
 
-Lemma evalWriter_Rtheta2RStheta_mkValue
-      {x}:
-  (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) ≡ x.
-Admitted.
 
-Lemma evalWriter_Rtheta2RStheta_mkValue_equiv {x}:
-  (WriterMonadNoT.evalWriter (Rtheta2RStheta (mkValue x))) = x.
-Admitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
@@ -1486,11 +1080,6 @@ End Decidablitiy.
 
 Section Zero_Utils.
 
-  Lemma evalWriter_Rtheta_SZero
-        (fm:Monoid RthetaFlags)
-  :
-    @evalWriter _ _ fm (@mkSZero fm) ≡ zero.
-Admitted.
 
   Global Instance mkValue_proper
          {fm:Monoid RthetaFlags}
@@ -1517,22 +1106,8 @@ Admitted.
       Proper ((=) ==> (iff)) (@Is_ValZero fm).
 Admitted.
 
-  Lemma Is_ValZero_to_mkSZero
-        {fm:Monoid RthetaFlags}
-        (x:Rtheta' fm):
-    (Is_ValZero x) <-> (x = mkSZero).
-Admitted.
 
-  Lemma SZero_is_ValZero
-        {fm:Monoid RthetaFlags}:
-    @Is_ValZero fm mkSZero.
-Admitted.
 
-  Lemma Is_ValX_mkStruct
-        {fm:Monoid RthetaFlags}:
-    forall x,
-      @Is_ValX fm x (mkStruct x).
-Admitted.
 
   (* Using setoid equalities on both components *)
   Definition Is_SZero
@@ -1542,40 +1117,15 @@ Admitted.
       (evalWriter x = zero) /\
       (execWriter x = RthetaFlagsZero).
 
-  Lemma Is_SZero_mkSZero:
-    @Is_SZero Monoid_RthetaFlags mkSZero.
-Admitted.
 
-  Lemma Is_ValX_not_not
-        {fm:Monoid RthetaFlags}
-        `{uf_zero: MonUnit CarrierA}:
-    not ∘ (not ∘ (@Is_ValX fm uf_zero)) = Is_ValX uf_zero.
-Admitted.
 
   (* TODO: See if we need this *)
-  Lemma Is_ValX_not_not'
-        {fm:Monoid RthetaFlags}
-        `{uf_zero: MonUnit CarrierA}:
-    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero.
-Admitted.
 
 
   (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter. TODO: Very similar to [Is_ValX_not_not] *)
-  Lemma Is_ValZero_not_not
-        {fm:Monoid RthetaFlags}
-    :
-      ((not ∘ (not ∘ @Is_ValZero fm)) = Is_ValZero).
-Admitted.
 
 
   (* Double negation on inValZero. *)
-  Lemma not_not_on_decidable
-        {A:Type}
-        {P: A->Prop}
-        `{forall x:A, Decision (P x)}
-    :
-      forall x, (not ∘ (not ∘ P)) x <-> P x.
-Admitted.
 
 End Zero_Utils.
 
@@ -1660,10 +1210,6 @@ Admitted.
   Definition svector_is_dense {n} (v:svector n) : Prop :=
     Vforall (@Is_Val fm)  v.
 
-  Lemma Vnth_sparsify:
-    ∀ (n i : nat) (ip : i < n) (v : avector n),
-      Vnth (sparsify v) ip ≡ mkValue (Vnth v ip).
-Admitted.
 
   Fixpoint Vin_Rtheta_Val {n} (v : svector n) (x : CarrierA) : Prop :=
     match v with
@@ -1671,14 +1217,7 @@ Admitted.
     | Vcons y w => (WriterMonadNoT.evalWriter y) = x \/ Vin_Rtheta_Val w x
     end.
 
-  Lemma Vbreak_dense_vector {n1 n2} {x: svector (n1+n2)} {x0 x1}:
-    Vbreak x ≡ (x0, x1) ->
-    svector_is_dense x ->  (svector_is_dense x0) /\ (svector_is_dense x1).
-Admitted.
 
-  Lemma szero_svector_all_zeros:
-    ∀ n : nat, Vforall Is_ValZero (szero_svector n).
-Admitted.
 
   Definition svector_is_collision {n} (v:svector n) :=
     Vexists Is_Collision v.
@@ -1686,23 +1225,9 @@ Admitted.
   Definition svector_is_non_collision {n} (v:svector n) :=
     Vforall Not_Collision v.
 
-  Lemma sparsify_non_coll: forall n (x:avector n),
-      svector_is_non_collision (sparsify x).
-Admitted.
 
-  Lemma sparsify_is_dense:
-    ∀ (i : nat) (x : vector CarrierA i), svector_is_dense (sparsify x).
-Admitted.
 
-  Lemma sparsify_densify {n} (x:svector n):
-    svector_is_dense x ->
-    svector_is_non_collision x ->
-    (sparsify (densify x)) ≡ x.
-Admitted.
 
-  Lemma sparsify_densify_equiv {n} (x:svector n):
-    (sparsify (densify x)) = x.
-Admitted.
 
 End SvectorBasics.
 
@@ -1713,16 +1238,7 @@ Section Union.
   Definition Union (dot : CarrierA -> CarrierA -> CarrierA)
     : Rtheta' fm -> Rtheta' fm -> Rtheta' fm := liftM2 dot.
 
-  Lemma Union_comm (dot : CarrierA -> CarrierA -> CarrierA)
-        `{C: !Commutative dot}:
-    Commutative (Union dot).
-Admitted.
 
-  Lemma evalWriterUnion {a b: Rtheta' fm} {dot}:
-    evalWriter (Union dot a b) =
-    dot (evalWriter a)
-        (evalWriter b).
-Admitted.
 
   Global Instance Union_proper:
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) Union.
@@ -1769,81 +1285,24 @@ Admitted.
     : Proper ((=) ==> (=)) (@SumUnion o n).
   Admitted.
 
-  Lemma UnionFold_cons
-        m x (xs : svector fm m)
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        (neutral: CarrierA):
-    UnionFold dot neutral (Vcons x xs) ≡ Union dot (UnionFold dot neutral xs) x.
-Admitted.
 
-  Lemma Vec2Union_comm
-        {n}
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        `{C: !Commutative dot}
-    :
-      @Commutative (svector fm n) _ (svector fm n) (Vec2Union dot).
-Admitted.
 
-  Lemma MUnion'_0
-        {o: nat}
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        (initial: CarrierA)
-        (v: vector (svector fm o) 0):
-    MUnion' dot initial v ≡ Vconst (mkStruct initial) o.
-Admitted.
 
-  Lemma MUnion'_cons {m n}
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        (neutral: CarrierA)
-        (x: svector fm m) (xs: vector (svector fm m) n):
-    MUnion' dot neutral (Vcons x xs) ≡ Vec2Union dot (MUnion' dot neutral xs) x.
-Admitted.
 
-  Lemma SumUnion_cons {m n}
-        (x: svector fm m) (xs: vector (svector fm m) n):
-    SumUnion (Vcons x xs) ≡ Vec2Union plus (SumUnion xs) x.
-Admitted.
 
-  Lemma Union_SZero_r x:
-    (Union plus x mkSZero) = x.
-Admitted.
 
-  Lemma Union_SZero_l x:
-    (Union plus mkSZero x) = x.
-Admitted.
 
-  Lemma Vec2Union_szero_svector_r {n} {a: svector fm n}:
-    Vec2Union plus a (szero_svector fm n) = a.
-Admitted.
 
-  Lemma Vec2Union_szero_svector_l {n} {a: svector fm n}:
-    Vec2Union plus (szero_svector fm n) a = a.
-Admitted.
 
 End Union.
 
 Section ExclusiveUnion.
 
-  Lemma UnionCollisionFree (a b : Rtheta) {dot}:
-    ¬Is_Collision a →
-    ¬Is_Collision b →
-    ¬(Is_Val a ∧ Is_Val b)
-    → ¬Is_Collision (Union Monoid_RthetaFlags dot a b).
-Admitted.
 
   (* Conditions under which Union produces value *)
-  Lemma ValUnionIsVal (a b : Rtheta) {dot}:
-    Is_Val a \/ Is_Val b <-> Is_Val (Union Monoid_RthetaFlags dot a b).
-Admitted.
 
   (* Conditions under which Union produces struct *)
-  Lemma StructUnionIsStruct (a b : Rtheta) {dot}:
-    Is_Struct a /\ Is_Struct b <-> Is_Struct (Union Monoid_RthetaFlags dot a b).
-Admitted.
 
-  Lemma Is_Val_UnionFold {n} {v: rvector n} {dot} {neutral}:
-    Vexists Is_Val v <-> Is_Val (UnionFold Monoid_RthetaFlags dot neutral v).
-Admitted.
 
 End ExclusiveUnion.
 
@@ -1851,28 +1310,12 @@ End ExclusiveUnion.
 Section NonExclusiveUnion.
 
   (* Conditions under which Union produces value *)
-  Lemma ValUnionIsVal_Safe (a b : RStheta) {dot}:
-    Is_Val a \/ Is_Val b <-> Is_Val (Union Monoid_RthetaSafeFlags dot a b).
-Admitted.
 
-  Lemma Is_Val_UnionFold_Safe {n} {v: rsvector n} {dot} {neutral}:
-    Vexists Is_Val v <-> Is_Val (UnionFold Monoid_RthetaSafeFlags dot neutral v).
-Admitted.
 
-  Lemma UnionCollisionFree_Safe (a b : RStheta) {dot}:
-    ¬Is_Collision a →
-    ¬Is_Collision b →
-    ¬Is_Collision (Union Monoid_RthetaSafeFlags dot a b).
-Admitted.
 
 End NonExclusiveUnion.
 
 (* RStheta2Rtheta distributes over Union *)
-Lemma RStheta2Rtheta_over_Union {f a b}:
-  RStheta2Rtheta
-    (Union Monoid_RthetaSafeFlags f a b) =
-  (Union Monoid_RthetaFlags f (RStheta2Rtheta a) (RStheta2Rtheta b)).
-Admitted.
 
 
 Section Matrix.
@@ -2043,18 +1486,8 @@ End HCOL_implementations.
 
 Section HCOL_implementation_facts.
 
-  Lemma Induction_cons:
-    forall n initial (f:CarrierA -> CarrierA -> CarrierA)
-      (v:CarrierA),
-      Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
-Admitted.
 
   (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
-  Lemma EvalPolynomial_reduce:
-    forall n (a: avector (S n)) (x:CarrierA),
-      EvalPolynomial a x  =
-      plus (Vhead a) (mult x (EvalPolynomial (Vtail a) x)).
-Admitted.
 
 End HCOL_implementation_facts.
 
@@ -2159,12 +1592,6 @@ Section HCOL_Language.
   Class HOperator {i o:nat} (op: avector i -> avector o) :=
     HOperator_setoidmor :> Setoid_Morphism op.
 
-  Lemma HOperator_functional_extensionality
-        {m n: nat}
-        `{HOperator m n f}
-        `{HOperator m n g}:
-    (∀ v, f v = g v) -> f = g.
-Admitted.
 
   Definition HPrepend {i n} (a:avector n)
     : avector i -> avector (n+i)
@@ -2264,9 +1691,6 @@ Admitted.
   End HCOL_operators.
 End HCOL_Language.
 
-(* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by HOperator class *)
-Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflexivity.
-
 Section IgnoreIndex_wrapper.
 
   (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f' *)
@@ -2286,11 +1710,6 @@ Section IgnoreIndex_wrapper.
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := const (B:=nat) f.
 
-  Lemma IgnoreIndex2_ignores `{Setoid A}
-        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-    : forall i0 i1,
-      (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
-Admitted.
 
   Global Instance IgnoreIndex2_proper `{Equiv A}:
     (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex2 A)).
@@ -2308,34 +1727,8 @@ End IgnoreIndex_wrapper.
 
 Section HCOL_Operator_Lemmas.
 
-  Lemma HPointwise_nth
-        {n: nat}
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        {j:nat} {jc:j<n}
-        (x: avector n):
-    Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
-Admitted.
 
-  Lemma HBinOp_nth
-        {o}
-        {f: nat -> CarrierA -> CarrierA -> CarrierA}
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        {v: avector (o+o)}
-        {j:nat}
-        {jc: j<o}
-        {jc1:j<o+o}
-        {jc2: (j+o)<o+o}
-    :
-      Vnth (@HBinOp o f pF v) jc = f j (Vnth v jc1) (Vnth v jc2).
-Admitted.
 
-  Lemma HReduction_nil
-        (f: CarrierA -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        (idv: CarrierA):
-    HReduction f idv [] ≡ [idv].
-Admitted.
 
 
 End HCOL_Operator_Lemmas.
@@ -2686,24 +2079,7 @@ Proof.
   exact (IndexMap d r index_f0 new_spec).
 Defined.
 
-Lemma shrink_non_shrink_eq (d r : nat) (f : index_map (S d) r):
-  ⟦ shrink_index_map_domain f ⟧ ≡ ⟦ f ⟧.
-Admitted.
 
-Lemma shrink_index_map_domain_exists_eq {i o : nat}
-      (f : index_map (S i) o)
-      (j : nat)
-      (jc : Peano.lt j (S i))
-      (jc1 : Peano.lt j i):
-  (@exist nat (fun x : nat => Peano.lt x o)
-          (index_f i o (@shrink_index_map_domain i o f) j)
-          (index_f_spec i o (@shrink_index_map_domain i o f) j jc1))
-    ≡
-    (@exist nat (fun x : nat => Peano.lt x o)
-            (index_f (S i) o f j)
-            (index_f_spec (S i) o f j jc)
-    ).
-Admitted.
 
 Definition shrink_index_map_1_range {r:nat} (f: index_map 1 (S r)) (NZ: ⟦ f ⟧ 0 ≢ 0)
   : index_map 1 r.
@@ -2744,36 +2120,11 @@ Section InRange.
   Global Instance in_range_dec {d r:nat} (f: index_map d r) (i:nat) : Decision (in_range f i).
   Admitted.
 
-  Lemma in_range_by_def:
-    ∀ (d r : nat) (f : index_map d r) (x : nat) (xc: x < d),
-      in_range f (⟦ f ⟧ x).
-Admitted.
-
-  Lemma in_range_upper_bound:
-    ∀ (d r : nat) (f : index_map d r) (x : nat),
-      in_range f x → x < r.
-Admitted.
 
 
-  Lemma in_range_shrink_index_map_domain (d r y : nat) (f : index_map (S d) r):
-    in_range f y → ⟦ f ⟧ d ≢ y → in_range (shrink_index_map_domain f) y.
-Admitted.
 
-  Lemma in_range_exists
-        {d r y: nat}
-        (f: index_map d r)
-        (yc: y<r)
-    :
-      in_range f y <-> (∃ x (xc:x<d), ⟦ f ⟧ x ≡ y).
-Admitted.
 
-  Lemma in_range_index_map_compose_left {i o t : nat}
-        (f : index_map i t)
-        (g : index_map t o)
-        (j : nat)
-        (jc: j<o):
-    in_range (index_map_compose g f) j → in_range g j.
-Admitted.
+
 
 End InRange.
 
@@ -2899,95 +2250,21 @@ definition does not enforce this requirement, and the function produced might no
     :=
       (inverse_index_map_injective f') /\ (inverse_index_map_surjective f').
 
-  Lemma shrink_index_map_preserves_injectivity:
-    ∀ (d r : nat) (f : index_map (S d) r),
-      index_map_injective f → index_map_injective (shrink_index_map_domain f).
-Admitted.
 
   (* The following lemma proves that using `buld_inverse_index_map` on
   injective index_map produces true "left inverse" of it *)
-  Lemma build_inverse_index_map_is_left_inverse
-        {d r: nat}
-        (f: index_map d r)
-        (f_inj: index_map_injective f):
-    let fp := build_inverse_index_map f in
-    let f' := inverse_index_f _ fp in
-    forall x y (xc:x<d), ⟦ f ⟧ x ≡ y -> f' y ≡ x.
-Admitted.
 
 
   (* The following lemma proves that using `buld_inverse_index_map` on
   injective index_map produces true "right inverse" of it *)
-  Lemma build_inverse_index_map_is_right_inverse
-        {d r: nat}
-        (f: index_map d r)
-        (f_inj: index_map_injective f):
-    let fp := build_inverse_index_map f in
-    let f' := inverse_index_f _ fp in
-    forall x y (rc:in_range f y), f' y ≡ x -> ⟦ f ⟧ x ≡ y.
-Admitted.
-
-  Lemma build_inverse_index_map_is_injective:
-    ∀ (d r : nat) (f : index_map d r),
-      index_map_injective f →
-      inverse_index_map_injective (build_inverse_index_map f).
-Admitted.
-
-  Lemma build_inverse_index_map_is_surjective:
-    ∀ (d r : nat) (f : index_map d r), index_map_injective f → inverse_index_map_surjective (build_inverse_index_map f).
-Admitted.
-
-  Lemma build_inverse_index_map_is_bijective
-        {d r: nat}
-        (f: index_map d r)
-        {f_inj: index_map_injective f}
-    : inverse_index_map_bijective (build_inverse_index_map f).
-Admitted.
-
-  Lemma gen_inverse_revert:
-    ∀ (d r : nat) (f : index_map d r) (v : nat),
-      index_map_injective f ->
-      in_range f v ->
-      ⟦ f ⟧ (gen_inverse_index_f f v) ≡ v.
-Admitted.
 
 
-  Lemma composition_of_inverses_to_invese_of_compositions
-        (i o t : nat)
-        (f : index_map i t)
-        (g : index_map t o)
-        (f_inj: index_map_injective f)
-        (g_inj: index_map_injective g)
-        (j : nat)
-        (jc:j < o)
-        (Rg: in_range g j)
-        (R: in_range f (gen_inverse_index_f g j))
-        (Rgf: in_range (index_map_compose g f) j)
-    :
-      gen_inverse_index_f f (gen_inverse_index_f g j) =
-      gen_inverse_index_f (index_map_compose g f) j.
-Admitted.
 
-  Lemma in_range_index_map_compose_right {i o t : nat}
-        (f : index_map i t)
-        (g : index_map t o)
-        (g_inj: index_map_injective g)
-        (j : nat)
-        (jc: j < o):
-    in_range g j ->
-    in_range (index_map_compose g f) j ->
-    in_range f (gen_inverse_index_f g j).
-Admitted.
 
-  Lemma in_range_index_map_compose {i o t : nat}
-        (f : index_map i t)
-        (g : index_map t o)
-        (g_inj: index_map_injective g)
-        (j : nat)
-        (jc: j<o):
-    in_range g j → in_range f (gen_inverse_index_f g j)
-    → in_range (index_map_compose g f) j.
-Admitted.
+
+
+
+
 
 End Inversions.
 
@@ -3243,34 +2520,9 @@ Section SigmaHCOL_Operators.
         (forall j (jc:j<n),
             s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
 
-    Lemma vec_equiv_at_subset
-          {k:nat}
-          (x y: svector fm k)
-          (n h: FinNatSet k):
-      Included _ n h -> vec_equiv_at_set x y h -> vec_equiv_at_set x y n.
-Admitted.
 
-    Lemma vec_equiv_at_Union
-          {i : nat}
-          (s0 s1 : FinNatSet i)
-          (x y : svector fm i):
-      vec_equiv_at_set x y (Union _ s0 s1)
-      → (vec_equiv_at_set x y s0 /\ vec_equiv_at_set x y s1).
-Admitted.
 
-    Lemma vec_equiv_at_Full_set {i : nat}
-          (x y : svector fm i):
-      vec_equiv_at_set x y (Full_set (FinNat i)) <-> x = y.
-Admitted.
 
-    Lemma vec_equiv_at_set_narrowing
-          {n : nat}
-          (s0 : FinNatSet n)
-          (s1 : FinNatSet n)
-          (C: Included (FinNat n) s0 s1):
-      forall x y : svector fm n,
-        vec_equiv_at_set x y s1 → vec_equiv_at_set x y s0.
-Admitted.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
     Global Instance SHOperator_equiv
@@ -3336,47 +2588,10 @@ Admitted.
                               (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
-    Lemma family_in_set_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
-        (j : nat) (jc : j < k),
-        Included (FinNat i)
-                 (in_index_set (family_member op_family j jc))
-                 (family_in_index_set op_family).
-Admitted.
 
-    Lemma family_in_set_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
-          (j : nat) (jc : j < i):
 
-      family_in_index_set op_family (mkFinNat jc) ->
-      ∃ (t : nat) (tc : t < k),
-        in_index_set (family_member op_family t tc)
-                     (mkFinNat jc).
-Admitted.
 
-    Lemma family_out_set_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
-        (j : nat) (jc : j < k),
-        Included (FinNat o)
-                 (out_index_set (family_member op_family j jc))
-                 (family_out_index_set op_family).
-Admitted.
 
-    Lemma family_out_set_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
-          (j : nat) (jc : j < o):
-
-      family_out_index_set op_family (mkFinNat jc) <->
-      ∃ (t : nat) (tc : t < k),
-        out_index_set (family_member op_family t tc)
-                      (mkFinNat jc).
-Admitted.
-
-    Lemma SHOperator_ext_equiv_applied
-          {i o: nat}
-          (f g: @SHOperator i o):
-      (f=g) <-> (forall v, op f v = op g v).
-Admitted.
 
     Global Instance SHOperator_equiv_Reflexive
            {i o: nat}:
@@ -3423,10 +2638,6 @@ Admitted.
       Equivalence (@SHOperatorFamily_equiv i o n).
 Admitted.
 
-    Lemma SM_op_SHOperator
-          (i o : nat):
-      forall (a:@SHOperator i o), Setoid_Morphism (op a).
-Admitted.
 
     Global Instance SHOperator_op_proper {i o} :
       Proper ((=) ==> (=) ==> (=)) (@op i o).
@@ -3617,13 +2828,6 @@ Admitted.
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    Lemma SHCompose_val_equal_compose
-          {i1 o2 o3}
-          (op1: @SHOperator o2 o3)
-          (op2: @SHOperator i1 o2)
-      :
-        (op op1) ∘ (op op2) = op (op1 ⊚ op2).
-Admitted.
 
     Global Instance SHCompose_proper
            {i1 o2 o3}
@@ -3748,43 +2952,10 @@ Admitted.
 
 
     (* TODO: rename since Zero changed to IDV *)
-    Lemma Scatter'_Zero_at_sparse
-          {i o: nat}
-          (f: index_map i o)
-          {f_inj: index_map_injective f}
-          (idv: CarrierA)
-          (x: svector fm i)
-          (k:nat)
-          (kc:k<o):
-      ¬ in_range f k -> (Is_ValX idv) (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc).
-Admitted.
 
     (* TODO: rename since Zero changed to IDV *)
-    Lemma Scatter'_NonZero_in_range
-          {i o: nat}
-          (f: index_map i o)
-          {f_inj: index_map_injective f}
-          (idv: CarrierA)
-          (x: svector fm i)
-          (k:nat)
-          (kc:k<o):
-      idv ≠ evalWriter (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc) -> in_range f k.
-Admitted.
 
     (* TODO: rename since Zero changed to IDV *)
-    Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
-          {n i o ki ko}
-          (* Kernel *)
-          (kernel: @SHOperatorFamily ki ko n)
-          (* Scatter index map *)
-          (f: index_map_family ko o n)
-          {f_inj : index_map_family_injective f}
-          (idv: CarrierA)
-          (* Gather index map *)
-          (g: index_map_family ki i n):
-      Apply_Family_Single_NonUnit_Per_Row
-        (SparseEmbedding kernel f (f_inj:=f_inj) idv g) idv.
-Admitted.
 
   End FlagsMonoidGenericOperators.
 
@@ -3920,16 +3091,6 @@ Admitted.
 End SigmaHCOL_Operators.
 
 (* TODO: maybe <->  *)
-Lemma Is_Val_Scatter
-      {m n: nat}
-      (f: index_map m n)
-      {f_inj: index_map_injective f}
-      (idv: CarrierA)
-      (x: rvector m)
-      (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter' _ f (f_inj:=f_inj) idv x) jc) ->
-  (exists i (ic:i<m), ⟦f⟧ i ≡ j).
-Admitted.
 
 Definition USparseEmbedding
            {n i o ki ko}
@@ -3955,210 +3116,37 @@ Section OperatorProperies.
 
   Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-  Lemma SHCompose_assoc
-        {i1 o2 o3 o4}
-        (h: @SHOperator fm o3 o4)
-        (g: @SHOperator fm o2 o3)
-        (f: @SHOperator fm i1 o2):
-    h ⊚ g ⊚ f = h ⊚ (g ⊚ f).
-Admitted.
 
-  Lemma SHCompose_mid_assoc
-        {i1 o1 o2 o3 o4}
-        (h: @SHOperator fm o3 o4)
-        (g: @SHOperator fm o2 o3)
-        (f: @SHOperator fm o1 o2)
-        (k: @SHOperator fm i1 o1):
-    h ⊚ g ⊚ f ⊚ k = h ⊚ (g ⊚ f) ⊚ k.
-Admitted.
 
 
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Gather'_spec
-        {i o: nat}
-        (f: index_map o i)
-        (x: svector fm i):
-    ∀ n (ip : n < o), Vnth (Gather' fm f x) ip ≡ VnthIndexMapped x f n ip.
-Admitted.
 
   (* Index-function based condition under which Gather output is dense *)
-  Lemma Gather'_dense_constr (i ki : nat)
-        (g: index_map ki i)
-        (x: svector fm i)
-        (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather' fm g x).
-Admitted.
 
 
-  Lemma Gather'_is_endomorphism:
-    ∀ (i o : nat)
-      (x : svector fm i),
-    ∀ (f: index_map o i),
-      Vforall (Vin_aux x)
-              (Gather' fm f x).
-Admitted.
 
-  Lemma Gather'_preserves_P:
-    ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
-      Vforall P x
-      → ∀ f : index_map o i,
-        Vforall P (Gather' fm f x).
-Admitted.
 
-  Lemma Gather'_preserves_density:
-    ∀ (i o : nat) (x : svector fm i)
-      (f: index_map o i),
-      svector_is_dense fm x ->
-      svector_is_dense fm (Gather' fm f x).
-Admitted.
 
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Scatter'_spec
-        {i o: nat}
-        (f: index_map i o)
-        {f_inj: index_map_injective f}
-        (idv: CarrierA)
-        (x: svector fm i)
-        (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (Scatter' fm f (f_inj:=f_inj) idv x) f n ip.
-Admitted.
 
-  Lemma Scatter'_is_almost_endomorphism
-        (i o : nat)
-        (x : svector fm i)
-        (f: index_map i o)
-        {f_inj : index_map_injective f}
-        (idv: CarrierA):
-    Vforall (fun p => (Vin p x) \/ (p ≡ mkStruct idv))
-            (Scatter' fm f (f_inj:=f_inj) idv x).
-Admitted.
 
-  Lemma Scatter'_1_1
-        (f : index_map 1 1)
-        (f_inj : index_map_injective f)
-        (idv : CarrierA)
-        (h : Rtheta' fm):
-    Scatter' fm f (f_inj:=f_inj) idv [h] ≡ [h].
-Admitted.
 
-  Lemma Scatter'_1_Sn
-        {n: nat}
-        (f: index_map 1 (S n))
-        {f_inj: index_map_injective f}
-        (idv: CarrierA)
-        (x: svector fm 1):
-    Scatter' fm f (f_inj:=f_inj) idv x
-             ≡
-             match Nat.eq_dec (⟦ f ⟧ 0) 0 with
-             | in_left =>
-               Vcons
-                 (Vhead x)
-                 (Vconst (mkStruct idv) n)
-             | right fc =>
-               let f' := (shrink_index_map_1_range f fc) in
-               Vcons
-                 (mkStruct idv)
-                 (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
-             end.
-Admitted.
 
-  Lemma SHPointwise'_nth
-        {n: nat}
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        {j:nat} {jc:j<n}
-        (v: svector fm n):
-    Vnth (SHPointwise' fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
-Admitted.
 
-  Lemma SHPointwise_nth_eq
-        {n: nat}
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        {j:nat} {jc:j<n}
-        (v: svector fm n):
-    Vnth (op _ (SHPointwise fm f) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
-Admitted.
 
-  Lemma SHPointwise_equiv_lifted_HPointwise
-        {n: nat}
-        (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHPointwise fm f =
-    liftM_HOperator fm (@HPointwise n f pF).
-Admitted.
 
-  Lemma SHBinOp'_nth
-        {o}
-        {f: nat -> CarrierA -> CarrierA -> CarrierA}
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        {v: svector fm (o+o)}
-        {j:nat}
-        {jc: j<o}
-        {jc1:j<o+o}
-        {jc2: (j+o)<o+o}
-    :
-      Vnth (@SHBinOp' fm o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
-Admitted.
 
 End OperatorProperies.
 
 
-  Lemma UnionFold_empty_Non_Collision
-        (k : nat)
-        (dot : CarrierA → CarrierA → CarrierA)
-        (initial : CarrierA)
-        (v : vector Rtheta k):
-    Vforall Not_Collision v
-    → Vforall (not ∘ Is_Val) v
-    → Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
-Admitted.
 
-  Lemma UnionFold_empty_Not_Val
-        (k : nat)
-        {dot : CarrierA → CarrierA → CarrierA}
-        {initial : CarrierA}
-        {v : vector Rtheta k}:
-    Vforall Not_Collision v
-    → Vforall (not ∘ Is_Val) v
-    → ¬ Is_Val (UnionFold Monoid_RthetaFlags dot initial v).
-Admitted.
 
-  Lemma UnionFold_VAllBytOne_Non_Collision
-        (k : nat)
-        (dot : CarrierA → CarrierA → CarrierA) (initial : CarrierA)
-        (v : vector Rtheta k)
-        (Vnc: Vforall Not_Collision v)
-        (i : nat)
-        (ic : i < k)
-        (Vv: VAllButOne i ic (not ∘ Is_Val) v):
-    Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
-Admitted.
 
-  Lemma UnionFold_Non_Collision
-        (k : nat)
-        (dot : CarrierA → CarrierA → CarrierA)
-        (initial : CarrierA)
-        (v : rvector  k)
-        (Vnc: Vforall Not_Collision v)
-        (Vu: Vunique Is_Val v)
-    :
-      Not_Collision (UnionFold Monoid_RthetaFlags dot initial v).
-Admitted.
 
-  Lemma UnionFold_Safe_Non_Collision
-        (k : nat)
-        (dot : CarrierA → CarrierA → CarrierA)
-        (initial : CarrierA)
-        (v : rsvector  k)
-        (Vnc: Vforall Not_Collision v)
-    :
-      Not_Collision (UnionFold Monoid_RthetaSafeFlags dot initial v).
-Admitted.
 
 
 End SigmaHCOL.
@@ -4455,159 +3443,6 @@ End Spiral.
 
 End Spiral_DOT_MonoidalRestriction.
 
-Module Spiral_DOT_VecPermutation.
-Module Spiral.
-Module VecPermutation.
-Import Spiral_DOT_SpiralTactics.
-Import Spiral_DOT_Spiral.
-Import Spiral_DOT_VecUtil.
-Import Spiral_DOT_VecSetoid.
-Import Spiral_DOT_CarrierType.
-Import Spiral_DOT_WriterMonadNoT.
-Import Spiral_DOT_Rtheta.
-Import Spiral_DOT_SVector.
-Import Spiral_DOT_HCOLImpl.
-Import Spiral_DOT_HCOL.
-Import Spiral_DOT_THCOLImpl.
-Import Spiral_DOT_THCOL.
-Import Spiral_DOT_FinNatSet.
-Import Spiral_DOT_IndexFunctions.
-Import Spiral_DOT_SigmaHCOL.
-Import Spiral_DOT_TSigmaHCOL.
-Import Spiral_DOT_MonoidalRestriction.
-Import Spiral_DOT_MonoidalRestriction.Spiral.
-Import Spiral_DOT_TSigmaHCOL.Spiral.
-Import Spiral_DOT_SigmaHCOL.Spiral.
-Import Spiral_DOT_IndexFunctions.Spiral.
-Import Spiral_DOT_FinNatSet.Spiral.
-Import Spiral_DOT_THCOL.Spiral.
-Import Spiral_DOT_THCOLImpl.Spiral.
-Import Spiral_DOT_HCOL.Spiral.
-Import Spiral_DOT_HCOLImpl.Spiral.
-Import Spiral_DOT_SVector.Spiral.
-Import Spiral_DOT_Rtheta.Spiral.
-Import Spiral_DOT_WriterMonadNoT.Spiral.
-Import Spiral_DOT_CarrierType.Spiral.
-Import Spiral_DOT_VecSetoid.Spiral.
-Import Spiral_DOT_VecUtil.Spiral.
-Import Spiral_DOT_Spiral.Spiral.
-Import Spiral_DOT_SpiralTactics.Spiral.
-Import Coq.Arith.Arith.
-Export Coq.Vectors.Vector.
-Import Coq.Program.Equality. (* for dependent induction *)
-Import Coq.Setoids.Setoid.
-Import Coq.Logic.ProofIrrelevance.
-
-
-(* CoLoR: `opam install coq-color`  *)
-Export CoLoR.Util.Vector.VecUtil.
-
-Open Scope vector_scope.
-
-(* Re-define :: List notation for vectors. Probably not such a good idea *)
-Notation "h :: t" := (cons h t) (at level 60, right associativity)
-                     : vector_scope.
-
-Import VectorNotations.
-
-Section VPermutation.
-
-  Variable A:Type.
-
-  Inductive VPermutation: forall n, vector A n -> vector A n -> Prop :=
-  | vperm_nil: VPermutation 0 [] []
-  | vperm_skip {n} x l l' : VPermutation n l l' -> VPermutation (S n) (x::l) (x::l')
-  | vperm_swap {n} x y l : VPermutation (S (S n)) (y::x::l) (x::y::l)
-  | vperm_trans {n} l l' l'' :
-      VPermutation n l l' -> VPermutation n l' l'' -> VPermutation n l l''.
-
-  Local Hint Constructors VPermutation.
-
-  (** Some facts about [VPermutation] *)
-
-  Theorem VPermutation_nil : forall (l : vector A 0), VPermutation 0 [] l -> l = [].
-Admitted.
-
-  (** VPermutation over vectors is a equivalence relation *)
-
-  Theorem VPermutation_refl : forall {n} (l: vector A n), VPermutation n l l.
-Admitted.
-
-  Theorem VPermutation_sym : forall {n} (l l' : vector A n),
-      VPermutation n l l' -> VPermutation n l' l.
-Admitted.
-
-  Theorem VPermutation_trans : forall {n} (l l' l'' : vector A n),
-      VPermutation n l l' -> VPermutation n l' l'' -> VPermutation n l l''.
-Admitted.
-
-End VPermutation.
-
-Hint Resolve VPermutation_refl vperm_nil vperm_skip.
-
-(* These hints do not reduce the size of the problem to solve and they
-   must be used with care to avoid combinatoric explosions *)
-
-Local Hint Resolve vperm_swap vperm_trans.
-Local Hint Resolve VPermutation_sym VPermutation_trans.
-
-(* This provides reflexivity, symmetry and transitivity and rewriting
-   on morphims to come *)
-
-Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
-  {
-    Equivalence_Reflexive := @VPermutation_refl A n ;
-    Equivalence_Symmetric := @VPermutation_sym A n ;
-    Equivalence_Transitive := @VPermutation_trans A n
-  }.
-
-Section VPermutation_properties.
-Import Coq.Sorting.Permutation.
-Import Spiral_DOT_VecUtil.Spiral.VecUtil.
-
-
-  Variable A:Type.
-
-  Lemma ListVecPermutation {n} {l1 l2} {v1 v2}:
-    l1 = list_of_vec v1 ->
-    l2 = list_of_vec v2 ->
-    Permutation l1 l2 <->
-    VPermutation A n v1 v2.
-Admitted.
-
-End VPermutation_properties.
-
-Require Import Coq.Sorting.Permutation.
-
-Lemma Vsig_of_forall_cons
-      {A : Type}
-      {n : nat}
-      (P : A->Prop)
-      (x : A)
-      (l : vector A n)
-      (P1h : P x)
-      (P1x : @Vforall A P n l):
-  (@Vsig_of_forall A P (S n) (@cons A x n l) (@conj (P x) (@Vforall A P n l) P1h P1x)) =
-  (Vcons (@exist A P x P1h) (Vsig_of_forall P1x)).
-Admitted.
-
-Lemma VPermutation_Vsig_of_forall
-      {n: nat}
-      {A: Type}
-      (P: A->Prop)
-      (v1 v2 : vector A n)
-      (P1 : Vforall P v1)
-      (P2 : Vforall P v2):
-  VPermutation A n v1 v2
-  -> VPermutation {x : A | P x} n (Vsig_of_forall P1) (Vsig_of_forall P2).
-Admitted.
-
-
-End VecPermutation.
-
-End Spiral.
-
-End Spiral_DOT_VecPermutation.
 
 Module Spiral_DOT_SigmaHCOLRewriting.
 Module Spiral.
@@ -4629,8 +3464,6 @@ Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
 Import Spiral_DOT_MonoidalRestriction.
-Import Spiral_DOT_VecPermutation.
-Import Spiral_DOT_VecPermutation.Spiral.
 Import Spiral_DOT_MonoidalRestriction.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
@@ -4661,7 +3494,6 @@ Import Spiral_DOT_SigmaHCOL.Spiral.SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.Spiral.TSigmaHCOL.
 Import Spiral_DOT_IndexFunctions.Spiral.IndexFunctions.
 Import Spiral_DOT_MonoidalRestriction.Spiral.MonoidalRestriction.
-Import Spiral_DOT_VecPermutation.Spiral.VecPermutation.
 Import Coq.Arith.Arith.
 Import Coq.Arith.Compare_dec.
 Import Coq.Arith.Peano_dec.
@@ -4832,185 +3664,22 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
-          {n:nat}
-          {v:rsvector n}
-          {f: CarrierA -> CarrierA -> CarrierA}
-          {initial: CarrierA}
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-      :
-        RStheta2Rtheta
-          (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
-        mkValue
-          (Vfold_left_rev f initial (densify _ v)).
-Admitted.
 
-    Fact UnionFold_all_zeroes
-         {n:nat}
-         `{uf_zero: MonUnit CarrierA}
-         `{f: SgOp CarrierA}
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-         `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                     (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-
-         (vl : vector (Rtheta' Monoid_RthetaFlags) n)
-         (Uzeros : Vforall
-                     (not
-                        ∘ (not ∘ equiv uf_zero
-                               ∘ WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))) vl)
-      :
-        UnionFold Monoid_RthetaFlags f uf_zero vl = mkStruct uf_zero.
-Admitted.
 
     (* Basically states that 'Diamon' applied to a family which guarantees
        single-non zero value per row dows not depend on the function implementation *)
-    Lemma Diamond'_f_subst
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
-
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
-          `{f_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f uf_zero}
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-      :
-        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
-        ->
-        Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
-        Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
-Admitted.
 
 
     (* An unfortunatly named section for a group on lemmas related to operations on a type constrained by predicate. *)
     Section Under_P.
 
-      Fact UnionFold_all_zeroes_under_P
-           {fm}
-           {n:nat}
-           `{uf_zero: MonUnit CarrierA}
-           `{f: SgOp CarrierA}
-           (vl : vector (Rtheta' fm) n)
-
-           (* Monoid on restriction on f *)
-           {P: SgPred CarrierA}
-           `{f_mon: @RMonoid _ _ f uf_zero P}
-
-           `{Fpos: Vforall (liftRthetaP P) vl}
-
-           (Uzeros : Vforall
-                       (not
-                          ∘ (not ∘ equiv uf_zero
-                                 ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) vl)
-      :
-        UnionFold fm f uf_zero vl = mkStruct uf_zero.
-Admitted.
 
       (* A variant of [UnionFold_VallButOne_a_zero] taking into account restriction *)
-      Lemma UnionFold_VallButOne_a_zero_under_P
-            {fm}
-            {n : nat}
-            (v : svector fm n)
-            {i : nat}
-            (ic : i < n)
 
-            `{uf_zero: MonUnit CarrierA}
-            `{f: SgOp CarrierA}
 
-            (* Monoid on restriction on f *)
-            {P: SgPred CarrierA}
-            `{f_mon: @RMonoid _ _ f uf_zero P}
 
-            `{Fpos: Vforall (liftRthetaP P) v}
-        :
-          VAllButOne i ic
-                     (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
-Admitted.
 
-      Lemma Diamond'_f_subst_under_P
-            {i o n}
-            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
-            (* Common unit for both monoids *)
-            `{uf_zero: MonUnit CarrierA}
-
-            `{f: SgOp CarrierA}
-
-            (* Monoid on restriction on f *)
-            {P: SgPred CarrierA}
-            `{f_mon: @RMonoid _ _ f uf_zero P}
-
-            (* 2nd Monoid *)
-            `{u: SgOp CarrierA}
-            `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
-
-            (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-            (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-        :
-          Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
-          Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
-Admitted.
-
-      Fact eval_2D_Fold
-           {o n : nat}
-           (uf_zero : CarrierA)
-           (f : CarrierA -> CarrierA -> CarrierA)
-           (f_mor : Proper (equiv ==> equiv ==> equiv) f)
-           (lst : vector (rvector o) n)
-        :
-          Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-               (Vfold_left_rev (Vmap2 (Monad.liftM2 f) (n:=o))
-                               (Vconst (mkStruct uf_zero) o)
-                               lst)
-          =
-          Vfold_left_rev (Vmap2 f (n:=o)) (Vconst uf_zero o)
-                         (Vmap (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (n:=o)) lst).
-Admitted.
-
-      Lemma Vfold_right_under_P
-            {A: Type} `{Ae: Equiv A}
-            {z: MonUnit A}
-            {f: SgOp A}
-            (P: SgPred A)
-            {f_mon: @CommutativeRMonoid _ _ f z P}
-            {n:nat}
-            (v:vector A n):
-        Vforall P v → P (Vfold_right f v z).
-Admitted.
-
-      Lemma Vfold_right_left_rev_under_P
-            {A: Type} `{Ae: Equiv A}
-            {z: MonUnit A}
-            {f: SgOp A}
-            (P: SgPred A)
-            {f_mon: @CommutativeRMonoid _ _ f z P}
-            {n:nat}
-            (v:vector A n)
-            (U: Vforall P v):
-        Vfold_left_rev f z v = Vfold_right f v z.
-Admitted.
-
-      Lemma VFold_right_split_under_P
-            {A: Type}
-            {Ae: Equiv A}
-            {m n : nat}
-            {z: MonUnit A}
-            {f: SgOp A}
-            (P: SgPred A)
-            {f_mon: @CommutativeRMonoid _ _ f z P}
-            (h : vector A m)
-            (t : vector A n)
-            (Uh: Vforall P h)
-            (Ut: Vforall P t)
-        :
-          f (Vfold_right f h z)
-            (Vfold_right f t z)
-          =
-          Vfold_right f (Vapp h t) z.
-Admitted.
 
     End Under_P.
 
@@ -5059,116 +3728,18 @@ Admitted.
 
     End VecMap2CommutativeRMonoid.
 
-    Fact Vhead_Vfold_right_Vmap2
-         {A:Type}
-         (m n : nat)
-         (z : A)
-         (f : A -> A -> A)
-         (gen : forall p : nat, p < n → vector A (S m))
-         (tmn : ∀ t : nat, t < S m * n → t mod n < n)
-         (tndm : ∀ t : nat, t < S m * n → t / n < S m)
-      :
-        Vhead
-          (Vfold_right
-             (λ v1 v2 : vector A (S m),
-                        Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
-             (Vbuild gen) (Vcons z (Vconst z m)))
-          ≡ Vfold_right f
-          (Vbuild
-             (λ (t : nat) (tc : t < n),
-              Vnth (gen (t mod n) (tmn t (Nat.lt_lt_add_r t n (m * n) tc)))
-                   (tndm t (Nat.lt_lt_add_r t n (m * n) tc)))) z.
-Admitted.
 
 
-    Lemma Vtail_Vfold_right_Vmap2
-          {A:Type}
-          (m n : nat)
-          (z : A)
-          (f : A -> A -> A)
-          (gen : ∀ p : nat, p < n → vector A (S m)):
-      Vtail
-        (Vfold_right
-           (λ v1 v2 : vector A (S m),
-                      Vcons (f (Vhead v1) (Vhead v2)) (Vmap2 f (Vtail v1) (Vtail v2)))
-           (Vbuild gen) (Vcons z (Vconst z m)))
-        ≡ Vfold_right (Vmap2 f (n:=m)) (Vbuild (λ (p : nat) (pc : p < n), Vtail (gen p pc)))
-        (Vconst z m).
-Admitted.
 
 
     Section Vec_Permutations.
       (* TODO: think of good place to move this. Depdens on both [IndexFunctions] and [VecPermutation] *)
-      Lemma Vbuild_permutation
-            {A: Type}
-            {n: nat}
-            {f: forall i : nat, i < n -> A}
-            (t: index_map n n)
-            (P: index_map_bijective t)
-      :
-        VPermutation A n (Vbuild f) (Vbuild (fun i ic =>
-                                               f (⟦t⟧ i) («t» i ic)
-                                    )).
-Admitted.
 
-      Lemma Vfold_VPermutation
-            {n : nat}
-            {A: Type} `{Ae: Equiv A}
-            (z : MonUnit A)
-            (f : SgOp A)
-            (f_mon: CommutativeMonoid A):
-        forall v1 v2 : vector A n,
-          VPermutation A n v1 v2 → Vfold_right f v1 z = Vfold_right f v2 z.
-Admitted.
 
     End Vec_Permutations.
 
-    Lemma Vold_right_sig_wrap_equiv
-          {n : nat}
-          {A : Type}
-          `{As: Setoid A}
-          (f : A → A → A)
-          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-          (P : A → Prop)
-          (f_P_closed: forall a b : A, P a → P b → P (f a b))
-          (v : vector A n) (P1 : Vforall P v)
-          (z : A) (Pz: P z):
-      Vfold_right f v z =
-      `
-        (Vfold_right
-           (λ xs ys : {x : A | P x},
-                      f (` xs) (` ys) ↾ f_P_closed (` xs) (` ys) (proj2_sig xs) (proj2_sig ys))
-           (Vsig_of_forall P1) (z ↾ Pz)).
-Admitted.
 
-    Lemma ComutativeRMonoid_to_sig_CommutativeMonoid
-          {A : Type}
-          {Ae: Equiv A}
-          {As: @Setoid A Ae}
-          (z : MonUnit A)
-          (f : SgOp A)
-          (P : SgPred A)
-          (CMR: @CommutativeRMonoid A Ae f z P)
-      :
-        @CommutativeMonoid {x : A | P x} (@Sig_Equiv A Ae P)
-                           (λ (xs ys : {x : A | P x}) (x:=` xs) (y:=` ys),
-                            f x y ↾ rmonoid_plus_closed A x y (@proj2_sig A P xs) (@proj2_sig A P ys))
-                           (z ↾ (rmonoid_unit_P _)).
-Admitted.
 
-    Lemma Vfold_VPermutation_CM
-          {n : nat}
-          {A: Type}
-          `{As: Setoid A}
-          (z : MonUnit A)
-          (f : SgOp A)
-          (P : SgPred A)
-          (f_mon: CommutativeRMonoid A)
-          (v1 v2 : vector A n)
-          (P1: Vforall P v1)
-          (P2: Vforall P v2):
-      VPermutation A n v1 v2 -> Vfold_right f v1 z = Vfold_right f v2 z.
-Admitted.
 
     Global Instance max_Assoc:
       @Associative CarrierA CarrierAe (@max CarrierA CarrierAle CarrierAledec).
@@ -5194,19 +3765,6 @@ Admitted.
 
     End NN.
 
-    Lemma SHPointwise'_distr_over_Scatter'
-          {fm : Monoid RthetaFlags}
-          {o i : nat}
-          (pf : CarrierA → CarrierA)
-          (pf_mor : Proper (equiv ==> equiv) pf)
-          (pfzn: pf zero = zero) (* function with the fixed point 0 *)
-          (v : svector fm i)
-          (f : index_map i o)
-          (f_inj : index_map_injective f):
-      SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f zero (f_inj:=f_inj) v) =
-      Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
-Admitted.
-
     Lemma rewrite_Reduction_ScatHUnion_max_zero
           (n m: nat)
           (fm: Monoid.Monoid RthetaFlags)
@@ -5225,18 +3783,6 @@ Admitted.
         F.
 Admitted.
 
-    Lemma rewrite_SHCompose_IdOp
-          {n m: nat}
-          {fm}
-          (in_out_set: FinNatSet.FinNatSet n)
-          (F: @SHOperator fm n m)
-      :
-      SHCompose fm
-                F
-                (IdOp fm in_out_set)
-      =
-      F.
-Admitted.
 
   End Value_Correctness.
 
@@ -5269,10 +3815,8 @@ Import Spiral_DOT_IndexFunctions.
 Import Spiral_DOT_SigmaHCOL.
 Import Spiral_DOT_TSigmaHCOL.
 Import Spiral_DOT_MonoidalRestriction.
-Import Spiral_DOT_VecPermutation.
 Import Spiral_DOT_SigmaHCOLRewriting.
 Import Spiral_DOT_SigmaHCOLRewriting.Spiral.
-Import Spiral_DOT_VecPermutation.Spiral.
 Import Spiral_DOT_MonoidalRestriction.Spiral.
 Import Spiral_DOT_TSigmaHCOL.Spiral.
 Import Spiral_DOT_SigmaHCOL.Spiral.
