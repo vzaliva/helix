@@ -251,14 +251,6 @@ Section VFold.
   Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
 End VFold.
 
-Section Vnth.
-
-
-  (* Convenience method, swapping arguments on Vnth *)
-  Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
-    Vnth a ic.
-
-End Vnth.
 Section VectorPairs.
 
   Definition Ptail {A} {B} {n} (ab:(vector A (S n))*(vector B (S n))): (vector A n)*(vector B n)
@@ -834,8 +826,6 @@ Section Rtheta'Utils.
 
   Definition mkStruct (val: CarrierA) : Rtheta' fm
     := ret val.
-  (* Structural zero is 0 value combined with 'mzero' monoid flags *)
-  Definition mkSZero : Rtheta' fm := mkStruct 0.
 
   Definition mkValue (val: CarrierA) : Rtheta' fm :=
     tell (mkRthetaFlags false false) ;; ret val.
@@ -845,8 +835,6 @@ Section Rtheta'Utils.
 
   Definition Is_Collision (x:Rtheta' fm) :=
     (IsCollision ∘ (@execWriter RthetaFlags CarrierA fm)) x.
-
-  Definition Not_Collision := not ∘ Is_Collision.
 
   Definition liftRthetaP (P: CarrierA -> Prop): (Rtheta' fm) -> Prop :=
     fun x => P (evalWriter x).
@@ -1824,20 +1812,6 @@ Global Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
-Definition index_map_compose
-           {i o t: nat}
-           (g: index_map t o)
-           (f: index_map i t) :
-  index_map i o.
-Proof.
-  refine (IndexMap i o (⟦g⟧ ∘ ⟦f⟧) _).
-  intros.
-  destruct f, g.
-  simpl.
-  unfold compose.
-  auto.
-Defined.
-
 (* Restriction on domain *)
 Definition shrink_index_map_domain {d r:nat} (f: index_map (S d) r)
   : index_map d r.
@@ -1875,12 +1849,6 @@ Section Jections.
     :=
       forall (x y:nat) (xc: x<d) (yc: y<d),
         ⟦ f ⟧ x ≡ ⟦ f ⟧ y → x ≡ y.
-
-  Definition index_map_surjective
-             {d r: nat}
-             (f: index_map d r)
-    :=
-      forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d), ⟦ f ⟧ x ≡ y.
 
 End Jections.
 
@@ -2468,32 +2436,6 @@ Admitted.
       Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
 Admitted.
 
-    (* Sparse Embedding is an operator family *)
-    Definition SparseEmbedding
-               {n i o ki ko}
-               (* Kernel *)
-               (kernel: @SHOperatorFamily ki ko n)
-               (* Scatter index map *)
-               (f: index_map_family ko o n)
-               {f_inj : index_map_family_injective f}
-               (idv: CarrierA)
-               (* Gather index map *)
-               (g: index_map_family ki i n)
-      : @SHOperatorFamily i o n
-      := mkSHOperatorFamily i o n
-                            (fun (j:nat) (jc:j<n) =>
-                               (Scatter (⦃f⦄ j jc)
-                                        (f_inj:=index_map_family_member_injective f_inj j jc) idv)
-                                 ⊚ (family_member kernel j jc)
-                                 ⊚ (Gather (⦃g⦄ j jc))).
-
-
-    (* TODO: rename since Zero changed to IDV *)
-
-    (* TODO: rename since Zero changed to IDV *)
-
-    (* TODO: rename since Zero changed to IDV *)
-
   End FlagsMonoidGenericOperators.
 
   Definition SHBinOp
@@ -2554,19 +2496,6 @@ Admitted.
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
 
-  Definition ISumUnion
-             {i o n}
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-    : @SHOperator Monoid_RthetaFlags i o
-    :=
-      @IUnion i o n CarrierAplus _ zero op_family.
-
-  (** IReduction does not have any constraints. Specifically no
-  density or Monoid. It just extracts values from Monad and folds them
-  row-wise. For example if for (+) id value is 0 and all structural
-  values are structural zeros it will do row sums. It could not
-  produce new errors, but should propagate errors from before.
-   *)
   Definition IReduction
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
