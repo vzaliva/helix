@@ -4290,57 +4290,6 @@ Proof.
   apply T ; [apply O1 | apply O2].
 Qed.
 
-Definition HCross
-           {i1 o1 i2 o2}
-           (f: avector i1 -> avector o1)
-           (g: avector i2 -> avector o2):
-  avector (i1+i2) -> avector (o1+o2)
-  := pair2vector ∘ Cross (f, g) ∘ (@Vbreak CarrierA i1 i2).
-
-Global Instance HCross_THOperator2 {i1 o1 i2 o2}:
-  THOperator2 (@HCross i1 o1 i2 o2).
-Proof.
-  intros f f' Ef g g' Eg x y Ex.
-  unfold HCross, compose, pair2vector, vector2pair.
-  destruct (Vbreak x) as [x0 x1] eqn: X.
-  destruct (Vbreak y) as [y0 y1] eqn: Y.
-  assert(Ye: Vbreak y = (y0, y1)) by crush.
-  assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite Ex in Xe.
-  rewrite Xe in Ye.
-  clear X Y Xe Ex.
-  inversion Ye. rename H into Ey, H0 into Ex.
-  simpl in *.
-
-  assert(A1: f x0 = f' y0).
-  apply Ef, Ey.
-  rewrite A1.
-
-  assert(A2: g x1 = g' y1).
-  apply Eg, Ex.
-  rewrite A2.
-  reflexivity.
-Qed.
-
-Definition HStack
-           {i1 o1 o2}
-           (f: avector i1 -> avector o1)
-           (g: avector i1 -> avector o2)
-  : avector i1 -> avector (o1+o2) :=
-  fun x =>  pair2vector (Stack (f, g) x).
-
-Global Instance HStack_THOperator2 {i1 o1 o2}:
-  THOperator2 (@HStack i1 o1 o2).
-Proof.
-  intros f f' Ef g g' Eg x y Ex.
-  unfold HStack, compose, pair2vector, vector2pair, Stack.
-  setoid_replace (f x) with (f' y).
-  setoid_replace (g x) with (g' y).
-  reflexivity.
-  apply Eg; assumption.
-  apply Ef; assumption.
-Qed.
-
 
 Global Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
   @THOperator2 o2 o3 i1 o2 i1 o3 (compose).
@@ -7199,15 +7148,6 @@ End SigmaHCOLHelperLemmas.
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
-    Lemma SHBinOp_equiv_lifted_HBinOp
-          {o}
-          (f: nat -> CarrierA -> CarrierA -> CarrierA)
-          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-      SafeCast (@SHBinOp o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
-Admitted.
-
-
     Lemma h_j_1_family_injective {n}:
       index_map_family_injective
         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound _ _ j n 1 jc)))).
@@ -7220,86 +7160,6 @@ Admitted.
         @index_map_injective 1 n
                              ((fun (j:nat) (jc:j<n) =>
                                  @h_index_map 1 n j 1 (ScatH_1_to_n_range_bound _ _ j n (S O) jc)) t tc).
-Admitted.
-
-    Lemma U_SAG2:
-      ∀ (n : nat) (x : rvector (n + n))
-        (f: nat -> CarrierA -> CarrierA -> CarrierA)
-        `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-        (k : nat) (kp : k < n),
-
-        Vnth
-          (SumUnion Monoid_RthetaFlags
-                    (Vbuild
-                       (λ (j : nat) (jc : j < n),
-                        Scatter' Monoid_RthetaFlags (i:=1)
-                                 (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound _ _ j n 1 jc))
-                                 (f_inj :=
-                                    @index_map_family_member_injective 1 n n (IndexMapFamily 1 n n
-                                                                                             (fun (j0 : nat) (jc0 : j0<n) =>
-                                                                                                @h_index_map 1 n j0 1
-                                                                                                             (ScatH_1_to_n_range_bound _ _ j0 n 1 jc0))) (@h_j_1_family_injective n) j jc) zero
-                                 (SafeCast' (SHBinOp' Monoid_RthetaSafeFlags (SwapIndex2 j f))
-                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound _ _ j n jc)) x))))) kp
-        = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
-Admitted.
-
-
-    (*
-    BinOp := (self, o, opts) >> When(o.N=1, o, let(i := Ind(o.N),
-        ISumUnion(i, i.range, OLCompose(
-        ScatHUnion(o.N, 1, i, 1),
-        BinOp(1, o.op),
-        GathH(2*o.N, 2, i, o.N)
-        )))),
-     *)
-    Theorem expand_BinOp
-            (n:nat)
-            (f: nat -> CarrierA -> CarrierA -> CarrierA)
-            `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      :
-        SafeCast (SHBinOp f)
-        =
-        USparseEmbedding (f_inj:=h_j_1_family_injective)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SafeCast (SHBinOp (SwapIndex2 j f))))
-                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound _ _ j n 1 jc))))
-                         zero
-                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound _ _ j n jc))).
-Admitted.
-
-    (*
-   ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
-            ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
-            self(ch[i], opts),
-            GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
-     *)
-    (* TODO: perhaps could be generalized for generic operation, not just plus *)
-    Theorem expand_HTDirectSum
-            {fm: Monoid RthetaFlags}
-            {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
-            {i1 o1 i2 o2}
-            (f: avector i1 -> avector o1)
-            (g: avector i2 -> avector o2)
-            `{hop1: !HOperator f}
-            `{hop2: !HOperator g}
-      :
-        liftM_HOperator fm (HTDirectSum f g)
-        =
-        HTSUMUnion
-          _
-          plus
-          (SHCompose fm
-                     (ScatH fm 0 1 (snzord0:=(ScatH_stride1_constr _ _)) (range_bound := h_bound_first_half _ _ o1 o2) zero)
-                     (SHCompose fm
-                                (liftM_HOperator fm f)
-                                (GathH fm 0 1 (domain_bound := h_bound_first_half _ _ i1 i2))))
-
-          (SHCompose fm
-                     (ScatH fm o1 1 (snzord0:=(ScatH_stride1_constr _ _ )) (range_bound := h_bound_second_half _ _ o1 o2) zero)
-                     (SHCompose fm
-                                (liftM_HOperator fm g)
-                                (GathH fm i1 1 (domain_bound := h_bound_second_half _ _ i1 i2)))).
 Admitted.
 
   End Value_Correctness.
