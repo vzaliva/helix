@@ -15,11 +15,10 @@ do
     fi
     echo "Compiling"
     coqc -w none $B
-    retVal=$?
-    if [ ! $? -eq 0 ]; then
-        echo "Compilation failed!"
-        exit $retVal     
-    fi
+    if [ $? -ne 0 ]; then
+        echo "Compilation failed"
+        exit 1
+    fi    
     echo "Saving"
     mv $A "$A.bak"
     mv $B $A
