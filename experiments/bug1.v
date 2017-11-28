@@ -3160,19 +3160,11 @@ Global Instance THOperator_HOperator
          `{O2: @HOperator i2 o2 op2}
          `{T: @THOperator2 i1 o1 i2 o2 ix ox to}:
   HOperator (to op1 op2).
-Proof.
-  split; try apply vec_Setoid.
-  apply T ; [apply O1 | apply O2].
-Qed.
-
+Admitted.
 
 Global Instance compose_THOperator2 {o2 o3 i1 o2:nat}:
   @THOperator2 o2 o3 i1 o2 i1 o3 (compose).
-Proof.
-  intros f f' Ef g g' Eg x y Ex.
-  unfold compose, pair2vector, vector2pair.
-  apply Ef, Eg, Ex.
-Qed.
+Admitted.
 
 
 Global Instance compose_HOperator
@@ -3181,13 +3173,7 @@ Global Instance compose_HOperator
         `{hop2: HOperator i1 o2 op2}
 :
   HOperator (op1 ∘ op2).
-Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
-  intros x y E.
-  unfold compose.
-  rewrite E.
-  reflexivity.
-Qed.
+Admitted.
 
 End THCOL.
 
