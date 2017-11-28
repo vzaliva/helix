@@ -2917,23 +2917,14 @@ Section IgnoreIndex_wrapper.
 
   Global Instance SwapIndex2_proper `{Setoid A}:
     Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A).
-  Proof.
-    simpl_relation.
-    apply H1; assumption.
-  Qed.
+  Admitted.
 
   (* Partially specialized SwapIndex2 is still proper *)
   Global Instance SwapIndex2_specialized_proper `{Setoid A} (i:nat) (f:nat->A->A->A)
          `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
     Proper ((=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A i f).
-  Proof.
-    partial_application_tactic. instantiate (1 := equiv).
-    partial_application_tactic. instantiate (1 := equiv).
-    apply SwapIndex2_proper.
-    typeclasses eauto.
-    apply f_mor.
-  Qed.
+  Admitted.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := const (B:=nat) f.
@@ -2946,11 +2937,7 @@ Admitted.
 
   Global Instance IgnoreIndex2_proper `{Equiv A}:
     (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex2 A)).
-  Proof.
-    simpl_relation.
-    unfold IgnoreIndex2.
-    apply H0; assumption.
-  Qed.
+  Admitted.
 
   (* Wrapper to ignore index parameter for HPointwise kernel. *)
   Definition IgnoreIndex {A:Type} {n:nat} (f:A->A) := const (B:=@sig nat (fun i : nat => @lt nat peano_naturals.nat_lt i n)) f.
@@ -2958,12 +2945,7 @@ Admitted.
   Global Instance IgnoredIndex_proper {n:nat} `{Equiv A}:
     (Proper
        (((=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex A n)).
-  Proof.
-    simpl_relation.
-    unfold IgnoreIndex.
-    apply H0.
-    assumption.
-  Qed.
+  Admitted.
 
 End IgnoreIndex_wrapper.
 
