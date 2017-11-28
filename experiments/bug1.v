@@ -4365,47 +4365,10 @@ Proof.
   reflexivity.
 Qed.
 
-Definition HTLess {i1 i2 o}
-           (f: avector i1 -> avector o)
-           (g: avector i2 -> avector o)
-  : avector (i1+i2) -> avector o
-  := fun v0 => let (v1,v2) := vector2pair i1 v0 in
-               ZVLess (f v1, g v2).
-
-Global Instance HTLess_THOperator2 {i1 i2 o}:
-  THOperator2 (@HTLess i1 i2 o).
-Proof.
-  intros f f' Ef g g' Eg x y Ex.
-  unfold HTLess, compose, pair2vector, vector2pair, ZVLess.
-  destruct (Vbreak x) as [x0 x1] eqn: X.
-  destruct (Vbreak y) as [y0 y1] eqn: Y.
-  assert(Ye: Vbreak y = (y0, y1)) by crush.
-  assert(Xe: Vbreak x = (x0, x1)) by crush.
-  rewrite Ex in Xe.
-  rewrite Xe in Ye.
-  clear X Y Xe Ex.
-  inversion Ye. rename H into Ey, H0 into Ex.
-  simpl in *.
-  setoid_replace (f x0) with (f' y0).
-  setoid_replace (g x1) with (g' y1).
-  reflexivity.
-  apply Eg, Ex.
-  apply Ef, Ey.
-Qed.
-
-(* Per Vadim's discussion with Franz on 2015-12-14, DirectSum is just
-same as Cross, where input vectors are passed as concateneated
-vector. Since Coq formalization of HCross is already dfined this way
-we just alias DirectSum to it.
- *)
 Notation HTDirectSum := HCross.
 
-(* Not sure if this is needed *)
 Global Instance HTDirectSum_THOperator2 {i1 o1 i2 o2}:
   THOperator2 (@HTDirectSum i1 o1 i2 o2) := HCross_THOperator2.
-
-
-
 
 End THCOL.
 
@@ -6864,86 +6827,6 @@ Import MathClasses.theory.rings.
 
 Import VectorNotations.
 Open Scope vector_scope.
-
-Section HCOLBreakdown.
-
-  Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b: vector A n}
-        (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-  :
-    Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
-Admitted.
-
-  Theorem breakdown_ScalarProd: forall (n:nat) (a v: avector n),
-      ScalarProd (a,v) =
-      ((Reduction (+) 0) ∘ (BinOp (IgnoreIndex2 mult))) (a,v).
-Admitted.
-
-  Fact breakdown_OScalarProd: forall {h:nat},
-      HScalarProd (h:=h)
-      =
-      ((HReduction  (+) 0) ∘ (HBinOp (IgnoreIndex2 (A:=CarrierA) mult))).
-Admitted.
-
-  Theorem breakdown_EvalPolynomial: forall (n:nat) (a: avector (S n)) (v: CarrierA),
-      EvalPolynomial a v = (
-        ScalarProd ∘ (pair a) ∘ (MonomialEnumerator n)
-      ) v.
-Admitted.
-
-  Fact breakdown_OEvalPolynomial: forall (n:nat) (a: avector (S n)),
-      HEvalPolynomial a =
-      (HScalarProd ∘
-                   ((HPrepend  a) ∘
-                                  (HMonomialEnumerator n))).
-Admitted.
-
-  Theorem breakdown_TInfinityNorm: forall (n:nat) (v:avector n),
-      InfinityNorm (n:=n) v = ((Reduction max 0) ∘ (HPointwise (IgnoreIndex abs))) v.
-Admitted.
-
-  Fact breakdown_OTInfinityNorm:  forall (n:nat),
-      HInfinityNorm =
-      (HReduction max 0 (i:=n) ∘ (HPointwise (IgnoreIndex abs))).
-Admitted.
-
-  Theorem breakdown_MonomialEnumerator:
-    forall (n:nat) (x: CarrierA),
-      MonomialEnumerator n x = Induction (S n) (.*.) 1 x.
-Admitted.
-
-  Fact breakdown_OMonomialEnumerator:
-    forall (n:nat),
-      HMonomialEnumerator n =
-      HInduction (S n) (.*.) 1.
-Admitted.
-
-  Theorem breakdown_ChebyshevDistance:  forall (n:nat) (ab: (avector n)*(avector n)),
-      ChebyshevDistance ab = (InfinityNorm ∘ VMinus) ab.
-Admitted.
-
-  Fact breakdown_OChebyshevDistance:  forall (n:nat),
-      HChebyshevDistance n = (HInfinityNorm ∘ HVMinus).
-Admitted.
-
-  Theorem breakdown_VMinus:  forall (n:nat) (ab: (avector n)*(avector n)),
-      VMinus ab =  BinOp (IgnoreIndex2 sub) ab.
-Admitted.
-
-  Fact breakdown_OVMinus:  forall (n:nat),
-      HVMinus = HBinOp (o:=n) (IgnoreIndex2 sub).
-Admitted.
-
-  Fact breakdown_OTLess_Base: forall
-      {i1 i2 o}
-      `{o1pf: !HOperator (o1: avector i1 -> avector o)}
-      `{o2pf: !HOperator (o2: avector i2 -> avector o)},
-      HTLess o1 o2 = (HBinOp (IgnoreIndex2 Zless) ∘ HCross o1 o2).
-Admitted.
-
-End HCOLBreakdown.
-
-
-
 
 End HCOLBreakdown.
 
