@@ -3281,18 +3281,19 @@ Module Spiral_DOT_DynWin.
         Proof.
 
 
-          (* --- BEGIN: workaround ---
+          (* --- BEGIN: problem --- *)
 
-    I would expect the following to work here:
+          (* The following hangs forever: *)
 
     setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
         (fm := Monoid_RthetaFlags)
         (m := 4%nat)
         (n := 1%nat).
 
-     But it does not (hangs forever), so we have to do some manual rewriting
-           *)
+    (* --- END: problem --- *)
 
+
+    (* --- BEGING: workaround:
 
           match goal with
           | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
@@ -3310,7 +3311,7 @@ Module Spiral_DOT_DynWin.
           f_equiv.
           apply rewrite_Reduction_ScatHUnion_max_zero.
 
-          (* --- END: workaround --- *)
+          --- END: workaround --- *)
 
         Admitted.
 
