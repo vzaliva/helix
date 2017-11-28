@@ -2047,18 +2047,6 @@ End InRange.
 
 Section Jections.
 
-  Definition function_injective
-             {A B: Set}
-             (f: A->B)
-    :=
-      forall (x y:A),
-        f x ≡ f y → x ≡ y.
-
-  Definition function_surjective
-             {A B: Set}
-             (f: A->B)
-    :=
-      forall (y:B), exists (x:A), f x ≡ y.
 
   Definition index_map_injective
              {d r: nat}
@@ -2072,23 +2060,6 @@ Section Jections.
              (f: index_map d r)
     :=
       forall (y:nat) (yc: y<r), exists (x:nat) (xc: x<d), ⟦ f ⟧ x ≡ y.
-
-  Lemma index_map_compose_injective
-        {i o t: nat}
-        (f: index_map t o)
-        (g: index_map i t)
-        (f_inj: index_map_injective f)
-        (g_inj: index_map_injective g)
-    :
-      index_map_injective (index_map_compose f g).
-Admitted.
-
-  Lemma index_map_surjective_in_range
-        {d r: nat}
-        (f: index_map d r)
-        {S: index_map_surjective f}:
-    forall x, x<r -> in_range f x.
-Admitted.
 
 End Jections.
 
@@ -2116,9 +2087,6 @@ Section Inversions.
     forall (i: nat), in_range f i -> (gen_inverse_index_f f i) < d.
 Admitted.
 
-  (* Theoretically, we can only build inverse of injective functions. However this
-definition does not enforce this requirement, and the function produced might not be
-   true inverse in mathematical sense. To make sure it is, check (index_map_injective f) *)
   Definition build_inverse_index_map
              {d r: nat}
              (f: index_map d r)
@@ -2126,20 +2094,6 @@ definition does not enforce this requirement, and the function produced might no
     := let f' := gen_inverse_index_f f in
        @InverseIndexMap d r f f' (gen_inverse_index_f_spec f).
 
-  Definition inverse_index_map_injective
-             {d r: nat} {f: index_map d r}
-             (f': inverse_index_map f)
-    :=
-      let f0 := inverse_index_f f f' in
-      forall x y, in_range f x -> in_range f y ->
-                  f0 x ≡ f0 y → x ≡ y.
-
-  Definition inverse_index_map_surjective
-             {d r: nat} {f: index_map d r}
-             (f': inverse_index_map f)
-    :=
-      let f0 := inverse_index_f f f' in
-      forall (y:nat) (yc: y<d), exists x, in_range f x /\ f0 x ≡ y.
 
 End Inversions.
 
@@ -2159,12 +2113,6 @@ Section IndexFamilies.
       forall (i j: nat) (ic: i<n) (jc: j<n) (x y:nat) (xc: x<d) (yc: y<d),
         ⟦ ⦃f⦄ i ic ⟧ x ≡ ⟦ ⦃f⦄ j jc ⟧ y → (x ≡ y) /\ (i ≡ j).
 
-  Definition index_map_family_surjective
-             {n d r: nat}
-             (f: index_map_family d r n)
-    :=
-      forall (y:nat) (yc: y<r), exists (x j:nat) (xc: x<d) (jc: j<n), ⟦ ⦃f⦄ j jc ⟧ x ≡ y.
-
   Lemma index_map_family_member_injective
         {d r n: nat}
         {f: index_map_family d r n}:
@@ -2175,11 +2123,6 @@ End IndexFamilies.
 
 
 Section Primitive_Functions.
-
-  Program Definition identity_index_map
-          (dr: nat) {dp: dr>0}:
-    index_map dr dr
-    := IndexMap dr dr (id) _.
 
   Program Definition h_index_map
           {domain range: nat}
@@ -3276,17 +3219,6 @@ Section SigmaHCOLHelperLemmas.
 
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
-
-  Lemma LiftM_Hoperator_compose
-        {i1 o2 o3: nat}
-        `{HOperator o2 o3 op1}
-        `{HOperator i1 o2 op2}
-    :
-      liftM_HOperator fm (op1 ∘ op2) =
-      SHCompose fm
-                (liftM_HOperator fm op1)
-                (liftM_HOperator fm op2).
-Admitted.
 
   Fact ScatH_stride1_constr:
   forall {a b:nat}, 1 ≢ 0 ∨ a < b.
