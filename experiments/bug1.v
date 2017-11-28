@@ -1064,17 +1064,7 @@ Global Instance abs_Setoid_Morphism A
          `{Ato: !@TotalOrder A Ae Ale}
          `{Aabs: !@Abs A Ae Ale Azero Anegate}
   : Setoid_Morphism abs | 0.
-Proof.
-  split; try assumption.
-  intros x y E.
-  unfold abs, abs_sig.
-  destruct (Aabs x) as [z1 [Ez1 Fz1]]. destruct (Aabs y) as [z2 [Ez2 Fz2]].
-  simpl.
-  rewrite <-E in Ez2, Fz2.
-  destruct (total (≤) 0 x).
-  now rewrite Ez1, Ez2.
-  now rewrite Fz1, Fz2.
-Qed.
+Admitted.
 
 Lemma abs_nonneg_s `{Aabs: Abs A}: forall (x : A), 0 ≤ x → abs x = x.
 Admitted.
@@ -1154,21 +1144,7 @@ Global Instance abs_idempotent
          `{Ar: !Ring A}
          `{ASRO: !@SemiRingOrder A Ae Aplus Amult Az A1 Ale}
   :UnaryIdempotent abs.
-Proof.
-  intros a b E.
-  unfold compose.
-  destruct (total (≤) 0 a).
-  rewrite abs_nonneg_s.
-  auto.
-  apply abs_always_nonneg.
-  setoid_replace (abs a) with (-a) by apply abs_nonpos_s.
-  rewrite abs_negate_s.
-  auto.
-  apply Ato.
-  apply Ar.
-  apply ASRO.
-  apply H.
-Qed.
+Admitted.
 
 Lemma abs_max_comm_2nd
       `{Ae: Equiv A}
@@ -1238,11 +1214,7 @@ Global Instance Sig_Equiv {A:Type} {Ae : Equiv A} {P:A->Prop}:
 
 Instance proj1_Proper {A:Type} {Ae : Equiv A} {P:A->Prop}:
   Proper ((=)==>(=)) (@proj1_sig A P).
-Proof.
-  intros x y E.
-  unfold equiv, Sig_Equiv in E.
-  auto.
-Qed.
+Admitted.
 
 
 End Spiral.
@@ -1915,17 +1887,10 @@ Section VectorSetoid.
   Global Instance vec_Equivalence `{Ae: Equiv A} {n:nat}
          `{!Equivalence (@equiv A _)}
     : Equivalence (@vec_Equiv A Ae n).
-  Proof.
-    unfold vec_Equiv.
-    apply Vforall2_equiv.
-    assumption.
-  Qed.
+Admitted.
 
   Global Instance vec_Setoid `{Setoid A} {n}: Setoid (vector A n).
-  Proof.
-    unfold Setoid.
-    apply vec_Equivalence.
-  Qed.
+Admitted.
 
 End VectorSetoid.
 
@@ -1943,16 +1908,7 @@ Admitted.
 
   Global Instance Vconst_reord_proper {n}:
     Proper ((=)==>(=)) (@Vconst_reord n).
-  Proof.
-    intros a a' aa'.
-    unfold Vconst_reord.
-    induction n.
-    crush.
-    simpl.
-    unfold equiv, vec_Equiv.
-    rewrite Vforall2_cons_eq.
-    split; assumption.
-  Qed.
+Admitted.
 
 End Vconst.
 
@@ -1973,21 +1929,7 @@ Admitted.
   Global Instance Vfold_left_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
            (@Vfold_left_reord A B n).
-  Proof.
-    intros f f' Ef i i' iEq v v' vEq .
-    revert i i' iEq.
-    induction v; simpl; intros.
-    -
-      VOtac; assumption.
-    -
-      revert vEq.
-      VSntac v'.
-      unfold equiv, vec_Equiv.
-      rewrite Vforall2_cons_eq; intros [h1 h2]; simpl.
-      apply IHv.
-      + assumption.
-      + apply Ef; assumption.
-  Qed.
+Admitted.
 
 End Vfold_left.
 
@@ -2006,21 +1948,7 @@ Admitted.
   Global Instance Vfold_left_rev_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
            (@Vfold_left_rev_reord A B n).
-  Proof.
-    intros f f' Ef i i' iEq v v' vEq .
-    revert i i' iEq.
-    induction v; simpl; intros.
-    -
-      VOtac; assumption.
-    -
-      revert vEq.
-      VSntac v'.
-      unfold equiv, vec_Equiv.
-      rewrite Vforall2_cons_eq; intros [h1 h2]; simpl.
-      apply Ef.
-      apply IHv; assumption.
-      assumption.
-  Qed.
+Admitted.
 
 End Vfold_left_rev.
 
@@ -2039,30 +1967,12 @@ Admitted.
   Global Instance Vfold_right_reord_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
            (@Vfold_right_reord A B n).
-  Proof.
-    intros f f' Ef v v' vEq i i' iEq.
-    unfold Vfold_right_reord.
-    induction v.
-    (* Case "N=0". *)
-    VOtac. simpl. assumption.
-    (* Case "S(N)".*)
-    revert vEq. VSntac v'. unfold equiv, vec_Equiv. rewrite Vforall2_cons_eq. intuition. simpl.
-    apply Ef.
-    (* SCase "Pf - 1". *)
-    assumption.
-    (* SCase "Pf - 2". *)
-    apply IHv. unfold equiv, vec_Equiv; assumption.
-  Qed.
+Admitted.
 
   Global Instance Vfold_right_aux_proper n :
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
            (@Vfold_right_aux A B n).
-  Proof.
-    simpl_relation.
-    unfold Vfold_right_aux.
-    rewrite Vfold_right_to_Vfold_right_reord.
-    apply Vfold_right_reord_proper; assumption.
-  Qed.
+Admitted.
 
 End Vfold_right.
 
@@ -2077,73 +1987,25 @@ Admitted.
   Global Instance Vcons_reord_proper `{Equiv A} n:
     Proper ((=) ==> (=) ==> (=))
            (@Vcons_reord A n).
-  Proof.
-    split.
-    assumption.
-    unfold vec_Equiv, Vforall2 in H0.  assumption.
-  Qed.
+Admitted.
 
 End VCons.
 
 Global Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
-Proof.
-  intros a0 a1 aEq b0 b1 bEq.
-  induction n1.
-  VOtac. auto.
-
-  dep_destruct a0.
-  dep_destruct a1.
-  rewrite 2!Vapp_cons.
-
-  assert (h=h0).
-  apply aEq.
-
-  rewrite 2!Vcons_to_Vcons_reord.
-  rewrite H.
-  rewrite <- 2!Vcons_to_Vcons_reord.
-
-  unfold equiv, vec_Equiv.
-  apply Vforall2_cons_eq.
-  split. reflexivity.
-
-  unfold equiv, vec_Equiv in IHn1.
-  apply IHn1.
-  apply aEq.
-Qed.
+Admitted.
 
 Global Instance Vhead_proper `{Equiv A} n:
   Proper ((=) ==> (=)) (@Vhead A n).
-Proof.
-  intros a b E.
-  dep_destruct a.  dep_destruct b.
-  unfold equiv, vec_Equiv, vec_Equiv, relation in E.
-  rewrite Vforall2_cons_eq in E.
-  intuition.
-Qed.
+Admitted.
 
 Global Instance Vtail_proper `{Equiv A} n:
   Proper ((=) ==> (=)) (@Vtail A n).
-Proof.
-  intros a b E.
-  unfold equiv, vec_Equiv, vec_Equiv, relation in E.
-  apply Vforall2_tail in E.
-  unfold vec_Equiv.
-  assumption.
-Qed.
+Admitted.
 
 Global Instance Ptail_proper `{Sa: Setoid A} `{Sb: Setoid B} (n:nat):
   Proper ((=) ==> (=)) (@Ptail A B n).
-Proof.
-  intros x y E.
-  destruct x as [xa xb].
-  destruct y as [ya yb].
-  destruct E as [E1 E2].
-  simpl in E1. simpl in E2.
-  unfold Ptail.
-  rewrite E1, E2.
-  reflexivity.
-Qed.
+Admitted.
 
 (* Handy tactics to break down equality of two vectors into element-wise equality of theirm elements using index *)
 Ltac vec_index_equiv j jc :=
@@ -2223,58 +2085,20 @@ Admitted.
   Global Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
     Proper (((=) ==> (=)) ==> (=) ==> (=))
            (@Vmap_reord M N n).
-  Proof.
-    intros f g Eext a b Ev.
-    induction n.
-    -
-      VOtac; auto.
-    -
-      dep_destruct a. dep_destruct b.
-      split.
-      + apply Eext, Ev.
-      + apply IHn, Ev.
-  Qed.
+Admitted.
 
 
   Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
          `{fP: !Proper (Me ==> Ne) f} (n:nat):
     Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
-  Proof.
-    intros a b Ea.
-    induction n.
-    -
-      VOtac; auto.
-    -
-      dep_destruct a. dep_destruct b.
-      split.
-      apply fP, Ea.
-      apply IHn, Ea.
-  Qed.
+Admitted.
 
 End VMap_reord.
 
 
 Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
   Proper ((=) ==> (=)) (@Vbreak A n1 n2).
-Proof.
-  intros v v1 vE.
-  induction n1.
-  simpl. setoid_rewrite vE. reflexivity.
-  assert (V1: v ≡ Vapp (fst (Vbreak (n1:=1) v)) (snd (Vbreak (n1:=1) v))).
-  simpl. dep_destruct v. reflexivity.
-  assert (V2: v1 ≡ Vapp (fst (Vbreak (n1:=1) v1)) (snd (Vbreak (n1:=1) v1))).
-  simpl. dep_destruct v1. reflexivity.
-  rewrite V1. clear V1. rewrite V2. clear V2.
-  dep_destruct v. dep_destruct v1.
-  simpl.
-
-  rewrite 2!Vcons_to_Vcons_reord.
-  assert (E: Vbreak x = Vbreak x0).
-  apply IHn1.  apply vE.
-  rewrite E.
-  setoid_replace h with h0 by apply vE.
-  reflexivity.
-Qed.
+Admitted.
 
 Section Vnth.
 
@@ -2296,21 +2120,7 @@ Global Instance Vmap2Indexed_proper
   :
     Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
            (@Vmap2Indexed A B C n).
-Proof.
-  intros fa fb Ef a a' Ea b b' Eb.
-  unfold Vmap2Indexed.
-
-  vec_index_equiv i ip.
-  rewrite 2!Vbuild_nth.
-  apply Ef.
-  - reflexivity.
-  - apply Vnth_equiv.
-    reflexivity.
-    assumption.
-  - apply Vnth_equiv.
-    reflexivity.
-    assumption.
-Qed.
+Admitted.
 
 Global Instance indexed_vector_equiv `{Equiv A} {n}:
   Equiv (∀ i : nat, i < n → vector A n)
@@ -2324,13 +2134,7 @@ Global Instance Vbuild_proper {n : nat} {A:Type} `{Equiv A}:
   Proper ((forall_relation
              (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv)
          (@Vbuild A n).
-Proof.
-  intros f f' E.
-  unfold forall_relation, pointwise_relation in E.
-  unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
-  rewrite 2!Vbuild_nth.
-  apply E.
-Qed.
+Admitted.
 
 (* --- Tactics --- *)
 
@@ -2395,15 +2199,11 @@ Add Ring RingA: (stdlib_ring_theory CarrierA).
 
 Global Instance CarrierAPlus_proper:
   Proper ((=) ==> (=) ==> (=)) (plus).
-Proof.
-  solve_proper.
-Qed.
+Admitted.
 
 Global Instance CommutativeMonoid_plus_zero:
   @MathClasses.interfaces.abstract_algebra.CommutativeMonoid CarrierA _ plus zero.
-Proof.
-  typeclasses eauto.
-Qed.
+Admitted.
 
 Notation avector n := (vector CarrierA n) (only parsing).
 
@@ -2600,44 +2400,19 @@ Global Instance RthetaFlags_equiv:
     is_struct a ≡ is_struct b.
 
 Global Instance RthetaFlags_Reflexive_equiv: Reflexive RthetaFlags_equiv.
-Proof.
-  unfold Reflexive.
-  intros x.
-  destruct x.
-  unfold equiv, RthetaFlags_equiv.
-  auto.
-Qed.
+Admitted.
 
 Global Instance RthetaFlags_Symmetric_equiv: Symmetric RthetaFlags_equiv.
-Proof.
-  unfold Symmetric.
-  intros x y H.
-  destruct x,y.
-  unfold equiv, RthetaFlags_equiv in *.
-  simpl in *.
-  split; crush.
-Qed.
+Admitted.
 
 Global Instance RthetaFlags_Transitive_equiv: Transitive RthetaFlags_equiv.
-Proof.
-  unfold Transitive.
-  intros x y z H0 H1.
-  unfold equiv, RthetaFlags_equiv in *.
-  crush.
-Qed.
+Admitted.
 
 Global Instance RthetaFlags_Equivalence_equiv: Equivalence RthetaFlags_equiv.
-Proof.
-  split.
-  apply RthetaFlags_Reflexive_equiv.
-  apply RthetaFlags_Symmetric_equiv.
-  apply RthetaFlags_Transitive_equiv.
-Qed.
+Admitted.
 
 Global Instance RthetaFlags_Setoid: @Setoid RthetaFlags RthetaFlags_equiv.
-Proof.
-  apply RthetaFlags_Equivalence_equiv.
-Qed.
+Admitted.
 
 (* mzero *)
 Definition RthetaFlagsZero := mkRthetaFlags true false.
@@ -2679,21 +2454,7 @@ Admitted.
 
   Global Instance MonoidLaws_RthetaFlags:
     MonoidLaws Monoid_RthetaFlags.
-  Proof.
-    split.
-    - (* monoid_assoc *)
-      simpl.
-      unfold BinOps.Associative.
-      apply RthetaFlags_assoc.
-    - (* monoid_lunit *)
-      simpl.
-      unfold BinOps.LeftUnit.
-      apply RthetaFlags_lunit.
-    - (* monoid_runit *)
-      simpl.
-      unfold BinOps.RightUnit.
-      apply RthetaFlags_runit.
-  Qed.
+Admitted.
 End CollisionTrackingRthetaFlags.
 
 Section SafeRthetaFlags.
@@ -2722,21 +2483,7 @@ Admitted.
 
   Global Instance MonoidLaws_SafeRthetaFlags:
     MonoidLaws Monoid_RthetaSafeFlags.
-  Proof.
-    split.
-    - (* monoid_assoc *)
-      simpl.
-      unfold BinOps.Associative.
-      apply RthetaFlags_safe_assoc.
-    - (* monoid_lunit *)
-      simpl.
-      unfold BinOps.LeftUnit.
-      apply RthetaFlags_safe_lunit.
-    - (* monoid_runit *)
-      simpl.
-      unfold BinOps.RightUnit.
-      apply RthetaFlags_safe_runit.
-  Qed.
+Admitted.
 
 End SafeRthetaFlags.
 
@@ -2803,64 +2550,40 @@ Admitted.
 
   Global Instance evalWriter_proper:
     Proper ((=) ==> (=)) (@evalWriter RthetaFlags CarrierA fm).
-  Proof.
-    simpl_relation.
-  Qed.
+Admitted.
 
   Global Instance liftRthetaP_proper
          (P: CarrierA -> Prop)
          (P_mor: Proper ((=) ==> iff) P)
     :
       Proper ((=) ==> iff) (@liftRthetaP P).
-  Proof.
-    unfold liftRthetaP.
-    solve_proper.
-  Qed.
+Admitted.
 
   Global Instance Is_ValX_proper:
       Proper ((=) ==> (=) ==> (iff)) (Is_ValX).
-  Proof.
-    unfold Is_ValX.
-    solve_proper.
-  Qed.
+Admitted.
 
   Ltac unfold_Rtheta'_equiv := unfold equiv, Rtheta'_equiv in *.
 
   Global Instance Rtheta_Reflexive_equiv:
     @Reflexive (Rtheta' fm) Rtheta'_equiv.
-  Proof.
-    unfold Reflexive.
-    destruct x; (unfold_Rtheta'_equiv; crush).
-  Qed.
+Admitted.
 
   Global Instance Rtheta_Symmetric_equiv:
     @Symmetric (Rtheta' fm) Rtheta'_equiv.
-  Proof.
-    unfold Symmetric.
-    destruct x; (unfold_Rtheta'_equiv; crush).
-  Qed.
+Admitted.
 
   Global Instance Rtheta_Transitive_equiv:
     @Transitive (Rtheta' fm) Rtheta'_equiv.
-  Proof.
-    unfold Transitive.
-    destruct x; (unfold_Rtheta'_equiv; crush).
-  Qed.
+Admitted.
 
   Global Instance Rtheta_Equivalence_equiv:
     @Equivalence (Rtheta' fm) Rtheta'_equiv.
-  Proof.
-    split.
-    apply Rtheta_Reflexive_equiv.
-    apply Rtheta_Symmetric_equiv.
-    apply Rtheta_Transitive_equiv.
-  Qed.
+Admitted.
 
   Global Instance Rtheta_Setoid:
     @Setoid (Rtheta' fm) Rtheta'_equiv.
-  Proof.
-    apply Rtheta_Equivalence_equiv.
-  Qed.
+Admitted.
 
   (* Note: definitional equality *)
   Lemma evalWriter_Rtheta_liftM
@@ -2950,15 +2673,11 @@ Ltac unfold_RStheta_equiv := unfold equiv, RStheta_equiv, Rtheta'_equiv in *.
 
 Global Instance Rtheta2RStheta_proper
   : Proper ((=) ==> (=)) (Rtheta2RStheta).
-Proof.
-  simpl_relation.
-Qed.
+Admitted.
 
 Global Instance RStheta2Rtheta_proper
   : Proper ((=) ==> (=)) (RStheta2Rtheta).
-Proof.
-  simpl_relation.
-Qed.
+Admitted.
 
 Lemma RStheta2Rtheta_liftM2
       (f : CarrierA → CarrierA → CarrierA)
@@ -3062,22 +2781,13 @@ Admitted.
 
 Section Decidablitiy.
   Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
-  Proof.
-    unfold Decision, IsVal.
-    destruct x.
-    destr_bool; auto.
-  Qed.
+Admitted.
 
   Global Instance Is_Val_dec
          {fm:Monoid RthetaFlags}
          (x: Rtheta' fm):
     Decision (Is_Val x).
-  Proof.
-    unfold Decision.
-    unfold Is_Val, compose.
-    generalize (WriterMonadNoT.execWriter x). intros f.
-    apply IsVal_dec.
-  Qed.
+Admitted.
 
 End Decidablitiy.
 
@@ -3093,37 +2803,26 @@ Admitted.
          {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkValue fm).
-  Proof.
-    simpl_relation.
-  Qed.
+Admitted.
 
   Global Instance mkStruct_proper
          {fm:Monoid RthetaFlags}
     :
       Proper((=) ==> (=)) (@mkStruct fm).
-  Proof.
-    simpl_relation.
-  Qed.
+Admitted.
 
   Definition Is_ValZero {fm:Monoid RthetaFlags}
     := @Is_ValX fm 0.
 
   Global Instance Is_ValZero_dec {fm:Monoid RthetaFlags} (x:Rtheta' fm):
     Decision (Is_ValZero x).
-  Proof.
-    unfold Is_ValZero.
-    unfold Decision.
-    destruct (CarrierAequivdec (evalWriter x) zero); crush.
-  Qed.
+Admitted.
 
   Global Instance Is_ValZero_proper
          {fm:Monoid RthetaFlags}
     :
       Proper ((=) ==> (iff)) (@Is_ValZero fm).
-  Proof.
-    unfold Is_ValZero.
-    solve_proper.
-  Qed.
+Admitted.
 
   Lemma Is_ValZero_to_mkSZero
         {fm:Monoid RthetaFlags}
@@ -3256,12 +2955,7 @@ Section SvectorBasics.
 
   Global Instance sparsify_proper {n:nat}:
     Proper ((=) ==> (=)) (@sparsify n).
-  Proof.
-    intros x y E.
-    unfold sparsify.
-    rewrite E.
-    reflexivity.
-  Qed.
+Admitted.
 
   (* Project out carrier type values from vector of Rheta values *)
   Definition densify {n} (v:svector n): avector n :=
