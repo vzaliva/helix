@@ -5086,7 +5086,6 @@ End RthetaSafetyCast.
 Section TSigmaHCOLOperators.
 
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   (* Per Vadim's discussion with Franz on 2015-12-14, ISumUnion is
   just Union of two vectors, produced by application of two operators
