@@ -1492,47 +1492,6 @@ Ltac Vnth_eq_index_to_val_eq :=
     clear rc lc HeqQ
   end.
 
-Section List_of_Vec.
-Import CoLoR.Util.List.ListUtil.
-
-  Lemma list_of_vec_eq {A:Type} {n:nat} (v1 v2 : vector A n) :
-    list_of_vec v1 = list_of_vec v2 -> v1 = v2.
-Admitted.
-
-  Lemma list_of_vec_length {A:Type} {n:nat} {v : vector A n} :
-    length (list_of_vec v) = n.
-Admitted.
-
-  Lemma list_of_vec_vec_of_list {A:Type} {l : list A} :
-    list_of_vec (vec_of_list l) = l.
-Admitted.
-
-  Lemma list_of_vec_Vcast {A:Type} {m n:nat} (v : vector A m) {E:m=n}:
-    list_of_vec (Vcast v E) = list_of_vec v.
-Admitted.
-
-  (* Note: no [default] param for [nth] is not specified *)
-  Lemma nth_cons {A:Type} (l: list A) (a:A) (i:nat):
-    nth (S i) (a::l) = nth i l.
-Admitted.
-
-  (* Note: no [default] param for [nth] is not specified *)
-  Lemma list_eq_nth {A:Type} (l1 l2: list A):
-    (length l1 = length l2) ->
-    (forall i (ic1:i<length l1), nth i l1 = nth i l2) ->
-    l1 = l2.
-Admitted.
-
-  (* Note: no [default] param for [nth] is not specified *)
-  Lemma nth_Vnth {A:Type} {n:nat} {v:vector A n} (i:nat) (ic:i<n):
-    nth i (list_of_vec (v)) = fun _ => Vnth v ic.
-Admitted.
-
-  Lemma list_of_vec_Vapp {A:Type} {m n:nat} {v1: vector A m} {v2: vector A n}:
-    list_of_vec (Vapp v1 v2) = List.app (list_of_vec v1) (list_of_vec v2).
-Admitted.
-
-End List_of_Vec.
 End VecUtil.
 
 End Spiral.
@@ -1987,24 +1946,6 @@ Section WriterMonad.
   Definition evalWriter:= pfst ∘ runWriter.
 
 End WriterMonad.
-
-Section MapWriter.
-  Variable A B: Type.
-  Variable W W' : Type.
-  Variable Monoid_W: Monoid W.
-  Variable Monoid_W': Monoid W'.
-
-  Open Scope program_scope.
-
-  (** Map both the return value and output of a computation using the given function.
-        [[ 'runWriter' ('mapWriter' f m) = f ('runWriter' m) ]]
-   *)
-  Definition mapWriter (f: (pprod A W)%type -> (pprod B W')%type) :
-    writer Monoid_W A -> writer Monoid_W' B
-    :=
-      mapWriterT B Monoid_W' ident (mkIdent ∘ f ∘ unIdent).
-
-End MapWriter.
 
 Section CastWriter.
   Variable A: Type.
@@ -3133,19 +3074,6 @@ Section HCOL_implementations.
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
       end.
 
-  Fixpoint Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
-           (initial: CarrierA) (v:CarrierA) {struct n}
-    : CarrierA :=
-    match n with
-    | O => initial
-    | S p => f (Inductor p f initial v) v
-    end.
-
-  (* --- Reduction --- *)
-
-  (*  Reduction (fold) using single finction. In case of empty list returns 'id' value:
-    Reduction f x1 .. xn b = f xn (f x_{n-1} .. (f x1 id) .. )
-   *)
   Definition Reduction {n:nat}
              (f: CarrierA -> CarrierA -> CarrierA)
              (id:CarrierA) (a: avector n) : CarrierA
@@ -3159,15 +3087,7 @@ Section HCOL_implementations.
     | (s,v) => Vmap (mult s) v
     end.
 
-  (* --- Concat ---- *)
-  Definition Concat {an bn: nat} (ab: (avector an)*(avector bn)) : avector (an+bn) :=
-    match ab with
-      (a,b) => Vapp a b
-    end.
-
 End HCOL_implementations.
-
-(* === Lemmas about functions defined above === *)
 
 Section HCOL_implementation_facts.
 
@@ -3182,29 +3102,6 @@ Admitted.
     forall n (a: avector (S n)) (x:CarrierA),
       EvalPolynomial a x  =
       plus (Vhead a) (mult x (EvalPolynomial (Vtail a) x)).
-Admitted.
-
-  (* TODO: better name. Maybe suffficent to replace with ScalarProd_cons *)
-  Lemma ScalarProd_reduce:
-    forall n (ab: (avector (S n))*(avector (S n))),
-      ScalarProd ab = plus (mult (Vhead (fst ab)) (Vhead (snd ab))) (ScalarProd (Ptail ab)).
-Admitted.
-
-  Lemma MonomialEnumerator_cons:
-    forall n (x:CarrierA),
-      MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
-Admitted.
-
-  Lemma ScalarProd_comm: forall n (a b: avector n),
-      ScalarProd (a,b) = ScalarProd (b,a).
-Admitted.
-
-  Lemma ScalarProduct_descale: forall {n} (a b: avector n) (s:CarrierA),
-      [ScalarProd ((Scale (s,a)), b)] = Scale (s, [(ScalarProd (a,b))]).
-Admitted.
-
-  Lemma ScalarProduct_hd_descale: forall {n} (a b: avector n) (s:CarrierA),
-      ScalarProd ((Scale (s,a)), b) = Vhead (Scale (s, [(ScalarProd (a,b))])).
 Admitted.
 
 End HCOL_implementation_facts.
@@ -3389,10 +3286,6 @@ Admitted.
     : avector i -> avector 1
     := Vectorize ∘ (Reduction f idv).
 
-  Definition HAppend {i n} (a:avector n)
-    : avector i -> avector (i+n)
-    := fun x => Vapp x a.
-
   Definition HVMinus {o}
     : avector (o+o) -> avector o
     := VMinus  ∘ (vector2pair o).
@@ -3432,13 +3325,6 @@ Admitted.
              (x: avector n)
     := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
 
-  (* Special case of pointwise *)
-  Definition HAtomic
-             (f: CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=)) f}
-             (x: avector 1)
-    := [f (Vhead x)].
-
   Section HCOL_operators.
 
     Global Instance HPointwise_HOperator
@@ -3457,12 +3343,6 @@ Admitted.
       rewrite H.
       reflexivity.
     Qed.
-
-    Global Instance HAtomic_HOperator
-           (f: CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=)) f}:
-      HOperator (HAtomic f).
-  Admitted.
 
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
@@ -3965,41 +3845,7 @@ Notation FinNatSet n := (Ensemble (FinNat n)).
 
 Definition mkFinNat {n} {j:nat} (jc:j<n) : FinNat n := @exist _ (gt n) j jc.
 
-Definition singleton {n:nat} (i:nat): FinNatSet n :=
-  fun x => proj1_sig x = i.
-
 Definition FinNatSet_dec {n: nat} (s: FinNatSet n) := forall x, decidable (s x).
-
-Lemma Full_FinNatSet_dec:
-  forall i : nat, FinNatSet_dec (Full_set (FinNat i)).
-Admitted.
-
-Lemma Empty_FinNatSet_dec:
-  forall i : nat, FinNatSet_dec (Empty_set (FinNat i)).
-Admitted.
-
-Lemma Union_FinNatSet_dec
-      {n}
-      {a b: FinNatSet n}:
-  FinNatSet_dec a -> FinNatSet_dec b ->
-  FinNatSet_dec (Union _ a b).
-Admitted.
-
-Lemma Union_Empty_set_runit:
-  forall n B, FinNatSet_dec B ->
-         Same_set _ (Union (FinNat n) B (Empty_set (FinNat n))) B.
-Admitted.
-
-Lemma Union_Empty_set_lunit:
-  forall n B, FinNatSet_dec B ->
-         Same_set _ B (Union (FinNat n) B (Empty_set (FinNat n))).
-Admitted.
-
-Lemma Union_comm
-      {U:Type}
-      {B C: Ensemble U}:
-  forall x, In _ (Union U B C) x <-> In _ (Union U C B) x.
-Admitted.
 
 End FinNatSet.
 
@@ -7284,133 +7130,11 @@ Section SigmaHCOL_rewriting.
 
   Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-  (* --- HCOL -> Sigma->HCOL --- *)
-
-  (*
-Final Sigma-HCOL expression:
-
-BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
-SUMUnion(
-  ScatHUnion(2, 1, 0, 1) o
-  Reduction(3, (a, b) -> add(a, b), V(0.0), (arg) -> false) o
-  PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
-  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
-  GathH(5, 1, 0, 1),
-
-  ScatHUnion(2, 1, 1, 1) o
-  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
-  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
-  ISumUnion(i15, 2,
-    ScatHUnion(2, 1, i15, 1) o
-    BinOp(1, Lambda([ r12, r13 ], sub(r12, r13))) o
-    GathH(4, 2, i15, 2)
-  ) o
-  GathH(5, 4, 1, 1)
-)
-   *)
-  Definition dynwin_SHCOL (a: avector 3) :=
-    (SafeCast (SHBinOp (IgnoreIndex2 THCOLImpl.Zless)))
-      ⊚
-      (HTSUMUnion _ plus (
-                    ScatH _ 0 1
-                          (range_bound := h_bound_first_half _ _ 1 1)
-                          (snzord0 := @ScatH_stride1_constr _ _ 1 2)
-                          zero
-                          ⊚
-                          (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
-                                           SafeCast (SHBinOp (IgnoreIndex2 mult))
-                                           ⊚
-                                           liftM_HOperator _ (HPrepend a )
-                                           ⊚
-                                           liftM_HOperator _ (HInduction 3 mult one))
-                          ⊚
-                          (GathH _ 0 1
-                                 (domain_bound := h_bound_first_half _ _ 1 (2+2)))
-                  )
-
-                  (
-                    (ScatH _ 1 1
-                           (range_bound := h_bound_second_half _ _ 1 1)
-                           (snzord0 := @ScatH_stride1_constr _ _ 1 2)
-                           zero)
-                      ⊚
-                      (liftM_HOperator _ (@HReduction _ minmax.max _ 0))
-                      ⊚
-                      (SHPointwise _ (IgnoreIndex abs))
-                      ⊚
-                      (USparseEmbedding
-                         (n:=2)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SafeCast (SHBinOp (o:=1)
-                                                                        (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
-                         (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound _ _ j 2 1 jc))))
-                         (f_inj := h_j_1_family_injective)
-                         zero
-                         (IndexMapFamily _ _ 2 (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound _ _ j 2 jc))))
-                      ⊚
-                      (GathH _ 1 1
-                             (domain_bound := h_bound_second_half _ _ 1 (2+2)))
-                  )
-      ).
-
 
 Import Spiral_DOT_FinNatSet.Spiral.FinNatSet.
 
 
   Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
-
-  (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
-  Lemma Apply_Family_Vforall_P_move_P
-        {fm} {P:Rtheta' fm → Prop}
-        {i1 o2 o3 n}
-        (f: @SHOperator fm  o2 o3)
-        (g: @SHOperatorFamily fm i1 o2 n)
-    :
-      (forall x, Vforall P ((op fm f) x)) ->
-      Apply_Family_Vforall_P fm P (SHOperatorFamilyCompose fm f g).
-Admitted.
-
-  (* TODO: move to SigmaHCOLRewriting *)
-  Lemma ApplyFamily_SHOperatorFamilyCompose
-        {i1 o2 o3 n}
-        {fm}
-        (f: @SHOperator fm o2 o3)
-        (g: @SHOperatorFamily fm i1 o2 n)
-        {x}
-    : Apply_Family fm (SHOperatorFamilyCompose fm f g) x ≡
-      Vmap (op fm f) (Apply_Family fm g x).
-Admitted.
-
-  Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
-        {i1 o2 n}
-        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n)
-        (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0)
-        (f: FinNat o2 -> CarrierA -> CarrierA)
-        {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), 0 ≠ f (mkFinNat ic) v -> 0 ≠ v):
-    Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags
-                                        (SHOperatorFamilyCompose
-                                           Monoid_RthetaFlags
-                                           (SHPointwise Monoid_RthetaFlags f (n:=o2))
-                                           fam)
-                                            zero.
-Admitted.
-
-  Lemma op_Vforall_P_SHPointwise
-        {m n: nat}
-        {fm: Monoid.Monoid RthetaFlags}
-        {f: CarrierA -> CarrierA}
-        `{f_mor: !Proper ((=) ==> (=)) f}
-        {P: CarrierA -> Prop}
-        (F: @SHOperator fm m n)
-    :
-      (forall x, P (f x)) ->
-           op_Vforall_P fm (liftRthetaP P)
-                        (SHCompose fm
-                                   (SHPointwise (n:=n) fm (IgnoreIndex f))
-                                   F).
-Admitted.
-
 
   Lemma Bug: forall a : vector CarrierA (S (S (S O))),
   @equiv (@SHOperator Monoid_RthetaFlags (S (S (S (S (S O))))) (S O))
