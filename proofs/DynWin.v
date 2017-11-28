@@ -575,9 +575,14 @@ Require Import Spiral.FinNatSet.
 
     (* --- END: hack --- *)
 
+    (* Obligations for `rewrite_Reduction_ScatHUnion_max_zero` *)
     setoid_rewrite SHCompose_assoc.
     eapply op_Vforall_P_SHPointwise, abs_always_nonneg.
 
+    (* Gettting ready to apply GathH_GathH *)
+
+    unfold SHFamilyOperatorCompose.
+    simpl.
 
 
   Admitted.
