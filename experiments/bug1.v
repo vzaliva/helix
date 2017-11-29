@@ -338,24 +338,7 @@ Module Spiral_DOT_VecSetoid.
       (* TODO: Check if it is still needed in Coq-8.6 *)
       Section VMap_reord.
 
-        (*
-   The following Proper for dependent-typed Vmap does not work.
-   As workaround we reorder parameters and define simple typed
-   version of [Vmap_reord] for given [A,B,n].
-
-   This general technique was first suggested to us in coq-club mailing
-   list by Daniel Schepler <dschepler@gmail.com> in 11/2014
-
-Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
-  Proper (
-      ((=) ==> (=)) ==> (forall_relation
-                       (fun (n : nat) => (@vec_Equiv A _ n) ==> (@vec_Equiv B _ n))))
-         (@Vmap A B).
-         *)
-
         Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.
-
-
 
         Global Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
           Proper (((=) ==> (=)) ==> (=) ==> (=))
@@ -374,14 +357,6 @@ Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
       Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
         Proper ((=) ==> (=)) (@Vbreak A n1 n2).
       Admitted.
-
-      Section Vnth.
-
-
-
-        (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later *)
-
-      End Vnth.
 
       Global Instance Vmap2Indexed_proper
              `{Setoid A, Setoid B, Setoid C} {n:nat}
@@ -422,9 +397,7 @@ Module Spiral_DOT_CarrierType.
       Import Spiral_DOT_VecSetoid.Spiral.
       Import Spiral_DOT_VecUtil.Spiral.
       Import Spiral_DOT_Spiral.Spiral.
-      (*
-Carrier type used in all our proofs. Could be real of Float in future.
-       *)
+
       Import CoLoR.Util.Vector.VecUtil.
       Import MathClasses.interfaces.abstract_algebra.
       Import MathClasses.theory.rings.
@@ -592,8 +565,6 @@ Module Spiral_DOT_Rtheta.
       Import Monoid.
       Local Open Scope monad_scope.
 
-
-      (* Both safe and collision tracking flags monads share same underlying data structure *)
 
       Record RthetaFlags : Type :=
         mkRthetaFlags
@@ -1004,7 +975,6 @@ Module Spiral_DOT_HCOLImpl.
         (* Poor man's minus *)
         Definition sub := plus∘negate.
 
-        (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
         Global Instance CarrierA_sub_proper:
           Proper ((=) ==> (=) ==> (=)) (sub).
         Admitted.
