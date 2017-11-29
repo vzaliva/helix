@@ -46,7 +46,6 @@ Local Open Scope nat_scope.
 Section SigmaHCOLHelperLemmas.
 
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Lemma Gather'_composition
         {i o t: nat}
