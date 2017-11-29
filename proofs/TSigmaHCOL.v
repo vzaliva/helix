@@ -271,290 +271,294 @@ Section TSigmaHCOLOperators.
 End TSigmaHCOLOperators.
 
 
-Global Instance SafeCast_Facts
-       {i o}
-       (xop: @SHOperator Monoid_RthetaSafeFlags i o)
-       `{fop: SHOperator_Facts Monoid_RthetaSafeFlags _ _ xop}
+Section TSigmaHCOLOperators_StructuralProperties.
+
+  Global Instance SafeCast_Facts
+         {i o}
+         (xop: @SHOperator Monoid_RthetaSafeFlags i o)
+         `{fop: SHOperator_Facts Monoid_RthetaSafeFlags _ _ xop}
   :
     SHOperator_Facts Monoid_RthetaFlags (SafeCast xop).
-Proof.
-  split.
-  - apply fop.
-  - apply fop.
-  - intros x y H.
-    simpl.
-    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    f_equiv.
-    apply fop.
-    simpl in *.
-
-    unfold vec_equiv_at_set.
-    intros j jc S.
-    specialize (H j jc S).
-    rewrite 2!Vnth_map.
-    f_equiv.
-    apply H.
-  -
-    intros v H j jc S.
-    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
-    apply out_as_range; try assumption.
-    intros t tc I.
-
-    rewrite Vnth_map, <- Is_Val_Rtheta2RStheta.
-    apply H, I.
-  -
-    intros v j jc S.
-    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Is_Struct_RStheta2Rtheta.
-    apply no_vals_at_sparse; assumption.
-  -
-    intros v H j jc S.
-    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
-    apply no_coll_range; try assumption.
-    intros t tc I.
-
-    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
-    apply H, I.
-  -
-    intros v j jc S.
-    unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
-    apply no_coll_at_sparse; assumption.
-Qed.
-
-Global Instance UnSafeCast_Facts
-       {i o}
-       (xop: @SHOperator Monoid_RthetaFlags i o)
-       `{fop: SHOperator_Facts Monoid_RthetaFlags _ _ xop}
-  :
-    SHOperator_Facts Monoid_RthetaSafeFlags (UnSafeCast xop).
-Proof.
-  split.
-  - apply fop.
-  - apply fop.
-  - intros x y H.
-    simpl.
-    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    f_equiv.
-    apply fop.
-    simpl in *.
-
-    unfold vec_equiv_at_set.
-    intros j jc S.
-    specialize (H j jc S).
-    rewrite 2!Vnth_map.
-    f_equiv.
-    apply H.
-  -
-    intros v H j jc S.
-    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map. rewrite <- Is_Val_Rtheta2RStheta.
-    apply out_as_range; try assumption.
-    intros t tc I.
-
-    rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
-    apply H, I.
-  -
-    intros v j jc S.
-    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Is_Struct_Rtheta2RStheta.
-    apply no_vals_at_sparse; assumption.
-  -
-    intros v H j jc S.
-    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
-    apply no_coll_range; try assumption.
-    intros t tc I.
-
-    rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
-    apply H, I.
-  -
-    intros v j jc S.
-    unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
-    simpl in *.
-
-    rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
-    apply no_coll_at_sparse; assumption.
-Qed.
-
-Global Instance HTSUMUnion_Facts
-       {i o}
-       (dot: CarrierA -> CarrierA -> CarrierA)
-       `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-       (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-       `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
-       `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
-       (compat: Disjoint _
-                         (out_index_set _ op1)
-                         (out_index_set _ op2)
-       )
-  : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
-Proof.
-  split.
-  -
-    apply Union_FinNatSet_dec.
-    apply fop1.
-    apply fop2.
-  -
-    apply Union_FinNatSet_dec.
-    apply fop1.
-    apply fop2.
-  - intros x y H.
-    destruct op1, op2, fop1, fop2.
-    simpl in *.
-    unfold HTSUMUnion', Vec2Union in *.
-    vec_index_equiv j jc.
-    rewrite 2!Vnth_map2.
-    f_equiv.
-    + apply dot_mor.
-    +
-      apply Vnth_arg_equiv.
-      apply in_as_domain.
-      apply vec_equiv_at_Union in H.
-      apply H.
-    +
-      apply Vnth_arg_equiv.
-      apply in_as_domain0.
-      apply vec_equiv_at_Union in H.
-      apply H.
-  - intros v D j jc S.
-    simpl in *.
-    unfold HTSUMUnion', Vec2Union in *.
-    rewrite Vnth_map2.
-    apply ValUnionIsVal.
-    destruct op1, op2, fop1, fop2.
-    simpl in *.
-    dep_destruct S.
-    + left.
-      apply out_as_range.
-      intros j0 jc0 H0.
-      apply D.
-      left.
-      apply H0.
-      apply i0.
-    + right.
-      apply out_as_range0.
-      intros j0 jc0 H0.
-      apply D.
-      right.
-      apply H0.
-      apply i0.
-  -
-    intros v j jc S.
-    unfold HTSUMUnion, HTSUMUnion', Vec2Union.
-    simpl.
-    rewrite Vnth_map2.
-    apply StructUnionIsStruct.
-    unfold Is_Struct, compose, not.
+  Proof.
     split.
-    +
-      intros H.
-      apply fop1 in H.
-      inversion H.
-      unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+    - apply fop.
+    - apply fop.
+    - intros x y H.
+      simpl.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      f_equiv.
+      apply fop.
       simpl in *.
-      unfold not in S.
-      contradict S.
-      apply Union_introl.
-      apply S.
-    +
-      intros H.
-      apply fop2 in H.
-      inversion H.
-      unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+
+      unfold vec_equiv_at_set.
+      intros j jc S.
+      specialize (H j jc S).
+      rewrite 2!Vnth_map.
+      f_equiv.
+      apply H.
+    -
+      intros v H j jc S.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
       simpl in *.
-      unfold not in S.
-      contradict S.
-      apply Union_intror.
-      apply S.
-  -
-    (* no_coll_range *)
-    intros v D j jc S.
-    unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
-    simpl in *.
-    rewrite Vnth_map2.
-    apply UnionCollisionFree.
-    +
-      destruct fop1.
-      destruct (out_dec (mkFinNat jc)).
-      * apply no_coll_range.
-        intros t tc I.
-        specialize (D t tc).
-        apply D.
-        apply Union_introl.
-        apply I.
-        apply H.
-      * apply no_coll_at_sparse.
-        apply H.
-    +
-      destruct fop2.
-      destruct (out_dec (mkFinNat jc)).
-      * apply no_coll_range.
-        intros t tc I.
-        specialize (D t tc).
-        apply D.
-        apply Union_intror.
-        apply I.
-        apply H.
-      * apply no_coll_at_sparse.
-        apply H.
-    +
-      intros [A B].
 
-      destruct compat as [C].
-      specialize (C (mkFinNat jc)).
-      unfold In in C.
+      rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
+      apply out_as_range; try assumption.
+      intros t tc I.
 
-      apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
-      apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+      rewrite Vnth_map, <- Is_Val_Rtheta2RStheta.
+      apply H, I.
+    -
+      intros v j jc S.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
 
-      contradict C.
-      apply Intersection_intro; auto.
-  -
-    (* no_coll_at_sparse *)
-    intros v j jc S.
-    unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
-    simpl in *.
-    rewrite Vnth_map2.
-    apply UnionCollisionFree.
-    +
-      apply no_coll_at_sparse.
+      rewrite Vnth_map, <- Is_Struct_RStheta2Rtheta.
+      apply no_vals_at_sparse; assumption.
+    -
+      intros v H j jc S.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+      apply no_coll_range; try assumption.
+      intros t tc I.
+
+      rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
+      apply H, I.
+    -
+      intros v j jc S.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+      apply no_coll_at_sparse; assumption.
+  Qed.
+
+  Global Instance UnSafeCast_Facts
+         {i o}
+         (xop: @SHOperator Monoid_RthetaFlags i o)
+         `{fop: SHOperator_Facts Monoid_RthetaFlags _ _ xop}
+    :
+      SHOperator_Facts Monoid_RthetaSafeFlags (UnSafeCast xop).
+  Proof.
+    split.
+    - apply fop.
+    - apply fop.
+    - intros x y H.
+      simpl.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      f_equiv.
+      apply fop.
+      simpl in *.
+
+      unfold vec_equiv_at_set.
+      intros j jc S.
+      specialize (H j jc S).
+      rewrite 2!Vnth_map.
+      f_equiv.
+      apply H.
+    -
+      intros v H j jc S.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map. rewrite <- Is_Val_Rtheta2RStheta.
+      apply out_as_range; try assumption.
+      intros t tc I.
+
+      rewrite Vnth_map, <- Is_Val_RStheta2Rtheta.
+      apply H, I.
+    -
+      intros v j jc S.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map, <- Is_Struct_Rtheta2RStheta.
+      apply no_vals_at_sparse; assumption.
+    -
+      intros v H j jc S.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
+      apply no_coll_range; try assumption.
+      intros t tc I.
+
+      rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
+      apply H, I.
+    -
+      intros v j jc S.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
+      simpl in *.
+
+      rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
+      apply no_coll_at_sparse; assumption.
+  Qed.
+
+  Global Instance HTSUMUnion_Facts
+         {i o}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+         (op1 op2: @SHOperator Monoid_RthetaFlags i o)
+         `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
+         `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
+         (compat: Disjoint _
+                           (out_index_set _ op1)
+                           (out_index_set _ op2)
+         )
+    : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+  Proof.
+    split.
+    -
+      apply Union_FinNatSet_dec.
       apply fop1.
-      contradict S.
-      apply Union_introl.
-      apply S.
-    +
-      apply no_coll_at_sparse.
       apply fop2.
-      contradict S.
-      apply Union_intror.
-      apply S.
-    +
-      intros [A B].
+    -
+      apply Union_FinNatSet_dec.
+      apply fop1.
+      apply fop2.
+    - intros x y H.
+      destruct op1, op2, fop1, fop2.
+      simpl in *.
+      unfold HTSUMUnion', Vec2Union in *.
+      vec_index_equiv j jc.
+      rewrite 2!Vnth_map2.
+      f_equiv.
+      + apply dot_mor.
+      +
+        apply Vnth_arg_equiv.
+        apply in_as_domain.
+        apply vec_equiv_at_Union in H.
+        apply H.
+      +
+        apply Vnth_arg_equiv.
+        apply in_as_domain0.
+        apply vec_equiv_at_Union in H.
+        apply H.
+    - intros v D j jc S.
+      simpl in *.
+      unfold HTSUMUnion', Vec2Union in *.
+      rewrite Vnth_map2.
+      apply ValUnionIsVal.
+      destruct op1, op2, fop1, fop2.
+      simpl in *.
+      dep_destruct S.
+      + left.
+        apply out_as_range.
+        intros j0 jc0 H0.
+        apply D.
+        left.
+        apply H0.
+        apply i0.
+      + right.
+        apply out_as_range0.
+        intros j0 jc0 H0.
+        apply D.
+        right.
+        apply H0.
+        apply i0.
+    -
+      intros v j jc S.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union.
+      simpl.
+      rewrite Vnth_map2.
+      apply StructUnionIsStruct.
+      unfold Is_Struct, compose, not.
+      split.
+      +
+        intros H.
+        apply fop1 in H.
+        inversion H.
+        unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+        simpl in *.
+        unfold not in S.
+        contradict S.
+        apply Union_introl.
+        apply S.
+      +
+        intros H.
+        apply fop2 in H.
+        inversion H.
+        unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+        simpl in *.
+        unfold not in S.
+        contradict S.
+        apply Union_intror.
+        apply S.
+    -
+      (* no_coll_range *)
+      intros v D j jc S.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+      simpl in *.
+      rewrite Vnth_map2.
+      apply UnionCollisionFree.
+      +
+        destruct fop1.
+        destruct (out_dec (mkFinNat jc)).
+        * apply no_coll_range.
+          intros t tc I.
+          specialize (D t tc).
+          apply D.
+          apply Union_introl.
+          apply I.
+          apply H.
+        * apply no_coll_at_sparse.
+          apply H.
+      +
+        destruct fop2.
+        destruct (out_dec (mkFinNat jc)).
+        * apply no_coll_range.
+          intros t tc I.
+          specialize (D t tc).
+          apply D.
+          apply Union_intror.
+          apply I.
+          apply H.
+        * apply no_coll_at_sparse.
+          apply H.
+      +
+        intros [A B].
 
-      destruct compat as [C].
-      specialize (C (mkFinNat jc)).
-      unfold In in C.
+        destruct compat as [C].
+        specialize (C (mkFinNat jc)).
+        unfold In in C.
 
-      apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
-      apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+        apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
+        apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
 
-      contradict C.
-      apply Intersection_intro; auto.
-Qed.
+        contradict C.
+        apply Intersection_intro; auto.
+    -
+      (* no_coll_at_sparse *)
+      intros v j jc S.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union in *.
+      simpl in *.
+      rewrite Vnth_map2.
+      apply UnionCollisionFree.
+      +
+        apply no_coll_at_sparse.
+        apply fop1.
+        contradict S.
+        apply Union_introl.
+        apply S.
+      +
+        apply no_coll_at_sparse.
+        apply fop2.
+        contradict S.
+        apply Union_intror.
+        apply S.
+      +
+        intros [A B].
+
+        destruct compat as [C].
+        specialize (C (mkFinNat jc)).
+        unfold In in C.
+
+        apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
+        apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+
+        contradict C.
+        apply Intersection_intro; auto.
+  Qed.
+
+End TSigmaHCOLOperators_StructuralProperties.
