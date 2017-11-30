@@ -442,6 +442,41 @@ Section SigmaHCOLHelperLemmas.
     nia.
   Qed.
 
+
+  (* UnSafeCast distribute over SHCompose *)
+  Lemma UnSafeCast_SHCompose
+        {i1 o2 o3}
+        (F: @SHOperator Monoid_RthetaFlags o2 o3)
+        (G: @SHOperator Monoid_RthetaFlags i1 o2)
+    :
+      UnSafeCast (SHCompose Monoid_RthetaFlags F G)
+      =
+      (SHCompose Monoid_RthetaSafeFlags
+                 (UnSafeCast F)
+                 (UnSafeCast G)).
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, UnSafeCast, SHCompose.
+    unfold UnSafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+    f_equiv.
+    unfold rsvector2rvector, rvector2rsvector.
+    rewrite Vmap_map.
+
+    setoid_replace (Vmap (λ x0 : Rtheta, RStheta2Rtheta (Rtheta2RStheta x0))
+                         (op Monoid_RthetaFlags G (Vmap RStheta2Rtheta y))) with
+        (op Monoid_RthetaFlags G (Vmap RStheta2Rtheta y)).
+    -
+      reflexivity.
+    -
+      vec_index_equiv j jc.
+      rewrite Vnth_map.
+      setoid_rewrite RStheta2Rtheta_Rtheta2RStheta_equiv.
+      reflexivity.
+  Qed.
+
 End SigmaHCOLHelperLemmas.
 
 

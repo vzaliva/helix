@@ -577,6 +577,17 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma Rtheta2RStheta_RStheta2Rtheta {x}:
+  Rtheta2RStheta (RStheta2Rtheta x) ≡ x.
+Proof.
+  unfold Rtheta2RStheta, RStheta2Rtheta.
+  unfold WriterMonadNoT.castWriter.
+  unfold WriterMonadNoT.castWriterT.
+  unfold compose.
+  destruct x.
+  auto.
+Qed.
+
 Lemma Is_Val_mkStruct:
   forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
 Proof.
