@@ -18,12 +18,10 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
 
-
 Require Import Spiral.SpiralTactics.
 Require Import Psatz.
 Require Import Omega.
 
-(* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.theory.rings.
@@ -32,13 +30,10 @@ Require Import MathClasses.orders.orders.
 Require Import MathClasses.orders.semirings.
 Require Import MathClasses.theory.setoids.
 
-(* Ext Lib *)
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
 
 Import Monoid.
-
-(*  CoLoR *)
 
 Import VectorNotations.
 Open Scope vector_scope.
