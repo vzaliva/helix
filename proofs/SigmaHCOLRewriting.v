@@ -477,6 +477,35 @@ Section SigmaHCOLHelperLemmas.
       reflexivity.
   Qed.
 
+  Lemma UnSafeCast_Gather
+        {i o: nat}
+        (f: index_map o i)
+    :
+      UnSafeCast (Gather Monoid_RthetaFlags f)
+      =
+      Gather Monoid_RthetaSafeFlags f.
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, UnSafeCast.
+    unfold UnSafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+
+    vec_index_equiv j jc.
+    unfold rvector2rsvector.
+    rewrite Vnth_map.
+    unfold rsvector2rvector.
+    unfold_Rtheta_equiv.
+    setoid_rewrite Gather'_spec.
+    unfold VnthIndexMapped.
+    rewrite Vnth_map.
+    f_equiv.
+    setoid_rewrite Rtheta2RStheta_RStheta2Rtheta.
+    reflexivity.
+  Qed.
+
+
 End SigmaHCOLHelperLemmas.
 
 
