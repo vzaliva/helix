@@ -505,9 +505,18 @@ Section SigmaHCOLHelperLemmas.
     reflexivity.
   Qed.
 
+  Fact GathH_fold
+       {i o base stride: nat}
+       {domain_bound: forall x : nat, (x < i) -> (base + x * stride < o)}
+    :
+      Gather fm (@h_index_map i o base stride domain_bound)
+             ≡
+             GathH fm base stride (domain_bound:=domain_bound).
+  Proof.
+    auto.
+  Qed.
 
 End SigmaHCOLHelperLemmas.
-
 
 
 Section SigmaHCOLExpansionRules.
