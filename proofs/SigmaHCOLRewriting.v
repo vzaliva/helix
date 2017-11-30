@@ -26,17 +26,13 @@ Require Import Omega.
 
 Require Import Spiral.SpiralTactics.
 
-(* CoRN Math-classes *)
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.setoids.
 
-(* ExtLib *)
 Require Import ExtLib.Structures.Monoid.
 Import Monoid.
-
-(*  CoLoR *)
 
 Import VectorNotations.
 
