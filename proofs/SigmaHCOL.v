@@ -767,7 +767,6 @@ Section SigmaHCOL_Operators.
                         (Apply_Family op_family x)
                      ).
 
-
     (* States that given [P] holds for all elements of all outputs of this family *)
     Definition Apply_Family_Vforall_P
                {i o n}
@@ -784,15 +783,15 @@ Section SigmaHCOL_Operators.
       := Vbuild (VnthIndexMapped x f).
 
     Global Instance Gather'_proper
-           {i o: nat}
-           (f: index_map o i):
-      Proper ((=) ==> (=)) (Gather' f).
+           {i o: nat}:
+      Proper ((=) ==> (=) ==> (=)) (@Gather' i o).
     Proof.
-      intros x y Exy.
+      intros f g Efg x y Exy.
       unfold Gather', VnthIndexMapped.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
-      apply Vnth_arg_equiv.
+      apply Vnth_equiv.
+      apply Efg, jp.
       apply Exy.
     Qed.
 

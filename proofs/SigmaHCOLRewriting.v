@@ -57,10 +57,10 @@ Section SigmaHCOLHelperLemmas.
     -
       split; try apply vec_Setoid.
       apply compose_proper with (RA:=equiv) (RB:=equiv);
-        apply Gather'_proper.
+        apply Gather'_proper; reflexivity.
     -
       split; try apply vec_Setoid.
-      apply Gather'_proper.
+      apply Gather'_proper; reflexivity.
     -
       intros v.
       unfold compose.

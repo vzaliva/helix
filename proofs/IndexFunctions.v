@@ -65,6 +65,45 @@ Global Instance index_map_equiv {domain range:nat}:
   :=
     fun f g => forall (x:nat) (xd: x<domain), ⟦ f ⟧ x = ⟦ g ⟧ x.
 
+Global Instance index_map_Reflexive
+       {i o:nat}:
+  Reflexive (@index_map_equiv i o).
+Proof.
+  crush.
+Qed.
+
+Global Instance index_map_Symmetric
+       {i o:nat}:
+  Symmetric (@index_map_equiv i o).
+Proof.
+  intros a b E.
+  unfold index_map_equiv.
+  intros x xc.
+  rewrite E.
+  reflexivity.
+  apply xc.
+Qed.
+
+Global Instance index_map_Transitive
+       {i o:nat}:
+  Transitive (@index_map_equiv i o).
+Proof.
+  intros a b c Eab Ebc.
+  unfold index_map_equiv.
+  intros x xc.
+  rewrite Eab; auto.
+Qed.
+
+Global Instance index_map_Equivalence
+       {i o:nat}:
+  Equivalence (@index_map_equiv i o).
+Proof.
+  split.
+  apply index_map_Reflexive.
+  apply index_map_Symmetric.
+  apply index_map_Transitive.
+Qed.
+
 Definition index_map_compose
            {i o t: nat}
            (g: index_map t o)
