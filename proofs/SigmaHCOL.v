@@ -1185,14 +1185,14 @@ Section SigmaHCOL_Operators.
       apply f_inj.
     Qed.
 
-  End FlagsMonoidGenericOperators.
 
-  Definition SHBinOp
-             {o}
+    Definition SHBinOp
+               {o}
              (f: nat -> CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    := mkSHOperator Monoid_RthetaSafeFlags
-                    (o+o) o (SHBinOp' Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
+      := mkSHOperator (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
+
+  End FlagsMonoidGenericOperators.
 
   Section MUnion.
 
@@ -2079,7 +2079,7 @@ Section StructuralProperies.
          {o}
          (f: nat -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp f (o:=o)).
+    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)).
   Proof.
     split.
     -

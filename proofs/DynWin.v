@@ -89,7 +89,7 @@ SUMUnion(
 )
    *)
   Definition dynwin_SHCOL (a: avector 3) :=
-    (SafeCast (SHBinOp (IgnoreIndex2 THCOLImpl.Zless)))
+    (SafeCast (SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless)))
       ⊚
       (HTSUMUnion _ plus (
                     ScatH _ 0 1
@@ -98,7 +98,7 @@ SUMUnion(
                           zero
                           ⊚
                           (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
-                                           SafeCast (SHBinOp (IgnoreIndex2 mult))
+                                           SafeCast (SHBinOp _ (IgnoreIndex2 mult))
                                            ⊚
                                            liftM_HOperator _ (HPrepend a )
                                            ⊚
@@ -121,7 +121,7 @@ SUMUnion(
                       (USparseEmbedding
                          (n:=2)
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SafeCast (SHBinOp (o:=1)
+                                             (fun j _ => SafeCast (SHBinOp _ (o:=1)
                                                                         (SwapIndex2 j (IgnoreIndex2 HCOLImpl.sub)))))
                          (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                          (f_inj := h_j_1_family_injective)
@@ -145,6 +145,7 @@ SUMUnion(
     unfold dynwin_HCOL, dynwin_SHCOL.
     rewrite LiftM_Hoperator_compose.
     rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
+    Local Hint Opaque SHCompose: rewrite.
     repeat rewrite LiftM_Hoperator_compose.
     repeat rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
     repeat rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
@@ -284,7 +285,7 @@ Require Import Spiral.FinNatSet.
   Ltac solve_facs :=
     repeat match goal with
            | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
-           | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp ?o _ _) ] =>
+           | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp _ ?o _ _) ] =>
              replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
            | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
@@ -311,7 +312,6 @@ Require Import Spiral.FinNatSet.
     solve_facs.
 
     (* Now let's take care of remaining proof obligations *)
-
     -
       apply two_h_index_maps_disjoint.
       assumption.
@@ -592,6 +592,8 @@ Require Import Spiral.FinNatSet.
 
     (* Finally apply the rule *)
     setoid_rewrite rewrite_GathH_GathH.
+
+    (* Preparing to apply PointWise_BinOp rule *)
 
   Admitted.
 

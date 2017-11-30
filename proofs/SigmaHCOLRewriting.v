@@ -523,7 +523,7 @@ Section SigmaHCOLExpansionRules.
           (f: nat -> CarrierA -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-      SafeCast (@SHBinOp o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
+      SafeCast (@SHBinOp _ o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
     Proof.
       apply ext_equiv_applied_equiv.
       -
@@ -732,11 +732,11 @@ Section SigmaHCOLExpansionRules.
             (f: nat -> CarrierA -> CarrierA -> CarrierA)
             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       :
-        SafeCast (SHBinOp f)
+        SafeCast (SHBinOp _ f)
         =
         USparseEmbedding (f_inj:=h_j_1_family_injective)
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SafeCast (SHBinOp (SwapIndex2 j f))))
+                                             (fun j _ => SafeCast (SHBinOp _ (SwapIndex2 j f))))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          zero
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
