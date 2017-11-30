@@ -90,4 +90,15 @@ Section CastWriter.
   Definition castWriter: writer Monoid_W A -> writer Monoid_W' A
     := castWriterT Monoid_W' (m:=ident).
 
+  Lemma evalWriter_castWriter
+        {v}
+    :
+      evalWriter (castWriter v) = evalWriter v.
+  Proof.
+    unfold castWriter, castWriterT.
+    unfold evalWriter.
+    unfold compose.
+    auto.
+  Qed.
+
 End CastWriter.

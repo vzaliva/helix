@@ -473,6 +473,43 @@ Section SigmaHCOLHelperLemmas.
       reflexivity.
   Qed.
 
+  Lemma SafeCast_SHBinOp
+        {o}
+        (f: nat -> CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    :
+      SafeCast (@SHBinOp Monoid_RthetaSafeFlags o f pF) =
+      @SHBinOp Monoid_RthetaFlags o f pF.
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, SafeCast.
+    unfold SafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+
+    vec_index_equiv j jc.
+    unfold rsvector2rvector.
+    rewrite Vnth_map.
+    unfold rvector2rsvector.
+    unfold_Rtheta_equiv.
+
+    assert(jc1: j < o + o) by omega.
+    assert(jc2: j + o < o + o) by omega.
+    setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+
+    rewrite 2!Vnth_map.
+    f_equiv.
+
+    unfold_Rtheta_equiv.
+    rewrite evalWriter_Rtheta_liftM2.
+    unfold RStheta2Rtheta, Rtheta2RStheta.
+    rewrite WriterMonadNoT.evalWriter_castWriter.
+    rewrite evalWriter_Rtheta_liftM2.
+    repeat rewrite WriterMonadNoT.evalWriter_castWriter.
+    reflexivity.
+  Qed.
+
   Lemma UnSafeCast_Gather
         {i o: nat}
         (f: index_map o i)
