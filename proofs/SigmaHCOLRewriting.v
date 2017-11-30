@@ -4087,7 +4087,7 @@ Section SigmaHCOLRewritingRules.
       f_equiv.
     Qed.
 
-    Fact GathH_compose_bounds
+    Fact h_index_map_compose_range_bound
          {i o t b0 b1 s0 s1: nat}
          (bound0 : forall x : nat, x < o → b0 + x * s0 < t)
          (bound1 : forall x : nat, x < t → b1 + x * s1 < i)
@@ -4103,6 +4103,28 @@ Section SigmaHCOLRewritingRules.
       auto.
     Qed.
 
+    Lemma h_index_map_compose
+          {i o t b0 b1 s0 s1: nat}
+          {bound1}
+          {bound0}
+      :
+        @index_map_compose i o t
+          (h_index_map b1 s1 (range_bound:=bound1))
+          (h_index_map b0 s0 (range_bound:=bound0))
+          =
+        h_index_map (b1 + b0 * s1) (s0 * s1)
+                    (range_bound:=h_index_map_compose_range_bound bound0 bound1).
+    Proof.
+      unfold index_map_compose.
+      unfold h_index_map.
+      unfold equiv, index_map_equiv, compose.
+      simpl.
+      clear bound0 bound1.
+      intros x xc.
+      repeat ring_simplify.
+      reflexivity.
+    Qed.
+
     Lemma rewrite_GathH_GathH
           {fm}
           {i o t: nat}
@@ -4115,9 +4137,18 @@ Section SigmaHCOLRewritingRules.
                   (@GathH fm i t b1 s1 bound1)
         =
         GathH fm (b1+b0*s1) (s0*s1)
-              (domain_bound:=GathH_compose_bounds bound0 bound1).
+              (domain_bound:=h_index_map_compose_range_bound bound0 bound1).
     Proof.
-    Admitted.
+      unfold SHCompose.
+      unfold GathH.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+
+      rewrite Gather'_composition.
+      rewrite h_index_map_compose.
+      apply Gather'_proper.
+      reflexivity.
+    Qed.
 
 
   End Value_Correctness.
