@@ -584,22 +584,14 @@ Require Import Spiral.FinNatSet.
 
     unfold SHFamilyOperatorCompose.
     simpl.
-
-    match goal with
-    | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
-      match f with
-      | (fun j jc => SHCompose Monoid_RthetaSafeFlags
-                            (UnSafeCast (?rest ⊚ ?torewrite))
-                            ?gath) =>
-        idtac torewrite
-      end
-    end.
-
     Hint Opaque SHCompose: rewrite.
     setoid_rewrite UnSafeCast_SHCompose.
     setoid_rewrite UnSafeCast_Gather.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite GathH_fold.
+
+    (* Finally apply the rule *)
+    setoid_rewrite rewrite_GathH_GathH.
 
   Admitted.
 

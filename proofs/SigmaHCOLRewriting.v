@@ -4087,6 +4087,39 @@ Section SigmaHCOLRewritingRules.
       f_equiv.
     Qed.
 
+    Fact GathH_compose_bounds
+         {i o t b0 b1 s0 s1: nat}
+         (bound0 : forall x : nat, x < o → b0 + x * s0 < t)
+         (bound1 : forall x : nat, x < t → b1 + x * s1 < i)
+      : forall x : nat, x < o → b1 + b0 * s1 + x * (s0 * s1) < i.
+    Proof.
+      intros x xc.
+      specialize (bound0 x xc).
+      specialize (bound1 (b0 + x * s0) bound0).
+      clear bound0 xc t.
+      repeat ring_simplify.
+      replace (b1 + b0 * s1 + s1 * x * s0) with
+          (b1 + (b0 + x * s0) * s1) by ring.
+      auto.
+    Qed.
+
+    Lemma rewrite_GathH_GathH
+          {fm}
+          {i o t: nat}
+          {b0 b1 s0 s1: nat}
+          {bound0}
+          {bound1}
+      :
+        SHCompose fm
+                  (@GathH fm t o b0 s0 bound0)
+                  (@GathH fm i t b1 s1 bound1)
+        =
+        GathH fm (b1+b0*s1) (s0*s1)
+              (domain_bound:=GathH_compose_bounds bound0 bound1).
+    Proof.
+    Admitted.
+
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
