@@ -3255,15 +3255,17 @@ Module Spiral_DOT_DynWin.
 
           (* The following hangs forever: *)
 
-    setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
-        (fm := Monoid_RthetaFlags)
-        (m := 4%nat)
-        (n := 1%nat).
+          intros a.
 
-    (* --- END: problem --- *)
+          (*
+          Typeclasses eauto := debug.
+          Hint Opaque SHCompose: rewrite.
+          setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
+              (fm := Monoid_RthetaFlags)
+              (m := 4%nat)
+              (n := 1%nat).
+           *)
 
-
-    (* --- BEGING: workaround:
 
           match goal with
           | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
@@ -3279,9 +3281,9 @@ Module Spiral_DOT_DynWin.
           f_equiv.
           intros j jc.
           f_equiv.
+
           apply rewrite_Reduction_ScatHUnion_max_zero.
 
-          --- END: workaround --- *)
 
         Admitted.
 
