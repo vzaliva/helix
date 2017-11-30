@@ -599,6 +599,7 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite UnSafeCast_SHCompose.
     setoid_rewrite UnSafeCast_Gather.
     setoid_rewrite SHCompose_assoc at 5.
+    setoid_rewrite GathH_fold.
 
   Admitted.
 
