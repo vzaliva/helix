@@ -1174,6 +1174,7 @@ Section SigmaHCOLRewritingRules.
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply SHPointwise'_proper.
+        apply pf_mor.
         apply Diamond'_proper.
         + apply CarrierAPlus_proper.
         + reflexivity.
@@ -1257,7 +1258,7 @@ Section SigmaHCOLRewritingRules.
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
-              rewrite SHPointwise'_nth by apply MonoidLaws_RthetaFlags.
+              rewrite SHPointwise'_nth by apply pf_mor.
               reflexivity.
             }
 
@@ -1341,7 +1342,7 @@ Section SigmaHCOLRewritingRules.
               intros t tc H.
               rewrite Vbuild_nth.
               unfold Is_ValZero, Is_ValX.
-              rewrite SHPointwise'_nth by apply MonoidLaws_RthetaFlags.
+              rewrite SHPointwise'_nth by apply pf_mor.
 
               unfold VAllButOne in Uone.
               specialize (Uone t tc H).
@@ -1358,6 +1359,7 @@ Section SigmaHCOLRewritingRules.
                rewrite Vbuild_nth.
                rewrite SHPointwise'_nth.
                reflexivity.
+               apply pf_mor.
             ** apply H.
           *
             apply VallButOneSimpl with (P1:=Is_ValZero) in Uone.
@@ -1378,6 +1380,8 @@ Section SigmaHCOLRewritingRules.
           destruct Z.
           right; auto.
           left; auto.
+        +
+          apply pf_mor.
     Qed.
 
     Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
@@ -3868,6 +3872,7 @@ Section SigmaHCOLRewritingRules.
         rewrite SHPointwise'_nth.
         rewrite evalWriter_mkValue.
         reflexivity.
+        auto.
       -
         (* `j` in sparse position *)
         remember (Scatter' fm f zero (f_inj:=f_inj) v) as s0.
@@ -3896,6 +3901,8 @@ Section SigmaHCOLRewritingRules.
         rewrite_clear VZ1.
         rewrite evalWriter_Rtheta_SZero.
         reflexivity.
+      -
+        auto.
     Qed.
 
     Lemma rewrite_PointWise_ScatHUnion
@@ -3934,6 +3941,7 @@ Section SigmaHCOLRewritingRules.
       simpl.
       rewrite_clear E.
       apply SHPointwise'_distr_over_Scatter', pfzn.
+      apply pf_mor.
     Qed.
 
     Lemma rewrite_Reduction_ScatHUnion

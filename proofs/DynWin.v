@@ -441,6 +441,8 @@ Require Import Spiral.FinNatSet.
     rewrite evalWriter_mkValue in H0,H1.
 
     split; eapply A; [apply H0 | apply H1].
+    auto.
+    auto.
   Qed.
 
   Lemma op_Vforall_P_SHPointwise

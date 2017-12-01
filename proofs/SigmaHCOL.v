@@ -996,22 +996,21 @@ Section SigmaHCOL_Operators.
     Definition SHPointwise'
                {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
     Global Instance SHPointwise'_proper
-           {n: nat}
-           (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      Proper ((=) ==> (=)) (SHPointwise' f).
+           {n: nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise' n).
     Proof.
-      intros x y Exy.
+      intros f f' Ef x y Exy.
       unfold SHPointwise'.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
       unfold_Rtheta_equiv.
       rewrite 2!evalWriter_Rtheta_liftM.
+      f_equiv.
+      apply Ef.
       f_equiv.
       apply evalWriter_proper.
       apply Vnth_arg_equiv.
@@ -1746,6 +1745,7 @@ Section OperatorProperies.
       rewrite HPointwise_nth.
       unfold densify; rewrite Vnth_map.
       reflexivity.
+      apply pF.
   Qed.
 
   Lemma SHBinOp'_nth
