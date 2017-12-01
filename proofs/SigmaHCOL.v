@@ -999,8 +999,7 @@ Section SigmaHCOL_Operators.
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-    Global Instance SHPointwise'_proper
-           {n: nat}:
+    Global Instance SHPointwise'_proper {n: nat}:
       Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise' n).
     Proof.
       intros f f' Ef x y Exy.
@@ -1026,19 +1025,15 @@ Section SigmaHCOL_Operators.
     Definition SHBinOp'
                {o}
                (f: nat -> CarrierA -> CarrierA -> CarrierA)
-               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
                (v:svector fm (o+o)): svector fm o
       :=  match (vector2pair o v) with
           | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
           end.
 
-    Global Instance SHBinOp'_proper
-           {o}
-           (f: nat -> CarrierA -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
+    Global Instance SHBinOp'_proper {o:nat}:
+      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp' o).
     Proof.
-      intros x y E.
+      intros f f' Ef x y E.
       unfold SHBinOp'.
 
       vec_index_equiv j jc.
@@ -1059,6 +1054,8 @@ Section SigmaHCOL_Operators.
       rewrite 2!evalWriter_Rtheta_liftM2.
 
       f_equiv.
+      apply Ef.
+      reflexivity.
       - apply evalWriter_proper.
         apply Vnth_arg_equiv.
         rewrite E.
@@ -1751,14 +1748,13 @@ Section OperatorProperies.
   Lemma SHBinOp'_nth
         {o}
         {f: nat -> CarrierA -> CarrierA -> CarrierA}
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         {v: svector fm (o+o)}
         {j:nat}
         {jc: j<o}
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp' fm o f pF v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp' fm o f v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold SHBinOp', vector2pair.
     break_let.
@@ -2102,7 +2098,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f pF v j jc jc1 jc2).
+      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
       apply Is_Val_Safe_liftM2; (apply H; constructor).
     -
       intros v j jc S.
@@ -2113,7 +2109,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth _  o f pF v j jc jc1 jc2).
+      rewrite (@SHBinOp'_nth _  o f v j jc jc1 jc2).
       apply Not_Collision_Safe_liftM2; apply D; constructor.
     -
       intros v D j jc S.

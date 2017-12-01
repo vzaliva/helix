@@ -568,8 +568,7 @@ Section SigmaHCOLExpansionRules.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply SafeCast'_proper;
-            apply SHBinOp'_proper.
+        + apply SafeCast'_proper, SHBinOp'_proper, pF.
       -
         simpl.
         split.
@@ -812,6 +811,7 @@ Section SigmaHCOLExpansionRules.
         apply RStheta2Rtheta_liftM2.
         apply f_mor.
         reflexivity.
+        apply f_mor.
     Qed.
 
     (*
