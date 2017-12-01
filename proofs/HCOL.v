@@ -286,19 +286,6 @@ Section IgnoreIndex_wrapper.
     apply H1; assumption.
   Qed.
 
-  (* Partially specialized SwapIndex2 is still proper *)
-  Global Instance SwapIndex2_specialized_proper `{Setoid A} (i:nat) (f:nat->A->A->A)
-         `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-    Proper ((=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A i f).
-  Proof.
-    partial_application_tactic. instantiate (1 := equiv).
-    partial_application_tactic. instantiate (1 := equiv).
-    apply SwapIndex2_proper.
-    typeclasses eauto.
-    apply f_mor.
-  Qed.
-
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A} (f:A->A->A) := const (B:=nat) f.
 

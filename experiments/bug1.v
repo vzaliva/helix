@@ -1221,10 +1221,6 @@ Module Spiral_DOT_HCOL.
 
         Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := const (B:=nat) (f i).
 
-        Global Instance SwapIndex2_proper `{Setoid A}:
-          Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A).
-        Admitted.
-
         Global Instance SwapIndex2_specialized_proper `{Setoid A} (i:nat) (f:nat->A->A->A)
                `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
           :
