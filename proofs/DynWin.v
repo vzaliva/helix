@@ -145,7 +145,7 @@ SUMUnion(
     unfold dynwin_HCOL, dynwin_SHCOL.
     rewrite LiftM_Hoperator_compose.
     rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
-    Local Hint Opaque SHCompose: rewrite.
+    Opaque SHCompose.
     repeat rewrite LiftM_Hoperator_compose.
     repeat rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.
     repeat rewrite <- SHPointwise_equiv_lifted_HPointwise at 1.
@@ -155,6 +155,7 @@ SUMUnion(
     repeat rewrite <- SHCompose_assoc.
 
     reflexivity.
+    Transparent SHCompose.
   Qed.
 
 Require Import Spiral.FinNatSet.
@@ -576,6 +577,7 @@ Require Import Spiral.FinNatSet.
 
     (* --- END: hack --- *)
 
+    Opaque SHCompose.
     (* Obligations for `rewrite_Reduction_ScatHUnion_max_zero` *)
     setoid_rewrite SHCompose_assoc.
     eapply op_Vforall_P_SHPointwise, abs_always_nonneg.
@@ -584,7 +586,6 @@ Require Import Spiral.FinNatSet.
 
     unfold SHFamilyOperatorCompose.
     simpl.
-    Hint Opaque SHCompose: rewrite.
     setoid_rewrite UnSafeCast_SHCompose.
     setoid_rewrite UnSafeCast_Gather.
     setoid_rewrite SHCompose_assoc at 5.
@@ -594,7 +595,11 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite rewrite_GathH_GathH.
 
     (* Preparing to apply PointWise_BinOp rule *)
+    Set Printing Implicit.
+    setoid_rewrite SafeCast_SHBinOp.
 
+
+    Transparent SHCompose.
   Admitted.
 
 End SigmaHCOL_rewriting.
