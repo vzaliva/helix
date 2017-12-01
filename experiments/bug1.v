@@ -2769,6 +2769,25 @@ Module Spiral_DOT_SigmaHCOLRewriting.
               F.
           Admitted.
 
+          Lemma rewrite_Reduction_ScatHUnion_max_zero'
+                (n m: nat)
+                (fm: Monoid.Monoid RthetaFlags)
+                (F: @SHOperator fm m 1)
+                (f: index_map 1 (S n))
+                (f_inj: index_map_injective f)
+                (* FP: op_Vforall_P fm Is_NonNegative F *)
+
+            :
+              SHCompose fm
+                        (SHCompose fm
+                                   (liftM_HOperator fm (HReduction minmax.max zero))
+                                   (Scatter fm f zero (f_inj:=f_inj)))
+                        F
+              =
+              F.
+          Admitted.
+
+
 
         End Value_Correctness.
 
@@ -3253,19 +3272,24 @@ Module Spiral_DOT_DynWin.
 
           (* --- BEGIN: problem --- *)
 
-          (* The following hangs forever: *)
-
           intros a.
+          Opaque SHCompose.
 
-          (*
-          Typeclasses eauto := debug.
-          Hint Opaque SHCompose: rewrite.
-          setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero with
-              (fm := Monoid_RthetaFlags)
-              (m := 4%nat)
-              (n := 1%nat).
+          (* The following fails with:
+
+             Error:
+             Ltac call to "setoid_rewrite (orient) (glob_constr_with_bindings)" failed.
+             Tactic failure: setoid rewrite failed: Nothing to rewrite.
+
+          setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero.
            *)
 
+           (* However this versoin of the same lemma without one of the premises
+works: *)
+          setoid_rewrite rewrite_Reduction_ScatHUnion_max_zero'.
+
+
+        (* Workaround to apply original lemma
 
           match goal with
           | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
@@ -3283,6 +3307,8 @@ Module Spiral_DOT_DynWin.
           f_equiv.
 
           apply rewrite_Reduction_ScatHUnion_max_zero.
+
+           *)
 
 
         Admitted.
