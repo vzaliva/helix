@@ -441,8 +441,6 @@ Require Import Spiral.FinNatSet.
     rewrite evalWriter_mkValue in H0,H1.
 
     split; eapply A; [apply H0 | apply H1].
-    auto.
-    auto.
   Qed.
 
   Lemma op_Vforall_P_SHPointwise
@@ -597,7 +595,6 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite rewrite_GathH_GathH.
 
     (* Preparing to apply PointWise_BinOp rule *)
-    Set Printing Implicit.
     setoid_rewrite SafeCast_SHBinOp.
 
 

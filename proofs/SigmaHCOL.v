@@ -1312,7 +1312,6 @@ Section SigmaHCOL_Operators.
       @IReduction i o n plus _ zero op_family.
    *)
 
-  (* TODO: make `dot` part of Morphism *)
   Global Instance IReduction_proper
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1688,7 +1687,6 @@ Section OperatorProperies.
   Lemma SHPointwise'_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
         (v: svector fm n):
     Vnth (SHPointwise' fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
@@ -1736,7 +1734,6 @@ Section OperatorProperies.
       rewrite HPointwise_nth.
       unfold densify; rewrite Vnth_map.
       reflexivity.
-      apply pF.
   Qed.
 
   Lemma SHBinOp'_nth

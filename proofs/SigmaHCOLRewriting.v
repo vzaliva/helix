@@ -1359,7 +1359,6 @@ Section SigmaHCOLRewritingRules.
                rewrite Vbuild_nth.
                rewrite SHPointwise'_nth.
                reflexivity.
-               apply pf_mor.
             ** apply H.
           *
             apply VallButOneSimpl with (P1:=Is_ValZero) in Uone.
@@ -1380,8 +1379,6 @@ Section SigmaHCOLRewritingRules.
           destruct Z.
           right; auto.
           left; auto.
-        +
-          apply pf_mor.
     Qed.
 
     Lemma RStheta2Rtheta_Vfold_left_rev_mkValue
@@ -3872,7 +3869,6 @@ Section SigmaHCOLRewritingRules.
         rewrite SHPointwise'_nth.
         rewrite evalWriter_mkValue.
         reflexivity.
-        auto.
       -
         (* `j` in sparse position *)
         remember (Scatter' fm f zero (f_inj:=f_inj) v) as s0.
@@ -3901,8 +3897,6 @@ Section SigmaHCOLRewritingRules.
         rewrite_clear VZ1.
         rewrite evalWriter_Rtheta_SZero.
         reflexivity.
-      -
-        auto.
     Qed.
 
     Lemma rewrite_PointWise_ScatHUnion
