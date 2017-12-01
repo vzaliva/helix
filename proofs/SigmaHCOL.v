@@ -232,12 +232,6 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (family_member op_family j jc).
 
-    Definition get_family_proper
-               {i o n}
-               (op_family: @SHOperatorFamily i o n):
-      forall j (jc:j<n), Proper ((=) ==> (=)) (get_family_op op_family j jc)
-      := fun j (jc:j<n) => op_proper (family_member op_family j jc).
-
     Definition shrink_op_family
                {i o n}
                (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n :=
@@ -746,7 +740,8 @@ Section SigmaHCOL_Operators.
       intros x y E.
       apply Apply_Family'_arg_proper.
       - intros k kc.
-        apply get_family_proper.
+        apply get_family_op_proper.
+        reflexivity.
       - apply E.
     Qed.
 
