@@ -595,7 +595,16 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite rewrite_GathH_GathH.
 
     (* Preparing to apply PointWise_BinOp rule *)
-    setoid_rewrite SafeCast_SHBinOp.
+
+    Ltac SHOperator_SHBinOp_Type_Fix :=
+      match goal with
+      | [ |- context G [ (@SafeCast (S _) ?o (@SHBinOp ?fm ?o ?f ?F))] ] =>
+        let G' := context G[(@SafeCast (Init.Nat.add o o) o (@SHBinOp fm o f F))] in change G'
+      end.
+
+    repeat SHOperator_SHBinOp_Type_Fix.
+    repeat rewrite SafeCast_SHBinOp.
+
 
 
     Transparent SHCompose.
