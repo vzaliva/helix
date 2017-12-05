@@ -4147,6 +4147,29 @@ Section SigmaHCOLRewritingRules.
       reflexivity.
     Qed.
 
+    (*
+     Motivating example:
+
+    SHPointwise fm (IgnoreIndex abs) ⊚
+    SHBinOp fm (SwapIndex2 j (IgnoreIndex2 sub))
+
+     *)
+    (*
+    Lemma rewrite_PointWise_BinOp
+          {fm}
+          {n: nat}
+          (f: { i | i<n} -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+          (g: nat -> CarrierA -> CarrierA -> CarrierA)
+          `{pG: !Proper ((=) ==> (=) ==> (=) ==> (=)) g}
+      :
+        SHCompose fm
+                  (SHPointwise fm f)
+                  (SHBinOp fm g) =
+        SHBinOp fm (fun i a b => g i (f i a b)).
+     *)
+
+
 
   End Value_Correctness.
 
