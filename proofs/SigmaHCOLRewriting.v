@@ -645,8 +645,9 @@ Section SigmaHCOLExpansionRules.
                                                                                              (fun (j0 : nat) (jc0 : j0<n) =>
                                                                                                 @h_index_map 1 n j0 1
                                                                                                              (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc) zero
-                                 (SafeCast' (SHBinOp' Monoid_RthetaSafeFlags (SwapIndex2 (mkFinNat jc) f))
-                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x))))) kp
+                                 (SafeCast' (SHBinOp' (o:=1) Monoid_RthetaSafeFlags (Fin1SwapIndex2 (mkFinNat jc) f))
+                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
+          )) kp
         = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
     Proof.
       intros n x f f_mor k kp.
@@ -766,14 +767,14 @@ Section SigmaHCOLExpansionRules.
      *)
     Theorem expand_BinOp
             (n:nat)
-            (f: nat -> CarrierA -> CarrierA -> CarrierA)
+            (f: FinNat n -> CarrierA -> CarrierA -> CarrierA)
             `{f_mor: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       :
         SafeCast (SHBinOp _ f)
         =
         USparseEmbedding (f_inj:=h_j_1_family_injective)
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j _ => SafeCast (SHBinOp _ (SwapIndex2 j f))))
+                                             (fun j jc => SafeCast (SHBinOp _ (Fin1SwapIndex2 (mkFinNat jc) f))))
                          (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
                          zero
                          (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
@@ -1125,8 +1126,8 @@ Section SigmaHCOLExpansionRules.
         rewrite LS, RS.
         (* destruct Heqp0.*)
         unfold Vec2Union. rewrite VMapp2_app.
-        setoid_replace (Vmap2 (Union _ plus) (sparsify _ (f x0)) (szero_svector fm o1)) with (sparsify fm (f x0)).
-        setoid_replace (Vmap2 (Union _ plus) (szero_svector fm o2) (sparsify fm (g x1))) with (sparsify fm (g x1)).
+        setoid_replace (Vmap2 (SVector.Union _ plus) (sparsify _ (f x0)) (szero_svector fm o1)) with (sparsify fm (f x0)).
+        setoid_replace (Vmap2 (SVector.Union _ plus) (szero_svector fm o2) (sparsify fm (g x1))) with (sparsify fm (g x1)).
         unfold sparsify.
         rewrite Vmap_app.
         reflexivity.
@@ -1390,7 +1391,7 @@ Section SigmaHCOLRewritingRules.
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
       :
         RStheta2Rtheta
-          (Vfold_left_rev (Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
+          (Vfold_left_rev (SVector.Union Monoid_RthetaSafeFlags f) (mkStruct initial) v) =
         mkValue
           (Vfold_left_rev f initial (densify _ v)).
     Proof.
@@ -1412,7 +1413,7 @@ Section SigmaHCOLRewritingRules.
                                            n v)).
         intros c. clear v.
 
-        unfold Union, Monad.liftM2, mkValue.
+        unfold SVector.Union, Monad.liftM2, mkValue.
         simpl.
         rewrite 2!RthetaFlags_runit.
         unfold equiv, Rtheta_equiv, Rtheta'_equiv.
@@ -1448,7 +1449,7 @@ Section SigmaHCOLRewritingRules.
         specialize (IHvl Hx).
         rewrite_clear IHvl.
         +
-          unfold Union.
+          unfold SVector.Union.
           unfold_Rtheta_equiv.
           rewrite evalWriter_Rtheta_liftM2.
           destruct(CarrierAequivdec (WriterMonadNoT.evalWriter h) uf_zero) as [E | NE].
@@ -1572,7 +1573,7 @@ Section SigmaHCOLRewritingRules.
 
           rewrite_clear IHn; try eauto.
           *
-            unfold Union.
+            unfold SVector.Union.
             unfold_Rtheta_equiv.
             rewrite evalWriter_Rtheta_liftM2.
             destruct(CarrierAequivdec (WriterMonadNoT.evalWriter v0) uf_zero) as [E | NE].
@@ -3035,7 +3036,7 @@ Section SigmaHCOLRewritingRules.
 
         setoid_rewrite <- Vfold_right_Vmap_equiv.
         unfold Vec2Union.
-        unfold Union.
+        unfold SVector.Union.
 
         (* Get rid of [get_family_op] *)
         unfold get_family_op in *.

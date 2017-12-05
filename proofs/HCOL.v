@@ -286,6 +286,17 @@ Section IgnoreIndex_wrapper.
     apply H2; assumption.
   Qed.
 
+  (* Special version of SwapIndex2 which restricts domain of 1st natural number to 1 *)
+  Definition Fin1SwapIndex2 {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A->A) : FinNat 1->A->A->A := const (f i).
+
+  (* Special version of SwapIndex2 which restricts domain of 1st natural number to 1 *)
+  Global Instance Fin1SwapIndex2_proper `{Setoid A} {n:nat}:
+    Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@Fin1SwapIndex2 A n).
+  Proof.
+    simpl_relation.
+    apply H1; assumption.
+  Qed.
+
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
   Definition IgnoreIndex2 {A B:Type} (f:A->A->A) := const (B:=B) f.
 
