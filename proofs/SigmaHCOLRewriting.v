@@ -4156,22 +4156,52 @@ Section SigmaHCOLRewritingRules.
     SHBinOp fm (SwapIndex2 j (IgnoreIndex2 sub))
 
      *)
-    (*
+    Global Instance FinNat_f1_over_g2_proper
+           {n: nat}
+           (f: FinNat n -> CarrierA -> CarrierA)
+           (g: FinNat n -> CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+          `{pG: !Proper ((=) ==> (=) ==> (=) ==> (=)) g}
+      :
+        Proper (equiv ==> equiv ==> equiv ==> equiv)
+               (λ (i : FinNat n) (a b : CarrierA), f i (g i a b)).
+    Proof.
+      solve_proper.
+    Qed.
+
     Lemma rewrite_PointWise_BinOp
           {fm}
           {n: nat}
-          (f: { i | i<n} -> CarrierA -> CarrierA)
+          (f: FinNat n -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-          (g: nat -> CarrierA -> CarrierA -> CarrierA)
+          (g: FinNat n -> CarrierA -> CarrierA -> CarrierA)
           `{pG: !Proper ((=) ==> (=) ==> (=) ==> (=)) g}
       :
         SHCompose fm
                   (SHPointwise fm f)
                   (SHBinOp fm g) =
-        SHBinOp fm (fun i a b => g i (f i a b)).
-     *)
+        SHBinOp fm (fun i a b => f i (g i a b)).
+    Proof.
 
+      unfold equiv, SHOperator_equiv.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E. clear E.
+      vec_index_equiv j jc.
 
+      unfold SHCompose, compose, equiv, SHOperator_equiv; simpl.
+      unfold SHPointwise'.
+      rewrite Vbuild_nth.
+
+      assert(jc1: j<n+n) by omega.
+      assert(jc2: (j+n) < (n+n)) by omega.
+      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+      unfold Rtheta'_equiv.
+      rewrite evalWriter_Rtheta_liftM.
+      rewrite 2!evalWriter_Rtheta_liftM2.
+      unfold mkFinNat.
+      reflexivity.
+    Qed.
 
   End Value_Correctness.
 

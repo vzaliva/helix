@@ -606,6 +606,9 @@ Require Import Spiral.FinNatSet.
     repeat rewrite SafeCast_SHBinOp.
 
 
+    rewrite rewrite_PointWise_BinOp.
+
+
 
     Transparent SHCompose.
   Admitted.
