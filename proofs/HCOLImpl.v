@@ -95,11 +95,11 @@ Section HCOL_implementations.
 
   (* Arity 2 function lifted to vectors. Also passes index as first parameter *)
   Definition BinOp {n}
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             (f: FinNat n -> CarrierA -> CarrierA -> CarrierA)
              (ab: (avector n)*(avector n))
     : avector n :=
     match ab with
-    | (a,b) =>  Vmap2Indexed f a b
+    | (a,b) =>  Vmap2SigIndexed f a b
     end.
 
   (* --- Induction --- *)
@@ -311,7 +311,7 @@ Section HCOL_implementation_proper.
     unfold BinOp.
     destruct a. destruct b.
     destruct Ea as [E1 E2]. simpl in *.
-    apply Vmap2Indexed_proper; assumption.
+    apply Vmap2SigIndexed_proper; assumption.
   Qed.
 
   Global Instance Reduction_proper {n:nat}:

@@ -66,7 +66,7 @@ Section HCOL_Language.
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
+             (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
              `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : avector (o+o) -> avector o
     :=  BinOp f ∘ (vector2pair o).
@@ -155,7 +155,7 @@ Section HCOL_Language.
     Qed.
 
     Global Instance HBinOp_HOperator {o}
-           (f: nat -> CarrierA -> CarrierA -> CarrierA)
+           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f pF).
     Proof.
@@ -277,21 +277,24 @@ Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflex
 Section IgnoreIndex_wrapper.
 
   (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f' *)
-  Definition SwapIndex2 {A} (i:nat) (f:nat->A->A->A) := const (B:=nat) (f i).
+  Definition SwapIndex2 {A B:Type} (i:B) (f:B->A->A->A) := const (B:=B) (f i).
 
-  Global Instance SwapIndex2_proper `{Setoid A}:
-    Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A).
+  Global Instance SwapIndex2_proper `{Setoid A} `{Setoid B}:
+    Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A B).
   Proof.
     simpl_relation.
-    apply H1; assumption.
+    apply H2; assumption.
   Qed.
 
   (* Wrapper to ignore index parameter for HBinOp kernel. 2 stands for arity of 'f' *)
-  Definition IgnoreIndex2 {A} (f:A->A->A) := const (B:=nat) f.
+  Definition IgnoreIndex2 {A B:Type} (f:A->A->A) := const (B:=B) f.
 
-  Lemma IgnoreIndex2_ignores `{Setoid A}
-        (f:A->A->A)`{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-    : forall i0 i1,
+  Lemma IgnoreIndex2_ignores
+        `{Setoid A}
+        {B: Type}
+        (f:A->A->A)
+        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+    : forall (i0 i1:B),
       (IgnoreIndex2 f) i0 = (IgnoreIndex2 f) i1.
   Proof.
     intros.
@@ -299,8 +302,8 @@ Section IgnoreIndex_wrapper.
     apply f_mor.
   Qed.
 
-  Global Instance IgnoreIndex2_proper `{Ae:Equiv A}:
-    (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex2 A)).
+  Global Instance IgnoreIndex2_proper `{Ae:Equiv A} `{Ab:Equiv B}:
+    (Proper (((=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@IgnoreIndex2 A B)).
   Proof.
     simpl_relation.
     unfold IgnoreIndex2.
@@ -339,7 +342,7 @@ Section HCOL_Operator_Lemmas.
 
   Lemma HBinOp_nth
         {o}
-        {f: nat -> CarrierA -> CarrierA -> CarrierA}
+        {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         {v: avector (o+o)}
         {j:nat}
@@ -347,7 +350,7 @@ Section HCOL_Operator_Lemmas.
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@HBinOp o f pF v) jc = f j (Vnth v jc1) (Vnth v jc2).
+      Vnth (@HBinOp o f pF v) jc = f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold HBinOp, compose, vector2pair, HBinOp, HCOLImpl.BinOp.
 
@@ -357,7 +360,7 @@ Section HCOL_Operator_Lemmas.
     replace t0 with (snd (Vbreak v)) by crush.
     clear Heqp.
 
-    rewrite Vnth_Vmap2Indexed.
+    rewrite Vnth_Vmap2SigIndexed.
     f_equiv.
 
     rewrite Vnth_fst_Vbreak with (jc3:=jc1); reflexivity.

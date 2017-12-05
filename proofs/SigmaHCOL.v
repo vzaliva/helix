@@ -1012,16 +1012,16 @@ Section SigmaHCOL_Operators.
 
     Definition SHPointwise
                {n: nat}
-               (f: { i | i<n} -> CarrierA -> CarrierA)
+               (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
 
     Definition SHBinOp'
-               {o}
-               (f: nat -> CarrierA -> CarrierA -> CarrierA)
+               {o: nat}
+               (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
                (v:svector fm (o+o)): svector fm o
       :=  match (vector2pair o v) with
-          | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
+          | (a,b) => Vbuild (fun i (ip:i<o) => liftM2 (f (mkFinNat ip)) (Vnth a ip) (Vnth b ip))
           end.
 
     Global Instance SHBinOp'_proper {o:nat}:
@@ -1178,8 +1178,8 @@ Section SigmaHCOL_Operators.
 
     Definition SHBinOp
                {o}
-             (f: nat -> CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+               (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       := mkSHOperator (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
@@ -1738,14 +1738,14 @@ Section OperatorProperies.
 
   Lemma SHBinOp'_nth
         {o}
-        {f: nat -> CarrierA -> CarrierA -> CarrierA}
+        {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
         {v: svector fm (o+o)}
         {j:nat}
         {jc: j<o}
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp' fm o f v) jc ≡ liftM2 (f j) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp' fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold SHBinOp', vector2pair.
     break_let.
@@ -2064,7 +2064,7 @@ Section StructuralProperies.
 
   Global Instance SHBinOp_RthetaSafe_Facts
          {o}
-         (f: nat -> CarrierA -> CarrierA -> CarrierA)
+         (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
     SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)).
   Proof.

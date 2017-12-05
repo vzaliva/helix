@@ -10,6 +10,7 @@ Require Import Coq.Program.Program.
 Require Import Coq.Classes.Morphisms.
 Require Import Coq.Strings.String.
 Require Import Coq.Logic.Decidable.
+Require Export Coq.Init.Specif.
 
 Require Import Spiral.SpiralTactics.
 
@@ -17,7 +18,6 @@ Require Import Psatz.
 Require Import Omega.
 
 Require Import Coq.Logic.FunctionalExtensionality.
-
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.abs.
@@ -25,6 +25,8 @@ Require Import MathClasses.theory.setoids.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
+Notation FinNat n := {x:nat | (x<n)%nat}.
+Definition mkFinNat {n} {j:nat} (jc:(j<n)%nat) : FinNat n := @exist _ (gt n) j jc.
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.

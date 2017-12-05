@@ -502,6 +502,27 @@ Proof.
     assumption.
 Qed.
 
+Global Instance Vmap2SigIndexed_proper
+       `{Setoid A, Setoid B, Setoid C} {n:nat}
+  :
+    Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+           (@Vmap2SigIndexed A B C n).
+Proof.
+  intros fa fb Ef a a' Ea b b' Eb.
+  unfold Vmap2SigIndexed.
+
+  vec_index_equiv i ip.
+  rewrite 2!Vbuild_nth.
+  apply Ef.
+  - reflexivity.
+  - apply Vnth_equiv.
+    reflexivity.
+    assumption.
+  - apply Vnth_equiv.
+    reflexivity.
+    assumption.
+Qed.
+
 Global Instance indexed_vector_equiv `{Equiv A} {n}:
   Equiv (∀ i : nat, i < n → vector A n)
   :=  @forall_relation nat

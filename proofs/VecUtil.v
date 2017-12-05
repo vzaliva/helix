@@ -998,6 +998,10 @@ Section VMap2_Indexed.
              (f: nat->A->B->C) (a: vector A n) (b: vector B n)
     := Vbuild (fun i ip => f i (Vnth a ip) (Vnth b ip)).
 
+  Definition Vmap2SigIndexed {A B C : Type} {n}
+             (f: FinNat n->A->B->C) (a: vector A n) (b: vector B n)
+    := Vbuild (fun i ip => f (mkFinNat ip) (Vnth a ip) (Vnth b ip)).
+
   Lemma Vnth_Vmap2Indexed:
     forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: nat->A->B->C)
       (a:vector A n) (b:vector B n),
@@ -1005,6 +1009,17 @@ Section VMap2_Indexed.
   Proof.
     intros A B C n i ip f a b.
     unfold Vmap2Indexed.
+    rewrite Vbuild_nth.
+    reflexivity.
+  Qed.
+
+  Lemma Vnth_Vmap2SigIndexed:
+    forall {A B C : Type} {n:nat} (i : nat) (ip : i < n) (f: FinNat n->A->B->C)
+      (a:vector A n) (b:vector B n),
+      Vnth (Vmap2SigIndexed f a b) ip = f (mkFinNat ip) (Vnth a ip) (Vnth b ip).
+  Proof.
+    intros A B C n i ip f a b.
+    unfold Vmap2SigIndexed.
     rewrite Vbuild_nth.
     reflexivity.
   Qed.
