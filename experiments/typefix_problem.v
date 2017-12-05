@@ -9,6 +9,8 @@ Definition B {o:nat} (z:nat): @S (o+o) o. Admitted.
 
 (* Relations *)
 Parameter R: forall {i o}, relation (@S i o).
+Instance R_proper {i o}: Proper (R ==> R ==> iff) (@R i o). Admitted.
+
 Definition Rext {i o} := pointwise_relation nat (@R i o).
 
 (* Sample rewriting lemma *)
@@ -39,7 +41,7 @@ Proof.
   We can fix types via LTAC: *)
 
   repeat Type_Fix.
-  repeat setoid_rewrite Rewrite.
+  setoid_rewrite Rewrite.
 
 Admitted.
 
