@@ -598,6 +598,10 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite (SafeCast_SHBinOp 1).
     setoid_rewrite (rewrite_PointWise_BinOp 1).
 
+    (* A bit of cleanup - removing unecessary casts *)
+    setoid_rewrite (SafeCast_SHBinOp 3).
+    setoid_rewrite (UnSafeCast_SHBinOp 1).
+
     Transparent SHCompose.
   Admitted.
 
