@@ -475,7 +475,7 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma SafeCast_SHBinOp
-        {o}
+        (o:nat)
         (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
@@ -4171,7 +4171,7 @@ Section SigmaHCOLRewritingRules.
 
     Lemma rewrite_PointWise_BinOp
           {fm}
-          {n: nat}
+          (n: nat)
           (f: FinNat n -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (g: FinNat n -> CarrierA -> CarrierA -> CarrierA)
