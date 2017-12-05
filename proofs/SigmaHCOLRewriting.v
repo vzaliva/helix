@@ -728,7 +728,7 @@ Section SigmaHCOLExpansionRules.
            rewrite 2!Gather'_spec with (fm:=Monoid_RthetaFlags).
            unfold VnthIndexMapped.
 
-           unfold SwapIndex2, inverse_index_f, build_inverse_index_map, const.
+           unfold inverse_index_f, build_inverse_index_map, const.
            unfold h_index_map.
 
            Opaque Rtheta2RStheta Monad.liftM2.

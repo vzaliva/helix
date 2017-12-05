@@ -276,17 +276,8 @@ Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflex
 
 Section IgnoreIndex_wrapper.
 
-  (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f' *)
-  Definition SwapIndex2 {A B:Type} (i:B) (f:B->A->A->A) := const (B:=B) (f i).
-
-  Global Instance SwapIndex2_proper `{Setoid A} `{Setoid B}:
-    Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@SwapIndex2 A B).
-  Proof.
-    simpl_relation.
-    apply H2; assumption.
-  Qed.
-
-  (* Special version of SwapIndex2 which restricts domain of 1st natural number to 1 *)
+  (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f'.
+  Also restricts domain of 1st natural number to 1 *)
   Definition Fin1SwapIndex2 {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A->A) : FinNat 1->A->A->A := const (f i).
 
   (* Special version of SwapIndex2 which restricts domain of 1st natural number to 1 *)
