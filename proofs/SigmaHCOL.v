@@ -764,6 +764,11 @@ Section SigmaHCOL_Operators.
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
+    Definition IdOp
+               {n: nat}
+               (in_out_set:FinNatSet n)
+      := mkSHOperator n n id _ in_out_set in_out_set.
+
     Definition Gather'
                {i o: nat}
                (f: index_map o i)
@@ -783,11 +788,6 @@ Section SigmaHCOL_Operators.
       apply Efg, jp.
       apply Exy.
     Qed.
-
-    Definition IdOp
-               {n: nat}
-               (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _ in_out_set in_out_set.
 
     Definition Gather
                {i o: nat}
