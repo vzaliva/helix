@@ -771,7 +771,8 @@ Section SigmaHCOL_Operators.
 
 
     Definition eUnion'
-               (o b: nat) (* TODO: Should we impost b<o? *)
+               {o b:nat}
+               (bc: b < o)
                (z: CarrierA)
                (x: svector fm 1):
       svector fm o
@@ -781,26 +782,30 @@ Section SigmaHCOL_Operators.
                    | right fc => mkStruct z
                    end).
 
-    Global Instance eUnion'_proper
-               {o: nat}:
-      Proper ((=) ==> (=) ==> (=) ==> (=)) (eUnion' o).
+    Print Instances Proper.
+
+    Global Instance eUnion'_arg_proper
+           {o b: nat}
+           (bc: b < o)
+           (z: CarrierA):
+      Proper ((=) ==> (=)) (eUnion' bc z).
     Proof.
-      intros b b' Eb z z' Ez x x' Ex.
+      intros x x' Ex.
       unfold eUnion'.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
-      rewrite Eb.
       break_if.
       rewrite Ex.
       reflexivity.
-      apply Ez.
+      reflexivity.
     Qed.
 
     Definition eUnion
-               (o b: nat) (* TODO: Should we impost b<o? *)
+               {o b:nat}
+               (bc: b < o)
                (z: CarrierA)
-      := mkSHOperator 1 o (eUnion' o b z) _
-                      (Full_set _) (* TODO: if b>=0 then empty? *)
+      := mkSHOperator 1 o (eUnion' bc z) _
+                      (Full_set _)
                       (FinNatSet.singleton b).
 
     Definition Gather'
@@ -1914,9 +1919,10 @@ Section StructuralProperies.
 
 
     Global Instance eUnion_Facts
-               (o b: nat)
+               {o b:nat}
+               (bc: b < o)
                (z: CarrierA):
-      SHOperator_Facts fm (eUnion fm o b z).
+      SHOperator_Facts fm (eUnion fm bc z).
     Proof.
       split.
       -
@@ -1968,7 +1974,7 @@ Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
            *)
           unfold Is_Struct , compose.
           Fail apply Is_Val_mkStruct.
-    Qed.
+    Admitted.
 
 
     Global Instance Gather_Facts
