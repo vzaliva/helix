@@ -769,6 +769,43 @@ Section SigmaHCOL_Operators.
                (in_out_set:FinNatSet n)
       := mkSHOperator n n id _ in_out_set in_out_set.
 
+
+    Definition eUnion'
+               {o: nat}
+               (b: nat) (* TODO: Should we impost b<o? *)
+               (z: Rtheta' fm)
+               (x: svector fm 1):
+      svector fm o
+      := Vbuild (fun j jc =>
+                   match Nat.eq_dec j b with
+                   | in_left => Vhead x
+                   | right fc => z
+                   end).
+
+
+    Global Instance eUnion'_proper
+               {o: nat}:
+      Proper ((=) ==> (=) ==> (=) ==> (=)) (@eUnion' o).
+    Proof.
+      intros b b' Eb z z' Ez x x' Ex.
+      unfold eUnion'.
+      vec_index_equiv j jp.
+      rewrite 2!Vbuild_nth.
+      rewrite Eb.
+      break_if.
+      rewrite Ex.
+      reflexivity.
+      apply Ez.
+    Qed.
+
+    Definition eUnion
+               {o: nat}
+               (b: nat) (* TODO: Should we impost b<o? *)
+               (z: Rtheta' fm)
+      := mkSHOperator 1 o (eUnion' b z) _
+                      (Full_set _) (* TODO: if b>=0 then empty? *)
+                      (FinNatSet.singleton b).
+
     Definition Gather'
                {i o: nat}
                (f: index_map o i)
