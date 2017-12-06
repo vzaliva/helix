@@ -1,7 +1,3 @@
-experiments/*.hi
-experiments/*.o
-experiments/test
-
 *.vo
 *.glob
 *.v.d
