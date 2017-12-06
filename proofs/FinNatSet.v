@@ -2,6 +2,7 @@
 Require Export Coq.Init.Specif.
 Require Export Coq.Sets.Ensembles.
 Require Import Coq.Logic.Decidable.
+Require Import Coq.Arith.Peano_dec.
 Require Import Spiral.Spiral.
 
 Notation FinNatSet n := (Ensemble (FinNat n)).
@@ -31,6 +32,16 @@ Proof.
   unfold not.
   intros H.
   destruct H.
+Qed.
+
+Lemma Singleton_FinNatSet_dec:
+  forall n i : nat, FinNatSet_dec (@singleton n i).
+Proof.
+  unfold FinNatSet_dec.
+  intros n i x.
+  unfold decidable.
+  unfold singleton.
+  destruct (eq_nat_dec (proj1_sig x) i); auto.
 Qed.
 
 Lemma Union_FinNatSet_dec

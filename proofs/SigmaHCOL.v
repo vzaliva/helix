@@ -771,21 +771,19 @@ Section SigmaHCOL_Operators.
 
 
     Definition eUnion'
-               {o: nat}
-               (b: nat) (* TODO: Should we impost b<o? *)
-               (z: Rtheta' fm)
+               (o b: nat) (* TODO: Should we impost b<o? *)
+               (z: CarrierA)
                (x: svector fm 1):
       svector fm o
       := Vbuild (fun j jc =>
                    match Nat.eq_dec j b with
                    | in_left => Vhead x
-                   | right fc => z
+                   | right fc => mkStruct z
                    end).
-
 
     Global Instance eUnion'_proper
                {o: nat}:
-      Proper ((=) ==> (=) ==> (=) ==> (=)) (@eUnion' o).
+      Proper ((=) ==> (=) ==> (=) ==> (=)) (eUnion' o).
     Proof.
       intros b b' Eb z z' Ez x x' Ex.
       unfold eUnion'.
@@ -799,10 +797,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Definition eUnion
-               {o: nat}
-               (b: nat) (* TODO: Should we impost b<o? *)
-               (z: Rtheta' fm)
-      := mkSHOperator 1 o (eUnion' b z) _
+               (o b: nat) (* TODO: Should we impost b<o? *)
+               (z: CarrierA)
+      := mkSHOperator 1 o (eUnion' o b z) _
                       (Full_set _) (* TODO: if b>=0 then empty? *)
                       (FinNatSet.singleton b).
 
@@ -1914,6 +1911,65 @@ Section StructuralProperies.
         apply no_coll_at_sparse0.
         apply H.
     Qed.
+
+
+    Global Instance eUnion_Facts
+               (o b: nat)
+               (z: CarrierA):
+      SHOperator_Facts fm (eUnion fm o b z).
+    Proof.
+      split.
+      -
+        apply Full_FinNatSet_dec.
+      -
+        apply Singleton_FinNatSet_dec.
+      -
+        intros x y H.
+        simpl in *.
+        vec_index_equiv j jc.
+        unfold eUnion'.
+        rewrite 2!Vbuild_nth.
+        break_if.
+        +
+          apply vec_equiv_at_Full_set in H.
+          rewrite H.
+          reflexivity.
+        +
+          reflexivity.
+      -
+        intros v H j jc S.
+        simpl in *.
+        unfold eUnion'.
+        rewrite Vbuild_nth.
+        break_if.
+        +
+          rewrite Vhead_nth.
+          apply H.
+          unfold mkFinNat.
+          apply Full_intro.
+        +
+          destruct S.
+          simpl in n.
+          congruence.
+      -
+        intros v j jc S.
+        simpl in *.
+        unfold eUnion'.
+        rewrite Vbuild_nth.
+        break_if.
+        +
+          subst b.
+          contradict S.
+          reflexivity.
+        +
+          (* !!!! TODO: Is_Val_mkStruct not true for any fm.
+Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
+(Is_struct x). Alternatively we can provide instances of these facts for Rtheta and RStheta versions.
+           *)
+          unfold Is_Struct , compose.
+          Fail apply Is_Val_mkStruct.
+    Qed.
+
 
     Global Instance Gather_Facts
            {i o: nat}
