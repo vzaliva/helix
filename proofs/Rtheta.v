@@ -14,13 +14,10 @@ Require Import ExtLib.Structures.Monoid.
 Require Import Spiral.WriterMonadNoT.
 Require Import ExtLib.Data.PPair.
 
-(* CoRN MathClasses *)
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 
-
 Require Import Spiral.SpiralTactics.
-
 
 Import MonadNotation.
 Import Monoid.
@@ -38,7 +35,23 @@ Record RthetaFlags : Type :=
 
 (* Propositional predicates *)
 Definition IsCollision (x:RthetaFlags) := Is_true (is_collision x).
-Definition IsVal (x:RthetaFlags) := not (Is_true (is_struct x)).
+Definition IsVal       (x:RthetaFlags) := not (Is_true (is_struct x)).
+Definition IsStruct    (x:RthetaFlags) := Is_true (is_struct x).
+
+Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
+Proof.
+  unfold Decision, IsVal.
+  destruct x.
+  destr_bool; auto.
+Qed.
+
+Global Instance IsStruct_dec (x: RthetaFlags) : Decision (IsStruct x).
+Proof.
+  unfold Decision, IsStruct.
+  destruct x.
+  destr_bool; auto.
+Qed.
+
 
 Global Instance RthetaFlags_equiv:
   Equiv RthetaFlags :=
@@ -234,8 +247,12 @@ Definition RStheta2Rtheta: RStheta -> Rtheta := castWriter Monoid_RthetaFlags.
 Section Rtheta'Utils.
   Context {fm:Monoid RthetaFlags}.
 
-  Definition mkStruct (val: CarrierA) : Rtheta' fm
-    := ret val.
+  (* `tell` might seems redundant here, as it sets the same flags
+     value as `Rthetaflagszero`, but in this context we do not know what unit
+     flags value is for given monoid, so we enforce a specific value for it *)
+  Definition mkStruct (val: CarrierA) : Rtheta' fm :=
+    tell (mkRthetaFlags true false) ;; ret val.
+
   (* Structural zero is 0 value combined with 'mzero' monoid flags *)
   Definition mkSZero : Rtheta' fm := mkStruct 0.
 
@@ -245,7 +262,8 @@ Section Rtheta'Utils.
   Definition Is_Val: (Rtheta' fm) -> Prop :=
     IsVal ∘ (@execWriter RthetaFlags CarrierA fm).
 
-  Definition Is_Struct:= not ∘ Is_Val.
+  Definition Is_Struct: (Rtheta' fm) -> Prop :=
+    IsStruct ∘ (@execWriter RthetaFlags CarrierA fm).
 
   Definition Is_Collision (x:Rtheta' fm) :=
     (IsCollision ∘ (@execWriter RthetaFlags CarrierA fm)) x.
@@ -400,7 +418,7 @@ Section Rtheta'Utils.
   Section WithMonoid.
     Context {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}.
 
-    Lemma IsVal_mkValue:
+    Lemma Is_Val_mkValue:
       ∀ (v:CarrierA), Is_Val (mkValue v).
     Proof.
       intros v.
@@ -519,6 +537,96 @@ Section Rtheta'Utils.
       apply H.
     Qed.
 
+    Lemma Is_Struct_mkStruct:
+      forall a, Is_Struct (mkStruct a).
+    Proof.
+      intros a.
+      unfold Is_Struct, compose, mkStruct, IsStruct, execWriter, runWriter.
+      unfold tell, compose, Is_true, is_struct.
+      simpl.
+      break_let.
+      rewrite monoid_runit in Heqr.
+      inversion Heqr.
+      tauto.
+    Qed.
+
+    Global Instance Is_Val_dec
+           (x: Rtheta' fm):
+      Decision (Is_Val x).
+    Proof.
+      unfold Decision.
+      unfold Is_Val, compose.
+      generalize (WriterMonadNoT.execWriter x). intros f.
+      apply IsVal_dec.
+    Qed.
+
+    Global Instance Is_Struct_dec
+           (x: Rtheta' fm):
+      Decision (Is_Struct x).
+    Proof.
+      unfold Decision.
+      unfold Is_Struct, compose.
+      generalize (WriterMonadNoT.execWriter x). intros f.
+      apply IsStruct_dec.
+    Qed.
+
+    Lemma Is_Struct_Is_Val_dec:
+      forall a, {Is_Struct a}+{Is_Val a}.
+    Proof.
+      intros a.
+      unfold Is_Struct, Is_Val, compose, IsStruct, IsVal.
+      destruct (execWriter a).
+      destr_bool; auto.
+    Qed.
+
+    Lemma not_Is_Val_Is_Struct:
+      forall a, not (Is_Val a) -> Is_Struct a.
+    Proof.
+      intros a H.
+      destruct (Is_Struct_Is_Val_dec a).
+      auto.
+      tauto.
+    Qed.
+
+    Lemma not_Is_Struct_Is_Val:
+      forall a, not (Is_Struct a) -> Is_Val a.
+    Proof.
+      intros a H.
+      destruct (Is_Struct_Is_Val_dec a).
+      tauto.
+      auto.
+    Qed.
+
+    Lemma Is_Val_mkStruct:
+      forall a, not (Is_Val (mkStruct a)).
+    Proof.
+      intros a.
+      assert (Is_Struct (mkStruct a)) by apply Is_Struct_mkStruct.
+      destruct (Is_Struct_Is_Val_dec (mkStruct a)); auto.
+    Qed.
+
+    Lemma Is_Struct_mkValue:
+      forall a, not (Is_Struct (mkValue a)).
+    Proof.
+      intros a.
+      assert (Is_Val (mkValue a)) by apply Is_Val_mkValue.
+      destruct (Is_Struct_Is_Val_dec (mkValue a)); auto.
+    Qed.
+
+    Lemma Is_Val_mkSZero:
+      Is_Val (mkSZero) -> False.
+    Proof.
+      unfold mkSZero.
+      apply Is_Val_mkStruct.
+    Qed.
+
+    Lemma Is_Struct_mkSZero:
+      Is_Struct (mkSZero).
+    Proof.
+      unfold mkSZero.
+      apply Is_Struct_mkStruct.
+    Qed.
+
   End WithMonoid.
 
 End Rtheta'Utils.
@@ -586,29 +694,6 @@ Proof.
   unfold compose.
   destruct x.
   auto.
-Qed.
-
-Lemma Is_Val_mkStruct:
-  forall a, not (@Is_Val _ (@mkStruct Monoid_RthetaFlags a)).
-Proof.
-  intros a.
-  unfold Is_Val, compose, mkStruct, IsVal, execWriter, runWriter.
-  simpl.
-  tauto.
-Qed.
-
-Lemma Is_Val_mkSZero:
-  @Is_Val _ (@mkSZero Monoid_RthetaFlags) -> False.
-Proof.
-  unfold mkSZero.
-  apply Is_Val_mkStruct.
-Qed.
-
-Lemma Is_Struct_mkSZero:
-  @Is_Struct _ (@mkSZero Monoid_RthetaFlags).
-Proof.
-  unfold Is_Struct, compose, not.
-  apply Is_Val_mkSZero.
 Qed.
 
 Lemma Is_Val_liftM2
@@ -707,7 +792,7 @@ Proof.
   simpl.
   unfold RthetaFlagsAppend.
   unfold IsCollision, Is_true, not in *.
-  unfold Is_Struct, Is_Val, compose, IsVal, Is_true, not in *.
+  unfold Is_Struct, Is_Val, compose, IsStruct, Is_true, not in *.
   simpl in *.
   generalize dependent (is_struct (WriterMonadNoT.execWriter a)).
   generalize dependent (is_struct (WriterMonadNoT.execWriter b)).
@@ -758,27 +843,6 @@ Proof.
   rewrite evalWriter_Rtheta2RStheta_mkValue.
   reflexivity.
 Qed.
-
-Section Decidablitiy.
-  Global Instance IsVal_dec (x: RthetaFlags) : Decision (IsVal x).
-  Proof.
-    unfold Decision, IsVal.
-    destruct x.
-    destr_bool; auto.
-  Qed.
-
-  Global Instance Is_Val_dec
-         {fm:Monoid RthetaFlags}
-         (x: Rtheta' fm):
-    Decision (Is_Val x).
-  Proof.
-    unfold Decision.
-    unfold Is_Val, compose.
-    generalize (WriterMonadNoT.execWriter x). intros f.
-    apply IsVal_dec.
-  Qed.
-
-End Decidablitiy.
 
 Section Zero_Utils.
 

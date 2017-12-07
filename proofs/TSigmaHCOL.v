@@ -463,25 +463,20 @@ Section TSigmaHCOLOperators_StructuralProperties.
       simpl.
       rewrite Vnth_map2.
       apply StructUnionIsStruct.
-      unfold Is_Struct, compose, not.
+
+      unfold Is_Struct, IsStruct, compose.
       split.
       +
-        intros H.
-        apply fop1 in H.
-        inversion H.
+        apply fop1.
         unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
         simpl in *.
-        unfold not in S.
         contradict S.
         apply Union_introl.
         apply S.
       +
-        intros H.
-        apply fop2 in H.
-        inversion H.
+        apply fop2.
         unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
         simpl in *.
-        unfold not in S.
         contradict S.
         apply Union_intror.
         apply S.

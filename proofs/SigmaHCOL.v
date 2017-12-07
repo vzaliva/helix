@@ -782,8 +782,6 @@ Section SigmaHCOL_Operators.
                    | right fc => mkStruct z
                    end).
 
-    Print Instances Proper.
-
     Global Instance eUnion'_arg_proper
            {o b: nat}
            (bc: b < o)
@@ -1833,7 +1831,7 @@ Section StructuralProperies.
         simpl in *.
         unfold liftM_HOperator', compose, sparsify, densify.
         rewrite Vnth_map.
-        apply IsVal_mkValue.
+        apply Is_Val_mkValue.
       -
         intros v j jc H.
         contradict H.
@@ -2471,29 +2469,27 @@ Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
 
       unfold IUnion, Diamond', Apply_Family'.
       rewrite AbsorbMUnion'Index_Vbuild.
-      unfold Is_Struct, compose, not.
+      apply not_Is_Val_Is_Struct.
+      unfold Is_Struct, not.
       intros G.
       apply Is_Val_UnionFold in G.
       apply Vexists_Vbuild in G.
       destruct G as [t [tc G]].
-      apply op_family_facts in G.
-      * tauto.
-      *
-        (* G and S contradict *)
-        assert(N: ¬ out_index_set Monoid_RthetaFlags
-                    (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
-        {
-          contradict S.
-          apply family_out_set_includes_members in S.
-          auto.
-        }
-        apply no_vals_at_sparse with (v:=v) in N.
-        unfold Is_Struct, compose, not in N.
-
-        unfold get_family_op in G.
+      (* G and S contradict *)
+      assert(N: ¬ out_index_set Monoid_RthetaFlags
+                  (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
+      {
+        contradict S.
+        apply family_out_set_includes_members in S.
         auto.
+      }
+      apply no_vals_at_sparse with (v:=v) in N.
+      unfold Is_Struct, compose, not in N.
 
-        apply op_family_facts.
+      unfold get_family_op in G.
+      auto.
+
+      apply op_family_facts.
     -
       (* no_coll_range *)
       intros v D j jc S.
@@ -2671,30 +2667,29 @@ Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
 
       unfold IUnion, Diamond', Apply_Family'.
       rewrite AbsorbMUnion'Index_Vbuild.
-      unfold Is_Struct, compose, not.
+      apply not_Is_Val_Is_Struct.
+      unfold Is_Struct, not.
       intros G.
 
       apply Is_Val_UnionFold_Safe in G.
       apply Vexists_Vbuild in G.
       destruct G as [t [tc G]].
-      apply op_family_facts in G.
-      * tauto.
-      *
-        (* G and S contradict *)
-        assert(N: ¬ out_index_set Monoid_RthetaSafeFlags
-                    (family_member Monoid_RthetaSafeFlags op_family t tc) (mkFinNat jc)).
-        {
-          contradict S.
-          apply family_out_set_includes_members in S.
-          auto.
-        }
-        apply no_vals_at_sparse with (v:=v) in N.
-        unfold Is_Struct, compose, not in N.
 
-        unfold get_family_op in G.
+      (* G and S contradict *)
+      assert(N: ¬ out_index_set Monoid_RthetaSafeFlags
+                  (family_member Monoid_RthetaSafeFlags op_family t tc) (mkFinNat jc)).
+      {
+        contradict S.
+        apply family_out_set_includes_members in S.
         auto.
+      }
+      apply no_vals_at_sparse with (v:=v) in N.
+      unfold Is_Struct, compose, not in N.
 
-        apply op_family_facts.
+      unfold get_family_op in G.
+      auto.
+
+      apply op_family_facts.
     -
       (* no_coll_range *)
       intros v D j jc S.

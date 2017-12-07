@@ -150,7 +150,7 @@ Section SvectorBasics.
       apply Vforall_map_intro.
       apply Vforall_intro.
       intros v N.
-      apply IsVal_mkValue.
+      apply Is_Val_mkValue.
     Qed.
 
     Lemma sparsify_densify {n} (x:svector n):
@@ -528,13 +528,12 @@ Section ExclusiveUnion.
       destr_bool.
     -
       intros H.
-      unfold Union, Is_Struct, Is_Val, compose in *.
+      unfold Union, Is_Struct, IsStruct, compose in *.
       rewrite execWriter_Rtheta_liftM2 in H.
       destruct (execWriter a) as [str_a col_a].
       destruct (execWriter b) as [str_b col_b].
       simpl in *.
       unfold RthetaFlagsAppend in H.
-      unfold IsVal in *.
       destr_bool; auto.
   Qed.
 
