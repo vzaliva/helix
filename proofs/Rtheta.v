@@ -537,6 +537,20 @@ Section Rtheta'Utils.
       apply H.
     Qed.
 
+    Lemma Not_Collision_mkStruct:
+      ∀ v, Not_Collision  (mkStruct v).
+    Proof.
+      intros v.
+      unfold Not_Collision, Is_Collision, not, mkStruct, compose.
+      unfold tell, IsCollision, Is_true, is_collision.
+      unfold execWriter, compose, psnd.
+      simpl.
+      break_let.
+      rewrite monoid_runit in Heqr.
+      inversion Heqr.
+      tauto.
+    Qed.
+
     Lemma Is_Struct_mkStruct:
       forall a, Is_Struct (mkStruct a).
     Proof.
@@ -819,15 +833,6 @@ Proof.
   generalize dependent (is_collision (WriterMonadNoT.execWriter a)).
   generalize dependent (is_collision (WriterMonadNoT.execWriter b)).
   destr_bool; congruence.
-Qed.
-
-Lemma Not_Collision_Safe_mkStruct:
-  ∀ (v:CarrierA), @Not_Collision Monoid_RthetaSafeFlags (mkStruct v).
-Proof.
-  intros v.
-  unfold Not_Collision, Is_Collision, not, mkStruct, compose.
-  simpl.
-  trivial.
 Qed.
 
 Lemma evalWriter_Rtheta2RStheta_mkValue

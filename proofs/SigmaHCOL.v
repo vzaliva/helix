@@ -1917,9 +1917,9 @@ Section StructuralProperies.
 
 
     Global Instance eUnion_Facts
-               {o b:nat}
-               (bc: b < o)
-               (z: CarrierA):
+           {o b:nat}
+           (bc: b < o)
+           (z: CarrierA):
       SHOperator_Facts fm (eUnion fm bc z).
     Proof.
       split.
@@ -1966,14 +1966,35 @@ Section StructuralProperies.
           contradict S.
           reflexivity.
         +
-          (* !!!! TODO: Is_Val_mkStruct not true for any fm.
-Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
-(Is_struct x). Alternatively we can provide instances of these facts for Rtheta and RStheta versions.
-           *)
-          unfold Is_Struct , compose.
-          Fail apply Is_Val_mkStruct.
-    Admitted.
-
+          apply Is_Struct_mkStruct.
+      -
+        intros v D j jc S.
+        simpl.
+        unfold eUnion'.
+        rewrite Vbuild_nth.
+        break_if.
+        +
+          rewrite Vhead_nth.
+          apply D.
+          unfold in_index_set.
+          simpl.
+          apply Full_intro.
+        +
+          apply Not_Collision_mkStruct.
+      -
+        intros v j jc H.
+        simpl in *.
+        unfold eUnion'.
+        rewrite Vbuild_nth.
+        break_if.
+        +
+          subst.
+          unfold mkFinNat, FinNatSet.singleton in H.
+          simpl in H.
+          congruence.
+        +
+          apply Not_Collision_mkStruct.
+    Qed.
 
     Global Instance Gather_Facts
            {i o: nat}
@@ -2356,7 +2377,7 @@ Maybe we need to reformulate this rule in terms of (x = mon_unit) instead of
     dependent induction v.
     - unfold UnionFold.
       simpl.
-      apply Not_Collision_Safe_mkStruct.
+      apply Not_Collision_mkStruct.
     -
       rewrite UnionFold_cons.
       apply UnionCollisionFree_Safe.
