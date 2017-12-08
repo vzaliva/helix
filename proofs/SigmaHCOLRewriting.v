@@ -4239,6 +4239,61 @@ Section SigmaHCOLRewritingRules.
       reflexivity.
     Qed.
 
+    Lemma terminate_ScatHUnion1
+          {fm: Monoid RthetaFlags}
+          {o b s: nat}
+          {z: CarrierA}
+          (bc: b<o)
+          {range_bound: forall x : nat, x < 1 → b + x * s < o}
+          {snzord: s ≢ 0 ∨ 1 < 2}
+      :
+        ScatH fm b s
+              (snzord0 := snzord) (* Also `or_intror Nat.lt_1_2` *)
+              (range_bound:=range_bound)
+              z
+        = eUnion fm bc z.
+    Proof.
+      unfold equiv, ext_equiv, SHOperator_equiv.
+      unfold equiv, ext_equiv.
+      intros x y Exy.
+      vec_index_equiv j jc.
+      simpl.
+
+      unfold eUnion'.
+      rewrite Vbuild_nth.
+      break_if.
+      +
+        rewrite Vhead_nth.
+        rewrite Scatter'_spec with
+            (idv  := z)
+            (f    := @h_index_map (S O) o b s range_bound)
+            (f_inj:= @h_index_map_is_injective (S O) o b s range_bound snzord).
+        unfold VnthIndexMapped.
+        apply Vnth_equiv.
+        *
+          subst.
+          simpl.
+          ring_simplify.
+          reflexivity.
+        *
+          rewrite_clear Exy.
+          reflexivity.
+      +
+        unfold Scatter'.
+        rewrite Vbuild_nth.
+        break_match.
+        *
+          exfalso.
+          eapply in_range_of_h in i; try assumption.
+          destruct i as [i [ic H]].
+          destruct i.
+          -- ring_simplify in H.
+             congruence.
+          -- lia.
+        *
+          reflexivity.
+    Qed.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
