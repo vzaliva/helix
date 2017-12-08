@@ -16,7 +16,7 @@ default: Makefile.coq
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
 
-config Makefile.coq:
+config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject *.v -o Makefile.coq
 
 clean:
