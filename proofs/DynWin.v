@@ -602,6 +602,8 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite (SafeCast_SHBinOp 3).
     setoid_rewrite (UnSafeCast_SHBinOp 1).
 
+    setoid_rewrite terminate_ScatHUnion1.
+
     Transparent SHCompose.
   Admitted.
 
