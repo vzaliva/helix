@@ -42,414 +42,17 @@ Local Open Scope nat_scope.
 
 Section SigmaHCOLHelperLemmas.
 
-  Variable fm:Monoid RthetaFlags.
-
-  Lemma Gather'_composition
-        {i o t: nat}
-        (f: index_map o t)
-        (g: index_map t i):
-    Gather' fm f ∘ Gather' fm g = Gather' fm (index_map_compose g f).
-  Proof.
-    apply ext_equiv_applied_equiv.
-    -
-      split; try apply vec_Setoid.
-      apply compose_proper with (RA:=equiv) (RB:=equiv);
-        apply Gather'_proper; reflexivity.
-    -
-      split; try apply vec_Setoid.
-      apply Gather'_proper; reflexivity.
-    -
-      intros v.
-      unfold compose.
-      vec_index_equiv j jp.
-
-      unfold Gather'.
-      rewrite 2!Vbuild_nth.
-      unfold VnthIndexMapped.
-      destruct f as [f fspec].
-      destruct g as [g gspec].
-      unfold index_map_compose, compose.
-      simpl.
-      rewrite Vbuild_nth.
-      reflexivity.
-  Qed.
-
-  Lemma Scatter'_composition
-        {i o t: nat}
-        (f: index_map i t)
-        (g: index_map t o)
-        {f_inj: index_map_injective f}
-        {g_inj: index_map_injective g}
-        (idv: CarrierA):
-    Scatter' fm g (f_inj:=g_inj) idv ∘ Scatter' fm f (f_inj:=f_inj) idv
-    = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj) idv.
-  Proof.
-    apply ext_equiv_applied_equiv.
-    -
-      split; try apply vec_Setoid.
-      apply compose_proper with (RA:=equiv) (RB:=equiv);
-        apply Scatter'_proper; reflexivity.
-    -
-      split; try apply vec_Setoid.
-      apply Scatter'_proper; reflexivity.
-    -
-      intros v.
-      unfold compose.
-      vec_index_equiv j jp.
-      unfold Scatter'.
-      rewrite 2!Vbuild_nth.
-      break_match.
-      + rewrite Vbuild_nth.
-        simpl in *.
-        break_match.
-        *
-          break_match.
-          apply VecSetoid.Vnth_equiv.
-          -- apply composition_of_inverses_to_invese_of_compositions; assumption.
-          -- reflexivity.
-          -- (* i1 contradicts n *)
-            contradict n.
-            apply in_range_index_map_compose; try assumption.
-        * break_match.
-          --
-            contradict n.
-            apply in_range_index_map_compose_right; try assumption.
-          -- reflexivity.
-      +
-        simpl.
-        break_match.
-        contradict n.
-        apply in_range_index_map_compose_left in i0; try assumption.
-        reflexivity.
-  Qed.
-
-  Lemma LiftM_Hoperator_compose
-        {i1 o2 o3: nat}
-        `{HOperator o2 o3 op1}
-        `{HOperator i1 o2 op2}
-    :
-      liftM_HOperator fm (op1 ∘ op2) =
-      SHCompose fm
-                (liftM_HOperator fm op1)
-                (liftM_HOperator fm op2).
-  Proof.
-    unfold equiv, SHOperator_equiv; simpl.
-    apply ext_equiv_applied_equiv.
-    -
-      split.
-      + apply vec_Setoid.
-      + apply vec_Setoid.
-      + apply liftM_HOperator'_proper.
-        apply compose_HOperator.
-    -
-      split.
-      + apply vec_Setoid.
-      + apply vec_Setoid.
-      + apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply liftM_HOperator'_proper; assumption.
-        apply liftM_HOperator'_proper; assumption.
-    -
-      intros v.
-      unfold liftM_HOperator', compose.
-      unfold sparsify, densify.
-      rewrite Vmap_map.
-
-      vec_index_equiv i ip.
-      repeat rewrite Vnth_map.
-      f_equiv.
-      apply VecSetoid.Vnth_arg_equiv.
-      f_equiv.
-      vec_index_equiv i0 ip0.
-      repeat rewrite Vnth_map.
-      f_equiv.
-  Qed.
-
-  Fact ScatH_stride1_constr:
-  forall {a b:nat}, 1 ≢ 0 ∨ a < b.
-  Proof.
-    auto.
-  Qed.
-
-  Fact h_bound_first_half (o1 o2:nat):
-    ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
-  Proof.
-    intros.
-    lia.
-  Qed.
-
-  Fact h_bound_second_half (o1 o2:nat):
-    ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
-  Proof.
-    intros.
-    lia.
-  Qed.
-
-  Fact ScatH_1_to_n_range_bound base o stride:
-    base < o ->
-    ∀ x : nat, x < 1 → base + x * stride < o.
-  Proof.
-    intros.
-    nia.
-  Qed.
-
-  Fact GathH_j1_domain_bound base i (bc:base<i):
-    ∀ x : nat, x < 1 → base + x * 1 < i.
-  Proof.
-    intros.
-    lia.
-  Qed.
-
-  Lemma UnionFold_a_zero_structs
-        (m : nat)
-        (x : svector fm m)
-        `{uf_zero: MonUnit CarrierA}
-        `{f: SgOp CarrierA}
-        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-    :
-      Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
-  Proof.
-    intros H.
-    unfold UnionFold.
-    induction x.
-    -
-      unfold Is_ValX.
-      unfold_Rtheta_equiv.
-      reflexivity.
-    - simpl in H. destruct H as [Hh Hx].
-      Opaque Monad.ret. simpl. Transparent Monad.ret.
-
-      unfold Is_ValX.
-      decide_CarrierA_equality E NE.
-      +
-        auto.
-      +
-        unfold Is_ValX in Hh.
-        rewrite evalWriterUnion in NE.
-        rewrite <- Hh in NE.
-        specialize (IHx Hx).
-        unfold Is_ValX in IHx.
-        contradict NE.
-        rewrite Hh.
-        rewrite IHx.
-        apply f_left_id.
-  Qed.
-
-  (* Specialized version of [UnionFold_a_zero_structs]. *)
-  Lemma UnionFold_zero_structs
-        (m : nat) (x : svector fm m):
-    Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
-  Proof.
-    apply UnionFold_a_zero_structs; typeclasses eauto.
-  Qed.
-
-  Lemma UnionFold_VallButOne_a_zero
-        {n : nat}
-        (v : svector fm n)
-        {i : nat}
-        (ic : i < n)
-
-        `{uf_zero: MonUnit CarrierA}
-        `{f: SgOp CarrierA}
-        `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-        `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
-                                    (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-        `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
-                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
-    :
-      VAllButOne i ic
-                 (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
-  Proof.
-    intros U.
-    dependent induction n.
-    - crush.
-    -
-      dep_destruct v.
-      destruct (eq_nat_dec i 0).
-      +
-        (* Case ("i=0"). *)
-        rewrite Vnth_cons_head by assumption.
-        rewrite UnionFold_cons.
-
-        assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
-        {
-          apply Vforall_nth_intro.
-          intros j jp.
-          assert(ipp:S j < S n) by lia.
-          unfold MonUnit in *.
-          unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
-          replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
-          apply U.
-          omega.
-        }
-
-        assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
-        {
-          apply UnionFold_a_zero_structs.
-          apply f_mor.
-          apply f_left_id.
-
-          (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
-          rewrite Vforall_eq.
-          rewrite Vforall_eq in H.
-          intros x0 H0.
-          apply (Is_ValX_not_not' x0); auto.
-        }
-
-        unfold_Rtheta_equiv.
-        rewrite evalWriterUnion.
-        unfold Is_ValX in UZ.
-        setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
-        apply f_left_id.
-      +
-        (* Case ("i!=0"). *)
-        rewrite UnionFold_cons.
-        assert (HS: Is_ValX uf_zero h).
-        {
-          cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
-          rewrite Vnth_0.
-          auto.
-          unfold VAllButOne in U.
-          assert(jc: 0 < S n) by omega.
-          specialize (U 0 jc n0).
-          apply not_not_on_decidable.
-          unfold Is_ValX.
-
-          setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
-            with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
-
-          * apply U.
-          *
-            unfold compose.
-            apply ext_equiv_applied_equiv.
-            split; try typeclasses eauto.
-            solve_proper.
-            split; try typeclasses eauto.
-            intros x0.
-
-            unfold equiv.
-            unfold Equiv_instance_0.
-            split; intros H; symmetry; apply H.
-        }
-
-        destruct i; try congruence.
-        simpl.
-        generalize (lt_S_n ic).
-        intros l.
-        rewrite IHn with (ic:=l); try typeclasses eauto.
-        *
-          unfold_Rtheta_equiv.
-          rewrite evalWriterUnion.
-          unfold Is_ValX in HS.
-          rewrite HS.
-          apply f_right_id.
-        *
-          apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
-          apply U.
-  Qed.
-
-
-  (* Specialized version of [UnionFold_VallButOne_a_zero]. *)
-  Lemma UnionFold_VallButOne_zero:
-    ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
-      VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
-  Proof.
-    intros n v i ic U.
-    apply UnionFold_VallButOne_a_zero; try typeclasses eauto.
-    unfold VAllButOne in *.
-    intros j jc H.
-    specialize (U j jc H).
-    unfold MonUnit.
-    unfold Rtheta', Monad_RthetaFlags, WriterMonadNoT.writer in U.
-    generalize dependent (@Vnth (@WriterMonad.writerT RthetaFlags fm IdentityMonad.ident CarrierA) n v j jc).
-    unfold compose, Is_ValZero.
-    intros w.
-    unfold Is_ValX.
-    auto.
-  Qed.
-
-
-  (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
-  Lemma SingleValueInZeros
-        {m} (x:svector fm m) j (jc:j<m):
-    (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
-  Proof.
-    intros SZ.
-    dependent induction m.
-    - dep_destruct x.
-      destruct j; omega.
-    -
-      dep_destruct x.
-      destruct (eq_nat_dec j 0).
-      +
-        (* Case ("j=0"). *)
-        rewrite Vnth_cons_head; try assumption.
-        rewrite UnionFold_cons.
-        assert(Vforall Is_ValZero x0).
-        {
-          apply Vforall_nth_intro.
-          intros.
-          assert(ipp:S i < S m) by lia.
-          replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
-          apply SZ; lia.
-        }
-
-        assert(UZ: Is_ValZero (UnionFold fm plus zero x0))
-          by apply UnionFold_zero_structs, H.
-        setoid_replace (UnionFold fm plus zero x0) with (@mkSZero fm)
-          by apply Is_ValZero_to_mkSZero, UZ.
-        clear UZ.
-        apply Union_SZero_l.
-      +
-        (* Case ("j!=0"). *)
-        rewrite UnionFold_cons.
-        assert(Zc: 0<(S m)) by lia.
-
-        assert (HS: Is_ValZero h).
-        {
-          cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
-          rewrite Vnth_0.
-          auto.
-          apply SZ; auto.
-        }
-
-        destruct j; try congruence.
-        simpl.
-        generalize (lt_S_n jc).
-        intros l.
-        rewrite IHm with (jc:=l).
-
-        setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
-        apply Union_SZero_r.
-
-        intros i ic.
-        assert(ics: S i < S m) by lia.
-        rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
-        specialize SZ with (i:=S i) (ic:=ics).
-        auto.
-  Qed.
-
-
-  Fact GathH_jn_domain_bound i n:
-    i < n ->
-    ∀ x : nat, x < 2 → i + x * n < (n+n).
-  Proof.
-    intros.
-    nia.
-  Qed.
-
   (* UnSafeCast distribute over SHCompose *)
   Lemma UnSafeCast_SHCompose
         {i1 o2 o3}
         (F: @SHOperator Monoid_RthetaFlags o2 o3)
         (G: @SHOperator Monoid_RthetaFlags i1 o2)
-    :
-      UnSafeCast (SHCompose Monoid_RthetaFlags F G)
-      =
-      (SHCompose Monoid_RthetaSafeFlags
-                 (UnSafeCast F)
-                 (UnSafeCast G)).
+  :
+    UnSafeCast (SHCompose Monoid_RthetaFlags F G)
+    =
+    (SHCompose Monoid_RthetaSafeFlags
+               (UnSafeCast F)
+               (UnSafeCast G)).
   Proof.
     unfold_RStheta_equiv.
     unfold SHOperator_equiv, UnSafeCast, SHCompose.
@@ -472,6 +75,34 @@ Section SigmaHCOLHelperLemmas.
       setoid_rewrite RStheta2Rtheta_Rtheta2RStheta_equiv.
       reflexivity.
   Qed.
+
+  Lemma SafeCast_HReduction
+        {i:nat}
+        (f: CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (idv: CarrierA)
+  :
+    liftM_HOperator Monoid_RthetaFlags (HReduction (i:=i) f idv) =
+    SafeCast (liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)).
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, SafeCast.
+    unfold SafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+    vec_index_equiv j jc.
+    unfold liftM_HOperator', compose, sparsify, densify.
+    rewrite Vnth_map.
+    unfold HReduction, compose, HCOLImpl.Vectorize.
+
+    rewrite 2!Vnth_1.
+    clear x j jc.
+
+    unfold RStheta2Rtheta.
+  (* TODO: lemma
+            x=y <-> WriterMonadNoT.castWriter x = y *)
+  Admitted.
 
   Lemma SafeCast_SHBinOp
         (o:nat)
@@ -510,43 +141,6 @@ Section SigmaHCOLHelperLemmas.
     reflexivity.
   Qed.
 
-  Lemma UnSafeCast_SHBinOp
-        (o:nat)
-        (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    :
-      UnSafeCast (@SHBinOp _ o f pF) =
-      @SHBinOp _ o f pF.
-  Proof.
-    unfold_RStheta_equiv.
-    unfold SHOperator_equiv, UnSafeCast.
-    unfold UnSafeCast', compose.
-    simpl.
-    intros x y E.
-    rewrite_clear E.
-
-    vec_index_equiv j jc.
-    unfold rvector2rsvector.
-    rewrite Vnth_map.
-    unfold rsvector2rvector.
-    unfold_Rtheta_equiv.
-
-    assert(jc1: j < o + o) by omega.
-    assert(jc2: j + o < o + o) by omega.
-    setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
-
-    rewrite 2!Vnth_map.
-    f_equiv.
-
-    unfold_RStheta_equiv.
-    rewrite evalWriter_Rtheta_liftM2.
-    unfold RStheta2Rtheta, Rtheta2RStheta.
-    rewrite WriterMonadNoT.evalWriter_castWriter.
-    rewrite evalWriter_Rtheta_liftM2.
-    repeat rewrite WriterMonadNoT.evalWriter_castWriter.
-    reflexivity.
-  Qed.
-
   Lemma UnSafeCast_Gather
         {i o: nat}
         (f: index_map o i)
@@ -575,19 +169,455 @@ Section SigmaHCOLHelperLemmas.
     reflexivity.
   Qed.
 
-  Fact GathH_fold
-       {i o base stride: nat}
-       {domain_bound: forall x : nat, (x < i) -> (base + x * stride < o)}
-    :
-      Gather fm (@h_index_map i o base stride domain_bound)
-             ≡
-             GathH fm base stride (domain_bound:=domain_bound).
-  Proof.
-    auto.
-  Qed.
+  Section WithMonoid.
+
+    Variable fm:Monoid RthetaFlags.
+
+    Lemma Gather'_composition
+          {i o t: nat}
+          (f: index_map o t)
+          (g: index_map t i):
+      Gather' fm f ∘ Gather' fm g = Gather' fm (index_map_compose g f).
+    Proof.
+      apply ext_equiv_applied_equiv.
+      -
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv);
+          apply Gather'_proper; reflexivity.
+      -
+        split; try apply vec_Setoid.
+        apply Gather'_proper; reflexivity.
+      -
+        intros v.
+        unfold compose.
+        vec_index_equiv j jp.
+
+        unfold Gather'.
+        rewrite 2!Vbuild_nth.
+        unfold VnthIndexMapped.
+        destruct f as [f fspec].
+        destruct g as [g gspec].
+        unfold index_map_compose, compose.
+        simpl.
+        rewrite Vbuild_nth.
+        reflexivity.
+    Qed.
+
+    Lemma Scatter'_composition
+          {i o t: nat}
+          (f: index_map i t)
+          (g: index_map t o)
+          {f_inj: index_map_injective f}
+          {g_inj: index_map_injective g}
+          (idv: CarrierA):
+      Scatter' fm g (f_inj:=g_inj) idv ∘ Scatter' fm f (f_inj:=f_inj) idv
+      = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj) idv.
+    Proof.
+      apply ext_equiv_applied_equiv.
+      -
+        split; try apply vec_Setoid.
+        apply compose_proper with (RA:=equiv) (RB:=equiv);
+          apply Scatter'_proper; reflexivity.
+      -
+        split; try apply vec_Setoid.
+        apply Scatter'_proper; reflexivity.
+      -
+        intros v.
+        unfold compose.
+        vec_index_equiv j jp.
+        unfold Scatter'.
+        rewrite 2!Vbuild_nth.
+        break_match.
+        + rewrite Vbuild_nth.
+          simpl in *.
+          break_match.
+          *
+            break_match.
+            apply VecSetoid.Vnth_equiv.
+            -- apply composition_of_inverses_to_invese_of_compositions; assumption.
+            -- reflexivity.
+            -- (* i1 contradicts n *)
+              contradict n.
+              apply in_range_index_map_compose; try assumption.
+          * break_match.
+            --
+              contradict n.
+              apply in_range_index_map_compose_right; try assumption.
+            -- reflexivity.
+        +
+          simpl.
+          break_match.
+          contradict n.
+          apply in_range_index_map_compose_left in i0; try assumption.
+          reflexivity.
+    Qed.
+
+    Lemma LiftM_Hoperator_compose
+          {i1 o2 o3: nat}
+          `{HOperator o2 o3 op1}
+          `{HOperator i1 o2 op2}
+      :
+        liftM_HOperator fm (op1 ∘ op2) =
+        SHCompose fm
+                  (liftM_HOperator fm op1)
+                  (liftM_HOperator fm op2).
+    Proof.
+      unfold equiv, SHOperator_equiv; simpl.
+      apply ext_equiv_applied_equiv.
+      -
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply liftM_HOperator'_proper.
+          apply compose_HOperator.
+      -
+        split.
+        + apply vec_Setoid.
+        + apply vec_Setoid.
+        + apply compose_proper with (RA:=equiv) (RB:=equiv).
+          apply liftM_HOperator'_proper; assumption.
+          apply liftM_HOperator'_proper; assumption.
+      -
+        intros v.
+        unfold liftM_HOperator', compose.
+        unfold sparsify, densify.
+        rewrite Vmap_map.
+
+        vec_index_equiv i ip.
+        repeat rewrite Vnth_map.
+        f_equiv.
+        apply VecSetoid.Vnth_arg_equiv.
+        f_equiv.
+        vec_index_equiv i0 ip0.
+        repeat rewrite Vnth_map.
+        f_equiv.
+    Qed.
+
+    Fact ScatH_stride1_constr:
+    forall {a b:nat}, 1 ≢ 0 ∨ a < b.
+    Proof.
+      auto.
+    Qed.
+
+    Fact h_bound_first_half (o1 o2:nat):
+      ∀ x : nat, x < o1 → 0 + x * 1 < o1 + o2.
+    Proof.
+      intros.
+      lia.
+    Qed.
+
+    Fact h_bound_second_half (o1 o2:nat):
+      ∀ x : nat, x < o2 → o1 + x * 1 < o1 + o2.
+    Proof.
+      intros.
+      lia.
+    Qed.
+
+    Fact ScatH_1_to_n_range_bound base o stride:
+      base < o ->
+      ∀ x : nat, x < 1 → base + x * stride < o.
+    Proof.
+      intros.
+      nia.
+    Qed.
+
+    Fact GathH_j1_domain_bound base i (bc:base<i):
+      ∀ x : nat, x < 1 → base + x * 1 < i.
+    Proof.
+      intros.
+      lia.
+    Qed.
+
+    Lemma UnionFold_a_zero_structs
+          (m : nat)
+          (x : svector fm m)
+          `{uf_zero: MonUnit CarrierA}
+          `{f: SgOp CarrierA}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+      :
+        Vforall (Is_ValX uf_zero) x → Is_ValX uf_zero (UnionFold fm f uf_zero x).
+    Proof.
+      intros H.
+      unfold UnionFold.
+      induction x.
+      -
+        unfold Is_ValX.
+        unfold_Rtheta_equiv.
+        reflexivity.
+      - simpl in H. destruct H as [Hh Hx].
+        Opaque Monad.ret. simpl. Transparent Monad.ret.
+
+        unfold Is_ValX.
+        decide_CarrierA_equality E NE.
+        +
+          auto.
+        +
+          unfold Is_ValX in Hh.
+          rewrite evalWriterUnion in NE.
+          rewrite <- Hh in NE.
+          specialize (IHx Hx).
+          unfold Is_ValX in IHx.
+          contradict NE.
+          rewrite Hh.
+          rewrite IHx.
+          apply f_left_id.
+    Qed.
+
+    (* Specialized version of [UnionFold_a_zero_structs]. *)
+    Lemma UnionFold_zero_structs
+          (m : nat) (x : svector fm m):
+      Vforall Is_ValZero x → Is_ValZero (UnionFold fm plus zero x).
+    Proof.
+      apply UnionFold_a_zero_structs; typeclasses eauto.
+    Qed.
+
+    Lemma UnionFold_VallButOne_a_zero
+          {n : nat}
+          (v : svector fm n)
+          {i : nat}
+          (ic : i < n)
+
+          `{uf_zero: MonUnit CarrierA}
+          `{f: SgOp CarrierA}
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          `{f_left_id : @LeftIdentity CarrierA CarrierA CarrierAe
+                                      (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+          `{f_right_id : @RightIdentity CarrierA CarrierAe CarrierA
+                                        (@sg_op CarrierA f) (@mon_unit CarrierA uf_zero)}
+      :
+        VAllButOne i ic
+                   (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) v -> UnionFold fm f uf_zero v = Vnth v ic.
+    Proof.
+      intros U.
+      dependent induction n.
+      - crush.
+      -
+        dep_destruct v.
+        destruct (eq_nat_dec i 0).
+        +
+          (* Case ("i=0"). *)
+          rewrite Vnth_cons_head by assumption.
+          rewrite UnionFold_cons.
+
+          assert(H: Vforall (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) x).
+          {
+            apply Vforall_nth_intro.
+            intros j jp.
+            assert(ipp:S j < S n) by lia.
+            unfold MonUnit in *.
+            unfold Rtheta',Monad_RthetaFlags,WriterMonadNoT.writer in x.
+            replace (Vnth x jp) with (Vnth (Vcons h x) ipp) by apply Vnth_Sn.
+            apply U.
+            omega.
+          }
+
+          assert(UZ: Is_ValX uf_zero (UnionFold fm f uf_zero x)).
+          {
+            apply UnionFold_a_zero_structs.
+            apply f_mor.
+            apply f_left_id.
+
+            (* Roundabout way to do:  [rewrite <- Is_ValX_not_not ; apply H.]. We have to do this because we do not have Vforal Proper morphism proven *)
+            rewrite Vforall_eq.
+            rewrite Vforall_eq in H.
+            intros x0 H0.
+            apply (Is_ValX_not_not' x0); auto.
+          }
+
+          unfold_Rtheta_equiv.
+          rewrite evalWriterUnion.
+          unfold Is_ValX in UZ.
+          setoid_replace (WriterMonadNoT.evalWriter (UnionFold fm f uf_zero x)) with uf_zero by apply UZ.
+          apply f_left_id.
+        +
+          (* Case ("i!=0"). *)
+          rewrite UnionFold_cons.
+          assert (HS: Is_ValX uf_zero h).
+          {
+            cut (Is_ValX uf_zero (Vnth (Vcons h x) (zero_lt_Sn n))).
+            rewrite Vnth_0.
+            auto.
+            unfold VAllButOne in U.
+            assert(jc: 0 < S n) by omega.
+            specialize (U 0 jc n0).
+            apply not_not_on_decidable.
+            unfold Is_ValX.
+
+            setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
+              with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
+
+            * apply U.
+            *
+              unfold compose.
+              apply ext_equiv_applied_equiv.
+              split; try typeclasses eauto.
+              solve_proper.
+              split; try typeclasses eauto.
+              intros x0.
+
+              unfold equiv.
+              unfold Equiv_instance_0.
+              split; intros H; symmetry; apply H.
+          }
+
+          destruct i; try congruence.
+          simpl.
+          generalize (lt_S_n ic).
+          intros l.
+          rewrite IHn with (ic:=l); try typeclasses eauto.
+          *
+            unfold_Rtheta_equiv.
+            rewrite evalWriterUnion.
+            unfold Is_ValX in HS.
+            rewrite HS.
+            apply f_right_id.
+          *
+            apply VAllButOne_Sn with (h0:=h) (ic0:=ic).
+            apply U.
+    Qed.
+
+
+    (* Specialized version of [UnionFold_VallButOne_a_zero]. *)
+    Lemma UnionFold_VallButOne_zero:
+      ∀ {n : nat} (v : svector fm n) {k : nat} (kc : k < n),
+        VAllButOne k kc (Is_ValZero) v → UnionFold fm plus zero v = Vnth v kc.
+    Proof.
+      intros n v i ic U.
+      apply UnionFold_VallButOne_a_zero; try typeclasses eauto.
+      unfold VAllButOne in *.
+      intros j jc H.
+      specialize (U j jc H).
+      unfold MonUnit.
+      unfold Rtheta', Monad_RthetaFlags, WriterMonadNoT.writer in U.
+      generalize dependent (@Vnth (@WriterMonad.writerT RthetaFlags fm IdentityMonad.ident CarrierA) n v j jc).
+      unfold compose, Is_ValZero.
+      intros w.
+      unfold Is_ValX.
+      auto.
+    Qed.
+
+
+    (* Formerly Lemma3. Probably will be replaced by UnionFold_VallButOne *)
+    Lemma SingleValueInZeros
+          {m} (x:svector fm m) j (jc:j<m):
+      (forall i (ic:i<m), i ≢ j -> Is_ValZero (Vnth x ic)) -> (UnionFold fm plus zero x = Vnth x jc).
+    Proof.
+      intros SZ.
+      dependent induction m.
+      - dep_destruct x.
+        destruct j; omega.
+      -
+        dep_destruct x.
+        destruct (eq_nat_dec j 0).
+        +
+          (* Case ("j=0"). *)
+          rewrite Vnth_cons_head; try assumption.
+          rewrite UnionFold_cons.
+          assert(Vforall Is_ValZero x0).
+          {
+            apply Vforall_nth_intro.
+            intros.
+            assert(ipp:S i < S m) by lia.
+            replace (Vnth x0 ip) with (Vnth (Vcons h x0) ipp) by apply Vnth_Sn.
+            apply SZ; lia.
+          }
+
+          assert(UZ: Is_ValZero (UnionFold fm plus zero x0))
+            by apply UnionFold_zero_structs, H.
+          setoid_replace (UnionFold fm plus zero x0) with (@mkSZero fm)
+            by apply Is_ValZero_to_mkSZero, UZ.
+          clear UZ.
+          apply Union_SZero_l.
+        +
+          (* Case ("j!=0"). *)
+          rewrite UnionFold_cons.
+          assert(Zc: 0<(S m)) by lia.
+
+          assert (HS: Is_ValZero h).
+          {
+            cut (Is_ValZero (Vnth (Vcons h x0) Zc)).
+            rewrite Vnth_0.
+            auto.
+            apply SZ; auto.
+          }
+
+          destruct j; try congruence.
+          simpl.
+          generalize (lt_S_n jc).
+          intros l.
+          rewrite IHm with (jc:=l).
+
+          setoid_replace h with (@mkSZero fm) by apply Is_ValZero_to_mkSZero, HS.
+          apply Union_SZero_r.
+
+          intros i ic.
+          assert(ics: S i < S m) by lia.
+          rewrite <- Vnth_Sn with (v:=h) (ip:=ics).
+          specialize SZ with (i:=S i) (ic:=ics).
+          auto.
+    Qed.
+
+
+    Fact GathH_jn_domain_bound i n:
+      i < n ->
+      ∀ x : nat, x < 2 → i + x * n < (n+n).
+    Proof.
+      intros.
+      nia.
+    Qed.
+
+    Lemma UnSafeCast_SHBinOp
+          (o:nat)
+          (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+      :
+        UnSafeCast (@SHBinOp _ o f pF) =
+        @SHBinOp _ o f pF.
+    Proof.
+      unfold_RStheta_equiv.
+      unfold SHOperator_equiv, UnSafeCast.
+      unfold UnSafeCast', compose.
+      simpl.
+      intros x y E.
+      rewrite_clear E.
+
+      vec_index_equiv j jc.
+      unfold rvector2rsvector.
+      rewrite Vnth_map.
+      unfold rsvector2rvector.
+      unfold_Rtheta_equiv.
+
+      assert(jc1: j < o + o) by omega.
+      assert(jc2: j + o < o + o) by omega.
+      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+
+      rewrite 2!Vnth_map.
+      f_equiv.
+
+      unfold_RStheta_equiv.
+      rewrite evalWriter_Rtheta_liftM2.
+      unfold RStheta2Rtheta, Rtheta2RStheta.
+      rewrite WriterMonadNoT.evalWriter_castWriter.
+      rewrite evalWriter_Rtheta_liftM2.
+      repeat rewrite WriterMonadNoT.evalWriter_castWriter.
+      reflexivity.
+    Qed.
+
+    Fact GathH_fold
+         {i o base stride: nat}
+         {domain_bound: forall x : nat, (x < i) -> (base + x * stride < o)}
+      :
+        Gather fm (@h_index_map i o base stride domain_bound)
+               ≡
+               GathH fm base stride (domain_bound:=domain_bound).
+    Proof.
+      auto.
+    Qed.
+  End WithMonoid.
 
 End SigmaHCOLHelperLemmas.
-
 
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
@@ -4294,6 +4324,22 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
+    Lemma terminate_Reduction
+          {n}
+          (f: CarrierA -> CarrierA -> CarrierA)
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          (idv: CarrierA)
+      :
+        liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
+        =
+        IReduction f idv
+                   (mkSHOperatorFamily _ n 1 n
+                      (fun j jc => eT _ jc)
+                   ).
+    Proof.
+    Admitted.
+
+    
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
