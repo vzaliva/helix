@@ -806,6 +806,30 @@ Section SigmaHCOL_Operators.
                       (Full_set _)
                       (FinNatSet.singleton b).
 
+    Definition eT'
+               {i b:nat}
+               (bc: b < i)
+               (v: svector fm i)
+      := [Vnth v bc].
+
+    Global Instance eT'_proper
+           {i b:nat}
+           (bc: b < i):
+      Proper ((=) ==> (=)) (eT' bc).
+    Proof.
+      intros x y E.
+      unfold eT'.
+      apply Vcons_single_elim.
+      apply Vnth_equiv; auto.
+    Qed.
+
+    Definition eT
+               {i b:nat}
+               (bc: b < i)
+      := mkSHOperator i 1 (eT' bc) _
+                      (FinNatSet.singleton b)
+                      (Full_set _).
+
     Definition Gather'
                {i o: nat}
                (f: index_map o i)
@@ -1915,7 +1939,6 @@ Section StructuralProperies.
         apply H.
     Qed.
 
-
     Global Instance eUnion_Facts
            {o b:nat}
            (bc: b < o)
@@ -1996,6 +2019,59 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
     Qed.
 
+    Global Instance eT_Facts
+           {i b:nat}
+           (bc: b < i)
+      : SHOperator_Facts fm (eT fm bc).
+    Proof.
+      split.
+      -
+        apply Singleton_FinNatSet_dec.
+      -
+        apply Full_FinNatSet_dec.
+      -
+        intros x y H.
+        simpl in *.
+        apply Vcons_single_elim.
+        apply H.
+        unfold mkFinNat.
+        reflexivity.
+      -
+        intros v H j jc S.
+        simpl.
+        break_match.
+        +
+          apply H.
+          unfold in_index_set.
+          unfold mkFinNat.
+          reflexivity.
+        +
+          dep_destruct jc.
+          lia.
+      -
+        intros v j jc S.
+        contradict S.
+        simpl.
+        split.
+      -
+        intros v D j jc S.
+        simpl.
+        break_match.
+        +
+          apply D.
+          unfold in_index_set.
+          unfold mkFinNat.
+          reflexivity.
+        +
+          dep_destruct jc.
+          lia.
+      -
+        intros v j jc H.
+        simpl in *.
+        destruct H.
+        split.
+    Qed.
+
     Global Instance Gather_Facts
            {i o: nat}
            (f: index_map o i)
@@ -2010,7 +2086,6 @@ Section StructuralProperies.
         apply Decidable_decision.
         apply in_range_dec.
       -
-        simpl.
         apply Full_FinNatSet_dec.
       - intros x y H.
         simpl in *.
