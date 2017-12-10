@@ -363,7 +363,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vcons_single_elim `{Equiv A} : forall a1 a2,
+Lemma Vcons_single_elim `{Ae: Equiv A} : forall a1 a2,
     Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
 Proof.
   intros a1 a2.
@@ -373,6 +373,23 @@ Proof.
   constructor.
   split; tauto.
 Qed.
+
+Lemma vector1_equiv_Vhead_equiv
+      {A: Type}
+      `{As: Setoid A}
+      {a b: vector A 1}:
+  Vhead a = Vhead b -> a = b.
+Proof.
+  intros H.
+  dep_destruct a.
+  dep_destruct b.
+  dep_destruct x.
+  dep_destruct x0.
+  apply Vcons_single_elim.
+  simpl in H.
+  assumption.
+Qed.
+
 
 (* TODO: Check if it is still needed in Coq-8.6 *)
 Section VMap_reord.

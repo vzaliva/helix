@@ -1144,6 +1144,22 @@ Ltac Vnth_eq_index_to_val_eq :=
     clear rc lc HeqQ
   end.
 
+Lemma vector1_eq_Vhead_eq
+      {A: Type}
+      {a b: vector A 1}:
+  Vhead a = Vhead b -> a = b.
+Proof.
+  intros H.
+  dep_destruct a.
+  dep_destruct b.
+  dep_destruct x.
+  dep_destruct x0.
+  simpl in H.
+  apply Vcons_eq_intro.
+  assumption.
+  reflexivity.
+Qed.
+
 Section List_of_Vec.
 
   Require Import CoLoR.Util.List.ListUtil.
