@@ -1003,3 +1003,16 @@ Section Zero_Utils.
 
 End Zero_Utils.
 
+Lemma castWriter_equiv
+      {fmx fmy}
+      (x: Rtheta' fmx)
+      (y:Rtheta' fmy):
+  WriterMonadNoT.evalWriter x = WriterMonadNoT.evalWriter y
+  -> WriterMonadNoT.castWriter _ x = y.
+Proof.
+  intros H.
+  unfold WriterMonadNoT.castWriter,WriterMonadNoT.castWriterT,compose.
+  unfold equiv, Rtheta'_equiv.
+  rewrite <- H.
+  reflexivity.
+Qed.
