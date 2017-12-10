@@ -100,9 +100,13 @@ Section SigmaHCOLHelperLemmas.
     clear x j jc.
 
     unfold RStheta2Rtheta.
-  (* TODO: lemma
-            x=y <-> WriterMonadNoT.castWriter x = y *)
-  Admitted.
+    symmetry.
+    apply castWriter_equiv.
+    rewrite 2!evalWriter_mkValue.
+    unfold rvector2rsvector.
+    rewrite Vmap_map.
+    reflexivity.
+  Qed.
 
   Lemma SafeCast_SHBinOp
         (o:nat)
