@@ -415,7 +415,7 @@ Section Rtheta'Utils.
       reflexivity.
   Qed.
 
-  Section WithMonoid.
+  Section WithMonoidLaws.
     Context {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}.
 
     Lemma Is_Val_mkValue:
@@ -641,7 +641,7 @@ Section Rtheta'Utils.
       apply Is_Struct_mkStruct.
     Qed.
 
-  End WithMonoid.
+  End WithMonoidLaws.
 
 End Rtheta'Utils.
 
