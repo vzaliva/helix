@@ -4341,6 +4341,32 @@ Section SigmaHCOLRewritingRules.
                       (fun j jc => eT _ jc)
                    ).
     Proof.
+      unfold IReduction, liftM_HOperator,liftM_HOperator'.
+      unfold compose, sparsify, densify.
+      unfold equiv,SHOperator_equiv.
+      simpl.
+      unfold Diamond'.
+      unfold equiv, ext_equiv.
+      intros x y H.
+      unfold HCOLImpl.Reduction.
+      rewrite Vfold_right_Vmap.
+      unfold MUnion'.
+      apply vector1_equiv_Vhead_equiv.
+      unfold Apply_Family'.
+      simpl.
+
+      induction n.
+      -
+        dep_destruct x.
+        dep_destruct y.
+        simpl.
+        unfold equiv, Rtheta'_equiv.
+        rewrite evalWriter_mkValue.
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+      -
+        simpl.
+
     Admitted.
 
     
