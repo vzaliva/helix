@@ -4328,13 +4328,19 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
-    Lemma mkValue_dist
+    (* TODO: move *)
+    Lemma mkValue_dist_liftM2
           (f : CarrierA → CarrierA → CarrierA)
           (f_mor : Proper (equiv ==> equiv ==> equiv) f):
       forall a b,  mkValue (fm:=Monoid_RthetaSafeFlags) (f a b) =
               Monad.liftM2 f (mkValue a) (mkValue b).
     Proof.
-    Admitted.
+      intros a b.
+      unfold equiv, RStheta_equiv, Rtheta'_equiv.
+      rewrite evalWriter_Rtheta_liftM2.
+      rewrite 3!evalWriter_mkValue.
+      reflexivity.
+    Qed.
 
     (* TODO: move *)
     Lemma mkValue_evalWriter {fm}:
@@ -4389,7 +4395,7 @@ Section SigmaHCOLRewritingRules.
         rewrite Vfold_right_cons.
 
         unfold compose in *.
-        rewrite mkValue_dist by apply f_mor.
+        rewrite mkValue_dist_liftM2 by apply f_mor.
         unshelve rewrite IHn with (x:=Vtail x) (y:=Vtail y).
         *
           clear IHn.
