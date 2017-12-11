@@ -4328,17 +4328,36 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
+    Lemma mkValue_dist
+          (f : CarrierA → CarrierA → CarrierA)
+          (f_mor : Proper (equiv ==> equiv ==> equiv) f):
+      forall a b,  mkValue (fm:=Monoid_RthetaSafeFlags) (f a b) =
+              Monad.liftM2 f (mkValue a) (mkValue b).
+    Proof.
+    Admitted.
+
+    (* TODO: move *)
+    Lemma mkValue_evalWriter {fm}:
+      forall x, @mkValue fm (WriterMonadNoT.evalWriter x) = x.
+    Proof.
+      intros x.
+      unfold equiv, Rtheta'_equiv.
+      rewrite evalWriter_mkValue.
+      reflexivity.
+    Qed.
+
     Lemma terminate_Reduction
           {n}
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          `{f_comm: @Commutative CarrierA _ CarrierA f}
           (idv: CarrierA)
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
         IReduction f idv
                    (mkSHOperatorFamily _ n 1 n
-                      (fun j jc => eT _ jc)
+                                       (fun j jc => eT _ jc)
                    ).
     Proof.
       unfold IReduction, liftM_HOperator,liftM_HOperator'.
@@ -4365,11 +4384,59 @@ Section SigmaHCOLRewritingRules.
         rewrite evalWriter_mkStruct.
         reflexivity.
       -
-        simpl.
+        VSntac x.
+        VSntac y.
+        rewrite Vfold_right_cons.
 
-    Admitted.
+        unfold compose in *.
+        rewrite mkValue_dist by apply f_mor.
+        unshelve rewrite IHn with (x:=Vtail x) (y:=Vtail y).
+        *
+          clear IHn.
+          rewrite Vbuild_cons.
+          rewrite Vfold_left_rev_cons.
+          unfold Vec2Union.
+          unfold SVector.Union.
+          Opaque Monad.liftM2.
+          simpl.
+          remember (Monad.liftM2 f) as lf.
+          assert(Commutative lf).
+          {
+            intros a b.
+            subst lf.
+            unfold equiv, RStheta_equiv, Rtheta'_equiv.
+            rewrite 2!evalWriter_Rtheta_liftM2.
+            apply f_comm.
+          }
+          rewrite commutativity.
+          subst lf.
+          f_equiv; auto.
+          --
+            f_equiv.
+            rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
+            f_equiv.
+            {
+              intros a b Hab c d Hcd.
+              apply Vcons_single_elim.
+              rewrite Hab, Hcd.
+              reflexivity.
+            }
+            vec_index_equiv j jc.
+            rewrite 2!Vbuild_nth.
+            unfold get_family_op.
+            simpl.
+            unfold eT'.
+            apply Vcons_single_elim.
+            rewrite <- Vnth_tail.
+            reflexivity.
+          --
+            rewrite H.
+            apply mkValue_evalWriter.
+        *
+          rewrite H.
+          reflexivity.
+    Qed.
 
-    
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
