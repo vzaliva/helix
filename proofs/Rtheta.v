@@ -849,6 +849,19 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma mkValue_RStheta_dist_liftM2
+      (f : CarrierA → CarrierA → CarrierA)
+      (f_mor : Proper (equiv ==> equiv ==> equiv) f):
+  forall a b,  mkValue (fm:=Monoid_RthetaSafeFlags) (f a b) =
+          Monad.liftM2 f (mkValue a) (mkValue b).
+Proof.
+  intros a b.
+  unfold equiv, RStheta_equiv, Rtheta'_equiv.
+  rewrite evalWriter_Rtheta_liftM2.
+  rewrite 3!evalWriter_mkValue.
+  reflexivity.
+Qed.
+
 Section Zero_Utils.
 
   Lemma evalWriter_Rtheta_SZero
