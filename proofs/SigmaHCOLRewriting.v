@@ -4419,6 +4419,44 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
+
+    Fact GathH1_domain_bound_to_base_bound
+      {i base stride: nat}
+      : (forall x : nat, x < 1 → base + x * stride < i) -> base < i.
+    Proof.
+      intros H.
+      specialize (H 0).
+      lia.
+    Qed.
+
+    Lemma terminate_GathH1
+          {i: nat}
+          {fm}
+          (base stride: nat)
+          {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
+      :
+        @GathH fm i 1 base stride domain_bound = @eT fm i base (GathH1_domain_bound_to_base_bound domain_bound).
+    Proof.
+      unfold GathH.
+      unfold equiv, SHOperator_equiv.
+      unfold equiv, ext_equiv.
+      intros x y H.
+      simpl.
+
+      unfold eT'.
+      vec_index_equiv j jc.
+      destruct j.
+      -
+        rewrite Gather'_spec.
+        unfold VnthIndexMapped.
+        simpl.
+        apply Vnth_equiv.
+        + rewrite <- plus_n_O; reflexivity.
+        + apply H.
+      -
+        omega.
+    Qed.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.

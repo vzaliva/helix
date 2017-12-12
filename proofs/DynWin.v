@@ -607,6 +607,8 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite SafeCast_HReduction.
     setoid_rewrite terminate_Reduction.
 
+    setoid_rewrite terminate_GathH1.
+
     Transparent SHCompose.
   Admitted.
 
