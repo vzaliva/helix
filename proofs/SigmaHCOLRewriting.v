@@ -4457,6 +4457,24 @@ Section SigmaHCOLRewritingRules.
         omega.
     Qed.
 
+    Lemma terminate_GathHN
+          {i o: nat}
+          (base stride: nat)
+          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+      :
+        @GathH _ i o base stride domain_bound
+        =
+        @ISumUnion i o o
+                   (mkSHOperatorFamily _ _ _ _
+                                       (fun j jc =>
+                                          SHCompose _
+                                                    (@eUnion _ o j jc zero)
+                                                    (@eT _ i (base+j*stride) (domain_bound j jc)
+                                                    )
+                   )).
+    Proof.
+    Admitted.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.

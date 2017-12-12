@@ -610,6 +610,12 @@ Require Import Spiral.FinNatSet.
 
     setoid_rewrite terminate_GathH1.
 
+    (* some type casting is required again to apply the next rule *)
+    setoid_rewrite <- GathH_fold.
+    setoid_rewrite <- UnSafeCast_Gather.
+    setoid_rewrite GathH_fold.
+    setoid_rewrite terminate_GathHN.
+
     Transparent SHCompose.
   Admitted.
 
