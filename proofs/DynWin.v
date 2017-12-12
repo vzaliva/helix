@@ -605,7 +605,8 @@ Require Import Spiral.FinNatSet.
     unshelve setoid_rewrite terminate_ScatHUnion1; auto.
     Hint Opaque liftM_HOperator: rewrite.
     setoid_rewrite SafeCast_HReduction.
-    setoid_rewrite terminate_Reduction.
+
+    rewrite terminate_Reduction by apply rings.plus_comm.
 
     setoid_rewrite terminate_GathH1.
 
