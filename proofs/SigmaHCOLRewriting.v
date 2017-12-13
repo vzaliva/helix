@@ -1221,7 +1221,7 @@ Section SigmaHCOLRewritingRules.
 
     Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
 
-    Lemma rewrite_PointWise_ISumUnion
+    Theorem rewrite_PointWise_ISumUnion
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (pf: { j | j<o} -> CarrierA -> CarrierA)
@@ -2973,7 +2973,7 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
-    Lemma rewrite_Reduction_IReduction
+    Theorem rewrite_Reduction_IReduction
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
@@ -3826,7 +3826,7 @@ Section SigmaHCOLRewritingRules.
     End NN.
 
     (* Specialized version of rewrite_Reduction_IReduction *)
-    Lemma rewrite_Reduction_IReduction_max_plus
+    Theorem rewrite_Reduction_IReduction_max_plus
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
@@ -3853,7 +3853,7 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
-    Lemma rewrite_ISumXXX_YYY_IReduction_GathH
+    Theorem rewrite_ISumXXX_YYY_IReduction_GathH
           {i0 i o n b s : nat}
           {db}
           (dot: CarrierA -> CarrierA -> CarrierA)
@@ -3971,7 +3971,7 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
-    Lemma rewrite_PointWise_ScatHUnion
+    Theorem rewrite_PointWise_ScatHUnion
           {fm: Monoid RthetaFlags}
 
           (* -- SE params -- *)
@@ -4010,7 +4010,7 @@ Section SigmaHCOLRewritingRules.
       apply pf_mor.
     Qed.
 
-    Lemma rewrite_Reduction_ScatHUnion
+    Theorem rewrite_Reduction_ScatHUnion
           {n m:nat}
           {fm: Monoid RthetaFlags}
 
@@ -4157,7 +4157,7 @@ Section SigmaHCOLRewritingRules.
               apply mon_restriction.
     Qed.
 
-    Lemma rewrite_Reduction_ScatHUnion_max_zero
+    Theorem rewrite_Reduction_ScatHUnion_max_zero
           (n m: nat)
           (fm: Monoid.Monoid RthetaFlags)
           (F: @SHOperator fm m 1)
@@ -4178,7 +4178,7 @@ Section SigmaHCOLRewritingRules.
       apply (rewrite_Reduction_ScatHUnion CommutativeRMonoid_max_NN F f f_inj FP).
     Qed.
 
-    Lemma rewrite_SHCompose_IdOp
+    Theorem rewrite_SHCompose_IdOp
           {n m: nat}
           {fm}
           (in_out_set: FinNatSet.FinNatSet n)
@@ -4194,7 +4194,7 @@ Section SigmaHCOLRewritingRules.
       f_equiv.
     Qed.
 
-    Lemma rewrite_GathH_GathH
+    Theorem rewrite_GathH_GathH
           {fm}
           {i o t: nat}
           {b0 b1 s0 s1: nat}
@@ -4239,7 +4239,7 @@ Section SigmaHCOLRewritingRules.
       solve_proper.
     Qed.
 
-    Lemma rewrite_PointWise_BinOp
+    Theorem rewrite_PointWise_BinOp
           {fm}
           (n: nat)
           (f: FinNat n -> CarrierA -> CarrierA)
@@ -4328,7 +4328,7 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
-    Lemma terminate_Reduction
+    Theorem terminate_Reduction
           {n}
           (f: CarrierA -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
@@ -4429,7 +4429,7 @@ Section SigmaHCOLRewritingRules.
       lia.
     Qed.
 
-    Lemma terminate_GathH1
+    Theorem terminate_GathH1
           {i: nat}
           {fm}
           (base stride: nat)
@@ -4457,7 +4457,29 @@ Section SigmaHCOLRewritingRules.
         omega.
     Qed.
 
-    Lemma terminate_GathHN
+
+    Lemma terminate_GathHN_generic
+          {i o: nat}
+          {f : CarrierA → CarrierA → CarrierA}
+          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
+          {z: CarrierA}
+          (base stride: nat)
+          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+      :
+        @GathH _ i o base stride domain_bound
+        =
+        @IUnion i o o f f_mor z
+                   (mkSHOperatorFamily _ _ _ _
+                                       (fun j jc =>
+                                          SHCompose _
+                                                    (@eUnion _ o j jc zero)
+                                                    (@eT _ i (base+j*stride) (domain_bound j jc)
+                                                    )
+                   )).
+    Proof.
+    Admitted.
+
+    Theorem terminate_GathHN
           {i o: nat}
           (base stride: nat)
           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
@@ -4473,7 +4495,9 @@ Section SigmaHCOLRewritingRules.
                                                     )
                    )).
     Proof.
-    Admitted.
+      (* This lemma is just a special case of more generic lemma *)
+      apply terminate_GathHN_generic.
+    Qed.
 
   End Value_Correctness.
 
