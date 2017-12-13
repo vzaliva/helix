@@ -4458,6 +4458,44 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
+    (* TODO: move *)
+    Lemma Vfold_left_rev_Vbuild_zeroes
+          {A: Type}
+          {z: A}
+          {o: nat}
+          {f: A->A->A}
+          (fz: f z z ≡ z)
+      :
+        Vfold_left_rev f z (Vbuild (λ (i0 : nat) (_ : i0 < o), z)) ≡ z.
+    Proof.
+      induction o.
+      --
+        reflexivity.
+      --
+        rewrite Vbuild_cons.
+        Opaque Vbuild.
+        simpl.
+        rewrite IHo; clear IHo.
+        apply fz.
+    Qed.
+
+    Lemma Vfold_left_rev_Vbuild_single
+          `{!Equiv A}
+          (x: A)
+          (j: nat)
+          {z: A}
+          {o: nat}
+          {f: A->A->A}
+          (fz: f z z = z)
+      :
+        Vfold_left_rev f z
+                       (Vbuild
+                          (λ (i0 : nat) (ic : i0 < o),
+                           if Nat.eq_dec j i0 then x else z)) = x.
+    Proof.
+    Admitted.
+
+
     Lemma terminate_GathHN_generic
           {i o: nat}
           {f : CarrierA → CarrierA → CarrierA}
@@ -4472,11 +4510,50 @@ Section SigmaHCOLRewritingRules.
                    (mkSHOperatorFamily _ _ _ _
                                        (fun j jc =>
                                           SHCompose _
-                                                    (@eUnion _ o j jc zero)
+                                                    (@eUnion _ o j jc z)
                                                     (@eT _ i (base+j*stride) (domain_bound j jc)
                                                     )
                    )).
     Proof.
+      unfold GathH.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E; clear y E.
+      vec_index_equiv j jc.
+      rewrite Gather'_spec.
+      unfold VnthIndexMapped.
+      unfold Diamond'.
+      unfold Apply_Family'.
+      rewrite AbsorbMUnion'Index_Vbuild.
+      unfold get_family_op.
+      simpl.
+
+      unfold UnionFold.
+      unfold eUnion', compose, eT'.
+      setoid_rewrite Vbuild_nth.
+      simpl.
+      match goal with
+      | [|- context[Vnth x ?o]] => generalize o; intros l
+      end.
+      unfold SVector.Union.
+      symmetry.
+      replace (λ (i0 : nat) (ic : i0 < o),
+               if Nat.eq_dec j i0 then Vnth x (domain_bound i0 ic) else mkStruct z)
+        with
+          (λ (i0 : nat) (ic : i0 < o),
+           if Nat.eq_dec j i0 then Vnth x l else mkStruct z).
+
+      apply Vfold_left_rev_Vbuild_single.
+      admit.
+
+      extensionality p.
+      extensionality pc.
+      break_if.
+      apply Vnth_eq; auto.
+      reflexivity.
+
     Admitted.
 
     Theorem terminate_GathHN
