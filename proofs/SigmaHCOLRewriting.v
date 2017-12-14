@@ -4457,16 +4457,14 @@ Section SigmaHCOLRewritingRules.
         omega.
     Qed.
 
-
-    (* TODO: move *)
     Lemma Vfold_left_rev_Vbuild_zeroes
           `{Ae: !Equiv A}
-          `{Aee: Equivalence A Ae}
-          {z: A}
+
+          `{z: MonUnit A}
+          `{f: SgOp A}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
+
           {o: nat}
-          {f: A->A->A}
-          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-          (fz: f z z = z)
       :
         Vfold_left_rev f z (Vbuild (λ (i0 : nat) (_ : i0 < o), z)) = z.
     Proof.
@@ -4479,21 +4477,17 @@ Section SigmaHCOLRewritingRules.
         Opaque Vbuild.
         simpl.
         rewrite IHo; clear IHo.
-        apply fz.
+        apply monoid_left_id, f_mon.
     Qed.
 
     Lemma Vfold_left_rev_Vbuild_single
           `{Ae: !Equiv A}
-          `{Aee: Equivalence A Ae}
           (x: A)
           (o j: nat)
           {jc: j<o}
-          {z: A}
-          {f: A->A->A}
-          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-          (fz: f z z = z)
-          (fzx: forall x, f z x = x) (* TODO: monoid *)
-          (fxz: forall x, f x z = x) (* TODO: monoid *)
+          `{z: MonUnit A}
+          `{f: SgOp A}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
       :
         Vfold_left_rev f z
                        (Vbuild
@@ -4510,15 +4504,19 @@ Section SigmaHCOLRewritingRules.
         destruct j.
         simpl.
         rewrite Vfold_left_rev_Vbuild_zeroes;auto.
+        apply monoid_left_id, f_mon.
+
         rewrite Vfold_left_rev_to_Vfold_left_rev_reord in *.
         break_if; try congruence.
-        rewrite fxz.
-        specialize (IHo j (lt_S_n jc) z f f_mor fz fzx fxz).
+        destruct f_mon eqn:F.
+        rewrite monoid_right_id.
         replace (fun (i : nat) (_ : i < o) => if Nat.eq_dec (S j) (S i) then x else z)
           with
             (fun (i : nat) (_ : i < o) => if Nat.eq_dec j i then x else z).
+        specialize (IHo j (lt_S_n jc) z f).
         rewrite IHo.
         reflexivity.
+        apply f_mon.
         extensionality p.
         extensionality pc.
         break_if.
@@ -4532,15 +4530,15 @@ Section SigmaHCOLRewritingRules.
 
     Lemma terminate_GathHN_generic
           {i o: nat}
-          {f : CarrierA → CarrierA → CarrierA}
-          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-          {z: CarrierA}
+          `{z: MonUnit CarrierA}
+          `{f: SgOp CarrierA}
+          `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
           (base stride: nat)
           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :
         @GathH _ i o base stride domain_bound
         =
-        @IUnion i o o f f_mor z
+        @IUnion i o o f _ z
                    (mkSHOperatorFamily _ _ _ _
                                        (fun j jc =>
                                           SHCompose _
