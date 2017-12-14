@@ -4528,6 +4528,47 @@ Section SigmaHCOLRewritingRules.
         reflexivity.
     Qed.
 
+    (* TODO: move *)
+    Lemma Rtheta'_lift_Monoid
+          (z : MonUnit CarrierA)
+          (f : SgOp CarrierA)
+          (f_mon: @abstract_algebra.Monoid CarrierA CarrierAe f z)
+      :
+        @abstract_algebra.Monoid (Rtheta' Monoid_RthetaFlags)
+                                 (@Rtheta'_equiv Monoid_RthetaFlags)
+                                 (@Monad.liftM2 (Monad_RthetaFlags Monoid_RthetaFlags)
+                                                (@WriterMonad.Monad_writerT RthetaFlags Monoid_RthetaFlags
+                                                                            IdentityMonad.ident IdentityMonad.Monad_ident) CarrierA CarrierA
+                                                CarrierA f)
+                                 (@mkStruct Monoid_RthetaFlags z).
+    Proof.
+      repeat split; try typeclasses eauto.
+      -
+        unfold sg_op.
+        unfold Associative, HeteroAssociative.
+        intros a b c.
+        unfold equiv, Rtheta'_equiv.
+        repeat rewrite evalWriter_Rtheta_liftM2.
+        apply sg_ass, f_mon.
+      -
+        unfold sg_op.
+        solve_proper.
+      -
+        unfold LeftIdentity, sg_op, mon_unit.
+        intros a.
+        unfold equiv, Rtheta'_equiv.
+        rewrite evalWriter_Rtheta_liftM2.
+        rewrite evalWriter_mkStruct.
+        apply monoid_left_id, f_mon.
+      -
+        unfold RightIdentity, sg_op, mon_unit.
+        intros a.
+        unfold equiv, Rtheta'_equiv.
+        rewrite evalWriter_Rtheta_liftM2.
+        rewrite evalWriter_mkStruct.
+        apply monoid_right_id, f_mon.
+    Qed.
+
     Lemma terminate_GathHN_generic
           {i o: nat}
           `{z: MonUnit CarrierA}
@@ -4579,15 +4620,13 @@ Section SigmaHCOLRewritingRules.
 
       apply Vfold_left_rev_Vbuild_single.
       apply jc.
-      admit.
-
+      apply Rtheta'_lift_Monoid, f_mon.
       extensionality p.
       extensionality pc.
       break_if.
       apply Vnth_eq; auto.
       reflexivity.
-
-    Admitted.
+    Qed.
 
     Theorem terminate_GathHN
           {i o: nat}
