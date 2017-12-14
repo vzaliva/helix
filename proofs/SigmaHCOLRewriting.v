@@ -4460,16 +4460,19 @@ Section SigmaHCOLRewritingRules.
 
     (* TODO: move *)
     Lemma Vfold_left_rev_Vbuild_zeroes
-          {A: Type}
+          `{Ae: !Equiv A}
+          `{Aee: Equivalence A Ae}
           {z: A}
           {o: nat}
           {f: A->A->A}
-          (fz: f z z ≡ z)
+          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
+          (fz: f z z = z)
       :
-        Vfold_left_rev f z (Vbuild (λ (i0 : nat) (_ : i0 < o), z)) ≡ z.
+        Vfold_left_rev f z (Vbuild (λ (i0 : nat) (_ : i0 < o), z)) = z.
     Proof.
       induction o.
       --
+        simpl.
         reflexivity.
       --
         rewrite Vbuild_cons.
@@ -4480,21 +4483,52 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
     Lemma Vfold_left_rev_Vbuild_single
-          `{!Equiv A}
+          `{Ae: !Equiv A}
+          `{Aee: Equivalence A Ae}
           (x: A)
-          (j: nat)
+          (o j: nat)
+          {jc: j<o}
           {z: A}
-          {o: nat}
           {f: A->A->A}
+          {f_mor: Proper (equiv ==> equiv ==> equiv) f}
           (fz: f z z = z)
+          (fzx: forall x, f z x = x) (* TODO: monoid *)
+          (fxz: forall x, f x z = x) (* TODO: monoid *)
       :
         Vfold_left_rev f z
                        (Vbuild
                           (λ (i0 : nat) (ic : i0 < o),
                            if Nat.eq_dec j i0 then x else z)) = x.
     Proof.
-    Admitted.
-
+      dependent induction o.
+      -
+        nat_lt_0_contradiction.
+      -
+        rewrite Vbuild_cons.
+        Opaque Vbuild.
+        simpl.
+        destruct j.
+        simpl.
+        rewrite Vfold_left_rev_Vbuild_zeroes;auto.
+        rewrite Vfold_left_rev_to_Vfold_left_rev_reord in *.
+        break_if; try congruence.
+        rewrite fxz.
+        specialize (IHo j (lt_S_n jc) z f f_mor fz fzx fxz).
+        replace (fun (i : nat) (_ : i < o) => if Nat.eq_dec (S j) (S i) then x else z)
+          with
+            (fun (i : nat) (_ : i < o) => if Nat.eq_dec j i then x else z).
+        rewrite IHo.
+        reflexivity.
+        extensionality p.
+        extensionality pc.
+        break_if.
+        break_if.
+        reflexivity.
+        congruence.
+        break_if.
+        congruence.
+        reflexivity.
+    Qed.
 
     Lemma terminate_GathHN_generic
           {i o: nat}
@@ -4546,6 +4580,7 @@ Section SigmaHCOLRewritingRules.
            if Nat.eq_dec j i0 then Vnth x l else mkStruct z).
 
       apply Vfold_left_rev_Vbuild_single.
+      apply jc.
       admit.
 
       extensionality p.
