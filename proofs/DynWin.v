@@ -620,6 +620,10 @@ Require Import Spiral.FinNatSet.
     progress setoid_rewrite SHCompose_assoc at 3.
     setoid_rewrite SHBinOp_HPrepend_SHPointwise.
 
+
+    rewrite <- SafeCast_SHPointwise.
+
+
     Transparent SHCompose.
   Admitted.
 
