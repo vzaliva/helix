@@ -4648,7 +4648,68 @@ Section SigmaHCOLRewritingRules.
       apply terminate_GathHN_generic.
     Qed.
 
+    Definition mult_by_nth
+               {n:nat}
+               (a: vector CarrierA n)
+      : FinNat n -> CarrierA -> CarrierA :=
+      fun jf x => mult x (Vnth a (proj2_sig jf)).
+
+    Global Instance mult_by_nth_proper
+           {n:nat}
+           (a: vector CarrierA n)
+      : Proper (equiv ==> equiv ==> equiv) (mult_by_nth a).
+    Proof.
+      unfold mult_by_nth.
+      intros i j Eij x y Exy.
+      rewrite_clear Exy.
+      f_equiv.
+      apply Vnth_eq.
+      inversion Eij; auto.
+    Qed.
+
+    (*
+      In our original HCOL proof we used slughly different fomulation of operators/rules which required this rule to bring it back to original SPIRAL's formulation.
+     *)
+    Lemma SHBinOp_HPrepend_SHPointwise
+          {n: nat}
+          (a : vector CarrierA n)
+      :
+        SHBinOp Monoid_RthetaFlags (IgnoreIndex2 mult) ⊚ liftM_HOperator Monoid_RthetaFlags (HPrepend a) =
+        SHPointwise Monoid_RthetaFlags (mult_by_nth a).
+    Proof.
+      unfold SHCompose, equiv, SHOperator_equiv.
+      simpl.
+
+      unfold compose, liftM_HOperator',sparsify, densify, SHBinOp', vector2pair, SHPointwise', mult_by_nth, HPrepend, compose, IgnoreIndex2.
+      Opaque Monad.liftM.
+      simpl.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite Vmap_app.
+      rewrite Vmap_map.
+      rewrite Vbreak_app.
+
+      vec_index_equiv j jc.
+      repeat rewrite Vbuild_nth.
+      repeat rewrite Vnth_map.
+      rewrite mkValue_evalWriter.
+
+      unfold const.
+      unfold equiv, Rtheta'_equiv.
+      rewrite evalWriter_Rtheta_liftM2.
+      rewrite evalWriter_mkValue.
+      rewrite evalWriter_Rtheta_liftM.
+      rewrite mult_comm.
+      setoid_replace (Vnth x jc) with (Vnth y jc).
+      reflexivity.
+      apply Vnth_equiv.
+      reflexivity.
+      apply E.
+    Qed.
+
   End Value_Correctness.
+
+
 
 End SigmaHCOLRewritingRules.
 

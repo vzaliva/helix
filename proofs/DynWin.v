@@ -37,7 +37,7 @@ Section HCOL_breakdown.
   Definition dynwin_HCOL (a: avector 3) :=
     (HBinOp (IgnoreIndex2 Zless) ∘
             HCross
-            ((HReduction plus 0 ∘ HBinOp (IgnoreIndex2 mult)) ∘ (HPrepend a ∘ HInduction _ mult 1))
+            (HReduction plus 0 ∘ (HBinOp (IgnoreIndex2 mult) ∘ HPrepend a) ∘ HInduction _ mult 1)
             (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
 
 
@@ -615,6 +615,10 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite <- UnSafeCast_Gather.
     setoid_rewrite GathH_fold.
     setoid_rewrite terminate_GathHN.
+
+    (* some associativity reorganization and applying `SHBinOp_HPrepend_SHPointwise`. *)
+    progress setoid_rewrite SHCompose_assoc at 3.
+    setoid_rewrite SHBinOp_HPrepend_SHPointwise.
 
     Transparent SHCompose.
   Admitted.
