@@ -4774,6 +4774,23 @@ Section SigmaHCOLRewritingRules.
       apply E.
     Qed.
 
+
+    (* In SPIRAL it is called `ISumReduction_PointWise` *)
+    Theorem rewrite_IReduction_SHPointwise_plus_0_mult_by_nth
+            {n:nat}
+            (a: vector CarrierA n)
+      :
+        SHCompose _
+                  (IReduction plus zero (eTn n))
+                  (SHPointwise _ (mult_by_nth a))
+        =
+        IReduction plus zero
+                   (SHFamilyOperatorCompose _
+                                            (eTn n)
+                                            (SHPointwise _ (mult_by_nth a))).
+    Proof.
+    Admitted.
+
   End Value_Correctness.
 
 

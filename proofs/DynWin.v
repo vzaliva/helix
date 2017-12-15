@@ -625,6 +625,7 @@ Require Import Spiral.FinNatSet.
     rewrite <- SafeCast_SHPointwise.
     setoid_rewrite SHCompose_assoc at 3.
     rewrite <- SafeCast_SHCompose.
+    setoid_rewrite rewrite_IReduction_SHPointwise_plus_0_mult_by_nth.
 
 
     Transparent SHCompose.
