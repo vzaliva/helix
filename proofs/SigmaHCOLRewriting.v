@@ -4774,8 +4774,32 @@ Section SigmaHCOLRewritingRules.
       apply E.
     Qed.
 
-
     (* In SPIRAL it is called `ISumReduction_PointWise` *)
+    Theorem rewrite_IReduction_SHPointwise
+            {i o n:nat}
+            `{z: MonUnit CarrierA}
+            `{f: SgOp CarrierA}
+            `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
+            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+            (g: FinNat i -> CarrierA -> CarrierA)
+            `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
+            (gfix: forall j, g j z = z)
+            (Fz: Apply_Family_Single_NonUnit_Per_Row _ F z)
+
+      :
+        SHCompose _
+                  (@IReduction i o n f _ z F)
+                  (SHPointwise _ g)
+        =
+        IReduction f z
+                   (SHFamilyOperatorCompose _
+                                            F
+                                            (SHPointwise _ g)).
+    Proof.
+    Admitted.
+
+
+    (* Special case of `rewrite_IReduction_SHPointwise` *)
     Theorem rewrite_IReduction_SHPointwise_plus_0_mult_by_nth
             {n:nat}
             (a: vector CarrierA n)
@@ -4789,7 +4813,47 @@ Section SigmaHCOLRewritingRules.
                                             (eTn n)
                                             (SHPointwise _ (mult_by_nth a))).
     Proof.
-    Admitted.
+      apply rewrite_IReduction_SHPointwise.
+      -
+        intros j.
+        unfold mult_by_nth.
+        ring.
+      -
+        unfold Apply_Family_Single_NonUnit_Per_Row.
+        intros x.
+        apply Vforall_nth_intro.
+        intros i ip.
+        destruct i; try omega.
+
+        unfold transpose.
+        rewrite Vbuild_nth.
+        unfold row.
+        unfold Apply_Family, Apply_Family'.
+        rewrite Vmap_Vbuild.
+
+        unfold eTn, eT.
+        simpl.
+
+        clear ip a.
+        induction n.
+        +
+          rewrite Vbuild_0.
+          apply Vunique_Vnil.
+        +
+          rewrite Vbuild_cons.
+          apply Vunique_cons_not_head.
+          split.
+          *
+
+
+          apply Vforall_notP_Vunique.
+          apply Vforall_nth_intro.
+          intros j jc.
+          rewrite Vbuild_nth.
+          unfold compose, not.
+          intros H.
+          contradict H.
+    Qed.
 
   End Value_Correctness.
 
