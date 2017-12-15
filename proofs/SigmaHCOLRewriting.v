@@ -4783,9 +4783,8 @@ Section SigmaHCOLRewritingRules.
             (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
             (g: FinNat i -> CarrierA -> CarrierA)
             `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
-            (gfix: forall j, g j z = z)
-            (Fz: Apply_Family_Single_NonUnit_Per_Row _ F z)
-
+            (gfix: forall j, g j z = z) (* TODO: see if this is required *)
+            (gf_dist: forall j a b, g j (f a b) = f (g j a) (g j b))
       :
         SHCompose _
                   (@IReduction i o n f _ z F)
@@ -4819,40 +4818,9 @@ Section SigmaHCOLRewritingRules.
         unfold mult_by_nth.
         ring.
       -
-        unfold Apply_Family_Single_NonUnit_Per_Row.
-        intros x.
-        apply Vforall_nth_intro.
-        intros i ip.
-        destruct i; try omega.
-
-        unfold transpose.
-        rewrite Vbuild_nth.
-        unfold row.
-        unfold Apply_Family, Apply_Family'.
-        rewrite Vmap_Vbuild.
-
-        unfold eTn, eT.
-        simpl.
-
-        clear ip a.
-        induction n.
-        +
-          rewrite Vbuild_0.
-          apply Vunique_Vnil.
-        +
-          rewrite Vbuild_cons.
-          apply Vunique_cons_not_head.
-          split.
-          *
-
-
-          apply Vforall_notP_Vunique.
-          apply Vforall_nth_intro.
-          intros j jc.
-          rewrite Vbuild_nth.
-          unfold compose, not.
-          intros H.
-          contradict H.
+        intros j x y.
+        unfold mult_by_nth.
+        ring.
     Qed.
 
   End Value_Correctness.
