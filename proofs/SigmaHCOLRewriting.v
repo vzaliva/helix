@@ -4392,6 +4392,12 @@ Section SigmaHCOLRewritingRules.
           reflexivity.
     Qed.
 
+    (* Special `n by n` family of sequentially indexed `eT` operators *)
+    Definition eTn
+               {fm}
+               (n:nat) :=
+      mkSHOperatorFamily fm n 1 n (fun j jc => eT _ jc).
+
     Theorem terminate_Reduction
           {n}
           (f: CarrierA -> CarrierA -> CarrierA)
@@ -4401,10 +4407,7 @@ Section SigmaHCOLRewritingRules.
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
-        IReduction f idv
-                   (mkSHOperatorFamily _ n 1 n
-                                       (fun j jc => eT _ jc)
-                   ).
+        IReduction f idv (eTn n).
     Proof.
       unfold IReduction, liftM_HOperator,liftM_HOperator'.
       unfold compose, sparsify, densify.
