@@ -617,11 +617,14 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite terminate_GathHN.
 
     (* some associativity reorganization and applying `SHBinOp_HPrepend_SHPointwise`. *)
-    progress setoid_rewrite SHCompose_assoc at 3.
+    setoid_rewrite SHCompose_assoc at 3.
     setoid_rewrite SHBinOp_HPrepend_SHPointwise.
 
 
+    (* Preparing for the next rule *)
     rewrite <- SafeCast_SHPointwise.
+    setoid_rewrite SHCompose_assoc at 3.
+    rewrite <- SafeCast_SHCompose.
 
 
     Transparent SHCompose.

@@ -42,7 +42,7 @@ Local Open Scope nat_scope.
 
 Section SigmaHCOLHelperLemmas.
 
-  (* UnSafeCast distribute over SHCompose *)
+  (* UnSafeCast distributes over SHCompose *)
   Lemma UnSafeCast_SHCompose
         {i1 o2 o3}
         (F: @SHOperator Monoid_RthetaFlags o2 o3)
@@ -73,6 +73,41 @@ Section SigmaHCOLHelperLemmas.
       vec_index_equiv j jc.
       rewrite Vnth_map.
       setoid_rewrite RStheta2Rtheta_Rtheta2RStheta_equiv.
+      reflexivity.
+  Qed.
+
+  (* SafeCast distributes over SHCompose *)
+  Lemma SafeCast_SHCompose
+        {i1 o2 o3}
+        (F: @SHOperator _ o2 o3)
+        (G: @SHOperator _ i1 o2)
+  :
+    SafeCast (SHCompose _ F G)
+    =
+    (SHCompose _
+               (SafeCast F)
+               (SafeCast G)).
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, SafeCast, SHCompose.
+    unfold SafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+    f_equiv.
+    unfold rsvector2rvector, rvector2rsvector.
+    rewrite Vmap_map.
+
+    setoid_replace (Vmap (λ x0 : RStheta, Rtheta2RStheta (RStheta2Rtheta x0))
+                         (op Monoid_RthetaSafeFlags G (Vmap Rtheta2RStheta y))) with
+        (op Monoid_RthetaSafeFlags G (Vmap Rtheta2RStheta y)).
+
+    -
+      reflexivity.
+    -
+      vec_index_equiv j jc.
+      rewrite Vnth_map.
+      rewrite Rtheta2RStheta_RStheta2Rtheta.
       reflexivity.
   Qed.
 
