@@ -582,35 +582,33 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite SHCompose_assoc.
     eapply op_Vforall_P_SHPointwise, abs_always_nonneg.
 
-    (* Gettting ready to apply GathH_GathH *)
-
+    (* Next rule *)
     unfold SHFamilyOperatorCompose.
     simpl.
     setoid_rewrite UnSafeCast_SHCompose.
     setoid_rewrite UnSafeCast_Gather.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite GathH_fold.
-
-    (* Finally apply the rule *)
     setoid_rewrite rewrite_GathH_GathH.
 
-    (* Preparing to apply PointWise_BinOp rule *)
+    (* Next rule *)
     setoid_rewrite (SafeCast_SHBinOp 1).
     setoid_rewrite (rewrite_PointWise_BinOp 1).
 
-    (* A bit of cleanup - removing unecessary casts *)
+    (* Next rule *)
     setoid_rewrite (SafeCast_SHBinOp 3).
     setoid_rewrite (UnSafeCast_SHBinOp 1).
-
     unshelve setoid_rewrite terminate_ScatHUnion1; auto.
     Hint Opaque liftM_HOperator: rewrite.
     setoid_rewrite SafeCast_HReduction.
 
+    (* Next rule *)
     rewrite terminate_Reduction by apply rings.plus_comm.
 
+    (* Next rule *)
     setoid_rewrite terminate_GathH1.
 
-    (* some type casting is required again to apply the next rule *)
+    (* Next rule *)
     setoid_rewrite <- GathH_fold.
     setoid_rewrite <- UnSafeCast_Gather.
     setoid_rewrite GathH_fold.
@@ -621,11 +619,14 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite SHBinOp_HPrepend_SHPointwise.
 
 
-    (* Preparing for the next rule *)
+    (* Next rule *)
     rewrite <- SafeCast_SHPointwise.
     setoid_rewrite SHCompose_assoc at 3.
     rewrite <- SafeCast_SHCompose.
     setoid_rewrite rewrite_IReduction_SHPointwise.
+
+    (* Next rule *)
+
 
     Transparent SHCompose.
   Admitted.

@@ -3944,6 +3944,34 @@ Section SigmaHCOLRewritingRules.
       eapply rewrite_Reduction_IReduction; auto.
     Qed.
 
+    Lemma IReduction_absorb_operator
+            (i0 i o n:nat)
+            (z: CarrierA)
+            (f: CarrierA -> CarrierA -> CarrierA)
+            (f_mor: Proper (equiv ==> equiv ==> equiv) f)
+            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+            (G: @SHOperator Monoid_RthetaSafeFlags i0 i)
+      :
+        SHCompose _
+                  (@IReduction i o n f _ z F)
+                  G
+        =
+        @IReduction i0 o n f _ z
+                   (SHFamilyOperatorCompose _
+                                            F
+                                            G).
+    Proof.
+      unfold IReduction, SHFamilyOperatorCompose, SHCompose, compose.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E. clear y E.
+      unfold get_family_op.
+      simpl.
+      reflexivity.
+    Qed.
+
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
     Theorem rewrite_ISumXXX_YYY_IReduction_GathH
           {i0 i o n b s : nat}
@@ -3964,44 +3992,11 @@ Section SigmaHCOLRewritingRules.
                                                (GathH Monoid_RthetaSafeFlags b s (domain_bound:=db))
           )).
     Proof.
-      unfold IReduction, SafeCast, equiv, SHOperator_equiv, Diamond'.
-      simpl.
-      unfold SafeCast', compose.
-      unfold equiv, ext_equiv.
-      intros x y E.
-      rewrite_clear E.
-      f_equiv.
-      unfold vec_Equiv; apply Vforall2_intro_nth; intros j jc; apply Vnth_arg_equiv; clear j jc.
 
-      destruct op_family.
-      induction n.
-      -
-        reflexivity.
-      -
-        unfold Apply_Family' in *.
-        rewrite Vbuild_cons.
-        rewrite MUnion'_cons.
-        unfold get_family_op in *.
-        simpl in *.
-        erewrite IHn.
-
-        rewrite Vbuild_cons.
-        rewrite MUnion'_cons.
-        unfold compose.
-        simpl.
-        f_equiv.
-        apply pdot.
-        f_equiv.
-
-        unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
-        unfold rvector2rsvector.
-        rewrite Vnth_map.
-
-        rewrite Gather'_spec.
-        unfold Rtheta; rewrite Gather'_spec.
-        unfold VnthIndexMapped.
-        rewrite Vnth_map.
-        reflexivity.
+      setoid_rewrite <- SafeCast_GathH.
+      rewrite <- SafeCast_SHCompose.
+      rewrite IReduction_absorb_operator.
+      reflexivity.
     Qed.
 
     Lemma SHPointwise'_distr_over_Scatter'
@@ -4804,12 +4799,12 @@ Section SigmaHCOLRewritingRules.
 
     (* In SPIRAL it is called `ISumReduction_PointWise` *)
     Theorem rewrite_IReduction_SHPointwise
-            {i o n:nat}
-            `{z: CarrierA}
-            `{f: CarrierA -> CarrierA -> CarrierA}
+            (i o n:nat)
+            (z: CarrierA)
+            (f: CarrierA -> CarrierA -> CarrierA)
             (f_mor: Proper (equiv ==> equiv ==> equiv) f)
             (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-            {G: @SHOperator Monoid_RthetaSafeFlags i i}
+            (G: @SHOperator Monoid_RthetaSafeFlags i i)
       :
         SHCompose _
                   (@IReduction i o n f _ z F)
@@ -4820,20 +4815,10 @@ Section SigmaHCOLRewritingRules.
                                             F
                                             G).
     Proof.
-      unfold IReduction, SHFamilyOperatorCompose, SHCompose, compose.
-      unfold equiv, SHOperator_equiv.
-      simpl.
-      unfold equiv, ext_equiv.
-      intros x y E.
-      rewrite <- E. clear y E.
-      unfold get_family_op.
-      simpl.
-      reflexivity.
+      apply IReduction_absorb_operator.
     Qed.
 
   End Value_Correctness.
-
-
 
 End SigmaHCOLRewritingRules.
 
