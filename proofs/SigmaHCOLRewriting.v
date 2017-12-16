@@ -4781,17 +4781,16 @@ Section SigmaHCOLRewritingRules.
             `{f: CarrierA -> CarrierA -> CarrierA}
             (f_mor: Proper (equiv ==> equiv ==> equiv) f)
             (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-            (g: FinNat i -> CarrierA -> CarrierA)
-            `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
+            {G: @SHOperator Monoid_RthetaSafeFlags i i}
       :
         SHCompose _
                   (@IReduction i o n f _ z F)
-                  (SHPointwise _ g)
+                  G
         =
-        IReduction f z
+        @IReduction i o n f _ z
                    (SHFamilyOperatorCompose _
                                             F
-                                            (SHPointwise _ g)).
+                                            G).
     Proof.
       unfold IReduction, SHFamilyOperatorCompose, SHCompose, compose.
       unfold equiv, SHOperator_equiv.
@@ -4800,25 +4799,8 @@ Section SigmaHCOLRewritingRules.
       intros x y E.
       rewrite <- E. clear y E.
       unfold get_family_op.
+      simpl.
       reflexivity.
-    Qed.
-
-
-    (* Special case of `rewrite_IReduction_SHPointwise` *)
-    Theorem rewrite_IReduction_SHPointwise_plus_0_mult_by_nth
-            {n:nat}
-            (a: vector CarrierA n)
-      :
-        SHCompose _
-                  (IReduction plus zero (eTn n))
-                  (SHPointwise _ (mult_by_nth a))
-        =
-        IReduction plus zero
-                   (SHFamilyOperatorCompose _
-                                            (eTn n)
-                                            (SHPointwise _ (mult_by_nth a))).
-    Proof.
-      apply rewrite_IReduction_SHPointwise.
     Qed.
 
   End Value_Correctness.
