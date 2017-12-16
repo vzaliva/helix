@@ -3944,7 +3944,9 @@ Section SigmaHCOLRewritingRules.
       eapply rewrite_Reduction_IReduction; auto.
     Qed.
 
-    Lemma IReduction_absorb_operator
+    (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH]
+and `ISumReduction_PointWise` *)
+    Theorem rewrite_IReduction_absorb_operator
             (i0 i o n:nat)
             (z: CarrierA)
             (f: CarrierA -> CarrierA -> CarrierA)
@@ -3969,33 +3971,6 @@ Section SigmaHCOLRewritingRules.
       rewrite <- E. clear y E.
       unfold get_family_op.
       simpl.
-      reflexivity.
-    Qed.
-
-    (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH] *)
-    Theorem rewrite_ISumXXX_YYY_IReduction_GathH
-          {i0 i o n b s : nat}
-          {db}
-          (dot: CarrierA -> CarrierA -> CarrierA)
-          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-          (initial: CarrierA)
-          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-      :
-        SHCompose Monoid_RthetaFlags
-                  (SafeCast (IReduction dot initial op_family))
-                  (@GathH Monoid_RthetaFlags i0 i b s db)
-        =
-        SafeCast
-          (IReduction dot initial
-                      (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
-                                               op_family
-                                               (GathH Monoid_RthetaSafeFlags b s (domain_bound:=db))
-          )).
-    Proof.
-
-      setoid_rewrite <- SafeCast_GathH.
-      rewrite <- SafeCast_SHCompose.
-      rewrite IReduction_absorb_operator.
       reflexivity.
     Qed.
 
@@ -4795,27 +4770,6 @@ Section SigmaHCOLRewritingRules.
       apply Vnth_equiv.
       reflexivity.
       apply E.
-    Qed.
-
-    (* In SPIRAL it is called `ISumReduction_PointWise` *)
-    Theorem rewrite_IReduction_SHPointwise
-            (i o n:nat)
-            (z: CarrierA)
-            (f: CarrierA -> CarrierA -> CarrierA)
-            (f_mor: Proper (equiv ==> equiv ==> equiv) f)
-            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-            (G: @SHOperator Monoid_RthetaSafeFlags i i)
-      :
-        SHCompose _
-                  (@IReduction i o n f _ z F)
-                  G
-        =
-        @IReduction i o n f _ z
-                   (SHFamilyOperatorCompose _
-                                            F
-                                            G).
-    Proof.
-      apply IReduction_absorb_operator.
     Qed.
 
   End Value_Correctness.

@@ -538,12 +538,18 @@ Require Import Spiral.FinNatSet.
         apply abs_nz_nz, V.
     }
 
+    (* Next rule: ISumXXX_YYY *)
     repeat rewrite SHCompose_assoc.
-    rewrite rewrite_ISumXXX_YYY_IReduction_GathH.
+    setoid_rewrite <- SafeCast_GathH.
+    rewrite <- SafeCast_SHCompose.
+    (* IReduction_absorb_operator as ISumXXX_YYY *)
+    rewrite rewrite_IReduction_absorb_operator.
     repeat rewrite <- SHCompose_assoc.
 
+    (* Next rule *)
     rewrite rewrite_PointWise_ScatHUnion by apply abs_0_s.
 
+    (* Next rule *)
     unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
@@ -618,12 +624,12 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite SHCompose_assoc at 3.
     setoid_rewrite SHBinOp_HPrepend_SHPointwise.
 
-
-    (* Next rule *)
+    (* Next rule: IReduction_SHPointwise *)
     rewrite <- SafeCast_SHPointwise.
     setoid_rewrite SHCompose_assoc at 3.
     rewrite <- SafeCast_SHCompose.
-    setoid_rewrite rewrite_IReduction_SHPointwise.
+    (* IReduction_absorb_operator as IReduction_SHPointwise *)
+    setoid_rewrite rewrite_IReduction_absorb_operator.
 
     (* Next rule *)
 
