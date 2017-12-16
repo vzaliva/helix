@@ -237,6 +237,34 @@ Section SigmaHCOLHelperLemmas.
     reflexivity.
   Qed.
 
+  Lemma SafeCast_GathH
+        {i o}
+        (base stride: nat)
+        {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+  :
+      SafeCast (@GathH Monoid_RthetaSafeFlags i o base stride domain_bound) =
+      @GathH Monoid_RthetaFlags i o base stride domain_bound.
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, SafeCast.
+    unfold SafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+
+    vec_index_equiv j jc.
+    unfold rsvector2rvector.
+    rewrite Vnth_map.
+    unfold rvector2rsvector.
+    unfold_Rtheta_equiv.
+    setoid_rewrite Gather'_spec.
+    unfold VnthIndexMapped.
+    rewrite Vnth_map.
+    f_equiv.
+    setoid_rewrite RStheta2Rtheta_Rtheta2RStheta.
+    reflexivity.
+  Qed.
+
   Section WithMonoid.
 
     Variable fm:Monoid RthetaFlags.
