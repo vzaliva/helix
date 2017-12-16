@@ -4777,14 +4777,12 @@ Section SigmaHCOLRewritingRules.
     (* In SPIRAL it is called `ISumReduction_PointWise` *)
     Theorem rewrite_IReduction_SHPointwise
             {i o n:nat}
-            `{z: MonUnit CarrierA}
-            `{f: SgOp CarrierA}
-            `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
+            `{z: CarrierA}
+            `{f: CarrierA -> CarrierA -> CarrierA}
+            (f_mor: Proper (equiv ==> equiv ==> equiv) f)
             (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
             (g: FinNat i -> CarrierA -> CarrierA)
             `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
-            (gfix: forall j, g j z = z) (* TODO: see if this is required *)
-            (gf_dist: forall j a b, g j (f a b) = f (g j a) (g j b))
       :
         SHCompose _
                   (@IReduction i o n f _ z F)
@@ -4802,7 +4800,6 @@ Section SigmaHCOLRewritingRules.
       intros x y E.
       rewrite <- E. clear y E.
       unfold get_family_op.
-      simpl.
       reflexivity.
     Qed.
 
@@ -4822,14 +4819,6 @@ Section SigmaHCOLRewritingRules.
                                             (SHPointwise _ (mult_by_nth a))).
     Proof.
       apply rewrite_IReduction_SHPointwise.
-      -
-        intros j.
-        unfold mult_by_nth.
-        ring.
-      -
-        intros j x y.
-        unfold mult_by_nth.
-        ring.
     Qed.
 
   End Value_Correctness.
