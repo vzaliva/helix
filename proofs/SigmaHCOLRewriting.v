@@ -4795,7 +4795,16 @@ Section SigmaHCOLRewritingRules.
                                             F
                                             (SHPointwise _ g)).
     Proof.
-    Admitted.
+      unfold IReduction, SHFamilyOperatorCompose, SHCompose, compose.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E. clear y E.
+      unfold get_family_op.
+      simpl.
+      reflexivity.
+    Qed.
 
 
     (* Special case of `rewrite_IReduction_SHPointwise` *)
