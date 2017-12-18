@@ -180,6 +180,36 @@ Section SigmaHCOLHelperLemmas.
     reflexivity.
   Qed.
 
+  Lemma SafeCast_liftM_HOperator
+        {i o}
+        (op: avector i -> avector o)
+        `{HOP: HOperator i o op}
+    :
+      SafeCast (liftM_HOperator Monoid_RthetaSafeFlags op) =
+      liftM_HOperator Monoid_RthetaFlags op.
+  Proof.
+    unfold_RStheta_equiv.
+    unfold SHOperator_equiv, SafeCast.
+    unfold SafeCast', compose.
+    simpl.
+    intros x y E.
+    rewrite_clear E.
+
+    vec_index_equiv j jc.
+    unfold rsvector2rvector.
+    setoid_rewrite Vnth_map.
+    unfold rvector2rsvector.
+    unfold liftM_HOperator'.
+    unfold sparsify, densify, compose.
+    setoid_rewrite Vnth_map.
+    rewrite Vmap_map.
+
+    unfold RStheta2Rtheta.
+    unfold_Rtheta_equiv.
+    rewrite WriterMonadNoT.evalWriter_castWriter.
+    reflexivity.
+  Qed.
+
   Lemma SafeCast_SHPointwise
         {n: nat}
         (f: FinNat n -> CarrierA -> CarrierA)

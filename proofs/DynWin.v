@@ -631,7 +631,12 @@ Require Import Spiral.FinNatSet.
     (* IReduction_absorb_operator as IReduction_SHPointwise *)
     setoid_rewrite rewrite_IReduction_absorb_operator.
 
-    (* Next rule *)
+    (* Next rule: ISumXXX_YYY *)
+    rewrite <- SafeCast_liftM_HOperator.
+    setoid_rewrite SHCompose_assoc at 2.
+    rewrite <- SafeCast_SHCompose.
+    (* IReduction_absorb_operator as ISumXXX_YYY *)
+    setoid_rewrite rewrite_IReduction_absorb_operator.
 
 
     Transparent SHCompose.
