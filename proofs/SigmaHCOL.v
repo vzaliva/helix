@@ -1460,6 +1460,23 @@ Section OperatorProperies.
     repeat f_equiv.
   Qed.
 
+  Lemma SHFamilyOperatorCompose_SHFamilyOperatorCompose
+        {i0 i1 o2 o3 n}
+        (F: @SHOperatorFamily fm o2 o3 n)
+        (op1: @SHOperator fm i1 o2)
+        (op2: @SHOperator fm i0 i1)
+    : SHFamilyOperatorCompose fm (SHFamilyOperatorCompose fm F op1) op2 = SHFamilyOperatorCompose fm F (SHCompose fm op1 op2).
+  Proof.
+    unfold SHFamilyOperatorCompose, SHCompose, compose.
+    unfold equiv, SHOperatorFamily_equiv.
+    intros j jc.
+    unfold equiv, SHOperator_equiv.
+    simpl.
+    unfold equiv, SHOperator_equiv, ext_equiv.
+    intros x y E.
+    repeat apply op_proper.
+    apply E.
+  Qed.
 
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
