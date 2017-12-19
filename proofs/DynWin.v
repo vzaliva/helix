@@ -476,6 +476,7 @@ Require Import Spiral.FinNatSet.
     apply H.
   Qed.
 
+
   Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
@@ -639,8 +640,18 @@ Require Import Spiral.FinNatSet.
     setoid_rewrite rewrite_IReduction_absorb_operator.
 
 
-    Transparent SHCompose.
-  Admitted.
+    (* Next rule: eT_Pointwise *)
+    unshelve rewrite rewrite_eTn_SHPointwise
+      with (g:= fun j =>  mult_by_nth a (FinNat_bloat (le_S (le_n 2)) j)).
+    solve_proper.
+    auto.
+    Focus 2.
+    intros x.
+    simpl.
+    replace (le_S (le_S (le_n 1))) with (Nat.lt_trans Nat.lt_0_1 (le_S (le_n 2))).
+    reflexivity.
+    apply proof_irrelevance.
+
 
 End SigmaHCOL_rewriting.
 

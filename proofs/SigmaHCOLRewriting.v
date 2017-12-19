@@ -4802,6 +4802,23 @@ and `ISumReduction_PointWise` *)
       apply E.
     Qed.
 
+    Import Coq.Arith.PeanoNat.Nat.
+
+    Lemma rewrite_eTn_SHPointwise
+          {fm: Monoid RthetaFlags}
+          {n:nat}
+          (f: FinNat n -> CarrierA -> CarrierA)
+          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+          (g: FinNat 1 -> CarrierA -> CarrierA)
+          `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
+          (nz: n>0)
+          (fg: forall x, f (@mkFinNat n 0 nz) x = g (@mkFinNat 1 0 lt_0_1) x)
+      :
+        SHFamilyOperatorCompose fm (eTn n) (SHPointwise fm f) =
+        SHOperatorFamilyCompose fm (SHPointwise fm g) (eTn n).
+    Proof.
+    Admitted.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
