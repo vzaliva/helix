@@ -567,7 +567,7 @@ Require Import Spiral.FinNatSet.
      *)
 
     match goal with
-    | [ |- context G [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+    | [ |- context [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
       match f with
       | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
         setoid_replace
