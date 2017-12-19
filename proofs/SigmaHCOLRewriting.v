@@ -4804,18 +4804,21 @@ and `ISumReduction_PointWise` *)
 
     Import Coq.Arith.PeanoNat.Nat.
 
-    Lemma rewrite_eTn_SHPointwise
-          {fm: Monoid RthetaFlags}
-          {n:nat}
+    (* We will use this rule to rewrite in left-to-right direction. Howver instead of putting concrete implementation of `g` which shrinks domain of `f` we chose to formulate it in a way that will allow to rewrite in opposite direction as well.
+     *)
+    Lemma rewrite_eT_SHPointwise
+          (n:nat)
+          {b:nat}
+          {bc: b<n}
+          (fm: Monoid RthetaFlags)
           (f: FinNat n -> CarrierA -> CarrierA)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
           (g: FinNat 1 -> CarrierA -> CarrierA)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
-          (nz: n>0)
-          (fg: forall x, f (@mkFinNat n 0 nz) x = g (@mkFinNat 1 0 lt_0_1) x)
+          (fg: forall x (nz: 0<n), f (@mkFinNat n 0 nz) x = g (@mkFinNat 1 0 lt_0_1) x)
       :
-        SHFamilyOperatorCompose fm (eTn n) (SHPointwise fm f) =
-        SHOperatorFamilyCompose fm (SHPointwise fm g) (eTn n).
+        SHCompose fm (eT fm bc) (SHPointwise fm f) =
+        SHCompose fm (SHPointwise fm g) (eT fm bc).
     Proof.
     Admitted.
 
