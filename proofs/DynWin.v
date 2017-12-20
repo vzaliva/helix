@@ -660,9 +660,10 @@ Require Import Spiral.FinNatSet.
         setoid_replace
           (mkSHOperatorFamily _ _ _ _ f) with
             (mkSHOperatorFamily _ _ _ _
-                                (fun (j:nat) (jc:j<3) => SHCompose _ (SHCompose _ (SHPointwise _ (mult_by_1st (@le_S 2 2 (le_n 2)) a)) (eT _ l)) rest))
+                                (fun (j:nat) (jc:j<3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex (mkFinNat jc) c)) (eT _ l)) rest))
       end
     end.
+
 
     all:revgoals.
     f_equiv.
@@ -673,15 +674,11 @@ Require Import Spiral.FinNatSet.
     (* --- END: hack --- *)
 
     (* now solve some obligations *)
-    intros x.
-    simpl.
-    unfold mult_by_1st.
-    intros nz.
-    unfold FinNat_bloat.
-    simpl.
-    replace nz with (Nat.lt_trans Nat.lt_0_1 (le_S (le_n 2)))
-      by apply proof_irrelevance.
-    reflexivity.
+    {
+      intros x z.
+      unfold Fin1SwapIndex, const.
+      reflexivity.
+    }
 
 
 End SigmaHCOL_rewriting.

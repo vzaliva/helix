@@ -4762,29 +4762,6 @@ and `ISumReduction_PointWise` *)
       inversion Eij; auto.
     Qed.
 
-
-    (* Utility function to shrink domian of `mult_by_nth` a point at 0 *)
-    Definition mult_by_1st
-               {n:nat}
-               (nc: 1<n)
-               (a: vector CarrierA n)
-      : FinNat 1 -> CarrierA -> CarrierA
-      := fun j =>  mult_by_nth a (FinNat_bloat nc j).
-
-    Global Instance mult_by_1st_proper
-           {n:nat}
-           (nc: 1<n)
-           (a: vector CarrierA n)
-      : Proper (equiv ==> equiv ==> equiv) (mult_by_1st nc a).
-    Proof.
-      intros x y Exy.
-      intros c d Ecd.
-      unfold mult_by_1st.
-      rewrite Ecd.
-      rewrite Exy.
-      reflexivity.
-    Qed.
-
     (*
       In our original HCOL proof we used slughly different fomulation of operators/rules which required this rule to bring it back to original SPIRAL's formulation.
      *)
@@ -4838,12 +4815,28 @@ and `ISumReduction_PointWise` *)
           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
           (g: FinNat 1 -> CarrierA -> CarrierA)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
-          (fg: forall x (nz: 0<n), f (@mkFinNat n 0 nz) x = g (@mkFinNat 1 0 lt_0_1) x)
+          (fg: forall x z, f (mkFinNat bc) x = g z x)
       :
         SHCompose fm (eT fm bc) (SHPointwise fm f) =
         SHCompose fm (SHPointwise fm g) (eT fm bc).
     Proof.
-    Admitted.
+      unfold SHCompose, compose.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E; clear E y.
+
+      vec_index_equiv j jc.
+      unfold eT'.
+
+      rewrite Vnth_1.
+      rewrite 2!SHPointwise'_nth.
+      rewrite Vnth_1.
+      f_equiv.
+      apply fg.
+    Qed.
 
   End Value_Correctness.
 

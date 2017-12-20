@@ -276,11 +276,22 @@ Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflex
 
 Section IgnoreIndex_wrapper.
 
+  (* Wrapper to swap index parameter for HPointwise kernel with given value. 1 stands for arity of 'f'.
+  Also restricts domain of 1st natural number to 1 *)
+  Definition Fin1SwapIndex {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A) : FinNat 1->A->A := const (f i).
+
+  Global Instance Fin1SwapIndex_proper `{Setoid A} {n:nat}:
+    Proper ((=) ==> ((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Fin1SwapIndex A n).
+  Proof.
+    simpl_relation.
+    apply H1; assumption.
+  Qed.
+
+
   (* Wrapper to swap index parameter for HBinOp kernel with given value. 2 stands for arity of 'f'.
   Also restricts domain of 1st natural number to 1 *)
   Definition Fin1SwapIndex2 {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A->A) : FinNat 1->A->A->A := const (f i).
 
-  (* Special version of SwapIndex2 which restricts domain of 1st natural number to 1 *)
   Global Instance Fin1SwapIndex2_proper `{Setoid A} {n:nat}:
     Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@Fin1SwapIndex2 A n).
   Proof.
