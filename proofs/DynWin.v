@@ -680,6 +680,9 @@ Require Import Spiral.FinNatSet.
       reflexivity.
     }
 
+    (* Next rule: eT_Induction *)
+    setoid_rewrite SHCompose_assoc at 2.
+
 
 End SigmaHCOL_rewriting.
 

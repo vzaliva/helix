@@ -4838,6 +4838,95 @@ and `ISumReduction_PointWise` *)
       apply fg.
     Qed.
 
+
+    Lemma rewrite_eT_Induction
+          (n:nat)
+          {b:nat}
+          {bc: b<n}
+          (fm: Monoid RthetaFlags)
+          (f: CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+          (initial: CarrierA)
+      :
+        SHCompose fm (eT fm bc) (liftM_HOperator fm (HInduction n f initial)) =
+        liftM_HOperator fm (HInductor b f initial).
+    Proof.
+      unfold SHCompose, compose.
+      unfold equiv, SHOperator_equiv.
+      simpl.
+
+      unfold equiv, ext_equiv.
+      intros x y E.
+      rewrite <- E; clear E y.
+
+      vec_index_equiv j jc.
+      apply Vnth_equiv.
+      reflexivity.
+
+      unfold eT'.
+      clear j jc.
+      vec_index_equiv j jc.
+      rewrite Vnth_1.
+
+      unfold liftM_HOperator', compose, sparsify.
+      rewrite 2!Vnth_map.
+      f_equiv.
+
+      unfold HInduction, compose, HCOLImpl.Scalarize, densify.
+      unfold HInductor, Lst, compose, HCOLImpl.Scalarize.
+      dep_destruct x. clear x.
+      dep_destruct x0. clear x0.
+      rename h into x.
+      dep_destruct j; try omega.
+      simpl.
+
+      generalize (WriterMonadNoT.evalWriter x) as y.
+      intros y. clear x.
+
+
+      (*dependent induction n.
+      -
+        crush.
+      -
+        induction b.
+        reflexivity.
+        simpl.
+        rewrite Vnth_map.
+        unshelve rewrite <- IHb.
+        apply lt_succ_l, bc.
+        f_equiv.
+       *)
+
+      induction b.
+      -
+        simpl.
+        dep_destruct n.
+        nat_lt_0_contradiction.
+        reflexivity.
+      -
+        simpl.
+        unshelve rewrite <- IHb.
+        apply lt_succ_l, bc.
+        clear IHb jc j.
+
+        (* no more inductor. good! *)
+        dependent induction n.
+        * crush.
+        *
+          setoid_replace (Vnth (HCOLImpl.Induction (S n) f initial y) bc)
+          with
+            (Vnth (Vcons initial (Vmap (fun x => f x y) (HCOLImpl.Induction n f initial y))) bc).
+        +
+          unshelve erewrite Vnth_Sn.
+          apply lt_S_n, bc.
+          rewrite Vnth_map.
+          f_equiv.
+          admit.
+        +
+          apply Vnth_arg_equiv.
+          apply HCOLImpl.Induction_cons.
+    Qed.
+
   End Value_Correctness.
 
 End SigmaHCOLRewritingRules.
