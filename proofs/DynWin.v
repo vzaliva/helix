@@ -565,11 +565,11 @@ Require Import Spiral.FinNatSet.
 
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
-
     match goal with
     | [ |- context [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
       match f with
       | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
+
         setoid_replace
           (mkSHOperatorFamily _ _ _ _ f) with
             (mkSHOperatorFamily _ _ _ _
@@ -641,16 +641,47 @@ Require Import Spiral.FinNatSet.
 
 
     (* Next rule: eT_Pointwise *)
-    unshelve rewrite rewrite_eTn_SHPointwise
-      with (g:= fun j =>  mult_by_nth a (FinNat_bloat (le_S (le_n 2)) j)).
-    solve_proper.
-    auto.
-    Focus 2.
+    unfold SHFamilyOperatorCompose.
+    simpl.
+
+    (* --- BEGIN: hack ---
+    I would expect the following to work here:
+
+    setoid_rewrite rewrite_eT_SHPointwise
+      with (g:=mult_by_1st (@le_S 2 2 (le_n 2)) a).
+
+     But it does not (match fails), so we have to do some manual rewriting
+     *)
+
+    match goal with
+    | [ |- context [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+      match f with
+      | (fun j jc => SHCompose _ (SHCompose _ (eT _ ?l) (SHPointwise _ ?c)) ?rest) =>
+        setoid_replace
+          (mkSHOperatorFamily _ _ _ _ f) with
+            (mkSHOperatorFamily _ _ _ _
+                                (fun (j:nat) (jc:j<3) => SHCompose _ (SHCompose _ (SHPointwise _ (mult_by_1st (@le_S 2 2 (le_n 2)) a)) (eT _ l)) rest))
+      end
+    end.
+
+    all:revgoals.
+    f_equiv.
+    intros j jc.
+    f_equiv.
+    apply rewrite_eT_SHPointwise.
+
+    (* --- END: hack --- *)
+
+    (* now solve some obligations *)
     intros x.
     simpl.
-    replace (le_S (le_S (le_n 1))) with (Nat.lt_trans Nat.lt_0_1 (le_S (le_n 2))).
+    unfold mult_by_1st.
+    intros nz.
+    unfold FinNat_bloat.
+    simpl.
+    replace nz with (Nat.lt_trans Nat.lt_0_1 (le_S (le_n 2)))
+      by apply proof_irrelevance.
     reflexivity.
-    apply proof_irrelevance.
 
 
 End SigmaHCOL_rewriting.
