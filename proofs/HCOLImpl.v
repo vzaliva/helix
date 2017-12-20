@@ -366,6 +366,21 @@ Section HCOL_implementation_proper.
     reflexivity.
   Qed.
 
+  Global Instance Inductor_proper {n:nat}:
+    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Inductor n).
+  Proof.
+    intros f f' fEq ini ini' iniEq v v' vEq.
+    induction n.
+    -
+      unfold Inductor.
+      apply iniEq.
+    -
+      simpl.
+      apply fEq.
+      apply IHn.
+      apply vEq.
+  Qed.
+
   Global Instance Induction_proper {n:nat}:
     Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Induction n).
   Proof.

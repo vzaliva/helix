@@ -93,6 +93,14 @@ Section HCOL_Language.
     : avector 1 -> avector n
     := Induction n f initial ∘ Scalarize.
 
+  Definition HInductor
+             (n:nat)
+             (f:CarrierA -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (initial: CarrierA)
+    : avector 1 -> avector 1
+    := Lst ∘ Inductor n f initial ∘ Scalarize.
+
   Definition HPointwise
              {n: nat}
              (f: { i | i<n} -> CarrierA -> CarrierA)
@@ -148,7 +156,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HScalarProd.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -176,7 +184,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HReduction .
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -188,7 +196,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HEvalPolynomial.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -200,7 +208,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HPrepend.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -212,7 +220,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HMonomialEnumerator.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -224,7 +232,7 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInfinityNorm.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
@@ -239,11 +247,28 @@ Section HCOL_Language.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInduction.
-      unfold compose, Lst, vector2pair.
+      unfold compose, Lst.
       apply Vcons_single_elim.
       rewrite E.
       reflexivity.
     Qed.
+
+    Global Instance HInductor_HOperator
+           (n:nat)
+           (f:CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial: CarrierA):
+      HOperator (HInductor n f initial).
+    Proof.
+      unfold HOperator. split; try (apply vec_Setoid).
+      intros x y E.
+      unfold HInductor.
+      unfold compose, Lst.
+      apply Vcons_single_elim.
+      rewrite E.
+      reflexivity.
+    Qed.
+
 
     Global Instance HChebyshevDistance_HOperator h:
       HOperator (HChebyshevDistance h).
