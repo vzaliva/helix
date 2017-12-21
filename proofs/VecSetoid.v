@@ -494,7 +494,36 @@ Section Vnth.
     assumption.
   Qed.
 
-  (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later *)
+  (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later. Instead it could be converted to `Vnth_aux` for which partial Proper is proven below:  *)
+
+  Global Instance Vnt_aux_arg_proper
+         {A:Type}
+         `{Equiv A}
+         {n i:nat}
+         (ic:i<n):
+    Proper ((=) ==> (=)) (@Vnth_aux A n i ic).
+  Proof.
+    intros x y E.
+    unfold Vnth_aux.
+    dependent induction n.
+    -
+      VOtac.
+      nat_lt_0_contradiction.
+    -
+      rewrite (VSn_eq x).
+      rewrite (VSn_eq y).
+      simpl.
+      break_match.
+      +
+        rewrite (VSn_eq x) in E.
+        rewrite (VSn_eq y) in E.
+        apply E.
+      +
+        apply IHn.
+        rewrite (VSn_eq x) in E.
+        rewrite (VSn_eq y) in E.
+        apply E.
+  Qed.
 
 End Vnth.
 

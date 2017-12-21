@@ -356,6 +356,14 @@ Section Vnth.
   Definition Vnth_aux {A:Type} {n i:nat} (ic:i<n) (a: vector A n) :=
     Vnth a ic.
 
+  Lemma Vnth_to_Vnth_aux
+        {A:Type} {n i:nat} (ic:i<n) (a: vector A n):
+    Vnth a ic = Vnth_aux ic a.
+  Proof.
+    unfold Vnth_aux.
+    reflexivity.
+  Qed.
+
   Lemma Vnth_0
         {B} {n} (v:vector B (S n)) (ip: 0<(S n)):
     Vnth (i:=0) v ip = Vhead v.
