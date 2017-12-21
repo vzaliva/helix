@@ -4842,14 +4842,19 @@ and `ISumReduction_PointWise` *)
           (n: nat)
           (f:CarrierA -> CarrierA -> CarrierA)
           (initial: CarrierA)
-          (y: CarrierA)
+          (v: CarrierA)
           (b: nat)
-          (bc0 : b < n)
+          (bc : b < n)
           (bc1 : b < S n)
       :
-        Vnth (HCOLImpl.Induction n f initial y) bc0 =
-        Vnth (HCOLImpl.Induction (S n) f initial y) bc1.
+        Vnth (HCOLImpl.Induction n f initial v) bc =
+        Vnth (HCOLImpl.Induction (S n) f initial v) bc1.
     Proof.
+      replace bc1 with (lt_lt_succ_r bc) by apply proof_irrelevance.
+      clear bc1.
+
+      rewrite 2!Vnth_to_Vnth_aux.
+      rewrite HCOLImpl.Induction_cons.
     Admitted.
 
     Lemma rewrite_eT_Induction
