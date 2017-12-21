@@ -4838,6 +4838,19 @@ and `ISumReduction_PointWise` *)
       apply fg.
     Qed.
 
+    Lemma Induction_S
+          (n: nat)
+          (f:CarrierA -> CarrierA -> CarrierA)
+          (initial: CarrierA)
+          (y: CarrierA)
+          (b: nat)
+          (bc0 : b < n)
+          (bc1 : b < S n)
+      :
+        Vnth (HCOLImpl.Induction n f initial y) bc0 =
+        Vnth (HCOLImpl.Induction (S n) f initial y) bc1.
+    Proof.
+    Admitted.
 
     Lemma rewrite_eT_Induction
           (n:nat)
@@ -4881,50 +4894,24 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       generalize (WriterMonadNoT.evalWriter x) as y.
-      intros y. clear x.
+      intros y; clear x j jc.
 
-
-      (*dependent induction n.
+      induction b,n.
+      - crush.
+      - crush.
+      - crush.
       -
-        crush.
-      -
-        induction b.
-        reflexivity.
         simpl.
+        unshelve rewrite <- IHb; clear IHb.
+        (* no more inductor *)
+        apply lt_succ_l, bc.
         rewrite Vnth_map.
-        unshelve rewrite <- IHb.
-        apply lt_succ_l, bc.
         f_equiv.
-       *)
 
-      induction b.
-      -
-        simpl.
-        dep_destruct n.
-        nat_lt_0_contradiction.
-        reflexivity.
-      -
-        simpl.
-        unshelve rewrite <- IHb.
-        apply lt_succ_l, bc.
-        clear IHb jc j.
+        generalize (lt_S_n bc) as bc0. intros bc0.
+        generalize (lt_succ_l b (S n) bc) as bc1. intros bc1.
 
-        (* no more inductor. good! *)
-        dependent induction n.
-        * crush.
-        *
-          setoid_replace (Vnth (HCOLImpl.Induction (S n) f initial y) bc)
-          with
-            (Vnth (Vcons initial (Vmap (fun x => f x y) (HCOLImpl.Induction n f initial y))) bc).
-        +
-          unshelve erewrite Vnth_Sn.
-          apply lt_S_n, bc.
-          rewrite Vnth_map.
-          f_equiv.
-          admit.
-        +
-          apply Vnth_arg_equiv.
-          apply HCOLImpl.Induction_cons.
+        apply Induction_S.
     Qed.
 
   End Value_Correctness.
