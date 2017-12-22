@@ -4838,9 +4838,13 @@ and `ISumReduction_PointWise` *)
       apply fg.
     Qed.
 
+
+    Require Import FunInd.
+
     Lemma Induction_S
           (n: nat)
           (f:CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (initial: CarrierA)
           (v: CarrierA)
           (b: nat)
@@ -4877,7 +4881,7 @@ and `ISumReduction_PointWise` *)
         crush.
         simpl.
         break_match; crush.
-    Qed.
+    Admitted.
 
     Lemma rewrite_eT_Induction
           (n:nat)
@@ -4938,7 +4942,7 @@ and `ISumReduction_PointWise` *)
         generalize (lt_S_n bc) as bc0. intros bc0.
         generalize (lt_succ_l b (S n) bc) as bc1. intros bc1.
 
-        apply Induction_S.
+        apply Induction_S, pF.
     Qed.
 
   End Value_Correctness.
