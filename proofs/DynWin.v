@@ -685,6 +685,11 @@ Require Import Spiral.FinNatSet.
 
     setoid_rewrite rewrite_eT_Induction.
 
+    (* Bring `eT` into `IReduction` *)
+    setoid_rewrite SHCompose_assoc at 1.
+    rewrite <- SafeCast_SHCompose.
+    setoid_rewrite rewrite_IReduction_absorb_operator.
+
 
 End SigmaHCOL_rewriting.
 
