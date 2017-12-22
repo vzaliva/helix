@@ -4855,7 +4855,29 @@ and `ISumReduction_PointWise` *)
 
       rewrite 2!Vnth_to_Vnth_aux.
       rewrite HCOLImpl.Induction_cons.
-    Admitted.
+      unfold Vnth_aux.
+      rewrite Vnth_cons.
+      break_match.
+      -
+        rewrite Vnth_map.
+        destruct b.
+        nat_lt_0_contradiction.
+        generalize (Vnth_cons_tail_aux (lt_lt_succ_r bc) l).
+        clear l.
+        simpl.
+        remember (b-0) as B.
+        rewrite sub_0_r in HeqB.
+        subst B.
+        intros bc1.
+        (* Checkpoint: Vnth (HCOLImpl.Induction n f initial v) bc = f (Vnth (HCOLImpl.Induction n f initial v) bc1) v
+         *)
+        admit.
+      -
+        destruct n.
+        crush.
+        simpl.
+        break_match; crush.
+    Qed.
 
     Lemma rewrite_eT_Induction
           (n:nat)
