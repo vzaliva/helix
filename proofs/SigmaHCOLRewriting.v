@@ -4838,10 +4838,7 @@ and `ISumReduction_PointWise` *)
       apply fg.
     Qed.
 
-
-    Require Import FunInd.
-
-    Lemma Induction_S
+    Lemma Induction_Vnth_S
           (n: nat)
           (f:CarrierA -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -4873,15 +4870,23 @@ and `ISumReduction_PointWise` *)
         rewrite sub_0_r in HeqB.
         subst B.
         intros bc1.
-        (* Checkpoint: Vnth (HCOLImpl.Induction n f initial v) bc = f (Vnth (HCOLImpl.Induction n f initial v) bc1) v
+        (* Checkpoint: Vnth (HCOLImpl.Induction n f initial v) bc = f (Vnth (HCOLImpl.Induction n f initial v) bc1) v.
+https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-induction
          *)
-        admit.
+        {
+          induction n in b, bc, bc1 |- *; simpl.
+          - bang.
+          - rewrite Vnth_map. f_equiv.
+            destruct b.
+            + destruct n. simpl. bang. reflexivity.
+            + rewrite Vnth_map. apply IHn.
+        }
       -
         destruct n.
         crush.
         simpl.
         break_match; crush.
-    Admitted.
+    Qed.
 
     Lemma rewrite_eT_Induction
           (n:nat)
@@ -4942,7 +4947,7 @@ and `ISumReduction_PointWise` *)
         generalize (lt_S_n bc) as bc0. intros bc0.
         generalize (lt_succ_l b (S n) bc) as bc1. intros bc1.
 
-        apply Induction_S, pF.
+        apply Induction_Vnth_S, pF.
     Qed.
 
   End Value_Correctness.
