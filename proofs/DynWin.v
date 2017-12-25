@@ -439,24 +439,50 @@ Require Import Spiral.FinNatSet.
     solve_facs.
     (* Now let's take care of remaining proof obligations *)
     -
-      admit.
+      apply Disjoined_singletons, H.
     -
       unfold Included, In.
       intros x H.
 
       replace (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2))) with
           (singleton (n:=2) 0).
-      admit.
+      {
+        destruct x.
+        destruct x.
+        apply Union_intror.
+        unfold singleton, In.
+        crush.
+
+        destruct x.
+        apply Union_introl.
+        unfold singleton, In.
+        crush.
+
+        crush.
+      }
       apply Extensionality_Ensembles.
       apply Union_Empty_set_lunit.
       apply Singleton_FinNatSet_dec.
     -
-      admit.
+      apply Disjoined_singletons.
+      crush.
     -
       unfold Included, In.
       intros x H.
-      admit.
-  Admitted.
+
+      destruct x.
+      destruct x.
+      apply Union_introl.
+      unfold singleton, In.
+      crush.
+
+      destruct x.
+      apply Union_intror.
+      unfold singleton, In.
+      crush.
+
+      crush.
+  Qed.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P

@@ -4,6 +4,7 @@ Require Export Coq.Sets.Ensembles.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Arith.Peano_dec.
 Require Import Spiral.Spiral.
+Require Import CpdtTactics.
 
 Notation FinNatSet n := (Ensemble (FinNat n)).
 
@@ -126,4 +127,19 @@ Proof.
     intros [H1 | H2].
     + apply Union_intror, H.
     + apply Union_introl, H.
+Qed.
+
+Lemma Disjoined_singletons
+      (q m n : nat)
+      (H: not (m = n)):
+  Disjoint (FinNat q) (singleton m) (singleton n).
+Proof.
+  apply Disjoint_intro.
+  intros x.
+  unfold In.
+  unfold not.
+  intros I.
+  destruct I.
+  unfold In, singleton in *.
+  crush.
 Qed.
