@@ -290,6 +290,7 @@ Require Import Spiral.FinNatSet.
              replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
            | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply UnSafeCast_Facts
            | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
            | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
@@ -297,6 +298,7 @@ Require Import Spiral.FinNatSet.
            | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
            | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
+           | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
            | [ |- SHOperator_Facts _ (USparseEmbedding _ _) ] => unfold USparseEmbedding
 
            | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
@@ -428,6 +430,33 @@ Require Import Spiral.FinNatSet.
                                                      (h_bound_second_half 1 4) j0
                                                      jc0) |})) |})).
 
+
+  Instance DynWinSigmaHCOL1_Facts
+           (a: avector 3):
+    SHOperator_Facts _ (dynwin_SHCOL1 a).
+  Proof.
+    unfold dynwin_SHCOL1.
+    solve_facs.
+    (* Now let's take care of remaining proof obligations *)
+    -
+      admit.
+    -
+      unfold Included, In.
+      intros x H.
+
+      replace (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2))) with
+          (singleton (n:=2) 0).
+      admit.
+      apply Extensionality_Ensembles.
+      apply Union_Empty_set_lunit.
+      apply Singleton_FinNatSet_dec.
+    -
+      admit.
+    -
+      unfold Included, In.
+      intros x H.
+      admit.
+  Admitted.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
