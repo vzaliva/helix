@@ -345,12 +345,89 @@ Require Import Spiral.FinNatSet.
       intros x H.
       apply Union_comm.
       apply two_index_maps_span_I_2.
-
   Qed.
 
   (* --- SigmaHCOL -> Sigma->HCOL --- *)
 
-  Parameter dynwin_SHCOL1: (avector 3) -> @SHOperator Monoid_RthetaFlags (1+(2+2)) 1.
+  Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)) 1
+    :=   (@SafeCast (Init.Nat.add (S O) (S O)) (S O)
+          (@SHBinOp Monoid_RthetaSafeFlags (S O)
+             (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O)))
+                Zless)
+             (@Reflexive_partial_app_morphism
+                (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                (forall (_ : @sig nat (fun n : nat => Peano.lt n (S O)))
+                   (_ : CarrierA) (_ : CarrierA), CarrierA)
+                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                   (@equiv CarrierA CarrierAe)
+                   (@equiv (forall _ : CarrierA, CarrierA)
+                      (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                (@respectful (@sig nat (fun n : nat => Peano.lt n (S O)))
+                   (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                   (@equiv (@sig nat (fun n : nat => Peano.lt n (S O)))
+                      (@Sig_Equiv nat peano_naturals.nat_equiv
+                         (fun n : nat => Peano.lt n (S O))))
+                   (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                      (@equiv CarrierA CarrierAe)
+                      (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                         (@equiv CarrierA CarrierAe))))
+                (@IgnoreIndex2 CarrierA
+                   (@sig nat (fun n : nat => Peano.lt n (S O))))
+                (@IgnoreIndex2_proper CarrierA CarrierAe
+                   (@sig nat (fun n : nat => Peano.lt n (S O)))
+                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                      (fun n : nat => Peano.lt n (S O)))) Zless
+                (@proper_proper_proxy
+                   (forall (_ : CarrierA) (_ : CarrierA), CarrierA) Zless
+                   (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                      (@equiv CarrierA CarrierAe)
+                      (@equiv (forall _ : CarrierA, CarrierA)
+                         (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                   Zless_proper))))
+  ⊚ HTSUMUnion Monoid_RthetaFlags plus
+      (eUnion Monoid_RthetaFlags (le_S (le_n 1)) 0
+       ⊚ SafeCast
+           (IReduction plus 0
+              (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
+                 {|
+                 family_member := λ (j : nat) (jc : j < 3),
+                                  SHCompose Monoid_RthetaSafeFlags
+                                    (SHPointwise Monoid_RthetaSafeFlags
+                                       (Fin1SwapIndex
+                                          (mkFinNat jc)
+                                          (mult_by_nth a)))
+                                    (liftM_HOperator Monoid_RthetaSafeFlags
+                                       (HInductor j mult 1)) |}
+                 (eT Monoid_RthetaSafeFlags
+                    (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
+      (eUnion Monoid_RthetaFlags (le_n 2) 0
+       ⊚ SafeCast
+           (IReduction minmax.max 0
+              {|
+              family_member := λ (j : nat) (jc : (j < 2)%nat),
+                               SHCompose Monoid_RthetaSafeFlags
+                                 (SHBinOp Monoid_RthetaSafeFlags
+                                    (λ (i : FinNat 1)
+                                     (a0 b : CarrierA),
+                                     IgnoreIndex abs i
+                                       (Fin1SwapIndex2
+                                          (mkFinNat jc)
+                                          (IgnoreIndex2 sub) i a0 b)))
+                                 (UnSafeCast
+                                    (ISumUnion
+                                       {|
+                                       family_member := λ
+                                                     (j0 : nat)
+                                                     (jc0 : (j0 < 2)%nat),
+                                                     eUnion Monoid_RthetaFlags jc0
+                                                     0
+                                                     ⊚
+                                                     eT Monoid_RthetaFlags
+                                                     (h_index_map_compose_range_bound
+                                                     (GathH_jn_domain_bound j 2 jc)
+                                                     (h_bound_second_half 1 4) j0
+                                                     jc0) |})) |})).
+
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
@@ -690,6 +767,11 @@ Require Import Spiral.FinNatSet.
     rewrite <- SafeCast_SHCompose.
     setoid_rewrite rewrite_IReduction_absorb_operator.
 
+    (* Fix SHBinOp type *)
+    rewrite <- SafeCast_SHBinOp.
+
+    reflexivity.
+  Qed.
 
 End SigmaHCOL_rewriting.
 
