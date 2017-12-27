@@ -201,25 +201,19 @@ Section TSigmaHCOLOperators.
     svector fm i -> svector fm o
     := fun x => Vec2Union fm dot (op1 x) (op2 x).
 
-
-  (* TODO: make dot part of morphism *)
   Global Instance HTSUMUnion'_proper {i o}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-    : Proper ((=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o) dot).
+    : Proper ( ((=) ==> (=) ==> (=)) ==>
+          (=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o)).
   Proof.
-    intros f f' Ef g g' Eg x y Ex.
+    intros dot dot' Edot f f' Ef g g' Eg x y Ex.
     unfold HTSUMUnion'.
     unfold Vec2Union.
     vec_index_equiv j jp.
     rewrite 2!Vnth_map2.
-    setoid_replace (Vnth (f x) jp) with (Vnth (f' y) jp).
-    setoid_replace (Vnth (g x) jp) with (Vnth (g' y) jp).
-    reflexivity.
-    - apply Vnth_arg_equiv.
-      apply Eg, Ex.
-    - apply Vnth_arg_equiv.
-      apply Ef, Ex.
+    f_equiv.
+    apply Edot.
+    - apply Vnth_arg_equiv; auto.
+    - apply Vnth_arg_equiv; auto.
   Qed.
 
   Global Instance HTSUMUnion'_arg_proper {i o}
