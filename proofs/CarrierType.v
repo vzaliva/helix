@@ -51,4 +51,15 @@ Ltac decide_CarrierA_equality E NE :=
   | [ |- @equiv CarrierA CarrierAe ?A ?B ] => destruct (CarrierAequivdec A B) as [E'|NE']
   end.
 
+(* Poor man's minus *)
+Definition sub: CarrierA → CarrierA → CarrierA := plus∘negate.
 
+(* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
+Global Instance CarrierA_sub_proper:
+  Proper ((=) ==> (=) ==> (=)) (sub).
+Proof.
+  intros a b Ha x y Hx .
+  unfold sub, compose.
+  rewrite Hx, Ha.
+  reflexivity.
+Qed.

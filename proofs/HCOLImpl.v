@@ -46,19 +46,6 @@ Section HCOL_implementations.
              {n} (v: avector n) : CarrierA :=
     Vfold_right max (Vmap abs v) zero.
 
-  (* Poor man's minus *)
-  Definition sub := plus∘negate.
-
-  (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
-  Global Instance CarrierA_sub_proper:
-    Proper ((=) ==> (=) ==> (=)) (sub).
-  Proof.
-    intros a b Ha x y Hx .
-    unfold sub, compose.
-    rewrite Hx, Ha.
-    reflexivity.
-  Qed.
-
   (* --- Chebyshev Distance --- *)
   Definition ChebyshevDistance
              {n} (ab: (avector n)*(avector n)): CarrierA :=
