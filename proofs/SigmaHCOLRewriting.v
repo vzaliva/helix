@@ -499,6 +499,20 @@ Section SigmaHCOLHelperLemmas.
       apply UnionFold_a_zero_structs; typeclasses eauto.
     Qed.
 
+    Fact Is_ValX_not_not'
+         `{uf_zero: MonUnit CarrierA}:
+      (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero.
+    Proof.
+      unfold Is_ValX.
+      unfold compose, equiv, ext_equiv.
+      simpl_relation.
+      rewrite_clear H.
+      unfold MonUnit.
+      generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
+      intros c.
+      destruct (CarrierAequivdec uf_zero c) as [E|NE]; crush.
+    Qed.
+
     Lemma UnionFold_VallButOne_a_zero
           {n : nat}
           (v : svector fm n)
@@ -570,10 +584,9 @@ Section SigmaHCOLHelperLemmas.
             specialize (U 0 jc n0).
             apply not_not_on_decidable.
             unfold Is_ValX.
-
+            typeclasses eauto.
             setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)
               with (equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm)).
-
             * apply U.
             *
               unfold compose.
@@ -1519,7 +1532,6 @@ Section SigmaHCOLRewritingRules.
           intros Uone.
           inversion Uone as [k H]; clear Uone.
           inversion H as [kc Uone]; clear H.
-          (* rewrite Is_ValZero_not_not in Uone. *)
           rewrite UnionFold_VallButOne_zero with (kc:=kc).
           *
             subst vl.
@@ -1541,10 +1553,12 @@ Section SigmaHCOLRewritingRules.
               specialize (Uone t tc H).
               rewrite Vbuild_nth in Uone.
 
-              apply not_not_on_decidable in Uone.
+
+              apply not_not_on_decidable with (A:=CarrierA) in Uone.
               symmetry in Uone.
               crush.
               reflexivity.
+              typeclasses eauto.
             }
 
             rewrite UnionFold_VallButOne_zero with (kc:=kc).
@@ -1558,10 +1572,11 @@ Section SigmaHCOLRewritingRules.
             apply Uone.
 
             intros x0 H.
-            apply not_not_on_decidable in H.
+            apply not_not_on_decidable with (A:=CarrierA) in H.
             unfold Is_ValZero, Is_ValX.
             symmetry.
             apply H.
+            typeclasses eauto.
         +
           intros.
           unfold compose, Is_ValZero.
@@ -1861,6 +1876,7 @@ Section SigmaHCOLRewritingRules.
               assert(jc: 0 < S n) by omega.
               specialize (U 0 jc n0).
               apply not_not_on_decidable.
+              typeclasses eauto.
               unfold Is_ValX.
 
               setoid_replace (λ x0 : Rtheta' fm, WriterMonadNoT.evalWriter x0 = uf_zero)

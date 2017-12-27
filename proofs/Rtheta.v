@@ -957,53 +957,9 @@ Section Zero_Utils.
     reflexivity.
   Qed.
 
-  Lemma Is_ValX_not_not
-        {fm:Monoid RthetaFlags}
-        `{uf_zero: MonUnit CarrierA}:
-    not ∘ (not ∘ (@Is_ValX fm uf_zero)) = Is_ValX uf_zero.
-  Proof.
-    unfold Is_ValX.
-    unfold compose, equiv, ext_equiv.
-    simpl_relation.
-    rewrite_clear H.
-    unfold MonUnit.
-    generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
-    intros c.
-    destruct (CarrierAequivdec uf_zero c) as [E|NE]; crush.
-  Qed.
-
-  (* TODO: See if we need this *)
-  Lemma Is_ValX_not_not'
-        {fm:Monoid RthetaFlags}
-        `{uf_zero: MonUnit CarrierA}:
-    (not ∘ (not ∘ equiv uf_zero ∘ WriterMonadNoT.evalWriter (Monoid_W:=fm))) = Is_ValX uf_zero.
-  Proof.
-    unfold Is_ValX.
-    unfold compose, equiv, ext_equiv.
-    simpl_relation.
-    rewrite_clear H.
-    unfold MonUnit.
-    generalize dependent (@WriterMonadNoT.evalWriter RthetaFlags CarrierA fm y).
-    intros c.
-    destruct (CarrierAequivdec uf_zero c) as [E|NE]; crush.
-  Qed.
-
-
-  (* Double negation on inValZero. Follows from decidability on CarrierA and Propernes of evalWriter. TODO: Very similar to [Is_ValX_not_not] *)
-  Lemma Is_ValZero_not_not
-        {fm:Monoid RthetaFlags}
-    :
-      ((not ∘ (not ∘ @Is_ValZero fm)) = Is_ValZero).
-  Proof.
-    unfold Is_ValZero.
-    apply Is_ValX_not_not.
-  Qed.
-
-
-  (* Double negation on inValZero. *)
   Lemma not_not_on_decidable
-        {A:Type}
-        {P: A->Prop}
+        (A: Type)
+        (P: A->Prop)
         `{forall x:A, Decision (P x)}
     :
       forall x, (not ∘ (not ∘ P)) x <-> P x.
