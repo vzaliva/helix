@@ -4049,7 +4049,7 @@ and `ISumReduction_PointWise` *)
         assert(VZ0: Is_ValZero (Vnth s0 jc)).
         {
           subst s0.
-          apply Scatter'_Zero_at_sparse; assumption.
+          apply Scatter'_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s0 jc) ) with CarrierAz.
         Focus 2.
@@ -4063,7 +4063,7 @@ and `ISumReduction_PointWise` *)
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
-          apply Scatter'_Zero_at_sparse; assumption.
+          apply Scatter'_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s1 jc) ) with CarrierAz.
         reflexivity.

@@ -1141,8 +1141,7 @@ Section SigmaHCOL_Operators.
                                  ⊚ (Gather (⦃g⦄ j jc))).
 
 
-    (* TODO: rename since Zero changed to IDV *)
-    Lemma Scatter'_Zero_at_sparse
+    Lemma Scatter'_Unit_at_sparse
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
@@ -1164,8 +1163,7 @@ Section SigmaHCOL_Operators.
         apply Is_ValX_mkStruct.
     Qed.
 
-    (* TODO: rename since Zero changed to IDV *)
-    Lemma Scatter'_NonZero_in_range
+    Lemma Scatter'_NonUnit_in_range
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
@@ -1188,8 +1186,7 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-    (* TODO: rename since Zero changed to IDV *)
-    Lemma SparseEmbedding_Apply_Family_Single_NonZero_Per_Row
+    Lemma SparseEmbedding_Apply_Family_Single_NonUnit_Per_Row
           {n i o ki ko}
           (* Kernel *)
           (kernel: @SHOperatorFamily ki ko n)
@@ -1227,8 +1224,8 @@ Section SigmaHCOL_Operators.
       clear kernel g i x ki. rename ko into i.
 
       intros [H0 H1].
-      apply Scatter'_NonZero_in_range, in_range_exists in H0; try assumption.
-      apply Scatter'_NonZero_in_range, in_range_exists in H1; try assumption.
+      apply Scatter'_NonUnit_in_range, in_range_exists in H0; try assumption.
+      apply Scatter'_NonUnit_in_range, in_range_exists in H1; try assumption.
       destruct H0 as [x [xc H0]].
       destruct H1 as [y [yc H1]].
       rewrite <- H1 in H0.

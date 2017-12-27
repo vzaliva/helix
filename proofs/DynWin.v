@@ -624,7 +624,7 @@ Require Import Spiral.FinNatSet.
     rewrite rewrite_PointWise_ISumUnion.
     all:revgoals.
     (* solve 2 sub-dependent goals *)
-    { apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row. }
+    { apply SparseEmbedding_Apply_Family_Single_NonUnit_Per_Row. }
     { intros j jc; apply abs_0_s. }
 
     (* Re-associate compositions before applying next rule *)
@@ -656,7 +656,7 @@ Require Import Spiral.FinNatSet.
       assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0).
       {
         subst fam.
-        apply SparseEmbedding_Apply_Family_Single_NonZero_Per_Row.
+        apply SparseEmbedding_Apply_Family_Single_NonUnit_Per_Row.
       }
       generalize dependent fam.
       intros fam _ H. clear a.
