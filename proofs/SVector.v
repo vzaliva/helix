@@ -234,8 +234,7 @@ Section Union.
   Proof.
     intros dot dot' Ed a a' Ea b b' Eb.
     unfold Vec2Union, Union.
-    (* TODO: vec_index_equiv from VecSetoid. Move all vector-related stuff there *)
-    unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j jc.
+    vec_index_equiv j jc.
     rewrite 2!Vnth_map2.
     unfold_Rtheta_equiv.
     rewrite 2!evalWriter_Rtheta_liftM2.

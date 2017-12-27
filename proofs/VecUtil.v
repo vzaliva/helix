@@ -1132,7 +1132,7 @@ Qed.
 (* --- Some tactics --- *)
 
 
-(* Given a [Vnth x i0 ic0 = Vnth y i1 ic0] and a hypotheis [i0=i1] reduces goal to [x=y].
+(* Given a `Vnth x i0 ic0 = Vnth y i1 ic0` and a hypotheis `i0=i1` reduces goal to `x=y`.
 TODO: See if could be generalized to [forall_n_lt_eq] *)
 Ltac Vnth_eq_index_to_val_eq :=
   let lc := fresh in

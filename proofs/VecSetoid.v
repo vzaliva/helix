@@ -73,43 +73,6 @@ Section Vconst.
 
 End Vconst.
 
-
-
-(* TODO: check if needed for Coq-8.6 *)
-Section Vfold_left.
-  Context
-    `{eqA: Equiv A}
-    `{eqB: Equiv B}.
-
-  Definition Vfold_left_reord {A B:Type} {n} (f:A->B->A) (initial:A) (v: vector B n): A := @Vfold_left A B f n initial v.
-
-  Lemma Vfold_left_to_Vfold_left_reord: forall {A B:Type} {n} (f:A->B->A) (v: vector B n) (initial:A),
-      Vfold_left f initial v ≡ Vfold_left_reord f initial v.
-  Proof.
-    crush.
-  Qed.
-
-  Global Instance Vfold_left_reord_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
-           (@Vfold_left_reord A B n).
-  Proof.
-    intros f f' Ef i i' iEq v v' vEq .
-    revert i i' iEq.
-    induction v; simpl; intros.
-    -
-      VOtac; assumption.
-    -
-      revert vEq.
-      VSntac v'.
-      unfold equiv, vec_Equiv.
-      rewrite Vforall2_cons_eq; intros [h1 h2]; simpl.
-      apply IHv.
-      + assumption.
-      + apply Ef; assumption.
-  Qed.
-
-End Vfold_left.
-
 (* TODO: check if needed for Coq-8.6 *)
 Section Vfold_left_rev.
   Context
@@ -593,7 +556,6 @@ Qed.
 
 Ltac vec_to_vec_reord := repeat match goal with
                                 | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
-                                | [ |- context [Vfold_left]] => setoid_rewrite Vfold_left_to_Vfold_left_reord
                                 | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
                                 | [ |- context [Vconst]] => setoid_rewrite Vconst_to_Vconst_reord
                                 | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord

@@ -3452,7 +3452,6 @@ Section SigmaHCOLRewritingRules.
                       replace (i - m + 1 * m) with i by omega.
                       reflexivity.
                       apply MNZ.
-
                     }
 
                     Vnth_eq_index_to_val_eq.
