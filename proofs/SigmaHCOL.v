@@ -1388,7 +1388,6 @@ Section SigmaHCOL_Operators.
 
 End SigmaHCOL_Operators.
 
-(* TODO: maybe <->  *)
 Lemma Is_Val_Scatter
       {m n: nat}
       (f: index_map m n)
