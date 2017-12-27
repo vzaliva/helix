@@ -145,7 +145,6 @@ Section HCOL_implementation_facts.
     intros; dep_destruct n; reflexivity.
   Qed.
 
-  (* TODO: better name. Maybe suffficent to replace with EvalPolynomial_cons *)
   Lemma EvalPolynomial_reduce:
     forall n (a: avector (S n)) (x:CarrierA),
       EvalPolynomial a x  =
@@ -154,7 +153,6 @@ Section HCOL_implementation_facts.
     intros; dep_destruct a; reflexivity.
   Qed.
 
-  (* TODO: better name. Maybe suffficent to replace with ScalarProd_cons *)
   Lemma ScalarProd_reduce:
     forall n (ab: (avector (S n))*(avector (S n))),
       ScalarProd ab = plus (mult (Vhead (fst ab)) (Vhead (snd ab))) (ScalarProd (Ptail ab)).
