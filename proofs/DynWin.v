@@ -97,7 +97,7 @@ SUMUnion(
                           (snzord0 := @ScatH_stride1_constr 1 2)
                           zero
                           ⊚
-                          (liftM_HOperator _ (@HReduction _ plus CarrierAPlus_proper 0)  ⊚
+                          (liftM_HOperator _ (@HReduction _ plus 0)  ⊚
                                            SafeCast (SHBinOp _ (IgnoreIndex2 mult))
                                            ⊚
                                            liftM_HOperator _ (HPrepend a )
@@ -114,7 +114,7 @@ SUMUnion(
                            (snzord0 := @ScatH_stride1_constr 1 2)
                            zero)
                       ⊚
-                      (liftM_HOperator _ (@HReduction _ minmax.max _ 0))
+                      (liftM_HOperator _ (@HReduction _ minmax.max 0))
                       ⊚
                       (SHPointwise _ (IgnoreIndex abs))
                       ⊚
@@ -122,7 +122,7 @@ SUMUnion(
                          (n:=2)
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
                                              (fun j jc => SafeCast (SHBinOp _ (o:=1)
-                                                                        (Fin1SwapIndex2 (mkFinNat jc) (IgnoreIndex2 HCOLImpl.sub)))))
+                                                                        (Fin1SwapIndex2 (mkFinNat jc) (IgnoreIndex2 CarrierType.sub)))))
                          (IndexMapFamily 1 2 2 (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc))))
                          (f_inj := h_j_1_family_injective)
                          zero
@@ -439,7 +439,8 @@ Require Import Spiral.FinNatSet.
     solve_facs.
     (* Now let's take care of remaining proof obligations *)
     -
-      apply Disjoined_singletons, H.
+      apply Disjoined_singletons.
+      tauto.
     -
       unfold Included, In.
       intros x H.

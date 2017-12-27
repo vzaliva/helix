@@ -52,7 +52,6 @@ Section HCOL_Language.
 
   Definition HReduction {i}
              (f: CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (idv: CarrierA)
     : avector i -> avector 1
     := Vectorize ∘ (Reduction f idv).
@@ -67,7 +66,6 @@ Section HCOL_Language.
 
   Definition HBinOp {o}
              (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : avector (o+o) -> avector o
     :=  BinOp f ∘ (vector2pair o).
 
@@ -88,7 +86,6 @@ Section HCOL_Language.
 
   Definition HInduction (n:nat)
              (f: CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial: CarrierA)
     : avector 1 -> avector n
     := Induction n f initial ∘ Scalarize.
@@ -96,7 +93,6 @@ Section HCOL_Language.
   Definition HInductor
              (n:nat)
              (f:CarrierA -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (initial: CarrierA)
     : avector 1 -> avector 1
     := Lst ∘ Inductor n f initial ∘ Scalarize.
@@ -104,14 +100,12 @@ Section HCOL_Language.
   Definition HPointwise
              {n: nat}
              (f: { i | i<n} -> CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
              (x: avector n)
     := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
 
   (* Special case of pointwise *)
   Definition HAtomic
              (f: CarrierA -> CarrierA)
-             `{pF: !Proper ((=) ==> (=)) f}
              (x: avector 1)
     := [f (Vhead x)].
 
@@ -120,8 +114,9 @@ Section HCOL_Language.
     Global Instance HPointwise_HOperator
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      HOperator (@HPointwise n f pF).
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    :
+      HOperator (@HPointwise n f).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
@@ -165,7 +160,7 @@ Section HCOL_Language.
     Global Instance HBinOp_HOperator {o}
            (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-      HOperator (@HBinOp o f pF).
+      HOperator (@HBinOp o f).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
@@ -179,7 +174,7 @@ Section HCOL_Language.
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (idv: CarrierA):
-      HOperator (@HReduction i f pF idv).
+      HOperator (@HReduction i f idv).
     Proof.
       unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
@@ -368,7 +363,6 @@ Section HCOL_Operator_Lemmas.
   Lemma HPointwise_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
         (x: avector n):
     Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
@@ -381,14 +375,13 @@ Section HCOL_Operator_Lemmas.
   Lemma HBinOp_nth
         {o}
         {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
-        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         {v: avector (o+o)}
         {j:nat}
         {jc: j<o}
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@HBinOp o f pF v) jc = f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@HBinOp o f v) jc = f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold HBinOp, compose, vector2pair, HBinOp, HCOLImpl.BinOp.
 
@@ -407,7 +400,6 @@ Section HCOL_Operator_Lemmas.
 
   Lemma HReduction_nil
         (f: CarrierA -> CarrierA -> CarrierA)
-        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         (idv: CarrierA):
     HReduction f idv [] ≡ [idv].
   Proof.

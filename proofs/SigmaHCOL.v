@@ -1796,7 +1796,7 @@ Section OperatorProperies.
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
     SHPointwise fm f =
-    liftM_HOperator fm (@HPointwise n f pF).
+    liftM_HOperator fm (@HPointwise n f).
   Proof.
     apply ext_equiv_applied_equiv.
     - apply SM_op_SHOperator.

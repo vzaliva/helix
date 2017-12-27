@@ -753,7 +753,7 @@ Section SigmaHCOLExpansionRules.
           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-      SafeCast (@SHBinOp _ o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f pF) _ .
+      SafeCast (@SHBinOp _ o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f) _ .
     Proof.
       apply ext_equiv_applied_equiv.
       -
@@ -769,6 +769,7 @@ Section SigmaHCOLExpansionRules.
         + apply vec_Setoid.
         + apply liftM_HOperator'_proper.
           apply HBinOp_HOperator.
+          apply pF.
       -
         intros x.
         simpl.
@@ -789,7 +790,7 @@ Section SigmaHCOLExpansionRules.
         unfold compose.
         unfold sparsify.
         repeat rewrite Vnth_map.
-        rewrite (@HBinOp_nth o f pF _ j jc jc1 jc2).
+        rewrite (@HBinOp_nth o f _ j jc jc1 jc2).
         unfold densify; rewrite 2!Vnth_map.
 
         rewrite <- evalWriter_Rtheta_liftM2 by apply fml.
@@ -799,7 +800,6 @@ Section SigmaHCOLExpansionRules.
         reflexivity.
     Qed.
 
-
     Lemma h_j_1_family_injective {n}:
       index_map_family_injective
         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc)))).
@@ -807,7 +807,6 @@ Section SigmaHCOLExpansionRules.
       unfold index_map_family_injective.
       crush.
     Qed.
-
 
     (* TODO: should be deriavale from 'h_j_1_family_injective' and 'index_map_family_member_injective' *)
     Lemma h_j_1_family_member_injective {n}:
@@ -3117,19 +3116,13 @@ Section SigmaHCOLRewritingRules.
           (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
 
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero))
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
           ⊚ (@IUnion i o n u _ uf_zero op_family)
         =
         SafeCast (IReduction f uf_zero
                              (UnSafeFamilyCast
-                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f _ uf_zero)) op_family))).
+                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
     Proof.
-      (*
-      assert(f_mor : Proper (equiv ==> equiv ==> equiv) f)
-        by apply rsg_op_proper.
-      assert(u_mor : Proper (equiv ==> equiv ==> equiv) u)
-        by apply sg_op_proper.
-       *)
       unfold SHOperatorFamilyCompose, SHCompose.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
@@ -3151,6 +3144,7 @@ Section SigmaHCOLRewritingRules.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply liftM_HOperator'_proper.
         apply HReduction_HOperator.
+        typeclasses eauto.
         apply Diamond'_proper.
         +
           apply f_mon.
@@ -3171,6 +3165,7 @@ Section SigmaHCOLRewritingRules.
           *
             apply liftM_HOperator'_proper.
             apply HReduction_HOperator.
+            typeclasses eauto.
           *
             apply op_proper.
       -
@@ -3954,12 +3949,12 @@ Section SigmaHCOLRewritingRules.
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
       :
-        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero))
+        (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero))
           ⊚ (ISumUnion op_family)
         =
         SafeCast (IReduction max zero
                              (UnSafeFamilyCast
-                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max _ zero)) op_family))).
+                                (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
     Proof.
       unfold ISumUnion.
 

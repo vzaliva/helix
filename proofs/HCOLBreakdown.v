@@ -30,7 +30,7 @@ Open Scope vector_scope.
 Section HCOLBreakdown.
 
   Lemma Vmap2Indexed_to_VMap2 `{Setoid A} {n} {a b: vector A n}
-        (f:A->A->A) `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+        (f:A->A->A)
   :
     Vmap2 f a b = Vmap2Indexed (IgnoreIndex2 f) a b.
   Proof.
@@ -49,7 +49,6 @@ Section HCOLBreakdown.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2Indexed_to_VMap2.
     reflexivity.
-    solve_proper.
   Qed.
 
   Fact breakdown_OScalarProd: forall {h:nat},
@@ -185,7 +184,6 @@ Section HCOLBreakdown.
     unfold VMinus, BinOp.
     break_let.
     apply Vmap2Indexed_to_VMap2.
-    crush.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),
@@ -216,7 +214,6 @@ Section HCOLBreakdown.
     inversion Heqp0.
     inversion Heqp1.
     apply Vmap2Indexed_to_VMap2.
-    crush.
   Qed.
 
 End HCOLBreakdown.
