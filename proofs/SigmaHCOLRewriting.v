@@ -822,17 +822,6 @@ Section SigmaHCOLExpansionRules.
       crush.
     Qed.
 
-    (* TODO: should be deriavale from 'h_j_1_family_injective' and 'index_map_family_member_injective' *)
-    Lemma h_j_1_family_member_injective {n}:
-      forall t (tc:t<n),
-        @index_map_injective 1 n
-                             ((fun (j:nat) (jc:j<n) =>
-                                 @h_index_map 1 n j 1 (ScatH_1_to_n_range_bound j n (S O) jc)) t tc).
-    Proof.
-      unfold index_map_injective.
-      crush.
-    Qed.
-
     Lemma U_SAG2:
       ∀ (n : nat) (x : rvector (n + n))
         (f: FinNat n -> CarrierA -> CarrierA -> CarrierA)
