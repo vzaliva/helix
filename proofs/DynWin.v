@@ -512,21 +512,6 @@ Require Import Spiral.FinNatSet.
     apply H.
   Qed.
 
-  (* TODO: move to SigmaHCOLRewriting *)
-  Lemma ApplyFamily_SHOperatorFamilyCompose
-        {i1 o2 o3 n}
-        {fm}
-        (f: @SHOperator fm o2 o3)
-        (g: @SHOperatorFamily fm i1 o2 n)
-        {x}
-    : Apply_Family fm (SHOperatorFamilyCompose fm f g) x ≡
-      Vmap (op fm f) (Apply_Family fm g x).
-  Proof.
-    unfold Apply_Family, Apply_Family', SHOperatorFamilyCompose.
-    rewrite Vmap_Vbuild.
-    reflexivity.
-  Qed.
-
   Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
         {i1 o2 n}
         (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n)

@@ -1832,6 +1832,19 @@ Section OperatorProperies.
     apply Vnth_snd_Vbreak with (jc3:=jc2).
   Qed.
 
+  Lemma ApplyFamily_SHOperatorFamilyCompose
+        {i1 o2 o3 n}
+        (f: @SHOperator fm o2 o3)
+        (g: @SHOperatorFamily fm i1 o2 n)
+        {x}
+    : Apply_Family fm (SHOperatorFamilyCompose fm f g) x ≡
+                   Vmap (op fm f) (Apply_Family fm g x).
+  Proof.
+    unfold Apply_Family, Apply_Family', SHOperatorFamilyCompose.
+    rewrite Vmap_Vbuild.
+    reflexivity.
+  Qed.
+
 End OperatorProperies.
 
 Section StructuralProperies.
