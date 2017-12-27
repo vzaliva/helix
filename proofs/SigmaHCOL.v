@@ -2476,12 +2476,11 @@ Section StructuralProperies.
         apply Vnc.
   Qed.
 
-  (* TODO: move *)
   Lemma Is_Val_In_outset
         (i o : nat)
-        (v : rvector i)
-        (j : nat) (jc : j < o)
-        (O : SHOperator Monoid_RthetaFlags)
+        (v: rvector i)
+        (j: nat) (jc : j < o)
+        (O: SHOperator Monoid_RthetaFlags)
         (F: SHOperator_Facts Monoid_RthetaFlags O)
         (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
     :
