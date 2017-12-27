@@ -1331,13 +1331,6 @@ Section SigmaHCOLExpansionRules.
 
   End Value_Correctness.
 
-  Section Structural_Correctness.
-
-    (* TODO *)
-
-  End Structural_Correctness.
-
-
 End SigmaHCOLExpansionRules.
 
 Section SigmaHCOLRewritingRules.
