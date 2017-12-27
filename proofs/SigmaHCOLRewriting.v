@@ -2,6 +2,7 @@
 Global Generalizable All Variables.
 
 Require Import Spiral.VecUtil.
+Require Import Spiral.Matrix.
 Require Import Spiral.Spiral.
 Require Import Spiral.Rtheta.
 Require Import Spiral.VecSetoid.

@@ -1,5 +1,5 @@
-
 Require Import Spiral.VecUtil.
+Require Import Spiral.Matrix.
 Require Import Spiral.VecSetoid.
 Require Import Spiral.SVector.
 Require Import Spiral.Spiral.

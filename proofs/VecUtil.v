@@ -1128,29 +1128,6 @@ Proof.
   reflexivity.
 Qed.
 
-
-(* --- Some tactics --- *)
-
-
-(* Given a `Vnth x i0 ic0 = Vnth y i1 ic0` and a hypotheis `i0=i1` reduces goal to `x=y`. *)
-Ltac Vnth_eq_index_to_val_eq :=
-  let lc := fresh in
-  let rc := fresh in
-  let Q := fresh in
-  let HeqQ := fresh in
-  match goal with
-  | [ H: ?i0 = ?i1 |- @Vnth ?t ?s ?v0 ?i0 ?ic0 = @Vnth ?t ?s ?v1 ?i1 ?ic1] =>
-    generalize ic0 as lc;
-    generalize ic1 as rc;
-    intros rc lc ;
-    remember i0 as Q eqn:HeqQ;
-    rewrite H in HeqQ;
-    subst Q;
-    rewrite (le_unique _ _ lc rc);
-    apply Vnth_arg_eq;
-    clear rc lc HeqQ
-  end.
-
 Lemma vector1_eq_Vhead_eq
       {A: Type}
       {a b: vector A 1}:
@@ -1166,32 +1143,6 @@ Proof.
   assumption.
   reflexivity.
 Qed.
-
-Section Matrix.
-  (* Poor man's matrix is vector of vectors.
-     TODO: If it grows, move to separate module. *)
-
-  Set Implicit Arguments.
-  Variables (A: Type) (m n:nat).
-
-  Definition row
-             {i:nat} (ic: i<m)
-             (a: vector (vector A m) n)
-    :=
-      Vmap (Vnth_aux ic) a.
-
-  Definition col
-             {i:nat} (ic: i<n)
-             (a: vector (vector A m) n)
-    :=
-      Vnth a ic.
-
-  Definition transpose
-             (a: vector (vector A m) n)
-    :=
-      Vbuild (fun j jc => row jc a).
-
-End Matrix.
 
 Section List_of_Vec.
 
@@ -1350,3 +1301,25 @@ Section List_of_Vec.
   Qed.
 
 End List_of_Vec.
+
+
+(* --- Some tactics --- *)
+
+(* Given a `Vnth x i0 ic0 = Vnth y i1 ic0` and a hypotheis `i0=i1` reduces goal to `x=y`. *)
+Ltac Vnth_eq_index_to_val_eq :=
+  let lc := fresh in
+  let rc := fresh in
+  let Q := fresh in
+  let HeqQ := fresh in
+  match goal with
+  | [ H: ?i0 = ?i1 |- @Vnth ?t ?s ?v0 ?i0 ?ic0 = @Vnth ?t ?s ?v1 ?i1 ?ic1] =>
+    generalize ic0 as lc;
+    generalize ic1 as rc;
+    intros rc lc ;
+    remember i0 as Q eqn:HeqQ;
+    rewrite H in HeqQ;
+    subst Q;
+    rewrite (le_unique _ _ lc rc);
+    apply Vnth_arg_eq;
+    clear rc lc HeqQ
+  end.

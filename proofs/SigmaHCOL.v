@@ -1,6 +1,7 @@
 (* Coq defintions for Sigma-HCOL operator language *)
 
 Require Import Spiral.VecUtil.
+Require Import Spiral.Matrix.
 Require Import Spiral.VecSetoid.
 Require Import Spiral.Spiral.
 Require Import Spiral.Rtheta.
