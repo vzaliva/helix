@@ -23,7 +23,7 @@ Ltac eta_reduce_all_private h := repeat change (fun x => ?h x) with h.
 Ltac eta_reduce_all := eta_reduce_all_private idtac.
 
 (*
-Give equality of two functions of type [∀ p : nat, p < n → A] and and a hypotheis [i0=i1] solves the goal.
+Given an equality of two functions of type `∀ p : nat, p < n → A` and and a hypotheis `i0=i1` solves the goal.
 *)
 Ltac forall_n_lt_eq :=
   let lc := fresh in
