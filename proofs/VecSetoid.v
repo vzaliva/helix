@@ -42,33 +42,21 @@ Section VectorSetoid.
 End VectorSetoid.
 
 
-Section Vconst.
-  Context
-    `{eqA: Equiv A}.
-
-  Definition Vconst_reord {n} (x:A): vector A n :=
-    Vconst x n.
-
-  Lemma Vconst_to_Vconst_reord {n} (x:A):
-    Vconst x n ≡ @Vconst_reord n x.
-  Proof.
-    crush.
-  Qed.
-
-  Global Instance Vconst_reord_proper {n}:
-    Proper ((=)==>(=)) (@Vconst_reord n).
-  Proof.
-    intros a a' aa'.
-    unfold Vconst_reord.
-    induction n.
-    crush.
+Global Instance Vconst_proper (A:Type) `{Ae: Equiv A}:
+  Proper ((=) ==> forall_relation
+              (fun (n : nat) => (@vec_Equiv A _ n)))
+         (@Vconst A).
+Proof.
+  intros a a' aa'.
+  intros n.
+  induction n.
+  - crush.
+  -
     simpl.
     unfold equiv, vec_Equiv.
     rewrite Vforall2_cons_eq.
     split; assumption.
-  Qed.
-
-End Vconst.
+Qed.
 
 (* TODO: check if needed for Coq-8.6 *)
 Section Vfold_left_rev.
@@ -554,7 +542,6 @@ Qed.
 Ltac vec_to_vec_reord := repeat match goal with
                                 | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
                                 | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
-                                | [ |- context [Vconst]] => setoid_rewrite Vconst_to_Vconst_reord
                                 | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord
                                 end.
 

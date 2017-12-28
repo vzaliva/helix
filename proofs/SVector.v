@@ -258,8 +258,6 @@ Section Union.
     apply Vfold_left_rev_reord_proper.
     apply Vec2Union_proper.
     apply Ed.
-    rewrite 2!Vconst_to_Vconst_reord.
-    apply Vconst_reord_proper.
     rewrite Eo; reflexivity.
     apply E.
   Qed.
