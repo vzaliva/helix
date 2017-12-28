@@ -30,6 +30,14 @@ Section HCOL_implementations.
   (* Promote scalar to unit vector *)
   Definition Vectorize (x:CarrierA): (avector 1) := [x].
 
+  Global Instance Vectorize_proper:
+    Proper ((=) ==> (=)) Vectorize.
+  Proof.
+    unfold Vectorize.
+    intros x y E.
+    apply Vcons_single_elim, E.
+  Qed.
+
   (* Convert single element vector to scalar *)
   Definition Scalarize (x: avector 1) : CarrierA := Vhead x.
 

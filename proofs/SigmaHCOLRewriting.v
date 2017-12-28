@@ -4216,6 +4216,7 @@ and `ISumReduction_PointWise` *)
           simpl.
 
           destruct g_mon eqn:H1, comrmonoid_rmon eqn:H2.
+          rewrite evalWriter_mkStruct.
           rewrite rmonoid_left_id.
           --
             reflexivity.
