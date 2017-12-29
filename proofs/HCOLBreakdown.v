@@ -139,13 +139,13 @@ Section HCOLBreakdown.
       rewrite Induction_cons.
       rewrite Vcons_to_Vcons_reord.
       unfold Scale.
-
-      rewrite 2!Vmap_to_Vmap_reord.
+      f_equiv.
       setoid_replace (fun x0 : CarrierA => mult x0 x) with (mult x).
       reflexivity.
       +
-        compute. intros.
-        rewrite H. apply mult_comm.
+        intros a b E.
+        rewrite E.
+        apply mult_comm.
   Qed.
 
   Fact breakdown_OMonomialEnumerator:

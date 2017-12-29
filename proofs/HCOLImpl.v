@@ -380,12 +380,15 @@ Section HCOL_implementation_proper.
     intros f f' fEq ini ini' iniEq v v' vEq.
     induction n.
     reflexivity.
-    rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord, 2!Vmap_to_Vmap_reord.
-    f_equiv; try assumption.
-    f_equiv; try apply IHn.
-    unfold respectful.
-    intros x y H.
-    apply fEq; assumption.
+    rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord.
+    f_equiv; auto.
+    eapply Vmap_proper.
+    -
+      unfold equiv, ext_equiv.
+      intros a b E.
+      apply fEq; auto.
+    -
+      apply IHn.
   Qed.
 
   Global Instance VMinus_proper (n:nat):

@@ -339,64 +339,39 @@ Proof.
 Qed.
 
 
-(* TODO: Check if it is still needed in Coq-8.6 *)
-Section VMap_reord.
-
-  (*
-   The following Proper for dependent-typed Vmap does not work.
-   As workaround we reorder parameters and define simple typed
-   version of [Vmap_reord] for given [A,B,n].
-
-   This general technique was first suggested to us in coq-club mailing
-   list by Daniel Schepler <dschepler@gmail.com> in 11/2014
-
-Global Instance Vmap_proper {A B:Type} `{Ae: Setoid A} `{Be: Setoid B}:
+Global Instance Vmap_proper (A B:Type) `{Ae: Equiv A} `{Be: Equiv B}:
   Proper (
       ((=) ==> (=)) ==> (forall_relation
                        (fun (n : nat) => (@vec_Equiv A _ n) ==> (@vec_Equiv B _ n))))
          (@Vmap A B).
-*)
-
-  Definition Vmap_reord (A B: Type) (n:nat) (f:A->B) (x: vector A n): vector B n := Vmap f x.
-
-  Lemma Vmap_to_Vmap_reord: forall (A B: Type) (n:nat) (f:A->B) (x: vector A n), @Vmap A B f n x ≡ @Vmap_reord A B n f x.
-  Proof.
-    crush.
-  Qed.
-
-
-  Global Instance Vmap_reord_proper n (M N:Type) `{Ne:!Equiv N, Me:!Equiv M}:
-    Proper (((=) ==> (=)) ==> (=) ==> (=))
-           (@Vmap_reord M N n).
-  Proof.
-    intros f g Eext a b Ev.
+Proof.
+    intros f f' Ef n v v' Ev.
     induction n.
     -
       VOtac; auto.
     -
-      dep_destruct a. dep_destruct b.
+      dep_destruct v. dep_destruct v'.
       split.
-      + apply Eext, Ev.
+      +
+        inversion Ev.
+        apply Ef, H.
       + apply IHn, Ev.
-  Qed.
+Qed.
 
-
-  Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
-         `{fP: !Proper (Me ==> Ne) f} (n:nat):
-    Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
-  Proof.
-    intros a b Ea.
-    induction n.
-    -
-      VOtac; auto.
-    -
-      dep_destruct a. dep_destruct b.
-      split.
-      apply fP, Ea.
-      apply IHn, Ea.
-  Qed.
-
-End VMap_reord.
+Global Instance Vmap_arg_proper  (M N:Type) `{Me:!Equiv M} `{Ne: !Equiv N} (f : M->N)
+       `{fP: !Proper (Me ==> Ne) f} (n:nat):
+  Proper ((@vec_Equiv M _ n) ==> (@vec_Equiv N _ n)) (@Vmap M N f n).
+Proof.
+  intros a b Ea.
+  induction n.
+  -
+    VOtac; auto.
+  -
+    dep_destruct a. dep_destruct b.
+    split.
+    apply fP, Ea.
+    apply IHn, Ea.
+Qed.
 
 
 Global Instance VBreak_proper (A:Type) `{Setoid A} (n1 n2:nat) `{Plus nat}:
@@ -542,6 +517,4 @@ Qed.
 Ltac vec_to_vec_reord := repeat match goal with
                                 | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
                                 | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
-                                | [ |- context [Vmap]] => setoid_rewrite Vmap_to_Vmap_reord
                                 end.
-
