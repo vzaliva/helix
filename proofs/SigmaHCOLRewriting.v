@@ -1016,7 +1016,7 @@ Section SigmaHCOLExpansionRules.
             self(ch[i], opts),
             GathH(Cols(o), Cols(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[2])), 1))))),
      *)
-    (* TODO: perhaps could be generalized for generic operation, not just plus *)
+    (* This could be generalized for `Monoid (plus, zero)` *)
     Theorem expand_HTDirectSum
             {fm: Monoid RthetaFlags}
             {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
