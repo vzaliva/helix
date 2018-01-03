@@ -120,18 +120,6 @@ Proof.
   apply f_mor.
 Qed.
 
-(* TODO: remove
-Global Instance Vfold_right_aux_proper n :
-  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
-         (@Vfold_right_aux A B n).
-Proof.
-  simpl_relation.
-  unfold Vfold_right_aux.
-  rewrite Vfold_right_to_Vfold_right_reord.
-  apply Vfold_right_reord_proper; assumption.
-Qed.
- *)
-
 Lemma Vcons_single_elim `{Ae: Equiv A} : forall a1 a2,
     Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
 Proof.

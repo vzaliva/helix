@@ -107,8 +107,6 @@ Proof.
 Qed.
 
 Section VFold.
-  (* Right fold with vector argument last, so it is easier to use in point-free notation, for example in Vmap *)
-  Definition Vfold_right_aux {A B:Type} {n} (f:A->B->B) (initial:B) (v: vector A n): B := @Vfold_right A B f n v initial.
 
   Lemma Vfold_right_cons: forall A B n (f:A->B->B) (id:B) (h:A) (v:vector A n),
       Vfold_right f (Vcons h v) id = f h (Vfold_right f v id).
