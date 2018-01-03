@@ -82,49 +82,55 @@ Proof.
     apply Ef; auto.
 Qed.
 
-(* TODO: check if needed for Coq-8.6 *)
-Section Vfold_right.
-  Context
-    `{eqA: Equiv A}
-    `{eqB: Equiv B}.
+Global Instance Vfold_right_proper
+       (A B : Type)
+       `{Ae: Equiv A}
+       `{Be: Equiv B}:
+  Proper (((=) ==> (=) ==> (=)) ==>
+                            forall_relation
+                            (fun (n : nat) => (@vec_Equiv A _ n) ==> (=) ==> (=)))
+         (@Vfold_right A B).
+Proof.
+  intros f f' Ef n v v' Ev a a' Ea.
 
-  Definition Vfold_right_reord {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B): B := @Vfold_right A B f n v initial.
+  induction v; simpl; intros.
+  -
+    VOtac.
+    simpl.
+    apply Ea.
+  -
+    revert Ev. VSntac v'.
+    unfold vec_Equiv.
+    rewrite Vforall2_cons_eq. intuition. simpl.
+    apply Ef; auto.
+Qed.
 
-  Lemma Vfold_right_to_Vfold_right_reord: forall {A B:Type} {n} (f:A->B->B) (v: vector A n) (initial:B),
-      Vfold_right f v initial ≡ Vfold_right_reord f v initial.
-  Proof.
-    crush.
-  Qed.
+Global Instance Vfold_right_arg_proper
+       (A B : Type)
+       `{Ae: Equiv A}
+       `{Be: Equiv B}
+       (f: A → B → B)
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       {n:nat}
+  :
+    Proper ((@vec_Equiv A _ n) ==> (=) ==> (=))
+         (@Vfold_right A B f n).
+Proof.
+  apply Vfold_right_proper.
+  apply f_mor.
+Qed.
 
-  Global Instance Vfold_right_reord_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
-           (@Vfold_right_reord A B n).
-  Proof.
-    intros f f' Ef v v' vEq i i' iEq.
-    unfold Vfold_right_reord.
-    induction v.
-    (* Case "N=0". *)
-    VOtac. simpl. assumption.
-    (* Case "S(N)".*)
-    revert vEq. VSntac v'. unfold equiv, vec_Equiv. rewrite Vforall2_cons_eq. intuition. simpl.
-    apply Ef.
-    (* SCase "Pf - 1". *)
-    assumption.
-    (* SCase "Pf - 2". *)
-    apply IHv. unfold equiv, vec_Equiv; assumption.
-  Qed.
-
-  Global Instance Vfold_right_aux_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
-           (@Vfold_right_aux A B n).
-  Proof.
-    simpl_relation.
-    unfold Vfold_right_aux.
-    rewrite Vfold_right_to_Vfold_right_reord.
-    apply Vfold_right_reord_proper; assumption.
-  Qed.
-
-End Vfold_right.
+(* TODO: remove
+Global Instance Vfold_right_aux_proper n :
+  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+         (@Vfold_right_aux A B n).
+Proof.
+  simpl_relation.
+  unfold Vfold_right_aux.
+  rewrite Vfold_right_to_Vfold_right_reord.
+  apply Vfold_right_reord_proper; assumption.
+Qed.
+ *)
 
 Lemma Vcons_single_elim `{Ae: Equiv A} : forall a1 a2,
     Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
@@ -504,8 +510,3 @@ Proof.
   apply E.
 Qed.
 
-(* --- Tactics --- *)
-
-Ltac vec_to_vec_reord := repeat match goal with
-                                | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
-                                end.

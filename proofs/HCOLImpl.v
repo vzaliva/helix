@@ -182,7 +182,6 @@ Section HCOL_implementation_facts.
   Proof.
     intros.
     unfold ScalarProd.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
     setoid_replace (Vmap2 mult a b) with (Vmap2 mult b a).
     reflexivity.
     apply Vmap2_comm; typeclasses eauto.
@@ -278,7 +277,6 @@ Section HCOL_implementation_proper.
     destruct x as [xa xb].
     destruct y as [ya yb].
     unfold ScalarProd.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
     destruct Ex as [H0 H1].
     simpl in H0, H1.
     rewrite H0, H1.
@@ -292,7 +290,6 @@ Section HCOL_implementation_proper.
     unfold Proper.
     intros a b E1.
     unfold InfinityNorm.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite E1.
     reflexivity.
   Qed.
@@ -313,8 +310,7 @@ Section HCOL_implementation_proper.
     unfold Proper.
     intros fa fb Ef a b E1 x y E2.
     unfold Reduction.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
-    apply Vfold_right_reord_proper; assumption.
+    eapply Vfold_right_proper; assumption.
   Qed.
 
   Global Instance ChebyshevDistance_proper  (n:nat):

@@ -3079,9 +3079,7 @@ Section SigmaHCOLRewritingRules.
 
       (* Not sure why Coq does not properly guess varables here... *)
       rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P1) by apply rsg_op_proper.
-      rewrite Vfold_right_to_Vfold_right_reord.
       rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P2) by apply rsg_op_proper.
-      rewrite <- Vfold_right_to_Vfold_right_reord.
 
       f_equiv.
 
@@ -3229,10 +3227,7 @@ Section SigmaHCOLRewritingRules.
 
         (* 1. In LHS push [evalWriter] all the way down to [get_family_op] *)
 
-        rewrite Vfold_right_to_Vfold_right_reord.
         rewrite eval_2D_Fold by apply f_mon.
-        rewrite <- Vfold_right_to_Vfold_right_reord.
-
         rewrite Vmap_Vbuild.
 
         assert(Upoz': forall (j : nat) (jc : j < n), Vforall P
@@ -3535,10 +3530,7 @@ Section SigmaHCOLRewritingRules.
           subst lhs lnorm.
           clear rhs NR Heqlcols CP lcols rnorm tmm tmdn.
 
-          setoid_rewrite Vfold_right_to_Vfold_right_reord.
           rewrite (Vfold_right_left_rev_under_P (Vforall P (n:=m))).
-          setoid_rewrite <- Vfold_right_to_Vfold_right_reord.
-
           remember (Vfold_right _ (Vbuild gen) _) as lrows.
           induction m.
           +

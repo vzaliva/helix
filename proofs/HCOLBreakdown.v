@@ -46,7 +46,6 @@ Section HCOLBreakdown.
   Proof.
     intros n a v.
     unfold compose, BinOp, Reduction, ScalarProd.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap2Indexed_to_VMap2.
     reflexivity.
   Qed.
@@ -110,7 +109,6 @@ Section HCOLBreakdown.
   Proof.
     intros n v.
     unfold InfinityNorm, Reduction, compose, IgnoreIndex, HPointwise.
-    rewrite 2!Vfold_right_to_Vfold_right_reord.
     rewrite Vmap_as_Vbuild.
     reflexivity.
   Qed.
