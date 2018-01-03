@@ -133,11 +133,9 @@ Section HCOLBreakdown.
     induction n.
     - reflexivity.
     - rewrite MonomialEnumerator_cons.
-      rewrite Vcons_to_Vcons_reord.
       rewrite_clear IHn.
       symmetry.
       rewrite Induction_cons.
-      rewrite Vcons_to_Vcons_reord.
       unfold Scale.
       f_equiv.
       setoid_replace (fun x0 : CarrierA => mult x0 x) with (mult x).

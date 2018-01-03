@@ -299,10 +299,9 @@ Section Union.
     VOtac; reflexivity.
     VSntac a. VSntac b.
     simpl.
-    rewrite 2!Vcons_to_Vcons_reord.
-    apply Vcons_reord_proper.
-    apply IHn.
+    apply Vcons_proper.
     apply Union_comm, C.
+    apply IHn.
   Qed.
 
   Lemma MUnion'_0
@@ -440,14 +439,20 @@ Section Union.
   Proof.
     unfold szero_svector.
     induction n.
-    dep_destruct a; reflexivity.
-    simpl.
-    rewrite Vcons_to_Vcons_reord.
-    rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
-    rewrite Union_SZero_r.
-    rewrite <- Vcons_to_Vcons_reord.
-    dep_destruct a.
-    reflexivity.
+    -
+      dep_destruct a; reflexivity.
+    -
+      simpl.
+      unfold equiv, vec_Equiv.
+      setoid_rewrite IHn.
+      dep_destruct a.
+      apply Vforall2_cons_eq.
+      split.
+      +
+        rewrite Union_SZero_r.
+        reflexivity.
+      +
+        reflexivity.
   Qed.
 
   Lemma Vec2Union_szero_svector_l {n} {a: svector fm n}:
@@ -457,10 +462,8 @@ Section Union.
     induction n.
     dep_destruct a; reflexivity.
     simpl.
-    rewrite Vcons_to_Vcons_reord.
     rewrite IHn by (apply Vforall_tl; assumption). clear IHn.
     rewrite Union_SZero_l.
-    rewrite <- Vcons_to_Vcons_reord.
     dep_destruct a.
     reflexivity.
   Qed.

@@ -174,7 +174,7 @@ Section HCOL_implementation_facts.
       MonomialEnumerator (S n) x = Vcons one (Scale (x, (MonomialEnumerator n x))).
   Proof.
     intros n x.
-    destruct n; simpl; repeat rewrite Vcons_to_Vcons_reord; reflexivity.
+    destruct n; simpl; reflexivity.
   Qed.
 
   Lemma ScalarProd_comm: forall n (a b: avector n),
@@ -185,7 +185,7 @@ Section HCOL_implementation_facts.
     rewrite 2!Vfold_right_to_Vfold_right_reord.
     setoid_replace (Vmap2 mult a b) with (Vmap2 mult b a).
     reflexivity.
-    apply Vmap2_comm.
+    apply Vmap2_comm; typeclasses eauto.
   Qed.
 
   Lemma ScalarProduct_descale: forall {n} (a b: avector n) (s:CarrierA),
@@ -207,7 +207,7 @@ Section HCOL_implementation_facts.
       VSntac a.  VSntac b.
       simpl.
       symmetry.
-      rewrite Vcons_to_Vcons_reord, plus_mult_distr_l, <- Vcons_to_Vcons_reord.
+      rewrite plus_mult_distr_l.
 
       (* Remove cons from IHn *)
       assert (HIHn:  forall a0 b0 : avector n, equiv (Vfold_right plus (Vmap2 mult (Vmap (mult s) a0) b0) zero)
@@ -219,7 +219,7 @@ Section HCOL_implementation_facts.
       }
       clear IHn.
 
-      rewrite 2!Vcons_to_Vcons_reord,  HIHn.
+      rewrite HIHn.
 
       setoid_replace (mult s (mult (Vhead a) (Vhead b))) with (mult (mult s (Vhead a)) (Vhead b))
         by apply mult_assoc.
@@ -355,7 +355,7 @@ Section HCOL_implementation_proper.
     intros a a' aE.
     induction n.
     reflexivity.
-    rewrite 2!MonomialEnumerator_cons, 2!Vcons_to_Vcons_reord, IHn, aE.
+    rewrite 2!MonomialEnumerator_cons, IHn, aE.
     reflexivity.
   Qed.
 
@@ -380,8 +380,10 @@ Section HCOL_implementation_proper.
     intros f f' fEq ini ini' iniEq v v' vEq.
     induction n.
     reflexivity.
-    rewrite 2!Induction_cons, 2!Vcons_to_Vcons_reord.
-    f_equiv; auto.
+    rewrite 2!Induction_cons.
+
+    apply Vcons_proper.
+    apply iniEq.
     eapply Vmap_proper.
     -
       unfold equiv, ext_equiv.

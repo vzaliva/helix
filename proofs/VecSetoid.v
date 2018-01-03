@@ -137,26 +137,53 @@ Section Vfold_right.
 
 End Vfold_right.
 
-(* TODO: check if needed for Coq-8.6 *)
-Section VCons.
+Lemma Vcons_single_elim `{Ae: Equiv A} : forall a1 a2,
+    Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
+Proof.
+  intros a1 a2.
+  unfold equiv, vec_Equiv.
+  rewrite Vforall2_cons_eq.
+  assert(Vforall2 equiv (@Vnil A) (@Vnil A)).
+  constructor.
+  split; tauto.
+Qed.
 
-  Definition Vcons_reord {A} {n} (t: vector A n) (h:A): vector A (S n) := Vcons h t.
+Lemma Vcons_equiv_elim (A:Type) `{Equiv A}: forall a1 a2 n (v1 v2 : vector A n),
+    Vcons a1 v1 = Vcons a2 v2 -> a1 = a2 /\ v1 = v2.
+Proof.
+  intros. auto.
+Qed.
 
-  Lemma Vcons_to_Vcons_reord: forall A n (t: t A n) (h:A), Vcons h t  ≡ Vcons_reord t h.
-  Proof.
-    crush.
-  Qed.
+Lemma Vcons_equiv_intro (A:Type) `{Equiv A} : forall a1 a2 n (v1 v2 : vector A n),
+    a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
+Proof.
+  intros.
+  apply Vforall2_cons_eq; auto.
+Qed.
 
-  Global Instance Vcons_reord_proper `{Equiv A} n:
-    Proper ((=) ==> (=) ==> (=))
-           (@Vcons_reord A n).
-  Proof.
-    split.
-    assumption.
-    unfold vec_Equiv, Vforall2 in H0.  assumption.
-  Qed.
+Global Instance Vcons_proper (A:Type) `{Equiv A}:
+  Proper ((=) ==> forall_relation
+              (fun (n : nat) => (@vec_Equiv A _ n) ==> (@vec_Equiv A _ (S n))))
+         (@Vcons A).
+Proof.
+  intros a a' Ea.
+  intros n.
+  intros b b' Eb.
+  induction n.
+  -
+    dep_destruct b.
+    dep_destruct b'.
+    apply Vcons_single_elim, Ea.
+  -
+    eapply Vcons_equiv_intro; auto.
+Qed.
 
-End VCons.
+Global Instance Vcons_arg_proper (A:Type) `{As: Setoid A} {n} {x:A}:
+  Proper ((@vec_Equiv A _ n) ==> (@vec_Equiv A _ (S n)))
+         (@Vcons A x n).
+Proof.
+  apply Vcons_proper; reflexivity.
+Qed.
 
 Global Instance Vapp_proper `{Sa: Setoid A} (n1 n2:nat):
   Proper ((=) ==>  (=) ==> (=)) (@Vapp A n1 n2).
@@ -172,9 +199,7 @@ Proof.
   assert (h=h0).
   apply aEq.
 
-  rewrite 2!Vcons_to_Vcons_reord.
   rewrite H.
-  rewrite <- 2!Vcons_to_Vcons_reord.
 
   unfold equiv, vec_Equiv.
   apply Vforall2_cons_eq.
@@ -266,6 +291,7 @@ Proof.
 Qed.
 
 Lemma Vmap2_comm
+      (A B:Type)
       `{CO:Commutative B A f}
       `{SB: !Setoid B} {n:nat}:
   Commutative (Vmap2 f (n:=n)).
@@ -278,14 +304,12 @@ Proof.
   reflexivity.
   rewrite Vmap2_cons_hd by apply SB.
 
-  (* reorder LHS head *)
-
-  rewrite Vcons_to_Vcons_reord.
+  setoid_rewrite <- Vmap2_cons; auto.
+  simpl.
   rewrite commutativity.
-  rewrite <- IHn. (* reoder LHS tail *)
-  setoid_rewrite <- Vmap2_cons.
+  apply Vcons_proper.
   reflexivity.
-  assumption.
+  apply IHn.
 Qed.
 
 Lemma hd_equiv: forall `{Setoid A} {n} (u v: vector A (S n)), u=v -> (Vhead u) = (Vhead v).
@@ -293,33 +317,6 @@ Proof.
   intros.
   rewrite H0.
   f_equiv.
-Qed.
-
-Lemma Vcons_equiv_elim `{Equiv A}: forall a1 a2 n (v1 v2 : vector A n),
-    Vcons a1 v1 = Vcons a2 v2 -> a1 = a2 /\ v1 = v2.
-Proof.
-  intros. auto.
-Qed.
-
-Lemma Vcons_equiv_intro `{Setoid A} : forall a1 a2 n (v1 v2 : vector A n),
-    a1 = a2 -> v1 = v2 -> Vcons a1 v1 = Vcons a2 v2.
-Proof.
-  intros.
-  rewrite 2!Vcons_to_Vcons_reord.
-  rewrite H0.
-  rewrite H1.
-  reflexivity.
-Qed.
-
-Lemma Vcons_single_elim `{Ae: Equiv A} : forall a1 a2,
-    Vcons a1 (@Vnil A) = Vcons a2 (@Vnil A) <-> a1 = a2.
-Proof.
-  intros a1 a2.
-  unfold equiv, vec_Equiv.
-  rewrite Vforall2_cons_eq.
-  assert(Vforall2 equiv (@Vnil A) (@Vnil A)).
-  constructor.
-  split; tauto.
 Qed.
 
 Lemma vector1_equiv_Vhead_equiv
@@ -388,12 +385,18 @@ Proof.
   dep_destruct v. dep_destruct v1.
   simpl.
 
-  rewrite 2!Vcons_to_Vcons_reord.
   assert (E: Vbreak x = Vbreak x0).
   apply IHn1.  apply vE.
-  rewrite E.
-  setoid_replace h with h0 by apply vE.
-  reflexivity.
+  f_equiv.
+  +
+    apply Vcons_proper.
+    inversion vE.
+    auto.
+    rewrite E.
+    reflexivity.
+  +
+    rewrite E.
+    reflexivity.
 Qed.
 
 Section Vnth.

@@ -2294,7 +2294,6 @@ Section SigmaHCOLRewritingRules.
             reflexivity.
           +
             simpl.
-            rewrite Vcons_to_Vcons_reord.
             destruct f_mon.
 
             assert(@sg_P A P (Vhead a))
@@ -2310,7 +2309,6 @@ Section SigmaHCOLRewritingRules.
 
             rewrite rcommutativity; try assumption.
             rewrite <- IHn0; try assumption.
-            rewrite Vcons_to_Vcons_reord.
             reflexivity.
       Qed.
 
