@@ -58,40 +58,29 @@ Proof.
     split; assumption.
 Qed.
 
-(* TODO: check if needed for Coq-8.6 *)
-Section Vfold_left_rev.
-  Context
-    `{eqA: Equiv A}
-    `{eqB: Equiv B}.
+(* We also have `Proper` instance for `Vold_left_rev` called `Vfold_left_rev_Vforall2` *)
+Global Instance Vfold_left_rev_proper
+       (A B : Type)
+       `{Ae: Equiv A}
+       `{Be: Equiv B}:
+  Proper (((=) ==> (=) ==> (=)) ==>
+                            forall_relation
+                            (fun (n : nat) => (=) ==> (@vec_Equiv B _ n) ==> (=)))
+         (@Vfold_left_rev A B).
+Proof.
+  intros f f' Ef n a a' Ea v v' Ev.
 
-  Definition Vfold_left_rev_reord {A B:Type} {n} (f:A->B->A) (initial:A) (v: vector B n): A := @Vfold_left_rev A B f n initial v.
-
-  Lemma Vfold_left_rev_to_Vfold_left_rev_reord: forall {A B:Type} {n} (f:A->B->A) (v: vector B n) (initial:A),
-      Vfold_left_rev f initial v ≡ Vfold_left_rev_reord f initial v.
-  Proof.
-    crush.
-  Qed.
-
-  Global Instance Vfold_left_rev_reord_proper n :
-    Proper (((=) ==> (=) ==> (=)) ==> ((=) ==> (=) ==> (=)))
-           (@Vfold_left_rev_reord A B n).
-  Proof.
-    intros f f' Ef i i' iEq v v' vEq .
-    revert i i' iEq.
-    induction v; simpl; intros.
-    -
-      VOtac; assumption.
-    -
-      revert vEq.
-      VSntac v'.
-      unfold equiv, vec_Equiv.
-      rewrite Vforall2_cons_eq; intros [h1 h2]; simpl.
-      apply Ef.
-      apply IHv; assumption.
-      assumption.
-  Qed.
-
-End Vfold_left_rev.
+  induction v; simpl; intros.
+  -
+    VOtac.
+    simpl.
+    apply Ea.
+  -
+    revert Ev. VSntac v'.
+    unfold vec_Equiv.
+    rewrite Vforall2_cons_eq. intuition. simpl.
+    apply Ef; auto.
+Qed.
 
 (* TODO: check if needed for Coq-8.6 *)
 Section Vfold_right.
@@ -519,5 +508,4 @@ Qed.
 
 Ltac vec_to_vec_reord := repeat match goal with
                                 | [ |- context [Vfold_right]] => setoid_rewrite Vfold_right_to_Vfold_right_reord
-                                | [ |- context [Vfold_left_rev]] => setoid_rewrite Vfold_left_rev_to_Vfold_left_rev_reord
                                 end.

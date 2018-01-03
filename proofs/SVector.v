@@ -254,8 +254,7 @@ Section Union.
   Proof.
     intros dot dot' Ed one one' Eo x y E.
     unfold MUnion'.
-    rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
-    apply Vfold_left_rev_reord_proper.
+    eapply Vfold_left_rev_proper.
     apply Vec2Union_proper.
     apply Ed.
     rewrite Eo; reflexivity.

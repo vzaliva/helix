@@ -4482,14 +4482,14 @@ and `ISumReduction_PointWise` *)
           f_equiv; auto.
           --
             f_equiv.
-            rewrite 2!Vfold_left_rev_to_Vfold_left_rev_reord.
-            f_equiv.
+            eapply Vfold_left_rev_proper.
             {
               intros a b Hab c d Hcd.
               apply Vcons_single_elim.
               rewrite Hab, Hcd.
               reflexivity.
             }
+            reflexivity.
             vec_index_equiv j jc.
             rewrite 2!Vbuild_nth.
             unfold get_family_op.
@@ -4593,7 +4593,6 @@ and `ISumReduction_PointWise` *)
         rewrite Vfold_left_rev_Vbuild_zeroes;auto.
         apply monoid_left_id, f_mon.
 
-        rewrite Vfold_left_rev_to_Vfold_left_rev_reord in *.
         break_if; try congruence.
         destruct f_mon eqn:F.
         rewrite monoid_right_id.
