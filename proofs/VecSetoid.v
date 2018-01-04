@@ -483,6 +483,7 @@ Proof.
     assumption.
 Qed.
 
+(* TODO: Check why this is needed *)
 Global Instance indexed_vector_equiv `{Equiv A} {n}:
   Equiv (∀ i : nat, i < n → vector A n)
   :=  @forall_relation nat
@@ -490,7 +491,7 @@ Global Instance indexed_vector_equiv `{Equiv A} {n}:
                        (fun i : nat =>  @pointwise_relation (i < n)
                                                        (vector A n) (=)).
 
-(* @jwiegley version *)
+(* @jwiegley version: *)
 Global Instance Vbuild_proper {n : nat} {A:Type} `{Equiv A}:
   Proper ((forall_relation
              (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv)
