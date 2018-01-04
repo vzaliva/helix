@@ -23,29 +23,6 @@ Require Import MathClasses.interfaces.abstract_algebra.
 Require Import Spiral.Spiral.
 Require Import Spiral.FinNatSet.
 
-
-(* Setoid equality for option types *)
-Section OptionSetoid.
-  Global Instance option_Equiv `{Equiv A}: Equiv (option A) :=
-    fun a b =>
-      match a with
-      | None => is_None b
-      | Some x => (match b with
-                   | None => False
-                   | Some y => equiv x y
-                   end)
-      end.
-
-  Global Instance option_Setoid `{Setoid A}: Setoid (@option A).
-  Proof.
-    unfold Setoid in H.
-    constructor. destruct H.
-    unfold Reflexive. destruct x; (unfold equiv; crush).
-    unfold Symmetric. intros x y. destruct x,y; (unfold equiv; crush).
-    unfold Transitive. intros x y z. destruct x,y,z; unfold equiv, option_Equiv in *; crush.
-  Qed.
-End OptionSetoid.
-
 Global Open Scope nat_scope.
 
 (* Index maps (total functions) *)
