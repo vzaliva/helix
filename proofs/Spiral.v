@@ -28,7 +28,8 @@ Require Import CoLoR.Util.Nat.NatUtil.
 Notation FinNat n := {x:nat | (x<n)%nat}.
 Definition mkFinNat {n} {j:nat} (jc:(j<n)%nat) : FinNat n := @exist _ (gt n) j jc.
 
-Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A} `{!∀ x y: A, Decision (x ≤ y)}:
+Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A}
+       `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.
 Proof.
   solve_proper.

@@ -300,7 +300,7 @@ Section IgnoreIndex_wrapper.
   Also restricts domain of 1st natural number to 1 *)
   Definition Fin1SwapIndex {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A) : FinNat 1->A->A := const (f i).
 
-  Global Instance Fin1SwapIndex_proper `{Setoid A} {n:nat}:
+  Global Instance Fin1SwapIndex_proper `{Equiv A} {n:nat}:
     Proper ((=) ==> ((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@Fin1SwapIndex A n).
   Proof.
     simpl_relation.
@@ -312,7 +312,7 @@ Section IgnoreIndex_wrapper.
   Also restricts domain of 1st natural number to 1 *)
   Definition Fin1SwapIndex2 {A:Type} {n:nat} (i:FinNat n) (f:FinNat n->A->A->A) : FinNat 1->A->A->A := const (f i).
 
-  Global Instance Fin1SwapIndex2_proper `{Setoid A} {n:nat}:
+  Global Instance Fin1SwapIndex2_proper `{Equiv A} {n:nat}:
     Proper ((=) ==> ((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=) ==> (=)) (@Fin1SwapIndex2 A n).
   Proof.
     simpl_relation.
@@ -323,7 +323,7 @@ Section IgnoreIndex_wrapper.
   Definition IgnoreIndex2 {A B:Type} (f:A->A->A) := const (B:=B) f.
 
   Lemma IgnoreIndex2_ignores
-        `{Setoid A}
+        `{Equiv A}
         {B: Type}
         (f:A->A->A)
         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}

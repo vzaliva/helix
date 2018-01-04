@@ -6,10 +6,9 @@ from 8.4).
 It is overdue for serious refactoring and cleanup. Amongst other things:
 
 * Review `_arg_proper` vs `_proper` instances
-* In many cases `Equiv` instance is enough where `Setoid` is now required
 * Some other cleanup opportunities are marked with "TODO" comments
 * Proof-irrelevance assumption could be avoided
 * Many usused definitions could be removed. (Hint: try `make print-unused`)
-* Vnth_proper (to replace Vnth_aux_arg_proper)
+* `Vnth_proper` (to replace `Vnth_aux_arg_proper`)
 
 

@@ -3004,7 +3004,6 @@ Section SigmaHCOLRewritingRules.
     Lemma ComutativeRMonoid_to_sig_CommutativeMonoid
           {A : Type}
           {Ae: Equiv A}
-          {As: @Setoid A Ae}
           (z : MonUnit A)
           (f : SgOp A)
           (P : SgPred A)
@@ -3052,7 +3051,7 @@ Section SigmaHCOLRewritingRules.
     Lemma Vfold_VPermutation_CM
           {n : nat}
           {A: Type}
-          `{As: Setoid A}
+          `{As: Equiv A}
           (z : MonUnit A)
           (f : SgOp A)
           (P : SgPred A)
