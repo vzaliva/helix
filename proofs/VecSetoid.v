@@ -246,7 +246,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap_as_Vbuild {A B:Type} `{Equiv A} `{Setoid B}:
+Lemma Vmap_as_Vbuild {A B:Type} `{Setoid B}:
   ∀ (n : nat) (v : vector A n) (f:A->B),
     Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
 Proof.
@@ -295,16 +295,16 @@ Proof.
   apply IHn.
 Qed.
 
-Lemma hd_equiv: forall `{Setoid A} {n} (u v: vector A (S n)), u=v -> (Vhead u) = (Vhead v).
+Lemma hd_equiv: forall `{Equiv A} {n} (u v: vector A (S n)), u=v -> (Vhead u) = (Vhead v).
 Proof.
   intros.
-  rewrite H0.
   f_equiv.
+  assumption.
 Qed.
 
 Lemma vector1_equiv_Vhead_equiv
       {A: Type}
-      `{As: Setoid A}
+      `{As: Equiv A}
       {a b: vector A 1}:
   Vhead a = Vhead b -> a = b.
 Proof.
@@ -317,7 +317,6 @@ Proof.
   simpl in H.
   assumption.
 Qed.
-
 
 Global Instance Vmap_proper (A B:Type) `{Ae: Equiv A} `{Be: Equiv B}:
   Proper (
@@ -361,15 +360,21 @@ Proof.
   induction n1.
   simpl. setoid_rewrite vE. reflexivity.
   assert (V1: v ≡ Vapp (fst (Vbreak (n1:=1) v)) (snd (Vbreak (n1:=1) v))).
-  simpl. dep_destruct v. reflexivity.
+  {
+    simpl. dep_destruct v. reflexivity.
+  }
   assert (V2: v1 ≡ Vapp (fst (Vbreak (n1:=1) v1)) (snd (Vbreak (n1:=1) v1))).
-  simpl. dep_destruct v1. reflexivity.
+  {
+    simpl. dep_destruct v1. reflexivity.
+  }
   rewrite V1. clear V1. rewrite V2. clear V2.
   dep_destruct v. dep_destruct v1.
   simpl.
 
   assert (E: Vbreak x = Vbreak x0).
-  apply IHn1.  apply vE.
+  {
+    apply IHn1.  apply vE.
+  }
   f_equiv.
   +
     apply Vcons_proper.
@@ -394,7 +399,7 @@ Section Vnth.
     assumption.
   Qed.
 
-  Lemma Vnth_equiv `{Setoid A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
+  Lemma Vnth_equiv `{Equiv A}: forall n (v1 v2 : vector A n) i1 (h1 : i1<n) i2 (h2 : i2<n),
       i1 = i2 -> v1 = v2 -> Vnth v1 h1 = Vnth v2 h2.
   Proof.
     intros n v1 v2 i1 h1 i2 h2 Ei Ev.
@@ -437,7 +442,7 @@ Section Vnth.
 End Vnth.
 
 Global Instance Vmap2Indexed_proper
-       `{Setoid A, Setoid B, Setoid C} {n:nat}
+       `{Equiv A, Equiv B, Equiv C} {n:nat}
   :
     Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
            (@Vmap2Indexed A B C n).
@@ -458,7 +463,7 @@ Proof.
 Qed.
 
 Global Instance Vmap2SigIndexed_proper
-       `{Setoid A, Setoid B, Setoid C} {n:nat}
+       `{Equiv A, Equiv B, Equiv C} {n:nat}
   :
     Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
            (@Vmap2SigIndexed A B C n).
