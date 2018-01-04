@@ -403,9 +403,9 @@ Section Vnth.
     assumption.
   Qed.
 
-  (* We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later. Instead it could be converted to `Vnth_aux` for which partial Proper is proven below:  *)
+  (* TODO: We should have Global Instance Vnth_proper, but it is a bit tricky to define for i<n term, so I will leave it for later. Instead it could be converted to `Vnth_aux` for which partial Proper is proven below:  *)
 
-  Global Instance Vnt_aux_arg_proper
+  Global Instance Vnth_aux_arg_proper
          {A:Type}
          `{Equiv A}
          {n i:nat}
