@@ -135,7 +135,7 @@ SUMUnion(
 
 
   (* HCOL -> SigmaHCOL Value correctness. *)
-  Theorem DynWinSigmaHCOL_Value_Correctness
+  Lemma DynWinSigmaHCOL_Value_Correctness
           (a: avector 3)
     :
       liftM_HOperator Monoid_RthetaFlags (dynwin_HCOL a)
@@ -160,7 +160,7 @@ SUMUnion(
 
   Require Import Spiral.FinNatSet.
 
-  Theorem DynWinSigmaHCOL_dense_input
+  Lemma DynWinSigmaHCOL_dense_input
           (a: avector 3)
     : Same_set _ (in_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
   Proof.
@@ -189,7 +189,7 @@ SUMUnion(
         repeat (destruct x; crush).
   Qed.
 
-  Theorem DynWinSigmaHCOL_dense_output
+  Lemma DynWinSigmaHCOL_dense_output
           (a: avector 3)
     : Same_set _ (out_index_set _ (dynwin_SHCOL a)) (Full_set (FinNat _)).
   Proof.
@@ -594,7 +594,7 @@ SUMUnion(
   Qed.
 
 
-  Theorem DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
+  Lemma DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
@@ -815,7 +815,7 @@ SUMUnion(
 
   (* Couple additional structual properties: input and output of the dynwin_SHCOL1 is dense *)
 
-  Theorem DynWinSigmaHCOL1_dense_input
+  Lemma DynWinSigmaHCOL1_dense_input
           (a: avector 3)
     : Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
   Proof.
@@ -885,7 +885,7 @@ SUMUnion(
       crush.
   Qed.
 
-  Theorem DynWinSigmaHCOL1_dense_output
+  Lemma DynWinSigmaHCOL1_dense_output
           (a: avector 3)
     : Same_set _ (out_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
   Proof.
@@ -903,6 +903,42 @@ SUMUnion(
       simpl.
       apply Full_intro.
   Qed.
+
+  (* Putting it all together: Final proof of SigmaHCOL rewriting *)
+  Theorem SHCOL_to_SHCOL1_Rewriting
+          (a: avector 3)
+    : @SHOperator_subtyping
+        _ _ _
+        (dynwin_SHCOL1 a)
+        (dynwin_SHCOL a)
+        (DynWinSigmaHCOL1_Facts _)
+        (DynWinSigmaHCOL_Facts _).
+  Proof.
+    split.
+    -
+      symmetry.
+      apply DynWinSigmaHCOL1_Value_Correctness.
+    -
+      split.
+      +
+        pose proof (DynWinSigmaHCOL_dense_input a) as E.
+        pose proof (DynWinSigmaHCOL1_dense_input a) as E1.
+        apply Extensionality_Ensembles in E.
+        apply Extensionality_Ensembles in E1.
+        rewrite E, E1.
+        unfold Included.
+        intros x H.
+        auto.
+      +
+        pose proof (DynWinSigmaHCOL_dense_output a) as E.
+        pose proof (DynWinSigmaHCOL1_dense_output a) as E1.
+        apply Extensionality_Ensembles in E.
+        apply Extensionality_Ensembles in E1.
+        rewrite E, E1.
+        unfold Same_set.
+        split; unfold Included; auto.
+  Qed.
+
 
 End SigmaHCOL_rewriting.
 

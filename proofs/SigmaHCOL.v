@@ -212,6 +212,16 @@ Section SigmaHCOL_Operators.
       Equiv (@SHOperator i o) :=
       fun a b => op a = op b.
 
+    (* Special subtyping relation on SHOperator's which involves both value and structural correctness. 'a' is subtype and could be used in place of 'b' *)
+    Definition SHOperator_subtyping
+               {i o: nat}
+               (a b: @SHOperator i o)
+               `{Afacts: SHOperator_Facts _ _ a}
+               `{Bfacts: SHOperator_Facts _ _ b} :=
+      a = b /\
+      Included _ (in_index_set a) (in_index_set b) /\
+      Same_set _ (out_index_set b) (out_index_set a).
+
     Definition op_Vforall_P
                {i o: nat}
                (P: Rtheta' fm -> Prop)
