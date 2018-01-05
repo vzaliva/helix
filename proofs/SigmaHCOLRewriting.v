@@ -4835,10 +4835,8 @@ and `ISumReduction_PointWise` *)
     Proof.
       replace bc1 with (lt_lt_succ_r bc) by apply proof_irrelevance.
       clear bc1.
-
-      rewrite 2!Vnth_to_Vnth_aux.
-      rewrite HCOLImpl.Induction_cons.
-      unfold Vnth_aux.
+      setoid_rewrite (Vnth_arg_equiv _ _ _ _ _ _ _
+                                     (HCOLImpl.Induction_cons)).
       rewrite Vnth_cons.
       break_match.
       -

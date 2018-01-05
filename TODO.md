@@ -9,6 +9,5 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Some other cleanup opportunities are marked with "TODO" comments
 * Proof-irrelevance assumption could be avoided
 * Many usused definitions could be removed. (Hint: try `make print-unused`)
-* `Vnth_proper` (to replace `Vnth_aux_arg_proper`)
 
 

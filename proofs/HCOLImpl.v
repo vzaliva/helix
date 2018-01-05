@@ -145,10 +145,12 @@ End HCOL_implementations.
 
 Section HCOL_implementation_facts.
 
-  Lemma Induction_cons:
-    forall n initial (f:CarrierA -> CarrierA -> CarrierA)
-      (v:CarrierA),
-      Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
+  Lemma Induction_cons
+        {n: nat}
+        {initial: CarrierA}
+        {f:CarrierA -> CarrierA -> CarrierA}
+        {v:CarrierA}:
+    Induction (S n) f initial v = Vcons initial (Vmap (fun x => f x v) (Induction n f initial v)).
   Proof.
     intros; dep_destruct n; reflexivity.
   Qed.
