@@ -158,8 +158,7 @@ SUMUnion(
     Transparent SHCompose.
   Qed.
 
-Require Import Spiral.FinNatSet.
-
+  Require Import Spiral.FinNatSet.
 
   Theorem DynWinSigmaHCOL_dense_input
           (a: avector 3)
@@ -174,7 +173,7 @@ Require Import Spiral.FinNatSet.
     -
       unfold Included.
       intros x.
-      intros H. clear H.
+      intros _.
       unfold In in *.
       simpl.
       destruct x as [x xc].
@@ -812,6 +811,97 @@ Require Import Spiral.FinNatSet.
     rewrite <- SafeCast_SHBinOp.
 
     reflexivity.
+  Qed.
+
+  (* Couple additional structual properties: input and output of the dynwin_SHCOL1 is dense *)
+
+  Theorem DynWinSigmaHCOL1_dense_input
+          (a: avector 3)
+    : Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
+  Proof.
+    split.
+    -
+      unfold Included.
+      intros [x xc].
+      intros H.
+      apply Full_intro.
+    -
+      unfold Included.
+      intros x.
+      intros _.
+      unfold In in *.
+      Transparent  SHCompose.
+      simpl.
+
+      destruct x as [x xc].
+      simpl in xc.
+
+      (* The following could be automated with nifty tactics but for now we will do it manually. *)
+
+      destruct x.
+      (* 0 *)
+      repeat apply Union_introl.
+      compute; tauto.
+
+      (* 1 *)
+      compute in xc.
+      destruct x.
+      apply Union_intror.
+      apply Union_intror.
+      apply Union_introl.
+      apply Union_intror.
+      apply Union_introl.
+      compute; tauto.
+
+      (* 2 *)
+      compute in xc.
+      destruct x.
+      apply Union_intror.
+      apply Union_introl.
+      apply Union_intror.
+      apply Union_introl.
+      compute; tauto.
+
+      (* 3 *)
+      compute in xc.
+      destruct x.
+      apply Union_intror.
+      apply Union_intror.
+      apply Union_introl.
+      apply Union_introl.
+      compute; tauto.
+
+      (* 4 *)
+      compute in xc.
+      destruct x.
+      apply Union_intror.
+      apply Union_introl.
+      apply Union_introl.
+      compute; tauto.
+
+      (* 5 *)
+      compute in xc.
+      exfalso.
+      crush.
+  Qed.
+
+  Theorem DynWinSigmaHCOL1_dense_output
+          (a: avector 3)
+    : Same_set _ (out_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
+  Proof.
+    split.
+    -
+      unfold Included.
+      intros [x xc].
+      intros H.
+      apply Full_intro.
+    -
+      unfold Included.
+      intros x.
+      intros _.
+      unfold In in *.
+      simpl.
+      apply Full_intro.
   Qed.
 
 End SigmaHCOL_rewriting.
