@@ -25,6 +25,8 @@ Require Import Spiral.FinNatSet.
 
 Global Open Scope nat_scope.
 
+Unset Transparent Obligations.
+
 (* Index maps (total functions) *)
 
 Record index_map (domain range : nat) :=

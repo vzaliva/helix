@@ -926,7 +926,6 @@ Section SigmaHCOLExpansionRules.
            unfold h_index_map.
 
            Opaque Rtheta2RStheta Monad.liftM2.
-           unfold IndexFunctions.h_index_map_obligation_1.
            simpl.
 
 
