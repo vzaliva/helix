@@ -28,14 +28,15 @@ clean:
 clean-dep:
 	rm -f `find . -name \*.v.d`
 
-clean-all: clean
+clean-all: clean clean-dep clean-doc
 	rm -f Makefile.coq
 
 clean-doc:
-	rm -f doc/$(LIBNAME).*.html doc/index.html doc/main.html
+	rm -f doc/$(LIBNAME).* doc/index.html doc/main.html coqdoc.sty coqdoc.css
 
-doc:
-	coqdoc --html -g -d doc -R . $(LIBNAME) *.v
+doc: $(MYVFILES)
+	coqdoc --html  --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
+	coqdoc --latex --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
 
 depgraph.vcmd: *.vo
 	rm -f depgraph.vcmd
