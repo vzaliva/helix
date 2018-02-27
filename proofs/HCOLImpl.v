@@ -107,6 +107,11 @@ Section HCOL_implementations.
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
       end.
 
+  Definition Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+           (initial: CarrierA) (v:CarrierA)
+    : CarrierA :=  nat_rect _ initial (fun _ x => f x v) n.
+
+  (* Old definition:
   Fixpoint Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
            (initial: CarrierA) (v:CarrierA) {struct n}
     : CarrierA :=
@@ -114,6 +119,26 @@ Section HCOL_implementations.
     | O => initial
     | S p => f (Inductor p f initial v) v
     end.
+
+
+  Lemma Inductor_Inductor':
+    Inductor ≡ Inductor'.
+  Proof.
+    extensionality n.
+    extensionality f.
+    extensionality a.
+    extensionality x.
+    induction n.
+    -
+      unfold Inductor'.
+      reflexivity.
+    -
+      simpl.
+      rewrite IHn.
+      reflexivity.
+  Qed.
+   *)
+
 
   (* --- Reduction --- *)
 
