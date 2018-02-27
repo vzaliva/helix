@@ -99,44 +99,33 @@ Section HCOL_implementations.
 
   (* --- Induction --- *)
 
-  Fixpoint Induction (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+  Definition Induction (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+           (initial: CarrierA) (v: CarrierA) : avector n
+    := nat_rect _ [] (fun _ t => Vcons initial (Vmap (fun x => f x v) t)) n.
+
+
+  (* Old, equal, definition:
+  Fixpoint Induction' (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
            (initial: CarrierA) (v: CarrierA) {struct n} : avector n
     :=
       match n with
       | O => []
       | S p => Vcons initial (Vmap (fun x => f x v) (Induction p f initial v))
       end.
+   *)
 
   Definition Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
            (initial: CarrierA) (v:CarrierA)
     : CarrierA :=  nat_rect _ initial (fun _ x => f x v) n.
 
-  (* Old definition:
-  Fixpoint Inductor (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
+  (* Old, equal definition:
+  Fixpoint Inductor' (n:nat) (f:CarrierA -> CarrierA -> CarrierA)
            (initial: CarrierA) (v:CarrierA) {struct n}
     : CarrierA :=
     match n with
     | O => initial
     | S p => f (Inductor p f initial v) v
     end.
-
-
-  Lemma Inductor_Inductor':
-    Inductor ≡ Inductor'.
-  Proof.
-    extensionality n.
-    extensionality f.
-    extensionality a.
-    extensionality x.
-    induction n.
-    -
-      unfold Inductor'.
-      reflexivity.
-    -
-      simpl.
-      rewrite IHn.
-      reflexivity.
-  Qed.
    *)
 
 
