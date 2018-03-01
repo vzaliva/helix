@@ -35,7 +35,6 @@ Global Instance THOperator_HOperator
          `{T: @THOperator2 i1 o1 i2 o2 ix ox to}:
   HOperator (to op1 op2).
 Proof.
-  split; try apply vec_Setoid.
   apply T ; [apply O1 | apply O2].
 Qed.
 
@@ -107,7 +106,6 @@ Global Instance compose_HOperator
 :
   HOperator (op1 ∘ op2).
 Proof.
-  unfold HOperator. split; try (apply vec_Setoid).
   intros x y E.
   unfold compose.
   rewrite E.

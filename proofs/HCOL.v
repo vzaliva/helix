@@ -30,7 +30,17 @@ Open Scope vector_scope.
 Section HCOL_Language.
 
   Class HOperator {i o:nat} (op: avector i -> avector o) :=
-    HOperator_setoidmor :> Setoid_Morphism op.
+    op_proper: Proper ((=) ==> (=)) op.
+
+  Global Instance HOperator_Setoid_Morphism
+         {i o op}
+         `{H: HOperator i o op}: Setoid_Morphism op.
+  Proof.
+    split.
+    - apply vec_Setoid.
+    - apply vec_Setoid.
+    - apply H.
+  Qed.
 
   Lemma HOperator_functional_extensionality
         {m n: nat}
@@ -38,7 +48,6 @@ Section HCOL_Language.
         `{HOperator m n g}:
     (∀ v, f v = g v) -> f = g.
   Proof.
-    unfold HOperator in *.
     apply ext_equiv_applied_iff.
   Qed.
 
@@ -118,7 +127,6 @@ Section HCOL_Language.
     :
       HOperator (@HPointwise n f).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HPointwise.
       vec_index_equiv i ip.
@@ -134,7 +142,6 @@ Section HCOL_Language.
            `{pF: !Proper ((=) ==> (=)) f}:
       HOperator (HAtomic f).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HAtomic.
       vec_index_equiv i ip.
@@ -148,7 +155,6 @@ Section HCOL_Language.
     Global Instance HScalarProd_HOperator {n}:
       HOperator (@HScalarProd n).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HScalarProd.
       unfold compose, Lst.
@@ -162,7 +168,6 @@ Section HCOL_Language.
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
       HOperator (@HBinOp o f).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HBinOp.
       unfold compose, Lst, vector2pair.
@@ -176,7 +181,6 @@ Section HCOL_Language.
            (idv: CarrierA):
       HOperator (@HReduction i f idv).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HReduction .
       unfold compose, Lst.
@@ -188,7 +192,6 @@ Section HCOL_Language.
     Global Instance HEvalPolynomial_HOperator {n} (a: avector n):
       HOperator (@HEvalPolynomial n a).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HEvalPolynomial.
       unfold compose, Lst.
@@ -200,7 +203,6 @@ Section HCOL_Language.
     Global Instance HPrepend_HOperator {i n} (a:avector n):
       HOperator (@HPrepend i n a).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HPrepend.
       unfold compose, Lst.
@@ -212,7 +214,6 @@ Section HCOL_Language.
     Global Instance HMonomialEnumerator_HOperator n:
       HOperator (@HMonomialEnumerator n).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HMonomialEnumerator.
       unfold compose, Lst.
@@ -224,7 +225,6 @@ Section HCOL_Language.
     Global Instance HInfinityNorm_HOperator n:
       HOperator (@HInfinityNorm n).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInfinityNorm.
       unfold compose, Lst.
@@ -239,7 +239,6 @@ Section HCOL_Language.
            (initial: CarrierA):
       HOperator (HInduction n f initial).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInduction.
       unfold compose, Lst.
@@ -255,7 +254,6 @@ Section HCOL_Language.
            (initial: CarrierA):
       HOperator (HInductor n f initial).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HInductor.
       unfold compose, Lst.
@@ -268,7 +266,6 @@ Section HCOL_Language.
     Global Instance HChebyshevDistance_HOperator h:
       HOperator (HChebyshevDistance h).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HChebyshevDistance.
       unfold compose, Lst, vector2pair.
@@ -280,7 +277,6 @@ Section HCOL_Language.
     Global Instance HVMinus_HOperator h:
       HOperator (@HVMinus h).
     Proof.
-      unfold HOperator. split; try (apply vec_Setoid).
       intros x y E.
       unfold HVMinus.
       unfold compose, Lst, vector2pair.
