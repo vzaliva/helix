@@ -30,16 +30,13 @@ Open Scope vector_scope.
 Section HCOL_Language.
 
   Class HOperator {i o:nat} (op: avector i -> avector o) :=
-    op_proper: Proper ((=) ==> (=)) op.
+    op_proper :> Proper ((=) ==> (=)) op.
 
   Global Instance HOperator_Setoid_Morphism
          {i o op}
          `{H: HOperator i o op}: Setoid_Morphism op.
   Proof.
-    split.
-    - apply vec_Setoid.
-    - apply vec_Setoid.
-    - apply H.
+    split; typeclasses eauto.
   Qed.
 
   Lemma HOperator_functional_extensionality
