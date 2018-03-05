@@ -354,7 +354,7 @@ Section HCOL_Operator_Lemmas.
 
   Lemma HPointwise_nth
         {n: nat}
-        (f: { i | i<n} -> CarrierA -> CarrierA)
+        (f: FinNat n -> CarrierA -> CarrierA)
         {j:nat} {jc:j<n}
         (x: avector n):
     Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
