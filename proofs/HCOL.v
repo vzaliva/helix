@@ -106,7 +106,7 @@ Section HCOL_Language.
   Definition HPointwise
              {n: nat}
              (f: FinNat n -> CarrierA -> CarrierA)
-             (x: avector n)
+             (x: avector n): avector n
     := Vbuild (fun j jd => f (mkFinNat jd) (Vnth x jd)).
 
   (* Special case of pointwise *)
