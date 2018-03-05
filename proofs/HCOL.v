@@ -71,7 +71,7 @@ Section HCOL_Language.
     := VMinus  ∘ (vector2pair o).
 
   Definition HBinOp {o}
-             (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+             (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
     : avector (o+o) -> avector o
     :=  BinOp f ∘ (vector2pair o).
 
