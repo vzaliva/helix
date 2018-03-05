@@ -105,9 +105,9 @@ Section HCOL_Language.
 
   Definition HPointwise
              {n: nat}
-             (f: { i | i<n} -> CarrierA -> CarrierA)
+             (f: FinNat n -> CarrierA -> CarrierA)
              (x: avector n)
-    := Vbuild (fun j jd => f (j ↾ jd) (Vnth x jd)).
+    := Vbuild (fun j jd => f (mkFinNat jd) (Vnth x jd)).
 
   (* Special case of pointwise *)
   Definition HAtomic
@@ -119,19 +119,18 @@ Section HCOL_Language.
 
     Global Instance HPointwise_HOperator
            {n: nat}
-           (f: { i | i<n} -> CarrierA -> CarrierA)
-           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-    :
+           {f: FinNat n -> CarrierA -> CarrierA}
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
       HOperator (@HPointwise n f).
     Proof.
       intros x y E.
+      apply Vforall2_intro_nth.
+      intros j jc.
       unfold HPointwise.
-      vec_index_equiv i ip.
-      rewrite 2!Vbuild_nth.
-      assert(Vnth x ip = Vnth y ip).
-      apply Vnth_arg_equiv; assumption.
-      rewrite H.
-      reflexivity.
+      setoid_rewrite Vbuild_nth.
+      apply pF.
+      - reflexivity.
+      - apply Vnth_proper, E.
     Qed.
 
     Global Instance HAtomic_HOperator
