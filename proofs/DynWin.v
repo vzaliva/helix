@@ -123,10 +123,10 @@ SUMUnion(
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
                                              (fun j jc => SafeCast (SHBinOp _ (o:=1)
                                                                         (Fin1SwapIndex2 (mkFinNat jc) (IgnoreIndex2 CarrierType.sub)))))
-                         (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j 2 1 jc)))
+                         (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) 2 1 (proj2_sig j))))
                          (f_inj := h_j_1_family_injective)
                          zero
-                         (fun j jc => h_index_map j 2 (range_bound:=GathH_jn_domain_bound j 2 jc)))
+                         (fun j => h_index_map (proj1_sig j) 2 (range_bound:=GathH_jn_domain_bound (proj1_sig j) 2 (proj2_sig j))))
                       ⊚
                       (GathH _ 1 1
                              (domain_bound := h_bound_second_half 1 (2+2)))

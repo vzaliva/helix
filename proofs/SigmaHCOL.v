@@ -1146,10 +1146,10 @@ Section SigmaHCOL_Operators.
       : @SHOperatorFamily i o n
       := mkSHOperatorFamily i o n
                             (fun (j:nat) (jc:j<n) =>
-                               (Scatter (f j jc)
+                               (Scatter (f (mkFinNat jc))
                                         (f_inj:=index_map_family_member_injective f_inj j jc) idv)
                                  ⊚ (family_member kernel j jc)
-                                 ⊚ (Gather (g j jc))).
+                                 ⊚ (Gather (g (mkFinNat jc)))).
 
 
     Lemma Scatter'_Unit_at_sparse
@@ -1226,9 +1226,9 @@ Section SigmaHCOL_Operators.
       unfold compose.
       generalize
         (@op ki ko (@family_member ki ko n kernel j0 jc0)
-             (@Gather' i ki (g j0 jc0) x)),
+             (@Gather' i ki (g (mkFinNat jc0)) x)),
       (@op ki ko (@family_member ki ko n kernel j1 jc1)
-           (@Gather' i ki (g j1 jc1) x)).
+           (@Gather' i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
       clear kernel g i x ki. rename ko into i.

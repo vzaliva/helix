@@ -710,7 +710,7 @@ definition does not enforce this requirement, and the function produced might no
 
 End Inversions.
 
-Definition index_map_family (d r n : nat) := forall k, k<n -> index_map d r.
+Definition index_map_family (d r n : nat) := FinNat n -> index_map d r.
 
 Section IndexFamilies.
 
@@ -719,13 +719,13 @@ Section IndexFamilies.
              (f: index_map_family d r n)
     :=
       forall (i j: nat) (ic: i<n) (jc: j<n) (x y:nat) (xc: x<d) (yc: y<d),
-        ⟦ f i ic ⟧ x ≡ ⟦ f j jc ⟧ y → (x ≡ y) /\ (i ≡ j).
+        ⟦ f (mkFinNat ic) ⟧ x ≡ ⟦ f (mkFinNat jc) ⟧ y → (x ≡ y) /\ (i ≡ j).
 
   Definition index_map_family_surjective
              {n d r: nat}
              (f: index_map_family d r n)
     :=
-      forall (y:nat) (yc: y<r), exists (x j:nat) (xc: x<d) (jc: j<n), ⟦ f j jc ⟧ x ≡ y.
+      forall (y:nat) (yc: y<r), exists (x j:nat) (xc: x<d) (jc: j<n), ⟦ f (mkFinNat jc) ⟧ x ≡ y.
 
   Definition index_map_family_bijective
              {n d r}
@@ -736,7 +736,7 @@ Section IndexFamilies.
   Lemma index_map_family_member_injective
         {d r n: nat}
         {f: index_map_family d r n}:
-    index_map_family_injective f -> forall j (jc:j<n), index_map_injective (f j jc).
+    index_map_family_injective f -> forall j (jc:j<n), index_map_injective (f (mkFinNat jc)).
   Proof.
     intros H j jc.
     unfold index_map_family_injective in H.
@@ -753,8 +753,8 @@ Section IndexFamilies.
         {yc:y<r}
     :
       index_map_family_injective f ->
-      in_range  (f i ic) y ->
-      in_range  (f j jc) y -> i ≡ j.
+      in_range  (f (@mkFinNat _ i ic)) y ->
+      in_range  (f (@mkFinNat _ j jc)) y -> i ≡ j.
   Proof.
     intros f_inj r0 r1.
 
@@ -896,7 +896,7 @@ Section PracticalFamilies.
 
   (* Flattens m-by-n matrix into flat vector of size m*n by column *)
   Program Definition matrixFlattenByColFamily {m n:nat}: index_map_family m (m*n) n
-    := fun k kc => h_index_map (range_bound:=_)  (k*m) 1.
+    := fun k => h_index_map (range_bound:=_)  ((proj1_sig k)*m) 1.
   Next Obligation.
     nia.
   Defined.
