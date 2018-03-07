@@ -816,7 +816,7 @@ Section SigmaHCOLExpansionRules.
 
     Lemma h_j_1_family_injective {n}:
       index_map_family_injective
-        (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc)))).
+        (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))).
     Proof.
       unfold index_map_family_injective.
       crush.
@@ -835,10 +835,9 @@ Section SigmaHCOLExpansionRules.
                         Scatter' Monoid_RthetaFlags (i:=1)
                                  (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound j n 1 jc))
                                  (f_inj :=
-                                    @index_map_family_member_injective 1 n n (IndexMapFamily 1 n n
-                                                                                             (fun (j0 : nat) (jc0 : j0<n) =>
-                                                                                                @h_index_map 1 n j0 1
-                                                                                                             (ScatH_1_to_n_range_bound j0 n 1 jc0))) (@h_j_1_family_injective n) j jc) zero
+                                    @index_map_family_member_injective 1 n n
+                                          (fun (j0 : nat) (jc0 : j0<n) => @h_index_map 1 n j0 1
+                                                                                                             (ScatH_1_to_n_range_bound j0 n 1 jc0)) (@h_j_1_family_injective n) j jc) zero
                                  (SafeCast' (SHBinOp' (o:=1) Monoid_RthetaSafeFlags (Fin1SwapIndex2 (mkFinNat jc) f))
                                             (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
@@ -968,9 +967,9 @@ Section SigmaHCOLExpansionRules.
         USparseEmbedding (f_inj:=h_j_1_family_injective)
                          (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
                                              (fun j jc => SafeCast (SHBinOp _ (Fin1SwapIndex2 (mkFinNat jc) f))))
-                         (IndexMapFamily 1 n n (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc))))
+                         (fun j jc => h_index_map j 1 (range_bound := (ScatH_1_to_n_range_bound j n 1 jc)))
                          zero
-                         (IndexMapFamily _ _ n (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc))).
+                         (fun j jc => h_index_map j n (range_bound:=GathH_jn_domain_bound j n jc)).
     Proof.
       apply SHOperator_ext_equiv_applied.
       -
