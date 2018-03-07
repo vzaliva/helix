@@ -926,6 +926,7 @@ Section SigmaHCOL_Operators.
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
+    (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
     Definition SHCompose
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
