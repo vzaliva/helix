@@ -837,7 +837,7 @@ Section SigmaHCOLExpansionRules.
                                  (f_inj :=
                                     @index_map_family_member_injective 1 n n
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
-                                                                                                             (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) j jc) zero
+                                                                                                             (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
                                  (SafeCast' (SHBinOp' (o:=1) Monoid_RthetaSafeFlags (Fin1SwapIndex2 (mkFinNat jc) f))
                                             (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
@@ -965,8 +965,7 @@ Section SigmaHCOLExpansionRules.
         SafeCast (SHBinOp _ f)
         =
         USparseEmbedding (f_inj:=h_j_1_family_injective)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j jc => SafeCast (SHBinOp _ (Fin1SwapIndex2 (mkFinNat jc) f))))
+                         (fun jf => SafeCast (SHBinOp _ (Fin1SwapIndex2 jf f)))
                          (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) n 1 (proj2_sig j))))
                          zero
                          (fun j => h_index_map (proj1_sig j) n (range_bound:=GathH_jn_domain_bound (proj1_sig j) n (proj2_sig j))).
@@ -1440,8 +1439,8 @@ Section SigmaHCOLRewritingRules.
 
           assert(H: UnionFold _ plus zero vr = mkSZero).
           {
-            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise' Monoid_RthetaFlags pf (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family i0 ic) x)) jc) =
-                      Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family i0 ic) x) jc))))).
+            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise' Monoid_RthetaFlags pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
+                      Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x) jc))))).
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
@@ -1463,7 +1462,7 @@ Section SigmaHCOLRewritingRules.
                          (Vbuild
                             (λ (z : nat) (zi : z < n),
                              Vnth
-                               (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x)
+                               (op Monoid_RthetaFlags (op_family (mkFinNat zi)) x)
                                jc))) = szero_svector Monoid_RthetaFlags n).
             {
               unfold szero_svector.
@@ -1473,7 +1472,7 @@ Section SigmaHCOLRewritingRules.
               rewrite Vbuild_nth.
               specialize (Uzeros k kc).
               setoid_replace (Vnth
-                                (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family k kc) x)
+                                (op Monoid_RthetaFlags (op_family (mkFinNat kc)) x)
                                 jc) with (@mkSZero Monoid_RthetaFlags).
               -
                 rewrite evalWriter_Rtheta_SZero.
@@ -1488,7 +1487,7 @@ Section SigmaHCOLRewritingRules.
                 unfold equiv.
                 unfold Rtheta.
                 unfold get_family_op in Uzeros.
-                generalize dependent (Vnth (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family k kc) x) jc).
+                generalize dependent (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat kc)) x) jc).
                 intros h Uzeros.
                 destruct (CarrierAequivdec (WriterMonadNoT.evalWriter h) zero) as [E | NE].
                 apply E.
@@ -3123,7 +3122,7 @@ Section SigmaHCOLRewritingRules.
 
       (* To use Diamond'_f_subst_under_P we need to convert body_f back to operator family *)
       replace (λ (j : nat) (jc : j < n),
-               op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc)) with  (get_family_op _ op_family) by reflexivity.
+               op Monoid_RthetaFlags (op_family (mkFinNat jc))) with  (get_family_op _ op_family) by reflexivity.
 
       rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
       clear u u_mon.  (* No more 'u' *)
@@ -3229,7 +3228,7 @@ Section SigmaHCOLRewritingRules.
 
         assert(Upoz': forall (j : nat) (jc : j < n), Vforall P
                                                       (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))).
+                                                            (op Monoid_RthetaFlags (op_family (mkFinNat jc)) x))).
         {
           intros j jc.
           specialize (Upoz j jc).
@@ -3245,38 +3244,38 @@ Section SigmaHCOLRewritingRules.
         change (Vbuild
                   (λ (z : nat) (zi : z < n),
                    Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))) with (Vbuild
+                        (op Monoid_RthetaFlags (op_family (mkFinNat zi)) x))) with (Vbuild
                                                                                                               (λ (z : nat) (zi : z < n),
                                                                                                                (fun p pi =>
                                                                                                                   (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                                                                                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)).
+                                                                                                                        (op Monoid_RthetaFlags (op_family (mkFinNat pi)) x))) z zi)).
 
         change (Vbuild
                   (λ (z : nat) (zi : z < n),
                    Vfold_right f
                                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                     (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family z zi) x))
+                                     (op Monoid_RthetaFlags (op_family (mkFinNat zi)) x))
                                uf_zero)) with (Vbuild
                                                  (λ (z : nat) (zi : z < n),
                                                   Vfold_right f
                                                               ((fun p pi =>
                                                                   (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                                        (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) z zi)
+                                                                        (op Monoid_RthetaFlags (op_family (mkFinNat pi)) x))) z zi)
                                                               uf_zero)).
 
         revert Upoz.
 
-        change (∀ (j : nat) (jc : j < n), Vforall P
-                                                (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                      (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family j jc) x))) with   (∀ (j : nat) (jc : j < n),
-                                                                                                                                               Vforall P
-                                                                                                                                                       ((fun p pi =>
-                                                                                                                                                           (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                                                                                                                                                                 (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) j jc)).
+        change (∀ (j : nat) (jc : j < n),
+                   Vforall P
+                           (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (op Monoid_RthetaFlags (op_family (mkFinNat jc)) x))) with
+            (∀ (j : nat) (jc : j < n),
+                Vforall P
+                        ((fun (p:nat) (pi:p<n) =>
+                            (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags)) (op Monoid_RthetaFlags (op_family (mkFinNat pi)) x))) j jc)).
 
-        generalize (fun p pi =>
+        generalize (fun (p:nat) (pi:p<n) =>
                       (Vmap (WriterMonadNoT.evalWriter (Monoid_W:=Monoid_RthetaFlags))
-                            (op Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family p pi) x))) as gen.
+                            (op Monoid_RthetaFlags (op_family (mkFinNat pi)) x))) as gen.
 
         (* cleanup *)
         intros gen Upoz.
@@ -4074,7 +4073,7 @@ and `ISumReduction_PointWise` *)
       unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, SHOperator_equiv, Diamond'.
       intros j jc.
       simpl.
-      unfold SHCompose, compose, equiv, ext_equiv.
+      unfold SparseEmbedding, SHCompose, compose, equiv, ext_equiv, mkFinNat.
       intros x y E.
       simpl.
       rewrite_clear E.
@@ -4402,10 +4401,8 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     (* Special `n by n` family of sequentially indexed `eT` operators *)
-    Definition eTn
-               {fm}
-               (n:nat) :=
-      mkSHOperatorFamily fm n 1 n (fun j jc => eT _ jc).
+    Definition eTn {fm} (n:nat) : @SHOperatorFamily fm n 1 n :=
+      fun jf => eT _ (proj2_sig jf).
 
     Theorem terminate_Reduction
           {n}
@@ -4654,14 +4651,12 @@ and `ISumReduction_PointWise` *)
       :
         @GathH _ i o base stride domain_bound
         =
-        @IUnion i o o f _ z
-                   (mkSHOperatorFamily _ _ _ _
-                                       (fun j jc =>
-                                          SHCompose _
-                                                    (@eUnion _ o j jc z)
-                                                    (@eT _ i (base+j*stride) (domain_bound j jc)
-                                                    )
-                   )).
+        @IUnion i o o f _ z  (fun jf =>
+                                SHCompose _
+                                          (@eUnion _ o (proj1_sig jf) (proj2_sig jf) z)
+                                          (@eT _ i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
+                                          )
+                             ).
     Proof.
       unfold GathH.
       unfold equiv, SHOperator_equiv.
@@ -4710,14 +4705,12 @@ and `ISumReduction_PointWise` *)
       :
         @GathH _ i o base stride domain_bound
         =
-        @ISumUnion i o o
-                   (mkSHOperatorFamily _ _ _ _
-                                       (fun j jc =>
-                                          SHCompose _
-                                                    (@eUnion _ o j jc zero)
-                                                    (@eT _ i (base+j*stride) (domain_bound j jc)
-                                                    )
-                   )).
+        @ISumUnion i o o  (fun jf =>
+                             SHCompose _
+                                       (@eUnion _ o _ (proj2_sig jf) zero)
+                                       (@eT _ i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
+                                       )
+                   ).
     Proof.
       (* This lemma is just a special case of more generic lemma *)
       apply terminate_GathHN_generic.

@@ -229,43 +229,30 @@ Section SigmaHCOL_Operators.
       :=
         forall x, Vforall P ((op f) x).
 
-    Record SHOperatorFamily
-           {i o n: nat}
-      : Type
-      := mkSHOperatorFamily {
-             family_member: (forall j (jc:j<n), @SHOperator i o)
-           }.
+    Definition SHOperatorFamily {i o n: nat} := FinNat n -> @SHOperator i o.
 
     (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
                {i o n}
                (op_family: @SHOperatorFamily i o n):
       forall j (jc:j<n), svector fm i -> svector fm o
-      := fun j (jc:j<n) => op (family_member op_family j jc).
+      := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
 
     Definition shrink_op_family
                {i o n}
-               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n :=
-      match op_family with
-      | mkSHOperatorFamily _ _ _ m =>
-        mkSHOperatorFamily i o n
-                           (fun (j:nat) (jc:j<n) => m j (@le_S (S j) n jc))
-      end.
+               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n
+      := fun jf => op_family (mkFinNat (@le_S (S (proj1_sig jf)) n (proj2_sig jf))).
 
     Lemma shrink_op_family_facts
           (i o k : nat)
           (op_family : SHOperatorFamily)
           (facts: ∀ (j : nat) (jc : j < S k),
-              @SHOperator_Facts i o (family_member op_family j jc)):
+              @SHOperator_Facts i o (op_family (mkFinNat jc))):
       (forall (j : nat) (jc : j < k),
-          @SHOperator_Facts i o (family_member (shrink_op_family op_family) j jc)).
+          @SHOperator_Facts i o ((shrink_op_family op_family) (mkFinNat jc))).
     Proof.
       intros j jc.
-      replace (family_member (shrink_op_family op_family) j
-                             jc) with (family_member op_family j (le_S jc)).
-      - apply facts.
-      - destruct op_family.
-        reflexivity.
+      apply facts.
     Qed.
 
     Fixpoint family_in_index_set
@@ -275,7 +262,7 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (in_index_set (family_member op_family j (S_j_lt_n E)))
+                                  (in_index_set (op_family (mkFinNat (S_j_lt_n E))))
                                   (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
@@ -286,7 +273,7 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (out_index_set (family_member op_family j (S_j_lt_n E)))
+                              (out_index_set (op_family (mkFinNat (S_j_lt_n E))))
                               (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
@@ -294,7 +281,7 @@ Section SigmaHCOL_Operators.
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
         (j : nat) (jc : j < k),
         Included (FinNat i)
-                 (in_index_set (family_member op_family j jc))
+                 (in_index_set (op_family (mkFinNat jc)))
                  (family_in_index_set op_family).
     Proof.
       intros i o k op_family j jc.
@@ -314,9 +301,8 @@ Section SigmaHCOL_Operators.
         +
           right.
           assert(jc1: j<k) by omega.
-          apply IHk with (jc:=jc1).
-          unfold shrink_op_family.
-          destruct op_family.
+          apply IHk with (jc:=jc1). clear IHk.
+          unfold shrink_op_family, mkFinNat, proj2_sig in *.
           simpl in *.
           rewrite (le_unique _ _ (le_S jc1) jc).
           apply H.
@@ -328,7 +314,7 @@ Section SigmaHCOL_Operators.
 
       family_in_index_set op_family (mkFinNat jc) ->
       ∃ (t : nat) (tc : t < k),
-        in_index_set (family_member op_family t tc)
+        in_index_set (op_family (mkFinNat tc))
                      (mkFinNat jc).
     Proof.
       intros H.
@@ -352,8 +338,7 @@ Section SigmaHCOL_Operators.
           assert(tc1: t < S k) by omega.
           exists tc1.
 
-          unfold shrink_op_family.
-          destruct op_family.
+          unfold shrink_op_family, mkFinNat, proj2_sig.
           simpl in *.
           rewrite (le_unique _ _ tc1 (le_S tc)).
           apply IHk.
@@ -363,7 +348,7 @@ Section SigmaHCOL_Operators.
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
         (j : nat) (jc : j < k),
         Included (FinNat o)
-                 (out_index_set (family_member op_family j jc))
+                 (out_index_set (op_family (mkFinNat jc)))
                  (family_out_index_set op_family).
     Proof.
       intros i o k op_family j jc.
@@ -384,8 +369,7 @@ Section SigmaHCOL_Operators.
           right.
           assert(jc1: j<k) by omega.
           apply IHk with (jc:=jc1).
-          unfold shrink_op_family.
-          destruct op_family.
+          unfold shrink_op_family, mkFinNat, proj2_sig.
           simpl in *.
           rewrite (le_unique _ _ (le_S jc1) jc).
           apply H.
@@ -397,7 +381,7 @@ Section SigmaHCOL_Operators.
 
       family_out_index_set op_family (mkFinNat jc) <->
       ∃ (t : nat) (tc : t < k),
-        out_index_set (family_member op_family t tc)
+        out_index_set (op_family (mkFinNat tc))
                       (mkFinNat jc).
     Proof.
       split.
@@ -422,8 +406,7 @@ Section SigmaHCOL_Operators.
             assert(tc1: t < S k) by omega.
             exists tc1.
 
-            unfold shrink_op_family.
-            destruct op_family.
+            unfold shrink_op_family, mkFinNat, proj2_sig in *.
             simpl in *.
             replace (le_S tc) with tc1 in IHk by apply le_unique.
             apply IHk.
@@ -438,7 +421,7 @@ Section SigmaHCOL_Operators.
           (i o k : nat)
           (op_family : @SHOperatorFamily i o k)
           (op_family_facts: forall (j : nat) (jc : j < k),
-              SHOperator_Facts (family_member op_family j jc)):
+              SHOperator_Facts (op_family (mkFinNat jc))):
       FinNatSet_dec (family_in_index_set op_family).
     Proof.
       induction k.
@@ -460,7 +443,7 @@ Section SigmaHCOL_Operators.
           (i o k : nat)
           (op_family : @SHOperatorFamily i o k)
           (op_family_facts: forall (j : nat) (jc : j < k),
-              SHOperator_Facts (family_member op_family j jc)):
+              SHOperator_Facts (op_family (mkFinNat jc))):
       FinNatSet_dec (family_out_index_set op_family).
     Proof.
       induction k.
@@ -537,7 +520,7 @@ Section SigmaHCOL_Operators.
     Global Instance SHOperatorFamily_equiv
            {i o n: nat}:
       Equiv (@SHOperatorFamily i o n) :=
-      fun a b => forall j (jc:j<n), family_member a j jc = family_member b j jc.
+      fun a b => forall j (jc:j<n), a (mkFinNat jc) = b (mkFinNat jc).
 
     Global Instance SHOperatorFamily_equiv_Reflexive
            {i o n: nat}:
@@ -620,6 +603,8 @@ Section SigmaHCOL_Operators.
       solve_proper.
     Qed.
 
+    (*
+TODO: remove
     Global Instance mkSHOperatorFamily_proper
            {i o n: nat}:
       Proper (forall_relation (λ i : nat, pointwise_relation (i < n) equiv) ==> equiv)
@@ -629,6 +614,7 @@ Section SigmaHCOL_Operators.
       unfold equiv, SHOperatorFamily_equiv.
       auto.
     Qed.
+     *)
 
     Global Instance op_Vforall_P_proper {i o: nat}:
       Proper ( ((=) ==> iff) ==> (=) ==> iff) (@op_Vforall_P i o).
@@ -729,12 +715,10 @@ Section SigmaHCOL_Operators.
       unfold Apply_Family, Apply_Family'.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
-      unfold get_family_op.
-      destruct f as [fmem].
-      destruct f' as [fmem'].
+      unfold get_family_op, mkFinNat.
       simpl.
-      unfold equiv, SHOperatorFamily_equiv in Ef. simpl in Ef.
-      rewrite <- Ev.
+      unfold equiv, SHOperatorFamily_equiv, mkFinNat in Ef.
+      rewrite <- Ev. clear Ev v'.
       specialize (Ef j jc).
       apply SHOperator_op_proper.
       apply Ef.
@@ -970,12 +954,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
-    Definition Constant_Family
-               {i o n}
-               (f: @SHOperator i o)
-      : @SHOperatorFamily i o n
-      :=
-        mkSHOperatorFamily _ _ _  (fun (j : nat) (_ : j < n) => f).
+    Definition Constant_Family {i o n} (f: @SHOperator i o)
+      : @SHOperatorFamily i o n := fun _ => f.
 
     (* Family composition *)
     Definition SHFamilyFamilyCompose
@@ -983,10 +963,7 @@ Section SigmaHCOL_Operators.
                (f: @SHOperatorFamily o2 o3 n)
                (g: @SHOperatorFamily i1 o2 n)
       : @SHOperatorFamily i1 o3 n
-      :=
-        mkSHOperatorFamily _ _ _
-                           (fun (j : nat) (jc : j < n) =>
-                              family_member f j jc  ⊚ family_member g j jc).
+      := fun jf => f jf ⊚  g jf.
 
     Global Instance SHFamilyFamilyCompose_proper
            {i1 o2 o3 n: nat}
@@ -1011,10 +988,7 @@ Section SigmaHCOL_Operators.
                 (f: @SHOperator o2 o3)
                 (g: @SHOperatorFamily i1 o2 n)
       : @SHOperatorFamily i1 o3 n
-      :=
-        mkSHOperatorFamily _ _ _
-                           (fun (j : nat) (jc : j < n) =>
-                              f  ⊚ family_member g j jc).
+      := fun jf => f  ⊚ g jf.
 
     Global Instance SHOperatorFamilyCompose_proper
            {i1 o2 o3 n: nat}
@@ -1037,10 +1011,7 @@ Section SigmaHCOL_Operators.
                 (f: @SHOperatorFamily o2 o3 n)
                 (g: @SHOperator i1 o2)
       : @SHOperatorFamily i1 o3 n
-      :=
-        mkSHOperatorFamily _ _ _
-                           (fun (j : nat) (jc : j < n) =>
-                              family_member f j jc  ⊚ g).
+      := fun jf => f jf  ⊚ g.
 
     Global Instance SHFamilyOperatorCompose_proper
            {i1 o2 o3 n: nat}
@@ -1145,13 +1116,10 @@ Section SigmaHCOL_Operators.
                (* Gather index map *)
                (g: index_map_family ki i n)
       : @SHOperatorFamily i o n
-      := mkSHOperatorFamily i o n
-                            (fun (j:nat) (jc:j<n) =>
-                               (Scatter (f (mkFinNat jc))
-                                        (f_inj:=index_map_family_member_injective f_inj j jc) idv)
-                                 ⊚ (family_member kernel j jc)
-                                 ⊚ (Gather (g (mkFinNat jc)))).
-
+      := fun jf => (Scatter (f jf)
+                       (f_inj := index_map_family_member_injective f_inj jf) idv)
+                ⊚ (kernel jf)
+                ⊚ (Gather (g jf)).
 
     Lemma Scatter'_Unit_at_sparse
           {i o: nat}
@@ -1226,9 +1194,9 @@ Section SigmaHCOL_Operators.
 
       unfold compose.
       generalize
-        (@op ki ko (@family_member ki ko n kernel j0 jc0)
+        (@op ki ko (kernel (mkFinNat jc0))
              (@Gather' i ki (g (mkFinNat jc0)) x)),
-      (@op ki ko (@family_member ki ko n kernel j1 jc1)
+      (@op ki ko (kernel (mkFinNat jc1))
            (@Gather' i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
@@ -2530,10 +2498,10 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaFlags (family_member _ op_family j jc))
+         (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                                  (out_index_set _ (family_member _ op_family m mc))
-                                                                  (out_index_set _ (family_member _ op_family n nc))
+                                                                  (out_index_set _ (op_family (mkFinNat mc)))
+                                                                  (out_index_set _ (op_family (mkFinNat nc)))
          )
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
@@ -2609,7 +2577,7 @@ Section StructuralProperies.
       destruct G as [t [tc G]].
       (* G and S contradict *)
       assert(N: ¬ out_index_set Monoid_RthetaFlags
-                  (family_member Monoid_RthetaFlags op_family t tc) (mkFinNat jc)).
+                  (op_family (mkFinNat tc)) (mkFinNat jc)).
       {
         contradict S.
         apply family_out_set_includes_members in S.
@@ -2698,7 +2666,7 @@ Section StructuralProperies.
       +
         (* no collisions on j-th row accross all families *)
         assert(forall  (t : nat) (tc : t < k),
-                  not (out_index_set Monoid_RthetaFlags (family_member Monoid_RthetaFlags op_family t tc)
+                  not (out_index_set Monoid_RthetaFlags (op_family (mkFinNat tc))
                                      (mkFinNat jc))).
         {
           intros t tc.
@@ -2732,7 +2700,7 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (family_member _ op_family j jc))
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
     : SHOperator_Facts _ (IReduction dot initial op_family).
   Proof.
     split.
@@ -2809,7 +2777,7 @@ Section StructuralProperies.
 
       (* G and S contradict *)
       assert(N: ¬ out_index_set Monoid_RthetaSafeFlags
-                  (family_member Monoid_RthetaSafeFlags op_family t tc) (mkFinNat jc)).
+                  (op_family (mkFinNat tc)) (mkFinNat jc)).
       {
         contradict S.
         apply family_out_set_includes_members in S.
@@ -2857,7 +2825,7 @@ Section StructuralProperies.
       +
         (* no collisions on j-th row accross all families *)
         assert(forall  (t : nat) (tc : t < k),
-                  not (out_index_set Monoid_RthetaSafeFlags (family_member Monoid_RthetaSafeFlags op_family t tc)
+                  not (out_index_set Monoid_RthetaSafeFlags (op_family (mkFinNat tc))
                                      (mkFinNat jc))).
         {
           intros t tc.

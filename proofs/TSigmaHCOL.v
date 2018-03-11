@@ -83,25 +83,17 @@ Section RthetaSafetyCast.
   Definition SafeFamilyCast {i o n}
              (f: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
     : @SHOperatorFamily Monoid_RthetaFlags i o n
-    :=
-      mkSHOperatorFamily _ _ _ _
-                         (fun (j : nat) (jc : j < n) =>
-                            SafeCast (family_member Monoid_RthetaSafeFlags f j jc)).
+    := fun jf => SafeCast (f jf).
 
   Global Instance SafeFamilyCast_proper (i o n:nat):
     Proper (equiv ==> equiv) (@SafeFamilyCast i o n).
   Proof.
     intros f f' Ev.
     unfold SafeFamilyCast.
-    unfold equiv, SHOperatorFamily_equiv.
-    simpl.
+    unfold equiv, SHOperatorFamily_equiv, mkFinNat.
     intros j jc.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
-
     apply SafeCast'_proper.
+    apply SHOperator_op_proper.
     apply Ev.
   Qed.
 
@@ -159,10 +151,7 @@ Section RthetaSafetyCast.
   Definition UnSafeFamilyCast {i o n}
              (f: @SHOperatorFamily Monoid_RthetaFlags i o n)
     : @SHOperatorFamily Monoid_RthetaSafeFlags i o n
-    :=
-      mkSHOperatorFamily _ _ _ _
-                         (fun (j : nat) (jc : j < n) =>
-                            UnSafeCast (family_member Monoid_RthetaFlags f j jc)).
+    := fun jf => UnSafeCast (f jf).
 
 
   Global Instance UnSafeFamilyCast_proper (i o n:nat):
@@ -171,14 +160,9 @@ Section RthetaSafetyCast.
     intros f f' Ev.
     unfold UnSafeFamilyCast.
     unfold equiv, SHOperatorFamily_equiv.
-    simpl.
-
-    destruct f, f'.
-    unfold equiv, SHOperator_equiv in Ev.
-    simpl in *.
     intros j jc.
-
     apply UnSafeCast'_proper.
+    apply SHOperator_op_proper.
     apply Ev.
   Qed.
 

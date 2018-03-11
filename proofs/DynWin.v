@@ -120,9 +120,8 @@ SUMUnion(
                       ⊚
                       (USparseEmbedding
                          (n:=2)
-                         (mkSHOperatorFamily Monoid_RthetaFlags _ _ _
-                                             (fun j jc => SafeCast (SHBinOp _ (o:=1)
-                                                                        (Fin1SwapIndex2 (mkFinNat jc) (IgnoreIndex2 CarrierType.sub)))))
+                         (fun jf => SafeCast (SHBinOp _ (o:=1)
+                                                                        (Fin1SwapIndex2 jf (IgnoreIndex2 CarrierType.sub))))
                          (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) 2 1 (proj2_sig j))))
                          (f_inj := h_j_1_family_injective)
                          zero
@@ -390,44 +389,39 @@ SUMUnion(
        ⊚ SafeCast
            (IReduction plus 0
               (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
-                 {|
-                 family_member := λ (j : nat) (jc : j < 3),
+                 ( λ (jf : FinNat 3),
                                   SHCompose Monoid_RthetaSafeFlags
                                     (SHPointwise Monoid_RthetaSafeFlags
                                        (Fin1SwapIndex
-                                          (mkFinNat jc)
+                                          jf
                                           (mult_by_nth a)))
                                     (liftM_HOperator Monoid_RthetaSafeFlags
-                                       (HInductor j mult 1)) |}
+                                       (HInductor (proj1_sig jf) mult 1)) )
                  (eT Monoid_RthetaSafeFlags
                     (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
       (eUnion Monoid_RthetaFlags (le_n 2) 0
        ⊚ SafeCast
            (IReduction minmax.max 0
-              {|
-              family_member := λ (j : nat) (jc : (j < 2)%nat),
+              (λ (jf : FinNat 2),
                                SHCompose Monoid_RthetaSafeFlags
                                  (SHBinOp Monoid_RthetaSafeFlags
                                     (λ (i : FinNat 1)
                                      (a0 b : CarrierA),
                                      IgnoreIndex abs i
                                        (Fin1SwapIndex2
-                                          (mkFinNat jc)
+                                          jf
                                           (IgnoreIndex2 sub) i a0 b)))
                                  (UnSafeCast
                                     (ISumUnion
-                                       {|
-                                       family_member := λ
-                                                     (j0 : nat)
-                                                     (jc0 : (j0 < 2)%nat),
-                                                     eUnion Monoid_RthetaFlags jc0
-                                                     0
-                                                     ⊚
-                                                     eT Monoid_RthetaFlags
-                                                     (h_index_map_compose_range_bound
-                                                     (GathH_jn_domain_bound j 2 jc)
-                                                     (h_bound_second_half 1 4) j0
-                                                     jc0) |})) |})).
+                                       (λ (jf0:FinNat 2),
+                                        eUnion Monoid_RthetaFlags (proj2_sig jf0)
+                                               0
+                                               ⊚
+                                               eT Monoid_RthetaFlags
+                                               (h_index_map_compose_range_bound
+                                                  (GathH_jn_domain_bound (proj1_sig jf) 2 (proj2_sig jf))
+                                                  (h_bound_second_half 1 4) (proj1_sig jf0)
+                                                  (proj2_sig jf0)) ))) ))).
 
 
   Instance DynWinSigmaHCOL1_Facts
@@ -504,7 +498,7 @@ SUMUnion(
     simpl.
 
     unfold compose.
-    generalize (op fm (family_member fm g j jc) x).
+    generalize (op fm (g (mkFinNat jc)) x).
     clear x. intros x.
     specialize (H x).
     eapply Vforall_nth in H.

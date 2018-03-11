@@ -736,9 +736,9 @@ Section IndexFamilies.
   Lemma index_map_family_member_injective
         {d r n: nat}
         {f: index_map_family d r n}:
-    index_map_family_injective f -> forall j (jc:j<n), index_map_injective (f (mkFinNat jc)).
+    index_map_family_injective f -> forall jf, index_map_injective (f jf).
   Proof.
-    intros H j jc.
+    intros H [j jc].
     unfold index_map_family_injective in H.
     unfold index_map_injective.
     apply H.
