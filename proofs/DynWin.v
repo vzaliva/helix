@@ -587,6 +587,22 @@ SUMUnion(
     apply H.
   Qed.
 
+  (*
+  Global Instance Sig_equiv `{Equiv A} {P: A -> Prop}:
+    Equiv (sig P) :=
+    fun a b => proj1_sig a = proj1_sig b.
+   *)
+
+  Global Instance mkSHOperatorFamily_proper
+         {i o n: nat}
+         {fm}
+         {op_family: @SHOperatorFamily fm i o n}
+    :
+      Proper (pointwise_relation (FinNat n) (@SHOperator_equiv fm i o))
+             op_family.
+  Proof.
+    solve_proper.
+  Qed.
 
   Lemma DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
@@ -663,6 +679,7 @@ SUMUnion(
 
     (* Next rule *)
     unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
+    Set Printing All.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
