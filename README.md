@@ -1,6 +1,6 @@
-# SPIRAL-Coq #
+# HELIX #
 
-SPIRAL formalization in Coq
+HELIX: SPIRAL formalization in Coq
 
 ### Dependencies ###
 * [Coq 8.7](https://coq.inria.fr/) 
@@ -13,6 +13,5 @@ To install all required dependenceis:
 
     opam repo add coq-released https://coq.inria.fr/opam/released
     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph
-
 
 Questions: [Vadim Zaliva](mailto:vzaliva@cmu.edu)
