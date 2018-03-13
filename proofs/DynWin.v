@@ -756,24 +756,19 @@ SUMUnion(
      But it does not (match fails), so we have to do some manual rewriting
      *)
 
+    unfold eTn.
     match goal with
-    | [ |- context [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+    | [ |- context [ IReduction plus _ ?f ]] =>
       match f with
-      | (fun j jc => SHCompose _ (SHCompose _ (eT _ ?l) (SHPointwise _ ?c)) ?rest) =>
-        setoid_replace
-          (mkSHOperatorFamily _ _ _ _ f) with
-            (mkSHOperatorFamily _ _ _ _
-                                (fun (j:nat) (jc:j<3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex (mkFinNat jc) c)) (eT _ l)) rest))
+      | (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (eT _ ?l) (SHPointwise _ ?c)) ?rest) =>  setoid_replace f with
+            (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex jf c)) (eT _ l)) rest)
       end
     end.
 
-
     all:revgoals.
     f_equiv.
-    intros j jc.
-    f_equiv.
+    simpl.
     apply rewrite_eT_SHPointwise.
-
     (* --- END: hack --- *)
 
     (* now solve some obligations *)
