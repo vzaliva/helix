@@ -723,22 +723,17 @@ SUMUnion(
      But it does not (hangs forever), so we have to do some manual rewriting
      *)
     match goal with
-    | [ |- context [ mkSHOperatorFamily _ _ _ _ ?f ]] =>
+    | |- context [(SHFamilyOperatorCompose _ ?f _)] =>
       match f with
-      | (fun j jc => UnSafeCast (?torewrite ⊚ ?rest )) =>
-
-        setoid_replace
-          (mkSHOperatorFamily _ _ _ _ f) with
-            (mkSHOperatorFamily _ _ _ _
-                                (fun (j:nat) (jc:j<2) => UnSafeCast rest))
+      | (fun jf => UnSafeCast (?torewrite ⊚ ?rest )) =>
+        setoid_replace f with (fun (jf:FinNat 2) => UnSafeCast rest)
       end
     end.
     all:revgoals.
-    f_equiv.
+    unfold equiv, SHOperatorFamily_equiv.
     intros j jc.
     f_equiv.
     apply rewrite_Reduction_ScatHUnion_max_zero.
-
     (* --- END: hack --- *)
 
     Opaque SHCompose.
