@@ -766,6 +766,8 @@ SUMUnion(
     end.
 
     all:revgoals.
+    unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
+    intros [j jc].
     f_equiv.
     simpl.
     apply rewrite_eT_SHPointwise.
