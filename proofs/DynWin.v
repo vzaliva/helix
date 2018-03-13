@@ -587,53 +587,6 @@ SUMUnion(
     apply H.
   Qed.
 
-  (*
-  Global Instance Sig_equiv `{Equiv A} {P: A -> Prop}:
-    Equiv (sig P) :=
-    fun a b => proj1_sig a = proj1_sig b.
-   *)
-
-  (*
-  Global Instance mkSHOperatorFamily_proper1
-         {i1 o2 o3 n: nat}
-         `{fm: Monoid.Monoid RthetaFlags}
-         (f: @SHOperatorFamily fm o2 o3 n)
-         (g: @SHOperator fm i1 o2)
-    :
-      Proper (pointwise_relation (FinNat n) (=) ==> (=) ==> (=))
-             (fun j => SHFamilyOperatorCompose fm f g ).
-  Proof.
-    solve_proper.
-  Qed.
-   *)
-
-  (* TODO: see if this replaces SHFamilyOperatorCompose_proper *)
-  Global Instance SHFamilyOperatorCompose_pw_proper
-         {i1 o2 o3 n: nat}
-         `{fm: Monoid.Monoid RthetaFlags}
-    :
-      Proper
-        (@pointwise_relation (FinNat n)
-                             (@SHOperator fm o2 o3)
-                             (=) ==> (=) ==> (=))
-        (@SHFamilyOperatorCompose fm i1 o2 o3 n).
-  Proof.
-    intros f f' Ef g g' Eg.
-    unfold equiv, SHOperatorFamily_equiv.
-    intros j jc.
-    unfold SHFamilyOperatorCompose; simpl.
-
-    apply SHCompose_proper.
-    unfold equiv, ext_equiv, respectful in Ef.
-    apply Ef.
-    apply Eg.
-  Qed.
-
-  (* short form
-  Proper
-    (pointwise_relation (FinNat 2) (=) ==> (=) ==> (=))
-    (SHFamilyOperatorCompose Monoid_RthetaSafeFlags) *)
-
   Lemma DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
@@ -730,8 +683,8 @@ SUMUnion(
       end
     end.
     all:revgoals.
-    unfold equiv, SHOperatorFamily_equiv.
-    intros j jc.
+    unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
+    intros [j jc].
     f_equiv.
     apply rewrite_Reduction_ScatHUnion_max_zero.
     (* --- END: hack --- *)
@@ -743,7 +696,6 @@ SUMUnion(
 
     (* Next rule *)
     unfold SHFamilyOperatorCompose.
-    simpl.
     setoid_rewrite UnSafeCast_SHCompose.
     setoid_rewrite UnSafeCast_Gather.
     setoid_rewrite SHCompose_assoc at 5.
@@ -790,7 +742,6 @@ SUMUnion(
     rewrite <- SafeCast_SHCompose.
     (* IReduction_absorb_operator as ISumXXX_YYY *)
     setoid_rewrite rewrite_IReduction_absorb_operator.
-
 
     (* Next rule: eT_Pointwise *)
     unfold SHFamilyOperatorCompose.

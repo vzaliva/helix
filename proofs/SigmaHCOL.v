@@ -231,6 +231,10 @@ Section SigmaHCOL_Operators.
 
     Definition SHOperatorFamily {i o n: nat} := FinNat n -> @SHOperator i o.
 
+    Global Instance SHOperatorFamily_equiv {i o n: nat}:
+      Equiv(@SHOperatorFamily i o n)
+      := @pointwise_relation (FinNat n) (@SHOperator i o) (=).
+
     (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
                {i o n}
@@ -517,17 +521,12 @@ Section SigmaHCOL_Operators.
       apply SHOperator_equiv_Transitive.
     Qed.
 
-    Global Instance SHOperatorFamily_equiv
-           {i o n: nat}:
-      Equiv (@SHOperatorFamily i o n) :=
-      fun a b => forall j (jc:j<n), a (mkFinNat jc) = b (mkFinNat jc).
-
     Global Instance SHOperatorFamily_equiv_Reflexive
            {i o n: nat}:
       Reflexive (@SHOperatorFamily_equiv i o n).
     Proof.
       intros x.
-      unfold SHOperatorFamily_equiv.
+      unfold SHOperatorFamily_equiv, pointwise_relation.
       auto.
     Qed.
 
@@ -536,9 +535,9 @@ Section SigmaHCOL_Operators.
       Symmetric (@SHOperatorFamily_equiv i o n).
     Proof.
       intros x y.
-      unfold SHOperatorFamily_equiv.
-      intros H j jc.
-      specialize (H j jc).
+      unfold SHOperatorFamily_equiv, pointwise_relation.
+      intros H [j jc].
+      specialize (H (mkFinNat jc)).
       auto.
     Qed.
 
@@ -547,10 +546,10 @@ Section SigmaHCOL_Operators.
       Transitive (@SHOperatorFamily_equiv i o n).
     Proof.
       intros x y z.
-      unfold SHOperatorFamily_equiv.
-      intros H H0 j jc.
-      specialize (H j jc).
-      specialize (H0 j jc).
+      unfold SHOperatorFamily_equiv, pointwise_relation.
+      intros H H0 [j jc].
+      specialize (H (mkFinNat jc)).
+      specialize (H0 (mkFinNat jc)).
       auto.
     Qed.
 
@@ -611,7 +610,7 @@ TODO: remove
              (mkSHOperatorFamily i o n).
     Proof.
       intros f0 f1 Ef.
-      unfold equiv, SHOperatorFamily_equiv.
+      unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
       auto.
     Qed.
      *)
@@ -717,9 +716,9 @@ TODO: remove
       rewrite 2!Vbuild_nth.
       unfold get_family_op, mkFinNat.
       simpl.
-      unfold equiv, SHOperatorFamily_equiv, mkFinNat in Ef.
+      unfold equiv, SHOperatorFamily_equiv, pointwise_relation, mkFinNat in Ef.
       rewrite <- Ev. clear Ev v'.
-      specialize (Ef j jc).
+      specialize (Ef (mkFinNat jc)).
       apply SHOperator_op_proper.
       apply Ef.
       reflexivity.
@@ -971,7 +970,7 @@ TODO: remove
         Proper ((=) ==> (=) ==> (=)) (@SHFamilyFamilyCompose i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
+      unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
       intros j jc.
       unfold SHFamilyFamilyCompose; simpl.
 
@@ -996,7 +995,7 @@ TODO: remove
         Proper ((=) ==> (=) ==> (=)) (@SHOperatorFamilyCompose i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
+      unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
       intros j jc.
       unfold SHFamilyFamilyCompose; simpl.
 
@@ -1019,7 +1018,7 @@ TODO: remove
         Proper ((=) ==> (=) ==> (=)) (@SHFamilyOperatorCompose i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
-      unfold equiv, SHOperatorFamily_equiv.
+      unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
       intros j jc.
       unfold SHFamilyFamilyCompose; simpl.
 
@@ -1443,8 +1442,8 @@ Section OperatorProperies.
     : SHFamilyOperatorCompose fm (SHFamilyOperatorCompose fm F op1) op2 = SHFamilyOperatorCompose fm F (SHCompose fm op1 op2).
   Proof.
     unfold SHFamilyOperatorCompose, SHCompose, compose.
-    unfold equiv, SHOperatorFamily_equiv.
-    intros j jc.
+    unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
+    intros [j jc].
     unfold equiv, SHOperator_equiv.
     simpl.
     unfold equiv, SHOperator_equiv, ext_equiv.

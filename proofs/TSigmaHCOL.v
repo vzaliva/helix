@@ -90,7 +90,7 @@ Section RthetaSafetyCast.
   Proof.
     intros f f' Ev.
     unfold SafeFamilyCast.
-    unfold equiv, SHOperatorFamily_equiv, mkFinNat.
+    unfold equiv, SHOperatorFamily_equiv, pointwise_relation, mkFinNat.
     intros j jc.
     apply SafeCast'_proper.
     apply SHOperator_op_proper.
@@ -159,7 +159,7 @@ Section RthetaSafetyCast.
   Proof.
     intros f f' Ev.
     unfold UnSafeFamilyCast.
-    unfold equiv, SHOperatorFamily_equiv.
+    unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
     intros j jc.
     apply UnSafeCast'_proper.
     apply SHOperator_op_proper.

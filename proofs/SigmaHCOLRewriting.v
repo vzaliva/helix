@@ -4070,8 +4070,8 @@ and `ISumReduction_PointWise` *)
                                                  kernel)
                         f zero g (f_inj:=f_inj).
     Proof.
-      unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, SHOperator_equiv, Diamond'.
-      intros j jc.
+      unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, pointwise_relation, SHOperator_equiv, Diamond'.
+      intros [j jc].
       simpl.
       unfold SparseEmbedding, SHCompose, compose, equiv, ext_equiv, mkFinNat.
       intros x y E.
