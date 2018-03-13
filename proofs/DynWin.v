@@ -593,16 +593,46 @@ SUMUnion(
     fun a b => proj1_sig a = proj1_sig b.
    *)
 
-  Global Instance mkSHOperatorFamily_proper
-         {i o n: nat}
-         {fm}
-         {op_family: @SHOperatorFamily fm i o n}
+  (*
+  Global Instance mkSHOperatorFamily_proper1
+         {i1 o2 o3 n: nat}
+         `{fm: Monoid.Monoid RthetaFlags}
+         (f: @SHOperatorFamily fm o2 o3 n)
+         (g: @SHOperator fm i1 o2)
     :
-      Proper (pointwise_relation (FinNat n) (@SHOperator_equiv fm i o))
-             op_family.
+      Proper (pointwise_relation (FinNat n) (=) ==> (=) ==> (=))
+             (fun j => SHFamilyOperatorCompose fm f g ).
   Proof.
     solve_proper.
   Qed.
+   *)
+
+  (* TODO: see if this replaces SHFamilyOperatorCompose_proper *)
+  Global Instance SHFamilyOperatorCompose_pw_proper
+         {i1 o2 o3 n: nat}
+         `{fm: Monoid.Monoid RthetaFlags}
+    :
+      Proper
+        (@pointwise_relation (FinNat n)
+                             (@SHOperator fm o2 o3)
+                             (=) ==> (=) ==> (=))
+        (@SHFamilyOperatorCompose fm i1 o2 o3 n).
+  Proof.
+    intros f f' Ef g g' Eg.
+    unfold equiv, SHOperatorFamily_equiv.
+    intros j jc.
+    unfold SHFamilyOperatorCompose; simpl.
+
+    apply SHCompose_proper.
+    unfold equiv, ext_equiv, respectful in Ef.
+    apply Ef.
+    apply Eg.
+  Qed.
+
+  (* short form
+  Proper
+    (pointwise_relation (FinNat 2) (=) ==> (=) ==> (=))
+    (SHFamilyOperatorCompose Monoid_RthetaSafeFlags) *)
 
   Lemma DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
@@ -679,7 +709,6 @@ SUMUnion(
 
     (* Next rule *)
     unfold SparseEmbedding, SHOperatorFamilyCompose, UnSafeFamilyCast; simpl.
-    Set Printing All.
     setoid_rewrite SHCompose_assoc at 5.
     setoid_rewrite <- SHCompose_assoc at 1.
 
