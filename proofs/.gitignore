@@ -14,3 +14,5 @@ graph.svg
 nohup.out
 CoqMakefile.conf
 Makefile.coq.conf
+moddep.dot
+moddep.svg

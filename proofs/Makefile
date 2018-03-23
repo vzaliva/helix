@@ -24,6 +24,7 @@ clean:
 	-$(MAKECOQ) clean
 	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache`
 	rm -f graph.dpd graph.dot graph.svg
+	rm -f moddep.dot moddep.svg
 
 clean-dep:
 	rm -f `find . -name \*.v.d`
@@ -53,7 +54,7 @@ graph.dot: graph.dpd
 	dpd2dot graph.dpd
 
 graph.dpd: depgraph.vcmd
-	"coqtop"  -R "." Spiral -I "." < depgraph.vcmd
+	coqtop  -R "." Spiral -I "." < depgraph.vcmd
 
 wc:
 	coqwc $(MYVFILES)
@@ -66,3 +67,10 @@ print-unused: graph.dpd
 
 %:
 	$(MAKECOQ) $@
+
+moddep.dot:
+	coqdep -R . $(LIBNAME) $(MYVFILES)  -dumpgraph moddep.dot
+
+moddep.svg: moddep.dot
+	dot -Tsvg moddep.dot > moddep.svg
+
