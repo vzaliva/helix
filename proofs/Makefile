@@ -68,9 +68,9 @@ print-unused: graph.dpd
 %:
 	$(MAKECOQ) $@
 
-moddep.dot:
-	coqdep -R . $(LIBNAME) $(MYVFILES)  -dumpgraph moddep.dot
+moddep.dot: Makefile
+	coqdep -R . $(LIBNAME) $(MYVFILES)  -dumpgraphbox moddep.dot
 
-moddep.svg: moddep.dot
+moddep.svg: moddep.dot Makefile
 	dot -Tsvg moddep.dot > moddep.svg
 
