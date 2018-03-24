@@ -4,7 +4,7 @@ Require Export Coq.Sets.Ensembles.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Arith.Peano_dec.
 Require Import Spiral.Spiral.
-Require Import CpdtTactics.
+Require Import Spiral.SpiralTactics.
 
 Notation FinNatSet n := (Ensemble (FinNat n)).
 
