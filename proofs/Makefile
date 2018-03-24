@@ -1,4 +1,4 @@
-LIBNAME := Spiral
+LIBNAME := Helix
 
 .SUFFIXES:
 
@@ -54,7 +54,7 @@ graph.dot: graph.dpd
 	dpd2dot graph.dpd
 
 graph.dpd: depgraph.vcmd
-	coqtop  -R "." Spiral -I "." < depgraph.vcmd
+	coqtop  -R "." $(LIBNAME) -I "." < depgraph.vcmd
 
 wc:
 	coqwc $(MYVFILES)
