@@ -6,8 +6,8 @@ LIBNAME := Helix
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
-LIBVFILES := CpdtTactics.v JRWTactics.v
-VFILES := $(shell find . -maxdepth 1 -name \*.v | grep -v .\# | sed -e 's|^./||g')
+LIBVFILES := Util/CpdtTactics.v Util/StructTactics.v
+VFILES := $(shell find . -name \*.v | grep -v .\# | cut -c 3- )
 MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
 default: Makefile.coq 
@@ -17,7 +17,7 @@ install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
 
 config Makefile.coq: _CoqProject Makefile
-	coq_makefile -f _CoqProject *.v -o Makefile.coq
+	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
 
 clean:
 	rm -f `find . -name \*~`

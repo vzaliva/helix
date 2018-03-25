@@ -1,5 +1,5 @@
 
-Require Import Spiral.VecUtil.
+Require Import Helix.Util.VecUtil.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Basics. (* for \circ notation *)
@@ -14,7 +14,7 @@ Require Import MathClasses.theory.naturals.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 
 (* Various definitions related to vector equality and setoid rewriting *)

@@ -9,7 +9,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Logic.FunctionalExtensionality.
 Import Coq.Arith.PeanoNat.Nat.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
 Require Import Omega.
 
@@ -20,8 +20,8 @@ Require Import MathClasses.orders.orders.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 
-Require Import Spiral.Spiral.
-Require Import Spiral.FinNatSet.
+Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNatSet.
 
 Global Open Scope nat_scope.
 

@@ -8,8 +8,8 @@ Require Export Coq.Vectors.Vector.
 Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
-Require Import Spiral.SpiralTactics.
-Require Import Spiral.Spiral.
+Require Import Helix.Tactics.HelixTactics.
+Require Import Util.Misc.
 
 Require Import Lia.
 

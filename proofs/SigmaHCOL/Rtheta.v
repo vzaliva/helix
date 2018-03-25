@@ -1,6 +1,6 @@
 (* R_theta is type which is used as value for vectors in SPIRAL.  *)
 
-Require Export Spiral.CarrierType.
+Require Export Helix.HCOL.CarrierType.
 
 Require Import Coq.Bool.Bool.
 Require Import Ring.
@@ -11,13 +11,13 @@ Require Import ExtLib.Structures.MonadLaws.
 Require Import ExtLib.Data.Monads.WriterMonad.
 Require Import ExtLib.Data.Monads.IdentityMonad.
 Require Import ExtLib.Structures.Monoid.
-Require Import Spiral.WriterMonadNoT.
+Require Import Helix.Util.WriterMonadNoT.
 Require Import ExtLib.Data.PPair.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Import MonadNotation.
 Import Monoid.

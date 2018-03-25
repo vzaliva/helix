@@ -84,7 +84,7 @@ Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
 Section VPermutation_properties.
 
 Require Import Coq.Sorting.Permutation.
-Require Import Spiral.VecUtil.
+Require Import Helix.Util.VecUtil.
 
 
   Variable A:Type.

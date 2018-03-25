@@ -1,11 +1,11 @@
 (* Template HCOL. HCOL meta-operators *)
 
-Require Import Spiral.VecUtil.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.Spiral.
-Require Import Spiral.CarrierType.
-Require Import Spiral.THCOLImpl.
-Require Import Spiral.HCOL.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.Misc.
+Require Import Helix.HCOL.CarrierType.
+Require Import Helix.HCOL.THCOLImpl.
+Require Import Helix.HCOL.HCOL.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Program.
@@ -13,7 +13,7 @@ Require Import Coq.Classes.Morphisms.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Relations.Relations.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

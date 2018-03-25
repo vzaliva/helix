@@ -1,4 +1,4 @@
-(* Base Spiral defintions: data types, utility functions, lemmas *)
+(* Base Helix defintions: data types, utility functions, lemmas *)
 
 Global Generalizable All Variables.
 
@@ -12,7 +12,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Logic.Decidable.
 Require Export Coq.Init.Specif.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import Psatz.
 Require Import Omega.

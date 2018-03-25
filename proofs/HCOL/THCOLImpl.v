@@ -1,8 +1,8 @@
 (* HCOL metaoperators *)
 
-Require Import Spiral.Spiral.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.CarrierType.
+Require Import Util.Misc.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.HCOL.CarrierType.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Program. (* compose *)
@@ -10,7 +10,7 @@ Require Import Coq.Classes.Morphisms.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Relations.Relations.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* CoRN MathClasses *)

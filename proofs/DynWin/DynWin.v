@@ -1,26 +1,26 @@
-Require Import Spiral.VecUtil.
-Require Import Spiral.Matrix.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.SVector.
-Require Import Spiral.Spiral.
-Require Import Spiral.CarrierType.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.Matrix.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.Util.Misc.
+Require Import Helix.HCOL.CarrierType.
 
-Require Import Spiral.HCOL.
-Require Import Spiral.HCOLImpl.
-Require Import Spiral.THCOL.
-Require Import Spiral.THCOLImpl.
-Require Import Spiral.Rtheta.
-Require Import Spiral.SigmaHCOL.
-Require Import Spiral.TSigmaHCOL.
-Require Import Spiral.IndexFunctions.
+Require Import Helix.HCOL.HCOL.
+Require Import Helix.HCOL.HCOLImpl.
+Require Import Helix.HCOL.THCOL.
+Require Import Helix.HCOL.THCOLImpl.
+Require Import Helix.SigmaHCOL.Rtheta.
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.TSigmaHCOL.
+Require Import Helix.SigmaHCOL.IndexFunctions.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
 
-Require Import Spiral.SpiralTactics.
-Require Import Spiral.HCOLBreakdown.
-Require Import Spiral.SigmaHCOLRewriting.
+Require Import Helix.Tactics.HelixTactics.
+Require Import Helix.HCOL.HCOLBreakdown.
+Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
 
 Require Import MathClasses.interfaces.canonical_names.
 
@@ -157,7 +157,7 @@ SUMUnion(
     Transparent SHCompose.
   Qed.
 
-  Require Import Spiral.FinNatSet.
+  Require Import Helix.Util.FinNatSet.
 
   Lemma DynWinSigmaHCOL_dense_input
           (a: avector 3)

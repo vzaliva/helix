@@ -1,4 +1,4 @@
-Require Import Spiral.VecUtil.
+Require Import Helix.Util.VecUtil.
 
 Section Matrix.
   (* Poor man's matrix is vector of vectors. *)

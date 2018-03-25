@@ -1,20 +1,20 @@
 
 Global Generalizable All Variables.
 
-Require Import Spiral.VecUtil.
-Require Import Spiral.Matrix.
-Require Import Spiral.Spiral.
-Require Import Spiral.Rtheta.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.SVector.
-Require Import Spiral.HCOL.
-Require Import Spiral.THCOL.
-Require Import Spiral.SigmaHCOL.
-Require Import Spiral.TSigmaHCOL.
-Require Import Spiral.IndexFunctions.
-Require Import Spiral.MonoidalRestriction.
-Require Import Spiral.VecPermutation.
-Require Import Spiral.FinNatSet.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.Matrix.
+Require Import Helix.Util.Misc.
+Require Import Helix.SigmaHCOL.Rtheta.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.HCOL.HCOL.
+Require Import Helix.HCOL.THCOL.
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.TSigmaHCOL.
+Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.Util.MonoidalRestriction.
+Require Import Helix.Util.VecPermutation.
+Require Import Helix.Util.FinNatSet.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
@@ -26,7 +26,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
 Require Import Omega.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.orders.
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.

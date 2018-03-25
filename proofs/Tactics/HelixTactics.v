@@ -1,7 +1,7 @@
 (* ----------- Some handy tactics ----------- *)
 
-Require Export Spiral.CpdtTactics.
-Require Export Spiral.StructTactics.
+Require Export Helix.Tactics.CpdtTactics.
+Require Export Helix.Tactics.StructTactics.
 
 Require Import Coq.Arith.Lt.
 Require Import Coq.Arith.Peano_dec.

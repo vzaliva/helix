@@ -1,14 +1,14 @@
 
-Require Import Spiral.VecUtil.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.Spiral.
-Require Import Spiral.Rtheta.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.Misc.
+Require Import Helix.SigmaHCOL.Rtheta.
 
 Require Import Coq.Bool.Bool.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
@@ -17,7 +17,7 @@ Import VectorNotations.
 
 Require Import ExtLib.Structures.Monads.
 
-Require Import Spiral.WriterMonadNoT.
+Require Import Helix.Util.WriterMonadNoT.
 
 Import Monoid.
 

@@ -1,9 +1,9 @@
 (* Low-level functions implementing HCOL matrix and vector manupulation operators *)
 
-Require Import Spiral.VecUtil.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.Spiral.
-Require Import Spiral.CarrierType.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.Misc.
+Require Import Helix.HCOL.CarrierType.
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Program. (* compose *)
@@ -11,7 +11,7 @@ Require Import Coq.Classes.Morphisms.
 Require Import Coq.Classes.RelationClasses.
 Require Import Coq.Relations.Relations.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.

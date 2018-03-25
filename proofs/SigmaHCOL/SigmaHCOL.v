@@ -1,15 +1,15 @@
 (* Coq defintions for Sigma-HCOL operator language *)
 
-Require Import Spiral.VecUtil.
-Require Import Spiral.Matrix.
-Require Import Spiral.VecSetoid.
-Require Import Spiral.Spiral.
-Require Import Spiral.Rtheta.
-Require Import Spiral.SVector.
-Require Import Spiral.IndexFunctions.
-Require Import Spiral.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
-Require Import Spiral.FinNatSet.
-Require Import Spiral.WriterMonadNoT.
+Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.Matrix.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.Misc.
+Require Import Helix.SigmaHCOL.Rtheta.
+Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
+Require Import Helix.Util.FinNatSet.
+Require Import Helix.Util.WriterMonadNoT.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Arith.Arith.
@@ -19,7 +19,7 @@ Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
 
-Require Import Spiral.SpiralTactics.
+Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
 Require Import Omega.
 
