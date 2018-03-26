@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc
+.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
