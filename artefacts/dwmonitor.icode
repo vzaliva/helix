@@ -1,0 +1,42 @@
+let(i3 := var("i3", TInt),
+i5 := var("i5", TInt),
+w2 := var("w2", TBool),
+w1 := var("w1", TReal),
+s8 := var("s8", TReal),
+s7 := var("s7", TReal),
+s6 := var("s6", TReal),
+s5 := var("s5", TReal),
+s4 := var("s4", TReal),
+s1 := var("s1", TReal),
+q4 := var("q4", TReal),
+q3 := var("q3", TReal),
+D := var("D", TPtr(TReal).aligned([ 16, 0 ])),
+X := var("X", TPtr(TReal).aligned([ 16, 0 ])),
+func(TInt, "transform", [ X, D ], 
+   decl([ q3, q4, s1, s4, s5, s6, s7, s8, w1, w2 ],
+      chain(
+         assign(s5, Value(TReal, 0.0)),
+         assign(s8, nth(X, Value(TInt, 0))),
+         assign(s7, Value(TReal, 1.0)),
+         loop(i5, [ 0 .. 2 ],
+            chain(
+               assign(s4, mul(s7, nth(D, i5))),
+               assign(s5, add(s5, s4)),
+               assign(s7, mul(s7, s8))
+            )
+         ),
+         assign(s1, Value(TReal, 0.0)),
+         loop(i3, [ 0 .. 1 ],
+            chain(
+               assign(q3, nth(X, add(i3, Value(TInt, 1)))),
+               assign(q4, nth(X, add(Value(TInt, 3), i3))),
+               assign(w1, sub(q3, q4)),
+               assign(s6, cond(geq(w1, Value(TInt, 0)), w1, neg(w1))),
+               assign(s1, cond(geq(s1, s6), s1, s6))
+            )
+         ),
+         assign(w2, geq(s1, s5)),
+         creturn(w2)
+      )
+   )
+))
