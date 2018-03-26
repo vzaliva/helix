@@ -1,8 +1,8 @@
 (* iCode AST *)
 
-Require Import List.
-Require Import ZArith.
-Require Import String.
+Require Import Coq.Lists.List.
+Require Import Coq.ZArith.ZArith.
+Require Import Coq.Strings.String.
 
 Import ListNotations.
 
