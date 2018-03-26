@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-all clean-doc tags doc install-doc install-dist targz graph wc
+.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
@@ -29,8 +29,8 @@ clean:
 clean-dep:
 	rm -f `find . -name \*.v.d`
 
-clean-all: clean clean-dep clean-doc
-	rm -f Makefile.coq
+distclean: clean clean-dep clean-doc
+	rm -f Makefile.coq Makefile.coq.conf
 
 clean-doc:
 	rm -f doc/$(LIBNAME).* doc/index.html doc/main.html coqdoc.sty coqdoc.css
