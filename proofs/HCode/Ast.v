@@ -19,35 +19,14 @@ Definition funcname := string.
 Definition fconst   := string.
 
 Inductive rvalue :=
-| FunCallValue (f:hbuiltin)
-| VarRValue (var:varname)
-| RConst (value:fconst)
-| IConst (value:Z)
+| FunCallValue (name: funcname) (params: list rvalue)
+| VarRValue (name: varname)
+| RConst (value: fconst)
+| IConst (value: Z)
 | IConstArr (values: list Z)
 | RConstArr (values: list fconst)
-| NthRvalue (r:rvalue) (index:rvalue)
-| RCast (type:htype) (r:rvalue)
-(* builtin functions *)
-with hbuiltin :=
-     (* polymorphic codnition operator *)
-     | F_cond: rvalue -> rvalue -> rvalue -> hbuiltin
-
-     (* polymorphic artihmetic n-nary (n >= 2) operators *)
-     | F_min: rvalue -> rvalue -> list rvalue -> hbuiltin
-     | F_max: rvalue -> rvalue -> list rvalue -> hbuiltin
-
-     (* polymorphic artihmetic binary operators *)
-     | F_add: rvalue -> rvalue -> hbuiltin
-     | F_sub: rvalue -> rvalue -> hbuiltin
-     | F_mul: rvalue -> rvalue -> hbuiltin
-     | F_div: rvalue -> rvalue -> hbuiltin
-
-     (* polymorphic binary operators *)
-     | F_geq: rvalue -> rvalue -> hbuiltin
-
-     (* polimorphic unary operators *)
-     | F_neg: rvalue -> hbuiltin
-     | F_abs: rvalue -> hbuiltin.
+| NthRvalue (r: rvalue) (index: rvalue)
+| RCast (type: htype) (r: rvalue).
 
 Inductive lvalue :=
 | VarLValue (var:varname)
@@ -63,8 +42,11 @@ Inductive hstmt :=
 | Assign (l:lvalue) (r:rvalue)
 | Loop (var: varname) (from:Z) (to:Z) (body:hstmt)
 | If (cond:rvalue) (thenbranch:hstmt) (elsebranch:hstmt)
-| FunCallStmt (f:hbuiltin) (* call for side-effect *)
+| FunCallStmt (name: funcname) (params: list rvalue) (* call for side-effect *)
 | Return (r:rvalue).
 
 Inductive hprogram :=
-| Program (bindings: varname -> option htype) (body:hstmt).
+| Program
+    (var_bindings: varname -> option htype)
+    (fun_bindings: funcname -> list htype -> option htype)
+    (body:hstmt).

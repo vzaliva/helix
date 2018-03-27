@@ -40,6 +40,7 @@ Section Ast.
 
   Definition DynWin_ast :=
     Program DynWin_var_resolver
+            (fun _ _ => None)
             (FunctionDef "transform" IntType ["X"; "D"]
                          Skip
             ).
