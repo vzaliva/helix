@@ -4,12 +4,9 @@ Require Import Coq.Lists.List.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.Strings.String.
 
-Inductive arithtype :=
-| RealType
-| IntType.
-
 Inductive htype :=
-| A (value:arithtype)
+| RealType
+| IntType
 | VoidType
 | BoolType
 | ArrType (t:htype) (len:Z)

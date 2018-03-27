@@ -32,22 +32,24 @@ Section Ast.
   Definition X:Z  := 101.
 
   Definition DynWin_vars_map : (VM.t htype) := MP.of_list [
-                                                   (i3, A IntType);
-                                                   (i5, A IntType);
+                                                   (i3, IntType);
+                                                   (i5, IntType);
                                                    (w2, BoolType);
-                                                   (w1, A RealType);
-                                                   (s8, A RealType);
-                                                   (s7, A RealType);
-                                                   (s6, A RealType);
-                                                   (s5, A RealType);
-                                                   (s4, A RealType);
-                                                   (s1, A RealType);
-                                                   (q4, A RealType);
-                                                   (q3, A RealType);
-                                                   (D, PtrType (A RealType) 16);
-                                                   (X, PtrType (A RealType) 16)
+                                                   (w1, RealType);
+                                                   (s8, RealType);
+                                                   (s7, RealType);
+                                                   (s6, RealType);
+                                                   (s5, RealType);
+                                                   (s4, RealType);
+                                                   (s1, RealType);
+                                                   (q4, RealType);
+                                                   (q3, RealType);
+                                                   (D, PtrType RealType 16);
+                                                   (X, PtrType RealType 16)
                                                  ].
 
   Definition DynWin_var_resolver (name:Z) := VM.find name DynWin_vars_map.
+
+  Definition DynWin_ast := Program DynWin_var_resolver Skip.
 
 End Ast.
