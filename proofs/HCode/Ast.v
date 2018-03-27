@@ -11,6 +11,7 @@ Inductive arithtype :=
 Inductive htype :=
 | A (value:arithtype)
 | VoidType
+| BoolType
 | ArrType (t:htype) (len:Z)
 | PtrType (t:htype) (alignment:Z).
 
