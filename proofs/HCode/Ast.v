@@ -40,7 +40,7 @@ Inductive hstmt :=
 | Decl (vars: list varname) (body:hstmt)
 | Data (var: varname) (values: list rvalue) (body:hstmt)
 | Assign (l:lvalue) (r:rvalue)
-| Loop (var: varname) (from:Z) (to:Z) (body:hstmt)
+| Loop (var: varname) (from: rvalue) (to: rvalue) (body:hstmt)
 | If (cond:rvalue) (thenbranch:hstmt) (elsebranch:hstmt)
 | FunCallStmt (name: funcname) (params: list rvalue) (* call for side-effect *)
 | Return (r:rvalue).
