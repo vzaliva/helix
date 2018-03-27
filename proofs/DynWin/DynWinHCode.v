@@ -41,7 +41,43 @@ Section Ast.
   Definition DynWin_ast :=
     Program DynWin_var_resolver
             (fun _ _ => None)
-            (FunctionDef "transform" IntType ["X"; "D"]
-                         Skip
+            (FunctionDef
+               "transform" IntType ["X"; "D"]
+               (Decl [ "q3"; "q4"; "s1"; "s4"; "s5"; "s6"; "s7"; "s8"; "w1"; "w2" ]
+                     (Chain [
+                          Assign (VarLValue "s5") (RConst "0.0");
+                            Assign (VarLValue "s8")
+                                   (NthRvalue (VarRValue "X") (IConst 0));
+                            (Loop "i5" (IConst 0) (IConst 2)
+                                  (Chain [
+                                       Assign (VarLValue "s4")
+                                              (FunCallValue "mul" [VarRValue "s7" ; NthRvalue (VarRValue "D") (VarRValue "i5")]);
+                                         Assign (VarLValue "s5")
+                                                (FunCallValue "add" [VarRValue "s5" ; VarRValue "s4"]);
+                                         Assign (VarLValue "s7")
+                                                (FunCallValue "mul" [VarRValue "s7" ; VarRValue "s8"])
+                            ]));
+                            Assign (VarLValue "s1") (RConst "0.0");
+                            (Loop "i3" (IConst 0) (IConst 1)
+                                  (Chain [
+                                       Assign (VarLValue "q3")
+                                              (NthRvalue (VarRValue "X")
+                                                         (FunCallValue "add" [VarRValue "i3" ; IConst 1]));
+                                         Assign (VarLValue "q4")
+                                                (NthRvalue (VarRValue "X")
+                                                           (FunCallValue "add" [IConst 3; VarRValue "i3"]));
+                                         Assign (VarLValue "w1")
+                                                (FunCallValue "sub" [VarRValue "q3"; VarRValue "q4"]);
+                                         Assign (VarLValue "s6")
+                                                (FunCallValue "cond" [
+                                                                FunCallValue "geq" [VarRValue "w1"; IConst 0]; VarRValue "w1"; FunCallValue "neg" [VarRValue "w1"]]);
+                                         Assign (VarLValue "s1")
+                                                (FunCallValue "cond" [
+                                                                FunCallValue "geq" [VarRValue "s1"; VarRValue "s6"]; VarRValue "s1"; VarRValue "s6"])
+                            ]));
+                            Assign (VarLValue "w2") (FunCallValue "geq" [VarRValue "s1"; VarRValue "s5"]);
+                            Return (VarRValue "w2")
+                     ])
+               )
             ).
 End Ast.
