@@ -12,11 +12,11 @@ Inductive htype :=
 | ArrType (t:htype) (len:Z)
 | PtrType (t:htype) (alignment:Z).
 
-(* Types for function and vairable names. For simplicity we will index them by integers *)
-Definition varname := Z.
+Definition varname  := string.
 Definition funcname := string.
 
-Definition fconst := string.
+(* FP/Real constant *)
+Definition fconst   := string.
 
 Inductive rvalue :=
 | FunCallValue (f:hbuiltin)
@@ -55,7 +55,7 @@ Inductive lvalue :=
 | LCast (type:htype) (l:lvalue).
 
 Inductive hstmt :=
-| FunctionDef (name: funcname) (type:htype) (param: list varname) (body:hstmt)
+| FunctionDef (name: funcname) (rettype:htype) (param: list varname) (body:hstmt)
 | Skip
 | Chain (body: list hstmt)
 | Decl (vars: list varname) (body:hstmt)
