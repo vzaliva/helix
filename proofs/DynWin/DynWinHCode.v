@@ -40,7 +40,6 @@ Section Ast.
 
   Definition DynWin_ast :=
     Program DynWin_var_resolver
-            (fun _ _ => None)
             (FunctionDef
                "transform" IntType ["X"; "D"]
                (Decl [ "q3"; "q4"; "s1"; "s4"; "s5"; "s6"; "s7"; "s8"; "w1"; "w2" ]
@@ -51,31 +50,31 @@ Section Ast.
                             (Loop "i5" (IConst 0) (IConst 2)
                                   (Chain [
                                        Assign (VarLValue "s4")
-                                              (FunCallValue "mul" [VarRValue "s7" ; NthRvalue (VarRValue "D") (VarRValue "i5")]);
+                                              (FunCallValue (F_mul (VarRValue "s7") (NthRvalue (VarRValue "D") (VarRValue "i5"))));
                                          Assign (VarLValue "s5")
-                                                (FunCallValue "add" [VarRValue "s5" ; VarRValue "s4"]);
+                                                (FunCallValue (F_add (VarRValue "s5")  (VarRValue "s4")));
                                          Assign (VarLValue "s7")
-                                                (FunCallValue "mul" [VarRValue "s7" ; VarRValue "s8"])
+                                                (FunCallValue (F_mul (VarRValue "s7") (VarRValue "s8")))
                             ]));
                             Assign (VarLValue "s1") (RConst "0.0");
                             (Loop "i3" (IConst 0) (IConst 1)
                                   (Chain [
                                        Assign (VarLValue "q3")
                                               (NthRvalue (VarRValue "X")
-                                                         (FunCallValue "add" [VarRValue "i3" ; IConst 1]));
+                                                         (FunCallValue (F_add (VarRValue "i3") (IConst 1))));
                                          Assign (VarLValue "q4")
                                                 (NthRvalue (VarRValue "X")
-                                                           (FunCallValue "add" [IConst 3; VarRValue "i3"]));
+                                                           (FunCallValue (F_add (IConst 3) (VarRValue "i3"))));
                                          Assign (VarLValue "w1")
-                                                (FunCallValue "sub" [VarRValue "q3"; VarRValue "q4"]);
+                                                (FunCallValue (F_sub (VarRValue "q3") (VarRValue "q4")));
                                          Assign (VarLValue "s6")
-                                                (FunCallValue "cond" [
-                                                                FunCallValue "geq" [VarRValue "w1"; IConst 0]; VarRValue "w1"; FunCallValue "neg" [VarRValue "w1"]]);
+                                                (FunCallValue (F_cond
+                                                                 (FunCallValue (F_geq (VarRValue "w1") (IConst 0))) (VarRValue "w1") (FunCallValue (F_neg (VarRValue "w1")))));
                                          Assign (VarLValue "s1")
-                                                (FunCallValue "cond" [
-                                                                FunCallValue "geq" [VarRValue "s1"; VarRValue "s6"]; VarRValue "s1"; VarRValue "s6"])
+                                                (FunCallValue (F_cond
+                                                                 (FunCallValue (F_geq (VarRValue "s1") (VarRValue "s6"))) (VarRValue "s1") (VarRValue "s6")))
                             ]));
-                            Assign (VarLValue "w2") (FunCallValue "geq" [VarRValue "s1"; VarRValue "s5"]);
+                            Assign (VarLValue "w2") (FunCallValue (F_geq (VarRValue "s1") (VarRValue "s5")));
                             Return (VarRValue "w2")
                      ])
                )
