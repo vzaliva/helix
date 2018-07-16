@@ -81,11 +81,10 @@ Instance VPermutation_Equivalence A n : Equivalence (@VPermutation A n) | 10 :=
     Equivalence_Transitive := @VPermutation_trans A n
   }.
 
-Section VPermutation_properties.
-
 Require Import Coq.Sorting.Permutation.
 Require Import Helix.Util.VecUtil.
 
+Section VPermutation_properties.
 
   Variable A:Type.
 

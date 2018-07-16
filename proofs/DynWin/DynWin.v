@@ -60,6 +60,8 @@ Section HCOL_breakdown.
 End HCOL_breakdown.
 
 
+Require Import Helix.Util.FinNatSet.
+
 Section SigmaHCOL_rewriting.
 
   Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
@@ -156,8 +158,6 @@ SUMUnion(
     reflexivity.
     Transparent SHCompose.
   Qed.
-
-  Require Import Helix.Util.FinNatSet.
 
   Lemma DynWinSigmaHCOL_dense_input
           (a: avector 3)

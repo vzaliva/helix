@@ -1142,9 +1142,9 @@ Proof.
   reflexivity.
 Qed.
 
-Section List_of_Vec.
+Require Import CoLoR.Util.List.ListUtil.
 
-  Require Import CoLoR.Util.List.ListUtil.
+Section List_of_Vec.
 
   Lemma list_of_vec_eq {A:Type} {n:nat} (v1 v2 : vector A n) :
     list_of_vec v1 = list_of_vec v2 -> v1 = v2.

@@ -4021,11 +4021,12 @@ and `ISumReduction_PointWise` *)
           apply Scatter'_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s0 jc) ) with CarrierAz.
-        Focus 2.
-        rewrite Is_ValZero_to_mkSZero in VZ0.
-        rewrite_clear VZ0.
-        rewrite evalWriter_Rtheta_SZero.
-        reflexivity.
+        2: {
+          rewrite Is_ValZero_to_mkSZero in VZ0.
+          rewrite_clear VZ0.
+          rewrite evalWriter_Rtheta_SZero.
+          reflexivity.
+        }
 
         rewrite pfzn.
         remember (Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v)) as s1.
