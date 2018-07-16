@@ -16,3 +16,4 @@ CoqMakefile.conf
 Makefile.coq.conf
 moddep.dot
 moddep.svg
+.coqdeps.d
