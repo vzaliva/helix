@@ -1,5 +1,6 @@
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
+Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
@@ -91,7 +92,7 @@ SUMUnion(
 )
    *)
   Definition dynwin_SHCOL (a: avector 3) :=
-    (SafeCast (SHBinOp _ (IgnoreIndex2 THCOLImpl.Zless)))
+    (SafeCast (SHBinOp _ (IgnoreIndex2 Zless)))
       ⊚
       (HTSUMUnion _ plus (
                     ScatH _ 0 1
@@ -921,7 +922,6 @@ SUMUnion(
         unfold Same_set.
         split; unfold Included; auto.
   Qed.
-
 
 End SigmaHCOL_rewriting.
 

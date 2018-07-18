@@ -72,3 +72,8 @@ Ltac forall_nm_lt_eq :=
     reflexivity;
     clear rci lci rcj lcj HeqQ HeqR
   end.
+
+Ltac equiv_extensionality v v' E:=
+  match goal with
+  | [ |- @equiv _ (@ext_equiv _ _ _  _) _ _] => unfold equiv, ext_equiv; intros v v' E
+  end.

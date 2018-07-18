@@ -3,6 +3,7 @@
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNat.
 Require Import Helix.HCOL.CarrierType.
 
 Require Import Coq.Arith.Arith.

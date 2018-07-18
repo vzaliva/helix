@@ -9,7 +9,8 @@ Require Export CoLoR.Util.Vector.VecUtil.
 Import VectorNotations.
 
 Require Import Helix.Tactics.HelixTactics.
-Require Import Util.Misc.
+Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNat.
 
 Require Import Lia.
 

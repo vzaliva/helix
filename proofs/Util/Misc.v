@@ -25,9 +25,6 @@ Require Import MathClasses.theory.setoids.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
-Notation FinNat n := {x:nat | (x<n)%nat}.
-Definition mkFinNat {n} {j:nat} (jc:(j<n)%nat) : FinNat n := @exist _ (gt n) j jc.
-
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A}
        `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.
@@ -355,34 +352,3 @@ Proof.
   auto.
 Qed.
 
-Definition FinNat_bloat
-           {m n:nat}
-           (mn: (m < n)%nat):
-  FinNat m -> FinNat n.
-Proof.
-  intros H.
-  destruct H.
-  assert (xc:(x<n)%nat).
-  apply Nat.lt_trans with (m:=m); auto.
-  exact (mkFinNat xc).
-Defined.
-
-Require Import MathClasses.implementations.peano_naturals.
-
-Global Instance FinNat_bloat_proper
-       {m n:nat}
-       (mn: (m<n)%nat):
-  Proper ((=) ==> (=)) (FinNat_bloat mn).
-Proof.
-  intros x y H.
-  destruct x, y.
-  unfold FinNat_bloat.
-  inversion H.
-  simpl in H0.
-  clear H.
-  unfold mkFinNat.
-  unfold equiv, Sig_Equiv.
-  simpl.
-  rewrite H0.
-  reflexivity.
-Qed.

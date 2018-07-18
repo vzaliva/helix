@@ -21,6 +21,7 @@ Require Import MathClasses.orders.orders.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNat.
 Require Import Helix.Util.FinNatSet.
 
 Global Open Scope nat_scope.

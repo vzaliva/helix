@@ -4,6 +4,7 @@ Require Export Coq.Sets.Ensembles.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Arith.Peano_dec.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNat.
 Require Import Helix.Tactics.HelixTactics.
 
 Notation FinNatSet n := (Ensemble (FinNat n)).

@@ -63,3 +63,17 @@ Proof.
   rewrite Hx, Ha.
   reflexivity.
 Qed.
+
+Definition Zless (a b: CarrierA): CarrierA
+  := if CarrierAltdec a b then one else zero.
+
+Global Instance Zless_proper:
+  Proper ((=) ==> (=) ==> (=)) (Zless).
+Proof.
+  unfold Proper.
+  intros a a' aE z z' zE.
+  unfold Zless.
+  destruct (CarrierAltdec a z), (CarrierAltdec a' z'); auto.
+  rewrite aE, zE in l; contradiction.
+  rewrite <- aE, <- zE in l; contradiction.
+Qed.

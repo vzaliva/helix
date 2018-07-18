@@ -1,4 +1,10 @@
--R DynWin Helix.DynWin -R HCOL Helix.HCOL -R SigmaHCOL Helix.SigmaHCOL -R Tactics Helix.Tactics -R Util Helix.Util -R HCode Helix.HCode
+-R DynWin Helix.DynWin 
+-R HCOL Helix.HCOL 
+-R SigmaHCOL Helix.SigmaHCOL 
+-R Tactics Helix.Tactics 
+-R Util Helix.Util 
+-R Lambda Helix.Lambda
+-R HCode Helix.HCode
 -arg "-w '-notation-overridden'"
 
 
