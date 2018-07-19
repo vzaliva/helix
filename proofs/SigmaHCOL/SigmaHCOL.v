@@ -861,6 +861,18 @@ TODO: remove
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
                ).
 
+    Lemma Gather_to_GathH
+          {i o: nat}
+          (base stride: nat)
+          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
+      @Gather i o (@h_index_map o i base stride domain_bound)
+      =
+      @GathH i o base stride domain_bound.
+    Proof.
+      unfold GathH.
+      f_equiv.
+    Qed.
+
     Definition Scatter'
                {i o: nat}
                (f: index_map i o)
