@@ -910,6 +910,23 @@ TODO: remove
         Scatter (h_index_map base stride (range_bound:=range_bound))
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
+    (* Helper lemma to fold back `Scatter`s with `h_index_map` to `ScatH` *)
+    Lemma Scatter_to_ScatH
+          {i o: nat}
+          (base stride: nat)
+          {range_bound: ∀ x : nat, x < i → base + x * stride < o}
+          {hinj: index_map_injective (@h_index_map i o base stride range_bound)}
+          (snzord0: stride ≢ 0 \/ i < 2)
+          (idv: CarrierA):
+      @Scatter i o (@h_index_map i o base stride range_bound) hinj idv
+      =
+      @ScatH i o base stride range_bound snzord0 idv.
+    Proof.
+      unfold ScatH.
+      f_equiv.
+      apply proof_irrelevance.
+    Qed.
+
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
     Definition SHCompose
                {i1 o2 o3}
@@ -1310,6 +1327,24 @@ TODO: remove
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
+
+  Global Instance IUnion_proper
+         {i o n}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+    :
+      Proper ((=) ==> (@SHOperatorFamily_equiv Monoid_RthetaFlags i o n) ==> (@SHOperator_equiv Monoid_RthetaFlags i o))
+             (@IUnion i o n dot pdot).
+  Proof.
+    intros initial initial' Ei.
+    intros fam fam' Ef.
+    intros x y E.
+    simpl.
+    f_equiv; auto.
+    intros k kc.
+    eapply get_family_op_proper.
+    apply Ef.
+  Qed.
 
   Definition ISumUnion
              {i o n}
