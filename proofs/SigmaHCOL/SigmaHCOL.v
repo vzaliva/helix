@@ -1365,6 +1365,17 @@ TODO: remove
     :=
       @IUnion i o n CarrierAplus _ zero op_family.
 
+  Global Instance ISumUnion_proper
+         {i o n}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+    : Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n) ==> (@SHOperator_equiv Monoid_RthetaFlags i o))
+             (@ISumUnion i o n).
+  Proof.
+    unfold ISumUnion.
+    apply IUnion_proper.
+    reflexivity.
+  Qed.
+
   (** IReduction does not have any constraints. Specifically no
   density or Monoid. It just extracts values from Monad and folds them
   row-wise. For example if for (+) id value is 0 and all structural
