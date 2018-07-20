@@ -1133,6 +1133,35 @@ TODO: remove
         reflexivity.
     Qed.
 
+    Definition SHInductor'
+               (n:nat)
+               (f: CarrierA -> CarrierA -> CarrierA)
+               (initial: CarrierA)
+               (x: svector fm 1): svector fm 1
+      := Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x)).
+
+    Global Instance SHInductor'_proper {n:nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor' n).
+    Proof.
+      intros f f' Ef.
+      intros ini ini' Eini.
+      intros x y E.
+      unfold SHInductor'.
+      apply Vcons_proper. 2:{ reflexivity. }
+      unfold_Rtheta_equiv.
+      rewrite 2!evalWriter_Rtheta_liftM.
+      apply HCOLImpl.Inductor_proper; auto.
+      f_equiv.
+      rewrite E;reflexivity.
+    Qed.
+
+    Definition SHInductor
+               (n:nat)
+               (f: CarrierA -> CarrierA -> CarrierA)
+               `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+               (initial: CarrierA)
+      := mkSHOperator 1 1 (SHInductor' n f initial) _ (Full_set _) (Full_set _).
+
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
                {n i o ki ko}
