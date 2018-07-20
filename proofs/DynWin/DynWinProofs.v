@@ -4,12 +4,13 @@ Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
-Require Import Helix.HCOL.CarrierType.
 
+Require Import Helix.HCOL.CarrierType.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.HCOL.HCOLImpl.
 Require Import Helix.HCOL.THCOL.
 Require Import Helix.HCOL.THCOLImpl.
+
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
@@ -27,30 +28,101 @@ Require Import MathClasses.interfaces.canonical_names.
 
 Require Import Helix.DynWin.DynWin.
 
-
-Section HCOL_breakdown.
-
-  (* Initial HCOL breakdown proof *)
-  Theorem DynWinHCOL:  forall (a: avector 3),
-    dynwin_orig a = dynwin_HCOL a.
-  Proof.
-    intros a.
-    unfold dynwin_orig, dynwin_HCOL.
-    rewrite breakdown_OTLess_Base.
-    rewrite breakdown_OEvalPolynomial.
-    rewrite breakdown_OScalarProd.
-    rewrite breakdown_OMonomialEnumerator.
-    rewrite breakdown_OChebyshevDistance.
-    rewrite breakdown_OVMinus.
-    rewrite breakdown_OTInfinityNorm.
-    HOperator_reflexivity.
-  Qed.
-
-End HCOL_breakdown.
-
 Require Import Helix.Util.FinNatSet.
 
+(* dynamic window HCOL expression *)
+Definition dynwin_HCOL (a: avector 3) :=
+  (HBinOp (IgnoreIndex2 Zless) ∘
+          HCross
+          (HReduction plus 0 ∘ (HBinOp (IgnoreIndex2 mult) ∘ HPrepend a) ∘ HInduction _ mult 1)
+          (HReduction minmax.max 0 ∘ (HPointwise (IgnoreIndex abs)) ∘ HBinOp (o:=2) (IgnoreIndex2 sub))).
+
+(* Initial HCOL breakdown proof *)
+Theorem DynWinHCOL:  forall (a: avector 3),
+    dynwin_orig a = dynwin_HCOL a.
+Proof.
+  intros a.
+  unfold dynwin_orig, dynwin_HCOL.
+  rewrite breakdown_OTLess_Base.
+  rewrite breakdown_OEvalPolynomial.
+  rewrite breakdown_OScalarProd.
+  rewrite breakdown_OMonomialEnumerator.
+  rewrite breakdown_OChebyshevDistance.
+  rewrite breakdown_OVMinus.
+  rewrite breakdown_OTInfinityNorm.
+  HOperator_reflexivity.
+Qed.
+
+
+
 Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+
+(*
+Final HCOL -> Sigma-HCOL expression:
+
+BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
+SUMUnion(
+  ScatHUnion(2, 1, 0, 1) o
+  Reduction(3, (a, b) -> add(a, b), V(0.0), (arg) -> false) o
+  PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o
+  Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
+  GathH(5, 1, 0, 1),
+
+  ScatHUnion(2, 1, 1, 1) o
+  Reduction(2, (a, b) -> max(a, b), V(0.0), (arg) -> false) o
+  PointWise(2, Lambda([ r11, i13 ], abs(r11))) o
+  ISumUnion(i15, 2,
+    ScatHUnion(2, 1, i15, 1) o
+    BinOp(1, Lambda([ r12, r13 ], sub(r12, r13))) o
+    GathH(4, 2, i15, 2)
+  ) o
+  GathH(5, 4, 1, 1)
+)
+ *)
+Definition dynwin_SHCOL (a: avector 3) :=
+  (SafeCast (SHBinOp _ (IgnoreIndex2 Zless)))
+    ⊚
+    (HTSUMUnion _ plus (
+                  ScatH _ 0 1
+                        (range_bound := h_bound_first_half 1 1)
+                        (snzord0 := @ScatH_stride1_constr 1 2)
+                        zero
+                        ⊚
+                        (liftM_HOperator _ (@HReduction _ plus 0)  ⊚
+                                         SafeCast (SHBinOp _ (IgnoreIndex2 mult))
+                                         ⊚
+                                         liftM_HOperator _ (HPrepend a )
+                                         ⊚
+                                         liftM_HOperator _ (HInduction 3 mult one))
+                        ⊚
+                        (GathH _ 0 1
+                               (domain_bound := h_bound_first_half 1 (2+2)))
+                )
+
+                (
+                  (ScatH _ 1 1
+                         (range_bound := h_bound_second_half 1 1)
+                         (snzord0 := @ScatH_stride1_constr 1 2)
+                         zero)
+                    ⊚
+                    (liftM_HOperator _ (@HReduction _ minmax.max 0))
+                    ⊚
+                    (SHPointwise _ (IgnoreIndex abs))
+                    ⊚
+                    (USparseEmbedding
+                       (n:=2)
+                       (fun jf => SafeCast (SHBinOp _ (o:=1)
+                                                 (Fin1SwapIndex2 jf (IgnoreIndex2 CarrierType.sub))))
+                       (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) 2 1 (proj2_sig j))))
+                       (f_inj := h_j_1_family_injective)
+                       zero
+                       (fun j => h_index_map (proj1_sig j) 2 (range_bound:=GathH_jn_domain_bound (proj1_sig j) 2 (proj2_sig j))))
+                    ⊚
+                    (GathH _ 1 1
+                           (domain_bound := h_bound_second_half 1 (2+2)))
+                )
+    ).
+
 
 Section SigmaHCOL_rewriting.
 
