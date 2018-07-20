@@ -1367,7 +1367,6 @@ TODO: remove
 
   Global Instance ISumUnion_proper
          {i o n}
-         (dot: CarrierA -> CarrierA -> CarrierA)
     : Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n) ==> (@SHOperator_equiv Monoid_RthetaFlags i o))
              (@ISumUnion i o n).
   Proof.
