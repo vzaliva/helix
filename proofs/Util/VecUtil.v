@@ -49,6 +49,13 @@ Proof.
   constructor.
 Qed.
 
+Lemma Vhead_Vmap {A B: Type} {f: A->B} {n:nat} {x: vector A (S n)}:
+  Vhead (Vmap f x) = f (Vhead x).
+Proof.
+  dep_destruct x.
+  reflexivity.
+Qed.
+
 Lemma Vmap_Vconst
       {n : nat}
       {A B: Type}

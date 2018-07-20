@@ -2264,6 +2264,62 @@ Section StructuralProperies.
         split.
     Qed.
 
+    Global Instance SHInductor_Facts
+           (n:nat)
+           (f: CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial: CarrierA):
+      SHOperator_Facts fm (SHInductor fm n f initial).
+    Proof.
+      split.
+      -
+        simpl.
+        apply Full_FinNatSet_dec.
+      -
+        simpl.
+        apply Full_FinNatSet_dec.
+      -
+        intros x y H.
+        simpl in *.
+        assert (E: x=y).
+        {
+          vec_index_equiv j jc.
+          apply H.
+          constructor.
+        }
+        rewrite E.
+        reflexivity.
+      -
+        intros v H j jc S.
+        dep_destruct j. 2: {omega. }
+        specialize (H 0 jc).
+        simpl op.
+        simpl in H, S.
+        unfold SHInductor', Lst.
+        dep_destruct v.
+        Opaque liftM. simpl in *. Transparent liftM.
+        apply Is_Val_liftM.
+        apply H, S.
+      -
+        intros v j jc S.
+        contradict S.
+        simpl.
+        split.
+      - intros v D j jc S.
+        dep_destruct j. 2: {omega. }
+        specialize (D 0 jc).
+        simpl in D, S.
+        dep_destruct v.
+        Opaque liftM. simpl in *. Transparent liftM.
+        apply Not_Collision_liftM.
+        apply D,S.
+      - intros v D j jc S.
+        simpl in *.
+        destruct jc.
+        split.
+    Qed.
+
+
   End FlagsMonoidGenericStructuralProperties.
 
   Global Instance Scatter_Rtheta_Facts

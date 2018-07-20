@@ -288,6 +288,7 @@ Section SigmaHCOL_rewriting.
            | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
            | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
+           | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
            | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
            | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
            | [ |- SHOperator_Facts _ (USparseEmbedding _ _) ] => unfold USparseEmbedding
@@ -710,6 +711,8 @@ Section SigmaHCOL_rewriting.
 
     (* Fix SHBinOp type *)
     rewrite <- SafeCast_SHBinOp.
+
+    setoid_rewrite <- SHInductor_equiv_lifted_HInductor.
 
     reflexivity.
   Qed.

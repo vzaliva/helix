@@ -768,6 +768,32 @@ End SigmaHCOLHelperLemmas.
 Section SigmaHCOLExpansionRules.
   Section Value_Correctness.
 
+    Lemma SHInductor_equiv_lifted_HInductor
+          {fm}
+          {n: nat}
+          {initial: CarrierA}
+          {f: CarrierA -> CarrierA -> CarrierA}
+          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    :
+      SHInductor fm n f initial = liftM_HOperator fm (HInductor n f initial).
+    Proof.
+      apply SHOperator_ext_equiv_applied.
+      intros v.
+      simpl.
+      unfold SHInductor'.
+      unfold liftM_HOperator', compose.
+      unfold sparsify, HInductor, compose, Lst.
+      simpl Vmap.
+      apply Vcons_proper. 2:reflexivity.
+      unfold_Rtheta_equiv.
+      rewrite evalWriter_Rtheta_liftM.
+      rewrite evalWriter_mkValue.
+      apply HCOLImpl.Inductor_proper; auto.
+      unfold HCOLImpl.Scalarize, densify.
+      rewrite Vhead_Vmap.
+      reflexivity.
+    Qed.
+
     Lemma SHBinOp_equiv_lifted_HBinOp
           {o}
           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)

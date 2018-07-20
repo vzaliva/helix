@@ -87,8 +87,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                                                (Fin1SwapIndex
                                                                                   jf
                                                                                   (mult_by_nth a)))
-                                                                  (liftM_HOperator Monoid_RthetaSafeFlags
-                                                                                   (HInductor (proj1_sig jf) mult 1)) )
+                                                                  (SHInductor _ (proj1_sig jf) mult 1))
                                                       (eT Monoid_RthetaSafeFlags
                                                           (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
          (eUnion Monoid_RthetaFlags (le_n 2) 0
