@@ -421,6 +421,11 @@ Section SigmaHCOLHelperLemmas.
         f_equiv.
     Qed.
 
+    Fact snzord0_1_1_2: (1 ≢ 0 ∨ (1 < 2))%nat.
+    Proof.
+      auto.
+    Qed.
+
     Fact ScatH_stride1_constr:
     forall {a b:nat}, 1 ≢ 0 ∨ a < b.
     Proof.
