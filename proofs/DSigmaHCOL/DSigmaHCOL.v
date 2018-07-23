@@ -56,3 +56,9 @@ Inductive DSHOperator: Monoid RthetaFlags -> nat -> nat -> Type :=
 
 
 (* TODO: SHFamilyOperatorCompose *)
+
+(* placeholder *)
+Definition evalContext:Type := unit.
+
+Definition evalDSHOperator {fm i o} (Γ: evalContext) (op: DSHOperator fm i o): svector fm i -> option (svector fm o).
+Admitted.
