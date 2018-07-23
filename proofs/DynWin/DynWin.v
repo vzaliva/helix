@@ -21,7 +21,7 @@ Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 
 
 (*
 
-Final SigmaHCOL expression (before translating to h-Code:
+Final SigmaHCOL expression (before translating to h-Code):
 
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
 SUMUnion(
