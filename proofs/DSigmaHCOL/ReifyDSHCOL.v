@@ -19,39 +19,39 @@ Inductive DSHCOLType :=
 | DSHCOLDenseVec (n:nat): DSHCOLType
 | DSHCOLSparseVec (n:nat): DSHCOLType.
 
-Definition varbinding:Type := ident*DSHCOLType.
-Definition varbindings:Type := list varbinding.
-
 (* placholder *)
 Definition toDSHCOLType (t:term): option DSHCOLType := Some DSHCOLTypeNat.
 
-Require Import Coq.MSets.MSets.
-Require Import Coq.MSets.MSetWeakList.
-Require Import Coq.MSets.MSetInterface.
+Require Import Coq.FSets.FSets.
+Require Import Coq.FSets.FSetWeakList.
+Require Import Coq.FSets.FSetInterface.
 
 Module StringDec.
   Definition t : Set := string.
   Definition eq : t -> t -> Prop := eq.
-  Definition eq_equiv : RelationClasses.Equivalence eq := _.
   Definition eq_dec : forall x y : t, {eq x y} + {~ eq x y} := string_dec.
+  Definition eq_refl  := @eq_refl string.
+  Definition eq_sym   := @eq_sym string.
+  Definition eq_trans := @eq_trans string.
 End StringDec.
 
-Module StringSet := MSets.MSetWeakList.Make StringDec.
+Module StringSet := FSets.FSetWeakList.Make StringDec.
+Module StringMap := FSets.FMapWeakList.Make StringDec.
 
 Definition operator_names :=
   fold_right StringSet.add StringSet.empty
-                  ["Helix.SigmaHCOL.SigmaHCOL.eUnion" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.eT" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.SHInductor" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.IUnion" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.IReduction" ;
-                     "Helix.SigmaHCOL.SigmaHCOL.SHCompose" ;
-                     "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" ;
-                     "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" ;
-                     "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion"].
+             ["Helix.SigmaHCOL.SigmaHCOL.eUnion" ;
+                "Helix.SigmaHCOL.SigmaHCOL.eT" ;
+                "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" ;
+                "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" ;
+                "Helix.SigmaHCOL.SigmaHCOL.SHInductor" ;
+                "Helix.SigmaHCOL.SigmaHCOL.IUnion" ;
+                "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" ;
+                "Helix.SigmaHCOL.SigmaHCOL.IReduction" ;
+                "Helix.SigmaHCOL.SigmaHCOL.SHCompose" ;
+                "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" ;
+                "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" ;
+                "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion"].
 
 Definition isSHOperator (t:term): bool:=
   match t with
@@ -59,19 +59,21 @@ Definition isSHOperator (t:term): bool:=
   | _ => false
   end.
 
+Definition varbindings:Type := StringMap.t DSHCOLType.
+
 Fixpoint stripGlobalVars (vars:varbindings) (t:term): option (varbindings*term) :=
   if isSHOperator t then Some (vars,t)
   else
     match t with
     | tLambda (nNamed n) vt b =>
       match toDSHCOLType vt with
-      | Some vt' => stripGlobalVars ((n,vt')::vars) b
+      | Some vt' => stripGlobalVars (StringMap.add n vt' vars) b
       | None => None (* Error: non-SHCOL type encountered *)
       end
     | _ => None
     end.
 
-Compute (stripGlobalVars [] dast).
+Compute (stripGlobalVars (StringMap.empty DSHCOLType) dast).
 
 Definition reifySHCOL {i o: nat}
            {fm: Monoid.Monoid RthetaFlags}
