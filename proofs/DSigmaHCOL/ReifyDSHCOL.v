@@ -124,9 +124,9 @@ Definition reifySHCOL (expr: Set) (lemma_name:string): TemplateMonad (option rei
                           (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
                                 [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm];
                                    a_fmeq; a_o; lhs; rhs]) in
-                let forall_ast := build_forall globals lemma_concl in
+                let lemma_ast := build_forall globals lemma_concl in
 
-                lemma_body <- tmUnquote forall_ast ;;
+                lemma_body <- tmUnquote lemma_ast ;;
                            tmLemma lemma_name lemma_body
                            ;; tmReturn (Some {| rei_i := i;
                                                 rei_o := o;
