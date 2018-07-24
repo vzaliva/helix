@@ -104,10 +104,9 @@ Definition fm_equiv_term (t:term): option term :=
   | None => None
   end.
 
-(* TODO: expr as name *)
-Definition reifySHCOL (expr: Set) (lemma_name:string): TemplateMonad (option reifyResult) :=
-  eexpr <- tmEval hnf expr  ;;
-        ast <- tmQuote eexpr ;;
+Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (option reifyResult) :=
+  eexpr <- @tmEval hnf A expr  ;;
+        ast <- @tmQuote A eexpr ;;
         match stripGlobalParams [] ast with
         | Some (globals, a_fm, a_i, a_o, sterm) =>
           i <- tmUnquoteTyped nat a_i ;;
