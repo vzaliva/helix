@@ -106,36 +106,37 @@ Definition fm_equiv_term (t:term): option term :=
 
 (* TODO: expr as name *)
 Definition reifySHCOL (expr: Set) (lemma_name:string): TemplateMonad (option reifyResult) :=
-  ast <- tmQuote expr ;;
-      match stripGlobalParams [] ast with
-      | Some (globals, a_fm, a_i, a_o, sterm) =>
-        i <- tmUnquoteTyped nat a_i ;;
-          o <- tmUnquoteTyped nat a_o ;;
-          match fm_unquote a_fm, fm_equiv_term a_fm with
-          | Some fm, Some a_fmeq =>
-            match @SHCOL_to_DSHCol fm i o sterm with
-            | Some dshcol =>
-              let dshglobals := List.map (compose toDSHCOLType snd) globals in
-              x <- tmFreshName "x" ;;
-                let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
-                let lhs := tRel 0 in (* TODO: (op (expr globals) x) *)
-                let rhs := tRel 0 in (* TODO: (Some (evalDSHOperator dshglobals dshcol x)) *)
-                let lemma_concl :=
-                    tProd (nNamed x) x_type
-                          (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
-                                [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm];
-                                   a_fmeq; a_o; lhs; rhs]) in
-                let lemma_ast := build_forall globals lemma_concl in
+  eexpr <- tmEval hnf expr  ;;
+        ast <- tmQuote eexpr ;;
+        match stripGlobalParams [] ast with
+        | Some (globals, a_fm, a_i, a_o, sterm) =>
+          i <- tmUnquoteTyped nat a_i ;;
+            o <- tmUnquoteTyped nat a_o ;;
+            match fm_unquote a_fm, fm_equiv_term a_fm with
+            | Some fm, Some a_fmeq =>
+              match @SHCOL_to_DSHCol fm i o sterm with
+              | Some dshcol =>
+                let dshglobals := List.map (compose toDSHCOLType snd) globals in
+                x <- tmFreshName "x" ;;
+                  let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
+                  let lhs := tRel 0 in (* TODO: (op (expr globals) x) *)
+                  let rhs := tRel 0 in (* TODO: (Some (evalDSHOperator dshglobals dshcol x)) *)
+                  let lemma_concl :=
+                      tProd (nNamed x) x_type
+                            (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
+                                  [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm];
+                                     a_fmeq; a_o; lhs; rhs]) in
+                  let lemma_ast := build_forall globals lemma_concl in
 
-                lemma_body <- tmUnquote lemma_ast ;;
-                           tmLemma lemma_name lemma_body
-                           ;; tmReturn (Some {| rei_i := i;
-                                                rei_o := o;
-                                                rei_fm := fm;
-                                                rei_op := dshcol |})
-            | None => tmReturn None
+                  lemma_body <- tmUnquote lemma_ast ;;
+                             tmLemma lemma_name lemma_body
+                             ;; tmReturn (Some {| rei_i := i;
+                                                  rei_o := o;
+                                                  rei_fm := fm;
+                                                  rei_op := dshcol |})
+              | None => tmReturn None
+              end
+            | _,_ => tmReturn None
             end
-          | _,_ => tmReturn None
-          end
-      | None => tmReturn None
-      end.
+        | None => tmReturn None
+        end.
