@@ -61,19 +61,19 @@ Definition isSHOperator (t:term): bool:=
 
 Definition varbindings:Type := StringMap.t DSHCOLType.
 
-Fixpoint stripGlobalVars (vars:varbindings) (t:term): option (varbindings*term) :=
+Fixpoint stripGlobalParams (vars:varbindings) (t:term): option (varbindings*term) :=
   if isSHOperator t then Some (vars,t)
   else
     match t with
     | tLambda (nNamed n) vt b =>
       match toDSHCOLType vt with
-      | Some vt' => stripGlobalVars (StringMap.add n vt' vars) b
+      | Some vt' => stripGlobalParams (StringMap.add n vt' vars) b
       | None => None (* Error: non-SHCOL type encountered *)
       end
     | _ => None
     end.
 
-Compute (stripGlobalVars (StringMap.empty DSHCOLType) dast).
+Compute (stripGlobalParams (StringMap.empty DSHCOLType) dast).
 
 Definition reifySHCOL {i o: nat}
            {fm: Monoid.Monoid RthetaFlags}
