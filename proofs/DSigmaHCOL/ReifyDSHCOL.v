@@ -73,11 +73,22 @@ Fixpoint stripGlobalParams (vars:varbindings) (t:term): option (varbindings*term
     | _ => None
     end.
 
-Compute (stripGlobalParams (StringMap.empty DSHCOLType) dast).
+Definition SHCOL_to_DSHCol {fm i o}: term -> DSHOperator fm i o. Admitted.
+
+Definition varMapToList (v:varbindings): evalContext. Admitted.
 
 Definition reifySHCOL {i o: nat}
            {fm: Monoid.Monoid RthetaFlags}
-           (op: @SHOperator fm i o): TemplateMonad term :=
-  ast <- tmQuote op ;;
-      tmDefinition "ast" ast ;;
-      tmReturn ast.
+           (expr: Set): TemplateMonad (option (DSHOperator fm i o)) :=
+  ast <- tmQuote expr ;;
+      match stripGlobalParams (StringMap.empty DSHCOLType) ast with
+      | Some (globals,sterm) =>
+        let dshcol := @SHCOL_to_DSHCol fm i o sterm in
+        let dshglobals := varMapToList globals in
+
+        tmLemma "foo"
+                forall x, forall globals, op (expr globals) x = evalDSHOperator dshglobals dshcol x
+
+        ;; tmReturn (Some dshcol)
+      | None => tmReturn None
+      end.
