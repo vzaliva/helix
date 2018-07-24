@@ -23,14 +23,11 @@ Inductive DSHBinCarrierA :=
 Definition DSHNatExpr: Type := unit.
 
 (* Placeholder *)
-Definition DSHNatFunction: Type := unit.
-
-(* Placeholder *)
 Inductive DSHIBinCarrierA: Type :=
 | DSHIBinCarrierA_ign (f: DSHBinCarrierA): DSHIBinCarrierA
 | DSHIBinCarrierA_vec {n:nat}
                       (f: DSHBinCarrierA)
-                      (nf: DSHNatFunction)
+                      (nf: DSHNatExpr)
                       (dsf_param: avector n).
 
 Inductive DSHOperator: Monoid RthetaFlags -> nat -> nat -> Type :=
@@ -54,11 +51,14 @@ Inductive DSHOperator: Monoid RthetaFlags -> nat -> nat -> Type :=
 | DSHHTSUMUnion {fm} {i o:nat} (dot: DSHBinCarrierA):
     DSHOperator fm i o -> DSHOperator fm i o -> @DSHOperator fm i o.
 
-
 (* TODO: SHFamilyOperatorCompose *)
 
-(* placeholder *)
-Definition evalContext:Type := unit.
+Inductive DSHVar :=
+| DSHNat (n:nat) :DSHVar
+| DSHCarrierA (a:CarrierA): DSHVar
+| DSHVec {fm} {n:nat} (v:svector fm n): DSHVar.
+
+Definition evalContext:Type := list DSHVar.
 
 Definition evalDSHOperator {fm i o} (Γ: evalContext) (op: DSHOperator fm i o): svector fm i -> option (svector fm o).
 Admitted.
