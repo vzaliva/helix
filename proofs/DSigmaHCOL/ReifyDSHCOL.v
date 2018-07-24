@@ -11,7 +11,7 @@ Import MonadNotation.
 
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
-Quote Definition dast := Eval cbv delta [dynwin_SHCOL1] in dynwin_SHCOL1.
+Quote Definition dast := Eval hnf in dynwin_SHCOL1.
 
 Inductive DSHCOLType :=
 | DSHNat : DSHCOLType
@@ -57,12 +57,13 @@ Definition varbindings:Type := list (name*term).
 
 Fixpoint stripGlobalParams (vars:varbindings) (t:term): option (varbindings*term*term*term*term) :=
   match t with
-  | (tApp (tConst n _) [fm;i;o;_]) => if StringSet.mem n operator_names
-                                     then Some (vars,fm,i,o,t)
-                                     else None
+  | tApp (tConst n _) (fm :: i :: o :: _)
+    => (if StringSet.mem n operator_names
+      then Some (vars,fm,i,o,t)
+      else None)
   | tLambda (nNamed n) vt b =>
-    if toDSHCOLType vt then stripGlobalParams ((nNamed n,vt)::vars) b
-    else None
+    (if toDSHCOLType vt then stripGlobalParams ((nNamed n,vt)::vars) b
+     else None)
   | _ => None
   end.
 
