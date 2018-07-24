@@ -54,9 +54,10 @@ Inductive DSHOperator: Monoid RthetaFlags -> nat -> nat -> Type :=
 (* TODO: SHFamilyOperatorCompose *)
 
 Inductive DSHVar :=
-| DSHNat (n:nat) :DSHVar
-| DSHCarrierA (a:CarrierA): DSHVar
-| DSHVec {fm} {n:nat} (v:svector fm n): DSHVar.
+| DSHNatVar (n:nat) :DSHVar
+| DSHCarrierAVar (a:CarrierA): DSHVar
+| DSHVecVar {n:nat} (v:rvector n): DSHVar
+| DSHSafeVecVar {n:nat} (v:rsvector n): DSHVar.
 
 Definition evalContext:Type := list DSHVar.
 
