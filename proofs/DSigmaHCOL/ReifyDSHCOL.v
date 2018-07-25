@@ -137,19 +137,14 @@ forall (a : t CarrierA (S (S (S O))))
  *)
 
 (*
-tApp
-  (tConstruct {| inductive_mind := "Coq.Init.Datatypes.option"; inductive_ind := 0 |} 0 [])
-  [tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} [])
-        [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o];
-   tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-        [a_fm; a_o;
-         tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.op" [])
-              [a_fm;
-               a_i;
-               a_o;
-               tApp a_expr [tRel 2; tRel 1];
-               tRel 0]]]
  *)
+
+
+Fixpoint rev_nat_seq_to_1 (len: nat) : list nat :=
+  match len with
+  | O => []
+  | S len' => List.cons len (rev_nat_seq_to_1 len')
+  end.
 
 Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (option reifyResult) :=
   a_expr <- @tmQuote A expr ;;
@@ -166,7 +161,19 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
                  let dshglobals := List.map (compose toDSHCOLType snd) globals in
                  x <- tmFreshName "x" ;;
                    let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
-                   let lhs := tRel 0 in (* TODO: (op (expr globals) x) *)
+                   let global_idx := List.map tRel (rev_nat_seq_to_1 (length globals)) in
+                   let lhs := tApp
+                                (tConstruct {| inductive_mind := "Coq.Init.Datatypes.option"; inductive_ind := 0 |} 0 [])
+                                [tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} [])
+                                      [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o];
+                                   tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
+                                        [a_fm; a_o;
+                                           tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.op" [])
+                                                [a_fm;
+                                                   a_i;
+                                                   a_o;
+                                                   tApp a_expr global_idx;
+                                                   tRel 0]]] in (* (Some (densify fm (op fm (dynwin_SHCOL1 a) x))) *)
                    let rhs := tRel 0 in (* TODO: (Some (evalDSHOperator dshglobals dshcol x)) *)
                    let lemma_concl :=
                        tProd (nNamed x) x_type
