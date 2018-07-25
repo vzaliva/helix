@@ -27,6 +27,7 @@ Inductive DSHIBinCarrierA: Type :=
                       (dsf_param: avector n).
 
 Inductive DSHOperator: nat -> nat -> Type :=
+| DSHDummy {i o:nat} : DSHOperator i o (* for debugging *)
 | DSHeUnion {o: nat} {b: DSHNatExpr} (z: CarrierA): DSHOperator 1 o
 | DSHeT {i: nat} {b:DSHNatExpr}: DSHOperator i 1
 | DSHPointwise {i: nat} (f: DSHIBinCarrierA): DSHOperator i i

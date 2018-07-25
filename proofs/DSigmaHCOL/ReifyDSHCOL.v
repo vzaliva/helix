@@ -13,10 +13,9 @@ Import MonadNotation.
 Import ListNotations.
 
 (* for testing *)
-(*
+
 Require Import Helix.DynWin.DynWin.
 Quote Definition dast := Eval hnf in dynwin_SHCOL1.
- *)
 
 Inductive DSHCOLType :=
 | DSHnat : DSHCOLType
@@ -71,7 +70,7 @@ Fixpoint findOp (vars:varbindings) (t:term): option (varbindings*term*term*term*
   | _ => None
   end.
 
-Definition SHCOL_to_DSHCol {i o}: term -> option (DSHOperator i o). Admitted.
+Definition SHCOL_to_DSHCol {i o} (t:term): option (DSHOperator i o) := Some (@DSHDummy i o).
 
 Fixpoint build_forall g s:=
   match g with
@@ -233,5 +232,6 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
              end
          | None => tmReturn None
          end.
+
 
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
