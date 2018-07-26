@@ -1,5 +1,4 @@
 Require Import Coq.Strings.String.
-Require Import List.
 Require Import Template.All.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
@@ -10,7 +9,7 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
 
 Import MonadNotation.
-Import ListNotations.
+Require Import List. Import ListNotations.
 
 (* for testing *)
 
@@ -42,7 +41,7 @@ Module StringSet := FSets.FSetWeakList.Make StringDec.
 
 Definition operator_names :=
   List.fold_right StringSet.add StringSet.empty
-                  ["Helix.SigmaHCOL.SigmaHCOL.eUnion" ;
+                  [  "Helix.SigmaHCOL.SigmaHCOL.eUnion" ;
                      "Helix.SigmaHCOL.SigmaHCOL.eT" ;
                      "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" ;
                      "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" ;
@@ -53,7 +52,8 @@ Definition operator_names :=
                      "Helix.SigmaHCOL.SigmaHCOL.SHCompose" ;
                      "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" ;
                      "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" ;
-                     "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion"].
+                     "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion"
+                  ].
 
 Definition varbindings:Type := list (name*term).
 
@@ -70,7 +70,22 @@ Fixpoint findOp (vars:varbindings) (t:term): option (varbindings*term*term*term*
   | _ => None
   end.
 
-Definition SHCOL_to_DSHCol {i o} (t:term): option (DSHOperator i o) := Some (@DSHDummy i o).
+Definition SHCOL_to_DSHCol {i o} (t:term): option (DSHOperator i o) :=
+  match t with
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion"      _) (fm :: o :: b :: _ :: z :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp"     _) (fm :: o :: f :: _ :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion"      _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   _) (i :: n :: op_family :: _) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction"  _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose"   _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast"   _) (i :: o :: f :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: f :: nil) => None
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => None
+  | _ => None
+  end.
 
 Fixpoint build_forall g s:=
   match g with
@@ -232,6 +247,5 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
              end
          | None => tmReturn None
          end.
-
 
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
