@@ -37,8 +37,6 @@ Inductive DSHOperator: nat -> nat -> Type :=
 | DSHISumUnion {i o:nat} (n: nat): DSHOperator i o -> DSHOperator i o
 | DSHIReduction {i o: nat} (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o
 | DSHCompose {i1 o2 o3: nat}: DSHOperator o2 o3 -> DSHOperator i1 o2 -> DSHOperator i1 o3
-| DSHSafeCast {i o:nat}: DSHOperator i o -> DSHOperator i o
-| DSHUnSafeCast {i o:nat}: DSHOperator i o -> DSHOperator i o
 | DSHHTSUMUnion {i o:nat} (dot: DSHBinCarrierA): DSHOperator i o -> DSHOperator i o -> @DSHOperator i o.
 
 (* TODO: SHFamilyOperatorCompose *)
