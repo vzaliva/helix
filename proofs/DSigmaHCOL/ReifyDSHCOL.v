@@ -44,6 +44,7 @@ Record reifyResult := {
 
 (* TODO: implement *)
 Definition compileNatExpr (a_n:term): option DSHNatExpr := Some tt.
+Definition compileDSHIBinCarrierA (a_f:term): option DSHIBinCarrierA := Some tt.
 
 Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
   vars <- tvars ;;
@@ -55,9 +56,20 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
              no <- tmUnquoteTyped nat o ;;
              zconst <- tmUnquoteTyped CarrierA z ;;
              tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp"     _) (fm :: o :: f :: _ :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) =>
+         one <- tmQuote (1%nat) ;;
+             ni <- tmUnquoteTyped nat i ;;
+             tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, i, one, {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |}))
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) =>
+         nn <- tmUnquoteTyped nat n ;;
+            tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, n, n, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |}))
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" _) (fm :: o :: f :: _ :: nil)
+         =>
+         (* Another problem with "do" notation. have to use `bind` *)
+         (tmBind (tmUnquoteTyped nat o)
+                 (fun no =>
+                    oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
+                       tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))))
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion"      _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   _) (i :: n :: op_family :: _) => tmReturn None
@@ -159,10 +171,10 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
 
                            (tmBind (tmUnquoteTyped Prop lemma_ast)
                                    (fun lemma_body => tmLemma lemma_name lemma_body
-                                                           ;;
-                                                           tmReturn (Some {| rei_i := i;
-                                                                             rei_o := o;
-                                                                             rei_op := dshcol |})))
+                                                              ;;
+                                                              tmReturn (Some {| rei_i := i;
+                                                                                rei_o := o;
+                                                                                rei_op := dshcol |})))
               | _ => tmReturn None
               end
          | None => tmReturn None

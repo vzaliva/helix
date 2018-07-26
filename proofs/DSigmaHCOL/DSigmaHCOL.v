@@ -20,12 +20,15 @@ Definition DSHNatExpr: Type := unit.
 Definition DSHAExpr: Type := unit.
 
 (* Placeholder *)
+Definition DSHIBinCarrierA := unit.
+(*
 Inductive DSHIBinCarrierA: Type :=
 | DSHIBinCarrierA_ign (f: DSHBinCarrierA): DSHIBinCarrierA
 | DSHIBinCarrierA_vec {n:nat}
                       (f: DSHBinCarrierA)
                       (nf: DSHNatExpr)
                       (dsf_param: avector n).
+*)
 
 Inductive DSHOperator: nat -> nat -> Type :=
 | DSHDummy {i o:nat} : DSHOperator i o (* for debugging *)
