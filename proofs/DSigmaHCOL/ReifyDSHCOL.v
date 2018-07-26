@@ -88,12 +88,6 @@ Definition fm_unquote (t:term): option (Monoid.Monoid RthetaFlags) :=
   | None => None
   end.
 
-Fixpoint quoteNat (n:nat) : term :=
-  match n with
-  | O => tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 0 []
-  | S p => tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 1 []) [quoteNat p]
-  end.
-
 Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMonad (option term) :=
   _ <- u ;;
     match g with
@@ -104,13 +98,14 @@ Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMona
          | None => tmReturn None
          | Some dt =>
            let i := length g in
-           let dv := (match dt with
-                      | DSHnat => tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i]
-                      | DSHCarrierA => tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i]
-                      | DSHvec n => tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 [])
-                                        [quoteNat n; tRel i]
-                      end) in
-           g' <- build_dsh_globals (tmReturn tt) gs ;;
+           dv <- (match dt with
+                 | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
+                 | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
+                 | DSHvec m =>
+                   a_m <- tmQuote m ;;
+                       tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
+                 end) ;;
+              g' <- build_dsh_globals (tmReturn tt) gs ;;
               tmReturn (match g' with
                         | Some ts =>  Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
                         | None => None
