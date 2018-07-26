@@ -51,7 +51,7 @@ Fixpoint SHCOL_to_DSHCol (tvars:TemplateMonad varbindings) (t:term) {struct t}: 
              | Some _ => SHCOL_to_DSHCol (tmReturn (((nNamed n,vt)::vars))) b
              | None =>  tmReturn None
              end)
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion"      _) (fm :: o :: b :: _ :: z :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion"      _) (fm :: o :: b :: _ :: z :: nil) => tmReturn None (* (Some (vars, fm, 1, o, {| rei_i:=1; rei_o:=o; rei_op:=@DSHeUnion o b z |})) *)
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp"     _) (fm :: o :: f :: _ :: nil) => tmReturn None
@@ -59,7 +59,10 @@ Fixpoint SHCOL_to_DSHCol (tvars:TemplateMonad varbindings) (t:term) {struct t}: 
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion"      _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   _) (i :: n :: op_family :: _) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction"  _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose"   _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) => tmReturn (Some (vars, fm, i1, o3, {| rei_i:=5; rei_o:=1; rei_op:=@DSHDummy 5 1 |}))
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose"   _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
+         i <- tmUnquoteTyped nat i1 ;;
+         o <- tmUnquoteTyped nat o3 ;;
+         tmReturn (Some (vars, fm, i1, o3, {| rei_i:=i; rei_o:=o; rei_op:=@DSHDummy i o |}))
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast"   _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
