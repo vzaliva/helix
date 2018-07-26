@@ -43,7 +43,7 @@ Record reifyResult := {
                      }.
 
 (* TODO: implement *)
-Definition compileNatExpr (a_n:term): DSHNatExpr := tt.
+Definition compileNatExpr (a_n:term): option DSHNatExpr := Some tt.
 
 Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
   vars <- tvars ;;
@@ -58,7 +58,10 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
          one <- tmQuote (1%nat) ;;
              no <- tmUnquoteTyped nat o ;;
              zconst <- tmUnquoteTyped CarrierA z ;;
-             tmReturn (Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no (compileNatExpr b) zconst |}))
+             tmReturn (match compileNatExpr b with
+                       | Some bc => Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
+                       | None => None
+                       end)
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp"     _) (fm :: o :: f :: _ :: nil) => tmReturn None
