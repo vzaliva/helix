@@ -17,6 +17,7 @@ Inductive DSHBinCarrierA :=
 
 (* Placeholder *)
 Definition DSHNatExpr: Type := unit.
+Definition DSHAExpr: Type := unit.
 
 (* Placeholder *)
 Inductive DSHIBinCarrierA: Type :=
