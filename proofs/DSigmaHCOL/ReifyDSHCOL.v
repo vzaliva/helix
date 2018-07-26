@@ -72,22 +72,6 @@ Fixpoint build_forall g s:=
   | (n,t)::gs => tProd n t (build_forall gs s)
   end.
 
-Inductive collisionHandling := CollNorm | CollSafe.
-
-Definition fm_select (t:term): option collisionHandling
-  := match t with
-     | tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags" []%list => Some CollNorm
-     | tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaSafeFlags" []%list => Some CollSafe
-     | _ => None
-     end.
-
-Definition fm_unquote (t:term): option (Monoid.Monoid RthetaFlags) :=
-  match fm_select t with
-  | Some CollNorm => Some Monoid_RthetaFlags
-  | Some CollSafe => Some Monoid_RthetaSafeFlags
-  | None => None
-  end.
-
 Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMonad (option term) :=
   _ <- u ;;
     match g with
@@ -157,59 +141,55 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
          d' <- SHCOL_to_DSHCol (tmReturn []) ast ;;
          match d' with
          | Some (globals, a_fm, a_i, a_o, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
-           match fm_unquote a_fm with
-           | Some fm =>
-             g' <- build_dsh_globals (tmReturn tt) globals ;;
-                match g' with
-                | Some a_globals =>
-                  x <- tmFreshName "x" ;;
-                    let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
-                    let global_idx := List.map tRel (rev_nat_seq_to_1 (length globals)) in
-                    (* Some (densify fm (op fm (dynwin_SHCOL1 a) x)) *)
-                    let lhs := tApp
-                                 (tConstruct {| inductive_mind := "Coq.Init.Datatypes.option"; inductive_ind := 0 |} 0 [])
-                                 [tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} [])
-                                       [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o];
-                                    tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-                                         [a_fm; a_o;
-                                            tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.op" [])
-                                                 [a_fm;
-                                                    a_i;
-                                                    a_o;
-                                                    tApp a_expr global_idx;
-                                                    tRel 0]]] in
-                    (* evalDSHOperator [] dshcol (densify fm x) *)
-                    a_dshcol <- tmQuote dshcol ;;
+           g' <- build_dsh_globals (tmReturn tt) globals ;;
+              match g' with
+              | Some a_globals =>
+                x <- tmFreshName "x" ;;
+                  let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
+                  let global_idx := List.map tRel (rev_nat_seq_to_1 (length globals)) in
+                  (* Some (densify fm (op fm (dynwin_SHCOL1 a) x)) *)
+                  let lhs := tApp
+                               (tConstruct {| inductive_mind := "Coq.Init.Datatypes.option"; inductive_ind := 0 |} 0 [])
+                               [tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} [])
+                                     [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o];
+                                  tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
+                                       [a_fm; a_o;
+                                          tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.op" [])
+                                               [a_fm;
+                                                  a_i;
+                                                  a_o;
+                                                  tApp a_expr global_idx;
+                                                  tRel 0]]] in
+                  (* evalDSHOperator [] dshcol (densify fm x) *)
+                  a_dshcol <- tmQuote dshcol ;;
 
-                             let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOL.evalDSHOperator" [])
-                                             [a_i; a_o; a_globals ; a_dshcol;
-                                                (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-                                                      [a_fm; a_i; tRel 0])
-                                             ] in
-                             let lemma_concl :=
-                                 tProd (nNamed x) x_type
-                                       (tApp (tConst "Helix.Util.OptionSetoid.option_Equiv" [])
-                                             [
-                                               (tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o]);
-                                                 (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
-                                                       [tConst "Helix.HCOL.CarrierType.CarrierA" [];
-                                                          tConst "Helix.HCOL.CarrierType.CarrierAe" [];
-                                                          a_o]);
-                                                 lhs;
-                                                 rhs
-                                       ]) in
-                             let lemma_ast := build_forall globals lemma_concl in
+                           let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOL.evalDSHOperator" [])
+                                           [a_i; a_o; a_globals ; a_dshcol;
+                                              (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
+                                                    [a_fm; a_i; tRel 0])
+                                           ] in
+                           let lemma_concl :=
+                               tProd (nNamed x) x_type
+                                     (tApp (tConst "Helix.Util.OptionSetoid.option_Equiv" [])
+                                           [
+                                             (tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o]);
+                                               (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
+                                                     [tConst "Helix.HCOL.CarrierType.CarrierA" [];
+                                                        tConst "Helix.HCOL.CarrierType.CarrierAe" [];
+                                                        a_o]);
+                                               lhs;
+                                               rhs
+                                     ]) in
+                           let lemma_ast := build_forall globals lemma_concl in
 
-                             (tmBind (tmUnquoteTyped Prop lemma_ast)
-                                     (fun lemma_body => tmLemma lemma_name lemma_body
-                                                             ;;
-                                                             tmReturn (Some {| rei_i := i;
-                                                                               rei_o := o;
-                                                                               rei_op := dshcol |})))
-                | _ => tmReturn None
-                end
-           | _ => tmReturn None
-           end
+                           (tmBind (tmUnquoteTyped Prop lemma_ast)
+                                   (fun lemma_body => tmLemma lemma_name lemma_body
+                                                           ;;
+                                                           tmReturn (Some {| rei_i := i;
+                                                                             rei_o := o;
+                                                                             rei_op := dshcol |})))
+              | _ => tmReturn None
+              end
          | None => tmReturn None
          end.
 
