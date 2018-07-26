@@ -97,37 +97,6 @@ Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMona
          end
     end.
 
-(*
-
-Definition fm: Monoid.Monoid RthetaFlags := Monoid_RthetaFlags.
-Parameter dshcol : DSHOperator (1 + (2 + 2)) 1.
-Definition lfoo := forall (a: avector 3),
-    forall (x: svector fm (1 + (2 + 2))),
-      option_Equiv
-        (Some (densify fm (op fm (dynwin_SHCOL1 a) x)))
-        (evalDSHOperator [] dshcol (densify fm x)).
-
-Quote Definition l := Eval hnf in lfoo.
-Print l.
-
-Set Printing All. Print lfoo.
-
-lfoo =
-forall (a : t CarrierA (S (S (S O))))
-  (x : svector fm (Nat.add (S O) (Nat.add (S (S O)) (S (S O))))),
-@option_Equiv (t CarrierA (S O)) (@vec_Equiv CarrierA CarrierAe (S O))
-
-  (@Some (t CarrierA (S O))
-     (@densify fm (S O)
-        (@op fm (Nat.add (S O) (Nat.add (S (S O)) (S (S O)))) (S O) (dynwin_SHCOL1 a) x)))
-
-  (@evalDSHOperator (Nat.add (S O) (Nat.add (S (S O)) (S (S O))))
-     (S O) (@Datatypes.nil DSHVar) dshcol
-     (@densify fm (Nat.add (S O) (Nat.add (S (S O)) (S (S O)))) x))
-     : Prop
- *)
-
-
 Fixpoint rev_nat_seq_to_1 (len: nat) : list nat :=
   match len with
   | O => []
@@ -193,5 +162,21 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
          | None => tmReturn None
          end.
 
+(*
+Here is the lemma we are trying to build:
+
+Definition fm: Monoid.Monoid RthetaFlags := Monoid_RthetaFlags.
+Parameter dshcol : DSHOperator (1 + (2 + 2)) 1.
+Definition lfoo := forall (a: avector 3),
+    forall (x: svector fm (1 + (2 + 2))),
+      option_Equiv
+        (Some (densify fm (op fm (dynwin_SHCOL1 a) x)))
+        (evalDSHOperator [] dshcol (densify fm x)).
+ *)
+
 Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
+Next Obligation.
+  intros a x.
+Admitted.
+
