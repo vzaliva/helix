@@ -82,13 +82,6 @@ Definition fm_unquote (t:term): option (Monoid.Monoid RthetaFlags) :=
   | None => None
   end.
 
-Definition fm_equiv_term (t:term): option term :=
-  match fm_select t with
-  | Some CollNorm => Some (tConst "Helix.SigmaHCOL.Rtheta.Rtheta_equiv" [])
-  | Some CollSafe => Some (tConst "Helix.SigmaHCOL.Rtheta.RStheta_equiv" [])
-  | None => None
-  end.
-
 Fixpoint quoteNat (n:nat) : term :=
   match n with
   | O => tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 0 []
@@ -158,12 +151,9 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
          eexpr <- @tmEval hnf A expr  ;;
          ast <- @tmQuote A eexpr ;;
          match SHCOL_to_DSHCol [] ast with
-         | Some (globals, a_fm, a_i, a_o, reires) =>
-           let i := rei_i reires in
-           let o := rei_o reires in
-           let dshcol := rei_op reires in
-           match fm_unquote a_fm, fm_equiv_term a_fm with
-           | Some fm, Some a_fmeq =>
+         | Some (globals, a_fm, a_i, a_o, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
+           match fm_unquote a_fm with
+           | Some fm =>
              match build_dsh_globals globals with
              | Some a_globals =>
                x <- tmFreshName "x" ;;
@@ -212,11 +202,10 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
                                                                             rei_op := dshcol |})))
              | _ => tmReturn None
              end
-           | _,_ => tmReturn None
+           | _ => tmReturn None
            end
          | None => tmReturn None
          end.
 
-
-Solve All Obligations with auto.
+Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
