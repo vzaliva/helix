@@ -121,7 +121,7 @@ Fixpoint build_forall g s:=
   end.
 
 Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMonad (option term) :=
-  _ <- u ;;
+  u ;;
     match g with
     | [] => tmReturn (Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []]))
     | (n,t)::gs =>
