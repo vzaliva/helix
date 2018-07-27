@@ -145,8 +145,14 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
                  end)
               | _, _ => tmReturn None
               end)
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: f :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: f :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: c :: nil) =>
+         ni <- tmUnquoteTyped nat i ;;
+            no <- tmUnquoteTyped nat o ;;
+            compileSHCOL (tmReturn vars) c
+       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: c :: nil) =>
+         ni <- tmUnquoteTyped nat i ;;
+            no <- tmUnquoteTyped nat o ;;
+            compileSHCOL (tmReturn vars) c
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
        | _ => tmReturn None
        end.
