@@ -66,11 +66,9 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
             tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, n, n, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |}))
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" _) (fm :: o :: f :: _ :: nil)
          =>
-         (* Another problem with "do" notation. have to use `bind` *)
-         (tmBind (tmUnquoteTyped nat o)
-                 (fun no =>
-                    oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
-                       tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))))
+         no <- tmUnquoteTyped nat o ;;
+            oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
+            tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) =>
          one <- tmQuote (1%nat) ;;
              zconst <- tmUnquoteTyped CarrierA z ;;
