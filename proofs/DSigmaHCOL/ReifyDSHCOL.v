@@ -124,14 +124,25 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
         cop2' <- compileSHCOL vars op2 ;;
         let '(_, _, cop1) := (cop1':varbindings*term*reifyResult) in
         let '(_, _, cop2) := (cop2':varbindings*term*reifyResult) in
-        cop1 <- castReifyResult no2 no3 cop1 ;; (* TODO: possible to eliminate *)
-             cop2 <- castReifyResult ni1 no2 cop2 ;; (* TODO: possible to eliminate *)
+        cop1 <- castReifyResult no2 no3 cop1 ;;
+             cop2 <- castReifyResult ni1 no2 cop2 ;;
              tmReturn (vars, fm, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
   | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: c :: nil) =>
     compileSHCOL vars c (* TODO: fm *)
   | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: c :: nil) =>
     compileSHCOL vars c (* TODO: fm *)
-  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmFail "HTSumunion is not implemented yet"
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       ddot <- compileDSHBinCarrierA dot ;;
+       cop1' <- compileSHCOL vars op1 ;;
+       cop2' <- compileSHCOL vars op2 ;;
+       let '(_, _, cop1) := (cop1':varbindings*term*reifyResult) in
+       let '(_, _, cop2) := (cop2':varbindings*term*reifyResult) in
+       cop1 <- castReifyResult ni no cop1 ;;
+            cop2 <- castReifyResult ni no cop2 ;;
+            tmReturn (vars, fm, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
+
   | _ => tmFail "Usupported SHCOL syntax"
   end.
 
