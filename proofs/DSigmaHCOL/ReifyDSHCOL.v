@@ -156,7 +156,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
             cop2 <- castReifyResult ni no cop2 ;;
             tmReturn (vars, fm, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
 
-  | _ => tmFail "Usupported SHCOL syntax"
+  | _ as t => tmFail ("Usupported SHCOL syntax" ++ (Checker.string_of_term t))
   end.
 
 Fixpoint build_forall g s:=
