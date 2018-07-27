@@ -1,4 +1,5 @@
 Require Import Coq.Strings.String.
+Require Import Coq.Arith.Peano_dec.
 Require Import Template.All.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
@@ -47,6 +48,17 @@ Definition compileNatExpr (a_n:term): option DSHNatExpr := Some tt.
 Definition compileDSHIBinCarrierA (a_f:term): option DSHIBinCarrierA := Some tt.
 Definition compileDSHBinCarrierA (a_f:term): option DSHBinCarrierA := Some tt.
 
+Definition castReifyResult (i o:nat) (rr:reifyResult): option (DSHOperator i o) :=
+  match rr with
+  | {| rei_i := i'; rei_o := o'; rei_op := f' |} =>
+    match PeanoNat.Nat.eq_dec i i', PeanoNat.Nat.eq_dec o o' with
+    | left Ei, left Eo =>
+      eq_rect_r (fun i0 : nat => option (DSHOperator i0 o))
+                (eq_rect_r (fun o0 : nat => option (DSHOperator i' o0)) (Some f') Eo) Ei
+    | _, _ => None
+    end
+  end.
+
 Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
   vars <- tvars ;;
        match t with
@@ -57,7 +69,7 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
              no <- tmUnquoteTyped nat o ;;
              zconst <- tmUnquoteTyped CarrierA z ;;
              tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT"          _) (fm :: i :: b :: nil) =>
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" _) (fm :: i :: b :: nil) =>
          one <- tmQuote (1%nat) ;;
              ni <- tmUnquoteTyped nat i ;;
              tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, i, one, {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |}))
@@ -69,20 +81,34 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
          no <- tmUnquoteTyped nat o ;;
             oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
             tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) =>
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor" _) (fm :: n :: f :: _ :: z :: nil) =>
          one <- tmQuote (1%nat) ;;
              zconst <- tmUnquoteTyped CarrierA z ;;
              tmReturn (nc <- compileNatExpr n ;;
                           df <- compileDSHBinCarrierA f ;;
                           Some (vars, fm, one, one, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion"      _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   _) (i :: n :: op_family :: _) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction"  _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose"   _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+         ni <- tmUnquoteTyped nat i ;;
+            no <- tmUnquoteTyped nat o ;;
+            nn <- tmUnquoteTyped nat n ;;
+            zconst <- tmUnquoteTyped CarrierA z ;;
+            fm <- tmQuote (Monoid_RthetaFlags) ;;
+            c' <- compileSHCOL (tmReturn vars) op_family ;;
+            match c' with
+            | Some (_, _, _, _, rr) =>
+              (match castReifyResult ni no rr with
+               | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIUnion ni no nn df zconst d_op_family |}))
+               | None => tmReturn None
+               end)
+            | None => tmReturn None
+            end
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: n :: op_family :: _) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
          i <- tmUnquoteTyped nat i1 ;;
            o <- tmUnquoteTyped nat o3 ;;
            tmReturn (Some (vars, fm, i1, o3, {| rei_i:=i; rei_o:=o; rei_op:=@DSHDummy i o |}))
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast"   _) (i :: o :: f :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
        | _ => tmReturn None
