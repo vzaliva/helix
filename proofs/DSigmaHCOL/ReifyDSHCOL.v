@@ -60,35 +60,42 @@ Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperato
     end
   end.
 
+Open Scope string_scope.
 Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*reifyResult) :=
   match t with
   | tLambda (nNamed n) vt b =>
+    tmPrint ("lambda " ++ n)  ;;
     toDSHCOLType (tmReturn vt) ;; compileSHCOL ((nNamed n,vt)::vars) b
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" _) (fm :: o :: b :: _ :: z :: nil) =>
-    one <- tmQuote (1%nat) ;;
-        no <- tmUnquoteTyped nat o ;;
-        zconst <- tmUnquoteTyped CarrierA z ;;
-        bc <- compileNatExpr b ;;
-        tmReturn (vars, fm, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
+    tmPrint "eUnion" ;;
+            no <- tmUnquoteTyped nat o ;;
+            zconst <- tmUnquoteTyped CarrierA z ;;
+            bc <- compileNatExpr b ;;
+            tmReturn (vars, fm, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" _) (fm :: i :: b :: nil) =>
+    tmPrint "eT" ;;
     ni <- tmUnquoteTyped nat i ;;
        bc <- compileNatExpr b ;;
        tmReturn (vars, fm,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) =>
+    tmPrint "SHPointwise" ;;
     nn <- tmUnquoteTyped nat n ;;
        df <- compileDSHIBinCarrierA f ;;
        tmReturn (vars, fm, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" _) (fm :: o :: f :: _ :: nil)
     =>
+    tmPrint "SHBinOp" ;;
     no <- tmUnquoteTyped nat o ;;
        df <- compileDSHIBinCarrierA f ;;
        tmReturn (vars, fm, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor" _) (fm :: n :: f :: _ :: z :: nil) =>
+    tmPrint "SHInductor" ;;
     zconst <- tmUnquoteTyped CarrierA z ;;
            nc <- compileNatExpr n ;;
            df <- compileDSHBinCarrierA f ;;
            tmReturn (vars, fm, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+    tmPrint "IUnion" ;;
     ni <- tmUnquoteTyped nat i ;;
        no <- tmUnquoteTyped nat o ;;
        nn <- tmUnquoteTyped nat n ;;
@@ -99,6 +106,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
        let '( _, _, rr) := (c':varbindings*term*reifyResult) in
        tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: o :: n :: op_family :: _) =>
+    tmPrint "ISumUnion" ;;
     ni <- tmUnquoteTyped nat i ;;
        no <- tmUnquoteTyped nat o ;;
        nn <- tmUnquoteTyped nat n ;;
@@ -107,6 +115,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
        let '(_, _, rr) := (c':varbindings*term*reifyResult) in
        tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHISumUnion (rei_i rr) (rei_o rr) nn (rei_op rr) |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+    tmPrint "IReduction" ;;
     ni <- tmUnquoteTyped nat i ;;
        no <- tmUnquoteTyped nat o ;;
        nn <- tmUnquoteTyped nat n ;;
@@ -117,6 +126,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
        let '(_, _, rr) := (c':varbindings*term*reifyResult) in
        tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIReduction (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
   | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
+    tmPrint "SHCompose" ;;
     ni1 <- tmUnquoteTyped nat i1 ;;
         no2 <- tmUnquoteTyped nat o2 ;;
         no3 <- tmUnquoteTyped nat o3 ;;
@@ -128,10 +138,13 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
              cop2 <- castReifyResult ni1 no2 cop2 ;;
              tmReturn (vars, fm, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
   | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: c :: nil) =>
+    tmPrint "SafeCast" ;;
     compileSHCOL vars c (* TODO: fm *)
   | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: c :: nil) =>
+    tmPrint "UnSafeCast" ;;
     compileSHCOL vars c (* TODO: fm *)
   | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) =>
+    tmPrint "HTSumunion" ;;
     ni <- tmUnquoteTyped nat i ;;
        no <- tmUnquoteTyped nat o ;;
        ddot <- compileDSHBinCarrierA dot ;;
