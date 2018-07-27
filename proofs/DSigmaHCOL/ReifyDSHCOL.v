@@ -45,6 +45,7 @@ Record reifyResult := {
 (* TODO: implement *)
 Definition compileNatExpr (a_n:term): option DSHNatExpr := Some tt.
 Definition compileDSHIBinCarrierA (a_f:term): option DSHIBinCarrierA := Some tt.
+Definition compileDSHBinCarrierA (a_f:term): option DSHBinCarrierA := Some tt.
 
 Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
   vars <- tvars ;;
@@ -70,7 +71,12 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
                  (fun no =>
                     oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
                        tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  _) (fm :: n :: f :: _ :: z :: nil) =>
+         one <- tmQuote (1%nat) ;;
+             zconst <- tmUnquoteTyped CarrierA z ;;
+             tmReturn (nc <- compileNatExpr n ;;
+                          df <- compileDSHBinCarrierA f ;;
+                          Some (vars, fm, one, one, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |}))
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion"      _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   _) (i :: n :: op_family :: _) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction"  _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => tmReturn None

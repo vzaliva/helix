@@ -8,12 +8,14 @@ Require Import MathClasses.interfaces.canonical_names.
 
 Global Open Scope nat_scope.
 
-Inductive DSHBinCarrierA :=
+Definition DSHBinCarrierA := unit.
+                              (*
 | DSHBinPlus
 | DSHBinMinus
 | DSHBinMult
 | DSHBinMin
 | DSHBinMax.
+                               *)
 
 (* Placeholder *)
 Definition DSHNatExpr: Type := unit.
