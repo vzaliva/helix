@@ -132,9 +132,19 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
             | None => tmReturn None
             end
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
-         i <- tmUnquoteTyped nat i1 ;;
-           o <- tmUnquoteTyped nat o3 ;;
-           tmReturn (Some (vars, fm, i1, o3, {| rei_i:=i; rei_o:=o; rei_op:=@DSHDummy i o |}))
+         ni1 <- tmUnquoteTyped nat i1 ;;
+             no2 <- tmUnquoteTyped nat o2 ;;
+             no3 <- tmUnquoteTyped nat o3 ;;
+             cop1' <- compileSHCOL (tmReturn vars) op1 ;;
+             cop2' <- compileSHCOL (tmReturn vars) op2 ;;
+             (match cop1', cop2' with
+              | Some (_, _, _, _, rcop1), Some (_, _, _, _, rcop2) =>
+                (match castReifyResult no2 no3 rcop1, castReifyResult ni1 no2 rcop2 with
+                 | Some cop1, Some cop2 => tmReturn (Some (vars, fm, i1, o3, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |}))
+                 | _, _ => tmReturn None
+                 end)
+              | _, _ => tmReturn None
+              end)
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: f :: nil) => tmReturn None
        | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
@@ -228,10 +238,10 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
 
                            (tmBind (tmUnquoteTyped Prop lemma_ast)
                                    (fun lemma_body => tmLemma lemma_name lemma_body
-                                                              ;;
-                                                              tmReturn (Some {| rei_i := i;
-                                                                                rei_o := o;
-                                                                                rei_op := dshcol |})))
+                                                           ;;
+                                                           tmReturn (Some {| rei_i := i;
+                                                                             rei_o := o;
+                                                                             rei_op := dshcol |})))
               | _ => tmReturn None
               end
          | None => tmReturn None
