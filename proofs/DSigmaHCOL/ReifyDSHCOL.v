@@ -102,8 +102,35 @@ Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: Tem
                end)
             | None => tmReturn None
             end
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: n :: op_family :: _) => tmReturn None
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: opfamily :: nil) => tmReturn None
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: o :: n :: op_family :: _) =>
+         ni <- tmUnquoteTyped nat i ;;
+            no <- tmUnquoteTyped nat o ;;
+            nn <- tmUnquoteTyped nat n ;;
+            fm <- tmQuote (Monoid_RthetaFlags) ;;
+            c' <- compileSHCOL (tmReturn vars) op_family ;;
+            match c' with
+            | Some (_, _, _, _, rr) =>
+              (match castReifyResult ni no rr with
+               | Some d_op_family => tmReturn (Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHISumUnion ni no nn d_op_family |}))
+               | None => tmReturn None
+               end)
+            | None => tmReturn None
+            end
+       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+         ni <- tmUnquoteTyped nat i ;;
+            no <- tmUnquoteTyped nat o ;;
+            nn <- tmUnquoteTyped nat n ;;
+            zconst <- tmUnquoteTyped CarrierA z ;;
+            fm <- tmQuote (Monoid_RthetaSafeFlags) ;;
+            c' <- compileSHCOL (tmReturn vars) op_family ;;
+            match c' with
+            | Some (_, _, _, _, rr) =>
+              (match castReifyResult ni no rr with
+               | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIReduction ni no nn df zconst d_op_family |}))
+               | None => tmReturn None
+               end)
+            | None => tmReturn None
+            end
        | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
          i <- tmUnquoteTyped nat i1 ;;
            o <- tmUnquoteTyped nat o3 ;;
