@@ -59,103 +59,106 @@ Definition castReifyResult (i o:nat) (rr:reifyResult): option (DSHOperator i o) 
     end
   end.
 
-Fixpoint compileSHCOL (tvars:TemplateMonad varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
-  vars <- tvars ;;
-       match t with
-       | tLambda (nNamed n) vt b =>
-         toDSHCOLType (tmReturn vt) ;; compileSHCOL (tmReturn (((nNamed n,vt)::vars))) b
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" _) (fm :: o :: b :: _ :: z :: nil) =>
-         one <- tmQuote (1%nat) ;;
-             no <- tmUnquoteTyped nat o ;;
-             zconst <- tmUnquoteTyped CarrierA z ;;
-             tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" _) (fm :: i :: b :: nil) =>
-         one <- tmQuote (1%nat) ;;
-             ni <- tmUnquoteTyped nat i ;;
-             tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, i, one, {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) =>
-         nn <- tmUnquoteTyped nat n ;;
-            tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, n, n, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" _) (fm :: o :: f :: _ :: nil)
-         =>
-         no <- tmUnquoteTyped nat o ;;
-            oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
-            tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor" _) (fm :: n :: f :: _ :: z :: nil) =>
-         one <- tmQuote (1%nat) ;;
-             zconst <- tmUnquoteTyped CarrierA z ;;
-             tmReturn (nc <- compileNatExpr n ;;
-                          df <- compileDSHBinCarrierA f ;;
-                          Some (vars, fm, one, one, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |}))
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
-         ni <- tmUnquoteTyped nat i ;;
-            no <- tmUnquoteTyped nat o ;;
-            nn <- tmUnquoteTyped nat n ;;
-            zconst <- tmUnquoteTyped CarrierA z ;;
-            fm <- tmQuote (Monoid_RthetaFlags) ;;
-            c' <- compileSHCOL (tmReturn vars) op_family ;;
-            match c' with
-            | Some (_, _, _, _, rr) =>
-              (match castReifyResult ni no rr with
-               | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIUnion ni no nn df zconst d_op_family |}))
-               | None => tmReturn None
-               end)
-            | None => tmReturn None
-            end
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: o :: n :: op_family :: _) =>
-         ni <- tmUnquoteTyped nat i ;;
-            no <- tmUnquoteTyped nat o ;;
-            nn <- tmUnquoteTyped nat n ;;
-            fm <- tmQuote (Monoid_RthetaFlags) ;;
-            c' <- compileSHCOL (tmReturn vars) op_family ;;
-            match c' with
-            | Some (_, _, _, _, rr) =>
-              (match castReifyResult ni no rr with
-               | Some d_op_family => tmReturn (Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHISumUnion ni no nn d_op_family |}))
-               | None => tmReturn None
-               end)
-            | None => tmReturn None
-            end
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
-         ni <- tmUnquoteTyped nat i ;;
-            no <- tmUnquoteTyped nat o ;;
-            nn <- tmUnquoteTyped nat n ;;
-            zconst <- tmUnquoteTyped CarrierA z ;;
-            fm <- tmQuote (Monoid_RthetaSafeFlags) ;;
-            c' <- compileSHCOL (tmReturn vars) op_family ;;
-            match c' with
-            | Some (_, _, _, _, rr) =>
-              (match castReifyResult ni no rr with
-               | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIReduction ni no nn df zconst d_op_family |}))
-               | None => tmReturn None
-               end)
-            | None => tmReturn None
-            end
-       | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
-         ni1 <- tmUnquoteTyped nat i1 ;;
-             no2 <- tmUnquoteTyped nat o2 ;;
-             no3 <- tmUnquoteTyped nat o3 ;;
-             cop1' <- compileSHCOL (tmReturn vars) op1 ;;
-             cop2' <- compileSHCOL (tmReturn vars) op2 ;;
-             (match cop1', cop2' with
-              | Some (_, _, _, _, rcop1), Some (_, _, _, _, rcop2) =>
-                (match castReifyResult no2 no3 rcop1, castReifyResult ni1 no2 rcop2 with
-                 | Some cop1, Some cop2 => tmReturn (Some (vars, fm, i1, o3, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |}))
-                 | _, _ => tmReturn None
-                 end)
-              | _, _ => tmReturn None
-              end)
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: c :: nil) =>
-         ni <- tmUnquoteTyped nat i ;;
-            no <- tmUnquoteTyped nat o ;;
-            compileSHCOL (tmReturn vars) c
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: c :: nil) =>
-         ni <- tmUnquoteTyped nat i ;;
-            no <- tmUnquoteTyped nat o ;;
-            compileSHCOL (tmReturn vars) c
-       | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
-       | _ => tmReturn None
-       end.
+Definition unOption {A:Type} (x:TemplateMonad (option A)) (err:string): TemplateMonad A :=
+  x' <- x ;;
+     match x' with
+     | Some y => tmReturn y
+     | None => tmFail err
+     end.
+
+Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (option (varbindings*term*term*term*reifyResult)) :=
+  match t with
+  | tLambda (nNamed n) vt b =>
+    toDSHCOLType (tmReturn vt) ;; compileSHCOL ((nNamed n,vt)::vars) b
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" _) (fm :: o :: b :: _ :: z :: nil) =>
+    one <- tmQuote (1%nat) ;;
+        no <- tmUnquoteTyped nat o ;;
+        zconst <- tmUnquoteTyped CarrierA z ;;
+        tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, one, o, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |}))
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" _) (fm :: i :: b :: nil) =>
+    one <- tmQuote (1%nat) ;;
+        ni <- tmUnquoteTyped nat i ;;
+        tmReturn (bc <- compileNatExpr b ;; Some (vars, fm, i, one, {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |}))
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" _) (fm :: n :: f :: _ :: nil) =>
+    nn <- tmUnquoteTyped nat n ;;
+       tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, n, n, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |}))
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" _) (fm :: o :: f :: _ :: nil)
+    =>
+    no <- tmUnquoteTyped nat o ;;
+       oo <- @tmQuote nat (Nat.add no no) ;; (* could not use `no+no` here! *)
+       tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, oo, o, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |}))
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHInductor" _) (fm :: n :: f :: _ :: z :: nil) =>
+    one <- tmQuote (1%nat) ;;
+        zconst <- tmUnquoteTyped CarrierA z ;;
+        tmReturn (nc <- compileNatExpr n ;;
+                     df <- compileDSHBinCarrierA f ;;
+                     Some (vars, fm, one, one, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |}))
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IUnion" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       nn <- tmUnquoteTyped nat n ;;
+       zconst <- tmUnquoteTyped CarrierA z ;;
+       fm <- tmQuote (Monoid_RthetaFlags) ;;
+       c' <- unOption (compileSHCOL vars op_family) "cast failed in IUnion" ;;
+       let '(_, _, _, _, rr) := (c':varbindings*term*term*term*reifyResult) in
+       (match castReifyResult ni no rr with
+        | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIUnion ni no nn df zconst d_op_family |}))
+        | None => tmReturn None
+        end)
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" _) (i :: o :: n :: op_family :: _) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       nn <- tmUnquoteTyped nat n ;;
+       fm <- tmQuote (Monoid_RthetaFlags) ;;
+       c' <- compileSHCOL vars op_family ;;
+       match c' with
+       | Some (_, _, _, _, rr) =>
+         (match castReifyResult ni no rr with
+          | Some d_op_family => tmReturn (Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHISumUnion ni no nn d_op_family |}))
+          | None => tmPrint "cast failed in ISumUnion";; tmReturn None
+          end)
+       | None => tmReturn None
+       end
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.IReduction" _) (i :: o :: n :: f :: _ :: z :: op_family :: nil) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       nn <- tmUnquoteTyped nat n ;;
+       zconst <- tmUnquoteTyped CarrierA z ;;
+       fm <- tmQuote (Monoid_RthetaSafeFlags) ;;
+       c' <- compileSHCOL vars op_family ;;
+       match c' with
+       | Some (_, _, _, _, rr) =>
+         (match castReifyResult ni no rr with
+          | Some d_op_family => tmReturn (df <- compileDSHIBinCarrierA f ;; Some (vars, fm, i, o, {| rei_i:=ni; rei_o:=no; rei_op := @DSHIReduction ni no nn df zconst d_op_family |}))
+          | None => tmPrint "cast failed in IReduction";; tmReturn None
+          end)
+       | None => tmReturn None
+       end
+  | tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.SHCompose" _) (fm :: i1 :: o2 :: o3 :: op1 :: op2 :: nil) =>
+    ni1 <- tmUnquoteTyped nat i1 ;;
+        no2 <- tmUnquoteTyped nat o2 ;;
+        no3 <- tmUnquoteTyped nat o3 ;;
+        cop1' <- compileSHCOL vars op1 ;;
+        cop2' <- compileSHCOL vars op2 ;;
+        (match cop1', cop2' with
+         | Some (_, _, _, _, rcop1), Some (_, _, _, _, rcop2) =>
+           (match castReifyResult no2 no3 rcop1, castReifyResult ni1 no2 rcop2 with
+            | Some cop1, Some cop2 => tmReturn (Some (vars, fm, i1, o3, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |}))
+            | _, _ => tmReturn None
+            end)
+         | _, _ => tmReturn None
+         end)
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" _) (i :: o :: c :: nil) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       compileSHCOL vars c
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" _) (i :: o :: c :: nil) =>
+    ni <- tmUnquoteTyped nat i ;;
+       no <- tmUnquoteTyped nat o ;;
+       compileSHCOL vars c
+  | tApp (tConst "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" _) (fm :: i :: o :: dot :: _ :: op1 :: op2 :: nil) => tmReturn None
+  | _ => tmPrint "HTSumunion is not implemented yet";; tmReturn None
+  end.
 
 Fixpoint build_forall g s:=
   match g with
@@ -163,30 +166,29 @@ Fixpoint build_forall g s:=
   | (n,t)::gs => tProd n t (build_forall gs s)
   end.
 
-Fixpoint build_dsh_globals (u:TemplateMonad unit) (g:varbindings) : TemplateMonad (option term) :=
-  u ;;
-    match g with
-    | [] => tmReturn (Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []]))
-    | (n,t)::gs =>
-      t' <- toDSHCOLType (tmReturn t) ;;
-         match t' with
-         | None => tmReturn None
-         | Some dt =>
-           let i := length g in
-           dv <- (match dt with
-                 | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
-                 | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
-                 | DSHvec m =>
-                   a_m <- tmQuote m ;;
-                       tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
-                 end) ;;
-              g' <- build_dsh_globals (tmReturn tt) gs ;;
-              tmReturn (match g' with
-                        | Some ts =>  Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
-                        | None => None
-                        end)
-         end
-    end.
+Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad (option term) :=
+  match g with
+  | [] => tmReturn (Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []]))
+  | (n,t)::gs =>
+    t' <- toDSHCOLType (tmReturn t) ;;
+       match t' with
+       | None => tmReturn None
+       | Some dt =>
+         let i := length g in
+         dv <- (match dt with
+               | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
+               | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
+               | DSHvec m =>
+                 a_m <- tmQuote m ;;
+                     tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
+               end) ;;
+            g' <- build_dsh_globals gs ;;
+            tmReturn (match g' with
+                      | Some ts =>  Some (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
+                      | None => None
+                      end)
+       end
+  end.
 
 Fixpoint rev_nat_seq_to_1 (len: nat) : list nat :=
   match len with
@@ -198,10 +200,10 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
   a_expr <- @tmQuote A expr ;;
          eexpr <- @tmEval hnf A expr  ;;
          ast <- @tmQuote A eexpr ;;
-         d' <- compileSHCOL (tmReturn []) ast ;;
+         d' <- compileSHCOL [] ast ;;
          match d' with
          | Some (globals, a_fm, a_i, a_o, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
-           g' <- build_dsh_globals (tmReturn tt) globals ;;
+           g' <- build_dsh_globals globals ;;
               match g' with
               | Some a_globals =>
                 x <- tmFreshName "x" ;;
@@ -250,7 +252,7 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad (opt
                                                                              rei_op := dshcol |})))
               | _ => tmReturn None
               end
-         | None => tmReturn None
+         | None => tmPrint "SHCOL compiation failed" ;; tmReturn None
          end.
 
 (*
