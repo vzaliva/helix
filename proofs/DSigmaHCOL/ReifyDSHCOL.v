@@ -26,6 +26,10 @@ Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
     match t with
     | tInd {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ =>
       tmReturn DSHnat
+    | (tApp(tInd {| inductive_mind := "Coq.Init.Specif.sig"; inductive_ind := 0 |} _)
+           [tInd
+              {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
+       => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
     | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCarrierA
     | tApp
         (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
@@ -190,7 +194,8 @@ Fixpoint rev_nat_seq_to_1 (len: nat) : list nat :=
 
 Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reifyResult :=
   a_expr <- @tmQuote A expr ;;
-         eexpr <- @tmEval hnf A expr  ;;
+         eexpr0 <- @tmEval hnf A expr  ;;
+         eexpr <- @tmEval (unfold "SHFamilyOperatorCompose") A eexpr0 ;;
          ast <- @tmQuote A eexpr ;;
          d' <- compileSHCOL [] ast ;;
          match d' with
