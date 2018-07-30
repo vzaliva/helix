@@ -12,10 +12,6 @@ Require Import Helix.Util.OptionSetoid.
 Import MonadNotation.
 Require Import List. Import ListNotations.
 
-(* for testing *)
-Require Import Helix.DynWin.DynWin.
-Quote Definition dast := Eval hnf in dynwin_SHCOL1.
-
 Inductive DSHCOLType :=
 | DSHnat : DSHCOLType
 | DSHCarrierA : DSHCOLType
@@ -79,19 +75,18 @@ Inductive SHCOL_Op_Names :=
 | n_HTSUMUnion
 | n_Unsupported (n:string).
 
-
-(* For quick string matching *)
+(* For fast string matching *)
 Definition parse_SHCOL_Op_Name (s:string): SHCOL_Op_Names :=
-  if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eUnion"           then n_eUnion
-  else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eT"          then n_eT
+  if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eUnion" then n_eUnion
+  else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eT" then n_eT
        else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" then n_SHPointwise
-            else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHBinOp"     then n_SHBinOp
-                 else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHInductor"  then n_SHInductor
-                      else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IUnion"      then n_IUnion
-                           else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.ISumUnion"   then n_ISumUnion
-                                else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IReduction"  then n_IReduction
-                                     else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHCompose"   then n_SHCompose
-                                          else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.SafeCast"   then n_SafeCast
+            else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" then n_SHBinOp
+                 else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHInductor" then n_SHInductor
+                      else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IUnion" then n_IUnion
+                           else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" then n_ISumUnion
+                                else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IReduction" then n_IReduction
+                                     else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHCompose" then n_SHCompose
+                                          else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" then n_SafeCast
                                                else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" then n_UnSafeCast
                                                     else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" then n_HTSUMUnion
                                                          else n_Unsupported s.
@@ -264,35 +259,39 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                                                tApp a_expr global_idx;
                                                tRel 0]]] in
                (* evalDSHOperator [] dshcol (densify fm x) *)
-               a_dshcol <- tmQuote dshcol ;;
+               dshcol' <- tmEval cbv dshcol ;;
+                       a_dshcol <- tmQuote dshcol' ;;
+                       let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOL.evalDSHOperator" [])
+                                       [a_i; a_o; a_globals ; a_dshcol;
+                                          (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
+                                                [a_fm; a_i; tRel 0])
+                                       ] in
+                       let lemma_concl :=
+                           tProd (nNamed x) x_type
+                                 (tApp (tConst "Helix.Util.OptionSetoid.option_Equiv" [])
+                                       [
+                                         (tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o]);
+                                           (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
+                                                 [tConst "Helix.HCOL.CarrierType.CarrierA" [];
+                                                    tConst "Helix.HCOL.CarrierType.CarrierAe" [];
+                                                    a_o]);
+                                           lhs;
+                                           rhs
+                                 ]) in
+                       let lemma_ast := build_forall globals lemma_concl in
 
-                        let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOL.evalDSHOperator" [])
-                                        [a_i; a_o; a_globals ; a_dshcol;
-                                           (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-                                                 [a_fm; a_i; tRel 0])
-                                        ] in
-                        let lemma_concl :=
-                            tProd (nNamed x) x_type
-                                  (tApp (tConst "Helix.Util.OptionSetoid.option_Equiv" [])
-                                        [
-                                          (tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o]);
-                                            (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
-                                                  [tConst "Helix.HCOL.CarrierType.CarrierA" [];
-                                                     tConst "Helix.HCOL.CarrierType.CarrierAe" [];
-                                                     a_o]);
-                                            lhs;
-                                            rhs
-                                  ]) in
-                        let lemma_ast := build_forall globals lemma_concl in
-
-                        (tmBind (tmUnquoteTyped Prop lemma_ast)
-                                (fun lemma_body => tmLemma lemma_name lemma_body
-                                                        ;;
-                                                        tmReturn {| rei_i := i;
-                                                                    rei_o := o;
-                                                                    rei_op := dshcol |}))
+                       (tmBind (tmUnquoteTyped Prop lemma_ast)
+                               (fun lemma_body => tmLemma lemma_name lemma_body
+                                                       ;;
+                                                       tmReturn {| rei_i := i;
+                                                                   rei_o := o;
+                                                                   rei_op := dshcol |}))
          end.
 
+
+
+
+(* ----------- Testing ----------- *)
 
 (*
 Here is the lemma we are trying to build:
@@ -306,8 +305,14 @@ Definition lfoo := forall (a: avector 3),
         (evalDSHOperator [] dshcol (densify fm x)).
  *)
 
+(* for testing *)
+Require Import Helix.DynWin.DynWin.
+(* Quote Definition dast := Eval hnf in dynwin_SHCOL1. *)
+
 Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
 Next Obligation.
   intros a x.
+
+
 Qed.
