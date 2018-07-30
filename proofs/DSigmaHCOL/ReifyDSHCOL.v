@@ -288,23 +288,6 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                                                                    rei_op := dshcol |}))
          end.
 
-
-
-
-(* ----------- Testing ----------- *)
-
-(*
-Here is the lemma we are trying to build:
-
-Definition fm: Monoid.Monoid RthetaFlags := Monoid_RthetaFlags.
-Parameter dshcol : DSHOperator (1 + (2 + 2)) 1.
-Definition lfoo := forall (a: avector 3),
-    forall (x: svector fm (1 + (2 + 2))),
-      option_Equiv
-        (Some (densify fm (op fm (dynwin_SHCOL1 a) x)))
-        (evalDSHOperator [] dshcol (densify fm x)).
- *)
-
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 (* Quote Definition dast := Eval hnf in dynwin_SHCOL1. *)
