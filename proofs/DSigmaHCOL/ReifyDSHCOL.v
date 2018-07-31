@@ -3,6 +3,7 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Template.All.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SVector.
@@ -44,9 +45,9 @@ Record reifyResult := {
                      }.
 
 (* TODO: implement *)
-Definition compileNatExpr (a_n:term): TemplateMonad DSHNatExpr := tmReturn tt.
-Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA := tmReturn tt.
-Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA := tmReturn tt.
+Definition compileNatExpr (a_n:term): TemplateMonad NExpr := tmReturn (NConst 0).
+Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA := tmReturn (AConst CarrierAz).
+Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA := tmReturn (AConst CarrierAz).
 
 Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperator i o) :=
   match rr with
@@ -261,7 +262,7 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                (* evalDSHOperator [] dshcol (densify fm x) *)
                dshcol' <- tmEval cbv dshcol ;;
                        a_dshcol <- tmQuote dshcol' ;;
-                       let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOL.evalDSHOperator" [])
+                       let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOLEval.evalDSHOperator" [])
                                        [a_i; a_o; a_globals ; a_dshcol;
                                           (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
                                                 [a_fm; a_i; tRel 0])

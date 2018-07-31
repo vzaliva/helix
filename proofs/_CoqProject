@@ -3,7 +3,6 @@
 -R SigmaHCOL Helix.SigmaHCOL 
 -R Tactics Helix.Tactics 
 -R Util Helix.Util 
--R Lambda Helix.Lambda
 -R HCode Helix.HCode
 -R DSigmaHCOL Helix.DSigmaHCOL
 -arg "-w '-notation-overridden'"
