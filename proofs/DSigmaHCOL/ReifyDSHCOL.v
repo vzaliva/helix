@@ -44,10 +44,34 @@ Record reifyResult := {
                        rei_op: DSHOperator rei_i rei_o;
                      }.
 
-(* TODO: implement *)
-Definition compileNatExpr (a_n:term): TemplateMonad NExpr := tmReturn (NConst 0).
-Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA := tmReturn (AConst CarrierAz).
-Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA := tmReturn (AConst CarrierAz).
+Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
+  match a_n with
+  | (tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 0 [])
+    => tmReturn (NConst 0)
+  | (tApp (tConst "Coq.Init.Specif.proj1_sig" []) [ _ ; _ ; tRel i])
+    => tmReturn (NVar i)
+  | (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 1 []) [e]) =>
+    d_e <- compileNExpr e ;;
+        tmReturn (match d_e with
+                  | NConst v => NConst (v+1)
+                  | o => NPlus o (NConst 1)
+                  end)
+  | (tApp (tConst "Coq.Init.Nat.add" []) [ a_a ; a_b]) =>
+    d_a <- compileNExpr a_a ;;
+        d_b <- compileNExpr a_b ;;
+        tmReturn (NPlus d_a d_b)
+  | (tApp (tConst "Coq.Init.Nat.mul" []) [ a_a ; a_b]) =>
+    d_a <- compileNExpr a_a ;;
+        d_b <- compileNExpr a_b ;;
+        tmReturn (NMult d_a d_b)
+  (* TODO: more cases *)
+  | _ => tmFail ("Unsupported NExpr" ++ (string_of_term a_n))
+  end.
+
+Definition compileAExpr (a_n:term): TemplateMonad AExpr := tmReturn (AConst CarrierAz).
+
+Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA := compileAExpr a_f.
+Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA := compileAExpr a_f.
 
 Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperator i o) :=
   match rr with
@@ -106,12 +130,12 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
       tmPrint "eUnion" ;;
               no <- tmUnquoteTyped nat o ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
-              bc <- compileNatExpr b ;;
+              bc <- compileNExpr b ;;
               tmReturn (vars, fm, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
     | n_eT, [fm ; i ; b ; _] =>
       tmPrint "eT" ;;
               ni <- tmUnquoteTyped nat i ;;
-              bc <- compileNatExpr b ;;
+              bc <- compileNExpr b ;;
               tmReturn (vars, fm,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
     | n_SHPointwise, [fm ; n ; f ; _ ] =>
       tmPrint "SHPointwise" ;;
@@ -127,7 +151,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
     | n_SHInductor, [fm ; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
-              nc <- compileNatExpr n ;;
+              nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
               tmReturn (vars, fm, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
     | n_IUnion, [i ; o ; n ; f ; _ ; z ; op_family] =>
@@ -297,6 +321,5 @@ Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
 Next Obligation.
   intros a x.
-
 
 Qed.

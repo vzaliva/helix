@@ -42,8 +42,8 @@ Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
 Inductive DSHOperator: nat -> nat -> Type :=
-| DSHeUnion {o: nat} {b: NExpr} (z: CarrierA): DSHOperator 1 o
-| DSHeT {i: nat} {b:NExpr}: DSHOperator i 1
+| DSHeUnion {o: nat} (b: NExpr) (z: CarrierA): DSHOperator 1 o
+| DSHeT {i: nat} (b:NExpr): DSHOperator i 1
 | DSHPointwise {i: nat} (f: DSHIBinCarrierA): DSHOperator i i
 | DSHBinOp {o} (f: DSHIBinCarrierA): DSHOperator (o+o) o
 | DSHInductor (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA): DSHOperator 1 1
