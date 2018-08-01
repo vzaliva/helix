@@ -13,6 +13,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
 Import MonadNotation.
 Require Import List. Import ListNotations.
+Open Scope string_scope.
 
 Inductive DSHCOLType :=
 | DSHnat : DSHCOLType
@@ -69,16 +70,24 @@ Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
   | _ => tmFail ("Unsupported NExpr" ++ (string_of_term a_n))
   end.
 
-(* TODO: *)
-Fixpoint compileVExpr {n} (a_e:term): TemplateMonad (VExpr n):= tmReturn (VVar 0).
+Fixpoint compileVExpr {n} (a_e:term): TemplateMonad (VExpr n):=
+  match a_e with
+  | tRel i => tmReturn (VVar i)
+  (* TODO: more cases *)
+  | _ => tmFail ("Unsupported VExpr" ++ (string_of_term a_e))
+  end.
 
 Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
   match a_e with
   | tApp (tConst "MathClasses.interfaces.canonical_names.abs" [])
-         [_; _; _; _; _; _;
-            tApp (tConst "Coq.Program.Basics.compose" [])
-                 [_; _; _; _;  _; tRel 1; tRel 0]] =>
-    tmFail "ABS!"
+         [tConst "Helix.HCOL.CarrierType.CarrierA" [];
+            _; _; _;  _; _; a_a] =>
+    d_a <- compileAExpr a_a ;;
+        tmReturn (AAbs d_a)
+  | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [a_a ; a_b] =>
+    d_a <- compileAExpr a_a ;;
+        d_b <- compileAExpr a_b ;;
+        tmReturn (AMinus d_a d_b)
   | tApp (tConst "Helix.HCOL.CarrierType.CarrierAmult" []) [a_a ; a_b] =>
     d_a <- compileAExpr a_a ;;
         d_b <- compileAExpr a_b ;;
@@ -107,6 +116,9 @@ Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad DSHIUnCarrierA :=
 
 Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA :=
   match a_f with
+  | tApp (tConst "MathClasses.orders.minmax.max" [])
+         [tConst "Helix.HCOL.CarrierType.CarrierA" []; _; _ ] =>
+    tmReturn (AMax (AVar 1) (AVar 0))
   | tConst "Helix.HCOL.CarrierType.Zless" [] =>
     tmReturn (AZless (AVar 1) (AVar 0))
   | tConst "Helix.HCOL.CarrierType.CarrierAplus" [] =>
@@ -168,7 +180,6 @@ Definition parse_SHCOL_Op_Name (s:string): SHCOL_Op_Names :=
                                                          else n_Unsupported s.
 
 
-Open Scope string_scope.
 Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*reifyResult) :=
   match t with
   | tLambda (nNamed n) vt b =>
@@ -250,10 +261,10 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
                    tmReturn (vars, fm, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
     | n_SafeCast, [i ; o ; c] =>
       tmPrint "SafeCast" ;;
-              compileSHCOL vars c (* TODO: fm *)
+              compileSHCOL vars c (* TODO: fm? *)
     | n_UnSafeCast, [i ; o ; c] =>
       tmPrint "UnSafeCast" ;;
-              compileSHCOL vars c (* TODO: fm *)
+              compileSHCOL vars c (* TODO: fm? *)
     | n_HTSUMUnion, [fm ; i ; o ; dot ; _ ; op1 ; op2] =>
       tmPrint "HTSumunion" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -319,7 +330,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reifyResult :=
   a_expr <- @tmQuote A expr ;;
          eexpr0 <- @tmEval hnf A expr  ;;
-         let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "const"; "mult_by_nth"; "plus"; "mult"; "sub"] in
+         let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
          eexpr <- tmUnfoldList unfold_names eexpr0 ;;
                ast <- @tmQuote A eexpr ;;
                d' <- compileSHCOL [] ast ;;
@@ -376,8 +387,6 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
 
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
-(* Quote Definition dast := Eval hnf in dynwin_SHCOL1. *)
-
 Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
 Next Obligation.
