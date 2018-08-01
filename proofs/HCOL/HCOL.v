@@ -287,6 +287,13 @@ End HCOL_Language.
 (* We forced to use this instead of usual 'reflexivity' tactics, as currently there is no way in Coq to define 'Reflexive' class instance constraining 'ext_equiv' function arguments by HOperator class *)
 Ltac HOperator_reflexivity := eapply HOperator_functional_extensionality; reflexivity.
 
+Definition mult_by_nth
+           {n:nat}
+           (a: vector CarrierA n)
+  : FinNat n -> CarrierA -> CarrierA :=
+  fun jf x => mult x (Vnth a (proj2_sig jf)).
+
+
 Section IgnoreIndex_wrapper.
 
   (* Wrapper to swap index parameter for HPointwise kernel with given value. 1 stands for arity of 'f'.

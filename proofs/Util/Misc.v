@@ -351,4 +351,3 @@ Proof.
   unfold equiv, Sig_Equiv in E.
   auto.
 Qed.
-

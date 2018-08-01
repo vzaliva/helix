@@ -38,13 +38,15 @@ with VExpr: nat -> Type :=
      | VVar  {n:nat}: nat -> VExpr n
      | VConst {n:nat}: avector n -> VExpr n.
 
+Definition DSHUnCarrierA := AExpr.
+Definition DSHIUnCarrierA := AExpr.
 Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
 Inductive DSHOperator: nat -> nat -> Type :=
 | DSHeUnion {o: nat} (b: NExpr) (z: CarrierA): DSHOperator 1 o
 | DSHeT {i: nat} (b:NExpr): DSHOperator i 1
-| DSHPointwise {i: nat} (f: DSHIBinCarrierA): DSHOperator i i
+| DSHPointwise {i: nat} (f: DSHIUnCarrierA): DSHOperator i i
 | DSHBinOp {o} (f: DSHIBinCarrierA): DSHOperator (o+o) o
 | DSHInductor (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA): DSHOperator 1 1
 | DSHIUnion {i o: nat} (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o

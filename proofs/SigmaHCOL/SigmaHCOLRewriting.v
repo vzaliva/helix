@@ -4749,12 +4749,6 @@ and `ISumReduction_PointWise` *)
       apply terminate_GathHN_generic.
     Qed.
 
-    Definition mult_by_nth
-               {n:nat}
-               (a: vector CarrierA n)
-      : FinNat n -> CarrierA -> CarrierA :=
-      fun jf x => mult x (Vnth a (proj2_sig jf)).
-
     Global Instance mult_by_nth_proper
            {n:nat}
            (a: vector CarrierA n)

@@ -113,3 +113,5 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                          (GathH_jn_domain_bound (proj1_sig jf) 2 (proj2_sig jf))
                                                          (h_bound_second_half 1 4) (proj1_sig jf0)
                                                          (proj2_sig jf0)) ))) ))).
+
+
