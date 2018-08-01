@@ -79,5 +79,41 @@ Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
   | AZless a b => liftM2 Zless (evalAexp st a) (evalAexp st b)
   end.
 
-Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o): avector i -> option (avector o).
-Admitted.
+Require Import Coq.Arith.Compare_dec.
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.SigmaHCOL.Rtheta.
+
+Definition unLiftM_HOperator'
+           {fm}
+           {i o}
+           (op: svector fm i -> svector fm o)
+  : avector i -> avector o :=
+      densify fm ∘ op ∘ sparsify fm.
+
+
+Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i): option (avector o) :=
+  match op with
+  | @DSHeUnion o be z =>
+    fun x => b <- evalNexp Γ be ;;
+            match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
+            with
+            | left bc => fun _ => Some (unLiftM_HOperator' (eUnion' Monoid_RthetaFlags bc z) x)
+            | right _ => fun _ => None
+            end eq_refl
+  | @DSHeT i be =>
+    fun x => b <- evalNexp Γ be ;;
+            match lt_dec b i as l return (_ ≡ l → option (vector CarrierA 1))
+            with
+            | left bc => fun _ => Some (unLiftM_HOperator' (eT' Monoid_RthetaFlags bc) x)
+            | right _ => fun _ => None
+            end eq_refl
+  | @DSHPointwise i f => fun _ => None
+  | @DSHBinOp o f => fun _ => None
+  | @DSHInductor n f initial => fun _ => None
+  | @DSHIUnion i o n dot initial f => fun _ => None
+  | @DSHISumUnion i o n f => fun _ => None
+  | @DSHIReduction i o n dot initial f => fun _ => None
+  | @DSHCompose i1 o2 o3 f g => fun _ => None
+  | @DSHHTSUMUnion i o dot f g => fun _ => None
+  end x.
