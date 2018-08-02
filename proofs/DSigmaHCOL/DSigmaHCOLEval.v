@@ -99,6 +99,16 @@ Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
 Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
   vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
 
+Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
+           (i:nat) (a b:CarrierA): option CarrierA :=
+  evalAexp (DSHnatVar i :: DSHCarrierAVar a :: DSHCarrierAVar b :: Γ) f.
+
+Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avector (o+o)) : option (avector o) :=
+  let (a,b) := vector2pair o x in
+  vsequence (Vbuild (fun i (ip:i<o) =>
+                       evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip)
+            )).
+
 Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i): option (avector o) :=
   match op with
   | @DSHeUnion o be z =>
@@ -116,7 +126,7 @@ Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avec
             | right _ => fun _ => None
             end eq_refl
   | @DSHPointwise i f => fun x => evalDSHPointwise Γ f x
-  | @DSHBinOp o f => fun _ => None
+  | @DSHBinOp o f => fun x => evalDSHBinOp Γ f x
   | @DSHInductor n f initial => fun _ => None
   | @DSHIUnion i o n dot initial f => fun _ => None
   | @DSHISumUnion i o n f => fun _ => None
