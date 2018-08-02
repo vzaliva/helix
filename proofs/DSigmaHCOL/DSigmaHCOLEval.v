@@ -96,12 +96,16 @@ Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
   evalAexp (DSHnatVar i :: DSHCarrierAVar a :: Γ) f.
 
-Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
-  vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
-
 Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
            (i:nat) (a b:CarrierA): option CarrierA :=
   evalAexp (DSHnatVar i :: DSHCarrierAVar a :: DSHCarrierAVar b :: Γ) f.
+
+Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
+           (a b:CarrierA): option CarrierA :=
+  evalAexp (DSHCarrierAVar a :: DSHCarrierAVar b :: Γ) f.
+
+Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
+  vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
 
 Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avector (o+o)) : option (avector o) :=
   let (a,b) := vector2pair o x in
@@ -109,25 +113,35 @@ Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avecto
                        evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip)
             )).
 
+Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (x:CarrierA): option CarrierA :=
+  match n with
+  | O => ret initial
+  | S p => r <- evalDSHInductor Γ p f initial x ;;
+            evalBinCarrierA Γ f r x
+  end.
+
 Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i): option (avector o) :=
   match op with
   | @DSHeUnion o be z =>
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
             with
-            | left bc => fun _ => Some (unLiftM_HOperator' (eUnion' Monoid_RthetaFlags bc z) x)
+            | left bc => fun _ => ret (unLiftM_HOperator' (eUnion' Monoid_RthetaFlags bc z) x)
             | right _ => fun _ => None
             end eq_refl
   | @DSHeT i be =>
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b i as l return (_ ≡ l → option (vector CarrierA 1))
             with
-            | left bc => fun _ => Some (unLiftM_HOperator' (eT' Monoid_RthetaFlags bc) x)
+            | left bc => fun _ => ret (unLiftM_HOperator' (eT' Monoid_RthetaFlags bc) x)
             | right _ => fun _ => None
             end eq_refl
   | @DSHPointwise i f => fun x => evalDSHPointwise Γ f x
   | @DSHBinOp o f => fun x => evalDSHBinOp Γ f x
-  | @DSHInductor n f initial => fun _ => None
+  | @DSHInductor ne f initial => fun x =>
+                                  n <- evalNexp Γ ne ;;
+                                    r <- evalDSHInductor Γ n f initial (Vhead x) ;;
+                                    ret (Lst r)
   | @DSHIUnion i o n dot initial f => fun _ => None
   | @DSHISumUnion i o n f => fun _ => None
   | @DSHIReduction i o n dot initial f => fun _ => None
