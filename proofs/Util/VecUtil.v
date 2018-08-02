@@ -1329,3 +1329,21 @@ Ltac Vnth_eq_index_to_val_eq :=
     apply Vnth_arg_eq;
     clear rc lc HeqQ
   end.
+
+
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+
+Fixpoint vsequence {n:nat} {A:Type}
+         {m} {M:Monad m}
+         (mv: vector (m A) n): m (vector A n)
+  := match mv with
+     | Vnil => ret []
+     | Vcons x xs =>
+       x' <- x ;;
+          xs' <- (vsequence xs) ;;
+          ret (Vcons x' xs')
+     end.

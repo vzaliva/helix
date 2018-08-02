@@ -2,6 +2,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Arith.Peano_dec.
 Require Import CoLoR.Util.Vector.VecUtil.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.VecUtil.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 
@@ -91,6 +92,12 @@ Definition unLiftM_HOperator'
   : avector i -> avector o :=
       densify fm ∘ op ∘ sparsify fm.
 
+Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
+           (i:nat) (a:CarrierA): option CarrierA :=
+  evalAexp (DSHnatVar i :: DSHCarrierAVar a :: Γ) f.
+
+Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
+  vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
 
 Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i): option (avector o) :=
   match op with
@@ -108,7 +115,7 @@ Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avec
             | left bc => fun _ => Some (unLiftM_HOperator' (eT' Monoid_RthetaFlags bc) x)
             | right _ => fun _ => None
             end eq_refl
-  | @DSHPointwise i f => fun _ => None
+  | @DSHPointwise i f => fun x => evalDSHPointwise Γ f x
   | @DSHBinOp o f => fun _ => None
   | @DSHInductor n f initial => fun _ => None
   | @DSHIUnion i o n dot initial f => fun _ => None
