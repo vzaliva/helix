@@ -39,10 +39,10 @@ Local Open Scope monad_scope.
 Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
   match e with
   | NVar i => v <- (nth_error st i) ;;
-               (match v with
-                | DSHnatVar x => Some x
-                | _ => None
-                end)
+                (match v with
+                 | DSHnatVar x => Some x
+                 | _ => None
+                 end)
   | NConst c => Some c
   | NDiv a b => liftM2 Nat.div (evalNexp st a) (evalNexp st b)
   | NMod a b => liftM2 Nat.modulo (evalNexp st a) (evalNexp st b)
@@ -90,7 +90,7 @@ Definition unLiftM_HOperator'
            {i o}
            (op: svector fm i -> svector fm o)
   : avector i -> avector o :=
-      densify fm ∘ op ∘ sparsify fm.
+  densify fm ∘ op ∘ sparsify fm.
 
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
@@ -110,8 +110,7 @@ Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:av
 Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avector (o+o)) : option (avector o) :=
   let (a,b) := vector2pair o x in
   vsequence (Vbuild (fun i (ip:i<o) =>
-                       evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip)
-            )).
+                       evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip))).
 
 Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (x:CarrierA): option CarrierA :=
   match n with
@@ -120,7 +119,7 @@ Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial:
             evalBinCarrierA Γ f r x
   end.
 
-Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i): option (avector o) :=
+Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i) {struct op}: option (avector o) :=
   match op with
   | @DSHeUnion o be z =>
     fun x => b <- evalNexp Γ be ;;
@@ -142,9 +141,43 @@ Definition evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avec
                                   n <- evalNexp Γ ne ;;
                                     r <- evalDSHInductor Γ n f initial (Vhead x) ;;
                                     ret (Lst r)
-  | @DSHIUnion i o n dot initial f => fun _ => None
-  | @DSHISumUnion i o n f => fun _ => None
-  | @DSHIReduction i o n dot initial f => fun _ => None
-  | @DSHCompose i1 o2 o3 f g => fun _ => None
-  | @DSHHTSUMUnion i o dot f g => fun _ => None
+  | @DSHIUnion i o n dot initial body =>
+    fun (x:avector i) =>
+      nat_rect _
+               (Some (Vconst initial o))
+               (fun j (t:option (avector o)) =>
+                  t' <- t ;;
+                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
+                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
+               n
+  | @DSHISumUnion i o n body =>
+    fun (x:avector i) =>
+      let dot := APlus (AVar 1) (AVar 0) in
+      let initial := zero in
+      nat_rect _
+               (Some (Vconst initial o))
+               (fun j (t:option (avector o)) =>
+                  t' <- t ;;
+                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
+                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
+               n
+  | @DSHIReduction i o n dot initial body =>
+    (* Actually same as IUnion *)
+    fun (x:avector i) =>
+      let dot := APlus (AVar 1) (AVar 0) in
+      let initial := zero in
+      nat_rect _
+               (Some (Vconst initial o))
+               (fun j (t:option (avector o)) =>
+                  t' <- t ;;
+                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
+                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
+               n
+  | @DSHCompose i1 o2 o3 f g =>
+    fun v => evalDSHOperator Γ g v >>= evalDSHOperator Γ f
+  | @DSHHTSUMUnion i o dot f g =>
+    fun v =>
+      a <- evalDSHOperator Γ f v ;;
+        b <- evalDSHOperator Γ g v ;;
+        vsequence (Vmap2 (evalBinCarrierA Γ dot) a b)
   end x.
