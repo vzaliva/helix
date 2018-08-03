@@ -112,12 +112,11 @@ Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avecto
   vsequence (Vbuild (fun i (ip:i<o) =>
                        evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip))).
 
-Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (x:CarrierA): option CarrierA :=
-  match n with
-  | O => ret initial
-  | S p => r <- evalDSHInductor Γ p f initial x ;;
-            evalBinCarrierA Γ f r x
-  end.
+Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
+  nat_rect _
+           (Some initial)
+           (fun _ (x:option CarrierA) => x' <- x ;; evalBinCarrierA Γ f x' v)
+           n.
 
 Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i) {struct op}: option (avector o) :=
   match op with
