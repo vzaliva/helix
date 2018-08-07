@@ -289,10 +289,10 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
     tmFail ("Usupported SHCOL syntax" ++ (Checker.string_of_term t))
   end.
 
-Fixpoint build_forall g s:=
-  match g with
-  | [] => s
-  | (n,t)::gs => tProd n t (build_forall gs s)
+Fixpoint build_forall p conc :=
+  match p with
+  | [] => conc
+  | (n,t)::ps => tProd n t (build_forall ps conc)
   end.
 
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
@@ -300,7 +300,7 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []])
   | (n,t)::gs =>
     dt <- toDSHCOLType (tmReturn t) ;;
-       let i := length g in
+       let i := length gs in
        dv <- (match dt with
              | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
              | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
@@ -312,10 +312,10 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
           tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
   end.
 
-Fixpoint rev_nat_seq_to_1 (len: nat) : list nat :=
+Fixpoint rev_nat_seq (len: nat) : list nat :=
   match len with
   | O => []
-  | S len' => List.cons len (rev_nat_seq_to_1 len')
+  | S len' => List.cons len' (rev_nat_seq len')
   end.
 
 Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
@@ -325,58 +325,39 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
                tmUnfoldList xs u
   end.
 
+(* Heterogenous relation of semantic equivalence of SHCOL and DSHCOL operators *)
+Open Scope list_scope.
+Definition SHCOL_DSHCOL_equiv {i o:nat} {fm} (σ: evalContext) (s: @SHOperator fm i o) (d: DSHOperator i o) : Prop
+  := forall (Γ: evalContext) (x:svector fm i),
+    option_Equiv
+      (Some (densify fm (op fm s x)))
+      (evalDSHOperator (Γ ++ σ) d (densify fm x)).
+
+
 Require Import Coq.Program.Basics. (* to make sure `const` is unfolded *)
 Require Import MathClasses.interfaces.canonical_names.
 Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reifyResult :=
-  a_expr <- @tmQuote A expr ;;
-         eexpr0 <- @tmEval hnf A expr  ;;
+  a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
          eexpr <- tmUnfoldList unfold_names eexpr0 ;;
                ast <- @tmQuote A eexpr ;;
                d' <- compileSHCOL [] ast ;;
                match d' with
                | (globals, a_fm, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
-                 a_i <- tmQuote i ;;
-                     a_o <- tmQuote o ;;
+                 a_i <- tmQuote i ;; a_o <- tmQuote o ;;
                      a_globals <- build_dsh_globals globals ;;
-                     x <- tmFreshName "x" ;;
-                     let x_type := tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tApp (tConst "Helix.SigmaHCOL.Rtheta.Rtheta'" []) [a_fm]; a_i] in
-                     let global_idx := List.map tRel (rev_nat_seq_to_1 (length globals)) in
-                     (* Some (densify fm (op fm (dynwin_SHCOL1 a) x)) *)
-                     let lhs := tApp
-                                  (tConstruct {| inductive_mind := "Coq.Init.Datatypes.option"; inductive_ind := 0 |} 0 [])
-                                  [tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} [])
-                                        [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o];
-                                     tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-                                          [a_fm; a_o;
-                                             tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.op" [])
-                                                  [a_fm;
-                                                     a_i;
-                                                     a_o;
-                                                     tApp a_expr global_idx;
-                                                     tRel 0]]] in
-                     (* evalDSHOperator [] dshcol (densify fm x) *)
-                     dshcol' <- tmEval cbv dshcol ;;
-                             a_dshcol <- tmQuote dshcol' ;;
-                             let rhs := tApp (tConst "Helix.DSigmaHCOL.DSigmaHCOLEval.evalDSHOperator" [])
-                                             [a_i; a_o; a_globals ; a_dshcol;
-                                                (tApp (tConst "Helix.SigmaHCOL.SVector.densify" [])
-                                                      [a_fm; a_i; tRel 0])
-                                             ] in
+                     let global_idx := List.map tRel (rev_nat_seq (length globals)) in
+                     (* dynwin_SHCOL1 a *)
+                     let a_shcol := tApp a_expr global_idx in
+                     dshcol' <- tmEval cbv dshcol ;; a_dshcol <- tmQuote dshcol' ;;
                              let lemma_concl :=
-                                 tProd (nNamed x) x_type
-                                       (tApp (tConst "Helix.Util.OptionSetoid.option_Equiv" [])
-                                             [
-                                               (tApp (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} []) [tConst "Helix.HCOL.CarrierType.CarrierA" []; a_o]);
-                                                 (tApp (tConst "Helix.Util.VecSetoid.vec_Equiv" [])
-                                                       [tConst "Helix.HCOL.CarrierType.CarrierA" [];
-                                                          tConst "Helix.HCOL.CarrierType.CarrierAe" [];
-                                                          a_o]);
-                                                 lhs;
-                                                 rhs
-                                       ]) in
+                                 (tApp (tConst "Top.SHCOL_DSHCOL_equiv" [])
+                                       [a_i; a_o; a_fm; a_globals;
+                                          a_shcol;
+                                          a_dshcol])
+                             in
                              let lemma_ast := build_forall globals lemma_concl in
-
+                             tmPrint lemma_ast ;;
                              (tmBind (tmUnquoteTyped Prop lemma_ast)
                                      (fun lemma_body => tmLemma lemma_name lemma_body
                                                              ;;
@@ -385,11 +366,14 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                                                                          rei_op := dshcol |}))
                end.
 
+
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
 Next Obligation.
-  intros a x.
+  intros a.
+  (* unfold SHCOL_DSHCOL_equiv. intros Γ x. *)
+
 
 Qed.
