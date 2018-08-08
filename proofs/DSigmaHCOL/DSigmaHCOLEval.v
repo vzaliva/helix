@@ -69,7 +69,7 @@ Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
   | AMinus a b =>
     a' <- (evalAexp st a) ;;
        b' <- (evalAexp st b) ;;
-       ret (plus a' (negate b'))
+       ret (sub a' b')
   | @ANth n v i =>
     v' <- (evalVexp st v) ;;
        i' <- (evalNexp st i) ;;

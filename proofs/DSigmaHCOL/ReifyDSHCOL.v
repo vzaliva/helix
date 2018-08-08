@@ -367,6 +367,7 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
 
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.Util.FinNat.
 
 Lemma SHCompose_DSHCompose
       {i1 o2 o3} {fm}
@@ -394,11 +395,21 @@ Lemma SHCOL_DSHCOL_equiv_SafeCast
 Proof.
 Admitted.
 
+Lemma SHCOL_DSHCOL_equiv_UnSafeCast
+      {i o: nat}
+      (Γ: evalContext)
+      (s: @SHOperator Monoid_RthetaFlags i o)
+      (d: DSHOperator i o):
+  SHCOL_DSHCOL_equiv Γ s d ->
+  SHCOL_DSHCOL_equiv Γ (TSigmaHCOL.UnSafeCast s) d.
+Proof.
+Admitted.
+
 Lemma SHBinOp_DSHBinOp
       {o: nat}
       {fm}
       (Γ: evalContext)
-      (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+      (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       (df: DSHIBinCarrierA)
   :
@@ -470,10 +481,71 @@ Lemma IReduction_DSHIReduction
 Proof.
 Admitted.
 
+Lemma SHPointwise_DSHPointwise
+      {fm}
+      {n: nat}
+      (f: FinNat n -> CarrierA -> CarrierA)
+      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      (df: DSHIUnCarrierA)
+      (Γ: evalContext)
+  :
+    (forall j a, Some (f j a) = evalIUnCarrierA Γ df (proj1_sig j) a) ->
+           SHCOL_DSHCOL_equiv Γ
+                              (@SHPointwise fm n f pF)
+                              (DSHPointwise df).
+Proof.
+Admitted.
+
+Lemma SHInductor_DSHInductor
+      {fm}
+      (n:nat)
+      (f: CarrierA -> CarrierA -> CarrierA)
+      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      (initial: CarrierA)
+      (dn:NExpr)
+      (df: DSHBinCarrierA)
+      (Γ: evalContext)
+  :
+    Some n = evalNexp Γ dn ->
+    (forall a b, Some (f a b) = evalBinCarrierA Γ df a b) ->
+    SHCOL_DSHCOL_equiv Γ
+                       (@SHInductor fm n f pF initial)
+                       (DSHInductor dn df initial).
+Proof.
+Admitted.
+
+Lemma eT_DSHeT
+      {fm}
+      {i b:nat}
+      (bc: b < i)
+      (db:NExpr)
+      (Γ: evalContext)
+  :
+    Some b = evalNexp Γ db ->
+    SHCOL_DSHCOL_equiv Γ
+                       (@eT fm i b bc)
+                       (@DSHeT i (db:NExpr)).
+Proof.
+Admitted.
+
+Lemma ISumUnion_DSHISumUnion
+      {i o n}
+      (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+      (dop_family: DSHOperator i o)
+      (Γ: evalContext)
+  :
+    SHOperatorFamily_DSHCOL_equiv Γ op_family dop_family ->
+    SHCOL_DSHCOL_equiv Γ
+                       (@ISumUnion i o n op_family)
+                       (@DSHISumUnion i o n dop_family).
+Proof.
+Admitted.
+
+Require Import Helix.Tactics.HelixTactics.
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 Obligation Tactic := idtac.
-Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
+Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL").
 Next Obligation.
   intros a.
   unfold dynwin_SHCOL1.
@@ -493,9 +565,42 @@ Next Obligation.
   intros.
   apply SHCompose_DSHCompose.
   apply SHCompose_DSHCompose.
-
-
-  (* unfold SHCOL_DSHCOL_equiv. intros Γ x. *)
-
-
+  apply SHPointwise_DSHPointwise.
+  {
+    intros.
+    unfold Fin1SwapIndex, const, mult_by_nth.
+    destruct j, j0.
+    unfold evalIUnCarrierA.
+    simpl.
+    repeat break_match; crush.
+    f_equiv.
+    f_equiv.
+    apply Vnth_eq. reflexivity.
+  }
+  apply SHInductor_DSHInductor.
+  reflexivity.
+  reflexivity.
+  apply eT_DSHeT.
+  reflexivity.
+  apply SHCompose_DSHCompose.
+  apply eUnion_DSHeUnion.
+  reflexivity.
+  apply SHCOL_DSHCOL_equiv_SafeCast.
+  apply IReduction_DSHIReduction.
+  reflexivity.
+  unfold SHOperatorFamily_DSHCOL_equiv.
+  intros.
+  apply SHCompose_DSHCompose.
+  apply SHBinOp_DSHBinOp.
+  reflexivity.
+  apply SHCOL_DSHCOL_equiv_UnSafeCast.
+  apply ISumUnion_DSHISumUnion.
+  unfold SHOperatorFamily_DSHCOL_equiv.
+  intros.
+  apply SHCompose_DSHCompose.
+  apply eUnion_DSHeUnion.
+  reflexivity.
+  apply eT_DSHeT.
+  reflexivity.
+  reflexivity.
 Qed.
