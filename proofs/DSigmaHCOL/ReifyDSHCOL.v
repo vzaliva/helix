@@ -6,6 +6,7 @@ Require Import Template.All.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.FinNat.
+Require Import Helix.Util.VecUtil.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
@@ -369,6 +370,26 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                end.
 
 
+
+Global Instance evalContext_equiv: Equiv evalContext := List.Forall2 equiv.
+
+Global Instance Forall2_Reflexive
+       {A: Type} {R: relation A} `{RR: Reflexive A R}:
+  Reflexive (Forall2 R).
+Proof.
+  intros x.
+  induction x; constructor; auto.
+Qed.
+
+Global Instance evalAexp_context_proper:
+  Proper ((=) ==> (eq) ==> (=)) evalAexp.
+Proof.
+  intros c1 c2 Ec e1 e2 Ee.
+  rewrite Ee. clear Ee e1. rename e2 into e.
+  destruct e.
+  simpl.
+Admitted.
+
 Global Instance evalDSHOperator_arg_proper
        {i o} (Γ: evalContext) (op: DSHOperator i o):
   Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
@@ -390,10 +411,32 @@ Proof.
   -
     simpl.
     unfold evalDSHPointwise.
-    repeat break_match; auto.
+    apply vsequence_option_proper.
     f_equiv.
-    rewrite E.
-    reflexivity.
+    intros j jc.
+    unfold evalIUnCarrierA.
+    apply evalAexp_context_proper.
+    *
+      unfold equiv, evalContext_equiv.
+      apply Forall2_cons.
+      --
+        unfold equiv, DSHVar_Equiv.
+        simpl.
+        constructor.
+        apply Vnth_arg_equiv.
+        apply E.
+      --
+        reflexivity.
+    *
+      reflexivity.
+  -
+    simpl.
+    unfold evalDSHBinOp.
+    break_let.
+    break_let.
+    apply vsequence_option_proper.
+    f_equiv.
+    intros j jc.
 Admitted.
 
 Lemma SHCompose_DSHCompose
