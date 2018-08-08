@@ -668,9 +668,46 @@ Proof.
   reflexivity.
 Qed.
 
-(* "sparse" matrix 'm' rows by 'n' columns *)
-Notation smatrix m n := (vector (svector m) n) (only parsing).
+(* For the lack of better place ... *)
 
+Require Import ExtLib.Data.Monads.OptionMonad.
+Require Import Helix.Util.OptionSetoid.
+
+Global Instance vsequence_option_proper
+       {n:nat} {A:Type} `{Ae: Equiv A} `{Aeq: Equivalence A Ae}:
+  Proper ((=) ==> (=)) (@vsequence n A option Monad_option).
+Proof.
+  intros x y E.
+  induction n.
+  -
+    VOtac.
+    simpl.
+    f_equiv.
+  -
+    dep_destruct x.
+    dep_destruct y.
+    simpl.
+    inversion E.
+    repeat break_match; try some_none_contradiction; auto.
+    +
+      f_equiv.
+      apply Vcons_equiv_intro.
+      apply Some_inj_equiv, H.
+      specialize (IHn x0 x1 H0).
+      rewrite Heqo0 in IHn.
+      rewrite Heqo2 in IHn.
+      apply Some_inj_equiv, IHn.
+    +
+      specialize (IHn x0 x1 H0).
+      rewrite Heqo0 in IHn.
+      rewrite Heqo2 in IHn.
+      some_none_contradiction.
+    +
+      specialize (IHn x0 x1 H0).
+      rewrite Heqo0 in IHn.
+      rewrite Heqo2 in IHn.
+      some_none_contradiction.
+Qed.
 
 Close Scope vector_scope.
 Close Scope nat_scope.

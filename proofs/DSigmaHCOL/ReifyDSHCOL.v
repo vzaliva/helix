@@ -1,15 +1,22 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Program.Basics.
 Require Import Template.All.
 
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.FinNat.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.SigmaHCOL.Rtheta.
-Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.Tactics.HelixTactics.
+
+Require Import MathClasses.interfaces.canonical_names.
 
 Import MonadNotation.
 Require Import List. Import ListNotations.
@@ -329,12 +336,9 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 Open Scope list_scope.
 Definition SHCOL_DSHCOL_equiv {i o:nat} {fm} (σ: evalContext) (s: @SHOperator fm i o) (d: DSHOperator i o) : Prop
   := forall (Γ: evalContext) (x:svector fm i),
-    option_Equiv
-      (Some (densify fm (op fm s x)))
-      (evalDSHOperator (σ ++ Γ) d (densify fm x)).
+    (Some (densify fm (op fm s x))) = (evalDSHOperator (σ ++ Γ) d (densify fm x)).
 
-Require Import Coq.Program.Basics. (* to make sure `const` is unfolded *)
-Require Import MathClasses.interfaces.canonical_names.
+Require Import Coq.Program.Basics. (* to unfold `const` *)
 Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reifyResult :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
@@ -365,25 +369,65 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                end.
 
 
-Require Import Helix.SigmaHCOL.TSigmaHCOL.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.Util.FinNat.
+Global Instance evalDSHOperator_arg_proper
+       {i o} (Γ: evalContext) (op: DSHOperator i o):
+  Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
+Proof.
+  intros x y E.
+  induction op.
+  -
+    simpl.
+    repeat break_match; auto.
+    f_equiv.
+    rewrite E.
+    reflexivity.
+  -
+    simpl.
+    repeat break_match; auto.
+    f_equiv.
+    rewrite E.
+    reflexivity.
+  -
+    simpl.
+    unfold evalDSHPointwise.
+    repeat break_match; auto.
+    f_equiv.
+    rewrite E.
+    reflexivity.
+Admitted.
 
 Lemma SHCompose_DSHCompose
       {i1 o2 o3} {fm}
-      (Γ: evalContext)
+      (σ: evalContext)
       (f: @SHOperator fm o2 o3)
       (g: @SHOperator fm i1 o2)
       (df: DSHOperator o2 o3)
       (dg: DSHOperator i1 o2)
   :
-    SHCOL_DSHCOL_equiv Γ f df ->
-    SHCOL_DSHCOL_equiv Γ g dg ->
-    SHCOL_DSHCOL_equiv Γ
+    SHCOL_DSHCOL_equiv σ f df ->
+    SHCOL_DSHCOL_equiv σ g dg ->
+    SHCOL_DSHCOL_equiv σ
                        (SHCompose fm f g)
                        (DSHCompose df dg).
 Proof.
-Admitted.
+  intros Ef Eg.
+  intros Γ x.
+  simpl.
+  break_match.
+  -
+    unfold compose.
+    specialize (Eg Γ x).
+    specialize (Ef Γ (op fm g x)).
+    rewrite Ef.
+    apply evalDSHOperator_arg_proper.
+    apply Some_inj_equiv.
+    rewrite <- Heqo.
+    apply Eg.
+  -
+    specialize (Eg Γ x).
+    rewrite Heqo in Eg.
+    some_none_contradiction.
+Qed.
 
 Lemma SHCOL_DSHCOL_equiv_SafeCast
       {i o: nat}
@@ -541,7 +585,6 @@ Lemma ISumUnion_DSHISumUnion
 Proof.
 Admitted.
 
-Require Import Helix.Tactics.HelixTactics.
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 Obligation Tactic := idtac.

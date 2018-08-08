@@ -92,6 +92,19 @@ Definition unLiftM_HOperator'
   : avector i -> avector o :=
   densify fm ∘ op ∘ sparsify fm.
 
+Global Instance unLiftM_HOperator'_proper
+       {fm} {i o} :
+  Proper (
+      ((=) ==> (=)) ==>  (=) ==> (=)) (@unLiftM_HOperator' fm i o).
+Proof.
+  intros f g Efg x y E.
+  unfold unLiftM_HOperator', compose.
+  f_equiv.
+  apply Efg.
+  f_equiv.
+  apply E.
+Qed.
+
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVar a :: DSHnatVar i :: Γ) f.
