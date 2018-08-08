@@ -94,15 +94,15 @@ Definition unLiftM_HOperator'
 
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
-  evalAexp (DSHnatVar i :: DSHCarrierAVar a :: Γ) f.
+  evalAexp (DSHCarrierAVar a :: DSHnatVar i :: Γ) f.
 
 Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
            (i:nat) (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHnatVar i :: DSHCarrierAVar a :: DSHCarrierAVar b :: Γ) f.
+  evalAexp (DSHCarrierAVar b :: DSHCarrierAVar a :: DSHnatVar i :: Γ) f.
 
 Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
            (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVar a :: DSHCarrierAVar b :: Γ) f.
+  evalAexp (DSHCarrierAVar b :: DSHCarrierAVar a :: Γ) f.
 
 Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
   vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).

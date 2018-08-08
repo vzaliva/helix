@@ -331,8 +331,7 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {fm} (σ: evalContext) (s: @SHOperator f
   := forall (Γ: evalContext) (x:svector fm i),
     option_Equiv
       (Some (densify fm (op fm s x)))
-      (evalDSHOperator (Γ ++ σ) d (densify fm x)).
-
+      (evalDSHOperator (σ ++ Γ) d (densify fm x)).
 
 Require Import Coq.Program.Basics. (* to make sure `const` is unfolded *)
 Require Import MathClasses.interfaces.canonical_names.
@@ -357,7 +356,6 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                                           a_dshcol])
                              in
                              let lemma_ast := build_forall globals lemma_concl in
-                             tmPrint lemma_ast ;;
                              (tmBind (tmUnquoteTyped Prop lemma_ast)
                                      (fun lemma_body => tmLemma lemma_name lemma_body
                                                              ;;
@@ -367,12 +365,68 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                end.
 
 
+Require Import Helix.SigmaHCOL.TSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+
+Lemma SHCompose_DSHCompose
+      {i1 o2 o3} {fm}
+      (Γ: evalContext)
+      (f: @SHOperator fm o2 o3)
+      (g: @SHOperator fm i1 o2)
+      (df: DSHOperator o2 o3)
+      (dg: DSHOperator i1 o2)
+  :
+    SHCOL_DSHCOL_equiv Γ f df ->
+    SHCOL_DSHCOL_equiv Γ g dg ->
+    SHCOL_DSHCOL_equiv Γ
+                       (SHCompose fm f g)
+                       (DSHCompose df dg).
+Proof.
+Admitted.
+
+Lemma SHCOL_DSHCOL_equiv_SafeCast
+      {i o: nat}
+      (Γ: evalContext)
+      (s: @SHOperator Monoid_RthetaSafeFlags i o)
+      (d: DSHOperator i o):
+  SHCOL_DSHCOL_equiv Γ s d ->
+  SHCOL_DSHCOL_equiv Γ (TSigmaHCOL.SafeCast s) d.
+Proof.
+Admitted.
+
+Lemma SHBinOp_DSHBinOp
+      {o: nat}
+      {fm}
+      (Γ: evalContext)
+      (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+      (df: DSHIBinCarrierA)
+  :
+    (forall j a b, Some (f j a b) = evalIBinCarrierA
+                                 Γ
+                                 df (proj1_sig j) a b) ->
+    @SHCOL_DSHCOL_equiv (o+o) o fm Γ
+                        (@SHBinOp fm o f pF)
+                        (DSHBinOp df).
+Proof.
+Admitted.
+
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 Obligation Tactic := idtac.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "bar").
 Next Obligation.
   intros a.
+  unfold dynwin_SHCOL1.
+
+  apply SHCompose_DSHCompose.
+  apply SHCOL_DSHCOL_equiv_SafeCast.
+  apply SHBinOp_DSHBinOp.
+  reflexivity.
+
+
+
+
   (* unfold SHCOL_DSHCOL_equiv. intros Γ x. *)
 
 
