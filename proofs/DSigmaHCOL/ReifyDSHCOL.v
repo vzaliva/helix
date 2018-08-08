@@ -411,6 +411,65 @@ Lemma SHBinOp_DSHBinOp
 Proof.
 Admitted.
 
+Lemma HTSUMUnion_DSHHTSUMUnion
+      {i o: nat}
+      {fm}
+      (dot: CarrierA -> CarrierA -> CarrierA)
+      `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+      (ddot: DSHBinCarrierA)
+      (Γ: evalContext)
+      (f g: @SHOperator fm i o)
+      (df dg: DSHOperator i o)
+  :
+    SHCOL_DSHCOL_equiv Γ f df ->
+    SHCOL_DSHCOL_equiv Γ g dg ->
+    (forall a b, Some (dot a b) = evalBinCarrierA Γ ddot a b) ->
+    SHCOL_DSHCOL_equiv Γ
+                       (@HTSUMUnion fm i o dot dot_mor f g)
+                       (DSHHTSUMUnion ddot df dg).
+Proof.
+Admitted.
+
+Lemma eUnion_DSHeUnion
+      {fm}
+      (Γ: evalContext)
+      {o b:nat}
+      (bc: b < o)
+      (z: CarrierA)
+      (db: NExpr)
+  :
+    Some b = evalNexp Γ db ->
+    SHCOL_DSHCOL_equiv Γ
+                       (eUnion fm bc z)
+                       (DSHeUnion db z).
+Proof.
+Admitted.
+
+Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
+           (s: @SHOperatorFamily fm i o n)
+           (d: DSHOperator i o) : Prop :=
+  forall j, SHCOL_DSHCOL_equiv (DSHnatVar (proj1_sig j) :: Γ)
+                          (s j)
+                          d.
+
+Lemma IReduction_DSHIReduction
+      {i o n}
+      (dot: CarrierA -> CarrierA -> CarrierA)
+      `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+      (initial: CarrierA)
+      (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+      (ddot: DSHBinCarrierA)
+      (dop_family: DSHOperator i o)
+      (Γ: evalContext)
+  :
+    (forall a b, Some (dot a b) = evalBinCarrierA Γ ddot a b) ->
+    SHOperatorFamily_DSHCOL_equiv Γ op_family dop_family ->
+    SHCOL_DSHCOL_equiv Γ
+                       (@IReduction i o n dot pdot initial op_family)
+                       (@DSHIReduction i o n ddot initial dop_family).
+Proof.
+Admitted.
+
 (* for testing *)
 Require Import Helix.DynWin.DynWin.
 Obligation Tactic := idtac.
@@ -423,8 +482,17 @@ Next Obligation.
   apply SHCOL_DSHCOL_equiv_SafeCast.
   apply SHBinOp_DSHBinOp.
   reflexivity.
-
-
+  apply HTSUMUnion_DSHHTSUMUnion.
+  apply SHCompose_DSHCompose.
+  apply eUnion_DSHeUnion.
+  reflexivity.
+  apply SHCOL_DSHCOL_equiv_SafeCast.
+  apply IReduction_DSHIReduction.
+  reflexivity.
+  unfold SHOperatorFamily_DSHCOL_equiv.
+  intros.
+  apply SHCompose_DSHCompose.
+  apply SHCompose_DSHCompose.
 
 
   (* unfold SHCOL_DSHCOL_equiv. intros Γ x. *)
