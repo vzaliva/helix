@@ -4,6 +4,7 @@ Require Import Coq.Program.Basics.
 Require Import Template.All.
 
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecUtil.
@@ -14,13 +15,13 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
 
+
 Import MonadNotation.
-Require Import List. Import ListNotations.
+Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
 
 Inductive DSHCOLType :=
@@ -371,25 +372,56 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
 
 
 
-Global Instance evalContext_equiv: Equiv evalContext := List.Forall2 equiv.
-
-Global Instance Forall2_Reflexive
-       {A: Type} {R: relation A} `{RR: Reflexive A R}:
-  Reflexive (Forall2 R).
-Proof.
-  intros x.
-  induction x; constructor; auto.
-Qed.
-
+(* TODO: move *)
 Global Instance evalAexp_context_proper:
   Proper ((=) ==> (eq) ==> (=)) evalAexp.
 Proof.
+
+  Local Ltac proper_eval2 IHe1 IHe2 :=
+    simpl;
+    repeat break_match;subst; try reflexivity; try some_none_contradiction;
+    f_equiv;
+    rewrite <- Some_inj_equiv in IHe1;
+    rewrite <- Some_inj_equiv in IHe2;
+    rewrite IHe1, IHe2;
+    reflexivity.
+
   intros c1 c2 Ec e1 e2 Ee.
   rewrite Ee. clear Ee e1. rename e2 into e.
-  destruct e.
-  simpl.
+  induction e; simpl.
+  - assert(E: nth_error c1 n = nth_error c2 n).
+    {
+      apply nth_error_proper.
+      apply Ec.
+      reflexivity.
+    }
+    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
+    subst.
+    rewrite H1.
+    reflexivity.
+  - reflexivity.
+  -
+    (* Depnds on N and V exprs!
+    simpl; repeat break_match;subst; try reflexivity.
+    +
+      f_equiv.
+      apply Vnth_equiv.
+     *)
+    admit.
+  - repeat break_match;subst; try reflexivity; try some_none_contradiction.
+    f_equiv.
+    rewrite <- Some_inj_equiv in IHe.
+    rewrite IHe.
+    reflexivity.
+  - proper_eval2 IHe1 IHe2.
+  - proper_eval2 IHe1 IHe2.
+  - proper_eval2 IHe1 IHe2.
+  - proper_eval2 IHe1 IHe2.
+  - proper_eval2 IHe1 IHe2.
+  - proper_eval2 IHe1 IHe2.
 Admitted.
 
+(* TODO: move *)
 Global Instance evalDSHOperator_arg_proper
        {i o} (Γ: evalContext) (op: DSHOperator i o):
   Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
