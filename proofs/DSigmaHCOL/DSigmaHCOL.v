@@ -172,11 +172,68 @@ Inductive AExpr_equiv: AExpr -> AExpr -> Prop :=
     VExpr_equiv v1 v2 ->
     AExpr_equiv (ANth n v1 n1)  (ANth n v2 n2)
 | AAbs_equiv  {a b}: AExpr_equiv a b -> AExpr_equiv (AAbs a)  (AAbs b)
-| APlus_equiv {a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (APlus a b) (APlus a' b')
-| AMinus_equiv{a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (AMinus a b) (AMinus a' b')
-| AMult_equiv {a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (AMult a b) ( AMult a' b')
-| AMin_equiv  {a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (AMin a b) (  AMin a' b')
-| AMax_equiv  {a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (AMax a b) (  AMax a' b')
-| AZless_equiv {a a' b b'}: AExpr_equiv a a -> AExpr_equiv b b' -> AExpr_equiv (AZless a b) (AZless a' b').
+| APlus_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (APlus a b) (APlus a' b')
+| AMinus_equiv{a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMinus a b) (AMinus a' b')
+| AMult_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMult a b) ( AMult a' b')
+| AMin_equiv  {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMin a b) (  AMin a' b')
+| AMax_equiv  {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMax a b) (  AMax a' b')
+| AZless_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AZless a b) (AZless a' b').
 
 Global Instance AExpr_Equiv: Equiv AExpr := AExpr_equiv.
+
+Global Instance AExpr_Equivalence:
+  Equivalence AExpr_equiv.
+Proof.
+  split.
+  -
+    intros x.
+    induction x; constructor; auto; reflexivity.
+  -
+    intros x y.
+    dependent induction x; dependent induction y; intros E; try inversion E; subst.
+    + constructor; auto.
+    + constructor; auto.
+    + constructor.
+      * symmetry; auto.
+      *
+        apply inj_pair2 in H0.
+        apply inj_pair2 in H4.
+        subst.
+        inversion E.
+        apply inj_pair2 in H0.
+        apply inj_pair2 in H4.
+        subst.
+        symmetry.
+        auto.
+    + constructor; apply IHx; auto.
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+    + constructor;[ apply IHx1; auto | apply IHx2; auto].
+  -
+    intros x y z.
+    dependent induction x;
+      dependent induction y;
+      dependent induction z; intros Exy Eyz; try inversion Exy; try inversion Eyz; subst.
+    + constructor; auto.
+    + constructor; auto.
+    +
+      Local Ltac inv_exitstT :=  repeat match goal with
+                                          [ H: existT ?a ≡ existT ?b |- _ ] => apply inj_pair2 in H
+                                        end; subst.
+      inv_exitstT.
+      inversion Exy. inversion Eyz.
+      inv_exitstT.
+      constructor.
+      apply transitivity with (y:=n2); auto.
+      eapply transitivity with (y:=v0); auto.
+    + constructor; apply IHx with (y:=y); auto.
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+Qed.
