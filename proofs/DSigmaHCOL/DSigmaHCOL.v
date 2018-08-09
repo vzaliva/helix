@@ -60,6 +60,7 @@ Inductive DSHOperator: nat -> nat -> Type :=
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.implementations.peano_naturals.
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Tactics.HelixTactics.
 
 Inductive DSHVar_equiv: DSHVar -> DSHVar -> Prop :=
 | DSHnatVar_equiv {n0 n1:nat}: n0=n1 -> DSHVar_equiv (DSHnatVar n0) (DSHnatVar n1)
@@ -112,6 +113,34 @@ Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
 | NMax_equiv  {a a' b b'}: NExpr_equiv a a' -> NExpr_equiv b b' -> NExpr_equiv (NMax a b)   (NMax a' b').
 
 Global Instance NExpr_Equiv: Equiv NExpr  := NExpr_equiv.
+
+Global Instance NExpr_Equivalence:
+  Equivalence NExpr_equiv.
+Proof.
+  split.
+  -
+    intros x.
+    induction x; constructor; auto.
+  -
+    intros x y E.
+    induction E; constructor; try symmetry; assumption.
+  -
+
+    intros x y z.
+    dependent induction x;
+      dependent induction y;
+      dependent induction z; intros Exy Eyz; try inversion Exy; try inversion Eyz; subst.
+    + constructor; auto.
+    + constructor; auto.
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+    + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
+Qed.
+
 
 Inductive VExpr_equiv {n:nat}: VExpr n -> VExpr n -> Prop :=
 | VVar_equiv {n0 n1}: n0=n1 -> VExpr_equiv (VVar n0) (VVar n1)
