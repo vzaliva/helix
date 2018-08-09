@@ -148,6 +148,22 @@ Inductive VExpr_equiv {n:nat}: VExpr n -> VExpr n -> Prop :=
 
 Global Instance VExpr_Equiv {n}: Equiv (VExpr n) := VExpr_equiv.
 
+Global Instance VExpr_Equivalence {n}:
+  Equivalence (@VExpr_Equiv n).
+Proof.
+  split.
+  -
+    intros x.
+    induction x; constructor; auto.
+  -
+    intros x y E.
+    induction E; constructor; try symmetry; assumption.
+  -
+    intros x y z Exy Eyz.
+    induction Exy; inversion Eyz; subst;
+      constructor; auto.
+Qed.
+
 Inductive AExpr_equiv: AExpr -> AExpr -> Prop :=
 | AVar_equiv  {n0 n1}: n0=n1 -> AExpr_equiv (AVar n0) (AVar n1)
 | AConst_equiv {a b}: a=b -> AExpr_equiv (AConst a) (AConst b)
