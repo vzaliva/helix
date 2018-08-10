@@ -371,26 +371,45 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                end.
 
 
+Lemma evalDSHOperator_DSHIUnion_Sn
+      {i o: nat}
+      (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA)
+      (op: DSHOperator i o)
+      (x: avector i)
+      {Γ: evalContext}
+  :
+    evalDSHOperator Γ (@DSHIUnion i o (S n) dot initial op) x =
+    (t <- evalDSHOperator Γ (@DSHIUnion i o n dot initial op) x ;;
+       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
+       vsequence (Vmap2 (evalBinCarrierA Γ dot) v t)).
+Proof.
+  reflexivity.
+Qed.
+
 (* TODO: move *)
 Global Instance evalDSHOperator_arg_proper
        {i o} (Γ: evalContext) (op: DSHOperator i o):
   Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
 Proof.
   intros x y E.
+  revert Γ.
   induction op.
   -
+    intros Γ.
     simpl.
     repeat break_match; auto.
     f_equiv.
     rewrite E.
     reflexivity.
   -
+    intros Γ.
     simpl.
     repeat break_match; auto.
     f_equiv.
     rewrite E.
     reflexivity.
   -
+    intros Γ.
     simpl.
     unfold evalDSHPointwise.
     apply vsequence_option_proper.
@@ -412,6 +431,7 @@ Proof.
     *
       reflexivity.
   -
+    intros Γ.
     simpl.
     unfold evalDSHBinOp.
     rewrite Vbreak_eq_app with (v:=x).
@@ -445,6 +465,7 @@ Proof.
       reflexivity.
       reflexivity.
   -
+    intros Γ.
     simpl.
     break_match; try reflexivity.
     dep_destruct x.
@@ -485,8 +506,23 @@ Proof.
     +
       reflexivity.
   -
-
+    intros Γ.
+    induction n.
+    +
+      reflexivity.
+    +
+      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
+      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
+      specialize (IHop x y E (DSHnatVar n :: Γ) ).
+      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
+      apply vsequence_option_proper.
+      eapply Vmap2_proper.
+      apply evalBinCarrierA_proper; reflexivity.
+      apply Some_inj_equiv, IHop.
+      apply Some_inj_equiv, IHn.
+  -
 Qed.
+
 
 Lemma SHCompose_DSHCompose
       {i1 o2 o3} {fm}

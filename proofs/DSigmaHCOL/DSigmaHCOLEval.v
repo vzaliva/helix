@@ -304,3 +304,18 @@ Proof.
   - proper_eval2 IHEe1 IHEe2.
   - proper_eval2 IHEe1 IHEe2.
 Qed.
+
+Lemma evalBinCarrierA_proper:
+  Proper ((=) ==> (=) ==> (=)) evalBinCarrierA.
+Proof.
+  intros c1 c2 Ec e1 e2 Ee.
+  unfold evalBinCarrierA.
+  intros a a' Ea b b' Eb.
+  apply evalAexp_proper.
+  -
+    unfold equiv, List_equiv.
+    apply List.Forall2_cons; constructor; auto.
+    constructor; auto.
+  -
+    auto.
+Qed.
