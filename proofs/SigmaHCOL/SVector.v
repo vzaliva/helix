@@ -668,6 +668,24 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma densify_rvector2rsvector_eq_densify
+      {n: nat}
+      {x: rvector n}
+  :
+    densify Monoid_RthetaSafeFlags (rvector2rsvector n x) ≡ densify _ x.
+Proof.
+  unfold densify.
+  unfold rvector2rsvector.
+  rewrite Vmap_map.
+  unfold Rtheta2RStheta.
+  apply Vmap_eq_nth.
+  intros j jc.
+  rewrite WriterMonadNoT.evalWriter_castWriter.
+  rewrite Vnth_map.
+  reflexivity.
+Qed.
+
+
 (* For the lack of better place ... *)
 
 Require Import ExtLib.Data.Monads.OptionMonad.
