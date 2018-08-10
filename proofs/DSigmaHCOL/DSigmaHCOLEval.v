@@ -267,10 +267,8 @@ Global Instance evalAexp_proper:
 Proof.
   intros c1 c2 Ec e1 e2 Ee.
   induction Ee; simpl.
-  -
-    unfold equiv, peano_naturals.nat_equiv in H.
+  - unfold equiv, peano_naturals.nat_equiv in H.
     subst n1. rename n0 into n.
-
     assert(E: nth_error c1 n = nth_error c2 n).
     {
       apply nth_error_proper.
@@ -282,14 +280,18 @@ Proof.
     rewrite H1.
     reflexivity.
   - f_equiv. apply H.
-  -
-    (* Depnds on N and V exprs!
-    simpl; repeat break_match;subst; try reflexivity.
-    +
-      f_equiv.
-      apply Vnth_equiv.
-     *)
-    admit.
+  - assert(C1:  evalVexp c1 v1 = evalVexp c2 v2)
+      by (apply evalVexp_proper; auto).
+    assert(C2:  evalNexp c1 n1 = evalNexp c2 n2)
+      by (apply evalNexp_proper; auto).
+    repeat break_match; subst ; try reflexivity; subst;
+      try inversion C1; try inversion C2;
+        apply Some_inj_equiv in C1;
+        apply Some_inj_equiv in C2; try congruence.
+    unfold peano_naturals.nat_equiv in *.
+    subst.
+    f_equiv.
+    apply Vnth_equiv; auto.
   - repeat break_match;subst; try reflexivity; try some_none_contradiction.
     f_equiv.
     rewrite <- Some_inj_equiv in IHEe.
@@ -301,4 +303,4 @@ Proof.
   - proper_eval2 IHEe1 IHEe2.
   - proper_eval2 IHEe1 IHEe2.
   - proper_eval2 IHEe1 IHEe2.
-Admitted.
+Qed.
