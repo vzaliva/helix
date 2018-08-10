@@ -43,10 +43,10 @@ Local Open Scope monad_scope.
 Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
   match e with
   | NVar i => v <- (nth_error st i) ;;
-                (match v with
-                 | DSHnatVar x => Some x
-                 | _ => None
-                 end)
+               (match v with
+                | DSHnatVar x => Some x
+                | _ => None
+                end)
   | NConst c => Some c
   | NDiv a b => liftM2 Nat.div (evalNexp st a) (evalNexp st b)
   | NMod a b => liftM2 Nat.modulo (evalNexp st a) (evalNexp st b)
@@ -180,8 +180,6 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
   | @DSHIReduction i o n dot initial body =>
     (* Actually same as IUnion *)
     fun (x:avector i) =>
-      let dot := APlus (AVar 1) (AVar 0) in
-      let initial := zero in
       nat_rect _
                (Some (Vconst initial o))
                (fun j (t:option (avector o)) =>
@@ -318,4 +316,218 @@ Proof.
     constructor; auto.
   -
     auto.
+Qed.
+
+Lemma evalDSHOperator_DSHIUnion_Sn
+      {i o: nat}
+      (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA)
+      (op: DSHOperator i o)
+      (x: avector i)
+      {Γ: evalContext}
+  :
+    evalDSHOperator Γ (@DSHIUnion i o (S n) dot initial op) x =
+    (t <- evalDSHOperator Γ (@DSHIUnion i o n dot initial op) x ;;
+       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
+       vsequence (Vmap2 (evalBinCarrierA Γ dot) v t)).
+Proof.
+  reflexivity.
+Qed.
+
+Lemma evalDSHOperator_DSHISumUnion_DSHIUnion
+      {i o n: nat}
+      {body: DSHOperator i o}
+      {Γ: evalContext}:
+  evalDSHOperator Γ (@DSHISumUnion i o n body) ≡
+                  evalDSHOperator Γ (@DSHIUnion i o n (APlus (AVar 1) (AVar 0)) zero body).
+Proof.
+  reflexivity.
+Qed.
+
+Lemma evalDSHOperator_DSHISumUnion_DSHIReduction
+      {i o n: nat}
+      {dot}
+      {initial}
+      {body: DSHOperator i o}
+      {Γ: evalContext}:
+  evalDSHOperator Γ (@DSHIUnion i o n dot initial body) ≡
+                  evalDSHOperator Γ (@DSHIReduction i o n dot initial body).
+Proof.
+  reflexivity.
+Qed.
+
+Global Instance evalDSHOperator_arg_proper
+       {i o} (Γ: evalContext) (op: DSHOperator i o):
+  Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
+Proof.
+  intros x y E.
+  revert Γ.
+  induction op; intros Γ.
+  -
+    simpl.
+    repeat break_match; auto.
+    f_equiv.
+    rewrite E.
+    reflexivity.
+  -
+    simpl.
+    repeat break_match; auto.
+    f_equiv.
+    rewrite E.
+    reflexivity.
+  -
+    simpl.
+    unfold evalDSHPointwise.
+    apply vsequence_option_proper.
+    f_equiv.
+    intros j jc.
+    unfold evalIUnCarrierA.
+    apply evalAexp_proper.
+    *
+      unfold equiv, List_equiv.
+      apply List.Forall2_cons.
+      --
+        unfold equiv, DSHVar_Equiv.
+        simpl.
+        constructor.
+        apply Vnth_arg_equiv.
+        apply E.
+      --
+        reflexivity.
+    *
+      reflexivity.
+  -
+    simpl.
+    unfold evalDSHBinOp.
+    rewrite Vbreak_eq_app with (v:=x).
+    rewrite Vbreak_eq_app with (v:=y).
+    break_let.
+    break_let.
+    apply vsequence_option_proper.
+    f_equiv.
+    intros j jc.
+
+    unfold evalIBinCarrierA.
+    apply evalAexp_proper; try reflexivity.
+
+    unfold vector2pair in *.
+    rewrite Vbreak_app in Heqp0.
+    rewrite Vbreak_app in Heqp.
+    inversion Heqp0.
+    inversion Heqp.
+
+    apply List.Forall2_cons.
+    +
+      apply DSHCarrierAVar_equiv.
+      apply Vnth_proper.
+      rewrite E.
+      reflexivity.
+    +
+      apply List.Forall2_cons.
+      apply DSHCarrierAVar_equiv.
+      apply Vnth_proper.
+      rewrite E.
+      reflexivity.
+      reflexivity.
+  -
+    simpl.
+    break_match; try reflexivity.
+    dep_destruct x.
+    dep_destruct y.
+    simpl.
+    inversion E.
+    clear E x y x0 x1 H0.
+    rename h into x.
+    rename h0 into y.
+    assert(C: evalDSHInductor Γ n0 f initial x = evalDSHInductor Γ n0 f initial y).
+    {
+      clear Heqo.
+      induction n0.
+      -
+        reflexivity.
+      -
+        simpl.
+        repeat break_match.
+        unfold evalBinCarrierA.
+        apply evalAexp_proper.
+        apply List.Forall2_cons.
+        apply DSHCarrierAVar_equiv.
+        apply H.
+        apply List.Forall2_cons.
+        apply DSHCarrierAVar_equiv.
+        apply Some_inj_equiv, IHn0.
+        reflexivity.
+        reflexivity.
+        some_none_contradiction.
+        some_none_contradiction.
+        reflexivity.
+    }
+    break_match; inversion C.
+    +
+      f_equiv.
+      rewrite H2.
+      reflexivity.
+    +
+      reflexivity.
+  -
+    induction n.
+    +
+      reflexivity.
+    +
+      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
+      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
+      specialize (IHop x y E (DSHnatVar n :: Γ) ).
+      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
+      apply vsequence_option_proper.
+      eapply Vmap2_proper.
+      apply evalBinCarrierA_proper; reflexivity.
+      apply Some_inj_equiv, IHop.
+      apply Some_inj_equiv, IHn.
+  -
+    rewrite evalDSHOperator_DSHISumUnion_DSHIUnion.
+    (* Same proof as for IUnion (above) *)
+    induction n.
+    +
+      reflexivity.
+    +
+      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
+      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
+      specialize (IHop x y E (DSHnatVar n :: Γ) ).
+      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
+      apply vsequence_option_proper.
+      eapply Vmap2_proper.
+      apply evalBinCarrierA_proper; reflexivity.
+      apply Some_inj_equiv, IHop.
+      apply Some_inj_equiv, IHn.
+  -
+    rewrite <- evalDSHOperator_DSHISumUnion_DSHIReduction.
+    (* Same proof as for IUnion (above) *)
+    induction n.
+    +
+      reflexivity.
+    +
+      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
+      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
+      specialize (IHop x y E (DSHnatVar n :: Γ) ).
+      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
+      apply vsequence_option_proper.
+      eapply Vmap2_proper.
+      apply evalBinCarrierA_proper; reflexivity.
+      apply Some_inj_equiv, IHop.
+      apply Some_inj_equiv, IHn.
+  -
+    simpl.
+    specialize (IHop2 x y E Γ).
+    repeat break_match; try reflexivity; try inversion IHop2.
+    apply IHop1, H1.
+  -
+    simpl.
+    specialize (IHop1 x y E Γ).
+    specialize (IHop2 x y E Γ).
+    repeat break_match; try reflexivity; try inversion IHop2; try inversion IHop1.
+    subst.
+    apply vsequence_option_proper.
+    eapply Vmap2_proper.
+    apply evalBinCarrierA_proper; reflexivity.
+    apply H4.
+    apply H1.
 Qed.
