@@ -3,8 +3,12 @@ Require Import Coq.Arith.Peano_dec.
 Require Import CoLoR.Util.Vector.VecUtil.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.Tactics.HelixTactics.
+Require Import Helix.Util.OptionSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax.
@@ -193,3 +197,108 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
         b <- evalDSHOperator Γ g v ;;
         vsequence (Vmap2 (evalBinCarrierA Γ dot) a b)
   end x.
+
+
+Local Ltac proper_eval2 IHe1 IHe2 :=
+  simpl;
+  repeat break_match;subst; try reflexivity; try some_none_contradiction;
+  f_equiv;
+  rewrite <- Some_inj_equiv in IHe1;
+  rewrite <- Some_inj_equiv in IHe2;
+  rewrite IHe1, IHe2;
+  reflexivity.
+
+Global Instance evalNexp_proper:
+  Proper ((=) ==> (=) ==> (=)) evalNexp.
+Proof.
+  intros c1 c2 Ec e1 e2 Ee.
+  induction Ee; simpl.
+  -
+    unfold equiv, peano_naturals.nat_equiv in H.
+    subst n2. rename n1 into n.
+    assert(E: nth_error c1 n = nth_error c2 n).
+    {
+      apply nth_error_proper.
+      apply Ec.
+      reflexivity.
+    }
+    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
+    subst.
+    rewrite H1.
+    reflexivity.
+  -
+    rewrite H.
+    reflexivity.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+Qed.
+
+Global Instance evalVexp_proper:
+  Proper ((=) ==> (forall_relation (fun n => (=) ==> (=)))) (evalVexp).
+Proof.
+  intros c1 c2 Ec n e1 e2 Ee.
+  induction Ee; simpl.
+  -
+    unfold equiv, peano_naturals.nat_equiv in H.
+    subst n1. rename n0 into v.
+
+    assert(E: nth_error c1 v = nth_error c2 v).
+    {
+      apply nth_error_proper.
+      apply Ec.
+      reflexivity.
+    }
+    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E); inv_exitstT; subst; try congruence.
+    simpl.
+    f_equiv.
+    auto.
+  -
+    rewrite H.
+    auto.
+Qed.
+
+Global Instance evalAexp_proper:
+  Proper ((=) ==> (=) ==> (=)) evalAexp.
+Proof.
+  intros c1 c2 Ec e1 e2 Ee.
+  induction Ee; simpl.
+  -
+    unfold equiv, peano_naturals.nat_equiv in H.
+    subst n1. rename n0 into n.
+
+    assert(E: nth_error c1 n = nth_error c2 n).
+    {
+      apply nth_error_proper.
+      apply Ec.
+      reflexivity.
+    }
+    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
+    subst.
+    rewrite H1.
+    reflexivity.
+  - f_equiv. apply H.
+  -
+    (* Depnds on N and V exprs!
+    simpl; repeat break_match;subst; try reflexivity.
+    +
+      f_equiv.
+      apply Vnth_equiv.
+     *)
+    admit.
+  - repeat break_match;subst; try reflexivity; try some_none_contradiction.
+    f_equiv.
+    rewrite <- Some_inj_equiv in IHEe.
+    rewrite IHEe.
+    reflexivity.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+  - proper_eval2 IHEe1 IHEe2.
+Admitted.

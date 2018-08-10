@@ -371,56 +371,6 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                end.
 
 
-
-(* TODO: move *)
-Global Instance evalAexp_context_proper:
-  Proper ((=) ==> (eq) ==> (=)) evalAexp.
-Proof.
-
-  Local Ltac proper_eval2 IHe1 IHe2 :=
-    simpl;
-    repeat break_match;subst; try reflexivity; try some_none_contradiction;
-    f_equiv;
-    rewrite <- Some_inj_equiv in IHe1;
-    rewrite <- Some_inj_equiv in IHe2;
-    rewrite IHe1, IHe2;
-    reflexivity.
-
-  intros c1 c2 Ec e1 e2 Ee.
-  rewrite Ee. clear Ee e1. rename e2 into e.
-  induction e; simpl.
-  - assert(E: nth_error c1 n = nth_error c2 n).
-    {
-      apply nth_error_proper.
-      apply Ec.
-      reflexivity.
-    }
-    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
-    subst.
-    rewrite H1.
-    reflexivity.
-  - reflexivity.
-  -
-    (* Depnds on N and V exprs!
-    simpl; repeat break_match;subst; try reflexivity.
-    +
-      f_equiv.
-      apply Vnth_equiv.
-     *)
-    admit.
-  - repeat break_match;subst; try reflexivity; try some_none_contradiction.
-    f_equiv.
-    rewrite <- Some_inj_equiv in IHe.
-    rewrite IHe.
-    reflexivity.
-  - proper_eval2 IHe1 IHe2.
-  - proper_eval2 IHe1 IHe2.
-  - proper_eval2 IHe1 IHe2.
-  - proper_eval2 IHe1 IHe2.
-  - proper_eval2 IHe1 IHe2.
-  - proper_eval2 IHe1 IHe2.
-Admitted.
-
 (* TODO: move *)
 Global Instance evalDSHOperator_arg_proper
        {i o} (Γ: evalContext) (op: DSHOperator i o):
@@ -447,9 +397,9 @@ Proof.
     f_equiv.
     intros j jc.
     unfold evalIUnCarrierA.
-    apply evalAexp_context_proper.
+    apply evalAexp_proper.
     *
-      unfold equiv, evalContext_equiv.
+      unfold equiv, List_equiv.
       apply Forall2_cons.
       --
         unfold equiv, DSHVar_Equiv.

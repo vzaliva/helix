@@ -93,7 +93,7 @@ Proof.
     +
       subst.
       constructor.
-      apply Eqdep.EqdepTheory.inj_pair2 in H6.
+      inv_exitstT.
       rewrite H.
       rewrite <- H6.
       apply H2.
@@ -144,7 +144,7 @@ Qed.
 
 Inductive VExpr_equiv {n:nat}: VExpr n -> VExpr n -> Prop :=
 | VVar_equiv {n0 n1}: n0=n1 -> VExpr_equiv (VVar n0) (VVar n1)
-| VConst_equiv {a b: avector n}: VExpr_equiv (VConst a) (VConst b).
+| VConst_equiv {a b: avector n}: a=b -> VExpr_equiv (VConst a) (VConst b).
 
 Global Instance VExpr_Equiv {n}: Equiv (VExpr n) := VExpr_equiv.
 
@@ -162,6 +162,10 @@ Proof.
     intros x y z Exy Eyz.
     induction Exy; inversion Eyz; subst;
       constructor; auto.
+
+    inv_exitstT.
+    subst.
+    auto.
 Qed.
 
 Inductive AExpr_equiv: AExpr -> AExpr -> Prop :=
@@ -196,12 +200,8 @@ Proof.
     + constructor.
       * symmetry; auto.
       *
-        apply inj_pair2 in H0.
-        apply inj_pair2 in H4.
-        subst.
         inversion E.
-        apply inj_pair2 in H0.
-        apply inj_pair2 in H4.
+        inv_exitstT.
         subst.
         symmetry.
         auto.
@@ -220,12 +220,8 @@ Proof.
     + constructor; auto.
     + constructor; auto.
     +
-      Local Ltac inv_exitstT :=  repeat match goal with
-                                          [ H: existT ?a ≡ existT ?b |- _ ] => apply inj_pair2 in H
-                                        end; subst.
-      inv_exitstT.
       inversion Exy. inversion Eyz.
-      inv_exitstT.
+      inv_exitstT; subst.
       constructor.
       apply transitivity with (y:=n2); auto.
       eapply transitivity with (y:=v0); auto.

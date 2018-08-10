@@ -77,3 +77,8 @@ Ltac equiv_extensionality v v' E:=
   match goal with
   | [ |- @equiv _ (@ext_equiv _ _ _  _) _ _] => unfold equiv, ext_equiv; intros v v' E
   end.
+
+Require Import Specif.
+Ltac inv_exitstT :=  repeat match goal with
+                              [ H: eq (existT _ _ _) (existT _ _ _) |- _ ] => apply Coq.Logic.ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H
+                            end.
