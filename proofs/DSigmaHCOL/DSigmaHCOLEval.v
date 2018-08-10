@@ -129,7 +129,7 @@ Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avecto
   vsequence (Vbuild (fun i (ip:i<o) =>
                        evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip))).
 
-Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
+Definition evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
   nat_rect _
            (Some initial)
            (fun _ (x:option CarrierA) => x' <- x ;; evalBinCarrierA Γ f x' v)

@@ -414,12 +414,79 @@ Proof.
   -
     simpl.
     unfold evalDSHBinOp.
+    rewrite Vbreak_eq_app with (v:=x).
+    rewrite Vbreak_eq_app with (v:=y).
     break_let.
     break_let.
     apply vsequence_option_proper.
     f_equiv.
     intros j jc.
-Admitted.
+
+    unfold evalIBinCarrierA.
+    apply evalAexp_proper; try reflexivity.
+
+    unfold vector2pair in *.
+    rewrite Vbreak_app in Heqp0.
+    rewrite Vbreak_app in Heqp.
+    inversion Heqp0.
+    inversion Heqp.
+
+    apply Forall2_cons.
+    +
+      apply DSHCarrierAVar_equiv.
+      apply Vnth_proper.
+      rewrite E.
+      reflexivity.
+    +
+      apply Forall2_cons.
+      apply DSHCarrierAVar_equiv.
+      apply Vnth_proper.
+      rewrite E.
+      reflexivity.
+      reflexivity.
+  -
+    simpl.
+    break_match; try reflexivity.
+    dep_destruct x.
+    dep_destruct y.
+    simpl.
+    inversion E.
+    clear E x y x0 x1 H0.
+    rename h into x.
+    rename h0 into y.
+    assert(C: evalDSHInductor Γ n0 f initial x = evalDSHInductor Γ n0 f initial y).
+    {
+      clear Heqo.
+      induction n0.
+      -
+        reflexivity.
+      -
+        simpl.
+        repeat break_match.
+        unfold evalBinCarrierA.
+        apply evalAexp_proper.
+        apply Forall2_cons.
+        apply DSHCarrierAVar_equiv.
+        apply H.
+        apply Forall2_cons.
+        apply DSHCarrierAVar_equiv.
+        apply Some_inj_equiv, IHn0.
+        reflexivity.
+        reflexivity.
+        some_none_contradiction.
+        some_none_contradiction.
+        reflexivity.
+    }
+    break_match; inversion C.
+    +
+      f_equiv.
+      rewrite H2.
+      reflexivity.
+    +
+      reflexivity.
+  -
+
+Qed.
 
 Lemma SHCompose_DSHCompose
       {i1 o2 o3} {fm}
