@@ -672,19 +672,31 @@ Lemma densify_rvector2rsvector_eq_densify
       {n: nat}
       {x: rvector n}
   :
-    densify Monoid_RthetaSafeFlags (rvector2rsvector n x) ≡ densify _ x.
+    densify _ (rvector2rsvector n x) ≡ densify _ x.
 Proof.
-  unfold densify.
-  unfold rvector2rsvector.
+  unfold densify, rvector2rsvector.
   rewrite Vmap_map.
   unfold Rtheta2RStheta.
   apply Vmap_eq_nth.
   intros j jc.
-  rewrite WriterMonadNoT.evalWriter_castWriter.
-  rewrite Vnth_map.
+  rewrite WriterMonadNoT.evalWriter_castWriter, Vnth_map.
   reflexivity.
 Qed.
 
+Lemma densify_rsvector2rvector_eq_densify
+      {n: nat}
+      {x: rsvector n}
+  :
+    densify _ (rsvector2rvector n x) ≡ densify _ x.
+Proof.
+  unfold densify, rsvector2rvector.
+  rewrite Vmap_map.
+  unfold RStheta2Rtheta.
+  apply Vmap_eq_nth.
+  intros j jc.
+  rewrite WriterMonadNoT.evalWriter_castWriter, Vnth_map.
+  reflexivity.
+Qed.
 
 (* For the lack of better place ... *)
 

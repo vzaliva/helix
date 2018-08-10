@@ -431,13 +431,29 @@ Qed.
 
 Lemma SHCOL_DSHCOL_equiv_UnSafeCast
       {i o: nat}
-      (Γ: evalContext)
+      (σ: evalContext)
       (s: @SHOperator Monoid_RthetaFlags i o)
       (d: DSHOperator i o):
-  SHCOL_DSHCOL_equiv Γ s d ->
-  SHCOL_DSHCOL_equiv Γ (TSigmaHCOL.UnSafeCast s) d.
+  SHCOL_DSHCOL_equiv σ s d ->
+  SHCOL_DSHCOL_equiv σ (TSigmaHCOL.UnSafeCast s) d.
 Proof.
-Admitted.
+  intros P.
+  intros Γ x.
+  specialize (P Γ (rsvector2rvector _ x)).
+  rewrite densify_rsvector2rvector_eq_densify in P.
+  rewrite <- P. clear P.
+  simpl.
+  f_equiv.
+  unfold densify.
+  unfold equiv, vec_Equiv.
+  apply Vforall2_intro_nth.
+  intros j jc.
+  rewrite 2!Vnth_map.
+  unfold UnSafeCast', compose, rsvector2rvector, rvector2rsvector.
+  rewrite Vnth_map.
+  unfold RStheta2Rtheta, Rtheta2RStheta.
+  reflexivity.
+Qed.
 
 Lemma SHBinOp_DSHBinOp
       {o: nat}
