@@ -1337,6 +1337,16 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+(* Shrink function agrument of Vbuild by omitting the last element *)
+Definition shrink_vbuild_function_r {A:Type} {n:nat}:
+  (forall (i:nat), (i < S n)%nat -> A) -> (forall (i:nat), (i < n)%nat -> A)
+  := fun f i ic => f i (lt_S ic).
+
+(* Shrink function agrument of Vbuild by skipping the fist element *)
+Definition shrink_vbuild_function_l {A:Type} {n:nat}:
+  (forall (i:nat), (i < S n)%nat -> A) -> (forall (i:nat), (i < n)%nat -> A)
+  := fun f i ic => f (S i) (lt_n_S ic).
+
 Fixpoint vsequence {n:nat} {A:Type}
          {m} {M:Monad m}
          (mv: vector (m A) n): m (vector A n)
@@ -1347,3 +1357,86 @@ Fixpoint vsequence {n:nat} {A:Type}
           xs' <- (vsequence xs) ;;
           ret (Vcons x' xs')
      end.
+
+Lemma vsequence_Vmap_Some {A:Type} {n:nat} {v: vector A n} {f: A->A}:
+  vsequence (Vmap (fun a => Some (f a)) v) = Some (Vmap f v).
+Proof.
+  induction v.
+  -
+    reflexivity.
+  -
+    simpl.
+    break_match.
+    +
+      inversion IHv.
+      rewrite <- H0.
+      reflexivity.
+    +
+      inversion IHv.
+Qed.
+
+Require Import Coq.Logic.ProofIrrelevance.
+
+Ltac fold_Vbuild :=
+  match goal with
+  | [ |- context [proj1_sig (Vbuild_spec ?gen)] ] =>
+    fold (Vbuild gen)
+  end.
+
+Lemma vsequence_Vbuild_eq_Some
+      {A: Type}
+      {n: nat}
+      {f: forall (i:nat), (i < n)%nat -> option A}
+      {x: vector A n}
+  : Vbuild f = Vmap Some x <->
+    (@vsequence n A _ _ (Vbuild f)) = Some x.
+Proof.
+  split.
+  -
+    intros H.
+    rewrite H.
+    rewrite vsequence_Vmap_Some.
+    f_equal.
+    rewrite Vmap_id.
+    reflexivity.
+  -
+    intros H.
+    induction n.
+    +
+      simpl.
+      inversion H.
+      dep_destruct x.
+      crush.
+    +
+      rewrite Vbuild_cons.
+      dep_destruct x. rename x0 into xs, h into x0.
+      simpl.
+      apply Vcons_eq_intro.
+      *
+        simpl in H.
+        repeat break_match_hyp; try inversion H.
+        rewrite <- H1. clear H1.
+        rewrite <- Heqo.
+        f_equal.
+        apply proof_irrelevance.
+      *
+        specialize (IHn (shrink_vbuild_function_l f) xs).
+        rewrite <- IHn; clear IHn.
+        --
+          f_equal.
+        --
+          simpl in H.
+          repeat break_match_hyp; try inversion H.
+          apply inj_pair2 in H2.
+          rewrite <- H2.
+          rewrite <- Heqo0.
+          f_equal.
+          apply Veq_nth.
+          intros i ic.
+          fold_Vbuild.
+          rewrite 2!Vbuild_nth.
+          unfold shrink_vbuild_function_l.
+          clear_all.
+          f_equal.
+          apply proof_irrelevance.
+Qed.

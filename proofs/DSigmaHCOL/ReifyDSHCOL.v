@@ -458,19 +458,53 @@ Qed.
 Lemma SHBinOp_DSHBinOp
       {o: nat}
       {fm}
-      (Γ: evalContext)
+      (σ: evalContext)
       (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       (df: DSHIBinCarrierA)
   :
-    (forall j a b, Some (f j a b) = evalIBinCarrierA
-                                 Γ
+    (forall (Γ: evalContext) j a b, Some (f j a b) = evalIBinCarrierA
+                                 (σ ++ Γ)
                                  df (proj1_sig j) a b) ->
-    @SHCOL_DSHCOL_equiv (o+o) o fm Γ
+    @SHCOL_DSHCOL_equiv (o+o) o fm σ
                         (@SHBinOp fm o f pF)
                         (DSHBinOp df).
 Proof.
-Admitted.
+  intros H.
+  intros Γ x.
+  simpl.
+  unfold evalDSHBinOp.
+  unfold SHBinOp'.
+  break_let.
+  rename t into x0, t0 into x1.
+
+  unfold densify.
+  rewrite Vmap_Vbuild.
+
+  break_let.
+  unfold vector2pair in *.
+
+  apply Vbreak_arg_app in Heqp.
+  subst x.
+  rewrite Vmap_app in Heqp0.
+  apply Vbreak_arg_app in Heqp0.
+  apply Vapp_eq in Heqp0.
+  destruct Heqp0 as [H0 H1].
+  subst t. subst t0.
+  setoid_rewrite Vnth_map.
+
+  symmetry.
+  apply vsequence_Vbuild_equiv_Some.
+  rewrite Vmap_Vbuild with (fm:=Some).
+
+  vec_index_equiv j jc.
+  rewrite 2!Vbuild_nth.
+  rewrite evalWriter_Rtheta_liftM2.
+  symmetry.
+  specialize (H Γ (mkFinNat jc)).
+  rewrite H.
+  reflexivity.
+Qed.
 
 Lemma HTSUMUnion_DSHHTSUMUnion
       {i o: nat}

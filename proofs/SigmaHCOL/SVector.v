@@ -739,6 +739,67 @@ Proof.
       some_none_contradiction.
 Qed.
 
+Lemma vsequence_Vbuild_equiv_Some
+      {A: Type}
+      `{Ae: Equiv A}
+      `{Aeq: Equivalence A Ae}
+      {n: nat}
+      {f: forall (i:nat), (i < n)%nat -> option A}
+      {x: vector A n}
+  : Vbuild f = Vmap Some x <->
+    (@vsequence n A _ _ (Vbuild f)) = Some x.
+Proof.
+  split.
+  -
+    intros H.
+    setoid_rewrite H.
+    rewrite vsequence_Vmap_Some.
+    f_equiv.
+    rewrite Vmap_id.
+    reflexivity.
+  -
+    intros H.
+    induction n.
+    +
+      simpl.
+      inversion H.
+      dep_destruct x.
+      crush.
+    +
+      rewrite Vbuild_cons.
+      dep_destruct x. rename x0 into xs, h into x0.
+      simpl.
+      apply Vcons_proper.
+      *
+        simpl in H.
+        repeat break_match_hyp; try some_none_contradiction.
+        some_inv.
+        inversion H.
+        rewrite <- H0.
+        rewrite <- Heqo.
+        f_equiv.
+        apply proof_irrelevance.
+      *
+        specialize (IHn (shrink_vbuild_function_l f) xs).
+        rewrite <- IHn; clear IHn.
+        --
+          f_equiv.
+        --
+          simpl in H.
+          repeat break_match_hyp; try some_none_contradiction.
+          some_inv.
+          inversion H.
+          rewrite <- H1.
+          clear a Heqo H H0 H1.
+          rewrite <- Heqo0.
+          apply vsequence_option_proper.
+          apply Vbuild_proper.
+          intros i ic.
+          unfold shrink_vbuild_function_l.
+          f_equiv.
+          apply proof_irrelevance.
+Qed.
+
 Close Scope vector_scope.
 Close Scope nat_scope.
 
