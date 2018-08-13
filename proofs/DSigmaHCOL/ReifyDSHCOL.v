@@ -626,14 +626,30 @@ Lemma IReduction_DSHIReduction
       (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
       (ddot: DSHBinCarrierA)
       (dop_family: DSHOperator i o)
-      (Γ: evalContext)
+      (σ: evalContext)
   :
-    (forall a b, Some (dot a b) = evalBinCarrierA Γ ddot a b) ->
-    SHOperatorFamily_DSHCOL_equiv Γ op_family dop_family ->
-    SHCOL_DSHCOL_equiv Γ
+    (forall Γ a b, Some (dot a b) = evalBinCarrierA (σ++Γ) ddot a b) ->
+    SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
+    SHCOL_DSHCOL_equiv σ
                        (@IReduction i o n dot pdot initial op_family)
                        (@DSHIReduction i o n ddot initial dop_family).
 Proof.
+  intros Hdot Hfam Γ x.
+
+  induction n.
+  -
+    simpl.
+    f_equiv.
+    unfold Diamond', MUnion', Apply_Family'.
+    simpl.
+    vec_index_equiv j jc.
+    unfold densify.
+    rewrite Vnth_map.
+    rewrite 2!Vnth_const.
+    rewrite evalWriter_mkStruct.
+    reflexivity.
+  -
+    admit.
 Admitted.
 
 Lemma SHPointwise_DSHPointwise
@@ -642,14 +658,33 @@ Lemma SHPointwise_DSHPointwise
       (f: FinNat n -> CarrierA -> CarrierA)
       `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       (df: DSHIUnCarrierA)
-      (Γ: evalContext)
+      (σ: evalContext)
   :
-    (forall j a, Some (f j a) = evalIUnCarrierA Γ df (proj1_sig j) a) ->
-           SHCOL_DSHCOL_equiv Γ
-                              (@SHPointwise fm n f pF)
-                              (DSHPointwise df).
+    (forall Γ j a, Some (f j a) = evalIUnCarrierA (σ++Γ) df (proj1_sig j) a) ->
+    SHCOL_DSHCOL_equiv σ
+                       (@SHPointwise fm n f pF)
+                       (DSHPointwise df).
 Proof.
-Admitted.
+  intros H.
+  intros Γ x.
+  specialize (H Γ).
+  simpl.
+  unfold evalDSHPointwise.
+  symmetry.
+  apply vsequence_Vbuild_equiv_Some.
+  unfold densify.
+  rewrite Vmap_map.
+  simpl.
+  unfold SHPointwise'.
+  rewrite Vmap_Vbuild.
+  apply Vbuild_proper.
+  intros j jc.
+  rewrite Vnth_map.
+  rewrite evalWriter_Rtheta_liftM.
+  specialize (H (mkFinNat jc)).
+  rewrite <- H.
+  reflexivity.
+Qed.
 
 Lemma SHInductor_DSHInductor
       {fm}
