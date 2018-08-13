@@ -506,24 +506,85 @@ Proof.
   reflexivity.
 Qed.
 
+(* TODO: move *)
+Lemma Vmap2_as_Vbuild (A B C : Type) (f: A->B->C) {n}
+      {a: vector A n}
+      {b: vector B n}:
+  Vmap2 f a b ≡ Vbuild (fun i ic => f (Vnth a ic) (Vnth b ic)).
+Proof.
+  apply Veq_nth.
+  intros j jc.
+  rewrite Vnth_map2.
+  rewrite Vbuild_nth.
+  reflexivity.
+Qed.
+
 Lemma HTSUMUnion_DSHHTSUMUnion
       {i o: nat}
       {fm}
       (dot: CarrierA -> CarrierA -> CarrierA)
       `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
       (ddot: DSHBinCarrierA)
-      (Γ: evalContext)
+      (σ: evalContext)
       (f g: @SHOperator fm i o)
       (df dg: DSHOperator i o)
   :
-    SHCOL_DSHCOL_equiv Γ f df ->
-    SHCOL_DSHCOL_equiv Γ g dg ->
-    (forall a b, Some (dot a b) = evalBinCarrierA Γ ddot a b) ->
-    SHCOL_DSHCOL_equiv Γ
+    SHCOL_DSHCOL_equiv σ f df ->
+    SHCOL_DSHCOL_equiv σ g dg ->
+    (forall (Γ:evalContext) a b, Some (dot a b) = evalBinCarrierA (σ++Γ) ddot a b) ->
+    SHCOL_DSHCOL_equiv σ
                        (@HTSUMUnion fm i o dot dot_mor f g)
                        (DSHHTSUMUnion ddot df dg).
 Proof.
-Admitted.
+  intros Ef Eg Edot.
+  intros Γ x.
+  specialize (Ef Γ).
+  specialize (Eg Γ).
+  specialize (Edot Γ).
+  simpl.
+  repeat break_match.
+  -
+    rewrite Vmap2_as_Vbuild.
+    symmetry.
+    apply vsequence_Vbuild_equiv_Some.
+    unfold HTSUMUnion', Vec2Union.
+    unfold densify.
+    rewrite Vmap_map.
+    rewrite Vmap2_as_Vbuild.
+    rewrite Vmap_Vbuild.
+    unfold Union.
+
+    vec_index_equiv j jc.
+    rewrite 2!Vbuild_nth.
+    rewrite evalWriter_Rtheta_liftM2.
+    symmetry.
+
+    specialize (Ef x). specialize (Eg x).
+    rewrite Heqo0 in Ef; clear Heqo0; some_inv.
+    rewrite Heqo1 in Eg; clear Heqo1; some_inv.
+    rewrite Edot; clear Edot.
+    apply evalBinCarrierA_proper; try reflexivity.
+
+    apply Vnth_arg_equiv with (ip:=jc) in Ef.
+    rewrite <- Ef.
+    unfold densify.
+    rewrite Vnth_map.
+    reflexivity.
+
+    apply Vnth_arg_equiv with (ip:=jc) in Eg.
+    rewrite <- Eg.
+    unfold densify.
+    rewrite Vnth_map.
+    reflexivity.
+  -
+    specialize (Eg x).
+    rewrite Heqo1 in Eg.
+    some_none_contradiction.
+  -
+    specialize (Ef x).
+    rewrite Heqo0 in Ef.
+    some_none_contradiction.
+Qed.
 
 Lemma eUnion_DSHeUnion
       {fm}
