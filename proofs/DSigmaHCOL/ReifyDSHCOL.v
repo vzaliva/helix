@@ -506,19 +506,6 @@ Proof.
   reflexivity.
 Qed.
 
-(* TODO: move *)
-Lemma Vmap2_as_Vbuild (A B C : Type) (f: A->B->C) {n}
-      {a: vector A n}
-      {b: vector B n}:
-  Vmap2 f a b ≡ Vbuild (fun i ic => f (Vnth a ic) (Vnth b ic)).
-Proof.
-  apply Veq_nth.
-  intros j jc.
-  rewrite Vnth_map2.
-  rewrite Vbuild_nth.
-  reflexivity.
-Qed.
-
 Lemma HTSUMUnion_DSHHTSUMUnion
       {i o: nat}
       {fm}
@@ -586,20 +573,43 @@ Proof.
     some_none_contradiction.
 Qed.
 
+(* We are proving only a version for `Monoid_RthetaFlags` here. It should be possible to prove for any flags *)
 Lemma eUnion_DSHeUnion
-      {fm}
-      (Γ: evalContext)
+      (σ: evalContext)
       {o b:nat}
       (bc: b < o)
       (z: CarrierA)
       (db: NExpr)
   :
-    Some b = evalNexp Γ db ->
-    SHCOL_DSHCOL_equiv Γ
-                       (eUnion fm bc z)
+    (forall Γ, Some b = evalNexp (σ++Γ) db) ->
+    SHCOL_DSHCOL_equiv σ
+                       (eUnion Monoid_RthetaFlags bc z)
                        (DSHeUnion db z).
 Proof.
-Admitted.
+  intros H.
+  intros Γ x.
+  specialize (H Γ).
+  simpl.
+  break_match; try some_none_contradiction.
+  break_match; some_inv; unfold equiv, peano_naturals.nat_equiv in H; subst n.
+  -
+    f_equiv.
+    unfold unLiftM_HOperator', compose.
+    vec_index_equiv j jc.
+    unfold densify, sparsify.
+    repeat rewrite Vnth_map.
+    rewrite Vmap_map.
+    f_equiv.
+    apply Vnth_equiv; try reflexivity.
+    replace l with bc by apply proof_irrelevance.
+    apply eUnion'_arg_proper.
+    vec_index_equiv i ic.
+    rewrite Vnth_map.
+    rewrite mkValue_evalWriter.
+    reflexivity.
+  -
+    destruct n0; auto.
+Qed.
 
 Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
            (s: @SHOperatorFamily fm i o n)

@@ -114,6 +114,18 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma Vmap2_as_Vbuild (A B C : Type) (f: A->B->C) {n}
+      {a: vector A n}
+      {b: vector B n}:
+  Vmap2 f a b = Vbuild (fun i ic => f (Vnth a ic) (Vnth b ic)).
+Proof.
+  apply Veq_nth.
+  intros j jc.
+  rewrite Vnth_map2.
+  rewrite Vbuild_nth.
+  reflexivity.
+Qed.
+
 Section VFold.
 
   Lemma Vfold_right_cons: forall A B n (f:A->B->B) (id:B) (h:A) (v:vector A n),
