@@ -356,7 +356,7 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                      let a_shcol := tApp a_expr global_idx in
                      dshcol' <- tmEval cbv dshcol ;; a_dshcol <- tmQuote dshcol' ;;
                              let lemma_concl :=
-                                 (tApp (tConst "Top.SHCOL_DSHCOL_equiv" [])
+                                 (tApp (tConst "SHCOL_DSHCOL_equiv" [])
                                        [a_i; a_o; a_fm; a_globals;
                                           a_shcol;
                                           a_dshcol])
