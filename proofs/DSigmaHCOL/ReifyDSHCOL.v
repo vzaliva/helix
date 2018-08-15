@@ -573,17 +573,17 @@ Proof.
     some_none_contradiction.
 Qed.
 
-(* We are proving only a version for `Monoid_RthetaFlags` here. It should be possible to prove for any flags *)
 Theorem eUnion_DSHeUnion
-      (σ: evalContext)
-      {o b:nat}
-      (bc: b < o)
-      (z: CarrierA)
-      (db: NExpr)
+        {fm}
+        (σ: evalContext)
+        {o b:nat}
+        (bc: b < o)
+        (z: CarrierA)
+        (db: NExpr)
   :
     (forall Γ, Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ
-                       (eUnion Monoid_RthetaFlags bc z)
+                       (eUnion fm bc z)
                        (DSHeUnion db z).
 Proof.
   intros H.
@@ -599,14 +599,17 @@ Proof.
     unfold densify, sparsify.
     repeat rewrite Vnth_map.
     rewrite Vmap_map.
-    f_equiv.
-    apply Vnth_equiv; try reflexivity.
-    replace l with bc by apply proof_irrelevance.
-    apply eUnion'_arg_proper.
-    vec_index_equiv i ic.
-    rewrite Vnth_map.
-    rewrite mkValue_evalWriter.
-    reflexivity.
+
+    apply castWriter_equiv.
+    unfold eUnion'.
+    repeat rewrite Vbuild_nth.
+    break_if.
+    +
+      subst.
+      rewrite Vhead_Vmap.
+      apply castWriter_mkValue_evalWriter.
+    +
+      apply castWriter_mkStruct.
   -
     destruct n0; auto.
 Qed.

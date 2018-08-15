@@ -657,6 +657,16 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma castWriter_mkStruct
+      (fm1 fm2 : Monoid.Monoid RthetaFlags)
+      (r : CarrierA):
+  @WriterMonadNoT.castWriter _ _ fm1 fm2 (mkStruct r) = mkStruct r.
+Proof.
+  unfold equiv, Rtheta'_equiv.
+  unfold evalWriter, castWriter, mkStruct, runWriter.
+  reflexivity.
+Qed.
+
 (* For some reason class resolver could not figure this out on it's own *)
 Global Instance Rtheta_equiv: Equiv (Rtheta) := Rtheta'_equiv.
 Global Instance RStheta_equiv: Equiv (RStheta) := Rtheta'_equiv.
