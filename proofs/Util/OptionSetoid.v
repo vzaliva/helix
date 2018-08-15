@@ -1,11 +1,14 @@
 Require Import Coq.Classes.RelationClasses.
 
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.misc.util.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
 
 Require Import CoLoR.Util.Relation.RelUtil.
+
+Require Import Helix.Tactics.HelixTactics.
 
 Global Instance option_Equiv {T:Type} `{Te:Equiv T}:
   Equiv (option T) := @opt_r T Te.
@@ -109,4 +112,21 @@ Proof.
     intros H.
     inversion H.
     reflexivity.
+Qed.
+
+Lemma is_Some_ne_None `(x : option A) :
+  is_Some x ↔ x ≢ None.
+Proof.
+  destruct x; intros; crush.
+Qed.
+
+Fact equiv_Some_is_Some `{Equiv A} (x:A) (y: option A):
+  (y = Some x) -> is_Some y.
+Proof.
+  dep_destruct y.
+  -
+    crush.
+  -
+    intros H0.
+    some_none_contradiction.
 Qed.

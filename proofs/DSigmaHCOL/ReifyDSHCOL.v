@@ -18,7 +18,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
-
+Require Import MathClasses.misc.util.
 
 Import MonadNotation.
 Require Import Coq.Lists.List. Import ListNotations.
@@ -370,7 +370,7 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                                                                          rei_op := dshcol |}))
                end.
 
-Lemma SHCompose_DSHCompose
+Theorem SHCompose_DSHCompose
       {i1 o2 o3} {fm}
       (σ: evalContext)
       (f: @SHOperator fm o2 o3)
@@ -403,7 +403,7 @@ Proof.
     some_none_contradiction.
 Qed.
 
-Lemma SHCOL_DSHCOL_equiv_SafeCast
+Theorem SHCOL_DSHCOL_equiv_SafeCast
       {i o: nat}
       (σ: evalContext)
       (s: @SHOperator Monoid_RthetaSafeFlags i o)
@@ -429,7 +429,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma SHCOL_DSHCOL_equiv_UnSafeCast
+Theorem SHCOL_DSHCOL_equiv_UnSafeCast
       {i o: nat}
       (σ: evalContext)
       (s: @SHOperator Monoid_RthetaFlags i o)
@@ -455,7 +455,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma SHBinOp_DSHBinOp
+Theorem SHBinOp_DSHBinOp
       {o: nat}
       {fm}
       (σ: evalContext)
@@ -506,7 +506,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma HTSUMUnion_DSHHTSUMUnion
+Theorem HTSUMUnion_DSHHTSUMUnion
       {i o: nat}
       {fm}
       (dot: CarrierA -> CarrierA -> CarrierA)
@@ -574,7 +574,7 @@ Proof.
 Qed.
 
 (* We are proving only a version for `Monoid_RthetaFlags` here. It should be possible to prove for any flags *)
-Lemma eUnion_DSHeUnion
+Theorem eUnion_DSHeUnion
       (σ: evalContext)
       {o b:nat}
       (bc: b < o)
@@ -618,7 +618,7 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
                           (s j)
                           d.
 
-Lemma IReduction_DSHIReduction
+Theorem IReduction_DSHIReduction
       {i o n}
       (dot: CarrierA -> CarrierA -> CarrierA)
       `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
@@ -652,7 +652,7 @@ Proof.
     admit.
 Admitted.
 
-Lemma SHPointwise_DSHPointwise
+Theorem SHPointwise_DSHPointwise
       {fm}
       {n: nat}
       (f: FinNat n -> CarrierA -> CarrierA)
@@ -686,7 +686,24 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma SHInductor_DSHInductor
+Lemma evalDSHInductor_not_None
+      (n : nat)
+      (initial : CarrierA)
+      (df : DSHBinCarrierA)
+      (σ Γ : evalContext)
+      (Edot: forall a b : CarrierA, is_Some (evalBinCarrierA (σ ++ Γ) df a b)) :
+  forall x : CarrierA, is_Some (evalDSHInductor (σ ++ Γ) n df initial x).
+Proof.
+  intros x.
+  induction n.
+  -
+    crush.
+  -
+    simpl.
+    break_match; crush.
+Qed.
+
+Theorem SHInductor_DSHInductor
       {fm}
       (n:nat)
       (f: CarrierA -> CarrierA -> CarrierA)
@@ -694,17 +711,67 @@ Lemma SHInductor_DSHInductor
       (initial: CarrierA)
       (dn:NExpr)
       (df: DSHBinCarrierA)
-      (Γ: evalContext)
+      (σ: evalContext)
   :
-    Some n = evalNexp Γ dn ->
-    (forall a b, Some (f a b) = evalBinCarrierA Γ df a b) ->
-    SHCOL_DSHCOL_equiv Γ
+    (forall Γ, Some n = evalNexp (σ++Γ) dn) ->
+    (forall  Γ a b, Some (f a b) = evalBinCarrierA (σ++Γ) df a b) ->
+    SHCOL_DSHCOL_equiv σ
                        (@SHInductor fm n f pF initial)
                        (DSHInductor dn df initial).
 Proof.
-Admitted.
+  intros E Edot.
+  intros Γ x.
+  specialize (E Γ).
+  specialize (Edot Γ).
+  simpl evalDSHOperator.
+  break_match; try some_none_contradiction.
+  apply Some_inj_equiv in E.
+  unfold equiv, peano_naturals.nat_equiv in E.
+  subst n0.
 
-Lemma eT_DSHeT
+  simpl op.
+  unfold SHInductor', Lst, Vconst, densify.
+  rewrite Vmap_cons.
+  rewrite evalWriter_Rtheta_liftM.
+  simpl.
+  dep_destruct x.
+  simpl.
+  clear x0 x.
+  generalize (WriterMonadNoT.evalWriter h). intros x. clear h.
+
+  break_match.
+  -
+    f_equiv.
+    apply Vcons_proper; try reflexivity.
+    clear dn Heqo.
+    dependent induction n.
+    +
+      crush.
+    +
+      simpl.
+      specialize (IHn f pF initial df σ Γ Edot).
+      simpl in Heqo0.
+      break_match.
+      *
+        rewrite IHn with (x:=x) (c:=c0).
+        specialize (Edot c0 x).
+        rewrite Heqo0 in Edot.
+        some_inv; auto.
+        auto.
+      *
+        some_none_contradiction.
+  -
+    contradict Heqo0.
+    apply is_Some_ne_None.
+    apply evalDSHInductor_not_None.
+    intros a b.
+    specialize (Edot a b).
+    symmetry in Edot.
+    apply equiv_Some_is_Some in Edot.
+    apply Edot.
+Qed.
+
+Theorem eT_DSHeT
       {fm}
       {i b:nat}
       (bc: b < i)
@@ -718,7 +785,7 @@ Lemma eT_DSHeT
 Proof.
 Admitted.
 
-Lemma ISumUnion_DSHISumUnion
+Theorem ISumUnion_DSHISumUnion
       {i o n}
       (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
       (dop_family: DSHOperator i o)
