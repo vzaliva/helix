@@ -138,7 +138,7 @@ Section SigmaHCOLHelperLemmas.
 
     unfold RStheta2Rtheta.
     symmetry.
-    apply castWriter_equiv.
+    apply castWriter_equiv with (fmx:=Monoid_RthetaSafeFlags).
     rewrite 2!evalWriter_mkValue.
     unfold rvector2rsvector.
     rewrite Vmap_map.

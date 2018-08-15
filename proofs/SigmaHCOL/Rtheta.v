@@ -380,6 +380,7 @@ Section Rtheta'Utils.
     reflexivity.
   Qed.
 
+
   (* mkStruct on evalWriter equiv wrt values *)
   Lemma mkStruct_evalWriter
         (r: Rtheta' fm):
@@ -644,6 +645,17 @@ Section Rtheta'Utils.
   End WithMonoidLaws.
 
 End Rtheta'Utils.
+
+Lemma castWriter_mkValue_evalWriter
+      (fm1 fm2 : Monoid.Monoid RthetaFlags)
+      (r : Rtheta' fm1):
+  WriterMonadNoT.castWriter fm2 r = mkValue (WriterMonadNoT.evalWriter r).
+Proof.
+  unfold equiv, Rtheta'_equiv.
+  unfold evalWriter, castWriter, mkValue, runWriter.
+  destruct r.
+  reflexivity.
+Qed.
 
 (* For some reason class resolver could not figure this out on it's own *)
 Global Instance Rtheta_equiv: Equiv (Rtheta) := Rtheta'_equiv.
@@ -973,15 +985,21 @@ Section Zero_Utils.
 End Zero_Utils.
 
 Lemma castWriter_equiv
-      {fmx fmy}
+      (fmx fmy: Monoid RthetaFlags)
       (x: Rtheta' fmx)
-      (y:Rtheta' fmy):
+      (y: Rtheta' fmy):
   WriterMonadNoT.evalWriter x = WriterMonadNoT.evalWriter y
-  -> WriterMonadNoT.castWriter _ x = y.
+  <-> WriterMonadNoT.castWriter _ x = y.
 Proof.
-  intros H.
-  unfold WriterMonadNoT.castWriter,WriterMonadNoT.castWriterT,compose.
-  unfold equiv, Rtheta'_equiv.
-  rewrite <- H.
-  reflexivity.
+  split; intros H.
+  -
+    unfold WriterMonadNoT.castWriter,WriterMonadNoT.castWriterT,compose.
+    unfold equiv, Rtheta'_equiv.
+    rewrite <- H.
+    reflexivity.
+  -
+    unfold WriterMonadNoT.castWriter,WriterMonadNoT.castWriterT,compose.
+    unfold equiv, Rtheta'_equiv.
+    rewrite <- H.
+    reflexivity.
 Qed.

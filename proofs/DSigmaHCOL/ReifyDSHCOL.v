@@ -772,18 +772,41 @@ Proof.
 Qed.
 
 Theorem eT_DSHeT
-      {fm}
-      {i b:nat}
-      (bc: b < i)
-      (db:NExpr)
-      (Γ: evalContext)
+        {fm}
+        {i b:nat}
+        (bc: b < i)
+        (db: NExpr)
+        (σ: evalContext)
   :
-    Some b = evalNexp Γ db ->
-    SHCOL_DSHCOL_equiv Γ
+    (forall (Γ:evalContext), Some b = evalNexp (σ++Γ) db) ->
+    SHCOL_DSHCOL_equiv σ
                        (@eT fm i b bc)
                        (@DSHeT i (db:NExpr)).
 Proof.
-Admitted.
+  intros H.
+  intros Γ x.
+  specialize (H Γ).
+  simpl.
+  break_match; try some_none_contradiction.
+  break_match; some_inv; unfold equiv, peano_naturals.nat_equiv in H; subst n.
+  -
+    f_equiv.
+    unfold unLiftM_HOperator', compose.
+    vec_index_equiv j jc.
+    unfold densify, sparsify.
+    repeat rewrite Vnth_map.
+    rewrite Vmap_map.
+    dep_destruct jc;try inversion x0.
+    rewrite Vnth_cons.
+    break_match. inversion l0.
+    apply castWriter_equiv.
+    simpl.
+    rewrite Vnth_map.
+    replace l with bc by apply proof_irrelevance.
+    apply castWriter_mkValue_evalWriter.
+  -
+    destruct n0; auto.
+Qed.
 
 Theorem ISumUnion_DSHISumUnion
       {i o n}
