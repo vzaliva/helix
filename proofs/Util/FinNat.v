@@ -25,6 +25,14 @@ Definition mkSFinNat {d: nat} (x:FinNat d): FinNat (S d) :=
 Definition mkSFinNat' {d d': nat} (E: d ≡ S d'): FinNat d
   := @mkFinNat d d' (eq_ind_r (fun d0 => d' < d0) (le_n (S d')) E).
 
+Lemma mkSFinNat_proj1_eq {d: nat} (x:FinNat d):
+  proj1_sig x ≡ proj1_sig (mkSFinNat x).
+Proof.
+  unfold mkSFinNat.
+  break_let.
+  reflexivity.
+Qed.
+
 Program Definition expandFinNat {d d': nat} (E: d ≡ S d') (x:FinNat d'): FinNat d
   := @mkFinNat d (proj1_sig x) _.
 

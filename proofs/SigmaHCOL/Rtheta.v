@@ -674,6 +674,12 @@ Global Instance RStheta_equiv: Equiv (RStheta) := Rtheta'_equiv.
 Ltac unfold_Rtheta_equiv := unfold equiv, Rtheta_equiv, Rtheta'_equiv in *.
 Ltac unfold_RStheta_equiv := unfold equiv, RStheta_equiv, Rtheta'_equiv in *.
 
+Ltac fold_Rtheta'_equiv :=
+  match goal with
+  | [ |- @evalWriter _ _ ?fm ?a = @evalWriter _ _ ?fm ?b ] =>
+    change (@evalWriter _ _ ?fm ?a = @evalWriter _ _ ?fm ?b) with (a=b)
+  end.
+
 Global Instance Rtheta2RStheta_proper
   : Proper ((=) ==> (=)) (Rtheta2RStheta).
 Proof.

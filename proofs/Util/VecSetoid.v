@@ -408,6 +408,30 @@ Section Vnth.
     assumption.
   Qed.
 
+  Global Instance Vnth_aux_arg_proper {n j : nat} (jc:j<n) (A:Type) `{Equiv A}:
+    Proper ((=) ==> (=)) (@Vnth_aux A n j jc).
+  Proof.
+    intros x y E.
+    dependent induction n.
+    -
+      VOtac.
+      nat_lt_0_contradiction.
+    -
+      rewrite (VSn_eq x).
+      rewrite (VSn_eq y).
+      simpl.
+      break_match.
+      +
+        rewrite (VSn_eq x) in E.
+        rewrite (VSn_eq y) in E.
+        apply E.
+      +
+        apply IHn.
+        rewrite (VSn_eq x) in E.
+        rewrite (VSn_eq y) in E.
+        apply E.
+  Qed.
+
   Global Instance Vnth_proper {n : nat} (A:Type) `{Equiv A}:
     Proper ((=) ==> (forall_relation
                      (fun i => pointwise_relation (i < n)%nat equiv)))

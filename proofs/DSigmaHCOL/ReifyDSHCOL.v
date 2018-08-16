@@ -9,6 +9,7 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecUtil.
 Require Import Helix.HCOL.HCOL.
+Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
@@ -652,8 +653,85 @@ Proof.
     rewrite evalWriter_mkStruct.
     reflexivity.
   -
-    admit.
-Admitted.
+    rewrite evalDSHOperator_DSHIReduction_Sn.
+    assert(nc: n < S n).
+    {
+      unfold lt, peano_naturals.nat_lt.
+      auto.
+    }
+    Opaque evalDSHOperator IReduction.
+    simpl.
+
+    assert(H: SHOperatorFamily_DSHCOL_equiv σ (shrink_op_family Monoid_RthetaSafeFlags op_family) dop_family).
+    {
+      intros j g x'.
+      simpl.
+      specialize (Hfam (mkSFinNat j) g x').
+      simpl in Hfam.
+      rewrite <- mkSFinNat_proj1_eq in Hfam.
+      rewrite <- Hfam.
+      unfold shrink_op_family.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      unfold mkSFinNat.
+      break_let.
+      reflexivity.
+    }
+
+    repeat break_match; try some_none_contradiction.
+    +
+      specialize (Hfam (mkFinNat nc) Γ x).
+      simpl in Hfam.
+      rewrite Heqo1 in Hfam.
+      some_inv.
+      specialize (IHn (shrink_op_family _ op_family) H).
+      some_inv.
+      clear  Heqo0 Heqo1 dop_family H.
+
+      rewrite Vmap2_as_Vbuild.
+      symmetry.
+      apply vsequence_Vbuild_equiv_Some.
+      unfold densify.
+      rewrite Vmap_map.
+      vec_index_equiv j jc.
+      rewrite Vbuild_nth.
+      rewrite Vnth_map.
+      rewrite <- Hdot.
+      clear Hdot Γ σ ddot.
+      f_equiv.
+
+      rewrite 2!Vnth_to_Vnth_aux.
+      rewrite <- Hfam. clear Hfam.
+      rewrite <- IHn. clear IHn.
+      rewrite <- 2!Vnth_to_Vnth_aux.
+      clear t0 t.
+
+      unfold densify.
+      rewrite 2!Vnth_map.
+      simpl.
+      Transparent evalDSHOperator IReduction.
+      unfold IReduction. simpl.
+
+      rewrite <- evalWriter_Rtheta_liftM2.
+      fold_Rtheta'_equiv.
+      symmetry.
+      apply Vnth_Diamond'_Sn.
+      apply pdot.
+    +
+      exfalso.
+      clear IHn.
+      specialize (Hfam (mkFinNat nc) Γ x).
+      simpl in Hfam.
+      rewrite Heqo1 in Hfam.
+      some_none_contradiction.
+    +
+      exfalso.
+      clear Hfam.
+      specialize (IHn (shrink_op_family _ op_family) H).
+      some_none_contradiction.
+Qed.
 
 Theorem SHPointwise_DSHPointwise
       {fm}

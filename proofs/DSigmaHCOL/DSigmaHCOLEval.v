@@ -333,6 +333,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma evalDSHOperator_DSHIReduction_Sn
+      {i o: nat}
+      (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA)
+      (op: DSHOperator i o)
+      (x: avector i)
+      {Γ: evalContext}
+  :
+    evalDSHOperator Γ (@DSHIReduction i o (S n) dot initial op) x =
+    (t <- evalDSHOperator Γ (@DSHIReduction i o n dot initial op) x ;;
+       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
+       vsequence (Vmap2 (evalBinCarrierA Γ dot) v t)).
+Proof.
+  reflexivity.
+Qed.
+
 Lemma evalDSHOperator_DSHISumUnion_DSHIUnion
       {i o n: nat}
       {body: DSHOperator i o}

@@ -1496,7 +1496,6 @@ Definition USparseEmbedding
 Section OperatorProperies.
 
   Variable fm:Monoid RthetaFlags.
-  Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
   Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -1909,6 +1908,24 @@ Section OperatorProperies.
     rewrite Vmap_Vbuild.
     reflexivity.
   Qed.
+
+  Lemma Vnth_Diamond'_Sn
+        {i o n : nat}
+        (dot : CarrierA → CarrierA → CarrierA)
+        `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+        (initial : CarrierA)
+        (op_family : SHOperatorFamily fm)
+        (x : svector fm i)
+        (nc : n < S n)
+        (j : nat)
+        (jc : (j < o)%nat):
+    Vnth (Diamond' dot initial (get_family_op fm op_family) x) jc =
+    Monad.liftM2
+      dot
+      (Vnth (op fm (op_family (mkFinNat nc)) x) jc)
+      (Vnth (Diamond' dot initial (get_family_op fm (shrink_op_family fm op_family)) x) jc).
+  Proof.
+  Admitted.
 
 End OperatorProperies.
 

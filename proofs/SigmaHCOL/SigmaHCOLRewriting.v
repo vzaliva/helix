@@ -761,6 +761,7 @@ Section SigmaHCOLHelperLemmas.
     Proof.
       auto.
     Qed.
+
   End WithMonoid.
 
 End SigmaHCOLHelperLemmas.
