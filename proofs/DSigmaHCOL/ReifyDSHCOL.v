@@ -893,14 +893,115 @@ Theorem ISumUnion_DSHISumUnion
       {i o n}
       (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
       (dop_family: DSHOperator i o)
-      (Γ: evalContext)
+      (σ: evalContext)
   :
-    SHOperatorFamily_DSHCOL_equiv Γ op_family dop_family ->
-    SHCOL_DSHCOL_equiv Γ
+    SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
+    SHCOL_DSHCOL_equiv σ
                        (@ISumUnion i o n op_family)
                        (@DSHISumUnion i o n dop_family).
 Proof.
-Admitted.
+  (* significant code duplication with `IReduction_DSHIReduction` *)
+  intros Hfam Γ x.
+
+  induction n.
+  -
+    simpl.
+    f_equiv.
+    unfold Diamond', MUnion', Apply_Family'.
+    simpl.
+    vec_index_equiv j jc.
+    unfold densify.
+    rewrite Vnth_map.
+    rewrite 2!Vnth_const.
+    rewrite evalWriter_mkStruct.
+    reflexivity.
+  -
+    rewrite evalDSHOperator_DSHISumunion_Sn.
+    assert(nc: n < S n).
+    {
+      unfold lt, peano_naturals.nat_lt.
+      auto.
+    }
+    Opaque evalDSHOperator ISumUnion.
+    simpl.
+
+    assert(H: SHOperatorFamily_DSHCOL_equiv σ (shrink_op_family Monoid_RthetaFlags op_family) dop_family).
+    {
+      intros j g x'.
+      simpl.
+      specialize (Hfam (mkSFinNat j) g x').
+      simpl in Hfam.
+      rewrite <- mkSFinNat_proj1_eq in Hfam.
+      rewrite <- Hfam.
+      unfold shrink_op_family.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      unfold mkSFinNat.
+      break_let.
+      reflexivity.
+    }
+
+    assert(Hdot: forall Γ a b, Some (plus a b) = evalBinCarrierA (σ++Γ) (APlus (AVar 1) (AVar 0)) a b).
+    {
+      intros g a b.
+      unfold evalBinCarrierA.
+      reflexivity.
+    }
+
+    repeat break_match; try some_none_contradiction.
+    +
+      specialize (Hfam (mkFinNat nc) Γ x).
+      simpl in Hfam.
+      rewrite Heqo1 in Hfam.
+      some_inv.
+      specialize (IHn (shrink_op_family _ op_family) H).
+      some_inv.
+      clear  Heqo0 Heqo1 dop_family H.
+
+      rewrite Vmap2_as_Vbuild.
+      symmetry.
+      apply vsequence_Vbuild_equiv_Some.
+      unfold densify.
+      rewrite Vmap_map.
+      vec_index_equiv j jc.
+      rewrite Vbuild_nth.
+      rewrite Vnth_map.
+      rewrite <- Hdot.
+      clear Γ σ Hdot.
+      f_equiv.
+
+      rewrite 2!Vnth_to_Vnth_aux.
+      rewrite <- Hfam. clear Hfam.
+      rewrite <- IHn. clear IHn.
+      rewrite <- 2!Vnth_to_Vnth_aux.
+      clear t0 t.
+
+      unfold densify.
+      rewrite 2!Vnth_map.
+      simpl.
+      Transparent evalDSHOperator ISumUnion.
+      unfold ISumUnion, IUnion. simpl.
+
+      rewrite <- evalWriter_Rtheta_liftM2.
+      fold_Rtheta'_equiv.
+      symmetry.
+      apply Vnth_Diamond'_Sn.
+      typeclasses eauto.
+    +
+      exfalso.
+      clear IHn.
+      specialize (Hfam (mkFinNat nc) Γ x).
+      simpl in Hfam.
+      rewrite Heqo1 in Hfam.
+      some_none_contradiction.
+    +
+      exfalso.
+      clear Hfam.
+      specialize (IHn (shrink_op_family _ op_family) H).
+      some_none_contradiction.
+Qed.
 
 (* for testing *)
 Require Import Helix.DynWin.DynWin.

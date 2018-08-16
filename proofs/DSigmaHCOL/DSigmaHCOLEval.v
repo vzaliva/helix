@@ -348,6 +348,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma evalDSHOperator_DSHISumunion_Sn
+      {i o: nat}
+      (n:nat)
+      (op: DSHOperator i o)
+      (x: avector i)
+      {Γ: evalContext}
+  :
+    evalDSHOperator Γ (@DSHISumUnion i o (S n) op) x =
+    (t <- evalDSHOperator Γ (@DSHISumUnion i o n op) x ;;
+       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
+       vsequence (Vmap2 (evalBinCarrierA Γ (APlus (AVar 1) (AVar 0))) v t)).
+Proof.
+  reflexivity.
+Qed.
+
 Lemma evalDSHOperator_DSHISumUnion_DSHIUnion
       {i o n: nat}
       {body: DSHOperator i o}
