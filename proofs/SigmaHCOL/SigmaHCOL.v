@@ -1925,6 +1925,18 @@ Section OperatorProperies.
       (Vnth (op fm (op_family (mkFinNat nc)) x) jc)
       (Vnth (Diamond' dot initial (get_family_op fm (shrink_op_family fm op_family)) x) jc).
   Proof.
+    unfold Diamond'.
+    unfold Apply_Family'.
+    rewrite Vbuild_cons.
+    rewrite MUnion'_cons.
+
+    unfold Vec2Union.
+    unfold_Rtheta_equiv.
+    rewrite evalWriter_Rtheta_liftM2.
+
+    unfold SVector.Union.
+    rewrite Vnth_map2.
+    rewrite evalWriter_Rtheta_liftM2.
   Admitted.
 
 End OperatorProperies.
