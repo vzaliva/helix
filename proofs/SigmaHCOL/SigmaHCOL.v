@@ -243,10 +243,17 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
 
+    (* Shrink family by removing the last member *)
     Definition shrink_op_family
                {i o n}
                (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n
       := fun jf => op_family (mkFinNat (@le_S (S (proj1_sig jf)) n (proj2_sig jf))).
+
+    (* Shrink family by removing first memeber *)
+    Definition shrink_op_family_up
+               {i o n}
+               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n
+      := fun jf => op_family (mkFinNat (lt_n_S (proj2_sig jf))).
 
     Lemma shrink_op_family_facts
           (i o k : nat)
@@ -1922,22 +1929,21 @@ Section OperatorProperies.
     Vnth (Diamond' dot initial (get_family_op fm op_family) x) jc =
     Monad.liftM2
       dot
-      (Vnth (op fm (op_family (mkFinNat nc)) x) jc)
-      (Vnth (Diamond' dot initial (get_family_op fm (shrink_op_family fm op_family)) x) jc).
+      (Vnth (Diamond' dot initial (get_family_op fm (shrink_op_family_up fm op_family)) x) jc)
+      (Vnth (op fm (op_family (@mkFinNat _ 0  (Nat.lt_0_succ n))) x) jc).
   Proof.
     unfold Diamond'.
     unfold Apply_Family'.
     rewrite Vbuild_cons.
     rewrite MUnion'_cons.
-
     unfold Vec2Union.
     unfold_Rtheta_equiv.
     rewrite evalWriter_Rtheta_liftM2.
-
     unfold SVector.Union.
     rewrite Vnth_map2.
     rewrite evalWriter_Rtheta_liftM2.
-  Admitted.
+    reflexivity.
+  Qed.
 
 End OperatorProperies.
 

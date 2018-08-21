@@ -82,6 +82,34 @@ Proof.
     apply Ef; auto.
 Qed.
 
+Global Instance Vfold_left_rev_arg_proper
+       (A B : Type)
+       `{Ae: Equiv A}
+       `{Aeq: Equivalence A Ae}
+       `{Be: Equiv B}
+       (f : A → B → A)
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       (n : nat)
+       (initial : A)
+  :
+    Proper ((=) ==> (=)) (@Vfold_left_rev A B f n initial).
+Proof.
+  intros v v' Ev.
+  induction n; simpl; intros.
+  -
+    dep_destruct v.
+    dep_destruct v'.
+    reflexivity.
+  -
+    dep_destruct v.
+    dep_destruct v'.
+    simpl.
+    apply f_mor.
+    apply IHn.
+    apply Ev.
+    apply Ev.
+Qed.
+
 Global Instance Vfold_right_proper
        (A B : Type)
        `{Ae: Equiv A}

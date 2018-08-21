@@ -60,10 +60,10 @@ Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
 Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
   match e with
   | AVar i => v <- (nth_error st i) ;;
-               (match v with
-                | DSHCarrierAVar x => Some x
-                | _ => None
-                end)
+                (match v with
+                 | DSHCarrierAVar x => Some x
+                 | _ => None
+                 end)
   | AConst x => Some x
   | AAbs x =>  liftM abs (evalAexp st x)
   | APlus a b => liftM2 plus (evalAexp st a) (evalAexp st b)
@@ -135,8 +135,43 @@ Definition evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initia
            (fun _ (x:option CarrierA) => x' <- x ;; evalBinCarrierA Γ f x' v)
            n.
 
+Definition optDot
+           {n}
+           (dot: CarrierA -> CarrierA -> option CarrierA)
+           (a b: option (avector n)): option (avector n)
+  :=
+    a' <- a ;;
+       b' <- b ;;
+       vsequence (Vmap2 dot a' b').
+
+Global Instance optDot_arg_proper
+       {n:nat}
+       {f: CarrierA → CarrierA → option CarrierA}
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}:
+  Proper (equiv ==> equiv ==> equiv) (optDot (n:=n) f).
+Proof.
+  intros x x' Ex y y' Ey.
+  unfold optDot.
+  simpl.
+  repeat break_match; try reflexivity; try some_none_contradiction.
+  apply vsequence_option_proper.
+  repeat some_inv.
+  f_equiv; auto.
+Qed.
+
+Definition evalDiamond
+           {n o: nat}
+           (dot: CarrierA → CarrierA → option CarrierA)
+           (initial: CarrierA)
+           (m: vector (option (avector o)) n)
+  : option (avector o)
+  := Vfold_left_rev (optDot dot) (Some (Vconst initial o)) m.
+
 Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i) {struct op}: option (avector o) :=
   match op with
+  | DSHNLet exp body =>
+    fun x =>
+      e <- evalNexp Γ exp ;; evalDSHOperator (DSHnatVar e :: Γ) body x
   | @DSHeUnion o be z =>
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
@@ -159,34 +194,19 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
                                     ret (Lst r)
   | @DSHIUnion i o n dot initial body =>
     fun (x:avector i) =>
-      nat_rect _
-               (Some (Vconst initial o))
-               (fun j (t:option (avector o)) =>
-                  t' <- t ;;
-                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
-                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
-               n
+      evalDiamond (evalBinCarrierA Γ dot) initial
+                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
   | @DSHISumUnion i o n body =>
     fun (x:avector i) =>
       let dot := APlus (AVar 1) (AVar 0) in
       let initial := zero in
-      nat_rect _
-               (Some (Vconst initial o))
-               (fun j (t:option (avector o)) =>
-                  t' <- t ;;
-                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
-                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
-               n
+      evalDiamond (evalBinCarrierA Γ dot) initial
+                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
   | @DSHIReduction i o n dot initial body =>
     (* Actually same as IUnion *)
     fun (x:avector i) =>
-      nat_rect _
-               (Some (Vconst initial o))
-               (fun j (t:option (avector o)) =>
-                  t' <- t ;;
-                     v' <- evalDSHOperator (DSHnatVar j :: Γ) body x ;;
-                     vsequence (Vmap2 (evalBinCarrierA Γ dot) v' t'))
-               n
+      evalDiamond (evalBinCarrierA Γ dot) initial
+                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
   | @DSHCompose i1 o2 o3 f g =>
     fun v => evalDSHOperator Γ g v >>= evalDSHOperator Γ f
   | @DSHHTSUMUnion i o dot f g =>
@@ -316,51 +336,6 @@ Proof.
     constructor; auto.
   -
     auto.
-Qed.
-
-Lemma evalDSHOperator_DSHIUnion_Sn
-      {i o: nat}
-      (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA)
-      (op: DSHOperator i o)
-      (x: avector i)
-      {Γ: evalContext}
-  :
-    evalDSHOperator Γ (@DSHIUnion i o (S n) dot initial op) x =
-    (t <- evalDSHOperator Γ (@DSHIUnion i o n dot initial op) x ;;
-       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
-       vsequence (Vmap2 (evalBinCarrierA Γ dot) v t)).
-Proof.
-  reflexivity.
-Qed.
-
-Lemma evalDSHOperator_DSHIReduction_Sn
-      {i o: nat}
-      (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA)
-      (op: DSHOperator i o)
-      (x: avector i)
-      {Γ: evalContext}
-  :
-    evalDSHOperator Γ (@DSHIReduction i o (S n) dot initial op) x =
-    (t <- evalDSHOperator Γ (@DSHIReduction i o n dot initial op) x ;;
-       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
-       vsequence (Vmap2 (evalBinCarrierA Γ dot) v t)).
-Proof.
-  reflexivity.
-Qed.
-
-Lemma evalDSHOperator_DSHISumunion_Sn
-      {i o: nat}
-      (n:nat)
-      (op: DSHOperator i o)
-      (x: avector i)
-      {Γ: evalContext}
-  :
-    evalDSHOperator Γ (@DSHISumUnion i o (S n) op) x =
-    (t <- evalDSHOperator Γ (@DSHISumUnion i o n op) x ;;
-       v <- evalDSHOperator (DSHnatVar n :: Γ) op x ;;
-       vsequence (Vmap2 (evalBinCarrierA Γ (APlus (AVar 1) (AVar 0))) v t)).
-Proof.
-  reflexivity.
 Qed.
 
 Lemma evalDSHOperator_DSHISumUnion_DSHIUnion
@@ -500,50 +475,47 @@ Proof.
       reflexivity.
   -
     induction n.
-    +
-      reflexivity.
-    +
-      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
-      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
-      specialize (IHop x y E (DSHnatVar n :: Γ) ).
-      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
-      apply vsequence_option_proper.
-      eapply Vmap2_proper.
-      apply evalBinCarrierA_proper; reflexivity.
-      apply Some_inj_equiv, IHop.
-      apply Some_inj_equiv, IHn.
+    + reflexivity.
+    + simpl.
+      unfold evalDiamond.
+      eapply Vfold_left_rev_arg_proper.
+      * typeclasses eauto.
+      * unshelve eapply optDot_arg_proper.
+        apply evalBinCarrierA_proper; auto.
+      * apply Vbuild_proper.
+        intros j jc.
+        apply IHop.
+        apply E.
   -
     rewrite evalDSHOperator_DSHISumUnion_DSHIUnion.
     (* Same proof as for IUnion (above) *)
     induction n.
-    +
-      reflexivity.
-    +
-      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
-      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
-      specialize (IHop x y E (DSHnatVar n :: Γ) ).
-      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
-      apply vsequence_option_proper.
-      eapply Vmap2_proper.
-      apply evalBinCarrierA_proper; reflexivity.
-      apply Some_inj_equiv, IHop.
-      apply Some_inj_equiv, IHn.
+    + reflexivity.
+    + simpl.
+      unfold evalDiamond.
+      eapply Vfold_left_rev_arg_proper.
+      * typeclasses eauto.
+      * unshelve eapply optDot_arg_proper.
+        apply evalBinCarrierA_proper; auto.
+      * apply Vbuild_proper.
+        intros j jc.
+        apply IHop.
+        apply E.
   -
     rewrite <- evalDSHOperator_DSHISumUnion_DSHIReduction.
     (* Same proof as for IUnion (above) *)
     induction n.
-    +
-      reflexivity.
-    +
-      rewrite 2!evalDSHOperator_DSHIUnion_Sn.
-      Opaque evalDSHOperator. simpl. Transparent evalDSHOperator.
-      specialize (IHop x y E (DSHnatVar n :: Γ) ).
-      repeat break_match ; subst; try reflexivity; try inversion IHn; try inversion IHop.
-      apply vsequence_option_proper.
-      eapply Vmap2_proper.
-      apply evalBinCarrierA_proper; reflexivity.
-      apply Some_inj_equiv, IHop.
-      apply Some_inj_equiv, IHn.
+    + reflexivity.
+    + simpl.
+      unfold evalDiamond.
+      eapply Vfold_left_rev_arg_proper.
+      * typeclasses eauto.
+      * unshelve eapply optDot_arg_proper.
+        apply evalBinCarrierA_proper; auto.
+      * apply Vbuild_proper.
+        intros j jc.
+        apply IHop.
+        apply E.
   -
     simpl.
     specialize (IHop2 x y E Γ).
