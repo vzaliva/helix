@@ -169,9 +169,6 @@ Definition evalDiamond
 
 Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i) {struct op}: option (avector o) :=
   match op with
-  | DSHNLet exp body =>
-    fun x =>
-      e <- evalNexp Γ exp ;; evalDSHOperator (DSHnatVar e :: Γ) body x
   | @DSHeUnion o be z =>
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
