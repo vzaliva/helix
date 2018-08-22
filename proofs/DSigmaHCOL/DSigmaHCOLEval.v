@@ -320,7 +320,7 @@ Proof.
   - proper_eval2 IHEe1 IHEe2.
 Qed.
 
-Lemma evalBinCarrierA_proper:
+Global Instance evalBinCarrierA_proper:
   Proper ((=) ==> (=) ==> (=)) evalBinCarrierA.
 Proof.
   intros c1 c2 Ec e1 e2 Ee.
@@ -475,14 +475,11 @@ Proof.
     + reflexivity.
     + simpl.
       unfold evalDiamond.
-      eapply Vfold_left_rev_arg_proper.
-      * typeclasses eauto.
-      * unshelve eapply optDot_arg_proper.
-        apply evalBinCarrierA_proper; auto.
-      * apply Vbuild_proper.
-        intros j jc.
-        apply IHop.
-        apply E.
+      eapply Vfold_left_rev_arg_proper; try typeclasses eauto.
+      apply Vbuild_proper.
+      intros j jc.
+      apply IHop.
+      apply E.
   -
     rewrite evalDSHOperator_DSHISumUnion_DSHIUnion.
     (* Same proof as for IUnion (above) *)
@@ -492,8 +489,7 @@ Proof.
       unfold evalDiamond.
       eapply Vfold_left_rev_arg_proper.
       * typeclasses eauto.
-      * unshelve eapply optDot_arg_proper.
-        apply evalBinCarrierA_proper; auto.
+      * apply optDot_arg_proper.
       * apply Vbuild_proper.
         intros j jc.
         apply IHop.
@@ -507,8 +503,7 @@ Proof.
       unfold evalDiamond.
       eapply Vfold_left_rev_arg_proper.
       * typeclasses eauto.
-      * unshelve eapply optDot_arg_proper.
-        apply evalBinCarrierA_proper; auto.
+      * apply optDot_arg_proper.
       * apply Vbuild_proper.
         intros j jc.
         apply IHop.
