@@ -114,6 +114,25 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma Vmap_Vmap2
+      {A1 A2 B C: Type}
+      {n: nat}
+      {x1: vector A1 n}
+      {x2: vector A2 n}
+      {g: B -> C}
+      {f: A1 -> A2 -> B}
+  :
+    Vmap g (Vmap2 f x1 x2) = Vmap2 (fun a b => g (f a b)) x1 x2.
+Proof.
+  induction n.
+  -
+    reflexivity.
+  -
+    simpl.
+    rewrite <- IHn.
+    reflexivity.
+Qed.
+
 Lemma Vmap2_as_Vbuild (A B C : Type) (f: A->B->C) {n}
       {a: vector A n}
       {b: vector B n}:
