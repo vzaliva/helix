@@ -622,6 +622,18 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
                           (s j)
                           d.
 
+Lemma NVar_subst_S
+      {i o : nat}
+      (Γ σ : evalContext)
+      (dop_family : DSHOperator i o)
+      (y : vector CarrierA i)
+      (j : nat):
+  evalDSHOperator (DSHnatVar (S j) :: σ ++ Γ)  dop_family y =
+  evalDSHOperator (DSHnatVar j :: σ ++ Γ)
+                  (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family) y.
+Proof.
+Admitted.
+
 Theorem IReduction_DSHIReduction
       {i o n}
       (dot: CarrierA -> CarrierA -> CarrierA)
@@ -639,98 +651,105 @@ Theorem IReduction_DSHIReduction
                        (@DSHIReduction i o n ddot initial dop_family).
 Proof.
   intros Hdot Hfam Γ x.
+  simpl.
+  unfold Diamond', MUnion', Apply_Family', evalDiamond, densify.
 
+  revert op_family dop_family Hfam.
   induction n.
   -
+    intros op_family dop_family Hfam.
     simpl.
     f_equiv.
-    unfold Diamond', MUnion', Apply_Family'.
-    simpl.
     vec_index_equiv j jc.
-    unfold densify.
     rewrite Vnth_map.
     rewrite 2!Vnth_const.
     rewrite evalWriter_mkStruct.
     reflexivity.
   -
-    rewrite evalDSHOperator_DSHIReduction_Sn.
-    assert(nc: n < S n).
+    intros op_family dop_family Hfam.
+
+    assert(E: SHOperatorFamily_DSHCOL_equiv σ
+                                            (shrink_op_family_up Monoid_RthetaSafeFlags op_family)
+                                            (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family)).
     {
-      unfold lt, peano_naturals.nat_lt.
-      auto.
+      clear IHn dot pdot Hdot ddot x Γ.
+      intros jf Γ x.
+      unfold shrink_op_family_up.
+      specialize (Hfam (mkFinNat (Lt.lt_n_S (proj2_sig jf))) Γ x).
+      rewrite_clear Hfam.
+      simpl.
+      apply NVar_subst_S.
     }
-    Opaque evalDSHOperator IReduction.
+
+    specialize (IHn (shrink_op_family_up _ op_family)
+                    (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family)
+                    E
+               ).
+
+    rewrite 2!Vbuild_cons.
+    rewrite 2!Vfold_left_rev_cons.
+
+    unfold Vec2Union, get_family_op, shrink_op_family_up in *.
+
+    match goal with
+    | [IHn: ?a = ?b |- _ = optDot ?f ?c ?d] =>
+      setoid_replace c with b
+    end.
+    2:{
+      eapply Vfold_left_rev_arg_proper.
+      - typeclasses eauto.
+      - apply optDot_arg_proper; try reflexivity.
+      - apply Vbuild_proper.
+        intros j jc.
+        remember (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
+                        (@evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags) i x) as y.
+        apply NVar_subst_S.
+    }
+
+    rewrite <- IHn. clear IHn.
+
+    setoid_replace
+      (evalDSHOperator (DSHnatVar 0 :: σ ++ Γ) dop_family
+                       (Vmap (evalWriter (Monoid_W:=Monoid_RthetaSafeFlags)) x))
+      with
+        (Some
+           (densify Monoid_RthetaSafeFlags
+                    (op Monoid_RthetaSafeFlags
+                        (op_family (mkFinNat (Misc.zero_lt_Sn n))) x)))
+      by (symmetry; apply Hfam).
+
+    clear dop_family Hfam E.
+
+    unfold optDot, densify.
     simpl.
 
-    assert(H: SHOperatorFamily_DSHCOL_equiv σ (shrink_op_family Monoid_RthetaSafeFlags op_family) dop_family).
-    {
-      intros j g x'.
-      simpl.
-      specialize (Hfam (mkSFinNat j) g x').
-      simpl in Hfam.
-      rewrite <- mkSFinNat_proj1_eq in Hfam.
-      rewrite <- Hfam.
-      unfold shrink_op_family.
-      f_equiv.
-      f_equiv.
-      f_equiv.
-      f_equiv.
-      unfold mkSFinNat.
-      break_let.
-      reflexivity.
-    }
+    repeat rewrite Vmap2_as_Vbuild.
+    repeat rewrite Vmap_Vbuild.
+    setoid_rewrite Vnth_map.
+    unfold Union.
 
-    repeat break_match; try some_none_contradiction.
+    setoid_rewrite <- Hdot.
+    clear ddot Hdot Γ σ.
+
+    repeat rewrite <- Vmap_Vbuild.
+    rewrite vsequence_Vmap_Some.
+
+    f_equiv.
+    repeat rewrite Vmap_Vbuild.
+    apply Vbuild_proper.
+
+    intros j jc.
+    rewrite evalWriter_Rtheta_liftM2.
+    apply pdot.
     +
-      specialize (Hfam (mkFinNat nc) Γ x).
-      simpl in Hfam.
-      rewrite Heqo1 in Hfam.
-      some_inv.
-      specialize (IHn (shrink_op_family _ op_family) H).
-      some_inv.
-      clear  Heqo0 Heqo1 dop_family H.
-
-      rewrite Vmap2_as_Vbuild.
-      symmetry.
-      apply vsequence_Vbuild_equiv_Some.
-      unfold densify.
-      rewrite Vmap_map.
-      vec_index_equiv j jc.
-      rewrite Vbuild_nth.
-      rewrite Vnth_map.
-      rewrite <- Hdot.
-      clear Hdot Γ σ ddot.
       f_equiv.
-
-      rewrite 2!Vnth_to_Vnth_aux.
-      rewrite <- Hfam. clear Hfam.
-      rewrite <- IHn. clear IHn.
-      rewrite <- 2!Vnth_to_Vnth_aux.
-      clear t0 t.
-
-      unfold densify.
-      rewrite 2!Vnth_map.
-      simpl.
-      Transparent evalDSHOperator IReduction.
-      unfold IReduction. simpl.
-
-      rewrite <- evalWriter_Rtheta_liftM2.
-      fold_Rtheta'_equiv.
-      symmetry.
-      apply Vnth_Diamond'_Sn.
-      apply pdot.
     +
-      exfalso.
-      clear IHn.
-      specialize (Hfam (mkFinNat nc) Γ x).
-      simpl in Hfam.
-      rewrite Heqo1 in Hfam.
-      some_none_contradiction.
-    +
-      exfalso.
-      clear Hfam.
-      specialize (IHn (shrink_op_family _ op_family) H).
-      some_none_contradiction.
+      f_equiv.
+      apply Vnth_arg_equiv.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      apply proof_irrelevance.
 Qed.
 
 Theorem SHPointwise_DSHPointwise
