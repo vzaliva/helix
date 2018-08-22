@@ -530,3 +530,49 @@ Proof.
     apply H4.
     apply H1.
 Qed.
+
+Fixpoint NExpr_var_subst
+         (name: nat)
+         (value: NExpr)
+         (nexp: NExpr): NExpr :=
+  match nexp with
+  | NVar v =>
+    if eq_nat_dec v name
+    then value
+    else nexp
+  | NConst _ => nexp
+  | NDiv   a b => NDiv   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NMod   a b => NMod   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NPlus  a b => NPlus  (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NMinus a b => NMinus (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NMult  a b => NMult  (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NMin   a b => NMin   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  | NMax   a b => NMax   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
+  end.
+
+Fixpoint DSHOperator_NVar_subt
+         {i o: nat}
+         (name: nat)
+         (value: NExpr)
+         (exp: DSHOperator i o): DSHOperator i o :=
+  match exp with
+  | @DSHeUnion o be z => @DSHeUnion o (NExpr_var_subst name value be) z
+  | @DSHeT i be => @DSHeT i (NExpr_var_subst name value be)
+  | @DSHPointwise i f => @DSHPointwise i f
+  | @DSHBinOp o f => @DSHBinOp o f
+  | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne) f initial
+  | @DSHIUnion i o n dot initial body =>
+    @DSHIUnion i o n dot initial (DSHOperator_NVar_subt name value body)
+  | @DSHISumUnion i o n body =>
+    @DSHISumUnion i o n (DSHOperator_NVar_subt name value body)
+  | @DSHIReduction i o n dot initial body =>
+    @DSHIReduction i o n dot initial (DSHOperator_NVar_subt name value body)
+  | @DSHCompose i1 o2 o3 f g =>
+    @DSHCompose i1 o2 o3
+                (DSHOperator_NVar_subt name value f)
+                (DSHOperator_NVar_subt name value g)
+  | @DSHHTSUMUnion i o dot f g =>
+    @DSHHTSUMUnion i o dot
+                   (DSHOperator_NVar_subt name value f)
+                   (DSHOperator_NVar_subt name value g)
+  end.
