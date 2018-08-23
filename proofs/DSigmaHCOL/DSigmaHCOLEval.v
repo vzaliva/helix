@@ -583,7 +583,12 @@ Fixpoint DSHOperator_NVar_subt
                                                                (NVar (name+2))
                                                                value)
                                                             f)
-  | @DSHBinOp o f => @DSHBinOp o f
+  | @DSHBinOp o f => @DSHBinOp o (AExpr_natvar_subst (name+3)
+                                                    (NExpr_var_subst
+                                                       name
+                                                       (NVar (name+3))
+                                                       value)
+                                                    f)
   | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne) f initial
   | @DSHIUnion i o n dot initial body =>
     @DSHIUnion i o n dot initial (DSHOperator_NVar_subt name value body)

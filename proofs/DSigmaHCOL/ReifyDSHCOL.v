@@ -880,6 +880,22 @@ Proof.
     + compute; reflexivity.
     + compute; reflexivity.
   -
+    simpl.
+    unfold evalDSHBinOp, evalIBinCarrierA.
+    break_let.
+    apply vsequence_option_proper.
+    apply Vbuild_proper.
+    intros m mc.
+    apply AExpr_NVar_subst_S with (j:=j).
+    +
+      intros pos H.
+      destruct pos; crush.
+      destruct pos; crush.
+      destruct pos; crush.
+      destruct pos; crush.
+    + compute; reflexivity.
+    + compute; reflexivity.
+  -
 Admitted.
 
 Theorem IReduction_DSHIReduction
