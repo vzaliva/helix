@@ -351,3 +351,10 @@ Proof.
   unfold equiv, Sig_Equiv in E.
   auto.
 Qed.
+
+Require Import MathClasses.implementations.peano_naturals.
+
+Ltac nat_equiv_to_eq :=
+  match goal with
+  | [H: @equiv nat peano_naturals.nat_equiv ?a ?b |- _] => unfold equiv, peano_naturals.nat_equiv in H
+  end.
