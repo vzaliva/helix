@@ -853,16 +853,14 @@ Proof.
     pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
-    unfold equiv, peano_naturals.nat_equiv in H.
-    subst.
+    repeat nat_equiv_to_eq; subst.
     reflexivity.
   -
     simpl.
     pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
-    unfold equiv, peano_naturals.nat_equiv in H.
-    subst.
+    repeat nat_equiv_to_eq; subst.
     replace l0 with l by apply proof_irrelevance.
     reflexivity.
   -
@@ -896,6 +894,20 @@ Proof.
     + compute; reflexivity.
     + compute; reflexivity.
   -
+    simpl.
+    unfold evalDSHInductor.
+    HERE: looks like we need to repace in function as well. since gamma changed
+    pose proof (NExpr_NVar_subst_S_head (σ++Γ) n j) as H.
+    repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
+    f_equiv.
+    f_equiv.
+    repeat nat_equiv_to_eq; subst.
+    apply Some_inj_equiv.
+    rewrite <- Heqo0, <- Heqo2; clear Heqo0 Heqo2.
+
+
+    replace l0 with l by apply proof_irrelevance.
+    reflexivity.
 Admitted.
 
 Theorem IReduction_DSHIReduction
