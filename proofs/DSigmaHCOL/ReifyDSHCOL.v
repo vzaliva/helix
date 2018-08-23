@@ -3,6 +3,7 @@ Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Program.Basics.
 Require Import Template.All.
 
+Require Import Helix.Util.Misc.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.OptionSetoid.
@@ -592,7 +593,7 @@ Proof.
   specialize (H Γ).
   simpl.
   break_match; try some_none_contradiction.
-  break_match; some_inv; unfold equiv, peano_naturals.nat_equiv in H; subst n.
+  break_match; some_inv; repeat nat_equiv_to_eq; subst n.
   -
     f_equiv.
     unfold unLiftM_HOperator', compose.
@@ -622,7 +623,99 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
                           (s j)
                           d.
 
-Fact NExpr_NVar_subst_S
+Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
+  match nth_error l n with
+  | None => False
+  | Some x => x = v
+  end.
+
+Definition listsDiffByOneElement {A:Type} `{Equiv A} (l0 l1:list A) (n:nat) : Prop :=
+  forall i, i≢n -> nth_error l0 i = nth_error l1 i.
+
+Section NExpr_NVar_subst_S.
+
+  Local Ltac NExpr_NVar_subst_S_twoarg := simpl;
+                                          repeat break_match; auto; try some_none_contradiction;
+                                          f_equiv;
+                                          repeat some_inv;
+                                          crush.
+
+  Fact NExpr_NVar_subst_S
+       (Γ Γs: evalContext)
+       (pos: nat)
+       (exp : NExpr)
+       (j : nat):
+    listsDiffByOneElement Γ Γs pos ->
+    isNth Γ pos (DSHnatVar j) ->
+    isNth Γs pos (DSHnatVar (S j)) ->
+    evalNexp Γs exp =
+    evalNexp Γ (NExpr_var_subst pos (NPlus (NVar pos) (NConst 1)) exp).
+  Proof.
+    intros H H0 H1.
+    induction exp.
+    -
+      simpl.
+      unfold listsDiffByOneElement, isNth in *.
+      break_if.
+      +
+        (* accessing variable at pos *)
+        subst n.
+        simpl.
+        destruct (nth_error Γs pos); try contradiction.
+        destruct (nth_error Γ pos); try contradiction.
+        clear H.
+        rename d0 into a, d into b.
+        simpl.
+        repeat break_match ; subst; try reflexivity; try some_none_contradiction.
+        *
+          some_inv.
+          inversion H0. inversion H1. subst.
+          f_equiv.
+          repeat nat_equiv_to_eq; subst.
+          apply peano_naturals.S_nat_plus_1.
+        * inversion H0.
+        * inversion H0.
+        * inversion H1.
+        * inversion H1.
+      +
+        (* accessing some other variable *)
+        clear H0 H1.
+        simpl.
+        specialize (H n n0).
+        inversion H.
+        reflexivity.
+        inversion H2; try reflexivity.
+        f_equiv.
+        symmetry.
+        apply H3.
+    -
+      reflexivity.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+    - NExpr_NVar_subst_S_twoarg.
+  Qed.
+End NExpr_NVar_subst_S.
+
+Fact AExpr_NVar_subst_S
+     (Γ Γs: evalContext)
+     (pos: nat)
+     (exp : AExpr)
+     (j : nat):
+  listsDiffByOneElement Γ Γs pos ->
+  isNth Γ pos (DSHnatVar j) ->
+  isNth Γs pos (DSHnatVar (S j)) ->
+  evalAexp Γs exp =
+  evalAexp Γ (AExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
+Proof.
+Admitted.
+
+
+(* Specialized version of NExpr_NVar_subst_S *)
+Fact NExpr_NVar_subst_S_head
       (Γ: evalContext)
       (exp : NExpr)
       (j : nat):
@@ -630,26 +723,14 @@ Fact NExpr_NVar_subst_S
   evalNexp (DSHnatVar j :: Γ)
            (NExpr_var_subst 0 (NPlus (NVar 0) (NConst 1)) exp).
 Proof.
-  Local Ltac NExpr_NVar_subst_S_twoarg := simpl;
-                 repeat break_match; auto; try some_none_contradiction;
-                 f_equiv;
-                 repeat some_inv;
-                 crush.
-
-  induction exp.
+  eapply NExpr_NVar_subst_S with (j:=j).
   -
-    destruct n;repeat break_match; crush.
-    f_equiv.
-    apply peano_naturals.S_nat_plus_1.
-  -
-    destruct n;repeat break_match; crush.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
-  - NExpr_NVar_subst_S_twoarg.
+    intros pos H.
+    destruct pos.
+    + crush.
+    + reflexivity.
+  - compute; reflexivity.
+  - compute; reflexivity.
 Qed.
 
 Fact DSHOperator_NVar_subst_S
@@ -665,7 +746,7 @@ Proof.
   induction dop_family.
   -
     simpl.
-    pose proof (NExpr_NVar_subst_S (σ++Γ) b j) as H.
+    pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
     unfold equiv, peano_naturals.nat_equiv in H.
@@ -673,7 +754,7 @@ Proof.
     reflexivity.
   -
     simpl.
-    pose proof (NExpr_NVar_subst_S (σ++Γ) b j) as H.
+    pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
     unfold equiv, peano_naturals.nat_equiv in H.
@@ -683,9 +764,19 @@ Proof.
   -
     simpl.
     unfold evalDSHPointwise, evalIUnCarrierA.
-    HERE: define lemma similar to NExpr_NVar_subst_S but for AExpr
-    pose proof (NExpr_NVar_subst_S (σ++Γ) b j) as H.
-Qed.
+    apply vsequence_option_proper.
+    apply Vbuild_proper.
+    intros t tc.
+    apply AExpr_NVar_subst_S with (j:=j).
+    +
+      intros pos H.
+      destruct pos; crush.
+      destruct pos; crush.
+      destruct pos; crush.
+    + compute; reflexivity.
+    + compute; reflexivity.
+  -
+Admitted.
 
 Theorem IReduction_DSHIReduction
       {i o n}

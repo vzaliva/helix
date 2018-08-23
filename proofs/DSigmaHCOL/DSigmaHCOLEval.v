@@ -545,6 +545,11 @@ Fixpoint NExpr_var_subst
   | NMax   a b => NMax   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
   end.
 
+Fixpoint AExpr_natvar_subst
+         (name: nat)
+         (value: NExpr)
+         (aexp: AExpr): AExpr. Admitted.
+
 Fixpoint DSHOperator_NVar_subt
          {i o: nat}
          (name: nat)
@@ -553,7 +558,12 @@ Fixpoint DSHOperator_NVar_subt
   match exp with
   | @DSHeUnion o be z => @DSHeUnion o (NExpr_var_subst name value be) z
   | @DSHeT i be => @DSHeT i (NExpr_var_subst name value be)
-  | @DSHPointwise i f => @DSHPointwise i f
+  | @DSHPointwise i f => @DSHPointwise i (AExpr_natvar_subst (name+2)
+                                                            (NExpr_var_subst
+                                                               name
+                                                               (NVar (name+2))
+                                                               value)
+                                                            f)
   | @DSHBinOp o f => @DSHBinOp o f
   | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne) f initial
   | @DSHIUnion i o n dot initial body =>
