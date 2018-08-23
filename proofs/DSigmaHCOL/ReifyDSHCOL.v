@@ -632,13 +632,13 @@ Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
 Definition listsDiffByOneElement {A:Type} `{Equiv A} (l0 l1:list A) (n:nat) : Prop :=
   forall i, i≢n -> nth_error l0 i = nth_error l1 i.
 
-Section NExpr_NVar_subst_S.
+Section Expr_NVar_subst_S.
 
-  Local Ltac NExpr_NVar_subst_S_twoarg := simpl;
-                                          repeat break_match; auto; try some_none_contradiction;
-                                          f_equiv;
-                                          repeat some_inv;
-                                          crush.
+  Local Ltac twoarg := simpl;
+                       repeat break_match; auto; try some_none_contradiction;
+                       f_equiv;
+                       repeat some_inv;
+                       crush.
 
   Fact NExpr_NVar_subst_S
        (Γ Γs: evalContext)
@@ -690,28 +690,132 @@ Section NExpr_NVar_subst_S.
         apply H3.
     -
       reflexivity.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
-    - NExpr_NVar_subst_S_twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
   Qed.
-End NExpr_NVar_subst_S.
 
-Fact AExpr_NVar_subst_S
-     (Γ Γs: evalContext)
-     (pos: nat)
-     (exp : AExpr)
-     (j : nat):
-  listsDiffByOneElement Γ Γs pos ->
-  isNth Γ pos (DSHnatVar j) ->
-  isNth Γs pos (DSHnatVar (S j)) ->
-  evalAexp Γs exp =
-  evalAexp Γ (AExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
-Proof.
-Admitted.
+  Fact VExpr_NVar_subst_S
+       {d: nat}
+       (Γ Γs: evalContext)
+       (pos: nat)
+       (exp : VExpr d)
+       (j : nat):
+    listsDiffByOneElement Γ Γs pos ->
+    isNth Γ pos (DSHnatVar j) ->
+    isNth Γs pos (DSHnatVar (S j)) ->
+    evalVexp Γs exp =
+    evalVexp Γ (VExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
+  Proof.
+    intros H H0 H1.
+    induction exp.
+    -
+      simpl.
+      unfold listsDiffByOneElement, isNth in *.
+      destruct (PeanoNat.Nat.eq_dec n0 pos).
+      +
+        (* accessing variable at pos *)
+        subst n0.
+        destruct (nth_error Γs pos); try contradiction.
+        destruct (nth_error Γ pos); try contradiction.
+        clear H.
+        rename d0 into a, d into b.
+        simpl.
+        repeat break_match ; subst; try reflexivity.
+        * inversion H0.
+        * inversion H0.
+        * inversion H1.
+        * inversion H1.
+        * inversion H1.
+        * inversion H0.
+        * inversion H0.
+      +
+        (* accessing some other variable *)
+        clear H0 H1.
+        simpl.
+        specialize (H n0 n1).
+        inversion H.
+        reflexivity.
+        inversion H2; try reflexivity.
+        repeat break_match; try reflexivity.
+        subst.
+        symmetry.
+        compute.
+        f_equiv.
+        apply H3.
+    -
+      reflexivity.
+  Qed.
+
+  Fact AExpr_NVar_subst_S
+       (Γ Γs: evalContext)
+       (pos: nat)
+       (exp : AExpr)
+       (j : nat):
+    listsDiffByOneElement Γ Γs pos ->
+    isNth Γ pos (DSHnatVar j) ->
+    isNth Γs pos (DSHnatVar (S j)) ->
+    evalAexp Γs exp =
+    evalAexp Γ (AExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
+  Proof.
+    intros H H0 H1.
+    induction exp.
+    -
+      simpl.
+      unfold listsDiffByOneElement, isNth in *.
+      destruct (PeanoNat.Nat.eq_dec n pos).
+      +
+        (* accessing variable at pos *)
+        subst n.
+        destruct (nth_error Γs pos); try contradiction.
+        destruct (nth_error Γ pos); try contradiction.
+        clear H.
+        rename d0 into a, d into b.
+        simpl.
+        repeat break_match ; subst; try reflexivity.
+        * inversion H0.
+        * inversion H0. subst. inversion H1.
+        * inversion H1.
+        * inversion H1.
+        * inversion H1.
+      +
+        (* accessing some other variable *)
+        clear H0 H1.
+        simpl.
+        specialize (H n n0).
+        inversion H.
+        reflexivity.
+        inversion H2; try reflexivity.
+        f_equiv.
+        symmetry.
+        apply H3.
+    -
+      reflexivity.
+    -
+      rename n0 into ne.
+      simpl.
+      assert(V:evalVexp Γs v = evalVexp Γ (VExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) v)) by (apply VExpr_NVar_subst_S with (j0:=j); auto).
+      unfold listsDiffByOneElement, isNth in *.
+      assert (C: evalNexp Γs ne = evalNexp Γ (NExpr_var_subst pos (NPlus (NVar pos) (NConst 1)) ne)) by (apply NExpr_NVar_subst_S with (j:=j); auto).
+      twoarg.
+      repeat nat_equiv_to_eq.
+      subst.
+      replace l0 with l by apply proof_irrelevance; clear l0.
+      apply Vnth_proper, V.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+    - twoarg.
+  Qed.
+
+End Expr_NVar_subst_S.
 
 
 (* Specialized version of NExpr_NVar_subst_S *)

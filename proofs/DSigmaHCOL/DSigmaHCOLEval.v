@@ -545,10 +545,29 @@ Fixpoint NExpr_var_subst
   | NMax   a b => NMax   (NExpr_var_subst name value a) (NExpr_var_subst name value b)
   end.
 
+(* No natvars used in vector expressions *)
+Definition VExpr_natvar_subst
+         {n:nat}
+         (name: nat)
+         (value: NExpr)
+         (vexp: VExpr n): VExpr n := vexp.
+
 Fixpoint AExpr_natvar_subst
          (name: nat)
          (value: NExpr)
-         (aexp: AExpr): AExpr. Admitted.
+         (aexp: AExpr): AExpr :=
+  match aexp with
+  | AVar _ => aexp
+  | AConst _ => aexp
+  | ANth n ve ne => ANth n (VExpr_natvar_subst name value ve) (NExpr_var_subst name value ne)
+  | AAbs x => AAbs (AExpr_natvar_subst name value x)
+  | APlus  a b => APlus (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  | AMinus a b => AMinus (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  | AMult  a b => AMult (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  | AMin   a b => AMin (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  | AMax   a b => AMax (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  | AZless a b => AZless (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
+  end.
 
 Fixpoint DSHOperator_NVar_subt
          {i o: nat}
