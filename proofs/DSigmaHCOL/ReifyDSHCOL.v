@@ -896,15 +896,21 @@ Proof.
   -
     simpl.
     pose proof (NExpr_NVar_subst_S_head (σ++Γ) n j) as Hn.
-    repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
-    +
-      f_equiv.
-      f_equiv.
-      repeat nat_equiv_to_eq; subst.
-      apply Some_inj_equiv.
-      rewrite <- Heqo0, <- Heqo2; clear Heqo0 Heqo2 c c0.
-      generalize (Vhead y). intros y'. clear y. rename y' into y.
-      clear Heqo Heqo1.
+
+    match goal with
+    | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
+      destruct a ; destruct b
+    end; try some_none_contradiction; try reflexivity.
+    some_inv.
+    nat_equiv_to_eq.
+    subst n0.
+    generalize (Vhead y); intros y'; clear y; rename y' into y.
+
+    match goal with
+    | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
+      assert (C: a = b)
+    end.
+    {
       induction n1.
       * reflexivity.
       *
@@ -928,13 +934,15 @@ Proof.
         -- compute; reflexivity.
         -- some_none_contradiction.
         -- some_none_contradiction.
-    +
-      exfalso.
-      admit.
-    +
-      exfalso.
-      admit.
+    }
+
+    repeat break_match; try some_none_contradiction; try reflexivity.
+    f_equiv.
+    f_equiv.
+    some_inv.
+    apply C.
   -
+
 Admitted.
 
 Theorem IReduction_DSHIReduction
