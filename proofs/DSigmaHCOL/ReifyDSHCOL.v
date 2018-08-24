@@ -942,6 +942,51 @@ Proof.
     some_inv.
     apply C.
   -
+    simpl.
+    specialize (IHdop_family y).
+
+    assert(D: evalBinCarrierA (DSHnatVar (S j) :: σ ++ Γ) dot =
+              (evalBinCarrierA (DSHnatVar j :: σ ++ Γ)
+                               (AExpr_natvar_subst 2 (NPlus (NVar 2) (NConst 1)) dot))).
+    {
+      unfold evalBinCarrierA.
+      intros a a' Ea b b' Eb.
+      apply AExpr_NVar_subst_S with (j:=j).
+      -
+        intros pos H.
+        destruct pos. simpl; repeat constructor; auto.
+        destruct pos; simpl; repeat constructor; auto.
+        destruct pos. congruence.
+        reflexivity.
+      - compute; reflexivity.
+      - compute; reflexivity.
+    }
+
+    induction n.
+    + reflexivity.
+    +
+      unfold evalDiamond in *.
+      rewrite 2!Vbuild_cons.
+      rewrite 2!Vfold_left_rev_cons.
+
+
+      match goal with
+      | [IHn: ?a = ?b |- optDot ?f ?c ?d = optDot ?f' ?c' ?d'] =>
+        setoid_replace c' with a
+      end.
+
+
+      2:{
+        eapply Vfold_left_rev_arg_proper.
+        - typeclasses eauto.
+        - apply optDot_arg_proper; try reflexivity.
+        - apply Vbuild_proper.
+          intros t tc.
+          specialize (IHdop_family y t).
+
+      }
+
+      rewrite <- IHn. clear IHn.
 
 Admitted.
 
