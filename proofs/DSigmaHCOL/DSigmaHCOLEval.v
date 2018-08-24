@@ -129,11 +129,27 @@ Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avecto
   vsequence (Vbuild (fun i (ip:i<o) =>
                        evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip))).
 
-Definition evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
-  nat_rect _
-           (Some initial)
-           (fun _ (x:option CarrierA) => x' <- x ;; evalBinCarrierA Γ f x' v)
-           n.
+Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
+  match n with
+  | O => Some initial
+  | S p => t <- evalDSHInductor Γ p f initial v ;;
+            evalBinCarrierA Γ f t v
+  end.
+
+Lemma evalDSHInductor_Sn
+      (Γ: evalContext)
+      (n:nat)
+      (f: DSHBinCarrierA)
+      (initial: CarrierA)
+      (v:CarrierA):
+  evalDSHInductor Γ (S n) f initial v =
+  (
+    t <- evalDSHInductor Γ n f initial v ;;
+      evalBinCarrierA Γ f t v
+  ).
+Proof.
+  reflexivity.
+Qed.
 
 Definition optDot
            {n}
@@ -589,7 +605,14 @@ Fixpoint DSHOperator_NVar_subt
                                                        (NVar (name+3))
                                                        value)
                                                     f)
-  | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne) f initial
+  | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne)
+                                             (AExpr_natvar_subst (name+2)
+                                                    (NExpr_var_subst
+                                                       name
+                                                       (NVar (name+2))
+                                                       value)
+                                                    f)
+                                             initial
   | @DSHIUnion i o n dot initial body =>
     @DSHIUnion i o n dot initial (DSHOperator_NVar_subt name value body)
   | @DSHISumUnion i o n body =>
