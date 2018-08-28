@@ -1099,18 +1099,44 @@ Proof.
     simpl.
     match goal with
     | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
-      assert (C: a = b)
+      assert (C: a = b) by (apply IHdop_family2; auto)
     end.
-    {
-      apply IHdop_family2; auto.
-    }
     repeat break_match; try reflexivity; try some_none_contradiction.
     some_inv.
     rewrite <- C.
     eapply IHdop_family1; auto.
   -
-Admitted.
+    simpl.
+    match goal with
+    | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
+      assert (C0: a = b) by (apply IHdop_family1; auto)
+    end.
 
+    assert(C1: evalDSHOperator Γs dop_family2 y = evalDSHOperator Γ
+                                                                  (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1)) dop_family2) y) by (apply IHdop_family2; auto).
+
+    repeat break_match; try reflexivity; try some_none_contradiction; try contradiction.
+    repeat some_inv.
+    rewrite C0, C1.
+    apply vsequence_option_proper.
+    rewrite 2!Vmap2_as_Vbuild.
+    apply Vbuild_proper.
+    intros m mc.
+    unfold evalBinCarrierA.
+    replace (pos+2)%nat with (S (S pos)).
+    2:{
+      rewrite <- 2!plus_n_Sm.
+      rewrite PeanoNat.Nat.add_0_r.
+      reflexivity.
+    }
+    apply AExpr_NVar_subst_S with (j:=j).
+    --
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply L.
+    -- apply L0.
+    -- apply L1.
+Qed.
 
 Theorem IReduction_DSHIReduction
         {i o n}

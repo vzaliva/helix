@@ -674,7 +674,12 @@ Fixpoint DSHOperator_NVar_subt
                 (DSHOperator_NVar_subt name value f)
                 (DSHOperator_NVar_subt name value g)
   | @DSHHTSUMUnion i o dot f g =>
-    @DSHHTSUMUnion i o dot
+    @DSHHTSUMUnion i o (AExpr_natvar_subst (name+2)
+                                           (NExpr_var_subst
+                                              name
+                                              (NVar (name+2))
+                                              value)
+                                           dot)
                    (DSHOperator_NVar_subt name value f)
                    (DSHOperator_NVar_subt name value g)
   end.
