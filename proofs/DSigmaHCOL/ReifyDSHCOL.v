@@ -313,11 +313,11 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
     dt <- toDSHCOLType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
-             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
-             | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
-             | DSHvec m =>
-               a_m <- tmQuote m ;;
-                   tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
+              | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
+              | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
+              | DSHvec m =>
+                a_m <- tmQuote m ;;
+                    tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
              end) ;;
           ts <- build_dsh_globals gs ;;
           tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
@@ -366,19 +366,19 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                              let lemma_ast := build_forall globals lemma_concl in
                              (tmBind (tmUnquoteTyped Prop lemma_ast)
                                      (fun lemma_body => tmLemma lemma_name lemma_body
-                                                             ;;
-                                                             tmReturn {| rei_i := i;
-                                                                         rei_o := o;
-                                                                         rei_op := dshcol |}))
+                                                                ;;
+                                                                tmReturn {| rei_i := i;
+                                                                            rei_o := o;
+                                                                            rei_op := dshcol |}))
                end.
 
 Theorem SHCompose_DSHCompose
-      {i1 o2 o3} {fm}
-      (σ: evalContext)
-      (f: @SHOperator fm o2 o3)
-      (g: @SHOperator fm i1 o2)
-      (df: DSHOperator o2 o3)
-      (dg: DSHOperator i1 o2)
+        {i1 o2 o3} {fm}
+        (σ: evalContext)
+        (f: @SHOperator fm o2 o3)
+        (g: @SHOperator fm i1 o2)
+        (df: DSHOperator o2 o3)
+        (dg: DSHOperator i1 o2)
   :
     SHCOL_DSHCOL_equiv σ f df ->
     SHCOL_DSHCOL_equiv σ g dg ->
@@ -406,10 +406,10 @@ Proof.
 Qed.
 
 Theorem SHCOL_DSHCOL_equiv_SafeCast
-      {i o: nat}
-      (σ: evalContext)
-      (s: @SHOperator Monoid_RthetaSafeFlags i o)
-      (d: DSHOperator i o):
+        {i o: nat}
+        (σ: evalContext)
+        (s: @SHOperator Monoid_RthetaSafeFlags i o)
+        (d: DSHOperator i o):
   SHCOL_DSHCOL_equiv σ s d ->
   SHCOL_DSHCOL_equiv σ (TSigmaHCOL.SafeCast s) d.
 Proof.
@@ -432,10 +432,10 @@ Proof.
 Qed.
 
 Theorem SHCOL_DSHCOL_equiv_UnSafeCast
-      {i o: nat}
-      (σ: evalContext)
-      (s: @SHOperator Monoid_RthetaFlags i o)
-      (d: DSHOperator i o):
+        {i o: nat}
+        (σ: evalContext)
+        (s: @SHOperator Monoid_RthetaFlags i o)
+        (d: DSHOperator i o):
   SHCOL_DSHCOL_equiv σ s d ->
   SHCOL_DSHCOL_equiv σ (TSigmaHCOL.UnSafeCast s) d.
 Proof.
@@ -458,16 +458,16 @@ Proof.
 Qed.
 
 Theorem SHBinOp_DSHBinOp
-      {o: nat}
-      {fm}
-      (σ: evalContext)
-      (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
-      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      (df: DSHIBinCarrierA)
+        {o: nat}
+        {fm}
+        (σ: evalContext)
+        (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+        (df: DSHIBinCarrierA)
   :
     (forall (Γ: evalContext) j a b, Some (f j a b) = evalIBinCarrierA
-                                 (σ ++ Γ)
-                                 df (proj1_sig j) a b) ->
+                                                       (σ ++ Γ)
+                                                       df (proj1_sig j) a b) ->
     @SHCOL_DSHCOL_equiv (o+o) o fm σ
                         (@SHBinOp fm o f pF)
                         (DSHBinOp df).
@@ -509,14 +509,14 @@ Proof.
 Qed.
 
 Theorem HTSUMUnion_DSHHTSUMUnion
-      {i o: nat}
-      {fm}
-      (dot: CarrierA -> CarrierA -> CarrierA)
-      `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-      (ddot: DSHBinCarrierA)
-      (σ: evalContext)
-      (f g: @SHOperator fm i o)
-      (df dg: DSHOperator i o)
+        {i o: nat}
+        {fm}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+        (ddot: DSHBinCarrierA)
+        (σ: evalContext)
+        (f g: @SHOperator fm i o)
+        (df dg: DSHOperator i o)
   :
     SHCOL_DSHCOL_equiv σ f df ->
     SHCOL_DSHCOL_equiv σ g dg ->
@@ -623,14 +623,40 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
                           (s j)
                           d.
 
+(* TODO: move *)
 Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
   match nth_error l n with
   | None => False
   | Some x => x = v
   end.
 
-Definition listsDiffByOneElement {A:Type} `{Equiv A} (l0 l1:list A) (n:nat) : Prop :=
+(* TODO: move *)
+Lemma isNth_Sn {A:Type} `{Equiv A} (h:A) (l:list A) (n:nat) (v:A):
+  isNth (h :: l) (S n) v ≡ isNth l n v.
+Proof.
+  crush.
+Qed.
+
+Definition listsDiffByOneElement {A:Type} `{Ae:Equiv A} (l0 l1:list A) (n:nat) : Prop :=
   forall i, i≢n -> nth_error l0 i = nth_error l1 i.
+
+Lemma listsDiffByOneElement_Sn {A:Type} `{Ae:Equiv A} {Aeq: Equivalence Ae} (h0 h1:A) (l0 l1:list A) (n:nat):
+  h0 = h1 ->
+  listsDiffByOneElement l0 l1 n ->
+  listsDiffByOneElement (h0::l0) (h1::l1) (S n).
+Proof.
+  intros E H.
+  unfold listsDiffByOneElement in *.
+  intros i ic.
+  destruct i.
+  -
+    simpl.
+    some_apply.
+  -
+    simpl.
+    apply H.
+    crush.
+Qed.
 
 Section Expr_NVar_subst_S.
 
@@ -817,47 +843,33 @@ Section Expr_NVar_subst_S.
 
 End Expr_NVar_subst_S.
 
-
-(* Specialized version of NExpr_NVar_subst_S *)
-Fact NExpr_NVar_subst_S_head
-      (Γ: evalContext)
-      (exp : NExpr)
-      (j : nat):
-  evalNexp (DSHnatVar (S j) :: Γ) exp =
-  evalNexp (DSHnatVar j :: Γ)
-           (NExpr_var_subst 0 (NPlus (NVar 0) (NConst 1)) exp).
-Proof.
-  eapply NExpr_NVar_subst_S with (j:=j).
-  -
-    intros pos H.
-    destruct pos.
-    + crush.
-    + reflexivity.
-  - compute; reflexivity.
-  - compute; reflexivity.
-Qed.
-
 Fact DSHOperator_NVar_subst_S
-      {i o : nat}
-      (Γ σ : evalContext)
-      (dop_family : DSHOperator i o)
-      (y : vector CarrierA i)
-      (j : nat):
-  evalDSHOperator (DSHnatVar (S j) :: σ ++ Γ) dop_family y =
-  evalDSHOperator (DSHnatVar j :: σ ++ Γ)
-                  (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family) y.
+     {i o : nat}
+     (Γ Γs : evalContext)
+     (dop_family : DSHOperator i o)
+     (pos:nat)
+     (y : vector CarrierA i)
+     (j : nat):
+  listsDiffByOneElement Γ Γs pos ->
+  isNth Γ pos (DSHnatVar j) ->
+  isNth Γs pos (DSHnatVar (S j)) ->
+  evalDSHOperator Γs dop_family y =
+  evalDSHOperator Γ
+                  (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1)) dop_family) y.
 Proof.
-  induction dop_family.
+  revert Γ Γs.
+  revert pos.
+  induction dop_family; intros pos Γ Γs L L0 L1.
   -
     simpl.
-    pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
+    pose proof (NExpr_NVar_subst_S Γ Γs pos b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
     repeat nat_equiv_to_eq; subst.
     reflexivity.
   -
     simpl.
-    pose proof (NExpr_NVar_subst_S_head (σ++Γ) b j) as H.
+    pose proof (NExpr_NVar_subst_S Γ Γs pos b j) as H.
     repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
     f_equiv.
     repeat nat_equiv_to_eq; subst.
@@ -869,14 +881,21 @@ Proof.
     apply vsequence_option_proper.
     apply Vbuild_proper.
     intros t tc.
+    dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
+
+    replace (pos+2)%nat with (S (S pos)).
+    2:{
+      rewrite <- 2!plus_n_Sm.
+      rewrite PeanoNat.Nat.add_0_r.
+      reflexivity.
+    }
     apply AExpr_NVar_subst_S with (j:=j).
     +
-      intros pos H.
-      destruct pos; crush.
-      destruct pos; crush.
-      destruct pos; crush.
-    + compute; reflexivity.
-    + compute; reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply L.
+    + apply L0.
+    + apply L1.
   -
     simpl.
     unfold evalDSHBinOp, evalIBinCarrierA.
@@ -884,23 +903,40 @@ Proof.
     apply vsequence_option_proper.
     apply Vbuild_proper.
     intros m mc.
+    dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
+    replace (pos+3)%nat with (S (S (S pos))).
+    2:{
+      rewrite <- 3!plus_n_Sm.
+      rewrite PeanoNat.Nat.add_0_r.
+      reflexivity.
+    }
     apply AExpr_NVar_subst_S with (j:=j).
     +
-      intros pos H.
-      destruct pos; crush.
-      destruct pos; crush.
-      destruct pos; crush.
-      destruct pos; crush.
-    + compute; reflexivity.
-    + compute; reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply listsDiffByOneElement_Sn; try reflexivity.
+      apply L.
+    + apply L0.
+    + apply L1.
   -
     simpl.
-    pose proof (NExpr_NVar_subst_S_head (σ++Γ) n j) as Hn.
+    pose proof (NExpr_NVar_subst_S Γ Γs pos n j) as Hn.
+    specialize (Hn L L0 L1).
+
+    dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
+    replace (pos+2)%nat with (S (S pos)).
+    2:{
+      rewrite <- 2!plus_n_Sm.
+      rewrite PeanoNat.Nat.add_0_r.
+      reflexivity.
+    }
 
     match goal with
     | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
       destruct a ; destruct b
     end; try some_none_contradiction; try reflexivity.
+
+
     some_inv.
     nat_equiv_to_eq.
     subst n0.
@@ -921,17 +957,12 @@ Proof.
         apply AExpr_NVar_subst_S with (j:=j).
         Transparent evalDSHInductor.
         --
-          intros pos H.
-          destruct pos; crush.
-          destruct pos; crush.
           some_inv.
-          f_equiv.
-          constructor.
-          symmetry.
-          apply IHn1.
-          destruct pos; crush.
-        -- compute; reflexivity.
-        -- compute; reflexivity.
+          apply listsDiffByOneElement_Sn; try reflexivity.
+          apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply IHn1).
+          apply L.
+        -- apply L0.
+        -- apply L1.
         -- some_none_contradiction.
         -- some_none_contradiction.
     }
@@ -943,23 +974,29 @@ Proof.
     apply C.
   -
     simpl.
-    specialize (IHdop_family y).
+    dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
 
-    assert(D: evalBinCarrierA (DSHnatVar (S j) :: σ ++ Γ) dot =
-              (evalBinCarrierA (DSHnatVar j :: σ ++ Γ)
-                               (AExpr_natvar_subst 2 (NPlus (NVar 2) (NConst 1)) dot))).
+    replace (pos+2)%nat with (S (S pos)).
+    2:{
+      rewrite <- 2!plus_n_Sm.
+      rewrite PeanoNat.Nat.add_0_r.
+      reflexivity.
+    }
+
+    assert(D: evalBinCarrierA Γs dot =
+              evalBinCarrierA Γ
+                              (AExpr_natvar_subst (S (S pos))
+                                                  (NPlus (NVar (S (S pos)))
+                                                         (NConst 1)) dot)).
     {
       unfold evalBinCarrierA.
       intros a a' Ea b b' Eb.
       apply AExpr_NVar_subst_S with (j:=j).
-      -
-        intros pos H.
-        destruct pos. simpl; repeat constructor; auto.
-        destruct pos; simpl; repeat constructor; auto.
-        destruct pos. congruence.
-        reflexivity.
-      - compute; reflexivity.
-      - compute; reflexivity.
+      apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
+      apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
+      apply L.
+      -- apply L0.
+      -- apply L1.
     }
 
     induction n.
@@ -968,37 +1005,54 @@ Proof.
       unfold evalDiamond in *.
       rewrite 2!Vbuild_cons.
       rewrite 2!Vfold_left_rev_cons.
+      apply optDot_proper.
+      *
+        apply D.
+      *
+        eapply Vfold_left_rev_proper.
+        --
+          apply optDot_proper.
+          unfold evalBinCarrierA.
+          intros a a' Ea b b' Eb.
 
-
-      match goal with
-      | [IHn: ?a = ?b |- optDot ?f ?c ?d = optDot ?f' ?c' ?d'] =>
-        setoid_replace c' with a
-      end.
-
-
-      2:{
-        eapply Vfold_left_rev_arg_proper.
-        - typeclasses eauto.
-        - apply optDot_arg_proper; try reflexivity.
-        - apply Vbuild_proper.
-          intros t tc.
-          specialize (IHdop_family y t).
-
-      }
-
-      rewrite <- IHn. clear IHn.
+          apply AExpr_NVar_subst_S with (j:=j).
+          ++
+            apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
+            apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
+            apply L.
+          ++ apply L0.
+          ++ apply L1.
+        --
+          reflexivity.
+        --
+          vec_index_equiv j jc.
+          rewrite 2!Vbuild_nth.
+          apply IHdop_family.
+          apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
+          apply L.
+          apply L0.
+          apply L1.
+      *
+        apply IHdop_family.
+        apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
+        apply L.
+        apply L0.
+        apply L1.
+  -
+    HERE ^^^
 
 Admitted.
 
+
 Theorem IReduction_DSHIReduction
-      {i o n}
-      (dot: CarrierA -> CarrierA -> CarrierA)
-      `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-      (initial: CarrierA)
-      (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-      (ddot: DSHBinCarrierA)
-      (dop_family: DSHOperator i o)
-      (σ: evalContext)
+        {i o n}
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+        (initial: CarrierA)
+        (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+        (ddot: DSHBinCarrierA)
+        (dop_family: DSHOperator i o)
+        (σ: evalContext)
   :
     (forall Γ a b, Some (dot a b) = evalBinCarrierA (σ++Γ) ddot a b) ->
     SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
@@ -1034,7 +1088,14 @@ Proof.
       specialize (Hfam (mkFinNat (Lt.lt_n_S (proj2_sig jf))) Γ x).
       rewrite_clear Hfam.
       simpl.
-      apply DSHOperator_NVar_subst_S.
+      destruct jf as [j jc].
+      apply DSHOperator_NVar_subst_S with (j0:=j).
+      -
+        intros pos H.
+        destruct pos. congruence.
+        destruct pos; simpl; repeat constructor; auto.
+      - compute; reflexivity.
+      - compute; reflexivity.
     }
 
     specialize (IHn (shrink_op_family_up _ op_family)
@@ -1059,7 +1120,13 @@ Proof.
         intros j jc.
         remember (@Vmap (Rtheta' Monoid_RthetaSafeFlags) CarrierA
                         (@evalWriter RthetaFlags CarrierA Monoid_RthetaSafeFlags) i x) as y.
-        apply DSHOperator_NVar_subst_S.
+        apply DSHOperator_NVar_subst_S with (j0:=j).
+        +
+          intros pos H.
+          destruct pos. congruence.
+          destruct pos; simpl; repeat constructor; auto.
+        + compute; reflexivity.
+        + compute; reflexivity.
     }
 
     rewrite <- IHn. clear IHn.
@@ -1109,12 +1176,12 @@ Proof.
 Qed.
 
 Theorem SHPointwise_DSHPointwise
-      {fm}
-      {n: nat}
-      (f: FinNat n -> CarrierA -> CarrierA)
-      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      (df: DSHIUnCarrierA)
-      (σ: evalContext)
+        {fm}
+        {n: nat}
+        (f: FinNat n -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (df: DSHIUnCarrierA)
+        (σ: evalContext)
   :
     (forall Γ j a, Some (f j a) = evalIUnCarrierA (σ++Γ) df (proj1_sig j) a) ->
     SHCOL_DSHCOL_equiv σ
@@ -1160,14 +1227,14 @@ Proof.
 Qed.
 
 Theorem SHInductor_DSHInductor
-      {fm}
-      (n:nat)
-      (f: CarrierA -> CarrierA -> CarrierA)
-      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      (initial: CarrierA)
-      (dn:NExpr)
-      (df: DSHBinCarrierA)
-      (σ: evalContext)
+        {fm}
+        (n:nat)
+        (f: CarrierA -> CarrierA -> CarrierA)
+        `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+        (initial: CarrierA)
+        (dn:NExpr)
+        (df: DSHBinCarrierA)
+        (σ: evalContext)
   :
     (forall Γ, Some n = evalNexp (σ++Γ) dn) ->
     (forall  Γ a b, Some (f a b) = evalBinCarrierA (σ++Γ) df a b) ->
@@ -1265,10 +1332,10 @@ Proof.
 Qed.
 
 Theorem ISumUnion_DSHISumUnion
-      {i o n}
-      (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-      (dop_family: DSHOperator i o)
-      (σ: evalContext)
+        {i o n}
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+        (dop_family: DSHOperator i o)
+        (σ: evalContext)
   :
     SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
     SHCOL_DSHCOL_equiv σ
