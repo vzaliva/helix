@@ -1096,6 +1096,19 @@ Proof.
     simpl.
     eapply evalDiamond_NVar_subst_S with (j:=j); auto.
   -
+    simpl.
+    match goal with
+    | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
+      assert (C: a = b)
+    end.
+    {
+      apply IHdop_family2; auto.
+    }
+    repeat break_match; try reflexivity; try some_none_contradiction.
+    some_inv.
+    rewrite <- C.
+    eapply IHdop_family1; auto.
+  -
 Admitted.
 
 
