@@ -175,6 +175,28 @@ Proof.
   f_equiv; auto.
 Qed.
 
+Global Instance optDot_proper
+       {n:nat}:
+  Proper (((=) ==> (=) ==> (=)) ==> equiv ==> equiv ==> equiv) (optDot (n:=n)).
+Proof.
+  intros f f' Ef x x' Ex y y' Ey.
+  unfold optDot.
+  simpl.
+  repeat break_match; try reflexivity; try some_none_contradiction.
+  apply vsequence_option_proper.
+  repeat some_inv.
+  rewrite 2!Vmap2_as_Vbuild.
+  apply Vbuild_proper.
+  intros j jc.
+  f_equiv.
+  -
+    apply Ef.
+  -
+    apply Vnth_arg_equiv; auto.
+  -
+    apply Vnth_arg_equiv; auto.
+Qed.
+
 Definition evalDiamond
            {n o: nat}
            (dot: CarrierA → CarrierA → option CarrierA)
