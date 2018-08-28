@@ -843,6 +843,121 @@ Section Expr_NVar_subst_S.
 
 End Expr_NVar_subst_S.
 
+Fact evalDiamond_NVar_subst_S:
+  ∀ (i o n : nat) (dot : DSHBinCarrierA) (initial : CarrierA)
+    (dop_family : DSHOperator i o) (y : vector CarrierA i)
+    (j : nat), (∀ (y0 : vector CarrierA i) (pos : nat) (Γ Γs : evalContext),
+                 listsDiffByOneElement Γ Γs pos
+                 → isNth Γ pos (DSHnatVar j)
+                 → isNth Γs pos (DSHnatVar (S j))
+                 → evalDSHOperator Γs dop_family y0 =
+                   evalDSHOperator Γ
+                                   (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1))
+                                                          dop_family) y0)
+             → ∀ (pos : nat) (Γ Γs : evalContext), listsDiffByOneElement Γ Γs pos
+                                                 → isNth Γ pos (DSHnatVar j)
+                                                 → isNth Γs pos (DSHnatVar (S j))
+                                                 →
+                                                 evalDiamond
+                                                   (evalBinCarrierA Γs dot)
+                                                   initial
+                                                   (Vbuild
+                                                      (λ (j0 : nat) (_ : j0 < n),
+                                                       evalDSHOperator
+                                                         (DSHnatVar j0 :: Γs)
+                                                         dop_family y)) =
+                                                 evalDiamond
+                                                   (evalBinCarrierA Γ
+                                                                    (AExpr_natvar_subst
+                                                                       (pos + 2)
+                                                                       (NPlus
+                                                                          (if
+                                                                              PeanoNat.Nat.eq_dec pos pos
+                                                                            then NVar (pos + 2)
+                                                                            else NVar pos)
+                                                                          (NConst 1)) dot)) initial
+                                                   (Vbuild
+                                                      (λ (j0 : nat) (_ : j0 < n),
+                                                       evalDSHOperator
+                                                         (DSHnatVar j0 :: Γ)
+                                                         (DSHOperator_NVar_subt
+                                                            (S pos)
+                                                            (NPlus
+                                                               (if
+                                                                   PeanoNat.Nat.eq_dec pos pos
+                                                                 then NVar (S pos)
+                                                                 else NVar pos)
+                                                               (NConst 1)) dop_family) y)).
+Proof.
+  intros i o n dot initial dop_family y j IHdop_family pos Γ Γs L L0 L1.
+
+
+  dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
+
+  replace (pos+2)%nat with (S (S pos)).
+  2:{
+    rewrite <- 2!plus_n_Sm.
+    rewrite PeanoNat.Nat.add_0_r.
+    reflexivity.
+  }
+
+  assert(D: evalBinCarrierA Γs dot =
+            evalBinCarrierA Γ
+                            (AExpr_natvar_subst (S (S pos))
+                                                (NPlus (NVar (S (S pos)))
+                                                       (NConst 1)) dot)).
+  {
+    unfold evalBinCarrierA.
+    intros a a' Ea b b' Eb.
+    apply AExpr_NVar_subst_S with (j:=j).
+    apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
+    apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
+    apply L.
+    -- apply L0.
+    -- apply L1.
+  }
+
+  induction n.
+  + reflexivity.
+  +
+    unfold evalDiamond in *.
+    rewrite 2!Vbuild_cons.
+    rewrite 2!Vfold_left_rev_cons.
+    apply optDot_proper.
+    *
+      apply D.
+    *
+      eapply Vfold_left_rev_proper.
+      --
+        apply optDot_proper.
+        unfold evalBinCarrierA.
+        intros a a' Ea b b' Eb.
+
+        apply AExpr_NVar_subst_S with (j:=j).
+        ++
+          apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
+          apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
+          apply L.
+        ++ apply L0.
+        ++ apply L1.
+      --
+        reflexivity.
+      --
+        vec_index_equiv j jc.
+        rewrite 2!Vbuild_nth.
+        apply IHdop_family.
+        apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
+        apply L.
+        apply L0.
+        apply L1.
+    *
+      apply IHdop_family.
+      apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
+      apply L.
+      apply L0.
+      apply L1.
+Qed.
+
 Fact DSHOperator_NVar_subst_S
      {i o : nat}
      (Γ Γs : evalContext)
@@ -974,73 +1089,13 @@ Proof.
     apply C.
   -
     simpl.
-    dep_destruct (PeanoNat.Nat.eq_dec pos pos); try congruence; clear e.
-
-    replace (pos+2)%nat with (S (S pos)).
-    2:{
-      rewrite <- 2!plus_n_Sm.
-      rewrite PeanoNat.Nat.add_0_r.
-      reflexivity.
-    }
-
-    assert(D: evalBinCarrierA Γs dot =
-              evalBinCarrierA Γ
-                              (AExpr_natvar_subst (S (S pos))
-                                                  (NPlus (NVar (S (S pos)))
-                                                         (NConst 1)) dot)).
-    {
-      unfold evalBinCarrierA.
-      intros a a' Ea b b' Eb.
-      apply AExpr_NVar_subst_S with (j:=j).
-      apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
-      apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
-      apply L.
-      -- apply L0.
-      -- apply L1.
-    }
-
-    induction n.
-    + reflexivity.
-    +
-      unfold evalDiamond in *.
-      rewrite 2!Vbuild_cons.
-      rewrite 2!Vfold_left_rev_cons.
-      apply optDot_proper.
-      *
-        apply D.
-      *
-        eapply Vfold_left_rev_proper.
-        --
-          apply optDot_proper.
-          unfold evalBinCarrierA.
-          intros a a' Ea b b' Eb.
-
-          apply AExpr_NVar_subst_S with (j:=j).
-          ++
-            apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Eb).
-            apply listsDiffByOneElement_Sn; try (constructor; symmetry; apply Ea).
-            apply L.
-          ++ apply L0.
-          ++ apply L1.
-        --
-          reflexivity.
-        --
-          vec_index_equiv j jc.
-          rewrite 2!Vbuild_nth.
-          apply IHdop_family.
-          apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
-          apply L.
-          apply L0.
-          apply L1.
-      *
-        apply IHdop_family.
-        apply listsDiffByOneElement_Sn; try (constructor; symmetry; reflexivity).
-        apply L.
-        apply L0.
-        apply L1.
+    apply evalDiamond_NVar_subst_S with (j:=j); auto.
   -
-    HERE ^^^
-
+    admit.
+  -
+    simpl.
+    eapply evalDiamond_NVar_subst_S with (j:=j); auto.
+  -
 Admitted.
 
 

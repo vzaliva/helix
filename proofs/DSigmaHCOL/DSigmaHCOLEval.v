@@ -650,9 +650,25 @@ Fixpoint DSHOperator_NVar_subt
                                                  value)
                                               body)
   | @DSHISumUnion i o n body =>
-    @DSHISumUnion i o n (DSHOperator_NVar_subt name value body)
+    @DSHISumUnion i o n (DSHOperator_NVar_subt (S name)
+                                              (NExpr_var_subst
+                                                 name
+                                                 (NVar (S name))
+                                                 value)
+                                              body)
   | @DSHIReduction i o n dot initial body =>
-    @DSHIReduction i o n dot initial (DSHOperator_NVar_subt name value body)
+    @DSHIReduction i o n (AExpr_natvar_subst (name+2)
+                                       (NExpr_var_subst
+                                          name
+                                          (NVar (name+2))
+                                          value)
+                                       dot)
+                   initial (DSHOperator_NVar_subt (S name)
+                                                  (NExpr_var_subst
+                                                     name
+                                                     (NVar (S name))
+                                                     value)
+                                                  body)
   | @DSHCompose i1 o2 o3 f g =>
     @DSHCompose i1 o2 o3
                 (DSHOperator_NVar_subt name value f)
