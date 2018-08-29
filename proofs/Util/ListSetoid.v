@@ -40,3 +40,36 @@ Proof.
     inversion El.
     auto.
 Qed.
+
+Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
+  match nth_error l n with
+  | None => False
+  | Some x => x = v
+  end.
+
+Lemma isNth_Sn {A:Type} `{Equiv A} (h:A) (l:list A) (n:nat) (v:A):
+  isNth (h :: l) (S n) v ≡ isNth l n v.
+Proof.
+  crush.
+Qed.
+
+Definition listsDiffByOneElement {A:Type} `{Ae:Equiv A} (l0 l1:list A) (n:nat) : Prop :=
+  forall i, i≢n -> nth_error l0 i = nth_error l1 i.
+
+Lemma listsDiffByOneElement_Sn {A:Type} `{Ae:Equiv A} {Aeq: Equivalence Ae} (h0 h1:A) (l0 l1:list A) (n:nat):
+  h0 = h1 ->
+  listsDiffByOneElement l0 l1 n ->
+  listsDiffByOneElement (h0::l0) (h1::l1) (S n).
+Proof.
+  intros E H.
+  unfold listsDiffByOneElement in *.
+  intros i ic.
+  destruct i.
+  -
+    simpl.
+    some_apply.
+  -
+    simpl.
+    apply H.
+    crush.
+Qed.
