@@ -231,12 +231,6 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
     fun (x:avector i) =>
       evalDiamond (evalBinCarrierA Γ dot) initial
                   (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
-  | @DSHISumUnion i o n body =>
-    fun (x:avector i) =>
-      let dot := APlus (AVar 1) (AVar 0) in
-      let initial := zero in
-      evalDiamond (evalBinCarrierA Γ dot) initial
-                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
   | @DSHIReduction i o n dot initial body =>
     (* Actually same as IUnion *)
     fun (x:avector i) =>
@@ -373,17 +367,7 @@ Proof.
     auto.
 Qed.
 
-Lemma evalDSHOperator_DSHISumUnion_DSHIUnion
-      {i o n: nat}
-      {body: DSHOperator i o}
-      {Γ: evalContext}:
-  evalDSHOperator Γ (@DSHISumUnion i o n body) ≡
-                  evalDSHOperator Γ (@DSHIUnion i o n (APlus (AVar 1) (AVar 0)) zero body).
-Proof.
-  reflexivity.
-Qed.
-
-Lemma evalDSHOperator_DSHISumUnion_DSHIReduction
+Lemma evalDSHOperator_DSHIUnion_DSHIReduction
       {i o n: nat}
       {dot}
       {initial}
@@ -519,21 +503,7 @@ Proof.
       apply IHop.
       apply E.
   -
-    rewrite evalDSHOperator_DSHISumUnion_DSHIUnion.
-    (* Same proof as for IUnion (above) *)
-    induction n.
-    + reflexivity.
-    + simpl.
-      unfold evalDiamond.
-      eapply Vfold_left_rev_arg_proper.
-      * typeclasses eauto.
-      * apply optDot_arg_proper.
-      * apply Vbuild_proper.
-        intros j jc.
-        apply IHop.
-        apply E.
-  -
-    rewrite <- evalDSHOperator_DSHISumUnion_DSHIReduction.
+    rewrite <- evalDSHOperator_DSHIUnion_DSHIReduction.
     (* Same proof as for IUnion (above) *)
     induction n.
     + reflexivity.
@@ -644,13 +614,6 @@ Fixpoint DSHOperator_NVar_subt
                                       value)
                                    dot)
                initial (DSHOperator_NVar_subt (S name)
-                                              (NExpr_var_subst
-                                                 name
-                                                 (NVar (S name))
-                                                 value)
-                                              body)
-  | @DSHISumUnion i o n body =>
-    @DSHISumUnion i o n (DSHOperator_NVar_subt (S name)
                                               (NExpr_var_subst
                                                  name
                                                  (NVar (S name))

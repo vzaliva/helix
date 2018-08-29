@@ -50,7 +50,6 @@ Inductive DSHOperator: nat -> nat -> Type :=
 | DSHBinOp {o} (f: DSHIBinCarrierA): DSHOperator (o+o) o
 | DSHInductor (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA): DSHOperator 1 1
 | DSHIUnion {i o: nat} (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o
-| DSHISumUnion {i o:nat} (n: nat): DSHOperator i o -> DSHOperator i o
 | DSHIReduction {i o: nat} (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o
 | DSHCompose {i1 o2 o3: nat}: DSHOperator o2 o3 -> DSHOperator i1 o2 -> DSHOperator i1 o3
 | DSHHTSUMUnion {i o:nat} (dot: DSHBinCarrierA): DSHOperator i o -> DSHOperator i o -> @DSHOperator i o.

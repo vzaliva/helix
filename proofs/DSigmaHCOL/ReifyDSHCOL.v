@@ -246,7 +246,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               fm <- tmQuote (Monoid_RthetaFlags) ;;
               c' <- compileSHCOL vars op_family ;;
               let '(_, _, rr) := (c':varbindings*term*reifyResult) in
-              tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHISumUnion (rei_i rr) (rei_o rr) nn (rei_op rr) |})
+              tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn (APlus (AVar 1) (AVar 0)) 0 (rei_op rr) |})
     | n_IReduction, [i ; o ; n ; f ; _ ; z ; op_family] =>
       tmPrint "IReduction" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -318,7 +318,7 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
               | DSHvec m =>
                 a_m <- tmQuote m ;;
                     tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
-             end) ;;
+              end) ;;
           ts <- build_dsh_globals gs ;;
           tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
   end.
@@ -366,10 +366,10 @@ Definition reifySHCOL {A:Type} (expr: A) (lemma_name:string): TemplateMonad reif
                              let lemma_ast := build_forall globals lemma_concl in
                              (tmBind (tmUnquoteTyped Prop lemma_ast)
                                      (fun lemma_body => tmLemma lemma_name lemma_body
-                                                                ;;
-                                                                tmReturn {| rei_i := i;
-                                                                            rei_o := o;
-                                                                            rei_op := dshcol |}))
+                                                             ;;
+                                                             tmReturn {| rei_i := i;
+                                                                         rei_o := o;
+                                                                         rei_op := dshcol |}))
                end.
 
 Theorem SHCompose_DSHCompose
@@ -620,8 +620,8 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
            (s: @SHOperatorFamily fm i o n)
            (d: DSHOperator i o) : Prop :=
   forall j, SHCOL_DSHCOL_equiv (DSHnatVar (proj1_sig j) :: Γ)
-                          (s j)
-                          d.
+                               (s j)
+                               d.
 
 (* TODO: move *)
 Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
@@ -847,47 +847,47 @@ Fact evalDiamond_NVar_subst_S:
   ∀ (i o n : nat) (dot : DSHBinCarrierA) (initial : CarrierA)
     (dop_family : DSHOperator i o) (y : vector CarrierA i)
     (j : nat), (∀ (y0 : vector CarrierA i) (pos : nat) (Γ Γs : evalContext),
-                 listsDiffByOneElement Γ Γs pos
-                 → isNth Γ pos (DSHnatVar j)
-                 → isNth Γs pos (DSHnatVar (S j))
-                 → evalDSHOperator Γs dop_family y0 =
-                   evalDSHOperator Γ
-                                   (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1))
-                                                          dop_family) y0)
-             → ∀ (pos : nat) (Γ Γs : evalContext), listsDiffByOneElement Γ Γs pos
-                                                 → isNth Γ pos (DSHnatVar j)
-                                                 → isNth Γs pos (DSHnatVar (S j))
-                                                 →
-                                                 evalDiamond
-                                                   (evalBinCarrierA Γs dot)
-                                                   initial
-                                                   (Vbuild
-                                                      (λ (j0 : nat) (_ : j0 < n),
-                                                       evalDSHOperator
-                                                         (DSHnatVar j0 :: Γs)
-                                                         dop_family y)) =
-                                                 evalDiamond
-                                                   (evalBinCarrierA Γ
-                                                                    (AExpr_natvar_subst
-                                                                       (pos + 2)
-                                                                       (NPlus
-                                                                          (if
-                                                                              PeanoNat.Nat.eq_dec pos pos
-                                                                            then NVar (pos + 2)
-                                                                            else NVar pos)
-                                                                          (NConst 1)) dot)) initial
-                                                   (Vbuild
-                                                      (λ (j0 : nat) (_ : j0 < n),
-                                                       evalDSHOperator
-                                                         (DSHnatVar j0 :: Γ)
-                                                         (DSHOperator_NVar_subt
-                                                            (S pos)
-                                                            (NPlus
-                                                               (if
-                                                                   PeanoNat.Nat.eq_dec pos pos
-                                                                 then NVar (S pos)
-                                                                 else NVar pos)
-                                                               (NConst 1)) dop_family) y)).
+                   listsDiffByOneElement Γ Γs pos
+                   → isNth Γ pos (DSHnatVar j)
+                   → isNth Γs pos (DSHnatVar (S j))
+                   → evalDSHOperator Γs dop_family y0 =
+                     evalDSHOperator Γ
+                                     (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1))
+                                                            dop_family) y0)
+               → ∀ (pos : nat) (Γ Γs : evalContext), listsDiffByOneElement Γ Γs pos
+                                                     → isNth Γ pos (DSHnatVar j)
+                                                     → isNth Γs pos (DSHnatVar (S j))
+                                                     →
+                                                     evalDiamond
+                                                       (evalBinCarrierA Γs dot)
+                                                       initial
+                                                       (Vbuild
+                                                          (λ (j0 : nat) (_ : j0 < n),
+                                                           evalDSHOperator
+                                                             (DSHnatVar j0 :: Γs)
+                                                             dop_family y)) =
+                                                     evalDiamond
+                                                       (evalBinCarrierA Γ
+                                                                        (AExpr_natvar_subst
+                                                                           (pos + 2)
+                                                                           (NPlus
+                                                                              (if
+                                                                                  PeanoNat.Nat.eq_dec pos pos
+                                                                                then NVar (pos + 2)
+                                                                                else NVar pos)
+                                                                              (NConst 1)) dot)) initial
+                                                       (Vbuild
+                                                          (λ (j0 : nat) (_ : j0 < n),
+                                                           evalDSHOperator
+                                                             (DSHnatVar j0 :: Γ)
+                                                             (DSHOperator_NVar_subt
+                                                                (S pos)
+                                                                (NPlus
+                                                                   (if
+                                                                       PeanoNat.Nat.eq_dec pos pos
+                                                                     then NVar (S pos)
+                                                                     else NVar pos)
+                                                                   (NConst 1)) dop_family) y)).
 Proof.
   intros i o n dot initial dop_family y j IHdop_family pos Γ Γs L L0 L1.
 
@@ -1090,8 +1090,6 @@ Proof.
   -
     simpl.
     apply evalDiamond_NVar_subst_S with (j:=j); auto.
-  -
-    admit.
   -
     simpl.
     eapply evalDiamond_NVar_subst_S with (j:=j); auto.
@@ -1434,109 +1432,123 @@ Theorem ISumUnion_DSHISumUnion
     SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
     SHCOL_DSHCOL_equiv σ
                        (@ISumUnion i o n op_family)
-                       (@DSHISumUnion i o n dop_family).
+                       (@DSHIUnion i o n (APlus (AVar 1) (AVar 0)) 0 dop_family).
 Proof.
   (* significant code duplication with `IReduction_DSHIReduction` *)
   intros Hfam Γ x.
+  simpl.
+  unfold Diamond', MUnion', Apply_Family', evalDiamond, densify.
 
+  revert op_family dop_family Hfam.
   induction n.
   -
+    intros op_family dop_family Hfam.
     simpl.
     f_equiv.
-    unfold Diamond', MUnion', Apply_Family'.
-    simpl.
     vec_index_equiv j jc.
-    unfold densify.
     rewrite Vnth_map.
     rewrite 2!Vnth_const.
     rewrite evalWriter_mkStruct.
     reflexivity.
   -
-    rewrite evalDSHOperator_DSHISumunion_Sn.
-    assert(nc: n < S n).
+    intros op_family dop_family Hfam.
+
+    assert(E: SHOperatorFamily_DSHCOL_equiv σ
+                                            (shrink_op_family_up Monoid_RthetaFlags op_family)
+                                            (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family)).
     {
-      unfold lt, peano_naturals.nat_lt.
-      auto.
+      clear IHn x Γ.
+      intros jf Γ x.
+      unfold shrink_op_family_up.
+      specialize (Hfam (mkFinNat (Lt.lt_n_S (proj2_sig jf))) Γ x).
+      rewrite_clear Hfam.
+      simpl.
+      destruct jf as [j jc].
+      apply DSHOperator_NVar_subst_S with (j0:=j).
+      -
+        intros pos H.
+        destruct pos. congruence.
+        destruct pos; simpl; repeat constructor; auto.
+      - compute; reflexivity.
+      - compute; reflexivity.
     }
-    Opaque evalDSHOperator ISumUnion.
+
+    specialize (IHn (shrink_op_family_up _ op_family)
+                    (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family)
+                    E
+               ).
+
+    rewrite 2!Vbuild_cons.
+    rewrite 2!Vfold_left_rev_cons.
+
+    unfold Vec2Union, get_family_op, shrink_op_family_up in *.
+
+    match goal with
+    | [IHn: ?a = ?b |- _ = optDot ?f ?c ?d] =>
+      setoid_replace c with b
+    end.
+    2:{
+      eapply Vfold_left_rev_arg_proper.
+      - typeclasses eauto.
+      - apply optDot_arg_proper; try reflexivity.
+      - apply Vbuild_proper.
+        intros j jc.
+        remember (@Vmap (Rtheta' Monoid_RthetaFlags) CarrierA
+                        (@evalWriter RthetaFlags CarrierA Monoid_RthetaFlags) i x) as y.
+        apply DSHOperator_NVar_subst_S with (j0:=j).
+        +
+          intros pos H.
+          destruct pos. congruence.
+          destruct pos; simpl; repeat constructor; auto.
+        + compute; reflexivity.
+        + compute; reflexivity.
+    }
+
+    rewrite <- IHn. clear IHn.
+
+    setoid_replace
+      (evalDSHOperator (DSHnatVar 0 :: σ ++ Γ) dop_family
+                       (Vmap (evalWriter (Monoid_W:=Monoid_RthetaFlags)) x))
+      with
+        (Some
+           (densify Monoid_RthetaFlags
+                    (op Monoid_RthetaFlags
+                        (op_family (mkFinNat (Misc.zero_lt_Sn n))) x)))
+      by (symmetry; apply Hfam).
+
+    clear dop_family Hfam E.
+
+    unfold optDot, densify.
     simpl.
 
-    assert(H: SHOperatorFamily_DSHCOL_equiv σ (shrink_op_family Monoid_RthetaFlags op_family) dop_family).
-    {
-      intros j g x'.
-      simpl.
-      specialize (Hfam (mkSFinNat j) g x').
-      simpl in Hfam.
-      rewrite <- mkSFinNat_proj1_eq in Hfam.
-      rewrite <- Hfam.
-      unfold shrink_op_family.
-      f_equiv.
-      f_equiv.
-      f_equiv.
-      f_equiv.
-      unfold mkSFinNat.
-      break_let.
-      reflexivity.
-    }
+    repeat rewrite Vmap2_as_Vbuild.
+    repeat rewrite Vmap_Vbuild.
+    setoid_rewrite Vnth_map.
+    unfold Union.
 
-    assert(Hdot: forall Γ a b, Some (plus a b) = evalBinCarrierA (σ++Γ) (APlus (AVar 1) (AVar 0)) a b).
-    {
-      intros g a b.
-      unfold evalBinCarrierA.
-      reflexivity.
-    }
+    assert(Hdot: forall Γ a b, Some (CarrierAplus a b) = evalBinCarrierA (σ++Γ) (APlus (AVar 1) (AVar 0))  a b) by reflexivity.
 
-    repeat break_match; try some_none_contradiction.
+    setoid_rewrite <- Hdot.
+
+    repeat rewrite <- Vmap_Vbuild.
+    rewrite vsequence_Vmap_Some.
+
+    f_equiv.
+    repeat rewrite Vmap_Vbuild.
+    apply Vbuild_proper.
+
+    intros j jc.
+    rewrite evalWriter_Rtheta_liftM2.
+    apply CarrierAPlus_proper.
     +
-      specialize (Hfam (mkFinNat nc) Γ x).
-      simpl in Hfam.
-      rewrite Heqo1 in Hfam.
-      some_inv.
-      specialize (IHn (shrink_op_family _ op_family) H).
-      some_inv.
-      clear  Heqo0 Heqo1 dop_family H.
-
-      rewrite Vmap2_as_Vbuild.
-      symmetry.
-      apply vsequence_Vbuild_equiv_Some.
-      unfold densify.
-      rewrite Vmap_map.
-      vec_index_equiv j jc.
-      rewrite Vbuild_nth.
-      rewrite Vnth_map.
-      rewrite <- Hdot.
-      clear Γ σ Hdot.
       f_equiv.
-
-      rewrite 2!Vnth_to_Vnth_aux.
-      rewrite <- Hfam. clear Hfam.
-      rewrite <- IHn. clear IHn.
-      rewrite <- 2!Vnth_to_Vnth_aux.
-      clear t0 t.
-
-      unfold densify.
-      rewrite 2!Vnth_map.
-      simpl.
-      Transparent evalDSHOperator ISumUnion.
-      unfold ISumUnion, IUnion. simpl.
-
-      rewrite <- evalWriter_Rtheta_liftM2.
-      fold_Rtheta'_equiv.
-      symmetry.
-      apply Vnth_Diamond'_Sn.
-      typeclasses eauto.
     +
-      exfalso.
-      clear IHn.
-      specialize (Hfam (mkFinNat nc) Γ x).
-      simpl in Hfam.
-      rewrite Heqo1 in Hfam.
-      some_none_contradiction.
-    +
-      exfalso.
-      clear Hfam.
-      specialize (IHn (shrink_op_family _ op_family) H).
-      some_none_contradiction.
+      f_equiv.
+      apply Vnth_arg_equiv.
+      f_equiv.
+      f_equiv.
+      f_equiv.
+      apply proof_irrelevance.
 Qed.
 
 (* for testing *)
