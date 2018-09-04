@@ -6,7 +6,7 @@ LIBNAME := Helix
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
-LIBVFILES := Util/CpdtTactics.v Util/StructTactics.v
+LIBVFILES := Tactics/CpdtTactics.v Tactics/StructTactics.v
 VFILES := $(shell find . -name \*.v | grep -v .\# | cut -c 3- )
 MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
