@@ -4,10 +4,10 @@ Require Import Helix.HCOL.CarrierType.
 
 Global Open Scope nat_scope.
 
-Inductive DSHVar :=
-| DSHnatVar (n:nat) :DSHVar
-| DSHCarrierAVar (a:CarrierA): DSHVar
-| DSHvecVar {n:nat} (v:avector n): DSHVar.
+Inductive DSHVal :=
+| DSHnatVal (n:nat) :DSHVal
+| DSHCarrierAVal (a:CarrierA): DSHVal
+| DSHvecVal {n:nat} (v:avector n): DSHVal.
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
@@ -61,13 +61,13 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Tactics.HelixTactics.
 
-Inductive DSHVar_equiv: DSHVar -> DSHVar -> Prop :=
-| DSHnatVar_equiv {n0 n1:nat}: n0=n1 -> DSHVar_equiv (DSHnatVar n0) (DSHnatVar n1)
-| DSHCarrierAVar_equiv {a b: CarrierA}: a=b -> DSHVar_equiv (DSHCarrierAVar a) (DSHCarrierAVar b)
-| DSHvecVar_equiv {n:nat} {v0 v1: avector n}: v0=v1 -> DSHVar_equiv (DSHvecVar v0) (DSHvecVar v1).
+Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
+| DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
+| DSHCarrierAVal_equiv {a b: CarrierA}: a=b -> DSHVal_equiv (DSHCarrierAVal a) (DSHCarrierAVal b)
+| DSHvecVal_equiv {n:nat} {v0 v1: avector n}: v0=v1 -> DSHVal_equiv (DSHvecVal v0) (DSHvecVal v1).
 
 Global Instance DSHVar_Equivalence:
-  Equivalence DSHVar_equiv.
+  Equivalence DSHVal_equiv.
 Proof.
   split.
   -
@@ -98,7 +98,7 @@ Proof.
       apply H2.
 Qed.
 
-Global Instance DSHVar_Equiv: Equiv DSHVar := DSHVar_equiv.
+Global Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
 
 Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
 | NVar_equiv  {n1 n2}: n1=n2 -> NExpr_equiv (NVar n1)  (NVar n2)

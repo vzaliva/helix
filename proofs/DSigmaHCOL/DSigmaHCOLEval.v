@@ -17,13 +17,13 @@ Require Import MathClasses.misc.decision.
 
 Global Open Scope nat_scope.
 
-Definition evalContext:Type := list DSHVar.
+Definition evalContext:Type := list DSHVal.
 
 Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   match exp in (VExpr n0) return (option (vector CarrierA n0)) with
   | @VVar n0 i =>
     match nth_error st i with
-    | Some (@DSHvecVar n2 v) =>
+    | Some (@DSHvecVal n2 v) =>
       match eq_nat_dec n2 n0 as s0 return (_ ≡ s0 -> option (vector CarrierA n0))
       with
       | left E => fun _ => eq_rect n2 (fun n3 => option (vector CarrierA n3)) (Some v) n0 E
@@ -44,7 +44,7 @@ Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
   match e with
   | NVar i => v <- (nth_error st i) ;;
                (match v with
-                | DSHnatVar x => Some x
+                | DSHnatVal x => Some x
                 | _ => None
                 end)
   | NConst c => Some c
@@ -61,7 +61,7 @@ Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
   match e with
   | AVar i => v <- (nth_error st i) ;;
                 (match v with
-                 | DSHCarrierAVar x => Some x
+                 | DSHCarrierAVal x => Some x
                  | _ => None
                  end)
   | AConst x => Some x
@@ -111,15 +111,15 @@ Qed.
 
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVar a :: DSHnatVar i :: Γ) f.
+  evalAexp (DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
 
 Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
            (i:nat) (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVar b :: DSHCarrierAVar a :: DSHnatVar i :: Γ) f.
+  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
 
 Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
            (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVar b :: DSHCarrierAVar a :: Γ) f.
+  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: Γ) f.
 
 Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
   vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
@@ -230,12 +230,12 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
   | @DSHIUnion i o n dot initial body =>
     fun (x:avector i) =>
       evalDiamond (evalBinCarrierA Γ dot) initial
-                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
+                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVal j :: Γ) body x))
   | @DSHIReduction i o n dot initial body =>
     (* Actually same as IUnion *)
     fun (x:avector i) =>
       evalDiamond (evalBinCarrierA Γ dot) initial
-                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVar j :: Γ) body x))
+                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVal j :: Γ) body x))
   | @DSHCompose i1 o2 o3 f g =>
     fun v => evalDSHOperator Γ g v >>= evalDSHOperator Γ f
   | @DSHHTSUMUnion i o dot f g =>
@@ -441,13 +441,13 @@ Proof.
 
     apply List.Forall2_cons.
     +
-      apply DSHCarrierAVar_equiv.
+      apply DSHCarrierAVal_equiv.
       apply Vnth_proper.
       rewrite E.
       reflexivity.
     +
       apply List.Forall2_cons.
-      apply DSHCarrierAVar_equiv.
+      apply DSHCarrierAVal_equiv.
       apply Vnth_proper.
       rewrite E.
       reflexivity.
@@ -474,10 +474,10 @@ Proof.
         unfold evalBinCarrierA.
         apply evalAexp_proper.
         apply List.Forall2_cons.
-        apply DSHCarrierAVar_equiv.
+        apply DSHCarrierAVal_equiv.
         apply H.
         apply List.Forall2_cons.
-        apply DSHCarrierAVar_equiv.
+        apply DSHCarrierAVal_equiv.
         apply Some_inj_equiv, IHn0.
         reflexivity.
         reflexivity.

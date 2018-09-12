@@ -308,19 +308,19 @@ Fixpoint build_forall p conc :=
 
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
-  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []])
+  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
   | (n,t)::gs =>
     dt <- toDSHCOLType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
-              | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 0 []) [tRel i])
-              | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 1 []) [tRel i])
+              | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
+              | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
               | DSHvec m =>
                 a_m <- tmQuote m ;;
-                    tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
+                    tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
               end) ;;
           ts <- build_dsh_globals gs ;;
-          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVar"; inductive_ind := 0 |} []; dv; ts])
+          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []; dv; ts])
   end.
 
 Fixpoint rev_nat_seq (len: nat) : list nat :=
@@ -621,7 +621,7 @@ Qed.
 Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
            (s: @SHOperatorFamily fm i o n)
            (d: DSHOperator i o) : Prop :=
-  forall j, SHCOL_DSHCOL_equiv (DSHnatVar (proj1_sig j) :: Γ)
+  forall j, SHCOL_DSHCOL_equiv (DSHnatVal (proj1_sig j) :: Γ)
                                (s j)
                                d.
 
@@ -639,8 +639,8 @@ Section Expr_NVar_subst_S.
        (exp : NExpr)
        (j : nat):
     listsDiffByOneElement Γ Γs pos ->
-    isNth Γ pos (DSHnatVar j) ->
-    isNth Γs pos (DSHnatVar (S j)) ->
+    isNth Γ pos (DSHnatVal j) ->
+    isNth Γs pos (DSHnatVal (S j)) ->
     evalNexp Γs exp =
     evalNexp Γ (NExpr_var_subst pos (NPlus (NVar pos) (NConst 1)) exp).
   Proof.
@@ -699,8 +699,8 @@ Section Expr_NVar_subst_S.
        (exp : VExpr d)
        (j : nat):
     listsDiffByOneElement Γ Γs pos ->
-    isNth Γ pos (DSHnatVar j) ->
-    isNth Γs pos (DSHnatVar (S j)) ->
+    isNth Γ pos (DSHnatVal j) ->
+    isNth Γs pos (DSHnatVal (S j)) ->
     evalVexp Γs exp =
     evalVexp Γ (VExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
   Proof.
@@ -750,8 +750,8 @@ Section Expr_NVar_subst_S.
        (exp : AExpr)
        (j : nat):
     listsDiffByOneElement Γ Γs pos ->
-    isNth Γ pos (DSHnatVar j) ->
-    isNth Γs pos (DSHnatVar (S j)) ->
+    isNth Γ pos (DSHnatVal j) ->
+    isNth Γs pos (DSHnatVal (S j)) ->
     evalAexp Γs exp =
     evalAexp Γ (AExpr_natvar_subst pos (NPlus (NVar pos) (NConst 1)) exp).
   Proof.
@@ -815,15 +815,15 @@ Fact evalDiamond_NVar_subst_S:
     (dop_family : DSHOperator i o) (y : vector CarrierA i)
     (j : nat), (∀ (y0 : vector CarrierA i) (pos : nat) (Γ Γs : evalContext),
                    listsDiffByOneElement Γ Γs pos
-                   → isNth Γ pos (DSHnatVar j)
-                   → isNth Γs pos (DSHnatVar (S j))
+                   → isNth Γ pos (DSHnatVal j)
+                   → isNth Γs pos (DSHnatVal (S j))
                    → evalDSHOperator Γs dop_family y0 =
                      evalDSHOperator Γ
                                      (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1))
                                                             dop_family) y0)
                → ∀ (pos : nat) (Γ Γs : evalContext), listsDiffByOneElement Γ Γs pos
-                                                     → isNth Γ pos (DSHnatVar j)
-                                                     → isNth Γs pos (DSHnatVar (S j))
+                                                     → isNth Γ pos (DSHnatVal j)
+                                                     → isNth Γs pos (DSHnatVal (S j))
                                                      →
                                                      evalDiamond
                                                        (evalBinCarrierA Γs dot)
@@ -831,7 +831,7 @@ Fact evalDiamond_NVar_subst_S:
                                                        (Vbuild
                                                           (λ (j0 : nat) (_ : j0 < n),
                                                            evalDSHOperator
-                                                             (DSHnatVar j0 :: Γs)
+                                                             (DSHnatVal j0 :: Γs)
                                                              dop_family y)) =
                                                      evalDiamond
                                                        (evalBinCarrierA Γ
@@ -846,7 +846,7 @@ Fact evalDiamond_NVar_subst_S:
                                                        (Vbuild
                                                           (λ (j0 : nat) (_ : j0 < n),
                                                            evalDSHOperator
-                                                             (DSHnatVar j0 :: Γ)
+                                                             (DSHnatVal j0 :: Γ)
                                                              (DSHOperator_NVar_subt
                                                                 (S pos)
                                                                 (NPlus
@@ -933,8 +933,8 @@ Fact DSHOperator_NVar_subst_S
      (y : vector CarrierA i)
      (j : nat):
   listsDiffByOneElement Γ Γs pos ->
-  isNth Γ pos (DSHnatVar j) ->
-  isNth Γs pos (DSHnatVar (S j)) ->
+  isNth Γ pos (DSHnatVal j) ->
+  isNth Γs pos (DSHnatVal (S j)) ->
   evalDSHOperator Γs dop_family y =
   evalDSHOperator Γ
                   (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1)) dop_family) y.
@@ -1191,7 +1191,7 @@ Proof.
     rewrite <- IHn. clear IHn.
 
     setoid_replace
-      (evalDSHOperator (DSHnatVar 0 :: σ ++ Γ) dop_family
+      (evalDSHOperator (DSHnatVal 0 :: σ ++ Γ) dop_family
                        (Vmap (evalWriter (Monoid_W:=Monoid_RthetaSafeFlags)) x))
       with
         (Some
@@ -1474,7 +1474,7 @@ Proof.
     rewrite <- IHn. clear IHn.
 
     setoid_replace
-      (evalDSHOperator (DSHnatVar 0 :: σ ++ Γ) dop_family
+      (evalDSHOperator (DSHnatVal 0 :: σ ++ Γ) dop_family
                        (Vmap (evalWriter (Monoid_W:=Monoid_RthetaFlags)) x))
       with
         (Some
