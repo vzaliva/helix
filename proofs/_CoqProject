@@ -6,6 +6,7 @@
 -R Lambda Helix.Lambda
 -R HCode Helix.HCode
 -R DSigmaHCOL Helix.DSigmaHCOL
+-R FSigmaHCOL Helix.FSigmaHCOL
 -arg "-w '-notation-overridden'"
 
 
