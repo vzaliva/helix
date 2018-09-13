@@ -1,7 +1,8 @@
 (* Deep-embedded SigmaHCOL with floating point arithmetics *)
 
 Require Import Helix.Util.VecUtil.
-Require Import Flocq.IEEE754.Binary Flocq.IEEE754.Bits Flocq.Core.Zaux.
+Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
 
 Global Open Scope nat_scope.
 
@@ -14,10 +15,10 @@ Inductive FloatV : FloatT -> Type :=
 | Float32V (b32:binary32) : FloatV Float32
 | Float64V (b64:binary64) : FloatV Float64.
 
-Inductive FSHVar : Type :=
-| FSHnatVar (n:nat): FSHVar
-| FSHCarrierAVar {ft:FloatT} (a:FloatV ft): FSHVar
-| FSHvecVar {n:nat} {ft:FloatT} (v:vector (FloatV ft) n): FSHVar.
+Inductive FSHVal (ft:FloatT): Type :=
+| FSHnatVal (n:nat): FSHVal ft
+| FSHFloatVal (a:FloatV ft): FSHVal ft
+| FSHvecVal {n:nat} (v:vector (FloatV ft) n): FSHVal ft.
 
 Inductive FExpr (ft:FloatT) : Type :=
 | AVar  : nat -> FExpr ft
