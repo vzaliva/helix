@@ -19,6 +19,8 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.Tactics.HelixTactics.
 
+Require Import Switch.Switch.
+
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
 
@@ -159,37 +161,25 @@ Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperato
     end
   end.
 
-Inductive SHCOL_Op_Names :=
-| n_eUnion
-| n_eT
-| n_SHPointwise
-| n_SHBinOp
-| n_SHInductor
-| n_IUnion
-| n_ISumUnion
-| n_IReduction
-| n_SHCompose
-| n_SafeCast
-| n_UnSafeCast
-| n_HTSUMUnion
-| n_Unsupported (n:string).
+Definition string_beq a b := if string_dec a b then true else false.
 
-(* For fast string matching *)
-Definition parse_SHCOL_Op_Name (s:string): SHCOL_Op_Names :=
-  if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eUnion" then n_eUnion
-  else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.eT" then n_eT
-       else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHPointwise" then n_SHPointwise
-            else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHBinOp" then n_SHBinOp
-                 else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHInductor" then n_SHInductor
-                      else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IUnion" then n_IUnion
-                           else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.ISumUnion" then n_ISumUnion
-                                else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.IReduction" then n_IReduction
-                                     else if string_dec s "Helix.SigmaHCOL.SigmaHCOL.SHCompose" then n_SHCompose
-                                          else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.SafeCast" then n_SafeCast
-                                               else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast" then n_UnSafeCast
-                                                    else if string_dec s "Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion" then n_HTSUMUnion
-                                                         else n_Unsupported s.
-
+Run TemplateProgram
+    (mkSwitch string
+              string_beq
+              [("Helix.SigmaHCOL.SigmaHCOL.eUnion", "n_eUnion") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.eT", "n_eT") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.SHPointwise", "n_SHPointwise") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.SHBinOp", "n_SHBinOp") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.SHInductor", "n_SHInductor") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.IUnion", "n_IUnion") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.ISumUnion", "n_ISumUnion") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.IReduction", "n_IReduction") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.SHCompose", "n_SHCompose") ;
+                 ("Helix.SigmaHCOL.TSigmaHCOL.SafeCast", "n_SafeCast") ;
+                 ("Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast", "n_UnSafeCast") ;
+                 ("Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion", "n_HTSUMUnion")]
+              "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
+    ).
 
 Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*reifyResult) :=
   match t with
@@ -199,35 +189,35 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
 
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
-    | n_eUnion, [fm ; o ; b ; _ ; z] =>
+    | Some n_eUnion, [fm ; o ; b ; _ ; z] =>
       tmPrint "eUnion" ;;
               no <- tmUnquoteTyped nat o ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, fm, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
-    | n_eT, [fm ; i ; b ; _] =>
+    | Some n_eT, [fm ; i ; b ; _] =>
       tmPrint "eT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, fm,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
-    | n_SHPointwise, [fm ; n ; f ; _ ] =>
+    | Some n_SHPointwise, [fm ; n ; f ; _ ] =>
       tmPrint "SHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
               tmReturn (vars, fm, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |})
-    | n_SHBinOp, [fm ; o ; f ; _]
+    | Some n_SHBinOp, [fm ; o ; f ; _]
       =>
       tmPrint "SHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
               tmReturn (vars, fm, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |})
-    | n_SHInductor, [fm ; n ; f ; _ ; z] =>
+    | Some n_SHInductor, [fm ; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
               tmReturn (vars, fm, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
-    | n_IUnion, [i ; o ; n ; f ; _ ; z ; op_family] =>
+    | Some n_IUnion, [i ; o ; n ; f ; _ ; z ; op_family] =>
       tmPrint "IUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
@@ -238,7 +228,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               c' <- compileSHCOL vars op_family ;;
               let '( _, _, rr) := (c':varbindings*term*reifyResult) in
               tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
-    | n_ISumUnion, [i ; o ; n ; op_family] =>
+    | Some n_ISumUnion, [i ; o ; n ; op_family] =>
       tmPrint "ISumUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
@@ -247,7 +237,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               c' <- compileSHCOL vars op_family ;;
               let '(_, _, rr) := (c':varbindings*term*reifyResult) in
               tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn (APlus (AVar 1) (AVar 0)) 0 (rei_op rr) |})
-    | n_IReduction, [i ; o ; n ; f ; _ ; z ; op_family] =>
+    | Some n_IReduction, [i ; o ; n ; f ; _ ; z ; op_family] =>
       tmPrint "IReduction" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
@@ -258,7 +248,7 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               df <- compileDSHBinCarrierA f ;;
               let '(_, _, rr) := (c':varbindings*term*reifyResult) in
               tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIReduction (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
-    | n_SHCompose, [fm ; i1 ; o2 ; o3 ; op1 ; op2] =>
+    | Some n_SHCompose, [fm ; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
@@ -270,13 +260,13 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               cop1 <- castReifyResult no2 no3 cop1 ;;
                    cop2 <- castReifyResult ni1 no2 cop2 ;;
                    tmReturn (vars, fm, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
-    | n_SafeCast, [i ; o ; c] =>
+    | Some n_SafeCast, [i ; o ; c] =>
       tmPrint "SafeCast" ;;
               compileSHCOL vars c (* TODO: fm? *)
-    | n_UnSafeCast, [i ; o ; c] =>
+    | Some n_UnSafeCast, [i ; o ; c] =>
       tmPrint "UnSafeCast" ;;
               compileSHCOL vars c (* TODO: fm? *)
-    | n_HTSUMUnion, [fm ; i ; o ; dot ; _ ; op1 ; op2] =>
+    | Some n_HTSUMUnion, [fm ; i ; o ; dot ; _ ; op1 ; op2] =>
       tmPrint "HTSumunion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
@@ -289,8 +279,8 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
                    cop2 <- castReifyResult ni no cop2 ;;
                    tmReturn (vars, fm, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
 
-    | n_Unsupported u, _ =>
-      tmFail ("Usupported SHCOL operator" ++ u)
+    | None, _ =>
+      tmFail ("Usupported SHCOL operator" ++ opname)
     | _, _ =>
       tmFail ("Usupported arguments "
                 ++ string_of_list string_of_term args
