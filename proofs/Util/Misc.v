@@ -25,6 +25,8 @@ Require Import MathClasses.theory.setoids.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
+Definition string_beq a b := if string_dec a b then true else false.
+
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A}
        `{!∀ x y: A, Decision (x ≤ y)}:
   Proper ((=) ==> (=) ==> (=)) max.

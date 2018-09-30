@@ -165,8 +165,6 @@ Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperato
     end
   end.
 
-Definition string_beq a b := if string_dec a b then true else false.
-
 Run TemplateProgram
     (mkSwitch string
               string_beq
@@ -303,7 +301,7 @@ Fixpoint build_forall p conc :=
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
   | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
-  | (n,t)::gs =>
+  | (_,t)::gs =>
     dt <- toDSHCOLType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
@@ -336,7 +334,6 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {fm} (σ: evalContext) (s: @SHOperator f
   := forall (Γ: evalContext) (x:svector fm i),
     (Some (densify fm (op fm s x))) = (evalDSHOperator (σ ++ Γ) d (densify fm x)).
 
-Require Import Coq.Program.Basics. (* to unfold `const` *)
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad reifyResult :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
