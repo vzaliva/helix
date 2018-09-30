@@ -75,6 +75,10 @@ Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
     d_a <- compileNExpr a_a ;;
         d_b <- compileNExpr a_b ;;
         tmReturn (NPlus d_a d_b)
+  | (tApp (tConst "Coq.Init.Nat.sub" []) [ a_a ; a_b]) =>
+    d_a <- compileNExpr a_a ;;
+        d_b <- compileNExpr a_b ;;
+        tmReturn (NMinus d_a d_b)
   | (tApp (tConst "Coq.Init.Nat.mul" []) [ a_a ; a_b]) =>
     d_a <- compileNExpr a_a ;;
         d_b <- compileNExpr a_b ;;
