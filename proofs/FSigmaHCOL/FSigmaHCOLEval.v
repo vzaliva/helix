@@ -9,8 +9,7 @@ Require Import Helix.Tactics.HelixTactics.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
-
-Global Open Scope nat_scope.
+Require Import Flocq.Core.Zaux.
 
 Definition evalContext (ft:FloatT): Type := list (FSHVal ft).
 
@@ -49,6 +48,88 @@ Fixpoint evalNexp {ft:FloatT} (st:evalContext ft) (e:NExpr ft): option nat :=
   | NMax _ a b => liftM2 Nat.max (evalNexp st a) (evalNexp st b)
   end.
 
+Definition FT_lift_mbin (ft:FloatT) (m:mode)
+           (f32: mode -> binary32 -> binary32 -> binary32)
+           (f64: mode -> binary64 -> binary64 -> binary64)
+           (a b: option (FloatV ft)): option (FloatV ft) :=
+  match ft,a,b with
+  | Float32, Some (Float32V a32), Some (Float32V b32) => Some (Float32V (f32 m a32 b32))
+  | Float64, Some (Float64V a64), Some (Float64V b64) => Some (Float64V (f64 m a64 b64))
+  | _, _, _ => None
+  end.
+
+Definition FT_lift_obin (ft:FloatT)
+           (f32: binary32 -> binary32 -> option binary32)
+           (f64: binary64 -> binary64 -> option binary64)
+           (a b: option (FloatV ft)): option (FloatV ft) :=
+  match ft,a,b with
+  | Float32, Some (Float32V a32), Some (Float32V b32) =>
+    c <- f32 a32 b32 ;; Some (Float32V c)
+  | Float64, Some (Float64V a64), Some (Float64V b64) =>
+    c <- f64 a64 b64 ;; Some (Float64V c)
+  | _, _, _ => None
+  end.
+
+Definition FT_lift_un (ft:FloatT)
+           (f32: binary32 -> binary32)
+           (f64: binary64 -> binary64)
+           (a: option (FloatV ft)): option (FloatV ft) :=
+  match ft,a with
+  | Float32, Some (Float32V a32) => Some (Float32V (f32 a32))
+  | Float64, Some (Float64V a64) => Some (Float64V (f64 a64))
+  | _, _ => None
+  end.
+
+Definition b32_min (a b: binary32): option binary32 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some a
+  | Some Lt => Some a
+  | Some Gt => Some b
+  end.
+
+Definition b64_min (a b: binary64): option binary64 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some a
+  | Some Lt => Some a
+  | Some Gt => Some b
+  end.
+
+Definition b32_max (a b: binary32): option binary32 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some a
+  | Some Lt => Some b
+  | Some Gt => Some a
+  end.
+
+Definition b64_max (a b: binary64): option binary64 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some a
+  | Some Lt => Some b
+  | Some Gt => Some a
+  end.
+
+Definition b32_zless (a b: binary32): option binary32 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some b
+  | Some Lt => Some a
+  | Some Gt => Some b
+  end.
+
+Definition b64_zless (a b: binary64): option binary64 :=
+  match (Bcompare _ _ a b) with
+  | None => None
+  | Some Eq => Some b
+  | Some Lt => Some a
+  | Some Gt => Some b
+  end.
+
+Definition FT_Rounding:mode := mode_NE.
+
 Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:FExpr ft): option (FloatV ft) :=
   match e with
   | AVar _ i => v <- (nth_error st i) ;;
@@ -57,15 +138,12 @@ Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:FExpr ft): option (FloatV f
                   | _ => None
                   end)
   | AConst _ x => Some x
-  | AAbs _ x =>  liftM (Babs _ _) (evalAexp st x)
-  | APlus _ a b => liftM2 Bplus (evalAexp st a) (evalAexp st b)
-  | AMult _ a b => liftM2 Bmult (evalAexp st a) (evalAexp st b)
-  | AMin _ a b => liftM2 min (evalAexp st a) (evalAexp st b)
-  | AMax _ a b => liftM2 max (evalAexp st a) (evalAexp st b)
-  | AMinus _ a b =>
-    a' <- (evalAexp st a) ;;
-       b' <- (evalAexp st b) ;;
-       ret (Bminus a' b')
+  | AAbs _ x =>  FT_lift_un ft b32_abs b64_abs (evalAexp st x)
+  | APlus _ a b => FT_lift_mbin ft FT_Rounding b32_plus b64_plus (evalAexp st a) (evalAexp st b)
+  | AMinus _ a b => FT_lift_mbin ft FT_Rounding b32_minus b64_minus (evalAexp st a) (evalAexp st b)
+  | AMult _ a b => FT_lift_mbin ft FT_Rounding b32_mult b64_mult (evalAexp st a) (evalAexp st b)
+  | AMin _ a b => FT_lift_obin ft b32_min b64_min (evalAexp st a) (evalAexp st b)
+  | AMax _ a b => FT_lift_obin ft b32_max b64_max (evalAexp st a) (evalAexp st b)
   | @ANth _ n v i =>
     v' <- (evalVexp st v) ;;
        i' <- (evalNexp st i) ;;
@@ -73,5 +151,5 @@ Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:FExpr ft): option (FloatV f
        | left ic => Some (Vnth v' ic)
        | in_right => None
        end
-  | AZless _ a b => liftM2 (Bcompare) (evalAexp st a) (evalAexp st b)
+  | AZless _ a b => FT_lift_obin ft b32_zless b64_zless (evalAexp st a) (evalAexp st b)
   end.
