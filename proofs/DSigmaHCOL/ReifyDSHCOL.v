@@ -1,6 +1,5 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
-Require Import Coq.Program.Basics.
 Require Import Template.All.
 
 Require Import Helix.Util.Misc.
@@ -23,6 +22,12 @@ Require Import Switch.Switch.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
+
+(* This import must be after Vector stuff, so `const` will point to
+   Basics.const not Vector.const. We need this to be able to unfold it
+   in TemplateCoq, which does not understand qualified names (with
+   ".") *)
+Require Import Coq.Program.Basics.
 
 Import MonadNotation.
 Require Import Coq.Lists.List. Import ListNotations.
