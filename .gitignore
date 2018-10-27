@@ -18,3 +18,5 @@ graph.svg
 nohup.out
 CoqMakefile.conf
 Makefile.coq.conf
+/experiments/mapmain
+/experiments/map.s
