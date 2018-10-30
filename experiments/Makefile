@@ -1,8 +1,8 @@
 
 all: mapmain
 
-CFLAGS = -g -O0
-ASFLAGS = -g
+CFLAGS = -O0 -no-pie
+ASFLAGS = -no-pie
 
 map.s: map.ll
 	llc -O=0 map.ll
