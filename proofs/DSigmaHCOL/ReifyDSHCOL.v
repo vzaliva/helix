@@ -1555,12 +1555,3 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- _ ] => try reflexivity
          end.
 
-(* for testing *)
-Require Import Helix.DynWin.DynWin.
-Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1.
-Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL1" "dynwin_SHCOL_DSHCOL").
-
-(*
-  Print dynwin_DSHCOL1.
-  Check dynwin_SHCOL_DSHCOL.
-*)

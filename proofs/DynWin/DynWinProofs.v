@@ -16,6 +16,8 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
+Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
+
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
@@ -843,5 +845,15 @@ Section SigmaHCOL_rewriting.
         split; unfold Included; auto.
   Qed.
 
-
 End SigmaHCOL_rewriting.
+
+Section SigmaHCOL_to_DSHCOL.
+
+  Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1.
+  Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL1" "dynwin_SHCOL_DSHCOL").
+
+  (*
+    Print dynwin_DSHCOL1.
+    Check dynwin_SHCOL_DSHCOL.
+   *)
+End SigmaHCOL_to_DSHCOL.
