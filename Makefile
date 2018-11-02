@@ -6,8 +6,9 @@ LIBNAME := Helix
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
-LIBVFILES := Tactics/CpdtTactics.v Tactics/StructTactics.v
-VFILES := $(shell find . -name \*.v | grep -v .\# | cut -c 3- )
+VDIR := coq
+LIBVFILES := $(VDIR)/Tactics/CpdtTactics.v $(VDIR)/Tactics/StructTactics.v
+VFILES := $(shell find $(VDIR) -name \*.v | grep -v .\#)
 MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
 default: Makefile.coq 

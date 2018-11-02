@@ -1,0 +1,5 @@
+-R coq Helix
+-R ./lib/vellvm/src/coq Vellvm
+-arg "-w '-notation-overridden'"
+
+
