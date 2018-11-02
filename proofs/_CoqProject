@@ -5,6 +5,8 @@
 -R Util Helix.Util 
 -R DSigmaHCOL Helix.DSigmaHCOL
 -R FSigmaHCOL Helix.FSigmaHCOL
+-R LLVMGen Helix.LLVMgen
+-R ../lib/vellvm/src/coq Vellvm
 -arg "-w '-notation-overridden'"
 
 
