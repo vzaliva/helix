@@ -1,8 +1,10 @@
+Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
+Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
-
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 
 Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
@@ -29,3 +31,11 @@ Definition DynWinFSHCOL: @FSHOperator Float64 (1 + 4) 1 :=
                      (FSHeT
                         (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                            (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
+
+Definition LLVMGen
+           {i o: nat}
+           {ft:FloatT}
+           (st:evalContext ft)
+           (fshcol: @FSHOperator ft i o)
+  :option (toplevel_entities (list block))
+  := None.
