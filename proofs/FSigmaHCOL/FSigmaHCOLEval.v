@@ -11,10 +11,10 @@ Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 Require Import Flocq.Core.Zaux.
 
-Definition evalContext (ft:FloatT): Type := list (FSHVal ft).
+Definition evalContext (ft:FloatT): Type := list (@FSHVal ft).
 
-Definition evalVexp {ft:FloatT} (st:evalContext ft) {n} (exp:VExpr ft n): option (vector (FloatV ft) n) :=
-  match exp in (VExpr _ n0) return (option (vector (FloatV ft) n0)) with
+Definition evalVexp {ft:FloatT} (st:evalContext ft) {n} (exp:@VExpr ft n): option (vector (FloatV ft) n) :=
+  match exp in (VExpr n0) return (option (vector (FloatV ft) n0)) with
   | @VVar _ n0 i =>
     match nth_error st i with
     | Some (@FSHvecVal _ n2 v) =>
@@ -31,21 +31,21 @@ Definition evalVexp {ft:FloatT} (st:evalContext ft) {n} (exp:VExpr ft n): option
 Import MonadNotation.
 Open Scope monad_scope.
 
-Fixpoint evalNexp {ft:FloatT} (st:evalContext ft) (e:NExpr ft): option nat :=
+Fixpoint evalNexp {ft:FloatT} (st:evalContext ft) (e:@NExpr ft): option nat :=
   match e with
-  | NVar _ i => v <- (nth_error st i) ;;
+  | NVar i => v <- (nth_error st i) ;;
                  (match v with
-                  | FSHnatVal _ x => Some x
+                  | FSHnatVal x => Some x
                   | _ => None
                   end)
-  | NConst _ c => Some c
-  | NDiv _ a b => liftM2 Nat.div (evalNexp st a) (evalNexp st b)
-  | NMod _ a b => liftM2 Nat.modulo (evalNexp st a) (evalNexp st b)
-  | NPlus _ a b => liftM2 Nat.add (evalNexp st a) (evalNexp st b)
-  | NMinus _ a b => liftM2 Nat.sub (evalNexp st a) (evalNexp st b)
-  | NMult _ a b => liftM2 Nat.mul (evalNexp st a) (evalNexp st b)
-  | NMin _ a b => liftM2 Nat.min (evalNexp st a) (evalNexp st b)
-  | NMax _ a b => liftM2 Nat.max (evalNexp st a) (evalNexp st b)
+  | NConst c => Some c
+  | NDiv a b => liftM2 Nat.div (evalNexp st a) (evalNexp st b)
+  | NMod a b => liftM2 Nat.modulo (evalNexp st a) (evalNexp st b)
+  | NPlus a b => liftM2 Nat.add (evalNexp st a) (evalNexp st b)
+  | NMinus a b => liftM2 Nat.sub (evalNexp st a) (evalNexp st b)
+  | NMult a b => liftM2 Nat.mul (evalNexp st a) (evalNexp st b)
+  | NMin a b => liftM2 Nat.min (evalNexp st a) (evalNexp st b)
+  | NMax a b => liftM2 Nat.max (evalNexp st a) (evalNexp st b)
   end.
 
 Definition FT_lift_mbin (ft:FloatT) (m:mode)
@@ -130,20 +130,20 @@ Definition b64_zless (a b: binary64): option binary64 :=
 
 Definition FT_Rounding:mode := mode_NE.
 
-Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:FExpr ft): option (FloatV ft) :=
+Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:@FExpr ft): option (FloatV ft) :=
   match e with
-  | AVar _ i => v <- (nth_error st i) ;;
+  | AVar i => v <- (nth_error st i) ;;
                  (match v with
-                  | FSHFloatVal _ x => Some x
+                  | FSHFloatVal x => Some x
                   | _ => None
                   end)
-  | AConst _ x => Some x
-  | AAbs _ x =>  FT_lift_un ft b32_abs b64_abs (evalAexp st x)
-  | APlus _ a b => FT_lift_mbin ft FT_Rounding b32_plus b64_plus (evalAexp st a) (evalAexp st b)
-  | AMinus _ a b => FT_lift_mbin ft FT_Rounding b32_minus b64_minus (evalAexp st a) (evalAexp st b)
-  | AMult _ a b => FT_lift_mbin ft FT_Rounding b32_mult b64_mult (evalAexp st a) (evalAexp st b)
-  | AMin _ a b => FT_lift_obin ft b32_min b64_min (evalAexp st a) (evalAexp st b)
-  | AMax _ a b => FT_lift_obin ft b32_max b64_max (evalAexp st a) (evalAexp st b)
+  | AConst x => Some x
+  | AAbs x =>  FT_lift_un ft b32_abs b64_abs (evalAexp st x)
+  | APlus a b => FT_lift_mbin ft FT_Rounding b32_plus b64_plus (evalAexp st a) (evalAexp st b)
+  | AMinus a b => FT_lift_mbin ft FT_Rounding b32_minus b64_minus (evalAexp st a) (evalAexp st b)
+  | AMult a b => FT_lift_mbin ft FT_Rounding b32_mult b64_mult (evalAexp st a) (evalAexp st b)
+  | AMin a b => FT_lift_obin ft b32_min b64_min (evalAexp st a) (evalAexp st b)
+  | AMax a b => FT_lift_obin ft b32_max b64_max (evalAexp st a) (evalAexp st b)
   | @ANth _ n v i =>
     v' <- (evalVexp st v) ;;
        i' <- (evalNexp st i) ;;
@@ -151,5 +151,5 @@ Fixpoint evalAexp {ft:FloatT} (st:evalContext ft) (e:FExpr ft): option (FloatV f
        | left ic => Some (Vnth v' ic)
        | in_right => None
        end
-  | AZless _ a b => FT_lift_obin ft b32_zless b64_zless (evalAexp st a) (evalAexp st b)
+  | AZless a b => FT_lift_obin ft b32_zless b64_zless (evalAexp st a) (evalAexp st b)
   end.
