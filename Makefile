@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all
+.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
@@ -43,7 +43,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 
 EXE=ml/_build/default/test.exe
 
-$(EXE): extracted
+$(EXE): extracted ml/dune ml/extracted/dune
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev test.exe)
 
@@ -56,7 +56,12 @@ install-dep:
 config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
 
-clean:
+clean-ml:
+	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli 
+	rm -rf _build ml/_build $(EXTRACTDIR)/_build
+	rm -f *.log *.cache
+
+clean: clean-ml
 	rm -f `find . -name \*~`
 	-$(MAKECOQ) clean
 	rm -rf `find . -name .coq-native -o -name .\*.aux -o -name \*.time -o -name \*.cache`
