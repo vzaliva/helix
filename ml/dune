@@ -1,0 +1,10 @@
+(env
+ (dev
+  (flags (:standard -g -w -39-33-20-50)))
+ (release
+  (flags (:standard -O3 -w -39-33-20-50))))
+
+(executables
+  (names test)
+  (libraries extracted core)
+  (modes byte))

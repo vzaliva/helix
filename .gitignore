@@ -12,6 +12,13 @@ Makefile.coq.conf
 nohup.out
 .coqdeps.d
 
+ml/.merlin
+ml/extracted/.merlin
+ml/extracted/*.ml
+ml/extracted/*.mli
+ml/extracted/.timestamp
+ml/_build
+
 depgraph.vcmd
 graph.dot
 graph.dpd
@@ -25,3 +32,4 @@ experiments/mapmain
 experiments/map.s
 experiments/dywinmain
 experiments/dywin.s
+/.depend

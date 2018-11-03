@@ -2,17 +2,53 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused
+.PHONY: default config clean clean-dep distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
 VDIR := coq
+
+# OCaml sources
+MLDIR = ml
+EXTRACTDIR = ml/extracted
+TSTAMP = $(EXTRACTDIR)/.timestamp
+
 LIBVFILES := $(VDIR)/Tactics/CpdtTactics.v $(VDIR)/Tactics/StructTactics.v
 VFILES := $(shell find $(VDIR) -name \*.v | grep -v .\#)
+VOFILES = $(VFILES:.v=.vo)
 MYVFILES := $(filter-out $(LIBVFILES), $(VFILES))
 
-default: Makefile.coq 
+COQINCLUDES=`grep '\-R' _CoqProject` -R $(EXTRACTDIR) Extract
+COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
+
+default: all
+
+all: .depend
 	$(MAKECOQ)
+	$(MAKE) extracted
+	$(MAKE) $(EXE)
+
+extracted: $(TSTAMP)
+
+.depend: $(VFILES) 
+	@echo "Analyzing Coq dependencies in" $(VFILES)
+	coqdep $^ > .depend
+
+$(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
+	@echo "Extracting"
+	rm -f $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli
+	$(COQEXEC) $(EXTRACTDIR)/Extract.v
+	patch -p0 < lib/CRelationClasses.mli.patch
+	touch $(TSTAMP)
+
+EXE=ml/_build/default/test.exe
+
+$(EXE): extracted
+	@echo "Compiling $(EXE)"
+	(cd ml; dune build --profile=dev test.exe)
+
+run: $(EXE)
+	./$(EXE)
 
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
@@ -40,7 +76,7 @@ doc: $(MYVFILES)
 	coqdoc --html  --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
 	coqdoc --latex --utf8 -d doc -R . $(LIBNAME) $(MYVFILES)
 
-depgraph.vcmd: *.vo
+depgraph.vcmd: $(VOFILES)
 	rm -f depgraph.vcmd
 	echo "Require dpdgraph.dpdgraph." > depgraph.vcmd
 	echo "Require $(MYVFILES:.v=)." >> depgraph.vcmd
