@@ -1,5 +1,6 @@
 Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Coq.Strings.String.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMAst.
@@ -34,8 +35,8 @@ Definition DynWinFSHCOL: @FSHOperator Float64 (1 + 4) 1 :=
 
 Definition LLVMGen
            {i o: nat}
-           {ft:FloatT}
-           (st:evalContext ft)
-           (fshcol: @FSHOperator ft i o)
+           {ft: FloatT}
+           (st: evalContext ft) (globalnames: list string)
+           (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
   := None.
