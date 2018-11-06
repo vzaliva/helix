@@ -33,10 +33,16 @@ Definition DynWinFSHCOL: @FSHOperator Float64 (1 + 4) 1 :=
                         (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                            (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
 
+
+Inductive FSHValType {ft:FloatT}: Type :=
+| FSHnatValType: FSHValType
+| FSHFloatValType: FSHValType
+| FSHvecValType {n:nat}: FSHValType.
+
 Definition LLVMGen
            {i o: nat}
            {ft: FloatT}
-           (st: evalContext ft) (globalnames: list string)
+           (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
   := None.

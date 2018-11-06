@@ -1,21 +1,20 @@
-open Core
 open Arg
 open ExtrOcamlIntConv
 open FSigmaHCOLtoIR
 open FSigmaHCOL
 open Camlcoq
 open Llvm_printer
+open Core
 
 (* OCaml wrapper over extracted Coq code *)
 let ocaml_LLVMGen
       (i:int) (o:int)
-      (st: float list) (globalnames: string list)
+      (globalnames: (string*coq_FSHValType) list)
       fshcol (funname: string)
   =
   coq_LLVMGen
     (nat_of_int i) (nat_of_int o) Float64
-    (List.map st ~f:(fun x -> FSHFloatVal (Float64V (coqfloat_of_camlfloat x))))
-    (List.map globalnames ~f:coqstring_of_camlstring)
+    (List.map globalnames ~f:(fun (x,y) -> (coqstring_of_camlstring x, y)))
     fshcol (coqstring_of_camlstring funname)
 
 let output_ll_file filename ast =
@@ -34,7 +33,7 @@ let args =
   ; ("-v", Set verbose, "enables more verbose compilation output")]
 
 let _ =
-  match ocaml_LLVMGen (1+4) 1 [0.0] ["D"] coq_DynWinFSHCOL "dynwin" with
+  match ocaml_LLVMGen (1+4) 1 [("D", FSHvecValType (Nat.of_int 3))] coq_DynWinFSHCOL "dynwin" with
   | None ->
      Printf.printf "Error: Compilation FSHCOL compilation failed!\n";
      exit 1
