@@ -12,12 +12,15 @@ Makefile.coq.conf
 nohup.out
 .coqdeps.d
 
+.depend
 ml/.merlin
 ml/extracted/.merlin
 ml/extracted/*.ml
 ml/extracted/*.mli
 ml/extracted/.timestamp
 ml/_build
+ml/llvm_printer.ml
+ml/llvm_printer.mli
 
 depgraph.vcmd
 graph.dot
@@ -27,9 +30,7 @@ graph.svg
 experiments/*.hi
 experiments/*.o
 experiments/test
-
 experiments/mapmain
 experiments/map.s
 experiments/dywinmain
 experiments/dywin.s
-/.depend

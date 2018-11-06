@@ -1,11 +1,11 @@
 (env
  (dev
-  (flags (:standard -g -w -39-33-20-50)))
+  (flags (:standard -g -w -27-32-39-33-20-50)))
  (release
-  (flags (:standard -O3 -w -39-33-20-50))))
+  (flags (:standard -O3 -w -27-32-39-33-20-50))))
 
 (executable
   (name test)
-  (modules test Camlcoq)
+  (modules test Camlcoq Llvm_printer)
   (libraries extracted core)
   (modes byte))

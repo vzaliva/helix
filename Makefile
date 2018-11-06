@@ -43,12 +43,18 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 
 EXE=ml/_build/default/test.exe
 
-$(EXE): extracted ml/dune ml/extracted/dune
+ml/llvm_printer.ml: lib/vellvm/src/ml/llvm_printer.ml
+	cp lib/vellvm/src/ml/llvm_printer.ml ml/llvm_printer.ml
+
+ml/llvm_printer.mli: lib/vellvm/src/ml/llvm_printer.mli
+	cp lib/vellvm/src/ml/llvm_printer.mli ml/llvm_printer.mli
+
+$(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev test.exe)
 
 run: $(EXE)
-	./$(EXE)
+	./$(EXE) -o test.ll
 
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
@@ -60,6 +66,8 @@ clean-ml:
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli 
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 	rm -f *.log *.cache
+	rm -f ml/llvm_printer.ml ml/llvm_printer.mli
+	rm -f test.ll
 
 clean: clean-ml
 	rm -f `find . -name \*~`
