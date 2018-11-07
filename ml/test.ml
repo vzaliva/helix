@@ -6,6 +6,9 @@ open Camlcoq
 open Llvm_printer
 open Core
 
+let verbose = ref false
+let output_file_name = ref "aout.ll"
+
 (* OCaml wrapper over extracted Coq code *)
 let ocaml_LLVMGen
       (i:int) (o:int)
@@ -24,15 +27,13 @@ let output_ll_file filename ast =
   toplevel_entities (Format.formatter_of_out_channel channel) ast;
   close_out channel
 
-let verbose = ref false
-let output_file_name = ref "aout.ll"
-
 (* Use the --test option to run unit tests and the quit the program. *)
 let args =
   [ ("-o", Set_string output_file_name, "name of .ll file for output")
   ; ("-v", Set verbose, "enables more verbose compilation output")]
 
 let _ =
+  Arg.parse args (fun _ -> ())  "USAGE: ./test [-v] [-o file.ll]\n";
   match ocaml_LLVMGen (1+4) 1 [("D", FSHvecValType (Nat.of_int 3))] coq_DynWinFSHCOL "dynwin" with
   | None ->
      Printf.printf "Error: Compilation FSHCOL compilation failed!\n";

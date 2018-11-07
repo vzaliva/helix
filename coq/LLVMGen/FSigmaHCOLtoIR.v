@@ -39,10 +39,28 @@ Inductive FSHValType {ft:FloatT}: Type :=
 | FSHFloatValType: FSHValType
 | FSHvecValType {n:nat}: FSHValType.
 
+Require Import Coq.Lists.List.
+Import ListNotations.
+
 Definition LLVMGen
            {i o: nat}
            {ft: FloatT}
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
-  := None.
+  := Some [
+         TLE_Global {|
+             g_ident        := Name "Foo";
+             g_typ          := TYPE_I 32%Z;
+             g_constant     := false ;
+             g_exp          := None;
+             g_linkage      := Some LINKAGE_External;
+             g_visibility   := None ;
+             g_dll_storage  := None ;
+             g_thread_local := None ;
+             g_unnamed_addr := true ;
+             g_addrspace    := None;
+             g_externally_initialized:= true;
+             g_section      := None;
+             g_align        := Some 16%Z;
+           |}].
