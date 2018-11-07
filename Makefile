@@ -23,7 +23,7 @@ COQEXEC=coqtop -q -w none $(COQINCLUDES) -batch -load-vernac-source
 
 default: all
 
-all: .depend
+all: .depend Makefile.coq
 	$(MAKECOQ)
 	$(MAKE) extracted
 	$(MAKE) $(EXE)
