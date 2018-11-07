@@ -21,6 +21,7 @@ ml/extracted/.timestamp
 ml/_build
 ml/llvm_printer.ml
 ml/llvm_printer.mli
+/test.ll
 
 depgraph.vcmd
 graph.dot
@@ -34,4 +35,3 @@ experiments/mapmain
 experiments/map.s
 experiments/dywinmain
 experiments/dywin.s
-/test.ll

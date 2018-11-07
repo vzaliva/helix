@@ -3,7 +3,6 @@ open ExtrOcamlIntConv
 open FSigmaHCOLtoIR
 open FSigmaHCOL
 open Camlcoq
-open Llvm_printer
 open Core
 
 let verbose = ref false
@@ -21,11 +20,13 @@ let ocaml_LLVMGen
     fshcol (coqstring_of_camlstring funname)
 
 let output_ll_file filename ast =
-  let open Pervasives in
-  let open Llvm_printer in
-  let channel = open_out filename in
-  toplevel_entities (Format.formatter_of_out_channel channel) ast;
-  close_out channel
+  let open Format in
+  let channel = Out_channel.create filename in
+  let ppf = formatter_of_out_channel channel in
+  Llvm_printer.toplevel_entities ppf ast;
+  pp_force_newline ppf ();
+  pp_print_flush ppf () ;
+  Out_channel.close channel
 
 (* Use the --test option to run unit tests and the quit the program. *)
 let args =
