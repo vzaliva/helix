@@ -42,25 +42,48 @@ Inductive FSHValType {ft:FloatT}: Type :=
 Require Import Coq.Lists.List.
 Import ListNotations.
 
+Definition getIRType
+           {ft: FloatT}
+           (t: @FSHValType ft): typ :=
+  match t with
+  | FSHnatValType => TYPE_I 64%Z (* TODO: config *)
+  | FSHFloatValType => match ft with
+                      | Float32 => TYPE_Float
+                      | Float64 => TYPE_Double
+                      end
+  | FSHvecValType n => match ft with
+                      | Float32 => TYPE_Array (BinInt.Z.of_nat n) TYPE_Float
+                      | Float64 => TYPE_Array (BinInt.Z.of_nat n) TYPE_Double
+                      end
+  end.
+
+Definition genIRGlobals
+           {ft: FloatT}:
+           (list (string* (@FSHValType ft))) -> (toplevel_entities (list block))
+  := List.map
+       (fun g:(string* (@FSHValType ft)) =>
+          let (n,t) := g in
+          TLE_Global {|
+             g_ident        := Name n;
+             g_typ          := getIRType t ;
+             g_constant     := false ;
+             g_exp          := None ;
+             g_linkage      := Some LINKAGE_External ;
+             g_visibility   := None ;
+             g_dll_storage  := None ;
+             g_thread_local := None ;
+             g_unnamed_addr := true ;
+             g_addrspace    := None ;
+             g_externally_initialized:= true ;
+             g_section      := None ;
+             g_align        := Some 16%Z ; (* TODO: not for all? *)
+           |}
+       ).
+
 Definition LLVMGen
            {i o: nat}
            {ft: FloatT}
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
-  := Some [
-         TLE_Global {|
-             g_ident        := Name "Foo";
-             g_typ          := TYPE_I 32%Z;
-             g_constant     := false ;
-             g_exp          := None;
-             g_linkage      := Some LINKAGE_External;
-             g_visibility   := None ;
-             g_dll_storage  := None ;
-             g_thread_local := None ;
-             g_unnamed_addr := true ;
-             g_addrspace    := None;
-             g_externally_initialized:= true;
-             g_section      := None;
-             g_align        := Some 16%Z;
-           |}].
+  := Some (genIRGlobals globals).
