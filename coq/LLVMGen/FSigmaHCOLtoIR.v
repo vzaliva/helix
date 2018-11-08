@@ -7,6 +7,7 @@ Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
+Require Import Coq.ZArith.BinInt.
 
 Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
 
@@ -52,8 +53,8 @@ Definition getIRType
                       | Float64 => TYPE_Double
                       end
   | FSHvecValType n => match ft with
-                      | Float32 => TYPE_Array (BinInt.Z.of_nat n) TYPE_Float
-                      | Float64 => TYPE_Array (BinInt.Z.of_nat n) TYPE_Double
+                      | Float32 => TYPE_Array (Z.of_nat n) TYPE_Float
+                      | Float64 => TYPE_Array (Z.of_nat n) TYPE_Double
                       end
   end.
 
@@ -86,4 +87,33 @@ Definition LLVMGen
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
-  := Some (genIRGlobals globals).
+  := Some
+       (genIRGlobals globals ++
+                     [TLE_Definition
+                        {|
+                          df_prototype   :=
+                            {|
+                              dc_name        := Name funname;
+                              dc_type        := TYPE_Function
+                                                  (getIRType (@FSHvecValType ft o))
+                                                  [
+                                                    TYPE_Pointer
+                                                      (getIRType (@FSHvecValType ft o))
+                                                  ] ;
+                              dc_param_attrs := ([],[[PARAMATTR_Align 16%Z]]);
+                              dc_linkage     := None;
+                              dc_visibility  := None;
+                              dc_dll_storage := None;
+                              dc_cconv       := None;
+                              dc_attrs       := [];
+                              dc_section     := None;
+                              dc_align       := None;
+                              dc_gc          := None;
+                            |} ;
+                          df_args        := [Name "X"];
+                          df_instrs      := [];
+                        |}
+                     ]
+       ).
+
+
