@@ -12,6 +12,7 @@ define double @add_one(double %a)
 
 define [8 x double]* @amap(double (double) *%f, [8 x double]* align 16 %x)
 {
+init:
     %b = call noalias i8* @malloc(i64 64)
     %y = bitcast i8* %b to [8 x double]*
     

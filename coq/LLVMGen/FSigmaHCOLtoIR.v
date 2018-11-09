@@ -67,7 +67,7 @@ Definition genIRGlobals
           TLE_Global {|
              g_ident        := Name n;
              g_typ          := getIRType t ;
-             g_constant     := false ;
+             g_constant     := false ; (* TODO: maybe true? *)
              g_exp          := None ;
              g_linkage      := Some LINKAGE_External ;
              g_visibility   := None ;
@@ -80,6 +80,44 @@ Definition genIRGlobals
              g_align        := Some 16%Z ; (* TODO: not for all? *)
            |}
        ).
+
+
+Record IRState :=
+  mkIRstate
+    {
+      block_count: nat ;
+      local_count: nat
+    }.
+
+Definition newState: IRState :=
+  {|
+    block_count :=0;
+    local_count :=0
+  |}.
+
+
+Definition incBlock (st:IRState): IRState :=
+  {|
+    block_count := S (block_count st);
+    local_count := local_count st
+  |}.
+
+Fixpoint genIR
+         {i o: nat}
+         {ft: FloatT}
+         (st:IRState)
+         (fshcol: @FSHOperator ft i o): list block
+  := match fshcol with
+     | FSHeUnion o b z => []
+     | FSHeT i b => []
+     | FSHPointwise i f => []
+     | FSHBinOp o f => []
+     | FSHInductor n f initial => []
+     | FSHIUnion i o n dot initial x => []
+     | FSHIReduction i o n dot initial x => []
+     | FSHCompose i1 o2 o3 f g => []
+     | FSHHTSUMUnion i o dot f g => []
+     end.
 
 Definition LLVMGen
            {i o: nat}
@@ -111,7 +149,7 @@ Definition LLVMGen
                               dc_gc          := None;
                             |} ;
                           df_args        := [Name "X"];
-                          df_instrs      := [];
+                          df_instrs      := genIR newState fshcol;
                         |}
                      ]
        ).
