@@ -81,7 +81,6 @@ Definition genIRGlobals
            |}
        ).
 
-
 Record IRState :=
   mkIRstate
     {
@@ -95,28 +94,45 @@ Definition newState: IRState :=
     local_count :=0
   |}.
 
-
-Definition incBlock (st:IRState): IRState :=
-  {|
+(* Returns block ID and a new state where it is incremented *)
+Definition incBlock (st:IRState): (IRState*block_id) :=
+  ({|
     block_count := S (block_count st);
     local_count := local_count st
-  |}.
+  |}, Anon (Z.of_nat (block_count st))).
+
+(* Returns local ID and a new state where it is incremented *)
+Definition incLocal (st:IRState): (IRState*raw_id) :=
+  ({|
+    block_count := block_count st;
+    local_count := S (local_count st)
+  |}, Anon (Z.of_nat (local_count st))).
+
+Definition allocTempArray
+           {ft: FloatT}
+           (st: IRState)
+           (size: nat): (IRState * (instr_id * instr))
+  :=
+    let (st',id) := incLocal st in
+    (st, (IId id, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))). (* TODO: default align to config *)
 
 Fixpoint genIR
          {i o: nat}
          {ft: FloatT}
-         (st:IRState)
-         (fshcol: @FSHOperator ft i o): list block
+         (st: IRState)
+         (x y: local_id)
+         (fshcol: @FSHOperator ft i o): (IRState * list block)
   := match fshcol with
-     | FSHeUnion o b z => []
-     | FSHeT i b => []
-     | FSHPointwise i f => []
-     | FSHBinOp o f => []
-     | FSHInductor n f initial => []
-     | FSHIUnion i o n dot initial x => []
-     | FSHIReduction i o n dot initial x => []
-     | FSHCompose i1 o2 o3 f g => []
-     | FSHHTSUMUnion i o dot f g => []
+     | FSHeUnion o b z => (st,[])
+     | FSHeT i b => (st,[])
+     | FSHPointwise i f => (st,[])
+     | FSHBinOp o f => (st,[])
+     | FSHInductor n f initial => (st,[])
+     | FSHIUnion i o n dot initial x => (st,[])
+     | FSHIReduction i o n dot initial x => (st,[])
+     | FSHCompose i1 o2 o3 f g =>
+       (st,[])
+     | FSHHTSUMUnion i o dot f g => (st,[])
      end.
 
 Definition LLVMGen
@@ -125,33 +141,48 @@ Definition LLVMGen
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
   :option (toplevel_entities (list block))
-  := Some
-       (genIRGlobals globals ++
-                     [TLE_Definition
-                        {|
-                          df_prototype   :=
-                            {|
-                              dc_name        := Name funname;
-                              dc_type        := TYPE_Function
-                                                  (getIRType (@FSHvecValType ft o))
-                                                  [
-                                                    TYPE_Pointer
-                                                      (getIRType (@FSHvecValType ft o))
-                                                  ] ;
-                              dc_param_attrs := ([],[[PARAMATTR_Align 16%Z]]);
-                              dc_linkage     := None;
-                              dc_visibility  := None;
-                              dc_dll_storage := None;
-                              dc_cconv       := None;
-                              dc_attrs       := [];
-                              dc_section     := None;
-                              dc_align       := None;
-                              dc_gc          := None;
-                            |} ;
-                          df_args        := [Name "X"];
-                          df_instrs      := genIR newState fshcol;
-                        |}
-                     ]
-       ).
-
-
+  :=
+    let x := Name "X" in
+    let y := Name "Y" in
+    let (st',body) := genIR newState x y fshcol in
+    let (st',rid) := incBlock st' in
+    let (st',rsid) := incBlock st' in
+    let retblock :=
+        {|
+          blk_id    := rid ;
+          blk_phis  := [];
+          blk_code  := [];
+          blk_term  := (IId rsid, TERM_Ret_void)
+        |} in
+    let body := body ++ [retblock] in
+    Some
+      (genIRGlobals globals ++
+                    [TLE_Definition
+                       {|
+                         df_prototype   :=
+                           {|
+                             dc_name        := Name funname;
+                             dc_type        := TYPE_Function
+                                                 TYPE_Void
+                                                 [
+                                                   TYPE_Pointer
+                                                     (getIRType (@FSHvecValType ft i));
+                                                     TYPE_Pointer
+                                                       (getIRType (@FSHvecValType ft o))
+                                                 ] ;
+                             dc_param_attrs := ([],[[PARAMATTR_Align 16%Z] ; (* TODO: align to config *)
+                                                      [PARAMATTR_Align 16%Z]]);
+                             dc_linkage     := None;
+                             dc_visibility  := None;
+                             dc_dll_storage := None;
+                             dc_cconv       := None;
+                             dc_attrs       := [];
+                             dc_section     := None;
+                             dc_align       := None;
+                             dc_gc          := None;
+                           |} ;
+                         df_args        := [x;y];
+                         df_instrs      := body
+                       |}
+                    ]
+      ).
