@@ -85,54 +85,81 @@ Record IRState :=
   mkIRstate
     {
       block_count: nat ;
-      local_count: nat
+      local_count: nat ;
+      void_count : nat
     }.
 
 Definition newState: IRState :=
   {|
-    block_count :=0;
-    local_count :=0
+    block_count := 0 ;
+    local_count := 0 ;
+    void_count  := 0 ;
   |}.
 
 (* Returns block ID and a new state where it is incremented *)
 Definition incBlock (st:IRState): (IRState*block_id) :=
   ({|
     block_count := S (block_count st);
-    local_count := local_count st
+    local_count := local_count st ;
+    void_count := void_count st ;
   |}, Anon (Z.of_nat (block_count st))).
 
 (* Returns local ID and a new state where it is incremented *)
 Definition incLocal (st:IRState): (IRState*raw_id) :=
   ({|
-    block_count := block_count st;
-    local_count := S (local_count st)
+    block_count := block_count st ;
+    local_count := S (local_count st) ;
+    void_count  := void_count st ;
   |}, Anon (Z.of_nat (local_count st))).
+
+(* Returns void ID and a new state where it is incremented *)
+Definition incVoid (st:IRState): (IRState*int) :=
+  ({|
+    block_count := block_count st ;
+    local_count := local_count st ;
+    void_count  := S (void_count st) ;
+  |}, Z.of_nat (void_count st)).
 
 Definition allocTempArray
            {ft: FloatT}
            (st: IRState)
-           (size: nat): (IRState * (instr_id * instr))
+           (name: local_id)
+           (nextblock: block_id)
+           (size: nat): (IRState * local_id * block)
   :=
-    let (st',id) := incLocal st in
-    (st, (IId id, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))). (* TODO: default align to config *)
+    let (st,retid) := incLocal st in
+    let (st,bid) := incBlock st in
+    (st, name,
+           {|
+             blk_id    := bid ;
+             blk_phis  := [];
+             blk_code  := [(IId name,
+                            INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))]; (* TODO: default align to config *)
+             blk_term  := (IId retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
+           |}).
 
 Fixpoint genIR
          {i o: nat}
          {ft: FloatT}
          (st: IRState)
          (x y: local_id)
-         (fshcol: @FSHOperator ft i o): (IRState * list block)
+         (nextblock: block_id)
+         (fshcol: @FSHOperator ft i o): (IRState * block_id * list block)
   := match fshcol with
-     | FSHeUnion o b z => (st,[])
-     | FSHeT i b => (st,[])
-     | FSHPointwise i f => (st,[])
-     | FSHBinOp o f => (st,[])
-     | FSHInductor n f initial => (st,[])
-     | FSHIUnion i o n dot initial x => (st,[])
-     | FSHIReduction i o n dot initial x => (st,[])
+     | FSHeUnion o b z => (st, nextblock, [])
+     | FSHeT i b => (st, nextblock, [])
+     | FSHPointwise i f => (st, nextblock, [])
+     | FSHBinOp o f => (st, nextblock, [])
+     | FSHInductor n f initial => (st, nextblock, [])
+     | FSHIUnion i o n dot initial x => (st, nextblock, [])
+     | FSHIReduction i o n dot initial x => (st, nextblock, [])
      | FSHCompose i1 o2 o3 f g =>
-       (st,[])
-     | FSHHTSUMUnion i o dot f g => (st,[])
+       let '(st, tmpid) := incLocal st in
+       let '(st, fb, f') := genIR st tmpid y nextblock f in
+       let '(st, gb, g') := genIR st x tmpid fb g in
+       let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
+       (st, alloid, [tmpalloc]++g'++f')
+     | FSHHTSUMUnion i o dot f g => (st, nextblock, [])
      end.
 
 Definition LLVMGen
@@ -144,9 +171,9 @@ Definition LLVMGen
   :=
     let x := Name "X" in
     let y := Name "Y" in
-    let (st',body) := genIR newState x y fshcol in
-    let (st',rid) := incBlock st' in
-    let (st',rsid) := incBlock st' in
+    let st := newState in
+    let (st,rid) := incBlock st in
+    let (st,rsid) := incBlock st in
     let retblock :=
         {|
           blk_id    := rid ;
@@ -154,6 +181,7 @@ Definition LLVMGen
           blk_code  := [];
           blk_term  := (IId rsid, TERM_Ret_void)
         |} in
+    let (st,body) := genIR st x y rid fshcol in
     let body := body ++ [retblock] in
     Some
       (genIRGlobals globals ++
