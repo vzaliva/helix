@@ -60,25 +60,25 @@ Definition getIRType
 
 Definition genIRGlobals
            {ft: FloatT}:
-           (list (string* (@FSHValType ft))) -> (toplevel_entities (list block))
+  (list (string* (@FSHValType ft))) -> (toplevel_entities (list block))
   := List.map
        (fun g:(string* (@FSHValType ft)) =>
           let (n,t) := g in
           TLE_Global {|
-             g_ident        := Name n;
-             g_typ          := getIRType t ;
-             g_constant     := false ; (* TODO: maybe true? *)
-             g_exp          := None ;
-             g_linkage      := Some LINKAGE_External ;
-             g_visibility   := None ;
-             g_dll_storage  := None ;
-             g_thread_local := None ;
-             g_unnamed_addr := true ;
-             g_addrspace    := None ;
-             g_externally_initialized:= true ;
-             g_section      := None ;
-             g_align        := Some 16%Z ; (* TODO: not for all? *)
-           |}
+              g_ident        := Name n;
+              g_typ          := getIRType t ;
+              g_constant     := false ; (* TODO: maybe true? *)
+              g_exp          := None ;
+              g_linkage      := Some LINKAGE_External ;
+              g_visibility   := None ;
+              g_dll_storage  := None ;
+              g_thread_local := None ;
+              g_unnamed_addr := true ;
+              g_addrspace    := None ;
+              g_externally_initialized:= true ;
+              g_section      := None ;
+              g_align        := Some 16%Z ; (* TODO: not for all? *)
+            |}
        ).
 
 Record IRState :=
@@ -86,7 +86,8 @@ Record IRState :=
     {
       block_count: nat ;
       local_count: nat ;
-      void_count : nat
+      void_count : nat ;
+      vars: list (raw_id * typ)
     }.
 
 Definition newState: IRState :=
@@ -94,31 +95,43 @@ Definition newState: IRState :=
     block_count := 0 ;
     local_count := 0 ;
     void_count  := 0 ;
+    vars := []
   |}.
 
 (* Returns block ID and a new state where it is incremented *)
 Definition incBlock (st:IRState): (IRState*block_id) :=
   ({|
-    block_count := S (block_count st);
-    local_count := local_count st ;
-    void_count := void_count st ;
-  |}, Anon (Z.of_nat (block_count st))).
+      block_count := S (block_count st);
+      local_count := local_count st ;
+      void_count := void_count st ;
+      vars := vars st
+    |}, Anon (Z.of_nat (block_count st))).
 
 (* Returns local ID and a new state where it is incremented *)
 Definition incLocal (st:IRState): (IRState*raw_id) :=
   ({|
-    block_count := block_count st ;
-    local_count := S (local_count st) ;
-    void_count  := void_count st ;
-  |}, Anon (Z.of_nat (local_count st))).
+      block_count := block_count st ;
+      local_count := S (local_count st) ;
+      void_count  := void_count st ;
+      vars := vars st
+    |}, Anon (Z.of_nat (local_count st))).
 
 (* Returns void ID and a new state where it is incremented *)
 Definition incVoid (st:IRState): (IRState*int) :=
   ({|
+      block_count := block_count st ;
+      local_count := local_count st ;
+      void_count  := S (void_count st) ;
+      vars := vars st
+    |}, Z.of_nat (void_count st)).
+
+Definition addVars (st:IRState) (newvars: list (raw_id * typ)): IRState :=
+  {|
     block_count := block_count st ;
     local_count := local_count st ;
-    void_count  := S (void_count st) ;
-  |}, Z.of_nat (void_count st)).
+    void_count  := void_count st ;
+    vars := vars st ++ newvars
+  |}.
 
 Definition allocTempArray
            {ft: FloatT}
@@ -130,13 +143,13 @@ Definition allocTempArray
     let (st,retid) := incLocal st in
     let (st,bid) := incBlock st in
     (st, name,
-           {|
-             blk_id    := bid ;
-             blk_phis  := [];
-             blk_code  := [(IId name,
-                            INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))]; (* TODO: default align to config *)
-             blk_term  := (IId retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
-           |}).
+     {|
+       blk_id    := bid ;
+       blk_phis  := [];
+       blk_code  := [(IId name,
+                      INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))]; (* TODO: default align to config *)
+       blk_term  := (IId retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
+     |}).
 
 Fixpoint genIR
          {i o: nat}
@@ -170,8 +183,20 @@ Definition LLVMGen
   :option (toplevel_entities (list block))
   :=
     let x := Name "X" in
+    let xtyp := TYPE_Pointer (getIRType (@FSHvecValType ft i)) in
     let y := Name "Y" in
+    let ytyp := TYPE_Pointer (getIRType (@FSHvecValType ft o)) in
     let st := newState in
+
+    let st :=
+        addVars st
+                (List.map
+                   (fun g:(string* (@FSHValType ft)) =>
+                      let (n,t) := g in (Name n, getIRType t))
+                   globals) in
+
+    let st := addVars st [(x, xtyp)] in
+
     let (st,rid) := incBlock st in
     let (st,rsid) := incBlock st in
     let retblock :=
@@ -190,14 +215,7 @@ Definition LLVMGen
                          df_prototype   :=
                            {|
                              dc_name        := Name funname;
-                             dc_type        := TYPE_Function
-                                                 TYPE_Void
-                                                 [
-                                                   TYPE_Pointer
-                                                     (getIRType (@FSHvecValType ft i));
-                                                     TYPE_Pointer
-                                                       (getIRType (@FSHvecValType ft o))
-                                                 ] ;
+                             dc_type        := TYPE_Function TYPE_Void [xtyp;ytyp ] ;
                              dc_param_attrs := ([],[[PARAMATTR_Align 16%Z] ; (* TODO: align to config *)
                                                       [PARAMATTR_Align 16%Z]]);
                              dc_linkage     := None;
