@@ -10,6 +10,8 @@ Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
+Import ListNotations.
+
 Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
 
 Program Definition FloatV64One := Float64V (BofZ _ _ _ _ 1%Z).
@@ -36,18 +38,26 @@ Definition DynWinFSHCOL: @FSHOperator Float64 (1 + 4) 1 :=
                            (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
 
 
+
+(* Placeholder section for config variables. Probably should be a
+module in future *)
+Section Config.
+  Definition IntType := TYPE_I 64%Z.
+  Definition ArrayPtrParamAttrs := [ PARAMATTR_Align 16%Z ].
+  Definition GlobalPtrAlignment := Some 16%Z.
+  Definition TempPtrAlignment := Some 16%Z.
+End Config.
+
 Inductive FSHValType {ft:FloatT}: Type :=
 | FSHnatValType: FSHValType
 | FSHFloatValType: FSHValType
 | FSHvecValType {n:nat}: FSHValType.
 
-Import ListNotations.
-
 Definition getIRType
            {ft: FloatT}
            (t: @FSHValType ft): typ :=
   match t with
-  | FSHnatValType => TYPE_I 64%Z (* TODO: config *)
+  | FSHnatValType => IntType
   | FSHFloatValType => match ft with
                       | Float32 => TYPE_Float
                       | Float64 => TYPE_Double
@@ -77,7 +87,7 @@ Definition genIRGlobals
               g_addrspace    := None ;
               g_externally_initialized:= true ;
               g_section      := None ;
-              g_align        := Some 16%Z ; (* TODO: not for all? *)
+              g_align        := GlobalPtrAlignment ;
             |}
        ).
 
@@ -147,8 +157,8 @@ Definition allocTempArray
        blk_id    := bid ;
        blk_phis  := [];
        blk_code  := [(IId name,
-                      INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))]; (* TODO: default align to config *)
-       blk_term  := (IVoid retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
+                      INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)];
+       blk_term  := (IVoid retid, TERM_Br_1 nextblock)
      |}).
 
 
@@ -188,7 +198,7 @@ Definition genFSHBinOp
          {|
            blk_id    := loopblock ;
            blk_phis  := [(loopvar,
-                          Phi  (TYPE_I 64%Z (* TODO: config *))
+                          Phi IntType
                                [(entryblock, EXP_Integer 0%Z) ;
                                   (loopblock, EXP_Ident (ID_Local loopvar))
                                ]
@@ -196,8 +206,8 @@ Definition genFSHBinOp
            blk_code  := [
                          (IId px,  INSTR_Op (OP_GetElementPtr
                                                xtyp (xptyp, (EXP_Ident (ID_Local x)))
-                                               [(TYPE_I 64%Z, EXP_Integer 0%Z);
-                                                  (TYPE_I 64%Z,(EXP_Ident (ID_Local loopvar)))]
+                                               [(IntType, EXP_Integer 0%Z);
+                                                  (IntType,(EXP_Ident (ID_Local loopvar)))]
 
                          ));
 
@@ -213,8 +223,8 @@ Definition genFSHBinOp
 
                            (IId py,  INSTR_Op (OP_GetElementPtr
                                                  ytyp (yptyp, (EXP_Ident (ID_Local y)))
-                                                 [(TYPE_I 64%Z, EXP_Integer 0%Z);
-                                                    (TYPE_I 64%Z,(EXP_Ident (ID_Local loopvar)))]
+                                                 [(IntType, EXP_Integer 0%Z);
+                                                    (IntType,(EXP_Ident (ID_Local loopvar)))]
 
                            ));
 
@@ -227,11 +237,11 @@ Definition genFSHBinOp
 
 
                            (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
-                                                             (TYPE_I 64%Z (* TODO: config *))
+                                                             IntType
                                                              (EXP_Ident (ID_Local loopvar))
                                                              (EXP_Integer 1%Z))) ;
                            (IId loopcond, INSTR_Op (OP_ICmp Eq
-                                                            (TYPE_I 64%Z (* TODO: config *))
+                                                            IntType
                                                             (EXP_Ident (ID_Local loopvar))
                                                             (EXP_Integer (Z.of_nat o))))
 
@@ -305,8 +315,7 @@ Definition LLVMGen
                            {|
                              dc_name        := Name funname;
                              dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                             dc_param_attrs := ([],[[PARAMATTR_Align 16%Z] ; (* TODO: align to config *)
-                                                      [PARAMATTR_Align 16%Z]]);
+                             dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
                              dc_linkage     := None;
                              dc_visibility  := None;
                              dc_dll_storage := None;
