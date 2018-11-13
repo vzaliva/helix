@@ -34,8 +34,8 @@ loop:
     ; increment
     %nextvar = add i64 %i, 1
     ; termination test
-    %loopcond = icmp ne i64 %i, 7
-    br i1 %loopcond, label %loop, label %afterloop
+    %loopcond = icmp eq i64 %nextvar, 8
+    br i1 %loopcond, label %afterloop, label %loop
 
 afterloop:
     ret [8 x double]* %y
