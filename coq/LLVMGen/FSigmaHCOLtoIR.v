@@ -152,29 +152,38 @@ Definition allocTempArray
      |}).
 
 
-  Definition genFSHBinOp
-             {i o: nat}
-             {ft: FloatT}
-             (st: IRState)
-             (x y: local_id)
-             (nextblock: block_id)
-             (f:@FSHIBinFloat ft)
-    : (IRState * block_id * list block)
-    :=
-      let '(st, entryblock) := incBlock st in
-      let '(st, retentry) := incVoid st in
-      let '(st, loopblock) := incBlock st in
-      let '(st, retloop) := incVoid st in
-      let '(st, loopvar) := incLocal st in
-      let '(st, loopcond) := incLocal st in
-      let '(st, nextvar) := incLocal st in
-      (st, entryblock, [
-         {|
-           blk_id    := entryblock ;
-           blk_phis  := [];
-           blk_code  := [];
-           blk_term  := (IVoid retentry, TERM_Br_1 loopblock)
-         |} ;
+Definition genFSHBinOp
+           {i o: nat}
+           {ft: FloatT}
+           (st: IRState)
+           (x y: local_id)
+           (nextblock: block_id)
+           (f:@FSHIBinFloat ft)
+  : (IRState * block_id * list block)
+  :=
+    let '(st, entryblock) := incBlock st in
+    let '(st, retentry) := incVoid st in
+    let '(st, loopblock) := incBlock st in
+    let '(st, retloop) := incVoid st in
+    let '(st, storeid) := incVoid st in
+    let '(st, loopvar) := incLocal st in
+    let '(st, loopcond) := incLocal st in
+    let '(st, nextvar) := incLocal st in
+    let '(st, px) := incLocal st in
+    let '(st, py) := incLocal st in
+    let '(st, v) := incLocal st in
+    let '(st, u) := incLocal st in
+    let xtyp := getIRType (@FSHvecValType ft i) in
+    let xptyp := TYPE_Pointer xtyp in
+    let ytyp := getIRType (@FSHvecValType ft o) in
+    let yptyp := TYPE_Pointer ytyp in
+    (st, entryblock, [
+       {|
+         blk_id    := entryblock ;
+         blk_phis  := [];
+         blk_code  := [];
+         blk_term  := (IVoid retentry, TERM_Br_1 loopblock)
+       |} ;
 
          {|
            blk_id    := loopblock ;
@@ -185,20 +194,42 @@ Definition allocTempArray
                                ]
                         )];
            blk_code  := [
+                         (IId px,  INSTR_Op (OP_GetElementPtr
+                                               xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                               [(TYPE_I 64%Z, EXP_Integer 0%Z);
+                                                  (TYPE_I 64%Z,(EXP_Ident (ID_Local loopvar)))]
 
-  (*
-    ; body
-    %px = getelementptr [8 x double], [8 x double]* %x, i64 0, i64 %i
-    %v = load double, double* %px, align 8
-    %u = call double %f (double %v)
-    %py = getelementptr [8 x double], [8 x double]* %y, i64 0, i64 %i
-    store double %u, double* %py, align 8
-*)
+                         ));
 
-                         (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
-                                                           (TYPE_I 64%Z (* TODO: config *))
-                                                           (EXP_Ident (ID_Local loopvar))
-                                                           (EXP_Integer 1%Z))) ;
+                           (IId v, INSTR_Load false TYPE_Double
+                                              (TYPE_Pointer TYPE_Double,
+                                               (EXP_Ident (ID_Local px)))
+                                              (Some 8%Z)); (*TODO: not sure about 8 *)
+
+
+                           (* TODO:
+                             %u = call double %f (double %v)
+                            *)
+
+                           (IId py,  INSTR_Op (OP_GetElementPtr
+                                                 ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                 [(TYPE_I 64%Z, EXP_Integer 0%Z);
+                                                    (TYPE_I 64%Z,(EXP_Ident (ID_Local loopvar)))]
+
+                           ));
+
+
+                           (IVoid storeid, INSTR_Store false
+                                                       (TYPE_Double, (EXP_Ident (ID_Local u)))
+                                                       (TYPE_Pointer TYPE_Double,
+                                                        (EXP_Ident (ID_Local py)))
+                                                       (Some 8%Z)); (*TODO: not sure about 8 *)
+
+
+                           (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
+                                                             (TYPE_I 64%Z (* TODO: config *))
+                                                             (EXP_Ident (ID_Local loopvar))
+                                                             (EXP_Integer 1%Z))) ;
                            (IId loopcond, INSTR_Op (OP_ICmp Eq
                                                             (TYPE_I 64%Z (* TODO: config *))
                                                             (EXP_Ident (ID_Local loopvar))
@@ -207,7 +238,7 @@ Definition allocTempArray
                        ];
            blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
          |}
-      ]).
+    ]).
 
 Fixpoint genIR
          {i o: nat}
@@ -273,7 +304,7 @@ Definition LLVMGen
                          df_prototype   :=
                            {|
                              dc_name        := Name funname;
-                             dc_type        := TYPE_Function TYPE_Void [xtyp;ytyp ] ;
+                             dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
                              dc_param_attrs := ([],[[PARAMATTR_Align 16%Z] ; (* TODO: align to config *)
                                                       [PARAMATTR_Align 16%Z]]);
                              dc_linkage     := None;
