@@ -89,66 +89,67 @@ Section WithState.
   Import MonadNotation.
   Local Open Scope monad_scope.
 
-  Record IRState : Type :=
-    mkIRstate
-      {
-        block_count: nat ;
-        local_count: nat ;
-        void_count : nat ;
-        vars: list (raw_id * typ)
-      }.
+  Definition IRState : Type :=
+    (
+      nat * (* block_count *)
+      nat * (* local_count *)
+      nat * (* void_count *)
+      (list (raw_id * typ)) (* vars *)
+    ).
 
-  Definition newState: IRState :=
-    {|
-      block_count := 0 ;
-      local_count := 0 ;
-      void_count  := 0 ;
-      vars := []
-    |}.
+  Definition newState: IRState := (0,0,0,[]).
 
   Variable state_m : Type -> Type.
   Context {Monad_m: Monad state_m}.
   Context {State_m: MonadState IRState state_m}.
 
   Definition incBlock (st:IRState): state_m unit :=
-    put {|
-        block_count := S (block_count st);
-        local_count := local_count st ;
-        void_count := void_count st ;
-        vars := vars st
-      |}.
+    let '(block_count, local_count, void_count, vars) := st in
+    put (
+        S block_count,
+        local_count,
+        void_count,
+        vars
+      ).
 
   Definition getNextBlock (st:IRState): block_id :=
-    Anon (Z.of_nat (block_count st)).
+    let '(block_count, _, _ , _ ) := st in
+    Anon (Z.of_nat block_count).
 
   Definition incLocal (st:IRState): state_m unit :=
-    put {|
-      block_count := block_count st ;
-      local_count := S (local_count st) ;
-      void_count  := void_count st ;
-      vars := vars st
-    |}.
+    let '(block_count, local_count, void_count, vars) := st in
+    put (
+        block_count,
+        S local_count,
+        void_count,
+        vars
+      ).
 
   Definition getNextLocal (st:IRState): local_id :=
-    Anon (Z.of_nat (local_count st)).
+    let '(_, local_count, _, _) := st in
+    Anon (Z.of_nat local_count).
 
   Definition incVoid (st:IRState): state_m unit:=
-    put {|
-        block_count := block_count st ;
-        local_count := local_count st ;
-        void_count  := S (void_count st) ;
-        vars := vars st
-      |}.
+    let '(block_count, local_count, void_count, vars) := st in
+    put (
+        block_count,
+        local_count,
+        S void_count,
+        vars
+      ).
 
-  Definition getNextVoid (st:IRState): Z := Z.of_nat (void_count st).
+  Definition getNextVoid (st:IRState): Z :=
+    let '(_, _, void_count, _) := st in
+    Z.of_nat void_count.
 
   Definition addVars (st:IRState) (newvars: list (raw_id * typ)): state_m unit :=
-    put {|
-        block_count := block_count st ;
-        local_count := local_count st ;
-        void_count  := void_count st ;
-        vars := vars st ++ newvars
-      |}.
+    let '(block_count, local_count, void_count, vars) := st in
+    put (
+        block_count,
+        local_count,
+        void_count,
+        vars ++ newvars
+      ).
 
   Definition allocTempArray
              {ft: FloatT}
@@ -262,14 +263,6 @@ Definition LLVMGen
            {ft: FloatT}
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
-  : toplevel_entities (list block) :=
-  @evalState IRState (toplevel_entities (list block))
-             (
-               @LLVMGen_m
-                 _
-                 _
-                 (MonadState_state IRState)
-                 i o ft
-                 globals fshcol funname
-             )
-             newState.
+  : toplevel_entities (list block)
+  :=
+    evalState (LLVMGen_m (state IRState) globals fshcol funname) newState.
