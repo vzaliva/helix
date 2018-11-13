@@ -1,6 +1,7 @@
 Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Coq.Strings.String.
+Require Import Coq.Lists.List.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMAst.
@@ -40,7 +41,6 @@ Inductive FSHValType {ft:FloatT}: Type :=
 | FSHFloatValType: FSHValType
 | FSHvecValType {n:nat}: FSHValType.
 
-Require Import Coq.Lists.List.
 Import ListNotations.
 
 Definition getIRType
@@ -105,7 +105,7 @@ Definition incBlock (st:IRState): (IRState*block_id) :=
       local_count := local_count st ;
       void_count := void_count st ;
       vars := vars st
-    |}, Anon (Z.of_nat (block_count st))).
+    |}, Raw (Z.of_nat (block_count st))).
 
 (* Returns local ID and a new state where it is incremented *)
 Definition incLocal (st:IRState): (IRState*raw_id) :=
@@ -114,7 +114,7 @@ Definition incLocal (st:IRState): (IRState*raw_id) :=
       local_count := S (local_count st) ;
       void_count  := void_count st ;
       vars := vars st
-    |}, Anon (Z.of_nat (local_count st))).
+    |}, Raw (Z.of_nat (local_count st))).
 
 (* Returns void ID and a new state where it is incremented *)
 Definition incVoid (st:IRState): (IRState*int) :=
@@ -140,7 +140,7 @@ Definition allocTempArray
            (nextblock: block_id)
            (size: nat): (IRState * local_id * block)
   :=
-    let (st,retid) := incLocal st in
+    let (st,retid) := incVoid st in
     let (st,bid) := incBlock st in
     (st, name,
      {|
@@ -148,8 +148,66 @@ Definition allocTempArray
        blk_phis  := [];
        blk_code  := [(IId name,
                       INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some 16%Z))]; (* TODO: default align to config *)
-       blk_term  := (IId retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
+       blk_term  := (IVoid retid, TERM_Br_1 nextblock) (* TODO: IVoid? *)
      |}).
+
+
+  Definition genFSHBinOp
+             {i o: nat}
+             {ft: FloatT}
+             (st: IRState)
+             (x y: local_id)
+             (nextblock: block_id)
+             (f:@FSHIBinFloat ft)
+    : (IRState * block_id * list block)
+    :=
+      let '(st, entryblock) := incBlock st in
+      let '(st, retentry) := incVoid st in
+      let '(st, loopblock) := incBlock st in
+      let '(st, retloop) := incVoid st in
+      let '(st, loopvar) := incLocal st in
+      let '(st, loopcond) := incLocal st in
+      let '(st, nextvar) := incLocal st in
+      (st, entryblock, [
+         {|
+           blk_id    := entryblock ;
+           blk_phis  := [];
+           blk_code  := [];
+           blk_term  := (IVoid retentry, TERM_Br_1 loopblock)
+         |} ;
+
+         {|
+           blk_id    := loopblock ;
+           blk_phis  := [(loopvar,
+                          Phi  (TYPE_I 64%Z (* TODO: config *))
+                               [(entryblock, EXP_Integer 0%Z) ;
+                                  (loopblock, EXP_Ident (ID_Local loopvar))
+                               ]
+                        )];
+           blk_code  := [
+
+  (*
+    ; body
+    %px = getelementptr [8 x double], [8 x double]* %x, i64 0, i64 %i
+    %v = load double, double* %px, align 8
+    %u = call double %f (double %v)
+    %py = getelementptr [8 x double], [8 x double]* %y, i64 0, i64 %i
+    store double %u, double* %py, align 8
+*)
+
+                         (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
+                                                           (TYPE_I 64%Z (* TODO: config *))
+                                                           (EXP_Ident (ID_Local loopvar))
+                                                           (EXP_Integer 1%Z))) ;
+                           (IId loopcond, INSTR_Op (OP_ICmp Eq
+                                                            (TYPE_I 64%Z (* TODO: config *))
+                                                            (EXP_Ident (ID_Local loopvar))
+                                                            (EXP_Integer (Z.of_nat o))))
+
+                       ];
+           blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
+         |}
+      ]).
 
 Fixpoint genIR
          {i o: nat}
@@ -162,7 +220,7 @@ Fixpoint genIR
      | FSHeUnion o b z => (st, nextblock, [])
      | FSHeT i b => (st, nextblock, [])
      | FSHPointwise i f => (st, nextblock, [])
-     | FSHBinOp o f => (st, nextblock, [])
+     | FSHBinOp o f => @genFSHBinOp i o ft st x y nextblock f
      | FSHInductor n f initial => (st, nextblock, [])
      | FSHIUnion i o n dot initial x => (st, nextblock, [])
      | FSHIReduction i o n dot initial x => (st, nextblock, [])
