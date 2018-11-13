@@ -243,9 +243,9 @@ Definition genFSHBinOp
     let '(st, py) := incLocal st in
     let '(st, v0) := incLocal st in
     let '(st, v1) := incLocal st in
-    let xtyp := getIRType (@FSHvecValType ft n) in
+    let xtyp := getIRType (@FSHvecValType ft (n+n)) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (@FSHvecValType ft (n+n)) in
+    let ytyp := getIRType (@FSHvecValType ft n) in
     let yptyp := TYPE_Pointer ytyp in
     let st := addVars st [(ID_Local v0, TYPE_Float); (ID_Local v1, TYPE_Float)] in
     '(st, fexpr, fexpcode) <- genFExpr st f ;;
