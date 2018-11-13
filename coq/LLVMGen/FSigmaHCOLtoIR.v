@@ -235,9 +235,11 @@ Definition genFSHBinOp
     let '(st, retloop) := incVoid st in
     let '(st, storeid) := incVoid st in
     let '(st, loopvar) := incLocal st in
+    let '(st, loopvar2) := incLocal st in
     let '(st, loopcond) := incLocal st in
     let '(st, nextvar) := incLocal st in
-    let '(st, px) := incLocal st in
+    let '(st, px0) := incLocal st in
+    let '(st, px1) := incLocal st in
     let '(st, py) := incLocal st in
     let '(st, v0) := incLocal st in
     let '(st, v1) := incLocal st in
@@ -265,7 +267,7 @@ Definition genFSHBinOp
                                     ]
                               )];
                  blk_code  := [
-                               (IId px,  INSTR_Op (OP_GetElementPtr
+                               (IId px0,  INSTR_Op (OP_GetElementPtr
                                                      xtyp (xptyp, (EXP_Ident (ID_Local x)))
                                                      [(IntType, EXP_Integer 0%Z);
                                                         (IntType,(EXP_Ident (ID_Local loopvar)))]
@@ -274,13 +276,25 @@ Definition genFSHBinOp
 
                                  (IId v0, INSTR_Load false TYPE_Double
                                                      (TYPE_Pointer TYPE_Double,
-                                                      (EXP_Ident (ID_Local px)))
+                                                      (EXP_Ident (ID_Local px0)))
                                                      (Some 8%Z));
 
-                                 (* TODO: offset *)
+                                 (IId loopvar2, INSTR_Op (OP_IBinop (Add false false)
+                                                                      IntType
+                                                                      (EXP_Ident (ID_Local loopvar))
+                                                                      (EXP_Ident (ID_Local loopvar))));
+
+
+                                 (IId px1,  INSTR_Op (OP_GetElementPtr
+                                                        xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident (ID_Local loopvar2)))]
+
+                                 ));
+
                                  (IId v1, INSTR_Load false TYPE_Double
                                                      (TYPE_Pointer TYPE_Double,
-                                                      (EXP_Ident (ID_Local px)))
+                                                      (EXP_Ident (ID_Local px1)))
                                                      (Some 8%Z))
                              ]
 
