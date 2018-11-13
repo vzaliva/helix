@@ -1,7 +1,11 @@
-Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
+
+Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+
+Require Import ExtLib.Structures.Monad.
+Require Import ExtLib.Data.Monads.OptionMonad.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMAst.
@@ -11,6 +15,15 @@ Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
 Import ListNotations.
+Import MonadNotation.
+Open Scope monad_scope.
+
+
+(* Temporary workaround until coq-ext-lib is updated in OPAM *)
+Notation "' pat <- c1 ;; c2" :=
+    (@pbind _ _ _ _ _ c1 (fun x => match x with pat => c2 end))
+      (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
+
 
 Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
 
@@ -97,7 +110,7 @@ Record IRState :=
       block_count: nat ;
       local_count: nat ;
       void_count : nat ;
-      vars: list (raw_id * typ)
+      vars: list (ident * typ)
     }.
 
 Definition newState: IRState :=
@@ -135,13 +148,30 @@ Definition incVoid (st:IRState): (IRState*int) :=
       vars := vars st
     |}, Z.of_nat (void_count st)).
 
-Definition addVars (st:IRState) (newvars: list (raw_id * typ)): IRState :=
+Definition addVars (st:IRState) (newvars: list (ident * typ)): IRState :=
   {|
     block_count := block_count st ;
     local_count := local_count st ;
     void_count  := void_count st ;
-    vars := vars st ++ newvars
+    vars := newvars ++ vars st
   |}.
+
+(* TODO: move *)
+Fixpoint drop_err {A:Type} (n:nat) (lst:list A) : option (list A)
+  := match n, lst with
+     | O, xs => Some xs
+     | S n', (_::xs) => drop_err n' xs
+     | _, _ => None
+     end.
+
+Definition dropVars (st:IRState) (n: nat): option IRState :=
+  vars' <- drop_err n (vars st) ;;
+        ret {|
+          block_count := block_count st ;
+          local_count := local_count st ;
+          void_count  := void_count st ;
+          vars := vars'
+        |}.
 
 Definition allocTempArray
            {ft: FloatT}
@@ -161,15 +191,43 @@ Definition allocTempArray
        blk_term  := (IVoid retid, TERM_Br_1 nextblock)
      |}).
 
+Fixpoint genFExpr
+         {ft: FloatT}
+         (st: IRState)
+         (fexp: @FExpr ft) :
+  option (IRState * exp * code) :=
+  match fexp with
+  | AVar n => p <- List.nth_error (vars st) n ;; Some (st, EXP_Ident (fst p), [])
+  | AConst (Float64V v) => Some (st, EXP_Float v, [])
+  | AConst (Float32V _) => None (* 32-bit constants are not supported for now *)
+  | ANth n v i => None (* TODO *)
+  | AAbs v => None (* TODO *)
+  | APlus a b => None (* TODO *)
+  | AMinus a b => None (* TODO *)
+  | AMult a b => None (* TODO *)
+  | AMin a b => None (* TODO *)
+  | AMax a b => None (* TODO *)
+  | AZless a b =>
+    '(st, aexp, acode) <- genFExpr st a ;;
+     '(st, bexp, bcode) <- genFExpr st b ;;
+     let '(st, res) := incLocal st in
+     Some (st,
+           EXP_Ident (ID_Local res),
+           acode ++ bcode ++
+                 [(IId res, INSTR_Op (OP_ICmp Eq
+                                             TYPE_Float
+                                             aexp
+                                             bexp))])
+  end.
 
 Definition genFSHBinOp
-           {i o: nat}
+           {n: nat}
            {ft: FloatT}
            (st: IRState)
            (x y: local_id)
            (nextblock: block_id)
            (f:@FSHIBinFloat ft)
-  : (IRState * block_id * list block)
+  : option (IRState * block_id * list block)
   :=
     let '(st, entryblock) := incBlock st in
     let '(st, retentry) := incVoid st in
@@ -181,74 +239,82 @@ Definition genFSHBinOp
     let '(st, nextvar) := incLocal st in
     let '(st, px) := incLocal st in
     let '(st, py) := incLocal st in
-    let '(st, v) := incLocal st in
-    let '(st, u) := incLocal st in
-    let xtyp := getIRType (@FSHvecValType ft i) in
+    let '(st, v0) := incLocal st in
+    let '(st, v1) := incLocal st in
+    let xtyp := getIRType (@FSHvecValType ft n) in
     let xptyp := TYPE_Pointer xtyp in
-    let ytyp := getIRType (@FSHvecValType ft o) in
+    let ytyp := getIRType (@FSHvecValType ft (n+n)) in
     let yptyp := TYPE_Pointer ytyp in
-    (st, entryblock, [
-       {|
-         blk_id    := entryblock ;
-         blk_phis  := [];
-         blk_code  := [];
-         blk_term  := (IVoid retentry, TERM_Br_1 loopblock)
-       |} ;
+    let st := addVars st [(ID_Local v0, TYPE_Float); (ID_Local v1, TYPE_Float)] in
+    '(st, fexpr, fexpcode) <- genFExpr st f ;;
+     st <- dropVars st 2 ;;
+     Some (st , entryblock, [
+             {|
+               blk_id    := entryblock ;
+               blk_phis  := [];
+               blk_code  := [];
+               blk_term  := (IVoid retentry, TERM_Br_1 loopblock)
+             |} ;
 
-         {|
-           blk_id    := loopblock ;
-           blk_phis  := [(loopvar,
-                          Phi IntType
-                               [(entryblock, EXP_Integer 0%Z) ;
-                                  (loopblock, EXP_Ident (ID_Local loopvar))
-                               ]
-                        )];
-           blk_code  := [
-                         (IId px,  INSTR_Op (OP_GetElementPtr
-                                               xtyp (xptyp, (EXP_Ident (ID_Local x)))
-                                               [(IntType, EXP_Integer 0%Z);
-                                                  (IntType,(EXP_Ident (ID_Local loopvar)))]
+               {|
+                 blk_id    := loopblock ;
+                 blk_phis  := [(loopvar,
+                                Phi IntType
+                                    [(entryblock, EXP_Integer 0%Z) ;
+                                       (loopblock, EXP_Ident (ID_Local loopvar))
+                                    ]
+                              )];
+                 blk_code  := [
+                               (IId px,  INSTR_Op (OP_GetElementPtr
+                                                     xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                     [(IntType, EXP_Integer 0%Z);
+                                                        (IntType,(EXP_Ident (ID_Local loopvar)))]
 
-                         ));
+                               ));
 
-                           (IId v, INSTR_Load false TYPE_Double
-                                              (TYPE_Pointer TYPE_Double,
-                                               (EXP_Ident (ID_Local px)))
-                                              (Some 8%Z)); (*TODO: not sure about 8 *)
+                                 (IId v0, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
+                                                      (EXP_Ident (ID_Local px)))
+                                                     (Some 8%Z));
 
-
-                           (* TODO:
-                             %u = call double %f (double %v)
-                            *)
-
-                           (IId py,  INSTR_Op (OP_GetElementPtr
-                                                 ytyp (yptyp, (EXP_Ident (ID_Local y)))
-                                                 [(IntType, EXP_Integer 0%Z);
-                                                    (IntType,(EXP_Ident (ID_Local loopvar)))]
-
-                           ));
+                                 (* TODO: offset *)
+                                 (IId v1, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
+                                                      (EXP_Ident (ID_Local px)))
+                                                     (Some 8%Z))
+                             ]
 
 
-                           (IVoid storeid, INSTR_Store false
-                                                       (TYPE_Double, (EXP_Ident (ID_Local u)))
-                                                       (TYPE_Pointer TYPE_Double,
-                                                        (EXP_Ident (ID_Local py)))
-                                                       (Some 8%Z)); (*TODO: not sure about 8 *)
+                                ++ fexpcode ++
+
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident (ID_Local loopvar)))]
+
+                                  ));
 
 
-                           (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
-                                                             IntType
-                                                             (EXP_Ident (ID_Local loopvar))
-                                                             (EXP_Integer 1%Z))) ;
-                           (IId loopcond, INSTR_Op (OP_ICmp Eq
-                                                            IntType
-                                                            (EXP_Ident (ID_Local loopvar))
-                                                            (EXP_Integer (Z.of_nat o))))
+                                    (IVoid storeid, INSTR_Store false
+                                                                (TYPE_Double, fexpr)
+                                                                (TYPE_Pointer TYPE_Double,
+                                                                 (EXP_Ident (ID_Local py)))
+                                                                (Some 8%Z)); (*TODO: not sure about 8 *)
 
-                       ];
-           blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
-         |}
-    ]).
+
+                                    (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
+                                                                      IntType
+                                                                      (EXP_Ident (ID_Local loopvar))
+                                                                      (EXP_Integer 1%Z))) ;
+                                    (IId loopcond, INSTR_Op (OP_ICmp Eq
+                                                                     IntType
+                                                                     (EXP_Ident (ID_Local loopvar))
+                                                                     (EXP_Integer (Z.of_nat n))))
+
+                                ];
+                 blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
+               |}
+          ]).
 
 Fixpoint genIR
          {i o: nat}
@@ -256,22 +322,23 @@ Fixpoint genIR
          (st: IRState)
          (x y: local_id)
          (nextblock: block_id)
-         (fshcol: @FSHOperator ft i o): (IRState * block_id * list block)
+         (fshcol: @FSHOperator ft i o):
+  option (IRState * block_id * list block)
   := match fshcol with
-     | FSHeUnion o b z => (st, nextblock, [])
-     | FSHeT i b => (st, nextblock, [])
-     | FSHPointwise i f => (st, nextblock, [])
-     | FSHBinOp o f => @genFSHBinOp i o ft st x y nextblock f
-     | FSHInductor n f initial => (st, nextblock, [])
-     | FSHIUnion i o n dot initial x => (st, nextblock, [])
-     | FSHIReduction i o n dot initial x => (st, nextblock, [])
+     | FSHeUnion o b z => Some (st, nextblock, [])
+     | FSHeT i b => Some (st, nextblock, [])
+     | FSHPointwise i f => Some (st, nextblock, [])
+     | FSHBinOp n f => @genFSHBinOp n ft st x y nextblock f
+     | FSHInductor n f initial => Some (st, nextblock, [])
+     | FSHIUnion i o n dot initial x => Some (st, nextblock, [])
+     | FSHIReduction i o n dot initial x => Some (st, nextblock, [])
      | FSHCompose i1 o2 o3 f g =>
        let '(st, tmpid) := incLocal st in
-       let '(st, fb, f') := genIR st tmpid y nextblock f in
-       let '(st, gb, g') := genIR st x tmpid fb g in
-       let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
-       (st, alloid, [tmpalloc]++g'++f')
-     | FSHHTSUMUnion i o dot f g => (st, nextblock, [])
+       '(st, fb, f') <- genIR st tmpid y nextblock f ;;
+        '(st, gb, g') <- genIR st x tmpid fb g ;;
+        let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
+        Some (st, alloid, [tmpalloc]++g'++f')
+     | FSHHTSUMUnion i o dot f g => Some (st, nextblock, [])
      end.
 
 Definition LLVMGen
@@ -279,7 +346,7 @@ Definition LLVMGen
            {ft: FloatT}
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
-  :option (toplevel_entities (list block))
+  : option (toplevel_entities (list block))
   :=
     let x := Name "X" in
     let xtyp := TYPE_Pointer (getIRType (@FSHvecValType ft i)) in
@@ -291,10 +358,10 @@ Definition LLVMGen
         addVars st
                 (List.map
                    (fun g:(string* (@FSHValType ft)) =>
-                      let (n,t) := g in (Name n, getIRType t))
+                      let (n,t) := g in (ID_Global (Name n), getIRType t))
                    globals) in
 
-    let st := addVars st [(x, xtyp)] in
+    let st := addVars st [(ID_Local x, xtyp)] in
 
     let (st,rid) := incBlock st in
     let (st,rsid) := incBlock st in
@@ -305,28 +372,28 @@ Definition LLVMGen
           blk_code  := [];
           blk_term  := (IId rsid, TERM_Ret_void)
         |} in
-    let (st,body) := genIR st x y rid fshcol in
-    let body := body ++ [retblock] in
-    Some
-      (genIRGlobals globals ++
-                    [TLE_Definition
-                       {|
-                         df_prototype   :=
-                           {|
-                             dc_name        := Name funname;
-                             dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                             dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
-                             dc_linkage     := None;
-                             dc_visibility  := None;
-                             dc_dll_storage := None;
-                             dc_cconv       := None;
-                             dc_attrs       := [];
-                             dc_section     := None;
-                             dc_align       := None;
-                             dc_gc          := None;
-                           |} ;
-                         df_args        := [x;y];
-                         df_instrs      := body
-                       |}
-                    ]
-      ).
+    '(st,body) <- genIR st x y rid fshcol ;;
+     let body := body ++ [retblock] in
+     Some
+       (genIRGlobals globals ++
+                     [TLE_Definition
+                        {|
+                          df_prototype   :=
+                            {|
+                              dc_name        := Name funname;
+                              dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
+                              dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                              dc_linkage     := None;
+                              dc_visibility  := None;
+                              dc_dll_storage := None;
+                              dc_cconv       := None;
+                              dc_attrs       := [];
+                              dc_section     := None;
+                              dc_align       := None;
+                              dc_gc          := None;
+                            |} ;
+                          df_args        := [x;y];
+                          df_instrs      := body
+                        |}
+                     ]
+       ).
