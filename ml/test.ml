@@ -35,6 +35,10 @@ let args =
 
 let _ =
   Arg.parse args (fun _ -> ())  "USAGE: ./test [-v] [-o file.ll]\n";
-  let ast = ocaml_LLVMGen (1+4) 1 [("D", FSHvecValType (Nat.of_int 3))] coq_DynWinFSHCOL "dynwin" in
-  output_ll_file !output_file_name ast ;
-  exit 0
+  match ocaml_LLVMGen (1+4) 1 [("D", FSHvecValType (Nat.of_int 3))] coq_DynWinFSHCOL "dynwin" with
+  | None ->
+     Printf.printf "Error: Compilation FSHCOL compilation failed!\n";
+     exit 1
+  | Some ast ->
+     output_ll_file !output_file_name ast ;
+     exit 0
