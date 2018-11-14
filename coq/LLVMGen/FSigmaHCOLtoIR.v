@@ -266,6 +266,7 @@ Fixpoint genFExpr
           ])
   end.
 
+(* AKA "pick" *)
 Definition genFSHeT
            {i:nat}
            {ft: FloatT}
@@ -277,11 +278,14 @@ Definition genFSHeT
   :=
     let '(st, entryblock) := incBlock st in
     let '(st, retentry) := incVoid st in
+    let '(st, storeid) := incVoid st in
     let '(st, px) := incLocal st in
     let '(st, py) := incLocal st in
     let '(st, v) := incLocal st in
     let xtyp := getIRType (@FSHvecValType ft i) in
     let xptyp := TYPE_Pointer xtyp in
+    let ytyp := getIRType (@FSHvecValType ft 1) in
+    let yptyp := TYPE_Pointer ytyp in
     '(st, nexpr, nexpcode) <- genNExpr st b  ;;
      Some (st , entryblock, [
              {|
@@ -298,7 +302,20 @@ Definition genFSHeT
                                                    (TYPE_Pointer (FloatTtyp ft),
                                                     (EXP_Ident (ID_Local px)))
                                                    (Some 8%Z));
-                               (* TODO: store *)
+
+                               (IId py,  INSTR_Op (OP_GetElementPtr
+                                                   ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                   [(IntType, EXP_Integer 0%Z);
+                                                      (IntType, nexpr)]
+
+                             ));
+
+                             (IVoid storeid, INSTR_Store false
+                                                         ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
+                                                         (TYPE_Pointer (FloatTtyp ft),
+                                                          (EXP_Ident (ID_Local py)))
+                                                         (Some 8%Z))
+
                                      ];
                blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
              |}
@@ -397,7 +414,7 @@ Definition genFSHBinOp
                                                                 ((FloatTtyp ft), fexpr)
                                                                 (TYPE_Pointer (FloatTtyp ft),
                                                                  (EXP_Ident (ID_Local py)))
-                                                                (Some 8%Z)); (*TODO: not sure about 8 *)
+                                                                (Some 8%Z));
 
 
                                     (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
