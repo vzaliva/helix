@@ -209,13 +209,34 @@ Definition allocTempArray
        blk_term  := (IVoid retid, TERM_Br_1 nextblock)
      |}).
 
+Fixpoint genNExpr
+         {ft: FloatT}
+         (st: IRState)
+         (nexp: @NExpr ft) :
+  option (IRState * exp * code) :=
+  match nexp with
+  | NVar n => p <- List.nth_error (vars st) n ;;
+               (* TODO: type check *)
+               Some (st, EXP_Ident (fst p), [])
+  | NConst v => Some (st, EXP_Integer (Z.of_nat v), [])
+  | NDiv a b => None (* TODO *)
+  | NMod a b => None (* TODO *)
+  | NPlus a b => None (* TODO *)
+  | NMinus a b => None (* TODO *)
+  | NMult a b => None (* TODO *)
+  | NMin a b => None (* TODO *)
+  | NMax a b => None (* TODO *)
+  end.
+
 Fixpoint genFExpr
          {ft: FloatT}
          (st: IRState)
          (fexp: @FExpr ft) :
   option (IRState * exp * code) :=
   match fexp with
-  | AVar n => p <- List.nth_error (vars st) n ;; Some (st, EXP_Ident (fst p), [])
+  | AVar n => p <- List.nth_error (vars st) n ;;
+               (* TODO: type check *)
+               Some (st, EXP_Ident (fst p), [])
   | AConst (Float64V v) => Some (st, EXP_Float v, [])
   | AConst (Float32V _) => None (* 32-bit constants are not supported for now *)
   | ANth n v i => None (* TODO *)
@@ -244,6 +265,44 @@ Fixpoint genFExpr
                                            (FloatTtyp ft)))
           ])
   end.
+
+Definition genFSHeT
+           {i:nat}
+           {ft: FloatT}
+           (st: IRState)
+           (x y: local_id)
+           (nextblock: block_id)
+           (b: @NExpr ft)
+  : option (IRState * block_id * list block)
+  :=
+    let '(st, entryblock) := incBlock st in
+    let '(st, retentry) := incVoid st in
+    let '(st, px) := incLocal st in
+    let '(st, py) := incLocal st in
+    let '(st, v) := incLocal st in
+    let xtyp := getIRType (@FSHvecValType ft i) in
+    let xptyp := TYPE_Pointer xtyp in
+    '(st, nexpr, nexpcode) <- genNExpr st b  ;;
+     Some (st , entryblock, [
+             {|
+               blk_id    := entryblock ;
+               blk_phis  := [];
+               blk_code  := nexpcode ++ [
+                             (IId px,  INSTR_Op (OP_GetElementPtr
+                                                   xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                   [(IntType, EXP_Integer 0%Z);
+                                                      (IntType, nexpr)]
+
+                             )) ;
+                               (IId v, INSTR_Load false (FloatTtyp ft)
+                                                   (TYPE_Pointer (FloatTtyp ft),
+                                                    (EXP_Ident (ID_Local px)))
+                                                   (Some 8%Z));
+                               (* TODO: store *)
+                                     ];
+               blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
+             |}
+          ]).
 
 Definition genFSHBinOp
            {n: nat}
@@ -365,7 +424,7 @@ Fixpoint genIR
   option (IRState * block_id * list block)
   := match fshcol with
      | FSHeUnion o b z => Some (st, nextblock, [])
-     | FSHeT i b => Some (st, nextblock, [])
+     | FSHeT i b => @genFSHeT i ft st x y nextblock b
      | FSHPointwise i f => Some (st, nextblock, [])
      | FSHBinOp n f => @genFSHBinOp n ft st x y nextblock f
      | FSHInductor n f initial => Some (st, nextblock, [])
