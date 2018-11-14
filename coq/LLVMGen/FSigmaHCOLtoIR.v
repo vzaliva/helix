@@ -376,8 +376,12 @@ Fixpoint genIR
        '(st, fb, f') <- genIR st tmpid y nextblock f ;;
         '(st, gb, g') <- genIR st x tmpid fb g ;;
         let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
-        Some (st, alloid, [tmpalloc]++g'++f')
-     | FSHHTSUMUnion i o dot f g => Some (st, nextblock, [])
+        Some (st, gb, [tmpalloc]++g'++f')
+     | FSHHTSUMUnion i o dot f g =>
+       (* Note: 'g' computed before 'f', as in compose *)
+       '(st, fb, f') <- genIR st x y nextblock f ;;
+        '(st, gb, g') <- genIR st x y fb g ;;
+        Some (st, gb, g'++f')
      end.
 
 Definition LLVMGen
