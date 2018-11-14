@@ -66,19 +66,19 @@ Inductive FSHValType {ft:FloatT}: Type :=
 | FSHFloatValType: FSHValType
 | FSHvecValType {n:nat}: FSHValType.
 
+Definition FloatTtyp (ft: FloatT) : typ :=
+  match ft with
+  | Float32 => TYPE_Float
+  | Float64 => TYPE_Double
+  end.
+
 Definition getIRType
            {ft: FloatT}
            (t: @FSHValType ft): typ :=
   match t with
   | FSHnatValType => IntType
-  | FSHFloatValType => match ft with
-                      | Float32 => TYPE_Float
-                      | Float64 => TYPE_Double
-                      end
-  | FSHvecValType n => match ft with
-                      | Float32 => TYPE_Array (Z.of_nat n) TYPE_Float
-                      | Float64 => TYPE_Array (Z.of_nat n) TYPE_Double
-                      end
+  | FSHFloatValType => FloatTtyp ft
+  | FSHvecValType n => TYPE_Array (Z.of_nat n) (FloatTtyp ft)
   end.
 
 Definition genIRGlobals
@@ -121,6 +121,24 @@ Definition newState: IRState :=
     vars := []
   |}.
 
+(* TODO: move. Lifted from Software foundations *)
+Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
+  let d := match Nat.modulo n 10 with
+           | 0 => "0" | 1 => "1" | 2 => "2" | 3 => "3" | 4 => "4" | 5 => "5"
+           | 6 => "6" | 7 => "7" | 8 => "8" | _ => "9"
+           end in
+  let acc' := append d acc in
+  match time with
+    | 0 => acc'
+    | S time' =>
+      match Nat.div n 10 with
+        | 0 => acc'
+        | n' => string_of_nat_aux time' n' acc'
+      end
+  end.
+Definition string_of_nat (n : nat) : string :=
+  string_of_nat_aux n n "".
+
 (* Returns block ID and a new state where it is incremented *)
 Definition incBlock (st:IRState): (IRState*block_id) :=
   ({|
@@ -128,7 +146,7 @@ Definition incBlock (st:IRState): (IRState*block_id) :=
       local_count := local_count st ;
       void_count := void_count st ;
       vars := vars st
-    |}, Raw (Z.of_nat (block_count st))).
+    |}, Name (append "b" (string_of_nat (block_count st)))).
 
 (* Returns local ID and a new state where it is incremented *)
 Definition incLocal (st:IRState): (IRState*raw_id) :=
@@ -137,7 +155,7 @@ Definition incLocal (st:IRState): (IRState*raw_id) :=
       local_count := S (local_count st) ;
       void_count  := void_count st ;
       vars := vars st
-    |}, Raw (Z.of_nat (local_count st))).
+    |}, Name (append "l" (string_of_nat (local_count st)))).
 
 (* Returns void ID and a new state where it is incremented *)
 Definition incVoid (st:IRState): (IRState*int) :=
@@ -210,14 +228,21 @@ Fixpoint genFExpr
   | AZless a b =>
     '(st, aexp, acode) <- genFExpr st a ;;
      '(st, bexp, bcode) <- genFExpr st b ;;
-     let '(st, res) := incLocal st in
+     let '(st, ires) := incLocal st in
+     let '(st, fres) := incLocal st in
      Some (st,
-           EXP_Ident (ID_Local res),
+           EXP_Ident (ID_Local fres),
            acode ++ bcode ++
-                 [(IId res, INSTR_Op (OP_ICmp Eq
-                                             TYPE_Float
-                                             aexp
-                                             bexp))])
+                 [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
+                                               (FloatTtyp ft)
+                                               aexp
+                                               bexp));
+                    (IId fres, INSTR_Op (OP_Conversion
+                                           Uitofp
+                                           (TYPE_I 1%Z)
+                                           (EXP_Ident (ID_Local ires))
+                                           (FloatTtyp ft)))
+          ])
   end.
 
 Definition genFSHBinOp
@@ -247,7 +272,7 @@ Definition genFSHBinOp
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (@FSHvecValType ft n) in
     let yptyp := TYPE_Pointer ytyp in
-    let st := addVars st [(ID_Local v0, TYPE_Float); (ID_Local v1, TYPE_Float)] in
+    let st := addVars st [(ID_Local v0, (FloatTtyp ft)); (ID_Local v1, (FloatTtyp ft))] in
     '(st, fexpr, fexpcode) <- genFExpr st f ;;
      st <- dropVars st 2 ;;
      Some (st , entryblock, [
@@ -274,8 +299,8 @@ Definition genFSHBinOp
 
                                ));
 
-                                 (IId v0, INSTR_Load false TYPE_Double
-                                                     (TYPE_Pointer TYPE_Double,
+                                 (IId v0, INSTR_Load false (FloatTtyp ft)
+                                                     (TYPE_Pointer (FloatTtyp ft),
                                                       (EXP_Ident (ID_Local px0)))
                                                      (Some 8%Z));
 
@@ -292,8 +317,8 @@ Definition genFSHBinOp
 
                                  ));
 
-                                 (IId v1, INSTR_Load false TYPE_Double
-                                                     (TYPE_Pointer TYPE_Double,
+                                 (IId v1, INSTR_Load false (FloatTtyp ft)
+                                                     (TYPE_Pointer (FloatTtyp ft),
                                                       (EXP_Ident (ID_Local px1)))
                                                      (Some 8%Z))
                              ]
@@ -310,8 +335,8 @@ Definition genFSHBinOp
 
 
                                     (IVoid storeid, INSTR_Store false
-                                                                (TYPE_Double, fexpr)
-                                                                (TYPE_Pointer TYPE_Double,
+                                                                ((FloatTtyp ft), fexpr)
+                                                                (TYPE_Pointer (FloatTtyp ft),
                                                                  (EXP_Ident (ID_Local py)))
                                                                 (Some 8%Z)); (*TODO: not sure about 8 *)
 
