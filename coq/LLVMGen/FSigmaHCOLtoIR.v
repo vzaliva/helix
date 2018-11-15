@@ -265,6 +265,9 @@ Fixpoint genFExpr
           ])
   end.
 
+(* List of blocks with entry point *)
+Definition segment:Type := block_id * list block.
+
 (* AKA "pick" *)
 Definition genFSHeT
            {i:nat}
@@ -273,7 +276,7 @@ Definition genFSHeT
            (x y: local_id)
            (nextblock: block_id)
            (b: @NExpr ft)
-  : option (IRState * block_id * list block)
+  : option (IRState * segment)
   :=
     let '(st, entryblock) := incBlockNamed st "eT" in
     let '(st, retentry) := incVoid st in
@@ -286,7 +289,7 @@ Definition genFSHeT
     let ytyp := getIRType (@FSHvecValType ft 1) in
     let yptyp := TYPE_Pointer ytyp in
     '(st, nexpr, nexpcode) <- genNExpr st b  ;;
-     Some (st , entryblock, [
+     Some (st , (entryblock, [
              {|
                blk_id    := entryblock ;
                blk_phis  := [];
@@ -318,7 +321,7 @@ Definition genFSHeT
                                      ];
                blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
              |}
-          ]).
+          ])).
 
 Definition genFSHBinOp
            {n: nat}
@@ -327,7 +330,7 @@ Definition genFSHBinOp
            (x y: local_id)
            (nextblock: block_id)
            (f:@FSHIBinFloat ft)
-  : option (IRState * block_id * list block)
+  : option (IRState * segment)
   :=
     let '(st, entryblock) := incBlockNamed st "BinOp" in
     let '(st, retentry) := incVoid st in
@@ -350,7 +353,7 @@ Definition genFSHBinOp
     let st := addVars st [(ID_Local v0, (FloatTtyp ft)); (ID_Local v1, (FloatTtyp ft))] in
     '(st, fexpr, fexpcode) <- genFExpr st f ;;
      st <- dropVars st 2 ;;
-     Some (st , entryblock, [
+     Some (st, (entryblock, [
              {|
                blk_id    := entryblock ;
                blk_phis  := [];
@@ -428,7 +431,7 @@ Definition genFSHBinOp
                                 ];
                  blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
                |}
-          ]).
+          ])).
 
 Fixpoint genIR
          {i o: nat}
@@ -437,26 +440,26 @@ Fixpoint genIR
          (x y: local_id)
          (nextblock: block_id)
          (fshcol: @FSHOperator ft i o):
-  option (IRState * block_id * list block)
+  option (IRState * segment)
   := match fshcol with
-     | FSHeUnion o b z => Some (st, nextblock, [])
+     | FSHeUnion o b z => Some (st, (nextblock, []))
      | FSHeT i b => @genFSHeT i ft st x y nextblock b
-     | FSHPointwise i f => Some (st, nextblock, [])
+     | FSHPointwise i f => Some (st, (nextblock, []))
      | FSHBinOp n f => @genFSHBinOp n ft st x y nextblock f
-     | FSHInductor n f initial => Some (st, nextblock, [])
-     | FSHIUnion i o n dot initial x => Some (st, nextblock, [])
+     | FSHInductor n f initial => Some (st, (nextblock, []))
+     | FSHIUnion i o n dot initial x => Some (st, (nextblock, []))
      | FSHIReduction i o n dot initial body => @genIReduction i o n ft st x y nextblock dot initial body
      | FSHCompose i1 o2 o3 f g =>
        let '(st, tmpid) := incLocal st in
-       '(st, fb, f') <- genIR st tmpid y nextblock f ;;
-        '(st, gb, g') <- genIR st x tmpid fb g ;;
+       '(st, (fb, f')) <- genIR st tmpid y nextblock f ;;
+        '(st, (gb, g')) <- genIR st x tmpid fb g ;;
         let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
-        Some (st, gb, [tmpalloc]++g'++f')
+        Some (st, (gb, [tmpalloc]++g'++f'))
      | FSHHTSUMUnion i o dot f g =>
        (* Note: 'g' computed before 'f', as in compose *)
-       '(st, fb, f') <- genIR st x y nextblock f ;;
-        '(st, gb, g') <- genIR st x y fb g ;;
-        Some (st, gb, g'++f')
+       '(st, (fb, f')) <- genIR st x y nextblock f ;;
+        '(st, (gb, g')) <- genIR st x y fb g ;;
+        Some (st, (gb, g'++f'))
      end
 with genIReduction
        {i o n: nat}
@@ -466,8 +469,8 @@ with genIReduction
        (nextblock: block_id)
        (dot: @FSHBinFloat ft) (initial: FloatV ft)
        (body: @FSHOperator ft i o):
-       option (IRState * block_id * list block)
-     := Some (st, nextblock, []).
+       option (IRState * segment)
+     := Some (st, (nextblock, [])).
 
 
 Definition LLVMGen
@@ -501,7 +504,7 @@ Definition LLVMGen
           blk_code  := [];
           blk_term  := (IId rsid, TERM_Ret_void)
         |} in
-    '(st,body) <- genIR st x y rid fshcol ;;
+    '(st,(_,body)) <- genIR st x y rid fshcol ;;
      let body := body ++ [retblock] in
      Some
        (genIRGlobals globals ++
