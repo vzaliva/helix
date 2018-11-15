@@ -139,16 +139,16 @@ Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
 Definition string_of_nat (n : nat) : string :=
   string_of_nat_aux n n "".
 
-(* Returns block ID and a new state where it is incremented *)
-Definition incBlock (st:IRState): (IRState*block_id) :=
+Definition incBlockNamed (st:IRState) (prefix:string): (IRState*block_id) :=
   ({|
       block_count := S (block_count st);
       local_count := local_count st ;
       void_count := void_count st ;
       vars := vars st
-    |}, Name (append "b" (string_of_nat (block_count st)))).
+    |}, Name (append prefix (string_of_nat (block_count st)))).
 
-(* Returns local ID and a new state where it is incremented *)
+Definition incBlock (st:IRState): (IRState*block_id) := incBlockNamed st "b".
+
 Definition incLocal (st:IRState): (IRState*raw_id) :=
   ({|
       block_count := block_count st ;
@@ -157,7 +157,6 @@ Definition incLocal (st:IRState): (IRState*raw_id) :=
       vars := vars st
     |}, Name (append "l" (string_of_nat (local_count st)))).
 
-(* Returns void ID and a new state where it is incremented *)
 Definition incVoid (st:IRState): (IRState*int) :=
   ({|
       block_count := block_count st ;
@@ -276,7 +275,7 @@ Definition genFSHeT
            (b: @NExpr ft)
   : option (IRState * block_id * list block)
   :=
-    let '(st, entryblock) := incBlock st in
+    let '(st, entryblock) := incBlockNamed st "eT" in
     let '(st, retentry) := incVoid st in
     let '(st, storeid) := incVoid st in
     let '(st, px) := incLocal st in
@@ -330,7 +329,7 @@ Definition genFSHBinOp
            (f:@FSHIBinFloat ft)
   : option (IRState * block_id * list block)
   :=
-    let '(st, entryblock) := incBlock st in
+    let '(st, entryblock) := incBlockNamed st "BinOp" in
     let '(st, retentry) := incVoid st in
     let '(st, loopblock) := incBlock st in
     let '(st, retloop) := incVoid st in
@@ -446,7 +445,7 @@ Fixpoint genIR
      | FSHBinOp n f => @genFSHBinOp n ft st x y nextblock f
      | FSHInductor n f initial => Some (st, nextblock, [])
      | FSHIUnion i o n dot initial x => Some (st, nextblock, [])
-     | FSHIReduction i o n dot initial x => Some (st, nextblock, [])
+     | FSHIReduction i o n dot initial body => @genIReduction i o n ft st x y nextblock dot initial body
      | FSHCompose i1 o2 o3 f g =>
        let '(st, tmpid) := incLocal st in
        '(st, fb, f') <- genIR st tmpid y nextblock f ;;
@@ -458,7 +457,18 @@ Fixpoint genIR
        '(st, fb, f') <- genIR st x y nextblock f ;;
         '(st, gb, g') <- genIR st x y fb g ;;
         Some (st, gb, g'++f')
-     end.
+     end
+with genIReduction
+       {i o n: nat}
+       {ft: FloatT}
+       (st: IRState)
+       (x y: local_id)
+       (nextblock: block_id)
+       (dot: @FSHBinFloat ft) (initial: FloatV ft)
+       (body: @FSHOperator ft i o):
+       option (IRState * block_id * list block)
+     := Some (st, nextblock, []).
+
 
 Definition LLVMGen
            {i o: nat}
