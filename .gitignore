@@ -14,6 +14,8 @@ nohup.out
 
 .depend
 /*.ll
+/*.s
+/*.o
 
 ml/.merlin
 ml/extracted/.merlin
