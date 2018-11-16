@@ -202,7 +202,14 @@ Definition dropVars (st:IRState) (n: nat): option IRState :=
           vars := vars'
         |}.
 
-Definition allocTempArray
+Definition allocTempArrayCode
+           {ft: FloatT}
+           (name: local_id)
+           (size: nat): code
+  :=
+     [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)].
+
+Definition allocTempArrayBlock
            {ft: FloatT}
            (st: IRState)
            (name: local_id)
@@ -215,8 +222,7 @@ Definition allocTempArray
      {|
        blk_id    := bid ;
        blk_phis  := [];
-       blk_code  := [(IId name,
-                      INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)];
+       blk_code  := @allocTempArrayCode ft name size;
        blk_term  := (IVoid retid, TERM_Br_1 nextblock)
      |}).
 
@@ -336,20 +342,21 @@ Definition genFSHeT
           ])).
 
 Definition genLoop
-           (name:string)
+           (prefix: string)
            (from to: exp)
            (loopvar: raw_id)
            (loopcontblock: block_id)
            (body_entry: block_id)
            (body_blocks: list block)
+           (init_code: code)
            (st: IRState)
            (nextblock: block_id)
   : option (IRState * segment)
   :=
-    let '(st, entryblock) := incBlockNamed st (append name "_entry") in
-    let '(st, loopblock) := incBlockNamed st (append name "_loop") in
+    let '(st, entryblock) := incBlockNamed st (append prefix "_entry") in
+    let '(st, loopblock) := incBlockNamed st (append prefix "_loop") in
     let '(st, loopcond) := incLocal st in
-    let '(st, nextvar) := incLocalNamed st "BinOp_next_i" in
+    let '(st, nextvar) := incLocalNamed st (append prefix "_next_i") in
     let '(st, void0) := incVoid st in
     let '(st, void1) := incVoid st in
     let '(st, retloop) := incVoid st in
@@ -360,7 +367,7 @@ Definition genLoop
     let loop_pre := [
           {|
             blk_id    := entryblock ;
-            blk_phis  := []; blk_code  := [];
+            blk_phis  := []; blk_code  := init_code;
             blk_term  := (IVoid void0, TERM_Br_1 loopblock)
           |} ;
 
@@ -476,6 +483,13 @@ Definition genBinOpBody
                 blk_term  := (IVoid binopret, TERM_Br_1 nextblock) |}
           ])).
 
+Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : option exp :=
+  match ft,fv with
+  | Float32, Float32V b32 => None (* TODO: 32 not supported now *)
+  | Float64, Float64V b64 => Some (EXP_Float b64)
+  | _ , _ => None
+  end.
+
 Fixpoint genIR
          {i o: nat}
          {ft: FloatT}
@@ -493,7 +507,7 @@ Fixpoint genIR
        let '(st, loopvar) := newLocalVarNamed st IntType "BinOp_i" in
        '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopcontblock ;;
         st <- dropVars st 1 ;;
-        genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks st nextblock
+        genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
      | FSHInductor n f initial => Some (st, (nextblock, []))
      | FSHIUnion i o n dot initial x => Some (st, (nextblock, []))
      | FSHIReduction i o n dot initial children => @genIReduction i o n ft x y dot initial children st nextblock
@@ -501,7 +515,7 @@ Fixpoint genIR
        let '(st, tmpid) := incLocal st in
        '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
         '(st, (gb, g')) <- genIR x tmpid g st fb ;;
-        let '(st, alloid, tmpalloc) := @allocTempArray ft st tmpid fb o2 in
+        let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid fb o2 in
         Some (st, (gb, [tmpalloc]++g'++f'))
      | FSHHTSUMUnion i o dot f g =>
        (* Note: 'g' computed before 'f', as in compose *)
@@ -518,8 +532,43 @@ with genIReduction
        (st: IRState)
        (nextblock: block_id):
        option (IRState * segment)
-     := Some (st, (nextblock, [])).
+     :=
+       ini <- genFloatV initial ;;
+       let '(st, t) := incLocal st in
+       let tmpalloc := @allocTempArrayCode ft t o in
+       let ttyp := getIRType (@FSHvecValType ft o) in
+       let tptyp := TYPE_Pointer ttyp in
+       let '(st, pt) := incLocal st in
+       let '(st, init_block_id) := incBlockNamed st "IReduction" in
+       let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
+       let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_init_i" in
+       let '(st, void0) := incVoid st in
+       let '(st, storeid) := incVoid st in
+       let init_block :=
+        {|
+                blk_id    := init_block_id ;
+                blk_phis  := [];
+                blk_code  := [
+                              (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                    ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                                    [(IntType, EXP_Integer 0%Z);
+                                                       (IntType,(EXP_Ident (ID_Local loopvar)))]
 
+                                 ));
+
+                                 (IVoid storeid, INSTR_Store false
+                                                             ((FloatTtyp ft), ini)
+                                                             (TYPE_Pointer (FloatTtyp ft),
+                                                              (EXP_Ident (ID_Local pt)))
+                                                             (Some 8%Z))
+
+
+
+                             ];
+                blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
+        |} in
+        st <- dropVars st 1 ;;
+        genLoop "IReduction_init" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
 Definition LLVMGen
            {i o: nat}
