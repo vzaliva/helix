@@ -128,12 +128,12 @@ Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
            end in
   let acc' := append d acc in
   match time with
+  | 0 => acc'
+  | S time' =>
+    match Nat.div n 10 with
     | 0 => acc'
-    | S time' =>
-      match Nat.div n 10 with
-        | 0 => acc'
-        | n' => string_of_nat_aux time' n' acc'
-      end
+    | n' => string_of_nat_aux time' n' acc'
+    end
   end.
 Definition string_of_nat (n : nat) : string :=
   string_of_nat_aux n n "".
@@ -207,7 +207,7 @@ Definition allocTempArrayCode
            (name: local_id)
            (size: nat): code
   :=
-     [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)].
+    [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)].
 
 Definition allocTempArrayBlock
            {ft: FloatT}
@@ -308,37 +308,37 @@ Definition genFSHeT
     let yptyp := TYPE_Pointer ytyp in
     '(st, nexpr, nexpcode) <- genNExpr st b  ;;
      Some (st , (entryblock, [
-             {|
-               blk_id    := entryblock ;
-               blk_phis  := [];
-               blk_code  := nexpcode ++ [
-                             (IId px,  INSTR_Op (OP_GetElementPtr
-                                                   xtyp (xptyp, (EXP_Ident (ID_Local x)))
-                                                   [(IntType, EXP_Integer 0%Z);
-                                                      (IntType, nexpr)]
+                   {|
+                     blk_id    := entryblock ;
+                     blk_phis  := [];
+                     blk_code  := nexpcode ++ [
+                                             (IId px,  INSTR_Op (OP_GetElementPtr
+                                                                   xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                                   [(IntType, EXP_Integer 0%Z);
+                                                                      (IntType, nexpr)]
 
-                             )) ;
-                               (IId v, INSTR_Load false (FloatTtyp ft)
-                                                   (TYPE_Pointer (FloatTtyp ft),
-                                                    (EXP_Ident (ID_Local px)))
-                                                   (Some 8%Z));
+                                             )) ;
+                                               (IId v, INSTR_Load false (FloatTtyp ft)
+                                                                  (TYPE_Pointer (FloatTtyp ft),
+                                                                   (EXP_Ident (ID_Local px)))
+                                                                  (Some 8%Z));
 
-                               (IId py,  INSTR_Op (OP_GetElementPtr
-                                                   ytyp (yptyp, (EXP_Ident (ID_Local y)))
-                                                   [(IntType, EXP_Integer 0%Z);
-                                                      (IntType, nexpr)]
+                                               (IId py,  INSTR_Op (OP_GetElementPtr
+                                                                     ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                                     [(IntType, EXP_Integer 0%Z);
+                                                                        (IntType, nexpr)]
 
-                             ));
+                                               ));
 
-                             (IVoid storeid, INSTR_Store false
-                                                         ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
-                                                         (TYPE_Pointer (FloatTtyp ft),
-                                                          (EXP_Ident (ID_Local py)))
-                                                         (Some 8%Z))
+                                               (IVoid storeid, INSTR_Store false
+                                                                           ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
+                                                                           (TYPE_Pointer (FloatTtyp ft),
+                                                                            (EXP_Ident (ID_Local py)))
+                                                                           (Some 8%Z))
 
-                                     ];
-               blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
-             |}
+                                           ];
+                     blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
+                   |}
           ])).
 
 Definition genLoop
@@ -490,6 +490,118 @@ Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : option exp :=
   | _ , _ => None
   end.
 
+Definition genIReductionInit
+           {i o n: nat}
+           {ft: FloatT}
+           (x y: local_id)
+           (dot: @FSHBinFloat ft) (initial: FloatV ft)
+           (children: @FSHOperator ft i o)
+           (st: IRState)
+           (nextblock: block_id):
+  option (IRState * segment) :=
+
+  ini <- genFloatV initial ;;
+      let '(st, t) := incLocal st in
+      let tmpalloc := @allocTempArrayCode ft t o in
+      let ttyp := getIRType (@FSHvecValType ft o) in
+      let tptyp := TYPE_Pointer ttyp in
+      let '(st, pt) := incLocal st in
+      let '(st, init_block_id) := incBlockNamed st "IReduction_init" in
+      let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
+      let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_init_i" in
+      let '(st, void0) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let init_block :=
+          {|
+            blk_id    := init_block_id ;
+            blk_phis  := [];
+            blk_code  := [
+                          (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                                [(IntType, EXP_Integer 0%Z);
+                                                   (IntType,(EXP_Ident (ID_Local loopvar)))]
+
+                          ));
+
+                            (IVoid storeid, INSTR_Store false
+                                                        ((FloatTtyp ft), ini)
+                                                        (TYPE_Pointer (FloatTtyp ft),
+                                                         (EXP_Ident (ID_Local pt)))
+                                                        (Some 8%Z))
+
+
+
+                        ];
+            blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
+          |} in
+      st <- dropVars st 1 ;;
+         genLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+
+Definition genIReductionFold
+           {i o n: nat}
+           {ft: FloatT}
+           (y t: local_id)
+           (dot: @FSHBinFloat ft)
+           (st: IRState)
+           (nextblock: block_id): option (IRState * segment)
+  :=
+    let ttyp := getIRType (@FSHvecValType ft o) in
+    let tptyp := TYPE_Pointer ttyp in
+    let ytyp := getIRType (@FSHvecValType ft o) in
+    let yptyp := TYPE_Pointer ytyp in
+    let '(st, pt) := incLocal st in
+    let '(st, py) := incLocal st in
+    let '(st, tv) := incLocalNamed st "tv" in
+    let '(st, yv) := incLocalNamed st "yv" in
+    let '(st, fold_block_id) := incBlockNamed st "IReduction_fold" in
+    let '(st, loopcontblock) := incBlockNamed st "IReduction_fold_lcont" in
+    let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_fold_i" in
+    let '(st, storeid) := incVoid st in
+    let '(st, void0) := incVoid st in
+    let st := addVars st [(ID_Local tv, (FloatTtyp ft)); (ID_Local yv, (FloatTtyp ft))] in
+    '(st, fexpr, fexpcode) <- genFExpr st dot ;;
+     st <- dropVars st 2 ;;
+     let fold_block :=
+         {|
+           blk_id    := fold_block_id ;
+           blk_phis  := [];
+           blk_code  := [
+
+                         (IId pt,  INSTR_Op (OP_GetElementPtr
+                                               ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                               [(IntType, EXP_Integer 0%Z);
+                                                  (IntType, (EXP_Ident (ID_Local loopvar)))]
+
+                         ));
+                           (IId py,  INSTR_Op (OP_GetElementPtr
+                                                 ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                 [(IntType, EXP_Integer 0%Z);
+                                                    (IntType, (EXP_Ident (ID_Local loopvar)))]
+
+                           ));
+
+                           (IId tv, INSTR_Load false (FloatTtyp ft)
+                                               (TYPE_Pointer (FloatTtyp ft),
+                                                (EXP_Ident (ID_Local pt)))
+                                               (Some 8%Z));
+                           (IId yv, INSTR_Load false (FloatTtyp ft)
+                                               (TYPE_Pointer (FloatTtyp ft),
+                                                (EXP_Ident (ID_Local py)))
+                                               (Some 8%Z))
+
+                       ] ++ fexpcode ++  [
+
+                           (IVoid storeid, INSTR_Store false
+                                                       ((FloatTtyp ft), fexpr)
+                                                       (TYPE_Pointer (FloatTtyp ft),
+                                                        (EXP_Ident (ID_Local py)))
+                                                       (Some 8%Z))
+
+                         ];
+           blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
+         |} in
+     genLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
+
 Fixpoint genIR
          {i o: nat}
          {ft: FloatT}
@@ -532,43 +644,7 @@ with genIReduction
        (st: IRState)
        (nextblock: block_id):
        option (IRState * segment)
-     :=
-       ini <- genFloatV initial ;;
-       let '(st, t) := incLocal st in
-       let tmpalloc := @allocTempArrayCode ft t o in
-       let ttyp := getIRType (@FSHvecValType ft o) in
-       let tptyp := TYPE_Pointer ttyp in
-       let '(st, pt) := incLocal st in
-       let '(st, init_block_id) := incBlockNamed st "IReduction" in
-       let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
-       let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_init_i" in
-       let '(st, void0) := incVoid st in
-       let '(st, storeid) := incVoid st in
-       let init_block :=
-        {|
-                blk_id    := init_block_id ;
-                blk_phis  := [];
-                blk_code  := [
-                              (IId pt,  INSTR_Op (OP_GetElementPtr
-                                                    ttyp (tptyp, (EXP_Ident (ID_Local t)))
-                                                    [(IntType, EXP_Integer 0%Z);
-                                                       (IntType,(EXP_Ident (ID_Local loopvar)))]
-
-                                 ));
-
-                                 (IVoid storeid, INSTR_Store false
-                                                             ((FloatTtyp ft), ini)
-                                                             (TYPE_Pointer (FloatTtyp ft),
-                                                              (EXP_Ident (ID_Local pt)))
-                                                             (Some 8%Z))
-
-
-
-                             ];
-                blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
-        |} in
-        st <- dropVars st 1 ;;
-        genLoop "IReduction_init" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+     := Some (st, (nextblock, [])).
 
 Definition LLVMGen
            {i o: nat}
