@@ -14,8 +14,7 @@ HELIX: SPIRAL formalization in Coq with LLVM backend
 To install all required dependenceis:
 
     opam repo add coq-released https://coq.inria.fr/opam/released
-    opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch
-
+    opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch ANSITerminal
 
 ### Bulding and Running ###
 
@@ -27,7 +26,6 @@ To test:
 
     make test
 
-
 ### Papers ###
 
 * [HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)](http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf)
@@ -36,3 +34,4 @@ To test:
 ### Contact ###
 
 [Vadim Zaliva](mailto:vzaliva@cmu.edu)
+

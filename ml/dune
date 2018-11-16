@@ -1,4 +1,4 @@
 (executable
   (name test)
-  (libraries extracted core)
+  (libraries extracted core ANSITerminal)
   (modes byte))

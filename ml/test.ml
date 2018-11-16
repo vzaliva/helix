@@ -19,13 +19,18 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let process_test { i=i ; o=o; name=name; op=op; globals=globals} =
+  let module A=ANSITerminal in
   let oname = camlstring_of_coqstring name in
   match coq_LLVMGen i o Float64 globals op name with
   | None ->
-     Printf.printf "Error: %s compilation failed!\n" oname;
+     A.printf [A.white; A.on_red] "Error" ;
+     A.printf [A.yellow] ": %s" oname ;
+     A.printf [] " compilation failed!\n" ;
      false
   | Some ast ->
-     Printf.printf "OK: %s compilation succeeded.\n" oname;
+     A.printf [A.black; A.on_green] "OK" ;
+     A.printf [A.yellow] ": %s" oname ;
+     A.printf [] " compilation succeeded.\n" ;
      output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ;
      true
 
