@@ -63,3 +63,9 @@ Inductive FSHOperator {ft:FloatT}: nat -> nat -> Type :=
 | FSHIReduction {i o: nat} (n: nat) (dot: @FSHBinFloat ft) (initial: FloatV ft): FSHOperator i o -> FSHOperator i o
 | FSHCompose {i1 o2 o3: nat}: FSHOperator o2 o3 -> FSHOperator i1 o2 -> FSHOperator i1 o3
 | FSHHTSUMUnion {i o:nat} (dot: @FSHBinFloat ft): FSHOperator i o -> FSHOperator i o -> @FSHOperator ft i o.
+
+(* Used in code gen and possibly in reification *)
+Inductive FSHValType {ft:FloatT}: Type :=
+| FSHnatValType: FSHValType
+| FSHFloatValType: FSHValType
+| FSHvecValType {n:nat}: FSHValType.

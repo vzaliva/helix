@@ -54,7 +54,7 @@ $(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.m
 	(cd ml; dune build --profile=dev test.exe)
 
 run: $(EXE)
-	./$(EXE) -o test.ll
+	./$(EXE) 
 
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
@@ -67,7 +67,7 @@ clean-ml:
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 	rm -f *.log *.cache
 	rm -f ml/llvm_printer.ml ml/llvm_printer.mli
-	rm -f test.ll
+	rm -f *.ll
 
 clean: clean-ml
 	rm -f `find . -name \*~`

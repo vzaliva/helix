@@ -1,5 +1,6 @@
 
 Require Helix.LLVMGen.FSigmaHCOLtoIR.
+Require Helix.LLVMGen.Tests.
 
 Require ExtrOcamlBasic.
 Require ExtrOcamlString.
@@ -42,4 +43,5 @@ Set Extraction AccessOpaque.
 Cd "ml/extracted".
 
 Extraction Library ExtrOcamlIntConv.
+Recursive Extraction Library Tests.
 Recursive Extraction Library FSigmaHCOLtoIR.

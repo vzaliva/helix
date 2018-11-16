@@ -13,6 +13,8 @@ nohup.out
 .coqdeps.d
 
 .depend
+/*.ll
+
 ml/.merlin
 ml/extracted/.merlin
 ml/extracted/*.ml
@@ -21,7 +23,6 @@ ml/extracted/.timestamp
 ml/_build
 ml/llvm_printer.ml
 ml/llvm_printer.mli
-/test.ll
 
 depgraph.vcmd
 graph.dot
