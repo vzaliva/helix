@@ -257,6 +257,15 @@ Section monadic.
                                                       aexp
                                                       bexp))
                 ]) in
+      let gen_call1 a f :=
+          '(st, aexp, acode) <- @genFExpr ft st a ;;
+           let '(st, res) := incLocal st in
+           let ftyp := FloatTtyp ft in
+           ret (st,
+                 EXP_Ident (ID_Local res),
+                 acode ++
+                       [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
+                ]) in
       let gen_call2 a b f :=
           '(st, aexp, acode) <- genFExpr st a ;;
            '(st, bexp, bcode) <- genFExpr st b ;;
@@ -275,7 +284,10 @@ Section monadic.
       | AConst (Float64V v) => ret (st, EXP_Float v, [])
       | AConst (Float32V _) => raise ("32-bit constants are not implemented")
       | ANth n v i => raise ("ANth not implemented") (* TODO *)
-      | AAbs v => raise ("AAbs not implemented") (* TODO *)
+      | AAbs a => match ft with
+                   | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "fabsf")))
+                   | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "fabs")))
+                   end
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
