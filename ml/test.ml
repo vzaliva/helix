@@ -22,12 +22,13 @@ let process_test { i=i ; o=o; name=name; op=op; globals=globals} =
   let module A=ANSITerminal in
   let oname = camlstring_of_coqstring name in
   match coq_LLVMGen i o Float64 globals op name with
-  | None ->
+  | Datatypes.Coq_inl msg ->
      A.printf [A.white; A.on_red] "Error" ;
      A.printf [A.yellow] ": %s" oname ;
-     A.printf [] " compilation failed!\n" ;
+     A.printf [] " : Error: " ;
+     A.printf [A.red] "%s\n" (camlstring_of_coqstring msg) ;
      false
-  | Some ast ->
+  | Datatypes.Coq_inr ast ->
      A.printf [A.black; A.on_green] "OK" ;
      A.printf [A.yellow] ": %s" oname ;
      A.printf [] " compilation succeeded.\n" ;
