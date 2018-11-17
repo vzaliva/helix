@@ -216,39 +216,68 @@ Fixpoint genFExpr
          {ft: FloatT}
          (st: IRState)
          (fexp: @FExpr ft) :
-  option (IRState * exp * code) :=
-  match fexp with
-  | AVar n => p <- List.nth_error (vars st) n ;;
-               (* TODO: type check *)
-               Some (st, EXP_Ident (fst p), [])
-  | AConst (Float64V v) => Some (st, EXP_Float v, [])
-  | AConst (Float32V _) => None (* 32-bit constants are not supported for now *)
-  | ANth n v i => None (* TODO *)
-  | AAbs v => None (* TODO *)
-  | APlus a b => None (* TODO *)
-  | AMinus a b => None (* TODO *)
-  | AMult a b => None (* TODO *)
-  | AMin a b => None (* TODO *)
-  | AMax a b => None (* TODO *)
-  | AZless a b =>
-    '(st, aexp, acode) <- genFExpr st a ;;
-     '(st, bexp, bcode) <- genFExpr st b ;;
-     let '(st, ires) := incLocal st in
-     let '(st, fres) := incLocal st in
-     Some (st,
-           EXP_Ident (ID_Local fres),
-           acode ++ bcode ++
-                 [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
-                                               (FloatTtyp ft)
-                                               aexp
-                                               bexp));
-                    (IId fres, INSTR_Op (OP_Conversion
-                                           Uitofp
-                                           (TYPE_I 1%Z)
-                                           (EXP_Ident (ID_Local ires))
-                                           (FloatTtyp ft)))
-          ])
-  end.
+  option (IRState * exp * code)
+  :=
+    let gen_binop a b fop :=
+        '(st, aexp, acode) <- genFExpr st a ;;
+         '(st, bexp, bcode) <- genFExpr st b ;;
+         let '(st, res) := incLocal st in
+         Some (st,
+               EXP_Ident (ID_Local res),
+               acode ++ bcode ++
+                     [(IId res, INSTR_Op (OP_FBinop fop
+                                                    [] (* TODO: list fast_math *)
+                                                    (FloatTtyp ft)
+                                                    aexp
+                                                    bexp))
+              ]) in
+    let gen_call2 a b f :=
+        '(st, aexp, acode) <- genFExpr st a ;;
+         '(st, bexp, bcode) <- genFExpr st b ;;
+         let '(st, res) := incLocal st in
+         let ftyp := FloatTtyp ft in
+         Some (st,
+               EXP_Ident (ID_Local res),
+               acode ++ bcode ++
+                     [(IId res, INSTR_Call (ftyp,f)
+                                           [(ftyp,aexp); (ftyp,bexp)])
+              ]) in
+    match fexp with
+    | AVar n => p <- List.nth_error (vars st) n ;;
+                 (* TODO: type check *)
+                 Some (st, EXP_Ident (fst p), [])
+    | AConst (Float64V v) => Some (st, EXP_Float v, [])
+    | AConst (Float32V _) => None (* 32-bit constants are not supported for now *)
+    | ANth n v i => None (* TODO *)
+    | AAbs v => None (* TODO *)
+    | APlus a b => gen_binop a b FAdd
+    | AMinus a b => gen_binop a b FSub
+    | AMult a b => gen_binop a b FMul
+    | AMin a b => None (* TODO *)
+    | AMax a b => match ft with
+                 | Float32 => gen_call2 a b (EXP_Ident (ID_Global (Name "fmaxf")))
+                 | Float64 => gen_call2 a b (EXP_Ident (ID_Global (Name "fmax")))
+                 end
+    | AZless a b =>
+      (* this is special as requires bool -> double cast *)
+      '(st, aexp, acode) <- genFExpr st a ;;
+       '(st, bexp, bcode) <- genFExpr st b ;;
+       let '(st, ires) := incLocal st in
+       let '(st, fres) := incLocal st in
+       Some (st,
+             EXP_Ident (ID_Local fres),
+             acode ++ bcode ++
+                   [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
+                                                 (FloatTtyp ft)
+                                                 aexp
+                                                 bexp));
+                      (IId fres, INSTR_Op (OP_Conversion
+                                             Uitofp
+                                             (TYPE_I 1%Z)
+                                             (EXP_Ident (ID_Local ires))
+                                             (FloatTtyp ft)))
+            ])
+    end.
 
 (* List of blocks with entry point *)
 Definition segment:Type := block_id * list block.
@@ -458,17 +487,17 @@ Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : option exp :=
   end.
 
 Definition genIReductionInit
-           {i o n: nat}
+           {i o: nat}
            {ft: FloatT}
+           (n: nat)
+           (t: raw_id)
            (x y: local_id)
            (dot: @FSHBinFloat ft) (initial: FloatV ft)
-           (children: @FSHOperator ft i o)
            (st: IRState)
            (nextblock: block_id):
   option (IRState * segment) :=
 
   ini <- genFloatV initial ;;
-      let '(st, t) := incLocal st in
       let tmpalloc := @allocTempArrayCode ft t o in
       let ttyp := getIRType (@FSHvecValType ft o) in
       let tptyp := TYPE_Pointer ttyp in
@@ -589,7 +618,21 @@ Fixpoint genIR
         genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
      | FSHInductor n f initial => Some (st, (nextblock, []))
      | FSHIUnion i o n dot initial x => Some (st, (nextblock, []))
-     | FSHIReduction i o n dot initial children => @genIReduction i o n ft x y dot initial children st nextblock
+     | FSHIReduction i o n dot initial child =>
+       let '(st, t) := incLocalNamed st "IReductoin_tmp" in
+       let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
+       let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_main_i" in
+       '(st,(fold_block_id, fold_blocks))
+        <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
+        '(st,(child_block_id, child_blocks))
+        <- genIR x t child st fold_block_id ;;
+        let st := addVars st [(ID_Local loopvar, IntType)] in
+        '(st, (loop_block_id, loop_blocks))
+         <- genLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+         loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
+         [] st nextblock ;;
+         st <- dropVars st 1 ;;
+         @genIReductionInit i o ft n t x y dot initial st loop_block_id
      | FSHCompose i1 o2 o3 f g =>
        let '(st, tmpid) := incLocal st in
        '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
@@ -601,17 +644,7 @@ Fixpoint genIR
        '(st, (fb, f')) <- genIR x y f st nextblock  ;;
         '(st, (gb, g')) <- genIR x y g st fb  ;;
         Some (st, (gb, g'++f'))
-     end
-with genIReduction
-       {i o n: nat}
-       {ft: FloatT}
-       (x y: local_id)
-       (dot: @FSHBinFloat ft) (initial: FloatV ft)
-       (children: @FSHOperator ft i o)
-       (st: IRState)
-       (nextblock: block_id):
-       option (IRState * segment)
-     := Some (st, (nextblock, [])).
+     end.
 
 Definition LLVMGen
            {i o: nat}
