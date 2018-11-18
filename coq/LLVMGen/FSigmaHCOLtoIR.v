@@ -670,7 +670,8 @@ Section monadic.
            loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
            [] st nextblock ;;
            st <- dropVars st 1 ;;
-           @genIReductionInit i o ft n t x y dot initial st loop_block_id
+           '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
+           ret (st, (init_block_id, init_blocks++loop_blocks))
        | FSHCompose i1 o2 o3 f g =>
          let '(st, tmpid) := incLocal st in
          '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
