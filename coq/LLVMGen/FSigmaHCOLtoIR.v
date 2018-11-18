@@ -12,11 +12,8 @@ Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
 Require Import Coq.Strings.String.
-(** Require the monad definitions **)
 Require Import ExtLib.Structures.Monads.
-(** Use the instances for exceptions **)
 Require Import ExtLib.Data.Monads.EitherMonad.
-(** Strings will be used for error messages **)
 Require Import ExtLib.Data.String.
 
 Import ListNotations.
@@ -285,16 +282,16 @@ Section monadic.
       | AConst (Float32V _) => raise ("32-bit constants are not implemented")
       | ANth n v i => raise ("ANth not implemented") (* TODO *)
       | AAbs a => match ft with
-                   | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "fabsf")))
-                   | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "fabs")))
+                   | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f32")))
+                   | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f64")))
                    end
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
       | AMin a b => raise ("AMin not implemented") (* TODO *)
       | AMax a b => match ft with
-                   | Float32 => gen_call2 a b (EXP_Ident (ID_Global (Name "fmaxf")))
-                   | Float64 => gen_call2 a b (EXP_Ident (ID_Global (Name "fmax")))
+                   | Float32 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f32")))
+                   | Float64 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f64")))
                    end
       | AZless a b =>
         (* this is special as requires bool -> double cast *)
