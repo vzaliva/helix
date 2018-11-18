@@ -1,5 +1,5 @@
 open Arg
-open FSigmaHCOLtoIR
+open Compiler
 open FSigmaHCOL
 open Camlcoq
 open Core
