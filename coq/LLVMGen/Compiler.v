@@ -40,8 +40,10 @@ Definition getIRType
   end.
 
 Definition genIRGlobals
-           {ft: FloatT}:
-  (list (string* (@FSHValType ft))) -> (toplevel_entities (list block))
+           {ft: FloatT}
+           {FnBody: Set}
+  :
+  (list (string* (@FSHValType ft))) -> (toplevel_entities FnBody)
   := List.map
        (fun g:(string* (@FSHValType ft)) =>
           let (n,t) := g in
@@ -703,28 +705,29 @@ Section monadic.
       '(st,(_,body)) <- genIR x y fshcol st rid ;;
        let body := body ++ [retblock] in
        ret
-         (genIRGlobals globals ++
-                       [TLE_Definition
-                          {|
-                            df_prototype   :=
-                              {|
-                                dc_name        := Name funname;
-                                dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                                dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
-                                dc_linkage     := None ;
-                                dc_visibility  := None ;
-                                dc_dll_storage := None ;
-                                dc_cconv       := None ;
-                                dc_attrs       := []   ;
-                                dc_section     := None ;
-                                dc_align       := None ;
-                                dc_gc          := None
-                              |} ;
-                            df_args        := [x;y];
-                            df_instrs      := body
-                          |}
-                       ]
-         ).
+         (all_intrinsics ++
+                         (genIRGlobals (FnBody:=list block) globals ++
+                                       [TLE_Definition
+                                          {|
+                                            df_prototype   :=
+                                              {|
+                                                dc_name        := Name funname;
+                                                dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
+                                                dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                                                dc_linkage     := None ;
+                                                dc_visibility  := None ;
+                                                dc_dll_storage := None ;
+                                                dc_cconv       := None ;
+                                                dc_attrs       := []   ;
+                                                dc_section     := None ;
+                                                dc_align       := None ;
+                                                dc_gc          := None
+                                              |} ;
+                                            df_args        := [x;y];
+                                            df_instrs      := body
+                                          |}
+                                       ]
+         )).
 
 End monadic.
 
