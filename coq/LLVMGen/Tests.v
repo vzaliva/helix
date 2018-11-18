@@ -51,11 +51,15 @@ Record FSHCOLTest :=
       op: @FSHOperator Float64 i o;
     }.
 
+Definition Reduction_test: @FSHOperator Float64 8 4 :=
+  (FSHIReduction 5 (APlus (AVar 1) (AVar 0)) FloatV64Zero FSHDummy).
+
 Local Open Scope string_scope.
 
 Definition all_tests :=
   [
     {| name:="dynwin"; i:=1+4; o:=1; op:=DynWin_test ; globals:=[("D", @FSHvecValType Float64 3)] |} ;
+    {| name:="reduction"; i:=8; o:=4; op:=Reduction_test; globals:=[] |} ;
     {| name:="binop_less"; i:=2+2; o:=2; op:=BinOp_less_test; globals:=[] |} ;
     {| name:="binop_plus"; i:=2+2; o:=2; op:=BinOp_plus_test; globals:=[] |}
   ].

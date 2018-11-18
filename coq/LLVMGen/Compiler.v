@@ -631,6 +631,7 @@ Section monadic.
            (nextblock: block_id):
     m (IRState * segment)
     := match fshcol with
+       | FSHDummy i o => ret (st, (nextblock, []))
        | FSHeUnion o b z => ret (st, (nextblock, []))
        | FSHeT i b => @genFSHeT i ft st x y b nextblock
        | FSHPointwise i f => ret (st, (nextblock, []))
