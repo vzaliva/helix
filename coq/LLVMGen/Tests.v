@@ -41,6 +41,12 @@ Definition BinOp_less_test: @FSHOperator Float64 (2+2) 2 :=
 Definition BinOp_plus_test: @FSHOperator Float64 (2+2) 2 :=
   FSHBinOp (APlus (AVar 1) (AVar 0)).
 
+Definition Pointwise_plus1_test: @FSHOperator Float64 8 8 :=
+  FSHPointwise (APlus (AConst FloatV64One) (AVar 0)).
+
+Definition Pointwise_plusD_test: @FSHOperator Float64 8 8 :=
+  FSHPointwise (APlus (AVar 0) (AVar 3)).
+
 Record FSHCOLTest :=
   mkFSHCOLTest
     {
@@ -61,5 +67,7 @@ Definition all_tests :=
     {| name:="dynwin"; i:=1+4; o:=1; op:=DynWin_test ; globals:=[("D", @FSHvecValType Float64 3)] |} ;
     {| name:="reduction"; i:=8; o:=4; op:=Reduction_test; globals:=[] |} ;
     {| name:="binop_less"; i:=2+2; o:=2; op:=BinOp_less_test; globals:=[] |} ;
-    {| name:="binop_plus"; i:=2+2; o:=2; op:=BinOp_plus_test; globals:=[] |}
+    {| name:="binop_plus"; i:=2+2; o:=2; op:=BinOp_plus_test; globals:=[] |} ;
+    {| name:="pointwise_plus1"; i:=8; o:=8; op:=Pointwise_plus1_test; globals:=[] |} ;
+    {| name:="pointwise_plusD"; i:=8; o:=8; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |}
   ].
