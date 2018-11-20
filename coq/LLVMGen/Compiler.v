@@ -306,6 +306,60 @@ Section monadic.
   (* List of blocks with entry point *)
   Definition segment:Type := block_id * list block.
 
+  Definition genFSHeUnion
+             {o: nat}
+             {ft: FloatT}
+             (st: IRState)
+             (x y: local_id)
+             (b: @NExpr ft)
+             (nextblock: block_id)
+    : m (IRState * segment)
+    :=
+      let '(st, entryblock) := incBlockNamed st "eUnion" in
+      let '(st, retentry) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let '(st, px) := incLocal st in
+      let '(st, py) := incLocal st in
+      let '(st, v) := incLocal st in
+      let xtyp := getIRType (@FSHvecValType ft 1) in
+      let xptyp := TYPE_Pointer xtyp in
+      let ytyp := getIRType (@FSHvecValType ft o) in
+      let yptyp := TYPE_Pointer ytyp in
+      '(st, nexpr, nexpcode) <- genNExpr st b  ;;
+       ret (st , (entryblock, [
+                     {|
+                       blk_id    := entryblock ;
+                       blk_phis  := [];
+                       blk_code  := nexpcode ++ [
+                                               (IId px,  INSTR_Op (OP_GetElementPtr
+                                                                     xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                                     [(IntType, EXP_Integer 0%Z);
+                                                                        (IntType, EXP_Integer 0%Z)]
+
+                                               )) ;
+                                                 (IId v, INSTR_Load false (FloatTtyp ft)
+                                                                    (TYPE_Pointer (FloatTtyp ft),
+                                                                     (EXP_Ident (ID_Local px)))
+                                                                    (ret 8%Z));
+
+                                                 (IId py,  INSTR_Op (OP_GetElementPtr
+                                                                       ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                                       [(IntType, EXP_Integer 0%Z);
+                                                                          (IntType, nexpr)]
+
+                                                 ));
+
+                                                 (IVoid storeid, INSTR_Store false
+                                                                             ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
+                                                                             (TYPE_Pointer (FloatTtyp ft),
+                                                                              (EXP_Ident (ID_Local py)))
+                                                                             (ret 8%Z))
+
+                                             ];
+                       blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
+                     |}
+            ])).
+
   (* AKA "pick" *)
   Definition genFSHeT
              {i:nat}
@@ -346,7 +400,7 @@ Section monadic.
                                                  (IId py,  INSTR_Op (OP_GetElementPtr
                                                                        ytyp (yptyp, (EXP_Ident (ID_Local y)))
                                                                        [(IntType, EXP_Integer 0%Z);
-                                                                          (IntType, nexpr)]
+                                                                          (IntType, EXP_Integer 0%Z)]
 
                                                  ));
 
@@ -632,7 +686,7 @@ Section monadic.
     m (IRState * segment)
     := match fshcol with
        | FSHDummy i o => ret (st, (nextblock, []))
-       | FSHeUnion o b z => ret (st, (nextblock, []))
+       | FSHeUnion o b _ => @genFSHeUnion o ft st x y b nextblock
        | FSHeT i b => @genFSHeT i ft st x y b nextblock
        | FSHPointwise i f => ret (st, (nextblock, []))
        | FSHBinOp n f =>
