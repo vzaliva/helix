@@ -49,7 +49,7 @@ Definition genIRGlobals
           let (n,t) := g in
           TLE_Global {|
               g_ident        := Name n;
-              g_typ          := getIRType t ;
+              g_typ          := getIRType t ; (* globals are always pointers *)
               g_constant     := false ; (* TODO: maybe true? *)
               g_exp          := None ;
               g_linkage      := Some LINKAGE_External ;
@@ -162,7 +162,7 @@ Section monadic.
     := match n, lst with
        | O, xs => ret xs
        | S n', (_::xs) => drop_err n' xs
-       | _, _ => raise ("drop on empty list")
+       | _, _ => raise "drop on empty list"
        end.
 
   Definition dropVars (st:IRState) (n: nat): m IRState :=
@@ -211,17 +211,33 @@ Section monadic.
            (nexp: @NExpr ft) :
     m (IRState * exp * code) :=
     match nexp with
-    | NVar n => p <- opt2err "NVar out of range" (List.nth_error (vars st) n) ;;
-                 (* TODO: type check *)
-                 ret (st, EXP_Ident (fst p), [])
+    | NVar n => '(i,t) <- opt2err "NVar out of range" (List.nth_error (vars st) n) ;;
+                match t, IntType with
+                | TYPE_I z, TYPE_I zi =>
+                  if Z.eq_dec z zi then
+                    ret (st, EXP_Ident i, [])
+                  else
+                    raise "NVar int size mismatch"
+                | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
+                  if Z.eq_dec z zi then
+                    let '(st, res) := incLocal st in
+                    ret (st, EXP_Ident (ID_Local res),
+                         [(IId res, INSTR_Load false (IntType)
+                                               (TYPE_Pointer (IntType),
+                                                (EXP_Ident i))
+                                               (ret 8%Z))])
+                  else
+                    raise "NVar int (via ptr) size mismatch"
+                | _,_ => raise "NVar type mismatch"
+                end
     | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
-    | NDiv   a b => raise ("NDiv not implemented") (* TODO *)
-    | NMod   a b => raise ("NMod not implemented") (* TODO *)
-    | NPlus  a b => raise ("NPlus not implemented") (* TODO *)
-    | NMinus a b => raise ("NMinus not implemented") (* TODO *)
-    | NMult  a b => raise ("NMult not implemented") (* TODO *)
-    | NMin   a b => raise ("NMin not implemented") (* TODO *)
-    | NMax   a b => raise ("NMax not implemented") (* TODO *)
+    | NDiv   a b => raise "NDiv not implemented" (* TODO *)
+    | NMod   a b => raise "NMod not implemented" (* TODO *)
+    | NPlus  a b => raise "NPlus not implemented" (* TODO *)
+    | NMinus a b => raise "NMinus not implemented" (* TODO *)
+    | NMult  a b => raise "NMult not implemented" (* TODO *)
+    | NMin   a b => raise "NMin not implemented" (* TODO *)
+    | NMax   a b => raise "NMax not implemented" (* TODO *)
     end.
 
   Definition genVExpr
@@ -234,7 +250,7 @@ Section monadic.
        | VVar n x => p <- opt2err "VVar out of range" (List.nth_error (vars st) n) ;;
                       (* TODO: type check *)
                       ret (st, EXP_Ident (fst p), [])
-       | VConst n c => raise ("VConst not implemented") (* TODO *)
+       | VConst n c => raise "VConst not implemented" (* TODO *)
        end.
 
   Fixpoint genFExpr
@@ -248,69 +264,86 @@ Section monadic.
            '(st, bexp, bcode) <- genFExpr st b ;;
            let '(st, res) := incLocal st in
            ret (st,
-                 EXP_Ident (ID_Local res),
-                 acode ++ bcode ++
-                       [(IId res, INSTR_Op (OP_FBinop fop
-                                                      [] (* TODO: list fast_math *)
-                                                      (FloatTtyp ft)
-                                                      aexp
-                                                      bexp))
-                ]) in
+                EXP_Ident (ID_Local res),
+                acode ++ bcode ++
+                      [(IId res, INSTR_Op (OP_FBinop fop
+                                                     [] (* TODO: list fast_math *)
+                                                     (FloatTtyp ft)
+                                                     aexp
+                                                     bexp))
+               ]) in
       let gen_call1 a f :=
           '(st, aexp, acode) <- @genFExpr ft st a ;;
            let '(st, res) := incLocal st in
            let ftyp := FloatTtyp ft in
            ret (st,
-                 EXP_Ident (ID_Local res),
-                 acode ++
-                       [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
-                ]) in
+                EXP_Ident (ID_Local res),
+                acode ++
+                      [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
+               ]) in
       let gen_call2 a b f :=
           '(st, aexp, acode) <- genFExpr st a ;;
            '(st, bexp, bcode) <- genFExpr st b ;;
            let '(st, res) := incLocal st in
            let ftyp := FloatTtyp ft in
            ret (st,
-                 EXP_Ident (ID_Local res),
-                 acode ++ bcode ++
-                       [(IId res, INSTR_Call (ftyp,f)
-                                             [(ftyp,aexp); (ftyp,bexp)])
-                ]) in
+                EXP_Ident (ID_Local res),
+                acode ++ bcode ++
+                      [(IId res, INSTR_Call (ftyp,f)
+                                            [(ftyp,aexp); (ftyp,bexp)])
+               ]) in
       match fexp with
-      | AVar n => p <- opt2err "AVar out of range" (List.nth_error (vars st) n) ;;
-                   (* TODO: type check *)
-                   ret (st, EXP_Ident (fst p), [])
+      | AVar n => '(i,t) <- opt2err "AVar out of range" (List.nth_error (vars st) n) ;;
+                  match t, ft with
+                  | TYPE_Double, Float64 => ret (st, EXP_Ident i, [])
+                  | TYPE_Float, Float32 => ret (st, EXP_Ident i, [])
+                  | TYPE_Pointer TYPE_Double, Float64 =>
+                    let '(st, res) := incLocal st in
+                    ret (st, EXP_Ident (ID_Local res),
+                         [(IId res, INSTR_Load false (FloatTtyp ft)
+                                               (TYPE_Pointer (FloatTtyp ft),
+                                                (EXP_Ident i))
+                                               (ret 8%Z))])
+                  | TYPE_Pointer TYPE_Float, Float32 =>
+                    let '(st, res) := incLocal st in
+                    ret (st, EXP_Ident (ID_Local res),
+                         [(IId res, INSTR_Load false (FloatTtyp ft)
+                                               (TYPE_Pointer (FloatTtyp ft),
+                                                (EXP_Ident i))
+                                               (ret 8%Z))])
+                  | _,_ => raise "AVar type mismatch"
+                  end
       | AConst (Float64V v) => ret (st, EXP_Float v, [])
-      | AConst (Float32V _) => raise ("32-bit constants are not implemented")
+      | AConst (Float32V _) => raise "32-bit constants are not implemented"
       | ANth n vec i =>
         '(st, iexp, icode) <- genNExpr st i ;;
-        '(st, vexp, vcode) <- genVExpr st vec ;;
-        let '(st, px) := incLocal st in
-        let xtyp := getIRType (@FSHvecValType ft n) in
-        let xptyp := TYPE_Pointer xtyp in
-        let '(st, res) := incLocal st in
-        ret (st, EXP_Ident (ID_Local res),
-             icode ++ vcode ++
-             [
-               (IId px,  INSTR_Op (OP_GetElementPtr
-                                     xtyp (xptyp, vexp)
-                                     [(IntType, EXP_Integer 0%Z);
-                                        (IntType, iexp)]
+         '(st, vexp, vcode) <- genVExpr st vec ;;
+         let '(st, px) := incLocal st in
+         let xtyp := getIRType (@FSHvecValType ft n) in
+         let xptyp := TYPE_Pointer xtyp in
+         let '(st, res) := incLocal st in
+         ret (st, EXP_Ident (ID_Local res),
+              icode ++ vcode ++
+                    [
+                      (IId px,  INSTR_Op (OP_GetElementPtr
+                                            xtyp (xptyp, vexp)
+                                            [(IntType, EXP_Integer 0%Z);
+                                               (IntType, iexp)]
 
-               )) ;
-                 (IId res, INSTR_Load false (FloatTtyp ft)
-                                    (TYPE_Pointer (FloatTtyp ft),
-                                     (EXP_Ident (ID_Local px)))
-                                    (ret 8%Z))
+                      )) ;
+                        (IId res, INSTR_Load false (FloatTtyp ft)
+                                             (TYPE_Pointer (FloatTtyp ft),
+                                              (EXP_Ident (ID_Local px)))
+                                             (ret 8%Z))
              ])
       | AAbs a => match ft with
-                   | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f32")))
-                   | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f64")))
-                   end
+                 | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f32")))
+                 | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f64")))
+                 end
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
-      | AMin a b => raise ("AMin not implemented") (* TODO *)
+      | AMin a b => raise "AMin not implemented" (* TODO *)
       | AMax a b => match ft with
                    | Float32 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f32")))
                    | Float64 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f64")))
@@ -322,18 +355,18 @@ Section monadic.
          let '(st, ires) := incLocal st in
          let '(st, fres) := incLocal st in
          ret (st,
-               EXP_Ident (ID_Local fres),
-               acode ++ bcode ++
-                     [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
-                                                   (FloatTtyp ft)
-                                                   aexp
-                                                   bexp));
-                        (IId fres, INSTR_Op (OP_Conversion
-                                               Uitofp
-                                               (TYPE_I 1%Z)
-                                               (EXP_Ident (ID_Local ires))
-                                               (FloatTtyp ft)))
-              ])
+              EXP_Ident (ID_Local fres),
+              acode ++ bcode ++
+                    [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
+                                                  (FloatTtyp ft)
+                                                  aexp
+                                                  bexp));
+                       (IId fres, INSTR_Op (OP_Conversion
+                                              Uitofp
+                                              (TYPE_I 1%Z)
+                                              (EXP_Ident (ID_Local ires))
+                                              (FloatTtyp ft)))
+             ])
       end.
 
   (* List of blocks with entry point *)
@@ -654,9 +687,9 @@ Section monadic.
 
   Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : m exp :=
     match ft,fv with
-    | Float32, Float32V b32 => raise ("32bit float constants not supported")
+    | Float32, Float32V b32 => raise "32bit float constants not supported"
     | Float64, Float64V b64 => ret (EXP_Float b64)
-    | _ , _ => raise ("Float constant casts not supported")
+    | _ , _ => raise "Float constant casts not supported"
     end.
 
   Definition genIReductionInit
@@ -843,7 +876,7 @@ Section monadic.
           addVars st
                   (List.map
                      (fun g:(string* (@FSHValType ft)) =>
-                        let (n,t) := g in (ID_Global (Name n), getIRType t))
+                        let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
                      globals) in (* TODO: check order of globals. Maybe reverse. *)
 
       let st := addVars st [(ID_Local x, xtyp)] in
