@@ -17,11 +17,6 @@ Open Scope monad_scope.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-(* Temporary workaround until coq-ext-lib is updated in OPAM *)
-Notation "' pat <- c1 ;; c2" :=
-    (@pbind _ _ _ _ _ c1 (fun x => match x with pat => c2 end))
-      (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
-
 (* Placeholder section for config variables. Probably should be a
 module in future *)
 Section Config.
