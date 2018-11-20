@@ -224,6 +224,19 @@ Section monadic.
     | NMax   a b => raise ("NMax not implemented") (* TODO *)
     end.
 
+  Definition genVExpr
+             {n:nat}
+             {ft: FloatT}
+             (st: IRState)
+             (vexp: @VExpr ft n) :
+    m (IRState * exp * code)
+    := match vexp with
+       | VVar n x => p <- opt2err "VVar out of range" (List.nth_error (vars st) n) ;;
+                      (* TODO: type check *)
+                      ret (st, EXP_Ident (fst p), [])
+       | VConst n c => raise ("VConst not implemented") (* TODO *)
+       end.
+
   Fixpoint genFExpr
            {ft: FloatT}
            (st: IRState)
@@ -269,7 +282,27 @@ Section monadic.
                    ret (st, EXP_Ident (fst p), [])
       | AConst (Float64V v) => ret (st, EXP_Float v, [])
       | AConst (Float32V _) => raise ("32-bit constants are not implemented")
-      | ANth n v i => raise ("ANth not implemented") (* TODO *)
+      | ANth n vec i =>
+        '(st, iexp, icode) <- genNExpr st i ;;
+        '(st, vexp, vcode) <- genVExpr st vec ;;
+        let '(st, px) := incLocal st in
+        let xtyp := getIRType (@FSHvecValType ft n) in
+        let xptyp := TYPE_Pointer xtyp in
+        let '(st, res) := incLocal st in
+        ret (st, EXP_Ident (ID_Local res),
+             icode ++ vcode ++
+             [
+               (IId px,  INSTR_Op (OP_GetElementPtr
+                                     xtyp (xptyp, vexp)
+                                     [(IntType, EXP_Integer 0%Z);
+                                        (IntType, iexp)]
+
+               )) ;
+                 (IId res, INSTR_Load false (FloatTtyp ft)
+                                    (TYPE_Pointer (FloatTtyp ft),
+                                     (EXP_Ident (ID_Local px)))
+                                    (ret 8%Z))
+             ])
       | AAbs a => match ft with
                    | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f32")))
                    | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f64")))
@@ -811,7 +844,7 @@ Section monadic.
                   (List.map
                      (fun g:(string* (@FSHValType ft)) =>
                         let (n,t) := g in (ID_Global (Name n), getIRType t))
-                     globals) in
+                     globals) in (* TODO: check order of globals. Maybe reverse. *)
 
       let st := addVars st [(ID_Local x, xtyp)] in
 
