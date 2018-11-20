@@ -32,7 +32,7 @@ extracted: $(TSTAMP)
 
 .depend: $(VFILES) 
 	@echo "Analyzing Coq dependencies in" $(VFILES)
-	coqdep $^ > .depend
+	coqdep -f _CoqProject $^ > .depend
 
 $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	@echo "Extracting"
