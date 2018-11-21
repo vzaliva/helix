@@ -50,7 +50,7 @@ Definition genIRGlobals
           TLE_Global {|
               g_ident        := Name n;
               g_typ          := getIRType t ; (* globals are always pointers *)
-              g_constant     := false ; (* TODO: maybe true? *)
+              g_constant     := true ;
               g_exp          := None ;
               g_linkage      := Some LINKAGE_External ;
               g_visibility   := None ;
