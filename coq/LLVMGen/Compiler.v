@@ -803,6 +803,101 @@ Section monadic.
            |} in
        genLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
+  Definition genFSHInductor
+             {ft: FloatT}
+             (x y: local_id)
+             (n: @NExpr ft)
+             (f: @FSHBinFloat ft)
+             (initial: @FloatV ft)
+             (st: IRState)
+             (nextblock: block_id): m (IRState * segment)
+    :=
+      let '(st, entry_block_id) := incBlockNamed st "Inductor" in
+      let '(st, zero_block_id) := incBlockNamed st "Inductor_zero" in
+      let '(st, nz_block_id) := incBlockNamed st "Inductor_non_zero" in
+      let '(st, cmp) := incLocal st in
+      let '(st, void0) := incVoid st in
+      let xytyp := getIRType (@FSHvecValType ft 1) in
+      let xyptyp := TYPE_Pointer xytyp in
+      let '(st, py) := incLocal st in
+      '(st, nexp, ncode) <- genNExpr st n ;;
+       let entry_block := {|
+             blk_id    := entry_block_id ;
+             blk_phis  := [];
+             blk_code  := ncode ++ [
+                                  (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,EXP_Integer 0%Z)]
+
+                                  ));
+                                    (IId cmp, INSTR_Op (OP_ICmp Eq
+                                                                IntType
+                                                                nexp
+                                                                (EXP_Integer 0%Z)
+                                    ))
+                                ];
+             blk_term  := (IVoid void0,
+                           TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local cmp)) zero_block_id nz_block_id)
+           |} in
+
+       let '(st, storeid0) := incVoid st in
+       let '(st, void1) := incVoid st in
+       ini <- genFloatV initial ;;
+       let zero_block := {|
+             blk_id    := zero_block_id ;
+             blk_phis  := [];
+             blk_code  := [
+                                  (IVoid storeid0, INSTR_Store false
+                                                              ((FloatTtyp ft), ini)
+                                                              (TYPE_Pointer (FloatTtyp ft),
+                                                               (EXP_Ident (ID_Local py)))
+                                                              (ret 8%Z))
+                                ];
+             blk_term  := (IVoid void1, TERM_Br_1 nextblock)
+           |} in
+
+
+       let '(st, storeid1) := incVoid st in
+       let '(st, void2) := incVoid st in
+       let '(st, px) := incLocal st in
+       let '(st, yv) := incLocal st in
+       let '(st, xv) := incLocal st in
+       let st := addVars st [(ID_Local yv, (FloatTtyp ft)); (ID_Local xv, (FloatTtyp ft))] in
+       '(st, fexpr, fexpcode) <- genFExpr st f ;;
+        st <- dropVars st 2 ;;
+       let nz_block := {|
+             blk_id    := nz_block_id ;
+             blk_phis  := [];
+             blk_code  := [
+                           (IId px,  INSTR_Op (OP_GetElementPtr
+                                                 xytyp (xyptyp, (EXP_Ident (ID_Local x)))
+                                                 [(IntType, EXP_Integer 0%Z);
+                                                    (IntType,EXP_Integer 0%Z)]
+
+                           ));
+                             (IId yv, INSTR_Load false (FloatTtyp ft)
+                                                 (TYPE_Pointer (FloatTtyp ft),
+                                                  (EXP_Ident (ID_Local py)))
+                                                 (ret 8%Z));
+                             (IId xv, INSTR_Load false (FloatTtyp ft)
+                                                 (TYPE_Pointer (FloatTtyp ft),
+                                                  (EXP_Ident (ID_Local px)))
+                                                 (ret 8%Z))
+                         ]
+                            ++ fexpcode ++
+                            [
+                              (IVoid storeid1, INSTR_Store false
+                                                           ((FloatTtyp ft), fexpr)
+                                                           (TYPE_Pointer (FloatTtyp ft),
+                                                            (EXP_Ident (ID_Local py)))
+                                                           (ret 8%Z))
+                            ];
+             blk_term  := (IVoid void2, TERM_Br_1 nextblock)
+           |} in
+
+       ret (st, (entry_block_id, [entry_block ; zero_block; nz_block])).
+
   Fixpoint genIR
            {i o: nat}
            {ft: FloatT}
@@ -825,7 +920,7 @@ Section monadic.
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
           genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
-       | FSHInductor n f initial => ret (st, (nextblock, [])) (* TODO *)
+       | FSHInductor n f initial => genFSHInductor x y n f initial st nextblock
        | FSHIUnion i o n dot initial x => ret (st, (nextblock, [])) (* TODO *)
        | FSHIReduction i o n dot initial child =>
          let '(st, t) := incLocalNamed st "IReductoin_tmp" in
