@@ -247,9 +247,15 @@ Section monadic.
              (vexp: @VExpr ft n) :
     m (IRState * exp * code)
     := match vexp with
-       | VVar n x => p <- opt2err "VVar out of range" (List.nth_error (vars st) n) ;;
-                      (* TODO: type check *)
-                      ret (st, EXP_Ident (fst p), [])
+       | VVar n x => '(i,t) <- opt2err "VVar out of range" (List.nth_error (vars st) n) ;;
+                     match t, ft with
+                     | TYPE_Pointer (TYPE_Array zi TYPE_Double), Float64 | TYPE_Pointer (TYPE_Array zi TYPE_Float), Float32 =>
+                       if Z.eq_dec (Z.of_nat n) zi then
+                         ret (st, EXP_Ident i, [])
+                       else
+                         raise "VVar array size mismatch"
+                     | _,_ => raise "VVar type mismatch"
+                     end
        | VConst n c => raise "VConst not implemented" (* TODO *)
        end.
 
