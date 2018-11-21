@@ -301,16 +301,8 @@ Section monadic.
       match fexp with
       | AVar n => '(i,t) <- opt2err "AVar out of range" (List.nth_error (vars st) n) ;;
                   match t, ft with
-                  | TYPE_Double, Float64 => ret (st, EXP_Ident i, [])
-                  | TYPE_Float, Float32 => ret (st, EXP_Ident i, [])
-                  | TYPE_Pointer TYPE_Double, Float64 =>
-                    let '(st, res) := incLocal st in
-                    ret (st, EXP_Ident (ID_Local res),
-                         [(IId res, INSTR_Load false (FloatTtyp ft)
-                                               (TYPE_Pointer (FloatTtyp ft),
-                                                (EXP_Ident i))
-                                               (ret 8%Z))])
-                  | TYPE_Pointer TYPE_Float, Float32 =>
+                  | TYPE_Double, Float64 | TYPE_Float, Float32 => ret (st, EXP_Ident i, [])
+                  | TYPE_Pointer TYPE_Double, Float64 | TYPE_Pointer TYPE_Float, Float32 =>
                     let '(st, res) := incLocal st in
                     ret (st, EXP_Ident (ID_Local res),
                          [(IId res, INSTR_Load false (FloatTtyp ft)
