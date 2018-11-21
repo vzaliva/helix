@@ -45,7 +45,7 @@ Definition Pointwise_plus1_test: @FSHOperator Float64 8 8 :=
   FSHPointwise (APlus (AConst FloatV64One) (AVar 0)).
 
 Definition Pointwise_plusD_test: @FSHOperator Float64 8 8 :=
-  FSHPointwise (APlus (AVar 0) (AVar 3)).
+  FSHPointwise (APlus (AVar 0) (AVar 2)).
 
 Record FSHCOLTest :=
   mkFSHCOLTest

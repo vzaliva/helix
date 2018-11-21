@@ -710,7 +710,7 @@ Section monadic.
           let '(st, pt) := incLocal st in
           let '(st, init_block_id) := incBlockNamed st "IReduction_init" in
           let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
-          let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_init_i" in
+          let '(st, loopvar) := incLocalNamed st "IReduction_init_i" in
           let '(st, void0) := incVoid st in
           let '(st, storeid) := incVoid st in
           let init_block :=
@@ -736,7 +736,6 @@ Section monadic.
                             ];
                 blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
               |} in
-          st <- dropVars st 1 ;;
              genLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
   Definition genIReductionFold
@@ -757,7 +756,7 @@ Section monadic.
       let '(st, yv) := incLocalNamed st "yv" in
       let '(st, fold_block_id) := incBlockNamed st "IReduction_fold" in
       let '(st, loopcontblock) := incBlockNamed st "IReduction_fold_lcont" in
-      let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_fold_i" in
+      let '(st, loopvar) := incLocalNamed st "IReduction_fold_i" in
       let '(st, storeid) := incVoid st in
       let '(st, void0) := incVoid st in
       let st := addVars st [(ID_Local tv, (FloatTtyp ft)); (ID_Local yv, (FloatTtyp ft))] in
@@ -833,17 +832,15 @@ Section monadic.
        | FSHIReduction i o n dot initial child =>
          let '(st, t) := incLocalNamed st "IReductoin_tmp" in
          let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
-         let '(st, loopvar) := newLocalVarNamed st IntType "IReduction_main_i" in
-         '(st,(fold_block_id, fold_blocks))
-          <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
-          '(st,(child_block_id, child_blocks))
-          <- genIR x t child st fold_block_id ;;
+         let '(st, loopvar) := incBlockNamed st "IReduction_main_i" in
+         '(st,(fold_block_id, fold_blocks)) <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
           let st := addVars st [(ID_Local loopvar, IntType)] in
+          '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
+           st <- dropVars st 1 ;;
           '(st, (loop_block_id, loop_blocks))
            <- genLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
            loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
            [] st nextblock ;;
-           st <- dropVars st 1 ;;
            '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
            ret (st, (init_block_id, init_blocks++loop_blocks))
        | FSHCompose i1 o2 o3 f g =>
@@ -878,8 +875,6 @@ Section monadic.
                      (fun g:(string* (@FSHValType ft)) =>
                         let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
                      globals) in (* TODO: check order of globals. Maybe reverse. *)
-
-      let st := addVars st [(ID_Local x, xtyp)] in
 
       let (st,rid) := incBlock st in
       let (st,rsid) := incBlock st in
