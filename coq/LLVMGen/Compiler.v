@@ -209,36 +209,49 @@ Section monadic.
            {ft: FloatT}
            (st: IRState)
            (nexp: @NExpr ft) :
-    m (IRState * exp * code) :=
-    match nexp with
-    | NVar n => '(i,t) <- opt2err "NVar out of range" (List.nth_error (vars st) n) ;;
-                match t, IntType with
-                | TYPE_I z, TYPE_I zi =>
-                  if Z.eq_dec z zi then
-                    ret (st, EXP_Ident i, [])
-                  else
-                    raise "NVar int size mismatch"
-                | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
-                  if Z.eq_dec z zi then
-                    let '(st, res) := incLocal st in
-                    ret (st, EXP_Ident (ID_Local res),
-                         [(IId res, INSTR_Load false (IntType)
-                                               (TYPE_Pointer (IntType),
-                                                (EXP_Ident i))
-                                               (ret 8%Z))])
-                  else
-                    raise "NVar int (via ptr) size mismatch"
-                | _,_ => raise "NVar type mismatch"
-                end
-    | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
-    | NDiv   a b => raise "NDiv not implemented" (* TODO *)
-    | NMod   a b => raise "NMod not implemented" (* TODO *)
-    | NPlus  a b => raise "NPlus not implemented" (* TODO *)
-    | NMinus a b => raise "NMinus not implemented" (* TODO *)
-    | NMult  a b => raise "NMult not implemented" (* TODO *)
-    | NMin   a b => raise "NMin not implemented" (* TODO *)
-    | NMax   a b => raise "NMax not implemented" (* TODO *)
-    end.
+    m (IRState * exp * code)
+    :=
+      let gen_binop a b iop :=
+          '(st, aexp, acode) <- @genNExpr ft st a ;;
+           '(st, bexp, bcode) <- @genNExpr ft st b ;;
+           let '(st, res) := incLocal st in
+           ret (st,
+                EXP_Ident (ID_Local res),
+                acode ++ bcode ++
+                      [(IId res, INSTR_Op (OP_IBinop iop
+                                                     IntType
+                                                     aexp
+                                                     bexp))
+               ]) in
+      match nexp with
+      | NVar n => '(i,t) <- opt2err "NVar out of range" (List.nth_error (vars st) n) ;;
+                  match t, IntType with
+                  | TYPE_I z, TYPE_I zi =>
+                    if Z.eq_dec z zi then
+                      ret (st, EXP_Ident i, [])
+                    else
+                      raise "NVar int size mismatch"
+                  | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
+                    if Z.eq_dec z zi then
+                      let '(st, res) := incLocal st in
+                      ret (st, EXP_Ident (ID_Local res),
+                           [(IId res, INSTR_Load false (IntType)
+                                                 (TYPE_Pointer (IntType),
+                                                  (EXP_Ident i))
+                                                 (ret 8%Z))])
+                    else
+                      raise "NVar int (via ptr) size mismatch"
+                  | _,_ => raise "NVar type mismatch"
+                  end
+      | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
+      | NDiv   a b => gen_binop a b (SDiv true)
+      | NMod   a b => gen_binop a b SRem
+      | NPlus  a b => gen_binop a b (Add true true)
+      | NMinus a b => gen_binop a b (Sub true true)
+      | NMult  a b => gen_binop a b (Mul true true)
+      | NMin   a b => raise "NMin not implemented" (* TODO *)
+      | NMax   a b => raise "NMax not implemented" (* TODO *)
+      end.
 
   Definition genVExpr
              {n:nat}
@@ -921,7 +934,14 @@ Section monadic.
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
           genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
        | FSHInductor n f initial => genFSHInductor x y n f initial st nextblock
-       | FSHIUnion i o n dot initial x => ret (st, (nextblock, [])) (* TODO *)
+       | FSHIUnion i o n _ _ child =>
+         let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
+         let '(st, loopvar) := incBlockNamed st "Union_i" in
+         let st := addVars st [(ID_Local loopvar, IntType)] in
+         '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
+          st <- dropVars st 1 ;;
+          genLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+          loopvar loopcontblock child_block_id child_blocks[] st nextblock
        | FSHIReduction i o n dot initial child =>
          let '(st, t) := incLocalNamed st "IReductoin_tmp" in
          let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
