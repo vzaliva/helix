@@ -357,7 +357,7 @@ Section monadic.
          ret (st,
               EXP_Ident (ID_Local fres),
               acode ++ bcode ++
-                    [(IId ires, INSTR_Op (OP_FCmp FOlt (* TODO: or FUlt? *)
+                    [(IId ires, INSTR_Op (OP_FCmp FOlt
                                                   (FloatTtyp ft)
                                                   aexp
                                                   bexp));
@@ -827,8 +827,8 @@ Section monadic.
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
           genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
-       | FSHInductor n f initial => ret (st, (nextblock, []))
-       | FSHIUnion i o n dot initial x => ret (st, (nextblock, []))
+       | FSHInductor n f initial => ret (st, (nextblock, [])) (* TODO *)
+       | FSHIUnion i o n dot initial x => ret (st, (nextblock, [])) (* TODO *)
        | FSHIReduction i o n dot initial child =>
          let '(st, t) := incLocalNamed st "IReductoin_tmp" in
          let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
