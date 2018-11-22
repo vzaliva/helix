@@ -493,6 +493,7 @@ Section monadic.
                     |}
            ])).
 
+  (* Generates loop [from ... to) *)
   Definition genLoop
              (prefix: string)
              (from to: exp)
@@ -541,7 +542,7 @@ Section monadic.
                                                               (EXP_Integer 1%Z))) ;
                               (IId loopcond, INSTR_Op (OP_ICmp Eq
                                                                IntType
-                                                               (EXP_Ident (ID_Local loopvar))
+                                                               (EXP_Ident (ID_Local nextvar))
                                                                to))
 
                           ];
