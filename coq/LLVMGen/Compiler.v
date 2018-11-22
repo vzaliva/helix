@@ -663,7 +663,7 @@ Section monadic.
                                  (IId loopvar2, INSTR_Op (OP_IBinop (Add false false)
                                                                     IntType
                                                                     (EXP_Ident loopvarid)
-                                                                    (EXP_Ident loopvarid)));
+                                                                    (EXP_Integer (Z.of_nat n))));
 
 
                                  (IId px1,  INSTR_Op (OP_GetElementPtr
