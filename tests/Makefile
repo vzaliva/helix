@@ -8,7 +8,7 @@ TESTLLS=$(addprefix test_,$(addsuffix .ll,$(ALLTESTS)))
 TESTOBJS=$(addprefix test_,$(addsuffix .o,$(ALLTESTS)))
 
 LLC=llc
-LLCFLAGS=-relocation-model=pic -asm-verbose -O0 -march=x86-64
+LLCFLAGS=-relocation-model=pic -asm-verbose -O0
 ASM=gcc
 ASMFLAGS=-c
 
