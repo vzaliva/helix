@@ -191,7 +191,7 @@ Section monadic.
     :=
       let (st,retid) := incVoid st in
       let (st,bid) := incBlock st in
-      (st, name,
+      (st, bid,
        {|
          blk_id    := bid ;
          blk_phis  := [];
@@ -962,8 +962,8 @@ Section monadic.
          let '(st, tmpid) := incLocal st in
          '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
           '(st, (gb, g')) <- genIR x tmpid g st fb ;;
-          let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid fb o2 in
-          ret (st, (gb, [tmpalloc]++g'++f'))
+          let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
+          ret (st, (alloid, [tmpalloc]++g'++f'))
        | FSHHTSUMUnion i o dot f g =>
          (* Note: 'g' computed before 'f', as in compose *)
          '(st, (fb, f')) <- genIR x y f st nextblock  ;;

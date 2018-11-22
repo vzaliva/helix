@@ -54,9 +54,9 @@ $(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.m
 	(cd ml; dune build --profile=dev test.exe)
 
 run: $(EXE)
-	make -j1 -C tests run
+	make -j1 -C tests test
 
-run: $(EXE)
+test: $(EXE)
 	make -j1 -C tests test
 
 install-dep:

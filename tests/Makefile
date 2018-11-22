@@ -28,8 +28,9 @@ $(TESTLLS): $(TESTGEN)
 main_pointwise_plus1: main_pointwise_plus1.c test_pointwise_plus1.o
 main_pointwise_plusD: main_pointwise_plusD.c test_pointwise_plusD.o
 main_binop_plus: main_binop_plus.c test_binop_plus.o
+main_compose_pointwise: main_compose_pointwise.c test_compose_pointwise.o
 
-ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus
+ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus main_compose_pointwise
 
 test: $(ALLEXE)
 	$(foreach x,$(ALLEXE), echo "$(x):"; ./$(x);)

@@ -48,6 +48,9 @@ Section DoubleTests.
   Definition Pointwise_plusD_test: @FSHOperator Float64 8 8 :=
     FSHPointwise (APlus (AVar 0) (AVar 2)).
 
+  Definition Compose_pointwise_test: @FSHOperator Float64 8 8 :=
+    FSHCompose Pointwise_plus1_test Pointwise_plus1_test.
+
   Record FSHCOLTest :=
     mkFSHCOLTest
       {
@@ -101,5 +104,6 @@ Definition all_tests :=
       {| name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
       {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
-      {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |}
+      {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
+      {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
