@@ -38,3 +38,5 @@ experiments/mapmain
 experiments/map.s
 experiments/dywinmain
 experiments/dywin.s
+/tests/main_pointwise_plusD
+/tests/main_pointwise_plus1

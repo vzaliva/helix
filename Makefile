@@ -2,7 +2,7 @@ LIBNAME := Helix
 
 .SUFFIXES:
 
-.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all
+.PHONY: default config clean clean-dep clean-ml distclean clean-doc tags doc install-doc install-dist targz graph wc print-unused extracted all run test
 
 MAKECOQ := +$(MAKE) -r -f Makefile.coq
 
@@ -54,7 +54,10 @@ $(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.m
 	(cd ml; dune build --profile=dev test.exe)
 
 run: $(EXE)
-	make -C tests
+	make -j1 -C tests run
+
+run: $(EXE)
+	make -j1 -C tests test
 
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
@@ -63,11 +66,12 @@ config Makefile.coq: _CoqProject Makefile
 	coq_makefile -f _CoqProject $(VFILES) -o Makefile.coq
 
 clean-ml:
+	make -j1 -C tests clean
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli 
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 	rm -f *.log *.cache
 	rm -f ml/llvm_printer.ml ml/llvm_printer.mli
-	rm -f *.ll
+
 
 clean: clean-ml
 	rm -f `find . -name \*~`

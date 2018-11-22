@@ -8,7 +8,7 @@ TESTLLS=$(addprefix test_,$(addsuffix .ll,$(ALLTESTS)))
 TESTOBJS=$(addprefix test_,$(addsuffix .o,$(ALLTESTS)))
 
 LLC=llc
-LLCFLAGS=-asm-verbose -O0 -march=x86-64
+LLCFLAGS=-relocation-model=pic -asm-verbose -O0 -march=x86-64
 ASM=gcc
 ASMFLAGS=-c
 
@@ -23,5 +23,15 @@ $(TESTLLS): $(TESTGEN)
 %.o: %.s Makefile
 	$(ASM) $(ASMFLAGS) $<
 
+# Individiual tests
+
+main_pointwise_plus1: main_pointwise_plus1.c test_pointwise_plus1.o
+main_pointwise_plusD: main_pointwise_plusD.c test_pointwise_plusD.o
+
+ALLEXE=main_pointwise_plus1 main_pointwise_plusD
+
+test: $(ALLEXE)
+	$(foreach x,$(ALLEXE), echo "$(x):"; ./$(x);)
+
 clean:
-	rm -f *.ll *.s *.o a.out
+	rm -f *.ll *.s *.o a.out $(ALLEXE)
