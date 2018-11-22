@@ -7,6 +7,7 @@ open Tests
 let verbose = ref false
 let printtests = ref false
 let output_file_prefix = "test_"
+let single = ref ""
 
 let output_ll_file filename ast =
   let open Format in
@@ -37,12 +38,13 @@ let process_test { ft=ft; i=i ; o=o; name=name; op=op; globals=globals} =
 (* Use the --test option to run unit tests and the quit the program. *)
 let args =
   [
+    ("-t", Set_string single, "run single test") ;
     ("-v", Set verbose, "enables more verbose compilation output");
     ("-p", Set printtests, "print names of all tests (for automation)");
   ]
 
 let _ =
-  Arg.parse args (fun _ -> ())  "USAGE: ./test [-v]\n";
+  Arg.parse args (fun _ -> ())  "USAGE: ./test [-v] [-p] [t <name>]\n";
   if !printtests
   then
     begin
@@ -51,5 +53,7 @@ let _ =
       exit 0
     end
   else
-    exit (if List.fold (List.map all_tests ~f:process_test) ~init:true ~f:(&&)
+    let t = if !single = "" then all_tests
+            else List.filter all_tests ~f:(fun x -> camlstring_of_coqstring (name x) = !single) in
+    exit (if List.fold (List.map t ~f:process_test) ~init:true ~f:(&&)
           then 0 else 1)

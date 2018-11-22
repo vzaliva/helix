@@ -13,9 +13,9 @@ nohup.out
 .coqdeps.d
 
 .depend
-/*.ll
-/*.s
-/*.o
+tests/*.ll
+tests/*.s
+tests/*.o
 
 ml/.merlin
 ml/extracted/.merlin
