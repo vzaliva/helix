@@ -1010,7 +1010,9 @@ Section monadic.
                                               {|
                                                 dc_name        := Name funname;
                                                 dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                                                dc_param_attrs := ([],[ArrayPtrParamAttrs; ArrayPtrParamAttrs]);
+                                                dc_param_attrs := ([],
+                                                                   [[PARAMATTR_Readonly] ++ ArrayPtrParamAttrs;
+                                                                      ArrayPtrParamAttrs]);
                                                 dc_linkage     := None ;
                                                 dc_visibility  := None ;
                                                 dc_dll_storage := None ;
