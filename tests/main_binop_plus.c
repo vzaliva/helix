@@ -12,9 +12,9 @@ void main()
 
     printf("X=");
     for(int i=0; i<4; i++)
-        printf("\t%lf\n",i,x[i]);
+        printf("\t%lf\n",x[i]);
     printf("Y=");
     for(int i=0; i<2; i++)
-        printf("\t%lf\n",i,y[i]);
+        printf("\t%lf\n",y[i]);
 
 }
