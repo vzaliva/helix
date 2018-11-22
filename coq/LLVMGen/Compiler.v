@@ -7,6 +7,7 @@ Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Intrinsics.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
+Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
@@ -700,7 +701,7 @@ Section monadic.
 
   Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : m exp :=
     match ft,fv with
-    | Float32, Float32V b32 => raise "32bit float constants not supported"
+    | Float32, Float32V b32 => ret (EXP_Float (Float.of_single b32))
     | Float64, Float64V b64 => ret (EXP_Float b64)
     | _ , _ => raise "Float constant casts not supported"
     end.

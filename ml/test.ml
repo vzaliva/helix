@@ -1,6 +1,5 @@
 open Arg
 open Compiler
-open FSigmaHCOL
 open Camlcoq
 open Core
 open Tests
@@ -18,10 +17,10 @@ let output_ll_file filename ast =
   pp_print_flush ppf () ;
   Out_channel.close channel
 
-let process_test { i=i ; o=o; name=name; op=op; globals=globals} =
+let process_test { ft=ft; i=i ; o=o; name=name; op=op; globals=globals} =
   let module A=ANSITerminal in
   let oname = camlstring_of_coqstring name in
-  match coq_LLVMGen i o Float64 globals op name with
+  match coq_LLVMGen i o ft globals op name with
   | Datatypes.Coq_inl msg ->
      A.printf [A.white; A.on_red] "Error" ;
      A.printf [A.yellow] ": %s" oname ;
