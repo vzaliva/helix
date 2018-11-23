@@ -43,9 +43,9 @@ Definition getIRType
 Definition genIRGlobals
            {ft: FloatT}
            {FnBody: Set}
-  :
-    (list (string* (@FSHValType ft))) -> (toplevel_entities FnBody)
-  := List.map
+           (x: list (string* (@FSHValType ft)))
+  : list (toplevel_entity FnBody)
+  := let l := List.map
        (fun g:(string* (@FSHValType ft)) =>
           let (n,t) := g in
           TLE_Global {|
@@ -63,7 +63,11 @@ Definition genIRGlobals
               g_section      := None ;
               g_align        := GlobalPtrAlignment ;
             |}
-       ).
+       ) x in
+     match l with
+     | nil => []
+     | cons _ _ => [TLE_Comment _ "Global variables"] ++ l
+     end.
 
 Record IRState :=
   mkIRstate
@@ -99,6 +103,24 @@ Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
   end.
 Definition string_of_nat (n : nat) : string :=
   string_of_nat_aux n n "".
+
+Definition add_comments (b:block) (xs:list string): block :=
+  {|
+    blk_id    := blk_id b;
+    blk_phis  := blk_phis b;
+    blk_code  := blk_code b;
+    blk_term  := blk_term b;
+    blk_comments := match blk_comments b with
+                    | None => Some xs
+                    | Some ys => Some (ys++xs)
+                    end
+  |}.
+
+Definition add_comment (bs:list block) (xs:list string): list block :=
+  match bs with
+  | nil => nil
+  | cons b bs => cons (add_comments b xs) bs
+  end.
 
 Definition incBlockNamed (st:IRState) (prefix:string): (IRState*block_id) :=
   ({|
@@ -196,7 +218,8 @@ Section monadic.
          blk_id    := bid ;
          blk_phis  := [];
          blk_code  := @allocTempArrayCode ft name size;
-         blk_term  := (IVoid retid, TERM_Br_1 nextblock)
+         blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
+         blk_comments := None
        |}).
 
   (* TODO: move *)
@@ -366,6 +389,7 @@ Section monadic.
          '(st, bexp, bcode) <- genFExpr st b ;;
          let '(st, ires) := incLocal st in
          let '(st, fres) := incLocal st in
+         let '(st, void0) := incVoid st in
          ret (st,
               EXP_Ident (ID_Local fres),
               acode ++ bcode ++
@@ -373,6 +397,7 @@ Section monadic.
                                                   (FloatTtyp ft)
                                                   aexp
                                                   bexp));
+                       (IVoid void0, INSTR_Comment "Cast bool to float") ;
                        (IId fres, INSTR_Op (OP_Conversion
                                               Uitofp
                                               (TYPE_I 1%Z)
@@ -434,7 +459,8 @@ Section monadic.
                                                                             (ret 8%Z))
 
                                             ];
-                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
+                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
+                      blk_comments := None
                     |}
            ])).
 
@@ -489,7 +515,8 @@ Section monadic.
                                                                             (ret 8%Z))
 
                                             ];
-                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock)
+                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
+                      blk_comments := None
                     |}
            ])).
 
@@ -521,14 +548,16 @@ Section monadic.
             {|
               blk_id    := entryblock ;
               blk_phis  := []; blk_code  := init_code;
-              blk_term  := (IVoid void0, TERM_Br_1 loopblock)
+              blk_term  := (IVoid void0, TERM_Br_1 loopblock);
+              blk_comments := None
             |} ;
 
               {|
                 blk_id    := loopblock ;
                 blk_phis  := [(loopvar, Phi IntType [(entryblock, from); (loopcontblock, EXP_Ident (ID_Local nextvar))])];
                 blk_code  := [];
-                blk_term  := (IVoid void1, TERM_Br_1 body_entry)
+                blk_term  := (IVoid void1, TERM_Br_1 body_entry);
+                blk_comments := None
               |}
           ] in
       let loop_post := [
@@ -546,7 +575,8 @@ Section monadic.
                                                                to))
 
                           ];
-              blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock)
+              blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock);
+              blk_comments := None
             |}
           ] in
       ret (st, (entryblock, loop_pre ++ body_blocks ++ loop_post)).
@@ -611,7 +641,9 @@ Section monadic.
 
 
                                 ];
-                 blk_term  := (IVoid pwret, TERM_Br_1 nextblock) |}
+                 blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
+                 blk_comments := None
+               |}
            ])).
 
   Definition genBinOpBody
@@ -697,7 +729,9 @@ Section monadic.
 
 
                                 ];
-                 blk_term  := (IVoid binopret, TERM_Br_1 nextblock) |}
+                 blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
+                 blk_comments := None
+               |}
            ])).
 
   Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : m exp :=
@@ -749,7 +783,8 @@ Section monadic.
 
 
                             ];
-                blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
+                blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
+                blk_comments := None
               |} in
           genLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
@@ -814,7 +849,8 @@ Section monadic.
                                                          (ret 8%Z))
 
                            ];
-             blk_term  := (IVoid void0, TERM_Br_1 loopcontblock)
+             blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
+             blk_comments := None
            |} in
        genLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
@@ -853,7 +889,9 @@ Section monadic.
                                     ))
                                 ];
              blk_term  := (IVoid void0,
-                           TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local cmp)) zero_block_id nz_block_id)
+                           TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local cmp)) zero_block_id nz_block_id);
+             blk_comments := None
+
            |} in
 
        let '(st, storeid0) := incVoid st in
@@ -869,7 +907,8 @@ Section monadic.
                                                                (EXP_Ident (ID_Local py)))
                                                               (ret 8%Z))
                                 ];
-             blk_term  := (IVoid void1, TERM_Br_1 nextblock)
+             blk_term  := (IVoid void1, TERM_Br_1 nextblock);
+             blk_comments := None
            |} in
 
 
@@ -908,7 +947,8 @@ Section monadic.
                                                             (EXP_Ident (ID_Local py)))
                                                            (ret 8%Z))
                             ];
-             blk_term  := (IVoid void2, TERM_Br_1 nextblock)
+             blk_term  := (IVoid void2, TERM_Br_1 nextblock);
+             blk_comments := None
            |} in
 
        ret (st, (entry_block_id, [entry_block ; zero_block; nz_block])).
@@ -921,20 +961,33 @@ Section monadic.
            (st: IRState)
            (nextblock: block_id):
     m (IRState * segment)
-    := match fshcol with
+    :=
+      let add_comment r s : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [s])) in
+
+      match fshcol with
        | FSHDummy i o => ret (st, (nextblock, []))
-       | FSHeUnion o b _ => @genFSHeUnion o ft st x y b nextblock
-       | FSHeT i b => @genFSHeT i ft st x y b nextblock
+       | FSHeUnion o b _ =>
+         add_comment
+           (@genFSHeUnion o ft st x y b nextblock)
+           "--- Operator: FSHeUnion ---"
+       | FSHeT i b =>
+         add_comment
+           (@genFSHeT i ft st x y b nextblock)
+           "--- Operator: FSHeT ---"
        | FSHPointwise i f =>
          let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
          let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
          '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
-          genLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock
+          add_comment
+          (genLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          "--- Operator: FSHPointwise ---"
        | FSHBinOp n f =>
          let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
-          genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock
+          add_comment
+          (genLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          "--- Operator: FSHBinOp ---"
        | FSHInductor n f initial => genFSHInductor x y n f initial st nextblock
        | FSHIUnion i o n _ _ child =>
          let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
@@ -942,8 +995,10 @@ Section monadic.
          let st := addVars st [(ID_Local loopvar, IntType)] in
          '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
           st <- dropVars st 1 ;;
-          genLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-          loopvar loopcontblock child_block_id child_blocks[] st nextblock
+          add_comment
+          (genLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                   loopvar loopcontblock child_block_id child_blocks[] st nextblock)
+          "--- Operator: FSHIUnion ---"
        | FSHIReduction i o n dot initial child =>
          let '(st, t) := incLocalNamed st "IReductoin_tmp" in
          let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
@@ -957,18 +1012,18 @@ Section monadic.
            loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
            [] st nextblock ;;
            '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
-           ret (st, (init_block_id, init_blocks++loop_blocks))
+           add_comment (ret (st, (init_block_id, init_blocks++loop_blocks))) "--- Operator: FSHIReduction ---"
        | FSHCompose i1 o2 o3 f g =>
          let '(st, tmpid) := incLocal st in
          '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
           '(st, (gb, g')) <- genIR x tmpid g st fb ;;
           let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
-          ret (st, (alloid, [tmpalloc]++g'++f'))
+          add_comment (ret (st, (alloid, [tmpalloc]++g'++f'))) "--- Operator: FSHCompose ---"
        | FSHHTSUMUnion i o dot f g =>
          (* Note: 'g' computed before 'f', as in compose *)
          '(st, (fb, f')) <- genIR x y f st nextblock  ;;
           '(st, (gb, g')) <- genIR x y g st fb  ;;
-          ret (st, (gb, g'++f'))
+          add_comment (ret (st, (gb, g'++f'))) "--- Operator: FSHHTSUMUnion ---"
        end.
 
   Definition LLVMGen'
@@ -998,14 +1053,17 @@ Section monadic.
             blk_id    := rid ;
             blk_phis  := [];
             blk_code  := [];
-            blk_term  := (IId rsid, TERM_Ret_void)
+            blk_term  := (IId rsid, TERM_Ret_void);
+            blk_comments := None
           |} in
       '(st,(_,body)) <- genIR x y fshcol st rid ;;
        let body := body ++ [retblock] in
        ret
          (all_intrinsics ++
                          (genIRGlobals (FnBody:=list block) globals ++
-                                       [TLE_Definition
+                                       [
+                                         TLE_Comment _ " Top-level opeator definition" ;
+                                         TLE_Definition
                                           {|
                                             df_prototype   :=
                                               {|

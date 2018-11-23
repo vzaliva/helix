@@ -93,5 +93,7 @@ Section maxnum.
 End maxnum.
 
 Definition all_intrinsics : toplevel_entities (list block)
-  := [ maxnum_32 ; maxnum_64 ;
+  := [
+      @TLE_Comment (list block) "Prototypes for intrinsics we use" ;
+      maxnum_32 ; maxnum_64 ;
          fabs_32 ; fabs_64].
