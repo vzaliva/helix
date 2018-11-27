@@ -27,7 +27,7 @@ To test:
     make test
 
 ### Papers ###
-
+* [Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)](http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf)
 * [HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)](http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf)
 * [Formal Verification of HCOL Rewriting (FMCAD 2015)](http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf)
 
