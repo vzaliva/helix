@@ -92,10 +92,9 @@ Section SigmaHCOL_Operators.
 
     (* Two vectors (=) at indices at given set *)
     Definition vec_equiv_at_set
-               {n:nat}
-               (x y: svector fm n)
-               (s: FinNatSet n)
-      :=
+               {n: nat}
+               (s: FinNatSet n): relation (svector fm n)
+      := fun x y =>
         (forall j (jc:j<n),
             s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
 
@@ -103,7 +102,7 @@ Section SigmaHCOL_Operators.
           {k:nat}
           (x y: svector fm k)
           (n h: FinNatSet k):
-      Included _ n h -> vec_equiv_at_set x y h -> vec_equiv_at_set x y n.
+      Included _ n h -> vec_equiv_at_set h x y -> vec_equiv_at_set n x y.
     Proof.
       intros S E.
       unfold vec_equiv_at_set.
@@ -115,8 +114,8 @@ Section SigmaHCOL_Operators.
           {i : nat}
           (s0 s1 : FinNatSet i)
           (x y : svector fm i):
-      vec_equiv_at_set x y (Union _ s0 s1)
-      → (vec_equiv_at_set x y s0 /\ vec_equiv_at_set x y s1).
+      vec_equiv_at_set (Union _ s0 s1) x y
+      → (vec_equiv_at_set s0 x y /\ vec_equiv_at_set s1 x y).
     Proof.
       intros H.
       unfold vec_equiv_at_set in *.
@@ -135,7 +134,7 @@ Section SigmaHCOL_Operators.
 
     Lemma vec_equiv_at_Full_set {i : nat}
           (x y : svector fm i):
-      vec_equiv_at_set x y (Full_set (FinNat i)) <-> x = y.
+      vec_equiv_at_set (Full_set (FinNat i)) x y  <-> x = y.
     Proof.
       split.
       -
@@ -158,7 +157,7 @@ Section SigmaHCOL_Operators.
           (s1 : FinNatSet n)
           (C: Included (FinNat n) s0 s1):
       forall x y : svector fm n,
-        vec_equiv_at_set x y s1 → vec_equiv_at_set x y s0.
+        vec_equiv_at_set s1 x y → vec_equiv_at_set s0 x y.
     Proof.
       intros x y E.
       unfold vec_equiv_at_set in *.
@@ -181,10 +180,7 @@ Section SigmaHCOL_Operators.
 
           (* only values in [in_index_set] affect output *)
           in_as_domain:
-            forall x y,
-              vec_equiv_at_set x y (in_index_set xop) ->
-              op xop x = op xop y;
-
+            Proper ((vec_equiv_at_set (in_index_set xop)) ==> (=)) (op xop);
           (* sufficiently (values in right places, no info on empty
           spaces) filled input vector guarantees properly (values are
           only where values expected) filled output vector *)
@@ -1966,7 +1962,6 @@ Section StructuralProperies.
         apply Full_FinNatSet_dec.
       -
         intros x y H.
-
         simpl in *.
         assert (E: x=y).
         {
