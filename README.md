@@ -9,7 +9,7 @@ HELIX: SPIRAL formalization in Coq with LLVM backend
 * [math-classes](https://github.com/math-classes/math-classes)
 * [Template Coq](https://template-coq.github.io/template-coq/)
 * [Flocq](http://flocq.gforge.inria.fr/)
-* [coq-dpdgraph] (https://github.com/Karmaki/coq-dpdgraph) (optional)
+* [coq-dpdgraph](https://github.com/Karmaki/coq-dpdgraph) (optional)
 
 To install all required dependenceis:
 
