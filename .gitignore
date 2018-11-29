@@ -42,3 +42,4 @@ experiments/dywin.s
 /tests/main_pointwise_plus1
 /tests/main_binop_plus
 /tests/main_compose_pointwise
+/tests/main_dynwin64
