@@ -7,7 +7,7 @@ double D[3];
 void dynwin64(double *, double *);
 
 /* SPIRAL version */
-int dwmonitor(double  *X, double  *D)
+int dwmonitor(const double  *X, const double  *D)
 {
     double q3, q4, s1, s4, s5, s6, s7, s8
             , w1;
@@ -41,14 +41,15 @@ void main()
     
     for(int i=0;i<10;i++)
     {
-        unsigned char *p = x;
+        unsigned char *p = (unsigned char*)x;
         for(int j=0; j<5*8; j++)
             *p++=rand();
+
+        int f = dwmonitor(x,D);
 
         y[0]=0;
         dynwin64(x, y);
 
-        int f = dwmonitor(x,D);
         
         printf("%d:\t%lf\t%d\n",i,y[0],f);
     }

@@ -54,7 +54,7 @@ Definition FSHBinFloat  {ft:FloatT} := @FExpr ft.
 Definition FSHIBinFloat {ft:FloatT} := @FExpr ft.
 
 Inductive FSHOperator {ft:FloatT}: nat -> nat -> Type :=
-| FSHDummy {i o:nat}: FSHOperator i o  (* dummy, do-nothing operator *)
+| FSHId {i:nat}: FSHOperator i i  (* identity operator. mostly for testing *)
 | FSHeUnion {o: nat} (b: @NExpr ft) (z: (FloatV ft)): FSHOperator 1 o
 | FSHeT {i: nat} (b:@NExpr ft): FSHOperator i 1
 | FSHPointwise {i: nat} (f: @FSHIUnFloat ft): FSHOperator i i

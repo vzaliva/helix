@@ -31,6 +31,13 @@ Definition FloatTtyp (ft: FloatT) : typ :=
   | Float64 => TYPE_Double
   end.
 
+Definition SizeofFloatT (ft:FloatT): nat :=
+  match ft with
+  | Float32 => 4
+  | Float64 => 8
+  end.
+
+
 Definition getIRType
            {ft: FloatT}
            (t: @FSHValType ft): typ :=
@@ -168,7 +175,6 @@ Definition newLocalVarNamed (st:IRState) (t:typ) (prefix:string): (IRState*raw_i
     |}, v).
 
 Definition newLocalVar (st:IRState) (t:typ): (IRState*raw_id) := newLocalVarNamed st t "l".
-
 
 Section monadic.
 
@@ -408,6 +414,56 @@ Section monadic.
 
   (* List of blocks with entry point *)
   Definition segment:Type := block_id * list block.
+
+  Definition genId
+             (o: nat)
+             (ft: FloatT)
+             (st: IRState)
+             (x y: local_id)
+             (nextblock: block_id)
+    : m (IRState * segment)
+    :=
+      let '(st, entryblock) := incBlockNamed st "ID" in
+      let '(st, retentry) := incVoid st in
+      let '(st, callid) := incVoid st in
+      let '(st, xb) := incLocal st in
+      let '(st, yb) := incLocal st in
+      let oz := (Z.of_nat o) in
+      let atyp := TYPE_Pointer (TYPE_Array oz (FloatTtyp ft)) in
+      let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
+      let len:Z := Z.of_nat (o * (SizeofFloatT ft)) in
+      let i32 := TYPE_I 32%Z in
+      let i1 := TYPE_I 1%Z in
+      ret (st , (entryblock, [
+                   {|
+                     blk_id    := entryblock ;
+                     blk_phis  := [];
+                     blk_code  := [
+                                   (IId xb, INSTR_Op (OP_Conversion
+                                                        Bitcast
+                                                        atyp
+                                                        (EXP_Ident (ID_Local x))
+                                                        ptyp
+                                   ));
+                                     (IId yb, INSTR_Op (OP_Conversion
+                                                          Bitcast
+                                                          atyp
+                                                          (EXP_Ident (ID_Local y))
+                                                          ptyp
+                                     ));
+
+                                     (IVoid callid, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name "llvm.memcpy.p0i8.p0i8.i32")))
+                                                               [
+                                                                 (ptyp, EXP_Ident (ID_Local yb));
+                                                                   (ptyp, EXP_Ident (ID_Local xb));
+                                                                   (i32, EXP_Integer len);
+                                                                   (i32, EXP_Integer 16%Z) ; (* TODO: Use TempPtrAlignment from utials *)
+                                                                   (i1, EXP_Integer 0%Z)])
+                                 ];
+                     blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
+                     blk_comments := None
+                   |}
+          ])).
 
   Definition genFSHeUnion
              {o: nat}
@@ -965,7 +1021,10 @@ Section monadic.
       let add_comment r s : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [s])) in
 
       match fshcol with
-       | FSHDummy i o => ret (st, (nextblock, []))
+       | FSHId i =>
+         add_comment
+           (genId i ft st x y nextblock)
+           "--- Operator: FSHId ---"
        | FSHeUnion o b _ =>
          add_comment
            (@genFSHeUnion o ft st x y b nextblock)
