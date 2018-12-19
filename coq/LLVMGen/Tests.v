@@ -10,6 +10,11 @@ Require Import Coq.ZArith.BinInt.
 
 Import ListNotations.
 
+Program Definition FloatV32Zero := Float32V (@FF2B _ _ (F754_zero false) _).
+Program Definition FloatV32One := Float32V (BofZ _ _ _ _ 1%Z).
+Next Obligation. reflexivity. Qed.
+Next Obligation. reflexivity. Qed.
+
 Section DoubleTests.
   Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
 
@@ -73,14 +78,12 @@ Section DoubleTests.
                     FSHId
                     (FSHeT (NVar 0)))).
 
+  Definition Inductor_test: @FSHOperator Float64 1 1 :=
+    FSHInductor (NConst 8) (AMult (AVar 1) (AVar 0)) FloatV64One.
+
 End DoubleTests.
 
 Section SingleTests.
-  Program Definition FloatV32Zero := Float32V (@FF2B _ _ (F754_zero false) _).
-  Program Definition FloatV32One := Float32V (BofZ _ _ _ _ 1%Z).
-  Next Obligation. reflexivity. Qed.
-  Next Obligation. reflexivity. Qed.
-
   (* sample definition to be moved to DynWin.v *)
   Definition DynWin32_test: @FSHOperator Float32 (1 + 4) 1 :=
     FSHCompose (FSHBinOp (AZless (AVar 1) (AVar 0)))
@@ -112,6 +115,7 @@ Definition all_tests :=
       {| name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
       {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
+      {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
       {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}

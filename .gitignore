@@ -45,3 +45,4 @@ experiments/dywin.s
 /tests/main_dynwin64
 /tests/main_ireduction
 /tests/main_iunion
+/tests/main_inductor
