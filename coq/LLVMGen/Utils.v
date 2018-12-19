@@ -21,7 +21,6 @@ Set Strict Implicit.
 module in future *)
 Section Config.
   Definition IntType := TYPE_I 64%Z.
-  Definition ArrayPtrParamAttrs := [ PARAMATTR_Align 16%Z; PARAMATTR_Nonnull ].
-  Definition GlobalPtrAlignment := Some 16%Z.
-  Definition TempPtrAlignment := Some 16%Z.
+  Definition PtrAlignment := 16%Z.
+  Definition ArrayPtrParamAttrs := [ PARAMATTR_Align PtrAlignment; PARAMATTR_Nonnull ].
 End Config.

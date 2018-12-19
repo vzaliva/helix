@@ -37,7 +37,6 @@ Definition SizeofFloatT (ft:FloatT): nat :=
   | Float64 => 8
   end.
 
-
 Definition getIRType
            {ft: FloatT}
            (t: @FSHValType ft): typ :=
@@ -68,7 +67,7 @@ Definition genIRGlobals
               g_addrspace    := None ;
               g_externally_initialized:= true ;
               g_section      := None ;
-              g_align        := GlobalPtrAlignment ;
+              g_align        := Some PtrAlignment ;
             |}
        ) x in
      match l with
@@ -208,7 +207,7 @@ Section monadic.
              (name: local_id)
              (size: nat): code
     :=
-      [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None TempPtrAlignment)].
+      [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some PtrAlignment))].
 
   Definition allocTempArrayBlock
              {ft: FloatT}
@@ -457,7 +456,7 @@ Section monadic.
                                                                  (ptyp, EXP_Ident (ID_Local yb));
                                                                    (ptyp, EXP_Ident (ID_Local xb));
                                                                    (i32, EXP_Integer len);
-                                                                   (i32, EXP_Integer 16%Z) ; (* TODO: Use TempPtrAlignment from utials *)
+                                                                   (i32, EXP_Integer PtrAlignment) ;
                                                                    (i1, EXP_Integer 0%Z)])
                                  ];
                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
