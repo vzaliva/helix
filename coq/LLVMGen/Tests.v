@@ -63,7 +63,15 @@ Section DoubleTests.
       }.
 
   Definition IReduction_test: @FSHOperator Float64 4 4 :=
-    (FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV64Zero FSHId).
+    FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV64Zero FSHId.
+
+  Definition IUnion_test: @FSHOperator Float64 4 4 :=
+    FSHIUnion 4 (APlus (AVar 1) (AVar 0)) FloatV64Zero
+              (FSHCompose
+                 (FSHeUnion (NVar 0) FloatV64Zero)
+                 (FSHCompose
+                    FSHId
+                    (FSHeT (NVar 0)))).
 
 End DoubleTests.
 
@@ -103,6 +111,7 @@ Definition all_tests :=
       {| name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
       {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
+      {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
       {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}

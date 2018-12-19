@@ -44,3 +44,4 @@ experiments/dywin.s
 /tests/main_compose_pointwise
 /tests/main_dynwin64
 /tests/main_ireduction
+/tests/main_iunion
