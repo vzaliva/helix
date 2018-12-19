@@ -62,7 +62,7 @@ Section DoubleTests.
         op: @FSHOperator ft i o;
       }.
 
-  Definition Reduction_test: @FSHOperator Float64 4 4 :=
+  Definition IReduction_test: @FSHOperator Float64 4 4 :=
     (FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV64Zero FSHId).
 
 End DoubleTests.
@@ -100,10 +100,9 @@ Definition all_tests :=
   [
     {| name:="dynwin64"; op:=DynWin64_test ; globals:=[("D", @FSHvecValType Float64 3)] |} ;
       {| name:="dynwin32"; op:=DynWin32_test ; globals:=[("D", @FSHvecValType Float32 3)] |} ;
-      {| name:="reduction"; op:=Reduction_test; globals:=[] |} ;
       {| name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
-      {| name:="ireduction"; op:=Reduction_test; globals:=[] |} ;
+      {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
       {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
