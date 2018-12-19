@@ -377,16 +377,16 @@ Section monadic.
                                              (ret 8%Z))
              ])
       | AAbs a => match ft with
-                 | Float32 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f32")))
-                 | Float64 => gen_call1 a (EXP_Ident (ID_Global (Name "llvm.fabs.f64")))
+                 | Float32 => gen_call1 a (intrinsic_exp fabs_32)
+                 | Float64 => gen_call1 a (intrinsic_exp fabs_64)
                  end
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
       | AMin a b => raise "AMin not implemented" (* TODO *)
       | AMax a b => match ft with
-                   | Float32 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f32")))
-                   | Float64 => gen_call2 a b (EXP_Ident (ID_Global (Name "llvm.maxnum.f64")))
+                   | Float32 => gen_call2 a b (intrinsic_exp maxnum_32)
+                   | Float64 => gen_call2 a b (intrinsic_exp maxnum_64)
                    end
       | AZless a b =>
         (* this is special as requires bool -> double cast *)
@@ -451,7 +451,7 @@ Section monadic.
                                                           ptyp
                                      ));
 
-                                     (IVoid callid, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name "llvm.memcpy.p0i8.p0i8.i32")))
+                                     (IVoid callid, INSTR_Call (TYPE_Void, intrinsic_exp memcpy_8)
                                                                [
                                                                  (ptyp, EXP_Ident (ID_Local yb));
                                                                    (ptyp, EXP_Ident (ID_Local xb));
