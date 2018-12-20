@@ -576,7 +576,7 @@ Section monadic.
            ])).
 
   (* Generates loop `for(i=from;i<to;i++)` *)
-  Definition getForLoop
+  Definition genForLoop
              (prefix: string)
              (from to: exp)
              (loopvar: raw_id)
@@ -841,7 +841,7 @@ Section monadic.
                 blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
                 blk_comments := None
               |} in
-          getForLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+          genForLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
   Definition genIReductionFold
              {i o n: nat}
@@ -907,7 +907,7 @@ Section monadic.
              blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
              blk_comments := None
            |} in
-       getForLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
+       genForLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
   Definition genFSHInductor
              {ft: FloatT}
@@ -983,7 +983,7 @@ Section monadic.
               blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
               blk_comments := None
             |} in
-        getForLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+        genForLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
 
   Fixpoint genIR
            {i o: nat}
@@ -1014,14 +1014,14 @@ Section monadic.
          let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
          '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
           add_comment
-          (getForLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          (genForLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: FSHPointwise ---"
        | FSHBinOp n f =>
          let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
           add_comment
-          (getForLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          (genForLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: FSHBinOp ---"
        | FSHInductor n f initial =>
           add_comment
@@ -1034,7 +1034,7 @@ Section monadic.
          '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
           st <- dropVars st 1 ;;
           add_comment
-          (getForLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+          (genForLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                    loopvar loopcontblock child_block_id child_blocks[] st nextblock)
           "--- Operator: FSHIUnion ---"
        | FSHIReduction i o n dot initial child =>
@@ -1046,7 +1046,7 @@ Section monadic.
           '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
            st <- dropVars st 1 ;;
            '(st, (loop_block_id, loop_blocks))
-           <- getForLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+           <- genForLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
            loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
            [] st nextblock ;;
            '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
