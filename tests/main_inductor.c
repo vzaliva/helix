@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ireduction(double*, double*);
+void inductor(double*, double*);
 
 void main()
 {
