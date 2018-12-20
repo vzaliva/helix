@@ -575,8 +575,22 @@ Section monadic.
                     |}
            ])).
 
-  (* Generates loop `for(i=from;i<to;i++)` *)
-  Definition genForLoop
+  (* Generates while loop `init_code(); i=from; while(i<to){ body(); i++;}`
+
+    .entry:
+      (init_code)
+      %c0 = icmp slt i32 %start, %n
+      br i1 %c0, label %.loop, label %.nextblock
+    .loop:
+      %i = phi i32 [ %next_i, .loopcontblock], [ %start, .entry ]
+     (body)
+    .loopcontblock:
+      %next_i = add nsw i32 %i, 1
+      %c = icmp slt i32 %next_i, %n
+      br i1 %c, label %.loop, label nextblock
+    nextblock:
+   *)
+  Definition genWhileLoop
              (prefix: string)
              (from to: exp)
              (loopvar: raw_id)
@@ -591,6 +605,7 @@ Section monadic.
       let '(st, entryblock) := incBlockNamed st (append prefix "_entry") in
       let '(st, loopblock) := incBlockNamed st (append prefix "_loop") in
       let '(st, loopcond) := incLocal st in
+      let '(st, loopcond1) := incLocal st in
       let '(st, nextvar) := incLocalNamed st (append prefix "_next_i") in
       let '(st, void0) := incVoid st in
       let '(st, void1) := incVoid st in
@@ -602,8 +617,17 @@ Section monadic.
       let loop_pre := [
             {|
               blk_id    := entryblock ;
-              blk_phis  := []; blk_code  := init_code;
-              blk_term  := (IVoid void0, TERM_Br_1 loopblock);
+              blk_phis  := [];
+              blk_code  :=
+                init_code ++
+                          [
+                            (IId loopcond, INSTR_Op (OP_ICmp Slt
+                                                             IntType
+                                                             from
+                                                             to))
+
+                                     ];
+              blk_term  := (IVoid void0, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock);
               blk_comments := None
             |} ;
 
@@ -624,18 +648,17 @@ Section monadic.
                                                               IntType
                                                               (EXP_Ident (ID_Local loopvar))
                                                               (EXP_Integer 1%Z))) ;
-                              (IId loopcond, INSTR_Op (OP_ICmp Eq
+                              (IId loopcond1, INSTR_Op (OP_ICmp Slt
                                                                IntType
                                                                (EXP_Ident (ID_Local nextvar))
                                                                to))
 
                           ];
-              blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) nextblock loopblock);
+              blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock );
               blk_comments := None
             |}
           ] in
       ret (st, (entryblock, loop_pre ++ body_blocks ++ loop_post)).
-
 
   Definition genPointwiseBody
              {n: nat}
@@ -841,7 +864,7 @@ Section monadic.
                 blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
                 blk_comments := None
               |} in
-          genForLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+          genWhileLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
   Definition genIReductionFold
              {i o n: nat}
@@ -907,7 +930,7 @@ Section monadic.
              blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
              blk_comments := None
            |} in
-       genForLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
+       genWhileLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
   Definition genFSHInductor
              {ft: FloatT}
@@ -983,7 +1006,7 @@ Section monadic.
               blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
               blk_comments := None
             |} in
-        genForLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+        genWhileLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
 
   Fixpoint genIR
            {i o: nat}
@@ -1014,14 +1037,14 @@ Section monadic.
          let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
          '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
           add_comment
-          (genForLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          (genWhileLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: FSHPointwise ---"
        | FSHBinOp n f =>
          let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
           add_comment
-          (genForLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: FSHBinOp ---"
        | FSHInductor n f initial =>
           add_comment
@@ -1034,7 +1057,7 @@ Section monadic.
          '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
           st <- dropVars st 1 ;;
           add_comment
-          (genForLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                    loopvar loopcontblock child_block_id child_blocks[] st nextblock)
           "--- Operator: FSHIUnion ---"
        | FSHIReduction i o n dot initial child =>
@@ -1046,7 +1069,7 @@ Section monadic.
           '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
            st <- dropVars st 1 ;;
            '(st, (loop_block_id, loop_blocks))
-           <- genForLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+           <- genWhileLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
            loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
            [] st nextblock ;;
            '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
