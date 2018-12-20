@@ -10,11 +10,20 @@ void main()
     
     ireduction(x, y);
 
-    printf("X=");
     for(int i=0; i<4; i++)
-        printf("\t%lf\n",x[i]);
-    printf("Y=");
-    for(int i=0; i<4; i++)
-        printf("\t%lf\n",y[i]);
-
+    {
+        if(y[i]!=x[i]*3)
+        {
+            printf("FAIL!\n");
+            printf("X=");
+            for(int i=0; i<4; i++)
+                printf("\t%lf\n",x[i]);
+            printf("Y=");
+            for(int i=0; i<4; i++)
+                printf("\t%lf\n",y[i]);
+            exit(1);
+        }
+    }
+    printf("PASS\n");
+    exit(0);
 }

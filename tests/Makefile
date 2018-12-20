@@ -37,7 +37,7 @@ main_inductor: main_inductor.c test_inductor.o
 ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus main_compose_pointwise main_ireduction main_iunion main_inductor main_dynwin64
 
 test: $(ALLEXE)
-	$(foreach x,$(ALLEXE), echo "$(x):"; ./$(x);)
+	$(foreach x,$(ALLEXE), echo -n "$(x): "; ./$(x);)
 
 clean:
 	rm -f *.ll *.s *.o a.out $(ALLEXE)

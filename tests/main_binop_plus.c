@@ -10,11 +10,22 @@ void main()
     
     binop_plus(x, y);
 
-    printf("X=");
-    for(int i=0; i<4; i++)
-        printf("\t%lf\n",x[i]);
-    printf("Y=");
     for(int i=0; i<2; i++)
-        printf("\t%lf\n",y[i]);
+    {
+        if(y[i]!=x[i]+x[i+2])
+        {
+            printf("FAIL!\n");
+            printf("X=");
+            for(int i=0; i<4; i++)
+                printf("\t%lf\n",x[i]);
+            printf("Y=");
+            for(int i=0; i<2; i++)
+                printf("\t%lf\n",y[i]);
+            exit(1);
+        }
+    }
+    printf("PASS\n");
+    exit(0);
+    
 
 }

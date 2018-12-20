@@ -9,6 +9,13 @@ void main()
     double y[1];
     
     inductor(x, y);
-
-    printf("X=%lf\tY=%lf\n",x[0],y[0]);
+    
+    if(y[0]!=256.)
+    {
+        printf("X=%lf\tY=%lf\n",x[0],y[0]);
+        printf("FAIL!\n");
+        exit(1);
+    }
+    printf("PASS\n");
+    exit(0);
 }

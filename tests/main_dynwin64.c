@@ -39,7 +39,7 @@ void main()
 
     srand(time(NULL));
     
-    for(int i=0;i<10;i++)
+    for(int i=0;i<100;i++)
     {
         unsigned char *p = (unsigned char*)x;
         for(int j=0; j<5*8; j++)
@@ -50,7 +50,13 @@ void main()
         y[0]=0;
         dynwin64(x, y);
 
-        
-        printf("%d:\t%lf\t%d\n",i,y[0],f);
+        if((double)f != y[0])
+        {
+            printf("%d:\t%lf\t%d\n",i,y[0],f);
+            printf("FAIL!\n");
+            exit(1);
+        }
     }
+    printf("PASS\n");
+    exit(0);
 }

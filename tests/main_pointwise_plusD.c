@@ -12,8 +12,18 @@ void main()
         x[i] = i+10;
     
     pointwise_plusD(x, y);
-    
+
     for(int i=0; i<8; i++)
-        printf("%d:\t%lf\t\%lf\n",i,x[i],y[i]);
+    {
+        if(y[i]!=x[i]+1000)
+        {
+            printf("FAIL!\n");
+            for(int i=0; i<8; i++)
+                printf("%d:\t%lf\t\%lf\n",i,x[i],y[i]);
+            exit(1);
+        }
+    }
+    printf("PASS\n");
+    exit(0);
 
 }

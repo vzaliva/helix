@@ -11,8 +11,17 @@ void main()
         x[i] = i+10;
     
     pointwise_plus1(x, y);
-    
-    for(int i=0; i<8; i++)
-        printf("%d:\t%lf\t\%lf\n",i,x[i],y[i]);
 
+    for(int i=0; i<8; i++)
+    {
+        if(y[i]!=x[i]+1)
+        {
+            printf("FAIL!\n");
+            for(int i=0; i<8; i++)
+                printf("%d:\t%lf\t\%lf\n",i,x[i],y[i]);
+            exit(1);
+        }
+    }
+    printf("PASS\n");
+    exit(0);
 }
