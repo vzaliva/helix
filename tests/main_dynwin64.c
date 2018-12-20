@@ -7,7 +7,7 @@ double D[3];
 void dynwin64(double *, double *);
 
 /* SPIRAL version */
-int dwmonitor(const double  *X, const double  *D)
+int dwmonitor(const double *X, const double *D)
 {
     double q3, q4, s1, s4, s5, s6, s7, s8
             , w1;
@@ -41,19 +41,32 @@ void main()
     
     for(int i=0;i<100;i++)
     {
+        /* Random X */
         unsigned char *p = (unsigned char*)x;
         for(int j=0; j<5*8; j++)
             *p++=rand();
 
+        /* Ramdom D */
+        p = (unsigned char*)D;
+        for(int j=0; j<3*8; j++)
+            *p++=rand();
+        
         int f = dwmonitor(x,D);
 
         y[0]=0;
         dynwin64(x, y);
 
-        if((double)f != y[0])
+        if((double)f != y[i])
         {
-            printf("%d:\t%lf\t%d\n",i,y[0],f);
             printf("FAIL!\n");
+            printf("Iteration %d, Y=%lf, Expected %d\n",i,y[i],f);
+            printf("X=\n");
+            for(int j=0; j<5; j++)
+                printf("\t%d:\t%le\n",j,x[j]);
+            printf("D=\n");
+            for(int j=0; j<3; j++)
+                printf("\t%d:\t%le\n",j,D[j]);
+            
             exit(1);
         }
     }
