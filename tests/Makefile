@@ -33,8 +33,9 @@ main_compose_pointwise: main_compose_pointwise.c test_compose_pointwise.o
 main_ireduction: main_ireduction.c test_ireduction.o
 main_iunion: main_iunion.c test_iunion.o
 main_inductor: main_inductor.c test_inductor.o
+main_sumunion: main_sumunion.c test_sumunion.o
 
-ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus main_compose_pointwise main_ireduction main_iunion main_inductor main_dynwin64
+ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus main_compose_pointwise main_ireduction main_iunion main_inductor main_sumunion main_dynwin64
 
 test: $(ALLEXE)
 	$(foreach x,$(ALLEXE), echo -n "$(x): "; ./$(x);)

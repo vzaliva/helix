@@ -81,6 +81,10 @@ Section DoubleTests.
   Definition Inductor_test: @FSHOperator Float64 1 1 :=
     FSHInductor (NConst 8) (AMult (AVar 1) (AVar 0)) FloatV64One.
 
+  Definition SUMUnionTest: @FSHOperator Float64 4 4 :=
+    FSHHTSUMUnion (APlus (AVar 1) (AVar 0)) FSHId FSHId.
+
+
 End DoubleTests.
 
 Section SingleTests.
@@ -116,6 +120,7 @@ Definition all_tests :=
       {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
+      {| name:="sumunion"; op:=SUMUnionTest; globals:=[] |} ;
       {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
       {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}

@@ -46,3 +46,4 @@ experiments/dywin.s
 /tests/main_ireduction
 /tests/main_iunion
 /tests/main_inductor
+/tests/main_sumunion
