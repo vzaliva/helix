@@ -6,7 +6,7 @@ void sumunion(double*, double*);
 void main()
 {
     double x[4]={10,20,1,2};
-    double y[2];
+    double y[4];
     
     sumunion(x, y);
 

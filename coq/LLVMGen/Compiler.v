@@ -660,6 +660,84 @@ Section monadic.
           ] in
       ret (st, (entryblock, loop_pre ++ body_blocks ++ loop_post)).
 
+  Definition genHTSUMUnionpBody
+             {n: nat}
+             {ft: FloatT}
+             (a b y: local_id)
+             (f:@FSHBinFloat ft)
+             (st: IRState)
+             (loopvar: raw_id)
+             (nextblock: block_id)
+    : m (IRState * segment)
+    :=
+      let '(st, pwblock) := incBlockNamed st "PointwiseLoopBody" in
+      let '(st, pwret) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let '(st, pa) := incLocal st in
+      let '(st, pb) := incLocal st in
+      let '(st, py) := incLocal st in
+      let '(st, va) := incLocal st in
+      let '(st, vb) := incLocal st in
+      let xytyp := getIRType (@FSHvecValType ft n) in
+      let xyptyp := TYPE_Pointer xytyp in
+      let loopvarid := ID_Local loopvar in
+      let st := addVars st [(ID_Local va, (FloatTtyp ft)); (ID_Local vb, (FloatTtyp ft))] in
+      '(st, fexpr, fexpcode) <- genFExpr st f ;;
+       st <- dropVars st 2 ;;
+       ret (st,
+            (pwblock,
+             [
+               {|
+                 blk_id    := pwblock ;
+                 blk_phis  := [];
+                 blk_code  := [
+                               (IId pa,  INSTR_Op (OP_GetElementPtr
+                                                     xytyp (xyptyp, (EXP_Ident (ID_Local a)))
+                                                     [(IntType, EXP_Integer 0%Z);
+                                                        (IntType,(EXP_Ident loopvarid))]
+
+                               ));
+
+                                 (IId va, INSTR_Load false (FloatTtyp ft)
+                                                     (TYPE_Pointer (FloatTtyp ft),
+                                                      (EXP_Ident (ID_Local pa)))
+                                                     (ret 8%Z));
+
+                                 (IId pb,  INSTR_Op (OP_GetElementPtr
+                                                       xytyp (xyptyp, (EXP_Ident (ID_Local b)))
+                                                       [(IntType, EXP_Integer 0%Z);
+                                                          (IntType,(EXP_Ident loopvarid))]
+
+                                 ));
+
+                                 (IId vb, INSTR_Load false (FloatTtyp ft)
+                                                     (TYPE_Pointer (FloatTtyp ft),
+                                                      (EXP_Ident (ID_Local pb)))
+                                                     (ret 8%Z))
+                             ]
+
+                                ++ fexpcode ++
+
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident loopvarid))]
+
+                                  ));
+
+                                    (IVoid storeid, INSTR_Store false
+                                                                ((FloatTtyp ft), fexpr)
+                                                                (TYPE_Pointer (FloatTtyp ft),
+                                                                 (EXP_Ident (ID_Local py)))
+                                                                (ret 8%Z))
+
+
+                                ];
+                 blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
+                 blk_comments := None
+               |}
+           ])).
+
   Definition genPointwiseBody
              {n: nat}
              {ft: FloatT}
@@ -1020,72 +1098,89 @@ Section monadic.
       let add_comment r s : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [s])) in
 
       match fshcol with
-       | FSHId i =>
+      | FSHId i =>
+        add_comment
+          (genId i ft st x y nextblock)
+          "--- Operator: FSHId ---"
+      | FSHeUnion o b _ =>
+        add_comment
+          (@genFSHeUnion o ft st x y b nextblock)
+          "--- Operator: FSHeUnion ---"
+      | FSHeT i b =>
+        add_comment
+          (@genFSHeT i ft st x y b nextblock)
+          "--- Operator: FSHeT ---"
+      | FSHPointwise i f =>
+        let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
+        let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
+        '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
          add_comment
-           (genId i ft st x y nextblock)
-           "--- Operator: FSHId ---"
-       | FSHeUnion o b _ =>
+         (genWhileLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+         "--- Operator: FSHPointwise ---"
+      | FSHBinOp n f =>
+        let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
+        let '(st, loopvar) := incLocalNamed st "BinOp_i" in
+        '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
          add_comment
-           (@genFSHeUnion o ft st x y b nextblock)
-           "--- Operator: FSHeUnion ---"
-       | FSHeT i b =>
+         (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+         "--- Operator: FSHBinOp ---"
+      | FSHInductor n f initial =>
+        add_comment
+          (genFSHInductor x y n f initial st nextblock)
+          "--- Operator: FSHInductor ---"
+      | FSHIUnion i o n _ _ child =>
+        let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
+        let '(st, loopvar) := incBlockNamed st "Union_i" in
+        let st := addVars st [(ID_Local loopvar, IntType)] in
+        '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
+         st <- dropVars st 1 ;;
          add_comment
-           (@genFSHeT i ft st x y b nextblock)
-           "--- Operator: FSHeT ---"
-       | FSHPointwise i f =>
-         let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
-         let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
-         '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
-          add_comment
-          (genWhileLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-          "--- Operator: FSHPointwise ---"
-       | FSHBinOp n f =>
-         let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
-         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
-         '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
-          add_comment
-          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-          "--- Operator: FSHBinOp ---"
-       | FSHInductor n f initial =>
-          add_comment
-            (genFSHInductor x y n f initial st nextblock)
-            "--- Operator: FSHInductor ---"
-       | FSHIUnion i o n _ _ child =>
-         let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
-         let '(st, loopvar) := incBlockNamed st "Union_i" in
+         (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                       loopvar loopcontblock child_block_id child_blocks[] st nextblock)
+         "--- Operator: FSHIUnion ---"
+      | FSHIReduction i o n dot initial child =>
+        let '(st, t) := incLocalNamed st "IReductoin_tmp" in
+        let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
+        let '(st, loopvar) := incBlockNamed st "IReduction_main_i" in
+        '(st,(fold_block_id, fold_blocks)) <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
          let st := addVars st [(ID_Local loopvar, IntType)] in
-         '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
+         '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
           st <- dropVars st 1 ;;
-          add_comment
-          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                   loopvar loopcontblock child_block_id child_blocks[] st nextblock)
-          "--- Operator: FSHIUnion ---"
-       | FSHIReduction i o n dot initial child =>
-         let '(st, t) := incLocalNamed st "IReductoin_tmp" in
-         let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
-         let '(st, loopvar) := incBlockNamed st "IReduction_main_i" in
-         '(st,(fold_block_id, fold_blocks)) <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
-          let st := addVars st [(ID_Local loopvar, IntType)] in
-          '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
-           st <- dropVars st 1 ;;
-           '(st, (loop_block_id, loop_blocks))
-           <- genWhileLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-           loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
-           [] st nextblock ;;
-           '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
-           add_comment (ret (st, (init_block_id, init_blocks++loop_blocks))) "--- Operator: FSHIReduction ---"
-       | FSHCompose i1 o2 o3 f g =>
-         let '(st, tmpid) := incLocal st in
-         '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
-          '(st, (gb, g')) <- genIR x tmpid g st fb ;;
-          let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
-          add_comment (ret (st, (alloid, [tmpalloc]++g'++f'))) "--- Operator: FSHCompose ---"
-       | FSHHTSUMUnion i o dot f g =>
-         (* Note: 'g' computed before 'f', as in compose *)
-         '(st, (fb, f')) <- genIR x y f st nextblock  ;;
-          '(st, (gb, g')) <- genIR x y g st fb  ;;
-          add_comment (ret (st, (gb, g'++f'))) "--- Operator: FSHHTSUMUnion ---"
-       end.
+          '(st, (loop_block_id, loop_blocks))
+          <- genWhileLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+          loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
+          [] st nextblock ;;
+          '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
+          add_comment (ret (st, (init_block_id, init_blocks++loop_blocks))) "--- Operator: FSHIReduction ---"
+      | FSHCompose i1 o2 o3 f g =>
+        let '(st, tmpid) := incLocal st in
+        '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
+         '(st, (gb, g')) <- genIR x tmpid g st fb ;;
+         let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
+         add_comment (ret (st, (alloid, [tmpalloc]++g'++f'))) "--- Operator: FSHCompose ---"
+      | FSHHTSUMUnion i o dot f g =>
+        let '(st, tmpfy) := incLocal st in
+        let '(st, tmpgy) := incLocal st in
+        let '(st, loopcontblock) := incBlockNamed st "HTSUMUnion_lcont" in
+        let '(st, loopvar) := incLocalNamed st "HTSUMUnion_i" in
+        '(st, (body_entry, body_blocks)) <- @genHTSUMUnionpBody o ft tmpfy tmpgy y dot st loopvar loopcontblock ;;
+         '(st, (loopblock, loop_blocks)) <-  genWhileLoop "HTSUMUnion" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock body_entry body_blocks [] st nextblock ;;
+         '(st, (fb, f')) <- genIR x tmpfy f st loopblock  ;;
+         '(st, (gb, g')) <- genIR x tmpgy g st fb  ;;
+         let (st,retid) := incVoid st in
+         let (st,tmp_alloc_block_id) := incBlock st in
+         let tmp_alloc_block :=
+             {|
+               blk_id    := tmp_alloc_block_id ;
+               blk_phis  := [];
+               blk_code  :=
+                 @allocTempArrayCode ft tmpfy o ++ @allocTempArrayCode ft tmpgy o;
+               blk_term  := (IVoid retid, TERM_Br_1 gb) ;
+               blk_comments := None
+             |} in
+         add_comment (ret (st, (tmp_alloc_block_id, [tmp_alloc_block]++g'++f'++loop_blocks)))
+                     "--- Operator: FSHHTSUMUnion ---"
+      end.
 
   Definition LLVMGen'
              {i o: nat}
