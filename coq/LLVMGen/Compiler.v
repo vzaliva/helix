@@ -826,7 +826,7 @@ Section monadic.
       let ytyp := getIRType (@FSHvecValType ft n) in
       let yptyp := TYPE_Pointer ytyp in
       let loopvarid := ID_Local loopvar in
-      let st := addVars st [(ID_Local v0, (FloatTtyp ft)); (ID_Local v1, (FloatTtyp ft)); (loopvarid, IntType)] in
+      let st := addVars st [(ID_Local v1, (FloatTtyp ft)); (ID_Local v0, (FloatTtyp ft)); (loopvarid, IntType)] in
       '(st, fexpr, fexpcode) <- genFExpr st f ;;
        st <- dropVars st 3 ;;
        ret (st,
