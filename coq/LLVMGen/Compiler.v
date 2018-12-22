@@ -670,7 +670,7 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, pwblock) := incBlockNamed st "PointwiseLoopBody" in
+      let '(st, pwblock) := incBlockNamed st "genHTSUMUnionpBody" in
       let '(st, pwret) := incVoid st in
       let '(st, storeid) := incVoid st in
       let '(st, pa) := incLocal st in
