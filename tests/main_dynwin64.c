@@ -70,26 +70,16 @@ void test_random()
 
         if((int)y[0] != f)
         {
-            printf("! Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
+            printf("[ERR] Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
+            printf("\tX=\n");
+            for(int j=0; j<5; j++)
+                printf("\t\t%d:\t%le\n",j,x[j]);
+            printf("\tD=\n");
+            for(int j=0; j<3; j++)
+                printf("\t\t%d:\t%le\n",j,D[j]);
             res = 1;
         } else
-            printf("  Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
-            
-            /*
-          if((double)f != y[i])
-        {
-            printf("FAIL!\n");
-            printf("Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
-            printf("X=\n");
-            for(int j=0; j<5; j++)
-                printf("\t%d:\t%le\n",j,x[j]);
-            printf("D=\n");
-            for(int j=0; j<3; j++)
-                printf("\t%d:\t%le\n",j,D[j]);
-            
-            exit(1);
-        }
-         */
+            printf("[OK ] Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
             }
     printf(res?"FAIL":"PASS\n");
     exit(res);
