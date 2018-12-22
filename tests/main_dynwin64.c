@@ -29,7 +29,7 @@ int dwmonitor(const double *X, const double *D)
         s6 = ((((w1 >= 0))) ? (w1) : (-(w1)));
         s1 = ((((s1 >= s6))) ? (s1) : (s6));
     }
-    //printf("C: cmd %lf, %lf\n", s1, s5);
+    printf("\tC: %le, %le\n", s1, s5);
     w2 = ((s1 >= s5));
     return w2;
 }
@@ -54,14 +54,12 @@ void test_random()
 
     srand(time(NULL));
 
+    printf("\n");
     int res = 0;
     for(int i=0;i<100;i++)
     {
-        /* Random X */
         for(int j=0; j<5; j++)
             x[j]=random_double();
-
-        /* Ramdom D */
         for(int j=0; j<3; j++)
             D[j]=random_double();
         
@@ -70,14 +68,14 @@ void test_random()
         y[0]=0;
         dynwin64(x, y);
 
-        if((double)f != y[0])
+        if((int)y[0] != f)
         {
             printf("! Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
             res = 1;
         } else
             printf("  Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
-
-        /*
+            
+            /*
           if((double)f != y[i])
         {
             printf("FAIL!\n");
@@ -92,7 +90,7 @@ void test_random()
             exit(1);
         }
          */
-    }
+            }
     printf(res?"FAIL":"PASS\n");
     exit(res);
 }
@@ -106,7 +104,6 @@ void test_once()
     D[0]=10.;
     D[1]=20.;
     D[2]=30.;
-    srand(time(NULL));
     
     int f = dwmonitor(x,D);
     
@@ -127,6 +124,6 @@ void test_once()
 
 void main()
 {
-    //test_random();
-    test_once();
+    test_random();
+    //test_once();
 }
