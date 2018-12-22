@@ -3,6 +3,9 @@
 #include <time.h>
 #include <math.h>
 
+#define SAFE_RANDOMS
+#undef VERBOSE
+
 double D[3];
 /* HELIX version */
 void dynwin64(double *, double *);
@@ -29,14 +32,18 @@ int dwmonitor(const double *X, const double *D)
         s6 = ((((w1 >= 0))) ? (w1) : (-(w1)));
         s1 = ((((s1 >= s6))) ? (s1) : (s6));
     }
-    printf("\tC: %le, %le\n", s1, s5);
+#ifdef VERBOSE
+    printf("\tC: %e, %e\n", s1, s5);
+#endif
     w2 = ((s1 >= s5));
     return w2;
 }
 
-
 double random_double()
 {
+#ifdef SAFE_RANDOMS
+    return rand();
+#else
     double res;
     do
     {
@@ -45,6 +52,7 @@ double random_double()
             *p++=rand();
     } while(!isnormal(res));
     return res;
+#endif
 }
 
 void test_random()
@@ -79,8 +87,12 @@ void test_random()
                 printf("\t\t%d:\t%le\n",j,D[j]);
             res = 1;
         } else
+        {
+#ifdef VERBOSE
             printf("[OK ] Iteration %d, Y=%lg, Expected %d\n",i,y[0],f);
-            }
+#endif
+        }
+    }
     printf(res?"FAIL":"PASS\n");
     exit(res);
 }
