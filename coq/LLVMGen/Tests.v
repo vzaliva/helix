@@ -145,7 +145,7 @@ Export IO.DV.
 Definition runFSHCOLTest (t:FSHCOLTest) : option (Trace DV.dvalue) :=
   match t with
   | mkFSHCOLTest ft i o name globals op =>
-    match @LLVMGen i o ft globals op name with
+    match LLVMGen globals op name with
     | inl _ => None
     | inr prog =>
       let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
