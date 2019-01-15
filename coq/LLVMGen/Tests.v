@@ -5,6 +5,8 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 
 Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
+
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
@@ -142,7 +144,14 @@ Module SS := StepSemantics(Memory.A)(IO).
 Import IO.
 Export IO.DV.
 
-Definition runFSHCOLTest (t:FSHCOLTest) : option (Trace DV.dvalue) :=
+(* Maybe this should go to FSHCOL.v *)
+Definition floatTRunType (ft:FloatT): Type :=
+  match ft with
+  | Float32 => binary32
+  | Float64 => binary64
+  end.
+
+Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft))): option (Trace DV.dvalue) :=
   match t with
   | mkFSHCOLTest ft i o name globals op =>
     match LLVMGen globals op name with
