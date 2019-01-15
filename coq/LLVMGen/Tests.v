@@ -8,6 +8,12 @@ Require Import Flocq.IEEE754.Binary.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
+Require Import ExtLib.Structures.Monads.
+Require Import Vellvm.LLVMIO.
+Require Import Vellvm.StepSemantics.
+Require Import Vellvm.Memory.
+Require Import Helix.LLVMGen.Compiler.
+
 Import ListNotations.
 
 Program Definition FloatV32Zero := Float32V (@FF2B _ _ (F754_zero false) _).
@@ -125,3 +131,28 @@ Definition all_tests :=
       {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
+
+
+Import MonadNotation.
+
+Module IO := LLVMIO.Make(Memory.A).
+Module M := Memory.Make(IO).
+Module SS := StepSemantics(Memory.A)(IO).
+
+Import IO.
+Export IO.DV.
+
+Definition runFSHCOLTest (t:FSHCOLTest) : option (Trace DV.dvalue) :=
+  match t with
+  | mkFSHCOLTest ft i o name globals op =>
+    match @LLVMGen i o ft globals op name with
+    | inl _ => None
+    | inr prog =>
+      let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
+      mcfg <- CFG.mcfg_of_modul scfg ;;
+           ret (M.memD M.empty
+                       (s <- SS.init_state mcfg name ;;
+                          SS.step_sem mcfg (SS.Step s)))
+    end
+  end.
+
