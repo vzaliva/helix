@@ -160,14 +160,22 @@ Definition genMain
            (data:list (floatTRunType ft))
   :
     LLVMAst.toplevel_entities (list LLVMAst.block) :=
+  let x := Name "X" in
+  let xtyp := getIRType (@FSHvecValType ft i) in
+  let xptyp := TYPE_Pointer xtyp in
+  let y := Name "Y" in
+  let ytyp := getIRType (@FSHvecValType ft o) in
+  let yptyp := TYPE_Pointer ytyp in
+  let ftyp := TYPE_Function TYPE_Void [xtyp; ytyp] in
+  let fname := Name ("main_" ++ op_name) in
   [
     TLE_Comment _ " Main function" ;
       TLE_Definition
         {|
           df_prototype   :=
             {|
-              dc_name        := Name ("main_" ++ op_name);
-              dc_type        := TYPE_Function TYPE_Void [] ;
+              dc_name        := fname ;
+              dc_type        := TYPE_Function ytyp [] ;
               dc_param_attrs := ([],
                                  []);
               dc_linkage     := None ;
@@ -180,7 +188,21 @@ Definition genMain
               dc_gc          := None
             |} ;
           df_args        := [];
-          df_instrs      := [] (* TODO *)
+          df_instrs      := [
+                             {|
+                               blk_id    := Name "main_block" ;
+                               blk_phis  := [];
+                               blk_code  :=
+                                 (* TODO 0. initialize 'x' *)
+                                 app (@allocTempArrayCode ft y o)
+                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Ident (ID_Local x))])]
+                               ;
+
+                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
+                               blk_comments := None
+                             |}
+
+                           ]
         |}].
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft))): option (Trace DV.dvalue) :=
