@@ -152,6 +152,18 @@ Definition floatTRunType (ft:FloatT): Type :=
   | Float64 => binary64
   end.
 
+Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
+  := match lst with
+     | [] => (default,[])
+     | (x::xs) => (x,app xs [x])
+     end.
+
+Definition constArray
+           {ft: FloatT}
+           (len:nat)
+           (data:list (floatTRunType ft)): (list (floatTRunType ft)*list texp).
+Admitted.
+
 Definition initIRGlobals
            {ft: FloatT}
            {FnBody: Set}
@@ -159,24 +171,24 @@ Definition initIRGlobals
            (x: list (string* (@FSHValType ft)))
   : list (toplevel_entity FnBody)
   := let l := List.map
-       (fun g:(string* (@FSHValType ft)) =>
-          let (n,t) := g in
-          TLE_Global {|
-              g_ident        := Name n;
-              g_typ          := getIRType t ;
-              g_constant     := true ;
-              g_exp          := None ; (* TODO: fill with random values *)
-              g_linkage      := Some LINKAGE_Internal ;
-              g_visibility   := None ;
-              g_dll_storage  := None ;
-              g_thread_local := None ;
-              g_unnamed_addr := true ;
-              g_addrspace    := None ;
-              g_externally_initialized := false ;
-              g_section      := None ;
-              g_align        := Some Utils.PtrAlignment ;
-            |}
-       ) x in
+                (fun g:(string* (@FSHValType ft)) =>
+                   let (n,t) := g in
+                   TLE_Global {|
+                       g_ident        := Name n;
+                       g_typ          := getIRType t ;
+                       g_constant     := true ;
+                       g_exp          := None ; (* TODO: fill with random values *)
+                       g_linkage      := Some LINKAGE_Internal ;
+                       g_visibility   := None ;
+                       g_dll_storage  := None ;
+                       g_thread_local := None ;
+                       g_unnamed_addr := true ;
+                       g_addrspace    := None ;
+                       g_externally_initialized := false ;
+                       g_section      := None ;
+                       g_align        := Some Utils.PtrAlignment ;
+                     |}
+                ) x in
      match l with
      | nil => []
      | cons _ _ => [TLE_Comment _ "Global variables"] ++ l
@@ -190,9 +202,9 @@ Definition genMain
            (data:list (floatTRunType ft))
   :
     LLVMAst.toplevel_entities (list LLVMAst.block) :=
-  let x := Name "X" in
   let xtyp := getIRType (@FSHvecValType ft i) in
   let xptyp := TYPE_Pointer xtyp in
+  let '(data,xdata) := constArray i data in
   let y := Name "Y" in
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
@@ -224,9 +236,8 @@ Definition genMain
                                blk_phis  := [];
                                blk_code  :=
                                  (* TODO 0. initialize globals *)
-                                 (* TODO 1. initialize 'x' *)
                                  app (@allocTempArrayCode ft y o)
-                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Ident (ID_Local x))])]
+                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Array xdata)])]
                                ;
 
                                blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
@@ -236,19 +247,21 @@ Definition genMain
                            ]
         |}].
 
-Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft))): option (Trace DV.dvalue) :=
-  match t return (list (floatTRunType t.(ft)) -> option (Trace DV.dvalue)) with
-  | mkFSHCOLTest ft i o name globals op =>
-    fun data' =>
-      let ginit := initIRGlobals (FnBody:=list block) data' globals in
-      let main := genMain i o name globals data' in
-      match LLVMGen' (m := sum string) globals false op name with
-      | inl _ => None
-      | inr prog =>
-        let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++main++prog) in
-        mcfg <- CFG.mcfg_of_modul scfg ;;
-             ret (M.memD M.empty
-                         (s <- SS.init_state mcfg name ;;
-                            SS.step_sem mcfg (SS.Step s)))
-      end
-  end data.
+Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft)))
+  : option (Trace DV.dvalue)
+  :=
+    match t return (list (floatTRunType t.(ft)) -> option (Trace DV.dvalue)) with
+    | mkFSHCOLTest ft i o name globals op =>
+      fun data' =>
+        let ginit := initIRGlobals (FnBody:=list block) data' globals in
+        let main := genMain i o name globals data' in
+        match LLVMGen' (m := sum string) globals false op name with
+        | inl _ => None
+        | inr prog =>
+          let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++main++prog) in
+          mcfg <- CFG.mcfg_of_modul scfg ;;
+               ret (M.memD M.empty
+                           (s <- SS.init_state mcfg name ;;
+                              SS.step_sem mcfg (SS.Step s)))
+        end
+    end data.
