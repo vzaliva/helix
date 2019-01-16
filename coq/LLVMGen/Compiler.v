@@ -63,7 +63,7 @@ Definition genIRGlobals
               g_visibility   := None ;
               g_dll_storage  := None ;
               g_thread_local := None ;
-              g_unnamed_addr := true ;
+              g_unnamed_addr := true ; (* TODO: unsure about this *)
               g_addrspace    := None ;
               g_externally_initialized:= true ;
               g_section      := None ;
@@ -1186,6 +1186,7 @@ Section monadic.
              {i o: nat}
              {ft: FloatT}
              (globals: list (string* (@FSHValType ft)))
+             (globals_extern: bool)
              (fshcol: @FSHOperator ft i o) (funname: string)
     : m (toplevel_entities (list block))
     :=
@@ -1216,7 +1217,8 @@ Section monadic.
        let body := body ++ [retblock] in
        ret
          (all_intrinsics ++
-                         (genIRGlobals (FnBody:=list block) globals ++
+                         if globals_extern then
+                              (genIRGlobals (FnBody:=list block) globals ++
                                        [
                                          TLE_Comment _ " Top-level operator definition" ;
                                          TLE_Definition
@@ -1241,7 +1243,7 @@ Section monadic.
                                             df_instrs      := body
                                           |}
                                        ]
-         )).
+         ) else []).
 
 End monadic.
 
@@ -1254,4 +1256,4 @@ Definition LLVMGen
            {ft: FloatT}
            (globals: list (string* (@FSHValType ft)))
            (fshcol: @FSHOperator ft i o) (funname: string)
-  := LLVMGen' (m := sum string) globals fshcol funname.
+  := LLVMGen' (m := sum string) globals true fshcol funname.
