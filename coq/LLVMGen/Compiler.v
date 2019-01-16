@@ -1218,7 +1218,7 @@ Section monadic.
          (all_intrinsics ++
                          (genIRGlobals (FnBody:=list block) globals ++
                                        [
-                                         TLE_Comment _ " Top-level opeator definition" ;
+                                         TLE_Comment _ " Top-level operator definition" ;
                                          TLE_Definition
                                           {|
                                             df_prototype   :=
