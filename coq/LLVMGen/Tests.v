@@ -193,7 +193,8 @@ Definition genMain
                                blk_id    := Name "main_block" ;
                                blk_phis  := [];
                                blk_code  :=
-                                 (* TODO 0. initialize 'x' *)
+                                 (* TODO 0. initialize globals *)
+                                 (* TODO 1. initialize 'x' *)
                                  app (@allocTempArrayCode ft y o)
                                      [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Ident (ID_Local x))])]
                                ;
