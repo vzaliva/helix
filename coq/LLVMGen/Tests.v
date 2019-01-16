@@ -14,6 +14,7 @@ Require Import ExtLib.Structures.Monads.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.StepSemantics.
 Require Import Vellvm.Memory.
+Require Import Vellvm.LLVMAst.
 Require Import Helix.LLVMGen.Compiler.
 
 Import ListNotations.
@@ -151,17 +152,49 @@ Definition floatTRunType (ft:FloatT): Type :=
   | Float64 => binary64
   end.
 
-Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft))): option (Trace DV.dvalue) :=
-  match t with
-  | mkFSHCOLTest ft i o name globals op =>
-    match LLVMGen globals op name with
-    | inl _ => None
-    | inr prog =>
-      let scfg := Vellvm.AstLib.modul_of_toplevel_entities prog in
-      mcfg <- CFG.mcfg_of_modul scfg ;;
-           ret (M.memD M.empty
-                       (s <- SS.init_state mcfg name ;;
-                          SS.step_sem mcfg (SS.Step s)))
-    end
-  end.
+Definition genMain
+           {ft: FloatT}
+           (i o: nat)
+           (op_name: string)
+           (globals: list (string * (@FSHValType ft)))
+           (data:list (floatTRunType ft))
+  :
+    LLVMAst.toplevel_entities (list LLVMAst.block) :=
+  [
+    TLE_Comment _ " Main function" ;
+      TLE_Definition
+        {|
+          df_prototype   :=
+            {|
+              dc_name        := Name ("main_" ++ op_name);
+              dc_type        := TYPE_Function TYPE_Void [] ;
+              dc_param_attrs := ([],
+                                 []);
+              dc_linkage     := None ;
+              dc_visibility  := None ;
+              dc_dll_storage := None ;
+              dc_cconv       := None ;
+              dc_attrs       := []   ;
+              dc_section     := None ;
+              dc_align       := None ;
+              dc_gc          := None
+            |} ;
+          df_args        := [];
+          df_instrs      := [] (* TODO *)
+        |}].
 
+Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft))): option (Trace DV.dvalue) :=
+  match t return (list (floatTRunType t.(ft)) -> option (Trace DV.dvalue)) with
+  | mkFSHCOLTest ft i o name globals op =>
+    fun data' =>
+      let main := genMain i o name globals data' in
+      match LLVMGen globals op name with
+      | inl _ => None
+      | inr prog =>
+        let scfg := Vellvm.AstLib.modul_of_toplevel_entities (main++prog) in
+        mcfg <- CFG.mcfg_of_modul scfg ;;
+             ret (M.memD M.empty
+                         (s <- SS.init_state mcfg name ;;
+                            SS.step_sem mcfg (SS.Step s)))
+      end
+  end data.
