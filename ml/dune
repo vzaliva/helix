@@ -1,4 +1,4 @@
-(executable
-  (name testcomp)
+(executables
+  (names testcomp testeval)
   (libraries extracted core ANSITerminal)
   (modes byte))

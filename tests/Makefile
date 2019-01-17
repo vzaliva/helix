@@ -12,7 +12,7 @@ LLCFLAGS=-relocation-model=pic -asm-verbose -O0
 ASM=gcc
 ASMFLAGS=-c
 
-test: $(TESTOBJS)
+testcomp: $(TESTOBJS)
 
 $(TESTLLS): $(TESTGEN)
 	$(TESTGEN) -t $(patsubst test_%.ll, %, $@)
