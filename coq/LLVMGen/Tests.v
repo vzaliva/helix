@@ -227,7 +227,7 @@ Definition genMain
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
   let ftyp := TYPE_Function TYPE_Void [xtyp; ytyp] in
-  let fname := Name ("main_" ++ op_name) in
+  let fname := Name ("main") in
   [
     TLE_Comment _ " Main function" ;
       TLE_Definition
@@ -279,7 +279,7 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
           let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++main++prog) in
           mcfg <- CFG.mcfg_of_modul scfg ;;
                ret (M.memD M.empty
-                           (s <- SS.init_state mcfg name ;;
+                           (s <- SS.init_state mcfg "main" ;;
                               SS.step_sem mcfg (SS.Step s)))
         end
     end data.
