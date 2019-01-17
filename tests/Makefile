@@ -1,9 +1,9 @@
-TESTGEN=../ml/_build/default/test.exe
+TESTGEN=../ml/_build/default/testcomp.exe
 
 .PHONY: clean test
 .SECONDARY: %.s %.ll %.o
 
-ALLTESTS=$(shell ../ml/_build/default/test.exe -p)
+ALLTESTS=$(shell ../ml/_build/default/testcomp.exe -p)
 TESTLLS=$(addprefix test_,$(addsuffix .ll,$(ALLTESTS)))
 TESTOBJS=$(addprefix test_,$(addsuffix .o,$(ALLTESTS)))
 

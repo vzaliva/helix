@@ -41,7 +41,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	patch -p0 < lib/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
-EXE=ml/_build/default/test.exe
+EXE=ml/_build/default/testcomp.exe
 
 ml/llvm_printer.ml: lib/vellvm/src/ml/llvm_printer.ml
 	cp lib/vellvm/src/ml/llvm_printer.ml ml/llvm_printer.ml
@@ -51,7 +51,7 @@ ml/llvm_printer.mli: lib/vellvm/src/ml/llvm_printer.mli
 
 $(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli
 	@echo "Compiling $(EXE)"
-	(cd ml; dune build --profile=dev test.exe)
+	(cd ml; dune build --profile=dev testcomp.exe)
 
 run: $(EXE)
 	make -j1 -C tests test

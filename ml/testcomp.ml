@@ -44,7 +44,7 @@ let args =
   ]
 
 let _ =
-  Arg.parse args (fun _ -> ())  "USAGE: ./test [-v] [-p] [t <name>]\n";
+  Arg.parse args (fun _ -> ())  "USAGE: ./testcomp [-v] [-p] [t <name>]\n";
   if !printtests
   then
     begin
