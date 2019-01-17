@@ -19,13 +19,16 @@ Require Import Helix.LLVMGen.Compiler.
 
 Import ListNotations.
 
-Program Definition FloatV32Zero := Float32V (@FF2B _ _ (F754_zero false) _).
+Program Definition binary32zero : binary32 := @FF2B _ _ (F754_zero false) _.
+Definition FloatV32Zero := Float32V binary32zero.
+
 Program Definition FloatV32One := Float32V (BofZ _ _ _ _ 1%Z).
 Next Obligation. reflexivity. Qed.
 Next Obligation. reflexivity. Qed.
 
 Section DoubleTests.
-  Program Definition FloatV64Zero := Float64V (@FF2B _ _ (F754_zero false) _).
+  Program Definition binary64zero : binary64 := (@FF2B _ _ (F754_zero false) _).
+  Definition FloatV64Zero := Float64V binary64zero.
 
   Program Definition FloatV64One := Float64V (BofZ _ _ _ _ 1%Z).
   Next Obligation. reflexivity. Qed.
@@ -158,16 +161,29 @@ Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
      | (x::xs) => (x,app xs [x])
      end.
 
-Definition constArray
+Definition floatVzero (ft: FloatT): FloatV ft :=
+  match ft with
+  | Float32 => FloatV32Zero
+  | Float64 => FloatV64Zero
+  end.
+
+Fixpoint constArray
            {ft: FloatT}
-           (len:nat)
-           (data:list (floatTRunType ft)): (list (floatTRunType ft)*list texp).
-Admitted.
+           (len: nat)
+           (data:list (FloatV ft))
+  : ((list (FloatV ft))*(list texp))
+  :=
+    match len with
+    | O => (data,[])
+    | S len' => let '(x, data') := rotate (floatVzero ft) data in
+               let '(data'',res) := constArray len' data' in
+               (data'', (FloatTtyp ft, genFloatV x) :: res)
+    end.
 
 Definition initIRGlobals
            {ft: FloatT}
            {FnBody: Set}
-           (data:list (floatTRunType ft))
+           (data:list (FloatV ft))
            (x: list (string* (@FSHValType ft)))
   : list (toplevel_entity FnBody)
   := let l := List.map
@@ -199,7 +215,7 @@ Definition genMain
            (i o: nat)
            (op_name: string)
            (globals: list (string * (@FSHValType ft)))
-           (data:list (floatTRunType ft))
+           (data:list (FloatV ft))
   :
     LLVMAst.toplevel_entities (list LLVMAst.block) :=
   let xtyp := getIRType (@FSHvecValType ft i) in
@@ -247,10 +263,10 @@ Definition genMain
                            ]
         |}].
 
-Definition runFSHCOLTest (t:FSHCOLTest) (data:list (floatTRunType t.(ft)))
+Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
   : option (Trace DV.dvalue)
   :=
-    match t return (list (floatTRunType t.(ft)) -> option (Trace DV.dvalue)) with
+    match t return (list (FloatV t.(ft)) -> option (Trace DV.dvalue)) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let ginit := initIRGlobals (FnBody:=list block) data' globals in
