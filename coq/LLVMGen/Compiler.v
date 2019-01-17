@@ -890,11 +890,10 @@ Section monadic.
                |}
            ])).
 
-  Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : m exp :=
-    match ft,fv with
-    | Float32, Float32V b32 => ret (EXP_Float (Float.of_single b32))
-    | Float64, Float64V b64 => ret (EXP_Float b64)
-    | _ , _ => raise "Float constant casts not supported"
+  Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : exp :=
+    match fv with
+    | Float32V b32 => EXP_Float (Float.of_single b32)  (* workaround for https://github.com/vellvm/vellvm/issues/73 *)
+    | Float64V b64 => EXP_Float b64
     end.
 
   Definition genIReductionInit
@@ -908,41 +907,41 @@ Section monadic.
              (nextblock: block_id):
     m (IRState * segment)
     :=
-      ini <- genFloatV initial ;;
-          let tmpalloc := @allocTempArrayCode ft t o in
-          let ttyp := getIRType (@FSHvecValType ft o) in
-          let tptyp := TYPE_Pointer ttyp in
-          let '(st, pt) := incLocal st in
-          let '(st, init_block_id) := incBlockNamed st "IReduction_init" in
-          let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
-          let '(st, loopvar) := incLocalNamed st "IReduction_init_i" in
-          let '(st, void0) := incVoid st in
-          let '(st, storeid) := incVoid st in
-          let init_block :=
-              {|
-                blk_id    := init_block_id ;
-                blk_phis  := [];
-                blk_code  := [
-                              (IId pt,  INSTR_Op (OP_GetElementPtr
-                                                    ttyp (tptyp, (EXP_Ident (ID_Local t)))
-                                                    [(IntType, EXP_Integer 0%Z);
-                                                       (IntType,(EXP_Ident (ID_Local loopvar)))]
+      let ini := genFloatV initial in
+      let tmpalloc := @allocTempArrayCode ft t o in
+      let ttyp := getIRType (@FSHvecValType ft o) in
+      let tptyp := TYPE_Pointer ttyp in
+      let '(st, pt) := incLocal st in
+      let '(st, init_block_id) := incBlockNamed st "IReduction_init" in
+      let '(st, loopcontblock) := incBlockNamed st "IReduction_init_lcont" in
+      let '(st, loopvar) := incLocalNamed st "IReduction_init_i" in
+      let '(st, void0) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let init_block :=
+          {|
+            blk_id    := init_block_id ;
+            blk_phis  := [];
+            blk_code  := [
+                          (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                                [(IntType, EXP_Integer 0%Z);
+                                                   (IntType,(EXP_Ident (ID_Local loopvar)))]
 
-                              ));
+                          ));
 
-                                (IVoid storeid, INSTR_Store false
-                                                            ((FloatTtyp ft), ini)
-                                                            (TYPE_Pointer (FloatTtyp ft),
-                                                             (EXP_Ident (ID_Local pt)))
-                                                            (ret 8%Z))
+                            (IVoid storeid, INSTR_Store false
+                                                        ((FloatTtyp ft), ini)
+                                                        (TYPE_Pointer (FloatTtyp ft),
+                                                         (EXP_Ident (ID_Local pt)))
+                                                        (ret 8%Z))
 
 
 
-                            ];
-                blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
-                blk_comments := None
-              |} in
-          genWhileLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+                        ];
+            blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
+            blk_comments := None
+          |} in
+      genWhileLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
   Definition genIReductionFold
              {i o n: nat}
@@ -1027,8 +1026,7 @@ Section monadic.
       let '(st, storeid0) := incVoid st in
       let '(st, void1) := incVoid st in
       '(st, nexp, ncode) <- genNExpr st n ;;
-       ini <- genFloatV initial ;;
-
+       let ini := genFloatV initial in
        let init_code := ncode ++ [
                                 (IId py,  INSTR_Op (OP_GetElementPtr
                                                       xytyp (xyptyp, (EXP_Ident (ID_Local y)))
