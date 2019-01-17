@@ -180,35 +180,37 @@ Fixpoint constArray
                (data'', (FloatTtyp ft, genFloatV x) :: res)
     end.
 
-Definition initIRGlobals
-           {ft: FloatT}
-           {FnBody: Set}
-           (data:list (FloatV ft))
-           (x: list (string* (@FSHValType ft)))
-  : list (toplevel_entity FnBody)
-  := let l := List.map
-                (fun g:(string* (@FSHValType ft)) =>
-                   let (n,t) := g in
-                   TLE_Global {|
-                       g_ident        := Name n;
-                       g_typ          := getIRType t ;
-                       g_constant     := true ;
-                       g_exp          := None ; (* TODO: fill with random values *)
-                       g_linkage      := Some LINKAGE_Internal ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ;
-                       g_addrspace    := None ;
-                       g_externally_initialized := false ;
-                       g_section      := None ;
-                       g_align        := Some Utils.PtrAlignment ;
-                     |}
-                ) x in
-     match l with
-     | nil => []
-     | cons _ _ => [TLE_Comment _ "Global variables"] ++ l
-     end.
+Fixpoint initIRGlobals
+         {ft: FloatT}
+         (data: list (FloatV ft))
+         (x: list (string * (@FSHValType ft)))
+  : (list (FloatV ft) * list (toplevel_entity (list block)))
+  :=
+    match x with
+    | nil => (data,[])
+    | cons (n,t) xs =>
+      let (ds,gs) := initIRGlobals data xs in
+      let (ds,arr) := match t with
+                      | FSHnatValType => (ds,[]) (* TODO: no supported *)
+                      | FSHFloatValType => (ds,[]) (* TODO: no supported *)
+                      | FSHvecValType n => constArray n ds
+                      end in
+      (ds, TLE_Global {|
+               g_ident        := Name n;
+               g_typ          := getIRType t ;
+               g_constant     := true ;
+               g_exp          := Some (EXP_Array arr);
+               g_linkage      := Some LINKAGE_Internal ;
+               g_visibility   := None ;
+               g_dll_storage  := None ;
+               g_thread_local := None ;
+               g_unnamed_addr := true ;
+               g_addrspace    := None ;
+               g_externally_initialized := false ;
+               g_section      := None ;
+               g_align        := Some Utils.PtrAlignment ;
+             |} :: gs)
+    end.
 
 Definition genMain
            {ft: FloatT}
@@ -251,7 +253,6 @@ Definition genMain
                                blk_id    := Name "main_block" ;
                                blk_phis  := [];
                                blk_code  :=
-                                 (* TODO 0. initialize globals *)
                                  app (@allocTempArrayCode ft y o)
                                      [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Array xdata)])]
                                ;
@@ -269,8 +270,9 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
     match t return (list (FloatV t.(ft)) -> option (Trace DV.dvalue)) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
-        let ginit := initIRGlobals (FnBody:=list block) data' globals in
-        let main := genMain i o name globals data' in
+        let (data'', ginit) := initIRGlobals data' globals in
+        let ginit := app [TLE_Comment _ "Global variables"] ginit in
+        let main := genMain i o name globals data'' in
         match LLVMGen' (m := sum string) globals false op name with
         | inl _ => None
         | inr prog =>
