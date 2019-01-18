@@ -43,9 +43,29 @@ let rec step tname m =
       | _ -> A.printf [A.red] "should have been handled by the memory model\n" ; false
     end
 
+(* Base.int63.t -> BinNums.positive *)
+let positivie_of_int63 _ = BinNums.Coq_xH (* placeholder *)
+
+let binary_float_of_float (f:float) =
+  let open Binary in
+  let s = Float.is_negative f in
+  if Float.equal f Float.zero then B754_zero s
+  else if Float.is_nan f then B754_nan (s, positivie_of_int63 (Float.ieee_mantissa f))
+  else if Float.is_inf f then B754_infinity s
+  else B754_finite (s,
+                    positivie_of_int63 (Float.ieee_mantissa f),
+                    Z.of_sint (Float.ieee_exponent f))
+
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
-  match Tests.runFSHCOLTest t [] with
+  Random.self_init () ;
+  let randoms = List.init 1000 ~f:(const
+                    (let f = binary_float_of_float (Float.of_int (Random.int Int.max_value)) in
+                    match t.ft with
+                    | Float32 -> FSigmaHCOL.Float32V f
+                    | Float64 -> FSigmaHCOL.Float64V f)
+                  ) in
+  match Tests.runFSHCOLTest t randoms with
   | None ->
      A.printf [A.white; A.on_red] "Run Error" ;
      A.printf [A.yellow] ": %s" oname ;
