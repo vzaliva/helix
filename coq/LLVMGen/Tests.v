@@ -220,6 +220,7 @@ Definition genMain
            (data:list (FloatV ft))
   :
     LLVMAst.toplevel_entities (list LLVMAst.block) :=
+  let x := Name "X" in
   let xtyp := getIRType (@FSHvecValType ft i) in
   let xptyp := TYPE_Pointer xtyp in
   let '(data,xdata) := constArray i data in
@@ -227,8 +228,26 @@ Definition genMain
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
   let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
+  let z := Name "z" in
   [
-    TLE_Comment _ " Main function" ;
+    TLE_Comment _ " X data" ;
+      TLE_Global
+        {|
+          g_ident        := x;
+          g_typ          := xtyp;
+          g_constant     := true;
+          g_exp          := Some (EXP_Array xdata);
+          g_linkage      := None;
+          g_visibility   := None;
+          g_dll_storage  := None;
+          g_thread_local := None;
+          g_unnamed_addr := false;
+          g_addrspace    := None;
+          g_externally_initialized := false;
+          g_section      := None;
+          g_align        := None;
+        |} ;
+      TLE_Comment _ " Main function" ;
       TLE_Definition
         {|
           df_prototype   :=
@@ -252,11 +271,14 @@ Definition genMain
                                blk_id    := Name "main_block" ;
                                blk_phis  := [];
                                blk_code  :=
-                                 app (@allocTempArrayCode ft y o)
-                                     [(IVoid 0, INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
+                                 List.app (@allocTempArrayCode ft y o)
+                                          [
+                                            (IVoid 0, INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
+                                              (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
+                                          ]
                                ;
 
-                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
+                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
                                blk_comments := None
                              |}
 
