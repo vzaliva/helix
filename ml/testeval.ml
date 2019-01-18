@@ -101,7 +101,6 @@ let process_test t =
            end ;
          res
 
-(* Use the --test option to run unit tests and the quit the program. *)
 let args =
   [
     ("-t", Set_string single, "run single test") ;
