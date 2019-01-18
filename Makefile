@@ -62,7 +62,7 @@ run: $(CEXE)
 	make -j1 -C tests testcomp
 
 test: $(EEXE)
-	make -j1 -C tests testeval
+	ml/_build/default/testeval.exe
 
 install-dep:
 	opam instal coq coq-color coq-dpdgraph coq-math-classes coq-ext-lib
