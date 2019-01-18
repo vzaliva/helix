@@ -47,3 +47,6 @@ experiments/dywin.s
 /tests/main_iunion
 /tests/main_inductor
 /tests/main_sumunion
+/.*.tmp
+/test.ll
+/test.o
