@@ -6,6 +6,8 @@ open Tests
 let verbose = ref false
 let printtests = ref false
 let single = ref ""
+let justcompile = ref false
+let output_file_prefix = "test_"
 
 module DV = Tests.IO.DV
 module A = ANSITerminal
@@ -84,23 +86,26 @@ let process_test t =
                   ) in
   match Tests.runFSHCOLTest t randoms with
   | None ->
-     A.printf [A.white; A.on_red] "Run Error" ;
+     A.printf [A.white; A.on_red] "Error" ;
      A.printf [A.yellow] ": %s" oname ;
      false
   | Some (ast, trace) ->
-     output_ll_file ("test.ll") ast ;
-     let res = step oname trace in
-     if not res then
-       begin
-         A.printf [A.white; A.on_red] "Eval Error" ;
-         A.printf [A.yellow] ": %s : \n" oname
-       end ;
-     res
+     if !justcompile then
+       (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
+     else
+         let res = step oname trace in
+         if not res then
+           begin
+             A.printf [A.white; A.on_red] "Eval Error" ;
+             A.printf [A.yellow] ": %s : \n" oname
+           end ;
+         res
 
 (* Use the --test option to run unit tests and the quit the program. *)
 let args =
   [
     ("-t", Set_string single, "run single test") ;
+    ("-c", Set justcompile, "save IR code to file and exit") ;
     ("-v", Set verbose, "enables more verbose compilation output");
     ("-p", Set printtests, "print names of all tests (for automation)");
   ]
