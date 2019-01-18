@@ -253,7 +253,7 @@ Definition genMain
                                blk_phis  := [];
                                blk_code  :=
                                  app (@allocTempArrayCode ft y o)
-                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
+                                     [(IVoid 0, INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
                                ;
 
                                blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
@@ -264,9 +264,9 @@ Definition genMain
         |}].
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
-  : option (Trace DV.dvalue)
+  : option ((toplevel_entities (list block)) * (Trace DV.dvalue))
   :=
-    match t return (list (FloatV t.(ft)) -> option (Trace DV.dvalue)) with
+    match t return (list (FloatV t.(ft)) -> option ((toplevel_entities (list block))*Trace DV.dvalue)) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
@@ -275,10 +275,11 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
         match LLVMGen' (m := sum string) globals false op name with
         | inl _ => None
         | inr prog =>
-          let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++prog++main) in
+          let code := app (app ginit prog) main in
+          let scfg := Vellvm.AstLib.modul_of_toplevel_entities code in
           mcfg <- CFG.mcfg_of_modul scfg ;;
-               ret (M.memD M.empty
-                           (s <- SS.init_state mcfg "main" ;;
-                              SS.step_sem mcfg (SS.Step s)))
+               ret (code, (M.memD M.empty
+                                  (s <- SS.init_state mcfg "main" ;;
+                                     SS.step_sem mcfg (SS.Step s))))
         end
     end data.

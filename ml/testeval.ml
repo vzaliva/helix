@@ -10,6 +10,15 @@ let single = ref ""
 module DV = Tests.IO.DV
 module A = ANSITerminal
 
+let output_ll_file filename ast =
+  let open Format in
+  let channel = Out_channel.create filename in
+  let ppf = formatter_of_out_channel channel in
+  Llvm_printer.toplevel_entities ppf ast;
+  pp_force_newline ppf ();
+  pp_print_flush ppf () ;
+  Out_channel.close channel
+
 let p_OK name =
   A.printf [A.black; A.on_green] "OK" ;
   A.printf [A.yellow] ": %s" name ;
@@ -78,7 +87,8 @@ let process_test t =
      A.printf [A.white; A.on_red] "Run Error" ;
      A.printf [A.yellow] ": %s" oname ;
      false
-  | Some trace ->
+  | Some (ast, trace) ->
+     output_ll_file ("test.ll") ast ;
      let res = step oname trace in
      if not res then
        begin
