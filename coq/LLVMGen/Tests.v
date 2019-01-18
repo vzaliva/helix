@@ -254,7 +254,7 @@ Definition genMain
                                blk_phis  := [];
                                blk_code  :=
                                  app (@allocTempArrayCode ft y o)
-                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Local fname)) [(xptyp, EXP_Array xdata)])]
+                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global fname)) [(xptyp, EXP_Array xdata)])]
                                ;
 
                                blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
@@ -276,7 +276,7 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
         match LLVMGen' (m := sum string) globals false op name with
         | inl _ => None
         | inr prog =>
-          let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++main++prog) in
+          let scfg := Vellvm.AstLib.modul_of_toplevel_entities (ginit++prog++main) in
           mcfg <- CFG.mcfg_of_modul scfg ;;
                ret (M.memD M.empty
                            (s <- SS.init_state mcfg "main" ;;
