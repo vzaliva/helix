@@ -1215,8 +1215,8 @@ Section monadic.
        let body := body ++ [retblock] in
        ret
          (all_intrinsics ++
-                         if globals_extern then
-                              (genIRGlobals (FnBody:=list block) globals ++
+                         (if globals_extern then
+                              (genIRGlobals (FnBody:=list block) globals) else []) ++
                                        [
                                          TLE_Comment _ " Top-level operator definition" ;
                                          TLE_Definition
@@ -1241,7 +1241,7 @@ Section monadic.
                                             df_instrs      := body
                                           |}
                                        ]
-         ) else []).
+         ).
 
 End monadic.
 
