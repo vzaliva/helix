@@ -227,14 +227,13 @@ Definition genMain
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
   let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
-  let fname := Name ("main") in
   [
     TLE_Comment _ " Main function" ;
       TLE_Definition
         {|
           df_prototype   :=
             {|
-              dc_name        := fname ;
+              dc_name        := Name ("main") ;
               dc_type        := TYPE_Function ytyp [] ;
               dc_param_attrs := ([],
                                  []);
@@ -254,7 +253,7 @@ Definition genMain
                                blk_phis  := [];
                                blk_code  :=
                                  app (@allocTempArrayCode ft y o)
-                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global fname)) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
+                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
                                ;
 
                                blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
