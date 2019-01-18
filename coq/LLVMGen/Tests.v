@@ -226,7 +226,7 @@ Definition genMain
   let y := Name "Y" in
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
-  let ftyp := TYPE_Function TYPE_Void [xtyp; ytyp] in
+  let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
   let fname := Name ("main") in
   [
     TLE_Comment _ " Main function" ;
@@ -254,7 +254,7 @@ Definition genMain
                                blk_phis  := [];
                                blk_code  :=
                                  app (@allocTempArrayCode ft y o)
-                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global fname)) [(xptyp, EXP_Array xdata)])]
+                                     [(IId (Name "op_call"), INSTR_Call (ftyp, EXP_Ident (ID_Global fname)) [(xptyp, EXP_Array xdata); (yptyp, EXP_Ident (ID_Local y))])]
                                ;
 
                                blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local y))) ;
