@@ -43,8 +43,16 @@ let rec step tname m =
       | _ -> A.printf [A.red] "should have been handled by the memory model\n" ; false
     end
 
-(* Base.int63.t -> BinNums.positive *)
-let positivie_of_int63 _ = BinNums.Coq_xH (* placeholder *)
+let rec positive_of_int (x:int) : BinNums.positive  =
+  let open BinNums in
+  if x = 1 then Coq_xH else
+    let xs = positive_of_int (x asr 1) in
+    if x land 1 = 1 then Coq_xI xs else Coq_xO xs
+
+let positivie_of_int63 i63: BinNums.positive =
+  match Int63.to_int i63 with
+  | None -> failwith "It looks like we are on unsupported 32 bit platform!"
+  | Some x -> positive_of_int x
 
 let binary_float_of_float (f:float) =
   let open Binary in
