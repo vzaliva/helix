@@ -286,22 +286,26 @@ Definition genMain
         |}].
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
-  : option ((toplevel_entities (list block)) * (Trace DV.dvalue))
+  : ((option (toplevel_entities (list block))) * (option (Trace DV.dvalue)))
   :=
-    match t return (list (FloatV t.(ft)) -> option ((toplevel_entities (list block))*Trace DV.dvalue)) with
+    match t return (list (FloatV t.(ft))
+                    -> ((option (toplevel_entities (list block)))*(option (Trace DV.dvalue)))) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
         let ginit := app [TLE_Comment _ "Global variables"] ginit in
         let main := genMain i o name globals data'' in
         match LLVMGen' (m := sum string) globals false op name with
-        | inl _ => None
+        | inl _ => (None, None)
         | inr prog =>
           let code := app (app ginit prog) main in
           let scfg := Vellvm.AstLib.modul_of_toplevel_entities code in
-          mcfg <- CFG.mcfg_of_modul scfg ;;
-               ret (code, (M.memD M.empty
-                                  (s <- SS.init_state mcfg "main" ;;
-                                     SS.step_sem mcfg (SS.Step s))))
+          match CFG.mcfg_of_modul scfg with
+          | None => (Some prog, None)
+          | Some mcfg =>
+            (Some code, Some (M.memD M.empty
+                                     (s <- SS.init_state mcfg "main" ;;
+                                        SS.step_sem mcfg (SS.Step s))))
+          end
         end
     end data.

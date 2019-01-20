@@ -24,12 +24,11 @@ let output_ll_file filename ast =
 
 let print_dvalue dv : unit =
   match dv with
-  | DV.DVALUE_I1 (x) -> A.printf [A.green] "DVALUE_I1(%d)\n" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
-  | DV.DVALUE_I8 (x) -> A.printf [A.green] "DVALUE_I8(%d)\n" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
-  | DV.DVALUE_I32 (x) -> A.printf [A.green] "DVALUE_I32(%d)\n" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
-  | DV.DVALUE_I64 (x) -> A.printf [A.green] "DVALUE_I64(%d) [possible precision loss: converted to OCaml int]\n"
-                       (Camlcoq.Z.to_int (DynamicValues.Int64.unsigned x))
-  | _ -> A.printf [A.green] "Program terminated with non-Integer value.\n"
+  | DV.DVALUE_I1 (x) -> A.printf [A.green] "DVALUE_I1(%d)" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
+  | DV.DVALUE_I8 (x) -> A.printf [A.green] "DVALUE_I8(%d)" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
+  | DV.DVALUE_I32 (x) -> A.printf [A.green] "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
+  | DV.DVALUE_I64 (x) -> A.printf [A.green] "DVALUE_I64(~%d)" (Camlcoq.Z.to_int (DynamicValues.Int64.unsigned x)) (* ~ means possible precision loss: converted to OCaml int *)
+  | _ -> A.printf [A.green] "Unsupported DVALUE.\n"
 
 let rec step tname m =
   match Lazy.force m with
@@ -42,7 +41,7 @@ let rec step tname m =
         (A.printf [A.yellow] "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n" (Camlcoq.camlstring_of_coqstring f));
         step tname (k (Obj.magic (DV.DVALUE_I64 DynamicValues.Int64.zero)))
      | Tests.IO.GEP(_, _, _) -> Error "GEP failed"
-     | _ -> Error "should have been handled by the memory model\n"
+     | _ -> Error "This should have been handled by the memory model"
      end
 
 let process_test t =
@@ -55,12 +54,22 @@ let process_test t =
                     | Float64 -> FSigmaHCOL.Float64V f)
                   ) in
   match Tests.runFSHCOLTest t randoms with
-  | None ->
+  | (None,_) ->
      A.printf [A.white; A.on_red] "Error" ;
      A.printf [A.yellow] ": %s" oname ;
-     A.printf [] " runFSHCOLTest failed" ;
+     A.printf [] " F-HCOL Compilation failed" ;
      false
-  | Some (ast, trace) ->
+  | (Some ast, None) ->
+     if !justcompile then
+       (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
+     else
+       begin
+         A.printf [A.white; A.on_red] "Error" ;
+         A.printf [A.yellow] ": %s" oname ;
+         A.printf [] " LLVM Compilation failed" ;
+         false
+       end
+  | (Some ast, Some trace) ->
      if !justcompile then
        (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
      else
@@ -68,13 +77,14 @@ let process_test t =
        | Error msg ->
             A.printf [A.white; A.on_red] "Error";
             A.printf [A.yellow] ": %s :" oname ;
-            A.printf [] "%s\n" msg ;
+            A.printf [] "LLVM Intepretation failed with: %s\n" msg ;
             false
        | Ok dv ->
           A.printf [A.black; A.on_green] "OK" ;
           A.printf [A.yellow] ": %s :" oname ;
           A.printf [] "Result:\n" ;
           print_dvalue dv;
+          A.printf [] "\n" ;
           true
 
 let args =
