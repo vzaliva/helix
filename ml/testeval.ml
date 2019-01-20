@@ -22,11 +22,6 @@ let output_ll_file filename ast =
   pp_print_flush ppf () ;
   Out_channel.close channel
 
-let p_OK name =
-  A.printf [A.black; A.on_green] "OK" ;
-  A.printf [A.yellow] ": %s" name ;
-  A.printf [] " Result:\n"
-
 let print_dvalue dv : unit =
   match dv with
   | DV.DVALUE_I1 (x) -> A.printf [A.green] "DVALUE_I1(%d)\n" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
@@ -39,21 +34,16 @@ let print_dvalue dv : unit =
 let rec step tname m =
   match Lazy.force m with
   | ITree.Tau x -> step tname x
-  | ITree.Ret (Datatypes.Coq_inr v) ->
-     A.printf [A.black; A.on_green] "OK" ;
-     A.printf [A.yellow] ": %s" tname ;
-     A.printf [] " Result:\n" ;
-     print_dvalue v ;
-     true
-  | ITree.Ret (Datatypes.Coq_inl s) -> A.printf [A.red] "ERROR: %s\n" (Camlcoq.camlstring_of_coqstring s) ; false
+  | ITree.Ret (Datatypes.Coq_inr v) -> Ok v
+  | ITree.Ret (Datatypes.Coq_inl s) -> Error (Camlcoq.camlstring_of_coqstring s)
   | ITree.Vis (e, k) ->
-    begin match Obj.magic e with
-      | Tests.IO.Call(_, f, _) ->
+     begin match Obj.magic e with
+     | Tests.IO.Call(_, f, _) ->
         (A.printf [A.yellow] "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n" (Camlcoq.camlstring_of_coqstring f));
         step tname (k (Obj.magic (DV.DVALUE_I64 DynamicValues.Int64.zero)))
-      | Tests.IO.GEP(_, _, _) -> A.printf [] "GEP failed" ; false
-      | _ -> A.printf [A.red] "should have been handled by the memory model\n" ; false
-    end
+     | Tests.IO.GEP(_, _, _) -> Error "GEP failed"
+     | _ -> Error "should have been handled by the memory model\n"
+     end
 
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
@@ -68,18 +58,24 @@ let process_test t =
   | None ->
      A.printf [A.white; A.on_red] "Error" ;
      A.printf [A.yellow] ": %s" oname ;
+     A.printf [] " runFSHCOLTest failed" ;
      false
   | Some (ast, trace) ->
      if !justcompile then
        (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
      else
-         let res = step oname trace in
-         if not res then
-           begin
-             A.printf [A.white; A.on_red] "Eval Error" ;
-             A.printf [A.yellow] ": %s : \n" oname
-           end ;
-         res
+       match step oname trace with
+       | Error msg ->
+            A.printf [A.white; A.on_red] "Error";
+            A.printf [A.yellow] ": %s :" oname ;
+            A.printf [] "%s\n" msg ;
+            false
+       | Ok dv ->
+          A.printf [A.black; A.on_green] "OK" ;
+          A.printf [A.yellow] ": %s :" oname ;
+          A.printf [] "Result:\n" ;
+          print_dvalue dv;
+          true
 
 let args =
   [
