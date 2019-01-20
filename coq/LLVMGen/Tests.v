@@ -1,21 +1,21 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
-
-Require Import Helix.FSigmaHCOL.FSigmaHCOL.
-Require Import Vellvm.Numeric.Fappli_IEEE_extra.
-
-Require Import Flocq.IEEE754.Binary.
-Require Import Flocq.IEEE754.Bits.
-
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
-Require Import ExtLib.Structures.Monads.
+Require Import Helix.FSigmaHCOL.FSigmaHCOL.
+Require Import Helix.LLVMGen.Compiler.
+
+Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.StepSemantics.
 Require Import Vellvm.Memory.
 Require Import Vellvm.LLVMAst.
-Require Import Helix.LLVMGen.Compiler.
+
+Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
+
+Require Import ExtLib.Structures.Monads.
 
 Import ListNotations.
 

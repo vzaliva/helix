@@ -7,8 +7,7 @@ Require ExtrOcamlString.
 Require ExtrOcamlIntConv.
 
 Extraction Language Ocaml.
-Extraction Blacklist String List Char Z.
-
+Extraction Blacklist String List Char Core Monad Bool Z.
 
 (* strings ------------------------------------------------------------------ *)
 (*
@@ -44,4 +43,3 @@ Cd "ml/extracted".
 
 Extraction Library ExtrOcamlIntConv.
 Recursive Extraction Library Tests.
-Recursive Extraction Library Compiler.

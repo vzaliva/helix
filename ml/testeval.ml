@@ -1,6 +1,6 @@
 open Arg
 open Camlcoq
-open Core
+open Core (* Jane Street Core, not ITree.Core! *)
 open Tests
 open CoqUtil
 open Format
@@ -46,18 +46,19 @@ let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
   | DVALUE_Array l -> fprintf ppf "DVALUE_Array(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
   | DVALUE_Vector l -> fprintf ppf "DVALUE_Vector(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
 
-let rec step tname m =
-  match Lazy.force m with
-  | ITree.Tau x -> step tname x
-  | ITree.Ret (Datatypes.Coq_inr v) -> Ok v
-  | ITree.Ret (Datatypes.Coq_inl s) -> Error (Camlcoq.camlstring_of_coqstring s)
-  | ITree.Vis (e, k) ->
+let rec step m =
+  let open Core0 in (* ITree.Core *)
+  match observe m with
+  | TauF x -> step x
+  | RetF v -> Ok v
+  | VisF (OpenSum.Coq_inrE s, _) -> Error (Camlcoq.camlstring_of_coqstring s)
+  | VisF (OpenSum.Coq_inlE e, k) ->
      begin match Obj.magic e with
      | Tests.IO.Call(_, f, _) ->
-        (A.printf [A.yellow] "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n" (Camlcoq.camlstring_of_coqstring f));
-        step tname (k (Obj.magic (DV.DVALUE_I64 DynamicValues.Int64.zero)))
+        (Printf.printf "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n" (Camlcoq.camlstring_of_coqstring f));
+        step (k (Obj.magic (DV.DVALUE_I64 DynamicValues.Int64.zero)))
      | Tests.IO.GEP(_, _, _) -> Error "GEP failed"
-     | _ -> Error "This should have been handled by the memory model"
+     | _ -> failwith "This should have been handled by the memory model"
      end
 
 let process_test t =
@@ -89,7 +90,7 @@ let process_test t =
      if !justcompile then
        (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
      else
-       match step oname trace with
+       match step trace with
        | Error msg ->
           A.printf [A.white; A.on_red] "Error";
           A.printf [A.yellow] ": %s :" oname ;
