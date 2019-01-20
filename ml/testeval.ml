@@ -3,6 +3,7 @@ open Camlcoq
 open Core
 open Tests
 open CoqUtil
+open Format
 
 let verbose = ref false
 let printtests = ref false
@@ -22,13 +23,28 @@ let output_ll_file filename ast =
   pp_print_flush ppf () ;
   Out_channel.close channel
 
-let print_dvalue dv : unit =
-  match dv with
-  | DV.DVALUE_I1 (x) -> A.printf [A.green] "DVALUE_I1(%d)" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
-  | DV.DVALUE_I8 (x) -> A.printf [A.green] "DVALUE_I8(%d)" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
-  | DV.DVALUE_I32 (x) -> A.printf [A.green] "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
-  | DV.DVALUE_I64 (x) -> A.printf [A.green] "DVALUE_I64(~%d)" (Camlcoq.Z.to_int (DynamicValues.Int64.unsigned x)) (* ~ means possible precision loss: converted to OCaml int *)
-  | _ -> A.printf [A.green] "Unsupported DVALUE.\n"
+(* TODO: probaly should be part of ADDRESS module interface*)
+let pp_addr : Format.formatter -> M.addr -> unit
+  = fun ppf _ -> fprintf ppf "DVALUE_Addr(?)"
+
+let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
+  let pp_comma_space ppf () = pp_print_string ppf ", " in
+  fun ppf ->
+  function
+  | DVALUE_Addr x -> pp_addr ppf x
+  | DV.DVALUE_I1 x -> fprintf ppf "DVALUE_I1(%d)" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
+  | DV.DVALUE_I8 x -> fprintf ppf "DVALUE_I8(%d)" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
+  | DV.DVALUE_I32 x -> fprintf ppf "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
+  | DV.DVALUE_I64 x -> fprintf ppf "DVALUE_I64(~%d)" (Camlcoq.Z.to_int (DynamicValues.Int64.unsigned x)) (* ~ means possible precision loss: converted to OCaml int *)
+  | DVALUE_Double x -> fprintf ppf "DVALUE_Double(%f)" (camlfloat_of_coqfloat x)
+  | DVALUE_Float x -> fprintf ppf "DVALUE_Float(%f)" (camlfloat_of_coqfloat32 x)
+  | DVALUE_Undef -> fprintf ppf "DVALUE_Undef"
+  | DVALUE_Poison -> fprintf ppf "DVALUE_Poison"
+  | DVALUE_None -> fprintf ppf "DVALUE_None"
+  | DVALUE_Struct l -> fprintf ppf "DVALUE_Struct(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Packed_struct l -> fprintf ppf "DVALUE_Packet_struct(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Array l -> fprintf ppf "DVALUE_Array(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Vector l -> fprintf ppf "DVALUE_Vector(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
 
 let rec step tname m =
   match Lazy.force m with
@@ -48,10 +64,10 @@ let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
   let randoms = List.init 1000 ~f:(const
-                    (let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
-                    match t.ft with
-                    | Float32 -> FSigmaHCOL.Float32V f
-                    | Float64 -> FSigmaHCOL.Float64V f)
+                                     (let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
+                                      match t.ft with
+                                      | Float32 -> FSigmaHCOL.Float32V f
+                                      | Float64 -> FSigmaHCOL.Float64V f)
                   ) in
   match Tests.runFSHCOLTest t randoms with
   | (None,_) ->
@@ -75,15 +91,15 @@ let process_test t =
      else
        match step oname trace with
        | Error msg ->
-            A.printf [A.white; A.on_red] "Error";
-            A.printf [A.yellow] ": %s :" oname ;
-            A.printf [] "LLVM Intepretation failed with: %s\n" msg ;
-            false
+          A.printf [A.white; A.on_red] "Error";
+          A.printf [A.yellow] ": %s :" oname ;
+          A.printf [] "LLVM Intepretation failed with: %s\n" msg ;
+          false
        | Ok dv ->
           A.printf [A.black; A.on_green] "OK" ;
           A.printf [A.yellow] ": %s :" oname ;
           A.printf [] "Result:\n" ;
-          print_dvalue dv;
+          pp_dvalue std_formatter dv ;
           A.printf [] "\n" ;
           true
 
