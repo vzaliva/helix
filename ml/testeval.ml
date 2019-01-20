@@ -35,7 +35,7 @@ let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
   | DV.DVALUE_I1 x -> fprintf ppf "DVALUE_I1(%d)" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
   | DV.DVALUE_I8 x -> fprintf ppf "DVALUE_I8(%d)" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
   | DV.DVALUE_I32 x -> fprintf ppf "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
-  | DV.DVALUE_I64 x -> fprintf ppf "DVALUE_I64(~%d)" (Camlcoq.Z.to_int (DynamicValues.Int64.unsigned x)) (* ~ means possible precision loss: converted to OCaml int *)
+  | DV.DVALUE_I64 x -> fprintf ppf "DVALUE_I64(%s)" (Int64.to_string (Z.to_int64 (DynamicValues.Int64.unsigned x)))
   | DVALUE_Double x -> fprintf ppf "DVALUE_Double(%f)" (camlfloat_of_coqfloat x)
   | DVALUE_Float x -> fprintf ppf "DVALUE_Float(%f)" (camlfloat_of_coqfloat32 x)
   | DVALUE_Undef -> fprintf ppf "DVALUE_Undef"
