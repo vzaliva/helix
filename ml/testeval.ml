@@ -59,7 +59,7 @@ let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
   let randoms = List.init 1000 ~f:(const
-                    (let f = binary_float_of_float (Float.of_int (Random.int Int.max_value)) in
+                    (let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
                     match t.ft with
                     | Float32 -> FSigmaHCOL.Float32V f
                     | Float64 -> FSigmaHCOL.Float64V f)
