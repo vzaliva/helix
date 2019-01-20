@@ -31,20 +31,20 @@ let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
   let pp_comma_space ppf () = pp_print_string ppf ", " in
   fun ppf ->
   function
-  | DVALUE_Addr x -> pp_addr ppf x
-  | DV.DVALUE_I1 x -> fprintf ppf "DVALUE_I1(%d)" (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
-  | DV.DVALUE_I8 x -> fprintf ppf "DVALUE_I8(%d)" (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
-  | DV.DVALUE_I32 x -> fprintf ppf "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
-  | DV.DVALUE_I64 x -> fprintf ppf "DVALUE_I64(%s)" (Int64.to_string (Z.to_int64 (DynamicValues.Int64.unsigned x)))
+  | DVALUE_Addr   x -> pp_addr ppf x
+  | DVALUE_I1     x -> fprintf ppf "DVALUE_I1(%d)"  (Camlcoq.Z.to_int (DynamicValues.Int1.unsigned x))
+  | DVALUE_I8     x -> fprintf ppf "DVALUE_I8(%d)"  (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
+  | DVALUE_I32    x -> fprintf ppf "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
+  | DVALUE_I64    x -> fprintf ppf "DVALUE_I64(%s)" (Int64.to_string (Z.to_int64 (DynamicValues.Int64.unsigned x)))
   | DVALUE_Double x -> fprintf ppf "DVALUE_Double(%f)" (camlfloat_of_coqfloat x)
-  | DVALUE_Float x -> fprintf ppf "DVALUE_Float(%f)" (camlfloat_of_coqfloat32 x)
-  | DVALUE_Undef -> fprintf ppf "DVALUE_Undef"
-  | DVALUE_Poison -> fprintf ppf "DVALUE_Poison"
-  | DVALUE_None -> fprintf ppf "DVALUE_None"
-  | DVALUE_Struct l -> fprintf ppf "DVALUE_Struct(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Float  x -> fprintf ppf "DVALUE_Float(%f)"  (camlfloat_of_coqfloat32 x)
+  | DVALUE_Undef    -> fprintf ppf "DVALUE_Undef"
+  | DVALUE_Poison   -> fprintf ppf "DVALUE_Poison"
+  | DVALUE_None     -> fprintf ppf "DVALUE_None"
+  | DVALUE_Struct        l -> fprintf ppf "DVALUE_Struct(%a)"        (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
   | DVALUE_Packed_struct l -> fprintf ppf "DVALUE_Packet_struct(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
-  | DVALUE_Array l -> fprintf ppf "DVALUE_Array(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
-  | DVALUE_Vector l -> fprintf ppf "DVALUE_Vector(%a)" (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Array         l -> fprintf ppf "DVALUE_Array(%a)"         (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
+  | DVALUE_Vector        l -> fprintf ppf "DVALUE_Vector(%a)"        (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
 
 let rec step m =
   let open Core0 in (* ITree.Core *)
