@@ -10,6 +10,7 @@ let printtests = ref false
 let single = ref ""
 let justcompile = ref false
 let output_file_prefix = "test_"
+let debug_flag = ref false
 
 module DV = Tests.IO.DV
 module A = ANSITerminal
@@ -36,8 +37,8 @@ let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
   | DVALUE_I8     x -> fprintf ppf "DVALUE_I8(%d)"  (Camlcoq.Z.to_int (DynamicValues.Int8.unsigned x))
   | DVALUE_I32    x -> fprintf ppf "DVALUE_I32(%d)" (Camlcoq.Z.to_int (DynamicValues.Int32.unsigned x))
   | DVALUE_I64    x -> fprintf ppf "DVALUE_I64(%s)" (Int64.to_string (Z.to_int64 (DynamicValues.Int64.unsigned x)))
-  | DVALUE_Double x -> fprintf ppf "DVALUE_Double(%f)" (camlfloat_of_coqfloat x)
-  | DVALUE_Float  x -> fprintf ppf "DVALUE_Float(%f)"  (camlfloat_of_coqfloat32 x)
+  | DVALUE_Double x -> fprintf ppf "DVALUE_Double(%F)" (camlfloat_of_coqfloat x)
+  | DVALUE_Float  x -> fprintf ppf "DVALUE_Float(%F)"  (camlfloat_of_coqfloat32 x)
   | DVALUE_Undef    -> fprintf ppf "DVALUE_Undef"
   | DVALUE_Poison   -> fprintf ppf "DVALUE_Poison"
   | DVALUE_None     -> fprintf ppf "DVALUE_None"
@@ -46,19 +47,45 @@ let rec pp_dvalue : Format.formatter -> DV.dvalue -> unit =
   | DVALUE_Array         l -> fprintf ppf "DVALUE_Array(%a)"         (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
   | DVALUE_Vector        l -> fprintf ppf "DVALUE_Vector(%a)"        (pp_print_list ~pp_sep:pp_comma_space pp_dvalue) l
 
+let debug (msg:string) =
+  if !debug_flag then
+    Printf.printf "DEBUG: %s\n%!" msg
+
 let rec step m =
   let open Core0 in (* ITree.Core *)
   match observe m with
+  (* Internal steps compute as nothing *)
   | TauF x -> step x
+
+  (* We finished the computation *)
   | RetF v -> Ok v
-  | VisF (OpenSum.Coq_inrE s, _) -> Error (Camlcoq.camlstring_of_coqstring s)
+
+  (* The failE effect is a failure *)
+  | VisF (OpenSum.Coq_inrE s, _) ->
+     Error (Camlcoq.camlstring_of_coqstring s)
+
+  (* The only visible effects from LLVMIO that should propagate to the interpreter are:
+     - Call to external functions
+     - Debug
+   *)
   | VisF (OpenSum.Coq_inlE e, k) ->
      begin match Obj.magic e with
-     | Tests.IO.Call(_, f, _) ->
-        (Printf.printf "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n" (Camlcoq.camlstring_of_coqstring f));
+
+     | IO.Call(_, f, _) ->
+        (Printf.printf "UNINTERPRETED EXTERNAL CALL: %s - returning 0l to the caller\n"
+           (Camlcoq.camlstring_of_coqstring f));
         step (k (Obj.magic (DV.DVALUE_I64 DynamicValues.Int64.zero)))
-     | Tests.IO.GEP(_, _, _) -> Error "GEP failed"
-     | _ -> failwith "This should have been handled by the memory model"
+
+     | IO.Debug(msg) ->
+        (debug (Camlcoq.camlstring_of_coqstring msg);
+         step (k (Obj.magic DV.DVALUE_None)))
+
+     | IO.Alloca _   -> Error "top-level Alloca"
+     | IO.Load (_,_) -> Error "top-level Load"
+     | IO.Store (_,_) -> Error "top-level Store"
+     | IO.GEP (_,_,_) -> Error "top-level GEP"
+     | IO.ItoP _ -> Error "top-level ItoP"
+     | IO.PtoI _ -> Error "top-level PtoI"
      end
 
 let process_test t =
@@ -109,6 +136,7 @@ let args =
     ("-t", Set_string single, "run single test") ;
     ("-c", Set justcompile, "save IR code to file and exit") ;
     ("-v", Set verbose, "enables more verbose compilation output");
+    ("-d", Set debug_flag, "enables debuging output");
     ("-p", Set printtests, "print names of all tests (for automation)");
   ]
 
