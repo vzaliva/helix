@@ -273,7 +273,7 @@ Definition genMain
                                blk_code  :=
                                  List.app (@allocTempArrayCode ft y o)
                                           [
-                                            (IVoid 0, INSTR_Call (ftyp, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
+                                            (IVoid 0, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
                                               (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
                                           ]
                                ;
