@@ -97,15 +97,21 @@ let gsize t =
 let string_of_FloatV fv =
   Float.to_string
     (match fv with
-    | FSigmaHCOL.Float32V x -> camlfloat_of_coqfloat x
-    | FSigmaHCOL.Float64V x -> camlfloat_of_coqfloat32 x)
+    | FSigmaHCOL.Float32V x -> camlfloat_of_coqfloat32 x
+    | FSigmaHCOL.Float64V x -> camlfloat_of_coqfloat x)
+
+let randomFloat range =
+  Random.float
+    (if Random.bool ()
+     then range
+     else Float.neg range)
 
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
   let rs = Nat.to_int t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
   let randoms = List.init rs
-                  ~f:(fun _ -> let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
+                  ~f:(fun _ -> let f = coqfloat_of_camlfloat (randomFloat 3.14E8) in
                              match t.ft with
                              | Float32 -> FSigmaHCOL.Float32V f
                              | Float64 -> FSigmaHCOL.Float64V f
@@ -144,9 +150,11 @@ let process_test t =
        | Ok dv ->
           A.printf [A.black; A.on_green] "OK" ;
           A.printf [A.yellow] ": %s :" oname ;
-          A.printf [] "Result:\n" ;
-          pp_dvalue std_formatter dv ;
-          A.printf [] "\n" ;
+          A.printf [] " Result:\n" ;
+          let ppf = std_formatter in
+          pp_dvalue ppf dv ;
+          pp_force_newline ppf ();
+          pp_print_flush ppf () ;
           true
 
 let args =
