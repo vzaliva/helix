@@ -111,7 +111,7 @@ let process_test t =
                              | Float32 -> FSigmaHCOL.Float32V f
                              | Float64 -> FSigmaHCOL.Float64V f
                   ) in
-  if !verbose then
+  if !debug_flag then
     begin
       Printf.printf "Generating %d floats:\n" rs ;
       List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
