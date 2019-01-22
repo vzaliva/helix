@@ -88,15 +88,34 @@ let rec step m =
      | IO.PtoI _ -> Error "top-level PtoI"
      end
 
+let gsize t =
+  let open FSigmaHCOL in
+  match t with
+  | FSHnatValType -> 1
+  | FSHFloatValType -> 1
+  | FSHvecValType n -> Nat.to_int n
+
+let string_of_FloatV fv =
+  Float.to_string
+    (match fv with
+    | FSigmaHCOL.Float32V x -> camlfloat_of_coqfloat x
+    | FSigmaHCOL.Float64V x -> camlfloat_of_coqfloat32 x)
+
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
-  let randoms = List.init 1000 ~f:(const
-                                     (let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
-                                      match t.ft with
-                                      | Float32 -> FSigmaHCOL.Float32V f
-                                      | Float64 -> FSigmaHCOL.Float64V f)
+  let rs = Nat.to_int t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
+  let randoms = List.init rs
+                  ~f:(fun _ -> let f = binary_float_of_camlfloat (Float.of_int (Random.int Int.max_value)) in
+                             match t.ft with
+                             | Float32 -> FSigmaHCOL.Float32V f
+                             | Float64 -> FSigmaHCOL.Float64V f
                   ) in
+  if !verbose then
+    begin
+      Printf.printf "Generating %d floats:\n" rs ;
+      List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
+    end ;
   match Tests.runFSHCOLTest t randoms with
   | (None,_) ->
      A.printf [A.white; A.on_red] "Error" ;
