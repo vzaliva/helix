@@ -223,7 +223,7 @@ Definition genMain
   let x := Name "X" in
   let xtyp := getIRType (@FSHvecValType ft i) in
   let xptyp := TYPE_Pointer xtyp in
-  let '(data,xdata) := constArray i data in
+  let '(_,xdata) := constArray i data in
   let y := Name "Y" in
   let ytyp := getIRType (@FSHvecValType ft o) in
   let yptyp := TYPE_Pointer ytyp in
