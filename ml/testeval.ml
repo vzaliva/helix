@@ -2,7 +2,6 @@ open Arg
 open Camlcoq
 open Core (* Jane Street Core, not ITree.Core! *)
 open Tests
-open CoqUtil
 open Format
 
 let verbose = ref false
