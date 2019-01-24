@@ -1,5 +1,3 @@
-TESTGEN=../ml/_build/default/testcomp.exe
-
 .PHONY: clean test
 .SECONDARY: %.s %.ll %.o
 
@@ -13,12 +11,6 @@ ASM=gcc
 ASMFLAGS=-c
 
 testcomp: $(TESTOBJS)
-
-$(TESTLLS): $(TESTGEN)
-	$(TESTGEN) -t $(patsubst test_%.ll, %, $@)
-
-%.s: %.ll Makefile
-	$(LLC) $(LLCFLAGS) $<
 
 %.o: %.s Makefile
 	$(ASM) $(ASMFLAGS) $<
@@ -36,9 +28,6 @@ main_inductor: main_inductor.c test_inductor.o
 main_sumunion: main_sumunion.c test_sumunion.o
 
 ALLEXE=main_pointwise_plus1 main_pointwise_plusD main_binop_plus main_compose_pointwise main_ireduction main_iunion main_inductor main_sumunion main_dynwin64
-
-test: $(ALLEXE)
-	$(foreach x,$(ALLEXE), echo -n "$(x): "; ./$(x);)
 
 clean:
 	rm -f *.ll *.s *.o a.out $(ALLEXE)

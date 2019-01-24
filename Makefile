@@ -26,7 +26,7 @@ default: all
 all: .depend Makefile.coq
 	$(MAKECOQ)
 	$(MAKE) extracted
-	$(MAKE) $(CEXE) $(EEXE)
+	$(MAKE) $(EXE)
 
 extracted: $(TSTAMP)
 
@@ -41,8 +41,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 	patch -p0 < lib/CRelationClasses.mli.patch
 	touch $(TSTAMP)
 
-CEXE=ml/_build/default/testcomp.exe
-EEXE=ml/_build/default/testeval.exe
+EXE=ml/_build/default/testeval.exe
 
 ml/llvm_printer.ml: lib/vellvm/src/ml/llvm_printer.ml
 	cp lib/vellvm/src/ml/llvm_printer.ml ml/llvm_printer.ml
@@ -54,14 +53,11 @@ $(CEXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.
 	@echo "Compiling $(CEXE)"
 	(cd ml; dune build --profile=dev testcomp.exe)
 
-$(EEXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli ml/testeval.ml
-	@echo "Compiling $(EEXE)"
+$(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli ml/testeval.ml
+	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev testeval.exe)
 
-run: $(CEXE)
-	make -j1 -C tests testcomp
-
-test: $(EEXE)
+test: $(EXE)
 	ml/_build/default/testeval.exe
 
 install-dep:
