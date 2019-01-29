@@ -1,0 +1,22 @@
+
+This development reflects authors' Coq learning journey and contains a
+lot of inelegant and redundant code. Additionally, it includes some
+workarounds for bugs and limitations for older Coq versions (starting
+from 8.4).
+
+It is overdue for serious refactoring and cleanup. Amongst other things:
+
+* Refactoring
+** Some other cleanup opportunities are marked with "TODO" comments
+** Many usused definitions could be removed. (Hint: try `make print-unused`)
+** Rename implementations with ' suffux into "_Impl" in /SigmaHCOLImpl.v/.
+  For example =eT'= should become =eTImpl=
+
+* Proof mechanics
+** Review `_arg_proper` vs `_proper` instances
+** Proof-irrelevance assumption could be avoided
+* Unfinished
+** Automate /DynWin/ rewriting proof
+** Automate SPIRAL log reading for sequence of rewrites
+   Perhaps using TemplateCoq?
+
