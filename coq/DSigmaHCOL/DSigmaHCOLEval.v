@@ -7,6 +7,7 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 
@@ -211,14 +212,14 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
             with
-            | left bc => fun _ => ret (unLiftM_HOperator' (eUnion' Monoid_RthetaFlags bc z) x)
+            | left bc => fun _ => ret (unLiftM_HOperator' (eUnion' (fm:=Monoid_RthetaFlags) bc z) x)
             | right _ => fun _ => None
             end eq_refl
   | @DSHeT i be =>
     fun x => b <- evalNexp Γ be ;;
             match lt_dec b i as l return (_ ≡ l → option (vector CarrierA 1))
             with
-            | left bc => fun _ => ret (unLiftM_HOperator' (eT' Monoid_RthetaFlags bc) x)
+            | left bc => fun _ => ret (unLiftM_HOperator' (eT' (fm:=Monoid_RthetaFlags) bc) x)
             | right _ => fun _ => None
             end eq_refl
   | @DSHPointwise i f => fun x => evalDSHPointwise Γ f x

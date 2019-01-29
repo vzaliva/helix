@@ -8,6 +8,7 @@ Require Import Helix.Util.FinNat.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
@@ -60,18 +61,6 @@ Section BVector.
     Build_Monoid (and_bvector n) (true_bvector n).
 
 End BVector.
-
-(* Returns an element of the vector 'x' which is result of mapping of
-given natrual number by index mapping function f_spec. *)
-Definition VnthIndexMapped
-           {i o:nat}
-           {A: Type}
-           (x: vector A i)
-           (f: index_map o i)
-           (n:nat) (np: n<o)
-  : A
-  := Vnth x (« f » n np).
-
 
 Section SigmaHCOL_Operators.
 
@@ -651,57 +640,12 @@ TODO: remove
         apply H.
     Qed.
 
-    Definition liftM_HOperator'
-               {i o}
-               (op: avector i -> avector o)
-      : svector fm i -> svector fm o :=
-      sparsify fm ∘ op ∘ densify fm.
-
-    Global Instance liftM_HOperator'_proper
-           {i o}
-           (op: avector i -> avector o)
-           `{HOP: HOperator i o op}
-      :
-        Proper ((=) ==> (=)) (liftM_HOperator' op).
-    Proof.
-      intros x y H.
-      unfold liftM_HOperator'.
-      unfold compose.
-      f_equiv.
-      rewrite H.
-      reflexivity.
-    Qed.
-
     Definition liftM_HOperator
                {i o}
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
-      := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper i o op HOP)
+      := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper fm i o op HOP)
                       (Full_set _) (Full_set _).
-
-    (** Apply family of functions to same fector and return matrix of results *)
-    Definition Apply_Family'
-               {i o n}
-               (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
-               (v: svector fm i) :
-      vector (svector fm o) n :=
-      Vbuild
-        (λ (j:nat) (jc:j<n),  (op_family_f j jc) v).
-
-
-    Global Instance Apply_Family'_arg_proper
-           {i o n}
-           (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
-           (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
-      :
-        Proper ((=) ==> (=)) (@Apply_Family' i o n op_family_f).
-    Proof.
-      intros x y E.
-      unfold Apply_Family'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      apply op_family_f_proper, E.
-    Qed.
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
     Definition Apply_Family
@@ -768,34 +712,6 @@ TODO: remove
       := mkSHOperator n n id _ in_out_set in_out_set.
 
 
-    Definition eUnion'
-               {o b:nat}
-               (bc: b < o)
-               (z: CarrierA)
-               (x: svector fm 1):
-      svector fm o
-      := Vbuild (fun j jc =>
-                   match Nat.eq_dec j b with
-                   | in_left => Vhead x
-                   | right fc => mkStruct z
-                   end).
-
-    Global Instance eUnion'_arg_proper
-           {o b: nat}
-           (bc: b < o)
-           (z: CarrierA):
-      Proper ((=) ==> (=)) (eUnion' bc z).
-    Proof.
-      intros x x' Ex.
-      unfold eUnion'.
-      vec_index_equiv j jp.
-      rewrite 2!Vbuild_nth.
-      break_if.
-      rewrite Ex.
-      reflexivity.
-      reflexivity.
-    Qed.
-
     Definition eUnion
                {o b:nat}
                (bc: b < o)
@@ -804,49 +720,12 @@ TODO: remove
                       (Full_set _)
                       (FinNatSet.singleton b).
 
-    Definition eT'
-               {i b:nat}
-               (bc: b < i)
-               (v: svector fm i)
-      := [Vnth v bc].
-
-    Global Instance eT'_proper
-           {i b:nat}
-           (bc: b < i):
-      Proper ((=) ==> (=)) (eT' bc).
-    Proof.
-      intros x y E.
-      unfold eT'.
-      apply Vcons_single_elim.
-      apply Vnth_equiv; auto.
-    Qed.
-
     Definition eT
                {i b:nat}
                (bc: b < i)
       := mkSHOperator i 1 (eT' bc) _
                       (FinNatSet.singleton b)
                       (Full_set _).
-
-    Definition Gather'
-               {i o: nat}
-               (f: index_map o i)
-               (x: svector fm i):
-      svector fm o
-      := Vbuild (VnthIndexMapped x f).
-
-    Global Instance Gather'_proper
-           {i o: nat}:
-      Proper ((=) ==> (=) ==> (=)) (@Gather' i o).
-    Proof.
-      intros f g Efg x y Exy.
-      unfold Gather', VnthIndexMapped.
-      vec_index_equiv j jp.
-      rewrite 2!Vbuild_nth.
-      apply Vnth_equiv.
-      apply Efg, jp.
-      apply Exy.
-    Qed.
 
     Definition Gather
                {i o: nat}
@@ -876,43 +755,12 @@ TODO: remove
       f_equiv.
     Qed.
 
-    Definition Scatter'
-               {i o: nat}
-               (f: index_map i o)
-               {f_inj: index_map_injective f}
-               (idv: CarrierA)
-               (x: svector fm i) : svector fm o
-      :=
-        let f' := build_inverse_index_map f in
-        Vbuild (fun n np =>
-                  match decide (in_range f n) with
-                  | left r => Vnth x (inverse_index_f_spec f f' n r)
-                  | right _ => mkStruct idv
-                  end).
-
-    Global Instance Scatter'_proper
-           {i o: nat}
-           (f: index_map i o)
-           {f_inj: index_map_injective f}:
-      Proper ((=) ==> (=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
-    Proof.
-      intros z0 z1 Ez x y Exy.
-      unfold Scatter'.
-      vec_index_equiv j jp.
-      simpl.
-      rewrite 2!Vbuild_nth.
-      break_match.
-      - apply Vnth_arg_equiv, Exy.
-      - rewrite Ez.
-        reflexivity.
-    Qed.
-
     Definition Scatter
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
                (idv: CarrierA)
-      := mkSHOperator i o (Scatter' f (f_inj:=f_inj) idv) _
+      := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -1062,101 +910,11 @@ TODO: remove
     Qed.
 
 
-    (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-    Definition SHPointwise'
-               {n: nat}
-               (f: { i | i<n} -> CarrierA -> CarrierA)
-               (x: svector fm n): svector fm n
-      := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
-
-    Global Instance SHPointwise'_proper {n: nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise' n).
-    Proof.
-      intros f f' Ef x y Exy.
-      unfold SHPointwise'.
-      vec_index_equiv j jc.
-      rewrite 2!Vbuild_nth.
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM.
-      f_equiv.
-      apply Ef.
-      f_equiv.
-      apply evalWriter_proper.
-      apply Vnth_arg_equiv.
-      apply Exy.
-    Qed.
-
     Definition SHPointwise
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
-
-    Definition SHBinOp'
-               {o: nat}
-               (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
-               (v:svector fm (o+o)): svector fm o
-      :=  match (vector2pair o v) with
-          | (a,b) => Vbuild (fun i (ip:i<o) => liftM2 (f (mkFinNat ip)) (Vnth a ip) (Vnth b ip))
-          end.
-
-    Global Instance SHBinOp'_proper {o:nat}:
-      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp' o).
-    Proof.
-      intros f f' Ef x y E.
-      unfold SHBinOp'.
-
-      vec_index_equiv j jc.
-      unfold vector2pair.
-
-      repeat break_let.
-      rename Heqp into H0, Heqp0 into H1.
-
-      replace t with (fst (Vbreak x)) by (rewrite H0 ; reflexivity).
-      replace t0 with (snd (Vbreak x)) by (rewrite H0 ; reflexivity).
-      replace t1 with (fst (Vbreak y)) by (rewrite H1 ; reflexivity).
-      replace t2 with (snd (Vbreak y)) by (rewrite H1 ; reflexivity).
-      clear H0 H1.
-
-      rewrite 2!Vbuild_nth.
-
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM2.
-
-      f_equiv.
-      apply Ef.
-      reflexivity.
-      - apply evalWriter_proper.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-      - apply evalWriter_proper.
-        apply Vnth_arg_equiv.
-        rewrite E.
-        reflexivity.
-    Qed.
-
-    Definition SHInductor'
-               (n:nat)
-               (f: CarrierA -> CarrierA -> CarrierA)
-               (initial: CarrierA)
-               (x: svector fm 1): svector fm 1
-      := Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x)).
-
-    Global Instance SHInductor'_proper {n:nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor' n).
-    Proof.
-      intros f f' Ef.
-      intros ini ini' Eini.
-      intros x y E.
-      unfold SHInductor'.
-      apply Vcons_proper. 2:{ reflexivity. }
-      unfold_Rtheta_equiv.
-      rewrite 2!evalWriter_Rtheta_liftM.
-      apply HCOLImpl.Inductor_proper; auto.
-      f_equiv.
-      rewrite E;reflexivity.
-    Qed.
 
     Definition SHInductor
                (n:nat)
@@ -1190,7 +948,7 @@ TODO: remove
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      ¬ in_range f k -> (Is_ValX idv) (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc).
+      ¬ in_range f k -> (Is_ValX idv) (Vnth (@Scatter' _ _ _ f f_inj idv x) kc).
     Proof.
       intros R.
 
@@ -1212,7 +970,7 @@ TODO: remove
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      idv ≠ evalWriter (Vnth (Scatter' f (f_inj:=f_inj) idv x) kc) -> in_range f k.
+      idv ≠ evalWriter (Vnth (@Scatter' _  _ _ f f_inj idv x) kc) -> in_range f k.
     Proof.
       intros H.
 
@@ -1256,9 +1014,9 @@ TODO: remove
       unfold compose.
       generalize
         (@op ki ko (kernel (mkFinNat jc0))
-             (@Gather' i ki (g (mkFinNat jc0)) x)),
+             (@Gather' fm i ki (g (mkFinNat jc0)) x)),
       (@op ki ko (kernel (mkFinNat jc1))
-           (@Gather' i ki (g (mkFinNat jc1)) x)).
+           (@Gather' fm i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
       clear kernel g i x ki. rename ko into i.
@@ -1304,57 +1062,6 @@ TODO: remove
         @mkMSHOperator o n (MUnion' fm dot initial) _.
 
   End MUnion.
-
-  (** Matrix-union. This is a common implementations for IUnion and IReduction *)
-  Definition Diamond'
-             {i o n}
-             {fm}
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             (initial: CarrierA)
-             (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
-             (v:svector fm i): svector fm o
-    :=
-      MUnion' fm dot initial (@Apply_Family' fm i o n op_family_f v).
-
-
-  Global Instance Diamond'_proper
-         {i o n} {fm}
-    : Proper (
-          (=) ==> (=) ==>
-              (@forall_relation nat
-                                (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
-                                (fun k : nat =>  @pointwise_relation (k < n)
-                                                                (svector fm i -> svector fm o) (=)))
-              ==> (=) ==> (=)) (@Diamond' i o n fm).
-  Proof.
-    intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
-    unfold Diamond'.
-    apply MUnion'_proper; auto.
-
-    unfold Apply_Family'.
-    vec_index_equiv j jc.
-    rewrite 2!Vbuild_nth.
-    unfold forall_relation, pointwise_relation in Ef.
-    apply Ef, Ev.
-  Qed.
-
-  (* One might think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
-  Global Instance Diamond'_arg_proper
-         {i o n}
-         {fm}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial: CarrierA)
-         (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
-         (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
-    : Proper ((=) ==> (=)) (Diamond' dot initial op_family_f).
-  Proof.
-    apply Diamond'_proper.
-    - apply pdot.
-    - reflexivity.
-    - unfold forall_relation, pointwise_relation.
-      apply op_family_f_proper.
-  Qed.
 
   Definition IUnion
              {i o n}
@@ -1463,7 +1170,7 @@ Lemma Is_Val_Scatter
       (idv: CarrierA)
       (x: rvector m)
       (j: nat) (jc : j < n):
-  Is_Val (Vnth (Scatter' _ f (f_inj:=f_inj) idv x) jc) ->
+  Is_Val (Vnth (@Scatter' _ _ _ f f_inj idv x) jc) ->
   (exists i (ic:i<m), ⟦f⟧ i ≡ j).
 Proof.
   intros H.
@@ -1548,7 +1255,7 @@ Section OperatorProperies.
         {i o: nat}
         (f: index_map o i)
         (x: svector fm i):
-    ∀ n (ip : n < o), Vnth (Gather' fm f x) ip ≡ VnthIndexMapped x f n ip.
+    ∀ n (ip : n < o), Vnth (Gather' f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
     unfold Gather', Vbuild.
     destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
@@ -1563,7 +1270,7 @@ Section OperatorProperies.
         (g: index_map ki i)
         (x: svector fm i)
         (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather' fm g x).
+    Vforall Is_Val (Gather' g x).
   Proof.
     apply Vforall_nth_intro.
     intros i0 ip.
@@ -1577,7 +1284,7 @@ Section OperatorProperies.
       (x : svector fm i),
     ∀ (f: index_map o i),
       Vforall (Vin_aux x)
-              (Gather' fm f x).
+              (Gather' f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -1594,12 +1301,12 @@ Section OperatorProperies.
     ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
       Vforall P x
       → ∀ f : index_map o i,
-        Vforall P (Gather' fm f x).
+        Vforall P (Gather' f x).
   Proof.
     intros.
-    assert(Vforall (Vin_aux x) (Gather' _ f x))
+    assert(Vforall (Vin_aux x) (Gather' f x))
       by apply Gather'_is_endomorphism.
-    generalize dependent (Gather' _ f x).
+    generalize dependent (Gather' f x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
@@ -1612,7 +1319,7 @@ Section OperatorProperies.
     ∀ (i o : nat) (x : svector fm i)
       (f: index_map o i),
       svector_is_dense fm x ->
-      svector_is_dense fm (Gather' fm f x).
+      svector_is_dense fm (Gather' f x).
   Proof.
     intros.
     unfold svector_is_dense in *.
@@ -1630,7 +1337,7 @@ Section OperatorProperies.
         (idv: CarrierA)
         (x: svector fm i)
         (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (Scatter' fm f (f_inj:=f_inj) idv x) f n ip.
+    Vnth x ip ≡ VnthIndexMapped (@Scatter' _ _ _ f f_inj idv x) f n ip.
   Proof.
     unfold VnthIndexMapped.
     unfold Scatter'.
@@ -1653,7 +1360,7 @@ Section OperatorProperies.
         {f_inj : index_map_injective f}
         (idv: CarrierA):
     Vforall (fun p => (Vin p x) \/ (p ≡ mkStruct idv))
-            (Scatter' fm f (f_inj:=f_inj) idv x).
+            (@Scatter' fm  _ _ f f_inj idv x).
   Proof.
     apply Vforall_nth_intro.
     intros j jp.
@@ -1672,7 +1379,7 @@ Section OperatorProperies.
         (f_inj : index_map_injective f)
         (idv : CarrierA)
         (h : Rtheta' fm):
-    Scatter' fm f (f_inj:=f_inj) idv [h] ≡ [h].
+    @Scatter' fm _ _ f f_inj idv [h] ≡ [h].
   Proof.
     unfold Scatter'.
     rewrite Vbuild_1.
@@ -1705,7 +1412,7 @@ Section OperatorProperies.
         {f_inj: index_map_injective f}
         (idv: CarrierA)
         (x: svector fm 1):
-    Scatter' fm f (f_inj:=f_inj) idv x
+    @Scatter' fm _ _ f f_inj idv x
              ≡
              match Nat.eq_dec (⟦ f ⟧ 0) 0 with
              | in_left =>
@@ -1716,7 +1423,7 @@ Section OperatorProperies.
                let f' := (shrink_index_map_1_range f fc) in
                Vcons
                  (mkStruct idv)
-                 (Scatter' fm f' (f_inj:= shrink_index_map_1_range_inj f fc f_inj) idv x)
+                 (@Scatter' fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
              end.
   Proof.
     break_match.
@@ -1830,7 +1537,7 @@ Section OperatorProperies.
         (f: { i | i<n} -> CarrierA -> CarrierA)
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (SHPointwise' fm f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+    Vnth (SHPointwise' f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
     unfold SHPointwise'.
     rewrite Vbuild_nth.

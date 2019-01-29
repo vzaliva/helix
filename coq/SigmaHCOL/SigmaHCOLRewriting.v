@@ -13,6 +13,7 @@ Require Import Helix.HCOL.THCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.Util.MonoidalRestriction.
 Require Import Helix.Util.VecPermutation.
 Require Import Helix.Util.FinNatSet.
@@ -305,7 +306,7 @@ Section SigmaHCOLHelperLemmas.
           {i o t: nat}
           (f: index_map o t)
           (g: index_map t i):
-      Gather' fm f ∘ Gather' fm g = Gather' fm (index_map_compose g f).
+      Gather' (fm:=fm) f ∘ Gather' g = Gather' (index_map_compose g f).
     Proof.
       apply ext_equiv_applied_equiv.
       -
@@ -338,8 +339,8 @@ Section SigmaHCOLHelperLemmas.
           {f_inj: index_map_injective f}
           {g_inj: index_map_injective g}
           (idv: CarrierA):
-      Scatter' fm g (f_inj:=g_inj) idv ∘ Scatter' fm f (f_inj:=f_inj) idv
-      = Scatter' fm (index_map_compose g f) (f_inj:=index_map_compose_injective g f g_inj f_inj) idv.
+      @Scatter' fm _ _ g g_inj idv ∘ @Scatter' fm _ _ f f_inj idv
+      = @Scatter' fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
     Proof.
       apply ext_equiv_applied_equiv.
       -
@@ -865,20 +866,19 @@ Section SigmaHCOLExpansionRules.
           (SumUnion Monoid_RthetaFlags
                     (Vbuild
                        (λ (j : nat) (jc : j < n),
-                        Scatter' Monoid_RthetaFlags (i:=1)
+                        @Scatter' Monoid_RthetaFlags 1 _
                                  (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound j n 1 jc))
-                                 (f_inj :=
-                                    @index_map_family_member_injective 1 n n
+                                 (@index_map_family_member_injective 1 n n
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
                                                                                                              (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
-                                 (SafeCast' (SHBinOp' (o:=1) Monoid_RthetaSafeFlags (Fin1SwapIndex2 (mkFinNat jc) f))
-                                            (Gather' Monoid_RthetaFlags (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
+                                 (SafeCast' (@SHBinOp' Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
+                                            (Gather' (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
-        = Vnth ((SHBinOp' _ (o:=n) f) x) kp.
+        = Vnth ((@SHBinOp' _ n f) x) kp.
     Proof.
       intros n x f f_mor k kp.
 
-      remember (fun i jc => Scatter' _ _ _ _) as bf.
+      remember (fun i jc => Scatter' _ _) as bf.
 
 
       (* Lemma5 embedded below*)
@@ -1472,7 +1472,7 @@ Section SigmaHCOLRewritingRules.
 
           assert(H: UnionFold _ plus zero vr = mkSZero).
           {
-            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (SHPointwise' Monoid_RthetaFlags pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
+            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise' Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
                       Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x) jc))))).
             {
               vec_index_equiv k kc.
@@ -4025,8 +4025,8 @@ and `ISumReduction_PointWise` *)
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
-      SHPointwise' fm (IgnoreIndex pf) (Scatter' fm f zero (f_inj:=f_inj) v) =
-      Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v) (f_inj:=f_inj).
+      SHPointwise' (IgnoreIndex pf) (@Scatter' fm _ _ f f_inj zero v) =
+      @Scatter' fm _ _ f f_inj zero (SHPointwise' (IgnoreIndex pf) v).
     Proof.
       vec_index_equiv j jc.
       rewrite SHPointwise'_nth.
@@ -4047,7 +4047,7 @@ and `ISumReduction_PointWise` *)
         reflexivity.
       -
         (* `j` in sparse position *)
-        remember (Scatter' fm f zero (f_inj:=f_inj) v) as s0.
+        remember (@Scatter' fm _ _ f f_inj zero v) as s0.
         assert(VZ0: Is_ValZero (Vnth s0 jc)).
         {
           subst s0.
@@ -4062,7 +4062,7 @@ and `ISumReduction_PointWise` *)
         }
 
         rewrite pfzn.
-        remember (Scatter' fm f zero (SHPointwise' fm (IgnoreIndex pf) v)) as s1.
+        remember (@Scatter' fm _ _ f _ zero (SHPointwise' (IgnoreIndex pf) v)) as s1.
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
@@ -4246,8 +4246,8 @@ and `ISumReduction_PointWise` *)
             intros i ip.
 
             assert(H: Vforall (fun p => (Vin p y) \/ (p ≡ mkStruct mzero))
-                              (Scatter' fm (shrink_index_map_1_range f n0)
-                                        (f_inj:=shrink_index_map_1_range_inj f n0 f_inj)
+                              (@Scatter' fm _ _ (shrink_index_map_1_range f n0)
+                                        (shrink_index_map_1_range_inj f n0 f_inj)
                                         mzero y)) by apply Scatter'_is_almost_endomorphism.
             apply Vforall_nth with (ip:=ip) in H.
             destruct H.

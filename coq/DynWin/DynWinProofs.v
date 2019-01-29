@@ -13,6 +13,7 @@ Require Import Helix.HCOL.THCOLImpl.
 
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 

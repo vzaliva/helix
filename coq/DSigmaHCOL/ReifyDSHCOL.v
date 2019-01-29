@@ -13,6 +13,7 @@ Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
