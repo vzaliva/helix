@@ -11,6 +11,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Many usused definitions could be removed. (Hint: try `make print-unused`)
 ** Rename implementations with ' suffux into "_Impl" in /SigmaHCOLImpl.v/.
   For example =eT'= should become =eTImpl=
+** Run =coq-min-imports= on all codebase
 
 * Proof mechanics
 ** Review `_arg_proper` vs `_proper` instances
