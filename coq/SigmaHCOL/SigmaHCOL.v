@@ -8,8 +8,9 @@ Require Import Helix.Util.FinNat.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
-Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
@@ -78,7 +79,7 @@ Section SigmaHCOL_Operators.
              op_proper: Proper ((=) ==> (=)) op;
 
              (* implementation on memory blocks *)
-             mem_op: mem_block -> mem_block;
+             mem_op: mem_block -> option mem_block;
 
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
@@ -100,33 +101,8 @@ Section SigmaHCOL_Operators.
         svector_to_mem_block' 0 v.
      *)
 
-    Fixpoint svector_to_mem_block' {n} (i:nat) (v:svector fm n): mem_block
-      :=
-        match v with
-        | Vnil => mem_empty
-        | Vcons x xs =>
-          match Is_Val_dec x with
-          | left _ => mem_add n (WriterMonadNoT.evalWriter x) (svector_to_mem_block' (S i) xs)
-          | right _ => svector_to_mem_block' (S i) xs
-          end
-        end.
-
-    Definition svector_to_mem_block {n:nat}: (svector fm n) -> mem_block
-      := svector_to_mem_block' 0.
-
-
-    Definition mem_block_to_svector {n} (m: mem_block): svector fm n
-      := Vbuild (fun i (ic:i<n) =>
-                   match mem_lookup i m with
-                   | None => mkSZero
-                   | Some x => mkValue x
-                   end
-                ).
-
-    Definition mem_op_of_op {i o: nat} (op: svector fm i -> svector fm o)
-      : mem_block -> mem_block
-      := fun x => svector_to_mem_block (op (mem_block_to_svector x)).
-
+    (* This is "default" wrapper adding memory-based operator semanics based
+       on one provided on sparse vectors. *)
     Definition mkSHOperator'
                i o
                op op_proper
@@ -706,8 +682,12 @@ TODO: remove
                {i o}
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
-      := mkSHOperator' i o (liftM_HOperator' op) (@liftM_HOperator'_proper fm i o op HOP)
-                      (Full_set _) (Full_set _).
+      := mkSHOperator i o
+                      (liftM_HOperator' op)
+                      (@liftM_HOperator'_proper fm i o op HOP)
+                      (mem_op_of_hop op)
+                      (Full_set _)
+                      (Full_set _).
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
     Definition Apply_Family
@@ -771,28 +751,30 @@ TODO: remove
     Definition IdOp
                {n: nat}
                (in_out_set:FinNatSet n)
-      := mkSHOperator' n n id _ in_out_set in_out_set.
-
+      := mkSHOperator n n id _ (Some ∘ id) in_out_set in_out_set.
 
     Definition eUnion
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
-      := mkSHOperator' 1 o (eUnion' bc z) _
+      := mkSHOperator 1 o (eUnion' bc z) _
+                      (eUnion_mem b)
                       (Full_set _)
                       (FinNatSet.singleton b).
 
     Definition eT
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator' i 1 (eT' bc) _
+      := mkSHOperator i 1 (eT' bc) _
+                      (eT_mem b)
                       (FinNatSet.singleton b)
                       (Full_set _).
 
     Definition Gather
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator' i o (Gather' f) _
+      := mkSHOperator i o (Gather' f) _
+                      (Gather_mem f)
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
 

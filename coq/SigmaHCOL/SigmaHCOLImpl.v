@@ -1,4 +1,4 @@
-(* Coq defintions for Sigma-HCOL operator language *)
+(* Sparse-vector-based implementations of SHCOL operators *)
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
@@ -43,7 +43,7 @@ Open Scope vector_scope.
 Global Open Scope nat_scope.
 
 (* Returns an element of the vector 'x' which is result of mapping of
-given natrual number by index mapping function f_spec. *)
+given natrual number by index mapping function `f`. *)
 Definition VnthIndexMapped
            {i o:nat}
            {A: Type}
