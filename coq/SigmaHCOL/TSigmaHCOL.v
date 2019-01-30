@@ -56,7 +56,7 @@ Section RthetaSafetyCast.
              (f: @SHOperator Monoid_RthetaSafeFlags i o)
     : @SHOperator Monoid_RthetaFlags i o.
   Proof.
-    refine (mkSHOperator Monoid_RthetaFlags i o
+    refine (mkSHOperator' Monoid_RthetaFlags i o
                          (SafeCast' (op Monoid_RthetaSafeFlags f))
                          _  _ _).
     -
@@ -123,7 +123,7 @@ Section RthetaSafetyCast.
              (f: @SHOperator Monoid_RthetaFlags i o)
     : @SHOperator Monoid_RthetaSafeFlags i o.
   Proof.
-    refine (mkSHOperator Monoid_RthetaSafeFlags i o
+    refine (mkSHOperator' Monoid_RthetaSafeFlags i o
                          (UnSafeCast' (op Monoid_RthetaFlags f))
                          _  _ _).
     -
@@ -224,7 +224,7 @@ Section TSigmaHCOLOperators.
              (op1 op2: @SHOperator fm i o)
     : @SHOperator fm i o
     :=
-      mkSHOperator fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
+      mkSHOperator' fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
                    (@HTSUMUnion'_arg_proper i o
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)

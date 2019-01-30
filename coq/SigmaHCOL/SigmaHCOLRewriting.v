@@ -2664,17 +2664,8 @@ Section SigmaHCOLRewritingRules.
                 +
                   (* x,y < k *)
                   apply Pi; auto.
-                  assert(⟦ t ⟧ x ≢ 0).
-                  {
-                    apply NK; auto.
-                    apply Nat.le_neq; auto.
-                  }
-
-                  assert(⟦ t ⟧ y ≢ 0).
-                  {
-                    apply NK; auto.
-                    apply Nat.le_neq; auto.
-                  }
+                  assert(⟦ t ⟧ x ≢ 0) by auto.
+                  assert(⟦ t ⟧ y ≢ 0) by auto.
 
                   destruct (⟦ t ⟧ x); try congruence.
                   destruct (⟦ t ⟧ y); try congruence.
@@ -2686,11 +2677,7 @@ Section SigmaHCOLRewritingRules.
                   generalize dependent k.
                   intros k L K NK l n1.
 
-                  assert(⟦ t ⟧ x ≢ 0).
-                  {
-                    apply NK; auto.
-                    apply Nat.le_neq; auto.
-                  }
+                  assert(⟦ t ⟧ x ≢ 0) by auto.
 
                   destruct (eq_nat_dec k (S y)) as [Ek | NEk].
                   *
@@ -2717,11 +2704,7 @@ Section SigmaHCOLRewritingRules.
                   generalize dependent k.
                   intros k L K NK l n0.
 
-                  assert(⟦ t ⟧ y ≢ 0).
-                  {
-                    apply NK; auto.
-                    apply Nat.le_neq; auto.
-                  }
+                  assert(⟦ t ⟧ y ≢ 0) by auto.
 
                   destruct (eq_nat_dec k (S x)) as [Ek | NEk].
                   *

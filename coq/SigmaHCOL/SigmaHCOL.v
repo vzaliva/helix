@@ -9,6 +9,7 @@ Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
@@ -72,11 +73,72 @@ Section SigmaHCOL_Operators.
            {i o: nat}
       : Type
       := mkSHOperator {
+             (* implementation on sparse vectors *)
              op: svector fm i -> svector fm o ;
              op_proper: Proper ((=) ==> (=)) op;
+
+             (* implementation on memory blocks *)
+             mem_op: mem_block -> mem_block;
+
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
            }.
+
+    (*
+    Definition svector_to_mem_block {n} (v:svector fm n): mem_block
+      :=
+        let fix svector_to_mem_block' {n:nat} (i:nat) (v:svector fm n) :=
+            match v with
+            | Vnil => mem_empty
+            | Vcons x xs =>
+              match Is_Val_dec x with
+              | left _ => mem_add n (WriterMonadNoT.evalWriter x) (svector_to_mem_block' (S i) xs)
+              | right _ => svector_to_mem_block' (S i) xs
+              end
+            end
+        in
+        svector_to_mem_block' 0 v.
+     *)
+
+    Fixpoint svector_to_mem_block' {n} (i:nat) (v:svector fm n): mem_block
+      :=
+        match v with
+        | Vnil => mem_empty
+        | Vcons x xs =>
+          match Is_Val_dec x with
+          | left _ => mem_add n (WriterMonadNoT.evalWriter x) (svector_to_mem_block' (S i) xs)
+          | right _ => svector_to_mem_block' (S i) xs
+          end
+        end.
+
+    Definition svector_to_mem_block {n:nat}: (svector fm n) -> mem_block
+      := svector_to_mem_block' 0.
+
+
+    Definition mem_block_to_svector {n} (m: mem_block): svector fm n
+      := Vbuild (fun i (ic:i<n) =>
+                   match mem_lookup i m with
+                   | None => mkSZero
+                   | Some x => mkValue x
+                   end
+                ).
+
+    Definition mem_op_of_op {i o: nat} (op: svector fm i -> svector fm o)
+      : mem_block -> mem_block
+      := fun x => svector_to_mem_block (op (mem_block_to_svector x)).
+
+    Definition mkSHOperator'
+               i o
+               op op_proper
+               in_index_set
+               out_index_set
+      :=
+        mkSHOperator
+          i o
+          op op_proper
+          (mem_op_of_op op)
+          in_index_set
+          out_index_set.
 
 
     (* Two vectors (=) at indices at given set *)
@@ -644,7 +706,7 @@ TODO: remove
                {i o}
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
-      := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper fm i o op HOP)
+      := mkSHOperator' i o (liftM_HOperator' op) (@liftM_HOperator'_proper fm i o op HOP)
                       (Full_set _) (Full_set _).
 
     (** Apply family of SHOperator's to same fector and return matrix of results *)
@@ -709,28 +771,28 @@ TODO: remove
     Definition IdOp
                {n: nat}
                (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _ in_out_set in_out_set.
+      := mkSHOperator' n n id _ in_out_set in_out_set.
 
 
     Definition eUnion
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
-      := mkSHOperator 1 o (eUnion' bc z) _
+      := mkSHOperator' 1 o (eUnion' bc z) _
                       (Full_set _)
                       (FinNatSet.singleton b).
 
     Definition eT
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 (eT' bc) _
+      := mkSHOperator' i 1 (eT' bc) _
                       (FinNatSet.singleton b)
                       (Full_set _).
 
     Definition Gather
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator i o (Gather' f) _
+      := mkSHOperator' i o (Gather' f) _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
 
@@ -760,7 +822,7 @@ TODO: remove
                (f: index_map i o)
                {f_inj: index_map_injective f}
                (idv: CarrierA)
-      := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
+      := mkSHOperator' i o (@Scatter' _ _ _ f f_inj idv) _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -795,7 +857,7 @@ TODO: remove
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
-      : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
+      : @SHOperator i1 o3 := mkSHOperator' i1 o3 (compose (op op1) (op op2)) _
                                           (in_index_set op2)
                                           (out_index_set op1).
 
@@ -914,14 +976,14 @@ TODO: remove
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
+      := mkSHOperator' n n (SHPointwise' f) _ (Full_set _) (Full_set _).
 
     Definition SHInductor
                (n:nat)
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
-      := mkSHOperator 1 1 (SHInductor' n f initial) _ (Full_set _) (Full_set _).
+      := mkSHOperator' 1 1 (SHInductor' n f initial) _ (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
@@ -1036,7 +1098,7 @@ TODO: remove
                {o}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
+      := mkSHOperator' (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
 
@@ -1072,7 +1134,7 @@ TODO: remove
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
     : @SHOperator Monoid_RthetaFlags i o
     :=
-      mkSHOperator Monoid_RthetaFlags i o
+      mkSHOperator' Monoid_RthetaFlags i o
                    (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
                    _
                    (family_in_index_set _ op_family)
@@ -1127,7 +1189,7 @@ TODO: remove
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
     : @SHOperator Monoid_RthetaSafeFlags i o:=
-    mkSHOperator Monoid_RthetaSafeFlags i o
+    mkSHOperator' Monoid_RthetaSafeFlags i o
                  (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
                  (family_in_index_set _ op_family)
