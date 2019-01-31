@@ -840,7 +840,8 @@ TODO: remove
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
-      : @SHOperator i1 o3 := mkSHOperator' i1 o3 (compose (op op1) (op op2)) _
+      : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
+                                          (option_compose (mem_op op1) (mem_op op2))
                                           (in_index_set op2)
                                           (out_index_set op1).
 
