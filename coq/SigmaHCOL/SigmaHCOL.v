@@ -1091,29 +1091,6 @@ TODO: remove
 
   End FlagsMonoidGenericOperators.
 
-  Section MUnion.
-
-    Variable fm:Monoid RthetaFlags.
-
-    (* An operator applied to a list of vectors (matrix) with uniform pre and post conditions *)
-    Record MSHOperator
-           {o n: nat}
-      : Type
-      := mkMSHOperator {
-             mop: vector (svector fm o) n -> svector fm o ;
-             mop_proper: Proper ((=) ==> (=)) mop
-           }.
-
-    Definition MUnion
-               {o n}
-               (dot: CarrierA->CarrierA->CarrierA)
-               `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-               (initial: CarrierA)
-      :=
-        @mkMSHOperator o n (MUnion' fm dot initial) _.
-
-  End MUnion.
-
   Definition IUnion
              {i o n}
              (* Functional parameters *)
