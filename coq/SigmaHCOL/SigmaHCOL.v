@@ -968,7 +968,9 @@ TODO: remove
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
-      := mkSHOperator' 1 1 (SHInductor' n f initial) _ (Full_set _) (Full_set _).
+      := mkSHOperator 1 1 (SHInductor' n f initial) _
+                      (mem_op_of_hop (HInductor n f initial))
+                      (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
