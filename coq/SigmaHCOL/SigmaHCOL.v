@@ -955,12 +955,13 @@ TODO: remove
       apply Eg.
     Qed.
 
-
     Definition SHPointwise
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator' n n (SHPointwise' f) _ (Full_set _) (Full_set _).
+      := mkSHOperator n n (SHPointwise' f) _
+                      (mem_op_of_hop (HPointwise f))
+                      (Full_set _) (Full_set _).
 
     Definition SHInductor
                (n:nat)
