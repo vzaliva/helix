@@ -247,6 +247,13 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
 
+    Definition get_family_mem_op
+               {i o n}
+               (op_family: @SHOperatorFamily i o n):
+      forall j (jc:j<n), mem_block -> option mem_block
+      := fun j (jc:j<n) => mem_op (op_family (mkFinNat jc)).
+
+
     (* Shrink family by removing the last member *)
     Definition shrink_op_family
                {i o n}
