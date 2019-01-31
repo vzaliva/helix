@@ -1085,7 +1085,9 @@ TODO: remove
                {o}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator' (o+o) o (SHBinOp' f) _ (Full_set _) (Full_set _).
+      := mkSHOperator (o+o) o (SHBinOp' f) _
+                      (mem_op_of_hop (HBinOp f))
+                      (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
 
