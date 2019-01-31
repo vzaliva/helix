@@ -45,25 +45,6 @@ Open Scope vector_scope.
 
 Global Open Scope nat_scope.
 
-(* Not currenly used. For future *)
-Section BVector.
-  Notation bvector n := (vector bool n).
-
-  Definition false_bvector (n:nat) : bvector n := Vconst false n.
-  Definition true_bvector (n:nat) : bvector n := Vconst true n.
-  Definition or_bvector (n:nat) (a b: bvector n) :=
-    Vmap2 orb a b.
-  Definition and_bvector (n:nat) (a b: bvector n) :=
-    Vmap2 andb a b.
-
-  Definition Monoid_bvector_false_or (n:nat) : Monoid (bvector n) :=
-    Build_Monoid (or_bvector n) (false_bvector n).
-
-  Definition Monoid_bvector_true_and (n:nat) : Monoid (bvector n) :=
-    Build_Monoid (and_bvector n) (true_bvector n).
-
-End BVector.
-
 Section SigmaHCOL_Operators.
 
   Section FlagsMonoidGenericOperators.
