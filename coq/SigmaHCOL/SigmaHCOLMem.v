@@ -154,5 +154,4 @@ Section WithFlags.
     :=
       Scatter_mem_aux i (build_inverse_index_map f).
 
-
 End WithFlags.

@@ -1017,14 +1017,14 @@ Section SigmaHCOLExpansionRules.
         setoid_rewrite SHBinOp'_nth with (jc1:=ip1) (jc2:=ip2).
 
 
-        unfold Diamond'.
+        unfold Diamond.
         rewrite AbsorbMUnion'Index_Vmap.
         (* OR rewrite AbsorbMUnion'Index_Vbuild.*)
         unfold Apply_Family'.
         rewrite Vmap_Vbuild.
 
         (* Not sure below here *)
-        unfold SparseEmbedding, Diamond', Apply_Family', MUnion'.
+        unfold SparseEmbedding, Diamond, Apply_Family', MUnion'.
         unfold SHCompose, compose, get_family_op.
         simpl.
 
@@ -1394,7 +1394,7 @@ Section SigmaHCOLRewritingRules.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
         apply SHPointwise'_proper.
         apply pf_mor.
-        apply Diamond'_proper.
+        apply Diamond_proper.
         + apply CarrierAPlus_proper.
         + reflexivity.
         + intros k kc.
@@ -1402,14 +1402,14 @@ Section SigmaHCOLRewritingRules.
       -
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
-        apply Diamond'_proper.
+        apply Diamond_proper.
         + apply CarrierAPlus_proper.
         + reflexivity.
         + intros k kc.
           apply op_proper.
       -
         intros x.
-        unfold Diamond'.
+        unfold Diamond.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
         setoid_rewrite SHPointwise'_nth; try apply MonoidLaws_RthetaFlags.
@@ -1681,7 +1681,7 @@ Section SigmaHCOLRewritingRules.
 
     (* Basically states that 'Diamon' applied to a family which guarantees
        single-non zero value per row dows not depend on the function implementation *)
-    Lemma Diamond'_f_subst
+    Lemma Diamond_f_subst
           {i o n}
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
@@ -1697,13 +1697,13 @@ Section SigmaHCOLRewritingRules.
       :
         Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
         ->
-        Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
-        Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
+        Diamond f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
+        Diamond u uf_zero (get_family_op Monoid_RthetaFlags op_family).
     Proof.
       intros Uz.
       apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
       intros x.
-      unfold Diamond'.
+      unfold Diamond.
 
       vec_index_equiv j jc.
       unfold Apply_Family'.
@@ -1935,7 +1935,7 @@ Section SigmaHCOLRewritingRules.
               apply U.
       Qed.
 
-      Lemma Diamond'_f_subst_under_P
+      Lemma Diamond_f_subst_under_P
             {i o n}
             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
@@ -1955,8 +1955,8 @@ Section SigmaHCOLRewritingRules.
             (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
             (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
         :
-          Diamond' f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
-          Diamond' u uf_zero (get_family_op Monoid_RthetaFlags op_family).
+          Diamond f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
+          Diamond u uf_zero (get_family_op Monoid_RthetaFlags op_family).
       Proof.
 
         assert(f_mor : Proper (equiv ==> equiv ==> equiv) f).
@@ -1967,7 +1967,7 @@ Section SigmaHCOLRewritingRules.
 
         apply ext_equiv_applied_equiv; try (split; typeclasses eauto).
         intros x.
-        unfold Diamond'.
+        unfold Diamond.
 
         vec_index_equiv j jc.
         unfold Apply_Family'.
@@ -3134,13 +3134,13 @@ Section SigmaHCOLRewritingRules.
       unfold equiv, SHOperator_equiv, SHCompose; simpl.
       unfold UnSafeFamilyCast, get_family_op.
       simpl.
-      (* Noramlized form. Diamond' all around *)
+      (* Noramlized form. Diamond all around *)
 
-      (* To use Diamond'_f_subst_under_P we need to convert body_f back to operator family *)
+      (* To use Diamond_f_subst_under_P we need to convert body_f back to operator family *)
       replace (λ (j : nat) (jc : j < n),
                op Monoid_RthetaFlags (op_family (mkFinNat jc))) with  (get_family_op _ op_family) by reflexivity.
 
-      rewrite <- Diamond'_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
+      rewrite <- Diamond_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
       clear u u_mon.  (* No more 'u' *)
       clear Uz. (* Single non-unit per row constaint no longer needed *)
 
@@ -3152,7 +3152,7 @@ Section SigmaHCOLRewritingRules.
         apply liftM_HOperator'_proper.
         apply HReduction_HOperator.
         typeclasses eauto.
-        apply Diamond'_proper.
+        apply Diamond_proper.
         +
           apply f_mon.
         +
@@ -3163,7 +3163,7 @@ Section SigmaHCOLRewritingRules.
         (* RHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply SafeCast'_proper.
-        apply Diamond'_proper.
+        apply Diamond_proper.
         + apply f_mon.
         + reflexivity.
         + intros k kc.
@@ -3198,7 +3198,7 @@ Section SigmaHCOLRewritingRules.
 
         dep_destruct j; [idtac | crush].
 
-        unfold Diamond'.
+        unfold Diamond.
         unfold Apply_Family'.
         unfold RStheta.
         rewrite AbsorbMUnion'Index_Vbuild.
@@ -4087,7 +4087,7 @@ and `ISumReduction_PointWise` *)
                                                  kernel)
                         f zero g (f_inj:=f_inj).
     Proof.
-      unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, pointwise_relation, SHOperator_equiv, Diamond'.
+      unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, pointwise_relation, SHOperator_equiv, Diamond.
       intros [j jc].
       simpl.
       unfold SparseEmbedding, SHCompose, compose, equiv, ext_equiv, mkFinNat.
@@ -4436,7 +4436,7 @@ and `ISumReduction_PointWise` *)
       unfold compose, sparsify, densify.
       unfold equiv,SHOperator_equiv.
       simpl.
-      unfold Diamond'.
+      unfold Diamond.
       unfold equiv, ext_equiv.
       intros x y H.
       unfold HCOLImpl.Reduction.
@@ -4684,7 +4684,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       rewrite Gather'_spec.
       unfold VnthIndexMapped.
-      unfold Diamond'.
+      unfold Diamond.
       unfold Apply_Family'.
       rewrite AbsorbMUnion'Index_Vbuild.
       unfold get_family_op.

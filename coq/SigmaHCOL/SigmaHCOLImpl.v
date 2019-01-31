@@ -294,7 +294,7 @@ Section FlagsMonoidGenericOperators.
 
 
   (** Matrix-union. This is a common implementations for IUnion and IReduction *)
-  Definition Diamond'
+  Definition Diamond
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
@@ -304,7 +304,7 @@ Section FlagsMonoidGenericOperators.
       MUnion' fm dot initial (Apply_Family' op_family_f v).
 
 
-  Global Instance Diamond'_proper
+  Global Instance Diamond_proper
          {i o n}
     : Proper (
           (=) ==> (=) ==>
@@ -312,10 +312,10 @@ Section FlagsMonoidGenericOperators.
                                 (fun k : nat =>  forall _ : k<n, (svector fm i -> svector fm o))
                                 (fun k : nat =>  @pointwise_relation (k < n)
                                                                 (svector fm i -> svector fm o) (=)))
-              ==> (=) ==> (=)) (@Diamond' i o n).
+              ==> (=) ==> (=)) (@Diamond i o n).
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
-    unfold Diamond'.
+    unfold Diamond.
     apply MUnion'_proper; auto.
 
     unfold Apply_Family'.
@@ -325,17 +325,17 @@ Section FlagsMonoidGenericOperators.
     apply Ef, Ev.
   Qed.
 
-  (* One might think we do not need this in presence of Diamond'_proper. However even this partially applied morphism could be easily proven from Diamond'_proper sometimes helps class resolutuion which does not always find Diamond'_proper *)
-  Global Instance Diamond'_arg_proper
+  (* One might think we do not need this in presence of Diamond_proper. However even this partially applied morphism could be easily proven from Diamond_proper sometimes helps class resolutuion which does not always find Diamond_proper *)
+  Global Instance Diamond_arg_proper
          {i o n}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (initial: CarrierA)
          (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
          (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
-    : Proper ((=) ==> (=)) (Diamond' dot initial op_family_f).
+    : Proper ((=) ==> (=)) (Diamond dot initial op_family_f).
   Proof.
-    apply Diamond'_proper.
+    apply Diamond_proper.
     - apply pdot.
     - reflexivity.
     - unfold forall_relation, pointwise_relation.

@@ -670,7 +670,7 @@ TODO: remove
                       (Full_set _)
                       (Full_set _).
 
-    (** Apply family of SHOperator's to same fector and return matrix of results *)
+    (** Apply family of SHOperator's to same vector and return matrix of results *)
     Definition Apply_Family
                {i o n}
                (op_family: @SHOperatorFamily i o n)
@@ -1082,7 +1082,7 @@ TODO: remove
     : @SHOperator Monoid_RthetaFlags i o
     :=
       mkSHOperator' Monoid_RthetaFlags i o
-                   (Diamond' dot initial (get_family_op Monoid_RthetaFlags op_family))
+                   (Diamond dot initial (get_family_op Monoid_RthetaFlags op_family))
                    _
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
@@ -1137,7 +1137,7 @@ TODO: remove
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
     : @SHOperator Monoid_RthetaSafeFlags i o:=
     mkSHOperator' Monoid_RthetaSafeFlags i o
-                 (Diamond' dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
+                 (Diamond dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
                  (family_in_index_set _ op_family)
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
@@ -1628,7 +1628,7 @@ Section OperatorProperies.
     reflexivity.
   Qed.
 
-  Lemma Vnth_Diamond'_Sn
+  Lemma Vnth_Diamond_Sn
         {i o n : nat}
         (dot : CarrierA → CarrierA → CarrierA)
         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
@@ -1638,13 +1638,13 @@ Section OperatorProperies.
         (nc : n < S n)
         (j : nat)
         (jc : (j < o)%nat):
-    Vnth (Diamond' dot initial (get_family_op fm op_family) x) jc =
+    Vnth (Diamond dot initial (get_family_op fm op_family) x) jc =
     Monad.liftM2
       dot
-      (Vnth (Diamond' dot initial (get_family_op fm (shrink_op_family_up fm op_family)) x) jc)
+      (Vnth (Diamond dot initial (get_family_op fm (shrink_op_family_up fm op_family)) x) jc)
       (Vnth (op fm (op_family (@mkFinNat _ 0  (Nat.lt_0_succ n))) x) jc).
   Proof.
-    unfold Diamond'.
+    unfold Diamond.
     unfold Apply_Family'.
     rewrite Vbuild_cons.
     rewrite MUnion'_cons.
@@ -2406,7 +2406,7 @@ Section StructuralProperies.
       intros x y H.
       simpl in *.
       vec_index_equiv j jc.
-      unfold Diamond'.
+      unfold Diamond.
       unfold Apply_Family'.
 
       rewrite 2!AbsorbMUnion'Index_Vbuild.
@@ -2428,7 +2428,7 @@ Section StructuralProperies.
       intros v H j jc S.
       simpl in *.
 
-      unfold Diamond'.
+      unfold Diamond.
       unfold Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
@@ -2455,7 +2455,7 @@ Section StructuralProperies.
       intros v j jc S.
       simpl in *.
 
-      unfold IUnion, Diamond', Apply_Family'.
+      unfold IUnion, Diamond, Apply_Family'.
       rewrite AbsorbMUnion'Index_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
@@ -2482,7 +2482,7 @@ Section StructuralProperies.
       (* no_coll_range *)
       intros v D j jc S.
       simpl in *.
-      unfold Diamond', Apply_Family'.
+      unfold Diamond, Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
       apply UnionFold_Non_Collision.
@@ -2546,7 +2546,7 @@ Section StructuralProperies.
       (* no_coll_at_sparse *)
       intros v j jc S.
       simpl in *.
-      unfold Diamond', Apply_Family'.
+      unfold Diamond, Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
       apply UnionFold_Non_Collision.
@@ -2604,7 +2604,7 @@ Section StructuralProperies.
       intros x y H.
       simpl in *.
       vec_index_equiv j jc.
-      unfold Diamond'.
+      unfold Diamond.
       unfold Apply_Family'.
 
       rewrite 2!AbsorbMUnion'Index_Vbuild.
@@ -2626,7 +2626,7 @@ Section StructuralProperies.
       intros v D j jc S.
       simpl in *.
 
-      unfold Diamond'.
+      unfold Diamond.
       unfold Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
@@ -2653,7 +2653,7 @@ Section StructuralProperies.
       intros v j jc S.
       simpl in *.
 
-      unfold IUnion, Diamond', Apply_Family'.
+      unfold IUnion, Diamond, Apply_Family'.
       rewrite AbsorbMUnion'Index_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
@@ -2682,7 +2682,7 @@ Section StructuralProperies.
       (* no_coll_range *)
       intros v D j jc S.
       simpl in *.
-      unfold Diamond', Apply_Family'.
+      unfold Diamond, Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
       apply UnionFold_Safe_Non_Collision.
@@ -2706,7 +2706,7 @@ Section StructuralProperies.
       (* no_coll_at_sparse *)
       intros v j jc S.
       simpl in *.
-      unfold Diamond', Apply_Family'.
+      unfold Diamond, Apply_Family'.
 
       rewrite AbsorbMUnion'Index_Vbuild.
       apply UnionFold_Safe_Non_Collision.

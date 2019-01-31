@@ -141,7 +141,7 @@ Section SigmaHCOL_rewriting.
   Proof.
     unfold dynwin_HCOL, dynwin_SHCOL.
     rewrite LiftM_Hoperator_compose.
-    rewrite expand_HTDirectSum. (* this one does not work with Diamond'_arg_proper *)
+    rewrite expand_HTDirectSum. (* this one does not work with Diamond_arg_proper *)
     Opaque SHCompose.
     repeat rewrite LiftM_Hoperator_compose.
     repeat rewrite <- SHBinOp_equiv_lifted_HBinOp at 1.

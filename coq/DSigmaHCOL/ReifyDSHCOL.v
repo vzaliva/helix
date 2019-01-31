@@ -1118,7 +1118,7 @@ Theorem IReduction_DSHIReduction
 Proof.
   intros Hdot Hfam Γ x.
   simpl.
-  unfold Diamond', MUnion', Apply_Family', evalDiamond, densify.
+  unfold Diamond, MUnion', Apply_Family', evalDiamond, densify.
 
   revert op_family dop_family Hfam.
   induction n.
@@ -1401,7 +1401,7 @@ Proof.
   (* significant code duplication with `IReduction_DSHIReduction` *)
   intros Hfam Γ x.
   simpl.
-  unfold Diamond', MUnion', Apply_Family', evalDiamond, densify.
+  unfold Diamond, MUnion', Apply_Family', evalDiamond, densify.
 
   revert op_family dop_family Hfam.
   induction n.
