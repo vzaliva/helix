@@ -120,13 +120,39 @@ Section WithFlags.
            (f: index_map o i)
            (x: mem_block) : option mem_block
     :=
+      let i' := ⟦ f ⟧ o in
+      let map_one ys := map_mem_block_elt x i' ys o in
       match o return (index_map o i) -> option mem_block with
-      | O => fun _ => map_mem_block_elt x o (mem_empty) (⟦ f ⟧ o)
+      | O => fun _ => map_one (mem_empty)
       | S o' => fun f' =>
-                 match @Gather_mem i o' (shrink_index_map_domain f') x with
+                 match Gather_mem (shrink_index_map_domain f') x with
                  | None => None
-                 | Some ys => map_mem_block_elt x o ys (⟦ f ⟧ o)
+                 | Some ys => map_one ys
                  end
       end f.
+
+  Fixpoint Scatter_mem_aux
+           {i o: nat}
+           (j: nat)
+           {f: index_map i o}
+           (fi: inverse_index_map f)
+           (x: mem_block) : option mem_block
+    :=
+      let o' := inverse_index_f f fi j in
+      let map_one ys := map_mem_block_elt x j ys o' in
+      match j with
+      | O => map_one (mem_empty)
+      | S j' => match Scatter_mem_aux j' fi x with
+               | None => None
+               | Some ys => map_one ys
+               end
+      end.
+
+  Definition Scatter_mem {i o: nat} (f: index_map i o)
+    :
+      mem_block -> option mem_block
+    :=
+      Scatter_mem_aux i (build_inverse_index_map f).
+
 
 End WithFlags.

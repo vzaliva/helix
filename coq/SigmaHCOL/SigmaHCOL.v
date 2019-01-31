@@ -804,7 +804,8 @@ TODO: remove
                (f: index_map i o)
                {f_inj: index_map_injective f}
                (idv: CarrierA)
-      := mkSHOperator' i o (@Scatter' _ _ _ f f_inj idv) _
+      := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
+                      (Scatter_mem f)
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
