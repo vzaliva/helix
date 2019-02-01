@@ -132,7 +132,7 @@ Fixpoint IUnion_mem_aux
   match j return j<n -> option mem_block with
   | O => fun _ => oy
   | S j' => fun jc' =>
-             match oy, op_family_f j' (Nat.lt_succ_l j' n jc') x with
+             match oy, IUnion_mem_aux (Nat.lt_succ_l j' n jc') op_family_f x with
              | Some y, Some ys => mem_merge y ys
              | _, _ => None
              end
@@ -145,7 +145,8 @@ Definition IUnion_mem
   :=
     match n as m return n=m -> option mem_block with
     | 0 => fun _ => Some x
-    | S n' => fun E => @IUnion_mem_aux n 0
-                                   (eq_ind_r (lt 0) (zero_lt_Sn n') E)
-                                   op_family_f x
+    | S n' => fun E => IUnion_mem_aux
+                     (eq_ind_r _ (Nat.lt_succ_diag_r n') E)
+                     op_family_f x
+    end eq_refl.
     end eq_refl.
