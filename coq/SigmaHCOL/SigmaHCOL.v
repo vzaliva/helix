@@ -1088,9 +1088,10 @@ TODO: remove
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
     : @SHOperator Monoid_RthetaFlags i o
     :=
-      mkSHOperator' Monoid_RthetaFlags i o
+      mkSHOperator Monoid_RthetaFlags i o
                    (Diamond dot initial (get_family_op Monoid_RthetaFlags op_family))
                    _
+                   (IUnion_mem (get_family_mem_op Monoid_RthetaFlags op_family))
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
