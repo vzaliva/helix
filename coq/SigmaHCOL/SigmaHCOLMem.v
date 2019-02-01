@@ -144,7 +144,7 @@ Definition IUnion_mem
            (x: mem_block): option mem_block
   :=
     match n as m return n=m -> option mem_block with
-    | 0 => fun _ => Some x
+    | 0 => fun _ => Some (mem_empty) (* empty loop is no-op *)
     | S n' => fun E => IUnion_mem_aux
                      (eq_ind_r _ (Nat.lt_succ_diag_r n') E)
                      op_family_f x
