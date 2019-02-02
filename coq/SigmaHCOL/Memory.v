@@ -35,8 +35,10 @@ Definition mem_member k (m:NatMap CarrierA) := NM.mem k m.
 Definition mem_lookup k (m:NatMap CarrierA) := NM.find k m.
 Definition mem_empty := @NM.empty CarrierA.
 
+Definition mem_block := NatMap CarrierA.
+
 (* merge two memory blocks. Return `None` if there is an overlap *)
-Definition mem_merge (a b:NatMap CarrierA) : option (NatMap CarrierA)
+Definition mem_merge (a b: mem_block) : option (mem_block)
   :=
     NM.fold (fun k v m =>
                match m with
@@ -47,5 +49,23 @@ Definition mem_merge (a b:NatMap CarrierA) : option (NatMap CarrierA)
                end
             ) a (Some b).
 
-Definition mem_block := NatMap CarrierA.
+(* merge two memory blocks in (0..n-1) using given operation to combine values *)
+Definition mem_merge_with (f: CarrierA -> CarrierA -> CarrierA) (a b: mem_block)
+  : mem_block
+  :=
+    NM.fold (fun k v m =>
+               match mem_lookup k m with
+               | None => NM.add k v m
+               | Some x => NM.add k (f v x) m
+               end
+            ) a b.
+
+(* block of memory with indices (0..n-1) set to `v` *)
+Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
+  :=
+    match n with
+    | O => mem_add n v (mem_empty)
+    | S n' => mem_add n v (mem_const_block n' v)
+    end.
+
 Definition memory := NatMap mem_block.

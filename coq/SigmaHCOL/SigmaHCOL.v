@@ -1144,9 +1144,10 @@ TODO: remove
              (initial: CarrierA)
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
     : @SHOperator Monoid_RthetaSafeFlags i o:=
-    mkSHOperator' Monoid_RthetaSafeFlags i o
+    mkSHOperator Monoid_RthetaSafeFlags i o
                  (Diamond dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
+                 (IReduction_mem dot (get_family_mem_op _ op_family))
                  (family_in_index_set _ op_family)
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .
