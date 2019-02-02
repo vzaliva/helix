@@ -82,22 +82,6 @@ Section SigmaHCOL_Operators.
         svector_to_mem_block' 0 v.
      *)
 
-    (* This is "default" wrapper adding memory-based operator semanics based
-       on one provided on sparse vectors. *)
-    Definition mkSHOperator'
-               i o
-               op op_proper
-               in_index_set
-               out_index_set
-      :=
-        mkSHOperator
-          i o
-          op op_proper
-          (mem_op_of_op op)
-          in_index_set
-          out_index_set.
-
-
     (* Two vectors (=) at indices at given set *)
     Definition vec_equiv_at_set
                {n: nat}

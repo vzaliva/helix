@@ -7,9 +7,9 @@ Require Import Helix.Util.Misc.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.SigmaHCOL.SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
-
 
 Require Import Coq.Arith.Arith.
 Require Import Coq.Program.Program.
@@ -54,16 +54,14 @@ Section RthetaSafetyCast.
 
   Definition SafeCast {i o}
              (f: @SHOperator Monoid_RthetaSafeFlags i o)
-    : @SHOperator Monoid_RthetaFlags i o.
-  Proof.
-    refine (mkSHOperator' Monoid_RthetaFlags i o
-                         (SafeCast' (op Monoid_RthetaSafeFlags f))
-                         _  _ _).
-    -
-      apply f.
-    -
-      apply f.
-  Defined.
+    : @SHOperator Monoid_RthetaFlags i o
+    :=
+      mkSHOperator Monoid_RthetaFlags i o
+                   (SafeCast' (op Monoid_RthetaSafeFlags f))
+                   _
+                   (mem_op _ f)
+                   (in_index_set _ f)
+                   (out_index_set _ f).
 
   Global Instance SafeCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@SafeCast i o).
@@ -121,16 +119,14 @@ Section RthetaSafetyCast.
 
   Definition UnSafeCast {i o}
              (f: @SHOperator Monoid_RthetaFlags i o)
-    : @SHOperator Monoid_RthetaSafeFlags i o.
-  Proof.
-    refine (mkSHOperator' Monoid_RthetaSafeFlags i o
-                         (UnSafeCast' (op Monoid_RthetaFlags f))
-                         _  _ _).
-    -
-      apply f.
-    -
-      apply f.
-  Defined.
+    : @SHOperator Monoid_RthetaSafeFlags i o
+    :=
+      mkSHOperator Monoid_RthetaSafeFlags i o
+                   (UnSafeCast' (op Monoid_RthetaFlags f))
+                   _
+                   (mem_op _ f)
+                   (in_index_set _ f)
+                   (out_index_set _ f).
 
   Global Instance UnSafeCast_proper (i o:nat):
     Proper (equiv ==> equiv) (@UnSafeCast i o).
@@ -224,11 +220,14 @@ Section TSigmaHCOLOperators.
              (op1 op2: @SHOperator fm i o)
     : @SHOperator fm i o
     :=
-      mkSHOperator' fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
+      mkSHOperator fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
                    (@HTSUMUnion'_arg_proper i o
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)
                                             dot dot_mor)
+                   (HTSUMUnion_mem
+                      (mem_op _ op1)
+                      (mem_op _ op2))
                    (Ensembles.Union _ (in_index_set _ op1) (in_index_set _ op2))
                    (Ensembles.Union _ (out_index_set _ op1) (out_index_set _ op2)).
 
