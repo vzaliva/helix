@@ -4,7 +4,7 @@ Require Import Coq.Lists.List.
 Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Utils.
-Require Import Helix.LLVMGen.Intrinsics.
+Require Import Helix.LLVMGen.Externals.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.Numeric.Floats.

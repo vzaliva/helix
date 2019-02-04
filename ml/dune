@@ -1,4 +1,4 @@
 (executables
   (names testeval)
-  (libraries extracted core ANSITerminal)
+  (libraries extracted libvellvm core ANSITerminal)
   (modes byte))

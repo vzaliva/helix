@@ -50,3 +50,4 @@ experiments/dywin.s
 /.*.tmp
 /test.ll
 /test.o
+/ml/libvellvm

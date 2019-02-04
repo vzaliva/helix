@@ -9,6 +9,7 @@ HELIX: SPIRAL formalization in Coq with LLVM backend
 * [math-classes](https://github.com/math-classes/math-classes)
 * [Template Coq](https://template-coq.github.io/template-coq/)
 * [Flocq](http://flocq.gforge.inria.fr/)
+* [vellvm](https://github.com/vellvm/vellvm) [*see below]
 * [coq-dpdgraph](https://github.com/Karmaki/coq-dpdgraph) (optional)
 
 To install all required dependenceis:
@@ -17,6 +18,13 @@ To install all required dependenceis:
     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch ANSITerminal
 
 ### Bulding and Running ###
+
+VELLVM dependency:
+
+You need to check out master branch of LLVM and symlink it as follows:
+
+    ln -s <path_to_vellvm_checkout>/vellvm helix/lib
+    ln -s <path_to_vellvm_checkout>/vellvm/src/ml/libvellvm helix/ml
 
 To build:
     

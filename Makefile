@@ -43,17 +43,11 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 
 EXE=ml/_build/default/testeval.exe
 
-ml/llvm_printer.ml: lib/vellvm/src/ml/llvm_printer.ml
-	cp lib/vellvm/src/ml/llvm_printer.ml ml/llvm_printer.ml
-
-ml/llvm_printer.mli: lib/vellvm/src/ml/llvm_printer.mli
-	cp lib/vellvm/src/ml/llvm_printer.mli ml/llvm_printer.mli
-
 $(CEXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli ml/testcomp.ml
 	@echo "Compiling $(CEXE)"
 	(cd ml; dune build --profile=dev testcomp.exe)
 
-$(EXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli ml/testeval.ml
+$(EXE): extracted ml/dune ml/extracted/dune ml/testeval.ml
 	@echo "Compiling $(EXE)"
 	(cd ml; dune build --profile=dev testeval.exe)
 

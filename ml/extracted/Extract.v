@@ -1,3 +1,5 @@
+Require Vellvm.TopLevel.
+Require Vellvm.Transform.
 
 Require Helix.LLVMGen.Compiler.
 Require Helix.LLVMGen.Tests.
@@ -42,4 +44,6 @@ Set Extraction AccessOpaque.
 Cd "ml/extracted".
 
 Extraction Library ExtrOcamlIntConv.
+Recursive Extraction Library TopLevel.
 Recursive Extraction Library Tests.
+Extraction Library Transform.
