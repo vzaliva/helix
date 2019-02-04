@@ -19,7 +19,7 @@ proof assistant.
 - LLVM is used machine code generation backend.
 - Main application: Cyber-physical systems.
 
-** Dependencies ###
+** Dependencies
 
    - [[https://coq.inria.fr/][Coq 8.8.1]]
    - [[http://color.inria.fr/][CoLoR]]
