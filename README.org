@@ -1,0 +1,71 @@
+* HELIX
+
+HELIX is a formally verified operator language and rewriting engine
+for generation of highperformance implementation for a variety of
+linear algebra algorithms. Based on the existing SPIRAL system, HELIX
+adds the rigor of formal verification of its correctness using Coq
+proof assistant.
+
+- HELIX focuses on automatic translation a class of mathematical expressions
+  to code.
+- It works by revealing implicit iteration constructs and re-shaping
+  them to match target platform parallelizm and vectorization
+  capabilities.
+- HELIX is rigorously defined and formally verified.
+- HELIX is implemented in Coq proof assistant.
+- It supports non-linear operators.
+- Presently, HELIX uses SPIRAL as an optimization oracle, but it
+  certifies it's findings.
+- LLVM is used machine code generation backend.
+- Main application: Cyber-physical systems.
+
+** Dependencies ###
+*** [[https://coq.inria.fr/][Coq 8.8.1]]
+*** [[http://color.inria.fr/][CoLoR]]
+*** [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
+*** [[https://github.com/math-classes/math-classes][math-classes]]
+*** [[https://template-coq.github.io/template-coq/][Template Coq]]
+*** [[http://flocq.gforge.inria.fr/][Flocq]]
+*** [[https://github.com/vellvm/vellvm][Vellvm]] /(*manual installation instructions below)/
+*** [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
+
+ To install all required dependenceis:
+
+#+BEGIN_SRC sh
+     opam repo add coq-released https://coq.inria.fr/opam/released
+     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch ANSITerminal
+#+END_SRC
+
+** Bulding and Running 
+
+*** Install VELLVM dependency:
+
+ You need to manually check out /master/ branch of VELLVM and symlink it as follows:
+
+#+BEGIN_SRC sh
+     ln -s <path_to_vellvm_checkout>/vellvm helix/lib
+     ln -s <path_to_vellvm_checkout>/vellvm/src/ml/libvellvm helix/ml
+#+END_SRC
+
+*** Build:
+    
+#+BEGIN_SRC sh
+     make
+#+END_SRC
+    
+*** Run unit tests:
+
+#+BEGIN_SRC sh
+     make test
+#+END_SRC
+
+** Papers
+*** [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
+*** [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
+*** [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
+
+
+** Contact
+
+   [[mailto:vzaliva@cmu.edu][Vadim Zaliva]]
+
