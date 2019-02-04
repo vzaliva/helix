@@ -20,14 +20,15 @@ proof assistant.
 - Main application: Cyber-physical systems.
 
 ** Dependencies ###
-*** [[https://coq.inria.fr/][Coq 8.8.1]]
-*** [[http://color.inria.fr/][CoLoR]]
-*** [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
-*** [[https://github.com/math-classes/math-classes][math-classes]]
-*** [[https://template-coq.github.io/template-coq/][Template Coq]]
-*** [[http://flocq.gforge.inria.fr/][Flocq]]
-*** [[https://github.com/vellvm/vellvm][Vellvm]] /(*manual installation instructions below)/
-*** [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
+
+   - [[https://coq.inria.fr/][Coq 8.8.1]]
+   - [[http://color.inria.fr/][CoLoR]]
+   - [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
+   - [[https://github.com/math-classes/math-classes][math-classes]]
+   - [[https://template-coq.github.io/template-coq/][Template Coq]]
+   - [[http://flocq.gforge.inria.fr/][Flocq]]
+   - [[https://github.com/vellvm/vellvm][Vellvm]] /(*manual installation instructions below)/
+   - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
  To install all required dependenceis:
 
@@ -60,9 +61,9 @@ proof assistant.
 #+END_SRC
 
 ** Papers
-*** [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
-*** [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
-*** [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
+    - [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
+    - [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
+    - [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
 
 
 ** Contact
