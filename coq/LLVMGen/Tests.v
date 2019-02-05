@@ -282,6 +282,9 @@ Definition genMain
                            ]
         |}].
 
+Require ExternalsSemantics.
+Module EXT := ExternalsSemantics.Make(Memory.A)(IO).
+
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
   : ((option (toplevel_entities (list block))) * (option (Trace DV.dvalue)))
   :=
@@ -305,7 +308,11 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
                 s <- SS.init_state mcfg "main" ;;
                   SS.step_sem mcfg (SS.Step s)
             in
-            let after_intrinsics_trace := INT.evaluate_with_defined_intrinsics core_trace in
+            let all_intrinsics :=
+                List.app INT.IS.defined_intrinsics EXT.helix_intrinsics
+            in
+            let after_intrinsics_trace :=
+                INT.evaluate_intrinsics all_intrinsics core_trace in
             (Some code, Some (M.memD M.empty after_intrinsics_trace))
           end
         end
