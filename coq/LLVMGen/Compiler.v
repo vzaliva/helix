@@ -7,6 +7,7 @@ Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
+Require Import Vellvm.IntrinsicsDefinitions.
 Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.LLVMAst.
 
@@ -174,6 +175,9 @@ Definition newLocalVarNamed (st:IRState) (t:typ) (prefix:string): (IRState*raw_i
     |}, v).
 
 Definition newLocalVar (st:IRState) (t:typ): (IRState*raw_id) := newLocalVarNamed st t "l".
+
+Definition intrinsic_exp (d:declaration): exp :=
+  EXP_Ident (ID_Global (dc_name d)).
 
 Section monadic.
 
@@ -377,16 +381,16 @@ Section monadic.
                                              (ret 8%Z))
              ])
       | AAbs a => match ft with
-                 | Float32 => gen_call1 a (intrinsic_exp fabs_32)
-                 | Float64 => gen_call1 a (intrinsic_exp fabs_64)
+                 | Float32 => gen_call1 a (intrinsic_exp fabs_32_decl)
+                 | Float64 => gen_call1 a (intrinsic_exp fabs_64_decl)
                  end
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
       | AMin a b => raise "AMin not implemented" (* TODO *)
       | AMax a b => match ft with
-                   | Float32 => gen_call2 a b (intrinsic_exp maxnum_32)
-                   | Float64 => gen_call2 a b (intrinsic_exp maxnum_64)
+                   | Float32 => gen_call2 a b (intrinsic_exp maxnum_32_decl)
+                   | Float64 => gen_call2 a b (intrinsic_exp maxnum_64_decl)
                    end
       | AZless a b =>
         (* this is special as requires bool -> double cast *)
@@ -451,7 +455,7 @@ Section monadic.
                                                           ptyp
                                      ));
 
-                                     (IVoid callid, INSTR_Call (TYPE_Void, intrinsic_exp memcpy_8)
+                                     (IVoid callid, INSTR_Call (TYPE_Void, intrinsic_exp memcpy_8_decl)
                                                                [
                                                                  (ptyp, EXP_Ident (ID_Local yb));
                                                                    (ptyp, EXP_Ident (ID_Local xb));
@@ -1213,6 +1217,11 @@ Section monadic.
           |} in
       '(st,(_,body)) <- genIR x y fshcol st rid ;;
        let body := body ++ [retblock] in
+       let all_intrinsics:toplevel_entities (list block)
+           := [@TLE_Comment (list block) "Prototypes for intrinsics we use"]
+                ++ (List.map (TLE_Declaration) (
+                               helix_intrinsics_decls ++ defined_intrinsics_decls))
+       in
        ret
          (all_intrinsics ++
                          (if globals_extern then

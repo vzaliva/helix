@@ -5,6 +5,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Compiler.
+Require Import Helix.LLVMGen.Externals.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMIO.
@@ -282,8 +283,7 @@ Definition genMain
                            ]
         |}].
 
-Require ExternalsSemantics.
-Module EXT := ExternalsSemantics.Make(Memory.A)(IO).
+Module EXT := Externals.Make(Memory.A)(IO).
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
   : ((option (toplevel_entities (list block))) * (option (Trace DV.dvalue)))
