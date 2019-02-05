@@ -22,4 +22,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Automate /DynWin/ rewriting proof
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
+** =maxnum=  implementation
+   Currently implemented as C =max= macro. Should be more
+   like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
+   LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
