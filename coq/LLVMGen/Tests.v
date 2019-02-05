@@ -10,6 +10,7 @@ Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMIO.
 Require Import Vellvm.StepSemantics.
 Require Import Vellvm.Memory.
+Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
@@ -140,10 +141,6 @@ Definition all_tests :=
 
 
 Import MonadNotation.
-
-Module IO := LLVMIO.Make(Memory.A).
-Module M := Memory.Make(IO).
-Module SS := StepSemantics(Memory.A)(IO).
 
 Import IO.
 Export IO.DV.
@@ -303,9 +300,13 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
           match CFG.mcfg_of_modul scfg with
           | None => (Some prog, None)
           | Some mcfg =>
-            (Some code, Some (M.memD M.empty
-                                     (s <- SS.init_state mcfg "main" ;;
-                                        SS.step_sem mcfg (SS.Step s))))
+
+            let core_trace : Trace dvalue :=
+                s <- SS.init_state mcfg "main" ;;
+                  SS.step_sem mcfg (SS.Step s)
+            in
+            let after_intrinsics_trace := INT.evaluate_with_defined_intrinsics core_trace in
+            (Some code, Some (M.memD M.empty after_intrinsics_trace))
           end
         end
     end data.
