@@ -14,6 +14,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Rename implementations with ' suffux into "_Impl" in /SigmaHCOLImpl.v/.
   For example =eT'= should become =eTImpl=
 ** Run =coq-min-imports= on all codebase
+** GEP definition in Coq
 
 * Proof mechanics
 ** Review `_arg_proper` vs `_proper` instances
