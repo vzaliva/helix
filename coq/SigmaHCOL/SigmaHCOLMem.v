@@ -12,14 +12,16 @@ Global Open Scope nat_scope.
 
 Set Implicit Arguments.
 
-Definition avector_to_mem_block {n:nat}: (vector CarrierA n) -> mem_block :=
-  let fix avector_to_mem_block' n i v :=
+Fixpoint avector_to_mem_block' {n} (i:nat) (v:vector CarrierA n): mem_block
+  :=
     match v with
     | Vnil => mem_empty
     | Vcons x xs =>
-      mem_add n x (avector_to_mem_block' _ (S i) xs)
-    end
-  in avector_to_mem_block' n 0.
+      mem_add n x (avector_to_mem_block' (S i) xs)
+    end.
+
+Definition avector_to_mem_block {n:nat}: (vector CarrierA n) -> mem_block
+  := avector_to_mem_block' 0.
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
