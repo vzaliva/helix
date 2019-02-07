@@ -69,3 +69,5 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
     end.
 
 Definition memory := NatMap mem_block.
+
+Definition mem_block_equiv:= NM.Equiv CarrierAe.
