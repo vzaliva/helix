@@ -27,4 +27,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Currently implemented as C =max= macro. Should be more
    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
+* Ideas
+  - See if =coq-equations= package could be used to represent index
+    functions and function arguments of =BinOp=, =Pointwise=, etc.
 
