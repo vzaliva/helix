@@ -145,6 +145,8 @@ Proof.
       destruct H as [Hh Ht].
       specialize (IHn xs ys Ht).
       destruct IHn as [IHn0 IHn1].
+      unfold avector_to_mem_block in *.
+      simpl.
 Qed.
 
 Class SHOperator_MemVecEq
