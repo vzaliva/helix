@@ -12,16 +12,14 @@ Global Open Scope nat_scope.
 
 Set Implicit Arguments.
 
-Fixpoint avector_to_mem_block' {n} (i:nat) (v:vector CarrierA n): mem_block
-  :=
+Definition avector_to_mem_block {n:nat}: (vector CarrierA n) -> mem_block :=
+  let fix avector_to_mem_block' n i v :=
     match v with
     | Vnil => mem_empty
     | Vcons x xs =>
-      mem_add n x (avector_to_mem_block' (S i) xs)
-    end.
-
-Definition avector_to_mem_block {n:nat}: (vector CarrierA n) -> mem_block
-  := avector_to_mem_block' 0.
+      mem_add n x (avector_to_mem_block' _ (S i) xs)
+    end
+  in avector_to_mem_block' n 0.
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
@@ -66,29 +64,27 @@ Fixpoint Gather_mem
                end
     end f.
 
-Fixpoint Scatter_mem_aux
-         {i o: nat}
-         (j: nat)
-         {f: index_map i o}
-         (fi: inverse_index_map f)
-         (x: mem_block) : option mem_block
-  :=
-    let o' := inverse_index_f f fi j in
-    let map_one ys := map_mem_block_elt x j ys o' in
-    match j with
-    | O => map_one (mem_empty)
-    | S j' => match Scatter_mem_aux j' fi x with
-             | None => None
-             | Some ys => map_one ys
-             end
-    end.
-
 Definition Scatter_mem {i o: nat} (f: index_map i o)
-  :
-    mem_block -> option mem_block
+  : mem_block -> option mem_block
   :=
-    Scatter_mem_aux i (build_inverse_index_map f).
+    let fix Scatter_mem'
+            (j: nat)
+            (fi: inverse_index_map f)
+            (x: mem_block) : option mem_block
+        :=
+        let o' := inverse_index_f f fi j in
+        let map_one ys := map_mem_block_elt x j ys o' in
+        match j with
+        | O => map_one (mem_empty)
+        | S j' => match Scatter_mem' j' fi x with
+                 | None => None
+                 | Some ys => map_one ys
+                 end
+        end
+    in
+    Scatter_mem' i (build_inverse_index_map f).
 
+(* This is defined for n>0 *)
 Fixpoint IUnion_mem_aux
          {n: nat}
          (j: nat) (jc: j<n)
@@ -104,6 +100,7 @@ Fixpoint IUnion_mem_aux
              end
   end jc.
 
+(* This is defined for n>=0 *)
 Definition IUnion_mem
            {n: nat}
            (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
@@ -116,6 +113,7 @@ Definition IUnion_mem
                      op_family_f x
     end eq_refl.
 
+(* This is defined for n>0 *)
 Fixpoint IReduction_mem_aux
          {n: nat}
          (j: nat) (jc: j<n)
@@ -134,6 +132,7 @@ Fixpoint IReduction_mem_aux
                end
     end jc.
 
+(* This is defined for n>=0 *)
 Definition IReduction_mem
            {n: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
