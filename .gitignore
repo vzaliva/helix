@@ -51,3 +51,4 @@ experiments/dywin.s
 /test.ll
 /test.o
 /ml/libvellvm
+/lib/vellvm
