@@ -37,9 +37,6 @@ Module Make (K:OrderedType) (Import M:WSfun K) (V:BooleanDecidableType).
     intros H.
     apply in_find_iff.
     apply find_1 in H.
-    rewrite H.
-    unfold not.
-    intros.
     congruence.
   Qed.
 
