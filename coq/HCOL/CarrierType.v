@@ -2,6 +2,7 @@
 Carrier type used in all our proofs. Could be real of Float in future.
  *)
 
+Require Import Coq.Structures.Equalities.
 
 Require Import CoLoR.Util.Vector.VecUtil.
 
@@ -77,3 +78,28 @@ Proof.
   rewrite aE, zE in l; contradiction.
   rewrite <- aE, <- zE in l; contradiction.
 Qed.
+
+Definition CarrierA_beq (a b: CarrierA) : bool := bool_decide (a=b).
+
+Lemma CarrierA_eqb_equiv : ∀ x y : CarrierA, CarrierA_beq x y ≡ true ↔ equiv x y.
+Proof.
+  intros x y.
+  split.
+  -
+    intros H.
+    unfold CarrierA_beq in H.
+    apply bool_decide_true, H.
+  -
+    intros H.
+    unfold CarrierA_beq.
+    apply bool_decide_true, H.
+Qed.
+
+Module CarrierA_as_BooleanDecidableType <: BooleanDecidableType.
+  Definition t := CarrierA.
+  Definition eq := CarrierAe.
+  Definition eq_equiv := @setoid_eq CarrierA CarrierAe CarrierAsetoid.
+  Definition eq_dec : ∀ x y : t, {eq x y} + {¬ eq x y} := CarrierAequivdec.
+  Definition eqb := CarrierA_beq.
+  Definition eqb_eq := CarrierA_eqb_equiv.
+End CarrierA_as_BooleanDecidableType.
