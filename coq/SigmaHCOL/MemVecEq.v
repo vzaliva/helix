@@ -4,6 +4,7 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
+Require Import Helix.Util.FMapSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
@@ -49,75 +50,39 @@ Definition svector_to_mem_block {fm} {n}:=
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.
 
-Require Import Coq.FSets.FMapFacts.
-Module NMF := WFacts_fun Coq.Structures.OrderedTypeEx.Nat_as_OT NM.
-
-Definition NatMap := NM.t.
-
-Definition CarrierA_beq (a b: CarrierA) : bool
-  := bool_decide (a=b).
+Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
+                              CarrierA_as_BooleanDecidableType.
+Print NMS.
 
 Global Instance mem_block_Equiv_Reflexive:
   Reflexive (mem_block_Equiv).
 Proof.
-  intros x.
-  unfold mem_block_Equiv, mem_block_equiv.
-  rewrite NMF.Equiv_Equivb with (cmp:=CarrierA_beq).
-  -
-    unfold NM.Equivb, CarrierA_beq, NM.Equiv, bool_decide.
-    split.
-    +
-      reflexivity.
-    +
-      intros k e e' H0 H1.
-      unfold Cmp.
-      break_if.
-      * reflexivity.
-      *
-        clear Heqd.
-        apply NMF.MapsTo_fun with (e:=e') in H0.
-        rewrite H0 in n.
-        auto.
-        apply H1.
-  -
-    split.
-    +
-      unfold CarrierA_beq, bool_decide.
-      break_if.
-      auto.
-      intros.
-      congruence.
-    +
-      intros H.
-      unfold CarrierA_beq, bool_decide.
-      break_if.
-      auto.
-      contradiction n.
+  apply NMS.EquivSetoid_Reflexive.
+  typeclasses eauto.
 Qed.
 
 Global Instance mem_block_Equiv_Symmetric:
   Symmetric (mem_block_Equiv).
 Proof.
-  intros x y.
-  unfold mem_block_Equiv, mem_block_equiv.
-Admitted.
+  apply NMS.EquivSetoid_Symmetric.
+  typeclasses eauto.
+Qed.
 
 Global Instance mem_block_Equiv_Transitive:
   Transitive (mem_block_Equiv).
 Proof.
-  intros x y z.
-  unfold mem_block_Equiv, mem_block_equiv.
-Admitted.
+  apply NMS.EquivSetoid_Transitive.
+  typeclasses eauto.
+Qed.
 
 Global Instance mem_block_Equiv_Equivalence:
   Equivalence (mem_block_Equiv).
 Proof.
-  split.
-  apply mem_block_Equiv_Reflexive.
-  apply mem_block_Equiv_Symmetric.
-  apply mem_block_Equiv_Transitive.
+  apply NMS.EquivSetoid_Equivalence.
+  typeclasses eauto.
 Qed.
 
+(*
 Global Instance avector_to_mem_block_Proper {n}:
   Proper ((=) ==> (=)) (@avector_to_mem_block n).
 Proof.
@@ -133,22 +98,23 @@ Proof.
       intros;simpl.
       unfold avector_to_mem_block in *.
       unfold mem_empty in *.
-      apply NMF.empty_mapsto_iff in H0.
+      apply NMS.F.empty_mapsto_iff in H0.
       destruct H0.
   -
     split.
     +
-      intros.
-      dep_destruct x. clear x. rename h into xh, x0 into xs.
-      dep_destruct y. clear y. rename h into yh, x into ys.
+      intros k.
+      dep_destruct x; clear x; rename h into xh, x0 into xs.
+      dep_destruct y; clear y; rename h into yh, x into ys.
       apply Vcons_equiv_elim in H.
       destruct H as [Hh Ht].
       specialize (IHn xs ys Ht).
       destruct IHn as [IHn0 IHn1].
       unfold avector_to_mem_block in *.
       simpl.
-Qed.
 
+Qed.
+*)
 Class SHOperator_MemVecEq
       {fm}
       {i o: nat}
