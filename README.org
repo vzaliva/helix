@@ -21,11 +21,11 @@ proof assistant.
 
 ** Dependencies
 
-   - [[https://coq.inria.fr/][Coq 8.8.1]]
+   - [[https://coq.inria.fr/][Coq 8.8.2]]
    - [[http://color.inria.fr/][CoLoR]]
    - [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
    - [[https://github.com/math-classes/math-classes][math-classes]]
-   - [[https://template-coq.github.io/template-coq/][Template Coq]]
+   - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
    - [[https://github.com/vellvm/vellvm][Vellvm]] /(*manual installation instructions below)/
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
