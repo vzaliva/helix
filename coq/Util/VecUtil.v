@@ -190,6 +190,27 @@ Section VFold.
 
 End VFold.
 
+Section Vfold_right_indexed.
+
+  Fixpoint Vfold_right_indexed
+           {n:nat}
+           {A B:Type}
+           (f: nat -> A -> B -> B)
+           (v:vector A n)
+           (b: B) (* initial value *)
+
+  : B
+    :=
+      let fix Vfold_right_indexed' (i:nat) {n} (v:vector A n) : B :=
+          match v with
+          | Vnil => b
+          | Vcons x xs =>
+            f i x (Vfold_right_indexed' (S i) xs)
+          end
+      in Vfold_right_indexed' 0 v.
+
+End Vfold_right_indexed.
+
 Section VBreak.
   Lemma Vbreak_arg_app:
     forall {B} (m n : nat) (x : vector B (m + n)) (a: vector B m) (b: vector B n),
