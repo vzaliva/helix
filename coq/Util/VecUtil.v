@@ -192,19 +192,22 @@ End VFold.
 
 Section Vfold_right_indexed.
 
-  Fixpoint Vfold_right_indexed
+  Program Fixpoint Vfold_right_indexed
            {n:nat}
            {A B:Type}
-           (f: nat -> A -> B -> B)
+           (f : forall i (ip:i < n), A -> B -> B)
            (v:vector A n)
            (b: B) (* initial value *)
 
   : B
-    := match v with
-       | Vnil => b
-       | Vcons x xs =>
-         f 0 x (Vfold_right_indexed (fun i => f (S i)) xs b)
-       end.
+    := match v, n as m return n=m -> B with
+               | Vnil, _ => fun _ => b
+               | Vcons x xs, n' =>
+                 fun E =>
+                   let f' := (fun i ip => f (S i) (lt_n_S ip) ) in
+                   f 0 _ x (Vfold_right_indexed f' xs b)
+       end eq_refl.
+  Next Obligation. apply zero_lt_Sn. Qed.
 
 End Vfold_right_indexed.
 
