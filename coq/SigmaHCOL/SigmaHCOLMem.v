@@ -15,7 +15,7 @@ Global Open Scope nat_scope.
 Set Implicit Arguments.
 
 Definition avector_to_mem_block {n:nat} (v: avector n): mem_block
-  := Vfold_right_indexed mem_add v mem_empty.
+  := Vfold_right_indexed (fun i _ => mem_add i) v mem_empty.
 
 (* TODO: move somewhere, like FMapUtil.v *)
 Section FMapUtil.
