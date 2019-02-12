@@ -62,6 +62,19 @@ Section FMapUtil.
 
 End FMapUtil.
 
+Lemma avector_to_mem_block_spec_cons
+      {n:nat}
+      {i:nat} (ip: i<n)
+      (x: CarrierA)
+      (xs : vector CarrierA n):
+  mem_lookup (S i) (avector_to_mem_block (x :: xs)) =
+  mem_lookup i (avector_to_mem_block xs).
+Proof.
+  unfold mem_lookup, avector_to_mem_block, mem_add, NM.key.
+  simpl.
+  rewrite NM_find_add_3 by auto.
+Admitted.
+
 Lemma avector_to_mem_block_spec
       (n : nat)
       (v : avector n)
@@ -89,15 +102,7 @@ Proof.
       specialize (IHn x i N).
       replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
       rewrite <- IHn; clear IHn.
-      (* useful lemma here *)
-      unfold avector_to_mem_block, mem_add, NM.key.
-      simpl.
-      rewrite NM_find_add_3 by auto.
-      destruct n.
-      *
-        nat_lt_0_contradiction.
-      *
-        simpl.
+      apply avector_to_mem_block_spec_cons, N.
 Qed.
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
