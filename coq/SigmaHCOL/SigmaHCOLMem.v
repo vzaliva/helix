@@ -1,27 +1,104 @@
 (* Memory-based implementations of SHCOL operators *)
 
 Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Peano_dec.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.Tactics.HelixTactics.
 
 Global Open Scope nat_scope.
 
 Set Implicit Arguments.
 
-Fixpoint avector_to_mem_block' {n} (i:nat) (v:vector CarrierA n): mem_block
-  :=
-    match v with
-    | Vnil => mem_empty
-    | Vcons x xs =>
-      mem_add n x (avector_to_mem_block' (S i) xs)
-    end.
+Definition avector_to_mem_block {n:nat} (v: avector n): mem_block
+  := Vfold_right_indexed mem_add v mem_empty.
 
-Definition avector_to_mem_block {n:nat}: (vector CarrierA n) -> mem_block
-  := avector_to_mem_block' 0.
+(* TODO: move somewhere, like FMapUtil.v *)
+Section FMapUtil.
+
+  Lemma NM_find_add_1:
+    forall (elt:Type) (m : NM.t elt) (x y : NM.key) (e: elt),
+      x = y ->
+      NM.find y (NM.add x e m) = Some e.
+  Proof.
+    intros elt m x y e H.
+    apply NM.find_1.
+    apply NM.add_1.
+    apply H.
+  Qed.
+
+  Lemma NM_find_add_3:
+    forall (elt:Type) (m : NM.t elt) (x y : NM.key) (e: elt),
+      x <> y ->
+      NM.find y (NM.add x e m) = NM.find y m.
+  Proof.
+    intros elt m x y e H.
+    match goal with
+    | [ |- ?l = ?r ] => remember l as L; remember r as R
+    end.
+    destruct L, R; auto.
+    -
+      symmetry in HeqL.
+      apply NM.find_2, NM.add_3, NM.find_1 in HeqL.
+      rewrite <- HeqL, HeqR.
+      reflexivity.
+      apply H.
+    -
+      symmetry in HeqL.
+      apply NM.find_2, NM.add_3, NM.find_1 in HeqL.
+      rewrite <- HeqL, HeqR.
+      reflexivity.
+      apply H.
+    -
+      symmetry in HeqR.
+      apply NM.find_2, NM.add_2 with (x:=x) (e':=e), NM.find_1  in HeqR.
+      congruence.
+      apply H.
+  Qed.
+
+End FMapUtil.
+
+Lemma avector_to_mem_block_spec
+      (n : nat)
+      (v : avector n)
+      (i:nat)
+      (ip : i < n)
+  : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
+Proof.
+  unfold mem_mapsto.
+  apply NM.find_2.
+  revert i ip; induction n; intros.
+  -
+    nat_lt_0_contradiction.
+  -
+    dep_destruct v;clear v.
+    simpl.
+    destruct i.
+    +
+      unfold avector_to_mem_block, mem_add.
+      simpl.
+      apply NM_find_add_1.
+      reflexivity.
+    +
+      simpl.
+      assert (N: i<n) by apply Lt.lt_S_n, ip.
+      specialize (IHn x i N).
+      replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
+      rewrite <- IHn; clear IHn.
+      (* useful lemma here *)
+      unfold avector_to_mem_block, mem_add, NM.key.
+      simpl.
+      rewrite NM_find_add_3 by auto.
+      destruct n.
+      *
+        nat_lt_0_contradiction.
+      *
+        simpl.
+Qed.
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).

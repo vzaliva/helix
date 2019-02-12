@@ -161,7 +161,7 @@ Section MemVecEq.
         simpl.
         unfold svector_to_mem_block, compose in *.
         simpl in *.
-
+        rewrite <- IHt.
     -
       simpl.
 
