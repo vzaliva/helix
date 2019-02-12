@@ -2,6 +2,7 @@
 
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Arith.Lt.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
@@ -62,6 +63,51 @@ Section FMapUtil.
 
 End FMapUtil.
 
+(*
+Program Definition avector_to_mem_block_spec
+        {n : nat}
+        (v : avector n):
+  { m : mem_block | forall i (ip : i < n), mem_lookup i m = Some (Vnth v ip)}
+  :=
+    let fix loop
+            {n':nat}
+            (f : forall j, j < n' -> CarrierA -> mem_block -> mem_block)
+            (v': avector n') : mem_block
+        :=
+        match v', n' as m return n'=m -> mem_block with
+        | Vnil, _ => fun _ => mem_empty
+        | Vcons x xs, n'' =>
+          fun E =>
+            let f' := fun i ip => f (S i) _  in
+            f 0 _ x (loop f' xs)
+
+        end eq_refl
+    in
+    loop (fun i (_:i<n) => mem_add i) v.
+  Next Obligation. apply lt_n_S, ip. Qed.
+  Next Obligation. apply zero_lt_Sn. Qed.
+  Next Obligation.
+  Proof.
+    unfold mem_lookup.
+    revert i ip; induction n; intros.
+    -
+      nat_lt_0_contradiction.
+    -
+      dep_destruct v;clear v.
+      simpl.
+      destruct i.
+      +
+        unfold avector_to_mem_block, mem_add.
+        apply NM_find_add_1.
+        reflexivity.
+      +
+        simpl.
+        assert (N: i<n) by apply Lt.lt_S_n, ip.
+        specialize (IHn x i N).
+        replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
+        rewrite <- IHn; clear IHn.
+  Defined.
+
 Lemma avector_to_mem_block_spec_cons
       {n:nat}
       {i:nat} (ip: i<n)
@@ -73,12 +119,19 @@ Proof.
   unfold mem_lookup, avector_to_mem_block, mem_add, NM.key.
   simpl.
   rewrite NM_find_add_3 by auto.
+  clear x. rename xs into v.
 Admitted.
+ *)
+
+
+Require Import Coq.Program.Equality. (* for `dependent induction` *)
+Require Import Coq.FSets.FMapFacts.
+Module Import F:=WFacts_fun Coq.Structures.OrderedTypeEx.Nat_as_OT NM.
 
 Lemma avector_to_mem_block_spec
       (n : nat)
       (v : avector n)
-      (i:nat)
+      (i: nat)
       (ip : i < n)
   : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
 Proof.
@@ -90,8 +143,9 @@ Proof.
   -
     dep_destruct v;clear v.
     simpl.
-    destruct i.
+    induction i.
     +
+      intros.
       unfold avector_to_mem_block, mem_add.
       simpl.
       apply NM_find_add_1.
