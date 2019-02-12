@@ -200,14 +200,11 @@ Section Vfold_right_indexed.
            (b: B) (* initial value *)
 
   : B
-    :=
-      let fix Vfold_right_indexed' (i:nat) {n} (v:vector A n) : B :=
-          match v with
-          | Vnil => b
-          | Vcons x xs =>
-            f i x (Vfold_right_indexed' (S i) xs)
-          end
-      in Vfold_right_indexed' 0 v.
+    := match v with
+       | Vnil => b
+       | Vcons x xs =>
+         f 0 x (Vfold_right_indexed (fun i => f (S i)) xs b)
+       end.
 
 End Vfold_right_indexed.
 
