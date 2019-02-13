@@ -52,7 +52,6 @@ Global Instance mem_block_Equiv:
 
 Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
                               CarrierA_as_BooleanDecidableType.
-Print NMS.
 
 Global Instance mem_block_Equiv_Reflexive:
   Reflexive (mem_block_Equiv).
