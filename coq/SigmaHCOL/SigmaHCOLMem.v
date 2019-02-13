@@ -3,6 +3,8 @@
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Lt.
+Require Import Psatz.
+Require Import Omega.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
@@ -15,8 +17,8 @@ Global Open Scope nat_scope.
 
 Set Implicit Arguments.
 
-Definition avector_to_mem_block {n:nat} (v: avector n): mem_block
-  := Vfold_right_indexed (fun i _ => mem_add i) v mem_empty.
+Require Import Coq.FSets.FMapFacts.
+Module Import F:=WFacts_fun Coq.Structures.OrderedTypeEx.Nat_as_OT NM.
 
 (* TODO: move somewhere, like FMapUtil.v *)
 Section FMapUtil.
@@ -63,78 +65,93 @@ Section FMapUtil.
 
 End FMapUtil.
 
-(*
+Lemma find_vold_right_indexed'_off:
+  forall (n i : nat) (off:nat) (x : vector CarrierA n),
+    NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) =
+    NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
+Proof.
+  intros n i off v.
+  revert i off.
+  induction n; intros.
+  -
+    dep_destruct v.
+    simpl.
+    unfold mem_empty.
+    repeat rewrite empty_o.
+    reflexivity.
+  -
+    dep_destruct v.
+    simpl.
+
+    induction i.
+    +
+      unfold mem_add.
+      rewrite NM_find_add_1 by reflexivity.
+      rewrite NM_find_add_1 by reflexivity.
+      reflexivity.
+    +
+      rewrite NM_find_add_3 by omega.
+      rewrite NM_find_add_3 by omega.
+      replace (S i + off) with (i + S off) by lia.
+      replace (S off) with (0 + S off) by lia.
+      rewrite IHn.
+      symmetry.
+      replace (1) with (0+1) by lia.
+      replace (S i) with (i+1) by lia.
+      apply IHn.
+Qed.
+
+Lemma find_vold_right_indexed'_S:
+  forall (n i : nat) (v : vector CarrierA n),
+    NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) =
+    NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
+Proof.
+  intros n i v.
+
+  replace (1) with (0+1) by lia.
+  replace (S i) with (i+1) by lia.
+  apply find_vold_right_indexed'_off.
+Qed.
+
 Program Definition avector_to_mem_block_spec
         {n : nat}
         (v : avector n):
   { m : mem_block | forall i (ip : i < n), mem_lookup i m = Some (Vnth v ip)}
-  :=
-    let fix loop
-            {n':nat}
-            (f : forall j, j < n' -> CarrierA -> mem_block -> mem_block)
-            (v': avector n') : mem_block
-        :=
-        match v', n' as m return n'=m -> mem_block with
-        | Vnil, _ => fun _ => mem_empty
-        | Vcons x xs, n'' =>
-          fun E =>
-            let f' := fun i ip => f (S i) _  in
-            f 0 _ x (loop f' xs)
+  := Vfold_right_indexed' 0 mem_add v mem_empty.
+Next Obligation.
+  unfold mem_lookup.
+  revert i ip; induction n; intros.
+  -
+    nat_lt_0_contradiction.
+  -
+    dep_destruct v;clear v.
+    simpl.
+    destruct i.
+    +
+      unfold Vfold_right_indexed, mem_add.
+      apply NM_find_add_1.
+      reflexivity.
+    +
+      rewrite NM_find_add_3; auto.
+      assert (N: i<n) by apply Lt.lt_S_n, ip.
+      specialize (IHn x i N).
+      replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
+      rewrite <- IHn; clear IHn.
+      apply find_vold_right_indexed'_S.
+Qed.
 
-        end eq_refl
-    in
-    loop (fun i (_:i<n) => mem_add i) v.
-  Next Obligation. apply lt_n_S, ip. Qed.
-  Next Obligation. apply zero_lt_Sn. Qed.
-  Next Obligation.
-  Proof.
-    unfold mem_lookup.
-    revert i ip; induction n; intros.
-    -
-      nat_lt_0_contradiction.
-    -
-      dep_destruct v;clear v.
-      simpl.
-      destruct i.
-      +
-        unfold avector_to_mem_block, mem_add.
-        apply NM_find_add_1.
-        reflexivity.
-      +
-        simpl.
-        assert (N: i<n) by apply Lt.lt_S_n, ip.
-        specialize (IHn x i N).
-        replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
-        rewrite <- IHn; clear IHn.
-  Defined.
+Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
 
-Lemma avector_to_mem_block_spec_cons
-      {n:nat}
-      {i:nat} (ip: i<n)
-      (x: CarrierA)
-      (xs : vector CarrierA n):
-  mem_lookup (S i) (avector_to_mem_block (x :: xs)) =
-  mem_lookup i (avector_to_mem_block xs).
-Proof.
-  unfold mem_lookup, avector_to_mem_block, mem_add, NM.key.
-  simpl.
-  rewrite NM_find_add_3 by auto.
-  clear x. rename xs into v.
-Admitted.
- *)
-
-
-Require Import Coq.Program.Equality. (* for `dependent induction` *)
-Require Import Coq.FSets.FMapFacts.
-Module Import F:=WFacts_fun Coq.Structures.OrderedTypeEx.Nat_as_OT NM.
-
-Lemma avector_to_mem_block_spec
+(*
+Lemma avector_to_mem_block_spec'
       (n : nat)
       (v : avector n)
       (i: nat)
       (ip : i < n)
   : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
 Proof.
+  unfold avector_to_mem_block.
+  simpl.
   unfold mem_mapsto.
   apply NM.find_2.
   revert i ip; induction n; intros.
@@ -158,6 +175,8 @@ Proof.
       rewrite <- IHn; clear IHn.
       apply avector_to_mem_block_spec_cons, N.
 Qed.
+ *)
+
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
