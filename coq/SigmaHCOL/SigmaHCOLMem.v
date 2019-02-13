@@ -14,11 +14,7 @@ Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.Tactics.HelixTactics.
 
 Global Open Scope nat_scope.
-
 Set Implicit Arguments.
-
-Require Import Coq.FSets.FMapFacts.
-Module Import F:=WFacts_fun Coq.Structures.OrderedTypeEx.Nat_as_OT NM.
 
 (* TODO: move somewhere, like FMapUtil.v *)
 Section FMapUtil.
