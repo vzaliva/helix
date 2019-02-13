@@ -142,7 +142,7 @@ Qed.
 
 Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
 
-(*
+(* alternative, propositional spec. *)
 Lemma avector_to_mem_block_spec'
       (n : nat)
       (v : avector n)
@@ -151,32 +151,9 @@ Lemma avector_to_mem_block_spec'
   : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
 Proof.
   unfold avector_to_mem_block.
-  simpl.
-  unfold mem_mapsto.
-  apply NM.find_2.
-  revert i ip; induction n; intros.
-  -
-    nat_lt_0_contradiction.
-  -
-    dep_destruct v;clear v.
-    simpl.
-    induction i.
-    +
-      intros.
-      unfold avector_to_mem_block, mem_add.
-      simpl.
-      apply NM_find_add_1.
-      reflexivity.
-    +
-      simpl.
-      assert (N: i<n) by apply Lt.lt_S_n, ip.
-      specialize (IHn x i N).
-      replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
-      rewrite <- IHn; clear IHn.
-      apply avector_to_mem_block_spec_cons, N.
+  destruct (avector_to_mem_block_spec v) as [x SP].
+  apply NM.find_2, SP.
 Qed.
- *)
-
 
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
