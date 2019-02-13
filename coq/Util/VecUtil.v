@@ -209,6 +209,21 @@ Section Vfold_right_indexed.
        end eq_refl.
   Next Obligation. apply zero_lt_Sn. Qed.
 
+  Fixpoint Vfold_right_indexed'
+           {n: nat}
+           {A B: Type}
+           (i: nat) (* first index *)
+           (f: nat -> A -> B -> B)
+           (v: vector A n)
+           (b: B) (* initial value *)
+
+    : B :=
+    match v with
+    | Vnil => b
+    | Vcons x xs =>
+      f i x (Vfold_right_indexed' (S i) f xs b)
+    end.
+
 End Vfold_right_indexed.
 
 Section VBreak.
