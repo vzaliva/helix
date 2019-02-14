@@ -81,39 +81,6 @@ Proof.
   typeclasses eauto.
 Qed.
 
-(*
-Global Instance avector_to_mem_block_Proper {n}:
-  Proper ((=) ==> (=)) (@avector_to_mem_block n).
-Proof.
-  simpl_relation.
-  induction n.
-  -
-    dep_destruct x.
-    dep_destruct y.
-    split.
-    +
-      crush.
-    +
-      intros;simpl.
-      unfold avector_to_mem_block in *.
-      unfold mem_empty in *.
-      apply NMS.F.empty_mapsto_iff in H0.
-      destruct H0.
-  -
-    split.
-    +
-      intros k.
-      dep_destruct x; clear x; rename h into xh, x0 into xs.
-      dep_destruct y; clear y; rename h into yh, x into ys.
-      apply Vcons_equiv_elim in H.
-      destruct H as [Hh Ht].
-      specialize (IHn xs ys Ht).
-      destruct IHn as [IHn0 IHn1].
-      unfold avector_to_mem_block in *.
-      simpl.
-
-Qed.
-*)
 Class SHOperator_MemVecEq
       {fm}
       {i o: nat}
@@ -127,7 +94,6 @@ Class SHOperator_MemVecEq
           mem_op fm f (svector_to_mem_block x)
       ;
     }.
-
 
 Section MemVecEq.
   Variable fm:Monoid RthetaFlags.
@@ -160,32 +126,32 @@ Section MemVecEq.
         simpl.
         unfold svector_to_mem_block, compose in *.
         simpl in *.
-        rewrite <- IHt.
-    -
-      simpl.
-
-
-
-
-    induction i.
-    -
-      simpl.
-      f_equiv.
-      dep_destruct x. clear x.
-      induction o.
-      +
-        dep_destruct (hop Vnil).
-        dep_destruct (liftM_HOperator' (fm:=fm) hop Vnil).
-        unfold svector_to_mem_block, compose.
+        unfold avector_to_mem_block.
         simpl.
+        rewrite evalWriter_mkValue.
+        rewrite densify_sparsify.
+        reflexivity.
+    -
+      simpl.
+      break_match.
+      +
+        f_equiv.
+        unfold svector_to_mem_block, compose.
+        rewrite densify_sparsify.
+        replace (evalWriter h :: densify fm x) with t.
+        reflexivity.
+        rename Heqo0 into H. symmetry in H.
+        unfold svector_to_mem_block, compose in H.
+        rewrite densify_cons in H.
+        rewrite mem_block_avector_id in H.
+        some_inv.
         reflexivity.
       +
-        dep_destruct (hop Vnil).
-        admit.
-    -
-      destruct x.
-      admit.
-      admit.
-  Admitted.
+        rename Heqo0 into H. symmetry in H.
+        unfold svector_to_mem_block, compose in H.
+        rewrite densify_cons in H.
+        rewrite mem_block_avector_id in H.
+        some_none_contradiction.
+  Qed.
 
 End MemVecEq.

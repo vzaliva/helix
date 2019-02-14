@@ -154,6 +154,20 @@ Qed.
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
+Lemma mem_block_avector_id {n} {v:avector n}:
+  (mem_block_to_avector (avector_to_mem_block v)) = Some v.
+Proof.
+  unfold mem_block_to_avector.
+  apply vsequence_Vbuild_eq_Some.
+  apply Veq_nth.
+  intros i ip.
+  rewrite Vbuild_nth.
+  rewrite Vnth_map.
+  unfold avector_to_mem_block.
+  destruct (avector_to_mem_block_spec v) as [m H].
+  apply H.
+Qed.
+
 (* HOperator (on dense vector) mapping to memory operator *)
 Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
   : mem_block -> option mem_block

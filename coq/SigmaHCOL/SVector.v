@@ -111,6 +111,24 @@ Section SvectorBasics.
   Definition svector_is_non_collision {n} (v:svector n) :=
     Vforall Not_Collision v.
 
+  Lemma densify_sparsify {n} (x:avector n):
+    densify (sparsify x) ≡ x.
+  Proof.
+    unfold densify, sparsify.
+    rewrite Vmap_map.
+    apply Vmap_eq_id.
+    apply Vforall_intro.
+    intros x0 H.
+    rewrite evalWriter_mkValue.
+    reflexivity.
+  Qed.
+
+  Lemma densify_cons {n} {h:Rtheta' fm} {v:svector n}:
+    densify (h::v) ≡ (evalWriter h)::densify v.
+  Proof.
+    reflexivity.
+  Qed.
+
   Lemma sparsify_densify_equiv {n} (x:svector n):
     (sparsify (densify x)) = x.
   Proof.
