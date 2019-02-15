@@ -154,4 +154,49 @@ Section MemVecEq.
         some_none_contradiction.
   Qed.
 
+  Global Instance eUnion_MemVecEq
+         {o b:nat}
+         (bc: b < o)
+         (z: CarrierA)
+    : SHOperator_MemVecEq (eUnion fm bc z).
+  Proof.
+    (* assert (facts: SHOperator_Facts fm (eUnion fm bc z)) by
+        typeclasses eauto. *)
+    split.
+    intros x.
+    simpl.
+    unfold eUnion_mem, map_mem_block_elt.
+    unfold svector_to_mem_block, compose.
+    break_match.
+    -
+      f_equiv.
+      unfold eUnion'.
+      unfold densify in *.
+      unfold avector_to_mem_block in *.
+
+      repeat match goal with
+      | [|- context[avector_to_mem_block_spec ?x]] => destruct (avector_to_mem_block_spec x) as [m M]
+      | [H:context[avector_to_mem_block_spec ?x] |- _] => destruct (avector_to_mem_block_spec x) as [m0 M0]
+      end.
+      simpl in *.
+      rewrite Vmap_Vbuild in *.
+      setoid_rewrite Vbuild_nth in M.
+      setoid_rewrite Vnth_map in M0.
+      specialize (M0 0 (lt_0_Sn 0)).
+      rewrite Vnth_0 in M0.
+      unfold zero in *.
+      rewrite Heqo0 in M0; clear Heqo0 m0.
+      some_inv.
+      rewrite <- H0.
+      admit.
+    -
+      unfold avector_to_mem_block in *.
+      destruct (avector_to_mem_block_spec (densify fm x)) as [m E].
+      simpl in Heqo0.
+      specialize (E 0 (lt_0_Sn 0)).
+      unfold zero in E.
+      rewrite E in Heqo0.
+      some_none_contradiction.
+  Qed.
+
 End MemVecEq.
