@@ -44,8 +44,73 @@ Import Monoid.
 Import VectorNotations.
 Open Scope vector_scope.
 
-Definition svector_to_mem_block {fm} {n}:=
-  avector_to_mem_block ∘ @densify fm n.
+Program Definition svector_to_mem_block_spec
+        {fm}
+        {n : nat}
+        (v : svector fm n):
+  { m : mem_block | forall i (ip : i < n),
+      Is_Val (Vnth v ip) ->
+      mem_lookup i m ≡ Some (evalWriter (Vnth v ip))
+  }
+  := Vfold_right_indexed' 0
+                          (fun k r m =>
+                             if Is_Val_dec r then mem_add k (evalWriter r) m
+                             else m
+                          )
+                          v mem_empty.
+Next Obligation.
+  unfold mem_lookup.
+  revert H. revert ip. revert i.
+  induction n; intros.
+  -
+    nat_lt_0_contradiction.
+  -
+    dep_destruct v;clear v.
+    simpl.
+    destruct i.
+    +
+      unfold Vfold_right_indexed, mem_add.
+      destruct (Is_Val_dec h).
+      *
+        apply NM_find_add_1.
+        reflexivity.
+      *
+        simpl in H.
+        crush.
+    +
+      destruct (Is_Val_dec h).
+      *
+        rewrite NM_find_add_3; auto.
+        assert (N: i<n) by apply Lt.lt_S_n, ip.
+        specialize (IHn x i N).
+        simpl in H.
+        replace (Lt.lt_S_n ip) with N by apply le_unique.
+        rewrite <- IHn; clear IHn.
+        --
+          unfold mem_add.
+          unfold mem_empty.
+          rewrite find_vold_right_indexed'_S_P.
+          reflexivity.
+        --
+          replace N with (lt_S_n ip) by apply le_unique.
+          apply H.
+      *
+        simpl in H.
+        rewrite find_vold_right_indexed'_S_P.
+        apply IHn.
+        apply H.
+Qed.
+
+Definition svector_to_mem_block {fm} {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
+
+
+Lemma svector_to_mem_block_dense
+      {fm}
+      {n}
+      (v: svector fm n):
+  Vforall Is_Val v -> svector_to_mem_block ≡ avector_to_mem_block ∘ @densify fm n.
+Proof.
+Admitted.
 
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.

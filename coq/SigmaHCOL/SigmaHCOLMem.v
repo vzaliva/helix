@@ -61,6 +61,91 @@ Section FMapUtil.
 
 End FMapUtil.
 
+Lemma find_vold_right_indexed'_off_P
+      (n i off: nat)
+      {A B: Type}
+      (v : vector A n)
+      (P: A -> Prop)
+      `{Pdec: forall x, sumbool (P x) (not (P x))}
+      (f: A -> B)
+  :
+    NM.find (elt:=B) (i+off) (Vfold_right_indexed' (0+off)
+                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                  if Pdec r
+                                                  then
+                                                    NM.add k (f r) m
+                                                  else m)
+                                                 v (@NM.empty B)) =
+    NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                  if Pdec r
+                                                  then
+                                                    NM.add k (f r) m
+                                                  else m)
+                                                 v (@NM.empty B)).
+Proof.
+  revert i off.
+  induction n; intros.
+  -
+    dep_destruct v.
+    reflexivity.
+  -
+    dep_destruct v; clear v.
+    simpl.
+    induction i.
+    +
+      break_if.
+      *
+        rewrite NM_find_add_1 by reflexivity.
+        rewrite NM_find_add_1 by reflexivity.
+        reflexivity.
+      *
+        admit.
+    +
+      break_if.
+      *
+        rewrite NM_find_add_3 by omega.
+        rewrite NM_find_add_3 by omega.
+        replace (S i + off) with (i + S off) by lia.
+        replace (S off) with (0 + S off) by lia.
+        rewrite IHn.
+        symmetry.
+        replace (1) with (0+1) by lia.
+        replace (S i) with (i+1) by lia.
+        apply IHn.
+      *
+       admit.
+Qed.
+
+
+Lemma find_vold_right_indexed'_S_P
+      (n i : nat)
+      {A B: Type}
+      (v : vector A n)
+      (P: A -> Prop)
+      `{Pdec: forall x, sumbool (P x) (not (P x))}
+      (f: A -> B)
+  :
+    NM.find (elt:=B) (S i) (Vfold_right_indexed' 1
+                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                  if Pdec r
+                                                  then
+                                                    NM.add k (f r) m
+                                                  else m)
+                                                 v (@NM.empty B)) =
+    NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                  if Pdec r
+                                                  then
+                                                    NM.add k (f r) m
+                                                  else m)
+                                                 v (@NM.empty B)).
+Proof.
+  replace (1) with (0+1) by lia.
+  replace (S i) with (i+1) by lia.
+  apply find_vold_right_indexed'_off_P.
+Qed.
+
 Lemma find_vold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),
     NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) =
