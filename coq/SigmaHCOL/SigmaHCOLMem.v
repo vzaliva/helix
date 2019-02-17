@@ -188,40 +188,34 @@ Proof.
   apply find_vold_right_indexed'_off_P.
 Qed.
 
+Require Import Coq.Logic.FunctionalExtensionality.
+
 Lemma find_vold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),
     NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) =
     NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
 Proof.
   intros n i off v.
-  revert i off.
-  induction n; intros.
-  -
-    dep_destruct v.
-    simpl.
-    unfold mem_empty.
-    repeat rewrite empty_o.
-    reflexivity.
-  -
-    dep_destruct v.
-    simpl.
 
-    destruct i.
-    +
-      unfold mem_add.
-      rewrite NM_find_add_1 by reflexivity.
-      rewrite NM_find_add_1 by reflexivity.
-      reflexivity.
-    +
-      rewrite NM_find_add_3 by omega.
-      rewrite NM_find_add_3 by omega.
-      replace (S i + off) with (i + S off) by lia.
-      replace (S off) with (0 + S off) by lia.
-      rewrite IHn.
-      symmetry.
-      replace (1) with (0+1) by lia.
-      replace (S i) with (i+1) by lia.
-      apply IHn.
+  Let P := @Basics.const Prop CarrierA True.
+  assert(Pdec: forall x, sumbool (P x) (not (P x)))
+    by (intros x; left; unfold P, Basics.const;  tauto).
+  Let f := @id CarrierA.
+  unfold mem_empty.
+  replace mem_add with
+      (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
+         if Pdec r
+         then
+           NM.add k (f r) m
+         else m).
+  apply find_vold_right_indexed'_off_P.
+
+  extensionality k.
+  extensionality r.
+  extensionality m.
+  break_if.
+  + unfold f, id; reflexivity.
+  + unfold P, Basics.const, not  in *; crush.
 Qed.
 
 Lemma find_vold_right_indexed'_S:
