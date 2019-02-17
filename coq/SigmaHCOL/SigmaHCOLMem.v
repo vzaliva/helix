@@ -61,6 +61,42 @@ Section FMapUtil.
 
 End FMapUtil.
 
+(* After folding starting from 'j' attempts to lookup lower indices will fail *)
+Lemma find_vold_right_indexed_oob
+      (n i j: nat)
+      {A B: Type}
+      (v : vector A n)
+      (P: A -> Prop)
+      `{Pdec: forall x, sumbool (P x) (not (P x))}
+      (f: A -> B)
+  :
+    j>i ->
+    NM.find (elt:=B) i (Vfold_right_indexed' j
+                                             (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                if Pdec r
+                                                then
+                                                  NM.add k (f r) m
+                                                else m)
+                                             v (@NM.empty B)) = None.
+Proof.
+  revert i j.
+  induction n; intros.
+  -
+    dep_destruct v.
+    reflexivity.
+  -
+    dep_destruct v; clear v.
+    simpl.
+    break_if.
+    +
+      rewrite NM_find_add_3 by omega.
+      apply IHn.
+      lia.
+    +
+      apply IHn.
+      lia.
+Qed.
+
 Lemma find_vold_right_indexed'_off_P
       (n i off: nat)
       {A B: Type}
@@ -70,19 +106,19 @@ Lemma find_vold_right_indexed'_off_P
       (f: A -> B)
   :
     NM.find (elt:=B) (i+off) (Vfold_right_indexed' (0+off)
-                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                  if Pdec r
-                                                  then
-                                                    NM.add k (f r) m
-                                                  else m)
-                                                 v (@NM.empty B)) =
+                                                   (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                      if Pdec r
+                                                      then
+                                                        NM.add k (f r) m
+                                                      else m)
+                                                   v (@NM.empty B)) =
     NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                  if Pdec r
-                                                  then
-                                                    NM.add k (f r) m
-                                                  else m)
-                                                 v (@NM.empty B)).
+                                             (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                if Pdec r
+                                                then
+                                                  NM.add k (f r) m
+                                                else m)
+                                             v (@NM.empty B)).
 Proof.
   revert i off.
   induction n; intros.
@@ -92,17 +128,13 @@ Proof.
   -
     dep_destruct v; clear v.
     simpl.
-    induction i.
+    break_if.
     +
-      break_if.
+      destruct i.
       *
         rewrite NM_find_add_1 by reflexivity.
         rewrite NM_find_add_1 by reflexivity.
         reflexivity.
-      *
-        admit.
-    +
-      break_if.
       *
         rewrite NM_find_add_3 by omega.
         rewrite NM_find_add_3 by omega.
@@ -113,10 +145,20 @@ Proof.
         replace (1) with (0+1) by lia.
         replace (S i) with (i+1) by lia.
         apply IHn.
+    +
+      destruct i.
       *
-       admit.
+        rewrite 2!find_vold_right_indexed_oob by lia.
+        reflexivity.
+      *
+        replace (S i + off) with (i + S off) by lia.
+        replace (S off) with (0 + S off) by lia.
+        rewrite IHn.
+        symmetry.
+        replace (1) with (0+1) by lia.
+        replace (S i) with (i+1) by lia.
+        apply IHn.
 Qed.
-
 
 Lemma find_vold_right_indexed'_S_P
       (n i : nat)
@@ -128,18 +170,18 @@ Lemma find_vold_right_indexed'_S_P
   :
     NM.find (elt:=B) (S i) (Vfold_right_indexed' 1
                                                  (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                  if Pdec r
-                                                  then
-                                                    NM.add k (f r) m
-                                                  else m)
+                                                    if Pdec r
+                                                    then
+                                                      NM.add k (f r) m
+                                                    else m)
                                                  v (@NM.empty B)) =
     NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                  if Pdec r
-                                                  then
-                                                    NM.add k (f r) m
-                                                  else m)
-                                                 v (@NM.empty B)).
+                                             (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                if Pdec r
+                                                then
+                                                  NM.add k (f r) m
+                                                else m)
+                                             v (@NM.empty B)).
 Proof.
   replace (1) with (0+1) by lia.
   replace (S i) with (i+1) by lia.
@@ -164,7 +206,7 @@ Proof.
     dep_destruct v.
     simpl.
 
-    induction i.
+    destruct i.
     +
       unfold mem_add.
       rewrite NM_find_add_1 by reflexivity.
