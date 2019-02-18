@@ -184,6 +184,11 @@ Class SHOperator_MemVecEq
     {
       mem_vec_preservation:
         forall x,
+
+          (* Only for inputs which comply to `facts` *)
+          (∀ (j : nat) (jc : (j < i)%nat),
+              in_index_set fm f (mkFinNat jc) → Is_Val (Vnth x jc))
+          ->
           Some (svector_to_mem_block (op fm f x)) =
           mem_op fm f (svector_to_mem_block x)
       ;
@@ -201,11 +206,12 @@ Section MemVecEq.
   Proof.
     assert (facts: SHOperator_Facts fm (liftM_HOperator fm hop)) by
         typeclasses eauto.
+    destruct facts.
     split.
-    intros x.
+    intros x G.
     simpl.
     unfold mem_op_of_hop.
-    unfold liftM_HOperator', avector_to_mem_block, svector_to_mem_block, compose.
+    unfold liftM_HOperator', avector_to_mem_block, svector_to_mem_block, compose in *.
 
     svector_to_mem_block_to_spec m0 H0 O0.
     svector_to_mem_block_to_spec m1 H1 O1.
@@ -220,15 +226,30 @@ Section MemVecEq.
         intros.
         destruct (NatUtil.lt_ge_dec k o) as [H | H].
         --
-          clear O0 O1.
+          clear O0 O1 O2.
           split.
           ++
-            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
-            admit.
+            intros H3.
+            specialize (H2 k H).
+            unfold mem_lookup in *.
+            apply NMS.F.in_find_iff.
+            crush.
           ++
-            admit.
+            intros H3.
+            specialize (H0 k H).
+            unfold mem_lookup in *.
+            apply NMS.F.in_find_iff.
+            assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
+            {
+              apply out_as_range.
+              intros j jc H4.
+              apply G.
+              apply Full_intro.
+              apply Full_intro.
+            }
+            crush.
         --
-          clear H0 H1.
+          clear H0 H1 H2.
           split.
           ++
             intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
@@ -255,7 +276,7 @@ Section MemVecEq.
     (* assert (facts: SHOperator_Facts fm (eUnion fm bc z)) by
         typeclasses eauto. *)
     split.
-    intros x.
+    intros x G.
     simpl.
     unfold eUnion_mem, map_mem_block_elt.
     unfold svector_to_mem_block, compose.
