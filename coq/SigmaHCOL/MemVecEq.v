@@ -136,8 +136,9 @@ Qed.
 Ltac svector_to_mem_block_to_spec m H0 H1 :=
   match goal with
     [ |- context[svector_to_mem_block_spec ?v]] =>
-    destruct (svector_to_mem_block_spec v) as [m H0];
-    pose proof (svector_to_mem_block_key_oob (v:=v)) as H1
+    pose proof (svector_to_mem_block_key_oob (v:=v)) as H1;
+    unfold svector_to_mem_block in H1 ;
+    destruct (svector_to_mem_block_spec v) as [m H0]
   end.
 
 Global Instance mem_block_Equiv:
@@ -216,7 +217,27 @@ Section MemVecEq.
       unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
       split.
       *
-        admit.
+        intros.
+        destruct (NatUtil.lt_ge_dec k o) as [H | H].
+        --
+          clear O0 O1.
+          split.
+          ++
+            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
+            admit.
+          ++
+            admit.
+        --
+          clear H0 H1.
+          split.
+          ++
+            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
+            specialize (O0 k H); unfold mem_lookup in O0.
+            congruence.
+          ++
+            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
+            specialize (O2 k H); unfold mem_lookup in O2.
+            congruence.
       *
         admit.
     -
