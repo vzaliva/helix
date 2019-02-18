@@ -133,6 +133,12 @@ Proof.
         omega.
 Qed.
 
+Ltac svector_to_mem_block_to_spec m H0 H1 :=
+  match goal with
+    [ |- context[svector_to_mem_block_spec ?v]] =>
+    destruct (svector_to_mem_block_spec v) as [m H0];
+    pose proof (svector_to_mem_block_key_oob (v:=v)) as H1
+  end.
 
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.
@@ -199,17 +205,23 @@ Section MemVecEq.
     simpl.
     unfold mem_op_of_hop.
     unfold liftM_HOperator', avector_to_mem_block, svector_to_mem_block, compose.
-    destruct (svector_to_mem_block_spec _) as [m0 H0].
-    destruct (svector_to_mem_block_spec _) as [m1 H1].
+
+    svector_to_mem_block_to_spec m0 H0 O0.
+    svector_to_mem_block_to_spec m1 H1 O1.
     break_match.
     -
       f_equiv.
-      destruct (avector_to_mem_block_spec _) as [m2 H2].
+      avector_to_mem_block_to_spec m2 H2 O2.
       simpl in *.
       unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
-      admit.
+      split.
+      *
+        admit.
+      *
+        admit.
     -
       simpl in *.
+      (* Heqo0 never happens because of H1 *)
       admit.
   Qed.
 
@@ -233,10 +245,8 @@ Section MemVecEq.
       unfold densify in *.
       unfold avector_to_mem_block in *.
 
-      repeat match goal with
-      | [|- context[avector_to_mem_block_spec ?x]] => destruct (avector_to_mem_block_spec x) as [m M]
-      | [H:context[avector_to_mem_block_spec ?x] |- _] => destruct (avector_to_mem_block_spec x) as [m0 M0]
-      end.
+      avector_to_mem_block_to_spec m M B.
+      avector_to_mem_block_to_spec m0 M0 B0.
       simpl in *.
       rewrite Vmap_Vbuild in *.
       setoid_rewrite Vbuild_nth in M.

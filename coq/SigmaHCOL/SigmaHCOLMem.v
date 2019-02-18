@@ -295,6 +295,14 @@ Proof.
       omega.
 Qed.
 
+Ltac avector_to_mem_block_to_spec m H0 H1 :=
+  match goal with
+    [ |- context[avector_to_mem_block_spec ?v]] =>
+    destruct (avector_to_mem_block_spec v) as [m H0];
+    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1
+  end.
+
+
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
