@@ -103,14 +103,36 @@ Qed.
 
 Definition svector_to_mem_block {fm} {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
-
-Lemma svector_to_mem_block_dense
-      {fm}
-      {n}
-      (v: svector fm n):
-  Vforall Is_Val v -> svector_to_mem_block ≡ avector_to_mem_block ∘ @densify fm n.
+Lemma svector_to_mem_block_key_oob {n:nat} {fm} {v: svector fm n}:
+  forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
 Proof.
-Admitted.
+  intros k kc.
+  unfold svector_to_mem_block.
+  simpl.
+  revert k kc; induction v; intros.
+  -
+    reflexivity.
+  -
+    unfold mem_lookup.
+    simpl.
+    destruct k.
+    +
+      omega.
+    +
+      break_if.
+      *
+        rewrite NM_find_add_3 by omega.
+        rewrite find_vold_right_indexed'_S_P.
+        rewrite IHv.
+        reflexivity.
+        omega.
+      *
+        rewrite find_vold_right_indexed'_S_P.
+        rewrite IHv.
+        reflexivity.
+        omega.
+Qed.
+
 
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.
@@ -176,47 +198,19 @@ Section MemVecEq.
     intros x.
     simpl.
     unfold mem_op_of_hop.
-    unfold liftM_HOperator', compose.
-
-    induction x.
+    unfold liftM_HOperator', avector_to_mem_block, svector_to_mem_block, compose.
+    destruct (svector_to_mem_block_spec _) as [m0 H0].
+    destruct (svector_to_mem_block_spec _) as [m1 H1].
+    break_match.
     -
-      simpl.
       f_equiv.
-      induction (hop Vnil).
-      +
-        simpl.
-        unfold svector_to_mem_block, compose.
-        reflexivity.
-      +
-        simpl.
-        unfold svector_to_mem_block, compose in *.
-        simpl in *.
-        unfold avector_to_mem_block.
-        simpl.
-        rewrite evalWriter_mkValue.
-        rewrite densify_sparsify.
-        reflexivity.
+      destruct (avector_to_mem_block_spec _) as [m2 H2].
+      simpl in *.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
+      admit.
     -
-      simpl.
-      break_match.
-      +
-        f_equiv.
-        unfold svector_to_mem_block, compose.
-        rewrite densify_sparsify.
-        replace (evalWriter h :: densify fm x) with t.
-        reflexivity.
-        rename Heqo0 into H. symmetry in H.
-        unfold svector_to_mem_block, compose in H.
-        rewrite densify_cons in H.
-        rewrite mem_block_avector_id in H.
-        some_inv.
-        reflexivity.
-      +
-        rename Heqo0 into H. symmetry in H.
-        unfold svector_to_mem_block, compose in H.
-        rewrite densify_cons in H.
-        rewrite mem_block_avector_id in H.
-        some_none_contradiction.
+      simpl in *.
+      admit.
   Qed.
 
   Global Instance eUnion_MemVecEq

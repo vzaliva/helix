@@ -272,6 +272,29 @@ Proof.
   apply NM.find_2, SP.
 Qed.
 
+Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
+  forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) = None.
+Proof.
+  intros k kc.
+  unfold avector_to_mem_block.
+  simpl.
+  revert k kc; induction v; intros.
+  -
+    reflexivity.
+  -
+    unfold mem_lookup.
+    simpl.
+    rewrite NM_find_add_3 by omega.
+    destruct k.
+    +
+      omega.
+    +
+      rewrite find_vold_right_indexed'_S.
+      rewrite IHv.
+      reflexivity.
+      omega.
+Qed.
+
 Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
   := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
