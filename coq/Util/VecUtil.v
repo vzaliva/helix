@@ -1512,7 +1512,32 @@ Lemma vsequence_cons_eq_None (A : Type) (n : nat) (v: vector (option A) n) (h:op
   vsequence (Vcons h v) = None <->
   ((h = None) \/ (vsequence v = None)).
 Proof.
-Admitted.
+  split; intros H.
+  -
+    simpl in H.
+    break_match_hyp.
+    +
+      right.
+      break_match.
+      inversion H.
+      reflexivity.
+    +
+      left.
+      reflexivity.
+  -
+    destruct H.
+    *
+      simpl.
+      dep_destruct h.
+      inversion H.
+      reflexivity.
+    *
+      simpl.
+      dep_destruct h.
+      rewrite H.
+      reflexivity.
+      reflexivity.
+Qed.
 
 Lemma vsequence_eq_None:
   forall (A : Type) (n : nat) (v: vector (option A) n),
