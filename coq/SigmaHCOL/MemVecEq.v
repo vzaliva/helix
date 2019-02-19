@@ -195,14 +195,6 @@ Class SHOperator_MemVecEq
     }.
 
 
-(* TODO: prove and move! *)
-Lemma vsequence_Vbuild_eq_None:
-  ∀ (A : Type) (n : nat) (f : ∀ i : nat, (i < n)%nat → option A),
-  vsequence (Vbuild f) ≡ None <-> (exists j (jc:j<n), f j jc ≡ None).
-Proof.
-Admitted.
-
-
 Section MemVecEq.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.

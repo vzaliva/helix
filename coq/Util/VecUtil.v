@@ -1507,3 +1507,83 @@ Proof.
           f_equal.
           apply proof_irrelevance.
 Qed.
+
+Lemma vsequence_cons_eq_None (A : Type) (n : nat) (v: vector (option A) n) (h:option A):
+  vsequence (Vcons h v) = None <->
+  ((h = None) \/ (vsequence v = None)).
+Proof.
+Admitted.
+
+Lemma vsequence_eq_None:
+  forall (A : Type) (n : nat) (v: vector (option A) n),
+    vsequence v = None <-> (exists j (jc:j<n), Vnth v jc = None).
+Proof.
+  split.
+  -
+    intros H.
+    induction n.
+    +
+      dep_destruct v.
+      crush.
+    +
+      dep_destruct v.
+      apply vsequence_cons_eq_None in H.
+      destruct H.
+      *
+        exists 0.
+        exists (zero_lt_Sn _).
+        apply H.
+      *
+        specialize (IHn x H).
+        destruct IHn as [j [jc IHn]].
+        exists (S j).
+        exists (lt_n_S jc).
+        rewrite <- IHn.
+        apply Vnth_Sn.
+  -
+    intros H.
+    induction n.
+    +
+      dep_destruct v.
+      crush.
+    +
+      dep_destruct v.
+      specialize (IHn x).
+      destruct H as [j [jc H]].
+      apply vsequence_cons_eq_None.
+      destruct j.
+      left.
+      *
+        rewrite Vnth_0 in H.
+        apply H.
+      *
+        right.
+        apply IHn.
+        exists j.
+        exists (lt_S_n jc).
+        rewrite <- H.
+        symmetry; apply Vnth_Sn.
+Qed.
+
+Lemma vsequence_Vbuild_eq_None:
+  forall (A : Type) (n : nat) (f : forall i : nat, (i < n)%nat -> option A),
+  vsequence (Vbuild f) = None <-> (exists j (jc:j<n), f j jc = None).
+Proof.
+  intros A n f.
+  split.
+  -
+    intros H.
+    apply vsequence_eq_None in H.
+    destruct H as [j [jc H]].
+    rewrite Vbuild_nth in H.
+    exists j.
+    exists jc.
+    apply H.
+  -
+    intros [j [jc H]].
+    apply vsequence_eq_None.
+    exists j.
+    exists jc.
+    rewrite Vbuild_nth.
+    apply H.
+Qed.
