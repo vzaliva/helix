@@ -194,6 +194,15 @@ Class SHOperator_MemVecEq
       ;
     }.
 
+
+(* TODO: prove and move! *)
+Lemma vsequence_Vbuild_eq_None:
+  ∀ (A : Type) (n : nat) (f : ∀ i : nat, (i < n)%nat → option A),
+  vsequence (Vbuild f) ≡ None <-> (exists j (jc:j<n), f j jc ≡ None).
+Proof.
+Admitted.
+
+
 Section MemVecEq.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
@@ -311,9 +320,15 @@ Section MemVecEq.
     -
       simpl in *.
       unfold mem_block_to_avector in Heqo0.
-      admit.
-      (* Heqo0 never happens because of H1 *)
-      admit.
+      apply vsequence_Vbuild_eq_None in Heqo0.
+      destruct Heqo0 as [j [jc Heqo0]].
+      assert(V0: Is_Val (Vnth x jc)).
+      {
+        apply G.
+        apply Full_intro.
+      }
+      specialize (H1 j jc V0).
+      congruence.
   Qed.
 
   Global Instance eUnion_MemVecEq
