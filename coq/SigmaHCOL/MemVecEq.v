@@ -227,6 +227,7 @@ Section MemVecEq.
         intros.
         destruct (NatUtil.lt_ge_dec k o) as [H | H].
         --
+          (* In *)
           clear O0 O1 O2.
           split.
           ++
@@ -250,6 +251,7 @@ Section MemVecEq.
             }
             crush.
         --
+          (* MapsTo *)
           clear H0 H1 H2.
           split.
           ++
@@ -329,41 +331,73 @@ Section MemVecEq.
          (z: CarrierA)
     : SHOperator_MemVecEq (eUnion fm bc z).
   Proof.
-    (* assert (facts: SHOperator_Facts fm (eUnion fm bc z)) by
-        typeclasses eauto. *)
+    assert (facts: SHOperator_Facts fm (eUnion fm bc z)) by
+        typeclasses eauto.
     split.
     intros x G.
     simpl.
     unfold eUnion_mem, map_mem_block_elt.
-    unfold svector_to_mem_block, compose.
-    break_match.
+
+    unfold svector_to_mem_block.
+    svector_to_mem_block_to_spec m0 H0 O0.
+    svector_to_mem_block_to_spec m1 H1 O1.
+
+    break_match; unfold mem_lookup in *; simpl in *.
     -
       f_equiv.
-      unfold eUnion'.
-      unfold densify in *.
-      unfold avector_to_mem_block in *.
-
-      avector_to_mem_block_to_spec m M B.
-      avector_to_mem_block_to_spec m0 M0 B0.
-      simpl in *.
-      rewrite Vmap_Vbuild in *.
-      setoid_rewrite Vbuild_nth in M.
-      setoid_rewrite Vnth_map in M0.
-      specialize (M0 0 (lt_0_Sn 0)).
-      rewrite Vnth_0 in M0.
-      unfold zero in *.
-      rewrite Heqo0 in M0; clear Heqo0 m0.
-      some_inv.
-      rewrite <- H0.
-      admit.
+      unfold mem_add, mem_empty.
+      assert(Vb: Is_Val (Vnth (eUnion' bc z x) bc)).
+      {
+        destruct facts.
+        apply out_as_range.
+        -
+          intros j jc H.
+          apply G.
+          auto.
+        -
+          simpl.
+          reflexivity.
+      }
+      (* specialize (H0 b bc Vb). *)
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
+      split; intros.
+      +
+        (* In *)
+        split.
+        *
+          intros H2.
+          destruct (eq_nat_dec b k) as [E | NE].
+          --
+            apply NMS.F.add_in_iff.
+            left.
+            apply E.
+          --
+            (* contradiction *)
+            destruct (NatUtil.lt_ge_dec k o) as [Hb | Hb].
+            ++
+              clear O1.
+              (* via facts sparsity *)
+              destruct facts.
+              admit.
+              (* TODO: neeed stronger spec on `svector_to_mem_block` ! *)
+            ++
+              specialize (O0 k Hb).
+              apply NMS.F.in_find_iff in H2.
+              congruence.
+        *
+          admit.
+      +
+        (* MapsTo *)
+        admit.
     -
-      unfold avector_to_mem_block in *.
-      destruct (avector_to_mem_block_spec (densify fm x)) as [m E].
-      simpl in Heqo0.
-      specialize (E 0 (lt_0_Sn 0)).
-      unfold zero in E.
-      rewrite E in Heqo0.
-      some_none_contradiction.
-  Qed.
+      assert(V:Is_Val (Vnth x (Nat.lt_0_succ 0))).
+      {
+        apply G.
+        apply Full_intro.
+      }
+      specialize (H1 0 (lt_0_Sn 0) V).
+      unfold zero in *.
+      congruence.
+  Admitted.
 
 End MemVecEq.
