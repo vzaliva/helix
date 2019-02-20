@@ -3,6 +3,7 @@
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Lt.
+Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Psatz.
 Require Import Omega.
 
@@ -188,7 +189,46 @@ Proof.
   apply find_fold_right_indexed'_off_P.
 Qed.
 
-Require Import Coq.Logic.FunctionalExtensionality.
+Lemma find_fold_right_indexed'_cons_P
+      (n i : nat)
+      {A B: Type}
+      (x : vector A n)
+      (h: A)
+      (P: A -> Prop)
+      `{Pdec: forall x, sumbool (P x) (not (P x))}
+      (f: A -> B):
+  NM.find (elt:=B) (S i)
+          (Vfold_right_indexed' 0
+                                (fun (k : nat) (r : A) (m : NM.t B) =>
+                                   if Pdec r
+                                   then
+                                     NM.add k (f r) m
+                                   else m)
+                                (h :: x) (NM.empty B))
+  =
+  NM.find (elt:=B) (S i)
+          (Vfold_right_indexed' 1
+                                (fun (k : nat) (r : A) (m : NM.t B) =>
+                                   if Pdec r
+                                   then
+                                     NM.add k (f r) m
+                                   else m)
+                                x (NM.empty B)).
+Proof.
+  destruct n.
+  -
+    dep_destruct x.
+    simpl.
+    break_if; reflexivity.
+  -
+    simpl.
+    break_if.
+    +
+      rewrite NM_find_add_3 by omega.
+      reflexivity.
+    +
+      reflexivity.
+Qed.
 
 Lemma find_fold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),

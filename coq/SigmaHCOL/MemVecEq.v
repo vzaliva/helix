@@ -49,6 +49,103 @@ Program Definition svector_to_mem_block_spec
         {n : nat}
         (v : svector fm n):
   { m : mem_block | forall i (ip : i < n),
+      Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m
+  }
+  := Vfold_right_indexed' 0
+                          (fun k r m =>
+                             if Is_Val_dec r then mem_add k (evalWriter r) m
+                             else m
+                          )
+                          v mem_empty.
+Next Obligation.
+  unfold mem_lookup, mem_add, mem_empty.
+  split.
+  -
+    revert ip. revert i.
+    induction n; intros.
+    +
+      nat_lt_0_contradiction.
+    +
+      dep_destruct v;clear v.
+      simpl.
+      destruct i.
+      *
+        destruct (Is_Val_dec h).
+        --
+          apply NM.add_1.
+          reflexivity.
+        --
+          simpl in H.
+          crush.
+      *
+        destruct (Is_Val_dec h).
+        --
+          apply NM.add_2; auto.
+          assert (N: i<n) by apply Lt.lt_S_n, ip.
+          simpl in H.
+          replace (Lt.lt_S_n ip) with N by apply le_unique.
+          assert(V: Is_Val (Vnth x N)).
+          {
+            replace N with (lt_S_n ip) by apply le_unique.
+            apply H.
+          }
+          specialize (IHn x i N V).
+          apply NM.find_1 in IHn.
+          apply NM.find_2.
+          rewrite <- IHn; clear IHn.
+          ++
+            rewrite find_fold_right_indexed'_S_P.
+            reflexivity.
+        --
+          simpl in H.
+          assert (N: i<n) by apply Lt.lt_S_n, ip.
+          replace (Lt.lt_S_n ip) with N by apply le_unique.
+          assert(V: Is_Val (Vnth x N)).
+          {
+            replace N with (lt_S_n ip) by apply le_unique.
+            apply H.
+          }
+          specialize (IHn x i N V).
+          apply NM.find_1 in IHn.
+          apply NM.find_2.
+          rewrite find_fold_right_indexed'_S_P.
+          apply IHn.
+  -
+    revert i ip.
+    induction n; intros.
+    +
+      nat_lt_0_contradiction.
+    +
+      dep_destruct v; clear v.
+      simpl.
+      destruct i.
+      *
+        clear IHn.
+        apply NM.find_1 in H.
+        simpl in H.
+        destruct (Is_Val_dec h); auto.
+        rewrite find_fold_right_indexed_oob in H.
+        some_none_contradiction.
+        auto.
+      *
+        assert (N: i<n) by apply Lt.lt_S_n, ip.
+        apply IHn. clear IHn.
+        apply NM.find_1 in H.
+        apply NM.find_2.
+        simpl (Some _) in H.
+        replace (Lt.lt_S_n ip) with N in * by apply le_unique.
+        rewrite <- H. clear H ip.
+        rewrite <- find_fold_right_indexed'_S_P.
+        symmetry.
+        apply find_fold_right_indexed'_cons_P.
+Qed.
+
+(* Old version. To be retired *)
+Program Definition svector_to_mem_block_spec'
+        {fm}
+        {n : nat}
+        (v : svector fm n):
+  { m : mem_block | forall i (ip : i < n),
       Is_Val (Vnth v ip) ->
       mem_lookup i m ≡ Some (evalWriter (Vnth v ip))
   }
