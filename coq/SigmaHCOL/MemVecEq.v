@@ -140,64 +140,6 @@ Next Obligation.
         apply find_fold_right_indexed'_cons_P.
 Qed.
 
-(* Old version. To be retired *)
-Program Definition svector_to_mem_block_spec'
-        {fm}
-        {n : nat}
-        (v : svector fm n):
-  { m : mem_block | forall i (ip : i < n),
-      Is_Val (Vnth v ip) ->
-      mem_lookup i m ≡ Some (evalWriter (Vnth v ip))
-  }
-  := Vfold_right_indexed' 0
-                          (fun k r m =>
-                             if Is_Val_dec r then mem_add k (evalWriter r) m
-                             else m
-                          )
-                          v mem_empty.
-Next Obligation.
-  unfold mem_lookup.
-  revert H. revert ip. revert i.
-  induction n; intros.
-  -
-    nat_lt_0_contradiction.
-  -
-    dep_destruct v;clear v.
-    simpl.
-    destruct i.
-    +
-      unfold Vfold_right_indexed, mem_add.
-      destruct (Is_Val_dec h).
-      *
-        apply NM_find_add_1.
-        reflexivity.
-      *
-        simpl in H.
-        crush.
-    +
-      destruct (Is_Val_dec h).
-      *
-        rewrite NM_find_add_3; auto.
-        assert (N: i<n) by apply Lt.lt_S_n, ip.
-        specialize (IHn x i N).
-        simpl in H.
-        replace (Lt.lt_S_n ip) with N by apply le_unique.
-        rewrite <- IHn; clear IHn.
-        --
-          unfold mem_add.
-          unfold mem_empty.
-          rewrite find_fold_right_indexed'_S_P.
-          reflexivity.
-        --
-          replace N with (lt_S_n ip) by apply le_unique.
-          apply H.
-      *
-        simpl in H.
-        rewrite find_fold_right_indexed'_S_P.
-        apply IHn.
-        apply H.
-Qed.
-
 Definition svector_to_mem_block {fm} {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
 Lemma svector_to_mem_block_key_oob {n:nat} {fm} {v: svector fm n}:
@@ -304,7 +246,6 @@ Section MemVecEq.
   Proof.
     assert (facts: SHOperator_Facts fm (liftM_HOperator fm hop)) by
         typeclasses eauto.
-    destruct facts.
     split.
     intros x G.
     simpl.
@@ -340,12 +281,14 @@ Section MemVecEq.
             apply NMS.F.in_find_iff.
             assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
             {
+              destruct facts.
               apply out_as_range.
               intros j jc H4.
               apply G.
               apply Full_intro.
               apply Full_intro.
             }
+            rewrite NMS.F.find_mapsto_iff in H0.
             crush.
         --
           (* MapsTo *)
@@ -368,16 +311,18 @@ Section MemVecEq.
           specialize (H2 k H).
           assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
           {
+            destruct facts.
             apply out_as_range.
             intros j jc H9.
             apply G.
             apply Full_intro.
             apply Full_intro.
           }
-          specialize (H0 V).
+          rewrite NMS.F.find_mapsto_iff in H0.
+          apply H0 in V.
           unfold mem_lookup in *.
           apply NM.find_1 in H4; rewrite H2 in H4; inversion_clear H4; clear H2.
-          apply NM.find_1 in H3; rewrite H0 in H3; inversion_clear H3; clear H0.
+          apply NM.find_1 in H3; rewrite V in H3; inversion_clear H3; clear H0.
           unfold sparsify.
           rewrite Vnth_map.
           rewrite evalWriter_mkValue.
@@ -395,12 +340,13 @@ Section MemVecEq.
             apply G.
             apply Full_intro.
           }
-          specialize (H1 j jc V0).
+          apply H1 in V0.
+          rewrite NMS.F.find_mapsto_iff in V0.
           rewrite Vnth_map.
           apply Vnth_arg_eq with (ip:=jc) in Heqo0.
           rewrite Vbuild_nth in Heqo0.
           rewrite Vnth_map in Heqo0.
-          rewrite H1 in Heqo0.
+          rewrite V0 in Heqo0.
           inversion Heqo0.
           auto.
         --
@@ -418,7 +364,9 @@ Section MemVecEq.
         apply G.
         apply Full_intro.
       }
-      specialize (H1 j jc V0).
+      apply H1 in V0. clear H1.
+      apply NMS.F.find_mapsto_iff in V0.
+      unfold mem_lookup in Heqo0.
       congruence.
   Qed.
 
