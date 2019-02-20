@@ -2988,7 +2988,7 @@ Section SigmaHCOLRewritingRules.
 
     End Vec_Permutations.
 
-    Lemma Vold_right_sig_wrap_equiv
+    Lemma Fold_right_sig_wrap_equiv
           {n : nat}
           {A : Type}
           `{As: Setoid A}
@@ -3090,8 +3090,8 @@ Section SigmaHCOLRewritingRules.
         by apply ComutativeRMonoid_to_sig_CommutativeMonoid.
 
       (* Not sure why Coq does not properly guess varables here... *)
-      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P1) by apply rsg_op_proper.
-      rewrite Vold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P2) by apply rsg_op_proper.
+      rewrite Fold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P1) by apply rsg_op_proper.
+      rewrite Fold_right_sig_wrap_equiv with (P0:=P) (Pz:=rmonoid_unit_P _) (f0:=f) (f_P_closed:=rmonoid_plus_closed _) (P3:=P2) by apply rsg_op_proper.
 
       f_equiv.
 

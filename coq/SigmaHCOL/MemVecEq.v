@@ -89,14 +89,14 @@ Next Obligation.
         --
           unfold mem_add.
           unfold mem_empty.
-          rewrite find_vold_right_indexed'_S_P.
+          rewrite find_fold_right_indexed'_S_P.
           reflexivity.
         --
           replace N with (lt_S_n ip) by apply le_unique.
           apply H.
       *
         simpl in H.
-        rewrite find_vold_right_indexed'_S_P.
+        rewrite find_fold_right_indexed'_S_P.
         apply IHn.
         apply H.
 Qed.
@@ -122,12 +122,12 @@ Proof.
       break_if.
       *
         rewrite NM_find_add_3 by omega.
-        rewrite find_vold_right_indexed'_S_P.
+        rewrite find_fold_right_indexed'_S_P.
         rewrite IHv.
         reflexivity.
         omega.
       *
-        rewrite find_vold_right_indexed'_S_P.
+        rewrite find_fold_right_indexed'_S_P.
         rewrite IHv.
         reflexivity.
         omega.

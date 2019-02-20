@@ -62,7 +62,7 @@ Section FMapUtil.
 End FMapUtil.
 
 (* After folding starting from 'j' attempts to lookup lower indices will fail *)
-Lemma find_vold_right_indexed_oob
+Lemma find_fold_right_indexed_oob
       (n i j: nat)
       {A B: Type}
       (v : vector A n)
@@ -97,7 +97,7 @@ Proof.
       lia.
 Qed.
 
-Lemma find_vold_right_indexed'_off_P
+Lemma find_fold_right_indexed'_off_P
       (n i off: nat)
       {A B: Type}
       (v : vector A n)
@@ -148,7 +148,7 @@ Proof.
     +
       destruct i.
       *
-        rewrite 2!find_vold_right_indexed_oob by lia.
+        rewrite 2!find_fold_right_indexed_oob by lia.
         reflexivity.
       *
         replace (S i + off) with (i + S off) by lia.
@@ -160,7 +160,7 @@ Proof.
         apply IHn.
 Qed.
 
-Lemma find_vold_right_indexed'_S_P
+Lemma find_fold_right_indexed'_S_P
       (n i : nat)
       {A B: Type}
       (v : vector A n)
@@ -185,12 +185,12 @@ Lemma find_vold_right_indexed'_S_P
 Proof.
   replace (1) with (0+1) by lia.
   replace (S i) with (i+1) by lia.
-  apply find_vold_right_indexed'_off_P.
+  apply find_fold_right_indexed'_off_P.
 Qed.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Lemma find_vold_right_indexed'_off:
+Lemma find_fold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),
     NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) =
     NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
@@ -208,7 +208,7 @@ Proof.
          then
            NM.add k (f r) m
          else m).
-  apply find_vold_right_indexed'_off_P.
+  apply find_fold_right_indexed'_off_P.
 
   extensionality k.
   extensionality r.
@@ -218,7 +218,7 @@ Proof.
   + unfold P, Basics.const, not  in *; crush.
 Qed.
 
-Lemma find_vold_right_indexed'_S:
+Lemma find_fold_right_indexed'_S:
   forall (n i : nat) (v : vector CarrierA n),
     NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) =
     NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
@@ -227,7 +227,7 @@ Proof.
 
   replace (1) with (0+1) by lia.
   replace (S i) with (i+1) by lia.
-  apply find_vold_right_indexed'_off.
+  apply find_fold_right_indexed'_off.
 Qed.
 
 Program Definition avector_to_mem_block_spec
@@ -254,7 +254,7 @@ Next Obligation.
       specialize (IHn x i N).
       replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
       rewrite <- IHn; clear IHn.
-      apply find_vold_right_indexed'_S.
+      apply find_fold_right_indexed'_S.
 Qed.
 
 Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
@@ -289,7 +289,7 @@ Proof.
     +
       omega.
     +
-      rewrite find_vold_right_indexed'_S.
+      rewrite find_fold_right_indexed'_S.
       rewrite IHv.
       reflexivity.
       omega.
