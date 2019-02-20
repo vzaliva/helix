@@ -440,7 +440,9 @@ Section MemVecEq.
         apply G.
         apply Full_intro.
       }
-      specialize (H1 0 (lt_0_Sn 0) V).
+      specialize (H1 0 (lt_0_Sn 0)).
+      apply H1 in V; clear H1.
+      apply NMS.F.find_mapsto_iff in V.
       unfold zero in *.
       congruence.
   Admitted.
