@@ -44,12 +44,20 @@ Import Monoid.
 Import VectorNotations.
 Open Scope vector_scope.
 
+Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
+                              CarrierA_as_BooleanDecidableType.
+
+
 Program Definition svector_to_mem_block_spec
         {fm}
         {n : nat}
         (v : svector fm n):
-  { m : mem_block | forall i (ip : i < n),
-      Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m
+  { m : mem_block |
+      (
+        (forall i (ip : i < n), Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m)
+        /\
+        (forall i (ip : i < n), NM.In i m -> Is_Val (Vnth v ip))
+      )
   }
   := Vfold_right_indexed' 0
                           (fun k r m =>
@@ -61,79 +69,117 @@ Next Obligation.
   unfold mem_lookup, mem_add, mem_empty.
   split.
   -
-    revert ip. revert i.
-    induction n; intros.
+    (* Is_Val <-> MapsTo *)
+    split.
     +
-      nat_lt_0_contradiction.
-    +
-      dep_destruct v;clear v.
-      simpl.
-      destruct i.
+      (* Is_Val -> MapsTo *)
+      revert ip. revert i.
+      induction n; intros.
       *
-        destruct (Is_Val_dec h).
-        --
-          apply NM.add_1.
-          reflexivity.
-        --
-          simpl in H.
-          crush.
+        nat_lt_0_contradiction.
       *
-        destruct (Is_Val_dec h).
+        dep_destruct v;clear v.
+        simpl.
+        destruct i.
         --
-          apply NM.add_2; auto.
-          assert (N: i<n) by apply Lt.lt_S_n, ip.
-          simpl in H.
-          replace (Lt.lt_S_n ip) with N by apply le_unique.
-          assert(V: Is_Val (Vnth x N)).
-          {
-            replace N with (lt_S_n ip) by apply le_unique.
-            apply H.
-          }
-          specialize (IHn x i N V).
-          apply NM.find_1 in IHn.
-          apply NM.find_2.
-          rewrite <- IHn; clear IHn.
+          destruct (Is_Val_dec h).
           ++
+            apply NM.add_1.
+            reflexivity.
+          ++
+            simpl in H.
+            crush.
+        --
+          destruct (Is_Val_dec h).
+          ++
+            apply NM.add_2; auto.
+            assert (N: i<n) by apply Lt.lt_S_n, ip.
+            simpl in H.
+            replace (Lt.lt_S_n ip) with N by apply le_unique.
+            assert(V: Is_Val (Vnth x N)).
+            {
+              replace N with (lt_S_n ip) by apply le_unique.
+              apply H.
+            }
+            specialize (IHn x i N V).
+            apply NM.find_1 in IHn.
+            apply NM.find_2.
+            rewrite <- IHn; clear IHn.
             rewrite find_fold_right_indexed'_S_P.
             reflexivity.
+          ++
+            simpl in H.
+            assert (N: i<n) by apply Lt.lt_S_n, ip.
+            replace (Lt.lt_S_n ip) with N by apply le_unique.
+            assert(V: Is_Val (Vnth x N)).
+            {
+              replace N with (lt_S_n ip) by apply le_unique.
+              apply H.
+            }
+            specialize (IHn x i N V).
+            apply NM.find_1 in IHn.
+            apply NM.find_2.
+            rewrite find_fold_right_indexed'_S_P.
+            apply IHn.
+    +
+      (* MapsTo -> Is_Val *)
+      revert i ip.
+      induction n; intros.
+      *
+        nat_lt_0_contradiction.
+      *
+        dep_destruct v; clear v.
+        simpl.
+        destruct i.
         --
+          clear IHn.
+          apply NM.find_1 in H.
           simpl in H.
-          assert (N: i<n) by apply Lt.lt_S_n, ip.
-          replace (Lt.lt_S_n ip) with N by apply le_unique.
-          assert(V: Is_Val (Vnth x N)).
-          {
-            replace N with (lt_S_n ip) by apply le_unique.
-            apply H.
-          }
-          specialize (IHn x i N V).
-          apply NM.find_1 in IHn.
+          destruct (Is_Val_dec h); auto.
+          rewrite find_fold_right_indexed_oob in H.
+          some_none_contradiction.
+          auto.
+        --
+          apply IHn; clear IHn.
+          apply NM.find_1 in H.
           apply NM.find_2.
-          rewrite find_fold_right_indexed'_S_P.
-          apply IHn.
+          simpl (Some _) in H.
+          assert (N: i<n) by apply Lt.lt_S_n, ip.
+          replace (Lt.lt_S_n ip) with N in * by apply le_unique.
+          rewrite <- H; clear H ip.
+          rewrite <- find_fold_right_indexed'_S_P.
+          symmetry.
+          apply find_fold_right_indexed'_cons_P.
   -
-    revert i ip.
+    (* In -> Is_Val *)
     induction n; intros.
-    +
+    *
       nat_lt_0_contradiction.
-    +
+    *
       dep_destruct v; clear v.
       simpl.
       destruct i.
-      *
+      --
         clear IHn.
-        apply NM.find_1 in H.
         simpl in H.
         destruct (Is_Val_dec h); auto.
+        apply NMS.In_MapsTo in H.
+        destruct H as [e H].
+        apply NMS.F.find_mapsto_iff in H.
         rewrite find_fold_right_indexed_oob in H.
         some_none_contradiction.
         auto.
-      *
-        assert (N: i<n) by apply Lt.lt_S_n, ip.
-        apply IHn. clear IHn.
-        apply NM.find_1 in H.
-        apply NM.find_2.
-        simpl (Some _) in H.
-        replace (Lt.lt_S_n ip) with N in * by apply le_unique.
+      --
+        apply IHn; clear IHn.
+
+        (* assert (N: i<n) by apply Lt.lt_S_n, ip. *)
+        apply NMS.In_MapsTo in H.
+        destruct H as [e H].
+        apply NMS.F.find_mapsto_iff in H.
+        (* replace (Lt.lt_S_n ip) with N in * by apply le_unique. *)
+
+        apply NMS.MapsTo_In with (e:=e).
+        apply NMS.F.find_mapsto_iff.
         rewrite <- H. clear H ip.
         rewrite <- find_fold_right_indexed'_S_P.
         symmetry.
@@ -172,19 +218,16 @@ Proof.
         omega.
 Qed.
 
-Ltac svector_to_mem_block_to_spec m H0 H1 :=
+Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
   match goal with
     [ |- context[svector_to_mem_block_spec ?v]] =>
-    pose proof (svector_to_mem_block_key_oob (v:=v)) as H1;
-    unfold svector_to_mem_block in H1 ;
-    destruct (svector_to_mem_block_spec v) as [m H0]
+    pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
+    unfold svector_to_mem_block in H2 ;
+    destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
   end.
 
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.
-
-Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
-                              CarrierA_as_BooleanDecidableType.
 
 Global Instance mem_block_Equiv_Reflexive:
   Reflexive (mem_block_Equiv).
@@ -252,8 +295,8 @@ Section MemVecEq.
     unfold mem_op_of_hop.
     unfold liftM_HOperator', avector_to_mem_block, svector_to_mem_block, compose in *.
 
-    svector_to_mem_block_to_spec m0 H0 O0.
-    svector_to_mem_block_to_spec m1 H1 O1.
+    svector_to_mem_block_to_spec m0 H0 I0 O0.
+    svector_to_mem_block_to_spec m1 H1 I1 O1.
     break_match.
     -
       f_equiv.
@@ -384,8 +427,8 @@ Section MemVecEq.
     unfold eUnion_mem, map_mem_block_elt.
 
     unfold svector_to_mem_block.
-    svector_to_mem_block_to_spec m0 H0 O0.
-    svector_to_mem_block_to_spec m1 H1 O1.
+    svector_to_mem_block_to_spec m0 H0 I0 O0.
+    svector_to_mem_block_to_spec m1 H1 I1 O1.
 
     break_match; unfold mem_lookup in *; simpl in *.
     -
