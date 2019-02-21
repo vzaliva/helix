@@ -595,21 +595,15 @@ Section Rtheta'Utils.
     Qed.
 
     Lemma not_Is_Val_Is_Struct:
-      forall a, not (Is_Val a) -> Is_Struct a.
+      forall a, not (Is_Val a) <-> Is_Struct a.
     Proof.
-      intros a H.
-      destruct (Is_Struct_Is_Val_dec a).
-      auto.
-      tauto.
+      split; intros; destruct (Is_Struct_Is_Val_dec a); auto; tauto.
     Qed.
 
     Lemma not_Is_Struct_Is_Val:
-      forall a, not (Is_Struct a) -> Is_Val a.
+      forall a, not (Is_Struct a) <-> Is_Val a.
     Proof.
-      intros a H.
-      destruct (Is_Struct_Is_Val_dec a).
-      tauto.
-      auto.
+      split; intros; destruct (Is_Struct_Is_Val_dec a); auto; tauto.
     Qed.
 
     Lemma Is_Val_mkStruct:
