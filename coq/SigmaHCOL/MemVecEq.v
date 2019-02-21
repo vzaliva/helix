@@ -348,7 +348,7 @@ Section MemVecEq.
           rewrite Vnth_map in Heqo0.
           rewrite V0 in Heqo0.
           inversion Heqo0.
-          auto.
+          reflexivity.
         --
           clear H0 H1 H2.
           apply NM.find_1 in H4.
@@ -403,7 +403,6 @@ Section MemVecEq.
           simpl.
           reflexivity.
       }
-      (* specialize (H0 b bc Vb). *)
       unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
       split; intros.
       +
@@ -417,16 +416,28 @@ Section MemVecEq.
             left.
             apply E.
           --
-            (* contradiction *)
-            destruct (NatUtil.lt_ge_dec k o) as [Hb | Hb].
+            exfalso.
+            destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
             ++
-              clear O1.
-              (* via facts sparsity *)
-              destruct facts.
-              admit.
-              (* TODO: neeed stronger spec on `svector_to_mem_block` ! *)
+              (* k in range *)
+              clear O0 O1.
+              (* clear m1 H1 Heqo0 c G. *)
+              assert(H: Is_Struct (Vnth (eUnion' bc z x) kc)).
+              {
+                pose proof (no_vals_at_sparse fm x) as S.
+                auto.
+              }
+
+              assert(C: Is_Val (Vnth (eUnion' bc z x) kc)).
+              {
+                admit.
+                (* TODO: need stronger spec *)
+              }
+              rewrite <- not_Is_Struct_Is_Val in C.
+              congruence.
             ++
-              specialize (O0 k Hb).
+              (* k is oob *)
+              specialize (O0 k kc).
               apply NMS.F.in_find_iff in H2.
               congruence.
         *
@@ -435,6 +446,7 @@ Section MemVecEq.
         (* MapsTo *)
         admit.
     -
+      exfalso.
       assert(V:Is_Val (Vnth x (Nat.lt_0_succ 0))).
       {
         apply G.
