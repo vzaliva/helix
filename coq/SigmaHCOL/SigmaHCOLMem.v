@@ -237,10 +237,10 @@ Lemma find_fold_right_indexed'_off:
 Proof.
   intros n i off v.
 
-  Let P := @Basics.const Prop CarrierA True.
+  remember (@Basics.const Prop CarrierA True) as P.
   assert(Pdec: forall x, sumbool (P x) (not (P x)))
-    by (intros x; left; unfold P, Basics.const;  tauto).
-  Let f := @id CarrierA.
+    by (intros x; left; subst P; unfold Basics.const;  tauto).
+  remember (@id CarrierA) as f.
   unfold mem_empty.
   replace mem_add with
       (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
@@ -254,8 +254,8 @@ Proof.
   extensionality r.
   extensionality m.
   break_if.
-  + unfold f, id; reflexivity.
-  + unfold P, Basics.const, not  in *; crush.
+  + subst f; unfold id; reflexivity.
+  + subst P; unfold Basics.const, not  in *; crush.
 Qed.
 
 Lemma find_fold_right_indexed'_S:
