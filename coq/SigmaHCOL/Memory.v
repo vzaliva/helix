@@ -72,3 +72,47 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
 Definition memory := NatMap mem_block.
 
 Definition mem_block_equiv:= NM.Equiv CarrierAe.
+
+Section NMUtil.
+
+  Lemma NM_find_add_1:
+    forall (elt:Type) (m : NM.t elt) (x y : NM.key) (e: elt),
+      x = y ->
+      NM.find y (NM.add x e m) = Some e.
+  Proof.
+    intros elt m x y e H.
+    apply NM.find_1.
+    apply NM.add_1.
+    apply H.
+  Qed.
+
+  Lemma NM_find_add_3:
+    forall (elt:Type) (m : NM.t elt) (x y : NM.key) (e: elt),
+      x <> y ->
+      NM.find y (NM.add x e m) = NM.find y m.
+  Proof.
+    intros elt m x y e H.
+    match goal with
+    | [ |- ?l = ?r ] => remember l as L; remember r as R
+    end.
+    destruct L, R; auto.
+    -
+      symmetry in HeqL.
+      apply NM.find_2, NM.add_3, NM.find_1 in HeqL.
+      rewrite <- HeqL, HeqR.
+      reflexivity.
+      apply H.
+    -
+      symmetry in HeqL.
+      apply NM.find_2, NM.add_3, NM.find_1 in HeqL.
+      rewrite <- HeqL, HeqR.
+      reflexivity.
+      apply H.
+    -
+      symmetry in HeqR.
+      apply NM.find_2, NM.add_2 with (x:=x) (e':=e), NM.find_1  in HeqR.
+      congruence.
+      apply H.
+  Qed.
+
+End NMUtil.
