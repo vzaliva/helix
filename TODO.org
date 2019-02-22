@@ -11,13 +11,13 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Many usused definitions could be removed. (Hint: try `make print-unused`)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
-** Rename implementations with ' suffux into "_Impl" in /SigmaHCOLImpl.v/.
+** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/.
   For example =eT'= should become =eTImpl=
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
 
 * Proof mechanics
-** Review `_arg_proper` vs `_proper` instances
+** Review =_arg_proper= vs =_proper= instances
 ** Proof-irrelevance assumption could be avoided
 * Unfinished
 ** Automate /DynWin/ rewriting proof
