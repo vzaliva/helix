@@ -282,6 +282,29 @@ Section MemVecEq.
   Variable fm:Monoid RthetaFlags.
   Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
 
+  Global Instance compose_MemVecEq
+         {i1 o2 o3}
+         (op1: @SHOperator fm o2 o3)
+         (op2: @SHOperator fm i1 o2)
+         `{fop1: SHOperator_Facts fm _ _ op1}
+         `{fop2: SHOperator_Facts fm _ _ op2}
+         (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+    : SHOperator_MemVecEq
+        (facts:=SHCompose_Facts fm op1 op2 compat)
+        (SHCompose fm op1 op2).
+  Proof.
+    split.
+    intros x G.
+    simpl.
+    unfold option_compose.
+    break_match.
+    -
+      admit.
+    -
+      exfalso.
+      admit.
+  Admitted.
+
   Global Instance liftM_MemVecEq
          {i o}
          (hop: avector i -> avector o)
