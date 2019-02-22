@@ -9,13 +9,24 @@ Require Import Omega.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FMapSetoid.
+Require Import Helix.Util.WriterMonadNoT.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.SigmaHCOL.Rtheta.
+Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Tactics.HelixTactics.
+
+Import Monoid.
 
 Global Open Scope nat_scope.
 Set Implicit Arguments.
+
+Import VectorNotations.
+Open Scope vector_scope.
+
 
 (* After folding starting from 'j' attempts to lookup lower indices will fail *)
 Lemma find_fold_right_indexed_oob
@@ -225,70 +236,92 @@ Proof.
   apply find_fold_right_indexed'_off.
 Qed.
 
-Program Definition avector_to_mem_block_spec
-        {n : nat}
-        (v : avector n):
-  { m : mem_block | forall i (ip : i < n), mem_lookup i m = Some (Vnth v ip)}
-  := Vfold_right_indexed' 0 mem_add v mem_empty.
-Next Obligation.
-  unfold mem_lookup.
-  revert i ip; induction n; intros.
-  -
-    nat_lt_0_contradiction.
-  -
-    dep_destruct v;clear v.
-    simpl.
-    destruct i.
-    +
-      unfold Vfold_right_indexed, mem_add.
-      apply NM_find_add_1.
-      reflexivity.
-    +
-      rewrite NM_find_add_3; auto.
-      assert (N: i<n) by apply Lt.lt_S_n, ip.
-      specialize (IHn x i N).
-      replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
-      rewrite <- IHn; clear IHn.
-      apply find_fold_right_indexed'_S.
-Qed.
+Section Avector.
 
-Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
-
-(* alternative, propositional spec. *)
-Lemma avector_to_mem_block_spec'
-      (n : nat)
-      (v : avector n)
-      (i: nat)
-      (ip : i < n)
-  : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
-Proof.
-  unfold avector_to_mem_block.
-  destruct (avector_to_mem_block_spec v) as [x SP].
-  apply NM.find_2, SP.
-Qed.
-
-Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
-  forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) = None.
-Proof.
-  intros k kc.
-  unfold avector_to_mem_block.
-  simpl.
-  revert k kc; induction v; intros.
-  -
-    reflexivity.
-  -
+  Program Definition avector_to_mem_block_spec
+          {n : nat}
+          (v : avector n):
+    { m : mem_block | forall i (ip : i < n), mem_lookup i m = Some (Vnth v ip)}
+    := Vfold_right_indexed' 0 mem_add v mem_empty.
+  Next Obligation.
     unfold mem_lookup.
+    revert i ip; induction n; intros.
+    -
+      nat_lt_0_contradiction.
+    -
+      dep_destruct v;clear v.
+      simpl.
+      destruct i.
+      +
+        unfold Vfold_right_indexed, mem_add.
+        apply NM_find_add_1.
+        reflexivity.
+      +
+        rewrite NM_find_add_3; auto.
+        assert (N: i<n) by apply Lt.lt_S_n, ip.
+        specialize (IHn x i N).
+        replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
+        rewrite <- IHn; clear IHn.
+        apply find_fold_right_indexed'_S.
+  Qed.
+
+  Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
+
+  (* alternative, propositional spec. *)
+  Lemma avector_to_mem_block_spec'
+        (n : nat)
+        (v : avector n)
+        (i: nat)
+        (ip : i < n)
+    : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
+  Proof.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [x SP].
+    apply NM.find_2, SP.
+  Qed.
+
+  Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
+    forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) = None.
+  Proof.
+    intros k kc.
+    unfold avector_to_mem_block.
     simpl.
-    rewrite NM_find_add_3 by omega.
-    destruct k.
-    +
-      omega.
-    +
-      rewrite find_fold_right_indexed'_S.
-      rewrite IHv.
+    revert k kc; induction v; intros.
+    -
       reflexivity.
-      omega.
-Qed.
+    -
+      unfold mem_lookup.
+      simpl.
+      rewrite NM_find_add_3 by omega.
+      destruct k.
+      +
+        omega.
+      +
+        rewrite find_fold_right_indexed'_S.
+        rewrite IHv.
+        reflexivity.
+        omega.
+  Qed.
+
+
+  Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
+    := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
+
+  Lemma mem_block_avector_id {n} {v:avector n}:
+    (mem_block_to_avector (avector_to_mem_block v)) = Some v.
+  Proof.
+    unfold mem_block_to_avector.
+    apply vsequence_Vbuild_eq_Some.
+    apply Veq_nth.
+    intros i ip.
+    rewrite Vbuild_nth.
+    rewrite Vnth_map.
+    unfold avector_to_mem_block.
+    destruct (avector_to_mem_block_spec v) as [m H].
+    apply H.
+  Qed.
+
+End Avector.
 
 Ltac avector_to_mem_block_to_spec m H0 H1 :=
   match goal with
@@ -299,22 +332,192 @@ Ltac avector_to_mem_block_to_spec m H0 H1 :=
   end.
 
 
-Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
-  := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
+Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
+                              CarrierA_as_BooleanDecidableType.
 
-Lemma mem_block_avector_id {n} {v:avector n}:
-  (mem_block_to_avector (avector_to_mem_block v)) = Some v.
-Proof.
-  unfold mem_block_to_avector.
-  apply vsequence_Vbuild_eq_Some.
-  apply Veq_nth.
-  intros i ip.
-  rewrite Vbuild_nth.
-  rewrite Vnth_map.
-  unfold avector_to_mem_block.
-  destruct (avector_to_mem_block_spec v) as [m H].
-  apply H.
-Qed.
+
+Section SVector.
+
+  Variable fm:Monoid RthetaFlags.
+
+  Program Definition svector_to_mem_block_spec
+          {n : nat}
+          (v : svector fm n):
+    { m : mem_block |
+      (
+        (forall i (ip : i < n), Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m)
+        /\
+        (forall i (ip : i < n), NM.In i m -> Is_Val (Vnth v ip))
+      )
+    }
+    := Vfold_right_indexed' 0
+                            (fun k r m =>
+                               if Is_Val_dec r then mem_add k (evalWriter r) m
+                               else m
+                            )
+                            v mem_empty.
+  Next Obligation.
+    unfold mem_lookup, mem_add, mem_empty.
+    split.
+    -
+      (* Is_Val <-> MapsTo *)
+      split.
+      +
+        (* Is_Val -> MapsTo *)
+        revert ip. revert i.
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v;clear v.
+          simpl.
+          destruct i.
+          --
+            destruct (Is_Val_dec h).
+            ++
+              apply NM.add_1.
+              reflexivity.
+            ++
+              simpl in H.
+              crush.
+          --
+            destruct (Is_Val_dec h).
+            ++
+              apply NM.add_2; auto.
+              assert (N: i<n) by apply Lt.lt_S_n, ip.
+              simpl in H.
+              replace (Lt.lt_S_n ip) with N by apply le_unique.
+              assert(V: Is_Val (Vnth x N)).
+              {
+                replace N with (lt_S_n ip) by apply le_unique.
+                apply H.
+              }
+              specialize (IHn x i N V).
+              apply NM.find_1 in IHn.
+              apply NM.find_2.
+              rewrite <- IHn; clear IHn.
+              rewrite find_fold_right_indexed'_S_P.
+              reflexivity.
+            ++
+              simpl in H.
+              assert (N: i<n) by apply Lt.lt_S_n, ip.
+              replace (Lt.lt_S_n ip) with N by apply le_unique.
+              assert(V: Is_Val (Vnth x N)).
+              {
+                replace N with (lt_S_n ip) by apply le_unique.
+                apply H.
+              }
+              specialize (IHn x i N V).
+              apply NM.find_1 in IHn.
+              apply NM.find_2.
+              rewrite find_fold_right_indexed'_S_P.
+              apply IHn.
+      +
+        (* MapsTo -> Is_Val *)
+        revert i ip.
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            apply NM.find_1 in H.
+            simpl in H.
+            destruct (Is_Val_dec h); auto.
+            rewrite find_fold_right_indexed_oob in H.
+            some_none_contradiction.
+            auto.
+          --
+            apply IHn; clear IHn.
+            apply NM.find_1 in H.
+            apply NM.find_2.
+            simpl (Some _) in H.
+            assert (N: i<n) by apply Lt.lt_S_n, ip.
+            replace (Lt.lt_S_n ip) with N in * by apply le_unique.
+            rewrite <- H; clear H ip.
+            rewrite <- find_fold_right_indexed'_S_P.
+            symmetry.
+            apply find_fold_right_indexed'_cons_P.
+    -
+      (* In -> Is_Val *)
+      induction n; intros.
+      *
+        nat_lt_0_contradiction.
+      *
+        dep_destruct v; clear v.
+        simpl.
+        destruct i.
+        --
+          clear IHn.
+          simpl in H.
+          destruct (Is_Val_dec h); auto.
+          apply NMS.In_MapsTo in H.
+          destruct H as [e H].
+          apply NMS.F.find_mapsto_iff in H.
+          rewrite find_fold_right_indexed_oob in H.
+          some_none_contradiction.
+          auto.
+        --
+          apply IHn; clear IHn.
+
+          (* assert (N: i<n) by apply Lt.lt_S_n, ip. *)
+          apply NMS.In_MapsTo in H.
+          destruct H as [e H].
+          apply NMS.F.find_mapsto_iff in H.
+          (* replace (Lt.lt_S_n ip) with N in * by apply le_unique. *)
+
+          apply NMS.MapsTo_In with (e:=e).
+          apply NMS.F.find_mapsto_iff.
+          rewrite <- H. clear H ip.
+          rewrite <- find_fold_right_indexed'_S_P.
+          symmetry.
+          apply find_fold_right_indexed'_cons_P.
+  Qed.
+
+  Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
+
+  Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
+    forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) = None.
+  Proof.
+    intros k kc.
+    unfold svector_to_mem_block.
+    simpl.
+    revert k kc; induction v; intros.
+    -
+      reflexivity.
+    -
+      unfold mem_lookup.
+      simpl.
+      destruct k.
+      +
+        omega.
+      +
+        break_if.
+        *
+          rewrite NM_find_add_3 by omega.
+          rewrite find_fold_right_indexed'_S_P.
+          rewrite IHv.
+          reflexivity.
+          omega.
+        *
+          rewrite find_fold_right_indexed'_S_P.
+          rewrite IHv.
+          reflexivity.
+          omega.
+  Qed.
+
+End SVector.
+
+Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
+  match goal with
+    [ |- context[svector_to_mem_block_spec ?v]] =>
+    pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
+    unfold svector_to_mem_block in H2 ;
+    destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
+  end.
 
 (* HOperator (on dense vector) mapping to memory operator *)
 Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)

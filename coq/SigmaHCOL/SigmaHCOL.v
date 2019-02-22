@@ -193,6 +193,7 @@ Section SigmaHCOL_Operators.
           (* Never generate collisions on sparse places *)
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
+
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
