@@ -12,7 +12,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
 ** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/.
-  For example =eT'= should become =eTImpl=
+  For example =eT'= should become =eT_impl=
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
 
