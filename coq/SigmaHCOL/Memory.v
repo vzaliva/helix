@@ -32,6 +32,7 @@ Definition NatMap := NM.t.
 Definition mem_add k (v:CarrierA) := NM.add k v.
 Definition mem_delete k (m:NatMap CarrierA) := NM.remove k m.
 Definition mem_member k (m:NatMap CarrierA) := NM.mem k m.
+Definition mem_in     k (m:NatMap CarrierA) := NM.In k m.
 Definition mem_lookup k (m:NatMap CarrierA) := NM.find k m.
 Definition mem_empty := @NM.empty CarrierA.
 Definition mem_mapsto k (v:CarrierA) (m:NatMap CarrierA) := @NM.MapsTo CarrierA k v m.
@@ -116,3 +117,4 @@ Section NMUtil.
   Qed.
 
 End NMUtil.
+

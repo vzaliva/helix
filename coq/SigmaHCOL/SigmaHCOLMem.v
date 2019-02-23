@@ -15,6 +15,7 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.SigmaHCOL.MemSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Tactics.HelixTactics.
@@ -330,11 +331,6 @@ Ltac avector_to_mem_block_to_spec m H0 H1 :=
     unfold avector_to_mem_block in H1 ;
     destruct (avector_to_mem_block_spec v) as [m H0]
   end.
-
-
-Module NMS := FMapSetoid.Make Coq.Structures.OrderedTypeEx.Nat_as_OT NM
-                              CarrierA_as_BooleanDecidableType.
-
 
 Section SVector.
 

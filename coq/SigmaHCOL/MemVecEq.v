@@ -44,37 +44,6 @@ Import Monoid.
 Import VectorNotations.
 Open Scope vector_scope.
 
-Global Instance mem_block_Equiv:
-  Equiv (mem_block) := mem_block_equiv.
-
-Global Instance mem_block_Equiv_Reflexive:
-  Reflexive (mem_block_Equiv).
-Proof.
-  apply NMS.EquivSetoid_Reflexive.
-  typeclasses eauto.
-Qed.
-
-Global Instance mem_block_Equiv_Symmetric:
-  Symmetric (mem_block_Equiv).
-Proof.
-  apply NMS.EquivSetoid_Symmetric.
-  typeclasses eauto.
-Qed.
-
-Global Instance mem_block_Equiv_Transitive:
-  Transitive (mem_block_Equiv).
-Proof.
-  apply NMS.EquivSetoid_Transitive.
-  typeclasses eauto.
-Qed.
-
-Global Instance mem_block_Equiv_Equivalence:
-  Equivalence (mem_block_Equiv).
-Proof.
-  apply NMS.EquivSetoid_Equivalence.
-  typeclasses eauto.
-Qed.
-
 Class SHOperator_MemVecEq
       {fm}
       {i o: nat}
