@@ -22,6 +22,19 @@ Proof.
   - apply opt_r_trans, H.
 Qed.
 
+Lemma Some_inj_eq {A:Type}:
+  forall (a b:A), a ≡ b <-> Some a ≡ Some b.
+Proof.
+  intros a b.
+  split; intros H.
+  -
+    f_equiv.
+    apply H.
+  -
+    inversion H.
+    auto.
+Qed.
+
 Lemma Some_inj_equiv `{E: Equiv A}:
   forall (a b:A), a = b <-> Some a = Some b.
 Proof.
