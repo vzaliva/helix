@@ -76,21 +76,37 @@ Section MemVecEq.
          `{fop1: SHOperator_Facts fm _ _ op1}
          `{fop2: SHOperator_Facts fm _ _ op2}
          (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+         `{Meq1: SHOperator_MemVecEq fm o2 o3 op1}
+         `{Meq2: SHOperator_MemVecEq fm i1 o2 op2}
     : SHOperator_MemVecEq
-        (facts:=SHCompose_Facts fm op1 op2 compat)
+        (facts:=SHCompose_Facts fm fml op1 op2 compat)
         (SHCompose fm op1 op2).
   Proof.
     split.
     intros x G.
     simpl.
-    unfold option_compose.
-    break_match.
-    -
-      admit.
-    -
-      exfalso.
-      admit.
-  Admitted.
+    unfold option_compose, compose.
+
+    pose proof (mem_out_some fm x) as Rm.
+    specialize (Rm G).
+    apply is_Some_def in Rm.
+    destruct Rm as [m2 Rm].
+
+    rewrite Rm.
+    replace m2 with (svector_to_mem_block (op fm op2 x)).
+    apply Meq1.
+    {
+      intros j jc H.
+      apply fop2. (* out_as_range *)
+      apply G.
+      apply compat, H.
+    }
+
+    apply Some_inj_equiv.
+    rewrite <- Rm.
+
+    apply Meq2, G.
+  Qed.
 
   Global Instance liftM_MemVecEq
          {i o}

@@ -175,7 +175,7 @@ Section SigmaHCOL_Operators.
             Proper ((vec_equiv_at_set (in_index_set xop)) ==> (=)) (op xop);
           (* sufficiently (values in right places, no info on empty
           spaces) filled input vector guarantees properly (values are
-          only where values expected) filled output vector *)
+          where values expected) filled output vector *)
           out_as_range: forall v,
               (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
               ->
@@ -194,6 +194,14 @@ Section SigmaHCOL_Operators.
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
 
+          (* sufficiently (values in right places, no info on empty
+             spaces) filled input memory block guarantees that `mem_op`
+             will not fail.
+           *)
+          mem_out_some: forall v,
+              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
+              ->
+              is_Some (mem_op xop (svector_to_mem_block (fm:=fm) v))
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
@@ -1702,7 +1710,10 @@ Section StructuralProperies.
         unfold not in H.
         destruct H.
         split.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance SHCompose_Facts
            {i1 o2 o3}
@@ -1768,7 +1779,10 @@ Section StructuralProperies.
         unfold compose in *.
         apply no_coll_at_sparse0.
         apply H.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance eUnion_Facts
            {o b:nat}
@@ -1848,7 +1862,10 @@ Section StructuralProperies.
           congruence.
         +
           apply Not_Collision_mkStruct.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance eT_Facts
            {i b:nat}
@@ -1901,7 +1918,10 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance Gather_Facts
            {i o: nat}
@@ -1954,7 +1974,10 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -2002,7 +2025,10 @@ Section StructuralProperies.
         simpl in *.
         destruct jc.
         split.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
     Global Instance SHInductor_Facts
            (n:nat)
@@ -2057,7 +2083,10 @@ Section StructuralProperies.
         simpl in *.
         destruct jc.
         split.
-    Qed.
+      -
+        (* mem_out_as_range *)
+        admit.
+    Admitted.
 
 
   End FlagsMonoidGenericStructuralProperties.
@@ -2139,7 +2168,10 @@ Section StructuralProperies.
       unfold Scatter' in *.
       rewrite Vbuild_nth in S.
       break_match; crush.
-  Qed.
+    -
+      (* mem_out_as_range *)
+      admit.
+  Admitted.
 
 
   Global Instance SHBinOp_RthetaSafe_Facts
@@ -2187,7 +2219,10 @@ Section StructuralProperies.
       simpl in *.
       destruct jc.
       split.
-  Qed.
+    -
+      (* mem_out_as_range *)
+      admit.
+  Admitted.
 
   Lemma UnionFold_empty_Non_Collision
         (k : nat)
@@ -2574,7 +2609,10 @@ Section StructuralProperies.
         apply family_out_set_implies_members.
         exists m, mc.
         apply M.
-  Qed.
+    -
+      (* mem_out_as_range *)
+      admit.
+  Admitted.
 
   Global Instance IReduction_Facts
          {i o k}
@@ -2724,7 +2762,10 @@ Section StructuralProperies.
         apply no_coll_at_sparse.
         apply op_family_facts.
         apply H.
-  Qed.
+    -
+      (* mem_out_as_range *)
+      admit.
+    Admitted.
 
 End StructuralProperies.
 
