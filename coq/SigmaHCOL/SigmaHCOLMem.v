@@ -20,6 +20,8 @@ Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Tactics.HelixTactics.
 
+Require Import MathClasses.interfaces.canonical_names.
+
 Import Monoid.
 
 Global Open Scope nat_scope.
@@ -45,7 +47,7 @@ Lemma find_fold_right_indexed_oob
                                                 then
                                                   NM.add k (f r) m
                                                 else m)
-                                             v (@NM.empty B)) = None.
+                                             v (@NM.empty B)) ≡ None.
 Proof.
   revert i j.
   induction n; intros.
@@ -57,7 +59,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NM_find_add_3 by omega.
+      rewrite NMS.F.add_neq_o by omega.
       apply IHn.
       lia.
     +
@@ -79,7 +81,7 @@ Lemma find_fold_right_indexed'_off_P
                                                       then
                                                         NM.add k (f r) m
                                                       else m)
-                                                   v (@NM.empty B)) =
+                                                   v (@NM.empty B)) ≡
     NM.find (elt:=B) i (Vfold_right_indexed' 0
                                              (fun (k : nat) (r : A) (m : NM.t B) =>
                                                 if Pdec r
@@ -100,12 +102,12 @@ Proof.
     +
       destruct i.
       *
-        rewrite NM_find_add_1 by reflexivity.
-        rewrite NM_find_add_1 by reflexivity.
+        rewrite NMS.F.add_eq_o by reflexivity.
+        rewrite NMS.F.add_eq_o by reflexivity.
         reflexivity.
       *
-        rewrite NM_find_add_3 by omega.
-        rewrite NM_find_add_3 by omega.
+        rewrite NMS.F.add_neq_o by omega.
+        rewrite NMS.F.add_neq_o by omega.
         replace (S i + off) with (i + S off) by lia.
         replace (S off) with (0 + S off) by lia.
         rewrite IHn.
@@ -142,7 +144,7 @@ Lemma find_fold_right_indexed'_S_P
                                                     then
                                                       NM.add k (f r) m
                                                     else m)
-                                                 v (@NM.empty B)) =
+                                                 v (@NM.empty B)) ≡
     NM.find (elt:=B) i (Vfold_right_indexed' 0
                                              (fun (k : nat) (r : A) (m : NM.t B) =>
                                                 if Pdec r
@@ -172,7 +174,7 @@ Lemma find_fold_right_indexed'_cons_P
                                      NM.add k (f r) m
                                    else m)
                                 (h :: x) (NM.empty B))
-  =
+  ≡
   NM.find (elt:=B) (S i)
           (Vfold_right_indexed' 1
                                 (fun (k : nat) (r : A) (m : NM.t B) =>
@@ -191,7 +193,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NM_find_add_3 by omega.
+      rewrite NMS.F.add_neq_o by omega.
       reflexivity.
     +
       reflexivity.
@@ -199,7 +201,7 @@ Qed.
 
 Lemma find_fold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),
-    NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) =
+    NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
     NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
 Proof.
   intros n i off v.
@@ -227,7 +229,7 @@ Qed.
 
 Lemma find_fold_right_indexed'_S:
   forall (n i : nat) (v : vector CarrierA n),
-    NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) =
+    NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
     NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
 Proof.
   intros n i v.
@@ -242,7 +244,7 @@ Section Avector.
   Program Definition avector_to_mem_block_spec
           {n : nat}
           (v : avector n):
-    { m : mem_block | forall i (ip : i < n), mem_lookup i m = Some (Vnth v ip)}
+    { m : mem_block | forall i (ip : i < n), mem_lookup i m ≡ Some (Vnth v ip)}
     := Vfold_right_indexed' 0 mem_add v mem_empty.
   Next Obligation.
     unfold mem_lookup.
@@ -255,10 +257,10 @@ Section Avector.
       destruct i.
       +
         unfold Vfold_right_indexed, mem_add.
-        apply NM_find_add_1.
+        apply NMS.F.add_eq_o.
         reflexivity.
       +
-        rewrite NM_find_add_3; auto.
+        rewrite NMS.F.add_neq_o; auto.
         assert (N: i<n) by apply Lt.lt_S_n, ip.
         specialize (IHn x i N).
         replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
@@ -282,7 +284,7 @@ Section Avector.
   Qed.
 
   Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
-    forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) = None.
+    forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) ≡ None.
   Proof.
     intros k kc.
     unfold avector_to_mem_block.
@@ -293,7 +295,7 @@ Section Avector.
     -
       unfold mem_lookup.
       simpl.
-      rewrite NM_find_add_3 by omega.
+      rewrite NMS.F.add_neq_o by omega.
       destruct k.
       +
         omega.
@@ -304,12 +306,11 @@ Section Avector.
         omega.
   Qed.
 
-
   Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
     := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
   Lemma mem_block_avector_id {n} {v:avector n}:
-    (mem_block_to_avector (avector_to_mem_block v)) = Some v.
+    (mem_block_to_avector (avector_to_mem_block v)) ≡ Some v.
   Proof.
     unfold mem_block_to_avector.
     apply vsequence_Vbuild_eq_Some.
@@ -331,6 +332,54 @@ Ltac avector_to_mem_block_to_spec m H0 H1 :=
     unfold avector_to_mem_block in H1 ;
     destruct (avector_to_mem_block_spec v) as [m H0]
   end.
+
+Section Avector_Setoid.
+
+  Global Instance mem_block_to_avector_proper {n:nat}:
+    Proper ((equiv) ==> (equiv)) (@mem_block_to_avector n).
+  Proof.
+    intros x y E.
+    simpl_relation.
+  Admitted.
+
+  Global Instance avector_to_mem_block_proper {n:nat}:
+    Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
+  Proof.
+
+    intros x y E.
+    simpl_relation.
+    split; intros; unfold avector_to_mem_block in *.
+    -
+      avector_to_mem_block_to_spec mx X0 X1.
+      avector_to_mem_block_to_spec my Y0 Y1.
+      unfold mem_lookup, mem_empty in *.
+      simpl in *.
+      split.
+      +
+        intros H.
+        apply NMS.In_MapsTo in H.
+        destruct H as [e H].
+        apply NMS.MapsTo_In with (e:=e).
+        apply NM.find_1 in H.
+        apply NM.find_2.
+        rewrite <- H; clear H.
+        destruct (NatUtil.lt_ge_dec k n) as [H | H].
+        *
+          rewrite X0 with (ip:=H).
+          rewrite Y0 with (ip:=H).
+          admit.
+        *
+          admit.
+      +
+
+        admit.
+    -
+
+  Admitted.
+
+End Avector_Setoid.
+
+
 
 Section SVector.
 
@@ -476,7 +525,7 @@ Section SVector.
   Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
   Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
-    forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) = None.
+    forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
   Proof.
     intros k kc.
     unfold svector_to_mem_block.
@@ -493,7 +542,7 @@ Section SVector.
       +
         break_if.
         *
-          rewrite NM_find_add_3 by omega.
+          rewrite NMS.F.add_neq_o by omega.
           rewrite find_fold_right_indexed'_S_P.
           rewrite IHv.
           reflexivity.
@@ -522,6 +571,32 @@ Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
            | None => None
            | Some x' => Some (avector_to_mem_block (op x'))
            end.
+
+Global Instance mem_op_of_hop_proper
+       {i o: nat}:
+  Proper (((=) ==> (=)) ==> (=) ==> (=)) (@mem_op_of_hop i o).
+Proof.
+  intros op op' Eop a b E.
+  unfold mem_op_of_hop.
+  repeat break_match;
+    apply Option_equiv_eq in Heqo0;
+    apply Option_equiv_eq in Heqo1;
+    rewrite E in Heqo0;
+    rewrite Heqo0 in Heqo1.
+  -
+    inversion Heqo1.
+    subst.
+    f_equiv.
+    apply avector_to_mem_block_proper.
+    apply Eop.
+    apply H1.
+  -
+    some_none_contradiction.
+  -
+    some_none_contradiction.
+  -
+    reflexivity.
+Qed.
 
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
@@ -649,3 +724,4 @@ Section Operators.
          end.
 
 End Operators.
+

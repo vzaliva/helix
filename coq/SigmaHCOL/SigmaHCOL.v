@@ -5,6 +5,7 @@ Require Import Helix.Util.Matrix.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
@@ -61,6 +62,8 @@ Section SigmaHCOL_Operators.
 
              (* implementation on memory blocks *)
              mem_op: mem_block -> option mem_block;
+             mem_op_proper: Proper ((=) ==> (=)) mem_op;
+
 
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
@@ -667,6 +670,7 @@ TODO: remove
                       (liftM_HOperator' op)
                       (@liftM_HOperator'_proper fm i o op HOP)
                       (mem_op_of_hop op)
+                      _
                       (Full_set _)
                       (Full_set _).
 

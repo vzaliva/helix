@@ -345,7 +345,7 @@ Section MemVecEq.
             apply NM.find_1 in H2.
             apply NM.find_1 in Vb.
 
-            rewrite NM_find_add_1 in H2 by reflexivity.
+            rewrite NMS.F.add_eq_o in H2 by reflexivity.
             rewrite H in Vb; clear H.
             symmetry in H2.
             rewrite <- Heqo0 in H2; clear Heqo0.
