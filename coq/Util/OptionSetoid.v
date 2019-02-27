@@ -148,6 +148,21 @@ Proof.
     some_none.
 Qed.
 
+Lemma is_Some_equiv_def `{Ae: Equiv A} `{Equivalence A Ae} `(x : option A) :
+  is_Some x ↔ ∃ y, x = Some y.
+Proof.
+  unfold is_Some.
+  destruct x.
+  -
+    split; intros H0; auto.
+    exists a.
+    f_equiv.
+  -
+    split; intros H0; destruct H0.
+    some_none.
+Qed.
+
+
 (* In monadic world `(f >=> g) ∘ Some` *)
 Definition option_compose
            {A B C: Type}
