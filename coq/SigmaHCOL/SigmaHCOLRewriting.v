@@ -2418,8 +2418,7 @@ Section SigmaHCOLRewritingRules.
                 (Vbuild gen').
             reflexivity.
             --
-              apply Veq_nth.
-              intros i ip.
+              vec_index_equiv i ip.
               rewrite Vbuild_nth.
               destruct (Vbuild_spec _).
               simpl.
@@ -2502,8 +2501,7 @@ Section SigmaHCOLRewritingRules.
         setoid_rewrite Vbuild_cons.
         rewrite Vfold_right_cons.
 
-        apply Veq_nth.
-        intros i ip.
+        vec_index_equiv i ip.
         rewrite Vnth_tail.
         rewrite 2!Vnth_map2.
         rewrite 2!Vnth_tail.
@@ -2910,8 +2908,7 @@ Section SigmaHCOLRewritingRules.
             apply VPermutation_refl.
             subst l1.
 
-            apply Veq_nth.
-            intros i ip.
+            vec_index_equiv i ip.
             rewrite Vbuild_nth.
             rewrite Vnth_cast.
             rewrite Vnth_app.
@@ -3433,8 +3430,7 @@ Section SigmaHCOLRewritingRules.
                 apply Upoz.
               *
                 subst.
-                apply Veq_nth.
-                intros i ip.
+                vec_index_equiv i ip.
                 rewrite Vnth_app.
                 break_match.
                 --
@@ -3823,8 +3819,7 @@ Section SigmaHCOLRewritingRules.
           }
           apply Vfold_VPermutation_CM with (P0:=P); assumption.
         *
-          apply Veq_nth.
-          intros i ip.
+          vec_index_equiv i ip.
           rewrite 2!Vbuild_nth.
           subst r l rl.
           simpl.

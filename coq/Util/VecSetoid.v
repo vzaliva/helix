@@ -256,9 +256,16 @@ Qed.
 
 (* Handy tactics to break down equality of two vectors into element-wise equality of theirm elements using index *)
 Ltac vec_index_equiv j jc :=
-  let j' := fresh j in
-  let jc' := fresh jc in
-  unfold equiv, vec_Equiv; apply Vforall2_intro_nth; intros j' jc'.
+  match goal with
+  | [ |- ?a = ?b] => let j' := fresh j in
+                   let jc' := fresh jc in
+                   unfold equiv, vec_Equiv;
+                   apply Vforall2_intro_nth;
+                   intros j' jc'
+  | [ |- ?a ≡ ?b] => let j' := fresh j in
+                   let jc' := fresh jc in
+                   apply Veq_nth; intros j' jc'
+ end.
 
 Lemma Vfold_right_Vmap_equiv
       {A B C: Type}

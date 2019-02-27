@@ -11,6 +11,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.VecSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
@@ -313,8 +314,7 @@ Section Avector.
   Proof.
     unfold mem_block_to_avector.
     apply vsequence_Vbuild_eq_Some.
-    apply Veq_nth.
-    intros i ip.
+    vec_index_equiv i ip.
     rewrite Vbuild_nth.
     rewrite Vnth_map.
     unfold avector_to_mem_block.
@@ -340,8 +340,7 @@ Section Avector_Setoid.
     simpl_relation.
     unfold mem_block_to_avector.
     f_equal.
-    apply Veq_nth.
-    intros i ip.
+    vec_index_equiv i ip.
     rewrite 2!Vbuild_nth.
     apply H.
   Qed.
