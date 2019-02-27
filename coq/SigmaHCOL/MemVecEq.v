@@ -88,11 +88,12 @@ Section MemVecEq.
 
     pose proof (mem_out_some fm x) as Rm.
     specialize (Rm G).
-    apply is_Some_def in Rm.
+    apply is_Some_equiv_def in Rm.
     destruct Rm as [m2 Rm].
-
-    rewrite Rm.
-    replace m2 with (svector_to_mem_block (op fm op2 x)).
+    break_match; try some_none.
+    clear Rm m2.
+    pose proof (mem_op_proper _ op1) as P.
+    setoid_replace m with (svector_to_mem_block (op fm op2 x)).
     apply Meq1.
     {
       intros j jc H.
@@ -102,7 +103,8 @@ Section MemVecEq.
     }
 
     apply Some_inj_equiv.
-    rewrite <- Rm.
+    rewrite <- Heqo.
+    symmetry.
     apply Meq2, G.
   Qed.
 
