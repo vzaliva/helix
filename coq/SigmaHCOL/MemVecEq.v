@@ -11,6 +11,7 @@ Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOLMem.
+Require Import Helix.SigmaHCOL.MemSetoid.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
@@ -129,101 +130,54 @@ Section MemVecEq.
       f_equiv.
       avector_to_mem_block_to_spec m2 H2 O2.
       simpl in *.
-      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
-      split.
-      *
-        (* In *)
-        intros.
-        destruct (NatUtil.lt_ge_dec k o) as [H | H].
-        --
-          clear O0 O1 O2.
-          split.
-          ++
-            intros H3.
-            specialize (H2 k H).
-            unfold mem_lookup in *.
-            apply NMS.F.in_find_iff.
-            crush.
-          ++
-            intros H3.
-            specialize (H0 k H).
-            unfold mem_lookup in *.
-            apply NMS.F.in_find_iff.
-            assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
-            {
-              destruct facts.
-              apply out_as_range.
-              intros j jc H4.
-              apply G.
-              apply Full_intro.
-              apply Full_intro.
-            }
-            rewrite NMS.F.find_mapsto_iff in H0.
-            crush.
-        --
-          clear H0 H1 H2.
-          split.
-          ++
-            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
-            specialize (O0 k H); unfold mem_lookup in O0.
-            congruence.
-          ++
-            intros H3; apply NMS.In_MapsTo in H3; destruct H3 as [e H3]; apply NM.find_1 in H3.
-            specialize (O2 k H); unfold mem_lookup in O2.
-            congruence.
-      *
-        (* MapsTo *)
-        intros k e e' H3 H4.
-        destruct (NatUtil.lt_ge_dec k o) as [H | H].
-        --
-          clear O0 O1 O2.
-          specialize (H0 k H).
-          specialize (H2 k H).
-          assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
-          {
-            destruct facts.
-            apply out_as_range.
-            intros j jc H9.
-            apply G.
-            apply Full_intro.
-            apply Full_intro.
-          }
-          rewrite NMS.F.find_mapsto_iff in H0.
-          apply H0 in V.
-          unfold mem_lookup in *.
-          apply NM.find_1 in H4; rewrite H2 in H4; inversion_clear H4; clear H2.
-          apply NM.find_1 in H3; rewrite V in H3; inversion_clear H3; clear H0.
-          unfold sparsify.
-          rewrite Vnth_map.
-          rewrite evalWriter_mkValue.
-          unfold densify.
-          simpl.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+      intros k.
+      destruct (NatUtil.lt_ge_dec k o) as [H | H].
+      +
+        clear O0 O1 O2.
+        specialize (H0 k H).
+        specialize (H2 k H).
+        assert(V: Is_Val (Vnth (sparsify fm (hop (densify fm x))) H)).
+        {
+          destruct facts.
+          apply out_as_range.
+          intros j jc H9.
+          apply G.
+          apply Full_intro.
+          apply Full_intro.
+        }
+        rewrite NF.find_mapsto_iff in H0.
+        apply H0 in V.
+        unfold mem_lookup in *.
 
-          unfold mem_block_to_avector, mem_lookup in Heqo0.
-          apply vsequence_Vbuild_eq_Some in Heqo0.
-
-          apply Vnth_arg_equiv.
-          f_equiv.
-          vec_index_equiv j jc.
-          assert(V0: Is_Val (Vnth x jc)).
-          {
-            apply G.
-            apply Full_intro.
-          }
-          apply H1 in V0.
-          rewrite NMS.F.find_mapsto_iff in V0.
-          rewrite Vnth_map.
-          apply Vnth_arg_eq with (ip:=jc) in Heqo0.
-          rewrite Vbuild_nth in Heqo0.
-          rewrite Vnth_map in Heqo0.
-          rewrite V0 in Heqo0.
-          inversion Heqo0.
-          reflexivity.
-        --
-          clear H0 H1 H2.
-          apply NM.find_1 in H4.
-          specialize (O2 k H); unfold mem_lookup in O2.
-          congruence.
+        rewrite H2, V. clear H2 V.
+        unfold sparsify.
+        rewrite Vnth_map.
+        rewrite evalWriter_mkValue.
+        unfold densify.
+        unfold mem_block_to_avector, mem_lookup in Heqo0.
+        apply vsequence_Vbuild_eq_Some in Heqo0.
+        f_equiv.
+        apply Vnth_arg_equiv.
+        f_equiv.
+        vec_index_equiv j jc.
+        assert(V0: Is_Val (Vnth x jc)).
+        {
+          apply G.
+          apply Full_intro.
+        }
+        apply H1 in V0.
+        rewrite NF.find_mapsto_iff in V0.
+        rewrite Vnth_map.
+        apply Vnth_arg_eq with (ip:=jc) in Heqo0.
+        rewrite Vbuild_nth in Heqo0.
+        rewrite Vnth_map in Heqo0.
+        rewrite V0 in Heqo0.
+        inversion Heqo0.
+        reflexivity.
+      +
+        rewrite O0, O2 by apply H.
+        reflexivity.
     -
       simpl in *.
       unfold mem_block_to_avector in Heqo0.
@@ -235,7 +189,7 @@ Section MemVecEq.
         apply Full_intro.
       }
       apply H1 in V0. clear H1.
-      apply NMS.F.find_mapsto_iff in V0.
+      apply NF.find_mapsto_iff in V0.
       unfold mem_lookup in Heqo0.
       congruence.
   Qed.
