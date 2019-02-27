@@ -170,7 +170,7 @@ Proof.
   intros x x' Ex y y' Ey.
   unfold optDot.
   simpl.
-  repeat break_match; try reflexivity; try some_none_contradiction.
+  repeat break_match; try reflexivity; try some_none.
   apply vsequence_option_proper.
   repeat some_inv.
   f_equiv; auto.
@@ -183,7 +183,7 @@ Proof.
   intros f f' Ef x x' Ex y y' Ey.
   unfold optDot.
   simpl.
-  repeat break_match; try reflexivity; try some_none_contradiction.
+  repeat break_match; try reflexivity; try some_none.
   apply vsequence_option_proper.
   repeat some_inv.
   rewrite 2!Vmap2_as_Vbuild.
@@ -249,7 +249,7 @@ Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avecto
 
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
-  repeat break_match;subst; try reflexivity; try some_none_contradiction;
+  repeat break_match;subst; try reflexivity; try some_none;
   f_equiv;
   rewrite <- Some_inj_equiv in IHe1;
   rewrite <- Some_inj_equiv in IHe2;
@@ -270,7 +270,7 @@ Proof.
       apply Ec.
       reflexivity.
     }
-    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
+    repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E).
     subst.
     rewrite H1.
     reflexivity.
@@ -301,7 +301,7 @@ Proof.
       apply Ec.
       reflexivity.
     }
-    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E); inv_exitstT; subst; try congruence.
+    repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E); inv_exitstT; subst; try congruence.
     simpl.
     f_equiv.
     auto.
@@ -323,7 +323,7 @@ Proof.
       apply Ec.
       reflexivity.
     }
-    repeat break_match; subst; try reflexivity; try some_none_contradiction; try (rewrite <- Some_inj_equiv in E; inversion E).
+    repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E).
     subst.
     rewrite H1.
     reflexivity.
@@ -340,7 +340,7 @@ Proof.
     subst.
     f_equiv.
     apply Vnth_equiv; auto.
-  - repeat break_match;subst; try reflexivity; try some_none_contradiction.
+  - repeat break_match;subst; try reflexivity; try some_none.
     f_equiv.
     rewrite <- Some_inj_equiv in IHEe.
     rewrite IHEe.
@@ -482,8 +482,8 @@ Proof.
         apply Some_inj_equiv, IHn0.
         reflexivity.
         reflexivity.
-        some_none_contradiction.
-        some_none_contradiction.
+        some_none.
+        some_none.
         reflexivity.
     }
     break_match; inversion C.

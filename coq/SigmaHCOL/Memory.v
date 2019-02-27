@@ -5,6 +5,8 @@
  *)
 
 Require Import Coq.FSets.FMapAVL.
+Require Export Coq.FSets.FMapInterface.
+Require Import Coq.FSets.FMapFacts.
 Require Import Structures.OrderedTypeEx.
 Require Import Coq.Arith.Peano_dec.
 
@@ -26,7 +28,7 @@ Proof.
   - right. intros H. inversion H; subst. apply n. reflexivity.
 Qed.
 
-Module NM := FMapAVL.Make(Coq.Structures.OrderedTypeEx.Nat_as_OT).
+Module NM := FMapAVL.Make(Nat_as_OT).
 Definition NatMap := NM.t.
 
 Definition mem_add k (v:CarrierA) := NM.add k v.
@@ -72,4 +74,6 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
 
 Definition memory := NatMap mem_block.
 
-Definition mem_block_equiv:= NM.Equiv CarrierAe.
+Definition mem_block_equiv:= NM.Equal (elt:=CarrierA).
+
+Module Import NF:=WFacts_fun(Nat_as_OT)(NM).

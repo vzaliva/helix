@@ -736,7 +736,7 @@ Proof.
     dep_destruct y.
     simpl.
     inversion E.
-    repeat break_match; try some_none_contradiction; auto.
+    repeat break_match; try some_none; auto.
     +
       f_equiv.
       apply Vcons_equiv_intro.
@@ -749,12 +749,12 @@ Proof.
       specialize (IHn x0 x1 H0).
       rewrite Heqo0 in IHn.
       rewrite Heqo2 in IHn.
-      some_none_contradiction.
+      some_none.
     +
       specialize (IHn x0 x1 H0).
       rewrite Heqo0 in IHn.
       rewrite Heqo2 in IHn.
-      some_none_contradiction.
+      some_none.
 Qed.
 
 Lemma vsequence_Vbuild_equiv_Some
@@ -790,7 +790,7 @@ Proof.
       apply Vcons_proper.
       *
         simpl in H.
-        repeat break_match_hyp; try some_none_contradiction.
+        repeat break_match_hyp; try some_none.
         some_inv.
         inversion H.
         rewrite <- H0.
@@ -804,7 +804,7 @@ Proof.
           f_equiv.
         --
           simpl in H.
-          repeat break_match_hyp; try some_none_contradiction.
+          repeat break_match_hyp; try some_none.
           some_inv.
           inversion H.
           rewrite <- H1.

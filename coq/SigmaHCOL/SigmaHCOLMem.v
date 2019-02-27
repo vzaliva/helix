@@ -9,7 +9,6 @@ Require Import Omega.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
-Require Import Helix.Util.FMapSetoid.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.HCOL.CarrierType.
@@ -59,7 +58,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NMS.F.add_neq_o by omega.
+      rewrite NF.add_neq_o by omega.
       apply IHn.
       lia.
     +
@@ -102,12 +101,12 @@ Proof.
     +
       destruct i.
       *
-        rewrite NMS.F.add_eq_o by reflexivity.
-        rewrite NMS.F.add_eq_o by reflexivity.
+        rewrite NF.add_eq_o by reflexivity.
+        rewrite NF.add_eq_o by reflexivity.
         reflexivity.
       *
-        rewrite NMS.F.add_neq_o by omega.
-        rewrite NMS.F.add_neq_o by omega.
+        rewrite NF.add_neq_o by omega.
+        rewrite NF.add_neq_o by omega.
         replace (S i + off) with (i + S off) by lia.
         replace (S off) with (0 + S off) by lia.
         rewrite IHn.
@@ -193,7 +192,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NMS.F.add_neq_o by omega.
+      rewrite NF.add_neq_o by omega.
       reflexivity.
     +
       reflexivity.
@@ -257,10 +256,10 @@ Section Avector.
       destruct i.
       +
         unfold Vfold_right_indexed, mem_add.
-        apply NMS.F.add_eq_o.
+        apply NF.add_eq_o.
         reflexivity.
       +
-        rewrite NMS.F.add_neq_o; auto.
+        rewrite NF.add_neq_o; auto.
         assert (N: i<n) by apply Lt.lt_S_n, ip.
         specialize (IHn x i N).
         replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
@@ -295,7 +294,7 @@ Section Avector.
     -
       unfold mem_lookup.
       simpl.
-      rewrite NMS.F.add_neq_o by omega.
+      rewrite NF.add_neq_o by omega.
       destruct k.
       +
         omega.
@@ -336,50 +335,24 @@ Ltac avector_to_mem_block_to_spec m H0 H1 :=
 Section Avector_Setoid.
 
   Global Instance mem_block_to_avector_proper {n:nat}:
-    Proper ((equiv) ==> (equiv)) (@mem_block_to_avector n).
+    Proper ((equiv) ==> (eq)) (@mem_block_to_avector n).
   Proof.
-    intros x y E.
     simpl_relation.
-  Admitted.
+    unfold mem_block_to_avector.
+    f_equal.
+    apply Veq_nth.
+    intros i ip.
+    rewrite 2!Vbuild_nth.
+    apply H.
+  Qed.
 
   Global Instance avector_to_mem_block_proper {n:nat}:
-    Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
+    Proper ((eq) ==> (equiv)) (@avector_to_mem_block n).
   Proof.
-
-    intros x y E.
     simpl_relation.
-    split; intros; unfold avector_to_mem_block in *.
-    -
-      avector_to_mem_block_to_spec mx X0 X1.
-      avector_to_mem_block_to_spec my Y0 Y1.
-      unfold mem_lookup, mem_empty in *.
-      simpl in *.
-      split.
-      +
-        intros H.
-        apply NMS.In_MapsTo in H.
-        destruct H as [e H].
-        apply NMS.MapsTo_In with (e:=e).
-        apply NM.find_1 in H.
-        apply NM.find_2.
-        rewrite <- H; clear H.
-        destruct (NatUtil.lt_ge_dec k n) as [H | H].
-        *
-          rewrite X0 with (ip:=H).
-          rewrite Y0 with (ip:=H).
-          admit.
-        *
-          admit.
-      +
-
-        admit.
-    -
-
-  Admitted.
+  Qed.
 
 End Avector_Setoid.
-
-
 
 Section SVector.
 
@@ -473,7 +446,7 @@ Section SVector.
             simpl in H.
             destruct (Is_Val_dec h); auto.
             rewrite find_fold_right_indexed_oob in H.
-            some_none_contradiction.
+            some_none.
             auto.
           --
             apply IHn; clear IHn.
@@ -499,23 +472,23 @@ Section SVector.
           clear IHn.
           simpl in H.
           destruct (Is_Val_dec h); auto.
-          apply NMS.In_MapsTo in H.
+          apply In_MapsTo in H.
           destruct H as [e H].
-          apply NMS.F.find_mapsto_iff in H.
+          apply NF.find_mapsto_iff in H.
           rewrite find_fold_right_indexed_oob in H.
-          some_none_contradiction.
+          some_none.
           auto.
         --
           apply IHn; clear IHn.
 
           (* assert (N: i<n) by apply Lt.lt_S_n, ip. *)
-          apply NMS.In_MapsTo in H.
+          apply In_MapsTo in H.
           destruct H as [e H].
-          apply NMS.F.find_mapsto_iff in H.
+          apply NF.find_mapsto_iff in H.
           (* replace (Lt.lt_S_n ip) with N in * by apply le_unique. *)
 
-          apply NMS.MapsTo_In with (e:=e).
-          apply NMS.F.find_mapsto_iff.
+          apply MapsTo_In with (e:=e).
+          apply NF.find_mapsto_iff.
           rewrite <- H. clear H ip.
           rewrite <- find_fold_right_indexed'_S_P.
           symmetry.
@@ -542,7 +515,7 @@ Section SVector.
       +
         break_if.
         *
-          rewrite NMS.F.add_neq_o by omega.
+          rewrite NF.add_neq_o by omega.
           rewrite find_fold_right_indexed'_S_P.
           rewrite IHv.
           reflexivity.
@@ -574,26 +547,23 @@ Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
 
 Global Instance mem_op_of_hop_proper
        {i o: nat}:
-  Proper (((=) ==> (=)) ==> (=) ==> (=)) (@mem_op_of_hop i o).
+  Proper ((eq) ==> (=)) (@mem_op_of_hop i o).
 Proof.
-  intros op op' Eop a b E.
+  intros a b E.
   unfold mem_op_of_hop.
+  unfold equiv, ext_equiv.
+  intros mx my Em.
   repeat break_match;
-    apply Option_equiv_eq in Heqo0;
-    apply Option_equiv_eq in Heqo1;
-    rewrite E in Heqo0;
+    rewrite Em in Heqo0;
     rewrite Heqo0 in Heqo1.
   -
     inversion Heqo1.
     subst.
     f_equiv.
-    apply avector_to_mem_block_proper.
-    apply Eop.
-    apply H1.
   -
-    some_none_contradiction.
+    some_none.
   -
-    some_none_contradiction.
+    some_none.
   -
     reflexivity.
 Qed.
@@ -725,3 +695,69 @@ Section Operators.
 
 End Operators.
 
+Section Morphisms.
+
+  Global Instance eUnion_mem_proper
+               {b:nat}
+  : Proper (equiv ==> equiv) (eUnion_mem b).
+  Proof.
+    simpl_relation.
+    unfold eUnion_mem.
+    unfold map_mem_block_elt.
+    break_match; break_match;
+      rewrite H in Heqo; rewrite Heqo in Heqo0.
+    - some_inv; reflexivity.
+    - some_none.
+    - some_none.
+    - reflexivity.
+  Qed.
+
+  Global Instance eT_mem_proper
+               {b:nat}
+  : Proper (equiv ==> equiv) (eT_mem b).
+  Proof.
+    simpl_relation.
+    unfold eT_mem.
+    unfold map_mem_block_elt.
+    break_match; break_match;
+      rewrite H in Heqo; rewrite Heqo in Heqo0.
+    - some_inv; reflexivity.
+    - some_none.
+    - some_none.
+    - reflexivity.
+  Qed.
+
+  Global Instance Gather_mem_proper
+         {i o: nat}
+         (f: index_map o i):
+    Proper (equiv ==> equiv) (@Gather_mem i o f).
+  Proof.
+  Admitted.
+
+  Global Instance Scatter_mem_proper
+         {i o: nat}
+         (f: index_map i o):
+    Proper (equiv ==> equiv) (@Scatter_mem i o f).
+  Proof.
+  Admitted.
+
+  (* TODO: may need Proper for `op_family_f` *)
+  Global Instance IUnion_mem_proper
+         {n: nat}
+         (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+    :
+      Proper (equiv ==> equiv) (IUnion_mem op_family_f).
+  Proof.
+  Admitted.
+
+  (* TODO: may need Proper for `op_family_f` *)
+  Global Instance IReduction_mem_proper
+         {n: nat}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+    :
+      Proper (equiv ==> equiv) (IReduction_mem dot op_family_f).
+  Proof.
+  Admitted.
+
+End Morphisms.

@@ -55,7 +55,7 @@ Proof.
   apply Some_prop, E.
 Qed.
 
-Ltac some_none_contradiction :=
+Ltac some_none :=
   let H' := fresh in
   match goal with
   | [H: Some _ = None |- _ ] => inversion H
@@ -63,6 +63,10 @@ Ltac some_none_contradiction :=
   | [H: Some _ ≡ None |- _ ] => inversion H
   | [H: None ≡ Some _ |- _ ] => inversion H
   | [ |- Some _ ≠ None ] => intros H'; inversion H'
+  | [ |- None = None ] => reflexivity
+  | [ |- None ≡ None ] => reflexivity
+  | [ |- Some ?a = Some ?a] => reflexivity
+  | [ |- Some ?a ≡ Some ?a] => reflexivity
   end.
 
 Ltac some_inv :=
@@ -81,7 +85,7 @@ Lemma Equiv_to_opt_r {A:Type} {a b: option A} `{Ae: Equiv A}:
   a = b -> RelUtil.opt_r Ae a b.
 Proof.
   intros H.
-  destruct a, b; try some_none_contradiction; constructor.
+  destruct a, b; try some_none; constructor.
   some_inv.
   apply H.
 Qed.
@@ -91,7 +95,7 @@ Global Instance liftM_option_proper `{Ae:Equiv A} `{Be: Equiv B}:
 Proof.
   intros f f' Ef a a' Ea.
   simpl.
-  destruct a, a'; try some_none_contradiction; auto.
+  destruct a, a'; try some_none; auto.
   -
     f_equiv.
     apply Ef.
@@ -141,5 +145,44 @@ Proof.
     crush.
   -
     intros H0.
-    some_none_contradiction.
+    some_none.
+Qed.
+
+(* In monadic world `(f >=> g) ∘ Some` *)
+Definition option_compose
+           {A B C: Type}
+           (f: B → option C)
+           (g: A → option B): A → option C
+  := fun x =>
+       match g x with
+       | None => None
+       | Some y => f y
+       end.
+
+Global Instance option_compose_proper
+       {A B C: Type}
+       `{Ae: Equiv A} `{Equivalence A Ae}
+       `{Be: Equiv B} `{Equivalence B Be}
+       `{Ce: Equiv C} `{Equivalence C Ce}:
+  Proper (
+      (((@equiv B Be) ==> (@option_Equiv C Ce))
+         ==>
+         ((@equiv A Ae) ==> (@option_Equiv B Be))
+         ==>
+         (=)
+         ==>
+         (@option_Equiv C Ce))) (option_compose).
+Proof.
+  intros f f' Ef g g' Eg x x' E.
+  unfold option_compose, option_Equiv.
+  repeat break_match;
+    apply Option_equiv_eq in Heqo;
+    apply Option_equiv_eq in Heqo0;
+    setoid_replace (g x) with (g' x') in Heqo by apply Eg, E;
+    rewrite Heqo in Heqo0; try some_none.
+  -
+    some_inv.
+    apply Ef, Heqo0.
+  -
+    reflexivity.
 Qed.

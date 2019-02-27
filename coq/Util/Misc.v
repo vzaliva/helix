@@ -25,17 +25,6 @@ Require Import MathClasses.theory.setoids.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
-(* In monadic world `(f >=> g) ∘ Some` *)
-Definition option_compose
-           {A B C: Type}
-           (f: B → option C)
-           (g: A → option B): A → option C
-  := fun x =>
-       match g x with
-       | None => None
-       | Some y => f y
-       end.
-
 Definition string_beq a b := if string_dec a b then true else false.
 
 Global Instance max_proper A `{Le A, TotalOrder A, !Setoid A}

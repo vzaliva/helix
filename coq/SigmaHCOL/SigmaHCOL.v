@@ -64,7 +64,6 @@ Section SigmaHCOL_Operators.
              mem_op: mem_block -> option mem_block;
              mem_op_proper: Proper ((=) ==> (=)) mem_op;
 
-
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
            }.
@@ -721,7 +720,7 @@ TODO: remove
                (aunit: CarrierA)
       :=
         forall x, Vforall (Vunique (not ∘ (equiv aunit) ∘ (@evalWriter _ _ fm)))
-                     (transpose
+                     (Matrix.transpose
                         (Apply_Family op_family x)
                      ).
 
@@ -736,7 +735,7 @@ TODO: remove
     Definition IdOp
                {n: nat}
                (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _ (Some ∘ id) in_out_set in_out_set.
+      := mkSHOperator n n id _ (Some ∘ id) _ in_out_set in_out_set.
 
     Definition eUnion
                {o b:nat}
@@ -744,6 +743,7 @@ TODO: remove
                (z: CarrierA)
       := mkSHOperator 1 o (eUnion' bc z) _
                       (eUnion_mem b)
+                      _
                       (Full_set _)
                       (FinNatSet.singleton b).
 
@@ -752,6 +752,7 @@ TODO: remove
                (bc: b < i)
       := mkSHOperator i 1 (eT' bc) _
                       (eT_mem b)
+                      _
                       (FinNatSet.singleton b)
                       (Full_set _).
 
@@ -760,6 +761,7 @@ TODO: remove
                (f: index_map o i)
       := mkSHOperator i o (Gather' f) _
                       (Gather_mem f)
+                      _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
 
@@ -791,6 +793,7 @@ TODO: remove
                (idv: CarrierA)
       := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
                       (Scatter_mem f)
+                      _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -821,14 +824,20 @@ TODO: remove
     Qed.
 
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
-    Definition SHCompose
+    Program Definition SHCompose
                {i1 o2 o3}
                (op1: @SHOperator o2 o3)
                (op2: @SHOperator i1 o2)
       : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
                                           (option_compose (mem_op op1) (mem_op op2))
+                                          _
                                           (in_index_set op2)
                                           (out_index_set op1).
+    Next Obligation.
+      apply option_compose_proper.
+      apply op1.
+      apply op2.
+    Defined.
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -946,6 +955,7 @@ TODO: remove
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       := mkSHOperator n n (SHPointwise' f) _
                       (mem_op_of_hop (HPointwise f))
+                      _
                       (Full_set _) (Full_set _).
 
     Definition SHInductor
@@ -955,6 +965,7 @@ TODO: remove
                (initial: CarrierA)
       := mkSHOperator 1 1 (SHInductor' n f initial) _
                       (mem_op_of_hop (HInductor n f initial))
+                      _
                       (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
@@ -1035,7 +1046,7 @@ TODO: remove
       unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
 
-      unfold Apply_Family, Apply_Family', SparseEmbedding, get_family_op, transpose, row, Vnth_aux.
+      unfold Apply_Family, Apply_Family', SparseEmbedding, get_family_op, Matrix.transpose, row, Vnth_aux.
       rewrite Vforall_Vbuild.
       intros k kc.
       rewrite Vmap_Vbuild.
@@ -1072,6 +1083,7 @@ TODO: remove
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       := mkSHOperator (o+o) o (SHBinOp' f) _
                       (mem_op_of_hop (HBinOp f))
+                      _
                       (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
@@ -1089,6 +1101,7 @@ TODO: remove
                    (Diamond dot initial (get_family_op Monoid_RthetaFlags op_family))
                    _
                    (IUnion_mem (get_family_mem_op Monoid_RthetaFlags op_family))
+                   _
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
@@ -1145,6 +1158,7 @@ TODO: remove
                  (Diamond dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
                  (IReduction_mem dot (get_family_mem_op _ op_family))
+                 _
                  (family_in_index_set _ op_family)
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .

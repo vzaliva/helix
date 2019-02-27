@@ -4,7 +4,6 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
-Require Import Helix.Util.FMapSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
@@ -104,7 +103,6 @@ Section MemVecEq.
 
     apply Some_inj_equiv.
     rewrite <- Rm.
-
     apply Meq2, G.
   Qed.
 
@@ -380,7 +378,7 @@ Section MemVecEq.
           specialize (O0 k kc).
           apply NM.find_1 in H.
           rewrite O0 in H.
-          some_none_contradiction.
+          some_none.
     -
       exfalso.
       assert(V:Is_Val (Vnth x (Nat.lt_0_succ 0))).

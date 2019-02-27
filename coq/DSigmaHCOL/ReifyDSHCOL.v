@@ -401,7 +401,7 @@ Proof.
   -
     specialize (Eg Γ x).
     rewrite Heqo in Eg.
-    some_none_contradiction.
+    some_none.
 Qed.
 
 Theorem SHCOL_DSHCOL_equiv_SafeCast
@@ -567,11 +567,11 @@ Proof.
   -
     specialize (Eg x).
     rewrite Heqo1 in Eg.
-    some_none_contradiction.
+    some_none.
   -
     specialize (Ef x).
     rewrite Heqo0 in Ef.
-    some_none_contradiction.
+    some_none.
 Qed.
 
 Theorem eUnion_DSHeUnion
@@ -591,7 +591,7 @@ Proof.
   intros Γ x.
   specialize (H Γ).
   simpl.
-  break_match; try some_none_contradiction.
+  break_match; try some_none.
   break_match; some_inv; repeat nat_equiv_to_eq; subst n.
   -
     f_equiv.
@@ -625,7 +625,7 @@ Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
 Section Expr_NVar_subst_S.
 
   Local Ltac twoarg := simpl;
-                       repeat break_match; auto; try some_none_contradiction;
+                       repeat break_match; auto; try some_none;
                        f_equiv;
                        repeat some_inv;
                        crush.
@@ -656,7 +656,7 @@ Section Expr_NVar_subst_S.
         clear H.
         rename d0 into a, d into b.
         simpl.
-        repeat break_match ; subst; try reflexivity; try some_none_contradiction.
+        repeat break_match ; subst; try reflexivity; try some_none.
         *
           some_inv.
           inversion H0. inversion H1. subst.
@@ -942,14 +942,14 @@ Proof.
   -
     simpl.
     pose proof (NExpr_NVar_subst_S Γ Γs pos b j) as H.
-    repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
+    repeat break_match;crush; try some_none; try some_inv; try congruence.
     f_equiv.
     repeat nat_equiv_to_eq; subst.
     reflexivity.
   -
     simpl.
     pose proof (NExpr_NVar_subst_S Γ Γs pos b j) as H.
-    repeat break_match;crush; try some_none_contradiction; try some_inv; try congruence.
+    repeat break_match;crush; try some_none; try some_inv; try congruence.
     f_equiv.
     repeat nat_equiv_to_eq; subst.
     replace l0 with l by apply proof_irrelevance.
@@ -1013,7 +1013,7 @@ Proof.
     match goal with
     | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
       destruct a ; destruct b
-    end; try some_none_contradiction; try reflexivity.
+    end; try some_none; try reflexivity.
 
 
     some_inv.
@@ -1042,11 +1042,11 @@ Proof.
           apply L.
         -- apply L0.
         -- apply L1.
-        -- some_none_contradiction.
-        -- some_none_contradiction.
+        -- some_none.
+        -- some_none.
     }
 
-    repeat break_match; try some_none_contradiction; try reflexivity.
+    repeat break_match; try some_none; try reflexivity.
     f_equiv.
     f_equiv.
     some_inv.
@@ -1063,7 +1063,7 @@ Proof.
     | [ |- match ?a with _ => _ end = match ?b with _ => _ end] =>
       assert (C: a = b) by (apply IHdop_family2; auto)
     end.
-    repeat break_match; try reflexivity; try some_none_contradiction.
+    repeat break_match; try reflexivity; try some_none.
     some_inv.
     rewrite <- C.
     eapply IHdop_family1; auto.
@@ -1077,7 +1077,7 @@ Proof.
     assert(C1: evalDSHOperator Γs dop_family2 y = evalDSHOperator Γ
                                                                   (DSHOperator_NVar_subt pos (NPlus (NVar pos) (NConst 1)) dop_family2) y) by (apply IHdop_family2; auto).
 
-    repeat break_match; try reflexivity; try some_none_contradiction; try contradiction.
+    repeat break_match; try reflexivity; try some_none; try contradiction.
     repeat some_inv.
     rewrite C0, C1.
     apply vsequence_option_proper.
@@ -1303,7 +1303,7 @@ Proof.
   specialize (E Γ).
   specialize (Edot Γ).
   simpl evalDSHOperator.
-  break_match; try some_none_contradiction.
+  break_match; try some_none.
   apply Some_inj_equiv in E.
   unfold equiv, peano_naturals.nat_equiv in E.
   subst n0.
@@ -1338,7 +1338,7 @@ Proof.
         some_inv; auto.
         auto.
       *
-        some_none_contradiction.
+        some_none.
   -
     contradict Heqo0.
     apply is_Some_ne_None.
@@ -1366,7 +1366,7 @@ Proof.
   intros Γ x.
   specialize (H Γ).
   simpl.
-  break_match; try some_none_contradiction.
+  break_match; try some_none.
   break_match; some_inv; unfold equiv, peano_naturals.nat_equiv in H; subst n.
   -
     f_equiv.
@@ -1522,7 +1522,7 @@ Ltac solve_evalAexp :=
          | [ H: FinNat _ |- _ ] => destruct H
          | [ |- evalAexp _ _ = Some _] =>
            unfold Fin1SwapIndex, const, mult_by_nth; simpl;
-           try (repeat break_match; try some_none_contradiction; try congruence)
+           try (repeat break_match; try some_none; try congruence)
          | [H: Some ?A ≡ Some ?b |- _ ] => inversion H; clear H
          | [H: Some ?A = Some ?b |- _ ] => apply Some_inj_equiv in H
          | [ |- ?a _ = ?a _ ] => f_equiv
