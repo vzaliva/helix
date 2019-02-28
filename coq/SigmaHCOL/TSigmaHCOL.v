@@ -60,6 +60,7 @@ Section RthetaSafetyCast.
                    (SafeCast' (op Monoid_RthetaSafeFlags f))
                    _
                    (mem_op _ f)
+                   (mem_op_proper _ f)
                    (in_index_set _ f)
                    (out_index_set _ f).
 
@@ -125,6 +126,7 @@ Section RthetaSafetyCast.
                    (UnSafeCast' (op Monoid_RthetaFlags f))
                    _
                    (mem_op _ f)
+                   (mem_op_proper _ f)
                    (in_index_set _ f)
                    (out_index_set _ f).
 
@@ -228,6 +230,9 @@ Section TSigmaHCOLOperators.
                    (HTSUMUnion_mem
                       (mem_op _ op1)
                       (mem_op _ op2))
+                   (HTSUMUnion_mem_proper
+                      (mem_op_proper _ op1)
+                      (mem_op_proper _ op2))
                    (Ensembles.Union _ (in_index_set _ op1) (in_index_set _ op2))
                    (Ensembles.Union _ (out_index_set _ op1) (out_index_set _ op2)).
 
@@ -310,7 +315,10 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
       apply no_coll_at_sparse; assumption.
-  Qed.
+    -
+      (* mem_out_some *)
+      admit.
+  Admitted.
 
   Global Instance UnSafeCast_Facts
          {i o}
@@ -371,7 +379,10 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
       apply no_coll_at_sparse; assumption.
-  Qed.
+    -
+      (* mem_out_some *)
+      admit.
+  Admitted.
 
   Global Instance HTSUMUnion_Facts
          {i o}
@@ -532,6 +543,9 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
         contradict C.
         apply Intersection_intro; auto.
-  Qed.
+    -
+      (* mem_out_some *)
+      admit.
+  Admitted.
 
 End TSigmaHCOLOperators_StructuralProperties.
