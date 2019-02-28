@@ -82,13 +82,13 @@ Lemma find_fold_right_indexed'_off_P
                                                         NM.add k (f r) m
                                                       else m)
                                                    v (@NM.empty B)) ≡
-    NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                             (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                if Pdec r
-                                                then
-                                                  NM.add k (f r) m
-                                                else m)
-                                             v (@NM.empty B)).
+            NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                     (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                        if Pdec r
+                                                        then
+                                                          NM.add k (f r) m
+                                                        else m)
+                                                     v (@NM.empty B)).
 Proof.
   revert i off.
   induction n; intros.
@@ -145,13 +145,13 @@ Lemma find_fold_right_indexed'_S_P
                                                       NM.add k (f r) m
                                                     else m)
                                                  v (@NM.empty B)) ≡
-    NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                             (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                if Pdec r
-                                                then
-                                                  NM.add k (f r) m
-                                                else m)
-                                             v (@NM.empty B)).
+            NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                     (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                        if Pdec r
+                                                        then
+                                                          NM.add k (f r) m
+                                                        else m)
+                                                     v (@NM.empty B)).
 Proof.
   replace (1) with (0+1) by lia.
   replace (S i) with (i+1) by lia.
@@ -174,8 +174,8 @@ Lemma find_fold_right_indexed'_cons_P
                                      NM.add k (f r) m
                                    else m)
                                 (h :: x) (NM.empty B))
-  ≡
-  NM.find (elt:=B) (S i)
+          ≡
+          NM.find (elt:=B) (S i)
           (Vfold_right_indexed' 1
                                 (fun (k : nat) (r : A) (m : NM.t B) =>
                                    if Pdec r
@@ -202,7 +202,7 @@ Qed.
 Lemma find_fold_right_indexed'_off:
   forall (n i : nat) (off:nat) (x : vector CarrierA n),
     NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
-    NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
+            NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
 Proof.
   intros n i off v.
 
@@ -230,7 +230,7 @@ Qed.
 Lemma find_fold_right_indexed'_S:
   forall (n i : nat) (v : vector CarrierA n),
     NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
-    NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
+            NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
 Proof.
   intros n i v.
 
@@ -496,6 +496,14 @@ Section SVector.
 
   Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
+  (* this could only be proven wrt @eq on input vectors, not @equiv! *)
+  Global Instance svector_to_mem_block_proper
+         {n: nat}:
+    Proper ((eq) ==> (=)) (@svector_to_mem_block n).
+  Proof.
+    solve_proper.
+  Qed.
+
   Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
     forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
   Proof.
@@ -534,6 +542,24 @@ Section SVector.
                  end
               ).
 
+  (* proving stronger @eq equality here.
+ Probably could be proven for @equiv as well *)
+  Global Instance mem_block_to_svector_proper
+         {n: nat}:
+    Proper ((=) ==> (eq)) (@mem_block_to_svector n).
+  Proof.
+    simpl_relation.
+    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in H.
+    unfold mem_block_to_svector.
+    vec_index_equiv j jc.
+    rewrite 2!Vbuild_nth.
+    specialize (H j).
+    unfold mem_lookup.
+    break_match; break_match; try some_none; try reflexivity.
+    some_inv.
+    reflexivity.
+  Qed.
+
 End SVector.
 
 Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
@@ -544,37 +570,6 @@ Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
     destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
   end.
 
-(* HOperator (on dense vector) mapping to memory operator *)
-Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
-  : mem_block -> option mem_block
-  := fun x => match mem_block_to_avector x with
-           | None => None
-           | Some x' => Some (avector_to_mem_block (op x'))
-           end.
-
-Global Instance mem_op_of_hop_proper
-       {i o: nat}:
-  Proper ((eq) ==> (=)) (@mem_op_of_hop i o).
-Proof.
-  intros a b E.
-  unfold mem_op_of_hop.
-  unfold equiv, ext_equiv.
-  intros mx my Em.
-  repeat break_match;
-    rewrite Em in Heqo0;
-    rewrite Heqo0 in Heqo1.
-  -
-    inversion Heqo1.
-    subst.
-    f_equiv.
-  -
-    some_none.
-  -
-    some_none.
-  -
-    reflexivity.
-Qed.
-
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   : option mem_block :=
@@ -583,16 +578,61 @@ Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   | Some v => Some (mem_add j v y)
   end.
 
-Definition mem_op_of_op {fm} {i o: nat} (op: svector fm i -> svector fm o)
+Section Wrappers.
+  (* HOperator (on dense vector) mapping to memory operator *)
+  Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
   : mem_block -> option mem_block
-  := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
+    := fun x => match mem_block_to_avector x with
+             | None => None
+             | Some x' => Some (avector_to_mem_block (op x'))
+             end.
 
-Global Instance mem_op_of_op_proper
-       {fm}
-       {i o: nat}:
-  Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
-Proof.
-Admitted.
+  Global Instance mem_op_of_hop_proper
+         {i o: nat}:
+    Proper ((eq) ==> (=)) (@mem_op_of_hop i o).
+  Proof.
+    intros a b E.
+    unfold mem_op_of_hop.
+    unfold equiv, ext_equiv.
+    intros mx my Em.
+    repeat break_match;
+      rewrite Em in Heqo0;
+      rewrite Heqo0 in Heqo1.
+    -
+      inversion Heqo1.
+      subst.
+      f_equiv.
+    -
+      some_none.
+    -
+      some_none.
+    -
+      reflexivity.
+  Qed.
+
+  Definition mem_op_of_op {fm} {i o: nat} (op: svector fm i -> svector fm o)
+    : mem_block -> option mem_block
+    := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
+
+  (* this could only be proven wrt @eq on operators, not ((=)==>(=)). *)
+  Global Instance mem_op_of_op_proper
+         {fm}
+         {i o: nat}:
+    Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
+  Proof.
+    intros f g E.
+    unfold equiv, ext_equiv.
+    intros mx my Em.
+    unfold mem_op_of_op.
+    f_equiv.
+    f_equiv.
+    rewrite_clear E.
+    f_equiv.
+    rewrite Em.
+    reflexivity.
+  Qed.
+
+End Wrappers.
 
 Section Operators.
   (* AKA: "embed" *)
@@ -680,7 +720,7 @@ End Operators.
 Section Morphisms.
 
   Global Instance eUnion_mem_proper
-               {b:nat}
+         {b:nat}
   : Proper (equiv ==> equiv) (eUnion_mem b).
   Proof.
     simpl_relation.
@@ -695,8 +735,8 @@ Section Morphisms.
   Qed.
 
   Global Instance eT_mem_proper
-               {b:nat}
-  : Proper (equiv ==> equiv) (eT_mem b).
+         {b:nat}
+    : Proper (equiv ==> equiv) (eT_mem b).
   Proof.
     simpl_relation.
     unfold eT_mem.
