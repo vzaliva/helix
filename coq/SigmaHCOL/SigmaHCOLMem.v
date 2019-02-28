@@ -802,4 +802,11 @@ Section Morphisms.
   Proof.
   Admitted.
 
+
+  Global Instance HTSUMUnion_mem_proper:
+    Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
+  Proof.
+  Admitted.
+
+
 End Morphisms.
