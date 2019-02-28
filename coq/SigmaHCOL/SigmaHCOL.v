@@ -2165,7 +2165,7 @@ Section StructuralProperies.
         simpl in S.
         congruence.
       *
-        apply Is_Struct_mkSZero.
+        apply (@Is_Struct_mkSZero Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags).
     - intros v D j jc S.
       simpl.
       unfold Scatter' in *.
