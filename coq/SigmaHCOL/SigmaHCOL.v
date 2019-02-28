@@ -756,11 +756,12 @@ TODO: remove
                       (FinNatSet.singleton b)
                       (Full_set _).
 
+
     Definition Gather
                {i o: nat}
                (f: index_map o i)
       := mkSHOperator i o (Gather' f) _
-                      (Gather_mem f)
+                      (mem_op_of_op (fm:=fm) (Gather' f))
                       _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
@@ -792,7 +793,7 @@ TODO: remove
                {f_inj: index_map_injective f}
                (idv: CarrierA)
       := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
-                      (Scatter_mem f)
+                      (mem_op_of_op (fm:=fm) (@Scatter' _ _ _ f f_inj idv))
                       _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).

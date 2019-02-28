@@ -526,6 +526,14 @@ Section SVector.
           omega.
   Qed.
 
+  Definition mem_block_to_svector {n} (m: mem_block): svector fm n
+    := Vbuild (fun i (ic:i<n) =>
+                 match mem_lookup i m with
+                 | None => mkSZero (* maybe other structural value? *)
+                 | Some x => mkValue x
+                 end
+              ).
+
 End SVector.
 
 Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
@@ -575,6 +583,17 @@ Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   | Some v => Some (mem_add j v y)
   end.
 
+Definition mem_op_of_op {fm} {i o: nat} (op: svector fm i -> svector fm o)
+  : mem_block -> option mem_block
+  := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
+
+Global Instance mem_op_of_op_proper
+       {fm}
+       {i o: nat}:
+  Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
+Proof.
+Admitted.
+
 Section Operators.
   (* AKA: "embed" *)
   Definition eUnion_mem (b: nat) (x:mem_block): option mem_block :=
@@ -583,42 +602,6 @@ Section Operators.
   (* AKA "pick" *)
   Definition eT_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
-
-  Fixpoint Gather_mem
-           {i o: nat}
-           (f: index_map o i)
-           (x: mem_block) : option mem_block
-    :=
-      let i' := ⟦ f ⟧ o in
-      let map_one ys := map_mem_block_elt x i' ys o in
-      match o return (index_map o i) -> option mem_block with
-      | O => fun _ => map_one (mem_empty)
-      | S o' => fun f' =>
-                 match Gather_mem (shrink_index_map_domain f') x with
-                 | None => None
-                 | Some ys => map_one ys
-                 end
-      end f.
-
-  Definition Scatter_mem {i o: nat} (f: index_map i o)
-    : mem_block -> option mem_block
-    :=
-      let fix Scatter_mem'
-              (j: nat)
-              (fi: inverse_index_map f)
-              (x: mem_block) : option mem_block
-          :=
-          let o' := inverse_index_f f fi j in
-          let map_one ys := map_mem_block_elt x j ys o' in
-          match j with
-          | O => map_one (mem_empty)
-          | S j' => match Scatter_mem' j' fi x with
-                   | None => None
-                   | Some ys => map_one ys
-                   end
-          end
-      in
-      Scatter_mem' i (build_inverse_index_map f).
 
   (* This is defined for n>0 *)
   Fixpoint IUnion_mem_aux
@@ -725,63 +708,6 @@ Section Morphisms.
     - some_none.
     - reflexivity.
   Qed.
-
-  Global Instance Gather_mem_proper
-         {i o: nat}
-         (f: index_map o i):
-    Proper (equiv ==> equiv) (@Gather_mem i o f).
-  Proof.
-    simpl_relation.
-    induction o.
-    -
-      simpl.
-      unfold map_mem_block_elt.
-      break_match;break_match;
-        rewrite H in Heqo; rewrite Heqo in Heqo0; try some_none; try reflexivity.
-      apply RelUtil.opt_r_Some.
-      some_inv.
-      reflexivity.
-    -
-      simpl.
-      break_match;break_match;
-        specialize (IHo (shrink_index_map_domain f));
-        assert(E: (Gather_mem (shrink_index_map_domain f) x) = (Gather_mem (shrink_index_map_domain f) y)) by apply IHo;
-        rewrite Heqo0,Heqo1 in E;
-        try some_none; try reflexivity.
-
-      some_inv.
-      unfold map_mem_block_elt.
-
-      break_match;break_match;
-        rewrite H in Heqo2; rewrite Heqo2 in Heqo3; try some_none; try reflexivity.
-
-      some_inv.
-      rewrite E.
-      reflexivity.
-  Qed.
-
-  Global Instance Scatter_mem_proper
-         {i o: nat}
-         (f: index_map i o):
-    Proper (equiv ==> equiv) (@Scatter_mem i o f).
-  Proof.
-    simpl_relation.
-    induction i.
-    -
-      unfold Scatter_mem, map_mem_block_elt.
-      simpl.
-      break_match;break_match;
-        rewrite H in Heqo0; rewrite Heqo0 in Heqo1; try some_none; try reflexivity.
-      apply RelUtil.opt_r_Some.
-      some_inv.
-      reflexivity.
-    -
-      simpl.
-      specialize (IHi (shrink_index_map_domain f)).
-      (* It looks like this one would be difficult to prove.
-         Consider changing definition to Fixpoint.
-       *)
-  Admitted.
 
   (* TODO: may need Proper for `op_family_f` *)
   Global Instance IUnion_mem_proper
