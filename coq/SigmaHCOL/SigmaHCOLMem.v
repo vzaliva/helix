@@ -737,13 +737,10 @@ Section Morphisms.
       simpl.
       unfold map_mem_block_elt.
       break_match;break_match;
-        rewrite H in Heqo; rewrite Heqo in Heqo0; try some_none.
-      +
-        apply RelUtil.opt_r_Some.
-        some_inv.
-        reflexivity.
-      +
-        reflexivity.
+        rewrite H in Heqo; rewrite Heqo in Heqo0; try some_none; try reflexivity.
+      apply RelUtil.opt_r_Some.
+      some_inv.
+      reflexivity.
     -
       simpl.
       break_match;break_match;
