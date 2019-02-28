@@ -760,12 +760,27 @@ Section Morphisms.
       reflexivity.
   Qed.
 
-
   Global Instance Scatter_mem_proper
          {i o: nat}
          (f: index_map i o):
     Proper (equiv ==> equiv) (@Scatter_mem i o f).
   Proof.
+    simpl_relation.
+    induction i.
+    -
+      unfold Scatter_mem, map_mem_block_elt.
+      simpl.
+      break_match;break_match;
+        rewrite H in Heqo0; rewrite Heqo0 in Heqo1; try some_none; try reflexivity.
+      apply RelUtil.opt_r_Some.
+      some_inv.
+      reflexivity.
+    -
+      simpl.
+      specialize (IHi (shrink_index_map_domain f)).
+      (* It looks like this one would be difficult to prove.
+         Consider changing definition to Fixpoint.
+       *)
   Admitted.
 
   (* TODO: may need Proper for `op_family_f` *)
