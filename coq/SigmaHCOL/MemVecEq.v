@@ -227,114 +227,71 @@ Section MemVecEq.
           simpl.
           reflexivity.
       }
-      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equiv.
-      split; intros.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+      intros k.
+      (* MapsTo *)
+      destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
       +
-        (* In *)
-        split.
+        (* k<0, which is normal *)
+        clear O0 O1.
+        destruct (eq_nat_dec b k) as [E | NE].
         *
-          intros H2.
-          destruct (eq_nat_dec b k) as [E | NE].
-          --
-            apply NMS.F.add_in_iff.
-            left.
-            apply E.
-          --
-            exfalso.
-            destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
-            ++
-              (* k in range *)
-              clear O0 O1.
-              (* clear m1 H1 Heqo0 c G. *)
-              assert(H: Is_Struct (Vnth (eUnion' bc z x) kc)).
-              {
-                pose proof (no_vals_at_sparse fm x) as S.
-                auto.
-              }
-              assert(C: Is_Val (Vnth (eUnion' bc z x) kc))
-                by apply I0, H2.
-              rewrite <- not_Is_Struct_Is_Val in C.
-              congruence.
-            ++
-              (* k is oob *)
-              specialize (O0 k kc).
-              apply NMS.F.in_find_iff in H2.
-              congruence.
-        *
-          intros H2.
-          apply NMS.F.add_in_iff in H2.
-          destruct H2.
-          --
-            destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
-            ++
-              (* k in range *)
-              clear O0 O1.
-              subst k.
-              apply H0 in Vb.
-              apply NMS.MapsTo_In in Vb.
-              apply Vb.
-            ++
-              (* k is oob *)
-              specialize (O0 k kc).
-              apply H0 in Vb.
-              apply NMS.MapsTo_In in Vb.
-              congruence.
-          --
-            exfalso.
-            apply NMS.F.empty_in_iff in H.
-            destruct H.
-      +
-        (* MapsTo *)
-        destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+          (* b = k *)
+          subst k.
+          specialize (H0 b bc).
+          specialize (I0 b bc).
+          apply H0 in Vb; clear H0.
+          apply NM.find_1 in Vb.
+          rewrite_clear Vb.
+          rewrite NF.add_eq_o by reflexivity.
+          f_equiv.
+          unfold eUnion'.
+          rewrite Vbuild_nth.
+          dep_destruct (Nat.eq_dec b b); try congruence.
+
+          specialize (H1 0 (lt_0_Sn 0)).
+          specialize (I1 0 (lt_0_Sn 0)).
+          rewrite NF.find_mapsto_iff in H1.
+
+          assert(V0: Is_Val (Vnth x (Nat.lt_0_succ 0))).
+          {
+            apply G.
+            apply Full_intro.
+          }
+          apply H1 in V0.
+          unfold zero in V0.
+          rewrite V0 in Heqo0.
+          some_inv.
+          rewrite Vnth_0.
+          reflexivity.
         *
           (* k<0, which is normal *)
-          clear O0 O1.
-          destruct (eq_nat_dec b k) as [E | NE].
-          --
-            subst k.
-            specialize (H0 b bc).
-            specialize (I0 b bc).
-            apply H0 in Vb; clear H0.
-            apply NM.find_1 in H.
-            apply NM.find_1 in H2.
-            apply NM.find_1 in Vb.
+          (* b!=k *)
+          rewrite NF.add_neq_o by apply NE.
+          rewrite NF.empty_o.
 
-            rewrite NMS.F.add_eq_o in H2 by reflexivity.
-            rewrite H in Vb; clear H.
-            symmetry in H2.
-            rewrite <- Heqo0 in H2; clear Heqo0.
+          assert(Vk: Is_Struct (Vnth (eUnion' bc z x) kc)).
+          {
+            destruct facts.
+            apply no_vals_at_sparse.
+            auto.
+          }
+          clear H1 I1 m1 Heqo0.
 
-            specialize (H1 0 (lt_0_Sn 0)).
-            specialize (I1 0 (lt_0_Sn 0)).
-            rewrite NMS.F.find_mapsto_iff in H1.
+          apply NF.not_find_in_iff.
+          unfold not.
+          intros H.
 
-            assert(V0: Is_Val (Vnth x (Nat.lt_0_succ 0))).
-            {
-              apply G.
-              apply Full_intro.
-            }
-            apply H1 in V0.
-            unfold zero in V0.
-            rewrite V0 in H2.
-
-            unfold eUnion' in Vb.
-            rewrite Vbuild_nth in Vb.
-            dep_destruct (Nat.eq_dec b b); try congruence.
-            rewrite Vnth_0 in H2.
-            rewrite <- H2 in Vb.
-            inversion Vb.
-            subst.
-            reflexivity.
-          --
-            apply NM.add_3 in H2; auto.
-            apply NMS.F.empty_mapsto_iff in H2.
-            destruct H2.
-        *
-          (* k>=0, oob case *)
-          specialize (O0 k kc).
-          apply NM.find_1 in H.
-          rewrite O0 in H.
-          some_none.
+          specialize (I0 k kc).
+          apply I0 in H.
+          crush.
+      +
+        (* k>=o, oob case *)
+        specialize (O0 k kc).
+        rewrite_clear O0.
+        rewrite NF.add_neq_o by (unfold lt, nat_lt in bc;omega).
+        rewrite NF.empty_o.
+        reflexivity.
     -
       exfalso.
       assert(V:Is_Val (Vnth x (Nat.lt_0_succ 0))).
@@ -344,7 +301,7 @@ Section MemVecEq.
       }
       specialize (H1 0 (lt_0_Sn 0)).
       apply H1 in V; clear H1.
-      apply NMS.F.find_mapsto_iff in V.
+      apply NF.find_mapsto_iff in V.
       unfold zero in *.
       congruence.
   Qed.
