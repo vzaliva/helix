@@ -1729,7 +1729,7 @@ Section StructuralProperies.
         destruct H.
         split.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -1798,7 +1798,7 @@ Section StructuralProperies.
         apply no_coll_at_sparse0.
         apply H.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -1881,7 +1881,7 @@ Section StructuralProperies.
         +
           apply Not_Collision_mkStruct.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -1937,7 +1937,7 @@ Section StructuralProperies.
         destruct H.
         split.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -1993,7 +1993,7 @@ Section StructuralProperies.
         destruct H.
         split.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -2044,7 +2044,7 @@ Section StructuralProperies.
         destruct jc.
         split.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -2102,7 +2102,7 @@ Section StructuralProperies.
         destruct jc.
         split.
       -
-        (* mem_out_as_range *)
+        (* mem_out_some *)
         admit.
     Admitted.
 
@@ -2187,7 +2187,7 @@ Section StructuralProperies.
       rewrite Vbuild_nth in S.
       break_match; crush.
     -
-      (* mem_out_as_range *)
+      (* mem_out_some *)
       admit.
   Admitted.
 
@@ -2238,7 +2238,7 @@ Section StructuralProperies.
       destruct jc.
       split.
     -
-      (* mem_out_as_range *)
+      (* mem_out_some *)
       admit.
   Admitted.
 
@@ -2628,7 +2628,7 @@ Section StructuralProperies.
         exists m, mc.
         apply M.
     -
-      (* mem_out_as_range *)
+      (* mem_out_some *)
       admit.
   Admitted.
 
@@ -2781,7 +2781,7 @@ Section StructuralProperies.
         apply op_family_facts.
         apply H.
     -
-      (* mem_out_as_range *)
+      (* mem_out_some *)
       admit.
     Admitted.
 
