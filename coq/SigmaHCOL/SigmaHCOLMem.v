@@ -731,7 +731,38 @@ Section Morphisms.
          (f: index_map o i):
     Proper (equiv ==> equiv) (@Gather_mem i o f).
   Proof.
-  Admitted.
+    simpl_relation.
+    induction o.
+    -
+      simpl.
+      unfold map_mem_block_elt.
+      break_match;break_match;
+        rewrite H in Heqo; rewrite Heqo in Heqo0; try some_none.
+      +
+        apply RelUtil.opt_r_Some.
+        some_inv.
+        reflexivity.
+      +
+        reflexivity.
+    -
+      simpl.
+      break_match;break_match;
+        specialize (IHo (shrink_index_map_domain f));
+        assert(E: (Gather_mem (shrink_index_map_domain f) x) = (Gather_mem (shrink_index_map_domain f) y)) by apply IHo;
+        rewrite Heqo0,Heqo1 in E;
+        try some_none; try reflexivity.
+
+      some_inv.
+      unfold map_mem_block_elt.
+
+      break_match;break_match;
+        rewrite H in Heqo2; rewrite Heqo2 in Heqo3; try some_none; try reflexivity.
+
+      some_inv.
+      rewrite E.
+      reflexivity.
+  Qed.
+
 
   Global Instance Scatter_mem_proper
          {i o: nat}
