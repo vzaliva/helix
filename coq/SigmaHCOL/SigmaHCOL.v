@@ -1995,9 +1995,10 @@ Section StructuralProperies.
         destruct H.
         split.
       -
-        (* mem_out_some *)
-        admit.
-    Admitted.
+        intros v H.
+        unfold Gather.
+        simpl; tauto.
+    Qed.
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -2192,9 +2193,10 @@ Section StructuralProperies.
       break_match; crush.
     -
       (* mem_out_some *)
-      admit.
-  Admitted.
-
+      intros v H.
+      unfold Scatter.
+      simpl; tauto.
+  Qed.
 
   Global Instance SHBinOp_RthetaSafe_Facts
          {o}
@@ -2242,9 +2244,9 @@ Section StructuralProperies.
       destruct jc.
       split.
     -
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-    Qed.
+      intros v H.
+      apply mem_out_some_mem_op_of_hop, H.
+  Qed.
 
   Lemma UnionFold_empty_Non_Collision
         (k : nat)
