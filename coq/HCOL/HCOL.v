@@ -365,7 +365,7 @@ Section HCOL_Operator_Lemmas.
         (f: FinNat n -> CarrierA -> CarrierA)
         {j:nat} {jc:j<n}
         (x: avector n):
-    Vnth (HPointwise f x) jc = f (j ↾ jc) (Vnth x jc).
+    Vnth (HPointwise f x) jc ≡ f (j ↾ jc) (Vnth x jc).
   Proof.
     unfold HPointwise.
     rewrite Vbuild_nth.
