@@ -8,6 +8,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
+** Rename =eT= and =eUnion= to =Embed= and =Pick=
+** Rename =Diamond= to =MR=
 ** Many usused definitions could be removed. (Hint: try `make print-unused`)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
