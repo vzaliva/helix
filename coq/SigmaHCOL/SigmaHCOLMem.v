@@ -564,7 +564,12 @@ End SVector.
 
 Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
   match goal with
-    [ |- context[svector_to_mem_block_spec ?v]] =>
+  | [ |- context[svector_to_mem_block_spec ?v]] =>
+    pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
+    unfold svector_to_mem_block in H2 ;
+    destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
+
+  | [ H: context[svector_to_mem_block_spec ?v] |- _ ] =>
     pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
     unfold svector_to_mem_block in H2 ;
     destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
