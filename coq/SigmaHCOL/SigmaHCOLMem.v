@@ -4,11 +4,13 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Lt.
 Require Import Coq.Logic.FunctionalExtensionality.
+Require Export Coq.Sets.Ensembles.
 Require Import Psatz.
 Require Import Omega.
 
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNat.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.VecSetoid.
@@ -21,6 +23,7 @@ Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.misc.util.
 
 Import Monoid.
 
@@ -584,6 +587,7 @@ Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   end.
 
 Section Wrappers.
+
   (* HOperator (on dense vector) mapping to memory operator *)
   Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
   : mem_block -> option mem_block
@@ -591,6 +595,39 @@ Section Wrappers.
              | None => None
              | Some x' => Some (avector_to_mem_block (op x'))
              end.
+
+  Lemma mem_out_some_mem_op_of_hop
+        (i o : nat)
+        {fm}
+        (v : vector (Rtheta' fm) i)
+        (g : vector CarrierA i → vector CarrierA o)
+        (H: forall (j : nat) (jc : j < i), Full_set (FinNat i) (mkFinNat jc) → Is_Val (Vnth v jc)):
+    is_Some (mem_op_of_hop g (svector_to_mem_block v)).
+  Proof.
+    unfold mem_op_of_hop.
+    break_match.
+    * simpl; tauto.
+    *
+      exfalso.
+      rename Heqo0 into M.
+      unfold mem_block_to_avector in M.
+      apply vsequence_eq_None in M.
+      destruct M as [j [jc M]].
+      rewrite Vbuild_nth in M.
+      unfold svector_to_mem_block in M.
+      svector_to_mem_block_to_spec m H0 I0 O0.
+      simpl in *.
+      clear O0 I0.
+      assert(V:Is_Val (Vnth v jc)).
+      {
+        apply H.
+        apply Full_intro.
+      }
+      apply H0 in V.
+      apply NM.find_1 in V.
+      unfold mem_lookup in *.
+      congruence.
+  Qed.
 
   Global Instance mem_op_of_hop_proper
          {i o: nat}:

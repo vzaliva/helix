@@ -1731,8 +1731,9 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
-        admit.
-    Admitted.
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+    Qed.
 
     Global Instance SHCompose_Facts
            {i1 o2 o3}
@@ -2046,8 +2047,9 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
-        admit.
-    Admitted.
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+    Qed.
 
     Global Instance SHInductor_Facts
            (n:nat)
@@ -2104,8 +2106,9 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
-        admit.
-    Admitted.
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+    Qed.
 
 
   End FlagsMonoidGenericStructuralProperties.
@@ -2239,9 +2242,9 @@ Section StructuralProperies.
       destruct jc.
       split.
     -
-      (* mem_out_some *)
-      admit.
-  Admitted.
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+    Qed.
 
   Lemma UnionFold_empty_Non_Collision
         (k : nat)
