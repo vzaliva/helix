@@ -232,7 +232,7 @@ Section MemVecEq.
       (* MapsTo *)
       destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
       +
-        (* k<0, which is normal *)
+        (* k<o, which is normal *)
         clear O0 O1.
         destruct (eq_nat_dec b k) as [E | NE].
         *
@@ -265,7 +265,7 @@ Section MemVecEq.
           rewrite Vnth_0.
           reflexivity.
         *
-          (* k<0, which is normal *)
+          (* k<o, which is normal *)
           (* b!=k *)
           rewrite NF.add_neq_o by apply NE.
           rewrite NF.empty_o.
@@ -304,6 +304,91 @@ Section MemVecEq.
       apply NF.find_mapsto_iff in V.
       unfold zero in *.
       congruence.
+  Qed.
+
+  Global Instance SHPointwise_MemVecEq
+         {n: nat}
+         (f: FinNat n -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    : SHOperator_MemVecEq (SHPointwise fm f).
+  Proof.
+    assert (facts: SHOperator_Facts fm (SHPointwise fm f)) by
+        typeclasses eauto.
+
+    split.
+    intros x G.
+    simpl.
+
+    pose proof (@mem_out_some _ _ _ _ facts x G) as M.
+    apply is_Some_equiv_def in M.
+    destruct M as [y M].
+    rewrite M.
+    f_equiv.
+    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+    intros k.
+
+    unfold svector_to_mem_block in *.
+    svector_to_mem_block_to_spec m0 H0 I0 O0.
+    svector_to_mem_block_to_spec m1 H1 I1 O1.
+    simpl in *.
+
+    unfold mem_op_of_hop in M.
+    break_match_hyp; try some_none.
+    some_inv.
+    rewrite <- M. clear M.
+
+    unfold avector_to_mem_block.
+    avector_to_mem_block_to_spec m2 H2 O2.
+    unfold mem_lookup in *. simpl in *.
+
+    destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+    +
+      (* k<n, which is normal *)
+      clear O0 O1 O2.
+      specialize (H0 k kc). specialize (I0 k kc).
+      specialize (H1 k kc). specialize (I1 k kc).
+      assert(V0: Is_Val (Vnth x kc)).
+      {
+        apply G.
+        apply Full_intro.
+      }
+
+      assert(V: Is_Val (Vnth (SHPointwise' f x) kc)).
+      {
+        unfold SHPointwise'.
+        rewrite Vbuild_nth.
+        apply Is_Val_liftM.
+        apply V0.
+      }
+
+      rewrite H0 in V.
+      apply NM.find_1 in V.
+      rewrite V.
+
+      unfold SHPointwise'.
+      rewrite Vbuild_nth.
+      rewrite H2 with (ip:=kc).
+      rewrite HPointwise_nth.
+      rewrite evalWriter_Rtheta_liftM.
+      f_equiv.
+      f_equiv.
+
+      unfold mem_block_to_avector in Heqo.
+      apply vsequence_Vbuild_eq_Some in Heqo.
+      apply Vnth_arg_eq with (ip:=kc) in Heqo.
+      rewrite Vbuild_nth in Heqo.
+      rewrite Vnth_map in Heqo.
+      unfold mem_lookup in Heqo.
+
+      apply H1 in V0.
+      apply NM.find_1 in V0.
+      rewrite Heqo in V0.
+      some_inv.
+      reflexivity.
+    +
+      rewrite O0 by apply kc.
+      rewrite O2 by apply kc.
+      reflexivity.
   Qed.
 
 End MemVecEq.
