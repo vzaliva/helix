@@ -253,6 +253,23 @@ Section TSigmaHCOLOperators.
 
 End TSigmaHCOLOperators.
 
+Lemma mem_out_some_fm_independent
+      (i:nat)
+      (fm0 fm1 : Monoid RthetaFlags)
+      (ins: FinNatSet i)
+      (v0: svector fm0 i)
+      (H: forall (j : nat) (jc : (j < i)%nat), ins (mkFinNat jc) → Is_Val (Vnth v0 jc))
+      (m: Memory.mem_block → option Memory.mem_block)
+      (M: forall
+          (v1 : svector fm1 i),
+          (forall
+              (j : nat) (jc : (j < i)%nat)
+            ,
+              ins (mkFinNat jc) → Is_Val (Vnth v1 jc)) → is_Some (m (svector_to_mem_block v1)))
+  :
+    is_Some (m (svector_to_mem_block v0)).
+Proof.
+Admitted.
 
 Section TSigmaHCOLOperators_StructuralProperties.
 
@@ -317,8 +334,17 @@ Section TSigmaHCOLOperators_StructuralProperties.
       apply no_coll_at_sparse; assumption.
     -
       (* mem_out_some *)
-      admit.
-  Admitted.
+      intros v H.
+      pose proof (@mem_out_some Monoid_RthetaSafeFlags i o xop fop) as M.
+      unfold SafeCast in *.
+      simpl in *.
+      apply mem_out_some_fm_independent
+        with
+          (fm1:=Monoid_RthetaSafeFlags)
+          (ins:=in_index_set Monoid_RthetaSafeFlags xop).
+      apply H.
+      apply M.
+  Qed.
 
   Global Instance UnSafeCast_Facts
          {i o}
@@ -381,8 +407,17 @@ Section TSigmaHCOLOperators_StructuralProperties.
       apply no_coll_at_sparse; assumption.
     -
       (* mem_out_some *)
-      admit.
-  Admitted.
+      intros v H.
+      pose proof (@mem_out_some Monoid_RthetaFlags i o xop fop) as M.
+      unfold UnSafeCast in *.
+      simpl in *.
+      apply mem_out_some_fm_independent
+        with
+          (fm1:=Monoid_RthetaFlags)
+          (ins:=in_index_set Monoid_RthetaFlags xop).
+      apply H.
+      apply M.
+  Qed.
 
   Global Instance HTSUMUnion_Facts
          {i o}
