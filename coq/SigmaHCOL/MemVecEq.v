@@ -306,6 +306,79 @@ Section MemVecEq.
       congruence.
   Qed.
 
+  Global Instance eT_MemVecEq
+         {o b:nat}
+         (bc: b < o)
+    : SHOperator_MemVecEq (eT fm bc).
+  Proof.
+    assert (facts: SHOperator_Facts fm (eT fm bc)) by
+        typeclasses eauto.
+    split.
+    intros x G.
+    simpl.
+
+    unfold eT_mem , map_mem_block_elt.
+    unfold svector_to_mem_block.
+    svector_to_mem_block_to_spec m0 H0 I0 O0.
+    svector_to_mem_block_to_spec m1 H1 I1 O1.
+    Opaque Vnth.
+    simpl in *.
+
+    break_match.
+    -
+      f_equiv.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+      intros k.
+      destruct (NatUtil.lt_ge_dec k 1) as [kc | kc].
+      +
+        clear O0 O1 I0 I1.
+
+        assert (Is_Val (Vnth x bc)) as V.
+        {
+          apply G.
+          reflexivity.
+        }
+        apply H1 in V. clear H1.
+        apply NM.find_1 in V.
+        unfold mem_lookup in Heqo0.
+        rewrite Heqo0 in V. clear Heqo0 m1.
+        some_inv. clear c H1.
+
+        assert(Is_Val (Vnth (eT' bc x) (lt_0_Sn O))) as V0.
+        {
+          unfold eT'.
+          rewrite Vnth_0.
+          simpl.
+          apply G.
+          reflexivity.
+        }
+        rewrite H0 in V0. clear H0.
+        apply NM.find_1 in V0.
+        rewrite NF.add_eq_o by omega.
+        destruct k.
+        *
+          rewrite V0.
+          f_equiv.
+        *
+          omega.
+      +
+        unfold mem_lookup in *.
+        rewrite O0 by apply kc.
+        rewrite NF.add_neq_o by omega.
+        rewrite NF.empty_o.
+        reflexivity.
+    -
+      assert (Is_Val (Vnth x bc)) as V.
+      {
+        apply G.
+        reflexivity.
+      }
+      apply H1 in V.
+      apply NM.find_1 in V.
+      unfold mem_lookup in Heqo0.
+      congruence.
+  Qed.
+
   Global Instance SHPointwise_MemVecEq
          {n: nat}
          (f: FinNat n -> CarrierA -> CarrierA)
