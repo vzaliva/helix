@@ -377,11 +377,11 @@ Section HCOL_Operator_Lemmas.
         {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
         {v: avector (o+o)}
         {j:nat}
-        {jc: j<o}
-        {jc1:j<o+o}
-        {jc2: (j+o)<o+o}
+        (jc: j<o)
+        (jc1:j<o+o)
+        (jc2: (j+o)<o+o)
     :
-      Vnth (@HBinOp o f v) jc = f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@HBinOp o f v) jc ≡ f (mkFinNat jc) (Vnth v jc1) (Vnth v jc2).
   Proof.
     unfold HBinOp, compose, vector2pair, HBinOp, HCOLImpl.BinOp.
 
