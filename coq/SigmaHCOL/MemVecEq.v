@@ -74,8 +74,6 @@ Section MemVecEq.
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3)
            (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Facts fm _ _ op1}
-           `{fop2: SHOperator_Facts fm _ _ op2}
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
            `{Meq1: SHOperator_MemVecEq fm o2 o3 op1}
            `{Meq2: SHOperator_MemVecEq fm i1 o2 op2}
@@ -99,7 +97,7 @@ Section MemVecEq.
       apply Meq1.
       {
         intros j jc H.
-        apply fop2. (* out_as_range *)
+        apply facts0. (* out_as_range *)
         apply G.
         apply compat, H.
       }
