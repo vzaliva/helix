@@ -55,9 +55,17 @@ Proof.
   apply Some_prop, E.
 Qed.
 
+Ltac norm_some_none :=
+  repeat
+    match goal with
+    | [H: is_Some _ |- _ ] => apply is_Some_def in H; destruct H
+    | [H: is_None _ |- _ ] => apply is_None_def in H; destruct H
+    end.
+
 Ltac some_none :=
   let H' := fresh in
   match goal with
+  | [H1: ?x ≡ Some _, H2: ?x ≡ None |- _ ] => congruence
   | [H: Some _ = None |- _ ] => inversion H
   | [H: None = Some _ |- _ ] => inversion H
   | [H: Some _ ≡ None |- _ ] => inversion H

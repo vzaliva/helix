@@ -10,6 +10,7 @@ Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.SigmaHCOL.MemSetoid.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
@@ -38,6 +39,8 @@ Require Import MathClasses.theory.setoids.
 
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
+
+Require Import CoLoR.Util.List.ListUtil.
 
 Import Monoid.
 
@@ -571,5 +574,236 @@ Section MemVecEq.
       rewrite O2 by apply kc.
       reflexivity.
   Qed.
+
+  (* TODO: move somewhere in Utils *)
+  Fixpoint set_of_list {A:Type} (l : list A) {struct l}: Ensemble A :=
+    match l with
+    | nil => Empty_set A
+    | List.cons hd tl => Add A (set_of_list tl) hd
+    end.
+
+  (* TODO: could be proven <-> *)
+  Lemma mem_merge_is_Some (m0 m1 : mem_block):
+    Disjoint nat (set_of_list (mem_keys m0))
+             (set_of_list (mem_keys m1)) → is_Some (mem_merge m0 m1).
+  Proof.
+    intros D.
+    unfold mem_merge.
+    rewrite NM.fold_1.
+    unfold mem_keys in *.
+    remember (NM.elements m0) as e0.
+    induction e0.
+    -
+      simpl; tauto.
+    -
+      admit.
+  Admitted.
+
+  (* TODO: move somewhere in Memory *)
+  Lemma mem_merge_key_either
+        (m m0 m1 : mem_block)
+        (MM : mem_merge m0 m1 ≡ Some m)
+    :
+      forall k, NM.In k m -> {NM.In k m0}+{NM.In k m1}.
+  Proof.
+    intros k H.
+    unfold mem_merge in MM.
+    rewrite NM.fold_1 in MM.
+    (* TODO: turn everything to NM.elements *)
+    induction (NM.elements m0).
+    -
+      simpl in *.
+      some_inv.
+      right.
+      apply H.
+    -
+      destruct a as [k' v].
+      destruct (eq_nat_dec k k').
+      +
+        subst.
+        left.
+        (* ListUtil.In_fold_left *)
+        admit.
+  Admitted.
+
+  (* TODO: move somewhere in Utils *)
+  Lemma In_Add_eq
+        {T:Type}
+        {a b: T}
+        {l: Ensemble T}
+    :
+      a≡b -> In T (Add T l a) b.
+  Proof.
+  Admitted.
+
+  (* TODO: move somewhere in Utils *)
+  Lemma In_Add_neq
+        {T:Type}
+        (a b: T)
+        {l: Ensemble T}
+    :
+      a≢b -> In T l b <-> In T (Add T l a) b.
+  Proof.
+  Admitted.
+
+  Lemma In_NM_In
+        {k:nat}
+        {m: mem_block}:
+    In nat (set_of_list (mem_keys m)) k <->
+    NM.In k m.
+  Proof.
+    split.
+    -
+      intros H.
+      apply NF.elements_in_iff.
+      unfold mem_keys in *.
+      induction (NM.elements m).
+      +
+        inversion H.
+      +
+        destruct (eq_nat_dec k (fst a)).
+        *
+          subst.
+          destruct a; simpl in *.
+          exists c.
+          apply InA_cons_hd.
+          reflexivity.
+        *
+          destruct a; simpl in *.
+          apply In_Add_neq in H; auto.
+          apply IHl in H.
+          destruct H as [e H].
+          exists e.
+          apply InA_cons_tl.
+          apply H.
+    -
+      (* not needed yet *)
+      intros H.
+      apply NF.elements_in_iff in H.
+      destruct H as [v H].
+      unfold mem_keys.
+      revert H.
+      induction (NM.elements m).
+      +
+        intros H.
+        inversion H.
+      +
+        intros H.
+        simpl.
+        destruct (eq_nat_dec k (fst a)).
+        *
+          subst.
+          apply In_Add_eq, reflexivity.
+        *
+          rewrite <- In_Add_neq with (a0:=fst a) by auto.
+          apply IHl; clear IHl.
+          inversion H;subst.
+          --
+            destruct a.
+            simpl in n.
+            inversion H1.
+            crush.
+          --
+            apply H1.
+  Qed.
+
+  Global Instance HTSUMUnion_MemVecEq
+         {i o: nat}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+         (op1 op2: @SHOperator Monoid_RthetaFlags i o)
+         (compat: Disjoint _
+                           (out_index_set _ op1)
+                           (out_index_set _ op2)
+         )
+         `{Meq1: SHOperator_MemVecEq _ i o op1}
+         `{Meq2: SHOperator_MemVecEq _ i o op2}
+
+    : SHOperator_MemVecEq
+        (facts := HTSUMUnion_Facts dot op1 op2 compat)
+        (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+  Proof.
+    split.
+    intros x G.
+    simpl.
+    unfold HTSUMUnion', Vec2Union, HTSUMUnion_mem.
+    break_match.
+    -
+      break_match.
+      +
+        rename m into m1, m0 into m2. (* to match operator indices *)
+        destruct (mem_merge m1 m2) eqn:MM.
+        *
+          apply RelUtil.opt_r_Some.
+          unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
+          intros k.
+          pose proof (mem_merge_key_either m m1 m2 MM k) as E.
+          unfold svector_to_mem_block.
+          svector_to_mem_block_to_spec m' H0 H1 I2.
+          simpl in *.
+          destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+          --
+            clear I2.
+            (* k<o. Normal *)
+            remember (mkFinNat kc) as kf.
+            (* each kf could be either in out_set of op1 or op2 *)
+            admit.
+          --
+            (* k>=o. m[k] should be None *)
+            clear H0 H1.
+            specialize (I2 k kc).
+            unfold mem_lookup in I2.
+            rewrite_clear I2.
+            symmetry.
+            apply NF.not_find_in_iff.
+            intros N.
+            apply E in N.
+            destruct N as [N1 | N2].
+            ++
+              (* prove contradiction in N1 *)
+              admit.
+            ++
+              (* prove contradiction in N1 *)
+              admit.
+        *
+          exfalso.
+          contradict MM.
+          apply is_Some_ne_None.
+          apply mem_merge_is_Some.
+          apply Disjoint_intro.
+          intros k.
+          intros H.
+          unfold In in H.
+          destruct H.
+          rename x0 into k.
+          rename H into IN1, H0 into IN2.
+          apply In_NM_In in IN1.
+          apply In_NM_In in IN2.
+          unfold svector_to_mem_block in Heqo0.
+          svector_to_mem_block_to_spec m1' H1 I1 O1.
+          unfold svector_to_mem_block in Heqo1.
+          svector_to_mem_block_to_spec m2' H2 I2 O2.
+          simpl in *.
+          admit.
+      +
+        contradict Heqo1.
+        apply is_Some_ne_None.
+        apply mem_out_some; auto.
+        intros j jc H.
+        apply G.
+        simpl.
+        apply Union_intror.
+        apply H.
+    -
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      apply mem_out_some; auto.
+      intros j jc H.
+      apply G.
+      simpl.
+      apply Union_introl.
+      apply H.
+  Qed.
+
 
 End MemVecEq.

@@ -41,6 +41,9 @@ Definition mem_mapsto k (v:CarrierA) (m:NatMap CarrierA) := @NM.MapsTo CarrierA 
 
 Definition mem_block := NatMap CarrierA.
 
+Definition mem_keys (m:NatMap CarrierA): list nat
+  := List.map fst (NM.elements m).
+
 (* merge two memory blocks. Return `None` if there is an overlap *)
 Definition mem_merge (a b: mem_block) : option (mem_block)
   :=
