@@ -576,16 +576,20 @@ Section MemVecEq.
   Qed.
 
   (* TODO: move somewhere in Utils *)
-  Fixpoint set_of_list {A:Type} (l : list A) {struct l}: Ensemble A :=
-    match l with
-    | nil => Empty_set A
-    | List.cons hd tl => Add A (set_of_list tl) hd
-    end.
+  Fixpoint set_of_list
+           {A:Type} (l : list A) {struct l}: Ensemble A
+    :=
+      match l with
+      | nil => Empty_set A
+      | List.cons hd tl => Add A (set_of_list tl) hd
+      end.
 
   (* TODO: could be proven <-> *)
-  Lemma mem_merge_is_Some (m0 m1 : mem_block):
-    Disjoint nat (set_of_list (mem_keys m0))
-             (set_of_list (mem_keys m1)) → is_Some (mem_merge m0 m1).
+  Lemma mem_merge_is_Some
+        (m0 m1 : mem_block)
+    :
+      Disjoint nat (set_of_list (mem_keys m0))
+               (set_of_list (mem_keys m1)) → is_Some (mem_merge m0 m1).
   Proof.
     intros D.
     unfold mem_merge.
