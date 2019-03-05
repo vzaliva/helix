@@ -546,7 +546,22 @@ Section MemVecEq.
     :
       a≢b -> In T l b <-> In T (Add T l a) b.
   Proof.
-  Admitted.
+    intros E.
+    split.
+    -
+      intros H.
+      unfold Add.
+      apply Union_introl, H.
+    -
+      intros H.
+      unfold Add in H.
+      destruct H.
+      + apply H.
+      + exfalso.
+        unfold In in H.
+        destruct H.
+        congruence.
+  Qed.
 
   Lemma In_NM_In
         {k:nat}
