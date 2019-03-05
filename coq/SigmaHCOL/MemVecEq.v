@@ -531,7 +531,12 @@ Section MemVecEq.
     :
       a≡b -> In T (Add T l a) b.
   Proof.
-  Admitted.
+    intros E.
+    unfold Add.
+    apply Union_intror.
+    rewrite E.
+    apply Ensembles.In_singleton.
+  Qed.
 
   (* TODO: move somewhere in Utils *)
   Lemma In_Add_neq
