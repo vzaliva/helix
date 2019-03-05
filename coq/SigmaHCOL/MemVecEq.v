@@ -468,113 +468,6 @@ Section MemVecEq.
 
   End WithMonoid.
 
-  Global Instance SHBinOp_RthetaSafe_MemVecEq
-         {o}
-         (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    : SHOperator_MemVecEq (@SHBinOp Monoid_RthetaSafeFlags o f pF).
-  Proof.
-    assert (facts: SHOperator_Facts _ (SHBinOp Monoid_RthetaSafeFlags f)) by
-        typeclasses eauto.
-
-    split.
-    intros x G.
-    simpl.
-
-    pose proof (@mem_out_some _ _ _ _ facts x G) as M.
-    apply is_Some_equiv_def in M.
-    destruct M as [y M].
-    rewrite M.
-    f_equiv.
-    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-    intros k.
-
-    unfold svector_to_mem_block in *.
-    svector_to_mem_block_to_spec m0 H0 I0 O0.
-    svector_to_mem_block_to_spec m1 H1 I1 O1.
-    simpl in *.
-
-    unfold mem_op_of_hop in M.
-    break_match_hyp; try some_none.
-    some_inv.
-    rewrite <- M. clear M.
-
-    unfold avector_to_mem_block.
-    avector_to_mem_block_to_spec m2 H2 O2.
-    unfold mem_lookup in *. simpl in *.
-
-    destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
-    +
-      (* k<n, which is normal *)
-      clear O0 O1 O2.
-      specialize (H0 k kc). specialize (I0 k kc).
-      assert (k < o + o)%nat as kc1 by omega.
-      assert(V1: Is_Val (Vnth x kc1)).
-      {
-        apply G.
-        apply Full_intro.
-      }
-
-      assert (k + o < o + o)%nat as kc2 by omega.
-      assert(V2: Is_Val (Vnth x kc2)).
-      {
-        apply G.
-        apply Full_intro.
-      }
-
-      assert(V: Is_Val (Vnth (SHBinOp' f x) kc)).
-      {
-        erewrite SHBinOp'_nth with (jc:=kc).
-        apply Is_Val_Safe_liftM2.
-        apply V1.
-        apply V2.
-      }
-
-      rewrite H0 in V.
-      apply NM.find_1 in V.
-      rewrite V.
-
-      rewrite H2 with (ip:=kc).
-      f_equiv.
-      rewrite SHBinOp'_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
-      rewrite HBinOp_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
-
-      rewrite evalWriter_Rtheta_liftM2.
-      f_equiv.
-      *
-        specialize (H1 k kc1).
-        unfold mem_block_to_avector in Heqo0.
-        apply vsequence_Vbuild_eq_Some in Heqo0.
-        apply Vnth_arg_eq with (ip:=kc1) in Heqo0.
-        rewrite Vbuild_nth in Heqo0.
-        rewrite Vnth_map in Heqo0.
-        unfold mem_lookup in Heqo0.
-
-        apply H1 in V1.
-        apply NM.find_1 in V1.
-        rewrite Heqo0 in V1.
-        some_inv.
-        reflexivity.
-      *
-        specialize (H1 (k+o)%nat kc2).
-        unfold mem_block_to_avector in Heqo0.
-        apply vsequence_Vbuild_eq_Some in Heqo0.
-        apply Vnth_arg_eq with (ip:=kc2) in Heqo0.
-        rewrite Vbuild_nth in Heqo0.
-        rewrite Vnth_map in Heqo0.
-        unfold mem_lookup in Heqo0.
-
-        apply H1 in V2.
-        apply NM.find_1 in V2.
-        rewrite Heqo0 in V2.
-        some_inv.
-        reflexivity.
-    +
-      rewrite O0 by apply kc.
-      rewrite O2 by apply kc.
-      reflexivity.
-  Qed.
-
   (* TODO: move somewhere in Utils *)
   Fixpoint set_of_list
            {A:Type} (l : list A) {struct l}: Ensemble A
@@ -711,103 +604,215 @@ Section MemVecEq.
             apply H1.
   Qed.
 
-  Global Instance HTSUMUnion_MemVecEq
-         {i o: nat}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-         (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-         (compat: Disjoint _
-                           (out_index_set _ op1)
-                           (out_index_set _ op2)
-         )
-         `{Meq1: SHOperator_MemVecEq _ i o op1}
-         `{Meq2: SHOperator_MemVecEq _ i o op2}
+  Section MonoidSpecific.
 
-    : SHOperator_MemVecEq
-        (facts := HTSUMUnion_Facts dot op1 op2 compat)
-        (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
-  Proof.
-    split.
-    intros x G.
-    simpl.
-    unfold HTSUMUnion', Vec2Union, HTSUMUnion_mem.
-    break_match.
-    -
+    Global Instance SHBinOp_RthetaSafe_MemVecEq
+           {o}
+           (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    : SHOperator_MemVecEq (@SHBinOp Monoid_RthetaSafeFlags o f pF).
+    Proof.
+      assert (facts: SHOperator_Facts _ (SHBinOp Monoid_RthetaSafeFlags f)) by
+          typeclasses eauto.
+
+      split.
+      intros x G.
+      simpl.
+
+      pose proof (@mem_out_some _ _ _ _ facts x G) as M.
+      apply is_Some_equiv_def in M.
+      destruct M as [y M].
+      rewrite M.
+      f_equiv.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+      intros k.
+
+      unfold svector_to_mem_block in *.
+      svector_to_mem_block_to_spec m0 H0 I0 O0.
+      svector_to_mem_block_to_spec m1 H1 I1 O1.
+      simpl in *.
+
+      unfold mem_op_of_hop in M.
+      break_match_hyp; try some_none.
+      some_inv.
+      rewrite <- M. clear M.
+
+      unfold avector_to_mem_block.
+      avector_to_mem_block_to_spec m2 H2 O2.
+      unfold mem_lookup in *. simpl in *.
+
+      destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+      +
+        (* k<n, which is normal *)
+        clear O0 O1 O2.
+        specialize (H0 k kc). specialize (I0 k kc).
+        assert (k < o + o)%nat as kc1 by omega.
+        assert(V1: Is_Val (Vnth x kc1)).
+        {
+          apply G.
+          apply Full_intro.
+        }
+
+        assert (k + o < o + o)%nat as kc2 by omega.
+        assert(V2: Is_Val (Vnth x kc2)).
+        {
+          apply G.
+          apply Full_intro.
+        }
+
+        assert(V: Is_Val (Vnth (SHBinOp' f x) kc)).
+        {
+          erewrite SHBinOp'_nth with (jc:=kc).
+          apply Is_Val_Safe_liftM2.
+          apply V1.
+          apply V2.
+        }
+
+        rewrite H0 in V.
+        apply NM.find_1 in V.
+        rewrite V.
+
+        rewrite H2 with (ip:=kc).
+        f_equiv.
+        rewrite SHBinOp'_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
+        rewrite HBinOp_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
+
+        rewrite evalWriter_Rtheta_liftM2.
+        f_equiv.
+        *
+          specialize (H1 k kc1).
+          unfold mem_block_to_avector in Heqo0.
+          apply vsequence_Vbuild_eq_Some in Heqo0.
+          apply Vnth_arg_eq with (ip:=kc1) in Heqo0.
+          rewrite Vbuild_nth in Heqo0.
+          rewrite Vnth_map in Heqo0.
+          unfold mem_lookup in Heqo0.
+
+          apply H1 in V1.
+          apply NM.find_1 in V1.
+          rewrite Heqo0 in V1.
+          some_inv.
+          reflexivity.
+        *
+          specialize (H1 (k+o)%nat kc2).
+          unfold mem_block_to_avector in Heqo0.
+          apply vsequence_Vbuild_eq_Some in Heqo0.
+          apply Vnth_arg_eq with (ip:=kc2) in Heqo0.
+          rewrite Vbuild_nth in Heqo0.
+          rewrite Vnth_map in Heqo0.
+          unfold mem_lookup in Heqo0.
+
+          apply H1 in V2.
+          apply NM.find_1 in V2.
+          rewrite Heqo0 in V2.
+          some_inv.
+          reflexivity.
+      +
+        rewrite O0 by apply kc.
+        rewrite O2 by apply kc.
+        reflexivity.
+    Qed.
+
+
+    Global Instance HTSUMUnion_MemVecEq
+           {i o: nat}
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op1 op2: @SHOperator Monoid_RthetaFlags i o)
+           (compat: Disjoint _
+                             (out_index_set _ op1)
+                             (out_index_set _ op2)
+           )
+           `{Meq1: SHOperator_MemVecEq _ i o op1}
+           `{Meq2: SHOperator_MemVecEq _ i o op2}
+
+      : SHOperator_MemVecEq
+          (facts := HTSUMUnion_Facts dot op1 op2 compat)
+          (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+    Proof.
+      split.
+      intros x G.
+      simpl.
+      unfold HTSUMUnion', Vec2Union, HTSUMUnion_mem.
       break_match.
-      +
-        rename m into m1, m0 into m2. (* to match operator indices *)
-        destruct (mem_merge m1 m2) eqn:MM.
-        *
-          apply RelUtil.opt_r_Some.
-          unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
-          intros k.
-          pose proof (mem_merge_key_either m m1 m2 MM k) as E.
-          unfold svector_to_mem_block.
-          svector_to_mem_block_to_spec m' H0 H1 I2.
-          simpl in *.
-          destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
-          --
-            clear I2.
-            (* k<o. Normal *)
-            remember (mkFinNat kc) as kf.
-            (* each kf could be either in out_set of op1 or op2 *)
+      -
+        break_match.
+        +
+          rename m into m1, m0 into m2. (* to match operator indices *)
+          destruct (mem_merge m1 m2) eqn:MM.
+          *
+            apply RelUtil.opt_r_Some.
+            unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
+            intros k.
+            pose proof (mem_merge_key_either m m1 m2 MM k) as E.
+            unfold svector_to_mem_block.
+            svector_to_mem_block_to_spec m' H0 H1 I2.
+            simpl in *.
+            destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+            --
+              clear I2.
+              (* k<o. Normal *)
+              remember (mkFinNat kc) as kf.
+              (* each kf could be either in out_set of op1 or op2 *)
+              admit.
+            --
+              (* k>=o. m[k] should be None *)
+              clear H0 H1.
+              specialize (I2 k kc).
+              unfold mem_lookup in I2.
+              rewrite_clear I2.
+              symmetry.
+              apply NF.not_find_in_iff.
+              intros N.
+              apply E in N.
+              destruct N as [N1 | N2].
+              ++
+                (* prove contradiction in N1 *)
+                admit.
+              ++
+                (* prove contradiction in N1 *)
+                admit.
+          *
+            exfalso.
+            contradict MM.
+            apply is_Some_ne_None.
+            apply mem_merge_is_Some.
+            apply Disjoint_intro.
+            intros k.
+            intros H.
+            unfold In in H.
+            destruct H.
+            rename x0 into k.
+            rename H into IN1, H0 into IN2.
+            apply In_NM_In in IN1.
+            apply In_NM_In in IN2.
+            unfold svector_to_mem_block in Heqo0.
+            svector_to_mem_block_to_spec m1' H1 I1 O1.
+            unfold svector_to_mem_block in Heqo1.
+            svector_to_mem_block_to_spec m2' H2 I2 O2.
+            simpl in *.
             admit.
-          --
-            (* k>=o. m[k] should be None *)
-            clear H0 H1.
-            specialize (I2 k kc).
-            unfold mem_lookup in I2.
-            rewrite_clear I2.
-            symmetry.
-            apply NF.not_find_in_iff.
-            intros N.
-            apply E in N.
-            destruct N as [N1 | N2].
-            ++
-              (* prove contradiction in N1 *)
-              admit.
-            ++
-              (* prove contradiction in N1 *)
-              admit.
-        *
-          exfalso.
-          contradict MM.
+        +
+          contradict Heqo1.
           apply is_Some_ne_None.
-          apply mem_merge_is_Some.
-          apply Disjoint_intro.
-          intros k.
-          intros H.
-          unfold In in H.
-          destruct H.
-          rename x0 into k.
-          rename H into IN1, H0 into IN2.
-          apply In_NM_In in IN1.
-          apply In_NM_In in IN2.
-          unfold svector_to_mem_block in Heqo0.
-          svector_to_mem_block_to_spec m1' H1 I1 O1.
-          unfold svector_to_mem_block in Heqo1.
-          svector_to_mem_block_to_spec m2' H2 I2 O2.
-          simpl in *.
-          admit.
-      +
-        contradict Heqo1.
+          apply mem_out_some; auto.
+          intros j jc H.
+          apply G.
+          simpl.
+          apply Union_intror.
+          apply H.
+      -
+        contradict Heqo0.
         apply is_Some_ne_None.
         apply mem_out_some; auto.
         intros j jc H.
         apply G.
         simpl.
-        apply Union_intror.
+        apply Union_introl.
         apply H.
-    -
-      contradict Heqo0.
-      apply is_Some_ne_None.
-      apply mem_out_some; auto.
-      intros j jc H.
-      apply G.
-      simpl.
-      apply Union_introl.
-      apply H.
-  Qed.
+    Qed.
+
+  End MonoidSpecific.
 
 
 End MemVecEq.
