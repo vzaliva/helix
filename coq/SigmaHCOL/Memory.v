@@ -7,10 +7,16 @@
 Require Import Coq.FSets.FMapAVL.
 Require Export Coq.FSets.FMapInterface.
 Require Import Coq.FSets.FMapFacts.
-Require Import Structures.OrderedTypeEx.
+Require Import Coq.Structures.OrderedTypeEx.
 Require Import Coq.Arith.Peano_dec.
 
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
 Require Import Helix.HCOL.CarrierType.
+
+Import MonadNotation.
+Open Scope monad_scope.
 
 Definition addr := (nat * nat) % type.
 Definition null := (0, 0).
@@ -44,17 +50,30 @@ Definition mem_block := NatMap CarrierA.
 Definition mem_keys (m:NatMap CarrierA): list nat
   := List.map fst (NM.elements m).
 
+(* Copy of template-coq `monad_fold_left` but using ExtLib
+   TODO: move to Util
+*)
+Fixpoint monadic_fold_left
+         {A B:Type}
+         {m : Type -> Type}
+         {M : Monad m}
+         (f : A -> B -> m A) (l : list B) (x : A)
+  : m A
+  := match l with
+     | nil => ret x
+     | y :: l => x' <- f x y ;;
+                  monadic_fold_left f l x'
+     end.
+
 (* merge two memory blocks. Return `None` if there is an overlap *)
-Definition mem_merge (a b: mem_block) : option (mem_block)
-  :=
-    NM.fold (fun k v m =>
-               match m with
-               | None => None
-               | Some m' =>
-                 if NM.mem k m' then None
-                 else Some (NM.add k v m')
-               end
-            ) a (Some b).
+Definition mem_merge (a b: mem_block) : option mem_block
+  := monadic_fold_left
+       (fun m '(k,v)  =>
+          if NM.mem k b (* assuming no duplicate keys in 'a'. Stricter definition would use `mem k m` check here, but it is less handy in proofs *)
+          then None
+          else ret (NM.add k v m)
+       )
+       (NM.elements a) b.
 
 (* merge two memory blocks in (0..n-1) using given operation to combine values *)
 Definition mem_merge_with (f: CarrierA -> CarrierA -> CarrierA) (a b: mem_block)

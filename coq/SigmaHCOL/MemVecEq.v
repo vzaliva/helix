@@ -486,7 +486,6 @@ Section MemVecEq.
   Proof.
     intros D.
     unfold mem_merge.
-    rewrite NM.fold_1.
     unfold mem_keys in *.
     remember (NM.elements m0) as e0.
     induction e0.
@@ -494,6 +493,14 @@ Section MemVecEq.
       simpl; tauto.
     -
       admit.
+  Admitted.
+
+  Lemma mem_block_elements (m:mem_block):
+    m ≡ List.fold_right
+      (fun '(k,v) m' => NM.add k v m')
+      mem_empty
+      (NM.elements m).
+  Proof.
   Admitted.
 
   (* TODO: move somewhere in Memory *)
@@ -504,9 +511,10 @@ Section MemVecEq.
       forall k, NM.In k m -> {NM.In k m0}+{NM.In k m1}.
   Proof.
     intros k H.
+    rename m into mm, k into kk.
     unfold mem_merge in MM.
-    rewrite NM.fold_1 in MM.
-    (* TODO: turn everything to NM.elements *)
+    (* TODO: turn `m0` to NM.elements *)
+    rewrite mem_block_elements with (m:=m0).
     induction (NM.elements m0).
     -
       simpl in *.
@@ -515,11 +523,20 @@ Section MemVecEq.
       apply H.
     -
       destruct a as [k' v].
-      destruct (eq_nat_dec k k').
+      simpl in MM.
+      simpl.
+      destruct (eq_nat_dec kk k').
       +
-        subst.
+        (* k in m1 *)
         left.
-        (* ListUtil.In_fold_left *)
+        apply NF.add_in_iff.
+        auto.
+      +
+        left.
+        apply NF.add_neq_in_iff.
+        auto.
+        break_match; destruct (NM.mem (elt:=CarrierA) k' m1) eqn:M1; try some_none.
+        some_inv.
         admit.
   Admitted.
 
