@@ -495,12 +495,61 @@ Section MemVecEq.
       admit.
   Admitted.
 
+  Fixpoint fold_left_rev {A B:Type} (f : A -> B -> A) (l:list B) (a0:A) : A :=
+    match l with
+      | nil => a0
+      | cons b t => f (fold_left_rev f t a0) b
+    end.
+
   Lemma mem_block_elements (m:mem_block):
-    m ≡ List.fold_right
-      (fun '(k,v) m' => NM.add k v m')
-      mem_empty
-      (NM.elements m).
+    m ≡ fold_left_rev
+      (fun m' '(k,v) => NM.add k v m')
+      (NM.elements m)
+      mem_empty.
   Proof.
+  Admitted.
+
+  Lemma mem_merge_contains_1st
+        (m m0 m1 : mem_block)
+        (MM : mem_merge m0 m1 ≡ Some m)
+    :
+      forall k, NM.In k m0 -> NM.In k m.
+  Proof.
+  Admitted.
+
+
+    (* TODO: move somewhere in Memory *)
+  Lemma mem_merge_contains_2nd
+        (m m0 m1 : mem_block)
+        (MM : mem_merge m0 m1 ≡ Some m)
+    :
+      forall k, NM.In k m1 -> NM.In k m.
+  Proof.
+    (*
+    intros k H.
+    rename m into mm, k into kk.
+    unfold mem_merge in MM.
+    rewrite mem_block_elements with (m:=m0) in MM.
+    generalize dependent (NM.elements m0).
+    intros l MM. clear m0.
+    induction l.
+    -
+      crush.
+    -
+      destruct a as [k' v].
+      simpl in *.
+      apply IHl; clear IHl.
+      rewrite <- MM; clear MM.
+      f_equiv.
+      f_equiv.
+      destruct (eq_nat_dec k' kk) as [K|NK].
+      +
+        rewrite NF.add_in_iff.
+        auto.
+      *
+        apply NF.add_neq_in_iff. apply NK.
+     *)
+
   Admitted.
 
   (* TODO: move somewhere in Memory *)
@@ -512,32 +561,42 @@ Section MemVecEq.
   Proof.
     intros k H.
     rename m into mm, k into kk.
-    unfold mem_merge in MM.
-    (* TODO: turn `m0` to NM.elements *)
     rewrite mem_block_elements with (m:=m0).
-    induction (NM.elements m0).
+    generalize dependent (NM.elements m0).
+    revert MM.
+    intros l MM.
+
+
+
+    
+    destruct (NF.In_dec m1 kk) as [M1 | M1].
     -
-      simpl in *.
-      some_inv.
       right.
-      apply H.
+      apply M1.
     -
-      destruct a as [k' v].
-      simpl in MM.
-      simpl.
-      destruct (eq_nat_dec kk k').
+      left.
+      dependent induction l.
       +
-        (* k in m1 *)
-        left.
-        apply NF.add_in_iff.
-        auto.
-      +
-        left.
-        apply NF.add_neq_in_iff.
-        auto.
-        break_match; destruct (NM.mem (elt:=CarrierA) k' m1) eqn:M1; try some_none.
+        simpl in *.
         some_inv.
-        admit.
+        crush.
+      +
+        destruct a as [k' v].
+        simpl in *.
+        destruct (eq_nat_dec k' kk) as [K|NK].
+        *
+          (* k in m1 *)
+          apply NF.add_in_iff.
+          auto.
+        *
+          apply NF.add_neq_in_iff. apply NK.
+          apply IHl; clear IHl; try auto.
+          break_match_hyp; try break_if; try some_none.
+          some_inv.
+          subst mm.
+          apply NF.add_neq_in_iff in H; auto.
+          apply NF.not_mem_in_iff in Heqb.
+
   Admitted.
 
   (* TODO: move somewhere in Utils *)

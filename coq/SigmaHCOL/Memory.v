@@ -65,11 +65,22 @@ Fixpoint monadic_fold_left
                   monadic_fold_left f l x'
      end.
 
+Fixpoint monadic_fold_left_rev
+         {A B:Type}
+         {m : Type -> Type}
+         {M : Monad m}
+         (f : A -> B -> m A) (l : list B) (x : A)
+  : m A
+  := match l with
+     | nil => ret x
+     | y :: l => x' <- monadic_fold_left_rev f l x ;; f x' y
+     end.
+
 (* merge two memory blocks. Return `None` if there is an overlap *)
 Definition mem_merge (a b: mem_block) : option mem_block
-  := monadic_fold_left
-       (fun m '(k,v)  =>
-          if NM.mem k b (* assuming no duplicate keys in 'a'. Stricter definition would use `mem k m` check here, but it is less handy in proofs *)
+  := monadic_fold_left_rev
+       (fun m '(k,v) =>
+          if NM.mem k m
           then None
           else ret (NM.add k v m)
        )
