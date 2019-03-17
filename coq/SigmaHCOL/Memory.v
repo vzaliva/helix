@@ -37,6 +37,8 @@ Qed.
 Module NM := FMapAVL.Make(Nat_as_OT).
 Definition NatMap := NM.t.
 
+Module Import NF:=WFacts_fun(Nat_as_OT)(NM).
+
 Definition mem_add k (v:CarrierA) := NM.add k v.
 Definition mem_delete k (m:NatMap CarrierA) := NM.remove k m.
 Definition mem_member k (m:NatMap CarrierA) := NM.mem k m.
@@ -76,14 +78,15 @@ Fixpoint monadic_fold_left_rev
      | y :: l => x' <- monadic_fold_left_rev f l x ;; f x' y
      end.
 
+Definition mem_try_add (m:mem_block) '(k,v) :=
+  match NF.In_dec m k with
+  | left _ => None
+  | right _ => Some (NM.add k v m)
+  end.
+
 (* merge two memory blocks. Return `None` if there is an overlap *)
 Definition mem_merge (a b: mem_block) : option mem_block
-  := monadic_fold_left_rev
-       (fun m '(k,v) =>
-          if NM.mem k m
-          then None
-          else ret (NM.add k v m)
-       )
+  := monadic_fold_left_rev mem_try_add
        (NM.elements a) b.
 
 (* merge two memory blocks in (0..n-1) using given operation to combine values *)
@@ -108,5 +111,3 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
 Definition memory := NatMap mem_block.
 
 Definition mem_block_equiv:= NM.Equal (elt:=CarrierA).
-
-Module Import NF:=WFacts_fun(Nat_as_OT)(NM).
