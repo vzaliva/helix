@@ -883,7 +883,7 @@ Section MemVecEq.
             apply RelUtil.opt_r_Some.
             unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
             intros k.
-            pose proof (mem_merge_key_either m m1 m2 MM k) as E.
+            pose proof (mem_merge_key_dec m m1 m2 MM k) as E.
             unfold svector_to_mem_block.
             svector_to_mem_block_to_spec m' H0 H1 I2.
             simpl in *.
@@ -949,7 +949,7 @@ Section MemVecEq.
         simpl.
         apply Union_introl.
         apply H.
-    Qed.
+    Admitted.
 
   End MonoidSpecific.
 
