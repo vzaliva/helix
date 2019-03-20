@@ -8,6 +8,7 @@ From Coq.FSets Require Import
      FSetAVL
      FSetInterface
      FSetFacts
+     FSetProperties
      FMapAVL
      FMapInterface
      FMapFacts.
@@ -47,6 +48,7 @@ Definition NatMap := NM.t.
 
 Module NS := FSetAVL.Make(Nat_as_OT).
 Module Import NSF := FSetFacts.WFacts_fun(Nat_as_OT)(NS).
+Module Import NSP := FSetProperties.WProperties_fun(Nat_as_OT)(NS).
 Definition NatSet := NS.t.
 
 Definition mem_add k (v:CarrierA) := NM.add k v.
@@ -66,7 +68,7 @@ Definition mem_keys_lst (m:NatMap CarrierA): list nat :=
   List.map fst (NM.elements m).
 
 Definition mem_keys_set (m: mem_block): NatSet :=
-  List.fold_right NS.add NS.empty (mem_keys_lst m).
+    NSP.of_list (mem_keys_lst m).
 
 (* forcefull union of two memory blocks. conflicts are resolved by
    giving preference to elements of the 1st block *)
@@ -139,9 +141,9 @@ Proof.
   pose proof (NM.elements_3w m) as U.
   split; intros H.
   -
-    rewrite <- of_list_3 with (s:=m) in H.
+    rewrite <- NP.of_list_3 with (s:=m) in H.
     unfold mem_keys_set, mem_keys_lst.
-    unfold of_list, to_list in H.
+    unfold NP.of_list, NP.to_list in H.
     generalize dependent (NM.elements m). intros l U H.
     induction l.
     +
@@ -168,9 +170,9 @@ Proof.
           auto.
           apply H.
   -
-    rewrite <- of_list_3 with (s:=m).
+    rewrite <- NP.of_list_3 with (s:=m).
     unfold mem_keys_set, mem_keys_lst in H.
-    unfold of_list, to_list.
+    unfold NP.of_list, NP.to_list.
     generalize dependent (NM.elements m). intros l U H.
     induction l.
     +
