@@ -42,6 +42,7 @@ Qed.
 
 Module NM := FMapAVL.Make(Nat_as_OT).
 Module Import NF := FMapFacts.WFacts_fun(Nat_as_OT)(NM).
+Module Import NP := FMapFacts.WProperties_fun(Nat_as_OT)(NM).
 Definition NatMap := NM.t.
 
 Module NS := FSetAVL.Make(Nat_as_OT).
@@ -132,24 +133,15 @@ Proof.
   - auto.
 Qed.
 
-Lemma mem_block_as_fold_right (m:mem_block):
-  NM.Equal m
-           (List.fold_right
-              (fun '(k,v) m' => NM.add k v m')
-              mem_empty
-              (NM.elements m)).
-Proof.
-Admitted.
-
-
 Lemma mem_keys_set_In (k:NM.key) (m:mem_block):
   NM.In k m <-> NS.In k (mem_keys_set m).
 Proof.
   pose proof (NM.elements_3w m) as U.
   split; intros H.
   -
-    rewrite mem_block_as_fold_right with (m:=m) in H.
+    rewrite <- of_list_3 with (s:=m) in H.
     unfold mem_keys_set, mem_keys_lst.
+    unfold of_list, to_list in H.
     generalize dependent (NM.elements m). intros l U H.
     induction l.
     +
@@ -176,8 +168,9 @@ Proof.
           auto.
           apply H.
   -
-    rewrite mem_block_as_fold_right with (m:=m).
+    rewrite <- of_list_3 with (s:=m).
     unfold mem_keys_set, mem_keys_lst in H.
+    unfold of_list, to_list.
     generalize dependent (NM.elements m). intros l U H.
     induction l.
     +
