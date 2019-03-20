@@ -9,6 +9,7 @@ From Coq.FSets Require Import
      FSetInterface
      FSetFacts
      FSetProperties
+     FSetToFiniteSet
      FMapAVL
      FMapInterface
      FMapFacts.
@@ -50,6 +51,7 @@ Module NS := FSetAVL.Make(Nat_as_OT).
 Module Import NSF := FSetFacts.WFacts_fun(Nat_as_OT)(NS).
 Module Import NSP := FSetProperties.WProperties_fun(Nat_as_OT)(NS).
 Definition NatSet := NS.t.
+Module Import NE := FSetToFiniteSet.WS_to_Finite_set(Nat_as_OT)(NS).
 
 Definition mem_add k (v:CarrierA) := NM.add k v.
 Definition mem_delete k (m:NatMap CarrierA) := NM.remove k m.

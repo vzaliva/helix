@@ -469,32 +469,43 @@ Section MemVecEq.
 
   End WithMonoid.
 
-  (* TODO: move somewhere in Utils *)
-  Fixpoint set_of_list
-           {A:Type} (l : list A) {struct l}: Ensemble A
-    :=
-      match l with
-      | nil => Empty_set A
-      | List.cons hd tl => Ensembles.Add A (set_of_list tl) hd
-      end.
+  (* TODO: could be proven <-> *)
+  Lemma is_disjoint_Disjoint (s s' : NS.t)
+    : Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') -> is_disjoint s s' ≡ true.
+  Proof.
+    (* unfortunate part is that we use two different disjoint definitions here *)
+    intros E.
+    destruct E as [E].
+    unfold is_disjoint.
+    apply NS.is_empty_1.
+    unfold NS.Empty.
+    intros a.
+    specialize (E a).
+    intros H.
+    rewrite NE.In_In in H.
+    apply NE.inter_Intersection in H.
+    congruence.
+  Qed.
 
   (* TODO: could be proven <-> *)
   Lemma mem_merge_is_Some
         (m0 m1 : mem_block)
     :
-      Disjoint nat (set_of_list (mem_keys m0))
-               (set_of_list (mem_keys m1)) → is_Some (mem_merge m0 m1).
+      Disjoint nat (NE.mkEns (mem_keys_set m0))
+               (NE.mkEns (mem_keys_set m1)) → is_Some (mem_merge m0 m1).
   Proof.
-    intros D.
     unfold mem_merge.
-    unfold mem_keys in *.
-    remember (NM.elements m0) as e0.
-    induction e0.
+    unfold mem_keys_set.
+    generalize (NSP.of_list (mem_keys_lst m0)) as s0.
+    generalize (NSP.of_list (mem_keys_lst m1)) as s1.
+    intros s1 s0 H.
+    break_if.
     -
-      admit.
+      simpl; tauto.
     -
-      admit.
-  Admitted.
+      apply is_disjoint_Disjoint in H.
+      congruence.
+  Qed.
 
   (* TODO: move somewhere in Utils *)
   Lemma In_Add_eq
@@ -534,67 +545,6 @@ Section MemVecEq.
         unfold In in H.
         destruct H.
         congruence.
-  Qed.
-
-  Lemma In_NM_In
-        {k:nat}
-        {m: mem_block}:
-    Ensembles.In nat (set_of_list (mem_keys m)) k <->
-    NM.In k m.
-  Proof.
-    split.
-    -
-      intros H.
-      apply NF.elements_in_iff.
-      unfold mem_keys in *.
-      induction (NM.elements m).
-      +
-        inversion H.
-      +
-        destruct (eq_nat_dec k (fst a)).
-        *
-          subst.
-          destruct a; simpl in *.
-          exists c.
-          apply InA_cons_hd.
-          reflexivity.
-        *
-          destruct a; simpl in *.
-          apply In_Add_neq in H; auto.
-          apply IHl in H.
-          destruct H as [e H].
-          exists e.
-          apply InA_cons_tl.
-          apply H.
-    -
-      (* not needed yet *)
-      intros H.
-      apply NF.elements_in_iff in H.
-      destruct H as [v H].
-      unfold mem_keys.
-      revert H.
-      induction (NM.elements m).
-      +
-        intros H.
-        inversion H.
-      +
-        intros H.
-        simpl.
-        destruct (eq_nat_dec k (fst a)).
-        *
-          subst.
-          apply In_Add_eq, reflexivity.
-        *
-          rewrite <- In_Add_neq with (a0:=fst a) by auto.
-          apply IHl; clear IHl.
-          inversion H;subst.
-          --
-            destruct a.
-            simpl in n.
-            inversion H1.
-            crush.
-          --
-            apply H1.
   Qed.
 
   Section MonoidSpecific.
@@ -777,8 +727,8 @@ Section MemVecEq.
             destruct H.
             rename x0 into k.
             rename H into IN1, H0 into IN2.
-            apply In_NM_In in IN1.
-            apply In_NM_In in IN2.
+            apply NE.In_In in IN1.
+            apply NE.In_In in IN2.
             unfold svector_to_mem_block in Heqo0.
             svector_to_mem_block_to_spec m1' H1 I1 O1.
             unfold svector_to_mem_block in Heqo1.
