@@ -40,6 +40,7 @@ Require Import MathClasses.theory.setoids.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
 
+Require Import Coq.Lists.SetoidList.
 Require Import CoLoR.Util.List.ListUtil.
 
 Import Monoid.
@@ -474,34 +475,8 @@ Section MemVecEq.
     :=
       match l with
       | nil => Empty_set A
-      | List.cons hd tl => Add A (set_of_list tl) hd
+      | List.cons hd tl => Ensembles.Add A (set_of_list tl) hd
       end.
-
-  Lemma mem_try_add_None (m:mem_block) {kv}:
-    NM.In (fst kv) m -> mem_try_add m kv ≡ None.
-  Proof.
-    intros H.
-    unfold mem_try_add.
-    break_let.
-    break_if.
-    -
-      reflexivity.
-    -
-      simpl in H.
-      congruence.
-  Qed.
-
-  Lemma mem_try_add_Some (m:mem_block) {k:NM.key} {v:CarrierA}:
-    not (NM.In k m) -> mem_try_add m (k,v) ≡ Some (NM.add k v m).
-  Proof.
-    intros H.
-    unfold mem_try_add.
-    break_if.
-    -
-      congruence.
-    -
-      reflexivity.
-  Qed.
 
   (* TODO: could be proven <-> *)
   Lemma mem_merge_is_Some
@@ -516,130 +491,9 @@ Section MemVecEq.
     remember (NM.elements m0) as e0.
     induction e0.
     -
-      simpl; tauto.
+      admit.
     -
       admit.
-  Admitted.
-
-  Fixpoint fold_left_rev {A B:Type} (f : A -> B -> A) (l:list B) (a0:A) : A :=
-    match l with
-      | nil => a0
-      | cons b t => f (fold_left_rev f t a0) b
-    end.
-
-  Lemma mem_block_elements (m:mem_block):
-    m ≡ fold_left_rev
-      (fun m' '(k,v) => NM.add k v m')
-      (NM.elements m)
-      mem_empty.
-  Proof.
-  Admitted.
-
-  (* TODO: move somewhere in Memory *)
-  Lemma mem_merge_contains_1st
-        (m m0 m1 : mem_block)
-        (MM : mem_merge m0 m1 ≡ Some m)
-    :
-      forall k, NM.In k m0 -> NM.In k m.
-  Proof.
-  Admitted.
-
-
-  (* TODO: move somewhere in Memory *)
-  Lemma mem_merge_contains_2nd
-        (m m0 m1 : mem_block)
-        (MM : mem_merge m0 m1 ≡ Some m)
-    :
-      forall k, NM.In k m1 -> NM.In k m.
-  Proof.
-    (*
-    intros k H.
-    rename m into mm, k into kk.
-    unfold mem_merge in MM.
-    rewrite mem_block_elements with (m:=m0) in MM.
-    generalize dependent (NM.elements m0).
-    intros l MM. clear m0.
-    induction l.
-    -
-      crush.
-    -
-      destruct a as [k' v].
-      simpl in *.
-      apply IHl; clear IHl.
-      rewrite <- MM; clear MM.
-      f_equiv.
-      f_equiv.
-      destruct (eq_nat_dec k' kk) as [K|NK].
-      +
-        rewrite NF.add_in_iff.
-        auto.
-      *
-        apply NF.add_neq_in_iff. apply NK.
-     *)
-
-  Admitted.
-
-  (* Too general try same for `fold` *)
-  Lemma elements_add_new {A:Type} (v:A) {m k}:
-    not (NM.In k m) ->
-    NM.elements (NM.add k v m) ≡ List.cons (k,v) (NM.elements m).
-  Proof.
-  Admitted.
-
-  (* TODO: move somewhere in Memory *)
-  Lemma mem_merge_key_dec
-        (m m0 m1 : mem_block)
-        (MM : mem_merge m0 m1 ≡ Some m)
-    :
-      forall k, NM.In k m -> {NM.In k m0}+{NM.In k m1}.
-  Proof.
-    intros k H.
-    rename m into mm, k into kk.
-    destruct (NF.In_dec m1 kk) as [M1 | M1], (NF.In_dec m0 kk) as [M0|M0].
-    -
-      right.
-      apply M1.
-    -
-      right.
-      apply M1.
-    -
-      left.
-      apply M0.
-    -
-      exfalso. (* Could not be in neither. *)
-      rewrite mem_block_elements with (m:=m0) in *.
-      unfold mem_merge in MM.
-      pose proof (NM.elements_3w m0) as U0.
-      generalize dependent (NM.elements m0). intros ll0 MM MM0 U0.
-      clear m0.
-
-      induction ll0.
-      +
-        crush.
-      +
-        destruct a as [k v].
-        simpl in *.
-        destruct (eq_nat_dec k kk) as [K|NK].
-        *
-          (* k=kk *)
-          contradict MM0.
-          apply NF.add_in_iff; auto.
-        *
-          apply IHll0; clear IHll0.
-          --
-            (* rewrite elements_add_new in MM. *)
-            clear kk M1 MM0 NK H.
-            rewrite <- MM; clear MM.
-            inversion_clear U0.
-            f_equiv.
-            f_equiv.
-            admit.
-          --
-            rewrite NF.add_neq_in_iff in MM0 by auto.
-            apply MM0.
-          --
-            inversion_clear U0.
-            auto.
   Admitted.
 
   (* TODO: move somewhere in Utils *)
@@ -648,10 +502,10 @@ Section MemVecEq.
         {a b: T}
         {l: Ensemble T}
     :
-      a≡b -> In T (Add T l a) b.
+      a≡b -> Ensembles.In T (Ensembles.Add T l a) b.
   Proof.
     intros E.
-    unfold Add.
+    unfold Ensembles.Add.
     apply Union_intror.
     rewrite E.
     apply Ensembles.In_singleton.
@@ -663,17 +517,17 @@ Section MemVecEq.
         (a b: T)
         {l: Ensemble T}
     :
-      a≢b -> In T l b <-> In T (Add T l a) b.
+      a≢b -> Ensembles.In T l b <-> Ensembles.In T (Ensembles.Add T l a) b.
   Proof.
     intros E.
     split.
     -
       intros H.
-      unfold Add.
+      unfold Ensembles.Add.
       apply Union_introl, H.
     -
       intros H.
-      unfold Add in H.
+      unfold Ensembles.Add in H.
       destruct H.
       + apply H.
       + exfalso.
@@ -685,7 +539,7 @@ Section MemVecEq.
   Lemma In_NM_In
         {k:nat}
         {m: mem_block}:
-    In nat (set_of_list (mem_keys m)) k <->
+    Ensembles.In nat (set_of_list (mem_keys m)) k <->
     NM.In k m.
   Proof.
     split.
