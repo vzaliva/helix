@@ -14,6 +14,10 @@ Require Import Vellvm.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
+From ITree Require Import
+     ITree
+     Effects.Std.
+
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
@@ -286,10 +290,10 @@ Definition genMain
 Module EXT := Externals.Make(Memory.A)(IO).
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
-  : ((option (toplevel_entities (list block))) * (option (Trace DV.dvalue)))
+  : ((option (toplevel_entities (list block))) * (option (LLVM (failureE +' debugE) DV.dvalue)))
   :=
     match t return (list (FloatV t.(ft))
-                    -> ((option (toplevel_entities (list block)))*(option (Trace DV.dvalue)))) with
+                    -> ((option (toplevel_entities (list block)))*(option (LLVM (failureE +' debugE) DV.dvalue)))) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
@@ -304,7 +308,7 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
           | None => (Some prog, None)
           | Some mcfg =>
 
-            let core_trace : Trace dvalue :=
+            let core_trace  :=
                 s <- SS.init_state mcfg "main" ;;
                   SS.step_sem mcfg (SS.Step s)
             in
