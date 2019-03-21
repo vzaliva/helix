@@ -697,8 +697,37 @@ Section MemVecEq.
               (* k<o. Normal *)
               remember (mkFinNat kc) as kf.
               (* each kf could be either in out_set of op1 or op2 *)
-              (* TODO: maybe use out_mem_fill_pattern? *)
-              admit.
+              specialize (H0 k kc).
+              specialize (H1 k kc).
+
+              rename facts0 into facts2,  facts into facts1.
+              pose proof (out_mem_fill_pattern _
+                                               (SHOperator_Facts:=HTSUMUnion_Facts dot op1 op2 compat)
+                         ) as P.
+              specialize (P (svector_to_mem_block x) m).
+              simpl in P.
+              unfold HTSUMUnion_mem in P.
+              break_match_hyp; try some_none.
+              break_match_hyp; try some_none.
+              some_inv; subst m3.
+              some_inv; subst m0.
+              specialize (P MM).
+              destruct P as [P _].
+              specialize (P k kc).
+              destruct (NP.F.In_dec m k) as [K | NK].
+              ++
+                (* k in m *)
+
+                admit.
+              ++
+                replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
+                  by (symmetry; apply NP.F.not_find_in_iff, NK).
+
+                pose proof (mem_merge_key_not_in m m1 m2 MM k NK) as [NE1 NE2].
+                clear NK.
+
+
+
             --
               (* k>=o. m[k] should be None *)
               clear H0 H1.
