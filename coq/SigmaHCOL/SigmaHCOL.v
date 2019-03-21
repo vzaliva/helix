@@ -203,7 +203,17 @@ Section SigmaHCOL_Operators.
           mem_out_some: forall v,
               (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
               ->
-              is_Some (mem_op xop (svector_to_mem_block (fm:=fm) v))
+              is_Some (mem_op xop (svector_to_mem_block (fm:=fm) v));
+
+          (* Output memory block always have values in right places, and does
+             not have value in sparse positions *)
+          out_mem_fill_pattern: forall m0 m,
+              (mem_op xop m0 ≡ Some m)
+              ->
+              ((forall j (jc:j<o), out_index_set xop (mkFinNat jc) <-> mem_in j m )
+               /\
+               (forall j (jc:j>=o), not (mem_in j m)))
+          ;
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
@@ -1733,6 +1743,10 @@ Section StructuralProperies.
         (* mem_out_some *)
         intros v H.
         apply mem_out_some_mem_op_of_hop, H.
+      -
+        simpl.
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
     Qed.
 
     Global Instance SHCompose_Facts
@@ -1998,7 +2012,10 @@ Section StructuralProperies.
         intros v H.
         unfold Gather.
         simpl; tauto.
-    Qed.
+      -
+        (* out_mem_fill_pattern *)
+        admit.
+    Admitted.
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -2050,6 +2067,10 @@ Section StructuralProperies.
         (* mem_out_some *)
         intros v H.
         apply mem_out_some_mem_op_of_hop, H.
+      -
+        simpl.
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
     Qed.
 
     Global Instance SHInductor_Facts
@@ -2109,6 +2130,9 @@ Section StructuralProperies.
         (* mem_out_some *)
         intros v H.
         apply mem_out_some_mem_op_of_hop, H.
+      -
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
     Qed.
 
 
@@ -2196,7 +2220,10 @@ Section StructuralProperies.
       intros v H.
       unfold Scatter.
       simpl; tauto.
-  Qed.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
+  Admitted.
 
   Global Instance SHBinOp_RthetaSafe_Facts
          {o}
@@ -2246,6 +2273,9 @@ Section StructuralProperies.
     -
       intros v H.
       apply mem_out_some_mem_op_of_hop, H.
+    -
+      intros m0 m H.
+      apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
   Lemma UnionFold_empty_Non_Collision

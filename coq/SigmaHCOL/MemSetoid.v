@@ -13,7 +13,7 @@ Global Instance mem_block_Equiv_Reflexive:
 Proof.
   unfold mem_block_Equiv, mem_block_equiv.
   unfold Reflexive.
-  apply NF.Equal_refl.
+  apply NP.F.Equal_refl.
 Qed.
 
 Global Instance mem_block_Equiv_Symmetric:
@@ -21,7 +21,7 @@ Global Instance mem_block_Equiv_Symmetric:
 Proof.
   unfold mem_block_Equiv, mem_block_equiv.
   unfold Symmetric.
-  apply NF.Equal_sym.
+  apply NP.F.Equal_sym.
 Qed.
 
 Global Instance mem_block_Equiv_Transitive:
@@ -29,14 +29,14 @@ Global Instance mem_block_Equiv_Transitive:
 Proof.
   unfold mem_block_Equiv, mem_block_equiv.
   unfold Transitive.
-  apply NF.Equal_trans.
+  apply NP.F.Equal_trans.
 Qed.
 
 Global Instance mem_block_Equiv_Equivalence:
   Equivalence (mem_block_Equiv).
 Proof.
   unfold mem_block_Equiv, mem_block_equiv.
-  apply NF.Equal_ST.
+  apply NP.F.Equal_ST.
 Qed.
 
 Global Instance mem_lookup_proper:
@@ -67,7 +67,7 @@ Lemma MapsTo_In (k:nat) (e:CarrierA) (m:NatMap CarrierA):
   NM.MapsTo k e m -> NM.In k m.
 Proof.
   intros H.
-  apply NF.in_find_iff.
+  apply NP.F.in_find_iff.
   apply NM.find_1 in H.
   congruence.
 Qed.
@@ -76,7 +76,7 @@ Lemma In_MapsTo (k:nat) (m:NatMap CarrierA):
   NM.In k m -> exists e, NM.MapsTo k e m.
 Proof.
   intros H.
-  apply NF.in_find_iff in H.
+  apply NP.F.in_find_iff in H.
   destruct (NM.find k m) as [e |] eqn:D.
   -
     eexists e.

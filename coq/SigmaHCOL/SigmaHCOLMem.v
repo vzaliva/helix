@@ -62,7 +62,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NF.add_neq_o by omega.
+      rewrite NP.F.add_neq_o by omega.
       apply IHn.
       lia.
     +
@@ -105,12 +105,12 @@ Proof.
     +
       destruct i.
       *
-        rewrite NF.add_eq_o by reflexivity.
-        rewrite NF.add_eq_o by reflexivity.
+        rewrite NP.F.add_eq_o by reflexivity.
+        rewrite NP.F.add_eq_o by reflexivity.
         reflexivity.
       *
-        rewrite NF.add_neq_o by omega.
-        rewrite NF.add_neq_o by omega.
+        rewrite NP.F.add_neq_o by omega.
+        rewrite NP.F.add_neq_o by omega.
         replace (S i + off) with (i + S off) by lia.
         replace (S off) with (0 + S off) by lia.
         rewrite IHn.
@@ -196,7 +196,7 @@ Proof.
     simpl.
     break_if.
     +
-      rewrite NF.add_neq_o by omega.
+      rewrite NP.F.add_neq_o by omega.
       reflexivity.
     +
       reflexivity.
@@ -260,10 +260,10 @@ Section Avector.
       destruct i.
       +
         unfold Vfold_right_indexed, mem_add.
-        apply NF.add_eq_o.
+        apply NP.F.add_eq_o.
         reflexivity.
       +
-        rewrite NF.add_neq_o; auto.
+        rewrite NP.F.add_neq_o; auto.
         assert (N: i<n) by apply Lt.lt_S_n, ip.
         specialize (IHn x i N).
         replace (Lt.lt_S_n ip) with N by apply le_unique. clear ip.
@@ -298,7 +298,7 @@ Section Avector.
     -
       unfold mem_lookup.
       simpl.
-      rewrite NF.add_neq_o by omega.
+      rewrite NP.F.add_neq_o by omega.
       destruct k.
       +
         omega.
@@ -476,7 +476,7 @@ Section SVector.
           destruct (Is_Val_dec h); auto.
           apply In_MapsTo in H.
           destruct H as [e H].
-          apply NF.find_mapsto_iff in H.
+          apply NP.F.find_mapsto_iff in H.
           rewrite find_fold_right_indexed_oob in H.
           some_none.
           auto.
@@ -486,11 +486,11 @@ Section SVector.
           (* assert (N: i<n) by apply Lt.lt_S_n, ip. *)
           apply In_MapsTo in H.
           destruct H as [e H].
-          apply NF.find_mapsto_iff in H.
+          apply NP.F.find_mapsto_iff in H.
           (* replace (Lt.lt_S_n ip) with N in * by apply le_unique. *)
 
           apply MapsTo_In with (e:=e).
-          apply NF.find_mapsto_iff.
+          apply NP.F.find_mapsto_iff.
           rewrite <- H. clear H ip.
           rewrite <- find_fold_right_indexed'_S_P.
           symmetry.
@@ -525,7 +525,7 @@ Section SVector.
       +
         break_if.
         *
-          rewrite NF.add_neq_o by omega.
+          rewrite NP.F.add_neq_o by omega.
           rewrite find_fold_right_indexed'_S_P.
           rewrite IHv.
           reflexivity.
@@ -628,6 +628,18 @@ Section Wrappers.
       unfold mem_lookup in *.
       congruence.
   Qed.
+
+  Lemma out_mem_fill_pattern_mem_op_of_hop
+        {i o : nat}
+        {g : vector CarrierA i → vector CarrierA o}
+        {m0 m: mem_block}
+    :
+      (mem_op_of_hop g m0 ≡ Some m)
+      ->
+      ((∀ (j : nat) (jc : j < o), Full_set (FinNat o) (mkFinNat jc) ↔ mem_in j m)
+       ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m)).
+  Proof.
+  Admitted.
 
   Global Instance mem_op_of_hop_proper
          {i o: nat}:

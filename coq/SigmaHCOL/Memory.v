@@ -43,12 +43,10 @@ Proof.
 Qed.
 
 Module NM := FMapAVL.Make(Nat_as_OT).
-Module Import NF := FMapFacts.WFacts_fun(Nat_as_OT)(NM).
 Module Import NP := FMapFacts.WProperties_fun(Nat_as_OT)(NM).
 Definition NatMap := NM.t.
 
 Module NS := FSetAVL.Make(Nat_as_OT).
-Module Import NSF := FSetFacts.WFacts_fun(Nat_as_OT)(NS).
 Module Import NSP := FSetProperties.WProperties_fun(Nat_as_OT)(NS).
 Definition NatSet := NS.t.
 Module Import NE := FSetToFiniteSet.WS_to_Finite_set(Nat_as_OT)(NS).
@@ -118,20 +116,20 @@ Definition mem_block_equiv:= NM.Equal (elt:=CarrierA).
 (* ------------------ Proofs below ------------------- *)
 
 Lemma NF_eqb_eq {a b: nat}:
-  NF.eqb a b = true -> a = b.
+  NP.F.eqb a b = true -> a = b.
 Proof.
   intros H.
-  unfold NF.eqb in H.
+  unfold NP.F.eqb in H.
   break_if.
   - auto.
   - inversion H.
 Qed.
 
 Lemma NF_eqb_neq {a b: nat}:
-  NF.eqb a b = false -> a <> b.
+  NP.F.eqb a b = false -> a <> b.
 Proof.
   intros H.
-  unfold NF.eqb in H.
+  unfold NP.F.eqb in H.
   break_if.
   - inversion H.
   - auto.
@@ -150,7 +148,7 @@ Proof.
     induction l.
     +
       simpl in H.
-      apply empty_in_iff in H.
+      apply NP.F.empty_in_iff in H.
       tauto.
     +
       destruct a as [k' v].
@@ -162,13 +160,13 @@ Proof.
         auto.
       *
         (* k!=k' *)
-        apply add_neq_iff; try auto.
+        apply NSP.FM.add_neq_iff; try auto.
         apply IHl.
         --
           inversion U.
           auto.
         --
-          eapply add_neq_in_iff with (x:=k').
+          eapply NP.F.add_neq_in_iff with (x:=k').
           auto.
           apply H.
   -
@@ -179,7 +177,7 @@ Proof.
     induction l.
     +
       simpl in H.
-      apply empty_iff in H.
+      apply NSP.FM.empty_iff in H.
       tauto.
     +
       destruct a as [k' v].
@@ -187,11 +185,11 @@ Proof.
       destruct (eq_nat_dec k k') as [K|NK].
       *
         (* k=k' *)
-        apply add_in_iff.
+        apply NP.F.add_in_iff.
         auto.
       *
         (* k!=k' *)
-        apply add_neq_in_iff; auto.
+        apply NP.F.add_neq_in_iff; auto.
         apply IHl.
         --
           inversion U.
@@ -209,10 +207,10 @@ Proof.
   intros H.
   unfold mem_union in H.
   apply mem_keys_set_In, NM.map2_2 in H.
-  rewrite 2!mem_in_iff in H.
+  rewrite 2!NP.F.mem_in_iff in H.
   apply orb_true_intro, orb_true_elim in H.
   inversion H; [right|left] ;
-    apply mem_keys_set_In, mem_in_iff;
+    apply mem_keys_set_In, NP.F.mem_in_iff;
     auto.
 Qed.
 
@@ -224,7 +222,7 @@ Lemma mem_merge_key_dec
 Proof.
   intros k H.
   rename m into mm.
-  destruct (NF.In_dec m1 k) as [M1 | M1], (NF.In_dec m0 k) as [M0|M0]; auto.
+  destruct (NP.F.In_dec m1 k) as [M1 | M1], (NP.F.In_dec m0 k) as [M0|M0]; auto.
   exfalso. (* Could not be in neither. *)
   unfold mem_merge in MM.
   break_if; inversion MM.
@@ -234,3 +232,16 @@ Proof.
   apply mem_keys_set_In, mem_keys_set_in_union_dec in H.
   destruct H; auto.
 Qed.
+
+Lemma In_mem_keys_set {k} {m:mem_block}:
+  NS.In k (mem_keys_set m) <-> mem_in k m.
+Proof.
+  unfold mem_keys_set, mem_keys_lst, mem_in.
+  split;  intros H.
+  -
+    apply NSP.of_list_1 in H.
+    apply NP.F.elements_in_iff.
+    admit.
+  -
+    admit.
+Admitted.

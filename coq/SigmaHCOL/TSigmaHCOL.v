@@ -344,7 +344,10 @@ Section TSigmaHCOLOperators_StructuralProperties.
           (ins:=in_index_set Monoid_RthetaSafeFlags xop).
       apply H.
       apply M.
-  Qed.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
+  Admitted.
 
   Global Instance UnSafeCast_Facts
          {i o}
@@ -417,7 +420,10 @@ Section TSigmaHCOLOperators_StructuralProperties.
           (ins:=in_index_set Monoid_RthetaFlags xop).
       apply H.
       apply M.
-  Qed.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
+  Admitted.
 
   Global Instance HTSUMUnion_Facts
          {i o}

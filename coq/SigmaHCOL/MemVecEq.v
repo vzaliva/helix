@@ -149,7 +149,7 @@ Section MemVecEq.
             apply Full_intro.
             apply Full_intro.
           }
-          rewrite NF.find_mapsto_iff in H0.
+          rewrite NP.F.find_mapsto_iff in H0.
           apply H0 in V.
           unfold mem_lookup in *.
 
@@ -170,7 +170,7 @@ Section MemVecEq.
             apply Full_intro.
           }
           apply H1 in V0.
-          rewrite NF.find_mapsto_iff in V0.
+          rewrite NP.F.find_mapsto_iff in V0.
           rewrite Vnth_map.
           apply Vnth_arg_eq with (ip:=jc) in Heqo0.
           rewrite Vbuild_nth in Heqo0.
@@ -192,7 +192,7 @@ Section MemVecEq.
           apply Full_intro.
         }
         apply H1 in V0. clear H1.
-        apply NF.find_mapsto_iff in V0.
+        apply NP.F.find_mapsto_iff in V0.
         unfold mem_lookup in Heqo0.
         congruence.
     Qed.
@@ -246,7 +246,7 @@ Section MemVecEq.
             apply H0 in Vb; clear H0.
             apply NM.find_1 in Vb.
             rewrite_clear Vb.
-            rewrite NF.add_eq_o by reflexivity.
+            rewrite NP.F.add_eq_o by reflexivity.
             f_equiv.
             unfold eUnion'.
             rewrite Vbuild_nth.
@@ -254,7 +254,7 @@ Section MemVecEq.
 
             specialize (H1 0 (lt_0_Sn 0)).
             specialize (I1 0 (lt_0_Sn 0)).
-            rewrite NF.find_mapsto_iff in H1.
+            rewrite NP.F.find_mapsto_iff in H1.
 
             assert(V0: Is_Val (Vnth x (Nat.lt_0_succ 0))).
             {
@@ -270,8 +270,8 @@ Section MemVecEq.
           *
             (* k<o, which is normal *)
             (* b!=k *)
-            rewrite NF.add_neq_o by apply NE.
-            rewrite NF.empty_o.
+            rewrite NP.F.add_neq_o by apply NE.
+            rewrite NP.F.empty_o.
 
             assert(Vk: Is_Struct (Vnth (eUnion' bc z x) kc)).
             {
@@ -281,7 +281,7 @@ Section MemVecEq.
             }
             clear H1 I1 m1 Heqo0.
 
-            apply NF.not_find_in_iff.
+            apply NP.F.not_find_in_iff.
             unfold not.
             intros H.
 
@@ -292,8 +292,8 @@ Section MemVecEq.
           (* k>=o, oob case *)
           specialize (O0 k kc).
           rewrite_clear O0.
-          rewrite NF.add_neq_o by (unfold lt, nat_lt in bc;omega).
-          rewrite NF.empty_o.
+          rewrite NP.F.add_neq_o by (unfold lt, nat_lt in bc;omega).
+          rewrite NP.F.empty_o.
           reflexivity.
       -
         exfalso.
@@ -304,7 +304,7 @@ Section MemVecEq.
         }
         specialize (H1 0 (lt_0_Sn 0)).
         apply H1 in V; clear H1.
-        apply NF.find_mapsto_iff in V.
+        apply NP.F.find_mapsto_iff in V.
         unfold zero in *.
         congruence.
     Qed.
@@ -357,7 +357,7 @@ Section MemVecEq.
           }
           rewrite H0 in V0. clear H0.
           apply NM.find_1 in V0.
-          rewrite NF.add_eq_o by omega.
+          rewrite NP.F.add_eq_o by omega.
           destruct k.
           *
             rewrite V0.
@@ -367,8 +367,8 @@ Section MemVecEq.
         +
           unfold mem_lookup in *.
           rewrite O0 by apply kc.
-          rewrite NF.add_neq_o by omega.
-          rewrite NF.empty_o.
+          rewrite NP.F.add_neq_o by omega.
+          rewrite NP.F.empty_o.
           reflexivity.
       -
         assert (Is_Val (Vnth x bc)) as V.
@@ -655,7 +655,6 @@ Section MemVecEq.
         rewrite O2 by apply kc.
         reflexivity.
     Qed.
-
 
     Global Instance HTSUMUnion_MemVecEq
            {i o: nat}
