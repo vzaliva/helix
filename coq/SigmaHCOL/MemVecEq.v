@@ -680,6 +680,7 @@ Section MemVecEq.
       -
         break_match.
         +
+          (* both mem_ops return Some *)
           rename m into m1, m0 into m2. (* to match operator indices *)
           destruct (mem_merge m1 m2) eqn:MM.
           *
@@ -696,6 +697,7 @@ Section MemVecEq.
               (* k<o. Normal *)
               remember (mkFinNat kc) as kf.
               (* each kf could be either in out_set of op1 or op2 *)
+              (* TODO: maybe use out_mem_fill_pattern? *)
               admit.
             --
               (* k>=o. m[k] should be None *)
@@ -704,18 +706,25 @@ Section MemVecEq.
               unfold mem_lookup in I2.
               rewrite_clear I2.
               symmetry.
-              apply NF.not_find_in_iff.
+              apply NP.F.not_find_in_iff.
               intros N.
-              apply E in N.
-              destruct N as [N1 | N2].
+              apply E in N. clear E.
+              generalize dependent (svector_to_mem_block x).
+              intros m0 H1 H2.
+              destruct N as [IN1 | IN2].
               ++
                 (* prove contradiction in N1 *)
-                admit.
+                pose proof (out_mem_fill_pattern Monoid_RthetaFlags m0 m1 H1) as [P1 NP1].
+                specialize (NP1 k kc).
+                unfold mem_in in NP1.
+                congruence.
               ++
                 (* prove contradiction in N1 *)
-                admit.
+                pose proof (out_mem_fill_pattern Monoid_RthetaFlags m0 m2 H2) as [P2 NP2].
+                specialize (NP2 k kc).
+                unfold mem_in in NP2.
+                congruence.
           *
-            exfalso.
             contradict MM.
             apply is_Some_ne_None.
             apply mem_merge_is_Some.
@@ -726,14 +735,25 @@ Section MemVecEq.
             destruct H.
             rename x0 into k.
             rename H into IN1, H0 into IN2.
-            apply NE.In_In in IN1.
-            apply NE.In_In in IN2.
-            unfold svector_to_mem_block in Heqo0.
-            svector_to_mem_block_to_spec m1' H1 I1 O1.
-            unfold svector_to_mem_block in Heqo1.
-            svector_to_mem_block_to_spec m2' H2 I2 O2.
-            simpl in *.
-            admit.
+            apply NE.In_In, In_mem_keys_set in IN1.
+            apply NE.In_In,In_mem_keys_set in IN2.
+            generalize dependent (svector_to_mem_block x).
+            intros m H1 H2.
+            (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
+               yet, but IN1 and IN2, 'k' belongs to both *)
+            pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m1 H1) as [P1 NP1].
+            pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m2 H2) as [P2 NP2].
+            destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+            --
+              clear NP1 NP2.
+              apply (P1 k kc) in IN1; clear P1.
+              apply (P2 k kc) in IN2; clear P2.
+              inversion_clear compat.
+              specialize (H (mkFinNat kc)).
+              crush.
+            --
+              specialize (NP1 k nkc).
+              congruence.
         +
           contradict Heqo1.
           apply is_Some_ne_None.
@@ -752,7 +772,7 @@ Section MemVecEq.
         simpl.
         apply Union_introl.
         apply H.
-    Admitted.
+    Qed.
 
   End MonoidSpecific.
 
