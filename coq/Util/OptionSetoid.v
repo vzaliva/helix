@@ -70,7 +70,10 @@ Ltac some_none :=
   | [H: None = Some _ |- _ ] => inversion H
   | [H: Some _ ≡ None |- _ ] => inversion H
   | [H: None ≡ Some _ |- _ ] => inversion H
+  | [ |- Some _ ≢ None ] => intros H'; inversion H'
   | [ |- Some _ ≠ None ] => intros H'; inversion H'
+  | [ |- None ≠ Some _ ] => intros H'; inversion H'
+  | [ |- None ≢ Some _ ] => intros H'; inversion H'
   | [ |- None = None ] => reflexivity
   | [ |- None ≡ None ] => reflexivity
   | [ |- Some ?a = Some ?a] => reflexivity
@@ -144,6 +147,10 @@ Lemma is_Some_ne_None `(x : option A) :
 Proof.
   destruct x; intros; crush.
 Qed.
+
+Lemma Some_ne_None `(x : option A) y :
+  x ≡ Some y → x ≢ None.
+Proof. congruence. Qed.
 
 Fact equiv_Some_is_Some `{Equiv A} (x:A) (y: option A):
   (y = Some x) -> is_Some y.
