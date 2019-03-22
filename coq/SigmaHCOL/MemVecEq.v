@@ -720,20 +720,16 @@ Section MemVecEq.
                 (* k not in m *)
                 replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
                   by (symmetry; apply NP.F.not_find_in_iff, NK).
-
-                (* pose proof (mem_merge_key_not_in m m1 m2 MM k NK) as [NE1 NE2]. *)
-                apply not_iff_compat in H0.
                 apply not_iff_compat in P.
                 apply P in NK; clear P.
-
                 pose proof (no_vals_at_sparse _ x k kc (SHOperator_Facts:=HTSUMUnion_Facts dot op1 op2 compat)) as NV.
                 apply NV in NK; clear NV.
                 apply not_Is_Val_Is_Struct in NK.
-                apply H0 in NK; clear H0.
-
-                admit.
-
-
+                apply not_iff_compat in H1.
+                apply H1 in NK; clear H1.
+                apply NP.F.not_find_in_iff in NK.
+                rewrite NK.
+                reflexivity.
             --
               (* k>=o. m[k] should be None *)
               clear H0 H1.
