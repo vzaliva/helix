@@ -687,7 +687,6 @@ Section MemVecEq.
             apply RelUtil.opt_r_Some.
             unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
             intros k.
-            pose proof (mem_merge_key_dec m m1 m2 MM k) as E.
             unfold svector_to_mem_block.
             svector_to_mem_block_to_spec m' H0 H1 I2.
             simpl in *.
@@ -695,8 +694,7 @@ Section MemVecEq.
             --
               clear I2.
               (* k<o. Normal *)
-              remember (mkFinNat kc) as kf.
-              (* each kf could be either in out_set of op1 or op2 *)
+              (* each k could be either in out_set of op1 or op2 *)
               specialize (H0 k kc).
               specialize (H1 k kc).
 
@@ -717,15 +715,23 @@ Section MemVecEq.
               destruct (NP.F.In_dec m k) as [K | NK].
               ++
                 (* k in m *)
-
                 admit.
               ++
+                (* k not in m *)
                 replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
                   by (symmetry; apply NP.F.not_find_in_iff, NK).
 
-                pose proof (mem_merge_key_not_in m m1 m2 MM k NK) as [NE1 NE2].
-                clear NK.
+                (* pose proof (mem_merge_key_not_in m m1 m2 MM k NK) as [NE1 NE2]. *)
+                apply not_iff_compat in H0.
+                apply not_iff_compat in P.
+                apply P in NK; clear P.
 
+                pose proof (no_vals_at_sparse _ x k kc (SHOperator_Facts:=HTSUMUnion_Facts dot op1 op2 compat)) as NV.
+                apply NV in NK; clear NV.
+                apply not_Is_Val_Is_Struct in NK.
+                apply H0 in NK; clear H0.
+
+                admit.
 
 
             --
@@ -737,7 +743,7 @@ Section MemVecEq.
               symmetry.
               apply NP.F.not_find_in_iff.
               intros N.
-              apply E in N. clear E.
+              apply (mem_merge_key_dec m m1 m2 MM k) in N.
               generalize dependent (svector_to_mem_block x).
               intros m0 H1 H2.
               destruct N as [IN1 | IN2].
