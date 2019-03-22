@@ -62,8 +62,7 @@ Proof.
     reflexivity.
 Qed.
 
-
-Lemma MapsTo_In (k:nat) (e:CarrierA) (m:NatMap CarrierA):
+Lemma MapsTo_In (k:nat) {A:Type} (e:A) (m:NatMap A):
   NM.MapsTo k e m -> NM.In k m.
 Proof.
   intros H.
@@ -72,7 +71,7 @@ Proof.
   congruence.
 Qed.
 
-Lemma In_MapsTo (k:nat) (m:NatMap CarrierA):
+Lemma In_MapsTo (k:nat) {A:Type} (m:NatMap A):
   NM.In k m -> exists e, NM.MapsTo k e m.
 Proof.
   intros H.
