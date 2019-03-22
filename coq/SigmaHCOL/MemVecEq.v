@@ -656,6 +656,7 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
+
     Global Instance HTSUMUnion_MemVecEq
            {i o: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -715,7 +716,55 @@ Section MemVecEq.
               destruct (NP.F.In_dec m k) as [K | NK].
               ++
                 (* k in m *)
-                admit.
+                pose proof (mem_merge_key_dec m m1 m2 MM k K) as MD.
+                clear H1.
+                apply P in K; clear P.
+                pose proof (out_as_range _ x (SHOperator_Facts:=HTSUMUnion_Facts dot op1 op2 compat) G k kc) as V.
+                apply V in K; clear V.
+                assert(V:=K).
+                apply H0 in K; clear H0.
+                apply NM.find_1 in K.
+                rewrite_clear K.
+                rewrite Vnth_map2.
+
+                simpl in V.
+                unfold mem_merge in MM.
+                break_if; try some_none.
+                some_inv.
+                subst m.
+                unfold mem_union.
+                rewrite NM.map2_1 by (destruct MD; auto).
+                destruct (NM.find (elt:=CarrierA) k m1) eqn:F.
+                **
+                  (* k in m1 *)
+                  admit.
+                **
+                  (* k in m2 *)
+                  destruct MD as [M|M]; apply NP.F.in_find_iff in M; try congruence.
+
+                  (* derive m2[k] *)
+                  assert (G2: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op2 (mkFinNat jc) →  Is_Val (Vnth x jc))).
+                  {
+                    intros j jc H.
+                    apply G.
+                    apply Union_intror.
+                    apply H.
+                  }
+                  apply Meq2 in G2; clear Meq2.
+                  rewrite Heqo3 in G2; clear Heqo3.
+                  some_inv.
+                  unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in G2.
+                  rewrite <- G2.
+                  rewrite <- G2 in M. apply NP.F.in_find_iff in M.
+                  rewrite find_svector_to_mem_block_some with (kc:=kc) by apply M.
+
+                  f_equiv.
+                  unfold SVector.Union.
+                  rewrite evalWriter_Rtheta_liftM2.
+
+                  (* TODO: show (Vnth (op Monoid_RthetaFlags op1 x) kc) is SZero *)
+                  (* TODO: `zero` must be identiy element for dot on Carriera. *)
+
               ++
                 (* k not in m *)
                 replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
