@@ -16,6 +16,7 @@ From Coq.FSets Require Import
 
 Require Import Coq.Structures.OrderedTypeEx.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Logic.Decidable.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
@@ -263,6 +264,12 @@ Proof.
   split.
   apply F.not_find_in_iff in Heqo; auto.
   apply F.not_find_in_iff in H; auto.
+Qed.
+
+Lemma decidable_mem_in {k m}: decidable (mem_in k m).
+Proof.
+  unfold decidable.
+  destruct (NP.F.In_dec m k); auto.
 Qed.
 
 Lemma In_mem_keys_set {k} {m:mem_block}:
