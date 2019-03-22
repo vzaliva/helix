@@ -367,7 +367,7 @@ Section SVector.
       (
         (forall i (ip : i < n), Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m)
         /\
-        (forall i (ip : i < n), NM.In i m -> Is_Val (Vnth v ip))
+        (forall i (ip : i < n), NM.In i m <-> Is_Val (Vnth v ip))
       )
     }
     := Vfold_right_indexed' 0
@@ -462,39 +462,86 @@ Section SVector.
             symmetry.
             apply find_fold_right_indexed'_cons_P.
     -
-      (* In -> Is_Val *)
-      induction n; intros.
-      *
-        nat_lt_0_contradiction.
-      *
-        dep_destruct v; clear v.
-        simpl.
-        destruct i.
-        --
-          clear IHn.
-          simpl in H.
-          destruct (Is_Val_dec h); auto.
-          apply In_MapsTo in H.
-          destruct H as [e H].
-          apply NP.F.find_mapsto_iff in H.
-          rewrite find_fold_right_indexed_oob in H.
-          some_none.
-          auto.
-        --
-          apply IHn; clear IHn.
-
-          (* assert (N: i<n) by apply Lt.lt_S_n, ip. *)
-          apply In_MapsTo in H.
-          destruct H as [e H].
-          apply NP.F.find_mapsto_iff in H.
-          (* replace (Lt.lt_S_n ip) with N in * by apply le_unique. *)
-
-          apply MapsTo_In with (e:=e).
-          apply NP.F.find_mapsto_iff.
-          rewrite <- H. clear H ip.
-          rewrite <- find_fold_right_indexed'_S_P.
-          symmetry.
-          apply find_fold_right_indexed'_cons_P.
+      split.
+      +
+        revert i ip.
+        (* In -> Is_Val *)
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            simpl in H.
+            destruct (Is_Val_dec h); auto.
+            apply In_MapsTo in H.
+            destruct H as [e H].
+            apply NP.F.find_mapsto_iff in H.
+            rewrite find_fold_right_indexed_oob in H.
+            some_none.
+            auto.
+          --
+            apply IHn; clear IHn.
+            apply In_MapsTo in H.
+            destruct H as [e H].
+            apply NP.F.find_mapsto_iff in H.
+            apply MapsTo_In with (e:=e).
+            apply NP.F.find_mapsto_iff.
+            rewrite <- H. clear H ip.
+            rewrite <- find_fold_right_indexed'_S_P.
+            symmetry.
+            apply find_fold_right_indexed'_cons_P.
+      +
+        (* Is_Val -> NM.In *)
+        revert i ip.
+        (* In -> Is_Val *)
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            simpl.
+            break_if.
+            ++
+              apply NP.F.add_in_iff.
+              auto.
+            ++
+              exfalso.
+              contradict H.
+              simpl.
+              auto.
+          --
+            break_if.
+            ++
+              apply NP.F.add_neq_in_iff; auto.
+              simpl in *.
+              apply IHn in H. clear IHn.
+              apply In_MapsTo in H.
+              destruct H as [e H].
+              apply NP.F.find_mapsto_iff in H.
+              apply MapsTo_In with (e:=e).
+              apply NP.F.find_mapsto_iff.
+              rewrite <- H. clear H ip.
+              rewrite <- find_fold_right_indexed'_S_P.
+              reflexivity.
+            ++
+              simpl in H.
+              apply IHn in H. clear IHn.
+              apply In_MapsTo in H.
+              destruct H as [e H].
+              apply NP.F.find_mapsto_iff in H.
+              apply MapsTo_In with (e:=e).
+              apply NP.F.find_mapsto_iff.
+              rewrite <- H. clear H ip.
+              rewrite <- find_fold_right_indexed'_S_P.
+              reflexivity.
   Qed.
 
   Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
