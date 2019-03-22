@@ -4,6 +4,10 @@ Require Import Helix.HCOL.CarrierType.
 
 Require Import Coq.Classes.RelationClasses.
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.misc.decision.
+Require Import MathClasses.misc.util.
+
+Require Import Helix.Tactics.HelixTactics.
 
 Global Instance mem_block_Equiv:
   Equiv (mem_block) := mem_block_equiv.
@@ -83,6 +87,21 @@ Proof.
     apply D.
   -
     congruence.
+Qed.
+
+Lemma not_maps_to_find {A:Type}  {k v m}:
+  ¬ (NM.MapsTo k v m) -> NM.find (elt:=A) k m <> Some v.
+Proof.
+  intros H.
+  destruct (is_Some_dec (NM.find (elt:=A) k m)) as [S | N].
+  -
+    intros F.
+    apply NM.find_2 in F.
+    congruence.
+  -
+    unfold is_Some, not in N.
+    break_match_hyp ; try some_none.
+    tauto.
 Qed.
 
 Global Instance mem_mapsto_proper:
