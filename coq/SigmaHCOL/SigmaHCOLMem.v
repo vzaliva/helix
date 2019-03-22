@@ -625,6 +625,22 @@ Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
     destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
   end.
 
+Lemma find_svector_to_mem_block_some (n k:nat) (kc:k<n) {fm} (x:svector fm n)
+  :
+    NM.In (elt:=CarrierA) k (svector_to_mem_block x) ->
+    NM.find (elt:=CarrierA) k (svector_to_mem_block x)
+            ≡ Some (evalWriter (Vnth x kc)).
+Proof.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m' H0 H1 I2.
+  intros H.
+  simpl in *.
+  unfold mem_lookup in *.
+  apply NM.find_1.
+  apply H0, H1, H.
+Qed.
+
+
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   : option mem_block :=
