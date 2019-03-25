@@ -764,7 +764,7 @@ Section MemVecEq.
 
                   (* TODO: show (Vnth (op Monoid_RthetaFlags op1 x) kc) is SZero *)
                   (* TODO: `zero` must be identiy element for dot on Carriera. *)
-
+                  admit.
               ++
                 (* k not in m *)
                 replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
@@ -852,7 +852,7 @@ Section MemVecEq.
         simpl.
         apply Union_introl.
         apply H.
-    Qed.
+    Admitted.
 
   End MonoidSpecific.
 
