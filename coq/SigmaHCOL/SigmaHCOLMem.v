@@ -692,17 +692,52 @@ Section Wrappers.
       congruence.
   Qed.
 
-  Lemma out_mem_fill_pattern_mem_op_of_hop
+
+  (* The fomulation of this lemma is little odd, with `Full_set (FinNat o) (mkFinNat jc)`
+     being always True. It is designed to match `mem_fill_pattern` field
+     of `SHOperator_facts` typeclass for operators defined via `mem_op_of_hop` wrapper.
+   *)
+  Fact out_mem_fill_pattern_mem_op_of_hop
         {i o : nat}
         {g : vector CarrierA i → vector CarrierA o}
         {m0 m: mem_block}
     :
       (mem_op_of_hop g m0 ≡ Some m)
       ->
-      ((∀ (j : nat) (jc : j < o), Full_set (FinNat o) (mkFinNat jc) ↔ mem_in j m)
+      ((∀ (j : nat) (jc : j < o), Full_set (FinNat o) (mkFinNat jc) <-> mem_in j m)
        ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m)).
   Proof.
-  Admitted.
+    intros H.
+    unfold mem_op_of_hop in H.
+    break_match_hyp; try some_none.
+    some_inv.
+    subst.
+    rename Heqo0 into H.
+    split; intros j jc.
+    -
+      split.
+      +
+        intros F.
+        unfold avector_to_mem_block.
+        avector_to_mem_block_to_spec m2 H2 O2.
+        clear O2. simpl in *.
+        specialize (H2 j jc).
+        unfold mem_in, mem_lookup in *.
+        apply NM.find_2, MapsTo_In in H2.
+        apply H2.
+      +
+        intros I.
+        apply Full_intro.
+    -
+      intros C.
+      unfold avector_to_mem_block in C.
+      avector_to_mem_block_to_spec m2 H2 O2.
+      simpl in *.
+      specialize (O2 j jc).
+      unfold mem_in, mem_lookup in *.
+      apply NP.F.not_find_in_iff in O2.
+      congruence.
+  Qed.
 
   Global Instance mem_op_of_hop_proper
          {i o: nat}:
