@@ -838,7 +838,44 @@ Section MemVecEq.
                     apply Heqb.
                     apply M1.
                   }
-                  admit.
+                  break_match; try (apply NP.F.not_find_in_iff in Heqo0; congruence).
+
+
+                  (* derive m1[k] *)
+                  assert (G1: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op1 (mkFinNat jc) →  Is_Val (Vnth x jc))).
+                  {
+                    intros j jc H.
+                    apply G.
+                    apply Union_introl.
+                    apply H.
+                  }
+                  apply Meq1 in G1; clear Meq1.
+                  rewrite Heqo2 in G1.
+                  some_inv.
+                  unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in G1.
+                  rewrite <- Heqo0.
+                  rewrite <- G1.
+
+                  rewrite find_svector_to_mem_block_some with (kc:=kc).
+                  2:{
+                    apply NP.F.in_find_iff.
+                    rewrite G1.
+                    apply NP.F.in_find_iff.
+                    apply M1.
+                  }
+
+                  f_equiv.
+                  unfold SVector.Union.
+                  rewrite evalWriter_Rtheta_liftM2.
+
+                  pose proof (out_mem_fill_pattern Monoid_RthetaFlags (svector_to_mem_block x) m2 Heqo3) as [P2 _].
+                  unfold mem_in in P2. specialize (P2 k kc).
+                  apply not_iff_compat in P2.
+                  apply P2 in NM2.
+                  apply Z2 with (x:=x) in NM2.
+                  rewrite NM2.
+                  apply monoid_right_id.
+                  apply af_mon.
                 **
                   (* k in m2 *)
                   rename H into M2.
@@ -973,7 +1010,7 @@ Section MemVecEq.
         simpl.
         apply Union_introl.
         apply H.
-    Admitted.
+    Qed.
 
   End MonoidSpecific.
 
