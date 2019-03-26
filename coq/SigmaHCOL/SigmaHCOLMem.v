@@ -329,7 +329,12 @@ End Avector.
 
 Ltac avector_to_mem_block_to_spec m H0 H1 :=
   match goal with
-    [ |- context[avector_to_mem_block_spec ?v]] =>
+  | [ |- context[avector_to_mem_block_spec ?v]] =>
+    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
+    unfold avector_to_mem_block in H1 ;
+    destruct (avector_to_mem_block_spec v) as [m H0]
+
+  | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
     pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
     unfold avector_to_mem_block in H1 ;
     destruct (avector_to_mem_block_spec v) as [m H0]
