@@ -677,8 +677,8 @@ Section MemVecEq.
       -> mem_in k m1 -> not (mem_in k m2).
     Proof.
       intros D M1 M2.
-      apply In_mem_keys_set in M1.
-      apply In_mem_keys_set in M2.
+      apply mem_keys_set_In in M1.
+      apply mem_keys_set_In in M2.
       generalize dependent (mem_keys_set m1).
       generalize dependent (mem_keys_set m2).
       intros s1 M1 s2 D M2.
@@ -973,8 +973,8 @@ Section MemVecEq.
             destruct H.
             rename x0 into k.
             rename H into IN1, H0 into IN2.
-            apply NE.In_In, In_mem_keys_set in IN1.
-            apply NE.In_In,In_mem_keys_set in IN2.
+            apply NE.In_In, mem_keys_set_In in IN1.
+            apply NE.In_In,mem_keys_set_In in IN2.
             generalize dependent (svector_to_mem_block x).
             intros m H1 H2.
             (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
@@ -991,6 +991,7 @@ Section MemVecEq.
               crush.
             --
               specialize (NP1 k nkc).
+              unfold mem_in in NP1.
               congruence.
         +
           contradict Heqo1.

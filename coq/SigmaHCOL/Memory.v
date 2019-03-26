@@ -272,15 +272,3 @@ Proof.
   destruct (NP.F.In_dec m k); auto.
 Qed.
 
-Lemma In_mem_keys_set {k} {m:mem_block}:
-  NS.In k (mem_keys_set m) <-> mem_in k m.
-Proof.
-  unfold mem_keys_set, mem_keys_lst, mem_in.
-  split;  intros H.
-  -
-    apply NSP.of_list_1 in H.
-    apply NP.F.elements_in_iff.
-    admit.
-  -
-    admit.
-Admitted.
