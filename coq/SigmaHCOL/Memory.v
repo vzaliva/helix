@@ -266,7 +266,7 @@ Proof.
   apply F.not_find_in_iff in H; auto.
 Qed.
 
-Lemma decidable_mem_in {k m}: decidable (mem_in k m).
+Lemma decidable_mem_in (k:NM.key) (m:mem_block): decidable (mem_in k m).
 Proof.
   unfold decidable.
   destruct (NP.F.In_dec m k); auto.

@@ -469,22 +469,35 @@ Section MemVecEq.
 
   End WithMonoid.
 
-  (* TODO: could be proven <-> *)
   Lemma is_disjoint_Disjoint (s s' : NS.t)
-    : Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') -> is_disjoint s s' ≡ true.
+    : Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') <-> is_disjoint s s' ≡ true.
   Proof.
-    (* unfortunate part is that we use two different disjoint definitions here *)
-    intros E.
-    destruct E as [E].
-    unfold is_disjoint.
-    apply NS.is_empty_1.
-    unfold NS.Empty.
-    intros a.
-    specialize (E a).
-    intros H.
-    rewrite NE.In_In in H.
-    apply NE.inter_Intersection in H.
-    congruence.
+    split.
+    -
+      intros E.
+      destruct E as [E].
+      unfold is_disjoint.
+      apply NS.is_empty_1.
+      unfold NS.Empty.
+      intros a.
+      specialize (E a).
+      intros H.
+      rewrite NE.In_In in H.
+      apply NE.inter_Intersection in H.
+      congruence.
+    -
+      intros D.
+      unfold is_disjoint in D.
+      apply NS.is_empty_2 in D.
+      apply NE.Empty_Empty_set in D.
+      apply Disjoint_intro.
+      intros x E.
+      unfold Ensembles.In in E.
+      apply NE.inter_Intersection in E.
+      unfold Ensembles.In in E.
+      apply D in E. clear D.
+      apply Constructive_sets.Noone_in_empty in E.
+      tauto.
   Qed.
 
   (* TODO: could be proven <-> *)
@@ -656,10 +669,76 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
+    (* TODO: move to memory. add similar to m2. *)
+    Lemma mem_keys_disjoint_inr
+          (m1 m2: mem_block)
+          (k: NM.key):
+      is_disjoint (mem_keys_set m1) (mem_keys_set m2) ≡ true
+      -> mem_in k m1 -> not (mem_in k m2).
+    Proof.
+      intros D M1 M2.
+      apply In_mem_keys_set in M1.
+      apply In_mem_keys_set in M2.
+      generalize dependent (mem_keys_set m1).
+      generalize dependent (mem_keys_set m2).
+      intros s1 M1 s2 D M2.
+      clear m1 m2.
+      apply is_disjoint_Disjoint in D.
+      rewrite NE.In_In in M1.
+      rewrite NE.In_In in M2.
+      destruct D as [D].
+      specialize (D k).
+      contradict D.
+      unfold Ensembles.In.
+      apply Intersection_intro; auto.
+    Qed.
+
+    (* TODO: move to memory.v *)
+    Lemma is_disjoint_sym {a b}:
+      is_disjoint a b ≡ is_disjoint b a .
+    Proof.
+      destruct (is_disjoint a b) eqn:AB;
+        destruct (is_disjoint a b) eqn:BA; try inversion AB.
+      -
+        clear AB.
+        symmetry.
+        rewrite <- is_disjoint_Disjoint.
+        rewrite <- is_disjoint_Disjoint in BA.
+        apply Disjoint_intro.
+        intros x.
+        destruct BA as [BA].
+        specialize (BA x).
+        intros AB.
+        contradict BA.
+        apply Constructive_sets.Intersection_inv in AB.
+        destruct AB as [A B].
+        unfold Ensembles.In.
+        apply Intersection_intro; auto.
+      -
+        clear AB. rename BA into AB.
+        symmetry.
+        apply not_true_is_false.
+        rewrite <- is_disjoint_Disjoint.
+        apply BoolUtil.false_not_true in AB.
+        rewrite <- is_disjoint_Disjoint in AB.
+        intros BA.
+        contradict AB.
+        apply Disjoint_intro.
+        intros x.
+        destruct BA as [BA].
+        specialize (BA x).
+        intros AB.
+        contradict BA.
+        apply Constructive_sets.Intersection_inv in AB.
+        destruct AB as [A B].
+        unfold Ensembles.In.
+        apply Intersection_intro; auto.
+    Qed.
+
 
     Global Instance HTSUMUnion_MemVecEq
            {i o: nat}
-           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{dot: SgOp CarrierA}
            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
            (op1 op2: @SHOperator Monoid_RthetaFlags i o)
            (compat: Disjoint _
@@ -668,6 +747,20 @@ Section MemVecEq.
            )
            `{Meq1: SHOperator_MemVecEq _ i o op1}
            `{Meq2: SHOperator_MemVecEq _ i o op2}
+
+           `{a_zero: MonUnit CarrierA}
+           (* `a_zero` together with `dot` form a monoid. NONE: using `eq` here *)
+           `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA (@eq CarrierA) dot a_zero}
+
+           (* Structural values in `op1` output evaluate to `a_zero` *)
+           (Z1: forall x (t:nat) (tc:t<o),
+               ¬ out_index_set _ op1 (mkFinNat tc) ->
+               evalWriter (Vnth (op Monoid_RthetaFlags op1 x) tc) ≡ a_zero)
+
+           (* Structural values in `op2` output evaluate to `a_zero` *)
+           (Z2: forall x (t:nat) (tc:t<o),
+               ¬ out_index_set _ op2 (mkFinNat tc) ->
+               evalWriter (Vnth (op Monoid_RthetaFlags op2 x) tc) ≡ a_zero)
 
       : SHOperator_MemVecEq
           (facts := HTSUMUnion_Facts dot op1 op2 compat)
@@ -734,13 +827,30 @@ Section MemVecEq.
                 subst m.
                 unfold mem_union.
                 rewrite NM.map2_1 by (destruct MD; auto).
-                destruct (NM.find (elt:=CarrierA) k m1) eqn:F.
+
+                inversion MD.
                 **
                   (* k in m1 *)
+                  rename H into M1.
+                  assert(NM2: not (NM.In (elt:=CarrierA) k m2)).
+                  {
+                    apply mem_keys_disjoint_inr with (m1:=m1).
+                    apply Heqb.
+                    apply M1.
+                  }
                   admit.
                 **
                   (* k in m2 *)
-                  destruct MD as [M|M]; apply NP.F.in_find_iff in M; try congruence.
+                  rename H into M2.
+                  assert(NM1: not (NM.In (elt:=CarrierA) k m1)).
+                  {
+                    apply mem_keys_disjoint_inr with (m1:=m2).
+                    rewrite is_disjoint_sym.
+                    apply Heqb.
+                    apply M2.
+                  }
+                  break_match; try (apply NP.F.not_find_in_iff in NM1; congruence).
+                  clear Heqo0.
 
                   (* derive m2[k] *)
                   assert (G2: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op2 (mkFinNat jc) →  Is_Val (Vnth x jc))).
@@ -751,20 +861,31 @@ Section MemVecEq.
                     apply H.
                   }
                   apply Meq2 in G2; clear Meq2.
-                  rewrite Heqo3 in G2; clear Heqo3.
+                  rewrite Heqo3 in G2.
                   some_inv.
                   unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in G2.
                   rewrite <- G2.
-                  rewrite <- G2 in M. apply NP.F.in_find_iff in M.
-                  rewrite find_svector_to_mem_block_some with (kc:=kc) by apply M.
+
+                  rewrite find_svector_to_mem_block_some with (kc:=kc).
+                  2:{
+                    apply NP.F.in_find_iff.
+                    rewrite G2.
+                    apply NP.F.in_find_iff.
+                    apply M2.
+                  }
 
                   f_equiv.
                   unfold SVector.Union.
                   rewrite evalWriter_Rtheta_liftM2.
 
-                  (* TODO: show (Vnth (op Monoid_RthetaFlags op1 x) kc) is SZero *)
-                  (* TODO: `zero` must be identiy element for dot on Carriera. *)
-                  admit.
+                  pose proof (out_mem_fill_pattern Monoid_RthetaFlags (svector_to_mem_block x) m1 Heqo2) as [P1 _].
+                  unfold mem_in in P1. specialize (P1 k kc).
+                  apply not_iff_compat in P1.
+                  apply P1 in NM1.
+                  apply Z1 with (x:=x) in NM1 .
+                  rewrite NM1.
+                  apply monoid_left_id.
+                  apply af_mon.
               ++
                 (* k not in m *)
                 replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
