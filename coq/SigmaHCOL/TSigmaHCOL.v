@@ -4,11 +4,14 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.WriterMonadNoT.
+Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.SigmaHCOLMem.
-Require Import Helix.SigmaHCOL.SigmaHCOL. (* Presently for SHOperator only. Consider moving it elsewhere *)
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.Util.FinNatSet.
 
 Require Import Coq.Arith.Arith.
@@ -253,6 +256,94 @@ Section TSigmaHCOLOperators.
 
 End TSigmaHCOLOperators.
 
+Lemma svector_to_memblock_of_castWriter
+      {i : nat} (fm0 fm1: Monoid RthetaFlags)
+      (v0 : svector fm0 i):
+  svector_to_mem_block v0 = svector_to_mem_block (Vmap (castWriter fm1) v0).
+Proof.
+
+  unfold equiv, MemSetoid.mem_block_Equiv, mem_block_equiv.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m1 H1 I1 O1.
+  unfold mem_lookup in *; simpl in *.
+  apply NP.F.Equal_mapsto_iff.
+  intros k e.
+
+  destruct (lt_dec k i) as [kc |kc].
+  -
+    (* k<i, normal case *)
+    clear O0 O1.
+    specialize (H0 k kc). specialize (H1 k kc).
+    specialize (I0 k kc). specialize (I1 k kc).
+
+    assert(E: evalWriter (Vnth v0 kc) ≡ evalWriter (Vnth (Vmap (castWriter fm1) v0) kc)).
+    {
+      rewrite Vnth_map.
+      rewrite evalWriter_castWriter.
+      reflexivity.
+    }
+
+    destruct (NP.F.In_dec m0 k) as [IN0 | NIN0], (NP.F.In_dec m1 k) as [IN1 | NIN1].
+    +
+      (* both in *)
+      assert(V0: Is_Val (Vnth v0 kc)) by apply I0,IN0; clear I0.
+      apply H0 in V0; clear H0.
+      assert(V1: Is_Val (Vnth (Vmap (castWriter fm1) v0) kc)) by apply I1,IN1; clear I1.
+      apply H1 in V1; clear H1.
+      split; intros P.
+      *
+        pose proof(NP.F.MapsTo_fun V0 P).
+        subst e.
+        setoid_rewrite E.
+        apply V1.
+      *
+        pose proof(NP.F.MapsTo_fun V1 P).
+        subst e.
+        setoid_rewrite <- E.
+        apply V0.
+    +
+      (* k in m0 but not in m1 *)
+      exfalso.
+      assert(V0: Is_Val (Vnth v0 kc)) by apply I0,IN0; clear I0.
+      assert(V1: Is_Val (Vnth (Vmap (castWriter fm1) v0) kc)).
+      {
+        unfold Is_Val, compose.
+        rewrite Vnth_map.
+        rewrite execWriter_castWriter.
+        apply V0.
+      }
+      apply H1 in V1.
+      apply MemSetoid.MapsTo_In in V1.
+      congruence.
+    +
+      (* k in m1 but not in m0 *)
+      exfalso.
+      assert(V1: Is_Val (Vnth (Vmap (castWriter fm1) v0) kc)) by apply I1,IN1; clear I1.
+      assert(V0: Is_Val (Vnth v0 kc)).
+      {
+        rewrite Vnth_map in V1.
+        unfold Is_Val, compose in V1.
+        rewrite execWriter_castWriter in V1.
+        apply V1.
+      }
+      apply H0 in V0.
+      apply MemSetoid.MapsTo_In in V0.
+      congruence.
+    +
+      (* k in neither m0, m1 *)
+      split; intros P; apply MemSetoid.MapsTo_In in P; congruence.
+  -
+    (* k>=i oob case *)
+    clear H0 H1 I0 I1.
+    apply Nat.nlt_ge in kc.
+    specialize (O0 k kc); apply NP.F.not_find_in_iff in O0.
+    specialize (O1 k kc); apply NP.F.not_find_in_iff in O1.
+    split; intros H;
+      apply MemSetoid.MapsTo_In in H;
+      congruence.
+Qed.
+
 Lemma mem_out_some_fm_independent
       (i:nat)
       (fm0 fm1 : Monoid RthetaFlags)
@@ -260,16 +351,30 @@ Lemma mem_out_some_fm_independent
       (v0: svector fm0 i)
       (H: forall (j : nat) (jc : (j < i)%nat), ins (mkFinNat jc) → Is_Val (Vnth v0 jc))
       (m: Memory.mem_block → option Memory.mem_block)
-      (M: forall
-          (v1 : svector fm1 i),
-          (forall
-              (j : nat) (jc : (j < i)%nat)
-            ,
+      (m_proper: Proper ((=) ==> (=)) m)
+      (M: forall (v1 : svector fm1 i),
+          (forall (j : nat) (jc : (j < i)%nat),
               ins (mkFinNat jc) → Is_Val (Vnth v1 jc)) → is_Some (m (svector_to_mem_block v1)))
   :
     is_Some (m (svector_to_mem_block v0)).
 Proof.
-Admitted.
+  remember (Vmap (@castWriter _ _ fm0 fm1) v0) as v1.
+
+  rewrite is_Some_nequiv_None.
+  setoid_replace (svector_to_mem_block v0) with (svector_to_mem_block (Vmap (castWriter fm1) v0)) by apply svector_to_memblock_of_castWriter.
+  apply Option_nequiv_eq_None.
+  apply is_Some_ne_None.
+  apply M.
+  unfold svector_to_mem_block in *.
+
+  intros j jc H1.
+  unfold Is_Val, compose.
+  apply Vnth_arg_eq with (ip:=jc) in Heqv1.
+  subst.
+  rewrite Vnth_map.
+  rewrite execWriter_castWriter.
+  apply H, H1.
+Qed.
 
 Section TSigmaHCOLOperators_StructuralProperties.
 
@@ -343,6 +448,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
           (fm1:=Monoid_RthetaSafeFlags)
           (ins:=in_index_set Monoid_RthetaSafeFlags xop).
       apply H.
+      apply xop.
       apply M.
     -
       (* out_mem_fill_pattern *)
@@ -419,6 +525,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
           (fm1:=Monoid_RthetaFlags)
           (ins:=in_index_set Monoid_RthetaFlags xop).
       apply H.
+      apply xop.
       apply M.
     -
       (* out_mem_fill_pattern *)

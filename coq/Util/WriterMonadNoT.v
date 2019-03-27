@@ -101,4 +101,15 @@ Section CastWriter.
     auto.
   Qed.
 
+  Lemma execWriter_castWriter
+        {v}
+    :
+      execWriter (castWriter v) = execWriter v.
+  Proof.
+    unfold castWriter, castWriterT.
+    unfold execWriter.
+    unfold compose.
+    auto.
+  Qed.
+
 End CastWriter.

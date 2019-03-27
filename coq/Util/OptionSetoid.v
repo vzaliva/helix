@@ -118,12 +118,28 @@ Proof.
     apply opt_r_None.
 Qed.
 
-Lemma Option_equiv_eq {A: Type} {a b: option A} `{Ae: Equiv A} `{Ar: Equivalence A Ae}:
+Lemma Option_equiv_eq
+      {A: Type}
+      `{Ae: Equiv A}
+      `{Ar: Equivalence A Ae}
+      (a b: option A) :
   (a ≡ b) -> (a = b).
 Proof.
   intros H.
   rewrite H.
   reflexivity.
+Qed.
+
+Lemma Option_nequiv_eq_None
+      {A: Type}
+      `{Ae: Equiv A}
+      `{Ar: Equivalence A Ae}
+      (a: option A) :
+  (a ≢ None) -> (a ≠ None).
+Proof.
+  destruct a; intros.
+  some_none.
+  intros C; contradiction.
 Qed.
 
 Lemma None_equiv_eq
@@ -179,6 +195,25 @@ Proof.
     some_none.
 Qed.
 
+Lemma is_Some_nequiv_None
+      (A : Type)
+      `{Ae: Equiv A}
+      (x : option A):
+  is_Some x ↔ x ≠ None.
+Proof.
+  split; intros H.
+  -
+    destruct x.
+    some_none.
+    crush.
+  -
+    destruct x.
+    + crush.
+    + exfalso.
+      unfold equiv, option_Equiv in H.
+      contradict H.
+      apply RelUtil.opt_r_None.
+Qed.
 
 (* In monadic world `(f >=> g) ∘ Some` *)
 Definition option_compose
