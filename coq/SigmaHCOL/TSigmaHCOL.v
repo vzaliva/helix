@@ -694,6 +694,9 @@ Section TSigmaHCOLOperators_StructuralProperties.
     -
       (* mem_out_some *)
       admit.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
   Admitted.
 
 End TSigmaHCOLOperators_StructuralProperties.

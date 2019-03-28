@@ -1816,6 +1816,9 @@ Section StructuralProperies.
       -
         (* mem_out_some *)
         admit.
+      -
+        (* out_mem_fill_pattern *)
+        admit.
     Admitted.
 
     Global Instance eUnion_Facts
@@ -1899,6 +1902,9 @@ Section StructuralProperies.
       -
         (* mem_out_some *)
         admit.
+      -
+        (* out_mem_fill_pattern *)
+        admit.
     Admitted.
 
     Global Instance eT_Facts
@@ -1954,6 +1960,9 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
+        admit.
+      -
+        (* out_mem_fill_pattern *)
         admit.
     Admitted.
 
@@ -2015,7 +2024,7 @@ Section StructuralProperies.
       -
         (* out_mem_fill_pattern *)
         admit.
-    Admitted.
+    Admitted. (* OK *)
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -2223,7 +2232,7 @@ Section StructuralProperies.
     -
       (* out_mem_fill_pattern *)
       admit.
-  Admitted.
+  Admitted. (* OK *)
 
   Global Instance SHBinOp_RthetaSafe_Facts
          {o}
@@ -2666,6 +2675,9 @@ Section StructuralProperies.
     -
       (* mem_out_some *)
       admit.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
   Admitted.
 
   Global Instance IReduction_Facts
@@ -2819,7 +2831,10 @@ Section StructuralProperies.
     -
       (* mem_out_some *)
       admit.
-    Admitted.
+    -
+      (* out_mem_fill_pattern *)
+      admit.
+  Admitted.
 
 End StructuralProperies.
 
