@@ -1977,7 +1977,25 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
-        admit.
+        intros v H.
+        unfold is_Some, eT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
+        repeat break_match; try some_none; try tauto.
+        clear Heqo. rename Heqo0 into M.
+        unfold svector_to_mem_block in M.
+        svector_to_mem_block_to_spec m0 H0 I0 O0.
+        simpl in *.
+        clear H0 O0.
+        specialize (H b bc).
+        specialize (I0 b bc).
+        assert(V: Is_Val (Vnth v bc)).
+        {
+          apply H.
+          unfold FinNatSet.singleton, mkFinNat.
+          auto.
+        }
+        apply I0 in V.
+        apply NP.F.not_find_in_iff in M.
+        congruence.
       -
         (* out_mem_fill_pattern *)
         admit.
