@@ -89,9 +89,17 @@ Section MemVecEq.
       intros x G.
       simpl.
       unfold option_compose, compose.
+      simpl in G.
 
-      pose proof (mem_out_some fm x) as Rm.
-      specialize (Rm G).
+      pose proof (@mem_out_some fm _ _ op2 _ (svector_to_mem_block x) ) as Rm.
+      assert(G0: (∀ (j : nat) (jc : (j < i1)%nat), in_index_set fm op2 (mkFinNat jc)
+                                         → mem_in j (svector_to_mem_block x))).
+      {
+        intros j jc H.
+        apply svector_to_mem_block_In with (jc0:=jc).
+        apply G,H.
+      }
+      specialize (Rm G0).
       apply is_Some_equiv_def in Rm.
       destruct Rm as [m2 Rm].
       break_match; try some_none.
@@ -395,7 +403,7 @@ Section MemVecEq.
       intros x G.
       simpl.
 
-      pose proof (@mem_out_some _ _ _ _ facts x G) as M.
+      pose proof (@mem_out_some _ _ _ _ facts (svector_to_mem_block x)) as M.
       apply is_Some_equiv_def in M.
       destruct M as [y M].
       rewrite M.
@@ -465,6 +473,10 @@ Section MemVecEq.
         rewrite O0 by apply kc.
         rewrite O2 by apply kc.
         reflexivity.
+      +
+        intros j jc HH.
+        apply svector_to_mem_block_In with (jc0:=jc).
+        apply G,HH.
     Qed.
 
   End WithMonoid.
@@ -575,7 +587,7 @@ Section MemVecEq.
       intros x G.
       simpl.
 
-      pose proof (@mem_out_some _ _ _ _ facts x G) as M.
+      pose proof (mem_out_some Monoid_RthetaSafeFlags  (svector_to_mem_block x) ) as M.
       apply is_Some_equiv_def in M.
       destruct M as [y M].
       rewrite M.
@@ -667,6 +679,10 @@ Section MemVecEq.
         rewrite O0 by apply kc.
         rewrite O2 by apply kc.
         reflexivity.
+      +
+        intros j jc HH.
+        apply svector_to_mem_block_In with (jc0:=jc).
+        apply G,HH.
     Qed.
 
     (* TODO: move to memory. add similar to m2. *)
@@ -998,6 +1014,7 @@ Section MemVecEq.
           apply is_Some_ne_None.
           apply mem_out_some; auto.
           intros j jc H.
+          apply svector_to_mem_block_In with (jc0:=jc).
           apply G.
           simpl.
           apply Union_intror.
@@ -1007,6 +1024,7 @@ Section MemVecEq.
         apply is_Some_ne_None.
         apply mem_out_some; auto.
         intros j jc H.
+        apply svector_to_mem_block_In with (jc0:=jc).
         apply G.
         simpl.
         apply Union_introl.

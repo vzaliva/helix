@@ -344,38 +344,6 @@ Proof.
       congruence.
 Qed.
 
-Lemma mem_out_some_fm_independent
-      (i:nat)
-      (fm0 fm1 : Monoid RthetaFlags)
-      (ins: FinNatSet i)
-      (v0: svector fm0 i)
-      (H: forall (j : nat) (jc : (j < i)%nat), ins (mkFinNat jc) → Is_Val (Vnth v0 jc))
-      (m: Memory.mem_block → option Memory.mem_block)
-      (m_proper: Proper ((=) ==> (=)) m)
-      (M: forall (v1 : svector fm1 i),
-          (forall (j : nat) (jc : (j < i)%nat),
-              ins (mkFinNat jc) → Is_Val (Vnth v1 jc)) → is_Some (m (svector_to_mem_block v1)))
-  :
-    is_Some (m (svector_to_mem_block v0)).
-Proof.
-  remember (Vmap (@castWriter _ _ fm0 fm1) v0) as v1.
-
-  rewrite is_Some_nequiv_None.
-  setoid_replace (svector_to_mem_block v0) with (svector_to_mem_block (Vmap (castWriter fm1) v0)) by apply svector_to_memblock_of_castWriter.
-  apply Option_nequiv_eq_None.
-  apply is_Some_ne_None.
-  apply M.
-  unfold svector_to_mem_block in *.
-
-  intros j jc H1.
-  unfold Is_Val, compose.
-  apply Vnth_arg_eq with (ip:=jc) in Heqv1.
-  subst.
-  rewrite Vnth_map.
-  rewrite execWriter_castWriter.
-  apply H, H1.
-Qed.
-
 Section TSigmaHCOLOperators_StructuralProperties.
 
   Global Instance SafeCast_Facts
@@ -443,13 +411,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
       pose proof (@mem_out_some Monoid_RthetaSafeFlags i o xop fop) as M.
       unfold SafeCast in *.
       simpl in *.
-      apply mem_out_some_fm_independent
-        with
-          (fm1:=Monoid_RthetaSafeFlags)
-          (ins:=in_index_set Monoid_RthetaSafeFlags xop).
-      apply H.
-      apply xop.
-      apply M.
+      apply M, H.
     -
       (* out_mem_fill_pattern *)
       admit.
@@ -520,13 +482,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
       pose proof (@mem_out_some Monoid_RthetaFlags i o xop fop) as M.
       unfold UnSafeCast in *.
       simpl in *.
-      apply mem_out_some_fm_independent
-        with
-          (fm1:=Monoid_RthetaFlags)
-          (ins:=in_index_set Monoid_RthetaFlags xop).
-      apply H.
-      apply xop.
-      apply M.
+      apply M, H.
     -
       (* out_mem_fill_pattern *)
       admit.

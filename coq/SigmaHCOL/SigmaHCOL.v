@@ -200,10 +200,10 @@ Section SigmaHCOL_Operators.
              spaces) filled input memory block guarantees that `mem_op`
              will not fail.
            *)
-          mem_out_some: forall v,
-              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> Is_Val (Vnth v jc))
+          mem_out_some: forall m,
+              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> mem_in j m)
               ->
-              is_Some (mem_op xop (svector_to_mem_block (fm:=fm) v));
+              is_Some (mem_op xop m);
 
           (* Output memory block always have values in right places, and does
              not have value in sparse positions *)
@@ -1741,7 +1741,7 @@ Section StructuralProperies.
         split.
       -
         (* mem_out_some *)
-        intros v H.
+        intros m H.
         apply mem_out_some_mem_op_of_hop, H.
       -
         simpl.
@@ -1815,7 +1815,24 @@ Section StructuralProperies.
         apply H.
       -
         (* mem_out_some *)
-        admit.
+        intros v H.
+        rename i1 into i.
+
+        (*
+        unfold svector_to_mem_block.
+        svector_to_mem_block_to_spec m I0 H0 O0. clear O0.
+         *)
+        unfold is_Some, option_compose in *.
+        simpl in *.
+        unfold option_compose.
+        repeat break_match; try some_none; try auto.
+        +
+          contradict Heqo.
+          apply is_Some_ne_None.
+          (* apply mem_out_some. *)
+          admit.
+        +
+          admit.
       -
         (* out_mem_fill_pattern *)
         admit.
@@ -1901,22 +1918,14 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
       -
         (* mem_out_some *)
-        intros v H.
+        intros m H.
         unfold is_Some, eUnion, eUnion_mem, map_mem_block_elt, mem_lookup. simpl.
         repeat break_match; try some_none; try tauto.
         clear Heqo0. rename Heqo1 into M.
-        unfold svector_to_mem_block in M.
-        svector_to_mem_block_to_spec m0 H0 I0 O0.
         simpl in *.
-        clear H0 O0.
-        specialize (H 0 Nat.lt_0_1).
-        specialize (I0 0 Nat.lt_0_1).
-        assert(V: Is_Val (Vnth v Nat.lt_0_1)).
-        {
-          apply H.
-          apply Full_intro.
-        }
-        apply I0 in V.
+        assert(P: Full_set (FinNat 1) (mkFinNat Nat.lt_0_1)) by apply Full_intro.
+        apply H in P.
+        unfold mem_lookup, mem_in in *.
         apply NP.F.not_find_in_iff in M.
         congruence.
       -
@@ -1981,19 +1990,14 @@ Section StructuralProperies.
         unfold is_Some, eT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
         repeat break_match; try some_none; try tauto.
         clear Heqo. rename Heqo0 into M.
-        unfold svector_to_mem_block in M.
-        svector_to_mem_block_to_spec m0 H0 I0 O0.
         simpl in *.
-        clear H0 O0.
-        specialize (H b bc).
-        specialize (I0 b bc).
-        assert(V: Is_Val (Vnth v bc)).
+        assert(P: FinNatSet.singleton b (mkFinNat bc)).
         {
-          apply H.
           unfold FinNatSet.singleton, mkFinNat.
           auto.
         }
-        apply I0 in V.
+        apply H in P.
+        unfold mem_lookup, mem_in in *.
         apply NP.F.not_find_in_iff in M.
         congruence.
       -

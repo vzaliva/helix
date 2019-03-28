@@ -645,6 +645,21 @@ Proof.
   apply H0, H1, H.
 Qed.
 
+Lemma svector_to_mem_block_In
+      {n:nat}
+      {fm}
+      (x: svector fm n)
+      (j:nat)
+      (jc:j<n):
+  Is_Val (Vnth x jc) -> mem_in j (svector_to_mem_block x).
+Proof.
+  intros H.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m0 I0 H1 O0.
+  simpl in *.
+  specialize (H1 j jc).
+  apply H1, H.
+Qed.
 
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
@@ -666,11 +681,10 @@ Section Wrappers.
 
   Lemma mem_out_some_mem_op_of_hop
         (i o : nat)
-        {fm}
-        (v : vector (Rtheta' fm) i)
+        {m: mem_block}
         (g : vector CarrierA i → vector CarrierA o)
-        (H: forall (j : nat) (jc : j < i), Full_set (FinNat i) (mkFinNat jc) → Is_Val (Vnth v jc)):
-    is_Some (mem_op_of_hop g (svector_to_mem_block v)).
+        (H: forall (j : nat) (jc : j < i), Full_set (FinNat i) (mkFinNat jc) → mem_in j m):
+    is_Some (mem_op_of_hop g m).
   Proof.
     unfold mem_op_of_hop.
     break_match.
@@ -682,21 +696,13 @@ Section Wrappers.
       apply vsequence_eq_None in M.
       destruct M as [j [jc M]].
       rewrite Vbuild_nth in M.
-      unfold svector_to_mem_block in M.
-      svector_to_mem_block_to_spec m H0 I0 O0.
-      simpl in *.
-      clear O0 I0.
-      assert(V:Is_Val (Vnth v jc)).
-      {
-        apply H.
-        apply Full_intro.
-      }
-      apply H0 in V.
-      apply NM.find_1 in V.
-      unfold mem_lookup in *.
+      specialize (H j jc).
+      assert(P: Full_set (FinNat i) (mkFinNat jc)) by apply Full_intro.
+      apply H in P.
+      unfold mem_lookup, mem_in in *.
+      apply NP.F.not_find_in_iff in M.
       congruence.
   Qed.
-
 
   (* The fomulation of this lemma is little odd, with `Full_set (FinNat o) (mkFinNat jc)`
      being always True. It is designed to match `mem_fill_pattern` field
