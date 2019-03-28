@@ -1901,7 +1901,24 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
       -
         (* mem_out_some *)
-        admit.
+        intros v H.
+        unfold is_Some, eUnion, eUnion_mem, map_mem_block_elt, mem_lookup. simpl.
+        repeat break_match; try some_none; try tauto.
+        clear Heqo0. rename Heqo1 into M.
+        unfold svector_to_mem_block in M.
+        svector_to_mem_block_to_spec m0 H0 I0 O0.
+        simpl in *.
+        clear H0 O0.
+        specialize (H 0 Nat.lt_0_1).
+        specialize (I0 0 Nat.lt_0_1).
+        assert(V: Is_Val (Vnth v Nat.lt_0_1)).
+        {
+          apply H.
+          apply Full_intro.
+        }
+        apply I0 in V.
+        apply NP.F.not_find_in_iff in M.
+        congruence.
       -
         (* out_mem_fill_pattern *)
         admit.
