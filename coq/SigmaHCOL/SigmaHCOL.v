@@ -1815,13 +1815,7 @@ Section StructuralProperies.
         apply H.
       -
         (* mem_out_some *)
-        intros v H.
-        rename i1 into i.
-
-        (*
-        unfold svector_to_mem_block.
-        svector_to_mem_block_to_spec m I0 H0 O0. clear O0.
-         *)
+        intros m H.
         unfold is_Some, option_compose in *.
         simpl in *.
         unfold option_compose.
@@ -1829,10 +1823,19 @@ Section StructuralProperies.
         +
           contradict Heqo.
           apply is_Some_ne_None.
-          (* apply mem_out_some. *)
-          admit.
+          apply mem_out_some.
+          apply fop1.
+          pose proof (out_mem_fill_pattern fm m m0 Heqo0) as [P _].
+          intros j jc H0.
+          specialize (P j jc).
+          apply P.
+          apply compat.
+          apply H0.
         +
-          admit.
+          clear Heqo.
+          pose proof (@mem_out_some _ _ _ _ fop2 m H) as C.
+          unfold is_Some in C.
+          break_match; [ some_none | tauto].
       -
         (* out_mem_fill_pattern *)
         admit.
