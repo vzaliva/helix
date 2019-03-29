@@ -414,8 +414,16 @@ Section TSigmaHCOLOperators_StructuralProperties.
       apply M, H.
     -
       (* out_mem_fill_pattern *)
-      admit.
-  Admitted.
+      intros m0 m H.
+      destruct fop.
+      apply out_mem_fill_pattern in H; clear out_mem_fill_pattern.
+      destruct H as [H NH].
+      split; intros.
+      +
+        split; intros P; specialize (H j jc); apply H, P.
+      +
+        apply NH, jc.
+  Qed.
 
   Global Instance UnSafeCast_Facts
          {i o}
