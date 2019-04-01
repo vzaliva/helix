@@ -2008,6 +2008,18 @@ Section StructuralProperies.
         admit.
     Admitted.
 
+    (* We admit this lemma because Gather will never occur in final
+       SigmaHCOL after rewriting and hence will never be compiled
+       to LLVM *)
+    Fact Gather_mem_out_fill_pattern:
+      ∀ (i o : nat) (f : index_map o i) (m0 m : mem_block),
+        mem_op fm (Gather fm f) m0 ≡ Some m
+        → (∀ (j : nat) (jc : j < o), out_index_set fm (Gather fm f) (mkFinNat jc)
+                                                 ↔ mem_in j m)
+          ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m).
+    Proof.
+    Admitted. (* OK *)
+
     Global Instance Gather_Facts
            {i o: nat}
            (f: index_map o i)
@@ -2064,9 +2076,8 @@ Section StructuralProperies.
         unfold Gather.
         simpl; tauto.
       -
-        (* out_mem_fill_pattern *)
-        admit.
-    Admitted. (* OK *)
+        apply Gather_mem_out_fill_pattern.
+    Qed.
 
     Global Instance SHPointwise_Facts
            {n: nat}
@@ -2189,6 +2200,23 @@ Section StructuralProperies.
 
   End FlagsMonoidGenericStructuralProperties.
 
+  (* We admit this lemma because Scatter will never occur in final
+       SigmaHCOL after rewriting and hence will never be compiled
+       to LLVM *)
+  Fact Scatter_out_mem_fill_pattern:
+    ∀ (i o : nat) (f : index_map i o) (f_inj : index_map_injective f)
+      (idv : CarrierA) (m0 m : mem_block), mem_op Monoid_RthetaFlags
+                                                  (Scatter Monoid_RthetaFlags f idv (f_inj:=f_inj))
+                                                  m0 ≡ Some m
+                                           → (∀ (j : nat) (jc : j < o),
+                                                 out_index_set Monoid_RthetaFlags
+                                                               (Scatter Monoid_RthetaFlags f idv (f_inj:=f_inj))
+                                                               (mkFinNat jc) ↔
+                                                               mem_in j m)
+                                             ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m).
+  Proof.
+  Admitted. (* OK *)
+
   Global Instance Scatter_Rtheta_Facts
          {i o: nat}
          (f: index_map i o)
@@ -2272,9 +2300,8 @@ Section StructuralProperies.
       unfold Scatter.
       simpl; tauto.
     -
-      (* out_mem_fill_pattern *)
-      admit.
-  Admitted. (* OK *)
+      apply Scatter_out_mem_fill_pattern.
+  Qed.
 
   Global Instance SHBinOp_RthetaSafe_Facts
          {o}
