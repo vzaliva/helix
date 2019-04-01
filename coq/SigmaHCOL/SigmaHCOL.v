@@ -1838,8 +1838,21 @@ Section StructuralProperies.
           break_match; [ some_none | tauto].
       -
         (* out_mem_fill_pattern *)
-        admit.
-    Admitted.
+        intros m0 m H.
+        split; intros j jc.
+        +
+          simpl in *.
+          unfold option_compose in H.
+          break_match_hyp; try some_none.
+          pose proof (out_mem_fill_pattern _ m1 m H) as [P1 _].
+          apply P1; auto.
+        +
+          simpl in *.
+          unfold option_compose in H.
+          break_match_hyp; try some_none.
+          pose proof (out_mem_fill_pattern _ m1 m H) as [_ P2].
+          apply P2; auto.
+    Qed.
 
     Global Instance eUnion_Facts
            {o b:nat}
