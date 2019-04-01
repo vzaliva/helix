@@ -2005,8 +2005,44 @@ Section StructuralProperies.
         congruence.
       -
         (* out_mem_fill_pattern *)
-        admit.
-    Admitted.
+        intros m0 m H.
+        simpl in *.
+        unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+        split.
+        +
+          intros j jc.
+          destruct j; try omega.
+          split.
+          *
+            intros F.
+            break_match_hyp; try some_none.
+            some_inv.
+            subst m.
+            unfold mem_add, mem_empty.
+            apply NP.F.in_find_iff.
+            rewrite NP.F.add_eq_o.
+            some_none.
+            reflexivity.
+          *
+            intros I.
+            apply Full_intro.
+        +
+          intros j jc.
+          unfold not.
+          intros C.
+          break_match_hyp; try some_none.
+          some_inv.
+          subst m.
+          unfold mem_add, mem_empty in *.
+          destruct (eq_nat_dec j 0) as [z | nz].
+          *
+            lia.
+          *
+            apply NP.F.add_neq_in_iff in C.
+            apply NP.F.empty_in_iff in C.
+            tauto.
+            auto.
+    Qed.
 
     (* We admit this lemma because Gather will never occur in final
        SigmaHCOL after rewriting and hence will never be compiled
