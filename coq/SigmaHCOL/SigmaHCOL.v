@@ -1933,8 +1933,46 @@ Section StructuralProperies.
         congruence.
       -
         (* out_mem_fill_pattern *)
-        admit.
-    Admitted.
+        intros m0 m H.
+        split; intros j jc.
+        +
+          simpl in *.
+          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
+          break_match_hyp; try some_none.
+          some_inv.
+          subst m.
+          split.
+          *
+            intros O.
+            destruct (eq_nat_dec j b).
+            --
+              apply NP.F.in_find_iff.
+              rewrite NP.F.add_eq_o; auto.
+              some_none.
+            --
+              unfold FinNatSet.singleton, mkFinNat in O.
+              simpl in O.
+              congruence.
+          *
+            intros I.
+            unfold FinNatSet.singleton, mkFinNat.
+            simpl.
+            destruct (eq_nat_dec j b); auto.
+            exfalso.
+            apply NP.F.in_find_iff in I.
+            rewrite NP.F.add_neq_o in I; auto.
+        +
+          intros C.
+          simpl in H.
+          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
+          break_match; try some_none.
+          some_inv.
+          subst m.
+          unfold mem_add, mem_empty in C.
+          destruct (eq_nat_dec j b); try omega.
+          apply NP.F.in_find_iff in C.
+          rewrite NP.F.add_neq_o in C; auto.
+    Qed.
 
     Global Instance eT_Facts
            {i b:nat}
