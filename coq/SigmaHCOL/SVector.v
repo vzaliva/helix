@@ -796,7 +796,7 @@ Proof.
         rewrite <- H0.
         rewrite <- Heqo.
         f_equiv.
-        apply proof_irrelevance.
+        apply NatUtil.lt_unique.
       *
         specialize (IHn (shrink_vbuild_function_l f) xs).
         rewrite <- IHn; clear IHn.
@@ -815,7 +815,7 @@ Proof.
           intros i ic.
           unfold shrink_vbuild_function_l.
           f_equiv.
-          apply proof_irrelevance.
+          apply NatUtil.lt_unique.
 Qed.
 
 Close Scope vector_scope.

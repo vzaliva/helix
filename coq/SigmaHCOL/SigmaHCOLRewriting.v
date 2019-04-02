@@ -4830,7 +4830,7 @@ and `ISumReduction_PointWise` *)
         Vnth (HCOLImpl.Induction n f initial v) bc =
         Vnth (HCOLImpl.Induction (S n) f initial v) bc1.
     Proof.
-      replace bc1 with (lt_lt_succ_r bc) by apply proof_irrelevance.
+      replace bc1 with (lt_lt_succ_r bc) by apply NatUtil.lt_unique.
       clear bc1.
       setoid_rewrite (Vnth_arg_equiv _ _ _ _ _ _ _
                                      (HCOLImpl.Induction_cons)).
