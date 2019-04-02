@@ -2836,6 +2836,73 @@ Section StructuralProperies.
       admit.
   Admitted.
 
+
+  Lemma IReduction_mem_aux_shrink
+        (i o: nat)
+        (dot : CarrierA → CarrierA → CarrierA)
+        (pdot : Proper (equiv ==> equiv ==> equiv) dot)
+        (initial : CarrierA) (n : nat)
+        (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
+        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
+            SHOperator_Facts Monoid_RthetaSafeFlags
+                             (op_family (mkFinNat jc)))
+
+        (m : NatMap CarrierA)
+        (* H:  ∀ (j : nat) (jc : j < i), in_index_set
+                                       Monoid_RthetaSafeFlags
+                                       (IReduction dot initial op_family)
+                                       (mkFinNat jc) →
+                                     mem_in j m *)
+    :
+      IReduction_mem_aux (Nat.lt_succ_diag_r n) dot
+                         (get_family_mem_op Monoid_RthetaSafeFlags
+                                            (shrink_op_family Monoid_RthetaSafeFlags op_family))
+                         m
+                         ≡ IReduction_mem_aux
+                         (Nat.lt_succ_l n (S (S n)) (Nat.lt_succ_diag_r (S n)))
+                         dot
+                         (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaSafeFlags op_family) m.
+  Proof.
+    Set Printing Implicit.
+    induction n; simpl.
+    -
+      unfold get_family_mem_op, shrink_op_family, mkFinNat.
+      simpl.
+      repeat f_equiv.
+      apply le_unique.
+    -
+      replace (get_family_mem_op Monoid_RthetaSafeFlags
+                                 (shrink_op_family Monoid_RthetaSafeFlags op_family) (S n)
+                                 (Nat.lt_succ_diag_r (S n)) m)
+        with
+          (get_family_mem_op Monoid_RthetaSafeFlags op_family (S n)
+                             (Nat.lt_succ_l (S n) (S (S (S n))) (Nat.lt_succ_diag_r (S (S n)))) m).
+      2:{
+        unfold get_family_mem_op, shrink_op_family, mkFinNat.
+        simpl.
+        repeat f_equiv.
+        apply le_unique.
+      }
+
+      break_match; try reflexivity.
+
+      replace (IReduction_mem_aux (Nat.lt_succ_l n (S (S n)) (Nat.lt_succ_diag_r (S n))) dot
+                                  (get_family_mem_op Monoid_RthetaSafeFlags
+                                                     (shrink_op_family Monoid_RthetaSafeFlags op_family)) m)
+        with
+          (IReduction_mem_aux
+             (Nat.lt_succ_l n (S (S (S n)))
+                            (Nat.lt_succ_l (S n) (S (S (S n))) (Nat.lt_succ_diag_r (S (S n))))) dot
+             (get_family_mem_op Monoid_RthetaSafeFlags op_family) m).
+      reflexivity.
+
+      Set Printing Implicit.
+
+
+
+
+  Admitted.
+
   Global Instance IReduction_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2986,7 +3053,71 @@ Section StructuralProperies.
         apply H.
     -
       (* mem_out_some *)
-      admit.
+      intros m H.
+      simpl.
+      unfold is_Some, IReduction_mem.
+      break_match; auto.
+      break_match_hyp; try some_none.
+      rename Heqo0 into C.
+      subst.
+      replace (eq_ind_r (Peano.lt n) (Nat.lt_succ_diag_r n) eq_refl)
+        with (Nat.lt_succ_diag_r n) in C by apply NatUtil.lt_unique.
+
+      induction n.
+      +
+        simpl in *.
+        unfold get_family_mem_op in C.
+        contradict C.
+        apply is_Some_ne_None.
+        apply mem_out_some.
+        apply op_family_facts.
+        intros j jc H0.
+        apply H with (jc:=jc).
+        apply Union_introl.
+        unfold In.
+        unfold mkFinNat in *. simpl in *.
+        replace (Nat.lt_succ_diag_r 0) with (S_j_lt_n (j:=0) eq_refl) in H0.
+        apply H0.
+        apply NatUtil.lt_unique.
+      +
+        simpl in C.
+        repeat break_match_hyp; try some_none.
+        *
+          clear C.
+          destruct IHn with (op_family:=shrink_op_family _ op_family); clear IHn.
+          --
+            apply shrink_op_family_facts.
+            apply op_family_facts.
+          --
+            intros j jc H0.
+            specialize (H j jc).
+            apply H.
+            simpl in *.
+            apply Union_intror.
+            unfold In.
+            apply H0.
+          --
+            clear Heqo0.
+            rewrite <- Heqo1; clear Heqo1.
+            apply IReduction_mem_aux_shrink
+              with (pdot:=pdot) (initial:=initial); auto.
+        *
+          (* family `mem_op (S n)` is None *)
+          (* Heqo0 is false *)
+          clear C.
+          specialize (op_family_facts (S n) (Nat.lt_succ_diag_r _)).
+          contradict Heqo0.
+          apply is_Some_ne_None.
+          apply mem_out_some.
+          apply op_family_facts.
+          intros j jc H0.
+          apply H with (jc:=jc).
+          simpl.
+          apply Union_introl.
+          unfold In.
+          replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with
+              (Nat.lt_succ_diag_r (S n)) by apply NatUtil.lt_unique.
+          apply H0.
     -
       (* out_mem_fill_pattern *)
       admit.
