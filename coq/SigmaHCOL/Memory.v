@@ -17,6 +17,7 @@ From Coq.FSets Require Import
 Require Import Coq.Structures.OrderedTypeEx.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
+Require Export Coq.Sets.Ensembles.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
@@ -272,3 +273,54 @@ Proof.
   destruct (NP.F.In_dec m k); auto.
 Qed.
 
+Lemma is_disjoint_Disjoint (s s' : NS.t)
+  : Ensembles.Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') <-> is_disjoint s s' = true.
+Proof.
+  split.
+  -
+    intros E.
+    destruct E as [E].
+    unfold is_disjoint.
+    apply NS.is_empty_1.
+    unfold NS.Empty.
+    intros a.
+    specialize (E a).
+    intros H.
+    rewrite NE.In_In in H.
+    apply NE.inter_Intersection in H.
+    congruence.
+  -
+    intros D.
+    unfold is_disjoint in D.
+    apply NS.is_empty_2 in D.
+    apply NE.Empty_Empty_set in D.
+    apply Disjoint_intro.
+    intros x E.
+    unfold Ensembles.In in E.
+    apply NE.inter_Intersection in E.
+    unfold Ensembles.In in E.
+    apply D in E. clear D.
+    apply Constructive_sets.Noone_in_empty in E.
+    tauto.
+Qed.
+
+
+(* TODO: could be proven <-> *)
+Lemma mem_merge_is_Some
+      (m0 m1 : mem_block)
+  :
+    Ensembles.Disjoint nat (NE.mkEns (mem_keys_set m0))
+             (NE.mkEns (mem_keys_set m1)) -> (mem_merge m0 m1 <> None).
+Proof.
+  unfold mem_merge.
+  unfold mem_keys_set.
+  generalize (NSP.of_list (mem_keys_lst m0)) as s0.
+  generalize (NSP.of_list (mem_keys_lst m1)) as s1.
+  intros s1 s0 H.
+  break_if.
+  -
+    crush.
+  -
+    apply is_disjoint_Disjoint in H.
+    congruence.
+Qed.

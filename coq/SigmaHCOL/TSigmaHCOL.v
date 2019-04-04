@@ -504,58 +504,6 @@ Section TSigmaHCOLOperators_StructuralProperties.
         apply NH, jc.
   Qed.
 
-    Lemma is_disjoint_Disjoint (s s' : NS.t)
-    : Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') <-> is_disjoint s s' ≡ true.
-  Proof.
-    split.
-    -
-      intros E.
-      destruct E as [E].
-      unfold is_disjoint.
-      apply NS.is_empty_1.
-      unfold NS.Empty.
-      intros a.
-      specialize (E a).
-      intros H.
-      rewrite NE.In_In in H.
-      apply NE.inter_Intersection in H.
-      congruence.
-    -
-      intros D.
-      unfold is_disjoint in D.
-      apply NS.is_empty_2 in D.
-      apply NE.Empty_Empty_set in D.
-      apply Disjoint_intro.
-      intros x E.
-      unfold Ensembles.In in E.
-      apply NE.inter_Intersection in E.
-      unfold Ensembles.In in E.
-      apply D in E. clear D.
-      apply Constructive_sets.Noone_in_empty in E.
-      tauto.
-  Qed.
-
-  (* TODO: could be proven <-> *)
-  Lemma mem_merge_is_Some
-        (m0 m1 : mem_block)
-    :
-      Disjoint nat (NE.mkEns (mem_keys_set m0))
-               (NE.mkEns (mem_keys_set m1)) → is_Some (mem_merge m0 m1).
-  Proof.
-    unfold mem_merge.
-    unfold mem_keys_set.
-    generalize (NSP.of_list (mem_keys_lst m0)) as s0.
-    generalize (NSP.of_list (mem_keys_lst m1)) as s1.
-    intros s1 s0 H.
-    break_if.
-    -
-      simpl; tauto.
-    -
-      apply is_disjoint_Disjoint in H.
-      congruence.
-  Qed.
-
-
   Global Instance HTSUMUnion_Facts
          {i o}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -724,7 +672,6 @@ Section TSigmaHCOLOperators_StructuralProperties.
       +
         contradict Heqo0.
         clear H.
-        apply is_Some_ne_None.
         apply mem_merge_is_Some.
         pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m0 Heqo1) as [P1 NP1].
         pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m1 Heqo2) as [P2 NP2].

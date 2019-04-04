@@ -82,7 +82,7 @@ Section MemVecEq.
            `{Meq1: SHOperator_MemVecEq fm o2 o3 op1}
            `{Meq2: SHOperator_MemVecEq fm i1 o2 op2}
       : SHOperator_MemVecEq
-          (facts:=SHCompose_Facts fm fml op1 op2 compat)
+          (facts:=SHCompose_Facts fm  op1 op2 compat)
           (SHCompose fm op1 op2).
     Proof.
       split.
@@ -929,7 +929,6 @@ Section MemVecEq.
                 congruence.
           *
             contradict MM.
-            apply is_Some_ne_None.
             apply mem_merge_is_Some.
             apply Disjoint_intro.
             intros k.
