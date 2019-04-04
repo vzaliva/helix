@@ -144,3 +144,28 @@ Proof.
   unfold In, singleton in *.
   crush.
 Qed.
+
+
+(* This is not FinNat specific, but it is kept here for a lack of better place *)
+Lemma Disjoint_Included
+      {T:Type}
+      (A A' B B': Ensemble T)
+      (D: Disjoint T A B):
+  Included T A' A ->
+  Included T B' B ->
+  Disjoint T A' B'.
+Proof.
+  intros IA IB.
+  apply Disjoint_intro.
+  intros x.
+  destruct D as [D].
+  specialize (D x).
+  intros C.
+  unfold In in C.
+  destruct C as [x I0 I1].
+  unfold In in *.
+  contradict D.
+  apply Intersection_intro.
+  - apply IA, I0.
+  - apply IB, I1.
+Qed.
