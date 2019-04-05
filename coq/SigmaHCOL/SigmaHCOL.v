@@ -2629,7 +2629,7 @@ Section StructuralProperies.
   Qed.
 
   (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
-  Lemma IUnion_mem_aux_shrink
+  Fact IUnion_mem_aux_shrink
         {i o: nat}
         (n : nat)
         (j: nat) (jc: j<S n)
@@ -2667,6 +2667,107 @@ Section StructuralProperies.
       replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
           (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
       reflexivity.
+  Qed.
+
+  Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
+    := fun j => match NatUtil.lt_ge_dec j n with
+             | left jc => f (mkFinNat jc)
+             | in_right => False
+             end.
+
+  Lemma FinNatSet_to_natSet_Empty (f: FinNatSet 0):
+    FinNatSet_to_natSet f ≡ Empty_set _.
+  Proof.
+    apply Extensionality_Ensembles.
+    split; intros H P.
+    -
+      exfalso.
+      unfold In in *.
+      unfold FinNatSet_to_natSet in P.
+      break_match.
+      nat_lt_0_contradiction.
+      congruence.
+    -
+      contradict P.
+  Qed.
+
+  Lemma Disjoint_FinNat_to_nat {n:nat} (A B: FinNatSet n):
+    Disjoint _ A B ->
+    Disjoint nat (FinNatSet_to_natSet A) (FinNatSet_to_natSet B).
+  Proof.
+    intros D.
+    induction n.
+    -
+      apply Disjoint_intro.
+      intros j C.
+      unfold In in C.
+      inversion C.
+      rewrite FinNatSet_to_natSet_Empty in H.
+      contradict H.
+    -
+      admit.
+  Admitted.
+
+  Lemma mem_keys_set_to_out_index_set
+        (i o: nat)
+        {fm}
+        (xop: @SHOperator fm i o)
+        (facts:  @SHOperator_Facts fm i o xop)
+        (m m0: mem_block)
+    :
+    (mem_op fm xop m0 ≡ Some m)
+    ->
+    FinNatSet_to_natSet (out_index_set fm xop) ≡ NE.mkEns (mem_keys_set m).
+  Proof.
+  Admitted.
+
+  Fact IUnion_mem_aux_step_disjoint
+        (i o n : nat)
+        (j: nat) (jc: j < S n)
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
+        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
+            @SHOperator_Facts Monoid_RthetaFlags i o
+                              (op_family (@mkFinNat (S (S n)) j jc)))
+
+        (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
+            m0 ≢ n0
+            → Disjoint (FinNat o)
+                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
+                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
+
+        (m m0 m1 : mem_block)
+
+        (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
+                                (S j) (lt_n_S jc) m
+                                ≡ @Some mem_block m0)
+        (H1:
+           @IUnion_mem_aux (S (S n))
+                           j (Nat.lt_lt_succ_r jc)
+                           (@get_family_mem_op
+                Monoid_RthetaFlags i o
+                (S (S n)) op_family) m
+             ≡ @Some mem_block m1)
+    :
+      Disjoint nat
+               (NE.mkEns (mem_keys_set m0))
+               (NE.mkEns (mem_keys_set m1)).
+  Proof.
+    unfold get_family_mem_op in *.
+
+    induction j.
+    -
+      assert(P: 1 <> 0) by auto.
+      specialize (compat 1 (lt_n_S jc) 0 (Nat.lt_lt_succ_r jc) P).
+      clear P.
+      simpl in *.
+      apply Disjoint_FinNat_to_nat in compat.
+      rewrite
+        mem_keys_set_to_out_index_set
+        with (m:=m0) (m0:=m),
+             mem_keys_set_to_out_index_set
+        with (m:=m1) (m0:=m) in compat; auto.
+    -
+      apply IHj with (jc:=@Nat.lt_succ_l j (S n) jc).
   Qed.
 
   Global Instance IUnion_Facts
@@ -2903,7 +3004,14 @@ Section StructuralProperies.
         *
           contradict C.
           apply mem_merge_is_Some.
-          admit.
+          apply IUnion_mem_aux_step_disjoint with (op_family:=op_family) (m:=m)
+                                                  (jc:=Nat.lt_succ_diag_r n); auto.
+          --
+            rewrite <- Heqo0.
+            f_equiv;apply NatUtil.lt_unique.
+          --
+            rewrite <- Heqo1.
+            f_equiv;apply NatUtil.lt_unique.
         *
           clear C.
           destruct IHn with (op_family:=shrink_op_family _ op_family); clear IHn.
@@ -2970,7 +3078,7 @@ Section StructuralProperies.
 
 
   (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
-  Lemma IReduction_mem_aux_shrink
+  Fact IReduction_mem_aux_shrink
         {i o: nat}
         (n : nat)
         (j: nat) (jc: j<S n)
