@@ -2720,9 +2720,9 @@ Section StructuralProperies.
         (facts:  @SHOperator_Facts fm i o xop)
         (m m0: mem_block)
     :
-    (mem_op fm xop m0 ≡ Some m)
-    ->
-    FinNatSet_to_natSet (out_index_set fm xop) ≡ NE.mkEns (mem_keys_set m).
+      (mem_op fm xop m0 ≡ Some m)
+      ->
+      FinNatSet_to_natSet (out_index_set fm xop) ≡ NE.mkEns (mem_keys_set m).
   Proof.
     intros H.
     apply out_mem_fill_pattern in H; [idtac | apply facts].
@@ -2756,6 +2756,23 @@ Section StructuralProperies.
         unfold FinNatSet_to_natSet in H.
         break_match_hyp; try omega.
     -
+      unfold Included.
+      intros k H.
+      unfold In in *.
+      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      +
+        clear H2.
+        specialize (H1 k kc).
+        unfold FinNatSet_to_natSet.
+        break_match; try omega.
+        replace l with kc by apply NatUtil.lt_unique.
+        apply H1.
+        apply mem_keys_set_In.
+        apply H.
+      +
+        apply mem_keys_set_In in H.
+        specialize (H2 k nkc).
+        congruence.
   Qed.
 
   Lemma IUnion_mem_aux_step_disjoint
