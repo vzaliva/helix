@@ -2721,43 +2721,56 @@ Section StructuralProperies.
   Proof.
   Admitted.
 
+  Lemma Disjoint_of_mem_merge
+        {m0 m1 m2 m3: mem_block}
+        (M: mem_merge m2 m3 ≡ @Some mem_block m1)
+        (D1: Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m2)))
+        (D2: Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m3))):
+    Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m1)).
+  Proof.
+  Admitted.
+
   Fact IUnion_mem_aux_step_disjoint
-        (i o n : nat)
-        (j: nat) (jc: j < S n)
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
-        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
-            @SHOperator_Facts Monoid_RthetaFlags i o
-                              (op_family (@mkFinNat (S (S n)) j jc)))
+       (i o n : nat)
+       (j: nat) (jc: j < S (S n))
+       (k: nat) (kc: k < S (S n))
+       (jk: j<k)
+       (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
+       (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
+           @SHOperator_Facts Monoid_RthetaFlags i o
+                             (op_family (@mkFinNat (S (S n)) j jc)))
 
-        (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
-            m0 ≢ n0
-            → Disjoint (FinNat o)
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
+       (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
+           m0 ≢ n0
+           → Disjoint (FinNat o)
+                      (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
+                      (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
 
-        (m m0 m1 : mem_block)
+       (m m0 m1 : mem_block)
 
-        (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
-                                (S j) (lt_n_S jc) m
-                                ≡ @Some mem_block m0)
-        (H1:
-           @IUnion_mem_aux (S (S n))
-                           j (Nat.lt_lt_succ_r jc)
-                           (@get_family_mem_op
-                Monoid_RthetaFlags i o
-                (S (S n)) op_family) m
-             ≡ @Some mem_block m1)
+       (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
+                               k kc m
+                               ≡ @Some mem_block m0)
+       (H1:
+          @IUnion_mem_aux (S (S n))
+                          j jc
+                          (@get_family_mem_op
+                             Monoid_RthetaFlags i o
+                             (S (S n)) op_family) m
+                          ≡ @Some mem_block m1)
     :
       Disjoint nat
                (NE.mkEns (mem_keys_set m0))
                (NE.mkEns (mem_keys_set m1)).
   Proof.
     unfold get_family_mem_op in *.
-
-    induction j.
+    revert m0 m1 k kc jk H0 H1.
+    induction j; intros.
     -
-      assert(P: 1 <> 0) by auto.
-      specialize (compat 1 (lt_n_S jc) 0 (Nat.lt_lt_succ_r jc) P).
+      assert(P: k <> 0) by auto.
+      assert(P1: k < S (S n)) by omega.
+      assert(P2: 0 < S (S n)) by lia.
+      specialize (compat k P1 0 P2 P).
       clear P.
       simpl in *.
       apply Disjoint_FinNat_to_nat in compat.
@@ -2766,8 +2779,29 @@ Section StructuralProperies.
         with (m:=m0) (m0:=m),
              mem_keys_set_to_out_index_set
         with (m:=m1) (m0:=m) in compat; auto.
+
+      rewrite <- H1; unfold mkFinNat;f_equiv; f_equiv; f_equiv; apply NatUtil.lt_unique.
+      rewrite <- H0; unfold mkFinNat; f_equiv; f_equiv;f_equiv; apply NatUtil.lt_unique.
     -
-      apply IHj with (jc:=@Nat.lt_succ_l j (S n) jc).
+      simpl in *.
+      repeat break_match_hyp; try some_none.
+      apply (Disjoint_of_mem_merge H1).
+      +
+        assert(P: k ≢ S j) by lia.
+        specialize (compat k kc (S j) jc P).
+        simpl in compat.
+        erewrite <- 2!mem_keys_set_to_out_index_set.
+        apply Disjoint_FinNat_to_nat.
+        eapply compat.
+        eauto.
+        eauto.
+        eauto.
+        eauto.
+      +
+        unshelve eapply IHj ; try auto; try omega.
+        replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
+          by apply NatUtil.lt_unique.
+        apply Heqo1.
   Qed.
 
   Global Instance IUnion_Facts
@@ -3004,8 +3038,12 @@ Section StructuralProperies.
         *
           contradict C.
           apply mem_merge_is_Some.
-          apply IUnion_mem_aux_step_disjoint with (op_family:=op_family) (m:=m)
-                                                  (jc:=Nat.lt_succ_diag_r n); auto.
+          unshelve eapply IUnion_mem_aux_step_disjoint with (op_family:=op_family)
+                                                  (m:=m)
+                                                  (j:=n)
+                                                  (k:=S n)
+
+          ; auto.
           --
             rewrite <- Heqo0.
             f_equiv;apply NatUtil.lt_unique.
