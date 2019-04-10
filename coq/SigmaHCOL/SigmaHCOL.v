@@ -2721,16 +2721,7 @@ Section StructuralProperies.
   Proof.
   Admitted.
 
-  Lemma Disjoint_of_mem_merge
-        {m0 m1 m2 m3: mem_block}
-        (M: mem_merge m2 m3 ≡ @Some mem_block m1)
-        (D1: Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m2)))
-        (D2: Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m3))):
-    Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m1)).
-  Proof.
-  Admitted.
-
-  Fact IUnion_mem_aux_step_disjoint
+  Lemma IUnion_mem_aux_step_disjoint
        (i o n : nat)
        (j: nat) (jc: j < S (S n))
        (k: nat) (kc: k < S (S n))

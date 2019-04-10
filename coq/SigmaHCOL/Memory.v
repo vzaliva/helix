@@ -324,3 +324,40 @@ Proof.
     apply is_disjoint_Disjoint in H.
     congruence.
 Qed.
+
+Lemma Disjoint_of_mem_merge
+      {m0 m1 m2 m3: mem_block}
+      (M: mem_merge m2 m3 = @Some mem_block m1)
+      (D1: Ensembles.Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m2)))
+      (D2: Ensembles.Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m3))):
+  Ensembles.Disjoint nat (NE.mkEns (mem_keys_set m0)) (NE.mkEns (mem_keys_set m1)).
+Proof.
+  apply Disjoint_intro.
+  intros k C.
+  apply mem_merge_key_dec with (k:=k) in M.
+  -
+    destruct C as [k C1 C2].
+    destruct M as [M2|M3].
+    +
+      (* k in `m2` *)
+      clear D2.
+      apply mem_keys_set_In in M2.
+      destruct D1 as [D]; specialize (D k).
+      contradict D.
+      apply Intersection_intro.
+      apply C1.
+      apply M2.
+    +
+      (* k in `m1` *)
+      clear D1.
+      apply mem_keys_set_In in M3.
+      destruct D2 as [D]; specialize (D k).
+      contradict D.
+      apply Intersection_intro.
+      apply C1.
+      apply M3.
+  -
+    destruct C as [k C1 C2].
+    apply mem_keys_set_In in C2.
+    apply C2.
+Qed.
