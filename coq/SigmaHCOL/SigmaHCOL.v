@@ -2724,7 +2724,39 @@ Section StructuralProperies.
     ->
     FinNatSet_to_natSet (out_index_set fm xop) ≡ NE.mkEns (mem_keys_set m).
   Proof.
-  Admitted.
+    intros H.
+    apply out_mem_fill_pattern in H; [idtac | apply facts].
+    destruct H as [H1 H2].
+    unfold mem_in in *.
+    apply Extensionality_Ensembles.
+    unfold Same_set.
+    split.
+    -
+      unfold Included.
+      intros k H.
+      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      +
+        clear H2.
+        specialize (H1 k kc).
+        apply mem_keys_set_In.
+        apply H1. clear H1.
+        unfold In in *.
+        generalize dependent (out_index_set fm xop).
+        intros s H.
+        unfold FinNatSet_to_natSet in H.
+        break_match_hyp; try contradiction.
+        replace l with kc in H by apply NatUtil.lt_unique.
+        apply H.
+      +
+        exfalso.
+        clear H1.
+        specialize (H2 k nkc).
+        (* H is false, as k is out of range *)
+        unfold In in H.
+        unfold FinNatSet_to_natSet in H.
+        break_match_hyp; try omega.
+    -
+  Qed.
 
   Lemma IUnion_mem_aux_step_disjoint
        (i o n : nat)
