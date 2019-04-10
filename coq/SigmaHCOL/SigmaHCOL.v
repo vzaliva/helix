@@ -2696,17 +2696,22 @@ Section StructuralProperies.
     Disjoint nat (FinNatSet_to_natSet A) (FinNatSet_to_natSet B).
   Proof.
     intros D.
-    induction n.
+    apply Disjoint_intro.
+    intros k C.
+    destruct D as [D].
+    destruct C as [k C1 C2].
+    unfold FinNatSet_to_natSet in *.
+    unfold In in *.
+    destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
     -
-      apply Disjoint_intro.
-      intros j C.
-      unfold In in C.
-      inversion C.
-      rewrite FinNatSet_to_natSet_Empty in H.
-      contradict H.
+      specialize (D (mkFinNat kc)).
+      contradict D.
+      apply Intersection_intro.
+      + apply C1.
+      + apply C2.
     -
-      admit.
-  Admitted.
+      tauto.
+  Qed.
 
   Lemma mem_keys_set_to_out_index_set
         (i o: nat)
