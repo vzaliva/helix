@@ -220,10 +220,11 @@ Qed.
 Lemma mem_merge_key_dec
       (m m0 m1 : mem_block)
       (MM : mem_merge m0 m1 = Some m)
+      (k:NM.key)
   :
-    forall k, NM.In k m -> {NM.In k m0}+{NM.In k m1}.
+    NM.In k m -> {NM.In k m0}+{NM.In k m1}.
 Proof.
-  intros k H.
+  intros H.
   rename m into mm.
   destruct (NP.F.In_dec m1 k) as [M1 | M1], (NP.F.In_dec m0 k) as [M0|M0]; auto.
   exfalso. (* Could not be in neither. *)
@@ -234,6 +235,29 @@ Proof.
   clear Heqb.
   apply mem_keys_set_In, mem_keys_set_in_union_dec in H.
   destruct H; auto.
+Qed.
+
+(* temp workaround for universe inconsistency. The lemma above should be defined <-> *)
+Lemma mem_merge_key_dec'
+      (m m0 m1 : mem_block)
+      (MM : mem_merge m0 m1 = Some m)
+      (k:NM.key)
+  :
+    ({NM.In k m0}+{NM.In k m1}) -> NM.In k m.
+Proof.
+  intros H.
+  rename m into mm.
+  unfold mem_merge, mem_union in MM.
+  break_if; try some_none.
+  some_inv.
+  clear H1 mm.
+  apply F.in_find_iff.
+  rewrite F.map2_1bis by reflexivity.
+  break_match.
+  some_none.
+  destruct H as [H | H].
+  apply F.in_find_iff in H; congruence.
+  apply F.in_find_iff, H.
 Qed.
 
 Lemma mem_merge_key_not_in
