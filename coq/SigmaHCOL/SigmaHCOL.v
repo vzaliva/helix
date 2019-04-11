@@ -3203,16 +3203,26 @@ Section StructuralProperies.
       reflexivity.
   Qed.
 
-    Lemma mem_merge_with_as_Union
+  Lemma mem_merge_with_as_Union
         (dot : CarrierA → CarrierA → CarrierA)
         (m1 m2 : mem_block)
-        (j:nat)
+        (k:nat)
     :
-       ((mem_in j m1) \/ (mem_in j m2)) ->
-       mem_in j (mem_merge_with dot m1 m2).
+      ((mem_in k m1) \/ (mem_in k m2)) ->
+      mem_in k (mem_merge_with dot m1 m2).
   Proof.
-  Admitted.
+    intros H.
+    destruct (NP.F.In_dec m1 k) as [M1 | M1], (NP.F.In_dec m2 k) as [M0|M0];
+      unfold mem_in, mem_merge_with in *;
+      apply NP.F.in_find_iff;
+      rewrite NM.map2_1; try apply H;
 
+        rewrite mem_keys_set_In in M0, M1;
+        repeat break_match; try some_none;
+          apply NP.F.not_find_in_iff in Heqo;
+          apply NP.F.not_find_in_iff in Heqo0;
+          crush.
+  Qed.
 
   Lemma mem_merge_with_not_as_Union
         (dot : CarrierA → CarrierA → CarrierA)
