@@ -39,6 +39,8 @@ Require Import MathClasses.theory.setoids.
 Require Import ExtLib.Structures.Monad.
 Require Import ExtLib.Structures.Monoid.
 
+Require Import CoLoR.Util.Nat.NatUtil.
+
 Import Monoid.
 
 Import VectorNotations.
@@ -324,7 +326,7 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          rewrite (le_unique _ _ (S_j_lt_n _) jc).
+          replace (S_j_lt_n _) with jc by apply lt_unique.
           apply H.
         +
           right.
@@ -332,7 +334,7 @@ Section SigmaHCOL_Operators.
           apply IHk with (jc:=jc1). clear IHk.
           unfold shrink_op_family, mkFinNat, proj2_sig in *.
           simpl in *.
-          rewrite (le_unique _ _ (le_S jc1) jc).
+          replace (le_S jc1) with jc by apply lt_unique.
           apply H.
     Qed.
 
@@ -356,7 +358,8 @@ Section SigmaHCOL_Operators.
           subst.
           unfold In in H1.
           exists k, (le_n (S k)).
-          rewrite (le_unique _ _  (le_n (S k)) (@S_j_lt_n (S k) k (@eq_refl nat (S k)))).
+          replace (le_n (S k)) with (@S_j_lt_n (S k) k (@eq_refl nat (S k)))
+            by apply lt_unique.
           apply H1.
         +
           subst.
@@ -368,7 +371,8 @@ Section SigmaHCOL_Operators.
 
           unfold shrink_op_family, mkFinNat, proj2_sig.
           simpl in *.
-          rewrite (le_unique _ _ tc1 (le_S tc)).
+          replace tc1 with (le_S tc)
+            by apply lt_unique.
           apply IHk.
     Qed.
 
@@ -391,7 +395,8 @@ Section SigmaHCOL_Operators.
         +
           left.
           subst.
-          rewrite (le_unique _ _ (S_j_lt_n _) jc).
+          replace (S_j_lt_n _) with jc
+            by apply lt_unique.
           apply H.
         +
           right.
@@ -399,7 +404,8 @@ Section SigmaHCOL_Operators.
           apply IHk with (jc:=jc1).
           unfold shrink_op_family, mkFinNat, proj2_sig.
           simpl in *.
-          rewrite (le_unique _ _ (le_S jc1) jc).
+          replace (le_S jc1) with jc
+            by apply lt_unique.
           apply H.
     Qed.
 
@@ -2670,7 +2676,7 @@ Section StructuralProperies.
   Qed.
 
   Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
-    := fun j => match NatUtil.lt_ge_dec j n with
+    := fun j => match lt_ge_dec j n with
              | left jc => f (mkFinNat jc)
              | in_right => False
              end.
@@ -2702,7 +2708,7 @@ Section StructuralProperies.
     destruct C as [k C1 C2].
     unfold FinNatSet_to_natSet in *.
     unfold In in *.
-    destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
+    destruct (lt_ge_dec k n) as [kc | nkc].
     -
       specialize (D (mkFinNat kc)).
       contradict D.
@@ -2734,7 +2740,7 @@ Section StructuralProperies.
     -
       unfold Included.
       intros k H.
-      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      destruct (lt_ge_dec k o) as [kc | nkc].
       +
         clear H2.
         specialize (H1 k kc).
@@ -2745,7 +2751,7 @@ Section StructuralProperies.
         intros s H.
         unfold FinNatSet_to_natSet in H.
         break_match_hyp; try contradiction.
-        replace l with kc in H by apply NatUtil.lt_unique.
+        replace l with kc in H by apply lt_unique.
         apply H.
       +
         exfalso.
@@ -2759,13 +2765,13 @@ Section StructuralProperies.
       unfold Included.
       intros k H.
       unfold In in *.
-      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      destruct (lt_ge_dec k o) as [kc | nkc].
       +
         clear H2.
         specialize (H1 k kc).
         unfold FinNatSet_to_natSet.
         break_match; try omega.
-        replace l with kc by apply NatUtil.lt_unique.
+        replace l with kc by apply lt_unique.
         apply H1.
         apply mem_keys_set_In.
         apply H.
@@ -2825,8 +2831,8 @@ Section StructuralProperies.
              mem_keys_set_to_out_index_set
         with (m:=m1) (m0:=m) in compat; auto.
 
-      rewrite <- H1; unfold mkFinNat;f_equiv; f_equiv; f_equiv; apply NatUtil.lt_unique.
-      rewrite <- H0; unfold mkFinNat; f_equiv; f_equiv;f_equiv; apply NatUtil.lt_unique.
+      rewrite <- H1; unfold mkFinNat;f_equiv; f_equiv; f_equiv; apply lt_unique.
+      rewrite <- H0; unfold mkFinNat; f_equiv; f_equiv;f_equiv; apply lt_unique.
     -
       simpl in *.
       repeat break_match_hyp; try some_none.
@@ -2845,7 +2851,7 @@ Section StructuralProperies.
       +
         unshelve eapply IHj ; try auto; try omega.
         replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
-          by apply NatUtil.lt_unique.
+          by apply lt_unique.
         apply Heqo1.
   Qed.
 
@@ -3059,7 +3065,7 @@ Section StructuralProperies.
       rename Heqo0 into C.
       subst.
       replace (eq_ind_r (Peano.lt n) (Nat.lt_succ_diag_r n) eq_refl)
-        with (Nat.lt_succ_diag_r n) in C by apply NatUtil.lt_unique.
+        with (Nat.lt_succ_diag_r n) in C by apply lt_unique.
 
       induction n.
       +
@@ -3076,7 +3082,7 @@ Section StructuralProperies.
         unfold mkFinNat in *. simpl in *.
         replace (Nat.lt_succ_diag_r 0) with (S_j_lt_n (j:=0) eq_refl) in H0.
         apply H0.
-        apply NatUtil.lt_unique.
+        apply lt_unique.
       +
         simpl in C.
         repeat break_match_hyp; try some_none.
@@ -3091,10 +3097,10 @@ Section StructuralProperies.
           ; auto.
           --
             rewrite <- Heqo0.
-            f_equiv;apply NatUtil.lt_unique.
+            f_equiv;apply lt_unique.
           --
             rewrite <- Heqo1.
-            f_equiv;apply NatUtil.lt_unique.
+            f_equiv;apply lt_unique.
         *
           clear C.
           destruct IHn with (op_family:=shrink_op_family _ op_family); clear IHn.
@@ -3109,7 +3115,7 @@ Section StructuralProperies.
                 (op_family (mkFinNat (Nat.lt_lt_succ_r mc1)))
               by
                 (unfold shrink_op_family, mkFinNat;
-                 f_equiv; f_equiv; apply NatUtil.lt_unique).
+                 f_equiv; f_equiv; apply lt_unique).
 
 
             replace
@@ -3120,7 +3126,7 @@ Section StructuralProperies.
                                (op_family (mkFinNat (Nat.lt_lt_succ_r nc1))))
               by
                 (unfold shrink_op_family, mkFinNat;
-                 f_equiv; f_equiv; f_equiv; apply NatUtil.lt_unique).
+                 f_equiv; f_equiv; f_equiv; apply lt_unique).
 
             auto.
           --
@@ -3136,7 +3142,7 @@ Section StructuralProperies.
             rewrite <- Heqo1; clear Heqo1.
             rewrite IUnion_mem_aux_shrink; auto.
             f_equiv.
-            apply NatUtil.lt_unique.
+            apply lt_unique.
         *
           (* family `mem_op (S n)` is None *)
           (* Heqo0 is false *)
@@ -3152,7 +3158,7 @@ Section StructuralProperies.
           apply Union_introl.
           unfold In.
           replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with
-              (Nat.lt_succ_diag_r (S n)) by apply NatUtil.lt_unique.
+              (Nat.lt_succ_diag_r (S n)) by apply lt_unique.
           apply H0.
     -
       (* out_mem_fill_pattern *)
@@ -3361,7 +3367,7 @@ Section StructuralProperies.
       rename Heqo0 into C.
       subst.
       replace (eq_ind_r (Peano.lt n) (Nat.lt_succ_diag_r n) eq_refl)
-        with (Nat.lt_succ_diag_r n) in C by apply NatUtil.lt_unique.
+        with (Nat.lt_succ_diag_r n) in C by apply lt_unique.
 
       induction n.
       +
@@ -3378,7 +3384,7 @@ Section StructuralProperies.
         unfold mkFinNat in *. simpl in *.
         replace (Nat.lt_succ_diag_r 0) with (S_j_lt_n (j:=0) eq_refl) in H0.
         apply H0.
-        apply NatUtil.lt_unique.
+        apply lt_unique.
       +
         simpl in C.
         repeat break_match_hyp; try some_none.
@@ -3401,7 +3407,7 @@ Section StructuralProperies.
             rewrite <- Heqo1; clear Heqo1.
             rewrite IReduction_mem_aux_shrink; auto.
             f_equiv.
-            apply NatUtil.lt_unique.
+            apply lt_unique.
         *
           (* family `mem_op (S n)` is None *)
           (* Heqo0 is false *)
@@ -3417,7 +3423,7 @@ Section StructuralProperies.
           apply Union_introl.
           unfold In.
           replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with
-              (Nat.lt_succ_diag_r (S n)) by apply NatUtil.lt_unique.
+              (Nat.lt_succ_diag_r (S n)) by apply lt_unique.
           apply H0.
     -
       (* out_mem_fill_pattern *)
@@ -3460,7 +3466,7 @@ Section StructuralProperies.
               specialize (H j jc).
               apply H.
               destruct H0.
-              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc in H0 by apply NatUtil.lt_unique.
+              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc in H0 by apply lt_unique.
               apply H0.
               inversion H0.
             ++
@@ -3469,7 +3475,6 @@ Section StructuralProperies.
               some_inv.
               subst.
               apply mem_merge_with_as_Union.
-
               dependent destruction H0.
               **
                 left.
@@ -3478,7 +3483,7 @@ Section StructuralProperies.
                 eapply out_mem_fill_pattern; eauto.
                 unfold In in H.
                 replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with kc
-                  in H by apply NatUtil.lt_unique.
+                  in H by apply lt_unique.
                 eapply H.
               **
                 right.
@@ -3495,14 +3500,62 @@ Section StructuralProperies.
                   rewrite IReduction_mem_aux_shrink.
                   rewrite <- Heqo1.
                   f_equiv.
-                  apply NatUtil.lt_unique.
+                  apply lt_unique.
                 }
                 clear Heqo1.
                 specialize (IHn P).
                 apply IHn.
                 eapply H.
           --
-            admit.
+            dependent induction n.
+            ++
+              specialize (op_family_facts 0 kc).
+              simpl in *.
+              unfold get_family_mem_op in H.
+              apply op_family_facts in H.
+              destruct H as [H _].
+              specialize (H j jc).
+              apply Union_introl.
+              unfold In.
+              apply H in H0.
+              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc
+                by apply lt_unique.
+              apply H0.
+            ++
+              simpl in *.
+              repeat break_match_hyp; try some_none.
+              some_inv.
+              subst.
+              apply mem_merge_with_as_Union in H0.
+              destruct H0 as [H1 | H2].
+              **
+                apply Union_introl.
+                clear Heqo1 m2 IHn.
+                unfold In.
+                rename Heqo0 into H.
+                unfold get_family_mem_op in H.
+                apply op_family_facts in H.
+                destruct H as [H _].
+                specialize (H j jc).
+                apply H in H1.
+                replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with kc
+                  by apply lt_unique.
+                apply H1.
+              **
+                apply Union_intror.
+                clear Heqo0 m1.
+                unfold In.
+
+                specialize (IHn (shrink_op_family _ op_family)
+                                (shrink_op_family_facts _ _ _ _ _ op_family_facts)).
+
+                assert(nc1: n < S n) by lia.
+                specialize (IHn m0 m2 j jc nc1).
+                apply IHn; auto.
+                rewrite IReduction_mem_aux_shrink.
+                rewrite <- Heqo1.
+                f_equiv.
+                apply lt_unique.
       +
         intros j jc.
         simpl in H.
@@ -3540,7 +3593,7 @@ Section StructuralProperies.
             ++
               eapply IHn.
               eauto.
-  Admitted.
+  Qed.
 
 End StructuralProperies.
 
