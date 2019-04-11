@@ -3203,45 +3203,6 @@ Section StructuralProperies.
       reflexivity.
   Qed.
 
-  Lemma mem_merge_with_as_Union
-        (dot : CarrierA → CarrierA → CarrierA)
-        (m1 m2 : mem_block)
-        (k:nat)
-    :
-      ((mem_in k m1) \/ (mem_in k m2)) ->
-      mem_in k (mem_merge_with dot m1 m2).
-  Proof.
-    intros H.
-    destruct (NP.F.In_dec m1 k) as [M1 | M1], (NP.F.In_dec m2 k) as [M0|M0];
-      unfold mem_in, mem_merge_with in *;
-      apply NP.F.in_find_iff;
-      rewrite NM.map2_1; try apply H;
-
-        rewrite mem_keys_set_In in M0, M1;
-        repeat break_match; try some_none;
-          apply NP.F.not_find_in_iff in Heqo;
-          apply NP.F.not_find_in_iff in Heqo0;
-          crush.
-  Qed.
-
-  Lemma mem_merge_with_not_as_Union
-        (dot : CarrierA → CarrierA → CarrierA)
-        (m1 m2 : mem_block)
-        (k:nat)
-    :
-       (¬ mem_in k m1) -> (¬ mem_in k m2) ->
-       ¬ mem_in k (mem_merge_with dot m1 m2).
-  Proof.
-    intros H0 H1 H.
-
-    unfold mem_in, mem_merge_with in *.
-    apply NP.F.in_find_iff in H.
-    rewrite NP.F.map2_1bis in H by reflexivity.
-    repeat break_match; try some_none;
-      try apply Some_ne_None, NP.F.in_find_iff in Heqo;
-      try apply Some_ne_None, NP.F.in_find_iff in Heqo0; crush.
-  Qed.
-
   Lemma shrink_IReduction_mem_aux
         {i o n: nat} (nc:n < S (S n)) (nc1: n < S n)
         (dot: CarrierA -> CarrierA -> CarrierA)
