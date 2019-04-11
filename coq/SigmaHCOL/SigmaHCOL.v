@@ -3203,6 +3203,44 @@ Section StructuralProperies.
       reflexivity.
   Qed.
 
+    Lemma mem_merge_with_as_Union
+        (dot : CarrierA → CarrierA → CarrierA)
+        (m1 m2 : mem_block)
+        (j:nat)
+    :
+       ((mem_in j m1) \/ (mem_in j m2)) ->
+       mem_in j (mem_merge_with dot m1 m2).
+  Proof.
+  Admitted.
+
+
+  Lemma mem_merge_with_not_as_Union
+        (dot : CarrierA → CarrierA → CarrierA)
+        (m1 m2 : mem_block)
+        (j:nat)
+    :
+       (¬ mem_in j m1) -> (¬ mem_in j m2) ->
+       ¬ mem_in j (mem_merge_with dot m1 m2).
+  Proof.
+  Admitted.
+
+  Lemma shrink_IReduction_mem_aux
+        {i o n: nat} (nc:n < S (S n)) (nc1: n < S n)
+        (dot: CarrierA -> CarrierA -> CarrierA)
+        {m m0: mem_block}
+        (op_family : @SHOperatorFamily Monoid_RthetaSafeFlags i o (S (S n))):
+
+    @IReduction_mem_aux (S (S n)) n nc dot
+                        (@get_family_mem_op Monoid_RthetaSafeFlags i o (S (S n)) op_family) m0
+                        ≡ @Some mem_block m ->
+    @IReduction_mem_aux (S n) n nc1 dot
+                        (@get_family_mem_op Monoid_RthetaSafeFlags i o (S n)
+                                            (shrink_op_family _ op_family)
+                        ) m0
+                        ≡ @Some mem_block m.
+  Proof.
+  Admitted.
+
   Global Instance IReduction_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -3421,7 +3459,116 @@ Section StructuralProperies.
           apply H0.
     -
       (* out_mem_fill_pattern *)
-      admit.
+      split.
+      +
+        intros j jc.
+
+        simpl in *.
+        unfold IReduction_mem in H.
+        break_match_hyp.
+        *
+          some_inv.
+          subst m.
+          split; intros H.
+          --
+            simpl in H.
+            inversion H.
+          --
+            unfold mem_in, mem_empty in H.
+            apply NP.F.empty_in_iff in H.
+            tauto.
+        *
+          clear k Heqn.
+          generalize dependent (@eq_ind_r nat (S n) (Peano.lt n) (Nat.lt_succ_diag_r n)
+                                          (S n) (@eq_refl nat (S n))).
+
+          intros kc H.
+          (* generalize dependent (S n).
+          intros k op_family op_family_facts kc H. *)
+          split; intros H0.
+          --
+            dependent induction n.
+            ++
+              simpl in H.
+              specialize (op_family_facts 0 kc).
+              simpl in *.
+              unfold get_family_mem_op in H.
+              apply op_family_facts in H.
+              destruct H as [H _].
+              specialize (H j jc).
+              apply H.
+              destruct H0.
+              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc in H0 by apply NatUtil.lt_unique.
+              apply H0.
+              inversion H0.
+            ++
+              simpl in *.
+              repeat break_match_hyp; try some_none.
+              some_inv.
+              subst.
+              apply mem_merge_with_as_Union.
+
+              dependent destruction H0.
+              **
+                left.
+                clear IHn Heqo1 m2.
+                specialize (op_family_facts (S n) kc).
+                eapply out_mem_fill_pattern; eauto.
+                unfold In in H.
+                replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with kc
+                  in H by apply NatUtil.lt_unique.
+                eapply H.
+              **
+                right.
+                specialize (IHn (shrink_op_family _ op_family)
+                                (shrink_op_family_facts _ _ _ _ _ op_family_facts)).
+
+                assert(nc1: n < S n) by lia.
+                specialize (IHn m0 m2 j jc nc1
+                                (shrink_IReduction_mem_aux _ _ _ _ Heqo1)
+                           ).
+                clear Heqo1.
+                apply IHn.
+                eapply H.
+          --
+            admit.
+      +
+        intros j jc.
+        simpl in H.
+        unfold IReduction_mem in H.
+        break_match_hyp.
+        *
+          some_inv.
+          subst.
+          unfold mem_in, mem_empty, not.
+          apply NP.F.empty_in_iff.
+        *
+          clear k Heqn.
+
+          generalize dependent (@eq_ind_r nat (S n) (Peano.lt n) (Nat.lt_succ_diag_r n)
+                                          (S n) (@eq_refl nat (S n))).
+          generalize dependent (S n).
+          intros k op_family op_family_facts kc H.
+
+          revert m H.
+          induction n; intros.
+          --
+            simpl in H.
+            specialize (op_family_facts 0 kc).
+            destruct op_family_facts.
+            specialize (out_mem_fill_pattern0 m0 m H).
+            apply out_mem_fill_pattern0, jc.
+          --
+            simpl in H.
+            repeat break_match_hyp; try some_none.
+            some_inv.
+            apply mem_merge_with_not_as_Union.
+            ++
+              specialize (op_family_facts (S n) kc).
+              eapply out_mem_fill_pattern; eauto.
+            ++
+              eapply IHn.
+              eauto.
   Admitted.
 
 End StructuralProperies.
