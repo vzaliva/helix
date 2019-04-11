@@ -3203,23 +3203,6 @@ Section StructuralProperies.
       reflexivity.
   Qed.
 
-  Lemma shrink_IReduction_mem_aux
-        {i o n: nat} (nc:n < S (S n)) (nc1: n < S n)
-        (dot: CarrierA -> CarrierA -> CarrierA)
-        {m m0: mem_block}
-        (op_family : @SHOperatorFamily Monoid_RthetaSafeFlags i o (S (S n))):
-
-    @IReduction_mem_aux (S (S n)) n nc dot
-                        (@get_family_mem_op Monoid_RthetaSafeFlags i o (S (S n)) op_family) m0
-                        ≡ @Some mem_block m ->
-    @IReduction_mem_aux (S n) n nc1 dot
-                        (@get_family_mem_op Monoid_RthetaSafeFlags i o (S n)
-                                            (shrink_op_family _ op_family)
-                        ) m0
-                        ≡ @Some mem_block m.
-  Proof.
-  Admitted.
-
   Global Instance IReduction_Facts
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -3503,10 +3486,19 @@ Section StructuralProperies.
                                 (shrink_op_family_facts _ _ _ _ _ op_family_facts)).
 
                 assert(nc1: n < S n) by lia.
-                specialize (IHn m0 m2 j jc nc1
-                                (shrink_IReduction_mem_aux _ _ _ _ Heqo1)
-                           ).
+                specialize (IHn m0 m2 j jc nc1).
+
+                assert(IReduction_mem_aux nc1 dot
+                                          (get_family_mem_op Monoid_RthetaSafeFlags
+                                                             (shrink_op_family Monoid_RthetaSafeFlags op_family)) m0 ≡ Some m2) as P.
+                {
+                  rewrite IReduction_mem_aux_shrink.
+                  rewrite <- Heqo1.
+                  f_equiv.
+                  apply NatUtil.lt_unique.
+                }
                 clear Heqo1.
+                specialize (IHn P).
                 apply IHn.
                 eapply H.
           --
