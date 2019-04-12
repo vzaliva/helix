@@ -91,8 +91,8 @@ Section SigmaHCOL_Operators.
                {n: nat}
                (s: FinNatSet n): relation (svector fm n)
       := fun x y =>
-        (forall j (jc:j<n),
-            s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
+           (forall j (jc:j<n),
+               s(mkFinNat jc) -> Vnth x jc = Vnth y jc).
 
     Lemma vec_equiv_at_subset
           {k:nat}
@@ -303,8 +303,8 @@ Section SigmaHCOL_Operators.
         match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                              (out_index_set (op_family (mkFinNat (S_j_lt_n E))))
-                              (family_out_index_set (shrink_op_family f))
+                                  (out_index_set (op_family (mkFinNat (S_j_lt_n E))))
+                                  (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
@@ -736,9 +736,9 @@ TODO: remove
                (aunit: CarrierA)
       :=
         forall x, Vforall (Vunique (not ∘ (equiv aunit) ∘ (@evalWriter _ _ fm)))
-                     (Matrix.transpose
-                        (Apply_Family op_family x)
-                     ).
+                          (Matrix.transpose
+                             (Apply_Family op_family x)
+                          ).
 
     (* States that given [P] holds for all elements of all outputs of this family *)
     Definition Apply_Family_Vforall_P
@@ -842,9 +842,9 @@ TODO: remove
 
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
     Program Definition SHCompose
-               {i1 o2 o3}
-               (op1: @SHOperator o2 o3)
-               (op2: @SHOperator i1 o2)
+            {i1 o2 o3}
+            (op1: @SHOperator o2 o3)
+            (op2: @SHOperator i1 o2)
       : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
                                           (option_compose (mem_op op1) (mem_op op2))
                                           _
@@ -998,9 +998,9 @@ TODO: remove
                (g: index_map_family ki i n)
       : @SHOperatorFamily i o n
       := fun jf => (Scatter (f jf)
-                       (f_inj := index_map_family_member_injective f_inj jf) idv)
-                ⊚ (kernel jf)
-                ⊚ (Gather (g jf)).
+                            (f_inj := index_map_family_member_injective f_inj jf) idv)
+                     ⊚ (kernel jf)
+                     ⊚ (Gather (g jf)).
 
     Lemma Scatter'_Unit_at_sparse
           {i o: nat}
@@ -1020,7 +1020,7 @@ TODO: remove
       -
         congruence.
       -
-        
+
         apply Is_ValX_mkStruct.
     Qed.
 
@@ -1459,18 +1459,18 @@ Section OperatorProperies.
         (idv: CarrierA)
         (x: svector fm 1):
     @Scatter' fm _ _ f f_inj idv x
-             ≡
-             match Nat.eq_dec (⟦ f ⟧ 0) 0 with
-             | in_left =>
-               Vcons
-                 (Vhead x)
-                 (Vconst (mkStruct idv) n)
-             | right fc =>
-               let f' := (shrink_index_map_1_range f fc) in
-               Vcons
-                 (mkStruct idv)
-                 (@Scatter' fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
-             end.
+              ≡
+              match Nat.eq_dec (⟦ f ⟧ 0) 0 with
+              | in_left =>
+                Vcons
+                  (Vhead x)
+                  (Vconst (mkStruct idv) n)
+              | right fc =>
+                let f' := (shrink_index_map_1_range f fc) in
+                Vcons
+                  (mkStruct idv)
+                  (@Scatter' fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
+              end.
   Proof.
     break_match.
     -
@@ -2108,7 +2108,7 @@ Section StructuralProperies.
       ∀ (i o : nat) (f : index_map o i) (m0 m : mem_block),
         mem_op fm (Gather fm f) m0 ≡ Some m
         → (∀ (j : nat) (jc : j < o), out_index_set fm (Gather fm f) (mkFinNat jc)
-                                                 ↔ mem_in j m)
+                                                   ↔ mem_in j m)
           ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m).
     Proof.
     Admitted. (* OK *)
@@ -2316,7 +2316,7 @@ Section StructuralProperies.
          {f_inj: index_map_injective f}
          (idv: CarrierA)
     :
-    SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj) idv).
+      SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj) idv).
   Proof.
     split.
     -
@@ -2636,19 +2636,19 @@ Section StructuralProperies.
 
   (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
   Fact IUnion_mem_aux_shrink
-        {i o: nat}
-        (n : nat)
-        (j: nat) (jc: j<S n)
-        (op_family : SHOperatorFamily Monoid_RthetaFlags)
-        (m : NatMap CarrierA)
+       {i o: nat}
+       (n : nat)
+       (j: nat) (jc: j<S n)
+       (op_family : SHOperatorFamily Monoid_RthetaFlags)
+       (m : NatMap CarrierA)
     :
       IUnion_mem_aux jc
-                         (get_family_mem_op Monoid_RthetaFlags
-                                            (shrink_op_family Monoid_RthetaFlags op_family))
-                         m
-                         ≡ IUnion_mem_aux
-                         (Nat.lt_lt_succ_r jc)
-                         (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaFlags op_family) m.
+                     (get_family_mem_op Monoid_RthetaFlags
+                                        (shrink_op_family Monoid_RthetaFlags op_family))
+                     m
+                     ≡ IUnion_mem_aux
+                     (Nat.lt_lt_succ_r jc)
+                     (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaFlags op_family) m.
   Proof.
     induction j.
     -
@@ -2677,9 +2677,9 @@ Section StructuralProperies.
 
   Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
     := fun j => match lt_ge_dec j n with
-             | left jc => f (mkFinNat jc)
-             | in_right => False
-             end.
+                | left jc => f (mkFinNat jc)
+                | in_right => False
+                end.
 
   Lemma FinNatSet_to_natSet_Empty (f: FinNatSet 0):
     FinNatSet_to_natSet f ≡ Empty_set _.
@@ -2782,33 +2782,33 @@ Section StructuralProperies.
   Qed.
 
   Lemma IUnion_mem_aux_step_disjoint
-       (i o n : nat)
-       (j: nat) (jc: j < S (S n))
-       (k: nat) (kc: k < S (S n))
-       (jk: j<k)
-       (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
-       (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
-           @SHOperator_Facts Monoid_RthetaFlags i o
-                             (op_family (@mkFinNat (S (S n)) j jc)))
+        (i o n : nat)
+        (j: nat) (jc: j < S (S n))
+        (k: nat) (kc: k < S (S n))
+        (jk: j<k)
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
+        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
+            @SHOperator_Facts Monoid_RthetaFlags i o
+                              (op_family (@mkFinNat (S (S n)) j jc)))
 
-       (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
-           m0 ≢ n0
-           → Disjoint (FinNat o)
-                      (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
-                      (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
+        (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
+            m0 ≢ n0
+            → Disjoint (FinNat o)
+                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
+                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
 
-       (m m0 m1 : mem_block)
+        (m m0 m1 : mem_block)
 
-       (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
-                               k kc m
-                               ≡ @Some mem_block m0)
-       (H1:
-          @IUnion_mem_aux (S (S n))
-                          j jc
-                          (@get_family_mem_op
-                             Monoid_RthetaFlags i o
-                             (S (S n)) op_family) m
-                          ≡ @Some mem_block m1)
+        (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
+                                k kc m
+                                ≡ @Some mem_block m0)
+        (H1:
+           @IUnion_mem_aux (S (S n))
+                           j jc
+                           (@get_family_mem_op
+                              Monoid_RthetaFlags i o
+                              (S (S n)) op_family) m
+                           ≡ @Some mem_block m1)
     :
       Disjoint nat
                (NE.mkEns (mem_keys_set m0))
@@ -2863,8 +2863,8 @@ Section StructuralProperies.
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
          (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                                  (out_index_set _ (op_family (mkFinNat mc)))
-                                                                  (out_index_set _ (op_family (mkFinNat nc)))
+                                                            (out_index_set _ (op_family (mkFinNat mc)))
+                                                            (out_index_set _ (op_family (mkFinNat nc)))
          )
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
@@ -3030,7 +3030,7 @@ Section StructuralProperies.
         (* no collisions on j-th row accross all families *)
         assert(forall  (t : nat) (tc : t < k),
                   not (out_index_set Monoid_RthetaFlags (op_family (mkFinNat tc))
-                                     (mkFinNat jc))).
+                                   (mkFinNat jc))).
         {
           intros t tc.
           contradict S.
@@ -3090,9 +3090,9 @@ Section StructuralProperies.
           contradict C.
           apply mem_merge_is_Some.
           unshelve eapply IUnion_mem_aux_step_disjoint with (op_family:=op_family)
-                                                  (m:=m)
-                                                  (j:=n)
-                                                  (k:=S n)
+                                                            (m:=m)
+                                                            (j:=n)
+                                                            (k:=S n)
 
           ; auto.
           --
@@ -3162,18 +3162,187 @@ Section StructuralProperies.
           apply H0.
     -
       (* out_mem_fill_pattern *)
-      admit.
-  Admitted.
+      split.
+      +
+        intros j jc.
+
+        simpl in *.
+        unfold IUnion_mem in H.
+        break_match_hyp.
+        *
+          some_inv.
+          subst m.
+          split; intros H.
+          --
+            simpl in H.
+            inversion H.
+          --
+            unfold mem_in, mem_empty in H.
+            apply NP.F.empty_in_iff in H.
+            tauto.
+        *
+          clear k Heqn.
+          generalize dependent (@eq_ind_r nat (S n) (Peano.lt n) (Nat.lt_succ_diag_r n)
+                                          (S n) (@eq_refl nat (S n))).
+
+          intros kc H.
+          split; intros H0.
+          --
+            clear compat.
+            dependent induction n.
+            ++
+              simpl in H.
+              specialize (op_family_facts 0 kc).
+              simpl in *.
+              unfold get_family_mem_op in H.
+              apply op_family_facts in H.
+              destruct H as [H _].
+              specialize (H j jc).
+              apply H.
+              destruct H0.
+              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc in H0 by apply lt_unique.
+              apply H0.
+              inversion H0.
+            ++
+              simpl in *.
+              repeat break_match_hyp; try some_none.
+
+              dependent destruction H0.
+              **
+                apply mem_merge_key_dec' with (m0:=m1) (m1:=m2).
+                apply H.
+                left.
+                specialize (op_family_facts (S n) kc).
+                eapply out_mem_fill_pattern; eauto.
+                unfold In in H0.
+                replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with kc
+                  in H0 by apply lt_unique.
+                eapply H0.
+              **
+                apply mem_merge_key_dec' with (m0:=m1) (m1:=m2).
+                apply H.
+                right.
+                specialize (IHn (shrink_op_family _ op_family)
+                                (shrink_op_family_facts _ _ _ _ _ op_family_facts)).
+
+                assert(nc1: n < S n) by lia.
+                unfold mem_in in IHn.
+
+                specialize (IHn m0 m2 j jc nc1).
+
+                assert(IUnion_mem_aux nc1
+                                      (get_family_mem_op Monoid_RthetaFlags
+                                                         (shrink_op_family Monoid_RthetaFlags op_family)) m0 ≡ Some m2) as P.
+                {
+                  rewrite IUnion_mem_aux_shrink.
+                  rewrite <- Heqo1.
+                  f_equiv.
+                  apply lt_unique.
+                }
+                clear Heqo1.
+                specialize (IHn P).
+                apply IHn.
+                eapply H0.
+          --
+            clear compat.
+            dependent induction n.
+            ++
+              specialize (op_family_facts 0 kc).
+              simpl in *.
+              unfold get_family_mem_op in H.
+              apply op_family_facts in H.
+              destruct H as [H _].
+              specialize (H j jc).
+              apply Union_introl.
+              unfold In.
+              apply H in H0.
+              replace (@S_j_lt_n 1 0 (@eq_refl nat 1)) with kc
+                by apply lt_unique.
+              apply H0.
+            ++
+              simpl in *.
+              repeat break_match_hyp; try some_none.
+
+              apply mem_merge_key_dec with (m0:=m1) (m1:=m2) in H0; auto.
+              clear H.
+              destruct H0 as [H1 | H2].
+              **
+                apply Union_introl.
+                unfold In.
+                rename Heqo0 into H.
+                unfold get_family_mem_op in H.
+                apply op_family_facts in H.
+                destruct H as [H _].
+                specialize (H j jc).
+                apply H in H1.
+                replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n)))) with kc
+                  by apply lt_unique.
+                apply H1.
+              **
+                apply Union_intror.
+                clear Heqo0 m1.
+                unfold In.
+
+                specialize (IHn (shrink_op_family _ op_family)
+                                (shrink_op_family_facts _ _ _ _ _ op_family_facts)).
+
+                assert(nc1: n < S n) by lia.
+                specialize (IHn m0 m2 j jc nc1).
+                apply IHn; auto.
+                rewrite IUnion_mem_aux_shrink.
+                rewrite <- Heqo1.
+                f_equiv.
+                apply lt_unique.
+      +
+        intros j jc.
+        simpl in H.
+        unfold IUnion_mem in H.
+        break_match_hyp.
+        *
+          some_inv.
+          subst.
+          unfold mem_in, mem_empty, not.
+          apply NP.F.empty_in_iff.
+        *
+          clear k Heqn compat.
+
+          generalize dependent (@eq_ind_r nat (S n) (Peano.lt n) (Nat.lt_succ_diag_r n)
+                                          (S n) (@eq_refl nat (S n))).
+          generalize dependent (S n).
+          intros k op_family op_family_facts kc H.
+
+          revert m H.
+          induction n; intros.
+          --
+            simpl in H.
+            specialize (op_family_facts 0 kc).
+            destruct op_family_facts.
+            specialize (out_mem_fill_pattern0 m0 m H).
+            apply out_mem_fill_pattern0, jc.
+          --
+            simpl in H.
+            repeat break_match_hyp; try some_none.
+            unfold mem_in.
+            apply (mem_merge_key_not_in m m1 m2).
+            apply H.
+            split.
+            ++
+              specialize (op_family_facts (S n) kc).
+              eapply out_mem_fill_pattern; eauto.
+            ++
+              eapply IHn.
+              eauto.
+  Qed.
 
 
   (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
   Fact IReduction_mem_aux_shrink
-        {i o: nat}
-        (n : nat)
-        (j: nat) (jc: j<S n)
-        (dot : CarrierA → CarrierA → CarrierA)
-        (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
-        (m : NatMap CarrierA)
+       {i o: nat}
+       (n : nat)
+       (j: nat) (jc: j<S n)
+       (dot : CarrierA → CarrierA → CarrierA)
+       (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
+       (m : NatMap CarrierA)
     :
       IReduction_mem_aux jc dot
                          (get_family_mem_op Monoid_RthetaSafeFlags

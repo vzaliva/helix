@@ -263,33 +263,41 @@ Qed.
 Lemma mem_merge_key_not_in
       (m m0 m1 : mem_block)
       (MM : mem_merge m0 m1 = Some m)
+      (k: NM.key)
   :
-    forall k, (not (NM.In k m)) -> (not (NM.In k m0)) /\ (not (NM.In k m1)).
+    (not (NM.In k m)) <-> (not (NM.In k m0)) /\ (not (NM.In k m1)).
 Proof.
-  intros k H.
-  unfold mem_merge in MM.
-  break_if; inversion MM.
-  clear MM Heqb.
-  subst m.
-  unfold mem_union in H.
-  remember
-    (fun mx my : option CarrierA =>
-       match mx with
-       | Some x => Some x
-       | None => my
-       end) as f.
-
-  pose proof (F.map2_1bis) as F.
-  assert(FN: f None None = None) by (subst f; reflexivity).
-  specialize (F _ _ CarrierA m0 m1 k f FN). clear FN.
-  apply F.not_find_in_iff in H.
-  rewrite F in H. clear F.
-  subst f.
-  break_match.
-  inversion H.
   split.
-  apply F.not_find_in_iff in Heqo; auto.
-  apply F.not_find_in_iff in H; auto.
+  -
+    intros H.
+    unfold mem_merge in MM.
+    break_if; inversion MM.
+    clear MM Heqb.
+    subst m.
+    unfold mem_union in H.
+    remember
+      (fun mx my : option CarrierA =>
+         match mx with
+         | Some x => Some x
+         | None => my
+         end) as f.
+
+    pose proof (F.map2_1bis) as F.
+    assert(FN: f None None = None) by (subst f; reflexivity).
+    specialize (F _ _ CarrierA m0 m1 k f FN). clear FN.
+    apply F.not_find_in_iff in H.
+    rewrite F in H. clear F.
+    subst f.
+    break_match.
+    inversion H.
+    split.
+    apply F.not_find_in_iff in Heqo; auto.
+    apply F.not_find_in_iff in H; auto.
+  -
+    intros [H0 H1].
+    intros H.
+    apply mem_merge_key_dec with (m0:=m0) (m1:=m1) in H; auto.
+    crush.
 Qed.
 
 Lemma decidable_mem_in (k:NM.key) (m:mem_block): decidable (mem_in k m).
