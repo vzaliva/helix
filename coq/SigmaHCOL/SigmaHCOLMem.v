@@ -932,10 +932,25 @@ Section Morphisms.
   Admitted.
 
 
+  Global Instance mem_merge_proper:
+    Proper (equiv ==> equiv ==> equiv) (mem_merge).
+  Proof.
+    intros m0 m0' Em0 m1 m1' Em1.
+    unfold mem_merge.
+
+
+  Admitted.
+
   Global Instance HTSUMUnion_mem_proper:
     Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
   Proof.
-  Admitted.
-
+    intros op0 op0' Eop0 op1 op1' Eop1 x y E.
+    specialize (Eop0 x y E).
+    specialize (Eop1 x y E).
+    unfold HTSUMUnion_mem.
+    repeat break_match; try some_none; try reflexivity.
+    repeat some_inv.
+    apply mem_merge_proper; auto.
+  Qed.
 
 End Morphisms.
