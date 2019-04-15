@@ -189,7 +189,7 @@ Section TSigmaHCOLOperators.
 
   Global Instance HTSUMUnion'_proper {i o}
     : Proper ( ((=) ==> (=) ==> (=)) ==>
-          (=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o)).
+                                 (=) ==> (=) ==> (=) ==> (=)) (HTSUMUnion' (i:=i) (o:=o)).
   Proof.
     intros dot dot' Edot f f' Ef g g' Eg x y Ex.
     unfold HTSUMUnion'.
@@ -722,7 +722,50 @@ Section TSigmaHCOLOperators_StructuralProperties.
         apply H0.
     -
       (* out_mem_fill_pattern *)
-      admit.
-  Admitted.
+      intros m0 m E.
+      split.
+      +
+        split; intros H.
+        *
+          simpl in *.
+          unfold HTSUMUnion_mem in E.
+          repeat break_match_hyp; try some_none.
+          apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+          destruct E as [E0 E1].
+          dependent destruction H; apply E1.
+          --
+            left.
+            eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
+          --
+            right.
+            eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
+        *
+          simpl in *.
+          unfold HTSUMUnion_mem in E.
+          repeat break_match_hyp; try some_none.
+          apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+          destruct E as [E0 E1].
+          specialize (E0 H). clear H E1.
+          destruct E0 as [M1 | M2].
+          --
+            apply Union_introl.
+            eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
+          --
+            right.
+            eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
+      +
+        intros j jc H.
+        simpl in *.
+        unfold HTSUMUnion_mem in E.
+        repeat break_match_hyp; try some_none.
+        apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+        destruct E as [E0 E1].
+        specialize (E0 H). clear H E1.
+        destruct E0 as [M0 | M1].
+        --
+          eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
+        --
+          eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
+  Qed.
 
 End TSigmaHCOLOperators_StructuralProperties.
