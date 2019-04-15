@@ -3209,7 +3209,7 @@ Section StructuralProperies.
 
               dependent destruction H0.
               **
-                apply mem_merge_key_dec' with (m0:=m1) (m1:=m2).
+                apply mem_merge_key_dec with (m0:=m1) (m1:=m2).
                 apply H.
                 left.
                 specialize (op_family_facts (S n) kc).
@@ -3219,7 +3219,7 @@ Section StructuralProperies.
                   in H0 by apply lt_unique.
                 eapply H0.
               **
-                apply mem_merge_key_dec' with (m0:=m1) (m1:=m2).
+                apply mem_merge_key_dec with (m0:=m1) (m1:=m2).
                 apply H.
                 right.
                 specialize (IHn (shrink_op_family _ op_family)

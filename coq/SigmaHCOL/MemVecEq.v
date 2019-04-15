@@ -774,7 +774,8 @@ Section MemVecEq.
               destruct (NP.F.In_dec m k) as [K | NK].
               ++
                 (* k in m *)
-                pose proof (mem_merge_key_dec m m1 m2 MM k K) as MD.
+                pose proof (mem_merge_key_dec m m1 m2 MM k) as [MD _].
+                specialize (MD K).
                 clear H1.
                 apply P in K; clear P.
                 pose proof (out_as_range _ x (SHOperator_Facts:=HTSUMUnion_Facts dot op1 op2 compat) G k kc) as V.
