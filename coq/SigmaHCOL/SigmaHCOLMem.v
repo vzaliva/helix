@@ -931,46 +931,16 @@ Section Morphisms.
   Proof.
   Admitted.
 
-  (* Alternative definition of `mem_keys_set` *)
-  Definition mem_keys_set' (m: mem_block): NatSet :=
-    List.fold_right NS.add (NS.empty) (List.map fst (NM.elements m)).
-
-  Lemma mem_keys_set'_eq (m: mem_block):
-    mem_keys_set' m ≡ mem_keys_set m.
-  Proof.
-    unfold mem_keys_set, mem_keys_set', mem_keys_lst.
-    generalize dependent (NM.elements m).
-    intros l.
-    induction l.
-    +
-      reflexivity.
-    +
-      simpl.
-      rewrite IHl.
-      reflexivity.
-  Qed.
-
   Global Instance mem_keys_set_Proper:
-    Proper (NM.Equal ==> eq) (mem_keys_set).
+    Proper (NM.Equal ==> NS.Equal) (mem_keys_set).
   Proof.
     simpl_relation.
-    unfold mem_keys_set.
-    f_equiv.
-    unfold mem_keys_lst.
-
-    apply list_eq_nth.
-    -
-      unfold NM.Equal in H.
-      apply NP.cardinal_m in H.
-      rewrite 2!List.map_length.
-      rewrite <- 2!NM.cardinal_1.
-      apply H.
-    -
-      intros k kc.
-      unfold NM.Equal in H.
-      specialize (H k).
-  Admitted.
-
+    rename H into E.
+    rewrite <- 2!mem_keys_set_In.
+    apply NP.F.In_m.
+    reflexivity.
+    apply E.
+  Qed.
 
   Global Instance mem_merge_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_merge).
@@ -979,17 +949,24 @@ Section Morphisms.
     unfold mem_merge.
     repeat rewrite Em0, Em1.
     repeat break_if; try some_none.
-    f_equiv.
-
-    unfold is_disjoint in *.
-    unfold mem_union.
-    unfold equiv, mem_block_Equiv, mem_block_equiv.
-    apply NP.F.Equal_mapsto_iff.
-    intros k e.
-    rewrite 2!NP.F.find_mapsto_iff.
-    rewrite 2!NP.F.map2_1bis; auto.
-    repeat rewrite Em0, Em1.
-    reflexivity.
+    -
+      f_equiv.
+      unfold mem_union.
+      unfold equiv, mem_block_Equiv, mem_block_equiv.
+      apply NP.F.Equal_mapsto_iff.
+      intros k e.
+      rewrite 2!NP.F.find_mapsto_iff.
+      rewrite 2!NP.F.map2_1bis; auto.
+      repeat rewrite Em0, Em1.
+      reflexivity.
+    -
+      unfold is_disjoint in *.
+      rewrite Em0, Em1 in Heqb.
+      congruence.
+    -
+      unfold is_disjoint in *.
+      rewrite Em0, Em1 in Heqb.
+      congruence.
   Qed.
 
   Global Instance HTSUMUnion_mem_proper:
