@@ -931,6 +931,25 @@ Section Morphisms.
   Proof.
   Admitted.
 
+  (* Alternative definition of `mem_keys_set` *)
+  Definition mem_keys_set' (m: mem_block): NatSet :=
+    List.fold_right NS.add (NS.empty) (List.map fst (NM.elements m)).
+
+  Lemma mem_keys_set'_eq (m: mem_block):
+    mem_keys_set' m ≡ mem_keys_set m.
+  Proof.
+    unfold mem_keys_set, mem_keys_set', mem_keys_lst.
+    generalize dependent (NM.elements m).
+    intros l.
+    induction l.
+    +
+      reflexivity.
+    +
+      simpl.
+      rewrite IHl.
+      reflexivity.
+  Qed.
+
   Global Instance mem_keys_set_Proper:
     Proper (NM.Equal ==> eq) (mem_keys_set).
   Proof.
