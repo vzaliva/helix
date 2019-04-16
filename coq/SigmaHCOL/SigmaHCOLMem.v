@@ -931,15 +931,47 @@ Section Morphisms.
   Proof.
   Admitted.
 
+  Global Instance mem_keys_set_Proper:
+    Proper (NM.Equal ==> eq) (mem_keys_set).
+  Proof.
+    simpl_relation.
+    unfold mem_keys_set.
+    f_equiv.
+    unfold mem_keys_lst.
+
+    apply list_eq_nth.
+    -
+      unfold NM.Equal in H.
+      apply NP.cardinal_m in H.
+      rewrite 2!List.map_length.
+      rewrite <- 2!NM.cardinal_1.
+      apply H.
+    -
+      intros k kc.
+      unfold NM.Equal in H.
+      specialize (H k).
+  Admitted.
+
 
   Global Instance mem_merge_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_merge).
   Proof.
     intros m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge.
+    repeat rewrite Em0, Em1.
+    repeat break_if; try some_none.
+    f_equiv.
 
-
-  Admitted.
+    unfold is_disjoint in *.
+    unfold mem_union.
+    unfold equiv, mem_block_Equiv, mem_block_equiv.
+    apply NP.F.Equal_mapsto_iff.
+    intros k e.
+    rewrite 2!NP.F.find_mapsto_iff.
+    rewrite 2!NP.F.map2_1bis; auto.
+    repeat rewrite Em0, Em1.
+    reflexivity.
+  Qed.
 
   Global Instance HTSUMUnion_mem_proper:
     Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
