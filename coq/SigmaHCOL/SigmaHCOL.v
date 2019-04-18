@@ -9,9 +9,7 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
-Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
-Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
@@ -62,29 +60,9 @@ Section SigmaHCOL_Operators.
              op: svector fm i -> svector fm o ;
              op_proper: Proper ((=) ==> (=)) op;
 
-             (* implementation on memory blocks *)
-             mem_op: mem_block -> option mem_block;
-             mem_op_proper: Proper ((=) ==> (=)) mem_op;
-
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
            }.
-
-    (*
-    Definition svector_to_mem_block {n} (v:svector fm n): mem_block
-      :=
-        let fix svector_to_mem_block' {n:nat} (i:nat) (v:svector fm n) :=
-            match v with
-            | Vnil => mem_empty
-            | Vcons x xs =>
-              match Is_Val_dec x with
-              | left _ => mem_add n (WriterMonadNoT.evalWriter x) (svector_to_mem_block' (S i) xs)
-              | right _ => svector_to_mem_block' (S i) xs
-              end
-            end
-        in
-        svector_to_mem_block' 0 v.
-     *)
 
     (* Two vectors (=) at indices at given set *)
     Definition vec_equiv_at_set
@@ -198,24 +176,6 @@ Section SigmaHCOL_Operators.
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
 
-          (* sufficiently (values in right places, no info on empty
-             spaces) filled input memory block guarantees that `mem_op`
-             will not fail.
-           *)
-          mem_out_some: forall m,
-              (forall j (jc:j<i), in_index_set xop (mkFinNat jc) -> mem_in j m)
-              ->
-              is_Some (mem_op xop m);
-
-          (* Output memory block always have values in right places, and does
-             not have value in sparse positions *)
-          out_mem_fill_pattern: forall m0 m,
-              (mem_op xop m0 ≡ Some m)
-              ->
-              ((forall j (jc:j<o), out_index_set xop (mkFinNat jc) <-> mem_in j m )
-               /\
-               (forall j (jc:j>=o), not (mem_in j m)))
-          ;
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
@@ -253,13 +213,6 @@ Section SigmaHCOL_Operators.
                (op_family: @SHOperatorFamily i o n):
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
-
-    Definition get_family_mem_op
-               {i o n}
-               (op_family: @SHOperatorFamily i o n):
-      forall j (jc:j<n), mem_block -> option mem_block
-      := fun j (jc:j<n) => mem_op (op_family (mkFinNat jc)).
-
 
     (* Shrink family by removing the last member *)
     Definition shrink_op_family
@@ -684,8 +637,6 @@ TODO: remove
       := mkSHOperator i o
                       (liftM_HOperator' op)
                       (@liftM_HOperator'_proper fm i o op HOP)
-                      (mem_op_of_hop op)
-                      _
                       (Full_set _)
                       (Full_set _).
 
@@ -751,15 +702,15 @@ TODO: remove
     Definition IdOp
                {n: nat}
                (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _ (Some ∘ id) _ in_out_set in_out_set.
+      := mkSHOperator n n id _
+                      (* !!! (Some ∘ id) _ *)
+                      in_out_set in_out_set.
 
     Definition eUnion
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
       := mkSHOperator 1 o (eUnion' bc z) _
-                      (eUnion_mem b)
-                      _
                       (Full_set _)
                       (FinNatSet.singleton b).
 
@@ -767,18 +718,16 @@ TODO: remove
                {i b:nat}
                (bc: b < i)
       := mkSHOperator i 1 (eT' bc) _
-                      (eT_mem b)
-                      _
                       (FinNatSet.singleton b)
                       (Full_set _).
-
 
     Definition Gather
                {i o: nat}
                (f: index_map o i)
       := mkSHOperator i o (Gather' f) _
+                      (* !!!
                       (mem_op_of_op (fm:=fm) (Gather' f))
-                      _
+                      _ *)
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
 
@@ -809,8 +758,8 @@ TODO: remove
                {f_inj: index_map_injective f}
                (idv: CarrierA)
       := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
-                      (mem_op_of_op (fm:=fm) (@Scatter' _ _ _ f f_inj idv))
-                      _
+                      (* !!! (mem_op_of_op (fm:=fm) (@Scatter' _ _ _ f f_inj idv))
+                      _ *)
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -841,20 +790,13 @@ TODO: remove
     Qed.
 
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
-    Program Definition SHCompose
+    Definition SHCompose
             {i1 o2 o3}
             (op1: @SHOperator o2 o3)
             (op2: @SHOperator i1 o2)
       : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
-                                          (option_compose (mem_op op1) (mem_op op2))
-                                          _
                                           (in_index_set op2)
                                           (out_index_set op1).
-    Next Obligation.
-      apply option_compose_proper.
-      apply op1.
-      apply op2.
-    Defined.
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -971,8 +913,6 @@ TODO: remove
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       := mkSHOperator n n (SHPointwise' f) _
-                      (mem_op_of_hop (HPointwise f))
-                      _
                       (Full_set _) (Full_set _).
 
     Definition SHInductor
@@ -981,8 +921,8 @@ TODO: remove
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
       := mkSHOperator 1 1 (SHInductor' n f initial) _
-                      (mem_op_of_hop (HInductor n f initial))
-                      _
+                      (* !!! (mem_op_of_hop (HInductor n f initial))
+                      _ *)
                       (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
@@ -1099,8 +1039,6 @@ TODO: remove
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       := mkSHOperator (o+o) o (SHBinOp' f) _
-                      (mem_op_of_hop (HBinOp f))
-                      _
                       (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
@@ -1117,8 +1055,9 @@ TODO: remove
       mkSHOperator Monoid_RthetaFlags i o
                    (Diamond dot initial (get_family_op Monoid_RthetaFlags op_family))
                    _
+                   (* !!!
                    (IUnion_mem (get_family_mem_op Monoid_RthetaFlags op_family))
-                   _
+                   _ *)
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
@@ -1174,8 +1113,8 @@ TODO: remove
     mkSHOperator Monoid_RthetaSafeFlags i o
                  (Diamond dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
-                 (IReduction_mem dot (get_family_mem_op _ op_family))
-                 _
+                 (* !!! (IReduction_mem dot (get_family_mem_op _ op_family))
+                 _ *)
                  (family_in_index_set _ op_family)
                  (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .
@@ -1745,14 +1684,6 @@ Section StructuralProperies.
         unfold not in H.
         destruct H.
         split.
-      -
-        (* mem_out_some *)
-        intros m H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        simpl.
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
     Qed.
 
     Global Instance SHCompose_Facts
@@ -1819,45 +1750,6 @@ Section StructuralProperies.
         unfold compose in *.
         apply no_coll_at_sparse0.
         apply H.
-      -
-        (* mem_out_some *)
-        intros m H.
-        unfold is_Some, option_compose in *.
-        simpl in *.
-        unfold option_compose.
-        repeat break_match; try some_none; try auto.
-        +
-          contradict Heqo.
-          apply is_Some_ne_None.
-          apply mem_out_some.
-          apply fop1.
-          pose proof (out_mem_fill_pattern fm m m0 Heqo0) as [P _].
-          intros j jc H0.
-          specialize (P j jc).
-          apply P.
-          apply compat.
-          apply H0.
-        +
-          clear Heqo.
-          pose proof (@mem_out_some _ _ _ _ fop2 m H) as C.
-          unfold is_Some in C.
-          break_match; [ some_none | tauto].
-      -
-        (* out_mem_fill_pattern *)
-        intros m0 m H.
-        split; intros j jc.
-        +
-          simpl in *.
-          unfold option_compose in H.
-          break_match_hyp; try some_none.
-          pose proof (out_mem_fill_pattern _ m1 m H) as [P1 _].
-          apply P1; auto.
-        +
-          simpl in *.
-          unfold option_compose in H.
-          break_match_hyp; try some_none.
-          pose proof (out_mem_fill_pattern _ m1 m H) as [_ P2].
-          apply P2; auto.
     Qed.
 
     Global Instance eUnion_Facts
@@ -1938,59 +1830,6 @@ Section StructuralProperies.
           congruence.
         +
           apply Not_Collision_mkStruct.
-      -
-        (* mem_out_some *)
-        intros m H.
-        unfold is_Some, eUnion, eUnion_mem, map_mem_block_elt, mem_lookup. simpl.
-        repeat break_match; try some_none; try tauto.
-        clear Heqo0. rename Heqo1 into M.
-        simpl in *.
-        assert(P: Full_set (FinNat 1) (mkFinNat Nat.lt_0_1)) by apply Full_intro.
-        apply H in P.
-        unfold mem_lookup, mem_in in *.
-        apply NP.F.not_find_in_iff in M.
-        congruence.
-      -
-        (* out_mem_fill_pattern *)
-        intros m0 m H.
-        split; intros j jc.
-        +
-          simpl in *.
-          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
-          break_match_hyp; try some_none.
-          some_inv.
-          subst m.
-          split.
-          *
-            intros O.
-            destruct (eq_nat_dec j b).
-            --
-              apply NP.F.in_find_iff.
-              rewrite NP.F.add_eq_o; auto.
-              some_none.
-            --
-              unfold FinNatSet.singleton, mkFinNat in O.
-              simpl in O.
-              congruence.
-          *
-            intros I.
-            unfold FinNatSet.singleton, mkFinNat.
-            simpl.
-            destruct (eq_nat_dec j b); auto.
-            exfalso.
-            apply NP.F.in_find_iff in I.
-            rewrite NP.F.add_neq_o in I; auto.
-        +
-          intros C.
-          simpl in H.
-          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
-          break_match; try some_none.
-          some_inv.
-          subst m.
-          unfold mem_add, mem_empty in C.
-          destruct (eq_nat_dec j b); try omega.
-          apply NP.F.in_find_iff in C.
-          rewrite NP.F.add_neq_o in C; auto.
     Qed.
 
     Global Instance eT_Facts
@@ -2044,74 +1883,7 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
-      -
-        (* mem_out_some *)
-        intros v H.
-        unfold is_Some, eT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
-        repeat break_match; try some_none; try tauto.
-        clear Heqo. rename Heqo0 into M.
-        simpl in *.
-        assert(P: FinNatSet.singleton b (mkFinNat bc)).
-        {
-          unfold FinNatSet.singleton, mkFinNat.
-          auto.
-        }
-        apply H in P.
-        unfold mem_lookup, mem_in in *.
-        apply NP.F.not_find_in_iff in M.
-        congruence.
-      -
-        (* out_mem_fill_pattern *)
-        intros m0 m H.
-        simpl in *.
-        unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
-        split.
-        +
-          intros j jc.
-          destruct j; try omega.
-          split.
-          *
-            intros F.
-            break_match_hyp; try some_none.
-            some_inv.
-            subst m.
-            unfold mem_add, mem_empty.
-            apply NP.F.in_find_iff.
-            rewrite NP.F.add_eq_o.
-            some_none.
-            reflexivity.
-          *
-            intros I.
-            apply Full_intro.
-        +
-          intros j jc.
-          unfold not.
-          intros C.
-          break_match_hyp; try some_none.
-          some_inv.
-          subst m.
-          unfold mem_add, mem_empty in *.
-          destruct (eq_nat_dec j 0) as [z | nz].
-          *
-            lia.
-          *
-            apply NP.F.add_neq_in_iff in C.
-            apply NP.F.empty_in_iff in C.
-            tauto.
-            auto.
     Qed.
-
-    (* We admit this lemma because Gather will never occur in final
-       SigmaHCOL after rewriting and hence will never be compiled
-       to LLVM *)
-    Fact Gather_mem_out_fill_pattern:
-      ∀ (i o : nat) (f : index_map o i) (m0 m : mem_block),
-        mem_op fm (Gather fm f) m0 ≡ Some m
-        → (∀ (j : nat) (jc : j < o), out_index_set fm (Gather fm f) (mkFinNat jc)
-                                                   ↔ mem_in j m)
-          ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m).
-    Proof.
-    Admitted. (* OK *)
 
     Global Instance Gather_Facts
            {i o: nat}
@@ -2164,12 +1936,6 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
-      -
-        intros v H.
-        unfold Gather.
-        simpl; tauto.
-      -
-        apply Gather_mem_out_fill_pattern.
     Qed.
 
     Global Instance SHPointwise_Facts
@@ -2218,14 +1984,6 @@ Section StructuralProperies.
         simpl in *.
         destruct jc.
         split.
-      -
-        (* mem_out_some *)
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        simpl.
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
     Qed.
 
     Global Instance SHInductor_Facts
@@ -2281,6 +2039,7 @@ Section StructuralProperies.
         simpl in *.
         destruct jc.
         split.
+        (* !!!
       -
         (* mem_out_some *)
         intros v H.
@@ -2288,27 +2047,11 @@ Section StructuralProperies.
       -
         intros m0 m H.
         apply (out_mem_fill_pattern_mem_op_of_hop H).
+*)
     Qed.
 
 
   End FlagsMonoidGenericStructuralProperties.
-
-  (* We admit this lemma because Scatter will never occur in final
-       SigmaHCOL after rewriting and hence will never be compiled
-       to LLVM *)
-  Fact Scatter_out_mem_fill_pattern:
-    ∀ (i o : nat) (f : index_map i o) (f_inj : index_map_injective f)
-      (idv : CarrierA) (m0 m : mem_block), mem_op Monoid_RthetaFlags
-                                                  (Scatter Monoid_RthetaFlags f idv (f_inj:=f_inj))
-                                                  m0 ≡ Some m
-                                           → (∀ (j : nat) (jc : j < o),
-                                                 out_index_set Monoid_RthetaFlags
-                                                               (Scatter Monoid_RthetaFlags f idv (f_inj:=f_inj))
-                                                               (mkFinNat jc) ↔
-                                                               mem_in j m)
-                                             ∧ (∀ j : nat, j ≥ o → ¬ mem_in j m).
-  Proof.
-  Admitted. (* OK *)
 
   Global Instance Scatter_Rtheta_Facts
          {i o: nat}
@@ -2387,13 +2130,6 @@ Section StructuralProperies.
       unfold Scatter' in *.
       rewrite Vbuild_nth in S.
       break_match; crush.
-    -
-      (* mem_out_some *)
-      intros v H.
-      unfold Scatter.
-      simpl; tauto.
-    -
-      apply Scatter_out_mem_fill_pattern.
   Qed.
 
   Global Instance SHBinOp_RthetaSafe_Facts
@@ -2441,12 +2177,6 @@ Section StructuralProperies.
       simpl in *.
       destruct jc.
       split.
-    -
-      intros v H.
-      apply mem_out_some_mem_op_of_hop, H.
-    -
-      intros m0 m H.
-      apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
   Lemma UnionFold_empty_Non_Collision
@@ -2632,227 +2362,6 @@ Section StructuralProperies.
     -
       specialize (S H).
       crush.
-  Qed.
-
-  (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
-  Fact IUnion_mem_aux_shrink
-       {i o: nat}
-       (n : nat)
-       (j: nat) (jc: j<S n)
-       (op_family : SHOperatorFamily Monoid_RthetaFlags)
-       (m : NatMap CarrierA)
-    :
-      IUnion_mem_aux jc
-                     (get_family_mem_op Monoid_RthetaFlags
-                                        (shrink_op_family Monoid_RthetaFlags op_family))
-                     m
-                     ≡ IUnion_mem_aux
-                     (Nat.lt_lt_succ_r jc)
-                     (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaFlags op_family) m.
-  Proof.
-    induction j.
-    -
-      unfold get_family_mem_op, shrink_op_family, mkFinNat.
-      simpl.
-      f_equiv; f_equiv; f_equiv.
-      apply le_unique.
-    -
-      simpl.
-      replace (get_family_mem_op Monoid_RthetaFlags
-                                 (shrink_op_family Monoid_RthetaFlags op_family) (S j) jc m)
-        with
-          (get_family_mem_op Monoid_RthetaFlags op_family (S j) (Nat.lt_lt_succ_r jc) m).
-      2:{
-        unfold get_family_mem_op, shrink_op_family, mkFinNat.
-        simpl.
-        f_equiv; f_equiv; f_equiv.
-        apply le_unique.
-      }
-      break_match; try reflexivity.
-      rewrite IHj.
-      replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
-          (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
-      reflexivity.
-  Qed.
-
-  Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
-    := fun j => match lt_ge_dec j n with
-                | left jc => f (mkFinNat jc)
-                | in_right => False
-                end.
-
-  Lemma FinNatSet_to_natSet_Empty (f: FinNatSet 0):
-    FinNatSet_to_natSet f ≡ Empty_set _.
-  Proof.
-    apply Extensionality_Ensembles.
-    split; intros H P.
-    -
-      exfalso.
-      unfold In in *.
-      unfold FinNatSet_to_natSet in P.
-      break_match.
-      nat_lt_0_contradiction.
-      congruence.
-    -
-      contradict P.
-  Qed.
-
-  Lemma Disjoint_FinNat_to_nat {n:nat} (A B: FinNatSet n):
-    Disjoint _ A B ->
-    Disjoint nat (FinNatSet_to_natSet A) (FinNatSet_to_natSet B).
-  Proof.
-    intros D.
-    apply Disjoint_intro.
-    intros k C.
-    destruct D as [D].
-    destruct C as [k C1 C2].
-    unfold FinNatSet_to_natSet in *.
-    unfold In in *.
-    destruct (lt_ge_dec k n) as [kc | nkc].
-    -
-      specialize (D (mkFinNat kc)).
-      contradict D.
-      apply Intersection_intro.
-      + apply C1.
-      + apply C2.
-    -
-      tauto.
-  Qed.
-
-  Lemma mem_keys_set_to_out_index_set
-        (i o: nat)
-        {fm}
-        (xop: @SHOperator fm i o)
-        (facts:  @SHOperator_Facts fm i o xop)
-        (m m0: mem_block)
-    :
-      (mem_op fm xop m0 ≡ Some m)
-      ->
-      FinNatSet_to_natSet (out_index_set fm xop) ≡ NE.mkEns (mem_keys_set m).
-  Proof.
-    intros H.
-    apply out_mem_fill_pattern in H; [idtac | apply facts].
-    destruct H as [H1 H2].
-    unfold mem_in in *.
-    apply Extensionality_Ensembles.
-    unfold Same_set.
-    split.
-    -
-      unfold Included.
-      intros k H.
-      destruct (lt_ge_dec k o) as [kc | nkc].
-      +
-        clear H2.
-        specialize (H1 k kc).
-        apply mem_keys_set_In.
-        apply H1. clear H1.
-        unfold In in *.
-        generalize dependent (out_index_set fm xop).
-        intros s H.
-        unfold FinNatSet_to_natSet in H.
-        break_match_hyp; try contradiction.
-        replace l with kc in H by apply lt_unique.
-        apply H.
-      +
-        exfalso.
-        clear H1.
-        specialize (H2 k nkc).
-        (* H is false, as k is out of range *)
-        unfold In in H.
-        unfold FinNatSet_to_natSet in H.
-        break_match_hyp; try omega.
-    -
-      unfold Included.
-      intros k H.
-      unfold In in *.
-      destruct (lt_ge_dec k o) as [kc | nkc].
-      +
-        clear H2.
-        specialize (H1 k kc).
-        unfold FinNatSet_to_natSet.
-        break_match; try omega.
-        replace l with kc by apply lt_unique.
-        apply H1.
-        apply mem_keys_set_In.
-        apply H.
-      +
-        apply mem_keys_set_In in H.
-        specialize (H2 k nkc).
-        congruence.
-  Qed.
-
-  Lemma IUnion_mem_aux_step_disjoint
-        (i o n : nat)
-        (j: nat) (jc: j < S (S n))
-        (k: nat) (kc: k < S (S n))
-        (jk: j<k)
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
-        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
-            @SHOperator_Facts Monoid_RthetaFlags i o
-                              (op_family (@mkFinNat (S (S n)) j jc)))
-
-        (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
-            m0 ≢ n0
-            → Disjoint (FinNat o)
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
-
-        (m m0 m1 : mem_block)
-
-        (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
-                                k kc m
-                                ≡ @Some mem_block m0)
-        (H1:
-           @IUnion_mem_aux (S (S n))
-                           j jc
-                           (@get_family_mem_op
-                              Monoid_RthetaFlags i o
-                              (S (S n)) op_family) m
-                           ≡ @Some mem_block m1)
-    :
-      Disjoint nat
-               (NE.mkEns (mem_keys_set m0))
-               (NE.mkEns (mem_keys_set m1)).
-  Proof.
-    unfold get_family_mem_op in *.
-    revert m0 m1 k kc jk H0 H1.
-    induction j; intros.
-    -
-      assert(P: k <> 0) by auto.
-      assert(P1: k < S (S n)) by omega.
-      assert(P2: 0 < S (S n)) by lia.
-      specialize (compat k P1 0 P2 P).
-      clear P.
-      simpl in *.
-      apply Disjoint_FinNat_to_nat in compat.
-      rewrite
-        mem_keys_set_to_out_index_set
-        with (m:=m0) (m0:=m),
-             mem_keys_set_to_out_index_set
-        with (m:=m1) (m0:=m) in compat; auto.
-
-      rewrite <- H1; unfold mkFinNat;f_equiv; f_equiv; f_equiv; apply lt_unique.
-      rewrite <- H0; unfold mkFinNat; f_equiv; f_equiv;f_equiv; apply lt_unique.
-    -
-      simpl in *.
-      repeat break_match_hyp; try some_none.
-      apply (Disjoint_of_mem_merge H1).
-      +
-        assert(P: k ≢ S j) by lia.
-        specialize (compat k kc (S j) jc P).
-        simpl in compat.
-        erewrite <- 2!mem_keys_set_to_out_index_set.
-        apply Disjoint_FinNat_to_nat.
-        eapply compat.
-        eauto.
-        eauto.
-        eauto.
-        eauto.
-      +
-        unshelve eapply IHj ; try auto; try omega.
-        replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
-          by apply lt_unique.
-        apply Heqo1.
   Qed.
 
   Global Instance IUnion_Facts
@@ -3055,6 +2564,7 @@ Section StructuralProperies.
         apply family_out_set_implies_members.
         exists m, mc.
         apply M.
+        (* !!!
     -
       (* mem_out_some *)
       intros m H.
@@ -3332,51 +2842,9 @@ Section StructuralProperies.
             ++
               eapply IHn.
               eauto.
+         *)
   Qed.
 
-
-  (* Shinks family from `(S (S n))` to `(S n)`, assuming `j` is below `(S n)` *)
-  Fact IReduction_mem_aux_shrink
-       {i o: nat}
-       (n : nat)
-       (j: nat) (jc: j<S n)
-       (dot : CarrierA → CarrierA → CarrierA)
-       (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
-       (m : NatMap CarrierA)
-    :
-      IReduction_mem_aux jc dot
-                         (get_family_mem_op Monoid_RthetaSafeFlags
-                                            (shrink_op_family Monoid_RthetaSafeFlags op_family))
-                         m
-                         ≡ IReduction_mem_aux
-                         (Nat.lt_lt_succ_r jc)
-                         dot
-                         (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaSafeFlags op_family) m.
-  Proof.
-    induction j.
-    -
-      unfold get_family_mem_op, shrink_op_family, mkFinNat.
-      simpl.
-      f_equiv; f_equiv; f_equiv.
-      apply le_unique.
-    -
-      simpl.
-      replace (get_family_mem_op Monoid_RthetaSafeFlags
-                                 (shrink_op_family Monoid_RthetaSafeFlags op_family) (S j) jc m)
-        with
-          (get_family_mem_op Monoid_RthetaSafeFlags op_family (S j) (Nat.lt_lt_succ_r jc) m).
-      2:{
-        unfold get_family_mem_op, shrink_op_family, mkFinNat.
-        simpl.
-        f_equiv; f_equiv; f_equiv.
-        apply le_unique.
-      }
-      break_match; try reflexivity.
-      rewrite IHj.
-      replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
-          (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
-      reflexivity.
-  Qed.
 
   Global Instance IReduction_Facts
          {i o k}
@@ -3526,6 +2994,7 @@ Section StructuralProperies.
         apply no_coll_at_sparse.
         apply op_family_facts.
         apply H.
+        (* !!!
     -
       (* mem_out_some *)
       intros m H.
@@ -3762,6 +3231,7 @@ Section StructuralProperies.
             ++
               eapply IHn.
               eauto.
+*)
   Qed.
 
 End StructuralProperies.

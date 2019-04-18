@@ -62,8 +62,6 @@ Section RthetaSafetyCast.
       mkSHOperator Monoid_RthetaFlags i o
                    (SafeCast' (op Monoid_RthetaSafeFlags f))
                    _
-                   (mem_op _ f)
-                   (mem_op_proper _ f)
                    (in_index_set _ f)
                    (out_index_set _ f).
 
@@ -128,8 +126,6 @@ Section RthetaSafetyCast.
       mkSHOperator Monoid_RthetaSafeFlags i o
                    (UnSafeCast' (op Monoid_RthetaFlags f))
                    _
-                   (mem_op _ f)
-                   (mem_op_proper _ f)
                    (in_index_set _ f)
                    (out_index_set _ f).
 
@@ -230,12 +226,6 @@ Section TSigmaHCOLOperators.
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)
                                             dot dot_mor)
-                   (HTSUMUnion_mem
-                      (mem_op _ op1)
-                      (mem_op _ op2))
-                   (HTSUMUnion_mem_proper
-                      (mem_op_proper _ op1)
-                      (mem_op_proper _ op2))
                    (Ensembles.Union _ (in_index_set _ op1) (in_index_set _ op2))
                    (Ensembles.Union _ (out_index_set _ op1) (out_index_set _ op2)).
 
@@ -405,6 +395,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
       apply no_coll_at_sparse; assumption.
+      (* !!!
     -
       (* mem_out_some *)
       intros v H.
@@ -423,6 +414,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
         split; intros P; specialize (H j jc); apply H, P.
       +
         apply NH, jc.
+       *)
   Qed.
 
   Global Instance UnSafeCast_Facts
@@ -484,6 +476,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
       apply no_coll_at_sparse; assumption.
+      (* !!!
     -
       (* mem_out_some *)
       intros v H.
@@ -502,6 +495,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
         split; intros P; specialize (H j jc); apply H, P.
       +
         apply NH, jc.
+       *)
   Qed.
 
   Global Instance HTSUMUnion_Facts
@@ -663,109 +657,6 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
         contradict C.
         apply Intersection_intro; auto.
-    -
-      (* mem_out_some *)
-      intros m H.
-      unfold is_Some, HTSUMUnion, HTSUMUnion_mem in *.
-      simpl in *.
-      repeat break_match; try some_none; try auto.
-      +
-        contradict Heqo0.
-        clear H.
-        apply mem_merge_is_Some.
-        pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m0 Heqo1) as [P1 NP1].
-        pose proof (out_mem_fill_pattern Monoid_RthetaFlags m m1 Heqo2) as [P2 NP2].
-
-        apply Disjoint_intro.
-        intros j.
-        destruct (NatUtil.lt_ge_dec j o) as [jc | jc].
-        *
-          clear NP1 NP2.
-          specialize (P1 j jc).
-          specialize (P2 j jc).
-          destruct compat as [compat].
-          specialize (compat (mkFinNat jc)).
-          intros C.
-          unfold In, not  in *.
-          destruct C as [j H0 H1].
-
-          apply NE.In_In, mem_keys_set_In, P1 in H0. clear P1.
-          apply NE.In_In, mem_keys_set_In, P2 in H1. clear P2.
-          destruct compat.
-          apply Intersection_intro; auto.
-        *
-          specialize (NP1 j jc).
-          intros C.
-          destruct C as [j H0 _].
-          apply NE.In_In, mem_keys_set_In in H0.
-          unfold mem_in in NP1.
-          congruence.
-      +
-        clear Heqo0.
-        contradict Heqo2.
-        apply is_Some_ne_None.
-        apply mem_out_some; auto.
-        intros j jc H0.
-        specialize (H j jc).
-        apply H.
-        apply Union_intror.
-        apply H0.
-      +
-        clear Heqo0.
-        contradict Heqo1.
-        apply is_Some_ne_None.
-        apply mem_out_some; auto.
-        intros j jc H0.
-        specialize (H j jc).
-        apply H.
-        apply Union_introl.
-        apply H0.
-    -
-      (* out_mem_fill_pattern *)
-      intros m0 m E.
-      split.
-      +
-        split; intros H.
-        *
-          simpl in *.
-          unfold HTSUMUnion_mem in E.
-          repeat break_match_hyp; try some_none.
-          apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
-          destruct E as [E0 E1].
-          dependent destruction H; apply E1.
-          --
-            left.
-            eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
-          --
-            right.
-            eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
-        *
-          simpl in *.
-          unfold HTSUMUnion_mem in E.
-          repeat break_match_hyp; try some_none.
-          apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
-          destruct E as [E0 E1].
-          specialize (E0 H). clear H E1.
-          destruct E0 as [M1 | M2].
-          --
-            apply Union_introl.
-            eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
-          --
-            right.
-            eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
-      +
-        intros j jc H.
-        simpl in *.
-        unfold HTSUMUnion_mem in E.
-        repeat break_match_hyp; try some_none.
-        apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
-        destruct E as [E0 E1].
-        specialize (E0 H). clear H E1.
-        destruct E0 as [M0 | M1].
-        --
-          eapply out_mem_fill_pattern with (xop:=op1) (m0:=m0); eauto.
-        --
-          eapply out_mem_fill_pattern with (xop:=op2) (m0:=m0); eauto.
   Qed.
 
 End TSigmaHCOLOperators_StructuralProperties.

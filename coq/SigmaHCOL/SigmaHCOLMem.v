@@ -33,7 +33,6 @@ Set Implicit Arguments.
 Import VectorNotations.
 Open Scope vector_scope.
 
-
 (* After folding starting from 'j' attempts to lookup lower indices will fail *)
 Lemma find_fold_right_indexed_oob
       (n i j: nat)
@@ -950,6 +949,7 @@ Section Morphisms.
     - reflexivity.
   Qed.
 
+  (*
   Global Instance IUnion_mem_aux_arg_proper
            {n: nat}
            (j: nat) (jc: j<n)
@@ -985,6 +985,7 @@ Section Morphisms.
     reflexivity.
   Qed.
 
+
   (* TODO: may need Proper for `op_family_f` *)
   Global Instance IReduction_mem_proper
          {n: nat}
@@ -994,6 +995,7 @@ Section Morphisms.
       Proper (equiv ==> equiv) (IReduction_mem dot op_family_f).
   Proof.
   Admitted.
+   *)
 
   Global Instance HTSUMUnion_mem_proper:
     Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
