@@ -921,8 +921,6 @@ TODO: remove
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
       := mkSHOperator 1 1 (SHInductor' n f initial) _
-                      (* !!! (mem_op_of_hop (HInductor n f initial))
-                      _ *)
                       (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
@@ -2039,15 +2037,6 @@ Section StructuralProperies.
         simpl in *.
         destruct jc.
         split.
-        (* !!!
-      -
-        (* mem_out_some *)
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-*)
     Qed.
 
 
