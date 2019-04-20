@@ -949,7 +949,7 @@ Section Morphisms.
     - reflexivity.
   Qed.
 
-  (*
+  (* !!!
   Global Instance IUnion_mem_aux_arg_proper
            {n: nat}
            (j: nat) (jc: j<n)
@@ -986,15 +986,6 @@ Section Morphisms.
   Qed.
 
 
-  (* TODO: may need Proper for `op_family_f` *)
-  Global Instance IReduction_mem_proper
-         {n: nat}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-    :
-      Proper (equiv ==> equiv) (IReduction_mem dot op_family_f).
-  Proof.
-  Admitted.
    *)
 
   Global Instance HTSUMUnion_mem_proper:

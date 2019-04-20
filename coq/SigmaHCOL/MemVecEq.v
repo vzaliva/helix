@@ -1751,6 +1751,87 @@ Section MemVecEq.
           apply H.
     Qed.
 
+    Definition get_family_mem_op
+               {fm}
+               {i o n}
+               {op_family: @SHOperatorFamily fm i o n}
+               {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
+               (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+               (op_family: @SHOperatorFamily fm i o n):
+      forall j (jc:j<n), mem_block -> option mem_block
+      := fun j (jc:j<n) => mem_op (SHOperator_Mem:=op_family_mem j jc).
+
+
+    Global Instance get_family_mem_op_proper
+           {fm}
+           {i o n}
+           (j: nat) (jc: j<n)
+           {op_family: @SHOperatorFamily fm i o n}
+           {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+           (op_family: @SHOperatorFamily fm i o n):
+      Proper ((=) ==> (=)) (get_family_mem_op op_family_mem op_family j jc).
+    Proof.
+      intros x y E.
+      unfold get_family_mem_op.
+      apply mem_op_proper, E.
+    Qed.
+
+    Global Instance IReduction_mem_aux_proper
+           {i o n: nat}
+           (j: nat) (jc: j<n)
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        Proper ((=) ==> (=)) (@IReduction_mem_aux n j jc dot (get_family_mem_op op_family_mem op_family)).
+    Proof.
+      intros x y E.
+      induction j.
+      -
+        simpl.
+        rewrite E.
+        reflexivity.
+      -
+    Admitted.
+
+    Global Instance IReduction_mem_proper
+           {i o n}
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        Proper (equiv ==> equiv) (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+    Proof.
+      intros x y E.
+      unfold IReduction_mem.
+      repeat break_match; try some_none; try reflexivity.
+      rewrite E.
+      reflexivity.
+    Qed.
+
+    Global Instance IReduction_Mem
+           {i o k}
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
+           (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+      : SHOperator_Mem (IReduction dot initial op_family).
+    Proof.
+      unshelve esplit.
+      -
+        apply (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+      -
+        apply IReduction_mem_proper, pdot.
+      -
+    Qed.
+
+
   End MonoidSpecific.
 
 
