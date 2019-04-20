@@ -1795,7 +1795,48 @@ Section MemVecEq.
         rewrite E.
         reflexivity.
       -
-    Admitted.
+        simpl.
+        repeat break_match; try some_none.
+        +
+          f_equiv.
+          apply Option_equiv_eq in Heqo0.
+          apply Option_equiv_eq in Heqo1.
+          apply Option_equiv_eq in Heqo2.
+          apply Option_equiv_eq in Heqo3.
+          rewrite E in Heqo0.
+          rewrite IHj in Heqo1.
+          rewrite Heqo1 in Heqo3; clear Heqo1; some_inv.
+          rewrite Heqo0 in Heqo2; clear Heqo0; some_inv.
+          apply mem_merge_with_arg_proper; auto.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo1.
+          apply Option_equiv_eq in Heqo3.
+          rewrite IHj in Heqo1.
+          rewrite Heqo1 in Heqo3.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo0.
+          apply Option_equiv_eq in Heqo2.
+          rewrite E in Heqo0.
+          rewrite Heqo0 in Heqo2.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo1.
+          apply Option_equiv_eq in Heqo3.
+          rewrite IHj in Heqo1.
+          rewrite Heqo1 in Heqo3.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo0.
+          apply Option_equiv_eq in Heqo1.
+          rewrite E in Heqo0.
+          rewrite Heqo0 in Heqo1.
+          some_none.
+    Qed.
 
     Global Instance IReduction_mem_proper
            {i o n}
