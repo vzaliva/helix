@@ -1838,6 +1838,57 @@ Section MemVecEq.
           some_none.
     Qed.
 
+    Fact IReduction_mem_aux_Some
+         {i o k}
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
+         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+         (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+         (j: nat) (jc: j<k)
+         (m: mem_block)
+         (initial : CarrierA)
+         (H: forall (j0 : nat) (jc0 : j0 < i), in_index_set Monoid_RthetaSafeFlags
+                                                     (IReduction dot initial op_family)
+                                                     (mkFinNat jc0) → mem_in j0 m)
+      :
+        is_Some (IReduction_mem_aux jc dot (get_family_mem_op op_family_mem op_family) m).
+    Proof.
+      induction j.
+      -
+        simpl in *.
+        apply op_family_mem.
+        intros t tc H0.
+        specialize (H t tc).
+        apply H.
+        pose proof (family_in_set_includes_members) as P.
+        unfold Included,Ensembles.In  in P.
+        eapply P.
+        eauto.
+      -
+        simpl.
+        repeat break_match; try some_none.
+        +
+          crush.
+        +
+          exfalso.
+          contradict Heqo1.
+          apply is_Some_ne_None.
+          apply IHj.
+        +
+          contradict Heqo0.
+          apply is_Some_ne_None.
+          apply mem_out_some.
+          simpl in *.
+          intros t tc H0.
+          specialize (H t tc).
+          apply H.
+          pose proof (family_in_set_includes_members) as P.
+          unfold Included,Ensembles.In  in P.
+          eapply P.
+          eauto.
+    Qed.
+
     Global Instance IReduction_mem_proper
            {i o n}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1870,6 +1921,15 @@ Section MemVecEq.
       -
         apply IReduction_mem_proper, pdot.
       -
+        (* mem_out_some *)
+        intros m H.
+        unfold IReduction_mem.
+        break_match.
+        crush.
+        eapply IReduction_mem_aux_Some, H.
+      -
+
+
     Qed.
 
 
