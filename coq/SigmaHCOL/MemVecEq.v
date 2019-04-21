@@ -1914,8 +1914,10 @@ Section MemVecEq.
         simpl.
         replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
           by apply lt_unique.
-        vm_compute.
-        admit.
+        f_equiv.
+        symmetry.
+        rewrite <- eq_rect_eq.
+        reflexivity.
       -
         simpl.
 
@@ -1929,14 +1931,20 @@ Section MemVecEq.
                (S j) (Nat.lt_lt_succ_r jc) m).
         2:{
           unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
-          admit.
+          simpl.
+          replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
+            by apply lt_unique.
+          f_equiv.
+          symmetry.
+          rewrite <- eq_rect_eq.
+          reflexivity.
         }
         break_match; try reflexivity.
         rewrite IHj.
         replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
             (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
         reflexivity.
-    Admitted.
+    Qed.
 
     Global Instance IReduction_Mem
            {i o k}
