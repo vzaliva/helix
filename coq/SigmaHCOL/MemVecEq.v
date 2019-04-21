@@ -98,49 +98,6 @@ Class SHOperator_Mem
 
 Section MemVecEq.
 
-  (* !!!
-  (* Shinks family from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
-  Fact IUnion_mem_aux_shrink
-       {i o: nat}
-       (n : nat)
-       (j: nat) (jc: j<S n)
-       (op_family : SHOperatorFamily Monoid_RthetaFlags)
-       (m : NatMap CarrierA)
-    :
-      IUnion_mem_aux jc
-                     (get_family_mem_op Monoid_RthetaFlags
-                                        (shrink_op_family Monoid_RthetaFlags op_family))
-                     m
-                     ≡ IUnion_mem_aux
-                     (Nat.lt_lt_succ_r jc)
-                     (get_family_mem_op (i:=i) (o:=o) Monoid_RthetaFlags op_family) m.
-  Proof.
-    induction j.
-    -
-      unfold get_family_mem_op, shrink_op_family, mkFinNat.
-      simpl.
-      f_equiv; f_equiv; f_equiv.
-      apply le_unique.
-    -
-      simpl.
-      replace (get_family_mem_op Monoid_RthetaFlags
-                                 (shrink_op_family Monoid_RthetaFlags op_family) (S j) jc m)
-        with
-          (get_family_mem_op Monoid_RthetaFlags op_family (S j) (Nat.lt_lt_succ_r jc) m).
-      2:{
-        unfold get_family_mem_op, shrink_op_family, mkFinNat.
-        simpl.
-        f_equiv; f_equiv; f_equiv.
-        apply le_unique.
-      }
-      break_match; try reflexivity.
-      rewrite IHj.
-      replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
-          (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
-      reflexivity.
-  Qed.
-   *)
-
   Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
     := fun j => match lt_ge_dec j n with
              | left jc => f (mkFinNat jc)
@@ -1920,10 +1877,70 @@ Section MemVecEq.
         reflexivity.
       -
         simpl.
-
         replace (get_family_mem_op
                    (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
                    (shrink_op_family Monoid_RthetaSafeFlags op_family) (S j) jc m)
+          with
+            (get_family_mem_op
+               op_family_mem
+               op_family
+               (S j) (Nat.lt_lt_succ_r jc) m).
+        2:{
+          unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
+          simpl.
+          replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
+            by apply lt_unique.
+          f_equiv.
+          symmetry.
+          rewrite <- eq_rect_eq.
+          reflexivity.
+        }
+        break_match; try reflexivity.
+        rewrite IHj.
+        replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
+            (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
+        reflexivity.
+    Qed.
+
+
+    (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
+    Fact IUnion_mem_aux_shrink
+         {i o: nat}
+         (n : nat)
+         (j: nat) (jc: j<S n)
+         (op_family : SHOperatorFamily Monoid_RthetaFlags)
+         (op_family_facts: forall j (jc:j < S (S n)), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
+         (op_family_mem: forall j (jc:j < S (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
+         (m : NatMap CarrierA)
+      :
+        IUnion_mem_aux jc
+                           (get_family_mem_op
+                              (shrink_op_family_mem _ _ _ _ _ op_family_mem)
+                              (shrink_op_family _ op_family)
+                           )
+                       m
+                       ≡ IUnion_mem_aux
+                       (Nat.lt_lt_succ_r jc)
+                       (get_family_mem_op (i:=i) (o:=o)
+                                              op_family_mem
+                                              op_family)
+                       m.
+    Proof.
+      induction j.
+      -
+        unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
+        simpl.
+        replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
+          by apply lt_unique.
+        f_equiv.
+        symmetry.
+        rewrite <- eq_rect_eq.
+        reflexivity.
+      -
+        simpl.
+        replace (get_family_mem_op
+                   (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
+                   (shrink_op_family Monoid_RthetaFlags op_family) (S j) jc m)
           with
             (get_family_mem_op
                op_family_mem
