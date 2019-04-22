@@ -971,45 +971,6 @@ Section Morphisms.
     - reflexivity.
   Qed.
 
-  (* !!!
-  Global Instance IUnion_mem_aux_arg_proper
-           {n: nat}
-           (j: nat) (jc: j<n)
-           (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-           (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
-    :
-      Proper ((=) ==> (=)) (@IUnion_mem_aux n j jc op_family_f).
-  Proof.
-    simpl_relation.
-    rename H into E.
-
-    induction j.
-    -
-      simpl.
-      rewrite E.
-      reflexivity.
-    -
-
-  Admitted.
-
-  (* TODO: may need Proper for `op_family_f` *)
-  Global Instance IUnion_mem_proper
-         {n: nat}
-         (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-         (op_family_f_proper: forall k (kc:k<n), Proper ((=) ==> (=)) (op_family_f k kc))
-    :
-      Proper (equiv ==> equiv) (IUnion_mem op_family_f).
-  Proof.
-    intros x y E.
-    unfold IUnion_mem.
-    repeat break_match; try some_none; try reflexivity.
-    rewrite E.
-    reflexivity.
-  Qed.
-
-
-   *)
-
   Global Instance HTSUMUnion_mem_proper:
     Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
   Proof.
