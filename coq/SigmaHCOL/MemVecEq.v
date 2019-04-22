@@ -2138,6 +2138,28 @@ Section MemVecEq.
           apply Heqo1.
     Qed.
 
+    Global Instance IUnion_Mem
+           {i o k}
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (initial: CarrierA)
+           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
+           (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+           (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
+                                                              (out_index_set _ (op_family (mkFinNat mc)))
+                                                              (out_index_set _ (op_family (mkFinNat nc))))
+      :  SHOperator_Mem (IUnion dot initial op_family
+                                (pdot:=pdot))
+                        (facts:=IUnion_Facts dot initial op_family op_family_facts compat).
+    Proof.
+      unshelve esplit.
+      -
+        apply (IUnion_mem (get_family_mem_op op_family_mem op_family)).
+      -
+        apply IUnion_mem_proper, pdot.
+      -
+    Qed.
 
   End MonoidSpecific.
 

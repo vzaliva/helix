@@ -2349,8 +2349,7 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                             (out_index_set _ (op_family (mkFinNat mc)))
-                                                            (out_index_set _ (op_family (mkFinNat nc)))
-         )
+                                                            (out_index_set _ (op_family (mkFinNat nc))))
     : SHOperator_Facts _ (IUnion dot initial op_family).
   Proof.
     split.
