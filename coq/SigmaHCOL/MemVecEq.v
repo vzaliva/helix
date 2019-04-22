@@ -1616,12 +1616,13 @@ Section MemVecEq.
     Qed.
 
     Global Instance IReduction_mem_aux_proper
+           {fm}
            {i o n: nat}
            (j: nat) (jc: j<n)
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+           (op_family: @SHOperatorFamily fm i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
         Proper ((=) ==> (=)) (@IReduction_mem_aux n j jc dot (get_family_mem_op op_family_mem op_family)).
@@ -1728,11 +1729,12 @@ Section MemVecEq.
     Qed.
 
     Global Instance IReduction_mem_proper
+           {fm}
            {i o n}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+           (op_family: @SHOperatorFamily fm i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
         Proper (equiv ==> equiv) (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
@@ -2138,6 +2140,93 @@ Section MemVecEq.
           apply Heqo1.
     Qed.
 
+    Global Instance IUnion_mem_aux_proper
+           {fm}
+           {i o n: nat}
+           (j: nat) (jc: j<n)
+           (op_family: @SHOperatorFamily fm i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        Proper ((=) ==> (=)) (@IUnion_mem_aux n j jc (get_family_mem_op op_family_mem op_family)).
+    Proof.
+      intros x y E.
+      induction j.
+      -
+        simpl.
+        rewrite E.
+        reflexivity.
+      -
+        simpl.
+        repeat break_match; try some_none.
+        +
+          f_equiv.
+          *
+            apply Option_equiv_eq in Heqo0.
+            apply Option_equiv_eq in Heqo1.
+            apply Option_equiv_eq in Heqo2.
+            apply Option_equiv_eq in Heqo3.
+            rewrite E in Heqo0.
+            rewrite IHj in Heqo1.
+            rewrite Heqo1 in Heqo3; clear Heqo1; some_inv.
+            rewrite Heqo0 in Heqo2; clear Heqo0; some_inv.
+            auto.
+          *
+            apply Option_equiv_eq in Heqo0.
+            apply Option_equiv_eq in Heqo1.
+            apply Option_equiv_eq in Heqo2.
+            apply Option_equiv_eq in Heqo3.
+            rewrite E in Heqo0.
+            rewrite IHj in Heqo1.
+            rewrite Heqo1 in Heqo3; clear Heqo1; some_inv.
+            rewrite Heqo0 in Heqo2; clear Heqo0; some_inv.
+            auto.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo1.
+          apply Option_equiv_eq in Heqo3.
+          rewrite IHj in Heqo1.
+          rewrite Heqo1 in Heqo3.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo0.
+          apply Option_equiv_eq in Heqo2.
+          rewrite E in Heqo0.
+          rewrite Heqo0 in Heqo2.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo1.
+          apply Option_equiv_eq in Heqo3.
+          rewrite IHj in Heqo1.
+          rewrite Heqo1 in Heqo3.
+          some_none.
+        +
+          exfalso.
+          apply Option_equiv_eq in Heqo0.
+          apply Option_equiv_eq in Heqo1.
+          rewrite E in Heqo0.
+          rewrite Heqo0 in Heqo1.
+          some_none.
+    Qed.
+
+    Global Instance IUnion_mem_proper
+           {fm}
+           {i o n}
+           (op_family: @SHOperatorFamily fm i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family_mem op_family)).
+    Proof.
+      intros x y E.
+      unfold IUnion_mem.
+      repeat break_match; try some_none; try reflexivity.
+      rewrite E.
+      reflexivity.
+    Qed.
+
     Global Instance IUnion_Mem
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2157,7 +2246,7 @@ Section MemVecEq.
       -
         apply (IUnion_mem (get_family_mem_op op_family_mem op_family)).
       -
-        apply IUnion_mem_proper, pdot.
+        apply IUnion_mem_proper.
       -
     Qed.
 
