@@ -205,83 +205,6 @@ Section MemVecEq.
         congruence.
   Qed.
 
-  (*
-  Lemma IUnion_mem_aux_step_disjoint
-        (i o n : nat)
-        (j: nat) (jc: j < S (S n))
-        (k: nat) (kc: k < S (S n))
-        (jk: j<k)
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
-        (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
-            @SHOperator_Facts Monoid_RthetaFlags i o
-                              (op_family (@mkFinNat (S (S n)) j jc)))
-
-        (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
-            m0 ≢ n0
-            → Disjoint (FinNat o)
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
-                       (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
-
-        (m m0 m1 : mem_block)
-
-        (H0: @get_family_mem_op Monoid_RthetaFlags i o (S (S n)) op_family
-                                k kc m
-                                ≡ @Some mem_block m0)
-        (H1:
-           @IUnion_mem_aux (S (S n))
-                           j jc
-                           (@get_family_mem_op
-                              Monoid_RthetaFlags i o
-                              (S (S n)) op_family) m
-                           ≡ @Some mem_block m1)
-    :
-      Disjoint nat
-               (NE.mkEns (mem_keys_set m0))
-               (NE.mkEns (mem_keys_set m1)).
-  Proof.
-    unfold get_family_mem_op in *.
-    revert m0 m1 k kc jk H0 H1.
-    induction j; intros.
-    -
-      assert(P: k <> 0) by auto.
-      assert(P1: k < S (S n)) by omega.
-      assert(P2: 0 < S (S n)) by lia.
-      specialize (compat k P1 0 P2 P).
-      clear P.
-      simpl in *.
-      apply Disjoint_FinNat_to_nat in compat.
-      rewrite
-        mem_keys_set_to_out_index_set
-        with (m:=m0) (m0:=m),
-             mem_keys_set_to_out_index_set
-        with (m:=m1) (m0:=m) in compat; auto.
-
-      rewrite <- H1; unfold mkFinNat;f_equiv; f_equiv; f_equiv; apply lt_unique.
-      rewrite <- H0; unfold mkFinNat; f_equiv; f_equiv;f_equiv; apply lt_unique.
-    -
-      simpl in *.
-      repeat break_match_hyp; try some_none.
-      apply (Disjoint_of_mem_merge H1).
-      +
-        assert(P: k ≢ S j) by lia.
-        specialize (compat k kc (S j) jc P).
-        simpl in compat.
-        erewrite <- 2!mem_keys_set_to_out_index_set.
-        apply Disjoint_FinNat_to_nat.
-        eapply compat.
-        eauto.
-        eauto.
-        eauto.
-        eauto.
-      +
-        unshelve eapply IHj ; try auto; try omega.
-        replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
-          by apply lt_unique.
-        apply Heqo1.
-  Qed.
-
-   *)
-
   Section WithMonoid.
 
     Variable fm: Monoid RthetaFlags.
@@ -1903,66 +1826,6 @@ Section MemVecEq.
     Qed.
 
 
-    (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
-    Fact IUnion_mem_aux_shrink
-         {i o: nat}
-         (n : nat)
-         (j: nat) (jc: j<S n)
-         (op_family : SHOperatorFamily Monoid_RthetaFlags)
-         (op_family_facts: forall j (jc:j < S (S n)), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
-         (op_family_mem: forall j (jc:j < S (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
-         (m : NatMap CarrierA)
-      :
-        IUnion_mem_aux jc
-                           (get_family_mem_op
-                              (shrink_op_family_mem _ _ _ _ _ op_family_mem)
-                              (shrink_op_family _ op_family)
-                           )
-                       m
-                       ≡ IUnion_mem_aux
-                       (Nat.lt_lt_succ_r jc)
-                       (get_family_mem_op (i:=i) (o:=o)
-                                              op_family_mem
-                                              op_family)
-                       m.
-    Proof.
-      induction j.
-      -
-        unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
-        simpl.
-        replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
-          by apply lt_unique.
-        f_equiv.
-        symmetry.
-        rewrite <- eq_rect_eq.
-        reflexivity.
-      -
-        simpl.
-        replace (get_family_mem_op
-                   (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
-                   (shrink_op_family Monoid_RthetaFlags op_family) (S j) jc m)
-          with
-            (get_family_mem_op
-               op_family_mem
-               op_family
-               (S j) (Nat.lt_lt_succ_r jc) m).
-        2:{
-          unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
-          simpl.
-          replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
-            by apply lt_unique.
-          f_equiv.
-          symmetry.
-          rewrite <- eq_rect_eq.
-          reflexivity.
-        }
-        break_match; try reflexivity.
-        rewrite IHj.
-        replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
-            (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
-        reflexivity.
-    Qed.
-
     Global Instance IReduction_Mem
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2147,6 +2010,134 @@ Section MemVecEq.
         (* mem_vec_preservation *)
         admit.
     Admitted.
+
+    (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
+    Fact IUnion_mem_aux_shrink
+         {i o: nat}
+         (n : nat)
+         (j: nat) (jc: j<S n)
+         (op_family : SHOperatorFamily Monoid_RthetaFlags)
+         (op_family_facts: forall j (jc:j < S (S n)), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
+         (op_family_mem: forall j (jc:j < S (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
+         (m : NatMap CarrierA)
+      :
+        IUnion_mem_aux jc
+                           (get_family_mem_op
+                              (shrink_op_family_mem _ _ _ _ _ op_family_mem)
+                              (shrink_op_family _ op_family)
+                           )
+                       m
+                       ≡ IUnion_mem_aux
+                       (Nat.lt_lt_succ_r jc)
+                       (get_family_mem_op (i:=i) (o:=o)
+                                              op_family_mem
+                                              op_family)
+                       m.
+    Proof.
+      induction j.
+      -
+        unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
+        simpl.
+        replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
+          by apply lt_unique.
+        f_equiv.
+        symmetry.
+        rewrite <- eq_rect_eq.
+        reflexivity.
+      -
+        simpl.
+        replace (get_family_mem_op
+                   (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
+                   (shrink_op_family Monoid_RthetaFlags op_family) (S j) jc m)
+          with
+            (get_family_mem_op
+               op_family_mem
+               op_family
+               (S j) (Nat.lt_lt_succ_r jc) m).
+        2:{
+          unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
+          simpl.
+          replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
+            by apply lt_unique.
+          f_equiv.
+          symmetry.
+          rewrite <- eq_rect_eq.
+          reflexivity.
+        }
+        break_match; try reflexivity.
+        rewrite IHj.
+        replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
+            (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
+        reflexivity.
+    Qed.
+
+    Lemma IUnion_mem_aux_step_disjoint
+          (i o n : nat)
+          (j: nat) (jc: j < S (S n))
+          (k: nat) (kc: k < S (S n))
+          (jk: j<k)
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S (S n)))
+          (op_family_facts: ∀ (j : nat) (jc : j < S (S n)),
+              @SHOperator_Facts Monoid_RthetaFlags i o
+                                (op_family (@mkFinNat (S (S n)) j jc)))
+
+          (op_family_mem: forall j (jc:j < S (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
+          (compat : ∀ (m0 : nat) (mc : m0 < S (S n)) (n0 : nat) (nc : n0 < S (S n)),
+              m0 ≢ n0
+              → Disjoint (FinNat o)
+                         (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) m0 mc)))
+                         (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S (S n)) n0 nc))))
+
+          (m m0 m1 : mem_block)
+
+          (H0: get_family_mem_op op_family_mem op_family k kc m ≡ @Some mem_block m0)
+
+          (H1:
+             @IUnion_mem_aux (S (S n)) j jc (get_family_mem_op op_family_mem op_family) m ≡ @Some mem_block m1)
+      :
+        Disjoint nat
+                 (NE.mkEns (mem_keys_set m0))
+                 (NE.mkEns (mem_keys_set m1)).
+    Proof.
+      unfold get_family_mem_op in *.
+      revert m0 m1 k kc jk H0 H1.
+      induction j; intros.
+      -
+        assert(P: k <> 0) by auto.
+        specialize (compat k kc 0 jc P).
+        clear P.
+        simpl in *.
+        apply Disjoint_FinNat_to_nat in compat.
+        rewrite
+          mem_keys_set_to_out_index_set
+          with (m:=m0) (m0:=m)
+               (facts:=op_family_facts k kc)
+               (mop:=op_family_mem k kc),
+               mem_keys_set_to_out_index_set
+          with (m:=m1) (m0:=m)
+               (facts:=op_family_facts 0 jc)
+               (mop:=op_family_mem 0 jc)
+          in compat; auto.
+      -
+        simpl in *.
+        repeat break_match_hyp; try some_none.
+        apply (Disjoint_of_mem_merge H1).
+        +
+          assert(P: k ≢ S j) by lia.
+          specialize (compat k kc (S j) jc P).
+          simpl in compat.
+          erewrite <- 2!mem_keys_set_to_out_index_set.
+          apply Disjoint_FinNat_to_nat.
+          eapply compat.
+          eauto.
+          eauto.
+        +
+          unshelve eapply IHj ; try auto; try omega.
+          replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
+            by apply lt_unique.
+          apply Heqo1.
+    Qed.
+
 
   End MonoidSpecific.
 
