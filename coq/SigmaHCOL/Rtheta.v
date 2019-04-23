@@ -99,11 +99,25 @@ Proof.
   apply RthetaFlags_Equivalence_equiv.
 Qed.
 
-(* mzero *)
-Definition RthetaFlagsZero := mkRthetaFlags true false.
-
 Global Instance RthetaFlags_type:
   type RthetaFlags := type_libniz RthetaFlags.
+
+(* our [equal] definition for [RthetaFlags] is actually same as [eq] *)
+Lemma RthetaFlags_equal_eq
+      {a b:RthetaFlags}:
+  @equal RthetaFlags RthetaFlags_type a b <-> a≡b.
+Proof.
+  split;intros H.
+  -
+    inversion H.
+    reflexivity.
+  -
+    subst.
+    reflexivity.
+Qed.
+
+(* mzero *)
+Definition RthetaFlagsZero := mkRthetaFlags true false.
 
 Section CollisionTrackingRthetaFlags.
   (* mappend which tracks collisions *)
@@ -231,7 +245,65 @@ Section RMonad.
 
   (* Generic Rtheta type is parametrized by Monoid, which defines how structural flags are handled. *)
   Definition Rtheta' := Monad_RthetaFlags CarrierA.
+
+
+  Definition mkRtheta' (val: CarrierA) (flags:RthetaFlags) : Rtheta' :=
+    tell flags ;; ret val.
+
+  Lemma mkRtheta'_evalWriter
+        (val: CarrierA)
+        (flags:RthetaFlags):
+    evalWriter (mkRtheta' val flags) ≡ val.
+  Proof.
+    unfold mkRtheta', evalWriter, compose.
+    reflexivity.
+  Qed.
+
+  Lemma mkRtheta'_execWriter
+        (val: CarrierA)
+        (flags:RthetaFlags)
+        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+    execWriter (mkRtheta' val flags) ≡ flags.
+  Proof.
+    unfold mkRtheta', execWriter, compose.
+    simpl.
+    apply fml.
+  Qed.
+
+  Lemma mkRtheta'_id
+        {r: Rtheta'}
+        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}
+    :
+      r ≡ mkRtheta' (evalWriter r) (execWriter r).
+  Proof.
+    unfold mkRtheta', execWriter, evalWriter, compose, tell.
+    simpl.
+    destruct r.
+    f_equiv.
+    pose proof monoid_runit as U.
+    unfold BinOps.RightUnit in U.
+    setoid_rewrite RthetaFlags_equal_eq in U.
+    rewrite U.
+    destruct runWriterT.
+    inversion unIdent.
+    f_equiv.
+  Qed.
+
+  Lemma Rtheta'_alt_eq
+        {a b : Rtheta'}
+        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+    evalWriter a ≡ evalWriter b ->
+    execWriter a ≡ execWriter b ->
+    a ≡ b.
+  Proof.
+    intros V S.
+    setoid_rewrite mkRtheta'_id.
+    rewrite V, S.
+    reflexivity.
+  Qed.
+
 End RMonad.
+
 
 Definition Rtheta := Rtheta' Monoid_RthetaFlags.
 Definition RStheta := Rtheta' Monoid_RthetaSafeFlags.
@@ -407,6 +479,18 @@ Section Rtheta'Utils.
     unfold WriterMonadNoT.evalWriter, runWriter, runWriterT, compose, unIdent.
     unfold mkStruct, ret.
     reflexivity.
+  Qed.
+
+  Lemma execWriter_mkStruct
+        (c: CarrierA)
+        {fml:@MonoidLaws RthetaFlags RthetaFlags_type fm}:
+    WriterMonadNoT.execWriter (mkStruct c) ≡ RthetaFlagsZero.
+  Proof.
+    unfold RthetaFlagsZero.
+    unfold WriterMonadNoT.execWriter, mkStruct, runWriter, runWriterT, compose, unIdent.
+    unfold tell.
+    simpl.
+    apply fml.
   Qed.
 
   Lemma evalWriter_mkValue
