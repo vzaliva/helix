@@ -1771,6 +1771,7 @@ Section MemVecEq.
          {i o: nat}
          (n : nat)
          (j: nat) (jc: j < S n)
+         (jc1: j < S (S n))
          (dot : CarrierA → CarrierA → CarrierA)
          (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
          (op_family_facts: forall j (jc:j < S (S n)), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
@@ -1784,7 +1785,7 @@ Section MemVecEq.
                            )
                            m
                            ≡ IReduction_mem_aux
-                           (Nat.lt_lt_succ_r jc)
+                           jc1
                            dot
                            (get_family_mem_op (i:=i) (o:=o)
                                               op_family_mem
@@ -1796,9 +1797,8 @@ Section MemVecEq.
         simpl.
         replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
           by apply lt_unique.
-        f_equiv.
-        symmetry.
         rewrite <- eq_rect_eq.
+        replace (@le_S (S O) (S n) jc) with jc1 by apply lt_unique.
         reflexivity.
       -
         simpl.
@@ -1809,19 +1809,19 @@ Section MemVecEq.
             (get_family_mem_op
                op_family_mem
                op_family
-               (S j) (Nat.lt_lt_succ_r jc) m).
+               (S j) jc1 m).
         2:{
           unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
           simpl.
           replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
             by apply lt_unique.
-          f_equiv.
-          symmetry.
           rewrite <- eq_rect_eq.
+          replace (@le_S (S (S j)) (S n) jc) with jc1 by apply lt_unique.
           reflexivity.
         }
         break_match; try reflexivity.
-        rewrite IHj.
+        rewrite IHj with (jc1:=Nat.lt_succ_l _ _ jc1).
+
         replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
             (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
         reflexivity.
@@ -1915,7 +1915,7 @@ Section MemVecEq.
                                              (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
                                              (shrink_op_family Monoid_RthetaSafeFlags op_family)) m0 ≡   Some m2) as P.
                 {
-                  rewrite IReduction_mem_aux_shrink.
+                  rewrite IReduction_mem_aux_shrink with (jc1:=Nat.lt_lt_succ_r nc1).
                   rewrite <- Heqo1.
                   f_equiv.
                   apply lt_unique.
@@ -1968,7 +1968,7 @@ Section MemVecEq.
                 assert(nc1: n < S n) by lia.
                 specialize (IHn initial m0 m2 j jc nc1).
                 apply IHn; auto.
-                rewrite IReduction_mem_aux_shrink.
+                rewrite IReduction_mem_aux_shrink with (jc1:=Nat.lt_lt_succ_r nc1).
                 rewrite <- Heqo1.
                 f_equiv.
                 apply lt_unique.
