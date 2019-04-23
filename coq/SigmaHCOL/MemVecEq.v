@@ -2010,8 +2010,80 @@ Section MemVecEq.
               eauto.
       -
         (* mem_vec_preservation *)
-        admit.
-    Admitted.
+        intros x H.
+        rename k into n.
+        unfold IReduction, IReduction_mem in *.
+        destruct n.
+        +
+          simpl.
+          f_equiv.
+          unfold Diamond, MUnion'.
+          simpl.
+          apply svector_to_mem_block_mem_empty.
+        +
+          simpl in *.
+          generalize (eq_ind_r (Peano.lt n) (Nat.lt_succ_diag_r n) eq_refl).
+          (* Manual genralization of [n<S n] as [j<S n] *)
+          cut(forall j jc,
+                   @equiv (option mem_block) (@option_Equiv mem_block mem_block_Equiv)
+                          (@Some mem_block
+                                 (@svector_to_mem_block Monoid_RthetaSafeFlags o
+                                                        (@Diamond Monoid_RthetaSafeFlags i o (S n) dot initial
+                                                                  (@get_family_op Monoid_RthetaSafeFlags i o (S n) op_family) x)))
+                          (@IReduction_mem_aux (S n) j jc dot
+                                               (@get_family_mem_op Monoid_RthetaSafeFlags i o (S n) op_family op_family_facts
+                                                                   op_family_mem op_family) (@svector_to_mem_block Monoid_RthetaSafeFlags i x))); auto.
+          intros j jc.
+
+
+          dependent induction n.
+          *
+            dep_destruct j ; [idtac | crush].
+            unfold get_family_mem_op.
+            simpl.
+            rewrite <- mem_vec_preservation.
+            --
+              f_equiv.
+              f_equiv.
+              vec_index_equiv j jc.
+              unfold get_family_op.
+              unfold Diamond.
+              simpl.
+              rewrite AbsorbMUnion'Index_Vmap.
+              unfold UnionFold.
+              simpl.
+              unfold SVector.Union.
+              replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
+
+              generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) jc0).
+              intros r.
+              apply Rtheta'_alt_eq.
+              ++
+                typeclasses eauto.
+              ++
+                rewrite evalWriter_Rtheta_liftM2.
+                rewrite evalWriter_mkStruct.
+                (* Need left identity on [dot] *)
+                admit.
+              ++
+                rewrite execWriter_Rtheta_liftM2.
+                rewrite execWriter_mkStruct.
+                rewrite monoid_lunit.
+                reflexivity.
+                apply MonoidLaws_SafeRthetaFlags.
+            --
+              intros j0 jc0 H0.
+              apply H.
+              apply Union_introl.
+              unfold Ensembles.In.
+              replace (S_j_lt_n eq_refl) with jc by apply lt_unique.
+              apply H0.
+          *
+            (* Got IHn *)
+            rewrite <- IReduction_mem_aux_shrink.
+
+
+    Qed.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
     Fact IUnion_mem_aux_shrink
