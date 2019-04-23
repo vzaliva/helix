@@ -660,6 +660,38 @@ Proof.
   apply H1, H.
 Qed.
 
+Lemma svector_to_mem_block_mem_empty
+      {fm}
+      {fml : MonoidLaws fm}
+      (n : nat)
+      (v : CarrierA):
+  svector_to_mem_block (Vconst (mkStruct (fm:=fm) v) n) = mem_empty.
+Proof.
+  unfold mem_empty.
+  unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+  intros k.
+  rewrite NP.F.empty_o.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m H0 H1 H2.
+  unfold mem_lookup in *.
+  simpl in *.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
+  -
+    clear H2.
+    specialize (H0 k kc).
+    specialize (H1 k kc).
+    rewrite Vnth_const in H0.
+    rewrite Vnth_const in H1.
+    apply NP.F.not_find_in_iff.
+    intros C.
+    apply H1 in C.
+    contradict C.
+    apply Is_Val_mkStruct.
+  -
+    apply H2, nkc.
+Qed.
+
+
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   : option mem_block :=
