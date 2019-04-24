@@ -1827,6 +1827,22 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
+    Lemma svector_to_mem_block_equiv
+          {fm : Monoid RthetaFlags}
+          {n:  nat}
+          {a b: svector fm n}
+      :
+          a = b ->
+          Vforall2 (fun x y => execWriter x = execWriter y) a b ->
+          svector_to_mem_block a = svector_to_mem_block b.
+    Proof.
+      intros V S.
+
+      unfold svector_to_mem_block.
+      svector_to_mem_block_to_spec ma Ma Ia Oa.
+      svector_to_mem_block_to_spec mb Mb Ib Ob.
+      simpl.
+    Admitted.
 
     Global Instance IReduction_Mem
            {i o k}
@@ -2044,30 +2060,41 @@ Section MemVecEq.
             rewrite <- mem_vec_preservation.
             --
               f_equiv.
-              f_equiv.
-              vec_index_equiv j jc.
-              unfold get_family_op.
-              unfold Diamond.
-              simpl.
-              rewrite AbsorbMUnion'Index_Vmap.
-              unfold UnionFold.
-              simpl.
-              unfold SVector.Union.
-              replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
-
-              generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) jc0).
-              intros r.
-              apply Rtheta'_alt_eq.
+              apply svector_to_mem_block_equiv.
               ++
-                typeclasses eauto.
-              ++
-                rewrite evalWriter_Rtheta_liftM2.
-                rewrite evalWriter_mkStruct.
+                vec_index_equiv k kc.
+                unfold get_family_op.
+                unfold Diamond.
+                rewrite AbsorbMUnion'Index_Vmap.
+                unfold UnionFold.
+                simpl.
+                unfold SVector.Union.
+                replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
+                generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) kc).
+                intros r.
                 (* Need left identity on [dot] *)
                 admit.
               ++
+                apply Vforall2_intro_nth.
+                intros k kc.
+                unfold get_family_op.
+                unfold Diamond.
+
+                pose proof AbsorbMUnion'Index_Vmap as A.
+                unfold Rtheta', Monad_RthetaFlags, writer in A.
+                rewrite_clear A.
+                unfold UnionFold.
+                simpl.
+                unfold SVector.Union.
+                replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
+                generalize (@Vnth
+                              (@WriterMonad.writerT RthetaFlags Monoid_RthetaSafeFlags
+                                                    IdentityMonad.ident CarrierA) o
+                              (@op Monoid_RthetaSafeFlags i o (op_family (@mkFinNat (S O) O jc)) x) k kc).
+                intros f.
                 rewrite execWriter_Rtheta_liftM2.
                 rewrite execWriter_mkStruct.
+                rewrite RthetaFlags_equiv_eq.
                 rewrite monoid_lunit.
                 reflexivity.
                 apply MonoidLaws_SafeRthetaFlags.
@@ -2080,9 +2107,7 @@ Section MemVecEq.
               apply H0.
           *
             (* Got IHn *)
-            rewrite <- IReduction_mem_aux_shrink.
-
-
+            (* unshelve erewrite <- IReduction_mem_aux_shrink. *)
     Qed.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
