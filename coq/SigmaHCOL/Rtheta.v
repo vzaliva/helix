@@ -103,7 +103,7 @@ Global Instance RthetaFlags_type:
   type RthetaFlags := type_libniz RthetaFlags.
 
 (* our [equal] definition for [RthetaFlags] is actually same as [eq] *)
-Lemma RthetaFlags_equal_eq
+Lemma RthetaFlags_equiv_eq
       {a b:RthetaFlags}:
   @equal RthetaFlags RthetaFlags_type a b <-> a≡b.
 Proof.
@@ -282,7 +282,7 @@ Section RMonad.
     f_equiv.
     pose proof monoid_runit as U.
     unfold BinOps.RightUnit in U.
-    setoid_rewrite RthetaFlags_equal_eq in U.
+    setoid_rewrite RthetaFlags_equiv_eq in U.
     rewrite U.
     destruct runWriterT.
     inversion unIdent.
