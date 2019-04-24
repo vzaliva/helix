@@ -1833,15 +1833,36 @@ Section MemVecEq.
           {a b: svector fm n}
       :
           a = b ->
-          Vforall2 (fun x y => execWriter x = execWriter y) a b ->
+          Vforall2 (fun (x y:Rtheta' fm) => execWriter x = execWriter y) a b ->
           svector_to_mem_block a = svector_to_mem_block b.
     Proof.
       intros V S.
-
       unfold svector_to_mem_block.
       svector_to_mem_block_to_spec ma Ma Ia Oa.
       svector_to_mem_block_to_spec mb Mb Ib Ob.
-      simpl.
+      unfold mem_lookup in *.
+      simpl in *.
+      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
+      intros k.
+      destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+      -
+        clear Ob Oa.
+        specialize (Ma k kc).
+        specialize (Mb k kc).
+        specialize (Ia k kc).
+        specialize (Ib k kc).
+        apply Vnth_arg_equiv with (ip:=kc) in V.
+        apply Vforall2_elim_nth with (ip:=kc) in S.
+
+        generalize dependent (Vnth a kc).
+        generalize dependent (Vnth b kc).
+        clear a b.
+        intros a Mb Ib b V S Ma Ia.
+        admit.
+      -
+        rewrite Ob by auto.
+        rewrite Oa by auto.
+        reflexivity.
     Admitted.
 
     Global Instance IReduction_Mem
@@ -2079,10 +2100,7 @@ Section MemVecEq.
                 intros k kc.
                 unfold get_family_op.
                 unfold Diamond.
-
-                pose proof AbsorbMUnion'Index_Vmap as A.
-                unfold Rtheta', Monad_RthetaFlags, writer in A.
-                rewrite_clear A.
+                rewrite AbsorbMUnion'Index_Vmap.
                 unfold UnionFold.
                 simpl.
                 unfold SVector.Union.
