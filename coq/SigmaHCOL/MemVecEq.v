@@ -1832,7 +1832,7 @@ Section MemVecEq.
           {n:  nat}
           {a b: svector fm n}
       :
-          a = b ->
+          Vforall2 (fun (x y:Rtheta' fm) => evalWriter x ≡ evalWriter y) a b ->
           Vforall2 (fun (x y:Rtheta' fm) => execWriter x = execWriter y) a b ->
           svector_to_mem_block a = svector_to_mem_block b.
     Proof.
@@ -1851,7 +1851,7 @@ Section MemVecEq.
         specialize (Mb k kc).
         specialize (Ia k kc).
         specialize (Ib k kc).
-        apply Vnth_arg_equiv with (ip:=kc) in V.
+        apply Vforall2_elim_nth with (ip:=kc) in V.
         apply Vforall2_elim_nth with (ip:=kc) in S.
 
         generalize dependent (Vnth a kc).
@@ -1867,8 +1867,7 @@ Section MemVecEq.
           apply NM.find_1 in i0.
           rewrite i, i0.
           f_equiv.
-          unfold equiv, Rtheta'_equiv in V.
-          (* wrong equality! *)
+          apply V.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
@@ -1890,7 +1889,7 @@ Section MemVecEq.
         rewrite Ob by auto.
         rewrite Oa by auto.
         reflexivity.
-    Admitted.
+    Qed.
 
     Global Instance IReduction_Mem
            {i o k}
@@ -2110,7 +2109,8 @@ Section MemVecEq.
               f_equiv.
               apply svector_to_mem_block_equiv.
               ++
-                vec_index_equiv k kc.
+                apply Vforall2_intro_nth.
+                intros k kc.
                 unfold get_family_op.
                 unfold Diamond.
                 rewrite AbsorbMUnion'Index_Vmap.
@@ -2120,7 +2120,7 @@ Section MemVecEq.
                 replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
                 generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) kc).
                 intros r.
-                (* Need left identity on [dot] *)
+                (* TODO: identity is guaranteed by LiftM2. Prove it! *)
                 admit.
               ++
                 apply Vforall2_intro_nth.
