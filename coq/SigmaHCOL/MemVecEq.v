@@ -1857,8 +1857,35 @@ Section MemVecEq.
         generalize dependent (Vnth a kc).
         generalize dependent (Vnth b kc).
         clear a b.
-        intros a Mb Ib b V S Ma Ia.
-        admit.
+        intros a Ma Ia b V S Mb Ib.
+
+        destruct (Is_Val_dec a), (Is_Val_dec b).
+        +
+          apply Ma in i.
+          apply Mb in i0.
+          apply NM.find_1 in i.
+          apply NM.find_1 in i0.
+          rewrite i, i0.
+          f_equiv.
+          unfold equiv, Rtheta'_equiv in V.
+          (* wrong equality! *)
+        +
+          inversion S.
+          unfold Is_Val, compose, IsVal, Is_true, not in *.
+          repeat break_if; try crush.
+        +
+          inversion S.
+          unfold Is_Val, compose, IsVal, Is_true, not in *.
+          repeat break_if; try crush.
+        +
+          apply not_iff_compat in Ia.
+          apply not_iff_compat in Ib.
+          apply Ia in n0.
+          apply Ib in n1.
+          apply NP.F.not_find_in_iff in n0.
+          apply NP.F.not_find_in_iff in n1.
+          rewrite n0, n1.
+          reflexivity.
       -
         rewrite Ob by auto.
         rewrite Oa by auto.
