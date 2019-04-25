@@ -2120,8 +2120,8 @@ Section MemVecEq.
                 replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
                 generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) kc).
                 intros r.
-                (* TODO: identity is guaranteed by LiftM2. Prove it! *)
-                admit.
+                (* Wrong equality! *)
+
               ++
                 apply Vforall2_intro_nth.
                 intros k kc.
