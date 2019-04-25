@@ -1,7 +1,7 @@
 .PHONY: clean test
 .SECONDARY: %.s %.ll %.o
 
-ALLTESTS=$(shell ../ml/_build/default/testcomp.exe -p)
+ALLTESTS=$(shell ../ml/_build/default/testeval.exe -p)
 TESTLLS=$(addprefix test_,$(addsuffix .ll,$(ALLTESTS)))
 TESTOBJS=$(addprefix test_,$(addsuffix .o,$(ALLTESTS)))
 
@@ -12,8 +12,14 @@ ASMFLAGS=-c
 
 testcomp: $(TESTOBJS)
 
+TESTLLS: Makefile
+	../ml/_build/default/testeval.exe -c
+
 %.o: %.s Makefile
 	$(ASM) $(ASMFLAGS) $<
+
+%.s: %.ll Makefile
+	$(LLC) $(LLCFLAGS) $<
 
 # Individiual tests
 
