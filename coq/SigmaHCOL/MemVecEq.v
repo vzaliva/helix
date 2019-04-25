@@ -1343,7 +1343,7 @@ Section MemVecEq.
       -
         intros x G.
         simpl.
-        unfold HTSUMUnion', Vec2Union, HTSUMUnion_mem.
+        unfold HTSUMUnion, Vec2Union, HTSUMUnion_mem.
         break_match.
         +
           break_match.
@@ -1391,6 +1391,7 @@ Section MemVecEq.
                   apply H0 in K; clear H0.
                   apply NM.find_1 in K.
                   rewrite_clear K.
+                  unfold HTSUMUnion', Vec2Union.
                   rewrite Vnth_map2.
 
                   simpl in V.
@@ -2080,7 +2081,7 @@ Section MemVecEq.
         +
           simpl.
           f_equiv.
-          unfold Diamond, MUnion'.
+          unfold Diamond, MUnion.
           simpl.
           apply svector_to_mem_block_mem_empty.
         +
@@ -2113,7 +2114,7 @@ Section MemVecEq.
                 intros k kc.
                 unfold get_family_op.
                 unfold Diamond.
-                rewrite AbsorbMUnion'Index_Vmap.
+                rewrite AbsorbMUnionIndex_Vmap.
                 unfold UnionFold.
                 simpl.
                 unfold SVector.Union.
@@ -2128,7 +2129,7 @@ Section MemVecEq.
                 intros k kc.
                 unfold get_family_op.
                 unfold Diamond.
-                rewrite AbsorbMUnion'Index_Vmap.
+                rewrite AbsorbMUnionIndex_Vmap.
                 unfold UnionFold.
                 simpl.
                 unfold SVector.Union.

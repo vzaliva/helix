@@ -301,7 +301,7 @@ Section FlagsMonoidGenericOperators.
              (op_family_f: forall k (kc:k<n), svector fm i -> svector fm o)
              (v:svector fm i): svector fm o
     :=
-      MUnion' fm dot initial (Apply_Family' op_family_f v).
+      MUnion fm dot initial (Apply_Family' op_family_f v).
 
 
   Global Instance Diamond_proper
@@ -316,7 +316,7 @@ Section FlagsMonoidGenericOperators.
   Proof.
     intros d d' Ed ini ini' Ei f f' Ef v v' Ev.
     unfold Diamond.
-    apply MUnion'_proper; auto.
+    apply MUnion_proper; auto.
 
     unfold Apply_Family'.
     vec_index_equiv j jc.

@@ -1018,13 +1018,13 @@ Section SigmaHCOLExpansionRules.
 
 
         unfold Diamond.
-        rewrite AbsorbMUnion'Index_Vmap.
-        (* OR rewrite AbsorbMUnion'Index_Vbuild.*)
+        rewrite AbsorbMUnionIndex_Vmap.
+        (* OR rewrite AbsorbMUnionIndex_Vbuild.*)
         unfold Apply_Family'.
         rewrite Vmap_Vbuild.
 
         (* Not sure below here *)
-        unfold SparseEmbedding, Diamond, Apply_Family', MUnion'.
+        unfold SparseEmbedding, Diamond, Apply_Family', MUnion.
         unfold SHCompose, compose, get_family_op.
         simpl.
 
@@ -1415,7 +1415,7 @@ Section SigmaHCOLRewritingRules.
         setoid_rewrite SHPointwise'_nth; try apply MonoidLaws_RthetaFlags.
 
         unfold Apply_Family'.
-        rewrite 2!AbsorbMUnion'Index_Vbuild.
+        rewrite 2!AbsorbMUnionIndex_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
         unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
@@ -1707,7 +1707,7 @@ Section SigmaHCOLRewritingRules.
 
       vec_index_equiv j jc.
       unfold Apply_Family'.
-      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      rewrite 2!AbsorbMUnionIndex_Vbuild.
 
       (* -- Now we are dealing with UnionFolds only -- *)
       unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
@@ -1971,7 +1971,7 @@ Section SigmaHCOLRewritingRules.
 
         vec_index_equiv j jc.
         unfold Apply_Family'.
-        rewrite 2!AbsorbMUnion'Index_Vbuild.
+        rewrite 2!AbsorbMUnionIndex_Vbuild.
 
         (* -- Now we are dealing with UnionFolds only -- *)
         unfold Apply_Family_Single_NonUnit_Per_Row in Uz.
@@ -3198,11 +3198,11 @@ Section SigmaHCOLRewritingRules.
         unfold Diamond.
         unfold Apply_Family'.
         unfold RStheta.
-        rewrite AbsorbMUnion'Index_Vbuild.
+        rewrite AbsorbMUnionIndex_Vbuild.
         simpl.
 
         unfold UnionFold.
-        unfold MUnion'.
+        unfold MUnion.
 
         rewrite RStheta2Rtheta_Vfold_left_rev_mkValue.
         f_equiv.
@@ -4436,7 +4436,7 @@ and `ISumReduction_PointWise` *)
       intros x y H.
       unfold HCOLImpl.Reduction.
       rewrite Vfold_right_Vmap.
-      unfold MUnion'.
+      unfold MUnion.
       apply vector1_equiv_Vhead_equiv.
       unfold Apply_Family'.
       simpl.
@@ -4681,7 +4681,7 @@ and `ISumReduction_PointWise` *)
       unfold VnthIndexMapped.
       unfold Diamond.
       unfold Apply_Family'.
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       unfold get_family_op.
       simpl.
 

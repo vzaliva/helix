@@ -1608,7 +1608,7 @@ Section OperatorProperies.
     unfold Diamond.
     unfold Apply_Family'.
     rewrite Vbuild_cons.
-    rewrite MUnion'_cons.
+    rewrite MUnion_cons.
     unfold Vec2Union.
     unfold_Rtheta_equiv.
     rewrite evalWriter_Rtheta_liftM2.
@@ -2368,7 +2368,7 @@ Section StructuralProperies.
       unfold Diamond.
       unfold Apply_Family'.
 
-      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      rewrite 2!AbsorbMUnionIndex_Vbuild.
       unfold UnionFold.
 
       f_equiv.
@@ -2390,7 +2390,7 @@ Section StructuralProperies.
       unfold Diamond.
       unfold Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply Is_Val_UnionFold.
 
       apply family_out_set_implies_members in S.
@@ -2415,7 +2415,7 @@ Section StructuralProperies.
       simpl in *.
 
       unfold IUnion, Diamond, Apply_Family'.
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
       intros G.
@@ -2443,7 +2443,7 @@ Section StructuralProperies.
       simpl in *.
       unfold Diamond, Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Non_Collision.
       +
         (* no collisions on j-th row accross all families *)
@@ -2507,7 +2507,7 @@ Section StructuralProperies.
       simpl in *.
       unfold Diamond, Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Non_Collision.
 
       +
@@ -2566,7 +2566,7 @@ Section StructuralProperies.
       unfold Diamond.
       unfold Apply_Family'.
 
-      rewrite 2!AbsorbMUnion'Index_Vbuild.
+      rewrite 2!AbsorbMUnionIndex_Vbuild.
       unfold UnionFold.
 
       f_equiv.
@@ -2588,7 +2588,7 @@ Section StructuralProperies.
       unfold Diamond.
       unfold Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply Is_Val_UnionFold_Safe.
 
       apply family_out_set_implies_members in S.
@@ -2613,7 +2613,7 @@ Section StructuralProperies.
       simpl in *.
 
       unfold IUnion, Diamond, Apply_Family'.
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply not_Is_Val_Is_Struct.
       unfold Is_Struct, not.
       intros G.
@@ -2643,7 +2643,7 @@ Section StructuralProperies.
       simpl in *.
       unfold Diamond, Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Safe_Non_Collision.
 
       (* no collisions on j-th row accross all families *)
@@ -2667,7 +2667,7 @@ Section StructuralProperies.
       simpl in *.
       unfold Diamond, Apply_Family'.
 
-      rewrite AbsorbMUnion'Index_Vbuild.
+      rewrite AbsorbMUnionIndex_Vbuild.
       apply UnionFold_Safe_Non_Collision.
       +
         (* no collisions on j-th row accross all families *)
