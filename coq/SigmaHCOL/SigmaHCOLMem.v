@@ -22,6 +22,9 @@ Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Tactics.HelixTactics.
 
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
 
@@ -32,6 +35,9 @@ Set Implicit Arguments.
 
 Import VectorNotations.
 Open Scope vector_scope.
+
+Import MonadNotation.
+Open Scope monad_scope.
 
 (* After folding starting from 'j' attempts to lookup lower indices will fail *)
 Lemma find_fold_right_indexed_oob
@@ -866,40 +872,64 @@ Section Operators.
                        op_family_f x
       end eq_refl.
 
-  (* This is defined for n>0 *)
-  Fixpoint IReduction_mem_aux
-           {n: nat}
-           (j: nat) (jc: j<n)
+  (* TODO: move to Util *)
 
-           (dot: CarrierA -> CarrierA -> CarrierA)
-           (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-           (x:mem_block): option mem_block
-    :=
-      let oy := op_family_f j jc x in
-      match j return j<n -> option mem_block with
-      | O => fun _ => oy
-      | S j' => fun jc' =>
-                 match oy, IReduction_mem_aux (Nat.lt_succ_l j' n jc') dot op_family_f x with
-                 | Some y, Some ys => Some (mem_merge_with dot y ys)
-                 | _, _ => None
-                 end
-      end jc.
+  Fixpoint monadic_fold_left_rev
+           {A B : Type}
+           {m : Type -> Type}
+           {M : Monad m}
+           (f : A -> B -> m A) (a : A) (l : list B)
+    : m A
+    := match l with
+       | List.nil => ret a
+       | List.cons b l => a' <- monadic_fold_left_rev f a l ;;
+                    f a' b
 
-  (* This is defined for n>=0 *)
+       end.
+
+  Program Fixpoint monadic_Lbuild {A: Type}
+          {m : Type -> Type}
+          {M : Monad m}
+          (n : nat)
+          (gen : forall i, i < n -> m A) {struct n}: m (list A) :=
+    match n with
+    | 0 => ret (List.nil)
+    | S p =>
+      let gen' := fun i ip => gen (S i) _ in
+      liftM2 List.cons (gen 0 _) (@monadic_Lbuild A m M p gen')
+    end.
+  Next Obligation. lia. Qed.
+  Next Obligation. lia. Qed.
+
+  Program Fixpoint Lbuild {A: Type}
+          (n : nat)
+          (gen : forall i, i < n -> A) {struct n}: list A :=
+    match n with
+    | 0 => List.nil
+    | S p =>
+      let gen' := fun i ip => gen (S i) _ in
+      List.cons (gen 0 _) (@Lbuild A p gen')
+    end.
+  Next Obligation. lia. Qed.
+  Next Obligation. lia. Qed.
+
+  (** Apply family of mem functions to same mem_block and return list of results *)
+  Definition Apply_mem_Family
+             {n: nat}
+             (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+             (x: mem_block) :
+    option (list mem_block) :=
+    monadic_Lbuild (λ (j:nat) (jc:j<n), (op_family_f j jc) x).
+
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA)
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-             (x:mem_block): option mem_block
+             (x: mem_block): option mem_block
     :=
-      match n as m return n=m -> option mem_block with
-      | 0 => fun _ => Some (mem_empty) (* empty loop is no-op *)
-      | S n' => fun E => IReduction_mem_aux
-                       (eq_ind_r _ (Nat.lt_succ_diag_r n') E)
-                       dot
-                       op_family_f x
-      end eq_refl.
-
+      x' <- (Apply_mem_Family op_family_f x) ;;
+        monadic_fold_left_rev mem_merge mem_empty  x'.
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
