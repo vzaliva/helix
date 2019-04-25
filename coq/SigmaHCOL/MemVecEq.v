@@ -2120,7 +2120,8 @@ Section MemVecEq.
                 replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
                 generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) kc).
                 intros r.
-                (* Wrong equality! *)
+              (* Wrong equality! *)
+                admit.
 
               ++
                 apply Vforall2_intro_nth.
@@ -2153,7 +2154,7 @@ Section MemVecEq.
           *
             (* Got IHn *)
             (* unshelve erewrite <- IReduction_mem_aux_shrink. *)
-    Qed.
+    Admitted.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
     Fact IUnion_mem_aux_shrink
