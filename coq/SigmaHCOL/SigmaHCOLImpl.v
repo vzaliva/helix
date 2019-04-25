@@ -268,7 +268,7 @@ Section FlagsMonoidGenericOperators.
       rewrite E;reflexivity.
     Qed.
 
-    (** Apply family of functions to same fector and return matrix of results *)
+    (** Apply family of functions to same vector and return matrix of results *)
     Definition Apply_Family'
                {i o n}
                (op_family_f: forall k, (k<n) -> svector fm i -> svector fm o)
