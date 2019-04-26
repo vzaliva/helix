@@ -1616,68 +1616,7 @@ Section MemVecEq.
       apply mem_op_proper, E.
     Qed.
 
-    Global Instance IReduction_mem_aux_proper
-           {fm}
-           {i o n: nat}
-           (j: nat) (jc: j<n)
-           (dot: CarrierA -> CarrierA -> CarrierA)
-           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           (op_family: @SHOperatorFamily fm i o n)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-      :
-        Proper ((=) ==> (=)) (@IReduction_mem_aux n j jc dot (get_family_mem_op op_family_mem op_family)).
-    Proof.
-      intros x y E.
-      induction j.
-      -
-        simpl.
-        rewrite E.
-        reflexivity.
-      -
-        simpl.
-        repeat break_match; try some_none.
-        +
-          f_equiv.
-          apply Option_equiv_eq in Heqo0.
-          apply Option_equiv_eq in Heqo1.
-          apply Option_equiv_eq in Heqo2.
-          apply Option_equiv_eq in Heqo3.
-          rewrite E in Heqo0.
-          rewrite IHj in Heqo1.
-          rewrite Heqo1 in Heqo3; clear Heqo1; some_inv.
-          rewrite Heqo0 in Heqo2; clear Heqo0; some_inv.
-          apply mem_merge_with_arg_proper; auto.
-        +
-          exfalso.
-          apply Option_equiv_eq in Heqo1.
-          apply Option_equiv_eq in Heqo3.
-          rewrite IHj in Heqo1.
-          rewrite Heqo1 in Heqo3.
-          some_none.
-        +
-          exfalso.
-          apply Option_equiv_eq in Heqo0.
-          apply Option_equiv_eq in Heqo2.
-          rewrite E in Heqo0.
-          rewrite Heqo0 in Heqo2.
-          some_none.
-        +
-          exfalso.
-          apply Option_equiv_eq in Heqo1.
-          apply Option_equiv_eq in Heqo3.
-          rewrite IHj in Heqo1.
-          rewrite Heqo1 in Heqo3.
-          some_none.
-        +
-          exfalso.
-          apply Option_equiv_eq in Heqo0.
-          apply Option_equiv_eq in Heqo1.
-          rewrite E in Heqo0.
-          rewrite Heqo0 in Heqo1.
-          some_none.
-    Qed.
-
+    (*
     Fact IReduction_mem_aux_Some
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1728,23 +1667,209 @@ Section MemVecEq.
           eapply P.
           eauto.
     Qed.
+    *)
+
+    (* TODO: move  *)
+    Section ListSetoid.
+      Require Import Coq.Lists.SetoidList.
+
+      Global Instance lst_Equiv `{Equiv A}: Equiv (list A)
+        := eqlistA equiv.
+
+      Global Instance lst_Equivalence `{Ae: Equiv A}
+             `{!Equivalence (@equiv A _)}
+        : Equivalence (@lst_Equiv A Ae).
+      Proof.
+        typeclasses eauto.
+      Qed.
+
+      Global Instance lst_Setoid `{Setoid A} {n}: Setoid (vector A n).
+      Proof.
+        unfold Setoid.
+        apply vec_Equivalence.
+      Qed.
+
+    End ListSetoid.
+
+    (* Probably could be proven more generally for any monad with with some properties *)
+    Global Instance monadic_fold_left_rev_opt_proper
+           {A B : Type}
+           `{Eb: Equiv B}
+           `{Ae: Equiv A}
+           `{Equivalence A Ae}
+           (f : A -> B -> option A)
+           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+           (a : A)
+      :
+        Proper ((=) ==> (=)) (monadic_fold_left_rev f a).
+    Proof.
+      intros x y E.
+      induction E.
+      -
+        reflexivity.
+      -
+        simpl.
+        repeat break_match; try some_none.
+        some_inv.
+        apply f_mor; auto.
+    Qed.
+
+    (* Probably could be proven more generally for any monad with with some properties *)
+    Global Instance monadic_Lbuild_opt_proper
+           {A: Type}
+           `{Ae: Equiv A}
+           `{Equivalence A Ae}
+           (n : nat):
+      Proper ((forall_relation
+                 (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv) (@monadic_Lbuild A option OptionMonad.Monad_option n).
+    Proof.
+      intros f g E.
+      unfold forall_relation, pointwise_relation in E.
+      revert E.
+      dependent induction n.
+      -
+        reflexivity.
+      -
+        intros E.
+        simpl in *.
+
+        match goal with
+          [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
+          => destruct a eqn:MA ,b eqn:MB
+        end; try some_none;
+
+          replace (SigmaHCOLMem.monadic_Lbuild_obligation_2 A option f eq_refl)
+            with (zero_lt_Sn n) in MA by apply lt_unique;
+          replace (SigmaHCOLMem.monadic_Lbuild_obligation_2 A option g eq_refl)
+            with (zero_lt_Sn n) in MB by apply lt_unique;
+          pose E as C;
+          specialize (C 0 (zero_lt_Sn n));
+          rewrite MA,MB in C;
+          try some_none.
+
+
+        match goal with
+          [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
+          => destruct a eqn:FA ,b eqn:FB
+        end; try some_none;
+
+          match goal with
+          | [FA: monadic_Lbuild ?f ≡ _,
+                 FB: monadic_Lbuild ?g ≡ _
+             |- _] => specialize (IHn f g)
+          end;
+          rewrite FA,FB in IHn.
+        +
+          f_equiv.
+          constructor.
+          *
+            some_inv;apply C.
+          *
+            apply Some_inj_equiv.
+            apply IHn.
+            intros a1 a2.
+            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
+            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
+            intros l1 l2.
+            replace l1 with l2 by apply lt_unique.
+            apply E.
+        +
+          assert(P: (forall (a : nat) (a0 : a < n),
+                        f (S a)
+                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
+                                                                    f eq_refl a0) =
+                        g (S a)
+                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
+                                                                    g eq_refl a0))).
+          {
+            intros a1 a2.
+            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
+            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
+            intros l1 l2.
+            replace l1 with l2 by apply lt_unique.
+            apply E.
+
+          }
+          specialize (IHn P).
+          some_none.
+        +
+          assert(P: (forall (a : nat) (a0 : a < n),
+                        f (S a)
+                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
+                                                                    f eq_refl a0) =
+                        g (S a)
+                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
+                                                                    g eq_refl a0))).
+          {
+            intros a1 a2.
+            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
+            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
+            intros l1 l2.
+            replace l1 with l2 by apply lt_unique.
+            apply E.
+
+          }
+          specialize (IHn P).
+          some_none.
+    Qed.
+
+    Global Instance Apply_mem_Family_proper
+           {fm}
+           {i o n: nat}
+           (op_family: @SHOperatorFamily fm i o n)
+           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family_mem op_family)).
+    Proof.
+      intros x y E.
+      unfold Apply_mem_Family.
+      apply monadic_Lbuild_opt_proper.
+      intros j jc.
+      rewrite E.
+      reflexivity.
+    Qed.
 
     Global Instance IReduction_mem_proper
            {fm}
            {i o n}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (initial: CarrierA)
            (op_family: @SHOperatorFamily fm i o n)
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
     Proof.
       intros x y E.
+      apply Some_inj_equiv.
+      f_equiv.
       unfold IReduction_mem.
-      repeat break_match; try some_none; try reflexivity.
-      rewrite E.
-      reflexivity.
+      simpl.
+      repeat break_match.
+      -
+        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+        rewrite E in Heqo0.
+        rewrite Heqo0 in Heqo1.
+        some_inv.
+        rewrite Heqo1.
+        reflexivity.
+      -
+        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+        rewrite E in Heqo0.
+        rewrite Heqo0 in Heqo1.
+        some_none.
+      -
+        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+        rewrite E in Heqo0.
+        rewrite Heqo0 in Heqo1.
+        some_none.
+      -
+        reflexivity.
     Qed.
 
     Lemma shrink_op_family_mem
@@ -1767,66 +1892,6 @@ Section MemVecEq.
       eapply op_family_mem.
     Defined.
 
-    (* Shinks [op_family] from [(S (S n))] to [(S n)] in [IReduction_mem_aux], assuming [j] is below [(S n)] *)
-    Fact IReduction_mem_aux_shrink
-         {i o: nat}
-         (n : nat)
-         (j: nat) (jc: j < S n)
-         (jc1: j < S (S n))
-         (dot : CarrierA → CarrierA → CarrierA)
-         (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
-         (op_family_facts: forall j (jc:j < S (S n)), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-         (op_family_mem: forall j (jc:j < S (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
-         (m : NatMap CarrierA)
-      :
-        IReduction_mem_aux jc dot
-                           (get_family_mem_op
-                              (shrink_op_family_mem _ _ _ _ _ op_family_mem)
-                              (shrink_op_family _ op_family)
-                           )
-                           m
-                           ≡ IReduction_mem_aux
-                           jc1
-                           dot
-                           (get_family_mem_op (i:=i) (o:=o)
-                                              op_family_mem
-                                              op_family) m.
-    Proof.
-      induction j.
-      -
-        unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
-        simpl.
-        replace (@Nat.lt_lt_succ_r O (S n) jc) with (@le_S (S O) (S n) jc)
-          by apply lt_unique.
-        rewrite <- eq_rect_eq.
-        replace (@le_S (S O) (S n) jc) with jc1 by apply lt_unique.
-        reflexivity.
-      -
-        simpl.
-        replace (get_family_mem_op
-                   (shrink_op_family_mem i o (S n) op_family op_family_facts op_family_mem)
-                   (shrink_op_family Monoid_RthetaSafeFlags op_family) (S j) jc m)
-          with
-            (get_family_mem_op
-               op_family_mem
-               op_family
-               (S j) jc1 m).
-        2:{
-          unfold get_family_mem_op, shrink_op_family_mem, shrink_op_family_facts, shrink_op_family, mkFinNat.
-          simpl.
-          replace (@Nat.lt_lt_succ_r (S j) (S n) jc) with (@le_S (S (S j)) (S n) jc)
-            by apply lt_unique.
-          rewrite <- eq_rect_eq.
-          replace (@le_S (S (S j)) (S n) jc) with jc1 by apply lt_unique.
-          reflexivity.
-        }
-        break_match; try reflexivity.
-        rewrite IHj with (jc1:=Nat.lt_succ_l _ _ jc1).
-
-        replace (Nat.lt_lt_succ_r (Nat.lt_succ_l j (S n) jc)) with
-            (Nat.lt_succ_l j (S (S n)) (Nat.lt_lt_succ_r jc)) by apply le_unique.
-        reflexivity.
-    Qed.
 
     Lemma svector_to_mem_block_equiv
           {fm : Monoid RthetaFlags}
@@ -1896,6 +1961,7 @@ Section MemVecEq.
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (initial: CarrierA)
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
@@ -1903,7 +1969,7 @@ Section MemVecEq.
     Proof.
       unshelve esplit.
       -
-        apply (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+        apply (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
       -
         apply IReduction_mem_proper, pdot.
       -
