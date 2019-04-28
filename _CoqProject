@@ -1,6 +1,5 @@
 -R coq Helix
 -R ./lib/vellvm/src/coq Vellvm
--R ./lib/vellvm/lib/InteractionTrees/theories ITree
 -arg "-w '-notation-overridden'"
 
 
