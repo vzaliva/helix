@@ -238,6 +238,18 @@ Section SigmaHCOL_Operators.
       apply facts.
     Defined.
 
+    Lemma shrink_op_family_facts_up
+          (i o k : nat)
+          (op_family : SHOperatorFamily)
+          (facts: ∀ (j : nat) (jc : j < S k),
+              @SHOperator_Facts i o (op_family (mkFinNat jc))):
+      (forall (j : nat) (jc : j < k),
+          @SHOperator_Facts i o ((shrink_op_family_up op_family) (mkFinNat jc))).
+    Proof.
+      intros j jc.
+      apply facts.
+    Defined.
+
     Fixpoint family_in_index_set
              {i o n}
              (op_family: @SHOperatorFamily i o n): FinNatSet i
@@ -248,6 +260,33 @@ Section SigmaHCOL_Operators.
                                   (in_index_set (op_family (mkFinNat (S_j_lt_n E))))
                                   (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
+
+    (* Alternative definitoin of [family_in_index_set], shrinking up. Good for induction on n *)
+    Fixpoint family_in_index_set'
+             {i o n}
+             (op_family: @SHOperatorFamily i o n): FinNatSet i
+      :=
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
+        | O => fun _ _ => (Empty_set _)
+        | S j => fun E f => Union _
+                                  (in_index_set (op_family (mkFinNat (S_j_lt_0 E))))
+                                  (family_in_index_set' (shrink_op_family_up f))
+        end (eq_refl n) op_family.
+
+    Lemma family_in_index_eq
+             {i o n}
+             (op_family: @SHOperatorFamily i o n)
+      :
+        family_in_index_set op_family ≡ family_in_index_set' op_family.
+    Proof.
+      extensionality j.
+      induction n.
+      -
+        reflexivity.
+      -
+        simpl.
+    Admitted.
+
 
     Fixpoint family_out_index_set
              {i o n}

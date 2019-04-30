@@ -1616,59 +1616,6 @@ Section MemVecEq.
       apply mem_op_proper, E.
     Qed.
 
-    (*
-    Fact IReduction_mem_aux_Some
-         {i o k}
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
-         (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-         (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
-         (j: nat) (jc: j<k)
-         (m: mem_block)
-         (initial : CarrierA)
-         (H: forall (j0 : nat) (jc0 : j0 < i), in_index_set Monoid_RthetaSafeFlags
-                                                     (IReduction dot initial op_family)
-                                                     (mkFinNat jc0) → mem_in j0 m)
-      :
-        is_Some (IReduction_mem_aux jc dot (get_family_mem_op op_family_mem op_family) m).
-    Proof.
-      induction j.
-      -
-        simpl in *.
-        apply op_family_mem.
-        intros t tc H0.
-        specialize (H t tc).
-        apply H.
-        pose proof (family_in_set_includes_members) as P.
-        unfold Included,Ensembles.In  in P.
-        eapply P.
-        eauto.
-      -
-        simpl.
-        repeat break_match; try some_none.
-        +
-          crush.
-        +
-          exfalso.
-          contradict Heqo1.
-          apply is_Some_ne_None.
-          apply IHj.
-        +
-          contradict Heqo0.
-          apply is_Some_ne_None.
-          apply mem_out_some.
-          simpl in *.
-          intros t tc H0.
-          specialize (H t tc).
-          apply H.
-          pose proof (family_in_set_includes_members) as P.
-          unfold Included,Ensembles.In  in P.
-          eapply P.
-          eauto.
-    Qed.
-    *)
-
     (* TODO: move  *)
     Section ListSetoid.
       Require Import Coq.Lists.SetoidList.
@@ -1892,6 +1839,25 @@ Section MemVecEq.
       eapply op_family_mem.
     Defined.
 
+    Lemma shrink_op_family_mem_up
+          {fm}
+          (i o k : nat)
+          (op_family : SHOperatorFamily fm)
+          (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o (op_family (mkFinNat jc)))
+          (op_family_mem: forall j (jc:j< S k), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        (forall (j : nat) (jc : j < k),
+            @SHOperator_Mem fm i o
+                            ((shrink_op_family_up fm op_family) (mkFinNat jc))
+                            ((shrink_op_family_facts_up _ _ _ _ _ op_family_facts) j jc)).
+    Proof.
+      intros j jc.
+      assert (jc1: j< S k) by apply (Nat.lt_lt_succ_r jc).
+      unfold shrink_op_family_facts_up, shrink_op_family_up.
+      simpl.
+      replace (@le_S (S j) k jc) with jc1 by apply lt_unique.
+      eapply op_family_mem.
+    Defined.
 
     Lemma svector_to_mem_block_equiv
           {fm : Monoid RthetaFlags}
@@ -1975,10 +1941,85 @@ Section MemVecEq.
       -
         (* mem_out_some *)
         intros m H.
-        unfold IReduction_mem.
-        break_match.
-        crush.
-        eapply IReduction_mem_aux_Some, H.
+        unfold IReduction_mem, is_Some.
+        simpl.
+        repeat break_match; try tauto.
+        +
+          (* TODO: Prove that [monadic_fold_left_rev] does not fail *)
+          admit.
+        +
+          (* [Apply_mem_Family] could not be [None] *)
+          clear Heqo0.
+          rename Heqo1 into A.
+          unfold Apply_mem_Family in A.
+
+          induction k.
+          *
+            simpl in A.
+            some_none.
+          *
+            simpl in A.
+            repeat break_match_hyp; try some_none; clear A.
+            --
+              specialize (IHk
+                            (shrink_op_family_up _ op_family)
+                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                         ).
+
+              assert (∀ (j : nat) (jc : j < i), in_index_set Monoid_RthetaSafeFlags
+                                     (IReduction dot initial
+                                        (shrink_op_family_up Monoid_RthetaSafeFlags
+                                           op_family)) (mkFinNat jc) →
+                                   mem_in j m) as P.
+              {
+                clear IHk Heqo1.
+                intros j jc H0.
+                simpl in H0.
+                specialize (H j jc).
+                Opaque family_in_index_set.
+                simpl in H.
+                rewrite family_in_index_eq in H.
+                rewrite family_in_index_eq in H0.
+                Transparent family_in_index_set.
+                simpl in H.
+                apply H.
+                apply Union_intror.
+                unfold Ensembles.In.
+                apply H0.
+              }
+              specialize (IHk P). clear P.
+              contradict IHk.
+              unfold get_family_mem_op in *.
+              rewrite <- Heqo1.
+              unfold shrink_op_family_up, shrink_op_family_facts_up, shrink_op_family_mem_up.
+              f_equiv.
+              extensionality j.
+              extensionality jc.
+              replace (@SigmaHCOLMem.monadic_Lbuild_obligation_1 _ _ _ _ _ _ j jc)
+                with (@lt_n_S j k jc) by apply lt_unique.
+              reflexivity.
+            --
+              clear IHk.
+              contradict Heqo0.
+              generalize dependent (SigmaHCOLMem.monadic_Lbuild_obligation_2
+                                      mem_block option
+                                      (λ (j : nat) (jc : j < S k), get_family_mem_op op_family_mem op_family j jc m) eq_refl).
+              intros zc.
+              apply is_Some_ne_None.
+              apply op_family_mem with (jc:=zc).
+              Opaque family_in_index_set.
+              simpl in H.
+              rewrite family_in_index_eq in H.
+              Transparent family_in_index_set.
+              simpl in H.
+              intros j jc H0.
+              specialize (H j jc).
+              apply H. clear H.
+              apply Union_introl.
+              unfold Ensembles.In.
+              replace (zero_lt_Sn k) with zc by apply lt_unique.
+              apply H0.
       -
         (* out_mem_fill_pattern *)
         intros m0 m H j jc.

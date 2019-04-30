@@ -283,3 +283,9 @@ Proof.
   reflexivity.
 Qed.
 
+Definition S_j_lt_0 {n p : nat}: S p ≡ n → 0 < n.
+Proof.
+  intros H.
+  subst.
+  apply zero_lt_Sn.
+Defined.

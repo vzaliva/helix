@@ -929,7 +929,8 @@ Section Operators.
              (x: mem_block): option mem_block
     :=
       x' <- (Apply_mem_Family op_family_f x) ;;
-        monadic_fold_left_rev mem_merge mem_empty  x'.
+         monadic_fold_left_rev mem_merge mem_empty  x'.
+
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
