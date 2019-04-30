@@ -874,6 +874,16 @@ Section Operators.
 
   (* TODO: move to Util *)
 
+
+  Fixpoint fold_left_rev
+           {A B : Type}
+           (f : A -> B -> A) (a : A) (l : list B)
+    : A
+    := match l with
+       | List.nil => a
+       | List.cons b l => f (fold_left_rev f a l) b
+       end.
+
   Fixpoint monadic_fold_left_rev
            {A B : Type}
            {m : Type -> Type}
@@ -924,12 +934,11 @@ Section Operators.
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
-             (initial: CarrierA)
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
              (x: mem_block): option mem_block
     :=
       x' <- (Apply_mem_Family op_family_f x) ;;
-         monadic_fold_left_rev mem_merge mem_empty  x'.
+         ret (fold_left_rev (mem_merge_with dot) mem_empty x').
 
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)

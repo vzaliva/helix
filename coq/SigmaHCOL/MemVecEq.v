@@ -1638,6 +1638,26 @@ Section MemVecEq.
 
     End ListSetoid.
 
+    Global Instance fold_left_rev_proper
+           {A B : Type}
+           `{Eb: Equiv B}
+           `{Ae: Equiv A}
+           `{Equivalence A Ae}
+           (f : A -> B -> A)
+           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+           (a : A)
+      :
+        Proper ((=) ==> (=)) (fold_left_rev f a).
+    Proof.
+      intros x y E.
+      induction E.
+      -
+        reflexivity.
+      -
+        simpl.
+        apply f_mor; auto.
+    Qed.
+
     (* Probably could be proven more generally for any monad with with some properties *)
     Global Instance monadic_fold_left_rev_opt_proper
            {A B : Type}
@@ -1782,20 +1802,18 @@ Section MemVecEq.
            {i o n}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           (initial: CarrierA)
            (op_family: @SHOperatorFamily fm i o n)
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
     Proof.
       intros x y E.
-      apply Some_inj_equiv.
-      f_equiv.
       unfold IReduction_mem.
       simpl.
       repeat break_match.
       -
+        f_equiv.
         unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
         unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
         rewrite E in Heqo0.
@@ -1935,7 +1953,7 @@ Section MemVecEq.
     Proof.
       unshelve esplit.
       -
-        apply (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
+        apply (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
       -
         apply IReduction_mem_proper, pdot.
       -
@@ -1945,8 +1963,7 @@ Section MemVecEq.
         simpl.
         repeat break_match; try tauto.
         +
-          (* TODO: Prove that [monadic_fold_left_rev] does not fail *)
-          admit.
+          some_none.
         +
           (* [Apply_mem_Family] could not be [None] *)
           clear Heqo0.
@@ -2021,6 +2038,9 @@ Section MemVecEq.
               replace (zero_lt_Sn k) with zc by apply lt_unique.
               apply H0.
       -
+
+
+
         (* out_mem_fill_pattern *)
         intros m0 m H j jc.
         simpl in *.
