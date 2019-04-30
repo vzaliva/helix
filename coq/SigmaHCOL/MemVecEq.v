@@ -1802,11 +1802,12 @@ Section MemVecEq.
            {i o n}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (initial: CarrierA)
            (op_family: @SHOperatorFamily fm i o n)
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IReduction_mem dot initial o (get_family_mem_op op_family_mem op_family)).
     Proof.
       intros x y E.
       unfold IReduction_mem.
@@ -1953,7 +1954,7 @@ Section MemVecEq.
     Proof.
       unshelve esplit.
       -
-        apply (IReduction_mem dot (get_family_mem_op op_family_mem op_family)).
+        apply (IReduction_mem dot initial o (get_family_mem_op op_family_mem op_family)).
       -
         apply IReduction_mem_proper, pdot.
       -

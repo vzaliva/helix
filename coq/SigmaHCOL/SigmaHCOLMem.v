@@ -934,11 +934,13 @@ Section Operators.
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
+             (initial: CarrierA)
+             (o: nat)
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
              (x: mem_block): option mem_block
     :=
       x' <- (Apply_mem_Family op_family_f x) ;;
-         ret (fold_left_rev (mem_merge_with dot) mem_empty x').
+         ret (fold_left_rev (mem_merge_with_def dot initial) (mem_const_block o initial) x').
 
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
@@ -998,6 +1000,29 @@ Section Morphisms.
   Proof.
     intros m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge_with.
+    apply NP.F.Equal_mapsto_iff.
+    intros k e.
+    rewrite 2!NP.F.find_mapsto_iff.
+    rewrite 2!NP.F.map2_1bis; auto.
+
+    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in Em1, Em0.
+    specialize (Em0 k).
+    specialize (Em1 k).
+    repeat break_match; try some_none.
+    - split; intros H; repeat some_inv; subst; reflexivity.
+    - split; intros H; repeat some_inv; subst; reflexivity.
+    - split; intros H; repeat some_inv; subst; reflexivity.
+    - split; intros H; repeat some_inv; subst; inversion H.
+  Qed.
+
+  Global Instance mem_merge_with_def_arg_proper
+         (dot: CarrierA → CarrierA → CarrierA)
+         (default: CarrierA)
+    :
+      Proper (equiv ==> equiv ==> equiv) (mem_merge_with_def dot default).
+  Proof.
+    intros m0 m0' Em0 m1 m1' Em1.
+    unfold mem_merge_with_def.
     apply NP.F.Equal_mapsto_iff.
     intros k e.
     rewrite 2!NP.F.find_mapsto_iff.

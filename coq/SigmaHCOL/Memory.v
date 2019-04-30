@@ -104,6 +104,20 @@ Definition mem_merge_with (f: CarrierA -> CarrierA -> CarrierA): mem_block -> me
                | Some x, Some y => Some (f x y)
                end).
 
+(* merge two memory blocks in (0..n-1) using given operation to combine values *)
+Definition mem_merge_with_def
+           (f: CarrierA -> CarrierA -> CarrierA)
+           (default: CarrierA)
+  : mem_block -> mem_block -> mem_block
+  :=
+    NM.map2 (fun a b =>
+               match a,b with
+               | None, None => None
+               | Some x, None => Some (f x default)
+               | None, Some y => Some (f default y)
+               | Some x, Some y => Some (f x y)
+               end).
+
 (* block of memory with indices (0..n-1) set to `v` *)
 Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
   :=
