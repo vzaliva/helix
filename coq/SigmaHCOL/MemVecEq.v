@@ -2077,7 +2077,6 @@ Section MemVecEq.
       -
         (* out_mem_fill_pattern *)
         intros m0 m H j jc.
-        simpl in *.
         unfold IReduction_mem in H.
         simpl in *.
         break_match_hyp ; try some_none.
@@ -2087,20 +2086,56 @@ Section MemVecEq.
         +
           intros H.
           rewrite family_out_index_set_eq in H.
-          dependent induction k.
+          revert l Heqo0.
+          induction k; intros l Heqo0.
           *
             simpl in *.
             inversion H.
           *
-            rename Heqo0 into F.
-            assert(length l = S k) as L by apply (Apply_mem_Family_length F).
-            destruct l as [l| l0];  try inversion L.
-            apply Apply_mem_Family_cons in F.
-            destruct F as [F0 F].
+            rename Heqo0 into A.
+            assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+            destruct l as [l| l0]; try inversion L.
+
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
 
             simpl.
+            apply mem_merge_with_def_as_Union.
 
-            HERE
+            simpl in H.
+            dep_destruct H.
+            --
+              clear IHk A.
+              right.
+              unfold Ensembles.In in H.
+              eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
+              replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
+                by apply lt_unique.
+              auto.
+            --
+              clear A0.
+              specialize (IHk
+                            (shrink_op_family_up _ op_family)
+                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                         ).
+              left; auto.
+        +
+          intros H.
+
+
+
+          assert(Ensembles.Same_set _
+                                    (out_index_set Monoid_RthetaSafeFlags (IReduction dot initial op_family))
+                                    (Full_set _)
+                ) as F.
+          {
+            (* TODO: move to instance *)
+            admit.
+          }
+          clear F.
+          (* simpl in F. *)
+          (* rewrite family_out_index_set_eq in F. *)
 
       -
         (* out_mem_oob *)

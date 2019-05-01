@@ -433,6 +433,18 @@ Proof.
       try apply Some_ne_None, NP.F.in_find_iff in Heqo0; crush.
 Qed.
 
+Lemma mem_merge_with_def_as_Union
+      (dot : CarrierA -> CarrierA -> CarrierA)
+      (initial: CarrierA)
+      (m1 m2 : mem_block)
+      (k:nat)
+  :
+    ((mem_in k m1) \/ (mem_in k m2)) <->
+    mem_in k (mem_merge_with_def dot initial m1 m2).
+Proof.
+  (* See proof above *)
+Admitted.
+
 Lemma mem_merge_with_not_as_Union
       (dot : CarrierA -> CarrierA -> CarrierA)
       (m1 m2 : mem_block)
