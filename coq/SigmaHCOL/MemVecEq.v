@@ -1990,6 +1990,8 @@ Section MemVecEq.
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+           (compat: Ensembles.Same_set _
+                                       (out_index_set Monoid_RthetaSafeFlags (IReduction dot initial op_family)) (Full_set _))
       : SHOperator_Mem (IReduction dot initial op_family).
     Proof.
       unshelve esplit.
@@ -2000,6 +2002,7 @@ Section MemVecEq.
       -
         (* mem_out_some *)
         intros m H.
+        clear compat.
         unfold IReduction_mem, is_Some.
         simpl.
         repeat break_match; try tauto.
@@ -2085,6 +2088,7 @@ Section MemVecEq.
         split.
         +
           intros H.
+          clear compat.
           rewrite family_out_index_set_eq in H.
           revert l Heqo0.
           induction k; intros l Heqo0.
@@ -2122,22 +2126,10 @@ Section MemVecEq.
               left; auto.
         +
           intros H.
-
-
-
-          assert(Ensembles.Same_set _
-                                    (out_index_set Monoid_RthetaSafeFlags (IReduction dot initial op_family))
-                                    (Full_set _)
-                ) as F.
-          {
-            (* TODO: move to instance *)
-            admit.
-          }
-          clear F.
-          (* simpl in F. *)
-          (* rewrite family_out_index_set_eq in F. *)
-
+          apply compat.
+          apply Full_intro.
       -
+        TODO.
         (* out_mem_oob *)
         intros m0 m H.
         intros j jc.
