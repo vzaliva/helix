@@ -896,8 +896,8 @@ Section Operators.
                     f a' b
 
        end.
-
-  Program Fixpoint monadic_Lbuild {A: Type}
+  Program Fixpoint monadic_Lbuild
+          {A: Type}
           {m : Type -> Type}
           {M : Monad m}
           (n : nat)
@@ -906,10 +906,65 @@ Section Operators.
     | 0 => ret (List.nil)
     | S p =>
       let gen' := fun i ip => gen (S i) _ in
-      liftM2 List.cons (gen 0 _) (@monadic_Lbuild A m M p gen')
+      liftM2 List.cons (gen 0 (lt_O_Sn p)) (@monadic_Lbuild A m M p gen')
     end.
-  Next Obligation. lia. Qed.
-  Next Obligation. lia. Qed.
+  Next Obligation. apply lt_n_S, ip. Qed.
+
+  Lemma monadic_Lbuild_cons
+        {A: Type}
+        {m : Type -> Type}
+        {M : Monad m}
+        (n : nat)
+        (gen : forall i, i < S n -> m A)
+    :
+      monadic_Lbuild gen ≡
+      liftM2 List.cons (gen 0 (lt_O_Sn n)) (monadic_Lbuild (fun i ip => gen (S i) (lt_n_S ip))).
+  Proof.
+    simpl.
+    f_equiv.
+    f_equiv.
+    extensionality i.
+    extensionality ip.
+    f_equiv.
+    apply NatUtil.lt_unique.
+  Qed.
+
+  Lemma monadic_Lbuild_opt_length
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A)
+        (l: list A)
+    :
+      monadic_Lbuild gen ≡ Some l → Datatypes.length l ≡ n.
+  Proof.
+    intros H.
+    dependent induction n.
+    -
+      simpl in H.
+      some_inv.
+      reflexivity.
+    -
+      destruct l.
+      +
+        exfalso.
+        simpl in *.
+        repeat break_match_hyp; try some_none.
+        inversion H.
+      +
+        simpl.
+        f_equiv.
+        apply IHn with (gen:=fun i ip => gen (S i) (lt_n_S ip)).
+        simpl in H.
+        repeat break_match_hyp; try some_none.
+        inversion H.
+        subst.
+        rewrite <- Heqo0.
+        f_equiv.
+        extensionality i.
+        extensionality ip.
+        f_equiv.
+        apply NatUtil.lt_unique.
+  Qed.
 
   Program Fixpoint Lbuild {A: Type}
           (n : nat)

@@ -273,7 +273,7 @@ Section SigmaHCOL_Operators.
                                   (family_in_index_set' (shrink_op_family_up f))
         end (eq_refl n) op_family.
 
-    Lemma family_in_index_eq
+    Lemma family_in_index_set_eq
              {i o n}
              (op_family: @SHOperatorFamily i o n)
       :
@@ -287,7 +287,6 @@ Section SigmaHCOL_Operators.
         simpl.
     Admitted.
 
-
     Fixpoint family_out_index_set
              {i o n}
              (op_family: @SHOperatorFamily i o n): FinNatSet o
@@ -298,6 +297,25 @@ Section SigmaHCOL_Operators.
                                   (out_index_set (op_family (mkFinNat (S_j_lt_n E))))
                                   (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
+
+    Fixpoint family_out_index_set'
+             {i o n}
+             (op_family: @SHOperatorFamily i o n): FinNatSet o
+      :=
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
+        | O => fun _ _ => (Empty_set _)
+        | S j => fun E f => Union _
+                                  (out_index_set (op_family (mkFinNat (S_j_lt_0 E))))
+                                  (family_out_index_set' (shrink_op_family_up f))
+        end (eq_refl n) op_family.
+
+    Lemma family_out_index_set_eq
+          {i o n}
+          (op_family: @SHOperatorFamily i o n)
+      :
+        family_out_index_set op_family ≡ family_out_index_set' op_family.
+    Proof.
+    Admitted.
 
     Lemma family_in_set_includes_members:
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
