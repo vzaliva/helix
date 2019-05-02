@@ -848,8 +848,11 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+Require Import String.
+
 Section SigmaHCOL_to_DSHCOL.
 
+  Open Scope string_scope.
   Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1.
   Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL1" "dynwin_SHCOL_DSHCOL").
 
