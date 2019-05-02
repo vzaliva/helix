@@ -801,6 +801,9 @@ Proof.
         specialize (IHn (shrink_vbuild_function_l f) xs).
         rewrite <- IHn; clear IHn.
         --
+          unfold shrink_vbuild_function_l.
+          f_equiv.
+          intros i ic.
           f_equiv.
         --
           simpl in H.
