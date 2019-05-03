@@ -273,20 +273,6 @@ Section SigmaHCOL_Operators.
                                   (family_in_index_set' (shrink_op_family_up f))
         end (eq_refl n) op_family.
 
-    Lemma family_in_index_set_eq
-             {i o n}
-             (op_family: @SHOperatorFamily i o n)
-      :
-        family_in_index_set op_family ≡ family_in_index_set' op_family.
-    Proof.
-      extensionality j.
-      induction n.
-      -
-        reflexivity.
-      -
-        simpl.
-    Admitted.
-
     Fixpoint family_out_index_set
              {i o n}
              (op_family: @SHOperatorFamily i o n): FinNatSet o
@@ -385,6 +371,91 @@ Section SigmaHCOL_Operators.
             by apply lt_unique.
           apply IHk.
     Qed.
+
+    Lemma family_in_index_set_eq
+          {i o n}
+          (op_family: @SHOperatorFamily i o n)
+      :
+        family_in_index_set op_family ≡ family_in_index_set' op_family.
+    Proof.
+      dependent induction n.
+      +
+        simpl.
+        reflexivity.
+      +
+        apply Extensionality_Ensembles.
+        simpl.
+        split.
+        *
+          generalize (@S_j_lt_n (S n) n (@eq_refl nat (S n))), (zero_lt_Sn n).
+          intros nc zc.
+          intros x H.
+          destruct H.
+          --
+            (* last *)
+            destruct n.
+            ++
+              apply Union_introl.
+              replace zc with nc by apply lt_unique.
+              apply H.
+            ++
+              apply Union_intror.
+              rewrite <- IHn; clear IHn.
+              assert(nc1: n < S n) by lia.
+              pose proof (family_in_set_includes_members i o (S n)
+                                                         (shrink_op_family_up op_family)
+                                                         n
+                                                         nc1
+                         )
+                as M.
+              apply M.
+              unfold shrink_op_family_up.
+              simpl.
+              replace (lt_n_S nc1) with nc by apply le_unique.
+              apply H.
+          --
+            (* all but last *)
+            clear nc.
+            unfold In in H.
+            destruct x as [x xc].
+            apply family_in_set_implies_members in H.
+            destruct H as [t [tc H]].
+
+            destruct (eq_nat_dec t 0).
+            ++
+              subst.
+              apply Union_introl.
+              unfold In.
+              unfold shrink_op_family in H.
+              simpl in H.
+              replace zc with (le_S tc) by apply lt_unique.
+              apply H.
+            ++
+              apply Union_intror; clear zc.
+              destruct t.
+              congruence.
+              assert(tc1: t<n) by omega.
+              pose proof (family_in_set_includes_members i o n
+                                                         (shrink_op_family_up op_family)
+                                                         t
+                                                         tc1
+                         )
+                as M.
+              unfold In.
+              rewrite <- IHn.
+              apply M; clear M.
+              unfold In.
+              unfold mkFinNat.
+              unfold shrink_op_family_up.
+              simpl.
+              unfold shrink_op_family in H.
+              simpl in H.
+              replace (lt_n_S tc1) with (le_S tc) by apply lt_unique.
+              apply H.
+        *
+
+    Qed.
+
 
     Lemma family_out_set_includes_members:
       ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
