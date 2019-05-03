@@ -1,6 +1,7 @@
 (* Finite natural numbers. TODO: remove, probably unused *)
 
 Require Import Coq.Arith.Arith Coq.Arith.Minus Coq.Arith.Plus Coq.Arith.EqNat Coq.Arith.Lt.
+Require Import Coq.Logic.Decidable.
 Require Export Coq.Init.Specif.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.Misc.
@@ -289,3 +290,24 @@ Proof.
   subst.
   apply zero_lt_Sn.
 Defined.
+
+Lemma FinNat_eq_dec {n:nat}  (a b: FinNat n): {a ≡ b} + {a ≢ b}.
+Proof.
+  destruct a as [a ac].
+  destruct b as [b bc].
+  destruct (eq_nat_dec a b) as [E | NE].
+  -
+    left.
+    apply eq_exist_uncurried.
+    unshelve econstructor.
+    apply E.
+    unfold eq_rect.
+    break_match.
+    apply NatUtil.lt_unique.
+  -
+    right.
+    intros C.
+    apply proj1_sig_eq in C.
+    simpl in C.
+    congruence.
+Qed.
