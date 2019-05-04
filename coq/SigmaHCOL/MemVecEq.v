@@ -2129,42 +2129,46 @@ Section MemVecEq.
           apply compat.
           apply Full_intro.
       -
-        TODO.
         (* out_mem_oob *)
-        intros m0 m H.
-        intros j jc.
+        intros m0 m H j jc.
+        clear compat.
         unfold IReduction_mem in H.
-        break_match_hyp.
-        *
+        simpl in *.
+        break_match_hyp ; try some_none.
+        some_inv.
+        clear H1 m.
+        rename Heqo0 into A.
+        revert l A.
+        induction k; intros l A.
+        +
+          unfold Apply_mem_Family in A.
+          simpl in A.
           some_inv.
-          subst.
-          unfold mem_in, mem_empty, not.
-          apply NP.F.empty_in_iff.
-        *
-          clear k Heqn.
-          generalize dependent (@eq_ind_r nat (S n) (Peano.lt n) (Nat.lt_succ_diag_r n)
-                                          (S n) (@eq_refl nat (S n))).
-          generalize dependent (S n).
-          intros k op_family op_family_facts op_family_mem kc H.
-          revert m H.
-          induction n; intros.
+          subst l.
+          simpl.
+          unfold mem_in.
+          apply mem_const_block_oob, jc.
+        +
+          assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+          destruct l as [l| l0]; try inversion L.
+          simpl.
+          apply Apply_mem_Family_cons in A.
+          destruct A as [A0 A].
+          intros C.
+          apply mem_merge_with_def_as_Union in C.
+          destruct C.
           --
-            simpl in H.
-            apply (out_mem_oob m0 m).
-            apply H.
-            apply jc.
+            clear A0.
+            specialize (IHk
+                          (shrink_op_family_up _ op_family)
+                          (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                          l
+                          A
+                       ).
+            auto.
           --
-            simpl in H.
-            repeat break_match_hyp; try some_none.
-            some_inv.
-            apply mem_merge_with_not_as_Union.
-            ++
-              eapply op_family_mem.
-              eapply Heqo0.
-              eapply jc.
-            ++
-              eapply IHn.
-              eauto.
+            apply out_mem_oob with (j0:=j) in A0; auto.
       -
         (* mem_vec_preservation *)
         intros x H.
