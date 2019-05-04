@@ -122,8 +122,8 @@ Definition mem_merge_with_def
 Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
   :=
     match n with
-    | O => mem_add n v (mem_empty)
-    | S n' => mem_add n v (mem_const_block n' v)
+    | O => mem_empty
+    | S n' => mem_add n' v (mem_const_block n' v)
     end.
 
 Definition memory := NatMap mem_block.
@@ -476,4 +476,30 @@ Proof.
   intros H0 H1 H.
   apply mem_merge_with_as_Union in H.
   crush.
+Qed.
+
+Lemma mem_const_block_oob
+      (n : nat)
+      (v : CarrierA)
+      (j : nat):
+  (j >= n) -> (not (NM.In j (mem_const_block n v))).
+Proof.
+  intros jc.
+  induction n.
+  -
+    simpl.
+    unfold mem_empty.
+    intros C.
+    apply F.empty_in_iff in C.
+    tauto.
+  -
+    simpl.
+    unfold mem_add.
+    intros C.
+    apply F.add_in_iff in C.
+    destruct C.
+    +
+      crush.
+    +
+      crush.
 Qed.
