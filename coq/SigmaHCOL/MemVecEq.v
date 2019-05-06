@@ -2174,84 +2174,58 @@ Section MemVecEq.
         intros x H.
         rename k into n.
         unfold IReduction, IReduction_mem in *.
-        destruct n.
+        simpl in *.
+        break_match; rename Heqo0 into A.
         +
-          simpl.
           f_equiv.
-          unfold Diamond, MUnion.
-          simpl.
-          apply svector_to_mem_block_mem_empty.
-        +
-          simpl in *.
-          generalize (eq_ind_r (Peano.lt n) (Nat.lt_succ_diag_r n) eq_refl).
-          (* Manual genralization of [n<S n] as [j<S n] *)
-          cut(forall j jc,
-                   @equiv (option mem_block) (@option_Equiv mem_block mem_block_Equiv)
-                          (@Some mem_block
-                                 (@svector_to_mem_block Monoid_RthetaSafeFlags o
-                                                        (@Diamond Monoid_RthetaSafeFlags i o (S n) dot initial
-                                                                  (@get_family_op Monoid_RthetaSafeFlags i o (S n) op_family) x)))
-                          (@IReduction_mem_aux (S n) j jc dot
-                                               (@get_family_mem_op Monoid_RthetaSafeFlags i o (S n) op_family op_family_facts
-                                                                   op_family_mem op_family) (@svector_to_mem_block Monoid_RthetaSafeFlags i x))); auto.
-          intros j jc.
-
-
-          dependent induction n.
+          clear compat.
+          revert l A.
+          induction n; intros.
           *
-            dep_destruct j ; [idtac | crush].
-            unfold get_family_mem_op.
             simpl.
-            rewrite <- mem_vec_preservation.
-            --
-              f_equiv.
-              apply svector_to_mem_block_equiv.
-              ++
-                apply Vforall2_intro_nth.
-                intros k kc.
-                unfold get_family_op.
-                unfold Diamond.
-                rewrite AbsorbMUnionIndex_Vmap.
-                unfold UnionFold.
-                simpl.
-                unfold SVector.Union.
-                replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
-                generalize (Vnth (op Monoid_RthetaSafeFlags (op_family (mkFinNat jc)) x) kc).
-                intros r.
-              (* Wrong equality! *)
-                admit.
-
-              ++
-                apply Vforall2_intro_nth.
-                intros k kc.
-                unfold get_family_op.
-                unfold Diamond.
-                rewrite AbsorbMUnionIndex_Vmap.
-                unfold UnionFold.
-                simpl.
-                unfold SVector.Union.
-                replace (VecUtil.Vbuild_spec_obligation_4 _ _) with jc by apply lt_unique.
-                generalize (@Vnth
-                              (@WriterMonad.writerT RthetaFlags Monoid_RthetaSafeFlags
-                                                    IdentityMonad.ident CarrierA) o
-                              (@op Monoid_RthetaSafeFlags i o (op_family (@mkFinNat (S O) O jc)) x) k kc).
-                intros f.
-                rewrite execWriter_Rtheta_liftM2.
-                rewrite execWriter_mkStruct.
-                rewrite RthetaFlags_equiv_eq.
-                rewrite monoid_lunit.
-                reflexivity.
-                apply MonoidLaws_SafeRthetaFlags.
-            --
-              intros j0 jc0 H0.
-              apply H.
-              apply Union_introl.
-              unfold Ensembles.In.
-              replace (S_j_lt_n eq_refl) with jc by apply lt_unique.
-              apply H0.
+            f_equiv.
+            unfold Diamond, MUnion.
+            assert(length l = 0) as L by apply (Apply_mem_Family_length A).
+            destruct l; try inversion L.
+            simpl.
+            apply svector_to_mem_block_Vconst.
           *
-            (* Got IHn *)
-            (* unshelve erewrite <- IReduction_mem_aux_shrink. *)
+            assert(length l = S n) as L by apply (Apply_mem_Family_length A).
+            destruct l; try inversion L.
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
+            assert(forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaSafeFlags
+                                     (shrink_op_family_up Monoid_RthetaSafeFlags
+                                        op_family) (mkFinNat jc) →
+                                           Is_Val (Vnth x jc)) as P.
+            {
+              intros j jc H0.
+              apply H.
+              apply family_in_set_implies_members in H0.
+              destruct H0 as [t [tc H0]].
+              unfold shrink_op_family_up in H0.
+              eapply family_in_set_includes_members.
+              unfold Ensembles.In.
+              eapply H0.
+            }
+            specialize (IHn
+                          (shrink_op_family_up _ op_family)
+                          (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                          P
+                          l
+                          A
+                       ). clear P A.
+
+            simpl in *.
+            rewrite <- IHn; clear IHn.
+
+            admit.
+
+        +
+          (* [A] could not happen *)
+          unfold Apply_mem_Family in A.
+          admit.
     Admitted.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
