@@ -2098,7 +2098,7 @@ Section MemVecEq.
           *
             rename Heqo0 into A.
             assert(length l = S k) as L by apply (Apply_mem_Family_length A).
-            destruct l as [l| l0]; try inversion L.
+            destruct l as [| l0]; try inversion L.
 
             apply Apply_mem_Family_cons in A.
             destruct A as [A0 A].
@@ -2150,7 +2150,7 @@ Section MemVecEq.
           apply mem_const_block_oob, jc.
         +
           assert(length l = S k) as L by apply (Apply_mem_Family_length A).
-          destruct l as [l| l0]; try inversion L.
+          destruct l as [| l0]; try inversion L.
           simpl.
           apply Apply_mem_Family_cons in A.
           destruct A as [A0 A].
