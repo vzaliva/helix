@@ -2173,15 +2173,19 @@ Section MemVecEq.
         (* mem_vec_preservation *)
         intros x H.
         rename k into n.
-        unfold IReduction, IReduction_mem in *.
+        unfold IReduction, IReduction_mem, Diamond in *.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
           f_equiv.
+          remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
+            as v eqn:A1.
+
           clear compat.
-          revert l A.
+          revert l A A1.
           induction n; intros.
           *
+            subst v.
             simpl.
             f_equiv.
             unfold Diamond, MUnion.
@@ -2192,6 +2196,7 @@ Section MemVecEq.
           *
             assert(length l = S n) as L by apply (Apply_mem_Family_length A).
             destruct l; try inversion L.
+            rename m into l0.
             apply Apply_mem_Family_cons in A.
             destruct A as [A0 A].
             assert(forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaSafeFlags
@@ -2208,14 +2213,22 @@ Section MemVecEq.
               unfold Ensembles.In.
               eapply H0.
             }
+            unfold Apply_Family' in A1.
+            rewrite Vbuild_cons in A1.
+            dep_destruct v.
+            clear v. rename h into v0, x0 into v.
+            inversion A1 as [[V0 V]]. clear A1.
+            apply inj_pair2 in V.
+
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
                           P
-                          l
-                          A
-                       ). clear P A.
+                          v l
+                          A V
+                       ).
+            clear P.
 
             simpl in *.
             rewrite <- IHn; clear IHn.
