@@ -2229,9 +2229,17 @@ Section MemVecEq.
                           A V
                        ).
             clear P.
-
-            simpl in *.
+            unfold MUnion in *.
+            simpl.
             rewrite <- IHn; clear IHn.
+
+            unfold Vec2Union.
+
+
+            subst.
+            remember (Vfold_left_rev _ _ _) as v.
+            remember (get_family_op _ _ _ _ _) as v0.
+
 
             admit.
 
