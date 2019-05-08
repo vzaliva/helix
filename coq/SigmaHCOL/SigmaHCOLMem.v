@@ -959,6 +959,7 @@ Section Operators.
         apply NatUtil.lt_unique.
   Qed.
 
+  (* Could be proven <-> *)
   Lemma monadic_Lbuild_op_eq_None
         {A: Type}
         (n : nat)
@@ -966,7 +967,26 @@ Section Operators.
 
     monadic_Lbuild gen ≡ None -> exists i ic, gen i ic ≡ None.
   Proof.
-  Admitted.
+    intros H.
+    dependent induction n.
+    -
+      simpl in H.
+      some_none.
+    -
+      simpl in H.
+      repeat break_match_hyp; try some_none; clear H.
+      +
+        remember (λ (i : nat) (ip : i < n), gen (S i)
+                                              (monadic_Lbuild_obligation_1 A option gen
+                                                                           eq_refl ip))
+          as gen' eqn:G.
+        specialize (IHn gen' Heqo0).
+        subst gen'.
+        destruct IHn as [i [ic IHn]].
+        eexists; eexists; eapply IHn.
+      +
+        eexists; eexists; eapply Heqo.
+  Qed.
 
   Program Fixpoint Lbuild {A: Type}
           (n : nat)
