@@ -1982,6 +1982,22 @@ Section MemVecEq.
       apply monadic_Lbuild_opt_length.
     Qed.
 
+    Lemma svector_to_mem_block_Vec2Union
+          {n: nat}
+          {a b: svector Monoid_RthetaSafeFlags n}
+          {dot: CarrierA -> CarrierA -> CarrierA}
+          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+          (initial: CarrierA)
+      :
+        svector_to_mem_block (Vec2Union _ dot a  b)
+       ≡
+        mem_merge_with_def dot initial
+                           (svector_to_mem_block a)
+                           (svector_to_mem_block b).
+    Proof.
+      unfold Vec2Union.
+    Admitted.
+
     Global Instance IReduction_Mem
            {i o k: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2231,16 +2247,15 @@ Section MemVecEq.
             clear P.
             unfold MUnion in *.
             simpl.
-            rewrite <- IHn; clear IHn.
-
-            unfold Vec2Union.
-
-
-            subst.
-            remember (Vfold_left_rev _ _ _) as v.
-            remember (get_family_op _ _ _ _ _) as v0.
-
-
+            erewrite (svector_to_mem_block_Vec2Union initial).
+            rewrite IHn; clear IHn.
+            f_equiv.
+            Set Printing All.
+            apply Some_inj_equiv.
+            rewrite <- A0. clear A0.
+            (* mem_vec_preservation. *)
+            destruct (op_family_mem 0 (Nat.lt_0_succ n)).
+            eapply mem_vec_preservation0.
             admit.
 
         +
