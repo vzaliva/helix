@@ -2249,15 +2249,16 @@ Section MemVecEq.
             simpl.
             erewrite (svector_to_mem_block_Vec2Union initial).
             rewrite IHn; clear IHn.
-            f_equiv.
-            Set Printing All.
+            apply mem_merge_with_def_arg_proper.
+            reflexivity.
             apply Some_inj_equiv.
             rewrite <- A0. clear A0.
-            (* mem_vec_preservation. *)
-            destruct (op_family_mem 0 (Nat.lt_0_succ n)).
-            eapply mem_vec_preservation0.
-            admit.
-
+            unfold get_family_op, get_family_mem_op.
+            eapply mem_vec_preservation.
+            intros j jc H0.
+            apply H.
+            eapply family_in_set_includes_members.
+            apply H0.
         +
           (* [A] could not happen *)
           unfold Apply_mem_Family in A.
