@@ -2261,8 +2261,18 @@ Section MemVecEq.
             apply H0.
         +
           (* [A] could not happen *)
+          exfalso.
           unfold Apply_mem_Family in A.
-          admit.
+          apply monadic_Lbuild_op_eq_None in A.
+          destruct A as [t [tc A]].
+          contradict A.
+          apply is_Some_ne_None.
+          apply mem_out_some.
+          intros j jc H0.
+          apply svector_to_mem_block_In with (jc0:=jc).
+          apply H.
+          eapply family_in_set_includes_members.
+          apply H0.
     Admitted.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)

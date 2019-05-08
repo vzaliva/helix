@@ -959,6 +959,15 @@ Section Operators.
         apply NatUtil.lt_unique.
   Qed.
 
+  Lemma monadic_Lbuild_op_eq_None
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A):
+
+    monadic_Lbuild gen ≡ None -> exists i ic, gen i ic ≡ None.
+  Proof.
+  Admitted.
+
   Program Fixpoint Lbuild {A: Type}
           (n : nat)
           (gen : forall i, i < n -> A) {struct n}: list A :=
