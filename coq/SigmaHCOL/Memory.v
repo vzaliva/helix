@@ -478,7 +478,31 @@ Proof.
   crush.
 Qed.
 
-Lemma mem_const_block_oob
+Require Import Psatz.
+
+Lemma mem_const_block_find
+      (n : nat)
+      (v : CarrierA)
+      (j : nat):
+  (j < n) -> (NM.find j (mem_const_block n v) = Some v).
+Proof.
+  intros jc.
+  induction n.
+  -
+    nat_lt_0_contradiction.
+  -
+    simpl.
+    destruct (eq_nat_dec j n) as [N | NN].
+    +
+      subst.
+      rewrite F.add_eq_o; reflexivity.
+    +
+      rewrite F.add_neq_o; auto.
+      apply IHn.
+      lia.
+Qed.
+
+Lemma mem_const_block_In_oob
       (n : nat)
       (v : CarrierA)
       (j : nat):
@@ -502,4 +526,16 @@ Proof.
       crush.
     +
       crush.
+Qed.
+
+Lemma mem_const_block_find_oob
+      (n : nat)
+      (v : CarrierA)
+      (j : nat):
+  (j >= n) -> (NM.find j (mem_const_block n v) = None).
+Proof.
+  intros jc.
+  apply F.not_find_in_iff.
+  apply mem_const_block_In_oob.
+  apply jc.
 Qed.

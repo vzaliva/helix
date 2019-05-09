@@ -2156,7 +2156,7 @@ Section MemVecEq.
           subst l.
           simpl.
           unfold mem_in.
-          apply mem_const_block_oob, jc.
+          apply mem_const_block_In_oob, jc.
         +
           assert(length l = S k) as L by apply (Apply_mem_Family_length A).
           destruct l as [| l0]; try inversion L.
