@@ -673,23 +673,18 @@ Lemma svector_to_mem_block_Vconst
       (v : CarrierA):
   svector_to_mem_block (Vconst (mkStruct (fm:=fm) v) n) = mem_const_block n v.
 Proof.
-  induction n.
-  -
-    reflexivity.
-  -
-    simpl.
-    rewrite <- IHn. clear IHn.
-    unfold svector_to_mem_block.
-    simpl.
-    break_if.
-    +
-      clear Heqd.
-      apply Is_Val_mkStruct in i.
-      tauto.
-    +
-      simpl.
-Admitted.
+  unfold svector_to_mem_block.
+  try svector_to_mem_block_to_spec m0 H0 I0 O0.
+  simpl in *.
+  mem_index_equiv k.
 
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    rewrite mem_const_block_find; auto.
+    admit.
+  -
+    rewrite mem_const_block_find_oob; auto.
+Admitted.
 
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
