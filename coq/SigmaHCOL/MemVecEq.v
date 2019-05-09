@@ -348,8 +348,7 @@ Section MemVecEq.
           f_equiv.
           avector_to_mem_block_to_spec m2 H2 O2.
           simpl in *.
-          unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-          intros k.
+          mem_index_equiv k.
           destruct (NatUtil.lt_ge_dec k o) as [H | H].
           *
             clear O0 O1 O2.
@@ -506,8 +505,8 @@ Section MemVecEq.
               simpl.
               reflexivity.
           }
-          unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-          intros k.
+          mem_index_equiv k.
+
           (* MapsTo *)
           destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
           *
@@ -666,8 +665,7 @@ Section MemVecEq.
         break_match.
         +
           f_equiv.
-          unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-          intros k.
+          mem_index_equiv k.
           destruct (NatUtil.lt_ge_dec k 1) as [kc | kc].
           *
             clear O0 O1 I0 I1.
@@ -755,8 +753,7 @@ Section MemVecEq.
         destruct M as [y M].
         rewrite M.
         f_equiv.
-        unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-        intros k.
+        mem_index_equiv k.
 
         unfold svector_to_mem_block in *.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
@@ -863,8 +860,7 @@ Section MemVecEq.
           svector_to_mem_block_to_spec m0 H0 I0 O0.
           avector_to_mem_block_to_spec m2 H2 O2.
           simpl in *.
-          unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-          intros k.
+          mem_index_equiv k.
           destruct (lt_ge_dec k 1) as [kc | nkc].
           *
             clear O0 O2 I0.
@@ -1023,8 +1019,7 @@ Section MemVecEq.
         destruct M as [y M].
         rewrite M.
         f_equiv.
-        unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-        intros k.
+        mem_index_equiv k.
 
         unfold svector_to_mem_block in *.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
@@ -1353,8 +1348,7 @@ Section MemVecEq.
             destruct (mem_merge m1 m2) eqn:MM.
             --
               apply RelUtil.opt_r_Some.
-              unfold mem_block_Equiv, mem_block_equiv, NM.Equal.
-              intros k.
+              mem_index_equiv k.
               unfold svector_to_mem_block.
               svector_to_mem_block_to_spec m' H0 H1 I2.
               simpl in *.
@@ -1888,8 +1882,7 @@ Section MemVecEq.
       svector_to_mem_block_to_spec mb Mb Ib Ob.
       unfold mem_lookup in *.
       simpl in *.
-      unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal.
-      intros k.
+      mem_index_equiv k.
       destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
       -
         clear Ob Oa.

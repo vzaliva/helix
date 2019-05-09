@@ -43,6 +43,10 @@ Proof.
   apply NP.F.Equal_ST.
 Qed.
 
+Ltac mem_index_equiv k :=
+  unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal;
+  intros k.
+
 Global Instance mem_lookup_proper:
   Proper ((eq) ==> (=) ==> (=)) (mem_lookup).
 Proof.
