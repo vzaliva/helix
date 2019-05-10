@@ -93,7 +93,7 @@ Definition mem_merge (a b: mem_block) : option mem_block
     then Some (mem_union a b)
     else None.
 
-(* merge two memory blocks in (0..n-1) using given operation to combine values *)
+(* merge two memory blocks using given operation to combine values *)
 Definition mem_merge_with (f: CarrierA -> CarrierA -> CarrierA): mem_block -> mem_block -> mem_block
   :=
     NM.map2 (fun a b =>
@@ -103,6 +103,12 @@ Definition mem_merge_with (f: CarrierA -> CarrierA -> CarrierA): mem_block -> me
                | None, Some y => Some y
                | Some x, Some y => Some (f x y)
                end).
+
+(* Combine non-empty elements of two memory blocks using given operation.
+   Unlike [mem_merge_with], combining [Some _] and [None] results in [None].
+ *)
+Definition mem_map2 (f: CarrierA -> CarrierA -> CarrierA): mem_block -> mem_block -> mem_block
+  := NM.map2 (liftM2 f).
 
 (* merge two memory blocks in (0..n-1) using given operation to combine values *)
 Definition mem_merge_with_def
