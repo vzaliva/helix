@@ -211,7 +211,7 @@ Section Union.
   Qed.
 
   Lemma evalWriterUnion {a b: Rtheta' fm} {dot}:
-    evalWriter (Union dot a b) =
+    evalWriter (Union dot a b) ≡
     dot (evalWriter a)
         (evalWriter b).
   Proof.
