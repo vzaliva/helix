@@ -666,25 +666,30 @@ Proof.
   apply H1, H.
 Qed.
 
-Lemma svector_to_mem_block_Vconst
+Lemma svector_to_mem_block_Vconst_mkStruct
       {fm}
       {fml : MonoidLaws fm}
       (n : nat)
       (v : CarrierA):
-  svector_to_mem_block (Vconst (mkStruct (fm:=fm) v) n) = mem_const_block n v.
+  svector_to_mem_block (Vconst (mkStruct (fm:=fm) v) n) = mem_empty.
 Proof.
   unfold svector_to_mem_block.
-  try svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
   simpl in *.
   mem_index_equiv k.
-
+  rewrite NP.F.empty_o.
   destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
   -
-    rewrite mem_const_block_find; auto.
-    admit.
+    apply NP.F.not_find_in_iff.
+
+    specialize (I0 k kc).
+    apply not_iff_compat in I0.
+    apply I0.
+    rewrite Vnth_const.
+    apply Is_Val_mkStruct.
   -
-    rewrite mem_const_block_find_oob; auto.
-Admitted.
+    apply O0, kc.
+Qed.
 
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
@@ -1007,12 +1012,11 @@ Section Operators.
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
              (initial: CarrierA)
-             (o: nat)
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
              (x: mem_block): option mem_block
     :=
       x' <- (Apply_mem_Family op_family_f x) ;;
-         ret (fold_left_rev (mem_merge_with_def dot initial) (mem_const_block o initial) x').
+         ret (fold_left_rev (mem_merge_with_def dot initial) mem_empty x').
 
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)

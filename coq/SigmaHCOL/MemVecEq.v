@@ -1796,7 +1796,7 @@ Section MemVecEq.
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IReduction_mem dot initial o (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
     Proof.
       intros x y E.
       unfold IReduction_mem.
@@ -1979,17 +1979,94 @@ Section MemVecEq.
           {n: nat}
           {a b: svector Monoid_RthetaSafeFlags n}
           {dot: CarrierA -> CarrierA -> CarrierA}
+          (def: CarrierA)
           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-          (initial: CarrierA)
+          (compata: Vforall (fun x => not (Is_Val x) -> evalWriter x ≡ def) a)
+          (compatb: Vforall Is_Val b)
       :
         svector_to_mem_block (Vec2Union _ dot a  b)
-       ≡
-        mem_merge_with_def dot initial
-                           (svector_to_mem_block a)
-                           (svector_to_mem_block b).
+        =
+        mem_merge_with_def dot
+                           def
+                          (svector_to_mem_block a)
+                          (svector_to_mem_block b).
     Proof.
       unfold Vec2Union.
-    Admitted.
+      mem_index_equiv k.
+
+      unfold svector_to_mem_block.
+      svector_to_mem_block_to_spec m0 H0 I0 O0.
+      unfold svector_to_mem_block.
+      svector_to_mem_block_to_spec m1 H1 I1 O1.
+      unfold svector_to_mem_block.
+      svector_to_mem_block_to_spec m2 H2 I2 O2.
+      simpl in *.
+      destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+      -
+        clear O0 O1 O2.
+        specialize (I0 k kc).
+        specialize (I1 k kc).
+        specialize (I2 k kc).
+        specialize (H0 k kc).
+        specialize (H1 k kc).
+        specialize (H2 k kc).
+
+        rewrite Vnth_map2 in H0, I0.
+        rewrite evalWriterUnion in H0.
+        rewrite <- ValUnionIsVal_Safe in I0, H0.
+
+        apply Vforall_nth with (ip:=kc) in compata.
+        apply Vforall_nth with (ip:=kc) in compatb.
+
+
+        generalize dependent (Vnth a kc).
+        clear a. intros a compata H0 I0 H1 I1.
+
+        generalize dependent (Vnth b kc).
+        clear b. intros b compatb H2 I2 H0 I0.
+
+        unfold mem_merge_with_def.
+        rewrite NP.F.map2_1bis by reflexivity.
+
+        pose proof (not_iff_compat H0) as NH0.
+        pose proof (not_iff_compat H1) as NH1.
+        pose proof (not_iff_compat H2) as NH2.
+        pose proof (not_iff_compat I0) as NI0.
+        pose proof (not_iff_compat I1) as NI1.
+        pose proof (not_iff_compat I2) as NI2.
+        destruct H1, H2, H0, NH1, NH2, NH0, NI1, NI2, NI0.
+        destruct
+          (Is_Val_dec a) as [VA | NVA], (Is_Val_dec b) as [VB | NVB], (NM.find (elt:=CarrierA) k m0) as [vd|] eqn:FD, (NM.find (elt:=CarrierA) k m1) as [va|] eqn:FA, (NM.find (elt:=CarrierA) k m2) as [vb|] eqn:FB;
+
+          repeat match goal with
+                 | [H: NM.MapsTo _ _ _ |- _ ]  => apply NM.find_1 in H
+                 | [H: context[NM.MapsTo _ _ _] |- _ ]  => rewrite NP.F.find_mapsto_iff in H
+                 | [H: not (Is_Val ?x), H': not (Is_Val ?x) ->  _ |- _ ] => specialize (H' H)
+                 | [H: Is_Val ?x, H': Is_Val ?x ->  _ |- _ ] => specialize (H' H)
+                 | [H: Is_Val ?a, H': Is_Val ?a \/ Is_Val _ ->  _ |- _ ] => specialize (H' (or_introl H))
+                 | [H: Is_Val ?b, H': Is_Val _ \/ Is_Val ?b ->  _ |- _ ] => specialize (H' (or_intror H))
+                 | [H: ?p, H': ?p -> _ |- _ ] => specialize (H' H)
+                 | [ H1: NM.find ?k ?m ≡ Some ?x, H2: NM.find ?k ?m ≡ Some ?y |- _] =>
+                   assert (x≡y) by
+                       (apply Some_inj_eq;
+                        rewrite <- H1, <- H2;
+                        reflexivity); subst
+                 | [H: NM.find ?k ?m ≡ Some _, H': not (NM.In ?k ?m)  |- _ ] => 
+                   apply Some_ne_None in H;  apply NP.F.in_find_iff in H; congruence
+        end; simpl; try reflexivity; try congruence.
+      -
+        clear H0 H1 H2.
+        specialize (O0 k kc).
+        specialize (O1 k kc).
+        specialize (O2 k kc).
+        unfold mem_lookup in *.
+        rewrite O0.
+        symmetry.
+        unfold mem_merge_with_def.
+        rewrite NP.F.map2_1bis by reflexivity.
+        rewrite O1, O2.
+        reflexivity.
+    Qed.
 
     Global Instance IReduction_Mem
            {i o k: nat}
@@ -1999,19 +2076,23 @@ Section MemVecEq.
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
-           (compat: Ensembles.Same_set _
-                                       (out_index_set Monoid_RthetaSafeFlags (IReduction dot initial op_family)) (Full_set _))
+           (compat: forall j (jc:j<k),
+               Ensembles.Same_set _
+                                  (out_index_set _ (op_family (mkFinNat jc)))
+                                  (Full_set _))
       : SHOperator_Mem (IReduction dot initial op_family).
     Proof.
       unshelve esplit.
       -
-        apply (IReduction_mem dot initial o (get_family_mem_op op_family_mem op_family)).
+        clear compat.
+        apply (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
       -
+        clear compat.
         apply IReduction_mem_proper, pdot.
       -
         (* mem_out_some *)
-        intros m H.
         clear compat.
+        intros m H.
         unfold IReduction_mem, is_Some.
         simpl.
         repeat break_match; try tauto.
@@ -2135,8 +2216,22 @@ Section MemVecEq.
               left; auto.
         +
           intros H.
-          apply compat.
-          apply Full_intro.
+
+          rename Heqo0 into A.
+          assert(length l = k) as L by apply (Apply_mem_Family_length A).
+          destruct k.
+          *
+            simpl in *.
+            dep_destruct l; try inversion L.
+            simpl in H.
+            apply NP.F.empty_in_iff in H.
+            tauto.
+          *
+            unshelve eapply family_out_set_includes_members.
+            exact 0.
+            apply zero_lt_Sn.
+            apply compat.
+            apply Full_intro.
       -
         (* out_mem_oob *)
         intros m0 m H j jc.
@@ -2156,7 +2251,9 @@ Section MemVecEq.
           subst l.
           simpl.
           unfold mem_in.
-          apply mem_const_block_In_oob, jc.
+          intros C.
+          apply NP.F.empty_in_iff in C.
+          tauto.
         +
           assert(length l = S k) as L by apply (Apply_mem_Family_length A).
           destruct l as [| l0]; try inversion L.
@@ -2201,7 +2298,7 @@ Section MemVecEq.
             assert(length l = 0) as L by apply (Apply_mem_Family_length A).
             destruct l; try inversion L.
             simpl.
-            apply svector_to_mem_block_Vconst.
+            apply svector_to_mem_block_Vconst_mkStruct.
           *
             assert(length l = S n) as L by apply (Apply_mem_Family_length A).
             destruct l; try inversion L.
@@ -2240,18 +2337,23 @@ Section MemVecEq.
             clear P.
             unfold MUnion in *.
             simpl.
-            erewrite (svector_to_mem_block_Vec2Union initial).
-            rewrite IHn; clear IHn.
-            apply mem_merge_with_def_arg_proper.
-            reflexivity.
-            apply Some_inj_equiv.
-            rewrite <- A0. clear A0.
-            unfold get_family_op, get_family_mem_op.
-            eapply mem_vec_preservation.
-            intros j jc H0.
-            apply H.
-            eapply family_in_set_includes_members.
-            apply H0.
+            rewrite (svector_to_mem_block_Vec2Union initial).
+            --
+              rewrite IHn; clear IHn.
+              apply mem_merge_with_def_arg_proper.
+              reflexivity.
+              apply Some_inj_equiv.
+              rewrite <- A0. clear A0.
+              unfold get_family_op, get_family_mem_op.
+              eapply mem_vec_preservation.
+              intros j jc H0.
+              apply H.
+              eapply family_in_set_includes_members.
+              apply H0.
+            --
+              admit.
+            --
+              admit.
         +
           (* [A] could not happen *)
           exfalso.
@@ -2266,7 +2368,7 @@ Section MemVecEq.
           apply H.
           eapply family_in_set_includes_members.
           apply H0.
-    Admitted.
+    Qed.
 
     (* Shinks [IUnion] from [(S (S n))] to [(S n)], assuming [j] is below [(S n)] *)
     Fact IUnion_mem_aux_shrink
