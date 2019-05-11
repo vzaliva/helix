@@ -2287,7 +2287,6 @@ Section MemVecEq.
           remember (Apply_Family' (get_family_op Monoid_RthetaSafeFlags op_family) x)
             as v eqn:A1.
 
-          clear compat.
           revert l A A1.
           induction n; intros.
           *
@@ -2326,10 +2325,20 @@ Section MemVecEq.
             inversion A1 as [[V0 V]]. clear A1.
             apply inj_pair2 in V.
 
+            (* shrink compat *)
+            assert(compat': forall (j : nat) (jc : j < n), Same_set (FinNat o)
+                             (out_index_set Monoid_RthetaSafeFlags
+                                (shrink_op_family_up Monoid_RthetaSafeFlags op_family
+                                                     (mkFinNat jc))) (Full_set (FinNat o))).
+            {
+              intros j jc.
+              apply compat.
+            }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                          compat'
                           P
                           v l
                           A V
@@ -2353,7 +2362,16 @@ Section MemVecEq.
             --
               admit.
             --
-              admit.
+              apply Vforall_nth_intro.
+              intros j jc.
+              apply (op_family_facts 0 (Nat.lt_0_succ n)).
+              intros t tc HH.
+              specialize (H t tc).
+              apply H.
+              eapply family_in_set_includes_members.
+              eapply HH.
+              apply compat.
+              apply Full_intro.
         +
           (* [A] could not happen *)
           exfalso.
