@@ -2068,6 +2068,64 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
+    Fact Vec2Union_fold_zeros
+         (i o n : nat)
+         (x: svector Monoid_RthetaSafeFlags i)
+         (dot : CarrierA → CarrierA → CarrierA)
+         (initial : CarrierA)
+         (op_family : SHOperatorFamily Monoid_RthetaSafeFlags)
+         (op_family_facts: forall (j : nat) (jc : j < S n), SHOperator_Facts Monoid_RthetaSafeFlags
+                                                                      (op_family (mkFinNat jc)))
+         (H : forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaSafeFlags op_family
+                                                          (mkFinNat jc) → Is_Val (Vnth x jc))
+
+         (v: vector (svector Monoid_RthetaSafeFlags o) n)
+         (V:  v ≡ Vbuild
+                (λ (i0 : nat) (ip : i0 < n),
+                 get_family_op _ op_family
+                               (S i0)
+                               (lt_n_S ip) x))
+         (compat : forall (j : nat) (jc : j < n),
+             Same_set (FinNat o)
+                      (out_index_set _ (shrink_op_family_up _ op_family (mkFinNat jc)))
+                      (Full_set (FinNat o)))
+      :
+        Vforall
+          (λ a : Rtheta' Monoid_RthetaSafeFlags, ¬ Is_Val a → evalWriter a ≡ initial)
+          (Vfold_left_rev
+             (Vec2Union Monoid_RthetaSafeFlags dot)
+             (Vconst (mkStruct initial) o)
+             v).
+    Proof.
+      apply Vforall_nth_intro.
+      intros j jc VV.
+
+      (* [v] is always dense *)
+
+      destruct n.
+      -
+        dep_destruct v.
+        simpl.
+        rewrite Vnth_const.
+        apply evalWriter_mkStruct.
+      -
+        contradict VV.
+        dep_destruct v; clear v; rename h into v0, x0 into v.
+        simpl.
+        rewrite AbsorbUnionIndexBinary.
+        apply ValUnionIsVal_Safe.
+        right.
+        rewrite Vbuild_cons in V.
+        inversion V.
+        apply op_family_facts.
+        intros t tc H0.
+        apply H.
+        eapply family_in_set_includes_members.
+        apply H0.
+        apply compat.
+        apply Full_intro.
+    Qed.
+
     Global Instance IReduction_Mem
            {i o k: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2360,7 +2418,7 @@ Section MemVecEq.
               eapply family_in_set_includes_members.
               apply H0.
             --
-              admit.
+              apply Vec2Union_fold_zeros with (op_family:=op_family) (x:=x); auto.
             --
               apply Vforall_nth_intro.
               intros j jc.
