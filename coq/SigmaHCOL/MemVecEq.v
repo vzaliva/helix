@@ -2482,6 +2482,22 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
+    Lemma Apply_mem_Family_eq_Some
+          {i o k : nat}
+          {op_family : @SHOperatorFamily Monoid_RthetaFlags i o k}
+          {op_family_facts : ∀ (j : nat) (jc : j < k), SHOperator_Facts Monoid_RthetaFlags
+                                                                      (op_family (mkFinNat jc))}
+          {op_family_mem : ∀ (j : nat) (jc : j < k), SHOperator_Mem (op_family (mkFinNat jc))}
+          (m : NatMap CarrierA)
+          (l: list mem_block)
+      :
+        Apply_mem_Family (get_family_mem_op op_family_mem) m ≡ Some l
+        -> forall (j : nat) (jc : j < k), nth_error l j ≡ get_family_mem_op op_family_mem j jc m.
+    Proof.
+      unfold Apply_mem_Family.
+      apply monadic_Lbuild_op_eq_Some.
+    Qed.
+
     Global Instance IUnion_Mem
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
