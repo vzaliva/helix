@@ -836,38 +836,7 @@ Section Operators.
   Definition eT_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
 
-  (* This is defined for n>0 *)
-  Fixpoint IUnion_mem_aux
-           {n: nat}
-           (j: nat) (jc: j<n)
-           (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-           (x: mem_block) {struct j}: option mem_block :=
-    let oy := op_family_f j jc x in
-    match j return j<n -> option mem_block with
-    | O => fun _ => oy
-    | S j' => fun jc' =>
-               match oy, IUnion_mem_aux (Nat.lt_succ_l j' n jc') op_family_f x with
-               | Some y, Some ys => mem_merge y ys
-               | _, _ => None
-               end
-    end jc.
-
-  (* This is defined for n>=0 *)
-  Definition IUnion_mem
-             {n: nat}
-             (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
-             (x: mem_block): option mem_block
-    :=
-      match n as m return n=m -> option mem_block with
-      | 0 => fun _ => Some (mem_empty) (* empty loop is no-op *)
-      | S n' => fun E => IUnion_mem_aux
-                       (eq_ind_r _ (Nat.lt_succ_diag_r n') E)
-                       op_family_f x
-      end eq_refl.
-
   (* TODO: move to Util *)
-
-
   Fixpoint fold_left_rev
            {A B : Type}
            (f : A -> B -> A) (a : A) (l : list B)
@@ -1008,6 +977,15 @@ Section Operators.
     option (list mem_block) :=
     monadic_Lbuild (λ (j:nat) (jc:j<n), (op_family_f j jc) x).
 
+  Definition HTSUMUnion_mem
+             (op1 op2: mem_block -> option mem_block)
+    : mem_block -> option mem_block
+    := fun x =>
+         match op1 x, op2 x with
+         | Some a, Some b => mem_merge a b
+         | _, _ => None
+         end.
+
   Definition IReduction_mem
              {n: nat}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -1018,14 +996,13 @@ Section Operators.
       x' <- (Apply_mem_Family op_family_f x) ;;
          ret (fold_left_rev (mem_merge_with_def dot initial) mem_empty x').
 
-  Definition HTSUMUnion_mem
-             (op1 op2: mem_block -> option mem_block)
-    : mem_block -> option mem_block
-    := fun x =>
-         match op1 x, op2 x with
-         | Some a, Some b => mem_merge a b
-         | _, _ => None
-         end.
+  Definition IUnion_mem
+             {n: nat}
+             (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
+             (x: mem_block): option mem_block
+    :=
+      x' <- (Apply_mem_Family op_family_f x) ;;
+         monadic_fold_left_rev mem_merge mem_empty x'.
 
 End Operators.
 
