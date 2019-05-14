@@ -957,6 +957,55 @@ Section Operators.
         eexists; eexists; eapply Heqo.
   Qed.
 
+  Lemma monadic_Lbuild_op_eq_Some
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A)
+        (l: list A)
+    :
+
+    monadic_Lbuild gen ≡ Some l -> (forall i ic, List.nth_error l i ≡ gen i ic).
+  Proof.
+    intros H i ic.
+    pose proof (monadic_Lbuild_opt_length gen H).
+    dependent induction n.
+    -
+      inversion ic.
+    -
+      destruct l as [| l0 l].
+      inversion H0.
+      simpl in H.
+      destruct i.
+      +
+        repeat break_match_hyp; simpl in *; try some_none.
+        inversion H.
+        subst.
+        rewrite <- Heqo.
+        f_equiv.
+        apply NatUtil.lt_unique.
+      +
+        simpl.
+        specialize (IHn (fun i ip => gen (S i) (lt_n_S ip))).
+        assert(ic1: i<n) by lia.
+        rewrite IHn with (ic:=ic1); clear IHn.
+        *
+          f_equiv.
+          apply NatUtil.lt_unique.
+        *
+          repeat break_match_hyp; simpl in *; try some_none.
+          inversion H.
+          subst.
+          rewrite <- Heqo0.
+          f_equiv.
+          extensionality j.
+          extensionality jc.
+          f_equiv.
+          apply NatUtil.lt_unique.
+        *
+          simpl in H0.
+          auto.
+  Qed.
+
   Program Fixpoint Lbuild {A: Type}
           (n : nat)
           (gen : forall i, i < n -> A) {struct n}: list A :=
