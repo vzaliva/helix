@@ -1590,10 +1590,9 @@ Section MemVecEq.
                {op_family: @SHOperatorFamily fm i o n}
                {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
                (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-               (op_family: @SHOperatorFamily fm i o n):
+      :
       forall j (jc:j<n), mem_block -> option mem_block
       := fun j (jc:j<n) => mem_op (SHOperator_Mem:=op_family_mem j jc).
-
 
     Global Instance get_family_mem_op_proper
            {fm}
@@ -1602,8 +1601,8 @@ Section MemVecEq.
            {op_family: @SHOperatorFamily fm i o n}
            {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-           (op_family: @SHOperatorFamily fm i o n):
-      Proper ((=) ==> (=)) (get_family_mem_op op_family_mem op_family j jc).
+      :
+        Proper ((=) ==> (=)) (get_family_mem_op op_family_mem j jc).
     Proof.
       intros x y E.
       unfold get_family_mem_op.
@@ -1776,7 +1775,7 @@ Section MemVecEq.
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family_mem op_family)).
+        Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family_mem)).
     Proof.
       intros x y E.
       unfold Apply_mem_Family.
@@ -1796,7 +1795,7 @@ Section MemVecEq.
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem)).
     Proof.
       intros x y E.
       unfold IReduction_mem.
@@ -1938,12 +1937,11 @@ Section MemVecEq.
            (m m0:mem_block)
            (ms: list mem_block)
       :
-        Apply_mem_Family (get_family_mem_op op_family_mem op_family) m ≡ Some (List.cons m0 ms) ->
-        get_family_mem_op op_family_mem op_family 0 (Nat.lt_0_succ k) m ≡ Some m0 /\
+        Apply_mem_Family (get_family_mem_op op_family_mem) m ≡ Some (List.cons m0 ms) ->
+        get_family_mem_op op_family_mem 0 (Nat.lt_0_succ k) m ≡ Some m0 /\
         Apply_mem_Family (
             get_family_mem_op
               (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
-              (shrink_op_family_up _ op_family)
           ) m ≡ Some ms.
     Proof.
       intros H.
@@ -1968,7 +1966,7 @@ Section MemVecEq.
            {m: mem_block}
            {l: list mem_block}
       :
-        Apply_mem_Family (get_family_mem_op op_family_mem op_family) m ≡ Some l ->
+        Apply_mem_Family (get_family_mem_op op_family_mem) m ≡ Some l ->
         length l = k.
     Proof.
       unfold Apply_mem_Family.
@@ -2143,7 +2141,7 @@ Section MemVecEq.
       unshelve esplit.
       -
         clear compat.
-        apply (IReduction_mem dot initial (get_family_mem_op op_family_mem op_family)).
+        apply (IReduction_mem dot initial (get_family_mem_op op_family_mem)).
       -
         clear compat.
         apply IReduction_mem_proper, pdot.
@@ -2453,7 +2451,7 @@ Section MemVecEq.
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
       :
-        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family_mem op_family)).
+        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family_mem)).
     Proof.
       intros x y E.
       unfold IUnion_mem.
@@ -2501,12 +2499,11 @@ Section MemVecEq.
     Proof.
       unshelve esplit.
       -
-        apply (IUnion_mem (get_family_mem_op op_family_mem op_family)).
+        apply (IUnion_mem (get_family_mem_op op_family_mem)).
       -
         apply IUnion_mem_proper.
       -
         (* mem_out_some *)
-        admit.
       -
         (* out_mem_fill_pattern *)
         admit.
