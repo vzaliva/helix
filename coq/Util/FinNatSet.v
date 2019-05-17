@@ -169,3 +169,21 @@ Proof.
   - apply IA, I0.
   - apply IB, I1.
 Qed.
+
+Lemma Disjoint_Symmetric
+      {T:Type}
+      (A B: Ensemble T):
+  Disjoint T A B <-> Disjoint T B A.
+Proof.
+
+  split; intros H;
+
+    destruct H as [H0];
+    apply Disjoint_intro;
+    intros x;
+    specialize (H0 x);
+    intros H1;
+    destruct H1 as [H1];
+    contradict H0;
+    crush.
+Qed.
