@@ -856,8 +856,8 @@ Section Operators.
        | List.nil => ret a
        | List.cons b l => a' <- monadic_fold_left_rev f a l ;;
                     f a' b
-
        end.
+
   Program Fixpoint monadic_Lbuild
           {A: Type}
           {m : Type -> Type}
