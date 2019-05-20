@@ -1826,9 +1826,9 @@ Section MemVecEq.
         reflexivity.
     Qed.
 
-    Lemma shrink_op_family_mem
+    Definition shrink_op_family_mem
           {fm}
-          (i o k : nat)
+          {i o k : nat}
           (op_family : SHOperatorFamily fm)
           (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o (op_family (mkFinNat jc)))
           (op_family_mem: forall j (jc:j< S k), SHOperator_Mem (op_family (mkFinNat jc)))
@@ -1836,19 +1836,14 @@ Section MemVecEq.
         (forall (j : nat) (jc : j < k),
             @SHOperator_Mem fm i o
                             ((shrink_op_family fm op_family) (mkFinNat jc))
-                            ((shrink_op_family_facts _ _ _ _ _ op_family_facts) j jc)).
-    Proof.
-      intros j jc.
-      assert (jc1: j< S k) by apply (Nat.lt_lt_succ_r jc).
-      unfold shrink_op_family_facts, shrink_op_family.
-      simpl.
-      replace (@le_S (S j) k jc) with jc1 by apply lt_unique.
-      eapply op_family_mem.
-    Defined.
+                            ((shrink_op_family_facts _ _ op_family_facts) j jc))
 
-    Lemma shrink_op_family_mem_up
+      :=
+        fun j jc => op_family_mem j (le_S jc).
+
+    Definition shrink_op_family_mem_up
           {fm}
-          (i o k : nat)
+          {i o k : nat}
           (op_family : SHOperatorFamily fm)
           (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o (op_family (mkFinNat jc)))
           (op_family_mem: forall j (jc:j< S k), SHOperator_Mem (op_family (mkFinNat jc)))
@@ -1856,15 +1851,23 @@ Section MemVecEq.
         (forall (j : nat) (jc : j < k),
             @SHOperator_Mem fm i o
                             ((shrink_op_family_up fm op_family) (mkFinNat jc))
-                            ((shrink_op_family_facts_up _ _ _ _ _ op_family_facts) j jc)).
-    Proof.
-      intros j jc.
-      assert (jc1: j< S k) by apply (Nat.lt_lt_succ_r jc).
-      unfold shrink_op_family_facts_up, shrink_op_family_up.
-      simpl.
-      replace (@le_S (S j) k jc) with jc1 by apply lt_unique.
-      eapply op_family_mem.
-    Defined.
+                            ((shrink_op_family_facts_up _ _ op_family_facts) j jc))
+      := fun j jc => op_family_mem (S j) (lt_n_S jc).
+
+    (* Like [shrink_op_family_mem_up] by [n] times *)
+    Definition shrink_op_family_mem_up_n
+               {fm}
+               {i o k: nat}
+               (d: nat)
+               (op_family : SHOperatorFamily fm)
+               (op_family_facts: ∀ (j : nat) (jc : j < (k+d)), @SHOperator_Facts fm i o (op_family (mkFinNat jc)))
+               (op_family_mem: forall j (jc:j < (k+d)), SHOperator_Mem (op_family (mkFinNat jc)))
+      :
+        (forall (j : nat) (jc : j < k),
+            @SHOperator_Mem fm i o
+                            ((shrink_op_family_up_n fm d op_family) (mkFinNat jc))
+                            ((shrink_op_family_facts_up_n fm d op_family op_family_facts) j jc))
+      := fun j jc => op_family_mem (j+d) (Plus.plus_lt_compat_r _ _ _ jc).
 
     Lemma svector_to_mem_block_equiv
           {fm : Monoid RthetaFlags}
@@ -1942,7 +1945,7 @@ Section MemVecEq.
         get_family_mem_op op_family_mem 0 (Nat.lt_0_succ k) m ≡ Some m0 /\
         Apply_mem_Family (
             get_family_mem_op
-              (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+              (shrink_op_family_mem_up _ _ op_family_mem)
           ) m ≡ Some ms.
     Proof.
       intros H.
@@ -2172,8 +2175,8 @@ Section MemVecEq.
             --
               specialize (IHk
                             (shrink_op_family_up _ op_family)
-                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
 
               assert (∀ (j : nat) (jc : j < i), in_index_set Monoid_RthetaSafeFlags
@@ -2268,8 +2271,8 @@ Section MemVecEq.
               clear A0.
               specialize (IHk
                             (shrink_op_family_up _ op_family)
-                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
               left; auto.
         +
@@ -2325,8 +2328,8 @@ Section MemVecEq.
             clear A0.
             specialize (IHk
                           (shrink_op_family_up _ op_family)
-                          (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                          (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                          (shrink_op_family_facts_up _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ op_family_mem)
                           l
                           A
                        ).
@@ -2394,8 +2397,8 @@ Section MemVecEq.
             }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
-                          (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                          (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                          (shrink_op_family_facts_up _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ op_family_mem)
                           compat'
                           P
                           v l
@@ -2500,75 +2503,256 @@ Section MemVecEq.
       apply monadic_Lbuild_op_eq_Some.
     Qed.
 
+    (* TODO: move *)
+    Definition cast_op_family {fm} {i o n m: nat}
+               (op_family: @SHOperatorFamily fm i o m)
+               (E: m≡n)
+      :
+      @SHOperatorFamily fm i o n
+      :=
+        match E in _ ≡ p return (@SHOperatorFamily fm i o p) with
+        | eq_refl => op_family
+        end.
 
-    (*
-    Lemma IUnion_mem_step_disjoint
-          (i o n : nat)
-          (j: nat) (jc: j < S n)
-          (k: nat) (kc: k < S n)
-          (jk: j<k)
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S n))
-          (op_family_facts: ∀ (j : nat) (jc : j < S n),
-              @SHOperator_Facts Monoid_RthetaFlags i o
-                                (op_family (@mkFinNat (S n) j jc)))
+    Lemma cast_op_family_facts {fm} {i o n m: nat}
+               {op_family: @SHOperatorFamily fm i o m}
+               (op_family_facts : forall (j: nat) (jc: j < m),
+                   SHOperator_Facts fm
+                                    (op_family (mkFinNat jc)))
+               (E: m≡n):
+      forall (j : nat) (jc : j < n),
+        SHOperator_Facts fm (cast_op_family op_family E (mkFinNat jc)).
+    Proof.
+      intros j jc.
+      crush.
+      (* TODO: better proof. *)
+    Defined.
 
-          (op_family_mem: forall j (jc: j < S n), SHOperator_Mem (op_family (mkFinNat jc)))
-          (compat : ∀ (m0 : nat) (mc : m0 < S n) (n0 : nat) (nc : n0 < S n),
-              m0 ≢ n0
-              → Disjoint (FinNat o)
-                         (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S n) m0 mc)))
-                         (@out_index_set Monoid_RthetaFlags i o (op_family (@mkFinNat (S n) n0 nc))))
+    Lemma cast_op_family_mem {fm} {i o n m: nat}
+               {op_family: @SHOperatorFamily fm i o m}
+               {op_family_facts : forall (j: nat) (jc: j < m),
+                   SHOperator_Facts fm (op_family (mkFinNat jc))}
+               (op_family_mem : forall (j: nat) (jc: j < m),
+                   SHOperator_Mem (facts:=op_family_facts j jc) (op_family (mkFinNat jc)))
+               (E: m≡n):
+      forall (j : nat) (jc : j < n),
+        SHOperator_Mem
+          (facts:=cast_op_family_facts op_family_facts E j jc)
+          (cast_op_family op_family E (mkFinNat jc)).
+    Proof.
+      intros j jc.
+      crush.
+      (* TODO: better proof. *)
+    Defined.
 
-          (m m0 m1 : mem_block)
+    Lemma cast_mem_op_eq
+          {fm}
+          {i o n m : nat}
+          (t t': nat)
+          (Et: t ≡ t')
+          {tm: t<m}
+          {tn: t'<n}
+          {op_family: @SHOperatorFamily fm i o m}
+          {op_family_facts : forall (j: nat) (jc: j < m),
+              SHOperator_Facts fm (op_family (mkFinNat jc))}
+          (op_family_mem : forall (j: nat) (jc: j < m),
+              SHOperator_Mem (facts:=op_family_facts j jc) (op_family (mkFinNat jc)))
+          (E: m≡n):
 
-          (H0: get_family_mem_op op_family_mem k kc m ≡ @Some mem_block m0)
+      (@mem_op fm i o
+               (cast_op_family op_family E (mkFinNat tn))
+               (cast_op_family_facts op_family_facts E t' tn)
+               (cast_op_family_mem op_family_mem E t' tn))
+        ≡
+        (@mem_op fm i o
+                 (op_family (mkFinNat tm))
+                 (op_family_facts t tm)
+                 (op_family_mem t tm)).
+    Proof.
+      subst.
+      replace tm with tn by apply lt_unique.
+      reflexivity.
+    Qed.
 
-          (H1:
-             @IUnion_mem (get_family_mem_op op_family_mem) m ≡ @Some mem_block m1)
+    Lemma cast_out_index_set_eq
+          {fm}
+          {i o n m : nat}
+          (t: nat)
+          {tm: t<m}
+          {tn: t<n}
+          {op_family: @SHOperatorFamily fm i o m}
+          {op_family_facts : forall (j: nat) (jc: j < m),
+              SHOperator_Facts fm (op_family (mkFinNat jc))}
+          (E: m≡n):
+      out_index_set fm (op_family (mkFinNat tm))
+                    ≡
+                    out_index_set fm
+                    (cast_op_family op_family E (mkFinNat tn)).
+    Proof.
+      subst.
+      replace tm with tn by apply lt_unique.
+      reflexivity.
+    Qed.
+
+    Fact IUnion_mem_step_disjoint
+         {i o n : nat}
+         (d: nat)
+         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (n+d))
+         (op_family_facts: ∀ (j : nat) (jc : j < (n+d)),
+             @SHOperator_Facts Monoid_RthetaFlags i o
+                               (op_family (@mkFinNat (n+d) j jc)))
+
+         (op_family_mem: forall j (jc: j < (n+d)), SHOperator_Mem (op_family (mkFinNat jc)))
+
+         (compat : ∀ (m0 : nat) (mc : m0 < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
+             m0 ≢ n0
+             → Disjoint (FinNat o)
+                        (@out_index_set Monoid_RthetaFlags i o (op_family (mkFinNat mc)))
+                        (@out_index_set Monoid_RthetaFlags i o (op_family (mkFinNat nc))))
+
+         (m m0 m1 : mem_block)
+         (l: list mem_block)
+         (A : Apply_mem_Family
+                (get_family_mem_op
+                   (shrink_op_family_mem_up_n d op_family op_family_facts op_family_mem)) m
+                ≡ Some l)
+
+         (t:nat)
+         (tc: t<d)
+         (tc1: t<n+d)
+         (H0: get_family_mem_op op_family_mem t tc1 m ≡ Some m0)
+
+         (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
       :
         Disjoint nat
-                 (NE.mkEns (mem_keys_set m0))
-                 (NE.mkEns (mem_keys_set m1)).
+                 (NE.mkEns (mem_keys_set m1))
+                 (NE.mkEns (mem_keys_set m0)).
     Proof.
-      unfold get_family_mem_op in *.
-      revert m0 m1 k kc jk H0 H1.
-      induction j; intros.
+
+      pose proof (Apply_mem_Family_length A) as L.
+      dependent induction n.
       -
-        assert(P: k <> 0) by auto.
-        specialize (compat k kc 0 jc P).
-        clear P.
+        destruct l. 2:inversion L.
         simpl in *.
-        apply Disjoint_FinNat_to_nat in compat.
-        rewrite
-          mem_keys_set_to_out_index_set
-          with (m:=m0) (m0:=m)
-               (facts:=op_family_facts k kc)
-               (mop:=op_family_mem k kc),
-               mem_keys_set_to_out_index_set
-          with (m:=m1) (m0:=m)
-               (facts:=op_family_facts 0 jc)
-               (mop:=op_family_mem 0 jc)
-          in compat; auto.
+        some_inv.
+        subst.
+        unfold mem_empty, mem_keys_set.
+        simpl.
+        apply Disjoint_intro.
+        intros x C.
+        unfold Ensembles.In in C.
+        destruct C.
+        inversion H.
       -
-        simpl in *.
-        repeat break_match_hyp; try some_none.
-        apply (Disjoint_of_mem_merge H1).
+        destruct l as [| m1h m1t];  inversion L.
+        apply Apply_mem_Family_cons in A.
+        destruct A as [A0 A].
+        simpl in H1.
+        break_match_hyp; try some_none.
+        apply Disjoint_Symmetric.
+        apply (Disjoint_of_mem_merge H1 (m0:=m0)).
         +
-          assert(P: k ≢ S j) by lia.
-          specialize (compat k kc (S j) jc P).
-          simpl in compat.
-          erewrite <- 2!mem_keys_set_to_out_index_set.
-          apply Disjoint_FinNat_to_nat.
-          eapply compat.
-          eauto.
-          eauto.
+          apply Disjoint_Symmetric.
+          assert(K: (Init.Nat.add (S n) d) ≡ (Init.Nat.add n (S d))) by lia.
+
+          assert(tc2: S t <= n + S d).
+          {
+            rewrite <- K.
+            apply tc1.
+            (* (eq_ind (S n + d) (λ n0 : nat, S t <= n0) tc1 (n + S d) K) *)
+          }
+          specialize IHn with (d:=(S d))
+                              (m:=m)
+                              (m0:=m0)
+                              (l:=m1t)
+                              (t:=t)
+                              (tc1:=tc2)
+                              (op_family:=cast_op_family op_family K)
+                              (op_family_facts:=cast_op_family_facts op_family_facts K)
+                              (op_family_mem:=cast_op_family_mem op_family_mem K)
+          .
+
+          eapply IHn; eauto.
+          *
+            intros m0' mc' n0' nc' H.
+            assert(mc'': m0' < S n + d) by lia.
+            assert(nc'': n0' < S n + d) by lia.
+            specialize (compat m0' mc'' n0' nc'' H).
+
+            erewrite <- cast_out_index_set_eq.
+            erewrite <- cast_out_index_set_eq.
+            apply compat.
+            eapply op_family_facts.
+            eapply op_family_facts.
+          *
+            rewrite <- A.
+            unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
+            shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
+            shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n.
+            clear.
+            f_equiv.
+            unfold get_family_mem_op.
+            extensionality j.
+            extensionality jc.
+            simpl.
+            apply cast_mem_op_eq.
+            lia.
+          *
+            rewrite <- H0.
+            clear.
+            unfold get_family_mem_op.
+            apply equal_f.
+            apply cast_mem_op_eq; auto.
         +
-          unshelve eapply IHj ; try auto; try omega.
-          replace (dec_not_not _ _ _) with (Nat.lt_succ_l j (S (S n)) jc)
-            by apply lt_unique.
-          apply Heqo1.
+          clear IHn A Heqo0.
+          unfold get_family_mem_op in A0, H0.
+          unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
+          shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
+          shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n
+            in *.
+          simpl in *.
+          specialize (compat t tc1).
+          specialize (compat d (Plus.plus_lt_compat_r O (S n) d (Nat.lt_0_succ n))).
+          apply Disjoint_FinNat_to_nat in compat.
+          rewrite (mem_keys_set_to_out_index_set _ _ _ _ _ H0) in compat.
+          rewrite (mem_keys_set_to_out_index_set _ _ _ _ _ A0) in compat.
+          apply compat.
+          lia.
     Qed.
-     *)
+
+    Fact IUnion_mem_1_step_disjoint
+         {i o n : nat}
+         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S n))
+         (op_family_facts: ∀ (j : nat) (jc : j < (S n)),
+             @SHOperator_Facts Monoid_RthetaFlags i o
+                               (op_family (@mkFinNat (S n) j jc)))
+
+         (op_family_mem: forall j (jc: j < (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
+
+         (compat : ∀ (m0 : nat) (mc : m0 < (S n)) (n0 : nat) (nc : n0 < (S n)),
+             m0 ≢ n0
+             → Disjoint (FinNat o)
+                        (@out_index_set Monoid_RthetaFlags i o (op_family (mkFinNat mc)))
+                        (@out_index_set Monoid_RthetaFlags i o (op_family (mkFinNat nc))))
+
+         (m m0 m1 : mem_block)
+         (l: list mem_block)
+         (A : Apply_mem_Family
+                (get_family_mem_op
+                   (shrink_op_family_mem_up op_family op_family_facts op_family_mem)) m
+                ≡ Some l)
+
+         (t:nat)
+         (H0: get_family_mem_op op_family_mem 0 (Nat.lt_0_succ n) m ≡ Some m0)
+
+         (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
+      :
+        Disjoint nat
+                 (NE.mkEns (mem_keys_set m1))
+                 (NE.mkEns (mem_keys_set m0)).
+    Proof.
+      (* same as [IUnion_mem_step_disjoint] with [d:=1] *)
+    Admitted.
 
     Global Instance IUnion_Mem
            {i o k}
@@ -2615,12 +2799,17 @@ Section MemVecEq.
             --
               clear IHk.
               apply mem_merge_is_Some.
+              apply Apply_mem_Family_cons in A.
+              destruct A as [A0 A].
+              simpl in *.
+              inversion L; clear l L; rename H1 into L, x into l.
+              eapply IUnion_mem_1_step_disjoint; eauto.
             --
               contradict Heqo0.
               specialize (IHk
                             (shrink_op_family_up _ op_family)
-                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
               apply IHk; clear IHk.
               ++
@@ -2669,8 +2858,8 @@ Section MemVecEq.
             --
               specialize (IHk
                             (shrink_op_family_up _ op_family)
-                            (shrink_op_family_facts_up _ _ _ _ _ op_family_facts)
-                            (shrink_op_family_mem_up _ _ _ _ _ op_family_mem)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
 
               assert (∀ (j : nat) (jc : j < i), in_index_set _
