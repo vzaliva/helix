@@ -2752,7 +2752,43 @@ Section MemVecEq.
                  (NE.mkEns (mem_keys_set m0)).
     Proof.
       (* same as [IUnion_mem_step_disjoint] with [d:=1] *)
-    Admitted.
+      assert(E: S n ≡ n + 1) by lia.
+      assert(zc2: 0 < n + 1) by lia.
+      eapply IUnion_mem_step_disjoint with
+          (d:=1)
+          (t0:=0)
+          (tc1:=zc2)
+          (m2:=m)
+          (op_family_mem0 := cast_op_family_mem op_family_mem E); eauto.
+      -
+        intros m0' mc' n0' nc' H.
+        assert(mc'': m0' < S n ) by lia.
+        assert(nc'': n0' < S n ) by lia.
+        specialize (compat m0' mc'' n0' nc'' H).
+        erewrite <- cast_out_index_set_eq.
+        erewrite <- cast_out_index_set_eq.
+        apply compat.
+        eapply op_family_facts.
+        eapply op_family_facts.
+      -
+        rewrite <- A.
+        unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
+        shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
+        shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n.
+        clear.
+        f_equiv.
+        unfold get_family_mem_op.
+        extensionality j.
+        extensionality jc.
+        apply cast_mem_op_eq.
+        lia.
+      -
+        rewrite <- H0.
+        clear.
+        unfold get_family_mem_op.
+        apply equal_f.
+        apply cast_mem_op_eq; auto.
+    Qed.
 
     Global Instance IUnion_Mem
            {i o k}
