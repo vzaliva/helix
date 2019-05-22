@@ -408,6 +408,50 @@ Proof.
       apply M3.
 Qed.
 
+Lemma mem_merge_as_Union
+      (m m0 m1 : mem_block)
+      (k: nat)
+  :
+    mem_merge m0 m1 = Some m ->
+    (mem_in k m <->
+     ((mem_in k m0) \/ (mem_in k m1))).
+Proof.
+  intros M.
+  split; intros H.
+  -
+    unfold mem_in, mem_merge, mem_union in *.
+    break_if; try some_none.
+    some_inv.
+    apply NP.F.in_find_iff in H.
+    rewrite <- H1 in H. clear H1.
+    rewrite NP.F.map2_1bis in H by reflexivity.
+    repeat break_match; try some_none.
+    +
+      left.
+      apply NP.F.in_find_iff.
+      rewrite Heqo.
+      some_none.
+    +
+      right.
+      apply NP.F.in_find_iff.
+      apply H.
+  -
+    unfold mem_in, mem_merge, mem_union in *.
+    break_if; try some_none.
+    some_inv. clear m H1.
+    apply F.in_find_iff.
+    destruct H.
+    rewrite NP.F.map2_1bis by reflexivity.
+    repeat break_match; try some_none.
+    +
+      apply F.in_find_iff in H.
+      congruence.
+    +
+      rewrite NP.F.map2_1bis by reflexivity.
+      repeat break_match; try some_none.
+      apply NP.F.in_find_iff, H.
+Qed.
+
 Lemma mem_merge_with_as_Union
       (dot : CarrierA -> CarrierA -> CarrierA)
       (m1 m2 : mem_block)

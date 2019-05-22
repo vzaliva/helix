@@ -295,6 +295,8 @@ Section SigmaHCOL_Operators.
                                   (family_out_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
+    (* A version of [family_out_index_set] which uses [shrink_op_family_up] instead of
+       [shrink_op_family]. This one is more suitable for inductive proofs *)
     Fixpoint family_out_index_set'
              {i o n}
              (op_family: @SHOperatorFamily i o n): FinNatSet o

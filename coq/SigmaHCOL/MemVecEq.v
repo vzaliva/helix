@@ -2949,7 +2949,97 @@ Section MemVecEq.
               apply H0.
       -
         (* out_mem_fill_pattern *)
-        admit.
+        intros m0 m H j jc.
+        unfold IUnion_mem in H.
+        simpl in *.
+        break_match_hyp ; try some_none.
+        rename Heqo0 into A.
+        split.
+        +
+          clear compat.
+          rewrite family_out_index_set_eq.
+          dependent induction k; intros.
+          *
+            simpl in *.
+            inversion H0.
+          *
+            assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+            destruct l as [| l0]; try inversion L.
+
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
+            simpl in H.
+            break_match_hyp; try some_none.
+
+            apply (mem_merge_as_Union _ _ _ _ H).
+            simpl in *.
+            dependent destruction H0.
+            --
+              clear IHk A.
+              right.
+              unfold Ensembles.In in H0.
+              eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
+              replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
+                by apply lt_unique.
+              auto.
+            --
+              clear A0.
+              left.
+
+              specialize (IHk
+                            dot
+                            pdot
+                            initial
+                            (shrink_op_family_up _ op_family)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
+                         ).
+              eapply IHk;eauto.
+        +
+          assert(length l = k) as L by apply (Apply_mem_Family_length A).
+          rewrite family_out_index_set_eq.
+          dependent induction k; intros.
+          *
+            simpl in *.
+            dep_destruct l; try inversion L.
+            simpl in H.
+            some_inv.
+            subst m.
+            unfold mem_in, mem_empty in H0.
+            apply NP.F.empty_in_iff in H0.
+            tauto.
+          *
+            destruct l as [| l0]; try inversion L.
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
+            simpl in H.
+            break_match_hyp; try some_none.
+            simpl in *.
+            apply (mem_merge_as_Union _ _ _ _ H) in H0.
+            dependent destruction H0.
+            --
+              clear A0.
+              right.
+
+              specialize (IHk
+                            dot
+                            pdot
+                            initial
+                            (shrink_op_family_up _ op_family)
+                            (shrink_op_family_facts_up _ _ op_family_facts)
+                            (shrink_op_family_mem_up _ _ op_family_mem)
+                         ).
+              eapply IHk;eauto.
+            --
+              clear IHk A.
+              left.
+              unfold Ensembles.In.
+              unfold get_family_mem_op in A0.
+              eapply out_mem_fill_pattern with (jc0:=jc) in A0.
+              replace (Nat.lt_0_succ k) with (zero_lt_Sn k) in A0
+                by apply lt_unique.
+              apply A0.
+              auto.
       -
         (* out_mem_oob *)
         admit.
