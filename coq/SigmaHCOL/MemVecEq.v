@@ -1336,6 +1336,7 @@ Section MemVecEq.
         --
           eapply (out_mem_oob _ _ Heqo1); eauto.
       -
+        (* mem_vec_preservation *)
         intros x G.
         simpl.
         unfold HTSUMUnion, Vec2Union, HTSUMUnion_mem.
@@ -1347,6 +1348,7 @@ Section MemVecEq.
             rename m into m1, m0 into m2. (* to match operator indices *)
             destruct (mem_merge m1 m2) eqn:MM.
             --
+              (* mem_merge succeeds *)
               apply RelUtil.opt_r_Some.
               mem_index_equiv k.
               unfold svector_to_mem_block.
@@ -1354,16 +1356,17 @@ Section MemVecEq.
               simpl in *.
               destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
               ++
-                clear I2.
                 (* k<o. Normal *)
+                clear I2.
                 (* each k could be either in out_set of op1 or op2 *)
                 specialize (H0 k kc).
                 specialize (H1 k kc).
 
                 rename facts0 into facts2,  facts into facts1.
 
-                pose proof (HTSUMUnion_mem_out_fill_pattern op1 op2 ) as P.
-                specialize (P (svector_to_mem_block x) m).
+                pose proof (HTSUMUnion_mem_out_fill_pattern
+                              op1 op2
+                              (svector_to_mem_block x) m) as P.
                 simpl in P.
                 unfold HTSUMUnion_mem in P.
                 break_match_hyp; try some_none.
@@ -1407,7 +1410,6 @@ Section MemVecEq.
                       apply M1.
                     }
                     break_match; try (apply NP.F.not_find_in_iff in Heqo0; congruence).
-
 
                     (* derive m1[k] *)
                     assert (G1: (∀ (j : nat) (jc : (j < i)%nat), in_index_set Monoid_RthetaFlags op1 (mkFinNat jc) →  Is_Val (Vnth x jc))).
@@ -1531,6 +1533,7 @@ Section MemVecEq.
                   unfold mem_in in NP2.
                   congruence.
             --
+              (* mem_merge fails *)
               contradict MM.
               apply mem_merge_is_Some.
               apply Disjoint_intro.
