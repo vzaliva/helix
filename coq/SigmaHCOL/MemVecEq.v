@@ -3042,7 +3042,48 @@ Section MemVecEq.
               auto.
       -
         (* out_mem_oob *)
-        admit.
+        intros m0 m H j jc.
+        clear compat.
+        unfold IUnion_mem in H.
+        simpl in *.
+        break_match_hyp ; try some_none.
+        rename Heqo0 into A.
+        dependent induction k.
+        +
+          unfold Apply_mem_Family in A.
+          simpl in A.
+          some_inv.
+          subst l.
+          simpl in *.
+          some_inv.
+          unfold mem_in,  mem_empty.
+          intros C.
+          apply NP.F.empty_in_iff in C.
+          tauto.
+        +
+          assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+          destruct l as [| l0]; try inversion L.
+          simpl.
+          apply Apply_mem_Family_cons in A.
+          destruct A as [A0 A].
+          intros C.
+          simpl in *.
+          break_match_hyp ; try some_none.
+          apply (mem_merge_as_Union _ _ _ _ H) in C.
+          destruct C.
+          --
+            clear A0.
+            specialize (IHk
+                          dot
+                          pdot
+                          initial
+                          (shrink_op_family_up _ op_family)
+                          (shrink_op_family_facts_up _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ op_family_mem)
+                       ).
+            eapply IHk;eauto.
+          --
+            apply out_mem_oob with (j0:=j) in A0; auto.
       -
         (* mem_vec_preservation *)
         admit.
