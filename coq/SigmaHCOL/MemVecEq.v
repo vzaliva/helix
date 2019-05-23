@@ -24,6 +24,7 @@ Require Import Coq.Bool.BoolEq.
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
+Require Import Coq.Lists.SetoidList.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Psatz.
@@ -1614,7 +1615,6 @@ Section MemVecEq.
 
     (* TODO: move  *)
     Section ListSetoid.
-      Require Import Coq.Lists.SetoidList.
 
       Global Instance lst_Equiv `{Equiv A}: Equiv (list A)
         := eqlistA equiv.
