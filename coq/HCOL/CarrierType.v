@@ -3,6 +3,7 @@ Carrier type used in all our proofs. Could be real of Float in future.
  *)
 
 Require Import Coq.Structures.Equalities.
+Require Import Coq.Structures.OrderedType.
 
 Require Import CoLoR.Util.Vector.VecUtil.
 
@@ -103,3 +104,53 @@ Module CarrierA_as_BooleanDecidableType <: BooleanDecidableType.
   Definition eqb := CarrierA_beq.
   Definition eqb_eq := CarrierA_eqb_equiv.
 End CarrierA_as_BooleanDecidableType.
+
+(* Only needed for [CarrierAOrderedType] *)
+Instance CarrierFPSO: @orders.FullPseudoOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
+
+(* Only needed for [CarrierAOrderedType] *)
+Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
+
+Module CarrierA_as_OrderedType <: OrderedType.
+
+  Definition t := CarrierA.
+  Definition eq := CarrierAe.
+
+  Lemma eq_dec : forall x y, { eq x y } + { ~ eq x y }. Proof. apply CarrierAequivdec. Qed.
+
+  Definition lt := CarrierAlt.
+
+  Lemma eq_refl : forall x : t, eq x x. Proof. apply CarrierAsetoid. Qed.
+  Lemma eq_sym : forall x y : t, eq x y -> eq y x. Proof. apply CarrierAsetoid. Qed.
+  Lemma eq_trans : forall x y z : t, eq x y -> eq y z -> eq x z. Proof. apply CarrierAsetoid. Qed.
+  Lemma lt_trans : forall x y z : t, lt x y -> lt y z -> lt x z. Proof. apply CarrierASSO. Qed.
+
+  Lemma lt_not_eq : forall x y : t, lt x y -> ~ eq x y.
+  Proof.
+    intros x y H.
+    intros C.
+    rewrite C in H.
+    apply CarrierASSO in H.
+    congruence.
+  Qed.
+
+  Definition compare : forall x y : t, Compare lt eq x y.
+  Proof.
+    intros x y.
+    destruct (CarrierAequivdec x y) as [E | NE].
+    exact (EQ E).
+    destruct (CarrierAltdec x y) as [L | NL].
+    exact (LT L).
+    apply GT.
+
+    eapply orders.le_iff_not_lt_flip in NL.
+    eapply orders.lt_iff_le_apart.
+    split.
+    apply NL.
+    apply canonical_names.trivial_apart.
+    intros C.
+    symmetry in C.
+    congruence.
+  Qed.
+
+End CarrierA_as_OrderedType.
