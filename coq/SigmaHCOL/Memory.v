@@ -60,7 +60,6 @@ Definition mem_member k (m:NatMap CarrierA) := NM.mem k m.
 Definition mem_in     k (m:NatMap CarrierA) := NM.In k m.
 Definition mem_lookup k (m:NatMap CarrierA) := NM.find k m.
 Definition mem_empty := @NM.empty CarrierA.
-Definition mem_mapsto k (v:CarrierA) (m:NatMap CarrierA) := @NM.MapsTo CarrierA k v m.
 
 Definition mem_block := NatMap CarrierA.
 
@@ -133,8 +132,6 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
     end.
 
 Definition memory := NatMap mem_block.
-
-Definition mem_block_equiv:= NM.Equal (elt:=CarrierA).
 
 (* ------------------ Proofs below ------------------- *)
 
