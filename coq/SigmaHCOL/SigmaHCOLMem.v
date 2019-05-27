@@ -278,19 +278,6 @@ Section Avector.
 
   Definition avector_to_mem_block {n:nat} (v:avector n) : mem_block := proj1_sig (avector_to_mem_block_spec v).
 
-  (* alternative, propositional spec. *)
-  Lemma avector_to_mem_block_spec'
-        (n : nat)
-        (v : avector n)
-        (i: nat)
-        (ip : i < n)
-    : mem_mapsto i (Vnth v ip) (avector_to_mem_block v).
-  Proof.
-    unfold avector_to_mem_block.
-    destruct (avector_to_mem_block_spec v) as [x SP].
-    apply NM.find_2, SP.
-  Qed.
-
   Lemma avector_to_mem_block_key_oob {n:nat} {v: avector n}:
     forall (k:nat) (kc:ge k n), mem_lookup k (avector_to_mem_block v) ≡ None.
   Proof.
