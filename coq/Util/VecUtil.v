@@ -1612,3 +1612,9 @@ Proof.
     rewrite Vbuild_nth.
     apply H.
 Qed.
+
+Lemma vsequence_Vbuild_is_Some:
+  forall (A : Type) (n : nat) (f : forall i : nat, (i < n)%nat -> option A),
+  util.is_Some (vsequence (Vbuild f)) <-> (forall j (jc:j<n), util.is_Some (f j jc)).
+Proof.
+Admitted.

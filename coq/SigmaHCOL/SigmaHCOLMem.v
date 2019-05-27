@@ -335,20 +335,38 @@ Ltac avector_to_mem_block_to_spec m H0 H1 :=
 Section Avector_Setoid.
 
   Global Instance mem_block_to_avector_proper {n:nat}:
-    Proper ((equiv) ==> (eq)) (@mem_block_to_avector n).
+    Proper ((equiv) ==> (equiv)) (@mem_block_to_avector n).
   Proof.
     simpl_relation.
     unfold mem_block_to_avector.
-    f_equal.
-    vec_index_equiv i ip.
-    rewrite 2!Vbuild_nth.
-    apply H.
-  Qed.
-
-  Global Instance avector_to_mem_block_proper {n:nat}:
-    Proper ((eq) ==> (equiv)) (@avector_to_mem_block n).
-  Proof.
-    simpl_relation.
+    destruct_opt_r_equiv.
+    -
+      rename t into a, t0 into b.
+      vec_index_equiv j jc.
+      apply vsequence_Vbuild_eq_Some in Ha.
+      apply vsequence_Vbuild_eq_Some in Hb.
+    -
+      apply vsequence_Vbuild_eq_None in Hb.
+      apply eq_Some_is_Some in Ha.
+      rewrite vsequence_Vbuild_is_Some in Ha.
+      destruct Hb as [j [jc Hb]].
+      specialize (Ha j jc).
+      apply is_Some_ne_None in Ha.
+      apply CarrierA_none_neq in Ha.
+      apply None_equiv_eq in Hb.
+      rewrite H in Ha.
+      some_none.
+    -
+      apply vsequence_Vbuild_eq_None in Ha.
+      apply eq_Some_is_Some in Hb.
+      rewrite vsequence_Vbuild_is_Some in Hb.
+      destruct Ha as [j [jc Ha]].
+      specialize (Hb j jc).
+      apply is_Some_ne_None in Hb.
+      apply CarrierA_none_neq in Hb.
+      apply None_equiv_eq in Ha.
+      rewrite H in Ha.
+      some_none.
   Qed.
 
 End Avector_Setoid.
