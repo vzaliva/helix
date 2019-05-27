@@ -138,26 +138,6 @@ Definition mem_block_equiv:= NM.Equal (elt:=CarrierA).
 
 (* ------------------ Proofs below ------------------- *)
 
-Lemma NF_eqb_eq {a b: nat}:
-  NP.F.eqb a b = true -> a = b.
-Proof.
-  intros H.
-  unfold NP.F.eqb in H.
-  break_if.
-  - auto.
-  - inversion H.
-Qed.
-
-Lemma NF_eqb_neq {a b: nat}:
-  NP.F.eqb a b = false -> a <> b.
-Proof.
-  intros H.
-  unfold NP.F.eqb in H.
-  break_if.
-  - inversion H.
-  - auto.
-Qed.
-
 Lemma mem_keys_set_In (k:NM.key) (m:mem_block):
   NM.In k m <-> NS.In k (mem_keys_set m).
 Proof.
