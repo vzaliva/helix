@@ -65,6 +65,7 @@ Ltac norm_some_none :=
 Ltac some_none :=
   let H' := fresh in
   match goal with
+  | [H1: ?x = None, H2: ?x ≠ None |- _] => congruence
   | [H1: ?x ≡ Some _, H2: ?x ≡ None |- _ ] => congruence
   | [H: Some _ = None |- _ ] => inversion H
   | [H: None = Some _ |- _ ] => inversion H
@@ -181,6 +182,12 @@ Proof.
     some_none.
 Qed.
 
+Fact eq_Some_is_Some {A:Type} (x:A) (y: option A):
+  (y ≡ Some x) -> is_Some y.
+Proof.
+  crush.
+Qed.
+
 Lemma is_Some_equiv_def `{Ae: Equiv A} `{Equivalence A Ae} `(x : option A) :
   is_Some x ↔ ∃ y, x = Some y.
 Proof.
@@ -253,3 +260,19 @@ Proof.
   -
     reflexivity.
 Qed.
+
+
+Ltac destruct_opt_r_equiv :=
+  match goal with
+  | [ |- RelUtil.opt_r _ ?a ?b] =>
+    let Ha := fresh "Ha" in
+    let Hb := fresh "Hb" in
+    destruct a eqn:Ha, b eqn:Hb;
+    match goal with
+    | [ |- RelUtil.opt_r _ (Some _) None] => exfalso
+    | [ |- RelUtil.opt_r _ None (Some _)] => exfalso
+    | [ |- RelUtil.opt_r _ (Some _) (Some _)]  =>
+      apply RelUtil.opt_r_Some
+    | [ |- RelUtil.opt_r _ None None] => reflexivity
+    end
+  end.
