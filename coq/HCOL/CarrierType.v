@@ -111,7 +111,7 @@ Instance CarrierFPSO: @orders.FullPseudoOrder CarrierA CarrierAe (@strong_setoid
 (* Only needed for [CarrierAOrderedType] *)
 Instance CarrierFPAO: @orders.FullPartialOrder CarrierA CarrierAe (@strong_setoids.default_apart CarrierA CarrierAe) CarrierALe CarrierALt. Admitted.
 
-Module CarrierA_as_OrderedType <: OrderedType.
+Module CarrierA_as_OT <: OrderedType.
 
   Definition t := CarrierA.
   Definition eq := CarrierAe.
@@ -153,4 +153,4 @@ Module CarrierA_as_OrderedType <: OrderedType.
     congruence.
   Qed.
 
-End CarrierA_as_OrderedType.
+End CarrierA_as_OT.
