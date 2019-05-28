@@ -905,17 +905,30 @@ Section Wrappers.
     : mem_block -> option mem_block
     := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
 
+  (*
+  (* this could only be proven wrt [@eq] on operators, not [((=)==>(=))].
+     because [svector_to_mem_block] is used underneath.
+   *)
   Global Instance mem_op_of_op_proper
          {fm}
          {i o: nat}:
-    Proper (((=) ==> (=)) ==> (=)) (@mem_op_of_op fm i o).
+    Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
   Proof.
     intros f g E mx my Em.
     unfold mem_op_of_op.
-    repeat f_equiv.
-    apply E.
-    apply Em.
+    f_equiv.
+    f_equiv.
+    apply equal_f with (x:=mem_block_to_svector fm mx) in E.
+    rewrite_clear E.
+    Seems to be tricky to prove. Let's postpone to see when it is needed.
+
+    f_equiv.
+    rewrite Em.
+    reflexivity.
   Qed.
+
+
+   *)
 
 End Wrappers.
 
