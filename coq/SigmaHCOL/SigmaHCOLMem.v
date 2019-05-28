@@ -1163,14 +1163,12 @@ End Operators.
 Section Morphisms.
 
   Global Instance mem_keys_set_Proper:
-    Proper (NM.Equal ==> NS.Equal) (mem_keys_set).
+    Proper ((=) ==> NS.Equal) (mem_keys_set).
   Proof.
     simpl_relation.
     rename H into E.
     rewrite <- 2!mem_keys_set_In.
-    apply NP.F.In_m.
-    reflexivity.
-    apply E.
+    apply mem_in_proper; auto.
   Qed.
 
   Global Instance mem_union_proper:
@@ -1186,6 +1184,7 @@ Section Morphisms.
     specialize (Em1 k).
     repeat break_match; try some_none; auto.
   Qed.
+
 
   Global Instance mem_merge_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_merge).
