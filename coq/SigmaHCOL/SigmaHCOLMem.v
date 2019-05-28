@@ -342,9 +342,19 @@ Section Avector_Setoid.
     destruct_opt_r_equiv.
     -
       rename t into a, t0 into b.
-      vec_index_equiv j jc.
       apply vsequence_Vbuild_eq_Some in Ha.
       apply vsequence_Vbuild_eq_Some in Hb.
+      rewrite Vmap_as_Vbuild in Ha.
+      rewrite Vmap_as_Vbuild in Hb.
+      vec_index_equiv j jc.
+      apply Vnth_arg_eq with (ip:=jc) in Ha.
+      apply Vnth_arg_eq with (ip:=jc) in Hb.
+      rewrite 2!Vbuild_nth in Ha.
+      rewrite 2!Vbuild_nth in Hb.
+      apply Some_inj_equiv.
+      rewrite <- Ha, <- Hb.
+      rewrite H.
+      reflexivity.
     -
       apply vsequence_Vbuild_eq_None in Hb.
       apply eq_Some_is_Some in Ha.
