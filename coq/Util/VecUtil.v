@@ -1617,4 +1617,24 @@ Lemma vsequence_Vbuild_is_Some:
   forall (A : Type) (n : nat) (f : forall i : nat, (i < n)%nat -> option A),
   util.is_Some (vsequence (Vbuild f)) <-> (forall j (jc:j<n), util.is_Some (f j jc)).
 Proof.
-Admitted.
+  unfold util.is_Some.
+  split.
+  -
+    intros H j jc.
+    repeat break_match; auto.
+    rename Heqo0 into H1.
+    apply vsequence_Vbuild_eq_Some in H1.
+    eapply Vnth_arg_eq with (ip:=jc) in H1.
+    rewrite Vbuild_nth in H1.
+    rewrite Vnth_map in H1.
+    congruence.
+  -
+    intros H.
+    repeat break_match; auto.
+    rename Heqo into H1.
+    apply vsequence_Vbuild_eq_None in H1.
+    destruct H1 as [j [jc H1]].
+    specialize (H j jc).
+    break_match; auto.
+    inversion H1.
+Qed.
