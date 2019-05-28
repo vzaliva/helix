@@ -98,12 +98,6 @@ Proof.
 Qed.
 
 
-Fact CarrierA_none_neq (x:option CarrierA):
-  x ≢ None <-> x ≠ None.
-Proof.
-  destruct x; split; intros; try some_none; crush.
-Qed.
-
 Global Instance mem_in_proper:
   Proper ((eq) ==> (=) ==> iff) (mem_in).
 Proof.
