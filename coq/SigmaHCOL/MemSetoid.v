@@ -108,16 +108,16 @@ Proof.
     intros H.
     apply NP.F.in_find_iff in H.
     apply NP.F.in_find_iff.
-    apply CarrierA_none_neq.
+    apply None_nequiv_neq.
     rewrite <- H0.
-    apply CarrierA_none_neq in H.
+    apply None_nequiv_neq in H.
     auto.
   -
     intros H.
     apply NP.F.in_find_iff in H.
     apply NP.F.in_find_iff.
-    apply CarrierA_none_neq.
+    apply None_nequiv_neq.
     rewrite H0.
-    apply CarrierA_none_neq in H.
+    apply None_nequiv_neq in H.
     auto.
 Qed.

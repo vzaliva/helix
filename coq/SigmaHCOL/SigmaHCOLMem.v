@@ -362,7 +362,7 @@ Section Avector_Setoid.
       destruct Hb as [j [jc Hb]].
       specialize (Ha j jc).
       apply is_Some_ne_None in Ha.
-      apply CarrierA_none_neq in Ha.
+      apply None_nequiv_neq in Ha.
       apply None_equiv_eq in Hb.
       rewrite H in Ha.
       some_none.
@@ -373,7 +373,7 @@ Section Avector_Setoid.
       destruct Ha as [j [jc Ha]].
       specialize (Hb j jc).
       apply is_Some_ne_None in Hb.
-      apply CarrierA_none_neq in Hb.
+      apply None_nequiv_neq in Hb.
       apply None_equiv_eq in Ha.
       rewrite H in Ha.
       some_none.
@@ -804,6 +804,8 @@ Section Wrappers.
     unfold equiv, ext_equiv.
     intros mx my Em.
     repeat break_match;
+      apply Option_equiv_eq in Heqo0;
+      apply Option_equiv_eq in Heqo1;
       rewrite Em in Heqo0;
       rewrite Heqo0 in Heqo1.
     -
