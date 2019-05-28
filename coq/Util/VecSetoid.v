@@ -285,9 +285,9 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Vmap_as_Vbuild {A B:Type} `{Setoid B}:
+Lemma Vmap_as_Vbuild {A B:Type} :
   ∀ (n : nat) (v : vector A n) (f:A->B),
-    Vmap f v = Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
+    Vmap f v ≡ Vbuild (λ (j : nat) (jd : (j < n)%nat), f (Vnth v jd)).
 Proof.
   intros n v f.
   vec_index_equiv i ip.
