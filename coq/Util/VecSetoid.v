@@ -562,3 +562,34 @@ Proof.
   apply E.
 Qed.
 
+Global Instance Vfold_right_indexed'_proper
+       {n: nat}
+       {A B: Type}
+       `{EQa: Equiv A}
+       `{EQb: Equiv B}
+  :
+
+    Proper((eq) ==>
+                ((eq) ==> (equiv) ==> (equiv) ==> (equiv)) ==>
+                (equiv) ==> (equiv) ==> (equiv))
+          (@Vfold_right_indexed' n A B).
+Proof.
+  intros i i' Ei f f' Ef v v' Ev b b' Eb.
+  subst i'.
+
+  revert i.
+  induction n; intros.
+  -
+    dep_destruct v.
+    dep_destruct v'.
+    simpl.
+    apply Eb.
+  -
+    dep_destruct v.
+    dep_destruct v'.
+    simpl.
+    apply Ef; auto.
+    inversion Ev; auto.
+    apply IHn.
+    inversion Ev; auto.
+Qed.
