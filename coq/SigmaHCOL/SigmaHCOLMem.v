@@ -650,15 +650,14 @@ Section SVector.
 
   Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
+  (* This could be only proven for [eq] in for svectors, as their
+     structural properites are affecting the result. *)
   Global Instance svector_to_mem_block_proper
          {n: nat}:
-    Proper ((equiv) ==> (=)) (@svector_to_mem_block n).
+    Proper ((eq) ==> (equiv)) (@svector_to_mem_block n).
   Proof.
-    simpl_relation.
-    unfold svector_to_mem_block.
-    simpl.
-    destruct_opt_r_equiv.
-  Admitted.
+    solve_proper.
+  Qed.
 
   Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
     forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
