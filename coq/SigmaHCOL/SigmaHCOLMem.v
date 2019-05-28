@@ -379,6 +379,21 @@ Section Avector_Setoid.
       some_none.
   Qed.
 
+  Global Instance avector_to_mem_block_proper {n:nat}:
+    Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
+  Proof.
+    simpl_relation.
+    unfold avector_to_mem_block.
+    simpl.
+    destruct_opt_r_equiv.
+    -
+      rename c into a, c0 into b.
+      admit.
+    -
+
+  Admitted.
+
+
 End Avector_Setoid.
 
 Section SVector.
@@ -571,13 +586,15 @@ Section SVector.
 
   Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
 
-  (* this could only be proven wrt @eq on input vectors, not @equiv! *)
   Global Instance svector_to_mem_block_proper
          {n: nat}:
-    Proper ((eq) ==> (=)) (@svector_to_mem_block n).
+    Proper ((equiv) ==> (=)) (@svector_to_mem_block n).
   Proof.
-    solve_proper.
-  Qed.
+    simpl_relation.
+    unfold svector_to_mem_block.
+    simpl.
+    destruct_opt_r_equiv.
+  Admitted.
 
   Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
     forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
@@ -617,14 +634,12 @@ Section SVector.
                  end
               ).
 
-  (* proving stronger @eq equality here.
- Probably could be proven for @equiv as well *)
   Global Instance mem_block_to_svector_proper
          {n: nat}:
-    Proper ((=) ==> (eq)) (@mem_block_to_svector n).
+    Proper ((=) ==> (=)) (@mem_block_to_svector n).
   Proof.
-    simpl_relation.
-    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in H.
+    intros a b H.
+    unfold equiv, mem_block_Equiv in H.
     unfold mem_block_to_svector.
     vec_index_equiv j jc.
     rewrite 2!Vbuild_nth.
@@ -632,7 +647,8 @@ Section SVector.
     unfold mem_lookup.
     break_match; break_match; try some_none; try reflexivity.
     some_inv.
-    reflexivity.
+    f_equiv.
+    apply H.
   Qed.
 
 End SVector.
@@ -695,6 +711,7 @@ Proof.
   rewrite NP.F.empty_o.
   destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
   -
+    apply None_equiv_eq.
     apply NP.F.not_find_in_iff.
 
     specialize (I0 k kc).
@@ -703,6 +720,7 @@ Proof.
     rewrite Vnth_const.
     apply Is_Val_mkStruct.
   -
+    apply None_equiv_eq.
     apply O0, kc.
 Qed.
 
@@ -797,21 +815,21 @@ Section Wrappers.
 
   Global Instance mem_op_of_hop_proper
          {i o: nat}:
-    Proper ((eq) ==> (=)) (@mem_op_of_hop i o).
+    Proper (((=) ==> (=)) ==> (=)) (@mem_op_of_hop i o).
   Proof.
-    intros a b E.
+    intros a b E mx my Em.
     unfold mem_op_of_hop.
-    unfold equiv, ext_equiv.
-    intros mx my Em.
     repeat break_match;
       apply Option_equiv_eq in Heqo0;
       apply Option_equiv_eq in Heqo1;
       rewrite Em in Heqo0;
       rewrite Heqo0 in Heqo1.
     -
-      inversion Heqo1.
-      subst.
+      some_inv.
       f_equiv.
+      f_equiv.
+      apply E.
+      apply Heqo1.
     -
       some_none.
     -
@@ -824,22 +842,16 @@ Section Wrappers.
     : mem_block -> option mem_block
     := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
 
-  (* this could only be proven wrt @eq on operators, not ((=)==>(=)). *)
   Global Instance mem_op_of_op_proper
          {fm}
          {i o: nat}:
-    Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
+    Proper (((=) ==> (=)) ==> (=)) (@mem_op_of_op fm i o).
   Proof.
-    intros f g E.
-    unfold equiv, ext_equiv.
-    intros mx my Em.
+    intros f g E mx my Em.
     unfold mem_op_of_op.
-    f_equiv.
-    f_equiv.
-    rewrite_clear E.
-    f_equiv.
-    rewrite Em.
-    reflexivity.
+    repeat f_equiv.
+    apply E.
+    apply Em.
   Qed.
 
 End Wrappers.
@@ -1085,22 +1097,29 @@ Section Morphisms.
     apply E.
   Qed.
 
+  Global Instance mem_union_proper:
+    Proper (equiv ==> equiv ==> equiv) (mem_union).
+  Proof.
+    intros m0 m0' Em0 m1 m1' Em1.
+    unfold mem_union.
+    mem_index_equiv k.
+    rewrite 2!NP.F.map2_1bis by auto.
+    unfold equiv, mem_block_Equiv in Em0.
+    unfold equiv, mem_block_Equiv in Em1.
+    specialize (Em0 k).
+    specialize (Em1 k).
+    repeat break_match; try some_none; auto.
+  Qed.
+
   Global Instance mem_merge_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_merge).
   Proof.
     intros m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge.
-    repeat rewrite Em0, Em1.
     repeat break_if; try some_none.
     -
       f_equiv.
-      unfold mem_union.
-      unfold equiv, mem_block_Equiv, mem_block_equiv.
-      apply NP.F.Equal_mapsto_iff.
-      intros k e.
-      rewrite 2!NP.F.find_mapsto_iff.
-      rewrite 2!NP.F.map2_1bis; auto.
-      repeat rewrite Em0, Em1.
+      rewrite Em0, Em1.
       reflexivity.
     -
       unfold is_disjoint in *.
