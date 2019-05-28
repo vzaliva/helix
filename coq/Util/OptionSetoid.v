@@ -131,16 +131,14 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Option_nequiv_eq_None
+Lemma None_nequiv_neq
       {A: Type}
       `{Ae: Equiv A}
       `{Ar: Equivalence A Ae}
       (a: option A) :
-  (a ≢ None) -> (a ≠ None).
+  (a ≢ None) <-> (a ≠ None).
 Proof.
-  destruct a; intros.
-  some_none.
-  intros C; contradiction.
+  destruct a; split; intros; try some_none; crush.
 Qed.
 
 Lemma None_equiv_eq
