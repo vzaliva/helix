@@ -2549,8 +2549,9 @@ Section MemVecEq.
           (cast_op_family op_family E (mkFinNat jc)).
     Proof.
       intros j jc.
-      crush.
-      (* TODO: better proof. *)
+      unfold cast_op_family.
+      break_match.
+      auto.
     Defined.
 
     Lemma cast_mem_op_eq
