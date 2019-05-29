@@ -1237,18 +1237,18 @@ Section MemVecEq.
            `{Meq2: SHOperator_Mem _ i o op2}
 
            `{a_zero: MonUnit CarrierA}
-           (* `a_zero` together with `dot` form a monoid. NONE: using `eq` here *)
-           `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA (@eq CarrierA) dot a_zero}
+           (* `a_zero` together with `dot` form a monoid.  *)
+           `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
            (* Structural values in `op1` output evaluate to `a_zero` *)
            (Z1: forall x (t:nat) (tc:t<o),
                ¬ out_index_set _ op1 (mkFinNat tc) ->
-               evalWriter (Vnth (op Monoid_RthetaFlags op1 x) tc) ≡ a_zero)
+               evalWriter (Vnth (op Monoid_RthetaFlags op1 x) tc) = a_zero)
 
            (* Structural values in `op2` output evaluate to `a_zero` *)
            (Z2: forall x (t:nat) (tc:t<o),
                ¬ out_index_set _ op2 (mkFinNat tc) ->
-               evalWriter (Vnth (op Monoid_RthetaFlags op2 x) tc) ≡ a_zero)
+               evalWriter (Vnth (op Monoid_RthetaFlags op2 x) tc) = a_zero)
 
       : SHOperator_Mem
           (facts := HTSUMUnion_Facts dot op1 op2 compat)
@@ -1430,7 +1430,9 @@ Section MemVecEq.
                     rewrite find_svector_to_mem_block_some with (kc:=kc).
                     2:{
                       apply NP.F.in_find_iff.
+                      apply None_nequiv_neq.
                       rewrite G1.
+                      apply None_nequiv_neq.
                       apply NP.F.in_find_iff.
                       apply M1.
                     }
@@ -1471,13 +1473,15 @@ Section MemVecEq.
                     apply Meq2 in G2.
                     rewrite Heqo3 in G2.
                     some_inv.
-                    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in G2.
+                    unfold equiv, mem_block_Equiv in G2.
                     rewrite <- G2.
 
                     rewrite find_svector_to_mem_block_some with (kc:=kc).
                     2:{
                       apply NP.F.in_find_iff.
+                      apply None_nequiv_neq.
                       rewrite G2.
+                      apply None_nequiv_neq.
                       apply NP.F.in_find_iff.
                       apply M2.
                     }
@@ -1515,6 +1519,7 @@ Section MemVecEq.
                 unfold mem_lookup in I2.
                 rewrite_clear I2.
                 symmetry.
+                apply None_equiv_eq.
                 apply NP.F.not_find_in_iff.
                 intros N.
                 apply (mem_merge_key_dec m m1 m2 MM k) in N.
