@@ -1987,7 +1987,7 @@ Section MemVecEq.
       apply monadic_Lbuild_opt_length.
     Qed.
 
-    Lemma svector_to_mem_block_Vec2Union
+    Lemma svector_to_mem_block_Vec2Union_mem_merge_with_def
           {n: nat}
           {a b: svector Monoid_RthetaSafeFlags n}
           {dot: CarrierA -> CarrierA -> CarrierA}
@@ -1996,7 +1996,7 @@ Section MemVecEq.
           (compata: Vforall (fun x => not (Is_Val x) -> evalWriter x ≡ def) a)
           (compatb: Vforall Is_Val b)
       :
-        svector_to_mem_block (Vec2Union _ dot a  b)
+        svector_to_mem_block (Vec2Union _ dot a b)
         =
         mem_merge_with_def dot
                            def
@@ -2416,7 +2416,7 @@ Section MemVecEq.
             clear P.
             unfold MUnion in *.
             simpl.
-            rewrite (svector_to_mem_block_Vec2Union initial).
+            rewrite (svector_to_mem_block_Vec2Union_mem_merge_with_def initial).
             --
               rewrite IHn; clear IHn.
               apply mem_merge_with_def_proper; auto.
@@ -3095,7 +3095,125 @@ Section MemVecEq.
             apply out_mem_oob with (j0:=j) in A0; auto.
       -
         (* mem_vec_preservation *)
-        admit.
+        intros x H.
+        rename k into n.
+        unfold IUnion, IUnion_mem, Diamond in *.
+        simpl in *.
+        break_match; rename Heqo0 into A.
+        +
+          f_equiv.
+          remember (Apply_Family' (get_family_op Monoid_RthetaFlags op_family) x)
+            as v eqn:A1.
+
+          revert l A A1.
+          induction n; intros.
+          *
+            subst v.
+            simpl.
+            f_equiv.
+            unfold Diamond, MUnion.
+            assert(length l = 0) as L by apply (Apply_mem_Family_length A).
+            destruct l; try inversion L.
+            simpl.
+            f_equiv.
+            apply svector_to_mem_block_Vconst_mkStruct.
+          *
+            assert(length l = S n) as L by apply (Apply_mem_Family_length A).
+            destruct l; try inversion L.
+            rename m into l0.
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
+            assert(forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags
+                                     (shrink_op_family_up Monoid_RthetaFlags
+                                        op_family) (mkFinNat jc) →
+                                           Is_Val (Vnth x jc)) as P.
+            {
+              intros j jc H0.
+              apply H.
+              apply family_in_set_implies_members in H0.
+              destruct H0 as [t [tc H0]].
+              unfold shrink_op_family_up in H0.
+              eapply family_in_set_includes_members.
+              unfold Ensembles.In.
+              eapply H0.
+            }
+            unfold Apply_Family' in A1.
+            rewrite Vbuild_cons in A1.
+            dep_destruct v.
+            clear v. rename h into v0, x0 into v.
+            inversion A1 as [[V0 V]]. clear A1.
+            apply inj_pair2 in V.
+
+            (* shrink compat *)
+            assert(compat': ∀ (m : nat) (mc : m < n) (n0 : nat) (nc : n0 < n),
+                      m ≢ n0
+                      → Disjoint (FinNat o)
+                                 (out_index_set _
+                                                (shrink_op_family_up _ op_family (mkFinNat mc)))
+                                 (out_index_set _
+                                                (shrink_op_family_up _ op_family (mkFinNat nc)))
+                  ).
+            {
+              intros m mc n0 nc H0.
+              apply compat.
+              auto.
+            }
+            specialize (IHn
+                          (shrink_op_family_up _ op_family)
+                          (shrink_op_family_facts_up _ _ op_family_facts)
+                          (shrink_op_family_mem_up _ _ op_family_mem)
+                          compat'
+                          P
+                          v l
+                          A V
+                       ).
+            clear P.
+            unfold MUnion in *.
+            simpl.
+
+            break_match; try some_none.
+            (*
+            rewrite (svector_to_mem_block_Vec2Union initial).
+            --
+              rewrite IHn; clear IHn.
+              apply mem_merge_with_def_proper; auto.
+              apply Some_inj_equiv.
+              rewrite <- A0. clear A0.
+              unfold get_family_op, get_family_mem_op.
+              eapply mem_vec_preservation.
+              intros j jc H0.
+              apply H.
+              eapply family_in_set_includes_members.
+              apply H0.
+            --
+              apply Vec2Union_fold_zeros with (op_family:=op_family) (x:=x); auto.
+            --
+              apply Vforall_nth_intro.
+              intros j jc.
+              apply (op_family_facts 0 (Nat.lt_0_succ n)).
+              intros t tc HH.
+              specialize (H t tc).
+              apply H.
+              eapply family_in_set_includes_members.
+              eapply HH.
+              apply compat.
+              apply Full_intro.
+             *)
+
+        +
+          (* [A] could not happen *)
+          exfalso.
+          unfold Apply_mem_Family in A.
+          apply monadic_Lbuild_op_eq_None in A.
+          destruct A as [t [tc A]].
+          contradict A.
+          apply is_Some_ne_None.
+          apply mem_out_some.
+          intros j jc H0.
+          apply svector_to_mem_block_In with (jc0:=jc).
+          apply H.
+          eapply family_in_set_includes_members.
+          apply H0.
     Admitted.
 
   End MonoidSpecific.
