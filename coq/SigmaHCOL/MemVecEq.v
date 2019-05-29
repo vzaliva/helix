@@ -1916,7 +1916,8 @@ Section MemVecEq.
           apply NM.find_1 in i0.
           rewrite i, i0.
           f_equiv.
-          apply V.
+          rewrite V.
+          reflexivity.
         +
           inversion S.
           unfold Is_Val, compose, IsVal, Is_true, not in *.
@@ -2418,8 +2419,7 @@ Section MemVecEq.
             rewrite (svector_to_mem_block_Vec2Union initial).
             --
               rewrite IHn; clear IHn.
-              apply mem_merge_with_def_arg_proper.
-              reflexivity.
+              apply mem_merge_with_def_proper; auto.
               apply Some_inj_equiv.
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
