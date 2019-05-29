@@ -1287,12 +1287,39 @@ Section Morphisms.
     simpl_relation.
     unfold eT_mem.
     unfold map_mem_block_elt.
-    break_match; break_match;
-      rewrite H in Heqo; rewrite Heqo in Heqo0.
-    - some_inv; reflexivity.
-    - some_none.
-    - some_none.
-    - reflexivity.
+    destruct_opt_r_equiv; repeat break_match; try some_none.
+    -
+      repeat some_inv.
+      unfold mem_block_Equiv.
+      intros k.
+      unfold mem_lookup in *.
+      destruct (eq_nat_dec k 0).
+      +
+        rewrite 2!NP.F.add_eq_o by auto.
+        rewrite <- Heqo0, <- Heqo.
+        rewrite H.
+        reflexivity.
+      +
+        rewrite 2!NP.F.add_neq_o by auto.
+        reflexivity.
+    -
+      some_inv.
+      assert(C: mem_lookup b x = mem_lookup b y).
+      {
+        rewrite H.
+        reflexivity.
+      }
+      rewrite Heqo0, Heqo in C.
+      some_none.
+    -
+      some_inv.
+      assert(C: mem_lookup b x = mem_lookup b y).
+      {
+        rewrite H.
+        reflexivity.
+      }
+      rewrite Heqo0, Heqo in C.
+      some_none.
   Qed.
 
   Global Instance HTSUMUnion_mem_proper:
