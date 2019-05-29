@@ -1206,49 +1206,36 @@ Section Morphisms.
       congruence.
   Qed.
 
-  Global Instance mem_merge_with_arg_proper
-         (dot: CarrierA → CarrierA → CarrierA)
-    :
-      Proper (equiv ==> equiv ==> equiv) (mem_merge_with dot).
+  Global Instance mem_merge_with_proper
+    : Proper ((equiv ==> equiv ==> equiv)
+                ==> equiv ==> equiv ==> equiv) (mem_merge_with).
   Proof.
-    intros m0 m0' Em0 m1 m1' Em1.
+    intros f g Efg m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge_with.
-    apply NP.F.Equal_mapsto_iff.
-    intros k e.
-    rewrite 2!NP.F.find_mapsto_iff.
-    rewrite 2!NP.F.map2_1bis; auto.
-
-    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in Em1, Em0.
+    unfold equiv, mem_block_Equiv in *.
+    intros k.
     specialize (Em0 k).
     specialize (Em1 k).
-    repeat break_match; try some_none.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; inversion H.
+    rewrite 2!NP.F.map2_1bis by auto.
+
+    repeat break_match; try some_none; auto.
+    repeat some_inv.
+    f_equiv.
+    apply Efg; auto.
   Qed.
 
-  Global Instance mem_merge_with_def_arg_proper
-         (dot: CarrierA → CarrierA → CarrierA)
-         (default: CarrierA)
-    :
-      Proper (equiv ==> equiv ==> equiv) (mem_merge_with_def dot default).
+  Global Instance mem_merge_with_def_proper
+    : Proper ((equiv ==> equiv ==> equiv) ==> equiv ==> equiv ==> equiv ==> equiv) (mem_merge_with_def).
   Proof.
-    intros m0 m0' Em0 m1 m1' Em1.
+    intros f g Efg d d' Ed m0 m0' Em0 m1 m1' Em1.
     unfold mem_merge_with_def.
-    apply NP.F.Equal_mapsto_iff.
-    intros k e.
-    rewrite 2!NP.F.find_mapsto_iff.
-    rewrite 2!NP.F.map2_1bis; auto.
-
-    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in Em1, Em0.
+    unfold equiv, mem_block_Equiv in *.
+    intros k.
     specialize (Em0 k).
     specialize (Em1 k).
-    repeat break_match; try some_none.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; reflexivity.
-    - split; intros H; repeat some_inv; subst; inversion H.
+    rewrite 2!NP.F.map2_1bis by auto.
+    repeat break_match; try some_none; auto;
+      repeat some_inv; f_equiv; apply Efg; auto.
   Qed.
 
   Global Instance eUnion_mem_proper
