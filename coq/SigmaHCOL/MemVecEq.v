@@ -556,7 +556,7 @@ Section MemVecEq.
                 auto.
               }
               clear H1 I1 m1 Heqo0.
-
+              apply Option_equiv_eq.
               apply NP.F.not_find_in_iff.
               unfold not.
               intros H.
@@ -1423,7 +1423,7 @@ Section MemVecEq.
                     apply Meq1 in G1.
                     rewrite Heqo2 in G1.
                     some_inv.
-                    unfold equiv, mem_block_Equiv, mem_block_equiv, NM.Equal in G1.
+                    unfold equiv, mem_block_Equiv, NM.Equal in G1.
                     rewrite <- Heqo0.
                     rewrite <- G1.
 
