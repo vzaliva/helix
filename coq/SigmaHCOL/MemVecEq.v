@@ -2008,9 +2008,7 @@ Section MemVecEq.
 
       unfold svector_to_mem_block.
       svector_to_mem_block_to_spec m0 H0 I0 O0.
-      unfold svector_to_mem_block.
       svector_to_mem_block_to_spec m1 H1 I1 O1.
-      unfold svector_to_mem_block.
       svector_to_mem_block_to_spec m2 H2 I2 O2.
       simpl in *.
       destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
@@ -2079,6 +2077,164 @@ Section MemVecEq.
         rewrite O1, O2.
         reflexivity.
     Qed.
+
+    (* Set of indices of non-structural elements of a vector *)
+    Definition vector_val_index_set
+               {fm}
+               {n:nat}
+               (x: svector fm n): FinNatSet n
+      := fun jf =>
+           let (j, jc) := jf in
+           Is_Val (Vnth x jc).
+
+
+    Lemma out_index_set_in_vector_val_index_set
+          {fm}
+          {i o: nat}
+          (x: svector fm i)
+          (xop : @SHOperator fm i o)
+          (facts: SHOperator_Facts fm xop)
+          (H: forall (j : nat) (jc : j < i), in_index_set fm xop
+                                                   (mkFinNat jc) → Is_Val (Vnth x jc))
+      :
+        Included _
+                 (out_index_set fm xop)
+                 (vector_val_index_set (op fm xop x)).
+    Proof.
+      unfold vector_val_index_set.
+      unfold Same_set, Included.
+      intros t H0.
+      unfold Ensembles.In in *.
+      destruct t as [j jc].
+      eapply out_as_range; eauto.
+    Qed.
+
+    Lemma mkEns_mem_keys_In
+          (k:nat)
+          (m:mem_block)
+      :
+      NE.mkEns (NSP.of_list (mem_keys_lst m)) k <-> NM.In (elt:=CarrierA) k m.
+    Proof.
+      unfold mem_keys_lst.
+      split.
+      -
+        intros H.
+        apply mem_keys_set_In.
+        apply H.
+      -
+        intros H.
+        apply mem_keys_set_In.
+        apply H.
+    Qed.
+
+    Lemma svector_to_mem_block_index_sets
+          {fm}
+          {n: nat}
+          {v: svector fm n}:
+      Same_set _
+               (FinNatSet_to_natSet (vector_val_index_set v))
+               (NE.mkEns (mem_keys_set (svector_to_mem_block v))).
+    Proof.
+      unfold vector_val_index_set.
+      unfold mem_keys_set.
+      unfold svector_to_mem_block.
+
+      svector_to_mem_block_to_spec m0 H0 I0 O0.
+      unfold FinNatSet_to_natSet.
+      simpl in *.
+      unfold Same_set, Included, Ensembles.In.
+      split.
+      -
+        intros k H.
+        break_match. 2:inversion H.
+        eapply mkEns_mem_keys_In, I0, H.
+      -
+        intros k H.
+        break_match.
+        +
+          eapply I0, mkEns_mem_keys_In, H.
+        +
+          apply mkEns_mem_keys_In in H.
+          unfold mem_lookup in O0.
+          specialize (O0 k g).
+          apply NP.F.not_find_in_iff in O0.
+          congruence.
+    Qed.
+
+    Ltac svector_to_mem_block_to_set_spec H0 :=
+      match goal with
+      | [ |- context[svector_to_mem_block_spec ?v]] =>
+        pose proof (svector_to_mem_block_index_sets (v:=v)) as H0;
+        unfold svector_to_mem_block in H0
+      | [ H: context[svector_to_mem_block_spec ?v] |- _ ] =>
+        pose proof (svector_to_mem_block_index_sets (v:=v)) as H0;
+        unfold svector_to_mem_block in H0
+      end.
+
+    Lemma svector_to_mem_block_Vec2Union_mem_merge
+          {n: nat}
+          {a b: svector Monoid_RthetaFlags n}
+          (dot: CarrierA → CarrierA → CarrierA)
+          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+          (compat: Disjoint _
+                            (vector_val_index_set a)
+                            (vector_val_index_set b))
+      :
+        Some (svector_to_mem_block (Vec2Union _ dot a b))
+        =
+        mem_merge
+          (svector_to_mem_block a)
+          (svector_to_mem_block b).
+    Proof.
+      unfold Vec2Union.
+
+      unfold svector_to_mem_block.
+      svector_to_mem_block_to_set_spec S0.
+      svector_to_mem_block_to_spec m0 H0 I0 O0.
+      svector_to_mem_block_to_set_spec S1.
+      svector_to_mem_block_to_spec m1 H1 I1 O1.
+      svector_to_mem_block_to_set_spec S2.
+      svector_to_mem_block_to_spec m2 H2 I2 O2.
+      simpl in *.
+      unfold mem_merge.
+      break_if.
+      -
+        f_equiv.
+        unfold mem_union.
+        mem_index_equiv k.
+        rewrite NP.F.map2_1bis.
+        break_match.
+        +
+          (* m0 = m1 *)
+          rewrite <- Heqo.
+          destruct (lt_ge_dec k n) as [kc | nkc].
+          *
+            clear O1 O1 O2 S0 S2 H2 I2 O2.
+            specialize (H0 k kc).
+            specialize (H1 k kc).
+            specialize (I0 k kc).
+
+            admit.
+          *
+            unfold mem_lookup in *.
+            rewrite O1, O0 by auto.
+            reflexivity.
+        +
+          (* m0 = m2 *)
+          admit.
+        +
+          reflexivity.
+      -
+        contradict Heqb0.
+        apply not_false_iff_true.
+        apply is_disjoint_Disjoint.
+        apply Extensionality_Ensembles in S1.
+        apply Extensionality_Ensembles in S2.
+        rewrite <- S1, <- S2.
+        clear S1 S2.
+        apply Disjoint_FinNat_to_nat.
+        apply compat.
+    Admitted.
 
     Fact Vec2Union_fold_zeros
          (i o n : nat)
@@ -3172,11 +3328,11 @@ Section MemVecEq.
             simpl.
 
             break_match; try some_none.
-            (*
-            rewrite (svector_to_mem_block_Vec2Union initial).
+            rewrite svector_to_mem_block_Vec2Union_mem_merge.
             --
+              some_inv.
               rewrite IHn; clear IHn.
-              apply mem_merge_with_def_proper; auto.
+              apply mem_merge_proper; auto.
               apply Some_inj_equiv.
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
@@ -3186,20 +3342,9 @@ Section MemVecEq.
               eapply family_in_set_includes_members.
               apply H0.
             --
-              apply Vec2Union_fold_zeros with (op_family:=op_family) (x:=x); auto.
+              apply pdot.
             --
-              apply Vforall_nth_intro.
-              intros j jc.
-              apply (op_family_facts 0 (Nat.lt_0_succ n)).
-              intros t tc HH.
-              specialize (H t tc).
-              apply H.
-              eapply family_in_set_includes_members.
-              eapply HH.
-              apply compat.
-              apply Full_intro.
-             *)
-
+              HERE
         +
           (* [A] could not happen *)
           exfalso.
