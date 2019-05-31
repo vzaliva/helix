@@ -3105,6 +3105,14 @@ Section MemVecEq.
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
+          `{a_zero: MonUnit CarrierA}
+          (* `a_zero` together with `dot` form a monoid.  *)
+          `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
+          (* Structural values in `op_family` output evaluate to `a_zero` *)
+          (Z: forall x (t:nat) (tc:t<o) k kc,
+              ¬ out_index_set _ (op_family (mkFinNat kc)) (mkFinNat tc) ->
+              evalWriter (Vnth (get_family_op Monoid_RthetaFlags op_family k kc x) tc) = a_zero)
+
       :  SHOperator_Mem (IUnion dot initial op_family
                                 (pdot:=pdot))
                         (facts:=IUnion_Facts dot initial op_family op_family_facts compat).
@@ -3126,6 +3134,7 @@ Section MemVecEq.
           pose proof (Apply_mem_Family_eq_Some A) as F.
           pose proof (Apply_mem_Family_length A) as L.
           revert l A F L.
+          clear Z.
           induction k; intros.
           *
             simpl in *.
@@ -3158,7 +3167,6 @@ Section MemVecEq.
                 simpl.
                 crush.
               ++
-
                 intros j jc H0.
                 simpl in H0.
                 specialize (H j jc).
@@ -3187,7 +3195,7 @@ Section MemVecEq.
           clear Heqo0.
           rename Heqo1 into A.
           unfold Apply_mem_Family in A.
-
+          clear Z.
           induction k.
           *
             simpl in A.
@@ -3453,11 +3461,27 @@ Section MemVecEq.
               apply compat.
               auto.
             }
+
+            assert(Z': forall
+                      (x : svector Monoid_RthetaFlags i) (t : nat) (tc : t < o)
+                      (k : nat) (kc : k < n),
+                      ¬ out_index_set Monoid_RthetaFlags
+                        (shrink_op_family_up Monoid_RthetaFlags
+                                             op_family (mkFinNat kc))
+                        (mkFinNat tc)
+                      → evalWriter
+                          (Vnth
+                             (get_family_op Monoid_RthetaFlags
+                                            (shrink_op_family_up Monoid_RthetaFlags op_family) k kc x) tc) = a_zero).
+            {
+              admit.
+            }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
                           compat'
+                          Z'
                           P
                           v l
                           A V
@@ -3483,7 +3507,15 @@ Section MemVecEq.
             --
               apply pdot.
             --
-              HERE
+              admit.
+            --
+              typeclasses eauto.
+            --
+              admit.
+            --
+              apply Vforall_nth_intro.
+              intros t tc P.
+              eapply Z.
         +
           (* [A] could not happen *)
           exfalso.
