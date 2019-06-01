@@ -598,6 +598,33 @@ End ExclusiveUnion.
 
 Section NonExclusiveUnion.
 
+  (* Could probably proven for [RSTheta], but not generally, as it
+     requires complete implementation of [mappend] *)
+  Lemma NotValUnionNotIsVal (a b : Rtheta) {dot}:
+    ¬ Is_Val (Union Monoid_RthetaFlags dot a b) <-> (not (Is_Val a)) /\ (not (Is_Val b)).
+  Proof.
+    split.
+    -
+      intros H.
+      split;
+        unfold Union, Is_Val, compose in *;
+        rewrite execWriter_Rtheta_liftM2 in H;
+        destruct (execWriter a) as [str_a col_a];
+        destruct (execWriter b) as [str_b col_b];
+        unfold monoid_plus, RthetaFlagsAppend in *;
+        unfold IsVal in *;
+        destr_bool; auto.
+    -
+      intros [A B].
+      unfold Union, Is_Val, compose in *;
+        rewrite execWriter_Rtheta_liftM2 in *;
+        destruct (execWriter a) as [str_a col_a];
+        destruct (execWriter b) as [str_b col_b];
+        unfold monoid_plus, RthetaFlagsAppend in *;
+        unfold IsVal in *;
+        destr_bool; auto.
+  Qed.
+
   (* Conditions under which Union produces value *)
   Lemma ValUnionIsVal_Safe (a b : RStheta) {dot}:
     Is_Val a \/ Is_Val b <-> Is_Val (Union Monoid_RthetaSafeFlags dot a b).
