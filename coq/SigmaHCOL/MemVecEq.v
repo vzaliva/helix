@@ -2375,7 +2375,7 @@ Section MemVecEq.
         apply compat.
     Qed.
 
-    Fact Vec2Union_fold_zeros
+    Fact Vec2Union_fold_zeros_dense
          (i o n : nat)
          (x: svector Monoid_RthetaSafeFlags i)
          (dot : CarrierA → CarrierA → CarrierA)
@@ -2432,6 +2432,78 @@ Section MemVecEq.
         apply compat.
         apply Full_intro.
     Qed.
+
+    Fact Vec2Union_fold_zeros
+         (i o n : nat)
+         (x: svector Monoid_RthetaFlags i)
+         (dot : CarrierA → CarrierA → CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (initial : CarrierA)
+         (op_family : SHOperatorFamily Monoid_RthetaFlags)
+         (op_family_facts: forall (j : nat) (jc : j < S n), SHOperator_Facts Monoid_RthetaFlags
+                                                                      (op_family (mkFinNat jc)))
+         (H : forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
+                                                          (mkFinNat jc) → Is_Val (Vnth x jc))
+
+         (v: vector (svector Monoid_RthetaFlags o) n)
+         (V:  v ≡ Vbuild
+                (λ (i0 : nat) (ip : i0 < n),
+                 get_family_op _ op_family
+                               (S i0)
+                               (lt_n_S ip) x))
+      :
+        Vforall
+          (λ a : Rtheta' Monoid_RthetaFlags, ¬ Is_Val a → evalWriter a = initial)
+          (Vfold_left_rev
+             (Vec2Union Monoid_RthetaFlags dot)
+             (Vconst (mkStruct initial) o)
+             v).
+    Proof.
+      apply Vforall_nth_intro.
+
+      dependent induction v.
+      -
+        intros j jc H0.
+        simpl.
+        rewrite Vnth_const.
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+      -
+        intros j jc.
+        rewrite Vfold_left_rev_cons.
+        rewrite AbsorbUnionIndexBinary.
+        rewrite evalWriterUnion.
+        intros H0.
+        apply NotValUnionNotIsVal in H0.
+        destruct H0 as [H0 H2].
+
+        specialize (IHv
+                      (shrink_op_family_up _ op_family)
+                      (shrink_op_family_facts_up _ _ op_family_facts)
+                   ).
+
+        rewrite IHv; clear IHv.
+        +
+          admit.
+        +
+          intros j0 jc0 H1.
+          apply H.
+          unfold shrink_op_family_up, shrink_op_family in *.
+          simpl in *.
+          unfold shrink_op_family_up, shrink_op_family in *.
+          destruct H1.
+          *
+            apply Union_introl.
+            replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n))))
+              with (@lt_n_S n (S n) (@S_j_lt_n (S n) n (@eq_refl nat (S n))))
+              by apply lt_unique.
+            apply H1.
+          *
+            simpl in *.
+            apply Union_intror.
+        admit.
+
+    Admitted.
 
     Global Instance IReduction_Mem
            {i o k: nat}
@@ -2724,7 +2796,7 @@ Section MemVecEq.
               eapply family_in_set_includes_members.
               apply H0.
             --
-              apply Vec2Union_fold_zeros with (op_family:=op_family) (x:=x); auto.
+              apply Vec2Union_fold_zeros_dense with (op_family:=op_family) (x:=x); auto.
             --
               apply Vforall_nth_intro.
               intros j jc.
@@ -3094,6 +3166,23 @@ Section MemVecEq.
         apply cast_mem_op_eq; auto.
     Qed.
 
+    Lemma sparse_outputs_not_in_out_set
+          {fm}
+          {i o t: nat}
+          (tc: t<o)
+          (x: svector fm i)
+          (xop: @SHOperator fm i o)
+          (facts: SHOperator_Facts fm xop)
+          (G: forall (j : nat) (jc : j < i), in_index_set fm xop
+                                                   (mkFinNat jc) → Is_Val (Vnth x jc))
+      :
+        ¬ Is_Val (Vnth (op _ xop x) tc) -> ¬ out_index_set _ xop (mkFinNat tc).
+    Proof.
+      intros H.
+      contradict H.
+      apply out_as_range ; eauto.
+    Qed.
+
     Global Instance IUnion_Mem
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -3105,13 +3194,11 @@ Section MemVecEq.
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
-          `{a_zero: MonUnit CarrierA}
-          (* `a_zero` together with `dot` form a monoid.  *)
-          `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
+          `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot initial}
           (* Structural values in `op_family` output evaluate to `a_zero` *)
           (Z: forall x (t:nat) (tc:t<o) k kc,
               ¬ out_index_set _ (op_family (mkFinNat kc)) (mkFinNat tc) ->
-              evalWriter (Vnth (get_family_op Monoid_RthetaFlags op_family k kc x) tc) = a_zero)
+              evalWriter (Vnth (get_family_op Monoid_RthetaFlags op_family k kc x) tc) = initial)
 
       :  SHOperator_Mem (IUnion dot initial op_family
                                 (pdot:=pdot))
@@ -3472,7 +3559,7 @@ Section MemVecEq.
                       → evalWriter
                           (Vnth
                              (get_family_op Monoid_RthetaFlags
-                                            (shrink_op_family_up Monoid_RthetaFlags op_family) k kc x) tc) = a_zero).
+                                            (shrink_op_family_up Monoid_RthetaFlags op_family) k kc x) tc) = initial).
             {
               admit.
             }
@@ -3511,11 +3598,17 @@ Section MemVecEq.
             --
               typeclasses eauto.
             --
-              admit.
+              apply Vec2Union_fold_zeros with (op_family:=op_family) (x:=x); auto.
             --
               apply Vforall_nth_intro.
               intros t tc P.
               eapply Z.
+              eapply sparse_outputs_not_in_out_set; eauto.
+              intros j jc H0.
+              specialize (H j jc).
+              apply H.
+              apply family_in_set_includes_members in H0.
+              apply H0.
         +
           (* [A] could not happen *)
           exfalso.
