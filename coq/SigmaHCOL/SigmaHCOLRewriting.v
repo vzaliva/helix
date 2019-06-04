@@ -1682,14 +1682,17 @@ Section SigmaHCOLRewritingRules.
             crush.
     Qed.
 
-    (* Basically states that 'Diamon' applied to a family which guarantees
-       single-non zero value per row dows not depend on the function implementation *)
+    (* Basically states that 'Diamond' applied to a family which
+       guarantees single-non zero value per row dows not depend on the
+       function implementation
+     *)
     Lemma Diamond_f_subst
           {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
           (* Common unit for both monoids *)
           `{uf_zero: MonUnit CarrierA}
+
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n uf_zero)
 
           (* 1st Monoid. Used in reduction *)
           `{f: SgOp CarrierA}
@@ -1698,7 +1701,7 @@ Section SigmaHCOLRewritingRules.
           `{u: SgOp CarrierA}
           `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
       :
-        Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero
+        Apply_Family_Single_NonUnit_Per_Row _ op_family
         ->
         Diamond f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
         Diamond u uf_zero (get_family_op Monoid_RthetaFlags op_family).
@@ -1940,10 +1943,12 @@ Section SigmaHCOLRewritingRules.
 
       Lemma Diamond_f_subst_under_P
             {i o n}
-            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
 
             (* Common unit for both monoids *)
             `{uf_zero: MonUnit CarrierA}
+
+            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n uf_zero)
+
 
             `{f: SgOp CarrierA}
 
@@ -1956,7 +1961,7 @@ Section SigmaHCOLRewritingRules.
             `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
 
             (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-            (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
+            (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
         :
           Diamond f uf_zero (get_family_op Monoid_RthetaFlags op_family) =
           Diamond u uf_zero (get_family_op Monoid_RthetaFlags op_family).
@@ -3102,31 +3107,33 @@ Section SigmaHCOLRewritingRules.
 
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Theorem rewrite_Reduction_IReduction
-          {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+            {i o n}
 
-          (* Common unit for both monoids *)
-          `{uf_zero: MonUnit CarrierA}
+            (* Common unit for both monoids *)
+            `{uf_zero: MonUnit CarrierA}
 
-          (* 1st Monoid. Used in reduction *)
-          `{f: SgOp CarrierA}
+            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n uf_zero)
 
-          (* Monoid on restriction on f *)
-          `{P: SgPred CarrierA}
-          `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
 
-          (* 2nd Monoid. Used in IUnion *)
-          `{u: SgOp CarrierA}
-          `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+            (* 1st Monoid. Used in reduction *)
+            `{f: SgOp CarrierA}
 
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family uf_zero)
-          (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+            (* Monoid on restriction on f *)
+            `{P: SgPred CarrierA}
+            `{f_mon: @CommutativeRMonoid _ _ f uf_zero P}
+
+            (* 2nd Monoid. Used in IUnion *)
+            `{u: SgOp CarrierA}
+            `{u_mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ u uf_zero}
+
+            (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
+            (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
       :
 
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
-          ⊚ (@IUnion i o n u _ uf_zero op_family)
+          ⊚ (@IUnion uf_zero i o n u _ op_family)
         =
-        SafeCast (IReduction f uf_zero
+        SafeCast (IReduction f
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
     Proof.
@@ -3943,14 +3950,14 @@ Section SigmaHCOLRewritingRules.
     (* Specialized version of rewrite_Reduction_IReduction *)
     Theorem rewrite_Reduction_IReduction_max_plus
           {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero))
           ⊚ (ISumUnion op_family)
         =
-        SafeCast (IReduction max zero
+        SafeCast (IReduction max
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
     Proof.
@@ -3974,17 +3981,17 @@ and `ISumReduction_PointWise` *)
             (z: CarrierA)
             (f: CarrierA -> CarrierA -> CarrierA)
             (f_mor: Proper (equiv ==> equiv ==> equiv) f)
-            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-            (G: @SHOperator Monoid_RthetaSafeFlags i0 i)
+            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n z)
+            (G: @SHOperator Monoid_RthetaSafeFlags i0 i z)
       :
         SHCompose _
-                  (@IReduction i o n f _ z F)
+                  (@IReduction z i o n f _ F)
                   G
         =
-        @IReduction i0 o n f _ z
-                   (SHFamilyOperatorCompose _
-                                            F
-                                            G).
+        @IReduction z i0 o n f _
+                    (SHFamilyOperatorCompose _
+                                             F
+                                             G).
     Proof.
       unfold IReduction, SHFamilyOperatorCompose, SHCompose, compose.
       unfold equiv, SHOperator_equiv.
@@ -4057,13 +4064,15 @@ and `ISumReduction_PointWise` *)
         reflexivity.
     Qed.
 
+    (* TODO: see if [zero] could be generelized here to [svalue]. Also
+     see if there is a Monoid-like alebraic structure [(A,pf,svalue)] *)
     Theorem rewrite_PointWise_ScatHUnion
           {fm: Monoid RthetaFlags}
 
           (* -- SE params -- *)
           {n i o ki ko}
           (* Kernel *)
-          (kernel: @SHOperatorFamily fm ki ko n)
+          (kernel: @SHOperatorFamily fm ki ko n zero)
           (* Scatter index map *)
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
@@ -4077,13 +4086,13 @@ and `ISumReduction_PointWise` *)
       :
         SHOperatorFamilyCompose fm
                                 (SHPointwise fm (IgnoreIndex pf))
-                                (SparseEmbedding fm kernel f zero g (f_inj:=f_inj))
+                                (SparseEmbedding fm kernel f g (f_inj:=f_inj))
         =
         SparseEmbedding fm
                         (SHOperatorFamilyCompose fm
                                                  (SHPointwise fm (IgnoreIndex pf))
                                                  kernel)
-                        f zero g (f_inj:=f_inj).
+                        f g (f_inj:=f_inj).
     Proof.
       unfold SHOperatorFamilyCompose, IReduction, SafeCast, equiv, SHOperatorFamily_equiv, pointwise_relation, SHOperator_equiv, Diamond.
       intros [j jc].
@@ -4105,7 +4114,7 @@ and `ISumReduction_PointWise` *)
           `{P: SgPred CarrierA}
           `(g_mon: @CommutativeRMonoid _ _ g mzero P)
 
-          (F: @SHOperator fm m 1)
+          (F: @SHOperator fm m 1 mzero)
           (f:index_map 1 (S n))
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm (liftRthetaP P) F)
@@ -4113,7 +4122,7 @@ and `ISumReduction_PointWise` *)
         SHCompose fm
                   (SHCompose fm
                              (liftM_HOperator fm (HReduction g mzero))
-                             (Scatter fm f mzero (f_inj:=f_inj)))
+                             (Scatter fm f (f_inj:=f_inj)))
                   F
         =
         F.
@@ -4247,16 +4256,15 @@ and `ISumReduction_PointWise` *)
     Theorem rewrite_Reduction_ScatHUnion_max_zero
           (n m: nat)
           (fm: Monoid.Monoid RthetaFlags)
-          (F: @SHOperator fm m 1)
+          (F: @SHOperator fm m 1 zero)
           (f: index_map 1 (S n))
           (f_inj: index_map_injective f)
           (FP: op_Vforall_P fm Is_NonNegative F)
-
       :
         SHCompose fm
                   (SHCompose fm
                              (liftM_HOperator fm (HReduction minmax.max zero))
-                             (Scatter fm f zero (f_inj:=f_inj)))
+                             (Scatter fm f (f_inj:=f_inj)))
                   F
         =
         F.
@@ -4266,10 +4274,11 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     Theorem rewrite_SHCompose_IdOp
-          {n m: nat}
-          {fm}
-          (in_out_set: FinNatSet.FinNatSet n)
-          (F: @SHOperator fm n m)
+            {n m: nat}
+            {svalue: CarrierA}
+            {fm}
+            (in_out_set: FinNatSet.FinNatSet n)
+            (F: @SHOperator fm n m svalue)
       :
       SHCompose fm
                 F
@@ -4282,15 +4291,16 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     Theorem rewrite_GathH_GathH
-          {fm}
-          {i o t: nat}
-          {b0 b1 s0 s1: nat}
-          {bound0}
-          {bound1}
+            {fm}
+            {svalue: CarrierA}
+            {i o t: nat}
+            {b0 b1 s0 s1: nat}
+            {bound0}
+            {bound1}
       :
         SHCompose fm
-                  (@GathH fm t o b0 s0 bound0)
-                  (@GathH fm i t b1 s1 bound1)
+                  (@GathH fm svalue t o b0 s0 bound0)
+                  (@GathH fm svalue i t b1 s1 bound1)
         =
         GathH fm (b1+b0*s1) (s0*s1)
               (domain_bound:=h_index_map_compose_range_bound bound0 bound1).
@@ -4327,14 +4337,15 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     Theorem rewrite_PointWise_BinOp
-          {fm}
-          (n: nat)
-          (f: FinNat n -> CarrierA -> CarrierA)
-          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-          (g: FinNat n -> CarrierA -> CarrierA -> CarrierA)
-          `{pG: !Proper ((=) ==> (=) ==> (=) ==> (=)) g}
+            {fm}
+            {svalue:CarrierA}
+            (n: nat)
+            (f: FinNat n -> CarrierA -> CarrierA)
+            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+            (g: FinNat n -> CarrierA -> CarrierA -> CarrierA)
+            `{pG: !Proper ((=) ==> (=) ==> (=) ==> (=)) g}
       :
-        SHCompose fm
+        SHCompose fm (svalue:=svalue)
                   (SHPointwise fm f)
                   (SHBinOp fm g) =
         SHBinOp fm (fun i a b => f i (g i a b)).
@@ -4368,11 +4379,10 @@ and `ISumReduction_PointWise` *)
           {range_bound: forall x : nat, x < 1 → b + x * s < o}
           {snzord: s ≢ 0 ∨ 1 < 2}
       :
-        ScatH fm b s
+        ScatH fm (svalue:=z) b s
               (snzord0 := snzord) (* Also `or_intror Nat.lt_1_2` *)
               (range_bound:=range_bound)
-              z
-        = eUnion fm bc z.
+        = eUnion fm bc.
     Proof.
       unfold equiv, ext_equiv, SHOperator_equiv.
       unfold equiv, ext_equiv.
@@ -4416,19 +4426,22 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     (* Special `n by n` family of sequentially indexed `eT` operators *)
-    Definition eTn {fm} (n:nat) : @SHOperatorFamily fm n 1 n :=
-      fun jf => eT _ (proj2_sig jf).
+    Definition eTn
+               {fm}
+               {svalue: CarrierA}
+               (n:nat)
+      : @SHOperatorFamily fm n 1 n svalue := fun jf => eT _ (proj2_sig jf).
 
     Theorem terminate_Reduction
-          {n}
-          (f: CarrierA -> CarrierA -> CarrierA)
-          `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-          `{f_comm: @Commutative CarrierA _ CarrierA f}
-          (idv: CarrierA)
+            {n}
+            (f: CarrierA -> CarrierA -> CarrierA)
+            `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+            `{f_comm: @Commutative CarrierA _ CarrierA f}
+            (idv: CarrierA)
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
-        IReduction f idv (eTn n).
+        IReduction f (svalue:=idv) (eTn n).
     Proof.
       unfold IReduction, liftM_HOperator,liftM_HOperator'.
       unfold compose, sparsify, densify.
@@ -4518,12 +4531,13 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     Theorem terminate_GathH1
-          {i: nat}
-          {fm}
-          (base stride: nat)
-          {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
+            {i: nat}
+            {svalue: CarrierA}
+            {fm}
+            (base stride: nat)
+            {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
       :
-        @GathH fm i 1 base stride domain_bound = @eT fm i base (GathH1_domain_bound_to_base_bound domain_bound).
+        @GathH fm svalue i 1 base stride domain_bound = @eT fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
     Proof.
       unfold GathH.
       unfold equiv, SHOperator_equiv.
@@ -4664,12 +4678,12 @@ and `ISumReduction_PointWise` *)
           (base stride: nat)
           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :
-        @GathH _ i o base stride domain_bound
+        @GathH _ z i o base stride domain_bound
         =
-        @IUnion i o o f _ z  (fun jf =>
+        @IUnion z i o o f _ (fun jf =>
                                 SHCompose _
-                                          (@eUnion _ o (proj1_sig jf) (proj2_sig jf) z)
-                                          (@eT _ i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
+                                          (@eUnion _ z o (proj1_sig jf) (proj2_sig jf))
+                                          (@eT _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
                                           )
                              ).
     Proof.
@@ -4714,16 +4728,16 @@ and `ISumReduction_PointWise` *)
     Qed.
 
     Theorem terminate_GathHN
-          {i o: nat}
-          (base stride: nat)
-          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+            {i o: nat}
+            (base stride: nat)
+            {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :
-        @GathH _ i o base stride domain_bound
+        @GathH _ zero i o base stride domain_bound
         =
         @ISumUnion i o o  (fun jf =>
                              SHCompose _
-                                       (@eUnion _ o _ (proj2_sig jf) zero)
-                                       (@eT _ i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
+                                       (@eUnion _ zero o _ (proj2_sig jf))
+                                       (@eT _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
                                        )
                    ).
     Proof.
@@ -4749,9 +4763,10 @@ and `ISumReduction_PointWise` *)
      *)
     Lemma SHBinOp_HPrepend_SHPointwise
           {n: nat}
+          {svalue: CarrierA}
           (a : vector CarrierA n)
       :
-        SHBinOp Monoid_RthetaFlags (IgnoreIndex2 mult) ⊚ liftM_HOperator Monoid_RthetaFlags (HPrepend a) =
+        SHBinOp (svalue:=svalue) Monoid_RthetaFlags (IgnoreIndex2 mult) ⊚ liftM_HOperator Monoid_RthetaFlags (HPrepend a) =
         SHPointwise Monoid_RthetaFlags (mult_by_nth a).
     Proof.
       unfold SHCompose, equiv, SHOperator_equiv.
@@ -4790,6 +4805,7 @@ and `ISumReduction_PointWise` *)
      *)
     Lemma rewrite_eT_SHPointwise
           (n:nat)
+          {svalue: CarrierA}
           {b:nat}
           {bc: b<n}
           (fm: Monoid RthetaFlags)
@@ -4799,7 +4815,7 @@ and `ISumReduction_PointWise` *)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
           (fg: forall x z, f (mkFinNat bc) x = g z x)
       :
-        SHCompose fm (eT fm bc) (SHPointwise fm f) =
+        SHCompose (svalue:=svalue) fm (eT fm bc) (SHPointwise fm f) =
         SHCompose fm (SHPointwise fm g) (eT fm bc).
     Proof.
       unfold SHCompose, compose.
@@ -4870,6 +4886,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
 
     Lemma rewrite_eT_Induction
           (n:nat)
+          {svalue:CarrierA}
           {b:nat}
           {bc: b<n}
           (fm: Monoid RthetaFlags)
@@ -4877,7 +4894,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (initial: CarrierA)
       :
-        SHCompose fm (eT fm bc) (liftM_HOperator fm (HInduction n f initial)) =
+        SHCompose (svalue:=svalue) fm (eT fm bc) (liftM_HOperator fm (HInduction n f initial)) =
         liftM_HOperator fm (HInductor b f initial).
     Proof.
       unfold SHCompose, compose.
