@@ -55,18 +55,22 @@ Section RthetaSafetyCast.
     apply Ev.
   Qed.
 
-  Definition SafeCast {i o}
-             (f: @SHOperator Monoid_RthetaSafeFlags i o)
-    : @SHOperator Monoid_RthetaFlags i o
+  Definition SafeCast
+             {svalue: CarrierA}
+             {i o}
+             (f: @SHOperator Monoid_RthetaSafeFlags i o svalue)
+    : @SHOperator Monoid_RthetaFlags i o svalue
     :=
-      mkSHOperator Monoid_RthetaFlags i o
+      mkSHOperator Monoid_RthetaFlags i o svalue
                    (SafeCast' (op Monoid_RthetaSafeFlags f))
                    _
                    (in_index_set _ f)
                    (out_index_set _ f).
 
-  Global Instance SafeCast_proper (i o:nat):
-    Proper (equiv ==> equiv) (@SafeCast i o).
+  Global Instance SafeCast_proper
+         {svalue: CarrierA}
+         (i o:nat):
+    Proper (equiv ==> equiv) (@SafeCast svalue i o).
   Proof.
     intros f f' Ev.
     unfold SafeCast.
@@ -81,13 +85,17 @@ Section RthetaSafetyCast.
     apply Ev.
   Qed.
 
-  Definition SafeFamilyCast {i o n}
-             (f: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-    : @SHOperatorFamily Monoid_RthetaFlags i o n
+  Definition SafeFamilyCast
+             {svalue: CarrierA}
+             {i o n}
+             (f: @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue)
+    : @SHOperatorFamily Monoid_RthetaFlags i o n svalue
     := fun jf => SafeCast (f jf).
 
-  Global Instance SafeFamilyCast_proper (i o n:nat):
-    Proper (equiv ==> equiv) (@SafeFamilyCast i o n).
+  Global Instance SafeFamilyCast_proper
+         {svalue: CarrierA}
+         (i o n: nat):
+    Proper (equiv ==> equiv) (@SafeFamilyCast svalue i o n).
   Proof.
     intros f f' Ev.
     unfold SafeFamilyCast.
@@ -119,18 +127,22 @@ Section RthetaSafetyCast.
     apply Ev.
   Qed.
 
-  Definition UnSafeCast {i o}
-             (f: @SHOperator Monoid_RthetaFlags i o)
-    : @SHOperator Monoid_RthetaSafeFlags i o
+  Definition UnSafeCast
+             {svalue: CarrierA}
+             {i o: nat}
+             (f: @SHOperator Monoid_RthetaFlags i o svalue)
+    : @SHOperator Monoid_RthetaSafeFlags i o svalue
     :=
-      mkSHOperator Monoid_RthetaSafeFlags i o
+      mkSHOperator Monoid_RthetaSafeFlags i o svalue
                    (UnSafeCast' (op Monoid_RthetaFlags f))
                    _
                    (in_index_set _ f)
                    (out_index_set _ f).
 
-  Global Instance UnSafeCast_proper (i o:nat):
-    Proper (equiv ==> equiv) (@UnSafeCast i o).
+  Global Instance UnSafeCast_proper
+         {svalue: CarrierA}
+         (i o:nat):
+    Proper (equiv ==> equiv) (@UnSafeCast svalue i o).
   Proof.
     intros f f' Ev.
     unfold UnSafeCast.
@@ -146,14 +158,18 @@ Section RthetaSafetyCast.
   Qed.
 
 
-  Definition UnSafeFamilyCast {i o n}
-             (f: @SHOperatorFamily Monoid_RthetaFlags i o n)
-    : @SHOperatorFamily Monoid_RthetaSafeFlags i o n
+  Definition UnSafeFamilyCast
+             {svalue: CarrierA}
+             {i o n}
+             (f: @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+    : @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue
     := fun jf => UnSafeCast (f jf).
 
 
-  Global Instance UnSafeFamilyCast_proper (i o n:nat):
-    Proper (equiv ==> equiv) (@UnSafeFamilyCast i o n).
+  Global Instance UnSafeFamilyCast_proper
+         {svalue: CarrierA}
+         (i o n: nat):
+    Proper (equiv ==> equiv) (@UnSafeFamilyCast svalue i o n).
   Proof.
     intros f f' Ev.
     unfold UnSafeFamilyCast.
@@ -216,12 +232,13 @@ Section TSigmaHCOLOperators.
   Qed.
 
   Definition HTSUMUnion {i o}
+             {svalue: CarrierA}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (op1 op2: @SHOperator fm i o)
-    : @SHOperator fm i o
+             (op1 op2: @SHOperator fm i o svalue)
+    : @SHOperator fm i o svalue
     :=
-      mkSHOperator fm i o (HTSUMUnion' dot (op fm op1) (op fm op2))
+      mkSHOperator fm i o svalue (HTSUMUnion' dot (op fm op1) (op fm op2))
                    (@HTSUMUnion'_arg_proper i o
                                             (op fm op1) (op_proper fm op1)
                                             (op fm op2) (op_proper fm op2)
@@ -230,11 +247,12 @@ Section TSigmaHCOLOperators.
                    (Ensembles.Union _ (out_index_set _ op1) (out_index_set _ op2)).
 
   Global Instance HTSUMUnion_proper
-         {i o}
+         {svalue: CarrierA}
+         {i o: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
     : Proper ((=) ==> (=) ==> (=))
-             (@HTSUMUnion i o dot dot_mor).
+             (@HTSUMUnion i o svalue dot dot_mor).
   Proof.
     intros x x' Ex y y' Ey.
     unfold HTSUMUnion.
@@ -249,9 +267,10 @@ End TSigmaHCOLOperators.
 Section TSigmaHCOLOperators_StructuralProperties.
 
   Global Instance SafeCast_Facts
-         {i o}
-         (xop: @SHOperator Monoid_RthetaSafeFlags i o)
-         `{fop: SHOperator_Facts Monoid_RthetaSafeFlags _ _ xop}
+         {i o: nat}
+         {svalue: CarrierA}
+         (xop: @SHOperator Monoid_RthetaSafeFlags i o svalue)
+         `{fop: SHOperator_Facts Monoid_RthetaSafeFlags _ _ _ xop}
   :
     SHOperator_Facts Monoid_RthetaFlags (SafeCast xop).
   Proof.
@@ -330,9 +349,10 @@ Section TSigmaHCOLOperators_StructuralProperties.
   Qed.
 
   Global Instance UnSafeCast_Facts
+         {svalue: CarrierA}
          {i o}
-         (xop: @SHOperator Monoid_RthetaFlags i o)
-         `{fop: SHOperator_Facts Monoid_RthetaFlags _ _ xop}
+         (xop: @SHOperator Monoid_RthetaFlags i o svalue)
+         `{fop: SHOperator_Facts Monoid_RthetaFlags _ _ _ xop}
     :
       SHOperator_Facts Monoid_RthetaSafeFlags (UnSafeCast xop).
   Proof.
@@ -411,12 +431,13 @@ Section TSigmaHCOLOperators_StructuralProperties.
   Qed.
 
   Global Instance HTSUMUnion_Facts
-         {i o}
+         {i o: nat}
+         {svalue: CarrierA}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-         (op1 op2: @SHOperator Monoid_RthetaFlags i o)
-         `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ op1}
-         `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ op2}
+         (op1 op2: @SHOperator Monoid_RthetaFlags i o svalue)
+         `{fop1: SHOperator_Facts Monoid_RthetaFlags _ _ _ op1}
+         `{fop2: SHOperator_Facts Monoid_RthetaFlags _ _ _ op2}
          (compat: Disjoint _
                            (out_index_set _ op1)
                            (out_index_set _ op2)

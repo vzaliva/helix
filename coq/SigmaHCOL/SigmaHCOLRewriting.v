@@ -45,11 +45,13 @@ Local Open Scope nat_scope.
 
 Section SigmaHCOLHelperLemmas.
 
+  Variable svalue:CarrierA.
+
   (* UnSafeCast distributes over SHCompose *)
   Lemma UnSafeCast_SHCompose
-        {i1 o2 o3}
-        (F: @SHOperator Monoid_RthetaFlags o2 o3)
-        (G: @SHOperator Monoid_RthetaFlags i1 o2)
+        {i1 o2 o3: nat}
+        (F: @SHOperator Monoid_RthetaFlags o2 o3 svalue)
+        (G: @SHOperator Monoid_RthetaFlags i1 o2 svalue)
   :
     UnSafeCast (SHCompose Monoid_RthetaFlags F G)
     =
@@ -81,9 +83,9 @@ Section SigmaHCOLHelperLemmas.
 
   (* SafeCast distributes over SHCompose *)
   Lemma SafeCast_SHCompose
-        {i1 o2 o3}
-        (F: @SHOperator _ o2 o3)
-        (G: @SHOperator _ i1 o2)
+        {i1 o2 o3: nat}
+        (F: @SHOperator _ o2 o3 svalue)
+        (G: @SHOperator _ i1 o2 svalue)
   :
     SafeCast (SHCompose _ F G)
     =
@@ -115,13 +117,12 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma SafeCast_HReduction
-        {i:nat}
+        {i: nat}
         (f: CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-        (idv: CarrierA)
   :
-    liftM_HOperator Monoid_RthetaFlags (HReduction (i:=i) f idv) =
-    SafeCast (liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)).
+    liftM_HOperator (svalue:=svalue) Monoid_RthetaFlags (HReduction (i:=i) f svalue) =
+    SafeCast (liftM_HOperator Monoid_RthetaSafeFlags (HReduction f svalue)).
   Proof.
     unfold_RStheta_equiv.
     unfold SHOperator_equiv, SafeCast.
@@ -147,12 +148,12 @@ Section SigmaHCOLHelperLemmas.
   Qed.
 
   Lemma SafeCast_SHBinOp
-        (o:nat)
+        (o: nat)
         (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-      SafeCast (@SHBinOp Monoid_RthetaSafeFlags o f pF) =
-      @SHBinOp Monoid_RthetaFlags o f pF.
+      SafeCast (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) =
+      @SHBinOp Monoid_RthetaFlags svalue o f pF.
   Proof.
     unfold_RStheta_equiv.
     unfold SHOperator_equiv, SafeCast.
@@ -188,7 +189,7 @@ Section SigmaHCOLHelperLemmas.
         (op: avector i -> avector o)
         `{HOP: HOperator i o op}
     :
-      SafeCast (liftM_HOperator Monoid_RthetaSafeFlags op) =
+      SafeCast (svalue:=svalue) (liftM_HOperator Monoid_RthetaSafeFlags op) =
       liftM_HOperator Monoid_RthetaFlags op.
   Proof.
     unfold_RStheta_equiv.
@@ -218,8 +219,8 @@ Section SigmaHCOLHelperLemmas.
         (f: FinNat n -> CarrierA -> CarrierA)
         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
   :
-      SafeCast (@SHPointwise Monoid_RthetaSafeFlags n f f_mor) =
-      @SHPointwise Monoid_RthetaFlags n f f_mor.
+      SafeCast (@SHPointwise Monoid_RthetaSafeFlags svalue n f f_mor) =
+      @SHPointwise Monoid_RthetaFlags svalue n f f_mor.
   Proof.
     unfold_RStheta_equiv.
     unfold SHOperator_equiv, SafeCast.
@@ -246,7 +247,7 @@ Section SigmaHCOLHelperLemmas.
         {i o: nat}
         (f: index_map o i)
     :
-      UnSafeCast (Gather Monoid_RthetaFlags f)
+      UnSafeCast (svalue:=svalue) (Gather Monoid_RthetaFlags f)
       =
       Gather Monoid_RthetaSafeFlags f.
   Proof.
@@ -275,8 +276,8 @@ Section SigmaHCOLHelperLemmas.
         (base stride: nat)
         {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
   :
-      SafeCast (@GathH Monoid_RthetaSafeFlags i o base stride domain_bound) =
-      @GathH Monoid_RthetaFlags i o base stride domain_bound.
+      SafeCast (@GathH Monoid_RthetaSafeFlags svalue i o base stride domain_bound) =
+      @GathH Monoid_RthetaFlags svalue i o base stride domain_bound.
   Proof.
     unfold_RStheta_equiv.
     unfold SHOperator_equiv, SafeCast.
@@ -386,7 +387,7 @@ Section SigmaHCOLHelperLemmas.
           `{HOperator o2 o3 op1}
           `{HOperator i1 o2 op2}
       :
-        liftM_HOperator fm (op1 ∘ op2) =
+        liftM_HOperator (svalue:=svalue) fm (op1 ∘ op2) =
         SHCompose fm
                   (liftM_HOperator fm op1)
                   (liftM_HOperator fm op2).
@@ -720,8 +721,8 @@ Section SigmaHCOLHelperLemmas.
           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       :
-        UnSafeCast (@SHBinOp _ o f pF) =
-        @SHBinOp _ o f pF.
+        UnSafeCast (@SHBinOp _ svalue o f pF) =
+        @SHBinOp _ svalue o f pF.
     Proof.
       unfold_RStheta_equiv.
       unfold SHOperator_equiv, UnSafeCast.
@@ -756,7 +757,7 @@ Section SigmaHCOLHelperLemmas.
          {i o base stride: nat}
          {domain_bound: forall x : nat, (x < i) -> (base + x * stride < o)}
       :
-        Gather fm (@h_index_map i o base stride domain_bound)
+        Gather (svalue:=svalue) fm (@h_index_map i o base stride domain_bound)
                ≡
                GathH fm base stride (domain_bound:=domain_bound).
     Proof.
@@ -768,6 +769,9 @@ Section SigmaHCOLHelperLemmas.
 End SigmaHCOLHelperLemmas.
 
 Section SigmaHCOLExpansionRules.
+
+  Parameter svalue:CarrierA.
+
   Section Value_Correctness.
 
     Lemma SHInductor_equiv_lifted_HInductor
@@ -777,7 +781,7 @@ Section SigmaHCOLExpansionRules.
           {f: CarrierA -> CarrierA -> CarrierA}
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     :
-      SHInductor fm n f initial = liftM_HOperator fm (HInductor n f initial).
+      SHInductor (svalue:=svalue) fm n f initial = liftM_HOperator fm (HInductor n f initial).
     Proof.
       apply SHOperator_ext_equiv_applied.
       intros v.
@@ -801,7 +805,7 @@ Section SigmaHCOLExpansionRules.
           (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     :
-      SafeCast (@SHBinOp _ o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o (@HBinOp o f) _ .
+      SafeCast (@SHBinOp _ svalue o f pF) = @liftM_HOperator Monoid_RthetaFlags (o+o) o svalue (@HBinOp o f) _ .
     Proof.
       apply ext_equiv_applied_equiv.
       -
@@ -997,10 +1001,9 @@ Section SigmaHCOLExpansionRules.
       :
         SafeCast (SHBinOp _ f)
         =
-        USparseEmbedding (f_inj:=h_j_1_family_injective)
+        SumSparseEmbedding (f_inj:=h_j_1_family_injective)
                          (fun jf => SafeCast (SHBinOp _ (Fin1SwapIndex2 jf f)))
                          (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) n 1 (proj2_sig j))))
-                         zero
                          (fun j => h_index_map (proj1_sig j) n (range_bound:=GathH_jn_domain_bound (proj1_sig j) n (proj2_sig j))).
     Proof.
       apply SHOperator_ext_equiv_applied.
@@ -1056,19 +1059,19 @@ Section SigmaHCOLExpansionRules.
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
       :
-        liftM_HOperator fm (HTDirectSum f g)
+        liftM_HOperator fm (svalue:=zero) (HTDirectSum f g)
         =
         HTSUMUnion
           _
           plus
           (SHCompose fm
-                     (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2) zero)
+                     (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
                      (SHCompose fm
                                 (liftM_HOperator fm f)
                                 (GathH fm 0 1 (domain_bound := h_bound_first_half i1 i2))))
 
           (SHCompose fm
-                     (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2) zero)
+                     (ScatH fm o1 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_second_half o1 o2))
                      (SHCompose fm
                                 (liftM_HOperator fm g)
                                 (GathH fm i1 1 (domain_bound := h_bound_second_half i1 i2)))).
@@ -1366,21 +1369,21 @@ End SigmaHCOLExpansionRules.
 Section SigmaHCOLRewritingRules.
   Section Value_Correctness.
 
-    Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
     Theorem rewrite_PointWise_ISumUnion
           {i o n}
-          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n _)
           (pf: { j | j<o} -> CarrierA -> CarrierA)
           `{pf_mor: !Proper ((=) ==> (=) ==> (=)) pf}
           (pfzn: forall j (jc:j<o), pf (j ↾ jc) zero = zero) (* function with the fixed point 0 *)
-          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family zero)
+          (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
       :
-        (@SHPointwise _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
+        (@SHPointwise _ _ o pf pf_mor) ⊚ (@ISumUnion i o n op_family)
         =
         (@ISumUnion i o n
                     (SHOperatorFamilyCompose _
-                                             (@SHPointwise _ o pf pf_mor)
+                                             (@SHPointwise _ _ o pf pf_mor)
                                              op_family)
         ).
     Proof.
@@ -1436,7 +1439,7 @@ Section SigmaHCOLRewritingRules.
           set (vl:=(@Vbuild (Rtheta' Monoid_RthetaFlags) n
                             (fun (z : nat) (zi : Peano.lt z n) =>
                                @Vnth (Rtheta' Monoid_RthetaFlags) o
-                                     (@get_family_op Monoid_RthetaFlags i o n op_family z zi x) j jc))).
+                                     (@get_family_op Monoid_RthetaFlags i o n _ op_family z zi x) j jc))).
           intros Uzeros.
           assert(H:UnionFold _ plus zero vl = mkSZero).
           {

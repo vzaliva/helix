@@ -112,7 +112,7 @@ Definition dynwin_SHCOL (a: avector 3) :=
                     ⊚
                     (SHPointwise _ (IgnoreIndex abs))
                     ⊚
-                    (USparseEmbedding
+                    (SumSparseEmbedding
                        (n:=2)
                        (fun jf => SafeCast (SHBinOp _ (o:=1)
                                                  (Fin1SwapIndex2 jf (IgnoreIndex2 CarrierType.sub))))
@@ -294,7 +294,7 @@ Section SigmaHCOL_rewriting.
            | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
            | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
            | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
-           | [ |- SHOperator_Facts _ (USparseEmbedding _ _) ] => unfold USparseEmbedding
+           | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
 
            | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
            | _ => crush
@@ -513,7 +513,7 @@ Section SigmaHCOL_rewriting.
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
-    unfold USparseEmbedding.
+    unfold SumSparseEmbedding.
 
     (* normalize to left-associativity of compose *)
     repeat rewrite <- SHCompose_assoc.

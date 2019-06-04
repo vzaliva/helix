@@ -54,6 +54,7 @@ Section SigmaHCOL_Operators.
 
     Record SHOperator
            {i o: nat}
+           {svalue: CarrierA}
       : Type
       := mkSHOperator {
              (* implementation on sparse vectors *)
@@ -143,7 +144,8 @@ Section SigmaHCOL_Operators.
 
     Class SHOperator_Facts
           {i o:nat}
-          (xop: @SHOperator i o)
+          {svalue: CarrierA}
+          (xop: @SHOperator i o svalue)
       :=
         {
           (* [in_index_set] membership is decidabe *)
@@ -176,108 +178,129 @@ Section SigmaHCOL_Operators.
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
 
+          (* TODO:
+          (* default values at sparse positions *)
+          svalue_at_sparse: forall v,
+              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> (Vnth (op xop v) jc) = mkStruct svalue);
+           *)
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
     Global Instance SHOperator_equiv
-           {i o: nat}:
-      Equiv (@SHOperator i o) :=
+           {i o: nat} {svalue}:
+      Equiv (@SHOperator i o svalue) :=
       fun a b => op a = op b.
 
     (* Special subtyping relation on SHOperator's which involves both value and structural correctness. 'a' is subtype and could be used in place of 'b' *)
     Definition SHOperator_subtyping
                {i o: nat}
-               (a b: @SHOperator i o)
-               `{Afacts: SHOperator_Facts _ _ a}
-               `{Bfacts: SHOperator_Facts _ _ b} :=
+               {svalue: CarrierA}
+               (a b: @SHOperator i o svalue)
+               `{Afacts: SHOperator_Facts _ _ _ a}
+               `{Bfacts: SHOperator_Facts _ _ _ b} :=
       a = b /\
       Included _ (in_index_set a) (in_index_set b) /\
       Same_set _ (out_index_set b) (out_index_set a).
 
     Definition op_Vforall_P
                {i o: nat}
+               {svalue: CarrierA}
                (P: Rtheta' fm -> Prop)
-               (f: @SHOperator i o)
+               (f: @SHOperator i o svalue)
       :=
         forall x, Vforall P ((op f) x).
 
-    Definition SHOperatorFamily {i o n: nat} := FinNat n -> @SHOperator i o.
+    Definition SHOperatorFamily
+               {i o n: nat}
+               {svalue: CarrierA}
+      := FinNat n -> @SHOperator i o svalue.
 
-    Global Instance SHOperatorFamily_equiv {i o n: nat}:
-      Equiv(@SHOperatorFamily i o n)
-      := @pointwise_relation (FinNat n) (@SHOperator i o) (=).
+    Global Instance SHOperatorFamily_equiv
+           {i o n: nat}
+           {svalue: CarrierA}
+
+      : Equiv(@SHOperatorFamily i o n svalue)
+      := @pointwise_relation (FinNat n) (@SHOperator i o svalue) (=).
 
     (* Accessors, mapping SHOperator family to family of underlying "raw" functions *)
     Definition get_family_op
                {i o n}
-               (op_family: @SHOperatorFamily i o n):
+               {svalue: CarrierA}
+               (op_family: @SHOperatorFamily i o n svalue):
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
 
     (* Shrink family by removing the last member *)
     Definition shrink_op_family
                {i o n}
-               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n
-      := fun jf => op_family (mkFinNat (@le_S (S (proj1_sig jf)) n (proj2_sig jf))).
+               {svalue: CarrierA}
+               (op_family: @SHOperatorFamily i o (S n) svalue): @SHOperatorFamily i o n svalue := fun jf => op_family (mkFinNat (@le_S (S (proj1_sig jf)) n (proj2_sig jf))).
 
     (* Shrink family by removing first memeber *)
     Definition shrink_op_family_up
                {i o n}
-               (op_family: @SHOperatorFamily i o (S n)): @SHOperatorFamily i o n
+               {svalue: CarrierA}
+               (op_family: @SHOperatorFamily i o (S n) svalue): @SHOperatorFamily i o n svalue
       := fun jf => op_family (mkFinNat (lt_n_S (proj2_sig jf))).
 
     Definition shrink_op_family_up_n
                {i o n: nat}
+               {svalue: CarrierA}
                (d: nat)
-               (op_family: @SHOperatorFamily i o (n+d)): @SHOperatorFamily i o n
+               (op_family: @SHOperatorFamily i o (n+d) svalue): @SHOperatorFamily i o n svalue
       := fun jf => op_family (mkFinNat
                              (Plus.plus_lt_compat_r _ _ _ (proj2_sig jf))).
 
     Definition shrink_op_family_facts
-          {i o k : nat}
-          (op_family : SHOperatorFamily)
-          (facts: ∀ (j : nat) (jc : j < S k),
-              @SHOperator_Facts i o (op_family (mkFinNat jc))):
+               {i o k : nat}
+               {svalue: CarrierA}
+               (op_family : SHOperatorFamily )
+               (facts: ∀ (j : nat) (jc : j < S k),
+                   @SHOperator_Facts i o svalue (op_family (mkFinNat jc))):
       (forall (j : nat) (jc : j < k),
-          @SHOperator_Facts i o ((shrink_op_family op_family) (mkFinNat jc)))
+          @SHOperator_Facts i o svalue ((shrink_op_family op_family) (mkFinNat jc)))
       := fun j jc => facts j (le_S jc).
 
     Definition shrink_op_family_facts_up
                {i o k : nat}
+               {svalue: CarrierA}
                (op_family : SHOperatorFamily)
                (facts: ∀ (j : nat) (jc : j < S k),
-                   @SHOperator_Facts i o (op_family (mkFinNat jc))):
+                   @SHOperator_Facts i o svalue (op_family (mkFinNat jc))):
       (forall (j : nat) (jc : j < k),
-          @SHOperator_Facts i o ((shrink_op_family_up op_family) (mkFinNat jc)))
+          @SHOperator_Facts i o svalue ((shrink_op_family_up op_family) (mkFinNat jc)))
       := fun j jc => facts (S j) (lt_n_S jc).
 
     Definition shrink_op_family_facts_up_n
                {i o k : nat}
+               {svalue: CarrierA}
                (d: nat)
                (op_family : SHOperatorFamily)
                (facts: ∀ (j : nat) (jc : j < (k+d)),
-                   @SHOperator_Facts i o (op_family (mkFinNat jc))):
+                   @SHOperator_Facts i o svalue (op_family (mkFinNat jc))):
       (forall (j : nat) (jc : j < k),
-          @SHOperator_Facts i o ((shrink_op_family_up_n d op_family) (mkFinNat jc)))
+          @SHOperator_Facts i o svalue ((shrink_op_family_up_n d op_family) (mkFinNat jc)))
       := fun j jc => facts (j+d) (Plus.plus_lt_compat_r _ _ _ jc).
 
     Fixpoint family_in_index_set
              {i o n}
-             (op_family: @SHOperatorFamily i o n): FinNatSet i
+             {svalue: CarrierA}
+             (op_family: @SHOperatorFamily i o n svalue): FinNatSet i
       :=
-        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y svalue -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
-                                  (in_index_set (op_family (mkFinNat (S_j_lt_n E))))
-                                  (family_in_index_set (shrink_op_family f))
+                              (in_index_set (op_family (mkFinNat (S_j_lt_n E))))
+                              (family_in_index_set (shrink_op_family f))
         end (eq_refl n) op_family.
 
     (* Alternative definitoin of [family_in_index_set], shrinking up. Good for induction on n *)
     Fixpoint family_in_index_set'
              {i o n}
-             (op_family: @SHOperatorFamily i o n): FinNatSet i
+             {svalue: CarrierA}
+             (op_family: @SHOperatorFamily i o n svalue): FinNatSet i
       :=
-        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet i) with
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y svalue -> FinNatSet i) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
                                   (in_index_set (op_family (mkFinNat (S_j_lt_0 E))))
@@ -286,9 +309,10 @@ Section SigmaHCOL_Operators.
 
     Fixpoint family_out_index_set
              {i o n}
-             (op_family: @SHOperatorFamily i o n): FinNatSet o
+             {svalue: CarrierA}
+             (op_family: @SHOperatorFamily i o n svalue): FinNatSet o
       :=
-        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y svalue -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
                                   (out_index_set (op_family (mkFinNat (S_j_lt_n E))))
@@ -299,9 +323,10 @@ Section SigmaHCOL_Operators.
        [shrink_op_family]. This one is more suitable for inductive proofs *)
     Fixpoint family_out_index_set'
              {i o n}
-             (op_family: @SHOperatorFamily i o n): FinNatSet o
+             {svalue: CarrierA}
+             (op_family: @SHOperatorFamily i o n svalue): FinNatSet o
       :=
-        match n as y return (y ≡ n -> @SHOperatorFamily i o y -> FinNatSet o) with
+        match n as y return (y ≡ n -> @SHOperatorFamily i o y svalue -> FinNatSet o) with
         | O => fun _ _ => (Empty_set _)
         | S j => fun E f => Union _
                                   (out_index_set (op_family (mkFinNat (S_j_lt_0 E))))
@@ -309,13 +334,14 @@ Section SigmaHCOL_Operators.
         end (eq_refl n) op_family.
 
     Lemma family_in_set_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+      forall (i o k : nat) {svalue: CarrierA}
+        (op_family : @SHOperatorFamily i o k svalue)
         (j : nat) (jc : j < k),
         Included (FinNat i)
                  (in_index_set (op_family (mkFinNat jc)))
                  (family_in_index_set op_family).
     Proof.
-      intros i o k op_family j jc.
+      intros i o k svalue op_family j jc.
       unfold Included, In.
       intros x H.
 
@@ -340,13 +366,14 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_in_set'_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+      forall (i o k : nat) {svalue: CarrierA}
+        (op_family : @SHOperatorFamily i o k svalue)
         (j : nat) (jc : j < k),
         Included (FinNat i)
                  (in_index_set (op_family (mkFinNat jc)))
                  (family_in_index_set' op_family).
     Proof.
-      intros i o k op_family j jc.
+      intros i o k svalue op_family j jc.
       unfold Included, In.
       intros x H.
 
@@ -373,7 +400,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_in_set_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (i o k : nat) {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (j : nat) (jc : j < i):
 
       family_in_index_set op_family (mkFinNat jc) ->
@@ -409,7 +437,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_in_set'_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (i o k : nat) {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (j : nat) (jc : j < i):
 
       family_in_index_set' op_family (mkFinNat jc) ->
@@ -445,7 +474,8 @@ Section SigmaHCOL_Operators.
 
     Lemma family_in_index_set_eq
           {i o n}
-          (op_family: @SHOperatorFamily i o n)
+          {svalue: CarrierA}
+          (op_family: @SHOperatorFamily i o n svalue)
       :
         family_in_index_set op_family ≡ family_in_index_set' op_family.
     Proof.
@@ -579,13 +609,14 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_out_set_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+      ∀ (i o k : nat) {svalue: CarrierA}
+        (op_family : @SHOperatorFamily i o k svalue)
         (j : nat) (jc : j < k),
         Included (FinNat o)
                  (out_index_set (op_family (mkFinNat jc)))
                  (family_out_index_set op_family).
     Proof.
-      intros i o k op_family j jc.
+      intros i o k svalue op_family j jc.
       unfold Included, In.
       intros x H.
 
@@ -612,13 +643,14 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_out_set'_includes_members:
-      ∀ (i o k : nat) (op_family : @SHOperatorFamily i o k)
+      ∀ (i o k : nat) {svalue: CarrierA}
+        (op_family : @SHOperatorFamily i o k svalue)
         (j : nat) (jc : j < k),
         Included (FinNat o)
                  (out_index_set (op_family (mkFinNat jc)))
                  (family_out_index_set' op_family).
     Proof.
-      intros i o k op_family j jc.
+      intros i o k svalue op_family j jc.
       unfold Included, In.
       intros x H.
 
@@ -645,7 +677,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_out_set_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (i o k : nat) {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (j : nat) (jc : j < o):
 
       family_out_index_set op_family (mkFinNat jc) <->
@@ -687,7 +720,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma family_out_set'_implies_members
-          (i o k : nat) (op_family : @SHOperatorFamily i o k)
+          (i o k : nat) {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (j : nat) (jc : j < o):
 
       family_out_index_set' op_family (mkFinNat jc) ->
@@ -723,7 +757,8 @@ Section SigmaHCOL_Operators.
 
     Lemma family_out_index_set_eq
           {i o n}
-          (op_family: @SHOperatorFamily i o n)
+          {svalue: CarrierA}
+          (op_family: @SHOperatorFamily i o n svalue)
       :
         family_out_index_set op_family ≡ family_out_index_set' op_family.
     Proof.
@@ -858,7 +893,8 @@ Section SigmaHCOL_Operators.
 
     Lemma fmaily_in_index_set_dec
           (i o k : nat)
-          (op_family : @SHOperatorFamily i o k)
+          {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (op_family_facts: forall (j : nat) (jc : j < k),
               SHOperator_Facts (op_family (mkFinNat jc))):
       FinNatSet_dec (family_in_index_set op_family).
@@ -880,7 +916,8 @@ Section SigmaHCOL_Operators.
 
     Lemma fmaily_out_index_set_dec
           (i o k : nat)
-          (op_family : @SHOperatorFamily i o k)
+          {svalue: CarrierA}
+          (op_family : @SHOperatorFamily i o k svalue)
           (op_family_facts: forall (j : nat) (jc : j < k),
               SHOperator_Facts (op_family (mkFinNat jc))):
       FinNatSet_dec (family_out_index_set op_family).
@@ -902,7 +939,8 @@ Section SigmaHCOL_Operators.
 
     Lemma SHOperator_ext_equiv_applied
           {i o: nat}
-          (f g: @SHOperator i o):
+          {svalue: CarrierA}
+          (f g: @SHOperator i o svalue):
       (f=g) <-> (forall v, op f v = op g v).
     Proof.
       split.
@@ -919,8 +957,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperator_equiv_Reflexive
-           {i o: nat}:
-      Reflexive (@SHOperator_equiv i o).
+           {i o: nat}
+           {svalue: CarrierA}:
+      Reflexive (@SHOperator_equiv i o svalue).
     Proof.
       intros x.
       unfold SHOperator_equiv.
@@ -929,8 +968,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperator_equiv_Symmetric
-           {i o: nat}:
-      Symmetric (@SHOperator_equiv i o).
+           {i o: nat}
+           {svalue: CarrierA}:
+      Symmetric (@SHOperator_equiv i o svalue).
     Proof.
       intros x y.
       unfold SHOperator_equiv.
@@ -938,8 +978,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperator_equiv_Transitive
-           {i o: nat}:
-      Transitive (@SHOperator_equiv i o).
+           {i o: nat}
+           {svalue: CarrierA}:
+      Transitive (@SHOperator_equiv i o svalue).
     Proof.
       intros x y z.
       unfold SHOperator_equiv.
@@ -947,8 +988,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperator_equiv_Equivalence
-           {i o: nat}:
-      Equivalence (@SHOperator_equiv i o).
+           {i o: nat}
+           {svalue: CarrierA}:
+      Equivalence (@SHOperator_equiv i o svalue).
     Proof.
       split.
       apply SHOperator_equiv_Reflexive.
@@ -957,8 +999,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperatorFamily_equiv_Reflexive
-           {i o n: nat}:
-      Reflexive (@SHOperatorFamily_equiv i o n).
+           {i o n: nat}
+           {svalue: CarrierA}:
+      Reflexive (@SHOperatorFamily_equiv i o n svalue).
     Proof.
       intros x.
       unfold SHOperatorFamily_equiv, pointwise_relation.
@@ -966,8 +1009,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperatorFamily_equiv_Symmetric
-           {i o n: nat}:
-      Symmetric (@SHOperatorFamily_equiv i o n).
+           {i o n: nat}
+           {svalue: CarrierA}:
+      Symmetric (@SHOperatorFamily_equiv i o n svalue).
     Proof.
       intros x y.
       unfold SHOperatorFamily_equiv, pointwise_relation.
@@ -977,8 +1021,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperatorFamily_equiv_Transitive
-           {i o n: nat}:
-      Transitive (@SHOperatorFamily_equiv i o n).
+           {i o n: nat}
+           {svalue: CarrierA}:
+      Transitive (@SHOperatorFamily_equiv i o n svalue).
     Proof.
       intros x y z.
       unfold SHOperatorFamily_equiv, pointwise_relation.
@@ -989,8 +1034,9 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Global Instance SHOperatorFamily_equiv_Equivalence
-           {i o n: nat}:
-      Equivalence (@SHOperatorFamily_equiv i o n).
+           {i o n: nat}
+           {svalue: CarrierA}:
+      Equivalence (@SHOperatorFamily_equiv i o n svalue).
     Proof.
       split.
       apply SHOperatorFamily_equiv_Reflexive.
@@ -999,16 +1045,19 @@ Section SigmaHCOL_Operators.
     Qed.
 
     Lemma SM_op_SHOperator
-          (i o : nat):
-      forall (a:@SHOperator i o), Setoid_Morphism (op a).
+          (i o : nat)
+          {svalue: CarrierA}:
+      forall (a:@SHOperator i o svalue), Setoid_Morphism (op a).
     Proof.
       intros a.
       destruct a as [f pre_post f_proper].
       split; try typeclasses eauto.
     Qed.
 
-    Global Instance SHOperator_op_proper {i o} :
-      Proper ((=) ==> (=) ==> (=)) (@op i o).
+    Global Instance SHOperator_op_proper
+           {i o}
+           {svalue: CarrierA}
+      : Proper ((=) ==> (=) ==> (=)) (@op i o svalue).
     Proof.
       intros f f' Ef v v' Ev.
       destruct f as [fop op_pre_post op_proper].
@@ -1018,10 +1067,12 @@ Section SigmaHCOL_Operators.
       apply Ev.
     Qed.
 
-    Global Instance get_family_op_proper {i o n} :
+    Global Instance get_family_op_proper
+           {i o n}
+           {svalue: CarrierA}:
       Proper ((=) ==>
                   (forall_relation (λ j : nat, pointwise_relation (j < n) (=))))
-             (@get_family_op i o n).
+             (@get_family_op i o n svalue).
     Proof.
       intros a a' Ea.
       unfold forall_relation, pointwise_relation.
@@ -1031,27 +1082,19 @@ Section SigmaHCOL_Operators.
       apply Ea.
     Qed.
 
-    Global Instance SHOperator_op_arg_proper {i o} (a:@SHOperator i o):
+    Global Instance SHOperator_op_arg_proper
+           {i o}
+           {svalue: CarrierA}
+           (a:@SHOperator i o svalue):
       Proper ((=) ==> (=)) (op a).
     Proof.
       solve_proper.
     Qed.
 
-    (*
-TODO: remove
-    Global Instance mkSHOperatorFamily_proper
-           {i o n: nat}:
-      Proper (forall_relation (λ i : nat, pointwise_relation (i < n) equiv) ==> equiv)
-             (mkSHOperatorFamily i o n).
-    Proof.
-      intros f0 f1 Ef.
-      unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
-      auto.
-    Qed.
-     *)
-
-    Global Instance op_Vforall_P_proper {i o: nat}:
-      Proper ( ((=) ==> iff) ==> (=) ==> iff) (@op_Vforall_P i o).
+    Global Instance op_Vforall_P_proper
+           {i o: nat}
+           {svalue: CarrierA}:
+      Proper ( ((=) ==> iff) ==> (=) ==> iff) (@op_Vforall_P i o svalue).
     Proof.
       intros P P' Ep x y E.
       unfold op_Vforall_P.
@@ -1083,10 +1126,11 @@ TODO: remove
     Qed.
 
     Definition liftM_HOperator
-               {i o}
+               {i o: nat}
+               {svalue: CarrierA}
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
-      := mkSHOperator i o
+      := mkSHOperator i o svalue
                       (liftM_HOperator' op)
                       (@liftM_HOperator'_proper fm i o op HOP)
                       (Full_set _)
@@ -1095,13 +1139,15 @@ TODO: remove
     (** Apply family of SHOperator's to same vector and return matrix of results *)
     Definition Apply_Family
                {i o n}
-               (op_family: @SHOperatorFamily i o n)
+               {svalue: CarrierA}
+               (op_family: @SHOperatorFamily i o n svalue)
       :=
         Apply_Family' (get_family_op op_family).
 
     Global Instance Apply_Family_proper
-           {i o n}:
-      Proper ((=) ==> (=) ==> (=)) (@Apply_Family i o n).
+           {i o n}
+           {svalue: CarrierA}:
+      Proper ((=) ==> (=) ==> (=)) (@Apply_Family i o n svalue).
     Proof.
       intros f f' Ef v v' Ev.
       unfold Apply_Family, Apply_Family'.
@@ -1120,8 +1166,9 @@ TODO: remove
     (* Do we need this in presence of Apply_Family_proper ? *)
     Global Instance Apply_Family_arg_proper
            {i o n}
-           (op_family: @SHOperatorFamily i o n):
-      Proper ((=) ==> (=)) (@Apply_Family i o n op_family).
+           {svalue: CarrierA}
+           (op_family: @SHOperatorFamily i o n svalue):
+      Proper ((=) ==> (=)) (@Apply_Family i o n svalue op_family).
     Proof.
       intros x y E.
       apply Apply_Family'_arg_proper.
@@ -1135,10 +1182,10 @@ TODO: remove
        TODO: This could be expressed via set disjointness? *)
     Definition Apply_Family_Single_NonUnit_Per_Row
                {i o n}
-               (op_family: @SHOperatorFamily i o n)
-               (aunit: CarrierA)
+               {svalue: CarrierA}
+               (op_family: @SHOperatorFamily i o n svalue)
       :=
-        forall x, Vforall (Vunique (not ∘ (equiv aunit) ∘ (@evalWriter _ _ fm)))
+        forall x, Vforall (Vunique (not ∘ (equiv svalue) ∘ (@evalWriter _ _ fm)))
                           (Matrix.transpose
                              (Apply_Family op_family x)
                           ).
@@ -1146,116 +1193,90 @@ TODO: remove
     (* States that given [P] holds for all elements of all outputs of this family *)
     Definition Apply_Family_Vforall_P
                {i o n}
+               {svalue: CarrierA}
                (P: Rtheta' fm -> Prop)
-               (op_family: @SHOperatorFamily i o n)
+               (op_family: @SHOperatorFamily i o n svalue)
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
     Definition IdOp
+               {svalue: CarrierA}
                {n: nat}
                (in_out_set:FinNatSet n)
-      := mkSHOperator n n id _
-                      (* !!! (Some ∘ id) _ *)
+      := mkSHOperator n n svalue id _
                       in_out_set in_out_set.
 
     Definition eUnion
-               {o b:nat}
+               {svalue: CarrierA}
+               {o b: nat}
                (bc: b < o)
-               (z: CarrierA)
-      := mkSHOperator 1 o (eUnion' bc z) _
+      := mkSHOperator 1 o svalue (eUnion' bc svalue) _
                       (Full_set _)
                       (FinNatSet.singleton b).
 
     Definition eT
+               {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 (eT' bc) _
+      := mkSHOperator i 1 svalue (eT' bc) _
                       (FinNatSet.singleton b)
                       (Full_set _).
 
     Definition Gather
+               {svalue: CarrierA}
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator i o (Gather' f) _
-                      (* !!!
-                      (mem_op_of_op (fm:=fm) (Gather' f))
-                      _ *)
+      := mkSHOperator i o svalue (Gather' f) _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *).
 
     Definition GathH
+               {svalue: CarrierA}
                {i o}
                (base stride: nat)
                {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
       :=
         Gather (h_index_map base stride
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
-               ).
-
-    Lemma Gather_to_GathH
-          {i o: nat}
-          (base stride: nat)
-          {domain_bound: ∀ x : nat, x < o → base + x * stride < i}:
-      @Gather i o (@h_index_map o i base stride domain_bound)
-      =
-      @GathH i o base stride domain_bound.
-    Proof.
-      unfold GathH.
-      f_equiv.
-    Qed.
+               ) (svalue:=svalue).
 
     Definition Scatter
+               {svalue: CarrierA}
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
-               (idv: CarrierA)
-      := mkSHOperator i o (@Scatter' _ _ _ f f_inj idv) _
-                      (* !!! (mem_op_of_op (fm:=fm) (@Scatter' _ _ _ f f_inj idv))
-                      _ *)
+      := mkSHOperator i o svalue (@Scatter' _ _ _ f f_inj svalue) _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *).
 
     Definition ScatH
+               {svalue: CarrierA}
                {i o}
                (base stride: nat)
                {range_bound: ∀ x : nat, x < i → base + x * stride < o}
                {snzord0: stride ≢ 0 \/ i < 2}
       :=
         Scatter (h_index_map base stride (range_bound:=range_bound))
+                (svalue:=svalue)
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
-
-    (* Helper lemma to fold back `Scatter`s with `h_index_map` to `ScatH` *)
-    Lemma Scatter_to_ScatH
-          {i o: nat}
-          (base stride: nat)
-          {range_bound: ∀ x : nat, x < i → base + x * stride < o}
-          {hinj: index_map_injective (@h_index_map i o base stride range_bound)}
-          (snzord0: stride ≢ 0 \/ i < 2)
-          (idv: CarrierA):
-      @Scatter i o (@h_index_map i o base stride range_bound) hinj idv
-      =
-      @ScatH i o base stride range_bound snzord0 idv.
-    Proof.
-      unfold ScatH.
-      f_equiv.
-      apply proof_irrelevance.
-    Qed.
 
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
     Definition SHCompose
-            {i1 o2 o3}
-            (op1: @SHOperator o2 o3)
-            (op2: @SHOperator i1 o2)
-      : @SHOperator i1 o3 := mkSHOperator i1 o3 (compose (op op1) (op op2)) _
-                                          (in_index_set op2)
-                                          (out_index_set op1).
+               {svalue: CarrierA}
+               {i1 o2 o3}
+               (op1: @SHOperator o2 o3 svalue)
+               (op2: @SHOperator i1 o2 svalue)
+      : @SHOperator i1 o3 svalue := mkSHOperator i1 o3 svalue (compose (op op1) (op op2)) _
+                                                 (in_index_set op2)
+                                                 (out_index_set op1).
 
-    Local Notation "g ⊚ f" := (@SHCompose _ _ _ g f) (at level 40, left associativity) : type_scope.
+    Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
     Lemma SHCompose_val_equal_compose
+          {svalue: CarrierA}
           {i1 o2 o3}
-          (op1: @SHOperator o2 o3)
-          (op2: @SHOperator i1 o2)
+          (op1: @SHOperator o2 o3 svalue)
+          (op2: @SHOperator i1 o2 svalue)
       :
         (op op1) ∘ (op op2) = op (op1 ⊚ op2).
     Proof.
@@ -1268,15 +1289,17 @@ TODO: remove
     Qed.
 
     Global Instance SHCompose_proper
-           {i1 o2 o3}
+          {svalue: CarrierA}
+          {i1 o2 o3}
       :
-        Proper ((=) ==> (=) ==> (=)) (@SHCompose i1 o2 o3).
+        Proper ((=) ==> (=) ==> (=)) (@SHCompose svalue i1 o2 o3).
     Proof.
       intros x x' Ex y y' Ey.
       unfold SHCompose.
       unfold equiv, SHOperator_equiv in *.
       destruct x, y, x', y'.
       simpl in *.
+      (* TODO the following rewrite takes ~6seconds. Optimize! *)
       rewrite <- Ey, <- Ex.
       unfold equiv, ext_equiv.
       apply compose_proper with (RA:=equiv) (RB:=equiv).
@@ -1285,21 +1308,23 @@ TODO: remove
     Qed.
 
 
-    Definition Constant_Family {i o n} (f: @SHOperator i o)
-      : @SHOperatorFamily i o n := fun _ => f.
+    Definition Constant_Family {i o n} {svalue: CarrierA} (f: @SHOperator i o svalue)
+      : @SHOperatorFamily i o n svalue := fun _ => f.
 
     (* Family composition *)
     Definition SHFamilyFamilyCompose
+               {svalue: CarrierA}
                {i1 o2 o3 n}
-               (f: @SHOperatorFamily o2 o3 n)
-               (g: @SHOperatorFamily i1 o2 n)
-      : @SHOperatorFamily i1 o3 n
+               (f: @SHOperatorFamily o2 o3 n svalue)
+               (g: @SHOperatorFamily i1 o2 n svalue)
+      : @SHOperatorFamily i1 o3 n svalue
       := fun jf => f jf ⊚  g jf.
 
     Global Instance SHFamilyFamilyCompose_proper
+           {svalue: CarrierA}
            {i1 o2 o3 n: nat}
       :
-        Proper ((=) ==> (=) ==> (=)) (@SHFamilyFamilyCompose i1 o2 o3 n).
+        Proper ((=) ==> (=) ==> (=)) (@SHFamilyFamilyCompose svalue i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
       unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
@@ -1315,16 +1340,18 @@ TODO: remove
 
     (* Family/operator composition *)
     Definition  SHOperatorFamilyCompose
+                {svalue: CarrierA}
                 {i1 o2 o3 n}
-                (f: @SHOperator o2 o3)
-                (g: @SHOperatorFamily i1 o2 n)
-      : @SHOperatorFamily i1 o3 n
+                (f: @SHOperator o2 o3 svalue)
+                (g: @SHOperatorFamily i1 o2 n svalue)
+      : @SHOperatorFamily i1 o3 n svalue
       := fun jf => f  ⊚ g jf.
 
     Global Instance SHOperatorFamilyCompose_proper
+           {svalue: CarrierA}
            {i1 o2 o3 n: nat}
       :
-        Proper ((=) ==> (=) ==> (=)) (@SHOperatorFamilyCompose i1 o2 o3 n).
+        Proper ((=) ==> (=) ==> (=)) (@SHOperatorFamilyCompose svalue i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
       unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
@@ -1338,16 +1365,18 @@ TODO: remove
     Qed.
 
     Definition  SHFamilyOperatorCompose
+                {svalue: CarrierA}
                 {i1 o2 o3 n}
-                (f: @SHOperatorFamily o2 o3 n)
-                (g: @SHOperator i1 o2)
-      : @SHOperatorFamily i1 o3 n
+                (f: @SHOperatorFamily o2 o3 n svalue)
+                (g: @SHOperator i1 o2 svalue)
+      : @SHOperatorFamily i1 o3 n svalue
       := fun jf => f jf  ⊚ g.
 
     Global Instance SHFamilyOperatorCompose_proper
+           {svalue: CarrierA}
            {i1 o2 o3 n: nat}
       :
-        Proper ((=) ==> (=) ==> (=)) (@SHFamilyOperatorCompose i1 o2 o3 n).
+        Proper ((=) ==> (=) ==> (=)) (@SHFamilyOperatorCompose svalue i1 o2 o3 n).
     Proof.
       intros f f' Ef g g' Eg.
       unfold equiv, SHOperatorFamily_equiv, pointwise_relation.
@@ -1361,34 +1390,36 @@ TODO: remove
     Qed.
 
     Definition SHPointwise
+               {svalue: CarrierA}
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator n n (SHPointwise' f) _
+      := mkSHOperator n n svalue (SHPointwise' f) _
                       (Full_set _) (Full_set _).
 
     Definition SHInductor
+               {svalue: CarrierA}
                (n:nat)
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
-      := mkSHOperator 1 1 (SHInductor' n f initial) _
+      := mkSHOperator 1 1 svalue (SHInductor' n f initial) _
                       (Full_set _) (Full_set _).
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
+               {svalue: CarrierA}
                {n i o ki ko}
                (* Kernel *)
-               (kernel: @SHOperatorFamily ki ko n)
+               (kernel: @SHOperatorFamily ki ko n svalue)
                (* Scatter index map *)
                (f: index_map_family ko o n)
                {f_inj : index_map_family_injective f}
-               (idv: CarrierA)
                (* Gather index map *)
                (g: index_map_family ki i n)
-      : @SHOperatorFamily i o n
+      : @SHOperatorFamily i o n svalue
       := fun jf => (Scatter (f jf)
-                            (f_inj := index_map_family_member_injective f_inj jf) idv)
+                            (f_inj := index_map_family_member_injective f_inj jf))
                      ⊚ (kernel jf)
                      ⊚ (Gather (g jf)).
 
@@ -1438,17 +1469,17 @@ TODO: remove
     Qed.
 
     Lemma SparseEmbedding_Apply_Family_Single_NonUnit_Per_Row
+          {svalue: CarrierA}
           {n i o ki ko}
           (* Kernel *)
-          (kernel: @SHOperatorFamily ki ko n)
+          (kernel: @SHOperatorFamily ki ko n svalue)
           (* Scatter index map *)
           (f: index_map_family ko o n)
           {f_inj : index_map_family_injective f}
-          (idv: CarrierA)
           (* Gather index map *)
           (g: index_map_family ki i n):
       Apply_Family_Single_NonUnit_Per_Row
-        (SparseEmbedding kernel f (f_inj:=f_inj) idv g) idv.
+        (SparseEmbedding kernel f (f_inj:=f_inj) g).
     Proof.
       unfold Apply_Family_Single_NonUnit_Per_Row.
       intros x.
@@ -1465,9 +1496,9 @@ TODO: remove
 
       unfold compose.
       generalize
-        (@op ki ko (kernel (mkFinNat jc0))
+        (@op ki ko _ (kernel (mkFinNat jc0))
              (@Gather' fm i ki (g (mkFinNat jc0)) x)),
-      (@op ki ko (kernel (mkFinNat jc1))
+      (@op ki ko _ (kernel (mkFinNat jc1))
            (@Gather' fm i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
@@ -1485,42 +1516,40 @@ TODO: remove
 
 
     Definition SHBinOp
-               {o}
+               {svalue: CarrierA}
+               {o: nat}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o (SHBinOp' f) _
+      := mkSHOperator (o+o) o svalue (SHBinOp' f) _
                       (Full_set _) (Full_set _).
 
   End FlagsMonoidGenericOperators.
 
   Definition IUnion
-             {i o n}
+             {svalue: CarrierA}
+             {i o n: nat}
              (* Functional parameters *)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-             (initial: CarrierA)
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-    : @SHOperator Monoid_RthetaFlags i o
+             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+    : @SHOperator Monoid_RthetaFlags i o svalue
     :=
-      mkSHOperator Monoid_RthetaFlags i o
-                   (Diamond dot initial (get_family_op Monoid_RthetaFlags op_family))
+      mkSHOperator Monoid_RthetaFlags i o svalue
+                   (Diamond dot svalue (get_family_op Monoid_RthetaFlags op_family))
                    _
-                   (* !!!
-                   (IUnion_mem (get_family_mem_op Monoid_RthetaFlags op_family))
-                   _ *)
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
   . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
 
   Global Instance IUnion_proper
-         {i o n}
+         {svalue: CarrierA}
+         {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
     :
-      Proper ((=) ==> (@SHOperatorFamily_equiv Monoid_RthetaFlags i o n) ==> (@SHOperator_equiv Monoid_RthetaFlags i o))
-             (@IUnion i o n dot pdot).
+      Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n svalue) ==> (@SHOperator_equiv Monoid_RthetaFlags i o svalue))
+             (@IUnion svalue i o n dot pdot).
   Proof.
-    intros initial initial' Ei.
     intros fam fam' Ef.
     intros x y E.
     simpl.
@@ -1531,20 +1560,19 @@ TODO: remove
   Qed.
 
   Definition ISumUnion
-             {i o n}
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
-    : @SHOperator Monoid_RthetaFlags i o
+             {i o n: nat}
+             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
+    : @SHOperator Monoid_RthetaFlags i o zero
     :=
-      @IUnion i o n CarrierAplus _ zero op_family.
+      @IUnion zero i o n CarrierAplus _ op_family.
 
   Global Instance ISumUnion_proper
          {i o n}
-    : Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n) ==> (@SHOperator_equiv Monoid_RthetaFlags i o))
+    : Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n zero) ==> (@SHOperator_equiv Monoid_RthetaFlags i o zero))
              (@ISumUnion i o n).
   Proof.
     unfold ISumUnion.
     apply IUnion_proper.
-    reflexivity.
   Qed.
 
   (** IReduction does not have any constraints. Specifically no
@@ -1554,88 +1582,63 @@ TODO: remove
   produce new errors, but should propagate errors from before.
    *)
   Definition IReduction
+             {svalue: CarrierA}
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-             (initial: CarrierA)
-             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
-    : @SHOperator Monoid_RthetaSafeFlags i o:=
-    mkSHOperator Monoid_RthetaSafeFlags i o
-                 (Diamond dot initial (get_family_op Monoid_RthetaSafeFlags op_family))
+             (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue)
+    : @SHOperator Monoid_RthetaSafeFlags i o svalue :=
+    mkSHOperator Monoid_RthetaSafeFlags i o svalue
+                 (Diamond dot svalue (get_family_op Monoid_RthetaSafeFlags op_family))
                  _
                  (family_in_index_set _ op_family)
-                 (family_out_index_set _ op_family) (* All scatters must be the same but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
+                 (family_out_index_set _ op_family) (* All scatters must be [Full_set] but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
   .
 
   Global Instance IReduction_proper
+         {svalue: CarrierA}
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
     :
-      Proper ((=) ==> (=) ==> (=)) (@IReduction i o n dot pdot).
+      Proper ((=) ==> (=)) (@IReduction svalue i o n dot pdot).
   Proof.
-    intros i0 i1 Ei x y E.
+    intros x y E.
     unfold IReduction, equiv,  SHOperator_equiv.
     simpl.
-    rewrite E, Ei.
-    f_equiv; auto.
-    f_equiv; auto.
+    repeat f_equiv; auto.
   Qed.
-
 
 End SigmaHCOL_Operators.
 
-Lemma Is_Val_Scatter
-      {m n: nat}
-      (f: index_map m n)
-      {f_inj: index_map_injective f}
-      (idv: CarrierA)
-      (x: rvector m)
-      (j: nat) (jc : j < n):
-  Is_Val (Vnth (@Scatter' _ _ _ f f_inj idv x) jc) ->
-  (exists i (ic:i<m), ⟦f⟧ i ≡ j).
-Proof.
-  intros H.
-  unfold Scatter' in H. rewrite Vbuild_nth in H.
-  break_match.
-  simpl in *.
-  -
-    generalize dependent (gen_inverse_index_f_spec f j i); intros f_spec H.
-    exists (gen_inverse_index_f f j), f_spec.
-    apply build_inverse_index_map_is_right_inverse; auto.
-  -
-    apply Is_Val_mkStruct in H.
-    inversion H.
-Qed.
-
-Definition USparseEmbedding
-           {n i o ki ko}
+Definition SumSparseEmbedding
+           {n i o ki ko: nat}
            (* Kernel *)
-           (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n)
+           (kernel: @SHOperatorFamily Monoid_RthetaFlags ki ko n zero)
            (f: index_map_family ko o n)
            {f_inj : index_map_family_injective f}
-           (idv: CarrierA)
            (g: index_map_family ki i n)
-  : @SHOperator Monoid_RthetaFlags i o
+  : @SHOperator Monoid_RthetaFlags i o zero
   :=
     ISumUnion
       (@SparseEmbedding Monoid_RthetaFlags
-                        n i o ki ko
+                        zero n i o ki ko
                         kernel
-                        f f_inj idv
+                        f f_inj
                         g).
 
 Section OperatorProperies.
 
   Variable fm:Monoid RthetaFlags.
+  Variable svalue:CarrierA.
 
-  Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
+  Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
   Lemma SHCompose_assoc
         {i1 o2 o3 o4}
-        (h: @SHOperator fm o3 o4)
-        (g: @SHOperator fm o2 o3)
-        (f: @SHOperator fm i1 o2):
+        (h: @SHOperator fm o3 o4 svalue)
+        (g: @SHOperator fm o2 o3 svalue)
+        (f: @SHOperator fm i1 o2 svalue):
     h ⊚ g ⊚ f = h ⊚ (g ⊚ f).
   Proof.
     f_equiv.
@@ -1643,10 +1646,10 @@ Section OperatorProperies.
 
   Lemma SHCompose_mid_assoc
         {i1 o1 o2 o3 o4}
-        (h: @SHOperator fm o3 o4)
-        (g: @SHOperator fm o2 o3)
-        (f: @SHOperator fm o1 o2)
-        (k: @SHOperator fm i1 o1):
+        (h: @SHOperator fm o3 o4 svalue)
+        (g: @SHOperator fm o2 o3 svalue)
+        (f: @SHOperator fm o1 o2 svalue)
+        (k: @SHOperator fm i1 o1 svalue):
     h ⊚ g ⊚ f ⊚ k = h ⊚ (g ⊚ f) ⊚ k.
   Proof.
     repeat f_equiv.
@@ -1654,9 +1657,9 @@ Section OperatorProperies.
 
   Lemma SHFamilyOperatorCompose_SHFamilyOperatorCompose
         {i0 i1 o2 o3 n}
-        (F: @SHOperatorFamily fm o2 o3 n)
-        (op1: @SHOperator fm i1 o2)
-        (op2: @SHOperator fm i0 i1)
+        (F: @SHOperatorFamily fm o2 o3 n svalue)
+        (op1: @SHOperator fm i1 o2 svalue)
+        (op2: @SHOperator fm i0 i1 svalue)
     : SHFamilyOperatorCompose fm (SHFamilyOperatorCompose fm F op1) op2 = SHFamilyOperatorCompose fm F (SHCompose fm op1 op2).
   Proof.
     unfold SHFamilyOperatorCompose, SHCompose, compose.
@@ -1975,7 +1978,7 @@ Section OperatorProperies.
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (op _ (SHPointwise fm f) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
+    Vnth (op _ (svalue:=svalue) (SHPointwise fm f) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
   Proof.
     simpl.
     unfold SHPointwise'.
@@ -1987,7 +1990,7 @@ Section OperatorProperies.
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-    SHPointwise fm f =
+    SHPointwise fm f (svalue:=svalue) =
     liftM_HOperator fm (@HPointwise n f).
   Proof.
     apply ext_equiv_applied_equiv.
@@ -2030,8 +2033,8 @@ Section OperatorProperies.
 
   Lemma ApplyFamily_SHOperatorFamilyCompose
         {i1 o2 o3 n}
-        (f: @SHOperator fm o2 o3)
-        (g: @SHOperatorFamily fm i1 o2 n)
+        (f: @SHOperator fm o2 o3 svalue)
+        (g: @SHOperatorFamily fm i1 o2 n svalue)
         {x}
     : Apply_Family fm (SHOperatorFamilyCompose fm f g) x ≡
                    Vmap (op fm f) (Apply_Family fm g x).
@@ -2046,7 +2049,7 @@ Section OperatorProperies.
         (dot : CarrierA → CarrierA → CarrierA)
         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
         (initial : CarrierA)
-        (op_family : SHOperatorFamily fm)
+        (op_family : SHOperatorFamily fm (svalue:=svalue))
         (x : svector fm i)
         (nc : n < S n)
         (j : nat)
@@ -2077,12 +2080,13 @@ Section StructuralProperies.
   Section FlagsMonoidGenericStructuralProperties.
     Variable fm:Monoid RthetaFlags.
     Variable fml:@MonoidLaws RthetaFlags RthetaFlags_type fm.
+    Variable svalue : CarrierA.
 
     Global Instance liftM_HOperator_Facts
            {i o}
            (hop: avector i -> avector o)
            `{HOP: HOperator i o hop}
-      : SHOperator_Facts fm (liftM_HOperator fm hop).
+      : SHOperator_Facts fm (liftM_HOperator fm hop (svalue:=svalue)).
     Proof.
       split.
       -
@@ -2125,10 +2129,10 @@ Section StructuralProperies.
 
     Global Instance SHCompose_Facts
            {i1 o2 o3}
-           (op1: @SHOperator fm o2 o3)
-           (op2: @SHOperator fm i1 o2)
-           `{fop1: SHOperator_Facts fm _ _ op1}
-           `{fop2: SHOperator_Facts fm _ _ op2}
+           (op1: @SHOperator fm o2 o3 svalue)
+           (op2: @SHOperator fm i1 o2 svalue)
+           `{fop1: SHOperator_Facts fm _ _ _ op1}
+           `{fop2: SHOperator_Facts fm _ _ _ op2}
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
       : SHOperator_Facts fm (SHCompose fm op1 op2).
     Proof.
@@ -2191,9 +2195,8 @@ Section StructuralProperies.
 
     Global Instance eUnion_Facts
            {o b:nat}
-           (bc: b < o)
-           (z: CarrierA):
-      SHOperator_Facts fm (eUnion fm bc z).
+           (bc: b < o):
+      SHOperator_Facts fm (eUnion fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2272,7 +2275,7 @@ Section StructuralProperies.
     Global Instance eT_Facts
            {i b:nat}
            (bc: b < i)
-      : SHOperator_Facts fm (eT fm bc).
+      : SHOperator_Facts fm (eT fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2325,7 +2328,7 @@ Section StructuralProperies.
     Global Instance Gather_Facts
            {i o: nat}
            (f: index_map o i)
-      : SHOperator_Facts fm (Gather fm f).
+      : SHOperator_Facts fm (Gather fm f) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2379,7 +2382,7 @@ Section StructuralProperies.
            {n: nat}
            (f: { i | i<n} -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-      SHOperator_Facts fm (SHPointwise fm f).
+      SHOperator_Facts fm (SHPointwise fm f) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2428,7 +2431,7 @@ Section StructuralProperies.
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (initial: CarrierA):
-      SHOperator_Facts fm (SHInductor fm n f initial).
+      SHOperator_Facts fm (SHInductor fm n f initial) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2485,9 +2488,8 @@ Section StructuralProperies.
          {i o: nat}
          (f: index_map i o)
          {f_inj: index_map_injective f}
-         (idv: CarrierA)
     :
-      SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj) idv).
+      SHOperator_Facts Monoid_RthetaFlags (Scatter Monoid_RthetaFlags f (f_inj:=f_inj)) (svalue:=svalue).
   Proof.
     split.
     -
@@ -2564,7 +2566,7 @@ Section StructuralProperies.
          {o}
          (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)).
+    SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp _ f (o:=o)) (svalue:=svalue).
   Proof.
     split.
     -
@@ -2769,10 +2771,11 @@ Section StructuralProperies.
   Qed.
 
   Lemma Is_Val_In_outset
+        {svalue: CarrierA}
         (i o : nat)
         (v: rvector i)
         (j: nat) (jc : j < o)
-        (O: SHOperator Monoid_RthetaFlags)
+        (O: SHOperator Monoid_RthetaFlags (svalue:=svalue))
         (F: SHOperator_Facts Monoid_RthetaFlags O)
         (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
     :
@@ -2793,16 +2796,16 @@ Section StructuralProperies.
   Qed.
 
   Global Instance IUnion_Facts
+         {svalue: CarrierA}
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial: CarrierA)
-         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k)
+         (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
          (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                             (out_index_set _ (op_family (mkFinNat mc)))
                                                             (out_index_set _ (op_family (mkFinNat nc))))
-    : SHOperator_Facts _ (IUnion dot initial op_family).
+    : SHOperator_Facts _ (IUnion dot op_family).
   Proof.
     split.
     -
@@ -2994,13 +2997,13 @@ Section StructuralProperies.
   Qed.
 
   Global Instance IReduction_Facts
+         {svalue: CarrierA}
          {i o k}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial: CarrierA)
-         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k)
+         (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-    : SHOperator_Facts _ (IReduction dot initial op_family).
+    : SHOperator_Facts _ (IReduction dot op_family).
   Proof.
     split.
     -
