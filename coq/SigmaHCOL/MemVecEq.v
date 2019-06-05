@@ -2104,8 +2104,7 @@ Section MemVecEq.
            let (j, jc) := jf in
            Is_Val (Vnth x jc).
 
-
-    Lemma out_index_set_in_vector_val_index_set
+    Lemma out_index_set_same_vector_val_index_set
           {svalue: CarrierA}
           {fm}
           {i o: nat}
@@ -2115,18 +2114,49 @@ Section MemVecEq.
           (H: forall (j : nat) (jc : j < i), in_index_set fm xop
                                                    (mkFinNat jc) → Is_Val (Vnth x jc))
       :
-        Included _
+        Same_set _
                  (out_index_set fm xop)
                  (vector_val_index_set (op fm xop x)).
     Proof.
-      unfold vector_val_index_set.
-      unfold Same_set, Included.
-      intros t H0.
-      unfold Ensembles.In in *.
-      destruct t as [j jc].
-      eapply out_as_range; eauto.
+      split.
+      -
+        unfold vector_val_index_set.
+        unfold Same_set, Included.
+        intros t H0.
+        unfold Ensembles.In in *.
+        destruct t as [j jc].
+        eapply out_as_range; eauto.
+      -
+        unfold vector_val_index_set.
+        unfold Same_set, Included.
+        intros t H0.
+        unfold Ensembles.In in *.
+        destruct t as [j jc].
+
+        destruct (out_dec fm (mkFinNat jc)).
+        apply H1.
+        apply no_vals_at_sparse with (v:=x) in H1; eauto.
+        apply not_Is_Val_Is_Struct in H1.
+        contradict H1; apply H0. (* strangely congruence does not work here *)
     Qed.
 
+    (* Variant of [out_index_set_same_vector_val_index_set] used in rewriting *)
+    Lemma out_index_set_eq_vector_val_index_set
+          {svalue: CarrierA}
+          {fm}
+          {i o: nat}
+          (x: svector fm i)
+          (xop : @SHOperator fm i o svalue)
+          (facts: SHOperator_Facts fm xop)
+          (H: forall (j : nat) (jc : j < i), in_index_set fm xop
+                                                   (mkFinNat jc) → Is_Val (Vnth x jc))
+      :
+        (out_index_set fm xop) ≡ (vector_val_index_set (op fm xop x)).
+    Proof.
+      apply Extensionality_Ensembles.
+      apply out_index_set_same_vector_val_index_set; eauto.
+    Qed.
+    
     Lemma mkEns_mem_keys_In
           (k:nat)
           (m:mem_block)
@@ -3628,6 +3658,9 @@ Section MemVecEq.
             --
               apply pdot.
             --
+              unfold get_family_op.
+              rewrite <- out_index_set_eq_vector_val_index_set.
+              (* TODO: induction *)
               admit.
             --
               typeclasses eauto.
