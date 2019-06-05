@@ -17,8 +17,6 @@ Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
-Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
-
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
@@ -57,8 +55,7 @@ Proof.
 Qed.
 
 
-
-Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 (*
 Final HCOL -> Sigma-HCOL expression:
@@ -82,14 +79,15 @@ SUMUnion(
   GathH(5, 4, 1, 1)
 )
  *)
-Definition dynwin_SHCOL (a: avector 3) :=
+Definition dynwin_SHCOL (a: avector 3):
+  @SHOperator Monoid_RthetaFlags (1+(2+2)) 1 zero :=
+
   (SafeCast (SHBinOp _ (IgnoreIndex2 Zless)))
     ⊚
     (HTSUMUnion _ plus (
                   ScatH _ 0 1
                         (range_bound := h_bound_first_half 1 1)
                         (snzord0 := @ScatH_stride1_constr 1 2)
-                        zero
                         ⊚
                         (liftM_HOperator _ (@HReduction _ plus 0)  ⊚
                                          SafeCast (SHBinOp _ (IgnoreIndex2 mult))
@@ -105,8 +103,7 @@ Definition dynwin_SHCOL (a: avector 3) :=
                 (
                   (ScatH _ 1 1
                          (range_bound := h_bound_second_half 1 1)
-                         (snzord0 := @ScatH_stride1_constr 1 2)
-                         zero)
+                         (snzord0 := @ScatH_stride1_constr 1 2))
                     ⊚
                     (liftM_HOperator _ (@HReduction _ minmax.max 0))
                     ⊚
@@ -118,7 +115,6 @@ Definition dynwin_SHCOL (a: avector 3) :=
                                                  (Fin1SwapIndex2 jf (IgnoreIndex2 CarrierType.sub))))
                        (fun j => h_index_map (proj1_sig j) 1 (range_bound := (ScatH_1_to_n_range_bound (proj1_sig j) 2 1 (proj2_sig j))))
                        (f_inj := h_j_1_family_injective)
-                       zero
                        (fun j => h_index_map (proj1_sig j) 2 (range_bound:=GathH_jn_domain_bound (proj1_sig j) 2 (proj2_sig j))))
                     ⊚
                     (GathH _ 1 1
@@ -280,7 +276,7 @@ Section SigmaHCOL_rewriting.
   Ltac solve_facs :=
     repeat match goal with
            | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
-           | [ |- @SHOperator_Facts ?m ?i ?o (@SHBinOp _ ?o _ _) ] =>
+           | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
              replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
            | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
            | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
@@ -402,10 +398,12 @@ Section SigmaHCOL_rewriting.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
-        {fm} {P:Rtheta' fm → Prop}
-        {i1 o2 o3 n}
-        (f: @SHOperator fm  o2 o3)
-        (g: @SHOperatorFamily fm i1 o2 n)
+        {fm}
+        {svalue: CarrierA}
+        {P:Rtheta' fm → Prop}
+        {i1 o2 o3 n: nat}
+        (f: @SHOperator fm o2 o3 svalue)
+        (g: @SHOperatorFamily fm i1 o2 n svalue)
     :
       (forall x, Vforall P ((op fm f) x)) ->
       Apply_Family_Vforall_P fm P (SHOperatorFamilyCompose fm f g).
@@ -428,9 +426,9 @@ Section SigmaHCOL_rewriting.
   Qed.
 
   Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
-        {i1 o2 n}
-        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n)
-        (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0)
+        {i1 o2 n: nat}
+        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n zero)
+        (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam)
         (f: FinNat o2 -> CarrierA -> CarrierA)
         {f_mor: Proper (equiv ==> equiv ==> equiv) f}
         (A: forall (i : nat) (ic : i<o2) (v : CarrierA), 0 ≠ f (mkFinNat ic) v -> 0 ≠ v):
@@ -438,8 +436,7 @@ Section SigmaHCOL_rewriting.
                                         (SHOperatorFamilyCompose
                                            Monoid_RthetaFlags
                                            (SHPointwise Monoid_RthetaFlags f (n:=o2))
-                                           fam)
-                                        zero.
+                                           fam).
   Proof.
     unfold Apply_Family_Single_NonUnit_Per_Row in *.
     intros x.
@@ -478,11 +475,12 @@ Section SigmaHCOL_rewriting.
 
   Lemma op_Vforall_P_SHPointwise
         {m n: nat}
+        {svalue: CarrierA}
         {fm: Monoid.Monoid RthetaFlags}
         {f: CarrierA -> CarrierA}
         `{f_mor: !Proper ((=) ==> (=)) f}
         {P: CarrierA -> Prop}
-        (F: @SHOperator fm m n)
+        (F: @SHOperator fm m n svalue)
     :
       (forall x, P (f x)) ->
       op_Vforall_P fm (liftRthetaP P)
@@ -550,9 +548,9 @@ Section SigmaHCOL_rewriting.
     }
 
     {
-      remember (SparseEmbedding _ _ _ _ _) as fam.
+      remember (SparseEmbedding _ _ _ _) as fam.
 
-      assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam 0).
+      assert(Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam).
       {
         subst fam.
         apply SparseEmbedding_Apply_Family_Single_NonUnit_Per_Row.
@@ -625,12 +623,12 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite rewrite_GathH_GathH.
 
     (* Next rule *)
-    setoid_rewrite (SafeCast_SHBinOp 1).
+    setoid_rewrite (SafeCast_SHBinOp _ 1).
     setoid_rewrite (rewrite_PointWise_BinOp 1).
 
     (* Next rule *)
-    setoid_rewrite (SafeCast_SHBinOp 3).
-    setoid_rewrite (UnSafeCast_SHBinOp 1).
+    setoid_rewrite (SafeCast_SHBinOp _ 3).
+    setoid_rewrite (UnSafeCast_SHBinOp _ 1).
     unshelve setoid_rewrite terminate_ScatHUnion1; auto.
     Hint Opaque liftM_HOperator: rewrite.
     setoid_rewrite SafeCast_HReduction.
@@ -680,7 +678,7 @@ Section SigmaHCOL_rewriting.
 
     unfold eTn.
     match goal with
-    | [ |- context [ IReduction plus _ ?f ]] =>
+    | [ |- context [ IReduction plus ?f ]] =>
       match f with
       | (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (eT _ ?l) (SHPointwise _ ?c)) ?rest) =>  setoid_replace f with
             (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex jf c)) (eT _ l)) rest)
@@ -815,7 +813,7 @@ Section SigmaHCOL_rewriting.
   Theorem SHCOL_to_SHCOL1_Rewriting
           (a: avector 3)
     : @SHOperator_subtyping
-        _ _ _
+        _ _ _ _
         (dynwin_SHCOL1 a)
         (dynwin_SHCOL a)
         (DynWinSigmaHCOL1_Facts _)
@@ -847,6 +845,8 @@ Section SigmaHCOL_rewriting.
   Qed.
 
 End SigmaHCOL_rewriting.
+
+Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 
 Section SigmaHCOL_to_DSHCOL.
 

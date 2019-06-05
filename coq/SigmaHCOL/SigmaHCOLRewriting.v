@@ -1,6 +1,3 @@
-
-Global Generalizable All Variables.
-
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.Misc.
@@ -770,7 +767,7 @@ End SigmaHCOLHelperLemmas.
 
 Section SigmaHCOLExpansionRules.
 
-  Parameter svalue:CarrierA.
+  Variable svalue:CarrierA.
 
   Section Value_Correctness.
 

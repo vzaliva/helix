@@ -17,7 +17,7 @@ Definition dynwin_orig (a: avector 3) :=
      (HChebyshevDistance 2)).
 
 
-Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ g f) (at level 40, left associativity) : type_scope.
+Local Notation "g ⊚ f" := (@SHCompose Monoid_RthetaFlags _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
 (*
 
@@ -41,9 +41,9 @@ SUMUnion(
   )
 )
 *)
-Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)) 1
-  :=   (@SafeCast (Init.Nat.add (S O) (S O)) (S O)
-                  (@SHBinOp Monoid_RthetaSafeFlags (S O)
+Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)) 1 zero
+  :=   (@SafeCast _ (Init.Nat.add (S O) (S O)) (S O)
+                  (@SHBinOp Monoid_RthetaSafeFlags _ (S O)
                             (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O)))
                                            Zless)
                             (@Reflexive_partial_app_morphism
@@ -77,9 +77,9 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                        (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
                                   Zless_proper))))
          ⊚ HTSUMUnion Monoid_RthetaFlags plus
-         (eUnion Monoid_RthetaFlags (le_S (le_n 1)) 0
+         (eUnion Monoid_RthetaFlags (le_S (le_n 1))
                  ⊚ SafeCast
-                 (IReduction plus 0
+                 (IReduction plus
                              (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
                                                       ( λ jf,
                                                         SHCompose Monoid_RthetaSafeFlags
@@ -90,9 +90,9 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                                   (SHInductor _ (proj1_sig jf) mult 1))
                                                       (eT Monoid_RthetaSafeFlags
                                                           (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
-         (eUnion Monoid_RthetaFlags (le_n 2) 0
+         (eUnion Monoid_RthetaFlags (le_n 2)
                  ⊚ SafeCast
-                 (IReduction minmax.max 0
+                 (IReduction minmax.max
                              (λ jf,
                               SHCompose Monoid_RthetaSafeFlags
                                         (SHBinOp Monoid_RthetaSafeFlags
@@ -106,7 +106,6 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                            (ISumUnion
                                               (λ jf0,
                                                eUnion Monoid_RthetaFlags (proj2_sig jf0)
-                                                      0
                                                       ⊚
                                                       eT Monoid_RthetaFlags
                                                       (h_index_map_compose_range_bound
