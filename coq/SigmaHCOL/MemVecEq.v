@@ -3581,6 +3581,7 @@ Section MemVecEq.
               auto.
             }
 
+            (* Shrink hypothes [Z] *)
             assert(Z': forall
                       (x : svector Monoid_RthetaFlags i) (t : nat) (tc : t < o)
                       (k : nat) (kc : k < n),
@@ -3593,7 +3594,8 @@ Section MemVecEq.
                              (get_family_op Monoid_RthetaFlags
                                             (shrink_op_family_up Monoid_RthetaFlags op_family) k kc x) tc) = svalue).
             {
-              admit.
+              intros x0 t tc k kc.
+              apply Z.
             }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
