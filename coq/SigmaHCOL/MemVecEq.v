@@ -2100,9 +2100,7 @@ Section MemVecEq.
                {fm}
                {n:nat}
                (x: svector fm n): FinNatSet n
-      := fun jf =>
-           let (j, jc) := jf in
-           Is_Val (Vnth x jc).
+      := fun jf => Is_Val (Vnth x (proj2_sig jf)).
 
     Lemma out_index_set_same_vector_val_index_set
           {svalue: CarrierA}
