@@ -3270,6 +3270,115 @@ Section MemVecEq.
       apply out_as_range ; eauto.
     Qed.
 
+    Lemma IUnion_vector_val_index_set_disjoint
+          {svalue : CarrierA}
+          {i o n : nat}
+          {dot : CarrierA → CarrierA → CarrierA}
+          {op_family : SHOperatorFamily Monoid_RthetaFlags (svalue:=svalue)}
+          {op_family_facts : forall (j : nat) (jc : j < S n), SHOperator_Facts Monoid_RthetaFlags
+                                                                        (op_family (mkFinNat jc))}
+          (compat : forall (m : nat) (mc : m < S n) (n0 : nat) (nc : n0 < S n),
+              m ≢ n0
+              → Disjoint (FinNat o) (out_index_set Monoid_RthetaFlags (op_family (mkFinNat mc)))
+                         (out_index_set Monoid_RthetaFlags (op_family (mkFinNat nc))))
+
+          {x : vector (Rtheta' Monoid_RthetaFlags) i}
+          {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
+                                                           (mkFinNat jc) → Is_Val (Vnth x jc)}
+          {v : vector (svector Monoid_RthetaFlags o) n}
+          {v0 : svector Monoid_RthetaFlags o}
+          {V0 : v0 ≡ get_family_op Monoid_RthetaFlags op_family 0 (Nat.lt_0_succ n) x}
+          {V : v
+                 ≡ Vbuild
+                 (λ (i0 : nat) (ip : i0 < n), get_family_op Monoid_RthetaFlags op_family
+                                                          (S i0) (lt_n_S ip) x)}
+      :
+        Disjoint (FinNat o)
+                 (vector_val_index_set
+                    (Vfold_left_rev (Vec2Union Monoid_RthetaFlags dot) (Vconst (mkStruct svalue) o)
+                                    v))
+                 (vector_val_index_set
+                    (get_family_op Monoid_RthetaFlags op_family 0 (Nat.lt_0_succ n) x)).
+    Proof.
+      (*
+
+              unfold get_family_op.
+              unshelve rewrite <- out_index_set_eq_vector_val_index_set.
+              2: apply op_family_facts.
+              2:{
+                intros j jc H0.
+                apply H.
+                eapply family_in_set_includes_members.
+                eapply H0.
+              }
+
+              clear - V compat'.
+              induction n.
+              ++
+                dep_destruct v.
+                simpl.
+                rewrite vector_val_index_set_Vconst_Empty.
+                apply Disjoint_empty.
+              ++
+                dep_destruct v; clear v; rename h into v0, x0 into v.
+                simpl.
+                unfold Vec2Union, vector_val_index_set in *.
+                split.
+                intros k HD.
+                rewrite Vbuild_cons in V; apply Vcons_eq_elim in V;
+                  destruct V as [V0 V].
+
+
+                (* shrink compat' *)
+                assert(compat'': forall (m : nat) (mc : m < n) (n0 : nat) (nc : n0 < n),
+                          m ≢ n0 ->
+                          Disjoint (FinNat o)
+                                   (out_index_set Monoid_RthetaFlags
+                                                  (shrink_op_family_up Monoid_RthetaFlags
+                                                                       (shrink_op_family_up Monoid_RthetaFlags op_family)
+                                                                       (mkFinNat mc)))
+                                   (out_index_set Monoid_RthetaFlags
+                                                  (shrink_op_family_up Monoid_RthetaFlags
+                                                                       (shrink_op_family_up Monoid_RthetaFlags op_family)
+                                                                       (mkFinNat nc)))).
+                {
+                  intros m mc n0 nc H0.
+                  apply compat'.
+                  auto.
+                }
+
+                specialize (IHn (shrink_op_family_up _ op_family) v V compat'').
+
+
+                apply Constructive_sets.Intersection_inv in HD.
+                destruct HD as [HD1 HD2].
+                unfold Ensembles.In in *.
+                rewrite Vnth_map2 in HD1.
+                apply ValUnionIsVal in HD1.
+
+                destruct IHn as [IHn _].
+                specialize (IHn k).
+                unfold shrink_op_family_up in *.
+                simpl in *.
+                contradict IHn.
+
+                destruct HD1 as [HD1f | HD1v]; split;
+                  unfold Ensembles.In; simpl.
+
+                **
+                  unfold Ensembles.In.
+                  apply HD1f.
+                **
+                  unfold Ensembles.In.
+                  unfold shrink_op_family_up.
+                  unfold mkFinNat in *.
+                  simpl in *.
+                  admit.
+                **
+
+       *)
+    Admitted.
+
     Global Instance IUnion_Mem
            {svalue: CarrierA}
            {i o k}
@@ -3681,58 +3790,7 @@ Section MemVecEq.
             --
               apply pdot.
             --
-              unfold get_family_op.
-              unshelve rewrite <- out_index_set_eq_vector_val_index_set.
-              2:apply op_family_facts.
-              2:{
-                intros j jc H0.
-                apply H.
-                eapply family_in_set_includes_members.
-                eapply H0.
-              }
-
-              clear - V.
-              induction n.
-              ++
-                dep_destruct v.
-                simpl.
-                rewrite vector_val_index_set_Vconst_Empty.
-                apply Disjoint_empty.
-              ++
-                dep_destruct v; clear v; rename h into v0, x0 into v.
-                simpl.
-                unfold Vec2Union, vector_val_index_set in *.
-                split.
-                intros k HD.
-                rewrite Vbuild_cons in V; apply Vcons_eq_elim in V;
-                  destruct V as [V0 V].
-
-                specialize (IHn (shrink_op_family_up _ op_family) v V).
-
-                apply Constructive_sets.Intersection_inv in HD.
-                destruct HD as [HD1 HD2].
-                unfold Ensembles.In in *.
-                rewrite Vnth_map2 in HD1.
-                apply ValUnionIsVal in HD1.
-
-                destruct IHn as [IHn _].
-                specialize (IHn k).
-                contradict IHn.
-
-                destruct HD1 as [HD1f | HD1v]; split;
-                  unfold Ensembles.In; simpl.
-
-                **
-                  unfold Ensembles.In.
-                  apply HD1f.
-                **
-                  unfold Ensembles.In.
-                  unfold shrink_op_family_up.
-                  unfold mkFinNat in *.
-                  simpl in *.
-                  apply HD2.
-                admit.
-
+              eapply IUnion_vector_val_index_set_disjoint; eauto.
             --
               typeclasses eauto.
             --
@@ -3761,7 +3819,7 @@ Section MemVecEq.
           apply H.
           eapply family_in_set_includes_members.
           apply H0.
-    Admitted.
+    Qed.
 
   End MonoidSpecific.
 
