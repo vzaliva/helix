@@ -1,8 +1,10 @@
 
 Require Export Coq.Init.Specif.
 Require Export Coq.Sets.Ensembles.
+Require Import Coq.Sets.Constructive_sets.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Arith.Peano_dec.
+
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Tactics.HelixTactics.
@@ -186,4 +188,18 @@ Proof.
     destruct H1 as [H1];
     contradict H0;
     crush.
+Qed.
+
+Lemma Disjoint_empty
+      {T: Type}
+      {B: Ensemble T}
+  :
+    Disjoint T (Empty_set T) B.
+Proof.
+  split.
+  intros x H.
+  unfold Ensembles.In in *.
+  destruct H.
+  apply Constructive_sets.Noone_in_empty in H.
+  tauto.
 Qed.
