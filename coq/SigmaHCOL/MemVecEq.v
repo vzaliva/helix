@@ -3664,7 +3664,8 @@ Section MemVecEq.
             simpl.
 
             break_match; try some_none.
-            rewrite svector_to_mem_block_Vec2Union_mem_merge.
+            rewrite svector_to_mem_block_Vec2Union_mem_merge
+              with (a_zero:=svalue).
             --
               some_inv.
               rewrite IHn; clear IHn.
@@ -3681,9 +3682,57 @@ Section MemVecEq.
               apply pdot.
             --
               unfold get_family_op.
-              rewrite <- out_index_set_eq_vector_val_index_set.
-              (* TODO: induction *)
-              admit.
+              unshelve rewrite <- out_index_set_eq_vector_val_index_set.
+              2:apply op_family_facts.
+              2:{
+                intros j jc H0.
+                apply H.
+                eapply family_in_set_includes_members.
+                eapply H0.
+              }
+
+              clear - V.
+              induction n.
+              ++
+                dep_destruct v.
+                simpl.
+                rewrite vector_val_index_set_Vconst_Empty.
+                apply Disjoint_empty.
+              ++
+                dep_destruct v; clear v; rename h into v0, x0 into v.
+                simpl.
+                unfold Vec2Union, vector_val_index_set in *.
+                split.
+                intros k HD.
+                rewrite Vbuild_cons in V; apply Vcons_eq_elim in V;
+                  destruct V as [V0 V].
+
+                specialize (IHn (shrink_op_family_up _ op_family) v V).
+
+                apply Constructive_sets.Intersection_inv in HD.
+                destruct HD as [HD1 HD2].
+                unfold Ensembles.In in *.
+                rewrite Vnth_map2 in HD1.
+                apply ValUnionIsVal in HD1.
+
+                destruct IHn as [IHn _].
+                specialize (IHn k).
+                contradict IHn.
+
+                destruct HD1 as [HD1f | HD1v]; split;
+                  unfold Ensembles.In; simpl.
+
+                **
+                  unfold Ensembles.In.
+                  apply HD1f.
+                **
+                  unfold Ensembles.In.
+                  unfold shrink_op_family_up.
+                  unfold mkFinNat in *.
+                  simpl in *.
+                  apply HD2.
+                admit.
+
             --
               typeclasses eauto.
             --
