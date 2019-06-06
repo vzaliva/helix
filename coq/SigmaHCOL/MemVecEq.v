@@ -3228,6 +3228,30 @@ Section MemVecEq.
         apply cast_mem_op_eq; auto.
     Qed.
 
+    Lemma vector_val_index_set_Vconst_Empty
+          {fm}
+          {fml: @MonoidLaws RthetaFlags RthetaFlags_type fm}
+          {n:nat}
+          {svalue: CarrierA}
+      :
+        vector_val_index_set (fm:=fm) (Vconst (mkStruct svalue) n)
+                             ≡ Empty_set (FinNat n).
+    Proof.
+      apply Extensionality_Ensembles.
+      split; intros j H.
+      -
+        exfalso.
+        unfold Ensembles.In in H.
+        unfold vector_val_index_set in H.
+        destruct j as [j jc].
+        rewrite Vnth_const in H.
+        apply Is_Val_mkStruct in H.
+        tauto.
+      -
+        apply Constructive_sets.Noone_in_empty in H.
+        tauto.
+    Qed.
+
     Lemma sparse_outputs_not_in_out_set
           {svalue: CarrierA}
           {fm}
