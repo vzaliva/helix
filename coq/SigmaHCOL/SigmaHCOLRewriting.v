@@ -1040,6 +1040,7 @@ Section SigmaHCOLExpansionRules.
         apply f_mor.
     Qed.
 
+
     (*
    ApplyFunc(SUMUnion, List([1..Length(ch)], i->OLCompose(
             ScatHUnion(Rows(o), Rows(ch[i]), Sum(List(ch{[1..i-1]}, c->c.dims()[1])), 1),
@@ -1055,12 +1056,14 @@ Section SigmaHCOLExpansionRules.
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
+            {scompat: plus zero zero = zero}
       :
         liftM_HOperator fm (svalue:=zero) (HTDirectSum f g)
         =
         HTSUMUnion
           _
           plus
+          scompat
           (SHCompose fm
                      (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
                      (SHCompose fm
@@ -3102,6 +3105,29 @@ Section SigmaHCOLRewritingRules.
       apply VPermutation_Vsig_of_forall, V.
     Qed.
 
+
+    Fact Monoid_to_scompat
+         `{f: SgOp CarrierA}
+         `{z: MonUnit CarrierA}
+         `{mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f z}
+      : f z z = z.
+    Proof.
+      apply monoid_left_id.
+      typeclasses eauto.
+    Qed.
+
+    Fact RMonoid_to_scompat
+         `{f: SgOp CarrierA}
+         `{z: MonUnit CarrierA}
+         `{P : SgPred CarrierA}
+         `{mon: @CommutativeRMonoid _ _ f z P}
+      : f z z = z.
+    Proof.
+      eapply rmonoid_left_id; try typeclasses eauto.
+      eapply rmonoid_unit_P; typeclasses eauto.
+    Qed.
+
+
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Theorem rewrite_Reduction_IReduction
             {i o n}
@@ -3125,12 +3151,14 @@ Section SigmaHCOLRewritingRules.
 
             (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
             (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
+            {u_scompat: u uf_zero uf_zero = uf_zero} (* coudld be derived from [u_mon] by [Monoid_to_scompat] but we generalize it to aid rewriting *)
+            {f_scompat: f uf_zero uf_zero = uf_zero} (* coudld be derived from [f_mon] by [RMonoid_to_scompat] but we generalize it to aid rewriting *)
       :
 
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
-          ⊚ (@IUnion uf_zero i o n u _ op_family)
+          ⊚ (@IUnion uf_zero i o n u _ u_scompat op_family)
         =
-        SafeCast (IReduction f
+        SafeCast (IReduction f (scompat:=f_scompat)
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
     Proof.
@@ -3145,7 +3173,7 @@ Section SigmaHCOLRewritingRules.
                op Monoid_RthetaFlags (op_family (mkFinNat jc))) with  (get_family_op _ op_family) by reflexivity.
 
       rewrite <- Diamond_f_subst_under_P with (f0:=f) (u0:=u) (P0:=P); auto ; try apply f_mon.
-      clear u u_mon.  (* No more 'u' *)
+      clear u u_mon u_scompat.  (* No more 'u' *)
       clear Uz. (* Single non-unit per row constaint no longer needed *)
 
       apply ext_equiv_applied_equiv.
@@ -3699,7 +3727,7 @@ Section SigmaHCOLRewritingRules.
         pose(lr := fun x => x/n+(x mod n)*m).
         assert(lrc: forall x (xc:x<m*n), lr x < m*n).
         {
-          clear z f P f_mon mat Mpoz.
+          clear z f P f_mon f_scompat mat Mpoz.
           subst lr.
           intros x xc.
           assert(x mod n < n) by auto.
@@ -3712,7 +3740,7 @@ Section SigmaHCOLRewritingRules.
         pose(rl := fun x => x/m + (x mod m)*n).
         assert(rlc: forall x (xc:x<m*n), rl x < m*n).
         {
-          clear z f P f_mon mat Mpoz.
+          clear z f P f_mon f_scompat mat Mpoz.
           subst rl.
           intros x xc.
           assert(x mod m < m) by auto.
@@ -3724,7 +3752,7 @@ Section SigmaHCOLRewritingRules.
         assert(RLR: forall x (xc:x<m*n), lr (rl x) ≡ x).
         {
           intros x xc.
-          clear z f P f_mon mat Mpoz lrm.
+          clear z f P f_mon f_scompat mat Mpoz lrm.
           subst lr rl.
           simpl in *.
           assert(NZ: n ≢ 0) by crush.
@@ -3747,7 +3775,7 @@ Section SigmaHCOLRewritingRules.
         assert(LRL: forall x (xc:x<m*n), rl (lr x) ≡ x).
         {
           intros x xc.
-          clear z f P f_mon mat Mpoz lrm RLR.
+          clear z f P f_mon f_scompat mat Mpoz lrm RLR.
           subst lr rl.
           simpl in *.
           assert(NZ: n ≢ 0) by crush.
@@ -3773,7 +3801,7 @@ Section SigmaHCOLRewritingRules.
         pose(rlm := IndexMap _ _ rl rlc).
         assert(RLMB: index_map_bijective rlm).
         {
-          clear z f P f_mon mat Mpoz Heql Heqr.
+          clear z f P f_mon f_scompat mat Mpoz Heql Heqr.
           split.
           -
             (* injectivity *)
@@ -3950,11 +3978,12 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
+          {scompat: max zero zero = zero}
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero))
           ⊚ (ISumUnion op_family)
         =
-        SafeCast (IReduction max
+        SafeCast (IReduction max (scompat:=scompat)
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
     Proof.
@@ -3968,7 +3997,7 @@ Section SigmaHCOLRewritingRules.
                                                       (@monoid_semigroup CarrierA CarrierAe CarrierAplus zero
                                                                          (@commonoid_mon CarrierA CarrierAe CarrierAplus zero CommutativeMonoid_plus_zero))) by apply proof_irrelevance.
 
-      eapply rewrite_Reduction_IReduction; auto.
+      eapply rewrite_Reduction_IReduction ; auto.
     Qed.
 
     (* Variant of SPIRAL's `rewrite_ISumXXX_YYY` rule for [IReduction] and [GatH]

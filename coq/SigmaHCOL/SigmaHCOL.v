@@ -63,6 +63,12 @@ Section SigmaHCOL_Operators.
 
              in_index_set: FinNatSet i ;
              out_index_set: FinNatSet o;
+
+
+             (* default values at sparse positions *)
+             svalue_at_sparse: forall v,
+                 (forall j (jc:j<o), ¬ out_index_set (mkFinNat jc) ->
+                                evalWriter (Vnth (op v) jc) = svalue);
            }.
 
     (* Two vectors (=) at indices at given set *)
@@ -177,12 +183,6 @@ Section SigmaHCOL_Operators.
           (* Never generate collisions on sparse places *)
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
-
-          (* default values at sparse positions *)
-          svalue_at_sparse: forall v,
-              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) ->
-                             evalWriter (Vnth (op xop v) jc) = svalue);
-
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
@@ -1125,7 +1125,7 @@ Section SigmaHCOL_Operators.
         apply H.
     Qed.
 
-    Definition liftM_HOperator
+    Program Definition liftM_HOperator
                {i o: nat}
                {svalue: CarrierA}
                (op: avector i -> avector o)
@@ -1134,7 +1134,12 @@ Section SigmaHCOL_Operators.
                       (liftM_HOperator' op)
                       (@liftM_HOperator'_proper fm i o op HOP)
                       (Full_set _)
-                      (Full_set _).
+                      (Full_set _)
+                      _.
+    Next Obligation.
+      contradict H.
+      split.
+    Qed.
 
     (** Apply family of SHOperator's to same vector and return matrix of results *)
     Definition Apply_Family
@@ -1199,36 +1204,54 @@ Section SigmaHCOL_Operators.
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
-    Definition IdOp
-               {svalue: CarrierA}
-               {n: nat}
-               (in_out_set:FinNatSet n)
-      := mkSHOperator n n svalue id _
-                      in_out_set in_out_set.
-
-    Definition eUnion
+    Program Definition eUnion
                {svalue: CarrierA}
                {o b: nat}
                (bc: b < o)
       := mkSHOperator 1 o svalue (eUnion' bc svalue) _
                       (Full_set _)
-                      (FinNatSet.singleton b).
+                      (FinNatSet.singleton b) _.
+    Next Obligation.
+      (* svalue_at_sparse *)
+      simpl in *.
+      unfold eUnion'.
+      rewrite Vbuild_nth.
+      break_if.
+      +
+        subst b.
+        contradict H.
+        reflexivity.
+      +
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+    Qed.
 
-    Definition eT
+    Program Definition eT
                {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
       := mkSHOperator i 1 svalue (eT' bc) _
                       (FinNatSet.singleton b)
-                      (Full_set _).
+                      (Full_set _) _.
+    Next Obligation.
+      contradict H.
+      simpl.
+      split.
+    Qed.
 
-    Definition Gather
+    Program Definition Gather
                {svalue: CarrierA}
                {i o: nat}
                (f: index_map o i)
       := mkSHOperator i o svalue (Gather' f) _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
-                      (Full_set _) (* Gater always writes everywhere *).
+                      (Full_set _) (* Gater always writes everywhere *)
+                      _.
+    Next Obligation.
+      contradict H.
+      simpl.
+      split.
+    Qed.
 
     Definition GathH
                {svalue: CarrierA}
@@ -1240,14 +1263,27 @@ Section SigmaHCOL_Operators.
                             (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
                ) (svalue:=svalue).
 
-    Definition Scatter
+    Program Definition Scatter
                {svalue: CarrierA}
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
       := mkSHOperator i o svalue (@Scatter' _ _ _ f f_inj svalue) _
                       (Full_set _) (* Scatter always reads evertying *)
-                      (index_map_range_set f) (* Write pattern is governed by index function *).
+                      (index_map_range_set f) (* Write pattern is governed by index function *) _.
+    Next Obligation.
+      simpl in *.
+      unfold index_map_range_set in H.
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      break_match.
+      *
+        simpl in H.
+        congruence.
+      *
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+    Qed.
 
     Definition ScatH
                {svalue: CarrierA}
@@ -1260,15 +1296,26 @@ Section SigmaHCOL_Operators.
                 (svalue:=svalue)
                 (f_inj := h_index_map_is_injective base stride (snzord0:=snzord0)).
 
+
     (* TODO: Enforce in_index_set op1 = out_index_set op2 *)
-    Definition SHCompose
+    Program Definition SHCompose
                {svalue: CarrierA}
                {i1 o2 o3}
                (op1: @SHOperator o2 o3 svalue)
                (op2: @SHOperator i1 o2 svalue)
       : @SHOperator i1 o3 svalue := mkSHOperator i1 o3 svalue (compose (op op1) (op op2)) _
                                                  (in_index_set op2)
-                                                 (out_index_set op1).
+                                                 (out_index_set op1)
+                                                 _
+    .
+    Next Obligation.
+      (* svalue_at_sparse *)
+      destruct op1, op2.
+      simpl in *.
+      unfold compose in *.
+      eapply svalue_at_sparse0.
+      apply H.
+    Qed.
 
     Local Notation "g ⊚ f" := (@SHCompose _ _ _ _ g f) (at level 40, left associativity) : type_scope.
 
@@ -1389,22 +1436,32 @@ Section SigmaHCOL_Operators.
       apply Eg.
     Qed.
 
-    Definition SHPointwise
+    Program Definition SHPointwise
                {svalue: CarrierA}
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       := mkSHOperator n n svalue (SHPointwise' f) _
-                      (Full_set _) (Full_set _).
+                      (Full_set _) (Full_set _) _.
+    Next Obligation.
+      contradict H.
+      simpl.
+      split.
+    Qed.
 
-    Definition SHInductor
+    Program Definition SHInductor
                {svalue: CarrierA}
                (n:nat)
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
       := mkSHOperator 1 1 svalue (SHInductor' n f initial) _
-                      (Full_set _) (Full_set _).
+                      (Full_set _) (Full_set _) _ .
+    Next Obligation.
+      contradict H.
+      simpl.
+      split.
+    Qed.
 
     (* Sparse Embedding is an operator family *)
     Definition SparseEmbedding
@@ -1419,9 +1476,9 @@ Section SigmaHCOL_Operators.
                (g: index_map_family ki i n)
       : @SHOperatorFamily i o n svalue
       := fun jf => (Scatter (f jf)
-                            (f_inj := index_map_family_member_injective f_inj jf))
-                     ⊚ (kernel jf)
-                     ⊚ (Gather (g jf)).
+                         (f_inj := index_map_family_member_injective f_inj jf))
+                  ⊚ (kernel jf)
+                  ⊚ (Gather (g jf)).
 
     Lemma Scatter'_Unit_at_sparse
           {i o: nat}
@@ -1515,23 +1572,30 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
-    Definition SHBinOp
+    Program Definition SHBinOp
                {svalue: CarrierA}
                {o: nat}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       := mkSHOperator (o+o) o svalue (SHBinOp' f) _
-                      (Full_set _) (Full_set _).
+                      (Full_set _) (Full_set _) _.
+    Next Obligation.
+      contradict H.
+      simpl.
+      split.
+    Qed.
 
   End FlagsMonoidGenericOperators.
 
-  Definition IUnion
+  Program Definition IUnion
              {svalue: CarrierA}
              {i o n: nat}
              (* Functional parameters *)
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+             `{scompat: dot svalue svalue = svalue}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+
     : @SHOperator Monoid_RthetaFlags i o svalue
     :=
       mkSHOperator Monoid_RthetaFlags i o svalue
@@ -1539,16 +1603,60 @@ Section SigmaHCOL_Operators.
                    _
                    (family_in_index_set _ op_family)
                    (family_out_index_set _ op_family)
-  . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
+  _ . (* requires get_family_op_proper OR SHOperator_op_arg_proper *)
+    Next Obligation.
+      (* svalue_at_sparse *)
+      rename H into S.
+      unfold Diamond, Apply_Family'.
+      rewrite AbsorbMUnionIndex_Vbuild.
+      unfold UnionFold.
+
+      pose proof (family_out_set_implies_members Monoid_RthetaFlags i o n op_family j jc) as M.
+      apply not_iff_compat in M.
+      apply M in S; clear M.
+      unfold get_family_op.
+      induction n.
+      +
+        simpl.
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+      +
+        rewrite Vbuild_cons.
+        rewrite Vfold_left_rev_cons.
+        rewrite evalWriterUnion.
+        specialize (IHn
+                      (shrink_op_family_up _ op_family)
+                   ).
+        rewrite IHn; clear IHn.
+        *
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S 0).
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S (Nat.lt_0_succ n)).
+          apply svalue_at_sparse with (v:=v) in S; eauto.
+          rewrite S.
+          apply scompat.
+        *
+          unfold shrink_op_family_up.
+          intros H.
+          destruct H as [t [tc H]].
+          contradict S.
+          unfold mkFinNat in *.
+          simpl in *.
+          exists (S t).
+          exists (lt_n_S tc).
+          apply H.
+    Qed.
 
   Global Instance IUnion_proper
          {svalue: CarrierA}
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         `{scompat: dot svalue svalue = svalue}
     :
       Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n svalue) ==> (@SHOperator_equiv Monoid_RthetaFlags i o svalue))
-             (@IUnion svalue i o n dot pdot).
+             (@IUnion svalue i o n dot pdot scompat).
   Proof.
     intros fam fam' Ef.
     intros x y E.
@@ -1559,12 +1667,25 @@ Section SigmaHCOL_Operators.
     apply Ef.
   Qed.
 
+  Fact Zero_Plus_scompat:
+      plus zero zero = zero.
+  Proof.
+    ring.
+  Qed.
+
+  Fact Zero_Max_scompat:
+      max zero zero = zero.
+  Proof.
+    compute.
+    break_if; reflexivity.
+  Qed.
+
   Definition ISumUnion
              {i o n: nat}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
     : @SHOperator Monoid_RthetaFlags i o zero
     :=
-      @IUnion zero i o n CarrierAplus _ op_family.
+      @IUnion zero i o n CarrierAplus _ Zero_Plus_scompat op_family.
 
   Global Instance ISumUnion_proper
          {i o n}
@@ -1581,11 +1702,12 @@ Section SigmaHCOL_Operators.
   values are structural zeros it will do row sums. It could not
   produce new errors, but should propagate errors from before.
    *)
-  Definition IReduction
+  Program Definition IReduction
              {svalue: CarrierA}
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+             `{scompat: dot svalue svalue = svalue}
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue)
     : @SHOperator Monoid_RthetaSafeFlags i o svalue :=
     mkSHOperator Monoid_RthetaSafeFlags i o svalue
@@ -1593,15 +1715,60 @@ Section SigmaHCOL_Operators.
                  _
                  (family_in_index_set _ op_family)
                  (family_out_index_set _ op_family) (* All scatters must be [Full_set] but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *)
-  .
+  _ .
+  Next Obligation.
+    rename H into S, n into k.
+    simpl in *.
+
+    unfold Diamond, Apply_Family'.
+    rewrite AbsorbMUnionIndex_Vbuild.
+    unfold UnionFold.
+
+    pose proof (family_out_set_implies_members _ i o k op_family j jc) as M.
+    apply not_iff_compat in M.
+    apply M in S; clear M.
+    unfold get_family_op.
+    induction k.
+    +
+      simpl.
+      rewrite evalWriter_mkStruct.
+      reflexivity.
+    +
+      rewrite Vbuild_cons.
+      rewrite Vfold_left_rev_cons.
+      rewrite evalWriterUnion.
+      specialize (IHk
+                    (shrink_op_family_up _ op_family)
+                 ).
+      rewrite IHk; clear IHk.
+      *
+        rewrite LogicUtil.not_exists_eq in S.
+        specialize (S 0).
+        rewrite LogicUtil.not_exists_eq in S.
+        specialize (S (Nat.lt_0_succ k)).
+        apply svalue_at_sparse with (v:=v) in S; eauto.
+        rewrite S.
+        apply scompat.
+      *
+        unfold shrink_op_family_up.
+        intros H.
+        destruct H as [t [tc H]].
+        contradict S.
+        unfold mkFinNat in *.
+        simpl in *.
+        exists (S t).
+        exists (lt_n_S tc).
+        apply H.
+  Qed.
 
   Global Instance IReduction_proper
          {svalue: CarrierA}
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         `{scompat: dot svalue svalue = svalue}
     :
-      Proper ((=) ==> (=)) (@IReduction svalue i o n dot pdot).
+      Proper ((=) ==> (=)) (@IReduction svalue i o n dot pdot scompat).
   Proof.
     intros x y E.
     unfold IReduction, equiv,  SHOperator_equiv.
@@ -2125,11 +2292,6 @@ Section StructuralProperies.
         unfold not in H.
         destruct H.
         split.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc H.
-        contradict H.
-        split.
     Qed.
 
     Global Instance SHCompose_Facts
@@ -2196,14 +2358,6 @@ Section StructuralProperies.
         unfold compose in *.
         apply no_coll_at_sparse0.
         apply H.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        destruct op1, op2, fop1, fop2.
-        simpl in *.
-        unfold compose in *.
-        eapply svalue_at_sparse0.
-        apply S.
     Qed.
 
     Global Instance eUnion_Facts
@@ -2283,20 +2437,6 @@ Section StructuralProperies.
           congruence.
         +
           apply Not_Collision_mkStruct.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        simpl in *.
-        unfold eUnion'.
-        rewrite Vbuild_nth.
-        break_if.
-        +
-          subst b.
-          contradict S.
-          reflexivity.
-        +
-          rewrite evalWriter_mkStruct.
-          reflexivity.
     Qed.
 
     Global Instance eT_Facts
@@ -2349,12 +2489,6 @@ Section StructuralProperies.
         intros v j jc H.
         simpl in *.
         destruct H.
-        split.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        contradict S.
-        simpl.
         split.
     Qed.
 
@@ -2410,12 +2544,6 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        contradict S.
-        simpl.
-        split.
     Qed.
 
     Global Instance SHPointwise_Facts
@@ -2463,12 +2591,6 @@ Section StructuralProperies.
       - intros v D j jc S.
         simpl in *.
         destruct jc.
-        split.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        contradict S.
-        simpl.
         split.
     Qed.
 
@@ -2524,12 +2646,6 @@ Section StructuralProperies.
       - intros v D j jc S.
         simpl in *.
         destruct jc.
-        split.
-      -
-        (* svalue_at_sparse *)
-        intros v j jc S.
-        contradict S.
-        simpl.
         split.
     Qed.
 
@@ -2612,20 +2728,6 @@ Section StructuralProperies.
       unfold Scatter' in *.
       rewrite Vbuild_nth in S.
       break_match; crush.
-    -
-      (* svalue_at_sparse *)
-      intros v j jc S.
-      simpl in *.
-      unfold index_map_range_set in S.
-      unfold Scatter'.
-      rewrite Vbuild_nth.
-      break_match.
-      *
-        simpl in S.
-        congruence.
-      *
-        rewrite evalWriter_mkStruct.
-        reflexivity.
   Qed.
 
   Global Instance SHBinOp_RthetaSafe_Facts
@@ -2672,12 +2774,6 @@ Section StructuralProperies.
       intros v D j jc S.
       simpl in *.
       destruct jc.
-      split.
-    -
-      (* svalue_at_sparse *)
-      intros v j jc S.
-      contradict S.
-      simpl.
       split.
   Qed.
 
@@ -2878,7 +2974,7 @@ Section StructuralProperies.
                                                             (out_index_set _ (op_family (mkFinNat mc)))
                                                             (out_index_set _ (op_family (mkFinNat nc))))
          (scompat: dot svalue svalue = svalue)
-    : SHOperator_Facts _ (IUnion dot op_family).
+    : SHOperator_Facts _ (IUnion dot op_family (scompat:=scompat)).
   Proof.
     split.
     -
@@ -3067,52 +3163,6 @@ Section StructuralProperies.
         apply family_out_set_implies_members.
         exists m, mc.
         apply M.
-    -
-      (* svalue_at_sparse *)
-      intros v j jc S.
-      simpl in *.
-
-      unfold IUnion, Diamond, Apply_Family'.
-      rewrite AbsorbMUnionIndex_Vbuild.
-      unfold UnionFold.
-
-      pose proof (family_out_set_implies_members Monoid_RthetaFlags i o k op_family j jc) as M.
-      apply not_iff_compat in M.
-      apply M in S; clear M.
-      unfold get_family_op.
-      clear compat.
-      induction k.
-      +
-        simpl.
-        rewrite evalWriter_mkStruct.
-        reflexivity.
-      +
-        rewrite Vbuild_cons.
-        rewrite Vfold_left_rev_cons.
-        rewrite evalWriterUnion.
-        specialize (IHk
-                      (shrink_op_family_up _ op_family)
-                      (shrink_op_family_facts_up _ _ op_family_facts)
-                   ).
-        rewrite IHk; clear IHk.
-        *
-          rewrite LogicUtil.not_exists_eq in S.
-          specialize (S 0).
-          rewrite LogicUtil.not_exists_eq in S.
-          specialize (S (Nat.lt_0_succ k)).
-          apply svalue_at_sparse with (v:=v) in S; eauto.
-          rewrite S.
-          apply scompat.
-        *
-          unfold shrink_op_family_up.
-          intros H.
-          destruct H as [t [tc H]].
-          contradict S.
-          unfold mkFinNat in *.
-          simpl in *.
-          exists (S t).
-          exists (lt_n_S tc).
-          apply H.
   Qed.
 
   Global Instance IReduction_Facts
@@ -3124,7 +3174,7 @@ Section StructuralProperies.
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
          (scompat: dot svalue svalue = svalue)
 
-    : SHOperator_Facts _ (IReduction dot op_family).
+    : SHOperator_Facts _ (IReduction dot op_family (scompat:=scompat)).
   Proof.
     split.
     -
@@ -3265,51 +3315,6 @@ Section StructuralProperies.
         apply no_coll_at_sparse.
         apply op_family_facts.
         apply H.
-    -
-      (* svalue_at_sparse *)
-      intros v j jc S.
-      simpl in *.
-
-      unfold IReduction, Diamond, Apply_Family'.
-      rewrite AbsorbMUnionIndex_Vbuild.
-      unfold UnionFold.
-
-      pose proof (family_out_set_implies_members _ i o k op_family j jc) as M.
-      apply not_iff_compat in M.
-      apply M in S; clear M.
-      unfold get_family_op.
-      induction k.
-      +
-        simpl.
-        rewrite evalWriter_mkStruct.
-        reflexivity.
-      +
-        rewrite Vbuild_cons.
-        rewrite Vfold_left_rev_cons.
-        rewrite evalWriterUnion.
-        specialize (IHk
-                      (shrink_op_family_up _ op_family)
-                      (shrink_op_family_facts_up _ _ op_family_facts)
-                   ).
-        rewrite IHk; clear IHk.
-        *
-          rewrite LogicUtil.not_exists_eq in S.
-          specialize (S 0).
-          rewrite LogicUtil.not_exists_eq in S.
-          specialize (S (Nat.lt_0_succ k)).
-          apply svalue_at_sparse with (v:=v) in S; eauto.
-          rewrite S.
-          apply scompat.
-        *
-          unfold shrink_op_family_up.
-          intros H.
-          destruct H as [t [tc H]].
-          contradict S.
-          unfold mkFinNat in *.
-          simpl in *.
-          exists (S t).
-          exists (lt_n_S tc).
-          apply H.
   Qed.
 
 End StructuralProperies.
