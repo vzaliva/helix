@@ -178,11 +178,11 @@ Section SigmaHCOL_Operators.
           no_coll_at_sparse: forall v,
               (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> Not_Collision (Vnth (op xop v) jc));
 
-          (* TODO:
           (* default values at sparse positions *)
           svalue_at_sparse: forall v,
-              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) -> (Vnth (op xop v) jc) = mkStruct svalue);
-           *)
+              (forall j (jc:j<o), ¬ out_index_set xop (mkFinNat jc) ->
+                             evalWriter (Vnth (op xop v) jc) = svalue);
+
         }.
 
     (* Equivalence of two SHOperators is defined via functional extensionality *)
@@ -2125,6 +2125,11 @@ Section StructuralProperies.
         unfold not in H.
         destruct H.
         split.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc H.
+        contradict H.
+        split.
     Qed.
 
     Global Instance SHCompose_Facts
@@ -2191,6 +2196,14 @@ Section StructuralProperies.
         unfold compose in *.
         apply no_coll_at_sparse0.
         apply H.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        destruct op1, op2, fop1, fop2.
+        simpl in *.
+        unfold compose in *.
+        eapply svalue_at_sparse0.
+        apply S.
     Qed.
 
     Global Instance eUnion_Facts
@@ -2270,6 +2283,20 @@ Section StructuralProperies.
           congruence.
         +
           apply Not_Collision_mkStruct.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        simpl in *.
+        unfold eUnion'.
+        rewrite Vbuild_nth.
+        break_if.
+        +
+          subst b.
+          contradict S.
+          reflexivity.
+        +
+          rewrite evalWriter_mkStruct.
+          reflexivity.
     Qed.
 
     Global Instance eT_Facts
@@ -2323,6 +2350,12 @@ Section StructuralProperies.
         simpl in *.
         destruct H.
         split.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        contradict S.
+        simpl.
+        split.
     Qed.
 
     Global Instance Gather_Facts
@@ -2340,7 +2373,8 @@ Section StructuralProperies.
         apply in_range_dec.
       -
         apply Full_FinNatSet_dec.
-      - intros x y H.
+      -
+        intros x y H.
         simpl in *.
         vec_index_equiv j jc.
         rewrite 2!Gather'_spec.
@@ -2375,6 +2409,12 @@ Section StructuralProperies.
         intros v j jc H.
         simpl in *.
         destruct H.
+        split.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        contradict S.
+        simpl.
         split.
     Qed.
 
@@ -2423,6 +2463,12 @@ Section StructuralProperies.
       - intros v D j jc S.
         simpl in *.
         destruct jc.
+        split.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        contradict S.
+        simpl.
         split.
     Qed.
 
@@ -2478,6 +2524,12 @@ Section StructuralProperies.
       - intros v D j jc S.
         simpl in *.
         destruct jc.
+        split.
+      -
+        (* svalue_at_sparse *)
+        intros v j jc S.
+        contradict S.
+        simpl.
         split.
     Qed.
 
@@ -2560,6 +2612,20 @@ Section StructuralProperies.
       unfold Scatter' in *.
       rewrite Vbuild_nth in S.
       break_match; crush.
+    -
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      simpl in *.
+      unfold index_map_range_set in S.
+      unfold Scatter'.
+      rewrite Vbuild_nth.
+      break_match.
+      *
+        simpl in S.
+        congruence.
+      *
+        rewrite evalWriter_mkStruct.
+        reflexivity.
   Qed.
 
   Global Instance SHBinOp_RthetaSafe_Facts
@@ -2606,6 +2672,12 @@ Section StructuralProperies.
       intros v D j jc S.
       simpl in *.
       destruct jc.
+      split.
+    -
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      contradict S.
+      simpl.
       split.
   Qed.
 
@@ -2805,6 +2877,7 @@ Section StructuralProperies.
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                             (out_index_set _ (op_family (mkFinNat mc)))
                                                             (out_index_set _ (op_family (mkFinNat nc))))
+         (scompat: dot svalue svalue = svalue)
     : SHOperator_Facts _ (IUnion dot op_family).
   Proof.
     split.
@@ -2994,6 +3067,52 @@ Section StructuralProperies.
         apply family_out_set_implies_members.
         exists m, mc.
         apply M.
+    -
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      simpl in *.
+
+      unfold IUnion, Diamond, Apply_Family'.
+      rewrite AbsorbMUnionIndex_Vbuild.
+      unfold UnionFold.
+
+      pose proof (family_out_set_implies_members Monoid_RthetaFlags i o k op_family j jc) as M.
+      apply not_iff_compat in M.
+      apply M in S; clear M.
+      unfold get_family_op.
+      clear compat.
+      induction k.
+      +
+        simpl.
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+      +
+        rewrite Vbuild_cons.
+        rewrite Vfold_left_rev_cons.
+        rewrite evalWriterUnion.
+        specialize (IHk
+                      (shrink_op_family_up _ op_family)
+                      (shrink_op_family_facts_up _ _ op_family_facts)
+                   ).
+        rewrite IHk; clear IHk.
+        *
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S 0).
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S (Nat.lt_0_succ k)).
+          apply svalue_at_sparse with (v:=v) in S; eauto.
+          rewrite S.
+          apply scompat.
+        *
+          unfold shrink_op_family_up.
+          intros H.
+          destruct H as [t [tc H]].
+          contradict S.
+          unfold mkFinNat in *.
+          simpl in *.
+          exists (S t).
+          exists (lt_n_S tc).
+          apply H.
   Qed.
 
   Global Instance IReduction_Facts
@@ -3003,6 +3122,8 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
+         (scompat: dot svalue svalue = svalue)
+
     : SHOperator_Facts _ (IReduction dot op_family).
   Proof.
     split.
@@ -3144,6 +3265,51 @@ Section StructuralProperies.
         apply no_coll_at_sparse.
         apply op_family_facts.
         apply H.
+    -
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      simpl in *.
+
+      unfold IReduction, Diamond, Apply_Family'.
+      rewrite AbsorbMUnionIndex_Vbuild.
+      unfold UnionFold.
+
+      pose proof (family_out_set_implies_members _ i o k op_family j jc) as M.
+      apply not_iff_compat in M.
+      apply M in S; clear M.
+      unfold get_family_op.
+      induction k.
+      +
+        simpl.
+        rewrite evalWriter_mkStruct.
+        reflexivity.
+      +
+        rewrite Vbuild_cons.
+        rewrite Vfold_left_rev_cons.
+        rewrite evalWriterUnion.
+        specialize (IHk
+                      (shrink_op_family_up _ op_family)
+                      (shrink_op_family_facts_up _ _ op_family_facts)
+                   ).
+        rewrite IHk; clear IHk.
+        *
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S 0).
+          rewrite LogicUtil.not_exists_eq in S.
+          specialize (S (Nat.lt_0_succ k)).
+          apply svalue_at_sparse with (v:=v) in S; eauto.
+          rewrite S.
+          apply scompat.
+        *
+          unfold shrink_op_family_up.
+          intros H.
+          destruct H as [t [tc H]].
+          contradict S.
+          unfold mkFinNat in *.
+          simpl in *.
+          exists (S t).
+          exists (lt_n_S tc).
+          apply H.
   Qed.
 
 End StructuralProperies.

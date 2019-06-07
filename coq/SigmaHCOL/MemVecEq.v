@@ -3391,11 +3391,6 @@ Section MemVecEq.
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
           `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
-          (* Structural values in `op_family` output evaluate to `a_zero` *)
-          (Z: forall x (t:nat) (tc:t<o) k kc,
-              ¬ out_index_set _ (op_family (mkFinNat kc)) (mkFinNat tc) ->
-              evalWriter (Vnth (get_family_op Monoid_RthetaFlags op_family k kc x) tc) = svalue)
-
       :  SHOperator_Mem (IUnion dot op_family
                                 (pdot:=pdot))
                         (facts:=IUnion_Facts dot op_family op_family_facts compat).
@@ -3417,7 +3412,6 @@ Section MemVecEq.
           pose proof (Apply_mem_Family_eq_Some A) as F.
           pose proof (Apply_mem_Family_length A) as L.
           revert l A F L.
-          clear Z.
           induction k; intros.
           *
             simpl in *.
@@ -3478,7 +3472,6 @@ Section MemVecEq.
           clear Heqo0.
           rename Heqo1 into A.
           unfold Apply_mem_Family in A.
-          clear Z.
           induction k.
           *
             simpl in A.
@@ -3742,28 +3735,11 @@ Section MemVecEq.
               auto.
             }
 
-            (* Shrink hypothes [Z] *)
-            assert(Z': forall
-                      (x : svector Monoid_RthetaFlags i) (t : nat) (tc : t < o)
-                      (k : nat) (kc : k < n),
-                      ¬ out_index_set Monoid_RthetaFlags
-                        (shrink_op_family_up Monoid_RthetaFlags
-                                             op_family (mkFinNat kc))
-                        (mkFinNat tc)
-                      → evalWriter
-                          (Vnth
-                             (get_family_op Monoid_RthetaFlags
-                                            (shrink_op_family_up Monoid_RthetaFlags op_family) k kc x) tc) = svalue).
-            {
-              intros x0 t tc k kc.
-              apply Z.
-            }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
                           compat'
-                          Z'
                           P
                           v l
                           A V
@@ -3798,7 +3774,7 @@ Section MemVecEq.
             --
               apply Vforall_nth_intro.
               intros t tc P.
-              eapply Z.
+              eapply svalue_at_sparse.
               eapply sparse_outputs_not_in_out_set; eauto.
               intros j jc H0.
               specialize (H j jc).

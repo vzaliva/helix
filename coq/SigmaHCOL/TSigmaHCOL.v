@@ -231,6 +231,8 @@ Section TSigmaHCOLOperators.
     - apply op2_proper.
   Qed.
 
+  (* Probably "SUM" shoud be avoided in the name not to confuse
+     with [ISUmUnion]. *)
   Definition HTSUMUnion {i o}
              {svalue: CarrierA}
              (dot: CarrierA -> CarrierA -> CarrierA)
@@ -326,26 +328,14 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_RStheta2Rtheta.
       apply no_coll_at_sparse; assumption.
-      (* !!!
     -
-      (* mem_out_some *)
-      intros v H.
-      pose proof (@mem_out_some Monoid_RthetaSafeFlags i o xop fop) as M.
-      unfold SafeCast in *.
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      unfold SafeCast, SafeCast', compose, rsvector2rvector, rvector2rsvector in *.
       simpl in *.
-      apply M, H.
-    -
-      (* out_mem_fill_pattern *)
-      intros m0 m H.
-      destruct fop.
-      apply out_mem_fill_pattern in H; clear out_mem_fill_pattern.
-      destruct H as [H NH].
-      split; intros.
-      +
-        split; intros P; specialize (H j jc); apply H, P.
-      +
-        apply NH, jc.
-       *)
+
+      rewrite Vnth_map.
+      apply svalue_at_sparse; assumption.
   Qed.
 
   Global Instance UnSafeCast_Facts
@@ -408,26 +398,14 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
       rewrite Vnth_map, <- Not_Collision_Rtheta2RStheta.
       apply no_coll_at_sparse; assumption.
-      (* !!!
     -
-      (* mem_out_some *)
-      intros v H.
-      pose proof (@mem_out_some Monoid_RthetaFlags i o xop fop) as M.
-      unfold UnSafeCast in *.
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      unfold UnSafeCast, UnSafeCast', compose, rsvector2rvector, rvector2rsvector in *.
       simpl in *.
-      apply M, H.
-    -
-      (* out_mem_fill_pattern *)
-      intros m0 m H.
-      destruct fop.
-      apply out_mem_fill_pattern in H; clear out_mem_fill_pattern.
-      destruct H as [H NH].
-      split; intros.
-      +
-        split; intros P; specialize (H j jc); apply H, P.
-      +
-        apply NH, jc.
-       *)
+
+      rewrite Vnth_map.
+      apply svalue_at_sparse; assumption.
   Qed.
 
   Global Instance HTSUMUnion_Facts
@@ -442,6 +420,7 @@ Section TSigmaHCOLOperators_StructuralProperties.
                            (out_index_set _ op1)
                            (out_index_set _ op2)
          )
+         (scompat: dot svalue svalue = svalue)
     : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
   Proof.
     split.
@@ -590,6 +569,34 @@ Section TSigmaHCOLOperators_StructuralProperties.
 
         contradict C.
         apply Intersection_intro; auto.
+    -
+      (* svalue_at_sparse *)
+      intros v j jc S.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union.
+      simpl.
+      rewrite Vnth_map2.
+      rewrite evalWriterUnion.
+      unfold HTSUMUnion, HTSUMUnion', Vec2Union in S.
+      simpl in *.
+      assert(S1: ¬ (out_index_set Monoid_RthetaFlags op1 (mkFinNat jc))).
+      {
+        intros H.
+        contradict S.
+        apply Union_introl, H.
+      }
+      assert(S2: ¬ (out_index_set Monoid_RthetaFlags op2 (mkFinNat jc))).
+      {
+        intros H.
+        contradict S.
+        apply Union_intror, H.
+      }
+      clear S.
+
+      apply svalue_at_sparse with (v:=v) in S1; eauto.
+      rewrite S1.
+      apply svalue_at_sparse with (v:=v) in S2; eauto.
+      rewrite S2.
+      apply scompat.
   Qed.
 
 End TSigmaHCOLOperators_StructuralProperties.
