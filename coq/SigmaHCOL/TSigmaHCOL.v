@@ -249,7 +249,7 @@ Section TSigmaHCOLOperators.
              {svalue: CarrierA}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-             (scompat: dot svalue svalue = svalue)
+             `{scompat: BFixpoint svalue dot}
              (op1 op2: @SHOperator fm i o svalue)
     : @SHOperator fm i o svalue
     :=
@@ -295,9 +295,9 @@ Section TSigmaHCOLOperators.
          {i o: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-         `{scompat: dot svalue svalue = svalue}
+         `{scompat: BFixpoint svalue dot}
     : Proper ((=) ==> (=) ==> (=))
-             (@HTSUMUnion i o svalue dot dot_mor scompat).
+             (@HTSUMUnion i o svalue dot dot_mor _).
   Proof.
     intros x x' Ex y y' Ey.
     unfold HTSUMUnion.
@@ -447,8 +447,8 @@ Section TSigmaHCOLOperators_StructuralProperties.
                            (out_index_set _ op1)
                            (out_index_set _ op2)
          )
-         (scompat: dot svalue svalue = svalue)
-    : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot scompat op1 op2).
+         `{scompat: BFixpoint svalue dot}
+    : SHOperator_Facts Monoid_RthetaFlags (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
   Proof.
     split.
     -

@@ -1587,14 +1587,42 @@ Section SigmaHCOL_Operators.
 
   End FlagsMonoidGenericOperators.
 
+
+  (* Fixpoint of a binary function. Could be defined for arbitrary
+  type but to aid Coq's typeclass resolution we fix it for
+  [CarrierA] *)
+  Class BFixpoint
+        (v: CarrierA)
+        (f: CarrierA -> CarrierA -> CarrierA)
+    :=
+      {
+        bfixpoint: f v v = v
+      }.
+  
+  Global Instance Zero_Plus_BFixpoint:
+    BFixpoint zero plus.
+  Proof.
+    split.
+    ring.
+  Qed.
+
+  Global Instance Zero_Max_BFixpoint:
+    BFixpoint zero max.
+  Proof.
+    split.
+    compute.
+    break_if; reflexivity.
+  Qed.
+
+
   Program Definition IUnion
-             {svalue: CarrierA}
-             {i o n: nat}
-             (* Functional parameters *)
-             (dot: CarrierA -> CarrierA -> CarrierA)
-             `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-             `{scompat: dot svalue svalue = svalue}
-             (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+          {svalue: CarrierA}
+          {i o n: nat}
+          (* Functional parameters *)
+          (dot: CarrierA -> CarrierA -> CarrierA)
+          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+          `{scompat: BFixpoint svalue dot}
+          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
 
     : @SHOperator Monoid_RthetaFlags i o svalue
     :=
@@ -1653,7 +1681,7 @@ Section SigmaHCOL_Operators.
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         `{scompat: dot svalue svalue = svalue}
+         `{scompat: BFixpoint svalue dot}
     :
       Proper ((@SHOperatorFamily_equiv Monoid_RthetaFlags i o n svalue) ==> (@SHOperator_equiv Monoid_RthetaFlags i o svalue))
              (@IUnion svalue i o n dot pdot scompat).
@@ -1667,25 +1695,12 @@ Section SigmaHCOL_Operators.
     apply Ef.
   Qed.
 
-  Fact Zero_Plus_scompat:
-      plus zero zero = zero.
-  Proof.
-    ring.
-  Qed.
-
-  Fact Zero_Max_scompat:
-      max zero zero = zero.
-  Proof.
-    compute.
-    break_if; reflexivity.
-  Qed.
-
   Definition ISumUnion
              {i o n: nat}
              (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
     : @SHOperator Monoid_RthetaFlags i o zero
     :=
-      @IUnion zero i o n CarrierAplus _ Zero_Plus_scompat op_family.
+      @IUnion zero i o n CarrierAplus _ _ op_family.
 
   Global Instance ISumUnion_proper
          {i o n}
@@ -1707,7 +1722,7 @@ Section SigmaHCOL_Operators.
              {i o n}
              (dot: CarrierA -> CarrierA -> CarrierA)
              `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-             `{scompat: dot svalue svalue = svalue}
+             `{scompat: BFixpoint svalue dot}
              (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue)
     : @SHOperator Monoid_RthetaSafeFlags i o svalue :=
     mkSHOperator Monoid_RthetaSafeFlags i o svalue
@@ -1766,7 +1781,7 @@ Section SigmaHCOL_Operators.
          {i o n: nat}
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         `{scompat: dot svalue svalue = svalue}
+         `{scompat: BFixpoint svalue dot}
     :
       Proper ((=) ==> (=)) (@IReduction svalue i o n dot pdot scompat).
   Proof.
@@ -2973,8 +2988,8 @@ Section StructuralProperies.
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                             (out_index_set _ (op_family (mkFinNat mc)))
                                                             (out_index_set _ (op_family (mkFinNat nc))))
-         (scompat: dot svalue svalue = svalue)
-    : SHOperator_Facts _ (IUnion dot op_family (scompat:=scompat)).
+          `{scompat: BFixpoint svalue dot}
+    : SHOperator_Facts _ (IUnion dot op_family).
   Proof.
     split.
     -
@@ -3172,9 +3187,9 @@ Section StructuralProperies.
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
          (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-         (scompat: dot svalue svalue = svalue)
+         `{scompat: BFixpoint svalue dot}
 
-    : SHOperator_Facts _ (IReduction dot op_family (scompat:=scompat)).
+    : SHOperator_Facts _ (IReduction dot op_family).
   Proof.
     split.
     -

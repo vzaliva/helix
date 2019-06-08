@@ -1056,14 +1056,12 @@ Section SigmaHCOLExpansionRules.
             (g: avector i2 -> avector o2)
             `{hop1: !HOperator f}
             `{hop2: !HOperator g}
-            {scompat: plus zero zero = zero}
       :
         liftM_HOperator fm (svalue:=zero) (HTDirectSum f g)
         =
         HTSUMUnion
           _
           plus
-          scompat
           (SHCompose fm
                      (ScatH fm 0 1 (snzord0:=ScatH_stride1_constr) (range_bound := h_bound_first_half o1 o2))
                      (SHCompose fm
@@ -3106,23 +3104,26 @@ Section SigmaHCOLRewritingRules.
     Qed.
 
 
-    Fact Monoid_to_scompat
+
+    Global Instance Monoid_BFixpoint
          `{f: SgOp CarrierA}
          `{z: MonUnit CarrierA}
          `{mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f z}
-      : f z z = z.
+      : BFixpoint z f.
     Proof.
+      split.
       apply monoid_left_id.
       typeclasses eauto.
     Qed.
 
-    Fact RMonoid_to_scompat
+    Global Instance RMonoid_to_BFixpoint
          `{f: SgOp CarrierA}
          `{z: MonUnit CarrierA}
          `{P : SgPred CarrierA}
          `{mon: @CommutativeRMonoid _ _ f z P}
-      : f z z = z.
+      : BFixpoint z f.
     Proof.
+      split.
       eapply rmonoid_left_id; try typeclasses eauto.
       eapply rmonoid_unit_P; typeclasses eauto.
     Qed.
@@ -3151,14 +3152,14 @@ Section SigmaHCOLRewritingRules.
 
             (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
             (Upoz: Apply_Family_Vforall_P _ (liftRthetaP P) op_family)
-            {u_scompat: u uf_zero uf_zero = uf_zero} (* coudld be derived from [u_mon] by [Monoid_to_scompat] but we generalize it to aid rewriting *)
-            {f_scompat: f uf_zero uf_zero = uf_zero} (* coudld be derived from [f_mon] by [RMonoid_to_scompat] but we generalize it to aid rewriting *)
+            `{u_scompat: BFixpoint uf_zero u}
+            `{f_scompat: BFixpoint uf_zero f}
       :
 
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero))
           ⊚ (@IUnion uf_zero i o n u _ u_scompat op_family)
         =
-        SafeCast (IReduction f (scompat:=f_scompat)
+        SafeCast (IReduction f
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ f uf_zero)) op_family))).
     Proof.
@@ -3978,12 +3979,11 @@ Section SigmaHCOLRewritingRules.
           (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
           (Uz: Apply_Family_Single_NonUnit_Per_Row _ op_family)
           (Upoz: Apply_Family_Vforall_P _ Is_NonNegative op_family)
-          {scompat: max zero zero = zero}
       :
         (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero))
           ⊚ (ISumUnion op_family)
         =
-        SafeCast (IReduction max (scompat:=scompat)
+        SafeCast (IReduction max
                              (UnSafeFamilyCast
                                 (SHOperatorFamilyCompose _ (liftM_HOperator Monoid_RthetaFlags (@HReduction _ max zero)) op_family))).
     Proof.
@@ -4007,14 +4007,15 @@ and `ISumReduction_PointWise` *)
             (z: CarrierA)
             (f: CarrierA -> CarrierA -> CarrierA)
             (f_mor: Proper (equiv ==> equiv ==> equiv) f)
-            (F : @SHOperatorFamily Monoid_RthetaSafeFlags i o n z)
+            (F: @SHOperatorFamily Monoid_RthetaSafeFlags i o n z)
             (G: @SHOperator Monoid_RthetaSafeFlags i0 i z)
+            `{scompat: BFixpoint z f}
       :
         SHCompose _
-                  (@IReduction z i o n f _ F)
+                  (@IReduction z i o n f _ scompat F)
                   G
         =
-        @IReduction z i0 o n f _
+        @IReduction z i0 o n f _ scompat
                     (SHFamilyOperatorCompose _
                                              F
                                              G).
@@ -4299,23 +4300,6 @@ and `ISumReduction_PointWise` *)
       apply (rewrite_Reduction_ScatHUnion CommutativeRMonoid_max_NN F f f_inj FP).
     Qed.
 
-    Theorem rewrite_SHCompose_IdOp
-            {n m: nat}
-            {svalue: CarrierA}
-            {fm}
-            (in_out_set: FinNatSet.FinNatSet n)
-            (F: @SHOperator fm n m svalue)
-      :
-      SHCompose fm
-                F
-                (IdOp fm in_out_set)
-      =
-      F.
-    Proof.
-      unfold SHCompose, compose, equiv, SHOperator_equiv; simpl.
-      f_equiv.
-    Qed.
-
     Theorem rewrite_GathH_GathH
             {fm}
             {svalue: CarrierA}
@@ -4464,6 +4448,7 @@ and `ISumReduction_PointWise` *)
             `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
             `{f_comm: @Commutative CarrierA _ CarrierA f}
             (idv: CarrierA)
+            `{scompat : BFixpoint idv f}
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
@@ -4703,10 +4688,11 @@ and `ISumReduction_PointWise` *)
           `{f_mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
           (base stride: nat)
           {domain_bound: ∀ x : nat, x < o → base + x * stride < i}
+          `{scompat : BFixpoint z f}
       :
         @GathH _ z i o base stride domain_bound
         =
-        @IUnion z i o o f _ (fun jf =>
+        @IUnion z i o o f _ _ (fun jf =>
                                 SHCompose _
                                           (@eUnion _ z o (proj1_sig jf) (proj2_sig jf))
                                           (@eT _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
@@ -4768,7 +4754,7 @@ and `ISumReduction_PointWise` *)
                    ).
     Proof.
       (* This lemma is just a special case of more generic lemma *)
-      apply terminate_GathHN_generic.
+      eapply terminate_GathHN_generic.
     Qed.
 
     Global Instance mult_by_nth_proper
