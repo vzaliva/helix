@@ -1190,6 +1190,7 @@ Section MemVecEq.
          {i o : nat}
          {dot : SgOp CarrierA}
          {dot_mor : Proper (equiv ==> equiv ==> equiv) dot}
+         `{scompat: BFixpoint svalue dot}
          (op1 op2 : SHOperator Monoid_RthetaFlags (svalue:=svalue))
          `{Meq1: SHOperator_Mem _ i o _ op1}
          `{Meq2: SHOperator_Mem _ i o _ op2} :
@@ -1237,6 +1238,7 @@ Section MemVecEq.
            {i o: nat}
            `{dot: SgOp CarrierA}
            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+           `{scompat: BFixpoint a_zero dot}
            (op1 op2: @SHOperator Monoid_RthetaFlags i o a_zero)
            (compat: Disjoint _
                              (out_index_set _ op1)
@@ -2558,6 +2560,7 @@ Section MemVecEq.
            {i o k: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           `{scompat: BFixpoint svalue dot}
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
@@ -3384,6 +3387,7 @@ Section MemVecEq.
            {i o k}
            (dot: CarrierA -> CarrierA -> CarrierA)
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           `{scompat: BFixpoint svalue dot}
            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
            (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
@@ -3577,6 +3581,7 @@ Section MemVecEq.
               specialize (IHk
                             dot
                             pdot
+                            _
                             (shrink_op_family_up _ op_family)
                             (shrink_op_family_facts_up _ _ op_family_facts)
                             (shrink_op_family_mem_up _ _ op_family_mem)
@@ -3611,6 +3616,7 @@ Section MemVecEq.
               specialize (IHk
                             dot
                             pdot
+                            _
                             (shrink_op_family_up _ op_family)
                             (shrink_op_family_facts_up _ _ op_family_facts)
                             (shrink_op_family_mem_up _ _ op_family_mem)
@@ -3662,6 +3668,7 @@ Section MemVecEq.
             specialize (IHk
                           dot
                           pdot
+                          _
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
