@@ -715,6 +715,8 @@ Section SigmaHCOL_rewriting.
 
     setoid_rewrite <- SHInductor_equiv_lifted_HInductor.
 
+    unfold dynwin_SHCOL1.
+
     reflexivity.
   Qed.
 
