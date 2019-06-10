@@ -3103,32 +3103,6 @@ Section SigmaHCOLRewritingRules.
       apply VPermutation_Vsig_of_forall, V.
     Qed.
 
-
-
-    Global Instance Monoid_BFixpoint
-         `{f: SgOp CarrierA}
-         `{z: MonUnit CarrierA}
-         `{mon: @MathClasses.interfaces.abstract_algebra.CommutativeMonoid _ _ f z}
-      : BFixpoint z f.
-    Proof.
-      split.
-      apply monoid_left_id.
-      typeclasses eauto.
-    Qed.
-
-    Global Instance RMonoid_to_BFixpoint
-         `{f: SgOp CarrierA}
-         `{z: MonUnit CarrierA}
-         `{P : SgPred CarrierA}
-         `{mon: @CommutativeRMonoid _ _ f z P}
-      : BFixpoint z f.
-    Proof.
-      split.
-      eapply rmonoid_left_id; try typeclasses eauto.
-      eapply rmonoid_unit_P; typeclasses eauto.
-    Qed.
-
-
     (* In SPIRAL it is called [Reduction_ISumReduction] *)
     Theorem rewrite_Reduction_IReduction
             {i o n}

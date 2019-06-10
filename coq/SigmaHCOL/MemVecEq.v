@@ -2474,12 +2474,11 @@ Section MemVecEq.
     Qed.
 
     Fact Vec2Union_fold_zeros
-         {svalue: CarrierA}
+         `{svalue: MonUnit CarrierA}
          (i o n : nat)
          (x: svector Monoid_RthetaFlags i)
-         (dot : CarrierA → CarrierA → CarrierA)
+         `{dot: SgOp CarrierA}
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (initial : CarrierA)
          (op_family : SHOperatorFamily Monoid_RthetaFlags (svalue:=svalue))
          (op_family_facts: forall (j : nat) (jc : j < S n), SHOperator_Facts Monoid_RthetaFlags
                                                                       (op_family (mkFinNat jc)))
@@ -2492,12 +2491,13 @@ Section MemVecEq.
                  get_family_op _ op_family
                                (S i0)
                                (lt_n_S ip) x))
+         `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
       :
         Vforall
-          (λ a : Rtheta' Monoid_RthetaFlags, ¬ Is_Val a → evalWriter a = initial)
+          (λ a : Rtheta' Monoid_RthetaFlags, ¬ Is_Val a → evalWriter a = svalue)
           (Vfold_left_rev
              (Vec2Union Monoid_RthetaFlags dot)
-             (Vconst (mkStruct initial) o)
+             (Vconst (mkStruct svalue) o)
              v).
     Proof.
       apply Vforall_nth_intro.
@@ -3374,18 +3374,17 @@ Section MemVecEq.
     Admitted.
 
     Global Instance IUnion_Mem
-           {svalue: CarrierA}
-           {i o k}
-           (dot: CarrierA -> CarrierA -> CarrierA)
+           {i o k: nat}
+           `{svalue: MonUnit CarrierA}
+           `{dot: SgOp CarrierA}
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           `{scompat: BFixpoint svalue dot}
+           `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
            (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
-          `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
       :  SHOperator_Mem (IUnion dot op_family
                                 (pdot:=pdot))
                         (facts:=IUnion_Facts dot op_family op_family_facts compat).
@@ -3482,10 +3481,10 @@ Section MemVecEq.
                          ).
 
               assert (∀ (j : nat) (jc : j < i), in_index_set _
-                                     (IUnion dot
-                                        (shrink_op_family_up _
-                                           op_family)) (mkFinNat jc) →
-                                   mem_in j m) as P.
+                                                           (IUnion dot
+                                                                   (shrink_op_family_up _
+                                                                                        op_family)) (mkFinNat jc) →
+                                              mem_in j m) as P.
               {
                 clear IHk Heqo1.
                 intros j jc H0.
@@ -3570,6 +3569,7 @@ Section MemVecEq.
               left.
 
               specialize (IHk
+                            _
                             dot
                             pdot
                             _
@@ -3605,6 +3605,7 @@ Section MemVecEq.
               right.
 
               specialize (IHk
+                            _
                             dot
                             pdot
                             _
@@ -3657,6 +3658,7 @@ Section MemVecEq.
           --
             clear A0.
             specialize (IHk
+                          _
                           dot
                           pdot
                           _

@@ -6,6 +6,7 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.MonoidalRestriction.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
@@ -1614,6 +1615,28 @@ Section SigmaHCOL_Operators.
     break_if; reflexivity.
   Qed.
 
+  Global Instance Monoid_BFixpoint
+         `{f: SgOp CarrierA}
+         `{z: MonUnit CarrierA}
+         `{mon: @MathClasses.interfaces.abstract_algebra.Monoid _ _ f z}
+    : BFixpoint z f.
+  Proof.
+    split.
+    apply monoid_left_id.
+    typeclasses eauto.
+  Qed.
+
+  Global Instance RMonoid_to_BFixpoint
+         `{f: SgOp CarrierA}
+         `{z: MonUnit CarrierA}
+         `{P : SgPred CarrierA}
+         `{mon: @CommutativeRMonoid _ _ f z P}
+    : BFixpoint z f.
+  Proof.
+    split.
+    eapply rmonoid_left_id; try typeclasses eauto.
+    eapply rmonoid_unit_P; typeclasses eauto.
+  Qed.
 
   Program Definition IUnion
           {svalue: CarrierA}
