@@ -1250,16 +1250,6 @@ Section MemVecEq.
            (* `a_zero` together with `dot` form a monoid.  *)
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
-           (* Structural values in `op1` output evaluate to `a_zero` *)
-           (Z1: forall x (t:nat) (tc:t<o),
-               ¬ out_index_set _ op1 (mkFinNat tc) ->
-               evalWriter (Vnth (op Monoid_RthetaFlags op1 x) tc) = a_zero)
-
-           (* Structural values in `op2` output evaluate to `a_zero` *)
-           (Z2: forall x (t:nat) (tc:t<o),
-               ¬ out_index_set _ op2 (mkFinNat tc) ->
-               evalWriter (Vnth (op Monoid_RthetaFlags op2 x) tc) = a_zero)
-
       : SHOperator_Mem
           (facts := HTSUMUnion_Facts dot op1 op2 compat)
           (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
@@ -1455,7 +1445,7 @@ Section MemVecEq.
                     unfold mem_in in P2. specialize (P2 k kc).
                     apply not_iff_compat in P2.
                     apply P2 in NM2.
-                    apply Z2 with (x:=x) in NM2.
+                    apply svalue_at_sparse with (v:=x) in NM2.
                     rewrite NM2.
                     apply monoid_right_id.
                     apply af_mon.
@@ -1504,7 +1494,8 @@ Section MemVecEq.
                     unfold mem_in in P1. specialize (P1 k kc).
                     apply not_iff_compat in P1.
                     apply P1 in NM1.
-                    apply Z1 with (x:=x) in NM1 .
+                    apply svalue_at_sparse with (v:=x) in NM1.
+
                     rewrite NM1.
                     apply monoid_left_id.
                     apply af_mon.
