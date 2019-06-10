@@ -9,6 +9,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
 ** Rename =eT= and =eUnion= to =Embed= and =Pick=
+** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
+  with =ISUmUnion=.
 ** Rename =Diamond= to =MR=
 ** Many usused definitions could be removed. (Hint: try `make print-unused`)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
@@ -17,6 +19,17 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
   For example =eT'= should become =eT_impl=
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
+
+* Harmonization
+** =IReduction= constraints:
+  =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
+  =SHOperator= instanct and dense body assumption in =IRedution_Mem=.
+  This nees to be normalized.
+
+** =SHOpeator= constraints:
+  For =svalue_at_sparse= we need =szero= to be a fixpoint of =dot=
+  (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
+  a superset of that. 
 
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances
