@@ -26,6 +26,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
   =SHOperator= instanct and dense body assumption in =IRedution_Mem=.
   This nees to be normalized.
 
+** =RMonoid= vs =Monoid= 
+   Whenever we us =Monoid= as pre-condition for rewriting we should use
+   =RMnonoid= which is more general.
+
 ** =SHOpeator= constraints:
   For =svalue_at_sparse= we need =szero= to be a fixpoint of =dot=
   (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
