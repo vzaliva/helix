@@ -560,8 +560,8 @@ Section TSigmaHCOLOperators_StructuralProperties.
         specialize (C (mkFinNat jc)).
         unfold In in C.
 
-        apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
-        apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+        apply Is_Val_In_outset in A ; auto.
+        apply Is_Val_In_outset in B ; auto.
 
         contradict C.
         apply Intersection_intro; auto.
@@ -591,8 +591,8 @@ Section TSigmaHCOLOperators_StructuralProperties.
         specialize (C (mkFinNat jc)).
         unfold In in C.
 
-        apply Is_Val_In_outset in A ; [auto |auto| apply fop1].
-        apply Is_Val_In_outset in B ; [auto |auto| apply fop2].
+        apply Is_Val_In_outset in A ; auto.
+        apply Is_Val_In_outset in B ; auto.
 
         contradict C.
         apply Intersection_intro; auto.

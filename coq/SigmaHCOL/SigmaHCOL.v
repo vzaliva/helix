@@ -2983,11 +2983,11 @@ Section StructuralProperies.
         (j: nat) (jc : j < o)
         (O: SHOperator Monoid_RthetaFlags (svalue:=svalue))
         (F: SHOperator_Facts Monoid_RthetaFlags O)
-        (D: FinNatSet_dec (out_index_set Monoid_RthetaFlags O))
     :
       Is_Val (Vnth (op Monoid_RthetaFlags O v) jc) → out_index_set Monoid_RthetaFlags O (mkFinNat jc).
   Proof.
     intros V.
+    pose proof (@out_dec _ _ _ _ O F) as D.
     destruct F as [_ _ _ _ S].
     specialize (S v j jc).
     unfold Is_Struct, compose in S.
@@ -2999,6 +2999,27 @@ Section StructuralProperies.
     -
       specialize (S H).
       crush.
+  Qed.
+
+  Lemma Not_Is_Val_Not_In_outset
+        {svalue: CarrierA}
+        {i o : nat}
+        {v: rvector i}
+        {j: nat} {jc : j < o}
+        {O: SHOperator Monoid_RthetaFlags (svalue:=svalue)}
+        {F: SHOperator_Facts Monoid_RthetaFlags O}
+        {H: forall (j : nat) (jc : j < i), in_index_set Monoid_RthetaFlags O (mkFinNat jc)
+                               → Is_Val (Vnth v jc)}
+    :
+      not (Is_Val (Vnth (op Monoid_RthetaFlags O v) jc)) → not (out_index_set Monoid_RthetaFlags O (mkFinNat jc)).
+  Proof.
+    apply not_iff_compat.
+    split.
+    -
+      apply F, H.
+    -
+      apply Is_Val_In_outset;
+      typeclasses eauto.
   Qed.
 
   Global Instance IUnion_Facts

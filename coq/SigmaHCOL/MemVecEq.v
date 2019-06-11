@@ -2525,7 +2525,25 @@ Section MemVecEq.
 
         rewrite IHv; clear IHv.
         +
-          admit.
+          rewrite Vbuild_cons in V;
+            apply Vcons_eq_elim in V;
+            destruct V as [V0 V].
+          unfold get_family_op in V0.
+          pose proof (svalue_at_sparse _ (op_family (mkFinNat (lt_n_S (Nat.lt_0_succ n))))) as S.
+          specialize (S x j jc).
+          subst h.
+          unshelve eapply Not_Is_Val_Not_In_outset in H2.
+          intros j0 jc0 H1.
+          specialize (H j0 jc0).
+          apply H.
+          eapply family_in_set_includes_members.
+          eapply H1.
+          rewrite S.
+          *
+            apply monoid_left_id.
+            apply af_mon.
+          *
+            apply H2.
         +
           intros j0 jc0 H1.
           apply H.
