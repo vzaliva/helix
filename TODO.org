@@ -1,6 +1,6 @@
 
 This development reflects authors' Coq learning journey and contains a
-lot of inelegant and redundant code. Additionally, it includes some
+lot of an inelegant and redundant code. Additionally, it includes some
 workarounds for bugs and limitations for older Coq versions (starting
 from 8.4).
 
