@@ -2480,17 +2480,15 @@ Section MemVecEq.
          `{dot: SgOp CarrierA}
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
          (op_family : SHOperatorFamily Monoid_RthetaFlags (svalue:=svalue))
-         (op_family_facts: forall (j : nat) (jc : j < S n), SHOperator_Facts Monoid_RthetaFlags
-                                                                      (op_family (mkFinNat jc)))
+         (op_family_facts: forall (j : nat) (jc : j < n), SHOperator_Facts Monoid_RthetaFlags
+                                                                    (op_family (mkFinNat jc)))
          (H : forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
                                                           (mkFinNat jc) → Is_Val (Vnth x jc))
 
          (v: vector (svector Monoid_RthetaFlags o) n)
          (V:  v ≡ Vbuild
                 (λ (i0 : nat) (ip : i0 < n),
-                 get_family_op _ op_family
-                               (S i0)
-                               (lt_n_S ip) x))
+                 get_family_op _ op_family i0 ip x))
          `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
       :
         Vforall
@@ -2502,15 +2500,17 @@ Section MemVecEq.
     Proof.
       apply Vforall_nth_intro.
 
-      dependent induction v.
+      dependent induction n.
       -
         intros j jc H0.
+        dep_destruct v.
         simpl.
         rewrite Vnth_const.
         rewrite evalWriter_mkStruct.
         reflexivity.
       -
         intros j jc.
+        dep_destruct v. clear v. rename h into v0, x0 into v.
         rewrite Vfold_left_rev_cons.
         rewrite AbsorbUnionIndexBinary.
         rewrite evalWriterUnion.
@@ -2518,20 +2518,24 @@ Section MemVecEq.
         apply NotValUnionNotIsVal in H0.
         destruct H0 as [H0 H2].
 
-        specialize (IHv
+        specialize (IHn
+                      x
+                      dot
+                      pdot
                       (shrink_op_family_up _ op_family)
                       (shrink_op_family_facts_up _ _ op_family_facts)
                    ).
 
-        rewrite IHv; clear IHv.
+        rewrite Vbuild_cons in V;
+          apply Vcons_eq_elim in V;
+          destruct V as [V0 V].
+
+        rewrite IHn; clear IHn.
         +
-          rewrite Vbuild_cons in V;
-            apply Vcons_eq_elim in V;
-            destruct V as [V0 V].
           unfold get_family_op in V0.
-          pose proof (svalue_at_sparse _ (op_family (mkFinNat (lt_n_S (Nat.lt_0_succ n))))) as S.
+          pose proof (svalue_at_sparse _ (op_family (mkFinNat (Nat.lt_0_succ n)))) as S.
           specialize (S x j jc).
-          subst h.
+          subst v0.
           unshelve eapply Not_Is_Val_Not_In_outset in H2.
           intros j0 jc0 H1.
           specialize (H j0 jc0).
@@ -2545,24 +2549,28 @@ Section MemVecEq.
           *
             apply H2.
         +
+          rewrite family_in_index_set_eq in H.
           intros j0 jc0 H1.
-          apply H.
-          unfold shrink_op_family_up, shrink_op_family in *.
+          apply family_in_set_implies_members in H1.
+          destruct H1 as [t [tc H1]].
+          apply H. clear H.
           simpl in *.
           unfold shrink_op_family_up, shrink_op_family in *.
-          destruct H1.
-          *
-            apply Union_introl.
-            replace (@S_j_lt_n (S (S n)) (S n) (@eq_refl nat (S (S n))))
-              with (@lt_n_S n (S n) (@S_j_lt_n (S n) n (@eq_refl nat (S n))))
-              by apply lt_unique.
-            apply H1.
-          *
-            simpl in *.
-            apply Union_intror.
-        admit.
-
-    Admitted.
+          simpl in *.
+          apply Union_intror.
+          unfold Ensembles.In in *.
+          eapply family_in_set'_includes_members.
+          unfold Ensembles.In.
+          simpl.
+          eapply H1.
+        +
+          subst v.
+          f_equiv.
+        +
+          apply af_mon.
+        +
+          apply H0.
+    Qed.
 
     Global Instance IReduction_Mem
            {svalue: CarrierA}
@@ -3762,7 +3770,6 @@ Section MemVecEq.
                           v l
                           A V
                        ).
-            clear P.
             unfold MUnion in *.
             simpl.
 
@@ -3788,9 +3795,13 @@ Section MemVecEq.
             --
               typeclasses eauto.
             --
-              apply Vec2Union_fold_zeros with (op_family0:=op_family) (x0:=x); auto.
+              apply Vec2Union_fold_zeros with
+                  (op_family0:=shrink_op_family_up _ op_family)
+                  (x0:=x); auto.
+              apply (shrink_op_family_facts_up _ _ op_family_facts).
             --
               apply Vforall_nth_intro.
+              clear P.
               intros t tc P.
               eapply svalue_at_sparse.
               eapply sparse_outputs_not_in_out_set; eauto.
