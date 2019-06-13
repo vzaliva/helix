@@ -148,7 +148,8 @@ Proof.
 Qed.
 
 
-(* This is not FinNat specific, but it is kept here for a lack of better place *)
+(* The following are not FinNat specific, but they are kept here for a lack of better place *)
+
 Lemma Disjoint_Included
       {T:Type}
       (A A' B B': Ensemble T)
@@ -202,4 +203,11 @@ Proof.
   destruct H.
   apply Constructive_sets.Noone_in_empty in H.
   tauto.
+Qed.
+
+Lemma Union_comm_eq {T:Type} {a b}
+  : Union T a b = Union T b a.
+Proof.
+  apply Extensionality_Ensembles.
+  split; unfold Included; intros; apply Union_comm, H.
 Qed.
