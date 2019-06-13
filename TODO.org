@@ -12,7 +12,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
   with =ISUmUnion=.
 ** Rename =Diamond= to =MR=
-** Many usused definitions could be removed. (Hint: try `make print-unused`)
+** Many usused definitions could be removed. (Hint: try =make print-unused=)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
 ** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/.

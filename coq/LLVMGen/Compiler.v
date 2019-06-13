@@ -357,8 +357,8 @@ Section monadic.
                                                (ret 8%Z))])
                   | _,_ => raise "AVar type mismatch"
                   end
-      | AConst (Float64V v) => ret (st, EXP_Float v, [])
-      | AConst (Float32V _) => raise "32-bit constants are not implemented"
+      | AConst (Float64V v) => ret (st, EXP_Double v, [])
+      | AConst (Float32V v) => ret (st, EXP_Float v, [])
       | ANth n vec i =>
         '(st, iexp, icode) <- genNExpr st i ;;
          '(st, vexp, vcode) <- genVExpr st vec ;;
@@ -896,8 +896,8 @@ Section monadic.
 
   Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : exp :=
     match fv with
-    | Float32V b32 => EXP_Float (Float.of_single b32)  (* workaround for https://github.com/vellvm/vellvm/issues/73 *)
-    | Float64V b64 => EXP_Float b64
+    | Float32V b32 => EXP_Float b32
+    | Float64V b64 => EXP_Double b64
     end.
 
   Definition genIReductionInit
