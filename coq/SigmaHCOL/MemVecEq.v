@@ -3073,6 +3073,27 @@ Section MemVecEq.
       reflexivity.
     Qed.
 
+    Lemma cast_in_index_set_eq
+          {svalue: CarrierA}
+          {fm}
+          {i o n m : nat}
+          (t: nat)
+          {tm: t<m}
+          {tn: t<n}
+          {op_family: @SHOperatorFamily fm i o m svalue}
+          {op_family_facts : forall (j: nat) (jc: j < m),
+              SHOperator_Facts fm (op_family (mkFinNat jc))}
+          (E: m≡n):
+      in_index_set fm (op_family (mkFinNat tm))
+                    ≡
+                    in_index_set fm
+                    (cast_op_family op_family E (mkFinNat tn)).
+    Proof.
+      subst.
+      replace tm with tn by apply lt_unique.
+      reflexivity.
+    Qed.
+
     Fact IUnion_mem_step_disjoint
          {svalue: CarrierA}
          {i o n : nat}
@@ -3312,6 +3333,123 @@ Section MemVecEq.
       apply out_as_range ; eauto.
     Qed.
 
+    (* This lemma could be proven for both [Monoid_RthetaFlags]
+       and [Monoid_RthetaSafeFlags] but not for generic [fm].
+
+       Since we currently need it only for [Monoid_RthetaFlags]
+       this is what we prove here.
+     *)
+    Lemma vector_val_index_set_Vec2Union
+          {n}
+          (dot: CarrierA -> CarrierA -> CarrierA)
+          (a b: svector Monoid_RthetaFlags n)
+      :
+      vector_val_index_set (Vec2Union _ dot a b) ≡
+                           Union _
+                           (vector_val_index_set a)
+                           (vector_val_index_set b).
+    Proof.
+      unfold Vec2Union.
+      apply Extensionality_Ensembles.
+      split.
+      -
+        unfold Included.
+        intros x H.
+        unfold Ensembles.In in *.
+        unfold vector_val_index_set in *.
+        rewrite Vnth_map2 in H.
+        apply ValUnionIsVal in H.
+        destruct H as [Ha | Hb].
+        +
+          apply Union_introl.
+          apply Ha.
+        +
+          apply Union_intror.
+          apply Hb.
+      -
+        unfold Included.
+        intros x H.
+        unfold Ensembles.In in *.
+        unfold vector_val_index_set in *.
+        rewrite Vnth_map2.
+        apply ValUnionIsVal.
+        destruct H; auto.
+    Qed.
+
+
+    (* Due to dependency on [vector_val_index_set_Vec2Union] this lemma could
+       be proven for both [Monoid_RthetaFlags]  and [Monoid_RthetaSafeFlags] but
+       not for generic [fm].
+
+       Since we currently need it only for [Monoid_RthetaFlags]
+       this is what we prove here. *)
+    Lemma vector_val_index_set_Apply_Family
+          {svalue : CarrierA}
+          {i o n : nat}
+          (dot : CarrierA → CarrierA → CarrierA)
+          (x : vector (Rtheta' _) i)
+          (op_family : @SHOperatorFamily Monoid_RthetaFlags i o n svalue)
+          {op_family_facts : forall (j : nat) (jc : j < n),
+              SHOperator_Facts _ (op_family (mkFinNat jc))}
+          {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
+                                                           (mkFinNat jc) → Is_Val (Vnth x jc)}
+      :
+        vector_val_index_set
+          (Vfold_left_rev (Vec2Union _ dot) (Vconst (mkStruct svalue) o)
+                          (Apply_Family _ op_family x))
+          ≡ family_out_index_set' _ op_family.
+    Proof.
+      unfold Apply_Family, Apply_Family'.
+
+
+      rewrite family_in_index_set_eq in *.
+      dependent induction n.
+      -
+        apply vector_val_index_set_Vconst_Empty.
+      -
+        rewrite Vbuild_cons.
+        rewrite Vfold_left_rev_cons.
+        simpl.
+        rewrite Union_comm_eq.
+        rewrite vector_val_index_set_Vec2Union.
+        f_equiv.
+        +
+          specialize (IHn dot x
+                          (shrink_op_family_up _ op_family)
+                          (shrink_op_family_facts_up _ op_family op_family_facts)
+                     ).
+          rewrite <- IHn; clear IHn.
+          *
+            unfold shrink_op_family_up, get_family_op.
+            simpl.
+            reflexivity.
+          *
+            intros j jc H0.
+            apply H; clear H.
+            (* could be a sub-lemma *)
+            apply family_in_set'_implies_members in H0.
+            destruct H0 as [t [tc H0]].
+            destruct t;
+              simpl in *;
+              apply Union_intror;
+              unfold Ensembles.In;
+              eapply family_in_set'_includes_members;
+              eauto.
+        +
+          rewrite out_index_set_eq_vector_val_index_set with (x0:=x).
+          *
+            unfold get_family_op.
+            repeat f_equiv.
+            apply lt_unique.
+          *
+            apply op_family_facts.
+          *
+            intros j jc H0.
+            apply H.
+            apply family_in_set'_includes_members in H0.
+            apply H0.
+    Qed.
+
     Lemma IUnion_vector_val_index_set_step_disjoint
           (svalue : CarrierA)
           (i o n d : nat)
@@ -3322,6 +3460,8 @@ Section MemVecEq.
 
           (dot : CarrierA → CarrierA → CarrierA)
           (op_family : @SHOperatorFamily Monoid_RthetaFlags i o (n+d) svalue)
+          {op_family_facts : forall (j : nat) (jc : j < (n+d)), SHOperator_Facts Monoid_RthetaFlags
+                                                                        (op_family (mkFinNat jc))}
           (compat: ∀ (m : nat) (mc : m < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
               m ≢ n0
               →
@@ -3333,18 +3473,13 @@ Section MemVecEq.
 
           (x : vector (Rtheta' Monoid_RthetaFlags) i)
           (v : vector (svector Monoid_RthetaFlags o) n)
-          (v0 : svector Monoid_RthetaFlags o)
 
-          (V0: v0 ≡ @get_family_op _ i o _ svalue op_family t tc1 x)
-          (V: v ≡ @Vbuild (svector _ o) n
-                (λ (i0 : nat) (ip : i0 < n),
-                 @get_family_op _ i o
-                                (n+d) svalue op_family
-                                (i0+d)
-                                (Plus.plus_lt_compat_r i0 n d ip) x))
+          (V : v ≡ Apply_Family _ (shrink_op_family_up_n _ d op_family) x)
 
           (f0 : @SHOperator Monoid_RthetaFlags i o svalue)
           (F0 : f0 ≡ op_family (@mkFinNat (n+d) t tc1))
+          {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
+                                                           (mkFinNat jc) → Is_Val (Vnth x jc)}
       :
         Disjoint (FinNat o)
                  (@vector_val_index_set _ o
@@ -3358,101 +3493,50 @@ Section MemVecEq.
                  (@out_index_set _ i o svalue f0).
     Proof.
 
-(*
-      induction n.
-      ++
-        dep_destruct v.
-        simpl.
-        rewrite vector_val_index_set_Vconst_Empty.
-        apply Disjoint_empty.
-      ++
-
-        (* shrink compat' *)
-
-        assert(compat': forall (m : nat) (mc : m < (S n)) (n0 : nat) (nc : n0 < (S n)),
-                  m ≢ n0 ->
-                  Disjoint (FinNat o)
-                           (out_index_set _
-                                          (shrink_op_family_up _ op_family
-                                                               (mkFinNat mc)))
-                           (out_index_set _
-                                          (shrink_op_family_up _ op_family
-                                                               (mkFinNat nc)))).
-        {
-          intros m mc n0 nc H0.
-          apply compat.
-          auto.
-        }
-        specialize (IHn
-                      (shrink_op_family_up _ op_family)
-                      compat'
-                   ).
-        clear compat'.
-
-        unfold shrink_op_family_up in *. simpl in *.
-
-        dep_destruct v; clear v; rename h into v0, x0 into v.
-        simpl.
-
-
-
-
-        unfold Vec2Union, vector_val_index_set in *.
+      subst v.
+      rewrite vector_val_index_set_Apply_Family.
+      -
+        subst f0.
+        clear - tc compat.
         split.
-        intros k HD.
-        rewrite Vbuild_cons in V; apply Vcons_eq_elim in V;
-          destruct V as [V0 V].
-
-
-        (* shrink compat' *)
-
-        assert(compat': forall (m : nat) (mc : m < (S n)) (n0 : nat) (nc : n0 < (S n)),
-                  m ≢ n0 ->
-                  Disjoint (FinNat o)
-                           (out_index_set _
-                                          (shrink_op_family_up _ op_family
-                                                               (mkFinNat mc)))
-                           (out_index_set _
-                                          (shrink_op_family_up _ op_family
-                                                               (mkFinNat nc)))).
-        {
-          intros m mc n0 nc H0.
-          apply compat.
-          auto.
-        }
-
-        specialize (IHn (shrink_op_family_up _ op_family) compat' v V).
-        clear compat'.
-
-        apply Constructive_sets.Intersection_inv in HD.
-        destruct HD as [HD1 HD2].
+        intros jf D.
+        destruct D as [jf D0 D1].
         unfold Ensembles.In in *.
-        rewrite Vnth_map2 in HD1.
-        apply ValUnionIsVal in HD1.
+        destruct jf as [j jc].
+        eapply family_out_set'_implies_members in D0.
+        destruct D0 as [p [pc D0]].
 
-        destruct IHn as [IHn _].
-        specialize (IHn k).
-        unfold shrink_op_family_up in *.
-        simpl in *.
-        contradict IHn.
-
-        destruct HD1 as [HD1f | HD1v]; split;
-          unfold Ensembles.In; simpl.
-
-        **
-          unfold Ensembles.In.
-          apply HD1f.
-        **
-          unfold Ensembles.In.
-          unfold shrink_op_family_up.
-          unfold mkFinNat in *.
-          simpl in *.
-          admit.
-        **
-*)
-
-    Admitted.
-
+        assert(pc1: p+d < n+d) by omega.
+        specialize (compat t tc1 (p+d) pc1).
+        destruct (eq_nat_dec t (p+d)) as [E | NE].
+        +
+          omega.
+        +
+          specialize (compat NE).
+          destruct compat.
+          specialize (H (mkFinNat jc)).
+          contradict H.
+          split; unfold Ensembles.In.
+          *
+            assumption.
+          *
+            unfold shrink_op_family_up_n in D0.
+            simpl in D0.
+            replace pc1 with (Plus.plus_lt_compat_r p n d pc) by
+                apply le_unique.
+            assumption.
+      -
+        apply (shrink_op_family_facts_up_n _ d op_family op_family_facts).
+      -
+        intros j jc H0.
+        apply H; clear H.
+        (* could be a sub-lemma *)
+        unfold shrink_op_family_mem_up_n in H0.
+        apply family_in_set_implies_members in H0.
+        destruct H0 as [p [pc H0]].
+        eapply family_in_set_includes_members.
+        eapply H0.
+    Qed.
 
     Lemma IUnion_vector_val_index_set_1_step_disjoint
           {svalue : CarrierA}
@@ -3470,8 +3554,6 @@ Section MemVecEq.
           {H : ∀ (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaFlags op_family
                                                            (mkFinNat jc) → Is_Val (Vnth x jc)}
           {v : vector (svector Monoid_RthetaFlags o) n}
-          {v0 : svector Monoid_RthetaFlags o}
-          {V0 : v0 ≡ get_family_op Monoid_RthetaFlags op_family 0 (Nat.lt_0_succ n) x}
           {V : v
                  ≡ Vbuild
                  (λ (i0 : nat) (ip : i0 < n), get_family_op Monoid_RthetaFlags op_family
@@ -3493,8 +3575,6 @@ Section MemVecEq.
         eapply family_in_set_includes_members.
         eapply H0.
       }
-      clear H op_family_facts.
-
       assert(E: S n ≡ n + 1) by lia.
       assert(zc: 0 < 1) by lia.
       assert(zc1: 0 < n + 1) by lia.
@@ -3507,21 +3587,19 @@ Section MemVecEq.
           (t0:=0)
           (tc1:=zc1)
           (op_family := cast_op_family op_family E); eauto.
-
       -
-        intros m mc n0 nc H.
+        apply (cast_op_family_facts op_family_facts E).
+      -
+        intros m mc n0 nc H1.
         unfold cast_op_family.
         break_match; auto.
       -
-        subst v0.
-        apply cast_op_eq; auto.
-      -
         subst v.
-        unfold cast_op_family.
+        unfold Apply_Family, Apply_Family', cast_op_family, shrink_op_family_up_n.
         f_equiv.
         extensionality j.
         extensionality jc.
-        apply cast_op_eq; lia.
+        apply cast_op_eq; simpl; lia.
       -
         subst f0.
         unfold cast_op_family.
@@ -3529,6 +3607,16 @@ Section MemVecEq.
         f_equiv.
         f_equiv.
         apply lt_unique.
+      -
+        intros j jc H0.
+        apply H.
+        apply family_in_set_implies_members in H0.
+        destruct H0 as [t [tc H0]].
+        assert(tc1: t < S n) by omega.
+        apply family_in_set_includes_members with (jc:=tc1).
+        rewrite cast_in_index_set_eq with (E0:=E) (tn:=tc).
+        apply H0.
+        assumption.
     Qed.
 
     Global Instance IUnion_Mem
