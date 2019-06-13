@@ -189,7 +189,7 @@ Run TemplateProgram
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
 
-Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*reifyResult) :=
+Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*term*reifyResult) :=
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
@@ -197,45 +197,45 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
 
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
-    | Some n_eUnion, [fm ; o ; b ; _ ; z] =>
+    | Some n_eUnion, [fm ; svalue; o ; b ; _] =>
       tmPrint "eUnion" ;;
               no <- tmUnquoteTyped nat o ;;
-              zconst <- tmUnquoteTyped CarrierA z ;;
+              zconst <- tmUnquoteTyped CarrierA svalue ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
-    | Some n_eT, [fm ; i ; b ; _] =>
+              tmReturn (vars, fm, svalue, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
+    | Some n_eT, [fm ; svalue; i ; b ; _] =>
       tmPrint "eT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
-    | Some n_SHPointwise, [fm ; n ; f ; _ ] =>
+              tmReturn (vars, fm, svalue,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
+    | Some n_SHPointwise, [fm ; svalue; n ; f ; _ ] =>
       tmPrint "SHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
-              tmReturn (vars, fm, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |})
-    | Some n_SHBinOp, [fm ; o ; f ; _]
+              tmReturn (vars, fm, svalue, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |})
+    | Some n_SHBinOp, [fm ; svalue; o ; f ; _]
       =>
       tmPrint "SHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
-              tmReturn (vars, fm, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |})
-    | Some n_SHInductor, [fm ; n ; f ; _ ; z] =>
+              tmReturn (vars, fm, svalue, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |})
+    | Some n_SHInductor, [fm ; svalue; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
-              tmReturn (vars, fm, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
-    | Some n_IUnion, [i ; o ; n ; f ; _ ; z ; op_family] =>
+              tmReturn (vars, fm, svalue, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
+    | Some n_IUnion, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
-              zconst <- tmUnquoteTyped CarrierA z ;;
+              zconst <- tmUnquoteTyped CarrierA svalue ;;
               fm <- tmQuote (Monoid_RthetaFlags) ;;
               df <- compileDSHBinCarrierA f ;;
               c' <- compileSHCOL vars op_family ;;
-              let '( _, _, rr) := (c':varbindings*term*reifyResult) in
-              tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
+              let '( _, _, _, rr) := (c':varbindings*term*term*reifyResult) in
+              tmReturn (vars, fm, svalue, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
     | Some n_ISumUnion, [i ; o ; n ; op_family] =>
       tmPrint "ISumUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -243,49 +243,50 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               nn <- tmUnquoteTyped nat n ;;
               fm <- tmQuote (Monoid_RthetaFlags) ;;
               c' <- compileSHCOL vars op_family ;;
-              let '(_, _, rr) := (c':varbindings*term*reifyResult) in
-              tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn (APlus (AVar 1) (AVar 0)) 0 (rei_op rr) |})
-    | Some n_IReduction, [i ; o ; n ; f ; _ ; z ; op_family] =>
+              a_zero <- tmQuote (zero) ;;
+              let '(_, _, _, rr) := (c':varbindings*term*term*reifyResult) in
+              tmReturn (vars, fm, a_zero, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn (APlus (AVar 1) (AVar 0)) 0 (rei_op rr) |})
+    | Some n_IReduction, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IReduction" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
-              zconst <- tmUnquoteTyped CarrierA z ;;
+              zconst <- tmUnquoteTyped CarrierA svalue ;;
               fm <- tmQuote (Monoid_RthetaSafeFlags) ;;
               c' <- compileSHCOL vars op_family ;;
               df <- compileDSHBinCarrierA f ;;
-              let '(_, _, rr) := (c':varbindings*term*reifyResult) in
-              tmReturn (vars, fm, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIReduction (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
-    | Some n_SHCompose, [fm ; i1 ; o2 ; o3 ; op1 ; op2] =>
+              let '(_, _, _, rr) := (c':varbindings*term*term*reifyResult) in
+              tmReturn (vars, fm, svalue, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIReduction (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
+    | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
               no3 <- tmUnquoteTyped nat o3 ;;
               cop1' <- compileSHCOL vars op1 ;;
               cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, cop1) := (cop1':varbindings*term*reifyResult) in
-              let '(_, _, cop2) := (cop2':varbindings*term*reifyResult) in
+              let '(_, _, _, cop1) := (cop1':varbindings*term*term*reifyResult) in
+              let '(_, _, _, cop2) := (cop2':varbindings*term*term*reifyResult) in
               cop1 <- castReifyResult no2 no3 cop1 ;;
                    cop2 <- castReifyResult ni1 no2 cop2 ;;
-                   tmReturn (vars, fm, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
-    | Some n_SafeCast, [i ; o ; c] =>
+                   tmReturn (vars, fm, svalue, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
+    | Some n_SafeCast, [svalue; i ; o ; c] =>
       tmPrint "SafeCast" ;;
-              compileSHCOL vars c (* TODO: fm? *)
-    | Some n_UnSafeCast, [i ; o ; c] =>
+              compileSHCOL vars c
+    | Some n_UnSafeCast, [svalue; i ; o ; c] =>
       tmPrint "UnSafeCast" ;;
-              compileSHCOL vars c (* TODO: fm? *)
-    | Some n_HTSUMUnion, [fm ; i ; o ; dot ; _ ; op1 ; op2] =>
+              compileSHCOL vars c
+    | Some n_HTSUMUnion, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
       tmPrint "HTSumunion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               ddot <- compileDSHBinCarrierA dot ;;
               cop1' <- compileSHCOL vars op1 ;;
               cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, cop1) := (cop1':varbindings*term*reifyResult) in
-              let '(_, _, cop2) := (cop2':varbindings*term*reifyResult) in
+              let '(_, _, _, cop1) := (cop1':varbindings*term*term*reifyResult) in
+              let '(_, _, _, cop2) := (cop2':varbindings*term*term*reifyResult) in
               cop1 <- castReifyResult ni no cop1 ;;
                    cop2 <- castReifyResult ni no cop2 ;;
-                   tmReturn (vars, fm, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
+                   tmReturn (vars, fm, svalue, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
 
     | None, _ =>
       tmFail ("Usupported SHCOL operator" ++ opname)
@@ -336,7 +337,7 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 
 (* Heterogenous relation of semantic equivalence of SHCOL and DSHCOL operators *)
 Open Scope list_scope.
-Definition SHCOL_DSHCOL_equiv {i o:nat} {fm} (σ: evalContext) (s: @SHOperator fm i o) (d: DSHOperator i o) : Prop
+Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm} (σ: evalContext) (s: @SHOperator fm i o svalue) (d: DSHOperator i o) : Prop
   := forall (Γ: evalContext) (x:svector fm i),
     (Some (densify fm (op fm s x))) = (evalDSHOperator (σ ++ Γ) d (densify fm x)).
 
@@ -347,7 +348,7 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                ast <- @tmQuote A eexpr ;;
                d' <- compileSHCOL [] ast ;;
                match d' with
-               | (globals, a_fm, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
+               | (globals, a_fm, a_svalue, {| rei_i:=i; rei_o:=o; rei_op:=dshcol |}) =>
                  a_i <- tmQuote i ;; a_o <- tmQuote o ;;
                      a_globals <- build_dsh_globals globals ;;
                      let global_idx := List.map tRel (rev_nat_seq (length globals)) in
@@ -358,7 +359,7 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                              a_dshcol <- tmQuote d_dshcol ;;
                              let lemma_concl :=
                                  (tApp (tConst "SHCOL_DSHCOL_equiv" [])
-                                       [a_i; a_o; a_fm; a_globals;
+                                       [a_i; a_o; a_svalue; a_fm; a_globals;
                                           a_shcol;
                                           a_dshcol])
                              in
@@ -372,10 +373,10 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                end.
 
 Theorem SHCompose_DSHCompose
-        {i1 o2 o3} {fm}
+        {i1 o2 o3} {svalue} {fm}
         (σ: evalContext)
-        (f: @SHOperator fm o2 o3)
-        (g: @SHOperator fm i1 o2)
+        (f: @SHOperator fm o2 o3 svalue)
+        (g: @SHOperator fm i1 o2 svalue)
         (df: DSHOperator o2 o3)
         (dg: DSHOperator i1 o2)
   :
@@ -406,8 +407,9 @@ Qed.
 
 Theorem SHCOL_DSHCOL_equiv_SafeCast
         {i o: nat}
+        {svalue: CarrierA}
         (σ: evalContext)
-        (s: @SHOperator Monoid_RthetaSafeFlags i o)
+        (s: @SHOperator Monoid_RthetaSafeFlags i o svalue)
         (d: DSHOperator i o):
   SHCOL_DSHCOL_equiv σ s d ->
   SHCOL_DSHCOL_equiv σ (TSigmaHCOL.SafeCast s) d.
@@ -432,8 +434,9 @@ Qed.
 
 Theorem SHCOL_DSHCOL_equiv_UnSafeCast
         {i o: nat}
+        {svalue: CarrierA}
         (σ: evalContext)
-        (s: @SHOperator Monoid_RthetaFlags i o)
+        (s: @SHOperator Monoid_RthetaFlags i o svalue)
         (d: DSHOperator i o):
   SHCOL_DSHCOL_equiv σ s d ->
   SHCOL_DSHCOL_equiv σ (TSigmaHCOL.UnSafeCast s) d.
@@ -458,6 +461,7 @@ Qed.
 
 Theorem SHBinOp_DSHBinOp
         {o: nat}
+        {svalue: CarrierA}
         {fm}
         (σ: evalContext)
         (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
@@ -467,8 +471,8 @@ Theorem SHBinOp_DSHBinOp
     (forall (Γ: evalContext) j a b, Some (f j a b) = evalIBinCarrierA
                                                        (σ ++ Γ)
                                                        df (proj1_sig j) a b) ->
-    @SHCOL_DSHCOL_equiv (o+o) o fm σ
-                        (@SHBinOp fm o f pF)
+    @SHCOL_DSHCOL_equiv (o+o) o svalue fm σ
+                        (@SHBinOp fm svalue o f pF)
                         (DSHBinOp df).
 Proof.
   intros H.
@@ -509,19 +513,21 @@ Qed.
 
 Theorem HTSUMUnion_DSHHTSUMUnion
         {i o: nat}
+        {svalue: CarrierA}
         {fm}
         (dot: CarrierA -> CarrierA -> CarrierA)
         `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
+        `{scompat: BFixpoint svalue dot}
         (ddot: DSHBinCarrierA)
         (σ: evalContext)
-        (f g: @SHOperator fm i o)
+        (f g: @SHOperator fm i o svalue)
         (df dg: DSHOperator i o)
   :
     SHCOL_DSHCOL_equiv σ f df ->
     SHCOL_DSHCOL_equiv σ g dg ->
     (forall (Γ:evalContext) a b, Some (dot a b) = evalBinCarrierA (σ++Γ) ddot a b) ->
     SHCOL_DSHCOL_equiv σ
-                       (@HTSUMUnion fm i o dot dot_mor f g)
+                       (@HTSUMUnion fm i o svalue dot dot_mor scompat f g)
                        (DSHHTSUMUnion ddot df dg).
 Proof.
   intros Ef Eg Edot.
@@ -579,13 +585,13 @@ Theorem eUnion_DSHeUnion
         (σ: evalContext)
         {o b:nat}
         (bc: b < o)
-        (z: CarrierA)
+        (svalue: CarrierA)
         (db: NExpr)
   :
     (forall Γ, Some b = evalNexp (σ++Γ) db) ->
-    SHCOL_DSHCOL_equiv σ
-                       (eUnion fm bc z)
-                       (DSHeUnion db z).
+    SHCOL_DSHCOL_equiv σ (svalue:=svalue)
+                       (eUnion fm bc)
+                       (DSHeUnion db svalue).
 Proof.
   intros H.
   intros Γ x.
@@ -615,8 +621,12 @@ Proof.
     destruct n0; auto.
 Qed.
 
-Definition SHOperatorFamily_DSHCOL_equiv {i o n:nat} {fm} (Γ: evalContext)
-           (s: @SHOperatorFamily fm i o n)
+Definition SHOperatorFamily_DSHCOL_equiv
+           {i o n:nat}
+           {svalue: CarrierA}
+           {fm}
+           (Γ: evalContext)
+           (s: @SHOperatorFamily fm i o n svalue)
            (d: DSHOperator i o) : Prop :=
   forall j, SHCOL_DSHCOL_equiv (DSHnatVal (proj1_sig j) :: Γ)
                                (s j)
@@ -1101,11 +1111,12 @@ Proof.
 Qed.
 
 Theorem IReduction_DSHIReduction
-        {i o n}
+        {i o n: nat}
+        {svalue: CarrierA}
         (dot: CarrierA -> CarrierA -> CarrierA)
         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-        (initial: CarrierA)
-        (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n)
+        `{scompat: BFixpoint svalue dot}
+        (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o n svalue)
         (ddot: DSHBinCarrierA)
         (dop_family: DSHOperator i o)
         (σ: evalContext)
@@ -1113,8 +1124,8 @@ Theorem IReduction_DSHIReduction
     (forall Γ a b, Some (dot a b) = evalBinCarrierA (σ++Γ) ddot a b) ->
     SHOperatorFamily_DSHCOL_equiv σ op_family dop_family ->
     SHCOL_DSHCOL_equiv σ
-                       (@IReduction i o n dot pdot initial op_family)
-                       (@DSHIReduction i o n ddot initial dop_family).
+                       (@IReduction svalue i o n dot pdot scompat op_family)
+                       (@DSHIReduction i o n ddot svalue dop_family).
 Proof.
   intros Hdot Hfam Γ x.
   simpl.
@@ -1138,7 +1149,7 @@ Proof.
                                             (shrink_op_family_up Monoid_RthetaSafeFlags op_family)
                                             (DSHOperator_NVar_subt 0 (NPlus (NVar 0) (NConst 1)) dop_family)).
     {
-      clear IHn dot pdot Hdot ddot x Γ.
+      clear IHn pdot Hdot ddot x Γ.
       intros jf Γ x.
       unfold shrink_op_family_up.
       specialize (Hfam (mkFinNat (Lt.lt_n_S (proj2_sig jf))) Γ x).
@@ -1233,6 +1244,7 @@ Qed.
 
 Theorem SHPointwise_DSHPointwise
         {fm}
+        {svalue: CarrierA}
         {n: nat}
         (f: FinNat n -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -1241,7 +1253,7 @@ Theorem SHPointwise_DSHPointwise
   :
     (forall Γ j a, Some (f j a) = evalIUnCarrierA (σ++Γ) df (proj1_sig j) a) ->
     SHCOL_DSHCOL_equiv σ
-                       (@SHPointwise fm n f pF)
+                       (@SHPointwise fm svalue  n f pF)
                        (DSHPointwise df).
 Proof.
   intros H.
@@ -1284,6 +1296,7 @@ Qed.
 
 Theorem SHInductor_DSHInductor
         {fm}
+        {svalue: CarrierA}
         (n:nat)
         (f: CarrierA -> CarrierA -> CarrierA)
         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
@@ -1295,7 +1308,7 @@ Theorem SHInductor_DSHInductor
     (forall Γ, Some n = evalNexp (σ++Γ) dn) ->
     (forall  Γ a b, Some (f a b) = evalBinCarrierA (σ++Γ) df a b) ->
     SHCOL_DSHCOL_equiv σ
-                       (@SHInductor fm n f pF initial)
+                       (@SHInductor fm svalue n f pF initial)
                        (DSHInductor dn df initial).
 Proof.
   intros E Edot.
@@ -1352,6 +1365,7 @@ Qed.
 
 Theorem eT_DSHeT
         {fm}
+        {svalue: CarrierA}
         {i b:nat}
         (bc: b < i)
         (db: NExpr)
@@ -1359,7 +1373,7 @@ Theorem eT_DSHeT
   :
     (forall (Γ:evalContext), Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ
-                       (@eT fm i b bc)
+                       (@eT fm svalue i b bc)
                        (@DSHeT i (db:NExpr)).
 Proof.
   intros H.
@@ -1388,8 +1402,8 @@ Proof.
 Qed.
 
 Theorem ISumUnion_DSHISumUnion
-        {i o n}
-        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n)
+        {i o n: nat}
+        (op_family: @SHOperatorFamily Monoid_RthetaFlags i o n zero)
         (dop_family: DSHOperator i o)
         (σ: evalContext)
   :
@@ -1544,8 +1558,8 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- SHCOL_DSHCOL_equiv _ (UnSafeCast _) _ ] => apply SHCOL_DSHCOL_equiv_UnSafeCast
          | [ |- SHCOL_DSHCOL_equiv _ (SHBinOp _ _) (DSHBinOp _) ] => apply SHBinOp_DSHBinOp
          | [ |- SHCOL_DSHCOL_equiv _ (HTSUMUnion _ _ _ _) (DSHHTSUMUnion _ _ _) ] => apply HTSUMUnion_DSHHTSUMUnion
-         | [ |- SHCOL_DSHCOL_equiv _ (eUnion _ _ _) (DSHeUnion _ _)] => apply eUnion_DSHeUnion
-         | [  |- SHCOL_DSHCOL_equiv _ (IReduction _ _ _) (DSHIReduction _ _ _ _)] => apply IReduction_DSHIReduction
+         | [ |- SHCOL_DSHCOL_equiv _ (eUnion _ _) (DSHeUnion _ _)] => apply eUnion_DSHeUnion
+         | [  |- SHCOL_DSHCOL_equiv _ (IReduction _ _) (DSHIReduction _ _ _ _)] => apply IReduction_DSHIReduction
          | [ |- SHOperatorFamily_DSHCOL_equiv _ _ _ ] => unfold SHOperatorFamily_DSHCOL_equiv
          | [ |- SHCOL_DSHCOL_equiv _ (SHFamilyOperatorCompose _ _ _ _) (DSHCompose _ _)] => apply SHCompose_DSHCompose
          | [ |- SHCOL_DSHCOL_equiv _ (SHPointwise _ _) (DSHPointwise _) ] =>  apply SHPointwise_DSHPointwise
@@ -1555,4 +1569,3 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- Some _ = evalIUnCarrierA _ _ _ _ ] => unfold evalIUnCarrierA; symmetry; solve_evalAexp
          | [ |- _ ] => try reflexivity
          end.
-
