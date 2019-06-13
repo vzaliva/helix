@@ -14,7 +14,6 @@ Require Import Vellvm.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
-Require Import ITree.Effects.Std.
 Require Import ITree.ITree.
 
 Require Import Flocq.IEEE754.Binary.
