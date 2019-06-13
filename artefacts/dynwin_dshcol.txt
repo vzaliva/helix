@@ -1,0 +1,35 @@
+dynwin_DSHCOL1 = 
+DSigmaHCOL.DSHCompose
+  (DSigmaHCOL.DSHBinOp (DSigmaHCOL.AZless (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)))
+  (DSigmaHCOL.DSHHTSUMUnion (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))
+     (DSigmaHCOL.DSHCompose (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NConst 0) CarrierAz)
+        (DSigmaHCOL.DSHIReduction 3
+           (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
+           (DSigmaHCOL.DSHCompose
+              (DSigmaHCOL.DSHCompose
+                 (DSigmaHCOL.DSHPointwise
+                    (DSigmaHCOL.AMult (DSigmaHCOL.AVar 0)
+                       (DSigmaHCOL.ANth 3 (DSigmaHCOL.VVar 3) (DSigmaHCOL.NVar 2))))
+                 (DSigmaHCOL.DSHInductor (DSigmaHCOL.NVar 0)
+                    (DSigmaHCOL.AMult (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))
+                    CarrierA1)) (DSigmaHCOL.DSHeT (DSigmaHCOL.NConst 0)))))
+     (DSigmaHCOL.DSHCompose (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NConst 1) CarrierAz)
+        (DSigmaHCOL.DSHIReduction 2
+           (DSigmaHCOL.AMax (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
+           (DSigmaHCOL.DSHCompose
+              (DSigmaHCOL.DSHBinOp
+                 (DSigmaHCOL.AAbs
+                    (DSigmaHCOL.AMinus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))))
+              (DSigmaHCOL.DSHIUnion 2
+                 (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
+                 (DSigmaHCOL.DSHCompose
+                    (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NVar 0) CarrierAz)
+                    (DSigmaHCOL.DSHeT
+                       (DSigmaHCOL.NPlus
+                          (DSigmaHCOL.NPlus (DSigmaHCOL.NConst 1)
+                             (DSigmaHCOL.NMult (DSigmaHCOL.NVar 1)
+                                (DSigmaHCOL.NConst 1)))
+                          (DSigmaHCOL.NMult (DSigmaHCOL.NVar 0)
+                             (DSigmaHCOL.NMult (DSigmaHCOL.NConst 2)
+                                (DSigmaHCOL.NConst 1)))))))))))
+     : DSigmaHCOL.DSHOperator (1 + 4) 1
