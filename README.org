@@ -28,13 +28,14 @@ proof assistant.
    - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
    - [[https://github.com/vellvm/vellvm][Vellvm]] (requires `coq-paco` and `coq-itree`) /(*manual installation instructions below)/
+   - [[https://opensource.janestreet.com/core/][Core]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
  To install all required dependenceis:
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch ANSITerminal coq-paco coq-itree
+     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-template-coq coq-flocq coq-switch ANSITerminal coq-paco coq-itree core core_kernel
 #+END_SRC
 
 ** Bulding and Running 
