@@ -19,6 +19,7 @@ Require Import MathClasses.misc.decision.
 Global Open Scope nat_scope.
 
 Definition evalContext:Type := list DSHVal.
+Definition context_index := nat.
 
 Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   match exp in (VExpr n0) return (option (vector CarrierA n0)) with
@@ -90,6 +91,7 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.Rtheta.
 
+(*
 Definition unLiftM_HOperator'
            {fm}
            {i o}
@@ -205,8 +207,58 @@ Definition evalDiamond
            (m: vector (option (avector o)) n)
   : option (avector o)
   := Vfold_left_rev (optDot dot) (Some (Vconst initial o)) m.
+ *)
 
-Fixpoint evalDSHOperator {i o} (Γ: evalContext) (op: DSHOperator i o) (x:avector i) {struct op}: option (avector o) :=
+Require Import Helix.SigmaHCOL.Memory.
+
+Definition context_lookup
+           (c: evalContext)
+           (n: context_index)
+           : option DSHVal
+  := nth_error c n.
+
+Definition context_replace
+           (c: evalContext)
+           (n: context_index)
+           (v: DSHVal)
+  : evalContext
+  :=
+    ListUtil.replace_at c n v.
+
+Definition context_lookup_mem
+           (c: evalContext)
+           (n: context_index)
+           : option mem_block
+  := match (nth_error c n) with
+     | Some (DSHmemVal m) => ret m
+     | _ => None
+     end.
+
+Fixpoint evalDSHOperator
+         (Γ: evalContext)
+         (op: DSHOperator)
+         (x_i y_i: context_index) {struct op}: option (evalContext)
+  :=
+    x <- context_lookup_mem Γ x_i ;;
+      y <- context_lookup_mem Γ y_i ;;
+      (match op with
+      | DSHAssign src_e dst_e =>
+        (src <- evalNexp Γ src_e ;;
+             dst <- evalNexp Γ dst_e ;;
+             v <- mem_lookup src x ;;
+             let y' := mem_add dst v y in
+             ret (context_replace Γ y_i (DSHmemVal y'))
+            )
+      | @DSHMap i f => None
+      | @DSHMap2 o f => None
+      | DSHPower n f initial => None
+      | DSHLoop n dot initial => None
+      | @DSHFold o n dot initial => None
+      | DSHSeq f g => None
+      | @DSHSum o dot f g => None
+      end).
+
+(*
   match op with
   | @DSHeUnion o be z =>
     fun x => b <- evalNexp Γ be ;;
@@ -647,3 +699,4 @@ Fixpoint DSHOperator_NVar_subt
                    (DSHOperator_NVar_subt name value f)
                    (DSHOperator_NVar_subt name value g)
   end.
+*)

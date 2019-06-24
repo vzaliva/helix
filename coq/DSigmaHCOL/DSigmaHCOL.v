@@ -1,13 +1,16 @@
 (* Deep embedding of a subset of SigmaHCOL *)
 
 Require Import Helix.HCOL.CarrierType.
+Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.SigmaHCOL.MemSetoid.
 
 Global Open Scope nat_scope.
 
 Inductive DSHVal :=
-| DSHnatVal (n:nat) :DSHVal
+| DSHnatVal (n:nat): DSHVal
 | DSHCarrierAVal (a:CarrierA): DSHVal
-| DSHvecVal {n:nat} (v:avector n): DSHVal.
+| DSHvecVal {n:nat} (v:avector n): DSHVal
+| DSHmemVal (m:mem_block): DSHVal.
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
@@ -43,16 +46,15 @@ Definition DSHIUnCarrierA := AExpr.
 Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
-Inductive DSHOperator: nat -> nat -> Type :=
-| DSHeUnion {o: nat} (b: NExpr) (z: CarrierA): DSHOperator 1 o
-| DSHeT {i: nat} (b:NExpr): DSHOperator i 1
-| DSHPointwise {i: nat} (f: DSHIUnCarrierA): DSHOperator i i
-| DSHBinOp {o} (f: DSHIBinCarrierA): DSHOperator (o+o) o
-| DSHInductor (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA): DSHOperator 1 1
-| DSHIUnion {i o: nat} (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o
-| DSHIReduction {i o: nat} (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA): DSHOperator i o -> DSHOperator i o
-| DSHCompose {i1 o2 o3: nat}: DSHOperator o2 o3 -> DSHOperator i1 o2 -> DSHOperator i1 o3
-| DSHHTSUMUnion {i o:nat} (dot: DSHBinCarrierA): DSHOperator i o -> DSHOperator i o -> @DSHOperator i o.
+Inductive DSHOperator :=
+| DSHAssign (src dst: NExpr) (* formerly [eT] and [eUnion] *)
+| DSHMap {i: nat} (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHMap2 {o: nat} (f: DSHIBinCarrierA) (* formerl [BinOp] *)
+| DSHPower (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
+| DSHLoop (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA) (* formerly [IUnion] *)
+| DSHFold {o: nat} (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA) (* formerly [IReduction] *)
+| DSHSeq (f g: DSHOperator) (* formerly [Compose] *)
+| DSHSum {o: nat} (dot: DSHBinCarrierA) (f g: DSHOperator). (* formely [HTSUMUnion] *)
 
 (* Some Setoid stuff below *)
 
@@ -64,7 +66,8 @@ Require Import Helix.Tactics.HelixTactics.
 Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
 | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
 | DSHCarrierAVal_equiv {a b: CarrierA}: a=b -> DSHVal_equiv (DSHCarrierAVal a) (DSHCarrierAVal b)
-| DSHvecVal_equiv {n:nat} {v0 v1: avector n}: v0=v1 -> DSHVal_equiv (DSHvecVal v0) (DSHvecVal v1).
+| DSHvecVal_equiv {n:nat} {v0 v1: avector n}: v0=v1 -> DSHVal_equiv (DSHvecVal v0) (DSHvecVal v1)
+| DSHmemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHmemVal m0) (DSHmemVal m1).
 
 Global Instance DSHVar_Equivalence:
   Equivalence DSHVal_equiv.
@@ -95,6 +98,11 @@ Proof.
       inv_exitstT.
       rewrite H.
       rewrite <- H6.
+      apply H2.
+    +
+      subst.
+      constructor.
+      rewrite H.
       apply H2.
 Qed.
 
