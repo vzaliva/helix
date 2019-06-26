@@ -169,7 +169,7 @@ Fixpoint evalDSHMap
       let y' := mem_add i v' y in
       match i with
       | O => ret y'
-      | S i' => evalDSHMap i' f Γ x y'
+      | S i => evalDSHMap i f Γ x y'
       end.
 
 Fixpoint evalDSHMap2
@@ -185,18 +185,26 @@ Fixpoint evalDSHMap2
        let y' := mem_add i v' y in
        match i with
        | O => ret y'
-       | S i' => evalDSHMap2 i' o f Γ x y'
+       | S i => evalDSHMap2 i o f Γ x y'
        end.
 
+Fixpoint evalDSHPower
+         (Γ: evalContext)
+         (n: nat)
+         (f: DSHBinCarrierA)
+         (x y: mem_block) : option (mem_block)
+  :=
+    match n with
+    | O => ret y
+    | S p =>
+      xv <- mem_lookup 0 x ;;
+      yv <- mem_lookup 0 y ;;
+      v' <- evalBinCarrierA Γ f xv yv ;;
+      let y' := mem_add 0 v' y in
+      evalDSHPower Γ p f x y'
+    end.
+
 (*
-Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
-  vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
-
-Definition evalDSHBinOp (Γ: evalContext) {o:nat} (f: DSHIBinCarrierA) (x:avector (o+o)) : option (avector o) :=
-  let (a,b) := vector2pair o x in
-  vsequence (Vbuild (fun i (ip:i<o) =>
-                       evalIBinCarrierA Γ f i (Vnth a ip) (Vnth b ip))).
-
 Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
   match n with
   | O => Some initial
@@ -295,7 +303,11 @@ Fixpoint evalDSHOperator
        | @DSHMap2 o f =>
          y' <- evalDSHMap2 o o f Γ x y ;;
             ret (context_replace Γ y_i (DSHmemVal y'))
-       | DSHPower n f initial => None
+       | DSHPower ne f initial =>
+         n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
+           let y' := mem_add 0 initial y in
+           y' <- evalDSHPower Γ n f x y  ;;
+              ret (context_replace Γ y_i (DSHmemVal y'))
        | DSHLoop n dot initial => None
        | @DSHFold o n dot initial => None
        | DSHSeq f g => None
