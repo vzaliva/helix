@@ -165,12 +165,28 @@ Fixpoint evalDSHMap
          (x y: mem_block) : option (mem_block)
   :=
     v <- mem_lookup i x ;;
-      let v' := evalIUnCarrierA Γ f i v in
-      let y' := mem_add i v y in
+      v' <- evalIUnCarrierA Γ f i v ;;
+      let y' := mem_add i v' y in
       match i with
       | O => ret y'
       | S i' => evalDSHMap i' f Γ x y'
       end.
+
+Fixpoint evalDSHMap2
+         (i: nat)
+         (o: nat)
+         (f: DSHIUnCarrierA)
+         (Γ: evalContext)
+         (x y: mem_block) : option (mem_block)
+  :=
+    v0 <- mem_lookup i x ;;
+       v1 <- mem_lookup (i+o) x ;;
+       v' <- evalIBinCarrierA Γ f i v0 v1 ;;
+       let y' := mem_add i v' y in
+       match i with
+       | O => ret y'
+       | S i' => evalDSHMap2 i' o f Γ x y'
+       end.
 
 (*
 Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
@@ -276,7 +292,9 @@ Fixpoint evalDSHOperator
       | @DSHMap i f =>
         y' <- evalDSHMap i f Γ x y ;;
            ret (context_replace Γ y_i (DSHmemVal y'))
-      | @DSHMap2 o f => None
+      | @DSHMap2 o f =>
+        y' <- evalDSHMap2 o o f Γ x y ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
       | DSHPower n f initial => None
       | DSHLoop n dot initial => None
       | @DSHFold o n dot initial => None
