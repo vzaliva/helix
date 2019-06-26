@@ -7,7 +7,8 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
-Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+(* Require Import Helix.SigmaHCOL.SigmaHCOLImpl. *)
+Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 
@@ -18,9 +19,42 @@ Require Import MathClasses.misc.decision.
 
 Global Open Scope nat_scope.
 
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+
+
 Definition evalContext:Type := list DSHVal.
 Definition context_index := nat.
 
+Definition context_lookup
+           (c: evalContext)
+           (n: context_index)
+           : option DSHVal
+  := nth_error c n.
+
+Definition context_replace
+           (c: evalContext)
+           (n: context_index)
+           (v: DSHVal)
+  : evalContext
+  :=
+    ListUtil.replace_at c n v.
+
+Definition context_lookup_mem
+           (c: evalContext)
+           (n: context_index)
+           : option mem_block
+  := match (nth_error c n) with
+     | Some (DSHmemVal m) => ret m
+     | _ => None
+     end.
+
+
+
+(* Evaluation of expressions does not allow for side-effects *)
 Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   match exp in (VExpr n0) return (option (vector CarrierA n0)) with
   | @VVar n0 i =>
@@ -36,12 +70,7 @@ Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   | @VConst _ t => Some t
   end.
 
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Monads.OptionMonad.
-
-Import MonadNotation.
-Local Open Scope monad_scope.
-
+(* Evaluation of expressions does not allow for side-effects *)
 Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
   match e with
   | NVar i => v <- (nth_error st i) ;;
@@ -59,6 +88,7 @@ Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
   | NMax a b => liftM2 Nat.max (evalNexp st a) (evalNexp st b)
   end.
 
+(* Evaluation of expressions does not allow for side-effects *)
 Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
   match e with
   | AVar i => v <- (nth_error st i) ;;
@@ -111,19 +141,38 @@ Proof.
   f_equiv.
   apply E.
 Qed.
+ *)
 
+(* Evaluation of functions does not allow for side-effects *)
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
 
+(* Evaluation of functions does not allow for side-effects *)
 Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
            (i:nat) (a b:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
 
+(* Evaluation of functions does not allow for side-effects *)
 Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
            (a b:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: Γ) f.
 
+Fixpoint evalDSHMap
+         (i: nat)
+         (f: DSHIUnCarrierA)
+         (Γ: evalContext)
+         (x y: mem_block) : option (mem_block)
+  :=
+    v <- mem_lookup i x ;;
+      let v' := evalIUnCarrierA Γ f i v in
+      let y' := mem_add i v y in
+      match i with
+      | O => ret y'
+      | S i' => evalDSHMap i' f Γ x y'
+      end.
+
+(*
 Definition evalDSHPointwise (Γ: evalContext) {i: nat} (f: DSHIUnCarrierA) (x:avector i): option (avector i) :=
   vsequence (Vbuild (fun j jd => evalIUnCarrierA Γ f j (Vnth x jd))).
 
@@ -209,31 +258,6 @@ Definition evalDiamond
   := Vfold_left_rev (optDot dot) (Some (Vconst initial o)) m.
  *)
 
-Require Import Helix.SigmaHCOL.Memory.
-
-Definition context_lookup
-           (c: evalContext)
-           (n: context_index)
-           : option DSHVal
-  := nth_error c n.
-
-Definition context_replace
-           (c: evalContext)
-           (n: context_index)
-           (v: DSHVal)
-  : evalContext
-  :=
-    ListUtil.replace_at c n v.
-
-Definition context_lookup_mem
-           (c: evalContext)
-           (n: context_index)
-           : option mem_block
-  := match (nth_error c n) with
-     | Some (DSHmemVal m) => ret m
-     | _ => None
-     end.
-
 Fixpoint evalDSHOperator
          (Γ: evalContext)
          (op: DSHOperator)
@@ -248,8 +272,10 @@ Fixpoint evalDSHOperator
              v <- mem_lookup src x ;;
              let y' := mem_add dst v y in
              ret (context_replace Γ y_i (DSHmemVal y'))
-            )
-      | @DSHMap i f => None
+        )
+      | @DSHMap i f =>
+        y' <- evalDSHMap i f Γ x y ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
       | @DSHMap2 o f => None
       | DSHPower n f initial => None
       | DSHLoop n dot initial => None
