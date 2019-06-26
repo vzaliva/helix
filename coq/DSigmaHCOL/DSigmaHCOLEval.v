@@ -282,25 +282,25 @@ Fixpoint evalDSHOperator
     x <- context_lookup_mem Γ x_i ;;
       y <- context_lookup_mem Γ y_i ;;
       (match op with
-      | DSHAssign src_e dst_e =>
-        (src <- evalNexp Γ src_e ;;
-             dst <- evalNexp Γ dst_e ;;
-             v <- mem_lookup src x ;;
-             let y' := mem_add dst v y in
-             ret (context_replace Γ y_i (DSHmemVal y'))
-        )
-      | @DSHMap i f =>
-        y' <- evalDSHMap i f Γ x y ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
-      | @DSHMap2 o f =>
-        y' <- evalDSHMap2 o o f Γ x y ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
-      | DSHPower n f initial => None
-      | DSHLoop n dot initial => None
-      | @DSHFold o n dot initial => None
-      | DSHSeq f g => None
-      | @DSHSum o dot f g => None
-      end).
+       | DSHAssign src_e dst_e =>
+         (src <- evalNexp Γ src_e ;;
+              dst <- evalNexp Γ dst_e ;;
+              v <- mem_lookup src x ;;
+              let y' := mem_add dst v y in
+              ret (context_replace Γ y_i (DSHmemVal y'))
+         )
+       | @DSHMap i f =>
+         y' <- evalDSHMap i f Γ x y ;;
+            ret (context_replace Γ y_i (DSHmemVal y'))
+       | @DSHMap2 o f =>
+         y' <- evalDSHMap2 o o f Γ x y ;;
+            ret (context_replace Γ y_i (DSHmemVal y'))
+       | DSHPower n f initial => None
+       | DSHLoop n dot initial => None
+       | @DSHFold o n dot initial => None
+       | DSHSeq f g => None
+       | @DSHSum o dot f g => None
+       end).
 
 (*
   match op with
