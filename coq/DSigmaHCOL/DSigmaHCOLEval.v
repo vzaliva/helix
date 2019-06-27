@@ -25,19 +25,17 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-
 Definition evalContext:Type := list DSHVal.
-Definition context_index := nat.
 
 Definition context_lookup
            (c: evalContext)
-           (n: context_index)
+           (n: var_id)
            : option DSHVal
   := nth_error c n.
 
 Definition context_replace
            (c: evalContext)
-           (n: context_index)
+           (n: var_id)
            (v: DSHVal)
   : evalContext
   :=
@@ -45,7 +43,7 @@ Definition context_replace
 
 Definition context_lookup_mem
            (c: evalContext)
-           (n: context_index)
+           (n: var_id)
            : option mem_block
   := match (nth_error c n) with
      | Some (DSHmemVal m) => ret m
@@ -284,35 +282,42 @@ Definition evalDiamond
 
 Fixpoint evalDSHOperator
          (Γ: evalContext)
-         (op: DSHOperator)
-         (x_i y_i: context_index) {struct op}: option (evalContext)
+         (op: DSHOperator) {struct op}: option (evalContext)
   :=
-    x <- context_lookup_mem Γ x_i ;;
-      y <- context_lookup_mem Γ y_i ;;
-      (match op with
-       | DSHAssign src_e dst_e =>
-         (src <- evalNexp Γ src_e ;;
-              dst <- evalNexp Γ dst_e ;;
-              v <- mem_lookup src x ;;
-              let y' := mem_add dst v y in
-              ret (context_replace Γ y_i (DSHmemVal y'))
-         )
-       | @DSHMap i f =>
-         y' <- evalDSHMap i f Γ x y ;;
-            ret (context_replace Γ y_i (DSHmemVal y'))
-       | @DSHMap2 o f =>
-         y' <- evalDSHMap2 o o f Γ x y ;;
-            ret (context_replace Γ y_i (DSHmemVal y'))
-       | DSHPower ne f initial =>
-         n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
-           let y' := mem_add 0 initial y in
-           y' <- evalDSHPower Γ n f x y  ;;
-              ret (context_replace Γ y_i (DSHmemVal y'))
-       | DSHLoop n dot initial => None
-       | @DSHFold o n dot initial => None
-       | DSHSeq f g => None
-       | @DSHSum o dot f g => None
-       end).
+    match op with
+    | DSHAssign x_i y_i src_e dst_e =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        src <- evalNexp Γ src_e ;;
+        dst <- evalNexp Γ dst_e ;;
+        v <- mem_lookup src x ;;
+        let y' := mem_add dst v y in
+        ret (context_replace Γ y_i (DSHmemVal y'))
+    | @DSHMap x_i y_i i f =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        y' <- evalDSHMap i f Γ x y ;;
+        ret (context_replace Γ y_i (DSHmemVal y'))
+    | @DSHMap2 x_i y_i o f =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        y' <- evalDSHMap2 o o f Γ x y ;;
+        ret (context_replace Γ y_i (DSHmemVal y'))
+    | DSHPower ne x_i y_i  f initial =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
+        let y' := mem_add 0 initial y in
+        y' <- evalDSHPower Γ n f x y  ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
+    | DSHLoop n => None
+    | @DSHFold x_i y_i o n dot initial => None
+    | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
+    | DSHSeq f g =>
+      Γ <- evalDSHOperator Γ f ;;
+        evalDSHOperator Γ g
+    | @DSHSum x_i y_i o dot f g => None
+    end.
 
 (*
   match op with

@@ -951,18 +951,6 @@ Section Operators.
        | List.cons b l => f (fold_left_rev f a l) b
        end.
 
-  Fixpoint monadic_fold_left_rev
-           {A B : Type}
-           {m : Type -> Type}
-           {M : Monad m}
-           (f : A -> B -> m A) (a : A) (l : list B)
-    : m A
-    := match l with
-       | List.nil => ret a
-       | List.cons b l => a' <- monadic_fold_left_rev f a l ;;
-                    f a' b
-       end.
-
   Program Fixpoint monadic_Lbuild
           {A: Type}
           {m : Type -> Type}

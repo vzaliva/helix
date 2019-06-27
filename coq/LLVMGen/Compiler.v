@@ -1159,6 +1159,7 @@ Section monadic.
         '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
          '(st, (gb, g')) <- genIR x tmpid g st fb ;;
          let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
+         (* TODO: free? *)
          add_comment (ret (st, (alloid, [tmpalloc]++g'++f'))) "--- Operator: FSHCompose ---"
       | FSHHTSUMUnion i o dot f g =>
         let '(st, tmpfy) := incLocal st in

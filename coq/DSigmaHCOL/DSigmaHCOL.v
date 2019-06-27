@@ -6,6 +6,8 @@ Require Import Helix.SigmaHCOL.MemSetoid.
 
 Global Open Scope nat_scope.
 
+Definition var_id := nat.
+
 Inductive DSHVal :=
 | DSHnatVal (n:nat): DSHVal
 | DSHCarrierAVal (a:CarrierA): DSHVal
@@ -14,7 +16,7 @@ Inductive DSHVal :=
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
-| AVar  : nat -> AExpr
+| AVar  : var_id -> AExpr
 | AConst: CarrierA -> AExpr
 | ANth  : forall n, VExpr n -> NExpr -> AExpr
 | AAbs  : AExpr -> AExpr
@@ -27,7 +29,7 @@ Inductive AExpr : Type :=
 with
 (* Expressions which evaluate to `nat` *)
 NExpr: Type :=
-| NVar  : nat -> NExpr
+| NVar  : var_id -> NExpr
 | NConst: nat -> NExpr
 | NDiv  : NExpr -> NExpr -> NExpr
 | NMod  : NExpr -> NExpr -> NExpr
@@ -38,7 +40,7 @@ NExpr: Type :=
 | NMax  : NExpr -> NExpr -> NExpr
 (* Expressions which evaluate to `avector n` *)
 with VExpr: nat -> Type :=
-     | VVar  {n:nat}: nat -> VExpr n
+     | VVar  {n:var_id}: nat -> VExpr n
      | VConst {n:nat}: avector n -> VExpr n.
 
 Definition DSHUnCarrierA := AExpr.
@@ -47,14 +49,15 @@ Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
 Inductive DSHOperator :=
-| DSHAssign (src dst: NExpr) (* formerly [eT] and [eUnion] *)
-| DSHMap {i: nat} (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHMap2 {o: nat} (f: DSHIBinCarrierA) (* formerl [BinOp] *)
-| DSHPower (n:NExpr) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
-| DSHLoop (n:nat) (dot: DSHBinCarrierA) (initial: CarrierA) (* formerly [IUnion] *)
-| DSHFold {o: nat} (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA) (* formerly [IReduction] *)
-| DSHSeq (f g: DSHOperator) (* formerly [Compose] *)
-| DSHSum {o: nat} (dot: DSHBinCarrierA) (f g: DSHOperator). (* formely [HTSUMUnion] *)
+| DSHAssign (x_i y_i: var_id) (src dst: NExpr) (* formerly [eT] and [eUnion] *)
+| DSHMap {i: nat} (x_i y_i: var_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHMap2 {o: nat} (x_i y_i: var_id) (f: DSHIBinCarrierA) (* formerl [BinOp] *)
+| DSHPower (n:NExpr) (x_i y_i: var_id) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
+| DSHLoop (n:nat) (* formerly [IUnion] *)
+| DSHFold {o: nat} (x_i y_i: var_id) (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA) (* formerly [IReduction] *)
+| DSHAlloc (size:nat) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed *)
+| DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
+| DSHSum {o: nat} (x_i y_i: var_id) (dot: DSHBinCarrierA) (f g: DSHOperator). (* formely [HTSUMUnion] *)
 
 (* Some Setoid stuff below *)
 

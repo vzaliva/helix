@@ -1663,29 +1663,6 @@ Section MemVecEq.
     Qed.
 
     (* Probably could be proven more generally for any monad with with some properties *)
-    Global Instance monadic_fold_left_rev_opt_proper
-           {A B : Type}
-           `{Eb: Equiv B}
-           `{Ae: Equiv A}
-           `{Equivalence A Ae}
-           (f : A -> B -> option A)
-           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-           (a : A)
-      :
-        Proper ((=) ==> (=)) (monadic_fold_left_rev f a).
-    Proof.
-      intros x y E.
-      induction E.
-      -
-        reflexivity.
-      -
-        simpl.
-        repeat break_match; try some_none.
-        some_inv.
-        apply f_mor; auto.
-    Qed.
-
-    (* Probably could be proven more generally for any monad with with some properties *)
     Global Instance monadic_Lbuild_opt_proper
            {A: Type}
            `{Ae: Equiv A}

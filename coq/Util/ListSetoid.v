@@ -73,3 +73,62 @@ Proof.
     apply H.
     crush.
 Qed.
+
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Section Monadic.
+
+  Import MonadNotation.
+  Local Open Scope monad_scope.
+
+  Fixpoint monadic_fold_left
+           {A B : Type}
+           {m : Type -> Type}
+           {M : Monad m}
+           (f : A -> B -> m A) (a : A) (l : list B)
+    : m A
+    := match l with
+       | List.nil => ret a
+       | List.cons b l =>
+         a' <- f a b ;;
+            monadic_fold_left f a' l
+       end.
+
+
+  Fixpoint monadic_fold_left_rev
+           {A B : Type}
+           {m : Type -> Type}
+           {M : Monad m}
+           (f : A -> B -> m A) (a : A) (l : list B)
+    : m A
+    := match l with
+       | List.nil => ret a
+       | List.cons b l => a' <- monadic_fold_left_rev f a l ;;
+                            f a' b
+       end.
+
+  (* Probably could be proven more generally for any monad with with some properties *)
+  Global Instance monadic_fold_left_rev_opt_proper
+         {A B : Type}
+         `{Eb: Equiv B}
+         `{Ae: Equiv A}
+         `{Equivalence A Ae}
+         (f : A -> B -> option A)
+         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+         (a : A)
+    :
+      Proper ((=) ==> (=)) (monadic_fold_left_rev f a).
+  Proof.
+    intros x y E.
+    induction E.
+    -
+      reflexivity.
+    -
+      simpl.
+      repeat break_match; try some_none.
+      some_inv.
+      apply f_mor; auto.
+  Qed.
+
+End Monadic.
