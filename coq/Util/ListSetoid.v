@@ -1,3 +1,5 @@
+Require Import Coq.Arith.Lt.
+Require Import CoLoR.Util.Nat.NatUtil.
 Require Import Coq.Lists.List.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
@@ -105,7 +107,7 @@ Section Monadic.
     := match l with
        | List.nil => ret a
        | List.cons b l => a' <- monadic_fold_left_rev f a l ;;
-                            f a' b
+                             f a' b
        end.
 
   (* Probably could be proven more generally for any monad with with some properties *)
@@ -130,5 +132,151 @@ Section Monadic.
       some_inv.
       apply f_mor; auto.
   Qed.
+
+  Program Fixpoint monadic_Lbuild
+          {A: Type}
+          {m : Type -> Type}
+          {M : Monad m}
+          (n : nat)
+          (gen : forall i, i < n -> m A) {struct n}: m (list A) :=
+    match n with
+    | O => ret (List.nil)
+    | S p =>
+      let gen' := fun i ip => gen (S i) _ in
+      liftM2 List.cons (gen 0 (lt_O_Sn p)) (@monadic_Lbuild A m M p gen')
+    end.
+
+  Lemma monadic_Lbuild_cons
+        {A: Type}
+        {m : Type -> Type}
+        {M : Monad m}
+        (n : nat)
+        (gen : forall i, i < S n -> m A)
+    :
+      monadic_Lbuild _ gen ≡
+                     liftM2 List.cons (gen 0 (lt_O_Sn n)) (monadic_Lbuild _ (fun i ip => gen (S i) (lt_n_S ip))).
+  Proof.
+    simpl.
+    f_equiv.
+    f_equiv.
+    extensionality i.
+    extensionality ip.
+    f_equiv.
+    apply NatUtil.lt_unique.
+  Qed.
+
+  Lemma monadic_Lbuild_opt_length
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A)
+        (l: list A)
+    :
+      monadic_Lbuild _ gen ≡ Some l → Datatypes.length l ≡ n.
+  Proof.
+    intros H.
+    dependent induction n.
+    -
+      simpl in H.
+      some_inv.
+      reflexivity.
+    -
+      destruct l.
+      +
+        exfalso.
+        simpl in *.
+        repeat break_match_hyp; try some_none.
+        inversion H.
+      +
+        simpl.
+        f_equiv.
+        apply IHn with (gen:=fun i ip => gen (S i) (lt_n_S ip)).
+        simpl in H.
+        repeat break_match_hyp; try some_none.
+        inversion H.
+        subst.
+        rewrite <- Heqo0.
+        f_equiv.
+        extensionality i.
+        extensionality ip.
+        f_equiv.
+        apply NatUtil.lt_unique.
+  Qed.
+
+  (* Could be proven <-> *)
+  Lemma monadic_Lbuild_op_eq_None
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A):
+
+    monadic_Lbuild _ gen ≡ None -> exists i ic, gen i ic ≡ None.
+  Proof.
+    intros H.
+    dependent induction n.
+    -
+      simpl in H.
+      some_none.
+    -
+      simpl in H.
+      repeat break_match_hyp; try some_none; clear H.
+      +
+        remember (λ (i : nat) (ip : i < n), gen (S i)
+                                              (orders.strictly_order_preserving S i n ip)) as gen' eqn:G.
+        specialize (IHn gen' Heqo0).
+        subst gen'.
+        destruct IHn as [i [ic IHn]].
+        eexists; eexists; eapply IHn.
+      +
+        eexists; eexists; eapply Heqo.
+  Qed.
+
+  Lemma monadic_Lbuild_op_eq_Some
+        {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> option A)
+        (l: list A)
+    :
+
+      monadic_Lbuild _ gen ≡ Some l -> (forall i ic, List.nth_error l i ≡ gen i ic).
+  Proof.
+    intros H i ic.
+    pose proof (monadic_Lbuild_opt_length _ gen _ H).
+    dependent induction n.
+    -
+      inversion ic.
+    -
+      destruct l as [| l0 l].
+      inversion H0.
+      simpl in H.
+      destruct i.
+      +
+        repeat break_match_hyp; simpl in *; try some_none.
+        inversion H.
+        subst.
+        rewrite <- Heqo.
+        f_equiv.
+        apply NatUtil.lt_unique.
+      +
+        simpl.
+        specialize (IHn (fun i ip => gen (S i) (lt_n_S ip))).
+        assert(ic1: i<n) by  apply lt_S_n, ic.
+        rewrite IHn with (ic:=ic1); clear IHn.
+        *
+          f_equiv.
+          apply NatUtil.lt_unique.
+        *
+          repeat break_match_hyp; simpl in *; try some_none.
+          inversion H.
+          subst.
+          rewrite <- Heqo0.
+          f_equiv.
+          extensionality j.
+          extensionality jc.
+          f_equiv.
+          apply NatUtil.lt_unique.
+        *
+          simpl in H0.
+          auto.
+  Qed.
+
 
 End Monadic.
