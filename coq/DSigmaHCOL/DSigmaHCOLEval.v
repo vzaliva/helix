@@ -282,41 +282,78 @@ Definition evalDiamond
 
 Fixpoint evalDSHOperator
          (Γ: evalContext)
-         (op: DSHOperator) {struct op}: option (evalContext)
+         (op: DSHOperator)
+         (fuel: nat)
+         {struct fuel}: option (evalContext)
   :=
     match op with
     | DSHAssign x_i y_i src_e dst_e =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
-        src <- evalNexp Γ src_e ;;
-        dst <- evalNexp Γ dst_e ;;
-        v <- mem_lookup src x ;;
-        let y' := mem_add dst v y in
-        ret (context_replace Γ y_i (DSHmemVal y'))
+      match fuel with
+      | O => None
+      | S fuel =>
+        x <- context_lookup_mem Γ x_i ;;
+          y <- context_lookup_mem Γ y_i ;;
+          src <- evalNexp Γ src_e ;;
+          dst <- evalNexp Γ dst_e ;;
+          v <- mem_lookup src x ;;
+          let y' := mem_add dst v y in
+          ret (context_replace Γ y_i (DSHmemVal y'))
+      end
     | @DSHMap x_i y_i i f =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
-        y' <- evalDSHMap i f Γ x y ;;
-        ret (context_replace Γ y_i (DSHmemVal y'))
+      match fuel with
+      | O => None
+      | S fuel =>
+        x <- context_lookup_mem Γ x_i ;;
+          y <- context_lookup_mem Γ y_i ;;
+          y' <- evalDSHMap i f Γ x y ;;
+          ret (context_replace Γ y_i (DSHmemVal y'))
+      end
     | @DSHMap2 x_i y_i o f =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
-        y' <- evalDSHMap2 o o f Γ x y ;;
-        ret (context_replace Γ y_i (DSHmemVal y'))
+      match fuel with
+      | O => None
+      | S fuel =>
+        x <- context_lookup_mem Γ x_i ;;
+          y <- context_lookup_mem Γ y_i ;;
+          y' <- evalDSHMap2 o o f Γ x y ;;
+          ret (context_replace Γ y_i (DSHmemVal y'))
+      end
     | DSHPower ne x_i y_i  f initial =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
-        n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
-        let y' := mem_add 0 initial y in
-        y' <- evalDSHPower Γ n f x y  ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
-    | DSHLoop n => None
-    | @DSHFold x_i y_i o n dot initial => None
-    | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
+      match fuel with
+      | O => None
+      | S fuel =>
+        x <- context_lookup_mem Γ x_i ;;
+          y <- context_lookup_mem Γ y_i ;;
+          n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
+          let y' := mem_add 0 initial y in
+          y' <- evalDSHPower Γ n f x y  ;;
+             ret (context_replace Γ y_i (DSHmemVal y'))
+      end
+    | DSHLoop O body =>
+      match fuel with
+      | O => None
+      | S fuel => evalDSHOperator (DSHnatVal 0 :: Γ) body fuel
+      end
+    | DSHLoop (S n) body =>
+      match fuel with
+      | O => None
+      | S fuel =>
+        Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
+          evalDSHOperator (DSHnatVal (S n) :: Γ) body fuel
+      end
+    | @DSHFold x_i y_i o n dot initial body => None (* TODO *)
+    | DSHAlloc size =>
+      match fuel with
+      | O => None
+      | S fuel => ret (DSHmemVal (mem_empty) :: Γ)
+      end
     | DSHSeq f g =>
-      Γ <- evalDSHOperator Γ f ;;
-        evalDSHOperator Γ g
-    | @DSHSum x_i y_i o dot f g => None
+      match fuel with
+      | O => None
+      | S fuel =>
+        Γ <- evalDSHOperator Γ f fuel ;;
+          evalDSHOperator Γ g fuel
+      end
+    | @DSHSum x_i y_i o dot f g => None (* TODO! *)
     end.
 
 (*
