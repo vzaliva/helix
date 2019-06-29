@@ -210,7 +210,6 @@ Fixpoint evalDSHIMap2
        | S n => evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y'
        end.
 
-
 Fixpoint evalDSHPower
          (Γ: evalContext)
          (n: nat)
@@ -226,84 +225,6 @@ Fixpoint evalDSHPower
       let y' := mem_add 0 v' y in
       evalDSHPower Γ p f x y'
     end.
-
-(*
-Fixpoint evalDSHInductor (Γ: evalContext) (n:nat) (f: DSHBinCarrierA) (initial: CarrierA) (v:CarrierA): option CarrierA :=
-  match n with
-  | O => Some initial
-  | S p => t <- evalDSHInductor Γ p f initial v ;;
-            evalBinCarrierA Γ f t v
-  end.
-
-Lemma evalDSHInductor_Sn
-      (Γ: evalContext)
-      (n:nat)
-      (f: DSHBinCarrierA)
-      (initial: CarrierA)
-      (v:CarrierA):
-  evalDSHInductor Γ (S n) f initial v =
-  (
-    t <- evalDSHInductor Γ n f initial v ;;
-      evalBinCarrierA Γ f t v
-  ).
-Proof.
-  reflexivity.
-Qed.
-
-Definition optDot
-           {n}
-           (dot: CarrierA -> CarrierA -> option CarrierA)
-           (a b: option (avector n)): option (avector n)
-  :=
-    a' <- a ;;
-       b' <- b ;;
-       vsequence (Vmap2 dot a' b').
-
-Global Instance optDot_arg_proper
-       {n:nat}
-       {f: CarrierA → CarrierA → option CarrierA}
-       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}:
-  Proper (equiv ==> equiv ==> equiv) (optDot (n:=n) f).
-Proof.
-  intros x x' Ex y y' Ey.
-  unfold optDot.
-  simpl.
-  repeat break_match; try reflexivity; try some_none.
-  apply vsequence_option_proper.
-  repeat some_inv.
-  f_equiv; auto.
-Qed.
-
-Global Instance optDot_proper
-       {n:nat}:
-  Proper (((=) ==> (=) ==> (=)) ==> equiv ==> equiv ==> equiv) (optDot (n:=n)).
-Proof.
-  intros f f' Ef x x' Ex y y' Ey.
-  unfold optDot.
-  simpl.
-  repeat break_match; try reflexivity; try some_none.
-  apply vsequence_option_proper.
-  repeat some_inv.
-  rewrite 2!Vmap2_as_Vbuild.
-  apply Vbuild_proper.
-  intros j jc.
-  f_equiv.
-  -
-    apply Ef.
-  -
-    apply Vnth_arg_equiv; auto.
-  -
-    apply Vnth_arg_equiv; auto.
-Qed.
-
-Definition evalDiamond
-           {n o: nat}
-           (dot: CarrierA → CarrierA → option CarrierA)
-           (initial: CarrierA)
-           (m: vector (option (avector o)) n)
-  : option (avector o)
-  := Vfold_left_rev (optDot dot) (Some (Vconst initial o)) m.
- *)
 
 Fixpoint evalDSHOperator
          (Γ: evalContext)
@@ -372,12 +293,22 @@ Fixpoint evalDSHOperator
         Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
           evalDSHOperator (DSHnatVal n :: Γ) body fuel
       end
-    | @DSHFold x_i y_i o n dot initial body => None (* TODO *)
-    | DSHAlloc size =>
+    | DSHAlloc size body =>
       match fuel with
       | O => None
-      | S fuel => ret (DSHmemVal (mem_empty) :: Γ)
+      | S fuel => evalDSHOperator (DSHmemVal (mem_empty) :: Γ) body fuel
       end
+    | DSHInit size y_i value =>
+              y <- context_lookup_mem Γ y_i ;;
+              let y' := mem_union
+                          (mem_const_block size value)
+                          y in
+              ret (context_replace Γ y_i (DSHmemVal y'))
+    | DSHCopy size x_i y_i =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        let y' := mem_union x y in
+        ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHSeq f g =>
       match fuel with
       | O => None
@@ -387,47 +318,8 @@ Fixpoint evalDSHOperator
       end
     end.
 
+
 (*
-  match op with
-  | @DSHeUnion o be z =>
-    fun x => b <- evalNexp Γ be ;;
-            match lt_dec b o as l return (_ ≡ l → option (vector CarrierA o))
-            with
-            | left bc => fun _ => ret (unLiftM_HOperator' (eUnion' (fm:=Monoid_RthetaFlags) bc z) x)
-            | right _ => fun _ => None
-            end eq_refl
-  | @DSHeT i be =>
-    fun x => b <- evalNexp Γ be ;;
-            match lt_dec b i as l return (_ ≡ l → option (vector CarrierA 1))
-            with
-            | left bc => fun _ => ret (unLiftM_HOperator' (eT' (fm:=Monoid_RthetaFlags) bc) x)
-            | right _ => fun _ => None
-            end eq_refl
-  | @DSHPointwise i f => fun x => evalDSHPointwise Γ f x
-  | @DSHBinOp o f => fun x => evalDSHBinOp Γ f x
-  | @DSHInductor ne f initial => fun x =>
-                                  n <- evalNexp Γ ne ;;
-                                    r <- evalDSHInductor Γ n f initial (Vhead x) ;;
-                                    ret (Lst r)
-  | @DSHIUnion i o n dot initial body =>
-    fun (x:avector i) =>
-      evalDiamond (evalBinCarrierA Γ dot) initial
-                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVal j :: Γ) body x))
-  | @DSHIReduction i o n dot initial body =>
-    (* Actually same as IUnion *)
-    fun (x:avector i) =>
-      evalDiamond (evalBinCarrierA Γ dot) initial
-                  (Vbuild (λ (j:nat) (jc:j<n), evalDSHOperator (DSHnatVal j :: Γ) body x))
-  | @DSHCompose i1 o2 o3 f g =>
-    fun v => evalDSHOperator Γ g v >>= evalDSHOperator Γ f
-  | @DSHHTSUMUnion i o dot f g =>
-    fun v =>
-      a <- evalDSHOperator Γ f v ;;
-        b <- evalDSHOperator Γ g v ;;
-        vsequence (Vmap2 (evalBinCarrierA Γ dot) a b)
-  end x.
-
-
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
   repeat break_match;subst; try reflexivity; try some_none;

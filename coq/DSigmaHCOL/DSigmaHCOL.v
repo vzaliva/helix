@@ -55,8 +55,9 @@ Inductive DSHOperator :=
 | DSHMap2 (n: nat) (x0_i x1_i y_i: var_id) (xoffset0 xoffset1 yoffset: nat) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (x_i y_i: var_id) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
-| DSHFold {o: nat} (x_i y_i: var_id) (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA) (body: DSHOperator) (* formerly [IReduction] *)
-| DSHAlloc (size:nat) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed *)
+| DSHAlloc (size:nat) (body: DSHOperator) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed. The block will be visible only in scope of execution of a [body] *)
+| DSHInit (size:nat) (y_i:var_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
+| DSHCopy (size:nat) (x_i y_i: var_id)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
 .
 
