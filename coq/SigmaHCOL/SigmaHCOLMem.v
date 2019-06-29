@@ -15,6 +15,7 @@ Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.HCOL.CarrierType.
+Require Import Helix.Util.ListSetoid.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.MemSetoid.
@@ -969,7 +970,7 @@ Section Operators.
              (op_family_f: forall k (kc:k<n), mem_block -> option mem_block)
              (x: mem_block) :
     option (list mem_block) :=
-    monadic_Lbuild (λ (j:nat) (jc:j<n), (op_family_f j jc) x).
+    monadic_Lbuild _ (λ (j:nat) (jc:j<n), (op_family_f j jc) x).
 
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
