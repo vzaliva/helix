@@ -900,6 +900,7 @@ Section monadic.
     | Float64V b64 => EXP_Double b64
     end.
 
+  (* !!!TODO: this may be wrong! We initializint [t] while we must intialize [y] *)
   Definition genIReductionInit
              {i o: nat}
              {ft: FloatT}
