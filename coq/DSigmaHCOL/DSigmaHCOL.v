@@ -50,14 +50,15 @@ Definition DSHIBinCarrierA := AExpr.
 
 Inductive DSHOperator :=
 | DSHAssign (x_i y_i: var_id) (src dst: NExpr) (* formerly [eT] and [eUnion] *)
-| DSHMap {i: nat} (x_i y_i: var_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHMap2 {o: nat} (x_i y_i: var_id) (f: DSHIBinCarrierA) (* formerl [BinOp] *)
+| DSHIMap (n: nat) (x_i y_i: var_id) (xoffset yoffset: nat) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHIMap2 (n: nat) (x0_i x1_i y_i: var_id) (xoffset0 xoffset1 yoffset: nat) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHMap2 (n: nat) (x0_i x1_i y_i: var_id) (xoffset0 xoffset1 yoffset: nat) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (x_i y_i: var_id) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
 | DSHFold {o: nat} (x_i y_i: var_id) (n: nat) (dot: DSHBinCarrierA) (initial: CarrierA) (body: DSHOperator) (* formerly [IReduction] *)
 | DSHAlloc (size:nat) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
-| DSHSum {o: nat} (x_i y_i: var_id) (dot: DSHBinCarrierA) (f g: DSHOperator). (* formely [HTSUMUnion] *)
+.
 
 (* Some Setoid stuff below *)
 

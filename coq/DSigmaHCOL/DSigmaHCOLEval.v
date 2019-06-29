@@ -156,35 +156,60 @@ Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
            (a b:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: Γ) f.
 
-Fixpoint evalDSHMap
-         (i: nat)
+Fixpoint evalDSHIMap
+         (n xoffset yoffset: nat)
          (f: DSHIUnCarrierA)
          (Γ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
-    v <- mem_lookup i x ;;
-      v' <- evalIUnCarrierA Γ f i v ;;
-      let y' := mem_add i v' y in
-      match i with
+    let px := n+xoffset in
+    let py := n+yoffset in
+    v <- mem_lookup px x ;;
+      v' <- evalIUnCarrierA Γ f n v ;;
+      let y' := mem_add py v' y in
+      match n with
       | O => ret y'
-      | S i => evalDSHMap i f Γ x y'
+      | S n => evalDSHIMap n xoffset yoffset f Γ x y'
       end.
 
 Fixpoint evalDSHMap2
-         (i: nat)
-         (o: nat)
-         (f: DSHIUnCarrierA)
+         (n: nat)
+         (xoffset0 xoffset1 yoffset: nat)
+         (f: DSHBinCarrierA)
          (Γ: evalContext)
-         (x y: mem_block) : option (mem_block)
+         (x0 x1 y: mem_block) : option (mem_block)
   :=
-    v0 <- mem_lookup i x ;;
-       v1 <- mem_lookup (i+o) x ;;
-       v' <- evalIBinCarrierA Γ f i v0 v1 ;;
-       let y' := mem_add i v' y in
-       match i with
+    let px0 := n+xoffset0 in
+    let px1 := n+xoffset1 in
+    let py := n+yoffset in
+    v0 <- mem_lookup px0 x0 ;;
+       v1 <- mem_lookup px1 x1 ;;
+       v' <- evalBinCarrierA Γ f v0 v1 ;;
+       let y' := mem_add py v' y in
+       match n with
        | O => ret y'
-       | S i => evalDSHMap2 i o f Γ x y'
+       | S n => evalDSHMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y'
        end.
+
+Fixpoint evalDSHIMap2
+         (n: nat)
+         (xoffset0 xoffset1 yoffset: nat)
+         (f: DSHIBinCarrierA)
+         (Γ: evalContext)
+         (x0 x1 y: mem_block) : option (mem_block)
+  :=
+    let px0 := n+xoffset0 in
+    let px1 := n+xoffset1 in
+    let py := n+yoffset in
+    v0 <- mem_lookup px0 x0 ;;
+       v1 <- mem_lookup px1 x1 ;;
+       v' <- evalIBinCarrierA Γ f n v0 v1 ;;
+       let y' := mem_add py v' y in
+       match n with
+       | O => ret y'
+       | S n => evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y'
+       end.
+
 
 Fixpoint evalDSHPower
          (Γ: evalContext)
@@ -299,23 +324,34 @@ Fixpoint evalDSHOperator
           let y' := mem_add dst v y in
           ret (context_replace Γ y_i (DSHmemVal y'))
       end
-    | @DSHMap x_i y_i i f =>
+    | @DSHIMap n x_i y_i xoffset yoffset f =>
       match fuel with
       | O => None
       | S fuel =>
         x <- context_lookup_mem Γ x_i ;;
           y <- context_lookup_mem Γ y_i ;;
-          y' <- evalDSHMap i f Γ x y ;;
+          y' <- evalDSHIMap n xoffset yoffset f Γ x y ;;
           ret (context_replace Γ y_i (DSHmemVal y'))
       end
-    | @DSHMap2 x_i y_i o f =>
+    | @DSHMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
       match fuel with
       | O => None
       | S fuel =>
-        x <- context_lookup_mem Γ x_i ;;
-          y <- context_lookup_mem Γ y_i ;;
-          y' <- evalDSHMap2 o o f Γ x y ;;
-          ret (context_replace Γ y_i (DSHmemVal y'))
+        x0 <- context_lookup_mem Γ x0_i ;;
+           x1 <- context_lookup_mem Γ x1_i ;;
+           y <- context_lookup_mem Γ y_i ;;
+           y' <- evalDSHMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
+      end
+    | @DSHIMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
+      match fuel with
+      | O => None
+      | S fuel =>
+        x0 <- context_lookup_mem Γ x0_i ;;
+           x1 <- context_lookup_mem Γ x1_i ;;
+           y <- context_lookup_mem Γ y_i ;;
+           y' <- evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
       end
     | DSHPower ne x_i y_i  f initial =>
       match fuel with
@@ -353,7 +389,6 @@ Fixpoint evalDSHOperator
         Γ <- evalDSHOperator Γ f fuel ;;
           evalDSHOperator Γ g fuel
       end
-    | @DSHSum x_i y_i o dot f g => None (* TODO! *)
     end.
 
 (*
