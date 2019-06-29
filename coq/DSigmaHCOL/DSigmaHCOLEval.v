@@ -364,17 +364,13 @@ Fixpoint evalDSHOperator
           y' <- evalDSHPower Γ n f x y  ;;
              ret (context_replace Γ y_i (DSHmemVal y'))
       end
-    | DSHLoop O body =>
-      match fuel with
-      | O => None
-      | S fuel => evalDSHOperator (DSHnatVal 0 :: Γ) body fuel
-      end
+    | DSHLoop O body => Some Γ
     | DSHLoop (S n) body =>
       match fuel with
       | O => None
       | S fuel =>
         Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
-          evalDSHOperator (DSHnatVal (S n) :: Γ) body fuel
+          evalDSHOperator (DSHnatVal n :: Γ) body fuel
       end
     | @DSHFold x_i y_i o n dot initial body => None (* TODO *)
     | DSHAlloc size =>
