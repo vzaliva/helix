@@ -1,13 +1,13 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.Peano_dec.
 Require Import CoLoR.Util.Vector.VecUtil.
+
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
-(* Require Import Helix.SigmaHCOL.SigmaHCOLImpl. *)
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
@@ -30,7 +30,7 @@ Definition evalContext:Type := list DSHVal.
 Definition context_lookup
            (c: evalContext)
            (n: var_id)
-           : option DSHVal
+  : option DSHVal
   := nth_error c n.
 
 Definition context_replace
@@ -44,7 +44,7 @@ Definition context_replace
 Definition context_lookup_mem
            (c: evalContext)
            (n: var_id)
-           : option mem_block
+  : option mem_block
   := match (nth_error c n) with
      | Some (DSHmemVal m) => ret m
      | _ => None
@@ -197,10 +197,10 @@ Fixpoint evalDSHPower
     | O => ret y
     | S p =>
       xv <- mem_lookup 0 x ;;
-      yv <- mem_lookup 0 y ;;
-      v' <- evalBinCarrierA Γ f xv yv ;;
-      let y' := mem_add 0 v' y in
-      evalDSHPower Γ p f x y'
+         yv <- mem_lookup 0 y ;;
+         v' <- evalBinCarrierA Γ f xv yv ;;
+         let y' := mem_add 0 v' y in
+         evalDSHPower Γ p f x y'
     end.
 
 Fixpoint evalDSHOperator
@@ -242,10 +242,10 @@ Fixpoint evalDSHOperator
     | DSHPower ne x_i y_i  f initial =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
-          n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
-          let y' := mem_add 0 initial y in
-          y' <- evalDSHPower Γ n f x y  ;;
-             ret (context_replace Γ y_i (DSHmemVal y'))
+        n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
+        let y' := mem_add 0 initial y in
+        y' <- evalDSHPower Γ n f x y  ;;
+           ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHLoop O body => Some Γ
     | DSHLoop (S n) body =>
       match fuel with
@@ -260,11 +260,11 @@ Fixpoint evalDSHOperator
       | S fuel => evalDSHOperator (DSHmemVal (mem_empty) :: Γ) body fuel
       end
     | DSHInit size y_i value =>
-              y <- context_lookup_mem Γ y_i ;;
-              let y' := mem_union
-                          (mem_const_block size value)
-                          y in
-              ret (context_replace Γ y_i (DSHmemVal y'))
+      y <- context_lookup_mem Γ y_i ;;
+        let y' := mem_union
+                    (mem_const_block size value)
+                    y in
+        ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHCopy size x_i y_i =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
@@ -280,7 +280,6 @@ Fixpoint evalDSHOperator
     end.
 
 
-(*
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
   repeat break_match;subst; try reflexivity; try some_none;
@@ -402,173 +401,6 @@ Proof.
     auto.
 Qed.
 
-Lemma evalDSHOperator_DSHIUnion_DSHIReduction
-      {i o n: nat}
-      {dot}
-      {initial}
-      {body: DSHOperator i o}
-      {Γ: evalContext}:
-  evalDSHOperator Γ (@DSHIUnion i o n dot initial body) ≡
-                  evalDSHOperator Γ (@DSHIReduction i o n dot initial body).
-Proof.
-  reflexivity.
-Qed.
-
-Global Instance evalDSHOperator_arg_proper
-       {i o} (Γ: evalContext) (op: DSHOperator i o):
-  Proper ((=) ==> (=)) (@evalDSHOperator i o Γ op).
-Proof.
-  intros x y E.
-  revert Γ.
-  induction op; intros Γ.
-  -
-    simpl.
-    repeat break_match; auto.
-    f_equiv.
-    rewrite E.
-    reflexivity.
-  -
-    simpl.
-    repeat break_match; auto.
-    f_equiv.
-    rewrite E.
-    reflexivity.
-  -
-    simpl.
-    unfold evalDSHPointwise.
-    apply vsequence_option_proper.
-    f_equiv.
-    intros j jc.
-    unfold evalIUnCarrierA.
-    apply evalAexp_proper.
-    *
-      unfold equiv, List_equiv.
-      apply List.Forall2_cons.
-      --
-        unfold equiv, DSHVar_Equiv.
-        simpl.
-        constructor.
-        apply Vnth_arg_equiv.
-        apply E.
-      --
-        reflexivity.
-    *
-      reflexivity.
-  -
-    simpl.
-    unfold evalDSHBinOp.
-    rewrite Vbreak_eq_app with (v:=x).
-    rewrite Vbreak_eq_app with (v:=y).
-    break_let.
-    break_let.
-    apply vsequence_option_proper.
-    f_equiv.
-    intros j jc.
-
-    unfold evalIBinCarrierA.
-    apply evalAexp_proper; try reflexivity.
-
-    unfold vector2pair in *.
-    rewrite Vbreak_app in Heqp0.
-    rewrite Vbreak_app in Heqp.
-    inversion Heqp0.
-    inversion Heqp.
-
-    apply List.Forall2_cons.
-    +
-      apply DSHCarrierAVal_equiv.
-      apply Vnth_proper.
-      rewrite E.
-      reflexivity.
-    +
-      apply List.Forall2_cons.
-      apply DSHCarrierAVal_equiv.
-      apply Vnth_proper.
-      rewrite E.
-      reflexivity.
-      reflexivity.
-  -
-    simpl.
-    break_match; try reflexivity.
-    dep_destruct x.
-    dep_destruct y.
-    simpl.
-    inversion E.
-    clear E x y x0 x1 H0.
-    rename h into x.
-    rename h0 into y.
-    assert(C: evalDSHInductor Γ n0 f initial x = evalDSHInductor Γ n0 f initial y).
-    {
-      clear Heqo.
-      induction n0.
-      -
-        reflexivity.
-      -
-        simpl.
-        repeat break_match.
-        unfold evalBinCarrierA.
-        apply evalAexp_proper.
-        apply List.Forall2_cons.
-        apply DSHCarrierAVal_equiv.
-        apply H.
-        apply List.Forall2_cons.
-        apply DSHCarrierAVal_equiv.
-        apply Some_inj_equiv, IHn0.
-        reflexivity.
-        reflexivity.
-        some_none.
-        some_none.
-        reflexivity.
-    }
-    break_match; inversion C.
-    +
-      f_equiv.
-      rewrite H2.
-      reflexivity.
-    +
-      reflexivity.
-  -
-    induction n.
-    + reflexivity.
-    + simpl.
-      unfold evalDiamond.
-      eapply Vfold_left_rev_arg_proper; try typeclasses eauto.
-      apply Vbuild_proper.
-      intros j jc.
-      apply IHop.
-      apply E.
-  -
-    rewrite <- evalDSHOperator_DSHIUnion_DSHIReduction.
-    (* Same proof as for IUnion (above) *)
-    induction n.
-    + reflexivity.
-    + simpl.
-      unfold evalDiamond.
-      eapply Vfold_left_rev_arg_proper.
-      * typeclasses eauto.
-      * apply optDot_arg_proper.
-      * apply Vbuild_proper.
-        intros j jc.
-        apply IHop.
-        apply E.
-  -
-    simpl.
-    specialize (IHop2 x y E Γ).
-    repeat break_match; try reflexivity; try inversion IHop2.
-    apply IHop1, H1.
-  -
-    simpl.
-    specialize (IHop1 x y E Γ).
-    specialize (IHop2 x y E Γ).
-    repeat break_match; try reflexivity; try inversion IHop2; try inversion IHop1.
-    subst.
-    apply vsequence_option_proper.
-    eapply Vmap2_proper.
-    apply evalBinCarrierA_proper; reflexivity.
-    apply H4.
-    apply H1.
-Qed.
-
 Fixpoint NExpr_var_subst
          (name: nat)
          (value: NExpr)
@@ -590,10 +422,10 @@ Fixpoint NExpr_var_subst
 
 (* No natvars used in vector expressions *)
 Definition VExpr_natvar_subst
-         {n:nat}
-         (name: nat)
-         (value: NExpr)
-         (vexp: VExpr n): VExpr n := vexp.
+           {n:nat}
+           (name: nat)
+           (value: NExpr)
+           (vexp: VExpr n): VExpr n := vexp.
 
 Fixpoint AExpr_natvar_subst
          (name: nat)
@@ -613,72 +445,17 @@ Fixpoint AExpr_natvar_subst
   end.
 
 Fixpoint DSHOperator_NVar_subt
-         {i o: nat}
          (name: nat)
          (value: NExpr)
-         (exp: DSHOperator i o): DSHOperator i o :=
+         (exp: DSHOperator): DSHOperator :=
   match exp with
-  | @DSHeUnion o be z => @DSHeUnion o (NExpr_var_subst name value be) z
-  | @DSHeT i be => @DSHeT i (NExpr_var_subst name value be)
-  | @DSHPointwise i f => @DSHPointwise i (AExpr_natvar_subst (name+2)
-                                                            (NExpr_var_subst
-                                                               name
-                                                               (NVar (name+2))
-                                                               value)
-                                                            f)
-  | @DSHBinOp o f => @DSHBinOp o (AExpr_natvar_subst (name+3)
-                                                    (NExpr_var_subst
-                                                       name
-                                                       (NVar (name+3))
-                                                       value)
-                                                    f)
-  | @DSHInductor ne f initial => @DSHInductor (NExpr_var_subst name value ne)
-                                             (AExpr_natvar_subst (name+2)
-                                                    (NExpr_var_subst
-                                                       name
-                                                       (NVar (name+2))
-                                                       value)
-                                                    f)
-                                             initial
-  | @DSHIUnion i o n dot initial body =>
-    @DSHIUnion i o n
-               (AExpr_natvar_subst (name+2)
-                                   (NExpr_var_subst
-                                      name
-                                      (NVar (name+2))
-                                      value)
-                                   dot)
-               initial (DSHOperator_NVar_subt (S name)
-                                              (NExpr_var_subst
-                                                 name
-                                                 (NVar (S name))
-                                                 value)
-                                              body)
-  | @DSHIReduction i o n dot initial body =>
-    @DSHIReduction i o n (AExpr_natvar_subst (name+2)
-                                       (NExpr_var_subst
-                                          name
-                                          (NVar (name+2))
-                                          value)
-                                       dot)
-                   initial (DSHOperator_NVar_subt (S name)
-                                                  (NExpr_var_subst
-                                                     name
-                                                     (NVar (S name))
-                                                     value)
-                                                  body)
-  | @DSHCompose i1 o2 o3 f g =>
-    @DSHCompose i1 o2 o3
-                (DSHOperator_NVar_subt name value f)
-                (DSHOperator_NVar_subt name value g)
-  | @DSHHTSUMUnion i o dot f g =>
-    @DSHHTSUMUnion i o (AExpr_natvar_subst (name+2)
-                                           (NExpr_var_subst
-                                              name
-                                              (NVar (name+2))
-                                              value)
-                                           dot)
-                   (DSHOperator_NVar_subt name value f)
-                   (DSHOperator_NVar_subt name value g)
+  | DSHAssign x_i y_i src dst =>
+    DSHAssign x_i y_i
+              (NExpr_var_subst name value src)
+              (NExpr_var_subst name value dst)
+  | DSHPower n x_i y_i f initial =>
+    DSHPower
+      (NExpr_var_subst name value n)
+      x_i y_i f initial
+  | _ => exp
   end.
-*)
