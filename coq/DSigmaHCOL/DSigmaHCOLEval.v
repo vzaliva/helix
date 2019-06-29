@@ -51,7 +51,6 @@ Definition context_lookup_mem
      end.
 
 
-
 (* Evaluation of expressions does not allow for side-effects *)
 Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   match exp in (VExpr n0) return (option (vector CarrierA n0)) with
@@ -118,28 +117,6 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.Rtheta.
-
-(*
-Definition unLiftM_HOperator'
-           {fm}
-           {i o}
-           (op: svector fm i -> svector fm o)
-  : avector i -> avector o :=
-  densify fm ∘ op ∘ sparsify fm.
-
-Global Instance unLiftM_HOperator'_proper
-       {fm} {i o} :
-  Proper (
-      ((=) ==> (=)) ==>  (=) ==> (=)) (@unLiftM_HOperator' fm i o).
-Proof.
-  intros f g Efg x y E.
-  unfold unLiftM_HOperator', compose.
-  f_equiv.
-  apply Efg.
-  f_equiv.
-  apply E.
-Qed.
- *)
 
 (* Evaluation of functions does not allow for side-effects *)
 Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
@@ -234,26 +211,18 @@ Fixpoint evalDSHOperator
   :=
     match op with
     | DSHAssign x_i y_i src_e dst_e =>
-      match fuel with
-      | O => None
-      | S fuel =>
-        x <- context_lookup_mem Γ x_i ;;
-          y <- context_lookup_mem Γ y_i ;;
-          src <- evalNexp Γ src_e ;;
-          dst <- evalNexp Γ dst_e ;;
-          v <- mem_lookup src x ;;
-          let y' := mem_add dst v y in
-          ret (context_replace Γ y_i (DSHmemVal y'))
-      end
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        src <- evalNexp Γ src_e ;;
+        dst <- evalNexp Γ dst_e ;;
+        v <- mem_lookup src x ;;
+        let y' := mem_add dst v y in
+        ret (context_replace Γ y_i (DSHmemVal y'))
     | @DSHIMap n x_i y_i xoffset yoffset f =>
-      match fuel with
-      | O => None
-      | S fuel =>
-        x <- context_lookup_mem Γ x_i ;;
-          y <- context_lookup_mem Γ y_i ;;
-          y' <- evalDSHIMap n xoffset yoffset f Γ x y ;;
-          ret (context_replace Γ y_i (DSHmemVal y'))
-      end
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+        y' <- evalDSHIMap n xoffset yoffset f Γ x y ;;
+        ret (context_replace Γ y_i (DSHmemVal y'))
     | @DSHMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
       match fuel with
       | O => None
@@ -265,26 +234,18 @@ Fixpoint evalDSHOperator
            ret (context_replace Γ y_i (DSHmemVal y'))
       end
     | @DSHIMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
-      match fuel with
-      | O => None
-      | S fuel =>
-        x0 <- context_lookup_mem Γ x0_i ;;
-           x1 <- context_lookup_mem Γ x1_i ;;
-           y <- context_lookup_mem Γ y_i ;;
-           y' <- evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
-      end
+      x0 <- context_lookup_mem Γ x0_i ;;
+         x1 <- context_lookup_mem Γ x1_i ;;
+         y <- context_lookup_mem Γ y_i ;;
+         y' <- evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
+         ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHPower ne x_i y_i  f initial =>
-      match fuel with
-      | O => None
-      | S fuel =>
-        x <- context_lookup_mem Γ x_i ;;
-          y <- context_lookup_mem Γ y_i ;;
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
           n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
           let y' := mem_add 0 initial y in
           y' <- evalDSHPower Γ n f x y  ;;
              ret (context_replace Γ y_i (DSHmemVal y'))
-      end
     | DSHLoop O body => Some Γ
     | DSHLoop (S n) body =>
       match fuel with
