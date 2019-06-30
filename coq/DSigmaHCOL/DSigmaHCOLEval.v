@@ -254,11 +254,7 @@ Fixpoint evalDSHOperator
         Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
           evalDSHOperator (DSHnatVal n :: Γ) body fuel
       end
-    | DSHAlloc size body =>
-      match fuel with
-      | O => None
-      | S fuel => evalDSHOperator (DSHmemVal (mem_empty) :: Γ) body fuel
-      end
+    | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
     | DSHInit size y_i value =>
       y <- context_lookup_mem Γ y_i ;;
         let y' := mem_union
