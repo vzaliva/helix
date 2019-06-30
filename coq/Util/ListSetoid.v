@@ -30,14 +30,31 @@ Global Instance Forall2_Symmetric
   Symmetric (Forall2 R).
 Proof.
   intros x y E.
-Admitted.
+  induction E.
+  -
+    auto.
+  -
+    constructor.
+    +
+      apply RR,H.
+    +
+      auto.
+Qed.
 
 Global Instance Forall2_Transitive
        {A: Type} {R: relation A} `{RR: Transitive A R}:
   Transitive (Forall2 R).
 Proof.
   intros x y z Exy Eyz.
-Admitted.
+  dependent induction x;
+  dependent induction y;
+  dependent induction z; try auto; inversion Exy; inversion Eyz; subst.
+  constructor.
+  -
+    eapply RR; eauto.
+  -
+    eauto.
+Qed.
 
 Global Instance List_Equivalence
        `{Ae: Equiv A}
