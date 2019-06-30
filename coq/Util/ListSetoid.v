@@ -6,10 +6,16 @@ Require Import Helix.Util.OptionSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.implementations.peano_naturals.
+Require Import MathClasses.interfaces.abstract_algebra.
 
 Import ListNotations.
 
-Global Instance List_equiv {A: Type} `{Ea: Equiv A}: Equiv (list A) := List.Forall2 equiv.
+Global Instance List_equiv
+       {A: Type}
+       `{Ae: !Equiv A}
+  : Equiv (list A)
+  := @List.Forall2 A A Ae.
+
 
 Global Instance Forall2_Reflexive
        {A: Type} {R: relation A} `{RR: Reflexive A R}:
@@ -17,6 +23,37 @@ Global Instance Forall2_Reflexive
 Proof.
   intros x.
   induction x; constructor; auto.
+Qed.
+
+Global Instance Forall2_Symmetric
+       {A: Type} {R: relation A} `{RR: Symmetric A R}:
+  Symmetric (Forall2 R).
+Proof.
+  intros x y E.
+Admitted.
+
+Global Instance Forall2_Transitive
+       {A: Type} {R: relation A} `{RR: Transitive A R}:
+  Transitive (Forall2 R).
+Proof.
+  intros x y z Exy Eyz.
+Admitted.
+
+Global Instance List_Equivalence
+       `{Ae: Equiv A}
+       `{Aeq: !Equivalence (@equiv A Ae)}
+  : Equivalence (@List_equiv A Ae).
+Proof.
+  split; typeclasses eauto.
+Qed.
+
+Global Instance List_Setoid
+       {A:Type}
+       `{Setoid A}:
+  Setoid (list A).
+Proof.
+  unfold Setoid.
+  apply List_Equivalence.
 Qed.
 
 Global Instance nth_error_proper {A: Type} `{Ae: Equiv A} `{AEe: Equivalence A Ae}:

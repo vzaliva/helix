@@ -2,6 +2,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.Matrix.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
 Require Import Helix.SigmaHCOL.Rtheta.
@@ -1621,27 +1622,6 @@ Section MemVecEq.
       apply mem_op_proper, E.
     Qed.
 
-    (* TODO: move  *)
-    Section ListSetoid.
-
-      Global Instance lst_Equiv `{Equiv A}: Equiv (list A)
-        := eqlistA equiv.
-
-      Global Instance lst_Equivalence `{Ae: Equiv A}
-             `{!Equivalence (@equiv A _)}
-        : Equivalence (@lst_Equiv A Ae).
-      Proof.
-        typeclasses eauto.
-      Qed.
-
-      Global Instance lst_Setoid `{Setoid A} {n}: Setoid (vector A n).
-      Proof.
-        unfold Setoid.
-        apply vec_Equivalence.
-      Qed.
-
-    End ListSetoid.
-
     Global Instance fold_left_rev_proper
            {A B : Type}
            `{Eb: Equiv B}
@@ -1685,10 +1665,10 @@ Section MemVecEq.
           [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
           => destruct a eqn:MA ,b eqn:MB
         end; try some_none;
-
           pose E as C;
           specialize (C 0 (Nat.lt_0_succ n));
-          erewrite MA,MB in C;
+          setoid_rewrite MA in C;
+          setoid_rewrite MB in C;
           try some_none.
 
         match goal with
@@ -1697,8 +1677,8 @@ Section MemVecEq.
         end; try some_none;
 
           match goal with
-          | [FA: monadic_Lbuild ?f ≡ _,
-                 FB: monadic_Lbuild ?g ≡ _
+          | [FA: monadic_Lbuild _ ?f ≡ _,
+                 FB: monadic_Lbuild _ ?g ≡ _
              |- _] => specialize (IHn f g)
           end;
           rewrite FA,FB in IHn.
@@ -1711,46 +1691,27 @@ Section MemVecEq.
             apply Some_inj_equiv.
             apply IHn.
             intros a1 a2.
-            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
-            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
-            intros l1 l2.
-            replace l1 with l2 by apply lt_unique.
             apply E.
         +
           assert(P: (forall (a : nat) (a0 : a < n),
                         f (S a)
-                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
-                                                                    f eq_refl a0) =
+                          (strictly_order_preserving S a n a0) =
                         g (S a)
-                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
-                                                                    g eq_refl a0))).
+                          (strictly_order_preserving S a n a0))).
           {
             intros a1 a2.
-            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
-            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
-            intros l1 l2.
-            replace l1 with l2 by apply lt_unique.
             apply E.
-
           }
           specialize (IHn P).
           some_none.
         +
           assert(P: (forall (a : nat) (a0 : a < n),
-                        f (S a)
-                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
-                                                                    f eq_refl a0) =
-                        g (S a)
-                          (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option
-                                                                    g eq_refl a0))).
+                        f (S a) (strictly_order_preserving S a n a0)
+                        =
+                        g (S a) (strictly_order_preserving S a n a0))).
           {
             intros a1 a2.
-            generalize (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option f eq_refl a2),
-            (SigmaHCOLMem.monadic_Lbuild_obligation_1 A option g eq_refl a2).
-            intros l1 l2.
-            replace l1 with l2 by apply lt_unique.
             apply E.
-
           }
           specialize (IHn P).
           some_none.
@@ -1950,11 +1911,8 @@ Section MemVecEq.
       simpl in H.
       repeat break_match_hyp; try some_none.
       inversion H.
-      split.
-      - auto.
-      -
-        subst.
-        auto.
+      subst.
+      auto.
     Qed.
 
     Lemma Apply_mem_Family_length
@@ -2629,7 +2587,8 @@ Section MemVecEq.
               f_equiv.
               extensionality j.
               extensionality jc.
-              replace (@SigmaHCOLMem.monadic_Lbuild_obligation_1 _ _ _ _ _ _ j jc)
+              replace (@strictly_order_preserving nat nat nat_equiv nat_lt nat_equiv nat_lt S
+                _ j k jc)
                 with (@lt_n_S j k jc) by apply lt_unique.
               reflexivity.
             --
@@ -2891,6 +2850,7 @@ Section MemVecEq.
         rewrite E in Heqo0.
         rewrite Heqo0 in Heqo1.
         some_inv.
+        Set Printing All.
         apply Heqo1.
       -
         unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
@@ -3732,7 +3692,7 @@ Section MemVecEq.
               f_equiv.
               extensionality j.
               extensionality jc.
-              replace (@SigmaHCOLMem.monadic_Lbuild_obligation_1 _ _ _ _ _ _ j jc)
+              replace (@strictly_order_preserving _ _ _ _ _ _ _ _ j k jc)
                 with (@lt_n_S j k jc) by apply lt_unique.
               reflexivity.
             --
