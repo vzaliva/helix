@@ -12,6 +12,7 @@ Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
+Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
@@ -58,12 +59,6 @@ Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
     end.
 
 Definition varbindings:Type := list (name*term).
-
-Record reifyResult := {
-                       rei_i: nat;
-                       rei_o: nat;
-                       rei_op: DSHOperator rei_i rei_o;
-                     }.
 
 Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
   match a_n with
@@ -159,18 +154,6 @@ Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA :=
   | _ => tmFail ("Unsupported IBinCarrierA" ++ (string_of_term a_f))
   end.
 
-Definition castReifyResult (i o:nat) (rr:reifyResult): TemplateMonad (DSHOperator i o) :=
-  match rr with
-  | {| rei_i := i'; rei_o := o'; rei_op := f' |} =>
-    match PeanoNat.Nat.eq_dec i i', PeanoNat.Nat.eq_dec o o' with
-    | left Ei, left Eo =>
-      tmReturn
-        (eq_rect_r (fun i0 : nat => DSHOperator i0 o)
-                   (eq_rect_r (fun o0 : nat => DSHOperator i' o0) f' Eo) Ei)
-    | _, _ => tmFail "castReifyResult failed"
-    end
-  end.
-
 Run TemplateProgram
     (mkSwitch string
               string_beq
@@ -189,11 +172,12 @@ Run TemplateProgram
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
 
-Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (varbindings*term*term*reifyResult) :=
+(* In return tuple we need [fm] and [s_value] fields to recover [SHOperator] type in equality. TODO: Check if we can do wihthout... *)
+Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: TemplateMonad (varbindings*term*term*DSHOperator) :=
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
-            toDSHCOLType (tmReturn vt) ;; compileSHCOL ((nNamed n,vt)::vars) b
+            toDSHCOLType (tmReturn vt) ;; compileSHCOL ((nNamed n,vt)::vars) x_i y_i b
 
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
@@ -202,50 +186,47 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               no <- tmUnquoteTyped nat o ;;
               zconst <- tmUnquoteTyped CarrierA svalue ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm, svalue, {| rei_i:=1; rei_o:=no; rei_op := @DSHeUnion no bc zconst |})
+              tmReturn (vars, fm, svalue, DSHAssign x_i y_i (NConst 0) bc)
     | Some n_eT, [fm ; svalue; i ; b ; _] =>
       tmPrint "eT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm, svalue,  {| rei_i:=ni; rei_o:=1; rei_op := @DSHeT ni bc |})
+              tmReturn (vars, fm, svalue,  DSHAssign x_i y_i bc (NConst 0))
     | Some n_SHPointwise, [fm ; svalue; n ; f ; _ ] =>
       tmPrint "SHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
-              tmReturn (vars, fm, svalue, {| rei_i:=nn; rei_o:=nn; rei_op := @DSHPointwise nn df |})
+              tmReturn (vars, fm, svalue,
+                        DSHIMap nn x_i y_i (NConst 0) (NConst 0) df)
     | Some n_SHBinOp, [fm ; svalue; o ; f ; _]
       =>
       tmPrint "SHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
-              tmReturn (vars, fm, svalue, {| rei_i:=(no+no); rei_o:=no; rei_op := @DSHBinOp no df |})
+              tmReturn (vars, fm, svalue,
+                        DSHIMap2 no x_i x_i y_i (NConst 0) no (NConst 0))
     | Some n_SHInductor, [fm ; svalue; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
-              tmReturn (vars, fm, svalue, {| rei_i:=1; rei_o:=1; rei_op := @DSHInductor nc df zconst |})
+              tmReturn (vars, fm, svalue,
+                        DSHPower nc x_i y_i df zconst)
     | Some n_IUnion, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IUnion" ;;
-              ni <- tmUnquoteTyped nat i ;;
-              no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
-              zconst <- tmUnquoteTyped CarrierA svalue ;;
               fm <- tmQuote (Monoid_RthetaFlags) ;;
-              df <- compileDSHBinCarrierA f ;;
-              c' <- compileSHCOL vars op_family ;;
-              let '( _, _, _, rr) := (c':varbindings*term*term*reifyResult) in
-              tmReturn (vars, fm, svalue, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
+              c' <- compileSHCOL vars x_i y_i op_family ;;
+              let '( _, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
+              tmReturn (vars, fm, svalue,  DSHLoop nn rr)
     | Some n_ISumUnion, [i ; o ; n ; op_family] =>
       tmPrint "ISumUnion" ;;
-              ni <- tmUnquoteTyped nat i ;;
-              no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
               fm <- tmQuote (Monoid_RthetaFlags) ;;
               c' <- compileSHCOL vars op_family ;;
               a_zero <- tmQuote (zero) ;;
-              let '(_, _, _, rr) := (c':varbindings*term*term*reifyResult) in
-              tmReturn (vars, fm, a_zero, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIUnion (rei_i rr) (rei_o rr) nn (APlus (AVar 1) (AVar 0)) 0 (rei_op rr) |})
+              let '( _, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
+              tmReturn (vars, fm, a_zero,  DSHLoop nn rr)
     | Some n_IReduction, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IReduction" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -253,28 +234,42 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               nn <- tmUnquoteTyped nat n ;;
               zconst <- tmUnquoteTyped CarrierA svalue ;;
               fm <- tmQuote (Monoid_RthetaSafeFlags) ;;
-              c' <- compileSHCOL vars op_family ;;
+              mt <- tmQuote (mem_block) ;;
+              let vars' := ((nAnon,mt)::vars) in
+              let t_i := 0 in
+              c' <- compileSHCOL vars' x_i t_i op_family ;;
               df <- compileDSHBinCarrierA f ;;
-              let '(_, _, _, rr) := (c':varbindings*term*term*reifyResult) in
-              tmReturn (vars, fm, svalue, {| rei_i:=(rei_i rr); rei_o:=(rei_o rr); rei_op := @DSHIReduction (rei_i rr) (rei_o rr) nn df zconst (rei_op rr) |})
+              let '(_, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
+              tmReturn (vars', fm, svalue,
+                        (DSHSeq
+                           (DSHSeq
+                              (DSHAlloc no)
+                              (DSHInit no y_i zconst))
+                           (DSHLoop nn rr
+                                    (DSHSeq
+                                       c'
+                                       (* TODO!!!! Figure out how loop var changes indices *)
+                                       (DSHMap2 nn t_i y_i y_i (NConst 0) (NConst 0) (NConst 0) df)))))
     | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
               no3 <- tmUnquoteTyped nat o3 ;;
+              mt <- tmQuote (mem_block) ;;
+              let vars' := ((nAnon,mt)::vars) in
               cop1' <- compileSHCOL vars op1 ;;
               cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, _, cop1) := (cop1':varbindings*term*term*reifyResult) in
-              let '(_, _, _, cop2) := (cop2':varbindings*term*term*reifyResult) in
+              let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
+              let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
               cop1 <- castReifyResult no2 no3 cop1 ;;
                    cop2 <- castReifyResult ni1 no2 cop2 ;;
                    tmReturn (vars, fm, svalue, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
     | Some n_SafeCast, [svalue; i ; o ; c] =>
       tmPrint "SafeCast" ;;
-              compileSHCOL vars c
+              compileSHCOL vars x_i y_i c
     | Some n_UnSafeCast, [svalue; i ; o ; c] =>
       tmPrint "UnSafeCast" ;;
-              compileSHCOL vars c
+              compileSHCOL vars x_i y_i c
     | Some n_HTSUMUnion, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
       tmPrint "HTSumunion" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -282,8 +277,8 @@ Fixpoint compileSHCOL (vars:varbindings) (t:term) {struct t}: TemplateMonad (var
               ddot <- compileDSHBinCarrierA dot ;;
               cop1' <- compileSHCOL vars op1 ;;
               cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, _, cop1) := (cop1':varbindings*term*term*reifyResult) in
-              let '(_, _, _, cop2) := (cop2':varbindings*term*term*reifyResult) in
+              let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
+              let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
               cop1 <- castReifyResult ni no cop1 ;;
                    cop2 <- castReifyResult ni no cop2 ;;
                    tmReturn (vars, fm, svalue, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
@@ -341,7 +336,7 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm} (σ: evalContext)
   := forall (Γ: evalContext) (x:svector fm i),
     (Some (densify fm (op fm s x))) = (evalDSHOperator (σ ++ Γ) d (densify fm x)).
 
-Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad reifyResult :=
+Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
          eexpr <- tmUnfoldList unfold_names eexpr0 ;;
