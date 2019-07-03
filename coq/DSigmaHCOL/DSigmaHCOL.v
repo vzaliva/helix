@@ -48,16 +48,20 @@ Definition DSHIUnCarrierA := AExpr.
 Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
+
+(* Memory variable along with offset *)
+Definition MemVarRef: Set := (var_id * NExpr).
+
 Inductive DSHOperator :=
-| DSHAssign (x_i y_i: var_id) (src dst: NExpr) (* formerly [eT] and [eUnion] *)
-| DSHIMap (n: nat) (x_i y_i: var_id) (xoffset yoffset: nat) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHIMap2 (n: nat) (x0_i x1_i y_i: var_id) (xoffset0 xoffset1 yoffset: nat) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
-| DSHMap2 (n: nat) (x0_i x1_i y_i: var_id) (xoffset0 xoffset1 yoffset: nat) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
-| DSHPower (n:NExpr) (x_i y_i: var_id) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
+| DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
+| DSHIMap (n: nat) (x_i y_i: var_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHBinOp (n off: nat) (x y: var_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHMemMap2 (n: nat) (x0_i x1_i y_i: var_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
+| DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
 | DSHAlloc (size:nat) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed. *)
-| DSHInit (size:nat) (y_i:var_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
-| DSHCopy (size:nat) (x_i y_i: var_id)(* copy memory blocks. Overwrites output block values, if present *)
+| DSHMemInit (size:nat) (y_i:var_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
+| DSHMemCopy (size:nat) (x_i y_i: var_id)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
 .
 

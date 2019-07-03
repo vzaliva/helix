@@ -134,64 +134,56 @@ Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: Γ) f.
 
 Fixpoint evalDSHIMap
-         (n xoffset yoffset: nat)
+         (n: nat)
          (f: DSHIUnCarrierA)
          (Γ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
-    let px := n+xoffset in
-    let py := n+yoffset in
-    v <- mem_lookup px x ;;
+    v <- mem_lookup n x ;;
       v' <- evalIUnCarrierA Γ f n v ;;
-      let y' := mem_add py v' y in
+      let y' := mem_add n v' y in
       match n with
       | O => ret y'
-      | S n => evalDSHIMap n xoffset yoffset f Γ x y'
+      | S n => evalDSHIMap n f Γ x y'
       end.
 
 Fixpoint evalDSHMap2
          (n: nat)
-         (xoffset0 xoffset1 yoffset: nat)
          (f: DSHBinCarrierA)
          (Γ: evalContext)
          (x0 x1 y: mem_block) : option (mem_block)
   :=
-    let px0 := n+xoffset0 in
-    let px1 := n+xoffset1 in
-    let py := n+yoffset in
-    v0 <- mem_lookup px0 x0 ;;
-       v1 <- mem_lookup px1 x1 ;;
+    v0 <- mem_lookup n x0 ;;
+       v1 <- mem_lookup n x1 ;;
        v' <- evalBinCarrierA Γ f v0 v1 ;;
-       let y' := mem_add py v' y in
+       let y' := mem_add n v' y in
        match n with
        | O => ret y'
-       | S n => evalDSHMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y'
+       | S n => evalDSHMap2 n f Γ x0 x1 y'
        end.
 
-Fixpoint evalDSHIMap2
-         (n: nat)
-         (xoffset0 xoffset1 yoffset: nat)
+Fixpoint evalDSHBinOp
+         (n off: nat)
          (f: DSHIBinCarrierA)
          (Γ: evalContext)
-         (x0 x1 y: mem_block) : option (mem_block)
+         (x y: mem_block) : option (mem_block)
   :=
-    let px0 := n+xoffset0 in
-    let px1 := n+xoffset1 in
-    let py := n+yoffset in
-    v0 <- mem_lookup px0 x0 ;;
-       v1 <- mem_lookup px1 x1 ;;
+    v0 <- mem_lookup n x ;;
+       v1 <- mem_lookup (n+off) x ;;
        v' <- evalIBinCarrierA Γ f n v0 v1 ;;
-       let y' := mem_add py v' y in
+       let y' := mem_add n v' y in
        match n with
        | O => ret y'
-       | S n => evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y'
+       | S n => evalDSHBinOp n off f Γ x y'
        end.
 
 Fixpoint evalDSHPower
          (Γ: evalContext)
          (n: nat)
          (f: DSHBinCarrierA)
-         (x y: mem_block) : option (mem_block)
+         (x y: mem_block)
+         (xoffset yoffset: nat)
+  : option (mem_block)
   :=
     match n with
     | O => ret y
@@ -200,7 +192,7 @@ Fixpoint evalDSHPower
          yv <- mem_lookup 0 y ;;
          v' <- evalBinCarrierA Γ f xv yv ;;
          let y' := mem_add 0 v' y in
-         evalDSHPower Γ p f x y'
+         evalDSHPower Γ p f x y' xoffset yoffset
     end.
 
 Fixpoint evalDSHOperator
@@ -210,7 +202,7 @@ Fixpoint evalDSHOperator
          {struct fuel}: option (evalContext)
   :=
     match op with
-    | DSHAssign x_i y_i src_e dst_e =>
+    | DSHAssign (x_i, src_e) (y_i, dst_e) =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
         src <- evalNexp Γ src_e ;;
@@ -218,33 +210,34 @@ Fixpoint evalDSHOperator
         v <- mem_lookup src x ;;
         let y' := mem_add dst v y in
         ret (context_replace Γ y_i (DSHmemVal y'))
-    | @DSHIMap n x_i y_i xoffset yoffset f =>
+    | @DSHIMap n x_i y_i f =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
-        y' <- evalDSHIMap n xoffset yoffset f Γ x y ;;
+        y' <- evalDSHIMap n f Γ x y ;;
         ret (context_replace Γ y_i (DSHmemVal y'))
-    | @DSHMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
+    | @DSHMemMap2 n x0_i x1_i y_i f =>
       match fuel with
       | O => None
       | S fuel =>
         x0 <- context_lookup_mem Γ x0_i ;;
            x1 <- context_lookup_mem Γ x1_i ;;
            y <- context_lookup_mem Γ y_i ;;
-           y' <- evalDSHMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
+           y' <- evalDSHMap2 n f Γ x0 x1 y ;;
            ret (context_replace Γ y_i (DSHmemVal y'))
       end
-    | @DSHIMap2 n x0_i x1_i y_i xoffset0 xoffset1 yoffset f =>
-      x0 <- context_lookup_mem Γ x0_i ;;
-         x1 <- context_lookup_mem Γ x1_i ;;
-         y <- context_lookup_mem Γ y_i ;;
-         y' <- evalDSHIMap2 n xoffset0 xoffset1 yoffset f Γ x0 x1 y ;;
+    | @DSHBinOp n off x_i y_i f =>
+      x <- context_lookup_mem Γ x_i ;;
+        y <- context_lookup_mem Γ y_i ;;
+         y' <- evalDSHBinOp n off f Γ x y ;;
          ret (context_replace Γ y_i (DSHmemVal y'))
-    | DSHPower ne x_i y_i  f initial =>
+    | DSHPower ne (x_i,xoffset) (y_i,yoffset) f initial =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
         n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
         let y' := mem_add 0 initial y in
-        y' <- evalDSHPower Γ n f x y  ;;
+        xoff <- evalNexp Γ xoffset ;;
+        yoff <- evalNexp Γ yoffset ;;
+        y' <- evalDSHPower Γ n f x y xoff yoff ;;
            ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHLoop O body => Some Γ
     | DSHLoop (S n) body =>
@@ -255,13 +248,13 @@ Fixpoint evalDSHOperator
           evalDSHOperator (DSHnatVal n :: Γ) body fuel
       end
     | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
-    | DSHInit size y_i value =>
+    | DSHMemInit size y_i value =>
       y <- context_lookup_mem Γ y_i ;;
         let y' := mem_union
                     (mem_const_block size value)
                     y in
         ret (context_replace Γ y_i (DSHmemVal y'))
-    | DSHCopy size x_i y_i =>
+    | DSHMemCopy size x_i y_i =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
         let y' := mem_union x y in
@@ -440,18 +433,29 @@ Fixpoint AExpr_natvar_subst
   | AZless a b => AZless (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
   end.
 
+
+Definition MemVarRef_NVar_subt
+           (name: nat)
+           (value: NExpr)
+           (exp: MemVarRef): MemVarRef
+  :=
+    let '(v, e) := exp in
+    (v, NExpr_var_subst name value e).
+
 Fixpoint DSHOperator_NVar_subt
          (name: nat)
          (value: NExpr)
          (exp: DSHOperator): DSHOperator :=
   match exp with
-  | DSHAssign x_i y_i src dst =>
-    DSHAssign x_i y_i
-              (NExpr_var_subst name value src)
-              (NExpr_var_subst name value dst)
-  | DSHPower n x_i y_i f initial =>
+  | DSHAssign src dst =>
+    DSHAssign
+      (MemVarRef_NVar_subt name value src)
+      (MemVarRef_NVar_subt name value dst)
+  | DSHPower n src dst f initial =>
     DSHPower
       (NExpr_var_subst name value n)
-      x_i y_i f initial
+      (MemVarRef_NVar_subt name value src)
+      (MemVarRef_NVar_subt name value dst)
+      f initial
   | _ => exp
   end.
