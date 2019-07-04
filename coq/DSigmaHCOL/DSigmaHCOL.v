@@ -55,7 +55,7 @@ Definition MemVarRef: Set := (var_id * NExpr).
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
 | DSHIMap (n: nat) (x_i y_i: var_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n off: nat) (x y: var_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHBinOp (n: nat) (x y: var_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
 | DSHMemMap2 (n: nat) (x0_i x1_i y_i: var_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)

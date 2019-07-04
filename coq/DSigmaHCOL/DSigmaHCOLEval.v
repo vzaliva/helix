@@ -225,10 +225,10 @@ Fixpoint evalDSHOperator
            y' <- evalDSHMap2 n f Γ x0 x1 y ;;
            ret (context_replace Γ y_i (DSHmemVal y'))
       end
-    | @DSHBinOp n off x_i y_i f =>
+    | @DSHBinOp n x_i y_i f =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
-         y' <- evalDSHBinOp n off f Γ x y ;;
+         y' <- evalDSHBinOp n n f Γ x y ;;
          ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHPower ne (x_i,xoffset) (y_i,yoffset) f initial =>
       x <- context_lookup_mem Γ x_i ;;

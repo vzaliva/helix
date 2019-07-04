@@ -204,7 +204,7 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
               tmReturn (vars, fm, svalue,
-                        DSHIMap2 no x_i x_i y_i (NConst 0) no (NConst 0))
+                        DSHBinOp no x_i x_i y_i df )
     | Some n_SHInductor, [fm ; svalue; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
@@ -244,12 +244,12 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
                         (DSHSeq
                            (DSHSeq
                               (DSHAlloc no)
-                              (DSHInit no y_i zconst))
+                              (DSHMemInit no y_i zconst))
                            (DSHLoop nn rr
                                     (DSHSeq
                                        c'
                                        (* TODO!!!! Figure out how loop var changes indices *)
-                                       (DSHMap2 nn t_i y_i y_i (NConst 0) (NConst 0) (NConst 0) df)))))
+                                       (DSHMemMap2 nn t_i y_i y_i df)))))
     | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
