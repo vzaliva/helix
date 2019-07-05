@@ -186,32 +186,32 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
               no <- tmUnquoteTyped nat o ;;
               zconst <- tmUnquoteTyped CarrierA svalue ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm, svalue, DSHAssign x_i y_i (NConst 0) bc)
+              tmReturn (vars, fm, svalue, DSHAssign (x_i,NConst 0) (y_i, bc))
     | Some n_eT, [fm ; svalue; i ; b ; _] =>
       tmPrint "eT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, fm, svalue,  DSHAssign x_i y_i bc (NConst 0))
+              tmReturn (vars, fm, svalue,  DSHAssign (x_i, bc) (y_i, NConst 0))
     | Some n_SHPointwise, [fm ; svalue; n ; f ; _ ] =>
       tmPrint "SHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
               tmReturn (vars, fm, svalue,
-                        DSHIMap nn x_i y_i (NConst 0) (NConst 0) df)
+                        DSHIMap nn x_i y_i df)
     | Some n_SHBinOp, [fm ; svalue; o ; f ; _]
       =>
       tmPrint "SHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
               tmReturn (vars, fm, svalue,
-                        DSHBinOp no x_i x_i y_i df )
+                        DSHBinOp no x_i y_i df )
     | Some n_SHInductor, [fm ; svalue; n ; f ; _ ; z] =>
       tmPrint "SHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
               tmReturn (vars, fm, svalue,
-                        DSHPower nc x_i y_i df zconst)
+                        DSHPower nc (x_i, NConst 0) (y_i, NConst 0) df zconst)
     | Some n_IUnion, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IUnion" ;;
               nn <- tmUnquoteTyped nat n ;;
@@ -223,7 +223,7 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
       tmPrint "ISumUnion" ;;
               nn <- tmUnquoteTyped nat n ;;
               fm <- tmQuote (Monoid_RthetaFlags) ;;
-              c' <- compileSHCOL vars op_family ;;
+              c' <- compileSHCOL vars x_i y_i op_family ;;
               a_zero <- tmQuote (zero) ;;
               let '( _, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
               tmReturn (vars, fm, a_zero,  DSHLoop nn rr)
@@ -238,32 +238,33 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
               let vars' := ((nAnon,mt)::vars) in
               let t_i := 0 in
               c' <- compileSHCOL vars' x_i t_i op_family ;;
-              df <- compileDSHBinCarrierA f ;;
-              let '(_, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
-              tmReturn (vars', fm, svalue,
-                        (DSHSeq
+                 df <- compileDSHBinCarrierA f ;;
+                 let '(_, _, _, rr) := (c':varbindings*term*term*DSHOperator) in
+                 tmReturn (vars', fm, svalue,
                            (DSHSeq
-                              (DSHAlloc no)
-                              (DSHMemInit no y_i zconst))
-                           (DSHLoop nn rr
-                                    (DSHSeq
-                                       c'
-                                       (* TODO!!!! Figure out how loop var changes indices *)
-                                       (DSHMemMap2 nn t_i y_i y_i df)))))
+                              (DSHSeq
+                                 (DSHAlloc no)
+                                 (DSHMemInit no y_i zconst))
+                              (DSHLoop nn
+                                       (DSHSeq
+                                          rr
+                                          (DSHMemMap2 nn t_i y_i y_i df)))))
     | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
               no3 <- tmUnquoteTyped nat o3 ;;
               mt <- tmQuote (mem_block) ;;
+              let t_i := 0 in
               let vars' := ((nAnon,mt)::vars) in
-              cop1' <- compileSHCOL vars op1 ;;
-              cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
-              let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
-              cop1 <- castReifyResult no2 no3 cop1 ;;
-                   cop2 <- castReifyResult ni1 no2 cop2 ;;
-                   tmReturn (vars, fm, svalue, {| rei_i:=ni1; rei_o:=no3; rei_op:=@DSHCompose ni1 no2 no3 cop1 cop2 |})
+              cop1' <- compileSHCOL vars' t_i y_i op1 ;;
+                    cop2' <- compileSHCOL vars' x_i t_i op2 ;;
+                    let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
+                    let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
+                    tmReturn (vars, fm, svalue,
+                              (DSHSeq
+                                 (DSHAlloc no2)
+                                 (DSHSeq cop1 cop2)))
     | Some n_SafeCast, [svalue; i ; o ; c] =>
       tmPrint "SafeCast" ;;
               compileSHCOL vars x_i y_i c
@@ -274,15 +275,24 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
       tmPrint "HTSumunion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
+              mtyf <- tmQuote (mem_block) ;;
+              mtyg <- tmQuote (mem_block) ;;
+              let tyf_i := 0 in
+              let tyg_i := 1 in
+              let vars' := ((nAnon,mtyf)::(nAnon,mtyg)::vars) in
               ddot <- compileDSHBinCarrierA dot ;;
-              cop1' <- compileSHCOL vars op1 ;;
-              cop2' <- compileSHCOL vars op2 ;;
-              let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
-              let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
-              cop1 <- castReifyResult ni no cop1 ;;
-                   cop2 <- castReifyResult ni no cop2 ;;
-                   tmReturn (vars, fm, svalue, {| rei_i:=ni; rei_o:=no; rei_op:=@DSHHTSUMUnion ni no ddot cop1 cop2 |})
-
+                   cop1' <- compileSHCOL vars x_i tyf_i op1 ;;
+                   cop2' <- compileSHCOL vars x_i tyg_i op2 ;;
+                   let '(_, _, _, cop1) := (cop1':varbindings*term*term*DSHOperator) in
+                   let '(_, _, _, cop2) := (cop2':varbindings*term*term*DSHOperator) in
+                   tmReturn (vars, fm, svalue,
+                             (DSHSeq
+                                (DSHAlloc no)
+                                (DSHSeq
+                                   (DSHAlloc no)
+                                   (DSHSeq
+                                      (DSHSeq cop1 cop2)
+                                      (DSHMemMap2 no tyf_i tyg_i y_i ddot)))))
     | None, _ =>
       tmFail ("Usupported SHCOL operator" ++ opname)
     | _, _ =>
