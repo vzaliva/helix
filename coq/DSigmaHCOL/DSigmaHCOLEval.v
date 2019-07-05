@@ -195,6 +195,21 @@ Fixpoint evalDSHPower
          evalDSHPower Γ p f x y' xoffset yoffset
     end.
 
+Fixpoint estimateFuel (s:DSHOperator): nat :=
+  match s with
+  | DSHAssign _ _ => 0
+  | @DSHIMap _ _ _ _ => 0
+  | @DSHMemMap2 _ _ _ _ _ => 0
+  | @DSHBinOp _ _ _ _ => 0
+  | DSHPower _ _ _ _ _ => 0
+  | DSHLoop n body => (estimateFuel body) * n
+  | DSHAlloc size => 0
+  | DSHMemInit _ _ _ => 0
+  | DSHMemCopy _ _ _ => 0
+  | DSHSeq f g =>
+    Nat.max (estimateFuel f) (estimateFuel g)
+  end.
+
 Fixpoint evalDSHOperator
          (Γ: evalContext)
          (op: DSHOperator)
@@ -216,29 +231,25 @@ Fixpoint evalDSHOperator
         y' <- evalDSHIMap n f Γ x y ;;
         ret (context_replace Γ y_i (DSHmemVal y'))
     | @DSHMemMap2 n x0_i x1_i y_i f =>
-      match fuel with
-      | O => None
-      | S fuel =>
-        x0 <- context_lookup_mem Γ x0_i ;;
-           x1 <- context_lookup_mem Γ x1_i ;;
-           y <- context_lookup_mem Γ y_i ;;
-           y' <- evalDSHMap2 n f Γ x0 x1 y ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
-      end
+      x0 <- context_lookup_mem Γ x0_i ;;
+         x1 <- context_lookup_mem Γ x1_i ;;
+         y <- context_lookup_mem Γ y_i ;;
+         y' <- evalDSHMap2 n f Γ x0 x1 y ;;
+         ret (context_replace Γ y_i (DSHmemVal y'))
     | @DSHBinOp n x_i y_i f =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
-         y' <- evalDSHBinOp n n f Γ x y ;;
-         ret (context_replace Γ y_i (DSHmemVal y'))
+        y' <- evalDSHBinOp n n f Γ x y ;;
+        ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHPower ne (x_i,xoffset) (y_i,yoffset) f initial =>
       x <- context_lookup_mem Γ x_i ;;
         y <- context_lookup_mem Γ y_i ;;
         n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
         let y' := mem_add 0 initial y in
         xoff <- evalNexp Γ xoffset ;;
-        yoff <- evalNexp Γ yoffset ;;
-        y' <- evalDSHPower Γ n f x y xoff yoff ;;
-           ret (context_replace Γ y_i (DSHmemVal y'))
+             yoff <- evalNexp Γ yoffset ;;
+             y' <- evalDSHPower Γ n f x y xoff yoff ;;
+             ret (context_replace Γ y_i (DSHmemVal y'))
     | DSHLoop O body => Some Γ
     | DSHLoop (S n) body =>
       match fuel with

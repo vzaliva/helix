@@ -14,7 +14,7 @@ Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
@@ -58,6 +58,7 @@ Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
     | _ => tmFail "non-DSHCOL type encountered"
     end.
 
+(* DeBruijn indixed list variables. Each variable has name and type *)
 Definition varbindings:Type := list (name*term).
 
 Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
@@ -342,9 +343,25 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 
 (* Heterogenous relation of semantic equivalence of SHCOL and DSHCOL operators *)
 Open Scope list_scope.
-Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm} (σ: evalContext) (s: @SHOperator fm i o svalue) (d: DSHOperator i o) : Prop
+Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm} (σ: evalContext) (s: @SHOperator fm i o svalue) (d: DSHOperator) : Prop
   := forall (Γ: evalContext) (x:svector fm i),
-    (Some (densify fm (op fm s x))) = (evalDSHOperator (σ ++ Γ) d (densify fm x)).
+
+    let xm := svector_to_mem_block x in
+    let ym := mem_empty in
+    let Γ := DSHmemVal xm :: DSHmemVal  ym :: (σ ++ Γ) in
+    let x_i := 0 in
+    let y_i := 1 in
+    let fuel := estimateFuel d in
+    match evalDSHOperator Γ d fuel with
+      Some Γ' => match List.nth_error Γ' y_i with
+                | Some (DSHmemVal ym) =>
+                  let ym' := svector_to_mem_block (op fm s x) in
+                  ym' = ym
+                | Some _ => False
+                | None => False
+                end
+    | None  => False
+    end.
 
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
