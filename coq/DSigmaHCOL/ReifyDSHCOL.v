@@ -15,6 +15,7 @@ Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOLMem.
+Require Import Helix.SigmaHCOL.MemVecEq.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
@@ -230,7 +231,6 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
               tmReturn (vars, fm, a_zero,  DSHLoop nn rr)
     | Some n_IReduction, [svalue; i ; o ; n ; f ; _ ; _ ; op_family] =>
       tmPrint "IReduction" ;;
-              ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
               zconst <- tmUnquoteTyped CarrierA svalue ;;
@@ -252,9 +252,7 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
                                           (DSHMemMap2 nn t_i y_i y_i df)))))
     | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "SHCompose" ;;
-              ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
-              no3 <- tmUnquoteTyped nat o3 ;;
               mt <- tmQuote (mem_block) ;;
               let t_i := 0 in
               let vars' := ((nAnon,mt)::vars) in
@@ -274,7 +272,6 @@ Fixpoint compileSHCOL (vars:varbindings) (x_i y_i: var_id) (t:term) {struct t}: 
               compileSHCOL vars x_i y_i c
     | Some n_HTSUMUnion, [fm ; i ; o ; svalue; dot ; _ ; _; op1 ; op2] =>
       tmPrint "HTSumunion" ;;
-              ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               mtyf <- tmQuote (mem_block) ;;
               mtyg <- tmQuote (mem_block) ;;
@@ -341,26 +338,27 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
                tmUnfoldList xs u
   end.
 
-(* Heterogenous relation of semantic equivalence of SHCOL and DSHCOL operators *)
+(* Heterogenous relation of semantic equivalence of structurally correct SHCOL and DSHCOL operators *)
 Open Scope list_scope.
-Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm} (σ: evalContext) (s: @SHOperator fm i o svalue) (d: DSHOperator) : Prop
+Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
+           (σ: evalContext)
+           (s: @SHOperator fm i o svalue)
+           `{SHM: SHOperator_Mem fm i  o svalue s}
+           (d: DSHOperator) : Prop
   := forall (Γ: evalContext) (x:svector fm i),
-
-    let xm := svector_to_mem_block x in
-    let ym := mem_empty in
-    let Γ := DSHmemVal xm :: DSHmemVal  ym :: (σ ++ Γ) in
-    let x_i := 0 in
-    let y_i := 1 in
+    let xm := svector_to_mem_block x in (* input as mem_block *)
+    let ym := mem_empty in (* placeholder for output *)
+    let x_i := List.length (σ ++ Γ) in
+    let y_i := x_i + 1 in
+    let Γ := σ ++ Γ ++ [DSHmemVal xm ; DSHmemVal ym]  in (* add them to context *)
     let fuel := estimateFuel d in
-    match evalDSHOperator Γ d fuel with
-      Some Γ' => match List.nth_error Γ' y_i with
-                | Some (DSHmemVal ym) =>
-                  let ym' := svector_to_mem_block (op fm s x) in
-                  ym' = ym
-                | Some _ => False
-                | None => False
-                end
-    | None  => False
+    match evalDSHOperator Γ d fuel, mem_op xm with
+    | Some Γ', Some ym' => match List.nth_error Γ' y_i with
+                          | Some (DSHmemVal ym) => ym' = ym
+                          | _ => False
+                          end
+    | None, None  => True
+    | _, _ => False
     end.
 
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
