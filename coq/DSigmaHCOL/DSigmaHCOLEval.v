@@ -41,6 +41,9 @@ Definition context_replace
   :=
     ListUtil.replace_at c n v.
 
+Definition context_tl (c: evalContext) : evalContext
+  := List.tl c.
+
 Definition context_lookup_mem
            (c: evalContext)
            (n: var_id)
@@ -256,7 +259,8 @@ Fixpoint evalDSHOperator
       | O => None
       | S fuel =>
         Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
-          evalDSHOperator (DSHnatVal n :: Γ) body fuel
+          Γ' <- evalDSHOperator (DSHnatVal n :: Γ) body fuel ;;
+          ret (context_tl Γ')
       end
     | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
     | DSHMemInit size y_i value =>
