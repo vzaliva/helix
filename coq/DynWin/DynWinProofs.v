@@ -848,12 +848,17 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 
 Section SigmaHCOL_to_DSHCOL.
 
-  Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1.
+  (* Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1. *)
+  Obligation Tactic := idtac.
   Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL1" "dynwin_SHCOL_DSHCOL").
+  Import DSHNotation.
+
+  Print dynwin_DSHCOL1.
 
   (*
     Print dynwin_DSHCOL1.
