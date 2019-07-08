@@ -39,6 +39,7 @@ Open Scope string_scope.
 Inductive DSHCOLType :=
 | DSHnat : DSHCOLType
 | DSHCarrierA : DSHCOLType
+| DSHMemBlock : DSHCOLType
 | DSHvec (n:nat): DSHCOLType.
 
 Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
@@ -51,12 +52,15 @@ Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
               {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
       => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
     | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCarrierA
+    | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHMemBlock
     | tApp
         (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
         [tConst "Helix.HCOL.CarrierType.CarrierA" _ ; nat_term] =>
       n <- tmUnquoteTyped nat nat_term ;;
         tmReturn (DSHvec n)
-    | _ => tmFail "non-DSHCOL type encountered"
+    | _ =>
+      tmPrint t ;;
+      tmFail "non-DSHCOL type encountered"
     end.
 
 (* DeBruijn indixed list variables. Each variable has name and type *)
@@ -327,6 +331,7 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
               | DSHvec m =>
                 a_m <- tmQuote m ;;
                     tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 2 []) [a_m; tRel i])
+              | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
               end) ;;
           ts <- build_dsh_globals gs ;;
           tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []; dv; ts])
@@ -382,7 +387,7 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                      let global_idx := List.map tRel (rev_nat_seq (length globals)) in
                      let a_shcol := tApp a_expr global_idx in
                      dshcol' <- tmEval cbv dshcol ;;
-                             d_dshcol <- tmDefinition res_name dshcol' ;;
+                             d_dshcol <- tmDefinition res_name dshcol'  (* ;;
                              a_dshcol <- tmQuote d_dshcol ;;
                              let lemma_concl :=
                                  (tApp (tConst "SHCOL_DSHCOL_equiv" [])
@@ -394,9 +399,12 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                              (tmBind (tmUnquoteTyped Prop lemma_ast)
                                      (fun lemma_body => tmLemma lemma_name lemma_body
                                                              ;;
-                                                             tmReturn dshcol))
+                                                             tmReturn dshcol)) *)
+
+                             ;; tmReturn dshcol
                end.
 
+(*
 Theorem SHCompose_DSHCompose
         {i1 o2 o3} {svalue} {fm}
         (σ: evalContext)
@@ -646,17 +654,22 @@ Proof.
     destruct n0; auto.
 Qed.
 
+ *)
+
 Definition SHOperatorFamily_DSHCOL_equiv
            {i o n:nat}
            {svalue: CarrierA}
            {fm}
            (Γ: evalContext)
-           (s: @SHOperatorFamily fm i o n svalue)
-           (d: DSHOperator i o) : Prop :=
-  forall j, SHCOL_DSHCOL_equiv (DSHnatVal (proj1_sig j) :: Γ)
-                               (s j)
-                               d.
+           (op_family: @SHOperatorFamily fm i o n svalue)
+           {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
+           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+           (d: DSHOperator) : Prop :=
+  forall (j:nat) (jc:j<n), SHCOL_DSHCOL_equiv (DSHnatVal j :: Γ)
+                                       (op_family (mkFinNat jc))
+                                       d.
 
+(*
 Section Expr_NVar_subst_S.
 
   Local Ltac twoarg := simpl;
@@ -1594,3 +1607,4 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- Some _ = evalIUnCarrierA _ _ _ _ ] => unfold evalIUnCarrierA; symmetry; solve_evalAexp
          | [ |- _ ] => try reflexivity
          end.
+*)
