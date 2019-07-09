@@ -1,6 +1,6 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Arith.Peano_dec.
-Require Import Template.All.
+Require Import MetaCoq.Template.All.
 
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.VecSetoid.

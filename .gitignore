@@ -52,3 +52,5 @@ experiments/dywin.s
 /test.o
 /ml/libvellvm
 /lib/vellvm
+/lib/coq-switch
+/lib/metacoq
