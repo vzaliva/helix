@@ -374,12 +374,6 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
     | _, _ => False
     end.
 
-Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
-           (σ: evalContext)
-           (s: @SHOperator fm i o svalue)
-           `{facts: !SHOperator_Facts fm s}
-           `{SHM: !SHOperator_Mem  s}
-
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
