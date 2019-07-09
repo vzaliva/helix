@@ -59,7 +59,7 @@ Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
       n <- tmUnquoteTyped nat nat_term ;;
         tmReturn (DSHvec n)
     | _ =>
-      tmPrint t ;;
+      (* tmPrint t ;; this print slows complilation down *)
       tmFail "non-DSHCOL type encountered"
     end.
 
@@ -355,7 +355,8 @@ Open Scope list_scope.
 Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
            (σ: evalContext)
            (s: @SHOperator fm i o svalue)
-           `{SHM: SHOperator_Mem fm i  o svalue s}
+           `{facts: !SHOperator_Facts fm s}
+           `{SHM: !SHOperator_Mem  s}
            (d: DSHOperator) : Prop
   := forall (Γ: evalContext) (x:svector fm i),
     let xm := svector_to_mem_block x in (* input as mem_block *)
@@ -372,6 +373,12 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
     | None, None  => True
     | _, _ => False
     end.
+
+Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
+           (σ: evalContext)
+           (s: @SHOperator fm i o svalue)
+           `{facts: !SHOperator_Facts fm s}
+           `{SHM: !SHOperator_Mem  s}
 
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
@@ -393,6 +400,8 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                                  (tApp (tConst "SHCOL_DSHCOL_equiv" [])
                                        [a_i; a_o; a_svalue; a_fm; a_globals;
                                           a_shcol;
+                                          a_facts;
+                                          a_mem;
                                           a_dshcol])
                              in
                              let lemma_ast := build_forall globals lemma_concl in
