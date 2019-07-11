@@ -2914,7 +2914,6 @@ Section MemVecEq.
         rewrite E in Heqo0.
         rewrite Heqo0 in Heqo1.
         some_inv.
-        Set Printing All.
         apply Heqo1.
       -
         unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
@@ -3632,9 +3631,10 @@ Section MemVecEq.
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
-      :  SHOperator_Mem (IUnion dot op_family
-                                (pdot:=pdot))
-                        (facts:=IUnion_Facts dot op_family op_family_facts compat).
+           (facts: @SHOperator_Facts Monoid_RthetaFlags i o svalue
+                                     (IUnion dot op_family (pdot:=pdot) ))
+      :  SHOperator_Mem (IUnion dot op_family (pdot:=pdot))
+                        (facts:=facts).
     Proof.
       unshelve esplit.
       -
@@ -3685,6 +3685,12 @@ Section MemVecEq.
                 simpl.
                 crush.
               ++
+                apply IUnion_Facts; auto.
+                apply shrink_op_family_facts_up; eauto.
+                intros m2 mc n nc H1.
+                unfold shrink_op_family_up.
+                auto.
+              ++
                 intros j jc H0.
                 simpl in H0.
                 specialize (H j jc).
@@ -3709,7 +3715,6 @@ Section MemVecEq.
                 crush.
         +
           (* [Apply_mem_Family] could not be [None] *)
-          clear compat.
           clear Heqo0.
           rename Heqo1 into A.
           unfold Apply_mem_Family in A.
@@ -3748,7 +3753,33 @@ Section MemVecEq.
                 unfold Ensembles.In.
                 apply H0.
               }
-              specialize (IHk P). clear P.
+              assert(F: @SHOperator_Facts Monoid_RthetaFlags i o svalue
+                                          (@IUnion svalue i o k dot pdot (@Monoid_BFixpoint dot svalue af_mon) (@shrink_op_family_up Monoid_RthetaFlags i o k svalue op_family))).
+              {
+                apply IUnion_Facts; auto.
+                apply shrink_op_family_facts_up; eauto.
+                intros m2 mc n nc H1.
+                unfold shrink_op_family_up.
+                auto.
+              }
+              assert(compat':
+                       ∀ (m : nat) (mc : m < k) (n : nat) (nc : n < k), m ≢ n
+                                                  → Disjoint
+                                                      (FinNat o)
+                                                      (out_index_set Monoid_RthetaFlags
+                                                         (shrink_op_family_up
+                                                          Monoid_RthetaFlags op_family
+                                                          (mkFinNat mc)))
+                                                      (out_index_set Monoid_RthetaFlags
+                                                         (shrink_op_family_up
+                                                          Monoid_RthetaFlags op_family
+                                                          (mkFinNat nc)))).
+              {
+                intros m1 mc n nc H0.
+                apply compat.
+                auto.
+              }
+              specialize (IHk compat' F P). clear P compat'.
               contradict IHk.
               unfold get_family_mem_op in *.
               rewrite <- Heqo1.
@@ -3785,7 +3816,6 @@ Section MemVecEq.
         rename Heqo0 into A.
         split.
         +
-          clear compat.
           rewrite family_out_index_set_eq.
           dependent induction k; intros.
           *
@@ -3825,6 +3855,11 @@ Section MemVecEq.
                             (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
               eapply IHk;eauto.
+              apply IUnion_Facts; auto.
+              apply shrink_op_family_facts_up; eauto.
+              intros m2 mc n nc H1.
+              unfold shrink_op_family_up.
+              auto.
         +
           assert(length l = k) as L by apply (Apply_mem_Family_length A).
           rewrite family_out_index_set_eq.
@@ -3861,6 +3896,11 @@ Section MemVecEq.
                             (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
               eapply IHk;eauto.
+              apply IUnion_Facts; auto.
+              apply shrink_op_family_facts_up; eauto.
+              intros m2 mc n nc H1.
+              unfold shrink_op_family_up.
+              auto.
             --
               clear IHk A.
               left.
@@ -3874,7 +3914,6 @@ Section MemVecEq.
       -
         (* out_mem_oob *)
         intros m0 m H j jc.
-        clear compat.
         unfold IUnion_mem in H.
         simpl in *.
         break_match_hyp ; try some_none.
@@ -3914,13 +3953,18 @@ Section MemVecEq.
                           (shrink_op_family_mem_up _ _ op_family_mem)
                        ).
             eapply IHk;eauto.
+            apply IUnion_Facts; auto.
+            apply shrink_op_family_facts_up; eauto.
+            intros m2 mc n nc H2.
+            unfold shrink_op_family_up.
+            auto.
           --
             apply out_mem_oob with (j0:=j) in A0; auto.
       -
         (* mem_vec_preservation *)
         intros x H.
         rename k into n.
-        unfold IUnion, IUnion_mem, Diamond in *.
+        unfold IUnion, IUnion_mem, Diamond.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
@@ -3982,15 +4026,23 @@ Section MemVecEq.
               auto.
             }
 
+            assert(facts': SHOperator_Facts Monoid_RthetaFlags (IUnion dot (shrink_op_family_up Monoid_RthetaFlags op_family))).
+            {
+              apply IUnion_Facts; auto.
+              intros j jc.
+              apply shrink_op_family_facts_up; auto.
+            }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
                           compat'
+                          facts'
                           P
                           v l
                           A V
                        ).
+
             unfold MUnion in *.
             simpl.
 
