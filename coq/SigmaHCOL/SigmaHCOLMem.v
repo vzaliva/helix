@@ -788,6 +788,122 @@ Proof.
     apply O0, kc.
 Qed.
 
+Lemma svector_to_mem_block_rvector2rsvector
+      {n x}:
+  svector_to_mem_block (rvector2rsvector n x) = svector_to_mem_block x.
+Proof.
+  unfold svector_to_mem_block, rvector2rsvector, Rtheta2RStheta.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m1 H1 I1 O1.
+  simpl in *.
+  mem_index_equiv k.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    clear O0 O1.
+    specialize (H0 k kc).
+    specialize (H1 k kc).
+    unfold equiv, option_Equiv.
+    rewrite Vnth_map in H0.
+    unfold Is_Val,compose in H0.
+    rewrite execWriter_castWriter in H0.
+    unfold Is_Val, compose in H1.
+    rewrite evalWriter_castWriter in H0.
+
+    specialize (I0 k kc).
+    specialize (I1 k kc).
+    rewrite Vnth_map in I0.
+    unfold Is_Val,compose in I0.
+    rewrite execWriter_castWriter in I0.
+    unfold Is_Val, compose in I1.
+
+    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
+    +
+      destruct H0 as [H0 _].
+      destruct H1 as [H1 _].
+      apply NM.find_1 in H0; auto.
+      apply NM.find_1 in H1; auto.
+      rewrite H0, H1.
+      reflexivity.
+    +
+      unfold Rtheta in *.
+      generalize dependent (Vnth x kc).
+      intros r H0 I0 H1 I1 NV.
+      apply not_iff_compat in I0.
+      apply not_iff_compat in I1.
+      destruct I0 as [_ I0].
+      destruct I1 as [_ I1].
+      specialize (I0 NV).
+      specialize (I1 NV).
+      clear NV.
+      apply NP.F.not_find_in_iff in I0.
+      apply NP.F.not_find_in_iff in I1.
+      rewrite I0, I1.
+      reflexivity.
+  -
+    rewrite O0 by assumption.
+    rewrite O1 by assumption.
+    reflexivity.
+Qed.
+
+
+Lemma svector_to_mem_block_rsvector2rvector
+      {n x}:
+  svector_to_mem_block (rsvector2rvector n x) = svector_to_mem_block x.
+Proof.
+  unfold svector_to_mem_block, rsvector2rvector, RStheta2Rtheta.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m1 H1 I1 O1.
+  simpl in *.
+  mem_index_equiv k.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    clear O0 O1.
+    specialize (H0 k kc).
+    specialize (H1 k kc).
+    unfold equiv, option_Equiv.
+    rewrite Vnth_map in H0.
+    unfold Is_Val,compose in H0.
+    rewrite execWriter_castWriter in H0.
+    unfold Is_Val, compose in H1.
+    rewrite evalWriter_castWriter in H0.
+
+    specialize (I0 k kc).
+    specialize (I1 k kc).
+    rewrite Vnth_map in I0.
+    unfold Is_Val,compose in I0.
+    rewrite execWriter_castWriter in I0.
+    unfold Is_Val, compose in I1.
+
+    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
+    +
+      destruct H0 as [H0 _].
+      destruct H1 as [H1 _].
+      apply NM.find_1 in H0; auto.
+      apply NM.find_1 in H1; auto.
+      rewrite H0, H1.
+      reflexivity.
+    +
+      unfold RStheta in *.
+      generalize dependent (Vnth x kc).
+      intros r H0 I0 H1 I1 NV.
+      apply not_iff_compat in I0.
+      apply not_iff_compat in I1.
+      destruct I0 as [_ I0].
+      destruct I1 as [_ I1].
+      specialize (I0 NV).
+      specialize (I1 NV).
+      clear NV.
+      apply NP.F.not_find_in_iff in I0.
+      apply NP.F.not_find_in_iff in I1.
+      rewrite I0, I1.
+      reflexivity.
+  -
+    rewrite O0 by assumption.
+    rewrite O1 by assumption.
+    reflexivity.
+Qed.
+
+
 (* y[j] := x[i] *)
 Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
   : option mem_block :=

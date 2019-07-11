@@ -214,7 +214,7 @@ Section MemVecEq.
     Variable fm: Monoid RthetaFlags.
     Variable fml: @MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Global Instance compose_Mem
+    Global Instance SHCompose_Mem
            {svalue: CarrierA}
            {i1 o2 o3}
            (op1: @SHOperator fm o2 o3 svalue)
@@ -990,6 +990,62 @@ Section MemVecEq.
   Qed.
 
   Section MonoidSpecific.
+
+    Global Instance SafeCast_Mem
+           {svalue: CarrierA}
+           {i o}
+           (f: @SHOperator Monoid_RthetaSafeFlags i o svalue)
+           `{f_mem: SHOperator_Mem _ _ _ _ f}
+      :
+        SHOperator_Mem (svalue:=svalue) (SafeCast f).
+    Proof.
+      destruct f_mem.
+      unshelve esplit; try assumption.
+      intros x H.
+      unfold SafeCast, SafeCast'.
+      simpl in *.
+      specialize (mem_vec_preservation0 (rvector2rsvector _ x)).
+      unfold compose.
+      rewrite svector_to_mem_block_rsvector2rvector.
+      rewrite svector_to_mem_block_rvector2rsvector in mem_vec_preservation0.
+      rewrite <- mem_vec_preservation0.
+      - reflexivity.
+      -
+        intros j jc H0.
+        specialize (H j jc H0).
+        unfold rvector2rsvector.
+        rewrite Vnth_map.
+        apply Is_Val_Rtheta2RStheta.
+        assumption.
+    Qed.
+
+    Global Instance UnSafeCast_Mem
+           {svalue: CarrierA}
+           {i o}
+           (f: @SHOperator Monoid_RthetaFlags i o svalue)
+           `{f_mem: SHOperator_Mem _ _ _ _ f}
+      :
+        SHOperator_Mem (svalue:=svalue) (UnSafeCast f).
+    Proof.
+      destruct f_mem.
+      unshelve esplit; try assumption.
+      intros x H.
+      unfold UnSafeCast, UnSafeCast'.
+      simpl in *.
+      specialize (mem_vec_preservation0 (rsvector2rvector _ x)).
+      unfold compose.
+      rewrite svector_to_mem_block_rvector2rsvector.
+      rewrite svector_to_mem_block_rsvector2rvector in mem_vec_preservation0.
+      rewrite <- mem_vec_preservation0.
+      - reflexivity.
+      -
+        intros j jc H0.
+        specialize (H j jc H0).
+        unfold rsvector2rvector.
+        rewrite Vnth_map.
+        apply Is_Val_Rtheta2RStheta.
+        assumption.
+    Qed.
 
     Global Instance SHBinOp_RthetaSafe_Mem
            {svalue: CarrierA}
