@@ -1304,11 +1304,12 @@ Section MemVecEq.
            `{Meq1: SHOperator_Mem _ i o _ op1}
            `{Meq2: SHOperator_Mem _ i o _ op2}
 
+           `{hfacts: SHOperator_Facts Monoid_RthetaFlags _ _ _ (HTSUMUnion Monoid_RthetaFlags dot op1 op2)}
+
            (* `a_zero` together with `dot` form a monoid.  *)
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
       : SHOperator_Mem
-          (facts := HTSUMUnion_Facts dot op1 op2 compat)
           (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
     Proof.
       unshelve esplit.
