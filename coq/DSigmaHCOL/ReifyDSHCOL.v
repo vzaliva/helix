@@ -319,6 +319,12 @@ Fixpoint build_forall p conc :=
   | (n,t)::ps => tProd n t (build_forall ps conc)
   end.
 
+Fixpoint build_lambda p conc :=
+  match p with
+  | [] => conc
+  | (n,t)::ps => tLambda n t (build_lambda ps conc)
+  end.
+
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
   | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
@@ -374,21 +380,32 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
     | _, _ => False
     end.
 
+
 Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): TemplateMonad DSHOperator :=
   a_expr <- @tmQuote A expr ;; eexpr0 <- @tmEval hnf A expr  ;;
          let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
          eexpr <- tmUnfoldList unfold_names eexpr0 ;;
                ast <- @tmQuote A eexpr ;;
                mt <- tmQuote (mem_block) ;;
-               d' <- compileSHCOL [(nAnon,mt) ; (nAnon,mt)] 0 1 ast ;;
-               match d' with
-               | (globals, a_fm, a_svalue, i, o, dshcol) =>
-                 a_i <- tmQuote i ;; a_o <- tmQuote o ;;
-                     a_globals <- build_dsh_globals globals ;;
-                     let global_idx := List.map tRel (rev_nat_seq (length globals)) in
-                     let a_shcol := tApp a_expr global_idx in
-                     dshcol' <- tmEval cbv dshcol ;;
-                             d_dshcol <- tmDefinition res_name dshcol'  (* ;;
+               d' <- compileSHCOL [] 0 1 ast ;;
+               let '(globals, a_fm, a_svalue, i, o, dshcol) := (d':varbindings*term*term*nat*nat*DSHOperator) in
+               a_i <- tmQuote i ;; a_o <- tmQuote o ;;
+                   a_globals <- build_dsh_globals globals ;;
+                   let global_idx := List.map tRel (rev_nat_seq (length globals)) in
+                   let a_shcol := tApp a_expr global_idx in
+                   dshcol' <- tmEval cbv dshcol ;;
+                           d_dshcol <- tmDefinition res_name dshcol'
+                           (* fm <- tmUnquoteTyped (Monoid.Monoid RthetaFlags) a_fm ;;
+                           sva   lue <- tmUnquoteTyped CarrierA a_svalue ;;
+                           let facts_a :=
+                               build_lambda globals (tApp
+                                                       (tInd {| inductive_mind := "SHOperator_Facts"; inductive_ind := 0 |} [])
+                                                       [a_fm; a_i; a_o; a_svalue; a_shcol]) in
+                           tmPrint facts_a ;;
+                           facts <- tmUnquote facts_a ;;
+                           facts_i <- tmInferInstance (Some cbv) facts ;;
+                           tmPrint facts_i ;;
+                           ;;
                              a_dshcol <- tmQuote d_dshcol ;;
                              let lemma_concl :=
                                  (tApp (tConst "SHCOL_DSHCOL_equiv" [])
@@ -405,7 +422,7 @@ Definition reifySHCOL {A:Type} (expr: A) (res_name:string) (lemma_name:string): 
                                                              tmReturn dshcol)) *)
 
                              ;; tmReturn dshcol
-               end.
+               .
 
 (*
 Theorem SHCompose_DSHCompose
