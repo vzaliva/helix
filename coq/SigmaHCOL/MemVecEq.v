@@ -222,8 +222,8 @@ Section MemVecEq.
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
            `{Meq1: SHOperator_Mem fm o2 o3 _ op1}
            `{Meq2: SHOperator_Mem fm i1 o2 _ op2}
+           `{facts: SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
       : SHOperator_Mem
-          (facts:=SHCompose_Facts fm _ op1 op2 compat)
           (SHCompose fm op1 op2).
     Proof.
       unshelve esplit.
