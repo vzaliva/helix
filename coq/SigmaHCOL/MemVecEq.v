@@ -2573,11 +2573,12 @@ Section MemVecEq.
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
            (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+           (facts : SHOperator_Facts Monoid_RthetaSafeFlags (IReduction dot op_family))
            (compat: forall j (jc:j<k),
                Ensembles.Same_set _
                                   (out_index_set _ (op_family (mkFinNat jc)))
                                   (Full_set _))
-      : SHOperator_Mem (IReduction dot op_family).
+      : SHOperator_Mem (IReduction dot op_family) (facts:=facts).
     Proof.
       unshelve esplit.
       -
@@ -2636,7 +2637,7 @@ Section MemVecEq.
                 unfold Ensembles.In.
                 apply H0.
               }
-              specialize (IHk P). clear P.
+              specialize (IHk _ P). clear P.
               contradict IHk.
               unfold get_family_mem_op in *.
               rewrite <- Heqo1.
@@ -2712,6 +2713,10 @@ Section MemVecEq.
                             (shrink_op_family_mem_up _ _ op_family_mem)
                          ).
               left; auto.
+
+              apply IHk; auto.
+              apply IReduction_Facts; auto.
+              apply shrink_op_family_facts_up; auto.
         +
           intros H.
 
@@ -2767,6 +2772,7 @@ Section MemVecEq.
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
+                          _
                           l
                           A
                        ).
@@ -2836,6 +2842,7 @@ Section MemVecEq.
                           (shrink_op_family_up _ op_family)
                           (shrink_op_family_facts_up _ _ op_family_facts)
                           (shrink_op_family_mem_up _ _ op_family_mem)
+                          _
                           compat'
                           P
                           v l
