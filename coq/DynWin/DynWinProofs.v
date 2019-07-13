@@ -848,6 +848,65 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+
+Require Import Helix.SigmaHCOL.MemVecEq.
+
+Section SigmaHCOL_mem.
+
+  Ltac solve_mem :=
+    match goal with
+    | [ |- SHOperator_Mem (SHCompose _ _ _)] => eapply SHCompose_Mem
+    | [ |- SHOperator_Mem (SafeCast _ ) ] => eapply SafeCast_Mem
+    | [ |- SHOperator_Mem (UnSafeCast _ ) ] => eapply UnSafeCast_Mem
+    | [ |- SHOperator_Mem (SHBinOp _ _) ] => eapply SHBinOp_RthetaSafe_Mem
+    | [ |- @SHOperator_Mem ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
+      replace (@SHOperator_Mem m i) with (@SHOperator_Mem m (o+o)) by apply eq_refl
+    | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => eapply HTSUMUnion_Mem
+    | [ |- SHOperator_Mem (eUnion _ _) ] => eapply eUnion_Mem
+    | [ |- SHOperator_Mem (IReduction _ _)] => eapply IReduction_Mem
+    | [ |- SHOperator_Mem _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
+    | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => eapply MonoidLaws_RthetaFlags
+
+    (*
+      | [ |- SHOperator_Mem _ _ ] => eapply SHPointwise_Mem
+        | [ |- SHInductor_Mem _ _ ] => eapply SHInductor_Mem
+        | [ |- SHOperator_Mem _ _ ] => eapply IUnion_Mem
+        | _ => crush
+     *)
+    end.
+
+Instance DynWinSigmaHCOL1_Mem
+         (a: avector 3):
+  SHOperator_Mem (dynwin_SHCOL1 a) (facts := DynWinSigmaHCOL1_Facts a).
+Proof.
+  unfold dynwin_SHCOL1.
+
+  Typeclasses eauto := 1.
+  solve_mem.
+  admit.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  admit.
+  solve_mem.
+  admit.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  admit.
+  admit.
+  solve_mem.
+  admit.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  admit.
+  admit.
+Admitted.
+
+
+End SigmaHCOL_mem.
+
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 

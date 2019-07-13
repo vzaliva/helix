@@ -1291,7 +1291,7 @@ Section MemVecEq.
     Qed.
 
     Global Instance HTSUMUnion_Mem
-           `{a_zero: MonUnit CarrierA}
+           {a_zero: MonUnit CarrierA}
            {i o: nat}
            `{dot: SgOp CarrierA}
            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
@@ -1304,13 +1304,13 @@ Section MemVecEq.
            `{Meq1: SHOperator_Mem _ i o _ op1}
            `{Meq2: SHOperator_Mem _ i o _ op2}
 
-           `{hfacts: SHOperator_Facts Monoid_RthetaFlags _ _ _ (HTSUMUnion Monoid_RthetaFlags dot op1 op2)}
+           `{hfacts: SHOperator_Facts Monoid_RthetaFlags _ _ a_zero (HTSUMUnion Monoid_RthetaFlags dot op1 op2)}
 
            (* `a_zero` together with `dot` form a monoid.  *)
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
       : SHOperator_Mem
-          (HTSUMUnion Monoid_RthetaFlags dot op1 op2).
+          (HTSUMUnion Monoid_RthetaFlags dot op1 op2 (svalue:=a_zero)).
     Proof.
       unshelve esplit.
       -
