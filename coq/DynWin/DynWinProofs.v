@@ -883,25 +883,57 @@ Proof.
 
   Typeclasses eauto := 1.
   solve_mem.
-  admit.
+  {
+    simpl.
+    intros x H. unfold In in *.
+    destruct x.
+    destruct x.
+    apply Union_introl. unfold In, singleton. simpl. reflexivity.
+    dep_destruct x.
+    apply Union_intror. unfold In, singleton. simpl. reflexivity.
+    crush.
+  }
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  {
+    simpl.
+    constructor.
+    intros x.
+    unfold In.
+    intros H.
+    inversion H.
+    crush.
+  }
+  solve_mem.
+  {
+    simpl.
+    crush.
+  }
   solve_mem.
   solve_mem.
   solve_mem.
   admit.
+  {
+    simpl.
+    intros j jc.
+    crush.
+  }
+  solve_mem.
+  {
+    simpl.
+    crush.
+  }
+  solve_mem.
+  solve_mem.
   solve_mem.
   admit.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  admit.
-  admit.
-  solve_mem.
-  admit.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  admit.
-  admit.
+  {
+    simpl.
+    intros j jc.
+    crush.
+  }
+  apply CarrierAr.
 Admitted.
 
 
