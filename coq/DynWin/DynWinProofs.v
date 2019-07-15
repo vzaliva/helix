@@ -866,13 +866,14 @@ Section SigmaHCOL_mem.
     | [ |- SHOperator_Mem (IReduction _ _)] => eapply IReduction_Mem
     | [ |- SHOperator_Mem _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
     | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => eapply MonoidLaws_RthetaFlags
-
-    (*
-      | [ |- SHOperator_Mem _ _ ] => eapply SHPointwise_Mem
-        | [ |- SHInductor_Mem _ _ ] => eapply SHInductor_Mem
-        | [ |- SHOperator_Mem _ _ ] => eapply IUnion_Mem
-        | _ => crush
-     *)
+    | [ |- SHOperator_Mem (SHPointwise _)] => eapply SHPointwise_Mem
+    | [ |- SHInductor_Mem (SHInductor _ _ _) ] => eapply SHInductor_Mem
+    | [ |- SHOperator_Mem (IUnion _ _) ] => eapply IUnion_Mem
+    | [ |- SHOperator_Mem (ISumUnion _)] => unfold ISumUnion; eapply IUnion_Mem
+    | [ |- SHOperator_Mem (eT _ _)] => eapply eT_Mem
+    | [ |- @abstract_algebra.Monoid CarrierA CarrierAe (@plus CarrierA CarrierAplus)
+                                   (@zero CarrierA CarrierAz)] => apply CarrierAr
+    | _ => crush
     end.
 
 Instance DynWinSigmaHCOL1_Mem
@@ -884,6 +885,7 @@ Proof.
   Typeclasses eauto := 1.
   solve_mem.
   {
+    (* TODO: Automate Ensembles solving *)
     simpl.
     intros x H. unfold In in *.
     destruct x.
@@ -897,6 +899,7 @@ Proof.
   solve_mem.
   solve_mem.
   {
+    (* TODO: Automate Ensembles solving *)
     simpl.
     constructor.
     intros x.
@@ -906,34 +909,32 @@ Proof.
     crush.
   }
   solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
   {
-    simpl.
-    crush.
-  }
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  admit.
-  {
-    simpl.
     intros j jc.
-    crush.
+    unfold SHFamilyOperatorCompose.
+    simpl.
+    (* IDEA: assert facts, solve via tactis then apply _Mem *)
+    (* eapply SHCompose_Mem.
+    solve_mem. *)
+    admit.
   }
   solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
   {
-    simpl.
-    crush.
-  }
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  admit.
-  {
-    simpl.
     intros j jc.
-    crush.
+    simpl.
+    admit.
   }
-  apply CarrierAr.
+  solve_mem.
+  solve_mem.
 Admitted.
 
 
