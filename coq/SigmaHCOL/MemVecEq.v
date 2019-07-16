@@ -3631,6 +3631,7 @@ Section MemVecEq.
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
+           `{scompat: BFixpoint svalue dot}
            (facts: @SHOperator_Facts Monoid_RthetaFlags i o svalue
                                      (IUnion dot op_family (pdot:=pdot) ))
       :  SHOperator_Mem (IUnion dot op_family (pdot:=pdot))
@@ -3754,7 +3755,7 @@ Section MemVecEq.
                 apply H0.
               }
               assert(F: @SHOperator_Facts Monoid_RthetaFlags i o svalue
-                                          (@IUnion svalue i o k dot pdot (@Monoid_BFixpoint dot svalue af_mon) (@shrink_op_family_up Monoid_RthetaFlags i o k svalue op_family))).
+                                          (@IUnion svalue i o k dot pdot scompat (@shrink_op_family_up Monoid_RthetaFlags i o k svalue op_family))).
               {
                 apply IUnion_Facts; auto.
                 apply shrink_op_family_facts_up; eauto.
