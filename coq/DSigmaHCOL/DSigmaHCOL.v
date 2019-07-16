@@ -6,6 +6,7 @@ Require Import Helix.SigmaHCOL.MemSetoid.
 
 Global Open Scope nat_scope.
 
+(* Variable on stack (De-Brujn index) *)
 Definition var_id := nat.
 
 Inductive DSHVal :=
@@ -48,20 +49,23 @@ Definition DSHIUnCarrierA := AExpr.
 Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
+Definition memory := NatMap mem_block.
 
+(* Memory block address *)
+Definition mem_block_id := nat.
 (* Memory variable along with offset *)
-Definition MemVarRef: Set := (var_id * NExpr).
+Definition MemVarRef: Set := (mem_block_id * NExpr).
 
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
-| DSHIMap (n: nat) (x_i y_i: var_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n: nat) (x y: var_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
-| DSHMemMap2 (n: nat) (x0_i x1_i y_i: var_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
+| DSHIMap (n: nat) (x_i y_i: mem_block_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHBinOp (n: nat) (x y: mem_block_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHMemMap2 (n: nat) (x0_i x1_i y_i: mem_block_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
-| DSHAlloc (size:nat) (* allocates new uninitialized memory block and puts it on top of context. Reading from unitialized offsets is not allowed. *)
-| DSHMemInit (size:nat) (y_i:var_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
-| DSHMemCopy (size:nat) (x_i y_i: var_id)(* copy memory blocks. Overwrites output block values, if present *)
+| DSHAlloc (size:nat) (y_i: mem_block_id) (* allocates new uninitialized memory block and puts at specified address. Reading from unitialized offsets is not allowed. *)
+| DSHMemInit (size:nat) (y_i: mem_block_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
+| DSHMemCopy (size:nat) (x_i y_i: mem_block_id)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
 .
 

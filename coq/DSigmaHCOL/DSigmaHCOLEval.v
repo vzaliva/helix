@@ -33,26 +33,22 @@ Definition context_lookup
   : option DSHVal
   := nth_error c n.
 
-Definition context_replace
-           (c: evalContext)
-           (n: var_id)
-           (v: DSHVal)
-  : evalContext
-  :=
-    ListUtil.replace_at c n v.
-
 Definition context_tl (c: evalContext) : evalContext
   := List.tl c.
 
-Definition context_lookup_mem
-           (c: evalContext)
-           (n: var_id)
+Definition memory_lookup
+           (m: memory)
+           (n: mem_block_id)
   : option mem_block
-  := match (nth_error c n) with
-     | Some (DSHmemVal m) => ret m
-     | _ => None
-     end.
+  := NM.find n m.
 
+Definition memory_set
+           (m: memory)
+           (n: mem_block_id)
+           (v: mem_block)
+  : memory
+  :=
+    NM.add n v m.
 
 (* Evaluation of expressions does not allow for side-effects *)
 Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
@@ -206,7 +202,7 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
   | @DSHBinOp _ _ _ _ => 0
   | DSHPower _ _ _ _ _ => 0
   | DSHLoop n body => (estimateFuel body) * n
-  | DSHAlloc size => 0
+  | DSHAlloc size _ => 0
   | DSHMemInit _ _ _ => 0
   | DSHMemCopy _ _ _ => 0
   | DSHSeq f g =>
@@ -216,73 +212,73 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
 Fixpoint evalDSHOperator
          (Γ: evalContext)
          (op: DSHOperator)
+         (m: memory)
          (fuel: nat)
-         {struct fuel}: option (evalContext)
+         {struct fuel}: option (memory)
   :=
     match op with
     | DSHAssign (x_i, src_e) (y_i, dst_e) =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
+      x <- memory_lookup m x_i ;;
+        y <- memory_lookup m y_i ;;
         src <- evalNexp Γ src_e ;;
         dst <- evalNexp Γ dst_e ;;
         v <- mem_lookup src x ;;
         let y' := mem_add dst v y in
-        ret (context_replace Γ y_i (DSHmemVal y'))
+        ret (memory_set m y_i y')
     | @DSHIMap n x_i y_i f =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
+      x <- memory_lookup m x_i ;;
+        y <- memory_lookup m y_i ;;
         y' <- evalDSHIMap n f Γ x y ;;
-        ret (context_replace Γ y_i (DSHmemVal y'))
+        ret (memory_set m y_i y')
     | @DSHMemMap2 n x0_i x1_i y_i f =>
-      x0 <- context_lookup_mem Γ x0_i ;;
-         x1 <- context_lookup_mem Γ x1_i ;;
-         y <- context_lookup_mem Γ y_i ;;
+      x0 <- memory_lookup m x0_i ;;
+         x1 <- memory_lookup m x1_i ;;
+         y <- memory_lookup m y_i ;;
          y' <- evalDSHMap2 n f Γ x0 x1 y ;;
-         ret (context_replace Γ y_i (DSHmemVal y'))
+         ret (memory_set m y_i y')
     | @DSHBinOp n x_i y_i f =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
+      x <- memory_lookup m x_i ;;
+        y <- memory_lookup m y_i ;;
         y' <- evalDSHBinOp n n f Γ x y ;;
-        ret (context_replace Γ y_i (DSHmemVal y'))
+        ret (memory_set m y_i y')
     | DSHPower ne (x_i,xoffset) (y_i,yoffset) f initial =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
+      x <- memory_lookup m x_i ;;
+        y <- memory_lookup m y_i ;;
         n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
         let y' := mem_add 0 initial y in
         xoff <- evalNexp Γ xoffset ;;
              yoff <- evalNexp Γ yoffset ;;
              y' <- evalDSHPower Γ n f x y xoff yoff ;;
-             ret (context_replace Γ y_i (DSHmemVal y'))
-    | DSHLoop O body => Some Γ
+             ret (memory_set m y_i y')
+    | DSHLoop O body => ret m
     | DSHLoop (S n) body =>
       match fuel with
       | O => None
       | S fuel =>
-        Γ <- evalDSHOperator Γ (DSHLoop n body) fuel ;;
-          Γ' <- evalDSHOperator (DSHnatVal n :: Γ) body fuel ;;
-          ret (context_tl Γ')
+        m <- evalDSHOperator Γ (DSHLoop n body) m fuel ;;
+          m' <- evalDSHOperator (DSHnatVal n :: Γ) body m fuel ;;
+          ret m'
       end
-    | DSHAlloc size => ret (DSHmemVal (mem_empty) :: Γ)
+    | DSHAlloc size y_i => ret (memory_set m y_i (mem_empty))
     | DSHMemInit size y_i value =>
-      y <- context_lookup_mem Γ y_i ;;
+      y <- memory_lookup m y_i ;;
         let y' := mem_union
                     (mem_const_block size value)
                     y in
-        ret (context_replace Γ y_i (DSHmemVal y'))
+        ret (memory_set m y_i y')
     | DSHMemCopy size x_i y_i =>
-      x <- context_lookup_mem Γ x_i ;;
-        y <- context_lookup_mem Γ y_i ;;
+      x <- memory_lookup m x_i ;;
+        y <- memory_lookup m y_i ;;
         let y' := mem_union x y in
-        ret (context_replace Γ y_i (DSHmemVal y'))
+        ret (memory_set m y_i y')
     | DSHSeq f g =>
       match fuel with
       | O => None
       | S fuel =>
-        Γ <- evalDSHOperator Γ f fuel ;;
-          evalDSHOperator Γ g fuel
+        m <- evalDSHOperator Γ f m fuel ;;
+          evalDSHOperator Γ g m fuel
       end
     end.
-
 
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
