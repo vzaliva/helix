@@ -859,8 +859,7 @@ Section SigmaHCOL_mem.
     | [ |- SHOperator_Mem (SafeCast _ ) ] => unshelve eapply SafeCast_Mem
     | [ |- SHOperator_Mem (UnSafeCast _ ) ] => unshelve  eapply UnSafeCast_Mem
     | [ |- @SHOperator_Mem Monoid_RthetaSafeFlags ?mi ?mo ?msv (@SHBinOp _ _ ?o _ _) _ ] =>
-      replace (@SHOperator_Facts Monoid_RthetaSafeFlags mi) with (@SHOperator_Facts Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
-      replace (@SHOperator_Mem Monoid_RthetaSafeFlags mi) with (@SHOperator_Mem Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
+      replace (@SHOperator_Mem Monoid_RthetaSafeFlags mi) with (@SHOperator_Mem Monoid_RthetaSafeFlags (o+o)) by f_equiv;
       unshelve eapply SHBinOp_RthetaSafe_Mem
     | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => unshelve eapply HTSUMUnion_Mem
     | [ |- SHOperator_Mem (eUnion _ _) ] => unshelve eapply eUnion_Mem
@@ -924,7 +923,7 @@ Proof.
     crush.
   }
   solve_mem.
-  solve_mem.
+  solve_mem. (* eapply SHBinOp_RthetaSafe_Mem. *)
   solve_mem.
   solve_facts.
   solve_facts.
@@ -996,7 +995,6 @@ Proof.
     intros m mc n nc H.
     apply Disjoined_singletons, H.
   }
-
   crush.
   solve_mem.
 Qed.
