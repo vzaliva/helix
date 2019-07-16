@@ -877,7 +877,7 @@ Section SigmaHCOL_mem.
     | _ => crush
     end.
 
-  Lemma Obligation_XXX:
+  Fact Obligation_XXX:
     Included (FinNat 2) (Full_set (FinNat 2))
              (Union (FinNat 2) (singleton 1)
                     (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
