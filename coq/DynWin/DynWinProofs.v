@@ -123,7 +123,7 @@ Definition dynwin_SHCOL (a: avector 3):
     ).
 
 
-Ltac solve_facs :=
+Ltac solve_facts :=
   repeat match goal with
          | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
          | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
@@ -303,7 +303,7 @@ Section SigmaHCOL_rewriting.
     unfold dynwin_SHCOL.
 
     (* First resolve all SHOperator_Facts typeclass instances *)
-    solve_facs.
+    solve_facts.
 
     (* Now let's take care of remaining proof obligations *)
     -
@@ -347,7 +347,7 @@ Section SigmaHCOL_rewriting.
     SHOperator_Facts _ (dynwin_SHCOL1 a).
   Proof.
     unfold dynwin_SHCOL1.
-    solve_facs.
+    solve_facts.
     (* Now let's take care of remaining proof obligations *)
     -
       apply Disjoined_singletons.
@@ -907,8 +907,8 @@ Proof.
 
   Typeclasses eauto := 1.
   solve_mem.
-  solve_facs.
-  solve_facs.
+  solve_facts.
+  solve_facts.
   apply Disjoined_singletons; auto.
   apply Obligation_XXX.
   apply Disjoined_singletons; auto.
@@ -926,8 +926,8 @@ Proof.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_facs.
-  solve_facs.
+  solve_facts.
+  solve_facts.
   apply Disjoined_singletons; auto.
   apply Obligation_XXX.
   {
@@ -941,22 +941,22 @@ Proof.
     crush.
   }
   solve_mem.
-  solve_facs.
-  solve_facs.
+  solve_facts.
+  solve_facts.
   crush.
   solve_mem.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_facs.
+  solve_facts.
   solve_mem.
   unfold SHFamilyOperatorCompose.
   solve_mem.
-  solve_facs.
+  solve_facts.
   crush.
   solve_mem.
-  solve_facs.
-  solve_facs.
+  solve_facts.
+  solve_facts.
   crush.
   solve_mem.
   solve_mem.
@@ -965,30 +965,30 @@ Proof.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_facs.
+  solve_facts.
   apply Disjoined_singletons; auto.
   apply Obligation_XXX.
   solve_mem.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_facs.
+  solve_facts.
   apply Disjoined_singletons; auto.
   apply Obligation_XXX.
   solve_mem.
   solve_mem.
-  solve_facs.
-  solve_facs.
+  solve_facts.
+  solve_facts.
   apply Disjoined_singletons; auto.
   apply Obligation_XXX.
   solve_mem.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_facs.
+  solve_facts.
   solve_mem.
   solve_mem.
-  solve_facs.
+  solve_facts.
   crush.
   solve_mem.
   solve_mem.
