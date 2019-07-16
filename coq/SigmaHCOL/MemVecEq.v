@@ -1052,7 +1052,8 @@ Section MemVecEq.
            {o: nat}
            (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    : SHOperator_Mem (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF).
+           {facts : SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp Monoid_RthetaSafeFlags f)}
+    : SHOperator_Mem (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) (facts:=facts).
     Proof.
       unshelve esplit.
       -
@@ -1069,9 +1070,6 @@ Section MemVecEq.
         intros m0 m H.
         apply (out_mem_fill_pattern_mem_op_of_hop H).
       -
-        assert (facts: SHOperator_Facts _ (svalue:=svalue) (SHBinOp Monoid_RthetaSafeFlags f)) by
-            typeclasses eauto.
-
         intros x G.
         simpl.
 
