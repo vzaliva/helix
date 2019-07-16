@@ -123,6 +123,29 @@ Definition dynwin_SHCOL (a: avector 3):
     ).
 
 
+Ltac solve_facs :=
+  repeat match goal with
+         | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
+         | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
+           replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
+         | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply UnSafeCast_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
+         | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
+         | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
+         | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
+
+         | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
+         | _ => crush
+         end.
+
 Section SigmaHCOL_rewriting.
 
   (* --- HCOL -> Sigma->HCOL --- *)
@@ -272,29 +295,6 @@ Section SigmaHCOL_rewriting.
     crush.
     crush.
   Qed.
-
-  Ltac solve_facs :=
-    repeat match goal with
-           | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
-           | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
-             replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
-           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply UnSafeCast_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
-           | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
-           | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
-           | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
-
-           | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
-           | _ => crush
-           end.
 
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
@@ -855,27 +855,49 @@ Section SigmaHCOL_mem.
 
   Ltac solve_mem :=
     match goal with
-    | [ |- SHOperator_Mem (SHCompose _ _ _)] => eapply SHCompose_Mem
-    | [ |- SHOperator_Mem (SafeCast _ ) ] => eapply SafeCast_Mem
-    | [ |- SHOperator_Mem (UnSafeCast _ ) ] => eapply UnSafeCast_Mem
+    | [ |- SHOperator_Mem (SHCompose _ _ _)] => unshelve eapply SHCompose_Mem
+    | [ |- SHOperator_Mem (SafeCast _ ) ] => unshelve eapply SafeCast_Mem
+    | [ |- SHOperator_Mem (UnSafeCast _ ) ] => unshelve  eapply UnSafeCast_Mem
     | [ |- @SHOperator_Mem Monoid_RthetaSafeFlags ?mi ?mo ?msv (@SHBinOp _ _ ?o _ _) _ ] =>
       replace (@SHOperator_Facts Monoid_RthetaSafeFlags mi) with (@SHOperator_Facts Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
       replace (@SHOperator_Mem Monoid_RthetaSafeFlags mi) with (@SHOperator_Mem Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
-      eapply SHBinOp_RthetaSafe_Mem
-    | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => eapply HTSUMUnion_Mem
-    | [ |- SHOperator_Mem (eUnion _ _) ] => eapply eUnion_Mem
-    | [ |- SHOperator_Mem (IReduction _ _)] => eapply IReduction_Mem
+      unshelve eapply SHBinOp_RthetaSafe_Mem
+    | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => unshelve eapply HTSUMUnion_Mem
+    | [ |- SHOperator_Mem (eUnion _ _) ] => unshelve eapply eUnion_Mem
+    | [ |- SHOperator_Mem (IReduction _ _)] => unshelve eapply IReduction_Mem
     | [ |- SHOperator_Mem _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
-    | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => eapply MonoidLaws_RthetaFlags
-    | [ |- SHOperator_Mem (SHPointwise _)] => eapply SHPointwise_Mem
-    | [ |- SHInductor_Mem (SHInductor _ _ _) ] => eapply SHInductor_Mem
-    | [ |- SHOperator_Mem (IUnion _ _) ] => eapply IUnion_Mem
-    | [ |- SHOperator_Mem (ISumUnion _)] => unfold ISumUnion; eapply IUnion_Mem
-    | [ |- SHOperator_Mem (eT _ _)] => eapply eT_Mem
+    | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => unshelve eapply MonoidLaws_RthetaFlags
+    | [ |- SHOperator_Mem (SHPointwise _)] => unshelve eapply SHPointwise_Mem
+    | [ |- SHInductor_Mem (SHInductor _ _ _) ] => unshelve eapply SHInductor_Mem
+    | [ |- SHOperator_Mem (IUnion _ _) ] => unshelve eapply IUnion_Mem
+    | [ |- SHOperator_Mem (ISumUnion _)] => unfold ISumUnion; unshelve eapply IUnion_Mem
+    | [ |- SHOperator_Mem (eT _ _)] => unshelve eapply eT_Mem
     | [ |- @abstract_algebra.Monoid CarrierA CarrierAe (@plus CarrierA CarrierAplus)
                                    (@zero CarrierA CarrierAz)] => apply CarrierAr
     | _ => crush
     end.
+
+  Lemma Obligation_XXX:
+    Included (FinNat 2) (Full_set (FinNat 2))
+             (Union (FinNat 2) (singleton 1)
+                    (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
+  Proof.
+
+    intros x H. unfold In in *.
+    destruct x as [x xc].
+    destruct x.
+    -
+      apply Union_intror.
+      apply Union_introl.
+      reflexivity.
+    -
+      destruct x.
+      *
+        apply Union_introl.
+        reflexivity.
+      *
+        crush.
+  Qed.
 
 Instance DynWinSigmaHCOL1_Mem
          (a: avector 3):
@@ -885,11 +907,16 @@ Proof.
 
   Typeclasses eauto := 1.
   solve_mem.
+  solve_facs.
+  solve_facs.
+  apply Disjoined_singletons; auto.
+  apply Obligation_XXX.
+  apply Disjoined_singletons; auto.
   {
     (* TODO: Automate Ensembles solving *)
     simpl.
     intros x H. unfold In in *.
-    destruct x.
+    destruct x as [x xc].
     destruct x.
     apply Union_introl. unfold In, singleton. simpl. reflexivity.
     dep_destruct x.
@@ -899,6 +926,10 @@ Proof.
   solve_mem.
   solve_mem.
   solve_mem.
+  solve_facs.
+  solve_facs.
+  apply Disjoined_singletons; auto.
+  apply Obligation_XXX.
   {
     (* TODO: Automate Ensembles solving *)
     simpl.
@@ -910,63 +941,63 @@ Proof.
     crush.
   }
   solve_mem.
+  solve_facs.
+  solve_facs.
+  crush.
   solve_mem.
   solve_mem.
   solve_mem.
   solve_mem.
-  {
-    intros j jc.
-    unfold SHFamilyOperatorCompose.
-    solve_mem.
-    crush.
-    solve_mem.
-    crush.
-    solve_mem.
-    solve_mem.
-    solve_mem.
-  }
+  solve_facs.
+  solve_mem.
+  unfold SHFamilyOperatorCompose.
+  solve_mem.
+  solve_facs.
+  crush.
+  solve_mem.
+  solve_facs.
+  solve_facs.
+  crush.
   solve_mem.
   solve_mem.
   solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  {
-    intros j jc.
-    simpl.
-    solve_mem.
-    {
-      simpl.
-      clear j jc.
-      unfold Included.
-      intros x H.
-      unfold In in *.
-      destruct x as [x xc].
-      destruct x.
-      apply Union_intror.
-      unfold In.
-      apply Union_introl.
-      reflexivity.
-      destruct x.
-      apply Union_introl.
-      reflexivity.
-      inversion xc.
-      crush.
-    }
-    solve_mem.
-    solve_mem.
-    solve_mem.
 
-    solve_mem.
-    solve_mem.
-    crush.
-    solve_mem.
-    solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_facs.
+  apply Disjoined_singletons; auto.
+  apply Obligation_XXX.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_facs.
+  apply Disjoined_singletons; auto.
+  apply Obligation_XXX.
+  solve_mem.
+  solve_mem.
+  solve_facs.
+  solve_facs.
+  apply Disjoined_singletons; auto.
+  apply Obligation_XXX.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_mem.
+  solve_facs.
+  solve_mem.
+  solve_mem.
+  solve_facs.
+  crush.
+  solve_mem.
+  solve_mem.
+  {
     intros m mc n nc H.
-    simpl.
     apply Disjoined_singletons, H.
   }
-  solve_mem.
+
+  crush.
   solve_mem.
 Qed.
 
