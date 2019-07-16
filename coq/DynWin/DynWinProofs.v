@@ -858,9 +858,10 @@ Section SigmaHCOL_mem.
     | [ |- SHOperator_Mem (SHCompose _ _ _)] => eapply SHCompose_Mem
     | [ |- SHOperator_Mem (SafeCast _ ) ] => eapply SafeCast_Mem
     | [ |- SHOperator_Mem (UnSafeCast _ ) ] => eapply UnSafeCast_Mem
-    | [ |- SHOperator_Mem (SHBinOp _ _) ] => eapply SHBinOp_RthetaSafe_Mem
-    | [ |- @SHOperator_Mem ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
-      replace (@SHOperator_Mem m i) with (@SHOperator_Mem m (o+o)) by apply eq_refl
+    | [ |- @SHOperator_Mem Monoid_RthetaSafeFlags ?mi ?mo ?msv (@SHBinOp _ _ ?o _ _) _ ] =>
+      replace (@SHOperator_Facts Monoid_RthetaSafeFlags mi) with (@SHOperator_Facts Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
+      replace (@SHOperator_Mem Monoid_RthetaSafeFlags mi) with (@SHOperator_Mem Monoid_RthetaSafeFlags (o+o)) by apply eq_refl;
+      eapply SHBinOp_RthetaSafe_Mem
     | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => eapply HTSUMUnion_Mem
     | [ |- SHOperator_Mem (eUnion _ _) ] => eapply eUnion_Mem
     | [ |- SHOperator_Mem (IReduction _ _)] => eapply IReduction_Mem
@@ -916,11 +917,13 @@ Proof.
   {
     intros j jc.
     unfold SHFamilyOperatorCompose.
-    simpl.
-    (* IDEA: assert facts, solve via tactis then apply _Mem *)
-    (* eapply SHCompose_Mem.
-    solve_mem. *)
-    admit.
+    solve_mem.
+    crush.
+    solve_mem.
+    crush.
+    solve_mem.
+    solve_mem.
+    solve_mem.
   }
   solve_mem.
   solve_mem.
@@ -931,11 +934,41 @@ Proof.
   {
     intros j jc.
     simpl.
-    admit.
+    solve_mem.
+    {
+      simpl.
+      clear j jc.
+      unfold Included.
+      intros x H.
+      unfold In in *.
+      destruct x as [x xc].
+      destruct x.
+      apply Union_intror.
+      unfold In.
+      apply Union_introl.
+      reflexivity.
+      destruct x.
+      apply Union_introl.
+      reflexivity.
+      inversion xc.
+      crush.
+    }
+    solve_mem.
+    solve_mem.
+    solve_mem.
+
+    solve_mem.
+    solve_mem.
+    crush.
+    solve_mem.
+    solve_mem.
+    intros m mc n nc H.
+    simpl.
+    apply Disjoined_singletons, H.
   }
   solve_mem.
   solve_mem.
-Admitted.
+Qed.
 
 
 End SigmaHCOL_mem.
