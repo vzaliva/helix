@@ -1,35 +1,80 @@
 dynwin_DSHCOL1 = 
-DSigmaHCOL.DSHCompose
-  (DSigmaHCOL.DSHBinOp (DSigmaHCOL.AZless (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)))
-  (DSigmaHCOL.DSHHTSUMUnion (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))
-     (DSigmaHCOL.DSHCompose (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NConst 0) CarrierAz)
-        (DSigmaHCOL.DSHIReduction 3
-           (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
-           (DSigmaHCOL.DSHCompose
-              (DSigmaHCOL.DSHCompose
-                 (DSigmaHCOL.DSHPointwise
-                    (DSigmaHCOL.AMult (DSigmaHCOL.AVar 0)
-                       (DSigmaHCOL.ANth 3 (DSigmaHCOL.VVar 3) (DSigmaHCOL.NVar 2))))
-                 (DSigmaHCOL.DSHInductor (DSigmaHCOL.NVar 0)
-                    (DSigmaHCOL.AMult (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))
-                    CarrierA1)) (DSigmaHCOL.DSHeT (DSigmaHCOL.NConst 0)))))
-     (DSigmaHCOL.DSHCompose (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NConst 1) CarrierAz)
-        (DSigmaHCOL.DSHIReduction 2
-           (DSigmaHCOL.AMax (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
-           (DSigmaHCOL.DSHCompose
-              (DSigmaHCOL.DSHBinOp
-                 (DSigmaHCOL.AAbs
-                    (DSigmaHCOL.AMinus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0))))
-              (DSigmaHCOL.DSHIUnion 2
-                 (DSigmaHCOL.APlus (DSigmaHCOL.AVar 1) (DSigmaHCOL.AVar 0)) CarrierAz
-                 (DSigmaHCOL.DSHCompose
-                    (DSigmaHCOL.DSHeUnion (DSigmaHCOL.NVar 0) CarrierAz)
-                    (DSigmaHCOL.DSHeT
-                       (DSigmaHCOL.NPlus
-                          (DSigmaHCOL.NPlus (DSigmaHCOL.NConst 1)
-                             (DSigmaHCOL.NMult (DSigmaHCOL.NVar 1)
-                                (DSigmaHCOL.NConst 1)))
-                          (DSigmaHCOL.NMult (DSigmaHCOL.NVar 0)
-                             (DSigmaHCOL.NMult (DSigmaHCOL.NConst 2)
-                                (DSigmaHCOL.NConst 1)))))))))))
-     : DSigmaHCOL.DSHOperator (1 + 4) 1
+DSHSeq (DSHAlloc 2 2)
+  (DSHSeq
+     (DSHSeq (DSHAlloc 2 3)
+        (DSHSeq (DSHAlloc 2 4)
+           (DSHSeq
+              (DSHSeq
+                 (DSHSeq (DSHAlloc 1 5)
+                    (DSHSeq
+                       (DSHSeq (DSHSeq (DSHAlloc 1 6) (DSHMemInit 1 5 CarrierAz))
+                          (DSHLoop 3
+                             (DSHSeq
+                                (DSHSeq (DSHAlloc 1 7)
+                                   (DSHSeq (DSHAssign (0, NConst 0) (7, NConst 0))
+                                      (DSHSeq (DSHAlloc 1 8)
+                                         (DSHSeq
+                                            (DSHPower (NVar 0) 
+                                               (7, NConst 0) 
+                                               (8, NConst 0) 
+                                               (AMult (AVar 1) (AVar 0)) CarrierA1)
+                                            (DSHIMap 1 8 6
+                                               (AMult (AVar 0)
+                                                  (ANth 3 (VVar 3) (NVar 2))))))))
+                                (DSHMemMap2 3 6 5 5 (APlus (AVar 1) (AVar 0))))))
+                       (DSHAssign (5, NConst 0) (3, NConst 0))))
+                 (DSHSeq (DSHAlloc 1 9)
+                    (DSHSeq
+                       (DSHSeq (DSHSeq (DSHAlloc 1 10) (DSHMemInit 1 9 CarrierAz))
+                          (DSHLoop 2
+                             (DSHSeq
+                                (DSHSeq (DSHAlloc 2 11)
+                                   (DSHSeq
+                                      (DSHLoop 2
+                                         (DSHSeq (DSHAlloc 1 12)
+                                            (DSHSeq
+                                               (DSHAssign
+                                                  (0,
+                                                  NPlus
+                                                    (NPlus 
+                                                       (NConst 1)
+                                                       (NMult (NVar 1) (NConst 1)))
+                                                    (NMult 
+                                                       (NVar 0)
+                                                       (NMult (NConst 2) (NConst 1))))
+                                                  (12, NConst 0))
+                                               (DSHAssign (12, NConst 0) (11, NVar 0)))))
+                                      (DSHBinOp 1 11 10
+                                         (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                (DSHMemMap2 2 10 9 9 (AMax (AVar 1) (AVar 0))))))
+                       (DSHAssign (9, NConst 0) (4, NConst 1)))))
+              (DSHMemMap2 2 3 4 2 (APlus (AVar 1) (AVar 0))))))
+     (DSHBinOp 1 2 1 (AZless (AVar 1) (AVar 0))))
+     : DSHOperator
+
+
+dynwin_DSHCOL1 = 
+DSHAlloc 2 2;
+(DSHAlloc 2 3;
+ DSHAlloc 2 4;
+ ((DSHAlloc 1 5;
+   ((DSHAlloc 1 6; DSHMemInit 1 5 CarrierAz);
+    DSHLoop 3
+      ((DSHAlloc 1 7;
+        DSHAssign (0, 0%'N') (7, 0%'N');
+        DSHAlloc 1 8;
+        DSHPower (NVar 0) (7, 0%'N') (8, 0%'N') (AVar 1 * AVar 0) CarrierA1;
+        DSHIMap 1 8 6 (AVar 0 * ANth 3 (VVar 3) (NVar 2)));
+       DSHMemMap2 3 6 5 5 (AVar 1 + AVar 0))); DSHAssign (5, 0%'N') (3, 0%'N'));
+  DSHAlloc 1 9;
+  ((DSHAlloc 1 10; DSHMemInit 1 9 CarrierAz);
+   DSHLoop 2
+     ((DSHAlloc 2 11;
+       DSHLoop 2
+         (DSHAlloc 1 12;
+          DSHAssign (0, (1%'N') + NVar 1 * (1%'N') + NVar 0 * ((2%'N') * (1%'N')))
+            (12, 0%'N'); DSHAssign (12, 0%'N') (11, NVar 0));
+       DSHBinOp 1 11 10 (AAbs (AVar 1 - AVar 0)));
+      DSHMemMap2 2 10 9 9 (AMax (AVar 1) (AVar 0)))); DSHAssign (9, 0%'N') (4, 1%'N'));
+ DSHMemMap2 2 3 4 2 (AVar 1 + AVar 0)); DSHBinOp 1 2 1 (AZless (AVar 1) (AVar 0))
+     : DSHOperator
