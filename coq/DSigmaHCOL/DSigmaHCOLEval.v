@@ -33,8 +33,8 @@ Definition context_lookup
   : option DSHVal
   := nth_error c n.
 
-Definition context_tl (c: evalContext) : evalContext
-  := List.tl c.
+Definition context_tl (σ: evalContext) : evalContext
+  := List.tl σ.
 
 Definition memory_lookup
            (m: memory)
@@ -51,10 +51,10 @@ Definition memory_set
     NM.add n v m.
 
 (* Evaluation of expressions does not allow for side-effects *)
-Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
+Definition evalVexp (σ: evalContext) {n} (exp:VExpr n): option (avector n) :=
   match exp in (VExpr n0) return (option (vector CarrierA n0)) with
   | @VVar n0 i =>
-    match nth_error st i with
+    match nth_error σ i with
     | Some (@DSHvecVal n2 v) =>
       match eq_nat_dec n2 n0 as s0 return (_ ≡ s0 -> option (vector CarrierA n0))
       with
@@ -67,49 +67,49 @@ Definition evalVexp (st:evalContext) {n} (exp:VExpr n): option (avector n) :=
   end.
 
 (* Evaluation of expressions does not allow for side-effects *)
-Fixpoint evalNexp (st:evalContext) (e:NExpr): option nat :=
+Fixpoint evalNexp (σ: evalContext) (e:NExpr): option nat :=
   match e with
-  | NVar i => v <- (nth_error st i) ;;
+  | NVar i => v <- (nth_error σ i) ;;
                (match v with
                 | DSHnatVal x => Some x
                 | _ => None
                 end)
   | NConst c => Some c
-  | NDiv a b => liftM2 Nat.div (evalNexp st a) (evalNexp st b)
-  | NMod a b => liftM2 Nat.modulo (evalNexp st a) (evalNexp st b)
-  | NPlus a b => liftM2 Nat.add (evalNexp st a) (evalNexp st b)
-  | NMinus a b => liftM2 Nat.sub (evalNexp st a) (evalNexp st b)
-  | NMult a b => liftM2 Nat.mul (evalNexp st a) (evalNexp st b)
-  | NMin a b => liftM2 Nat.min (evalNexp st a) (evalNexp st b)
-  | NMax a b => liftM2 Nat.max (evalNexp st a) (evalNexp st b)
+  | NDiv a b => liftM2 Nat.div (evalNexp σ a) (evalNexp σ b)
+  | NMod a b => liftM2 Nat.modulo (evalNexp σ a) (evalNexp σ b)
+  | NPlus a b => liftM2 Nat.add (evalNexp σ a) (evalNexp σ b)
+  | NMinus a b => liftM2 Nat.sub (evalNexp σ a) (evalNexp σ b)
+  | NMult a b => liftM2 Nat.mul (evalNexp σ a) (evalNexp σ b)
+  | NMin a b => liftM2 Nat.min (evalNexp σ a) (evalNexp σ b)
+  | NMax a b => liftM2 Nat.max (evalNexp σ a) (evalNexp σ b)
   end.
 
 (* Evaluation of expressions does not allow for side-effects *)
-Fixpoint evalAexp (st:evalContext) (e:AExpr): option CarrierA :=
+Fixpoint evalAexp (σ: evalContext) (e:AExpr): option CarrierA :=
   match e with
-  | AVar i => v <- (nth_error st i) ;;
+  | AVar i => v <- (nth_error σ i) ;;
                 (match v with
                  | DSHCarrierAVal x => Some x
                  | _ => None
                  end)
   | AConst x => Some x
-  | AAbs x =>  liftM abs (evalAexp st x)
-  | APlus a b => liftM2 plus (evalAexp st a) (evalAexp st b)
-  | AMult a b => liftM2 mult (evalAexp st a) (evalAexp st b)
-  | AMin a b => liftM2 min (evalAexp st a) (evalAexp st b)
-  | AMax a b => liftM2 max (evalAexp st a) (evalAexp st b)
+  | AAbs x =>  liftM abs (evalAexp σ x)
+  | APlus a b => liftM2 plus (evalAexp σ a) (evalAexp σ b)
+  | AMult a b => liftM2 mult (evalAexp σ a) (evalAexp σ b)
+  | AMin a b => liftM2 min (evalAexp σ a) (evalAexp σ b)
+  | AMax a b => liftM2 max (evalAexp σ a) (evalAexp σ b)
   | AMinus a b =>
-    a' <- (evalAexp st a) ;;
-       b' <- (evalAexp st b) ;;
+    a' <- (evalAexp σ a) ;;
+       b' <- (evalAexp σ b) ;;
        ret (sub a' b')
   | @ANth n v i =>
-    v' <- (evalVexp st v) ;;
-       i' <- (evalNexp st i) ;;
+    v' <- (evalVexp σ v) ;;
+       i' <- (evalNexp σ i) ;;
        match Compare_dec.lt_dec i' n with
        | left ic => Some (Vnth v' ic)
        | in_right => None
        end
-  | AZless a b => liftM2 Zless (evalAexp st a) (evalAexp st b)
+  | AZless a b => liftM2 Zless (evalAexp σ a) (evalAexp σ b)
   end.
 
 Require Import Coq.Arith.Compare_dec.
@@ -118,66 +118,66 @@ Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.Rtheta.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalIUnCarrierA (Γ: evalContext) (f: DSHIUnCarrierA)
+Definition evalIUnCarrierA (σ: evalContext) (f: DSHIUnCarrierA)
            (i:nat) (a:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
+  evalAexp (DSHCarrierAVal a :: DSHnatVal i :: σ) f.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalIBinCarrierA (Γ: evalContext) (f: DSHIBinCarrierA)
+Definition evalIBinCarrierA (σ: evalContext) (f: DSHIBinCarrierA)
            (i:nat) (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: Γ) f.
+  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: σ) f.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalBinCarrierA (Γ: evalContext) (f: DSHBinCarrierA)
+Definition evalBinCarrierA (σ: evalContext) (f: DSHBinCarrierA)
            (a b:CarrierA): option CarrierA :=
-  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: Γ) f.
+  evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: σ) f.
 
 Fixpoint evalDSHIMap
          (n: nat)
          (f: DSHIUnCarrierA)
-         (Γ: evalContext)
+         (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
     v <- mem_lookup n x ;;
-      v' <- evalIUnCarrierA Γ f n v ;;
+      v' <- evalIUnCarrierA σ f n v ;;
       let y' := mem_add n v' y in
       match n with
       | O => ret y'
-      | S n => evalDSHIMap n f Γ x y'
+      | S n => evalDSHIMap n f σ x y'
       end.
 
 Fixpoint evalDSHMap2
          (n: nat)
          (f: DSHBinCarrierA)
-         (Γ: evalContext)
+         (σ: evalContext)
          (x0 x1 y: mem_block) : option (mem_block)
   :=
     v0 <- mem_lookup n x0 ;;
        v1 <- mem_lookup n x1 ;;
-       v' <- evalBinCarrierA Γ f v0 v1 ;;
+       v' <- evalBinCarrierA σ f v0 v1 ;;
        let y' := mem_add n v' y in
        match n with
        | O => ret y'
-       | S n => evalDSHMap2 n f Γ x0 x1 y'
+       | S n => evalDSHMap2 n f σ x0 x1 y'
        end.
 
 Fixpoint evalDSHBinOp
          (n off: nat)
          (f: DSHIBinCarrierA)
-         (Γ: evalContext)
+         (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
     v0 <- mem_lookup n x ;;
        v1 <- mem_lookup (n+off) x ;;
-       v' <- evalIBinCarrierA Γ f n v0 v1 ;;
+       v' <- evalIBinCarrierA σ f n v0 v1 ;;
        let y' := mem_add n v' y in
        match n with
        | O => ret y'
-       | S n => evalDSHBinOp n off f Γ x y'
+       | S n => evalDSHBinOp n off f σ x y'
        end.
 
 Fixpoint evalDSHPower
-         (Γ: evalContext)
+         (σ: evalContext)
          (n: nat)
          (f: DSHBinCarrierA)
          (x y: mem_block)
@@ -189,9 +189,9 @@ Fixpoint evalDSHPower
     | S p =>
       xv <- mem_lookup 0 x ;;
          yv <- mem_lookup 0 y ;;
-         v' <- evalBinCarrierA Γ f xv yv ;;
+         v' <- evalBinCarrierA σ f xv yv ;;
          let y' := mem_add 0 v' y in
-         evalDSHPower Γ p f x y' xoffset yoffset
+         evalDSHPower σ p f x y' xoffset yoffset
     end.
 
 Fixpoint estimateFuel (s:DSHOperator): nat :=
@@ -210,7 +210,7 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
   end.
 
 Fixpoint evalDSHOperator
-         (Γ: evalContext)
+         (σ: evalContext)
          (op: DSHOperator)
          (m: memory)
          (fuel: nat)
@@ -220,43 +220,43 @@ Fixpoint evalDSHOperator
     | DSHAssign (x_i, src_e) (y_i, dst_e) =>
       x <- memory_lookup m x_i ;;
         y <- memory_lookup m y_i ;;
-        src <- evalNexp Γ src_e ;;
-        dst <- evalNexp Γ dst_e ;;
+        src <- evalNexp σ src_e ;;
+        dst <- evalNexp σ dst_e ;;
         v <- mem_lookup src x ;;
         let y' := mem_add dst v y in
         ret (memory_set m y_i y')
     | @DSHIMap n x_i y_i f =>
       x <- memory_lookup m x_i ;;
         y <- memory_lookup m y_i ;;
-        y' <- evalDSHIMap n f Γ x y ;;
+        y' <- evalDSHIMap n f σ x y ;;
         ret (memory_set m y_i y')
     | @DSHMemMap2 n x0_i x1_i y_i f =>
       x0 <- memory_lookup m x0_i ;;
          x1 <- memory_lookup m x1_i ;;
          y <- memory_lookup m y_i ;;
-         y' <- evalDSHMap2 n f Γ x0 x1 y ;;
+         y' <- evalDSHMap2 n f σ x0 x1 y ;;
          ret (memory_set m y_i y')
     | @DSHBinOp n x_i y_i f =>
       x <- memory_lookup m x_i ;;
         y <- memory_lookup m y_i ;;
-        y' <- evalDSHBinOp n n f Γ x y ;;
+        y' <- evalDSHBinOp n n f σ x y ;;
         ret (memory_set m y_i y')
     | DSHPower ne (x_i,xoffset) (y_i,yoffset) f initial =>
       x <- memory_lookup m x_i ;;
         y <- memory_lookup m y_i ;;
-        n <- evalNexp Γ ne ;; (* [n] evaluated once at the beginning *)
+        n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
         let y' := mem_add 0 initial y in
-        xoff <- evalNexp Γ xoffset ;;
-             yoff <- evalNexp Γ yoffset ;;
-             y' <- evalDSHPower Γ n f x y xoff yoff ;;
+        xoff <- evalNexp σ xoffset ;;
+             yoff <- evalNexp σ yoffset ;;
+             y' <- evalDSHPower σ n f x y xoff yoff ;;
              ret (memory_set m y_i y')
     | DSHLoop O body => ret m
     | DSHLoop (S n) body =>
       match fuel with
       | O => None
       | S fuel =>
-        m <- evalDSHOperator Γ (DSHLoop n body) m fuel ;;
-          m' <- evalDSHOperator (DSHnatVal n :: Γ) body m fuel ;;
+        m <- evalDSHOperator σ (DSHLoop n body) m fuel ;;
+          m' <- evalDSHOperator (DSHnatVal n :: σ) body m fuel ;;
           ret m'
       end
     | DSHAlloc size y_i => ret (memory_set m y_i (mem_empty))
@@ -275,8 +275,8 @@ Fixpoint evalDSHOperator
       match fuel with
       | O => None
       | S fuel =>
-        m <- evalDSHOperator Γ f m fuel ;;
-          evalDSHOperator Γ g m fuel
+        m <- evalDSHOperator σ f m fuel ;;
+          evalDSHOperator σ g m fuel
       end
     end.
 
