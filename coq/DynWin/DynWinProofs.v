@@ -1005,6 +1005,10 @@ End SigmaHCOL_mem.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.SigmaHCOL.SigmaHCOLMem.
+Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.Util.OptionSetoid.
+Require Import MathClasses.misc.util.
 
 Section SigmaHCOL_to_DSHCOL.
 
@@ -1016,6 +1020,56 @@ Section SigmaHCOL_to_DSHCOL.
   Import DSHNotation.
   Print dynwin_DSHCOL1.
 
+  (* Shows relations of cells before ([b]) and after ([a]) evaluating
+     DSHCOL operator and a result of evaluating [mem_op] as [d] *)
+  Inductive SHCOL_DSHCOL_cell_equiv (b a d: option CarrierA) : Prop :=
+  | CellPreserve: is_None d -> b = a -> SHCOL_DSHCOL_cell_equiv b a d (* preserving memory state *)
+  | CellExpected: is_Some d -> a = d -> SHCOL_DSHCOL_cell_equiv b a d (* expected results *).
+
+  (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
+     DSHCOL operator and a result of evaluating [mem_op] as [md] *)
+  Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
+    forall i,
+      SHCOL_DSHCOL_cell_equiv
+        (mem_lookup i mb)
+        (mem_lookup i ma)
+        (mem_lookup i md).
+
+
+  (* Given SHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
+     input memory block addres and [y_i] as output.
+
+     The [x_i] and [y_i] memory lookup must succeed.
+
+     We do not require input block to be structurally correct, because
+     [mem_op] will just return an error in this case.
+
+     DSCHOL operators are implemented in more permissive manner
+     and not necesseraly return error on invalid input.
+   *)
+  Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
+             (sh_op: @SHOperator fm i o svalue)
+             `{facts: !SHOperator_Facts fm sh_op}
+             `{SHM: !SHOperator_Mem sh_op}
+             (dsh_op: DSHOperator)
+             (σ: evalContext)
+             (m: memory)
+             (x_i y_i: mem_block_id)
+    : Prop
+    :=
+      match memory_lookup m x_i, memory_lookup m y_i with
+      | Some mx, (* input *) Some mb (* output before *) =>
+        match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
+        | None, _ => True (* assume they are equal on *invalid* inputs *)
+        | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
+          match  memory_lookup m' y_i with
+          | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+          | None => False (* out memory block dissapeared *)
+          end
+        | _, _ => False
+        end
+      | _, _ => False (* Either input our output not present *)
+      end.
   (*
     Print dynwin_DSHCOL1.
     Check dynwin_SHCOL_DSHCOL.
