@@ -311,7 +311,7 @@ Section MemVecEq.
         rewrite <- Heqo.
         symmetry.
         apply Meq2, G.
-    Qed.
+    Defined.
 
     Global Instance liftM_Mem
            {svalue: CarrierA}
@@ -415,7 +415,7 @@ Section MemVecEq.
           apply NP.F.find_mapsto_iff in V0.
           unfold mem_lookup in Heqo0.
           congruence.
-    Qed.
+    Defined.
 
     Global Instance eUnion_Mem
            {svalue: CarrierA}
@@ -587,7 +587,7 @@ Section MemVecEq.
           apply NP.F.find_mapsto_iff in V.
           unfold zero in *.
           congruence.
-    Qed.
+    Defined.
 
     Global Instance eT_Mem
            {svalue: CarrierA}
@@ -720,7 +720,7 @@ Section MemVecEq.
           apply NM.find_1 in V.
           unfold mem_lookup in Heqo0.
           congruence.
-    Qed.
+    Defined.
 
     Global Instance SHPointwise_Mem
            {svalue: CarrierA}
@@ -828,7 +828,7 @@ Section MemVecEq.
           intros j jc HH.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G,HH.
-    Qed.
+    Defined.
 
     Global Instance SHInductor_Mem
            {svalue: CarrierA}
@@ -945,7 +945,7 @@ Section MemVecEq.
             simpl in H.
             eapply H.
             apply Full_intro.
-    Qed.
+    Defined.
 
   End WithMonoid.
 
@@ -1017,7 +1017,7 @@ Section MemVecEq.
         rewrite Vnth_map.
         apply Is_Val_Rtheta2RStheta.
         assumption.
-    Qed.
+    Defined.
 
     Global Instance UnSafeCast_Mem
            {svalue: CarrierA}
@@ -1045,7 +1045,7 @@ Section MemVecEq.
         rewrite Vnth_map.
         apply Is_Val_Rtheta2RStheta.
         assumption.
-    Qed.
+    Defined.
 
     Global Instance SHBinOp_RthetaSafe_Mem
            {svalue: CarrierA}
@@ -1172,7 +1172,7 @@ Section MemVecEq.
           intros j jc HH.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G,HH.
-    Qed.
+    Defined.
 
     (* TODO: move to memory. add similar to m2. *)
     Lemma mem_keys_disjoint_inr
@@ -1648,7 +1648,7 @@ Section MemVecEq.
           simpl.
           apply Union_introl.
           apply H.
-    Qed.
+    Defined.
 
     Definition get_family_mem_op
                {svalue: CarrierA}
@@ -2888,7 +2888,7 @@ Section MemVecEq.
           apply H.
           eapply family_in_set_includes_members.
           apply H0.
-    Qed.
+    Defined.
 
     Global Instance IUnion_mem_proper
            {svalue: CarrierA}
@@ -4096,7 +4096,7 @@ Section MemVecEq.
           apply H.
           eapply family_in_set_includes_members.
           apply H0.
-    Qed.
+    Defined.
 
   End MonoidSpecific.
 
