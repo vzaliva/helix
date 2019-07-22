@@ -1070,6 +1070,32 @@ Section SigmaHCOL_to_DSHCOL.
         end
       | _, _ => False (* Either input our output not present *)
       end.
+
+  Lemma SafeCast_SHCOL_DSHCOL
+        {i o:nat} {svalue:CarrierA}
+        (σ: evalContext)
+        (s: @SHOperator Monoid_RthetaSafeFlags i o svalue)
+        `{facts: !SHOperator_Facts _ s}
+        `{SHM: !SHOperator_Mem s}
+        (d: DSHOperator)
+        (m: memory)
+        (x_i y_i: mem_block_id)
+    :
+      @SHCOL_DSHCOL_equiv i o svalue _ s facts SHM d σ m x_i y_i ->
+      @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
+                          (@SafeCast_Facts _ _ _ s facts)
+                          (SafeCast_Mem s)
+                          d σ m x_i y_i .
+  Proof.
+    intros H.
+    unfold SafeCast.
+    unfold SHCOL_DSHCOL_equiv in *.
+    unfold SafeCast', mem_op in *.
+    unfold SafeCast_Mem.
+    destruct SHM.
+    simpl in *.
+    repeat break_match; subst; auto.
+  Qed.
   (*
     Print dynwin_DSHCOL1.
     Check dynwin_SHCOL_DSHCOL.
