@@ -1093,6 +1093,8 @@ Section SigmaHCOL_to_DSHCOL.
     unfold SafeCast', mem_op in *.
     unfold SafeCast_Mem.
     destruct SHM.
+    apply H.
+  Qed.
     simpl in *.
     repeat break_match; subst; auto.
   Qed.
