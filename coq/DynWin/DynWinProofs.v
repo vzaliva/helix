@@ -1095,8 +1095,40 @@ Section SigmaHCOL_to_DSHCOL.
     destruct SHM.
     apply H.
   Qed.
+
+  Lemma SHCompose_SHCOL_DSHCOL
+        {i1 o2 o3: nat}
+        {svalue: CarrierA}
+        {fm}
+        (op1: @SHOperator fm o2 o3 svalue)
+        (op2: @SHOperator fm i1 o2 svalue)
+        (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+        {facts1 facts2}
+        `{Meq1: @SHOperator_Mem fm o2 o3 svalue op1 facts1}
+        `{Meq2: @SHOperator_Mem fm i1 o2 svalue op2 facts2}
+        `{facts: SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
+        (σ: evalContext)
+        (d1 d2: DSHOperator)
+        (m: memory)
+        (t_i x_i y_i: mem_block_id):
+    @SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ m t_i y_i ->
+    @SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ m x_i t_i ->
+
+    @SHCOL_DSHCOL_equiv _ _ svalue _ (SHCompose fm op1 op2) facts
+                        (@SHCompose_Mem fm svalue i1 o2 o3 op1 op2 compat facts1 Meq1 facts2 Meq2 facts)
+                        (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
+  Proof.
+    intros E1 E2.
+
+    unfold SHCompose.
+    unfold SHCOL_DSHCOL_equiv in *.
+    unfold mem_op in *.
+    unfold SHCompose_Mem, option_compose.
+    destruct Meq1, Meq2.
+    unfold SHCOL_DSHCOL_mem_block_equiv.
     simpl in *.
-    repeat break_match; subst; auto.
+    repeat break_match; intros; subst; auto.
+  Admitted.
   Qed.
   (*
     Print dynwin_DSHCOL1.
