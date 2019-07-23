@@ -1100,19 +1100,19 @@ Section SigmaHCOL_to_DSHCOL.
         {i1 o2 o3: nat}
         {svalue: CarrierA}
         {fm}
-        (op1: @SHOperator fm o2 o3 svalue)
-        (op2: @SHOperator fm i1 o2 svalue)
-        (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
+        {op1: @SHOperator fm o2 o3 svalue}
+        {op2: @SHOperator fm i1 o2 svalue}
+        {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)}
         {facts1 facts2}
         `{Meq1: @SHOperator_Mem fm o2 o3 svalue op1 facts1}
         `{Meq2: @SHOperator_Mem fm i1 o2 svalue op2 facts2}
         `{facts: SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
-        (σ: evalContext)
-        (d1 d2: DSHOperator)
-        (m: memory)
-        (t_i x_i y_i: mem_block_id):
-    @SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ m t_i y_i ->
-    @SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ m x_i t_i ->
+        {σ: evalContext}
+        {d1 d2: DSHOperator}
+        {m: memory}
+        {t_i x_i y_i: mem_block_id}:
+    @SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i ->
+    @SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i ->
 
     @SHCOL_DSHCOL_equiv _ _ svalue _ (SHCompose fm op1 op2) facts
                         (@SHCompose_Mem fm svalue i1 o2 o3 op1 op2 compat facts1 Meq1 facts2 Meq2 facts)
@@ -1129,7 +1129,26 @@ Section SigmaHCOL_to_DSHCOL.
     simpl in *.
     repeat break_match; intros; subst; auto.
   Admitted.
+
+  (* High-level equivalence *)
+  Lemma dynwin_SHCOL_DSHCOL:
+    forall (a: vector CarrierA 3),
+      @SHCOL_DSHCOL_equiv _ _ _ _ (dynwin_SHCOL1 a) _
+                          (DynWinSigmaHCOL1_Mem a)
+                          dynwin_DSHCOL1
+                          [DSHvecVal a]
+                          (* assuming reification uses [x_i=0] and [y_i=1] *)
+                          (NM.add 1 mem_empty
+                                  (NM.add 0 mem_empty (NM.empty mem_block)))
+                          0 1.
+  Proof.
+    intros a.
+    unfold dynwin_DSHCOL1, dynwin_SHCOL1.
+    Unset Printing Notations.
+    eapply SHCompose_SHCOL_DSHCOL.
+    apply SafeCast_SHCOL_DSHCOL.
   Qed.
+
   (*
     Print dynwin_DSHCOL1.
     Check dynwin_SHCOL_DSHCOL.
