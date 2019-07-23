@@ -1047,81 +1047,88 @@ Section SigmaHCOL_to_DSHCOL.
      DSCHOL operators are implemented in more permissive manner
      and not necesseraly return error on invalid input.
    *)
-  Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
-             (sh_op: @SHOperator fm i o svalue)
-             `{facts: !SHOperator_Facts fm sh_op}
-             `{SHM: !SHOperator_Mem sh_op}
-             (dsh_op: DSHOperator)
-             (σ: evalContext)
-             (m: memory)
-             (x_i y_i: mem_block_id)
-    : Prop
-    :=
-      match memory_lookup m x_i, memory_lookup m y_i with
-      | Some mx, (* input *) Some mb (* output before *) =>
-        match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
-        | None, _ => True (* assume they are equal on *invalid* inputs *)
-        | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
-          match  memory_lookup m' y_i with
-          | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-          | None => False (* out memory block dissapeared *)
-          end
-        | _, _ => False
-        end
-      | _, _ => False (* Either input our output not present *)
-      end.
-
-  Lemma SafeCast_SHCOL_DSHCOL
-        {i o:nat} {svalue:CarrierA}
+  Class SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
+        (sh_op: @SHOperator fm i o svalue)
+        `{facts: !SHOperator_Facts fm sh_op}
+        `{SHM: !SHOperator_Mem sh_op}
+        (dsh_op: DSHOperator)
         (σ: evalContext)
-        (s: @SHOperator Monoid_RthetaSafeFlags i o svalue)
-        `{facts: !SHOperator_Facts _ s}
-        `{SHM: !SHOperator_Mem s}
-        (d: DSHOperator)
         (m: memory)
         (x_i y_i: mem_block_id)
-    :
-      @SHCOL_DSHCOL_equiv i o svalue _ s facts SHM d σ m x_i y_i ->
-      @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
-                          (@SafeCast_Facts _ _ _ s facts)
-                          (SafeCast_Mem s)
-                          d σ m x_i y_i .
+    := {
+        eequiv:
+          match memory_lookup m x_i, memory_lookup m y_i with
+          | Some mx, (* input *) Some mb (* output before *) =>
+            match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
+            | None, _ => True (* assume they are equal on *invalid* inputs *)
+            | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
+              match  memory_lookup m' y_i with
+              | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+              | None => False (* out memory block dissapeared *)
+              end
+            | _, _ => False
+            end
+          | _, _ => False (* Either input our output not present *)
+          end
+      }.
+
+  Instance SafeCast_SHCOL_DSHCOL
+        {i o:nat} {svalue:CarrierA}
+        {σ: evalContext}
+        {s: @SHOperator Monoid_RthetaSafeFlags i o svalue}
+        `{facts: !SHOperator_Facts _ s}
+        `{mem: !SHOperator_Mem s}
+        `{sfacts: !SHOperator_Facts Monoid_RthetaFlags (SafeCast s)}
+        `{smem: !SHOperator_Mem (SafeCast s)}
+        {d: DSHOperator}
+        {m: memory}
+        {x_i y_i: mem_block_id}:
+
+    @SHCOL_DSHCOL_equiv i o svalue _ s facts mem d σ m x_i y_i ->
+
+    @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
+                        sfacts
+                        smem
+                        d σ m x_i y_i .
   Proof.
-    intros H.
+    intros E.
     unfold SafeCast.
-    unfold SHCOL_DSHCOL_equiv in *.
+    constructor.
+    destruct E as [E].
     unfold SafeCast', mem_op in *.
-    unfold SafeCast_Mem.
     destruct SHM.
-    apply H.
+    eapply E.
   Qed.
 
-  Lemma SHCompose_SHCOL_DSHCOL
+  Instance SHCompose_SHCOL_DSHCOL
         {i1 o2 o3: nat}
         {svalue: CarrierA}
         {fm}
         {op1: @SHOperator fm o2 o3 svalue}
         {op2: @SHOperator fm i1 o2 svalue}
         {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)}
-        {facts1 facts2}
-        `{Meq1: @SHOperator_Mem fm o2 o3 svalue op1 facts1}
-        `{Meq2: @SHOperator_Mem fm i1 o2 svalue op2 facts2}
-        `{facts: SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
+        `{facts1 : !SHOperator_Facts fm op1}
+        `{facts2 : !SHOperator_Facts fm op2}
+        `{Meq1: !@SHOperator_Mem fm o2 o3 svalue op1 facts1}
+        `{Meq2: !@SHOperator_Mem fm i1 o2 svalue op2 facts2}
+        `{facts: !@SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
+        `{mem: !@SHOperator_Mem _ _ _ _ (SHCompose fm op1 op2) facts}
         {σ: evalContext}
         {d1 d2: DSHOperator}
         {m: memory}
         {t_i x_i y_i: mem_block_id}:
-    @SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i ->
-    @SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i ->
-
-    @SHCOL_DSHCOL_equiv _ _ svalue _ (SHCompose fm op1 op2) facts
-                        (@SHCompose_Mem fm svalue i1 o2 o3 op1 op2 compat facts1 Meq1 facts2 Meq2 facts)
-                        (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
+        (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
+        (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
+      @SHCOL_DSHCOL_equiv i1 o3 svalue _ (SHCompose fm op1 op2)
+                          facts
+                          mem
+                          (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
   Proof.
     intros E1 E2.
-
     unfold SHCompose.
-    unfold SHCOL_DSHCOL_equiv in *.
+    constructor.
+    destruct E1 as [E1].
+    destruct E2 as [E2].
     unfold mem_op in *.
     unfold SHCompose_Mem, option_compose.
     destruct Meq1, Meq2.
@@ -1131,21 +1138,73 @@ Section SigmaHCOL_to_DSHCOL.
   Admitted.
 
   (* High-level equivalence *)
-  Lemma dynwin_SHCOL_DSHCOL:
-    forall (a: vector CarrierA 3),
-      @SHCOL_DSHCOL_equiv _ _ _ _ (dynwin_SHCOL1 a) _
-                          (DynWinSigmaHCOL1_Mem a)
-                          dynwin_DSHCOL1
-                          [DSHvecVal a]
-                          (* assuming reification uses [x_i=0] and [y_i=1] *)
-                          (NM.add 1 mem_empty
-                                  (NM.add 0 mem_empty (NM.empty mem_block)))
-                          0 1.
+  Instance dynwin_SHCOL_DSHCOL
+           (a: vector CarrierA 3):
+    @SHCOL_DSHCOL_equiv _ _ _ _ (dynwin_SHCOL1 a) _
+                        (DynWinSigmaHCOL1_Mem a)
+                        dynwin_DSHCOL1
+                        [DSHvecVal a]
+                        (* assuming reification uses [x_i=0] and [y_i=1] *)
+                        (NM.add 1 mem_empty
+                                (NM.add 0 mem_empty (NM.empty mem_block)))
+                        0 1.
   Proof.
-    intros a.
     unfold dynwin_DSHCOL1, dynwin_SHCOL1.
+    Set Printing Implicit.
     Unset Printing Notations.
+
+    (* Normalize by unfolding [@zero] instances: *)
+    unfold zero in *.
+    (* Normalize dimensionality in DHSCOL. Due to refication,
+       for example [o2:=1+1] in SHCOL is replaced with [2] in DHSCOL: *)
+    simpl in *.
+
+
+    Typeclasses eauto := 1.
     eapply SHCompose_SHCOL_DSHCOL.
+    eapply SafeCast_SHCOL_DSHCOL.
+
+
+    match goal with
+    | [|-  SHCOL_DSHCOL_equiv
+            (facts:=?facts)
+            (SHCompose ?fm ?op1 ?op2 (o2:=?o2))
+            (DSHSeq (DSHAlloc ?o2 ?t_i) (DSHSeq ?d1 ?d2))
+            ?σ ?m ?x_i ?y_i] =>
+      unshelve eapply (SHCompose_SHCOL_DSHCOL 0 1
+                                     (fm:=fm)
+                                     (op1:=op1)
+                                     (op2:=op2)
+                                     (m:=m)
+                                     (d1:=d1)
+                                     (d2:=d2)
+                                     (t_i:=t_i)
+                                     (σ:=σ)
+                                     (facts:=facts)
+
+             )
+
+    end.
+
+
+    apply SafeCast_SHCOL_DSHCOL.
+  Qed.
+
+
+
+     "@SHCOL_DSHCOL_equiv (1 + (2 + 2)) 1 0 Monoid_RthetaFlags
+    (?op1 ⊚ ?op2) ?facts
+    (@SHCompose_Mem Monoid_RthetaFlags 0 (1 + (2 + 2)) ?o2 1
+       ?op1 ?op2 ?compat ?facts1 ?Meq1 ?facts2 ?Meq2 ?facts)
+    (DSHAlloc ?o2 ?t_i; ?d1; ?d2) [@DSHvecVal 3 a] ?m 0 1" with
+
+    eapply (SHCompose_SHCOL_DSHCOL 0 1
+                                   (i1:=1 + (2 + 2))
+                                   (o3:=1)
+                                   (svalue:=zero)
+                                   (fm:=Monoid_RthetaFlags)
+                                   (σ:=[DSHvecVal a])
+           ).
     apply SafeCast_SHCOL_DSHCOL.
   Qed.
 
