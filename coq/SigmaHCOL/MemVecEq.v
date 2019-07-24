@@ -5,6 +5,7 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
+
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
@@ -14,7 +15,8 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.SigmaHCOL.MemSetoid.
-Require Import Helix.HCOL.HCOL. (* Presently for HOperator only. Consider moving it elsewhere *)
+
+Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
 
@@ -53,50 +55,392 @@ Open Scope vector_scope.
 
 Open Scope nat_scope.
 
-Class SHOperator_Mem
-      {fm: Monoid RthetaFlags}
+Record MSHOperator {i o: nat} : Type
+  := mkMSHOperator {
+      (* -- implementation on memory blocks -- *)
+         mem_op: mem_block -> option mem_block;
+         mem_op_proper: Proper ((=) ==> (=)) mem_op;
+
+         m_in_index_set: FinNatSet i;
+         m_out_index_set: FinNatSet o;
+       }.
+
+Section MFamilies.
+
+  Definition MSHOperatorFamily {i o n: nat} := FinNat n -> @MSHOperator i o.
+
+  Definition get_family_mem_op
+             {i o n: nat}
+             (op_family: @MSHOperatorFamily i o n)
+    : forall j (jc:j<n), mem_block -> option mem_block
+    := fun j (jc:j<n) => mem_op (op_family (mkFinNat jc)).
+
+  Global Instance get_family_mem_op_proper
+         {i o n: nat}
+         (j: nat) (jc: j<n)
+         (op_family: @MSHOperatorFamily i o n)
+    :
+      Proper ((=) ==> (=)) (get_family_mem_op op_family j jc).
+  Proof.
+    intros x y E.
+    unfold get_family_mem_op.
+    apply mem_op_proper, E.
+  Qed.
+
+  (* Shrink family by removing the last member *)
+  Definition shrink_m_op_family
+             {i o n}
+             (op_family: @MSHOperatorFamily i o (S n)): @MSHOperatorFamily i o n := fun jf => op_family (mkFinNat (@le_S (S (proj1_sig jf)) n (proj2_sig jf))).
+
+  Fixpoint m_family_in_index_set
+           {i o n}
+           (op_family: @MSHOperatorFamily i o n): FinNatSet i
+    :=
+      match n as y return (y ≡ n -> @MSHOperatorFamily i o y -> FinNatSet i) with
+      | O => fun _ _ => (Empty_set _)
+      | S j => fun E f => Union _
+                            (m_in_index_set (op_family (mkFinNat (S_j_lt_n E))))
+                            (m_family_in_index_set (shrink_m_op_family f))
+      end (eq_refl n) op_family.
+
+  Fixpoint m_family_out_index_set
+           {i o n}
+           (op_family: @MSHOperatorFamily i o n): FinNatSet o
+    :=
+      match n as y return (y ≡ n -> @MSHOperatorFamily i o y -> FinNatSet o) with
+      | O => fun _ _ => (Empty_set _)
+      | S j => fun E f => Union _
+                            (m_out_index_set (op_family (mkFinNat (S_j_lt_n E))))
+                            (m_family_out_index_set (shrink_m_op_family f))
+      end (eq_refl n) op_family.
+
+End MFamilies.
+
+Class MSHOperator_Facts
       {i o: nat}
-      {svalue: CarrierA}
-      (xop: @SHOperator fm i o svalue)
-      `{facts: SHOperator_Facts fm _ _ _ xop}
+      (mop: @MSHOperator i o)
   :=
     {
-      (* -- implementation on memory blocks -- *)
-      mem_op: mem_block -> option mem_block;
-      mem_op_proper: Proper ((=) ==> (=)) mem_op;
       (* -- Structural properties for [mem_op] -- *)
 
       (* sufficiently (values in right places, no info on empty
          spaces) filled input memory block guarantees that `mem_op`
          will not fail.  *)
       mem_out_some: forall m,
-          (forall j (jc:j<i), in_index_set fm xop (mkFinNat jc) -> mem_in j m)
-          ->
-          is_Some (mem_op m);
+        (forall j (jc:j<i), m_in_index_set mop (mkFinNat jc) -> mem_in j m)
+        ->
+        is_Some (mem_op mop m);
 
       (* Output memory block always have values in right places, and
              does not have value in sparse positions *)
       out_mem_fill_pattern: forall m0 m,
-          mem_op m0 ≡ Some m
+          mem_op mop m0 ≡ Some m
           ->
-          forall j (jc:j<o), out_index_set fm xop (mkFinNat jc) <-> mem_in j m;
+          forall j (jc:j<o), m_out_index_set mop (mkFinNat jc) <-> mem_in j m;
 
       (* Do not access memory outside of bounds *)
       out_mem_oob: forall m0 m,
-          mem_op m0 ≡ Some m -> forall j (jc:j>=o), not (mem_in j m);
+          mem_op mop m0 ≡ Some m -> forall j (jc:j>=o), not (mem_in j m);
+    }.
+
+Class SHOperator_MSHOperator_compat
+      {i o: nat}
+      {fm}
+      {svalue: CarrierA}
+      (sop: @SHOperator fm i o svalue)
+      (mop: @MSHOperator i o)
+      `{facts: !SHOperator_Facts fm sop}
+  :=
+    {
+
+      in_pattern_compat:
+        Same_set _ (in_index_set fm sop) (m_in_index_set mop);
+
+      out_pattern_compat:
+        Same_set _ (in_index_set fm sop) (m_in_index_set mop);
 
       (* -- Semantics eqivalence -- *)
-
       mem_vec_preservation:
         forall x,
 
           (* Only for inputs which comply to `facts` *)
           (∀ (j : nat) (jc : (j < i)%nat),
-              in_index_set fm xop (mkFinNat jc) → Is_Val (Vnth x jc))
+              in_index_set fm sop (mkFinNat jc) → Is_Val (Vnth x jc))
           ->
-          Some (svector_to_mem_block (op fm xop x)) =
-          mem_op (svector_to_mem_block x);
+          Some (svector_to_mem_block (op fm sop x)) =
+          mem_op mop (svector_to_mem_block x)
     }.
+
+
+(* Note: We only define MSHCOL operators for final subset of SHCOL *)
+Section MSHOperator_Definitions.
+
+  Program Definition MSHCompose
+          {i1 o2 o3}
+          (mop1: @MSHOperator o2 o3)
+          (mop2: @MSHOperator i1 o2)
+    := mkMSHOperator i1 o3
+                    (option_compose (mem_op mop1)
+                                    (mem_op mop2))
+                    _
+                    (m_in_index_set mop2)
+                    (m_out_index_set mop1).
+  Next Obligation.
+    apply option_compose_proper; [ apply mop1 | apply mop2].
+  Qed.
+
+  Definition MSHPointwise
+         {n: nat}
+         (f: FinNat n -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+    := mkMSHOperator n n
+                    (mem_op_of_hop (HPointwise f))
+                    _
+                    (Full_set _)
+                    (Full_set _).
+
+  Definition MSHeUnion
+             {svalue: CarrierA}
+             {o b: nat}
+    := mkMSHOperator 1 o
+                    (eUnion_mem b)
+                    eUnion_mem_proper
+                    (Full_set _)
+                    (FinNatSet.singleton b).
+
+  Definition MSHeT
+             {i b:nat}
+    := mkMSHOperator i 1 (eT_mem b)
+                     eT_mem_proper
+                     (FinNatSet.singleton b)
+                     (Full_set _).
+
+  Definition MSHBinOp
+          {o: nat}
+          (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    := mkMSHOperator (o+o) o
+                     (mem_op_of_hop (HBinOp f))
+                     _
+                     (Full_set _)
+                     (Full_set _).
+
+  Definition MSHInductor
+             (n:nat)
+             (f: CarrierA -> CarrierA -> CarrierA)
+             `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+             (initial: CarrierA)
+    := mkMSHOperator 1 1
+                     (mem_op_of_hop (HInductor n f initial))
+                     _
+                     (Full_set _)
+                     (Full_set _).
+
+  Program Definition MHTSUMUnion {i o}
+             {svalue: CarrierA}
+             (dot: CarrierA -> CarrierA -> CarrierA)
+             (* Surprisingly, the following is not required:
+                `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot} *)
+             (mop1 mop2: @MSHOperator i o)
+    :=
+      mkMSHOperator i o
+                    (HTSUMUnion_mem (mem_op mop1) (mem_op mop2))
+                    _
+                    (Ensembles.Union _ (m_in_index_set mop1) (m_in_index_set mop2))
+                    (Ensembles.Union _ (m_out_index_set mop1) (m_out_index_set mop2)).
+  Next Obligation.
+    apply HTSUMUnion_mem_proper; [apply mop1 | apply mop2].
+  Qed.
+
+      (* Probably could be proven more generally for any monad with with some properties *)
+  Global Instance monadic_Lbuild_opt_proper
+         {A: Type}
+         `{Ae: Equiv A}
+         `{Equivalence A Ae}
+         (n : nat):
+    Proper ((forall_relation
+               (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv) (@monadic_Lbuild A option OptionMonad.Monad_option n).
+  Proof.
+    intros f g E.
+    unfold forall_relation, pointwise_relation in E.
+    revert E.
+    dependent induction n.
+    -
+      reflexivity.
+    -
+      intros E.
+      simpl in *.
+
+      match goal with
+        [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
+        => destruct a eqn:MA ,b eqn:MB
+      end; try some_none;
+        pose E as C;
+        specialize (C 0 (Nat.lt_0_succ n));
+        setoid_rewrite MA in C;
+        setoid_rewrite MB in C;
+        try some_none.
+
+      match goal with
+        [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
+        => destruct a eqn:FA ,b eqn:FB
+      end; try some_none;
+
+        match goal with
+        | [FA: monadic_Lbuild _ ?f ≡ _,
+               FB: monadic_Lbuild _ ?g ≡ _
+           |- _] => specialize (IHn f g)
+        end;
+        rewrite FA,FB in IHn.
+      +
+        f_equiv.
+        constructor.
+        *
+          some_inv;apply C.
+        *
+          apply Some_inj_equiv.
+          apply IHn.
+          intros a1 a2.
+          apply E.
+      +
+        assert(P: (forall (a : nat) (a0 : a < n),
+                      f (S a)
+                        (strictly_order_preserving S a n a0) =
+                      g (S a)
+                        (strictly_order_preserving S a n a0))).
+        {
+          intros a1 a2.
+          apply E.
+        }
+        specialize (IHn P).
+        some_none.
+      +
+        assert(P: (forall (a : nat) (a0 : a < n),
+                      f (S a) (strictly_order_preserving S a n a0)
+                      =
+                      g (S a) (strictly_order_preserving S a n a0))).
+        {
+          intros a1 a2.
+          apply E.
+        }
+        specialize (IHn P).
+        some_none.
+  Qed.
+
+  Global Instance Apply_mem_Family_proper
+         {i o n: nat}
+         (op_family: @MSHOperatorFamily i o n)
+    :
+      Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family)).
+  Proof.
+    intros x y E.
+    unfold Apply_mem_Family.
+    apply monadic_Lbuild_opt_proper.
+    intros j jc.
+    rewrite E.
+    reflexivity.
+  Qed.
+
+  Global Instance IReduction_mem_proper
+         {i o n: nat}
+         (initial: CarrierA)
+         (dot: CarrierA -> CarrierA -> CarrierA)
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         (op_family: @MSHOperatorFamily i o n)
+    :
+      Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family)).
+  Proof.
+    intros x y E.
+    unfold IReduction_mem.
+    simpl.
+    repeat break_match.
+    -
+      f_equiv.
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_inv.
+      rewrite Heqo1.
+      reflexivity.
+    -
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_none.
+    -
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_none.
+    -
+      reflexivity.
+  Qed.
+
+  Definition MSHIReduction
+          {i o n: nat}
+          (initial: CarrierA)
+          (dot: CarrierA -> CarrierA -> CarrierA)
+          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+          (op_family: @MSHOperatorFamily i o n)
+    :=
+      mkMSHOperator i o
+                    (IReduction_mem dot initial (get_family_mem_op op_family))
+                    (IReduction_mem_proper initial dot op_family)
+                    (m_family_in_index_set op_family)
+                    (m_family_out_index_set op_family) (* All scatters must be [Full_set] but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *).
+
+
+  Global Instance IUnion_mem_proper
+         {i o n: nat}
+         (op_family: @MSHOperatorFamily i o n)
+    :
+      Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family)).
+  Proof.
+    intros x y E.
+    unfold IUnion_mem.
+    simpl.
+    repeat break_match.
+    -
+      apply monadic_fold_left_rev_opt_proper.
+      apply mem_merge_proper.
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_inv.
+      apply Heqo1.
+    -
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_none.
+    -
+      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
+      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      rewrite E in Heqo0.
+      rewrite Heqo0 in Heqo1.
+      some_none.
+    -
+      reflexivity.
+  Qed.
+
+  Definition MSHIUnion
+             {i o n: nat}
+             (op_family: @MSHOperatorFamily i o n)
+    :=
+      mkMSHOperator i o
+                   (IUnion_mem (get_family_mem_op op_family))
+                   (IUnion_mem_proper op_family)
+                   (m_family_in_index_set op_family)
+                   (m_family_out_index_set op_family).
+
+
+End MSHOperator_Definitions.
+
 
 
 Section MemVecEq.
@@ -1649,188 +1993,6 @@ Section MemVecEq.
           apply Union_introl.
           apply H.
     Defined.
-
-    Definition get_family_mem_op
-               {svalue: CarrierA}
-               {fm}
-               {i o n: nat}
-               {op_family: @SHOperatorFamily fm i o n svalue}
-               {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
-               (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-      :
-      forall j (jc:j<n), mem_block -> option mem_block
-      := fun j (jc:j<n) => mem_op (SHOperator_Mem:=op_family_mem j jc).
-
-    Global Instance get_family_mem_op_proper
-           {svalue: CarrierA}
-           {fm}
-           {i o n: nat}
-           (j: nat) (jc: j<n)
-           {op_family: @SHOperatorFamily fm i o n svalue}
-           {op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc))}
-           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-      :
-        Proper ((=) ==> (=)) (get_family_mem_op op_family_mem j jc).
-    Proof.
-      intros x y E.
-      unfold get_family_mem_op.
-      apply mem_op_proper, E.
-    Qed.
-
-    Global Instance fold_left_rev_proper
-           {A B : Type}
-           `{Eb: Equiv B}
-           `{Ae: Equiv A}
-           `{Equivalence A Ae}
-           (f : A -> B -> A)
-           `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-           (a : A)
-      :
-        Proper ((=) ==> (=)) (fold_left_rev f a).
-    Proof.
-      intros x y E.
-      induction E.
-      -
-        reflexivity.
-      -
-        simpl.
-        apply f_mor; auto.
-    Qed.
-
-    (* Probably could be proven more generally for any monad with with some properties *)
-    Global Instance monadic_Lbuild_opt_proper
-           {A: Type}
-           `{Ae: Equiv A}
-           `{Equivalence A Ae}
-           (n : nat):
-      Proper ((forall_relation
-                 (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv) (@monadic_Lbuild A option OptionMonad.Monad_option n).
-    Proof.
-      intros f g E.
-      unfold forall_relation, pointwise_relation in E.
-      revert E.
-      dependent induction n.
-      -
-        reflexivity.
-      -
-        intros E.
-        simpl in *.
-
-        match goal with
-          [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
-          => destruct a eqn:MA ,b eqn:MB
-        end; try some_none;
-          pose E as C;
-          specialize (C 0 (Nat.lt_0_succ n));
-          setoid_rewrite MA in C;
-          setoid_rewrite MB in C;
-          try some_none.
-
-        match goal with
-          [|- match ?a with  _ => _ end  = match ?b with  _ => _ end]
-          => destruct a eqn:FA ,b eqn:FB
-        end; try some_none;
-
-          match goal with
-          | [FA: monadic_Lbuild _ ?f ≡ _,
-                 FB: monadic_Lbuild _ ?g ≡ _
-             |- _] => specialize (IHn f g)
-          end;
-          rewrite FA,FB in IHn.
-        +
-          f_equiv.
-          constructor.
-          *
-            some_inv;apply C.
-          *
-            apply Some_inj_equiv.
-            apply IHn.
-            intros a1 a2.
-            apply E.
-        +
-          assert(P: (forall (a : nat) (a0 : a < n),
-                        f (S a)
-                          (strictly_order_preserving S a n a0) =
-                        g (S a)
-                          (strictly_order_preserving S a n a0))).
-          {
-            intros a1 a2.
-            apply E.
-          }
-          specialize (IHn P).
-          some_none.
-        +
-          assert(P: (forall (a : nat) (a0 : a < n),
-                        f (S a) (strictly_order_preserving S a n a0)
-                        =
-                        g (S a) (strictly_order_preserving S a n a0))).
-          {
-            intros a1 a2.
-            apply E.
-          }
-          specialize (IHn P).
-          some_none.
-    Qed.
-
-    Global Instance Apply_mem_Family_proper
-           {svalue: CarrierA}
-           {fm}
-           {i o n: nat}
-           (op_family: @SHOperatorFamily fm i o n svalue)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-      :
-        Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family_mem)).
-    Proof.
-      intros x y E.
-      unfold Apply_mem_Family.
-      apply monadic_Lbuild_opt_proper.
-      intros j jc.
-      rewrite E.
-      reflexivity.
-    Qed.
-
-    Global Instance IReduction_mem_proper
-           {svalue: CarrierA}
-           {fm}
-           {i o n: nat}
-           (dot: CarrierA -> CarrierA -> CarrierA)
-           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-           (initial: CarrierA)
-           (op_family: @SHOperatorFamily fm i o n svalue)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
-      :
-        Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family_mem)).
-    Proof.
-      intros x y E.
-      unfold IReduction_mem.
-      simpl.
-      repeat break_match.
-      -
-        f_equiv.
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_inv.
-        rewrite Heqo1.
-        reflexivity.
-      -
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_none.
-      -
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_none.
-      -
-        reflexivity.
-    Qed.
 
     Definition shrink_op_family_mem
                {svalue: CarrierA}
