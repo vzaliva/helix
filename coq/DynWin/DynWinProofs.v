@@ -394,7 +394,7 @@ Section SigmaHCOL_rewriting.
       crush.
 
       crush.
-  Qed.
+  Defined.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
@@ -997,7 +997,7 @@ Proof.
   }
   crush.
   solve_mem.
-Qed.
+Defined.
 
 
 End SigmaHCOL_mem.
@@ -1078,8 +1078,6 @@ Section SigmaHCOL_to_DSHCOL.
         {s: @SHOperator Monoid_RthetaSafeFlags i o svalue}
         `{facts: !SHOperator_Facts _ s}
         `{mem: !SHOperator_Mem s}
-        `{sfacts: !SHOperator_Facts Monoid_RthetaFlags (SafeCast s)}
-        `{smem: !SHOperator_Mem (SafeCast s)}
         {d: DSHOperator}
         {m: memory}
         {x_i y_i: mem_block_id}:
@@ -1087,8 +1085,8 @@ Section SigmaHCOL_to_DSHCOL.
     @SHCOL_DSHCOL_equiv i o svalue _ s facts mem d σ m x_i y_i ->
 
     @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
-                        sfacts
-                        smem
+                        (@SafeCast_Facts _ _ _ s facts)
+                        (SafeCast_Mem s)
                         d σ m x_i y_i .
   Proof.
     intros E.
@@ -1096,7 +1094,7 @@ Section SigmaHCOL_to_DSHCOL.
     constructor.
     destruct E as [E].
     unfold SafeCast', mem_op in *.
-    destruct SHM.
+    destruct mem.
     eapply E.
   Qed.
 
@@ -1111,17 +1109,17 @@ Section SigmaHCOL_to_DSHCOL.
         `{facts2 : !SHOperator_Facts fm op2}
         `{Meq1: !@SHOperator_Mem fm o2 o3 svalue op1 facts1}
         `{Meq2: !@SHOperator_Mem fm i1 o2 svalue op2 facts2}
-        `{facts: !@SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
-        `{mem: !@SHOperator_Mem _ _ _ _ (SHCompose fm op1 op2) facts}
         {σ: evalContext}
         {d1 d2: DSHOperator}
         {m: memory}
-        {t_i x_i y_i: mem_block_id}:
-        (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
-        (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
+        {t_i x_i y_i: mem_block_id}
+    :
+      (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
+      (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
+
       @SHCOL_DSHCOL_equiv i1 o3 svalue _ (SHCompose fm op1 op2)
-                          facts
-                          mem
+                          (SHCompose_Facts fm svalue op1 op2 compat)
+                          (SHCompose_Mem fm op1 op2 compat )
                           (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
   Proof.
     intros E1 E2.
@@ -1150,17 +1148,17 @@ Section SigmaHCOL_to_DSHCOL.
                         0 1.
   Proof.
     unfold dynwin_DSHCOL1, dynwin_SHCOL1.
-    Set Printing Implicit.
-    Unset Printing Notations.
+    unfold DynWinSigmaHCOL1_Mem, DynWinSigmaHCOL1_Facts.
 
     (* Normalize by unfolding [@zero] instances: *)
     unfold zero in *.
     (* Normalize dimensionality in DHSCOL. Due to refication,
        for example [o2:=1+1] in SHCOL is replaced with [2] in DHSCOL: *)
-    simpl in *.
+    (* simpl in *. *)
 
 
     Typeclasses eauto := 1.
+    unfold In.
     eapply SHCompose_SHCOL_DSHCOL.
     eapply SafeCast_SHCOL_DSHCOL.
 
