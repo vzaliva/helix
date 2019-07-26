@@ -1675,3 +1675,68 @@ Section MSHOperator_Definitions.
 
 
 End MSHOperator_Definitions.
+
+Section MSHOperator_Facts_instances.
+
+  Global Instance SHCompose_MFacts
+         {i1 o2 o3: nat}
+         (op1: @MSHOperator o2 o3)
+         (op2: @MSHOperator i1 o2)
+         (compat: Included _ (m_in_index_set op1) (m_out_index_set op2))
+         `{Mfacts1: !MSHOperator_Facts op1}
+         `{Mfacts2: !MSHOperator_Facts op2}
+  : MSHOperator_Facts
+      (MSHCompose op1 op2).
+  Proof.
+    unshelve esplit.
+    -
+      (* mem_out_some *)
+      intros m H.
+      unfold is_Some, option_compose in *.
+      simpl in *.
+      unfold option_compose.
+      repeat break_match; try some_none; try auto.
+      +
+        contradict Heqo.
+        apply is_Some_ne_None.
+        apply mem_out_some.
+        pose proof (out_mem_fill_pattern m Heqo0) as P.
+        intros j jc H0.
+        specialize (P j jc).
+        apply P.
+        apply compat.
+        apply H0.
+      +
+        clear Heqo.
+        pose proof (@mem_out_some _ _ _ _ _ H) as C.
+        unfold is_Some in C.
+        break_match; [ some_none | tauto].
+    -
+      (* out_mem_fill_pattern *)
+      intros m0 m H.
+      split.
+      +
+        simpl in *.
+        unfold option_compose in H.
+        break_match_hyp; try some_none.
+        pose proof (out_mem_fill_pattern  m1 H) as P1.
+        apply P1; auto.
+      +
+        simpl in *.
+        unfold option_compose in H.
+        break_match_hyp; try some_none.
+        pose proof (out_mem_fill_pattern m1 H) as P2.
+        apply P2; auto.
+    -
+      (* mem_out_oob *)
+      intros m0 m H.
+      unfold MSHCompose in H.
+      unfold option_compose in H.
+      simpl in H.
+      break_match_hyp; try some_none.
+      pose proof (out_mem_oob  m1 H) as P2.
+      apply P2; auto.
+  Defined.
+
+
+End MSHOperator_Facts_instances.
