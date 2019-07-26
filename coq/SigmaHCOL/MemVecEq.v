@@ -252,67 +252,6 @@ Section MemVecEq.
            (bc: b < o)
       : SHOperator_Mem (svalue:=svalue) (eUnion fm bc).
     Proof.
-      unshelve esplit.
-      -
-        apply (eUnion_mem b).
-      -
-        typeclasses eauto.
-      -
-        (* mem_out_some *)
-        intros m H.
-        unfold is_Some, eUnion, eUnion_mem, map_mem_block_elt, mem_lookup. simpl.
-        repeat break_match; try some_none; try tauto.
-        clear Heqo0. rename Heqo1 into M.
-        simpl in *.
-        assert(P: Full_set (FinNat 1) (mkFinNat Nat.lt_0_1)) by apply Full_intro.
-        apply H in P.
-        unfold mem_lookup, mem_in in *.
-        apply NP.F.not_find_in_iff in M.
-        congruence.
-      -
-        (* out_mem_fill_pattern *)
-        intros m0 m H.
-        split.
-        +
-          simpl in *.
-          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
-          break_match_hyp; try some_none.
-          some_inv.
-          subst m.
-          intros O.
-          destruct (eq_nat_dec j b).
-          --
-            apply NP.F.in_find_iff.
-            rewrite NP.F.add_eq_o; auto.
-            some_none.
-          --
-            unfold FinNatSet.singleton, mkFinNat in O.
-            simpl in O.
-            congruence.
-        +
-          simpl in *.
-          unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
-          break_match_hyp; try some_none.
-          some_inv.
-          subst m.
-          intros I.
-          unfold FinNatSet.singleton, mkFinNat.
-          destruct (eq_nat_dec j b); auto.
-          exfalso.
-          apply NP.F.in_find_iff in I.
-          rewrite NP.F.add_neq_o in I ; auto.
-      -
-        intros m0 m H j jc C.
-        simpl in H.
-        unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
-        break_match; try some_none.
-        some_inv.
-        subst m.
-        unfold mem_add, mem_empty in C.
-        destruct (eq_nat_dec j b); try omega.
-        apply NP.F.in_find_iff in C.
-        rewrite NP.F.add_neq_o in C; auto.
-      -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (eUnion fm bc)) by
             typeclasses eauto.
         intros x G.
