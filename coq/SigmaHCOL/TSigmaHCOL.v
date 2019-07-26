@@ -9,9 +9,7 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
-Require Import Helix.SigmaHCOL.SigmaHCOLMem.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.Util.FinNatSet.
 
 Require Import Coq.Arith.Arith.

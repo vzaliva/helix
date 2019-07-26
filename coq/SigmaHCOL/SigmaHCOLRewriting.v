@@ -11,6 +11,8 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
+Require Import Helix.SigmaHCOL.Memory. (* TODO: remove this dependency. However just removing it break some proofs
+                                          related to [core] DB hints used by auto for some proofs. *)
 Require Import Helix.Util.MonoidalRestriction.
 Require Import Helix.Util.VecPermutation.
 Require Import Helix.Util.FinNatSet.
