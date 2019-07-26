@@ -924,8 +924,8 @@ Section Wrappers.
   Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
   : mem_block -> option mem_block
     := fun x => match mem_block_to_avector x with
-                | None => None
-                | Some x' => Some (avector_to_mem_block (op x'))
+             | None => None
+             | Some x' => Some (avector_to_mem_block (op x'))
              end.
 
   Lemma mem_out_some_mem_op_of_hop
@@ -1445,7 +1445,8 @@ Section MSHOperator_Definitions.
                       (FinNatSet.singleton b).
 
   Definition MSHeT
-             {i b:nat}
+             {i b: nat}
+             (bc: b < i)
     := @mkMSHOperator i 1 (eT_mem b)
                       eT_mem_proper
                       (FinNatSet.singleton b)
@@ -1743,7 +1744,7 @@ Section MSHOperator_Facts_instances.
          {svalue: CarrierA}
          {o b: nat}
          (bc: b < o)
-  : MSHOperator_Facts (MSHeUnion svalie bc).
+    : MSHOperator_Facts (MSHeUnion svalie bc).
   Proof.
     unshelve esplit.
     -
@@ -1803,5 +1804,70 @@ Section MSHOperator_Facts_instances.
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
 
+  Global Instance eT_MFacts
+         {i b: nat}
+         (bc: b<i)
+    : MSHOperator_Facts (MSHeT bc).
+  Proof.
+    unshelve esplit.
+    -
+      (* mem_out_some *)
+      intros v H.
+      unfold is_Some, MSHeT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
+      repeat break_match; try some_none; try tauto.
+      clear Heqo. rename Heqo0 into M.
+      simpl in *.
+      assert(P: FinNatSet.singleton b (mkFinNat bc)).
+      {
+        unfold FinNatSet.singleton, mkFinNat.
+        auto.
+      }
+      apply H in P.
+      unfold mem_lookup, mem_in in *.
+      apply NP.F.not_find_in_iff in M.
+      congruence.
+    -
+      (* out_mem_fill_pattern *)
+      intros m0 m H.
+      simpl in *.
+      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      destruct j; try omega.
+      split.
+      +
+        intros F.
+        break_match_hyp; try some_none.
+        some_inv.
+        subst m.
+        unfold mem_add, mem_empty.
+        apply NP.F.in_find_iff.
+        rewrite NP.F.add_eq_o.
+        some_none.
+        reflexivity.
+      +
+        intros I.
+        apply Full_intro.
+      +
+        crush.
+    -
+      intros m0 m H.
+      simpl in *.
+      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+
+      intros j jc.
+      unfold not.
+      intros C.
+      break_match_hyp; try some_none.
+      some_inv.
+      subst m.
+      unfold mem_add, mem_empty in *.
+      destruct (eq_nat_dec j 0) as [z | nz].
+      +
+        lia.
+      +
+        apply NP.F.add_neq_in_iff in C.
+        apply NP.F.empty_in_iff in C.
+        tauto.
+        auto.
+  Qed.
 
 End MSHOperator_Facts_instances.
