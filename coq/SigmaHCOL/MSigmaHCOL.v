@@ -1870,4 +1870,23 @@ Section MSHOperator_Facts_instances.
         auto.
   Qed.
 
+    Global Instance SHPointwise_MFacts
+           {n: nat}
+           (f: FinNat n -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+      : MSHOperator_Facts (MSHPointwise (pF:=pF)).
+    Proof.
+      unshelve esplit.
+      -
+        (* mem_out_some *)
+        intros v H.
+        apply mem_out_some_mem_op_of_hop, H.
+      -
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
+      -
+        intros m0 m H.
+        apply (out_mem_fill_pattern_mem_op_of_hop H).
+    Qed.
+
 End MSHOperator_Facts_instances.

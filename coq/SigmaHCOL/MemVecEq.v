@@ -436,22 +436,6 @@ Section MemVecEq.
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       : SHOperator_Mem (svalue:=svalue) (SHPointwise fm f).
     Proof.
-      unshelve esplit.
-      -
-        apply (mem_op_of_hop (HPointwise f)).
-      -
-        typeclasses eauto.
-      -
-        (* mem_out_some *)
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-      -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (SHPointwise fm f)) by
             typeclasses eauto.
 
