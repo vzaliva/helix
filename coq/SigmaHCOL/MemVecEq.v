@@ -730,20 +730,6 @@ Section MemVecEq.
            {facts : SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp Monoid_RthetaSafeFlags f)}
     : SHOperator_Mem (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) (facts:=facts).
     Proof.
-      unshelve esplit.
-      -
-        apply (mem_op_of_hop (HBinOp f)).
-      -
-        typeclasses eauto.
-      -
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
       -
         intros x G.
         simpl.

@@ -1909,5 +1909,23 @@ Section MSHOperator_Facts_instances.
       apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
+  Global Instance SHBinOp_MFacts
+         {o: nat}
+         (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+    : MSHOperator_Facts (MSHBinOp (pF:=pF)).
+  Proof.
+    unshelve esplit.
+    -
+      intros v H.
+      apply mem_out_some_mem_op_of_hop, H.
+    -
+      intros m0 m H.
+      apply (out_mem_fill_pattern_mem_op_of_hop H).
+    -
+      intros m0 m H.
+      apply (out_mem_fill_pattern_mem_op_of_hop H).
+  Qed.
+
 
 End MSHOperator_Facts_instances.
