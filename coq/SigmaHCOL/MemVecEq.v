@@ -529,22 +529,6 @@ Section MemVecEq.
            (initial: CarrierA):
       SHOperator_Mem (svalue:=svalue) (SHInductor fm n f initial).
     Proof.
-      unshelve esplit.
-      -
-        apply (mem_op_of_hop (HInductor n f initial)).
-      -
-        typeclasses eauto.
-      -
-        (* mem_out_some *)
-        intros v H.
-        apply mem_out_some_mem_op_of_hop, H.
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-      -
-        intros m0 m H.
-        apply (out_mem_fill_pattern_mem_op_of_hop H).
-      -
         intros x H.
         simpl.
         unfold SHInductor', HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
