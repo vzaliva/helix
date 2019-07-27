@@ -2528,6 +2528,141 @@ Section MSHOperator_Facts_instances.
       apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
+  Fact HTSUMUnion_mem_out_fill_pattern
+       {i o : nat}
+       {dot : SgOp CarrierA}
+       (op1 op2: @MSHOperator i o)
+       `{facts1: MSHOperator_Facts _ _ op1}
+       `{facts2: MSHOperator_Facts _ _ op2}:
+    forall (m0 m : mem_block),
+      HTSUMUnion_mem (mem_op op1) (mem_op op2) m0 ≡ Some m
+      → forall (j : nat) (jc : j < o),
+        m_out_index_set (i:=i)
+                        (MHTSUMUnion dot op1 op2) (mkFinNat jc) ↔
+                        mem_in j m.
+  Proof.
+    intros m0 m E.
+    split; intros H.
+    +
+      simpl in *.
+      unfold HTSUMUnion_mem in E.
+      repeat break_match_hyp; try some_none.
+      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+      destruct E as [E0 E1].
+      dependent destruction H; apply E1.
+      *
+        left.
+        eapply (out_mem_fill_pattern _ Heqo0); eauto.
+      *
+        right.
+        eapply (out_mem_fill_pattern _ Heqo1); eauto.
+    +
+      simpl in *.
+      unfold HTSUMUnion_mem in E.
+      repeat break_match_hyp; try some_none.
+      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+      destruct E as [E0 E1].
+      specialize (E0 H). clear H E1.
+      destruct E0 as [M1 | M2].
+      *
+        apply Union_introl.
+        eapply (out_mem_fill_pattern _ Heqo0); eauto.
+      *
+        right.
+        eapply (out_mem_fill_pattern _ Heqo1); eauto.
+  Qed.
+
+  Global Instance HTSUMUnion_Mfacts
+         {i o: nat}
+         `{dot: SgOp CarrierA}
+         (op1 op2: @MSHOperator i o)
+         (compat: Disjoint _
+                           (m_out_index_set op1)
+                           (m_out_index_set op2))
+         `{facts1: MSHOperator_Facts _ _ op1}
+         `{facts2: MSHOperator_Facts _ _ op2}
+    : MSHOperator_Facts
+        (MHTSUMUnion dot op1 op2).
+  Proof.
+    split.
+    -
+      (* mem_out_some *)
+      intros m H.
+      unfold is_Some, MHTSUMUnion, HTSUMUnion_mem in *.
+      simpl in *.
+      repeat break_match; try some_none; try auto.
+      +
+        contradict Heqo0.
+        clear H.
+        apply mem_merge_is_Some.
+        pose proof (out_mem_fill_pattern m Heqo1) as P1.
+        pose proof (out_mem_oob m Heqo1) as NP1.
+        pose proof (out_mem_fill_pattern m Heqo2) as P2.
+        pose proof (out_mem_oob m Heqo2) as NP2.
+
+        apply Disjoint_intro.
+        intros j.
+        destruct (NatUtil.lt_ge_dec j o) as [jc | jc].
+        *
+          clear NP1 NP2.
+          specialize (P1 j jc).
+          specialize (P2 j jc).
+          destruct compat as [compat].
+          specialize (compat (mkFinNat jc)).
+          intros C.
+          unfold Ensembles.In, not  in *.
+          destruct C as [j H0 H1].
+
+          apply NE.In_In, mem_keys_set_In, P1 in H0. clear P1.
+          apply NE.In_In, mem_keys_set_In, P2 in H1. clear P2.
+          destruct compat.
+          apply Intersection_intro; auto.
+        *
+          specialize (NP1 j jc).
+          intros C.
+          destruct C as [j H0 _].
+          apply NE.In_In, mem_keys_set_In in H0.
+          unfold mem_in in NP1.
+          congruence.
+      +
+        clear Heqo0.
+        contradict Heqo2.
+        apply is_Some_ne_None.
+        apply mem_out_some; auto.
+        intros j jc H0.
+        specialize (H j jc).
+        apply H.
+        apply Union_intror.
+        apply H0.
+      +
+        clear Heqo0.
+        contradict Heqo1.
+        apply is_Some_ne_None.
+        apply mem_out_some; auto.
+        intros j jc H0.
+        specialize (H j jc).
+        apply H.
+        apply Union_introl.
+        apply H0.
+    -
+      (* out_mem_fill_pattern *)
+      eapply HTSUMUnion_mem_out_fill_pattern;
+        typeclasses eauto.
+    -
+      intros m0 m E j jc H.
+      simpl in *.
+      unfold HTSUMUnion_mem in E.
+      repeat break_match_hyp; try some_none.
+      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+      destruct E as [E0 E1].
+      specialize (E0 H). clear H E1.
+      destruct E0 as [M0 | M1].
+      --
+        eapply (out_mem_oob _ Heqo0); eauto.
+      --
+        eapply (out_mem_oob _ Heqo1); eauto.
+  Qed.
+
   Global Instance IReduction_MFacts
          {i o k: nat}
          (initial: CarrierA)
