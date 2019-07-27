@@ -1593,22 +1593,22 @@ Section MSHOperator_Definitions.
     repeat break_match.
     -
       f_equiv.
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_inv.
       rewrite Heqo1.
       reflexivity.
     -
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_none.
     -
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_none.
@@ -1643,21 +1643,21 @@ Section MSHOperator_Definitions.
     -
       apply monadic_fold_left_rev_opt_proper.
       apply mem_merge_proper.
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_inv.
       apply Heqo1.
     -
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_none.
     -
-      unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-      unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
+      apply Option_equiv_eq in Heqo0.
+      apply Option_equiv_eq in Heqo1.
       rewrite E in Heqo0.
       rewrite Heqo0 in Heqo1.
       some_none.
@@ -1690,7 +1690,7 @@ Section MSHOperator_Facts_instances.
   : MSHOperator_Facts
       (MSHCompose op1 op2).
   Proof.
-    unshelve esplit.
+    split.
     -
       (* mem_out_some *)
       intros m H.
@@ -1746,7 +1746,7 @@ Section MSHOperator_Facts_instances.
          (bc: b < o)
     : MSHOperator_Facts (MSHeUnion svalie bc).
   Proof.
-    unshelve esplit.
+    split.
     -
       (* mem_out_some *)
       intros m H.
@@ -1809,7 +1809,7 @@ Section MSHOperator_Facts_instances.
          (bc: b<i)
     : MSHOperator_Facts (MSHeT bc).
   Proof.
-    unshelve esplit.
+    split.
     -
       (* mem_out_some *)
       intros v H.
@@ -1876,7 +1876,7 @@ Section MSHOperator_Facts_instances.
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHPointwise (pF:=pF)).
   Proof.
-    unshelve esplit.
+    split.
     -
       (* mem_out_some *)
       intros v H.
@@ -1896,7 +1896,7 @@ Section MSHOperator_Facts_instances.
          (initial: CarrierA):
     MSHOperator_Facts (MSHInductor n initial (pF:=pF)).
   Proof.
-    unshelve esplit.
+    split.
     -
       (* mem_out_some *)
       intros v H.
@@ -1915,7 +1915,7 @@ Section MSHOperator_Facts_instances.
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHBinOp (pF:=pF)).
   Proof.
-    unshelve esplit.
+    split.
     -
       intros v H.
       apply mem_out_some_mem_op_of_hop, H.
