@@ -1361,6 +1361,69 @@ Section MFamilies.
 
   Definition MSHOperatorFamily {i o n: nat} := FinNat n -> @MSHOperator i o.
 
+  Definition cast_m_op_family
+             {i o n m: nat}
+             (op_family: @MSHOperatorFamily i o m)
+             (E: m≡n)
+    :
+      @MSHOperatorFamily i o n
+    :=
+      match E in _ ≡ p return (@MSHOperatorFamily i o p) with
+      | eq_refl => op_family
+      end.
+
+  Lemma cast_mem_op_eq
+        {i o n m : nat}
+        (t t': nat)
+        (Et: t ≡ t')
+        {tm: t<m}
+        {tn: t'<n}
+        {op_family: @MSHOperatorFamily i o m}
+        (E: m≡n)
+    :
+      (mem_op (cast_m_op_family op_family E (mkFinNat tn)))
+        ≡ (mem_op  (op_family (mkFinNat tm))).
+  Proof.
+    subst.
+    replace tm with tn by apply NatUtil.lt_unique.
+    reflexivity.
+  Qed.
+
+  Lemma cast_m_out_index_set_eq
+        {i o n m : nat}
+        (t: nat)
+        {tm: t<m}
+        {tn: t<n}
+        {op_family: @MSHOperatorFamily i o m}
+        (E: m≡n)
+    :
+      m_out_index_set (op_family (mkFinNat tm))
+                      ≡
+                      m_out_index_set
+                      (cast_m_op_family op_family E (mkFinNat tn)).
+  Proof.
+    subst.
+    replace tm with tn by apply NatUtil.lt_unique.
+    reflexivity.
+  Qed.
+
+  Lemma cast_m_in_index_set_eq
+        {i o n m : nat}
+        (t: nat)
+        {tm: t<m}
+        {tn: t<n}
+        {op_family: @MSHOperatorFamily i o m}
+        (E: m≡n)
+    :
+      m_in_index_set (op_family (mkFinNat tm))
+                     ≡
+                     m_in_index_set (cast_m_op_family op_family E (mkFinNat tn)).
+  Proof.
+    subst.
+    replace tm with tn by apply NatUtil.lt_unique.
+    reflexivity.
+  Qed.
+
   Definition get_family_mem_op
              {i o n: nat}
              (op_family: @MSHOperatorFamily i o n)
@@ -1392,6 +1455,19 @@ Section MFamilies.
     apply monadic_Lbuild_opt_length.
   Qed.
 
+  Lemma Apply_mem_Family_eq_Some
+        {i o k : nat}
+        {op_family: @MSHOperatorFamily i o k}
+        {m : NatMap CarrierA}
+        {l: list mem_block}
+    :
+      (Apply_mem_Family (get_family_mem_op op_family) m ≡ Some l)
+      -> (forall (j : nat) (jc : j < k), List.nth_error l j ≡ get_family_mem_op op_family jc m).
+  Proof.
+    unfold Apply_mem_Family.
+    apply monadic_Lbuild_op_eq_Some.
+  Qed.
+
   (* Shrink family by removing the last member *)
   Definition shrink_m_op_family
              {i o n}
@@ -1404,8 +1480,8 @@ Section MFamilies.
       match n as y return (y ≡ n -> @MSHOperatorFamily i o y -> FinNatSet i) with
       | O => fun _ _ => (Empty_set _)
       | S j => fun E f => Ensembles.Union _
-                                      (m_in_index_set (op_family (mkFinNat (S_j_lt_n E))))
-                                      (m_family_in_index_set (shrink_m_op_family f))
+                                          (m_in_index_set (op_family (mkFinNat (S_j_lt_n E))))
+                                          (m_family_in_index_set (shrink_m_op_family f))
       end (eq_refl n) op_family.
 
   (* Shrink family by removing first memeber *)
@@ -1413,6 +1489,13 @@ Section MFamilies.
              {i o n}
              (op_family: @MSHOperatorFamily i o (S n)): @MSHOperatorFamily i o n
     := fun jf => op_family (mkFinNat (lt_n_S (proj2_sig jf))).
+
+  Definition shrink_m_op_family_up_n
+             {i o n: nat}
+             (d: nat)
+             (op_family: @MSHOperatorFamily i o (n+d)): @MSHOperatorFamily i o n
+    := fun jf => op_family (mkFinNat
+                           (Plus.plus_lt_compat_r _ _ _ (proj2_sig jf))).
 
   Definition shrink_m_op_family_facts_up
              {i o k : nat}
@@ -1422,6 +1505,34 @@ Section MFamilies.
     (forall (j : nat) (jc : j < k),
         @MSHOperator_Facts i o ((shrink_m_op_family_up op_family) (mkFinNat jc)))
     := fun j jc => facts (S j) (lt_n_S jc).
+
+  Definition shrink_m_op_family_facts_up_n
+             {i o k: nat}
+             (d: nat)
+             (op_family : MSHOperatorFamily)
+             (facts: ∀ (j : nat) (jc : j < (k+d)),
+                 @MSHOperator_Facts i o (op_family (mkFinNat jc)))
+    :
+      (forall (j : nat) (jc : j < k),
+          @MSHOperator_Facts i o
+                             ((shrink_m_op_family_up_n d op_family) (mkFinNat jc))
+      )
+    := fun j jc => facts (j+d) (Plus.plus_lt_compat_r _ _ _ jc).
+
+  Lemma cast_m_op_family_facts
+        {i o n m: nat}
+        {op_family: @MSHOperatorFamily i o m}
+        (op_family_facts : forall (j: nat) (jc: j < m),
+            MSHOperator_Facts
+              (op_family (mkFinNat jc)))
+        (E: m≡n):
+    forall (j : nat) (jc : j < n),
+      MSHOperator_Facts (cast_m_op_family op_family E (mkFinNat jc)).
+  Proof.
+    intros j jc.
+    crush.
+    (* TODO: better proof. *)
+  Defined.
 
   Lemma Apply_mem_Family_cons
         {i o k: nat}
@@ -1455,8 +1566,8 @@ Section MFamilies.
       match n as y return (y ≡ n -> @MSHOperatorFamily i o y -> FinNatSet i) with
       | O => fun _ _ => (Empty_set _)
       | S j => fun E f => Ensembles.Union _
-                                      (m_in_index_set (op_family (mkFinNat (S_j_lt_0 E))))
-                                      (m_family_in_index_set' (shrink_m_op_family_up f))
+                                          (m_in_index_set (op_family (mkFinNat (S_j_lt_0 E))))
+                                          (m_family_in_index_set' (shrink_m_op_family_up f))
       end (eq_refl n) op_family.
 
   Lemma m_family_in_set_includes_members:
@@ -2668,7 +2779,6 @@ Section MSHOperator_Facts_instances.
          (initial: CarrierA)
          (dot: CarrierA -> CarrierA -> CarrierA)
          `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (* `{scompat: BFixpoint svalue dot} *)
          (op_family: @MSHOperatorFamily i o k)
          (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
          (compat: forall j (jc:j<k),
@@ -2862,5 +2972,553 @@ Section MSHOperator_Facts_instances.
         --
           apply out_mem_oob with (j0:=j) in A0; auto.
   Qed.
+
+  Lemma mem_keys_set_to_m_out_index_set
+        (i o: nat)
+        (xop: @MSHOperator i o )
+        `{mop: MSHOperator_Facts _ _ xop}
+        (m m0: mem_block)
+    :
+      (mem_op xop m0 ≡ Some m)
+      ->
+      FinNatSet_to_natSet (m_out_index_set xop) ≡ NE.mkEns (mem_keys_set m).
+  Proof.
+    intros H.
+    pose proof (out_mem_fill_pattern _ H) as H1.
+    pose proof (out_mem_oob _ H) as H2.
+    clear H.
+    unfold mem_in in *.
+    apply Extensionality_Ensembles.
+    unfold Same_set.
+    split.
+    -
+      unfold Ensembles.Included.
+      intros k H.
+      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      +
+        clear H2.
+        specialize (H1 k kc).
+        apply mem_keys_set_In.
+        apply H1. clear H1.
+        unfold Ensembles.In in *.
+        generalize dependent (m_out_index_set xop).
+        intros s H.
+        unfold FinNatSet_to_natSet in H.
+        break_match_hyp; try contradiction.
+        replace l with kc in H by apply NatUtil.lt_unique.
+        apply H.
+      +
+        exfalso.
+        clear H1.
+        specialize (H2 k nkc).
+        (* H is false, as k is out of range *)
+        unfold Ensembles.In in H.
+        unfold FinNatSet_to_natSet in H.
+        break_match_hyp; try omega.
+    -
+      unfold Ensembles.Included.
+      intros k H.
+      unfold Ensembles.In in *.
+      destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
+      +
+        clear H2.
+        specialize (H1 k kc).
+        unfold FinNatSet_to_natSet.
+        break_match; try omega.
+        replace l with kc by apply NatUtil.lt_unique.
+        apply H1.
+        apply mem_keys_set_In.
+        apply H.
+      +
+        apply mem_keys_set_In in H.
+        specialize (H2 k nkc).
+        congruence.
+  Qed.
+
+  Fact IUnion_mem_step_disjoint
+       {i o n : nat}
+       (d: nat)
+       (op_family: @MSHOperatorFamily i o (n+d))
+       (op_family_facts: forall j (jc:j<(n+d)), MSHOperator_Facts (op_family (mkFinNat jc)))
+
+       (compat : ∀ (m0 : nat) (mc : m0 < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
+           m0 ≢ n0
+           → Disjoint (FinNat o)
+                      (@m_out_index_set i o (op_family (mkFinNat mc)))
+                      (@m_out_index_set i o (op_family (mkFinNat nc))))
+
+       (m m0 m1 : mem_block)
+       (l: list mem_block)
+       (A : Apply_mem_Family
+              (get_family_mem_op
+                 (shrink_m_op_family_up_n d op_family)) m
+              ≡ Some l)
+
+       (t:nat)
+       (tc: t<d)
+       (tc1: t<n+d)
+       (H0: get_family_mem_op op_family tc1 m ≡ Some m0)
+
+       (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
+    :
+      Disjoint nat
+               (NE.mkEns (mem_keys_set m1))
+               (NE.mkEns (mem_keys_set m0)).
+  Proof.
+    pose proof (Apply_mem_Family_length A) as L.
+    dependent induction n.
+    -
+      destruct l. 2:inversion L.
+      simpl in *.
+      some_inv.
+      subst.
+      unfold mem_empty, mem_keys_set.
+      simpl.
+      apply Disjoint_intro.
+      intros x C.
+      unfold Ensembles.In in C.
+      destruct C.
+      inversion H.
+    -
+      destruct l as [| m1h m1t];  inversion L.
+      apply Apply_mem_Family_cons in A.
+      destruct A as [A0 A].
+      simpl in H1.
+      break_match_hyp; try some_none.
+      apply Disjoint_Symmetric.
+      apply (Disjoint_of_mem_merge H1 (m0:=m0)).
+      +
+        apply Disjoint_Symmetric.
+        assert(K: (Init.Nat.add (S n) d) ≡ (Init.Nat.add n (S d))) by lia.
+
+        assert(tc2: S t <= n + S d).
+        {
+          rewrite <- K.
+          apply tc1.
+          (* (eq_ind (S n + d) (λ n0 : nat, S t <= n0) tc1 (n + S d) K) *)
+        }
+        specialize IHn with (d:=(S d))
+                            (m:=m)
+                            (m0:=m0)
+                            (l:=m1t)
+                            (t:=t)
+                            (tc1:=tc2)
+                            (op_family:=cast_m_op_family op_family K).
+        specialize (IHn (cast_m_op_family_facts op_family_facts K)).
+
+
+        eapply IHn; eauto.
+        *
+          intros m0' mc' n0' nc' H.
+          assert(mc'': m0' < S n + d) by lia.
+          assert(nc'': n0' < S n + d) by lia.
+          specialize (compat m0' mc'' n0' nc'' H).
+
+          erewrite <- cast_m_out_index_set_eq.
+          erewrite <- cast_m_out_index_set_eq.
+          apply compat.
+        *
+          rewrite <- A.
+          unfold
+            shrink_m_op_family_up, shrink_m_op_family_facts_up,
+          shrink_m_op_family,
+          shrink_m_op_family_up_n, shrink_m_op_family_facts_up_n.
+          clear.
+          f_equiv.
+          unfold get_family_mem_op.
+          extensionality j.
+          extensionality jc.
+          simpl.
+          apply cast_mem_op_eq.
+          lia.
+        *
+          rewrite <- H0.
+          clear.
+          unfold get_family_mem_op.
+          apply equal_f.
+          apply cast_mem_op_eq; auto.
+      +
+        clear IHn A Heqo0.
+        unfold get_family_mem_op in A0, H0.
+        unfold
+          shrink_m_op_family_up, shrink_m_op_family_facts_up,
+        shrink_m_op_family,
+        shrink_m_op_family_up_n, shrink_m_op_family_facts_up_n
+          in *.
+        simpl in *.
+        specialize (compat t tc1).
+        specialize (compat d (Plus.plus_lt_compat_r O (S n) d (Nat.lt_0_succ n))).
+        apply Disjoint_FinNat_to_nat in compat.
+        rewrite (mem_keys_set_to_m_out_index_set _ H0) in compat.
+        rewrite (mem_keys_set_to_m_out_index_set _ A0) in compat.
+        apply compat.
+        lia.
+  Qed.
+
+  Fact IUnion_mem_1_step_disjoint
+       {i o n : nat}
+       (op_family: @MSHOperatorFamily i o (S n))
+       (op_family_facts: ∀ (j : nat) (jc : j < (S n)),
+           MSHOperator_Facts (op_family (@mkFinNat (S n) j jc)))
+
+       (compat : ∀ (m0 : nat) (mc : m0 < (S n)) (n0 : nat) (nc : n0 < (S n)),
+           m0 ≢ n0
+           → Disjoint (FinNat o)
+                      (@m_out_index_set i o (op_family (mkFinNat mc)))
+                      (@m_out_index_set i o (op_family (mkFinNat nc))))
+
+       (m m0 m1 : mem_block)
+       (l: list mem_block)
+       (A : Apply_mem_Family
+              (get_family_mem_op
+                 (shrink_m_op_family_up op_family)) m
+              ≡ Some l)
+
+       (t:nat)
+       (H0: get_family_mem_op op_family (Nat.lt_0_succ n) m ≡ Some m0)
+
+       (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
+    :
+      Disjoint nat
+               (NE.mkEns (mem_keys_set m1))
+               (NE.mkEns (mem_keys_set m0)).
+  Proof.
+    (* same as [IUnion_mem_step_disjoint] with [d:=1] *)
+    assert(E: S n ≡ n + 1) by lia.
+    assert(zc2: 0 < n + 1) by lia.
+    eapply IUnion_mem_step_disjoint with
+        (d:=1)
+        (t0:=0)
+        (tc1:=zc2)
+        (m2:=m).
+    -
+      exact (cast_m_op_family_facts op_family_facts E).
+    -
+      intros m0' mc' n0' nc' H.
+      assert(mc'': m0' < S n ) by lia.
+      assert(nc'': n0' < S n ) by lia.
+      specialize (compat m0' mc'' n0' nc'' H).
+      erewrite <- cast_m_out_index_set_eq.
+      erewrite <- cast_m_out_index_set_eq.
+      apply compat.
+    -
+      rewrite <- A.
+      unfold
+        shrink_m_op_family_up, shrink_m_op_family_facts_up,
+      shrink_m_op_family,
+      shrink_m_op_family_up_n, shrink_m_op_family_facts_up_n.
+      clear.
+      f_equiv.
+      unfold get_family_mem_op.
+      extensionality j.
+      extensionality jc.
+      apply cast_mem_op_eq.
+      lia.
+    -
+      auto.
+    -
+      rewrite <- H0.
+      clear.
+      unfold get_family_mem_op.
+      apply equal_f.
+      apply cast_mem_op_eq; auto.
+    -
+      auto.
+  Qed.
+
+  Global Instance IUnion_Mem
+         {i o k: nat}
+         `{svalue: MonUnit CarrierA}
+         `{dot: SgOp CarrierA}
+         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+         `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
+         (op_family: @MSHOperatorFamily i o k)
+         (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
+         (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
+                                                            (m_out_index_set (op_family (mkFinNat mc)))
+                                                            (m_out_index_set (op_family (mkFinNat nc))))
+    :  MSHOperator_Facts (MSHIUnion op_family).
+  Proof.
+    split.
+    -
+      (* mem_out_some *)
+      intros m H.
+      unfold MSHIUnion, IUnion_mem, is_Some.
+      simpl.
+      repeat break_match; try tauto.
+      +
+        contradict Heqo0.
+        rename Heqo1 into A.
+        pose proof (Apply_mem_Family_eq_Some A) as F.
+        pose proof (Apply_mem_Family_length A) as L.
+        revert l A F L.
+        induction k; intros.
+        *
+          simpl in *.
+          dep_destruct l. 2: inversion L.
+          simpl.
+          some_none.
+        *
+          dep_destruct l. inversion L.
+          simpl.
+          break_match.
+          --
+            clear IHk.
+            apply mem_merge_is_Some.
+            apply Apply_mem_Family_cons in A.
+            destruct A as [A0 A].
+            simpl in *.
+            inversion L; clear l L; rename H1 into L, x into l.
+            eapply IUnion_mem_1_step_disjoint; eauto.
+          --
+            contradict Heqo0.
+            specialize (IHk
+                          (shrink_m_op_family_up op_family)
+                          (shrink_m_op_family_facts_up _ op_family_facts)
+                       ).
+            apply IHk; clear IHk.
+            ++
+              intros m1 mc n nc H0.
+              apply compat.
+              simpl.
+              crush.
+            ++
+              intros j jc H0.
+              simpl in H0.
+              specialize (H j jc).
+              Opaque m_family_in_index_set.
+              simpl in H.
+              rewrite m_family_in_index_set_eq in H.
+              rewrite m_family_in_index_set_eq in H0.
+              Transparent m_family_in_index_set.
+              simpl in H.
+              apply H.
+              apply Union_intror.
+              unfold Ensembles.In.
+              apply H0.
+            ++
+              apply Apply_mem_Family_cons in A.
+              apply A.
+            ++
+              intros j jc.
+              specialize (F (S j) (lt_n_S jc)).
+              auto.
+            ++
+              crush.
+      +
+        (* [Apply_mem_Family] could not be [None] *)
+        clear Heqo0.
+        rename Heqo1 into A.
+        unfold Apply_mem_Family in A.
+        induction k.
+        *
+          simpl in A.
+          some_none.
+        *
+          simpl in A.
+          repeat break_match_hyp; try some_none; clear A.
+          --
+            specialize (IHk
+                          (shrink_m_op_family_up op_family)
+                          (shrink_m_op_family_facts_up _ op_family_facts)
+                       ).
+
+            assert (∀ (j : nat) (jc : j < i), m_in_index_set
+                                              (MSHIUnion
+                                                 (shrink_m_op_family_up op_family)) (mkFinNat jc) →
+                                            mem_in j m) as P.
+            {
+              clear IHk Heqo1.
+              intros j jc H0.
+              simpl in H0.
+              specialize (H j jc).
+              Opaque m_family_in_index_set.
+              simpl in H.
+              rewrite m_family_in_index_set_eq in H.
+              rewrite m_family_in_index_set_eq in H0.
+              Transparent m_family_in_index_set.
+              simpl in H.
+              apply H.
+              apply Union_intror.
+              unfold Ensembles.In.
+              apply H0.
+            }
+            assert(compat':
+                     ∀ (m : nat) (mc : m < k) (n : nat) (nc : n < k),
+                       m ≢ n
+                       → Disjoint
+                           (FinNat o)
+                           (m_out_index_set (shrink_m_op_family_up op_family (mkFinNat mc)))
+                           (m_out_index_set (shrink_m_op_family_up op_family (mkFinNat nc)))).
+            {
+              intros m1 mc n nc H0.
+              apply compat.
+              auto.
+            }
+            specialize (IHk compat' P). clear P compat'.
+            contradict IHk.
+            unfold get_family_mem_op in *.
+            rewrite <- Heqo1.
+            unfold shrink_m_op_family_up, shrink_m_op_family_facts_up.
+            f_equiv.
+            extensionality j.
+            extensionality jc.
+            replace (@strictly_order_preserving _ _ _ _ _ _ _ _ j k jc)
+              with (@lt_n_S j k jc) by apply NatUtil.lt_unique.
+            reflexivity.
+          --
+            clear IHk.
+            contradict Heqo0.
+            apply is_Some_ne_None.
+            apply op_family_facts.
+            Opaque m_family_in_index_set.
+            simpl in H.
+            rewrite m_family_in_index_set_eq in H.
+            Transparent m_family_in_index_set.
+            simpl in H.
+            intros j jc H0.
+            specialize (H j jc).
+            apply H. clear H.
+            apply Union_introl.
+            unfold Ensembles.In.
+            replace (zero_lt_Sn k) with (Nat.lt_0_succ k) by apply NatUtil.lt_unique.
+            apply H0.
+    -
+      (* out_mem_fill_pattern *)
+      intros m0 m H j jc.
+      unfold MSHIUnion, IUnion_mem in H.
+      simpl in *.
+      break_match_hyp ; try some_none.
+      rename Heqo0 into A.
+      split.
+      +
+        rewrite m_family_out_index_set_eq.
+        dependent induction k; intros.
+        *
+          simpl in *.
+          inversion H0.
+        *
+          assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+          destruct l as [| l0]; try inversion L.
+
+          apply Apply_mem_Family_cons in A.
+          destruct A as [A0 A].
+          simpl in H.
+          break_match_hyp; try some_none.
+
+          apply (mem_merge_as_Union _ _ _ _ H).
+          simpl in *.
+          dependent destruction H0.
+          --
+            clear IHk A.
+            right.
+            unfold Ensembles.In in H0.
+            eapply (out_mem_fill_pattern _ A0) with (jc:=jc).
+            replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
+              by apply NatUtil.lt_unique.
+            auto.
+          --
+            clear A0.
+            left.
+
+            specialize (IHk
+                          _
+                          dot
+                          pdot
+                          _
+                          (shrink_m_op_family_up op_family)
+                          (shrink_m_op_family_facts_up _ op_family_facts)
+                       ).
+            eapply IHk;eauto.
+      +
+        assert(length l = k) as L by apply (Apply_mem_Family_length A).
+        rewrite m_family_out_index_set_eq.
+        dependent induction k; intros.
+        *
+          simpl in *.
+          dep_destruct l; try inversion L.
+          simpl in H.
+          some_inv.
+          subst m.
+          unfold mem_in, mem_empty in H0.
+          apply NP.F.empty_in_iff in H0.
+          tauto.
+        *
+          destruct l as [| l0]; try inversion L.
+          apply Apply_mem_Family_cons in A.
+          destruct A as [A0 A].
+          simpl in H.
+          break_match_hyp; try some_none.
+          simpl in *.
+          apply (mem_merge_as_Union _ _ _ _ H) in H0.
+          dependent destruction H0.
+          --
+            clear A0.
+            right.
+
+            specialize (IHk
+                          _
+                          dot
+                          pdot
+                          _
+                          (shrink_m_op_family_up op_family)
+                          (shrink_m_op_family_facts_up _ op_family_facts)
+                       ).
+            eapply IHk;eauto.
+          --
+            clear IHk A.
+            left.
+            unfold Ensembles.In.
+            unfold get_family_mem_op in A0.
+            eapply out_mem_fill_pattern with (jc0:=jc) in A0.
+            replace (Nat.lt_0_succ k) with (zero_lt_Sn k) in A0
+              by apply NatUtil.lt_unique.
+            apply A0.
+            auto.
+    -
+      (* out_mem_oob *)
+      intros m0 m H j jc.
+      unfold MSHIUnion, IUnion_mem in H.
+      simpl in *.
+      break_match_hyp ; try some_none.
+      rename Heqo0 into A.
+      dependent induction k.
+      +
+        unfold Apply_mem_Family in A.
+        simpl in A.
+        some_inv.
+        subst l.
+        simpl in *.
+        some_inv.
+        unfold mem_in,  mem_empty.
+        intros C.
+        apply NP.F.empty_in_iff in C.
+        tauto.
+      +
+        assert(length l = S k) as L by apply (Apply_mem_Family_length A).
+        destruct l as [| l0]; try inversion L.
+        simpl.
+        apply Apply_mem_Family_cons in A.
+        destruct A as [A0 A].
+        intros C.
+        simpl in *.
+        break_match_hyp ; try some_none.
+        apply (mem_merge_as_Union _ _ _ _ H) in C.
+        destruct C.
+        --
+          clear A0.
+          specialize (IHk
+                        _
+                        dot
+                        pdot
+                        _
+                        (shrink_m_op_family_up op_family)
+                        (shrink_m_op_family_facts_up _ op_family_facts)
+                     ).
+          eapply IHk;eauto.
+        --
+          apply out_mem_oob with (j0:=j) in A0; auto.
+  Qed.
+
 
 End MSHOperator_Facts_instances.

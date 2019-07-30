@@ -211,3 +211,51 @@ Proof.
   apply Extensionality_Ensembles.
   split; unfold Included; intros; apply Union_comm, H.
 Qed.
+
+
+Section NatSet_compat.
+  Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
+    := fun j => match NatUtil.lt_ge_dec j n with
+             | left jc => f (mkFinNat jc)
+             | in_right => False
+             end.
+
+  Lemma FinNatSet_to_natSet_Empty (f: FinNatSet 0):
+    FinNatSet_to_natSet f = Empty_set _.
+  Proof.
+    apply Extensionality_Ensembles.
+    split; intros H P.
+    -
+      exfalso.
+      unfold FinNatSet_to_natSet in P.
+      unfold Ensembles.In in *.
+      break_match.
+      nat_lt_0_contradiction.
+      congruence.
+    -
+      contradict P.
+  Qed.
+
+  Lemma Disjoint_FinNat_to_nat {n:nat} (A B: FinNatSet n):
+    Disjoint _ A B ->
+    Disjoint nat (FinNatSet_to_natSet A) (FinNatSet_to_natSet B).
+  Proof.
+    intros D.
+    apply Disjoint_intro.
+    intros k C.
+    destruct D as [D].
+    destruct C as [k C1 C2].
+    unfold FinNatSet_to_natSet in *.
+    unfold Ensembles.In in *.
+    destruct (NatUtil.lt_ge_dec k n) as [kc | nkc].
+    -
+      specialize (D (mkFinNat kc)).
+      contradict D.
+      apply Intersection_intro.
+      + apply C1.
+      + apply C2.
+    -
+      tauto.
+  Qed.
+
+End NatSet_compat.
