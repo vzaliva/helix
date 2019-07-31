@@ -290,8 +290,17 @@ Section MemVecEq.
            {svalue: CarrierA}
            {o b:nat}
            (bc: b < o)
-      : SH_MSH_Operator_compat (eT fm bc) (MSHeT bc).
+      : SH_MSH_Operator_compat (eT (svalue:=svalue) fm bc) (MSHeT bc).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
       -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (eT fm bc)) by
             typeclasses eauto.
@@ -356,15 +365,27 @@ Section MemVecEq.
           apply NM.find_1 in V.
           unfold mem_lookup in Heqo0.
           congruence.
-    Defined.
+    Qed.
 
-    Global Instance SHPointwise_Mem
+    Global Instance SHPointwise_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {n: nat}
            (f: FinNat n -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      : SHOperator_Mem (svalue:=svalue) (SHPointwise fm f).
+      : SH_MSH_Operator_compat
+          (SHPointwise (svalue:=svalue) fm f)
+          (MSHPointwise (f:=f)).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (SHPointwise fm f)) by
             typeclasses eauto.
 
@@ -448,7 +469,7 @@ Section MemVecEq.
           intros j jc HH.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G,HH.
-    Defined.
+    Qed.
 
     Global Instance SHInductor_Mem
            {svalue: CarrierA}
