@@ -1684,7 +1684,9 @@ Section SigmaHCOLRewritingRules.
 
     (* Basically states that 'Diamond' applied to a family which
        guarantees single-non zero value per row dows not depend on the
-       function implementation
+       function implementation.
+
+       TODO: Perhaps use [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][quazi-ring]] structure to describe 2 monoids?
      *)
     Lemma Diamond_f_subst
           {i o n}
@@ -1941,6 +1943,8 @@ Section SigmaHCOLRewritingRules.
               apply U.
       Qed.
 
+      (*        TODO: Perhaps use [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][quazi-ring]] structure to describe 2 monoids?
+       *)
       Lemma Diamond_f_subst_under_P
             {i o n}
 
@@ -3105,7 +3109,9 @@ Section SigmaHCOLRewritingRules.
       apply VPermutation_Vsig_of_forall, V.
     Qed.
 
-    (* In SPIRAL it is called [Reduction_ISumReduction] *)
+    (* In SPIRAL it is called [Reduction_ISumReduction]
+       TODO: Perhaps use [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][quazi-ring]] structure to describe 2 monoids?
+     *)
     Theorem rewrite_Reduction_IReduction
             {i o n}
 
