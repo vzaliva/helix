@@ -667,43 +667,44 @@ Section MemVecEq.
         assumption.
     Qed.
 
-    Global Instance UnSafeCast_Mem
+    Global Instance UnSafeCast_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {i o}
            (f: @SHOperator Monoid_RthetaFlags i o svalue)
-           `{f_mem: SH_MSH_Operator_compat _ _ _ _ f}
+           (mf: @MSHOperator i o)
+           `{f_mem: SH_MSH_Operator_compat _ _ _ _ f mf}
       :
-        SH_MSH_Operator_compat (svalue:=svalue) (UnSafeCast f).
+        SH_MSH_Operator_compat (UnSafeCast f) mf.
     Proof.
       split.
       -
-        typeclasses eauto.
+        apply UnSafeCast_Facts.
+        apply f_mem.
       -
-        typeclasses eauto.
+        apply f_mem.
       -
+        apply f_mem.
+      -
+        apply f_mem.
+      -
+        destruct f_mem.
+        intros x H.
+        unfold UnSafeCast, UnSafeCast'.
+        simpl in *.
+        specialize (mem_vec_preservation0 (rsvector2rvector _ x)).
+        unfold compose.
+        rewrite svector_to_mem_block_rvector2rsvector.
+        destruct mf.
+        rewrite svector_to_mem_block_rsvector2rvector in mem_vec_preservation0.
+        rewrite <- mem_vec_preservation0.
         reflexivity.
-      -
-        reflexivity.
-      -
-      destruct f_mem.
-      unshelve esplit; try assumption.
-      intros x H.
-      unfold UnSafeCast, UnSafeCast'.
-      simpl in *.
-      specialize (mem_vec_preservation0 (rsvector2rvector _ x)).
-      unfold compose.
-      rewrite svector_to_mem_block_rvector2rsvector.
-      rewrite svector_to_mem_block_rsvector2rvector in mem_vec_preservation0.
-      rewrite <- mem_vec_preservation0.
-      - reflexivity.
-      -
         intros j jc H0.
         specialize (H j jc H0).
         unfold rsvector2rvector.
         rewrite Vnth_map.
         apply Is_Val_Rtheta2RStheta.
         assumption.
-    Defined.
+    Qed.
 
     Global Instance SHBinOp_RthetaSafe_Mem
            {svalue: CarrierA}
