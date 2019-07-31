@@ -628,42 +628,63 @@ Section MemVecEq.
 
   Section MonoidSpecific.
 
-    Global Instance SafeCast_Mem
+    Global Instance SafeCast_SH_MSH_Operator_compat
            {svalue: CarrierA}
-           {i o}
+           {i o: nat}
            (f: @SHOperator Monoid_RthetaSafeFlags i o svalue)
-           `{f_mem: SHOperator_Mem _ _ _ _ f}
+           (mf: @MSHOperator i o)
+           `{f_mem: SH_MSH_Operator_compat _ _ _ _ f mf}
       :
-        SHOperator_Mem (svalue:=svalue) (SafeCast f).
+        SH_MSH_Operator_compat (SafeCast f) mf.
     Proof.
-      destruct f_mem.
-      unshelve esplit; try assumption.
-      intros x H.
-      unfold SafeCast, SafeCast'.
-      simpl in *.
-      specialize (mem_vec_preservation0 (rvector2rsvector _ x)).
-      unfold compose.
-      rewrite svector_to_mem_block_rsvector2rvector.
-      rewrite svector_to_mem_block_rvector2rsvector in mem_vec_preservation0.
-      rewrite <- mem_vec_preservation0.
-      - reflexivity.
+      split.
       -
+        apply SafeCast_Facts.
+        apply f_mem.
+      -
+        apply f_mem.
+      -
+        apply f_mem.
+      -
+        apply f_mem.
+      -
+        destruct f_mem.
+        intros x H.
+        unfold SafeCast, SafeCast'.
+        simpl in *.
+        specialize (mem_vec_preservation0 (rvector2rsvector _ x)).
+        unfold compose.
+        rewrite svector_to_mem_block_rsvector2rvector.
+        destruct mf.
+        rewrite svector_to_mem_block_rvector2rsvector in mem_vec_preservation0.
+        rewrite <- mem_vec_preservation0.
+        reflexivity.
         intros j jc H0.
         specialize (H j jc H0).
         unfold rvector2rsvector.
         rewrite Vnth_map.
         apply Is_Val_Rtheta2RStheta.
         assumption.
-    Defined.
+    Qed.
 
     Global Instance UnSafeCast_Mem
            {svalue: CarrierA}
            {i o}
            (f: @SHOperator Monoid_RthetaFlags i o svalue)
-           `{f_mem: SHOperator_Mem _ _ _ _ f}
+           `{f_mem: SH_MSH_Operator_compat _ _ _ _ f}
       :
-        SHOperator_Mem (svalue:=svalue) (UnSafeCast f).
+        SH_MSH_Operator_compat (svalue:=svalue) (UnSafeCast f).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
       destruct f_mem.
       unshelve esplit; try assumption.
       intros x H.
@@ -690,8 +711,17 @@ Section MemVecEq.
            (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
            {facts : SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp Monoid_RthetaSafeFlags f)}
-    : SHOperator_Mem (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) (facts:=facts).
+    : SH_MSH_Operator_compat (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) (facts:=facts).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
       -
         intros x G.
         simpl.
@@ -874,17 +904,27 @@ Section MemVecEq.
                              (out_index_set _ op1)
                              (out_index_set _ op2)
            )
-           `{Meq1: SHOperator_Mem _ i o _ op1}
-           `{Meq2: SHOperator_Mem _ i o _ op2}
+           `{Meq1: SH_MSH_Operator_compat _ i o _ op1}
+           `{Meq2: SH_MSH_Operator_compat _ i o _ op2}
 
            `{hfacts: SHOperator_Facts Monoid_RthetaFlags _ _ a_zero (HTSUMUnion Monoid_RthetaFlags dot op1 op2)}
 
            (* `a_zero` together with `dot` form a monoid.  *)
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
-      : SHOperator_Mem
+      : SH_MSH_Operator_compat
           (HTSUMUnion Monoid_RthetaFlags dot op1 op2 (svalue:=a_zero)).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
         (* mem_vec_preservation *)
         intros x G.
         simpl.
@@ -1148,10 +1188,10 @@ Section MemVecEq.
                {i o k : nat}
                (op_family : SHOperatorFamily fm (svalue:=svalue))
                (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j< S k), SHOperator_Mem (op_family (mkFinNat jc)))
+               (op_family_mem: forall j (jc:j< S k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
       :
         (forall (j : nat) (jc : j < k),
-            @SHOperator_Mem fm i o svalue
+            @SH_MSH_Operator_compat fm i o svalue
                             ((shrink_op_family fm op_family) (mkFinNat jc))
                             ((shrink_op_family_facts _ _ op_family_facts) j jc))
 
@@ -1164,10 +1204,10 @@ Section MemVecEq.
                {i o k : nat}
                (op_family : SHOperatorFamily fm (svalue:=svalue))
                (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j< S k), SHOperator_Mem (op_family (mkFinNat jc)))
+               (op_family_mem: forall j (jc:j< S k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
       :
         (forall (j : nat) (jc : j < k),
-            @SHOperator_Mem fm i o svalue
+            @SH_MSH_Operator_compat fm i o svalue
                             ((shrink_op_family_up fm op_family) (mkFinNat jc))
                             ((shrink_op_family_facts_up _ _ op_family_facts) j jc))
       := fun j jc => op_family_mem (S j) (lt_n_S jc).
@@ -1180,10 +1220,10 @@ Section MemVecEq.
                (d: nat)
                (op_family : SHOperatorFamily fm (svalue:=svalue))
                (op_family_facts: ∀ (j : nat) (jc : j < (k+d)), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j < (k+d)), SHOperator_Mem (op_family (mkFinNat jc)))
+               (op_family_mem: forall j (jc:j < (k+d)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
       :
         (forall (j : nat) (jc : j < k),
-            @SHOperator_Mem fm i o svalue
+            @SH_MSH_Operator_compat fm i o svalue
                             ((shrink_op_family_up_n fm d op_family) (mkFinNat jc))
                             ((shrink_op_family_facts_up_n fm d op_family op_family_facts) j jc))
       := fun j jc => op_family_mem (j+d) (Plus.plus_lt_compat_r _ _ _ jc).
@@ -1835,14 +1875,24 @@ Section MemVecEq.
            `{scompat: BFixpoint svalue dot}
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
            (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
            (facts : SHOperator_Facts Monoid_RthetaSafeFlags (IReduction dot op_family))
            (compat: forall j (jc:j<k),
                Ensembles.Same_set _
                                   (out_index_set _ (op_family (mkFinNat jc)))
                                   (Full_set _))
-      : SHOperator_Mem (IReduction dot op_family) (facts:=facts).
+      : SH_MSH_Operator_compat (IReduction dot op_family) (facts:=facts).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
         (* mem_vec_preservation *)
         intros x H.
         rename k into n.
@@ -1961,7 +2011,7 @@ Section MemVecEq.
            {i o n: nat}
            (op_family: @SHOperatorFamily fm i o n svalue)
            (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<n), SHOperator_Mem (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<n), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
       :
         Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family_mem)).
     Proof.
@@ -2019,10 +2069,10 @@ Section MemVecEq.
           {op_family_facts : forall (j: nat) (jc: j < m),
               SHOperator_Facts fm (op_family (mkFinNat jc))}
           (op_family_mem : forall (j: nat) (jc: j < m),
-              SHOperator_Mem (facts:=op_family_facts j jc) (op_family (mkFinNat jc)))
+              SH_MSH_Operator_compat (facts:=op_family_facts j jc) (op_family (mkFinNat jc)))
           (E: m≡n):
       forall (j : nat) (jc : j < n),
-        SHOperator_Mem
+        SH_MSH_Operator_compat
           (facts:=cast_op_family_facts op_family_facts E j jc)
           (cast_op_family op_family E (mkFinNat jc)).
     Proof.
@@ -2105,7 +2155,7 @@ Section MemVecEq.
              @SHOperator_Facts Monoid_RthetaFlags i o _
                                (op_family (@mkFinNat (n+d) j jc)))
 
-         (op_family_mem: forall j (jc: j < (n+d)), SHOperator_Mem (op_family (mkFinNat jc)))
+         (op_family_mem: forall j (jc: j < (n+d)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
 
          (compat : ∀ (m0 : nat) (mc : m0 < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
              m0 ≢ n0
@@ -2230,7 +2280,7 @@ Section MemVecEq.
              @SHOperator_Facts Monoid_RthetaFlags i o _
                                (op_family (@mkFinNat (S n) j jc)))
 
-         (op_family_mem: forall j (jc: j < (S n)), SHOperator_Mem (op_family (mkFinNat jc)))
+         (op_family_mem: forall j (jc: j < (S n)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
 
          (compat : ∀ (m0 : nat) (mc : m0 < (S n)) (n0 : nat) (nc : n0 < (S n)),
              m0 ≢ n0
@@ -2629,16 +2679,26 @@ Section MemVecEq.
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
            (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<k), SHOperator_Mem (op_family (mkFinNat jc)))
+           (op_family_mem: forall j (jc:j<k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
            `{scompat: BFixpoint svalue dot}
            (facts: @SHOperator_Facts Monoid_RthetaFlags i o svalue
                                      (IUnion dot op_family (pdot:=pdot) ))
-      :  SHOperator_Mem (IUnion dot op_family (pdot:=pdot))
+      :  SH_MSH_Operator_compat (IUnion dot op_family (pdot:=pdot))
                         (facts:=facts).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
       unshelve esplit.
         (* mem_vec_preservation *)
         intros x H.
