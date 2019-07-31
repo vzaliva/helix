@@ -711,8 +711,9 @@ Section MemVecEq.
            {o: nat}
            (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-           {facts : SHOperator_Facts Monoid_RthetaSafeFlags (SHBinOp Monoid_RthetaSafeFlags f)}
-    : SH_MSH_Operator_compat (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF) (facts:=facts).
+      : SH_MSH_Operator_compat
+          (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF)
+          (MSHBinOp (f:=f)).
     Proof.
       split.
       -
