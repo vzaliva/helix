@@ -10,6 +10,26 @@ Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
 Require Import Helix.Tactics.HelixTactics.
 
+(* These are generic, but we keep them here for lack of better place *)
+Section Setoid.
+
+  Global Instance Same_set_Reflexive (T:Type):
+    Reflexive (Same_set T).
+  Proof.
+    crush.
+  Qed.
+
+  Global Instance Same_set_Symmetric (T:Type):
+    Symmetric (Same_set T).
+  Proof.
+    split.
+    destruct H.
+    auto.
+    apply H.
+  Qed.
+
+End Setoid.
+
 Notation FinNatSet n := (Ensemble (FinNat n)).
 
 Definition singleton {n:nat} (i:nat): FinNatSet n :=
@@ -224,6 +244,38 @@ Proof.
   crush.
 Qed.
 
+Lemma Same_set_Included {T:Type} (A B: Ensemble T):
+  Same_set _ A B -> Included _ A B.
+Proof.
+  unfold Same_set.
+  crush.
+Qed.
+
+Lemma Disjoint_mor {T: Type} {A A' B B': Ensemble T}:
+  Same_set T A A' ->
+  Same_set T B B' ->
+  Disjoint T A B ->
+  Disjoint T A' B'.
+Proof.
+  intros H H0 H1.
+  apply (Disjoint_Included A A' B B').
+  assumption.
+  apply Same_set_Included; symmetry; assumption.
+  apply Same_set_Included; symmetry; assumption.
+Qed.
+
+Lemma Union_mor {T: Type} {A A' B B': Ensemble T}:
+  Same_set T A A' ->
+  Same_set T B B' ->
+  Ensembles.Union T A B = Union T A' B'.
+Proof.
+  intros H H0.
+  apply Extensionality_Ensembles in H0.
+  apply Extensionality_Ensembles in H.
+  subst.
+  reflexivity.
+Qed.
+
 Section NatSet_compat.
   Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
     := fun j => match NatUtil.lt_ge_dec j n with
@@ -272,13 +324,3 @@ Section NatSet_compat.
 End NatSet_compat.
 
 
-(* These are generic, but we keep them here for lack of better place *)
-Section Setoid.
-
-  Global Instance Same_set_Reflexive (T:Type):
-    Reflexive (Same_set T).
-  Proof.
-    crush.
-  Qed.
-
-End Setoid.
