@@ -165,12 +165,22 @@ Section MemVecEq.
         apply Meq2, G.
     Qed.
 
-    Global Instance eUnion_Mem
+    Global Instance eUnion_SH_MSH_Operator_compat
            {svalue: CarrierA}
-           {o b:nat}
+           {o b: nat}
            (bc: b < o)
-      : SHOperator_Mem (svalue:=svalue) (eUnion fm bc).
+      : SH_MSH_Operator_compat (eUnion (svalue:=svalue) fm bc) (MSHeUnion bc).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (eUnion fm bc)) by
             typeclasses eauto.
         intros x G.
@@ -274,13 +284,13 @@ Section MemVecEq.
           apply NP.F.find_mapsto_iff in V.
           unfold zero in *.
           congruence.
-    Defined.
+    Qed.
 
-    Global Instance eT_Mem
+    Global Instance eT_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o b:nat}
            (bc: b < o)
-      : SHOperator_Mem (svalue:=svalue) (eT fm bc).
+      : SH_MSH_Operator_compat (eT fm bc) (MSHeT bc).
     Proof.
       -
         assert (facts: SHOperator_Facts fm (svalue:=svalue) (eT fm bc)) by

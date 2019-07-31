@@ -4,6 +4,7 @@ Require Export Coq.Sets.Ensembles.
 Require Import Coq.Sets.Constructive_sets.
 Require Import Coq.Logic.Decidable.
 Require Import Coq.Arith.Peano_dec.
+Require Import Coq.Classes.RelationClasses.
 
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.FinNat.
@@ -269,3 +270,15 @@ Section NatSet_compat.
   Qed.
 
 End NatSet_compat.
+
+
+(* These are generic, but we keep them here for lack of better place *)
+Section Setoid.
+
+  Global Instance Same_set_Reflexive (T:Type):
+    Reflexive (Same_set T).
+  Proof.
+    crush.
+  Qed.
+
+End Setoid.
