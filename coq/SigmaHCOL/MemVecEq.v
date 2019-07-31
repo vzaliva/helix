@@ -471,14 +471,26 @@ Section MemVecEq.
           apply G,HH.
     Qed.
 
-    Global Instance SHInductor_Mem
+    Global Instance SHInductor_SH_MSH_Operator_compat
            {svalue: CarrierA}
            (n:nat)
            (f: CarrierA -> CarrierA -> CarrierA)
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
            (initial: CarrierA):
-      SHOperator_Mem (svalue:=svalue) (SHInductor fm n f initial).
+      SH_MSH_Operator_compat
+        (SHInductor (svalue:=svalue) fm n f initial)
+        (MSHInductor n initial).
     Proof.
+      split.
+      -
+        typeclasses eauto.
+      -
+        typeclasses eauto.
+      -
+        reflexivity.
+      -
+        reflexivity.
+      -
         intros x H.
         simpl.
         unfold SHInductor', HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
