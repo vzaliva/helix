@@ -55,35 +55,39 @@ Open Scope vector_scope.
 
 Open Scope nat_scope.
 
-
-Class SHOperator_MSHOperator_compat
+Class SH_MSH_Operator_compat
       {i o: nat}
-      {fm}
+      {fm: Monoid RthetaFlags}
       {svalue: CarrierA}
       (sop: @SHOperator fm i o svalue)
       (mop: @MSHOperator i o)
-      `{facts: !SHOperator_Facts fm sop}
   :=
     {
+      sfacts:
+        SHOperator_Facts fm sop;
 
+      mfacts:
+        MSHOperator_Facts mop;
+
+      (* input sparsity contracts must match *)
       in_pattern_compat:
         Same_set _ (in_index_set fm sop) (m_in_index_set mop);
 
+      (* output sparsity contracts must match *)
       out_pattern_compat:
-        Same_set _ (in_index_set fm sop) (m_in_index_set mop);
+        Same_set _ (out_index_set fm sop) (m_out_index_set mop);
 
       (* -- Semantics eqivalence -- *)
       mem_vec_preservation:
         forall x,
 
-          (* Only for inputs which comply to `facts` *)
+          (* Only for inputs which comply to sparsity contract *)
           (∀ (j : nat) (jc : (j < i)%nat),
               in_index_set fm sop (mkFinNat jc) → Is_Val (Vnth x jc))
           ->
           Some (svector_to_mem_block (op fm sop x)) =
           mem_op mop (svector_to_mem_block x)
     }.
-
 
 Section MemVecEq.
 
@@ -92,42 +96,65 @@ Section MemVecEq.
     Variable fm: Monoid RthetaFlags.
     Variable fml: @MonoidLaws RthetaFlags RthetaFlags_type fm.
 
-    Global Instance SHCompose_Mem
+    Global Instance SHCompose_SH_MSH_Operator_compat
            {svalue: CarrierA}
-           {i1 o2 o3}
+           {i1 o2 o3: nat}
            (op1: @SHOperator fm o2 o3 svalue)
            (op2: @SHOperator fm i1 o2 svalue)
            (compat: Included _ (in_index_set fm op1) (out_index_set fm op2))
-           `{Meq1: SHOperator_Mem fm o2 o3 _ op1}
-           `{Meq2: SHOperator_Mem fm i1 o2 _ op2}
-           `{facts: SHOperator_Facts fm _ _ _ (SHCompose fm op1 op2)}
-      : SHOperator_Mem
-          (SHCompose fm op1 op2).
+           (mop1: @MSHOperator o2 o3)
+           (mop2: @MSHOperator i1 o2)
+           `{Meq1: SH_MSH_Operator_compat _ _ _ _ op1 mop1}
+           `{Meq2: SH_MSH_Operator_compat _ _ _ _ op2 mop2}
+           `{facts1: SHOperator_Facts fm _ _ _ op1}
+           `{facts2: SHOperator_Facts fm _ _ _ op2}
+           `{mfacts1: MSHOperator_Facts _ _ mop1}
+           `{mfacts2: MSHOperator_Facts _ _ mop2}
+      : SH_MSH_Operator_compat
+          (SHCompose fm op1 op2) (MSHCompose mop1 mop2).
     Proof.
+      split.
+      -
+        apply SHCompose_Facts; auto.
+      -
+        apply SHCompose_MFacts; auto.
+        revert compat.
+        eapply Included_mor; [apply Meq1 | apply Meq2].
+      -
+        (* in_pattern_compat *)
+        apply Meq2.
+      -
+        (* out_pattern_compat *)
+        apply Meq1.
+      -
         (* mem_vec_preservation *)
         intros x G.
+        unfold SHCompose, MSHCompose.
         unfold option_compose, compose.
         simpl in G.
 
-        pose proof (@mem_out_some fm _ _ _ op2 _ Meq2 (svector_to_mem_block x) ) as Rm.
-        assert(G0: (∀ (j : nat) (jc : (j < i1)%nat), in_index_set fm op2 (mkFinNat jc)
+        pose proof (@mem_out_some _ _ mop2 mfacts2 (svector_to_mem_block x)) as Rm.
+        assert(G0: (∀ (j : nat) (jc : (j < i1)%nat), m_in_index_set mop2 (mkFinNat jc)
                                                  → mem_in j (svector_to_mem_block x))).
         {
           intros j jc H.
           apply svector_to_mem_block_In with (jc0:=jc).
-          apply G,H.
+          apply G.
+          apply in_pattern_compat.
+          apply H.
         }
         specialize (Rm G0).
         apply is_Some_equiv_def in Rm.
         destruct Rm as [m2 Rm].
+        simpl.
         break_match; try some_none.
         clear Rm m2.
-        pose proof (mem_op_proper (xop:=op1)) as P.
+        pose proof (mem_op_proper mop1) as P.
         setoid_replace m with (svector_to_mem_block (op fm op2 x)).
         apply Meq1.
         {
           intros j jc H.
-          apply facts0. (* out_as_range *)
+          apply facts2.
           apply G.
           apply compat, H.
         }
@@ -136,7 +163,7 @@ Section MemVecEq.
         rewrite <- Heqo.
         symmetry.
         apply Meq2, G.
-    Defined.
+    Qed.
 
     Global Instance eUnion_Mem
            {svalue: CarrierA}
