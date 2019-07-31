@@ -212,6 +212,16 @@ Proof.
   split; unfold Included; intros; apply Union_comm, H.
 Qed.
 
+Lemma Included_mor {T: Type} {A A' B B': Ensemble T}:
+  Same_set T A A' ->
+  Same_set T B B' ->
+  Included T A B ->
+  Included T A' B'.
+Proof.
+  intros H H0 H1.
+  unfold Same_set, Included in *.
+  crush.
+Qed.
 
 Section NatSet_compat.
   Definition FinNatSet_to_natSet {n:nat} (f: FinNatSet n): Ensemble nat
