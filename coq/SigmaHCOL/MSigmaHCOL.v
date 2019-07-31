@@ -2683,7 +2683,7 @@ Section MSHOperator_Facts_instances.
         eapply (out_mem_fill_pattern _ Heqo1); eauto.
   Qed.
 
-  Global Instance HTSUMUnion_Mfacts
+  Global Instance HTSUMUnion_MFacts
          {i o: nat}
          `{dot: SgOp CarrierA}
          (op1 op2: @MSHOperator i o)
