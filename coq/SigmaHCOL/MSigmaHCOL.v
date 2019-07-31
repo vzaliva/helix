@@ -1352,7 +1352,7 @@ Class MSHOperator_Facts
           ->
           forall j (jc:j<o), m_out_index_set mop (mkFinNat jc) <-> mem_in j m;
 
-      (* Do not access memory outside of bounds *)
+      (* Do not write memory outside of bounds *)
       out_mem_oob: forall m0 m,
           mem_op mop m0 ≡ Some m -> forall j (jc:j>=o), not (mem_in j m);
     }.
