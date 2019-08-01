@@ -84,6 +84,78 @@ Definition mem_union (m1 m2 : mem_block) : mem_block
 Definition is_disjoint (a b: NatSet) : bool :=
   NS.is_empty (NS.inter a b).
 
+Lemma is_disjoint_Disjoint (s s' : NS.t)
+  : Ensembles.Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') <-> is_disjoint s s' = true.
+Proof.
+  split.
+  -
+    intros E.
+    destruct E as [E].
+    unfold is_disjoint.
+    apply NS.is_empty_1.
+    unfold NS.Empty.
+    intros a.
+    specialize (E a).
+    intros H.
+    rewrite NE.In_In in H.
+    apply NE.inter_Intersection in H.
+    congruence.
+  -
+    intros D.
+    unfold is_disjoint in D.
+    apply NS.is_empty_2 in D.
+    apply NE.Empty_Empty_set in D.
+    apply Disjoint_intro.
+    intros x E.
+    unfold Ensembles.In in E.
+    apply NE.inter_Intersection in E.
+    unfold Ensembles.In in E.
+    apply D in E. clear D.
+    apply Constructive_sets.Noone_in_empty in E.
+    tauto.
+Qed.
+
+Lemma is_disjoint_sym {a b}:
+  is_disjoint a b = is_disjoint b a .
+Proof.
+  destruct (is_disjoint a b) eqn:AB;
+    destruct (is_disjoint a b) eqn:BA; try inversion AB.
+  -
+    clear AB.
+    symmetry.
+    rewrite <- is_disjoint_Disjoint.
+    rewrite <- is_disjoint_Disjoint in BA.
+    apply Disjoint_intro.
+    intros x.
+    destruct BA as [BA].
+    specialize (BA x).
+    intros AB.
+    contradict BA.
+    apply Constructive_sets.Intersection_inv in AB.
+    destruct AB as [A B].
+    unfold Ensembles.In.
+    apply Intersection_intro; auto.
+  -
+    clear AB. rename BA into AB.
+    symmetry.
+    apply not_true_is_false.
+    rewrite <- is_disjoint_Disjoint.
+    apply BoolUtil.false_not_true in AB.
+    rewrite <- is_disjoint_Disjoint in AB.
+    intros BA.
+    contradict AB.
+    apply Disjoint_intro.
+    intros x.
+    destruct BA as [BA].
+    specialize (BA x).
+    intros AB.
+    contradict BA.
+    apply Constructive_sets.Intersection_inv in AB.
+    destruct AB as [A B].
+    unfold Ensembles.In.
+    apply Intersection_intro; auto.
+Qed.
+
 Definition mem_merge (a b: mem_block) : option mem_block
   :=
     let kx := mem_keys_set a in
@@ -297,35 +369,27 @@ Proof.
   destruct (NP.F.In_dec m k); auto.
 Qed.
 
-Lemma is_disjoint_Disjoint (s s' : NS.t)
-  : Ensembles.Disjoint NS.elt (NE.mkEns s) (NE.mkEns s') <-> is_disjoint s s' = true.
+Lemma mem_keys_disjoint_inr
+      (m1 m2: mem_block)
+      (k: NM.key):
+  is_disjoint (mem_keys_set m1) (mem_keys_set m2) = true
+  -> mem_in k m1 -> not (mem_in k m2).
 Proof.
-  split.
-  -
-    intros E.
-    destruct E as [E].
-    unfold is_disjoint.
-    apply NS.is_empty_1.
-    unfold NS.Empty.
-    intros a.
-    specialize (E a).
-    intros H.
-    rewrite NE.In_In in H.
-    apply NE.inter_Intersection in H.
-    congruence.
-  -
-    intros D.
-    unfold is_disjoint in D.
-    apply NS.is_empty_2 in D.
-    apply NE.Empty_Empty_set in D.
-    apply Disjoint_intro.
-    intros x E.
-    unfold Ensembles.In in E.
-    apply NE.inter_Intersection in E.
-    unfold Ensembles.In in E.
-    apply D in E. clear D.
-    apply Constructive_sets.Noone_in_empty in E.
-    tauto.
+  intros D M1 M2.
+  apply mem_keys_set_In in M1.
+  apply mem_keys_set_In in M2.
+  generalize dependent (mem_keys_set m1).
+  generalize dependent (mem_keys_set m2).
+  intros s1 M1 s2 D M2.
+  clear m1 m2.
+  apply is_disjoint_Disjoint in D.
+  rewrite NE.In_In in M1.
+  rewrite NE.In_In in M2.
+  destruct D as [D].
+  specialize (D k).
+  contradict D.
+  unfold Ensembles.In.
+  apply Intersection_intro; auto.
 Qed.
 
 
