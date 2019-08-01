@@ -582,7 +582,7 @@ Section MemVecEq.
             simpl in H.
             eapply H.
             apply Full_intro.
-    Defined.
+    Qed.
 
   End WithMonoid.
 
@@ -666,7 +666,7 @@ Section MemVecEq.
         assumption.
     Qed.
 
-    Global Instance SHBinOp_RthetaSafe_Mem
+    Global Instance SHBinOp_RthetaSafe_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o: nat}
            (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -787,7 +787,7 @@ Section MemVecEq.
           intros j jc HH.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G,HH.
-    Defined.
+    Qed.
 
     Global Instance HTSUMUnion_SH_MSH_Operator_compat
            {a_zero: MonUnit CarrierA}
@@ -2136,10 +2136,9 @@ Section MemVecEq.
       forall (j : nat) (jc : j < n),
         SHOperator_Facts fm (cast_op_family fm op_family E (mkFinNat jc)).
     Proof.
-      intros j jc.
       crush.
       (* TODO: better proof. *)
-    Defined.
+    Qed.
 
     Lemma cast_SH_MSH_Operator_compat
           {svalue: CarrierA}
@@ -2163,7 +2162,7 @@ Section MemVecEq.
       unfold cast_op_family.
       break_match.
       auto.
-    Qed. (* was `Defined` before *)
+    Qed.
 
     Lemma cast_op_eq
           {svalue: CarrierA}
