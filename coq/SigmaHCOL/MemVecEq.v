@@ -2194,6 +2194,9 @@ Section MemVecEq.
           apply H0.
     Qed.
 
+    (*
+      Commented out temporary. see if it is needed and in what form.
+
     Global Instance IUnion_mem_proper
            {svalue: CarrierA}
            {fm}
@@ -2232,6 +2235,7 @@ Section MemVecEq.
       -
         reflexivity.
     Qed.
+     *)
 
     Lemma cast_op_family_facts
           {svalue: CarrierA}
@@ -2243,33 +2247,36 @@ Section MemVecEq.
                                (op_family (mkFinNat jc)))
           (E: m≡n):
       forall (j : nat) (jc : j < n),
-        SHOperator_Facts fm (cast_op_family op_family E (mkFinNat jc)).
+        SHOperator_Facts fm (cast_op_family fm op_family E (mkFinNat jc)).
     Proof.
       intros j jc.
       crush.
       (* TODO: better proof. *)
     Defined.
 
-    Lemma cast_op_family_mem
+    Lemma cast_SH_MSH_Operator_compat
           {svalue: CarrierA}
           {fm}
           {i o n m: nat}
           {op_family: @SHOperatorFamily fm i o m svalue}
+          {mop_family: @MSHOperatorFamily i o m}
           {op_family_facts : forall (j: nat) (jc: j < m),
               SHOperator_Facts fm (op_family (mkFinNat jc))}
           (op_family_mem : forall (j: nat) (jc: j < m),
-              SH_MSH_Operator_compat (facts:=op_family_facts j jc) (op_family (mkFinNat jc)))
+              SH_MSH_Operator_compat
+                (op_family (mkFinNat jc))
+                (mop_family (mkFinNat jc)))
           (E: m≡n):
       forall (j : nat) (jc : j < n),
         SH_MSH_Operator_compat
-          (facts:=cast_op_family_facts op_family_facts E j jc)
-          (cast_op_family op_family E (mkFinNat jc)).
+          (cast_op_family _ op_family E (mkFinNat jc))
+          (cast_m_op_family mop_family E (mkFinNat jc)).
     Proof.
       intros j jc.
       unfold cast_op_family.
       break_match.
       auto.
-    Defined.
+    Qed. (* was `Defined` before *)
 
     Lemma cast_op_eq
           {svalue: CarrierA}
@@ -2286,7 +2293,7 @@ Section MemVecEq.
       @get_family_op fm i o m svalue op_family t tm x
                      ≡
       @get_family_op fm i o n svalue
-                     (cast_op_family op_family E) t' tn x.
+                     (cast_op_family _ op_family E) t' tn x.
     Proof.
       subst.
       replace tm with tn by apply lt_unique.
@@ -2307,7 +2314,7 @@ Section MemVecEq.
       out_index_set fm (op_family (mkFinNat tm))
                     ≡
                     out_index_set fm
-                    (cast_op_family op_family E (mkFinNat tn)).
+                    (cast_op_family _ op_family E (mkFinNat tn)).
     Proof.
       subst.
       replace tm with tn by apply lt_unique.
@@ -2328,7 +2335,7 @@ Section MemVecEq.
       in_index_set fm (op_family (mkFinNat tm))
                     ≡
                     in_index_set fm
-                    (cast_op_family op_family E (mkFinNat tn)).
+                    (cast_op_family _ op_family E (mkFinNat tn)).
     Proof.
       subst.
       replace tm with tn by apply lt_unique.
@@ -2340,11 +2347,10 @@ Section MemVecEq.
          {i o n : nat}
          (d: nat)
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (n+d) svalue)
-         (op_family_facts: ∀ (j : nat) (jc : j < (n+d)),
-             @SHOperator_Facts Monoid_RthetaFlags i o _
-                               (op_family (@mkFinNat (n+d) j jc)))
-
-         (op_family_mem: forall j (jc: j < (n+d)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+         (mop_family: MSHOperatorFamily)
+         (Meq: forall j (jc: j < (n+d)), SH_MSH_Operator_compat
+                                      (op_family (mkFinNat jc))
+                                      (mop_family (mkFinNat jc)))
 
          (compat : ∀ (m0 : nat) (mc : m0 < (n+d)) (n0 : nat) (nc : n0 < (n+d)),
              m0 ≢ n0
@@ -2356,13 +2362,13 @@ Section MemVecEq.
          (l: list mem_block)
          (A : Apply_mem_Family
                 (get_family_mem_op
-                   (shrink_op_family_mem_up_n d op_family op_family_facts op_family_mem)) m
+                   (shrink_m_op_family_up_n d mop_family)) m
                 ≡ Some l)
 
          (t:nat)
          (tc: t<d)
          (tc1: t<n+d)
-         (H0: get_family_mem_op op_family_mem t tc1 m ≡ Some m0)
+         (H0: get_family_mem_op mop_family tc1 m ≡ Some m0)
 
          (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
       :
@@ -2402,18 +2408,21 @@ Section MemVecEq.
             apply tc1.
             (* (eq_ind (S n + d) (λ n0 : nat, S t <= n0) tc1 (n + S d) K) *)
           }
-          specialize IHn with (d:=(S d))
-                              (m:=m)
-                              (m0:=m0)
-                              (l:=m1t)
-                              (t:=t)
-                              (tc1:=tc2)
-                              (op_family:=cast_op_family op_family K)
-                              (op_family_facts:=cast_op_family_facts op_family_facts K)
-                              (op_family_mem:=cast_op_family_mem op_family_mem K)
-          .
 
-          eapply IHn; eauto.
+          apply IHn with (d:=(S d))
+                         (m:=m)
+                         (m0:=m0)
+                         (l:=m1t)
+                         (t:=t)
+                         (tc1:=tc2)
+                         (op_family:=cast_op_family _ op_family K)
+                         (mop_family:=cast_m_op_family mop_family K); eauto.
+          *
+            intros j jc.
+
+            unfold cast_op_family, cast_m_op_family.
+            break_match.
+            apply Meq.
           *
             intros m0' mc' n0' nc' H.
             assert(mc'': m0' < S n + d) by lia.
@@ -2423,13 +2432,13 @@ Section MemVecEq.
             erewrite <- cast_out_index_set_eq.
             erewrite <- cast_out_index_set_eq.
             apply compat.
-            eapply op_family_facts.
-            eapply op_family_facts.
+            apply Meq.
+            apply Meq.
           *
             rewrite <- A.
-            unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
-            shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
-            shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n.
+            unfold shrink_m_op_family_up, shrink_op_family_up, shrink_op_family_facts_up,
+            shrink_m_op_family, shrink_op_family, shrink_op_family_facts,
+            shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_m_op_family_up_n.
             clear.
             f_equiv.
             unfold get_family_mem_op.
@@ -2447,17 +2456,42 @@ Section MemVecEq.
         +
           clear IHn A Heqo0.
           unfold get_family_mem_op in A0, H0.
-          unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
-          shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
-          shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n
+          unfold shrink_m_op_family_up, shrink_op_family_up, shrink_op_family_facts_up,
+          shrink_m_op_family, shrink_op_family, shrink_op_family_facts,
+          shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_m_op_family_up_n
             in *.
           simpl in *.
           specialize (compat t tc1).
           specialize (compat d (Plus.plus_lt_compat_r O (S n) d (Nat.lt_0_succ n))).
           apply Disjoint_FinNat_to_nat in compat.
-          rewrite (mem_keys_set_to_out_index_set _ _ _ _ _ H0) in compat.
-          rewrite (mem_keys_set_to_out_index_set _ _ _ _ _ A0) in compat.
-          apply compat.
+
+          pose proof (@out_pattern_compat _ _ _ _
+                                          (op_family (mkFinNat tc1))
+                                          (mop_family (mkFinNat tc1))
+                                          (Meq t tc1)
+                     ) as P1.
+          apply Extensionality_Ensembles in P1.
+          rewrite P1 in compat. clear P1.
+
+          remember (Plus.plus_lt_compat_r 0 (S n) d (Nat.lt_0_succ n)) as zc.
+          epose proof (@out_pattern_compat _ _ _ _
+                                           (op_family (mkFinNat zc))
+                                           (mop_family (mkFinNat zc))
+                                           (Meq (0+d) _)
+
+                      ) as P2.
+          apply Extensionality_Ensembles in P2.
+          unfold mkFinNat in compat, P2.
+          simpl in compat, P2.
+          rewrite P2 in compat.
+          clear P2 Heqzc.
+          erewrite mem_keys_set_to_m_out_index_set in compat.
+          erewrite mem_keys_set_to_m_out_index_set in compat.
+          eapply compat.
+          apply Meq.
+          eauto.
+          apply Meq.
+          eauto.
           lia.
     Qed.
 

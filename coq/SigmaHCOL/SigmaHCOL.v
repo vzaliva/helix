@@ -231,6 +231,18 @@ Section SigmaHCOL_Operators.
       forall j (jc:j<n), svector fm i -> svector fm o
       := fun j (jc:j<n) => op (op_family (mkFinNat jc)).
 
+    Definition cast_op_family
+               {svalue}
+               {i o n m: nat}
+               (op_family: @SHOperatorFamily i o m svalue)
+               (E: m≡n)
+      :
+        @SHOperatorFamily i o n svalue
+    :=
+      match E in _ ≡ p return (@SHOperatorFamily i o p svalue) with
+      | eq_refl => op_family
+      end.
+
     (* Shrink family by removing the last member *)
     Definition shrink_op_family
                {i o n}
