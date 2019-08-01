@@ -2193,18 +2193,13 @@ Section MemVecEq.
           apply H0.
     Qed.
 
-    (*
-      Commented out temporary. see if it is needed and in what form.
-
+    (*  Not sure it is used anymore *)
     Global Instance IUnion_mem_proper
            {svalue: CarrierA}
-           {fm}
            {i o n: nat}
-           (op_family: @SHOperatorFamily fm i o n svalue)
-           (op_family_facts: forall j (jc:j<n), SHOperator_Facts fm (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<n), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+           (mop_family: @MSHOperatorFamily i o n)
       :
-        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family_mem)).
+        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op mop_family)).
     Proof.
       intros x y E.
       unfold IUnion_mem.
@@ -2234,7 +2229,6 @@ Section MemVecEq.
       -
         reflexivity.
     Qed.
-     *)
 
     Lemma cast_op_family_facts
           {svalue: CarrierA}
