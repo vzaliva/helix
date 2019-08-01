@@ -267,13 +267,23 @@ Qed.
 Lemma Union_mor {T: Type} {A A' B B': Ensemble T}:
   Same_set T A A' ->
   Same_set T B B' ->
-  Ensembles.Union T A B = Union T A' B'.
+  Ensembles.Union T A B = Ensembles.Union T A' B'.
 Proof.
   intros H H0.
   apply Extensionality_Ensembles in H0.
   apply Extensionality_Ensembles in H.
   subst.
   reflexivity.
+Qed.
+
+Lemma Union_mor_Same_set {T: Type} {A A' B B': Ensemble T}:
+  Same_set T A A' ->
+  Same_set T B B' ->
+  Same_set _ (Ensembles.Union T A B) (Ensembles.Union T A' B').
+Proof.
+  intros H H0.
+  apply Extension.
+  apply Union_mor; assumption.
 Qed.
 
 Section NatSet_compat.

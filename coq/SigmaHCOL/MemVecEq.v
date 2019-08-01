@@ -1985,6 +1985,62 @@ Section MemVecEq.
           apply H0.
     Qed.
 
+    (* Extending [SH_MSH_Operator_compat]'s [in_pattern_compat] to families *)
+    Lemma SH_MSH_family_in_pattern_compat
+          {svalue : CarrierA}
+          {fm}
+          {i o k : nat}
+          (op_family : SHOperatorFamily fm)
+          (mop_family : @MSHOperatorFamily i o k)
+          (Meq: ∀ (j : nat) (jc : j < k),
+              SH_MSH_Operator_compat
+                (op_family (mkFinNat jc))
+                (mop_family (mkFinNat jc)))
+      :
+        Same_set _
+                 (family_in_index_set (svalue:=svalue) fm op_family)
+                 (m_family_in_index_set mop_family).
+    Proof.
+      induction k.
+      -
+        crush.
+      -
+        simpl.
+        eapply Union_mor_Same_set.
+        apply Meq.
+        apply IHk.
+        apply shrink_SH_MSH_Operator_compat_family.
+        assumption.
+    Qed.
+
+    (* Extending [SH_MSH_Operator_compat]'s [out_pattern_compat] to families *)
+    Lemma SH_MSH_family_out_pattern_compat
+          {svalue : CarrierA}
+          {fm}
+          {i o k : nat}
+          (op_family : SHOperatorFamily fm)
+          (mop_family : @MSHOperatorFamily i o k)
+          (Meq: ∀ (j : nat) (jc : j < k),
+              SH_MSH_Operator_compat
+                (op_family (mkFinNat jc))
+                (mop_family (mkFinNat jc)))
+      :
+        Same_set _
+                 (family_out_index_set (svalue:=svalue) fm op_family)
+                 (m_family_out_index_set mop_family).
+    Proof.
+      induction k.
+      -
+        crush.
+      -
+        simpl.
+        eapply Union_mor_Same_set.
+        apply Meq.
+        apply IHk.
+        apply shrink_SH_MSH_Operator_compat_family.
+        assumption.
+    Qed.
+
     Global Instance IReduction_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {i o k: nat}
@@ -1992,29 +2048,43 @@ Section MemVecEq.
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
            `{scompat: BFixpoint svalue dot}
            (op_family: @SHOperatorFamily Monoid_RthetaSafeFlags i o k svalue)
-           (op_family_facts: forall j (jc:j<k), SHOperator_Facts Monoid_RthetaSafeFlags (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
-           (facts : SHOperator_Facts Monoid_RthetaSafeFlags (IReduction dot op_family))
+           (mop_family: MSHOperatorFamily)
+           (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
+                                 (op_family (mkFinNat jc))
+                                 (mop_family (mkFinNat jc)))
            (compat: forall j (jc:j<k),
                Ensembles.Same_set _
                                   (out_index_set _ (op_family (mkFinNat jc)))
                                   (Full_set _))
-      : SH_MSH_Operator_compat (IReduction dot op_family) (facts:=facts).
+      : SH_MSH_Operator_compat
+          (IReduction dot op_family)
+          (MSHIReduction svalue  mop_family).
     Proof.
       split.
       -
-        typeclasses eauto.
+        apply IReduction_Facts.
+        apply Meq.
       -
-        typeclasses eauto.
+        apply IReduction_MFacts.
+        apply Meq.
+        intros j jc.
+        specialize (compat j jc).
+        apply Extensionality_Ensembles in compat.
+        rewrite <- compat.
+        symmetry.
+        apply Meq.
       -
-        reflexivity.
+        simpl.
+        apply SH_MSH_family_in_pattern_compat.
+        assumption.
       -
-        reflexivity.
+        apply SH_MSH_family_out_pattern_compat.
+        assumption.
       -
         (* mem_vec_preservation *)
         intros x H.
         rename k into n.
-        unfold IReduction, IReduction_mem, Diamond in *.
+        unfold MSHIReduction, IReduction, IReduction_mem, Diamond in *.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
@@ -2040,8 +2110,8 @@ Section MemVecEq.
             apply Apply_mem_Family_cons in A.
             destruct A as [A0 A].
             assert(forall (j : nat) (jc : j < i), family_in_index_set Monoid_RthetaSafeFlags
-                                     (shrink_op_family_up Monoid_RthetaSafeFlags
-                                        op_family) (mkFinNat jc) →
+                                                               (shrink_op_family_up Monoid_RthetaSafeFlags
+                                                                                    op_family) (mkFinNat jc) →
                                            Is_Val (Vnth x jc)) as P.
             {
               intros j jc H0.
@@ -2062,17 +2132,16 @@ Section MemVecEq.
 
             (* shrink compat *)
             assert(compat': forall (j : nat) (jc : j < n), Same_set (FinNat o)
-                             (out_index_set Monoid_RthetaSafeFlags
-                                (shrink_op_family_up Monoid_RthetaSafeFlags op_family
-                                                     (mkFinNat jc))) (Full_set (FinNat o))).
+                                                             (out_index_set Monoid_RthetaSafeFlags
+                                                                            (shrink_op_family_up Monoid_RthetaSafeFlags op_family
+                                                                                                 (mkFinNat jc))) (Full_set (FinNat o))).
             {
               intros j jc.
               apply compat.
             }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
-                          (shrink_op_family_facts_up _ _ op_family_facts)
-                          (shrink_op_family_mem_up _ _ op_family_mem)
+                          (shrink_m_op_family_up mop_family)
                           _
                           compat'
                           P
@@ -2096,10 +2165,11 @@ Section MemVecEq.
               apply H0.
             --
               apply Vec2Union_fold_zeros_dense with (op_family0:=op_family) (x0:=x); auto.
+              apply Meq.
             --
               apply Vforall_nth_intro.
               intros j jc.
-              apply (op_family_facts 0 (Nat.lt_0_succ n)).
+              apply Meq.
               intros t tc HH.
               specialize (H t tc).
               apply H.
@@ -2115,13 +2185,14 @@ Section MemVecEq.
           destruct A as [t [tc A]].
           contradict A.
           apply is_Some_ne_None.
-          apply mem_out_some.
+          apply Meq.
           intros j jc H0.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply H.
           eapply family_in_set_includes_members.
+          apply Meq.
           apply H0.
-    Defined.
+    Qed.
 
     Global Instance IUnion_mem_proper
            {svalue: CarrierA}
