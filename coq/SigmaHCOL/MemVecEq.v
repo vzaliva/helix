@@ -2499,11 +2499,10 @@ Section MemVecEq.
          {svalue: CarrierA}
          {i o n : nat}
          (op_family: @SHOperatorFamily Monoid_RthetaFlags i o (S n) svalue)
-         (op_family_facts: ∀ (j : nat) (jc : j < (S n)),
-             @SHOperator_Facts Monoid_RthetaFlags i o _
-                               (op_family (@mkFinNat (S n) j jc)))
-
-         (op_family_mem: forall j (jc: j < (S n)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+         (mop_family: MSHOperatorFamily)
+         (Meq: forall j (jc: j < (S n)), SH_MSH_Operator_compat
+                                      (op_family (mkFinNat jc))
+                                      (mop_family (mkFinNat jc)))
 
          (compat : ∀ (m0 : nat) (mc : m0 < (S n)) (n0 : nat) (nc : n0 < (S n)),
              m0 ≢ n0
@@ -2515,11 +2514,11 @@ Section MemVecEq.
          (l: list mem_block)
          (A : Apply_mem_Family
                 (get_family_mem_op
-                   (shrink_op_family_mem_up op_family op_family_facts op_family_mem)) m
+                   (shrink_m_op_family_up mop_family)) m
                 ≡ Some l)
 
          (t:nat)
-         (H0: get_family_mem_op op_family_mem 0 (Nat.lt_0_succ n) m ≡ Some m0)
+         (H0: get_family_mem_op mop_family (Nat.lt_0_succ n) m ≡ Some m0)
 
          (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
       :
@@ -2534,8 +2533,10 @@ Section MemVecEq.
           (d:=1)
           (t0:=0)
           (tc1:=zc2)
-          (m2:=m)
-          (op_family_mem0 := cast_op_family_mem op_family_mem E); eauto.
+          (m2:=m).
+      -
+        eapply cast_SH_MSH_Operator_compat.
+        eapply Meq.
       -
         intros m0' mc' n0' nc' H.
         assert(mc'': m0' < S n ) by lia.
@@ -2544,13 +2545,13 @@ Section MemVecEq.
         erewrite <- cast_out_index_set_eq.
         erewrite <- cast_out_index_set_eq.
         apply compat.
-        eapply op_family_facts.
-        eapply op_family_facts.
+        eapply Meq.
+        eapply Meq.
       -
         rewrite <- A.
-        unfold shrink_op_family_mem_up, shrink_op_family_up, shrink_op_family_facts_up,
-        shrink_op_family_mem, shrink_op_family, shrink_op_family_facts,
-        shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_op_family_mem_up_n.
+        unfold shrink_m_op_family_up, shrink_op_family_up, shrink_op_family_facts_up,
+        shrink_m_op_family, shrink_op_family, shrink_op_family_facts,
+        shrink_op_family_up_n, shrink_op_family_facts_up_n, shrink_m_op_family_up_n.
         clear.
         f_equiv.
         unfold get_family_mem_op.
@@ -2559,11 +2560,19 @@ Section MemVecEq.
         apply cast_mem_op_eq.
         lia.
       -
+        lia.
+      -
         rewrite <- H0.
         clear.
         unfold get_family_mem_op.
         apply equal_f.
         apply cast_mem_op_eq; auto.
+      -
+        assumption.
+
+        Unshelve.
+        apply Meq.
+        lia.
     Qed.
 
     Lemma vector_val_index_set_Vconst_Empty
