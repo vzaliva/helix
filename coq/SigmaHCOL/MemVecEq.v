@@ -900,7 +900,6 @@ Section MemVecEq.
            {i o: nat}
            `{dot: SgOp CarrierA}
            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
-           `{scompat: BFixpoint a_zero dot}
            (op1 op2: @SHOperator Monoid_RthetaFlags i o a_zero)
            (mop1 mop2: @MSHOperator i o)
            (compat: Disjoint _
