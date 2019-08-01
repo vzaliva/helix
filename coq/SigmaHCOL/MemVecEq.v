@@ -1985,7 +1985,7 @@ Section MemVecEq.
           apply H0.
     Qed.
 
-    Global Instance IReduction_Mem
+    Global Instance IReduction_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {i o k: nat}
            (dot: CarrierA -> CarrierA -> CarrierA)
@@ -2789,7 +2789,7 @@ Section MemVecEq.
         assumption.
     Qed.
 
-    Global Instance IUnion_Mem
+    Global Instance IUnion_SH_MSH_Operator_compat
            {i o k: nat}
            `{svalue: MonUnit CarrierA}
            `{dot: SgOp CarrierA}
