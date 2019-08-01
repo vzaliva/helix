@@ -873,11 +873,13 @@ Section MemVecEq.
                 specialize (H0 k kc).
                 specialize (H1 k kc).
 
-                epose proof (@HTSUMUnion_mem_out_fill_pattern
+                unshelve epose proof (@HTSUMUnion_mem_out_fill_pattern
                               _ _ _
                               mop1 mop2
                               _ _
                               (svector_to_mem_block x) m) as P.
+                apply Meq1.
+                apply Meq2.
                 simpl in P.
                 unfold HTSUMUnion_mem in P.
                 break_match_hyp; try some_none.
@@ -894,7 +896,9 @@ Section MemVecEq.
                   clear H1.
                   apply P in K; clear P.
 
-                  epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  apply Meq1.
+                  apply Meq2.
                   pose proof (out_as_range _ x (SHOperator_Facts:=facts) G k kc) as V.
                   unfold HTSUMUnion in V; simpl in V.
 
@@ -958,7 +962,8 @@ Section MemVecEq.
                     unfold SVector.Union.
                     rewrite evalWriter_Rtheta_liftM2.
 
-                    epose proof (out_mem_fill_pattern _ Heqo3) as P2.
+                    unshelve epose proof (out_mem_fill_pattern _ Heqo3) as P2.
+                    apply Meq2.
                     unfold mem_in in P2. specialize (P2 k kc).
                     apply not_iff_compat in P2.
                     apply P2 in NM2.
@@ -1008,7 +1013,8 @@ Section MemVecEq.
                     unfold SVector.Union.
                     rewrite evalWriter_Rtheta_liftM2.
 
-                    epose proof (out_mem_fill_pattern _ Heqo2) as P1.
+                    unshelve epose proof (out_mem_fill_pattern _ Heqo2) as P1.
+                    apply Meq1.
                     unfold mem_in in P1. specialize (P1 k kc).
                     apply not_iff_compat in P1.
                     apply P1 in NM1.
@@ -1023,8 +1029,10 @@ Section MemVecEq.
                     by (symmetry; apply NP.F.not_find_in_iff, NK).
                   apply not_iff_compat in P.
                   apply P in NK; clear P.
-                  epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
-                  epose proof (no_vals_at_sparse _ x k kc ) as NV.
+                  unshelve epose proof (HTSUMUnion_Facts dot op1 op2 compat) as facts.
+                  apply Meq1.
+                  apply Meq2.
+                  pose proof (no_vals_at_sparse _ x k kc ) as NV.
                   simpl in NV.
                   unfold Scatter in NV; simpl in NV.
                   rewrite <- O1 in NK.
@@ -1052,13 +1060,15 @@ Section MemVecEq.
                 destruct N as [IN1 | IN2].
                 **
                   (* prove contradiction in N1 *)
-                  epose proof (out_mem_oob _ H1) as NP1.
+                  unshelve epose proof (out_mem_oob _ H1) as NP1.
+                  apply Meq1.
                   specialize (NP1 k kc).
                   unfold mem_in in NP1.
                   congruence.
                 **
                   (* prove contradiction in N1 *)
-                  epose proof (out_mem_oob _ H2) as NP2.
+                  unshelve epose proof (out_mem_oob _ H2) as NP2.
+                  apply Meq2.
                   specialize (NP2 k kc).
                   unfold mem_in in NP2.
                   congruence.
@@ -1079,10 +1089,14 @@ Section MemVecEq.
               intros m H1 H2.
               (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
                yet, but IN1 and IN2, 'k' belongs to both *)
-              epose proof (out_mem_fill_pattern _ H1) as P1.
-              epose proof (out_mem_oob _ H1) as NP1.
-              epose proof (out_mem_fill_pattern _ H2) as P2.
-              epose proof (out_mem_oob _ H2) as NP2.
+              unshelve epose proof (out_mem_fill_pattern _ H1) as P1.
+              apply Meq1.
+              unshelve epose proof (out_mem_oob _ H1) as NP1.
+              apply Meq1.
+              unshelve epose proof (out_mem_fill_pattern _ H2) as P2.
+              apply Meq2.
+              unshelve epose proof (out_mem_oob _ H2) as NP2.
+              apply Meq2.
               destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
               ++
                 clear NP1 NP2.
@@ -1100,7 +1114,8 @@ Section MemVecEq.
           *
             contradict Heqo1.
             apply is_Some_ne_None.
-            eapply mem_out_some; auto.
+            unshelve eapply mem_out_some; eauto.
+            apply Meq2.
             intros j jc H.
             apply svector_to_mem_block_In with (jc0:=jc).
             apply G.
@@ -1111,7 +1126,8 @@ Section MemVecEq.
         +
           contradict Heqo0.
           apply is_Some_ne_None.
-          eapply mem_out_some; auto.
+          unshelve eapply mem_out_some; eauto.
+          apply Meq1.
           intros j jc H.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply G.
@@ -1119,25 +1135,6 @@ Section MemVecEq.
           apply Union_introl.
           apply in_pattern_compat.
           apply H.
-
-          (* Really ugly stiff below *)
-          Unshelve.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
-          try apply Meq1; try apply Meq2.
     Qed.
 
     Definition shrink_SH_MSH_Operator_compat_family
@@ -2938,7 +2935,8 @@ Section MemVecEq.
             --
               apply pdot.
             --
-              eapply IUnion_vector_val_index_set_1_step_disjoint; eauto.
+              unshelve eapply IUnion_vector_val_index_set_1_step_disjoint; eauto.
+              apply Meq.
             --
               typeclasses eauto.
             --
@@ -2946,7 +2944,7 @@ Section MemVecEq.
                   (op_family0:=shrink_op_family_up _ op_family)
                   (x0:=x); auto.
               unshelve eapply (shrink_op_family_facts_up _ _ _).
-              eapply Meq.
+              apply Meq.
             --
               apply Vforall_nth_intro.
               clear P.
@@ -2974,9 +2972,6 @@ Section MemVecEq.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-
-          Unshelve.
-          apply Meq.
     Qed.
 
   End MonoidSpecific.
