@@ -3235,7 +3235,7 @@ Section MSHOperator_Facts_instances.
       auto.
   Qed.
 
-  Global Instance IUnion_Mem
+  Global Instance IUnion_MFacts
          {i o k: nat}
          `{svalue: MonUnit CarrierA}
          `{dot: SgOp CarrierA}
