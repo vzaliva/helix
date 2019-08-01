@@ -1282,12 +1282,12 @@ Section MemVecEq.
                {svalue: CarrierA}
                {fm}
                {i o k : nat}
-               (op_family : SHOperatorFamily fm (svalue:=svalue))
-               (mop_family: MSHOperatorFamily)
-               {Meq: forall j (jc:j< S k), SH_MSH_Operator_compat
+               {op_family : SHOperatorFamily fm (svalue:=svalue)}
+               {mop_family: MSHOperatorFamily}
+               (Meq: forall j (jc:j< S k), SH_MSH_Operator_compat
                                         (op_family (mkFinNat jc))
                                         (mop_family (mkFinNat jc))
-               }
+               )
       :
         (forall (j : nat) (jc : j < k),
             @SH_MSH_Operator_compat i o fm svalue
@@ -2909,32 +2909,48 @@ Section MemVecEq.
            `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
            (op_family: @SHOperatorFamily Monoid_RthetaFlags i o k svalue)
-           (op_family_facts: forall j (jc: j<k), SHOperator_Facts Monoid_RthetaFlags (op_family (mkFinNat jc)))
-           (op_family_mem: forall j (jc:j<k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+           (mop_family: MSHOperatorFamily)
+           (Meq: forall j (jc:j<k), SH_MSH_Operator_compat
+                                           (op_family (mkFinNat jc))
+                                           (mop_family (mkFinNat jc)))
            (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
            `{scompat: BFixpoint svalue dot}
            (facts: @SHOperator_Facts Monoid_RthetaFlags i o svalue
                                      (IUnion dot op_family (pdot:=pdot) ))
-      :  SH_MSH_Operator_compat (IUnion dot op_family (pdot:=pdot))
-                        (facts:=facts).
+      :  SH_MSH_Operator_compat
+           (IUnion dot op_family (pdot:=pdot))
+           (MSHIUnion mop_family).
     Proof.
       split.
       -
         typeclasses eauto.
       -
-        typeclasses eauto.
+        apply IUnion_MFacts.
+        +
+          intros j jc.
+          specialize (compat j jc).
+          apply Meq.
+        +
+          intros m mc n nc H.
+          specialize (compat m mc n nc H).
+          eapply Disjoint_mor.
+          apply Meq.
+          apply Meq.
+          apply compat.
       -
-        reflexivity.
+        simpl.
+        apply SH_MSH_family_in_pattern_compat.
+        assumption.
       -
-        reflexivity.
+        apply SH_MSH_family_out_pattern_compat.
+        assumption.
       -
-      unshelve esplit.
         (* mem_vec_preservation *)
         intros x H.
         rename k into n.
-        unfold IUnion, IUnion_mem, Diamond.
+        unfold MSHIUnion, IUnion, IUnion_mem, Diamond.
         simpl in *.
         break_match; rename Heqo0 into A.
         +
@@ -3001,11 +3017,12 @@ Section MemVecEq.
               apply IUnion_Facts; auto.
               intros j jc.
               apply shrink_op_family_facts_up; auto.
+              apply Meq.
             }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
-                          (shrink_op_family_facts_up _ _ op_family_facts)
-                          (shrink_op_family_mem_up _ _ op_family_mem)
+                          (shrink_m_op_family_up mop_family)
+                          (shrink_SH_MSH_Operator_compat_family_up Meq)
                           compat'
                           facts'
                           P
@@ -3041,13 +3058,15 @@ Section MemVecEq.
               apply Vec2Union_fold_zeros with
                   (op_family0:=shrink_op_family_up _ op_family)
                   (x0:=x); auto.
-              apply (shrink_op_family_facts_up _ _ op_family_facts).
+              unshelve eapply (shrink_op_family_facts_up _ _ _).
+              eapply Meq.
             --
               apply Vforall_nth_intro.
               clear P.
               intros t tc P.
               eapply svalue_at_sparse.
               eapply sparse_outputs_not_in_out_set; eauto.
+              apply Meq.
               intros j jc H0.
               specialize (H j jc).
               apply H.
@@ -3061,13 +3080,17 @@ Section MemVecEq.
           destruct A as [t [tc A]].
           contradict A.
           apply is_Some_ne_None.
-          apply mem_out_some.
+          apply Meq.
           intros j jc H0.
           apply svector_to_mem_block_In with (jc0:=jc).
           apply H.
           eapply family_in_set_includes_members.
+          apply Meq.
           apply H0.
-    Defined.
+
+          Unshelve.
+          apply Meq.
+    Qed.
 
   End MonoidSpecific.
 
