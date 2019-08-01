@@ -586,46 +586,6 @@ Section MemVecEq.
 
   End WithMonoid.
 
-  (* TODO: move somewhere in Utils *)
-  Lemma In_Add_eq
-        {T:Type}
-        {a b: T}
-        {l: Ensemble T}
-    :
-      a≡b -> Ensembles.In T (Ensembles.Add T l a) b.
-  Proof.
-    intros E.
-    unfold Ensembles.Add.
-    apply Union_intror.
-    rewrite E.
-    apply Ensembles.In_singleton.
-  Qed.
-
-  (* TODO: move somewhere in Utils *)
-  Lemma In_Add_neq
-        {T:Type}
-        (a b: T)
-        {l: Ensemble T}
-    :
-      a≢b -> Ensembles.In T l b <-> Ensembles.In T (Ensembles.Add T l a) b.
-  Proof.
-    intros E.
-    split.
-    -
-      intros H.
-      unfold Ensembles.Add.
-      apply Union_introl, H.
-    -
-      intros H.
-      unfold Ensembles.Add in H.
-      destruct H.
-      + apply H.
-      + exfalso.
-        unfold Ensembles.In in H.
-        destruct H.
-        congruence.
-  Qed.
-
   Section MonoidSpecific.
 
     Global Instance SafeCast_SH_MSH_Operator_compat
