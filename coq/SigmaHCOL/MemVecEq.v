@@ -1247,51 +1247,104 @@ Section MemVecEq.
           try apply Meq1; try apply Meq2.
     Qed.
 
-    Definition shrink_op_family_mem
+    Definition shrink_SH_MSH_Operator_compat_family
                {svalue: CarrierA}
                {fm}
                {i o k : nat}
                (op_family : SHOperatorFamily fm (svalue:=svalue))
-               (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j< S k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+               (mop_family: MSHOperatorFamily)
+               {Meq: forall j (jc:j< S k), SH_MSH_Operator_compat
+                                        (op_family (mkFinNat jc))
+                                        (mop_family (mkFinNat jc))}
       :
         (forall (j : nat) (jc : j < k),
-            @SH_MSH_Operator_compat fm i o svalue
-                            ((shrink_op_family fm op_family) (mkFinNat jc))
-                            ((shrink_op_family_facts _ _ op_family_facts) j jc))
+            @SH_MSH_Operator_compat i o fm svalue
+                                    ((shrink_op_family fm op_family) (mkFinNat jc))
+                                    ((shrink_m_op_family mop_family) (mkFinNat jc))
+        ).
+      Proof.
+        intros j jc.
+        split.
+        -
+          apply shrink_op_family_facts.
+          apply Meq.
+        -
+          apply shrink_m_op_family_facts.
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+      Defined.
 
-      :=
-        fun j jc => op_family_mem j (le_S jc).
-
-    Definition shrink_op_family_mem_up
+    Definition shrink_SH_MSH_Operator_compat_family_up
                {svalue: CarrierA}
                {fm}
                {i o k : nat}
                (op_family : SHOperatorFamily fm (svalue:=svalue))
-               (op_family_facts: ∀ (j : nat) (jc : j < S k), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j< S k), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+               (mop_family: MSHOperatorFamily)
+               {Meq: forall j (jc:j< S k), SH_MSH_Operator_compat
+                                        (op_family (mkFinNat jc))
+                                        (mop_family (mkFinNat jc))
+               }
       :
         (forall (j : nat) (jc : j < k),
-            @SH_MSH_Operator_compat fm i o svalue
+            @SH_MSH_Operator_compat i o fm svalue
                             ((shrink_op_family_up fm op_family) (mkFinNat jc))
-                            ((shrink_op_family_facts_up _ _ op_family_facts) j jc))
-      := fun j jc => op_family_mem (S j) (lt_n_S jc).
+                            ((shrink_m_op_family_up mop_family) (mkFinNat jc))).
+
+      Proof.
+        intros j jc.
+        split.
+        -
+          apply shrink_op_family_facts_up.
+          apply Meq.
+        -
+          apply shrink_m_op_family_facts_up.
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+      Defined.
 
     (* Like [shrink_op_family_mem_up] by [n] times *)
-    Definition shrink_op_family_mem_up_n
+    Definition shrink_SH_MSH_Operator_compat_family_up_n
                {svalue: CarrierA}
                {fm}
                {i o k: nat}
                (d: nat)
-               (op_family : SHOperatorFamily fm (svalue:=svalue))
-               (op_family_facts: ∀ (j : nat) (jc : j < (k+d)), @SHOperator_Facts fm i o _ (op_family (mkFinNat jc)))
-               (op_family_mem: forall j (jc:j < (k+d)), SH_MSH_Operator_compat (op_family (mkFinNat jc)))
+               (op_family: SHOperatorFamily fm (svalue:=svalue))
+               (mop_family: MSHOperatorFamily)
+               {Meq: forall j (jc:j < (k+d)), SH_MSH_Operator_compat
+                                           (op_family (mkFinNat jc))
+                                           (mop_family (mkFinNat jc))
+               }
       :
         (forall (j : nat) (jc : j < k),
-            @SH_MSH_Operator_compat fm i o svalue
+            @SH_MSH_Operator_compat i o fm svalue
                             ((shrink_op_family_up_n fm d op_family) (mkFinNat jc))
-                            ((shrink_op_family_facts_up_n fm d op_family op_family_facts) j jc))
-      := fun j jc => op_family_mem (j+d) (Plus.plus_lt_compat_r _ _ _ jc).
+                            ((shrink_m_op_family_up_n d mop_family) (mkFinNat jc))).
+    Proof.
+        intros j jc.
+        split.
+        -
+          apply shrink_op_family_facts_up_n.
+          apply Meq.
+        -
+          apply shrink_m_op_family_facts_up_n.
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+        -
+          apply Meq.
+      Defined.
 
     Lemma svector_to_mem_block_equiv
           {fm : Monoid RthetaFlags}

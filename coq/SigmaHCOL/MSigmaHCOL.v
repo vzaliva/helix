@@ -1497,6 +1497,15 @@ Section MFamilies.
     := fun jf => op_family (mkFinNat
                            (Plus.plus_lt_compat_r _ _ _ (proj2_sig jf))).
 
+  Definition shrink_m_op_family_facts
+             {i o k : nat}
+             (op_family : MSHOperatorFamily )
+             (facts: ∀ (j : nat) (jc : j < S k),
+                 @MSHOperator_Facts i o (op_family (mkFinNat jc))):
+      (forall (j : nat) (jc : j < k),
+          @MSHOperator_Facts i o ((shrink_m_op_family op_family) (mkFinNat jc)))
+      := fun j jc => facts j (le_S jc).
+
   Definition shrink_m_op_family_facts_up
              {i o k : nat}
              (op_family : MSHOperatorFamily)
