@@ -2815,7 +2815,7 @@ Section MemVecEq.
         intros j jc H0.
         apply H; clear H.
         (* could be a sub-lemma *)
-        unfold shrink_op_family_mem_up_n in H0.
+        unfold shrink_m_op_family_up_n in H0.
         apply family_in_set_implies_members in H0.
         destruct H0 as [p [pc H0]].
         eapply family_in_set_includes_members.
@@ -2870,7 +2870,7 @@ Section MemVecEq.
           (d:=1)
           (t0:=0)
           (tc1:=zc1)
-          (op_family := cast_op_family op_family E); eauto.
+          (op_family := cast_op_family _ op_family E); eauto.
       -
         apply (cast_op_family_facts op_family_facts E).
       -
