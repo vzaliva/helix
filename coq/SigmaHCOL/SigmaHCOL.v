@@ -53,10 +53,7 @@ Section SigmaHCOL_Operators.
 
     Variable fm:Monoid RthetaFlags.
 
-    Record SHOperator
-           {i o: nat}
-           {svalue: CarrierA}
-      : Type
+    Record SHOperator {i o: nat} {svalue: CarrierA} : Type
       := mkSHOperator {
              (* implementation on sparse vectors *)
              op: svector fm i -> svector fm o ;
@@ -114,7 +111,8 @@ Section SigmaHCOL_Operators.
         apply H0.
     Qed.
 
-    Lemma vec_equiv_at_Full_set {i : nat}
+    Lemma vec_equiv_at_Full_set
+          {i : nat}
           (x y : svector fm i):
       vec_equiv_at_set (Full_set (FinNat i)) x y  <-> x = y.
     Proof.
@@ -1368,7 +1366,8 @@ Section SigmaHCOL_Operators.
     Qed.
 
 
-    Definition Constant_Family {i o n} {svalue: CarrierA} (f: @SHOperator i o svalue)
+    Definition Constant_Family
+               {i o n} {svalue: CarrierA} (f: @SHOperator i o svalue)
       : @SHOperatorFamily i o n svalue := fun _ => f.
 
     (* Family composition *)
