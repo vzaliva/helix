@@ -20,11 +20,8 @@ Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.HCOL.CarrierType.
 
-Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.MemSetoid.
-Require Import Helix.SigmaHCOL.Rtheta.
-Require Import Helix.SigmaHCOL.SVector.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -47,14 +44,17 @@ Open Scope vector_scope.
 Import MonadNotation.
 Open Scope monad_scope.
 
-(* After folding starting from 'j' attempts to lookup lower indices will fail *)
-Lemma find_fold_right_indexed_oob
-      (n i j: nat)
-      {A B: Type}
-      (v : vector A n)
-      (P: A -> Prop)
-      `{Pdec: forall x, sumbool (P x) (not (P x))}
-      (f: A -> B)
+(* Conversion between memory block and dense vectors *)
+Section Avector.
+
+  (* After folding starting from 'j' attempts to lookup lower indices will fail *)
+  Lemma find_fold_right_indexed_oob
+        (n i j: nat)
+        {A B: Type}
+        (v : vector A n)
+        (P: A -> Prop)
+        `{Pdec: forall x, sumbool (P x) (not (P x))}
+        (f: A -> B)
   :
     j>i ->
     NM.find (elt:=B) i (Vfold_right_indexed' j
@@ -64,198 +64,200 @@ Lemma find_fold_right_indexed_oob
                                                   NM.add k (f r) m
                                                 else m)
                                              v (@NM.empty B)) ≡ None.
-Proof.
-  revert i j.
-  induction n; intros.
-  -
-    dep_destruct v.
-    reflexivity.
-  -
-    dep_destruct v; clear v.
-    simpl.
-    break_if.
-    +
-      rewrite NP.F.add_neq_o by omega.
-      apply IHn.
-      lia.
-    +
-      apply IHn.
-      lia.
-Qed.
+  Proof.
+    revert i j.
+    induction n; intros.
+    -
+      dep_destruct v.
+      reflexivity.
+    -
+      dep_destruct v; clear v.
+      simpl.
+      break_if.
+      +
+        rewrite NP.F.add_neq_o by omega.
+        apply IHn.
+        lia.
+      +
+        apply IHn.
+        lia.
+  Qed.
 
-Lemma find_fold_right_indexed'_off_P
-      (n i off: nat)
-      {A B: Type}
-      (v : vector A n)
-      (P: A -> Prop)
-      `{Pdec: forall x, sumbool (P x) (not (P x))}
-      (f: A -> B)
-  :
-    NM.find (elt:=B) (i+off) (Vfold_right_indexed' (0+off)
+  Lemma find_fold_right_indexed'_off_P
+        (n i off: nat)
+        {A B: Type}
+        (v : vector A n)
+        (P: A -> Prop)
+        `{Pdec: forall x, sumbool (P x) (not (P x))}
+        (f: A -> B)
+    :
+      NM.find (elt:=B) (i+off) (Vfold_right_indexed' (0+off)
+                                                     (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                        if Pdec r
+                                                        then
+                                                          NM.add k (f r) m
+                                                        else m)
+                                                     v (@NM.empty B)) ≡
+              NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                       (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                          if Pdec r
+                                                          then
+                                                            NM.add k (f r) m
+                                                          else m)
+                                                       v (@NM.empty B)).
+  Proof.
+    revert i off.
+    induction n; intros.
+    -
+      dep_destruct v.
+      reflexivity.
+    -
+      dep_destruct v; clear v.
+      simpl.
+      break_if.
+      +
+        destruct i.
+        *
+          rewrite NP.F.add_eq_o by reflexivity.
+          rewrite NP.F.add_eq_o by reflexivity.
+          reflexivity.
+        *
+          rewrite NP.F.add_neq_o by omega.
+          rewrite NP.F.add_neq_o by omega.
+          replace (S i + off) with (i + S off) by lia.
+          replace (S off) with (0 + S off) by lia.
+          rewrite IHn.
+          symmetry.
+          replace (1) with (0+1) by lia.
+          replace (S i) with (i+1) by lia.
+          apply IHn.
+      +
+        destruct i.
+        *
+          rewrite 2!find_fold_right_indexed_oob by lia.
+          reflexivity.
+        *
+          replace (S i + off) with (i + S off) by lia.
+          replace (S off) with (0 + S off) by lia.
+          rewrite IHn.
+          symmetry.
+          replace (1) with (0+1) by lia.
+          replace (S i) with (i+1) by lia.
+          apply IHn.
+  Qed.
+
+  Lemma find_fold_right_indexed'_S_P
+        (n i : nat)
+        {A B: Type}
+        (v : vector A n)
+        (P: A -> Prop)
+        `{Pdec: forall x, sumbool (P x) (not (P x))}
+        (f: A -> B)
+    :
+      NM.find (elt:=B) (S i) (Vfold_right_indexed' 1
                                                    (fun (k : nat) (r : A) (m : NM.t B) =>
                                                       if Pdec r
                                                       then
                                                         NM.add k (f r) m
                                                       else m)
                                                    v (@NM.empty B)) ≡
-            NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                                     (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                        if Pdec r
-                                                        then
-                                                          NM.add k (f r) m
-                                                        else m)
-                                                     v (@NM.empty B)).
-Proof.
-  revert i off.
-  induction n; intros.
-  -
-    dep_destruct v.
-    reflexivity.
-  -
-    dep_destruct v; clear v.
-    simpl.
-    break_if.
-    +
-      destruct i.
-      *
-        rewrite NP.F.add_eq_o by reflexivity.
-        rewrite NP.F.add_eq_o by reflexivity.
-        reflexivity.
-      *
+              NM.find (elt:=B) i (Vfold_right_indexed' 0
+                                                       (fun (k : nat) (r : A) (m : NM.t B) =>
+                                                          if Pdec r
+                                                          then
+                                                            NM.add k (f r) m
+                                                          else m)
+                                                       v (@NM.empty B)).
+  Proof.
+    replace (1) with (0+1) by lia.
+    replace (S i) with (i+1) by lia.
+    apply find_fold_right_indexed'_off_P.
+  Qed.
+
+  Lemma find_fold_right_indexed'_cons_P
+        (n i : nat)
+        {A B: Type}
+        (x : vector A n)
+        (h: A)
+        (P: A -> Prop)
+        `{Pdec: forall x, sumbool (P x) (not (P x))}
+        (f: A -> B):
+    NM.find (elt:=B) (S i)
+            (Vfold_right_indexed' 0
+                                  (fun (k : nat) (r : A) (m : NM.t B) =>
+                                     if Pdec r
+                                     then
+                                       NM.add k (f r) m
+                                     else m)
+                                  (h :: x) (NM.empty B))
+            ≡
+            NM.find (elt:=B) (S i)
+            (Vfold_right_indexed' 1
+                                  (fun (k : nat) (r : A) (m : NM.t B) =>
+                                     if Pdec r
+                                     then
+                                       NM.add k (f r) m
+                                     else m)
+                                  x (NM.empty B)).
+  Proof.
+    destruct n.
+    -
+      dep_destruct x.
+      simpl.
+      break_if; reflexivity.
+    -
+      simpl.
+      break_if.
+      +
         rewrite NP.F.add_neq_o by omega.
-        rewrite NP.F.add_neq_o by omega.
-        replace (S i + off) with (i + S off) by lia.
-        replace (S off) with (0 + S off) by lia.
-        rewrite IHn.
-        symmetry.
-        replace (1) with (0+1) by lia.
-        replace (S i) with (i+1) by lia.
-        apply IHn.
-    +
-      destruct i.
-      *
-        rewrite 2!find_fold_right_indexed_oob by lia.
         reflexivity.
-      *
-        replace (S i + off) with (i + S off) by lia.
-        replace (S off) with (0 + S off) by lia.
-        rewrite IHn.
-        symmetry.
-        replace (1) with (0+1) by lia.
-        replace (S i) with (i+1) by lia.
-        apply IHn.
-Qed.
+      +
+        reflexivity.
+  Qed.
 
-Lemma find_fold_right_indexed'_S_P
-      (n i : nat)
-      {A B: Type}
-      (v : vector A n)
-      (P: A -> Prop)
-      `{Pdec: forall x, sumbool (P x) (not (P x))}
-      (f: A -> B)
-  :
-    NM.find (elt:=B) (S i) (Vfold_right_indexed' 1
-                                                 (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                    if Pdec r
-                                                    then
-                                                      NM.add k (f r) m
-                                                    else m)
-                                                 v (@NM.empty B)) ≡
-            NM.find (elt:=B) i (Vfold_right_indexed' 0
-                                                     (fun (k : nat) (r : A) (m : NM.t B) =>
-                                                        if Pdec r
-                                                        then
-                                                          NM.add k (f r) m
-                                                        else m)
-                                                     v (@NM.empty B)).
-Proof.
-  replace (1) with (0+1) by lia.
-  replace (S i) with (i+1) by lia.
-  apply find_fold_right_indexed'_off_P.
-Qed.
+  Lemma find_fold_right_indexed'_off:
+    forall (n i : nat) (off:nat) (x : vector CarrierA n),
+      NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
+              NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
+  Proof.
+    intros n i off v.
 
-Lemma find_fold_right_indexed'_cons_P
-      (n i : nat)
-      {A B: Type}
-      (x : vector A n)
-      (h: A)
-      (P: A -> Prop)
-      `{Pdec: forall x, sumbool (P x) (not (P x))}
-      (f: A -> B):
-  NM.find (elt:=B) (S i)
-          (Vfold_right_indexed' 0
-                                (fun (k : nat) (r : A) (m : NM.t B) =>
-                                   if Pdec r
-                                   then
-                                     NM.add k (f r) m
-                                   else m)
-                                (h :: x) (NM.empty B))
-          ≡
-          NM.find (elt:=B) (S i)
-          (Vfold_right_indexed' 1
-                                (fun (k : nat) (r : A) (m : NM.t B) =>
-                                   if Pdec r
-                                   then
-                                     NM.add k (f r) m
-                                   else m)
-                                x (NM.empty B)).
-Proof.
-  destruct n.
-  -
-    dep_destruct x.
-    simpl.
-    break_if; reflexivity.
-  -
-    simpl.
+    remember (@Basics.const Prop CarrierA True) as P.
+    assert(Pdec: forall x, sumbool (P x) (not (P x)))
+      by (intros x; left; subst P; unfold Basics.const;  tauto).
+    remember (@id CarrierA) as f.
+    unfold mem_empty.
+    replace mem_add with
+        (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
+           if Pdec r
+           then
+             NM.add k (f r) m
+           else m).
+    apply find_fold_right_indexed'_off_P.
+
+    extensionality k.
+    extensionality r.
+    extensionality m.
     break_if.
-    +
-      rewrite NP.F.add_neq_o by omega.
-      reflexivity.
-    +
-      reflexivity.
-Qed.
+    + subst f; unfold id; reflexivity.
+    + subst P; unfold Basics.const, not  in *; crush.
+  Qed.
 
-Lemma find_fold_right_indexed'_off:
-  forall (n i : nat) (off:nat) (x : vector CarrierA n),
-    NM.find (elt:=CarrierA) (i+off) (Vfold_right_indexed' (0+off) mem_add x mem_empty) ≡
-            NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add x mem_empty).
-Proof.
-  intros n i off v.
+  Lemma find_fold_right_indexed'_S:
+    forall (n i : nat) (v : vector CarrierA n),
+      NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
+              NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
+  Proof.
+    intros n i v.
 
-  remember (@Basics.const Prop CarrierA True) as P.
-  assert(Pdec: forall x, sumbool (P x) (not (P x)))
-    by (intros x; left; subst P; unfold Basics.const;  tauto).
-  remember (@id CarrierA) as f.
-  unfold mem_empty.
-  replace mem_add with
-      (fun (k : nat) (r : CarrierA) (m : NM.t CarrierA) =>
-         if Pdec r
-         then
-           NM.add k (f r) m
-         else m).
-  apply find_fold_right_indexed'_off_P.
+    replace (1) with (0+1) by lia.
+    replace (S i) with (i+1) by lia.
+    apply find_fold_right_indexed'_off.
+  Qed.
 
-  extensionality k.
-  extensionality r.
-  extensionality m.
-  break_if.
-  + subst f; unfold id; reflexivity.
-  + subst P; unfold Basics.const, not  in *; crush.
-Qed.
 
-Lemma find_fold_right_indexed'_S:
-  forall (n i : nat) (v : vector CarrierA n),
-    NM.find (elt:=CarrierA) (S i) (Vfold_right_indexed' 1 mem_add v mem_empty) ≡
-            NM.find (elt:=CarrierA) i (Vfold_right_indexed' 0 mem_add v mem_empty).
-Proof.
-  intros n i v.
-
-  replace (1) with (0+1) by lia.
-  replace (S i) with (i+1) by lia.
-  apply find_fold_right_indexed'_off.
-Qed.
-
-Section Avector.
+  Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
+    := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
   Program Definition avector_to_mem_block_spec
           {n : nat}
@@ -309,9 +311,6 @@ Section Avector.
         omega.
   Qed.
 
-  Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
-    := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
-
   Lemma mem_block_avector_id {n} {v:avector n}:
     (mem_block_to_avector (avector_to_mem_block v)) ≡ Some v.
   Proof.
@@ -326,19 +325,6 @@ Section Avector.
   Qed.
 
 End Avector.
-
-Ltac avector_to_mem_block_to_spec m H0 H1 :=
-  match goal with
-  | [ |- context[avector_to_mem_block_spec ?v]] =>
-    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-    unfold avector_to_mem_block in H1 ;
-    destruct (avector_to_mem_block_spec v) as [m H0]
-
-  | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
-    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-    unfold avector_to_mem_block in H1 ;
-    destruct (avector_to_mem_block_spec v) as [m H0]
-  end.
 
 Section Avector_Setoid.
 
@@ -468,455 +454,17 @@ Section Avector_Setoid.
 
 End Avector_Setoid.
 
-Section SVector.
-
-  Variable fm:Monoid RthetaFlags.
-
-  Program Definition svector_to_mem_block_spec
-          {n : nat}
-          (v : svector fm n):
-    { m : mem_block |
-      (
-        (forall i (ip : i < n), Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m)
-        /\
-        (forall i (ip : i < n), NM.In i m <-> Is_Val (Vnth v ip))
-      )
-    }
-    := Vfold_right_indexed' 0
-                            (fun k r m =>
-                               if Is_Val_dec r then mem_add k (evalWriter r) m
-                               else m
-                            )
-                            v mem_empty.
-  Next Obligation.
-    unfold mem_lookup, mem_add, mem_empty.
-    split.
-    -
-      (* Is_Val <-> MapsTo *)
-      split.
-      +
-        (* Is_Val -> MapsTo *)
-        revert ip. revert i.
-        induction n; intros.
-        *
-          nat_lt_0_contradiction.
-        *
-          dep_destruct v;clear v.
-          simpl.
-          destruct i.
-          --
-            destruct (Is_Val_dec h).
-            ++
-              apply NM.add_1.
-              reflexivity.
-            ++
-              simpl in H.
-              crush.
-          --
-            destruct (Is_Val_dec h).
-            ++
-              apply NM.add_2; auto.
-              assert (N: i<n) by apply Lt.lt_S_n, ip.
-              simpl in H.
-              replace (Lt.lt_S_n ip) with N by apply le_unique.
-              assert(V: Is_Val (Vnth x N)).
-              {
-                replace N with (lt_S_n ip) by apply le_unique.
-                apply H.
-              }
-              specialize (IHn x i N V).
-              apply NM.find_1 in IHn.
-              apply NM.find_2.
-              rewrite <- IHn; clear IHn.
-              rewrite find_fold_right_indexed'_S_P.
-              reflexivity.
-            ++
-              simpl in H.
-              assert (N: i<n) by apply Lt.lt_S_n, ip.
-              replace (Lt.lt_S_n ip) with N by apply le_unique.
-              assert(V: Is_Val (Vnth x N)).
-              {
-                replace N with (lt_S_n ip) by apply le_unique.
-                apply H.
-              }
-              specialize (IHn x i N V).
-              apply NM.find_1 in IHn.
-              apply NM.find_2.
-              rewrite find_fold_right_indexed'_S_P.
-              apply IHn.
-      +
-        (* MapsTo -> Is_Val *)
-        revert i ip.
-        induction n; intros.
-        *
-          nat_lt_0_contradiction.
-        *
-          dep_destruct v; clear v.
-          simpl.
-          destruct i.
-          --
-            clear IHn.
-            apply NM.find_1 in H.
-            simpl in H.
-            destruct (Is_Val_dec h); auto.
-            rewrite find_fold_right_indexed_oob in H.
-            some_none.
-            auto.
-          --
-            apply IHn; clear IHn.
-            apply NM.find_1 in H.
-            apply NM.find_2.
-            simpl (Some _) in H.
-            assert (N: i<n) by apply Lt.lt_S_n, ip.
-            replace (Lt.lt_S_n ip) with N in * by apply le_unique.
-            rewrite <- H; clear H ip.
-            rewrite <- find_fold_right_indexed'_S_P.
-            symmetry.
-            apply find_fold_right_indexed'_cons_P.
-    -
-      split.
-      +
-        revert i ip.
-        (* In -> Is_Val *)
-        induction n; intros.
-        *
-          nat_lt_0_contradiction.
-        *
-          dep_destruct v; clear v.
-          simpl.
-          destruct i.
-          --
-            clear IHn.
-            simpl in H.
-            destruct (Is_Val_dec h); auto.
-            apply In_MapsTo in H.
-            destruct H as [e H].
-            apply NP.F.find_mapsto_iff in H.
-            rewrite find_fold_right_indexed_oob in H.
-            some_none.
-            auto.
-          --
-            apply IHn; clear IHn.
-            apply In_MapsTo in H.
-            destruct H as [e H].
-            apply NP.F.find_mapsto_iff in H.
-            apply MapsTo_In with (e:=e).
-            apply NP.F.find_mapsto_iff.
-            rewrite <- H. clear H ip.
-            rewrite <- find_fold_right_indexed'_S_P.
-            symmetry.
-            apply find_fold_right_indexed'_cons_P.
-      +
-        (* Is_Val -> NM.In *)
-        revert i ip.
-        (* In -> Is_Val *)
-        induction n; intros.
-        *
-          nat_lt_0_contradiction.
-        *
-          dep_destruct v; clear v.
-          simpl.
-          destruct i.
-          --
-            clear IHn.
-            simpl.
-            break_if.
-            ++
-              apply NP.F.add_in_iff.
-              auto.
-            ++
-              exfalso.
-              contradict H.
-              simpl.
-              auto.
-          --
-            break_if.
-            ++
-              apply NP.F.add_neq_in_iff; auto.
-              simpl in *.
-              apply IHn in H. clear IHn.
-              apply In_MapsTo in H.
-              destruct H as [e H].
-              apply NP.F.find_mapsto_iff in H.
-              apply MapsTo_In with (e:=e).
-              apply NP.F.find_mapsto_iff.
-              rewrite <- H. clear H ip.
-              rewrite <- find_fold_right_indexed'_S_P.
-              reflexivity.
-            ++
-              simpl in H.
-              apply IHn in H. clear IHn.
-              apply In_MapsTo in H.
-              destruct H as [e H].
-              apply NP.F.find_mapsto_iff in H.
-              apply MapsTo_In with (e:=e).
-              apply NP.F.find_mapsto_iff.
-              rewrite <- H. clear H ip.
-              rewrite <- find_fold_right_indexed'_S_P.
-              reflexivity.
-  Qed.
-
-  Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
-
-  (* This could be only proven for [eq] in for svectors, as their
-     structural properites are affecting the result. *)
-  Global Instance svector_to_mem_block_proper
-         {n: nat}:
-    Proper ((eq) ==> (equiv)) (@svector_to_mem_block n).
-  Proof.
-    solve_proper.
-  Qed.
-
-  Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
-    forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
-  Proof.
-    intros k kc.
-    unfold svector_to_mem_block.
-    simpl.
-    revert k kc; induction v; intros.
-    -
-      reflexivity.
-    -
-      unfold mem_lookup.
-      simpl.
-      destruct k.
-      +
-        omega.
-      +
-        break_if.
-        *
-          rewrite NP.F.add_neq_o by omega.
-          rewrite find_fold_right_indexed'_S_P.
-          rewrite IHv.
-          reflexivity.
-          omega.
-        *
-          rewrite find_fold_right_indexed'_S_P.
-          rewrite IHv.
-          reflexivity.
-          omega.
-  Qed.
-
-  Definition mem_block_to_svector {n} (m: mem_block): svector fm n
-    := Vbuild (fun i (ic:i<n) =>
-                 match mem_lookup i m with
-                 | None => mkSZero (* maybe other structural value? *)
-                 | Some x => mkValue x
-                 end
-              ).
-
-  Global Instance mem_block_to_svector_proper
-         {n: nat}:
-    Proper ((=) ==> (=)) (@mem_block_to_svector n).
-  Proof.
-    intros a b H.
-    unfold equiv, mem_block_Equiv in H.
-    unfold mem_block_to_svector.
-    vec_index_equiv j jc.
-    rewrite 2!Vbuild_nth.
-    specialize (H j).
-    unfold mem_lookup.
-    break_match; break_match; try some_none; try reflexivity.
-    some_inv.
-    f_equiv.
-    apply H.
-  Qed.
-
-End SVector.
-
-Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
+Ltac avector_to_mem_block_to_spec m H0 H1 :=
   match goal with
-  | [ |- context[svector_to_mem_block_spec ?v]] =>
-    pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
-    unfold svector_to_mem_block in H2 ;
-    destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
+  | [ |- context[avector_to_mem_block_spec ?v]] =>
+    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
+    unfold avector_to_mem_block in H1 ;
+    destruct (avector_to_mem_block_spec v) as [m H0]
 
-  | [ H: context[svector_to_mem_block_spec ?v] |- _ ] =>
-    pose proof (svector_to_mem_block_key_oob (v:=v)) as H2;
-    unfold svector_to_mem_block in H2 ;
-    destruct (svector_to_mem_block_spec v) as [m [H0 H1]]
-  end.
-
-Lemma find_svector_to_mem_block_some (n k:nat) (kc:k<n) {fm} (x:svector fm n)
-  :
-    NM.In (elt:=CarrierA) k (svector_to_mem_block x) ->
-    NM.find (elt:=CarrierA) k (svector_to_mem_block x)
-            ≡ Some (evalWriter (Vnth x kc)).
-Proof.
-  unfold svector_to_mem_block.
-  svector_to_mem_block_to_spec m' H0 H1 I2.
-  intros H.
-  simpl in *.
-  unfold mem_lookup in *.
-  apply NM.find_1.
-  apply H0, H1, H.
-Qed.
-
-Lemma svector_to_mem_block_In
-      {n:nat}
-      {fm}
-      (x: svector fm n)
-      (j:nat)
-      (jc:j<n):
-  Is_Val (Vnth x jc) -> mem_in j (svector_to_mem_block x).
-Proof.
-  intros H.
-  unfold svector_to_mem_block.
-  svector_to_mem_block_to_spec m0 I0 H1 O0.
-  simpl in *.
-  specialize (H1 j jc).
-  apply H1, H.
-Qed.
-
-Lemma svector_to_mem_block_Vconst_mkStruct
-      {fm}
-      {fml : MonoidLaws fm}
-      (n : nat)
-      (v : CarrierA):
-  svector_to_mem_block (Vconst (mkStruct (fm:=fm) v) n) = mem_empty.
-Proof.
-  unfold svector_to_mem_block.
-  svector_to_mem_block_to_spec m0 H0 I0 O0.
-  simpl in *.
-  mem_index_equiv k.
-  rewrite NP.F.empty_o.
-  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
-  -
-    apply None_equiv_eq.
-    apply NP.F.not_find_in_iff.
-
-    specialize (I0 k kc).
-    apply not_iff_compat in I0.
-    apply I0.
-    rewrite Vnth_const.
-    apply Is_Val_mkStruct.
-  -
-    apply None_equiv_eq.
-    apply O0, kc.
-Qed.
-
-Lemma svector_to_mem_block_rvector2rsvector
-      {n x}:
-  svector_to_mem_block (rvector2rsvector n x) = svector_to_mem_block x.
-Proof.
-  unfold svector_to_mem_block, rvector2rsvector, Rtheta2RStheta.
-  svector_to_mem_block_to_spec m0 H0 I0 O0.
-  svector_to_mem_block_to_spec m1 H1 I1 O1.
-  simpl in *.
-  mem_index_equiv k.
-  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
-  -
-    clear O0 O1.
-    specialize (H0 k kc).
-    specialize (H1 k kc).
-    unfold equiv, option_Equiv.
-    rewrite Vnth_map in H0.
-    unfold Is_Val,compose in H0.
-    rewrite execWriter_castWriter in H0.
-    unfold Is_Val, compose in H1.
-    rewrite evalWriter_castWriter in H0.
-
-    specialize (I0 k kc).
-    specialize (I1 k kc).
-    rewrite Vnth_map in I0.
-    unfold Is_Val,compose in I0.
-    rewrite execWriter_castWriter in I0.
-    unfold Is_Val, compose in I1.
-
-    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
-    +
-      destruct H0 as [H0 _].
-      destruct H1 as [H1 _].
-      apply NM.find_1 in H0; auto.
-      apply NM.find_1 in H1; auto.
-      rewrite H0, H1.
-      reflexivity.
-    +
-      unfold Rtheta in *.
-      generalize dependent (Vnth x kc).
-      intros r H0 I0 H1 I1 NV.
-      apply not_iff_compat in I0.
-      apply not_iff_compat in I1.
-      destruct I0 as [_ I0].
-      destruct I1 as [_ I1].
-      specialize (I0 NV).
-      specialize (I1 NV).
-      clear NV.
-      apply NP.F.not_find_in_iff in I0.
-      apply NP.F.not_find_in_iff in I1.
-      rewrite I0, I1.
-      reflexivity.
-  -
-    rewrite O0 by assumption.
-    rewrite O1 by assumption.
-    reflexivity.
-Qed.
-
-
-Lemma svector_to_mem_block_rsvector2rvector
-      {n x}:
-  svector_to_mem_block (rsvector2rvector n x) = svector_to_mem_block x.
-Proof.
-  unfold svector_to_mem_block, rsvector2rvector, RStheta2Rtheta.
-  svector_to_mem_block_to_spec m0 H0 I0 O0.
-  svector_to_mem_block_to_spec m1 H1 I1 O1.
-  simpl in *.
-  mem_index_equiv k.
-  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
-  -
-    clear O0 O1.
-    specialize (H0 k kc).
-    specialize (H1 k kc).
-    unfold equiv, option_Equiv.
-    rewrite Vnth_map in H0.
-    unfold Is_Val,compose in H0.
-    rewrite execWriter_castWriter in H0.
-    unfold Is_Val, compose in H1.
-    rewrite evalWriter_castWriter in H0.
-
-    specialize (I0 k kc).
-    specialize (I1 k kc).
-    rewrite Vnth_map in I0.
-    unfold Is_Val,compose in I0.
-    rewrite execWriter_castWriter in I0.
-    unfold Is_Val, compose in I1.
-
-    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
-    +
-      destruct H0 as [H0 _].
-      destruct H1 as [H1 _].
-      apply NM.find_1 in H0; auto.
-      apply NM.find_1 in H1; auto.
-      rewrite H0, H1.
-      reflexivity.
-    +
-      unfold RStheta in *.
-      generalize dependent (Vnth x kc).
-      intros r H0 I0 H1 I1 NV.
-      apply not_iff_compat in I0.
-      apply not_iff_compat in I1.
-      destruct I0 as [_ I0].
-      destruct I1 as [_ I1].
-      specialize (I0 NV).
-      specialize (I1 NV).
-      clear NV.
-      apply NP.F.not_find_in_iff in I0.
-      apply NP.F.not_find_in_iff in I1.
-      rewrite I0, I1.
-      reflexivity.
-  -
-    rewrite O0 by assumption.
-    rewrite O1 by assumption.
-    reflexivity.
-Qed.
-
-
-(* y[j] := x[i] *)
-Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
-  : option mem_block :=
-  match mem_lookup i x with
-  | None => None
-  | Some v => Some (mem_add j v y)
+  | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
+    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
+    unfold avector_to_mem_block in H1 ;
+    destruct (avector_to_mem_block_spec v) as [m H0]
   end.
 
 Section Wrappers.
@@ -925,9 +473,9 @@ Section Wrappers.
   Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
   : mem_block -> option mem_block
     := fun x => match mem_block_to_avector x with
-                | None => None
-                | Some x' => Some (avector_to_mem_block (op x'))
-                end.
+             | None => None
+             | Some x' => Some (avector_to_mem_block (op x'))
+             end.
 
   Lemma mem_out_some_mem_op_of_hop
         (i o : nat)
@@ -1025,36 +573,17 @@ Section Wrappers.
       reflexivity.
   Qed.
 
-  Definition mem_op_of_op {fm} {i o: nat} (op: svector fm i -> svector fm o)
-    : mem_block -> option mem_block
-    := fun x => Some (svector_to_mem_block (op (mem_block_to_svector fm x))).
-
-(*
-  (* this could only be proven wrt [@eq] on operators, not [((=)==>(=))].
-     because [svector_to_mem_block] is used underneath.
- *)
-  Global Instance mem_op_of_op_proper
-         {fm}
-         {i o: nat}:
-    Proper ((eq) ==> (=)) (@mem_op_of_op fm i o).
-  Proof.
-    intros f g E mx my Em.
-    unfold mem_op_of_op.
-    f_equiv.
-    f_equiv.
-    apply equal_f with (x:=mem_block_to_svector fm mx) in E.
-    rewrite_clear E.
-    Seems to be tricky to prove. Let's postpone to see when it is needed.
-
-    f_equiv.
-    rewrite Em.
-    reflexivity.
-  Qed.
-
-
- *)
-
 End Wrappers.
+
+
+(* y[j] := x[i] *)
+Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
+  : option mem_block :=
+  match mem_lookup i x with
+  | None => None
+  | Some v => Some (mem_add j v y)
+  end.
+
 
 Section Operators.
   (* AKA: "embed" *)
@@ -1495,16 +1024,16 @@ Section MFamilies.
              (d: nat)
              (op_family: @MSHOperatorFamily i o (n+d)): @MSHOperatorFamily i o n
     := fun jf => op_family (mkFinNat
-                           (Plus.plus_lt_compat_r _ _ _ (proj2_sig jf))).
+                              (Plus.plus_lt_compat_r _ _ _ (proj2_sig jf))).
 
   Definition shrink_m_op_family_facts
              {i o k : nat}
              (op_family : MSHOperatorFamily )
              (facts: ∀ (j : nat) (jc : j < S k),
                  @MSHOperator_Facts i o (op_family (mkFinNat jc))):
-      (forall (j : nat) (jc : j < k),
-          @MSHOperator_Facts i o ((shrink_m_op_family op_family) (mkFinNat jc)))
-      := fun j jc => facts j (le_S jc).
+    (forall (j : nat) (jc : j < k),
+        @MSHOperator_Facts i o ((shrink_m_op_family op_family) (mkFinNat jc)))
+    := fun j jc => facts j (le_S jc).
 
   Definition shrink_m_op_family_facts_up
              {i o k : nat}
@@ -3333,9 +2862,9 @@ Section MSHOperator_Facts_instances.
                        ).
 
             assert (∀ (j : nat) (jc : j < i), m_in_index_set
-                                              (MSHIUnion
-                                                 (shrink_m_op_family_up op_family)) (mkFinNat jc) →
-                                            mem_in j m) as P.
+                                                (MSHIUnion
+                                                   (shrink_m_op_family_up op_family)) (mkFinNat jc) →
+                                              mem_in j m) as P.
             {
               clear IHk Heqo1.
               intros j jc H0.

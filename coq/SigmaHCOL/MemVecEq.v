@@ -53,7 +53,453 @@ Import Monoid.
 Import VectorNotations.
 Open Scope vector_scope.
 
+Import MonadNotation.
+Open Scope monad_scope.
+
 Open Scope nat_scope.
+
+Section SVector.
+
+  Variable fm:Monoid RthetaFlags.
+
+  Program Definition svector_to_mem_block_spec
+          {n : nat}
+          (v : svector fm n):
+    { m : mem_block |
+      (
+        (forall i (ip : i < n), Is_Val (Vnth v ip) <-> NM.MapsTo i (evalWriter (Vnth v ip)) m)
+        /\
+        (forall i (ip : i < n), NM.In i m <-> Is_Val (Vnth v ip))
+      )
+    }
+    := Vfold_right_indexed' 0
+                            (fun k r m =>
+                               if Is_Val_dec r then mem_add k (evalWriter r) m
+                               else m
+                            )
+                            v mem_empty.
+  Next Obligation.
+    unfold mem_lookup, mem_add, mem_empty.
+    split.
+    -
+      (* Is_Val <-> MapsTo *)
+      split.
+      +
+        (* Is_Val -> MapsTo *)
+        revert ip. revert i.
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v;clear v.
+          simpl.
+          destruct i.
+          --
+            destruct (Is_Val_dec h).
+            ++
+              apply NM.add_1.
+              reflexivity.
+            ++
+              simpl in H.
+              crush.
+          --
+            destruct (Is_Val_dec h).
+            ++
+              apply NM.add_2; auto.
+              assert (N: i<n) by apply Lt.lt_S_n, ip.
+              simpl in H.
+              replace (Lt.lt_S_n ip) with N by apply le_unique.
+              assert(V: Is_Val (Vnth x N)).
+              {
+                replace N with (lt_S_n ip) by apply le_unique.
+                apply H.
+              }
+              specialize (IHn x i N V).
+              apply NM.find_1 in IHn.
+              apply NM.find_2.
+              rewrite <- IHn; clear IHn.
+              rewrite find_fold_right_indexed'_S_P.
+              reflexivity.
+            ++
+              simpl in H.
+              assert (N: i<n) by apply Lt.lt_S_n, ip.
+              replace (Lt.lt_S_n ip) with N by apply le_unique.
+              assert(V: Is_Val (Vnth x N)).
+              {
+                replace N with (lt_S_n ip) by apply le_unique.
+                apply H.
+              }
+              specialize (IHn x i N V).
+              apply NM.find_1 in IHn.
+              apply NM.find_2.
+              rewrite find_fold_right_indexed'_S_P.
+              apply IHn.
+      +
+        (* MapsTo -> Is_Val *)
+        revert i ip.
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            apply NM.find_1 in H.
+            simpl in H.
+            destruct (Is_Val_dec h); auto.
+            rewrite find_fold_right_indexed_oob in H.
+            some_none.
+            auto.
+          --
+            apply IHn; clear IHn.
+            apply NM.find_1 in H.
+            apply NM.find_2.
+            simpl (Some _) in H.
+            assert (N: i<n) by apply Lt.lt_S_n, ip.
+            replace (Lt.lt_S_n ip) with N in * by apply le_unique.
+            rewrite <- H; clear H ip.
+            rewrite <- find_fold_right_indexed'_S_P.
+            symmetry.
+            apply find_fold_right_indexed'_cons_P.
+    -
+      split.
+      +
+        revert i ip.
+        (* In -> Is_Val *)
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            simpl in H.
+            destruct (Is_Val_dec h); auto.
+            apply In_MapsTo in H.
+            destruct H as [e H].
+            apply NP.F.find_mapsto_iff in H.
+            rewrite find_fold_right_indexed_oob in H.
+            some_none.
+            auto.
+          --
+            apply IHn; clear IHn.
+            apply In_MapsTo in H.
+            destruct H as [e H].
+            apply NP.F.find_mapsto_iff in H.
+            apply MapsTo_In with (e:=e).
+            apply NP.F.find_mapsto_iff.
+            rewrite <- H. clear H ip.
+            rewrite <- find_fold_right_indexed'_S_P.
+            symmetry.
+            apply find_fold_right_indexed'_cons_P.
+      +
+        (* Is_Val -> NM.In *)
+        revert i ip.
+        (* In -> Is_Val *)
+        induction n; intros.
+        *
+          nat_lt_0_contradiction.
+        *
+          dep_destruct v; clear v.
+          simpl.
+          destruct i.
+          --
+            clear IHn.
+            simpl.
+            break_if.
+            ++
+              apply NP.F.add_in_iff.
+              auto.
+            ++
+              exfalso.
+              contradict H.
+              simpl.
+              auto.
+          --
+            break_if.
+            ++
+              apply NP.F.add_neq_in_iff; auto.
+              simpl in *.
+              apply IHn in H. clear IHn.
+              apply In_MapsTo in H.
+              destruct H as [e H].
+              apply NP.F.find_mapsto_iff in H.
+              apply MapsTo_In with (e:=e).
+              apply NP.F.find_mapsto_iff.
+              rewrite <- H. clear H ip.
+              rewrite <- find_fold_right_indexed'_S_P.
+              reflexivity.
+            ++
+              simpl in H.
+              apply IHn in H. clear IHn.
+              apply In_MapsTo in H.
+              destruct H as [e H].
+              apply NP.F.find_mapsto_iff in H.
+              apply MapsTo_In with (e:=e).
+              apply NP.F.find_mapsto_iff.
+              rewrite <- H. clear H ip.
+              rewrite <- find_fold_right_indexed'_S_P.
+              reflexivity.
+  Qed.
+
+  Definition svector_to_mem_block {n} (v: svector fm n) := proj1_sig (svector_to_mem_block_spec v).
+
+  (* This could be only proven for [eq] in for svectors, as their
+     structural properites are affecting the result. *)
+  Global Instance svector_to_mem_block_proper
+         {n: nat}:
+    Proper ((eq) ==> (equiv)) (@svector_to_mem_block n).
+  Proof.
+    solve_proper.
+  Qed.
+
+  Lemma svector_to_mem_block_key_oob {n:nat} {v: svector fm n}:
+    forall (k:nat) (kc:ge k n), mem_lookup k (svector_to_mem_block v) ≡ None.
+  Proof.
+    intros k kc.
+    unfold svector_to_mem_block.
+    simpl.
+    revert k kc; induction v; intros.
+    -
+      reflexivity.
+    -
+      unfold mem_lookup.
+      simpl.
+      destruct k.
+      +
+        omega.
+      +
+        break_if.
+        *
+          rewrite NP.F.add_neq_o by omega.
+          rewrite find_fold_right_indexed'_S_P.
+          rewrite IHv.
+          reflexivity.
+          omega.
+        *
+          rewrite find_fold_right_indexed'_S_P.
+          rewrite IHv.
+          reflexivity.
+          omega.
+  Qed.
+
+  Definition mem_block_to_svector {n} (m: mem_block): svector fm n
+    := Vbuild (fun i (ic:i<n) =>
+                 match mem_lookup i m with
+                 | None => mkSZero (* maybe other structural value? *)
+                 | Some x => mkValue x
+                 end
+              ).
+
+  Global Instance mem_block_to_svector_proper
+         {n: nat}:
+    Proper ((=) ==> (=)) (@mem_block_to_svector n).
+  Proof.
+    intros a b H.
+    unfold equiv, mem_block_Equiv in H.
+    unfold mem_block_to_svector.
+    vec_index_equiv j jc.
+    rewrite 2!Vbuild_nth.
+    specialize (H j).
+    unfold mem_lookup.
+    break_match; break_match; try some_none; try reflexivity.
+    some_inv.
+    f_equiv.
+    apply H.
+  Qed.
+
+End SVector.
+
+Ltac svector_to_mem_block_to_spec m H0 H1 H2 :=
+  match goal with
+  | [ |- context[svector_to_mem_block_spec ?fm ?v]] =>
+    pose proof (svector_to_mem_block_key_oob fm (v:=v)) as H2;
+    unfold svector_to_mem_block in H2 ;
+    destruct (svector_to_mem_block_spec fm v) as [m [H0 H1]]
+
+  | [ H: context[svector_to_mem_block_spec ?fm ?v] |- _ ] =>
+    pose proof (svector_to_mem_block_key_oob fm (v:=v)) as H2;
+    unfold svector_to_mem_block in H2 ;
+    destruct (svector_to_mem_block_spec fm v) as [m [H0 H1]]
+  end.
+
+Lemma find_svector_to_mem_block_some (n k:nat) (kc:k<n) {fm} (x:svector fm n)
+  :
+    NM.In (elt:=CarrierA) k (svector_to_mem_block fm x) ->
+    NM.find (elt:=CarrierA) k (svector_to_mem_block fm x)
+            ≡ Some (evalWriter (Vnth x kc)).
+Proof.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m' H0 H1 I2.
+  intros H.
+  simpl in *.
+  unfold mem_lookup in *.
+  apply NM.find_1.
+  apply H0, H1, H.
+Qed.
+
+Lemma svector_to_mem_block_In
+      {n:nat}
+      {fm}
+      (x: svector fm n)
+      (j:nat)
+      (jc:j<n):
+  Is_Val (Vnth x jc) -> mem_in j (svector_to_mem_block fm x).
+Proof.
+  intros H.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m0 I0 H1 O0.
+  simpl in *.
+  specialize (H1 j jc).
+  apply H1, H.
+Qed.
+
+Lemma svector_to_mem_block_Vconst_mkStruct
+      {fm}
+      {fml : MonoidLaws fm}
+      (n : nat)
+      (v : CarrierA):
+  svector_to_mem_block fm (Vconst (mkStruct (fm:=fm) v) n) = mem_empty.
+Proof.
+  unfold svector_to_mem_block.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  simpl in *.
+  mem_index_equiv k.
+  rewrite NP.F.empty_o.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    apply None_equiv_eq.
+    apply NP.F.not_find_in_iff.
+
+    specialize (I0 k kc).
+    apply not_iff_compat in I0.
+    apply I0.
+    rewrite Vnth_const.
+    apply Is_Val_mkStruct.
+  -
+    apply None_equiv_eq.
+    apply O0, kc.
+Qed.
+
+Lemma svector_to_mem_block_rvector2rsvector
+      {n x}:
+  svector_to_mem_block _ (rvector2rsvector n x) = svector_to_mem_block _ x.
+Proof.
+  unfold svector_to_mem_block, rvector2rsvector, Rtheta2RStheta.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m1 H1 I1 O1.
+  simpl in *.
+  mem_index_equiv k.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    clear O0 O1.
+    specialize (H0 k kc).
+    specialize (H1 k kc).
+    unfold equiv, option_Equiv.
+    rewrite Vnth_map in H0.
+    unfold Is_Val,compose in H0.
+    rewrite execWriter_castWriter in H0.
+    unfold Is_Val, compose in H1.
+    rewrite evalWriter_castWriter in H0.
+
+    specialize (I0 k kc).
+    specialize (I1 k kc).
+    rewrite Vnth_map in I0.
+    unfold Is_Val,compose in I0.
+    rewrite execWriter_castWriter in I0.
+    unfold Is_Val, compose in I1.
+
+    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
+    +
+      destruct H0 as [H0 _].
+      destruct H1 as [H1 _].
+      apply NM.find_1 in H0; auto.
+      apply NM.find_1 in H1; auto.
+      rewrite H0, H1.
+      reflexivity.
+    +
+      unfold Rtheta in *.
+      generalize dependent (Vnth x kc).
+      intros r H0 I0 H1 I1 NV.
+      apply not_iff_compat in I0.
+      apply not_iff_compat in I1.
+      destruct I0 as [_ I0].
+      destruct I1 as [_ I1].
+      specialize (I0 NV).
+      specialize (I1 NV).
+      clear NV.
+      apply NP.F.not_find_in_iff in I0.
+      apply NP.F.not_find_in_iff in I1.
+      rewrite I0, I1.
+      reflexivity.
+  -
+    rewrite O0 by assumption.
+    rewrite O1 by assumption.
+    reflexivity.
+Qed.
+
+
+Lemma svector_to_mem_block_rsvector2rvector
+      {n x}:
+  svector_to_mem_block _ (rsvector2rvector n x) = svector_to_mem_block _ x.
+Proof.
+  unfold svector_to_mem_block, rsvector2rvector, RStheta2Rtheta.
+  svector_to_mem_block_to_spec m0 H0 I0 O0.
+  svector_to_mem_block_to_spec m1 H1 I1 O1.
+  simpl in *.
+  mem_index_equiv k.
+  destruct (NatUtil.lt_ge_dec k n) as [kc | kc].
+  -
+    clear O0 O1.
+    specialize (H0 k kc).
+    specialize (H1 k kc).
+    unfold equiv, option_Equiv.
+    rewrite Vnth_map in H0.
+    unfold Is_Val,compose in H0.
+    rewrite execWriter_castWriter in H0.
+    unfold Is_Val, compose in H1.
+    rewrite evalWriter_castWriter in H0.
+
+    specialize (I0 k kc).
+    specialize (I1 k kc).
+    rewrite Vnth_map in I0.
+    unfold Is_Val,compose in I0.
+    rewrite execWriter_castWriter in I0.
+    unfold Is_Val, compose in I1.
+
+    destruct (IsVal_dec (execWriter (Vnth x kc))) as [V|NV].
+    +
+      destruct H0 as [H0 _].
+      destruct H1 as [H1 _].
+      apply NM.find_1 in H0; auto.
+      apply NM.find_1 in H1; auto.
+      rewrite H0, H1.
+      reflexivity.
+    +
+      unfold RStheta in *.
+      generalize dependent (Vnth x kc).
+      intros r H0 I0 H1 I1 NV.
+      apply not_iff_compat in I0.
+      apply not_iff_compat in I1.
+      destruct I0 as [_ I0].
+      destruct I1 as [_ I1].
+      specialize (I0 NV).
+      specialize (I1 NV).
+      clear NV.
+      apply NP.F.not_find_in_iff in I0.
+      apply NP.F.not_find_in_iff in I1.
+      rewrite I0, I1.
+      reflexivity.
+  -
+    rewrite O0 by assumption.
+    rewrite O1 by assumption.
+    reflexivity.
+Qed.
+
 
 Class SH_MSH_Operator_compat
       {i o: nat}
@@ -85,8 +531,8 @@ Class SH_MSH_Operator_compat
           (∀ (j : nat) (jc : (j < i)%nat),
               in_index_set fm sop (mkFinNat jc) → Is_Val (Vnth x jc))
           ->
-          Some (svector_to_mem_block (op fm sop x)) =
-          mem_op mop (svector_to_mem_block x)
+          Some (svector_to_mem_block _ (op fm sop x)) =
+          mem_op mop (svector_to_mem_block _ x)
     }.
 
 Section MemVecEq.
@@ -133,9 +579,9 @@ Section MemVecEq.
         unfold option_compose, compose.
         simpl in G.
 
-        pose proof (@mem_out_some _ _ mop2 mfacts2 (svector_to_mem_block x)) as Rm.
+        pose proof (@mem_out_some _ _ mop2 mfacts2 (svector_to_mem_block _ x)) as Rm.
         assert(G0: (∀ (j : nat) (jc : (j < i1)%nat), m_in_index_set mop2 (mkFinNat jc)
-                                                 → mem_in j (svector_to_mem_block x))).
+                                                 → mem_in j (svector_to_mem_block _ x))).
         {
           intros j jc H.
           apply svector_to_mem_block_In with (jc0:=jc).
@@ -150,7 +596,7 @@ Section MemVecEq.
         break_match; try some_none.
         clear Rm m2.
         pose proof (mem_op_proper mop1) as P.
-        setoid_replace m with (svector_to_mem_block (op fm op2 x)).
+        setoid_replace m with (svector_to_mem_block _ (op fm op2 x)).
         apply Meq1.
         {
           intros j jc H.
@@ -395,8 +841,8 @@ Section MemVecEq.
         assert((∀ (j : nat) (jc : j < n), in_index_set fm (svalue:=svalue)
                                                        (SHPointwise fm f)
                                                        (mkFinNat jc) →
-                                        mem_in j (svector_to_mem_block x))
-               → is_Some (mem_op_of_hop (HPointwise f) (svector_to_mem_block x))) as M by apply mem_out_some_mem_op_of_hop.
+                                        mem_in j (svector_to_mem_block _ x))
+               → is_Some (mem_op_of_hop (HPointwise f) (svector_to_mem_block _ x))) as M by apply mem_out_some_mem_op_of_hop.
         apply is_Some_equiv_def in M.
         destruct M as [y M].
         rewrite M.
@@ -691,8 +1137,8 @@ Section MemVecEq.
         assert((∀ (j : nat) (jc : j < o+o), in_index_set Monoid_RthetaSafeFlags (svalue:=svalue)
                                                          (SHBinOp Monoid_RthetaSafeFlags f)
                                                          (mkFinNat jc) →
-                                            mem_in j (svector_to_mem_block x))
-               → is_Some (mem_op_of_hop (HBinOp f) (svector_to_mem_block x))) as M by apply mem_out_some_mem_op_of_hop.
+                                            mem_in j (svector_to_mem_block _ x))
+               → is_Some (mem_op_of_hop (HBinOp f) (svector_to_mem_block _ x))) as M by apply mem_out_some_mem_op_of_hop.
         apply is_Some_equiv_def in M.
         destruct M as [y M].
         rewrite M.
@@ -877,7 +1323,7 @@ Section MemVecEq.
                               _ _ _
                               mop1 mop2
                               _ _
-                              (svector_to_mem_block x) m) as P.
+                              (svector_to_mem_block _ x) m) as P.
                 apply Meq1.
                 apply Meq2.
                 simpl in P.
@@ -1055,7 +1501,7 @@ Section MemVecEq.
                 apply NP.F.not_find_in_iff.
                 intros N.
                 apply (mem_merge_key_dec m m1 m2 MM k) in N.
-                generalize dependent (svector_to_mem_block x).
+                generalize dependent (svector_to_mem_block _ x).
                 intros m0 H1 H2.
                 destruct N as [IN1 | IN2].
                 **
@@ -1085,7 +1531,7 @@ Section MemVecEq.
               rename H into IN1, H0 into IN2.
               apply NE.In_In, mem_keys_set_In in IN1.
               apply NE.In_In,mem_keys_set_In in IN2.
-              generalize dependent (svector_to_mem_block x).
+              generalize dependent (svector_to_mem_block _ x).
               intros m H1 H2.
               (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
                yet, but IN1 and IN2, 'k' belongs to both *)
@@ -1243,7 +1689,7 @@ Section MemVecEq.
       :
           Vforall2 (fun (x y:Rtheta' fm) => evalWriter x ≡ evalWriter y) a b ->
           Vforall2 (fun (x y:Rtheta' fm) => execWriter x = execWriter y) a b ->
-          svector_to_mem_block a = svector_to_mem_block b.
+          svector_to_mem_block _ a = svector_to_mem_block _ b.
     Proof.
       intros V S.
       unfold svector_to_mem_block.
@@ -1309,12 +1755,12 @@ Section MemVecEq.
           (compata: Vforall (fun x => not (Is_Val x) -> evalWriter x ≡ def) a)
           (compatb: Vforall Is_Val b)
       :
-        svector_to_mem_block (Vec2Union _ dot a b)
+        svector_to_mem_block _ (Vec2Union _ dot a b)
         =
         mem_merge_with_def dot
                            def
-                          (svector_to_mem_block a)
-                          (svector_to_mem_block b).
+                          (svector_to_mem_block _ a)
+                          (svector_to_mem_block _ b).
     Proof.
       unfold Vec2Union.
       mem_index_equiv k.
@@ -1475,7 +1921,7 @@ Section MemVecEq.
           {v: svector fm n}:
       Same_set _
                (FinNatSet_to_natSet (vector_val_index_set v))
-               (NE.mkEns (mem_keys_set (svector_to_mem_block v))).
+               (NE.mkEns (mem_keys_set (svector_to_mem_block _ v))).
     Proof.
       unfold vector_val_index_set.
       unfold mem_keys_set.
@@ -1505,10 +1951,10 @@ Section MemVecEq.
 
     Ltac svector_to_mem_block_to_set_spec H0 :=
       match goal with
-      | [ |- context[svector_to_mem_block_spec ?v]] =>
+      | [ |- context[svector_to_mem_block_spec ?fm ?v]] =>
         pose proof (svector_to_mem_block_index_sets (v:=v)) as H0;
         unfold svector_to_mem_block in H0
-      | [ H: context[svector_to_mem_block_spec ?v] |- _ ] =>
+      | [ H: context[svector_to_mem_block_spec ?fm ?v] |- _ ] =>
         pose proof (svector_to_mem_block_index_sets (v:=v)) as H0;
         unfold svector_to_mem_block in H0
       end.
@@ -1529,11 +1975,11 @@ Section MemVecEq.
           (Za: Vforall (fun x => not (Is_Val x) -> evalWriter x = a_zero) a)
           (Zb: Vforall (fun x => not (Is_Val x) -> evalWriter x = a_zero) b)
       :
-        Some (svector_to_mem_block (Vec2Union _ dot a b))
+        Some (svector_to_mem_block _ (Vec2Union _ dot a b))
         =
         mem_merge
-          (svector_to_mem_block a)
-          (svector_to_mem_block b).
+          (svector_to_mem_block _ a)
+          (svector_to_mem_block _ b).
     Proof.
       unfold Vec2Union.
 
