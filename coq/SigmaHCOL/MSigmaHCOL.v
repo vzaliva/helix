@@ -387,7 +387,7 @@ Section Avector_Setoid.
       some_none.
   Qed.
 
-  Global Instance mem_add_Proper:
+  Global Instance mem_add_proper:
     Proper ((eq) ==> (equiv) ==> (equiv) ==> (equiv)) (mem_add).
   Proof.
     simpl_relation.
@@ -1146,7 +1146,7 @@ End Operators.
 
 Section Morphisms.
 
-  Global Instance mem_keys_set_Proper:
+  Global Instance mem_keys_set_proper:
     Proper ((=) ==> NS.Equal) (mem_keys_set).
   Proof.
     simpl_relation.

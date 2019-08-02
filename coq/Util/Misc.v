@@ -346,7 +346,7 @@ Qed.
 Global Instance Sig_Equiv {A:Type} {Ae : Equiv A} {P:A->Prop}:
   Equiv (@sig A P) := fun a b => (proj1_sig a) = (proj1_sig b).
 
-Instance proj1_Proper {A:Type} {Ae : Equiv A} {P:A->Prop}:
+Instance proj1_proper {A:Type} {Ae : Equiv A} {P:A->Prop}:
   Proper ((=)==>(=)) (@proj1_sig A P).
 Proof.
   intros x y E.
