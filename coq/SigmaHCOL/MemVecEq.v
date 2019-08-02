@@ -2801,15 +2801,15 @@ Section MemVecEq.
                                                               (out_index_set _ (op_family (mkFinNat mc)))
                                                               (out_index_set _ (op_family (mkFinNat nc))))
            `{scompat: BFixpoint svalue dot}
-           (facts: @SHOperator_Facts Monoid_RthetaFlags i o svalue
-                                     (IUnion dot op_family (pdot:=pdot) ))
       :  SH_MSH_Operator_compat
            (IUnion dot op_family (pdot:=pdot))
            (MSHIUnion mop_family).
     Proof.
       split.
       -
-        typeclasses eauto.
+        apply IUnion_Facts.
+        apply Meq.
+        apply compat.
       -
         apply IUnion_MFacts.
         +
@@ -2896,19 +2896,11 @@ Section MemVecEq.
               auto.
             }
 
-            assert(facts': SHOperator_Facts Monoid_RthetaFlags (IUnion dot (shrink_op_family_up Monoid_RthetaFlags op_family))).
-            {
-              apply IUnion_Facts; auto.
-              intros j jc.
-              apply shrink_op_family_facts_up; auto.
-              apply Meq.
-            }
             specialize (IHn
                           (shrink_op_family_up _ op_family)
                           (shrink_m_op_family_up mop_family)
                           (shrink_SH_MSH_Operator_compat_family_up Meq)
                           compat'
-                          facts'
                           P
                           v l
                           A V
