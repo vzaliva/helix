@@ -9,12 +9,12 @@ Require Import Helix.Util.FinNat.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.SigmaHCOL.IndexFunctions.
-Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
-Require Import Helix.SigmaHCOL.MSigmaHCOL.
-Require Import Helix.SigmaHCOL.MemSetoid.
+Require Import Helix.MSigmaHCOL.MSigmaHCOL.
+Require Import Helix.MSigmaHCOL.MemSetoid.
 
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.FinNatSet.

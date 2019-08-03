@@ -1,8 +1,8 @@
 (* Deep embedding of a subset of SigmaHCOL *)
 
 Require Import Helix.HCOL.CarrierType.
-Require Import Helix.SigmaHCOL.Memory.
-Require Import Helix.SigmaHCOL.MemSetoid.
+Require Import Helix.MSigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.MemSetoid.
 
 Global Open Scope nat_scope.
 

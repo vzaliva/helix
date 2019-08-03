@@ -11,8 +11,6 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
-Require Import Helix.SigmaHCOL.Memory. (* TODO: remove this dependency. However just removing it break some proofs
-                                          related to [core] DB hints used by auto for some proofs. *)
 Require Import Helix.Util.MonoidalRestriction.
 Require Import Helix.Util.VecPermutation.
 Require Import Helix.Util.FinNatSet.
@@ -33,6 +31,15 @@ Require Import MathClasses.interfaces.abstract_algebra MathClasses.interfaces.or
 Require Import MathClasses.orders.minmax MathClasses.orders.orders MathClasses.orders.rings.
 Require Import MathClasses.theory.rings MathClasses.theory.abs.
 Require Import MathClasses.theory.setoids.
+
+(* TODO: get rid of this
+   Workaround for: https://github.com/coq/coq/issues/10583
+   Some arith hints required for our proofs
+ *)
+Require Import Coq.FSets.FMapAVL.
+Require Import Coq.Structures.OrderedTypeEx.
+Module NM := FMapAVL.Make(Nat_as_OT).
+(* --- end workaround *)
 
 Require Import ExtLib.Structures.Monoid.
 Import Monoid.

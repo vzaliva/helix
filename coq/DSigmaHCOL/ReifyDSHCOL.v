@@ -12,10 +12,9 @@ Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SVector.
-Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.SigmaHCOL.SigmaHCOLMem.
-Require Import Helix.SigmaHCOL.MemVecEq.
+Require Import Helix.MSigmaHCOL.MemVecEq.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.

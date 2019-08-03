@@ -849,7 +849,7 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 
-Require Import Helix.SigmaHCOL.MemVecEq.
+Require Import Helix.MSigmaHCOL.MemVecEq.
 
 Section SigmaHCOL_mem.
 
@@ -1005,8 +1005,7 @@ End SigmaHCOL_mem.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.SigmaHCOL.SigmaHCOLMem.
-Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import MathClasses.misc.util.
 

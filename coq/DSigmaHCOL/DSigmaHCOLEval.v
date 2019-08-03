@@ -8,7 +8,7 @@ Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
-Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 

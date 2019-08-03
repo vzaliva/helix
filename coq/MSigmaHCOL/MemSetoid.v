@@ -1,4 +1,4 @@
-Require Import Helix.SigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.HCOL.CarrierType.
 
