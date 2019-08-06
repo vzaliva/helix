@@ -138,8 +138,8 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 
 Definition reifySHCOL {A:Type} (expr: A)
            (unfold_names: list ident) (* list of top-level names to unfold *)
-           (res_name:string)
-           (lemma_name:string): TemplateMonad unit
+           (res_name: string)
+           (lemma_name:  string): TemplateMonad unit
   :=
     let extra_unfold_names := List.app ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] unfold_names in
     eexpr <- tmUnfoldList extra_unfold_names expr ;;
@@ -156,7 +156,8 @@ Definition reifySHCOL {A:Type} (expr: A)
            end).
 
 
- (* Testing only *)
+(* Testing only *)
+(*
 Require Import Omega.
 Program Definition foo := @eUnion Monoid_RthetaFlags CarrierAz 10 3 _.
 Next Obligation. omega. Defined.
@@ -166,43 +167,12 @@ Run TemplateProgram (reifySHCOL foo ["foo"] "foo_def" "foo_lemma").
 Check foo_def.
 Print foo_def.
 
+Lemma foo_lemma:
+  SH_MSH_Operator_compat
+    (@eUnion Monoid_RthetaFlags CarrierAz 10 3 foo_obligation_1)
+    (@MSHeUnion 10 3 foo_obligation_1).
+Proof.
+  typeclasses eauto.
+Qed.
 
-               mt <- tmQuote (mem_block) ;;
-               d' <- compileOperator [] 0 1 2 ast ;;
-               let '(globals, a_fm, a_svalue, i, o, heap_i, dshcol) := (d':varbindings*term*term*nat*nat*nat*DSHOperator) in
-               a_i <- tmQuote i ;; a_o <- tmQuote o ;;
-                   a_globals <- build_dsh_globals globals ;;
-                   let global_idx := List.map tRel (rev_nat_seq (length globals)) in
-                   let a_shcol := tApp a_expr global_idx in
-                   dshcol' <- tmEval cbv dshcol ;;
-                           d_dshcol <- tmDefinition res_name dshcol'
-                           (* fm <- tmUnquoteTyped (Monoid.Monoid RthetaFlags) a_fm ;;
-                           sva   lue <- tmUnquoteTyped CarrierA a_svalue ;;
-                           let facts_a :=
-                               build_lambda globals (tApp
-                                                       (tInd {| inductive_mind := "SHOperator_Facts"; inductive_ind := 0 |} [])
-                                                       [a_fm; a_i; a_o; a_svalue; a_shcol]) in
-                           tmPrint facts_a ;;
-                           facts <- tmUnquote facts_a ;;
-                           facts_i <- tmInferInstance (Some cbv) facts ;;
-                           tmPrint facts_i ;;
-                           ;;
-                             a_dshcol <- tmQuote d_dshcol ;;
-                             let lemma_concl :=
-                                 (tApp (tConst "SHCOL_DSHCOL_equiv" [])
-                                       [a_i; a_o; a_svalue; a_fm; a_globals;
-                                          a_shcol;
-                                          a_facts;
-                                          a_mem;
-                                          a_dshcol])
-                             in
-                             let lemma_ast := build_forall globals lemma_concl in
-                             (tmBind (tmUnquoteTyped Prop lemma_ast)
-                                     (fun lemma_body => tmLemma lemma_name lemma_body
-                                                             ;;
-                                                             tmReturn dshcol)) *)
-
-                             ;; tmReturn dshcol
-               .
-
-
+*)
