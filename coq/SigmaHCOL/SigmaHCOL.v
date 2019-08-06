@@ -1423,7 +1423,7 @@ Section SigmaHCOL_Operators.
       apply Eg.
     Qed.
 
-    Definition  SHFamilyOperatorCompose
+    Definition SHFamilyOperatorCompose
                 {svalue: CarrierA}
                 {i1 o2 o3 n}
                 (f: @SHOperatorFamily o2 o3 n svalue)
