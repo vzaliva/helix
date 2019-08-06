@@ -48,7 +48,8 @@ Run TemplateProgram
                  ("Helix.SigmaHCOL.SigmaHCOL.SHCompose", "n_SHCompose") ;
                  ("Helix.SigmaHCOL.TSigmaHCOL.SafeCast", "n_SafeCast") ;
                  ("Helix.SigmaHCOL.TSigmaHCOL.UnSafeCast", "n_UnSafeCast") ;
-                 ("Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion", "n_HTSUMUnion")]
+                 ("Helix.SigmaHCOL.TSigmaHCOL.HTSUMUnion", "n_HTSUMUnion")
+              ]
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
 
@@ -62,7 +63,7 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
               et <- tmUnquote t ;;
               (match et with
                | existT_typed_term _ e =>
-                 e' <-  tmEval (unfold "Top.foo") e ;;
+                 e' <-  tmEval (unfold cname) e ;;
                     t' <- tmQuote e' ;;
                     match t' with
                     | tConst cname' _ =>
@@ -137,9 +138,8 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
                 tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MHTSUMUnion" u)
                                 [i; o; dot; c1; c2])
-
       | None, _ =>
-        tmFail ("Usupported function call" ++ opname)
+        tmFail ("Usupported function call " ++ opname)
       | _, _ =>
         tmFail ("Usupported arguments "
                   ++ string_of_list string_of_term args
