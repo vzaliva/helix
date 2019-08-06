@@ -160,7 +160,7 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 Definition reifySHCOL {A:Type} (expr: A)
            (fuel: nat)
            (res_name: string)
-           (lemma_name:  string): TemplateMonad unit
+  : TemplateMonad unit
   :=
     let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
     eexpr <- tmUnfoldList unfold_names expr ;;
