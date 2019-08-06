@@ -123,6 +123,10 @@ Definition dynwin_SHCOL (a: avector 3):
     ).
 
 
+Require Import Helix.MSigmaHCOL.ReifyMSHCOL.
+Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 "dynwin_MSHCOL1").
+
+
 Ltac solve_facts :=
   repeat match goal with
          | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
