@@ -1242,9 +1242,10 @@ Section MemVecEq.
            `{dot_mor: !Proper ((=) ==> (=) ==> (=)) dot}
            (op1 op2: @SHOperator Monoid_RthetaFlags i o a_zero)
            (mop1 mop2: @MSHOperator i o)
-           (compat: Disjoint _
+           `{scompat: BFixpoint a_zero dot}
+           {compat: Disjoint _
                              (out_index_set _ op1)
-                             (out_index_set _ op2))
+                             (out_index_set _ op2)}
            `{Meq1: SH_MSH_Operator_compat _ _ _ _ op1 mop1}
            `{Meq2: SH_MSH_Operator_compat _ _ _ _ op2 mop2}
 
@@ -1252,7 +1253,9 @@ Section MemVecEq.
            `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot a_zero}
 
       : SH_MSH_Operator_compat
-          (HTSUMUnion Monoid_RthetaFlags dot op1 op2 (svalue:=a_zero))
+          (HTSUMUnion Monoid_RthetaFlags dot op1 op2
+                      (scompat:=scompat)
+          )
           (MHTSUMUnion dot mop1 mop2).
     Proof.
       split.
