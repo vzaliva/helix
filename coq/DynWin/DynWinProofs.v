@@ -125,9 +125,9 @@ Definition dynwin_SHCOL (a: avector 3):
 
 Require Import Helix.MSigmaHCOL.ReifyMSHCOL.
 Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
-Check dynwin_MSHCOL1.
-Print dynwin_MSHCOL1.
 
+Require Import Helix.MSigmaHCOL.MSigmaHCOL.
+Require Import Helix.MSigmaHCOL.MemVecEq.
 
 Ltac solve_facts :=
   repeat match goal with
@@ -151,6 +151,163 @@ Ltac solve_facts :=
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
          | _ => crush
          end.
+
+Lemma dynwin_SHCOL_MSHCOL_compat {a}:
+  SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
+Proof.
+  unfold dynwin_SHCOL1, dynwin_MSHCOL1.
+
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply SafeCast_SH_MSH_Operator_compat.
+  apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat.
+  apply HTSUMUnion_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply eUnion_SH_MSH_Operator_compat.
+  { apply MonoidLaws_RthetaFlags. }
+  apply SafeCast_SH_MSH_Operator_compat.
+  apply IReduction_SH_MSH_Operator_compat.
+
+  intros j jc.
+  unfold SHFamilyOperatorCompose.
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply SHPointwise_SH_MSH_Operator_compat.
+  { apply MonoidLaws_SafeRthetaFlags. }
+  apply SHInductor_SH_MSH_Operator_compat.
+  { apply MonoidLaws_SafeRthetaFlags. }
+  apply SHPointwise_SH_MSH_Operator_compat.
+  { apply MonoidLaws_SafeRthetaFlags. }
+  apply SHInductor_SH_MSH_Operator_compat.
+  { apply MonoidLaws_SafeRthetaFlags. }
+
+  solve_facts.
+  apply SHInductor_MFacts.
+  apply eT_SH_MSH_Operator_compat.
+  solve_facts.
+  solve_facts.
+
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHPointwise_MFacts.
+  apply SHInductor_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+  solve_facts.
+  solve_facts.
+  apply eUnion_MFacts.
+  apply IReduction_MFacts.
+  intros j jc.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHPointwise_MFacts.
+  apply SHInductor_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply eUnion_SH_MSH_Operator_compat.
+  { apply MonoidLaws_RthetaFlags. }
+  apply SafeCast_SH_MSH_Operator_compat.
+  apply IReduction_SH_MSH_Operator_compat.
+  intros j jc.
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat.
+  apply UnSafeCast_SH_MSH_Operator_compat.
+
+  unfold ISumUnion.
+  apply IUnion_SH_MSH_Operator_compat.
+  intros j0 jc0.
+  apply SHCompose_SH_MSH_Operator_compat.
+  { simpl. admit. }
+  apply eUnion_SH_MSH_Operator_compat.
+  { apply MonoidLaws_RthetaFlags. }
+  apply eT_SH_MSH_Operator_compat.
+  apply eUnion_SH_MSH_Operator_compat.
+  { apply MonoidLaws_RthetaFlags. }
+  apply eT_SH_MSH_Operator_compat.
+  apply eUnion_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+
+  solve_facts.
+  solve_facts.
+  { simpl. admit. }
+  apply SHBinOp_MFacts.
+  apply IUnion_MFacts.
+  intros j0 jc0.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+  { simpl. admit. }
+  solve_facts.
+  solve_facts.
+  { simpl. admit. }
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply IReduction_MFacts.
+  intros j jc.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHBinOp_MFacts.
+  apply IUnion_MFacts.
+  intros j0 jc0.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+  { simpl. admit. }
+  typeclasses eauto. (* Monoid *)
+  solve_facts.
+  solve_facts.
+  { simpl. admit. }
+  { simpl. admit. }
+  { simpl. admit. }
+  apply SHBinOp_MFacts.
+  apply HTSUMUnion_MFacts.
+  { simpl. admit. }
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply IReduction_MFacts.
+  intros j jc.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHPointwise_MFacts.
+  apply SHInductor_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply IReduction_MFacts.
+  intros j jc.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply SHBinOp_MFacts.
+  apply IUnion_MFacts.
+  intros j0 jc0.
+  apply SHCompose_MFacts.
+  { simpl. admit. }
+  apply eUnion_MFacts.
+  apply eT_MFacts.
+  { simpl. admit. }
+  { simpl. admit. }
+Qed.
+
 
 Section SigmaHCOL_rewriting.
 
