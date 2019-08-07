@@ -124,7 +124,9 @@ Definition dynwin_SHCOL (a: avector 3):
 
 
 Require Import Helix.MSigmaHCOL.ReifyMSHCOL.
-Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 "dynwin_MSHCOL1").
+Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
+Check dynwin_MSHCOL1.
+Print dynwin_MSHCOL1.
 
 
 Ltac solve_facts :=

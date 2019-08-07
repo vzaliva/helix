@@ -159,10 +159,11 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
 
 Definition reifySHCOL {A:Type} (expr: A)
            (fuel: nat)
+           (unfold_names: list string)
            (res_name: string)
   : TemplateMonad unit
   :=
-    let unfold_names := ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
+    let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
     eexpr <- tmUnfoldList unfold_names expr ;;
           ast <- @tmQuote A eexpr ;;
           (* tmPrint ("AST" ++ (AstUtils.string_of_term ast)) ;; *)
@@ -171,7 +172,7 @@ Definition reifySHCOL {A:Type} (expr: A)
           mexpr <- tmUnquote mast ;;
           (match mexpr with
            | existT_typed_term mexprt mexprv =>
-             mexpr' <- tmEval (unfold "my_projT1") mexprv ;;
+             mexpr' <- tmEval (unfold "Common.my_projT1") mexprv ;;
                     mshcol_def <- tmDefinition res_name mexpr'
                     ;; tmReturn tt
            end).
