@@ -2766,10 +2766,6 @@ Section MSHOperator_Facts_instances.
 
   Global Instance IUnion_MFacts
          {i o k: nat}
-         `{svalue: MonUnit CarrierA}
-         `{dot: SgOp CarrierA}
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         `{af_mon: @MathClasses.interfaces.abstract_algebra.Monoid CarrierA CarrierAe dot svalue}
          (op_family: @MSHOperatorFamily i o k)
          (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
          (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
@@ -2960,10 +2956,6 @@ Section MSHOperator_Facts_instances.
             left.
 
             specialize (IHk
-                          _
-                          dot
-                          pdot
-                          _
                           (shrink_m_op_family_up op_family)
                           (shrink_m_op_family_facts_up _ op_family_facts)
                        ).
@@ -2995,10 +2987,6 @@ Section MSHOperator_Facts_instances.
             right.
 
             specialize (IHk
-                          _
-                          dot
-                          pdot
-                          _
                           (shrink_m_op_family_up op_family)
                           (shrink_m_op_family_facts_up _ op_family_facts)
                        ).
@@ -3046,10 +3034,6 @@ Section MSHOperator_Facts_instances.
         --
           clear A0.
           specialize (IHk
-                        _
-                        dot
-                        pdot
-                        _
                         (shrink_m_op_family_up op_family)
                         (shrink_m_op_family_facts_up _ op_family_facts)
                      ).
