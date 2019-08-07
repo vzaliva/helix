@@ -148,164 +148,84 @@ Ltac solve_facts :=
          | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
          | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
 
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply SafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHCompose_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply UnSafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply eUnion_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply IReduction_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHInductor_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHPointwise_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply IUnion_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat _ _ ] => apply eT_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
+         | [ |- Monoid.MonoidLaws Monoid_RthetaSafeFlags] => apply MonoidLaws_SafeRthetaFlags
+         | [ |- MSHOperator_Facts _ ] => apply HTSUMUnion_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply eT_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply SHPointwise_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply eUnion_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply IUnion_MFacts; intros
+         | [ |- MSHOperator_Facts _ ] => apply SHInductor_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply SHCompose_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply IReduction_MFacts; intros
+         | [ |- MSHOperator_Facts _ ] => apply SHBinOp_MFacts
+         | [ |- Disjoint _ (singleton _) (singleton _)] => apply Disjoined_singletons; auto
          | _ => crush
          end.
+
+Fact Set_Obligation_1:
+  Included (FinNat 2) (Full_set (FinNat 2))
+           (Union (FinNat 2) (singleton 1)
+                  (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
+Proof.
+
+  unfold Included, In.
+  intros [x xc] _.
+
+  destruct x.
+  +
+    apply Union_intror.
+    apply Union_introl.
+    reflexivity.
+  +
+    apply Union_introl.
+    destruct x.
+    *
+      reflexivity.
+    *
+      crush.
+Qed.
 
 Lemma dynwin_SHCOL_MSHCOL_compat {a}:
   SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
 Proof.
   unfold dynwin_SHCOL1, dynwin_MSHCOL1.
-
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply SafeCast_SH_MSH_Operator_compat.
-  apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat.
-  apply HTSUMUnion_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply eUnion_SH_MSH_Operator_compat.
-  { apply MonoidLaws_RthetaFlags. }
-  apply SafeCast_SH_MSH_Operator_compat.
-  apply IReduction_SH_MSH_Operator_compat.
-
-  intros j jc.
-  unfold SHFamilyOperatorCompose.
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply SHPointwise_SH_MSH_Operator_compat.
-  { apply MonoidLaws_SafeRthetaFlags. }
-  apply SHInductor_SH_MSH_Operator_compat.
-  { apply MonoidLaws_SafeRthetaFlags. }
-  apply SHPointwise_SH_MSH_Operator_compat.
-  { apply MonoidLaws_SafeRthetaFlags. }
-  apply SHInductor_SH_MSH_Operator_compat.
-  { apply MonoidLaws_SafeRthetaFlags. }
-
-  solve_facts.
-  apply SHInductor_MFacts.
-  apply eT_SH_MSH_Operator_compat.
-  solve_facts.
-  solve_facts.
-
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHPointwise_MFacts.
-  apply SHInductor_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-  solve_facts.
-  solve_facts.
-  apply eUnion_MFacts.
-  apply IReduction_MFacts.
-  intros j jc.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHPointwise_MFacts.
-  apply SHInductor_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply eUnion_SH_MSH_Operator_compat.
-  { apply MonoidLaws_RthetaFlags. }
-  apply SafeCast_SH_MSH_Operator_compat.
-  apply IReduction_SH_MSH_Operator_compat.
-  intros j jc.
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat.
-  apply UnSafeCast_SH_MSH_Operator_compat.
-
   unfold ISumUnion.
-  apply IUnion_SH_MSH_Operator_compat.
-  intros j0 jc0.
-  apply SHCompose_SH_MSH_Operator_compat.
-  { simpl. admit. }
-  apply eUnion_SH_MSH_Operator_compat.
-  { apply MonoidLaws_RthetaFlags. }
-  apply eT_SH_MSH_Operator_compat.
-  apply eUnion_SH_MSH_Operator_compat.
-  { apply MonoidLaws_RthetaFlags. }
-  apply eT_SH_MSH_Operator_compat.
-  apply eUnion_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
 
-  solve_facts.
-  solve_facts.
-  { simpl. admit. }
-  apply SHBinOp_MFacts.
-  apply IUnion_MFacts.
-  intros j0 jc0.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-  { simpl. admit. }
-  solve_facts.
-  solve_facts.
-  { simpl. admit. }
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply IReduction_MFacts.
-  intros j jc.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHBinOp_MFacts.
-  apply IUnion_MFacts.
-  intros j0 jc0.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-  { simpl. admit. }
-  typeclasses eauto. (* Monoid *)
-  solve_facts.
-  solve_facts.
-  { simpl. admit. }
-  { simpl. admit. }
-  { simpl. admit. }
-  apply SHBinOp_MFacts.
-  apply HTSUMUnion_MFacts.
-  { simpl. admit. }
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply IReduction_MFacts.
-  intros j jc.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHPointwise_MFacts.
-  apply SHInductor_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply IReduction_MFacts.
-  intros j jc.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply SHBinOp_MFacts.
-  apply IUnion_MFacts.
-  intros j0 jc0.
-  apply SHCompose_MFacts.
-  { simpl. admit. }
-  apply eUnion_MFacts.
-  apply eT_MFacts.
-  { simpl. admit. }
-  { simpl. admit. }
+  Time solve_facts.
+
+  -
+    unfold Included, In.
+    intros [x xc] H.
+
+    destruct x.
+    apply Union_introl.
+    reflexivity.
+
+    apply Union_intror.
+    unfold singleton.
+    crush.
+  -
+    apply Set_Obligation_1.
+  -
+    apply Set_Obligation_1.
+  -
+    apply Set_Obligation_1.
+  -
+    apply Set_Obligation_1.
+  -
+    apply Set_Obligation_1.
 Qed.
 
 
