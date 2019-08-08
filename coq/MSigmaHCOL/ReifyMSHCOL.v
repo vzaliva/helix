@@ -3,19 +3,9 @@ Require Import Coq.Arith.Peano_dec.
 Require Import MetaCoq.Template.All.
 
 Require Import Helix.Util.Misc.
-Require Import Helix.Util.VecSetoid.
-Require Import Helix.Util.ListSetoid.
-Require Import Helix.Util.OptionSetoid.
-Require Import Helix.Util.FinNat.
-Require Import Helix.Util.VecUtil.
-Require Import Helix.HCOL.HCOL.
-Require Import Helix.Util.WriterMonadNoT.
-Require Import Helix.SigmaHCOL.Rtheta.
-Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.MSigmaHCOL.MemVecEq.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.Tactics.HelixTactics.
 
