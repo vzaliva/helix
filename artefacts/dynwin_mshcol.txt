@@ -1,6 +1,6 @@
 dynwin_MSHCOL1 = 
 λ a : vector CarrierA 3, MSigmaHCOL.MSHCompose MSigmaHCOL.MSHBinOp
-                           (MSigmaHCOL.MHTSUMUnion CarrierAplus
+                           (MSigmaHCOL.MHTSUMUnion plus
                               (MSigmaHCOL.MSHCompose
                                  (MSigmaHCOL.MSHeUnion (le_S (le_n 1)))
                                  (MSigmaHCOL.MSHIReduction 0
@@ -34,8 +34,7 @@ dynwin_MSHCOL1 =
          Common.my_projT1 := vector CarrierA 3 → MSigmaHCOL.MSHOperator;
          Common.my_projT2 := λ a : vector CarrierA 3, MSigmaHCOL.MSHCompose
                                                         MSigmaHCOL.MSHBinOp
-                                                        (MSigmaHCOL.MHTSUMUnion
-                                                          CarrierAplus
+                                                        (MSigmaHCOL.MHTSUMUnion plus
                                                           (MSigmaHCOL.MSHCompose
                                                           (MSigmaHCOL.MSHeUnion
                                                           (le_S (le_n 1)))
@@ -72,150 +71,729 @@ dynwin_MSHCOL1 =
 
 
 
-
 dynwin_MSHCOL1 = 
-λ a : vector CarrierA 3, @MSigmaHCOL.MSHCompose (1 + 4) (1 + 1) 1
-                           (@MSigmaHCOL.MSHBinOp 1 (λ _ : FinNat 1, Zless)
-                              (@Reflexive_partial_app_morphism
-                                 (CarrierA → CarrierA → CarrierA)
-                                 (FinNat 1 → CarrierA → CarrierA → CarrierA)
-                                 (@equiv CarrierA CarrierAe ==>
-                                  @equiv (CarrierA → CarrierA)
-                                    (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe))%signature
-                                 (@equiv (FinNat 1)
-                                    (@Sig_Equiv nat peano_naturals.nat_equiv
-                                       (λ n : nat, (n < 1)%nat)) ==>
-                                  @equiv CarrierA CarrierAe ==>
-                                  @equiv CarrierA CarrierAe ==>
-                                  @equiv CarrierA CarrierAe)%signature
-                                 (λ (f : CarrierA → CarrierA → CarrierA) (_ : FinNat 1), f)
-                                 (@IgnoreIndex2_proper CarrierA CarrierAe 
-                                    (FinNat 1)
-                                    (@Sig_Equiv nat peano_naturals.nat_equiv
-                                       (λ n : nat, (n < 1)%nat))) Zless
-                                 (@proper_proper_proxy (CarrierA → CarrierA → CarrierA)
-                                    Zless
-                                    (@equiv CarrierA CarrierAe ==>
-                                     @equiv (CarrierA → CarrierA)
-                                       (@ext_equiv CarrierA CarrierAe CarrierA
-                                          CarrierAe))%signature Zless_proper)))
-                           (@MSigmaHCOL.MHTSUMUnion (1 + 4) 2 CarrierAplus
-                              (@MSigmaHCOL.MSHCompose (1 + 4) 1 2
-                                 (@MSigmaHCOL.MSHeUnion 2 0 (@le_S 1 1 (le_n 1)))
-                                 (@MSigmaHCOL.MSHIReduction 
-                                    (1 + 4) 1 3 0 CarrierAplus CarrierAPlus_proper
-                                    (λ jf : FinNat 3, @MSigmaHCOL.MSHCompose 
-                                                        (1 + 4) 1 1
-                                                        (@MSigmaHCOL.MSHCompose 1 1 1
-                                                          (@MSigmaHCOL.MSHPointwise 1
-                                                          (λ (_ : FinNat 1) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat) jf)))
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f jf)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 3)
-                                                          ((FinNat 3
-                                                          → CarrierA → CarrierA)
-                                                          → 
-                                                          FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          ((@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe) ==>
-                                                          @equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (i : FinNat 3) 
-                                                          (f : 
-                                                          FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f i)
-                                                          (@Fin1SwapIndex_proper
-                                                          CarrierA CarrierAe 3) jf
-                                                          (@reflexive_proper_proxy
-                                                          (FinNat 3)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          (@Equivalence_Reflexive
-                                                          (FinNat 3)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          (@abstract_algebra.setoid_eq
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat))
-                                                          (@setoids.sig_setoid nat
-                                                          peano_naturals.nat_equiv
-                                                          (@abstract_algebra.sg_setoid
+fun a : VectorDef.t CarrierA (S (S (S O))) =>
+@MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O)))))
+  (Init.Nat.add (S O) (S O)) (S O)
+  (@MSigmaHCOL.MSHBinOp (S O)
+     (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O))) Zless)
+     (@Reflexive_partial_app_morphism (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+        (forall (_ : @sig nat (fun n : nat => Peano.lt n (S O))) 
+           (_ : CarrierA) (_ : CarrierA), CarrierA)
+        (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+           (@equiv CarrierA CarrierAe)
+           (@equiv (forall _ : CarrierA, CarrierA)
+              (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+        (@respectful (@sig nat (fun n : nat => Peano.lt n (S O)))
+           (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+           (@equiv (@sig nat (fun n : nat => Peano.lt n (S O)))
+              (@Sig_Equiv nat peano_naturals.nat_equiv
+                 (fun n : nat => Peano.lt n (S O))))
+           (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+              (@equiv CarrierA CarrierAe)
+              (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                 (@equiv CarrierA CarrierAe))))
+        (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O))))
+        (@IgnoreIndex2_proper CarrierA CarrierAe
+           (@sig nat (fun n : nat => Peano.lt n (S O)))
+           (@Sig_Equiv nat peano_naturals.nat_equiv (fun n : nat => Peano.lt n (S O))))
+        Zless
+        (@proper_proper_proxy (forall (_ : CarrierA) (_ : CarrierA), CarrierA) Zless
+           (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+              (@equiv CarrierA CarrierAe)
+              (@equiv (forall _ : CarrierA, CarrierA)
+                 (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe))) Zless_proper)))
+  (@MSigmaHCOL.MHTSUMUnion (Init.Nat.add (S O) (S (S (S (S O))))) 
+     (S (S O)) (@plus CarrierA CarrierAplus)
+     (@MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+        (S O) (S (S O))
+        (@MSigmaHCOL.MSHeUnion (S (S O)) O (@le_S (S O) (S O) (le_n (S O))))
+        (@MSigmaHCOL.MSHIReduction (Init.Nat.add (S O) (S (S (S (S O))))) 
+           (S O) (S (S (S O))) (@zero CarrierA CarrierAz) (@plus CarrierA CarrierAplus)
+           CarrierAPlus_proper
+           (fun jf : @sig nat (fun x : nat => Peano.lt x (S (S (S O)))) =>
+            @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+              (S O) (S O)
+              (@MSigmaHCOL.MSHCompose (S O) (S O) (S O)
+                 (@MSigmaHCOL.MSHPointwise (S O)
+                    (@Fin1SwapIndex CarrierA (S (S (S O))) jf
+                       (@mult_by_nth (S (S (S O))) a))
+                    (@Reflexive_partial_app_morphism
+                       (forall (_ : @sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                          (_ : CarrierA), CarrierA)
+                       (forall (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                          (_ : CarrierA), CarrierA)
+                       (@respectful
+                          (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                          (forall _ : CarrierA, CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S (S (S O))))))
+                          (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                             (@equiv CarrierA CarrierAe)))
+                       (@respectful (@sig nat (fun x : nat => Peano.lt x (S O)))
+                          (forall _ : CarrierA, CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S O)))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S O))))
+                          (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                             (@equiv CarrierA CarrierAe)))
+                       (@Fin1SwapIndex CarrierA (S (S (S O))) jf)
+                       (@Reflexive_partial_app_morphism
+                          (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                          (forall
+                             (_ : forall
+                                    (_ : @sig nat
+                                           (fun x : nat => Peano.lt x (S (S (S O)))))
+                                    (_ : CarrierA), CarrierA)
+                             (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                             (_ : CarrierA), CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S (S (S O))))))
+                          (@respectful
+                             (forall
+                                (_ : @sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                (_ : CarrierA), CarrierA)
+                             (forall (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                                (_ : CarrierA), CarrierA)
+                             (@respectful
+                                (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                (forall _ : CarrierA, CarrierA)
+                                (@equiv
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S (S O))))))
+                                (@respectful CarrierA CarrierA
+                                   (@equiv CarrierA CarrierAe)
+                                   (@equiv CarrierA CarrierAe)))
+                             (@respectful (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                (forall _ : CarrierA, CarrierA)
+                                (@equiv (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S O))))
+                                (@respectful CarrierA CarrierA
+                                   (@equiv CarrierA CarrierAe)
+                                   (@equiv CarrierA CarrierAe))))
+                          (@Fin1SwapIndex CarrierA (S (S (S O))))
+                          (@Fin1SwapIndex_proper CarrierA CarrierAe (S (S (S O)))) jf
+                          (@reflexive_proper_proxy
+                             (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                             (@equiv
+                                (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                (@Sig_Equiv nat peano_naturals.nat_equiv
+                                   (fun x : nat => Peano.lt x (S (S (S O))))))
+                             (@Equivalence_Reflexive
+                                (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                (@equiv
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S (S O))))))
+                                (@abstract_algebra.setoid_eq
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S (S O)))))
+                                   (@setoids.sig_setoid nat peano_naturals.nat_equiv
+                                      (@abstract_algebra.sg_setoid nat
+                                         peano_naturals.nat_equiv
+                                         (@meet_is_sg_op nat
+                                            (@minmax.min nat
+                                               (@le nat peano_naturals.nat_le)
+                                               (@peano_naturals.nat_le_dec)))
+                                         (@abstract_algebra.comsg_setoid nat
+                                            peano_naturals.nat_equiv
+                                            (@meet_is_sg_op nat
+                                               (@minmax.min nat
+                                                  (@le nat peano_naturals.nat_le)
+                                                  (@peano_naturals.nat_le_dec)))
+                                            (@abstract_algebra.semilattice_sg nat
+                                               peano_naturals.nat_equiv
+                                               (@meet_is_sg_op nat
+                                                  (@minmax.min nat
+                                                     (@le nat peano_naturals.nat_le)
+                                                     (@peano_naturals.nat_le_dec)))
+                                               (@abstract_algebra.meet_semilattice nat
+                                                  peano_naturals.nat_equiv
+                                                  (@minmax.min nat
+                                                     (@le nat peano_naturals.nat_le)
+                                                     (@peano_naturals.nat_le_dec))
+                                                  (@abstract_algebra.lattice_meet nat
+                                                     peano_naturals.nat_equiv
+                                                     (@minmax.max nat
+                                                        (@le nat peano_naturals.nat_le)
+                                                        (@peano_naturals.nat_le_dec))
+                                                     (@minmax.min nat
+                                                        (@le nat peano_naturals.nat_le)
+                                                        (@peano_naturals.nat_le_dec))
+                                                     (@abstract_algebra.distr_lattice_lattice
+                                                        nat peano_naturals.nat_equiv
+                                                        (@minmax.max nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec))
+                                                        (@minmax.min nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec))
+                                                        (@minmax.DistributiveLattice_instance_0
                                                           nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@orders.le_total nat
+                                                          peano_naturals.nat_equiv
+                                                          (@strong_setoids.default_apart
+                                                          nat peano_naturals.nat_equiv)
+                                                          peano_naturals.nat_le
+                                                          peano_naturals.nat_lt
+                                                          (@semirings.FullPseudoOrder_instance_0
+                                                          nat peano_naturals.nat_equiv
+                                                          (...) peano_naturals.nat_plus
+                                                          peano_naturals.nat_mult
+                                                          peano_naturals.nat_0
+                                                          peano_naturals.nat_1
+                                                          peano_naturals.nat_le
+                                                          peano_naturals.nat_lt
+                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
+                                                          (@strong_setoids.default_apart_trivial
+                                                          nat peano_naturals.nat_equiv)
+                                                          peano_naturals.nat_dec)
+                                                          (@peano_naturals.nat_le_dec))))))))
+                                      (fun x : nat => Peano.lt x (S (S (S O))))))) jf))
+                       (@mult_by_nth (S (S (S O))) a)
+                       (@proper_proper_proxy
+                          (forall
+                             (_ : @sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                             (_ : CarrierA), CarrierA) (@mult_by_nth (S (S (S O))) a)
+                          (@respectful
+                             (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                             (forall _ : CarrierA, CarrierA)
+                             (@equiv
+                                (@sig nat (fun x : nat => Peano.lt x (S (S (S O)))))
+                                (@Sig_Equiv nat peano_naturals.nat_equiv
+                                   (fun x : nat => Peano.lt x (S (S (S O))))))
+                             (@respectful CarrierA CarrierA 
+                                (@equiv CarrierA CarrierAe) 
+                                (@equiv CarrierA CarrierAe)))
+                          (@mult_by_nth_proper (S (S (S O))) a))))
+                 (@MSigmaHCOL.MSHInductor
+                    (@proj1_sig nat (fun x : nat => Peano.lt x (S (S (S O)))) jf)
+                    (@mult CarrierA CarrierAmult)
+                    (@abstract_algebra.sg_op_proper CarrierA CarrierAe CarrierAmult
+                       (@abstract_algebra.monoid_semigroup CarrierA CarrierAe
+                          CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                          (@abstract_algebra.commonoid_mon CarrierA CarrierAe
+                             CarrierAmult (@one_is_mon_unit CarrierA CarrierA1)
+                             (@abstract_algebra.semimult_monoid CarrierA CarrierAe
+                                CarrierAplus CarrierAmult CarrierAz CarrierA1
+                                (@rings.Ring_Semi CarrierA CarrierAe CarrierAplus
+                                   CarrierAmult CarrierAz CarrierA1 CarrierAneg
+                                   CarrierAr))))) (@one CarrierA CarrierA1)))
+              (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O))))) O
+                 (@GathH1_domain_bound_to_base_bound
+                    (Init.Nat.add (S O) (S (S (S (S O))))) O 
+                    (S O) (h_bound_first_half (S O) (S (S (S (S O))))))))))
+     (@MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+        (S O) (S (S O)) (@MSigmaHCOL.MSHeUnion (S (S O)) (S O) (le_n (S (S O))))
+        (@MSigmaHCOL.MSHIReduction (Init.Nat.add (S O) (S (S (S (S O))))) 
+           (S O) (S (S O)) (@zero CarrierA CarrierAz)
+           (@minmax.max CarrierA CarrierAle CarrierAledec)
+           (@abstract_algebra.sg_op_proper CarrierA CarrierAe
+              (fun x y : CarrierA =>
+               @snd CarrierA CarrierA
+                 (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+              (@abstract_algebra.comsg_setoid CarrierA CarrierAe
+                 (fun x y : CarrierA =>
+                  @snd CarrierA CarrierA
+                    (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                 (@abstract_algebra.semilattice_sg CarrierA CarrierAe
+                    (fun x y : CarrierA =>
+                     @snd CarrierA CarrierA
+                       (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                    (@abstract_algebra.join_semilattice CarrierA CarrierAe
+                       (fun x y : CarrierA =>
+                        @snd CarrierA CarrierA
+                          (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                       (@abstract_algebra.lattice_join CarrierA CarrierAe
+                          (fun x y : CarrierA =>
+                           @snd CarrierA CarrierA
+                             (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                          (@minmax.min CarrierA CarrierAle CarrierAledec)
+                          (@abstract_algebra.distr_lattice_lattice CarrierA CarrierAe
+                             (fun x y : CarrierA =>
+                              @snd CarrierA CarrierA
+                                (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                             (@minmax.min CarrierA CarrierAle CarrierAledec)
+                             (@minmax.DistributiveLattice_instance_0 CarrierA CarrierAe
+                                CarrierAle CarrierAto CarrierAledec)))))))
+           (fun jf : @sig nat (fun x : nat => Peano.lt x (S (S O))) =>
+            @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O)))))
+              (Init.Nat.add (S O) (S O)) (S O)
+              (@MSigmaHCOL.MSHBinOp (S O)
+                 (fun (i : @sig nat (fun n : nat => Peano.lt n (S O)))
+                    (a0 b : CarrierA) =>
+                  @IgnoreIndex CarrierA (S O)
+                    (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
+                       CarrierAabs) i
+                    (@Fin1SwapIndex2 CarrierA (S (S O)) jf
+                       (@IgnoreIndex2 CarrierA
+                          (@sig nat (fun x : nat => Peano.lt x (S (S O)))) sub) i a0 b))
+                 (@FinNat_f1_over_g2_proper (S O)
+                    (@IgnoreIndex CarrierA (S O)
+                       (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
+                          CarrierAabs))
+                    (@Fin1SwapIndex2 CarrierA (S (S O)) jf
+                       (@IgnoreIndex2 CarrierA
+                          (@sig nat (fun x : nat => Peano.lt x (S (S O)))) sub))
+                    (@Reflexive_partial_app_morphism (forall _ : CarrierA, CarrierA)
+                       (forall (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                          (_ : CarrierA), CarrierA)
+                       (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                          (@equiv CarrierA CarrierAe))
+                       (@respectful (@sig nat (fun x : nat => Peano.lt x (S O)))
+                          (forall _ : CarrierA, CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S O)))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S O))))
+                          (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                             (@equiv CarrierA CarrierAe)))
+                       (@IgnoreIndex CarrierA (S O))
+                       (@IgnoredIndex_proper CarrierA CarrierAe (S O))
+                       (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
+                          CarrierAabs)
+                       (@proper_proper_proxy (forall _ : CarrierA, CarrierA)
+                          (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
+                             CarrierAabs)
+                          (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                             (@equiv CarrierA CarrierAe))
+                          (@abstract_algebra.sm_proper CarrierA CarrierA CarrierAe
+                             CarrierAe
+                             (@abs CarrierA CarrierAe CarrierAle CarrierAz CarrierAneg
+                                CarrierAabs)
+                             (@abs_Setoid_Morphism CarrierA CarrierAe CarrierAplus
+                                CarrierAmult CarrierAz CarrierA1 CarrierAneg CarrierAr
+                                CarrierAsetoid CarrierAle CarrierAto CarrierAabs))))
+                    (@Reflexive_partial_app_morphism
+                       (forall (_ : @sig nat (fun x : nat => Peano.lt x (S (S O))))
+                          (_ : CarrierA) (_ : CarrierA), CarrierA)
+                       (forall (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                          (_ : CarrierA) (_ : CarrierA), CarrierA)
+                       (@respectful (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                          (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S (S O)))))
+                          (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                             (@equiv CarrierA CarrierAe)
+                             (@respectful CarrierA CarrierA 
+                                (@equiv CarrierA CarrierAe) 
+                                (@equiv CarrierA CarrierAe))))
+                       (@respectful (@sig nat (fun x : nat => Peano.lt x (S O)))
+                          (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S O)))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S O))))
+                          (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                             (@equiv CarrierA CarrierAe)
+                             (@respectful CarrierA CarrierA 
+                                (@equiv CarrierA CarrierAe) 
+                                (@equiv CarrierA CarrierAe))))
+                       (@Fin1SwapIndex2 CarrierA (S (S O)) jf)
+                       (@Reflexive_partial_app_morphism
+                          (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                          (forall
+                             (_ : forall
+                                    (_ : @sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                    (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                             (_ : CarrierA) (_ : CarrierA), CarrierA)
+                          (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                (fun x : nat => Peano.lt x (S (S O)))))
+                          (@respectful
+                             (forall
+                                (_ : @sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (forall (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                                (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (@respectful
+                                (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                (@equiv
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S O)))))
+                                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                   (@equiv CarrierA CarrierAe)
+                                   (@respectful CarrierA CarrierA
+                                      (@equiv CarrierA CarrierAe)
+                                      (@equiv CarrierA CarrierAe))))
+                             (@respectful (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                (@equiv (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S O))))
+                                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                   (@equiv CarrierA CarrierAe)
+                                   (@respectful CarrierA CarrierA
+                                      (@equiv CarrierA CarrierAe)
+                                      (@equiv CarrierA CarrierAe)))))
+                          (@Fin1SwapIndex2 CarrierA (S (S O)))
+                          (@Fin1SwapIndex2_proper CarrierA CarrierAe (S (S O))) jf
+                          (@reflexive_proper_proxy
+                             (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                             (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (@Sig_Equiv nat peano_naturals.nat_equiv
+                                   (fun x : nat => Peano.lt x (S (S O)))))
+                             (@Equivalence_Reflexive
+                                (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (@equiv
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S O)))))
+                                (@abstract_algebra.setoid_eq
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S O))))
+                                   (@setoids.sig_setoid nat peano_naturals.nat_equiv
+                                      (@abstract_algebra.sg_setoid nat
+                                         peano_naturals.nat_equiv
+                                         (@meet_is_sg_op nat
+                                            (@minmax.min nat
+                                               (@le nat peano_naturals.nat_le)
+                                               (@peano_naturals.nat_le_dec)))
+                                         (@abstract_algebra.comsg_setoid nat
+                                            peano_naturals.nat_equiv
+                                            (@meet_is_sg_op nat
+                                               (@minmax.min nat
+                                                  (@le nat peano_naturals.nat_le)
+                                                  (@peano_naturals.nat_le_dec)))
+                                            (@abstract_algebra.semilattice_sg nat
+                                               peano_naturals.nat_equiv
+                                               (@meet_is_sg_op nat
+                                                  (@minmax.min nat
+                                                     (@le nat peano_naturals.nat_le)
+                                                     (@peano_naturals.nat_le_dec)))
+                                               (@abstract_algebra.meet_semilattice nat
+                                                  peano_naturals.nat_equiv
+                                                  (@minmax.min nat
+                                                     (@le nat peano_naturals.nat_le)
+                                                     (@peano_naturals.nat_le_dec))
+                                                  (@abstract_algebra.lattice_meet nat
+                                                     peano_naturals.nat_equiv
+                                                     (@minmax.max nat
+                                                        (@le nat peano_naturals.nat_le)
+                                                        (@peano_naturals.nat_le_dec))
+                                                     (@minmax.min nat
+                                                        (@le nat peano_naturals.nat_le)
+                                                        (@peano_naturals.nat_le_dec))
+                                                     (@abstract_algebra.distr_lattice_lattice
+                                                        nat peano_naturals.nat_equiv
+                                                        (@minmax.max nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec))
+                                                        (@minmax.min nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec))
+                                                        (@minmax.DistributiveLattice_instance_0
+                                                          nat peano_naturals.nat_equiv
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@orders.le_total nat
+                                                          peano_naturals.nat_equiv
+                                                          (@strong_setoids.default_apart
+                                                          nat peano_naturals.nat_equiv)
+                                                          peano_naturals.nat_le
+                                                          peano_naturals.nat_lt
+                                                          (@semirings.FullPseudoOrder_instance_0
+                                                          nat peano_naturals.nat_equiv
+                                                          (...) peano_naturals.nat_plus
+                                                          peano_naturals.nat_mult
+                                                          peano_naturals.nat_0
+                                                          peano_naturals.nat_1
+                                                          peano_naturals.nat_le
+                                                          peano_naturals.nat_lt
+                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
+                                                          (@strong_setoids.default_apart_trivial
+                                                          nat peano_naturals.nat_equiv)
+                                                          peano_naturals.nat_dec)
+                                                          (@peano_naturals.nat_le_dec))))))))
+                                      (fun x : nat => Peano.lt x (S (S O)))))) jf))
+                       (@IgnoreIndex2 CarrierA
+                          (@sig nat (fun x : nat => Peano.lt x (S (S O)))) sub)
+                       (@proper_proper_proxy
+                          (forall (_ : @sig nat (fun x : nat => Peano.lt x (S (S O))))
+                             (_ : CarrierA) (_ : CarrierA), CarrierA)
+                          (@IgnoreIndex2 CarrierA
+                             (@sig nat (fun x : nat => Peano.lt x (S (S O)))) sub)
+                          (@respectful (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                             (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (@equiv (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (@Sig_Equiv nat peano_naturals.nat_equiv
+                                   (fun x : nat => Peano.lt x (S (S O)))))
+                             (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                (@equiv CarrierA CarrierAe)
+                                (@respectful CarrierA CarrierA
+                                   (@equiv CarrierA CarrierAe)
+                                   (@equiv CarrierA CarrierAe))))
+                          (@Reflexive_partial_app_morphism
+                             (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (forall
+                                (_ : @sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (_ : CarrierA) (_ : CarrierA), CarrierA)
+                             (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                (@equiv CarrierA CarrierAe)
+                                (@equiv (forall _ : CarrierA, CarrierA)
+                                   (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                             (@respectful
+                                (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                (@equiv
+                                   (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                   (@Sig_Equiv nat peano_naturals.nat_equiv
+                                      (fun x : nat => Peano.lt x (S (S O)))))
+                                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                   (@equiv CarrierA CarrierAe)
+                                   (@respectful CarrierA CarrierA
+                                      (@equiv CarrierA CarrierAe)
+                                      (@equiv CarrierA CarrierAe))))
+                             (@IgnoreIndex2 CarrierA
+                                (@sig nat (fun x : nat => Peano.lt x (S (S O)))))
+                             (@IgnoreIndex2_proper CarrierA CarrierAe
+                                (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                (@Sig_Equiv nat peano_naturals.nat_equiv
+                                   (fun x : nat => Peano.lt x (S (S O))))) sub
+                             (@proper_proper_proxy
+                                (forall (_ : CarrierA) (_ : CarrierA), CarrierA) sub
+                                (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                                   (@equiv CarrierA CarrierAe)
+                                   (@equiv (forall _ : CarrierA, CarrierA)
+                                      (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                                CarrierA_sub_proper))))))
+              (@MSigmaHCOL.MSHIUnion (Init.Nat.add (S O) (S (S (S (S O))))) 
+                 (S (S O)) (S (S O))
+                 (fun jf0 : @sig nat (fun x : nat => Peano.lt x (S (S O))) =>
+                  @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+                    (S O) (S (S O))
+                    (@MSigmaHCOL.MSHeUnion (S (S O))
+                       (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0)
+                       (@proj2_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0))
+                    (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O)))))
+                       (Init.Nat.add
+                          (Init.Nat.add (S O)
+                             (Init.Nat.mul
+                                (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O)))
+                                   jf) (S O)))
+                          (Init.Nat.mul
+                             (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0)
+                             (Init.Nat.mul (S (S O)) (S O))))
+                       (@h_index_map_compose_range_bound
+                          (Init.Nat.add (S O) (S (S (S (S O))))) 
+                          (S (S O)) (Init.Nat.add (S (S O)) (S (S O)))
+                          (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf)
+                          (S O) (S (S O)) (S O)
+                          (GathH_jn_domain_bound
+                             (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf)
+                             (S (S O))
+                             (@proj2_sig nat (fun x : nat => Peano.lt x (S (S O))) jf))
+                          (h_bound_second_half (S O) (S (S (S (S O)))))
+                          (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0)
+                          (@proj2_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0)))))))))
+     : Common.my_projT1
+         (Common.existT_typed_term
+            (forall _ : VectorDef.t CarrierA (S (S (S O))),
+             @MSigmaHCOL.MSHOperator (Init.Nat.add (S O) (S (S (S (S O))))) (S O))
+            (fun a : VectorDef.t CarrierA (S (S (S O))) =>
+             @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O)))))
+               (Init.Nat.add (S O) (S O)) (S O)
+               (@MSigmaHCOL.MSHBinOp (S O)
+                  (@IgnoreIndex2 CarrierA (@sig nat (fun n : nat => Peano.lt n (S O)))
+                     Zless)
+                  (@Reflexive_partial_app_morphism
+                     (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                     (forall (_ : @sig nat (fun n : nat => Peano.lt n (S O)))
+                        (_ : CarrierA) (_ : CarrierA), CarrierA)
+                     (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                        (@equiv CarrierA CarrierAe)
+                        (@equiv (forall _ : CarrierA, CarrierA)
+                           (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                     (@respectful (@sig nat (fun n : nat => Peano.lt n (S O)))
+                        (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                        (@equiv (@sig nat (fun n : nat => Peano.lt n (S O)))
+                           (@Sig_Equiv nat peano_naturals.nat_equiv
+                              (fun n : nat => Peano.lt n (S O))))
+                        (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                           (@equiv CarrierA CarrierAe)
+                           (@respectful CarrierA CarrierA (@equiv CarrierA CarrierAe)
+                              (@equiv CarrierA CarrierAe))))
+                     (@IgnoreIndex2 CarrierA
+                        (@sig nat (fun n : nat => Peano.lt n (S O))))
+                     (@IgnoreIndex2_proper CarrierA CarrierAe
+                        (@sig nat (fun n : nat => Peano.lt n (S O)))
+                        (@Sig_Equiv nat peano_naturals.nat_equiv
+                           (fun n : nat => Peano.lt n (S O)))) Zless
+                     (@proper_proper_proxy
+                        (forall (_ : CarrierA) (_ : CarrierA), CarrierA) Zless
+                        (@respectful CarrierA (forall _ : CarrierA, CarrierA)
+                           (@equiv CarrierA CarrierAe)
+                           (@equiv (forall _ : CarrierA, CarrierA)
+                              (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
+                        Zless_proper)))
+               (@MSigmaHCOL.MHTSUMUnion (Init.Nat.add (S O) (S (S (S (S O)))))
+                  (S (S O)) (@plus CarrierA CarrierAplus)
+                  (@MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+                     (S O) (S (S O))
+                     (@MSigmaHCOL.MSHeUnion (S (S O)) O
+                        (@le_S (S O) (S O) (le_n (S O))))
+                     (@MSigmaHCOL.MSHIReduction (Init.Nat.add (S O) (S (S (S (S O)))))
+                        (S O) (S (S (S O))) (@zero CarrierA CarrierAz)
+                        (@plus CarrierA CarrierAplus) CarrierAPlus_proper
+                        (fun jf : @sig nat (fun x : nat => Peano.lt x (S (S (S O)))) =>
+                         @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O)))))
+                           (S O) (S O)
+                           (@MSigmaHCOL.MSHCompose (S O) (S O) 
+                              (S O)
+                              (@MSigmaHCOL.MSHPointwise (S O)
+                                 (@Fin1SwapIndex CarrierA (S (S (S O))) jf
+                                    (@mult_by_nth (S (S (S O))) a))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall
+                                       (_ : @sig nat
+                                              (fun x : nat => Peano.lt x (S (S (S O)))))
+                                       (_ : CarrierA), CarrierA)
+                                    (forall
+                                       (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (_ : CarrierA), CarrierA)
+                                    (@respectful
+                                       (@sig nat
+                                          (fun x : nat => Peano.lt x (S (S (S O)))))
+                                       (forall _ : CarrierA, CarrierA)
+                                       (@equiv
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S (S O)))))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S (S (S O))))))
+                                       (@respectful CarrierA CarrierA
+                                          (@equiv CarrierA CarrierAe)
+                                          (@equiv CarrierA CarrierAe)))
+                                    (@respectful
+                                       (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (forall _ : CarrierA, CarrierA)
+                                       (@equiv
+                                          (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S O))))
+                                       (@respectful CarrierA CarrierA
+                                          (@equiv CarrierA CarrierAe)
+                                          (@equiv CarrierA CarrierAe)))
+                                    (@Fin1SwapIndex CarrierA (S (S (S O))) jf)
+                                    (@Reflexive_partial_app_morphism
+                                       (@sig nat
+                                          (fun x : nat => Peano.lt x (S (S (S O)))))
+                                       (forall
+                                          (_ : forall
+                                                 (_ : @sig nat
+                                                        (fun x : nat =>
+                                                         Peano.lt x (S (S (S O)))))
+                                                 (_ : CarrierA), CarrierA)
+                                          (_ : @sig nat
+                                                 (fun x : nat => Peano.lt x (S O)))
+                                          (_ : CarrierA), CarrierA)
+                                       (@equiv
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S (S O)))))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S (S (S O))))))
+                                       (@respectful
+                                          (forall
+                                             (_ : @sig nat
+                                                    (fun x : nat =>
+                                                     Peano.lt x (S (S (S O)))))
+                                             (_ : CarrierA), CarrierA)
+                                          (forall
+                                             (_ : @sig nat
+                                                    (fun x : nat => Peano.lt x (S O)))
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful
+                                             (@sig nat
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O)))))
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O)))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O))))))
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe)))
+                                          (@respectful
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S O)))
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S O)))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S O))))
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe))))
+                                       (@Fin1SwapIndex CarrierA (S (S (S O))))
+                                       (@Fin1SwapIndex_proper CarrierA CarrierAe
+                                          (S (S (S O)))) jf
+                                       (@reflexive_proper_proxy
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S (S O)))))
+                                          (@equiv
+                                             (@sig nat
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O)))))
+                                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O))))))
+                                          (@Equivalence_Reflexive
+                                             (@sig nat
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O)))))
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O)))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O))))))
+                                             (@abstract_algebra.setoid_eq
+                                                (@sig nat
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O)))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O)))))
+                                                (@setoids.sig_setoid nat
+                                                   peano_naturals.nat_equiv
+                                                   (@abstract_algebra.sg_setoid nat
+                                                      peano_naturals.nat_equiv
+                                                      (@meet_is_sg_op nat
+                                                         (@minmax.min nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec)))
+                                                      (@abstract_algebra.comsg_setoid
+                                                         nat peano_naturals.nat_equiv
+                                                         (@meet_is_sg_op nat
                                                           (@minmax.min nat
                                                           (@le nat
                                                           peano_naturals.nat_le)
                                                           (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.comsg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.semilattice_sg
+                                                         (@abstract_algebra.semilattice_sg
                                                           nat peano_naturals.nat_equiv
                                                           (@meet_is_sg_op nat
                                                           (@minmax.min nat
@@ -240,638 +818,304 @@ dynwin_MSHCOL1 =
                                                           (@peano_naturals.nat_le_dec))
                                                           (@abstract_algebra.distr_lattice_lattice
                                                           nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
+                                                          (@minmax.max nat (...) (...))
+                                                          (@minmax.min nat (...) (...))
                                                           (@minmax.DistributiveLattice_instance_0
                                                           nat peano_naturals.nat_equiv
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@orders.le_total nat
-                                                          peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          (@semirings.FullPseudoOrder_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_plus
-                                                          peano_naturals.nat_mult
-                                                          peano_naturals.nat_0
-                                                          peano_naturals.nat_1
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
-                                                          (@strong_setoids.default_apart_trivial
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_dec)
-                                                          (@peano_naturals.nat_le_dec))))))))
-                                                          (λ x : nat, (x < 3)%nat))))
-                                                          jf))
-                                                          (λ (jf0 : FinNat 3) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat)
-                                                          jf0)))
-                                                          (@proper_proper_proxy
-                                                          (FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (λ (jf0 : FinNat 3) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat)
-                                                          jf0)))
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@mult_by_nth_proper 3 a))))
-                                                          (@MSigmaHCOL.MSHInductor
-                                                          (` jf) CarrierAmult
-                                                          (@abstract_algebra.sg_op_proper
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@abstract_algebra.monoid_semigroup
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@one_is_mon_unit CarrierA
-                                                          CarrierA1)
-                                                          (@abstract_algebra.commonoid_mon
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@one_is_mon_unit CarrierA
-                                                          CarrierA1)
-                                                          (@abstract_algebra.semimult_monoid
-                                                          CarrierA CarrierAe
-                                                          CarrierAplus CarrierAmult
-                                                          CarrierAz CarrierA1
-                                                          (@rings.Ring_Semi CarrierA
-                                                          CarrierAe CarrierAplus
-                                                          CarrierAmult CarrierAz
-                                                          CarrierA1 CarrierAneg
-                                                          CarrierAr))))) 1))
-                                                        (@MSigmaHCOL.MSHeT 
-                                                          (1 + 4) 0
-                                                          (@GathH1_domain_bound_to_base_bound
-                                                          (1 + 4) 0 1
-                                                          (h_bound_first_half 1 4))))))
-                              (@MSigmaHCOL.MSHCompose (1 + 4) 1 2
-                                 (@MSigmaHCOL.MSHeUnion 2 1 (le_n 2))
-                                 (@MSigmaHCOL.MSHIReduction 
-                                    (1 + 4) 1 2 0
-                                    (@minmax.max CarrierA CarrierAle CarrierAledec)
-                                    (@abstract_algebra.sg_op_proper CarrierA CarrierAe
-                                       (λ x y : CarrierA, @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                       (@abstract_algebra.comsg_setoid CarrierA
-                                          CarrierAe
-                                          (λ x y : CarrierA, 
+                                                          (...) 
+                                                          (...) 
+                                                          (...))))))))
+                                                   (fun x : nat =>
+                                                    Peano.lt x (S (S (S O))))))) jf))
+                                    (@mult_by_nth (S (S (S O))) a)
+                                    (@proper_proper_proxy
+                                       (forall
+                                          (_ : @sig nat
+                                                 (fun x : nat =>
+                                                  Peano.lt x (S (S (S O)))))
+                                          (_ : CarrierA), CarrierA)
+                                       (@mult_by_nth (S (S (S O))) a)
+                                       (@respectful
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S (S O)))))
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv
+                                             (@sig nat
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O)))))
+                                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                (fun x : nat =>
+                                                 Peano.lt x (S (S (S O))))))
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe)))
+                                       (@mult_by_nth_proper (S (S (S O))) a))))
+                              (@MSigmaHCOL.MSHInductor
+                                 (@proj1_sig nat
+                                    (fun x : nat => Peano.lt x (S (S (S O)))) jf)
+                                 (@mult CarrierA CarrierAmult)
+                                 (@abstract_algebra.sg_op_proper CarrierA CarrierAe
+                                    CarrierAmult
+                                    (@abstract_algebra.monoid_semigroup CarrierA
+                                       CarrierAe CarrierAmult
+                                       (@one_is_mon_unit CarrierA CarrierA1)
+                                       (@abstract_algebra.commonoid_mon CarrierA
+                                          CarrierAe CarrierAmult
+                                          (@one_is_mon_unit CarrierA CarrierA1)
+                                          (@abstract_algebra.semimult_monoid CarrierA
+                                             CarrierAe CarrierAplus CarrierAmult
+                                             CarrierAz CarrierA1
+                                             (@rings.Ring_Semi CarrierA CarrierAe
+                                                CarrierAplus CarrierAmult CarrierAz
+                                                CarrierA1 CarrierAneg CarrierAr)))))
+                                 (@one CarrierA CarrierA1)))
+                           (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O))))) O
+                              (@GathH1_domain_bound_to_base_bound
+                                 (Init.Nat.add (S O) (S (S (S (S O))))) O 
+                                 (S O) (h_bound_first_half (S O) (S (S (S (S O))))))))))
+                  (@MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O))))) 
+                     (S O) (S (S O))
+                     (@MSigmaHCOL.MSHeUnion (S (S O)) (S O) (le_n (S (S O))))
+                     (@MSigmaHCOL.MSHIReduction (Init.Nat.add (S O) (S (S (S (S O)))))
+                        (S O) (S (S O)) (@zero CarrierA CarrierAz)
+                        (@minmax.max CarrierA CarrierAle CarrierAledec)
+                        (@abstract_algebra.sg_op_proper CarrierA CarrierAe
+                           (fun x y : CarrierA =>
+                            @snd CarrierA CarrierA
+                              (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                           (@abstract_algebra.comsg_setoid CarrierA CarrierAe
+                              (fun x y : CarrierA =>
+                               @snd CarrierA CarrierA
+                                 (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                              (@abstract_algebra.semilattice_sg CarrierA CarrierAe
+                                 (fun x y : CarrierA =>
+                                  @snd CarrierA CarrierA
+                                    (@minmax.sort CarrierA CarrierAle CarrierAledec x y))
+                                 (@abstract_algebra.join_semilattice CarrierA CarrierAe
+                                    (fun x y : CarrierA =>
+                                     @snd CarrierA CarrierA
+                                       (@minmax.sort CarrierA CarrierAle CarrierAledec
+                                          x y))
+                                    (@abstract_algebra.lattice_join CarrierA CarrierAe
+                                       (fun x y : CarrierA =>
+                                        @snd CarrierA CarrierA
+                                          (@minmax.sort CarrierA CarrierAle
+                                             CarrierAledec x y))
+                                       (@minmax.min CarrierA CarrierAle CarrierAledec)
+                                       (@abstract_algebra.distr_lattice_lattice
+                                          CarrierA CarrierAe
+                                          (fun x y : CarrierA =>
                                            @snd CarrierA CarrierA
                                              (@minmax.sort CarrierA CarrierAle
                                                 CarrierAledec x y))
-                                          (@abstract_algebra.semilattice_sg CarrierA
-                                             CarrierAe
-                                             (λ x y : CarrierA, 
-                                              @snd CarrierA CarrierA
-                                                (@minmax.sort CarrierA CarrierAle
-                                                   CarrierAledec x y))
-                                             (@abstract_algebra.join_semilattice
-                                                CarrierA CarrierAe
-                                                (λ x y : CarrierA, 
-                                                 @snd CarrierA CarrierA
-                                                   (@minmax.sort CarrierA CarrierAle
-                                                      CarrierAledec x y))
-                                                (@abstract_algebra.lattice_join
-                                                   CarrierA CarrierAe
-                                                   (λ x y : CarrierA, 
-                                                    @snd CarrierA CarrierA
-                                                      (@minmax.sort CarrierA CarrierAle
-                                                         CarrierAledec x y))
-                                                   (@minmax.min CarrierA CarrierAle
-                                                      CarrierAledec)
-                                                   (@abstract_algebra.distr_lattice_lattice
-                                                      CarrierA CarrierAe
-                                                      (λ x y : CarrierA, 
-                                                       @snd CarrierA CarrierA
-                                                         (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                      (@minmax.min CarrierA CarrierAle
-                                                         CarrierAledec)
-                                                      (@minmax.DistributiveLattice_instance_0
-                                                         CarrierA CarrierAe CarrierAle
-                                                         CarrierAto CarrierAledec)))))))
-                                    (λ jf : FinNat 2, @MSigmaHCOL.MSHCompose 
-                                                        (1 + 4) 
-                                                        (1 + 1) 1
-                                                        (@MSigmaHCOL.MSHBinOp 1
-                                                          (λ (_ : FinNat 1) 
-                                                          (a0 b : CarrierA), 
-                                                          @abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs
-                                                          (sub a0 b))
-                                                          (@FinNat_f1_over_g2_proper 1
-                                                          (λ _ : {i : nat | i < 1}, 
-                                                          @abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (λ _ : FinNat 1, sub)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          {i : nat | i < 1}), f)
-                                                          (@IgnoredIndex_proper
-                                                          CarrierA CarrierAe 1)
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@proper_proper_proxy
-                                                          (CarrierA → CarrierA)
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@abstract_algebra.sm_proper
-                                                          CarrierA CarrierA CarrierAe
-                                                          CarrierAe
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@abs_Setoid_Morphism
-                                                          CarrierA CarrierAe
-                                                          CarrierAplus CarrierAmult
-                                                          CarrierAz CarrierA1
-                                                          CarrierAneg CarrierAr
-                                                          CarrierAsetoid CarrierAle
-                                                          CarrierAto CarrierAabs))))
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f jf)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 2)
-                                                          ((FinNat 2
-                                                          → CarrierA
-                                                          → CarrierA → CarrierA)
-                                                          → 
-                                                          FinNat 1
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          ((@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe) ==>
-                                                          @equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (i : FinNat 2) 
-                                                          (f : 
-                                                          FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f i)
-                                                          (@Fin1SwapIndex2_proper
-                                                          CarrierA CarrierAe 2) jf
-                                                          (@reflexive_proper_proxy
-                                                          (FinNat 2)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          (@Equivalence_Reflexive
-                                                          (FinNat 2)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          (@abstract_algebra.setoid_eq
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat))
-                                                          (@setoids.sig_setoid nat
-                                                          peano_naturals.nat_equiv
-                                                          (@abstract_algebra.sg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
+                                          (@minmax.min CarrierA CarrierAle
+                                             CarrierAledec)
+                                          (@minmax.DistributiveLattice_instance_0
+                                             CarrierA CarrierAe CarrierAle CarrierAto
+                                             CarrierAledec)))))))
+                        (fun jf : @sig nat (fun x : nat => Peano.lt x (S (S O))) =>
+                         @MSigmaHCOL.MSHCompose (Init.Nat.add (S O) (S (S (S (S O)))))
+                           (Init.Nat.add (S O) (S O)) (S O)
+                           (@MSigmaHCOL.MSHBinOp (S O)
+                              (fun (i : @sig nat (fun n : nat => Peano.lt n (S O)))
+                                 (a0 b : CarrierA) =>
+                               @IgnoreIndex CarrierA (S O)
+                                 (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                    CarrierAneg CarrierAabs) i
+                                 (@Fin1SwapIndex2 CarrierA 
+                                    (S (S O)) jf
+                                    (@IgnoreIndex2 CarrierA
+                                       (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                       sub) i a0 b))
+                              (@FinNat_f1_over_g2_proper (S O)
+                                 (@IgnoreIndex CarrierA (S O)
+                                    (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                       CarrierAneg CarrierAabs))
+                                 (@Fin1SwapIndex2 CarrierA 
+                                    (S (S O)) jf
+                                    (@IgnoreIndex2 CarrierA
+                                       (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                       sub))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall _ : CarrierA, CarrierA)
+                                    (forall
+                                       (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (_ : CarrierA), CarrierA)
+                                    (@respectful CarrierA CarrierA
+                                       (@equiv CarrierA CarrierAe)
+                                       (@equiv CarrierA CarrierAe))
+                                    (@respectful
+                                       (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (forall _ : CarrierA, CarrierA)
+                                       (@equiv
+                                          (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S O))))
+                                       (@respectful CarrierA CarrierA
+                                          (@equiv CarrierA CarrierAe)
+                                          (@equiv CarrierA CarrierAe)))
+                                    (@IgnoreIndex CarrierA (S O))
+                                    (@IgnoredIndex_proper CarrierA CarrierAe (S O))
+                                    (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                       CarrierAneg CarrierAabs)
+                                    (@proper_proper_proxy
+                                       (forall _ : CarrierA, CarrierA)
+                                       (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                          CarrierAneg CarrierAabs)
+                                       (@respectful CarrierA CarrierA
+                                          (@equiv CarrierA CarrierAe)
+                                          (@equiv CarrierA CarrierAe))
+                                       (@abstract_algebra.sm_proper CarrierA CarrierA
+                                          CarrierAe CarrierAe
+                                          (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                             CarrierAneg CarrierAabs)
+                                          (@abs_Setoid_Morphism CarrierA CarrierAe
+                                             CarrierAplus CarrierAmult CarrierAz
+                                             CarrierA1 CarrierAneg CarrierAr
+                                             CarrierAsetoid CarrierAle CarrierAto
+                                             CarrierAabs))))
+                                 (@Reflexive_partial_app_morphism
+                                    (forall
+                                       (_ : @sig nat
+                                              (fun x : nat => Peano.lt x (S (S O))))
+                                       (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                    (forall
+                                       (_ : @sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                    (@respectful
+                                       (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                       (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                       (@equiv
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S (S O)))))
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@respectful
+                                       (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                       (forall (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                       (@equiv
+                                          (@sig nat (fun x : nat => Peano.lt x (S O)))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S O))))
+                                       (@respectful CarrierA
+                                          (forall _ : CarrierA, CarrierA)
+                                          (@equiv CarrierA CarrierAe)
+                                          (@respectful CarrierA CarrierA
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv CarrierA CarrierAe))))
+                                    (@Fin1SwapIndex2 CarrierA (S (S O)) jf)
+                                    (@Reflexive_partial_app_morphism
+                                       (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                       (forall
+                                          (_ : forall
+                                                 (_ : @sig nat
+                                                        (fun x : nat =>
+                                                         Peano.lt x (S (S O))))
+                                                 (_ : CarrierA) 
+                                                 (_ : CarrierA), CarrierA)
+                                          (_ : @sig nat
+                                                 (fun x : nat => Peano.lt x (S O)))
+                                          (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                       (@equiv
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))))
+                                          (@Sig_Equiv nat peano_naturals.nat_equiv
+                                             (fun x : nat => Peano.lt x (S (S O)))))
+                                       (@respectful
+                                          (forall
+                                             (_ : @sig nat
+                                                    (fun x : nat =>
+                                                     Peano.lt x (S (S O))))
+                                             (_ : CarrierA) 
+                                             (_ : CarrierA), CarrierA)
+                                          (forall
+                                             (_ : @sig nat
+                                                    (fun x : nat => Peano.lt x (S O)))
+                                             (_ : CarrierA) 
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (forall (_ : CarrierA) (_ : CarrierA),
+                                              CarrierA)
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S (S O))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S (S O)))))
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@respectful
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S O)))
+                                             (forall (_ : CarrierA) (_ : CarrierA),
+                                              CarrierA)
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S O)))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S O))))
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe)))))
+                                       (@Fin1SwapIndex2 CarrierA (S (S O)))
+                                       (@Fin1SwapIndex2_proper CarrierA CarrierAe
+                                          (S (S O))) jf
+                                       (@reflexive_proper_proxy
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))))
+                                          (@equiv
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                (fun x : nat => Peano.lt x (S (S O)))))
+                                          (@Equivalence_Reflexive
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S (S O))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S (S O)))))
+                                             (@abstract_algebra.setoid_eq
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S (S O))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S (S O))))
+                                                (@setoids.sig_setoid nat
+                                                   peano_naturals.nat_equiv
+                                                   (@abstract_algebra.sg_setoid nat
+                                                      peano_naturals.nat_equiv
+                                                      (@meet_is_sg_op nat
+                                                         (@minmax.min nat
+                                                          (@le nat
+                                                          peano_naturals.nat_le)
+                                                          (@peano_naturals.nat_le_dec)))
+                                                      (@abstract_algebra.comsg_setoid
+                                                         nat peano_naturals.nat_equiv
+                                                         (@meet_is_sg_op nat
                                                           (@minmax.min nat
                                                           (@le nat
                                                           peano_naturals.nat_le)
                                                           (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.comsg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.semilattice_sg
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.meet_semilattice
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@abstract_algebra.lattice_meet
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@abstract_algebra.distr_lattice_lattice
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.DistributiveLattice_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@orders.le_total nat
-                                                          peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          (@semirings.FullPseudoOrder_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_plus
-                                                          peano_naturals.nat_mult
-                                                          peano_naturals.nat_0
-                                                          peano_naturals.nat_1
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
-                                                          (@strong_setoids.default_apart_trivial
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_dec)
-                                                          (@peano_naturals.nat_le_dec))))))))
-                                                          (λ x : nat, (x < 2)%nat))))
-                                                          jf)) 
-                                                          (λ _ : FinNat 2, sub)
-                                                          (@proper_proper_proxy
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (λ _ : FinNat 2, sub)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@Reflexive_partial_app_morphism
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 2), f)
-                                                          (@IgnoreIndex2_proper
-                                                          CarrierA CarrierAe 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          sub
-                                                          (@proper_proper_proxy
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) sub
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          CarrierA_sub_proper))))))
-                                                        (@MSigmaHCOL.MSHIUnion 
-                                                          (1 + 4) 2 2
-                                                          (λ jf0 : FinNat 2, 
-                                                          @MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 1 2
-                                                          (@MSigmaHCOL.MSHeUnion 2
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf0))
-                                                          (@MSigmaHCOL.MSHeT 
-                                                          (1 + 4)
-                                                          (1 + ` jf * 1 +
-                                                          ` jf0 * (2 * 1))
-                                                          (@h_index_map_compose_range_bound
-                                                          (1 + 4) 2 
-                                                          (2 + 2) 
-                                                          (` jf) 1 2 1
-                                                          (GathH_jn_domain_bound 
-                                                          (` jf) 2
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf))
-                                                          (h_bound_second_half 1 4)
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf0)))))))))
-     : Common.my_projT1
-         {|
-         Common.my_projT1 := vector CarrierA 3 → @MSigmaHCOL.MSHOperator (1 + 4) 1;
-         Common.my_projT2 := λ a : vector CarrierA 3, @MSigmaHCOL.MSHCompose 
-                                                        (1 + 4) 
-                                                        (1 + 1) 1
-                                                        (@MSigmaHCOL.MSHBinOp 1
-                                                          (λ _ : FinNat 1, Zless)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ n : nat, (n < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), f)
-                                                          (@IgnoreIndex2_proper
-                                                          CarrierA CarrierAe 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ n : nat, (n < 1)%nat)))
-                                                          Zless
-                                                          (@proper_proper_proxy
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) Zless
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          Zless_proper)))
-                                                        (@MSigmaHCOL.MHTSUMUnion
-                                                          (1 + 4) 2 CarrierAplus
-                                                          (@MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 1 2
-                                                          (@MSigmaHCOL.MSHeUnion 2 0
-                                                          (@le_S 1 1 (le_n 1)))
-                                                          (@MSigmaHCOL.MSHIReduction
-                                                          (1 + 4) 1 3 0 CarrierAplus
-                                                          CarrierAPlus_proper
-                                                          (λ jf : FinNat 3, 
-                                                          @MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 1 1
-                                                          (@MSigmaHCOL.MSHCompose 1 1 1
-                                                          (@MSigmaHCOL.MSHPointwise 1
-                                                          (λ (_ : FinNat 1) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat) jf)))
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f jf)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 3)
-                                                          ((FinNat 3
-                                                          → CarrierA → CarrierA)
-                                                          → 
-                                                          FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          ((@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe) ==>
-                                                          @equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (i : FinNat 3) 
-                                                          (f : 
-                                                          FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f i)
-                                                          (@Fin1SwapIndex_proper
-                                                          CarrierA CarrierAe 3) jf
-                                                          (@reflexive_proper_proxy
-                                                          (FinNat 3)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          (@Equivalence_Reflexive
-                                                          (FinNat 3)
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)))
-                                                          (@abstract_algebra.setoid_eq
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat))
-                                                          (@setoids.sig_setoid nat
-                                                          peano_naturals.nat_equiv
-                                                          (@abstract_algebra.sg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.comsg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.semilattice_sg
+                                                         (@abstract_algebra.semilattice_sg
                                                           nat peano_naturals.nat_equiv
                                                           (@meet_is_sg_op nat
                                                           (@minmax.min nat
@@ -896,462 +1140,132 @@ dynwin_MSHCOL1 =
                                                           (@peano_naturals.nat_le_dec))
                                                           (@abstract_algebra.distr_lattice_lattice
                                                           nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
+                                                          (@minmax.max nat (...) (...))
+                                                          (@minmax.min nat (...) (...))
                                                           (@minmax.DistributiveLattice_instance_0
                                                           nat peano_naturals.nat_equiv
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@orders.le_total nat
-                                                          peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          (@semirings.FullPseudoOrder_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          ... peano_naturals.nat_plus
-                                                          peano_naturals.nat_mult
-                                                          peano_naturals.nat_0
-                                                          peano_naturals.nat_1
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
-                                                          (@strong_setoids.default_apart_trivial
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_dec)
-                                                          (@peano_naturals.nat_le_dec))))))))
-                                                          (λ x : nat, (x < 3)%nat))))
-                                                          jf))
-                                                          (λ (jf0 : FinNat 3) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat)
-                                                          jf0)))
-                                                          (@proper_proper_proxy
-                                                          (FinNat 3
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (λ (jf0 : FinNat 3) 
-                                                          (x : CarrierA), 
-                                                          CarrierAmult x
-                                                          (@Vnth CarrierA 3 a 
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x0 : nat, (x0 < 3)%nat)
-                                                          jf0)))
-                                                          (@equiv 
-                                                          (FinNat 3)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 3)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@mult_by_nth_proper 3 a))))
-                                                          (@MSigmaHCOL.MSHInductor
-                                                          (` jf) CarrierAmult
-                                                          (@abstract_algebra.sg_op_proper
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@abstract_algebra.monoid_semigroup
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@one_is_mon_unit CarrierA
-                                                          CarrierA1)
-                                                          (@abstract_algebra.commonoid_mon
-                                                          CarrierA CarrierAe
-                                                          CarrierAmult
-                                                          (@one_is_mon_unit CarrierA
-                                                          CarrierA1)
-                                                          (@abstract_algebra.semimult_monoid
-                                                          CarrierA CarrierAe
-                                                          CarrierAplus CarrierAmult
-                                                          CarrierAz CarrierA1
-                                                          (@rings.Ring_Semi CarrierA
-                                                          CarrierAe CarrierAplus
-                                                          CarrierAmult CarrierAz
-                                                          CarrierA1 CarrierAneg
-                                                          CarrierAr))))) 1))
-                                                          (@MSigmaHCOL.MSHeT 
-                                                          (1 + 4) 0
-                                                          (@GathH1_domain_bound_to_base_bound
-                                                          (1 + 4) 0 1
-                                                          (h_bound_first_half 1 4))))))
-                                                          (@MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 1 2
-                                                          (@MSigmaHCOL.MSHeUnion 2 1
-                                                          (le_n 2))
-                                                          (@MSigmaHCOL.MSHIReduction
-                                                          (1 + 4) 1 2 0
-                                                          (@minmax.max CarrierA
-                                                          CarrierAle CarrierAledec)
-                                                          (@abstract_algebra.sg_op_proper
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@abstract_algebra.comsg_setoid
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@abstract_algebra.semilattice_sg
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@abstract_algebra.join_semilattice
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@abstract_algebra.lattice_join
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@minmax.min CarrierA
-                                                          CarrierAle CarrierAledec)
-                                                          (@abstract_algebra.distr_lattice_lattice
-                                                          CarrierA CarrierAe
-                                                          (λ x y : CarrierA, 
-                                                          @snd CarrierA CarrierA
-                                                          (@minmax.sort CarrierA
-                                                          CarrierAle CarrierAledec x y))
-                                                          (@minmax.min CarrierA
-                                                          CarrierAle CarrierAledec)
-                                                          (@minmax.DistributiveLattice_instance_0
-                                                          CarrierA CarrierAe CarrierAle
-                                                          CarrierAto CarrierAledec)))))))
-                                                          (λ jf : FinNat 2, 
-                                                          @MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 
-                                                          (1 + 1) 1
-                                                          (@MSigmaHCOL.MSHBinOp 1
-                                                          (λ (_ : FinNat 1) 
-                                                          (a0 b : CarrierA), 
-                                                          @abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs
-                                                          (sub a0 b))
-                                                          (@FinNat_f1_over_g2_proper 1
-                                                          (λ _ : {i : nat | i < 1}, 
-                                                          @abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (λ _ : FinNat 1, sub)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          {i : nat | i < 1}), f)
-                                                          (@IgnoredIndex_proper
-                                                          CarrierA CarrierAe 1)
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@proper_proper_proxy
-                                                          (CarrierA → CarrierA)
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@abstract_algebra.sm_proper
-                                                          CarrierA CarrierA CarrierAe
-                                                          CarrierAe
-                                                          (@abs CarrierA CarrierAe
-                                                          CarrierAle CarrierAz
-                                                          CarrierAneg CarrierAabs)
-                                                          (@abs_Setoid_Morphism
-                                                          CarrierA CarrierAe
-                                                          CarrierAplus CarrierAmult
-                                                          CarrierAz CarrierA1
-                                                          CarrierAneg CarrierAr
-                                                          CarrierAsetoid CarrierAle
-                                                          CarrierAto CarrierAabs))))
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 1
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f jf)
-                                                          (@Reflexive_partial_app_morphism
-                                                          (FinNat 2)
-                                                          ((FinNat 2
-                                                          → CarrierA
-                                                          → CarrierA → CarrierA)
-                                                          → 
-                                                          FinNat 1
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          ((@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe) ==>
-                                                          @equiv 
-                                                          (FinNat 1)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 1)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (i : FinNat 2) 
-                                                          (f : 
-                                                          FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 1), 
-                                                          f i)
-                                                          (@Fin1SwapIndex2_proper
-                                                          CarrierA CarrierAe 2) jf
-                                                          (@reflexive_proper_proxy
-                                                          (FinNat 2)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          (@Equivalence_Reflexive
-                                                          (FinNat 2)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          (@abstract_algebra.setoid_eq
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat))
-                                                          (@setoids.sig_setoid nat
-                                                          peano_naturals.nat_equiv
-                                                          (@abstract_algebra.sg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.comsg_setoid
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.semilattice_sg
-                                                          nat peano_naturals.nat_equiv
-                                                          (@meet_is_sg_op nat
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec)))
-                                                          (@abstract_algebra.meet_semilattice
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@abstract_algebra.lattice_meet
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@abstract_algebra.distr_lattice_lattice
-                                                          nat peano_naturals.nat_equiv
-                                                          (@minmax.max nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.min nat
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@peano_naturals.nat_le_dec))
-                                                          (@minmax.DistributiveLattice_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          (@le nat
-                                                          peano_naturals.nat_le)
-                                                          (@orders.le_total nat
-                                                          peano_naturals.nat_equiv
-                                                          (@strong_setoids.default_apart
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          (@semirings.FullPseudoOrder_instance_0
-                                                          nat peano_naturals.nat_equiv
-                                                          ... peano_naturals.nat_plus
-                                                          peano_naturals.nat_mult
-                                                          peano_naturals.nat_0
-                                                          peano_naturals.nat_1
-                                                          peano_naturals.nat_le
-                                                          peano_naturals.nat_lt
-                                                          peano_naturals.FullPseudoSemiRingOrder_instance_0)
-                                                          (@strong_setoids.default_apart_trivial
-                                                          nat peano_naturals.nat_equiv)
-                                                          peano_naturals.nat_dec)
-                                                          (@peano_naturals.nat_le_dec))))))))
-                                                          (λ x : nat, (x < 2)%nat))))
-                                                          jf)) 
-                                                          (λ _ : FinNat 2, sub)
-                                                          (@proper_proper_proxy
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (λ _ : FinNat 2, sub)
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (@Reflexive_partial_app_morphism
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (FinNat 2
-                                                          → 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA)
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          (@equiv 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)) ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe ==>
-                                                          @equiv CarrierA CarrierAe)%signature
-                                                          (λ (f : 
-                                                          CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) 
-                                                          (_ : 
-                                                          FinNat 2), f)
-                                                          (@IgnoreIndex2_proper
-                                                          CarrierA CarrierAe 
-                                                          (FinNat 2)
-                                                          (@Sig_Equiv nat
-                                                          peano_naturals.nat_equiv
-                                                          (λ x : nat, (x < 2)%nat)))
-                                                          sub
-                                                          (@proper_proper_proxy
-                                                          (CarrierA
-                                                          → 
-                                                          CarrierA → CarrierA) sub
-                                                          (@equiv CarrierA CarrierAe ==>
-                                                          @equiv 
-                                                          (CarrierA → CarrierA)
-                                                          (@ext_equiv CarrierA
-                                                          CarrierAe CarrierA CarrierAe))%signature
-                                                          CarrierA_sub_proper))))))
-                                                          (@MSigmaHCOL.MSHIUnion
-                                                          (1 + 4) 2 2
-                                                          (λ jf0 : FinNat 2, 
-                                                          @MSigmaHCOL.MSHCompose
-                                                          (1 + 4) 1 2
-                                                          (@MSigmaHCOL.MSHeUnion 2
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf0))
-                                                          (@MSigmaHCOL.MSHeT 
-                                                          (1 + 4)
-                                                          (1 + ` jf * 1 +
-                                                          ` jf0 * (2 * 1))
-                                                          (@h_index_map_compose_range_bound
-                                                          (1 + 4) 2 
-                                                          (2 + 2) 
-                                                          (` jf) 1 2 1
-                                                          (GathH_jn_domain_bound 
-                                                          (` jf) 2
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf))
-                                                          (h_bound_second_half 1 4)
-                                                          (` jf0)
-                                                          (@proj2_sig nat
-                                                          (λ x : nat, (x < 2)%nat) jf0))))))))) |}
+                                                          (...) 
+                                                          (...) 
+                                                          (...))))))))
+                                                   (fun x : nat => Peano.lt x (S (S O))))))
+                                          jf))
+                                    (@IgnoreIndex2 CarrierA
+                                       (@sig nat (fun x : nat => Peano.lt x (S (S O))))
+                                       sub)
+                                    (@proper_proper_proxy
+                                       (forall
+                                          (_ : @sig nat
+                                                 (fun x : nat => Peano.lt x (S (S O))))
+                                          (_ : CarrierA) (_ : CarrierA), CarrierA)
+                                       (@IgnoreIndex2 CarrierA
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S O)))) sub)
+                                       (@respectful
+                                          (@sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))))
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (@equiv
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                (fun x : nat => Peano.lt x (S (S O)))))
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@respectful CarrierA CarrierA
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv CarrierA CarrierAe))))
+                                       (@Reflexive_partial_app_morphism
+                                          (forall (_ : CarrierA) (_ : CarrierA),
+                                           CarrierA)
+                                          (forall
+                                             (_ : @sig nat
+                                                    (fun x : nat =>
+                                                     Peano.lt x (S (S O))))
+                                             (_ : CarrierA) 
+                                             (_ : CarrierA), CarrierA)
+                                          (@respectful CarrierA
+                                             (forall _ : CarrierA, CarrierA)
+                                             (@equiv CarrierA CarrierAe)
+                                             (@equiv (forall _ : CarrierA, CarrierA)
+                                                (@ext_equiv CarrierA CarrierAe CarrierA
+                                                   CarrierAe)))
+                                          (@respectful
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (forall (_ : CarrierA) (_ : CarrierA),
+                                              CarrierA)
+                                             (@equiv
+                                                (@sig nat
+                                                   (fun x : nat => Peano.lt x (S (S O))))
+                                                (@Sig_Equiv nat
+                                                   peano_naturals.nat_equiv
+                                                   (fun x : nat => Peano.lt x (S (S O)))))
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@respectful CarrierA CarrierA
+                                                   (@equiv CarrierA CarrierAe)
+                                                   (@equiv CarrierA CarrierAe))))
+                                          (@IgnoreIndex2 CarrierA
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O)))))
+                                          (@IgnoreIndex2_proper CarrierA CarrierAe
+                                             (@sig nat
+                                                (fun x : nat => Peano.lt x (S (S O))))
+                                             (@Sig_Equiv nat peano_naturals.nat_equiv
+                                                (fun x : nat => Peano.lt x (S (S O)))))
+                                          sub
+                                          (@proper_proper_proxy
+                                             (forall (_ : CarrierA) (_ : CarrierA),
+                                              CarrierA) sub
+                                             (@respectful CarrierA
+                                                (forall _ : CarrierA, CarrierA)
+                                                (@equiv CarrierA CarrierAe)
+                                                (@equiv (forall _ : CarrierA, CarrierA)
+                                                   (@ext_equiv CarrierA CarrierAe
+                                                      CarrierA CarrierAe)))
+                                             CarrierA_sub_proper))))))
+                           (@MSigmaHCOL.MSHIUnion
+                              (Init.Nat.add (S O) (S (S (S (S O))))) 
+                              (S (S O)) (S (S O))
+                              (fun jf0 : @sig nat (fun x : nat => Peano.lt x (S (S O)))
+                               =>
+                               @MSigmaHCOL.MSHCompose
+                                 (Init.Nat.add (S O) (S (S (S (S O))))) 
+                                 (S O) (S (S O))
+                                 (@MSigmaHCOL.MSHeUnion (S (S O))
+                                    (@proj1_sig nat
+                                       (fun x : nat => Peano.lt x (S (S O))) jf0)
+                                    (@proj2_sig nat
+                                       (fun x : nat => Peano.lt x (S (S O))) jf0))
+                                 (@MSigmaHCOL.MSHeT
+                                    (Init.Nat.add (S O) (S (S (S (S O)))))
+                                    (Init.Nat.add
+                                       (Init.Nat.add (S O)
+                                          (Init.Nat.mul
+                                             (@proj1_sig nat
+                                                (fun x : nat => Peano.lt x (S (S O)))
+                                                jf) (S O)))
+                                       (Init.Nat.mul
+                                          (@proj1_sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))) jf0)
+                                          (Init.Nat.mul (S (S O)) (S O))))
+                                    (@h_index_map_compose_range_bound
+                                       (Init.Nat.add (S O) (S (S (S (S O))))) 
+                                       (S (S O)) (Init.Nat.add (S (S O)) (S (S O)))
+                                       (@proj1_sig nat
+                                          (fun x : nat => Peano.lt x (S (S O))) jf)
+                                       (S O) (S (S O)) (S O)
+                                       (GathH_jn_domain_bound
+                                          (@proj1_sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))) jf)
+                                          (S (S O))
+                                          (@proj2_sig nat
+                                             (fun x : nat => Peano.lt x (S (S O))) jf))
+                                       (h_bound_second_half (S O) (S (S (S (S O)))))
+                                       (@proj1_sig nat
+                                          (fun x : nat => Peano.lt x (S (S O))) jf0)
+                                       (@proj2_sig nat
+                                          (fun x : nat => Peano.lt x (S (S O))) jf0)))))))))))

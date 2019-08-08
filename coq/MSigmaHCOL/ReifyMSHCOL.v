@@ -153,7 +153,7 @@ Definition reifySHCOL {A:Type} (expr: A)
            (res_name: string)
   : TemplateMonad unit
   :=
-    let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
+    let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"] in
     eexpr <- tmUnfoldList unfold_names expr ;;
           ast <- @tmQuote A eexpr ;;
           (* tmPrint ("AST" ++ (AstUtils.string_of_term ast)) ;; *)
