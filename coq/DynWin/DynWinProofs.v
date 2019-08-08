@@ -122,8 +122,6 @@ Definition dynwin_SHCOL (a: avector 3):
 
 
 Require Import Helix.MSigmaHCOL.ReifyMSHCOL.
-Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
-
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MemVecEq.
 
@@ -172,72 +170,264 @@ Ltac solve_facts :=
          | _ => crush
          end.
 
-Fact Set_Obligation_1:
-  Included (FinNat 2) (Full_set (FinNat 2))
-           (Union (FinNat 2) (singleton 1)
-                  (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
-Proof.
+Section SHCOL_to_MSHCOL.
 
-  unfold Included, In.
-  intros [x xc] _.
+  Run TemplateProgram (reifySHCOL dynwin_SHCOL1 100 ["dynwin_SHCOL1"] "dynwin_MSHCOL1").
 
-  destruct x.
-  +
-    apply Union_intror.
-    apply Union_introl.
-    reflexivity.
-  +
-    apply Union_introl.
-    destruct x.
-    *
-      reflexivity.
-    *
-      crush.
-Qed.
+  Fact Set_Obligation_1:
+    Included (FinNat 2) (Full_set (FinNat 2))
+             (Union (FinNat 2) (singleton 1)
+                    (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
+  Proof.
 
-Lemma dynwin_SHCOL_MSHCOL_compat {a}:
-  SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
-Proof.
-  unfold dynwin_SHCOL1, dynwin_MSHCOL1.
-  unfold ISumUnion.
-
-  Time solve_facts.
-
-  -
     unfold Included, In.
-    intros [x xc] H.
+    intros [x xc] _.
 
     destruct x.
-    apply Union_introl.
-    reflexivity.
+    +
+      apply Union_intror.
+      apply Union_introl.
+      reflexivity.
+    +
+      apply Union_introl.
+      destruct x.
+      *
+        reflexivity.
+      *
+        crush.
+  Qed.
 
-    apply Union_intror.
-    unfold singleton.
-    crush.
-  -
-    apply Set_Obligation_1.
-  -
-    apply Set_Obligation_1.
-  -
-    apply Set_Obligation_1.
-  -
-    apply Set_Obligation_1.
-  -
-    apply Set_Obligation_1.
-Qed.
+  Lemma dynwin_SHCOL_MSHCOL_compat {a}:
+    SH_MSH_Operator_compat (dynwin_SHCOL1 a) (dynwin_MSHCOL1 a).
+  Proof.
+    unfold dynwin_SHCOL1, dynwin_MSHCOL1.
+    unfold ISumUnion.
 
-(* MSHCOL -> DHCOL *)
+    Time solve_facts.
+
+    -
+      unfold Included, In.
+      intros [x xc] H.
+
+      destruct x.
+      apply Union_introl.
+      reflexivity.
+
+      apply Union_intror.
+      unfold singleton.
+      crush.
+    -
+      apply Set_Obligation_1.
+    -
+      apply Set_Obligation_1.
+    -
+      apply Set_Obligation_1.
+    -
+      apply Set_Obligation_1.
+    -
+      apply Set_Obligation_1.
+  Qed.
+
+End SHCOL_to_MSHCOL.
 
 Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 
-Obligation Tactic := idtac.
-Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1").
-Check dynwin_DSHCOL1.
-Print dynwin_DSHCOL1.
+Section MSHCOL_to_DSHCOL.
 
-Import DSHNotation.
-Print dynwin_DSHCOL1.
+  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1").
+  Import DSHNotation.
+  (* Print dynwin_DSHCOL1. *)
+
+  (*
+  (* Shows relations of cells before ([b]) and after ([a]) evaluating
+     DSHCOL operator and a result of evaluating [mem_op] as [d] *)
+  Inductive SHCOL_DSHCOL_cell_equiv (b a d: option CarrierA) : Prop :=
+  | CellPreserve: is_None d -> b = a -> SHCOL_DSHCOL_cell_equiv b a d (* preserving memory state *)
+  | CellExpected: is_Some d -> a = d -> SHCOL_DSHCOL_cell_equiv b a d (* expected results *).
+
+  (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
+     DSHCOL operator and a result of evaluating [mem_op] as [md] *)
+  Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
+    forall i,
+      SHCOL_DSHCOL_cell_equiv
+        (mem_lookup i mb)
+        (mem_lookup i ma)
+        (mem_lookup i md).
+
+
+  (* Given SHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
+     input memory block addres and [y_i] as output.
+
+     The [x_i] and [y_i] memory lookup must succeed.
+
+     We do not require input block to be structurally correct, because
+     [mem_op] will just return an error in this case.
+
+     DSCHOL operators are implemented in more permissive manner
+     and not necesseraly return error on invalid input.
+   *)
+  Class SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
+        (sh_op: @SHOperator fm i o svalue)
+        `{facts: !SHOperator_Facts fm sh_op}
+        `{SHM: !SHOperator_Mem sh_op}
+        (dsh_op: DSHOperator)
+        (σ: evalContext)
+        (m: memory)
+        (x_i y_i: mem_block_id)
+    := {
+        eequiv:
+          match memory_lookup m x_i, memory_lookup m y_i with
+          | Some mx, (* input *) Some mb (* output before *) =>
+            match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
+            | None, _ => True (* assume they are equal on *invalid* inputs *)
+            | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
+              match  memory_lookup m' y_i with
+              | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+              | None => False (* out memory block dissapeared *)
+              end
+            | _, _ => False
+            end
+          | _, _ => False (* Either input our output not present *)
+          end
+      }.
+
+  Instance SafeCast_SHCOL_DSHCOL
+        {i o:nat} {svalue:CarrierA}
+        {σ: evalContext}
+        {s: @SHOperator Monoid_RthetaSafeFlags i o svalue}
+        `{facts: !SHOperator_Facts _ s}
+        `{mem: !SHOperator_Mem s}
+        {d: DSHOperator}
+        {m: memory}
+        {x_i y_i: mem_block_id}:
+
+    @SHCOL_DSHCOL_equiv i o svalue _ s facts mem d σ m x_i y_i ->
+
+    @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
+                        (@SafeCast_Facts _ _ _ s facts)
+                        (SafeCast_Mem s)
+                        d σ m x_i y_i .
+  Proof.
+    intros E.
+    unfold SafeCast.
+    constructor.
+    destruct E as [E].
+    unfold SafeCast', mem_op in *.
+    destruct mem.
+    eapply E.
+  Qed.
+
+  Instance SHCompose_SHCOL_DSHCOL
+        {i1 o2 o3: nat}
+        {svalue: CarrierA}
+        {fm}
+        {op1: @SHOperator fm o2 o3 svalue}
+        {op2: @SHOperator fm i1 o2 svalue}
+        {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)}
+        `{facts1 : !SHOperator_Facts fm op1}
+        `{facts2 : !SHOperator_Facts fm op2}
+        `{Meq1: !@SHOperator_Mem fm o2 o3 svalue op1 facts1}
+        `{Meq2: !@SHOperator_Mem fm i1 o2 svalue op2 facts2}
+        {σ: evalContext}
+        {d1 d2: DSHOperator}
+        {m: memory}
+        {t_i x_i y_i: mem_block_id}
+    :
+      (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
+      (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
+
+      @SHCOL_DSHCOL_equiv i1 o3 svalue _ (SHCompose fm op1 op2)
+                          (SHCompose_Facts fm svalue op1 op2 compat)
+                          (SHCompose_Mem fm op1 op2 compat )
+                          (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
+  Proof.
+    intros E1 E2.
+    unfold SHCompose.
+    constructor.
+    destruct E1 as [E1].
+    destruct E2 as [E2].
+    unfold mem_op in *.
+    unfold SHCompose_Mem, option_compose.
+    destruct Meq1, Meq2.
+    unfold SHCOL_DSHCOL_mem_block_equiv.
+    simpl in *.
+    repeat break_match; intros; subst; auto.
+  Admitted.
+
+  (* High-level equivalence *)
+  Instance dynwin_SHCOL_DSHCOL
+           (a: vector CarrierA 3):
+    @SHCOL_DSHCOL_equiv _ _ _ _ (dynwin_SHCOL1 a) _
+                        (DynWinSigmaHCOL1_Mem a)
+                        dynwin_DSHCOL1
+                        [DSHvecVal a]
+                        (* assuming reification uses [x_i=0] and [y_i=1] *)
+                        (NM.add 1 mem_empty
+                                (NM.add 0 mem_empty (NM.empty mem_block)))
+                        0 1.
+  Proof.
+    unfold dynwin_DSHCOL1, dynwin_SHCOL1.
+    unfold DynWinSigmaHCOL1_Mem, DynWinSigmaHCOL1_Facts.
+
+    (* Normalize by unfolding [@zero] instances: *)
+    unfold zero in *.
+    (* Normalize dimensionality in DHSCOL. Due to refication,
+       for example [o2:=1+1] in SHCOL is replaced with [2] in DHSCOL: *)
+    (* simpl in *. *)
+
+
+    Typeclasses eauto := 1.
+    unfold In.
+    eapply SHCompose_SHCOL_DSHCOL.
+    eapply SafeCast_SHCOL_DSHCOL.
+
+
+    match goal with
+    | [|-  SHCOL_DSHCOL_equiv
+            (facts:=?facts)
+            (SHCompose ?fm ?op1 ?op2 (o2:=?o2))
+            (DSHSeq (DSHAlloc ?o2 ?t_i) (DSHSeq ?d1 ?d2))
+            ?σ ?m ?x_i ?y_i] =>
+      unshelve eapply (SHCompose_SHCOL_DSHCOL 0 1
+                                     (fm:=fm)
+                                     (op1:=op1)
+                                     (op2:=op2)
+                                     (m:=m)
+                                     (d1:=d1)
+                                     (d2:=d2)
+                                     (t_i:=t_i)
+                                     (σ:=σ)
+                                     (facts:=facts)
+
+             )
+
+    end.
+
+
+    apply SafeCast_SHCOL_DSHCOL.
+  Qed.
+
+
+
+     "@SHCOL_DSHCOL_equiv (1 + (2 + 2)) 1 0 Monoid_RthetaFlags
+    (?op1 ⊚ ?op2) ?facts
+    (@SHCompose_Mem Monoid_RthetaFlags 0 (1 + (2 + 2)) ?o2 1
+       ?op1 ?op2 ?compat ?facts1 ?Meq1 ?facts2 ?Meq2 ?facts)
+    (DSHAlloc ?o2 ?t_i; ?d1; ?d2) [@DSHvecVal 3 a] ?m 0 1" with
+
+    eapply (SHCompose_SHCOL_DSHCOL 0 1
+                                   (i1:=1 + (2 + 2))
+                                   (o3:=1)
+                                   (svalue:=zero)
+                                   (fm:=Monoid_RthetaFlags)
+                                   (σ:=[DSHvecVal a])
+           ).
+    apply SafeCast_SHCOL_DSHCOL.
+  Qed.
+
+   *)
+End MSHCOL_to_DSHCOL.
 
 Section SigmaHCOL_rewriting.
 
@@ -940,54 +1130,8 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 
-Require Import Helix.MSigmaHCOL.MemVecEq.
-
+(*
 Section SigmaHCOL_mem.
-
-  Ltac solve_mem :=
-    match goal with
-    | [ |- SHOperator_Mem (SHCompose _ _ _)] => unshelve eapply SHCompose_Mem
-    | [ |- SHOperator_Mem (SafeCast _ ) ] => unshelve eapply SafeCast_Mem
-    | [ |- SHOperator_Mem (UnSafeCast _ ) ] => unshelve  eapply UnSafeCast_Mem
-    | [ |- @SHOperator_Mem Monoid_RthetaSafeFlags ?mi ?mo ?msv (@SHBinOp _ _ ?o _ _) _ ] =>
-      replace (@SHOperator_Mem Monoid_RthetaSafeFlags mi) with (@SHOperator_Mem Monoid_RthetaSafeFlags (o+o)) by f_equiv;
-      unshelve eapply SHBinOp_RthetaSafe_Mem
-    | [ |- SHOperator_Mem (HTSUMUnion _ _ _ _) ] => unshelve eapply HTSUMUnion_Mem
-    | [ |- SHOperator_Mem (eUnion _ _) ] => unshelve eapply eUnion_Mem
-    | [ |- SHOperator_Mem (IReduction _ _)] => unshelve eapply IReduction_Mem
-    | [ |- SHOperator_Mem _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
-    | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => unshelve eapply MonoidLaws_RthetaFlags
-    | [ |- SHOperator_Mem (SHPointwise _)] => unshelve eapply SHPointwise_Mem
-    | [ |- SHInductor_Mem (SHInductor _ _ _) ] => unshelve eapply SHInductor_Mem
-    | [ |- SHOperator_Mem (IUnion _ _) ] => unshelve eapply IUnion_Mem
-    | [ |- SHOperator_Mem (ISumUnion _)] => unfold ISumUnion; unshelve eapply IUnion_Mem
-    | [ |- SHOperator_Mem (eT _ _)] => unshelve eapply eT_Mem
-    | [ |- @abstract_algebra.Monoid CarrierA CarrierAe (@plus CarrierA CarrierAplus)
-                                   (@zero CarrierA CarrierAz)] => apply CarrierAr
-    | _ => crush
-    end.
-
-  Fact Obligation_XXX:
-    Included (FinNat 2) (Full_set (FinNat 2))
-             (Union (FinNat 2) (singleton 1)
-                    (Union (FinNat 2) (singleton 0) (Empty_set (FinNat 2)))).
-  Proof.
-
-    intros x H. unfold In in *.
-    destruct x as [x xc].
-    destruct x.
-    -
-      apply Union_intror.
-      apply Union_introl.
-      reflexivity.
-    -
-      destruct x.
-      *
-        apply Union_introl.
-        reflexivity.
-      *
-        crush.
-  Qed.
 
 Instance DynWinSigmaHCOL1_Mem
          (a: avector 3):
@@ -1092,212 +1236,5 @@ Defined.
 
 
 End SigmaHCOL_mem.
+ *)
 
-Require Import Helix.DSigmaHCOL.DSigmaHCOL.
-Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
-Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
-Require Import Helix.MSigmaHCOL.Memory.
-Require Import Helix.Util.OptionSetoid.
-Require Import MathClasses.misc.util.
-
-Section SigmaHCOL_to_DSHCOL.
-
-  (* Obligation Tactic := solve_reifySHCOL_obligations dynwin_SHCOL1. *)
-  Obligation Tactic := idtac.
-  Run TemplateProgram (reifySHCOL dynwin_SHCOL1 "dynwin_DSHCOL1" "dynwin_SHCOL_DSHCOL").
-
-  Print dynwin_DSHCOL1.
-  Import DSHNotation.
-  Print dynwin_DSHCOL1.
-
-  (* Shows relations of cells before ([b]) and after ([a]) evaluating
-     DSHCOL operator and a result of evaluating [mem_op] as [d] *)
-  Inductive SHCOL_DSHCOL_cell_equiv (b a d: option CarrierA) : Prop :=
-  | CellPreserve: is_None d -> b = a -> SHCOL_DSHCOL_cell_equiv b a d (* preserving memory state *)
-  | CellExpected: is_Some d -> a = d -> SHCOL_DSHCOL_cell_equiv b a d (* expected results *).
-
-  (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
-     DSHCOL operator and a result of evaluating [mem_op] as [md] *)
-  Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
-    forall i,
-      SHCOL_DSHCOL_cell_equiv
-        (mem_lookup i mb)
-        (mem_lookup i ma)
-        (mem_lookup i md).
-
-
-  (* Given SHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
-     input memory block addres and [y_i] as output.
-
-     The [x_i] and [y_i] memory lookup must succeed.
-
-     We do not require input block to be structurally correct, because
-     [mem_op] will just return an error in this case.
-
-     DSCHOL operators are implemented in more permissive manner
-     and not necesseraly return error on invalid input.
-   *)
-  Class SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
-        (sh_op: @SHOperator fm i o svalue)
-        `{facts: !SHOperator_Facts fm sh_op}
-        `{SHM: !SHOperator_Mem sh_op}
-        (dsh_op: DSHOperator)
-        (σ: evalContext)
-        (m: memory)
-        (x_i y_i: mem_block_id)
-    := {
-        eequiv:
-          match memory_lookup m x_i, memory_lookup m y_i with
-          | Some mx, (* input *) Some mb (* output before *) =>
-            match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
-            | None, _ => True (* assume they are equal on *invalid* inputs *)
-            | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
-              match  memory_lookup m' y_i with
-              | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-              | None => False (* out memory block dissapeared *)
-              end
-            | _, _ => False
-            end
-          | _, _ => False (* Either input our output not present *)
-          end
-      }.
-
-  Instance SafeCast_SHCOL_DSHCOL
-        {i o:nat} {svalue:CarrierA}
-        {σ: evalContext}
-        {s: @SHOperator Monoid_RthetaSafeFlags i o svalue}
-        `{facts: !SHOperator_Facts _ s}
-        `{mem: !SHOperator_Mem s}
-        {d: DSHOperator}
-        {m: memory}
-        {x_i y_i: mem_block_id}:
-
-    @SHCOL_DSHCOL_equiv i o svalue _ s facts mem d σ m x_i y_i ->
-
-    @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
-                        (@SafeCast_Facts _ _ _ s facts)
-                        (SafeCast_Mem s)
-                        d σ m x_i y_i .
-  Proof.
-    intros E.
-    unfold SafeCast.
-    constructor.
-    destruct E as [E].
-    unfold SafeCast', mem_op in *.
-    destruct mem.
-    eapply E.
-  Qed.
-
-  Instance SHCompose_SHCOL_DSHCOL
-        {i1 o2 o3: nat}
-        {svalue: CarrierA}
-        {fm}
-        {op1: @SHOperator fm o2 o3 svalue}
-        {op2: @SHOperator fm i1 o2 svalue}
-        {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)}
-        `{facts1 : !SHOperator_Facts fm op1}
-        `{facts2 : !SHOperator_Facts fm op2}
-        `{Meq1: !@SHOperator_Mem fm o2 o3 svalue op1 facts1}
-        `{Meq2: !@SHOperator_Mem fm i1 o2 svalue op2 facts2}
-        {σ: evalContext}
-        {d1 d2: DSHOperator}
-        {m: memory}
-        {t_i x_i y_i: mem_block_id}
-    :
-      (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
-      (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
-
-      @SHCOL_DSHCOL_equiv i1 o3 svalue _ (SHCompose fm op1 op2)
-                          (SHCompose_Facts fm svalue op1 op2 compat)
-                          (SHCompose_Mem fm op1 op2 compat )
-                          (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
-  Proof.
-    intros E1 E2.
-    unfold SHCompose.
-    constructor.
-    destruct E1 as [E1].
-    destruct E2 as [E2].
-    unfold mem_op in *.
-    unfold SHCompose_Mem, option_compose.
-    destruct Meq1, Meq2.
-    unfold SHCOL_DSHCOL_mem_block_equiv.
-    simpl in *.
-    repeat break_match; intros; subst; auto.
-  Admitted.
-
-  (* High-level equivalence *)
-  Instance dynwin_SHCOL_DSHCOL
-           (a: vector CarrierA 3):
-    @SHCOL_DSHCOL_equiv _ _ _ _ (dynwin_SHCOL1 a) _
-                        (DynWinSigmaHCOL1_Mem a)
-                        dynwin_DSHCOL1
-                        [DSHvecVal a]
-                        (* assuming reification uses [x_i=0] and [y_i=1] *)
-                        (NM.add 1 mem_empty
-                                (NM.add 0 mem_empty (NM.empty mem_block)))
-                        0 1.
-  Proof.
-    unfold dynwin_DSHCOL1, dynwin_SHCOL1.
-    unfold DynWinSigmaHCOL1_Mem, DynWinSigmaHCOL1_Facts.
-
-    (* Normalize by unfolding [@zero] instances: *)
-    unfold zero in *.
-    (* Normalize dimensionality in DHSCOL. Due to refication,
-       for example [o2:=1+1] in SHCOL is replaced with [2] in DHSCOL: *)
-    (* simpl in *. *)
-
-
-    Typeclasses eauto := 1.
-    unfold In.
-    eapply SHCompose_SHCOL_DSHCOL.
-    eapply SafeCast_SHCOL_DSHCOL.
-
-
-    match goal with
-    | [|-  SHCOL_DSHCOL_equiv
-            (facts:=?facts)
-            (SHCompose ?fm ?op1 ?op2 (o2:=?o2))
-            (DSHSeq (DSHAlloc ?o2 ?t_i) (DSHSeq ?d1 ?d2))
-            ?σ ?m ?x_i ?y_i] =>
-      unshelve eapply (SHCompose_SHCOL_DSHCOL 0 1
-                                     (fm:=fm)
-                                     (op1:=op1)
-                                     (op2:=op2)
-                                     (m:=m)
-                                     (d1:=d1)
-                                     (d2:=d2)
-                                     (t_i:=t_i)
-                                     (σ:=σ)
-                                     (facts:=facts)
-
-             )
-
-    end.
-
-
-    apply SafeCast_SHCOL_DSHCOL.
-  Qed.
-
-
-
-     "@SHCOL_DSHCOL_equiv (1 + (2 + 2)) 1 0 Monoid_RthetaFlags
-    (?op1 ⊚ ?op2) ?facts
-    (@SHCompose_Mem Monoid_RthetaFlags 0 (1 + (2 + 2)) ?o2 1
-       ?op1 ?op2 ?compat ?facts1 ?Meq1 ?facts2 ?Meq2 ?facts)
-    (DSHAlloc ?o2 ?t_i; ?d1; ?d2) [@DSHvecVal 3 a] ?m 0 1" with
-
-    eapply (SHCompose_SHCOL_DSHCOL 0 1
-                                   (i1:=1 + (2 + 2))
-                                   (o3:=1)
-                                   (svalue:=zero)
-                                   (fm:=Monoid_RthetaFlags)
-                                   (σ:=[DSHvecVal a])
-           ).
-    apply SafeCast_SHCOL_DSHCOL.
-  Qed.
-
-  (*
-    Print dynwin_DSHCOL1.
-    Check dynwin_SHCOL_DSHCOL.
-   *)
-End SigmaHCOL_to_DSHCOL.
