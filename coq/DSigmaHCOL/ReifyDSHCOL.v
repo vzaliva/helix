@@ -151,8 +151,6 @@ Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA :=
   | _ => tmFail ("Unsupported IBinCarrierA" ++ (string_of_term a_f))
   end.
 
-Print Instances MSHOperator_Facts.
-
 Run TemplateProgram
     (mkSwitch string
               string_beq
