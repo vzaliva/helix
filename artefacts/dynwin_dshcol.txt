@@ -19,8 +19,7 @@ DSHSeq (DSHAlloc 2 2)
                                                (8, NConst 0) 
                                                (AMult (AVar 1) (AVar 0)) CarrierA1)
                                             (DSHIMap 1 8 6
-                                               (AMult (AVar 0)
-                                                  (ANth 3 (VVar 3) (NVar 2))))))))
+                                               (AMult (AVar 0) (ANth (MVar 3) (NVar 2))))))))
                                 (DSHMemMap2 3 6 5 5 (APlus (AVar 1) (AVar 0))))))
                        (DSHAssign (5, NConst 0) (3, NConst 0))))
                  (DSHSeq (DSHAlloc 1 9)
@@ -64,7 +63,7 @@ DSHAlloc 2 2;
         DSHAssign (0, 0%'N') (7, 0%'N');
         DSHAlloc 1 8;
         DSHPower (NVar 0) (7, 0%'N') (8, 0%'N') (AVar 1 * AVar 0) CarrierA1;
-        DSHIMap 1 8 6 (AVar 0 * ANth 3 (VVar 3) (NVar 2)));
+        DSHIMap 1 8 6 (AVar 0 * ANth (MVar 3) (NVar 2)));
        DSHMemMap2 3 6 5 5 (AVar 1 + AVar 0))); DSHAssign (5, 0%'N') (3, 0%'N'));
   DSHAlloc 1 9;
   ((DSHAlloc 1 10; DSHMemInit 1 9 CarrierAz);

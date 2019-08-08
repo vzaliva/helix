@@ -228,6 +228,18 @@ Proof.
     apply Set_Obligation_1.
 Qed.
 
+(* MSHCOL -> DHCOL *)
+
+Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+
+Obligation Tactic := idtac.
+Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1").
+Check dynwin_DSHCOL1.
+Print dynwin_DSHCOL1.
+
+Import DSHNotation.
+Print dynwin_DSHCOL1.
 
 Section SigmaHCOL_rewriting.
 
