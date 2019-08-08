@@ -535,7 +535,7 @@ Class SH_MSH_Operator_compat
           mem_op mop (svector_to_mem_block _ x)
     }.
 
-Section MemVecEq.
+Section OperatorPairwiseProofs.
 
   Section WithMonoid.
 
@@ -3417,4 +3417,4 @@ Section MemVecEq.
 
   End MonoidSpecific.
 
-End MemVecEq.
+End OperatorPairwiseProofs.
