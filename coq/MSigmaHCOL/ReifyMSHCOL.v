@@ -177,24 +177,3 @@ Definition reifySHCOL {A:Type} (expr: A)
                     ;; tmReturn tt
            end).
 
-(* Testing only *)
-(*
-Require Import Omega.
-Program Definition foo := @eUnion Monoid_RthetaFlags CarrierAz 10 3 _.
-Next Obligation. omega. Defined.
-
-Test Quote foo.
-
-Obligation Tactic := idtac.
-Run TemplateProgram (reifySHCOL foo 100 "foo_def" "foo_lemma").
-Check foo_def.
-Print foo_def.
-
-Lemma foo_lemma:
-  SH_MSH_Operator_compat
-    (@eUnion Monoid_RthetaFlags CarrierAz 10 3 foo_obligation_1)
-    (@MSHeUnion 10 3 foo_obligation_1).
-Proof.
-  typeclasses eauto.
-Qed.
-*)
