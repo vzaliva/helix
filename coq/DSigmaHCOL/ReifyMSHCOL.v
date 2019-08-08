@@ -177,35 +177,35 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
     | Some n_eUnion, [o ; b ; _] =>
-      tmPrint "eUnion" ;;
+      tmPrint "MSHeUnion" ;;
               no <- tmUnquoteTyped nat o ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, heap_i, DSHAssign (x_i,NConst 0) (y_i, bc))
     | Some n_eT, [i ; b ; _] =>
-      tmPrint "eT" ;;
+      tmPrint "MSHeT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, heap_i, DSHAssign (x_i, bc) (y_i, NConst 0))
     | Some n_SHPointwise, [n ; f ; _ ] =>
-      tmPrint "SHPointwise" ;;
+      tmPrint "MSHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
               tmReturn (vars, heap_i, DSHIMap nn x_i y_i df)
     | Some n_SHBinOp, [o ; f ; _]
       =>
-      tmPrint "SHBinOp" ;;
+      tmPrint "MSHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
               tmReturn (vars, heap_i, DSHBinOp no x_i y_i df )
     | Some n_SHInductor, [n ; f ; _ ; z] =>
-      tmPrint "SHInductor" ;;
+      tmPrint "MSHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
               tmReturn (vars, heap_i,
                         DSHPower nc (x_i, NConst 0) (y_i, NConst 0) df zconst)
     | Some n_IUnion, [i ; o ; n ; op_family] =>
-      tmPrint "IUnion" ;;
+      tmPrint "MSHIUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
@@ -213,7 +213,7 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
               let '(_,heap_i',rr) := c' in
               tmReturn (vars, heap_i', DSHLoop nn rr)
     | Some n_IReduction, [i ; o ; n ; z; f ; _ ; op_family] =>
-      tmPrint "IReduction" ;;
+      tmPrint "MSHIReduction" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
@@ -232,7 +232,7 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
                                           rr
                                           (DSHMemMap2 nn t_i y_i y_i df)))))
     | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
-      tmPrint "SHCompose" ;;
+      tmPrint "MSHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
               no2 <- tmUnquoteTyped nat o2 ;;
               no3 <- tmUnquoteTyped nat o3 ;;
@@ -246,7 +246,7 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
                                        (DSHAlloc no2 t_i)
                                        (DSHSeq cop2 cop1)))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
-      tmPrint "HTSumunion" ;;
+      tmPrint "MHTSUMUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               let tyf_i := heap_i in
