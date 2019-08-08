@@ -1,10 +1,8 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.Peano_dec.
-Require Import CoLoR.Util.Vector.VecUtil.
+Require Import Coq.Arith.Compare_dec.
 
 Require Import Helix.Util.Misc.
-Require Import Helix.Util.VecUtil.
-Require Import Helix.Util.VecSetoid.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
@@ -51,19 +49,14 @@ Definition memory_set
     NM.add n v m.
 
 (* Evaluation of expressions does not allow for side-effects *)
-Definition evalVexp (σ: evalContext) {n} (exp:VExpr n): option (avector n) :=
-  match exp in (VExpr n0) return (option (vector CarrierA n0)) with
-  | @VVar n0 i =>
+Definition evalMexp (σ: evalContext) (exp:MExpr): option (mem_block) :=
+  match exp with
+  | @MVar i =>
     match nth_error σ i with
-    | Some (@DSHvecVal n2 v) =>
-      match eq_nat_dec n2 n0 as s0 return (_ ≡ s0 -> option (vector CarrierA n0))
-      with
-      | left E => fun _ => eq_rect n2 (fun n3 => option (vector CarrierA n3)) (Some v) n0 E
-      | right _ => fun _ => None
-      end eq_refl
+    | Some (@DSHmemVal v) => Some v
     | _ => None
     end
-  | @VConst _ t => Some t
+  | @MConst t => Some t
   end.
 
 (* Evaluation of expressions does not allow for side-effects *)
@@ -102,20 +95,12 @@ Fixpoint evalAexp (σ: evalContext) (e:AExpr): option CarrierA :=
     a' <- (evalAexp σ a) ;;
        b' <- (evalAexp σ b) ;;
        ret (sub a' b')
-  | @ANth n v i =>
-    v' <- (evalVexp σ v) ;;
+  | ANth m i =>
+    m' <- (evalMexp σ m) ;;
        i' <- (evalNexp σ i) ;;
-       match Compare_dec.lt_dec i' n with
-       | left ic => Some (Vnth v' ic)
-       | in_right => None
-       end
+       mem_lookup i' m'
   | AZless a b => liftM2 Zless (evalAexp σ a) (evalAexp σ b)
   end.
-
-Require Import Coq.Arith.Compare_dec.
-Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.SigmaHCOL.SVector.
-Require Import Helix.SigmaHCOL.Rtheta.
 
 (* Evaluation of functions does not allow for side-effects *)
 Definition evalIUnCarrierA (σ: evalContext) (f: DSHIUnCarrierA)
@@ -319,10 +304,10 @@ Proof.
   - proper_eval2 IHEe1 IHEe2.
 Qed.
 
-Global Instance evalVexp_proper:
-  Proper ((=) ==> (forall_relation (fun n => (=) ==> (=)))) (evalVexp).
+Global Instance evalMexp_proper:
+  Proper ((=) ==> (=) ==> (=)) (evalMexp).
 Proof.
-  intros c1 c2 Ec n e1 e2 Ee.
+  intros c1 c2 Ec e1 e2 Ee.
   induction Ee; simpl.
   -
     unfold equiv, peano_naturals.nat_equiv in H.
@@ -361,8 +346,8 @@ Proof.
     rewrite H1.
     reflexivity.
   - f_equiv. apply H.
-  - assert(C1:  evalVexp c1 v1 = evalVexp c2 v2)
-      by (apply evalVexp_proper; auto).
+  - assert(C1:  evalMexp c1 v1 = evalMexp c2 v2)
+      by (apply evalMexp_proper; auto).
     assert(C2:  evalNexp c1 n1 = evalNexp c2 n2)
       by (apply evalNexp_proper; auto).
     repeat break_match; subst ; try reflexivity; subst;
@@ -372,7 +357,7 @@ Proof.
     unfold peano_naturals.nat_equiv in *.
     subst.
     f_equiv.
-    apply Vnth_equiv; auto.
+    assumption.
   - repeat break_match;subst; try reflexivity; try some_none.
     f_equiv.
     rewrite <- Some_inj_equiv in IHEe.
@@ -421,11 +406,10 @@ Fixpoint NExpr_var_subst
   end.
 
 (* No natvars used in vector expressions *)
-Definition VExpr_natvar_subst
-           {n:nat}
+Definition MExpr_natvar_subst
            (name: nat)
            (value: NExpr)
-           (vexp: VExpr n): VExpr n := vexp.
+           (vexp: MExpr): MExpr := vexp.
 
 Fixpoint AExpr_natvar_subst
          (name: nat)
@@ -434,7 +418,7 @@ Fixpoint AExpr_natvar_subst
   match aexp with
   | AVar _ => aexp
   | AConst _ => aexp
-  | ANth n ve ne => ANth n (VExpr_natvar_subst name value ve) (NExpr_var_subst name value ne)
+  | ANth ve ne => ANth (MExpr_natvar_subst name value ve) (NExpr_var_subst name value ne)
   | AAbs x => AAbs (AExpr_natvar_subst name value x)
   | APlus  a b => APlus (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
   | AMinus a b => AMinus (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
@@ -443,7 +427,6 @@ Fixpoint AExpr_natvar_subst
   | AMax   a b => AMax (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
   | AZless a b => AZless (AExpr_natvar_subst name value a) (AExpr_natvar_subst name value b)
   end.
-
 
 Definition MemVarRef_NVar_subt
            (name: nat)

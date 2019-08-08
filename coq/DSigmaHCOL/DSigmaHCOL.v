@@ -12,14 +12,13 @@ Definition var_id := nat.
 Inductive DSHVal :=
 | DSHnatVal (n:nat): DSHVal
 | DSHCarrierAVal (a:CarrierA): DSHVal
-| DSHvecVal {n:nat} (v:avector n): DSHVal
 | DSHmemVal (m:mem_block): DSHVal.
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
 | AVar  : var_id -> AExpr
 | AConst: CarrierA -> AExpr
-| ANth  : forall n, VExpr n -> NExpr -> AExpr
+| ANth  : MExpr -> NExpr -> AExpr
 | AAbs  : AExpr -> AExpr
 | APlus : AExpr -> AExpr -> AExpr
 | AMinus: AExpr -> AExpr -> AExpr
@@ -39,10 +38,11 @@ NExpr: Type :=
 | NMult : NExpr -> NExpr -> NExpr
 | NMin  : NExpr -> NExpr -> NExpr
 | NMax  : NExpr -> NExpr -> NExpr
-(* Expressions which evaluate to `avector n` *)
-with VExpr: nat -> Type :=
-     | VVar  {n:var_id}: nat -> VExpr n
-     | VConst {n:nat}: avector n -> VExpr n.
+(* Expressions which evaluate to `mem_block` *)
+with
+MExpr: Type :=
+| MVar:  var_id -> MExpr
+| MConst: mem_block -> MExpr.
 
 Definition DSHUnCarrierA := AExpr.
 Definition DSHIUnCarrierA := AExpr.
@@ -79,7 +79,6 @@ Require Import Helix.Tactics.HelixTactics.
 Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
 | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
 | DSHCarrierAVal_equiv {a b: CarrierA}: a=b -> DSHVal_equiv (DSHCarrierAVal a) (DSHCarrierAVal b)
-| DSHvecVal_equiv {n:nat} {v0 v1: avector n}: v0=v1 -> DSHVal_equiv (DSHvecVal v0) (DSHvecVal v1)
 | DSHmemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHmemVal m0) (DSHmemVal m1).
 
 Global Instance DSHVar_Equivalence:
@@ -105,13 +104,6 @@ Proof.
       rewrite <- H2.
       rewrite H5.
       apply H.
-    +
-      subst.
-      constructor.
-      inv_exitstT.
-      rewrite H.
-      rewrite <- H6.
-      apply H2.
     +
       subst.
       constructor.
@@ -162,14 +154,14 @@ Proof.
 Qed.
 
 
-Inductive VExpr_equiv {n:nat}: VExpr n -> VExpr n -> Prop :=
-| VVar_equiv {n0 n1}: n0=n1 -> VExpr_equiv (VVar n0) (VVar n1)
-| VConst_equiv {a b: avector n}: a=b -> VExpr_equiv (VConst a) (VConst b).
+Inductive MExpr_equiv : MExpr -> MExpr -> Prop :=
+| MVar_equiv {n0 n1}: n0=n1 -> MExpr_equiv (MVar n0) (MVar n1)
+| MConst_equiv {a b: mem_block}: a=b -> MExpr_equiv (MConst a) (MConst b).
 
-Global Instance VExpr_Equiv {n}: Equiv (VExpr n) := VExpr_equiv.
+Global Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
 
-Global Instance VExpr_Equivalence {n}:
-  Equivalence (@VExpr_Equiv n).
+Global Instance MExpr_Equivalence:
+  Equivalence MExpr_equiv.
 Proof.
   split.
   -
@@ -182,19 +174,15 @@ Proof.
     intros x y z Exy Eyz.
     induction Exy; inversion Eyz; subst;
       constructor; auto.
-
-    inv_exitstT.
-    subst.
-    auto.
 Qed.
 
 Inductive AExpr_equiv: AExpr -> AExpr -> Prop :=
 | AVar_equiv  {n0 n1}: n0=n1 -> AExpr_equiv (AVar n0) (AVar n1)
 | AConst_equiv {a b}: a=b -> AExpr_equiv (AConst a) (AConst b)
-| ANth_equiv {n} {v1 v2:VExpr n} {n1 n2:NExpr} :
+| ANth_equiv {v1 v2:MExpr} {n1 n2:NExpr} :
     NExpr_equiv n1 n2 ->
-    VExpr_equiv v1 v2 ->
-    AExpr_equiv (ANth n v1 n1)  (ANth n v2 n2)
+    MExpr_equiv v1 v2 ->
+    AExpr_equiv (ANth v1 n1)  (ANth v2 n2)
 | AAbs_equiv  {a b}: AExpr_equiv a b -> AExpr_equiv (AAbs a)  (AAbs b)
 | APlus_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (APlus a b) (APlus a' b')
 | AMinus_equiv{a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMinus a b) (AMinus a' b')
@@ -243,8 +231,8 @@ Proof.
       inversion Exy. inversion Eyz.
       inv_exitstT; subst.
       constructor.
-      apply transitivity with (y:=n2); auto.
-      eapply transitivity with (y:=v0); auto.
+      apply transitivity with (y:=n0); auto.
+      eapply transitivity with (y:=m0); auto.
     + constructor; apply IHx with (y:=y); auto.
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
