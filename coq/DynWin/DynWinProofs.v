@@ -121,7 +121,7 @@ Definition dynwin_SHCOL (a: avector 3):
     ).
 
 
-Require Import Helix.MSigmaHCOL.ReifyMSHCOL.
+Require Import Helix.MSigmaHCOL.ReifySHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MemVecEq.
 
@@ -230,7 +230,7 @@ Section SHCOL_to_MSHCOL.
 
 End SHCOL_to_MSHCOL.
 
-Require Import Helix.DSigmaHCOL.ReifyDSHCOL.
+Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 
 Section MSHCOL_to_DSHCOL.
