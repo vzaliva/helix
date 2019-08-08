@@ -35,9 +35,20 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
   (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
   a superset of that. 
 
+** Quasi-Ring
+   In one of rewrting proofs (=Diamond_f_subst=) I am using an awkward
+   pre-condition which consists of two /Monoids/ which are sharing
+   the same /identity element/. It turns out that such algebraic
+   structure exists, and called [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][Quazi-ring]]. Instead of carrying over
+   multiple assumptions I should define a typeclass for /QuaziRing/
+   and pack them into it.
+
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances
 ** Proof-irrelevance assumption could be avoided
+** FinNatSet proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]] 
+   (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
+   equality).
 * Unfinished
 ** Automate /DynWin/ rewriting proof
 ** Automate SPIRAL log reading for sequence of rewrites
