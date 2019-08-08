@@ -4,16 +4,14 @@ Require Import Helix.Util.FinNat.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.SigmaHCOL.SVector.
 Require Import Helix.Util.Misc.
+Require Import Helix.Util.FinNatSet.
 
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.HCOL.HCOL.
-Require Import Helix.HCOL.HCOLImpl.
 Require Import Helix.HCOL.THCOL.
-Require Import Helix.HCOL.THCOLImpl.
 
 Require Import Helix.SigmaHCOL.Rtheta.
 Require Import Helix.SigmaHCOL.SigmaHCOL.
-Require Import Helix.SigmaHCOL.SigmaHCOLImpl.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.SigmaHCOL.IndexFunctions.
 
@@ -445,9 +443,6 @@ Section SigmaHCOL_rewriting.
     solve_facts.
     (* Now let's take care of remaining proof obligations *)
     -
-      apply Disjoined_singletons.
-      tauto.
-    -
       unfold Included, In.
       intros x H.
 
@@ -471,9 +466,6 @@ Section SigmaHCOL_rewriting.
       apply Union_Empty_set_lunit.
       apply Singleton_FinNatSet_dec.
     -
-      apply Disjoined_singletons.
-      crush.
-    -
       unfold Included, In.
       intros x H.
 
@@ -489,7 +481,7 @@ Section SigmaHCOL_rewriting.
       crush.
 
       crush.
-  Defined.
+  Qed.
 
   (* Special case when results of 'g' comply to P. In tihs case we can discard 'g' *)
   Lemma Apply_Family_Vforall_P_move_P
@@ -526,7 +518,7 @@ Section SigmaHCOL_rewriting.
         (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam)
         (f: FinNat o2 -> CarrierA -> CarrierA)
         {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), 0 ≠ f (mkFinNat ic) v -> 0 ≠ v):
+        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), zero ≠ f (mkFinNat ic) v -> zero ≠ v):
     Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags
                                         (SHOperatorFamilyCompose
                                            Monoid_RthetaFlags
@@ -594,7 +586,7 @@ Section SigmaHCOL_rewriting.
     unfold compose.
     generalize (op fm F x).
     intros v.
-    unfold SHPointwise'.
+    unfold SigmaHCOLImpl.SHPointwise'.
     rewrite Vbuild_nth.
     unfold liftRthetaP.
     rewrite evalWriter_Rtheta_liftM.
@@ -602,7 +594,9 @@ Section SigmaHCOL_rewriting.
     apply H.
   Qed.
 
-  Lemma DynWinSigmaHCOL1_Value_Correctness (a: avector 3)
+  (* Sigma-HCOL rewriting correctenss *)
+  Theorem DynWinSigmaHCOL1_Value_Correctness
+          (a: avector 3)
     : dynwin_SHCOL a = dynwin_SHCOL1 a.
   Proof.
     unfold dynwin_SHCOL.
@@ -725,7 +719,7 @@ Section SigmaHCOL_rewriting.
     setoid_rewrite (SafeCast_SHBinOp _ 3).
     setoid_rewrite (UnSafeCast_SHBinOp _ 1).
     unshelve setoid_rewrite terminate_ScatHUnion1; auto.
-    Hint Opaque liftM_HOperator: rewrite.
+    Local Hint Opaque liftM_HOperator: rewrite.
     setoid_rewrite SafeCast_HReduction.
 
     (* Next rule *)
@@ -815,8 +809,8 @@ Section SigmaHCOL_rewriting.
     reflexivity.
   Qed.
 
-  (* Couple additional structual properties: input and output of the dynwin_SHCOL1 is dense *)
-
+  (* Couple additional structual properties: input and output of the
+  dynwin_SHCOL1 is dense *)
   Lemma DynWinSigmaHCOL1_dense_input
         (a: avector 3)
     : Same_set _ (in_index_set _ (dynwin_SHCOL1 a)) (Full_set (FinNat _)).
@@ -838,7 +832,8 @@ Section SigmaHCOL_rewriting.
       destruct x as [x xc].
       simpl in xc.
 
-      (* The following could be automated with nifty tactics but for now we will do it manually. *)
+      (* The following could be automated with nifty tactics but for
+      now we will do it manually. *)
 
       destruct x.
       (* 0 *)
@@ -906,7 +901,8 @@ Section SigmaHCOL_rewriting.
       apply Full_intro.
   Qed.
 
-  (* Putting it all together: Final proof of SigmaHCOL rewriting *)
+  (* Putting it all together: Final proof of SigmaHCOL rewriting whic
+   includes both value and structual correctenss *)
   Theorem SHCOL_to_SHCOL1_Rewriting
           (a: avector 3)
     : @SHOperator_subtyping
