@@ -1,85 +1,122 @@
-Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.HCOL.CarrierType.
+
+Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 
-  (*
-  (* Shows relations of cells before ([b]) and after ([a]) evaluating
-     DSHCOL operator and a result of evaluating [mem_op] as [d] *)
-  Inductive SHCOL_DSHCOL_cell_equiv (b a d: option CarrierA) : Prop :=
-  | CellPreserve: is_None d -> b = a -> SHCOL_DSHCOL_cell_equiv b a d (* preserving memory state *)
-  | CellExpected: is_Some d -> a = d -> SHCOL_DSHCOL_cell_equiv b a d (* expected results *).
+Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
-  (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
-     DSHCOL operator and a result of evaluating [mem_op] as [md] *)
-  Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
-    forall i,
-      SHCOL_DSHCOL_cell_equiv
-        (mem_lookup i mb)
-        (mem_lookup i ma)
-        (mem_lookup i md).
+Require Import MathClasses.misc.util.
+
+(* Shows relations of cells before ([b]) and after ([a]) evaluating
+   DSHCOL operator and a result of evaluating [mem_op] as [d] *)
+Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
+| MemPreserved: is_None d -> b = a -> MemOpDelta b a d (* preserving memory state *)
+| MemExpected: is_Some d -> a = d -> MemOpDelta b a d (* expected results *).
+
+(* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
+   DSHCOL operator and a result of evaluating [mem_op] as [md] *)
+Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
+  forall i,
+    MemOpDelta
+      (mem_lookup i mb)
+      (mem_lookup i ma)
+      (mem_lookup i md).
 
 
-  (* Given SHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
-     input memory block addres and [y_i] as output.
+Require Import CoLoR.Util.Relation.RelUtil.
 
-     The [x_i] and [y_i] memory lookup must succeed.
+(* option predicate. None is not allowed
+TODO: move
+*)
+Section opt_p.
 
-     We do not require input block to be structurally correct, because
-     [mem_op] will just return an error in this case.
+  Variables (A : Type) (P : A -> Prop).
 
-     DSCHOL operators are implemented in more permissive manner
-     and not necesseraly return error on invalid input.
-   *)
-  Class SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
-        (sh_op: @SHOperator fm i o svalue)
-        `{facts: !SHOperator_Facts fm sh_op}
-        `{SHM: !SHOperator_Mem sh_op}
-        (dsh_op: DSHOperator)
-        (σ: evalContext)
-        (m: memory)
-        (x_i y_i: mem_block_id)
-    := {
-        eequiv:
-          match memory_lookup m x_i, memory_lookup m y_i with
-          | Some mx, (* input *) Some mb (* output before *) =>
-            match mem_op mx, evalDSHOperator σ dsh_op m (estimateFuel dsh_op) with
-            | None, _ => True (* assume they are equal on *invalid* inputs *)
-            | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
-              match  memory_lookup m' y_i with
-              | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-              | None => False (* out memory block dissapeared *)
-              end
-            | _, _ => False
+  Inductive opt_p : (option A) -> Prop :=
+  | opt_p_intro : forall x, P x -> opt_p (Some x).
+
+End opt_p.
+Arguments opt_p {A} P.
+
+(* Extension to [option _] of a heterogenous relation on [A] [B] *)
+Section hopt.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Reflexive on [None]. *)
+  Inductive hopt_r : (option A) -> (option B) -> Prop :=
+  | hopt_r_None : hopt_r None None
+  | hopt_r_Some : forall a b, R a b -> hopt_r (Some a) (Some b).
+
+  (** Non-Reflexive on [None]. *)
+  Inductive hopt : (option A) -> (option B) -> Prop :=
+  | hopt_Some : forall a b, R a b -> hopt (Some a) (Some b).
+
+  (** implication-like. *)
+  Inductive hopt_i : (option A) -> (option B) -> Prop :=
+  | hopt_i_None_None : hopt_i None None
+  | hopt_i_None_Some : forall a, hopt_i None (Some a)
+  | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
+
+End hopt.
+Arguments hopt {A B} R.
+Arguments hopt_r {A B} R.
+Arguments hopt_i {A B} R.
+
+
+
+(* Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
+  input memory block addres and [y_i] as output.
+
+  It is assumed that we know what memory blocks are used as input
+  [x_i] and output [y_i], of the operator. They both must exists (be
+  allocated) prior to execution.
+
+  We do not require input block to be structurally correct, because
+  [mem_op] will just return an error in this case.
+
+  Note: DSCHOL operators are implemented in more permissive manner and
+  not necesseraly return error on invalid input.  *)
+Class MSH_DSH_Operator_compat
+      {i o: nat}
+      (mop: @MSHOperator i o)
+      (dop: DSHOperator)
+      (σ: evalContext)
+      (m: memory)
+      (x_i y_i: mem_block_id)
+  := {
+
+      mfacts:
+        MSHOperator_Facts mop;
+
+      eval_equiv:
+        opt (fun mx (* input *) mb (* output before *) =>
+               (hopt_i (fun md (* memory diff *) m' (* memory state after execution *) =>
+                          opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+                                ) (memory_lookup m' y_i)
+                       ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)))
+            ) (memory_lookup m x_i) (memory_lookup m y_i) ;
+
+      (*
+      eval_equiv:
+        match memory_lookup m x_i, memory_lookup m y_i with
+        | Some mx, (* input *) Some mb (* output before *) =>
+          match mem_op mop mx, evalDSHOperator σ dop m (estimateFuel dop) with
+          | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
+            match  memory_lookup m' y_i with
+            | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+            | None => False (* out memory block dissapeared *)
             end
-          | _, _ => False (* Either input our output not present *)
+          | None, _ => True (* assume they are equal on *invalid* inputs [see note above] *)
+          | _, _ => False
           end
-      }.
+        | _, _ => False (* Either input our output not present *)
+        end
+       *)
+    }.
 
-  Instance SafeCast_SHCOL_DSHCOL
-        {i o:nat} {svalue:CarrierA}
-        {σ: evalContext}
-        {s: @SHOperator Monoid_RthetaSafeFlags i o svalue}
-        `{facts: !SHOperator_Facts _ s}
-        `{mem: !SHOperator_Mem s}
-        {d: DSHOperator}
-        {m: memory}
-        {x_i y_i: mem_block_id}:
-
-    @SHCOL_DSHCOL_equiv i o svalue _ s facts mem d σ m x_i y_i ->
-
-    @SHCOL_DSHCOL_equiv i o svalue _ (SafeCast s)
-                        (@SafeCast_Facts _ _ _ s facts)
-                        (SafeCast_Mem s)
-                        d σ m x_i y_i .
-  Proof.
-    intros E.
-    unfold SafeCast.
-    constructor.
-    destruct E as [E].
-    unfold SafeCast', mem_op in *.
-    destruct mem.
-    eapply E.
-  Qed.
-
+  (*
   Instance SHCompose_SHCOL_DSHCOL
         {i1 o2 o3: nat}
         {svalue: CarrierA}
