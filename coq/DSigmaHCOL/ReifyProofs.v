@@ -7,6 +7,10 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
 Require Import MathClasses.misc.util.
+Require Import MathClasses.interfaces.canonical_names.
+
+Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Tactics.HelixTactics.
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -65,7 +69,6 @@ Arguments hopt_r {A B} R.
 Arguments hopt_i {A B} R.
 
 
-
 (* Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
   input memory block addres and [y_i] as output.
 
@@ -78,43 +81,137 @@ Arguments hopt_i {A B} R.
 
   Note: DSCHOL operators are implemented in more permissive manner and
   not necesseraly return error on invalid input.  *)
-Class MSH_DSH_Operator_compat
+Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
       (dop: DSHOperator)
-      (σ: evalContext)
-      (m: memory)
       (x_i y_i: mem_block_id)
   := {
 
-      mfacts:
+      mfacts
+      :
         MSHOperator_Facts mop;
 
-      eval_equiv:
-        opt (fun mx (* input *) mb (* output before *) =>
-               (hopt_i (fun md (* memory diff *) m' (* memory state after execution *) =>
-                          opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-                                ) (memory_lookup m' y_i)
-                       ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)))
-            ) (memory_lookup m x_i) (memory_lookup m y_i) ;
+      eval_equiv
+      :
+        forall (σ: evalContext) (m: memory) (mx mb: mem_block),
+          (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
+          (memory_lookup m y_i ≡ Some mb) (* output before *) ->
 
-      (*
-      eval_equiv:
-        match memory_lookup m x_i, memory_lookup m y_i with
-        | Some mx, (* input *) Some mb (* output before *) =>
+          (hopt_i (fun md (* memory diff *) m' (* memory state after execution *) =>
+                     opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+                           ) (memory_lookup m' y_i)
+                  ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
+
+      eval_equiv':
+        forall (σ: evalContext) (m: memory) (mx mb: mem_block),
+          (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
+          (memory_lookup m y_i ≡ Some mb) (* output before *) ->
+
           match mem_op mop mx, evalDSHOperator σ dop m (estimateFuel dop) with
           | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
-            match  memory_lookup m' y_i with
+            match memory_lookup m' y_i with
             | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
             | None => False (* out memory block dissapeared *)
             end
           | None, _ => True (* assume they are equal on *invalid* inputs [see note above] *)
           | _, _ => False
           end
-        | _, _ => False (* Either input our output not present *)
-        end
-       *)
     }.
+
+
+Class MSH_DSH_BinCarrierA_compat
+      {o: nat}
+      (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+      (df : DSHIBinCarrierA) :=
+  {
+    ibin_equiv:
+      forall nc x y, (exists σ, evalIBinCarrierA σ df (proj1_sig nc) x y = Some (f nc x y))
+  }.
+
+
+Global Instance BinOp_MSH_DSH_compat
+       {o: nat}
+       (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+       `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+       (x_i y_i : mem_block_id)
+       (df : DSHIBinCarrierA)
+       `{MSH_DSH_BinCarrierA_compat _ f df}
+  :
+    @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_i y_i df) x_i y_i.
+Proof.
+  split.
+  -
+    typeclasses eauto.
+  -
+    intros σ m mx mb MX MB.
+    simpl.
+    destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
+    +
+      repeat break_match; try some_none.
+      *
+        constructor.
+        unfold memory_lookup, memory_set.
+        rewrite NP.F.add_eq_o by reflexivity.
+        constructor.
+        inversion_clear MB.
+        inversion_clear MX.
+        intros k.
+
+        unfold mem_op_of_hop in MD.
+        break_match_hyp; try some_none.
+        inversion_clear MD.
+
+        clear Heqo0 Heqo1 m md.
+
+        unfold avector_to_mem_block.
+        avector_to_mem_block_to_spec md HD OD.
+        destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+        --
+          (* k<o, which is normal *)
+          simpl in *.
+          rewrite HD with (ip:=kc).
+          apply MemExpected.
+          ++
+            unfold is_Some.
+            tauto.
+          ++
+            clear OD HD md.
+            admit.
+        --
+          simpl in *.
+          rewrite OD by assumption.
+          apply MemPreserved.
+          ++
+            unfold is_None.
+            tauto.
+          ++
+            clear OD HD md t Heqo3 mx.
+            admit.
+      *
+        (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+        exfalso.
+        clear m Heqo0 Heqo1.
+        repeat some_inv.
+        subst m1. subst m0.
+        rename Heqo2 into E.
+        rename MD into M.
+
+        unfold mem_op_of_hop, HCOL.HBinOp, HCOLImpl.BinOp, Basics.compose in M.
+        repeat break_match_hyp; try some_none.
+        some_inv.
+        rename H1 into M.
+        (* env! *)
+        admit.
+    +
+      repeat break_match; try some_none.
+      *
+        constructor.
+      *
+        constructor.
+Qed.
+
+
 
   (*
   Instance SHCompose_SHCOL_DSHCOL
