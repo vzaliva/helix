@@ -36,7 +36,6 @@ Require Import MathClasses.implementations.peano_naturals.
 Import Monoid.
 
 Global Open Scope nat_scope.
-Set Implicit Arguments.
 
 Import VectorNotations.
 Open Scope vector_scope.
@@ -964,7 +963,7 @@ Section MFamilies.
          (j: nat) (jc: j<n)
          (op_family: @MSHOperatorFamily i o n)
     :
-      Proper ((=) ==> (=)) (get_family_mem_op op_family jc).
+      Proper ((=) ==> (=)) (get_family_mem_op op_family j jc).
   Proof.
     intros x y E.
     unfold get_family_mem_op.
@@ -991,7 +990,7 @@ Section MFamilies.
         {l: list mem_block}
     :
       (Apply_mem_Family (get_family_mem_op op_family) m ≡ Some l)
-      -> (forall (j : nat) (jc : j < k), List.nth_error l j ≡ get_family_mem_op op_family jc m).
+      -> (forall (j : nat) (jc : j < k), List.nth_error l j ≡ get_family_mem_op op_family j jc m).
   Proof.
     unfold Apply_mem_Family.
     apply monadic_Lbuild_op_eq_Some.
@@ -1079,7 +1078,7 @@ Section MFamilies.
         (ms: list mem_block)
     :
       Apply_mem_Family (get_family_mem_op op_family) m ≡ Some (List.cons m0 ms) ->
-      get_family_mem_op op_family (Nat.lt_0_succ k) m ≡ Some m0 /\
+      get_family_mem_op op_family _ (Nat.lt_0_succ k) m ≡ Some m0 /\
       Apply_mem_Family (
           get_family_mem_op
             (shrink_m_op_family_up op_family)
@@ -1276,7 +1275,7 @@ Section MFamilies.
             right.
             rewrite <- IHn; clear IHn.
             assert(nc1: n < S n) by lia.
-            apply (m_family_in_set_includes_members (shrink_m_op_family_up op_family) nc1).
+            apply (m_family_in_set_includes_members _ _ _ (shrink_m_op_family_up op_family) _ nc1).
             unfold shrink_m_op_family_up.
             simpl.
             replace (lt_n_S nc1) with nc by apply le_unique.
@@ -1306,8 +1305,8 @@ Section MFamilies.
             rewrite <- IHn.
 
             assert(tc1: t<n) by omega.
-            apply (m_family_in_set_includes_members
-                     (shrink_m_op_family_up op_family)
+            apply (m_family_in_set_includes_members _ _ _
+                     (shrink_m_op_family_up op_family) _
                      tc1).
             unfold mkFinNat.
             unfold shrink_m_op_family_up.
@@ -1568,8 +1567,8 @@ Section MFamilies.
             right.
             rewrite <- IHn; clear IHn.
             assert(nc1: n < S n) by lia.
-            apply (m_family_out_set_includes_members
-                     (shrink_m_op_family_up op_family)
+            apply (m_family_out_set_includes_members _ _ _
+                     (shrink_m_op_family_up op_family) _
                      nc1).
             unfold shrink_m_op_family_up.
             simpl.
@@ -1598,8 +1597,8 @@ Section MFamilies.
             congruence.
             rewrite <- IHn.
             assert(tc1: t<n) by omega.
-            apply (m_family_out_set_includes_members
-                     (shrink_m_op_family_up op_family)
+            apply (m_family_out_set_includes_members _ _ _
+                     (shrink_m_op_family_up op_family) _
                      tc1).
             unfold mkFinNat.
             unfold shrink_m_op_family_up.
@@ -1953,7 +1952,7 @@ Section MSHOperator_Facts_instances.
         contradict Heqo.
         apply is_Some_ne_None.
         apply mem_out_some.
-        pose proof (out_mem_fill_pattern m Heqo0) as P.
+        pose proof (out_mem_fill_pattern m _ Heqo0) as P.
         intros j jc H0.
         specialize (P j jc).
         apply P.
@@ -1972,13 +1971,13 @@ Section MSHOperator_Facts_instances.
         simpl in *.
         unfold option_compose in H.
         break_match_hyp; try some_none.
-        pose proof (out_mem_fill_pattern  m1 H) as P1.
+        pose proof (out_mem_fill_pattern  m1 _ H) as P1.
         apply P1; auto.
       +
         simpl in *.
         unfold option_compose in H.
         break_match_hyp; try some_none.
-        pose proof (out_mem_fill_pattern m1 H) as P2.
+        pose proof (out_mem_fill_pattern m1 _ H) as P2.
         apply P2; auto.
     -
       (* mem_out_oob *)
@@ -1987,7 +1986,7 @@ Section MSHOperator_Facts_instances.
       unfold option_compose in H.
       simpl in H.
       break_match_hyp; try some_none.
-      pose proof (out_mem_oob  m1 H) as P2.
+      pose proof (out_mem_oob  m1 _ H) as P2.
       apply P2; auto.
   Qed.
 
@@ -2124,7 +2123,7 @@ Section MSHOperator_Facts_instances.
          {n: nat}
          (f: FinNat n -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-    : MSHOperator_Facts (MSHPointwise (pF:=pF)).
+    : MSHOperator_Facts (MSHPointwise f).
   Proof.
     split.
     -
@@ -2144,7 +2143,7 @@ Section MSHOperator_Facts_instances.
          (f: CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=)) f}
          (initial: CarrierA):
-    MSHOperator_Facts (MSHInductor n initial (pF:=pF)).
+    MSHOperator_Facts (MSHInductor n f initial).
   Proof.
     split.
     -
@@ -2163,7 +2162,7 @@ Section MSHOperator_Facts_instances.
          {o: nat}
          (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
          `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-    : MSHOperator_Facts (MSHBinOp (pF:=pF)).
+    : MSHOperator_Facts (MSHBinOp f).
   Proof.
     split.
     -
@@ -2201,10 +2200,10 @@ Section MSHOperator_Facts_instances.
       dependent destruction H; apply E1.
       *
         left.
-        eapply (out_mem_fill_pattern _ Heqo0); eauto.
+        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
       *
         right.
-        eapply (out_mem_fill_pattern _ Heqo1); eauto.
+        eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
     +
       simpl in *.
       unfold HTSUMUnion_mem in E.
@@ -2215,10 +2214,10 @@ Section MSHOperator_Facts_instances.
       destruct E0 as [M1 | M2].
       *
         apply Union_introl.
-        eapply (out_mem_fill_pattern _ Heqo0); eauto.
+        eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
       *
         right.
-        eapply (out_mem_fill_pattern _ Heqo1); eauto.
+        eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
   Qed.
 
   Global Instance HTSUMUnion_MFacts
@@ -2244,10 +2243,10 @@ Section MSHOperator_Facts_instances.
         contradict Heqo0.
         clear H.
         apply mem_merge_is_Some.
-        pose proof (out_mem_fill_pattern m Heqo1) as P1.
-        pose proof (out_mem_oob m Heqo1) as NP1.
-        pose proof (out_mem_fill_pattern m Heqo2) as P2.
-        pose proof (out_mem_oob m Heqo2) as NP2.
+        pose proof (out_mem_fill_pattern m _ Heqo1) as P1.
+        pose proof (out_mem_oob m _ Heqo1) as NP1.
+        pose proof (out_mem_fill_pattern m _ Heqo2) as P2.
+        pose proof (out_mem_oob m _ Heqo2) as NP2.
 
         apply Disjoint_intro.
         intros j.
@@ -2307,9 +2306,9 @@ Section MSHOperator_Facts_instances.
       specialize (E0 H). clear H E1.
       destruct E0 as [M0 | M1].
       --
-        eapply (out_mem_oob _ Heqo0); eauto.
+        eapply (out_mem_oob _ _ Heqo0); eauto.
       --
-        eapply (out_mem_oob _ Heqo1); eauto.
+        eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
 
   Global Instance IReduction_MFacts
@@ -2355,7 +2354,7 @@ Section MSHOperator_Facts_instances.
                        ).
 
             assert (∀ (j : nat) (jc : j < i), m_in_index_set
-                                                (MSHIReduction initial                                                                      (shrink_m_op_family_up op_family)) (mkFinNat jc) →
+                                                (MSHIReduction initial _                                                                     (shrink_m_op_family_up op_family)) (mkFinNat jc) →
                                               mem_in j m) as P.
             {
               clear IHk Heqo1.
@@ -2436,7 +2435,7 @@ Section MSHOperator_Facts_instances.
             clear IHk A.
             right.
             unfold Ensembles.In in H.
-            eapply (out_mem_fill_pattern _ A0) with (jc:=jc).
+            eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
             replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
               by apply NatUtil.lt_unique.
             auto.
@@ -2522,8 +2521,8 @@ Section MSHOperator_Facts_instances.
       FinNatSet_to_natSet (m_out_index_set xop) ≡ NE.mkEns (mem_keys_set m).
   Proof.
     intros H.
-    pose proof (out_mem_fill_pattern _ H) as H1.
-    pose proof (out_mem_oob _ H) as H2.
+    pose proof (out_mem_fill_pattern _ _ H) as H1.
+    pose proof (out_mem_oob _ _ H) as H2.
     clear H.
     unfold mem_in in *.
     apply Extensionality_Ensembles.
@@ -2595,7 +2594,7 @@ Section MSHOperator_Facts_instances.
        (t:nat)
        (tc: t<d)
        (tc1: t<n+d)
-       (H0: get_family_mem_op op_family tc1 m ≡ Some m0)
+       (H0: get_family_mem_op op_family _ tc1 m ≡ Some m0)
 
        (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
     :
@@ -2687,8 +2686,8 @@ Section MSHOperator_Facts_instances.
         specialize (compat t tc1).
         specialize (compat d (Plus.plus_lt_compat_r O (S n) d (Nat.lt_0_succ n))).
         apply Disjoint_FinNat_to_nat in compat.
-        rewrite (mem_keys_set_to_m_out_index_set _ H0) in compat.
-        rewrite (mem_keys_set_to_m_out_index_set _ A0) in compat.
+        rewrite (mem_keys_set_to_m_out_index_set _ _ _ _ _ H0) in compat.
+        rewrite (mem_keys_set_to_m_out_index_set _ _ _ _ _ A0) in compat.
         apply compat.
         lia.
   Qed.
@@ -2713,7 +2712,7 @@ Section MSHOperator_Facts_instances.
               ≡ Some l)
 
        (t:nat)
-       (H0: get_family_mem_op op_family (Nat.lt_0_succ n) m ≡ Some m0)
+       (H0: get_family_mem_op op_family _ (Nat.lt_0_succ n) m ≡ Some m0)
 
        (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
     :
@@ -2947,7 +2946,7 @@ Section MSHOperator_Facts_instances.
             clear IHk A.
             right.
             unfold Ensembles.In in H0.
-            eapply (out_mem_fill_pattern _ A0) with (jc:=jc).
+            eapply (out_mem_fill_pattern _ _ A0) with (jc:=jc).
             replace (Nat.lt_0_succ k) with (zero_lt_Sn k)
               by apply NatUtil.lt_unique.
             auto.
