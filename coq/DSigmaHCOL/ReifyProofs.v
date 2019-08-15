@@ -6,11 +6,16 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
+(* When proving concrete functions we need to use some implementation defs from this package *)
+Require Import Helix.HCOL.HCOL.
+
 Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.canonical_names.
 
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Tactics.HelixTactics.
+
+Open Scope list_scope.
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -27,7 +32,6 @@ Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
       (mem_lookup i ma)
       (mem_lookup i md).
 
-
 Require Import CoLoR.Util.Relation.RelUtil.
 
 (* option predicate. None is not allowed
@@ -43,7 +47,9 @@ Section opt_p.
 End opt_p.
 Arguments opt_p {A} P.
 
-(* Extension to [option _] of a heterogenous relation on [A] [B] *)
+(* Extension to [option _] of a heterogenous relation on [A] [B]
+TODO: move
+*)
 Section hopt.
 
   Variables (A B : Type) (R: A -> B -> Prop).
@@ -119,6 +125,88 @@ Class MSH_DSH_compat
           end
     }.
 
+Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
+| context0_tc {v: DSHVal} {t: DSHType}: DSHValType v t -> context_pos_typecheck [v] 0 t
+| contextS_tc {v: DSHVal} {t: DSHType} (n:nat) (cs:evalContext):
+    context_pos_typecheck cs n t ->
+    DSHValType v t -> context_pos_typecheck (v::cs) (S n) t.
+
+(* Check if [MExpr] is properly typed in given evaluation context *)
+Inductive NExpr_typecheck: NExpr -> evalContext -> Prop :=
+| NVar_tc (σ: evalContext) (n:var_id):
+    context_pos_typecheck σ n DSHnat ->  NExpr_typecheck (NVar n) σ
+| NConst_tc (σ: evalContext) {a}: NExpr_typecheck (NConst a) σ
+| NDiv_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NDiv a b) σ
+| NMod_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NMod a b) σ
+| NPlus_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NPlus a b) σ
+| NMinus_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NMinus a b) σ
+| NMult_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NMult a b) σ
+| NMin_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NMin a b) σ
+| NMax_tc (σ: evalContext) (a b:NExpr):
+    NExpr_typecheck a σ ->
+    NExpr_typecheck b σ ->
+    NExpr_typecheck (NMax a b) σ.
+
+(* Check if [MExpr] is properly typed in given evaluation context *)
+Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
+| MVar_tc (σ: evalContext) (n:var_id):
+    context_pos_typecheck σ n DSHMemBlock -> MExpr_typecheck (MVar n) σ
+| MConst_tc (σ: evalContext) {a}: MExpr_typecheck (MConst a) σ.
+
+(* Check if [AExpr] is properly typed in given evaluation context *)
+Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
+  :=
+  | AVar_tc (σ: evalContext) (n:var_id):
+      context_pos_typecheck σ n DSHCarrierA ->  AExpr_typecheck (AVar n) σ
+  | AConst_tc (σ: evalContext) {a}: AExpr_typecheck (AConst a) σ
+  | ANth_tc (σ: evalContext) (me:MExpr) (ne:NExpr) :
+      MExpr_typecheck me σ ->
+      NExpr_typecheck ne σ ->
+      AExpr_typecheck (ANth me ne) σ
+  | AAbs_tc (σ: evalContext) (e:AExpr):
+      AExpr_typecheck e σ -> AExpr_typecheck (AAbs e) σ
+  | APlus_tc  (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (APlus  a b) σ
+  | AMinus_tc (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (AMinus a b) σ
+  | AMult_tc  (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (AMult  a b) σ
+  | AMin_tc   (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (AMin   a b) σ
+  | AMax_tc   (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (AMax   a b) σ
+  | AZless_tc (σ: evalContext) (a b:AExpr):
+      AExpr_typecheck a σ ->
+      AExpr_typecheck b σ ->
+      AExpr_typecheck (AZless a b) σ.
 
 Class MSH_DSH_BinCarrierA_compat
       {o: nat}
@@ -126,9 +214,29 @@ Class MSH_DSH_BinCarrierA_compat
       (df : DSHIBinCarrierA) :=
   {
     ibin_equiv:
-      forall nc x y, (exists σ, evalIBinCarrierA σ df (proj1_sig nc) x y = Some (f nc x y))
+      forall σ nc a b,
+        AExpr_typecheck df (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal (proj1_sig nc) :: σ) ->
+        evalIBinCarrierA σ df (proj1_sig nc) a b = Some (f nc a b)
   }.
 
+(* From dynwin example *)
+Global Instance Abs_MSH_DSH_BinCarrierA_compat
+  :
+    MSH_DSH_BinCarrierA_compat
+      (λ i (a b : CarrierA),
+       IgnoreIndex abs i
+                   (HCOL.Fin1SwapIndex2 (n:=2)
+                                        jf
+                                        (IgnoreIndex2 sub) i a b))
+
+      (AAbs (AMinus (AVar 1) (AVar 0))).
+Proof.
+  intros jf.
+  split.
+  intros σ nc a b H.
+  unfold evalIBinCarrierA.
+  f_equiv.
+Qed.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}

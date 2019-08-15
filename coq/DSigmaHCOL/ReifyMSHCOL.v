@@ -28,12 +28,7 @@ Import MonadNotation.
 Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
 
-Inductive DSHCOLType :=
-| DSHnat : DSHCOLType
-| DSHCarrierA : DSHCOLType
-| DSHMemBlock : DSHCOLType.
-
-Definition toDSHCOLType (tt: TemplateMonad term): TemplateMonad DSHCOLType :=
+Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
   t <- tt ;;
     match t with
     | tInd {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ =>
@@ -172,7 +167,7 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
-            toDSHCOLType (tmReturn vt) ;;
+            toDSHType (tmReturn vt) ;;
             compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) x_i y_i heap_i b
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
@@ -291,7 +286,7 @@ Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
   | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
   | (_,t)::gs =>
-    dt <- toDSHCOLType (tmReturn t) ;;
+    dt <- toDSHType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
               | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])

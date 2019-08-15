@@ -9,10 +9,30 @@ Global Open Scope nat_scope.
 (* Variable on stack (De-Brujn index) *)
 Definition var_id := nat.
 
+Inductive DSHType :=
+| DSHnat : DSHType
+| DSHCarrierA : DSHType
+| DSHMemBlock : DSHType.
+
 Inductive DSHVal :=
 | DSHnatVal (n:nat): DSHVal
 | DSHCarrierAVal (a:CarrierA): DSHVal
 | DSHmemVal (m:mem_block): DSHVal.
+
+Inductive DSHValType: DSHVal -> DSHType -> Prop :=
+  | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
+  | DSHCarrierAVal_type (a:CarrierA): DSHValType (DSHCarrierAVal a) DSHCarrierA
+  | DSHmemVal_type (m:mem_block): DSHValType (DSHmemVal m)  DSHMemBlock.
+
+(*
+Same as above but function
+Definition DSHVal2Type_f (v:DSHVal) : DSHType :=
+  match v with
+  | DSHnatVal _ => DSHnat
+  | DSHCarrierAVal _ => DSHCarrierA
+  | DSHmemVal _ =>  DSHMemBlock
+  end.
+ *)
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
