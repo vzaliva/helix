@@ -1,3 +1,5 @@
+Require Import Omega.
+
 Require Import Helix.HCOL.CarrierType.
 
 Require Import Helix.MSigmaHCOL.Memory.
@@ -6,8 +8,9 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
-(* When proving concrete functions we need to use some implementation defs from this package *)
+(* When proving concrete functions we need to use some implementation defs from this packages *)
 Require Import Helix.HCOL.HCOL.
+Require Import Helix.Util.VecUtil.
 
 Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.canonical_names.
@@ -238,6 +241,12 @@ Proof.
   f_equiv.
 Qed.
 
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -262,29 +271,63 @@ Proof.
         unfold memory_lookup, memory_set.
         rewrite NP.F.add_eq_o by reflexivity.
         constructor.
-        inversion_clear MB.
-        inversion_clear MX.
+        clear Heqo0 Heqo1 m x_i y_i.
+        rename Heqo2 into ME.
+        some_inv.
+        some_inv.
+        subst m1.
+        subst m0.
+        rename m2 into ma.
+        clear pF.
         intros k.
 
         unfold mem_op_of_hop in MD.
         break_match_hyp; try some_none.
-        inversion_clear MD.
-
-        clear Heqo0 Heqo1 m md.
+        inversion_clear MD. clear md.
+        rename t into vx.
 
         unfold avector_to_mem_block.
+
         avector_to_mem_block_to_spec md HD OD.
         destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
         --
           (* k<o, which is normal *)
+          clear OD.
           simpl in *.
           rewrite HD with (ip:=kc).
+          clear HD md.
           apply MemExpected.
           ++
             unfold is_Some.
             tauto.
           ++
-            clear OD HD md.
+            inversion_clear H as [F].
+            specialize (F σ (FinNat.mkFinNat kc)).
+
+            assert (k < o + o)%nat as kc1 by omega.
+            assert (k + o < o + o)%nat as kc2 by omega.
+            rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
+
+            assert(A: exists a, mem_lookup k mx ≡ Some a). admit.
+            destruct A as [a A].
+
+            assert(B: exists b, mem_lookup (k+o) mx ≡ Some b). admit.
+            destruct B as [b B].
+
+            assert(mem_lookup k ma = evalIBinCarrierA σ df k a b). admit.
+            rewrite_clear H.
+            simpl in F.
+            rewrite F.
+
+            assert(MVA: mem_lookup k mx ≡ Some (Vnth vx kc1)). admit.
+            assert(MVB: mem_lookup (k+o) mx ≡ Some (Vnth vx kc2)). admit.
+
+            f_equiv.
+            f_equiv.
+            apply Some_inj_eq; rewrite <- A; apply MVA.
+            apply Some_inj_eq; rewrite <- B; apply MVB.
+
+            (* HERE: typecheck should go into assumption, but in value-less form *)
             admit.
         --
           simpl in *.
