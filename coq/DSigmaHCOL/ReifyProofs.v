@@ -259,6 +259,21 @@ Lemma evalDSHBinOp_mem_lookup_mx
 Proof.
 Admitted.
 
+Lemma evalDSHBinOp_nth
+      {o : nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {mx mb ma : mem_block}
+      {k: nat}
+      {kc:k<o+o}
+      {a b : CarrierA}:
+  (mem_lookup k mx ≡ Some a) ->
+  (mem_lookup (k + o)%nat mx ≡ Some b) ->
+  (evalDSHBinOp o o df σ mx mb ≡ Some ma) ->
+  (mem_lookup k ma = evalIBinCarrierA σ df k a b).
+Proof.
+Admitted.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -323,8 +338,7 @@ Proof.
             pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
             pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
 
-            assert(mem_lookup k ma = evalIBinCarrierA σ df k a b). admit.
-            rewrite_clear H.
+            rewrite (evalDSHBinOp_nth A B ME (kc:=kc1)).
             simpl in F.
             rewrite F.
 
@@ -335,7 +349,9 @@ Proof.
             apply Some_inj_eq; rewrite <- A; apply MVA.
             apply Some_inj_eq; rewrite <- B; apply MVB.
 
-            (* HERE: typecheck should go into assumption, but in value-less form *)
+            (* HERE: typecheck should go into assumption, but in value-less form
+               IDEA: it may follow from ME?
+             *)
             admit.
         --
           simpl in *.
