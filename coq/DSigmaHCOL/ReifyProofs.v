@@ -247,6 +247,18 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Lemma evalDSHBinOp_mem_lookup_mx
+      {o : nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {mx mb ma : mem_block}
+      (E: evalDSHBinOp o o df σ mx mb ≡ Some ma)
+      (k: nat)
+      (kc:k<o+o):
+  ∃ a : CarrierA, mem_lookup k mx ≡ Some a.
+Proof.
+Admitted.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -308,11 +320,8 @@ Proof.
             assert (k + o < o + o)%nat as kc2 by omega.
             rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
 
-            assert(A: exists a, mem_lookup k mx ≡ Some a). admit.
-            destruct A as [a A].
-
-            assert(B: exists b, mem_lookup (k+o) mx ≡ Some b). admit.
-            destruct B as [b B].
+            pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
+            pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
 
             assert(mem_lookup k ma = evalIBinCarrierA σ df k a b). admit.
             rewrite_clear H.
@@ -322,8 +331,7 @@ Proof.
             assert(MVA: mem_lookup k mx ≡ Some (Vnth vx kc1)). admit.
             assert(MVB: mem_lookup (k+o) mx ≡ Some (Vnth vx kc2)). admit.
 
-            f_equiv.
-            f_equiv.
+            repeat f_equiv.
             apply Some_inj_eq; rewrite <- A; apply MVA.
             apply Some_inj_eq; rewrite <- B; apply MVB.
 
