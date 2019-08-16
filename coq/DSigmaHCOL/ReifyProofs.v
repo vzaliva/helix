@@ -274,6 +274,18 @@ Lemma evalDSHBinOp_nth
 Proof.
 Admitted.
 
+Lemma mem_block_to_avector_nth
+      {n : nat}
+      {mx : mem_block}
+      {vx : vector CarrierA n}
+      (E: mem_block_to_avector mx ≡ Some vx)
+      {k: nat}
+      {kc: (k < n)%nat}:
+  mem_lookup k mx ≡ Some (Vnth vx kc).
+Proof.
+Admitted.
+
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -342,8 +354,8 @@ Proof.
             simpl in F.
             rewrite F.
 
-            assert(MVA: mem_lookup k mx ≡ Some (Vnth vx kc1)). admit.
-            assert(MVB: mem_lookup (k+o) mx ≡ Some (Vnth vx kc2)). admit.
+            pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
+            pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
 
             repeat f_equiv.
             apply Some_inj_eq; rewrite <- A; apply MVA.
