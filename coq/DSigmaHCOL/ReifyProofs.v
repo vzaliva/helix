@@ -295,7 +295,6 @@ Lemma evalDSHBinOp_oob_preservation
 Proof.
 Admitted.
 
-
 Lemma mem_block_to_avector_nth
       {n : nat}
       {mx : mem_block}
@@ -305,7 +304,13 @@ Lemma mem_block_to_avector_nth
       {kc: (k < n)%nat}:
   mem_lookup k mx ≡ Some (Vnth vx kc).
 Proof.
-Admitted.
+  unfold mem_block_to_avector in E.
+  apply vsequence_Vbuild_eq_Some in E.
+  apply Vnth_arg_eq with (ip:=kc) in E.
+  rewrite Vbuild_nth in E.
+  rewrite Vnth_map in E.
+  apply E.
+Qed.
 
 Lemma mem_op_of_hop_x_density
       {i o: nat}

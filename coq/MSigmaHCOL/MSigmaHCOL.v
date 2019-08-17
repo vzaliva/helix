@@ -254,7 +254,6 @@ Section Avector.
     apply find_fold_right_indexed'_off.
   Qed.
 
-
   Definition mem_block_to_avector {n} (m: mem_block): option (vector CarrierA n)
     := vsequence (Vbuild (fun i (ic:i<n) => mem_lookup i m)).
 
