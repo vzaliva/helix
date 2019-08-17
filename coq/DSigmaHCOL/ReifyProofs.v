@@ -94,16 +94,13 @@ Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
       (dop: DSHOperator)
+      (σ: evalContext)
+      (m: memory)
       (x_i y_i: mem_block_id)
   := {
-
-      mfacts
-      :
-        MSHOperator_Facts mop;
-
       eval_equiv
       :
-        forall (σ: evalContext) (m: memory) (mx mb: mem_block),
+        forall (mx mb: mem_block),
           (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
           (memory_lookup m y_i ≡ Some mb) (* output before *) ->
 
@@ -112,8 +109,9 @@ Class MSH_DSH_compat
                            ) (memory_lookup m' y_i)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
 
+      (*
       eval_equiv':
-        forall (σ: evalContext) (m: memory) (mx mb: mem_block),
+        forall (mx mb: mem_block),
           (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
           (memory_lookup m y_i ≡ Some mb) (* output before *) ->
 
@@ -126,10 +124,12 @@ Class MSH_DSH_compat
           | None, _ => True (* assume they are equal on *invalid* inputs [see note above] *)
           | _, _ => False
           end
+       *)
     }.
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
-| context0_tc {v: DSHVal} {t: DSHType}: DSHValType v t -> context_pos_typecheck [v] 0 t
+| context0_tc {v: DSHVal} {t: DSHType} (cs:evalContext):
+    DSHValType v t -> context_pos_typecheck (v::cs) 0 t
 | contextS_tc {v: DSHVal} {t: DSHType} (n:nat) (cs:evalContext):
     context_pos_typecheck cs n t ->
     DSHValType v t -> context_pos_typecheck (v::cs) (S n) t.
@@ -211,34 +211,42 @@ Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
       AExpr_typecheck b σ ->
       AExpr_typecheck (AZless a b) σ.
 
+
 Class MSH_DSH_BinCarrierA_compat
       {o: nat}
       (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
-      (df : DSHIBinCarrierA) :=
-  {
-    ibin_equiv:
-      forall σ nc a b,
-        AExpr_typecheck df (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal (proj1_sig nc) :: σ) ->
-        evalIBinCarrierA σ df (proj1_sig nc) a b = Some (f nc a b)
-  }.
+      (σ: evalContext)
+      (df : DSHIBinCarrierA)
+  :=
+    {
+      ibin_typechecks:
+        forall n a b,
+          AExpr_typecheck df (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal n :: σ);
 
-(* From dynwin example *)
-Global Instance Abs_MSH_DSH_BinCarrierA_compat
+      ibin_equiv:
+        forall nc a b, evalIBinCarrierA σ df (proj1_sig nc) a b = Some (f nc a b)
+    }.
+
+Instance Abs_MSH_DSH_BinCarrierA_compat
   :
+    forall σ,
     MSH_DSH_BinCarrierA_compat
       (λ i (a b : CarrierA),
        IgnoreIndex abs i
                    (HCOL.Fin1SwapIndex2 (n:=2)
                                         jf
                                         (IgnoreIndex2 sub) i a b))
-
+      σ
       (AAbs (AMinus (AVar 1) (AVar 0))).
 Proof.
-  intros jf.
   split.
-  intros σ nc a b H.
-  unfold evalIBinCarrierA.
-  f_equiv.
+  -
+    intros n a b.
+    repeat constructor.
+  -
+    intros nc a b.
+    unfold evalIBinCarrierA.
+    f_equiv.
 Qed.
 
 Require Import ExtLib.Structures.Monads.
@@ -285,117 +293,112 @@ Lemma mem_block_to_avector_nth
 Proof.
 Admitted.
 
-
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
        (x_i y_i : mem_block_id)
        (df : DSHIBinCarrierA)
-       `{MSH_DSH_BinCarrierA_compat _ f df}
+       (σ: evalContext)
+       (m: memory)
+       `{MSH_DSH_BinCarrierA_compat _ f σ df}
   :
-    @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_i y_i df) x_i y_i.
+    MSH_DSH_compat (MSHBinOp f) (DSHBinOp o x_i y_i df) σ m x_i y_i.
 Proof.
   split.
+  intros mx mb MX MB.
+  simpl.
+  destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
   -
-    typeclasses eauto.
+    repeat break_match; try some_none.
+    +
+      constructor.
+      unfold memory_lookup, memory_set.
+      rewrite NP.F.add_eq_o by reflexivity.
+      constructor.
+      clear Heqo0 Heqo1 m x_i y_i.
+      rename Heqo2 into ME.
+      some_inv.
+      some_inv.
+      subst m1.
+      subst m0.
+      rename m2 into ma.
+      clear pF.
+      intros k.
+
+      unfold mem_op_of_hop in MD.
+      break_match_hyp; try some_none.
+      inversion_clear MD. clear md.
+      rename t into vx.
+
+      unfold avector_to_mem_block.
+
+      avector_to_mem_block_to_spec md HD OD.
+      destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
+      *
+        (* k<o, which is normal *)
+        clear OD.
+        simpl in *.
+        rewrite HD with (ip:=kc).
+        clear HD md.
+        apply MemExpected.
+        --
+          unfold is_Some.
+          tauto.
+        --
+          inversion_clear H as [_ FV].
+
+          assert (k < o + o)%nat as kc1 by omega.
+          assert (k + o < o + o)%nat as kc2 by omega.
+          rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
+
+          pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
+          pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
+
+          rewrite (evalDSHBinOp_nth A B ME (kc:=kc1)).
+          specialize FV with (nc:=FinNat.mkFinNat kc) (a:=a) (b:=b).
+          simpl in FV.
+          rewrite FV.
+
+          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
+          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
+
+          repeat f_equiv.
+          apply Some_inj_eq; rewrite <- A; apply MVA.
+          apply Some_inj_eq; rewrite <- B; apply MVB.
+      *
+        simpl in *.
+        rewrite OD by assumption.
+        apply MemPreserved.
+        --
+          unfold is_None.
+          tauto.
+        --
+          clear HD.
+          specialize (OD k kc).
+
+          admit.
+    +
+      (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
+      exfalso.
+      clear m Heqo0 Heqo1.
+      repeat some_inv.
+      subst m1. subst m0.
+      rename Heqo2 into E.
+      rename MD into M.
+
+      unfold mem_op_of_hop, HCOL.HBinOp, HCOLImpl.BinOp, Basics.compose in M.
+      repeat break_match_hyp; try some_none.
+      some_inv.
+      rename H1 into M.
+      (* env! *)
+      admit.
   -
-    intros σ m mx mb MX MB.
-    simpl.
-    destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
+    repeat break_match; try some_none.
     +
-      repeat break_match; try some_none.
-      *
-        constructor.
-        unfold memory_lookup, memory_set.
-        rewrite NP.F.add_eq_o by reflexivity.
-        constructor.
-        clear Heqo0 Heqo1 m x_i y_i.
-        rename Heqo2 into ME.
-        some_inv.
-        some_inv.
-        subst m1.
-        subst m0.
-        rename m2 into ma.
-        clear pF.
-        intros k.
-
-        unfold mem_op_of_hop in MD.
-        break_match_hyp; try some_none.
-        inversion_clear MD. clear md.
-        rename t into vx.
-
-        unfold avector_to_mem_block.
-
-        avector_to_mem_block_to_spec md HD OD.
-        destruct (NatUtil.lt_ge_dec k o) as [kc | kc].
-        --
-          (* k<o, which is normal *)
-          clear OD.
-          simpl in *.
-          rewrite HD with (ip:=kc).
-          clear HD md.
-          apply MemExpected.
-          ++
-            unfold is_Some.
-            tauto.
-          ++
-            inversion_clear H as [F].
-            specialize (F σ (FinNat.mkFinNat kc)).
-
-            assert (k < o + o)%nat as kc1 by omega.
-            assert (k + o < o + o)%nat as kc2 by omega.
-            rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
-
-            pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
-            pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
-
-            rewrite (evalDSHBinOp_nth A B ME (kc:=kc1)).
-            simpl in F.
-            rewrite F.
-
-            pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
-            pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
-
-            repeat f_equiv.
-            apply Some_inj_eq; rewrite <- A; apply MVA.
-            apply Some_inj_eq; rewrite <- B; apply MVB.
-
-            (* HERE: typecheck should go into assumption, but in value-less form
-               IDEA: it may follow from ME?
-             *)
-            admit.
-        --
-          simpl in *.
-          rewrite OD by assumption.
-          apply MemPreserved.
-          ++
-            unfold is_None.
-            tauto.
-          ++
-            clear OD HD md t Heqo3 mx.
-            admit.
-      *
-        (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
-        exfalso.
-        clear m Heqo0 Heqo1.
-        repeat some_inv.
-        subst m1. subst m0.
-        rename Heqo2 into E.
-        rename MD into M.
-
-        unfold mem_op_of_hop, HCOL.HBinOp, HCOLImpl.BinOp, Basics.compose in M.
-        repeat break_match_hyp; try some_none.
-        some_inv.
-        rename H1 into M.
-        (* env! *)
-        admit.
+      constructor.
     +
-      repeat break_match; try some_none.
-      *
-        constructor.
-      *
-        constructor.
+      constructor.
 Qed.
 
 
