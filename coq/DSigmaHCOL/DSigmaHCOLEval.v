@@ -152,13 +152,14 @@ Fixpoint evalDSHBinOp
          (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
-    v0 <- mem_lookup n x ;;
-       v1 <- mem_lookup (n+off) x ;;
-       v' <- evalIBinCarrierA σ f n v0 v1 ;;
-       let y' := mem_add n v' y in
        match n with
-       | O => ret y'
-       | S n => evalDSHBinOp n off f σ x y'
+       | O => ret y
+       | S n =>
+         v0 <- mem_lookup n x ;;
+            v1 <- mem_lookup (n+off) x ;;
+            v' <- evalIBinCarrierA σ f n v0 v1 ;;
+            let y' := mem_add n v' y in
+            evalDSHBinOp n off f σ x y'
        end.
 
 Fixpoint evalDSHPower
