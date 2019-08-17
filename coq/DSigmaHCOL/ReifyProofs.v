@@ -319,7 +319,13 @@ Lemma mem_op_of_hop_x_density
   :
     is_Some (mem_op_of_hop op x) -> (forall k (kc:k<i), is_Some (mem_lookup k x)).
 Proof.
-Admitted.
+  intros H k kc.
+  unfold mem_op_of_hop in H.
+  break_match_hyp; try some_none.
+  apply mem_block_to_avector_nth with (kc0:=kc) in Heqo0.
+  apply eq_Some_is_Some in Heqo0.
+  apply Heqo0.
+Qed.
 
 Lemma evalDSHBinOp_is_Some
       (off n: nat)
