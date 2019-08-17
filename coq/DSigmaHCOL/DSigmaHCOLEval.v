@@ -123,12 +123,13 @@ Fixpoint evalDSHIMap
          (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
-    v <- mem_lookup n x ;;
-      v' <- evalIUnCarrierA σ f n v ;;
-      let y' := mem_add n v' y in
       match n with
-      | O => ret y'
-      | S n => evalDSHIMap n f σ x y'
+      | O => ret y
+      | S n =>
+        v <- mem_lookup n x ;;
+          v' <- evalIUnCarrierA σ f n v ;;
+          let y' := mem_add n v' y in
+          evalDSHIMap n f σ x y'
       end.
 
 Fixpoint evalDSHMap2
@@ -180,6 +181,7 @@ Fixpoint evalDSHPower
          evalDSHPower σ p f x y' xoffset yoffset
     end.
 
+(* Estimates fuel requirement for [evalDSHOperator] *)
 Fixpoint estimateFuel (s:DSHOperator): nat :=
   match s with
   | DSHAssign _ _ => 0
