@@ -67,6 +67,8 @@ Ltac some_none :=
   match goal with
   | [H1: ?x = None, H2: ?x ≠ None |- _] => congruence
   | [H1: ?x ≡ Some _, H2: ?x ≡ None |- _ ] => congruence
+  | [H: is_Some None |- _ ] => inversion H
+  | [H: is_None (Some _) |- _ ] => inversion H
   | [H: Some _ = None |- _ ] => inversion H
   | [H: None = Some _ |- _ ] => inversion H
   | [H: Some _ ≡ None |- _ ] => inversion H
