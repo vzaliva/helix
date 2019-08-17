@@ -282,6 +282,17 @@ Lemma evalDSHBinOp_nth
 Proof.
 Admitted.
 
+Lemma evalDSHBinOp_oob_preservation
+      {o : nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {mx mb ma : mem_block}
+      (ME: evalDSHBinOp o o df σ mx mb ≡ Some ma):
+  ∀ k : NM.key, mem_lookup k mb = mem_lookup k ma.
+Proof.
+Admitted.
+
+
 Lemma mem_block_to_avector_nth
       {n : nat}
       {mx : mem_block}
@@ -367,17 +378,17 @@ Proof.
           apply Some_inj_eq; rewrite <- A; apply MVA.
           apply Some_inj_eq; rewrite <- B; apply MVB.
       *
+        (* k >= 0 *)
         simpl in *.
+        clear HD.
         rewrite OD by assumption.
         apply MemPreserved.
         --
           unfold is_None.
           tauto.
         --
-          clear HD.
           specialize (OD k kc).
-
-          admit.
+          apply (evalDSHBinOp_oob_preservation ME).
     +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
