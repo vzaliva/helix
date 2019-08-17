@@ -1,4 +1,7 @@
+Require Import Coq.Arith.Arith.
 Require Import Omega.
+Require Import Psatz.
+Require Import CoLoR.Util.Nat.NatUtil.
 
 Require Import Helix.HCOL.CarrierType.
 
@@ -304,6 +307,62 @@ Lemma mem_block_to_avector_nth
 Proof.
 Admitted.
 
+Lemma mem_op_of_hop_x_density
+      {i o: nat}
+      {op: vector CarrierA i -> vector CarrierA o}
+      {x: mem_block}
+  :
+    is_Some (mem_op_of_hop op x) -> (forall k (kc:k<i), is_Some (mem_lookup k x)).
+Proof.
+Admitted.
+
+Lemma evalDSHBinOp_is_Some
+      (off n: nat)
+      (df : DSHIBinCarrierA) (σ : evalContext)
+      (mx mb : mem_block)
+      (DX: ∀ k (kc: k < (n + off)%nat), is_Some (mem_lookup k mx))
+      (FV: ∀ k (kc: k < n) (a b : CarrierA), is_Some (evalIBinCarrierA σ df k a b))
+  :
+    is_Some (evalDSHBinOp n off df σ mx mb).
+Proof.
+  revert mb.
+  induction n.
+  -
+    constructor.
+  -
+    intros mb.
+    simpl.
+    repeat break_match; simpl in *.
+    +
+      apply IHn.
+      intros k kc.
+      apply DX.
+      unfold lt, peano_naturals.nat_lt in *.
+      lia.
+      intros k kc a b.
+      apply FV.
+      unfold lt, peano_naturals.nat_lt in *.
+      lia.
+    +
+      contradict Heqo1.
+      apply is_Some_ne_None.
+      apply FV.
+      unfold lt, peano_naturals.nat_lt in *.
+      lia.
+    +
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      apply DX.
+      unfold lt, peano_naturals.nat_lt in *.
+      lia.
+    +
+      contradict Heqo.
+      apply is_Some_ne_None.
+      apply DX.
+      unfold lt, peano_naturals.nat_lt in *.
+      lia.
+Qed.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -392,26 +451,27 @@ Proof.
     +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
-      clear m Heqo0 Heqo1.
+      clear m Heqo0 Heqo1 x_i y_i.
       repeat some_inv.
       subst m1. subst m0.
       rename Heqo2 into E.
-      rename MD into M.
 
-      unfold mem_op_of_hop, HCOL.HBinOp, HCOLImpl.BinOp, Basics.compose in M.
-      repeat break_match_hyp; try some_none.
-      some_inv.
-      rename H1 into M.
-      (* env! *)
-      admit.
+      apply eq_Some_is_Some in MD.
+      pose proof (mem_op_of_hop_x_density MD) as DX.
+      clear MD pF.
+
+      inversion_clear H as [_ FV].
+
+      contradict E.
+      apply is_Some_ne_None.
+      eapply evalDSHBinOp_is_Some; eauto.
+      intros k kc a b.
+      specialize (FV (FinNat.mkFinNat kc) a b).
+      apply equiv_Some_is_Some in FV.
+      apply FV.
   -
-    repeat break_match; try some_none.
-    +
-      constructor.
-    +
-      constructor.
+    repeat break_match; constructor.
 Qed.
-
 
 
   (*
