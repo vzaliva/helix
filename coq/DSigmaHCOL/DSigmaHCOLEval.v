@@ -138,13 +138,14 @@ Fixpoint evalDSHMap2
          (σ: evalContext)
          (x0 x1 y: mem_block) : option (mem_block)
   :=
-    v0 <- mem_lookup n x0 ;;
-       v1 <- mem_lookup n x1 ;;
-       v' <- evalBinCarrierA σ f v0 v1 ;;
-       let y' := mem_add n v' y in
        match n with
-       | O => ret y'
-       | S n => evalDSHMap2 n f σ x0 x1 y'
+       | O => ret y
+       | S n =>
+         v0 <- mem_lookup n x0 ;;
+            v1 <- mem_lookup n x1 ;;
+            v' <- evalBinCarrierA σ f v0 v1 ;;
+            let y' := mem_add n v' y in
+            evalDSHMap2 n f σ x0 x1 y'
        end.
 
 Fixpoint evalDSHBinOp
