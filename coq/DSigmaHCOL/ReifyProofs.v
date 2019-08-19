@@ -259,16 +259,41 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 Lemma evalDSHBinOp_mem_lookup_mx
-      {o : nat}
+      {n off : nat}
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (E: evalDSHBinOp o o df σ mx mb ≡ Some ma)
+      (E: evalDSHBinOp n off df σ mx mb ≡ Some ma)
       (k: nat)
-      (kc:k<o+o):
+      (kc:k<n):
   ∃ a : CarrierA, mem_lookup k mx ≡ Some a.
 Proof.
-Admitted.
+  apply is_Some_def.
+  revert mb E k kc.
+  induction n; intros mb E k kc.
+  -
+    inversion kc.
+  -
+    destruct (Nat.eq_dec k n).
+    +
+      subst.
+      simpl in *.
+      repeat break_match_hyp; try some_none.
+      constructor.
+    +
+      simpl in *.
+      repeat break_match_hyp; try some_none.
+      apply eq_Some_is_Some in Heqo.
+      apply eq_Some_is_Some in Heqo0.
+      clear Heqo1.
+      apply IHn with (mb:=(mem_add n c1 mb)).
+      clear IHn.
+      *
+        apply E.
+      *
+        unfold lt, peano_naturals.nat_lt in *.
+        lia.
+Qed.
 
 Lemma evalDSHBinOp_nth
       {o : nat}
