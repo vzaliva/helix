@@ -232,8 +232,8 @@ Fixpoint evalDSHOperator
         let y' := mem_add 0 initial y in
         xoff <- evalNexp σ xoffset ;;
              yoff <- evalNexp σ yoffset ;;
-             y' <- evalDSHPower σ n f x y xoff yoff ;;
-             ret (memory_set m y_i y')
+             y'' <- evalDSHPower σ n f x y' xoff yoff ;;
+             ret (memory_set m y_i y'')
     | DSHLoop O body => ret m
     | DSHLoop (S n) body =>
       match fuel with
