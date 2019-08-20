@@ -54,3 +54,4 @@ experiments/dywin.s
 /lib/vellvm
 /lib/coq-switch
 /lib/metacoq
+/coq/DSigmaHCOL/.nra.cache
