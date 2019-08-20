@@ -263,18 +263,19 @@ Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
 Lemma evalDSHBinOp_mem_lookup_mx
-      {n off : nat}
+      {n off: nat}
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
       (E: evalDSHBinOp n off df σ mx mb ≡ Some ma)
       (k: nat)
       (kc:k<n):
-  ∃ a : CarrierA, mem_lookup k mx ≡ Some a.
+  is_Some (mem_lookup k mx) /\ is_Some (mem_lookup (k+off) mx).
 Proof.
-  apply is_Some_def.
+
+  apply eq_Some_is_Some in E.
   revert mb E k kc.
-  induction n; intros mb E k kc.
+  induction n; intros.
   -
     inversion kc.
   -
@@ -283,15 +284,14 @@ Proof.
       subst.
       simpl in *.
       repeat break_match_hyp; try some_none.
-      constructor.
+      split;constructor.
     +
       simpl in *.
       repeat break_match_hyp; try some_none.
-      apply eq_Some_is_Some in Heqo.
-      apply eq_Some_is_Some in Heqo0.
-      clear Heqo1.
-      apply IHn with (mb:=(mem_add n c1 mb)).
-      clear IHn.
+      apply eq_Some_is_Some in Heqo. rename Heqo into H1.
+      apply eq_Some_is_Some in Heqo0. rename Heqo0 into H2.
+      clear Heqo1 c c0.
+      apply IHn with (mb:=mem_add n c1 mb); clear IHn.
       *
         apply E.
       *
@@ -306,8 +306,8 @@ Lemma evalDSHBinOp_nth
       {k: nat}
       {kc:k<o+o}
       {a b : CarrierA}:
-  (mem_lookup k mx ≡ Some a) ->
-  (mem_lookup (k + o)%nat mx ≡ Some b) ->
+  (mem_lookup k mx ≡ Some a) -> (* redundant? *)
+  (mem_lookup (k + o)%nat mx ≡ Some b) -> (* redundant? *)
   (evalDSHBinOp o o df σ mx mb ≡ Some ma) ->
   (mem_lookup k ma = evalIBinCarrierA σ df k a b).
 Proof.
@@ -455,6 +455,11 @@ Proof.
           assert (k < o + o)%nat as kc1 by omega.
           assert (k + o < o + o)%nat as kc2 by omega.
           rewrite HBinOp_nth with (jc1:=kc1) (jc2:=kc2).
+
+          pose proof (evalDSHBinOp_mem_lookup_mx ME k kc) as [A B].
+
+          apply is_Some_def in A.
+          apply is_Some_def in B.
 
           pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
           pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
