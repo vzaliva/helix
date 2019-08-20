@@ -17,6 +17,9 @@ Require Import Helix.Util.VecUtil.
 
 Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
+Require Import MathClasses.implementations.peano_naturals.
+Require Import MathClasses.orders.orders.
 
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Tactics.HelixTactics.
@@ -257,6 +260,7 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
+Local Open Scope nat_scope.
 
 Lemma evalDSHBinOp_mem_lookup_mx
       {n off : nat}
@@ -291,7 +295,6 @@ Proof.
       *
         apply E.
       *
-        unfold lt, peano_naturals.nat_lt in *.
         lia.
 Qed.
 
@@ -373,29 +376,24 @@ Proof.
       apply IHn.
       intros k kc.
       apply DX.
-      unfold lt, peano_naturals.nat_lt in *.
       lia.
       intros k kc a b.
       apply FV.
-      unfold lt, peano_naturals.nat_lt in *.
       lia.
     +
       contradict Heqo1.
       apply is_Some_ne_None.
       apply FV.
-      unfold lt, peano_naturals.nat_lt in *.
       lia.
     +
       contradict Heqo0.
       apply is_Some_ne_None.
       apply DX.
-      unfold lt, peano_naturals.nat_lt in *.
       lia.
     +
       contradict Heqo.
       apply is_Some_ne_None.
       apply DX.
-      unfold lt, peano_naturals.nat_lt in *.
       lia.
 Qed.
 
