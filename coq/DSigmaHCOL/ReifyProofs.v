@@ -458,11 +458,8 @@ Proof.
 
           pose proof (evalDSHBinOp_mem_lookup_mx ME k kc) as [A B].
 
-          apply is_Some_def in A.
-          apply is_Some_def in B.
-
-          pose proof (evalDSHBinOp_mem_lookup_mx ME k kc1) as [a A].
-          pose proof (evalDSHBinOp_mem_lookup_mx ME (k+o) kc2) as [b B].
+          apply is_Some_def in A. destruct A as [a A].
+          apply is_Some_def in B. destruct B as [b B].
 
           rewrite (evalDSHBinOp_nth A B ME (kc:=kc1)).
           specialize FV with (nc:=FinNat.mkFinNat kc) (a:=a) (b:=b).
