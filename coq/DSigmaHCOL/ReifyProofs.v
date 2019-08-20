@@ -272,7 +272,6 @@ Lemma evalDSHBinOp_mem_lookup_mx
       (kc:k<n):
   is_Some (mem_lookup k mx) /\ is_Some (mem_lookup (k+off) mx).
 Proof.
-
   apply eq_Some_is_Some in E.
   revert mb E k kc.
   induction n; intros.
@@ -298,20 +297,79 @@ Proof.
         lia.
 Qed.
 
+Lemma mem_add_comm
+      (k1 k2: NM.key)
+      (v1 v2: CarrierA)
+      (m: mem_block):
+  mem_add k1 v1 (mem_add k2 v2 m) ≡
+          mem_add k2 v2 (mem_add k1 v1 m).
+Proof.
+
+Admitted.
+
+Fact evalDSHBinOp_preservation
+     {n off k: nat}
+     {kc: k>=n}
+     {df : DSHIBinCarrierA}
+     {σ : evalContext}
+     {mx ma mb : mem_block}
+     {c : CarrierA}:
+  evalDSHBinOp n off df σ mx (mem_add k c mb) ≡ Some ma
+  → mem_lookup k ma = Some c.
+Proof.
+  revert mb k kc.
+  induction n; intros mb k kc E.
+  -
+    simpl in *.
+    some_inv.
+    unfold mem_lookup, mem_add.
+    rewrite NP.F.add_eq_o; reflexivity.
+  -
+    simpl in E.
+    repeat break_match_hyp; try some_none.
+    apply IHn with (mb:=mem_add n c2 mb).
+    lia.
+    rewrite mem_add_comm.
+    apply E.
+Qed.
+
 Lemma evalDSHBinOp_nth
-      {o : nat}
+      {n off: nat}
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
       {k: nat}
-      {kc:k<o+o}
+      {kc: k<n}
       {a b : CarrierA}:
-  (mem_lookup k mx ≡ Some a) -> (* redundant? *)
-  (mem_lookup (k + o)%nat mx ≡ Some b) -> (* redundant? *)
-  (evalDSHBinOp o o df σ mx mb ≡ Some ma) ->
+  (mem_lookup k mx ≡ Some a) ->
+  (mem_lookup (k + off) mx ≡ Some b) ->
+  (evalDSHBinOp n off df σ mx mb ≡ Some ma) ->
   (mem_lookup k ma = evalIBinCarrierA σ df k a b).
 Proof.
-Admitted.
+  intros A B E.
+  revert mb a b A B E.
+  induction n; intros.
+  -
+    inversion kc.
+  -
+    simpl in *.
+    repeat break_match_hyp; try some_none.
+    destruct (Nat.eq_dec k n).
+    +
+      clear IHn.
+      subst k.
+      rewrite Heqo in A. clear Heqo.
+      rewrite Heqo0 in B. clear Heqo0.
+      repeat some_inv.
+      subst_max.
+      rewrite Heqo1. clear Heqo1.
+      clear - E.
+      unshelve eapply (evalDSHBinOp_preservation E).
+      lia.
+    +
+      apply IHn with (mb:=mem_add n c1 mb); auto.
+      lia.
+Qed.
 
 Lemma evalDSHBinOp_oob_preservation
       {o : nat}
@@ -461,7 +519,7 @@ Proof.
           apply is_Some_def in A. destruct A as [a A].
           apply is_Some_def in B. destruct B as [b B].
 
-          rewrite (evalDSHBinOp_nth A B ME (kc:=kc1)).
+          rewrite (evalDSHBinOp_nth A B ME (kc:=kc)).
           specialize FV with (nc:=FinNat.mkFinNat kc) (a:=a) (b:=b).
           simpl in FV.
           rewrite FV.
