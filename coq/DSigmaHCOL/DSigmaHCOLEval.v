@@ -128,8 +128,7 @@ Fixpoint evalDSHIMap
       | S n =>
         v <- mem_lookup n x ;;
           v' <- evalIUnCarrierA σ f n v ;;
-          let y' := mem_add n v' y in
-          evalDSHIMap n f σ x y'
+          evalDSHIMap n f σ x (mem_add n v' y)
       end.
 
 Fixpoint evalDSHMap2
@@ -144,8 +143,7 @@ Fixpoint evalDSHMap2
          v0 <- mem_lookup n x0 ;;
             v1 <- mem_lookup n x1 ;;
             v' <- evalBinCarrierA σ f v0 v1 ;;
-            let y' := mem_add n v' y in
-            evalDSHMap2 n f σ x0 x1 y'
+            evalDSHMap2 n f σ x0 x1 (mem_add n v' y)
        end.
 
 Fixpoint evalDSHBinOp
@@ -160,8 +158,7 @@ Fixpoint evalDSHBinOp
          v0 <- mem_lookup n x ;;
             v1 <- mem_lookup (n+off) x ;;
             v' <- evalIBinCarrierA σ f n v0 v1 ;;
-            let y' := mem_add n v' y in
-            evalDSHBinOp n off f σ x y'
+            evalDSHBinOp n off f σ x (mem_add n v' y)
        end.
 
 Fixpoint evalDSHPower
@@ -178,8 +175,7 @@ Fixpoint evalDSHPower
       xv <- mem_lookup 0 x ;;
          yv <- mem_lookup 0 y ;;
          v' <- evalBinCarrierA σ f xv yv ;;
-         let y' := mem_add 0 v' y in
-         evalDSHPower σ p f x y' xoffset yoffset
+         evalDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
     end.
 
 (* Estimates fuel requirement for [evalDSHOperator] *)
@@ -212,8 +208,7 @@ Fixpoint evalDSHOperator
         src <- evalNexp σ src_e ;;
         dst <- evalNexp σ dst_e ;;
         v <- mem_lookup src x ;;
-        let y' := mem_add dst v y in
-        ret (memory_set m y_i y')
+        ret (memory_set m y_i (mem_add dst v y))
     | @DSHIMap n x_i y_i f =>
       x <- memory_lookup m x_i ;;
         y <- memory_lookup m y_i ;;
