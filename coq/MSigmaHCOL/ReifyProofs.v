@@ -820,7 +820,7 @@ Section OperatorPairwiseProofs.
            `{pF: !Proper ((=) ==> (=) ==> (=)) f}
       : SH_MSH_Operator_compat
           (SHPointwise (svalue:=svalue) fm f)
-          (MSHPointwise (f:=f)).
+          (MSHPointwise f).
     Proof.
       split.
       -
@@ -925,7 +925,7 @@ Section OperatorPairwiseProofs.
            (initial: CarrierA):
       SH_MSH_Operator_compat
         (SHInductor (svalue:=svalue) fm n f initial)
-        (MSHInductor n initial).
+        (MSHInductor n f initial).
     Proof.
       split.
       -
@@ -1119,7 +1119,7 @@ Section OperatorPairwiseProofs.
            `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
       : SH_MSH_Operator_compat
           (@SHBinOp Monoid_RthetaSafeFlags svalue o f pF)
-          (MSHBinOp (f:=f)).
+          (MSHBinOp f).
     Proof.
       split.
       -
@@ -1411,7 +1411,7 @@ Section OperatorPairwiseProofs.
                     unfold SVector.Union.
                     rewrite evalWriter_Rtheta_liftM2.
 
-                    unshelve epose proof (out_mem_fill_pattern _ Heqo3) as P2.
+                    unshelve epose proof (out_mem_fill_pattern _ _ Heqo3) as P2.
                     apply Meq2.
                     unfold mem_in in P2. specialize (P2 k kc).
                     apply not_iff_compat in P2.
@@ -1462,7 +1462,7 @@ Section OperatorPairwiseProofs.
                     unfold SVector.Union.
                     rewrite evalWriter_Rtheta_liftM2.
 
-                    unshelve epose proof (out_mem_fill_pattern _ Heqo2) as P1.
+                    unshelve epose proof (out_mem_fill_pattern _ _ Heqo2) as P1.
                     apply Meq1.
                     unfold mem_in in P1. specialize (P1 k kc).
                     apply not_iff_compat in P1.
@@ -1509,14 +1509,14 @@ Section OperatorPairwiseProofs.
                 destruct N as [IN1 | IN2].
                 **
                   (* prove contradiction in N1 *)
-                  unshelve epose proof (out_mem_oob _ H1) as NP1.
+                  unshelve epose proof (out_mem_oob _ _ H1) as NP1.
                   apply Meq1.
                   specialize (NP1 k kc).
                   unfold mem_in in NP1.
                   congruence.
                 **
                   (* prove contradiction in N1 *)
-                  unshelve epose proof (out_mem_oob _ H2) as NP2.
+                  unshelve epose proof (out_mem_oob _ _ H2) as NP2.
                   apply Meq2.
                   specialize (NP2 k kc).
                   unfold mem_in in NP2.
@@ -1538,13 +1538,13 @@ Section OperatorPairwiseProofs.
               intros m H1 H2.
               (* by `compat` hypothes, output index sets of op1 and op2 are disjoint.
                yet, but IN1 and IN2, 'k' belongs to both *)
-              unshelve epose proof (out_mem_fill_pattern _ H1) as P1.
+              unshelve epose proof (out_mem_fill_pattern _ _ H1) as P1.
               apply Meq1.
-              unshelve epose proof (out_mem_oob _ H1) as NP1.
+              unshelve epose proof (out_mem_oob _ _ H1) as NP1.
               apply Meq1.
-              unshelve epose proof (out_mem_fill_pattern _ H2) as P2.
+              unshelve epose proof (out_mem_fill_pattern _ _ H2) as P2.
               apply Meq2.
-              unshelve epose proof (out_mem_oob _ H2) as NP2.
+              unshelve epose proof (out_mem_oob _ _ H2) as NP2.
               apply Meq2.
               destruct (NatUtil.lt_ge_dec k o) as [kc | nkc].
               ++
@@ -2397,7 +2397,7 @@ Section OperatorPairwiseProofs.
                                   (Full_set _))
       : SH_MSH_Operator_compat
           (IReduction dot op_family)
-          (MSHIReduction svalue  mop_family).
+          (MSHIReduction svalue dot mop_family).
     Proof.
       split.
       -
@@ -2700,7 +2700,7 @@ Section OperatorPairwiseProofs.
          (t:nat)
          (tc: t<d)
          (tc1: t<n+d)
-         (H0: get_family_mem_op mop_family tc1 m ≡ Some m0)
+         (H0: get_family_mem_op mop_family _ tc1 m ≡ Some m0)
 
          (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
       :
@@ -2850,7 +2850,7 @@ Section OperatorPairwiseProofs.
                 ≡ Some l)
 
          (t:nat)
-         (H0: get_family_mem_op mop_family (Nat.lt_0_succ n) m ≡ Some m0)
+         (H0: get_family_mem_op mop_family _ (Nat.lt_0_succ n) m ≡ Some m0)
 
          (H1: monadic_fold_left_rev mem_merge mem_empty l ≡ Some m1)
       :
