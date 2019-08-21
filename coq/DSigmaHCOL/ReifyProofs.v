@@ -297,15 +297,38 @@ Proof.
         lia.
 Qed.
 
+(* TODO: Move to Memory.v *)
 Lemma mem_add_comm
       (k1 k2: NM.key)
       (v1 v2: CarrierA)
+      (N: k1≢k2)
       (m: mem_block):
-  mem_add k1 v1 (mem_add k2 v2 m) ≡
-          mem_add k2 v2 (mem_add k1 v1 m).
+  NM.Equal
+    (mem_add k1 v1 (mem_add k2 v2 m))
+    (mem_add k2 v2 (mem_add k1 v1 m)).
 Proof.
-
-Admitted.
+  intros y.
+  unfold mem_add.
+  destruct (Nat.eq_dec y k1) as [K1| NK1].
+  -
+    subst.
+    rewrite NP.F.add_eq_o by reflexivity.
+    rewrite NP.F.add_neq_o by auto.
+    symmetry.
+    apply NP.F.add_eq_o.
+    reflexivity.
+  -
+    rewrite NP.F.add_neq_o by auto.
+    destruct (Nat.eq_dec y k2) as [K2| NK2].
+    subst.
+    rewrite NP.F.add_eq_o by reflexivity.
+    rewrite NP.F.add_eq_o by reflexivity.
+    reflexivity.
+    rewrite NP.F.add_neq_o by auto.
+    rewrite NP.F.add_neq_o by auto.
+    rewrite NP.F.add_neq_o by auto.
+    reflexivity.
+Qed.
 
 Fact evalDSHBinOp_preservation
      {n off k: nat}
