@@ -371,51 +371,6 @@ Section Avector_Setoid.
       some_none.
   Qed.
 
-  Global Instance mem_add_proper:
-    Proper ((eq) ==> (equiv) ==> (equiv) ==> (equiv)) (mem_add).
-  Proof.
-    simpl_relation.
-    rename y into k'.
-    unfold mem_add.
-    unfold equiv, mem_block_Equiv in H1.
-    specialize (H1 k).
-    destruct_opt_r_equiv.
-    -
-      rename c into a, c0 into b.
-      apply Some_inj_equiv.
-      rewrite <- Ha, <- Hb; clear Ha Hb.
-      destruct (eq_nat_dec k k').
-      +
-        rewrite 2!NP.F.add_eq_o by auto.
-        f_equiv.
-        apply H0.
-      +
-        rewrite 2!NP.F.add_neq_o by auto.
-        apply H1.
-    -
-      destruct (eq_nat_dec k k').
-      +
-        rewrite NP.F.add_eq_o in Hb by auto.
-        some_none.
-      +
-        rewrite NP.F.add_neq_o in Ha by auto.
-        rewrite NP.F.add_neq_o in Hb by auto.
-        rewrite Ha in H1.
-        rewrite Hb in H1.
-        some_none.
-    -
-      destruct (eq_nat_dec k k').
-      +
-        rewrite NP.F.add_eq_o in Ha by auto.
-        some_none.
-      +
-        rewrite NP.F.add_neq_o in Ha by auto.
-        rewrite NP.F.add_neq_o in Hb by auto.
-        rewrite Ha in H1.
-        rewrite Hb in H1.
-        some_none.
-  Qed.
-
   Global Instance avector_to_mem_block_proper {n:nat}:
     Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
   Proof.
