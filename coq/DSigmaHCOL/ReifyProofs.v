@@ -6,6 +6,7 @@ Require Import CoLoR.Util.Nat.NatUtil.
 Require Import Helix.HCOL.CarrierType.
 
 Require Import Helix.MSigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
@@ -297,15 +298,159 @@ Proof.
         lia.
 Qed.
 
+Global Instance evalIBinCarrierA_proper
+       (σ: evalContext)
+       (f: DSHIBinCarrierA)
+       (i:nat):
+  Proper
+    ((=) ==> (=) ==> (=)) (evalIBinCarrierA σ f i).
+Proof.
+  simpl_relation.
+Admitted.
+
+Global Instance evalDSHBinOp_proper
+       (n off: nat)
+       (f: DSHIBinCarrierA)
+       (σ: evalContext):
+  Proper
+    ((=) ==> (=) ==> (=)) (evalDSHBinOp n off f σ).
+Proof.
+  intros x y H x0 y0 H0.
+
+  revert x y H x0 y0 H0.
+  induction n; intros.
+  -
+    constructor.
+    apply H0.
+  -
+    unfold equiv, option_Equiv.
+    destruct_opt_r_equiv.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+
+      repeat
+        match goal with
+        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+        end.
+
+      rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+      rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+      rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+      apply Some_inj_equiv.
+      rewrite <- Hb, <- Ha.
+      apply IHn.
+      apply H.
+
+      rewrite Heqo1.
+      rewrite H0.
+      reflexivity.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+        assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+        {
+          rewrite Heqo1.
+          rewrite H0.
+          reflexivity.
+        }
+        specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
+
+        rewrite Hb, Ha in IHn.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo. rewrite Heqo in Heqo1;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo2; clear Heqo0;some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo0; clear Heqo; some_none.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+      repeat
+        match goal with
+        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+        end.
+
+      rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+      rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+      rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+      assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+      {
+        rewrite Heqo1.
+        rewrite H0.
+        reflexivity.
+      }
+      specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
+
+      rewrite Hb, Ha in IHn.
+      some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0; some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
+Qed.
+
+
 (* TODO: Move to Memory.v *)
 Lemma mem_add_comm
       (k1 k2: NM.key)
       (v1 v2: CarrierA)
       (N: k1≢k2)
       (m: mem_block):
-  NM.Equal
-    (mem_add k1 v1 (mem_add k2 v2 m))
-    (mem_add k2 v2 (mem_add k1 v1 m)).
+  mem_add k1 v1 (mem_add k2 v2 m) = mem_add k2 v2 (mem_add k1 v1 m).
 Proof.
   intros y.
   unfold mem_add.
@@ -315,6 +460,7 @@ Proof.
     rewrite NP.F.add_eq_o by reflexivity.
     rewrite NP.F.add_neq_o by auto.
     symmetry.
+    apply Option_equiv_eq.
     apply NP.F.add_eq_o.
     reflexivity.
   -
@@ -337,7 +483,7 @@ Fact evalDSHBinOp_preservation
      {σ : evalContext}
      {mx ma mb : mem_block}
      {c : CarrierA}:
-  evalDSHBinOp n off df σ mx (mem_add k c mb) ≡ Some ma
+  evalDSHBinOp n off df σ mx (mem_add k c mb) = Some ma
   → mem_lookup k ma = Some c.
 Proof.
   revert mb k kc.
@@ -345,14 +491,17 @@ Proof.
   -
     simpl in *.
     some_inv.
-    unfold mem_lookup, mem_add.
-    rewrite NP.F.add_eq_o; reflexivity.
+    unfold mem_lookup, mem_add in *.
+    rewrite <- E.
+    apply Option_equiv_eq.
+    apply NP.F.add_eq_o.
+    reflexivity.
   -
     simpl in E.
     repeat break_match_hyp; try some_none.
     apply IHn with (mb:=mem_add n c2 mb).
     lia.
-    rewrite mem_add_comm.
+    rewrite mem_add_comm by auto.
     apply E.
 Qed.
 
@@ -387,6 +536,7 @@ Proof.
       subst_max.
       rewrite Heqo1. clear Heqo1.
       clear - E.
+      apply Option_equiv_eq in E.
       unshelve eapply (evalDSHBinOp_preservation E).
       lia.
     +
