@@ -305,8 +305,28 @@ Global Instance evalIBinCarrierA_proper
   Proper
     ((=) ==> (=) ==> (=)) (evalIBinCarrierA σ f i).
 Proof.
-  simpl_relation.
-Admitted.
+  intros x y H x1 y1 H1.
+  unfold evalIBinCarrierA.
+  remember (DSHCarrierAVal x1 :: DSHCarrierAVal x :: DSHnatVal i :: σ) as s1.
+  remember (DSHCarrierAVal y1 :: DSHCarrierAVal y :: DSHnatVal i :: σ) as s2.
+  assert(s1 = s2) as SE.
+  {
+    subst.
+    unfold equiv, ListSetoid.List_equiv.
+    constructor.
+    constructor.
+    assumption.
+    constructor.
+    constructor.
+    assumption.
+    constructor.
+    constructor.
+    reflexivity.
+    reflexivity.
+  }
+  rewrite SE.
+  reflexivity.
+Qed.
 
 Global Instance evalDSHBinOp_proper
        (n off: nat)
