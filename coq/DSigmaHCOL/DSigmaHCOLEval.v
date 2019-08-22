@@ -385,6 +385,32 @@ Proof.
     auto.
 Qed.
 
+Global Instance evalIBinCarrierA_proper
+       (σ: evalContext)
+       (f: DSHIBinCarrierA)
+       (i:nat):
+  Proper
+    ((=) ==> (=) ==> (=)) (evalIBinCarrierA σ f i).
+Proof.
+  simpl_relation.
+  unfold evalIBinCarrierA.
+  apply evalAexp_proper.
+  -
+    unfold equiv, ListSetoid.List_equiv.
+    constructor.
+    constructor.
+    assumption.
+    constructor.
+    constructor.
+    assumption.
+    constructor.
+    constructor.
+    reflexivity.
+    reflexivity.
+  -
+    reflexivity.
+Qed.
+
 Fixpoint NExpr_var_subst
          (name: nat)
          (value: NExpr)
@@ -452,3 +478,139 @@ Fixpoint DSHOperator_NVar_subt
       f initial
   | _ => exp
   end.
+
+
+Global Instance evalDSHBinOp_proper
+       (n off: nat)
+       (f: DSHIBinCarrierA)
+       (σ: evalContext):
+  Proper
+    ((=) ==> (=) ==> (=)) (evalDSHBinOp n off f σ).
+Proof.
+  intros x y H x0 y0 H0.
+
+  revert x y H x0 y0 H0.
+  induction n; intros.
+  -
+    constructor.
+    apply H0.
+  -
+    unfold equiv, option_Equiv.
+    destruct_opt_r_equiv.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+
+      repeat
+        match goal with
+        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+        end.
+
+      rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+      rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+      rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+      apply Some_inj_equiv.
+      rewrite <- Hb, <- Ha.
+      apply IHn.
+      apply H.
+
+      rewrite Heqo1.
+      rewrite H0.
+      reflexivity.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+        assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+        {
+          rewrite Heqo1.
+          rewrite H0.
+          reflexivity.
+        }
+        specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
+
+        rewrite Hb, Ha in IHn.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo. rewrite Heqo in Heqo1;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo2; clear Heqo0;some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo0; clear Heqo; some_none.
+    +
+      simpl in *.
+      repeat break_match; try some_none; try reflexivity.
+      repeat
+        match goal with
+        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+        end.
+
+      rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+      rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+      rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+
+      assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+      {
+        rewrite Heqo1.
+        rewrite H0.
+        reflexivity.
+      }
+      specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
+
+      rewrite Hb, Ha in IHn.
+      some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
+        rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
+        some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo;some_inv.
+        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0; some_none.
+      *
+        repeat
+          match goal with
+          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+          end.
+
+        rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
+Qed.
