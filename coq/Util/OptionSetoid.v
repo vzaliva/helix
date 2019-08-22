@@ -133,6 +133,12 @@ Proof.
   reflexivity.
 Qed.
 
+Ltac eq_to_equiv_hyp :=
+  repeat
+    match goal with
+    | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
+    end.
+
 Lemma None_nequiv_neq
       {A: Type}
       `{Ae: Equiv A}

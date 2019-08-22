@@ -500,12 +500,7 @@ Proof.
     +
       simpl in *.
       repeat break_match; try some_none; try reflexivity.
-
-      repeat
-        match goal with
-        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-        end.
-
+      eq_to_equiv_hyp.
       rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
       rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
       rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
@@ -522,11 +517,7 @@ Proof.
       simpl in *.
       repeat break_match; try some_none; try reflexivity.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
         rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
@@ -542,38 +533,23 @@ Proof.
         rewrite Hb, Ha in IHn.
         some_none.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
         rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
         some_none.
       *
         repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo. rewrite Heqo in Heqo1;clear Heqo;some_inv.
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo2; clear Heqo0;some_none.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo; rewrite Heqo in Heqo0; clear Heqo; some_none.
     +
       simpl in *.
       repeat break_match; try some_none; try reflexivity.
-      repeat
-        match goal with
-        | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-        end.
-
+      eq_to_equiv_hyp.
       rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
       rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
       rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
@@ -589,28 +565,16 @@ Proof.
       rewrite Hb, Ha in IHn.
       some_none.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
         rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
         some_none.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo;some_inv.
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0; some_none.
       *
-        repeat
-          match goal with
-          | [H: _ ≡ _ |- _] => apply Option_equiv_eq in H
-          end.
-
+        eq_to_equiv_hyp.
         rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
 Qed.
