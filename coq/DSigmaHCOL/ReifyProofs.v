@@ -399,14 +399,33 @@ Proof.
 Qed.
 
 Lemma evalDSHBinOp_oob_preservation
-      {o : nat}
+      {n off: nat}
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (ME: evalDSHBinOp o o df σ mx mb ≡ Some ma):
-  ∀ k : NM.key, mem_lookup k mb = mem_lookup k ma.
+      (ME: evalDSHBinOp n off df σ mx mb ≡ Some ma):
+  ∀ (k : NM.key) (kc:k>=n), mem_lookup k mb = mem_lookup k ma.
 Proof.
-Admitted.
+  intros k kc.
+  revert mb ME.
+  induction n; intros.
+  -
+    inversion kc; simpl in ME; some_inv; reflexivity.
+  -
+    simpl in *.
+    repeat break_match_hyp; try some_none.
+    destruct (Nat.eq_dec k n).
+    +
+      apply IHn; lia.
+    +
+      replace (mem_lookup k mb) with
+          (mem_lookup k (mem_add n c1 mb)).
+      apply IHn. clear IHn.
+      lia.
+      apply ME.
+      apply NP.F.add_neq_o.
+      auto.
+Qed.
 
 Lemma mem_block_to_avector_nth
       {n : nat}
@@ -568,7 +587,7 @@ Proof.
           tauto.
         --
           specialize (OD k kc).
-          apply (evalDSHBinOp_oob_preservation ME).
+          apply (evalDSHBinOp_oob_preservation ME),kc.
     +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
