@@ -198,8 +198,7 @@ Fixpoint evalDSHOperator
          (σ: evalContext)
          (op: DSHOperator)
          (m: memory)
-         (fuel: nat)
-         {struct fuel}: option (memory)
+         (fuel: nat): option (memory)
   :=
     match op with
     | DSHAssign (x_i, src_e) (y_i, dst_e) =>
