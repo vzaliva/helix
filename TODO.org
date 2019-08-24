@@ -1,5 +1,5 @@
 
-This development reflects authors' Coq learning journey and contains a
+This development reflects author's Coq learning journey and contains a
 lot of an inelegant and redundant code. Additionally, it includes some
 workarounds for bugs and limitations for older Coq versions (starting
 from 8.4).
@@ -43,6 +43,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    multiple assumptions I should define a typeclass for /QuaziRing/
    and pack them into it.
 
+** Monoidal Restriction
+   See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances
 ** Proof-irrelevance assumption could be avoided
