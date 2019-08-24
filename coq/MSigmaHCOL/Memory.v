@@ -63,6 +63,8 @@ Definition mem_empty := @NM.empty CarrierA.
 
 Definition mem_block := NatMap CarrierA.
 
+Definition mem_block_exists := NM.In (elt:=mem_block).
+
 Definition mem_keys (m:NatMap CarrierA): list nat
   := List.map fst (NM.elements m).
 
@@ -629,4 +631,16 @@ Proof.
   apply F.not_find_in_iff.
   apply mem_const_block_In_oob.
   apply jc.
+Qed.
+
+Lemma mem_block_exists_exists (m:memory) (k:nat):
+  mem_block_exists k m <-> exists y : mem_block, NM.find (elt:=mem_block) k m = Some y.
+Proof.
+  split; intros H.
+  -
+    apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def in H.
+    apply H.
+  -
+    apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def.
+    apply H.
 Qed.
