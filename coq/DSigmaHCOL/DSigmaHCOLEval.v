@@ -191,7 +191,7 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
   | DSHMemInit _ _ _ => 0
   | DSHMemCopy _ _ _ => 0
   | DSHSeq f g =>
-    Nat.max (estimateFuel f) (estimateFuel g)
+    S (Nat.max (estimateFuel f) (estimateFuel g))
   end.
 
 Fixpoint evalDSHOperator
