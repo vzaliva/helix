@@ -62,6 +62,12 @@ Ltac norm_some_none :=
     | [H: is_None _ |- _ ] => apply is_None_def in H; destruct H
     end.
 
+Ltac symmetry_option_hyp :=
+  repeat  match goal with
+          | [H: Some _ ≡ _ |- _ ] => symmetry in H
+          | [H: None ≡ _  |- _ ] => symmetry in H
+          end.
+
 Ltac some_none :=
   let H' := fresh in
   match goal with
