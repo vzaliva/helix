@@ -614,44 +614,111 @@ Proof.
 Qed.
 
 
+Lemma mem_op_None {i o : nat}
+      (mop1 : @MSHOperator i o)
+      (mt m0 x : mem_block)
+      (E: SHCOL_DSHCOL_mem_block_equiv mt x m0)
+      (N: mem_op mop1 mt ≡ None):
+  mem_op mop1 m0 ≡ None.
+Proof.
+Admitted.
+
+Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
+  evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
+Proof.
+Admitted.
+
+Instance Compose_MSH_DSH_compat
+         {i1 o2 o3: nat}
+         {mop1: @MSHOperator o2 o3}
+         {mop2: @MSHOperator i1 o2}
+         (* {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)} *)
+         {σ: evalContext}
+         {m: memory}
+         {dop1 dop2: DSHOperator}
+         {t_i x_i y_i: mem_block_id}
+         (MT: mem_block_exists t_i m)
+  :
+    MSH_DSH_compat mop2 dop2 σ m x_i t_i ->
+
+    (forall m', evalDSHOperator σ dop2 m (estimateFuel dop2) ≡ Some m' ->
+     mem_block_exists t_i m' /\ MSH_DSH_compat mop1 dop1 σ m' t_i y_i) ->
+
+    MSH_DSH_compat (MSHCompose mop1 mop2) (DSHSeq dop1 dop2) σ m x_i y_i.
+Proof.
+  intros E2 E1.
+  split.
+  intros mx my MX MY.
+
+  simpl.
+  unfold MSHCompose, option_compose; simpl.
+
+  apply mem_block_exists_exists in MT.
+  destruct MT as [mt MT].
+
+  simpl.
+  unfold MSHCompose, option_compose; simpl.
+
+  destruct E2 as [E2].
+  specialize (E2 mx mt MX MT).
+
+  destruct (evalDSHOperator σ dop2 m (estimateFuel dop2)) as [m'|] eqn:EV2.
+  -
+    specialize (E1 m').
+    destruct E1 as [MT' E1].
+    reflexivity.
+    admit.
+  -
+    (* [dop2] failed *)
+    clear E1.
+    inversion_clear E2.
+
+    (* Stopped here 2019-08-80 *)
+
+  destruct (mem_op mop2 mx) as [mt'|], (mem_op mop1 mt) as [my'|].
+
+  repeat break_match; inversion E1; inversion E2; clear E1 E2; try rename H3 into D2;
+    try rename H0 into D1;
+    (repeat match goal with
+         | [H: opt_p _ _ |- _ ] => inversion_clear H
+         end);
+    symmetry_option_hyp; subst.
+  -
+    rewrite enough_fuel in D1 by lia.
+    some_none.
+  -
+    rewrite enough_fuel in D1 by lia.
+    rewrite enough_fuel by lia.
+    assert(m1 ≡ a).
+    {
+      apply Some_inj_eq.
+      rewrite <- D1.
+      rewrite <- H.
+      reflexivity.
+    }
+    subst.
+    clear H.
+    rewrite H2.
+    admit.
+  -
+    admit.
+  -
+    admit.
+
+  inversion E2.
+  -
+
+
+//
+
+
+  destruct E1 as [E1].
+  specialize (E1 mt my).
+
+
+Admitted.
+
   (*
-  Instance SHCompose_SHCOL_DSHCOL
-        {i1 o2 o3: nat}
-        {svalue: CarrierA}
-        {fm}
-        {op1: @SHOperator fm o2 o3 svalue}
-        {op2: @SHOperator fm i1 o2 svalue}
-        {compat: Included _ (in_index_set fm op1) (out_index_set fm op2)}
-        `{facts1 : !SHOperator_Facts fm op1}
-        `{facts2 : !SHOperator_Facts fm op2}
-        `{Meq1: !@SHOperator_Mem fm o2 o3 svalue op1 facts1}
-        `{Meq2: !@SHOperator_Mem fm i1 o2 svalue op2 facts2}
-        {σ: evalContext}
-        {d1 d2: DSHOperator}
-        {m: memory}
-        {t_i x_i y_i: mem_block_id}
-    :
-      (@SHCOL_DSHCOL_equiv _ _ _ _ op1 facts1 Meq1 d1 σ (* TODO: add t_i to m *) m t_i y_i) ->
-      (@SHCOL_DSHCOL_equiv _ _ _ _ op2 facts2 Meq2 d2 σ (* TODO: add t_i to m *) m x_i t_i) ->
-
-      @SHCOL_DSHCOL_equiv i1 o3 svalue _ (SHCompose fm op1 op2)
-                          (SHCompose_Facts fm svalue op1 op2 compat)
-                          (SHCompose_Mem fm op1 op2 compat )
-                          (DSHSeq (DSHAlloc o2 t_i) (DSHSeq d1 d2)) σ m x_i y_i.
-  Proof.
-    intros E1 E2.
-    unfold SHCompose.
-    constructor.
-    destruct E1 as [E1].
-    destruct E2 as [E2].
-    unfold mem_op in *.
-    unfold SHCompose_Mem, option_compose.
-    destruct Meq1, Meq2.
-    unfold SHCOL_DSHCOL_mem_block_equiv.
-    simpl in *.
-    repeat break_match; intros; subst; auto.
-  Admitted.
-
   (* High-level equivalence *)
   Instance dynwin_SHCOL_DSHCOL
            (a: vector CarrierA 3):
