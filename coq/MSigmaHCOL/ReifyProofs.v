@@ -1992,7 +1992,7 @@ Section OperatorPairwiseProofs.
         unfold svector_to_mem_block in H0
       end.
 
-    Lemma svector_to_mem_block_Vec2Union_mem_merge
+    Lemma svector_to_mem_block_Vec2Union_mem_union
           {n: nat}
           {a b: svector Monoid_RthetaFlags n}
           (dot: CarrierA → CarrierA → CarrierA)
@@ -2008,9 +2008,9 @@ Section OperatorPairwiseProofs.
           (Za: Vforall (fun x => not (Is_Val x) -> evalWriter x = a_zero) a)
           (Zb: Vforall (fun x => not (Is_Val x) -> evalWriter x = a_zero) b)
       :
-        Some (svector_to_mem_block _ (Vec2Union _ dot a b))
+        svector_to_mem_block _ (Vec2Union _ dot a b)
         =
-        mem_merge
+        mem_union
           (svector_to_mem_block _ a)
           (svector_to_mem_block _ b).
     Proof.
@@ -2024,176 +2024,171 @@ Section OperatorPairwiseProofs.
       svector_to_mem_block_to_set_spec S2.
       svector_to_mem_block_to_spec m2 H2 I2 O2.
       simpl in *.
-      unfold mem_merge.
-      break_if.
-      -
-        rename Heqb0 into D.
-        f_equiv.
-        unfold mem_union.
-        mem_index_equiv k.
-        rewrite NP.F.map2_1bis.
 
-        destruct (NM.find (elt:=CarrierA) k m1) eqn: F1, (NM.find (elt:=CarrierA) k m2) eqn: F2.
-        +
-          (* both m1 and m2 - impossible *)
-          exfalso.
-          apply mem_keys_disjoint_inr with (k:=k) in D.
-          apply Some_ne_None, NP.F.in_find_iff in F2.
-          unfold mem_in in D.
-          congruence.
-          apply Some_ne_None, NP.F.in_find_iff in F1.
-          apply F1.
-        +
-          (* k in m1 *)
-          rewrite <- F1.
-
-          rename F1 into H.
-          apply Some_ne_None in H.
-          apply NP.F.in_find_iff in H.
-
-          destruct (lt_ge_dec k n) as [kc | nkc].
-          *
-            clear O0 O1 O2 S0 S1 S2 H2 O2.
-            specialize (H0 k kc).
-            specialize (H1 k kc).
-            specialize (I0 k kc).
-            specialize (I1 k kc).
-            specialize (I2 k kc).
-            rewrite Vnth_map2 in H0.
-            rewrite Vnth_map2 in I0.
-
-            apply I1 in H.
-            assert(Is_Val (SVector.Union Monoid_RthetaFlags dot (Vnth a kc) (Vnth b kc))) as V.
-            {
-              apply ValUnionIsVal.
-              left.
-              apply H.
-            }
-
-            apply H1 in H.
-            apply NP.F.find_mapsto_iff in H.
-            rewrite H.
-
-            apply Some_ne_None, NP.F.in_find_iff in H.
-
-            apply H0 in V.
-            apply NP.F.find_mapsto_iff in V.
-            rewrite_clear V.
-
-            f_equiv. f_equiv.
-
-            apply NP.F.not_find_in_iff in F2.
-
-            apply I1 in H.
-            apply not_iff_compat in I2.
-            apply I2 in F2.
-            apply Vforall_nth with (ip:=kc) in Zb.
-            apply Zb in F2.
-
-            unfold SVector.Union.
-            unfold_Rtheta_equiv.
-            rewrite evalWriter_Rtheta_liftM2.
-            rewrite F2.
-            apply monoid_right_id, af_mon.
-          *
-            unfold mem_lookup in *.
-            rewrite O1, O0 by auto.
-            reflexivity.
-        +
-          (* k in m2 *)
-          rewrite <- F2.
-
-          rename F2 into H.
-          apply Some_ne_None in H.
-          apply NP.F.in_find_iff in H.
-
-          destruct (lt_ge_dec k n) as [kc | nkc].
-          *
-            clear O0 O1 O2 S0 S1 S2 H1 O1.
-            specialize (H0 k kc).
-            specialize (H2 k kc).
-            specialize (I0 k kc).
-            specialize (I1 k kc).
-            specialize (I2 k kc).
-            rewrite Vnth_map2 in H0.
-            rewrite Vnth_map2 in I0.
-
-            apply I2 in H.
-            assert(Is_Val (SVector.Union Monoid_RthetaFlags dot (Vnth a kc) (Vnth b kc))) as V.
-            {
-              apply ValUnionIsVal.
-              right.
-              apply H.
-            }
-
-            apply H2 in H.
-            apply NP.F.find_mapsto_iff in H.
-            rewrite H.
-
-            apply Some_ne_None, NP.F.in_find_iff in H.
-
-            apply H0 in V.
-            apply NP.F.find_mapsto_iff in V.
-            rewrite_clear V.
-
-            f_equiv. f_equiv.
-
-            apply NP.F.not_find_in_iff in F1.
-
-            apply I2 in H.
-            apply not_iff_compat in I1.
-            apply I1 in F1.
-            apply Vforall_nth with (ip:=kc) in Za.
-            apply Za in F1.
-
-            unfold SVector.Union.
-            unfold_Rtheta_equiv.
-            rewrite evalWriter_Rtheta_liftM2.
-            rewrite F1.
-            apply monoid_left_id, af_mon.
-          *
-            unfold mem_lookup in *.
-            rewrite O2, O0 by auto.
-            reflexivity.
-        +
-          (* neither in m1 or m2 *)
-          destruct (lt_ge_dec k n) as [kc | nkc].
-          *
-            clear O0 O1 O2 S0 S1 S2 H0 H1 H2.
-            specialize (I0 k kc).
-            specialize (I1 k kc).
-            specialize (I2 k kc).
-            apply Option_equiv_eq.
-            apply NP.F.not_find_in_iff.
-            apply not_iff_compat in I0.
-            apply I0. clear I0.
-            rewrite Vnth_map2.
-            apply not_Is_Val_Is_Struct.
-            apply StructUnionIsStruct.
-            split; apply not_Is_Val_Is_Struct.
-            --
-              apply not_iff_compat in I1.
-              apply I1.
-              apply NP.F.not_find_in_iff, F1.
-            --
-              apply not_iff_compat in I2.
-              apply I2.
-              apply NP.F.not_find_in_iff, F2.
-          *
-            apply Option_equiv_eq.
-            apply O0; auto.
-        +
-          reflexivity.
-      -
-        contradict Heqb0.
-        apply not_false_iff_true.
+      assert(D: is_disjoint (mem_keys_set m1) (mem_keys_set m2) ≡ true).
+      {
         apply is_disjoint_Disjoint.
         apply Extensionality_Ensembles in S1.
         apply Extensionality_Ensembles in S2.
         rewrite <- S1, <- S2.
-        clear S1 S2.
         apply Disjoint_FinNat_to_nat.
         apply compat.
+      }
+      unfold mem_union.
+      mem_index_equiv k.
+      rewrite NP.F.map2_1bis.
+
+      destruct (NM.find (elt:=CarrierA) k m1) eqn: F1, (NM.find (elt:=CarrierA) k m2) eqn: F2.
+      -
+        (* both m1 and m2 - impossible *)
+        exfalso.
+        apply mem_keys_disjoint_inr with (k:=k) in D.
+        apply Some_ne_None, NP.F.in_find_iff in F2.
+        unfold mem_in in D.
+        congruence.
+        apply Some_ne_None, NP.F.in_find_iff in F1.
+        apply F1.
+      -
+        (* k in m1 *)
+        rewrite <- F1.
+
+        rename F1 into H.
+        apply Some_ne_None in H.
+        apply NP.F.in_find_iff in H.
+
+        destruct (lt_ge_dec k n) as [kc | nkc].
+        +
+          clear O0 O1 O2 S0 S1 S2 H2 O2.
+          specialize (H0 k kc).
+          specialize (H1 k kc).
+          specialize (I0 k kc).
+          specialize (I1 k kc).
+          specialize (I2 k kc).
+          rewrite Vnth_map2 in H0.
+          rewrite Vnth_map2 in I0.
+
+          apply I1 in H.
+          assert(Is_Val (SVector.Union Monoid_RthetaFlags dot (Vnth a kc) (Vnth b kc))) as V.
+          {
+            apply ValUnionIsVal.
+            left.
+            apply H.
+          }
+
+          apply H1 in H.
+          apply NP.F.find_mapsto_iff in H.
+          rewrite H.
+
+          apply Some_ne_None, NP.F.in_find_iff in H.
+
+          apply H0 in V.
+          apply NP.F.find_mapsto_iff in V.
+          rewrite_clear V.
+
+          f_equiv. f_equiv.
+
+          apply NP.F.not_find_in_iff in F2.
+
+          apply I1 in H.
+          apply not_iff_compat in I2.
+          apply I2 in F2.
+          apply Vforall_nth with (ip:=kc) in Zb.
+          apply Zb in F2.
+
+          unfold SVector.Union.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_liftM2.
+          rewrite F2.
+          apply monoid_right_id, af_mon.
+        +
+          unfold mem_lookup in *.
+          rewrite O1, O0 by auto.
+          reflexivity.
+      -
+        (* k in m2 *)
+        rewrite <- F2.
+
+        rename F2 into H.
+        apply Some_ne_None in H.
+        apply NP.F.in_find_iff in H.
+
+        destruct (lt_ge_dec k n) as [kc | nkc].
+        +
+          clear O0 O1 O2 S0 S1 S2 H1 O1.
+          specialize (H0 k kc).
+          specialize (H2 k kc).
+          specialize (I0 k kc).
+          specialize (I1 k kc).
+          specialize (I2 k kc).
+          rewrite Vnth_map2 in H0.
+          rewrite Vnth_map2 in I0.
+
+          apply I2 in H.
+          assert(Is_Val (SVector.Union Monoid_RthetaFlags dot (Vnth a kc) (Vnth b kc))) as V.
+          {
+            apply ValUnionIsVal.
+            right.
+            apply H.
+          }
+
+          apply H2 in H.
+          apply NP.F.find_mapsto_iff in H.
+          rewrite H.
+
+          apply Some_ne_None, NP.F.in_find_iff in H.
+
+          apply H0 in V.
+          apply NP.F.find_mapsto_iff in V.
+          rewrite_clear V.
+
+          f_equiv. f_equiv.
+
+          apply NP.F.not_find_in_iff in F1.
+
+          apply I2 in H.
+          apply not_iff_compat in I1.
+          apply I1 in F1.
+          apply Vforall_nth with (ip:=kc) in Za.
+          apply Za in F1.
+
+          unfold SVector.Union.
+          unfold_Rtheta_equiv.
+          rewrite evalWriter_Rtheta_liftM2.
+          rewrite F1.
+          apply monoid_left_id, af_mon.
+        +
+          unfold mem_lookup in *.
+          rewrite O2, O0 by auto.
+          reflexivity.
+      -
+        (* neither in m1 or m2 *)
+        destruct (lt_ge_dec k n) as [kc | nkc].
+        +
+          clear O0 O1 O2 S0 S1 S2 H0 H1 H2.
+          specialize (I0 k kc).
+          specialize (I1 k kc).
+          specialize (I2 k kc).
+          apply Option_equiv_eq.
+          apply NP.F.not_find_in_iff.
+          apply not_iff_compat in I0.
+          apply I0. clear I0.
+          rewrite Vnth_map2.
+          apply not_Is_Val_Is_Struct.
+          apply StructUnionIsStruct.
+          split; apply not_Is_Val_Is_Struct.
+          *
+            apply not_iff_compat in I1.
+            apply I1.
+            apply NP.F.not_find_in_iff, F1.
+          *
+            apply not_iff_compat in I2.
+            apply I2.
+            apply NP.F.not_find_in_iff, F2.
+        +
+          apply Option_equiv_eq.
+          apply O0; auto.
+      -
+        reflexivity.
     Qed.
 
     Fact Vec2Union_fold_zeros_dense
@@ -2561,43 +2556,6 @@ Section OperatorPairwiseProofs.
           eapply family_in_set_includes_members.
           apply Meq.
           apply H0.
-    Qed.
-
-    (*  Not sure it is used anymore *)
-    Global Instance IUnion_mem_proper
-           {svalue: CarrierA}
-           {i o n: nat}
-           (mop_family: @MSHOperatorFamily i o n)
-      :
-        Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op mop_family)).
-    Proof.
-      intros x y E.
-      unfold IUnion_mem.
-      simpl.
-      repeat break_match.
-      -
-        apply monadic_fold_left_rev_opt_proper.
-        apply mem_merge_proper.
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_inv.
-        apply Heqo1.
-      -
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_none.
-      -
-        unshelve eapply Option_equiv_eq in Heqo0; try typeclasses eauto.
-        unshelve eapply Option_equiv_eq in Heqo1; try typeclasses eauto.
-        rewrite E in Heqo0.
-        rewrite Heqo0 in Heqo1.
-        some_none.
-      -
-        reflexivity.
     Qed.
 
     Lemma cast_op_family_facts
@@ -3388,13 +3346,11 @@ Section OperatorPairwiseProofs.
             unfold MUnion in *.
             simpl.
 
-            break_match; try some_none.
-            rewrite svector_to_mem_block_Vec2Union_mem_merge
+            rewrite svector_to_mem_block_Vec2Union_mem_union
               with (a_zero:=svalue).
             --
-              some_inv.
               rewrite IHn; clear IHn.
-              apply mem_merge_proper; auto.
+              apply mem_union_proper; auto.
               apply Some_inj_equiv.
               rewrite <- A0. clear A0.
               unfold get_family_op, get_family_mem_op.
