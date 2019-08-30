@@ -2149,7 +2149,7 @@ Section MSHOperator_Facts_instances.
       unfold HTSUMUnion_mem in E. simpl in E.
       repeat break_match_hyp; try some_none.
       inversion E as [EE]; clear E. rename EE into E.
-      eapply mem_union_key_src.
+      eapply mem_union_as_Union.
       eauto.
       apply Constructive_sets.Union_inv in H.
       destruct H.

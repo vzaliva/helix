@@ -288,24 +288,43 @@ Proof.
     auto.
 Qed.
 
-Lemma mem_union_key_src
+Lemma mem_union_as_Union
       (m m0 m1 : mem_block)
       (MM : mem_union m0 m1 = m)
       (k:NM.key)
   :
-    ((NM.In k m0) \/ (NM.In k m1)) -> NM.In k m.
+    mem_in k m <-> ((mem_in k m0) \/ (mem_in k m1)).
 Proof.
-  intros [H1 | H2];
-    subst m;
-    unfold mem_union;
-    apply F.in_find_iff;
-    erewrite F.map2_1bis; try reflexivity; break_match; try some_none.
+  split.
   -
-    apply F.in_find_iff in H1.
-    congruence.
+    intros H.
+    subst m.
+    unfold mem_union in H.
+    apply F.in_find_iff in H.
+    erewrite F.map2_1bis in H; try reflexivity.
+    break_match_hyp.
+    +
+      left.
+      apply F.in_find_iff.
+      eapply Some_ne_None.
+      eauto.
+    +
+      right.
+      clear Heqo.
+      apply F.in_find_iff.
+      apply H.
   -
-    apply F.in_find_iff in H2.
-    assumption.
+    intros [H1 | H2];
+      subst m;
+      unfold mem_union;
+      apply F.in_find_iff;
+      erewrite F.map2_1bis; try reflexivity; break_match; try some_none.
+    +
+      apply F.in_find_iff in H1.
+      congruence.
+    +
+      apply F.in_find_iff in H2.
+      assumption.
 Qed.
 
 Lemma mem_union_key_dec
