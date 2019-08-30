@@ -600,11 +600,7 @@ Section Operators.
   Definition HTSUMUnion_mem
              (op1 op2: mem_block -> option mem_block)
     : mem_block -> option mem_block
-    := fun x =>
-         match op1 x, op2 x with
-         | Some a, Some b => mem_merge a b
-         | _, _ => None
-         end.
+    := fun x => (liftM2 mem_union) (op1 x) (op2 x).
 
   Definition IReduction_mem
              {n: nat}
@@ -797,7 +793,10 @@ Section Morphisms.
     unfold HTSUMUnion_mem.
     repeat break_match; try some_none; try reflexivity.
     repeat some_inv.
-    apply mem_merge_proper; auto.
+    simpl.
+    repeat break_match; try some_none.
+    f_equiv.
+    apply mem_union_proper; apply Some_inj_equiv; auto.
   Qed.
 
 End Morphisms.
@@ -2147,11 +2146,13 @@ Section MSHOperator_Facts_instances.
     split; intros H.
     +
       simpl in *.
-      unfold HTSUMUnion_mem in E.
+      unfold HTSUMUnion_mem in E. simpl in E.
       repeat break_match_hyp; try some_none.
-      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
-      destruct E as [E0 E1].
-      dependent destruction H; apply E1.
+      inversion E as [EE]; clear E. rename EE into E.
+      eapply mem_union_key_src.
+      eauto.
+      apply Constructive_sets.Union_inv in H.
+      destruct H.
       *
         left.
         eapply (out_mem_fill_pattern _ _ Heqo0); eauto.
@@ -2160,9 +2161,10 @@ Section MSHOperator_Facts_instances.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
     +
       simpl in *.
-      unfold HTSUMUnion_mem in E.
+      unfold HTSUMUnion_mem in E. simpl in E.
       repeat break_match_hyp; try some_none.
-      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+      inversion E as [EE]; clear E. rename EE into E.
+      apply mem_union_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
       destruct E as [E0 E1].
       specialize (E0 H). clear H E1.
       destruct E0 as [M1 | M2].
@@ -2194,39 +2196,6 @@ Section MSHOperator_Facts_instances.
       simpl in *.
       repeat break_match; try some_none; try auto.
       +
-        contradict Heqo0.
-        clear H.
-        apply mem_merge_is_Some.
-        pose proof (out_mem_fill_pattern m _ Heqo1) as P1.
-        pose proof (out_mem_oob m _ Heqo1) as NP1.
-        pose proof (out_mem_fill_pattern m _ Heqo2) as P2.
-        pose proof (out_mem_oob m _ Heqo2) as NP2.
-
-        apply Disjoint_intro.
-        intros j.
-        destruct (NatUtil.lt_ge_dec j o) as [jc | jc].
-        *
-          clear NP1 NP2.
-          specialize (P1 j jc).
-          specialize (P2 j jc).
-          destruct compat as [compat].
-          specialize (compat (mkFinNat jc)).
-          intros C.
-          unfold Ensembles.In, not  in *.
-          destruct C as [j H0 H1].
-
-          apply NE.In_In, mem_keys_set_In, P1 in H0. clear P1.
-          apply NE.In_In, mem_keys_set_In, P2 in H1. clear P2.
-          destruct compat.
-          apply Intersection_intro; auto.
-        *
-          specialize (NP1 j jc).
-          intros C.
-          destruct C as [j H0 _].
-          apply NE.In_In, mem_keys_set_In in H0.
-          unfold mem_in in NP1.
-          congruence.
-      +
         clear Heqo0.
         contradict Heqo2.
         apply is_Some_ne_None.
@@ -2253,9 +2222,10 @@ Section MSHOperator_Facts_instances.
     -
       intros m0 m E j jc H.
       simpl in *.
-      unfold HTSUMUnion_mem in E.
+      unfold HTSUMUnion_mem in E; simpl in E.
       repeat break_match_hyp; try some_none.
-      apply mem_merge_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
+      inversion E as [EE]; clear E. rename EE into E.
+      apply mem_union_key_dec with (m0:=m1) (m1:=m2) (k:=j) in E.
       destruct E as [E0 E1].
       specialize (E0 H). clear H E1.
       destruct E0 as [M0 | M1].

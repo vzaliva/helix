@@ -1299,7 +1299,7 @@ Section OperatorPairwiseProofs.
         pose proof (@out_pattern_compat _ _ _ _ op2 mop2 Meq2) as O2.
         apply Extensionality_Ensembles in O1.
         apply Extensionality_Ensembles in O2.
-
+        simpl.
         break_match.
         +
           break_match.
@@ -1330,17 +1330,20 @@ Section OperatorPairwiseProofs.
                 apply Meq1.
                 apply Meq2.
                 simpl in P.
-                unfold HTSUMUnion_mem in P.
+                unfold HTSUMUnion_mem in P. simpl in P.
                 break_match_hyp; try some_none.
                 break_match_hyp; try some_none.
                 some_inv; subst m3.
                 some_inv; subst m0.
+                apply mem_merge_to_mem_union in MM.
+                apply Some_inj_eq in MM.
                 specialize (P MM).
+                apply Some_inj_eq in MM.
                 specialize (P k kc).
                 destruct (NP.F.In_dec m k) as [K | NK].
                 **
                   (* k in m *)
-                  pose proof (mem_merge_key_dec m m1 m2 MM k) as [MD _].
+                  pose proof (mem_union_key_dec m m1 m2 MM k) as [MD _].
                   specialize (MD K).
                   clear H1.
                   apply P in K; clear P.
@@ -1363,9 +1366,7 @@ Section OperatorPairwiseProofs.
                   rewrite Vnth_map2.
 
                   simpl in V.
-                  unfold mem_merge in MM.
-                  break_if; try some_none.
-                  some_inv.
+                  unfold mem_union in MM; simpl in MM.
                   subst m.
                   unfold mem_union.
                   rewrite NM.map2_1 by (destruct MD; auto).
@@ -1377,9 +1378,23 @@ Section OperatorPairwiseProofs.
                     assert(NM2: not (NM.In (elt:=CarrierA) k m2)).
                     {
                       apply mem_keys_disjoint_inr with (m1:=m1).
-                      apply Heqb.
-                      apply M1.
+                      destruct Meq1.
+                      apply Extensionality_Ensembles in out_pattern_compat0.
+                      rewrite out_pattern_compat0 in compat.
+                      destruct Meq2.
+                      apply Extensionality_Ensembles in out_pattern_compat1.
+                      rewrite out_pattern_compat1 in compat.
+                      apply is_disjoint_Disjoint.
+                      erewrite <- 2!mem_keys_set_to_m_out_index_set.
+                      apply Disjoint_FinNat_to_nat.
+                      eapply compat.
+                      typeclasses eauto.
+                      eauto.
+                      eauto.
+                      eauto.
+                      eauto.
                     }
+
                     break_match; try (apply NP.F.not_find_in_iff in Heqo0; congruence).
 
                     (* derive m1[k] *)
@@ -1428,8 +1443,21 @@ Section OperatorPairwiseProofs.
                     {
                       apply mem_keys_disjoint_inr with (m1:=m2).
                       rewrite is_disjoint_sym.
-                      apply Heqb.
-                      apply M2.
+                      destruct Meq1.
+                      apply Extensionality_Ensembles in out_pattern_compat0.
+                      rewrite out_pattern_compat0 in compat.
+                      destruct Meq2.
+                      apply Extensionality_Ensembles in out_pattern_compat1.
+                      rewrite out_pattern_compat1 in compat.
+                      apply is_disjoint_Disjoint.
+                      erewrite <- 2!mem_keys_set_to_m_out_index_set.
+                      apply Disjoint_FinNat_to_nat.
+                      eapply compat.
+                      typeclasses eauto.
+                      eauto.
+                      eauto.
+                      eauto.
+                      eauto.
                     }
                     break_match; try (apply NP.F.not_find_in_iff in NM1; congruence).
                     clear Heqo0.
@@ -1474,6 +1502,7 @@ Section OperatorPairwiseProofs.
                     apply af_mon.
                 **
                   (* k not in m *)
+                  rewrite MM.
                   replace (NM.find (elt:=CarrierA) k m) with (@None CarrierA)
                     by (symmetry; apply NP.F.not_find_in_iff, NK).
                   apply not_iff_compat in P.
@@ -1483,7 +1512,6 @@ Section OperatorPairwiseProofs.
                   apply Meq2.
                   pose proof (no_vals_at_sparse _ x k kc ) as NV.
                   simpl in NV.
-                  unfold Scatter in NV; simpl in NV.
                   rewrite <- O1 in NK.
                   rewrite <- O2 in NK.
                   apply NV in NK; clear NV.
@@ -1503,7 +1531,9 @@ Section OperatorPairwiseProofs.
                 apply None_equiv_eq.
                 apply NP.F.not_find_in_iff.
                 intros N.
-                apply (mem_merge_key_dec m m1 m2 MM k) in N.
+                apply mem_merge_to_mem_union in MM.
+                rewrite MM in N.
+                apply (mem_union_key_dec m m1 m2 MM k) in N.
                 generalize dependent (svector_to_mem_block _ x).
                 intros m0 H1 H2.
                 destruct N as [IN1 | IN2].

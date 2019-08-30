@@ -288,6 +288,65 @@ Proof.
     auto.
 Qed.
 
+Lemma mem_union_key_src
+      (m m0 m1 : mem_block)
+      (MM : mem_union m0 m1 = m)
+      (k:NM.key)
+  :
+    ((NM.In k m0) \/ (NM.In k m1)) -> NM.In k m.
+Proof.
+  intros [H1 | H2];
+    subst m;
+    unfold mem_union;
+    apply F.in_find_iff;
+    erewrite F.map2_1bis; try reflexivity; break_match; try some_none.
+  -
+    apply F.in_find_iff in H1.
+    congruence.
+  -
+    apply F.in_find_iff in H2.
+    assumption.
+Qed.
+
+Lemma mem_union_key_dec
+      (m m0 m1 : mem_block)
+      (MM : mem_union m0 m1 = m)
+      (k:NM.key)
+  :
+    (NM.In k m -> {NM.In k m0}+{NM.In k m1}) *
+    ({NM.In k m0}+{NM.In k m1} -> NM.In k m).
+Proof.
+  split; intros H; subst m; unfold mem_union in *.
+  -
+    apply F.in_find_iff in H.
+    erewrite F.map2_1bis in H; try reflexivity.
+    break_match.
+    +
+      left.
+      apply F.in_find_iff.
+      eapply Some_ne_None.
+      eauto.
+    +
+      right.
+      apply F.in_find_iff.
+      assumption.
+  -
+    apply F.in_find_iff.
+    erewrite F.map2_1bis.
+    +
+      destruct H.
+      *
+        break_match; try some_none.
+        apply F.in_find_iff in i.
+        congruence.
+      *
+        break_match; try some_none.
+        apply F.in_find_iff in i.
+        assumption.
+    +
+      reflexivity.
+Qed.
+
 Lemma mem_merge_key_dec
       (m m0 m1 : mem_block)
       (MM : mem_merge m0 m1 = Some m)
@@ -493,6 +552,19 @@ Proof.
       rewrite NP.F.map2_1bis by reflexivity.
       repeat break_match; try some_none.
       apply NP.F.in_find_iff, H.
+Qed.
+
+Lemma mem_merge_to_mem_union
+      (m m0 m1 : mem_block)
+  :
+    mem_merge m0 m1 = Some m ->
+    mem_union m0 m1 = m.
+Proof.
+  intros H.
+  unfold mem_merge in H.
+  break_if; try some_none.
+  apply Some_inj_eq.
+  apply H.
 Qed.
 
 Lemma mem_merge_with_as_Union
