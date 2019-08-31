@@ -218,14 +218,13 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
                  df <- compileDSHBinCarrierA f ;;
                  let '(_, heap_i', rr) := c' in
                  tmReturn (vars, heap_i',
-                           (DSHSeq
-                              (DSHSeq
-                                 (DSHAlloc no t_i)
-                                 (DSHMemInit no y_i zconst))
-                              (DSHLoop nn
-                                       (DSHSeq
-                                          rr
-                                          (DSHMemMap2 nn t_i y_i y_i df)))))
+                           (DSHAlloc no t_i
+                                     (DSHSeq
+                                        (DSHMemInit no y_i zconst)
+                                        (DSHLoop nn
+                                                 (DSHSeq
+                                                    rr
+                                                    (DSHMemMap2 nn t_i y_i y_i df))))))
     | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "MSHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
@@ -237,9 +236,7 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
                     cop1' <- compileMSHCOL2DSHCOL vars t_i y_i heap_i' op1 ;;
                           let '(_, heap_i'', cop1) := cop1' in
                           tmReturn (vars, heap_i'',
-                                    (DSHSeq
-                                       (DSHAlloc no2 t_i)
-                                       (DSHSeq cop2 cop1)))
+                                    (DSHAlloc no2 t_i (DSHSeq cop2 cop1)))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
       tmPrint "MHTSUMUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
@@ -252,13 +249,11 @@ Fixpoint compileMSHCOL2DSHCOL (vars:varbindings) (x_i y_i heap_i: mem_block_id) 
                    cop2' <- compileMSHCOL2DSHCOL vars x_i tyg_i heap_i' op2 ;;
                          let '(_,heap_i'',cop2) := cop2' in
                          tmReturn (vars, heap_i'',
-                                   (DSHSeq
-                                      (DSHAlloc no tyf_i)
-                                      (DSHSeq
-                                         (DSHAlloc no tyg_i)
-                                         (DSHSeq
-                                            (DSHSeq cop1 cop2)
-                                            (DSHMemMap2 no tyf_i tyg_i y_i ddot)))))
+                                   (DSHAlloc no tyf_i
+                                             (DSHAlloc no tyg_i
+                                                       (DSHSeq
+                                                          (DSHSeq cop1 cop2)
+                                                          (DSHMemMap2 no tyf_i tyg_i y_i ddot)))))
     | None, _ =>
       tmFail ("Usupported SHCOL operator " ++ opname)
     | _, _ =>

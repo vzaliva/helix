@@ -48,6 +48,13 @@ Definition memory_set
   :=
     NM.add n v m.
 
+Definition memory_remove
+           (m: memory)
+           (n: mem_block_id)
+  : memory
+  :=
+    NM.remove n m.
+
 (* Evaluation of expressions does not allow for side-effects *)
 Definition evalMexp (σ: evalContext) (exp:MExpr): option (mem_block) :=
   match exp with
@@ -186,8 +193,8 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
   | @DSHMemMap2 _ _ _ _ _ => 0
   | @DSHBinOp _ _ _ _ => 0
   | DSHPower _ _ _ _ _ => 0
-  | DSHLoop n body => (estimateFuel body) * n
-  | DSHAlloc size _ => 0
+  | DSHLoop n body => (S (estimateFuel body)) * n
+  | DSHAlloc _ _ body => S (estimateFuel body)
   | DSHMemInit _ _ _ => 0
   | DSHMemCopy _ _ _ => 0
   | DSHSeq f g =>
@@ -242,7 +249,17 @@ Fixpoint evalDSHOperator
           m' <- evalDSHOperator (DSHnatVal n :: σ) body m fuel ;;
           ret m'
       end
-    | DSHAlloc size y_i => ret (memory_set m y_i (mem_empty))
+    | DSHAlloc size t_i body =>
+      match fuel with
+      | O => None
+      | S fuel =>
+        evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel
+        (*
+        pbind
+          (evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel)
+          (fun m' => ret (memory_remove m' t_i))
+         *)
+      end
     | DSHMemInit size y_i value =>
       y <- memory_lookup m y_i ;;
         let y' := mem_union

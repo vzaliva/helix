@@ -613,7 +613,39 @@ Proof.
     repeat break_match; constructor.
 Qed.
 
+(* Simple wrapper. *)
+Definition memory_alloc_empty m i :=
+  memory_set m i (mem_empty).
 
+(* Note: This is not an instance. *)
+Lemma DSHAlloc_strip
+       {i o size: nat}
+       (x_i y_i t_i: mem_block_id)
+       (σ: evalContext)
+       (m: memory)
+       (tcx: t_i ≢ x_i)
+       (tcy: t_i ≢ y_i)
+       (mop: MSHOperator)
+       (dop: DSHOperator)
+       `{MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
+  :
+    MSH_DSH_compat mop (DSHAlloc size t_i dop) σ m x_i y_i.
+Proof.
+  split.
+  intros mx mb MX MB.
+  simpl.
+  inversion H.
+  apply H.
+  +
+    rewrite <- MX.
+    apply NP.F.add_neq_o; assumption.
+  +
+    rewrite <- MB.
+    apply NP.F.add_neq_o; assumption.
+Qed.
+
+
+(*
 Lemma mem_op_None {i o : nat}
       (mop1 : @MSHOperator i o)
       (mt m0 x : mem_block)
@@ -622,6 +654,7 @@ Lemma mem_op_None {i o : nat}
   mem_op mop1 m0 ≡ None.
 Proof.
 Admitted.
+ *)
 
 Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
   evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
@@ -637,37 +670,49 @@ Instance Compose_MSH_DSH_compat
          {m: memory}
          {dop1 dop2: DSHOperator}
          {t_i x_i y_i: mem_block_id}
-         (MT: mem_block_exists t_i m)
+         (tcx: t_i ≢ x_i)
+         (tcy: t_i ≢ y_i)
   :
-    MSH_DSH_compat mop2 dop2 σ m x_i t_i ->
+    MSH_DSH_compat mop2 dop2 σ (memory_alloc_empty m t_i) x_i t_i ->
 
-    (forall m', evalDSHOperator σ dop2 m (estimateFuel dop2) ≡ Some m' ->
-     mem_block_exists t_i m' /\ MSH_DSH_compat mop1 dop1 σ m' t_i y_i) ->
+    (forall m', evalDSHOperator σ dop2 (memory_alloc_empty m t_i) (estimateFuel dop2) ≡ Some m' ->
+           MSH_DSH_compat mop1 dop1 σ m' t_i y_i) ->
 
-    MSH_DSH_compat (MSHCompose mop1 mop2) (DSHSeq dop1 dop2) σ m x_i y_i.
+    MSH_DSH_compat
+      (MSHCompose mop1 mop2)
+      (DSHAlloc o2 t_i (DSHSeq dop2 dop1))
+      σ m x_i y_i.
 Proof.
   intros E2 E1.
+  apply DSHAlloc_strip; auto.
   split.
   intros mx my MX MY.
 
   simpl.
   unfold MSHCompose, option_compose; simpl.
 
-  apply mem_block_exists_exists in MT.
+  (* apply mem_block_exists_exists in MT.
+  destruct MT as [mt MT]. *)
+
+  assert(exists mt, memory_lookup (memory_alloc_empty m t_i) t_i ≡ Some mt) as MT.
+  {
+    exists (mem_empty).
+    apply NP.F.add_eq_o.
+    reflexivity.
+  }
   destruct MT as [mt MT].
-
-  simpl.
-  unfold MSHCompose, option_compose; simpl.
-
   destruct E2 as [E2].
   specialize (E2 mx mt MX MT).
 
-  destruct (evalDSHOperator σ dop2 m (estimateFuel dop2)) as [m'|] eqn:EV2.
+  destruct (evalDSHOperator σ dop2 (memory_alloc_empty m t_i)) as [m'|] eqn:EV2.
   -
     specialize (E1 m').
-    destruct E1 as [MT' E1].
+    destruct E1 as [E1].
     reflexivity.
-    admit.
+
+    assert(MT': memory_lookup m' t_i ≡ Some mt). admit.
+    assert(MY': memory_lookup m' y_i ≡ Some my). admit.
+    specialize (E1 mt my MT' MY').
   -
     (* [dop2] failed *)
     clear E1.
