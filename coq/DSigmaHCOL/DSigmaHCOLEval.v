@@ -253,12 +253,12 @@ Fixpoint evalDSHOperator
       match fuel with
       | O => None
       | S fuel =>
-        evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel
-        (*
-        pbind
-          (evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel)
-          (fun m' => ret (memory_remove m' t_i))
-         *)
+        match memory_lookup m t_i with
+        | Some _ => None (* [t_i] already exists! *)
+        | None =>
+          m' <- evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel ;;
+             ret (memory_remove m' t_i)
+        end
       end
     | DSHMemInit size y_i value =>
       y <- memory_lookup m y_i ;;
