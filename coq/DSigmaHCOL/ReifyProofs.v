@@ -690,29 +690,60 @@ Definition memory_alloc_empty m i :=
 
 (* Note: This is not an instance. *)
 Lemma DSHAlloc_strip
-       {i o size: nat}
-       (x_i y_i t_i: mem_block_id)
-       (σ: evalContext)
-       (m: memory)
-       (tcx: t_i ≢ x_i)
-       (tcy: t_i ≢ y_i)
-       (mop: MSHOperator)
-       (dop: DSHOperator)
-       `{MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
+      {i o size: nat}
+      (x_i y_i t_i: mem_block_id)
+      (σ: evalContext)
+      (m: memory)
+      (tcx: t_i ≢ x_i)
+      (tcy: t_i ≢ y_i)
+      (tct: memory_lookup m t_i ≡ None) (* [t_i] must not be alloated yet *)
+      (mop: MSHOperator)
+      (dop: DSHOperator)
+      `{MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
   :
     MSH_DSH_compat mop (DSHAlloc size t_i dop) σ m x_i y_i.
 Proof.
   split.
   intros mx mb MX MB.
-  simpl.
-  inversion H.
-  apply H.
-  +
-    rewrite <- MX.
-    apply NP.F.add_neq_o; assumption.
-  +
-    rewrite <- MB.
-    apply NP.F.add_neq_o; assumption.
+  inversion_clear H.
+  specialize (eval_equiv0 mx mb).
+
+  assert(MX': memory_lookup (memory_alloc_empty m t_i) x_i ≡ Some mx).
+  {
+    unfold memory_lookup, memory_alloc_empty, memory_set.
+    rewrite NP.F.add_neq_o by assumption.
+    apply MX.
+  }
+  assert(MB': memory_lookup (memory_alloc_empty m t_i) y_i ≡ Some mb).
+  {
+    unfold memory_lookup, memory_alloc_empty, memory_set.
+    rewrite NP.F.add_neq_o by assumption.
+    apply MB.
+  }
+  specialize (eval_equiv0 MX' MB').
+  inversion eval_equiv0 as [MM ME | my ma];
+    try symmetry in MM; try symmetry in ME;
+      clear eval_equiv0.
+  -
+    simpl.
+    repeat break_match; try constructor.
+    unfold memory_alloc_empty in ME.
+    congruence.
+  -
+    simpl.
+    repeat break_match; try constructor; try some_none.
+    +
+      unfold memory_lookup, memory_remove in *.
+      rewrite NP.F.remove_neq_o by auto.
+      unfold memory_alloc_empty in H1.
+      rewrite Heqo1 in H1.
+      some_inv.
+      subst m0.
+      apply H.
+    +
+      unfold memory_alloc_empty in H1.
+      rewrite Heqo1 in H1.
+      some_none.
 Qed.
 
 
@@ -743,6 +774,7 @@ Instance Compose_MSH_DSH_compat
          {t_i x_i y_i: mem_block_id}
          (tcx: t_i ≢ x_i)
          (tcy: t_i ≢ y_i)
+         (tct: memory_lookup m t_i ≡ None) (* [t_i] must not be alloated yet *)
   :
     MSH_DSH_compat mop2 dop2 σ (memory_alloc_empty m t_i) x_i t_i ->
 
