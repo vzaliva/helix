@@ -15,6 +15,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 (* When proving concrete functions we need to use some implementation defs from this packages *)
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.VecUtil.
+Require Import Helix.Util.FinNat.
 
 Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.canonical_names.
@@ -93,10 +94,7 @@ Arguments hopt_i {A B} R.
   allocated) prior to execution.
 
   We do not require input block to be structurally correct, because
-  [mem_op] will just return an error in this case.
-
-  Note: DSCHOL operators are implemented in more permissive manner and
-  not necesseraly return error on invalid input.  *)
+  [mem_op] will just return an error in this case.  *)
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -111,7 +109,7 @@ Class MSH_DSH_compat
           (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
           (memory_lookup m y_i ≡ Some mb) (* output before *) ->
 
-          (hopt_i (fun md (* memory diff *) m' (* memory state after execution *) =>
+          (hopt_r (fun md (* memory diff *) m' (* memory state after execution *) =>
                      opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
                            ) (memory_lookup m' y_i)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
@@ -128,8 +126,7 @@ Class MSH_DSH_compat
             | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
             | None => False (* out memory block dissapeared *)
             end
-          | None, _ => True (* assume they are equal on *invalid* inputs [see note above] *)
-          | _, _ => False
+          | None, None => True (* assume they are equal on *invalid* inputs [see note above] *)
           end
        *)
     }.
@@ -364,8 +361,8 @@ Lemma evalDSHBinOp_nth
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      {k: nat}
-      {kc: k<n}
+      (k: nat)
+      (kc: k<n)
       {a b : CarrierA}:
   (mem_lookup k mx ≡ Some a) ->
   (mem_lookup (k + off) mx ≡ Some b) ->
@@ -501,6 +498,40 @@ Proof.
       lia.
 Qed.
 
+Lemma evalDSHBinOp_is_None
+      (off n: nat)
+      (nz: n≢0)
+      (df : DSHIBinCarrierA) (σ : evalContext)
+      (mx mb : mem_block)
+      (DX: exists k (kc:k<n),
+          is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
+  :
+    is_None (evalDSHBinOp n off df σ mx mb).
+Proof.
+  revert mb DX.
+  induction n; intros mb DX.
+  -
+    crush.
+  -
+    destruct DX as [k [kc DX]].
+    destruct (Nat.eq_dec k n).
+    +
+      clear IHn.
+      subst k.
+      simpl.
+      repeat break_match; try constructor.
+      crush.
+    +
+      simpl.
+      repeat break_match; try constructor.
+      apply IHn.
+      lia.
+      exists k.
+      assert(k < n) as kc1 by lia.
+      exists kc1.
+      apply DX.
+Qed.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -565,8 +596,8 @@ Proof.
           apply is_Some_def in A. destruct A as [a A].
           apply is_Some_def in B. destruct B as [b B].
 
-          rewrite (evalDSHBinOp_nth A B ME (kc:=kc)).
-          specialize FV with (nc:=FinNat.mkFinNat kc) (a:=a) (b:=b).
+          rewrite (evalDSHBinOp_nth k kc A B ME).
+          specialize FV with (nc:=mkFinNat kc) (a:=a) (b:=b).
           simpl in FV.
           rewrite FV.
 
@@ -610,7 +641,47 @@ Proof.
       apply equiv_Some_is_Some in FV.
       apply FV.
   -
-    repeat break_match; constructor.
+    repeat break_match; try some_none.
+    +
+      apply Some_ne_None in Heqo2.
+      contradict Heqo2.
+      clear m2 Heqo0 Heqo1.
+      repeat some_inv;subst m1 m0.
+      unfold mem_op_of_hop in MD.
+      break_match_hyp; try some_none.
+      clear MD.
+      rename Heqo0 into MX.
+      unfold mem_block_to_avector in MX.
+      apply vsequence_Vbuild_eq_None in MX.
+      apply is_None_def.
+      destruct o.
+      *
+        destruct MX as [k [kc MX]].
+        inversion kc.
+      *
+        apply evalDSHBinOp_is_None.
+        lia.
+        destruct MX as [k MX].
+        destruct (NatUtil.lt_ge_dec k (S o)) as [kc1 | kc2].
+        --
+          exists k.
+          exists kc1.
+          left.
+          destruct MX as [kc MX].
+          apply is_None_def in MX.
+          eapply MX.
+        --
+          exists (k-(S o)).
+          destruct MX as [kc MX].
+          assert(kc3: k - S o < S o) by lia.
+          exists kc3.
+          right.
+          apply is_None_def in MX.
+          replace (k - S o + S o) with k.
+          apply MX.
+          lia.
+    +
+      constructor.
 Qed.
 
 (* Simple wrapper. *)
