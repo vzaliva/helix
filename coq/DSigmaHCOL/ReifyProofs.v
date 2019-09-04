@@ -795,9 +795,6 @@ Proof.
   simpl.
   unfold MSHCompose, option_compose; simpl.
 
-  (* apply mem_block_exists_exists in MT.
-  destruct MT as [mt MT]. *)
-
   assert(exists mt, memory_lookup (memory_alloc_empty m t_i) t_i ≡ Some mt) as MT.
   {
     exists (mem_empty).
