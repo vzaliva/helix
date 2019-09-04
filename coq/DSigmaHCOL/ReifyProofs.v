@@ -696,13 +696,14 @@ Lemma DSHAlloc_strip
       (m: memory)
       (tcx: t_i ≢ x_i)
       (tcy: t_i ≢ y_i)
-      (tct: memory_lookup m t_i ≡ None) (* [t_i] must not be alloated yet *)
+      (tct: not (mem_block_exists t_i m)) (* [t_i] must not be alloated yet *)
       (mop: MSHOperator)
       (dop: DSHOperator)
       `{MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
   :
     MSH_DSH_compat mop (DSHAlloc size t_i dop) σ m x_i y_i.
 Proof.
+  apply mem_block_not_exists_exists in tct.
   split.
   intros mx mb MX MB.
   inversion_clear H.
@@ -774,7 +775,7 @@ Instance Compose_MSH_DSH_compat
          {t_i x_i y_i: mem_block_id}
          (tcx: t_i ≢ x_i)
          (tcy: t_i ≢ y_i)
-         (tct: memory_lookup m t_i ≡ None) (* [t_i] must not be alloated yet *)
+         (tct: ¬ mem_block_exists t_i m) (* [t_i] must not be allocated yet *)
   :
     MSH_DSH_compat mop2 dop2 σ (memory_alloc_empty m t_i) x_i t_i ->
 

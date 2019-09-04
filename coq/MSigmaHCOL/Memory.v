@@ -63,8 +63,6 @@ Definition mem_empty := @NM.empty CarrierA.
 
 Definition mem_block := NatMap CarrierA.
 
-Definition mem_block_exists := NM.In (elt:=mem_block).
-
 Definition mem_keys (m:NatMap CarrierA): list nat
   := List.map fst (NM.elements m).
 
@@ -204,8 +202,6 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
     | O => mem_empty
     | S n' => mem_add n' v (mem_const_block n' v)
     end.
-
-Definition memory := NatMap mem_block.
 
 (* ------------------ Proofs below ------------------- *)
 
@@ -724,14 +720,60 @@ Proof.
   apply jc.
 Qed.
 
-Lemma mem_block_exists_exists (m:memory) (k:nat):
-  mem_block_exists k m <-> exists y : mem_block, NM.find (elt:=mem_block) k m = Some y.
-Proof.
-  split; intros H.
-  -
-    apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def in H.
-    apply H.
-  -
-    apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def.
-    apply H.
-Qed.
+
+Section Memory_Blocks.
+
+  (* memory is a map of memory blocks *)
+  Definition memory := NatMap mem_block.
+
+  (* Memory block address *)
+  Definition mem_block_id := nat.
+
+  Definition memory_lookup
+             (m: memory)
+             (n: mem_block_id)
+    : option mem_block
+    := NM.find n m.
+
+  Definition memory_set
+             (m: memory)
+             (n: mem_block_id)
+             (v: mem_block)
+    : memory
+    :=
+      NM.add n v m.
+
+  Definition memory_remove
+             (m: memory)
+             (n: mem_block_id)
+    : memory
+    :=
+      NM.remove n m.
+
+  Definition mem_block_exists := NM.In (elt:=mem_block).
+
+  Lemma mem_block_exists_exists (m:memory) (k:nat):
+    mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.
+  Proof.
+    split; intros H.
+    -
+      apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def in H.
+      apply H.
+    -
+      apply NP.F.in_find_iff, is_Some_ne_None, MathClasses.misc.util.is_Some_def.
+      apply H.
+  Qed.
+
+  Lemma mem_block_not_exists_exists (m:memory) (k:nat):
+    not (mem_block_exists k m) <-> memory_lookup m k = None.
+  Proof.
+    split; intros H; unfold mem_block_exists in *.
+    -
+      apply F.not_find_in_iff, H.
+    -
+      intros H1.
+      unfold memory_lookup in H.
+      apply F.not_find_in_iff in H1; congruence.
+  Qed.
+
+End Memory_Blocks.

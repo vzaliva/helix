@@ -69,10 +69,6 @@ Definition DSHIUnCarrierA := AExpr.
 Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
-Definition memory := NatMap mem_block.
-
-(* Memory block address *)
-Definition mem_block_id := nat.
 (* Memory variable along with offset *)
 Definition MemVarRef: Set := (mem_block_id * NExpr).
 

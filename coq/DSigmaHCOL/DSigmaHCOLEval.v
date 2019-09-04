@@ -34,27 +34,6 @@ Definition context_lookup
 Definition context_tl (σ: evalContext) : evalContext
   := List.tl σ.
 
-Definition memory_lookup
-           (m: memory)
-           (n: mem_block_id)
-  : option mem_block
-  := NM.find n m.
-
-Definition memory_set
-           (m: memory)
-           (n: mem_block_id)
-           (v: mem_block)
-  : memory
-  :=
-    NM.add n v m.
-
-Definition memory_remove
-           (m: memory)
-           (n: mem_block_id)
-  : memory
-  :=
-    NM.remove n m.
-
 (* Evaluation of expressions does not allow for side-effects *)
 Definition evalMexp (σ: evalContext) (exp:MExpr): option (mem_block) :=
   match exp with
