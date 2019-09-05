@@ -24,6 +24,7 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.Tactics.HelixTactics.
 
 Open Scope list_scope.
@@ -85,6 +86,24 @@ Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.
 Arguments hopt_i {A B} R.
 
+(* DSH operator as pure function: read input memory block, writes
+   output one and touch nothing else *)
+Class DSH_pure
+      (dop: DSHOperator)
+      (x_i y_i: mem_block_id)
+  := {
+      (* depnds only [x_i] *)
+      mem_read_safe: forall σ m0 m1 fuel,
+        memory_lookup m0 x_i = memory_lookup m1 x_i ->
+        evalDSHOperator σ dop m0 fuel =
+        evalDSHOperator σ dop m1 fuel;
+
+      (* modifies only [y_i] *)
+      mem_write_safe: forall σ m m' fuel,
+          evalDSHOperator σ dop m fuel ≡ Some m' ->
+          forall k, k≢y_i -> memory_lookup m k = memory_lookup m' k
+    }.
+
 
 (* Given MSHCOL and DSHCOL operators are quivalent, if wrt [x_i] and
   input memory block addres and [y_i] as output.
@@ -102,6 +121,7 @@ Class MSH_DSH_compat
       (σ: evalContext)
       (m: memory)
       (x_i y_i: mem_block_id)
+      `{DSH_pure dop x_i y_i}
   := {
       eval_equiv
       :
@@ -214,7 +234,6 @@ Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
       AExpr_typecheck a σ ->
       AExpr_typecheck b σ ->
       AExpr_typecheck (AZless a b) σ.
-
 
 Class MSH_DSH_BinCarrierA_compat
       {o: nat}
@@ -532,6 +551,12 @@ Proof.
       apply DX.
 Qed.
 
+Global Instance BinOp_DSH_pure:
+  DSH_pure (DSHBinOp o x_i y_i df) x_i y_i.
+Proof.
+  split.
+Admitted.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
@@ -688,8 +713,7 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
-(* Note: This is not an instance. *)
-Lemma DSHAlloc_strip
+Instance DSHAlloc_MSH_DSH_compat
       {i o size: nat}
       (x_i y_i t_i: mem_block_id)
       (σ: evalContext)
@@ -699,14 +723,15 @@ Lemma DSHAlloc_strip
       (tct: not (mem_block_exists t_i m)) (* [t_i] must not be alloated yet *)
       (mop: MSHOperator)
       (dop: DSHOperator)
-      `{MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
+      `{P: DSH_pure (DSHAlloc size t_i dop) x_i y_i}
+      `{C: MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
   :
     MSH_DSH_compat mop (DSHAlloc size t_i dop) σ m x_i y_i.
 Proof.
   apply mem_block_not_exists_exists in tct.
   split.
   intros mx mb MX MB.
-  inversion_clear H.
+  inversion_clear C.
   specialize (eval_equiv0 mx mb).
 
   assert(MX': memory_lookup (memory_alloc_empty m t_i) x_i ≡ Some mx).
@@ -736,32 +761,61 @@ Proof.
     +
       unfold memory_lookup, memory_remove in *.
       rewrite NP.F.remove_neq_o by auto.
-      unfold memory_alloc_empty in H1.
-      rewrite Heqo1 in H1.
+      unfold memory_alloc_empty in *.
+      rewrite Heqo1 in H2.
       some_inv.
       subst m0.
-      apply H.
+      apply H0.
     +
-      unfold memory_alloc_empty in H1.
-      rewrite Heqo1 in H1.
+      unfold memory_alloc_empty in *.
+      rewrite Heqo1 in H2.
       some_none.
 Qed.
 
 
 (*
-Lemma mem_op_None {i o : nat}
-      (mop1 : @MSHOperator i o)
-      (mt m0 x : mem_block)
-      (E: SHCOL_DSHCOL_mem_block_equiv mt x m0)
-      (N: mem_op mop1 mt ≡ None):
-  mem_op mop1 m0 ≡ None.
+Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
+  evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
 Proof.
 Admitted.
  *)
 
-Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
-  evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
+Instance Compose_DSH_pure
+         {n: nat}
+         {t_i x_i y_i: mem_block_id}
+         {dop1 dop2: DSHOperator}
+         `{P2: DSH_pure dop2 x_i t_i}
+         `{P1: DSH_pure dop1 t_i y_i}
+         {tcx: t_i ≢ x_i}
+         {tcy: t_i ≢ y_i}
+  : DSH_pure (DSHAlloc n t_i (DSHSeq dop2 dop1)) x_i y_i.
 Proof.
+  split.
+  -
+    intros σ m0 m1 fuel H.
+    destruct fuel; try reflexivity.
+    destruct fuel.
+    +
+      simpl.
+      repeat break_match; try some_none.
+    +
+      simpl.
+      repeat break_match; try some_none.
+      *
+        exfalso.
+        destruct P1, P2.
+
+        eapply mem_write_safe0 in Heqo1.
+        eapply mem_write_safe1 in Heqo2.
+
+
+        specialize (mem_write_safe0 _ _ _ _ Heqo1).
+        specialize (mem_read_safe1 σ m0 m1 fuel H).
+        clear H.
+        clear Heqo1.
+        eapply mem_write_safe1 in Heqo2.
+
+
 Admitted.
 
 Instance Compose_MSH_DSH_compat
@@ -773,9 +827,12 @@ Instance Compose_MSH_DSH_compat
          {m: memory}
          {dop1 dop2: DSHOperator}
          {t_i x_i y_i: mem_block_id}
+         `{P2: DSH_pure dop2 x_i t_i}
+         `{P1: DSH_pure dop1 t_i y_i}
          (tcx: t_i ≢ x_i)
          (tcy: t_i ≢ y_i)
          (tct: ¬ mem_block_exists t_i m) (* [t_i] must not be allocated yet *)
+         `{P: DSH_pure (DSHAlloc o2 t_i (DSHSeq dop2 dop1)) x_i y_i}
   :
     MSH_DSH_compat mop2 dop2 σ (memory_alloc_empty m t_i) x_i t_i ->
 
@@ -788,7 +845,8 @@ Instance Compose_MSH_DSH_compat
       σ m x_i y_i.
 Proof.
   intros E2 E1.
-  apply DSHAlloc_strip; auto.
+  unshelve eapply DSHAlloc_MSH_DSH_compat; auto.
+  apply P.
   split.
   intros mx my MX MY.
 
