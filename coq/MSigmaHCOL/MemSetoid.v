@@ -165,3 +165,42 @@ Proof.
       rewrite Hb in H1.
       some_none.
 Qed.
+
+(* Equality of memory states *)
+Global Instance memory_Equiv: Equiv (memory) :=
+  fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
+
+Global Instance memorey_Equiv_Reflexive:
+  Reflexive (memory_Equiv).
+Proof.
+  unfold memory_Equiv.
+  unfold Reflexive.
+  reflexivity.
+Qed.
+
+Global Instance memory_Equiv_Symmetric:
+  Symmetric (memory_Equiv).
+Proof.
+  unfold memory_Equiv.
+  unfold Symmetric.
+  intros x y H k.
+  specialize (H k).
+  auto.
+Qed.
+
+Global Instance memory_Equiv_Transitive:
+  Transitive (memory_Equiv).
+Proof.
+  unfold memory_Equiv.
+  unfold Transitive.
+  intros x y z H0 H1 k.
+  specialize (H0 k).
+  specialize (H1 k).
+  auto.
+Qed.
+
+Global Instance memory_Equiv_Equivalence:
+  Equivalence (memory_Equiv).
+Proof.
+  split; typeclasses eauto.
+Qed.
