@@ -1,6 +1,7 @@
 Require Import Coq.Arith.Lt.
 Require Import CoLoR.Util.Nat.NatUtil.
 Require Import Coq.Lists.List.
+
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 
@@ -9,6 +10,26 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Import ListNotations.
+
+Fixpoint fold_left_rev
+         {A B : Type}
+         (f : A -> B -> A) (a : A) (l : list B)
+  : A
+  := match l with
+     | List.nil => a
+     | List.cons b l => f (fold_left_rev f a l) b
+     end.
+
+Program Fixpoint Lbuild {A: Type}
+        (n : nat)
+        (gen : forall i, i < n -> A) {struct n}: list A :=
+  match n with
+  | O => List.nil
+  | S p =>
+    let gen' := fun i ip => gen (S i) _ in
+    List.cons (gen 0 _) (@Lbuild A p gen')
+  end.
+Next Obligation. apply Nat.lt_0_succ. Qed.
 
 Global Instance List_equiv
        {A: Type}
@@ -47,8 +68,8 @@ Global Instance Forall2_Transitive
 Proof.
   intros x y z Exy Eyz.
   dependent induction x;
-  dependent induction y;
-  dependent induction z; try auto; inversion Exy; inversion Eyz; subst.
+    dependent induction y;
+    dependent induction z; try auto; inversion Exy; inversion Eyz; subst.
   constructor.
   -
     eapply RR; eauto.
@@ -73,7 +94,31 @@ Proof.
   apply List_Equivalence.
 Qed.
 
-Global Instance nth_error_proper {A: Type} `{Ae: Equiv A} `{AEe: Equivalence A Ae}:
+Global Instance fold_left_rev_proper
+       {A B : Type}
+       `{Eb: Equiv B}
+       `{Ae: Equiv A}
+       `{Equivalence A Ae}
+       (f : A -> B -> A)
+       `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
+       (a : A)
+  :
+    Proper ((=) ==> (=)) (fold_left_rev f a).
+Proof.
+  intros x y E.
+  induction E.
+  -
+    reflexivity.
+  -
+    simpl.
+    apply f_mor; auto.
+Qed.
+
+
+Global Instance nth_error_proper
+       {A: Type}
+       `{Ae: Equiv A}
+       `{AEe: Equivalence A Ae}:
   Proper ((=) ==> (=) ==> (=)) (@nth_error A).
 Proof.
   intros l1 l2 El n1 n2 En.
@@ -97,25 +142,51 @@ Proof.
     auto.
 Qed.
 
-Definition isNth {A:Type} `{Equiv A} (l:list A) (n:nat) (v:A) : Prop :=
-  match nth_error l n with
-  | None => False
-  | Some x => x = v
-  end.
+Definition isNth
+           {A:Type}
+           `{Equiv A}
+           (l:list A)
+           (n:nat)
+           (v:A) : Prop
+  :=
+    match nth_error l n with
+    | None => False
+    | Some x => x = v
+    end.
 
-Lemma isNth_Sn {A:Type} `{Equiv A} (h:A) (l:list A) (n:nat) (v:A):
-  isNth (h :: l) (S n) v ≡ isNth l n v.
+Lemma isNth_Sn
+      {A:Type}
+      `{Equiv A}
+      (h:A)
+      (l:list A)
+      (n:nat)
+      (v:A)
+  :
+    isNth (h :: l) (S n) v ≡ isNth l n v.
 Proof.
   crush.
 Qed.
 
-Definition listsDiffByOneElement {A:Type} `{Ae:Equiv A} (l0 l1:list A) (n:nat) : Prop :=
-  forall i, i≢n -> nth_error l0 i = nth_error l1 i.
+Definition listsDiffByOneElement
+           {A:Type}
+           `{Ae:Equiv A}
+           (l0 l1:list A)
+           (n:nat)
+  : Prop
+  :=
+    forall i, i≢n -> nth_error l0 i = nth_error l1 i.
 
-Lemma listsDiffByOneElement_Sn {A:Type} `{Ae:Equiv A} {Aeq: Equivalence Ae} (h0 h1:A) (l0 l1:list A) (n:nat):
-  h0 = h1 ->
-  listsDiffByOneElement l0 l1 n ->
-  listsDiffByOneElement (h0::l0) (h1::l1) (S n).
+Lemma listsDiffByOneElement_Sn
+      {A:Type}
+      `{Ae:Equiv A}
+      {Aeq: Equivalence Ae}
+      (h0 h1:A)
+      (l0 l1:list A)
+      (n:nat)
+  :
+    h0 = h1 ->
+    listsDiffByOneElement l0 l1 n ->
+    listsDiffByOneElement (h0::l0) (h1::l1) (S n).
 Proof.
   intros E H.
   unfold listsDiffByOneElement in *.
@@ -274,7 +345,7 @@ Section Monadic.
       repeat break_match_hyp; try some_none; clear H.
       +
         remember (λ (i : nat) (ip : i < n), gen (S i)
-                                              (orders.strictly_order_preserving S i n ip)) as gen' eqn:G.
+                                                (orders.strictly_order_preserving S i n ip)) as gen' eqn:G.
         specialize (IHn gen' Heqo0).
         subst gen'.
         destruct IHn as [i [ic IHn]].

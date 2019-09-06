@@ -547,48 +547,6 @@ Section Operators.
   Definition eT_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
 
-  (* TODO: move to Util *)
-  Fixpoint fold_left_rev
-           {A B : Type}
-           (f : A -> B -> A) (a : A) (l : list B)
-    : A
-    := match l with
-       | List.nil => a
-       | List.cons b l => f (fold_left_rev f a l) b
-       end.
-
-  Global Instance fold_left_rev_proper
-         {A B : Type}
-         `{Eb: Equiv B}
-         `{Ae: Equiv A}
-         `{Equivalence A Ae}
-         (f : A -> B -> A)
-         `{f_mor: !Proper ((=) ==> (=) ==> (=)) f}
-         (a : A)
-    :
-      Proper ((=) ==> (=)) (fold_left_rev f a).
-  Proof.
-    intros x y E.
-    induction E.
-    -
-      reflexivity.
-    -
-      simpl.
-      apply f_mor; auto.
-  Qed.
-
-  Program Fixpoint Lbuild {A: Type}
-          (n : nat)
-          (gen : forall i, i < n -> A) {struct n}: list A :=
-    match n with
-    | 0 => List.nil
-    | S p =>
-      let gen' := fun i ip => gen (S i) _ in
-      List.cons (gen 0 _) (@Lbuild A p gen')
-    end.
-  Next Obligation. lia. Qed.
-  Next Obligation. lia. Qed.
-
   (** Apply family of mem functions to same mem_block and return list of results *)
   Definition Apply_mem_Family
              {n: nat}
