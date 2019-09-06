@@ -25,6 +25,7 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ListUtil.
 
 Import MonadNotation.
 Open Scope monad_scope.
@@ -62,9 +63,6 @@ Definition mem_lookup k (m:NatMap CarrierA) := NM.find k m.
 Definition mem_empty := @NM.empty CarrierA.
 
 Definition mem_block := NatMap CarrierA.
-
-Definition mem_keys (m:NatMap CarrierA): list nat
-  := List.map fst (NM.elements m).
 
 Definition mem_keys_lst (m:NatMap CarrierA): list nat :=
   List.map fst (NM.elements m).
@@ -750,7 +748,13 @@ Section Memory_Blocks.
     :=
       NM.remove n m.
 
-  Definition mem_block_exists := NM.In (elt:=mem_block).
+  Definition mem_block_exists
+    := NM.In (elt:=mem_block).
+
+  (* Returns block ID which is guaraneed to be free in [m] *)
+  Definition memory_new
+             (m: memory): mem_block_id
+    := S (fold_left_rev Nat.max 0 (List.map fst (NM.elements m))).
 
   Lemma mem_block_exists_exists (m:memory) (k:nat):
     mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.

@@ -15,6 +15,7 @@ Require Import Helix.Util.FinNatSet.
 Require Import Helix.Util.WriterMonadNoT.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.VecSetoid.
+Require Import Helix.Util.ListUtil.
 Require Import Helix.Util.ListSetoid.
 
 Require Import Helix.HCOL.HCOL.

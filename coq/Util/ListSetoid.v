@@ -2,6 +2,7 @@ Require Import Coq.Arith.Lt.
 Require Import CoLoR.Util.Nat.NatUtil.
 Require Import Coq.Lists.List.
 
+Require Import Helix.Util.ListUtil.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 
@@ -10,26 +11,6 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Import ListNotations.
-
-Fixpoint fold_left_rev
-         {A B : Type}
-         (f : A -> B -> A) (a : A) (l : list B)
-  : A
-  := match l with
-     | List.nil => a
-     | List.cons b l => f (fold_left_rev f a l) b
-     end.
-
-Program Fixpoint Lbuild {A: Type}
-        (n : nat)
-        (gen : forall i, i < n -> A) {struct n}: list A :=
-  match n with
-  | O => List.nil
-  | S p =>
-    let gen' := fun i ip => gen (S i) _ in
-    List.cons (gen 0 _) (@Lbuild A p gen')
-  end.
-Next Obligation. apply Nat.lt_0_succ. Qed.
 
 Global Instance List_equiv
        {A: Type}
