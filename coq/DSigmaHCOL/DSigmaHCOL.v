@@ -79,7 +79,7 @@ Inductive DSHOperator :=
 | DSHMemMap2 (n: nat) (x0_i x1_i y_i: mem_block_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
-| DSHAlloc (size:nat) (y_i: mem_block_id) (body:DSHOperator) (* allocates new uninitialized memory block and puts at specified address. Reading from unitialized offsets is not allowed. The new block will be visible in the scope of [body] *)
+| DSHAlloc (size:nat) (body: mem_block_id -> DSHOperator) (* allocates new uninitialized memory block and puts at specified address. Reading from unitialized offsets is not allowed. The new block will be visible in the scope of [body] *)
 | DSHMemInit (size:nat) (y_i: mem_block_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
 | DSHMemCopy (size:nat) (x_i y_i: mem_block_id)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)

@@ -173,7 +173,7 @@ Fixpoint estimateFuel (s:DSHOperator): nat :=
   | @DSHBinOp _ _ _ _ => 0
   | DSHPower _ _ _ _ _ => 0
   | DSHLoop n body => (S (estimateFuel body)) * n
-  | DSHAlloc _ _ body => S (estimateFuel body)
+  | DSHAlloc _ body => S (estimateFuel (body 0)) (* fake block id *)
   | DSHMemInit _ _ _ => 0
   | DSHMemCopy _ _ _ => 0
   | DSHSeq f g =>
@@ -228,16 +228,13 @@ Fixpoint evalDSHOperator
           m' <- evalDSHOperator (DSHnatVal n :: σ) body m fuel ;;
           ret m'
       end
-    | DSHAlloc size t_i body =>
+    | DSHAlloc size body =>
       match fuel with
       | O => None
       | S fuel =>
-        match memory_lookup m t_i with
-        | Some _ => None (* [t_i] already exists! *)
-        | None =>
-          m' <- evalDSHOperator σ body (memory_set m t_i (mem_empty)) fuel ;;
-             ret (memory_remove m' t_i)
-        end
+        let t_i := memory_new m in
+        m' <- evalDSHOperator σ (body t_i) (memory_set m t_i (mem_empty)) fuel ;;
+           ret (memory_remove m' t_i)
       end
     | DSHMemInit size y_i value =>
       y <- memory_lookup m y_i ;;
