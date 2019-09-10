@@ -75,7 +75,7 @@ Definition MemVarRef: Set := (mem_block_id * NExpr).
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
 | DSHIMap (n: nat) (x_i y_i: mem_block_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n: nat) (x y: mem_block_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHBinOp (n: nat) (x_i y_i: mem_block_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
 | DSHMemMap2 (n: nat) (x0_i x1_i y_i: mem_block_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
@@ -258,6 +258,48 @@ Proof.
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
 Qed.
 
+(* Relation indicating that in given operator memory block is never used *)
+Inductive DSH_mem_block_free: DSHOperator -> mem_block_id -> Prop :=
+| DSHAssign_mem_block_free
+    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
+    {n1 n2}
+  : DSH_mem_block_free (DSHAssign (x_i,n1) (y_i,n2)) x
+| DSHIMap_mem_block_free
+    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
+    {n f}
+  : DSH_mem_block_free (DSHIMap n x_i y_i f) x
+| DSHBinOp_mem_block_free
+    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
+    {n f}
+  : DSH_mem_block_free (DSHBinOp n x_i y_i f) x
+| DSHMemMap2_mem_block_free
+    (x0_i x1_i y_i x: mem_block_id) (x0c: x≢x0_i) (x1c: x≢x1_i) (yc: x≢y_i)
+    {n f}
+  : DSH_mem_block_free (DSHMemMap2 n x0_i x1_i y_i f) x
+| DSHPower_mem_block_free
+    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
+    {n n1 n2 f initial}
+  : DSH_mem_block_free
+      (DSHPower n (x_i,n1) (y_i,n2) f initial) x
+| DSHLoop_mem_block_free
+    {x body n}
+  : DSH_mem_block_free body x -> DSH_mem_block_free (DSHLoop n body) x
+| DSHAlloc_mem_block_free
+    {size body x}
+  : (forall (t_i:mem_block_id) (tc:t_i≢x), DSH_mem_block_free (body t_i) x) ->
+    DSH_mem_block_free (DSHAlloc size body) x
+| DSHMemInit_mem_block_free
+    (y_i x: mem_block_id) (yc: x≢y_i)
+    {size value}
+  : DSH_mem_block_free (DSHMemInit size y_i value) x
+| DSHMemCopy_mem_block_free
+    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
+    {size}
+  : DSH_mem_block_free (DSHMemCopy size x_i y_i) x
+| DSHSeq_mem_block_free
+    (x: mem_block_id)
+    {f g}
+  : DSH_mem_block_free f x -> DSH_mem_block_free g x -> DSH_mem_block_free (DSHSeq f g) x.
 
 Module DSHNotation.
 

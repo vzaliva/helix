@@ -713,6 +713,63 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
+(*
+Instance DSHAlloc_pure
+         (x_i y_i t_i: mem_block_id)
+         (size: nat)
+         (dop: mem_block_id -> DSHOperator)
+
+         (tcx: t_i ≢ x_i)
+         (tcy: t_i ≢ y_i)
+         (F: forall p_i (pc:p_i≢t_i), DSH_mem_block_free (dop p_i) t_i)
+         `{P: DSH_pure (dop t_i) x_i y_i}
+  :
+    DSH_pure (DSHAlloc size dop) x_i y_i.
+Proof.
+  destruct P as [P0 P1].
+  split.
+  -
+    intros σ m0 m1 fuel M.
+    clear P1.
+    specialize (P0 σ m0 m1 fuel M).
+    clear M.
+    destruct fuel.
+    reflexivity.
+    simpl.
+
+    remember (memory_new m0) as t0 eqn:T0.
+    remember (memory_new m1) as t1 eqn:T1.
+
+    repeat break_match; try some_none.
+    +
+      admit.
+    +
+      exfalso.
+      admit.
+    +
+      exfalso.
+      admit.
+  -
+    intros σ m m' fuel E k kc.
+    clear P0.
+    specialize (P1 σ m m' fuel).
+    destruct fuel; simpl in E; try some_none.
+    break_match_hyp; try some_none.
+    remember (memory_new m) as t eqn:T.
+    some_inv.
+    subst m'.
+    apply P1; auto.
+    clear P1.
+
+    specialize (F t).
+    destruct (Nat.eq_dec t t_i) as [TE|NTE].
+    +
+      subst t t_i.
+      clear F.
+      remember (memory_new m) as t eqn:T.
+
+Qed.
+
 Instance DSHAlloc_MSH_DSH_compat
       {i o size: nat}
       (x_i y_i t_i: mem_block_id)
@@ -722,11 +779,11 @@ Instance DSHAlloc_MSH_DSH_compat
       (tcy: t_i ≢ y_i)
       (tct: not (mem_block_exists t_i m)) (* [t_i] must not be alloated yet *)
       (mop: MSHOperator)
-      (dop: DSHOperator)
-      `{P: DSH_pure (DSHAlloc size t_i dop) x_i y_i}
-      `{C: MSH_DSH_compat i o mop dop σ (memory_alloc_empty m t_i) x_i y_i}
+      (dop: mem_block_id -> DSHOperator)
+      `{P: DSH_pure (DSHAlloc size dop) x_i y_i}
+      `{C: MSH_DSH_compat i o mop (dop t_i) σ (memory_alloc_empty m t_i) x_i y_i}
   :
-    MSH_DSH_compat mop (DSHAlloc size t_i dop) σ m x_i y_i.
+    MSH_DSH_compat mop (DSHAlloc size dop) σ m x_i y_i.
 Proof.
   apply mem_block_not_exists_exists in tct.
   split.
@@ -772,7 +829,7 @@ Proof.
       some_none.
 Qed.
 
-
+*)
 (*
 Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
   evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
@@ -786,9 +843,7 @@ Instance Compose_DSH_pure
          {dop1 dop2: DSHOperator}
          `{P2: DSH_pure dop2 x_i t_i}
          `{P1: DSH_pure dop1 t_i y_i}
-         {tcx: t_i ≢ x_i}
-         {tcy: t_i ≢ y_i}
-  : DSH_pure (DSHAlloc n t_i (DSHSeq dop2 dop1)) x_i y_i.
+  : DSH_pure (DSHAlloc n (fun t_i => DSHSeq dop2 dop1)) x_i y_i.
 Proof.
   split.
   -
