@@ -12,27 +12,20 @@ Definition var_id := nat.
 Inductive DSHType :=
 | DSHnat : DSHType
 | DSHCarrierA : DSHType
-| DSHMemBlock : DSHType.
+| DSHMemBlock : DSHType
+| DSHPtr : DSHType.
 
 Inductive DSHVal :=
 | DSHnatVal (n:nat): DSHVal
 | DSHCarrierAVal (a:CarrierA): DSHVal
-| DSHmemVal (m:mem_block): DSHVal.
+| DSHMemVal (m:mem_block): DSHVal
+| DSHPtrVal (a:mem_block_id): DSHVal.
 
 Inductive DSHValType: DSHVal -> DSHType -> Prop :=
   | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
   | DSHCarrierAVal_type (a:CarrierA): DSHValType (DSHCarrierAVal a) DSHCarrierA
-  | DSHmemVal_type (m:mem_block): DSHValType (DSHmemVal m)  DSHMemBlock.
-
-(*
-Same as above but function
-Definition DSHVal2Type_f (v:DSHVal) : DSHType :=
-  match v with
-  | DSHnatVal _ => DSHnat
-  | DSHCarrierAVal _ => DSHCarrierA
-  | DSHmemVal _ =>  DSHMemBlock
-  end.
- *)
+  | DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
+  | DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
@@ -62,7 +55,11 @@ NExpr: Type :=
 with
 MExpr: Type :=
 | MVar:  var_id -> MExpr
-| MConst: mem_block -> MExpr.
+| MConst: mem_block -> MExpr
+with
+PExpr: Type :=
+| PVar:  var_id -> PExpr
+| PConst: mem_block_id -> PExpr.
 
 Definition DSHUnCarrierA := AExpr.
 Definition DSHIUnCarrierA := AExpr.
@@ -70,18 +67,18 @@ Definition DSHBinCarrierA := AExpr.
 Definition DSHIBinCarrierA := AExpr.
 
 (* Memory variable along with offset *)
-Definition MemVarRef: Set := (mem_block_id * NExpr).
+Definition MemVarRef: Set := (PExpr * NExpr).
 
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
-| DSHIMap (n: nat) (x_i y_i: mem_block_id) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n: nat) (x_i y_i: mem_block_id) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
-| DSHMemMap2 (n: nat) (x0_i x1_i y_i: mem_block_id) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
+| DSHIMap (n: nat) (x_i y_i: PExpr) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHBinOp (n: nat) (x_i y_i: PExpr) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHMemMap2 (n: nat) (x0_i x1_i y_i: PExpr) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
-| DSHAlloc (size:nat) (body: mem_block_id -> DSHOperator) (* allocates new uninitialized memory block and puts at specified address. Reading from unitialized offsets is not allowed. The new block will be visible in the scope of [body] *)
-| DSHMemInit (size:nat) (y_i: mem_block_id) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
-| DSHMemCopy (size:nat) (x_i y_i: mem_block_id)(* copy memory blocks. Overwrites output block values, if present *)
+| DSHAlloc (size:nat) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
+| DSHMemInit (size:nat) (y_i: PExpr) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
+| DSHMemCopy (size:nat) (x_i y_i: PExpr)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
 .
 
@@ -95,7 +92,8 @@ Require Import Helix.Tactics.HelixTactics.
 Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
 | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
 | DSHCarrierAVal_equiv {a b: CarrierA}: a=b -> DSHVal_equiv (DSHCarrierAVal a) (DSHCarrierAVal b)
-| DSHmemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHmemVal m0) (DSHmemVal m1).
+| DSHMemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHMemVal m0) (DSHMemVal m1)
+| DSHPtr_equiv {p0 p1: mem_block_id}: p0=p1 -> DSHVal_equiv (DSHPtrVal p0) (DSHPtrVal p1).
 
 Global Instance DSHVar_Equivalence:
   Equivalence DSHVal_equiv.
@@ -125,6 +123,10 @@ Proof.
       constructor.
       rewrite H.
       apply H2.
+    +
+      subst.
+      constructor.
+      auto.
 Qed.
 
 Global Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
@@ -178,6 +180,28 @@ Global Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
 
 Global Instance MExpr_Equivalence:
   Equivalence MExpr_equiv.
+Proof.
+  split.
+  -
+    intros x.
+    induction x; constructor; auto.
+  -
+    intros x y E.
+    induction E; constructor; try symmetry; assumption.
+  -
+    intros x y z Exy Eyz.
+    induction Exy; inversion Eyz; subst;
+      constructor; auto.
+Qed.
+
+Inductive PExpr_equiv : PExpr -> PExpr -> Prop :=
+| PVar_equiv {n0 n1}: n0=n1 -> PExpr_equiv (PVar n0) (PVar n1)
+| PConst_equiv {a b: mem_block_id}: a=b -> PExpr_equiv (PConst a) (PConst b).
+
+Global Instance PExpr_Equiv: Equiv PExpr := PExpr_equiv.
+
+Global Instance PExpr_Equivalence:
+  Equivalence PExpr_equiv.
 Proof.
   split.
   -
@@ -258,48 +282,6 @@ Proof.
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
 Qed.
 
-(* Relation indicating that in given operator memory block is never used *)
-Inductive DSH_mem_block_free: DSHOperator -> mem_block_id -> Prop :=
-| DSHAssign_mem_block_free
-    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
-    {n1 n2}
-  : DSH_mem_block_free (DSHAssign (x_i,n1) (y_i,n2)) x
-| DSHIMap_mem_block_free
-    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
-    {n f}
-  : DSH_mem_block_free (DSHIMap n x_i y_i f) x
-| DSHBinOp_mem_block_free
-    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
-    {n f}
-  : DSH_mem_block_free (DSHBinOp n x_i y_i f) x
-| DSHMemMap2_mem_block_free
-    (x0_i x1_i y_i x: mem_block_id) (x0c: x≢x0_i) (x1c: x≢x1_i) (yc: x≢y_i)
-    {n f}
-  : DSH_mem_block_free (DSHMemMap2 n x0_i x1_i y_i f) x
-| DSHPower_mem_block_free
-    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
-    {n n1 n2 f initial}
-  : DSH_mem_block_free
-      (DSHPower n (x_i,n1) (y_i,n2) f initial) x
-| DSHLoop_mem_block_free
-    {x body n}
-  : DSH_mem_block_free body x -> DSH_mem_block_free (DSHLoop n body) x
-| DSHAlloc_mem_block_free
-    {size body x}
-  : (forall (t_i:mem_block_id) (tc:t_i≢x), DSH_mem_block_free (body t_i) x) ->
-    DSH_mem_block_free (DSHAlloc size body) x
-| DSHMemInit_mem_block_free
-    (y_i x: mem_block_id) (yc: x≢y_i)
-    {size value}
-  : DSH_mem_block_free (DSHMemInit size y_i value) x
-| DSHMemCopy_mem_block_free
-    (x_i y_i x: mem_block_id) (xc: x≢x_i) (yc: x≢y_i)
-    {size}
-  : DSH_mem_block_free (DSHMemCopy size x_i y_i) x
-| DSHSeq_mem_block_free
-    (x: mem_block_id)
-    {f g}
-  : DSH_mem_block_free f x -> DSH_mem_block_free g x -> DSH_mem_block_free (DSHSeq f g) x.
 
 Module DSHNotation.
 

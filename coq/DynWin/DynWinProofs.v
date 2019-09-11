@@ -235,9 +235,13 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 
 Section MSHCOL_to_DSHCOL.
 
-  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1").
+  (* tt <- tmQuote DSHnat ;; *)
+     Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"
+                               List.nil (*        [(nNamed "x",tt); (nNamed "y",tt)] *)
+                                      (PVar 1) (PVar 0)
+                         ).
   Import DSHNotation.
-  (* Print dynwin_DSHCOL1. *)
+  Print dynwin_DSHCOL1.
 
 End MSHCOL_to_DSHCOL.
 
