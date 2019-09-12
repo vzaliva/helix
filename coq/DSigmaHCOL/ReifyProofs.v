@@ -113,14 +113,14 @@ Class DSH_pure
   := {
       (* depnds only [x_p] *)
       mem_read_safe: forall σ m0 m1 fuel,
-        Same_at_at_Pexp σ m0 m1 x_p ->
+        Same_at_Pexp σ m0 m1 x_p ->
         evalDSHOperator σ dop m0 fuel =
         evalDSHOperator σ dop m1 fuel;
 
       (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ dop m fuel ≡ Some m' ->
-          forall p, evalPexp σ p ≢ evalPexp σ y_p -> Same_at_at_Pexp σ m m' p
+          forall p, evalPexp σ p ≢ evalPexp σ y_p -> Same_at_Pexp σ m m' p
     }.
 
 
