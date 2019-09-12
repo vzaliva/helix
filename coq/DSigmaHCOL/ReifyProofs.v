@@ -563,33 +563,30 @@ Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-       (x_i y_i : mem_block_id)
+       (x_p y_p : PExpr)
        (df : DSHIBinCarrierA)
        (σ: evalContext)
        (m: memory)
        `{MSH_DSH_BinCarrierA_compat _ f σ df}
   :
-    MSH_DSH_compat (MSHBinOp f) (DSHBinOp o x_i y_i df) σ m x_i y_i.
+    MSH_DSH_compat (MSHBinOp f) (DSHBinOp o x_p y_p df) σ m x_p y_p.
 Proof.
   split.
   intros mx mb MX MB.
   simpl.
   destruct (mem_op_of_hop (HCOL.HBinOp f) mx) as [md|] eqn:MD.
   -
-    repeat break_match; try some_none.
+    unfold lookup_Pexp in *.
+    simpl in *.
+    repeat break_match; subst; try some_none.
     +
       constructor.
       unfold memory_lookup, memory_set.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
-      clear Heqo0 Heqo1 m x_i y_i.
-      rename Heqo2 into ME.
-      some_inv.
-      some_inv.
-      subst m1.
-      subst m0.
-      rename m2 into ma.
-      clear pF.
+      repeat some_inv.
+      subst m3 m2.
+      rename Heqo4 into ME.
       intros k.
 
       unfold mem_op_of_hop in MD.
@@ -628,12 +625,12 @@ Proof.
           simpl in FV.
           rewrite FV.
 
-          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc1)) as MVA.
-          pose proof (mem_block_to_avector_nth Heqo0 (kc:=kc2)) as MVB.
+          pose proof (mem_block_to_avector_nth Heqo4 (kc:=kc1)) as MVA.
+          pose proof (mem_block_to_avector_nth Heqo4 (kc:=kc2)) as MVB.
 
           repeat f_equiv.
-          apply Some_inj_eq; rewrite <- A; apply MVA.
-          apply Some_inj_eq; rewrite <- B; apply MVB.
+          apply Some_inj_equiv ; rewrite <- A; apply Option_equiv_eq; apply MVA.
+          apply Some_inj_equiv; rewrite <- B; apply Option_equiv_eq; apply MVB.
       *
         (* k >= 0 *)
         simpl in *.
@@ -649,10 +646,9 @@ Proof.
     +
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
-      clear m Heqo0 Heqo1 x_i y_i.
       repeat some_inv.
-      subst m1. subst m0.
-      rename Heqo2 into E.
+      subst m3. subst m2.
+      rename Heqo4 into E.
 
       apply eq_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
@@ -668,16 +664,17 @@ Proof.
       apply equiv_Some_is_Some in FV.
       apply FV.
   -
+    unfold lookup_Pexp in *.
+    simpl in *.
     repeat break_match; try some_none.
     +
       apply Some_ne_None in Heqo2.
       contradict Heqo2.
-      clear m2 Heqo0 Heqo1.
-      repeat some_inv;subst m1 m0.
+      repeat some_inv. subst m3 m2.
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
       clear MD.
-      rename Heqo0 into MX.
+      rename Heqo2 into MX.
       unfold mem_block_to_avector in MX.
       apply vsequence_Vbuild_eq_None in MX.
       apply is_None_def.
@@ -686,6 +683,11 @@ Proof.
         destruct MX as [k [kc MX]].
         inversion kc.
       *
+        contradict Heqo4.
+        apply None_ne_Some.
+        apply is_None_def.
+
+
         apply evalDSHBinOp_is_None.
         lia.
         destruct MX as [k MX].
