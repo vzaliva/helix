@@ -29,6 +29,15 @@ Require Import Helix.Tactics.HelixTactics.
 
 Open Scope list_scope.
 
+Require Import ExtLib.Structures.Monads.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Import MonadNotation.
+Local Open Scope monad_scope.
+Local Open Scope nat_scope.
+
+
+
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
 Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
@@ -86,22 +95,32 @@ Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.
 Arguments hopt_i {A B} R.
 
+Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
+  a <- evalPexp σ p ;;
+      memory_lookup m a.
+
+Definition Same_at_at_Pexp (σ:evalContext) (m0 m1:memory) (p:PExpr) : Prop :=
+  match evalPexp σ p with
+  | None => True
+  | Some a => memory_lookup m0 a = memory_lookup m1 a
+  end.
+
 (* DSH operator as pure function: read input memory block, writes
    output one and touch nothing else *)
 Class DSH_pure
       (dop: DSHOperator)
-      (x_i y_i: mem_block_id)
+      (x_p y_p: PExpr)
   := {
-      (* depnds only [x_i] *)
+      (* depnds only [x_p] *)
       mem_read_safe: forall σ m0 m1 fuel,
-        memory_lookup m0 x_i = memory_lookup m1 x_i ->
+        Same_at_at_Pexp σ m0 m1 x_p ->
         evalDSHOperator σ dop m0 fuel =
         evalDSHOperator σ dop m1 fuel;
 
-      (* modifies only [y_i] *)
+      (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ dop m fuel ≡ Some m' ->
-          forall k, k≢y_i -> memory_lookup m k = memory_lookup m' k
+          forall p, evalPexp σ p ≢ evalPexp σ y_p -> Same_at_at_Pexp σ m m' p
     }.
 
 
@@ -120,35 +139,19 @@ Class MSH_DSH_compat
       (dop: DSHOperator)
       (σ: evalContext)
       (m: memory)
-      (x_i y_i: mem_block_id)
-      `{DSH_pure dop x_i y_i}
+      (x_p y_p: PExpr)
+      `{DSH_pure dop x_p y_p}
   := {
       eval_equiv
       :
         forall (mx mb: mem_block),
-          (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
-          (memory_lookup m y_i ≡ Some mb) (* output before *) ->
+          (lookup_Pexp σ m x_p ≡ Some mx) (* input exists *) ->
+          (lookup_Pexp σ m y_p ≡ Some mb) (* output before *) ->
 
           (hopt_r (fun md (* memory diff *) m' (* memory state after execution *) =>
                      opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-                           ) (memory_lookup m' y_i)
+                           ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
-
-      (*
-      eval_equiv':
-        forall (mx mb: mem_block),
-          (memory_lookup m x_i ≡ Some mx) (* input exists *) ->
-          (memory_lookup m y_i ≡ Some mb) (* output before *) ->
-
-          match mem_op mop mx, evalDSHOperator σ dop m (estimateFuel dop) with
-          | Some md, (* memory diff *) Some m' (* memory state after execution *) =>
-            match memory_lookup m' y_i with
-            | Some ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-            | None => False (* out memory block dissapeared *)
-            end
-          | None, None => True (* assume they are equal on *invalid* inputs [see note above] *)
-          end
-       *)
     }.
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
@@ -197,6 +200,12 @@ Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
 | MVar_tc (σ: evalContext) (n:var_id):
     context_pos_typecheck σ n DSHMemBlock -> MExpr_typecheck (MVar n) σ
 | MConst_tc (σ: evalContext) {a}: MExpr_typecheck (MConst a) σ.
+
+(* Check if [MExpr] is properly typed in given evaluation context *)
+Inductive PExpr_typecheck: PExpr -> evalContext -> Prop :=
+| PVar_tc (σ: evalContext) (n:var_id):
+    context_pos_typecheck σ n DSHPtr -> PExpr_typecheck (PVar n) σ
+| PConst_tc (σ: evalContext) {a}: PExpr_typecheck (PConst a) σ.
 
 (* Check if [AExpr] is properly typed in given evaluation context *)
 Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
@@ -271,13 +280,6 @@ Proof.
     unfold evalIBinCarrierA.
     f_equiv.
 Qed.
-
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Monads.OptionMonad.
-
-Import MonadNotation.
-Local Open Scope monad_scope.
-Local Open Scope nat_scope.
 
 Lemma evalDSHBinOp_mem_lookup_mx
       {n off: nat}
