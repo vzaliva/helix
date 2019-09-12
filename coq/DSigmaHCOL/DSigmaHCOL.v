@@ -282,6 +282,11 @@ Proof.
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
 Qed.
 
+Definition incrPVar (p: PExpr) : PExpr :=
+  match p with
+  | PVar var_id => PVar (S var_id)
+  | PConst _ => p
+  end.
 
 Module DSHNotation.
 

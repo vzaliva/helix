@@ -163,12 +163,6 @@ Run TemplateProgram
     ).
 
 
-Definition incrPVar (p: PExpr) : PExpr :=
-  match p with
-  | PVar var_id => PVar (S var_id)
-  | PConst _ => p
-  end.
-
 (* return tuple: vars, [DSHOperator x_i y_i] *)
 Fixpoint compileMSHCOL2DSHCOL
          (vars:varbindings)
