@@ -62,11 +62,18 @@ Section opt_p.
 
   Variables (A : Type) (P : A -> Prop).
 
+  (* lifting Predicate to option. None is not allowed *)
   Inductive opt_p : (option A) -> Prop :=
   | opt_p_intro : forall x, P x -> opt_p (Some x).
 
+  (* lifting Predicate to option. None is allowed *)
+  Inductive opt_p_n : (option A) -> Prop :=
+  | opt_p_None_intro: opt_p_n None
+  | opt_p_Some_intro : forall x, P x -> opt_p_n (Some x).
+
 End opt_p.
 Arguments opt_p {A} P.
+Arguments opt_p_n {A} P.
 
 (* Extension to [option _] of a heterogenous relation on [A] [B]
 TODO: move
@@ -99,28 +106,66 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
       memory_lookup m a.
 
-Definition Same_at_at_Pexp (σ:evalContext) (m0 m1:memory) (p:PExpr) : Prop :=
-  match evalPexp σ p with
-  | None => True
-  | Some a => memory_lookup m0 a = memory_lookup m1 a
-  end.
+Definition memory_lookup_flip a m0 := memory_lookup m0 a.
+
+Check opt_p.
+Check opt_p_n.
+
+(* [p] is either invalid in both given environments, or resolves
+   to a memory address withich points to valid memory blocks at both
+   which must be equal to each toher.
+ *)
+Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
+  := fun m0 m1 => opt_r (fun a0 a1 =>
+                        (opt equiv (memory_lookup m0 a0) (memory_lookup m1 a1)))
+                     (evalPexp σ0 p) (evalPexp σ1 p).
+
+(* NOTE: [evalPexp] and [memory_lookup] may fail (but for both blocks) *)
+Definition blocks_equiv_if_exist_at_Pexp (σ:evalContext) (p:PExpr) : rel (memory)
+  := fun m0 m1 =>
+       opt_p_n (fun a => opt_r equiv (memory_lookup m0 a) (memory_lookup m1 a))
+               (evalPexp σ p).
+
+(*
+(* [blocks_Same_at_Pexp] is stronger than [blocks_Same_if_exist_at_Pexp] *)
+Lemma blocks_Same_at_Pexp_impl (σ:evalContext) (p:PExpr) (m0 m1: memory) :
+  blocks_Same_at_Pexp σ p m0 m1 -> blocks_Same_if_exist_at_Pexp σ p m0 m1.
+Proof.
+  unfold blocks_Same_if_exist_at_Pexp, blocks_Same_at_Pexp.
+  intros H.
+  inversion H.
+  constructor.
+  invc H.
+  assert(X: x ≡ x0).
+  {
+    apply Some_inj_eq.
+    rewrite H0, H2.
+    reflexivity.
+  }
+  subst x0. clear H3.
+  invc H1.
+  constructor.
+  apply H4.
+Qed.
+ *)
 
 (* DSH operator as pure function: read input memory block, writes
    output one and touch nothing else *)
 Class DSH_pure
-      (dop: DSHOperator)
+      (d: DSHOperator)
       (x_p y_p: PExpr)
   := {
-      (* depnds only [x_p] *)
-      mem_read_safe: forall σ m0 m1 fuel,
-        Same_at_Pexp σ m0 m1 x_p ->
-        evalDSHOperator σ dop m0 fuel =
-        evalDSHOperator σ dop m1 fuel;
+
+      (* depnds only [x_p*env], which must be valid in [σ] *)
+      mem_read_safe: forall σ0 σ1 m0 m1 fuel,
+        blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
+        evalDSHOperator σ0 d m0 fuel =
+        evalDSHOperator σ1 d m1 fuel;
 
       (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
-          evalDSHOperator σ dop m fuel ≡ Some m' ->
-          forall p, evalPexp σ p ≢ evalPexp σ y_p -> Same_at_Pexp σ m m' p
+          evalDSHOperator σ d m fuel ≡ Some m' ->
+          forall p, evalPexp σ p ≢ evalPexp σ y_p -> blocks_equiv_if_exist_at_Pexp σ p m m'
     }.
 
 
@@ -717,62 +762,68 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
-(*
-Instance DSHAlloc_pure
-         (x_i y_i t_i: mem_block_id)
-         (size: nat)
-         (dop: mem_block_id -> DSHOperator)
+(* TODO: move *)
+Lemma evalPexp_incrPVar
+      (p : PExpr)
+      (σ : evalContext)
+      (n: DSHVal):
+  evalPexp (n :: σ) (incrPVar p) ≡ evalPexp σ p.
+Proof.
+  destruct p;crush.
+Qed.
 
-         (tcx: t_i ≢ x_i)
-         (tcy: t_i ≢ y_i)
-         (F: forall p_i (pc:p_i≢t_i), DSH_mem_block_free (dop p_i) t_i)
-         `{P: DSH_pure (dop t_i) x_i y_i}
+Instance DSHAlloc_pure
+         (x_p y_p: PExpr)
+         (size: nat)
+         (dop: DSHOperator)
+         `{P: DSH_pure dop (incrPVar x_p) (incrPVar y_p)}
   :
-    DSH_pure (DSHAlloc size dop) x_i y_i.
+    DSH_pure (DSHAlloc size dop) x_p y_p.
 Proof.
   destruct P as [P0 P1].
   split.
   -
-    intros σ m0 m1 fuel M.
+    intros σ0 σ1 m0 m1 fuel M.
     clear P1.
-    specialize (P0 σ m0 m1 fuel M).
-    clear M.
     destruct fuel.
     reflexivity.
+
     simpl.
 
-    remember (memory_new m0) as t0 eqn:T0.
-    remember (memory_new m1) as t1 eqn:T1.
+    remember (memory_set m0 (memory_new m0) mem_empty) as m0'.
+    remember (memory_set m1 (memory_new m1) mem_empty) as m1'.
+
+    remember (DSHPtrVal (memory_new m0) :: σ0) as σ0'.
+    remember (DSHPtrVal (memory_new m1) :: σ1) as σ1'.
 
     repeat break_match; try some_none.
     +
+      f_equiv.
       admit.
     +
       exfalso.
-      admit.
-    +
-      exfalso.
-      admit.
-  -
-    intros σ m m' fuel E k kc.
-    clear P0.
-    specialize (P1 σ m m' fuel).
-    destruct fuel; simpl in E; try some_none.
-    break_match_hyp; try some_none.
-    remember (memory_new m) as t eqn:T.
-    some_inv.
-    subst m'.
-    apply P1; auto.
-    clear P1.
+      unfold blocks_equiv_at_Pexp in M.
+      invc M.
+      *
+        assert(evalDSHOperator (DSHPtrVal (memory_new m0) :: σ0) dop
+                               (memory_set m0 (memory_new m0) mem_empty) fuel =
 
-    specialize (F t).
-    destruct (Nat.eq_dec t t_i) as [TE|NTE].
-    +
-      subst t t_i.
-      clear F.
-      remember (memory_new m) as t eqn:T.
+               evalDSHOperator (DSHPtrVal (memory_new m1) :: σ1) dop
+                               (memory_set m1 (memory_new m1) mem_empty) fuel).
+        {
+          apply P0.
+          unfold blocks_equiv_at_Pexp.
+          rewrite 2!evalPexp_incrPVar.
+          rewrite <- H0, <-H.
+          constructor.
+        }
+        rewrite Heqo, Heqo0 in H1.
+        some_none.
+      *
 
 Qed.
+
+(*
 
 Instance DSHAlloc_MSH_DSH_compat
       {i o size: nat}
@@ -843,11 +894,11 @@ Admitted.
 
 Instance Compose_DSH_pure
          {n: nat}
-         {t_i x_i y_i: mem_block_id}
+         {t_p y_p: PExpr}
          {dop1 dop2: DSHOperator}
-         `{P2: DSH_pure dop2 x_i t_i}
-         `{P1: DSH_pure dop1 t_i y_i}
-  : DSH_pure (DSHAlloc n (fun t_i => DSHSeq dop2 dop1)) x_i y_i.
+         `{P2: DSH_pure dop2 x_p (PVar 0)}
+         `{P1: DSH_pure dop1 (PVar 0) y_p}
+  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (incrPVar x_p) (incrPVar y_p).
 Proof.
   split.
   -
@@ -861,11 +912,10 @@ Proof.
       simpl.
       repeat break_match; try some_none.
       *
-        exfalso.
         destruct P1, P2.
 
-        eapply mem_write_safe0 in Heqo1.
-        eapply mem_write_safe1 in Heqo2.
+        apply mem_write_safe0 with (p:=x_p) in Heqo0.
+        eapply mem_write_safe1 in Heqo1.
 
 
         specialize (mem_write_safe0 _ _ _ _ Heqo1).
