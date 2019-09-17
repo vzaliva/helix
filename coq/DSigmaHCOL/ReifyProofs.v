@@ -769,7 +769,21 @@ Lemma evalPexp_incrPVar
       (n: DSHVal):
   evalPexp (n :: σ) (incrPVar p) ≡ evalPexp σ p.
 Proof.
-  destruct p;crush.
+  destruct p;constructor.
+Qed.
+
+(* TODO: move *)
+Lemma blocks_equiv_at_Pexp_incrVar
+      (p : PExpr)
+      (σ : evalContext)
+      (m0 m1: memory)
+  : blocks_equiv_at_Pexp σ p m0 m1 ->
+    forall v, blocks_equiv_at_Pexp (v::σ) (incrPVar p) m0 m1.
+Proof.
+  intros H v.
+  unfold blocks_equiv_at_Pexp.
+  rewrite evalPexp_incrPVar.
+  apply H.
 Qed.
 
 Instance DSHAlloc_pure
