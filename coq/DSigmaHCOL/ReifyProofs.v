@@ -55,7 +55,7 @@ Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
 
 Require Import CoLoR.Util.Relation.RelUtil.
 
-(* option predicate. None is not allowed
+(*
 TODO: move
 *)
 Section opt_p.
@@ -107,20 +107,18 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
       memory_lookup m a.
 
 Definition memory_lookup_flip a m0 := memory_lookup m0 a.
+(*
+   - [evalPexp σ p] allowed to fail
+   - [memory_lookup] must succeed
+*)
+Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
+  := fun m0 m1 => opt_p_n (fun a => (opt equiv (memory_lookup m0 a) (memory_lookup m1 a)))
+                       (evalPexp σ p).
 
-Check opt_p.
-Check opt_p_n.
-
-(* [p] is either invalid in both given environments, or resolves
-   to a memory address withich points to valid memory blocks at both
-   which must be equal to each toher.
- *)
-Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
-  := fun m0 m1 => opt_r (fun a0 a1 =>
-                        (opt equiv (memory_lookup m0 a0) (memory_lookup m1 a1)))
-                     (evalPexp σ0 p) (evalPexp σ1 p).
-
-(* NOTE: [evalPexp] and [memory_lookup] may fail (but for both blocks) *)
+(*
+   - [evalPexp σ p] allowed to fail
+   - [memory_lookup] can fail but in both cases
+*)
 Definition blocks_equiv_if_exist_at_Pexp (σ:evalContext) (p:PExpr) : rel (memory)
   := fun m0 m1 =>
        opt_p_n (fun a => opt_r equiv (memory_lookup m0 a) (memory_lookup m1 a))
@@ -157,10 +155,12 @@ Class DSH_pure
   := {
 
       (* depnds only [x_p*env], which must be valid in [σ] *)
-      mem_read_safe: forall σ0 σ1 m0 m1 fuel,
-        blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
-        evalDSHOperator σ0 d m0 fuel =
-        evalDSHOperator σ1 d m1 fuel;
+      mem_read_safe: forall σ m0 m1 fuel,
+        blocks_equiv_at_Pexp σ x_p m0 m1 ->
+        opt_r
+          (blocks_equiv_at_Pexp σ y_p)
+          (evalDSHOperator σ d m0 fuel)
+          (evalDSHOperator σ d m1 fuel);
 
       (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
@@ -775,7 +775,7 @@ Qed.
 Instance DSHAlloc_pure
          (x_p y_p: PExpr)
          (size: nat)
-         (dop: DSHOperator)
+         (d: DSHOperator)
          `{P: DSH_pure dop (incrPVar x_p) (incrPVar y_p)}
   :
     DSH_pure (DSHAlloc size dop) x_p y_p.
@@ -783,44 +783,42 @@ Proof.
   destruct P as [P0 P1].
   split.
   -
-    intros σ0 σ1 m0 m1 fuel M.
+    intros σ m0 m1 fuel M.
     clear P1.
-    destruct fuel.
-    reflexivity.
 
+    destruct fuel.
+    constructor.
     simpl.
 
-    remember (memory_set m0 (memory_new m0) mem_empty) as m0'.
-    remember (memory_set m1 (memory_new m1) mem_empty) as m1'.
+    remember (memory_new m0) as t0_p.
+    remember (memory_new m1) as t1_p.
+    remember (memory_set m0 t0_p mem_empty) as m0'.
+    remember (memory_set m1 t1_p mem_empty) as m1'.
 
-    remember (DSHPtrVal (memory_new m0) :: σ0) as σ0'.
-    remember (DSHPtrVal (memory_new m1) :: σ1) as σ1'.
+    remember (DSHPtrVal t0_p :: σ) as σ0.
+    remember (DSHPtrVal t1_p :: σ) as σ1.
 
-    repeat break_match; try some_none.
+    repeat break_match.
     +
-      f_equiv.
+      rename m into m0'', m2 into m1'',
+      Heqo into E0, Heqo0 into E1.
+
+      constructor.
+      unfold blocks_equiv_at_Pexp.
+      destruct(evalPexp σ y_p) eqn:P.
+      *
+        constructor.
+        admit.
+      *
+        constructor.
+    +
+      exfalso.
       admit.
     +
       exfalso.
-      unfold blocks_equiv_at_Pexp in M.
-      invc M.
-      *
-        assert(evalDSHOperator (DSHPtrVal (memory_new m0) :: σ0) dop
-                               (memory_set m0 (memory_new m0) mem_empty) fuel =
-
-               evalDSHOperator (DSHPtrVal (memory_new m1) :: σ1) dop
-                               (memory_set m1 (memory_new m1) mem_empty) fuel).
-        {
-          apply P0.
-          unfold blocks_equiv_at_Pexp.
-          rewrite 2!evalPexp_incrPVar.
-          rewrite <- H0, <-H.
-          constructor.
-        }
-        rewrite Heqo, Heqo0 in H1.
-        some_none.
-      *
-
+      admit.
+    +
+      constructor.
 Qed.
 
 (*
