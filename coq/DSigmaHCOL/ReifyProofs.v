@@ -106,49 +106,26 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
       memory_lookup m a.
 
-Definition memory_lookup_flip a m0 := memory_lookup m0 a.
+Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
+  opt_p (fun a => is_Some (memory_lookup m a)) (evalPexp σ p).
+
 (*
-   - [evalPexp σ p] allowed to fail
+   - [evalPexp σ p] must not to fail
    - [memory_lookup] must succeed
 *)
 Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
-  := fun m0 m1 => opt_p_n (fun a => (opt equiv (memory_lookup m0 a) (memory_lookup m1 a)))
+  := fun m0 m1 => opt_p (fun a => (opt equiv (memory_lookup m0 a) (memory_lookup m1 a)))
                        (evalPexp σ p).
 
-(*
-   - [evalPexp σ p] allowed to fail
-   - [memory_lookup] can fail but in both cases
-*)
-Definition blocks_equiv_if_exist_at_Pexp (σ:evalContext) (p:PExpr) : rel (memory)
-  := fun m0 m1 =>
-       opt_p_n (fun a => opt_r equiv (memory_lookup m0 a) (memory_lookup m1 a))
-               (evalPexp σ p).
 
-(*
-(* [blocks_Same_at_Pexp] is stronger than [blocks_Same_if_exist_at_Pexp] *)
-Lemma blocks_Same_at_Pexp_impl (σ:evalContext) (p:PExpr) (m0 m1: memory) :
-  blocks_Same_at_Pexp σ p m0 m1 -> blocks_Same_if_exist_at_Pexp σ p m0 m1.
-Proof.
-  unfold blocks_Same_if_exist_at_Pexp, blocks_Same_at_Pexp.
-  intros H.
-  inversion H.
-  constructor.
-  invc H.
-  assert(X: x ≡ x0).
-  {
-    apply Some_inj_eq.
-    rewrite H0, H2.
-    reflexivity.
-  }
-  subst x0. clear H3.
-  invc H1.
-  constructor.
-  apply H4.
-Qed.
+(* DSH operator as "pure" function: read input memory block, writes
+   output one and touch nothing else.
+
+   It is assumed that the memory and envirnment are consistent and
+   [PExp] successfuly resolve to valid memory locations for [x_p] and
+   [y_p] which must be allocated.
+
  *)
-
-(* DSH operator as pure function: read input memory block, writes
-   output one and touch nothing else *)
 Class DSH_pure
       (d: DSHOperator)
       (x_p y_p: PExpr)
@@ -165,7 +142,7 @@ Class DSH_pure
       (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ d m fuel ≡ Some m' ->
-          forall p, evalPexp σ p ≢ evalPexp σ y_p -> blocks_equiv_if_exist_at_Pexp σ p m m'
+          forall p, evalPexp σ p ≢ evalPexp σ y_p -> blocks_equiv_at_Pexp σ p m m'
     }.
 
 
@@ -786,45 +763,141 @@ Proof.
   apply H.
 Qed.
 
+Lemma blocks_equiv_at_Pexp_remove
+      (y_p : PExpr)
+      (σ : evalContext)
+      (t0_i t1_i : mem_block_id) (m0'' m1'' : memory)
+      (NY0: evalPexp σ y_p ≢ Some t0_i)
+      (NY1: evalPexp σ y_p ≢ Some t1_i):
+  blocks_equiv_at_Pexp σ y_p m0'' m1''
+  → blocks_equiv_at_Pexp σ y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
+Proof.
+  intros EE.
+  unfold blocks_equiv_at_Pexp in *.
+  destruct (evalPexp σ y_p).
+  -
+    constructor.
+    inversion_clear EE.
+    rewrite Some_neq in NY0.
+    rewrite Some_neq in NY1.
+    unfold memory_lookup, memory_remove in *.
+    rewrite 2!NP.F.remove_neq_o; auto.
+  -
+    inversion EE.
+Qed.
+
+(* TODO: move *)
+Lemma memory_new_is_new
+      (m0 : memory)
+      (x : mem_block_id):
+  is_Some (memory_lookup m0 x) → memory_new m0 ≢ x.
+Proof.
+  intros H.
+Admitted.
+
 Instance DSHAlloc_pure
          (x_p y_p: PExpr)
          (size: nat)
          (d: DSHOperator)
-         `{P: DSH_pure dop (incrPVar x_p) (incrPVar y_p)}
+         `{P: DSH_pure d (incrPVar x_p) (incrPVar y_p)}
   :
-    DSH_pure (DSHAlloc size dop) x_p y_p.
+    DSH_pure (DSHAlloc size d) x_p y_p.
 Proof.
   destruct P as [P0 P1].
   split.
   -
     intros σ m0 m1 fuel M.
-    clear P1.
 
     destruct fuel.
     constructor.
     simpl.
 
-    remember (memory_new m0) as t0_p.
-    remember (memory_new m1) as t1_p.
-    remember (memory_set m0 t0_p mem_empty) as m0'.
-    remember (memory_set m1 t1_p mem_empty) as m1'.
+    remember (memory_new m0) as t0_i.
+    remember (memory_new m1) as t1_i.
+    remember (DSHPtrVal t0_i) as t0_v.
+    remember (DSHPtrVal t1_i) as t1_v.
 
-    remember (DSHPtrVal t0_p :: σ) as σ0.
-    remember (DSHPtrVal t1_p :: σ) as σ1.
+    remember (memory_set m0 t0_i mem_empty) as m0'.
+    remember (memory_set m1 t1_i mem_empty) as m1'.
 
+    remember (t0_v :: σ) as σ0.
+    remember (t1_v :: σ) as σ1.
+
+    (* follows from P0 *)
+    assert(EE: forall v0 v1,
+              opt_r
+                (blocks_equiv_at_Pexp σ y_p)
+                (evalDSHOperator (v0::σ) d m0' fuel)
+                (evalDSHOperator (v1::σ) d m1' fuel)).
+    {
+      pose proof (blocks_equiv_at_Pexp_incrVar x_p σ m0 m1 M) as M'.
+      admit.
+    }
+    specialize (EE t0_v t1_v).
     repeat break_match.
     +
       rename m into m0'', m2 into m1'',
       Heqo into E0, Heqo0 into E1.
-
       constructor.
-      unfold blocks_equiv_at_Pexp.
-      destruct(evalPexp σ y_p) eqn:P.
+
+      inversion EE.
       *
-        constructor.
-        admit.
+        subst.
+        symmetry in H0.
+        some_none.
       *
-        constructor.
+        assert(a ≡ m0'').
+        {
+          apply Some_inj_eq.
+          rewrite H.
+          rewrite <- E0.
+          subst σ0.
+          reflexivity.
+        }
+        subst a.
+        assert(b ≡ m1'').
+        {
+          apply Some_inj_eq.
+          rewrite H0.
+          rewrite <- E1.
+          subst σ1.
+          reflexivity.
+        }
+        subst b.
+        clear H H0 EE.
+        rename H1 into EE''.
+
+        (* TODO: move to _pure *)
+        assert(valid_Pexp σ m0 y_p) as VY0.
+        {
+          admit.
+        }
+        (* TODO: move to _pure *)
+        assert(valid_Pexp σ m1 y_p) as VY1.
+        {
+          admit.
+        }
+
+        assert(evalPexp σ y_p ≢ Some t0_i) as NY0.
+        {
+          subst.
+          inversion VY0.
+          apply Some_neq.
+          apply not_eq_sym.
+          apply memory_new_is_new.
+          assumption.
+        }
+        assert(evalPexp σ y_p ≢ Some t1_i) as NY1.
+        {
+          subst.
+          inversion VY1.
+          apply Some_neq.
+          apply not_eq_sym.
+          apply memory_new_is_new.
+          assumption.
+        }
+
+        apply blocks_equiv_at_Pexp_remove; assumption.
     +
       exfalso.
       admit.
