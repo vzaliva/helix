@@ -234,6 +234,12 @@ Proof.
       apply RelUtil.opt_r_None.
 Qed.
 
+Lemma Some_neq {T:Type} {a b: T}:
+  (Some a ≢ Some b) <-> a ≢ b.
+Proof.
+  split;crush.
+Qed.
+
 (* In monadic world `(f >=> g) ∘ Some` *)
 Definition option_compose
            {A B C: Type}
