@@ -118,8 +118,8 @@ Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
                        (evalPexp σ p).
 
 
-(* DSH operator as "pure" function: read input memory block, writes
-   output one and touch nothing else.
+(* DSH expression as a "pure" function: it reads an input memory block
+   and writes output one without touching anything else.
 
    It is assumed that the memory and envirnment are consistent and
    [PExp] successfuly resolve to valid memory locations for [x_p] and
@@ -133,6 +133,8 @@ Class DSH_pure
 
       (* depnds only [x_p*env], which must be valid in [σ] *)
       mem_read_safe: forall σ m0 m1 fuel,
+        valid_Pexp σ m0 y_p ->
+        valid_Pexp σ m1 y_p ->
         blocks_equiv_at_Pexp σ x_p m0 m1 ->
         opt_r
           (blocks_equiv_at_Pexp σ y_p)
@@ -806,7 +808,7 @@ Proof.
   destruct P as [P0 P1].
   split.
   -
-    intros σ m0 m1 fuel M.
+    intros σ m0 m1 fuel VY0 VY1 M.
 
     destruct fuel.
     constructor.
@@ -866,17 +868,6 @@ Proof.
         subst b.
         clear H H0 EE.
         rename H1 into EE''.
-
-        (* TODO: move to _pure *)
-        assert(valid_Pexp σ m0 y_p) as VY0.
-        {
-          admit.
-        }
-        (* TODO: move to _pure *)
-        assert(valid_Pexp σ m1 y_p) as VY1.
-        {
-          admit.
-        }
 
         assert(evalPexp σ y_p ≢ Some t0_i) as NY0.
         {
