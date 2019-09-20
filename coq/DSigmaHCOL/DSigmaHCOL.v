@@ -22,10 +22,10 @@ Inductive DSHVal :=
 | DSHPtrVal (a:mem_block_id): DSHVal.
 
 Inductive DSHValType: DSHVal -> DSHType -> Prop :=
-  | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
-  | DSHCarrierAVal_type (a:CarrierA): DSHValType (DSHCarrierAVal a) DSHCarrierA
-  | DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
-  | DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
+| DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
+| DSHCarrierAVal_type (a:CarrierA): DSHValType (DSHCarrierAVal a) DSHCarrierA
+| DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
+| DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
 
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
@@ -40,8 +40,8 @@ Inductive AExpr : Type :=
 | AMax  : AExpr -> AExpr -> AExpr
 | AZless: AExpr -> AExpr -> AExpr
 with
-(* Expressions which evaluate to `nat` *)
-NExpr: Type :=
+  (* Expressions which evaluate to `nat` *)
+  NExpr: Type :=
 | NVar  : var_id -> NExpr
 | NConst: nat -> NExpr
 | NDiv  : NExpr -> NExpr -> NExpr
@@ -71,14 +71,14 @@ Definition MemVarRef: Set := (PExpr * NExpr).
 
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
-| DSHIMap (n: nat) (x_i y_i: PExpr) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n: nat) (x_i y_i: PExpr) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
-| DSHMemMap2 (n: nat) (x0_i x1_i y_i: PExpr) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
+| DSHIMap (n: nat) (x_p y_p: PExpr) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
+| DSHBinOp (n: nat) (x_p y_p: PExpr) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
+| DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
 | DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
 | DSHAlloc (size:nat) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
-| DSHMemInit (size:nat) (y_i: PExpr) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
-| DSHMemCopy (size:nat) (x_i y_i: PExpr)(* copy memory blocks. Overwrites output block values, if present *)
+| DSHMemInit (size:nat) (y_p: PExpr) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
+| DSHMemCopy (size:nat) (x_p y_p: PExpr)(* copy memory blocks. Overwrites output block values, if present *)
 | DSHSeq (f g: DSHOperator) (* execute [g] after [f] *)
 .
 

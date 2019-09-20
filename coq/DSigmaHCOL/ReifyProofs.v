@@ -812,6 +812,22 @@ Proof.
   intros H.
 Admitted.
 
+(* TODO: move *)
+Lemma memory_lookup_new
+      (m0 : memory):
+  is_None (memory_lookup m0 (memory_new m0)).
+Proof.
+Admitted.
+
+
+Lemma evalDSHOperator_add_var {σ m d fuel}:
+    EnvMemoryConsistent σ m ->
+    forall v,
+      evalDSHOperator σ d m fuel ≡ evalDSHOperator (v :: σ) (incrOp d) m fuel.
+Proof.
+  intros C v.
+Admitted.
+
 (* This is a pretty useless instance, as stated. It only makes sense
    if the temporary variable is never used in the body.
 
@@ -821,7 +837,7 @@ Instance DSHAlloc_pure
          (x_p y_p: PExpr)
          (size: nat)
          (d: DSHOperator)
-         `{P: DSH_pure d (incrPVar x_p) (incrPVar y_p)}
+         `{P: DSH_pure (incrOp d) (incrPVar x_p) (incrPVar y_p)}
   :
     DSH_pure (DSHAlloc size d) x_p y_p.
 Proof.
@@ -829,10 +845,13 @@ Proof.
   split.
   -
     intros σ m0 m1 fuel C0 C1 VY0 VY1 M.
-
+    clear P1.
     destruct fuel.
     constructor.
     simpl.
+
+    inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y; clear VY0.
+    inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y; clear VY1.
 
     remember (memory_new m0) as t0_i.
     remember (memory_new m1) as t1_i.
@@ -849,9 +868,10 @@ Proof.
     assert(EE: forall v0 v1,
               opt_r
                 (blocks_equiv_at_Pexp σ y_p)
-                (evalDSHOperator (v0::σ) d m0' fuel)
-                (evalDSHOperator (v1::σ) d m1' fuel)).
+                (evalDSHOperator (v0::σ) (incrOp d) m0' fuel)
+                (evalDSHOperator (v1::σ) (incrOp d) m1' fuel)).
     {
+      intros v0 v1.
       pose proof (blocks_equiv_at_Pexp_incrVar x_p σ m0 m1 M) as M'.
       admit.
     }
@@ -907,7 +927,6 @@ Proof.
           apply memory_new_is_new.
           assumption.
         }
-
         apply blocks_equiv_at_Pexp_remove; assumption.
     +
       exfalso.

@@ -163,51 +163,51 @@ Run TemplateProgram
     ).
 
 
-(* return tuple: vars, [DSHOperator x_i y_i] *)
+(* return tuple: vars, [DSHOperator x_p y_p] *)
 Fixpoint compileMSHCOL2DSHCOL
          (vars:varbindings)
          (t:term)
-         (x_i y_i: PExpr)
+         (x_p y_p: PExpr)
   : TemplateMonad (varbindings*(DSHOperator)) :=
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
             toDSHType (tmReturn vt) ;;
-            compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar x_i) (incrPVar y_i)
+            compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar x_p) (incrPVar y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
     | Some n_eUnion, [o ; b ; _] =>
       tmPrint "MSHeUnion" ;;
               no <- tmUnquoteTyped nat o ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars,  DSHAssign (x_i, NConst 0) (y_i, bc))
+              tmReturn (vars,  DSHAssign (x_p, NConst 0) (y_p, bc))
     | Some n_eT, [i ; b ; _] =>
       tmPrint "MSHeT" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
-              tmReturn (vars, DSHAssign (x_i, bc) (y_i, NConst 0))
+              tmReturn (vars, DSHAssign (x_p, bc) (y_p, NConst 0))
     | Some n_SHPointwise, [n ; f ; _ ] =>
       tmPrint "MSHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
               df <- compileDSHIUnCarrierA f ;;
-              tmReturn (vars, DSHIMap nn (x_i) (y_i) df)
+              tmReturn (vars, DSHIMap nn (x_p) (y_p) df)
     | Some n_SHBinOp, [o ; f ; _] =>
       tmPrint "MSHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
               df <- compileDSHIBinCarrierA f ;;
-              tmReturn (vars, DSHBinOp no (x_i) (y_i) df )
+              tmReturn (vars, DSHBinOp no (x_p) (y_p) df )
     | Some n_SHInductor, [n ; f ; _ ; z] =>
       tmPrint "MSHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
               nc <- compileNExpr n ;;
               df <- compileDSHBinCarrierA f ;;
-              tmReturn (vars, DSHPower nc (x_i, NConst 0) (y_i, NConst 0) df zconst)
+              tmReturn (vars, DSHPower nc (x_p, NConst 0) (y_p, NConst 0) df zconst)
     | Some n_IUnion, [i ; o ; n ; op_family] =>
       tmPrint "MSHIUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
-              c' <- compileMSHCOL2DSHCOL vars op_family x_i y_i ;;
+              c' <- compileMSHCOL2DSHCOL vars op_family x_p y_p ;;
               let '(_, rr) := c' in
               tmReturn (vars, DSHLoop nn rr )
     | Some n_IReduction, [i ; o ; n ; z; f ; _ ; op_family] =>
@@ -218,21 +218,21 @@ Fixpoint compileMSHCOL2DSHCOL
               zconst <- tmUnquoteTyped CarrierA z ;;
               tt <- tmQuote DSHnat ;;
               (* Stack states:
-                 Before alloc: ... x_i y_i ...
-                 After alloc: ... x_i y_i ... t_i
-                 In the loop: ... x_i y_i ... t_i j
+                 Before alloc: ... x_p y_p ...
+                 After alloc: ... x_p y_p ... t_i
+                 In the loop: ... x_p y_p ... t_i j
                *)
               (* freshly allocated, inside alloc before loop *)
               let t_i := PVar 0 in
               (* single inc. inside loop *)
               let t_i' := incrPVar t_i in
               (* single inc. inside alloca before loop *)
-              let x_i' := incrPVar x_i in
+              let x_p' := incrPVar x_p in
               (* double inc. inside alloc and loop *)
-              let x_i'' := incrPVar x_i' in
-              let y_i'' := incrPVar (incrPVar y_i) in
+              let x_p'' := incrPVar x_p' in
+              let y_p'' := incrPVar (incrPVar y_p) in
               (* op_family will increase stack offsets automatically *)
-              c' <- compileMSHCOL2DSHCOL ((nAnon, tt)::vars) op_family x_i' t_i ;;
+              c' <- compileMSHCOL2DSHCOL ((nAnon, tt)::vars) op_family x_p' t_i ;;
                  df <- compileDSHBinCarrierA f ;;
                  let '(_, rr) := c' in
                  tmReturn (vars, DSHAlloc no
@@ -241,7 +241,7 @@ Fixpoint compileMSHCOL2DSHCOL
                                              (DSHLoop nn
                                                       (DSHSeq
                                                          rr
-                                                         (DSHMemMap2 nn t_i' y_i'' y_i'' df)))))
+                                                         (DSHMemMap2 nn t_i' y_p'' y_p'' df)))))
     | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "MSHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
@@ -250,11 +250,11 @@ Fixpoint compileMSHCOL2DSHCOL
               (* freshly allocated, inside alloc *)
               let t_i := PVar 0 in
               (* single inc. inside alloc *)
-              let x_i' := incrPVar x_i in
-              let y_i' := incrPVar y_i in
-              cop2' <- compileMSHCOL2DSHCOL vars op2 x_i' t_i ;;
+              let x_p' := incrPVar x_p in
+              let y_p' := incrPVar y_p in
+              cop2' <- compileMSHCOL2DSHCOL vars op2 x_p' t_i ;;
                     let '(_, cop2) := cop2' in
-                    cop1' <- compileMSHCOL2DSHCOL vars op1 t_i y_i' ;;
+                    cop1' <- compileMSHCOL2DSHCOL vars op1 t_i y_p' ;;
                           let '(_, cop1) := cop1' in
                           tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
@@ -267,18 +267,18 @@ Fixpoint compileMSHCOL2DSHCOL
               let tyg_i := PVar 1 in
               let vars' := ((nAnon, tt)::((nAnon, tt)::vars)) in
               (* double increase after 2 allocs *)
-              let x_i'' := incrPVar (incrPVar x_i) in
-              let y_i'' := incrPVar (incrPVar y_i) in
-              cop1' <- compileMSHCOL2DSHCOL vars' op1 x_i'' tyf_i ;;
+              let x_p'' := incrPVar (incrPVar x_p) in
+              let y_p'' := incrPVar (incrPVar y_p) in
+              cop1' <- compileMSHCOL2DSHCOL vars' op1 x_p'' tyf_i ;;
                     let '(_, cop1) := cop1' in
-                    cop2' <- compileMSHCOL2DSHCOL vars' op2 x_i'' tyg_i ;;
+                    cop2' <- compileMSHCOL2DSHCOL vars' op2 x_p'' tyg_i ;;
                           let '(_,cop2) := cop2' in
                           tmReturn (vars,
                                     DSHAlloc no
                                              (DSHAlloc no
                                                        (DSHSeq
                                                           (DSHSeq cop1 cop2)
-                                                          (DSHMemMap2 no tyf_i tyg_i y_i'' ddot))))
+                                                          (DSHMemMap2 no tyf_i tyg_i y_p'' ddot))))
     | None, _ =>
       tmFail ("Usupported SHCOL operator " ++ opname)
     | _, _ =>
@@ -335,14 +335,14 @@ Definition reifyMSHCOL {A:Type} (expr: A)
            (unfold_names: list string)
            (res_name: string)
            (vars: varbindings)
-           (x_i y_i: PExpr)
+           (x_p y_p: PExpr)
   : TemplateMonad unit :=
   let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
   eexpr <- tmUnfoldList unfold_names expr ;;
         ast <- @tmQuote A eexpr ;;
         ast <- @tmQuote A eexpr ;;
         mt <- tmQuote (mem_block) ;;
-        d' <- compileMSHCOL2DSHCOL vars ast x_i y_i ;;
+        d' <- compileMSHCOL2DSHCOL vars ast x_p y_p ;;
         let '(globals, dshcol) := d' in
         dshcol' <- tmEval cbv dshcol ;;
                 d_dshcol <- tmDefinition res_name dshcol'
