@@ -288,6 +288,22 @@ Definition incrPVar (p: PExpr) : PExpr :=
   | PConst _ => p
   end.
 
+Fixpoint incrOp (d:DSHOperator) : DSHOperator
+  := match d with
+     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar src_p,src_o) (incrPVar dst_p, dst_o)
+     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar x_p) (incrPVar y_p) f
+     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar x_p) (incrPVar y_p) f
+     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar x0_p) (incrPVar x1_p) (incrPVar y_p) f
+     | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
+       DSHPower n (incrPVar src_p,src_o) (incrPVar dst_p, dst_o) f initial
+     | DSHLoop n body => DSHLoop n (incrOp body)
+     | DSHAlloc size body => DSHAlloc size (incrOp body)
+     | DSHMemInit size y_p value => DSHMemInit size (incrPVar y_p) value
+     | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar x_p) (incrPVar y_p)
+     | DSHSeq f g => DSHSeq (incrOp f) (incrOp g)
+     end.
+
+
 Module DSHNotation.
 
   Notation "A ; B" := (DSHSeq A B) (at level 99, right associativity, only printing).
