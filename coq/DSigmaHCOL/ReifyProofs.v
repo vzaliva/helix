@@ -142,7 +142,7 @@ Class DSH_pure
   := {
 
       (* depends only [x_p], which must be valid in [σ], in all
-       consistent memory configurations *)
+         consistent memory configurations *)
       mem_read_safe: forall σ m0 m1 fuel,
         EnvMemoryConsistent σ m0 ->
         EnvMemoryConsistent σ m1 ->
@@ -812,6 +812,11 @@ Proof.
   intros H.
 Admitted.
 
+(* This is a pretty useless instance, as stated. It only makes sense
+   if the temporary variable is never used in the body.
+
+   Nevertheless it is a good testbed I use to test and refine purity
+   definitions.  *)
 Instance DSHAlloc_pure
          (x_p y_p: PExpr)
          (size: nat)
