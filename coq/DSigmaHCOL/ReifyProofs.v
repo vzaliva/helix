@@ -115,9 +115,21 @@ Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
   := fun m0 m1 => opt_p (fun a => (opt equiv (memory_lookup m0 a) (memory_lookup m1 a)))
                        (evalPexp σ p).
 
+(* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
+Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
+| EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
+| DSHPtrValConsistent: forall σ m a,
+    is_Some (memory_lookup m a) ->
+    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
+(* the remaining case does not depend on memory and just recurse over environment *)
+| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
+| DSHCarrierAValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCarrierAVal a :: σ) m
+| DSHMemValConsistent: forall σ b m, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHMemVal b :: σ) m.
 
-(* DSH expression as a "pure" function: it reads an input memory block
-   and writes output one without touching anything else.
+
+(* DSH expression as a "pure" function by enforcing the memory
+   invariants guaranteeing that it depends only input memory block and
+   modifies only output memory block.
 
    It is assumed that the memory and envirnment are consistent and
    [PExp] successfuly resolve to valid memory locations for [x_p] and
@@ -129,10 +141,11 @@ Class DSH_pure
       (x_p y_p: PExpr)
   := {
 
-      (* -- Memory invariants -- *)
-
-      (* depnds only [x_p*env], which must be valid in [σ] *)
+      (* depends only [x_p], which must be valid in [σ], in all
+       consistent memory configurations *)
       mem_read_safe: forall σ m0 m1 fuel,
+        EnvMemoryConsistent σ m0 ->
+        EnvMemoryConsistent σ m1 ->
         valid_Pexp σ m0 y_p ->
         valid_Pexp σ m1 y_p ->
         blocks_equiv_at_Pexp σ x_p m0 m1 ->
@@ -141,8 +154,9 @@ Class DSH_pure
           (evalDSHOperator σ d m0 fuel)
           (evalDSHOperator σ d m1 fuel);
 
-      (* modifies only [y_p] *)
+      (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
+          valid_Pexp σ m y_p ->
           evalDSHOperator σ d m fuel ≡ Some m' ->
           forall p, evalPexp σ p ≢ evalPexp σ y_p ->
                blocks_equiv_at_Pexp σ p m m'
@@ -809,7 +823,7 @@ Proof.
   destruct P as [P0 P1].
   split.
   -
-    intros σ m0 m1 fuel VY0 VY1 M.
+    intros σ m0 m1 fuel C0 C1 VY0 VY1 M.
 
     destruct fuel.
     constructor.
