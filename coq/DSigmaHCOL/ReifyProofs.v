@@ -36,8 +36,6 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-
-
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
 Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
@@ -131,6 +129,8 @@ Class DSH_pure
       (x_p y_p: PExpr)
   := {
 
+      (* -- Memory invariants -- *)
+
       (* depnds only [x_p*env], which must be valid in [σ] *)
       mem_read_safe: forall σ m0 m1 fuel,
         valid_Pexp σ m0 y_p ->
@@ -144,7 +144,8 @@ Class DSH_pure
       (* modifies only [y_p] *)
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ d m fuel ≡ Some m' ->
-          forall p, evalPexp σ p ≢ evalPexp σ y_p -> blocks_equiv_at_Pexp σ p m m'
+          forall p, evalPexp σ p ≢ evalPexp σ y_p ->
+               blocks_equiv_at_Pexp σ p m m'
     }.
 
 
