@@ -27,6 +27,27 @@ Inductive DSHValType: DSHVal -> DSHType -> Prop :=
 | DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
 | DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
 
+(* Expressions which evaluate to `nat` *)
+Inductive NExpr : Type :=
+| NVar  : var_id -> NExpr
+| NConst: nat -> NExpr
+| NDiv  : NExpr -> NExpr -> NExpr
+| NMod  : NExpr -> NExpr -> NExpr
+| NPlus : NExpr -> NExpr -> NExpr
+| NMinus: NExpr -> NExpr -> NExpr
+| NMult : NExpr -> NExpr -> NExpr
+| NMin  : NExpr -> NExpr -> NExpr
+| NMax  : NExpr -> NExpr -> NExpr.
+
+(* Expressions which evaluate to `mem_block` *)
+Inductive MExpr: Type :=
+| MVar:  var_id -> MExpr
+| MConst: mem_block -> MExpr.
+
+Inductive PExpr: Type :=
+| PVar:  var_id -> PExpr
+| PConst: mem_block_id -> PExpr.
+
 (* Expressions which evaluate to `CarrierA` *)
 Inductive AExpr : Type :=
 | AVar  : var_id -> AExpr
@@ -38,28 +59,8 @@ Inductive AExpr : Type :=
 | AMult : AExpr -> AExpr -> AExpr
 | AMin  : AExpr -> AExpr -> AExpr
 | AMax  : AExpr -> AExpr -> AExpr
-| AZless: AExpr -> AExpr -> AExpr
-with
-  (* Expressions which evaluate to `nat` *)
-  NExpr: Type :=
-| NVar  : var_id -> NExpr
-| NConst: nat -> NExpr
-| NDiv  : NExpr -> NExpr -> NExpr
-| NMod  : NExpr -> NExpr -> NExpr
-| NPlus : NExpr -> NExpr -> NExpr
-| NMinus: NExpr -> NExpr -> NExpr
-| NMult : NExpr -> NExpr -> NExpr
-| NMin  : NExpr -> NExpr -> NExpr
-| NMax  : NExpr -> NExpr -> NExpr
-(* Expressions which evaluate to `mem_block` *)
-with
-MExpr: Type :=
-| MVar:  var_id -> MExpr
-| MConst: mem_block -> MExpr
-with
-PExpr: Type :=
-| PVar:  var_id -> PExpr
-| PConst: mem_block_id -> PExpr.
+| AZless: AExpr -> AExpr -> AExpr.
+
 
 Definition DSHUnCarrierA := AExpr.
 Definition DSHIUnCarrierA := AExpr.
@@ -285,24 +286,56 @@ Qed.
 Definition incrPVar (p: PExpr) : PExpr :=
   match p with
   | PVar var_id => PVar (S var_id)
-  | PConst _ => p
+  | _ => p
+  end.
+
+Definition incrMVar (p: MExpr) : MExpr :=
+  match p with
+  | MVar var_id => MVar (S var_id)
+  | _ => p
+  end.
+
+Fixpoint incrNVar (p: NExpr) : NExpr :=
+  match p with
+  | NVar var_id => NVar (S var_id)
+  | NConst _ => p
+  | NDiv  a b => NDiv (incrNVar a) (incrNVar b)
+  | NMod  a b => NMod (incrNVar a) (incrNVar b)
+  | NPlus a b => NPlus (incrNVar a) (incrNVar b)
+  | NMinus a b => NMinus (incrNVar a) (incrNVar b)
+  | NMult a b => NMult (incrNVar a) (incrNVar b)
+  | NMin  a b => NMin (incrNVar a) (incrNVar b)
+  | NMax  a b => NMax (incrNVar a) (incrNVar b)
+  end.
+
+Fixpoint incrAVar (p: AExpr) : AExpr :=
+  match p with
+  | AVar var_id => AVar (S var_id)
+  | AConst _ => p
+  | ANth m n =>  ANth (incrMVar m) (incrNVar n)
+  | AAbs a => AAbs (incrAVar a)
+  | APlus  a b => APlus (incrAVar a) (incrAVar b)
+  | AMinus a b => AMinus (incrAVar a) (incrAVar b)
+  | AMult  a b => AMult (incrAVar a) (incrAVar b)
+  | AMin   a b => AMin (incrAVar a) (incrAVar b)
+  | AMax   a b => AMax (incrAVar a) (incrAVar b)
+  | AZless a b => AZless (incrAVar a) (incrAVar b)
   end.
 
 Fixpoint incrOp (d:DSHOperator) : DSHOperator
   := match d with
-     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar src_p,src_o) (incrPVar dst_p, dst_o)
-     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar x_p) (incrPVar y_p) f
-     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar x_p) (incrPVar y_p) f
-     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar x0_p) (incrPVar x1_p) (incrPVar y_p) f
+     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar src_p, incrNVar src_o) (incrPVar dst_p, incrNVar dst_o)
+     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar x_p) (incrPVar y_p) (incrAVar f)
+     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar x_p) (incrPVar y_p) (incrAVar f)
+     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar x0_p) (incrPVar x1_p) (incrPVar y_p) (incrAVar f)
      | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
-       DSHPower n (incrPVar src_p,src_o) (incrPVar dst_p, dst_o) f initial
+       DSHPower n (incrPVar src_p, incrNVar src_o) (incrPVar dst_p,  incrNVar dst_o) (incrAVar f) initial
      | DSHLoop n body => DSHLoop n (incrOp body)
      | DSHAlloc size body => DSHAlloc size (incrOp body)
      | DSHMemInit size y_p value => DSHMemInit size (incrPVar y_p) value
      | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar x_p) (incrPVar y_p)
      | DSHSeq f g => DSHSeq (incrOp f) (incrOp g)
      end.
-
 
 Module DSHNotation.
 
