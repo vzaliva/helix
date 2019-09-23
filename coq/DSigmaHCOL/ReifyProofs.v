@@ -758,16 +758,6 @@ Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
 (* TODO: move *)
-Lemma evalPexp_incrPVar
-      (p : PExpr)
-      (σ : evalContext)
-      (n: DSHVal):
-  evalPexp (n :: σ) (incrPVar p) ≡ evalPexp σ p.
-Proof.
-  destruct p;constructor.
-Qed.
-
-(* TODO: move *)
 Lemma blocks_equiv_at_Pexp_incrVar
       (p : PExpr)
       (σ : evalContext)
@@ -835,15 +825,23 @@ Lemma evalDSHOperator_add_var {σ m d fuel}:
       evalDSHOperator σ d m fuel ≡ evalDSHOperator (foo :: σ) (incrOp d) m fuel.
 Proof.
   intros C v.
-  induction d; simpl.
+  induction d; destruct fuel; try reflexivity; simpl.
   -
     destruct src as (src_p, src_o).
     destruct dst as (dst_p, dst_o).
-    unfold evalDSHOperator.
-    simpl.
+    repeat rewrite evalPexp_incrPVar.
+    repeat rewrite evalMexp_incrMVar.
+    repeat rewrite evalAexp_incrAVar.
+    repeat rewrite evalNexp_incrNVar.
+    repeat break_match; subst_max; try some_none.
+  -
+    repeat rewrite evalPexp_incrPVar.
+    repeat rewrite evalMexp_incrMVar.
+    repeat rewrite evalAexp_incrAVar.
+    repeat rewrite evalNexp_incrNVar.
+    repeat break_match; subst_max; try some_none.
 
 
-    cbv.
 
 Admitted.
 

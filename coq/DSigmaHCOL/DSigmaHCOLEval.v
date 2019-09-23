@@ -178,15 +178,15 @@ Fixpoint evalDSHPower
 (* Estimates fuel requirement for [evalDSHOperator] *)
 Fixpoint estimateFuel (s:DSHOperator): nat :=
   match s with
-  | DSHAssign _ _ => 0
-  | @DSHIMap _ _ _ _ => 0
-  | @DSHMemMap2 _ _ _ _ _ => 0
-  | @DSHBinOp _ _ _ _ => 0
-  | DSHPower _ _ _ _ _ => 0
+  | DSHAssign _ _ => 1
+  | @DSHIMap _ _ _ _ => 1
+  | @DSHMemMap2 _ _ _ _ _ => 1
+  | @DSHBinOp _ _ _ _ => 1
+  | DSHPower _ _ _ _ _ => 1
   | DSHLoop n body => (S (estimateFuel body)) * n
   | DSHAlloc _ body => S (estimateFuel body)
-  | DSHMemInit _ _ _ => 0
-  | DSHMemCopy _ _ _ => 0
+  | DSHMemInit _ _ _ => 1
+  | DSHMemCopy _ _ _ => 1
   | DSHSeq f g =>
     S (Nat.max (estimateFuel f) (estimateFuel g))
   end.
@@ -248,85 +248,77 @@ Fixpoint evalDSHOperator
          (m: memory)
          (fuel: nat): option (memory)
   :=
-    match op with
-    | DSHAssign (x_p, src_e) (y_p, dst_e) =>
-      x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
-          x <- memory_lookup m x_i ;;
-          y <- memory_lookup m y_i ;;
-          src <- evalNexp σ src_e ;;
-          dst <- evalNexp σ dst_e ;;
-          v <- mem_lookup src x ;;
-          ret (memory_set m y_i (mem_add dst v y))
-    | @DSHIMap n x_p y_p f =>
-      x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
-          x <- memory_lookup m x_i ;;
-          y <- memory_lookup m y_i ;;
-          y' <- evalDSHIMap n f σ x y ;;
-          ret (memory_set m y_i y')
-    | @DSHMemMap2 n x0_p x1_p y_p f =>
-      x0_i <- evalPexp σ x0_p ;;
-           x1_i <- evalPexp σ x1_p ;;
-           y_i <- evalPexp σ y_p ;;
-           x0 <- memory_lookup m x0_i ;;
-           x1 <- memory_lookup m x1_i ;;
-           y <- memory_lookup m y_i ;;
-           y' <- evalDSHMap2 n f σ x0 x1 y ;;
-           ret (memory_set m y_i y')
-    | @DSHBinOp n x_p y_p f =>
-      x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
-          x <- memory_lookup m x_i ;;
-          y <- memory_lookup m y_i ;;
-          y' <- evalDSHBinOp n n f σ x y ;;
-          ret (memory_set m y_i y')
-    | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
-      x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
-          x <- memory_lookup m x_i ;;
-          y <- memory_lookup m y_i ;;
-          n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
-          let y' := mem_add 0 initial y in
-          xoff <- evalNexp σ xoffset ;;
-               yoff <- evalNexp σ yoffset ;;
-               y'' <- evalDSHPower σ n f x y' xoff yoff ;;
-               ret (memory_set m y_i y'')
-    | DSHLoop O body => ret m
-    | DSHLoop (S n) body =>
-      match fuel with
-      | O => None
-      | S fuel =>
+    match fuel with
+    | O => None
+    | S fuel =>
+      match op with
+      | DSHAssign (x_p, src_e) (y_p, dst_e) =>
+        x_i <- evalPexp σ x_p ;;
+            y_i <- evalPexp σ y_p ;;
+            x <- memory_lookup m x_i ;;
+            y <- memory_lookup m y_i ;;
+            src <- evalNexp σ src_e ;;
+            dst <- evalNexp σ dst_e ;;
+            v <- mem_lookup src x ;;
+            ret (memory_set m y_i (mem_add dst v y))
+      | @DSHIMap n x_p y_p f =>
+        x_i <- evalPexp σ x_p ;;
+            y_i <- evalPexp σ y_p ;;
+            x <- memory_lookup m x_i ;;
+            y <- memory_lookup m y_i ;;
+            y' <- evalDSHIMap n f σ x y ;;
+            ret (memory_set m y_i y')
+      | @DSHMemMap2 n x0_p x1_p y_p f =>
+        x0_i <- evalPexp σ x0_p ;;
+             x1_i <- evalPexp σ x1_p ;;
+             y_i <- evalPexp σ y_p ;;
+             x0 <- memory_lookup m x0_i ;;
+             x1 <- memory_lookup m x1_i ;;
+             y <- memory_lookup m y_i ;;
+             y' <- evalDSHMap2 n f σ x0 x1 y ;;
+             ret (memory_set m y_i y')
+      | @DSHBinOp n x_p y_p f =>
+        x_i <- evalPexp σ x_p ;;
+            y_i <- evalPexp σ y_p ;;
+            x <- memory_lookup m x_i ;;
+            y <- memory_lookup m y_i ;;
+            y' <- evalDSHBinOp n n f σ x y ;;
+            ret (memory_set m y_i y')
+      | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
+        x_i <- evalPexp σ x_p ;;
+            y_i <- evalPexp σ y_p ;;
+            x <- memory_lookup m x_i ;;
+            y <- memory_lookup m y_i ;;
+            n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
+            let y' := mem_add 0 initial y in
+            xoff <- evalNexp σ xoffset ;;
+                 yoff <- evalNexp σ yoffset ;;
+                 y'' <- evalDSHPower σ n f x y' xoff yoff ;;
+                 ret (memory_set m y_i y'')
+      | DSHLoop O body => ret m
+      | DSHLoop (S n) body =>
         m <- evalDSHOperator σ (DSHLoop n body) m fuel ;;
           m' <- evalDSHOperator (DSHnatVal n :: σ) body m fuel ;;
           ret m'
-      end
-    | DSHAlloc size body =>
-      match fuel with
-      | O => None
-      | S fuel =>
+      | DSHAlloc size body =>
         let t_i := memory_new m in
         m' <- evalDSHOperator (DSHPtrVal t_i :: σ) body (memory_set m t_i (mem_empty)) fuel ;;
            ret (memory_remove m' t_i)
-      end
-    | DSHMemInit size y_p value =>
-      y_i <- evalPexp σ y_p ;;
-          y <- memory_lookup m y_i ;;
-          let y' := mem_union
-                      (mem_const_block size value)
-                      y in
-          ret (memory_set m y_i y')
-    | DSHMemCopy size x_p y_p =>
-      x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
-          x <- memory_lookup m x_i ;;
-          y <- memory_lookup m y_i ;;
-          let y' := mem_union x y in
-          ret (memory_set m y_i y')
-    | DSHSeq f g =>
-      match fuel with
-      | O => None
-      | S fuel =>
+      | DSHMemInit size y_p value =>
+        y_i <- evalPexp σ y_p ;;
+            y <- memory_lookup m y_i ;;
+            let y' := mem_union
+                        (mem_const_block size value)
+                        y in
+            ret (memory_set m y_i y')
+      | DSHMemCopy size x_p y_p =>
+        x_i <- evalPexp σ x_p ;;
+            y_i <- evalPexp σ y_p ;;
+            x <- memory_lookup m x_i ;;
+            y <- memory_lookup m y_i ;;
+            let y' := mem_union x y in
+            ret (memory_set m y_i y')
+      | DSHSeq f g =>
         m <- evalDSHOperator σ f m fuel ;;
           evalDSHOperator σ g m fuel
       end
@@ -646,3 +638,55 @@ Proof.
         eq_to_equiv_hyp.
         rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
 Qed.
+
+Section IncrEval.
+
+  Lemma evalPexp_incrPVar
+        (p : PExpr)
+        (σ : evalContext)
+        (foo: DSHVal):
+    evalPexp (foo :: σ) (incrPVar p) ≡ evalPexp σ p.
+  Proof.
+    destruct p;constructor.
+  Qed.
+
+  Lemma evalMexp_incrMVar
+        (m : MExpr)
+        (σ : evalContext)
+        (foo: DSHVal):
+    evalMexp (foo :: σ) (incrMVar m) ≡ evalMexp σ m.
+  Proof.
+    destruct m;constructor.
+  Qed.
+
+  Lemma evalNexp_incrNVar
+        (n : NExpr)
+        (σ : evalContext)
+        (foo: DSHVal):
+    evalNexp (foo :: σ) (incrNVar n) ≡ evalNexp σ n.
+  Proof.
+    induction n; try constructor;
+      (simpl;
+       rewrite IHn1, IHn2;
+       reflexivity).
+  Qed.
+
+  Lemma evalAexp_incrAVar
+        (a : AExpr)
+        (σ : evalContext)
+        (foo: DSHVal):
+    evalAexp (foo :: σ) (incrAVar a) ≡ evalAexp σ a.
+  Proof.
+    induction a; try constructor; simpl;
+      (try rewrite evalMexp_incrMVar;
+       try rewrite evalNexp_incrNVar;
+       try reflexivity);
+      (try rewrite IHa; try reflexivity);
+      (try rewrite IHa1, IHa2;reflexivity).
+  Qed.
+
+
+
+
+
+End IncrEval.
