@@ -156,6 +156,7 @@ Class DSH_pure
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
+          EnvMemoryConsistent σ m ->
           valid_Pexp σ m y_p ->
           evalDSHOperator σ d m fuel ≡ Some m' ->
           forall p, evalPexp σ p ≢ evalPexp σ y_p ->
@@ -771,13 +772,21 @@ Lemma blocks_equiv_at_Pexp_incrVar
       (p : PExpr)
       (σ : evalContext)
       (m0 m1: memory)
-  : blocks_equiv_at_Pexp σ p m0 m1 ->
-    forall v, blocks_equiv_at_Pexp (v::σ) (incrPVar p) m0 m1.
+  : blocks_equiv_at_Pexp σ p m0 m1 <->
+    forall foo, blocks_equiv_at_Pexp (foo::σ) (incrPVar p) m0 m1.
 Proof.
-  intros H v.
-  unfold blocks_equiv_at_Pexp.
-  rewrite evalPexp_incrPVar.
-  apply H.
+  split.
+  -
+    intros H foo.
+    unfold blocks_equiv_at_Pexp.
+    rewrite evalPexp_incrPVar.
+    apply H.
+  -
+    intros H.
+    unfold blocks_equiv_at_Pexp in *.
+    setoid_rewrite evalPexp_incrPVar in H.
+    apply H.
+    exact (DSHnatVal 0).
 Qed.
 
 Lemma blocks_equiv_at_Pexp_remove
@@ -822,11 +831,22 @@ Admitted.
 
 Lemma evalDSHOperator_add_var {σ m d fuel}:
     EnvMemoryConsistent σ m ->
-    forall v,
-      evalDSHOperator σ d m fuel ≡ evalDSHOperator (v :: σ) (incrOp d) m fuel.
+    forall foo,
+      evalDSHOperator σ d m fuel ≡ evalDSHOperator (foo :: σ) (incrOp d) m fuel.
 Proof.
   intros C v.
+  induction d; simpl.
+  -
+    destruct src as (src_p, src_o).
+    destruct dst as (dst_p, dst_o).
+    unfold evalDSHOperator.
+    simpl.
+
+
+    cbv.
+
 Admitted.
+
 
 (* This is a pretty useless instance, as stated. It only makes sense
    if the temporary variable is never used in the body.
@@ -872,7 +892,7 @@ Proof.
                 (evalDSHOperator (v1::σ) (incrOp d) m1' fuel)).
     {
       intros v0 v1.
-      pose proof (blocks_equiv_at_Pexp_incrVar x_p σ m0 m1 M) as M'.
+      (* pose proof (blocks_equiv_at_Pexp_incrVar x_p σ m0 m1 M) as M'. *)
       admit.
     }
     specialize (EE t0_v t1_v).
@@ -884,16 +904,16 @@ Proof.
 
       inversion EE.
       *
-        subst.
-        symmetry in H0.
-        some_none.
+        admit.
       *
+        symmetry_option_hyp.
         assert(a ≡ m0'').
         {
           apply Some_inj_eq.
-          rewrite H.
+          rewrite <- H.
           rewrite <- E0.
           subst σ0.
+          erewrite <- evalDSHOperator_add_var.
           reflexivity.
         }
         subst a.
