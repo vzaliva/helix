@@ -23,3 +23,9 @@ Program Fixpoint Lbuild {A: Type}
   end.
 Next Obligation. apply lt_n_S, ip. Qed.
 Next Obligation. apply Nat.lt_0_succ. Qed.
+
+Lemma nth_error_Sn {A:Type} (x:A) (xs:list A) (n:nat):
+  nth_error (x::xs) (S n) = nth_error xs n.
+Proof.
+  reflexivity.
+Qed.
