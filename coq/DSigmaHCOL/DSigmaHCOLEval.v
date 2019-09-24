@@ -1,6 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Compare_dec.
+Require Import Psatz.
 
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.ListSetoid.
@@ -645,7 +646,7 @@ Section IncrEval.
         (p : PExpr)
         (σ : evalContext)
         (foo: DSHVal):
-    evalPexp (foo :: σ) (incrPVar p) ≡ evalPexp σ p.
+    evalPexp (foo :: σ) (incrPVar 0 p) ≡ evalPexp σ p.
   Proof.
     destruct p;constructor.
   Qed.
@@ -654,16 +655,42 @@ Section IncrEval.
         (m : MExpr)
         (σ : evalContext)
         (foo: DSHVal):
-    evalMexp (foo :: σ) (incrMVar m) ≡ evalMexp σ m.
+    evalMexp (foo :: σ) (incrMVar 0 m) ≡ evalMexp σ m.
   Proof.
     destruct m;constructor.
+  Qed.
+
+  Lemma evalMexp_incrMVar_1
+        (m : MExpr)
+        (σ : evalContext)
+        (a foo: DSHVal):
+    evalMexp (a :: foo :: σ) (incrMVar 1 m) ≡ evalMexp (a :: σ) m.
+  Proof.
+    destruct m; try reflexivity.
+    simpl.
+    break_if.
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
+  Qed.
+
+  Lemma evalMexp_incrMVar_2
+        (m : MExpr)
+        (σ : evalContext)
+        (a b foo: DSHVal):
+    evalMexp (a :: b :: foo :: σ) (incrMVar 2 m) ≡ evalMexp (a :: b :: σ) m.
+  Proof.
+    destruct m; try reflexivity.
+    simpl.
+    break_if.
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
   Qed.
 
   Lemma evalNexp_incrNVar
         (n : NExpr)
         (σ : evalContext)
         (foo: DSHVal):
-    evalNexp (foo :: σ) (incrNVar n) ≡ evalNexp σ n.
+    evalNexp (foo :: σ) (incrNVar 0 n) ≡ evalNexp σ n.
   Proof.
     induction n; try constructor;
       (simpl;
@@ -671,11 +698,41 @@ Section IncrEval.
        reflexivity).
   Qed.
 
+  Lemma evalNexp_incrNVar_2
+        (m : NExpr)
+        (σ : evalContext)
+        (a b foo: DSHVal):
+    evalNexp (a :: b :: foo :: σ) (incrNVar 2 m) ≡ evalNexp (a :: b :: σ) m.
+  Proof.
+    revert a b.
+    induction m; intros; try reflexivity.
+    simpl.
+    break_if.
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+  Qed.
+
   Lemma evalAexp_incrAVar
         (a : AExpr)
         (σ : evalContext)
         (foo: DSHVal):
-    evalAexp (foo :: σ) (incrAVar a) ≡ evalAexp σ a.
+    evalAexp (foo :: σ) (incrAVar 0 a) ≡ evalAexp σ a.
   Proof.
     induction a; try constructor; simpl;
       (try rewrite evalMexp_incrMVar;
@@ -685,8 +742,83 @@ Section IncrEval.
       (try rewrite IHa1, IHa2;reflexivity).
   Qed.
 
+  Lemma evalAexp_incrAVar_2
+        (m : AExpr)
+        (σ : evalContext)
+        (a b foo: DSHVal):
+    evalAexp (a :: b :: foo :: σ) (incrAVar 2 m) ≡ evalAexp (a :: b :: σ) m.
+  Proof.
+    revert a b.
+    induction m; intros; try reflexivity.
+    simpl.
+    break_if.
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      simpl.
+      rewrite evalMexp_incrMVar_2, evalNexp_incrNVar_2.
+      reflexivity.
+    -
+      simpl; rewrite IHm; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+  Qed.
 
+  Lemma evalIUnCarrierA_incrDSHIUnCarrierA
+        (σ: evalContext)
+        (f: DSHIUnCarrierA)
+        (i:nat)
+        (a:CarrierA)
+        (foo: DSHVal):
+    evalIUnCarrierA (foo :: σ) (incrDSHIUnCarrierA f) i a ≡ evalIUnCarrierA σ f i a.
+  Proof.
+    unfold evalIUnCarrierA.
+    unfold incrDSHIUnCarrierA.
+    apply evalAexp_incrAVar_2.
+  Qed.
 
-
+  Lemma evalDSHIMap_incrDSHIUnCarrierA
+        (n: nat)
+        (f: DSHIUnCarrierA)
+        (σ: evalContext)
+        (x y: mem_block)
+        (foo: DSHVal):
+    evalDSHIMap n (incrDSHIUnCarrierA f) (foo :: σ) x y ≡ evalDSHIMap n f σ x y.
+  Proof.
+    revert x y.
+    induction n; intros.
+    -
+      reflexivity.
+    -
+      simpl.
+      repeat break_match; try some_none.
+      +
+        rewrite IHn.
+        f_equiv.
+        f_equiv.
+        apply Some_inj_eq.
+        rewrite <- Heqo1, <- Heqo0.
+        apply evalIUnCarrierA_incrDSHIUnCarrierA.
+      +
+        exfalso.
+        rewrite evalIUnCarrierA_incrDSHIUnCarrierA in Heqo0.
+        congruence.
+      +
+        exfalso.
+        rewrite evalIUnCarrierA_incrDSHIUnCarrierA in Heqo0.
+        congruence.
+  Qed.
 
 End IncrEval.

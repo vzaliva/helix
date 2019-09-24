@@ -763,7 +763,7 @@ Lemma blocks_equiv_at_Pexp_incrVar
       (σ : evalContext)
       (m0 m1: memory)
   : blocks_equiv_at_Pexp σ p m0 m1 <->
-    forall foo, blocks_equiv_at_Pexp (foo::σ) (incrPVar p) m0 m1.
+    forall foo, blocks_equiv_at_Pexp (foo::σ) (incrPVar 0 p) m0 m1.
 Proof.
   split.
   -
@@ -818,7 +818,6 @@ Lemma memory_lookup_new
 Proof.
 Admitted.
 
-
 Lemma evalDSHOperator_add_var {σ m d fuel}:
     EnvMemoryConsistent σ m ->
     forall foo,
@@ -840,8 +839,24 @@ Proof.
     repeat rewrite evalAexp_incrAVar.
     repeat rewrite evalNexp_incrNVar.
     repeat break_match; subst_max; try some_none.
-
-
+    +
+      repeat f_equiv.
+      apply Some_inj_eq.
+      rewrite <- Heqo3, <- Heqo4.
+      symmetry.
+      apply evalDSHIMap_incrDSHIUnCarrierA.
+    +
+      rewrite evalDSHIMap_incrDSHIUnCarrierA in Heqo4.
+      congruence.
+    +
+      rewrite evalDSHIMap_incrDSHIUnCarrierA in Heqo4.
+      congruence.
+  -
+    repeat rewrite evalPexp_incrPVar.
+    repeat rewrite evalMexp_incrMVar.
+    repeat rewrite evalAexp_incrAVar.
+    repeat rewrite evalNexp_incrNVar.
+    repeat break_match; subst_max; try some_none.
 
 Admitted.
 
@@ -855,7 +870,7 @@ Instance DSHAlloc_pure
          (x_p y_p: PExpr)
          (size: nat)
          (d: DSHOperator)
-         `{P: DSH_pure (incrOp d) (incrPVar x_p) (incrPVar y_p)}
+         `{P: DSH_pure (incrOp d) (incrPVar 0 x_p) (incrPVar 0 y_p)}
   :
     DSH_pure (DSHAlloc size d) x_p y_p.
 Proof.

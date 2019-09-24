@@ -1,5 +1,7 @@
 (* Deep embedding of a subset of SigmaHCOL *)
 
+Require Import Coq.Arith.Compare_dec.
+
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
@@ -283,57 +285,62 @@ Proof.
     + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
 Qed.
 
-Definition incrPVar (p: PExpr) : PExpr :=
+Definition incrPVar (skip:nat) (p: PExpr): PExpr :=
   match p with
-  | PVar var_id => PVar (S var_id)
+  | PVar var_id =>
+    PVar (if le_dec skip var_id then (S var_id) else var_id)
   | _ => p
   end.
 
-Definition incrMVar (p: MExpr) : MExpr :=
+Definition incrMVar (skip:nat) (p: MExpr): MExpr :=
   match p with
-  | MVar var_id => MVar (S var_id)
+  | MVar var_id => MVar (if le_dec skip var_id then (S var_id) else var_id)
   | _ => p
   end.
 
-Fixpoint incrNVar (p: NExpr) : NExpr :=
+Fixpoint incrNVar (skip:nat) (p: NExpr): NExpr :=
   match p with
-  | NVar var_id => NVar (S var_id)
+  | NVar var_id => NVar (if le_dec skip var_id then (S var_id) else var_id)
   | NConst _ => p
-  | NDiv  a b => NDiv (incrNVar a) (incrNVar b)
-  | NMod  a b => NMod (incrNVar a) (incrNVar b)
-  | NPlus a b => NPlus (incrNVar a) (incrNVar b)
-  | NMinus a b => NMinus (incrNVar a) (incrNVar b)
-  | NMult a b => NMult (incrNVar a) (incrNVar b)
-  | NMin  a b => NMin (incrNVar a) (incrNVar b)
-  | NMax  a b => NMax (incrNVar a) (incrNVar b)
+  | NDiv  a b => NDiv (incrNVar skip a) (incrNVar skip b)
+  | NMod  a b => NMod (incrNVar skip a) (incrNVar skip b)
+  | NPlus a b => NPlus (incrNVar skip a) (incrNVar skip b)
+  | NMinus a b => NMinus (incrNVar skip a) (incrNVar skip b)
+  | NMult a b => NMult (incrNVar skip a) (incrNVar skip b)
+  | NMin  a b => NMin (incrNVar skip a) (incrNVar skip b)
+  | NMax  a b => NMax (incrNVar skip a) (incrNVar skip b)
   end.
 
-Fixpoint incrAVar (p: AExpr) : AExpr :=
+Fixpoint incrAVar (skip:nat) (p: AExpr) : AExpr :=
   match p with
-  | AVar var_id => AVar (S var_id)
+  | AVar var_id => AVar (if le_dec skip var_id then (S var_id) else var_id)
   | AConst _ => p
-  | ANth m n =>  ANth (incrMVar m) (incrNVar n)
-  | AAbs a => AAbs (incrAVar a)
-  | APlus  a b => APlus (incrAVar a) (incrAVar b)
-  | AMinus a b => AMinus (incrAVar a) (incrAVar b)
-  | AMult  a b => AMult (incrAVar a) (incrAVar b)
-  | AMin   a b => AMin (incrAVar a) (incrAVar b)
-  | AMax   a b => AMax (incrAVar a) (incrAVar b)
-  | AZless a b => AZless (incrAVar a) (incrAVar b)
+  | ANth m n =>  ANth (incrMVar skip m) (incrNVar skip n)
+  | AAbs a => AAbs (incrAVar skip a)
+  | APlus  a b => APlus (incrAVar skip a) (incrAVar skip b)
+  | AMinus a b => AMinus (incrAVar skip a) (incrAVar skip b)
+  | AMult  a b => AMult (incrAVar skip a) (incrAVar skip b)
+  | AMin   a b => AMin (incrAVar skip a) (incrAVar skip b)
+  | AMax   a b => AMax (incrAVar skip a) (incrAVar skip b)
+  | AZless a b => AZless (incrAVar skip a) (incrAVar skip b)
   end.
+
+Definition incrDSHIUnCarrierA: DSHIUnCarrierA -> DSHIUnCarrierA := incrAVar 2.
+Definition incrDSHIBinCarrierA: DSHIBinCarrierA -> DSHIBinCarrierA := incrAVar 3.
+Definition incrDSHBinCarrierA: DSHBinCarrierA -> DSHBinCarrierA := incrAVar 2.
 
 Fixpoint incrOp (d:DSHOperator) : DSHOperator
   := match d with
-     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar src_p, incrNVar src_o) (incrPVar dst_p, incrNVar dst_o)
-     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar x_p) (incrPVar y_p) (incrAVar f)
-     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar x_p) (incrPVar y_p) (incrAVar f)
-     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar x0_p) (incrPVar x1_p) (incrPVar y_p) (incrAVar f)
+     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o)
+     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar 0 x_p) (incrPVar 0 y_p) (incrDSHIUnCarrierA f)
+     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar 0 x_p) (incrPVar 0 y_p) (incrDSHIBinCarrierA f)
+     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar 0 x0_p) (incrPVar 0 x1_p) (incrPVar 0 y_p) (incrDSHBinCarrierA f)
      | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
-       DSHPower n (incrPVar src_p, incrNVar src_o) (incrPVar dst_p,  incrNVar dst_o) (incrAVar f) initial
+       DSHPower n (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o) (incrDSHBinCarrierA f) initial
      | DSHLoop n body => DSHLoop n (incrOp body)
      | DSHAlloc size body => DSHAlloc size (incrOp body)
-     | DSHMemInit size y_p value => DSHMemInit size (incrPVar y_p) value
-     | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar x_p) (incrPVar y_p)
+     | DSHMemInit size y_p value => DSHMemInit size (incrPVar 0 y_p) value
+     | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar 0 x_p) (incrPVar 0 y_p)
      | DSHSeq f g => DSHSeq (incrOp f) (incrOp g)
      end.
 
