@@ -686,6 +686,19 @@ Section IncrEval.
     repeat (try destruct v; try simpl; try reflexivity; try lia).
   Qed.
 
+  Lemma evalMexp_incrMVar_3
+        (m : MExpr)
+        (σ : evalContext)
+        (a b c foo: DSHVal):
+    evalMexp (a :: b :: c :: foo :: σ) (incrMVar 3 m) ≡ evalMexp (a :: b :: c :: σ) m.
+  Proof.
+    destruct m; try reflexivity.
+    simpl.
+    break_if.
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
+    repeat (try destruct v; try simpl; try reflexivity; try lia).
+  Qed.
+
   Lemma evalNexp_incrNVar
         (n : NExpr)
         (σ : evalContext)
@@ -705,6 +718,36 @@ Section IncrEval.
     evalNexp (a :: b :: foo :: σ) (incrNVar 2 m) ≡ evalNexp (a :: b :: σ) m.
   Proof.
     revert a b.
+    induction m; intros; try reflexivity.
+    simpl.
+    break_if.
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2;reflexivity.
+  Qed.
+
+  Lemma evalNexp_incrNVar_3
+        (m : NExpr)
+        (σ : evalContext)
+        (a b c foo: DSHVal):
+    evalNexp (a :: b :: c :: foo :: σ) (incrNVar 3 m) ≡ evalNexp (a :: b :: c :: σ) m.
+  Proof.
+    revert a b c.
     induction m; intros; try reflexivity.
     simpl.
     break_if.
@@ -776,6 +819,40 @@ Section IncrEval.
       simpl; rewrite IHm1, IHm2; reflexivity.
   Qed.
 
+  Lemma evalAexp_incrAVar_3
+        (m : AExpr)
+        (σ : evalContext)
+        (a b c foo: DSHVal):
+    evalAexp (a :: b :: c :: foo :: σ) (incrAVar 3 m) ≡ evalAexp (a :: b :: c :: σ) m.
+  Proof.
+    revert a b c.
+    induction m; intros; try reflexivity.
+    simpl.
+    break_if.
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      repeat (try destruct v; try simpl; try reflexivity; try lia).
+    -
+      simpl.
+      rewrite evalMexp_incrMVar_3, evalNexp_incrNVar_3.
+      reflexivity.
+    -
+      simpl; rewrite IHm; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+    -
+      simpl; rewrite IHm1, IHm2; reflexivity.
+  Qed.
+
   Lemma evalIUnCarrierA_incrDSHIUnCarrierA
         (σ: evalContext)
         (f: DSHIUnCarrierA)
@@ -784,9 +861,63 @@ Section IncrEval.
         (foo: DSHVal):
     evalIUnCarrierA (foo :: σ) (incrDSHIUnCarrierA f) i a ≡ evalIUnCarrierA σ f i a.
   Proof.
-    unfold evalIUnCarrierA.
     unfold incrDSHIUnCarrierA.
     apply evalAexp_incrAVar_2.
+  Qed.
+
+  Lemma evalIBinCarrierA_incrDSHIBinCarrierA
+        (σ: evalContext)
+        (f: DSHIBinCarrierA)
+        (i:nat)
+        (a b:CarrierA)
+        (foo: DSHVal):
+    evalIBinCarrierA (foo :: σ) (incrDSHIBinCarrierA f) i a b ≡ evalIBinCarrierA σ f i a b.
+  Proof.
+    unfold incrDSHIBinCarrierA.
+    apply evalAexp_incrAVar_3.
+  Qed.
+
+  Lemma evalBinCarrierA_incrDSHBinCarrierA
+        (σ: evalContext)
+        (f: DSHBinCarrierA)
+        (a b:CarrierA)
+        (foo: DSHVal):
+    evalBinCarrierA (foo :: σ) (incrDSHBinCarrierA f) a b ≡ evalBinCarrierA σ f a b.
+  Proof.
+    unfold incrDSHBinCarrierA.
+    apply evalAexp_incrAVar_2.
+  Qed.
+
+  Lemma evalDSHBinOp_incrincrDSHIBinCarrierA
+        (n off: nat)
+        (f: DSHIBinCarrierA)
+        (σ: evalContext)
+        (x y: mem_block)
+        (foo: DSHVal):
+    evalDSHBinOp n off (incrDSHIBinCarrierA f) (foo :: σ) x y ≡ evalDSHBinOp n off f σ x y.
+  Proof.
+    revert x y.
+    induction n; intros.
+    -
+      reflexivity.
+    -
+      simpl.
+      repeat break_match; try some_none.
+      +
+        rewrite IHn.
+        f_equiv.
+        f_equiv.
+        apply Some_inj_eq.
+        rewrite <- Heqo1, <- Heqo2.
+        apply evalIBinCarrierA_incrDSHIBinCarrierA.
+      +
+        exfalso.
+        rewrite evalIBinCarrierA_incrDSHIBinCarrierA in Heqo1.
+        congruence.
+      +
+        exfalso.
+        rewrite evalIBinCarrierA_incrDSHIBinCarrierA in Heqo1.
+        congruence.
   Qed.
 
   Lemma evalDSHIMap_incrDSHIUnCarrierA
@@ -820,5 +951,72 @@ Section IncrEval.
         rewrite evalIUnCarrierA_incrDSHIUnCarrierA in Heqo0.
         congruence.
   Qed.
+
+  Lemma evalDSHMap2_incrDSHBinCarrierA
+        (n: nat)
+        (f: DSHBinCarrierA)
+        (σ: evalContext)
+        (x0 x1 y: mem_block)
+        (foo: DSHVal):
+    evalDSHMap2 n (incrDSHBinCarrierA f) (foo :: σ) x0 x1 y ≡ evalDSHMap2 n f σ x0 x1 y.
+  Proof.
+    revert x0 x1 y.
+    induction n; intros.
+    -
+      reflexivity.
+    -
+      simpl.
+      repeat break_match; try some_none.
+      +
+        rewrite IHn.
+        f_equiv.
+        f_equiv.
+        apply Some_inj_eq.
+        rewrite <- Heqo1, <- Heqo2.
+        apply evalBinCarrierA_incrDSHBinCarrierA.
+      +
+        exfalso.
+        rewrite evalBinCarrierA_incrDSHBinCarrierA in Heqo1.
+        congruence.
+      +
+        exfalso.
+        rewrite evalBinCarrierA_incrDSHBinCarrierA in Heqo1.
+        congruence.
+  Qed.
+
+  Lemma evalDSHPower_incrDSHBinCarrierA
+        (σ: evalContext)
+        (n: nat)
+        (f: DSHBinCarrierA)
+        (x y: mem_block)
+        (xoffset yoffset: nat)
+        (foo: DSHVal):
+    evalDSHPower (foo :: σ) n (incrDSHBinCarrierA f) x y xoffset yoffset
+                 ≡ evalDSHPower σ n f x y xoffset yoffset.
+  Proof.
+    revert x y.
+    induction n; intros.
+    -
+      reflexivity.
+    -
+      simpl.
+      repeat break_match; try some_none.
+      +
+        rewrite IHn.
+        f_equiv.
+        f_equiv.
+        apply Some_inj_eq.
+        rewrite <- Heqo1, <- Heqo2.
+        apply evalBinCarrierA_incrDSHBinCarrierA.
+      +
+        exfalso.
+        rewrite evalBinCarrierA_incrDSHBinCarrierA in Heqo1.
+        congruence.
+      +
+        exfalso.
+        rewrite evalBinCarrierA_incrDSHBinCarrierA in Heqo1.
+        congruence.
+  Qed.
+
 
 End IncrEval.

@@ -818,6 +818,12 @@ Lemma memory_lookup_new
 Proof.
 Admitted.
 
+Local Ltac rewrite_evalExp_incrVar :=
+  repeat rewrite evalPexp_incrPVar;
+  repeat rewrite evalMexp_incrMVar;
+  repeat rewrite evalAexp_incrAVar;
+  repeat rewrite evalNexp_incrNVar.
+
 Lemma evalDSHOperator_add_var {σ m d fuel}:
     EnvMemoryConsistent σ m ->
     forall foo,
@@ -828,16 +834,10 @@ Proof.
   -
     destruct src as (src_p, src_o).
     destruct dst as (dst_p, dst_o).
-    repeat rewrite evalPexp_incrPVar.
-    repeat rewrite evalMexp_incrMVar.
-    repeat rewrite evalAexp_incrAVar.
-    repeat rewrite evalNexp_incrNVar.
+    rewrite_evalExp_incrVar.
     repeat break_match; subst_max; try some_none.
   -
-    repeat rewrite evalPexp_incrPVar.
-    repeat rewrite evalMexp_incrMVar.
-    repeat rewrite evalAexp_incrAVar.
-    repeat rewrite evalNexp_incrNVar.
+    rewrite_evalExp_incrVar.
     repeat break_match; subst_max; try some_none.
     +
       repeat f_equiv.
@@ -852,13 +852,57 @@ Proof.
       rewrite evalDSHIMap_incrDSHIUnCarrierA in Heqo4.
       congruence.
   -
-    repeat rewrite evalPexp_incrPVar.
-    repeat rewrite evalMexp_incrMVar.
-    repeat rewrite evalAexp_incrAVar.
-    repeat rewrite evalNexp_incrNVar.
+    rewrite_evalExp_incrVar.
+    repeat break_match; subst_max; try some_none.
+    +
+      repeat f_equiv.
+      apply Some_inj_eq.
+      rewrite <- Heqo3, <- Heqo4.
+      symmetry.
+      apply evalDSHBinOp_incrincrDSHIBinCarrierA.
+    +
+      rewrite evalDSHBinOp_incrincrDSHIBinCarrierA in Heqo4.
+      congruence.
+    +
+      rewrite evalDSHBinOp_incrincrDSHIBinCarrierA in Heqo4.
+      congruence.
+  -
+    rewrite_evalExp_incrVar.
+    repeat break_match; subst_max; try some_none.
+    +
+      repeat f_equiv.
+      apply Some_inj_eq.
+      rewrite <- Heqo5, <- Heqo6.
+      symmetry.
+      apply evalDSHMap2_incrDSHBinCarrierA.
+    +
+      rewrite evalDSHMap2_incrDSHBinCarrierA in Heqo6.
+      congruence.
+    +
+      rewrite evalDSHMap2_incrDSHBinCarrierA in Heqo6.
+      congruence.
+  -
+    destruct src as (src_p, src_o).
+    destruct dst as (dst_p, dst_o).
+    rewrite_evalExp_incrVar.
+    repeat break_match; subst_max; try some_none.
+    +
+      repeat f_equiv.
+      apply Some_inj_eq.
+      rewrite <- Heqo6, <- Heqo7.
+      symmetry.
+      apply evalDSHPower_incrDSHBinCarrierA.
+    +
+      rewrite evalDSHPower_incrDSHBinCarrierA in Heqo7.
+      congruence.
+    +
+      rewrite evalDSHPower_incrDSHBinCarrierA in Heqo7.
+      congruence.
+  -
+    rewrite_evalExp_incrVar.
     repeat break_match; subst_max; try some_none.
 
-Admitted.
+Qed.
 
 
 (* This is a pretty useless instance, as stated. It only makes sense

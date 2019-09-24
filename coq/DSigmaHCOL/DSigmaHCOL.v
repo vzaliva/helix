@@ -336,7 +336,7 @@ Fixpoint incrOp (d:DSHOperator) : DSHOperator
      | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar 0 x_p) (incrPVar 0 y_p) (incrDSHIBinCarrierA f)
      | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar 0 x0_p) (incrPVar 0 x1_p) (incrPVar 0 y_p) (incrDSHBinCarrierA f)
      | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
-       DSHPower n (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o) (incrDSHBinCarrierA f) initial
+       DSHPower (incrNVar 0 n) (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o) (incrDSHBinCarrierA f) initial
      | DSHLoop n body => DSHLoop n (incrOp body)
      | DSHAlloc size body => DSHAlloc size (incrOp body)
      | DSHMemInit size y_p value => DSHMemInit size (incrPVar 0 y_p) value
