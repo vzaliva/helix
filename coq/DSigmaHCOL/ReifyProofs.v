@@ -105,7 +105,7 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
       memory_lookup m a.
 
 Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
-  opt_p (fun a => is_Some (memory_lookup m a)) (evalPexp σ p).
+  opt_p (fun k => mem_block_exists k m) (evalPexp σ p).
 
 (*
    - [evalPexp σ p] must not to fail
@@ -119,7 +119,7 @@ Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 | EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
 | DSHPtrValConsistent: forall σ m a,
-    is_Some (memory_lookup m a) ->
+    mem_block_exists a m ->
     EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
 (* the remaining case does not depend on memory and just recurse over environment *)
 | DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
@@ -140,6 +140,11 @@ Class DSH_pure
       (d: DSHOperator)
       (x_p y_p: PExpr)
   := {
+
+      (* does not free or allocate any memory *)
+      mem_stable: forall σ m m' fuel,
+        evalDSHOperator σ d m fuel ≡ Some m' ->
+        forall k, mem_block_exists k m <-> mem_block_exists k m';
 
       (* depends only [x_p], which must be valid in [σ], in all
          consistent memory configurations *)
@@ -900,223 +905,61 @@ Proof.
       rewrite evalDSHPower_incrDSHBinCarrierA in Heqo7.
       congruence.
   -
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-
-Qed.
-
-
-(* This is a pretty useless instance, as stated. It only makes sense
-   if the temporary variable is never used in the body.
-
-   Nevertheless it is a good testbed I use to test and refine purity
-   definitions.  *)
-Instance DSHAlloc_pure
-         (x_p y_p: PExpr)
-         (size: nat)
-         (d: DSHOperator)
-         `{P: DSH_pure (incrOp d) (incrPVar 0 x_p) (incrPVar 0 y_p)}
-  :
-    DSH_pure (DSHAlloc size d) x_p y_p.
-Proof.
-  destruct P as [P0 P1].
-  split.
-  -
-    intros σ m0 m1 fuel C0 C1 VY0 VY1 M.
-    clear P1.
-    destruct fuel.
-    constructor.
-    simpl.
-
-    inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y; clear VY0.
-    inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y; clear VY1.
-
-    remember (memory_new m0) as t0_i.
-    remember (memory_new m1) as t1_i.
-    remember (DSHPtrVal t0_i) as t0_v.
-    remember (DSHPtrVal t1_i) as t1_v.
-
-    remember (memory_set m0 t0_i mem_empty) as m0'.
-    remember (memory_set m1 t1_i mem_empty) as m1'.
-
-    remember (t0_v :: σ) as σ0.
-    remember (t1_v :: σ) as σ1.
-
-    (* follows from P0 *)
-    assert(EE: forall v0 v1,
-              opt_r
-                (blocks_equiv_at_Pexp σ y_p)
-                (evalDSHOperator (v0::σ) (incrOp d) m0' fuel)
-                (evalDSHOperator (v1::σ) (incrOp d) m1' fuel)).
-    {
-      intros v0 v1.
-      (* pose proof (blocks_equiv_at_Pexp_incrVar x_p σ m0 m1 M) as M'. *)
-      admit.
-    }
-    specialize (EE t0_v t1_v).
-    repeat break_match.
-    +
-      rename m into m0'', m2 into m1'',
-      Heqo into E0, Heqo0 into E1.
-      constructor.
-
-      inversion EE.
-      *
-        admit.
-      *
-        symmetry_option_hyp.
-        assert(a ≡ m0'').
-        {
-          apply Some_inj_eq.
-          rewrite <- H.
-          rewrite <- E0.
-          subst σ0.
-          erewrite <- evalDSHOperator_add_var.
-          reflexivity.
-        }
-        subst a.
-        assert(b ≡ m1'').
-        {
-          apply Some_inj_eq.
-          rewrite H0.
-          rewrite <- E1.
-          subst σ1.
-          reflexivity.
-        }
-        subst b.
-        clear H H0 EE.
-        rename H1 into EE''.
-
-        assert(evalPexp σ y_p ≢ Some t0_i) as NY0.
-        {
-          subst.
-          inversion VY0.
-          apply Some_neq.
-          apply not_eq_sym.
-          apply memory_new_is_new.
-          assumption.
-        }
-        assert(evalPexp σ y_p ≢ Some t1_i) as NY1.
-        {
-          subst.
-          inversion VY1.
-          apply Some_neq.
-          apply not_eq_sym.
-          apply memory_new_is_new.
-          assumption.
-        }
-        apply blocks_equiv_at_Pexp_remove; assumption.
-    +
-      exfalso.
-      admit.
-    +
-      exfalso.
-      admit.
-    +
-      constructor.
-Qed.
-
-(*
-
-Instance DSHAlloc_MSH_DSH_compat
-      {i o size: nat}
-      (x_i y_i t_i: mem_block_id)
-      (σ: evalContext)
-      (m: memory)
-      (tcx: t_i ≢ x_i)
-      (tcy: t_i ≢ y_i)
-      (tct: not (mem_block_exists t_i m)) (* [t_i] must not be alloated yet *)
-      (mop: MSHOperator)
-      (dop: mem_block_id -> DSHOperator)
-      `{P: DSH_pure (DSHAlloc size dop) x_i y_i}
-      `{C: MSH_DSH_compat i o mop (dop t_i) σ (memory_alloc_empty m t_i) x_i y_i}
-  :
-    MSH_DSH_compat mop (DSHAlloc size dop) σ m x_i y_i.
-Proof.
-  apply mem_block_not_exists_exists in tct.
-  split.
-  intros mx mb MX MB.
-  inversion_clear C.
-  specialize (eval_equiv0 mx mb).
-
-  assert(MX': memory_lookup (memory_alloc_empty m t_i) x_i ≡ Some mx).
-  {
-    unfold memory_lookup, memory_alloc_empty, memory_set.
-    rewrite NP.F.add_neq_o by assumption.
-    apply MX.
-  }
-  assert(MB': memory_lookup (memory_alloc_empty m t_i) y_i ≡ Some mb).
-  {
-    unfold memory_lookup, memory_alloc_empty, memory_set.
-    rewrite NP.F.add_neq_o by assumption.
-    apply MB.
-  }
-  specialize (eval_equiv0 MX' MB').
-  inversion eval_equiv0 as [MM ME | my ma];
-    try symmetry in MM; try symmetry in ME;
-      clear eval_equiv0.
-  -
-    simpl.
-    repeat break_match; try constructor.
-    unfold memory_alloc_empty in ME.
-    congruence.
-  -
-    simpl.
-    repeat break_match; try constructor; try some_none.
-    +
-      unfold memory_lookup, memory_remove in *.
-      rewrite NP.F.remove_neq_o by auto.
-      unfold memory_alloc_empty in *.
-      rewrite Heqo1 in H2.
-      some_inv.
-      subst m0.
-      apply H0.
-    +
-      unfold memory_alloc_empty in *.
-      rewrite Heqo1 in H2.
-      some_none.
-Qed.
-
-*)
-(*
-Lemma enough_fuel {σ dop m f} (H: f>= estimateFuel dop):
-  evalDSHOperator σ dop m f ≡ evalDSHOperator σ dop m (estimateFuel dop).
-Proof.
+    repeat break_match; subst_max; try some_none;
+      rename n0 into i.
+    rewrite <- Heqo0, <- Heqo2.
 Admitted.
- *)
+
 
 Instance Compose_DSH_pure
          {n: nat}
          {t_p y_p: PExpr}
          {dop1 dop2: DSHOperator}
+         (* We might need to enforce x_p,y_p <> PVar 0 *)
          `{P2: DSH_pure dop2 x_p (PVar 0)}
          `{P1: DSH_pure dop1 (PVar 0) y_p}
-  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (incrPVar x_p) (incrPVar y_p).
+  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
 Proof.
   split.
   -
-    intros σ m0 m1 fuel H.
-    destruct fuel; try reflexivity.
-    destruct fuel.
+    intros σ m m' fuel H k.
+    admit.
+  -
+    intros σ m0 m1 fuel C0 C1 VY0 VY1 E.
+    destruct fuel; try constructor.
+    simpl.
+    repeat break_match; try some_none; try constructor.
     +
-      simpl.
-      repeat break_match; try some_none.
-    +
-      simpl.
-      repeat break_match; try some_none.
+      rename m into m0'',  m2 into m1''.
+
+      inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y; clear VY0.
+      inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y; clear VY1.
+
+      remember (memory_new m0) as t0_i.
+      remember (memory_new m1) as t1_i.
+      remember (DSHPtrVal t0_i) as t0_v.
+      remember (DSHPtrVal t1_i) as t1_v.
+
+      remember (memory_set m0 t0_i mem_empty) as m0'.
+      remember (memory_set m1 t1_i mem_empty) as m1'.
+
+      remember (t0_v :: σ) as σ0.
+      remember (t1_v :: σ) as σ1.
+
+      destruct P1, P2.
+
+      eapply mem_write_safe0.
       *
-        destruct P1, P2.
-
-        apply mem_write_safe0 with (p:=x_p) in Heqo0.
-        eapply mem_write_safe1 in Heqo1.
-
-
-        specialize (mem_write_safe0 _ _ _ _ Heqo1).
-        specialize (mem_read_safe1 σ m0 m1 fuel H).
-        clear H.
-        clear Heqo1.
-        eapply mem_write_safe1 in Heqo2.
-
+        (* - m0 consistent by C0,
+           - t0_i could not be in σ because the original env. was consistent and it was not allocated yet
+           - so remving something unreferenced from σ should not break consistency
+         *)
+        admit.
+      *
+        (* - t0_i <> y_p (from E0Y, Heqt0_i)
+           - y_p was in
+           - from mem_write_safe0 follows ????
+         *)
 
 Admitted.
 
