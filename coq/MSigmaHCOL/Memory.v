@@ -780,4 +780,19 @@ Section Memory_Blocks.
       apply F.not_find_in_iff in H1; congruence.
   Qed.
 
+  Lemma memory_is_set_is_Some (m:memory) (k:mem_block_id):
+    mem_block_exists k m <-> MathClasses.misc.util.is_Some (memory_lookup m k).
+  Proof.
+    unfold mem_block_exists, memory_lookup, MathClasses.misc.util.is_Some.
+    split; intros H.
+    -
+      apply NP.F.in_find_iff in H.
+      break_match; auto.
+    -
+      apply NP.F.in_find_iff.
+      break_match_hyp; auto.
+      some_none.
+  Qed.
+
+
 End Memory_Blocks.
