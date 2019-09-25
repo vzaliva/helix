@@ -329,19 +329,19 @@ Definition incrDSHIUnCarrierA: DSHIUnCarrierA -> DSHIUnCarrierA := incrAVar 2.
 Definition incrDSHIBinCarrierA: DSHIBinCarrierA -> DSHIBinCarrierA := incrAVar 3.
 Definition incrDSHBinCarrierA: DSHBinCarrierA -> DSHBinCarrierA := incrAVar 2.
 
-Fixpoint incrOp (d:DSHOperator) : DSHOperator
+Fixpoint incrOp (skip:nat) (d:DSHOperator) : DSHOperator
   := match d with
-     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o)
-     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar 0 x_p) (incrPVar 0 y_p) (incrDSHIUnCarrierA f)
-     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar 0 x_p) (incrPVar 0 y_p) (incrDSHIBinCarrierA f)
-     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar 0 x0_p) (incrPVar 0 x1_p) (incrPVar 0 y_p) (incrDSHBinCarrierA f)
+     | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o)
+     | DSHIMap n x_p y_p f => DSHIMap n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIUnCarrierA f)
+     | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIBinCarrierA f)
+     | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar skip x0_p) (incrPVar skip x1_p) (incrPVar skip y_p) (incrDSHBinCarrierA f)
      | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
-       DSHPower (incrNVar 0 n) (incrPVar 0 src_p, incrNVar 0 src_o) (incrPVar 0 dst_p, incrNVar 0 dst_o) (incrDSHBinCarrierA f) initial
-     | DSHLoop n body => DSHLoop n (incrOp body)
-     | DSHAlloc size body => DSHAlloc size (incrOp body)
-     | DSHMemInit size y_p value => DSHMemInit size (incrPVar 0 y_p) value
-     | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar 0 x_p) (incrPVar 0 y_p)
-     | DSHSeq f g => DSHSeq (incrOp f) (incrOp g)
+       DSHPower (incrNVar skip n) (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o) (incrDSHBinCarrierA f) initial
+     | DSHLoop n body => DSHLoop n (incrOp (S skip) body)
+     | DSHAlloc size body => DSHAlloc size (incrOp (S skip) body)
+     | DSHMemInit size y_p value => DSHMemInit size (incrPVar skip y_p) value
+     | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar skip x_p) (incrPVar skip y_p)
+     | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
      end.
 
 Module DSHNotation.

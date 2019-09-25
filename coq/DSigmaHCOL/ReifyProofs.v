@@ -827,9 +827,10 @@ Local Ltac rewrite_evalExp_incrVar :=
 Lemma evalDSHOperator_add_var {σ m d fuel}:
     EnvMemoryConsistent σ m ->
     forall foo,
-      evalDSHOperator σ d m fuel ≡ evalDSHOperator (foo :: σ) (incrOp d) m fuel.
+      evalDSHOperator σ d m fuel ≡ evalDSHOperator (foo :: σ) (incrOp 0 d) m fuel.
 Proof.
   intros C v.
+  revert fuel.
   induction d; destruct fuel; try reflexivity; simpl.
   -
     destruct src as (src_p, src_o).
