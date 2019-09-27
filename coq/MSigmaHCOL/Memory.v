@@ -15,6 +15,7 @@ From Coq.FSets Require Import
      FMapFacts.
 
 Require Import Coq.Structures.OrderedTypeEx.
+Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
 Require Export Coq.Sets.Ensembles.
@@ -68,7 +69,7 @@ Definition mem_keys_lst (m:NatMap CarrierA): list nat :=
   List.map fst (NM.elements m).
 
 Definition mem_keys_set (m: mem_block): NatSet :=
-    NSP.of_list (mem_keys_lst m).
+  NSP.of_list (mem_keys_lst m).
 
 (* forcefull union of two memory blocks. conflicts are resolved by
    giving preference to elements of the 1st block *)
@@ -472,7 +473,7 @@ Lemma mem_merge_is_Some
       (m0 m1 : mem_block)
   :
     Ensembles.Disjoint nat (NE.mkEns (mem_keys_set m0))
-             (NE.mkEns (mem_keys_set m1)) -> (mem_merge m0 m1 <> None).
+                       (NE.mkEns (mem_keys_set m1)) -> (mem_merge m0 m1 <> None).
 Proof.
   unfold mem_merge.
   unfold mem_keys_set.
@@ -793,6 +794,66 @@ Section Memory_Blocks.
       break_match_hyp; auto.
       some_none.
   Qed.
+
+  Lemma mem_block_exists_memory_remove {k m}:
+    not (mem_block_exists k (memory_remove m k)).
+  Proof.
+    unfold mem_block_exists, memory_remove.
+    apply NM.remove_1.
+    reflexivity.
+  Qed.
+
+  Lemma mem_block_exists_memory_remove_neq
+        {k k' m}
+        (NK:k <> k'):
+    mem_block_exists k m <-> mem_block_exists k (memory_remove m k').
+  Proof.
+    unfold mem_block_exists, memory_remove.
+    split; intros H.
+    -
+      apply NP.F.remove_neq_in_iff; auto.
+    -
+      apply NP.F.remove_neq_in_iff in H; auto.
+  Qed.
+
+  Lemma mem_block_exists_memory_set {k k' m v}:
+    mem_block_exists k m ->
+    mem_block_exists k (memory_set m k' v).
+  Proof.
+    unfold mem_block_exists, memory_set.
+    intros H.
+    destruct (Nat.eq_dec k k').
+    -
+      apply NP.F.add_in_iff.
+      left.
+      auto.
+    -
+      apply NP.F.add_in_iff.
+      right.
+      auto.
+  Qed.
+
+  Lemma mem_block_exists_memory_set_neq
+        {k k' m v}
+        (NK:k <> k'):
+    mem_block_exists k m <-> mem_block_exists k (memory_set m k' v).
+  Proof.
+    unfold mem_block_exists, memory_set.
+    split; intros H.
+    -
+      apply NP.F.add_neq_in_iff; auto.
+    -
+      apply NP.F.add_neq_in_iff in H; auto.
+  Qed.
+
+  (* TODO: move *)
+  Lemma mem_block_exists_memory_new
+        (m : memory):
+    not (mem_block_exists (memory_new m) m).
+  Proof.
+    unfold mem_block_exists, memory_new.
+    intros H.
+  Admitted.
 
 
 End Memory_Blocks.

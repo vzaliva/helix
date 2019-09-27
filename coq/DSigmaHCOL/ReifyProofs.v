@@ -807,42 +807,6 @@ Proof.
     inversion EE.
 Qed.
 
-(* TODO: move *)
-Lemma mem_block_exists_memory_new
-      (m : memory):
-  ¬ mem_block_exists (memory_new m) m.
-Proof.
-Admitted.
-
-(* TODO: move *)
-Lemma mem_block_exists_memory_remove {k m}:
-  ¬ mem_block_exists k (memory_remove m k).
-Proof.
-Admitted.
-
-(* TODO: move *)
-Lemma mem_block_exists_memory_remove_neq
-      {k k' m}
-      (NK:k ≢ k'):
-  mem_block_exists k m <-> mem_block_exists k (memory_remove m k').
-Proof.
-Admitted.
-
-(* TODO: move *)
-Lemma mem_block_exists_memory_set {k k' m v}:
-  mem_block_exists k m ->
-  mem_block_exists k (memory_set m k' v).
-Proof.
-Admitted.
-
-(* TODO: move *)
-Lemma mem_block_exists_memory_set_neq
-      {k k' m v}
-      (NK:k ≢ k'):
-  mem_block_exists k m <-> mem_block_exists k (memory_set m k' v).
-Proof.
-Admitted.
-
 (*
 Local Ltac rewrite_evalExp_incrVar :=
   repeat rewrite evalPexp_incrPVar;
