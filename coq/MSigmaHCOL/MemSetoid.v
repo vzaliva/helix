@@ -107,9 +107,9 @@ Proof.
     intros H.
     apply NP.F.in_find_iff in H.
     apply NP.F.in_find_iff.
+    apply None_nequiv_neq in H.
     apply None_nequiv_neq.
     rewrite <- H0.
-    apply None_nequiv_neq in H.
     auto.
   -
     intros H.
@@ -203,4 +203,37 @@ Global Instance memory_Equiv_Equivalence:
   Equivalence (memory_Equiv).
 Proof.
   split; typeclasses eauto.
+Qed.
+
+Global Instance memory_lookup_proper:
+  Proper ((=) ==> (eq) ==> (=)) (memory_lookup).
+Proof.
+  simpl_relation.
+  apply H.
+Qed.
+
+Global Instance mem_block_exists_proper:
+  Proper ((eq) ==> (=) ==> iff) (mem_block_exists).
+Proof.
+  simpl_relation.
+  unfold mem_block_exists, memory, mem_block in *.
+  split.
+  -
+    intros H.
+    apply NP.F.in_find_iff in H.
+    apply NP.F.in_find_iff.
+    apply None_nequiv_neq.
+    apply None_nequiv_neq in H.
+    unfold equiv, memory_Equiv in H0.
+    rewrite <- H0.
+    apply H.
+  -
+    intros H.
+    apply NP.F.in_find_iff in H.
+    apply NP.F.in_find_iff.
+    apply None_nequiv_neq.
+    unfold equiv, memory_Equiv in H0.
+    rewrite H0.
+    apply None_nequiv_neq in H.
+    auto.
 Qed.

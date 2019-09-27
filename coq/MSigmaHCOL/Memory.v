@@ -749,7 +749,7 @@ Section Memory_Blocks.
     :=
       NM.remove n m.
 
-  Definition mem_block_exists
+  Definition mem_block_exists: mem_block_id -> memory -> Prop
     := NM.In (elt:=mem_block).
 
   (* Returns block ID which is guaraneed to be free in [m] *)
