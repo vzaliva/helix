@@ -143,7 +143,7 @@ Class DSH_pure
 
       (* does not free or allocate any memory *)
       mem_stable: forall σ m m' fuel,
-        evalDSHOperator σ d m fuel ≡ Some m' ->
+        evalDSHOperator σ d m fuel = Some m' ->
         forall k, mem_block_exists k m <-> mem_block_exists k m';
 
       (* depends only [x_p], which must be valid in [σ], in all
@@ -163,7 +163,7 @@ Class DSH_pure
       mem_write_safe: forall σ m m' fuel,
           EnvMemoryConsistent σ m ->
           valid_Pexp σ m y_p ->
-          evalDSHOperator σ d m fuel ≡ Some m' ->
+          evalDSHOperator σ d m fuel = Some m' ->
           forall p, evalPexp σ p ≢ evalPexp σ y_p ->
                blocks_equiv_at_Pexp σ p m m'
     }.
@@ -923,7 +923,7 @@ Proof.
     destruct fuel; simpl in *; try some_none.
     break_match_hyp; try some_none.
     rename Heqo into D1, Heqo0 into D2.
-    some_inv. clear m' H1.
+    some_inv. rewrite <- H. clear m' H.
     remember (memory_new m) as k'.
 
     destruct(Nat.eq_dec k k') as [E|NE].
@@ -931,6 +931,8 @@ Proof.
       subst k'.
       rewrite <- E in D1.
       rewrite <- E in D2.
+      apply Option_equiv_eq in D1.
+      apply Option_equiv_eq in D2.
       rewrite <- E.
       apply MS2 with (k:=k) in D2.
       apply MS1 with (k:=k) in D1.
@@ -945,6 +947,8 @@ Proof.
         subst k.
         apply mem_block_exists_memory_remove.
     +
+      apply Option_equiv_eq in D1.
+      apply Option_equiv_eq in D2.
       apply MS2 with (k:=k) in D2.
       apply MS1 with (k:=k) in D1.
       clear MS1 MS2.
@@ -984,7 +988,13 @@ Proof.
 
       destruct P1, P2.
 
-      eapply mem_write_safe0.
+      destruct fuel;  simpl in *; try  some_none.
+      break_match_hyp; try some_none.
+      break_match_hyp; try some_none.
+
+      rename Heqo1 into E12, Heqo0 into E11.
+      rename Heqo2 into E02, Heqo into E01.
+      apply mem_write_safe0 with (fuel:=fuel).
       *
         (* - m0 consistent by C0,
            - t0_i could not be in σ because the original env. was consistent and it was not allocated yet
@@ -996,6 +1006,13 @@ Proof.
            - y_p was in
            - from mem_write_safe0 follows ????
          *)
+        admit.
+      *
+
+    +
+      exfalso.
+    +
+      exfalso.
 
 Admitted.
 
