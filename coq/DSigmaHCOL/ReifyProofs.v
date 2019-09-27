@@ -808,21 +808,42 @@ Proof.
 Qed.
 
 (* TODO: move *)
-Lemma memory_new_is_new
-      (m0 : memory)
-      (x : mem_block_id):
-  is_Some (memory_lookup m0 x) → memory_new m0 ≢ x.
+Lemma mem_block_exists_memory_new
+      (m : memory):
+  ¬ mem_block_exists (memory_new m) m.
 Proof.
-  intros H.
 Admitted.
 
 (* TODO: move *)
-Lemma memory_lookup_new
-      (m0 : memory):
-  is_None (memory_lookup m0 (memory_new m0)).
+Lemma mem_block_exists_memory_remove {k m}:
+  ¬ mem_block_exists k (memory_remove m k).
 Proof.
 Admitted.
 
+(* TODO: move *)
+Lemma mem_block_exists_memory_remove_neq
+      {k k' m}
+      (NK:k ≢ k'):
+  mem_block_exists k m <-> mem_block_exists k (memory_remove m k').
+Proof.
+Admitted.
+
+(* TODO: move *)
+Lemma mem_block_exists_memory_set {k k' m v}:
+  mem_block_exists k m ->
+  mem_block_exists k (memory_set m k' v).
+Proof.
+Admitted.
+
+(* TODO: move *)
+Lemma mem_block_exists_memory_set_neq
+      {k k' m v}
+      (NK:k ≢ k'):
+  mem_block_exists k m <-> mem_block_exists k (memory_set m k' v).
+Proof.
+Admitted.
+
+(*
 Local Ltac rewrite_evalExp_incrVar :=
   repeat rewrite evalPexp_incrPVar;
   repeat rewrite evalMexp_incrMVar;
@@ -909,7 +930,15 @@ Proof.
       rename n0 into i.
     rewrite <- Heqo0, <- Heqo2.
 Admitted.
+*)
 
+(* TODO: move *)
+
+(*
+Lemma mem_block_exists_memory_set
+      mem_block_exists k (memory_set m (memory_new m) mem_empty)
+-> mem_block_exists k m.
+*)
 
 Instance Compose_DSH_pure
          {n: nat}
@@ -921,9 +950,52 @@ Instance Compose_DSH_pure
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
 Proof.
   split.
-  -
+  - (* mem_stable *)
     intros σ m m' fuel H k.
-    admit.
+    destruct P1 as [MS1 _ _].
+    destruct P2 as [MS2 _ _].
+    destruct fuel; simpl in *; try some_none.
+    break_match_hyp; try some_none.
+    destruct fuel; simpl in *; try some_none.
+    break_match_hyp; try some_none.
+    rename Heqo into D1, Heqo0 into D2.
+    some_inv. clear m' H1.
+    remember (memory_new m) as k'.
+
+    destruct(Nat.eq_dec k k') as [E|NE].
+    +
+      subst k'.
+      rewrite <- E in D1.
+      rewrite <- E in D2.
+      rewrite <- E.
+      apply MS2 with (k:=k) in D2.
+      apply MS1 with (k:=k) in D1.
+      clear MS1 MS2.
+      split; intros H.
+      *
+        contradict H.
+        subst k.
+        apply mem_block_exists_memory_new.
+      *
+        contradict H.
+        subst k.
+        apply mem_block_exists_memory_remove.
+    +
+      apply MS2 with (k:=k) in D2.
+      apply MS1 with (k:=k) in D1.
+      clear MS1 MS2.
+      split; intros H.
+      *
+        eapply mem_block_exists_memory_set in H.
+        apply D2 in H.
+        apply D1 in H.
+        erewrite <- mem_block_exists_memory_remove_neq; eauto.
+      *
+        eapply mem_block_exists_memory_set_neq.
+        eauto.
+        eapply D2.
+        eapply D1.
+        eapply mem_block_exists_memory_remove_neq; eauto.
   -
     intros σ m0 m1 fuel C0 C1 VY0 VY1 E.
     destruct fuel; try constructor.
