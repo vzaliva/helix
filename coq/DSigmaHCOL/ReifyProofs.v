@@ -161,11 +161,9 @@ Class DSH_pure
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
-          EnvMemoryConsistent σ m ->
-          valid_Pexp σ m y_p ->
           evalDSHOperator σ d m fuel = Some m' ->
-          forall p, evalPexp σ p ≢ evalPexp σ y_p ->
-               blocks_equiv_at_Pexp σ p m m'
+          (forall y_i , evalPexp σ y_p = Some y_i ->
+                   memory_remove m y_i = memory_remove m' y_i)
     }.
 
 
@@ -898,11 +896,34 @@ Admitted.
 
 (* TODO: move *)
 
-(*
-Lemma mem_block_exists_memory_set
-      mem_block_exists k (memory_set m (memory_new m) mem_empty)
--> mem_block_exists k m.
-*)
+Lemma blocks_equiv_at_Pexp_blocks_equiv {σ p m0 m1}:
+  valid_Pexp σ m0 p ->
+  valid_Pexp σ m1 p ->
+  m0 = m1 -> blocks_equiv_at_Pexp σ p m0 m1.
+Proof.
+  intros V0 V1 H.
+  unfold blocks_equiv_at_Pexp.
+  destruct (evalPexp σ p) eqn:E.
+  -
+    constructor.
+    specialize (H m).
+    unfold memory_lookup.
+    destruct (NM.find (elt:=mem_block) m m0) eqn:F0, (NM.find (elt:=mem_block) m m1) eqn:F1; try some_none; try constructor.
+    +
+      some_inv; auto.
+    +
+      clear H.
+      inversion V0.
+      apply NP.F.in_find_iff in H0.
+      rewrite E in H.
+      some_inv.
+      congruence.
+  -
+    exfalso.
+    inversion V0.
+    rewrite E in H0.
+    some_none.
+Qed.
 
 Instance Compose_DSH_pure
          {n: nat}
@@ -970,7 +991,7 @@ Proof.
     simpl.
     repeat break_match; try some_none; try constructor.
     +
-      rename m into m0'',  m2 into m1''.
+      rename m into m0''',  m2 into m1'''.
 
       inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y; clear VY0.
       inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y; clear VY1.
@@ -986,28 +1007,66 @@ Proof.
       remember (t0_v :: σ) as σ0.
       remember (t1_v :: σ) as σ1.
 
-      destruct P1, P2.
-
       destruct fuel;  simpl in *; try  some_none.
       break_match_hyp; try some_none.
       break_match_hyp; try some_none.
 
       rename Heqo1 into E12, Heqo0 into E11.
       rename Heqo2 into E02, Heqo into E01.
-      apply mem_write_safe0 with (fuel:=fuel).
-      *
-        (* - m0 consistent by C0,
-           - t0_i could not be in σ because the original env. was consistent and it was not allocated yet
-           - so remving something unreferenced from σ should not break consistency
-         *)
+      rename m2 into m0''.
+      rename m into m1''.
+
+      assert(y0_i≡y1_i).
+      {
+        apply Some_inj_eq.
+        rewrite <- E0Y, E1Y.
+        reflexivity.
+      }
+      subst y1_i.
+      rename y0_i into y_i, E0Y into EY.
+      clear E1Y.
+
+      destruct P1, P2.
+
+      assert(evalPexp σ y_p ≢ Some t0_i) as NYT0.
+      {
+        rewrite EY.
+        apply Some_neq.
         admit.
-      *
-        (* - t0_i <> y_p (from E0Y, Heqt0_i)
-           - y_p was in
-           - from mem_write_safe0 follows ????
+        (* follows from:
+        t0_i ≡ memory_new m0
+        evalPexp σ y_p ≡ Some y_i
+        EnvMemoryConsistent σ m0
          *)
+      }
+
+      assert(evalPexp σ y_p ≢ Some t1_i) as NYT1.
+      {
         admit.
-      *
+      }
+
+      apply blocks_equiv_at_Pexp_remove; auto.
+
+      unfold blocks_equiv_at_Pexp.
+      rewrite EY.
+      constructor.
+
+      (* exprimental below *)
+      specialize (mem_read_safe0
+      assert(mem_block_exists y_i m0''') as EYM0'''.
+      {
+        (* start from [mem_block_exists y_i m1]
+           and follow [mem_stable] *)
+        admit.
+      }
+      assert(mem_block_exists y_i m1''') as EYM1'''.
+      {
+        admit.
+      }
+      apply NP.F.in_find_iff in EYM0'''.
+      apply NP.F.in_find_iff in EYM1'''.
+      destruct (memory_lookup m0''' y_i) as [y0'''|] eqn:YM0''', (memory_lookup m1''' y_i) as [y1'''|] eqn:YM1'''; try constructor; [idtac|crush|crush|crush].
+
 
     +
       exfalso.
