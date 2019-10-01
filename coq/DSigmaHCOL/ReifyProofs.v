@@ -959,13 +959,34 @@ Lemma blocks_equiv_at_Pexp_add_mem
       (foo0 foo1: mem_block)
   :
     evalPexp σ0 p ≢ Some t0 ->
-    evalPexp σ0 p ≢ Some t1 ->
+    evalPexp σ1 p ≢ Some t1 ->
     blocks_equiv_at_Pexp σ0 σ1 p m0 m1 ->
     blocks_equiv_at_Pexp σ0 σ1 p
                          (memory_set m0 t0 foo0)
                          (memory_set m1 t1 foo1).
 Proof.
-Admitted.
+  intros E0 E1 EE.
+  unfold blocks_equiv_at_Pexp in *.
+  destruct (evalPexp σ0 p), (evalPexp σ1 p).
+  -
+    constructor.
+    inversion_clear EE.
+    inversion H. clear H.
+    symmetry in H0, H1.
+    rewrite Some_neq in E0.
+    rewrite Some_neq in E1.
+    unfold memory_lookup, memory_set in *.
+    rewrite 2!NP.F.add_neq_o; auto.
+    rewrite H0, H1.
+    constructor.
+    apply H2.
+  -
+    inversion EE.
+  -
+    inversion EE.
+  -
+    inversion EE.
+Qed.
 
 Instance Compose_DSH_pure
          {n: nat}
