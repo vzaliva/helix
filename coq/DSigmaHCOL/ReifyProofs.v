@@ -111,9 +111,10 @@ Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
    - [evalPexp σ p] must not to fail
    - [memory_lookup] must succeed
 *)
-Definition blocks_equiv_at_Pexp (σ:evalContext) (p:PExpr): rel (memory)
-  := fun m0 m1 => opt_p (fun a => (opt equiv (memory_lookup m0 a) (memory_lookup m1 a)))
-                       (evalPexp σ p).
+Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
+  := fun m0 m1 =>
+       opt (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
+             (evalPexp σ0 p) (evalPexp σ1 p).
 
 (* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
@@ -148,16 +149,18 @@ Class DSH_pure
 
       (* depends only [x_p], which must be valid in [σ], in all
          consistent memory configurations *)
-      mem_read_safe: forall σ m0 m1 fuel,
-        EnvMemoryConsistent σ m0 ->
-        EnvMemoryConsistent σ m1 ->
-        valid_Pexp σ m0 y_p ->
-        valid_Pexp σ m1 y_p ->
-        blocks_equiv_at_Pexp σ x_p m0 m1 ->
+      mem_read_safe: forall σ0 σ1 m0 m1 fuel,
+          (*
+            EnvMemoryConsistent σ0 m0 ->
+            EnvMemoryConsistent σ1 m1 ->
+           *)
+            valid_Pexp σ0 m0 y_p ->
+            valid_Pexp σ1 m1 y_p ->
+        blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
         opt_r
-          (blocks_equiv_at_Pexp σ y_p)
-          (evalDSHOperator σ d m0 fuel)
-          (evalDSHOperator σ d m1 fuel);
+          (blocks_equiv_at_Pexp σ0 σ1 y_p)
+          (evalDSHOperator σ0 d m0 fuel)
+          (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
@@ -760,7 +763,8 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
-(* TODO: move *)
+(* TODO: fix/move *)
+(*
 Lemma blocks_equiv_at_Pexp_incrVar
       (p : PExpr)
       (σ : evalContext)
@@ -781,19 +785,21 @@ Proof.
     apply H.
     exact (DSHnatVal 0).
 Qed.
+ *)
 
 Lemma blocks_equiv_at_Pexp_remove
       (y_p : PExpr)
-      (σ : evalContext)
-      (t0_i t1_i : mem_block_id) (m0'' m1'' : memory)
-      (NY0: evalPexp σ y_p ≢ Some t0_i)
-      (NY1: evalPexp σ y_p ≢ Some t1_i):
-  blocks_equiv_at_Pexp σ y_p m0'' m1''
-  → blocks_equiv_at_Pexp σ y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
+      (σ0 σ1 : evalContext)
+      (t0_i t1_i : mem_block_id)
+      (m0'' m1'' : memory)
+      (NY0: evalPexp σ0 y_p ≢ Some t0_i)
+      (NY1: evalPexp σ1 y_p ≢ Some t1_i):
+  blocks_equiv_at_Pexp σ0 σ1 y_p m0'' m1''
+  → blocks_equiv_at_Pexp σ0 σ1 y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
 Proof.
   intros EE.
   unfold blocks_equiv_at_Pexp in *.
-  destruct (evalPexp σ y_p).
+  destruct (evalPexp σ0 y_p), (evalPexp σ1 y_p).
   -
     constructor.
     inversion_clear EE.
@@ -801,6 +807,10 @@ Proof.
     rewrite Some_neq in NY1.
     unfold memory_lookup, memory_remove in *.
     rewrite 2!NP.F.remove_neq_o; auto.
+  -
+    inversion EE.
+  -
+    inversion EE.
   -
     inversion EE.
 Qed.
@@ -895,22 +905,25 @@ Admitted.
 *)
 
 (* TODO: move *)
-
-Lemma blocks_equiv_at_Pexp_blocks_equiv {σ p m0 m1}:
-  valid_Pexp σ m0 p ->
-  valid_Pexp σ m1 p ->
-  m0 = m1 -> blocks_equiv_at_Pexp σ p m0 m1.
+(* TODO: finish refactoring proof or 2 sigmas
+Lemma blocks_equiv_at_Pexp_blocks_equiv {σ0 σ1 p m0 m1}:
+  valid_Pexp σ0 m0 p ->
+  valid_Pexp σ1 m1 p ->
+  m0 = m1 -> blocks_equiv_at_Pexp σ0 σ1 p m0 m1.
 Proof.
   intros V0 V1 H.
   unfold blocks_equiv_at_Pexp.
-  destruct (evalPexp σ p) eqn:E.
+  destruct (evalPexp σ0 p) eqn:E0, (evalPexp σ1 p) eqn:E1.
   -
     constructor.
     specialize (H m).
     unfold memory_lookup.
-    destruct (NM.find (elt:=mem_block) m m0) eqn:F0, (NM.find (elt:=mem_block) m m1) eqn:F1; try some_none; try constructor.
+    destruct
+      (NM.find (elt:=mem_block) m m0) eqn:F0, (NM.find (elt:=mem_block) m2 m1) eqn:F1; try some_none; try constructor.
     +
-      some_inv; auto.
+      apply Some_inj_equiv.
+      rewrite <- F0, <- F1.
+
     +
       clear H.
       inversion V0.
@@ -924,6 +937,35 @@ Proof.
     rewrite E in H0.
     some_none.
 Qed.
+ *)
+
+Lemma blocks_equiv_at_Pexp_add_DSHPtrVal
+      (p : PExpr)
+      (σ0 σ1: evalContext)
+      (m0 m1 : memory)
+      (t0 t1: mem_block_id):
+  evalPexp σ0 p ≢ Some t0 ->
+  evalPexp σ1 p ≢ Some t1 ->
+  blocks_equiv_at_Pexp (DSHPtrVal t0 :: σ0) (DSHPtrVal t1 :: σ1) p m0 m1 <->
+  blocks_equiv_at_Pexp σ0 σ1 p m0 m1.
+Proof.
+Admitted.
+
+Lemma blocks_equiv_at_Pexp_add_mem
+      (p : PExpr)
+      (σ0 σ1 : evalContext)
+      (m0 m1 : memory)
+      (t0 t1 : mem_block_id)
+      (foo0 foo1: mem_block)
+  :
+    evalPexp σ0 p ≢ Some t0 ->
+    evalPexp σ0 p ≢ Some t1 ->
+    blocks_equiv_at_Pexp σ0 σ1 p m0 m1 ->
+    blocks_equiv_at_Pexp σ0 σ1 p
+                         (memory_set m0 t0 foo0)
+                         (memory_set m1 t1 foo1).
+Proof.
+Admitted.
 
 Instance Compose_DSH_pure
          {n: nat}
@@ -986,7 +1028,7 @@ Proof.
         eapply D1.
         eapply mem_block_exists_memory_remove_neq; eauto.
   -
-    intros σ m0 m1 fuel C0 C1 VY0 VY1 E.
+    intros σ0 σ1 m0 m1 fuel (* C0 C1 *) VY0 VY1 E.
     destruct fuel; try constructor.
     simpl.
     repeat break_match; try some_none; try constructor.
@@ -1004,8 +1046,8 @@ Proof.
       remember (memory_set m0 t0_i mem_empty) as m0'.
       remember (memory_set m1 t1_i mem_empty) as m1'.
 
-      remember (t0_v :: σ) as σ0.
-      remember (t1_v :: σ) as σ1.
+      remember (t0_v :: σ0) as σ0'.
+      remember (t1_v :: σ1) as σ1'.
 
       destruct fuel;  simpl in *; try  some_none.
       break_match_hyp; try some_none.
@@ -1016,58 +1058,72 @@ Proof.
       rename m2 into m0''.
       rename m into m1''.
 
-      assert(y0_i≡y1_i).
-      {
-        apply Some_inj_eq.
-        rewrite <- E0Y, E1Y.
-        reflexivity.
-      }
-      subst y1_i.
-      rename y0_i into y_i, E0Y into EY.
-      clear E1Y.
-
       destruct P1, P2.
 
-      assert(evalPexp σ y_p ≢ Some t0_i) as NYT0.
+      assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
       {
-        rewrite EY.
+        rewrite E0Y.
         apply Some_neq.
         admit.
         (* follows from:
         t0_i ≡ memory_new m0
-        evalPexp σ y_p ≡ Some y_i
-        EnvMemoryConsistent σ m0
+        mem_block_exists y0_i m0
          *)
       }
 
-      assert(evalPexp σ y_p ≢ Some t1_i) as NYT1.
+      assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
       {
         admit.
       }
 
       apply blocks_equiv_at_Pexp_remove; auto.
 
-      unfold blocks_equiv_at_Pexp.
-      rewrite EY.
-      constructor.
+      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' y_p) (Some m0''') (Some m1''')).
+      intros H; inversion H.
 
-      (* exprimental below *)
-      specialize (mem_read_safe0
-      assert(mem_block_exists y_i m0''') as EYM0'''.
+      apply blocks_equiv_at_Pexp_add_DSHPtrVal with (t0:=t0_i) (t1:=t1_i); auto.
+      replace (DSHPtrVal t0_i :: σ0) with σ0' by crush.
+      replace (DSHPtrVal t1_i :: σ1) with σ1' by crush.
+      apply H2.
+
+      specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
+      rewrite E01 in mem_read_safe0.
+      rewrite E11 in mem_read_safe0.
+      apply mem_read_safe0; clear mem_read_safe0.
+      admit.
+      admit.
+
+      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
+      intros H;  inversion H.
+      apply H2.
+      specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
+      rewrite E02 in mem_read_safe1.
+      rewrite E12 in mem_read_safe1.
+      apply mem_read_safe1; clear mem_read_safe1.
+      admit.
+      admit.
+
+      subst σ0' σ1' t0_v t1_v.
+      apply blocks_equiv_at_Pexp_add_DSHPtrVal; auto.
+      admit.
+      admit.
+
+      subst m0' m1'.
+
+      assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
       {
-        (* start from [mem_block_exists y_i m1]
-           and follow [mem_stable] *)
+      (* follows from:
+         t0_i ≡ memory_new m0
+         blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1
+       *)
         admit.
       }
-      assert(mem_block_exists y_i m1''') as EYM1'''.
+
+      assert(evalPexp σ0 x_p ≢ Some t1_i) as NXT1.
       {
         admit.
       }
-      apply NP.F.in_find_iff in EYM0'''.
-      apply NP.F.in_find_iff in EYM1'''.
-      destruct (memory_lookup m0''' y_i) as [y0'''|] eqn:YM0''', (memory_lookup m1''' y_i) as [y1'''|] eqn:YM1'''; try constructor; [idtac|crush|crush|crush].
-
-
+      apply blocks_equiv_at_Pexp_add_mem; auto.
     +
       exfalso.
     +
