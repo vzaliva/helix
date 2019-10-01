@@ -763,6 +763,26 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
+Lemma blocks_equiv_at_Pexp_incrVar
+      (p : PExpr)
+      (σ0 σ1 : evalContext)
+      (m0 m1: memory)
+  : blocks_equiv_at_Pexp σ0 σ1 p m0 m1 <->
+    forall foo0 foo1, blocks_equiv_at_Pexp (foo0::σ0) (foo1::σ1) (incrPVar 0 p) m0 m1.
+Proof.
+  split.
+  -
+    intros H foo0 foo1.
+    unfold blocks_equiv_at_Pexp.
+    rewrite 2!evalPexp_incrPVar.
+    apply H.
+  -
+    intros H.
+    unfold blocks_equiv_at_Pexp in *.
+    setoid_rewrite evalPexp_incrPVar in H.
+    apply H; exact (DSHnatVal 0).
+Qed.
+
 Lemma blocks_equiv_at_Pexp_remove
       (y_p : PExpr)
       (σ0 σ1 : evalContext)
@@ -827,17 +847,77 @@ Proof.
 Qed.
  *)
 
-Lemma blocks_equiv_at_Pexp_add_DSHPtrVal
+(* TODO: move *)
+Definition decrPVar (p: PExpr) (NP: p ≢ PVar 0): PExpr :=
+  match p with
+  | PVar (S v) => PVar v
+  | _ => p
+  end.
+
+Lemma blocks_equiv_at_Pexp_decrPVar
       (p : PExpr)
       (σ0 σ1: evalContext)
       (m0 m1 : memory)
-      (t0 t1: mem_block_id):
-  evalPexp σ0 p ≢ Some t0 ->
-  evalPexp σ1 p ≢ Some t1 ->
-  blocks_equiv_at_Pexp (DSHPtrVal t0 :: σ0) (DSHPtrVal t1 :: σ1) p m0 m1 <->
-  blocks_equiv_at_Pexp σ0 σ1 p m0 m1.
+      (t0 t1: mem_block_id)
+      (NP: p ≢ PVar 0)
+  :
+    blocks_equiv_at_Pexp (DSHPtrVal t0 :: σ0) (DSHPtrVal t1 :: σ1) p m0 m1 <->
+    blocks_equiv_at_Pexp σ0 σ1 (decrPVar p NP) m0 m1.
 Proof.
-Admitted.
+  split; intros H.
+  -
+    unfold blocks_equiv_at_Pexp in *.
+    inversion H; clear H.
+    symmetry in H0, H1.
+    destruct p.
+    +
+      simpl in H0; repeat break_match_hyp; try some_none.
+      simpl in H1; repeat break_match_hyp; try some_none.
+      some_inv; subst a0.
+      some_inv; subst a.
+      clear d0 Heqd1 d Heqd0.
+      rename Heqo into H0, Heqo0 into H1.
+      destruct v.
+      *
+        congruence.
+      *
+        simpl in H0, H1.
+        simpl.
+        rewrite H0, H1.
+        constructor.
+        apply H2.
+    +
+      simpl in H0, H1.
+      repeat some_inv.
+      subst_max.
+      constructor.
+      apply H2.
+  -
+    unfold blocks_equiv_at_Pexp in *.
+    inversion H; clear H.
+    symmetry in H0, H1.
+    destruct p.
+    +
+      simpl in H0; repeat break_match_hyp; try some_none.
+      *
+        congruence.
+      *
+        simpl in H0; repeat break_match_hyp; try some_none.
+        simpl in H1; repeat break_match_hyp; try some_none.
+        subst v.
+        repeat some_inv.
+        subst_max.
+        simpl.
+        rewrite Heqo, Heqo0.
+        constructor.
+        apply H2.
+    +
+      simpl in H0, H1.
+      repeat some_inv.
+      subst_max.
+      constructor.
+      apply H2.
+Qed.
 
 Lemma blocks_equiv_at_Pexp_add_mem
       (p : PExpr)
