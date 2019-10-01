@@ -878,9 +878,10 @@ Qed.
 
 Instance Compose_DSH_pure
          {n: nat}
-         {t_p y_p: PExpr}
+         {x_p y_p: PExpr}
          {dop1 dop2: DSHOperator}
-         (* We might need to enforce x_p,y_p <> PVar 0 *)
+         (NXP: x_p ≢ PVar 0)
+         (NYP: y_p ≢ PVar 0)
          `{P2: DSH_pure dop2 x_p (PVar 0)}
          `{P1: DSH_pure dop1 (PVar 0) y_p}
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
