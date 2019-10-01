@@ -763,30 +763,6 @@ Qed.
 Definition memory_alloc_empty m i :=
   memory_set m i (mem_empty).
 
-(* TODO: fix/move *)
-(*
-Lemma blocks_equiv_at_Pexp_incrVar
-      (p : PExpr)
-      (σ : evalContext)
-      (m0 m1: memory)
-  : blocks_equiv_at_Pexp σ p m0 m1 <->
-    forall foo, blocks_equiv_at_Pexp (foo::σ) (incrPVar 0 p) m0 m1.
-Proof.
-  split.
-  -
-    intros H foo.
-    unfold blocks_equiv_at_Pexp.
-    rewrite evalPexp_incrPVar.
-    apply H.
-  -
-    intros H.
-    unfold blocks_equiv_at_Pexp in *.
-    setoid_rewrite evalPexp_incrPVar in H.
-    apply H.
-    exact (DSHnatVal 0).
-Qed.
- *)
-
 Lemma blocks_equiv_at_Pexp_remove
       (y_p : PExpr)
       (σ0 σ1 : evalContext)
@@ -815,94 +791,6 @@ Proof.
     inversion EE.
 Qed.
 
-(*
-Local Ltac rewrite_evalExp_incrVar :=
-  repeat rewrite evalPexp_incrPVar;
-  repeat rewrite evalMexp_incrMVar;
-  repeat rewrite evalAexp_incrAVar;
-  repeat rewrite evalNexp_incrNVar.
-
-Lemma evalDSHOperator_add_var {σ m d fuel}:
-    EnvMemoryConsistent σ m ->
-    forall foo,
-      evalDSHOperator σ d m fuel ≡ evalDSHOperator (foo :: σ) (incrOp 0 d) m fuel.
-Proof.
-  intros C v.
-  revert fuel.
-  induction d; destruct fuel; try reflexivity; simpl.
-  -
-    destruct src as (src_p, src_o).
-    destruct dst as (dst_p, dst_o).
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-  -
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-    +
-      repeat f_equiv.
-      apply Some_inj_eq.
-      rewrite <- Heqo3, <- Heqo4.
-      symmetry.
-      apply evalDSHIMap_incrDSHIUnCarrierA.
-    +
-      rewrite evalDSHIMap_incrDSHIUnCarrierA in Heqo4.
-      congruence.
-    +
-      rewrite evalDSHIMap_incrDSHIUnCarrierA in Heqo4.
-      congruence.
-  -
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-    +
-      repeat f_equiv.
-      apply Some_inj_eq.
-      rewrite <- Heqo3, <- Heqo4.
-      symmetry.
-      apply evalDSHBinOp_incrincrDSHIBinCarrierA.
-    +
-      rewrite evalDSHBinOp_incrincrDSHIBinCarrierA in Heqo4.
-      congruence.
-    +
-      rewrite evalDSHBinOp_incrincrDSHIBinCarrierA in Heqo4.
-      congruence.
-  -
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-    +
-      repeat f_equiv.
-      apply Some_inj_eq.
-      rewrite <- Heqo5, <- Heqo6.
-      symmetry.
-      apply evalDSHMap2_incrDSHBinCarrierA.
-    +
-      rewrite evalDSHMap2_incrDSHBinCarrierA in Heqo6.
-      congruence.
-    +
-      rewrite evalDSHMap2_incrDSHBinCarrierA in Heqo6.
-      congruence.
-  -
-    destruct src as (src_p, src_o).
-    destruct dst as (dst_p, dst_o).
-    rewrite_evalExp_incrVar.
-    repeat break_match; subst_max; try some_none.
-    +
-      repeat f_equiv.
-      apply Some_inj_eq.
-      rewrite <- Heqo6, <- Heqo7.
-      symmetry.
-      apply evalDSHPower_incrDSHBinCarrierA.
-    +
-      rewrite evalDSHPower_incrDSHBinCarrierA in Heqo7.
-      congruence.
-    +
-      rewrite evalDSHPower_incrDSHBinCarrierA in Heqo7.
-      congruence.
-  -
-    repeat break_match; subst_max; try some_none;
-      rename n0 into i.
-    rewrite <- Heqo0, <- Heqo2.
-Admitted.
-*)
 
 (* TODO: move *)
 (* TODO: finish refactoring proof or 2 sigmas
