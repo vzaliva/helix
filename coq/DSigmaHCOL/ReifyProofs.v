@@ -1049,16 +1049,22 @@ Proof.
       {
         rewrite E0Y.
         apply Some_neq.
-        admit.
-        (* follows from:
-        t0_i ≡ memory_new m0
-        mem_block_exists y0_i m0
-         *)
+        intros C.
+        rewrite C in M0Y.
+        subst t0_i.
+        apply mem_block_exists_memory_new in M0Y.
+        congruence.
       }
 
       assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
       {
-        admit.
+        rewrite E1Y.
+        apply Some_neq.
+        intros C.
+        rewrite C in M1Y.
+        subst t1_i.
+        apply mem_block_exists_memory_new in M1Y.
+        congruence.
       }
 
       apply blocks_equiv_at_Pexp_remove; auto.
