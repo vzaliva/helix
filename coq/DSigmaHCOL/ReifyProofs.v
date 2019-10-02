@@ -107,6 +107,37 @@ Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
 Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   opt_p (fun k => mem_block_exists k m) (evalPexp σ p).
 
+(* Simplified version. Uses [equiv] only for memory. Could be proven more generally *)
+Global Instance valid_Pexp_proper:
+  Proper ((eq) ==> (=) ==> (eq) ==> iff) (valid_Pexp).
+Proof.
+  intros s0 s1 Es m0 m1 Em p0 p1 Ep.
+  subst.
+  split; intros H.
+  -
+    unfold valid_Pexp in *.
+    destruct (evalPexp s1 p1).
+    +
+      inversion H.
+      subst.
+      constructor.
+      rewrite <- Em.
+      apply H1.
+    +
+      inversion H.
+  -
+    unfold valid_Pexp in *.
+    destruct (evalPexp s1 p1).
+    +
+      inversion H.
+      subst.
+      constructor.
+      rewrite Em.
+      apply H1.
+    +
+      inversion H.
+Qed.
+
 (*
    - [evalPexp σ p] must not to fail
    - [memory_lookup] must succeed
@@ -767,12 +798,13 @@ Lemma blocks_equiv_at_Pexp_incrVar
       (p : PExpr)
       (σ0 σ1 : evalContext)
       (m0 m1: memory)
+      {foo0 foo1: DSHVal}
   : blocks_equiv_at_Pexp σ0 σ1 p m0 m1 <->
-    forall foo0 foo1, blocks_equiv_at_Pexp (foo0::σ0) (foo1::σ1) (incrPVar 0 p) m0 m1.
+    blocks_equiv_at_Pexp (foo0::σ0) (foo1::σ1) (incrPVar 0 p) m0 m1.
 Proof.
   split.
   -
-    intros H foo0 foo1.
+    intros H.
     unfold blocks_equiv_at_Pexp.
     rewrite 2!evalPexp_incrPVar.
     apply H.
@@ -811,49 +843,14 @@ Proof.
     inversion EE.
 Qed.
 
-
-(* TODO: move *)
-(* TODO: finish refactoring proof or 2 sigmas
-Lemma blocks_equiv_at_Pexp_blocks_equiv {σ0 σ1 p m0 m1}:
-  valid_Pexp σ0 m0 p ->
-  valid_Pexp σ1 m1 p ->
-  m0 = m1 -> blocks_equiv_at_Pexp σ0 σ1 p m0 m1.
-Proof.
-  intros V0 V1 H.
-  unfold blocks_equiv_at_Pexp.
-  destruct (evalPexp σ0 p) eqn:E0, (evalPexp σ1 p) eqn:E1.
-  -
-    constructor.
-    specialize (H m).
-    unfold memory_lookup.
-    destruct
-      (NM.find (elt:=mem_block) m m0) eqn:F0, (NM.find (elt:=mem_block) m2 m1) eqn:F1; try some_none; try constructor.
-    +
-      apply Some_inj_equiv.
-      rewrite <- F0, <- F1.
-
-    +
-      clear H.
-      inversion V0.
-      apply NP.F.in_find_iff in H0.
-      rewrite E in H.
-      some_inv.
-      congruence.
-  -
-    exfalso.
-    inversion V0.
-    rewrite E in H0.
-    some_none.
-Qed.
- *)
-
-(* TODO: move *)
+(* TODO: maybe not needed *)
 Definition decrPVar (p: PExpr) (NP: p ≢ PVar 0): PExpr :=
   match p with
   | PVar (S v) => PVar v
   | _ => p
   end.
 
+(* TODO: maybe not needed *)
 Lemma blocks_equiv_at_Pexp_decrPVar
       (p : PExpr)
       (σ0 σ1: evalContext)
@@ -962,8 +959,8 @@ Instance Compose_DSH_pure
          {dop1 dop2: DSHOperator}
          (NXP: x_p ≢ PVar 0)
          (NYP: y_p ≢ PVar 0)
-         `{P2: DSH_pure dop2 x_p (PVar 0)}
-         `{P1: DSH_pure dop1 (PVar 0) y_p}
+         `{P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p)}
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
 Proof.
   split.
@@ -1068,10 +1065,10 @@ Proof.
 
       apply blocks_equiv_at_Pexp_remove; auto.
 
-      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' y_p) (Some m0''') (Some m1''')).
+      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p)) (Some m0''') (Some m1''')).
       intros H; inversion H.
 
-      apply blocks_equiv_at_Pexp_add_DSHPtrVal with (t0:=t0_i) (t1:=t1_i); auto.
+      apply blocks_equiv_at_Pexp_incrVar with (foo0:=DSHPtrVal t0_i) (foo1:=DSHPtrVal t1_i); auto.
       replace (DSHPtrVal t0_i :: σ0) with σ0' by crush.
       replace (DSHPtrVal t1_i :: σ1) with σ1' by crush.
       apply H2.
@@ -1094,10 +1091,7 @@ Proof.
       admit.
 
       subst σ0' σ1' t0_v t1_v.
-      apply blocks_equiv_at_Pexp_add_DSHPtrVal; auto.
-      admit.
-      admit.
-
+      apply blocks_equiv_at_Pexp_incrVar; auto.
       subst m0' m1'.
 
       assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
@@ -1109,7 +1103,7 @@ Proof.
         admit.
       }
 
-      assert(evalPexp σ0 x_p ≢ Some t1_i) as NXT1.
+      assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
       {
         admit.
       }
