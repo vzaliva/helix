@@ -138,6 +138,23 @@ Proof.
       inversion H.
 Qed.
 
+Lemma valid_Pexp_incrPVar
+      (p : PExpr)
+      (m : memory)
+      (σ : evalContext)
+      (foo: DSHVal)
+  :
+    valid_Pexp σ m p  -> valid_Pexp (foo :: σ) m (incrPVar 0 p).
+Proof.
+  unfold valid_Pexp.
+  intros H.
+  inversion H. clear H.
+  rewrite <- evalPexp_incrPVar with (foo:=foo) in H0.
+  rewrite <- H0.
+  constructor.
+  apply H1.
+Qed.
+
 (*
    - [evalPexp σ p] must not to fail
    - [memory_lookup] must succeed
@@ -1020,8 +1037,8 @@ Proof.
     +
       rename m into m0''',  m2 into m1'''.
 
-      inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y; clear VY0.
-      inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y; clear VY1.
+      inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y.
+      inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y.
 
       remember (memory_new m0) as t0_i.
       remember (memory_new m1) as t1_i.
@@ -1044,6 +1061,9 @@ Proof.
       rename m into m1''.
 
       destruct P1, P2.
+
+      pose proof (Option_equiv_eq _ _ E02) as E02'.
+      pose proof (Option_equiv_eq _ _ E12) as E12'.
 
       assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
       {
@@ -1081,9 +1101,29 @@ Proof.
       rewrite E01 in mem_read_safe0.
       rewrite E11 in mem_read_safe0.
       apply mem_read_safe0; clear mem_read_safe0.
-      admit.
-      admit.
 
+      1:{
+        subst σ0'.
+        apply valid_Pexp_incrPVar.
+        unfold valid_Pexp.
+        rewrite E0Y.
+        constructor.
+        erewrite <- (mem_stable1 _ m0' m0'' fuel E02').
+        subst m0'.
+        eapply mem_block_exists_memory_set.
+        eauto.
+      }
+      1:{
+        subst σ1'.
+        apply valid_Pexp_incrPVar.
+        unfold valid_Pexp.
+        rewrite E1Y.
+        constructor.
+        erewrite <- (mem_stable1 _ m1' m1'' fuel E12').
+        subst m1'.
+        eapply mem_block_exists_memory_set.
+        eauto.
+      }
       cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
       intros H;  inversion H.
       apply H2.
@@ -1091,8 +1131,26 @@ Proof.
       rewrite E02 in mem_read_safe1.
       rewrite E12 in mem_read_safe1.
       apply mem_read_safe1; clear mem_read_safe1.
-      admit.
-      admit.
+      1:{
+        subst σ0'.
+        unfold valid_Pexp.
+        subst t0_v.
+        simpl.
+        constructor.
+        subst m0'.
+        apply mem_block_exists_memory_set_eq.
+        reflexivity.
+      }
+      1:{
+        subst σ1'.
+        unfold valid_Pexp.
+        subst t1_v.
+        simpl.
+        constructor.
+        subst m1'.
+        apply mem_block_exists_memory_set_eq.
+        reflexivity.
+      }
 
       subst σ0' σ1' t0_v t1_v.
       apply blocks_equiv_at_Pexp_incrVar; auto.
@@ -1100,16 +1158,32 @@ Proof.
 
       assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
       {
-      (* follows from:
-         t0_i ≡ memory_new m0
-         blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1
-       *)
-        admit.
+        inversion E.
+        apply Some_neq.
+        intros C.
+        inversion H1.
+        rewrite C in H2.
+        subst t0_i.
+        symmetry in H2.
+        apply eq_Some_is_Some in H2.
+        apply memory_is_set_is_Some in H2.
+        apply mem_block_exists_memory_new in H2.
+        congruence.
       }
 
       assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
       {
-        admit.
+        inversion E.
+        apply Some_neq.
+        intros C.
+        inversion H1.
+        rewrite C in H3.
+        subst t1_i.
+        symmetry in H3.
+        apply eq_Some_is_Some in H3.
+        apply memory_is_set_is_Some in H3.
+        apply mem_block_exists_memory_new in H3.
+        congruence.
       }
       apply blocks_equiv_at_Pexp_add_mem; auto.
     +
