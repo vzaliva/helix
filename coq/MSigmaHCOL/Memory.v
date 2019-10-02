@@ -846,7 +846,6 @@ Section Memory_Blocks.
       apply NP.F.add_neq_in_iff in H; auto.
   Qed.
 
-  (* TODO: move *)
   Lemma mem_block_exists_memory_new
         (m : memory):
     not (mem_block_exists (memory_new m) m).
