@@ -833,6 +833,16 @@ Section Memory_Blocks.
       auto.
   Qed.
 
+  Lemma mem_block_exists_memory_set_eq
+        {k k' m v}
+        (NK:k = k'):
+    mem_block_exists k (memory_set m k' v).
+  Proof.
+    unfold mem_block_exists, memory_set.
+    apply F.add_in_iff.
+    auto.
+  Qed.
+
   Lemma mem_block_exists_memory_set_neq
         {k k' m v}
         (NK:k <> k'):
