@@ -29,3 +29,17 @@ Lemma nth_error_Sn {A:Type} (x:A) (xs:list A) (n:nat):
 Proof.
   reflexivity.
 Qed.
+
+Lemma rev_nil (A:Type) (x:list A):
+  rev x = nil -> x = nil.
+Proof.
+  intros H.
+  destruct x.
+  -
+    reflexivity.
+  -
+    simpl in H.
+    symmetry in H.
+    contradict H.
+    apply app_cons_not_nil.
+Qed.
