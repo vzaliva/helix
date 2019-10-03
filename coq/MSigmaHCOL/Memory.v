@@ -56,6 +56,69 @@ Module Import NSP := FSetProperties.WProperties_fun(Nat_as_OT)(NS).
 Definition NatSet := NS.t.
 Module Import NE := FSetToFiniteSet.WS_to_Finite_set(Nat_as_OT)(NS).
 
+Lemma NM_NS_In {elt:Type} (k:NM.key) (m:NM.t elt):
+  NM.In k m <->
+  NS.In k (of_list (map fst (NM.elements  m))).
+Proof.
+  pose proof (NM.elements_3w m) as U.
+  split; intros H.
+  -
+    rewrite <- NP.of_list_3 with (s:=m) in H.
+    unfold NP.of_list, NP.to_list in H.
+    generalize dependent (NM.elements m). intros l U H.
+    induction l.
+    +
+      simpl in H.
+      apply NP.F.empty_in_iff in H.
+      tauto.
+    +
+      destruct a as [k' v].
+      simpl in *.
+      destruct (eq_nat_dec k k') as [K|NK].
+      *
+        (* k=k' *)
+        apply NS.add_1.
+        auto.
+      *
+        (* k!=k' *)
+        apply NSP.FM.add_neq_iff; try auto.
+        apply IHl.
+        --
+          inversion U.
+          auto.
+        --
+          eapply NP.F.add_neq_in_iff with (x:=k').
+          auto.
+          apply H.
+  -
+    rewrite <- NP.of_list_3 with (s:=m).
+    unfold NP.of_list, NP.to_list.
+    generalize dependent (NM.elements m). intros l U H.
+    induction l.
+    +
+      simpl in H.
+      apply NSP.FM.empty_iff in H.
+      tauto.
+    +
+      destruct a as [k' v].
+      simpl in *.
+      destruct (eq_nat_dec k k') as [K|NK].
+      *
+        (* k=k' *)
+        apply NP.F.add_in_iff.
+        auto.
+      *
+        (* k!=k' *)
+        apply NP.F.add_neq_in_iff; auto.
+        apply IHl.
+        --
+          inversion U.
+          auto.
+        --
+          apply NS.add_3 in H; auto.
+Qed.
+
+
 Definition mem_add k (v:CarrierA) := NM.add k v.
 Definition mem_delete k (m:NatMap CarrierA) := NM.remove k m.
 Definition mem_member k (m:NatMap CarrierA) := NM.mem k m.
@@ -207,64 +270,7 @@ Fixpoint mem_const_block (n:nat) (v: CarrierA) : mem_block
 Lemma mem_keys_set_In (k:NM.key) (m:mem_block):
   NM.In k m <-> NS.In k (mem_keys_set m).
 Proof.
-  pose proof (NM.elements_3w m) as U.
-  split; intros H.
-  -
-    rewrite <- NP.of_list_3 with (s:=m) in H.
-    unfold mem_keys_set, mem_keys_lst.
-    unfold NP.of_list, NP.to_list in H.
-    generalize dependent (NM.elements m). intros l U H.
-    induction l.
-    +
-      simpl in H.
-      apply NP.F.empty_in_iff in H.
-      tauto.
-    +
-      destruct a as [k' v].
-      simpl in *.
-      destruct (eq_nat_dec k k') as [K|NK].
-      *
-        (* k=k' *)
-        apply NS.add_1.
-        auto.
-      *
-        (* k!=k' *)
-        apply NSP.FM.add_neq_iff; try auto.
-        apply IHl.
-        --
-          inversion U.
-          auto.
-        --
-          eapply NP.F.add_neq_in_iff with (x:=k').
-          auto.
-          apply H.
-  -
-    rewrite <- NP.of_list_3 with (s:=m).
-    unfold mem_keys_set, mem_keys_lst in H.
-    unfold NP.of_list, NP.to_list.
-    generalize dependent (NM.elements m). intros l U H.
-    induction l.
-    +
-      simpl in H.
-      apply NSP.FM.empty_iff in H.
-      tauto.
-    +
-      destruct a as [k' v].
-      simpl in *.
-      destruct (eq_nat_dec k k') as [K|NK].
-      *
-        (* k=k' *)
-        apply NP.F.add_in_iff.
-        auto.
-      *
-        (* k!=k' *)
-        apply NP.F.add_neq_in_iff; auto.
-        apply IHl.
-        --
-          inversion U.
-          auto.
-        --
-          apply NS.add_3 in H; auto.
+  apply NM_NS_In.
 Qed.
 
 Lemma mem_keys_set_in_union_dec
@@ -868,66 +874,8 @@ Section Memory_Blocks.
   Lemma memory_keys_set_In (k:NM.key) (m:memory):
     NM.In k m <-> NS.In k (memory_keys_set m).
   Proof.
-    pose proof (NM.elements_3w m) as U.
-    split; intros H.
-    -
-      rewrite <- NP.of_list_3 with (s:=m) in H.
-      unfold memory_keys_set, memory_keys_lst.
-      unfold NP.of_list, NP.to_list in H.
-      generalize dependent (NM.elements m). intros l U H.
-      induction l.
-      +
-        simpl in H.
-        apply NP.F.empty_in_iff in H.
-        tauto.
-      +
-        destruct a as [k' v].
-        simpl in *.
-        destruct (eq_nat_dec k k') as [K|NK].
-        *
-          (* k=k' *)
-          apply NS.add_1.
-          auto.
-        *
-          (* k!=k' *)
-          apply NSP.FM.add_neq_iff; try auto.
-          apply IHl.
-          --
-            inversion U.
-            auto.
-          --
-            eapply NP.F.add_neq_in_iff with (x:=k').
-            auto.
-            apply H.
-    -
-      rewrite <- NP.of_list_3 with (s:=m).
-      unfold memory_keys_set, memory_keys_lst in H.
-      unfold NP.of_list, NP.to_list.
-      generalize dependent (NM.elements m). intros l U H.
-      induction l.
-      +
-        simpl in H.
-        apply NSP.FM.empty_iff in H.
-        tauto.
-      +
-        destruct a as [k' v].
-        simpl in *.
-        destruct (eq_nat_dec k k') as [K|NK].
-        *
-          (* k=k' *)
-          apply NP.F.add_in_iff.
-          auto.
-        *
-          (* k!=k' *)
-          apply NP.F.add_neq_in_iff; auto.
-          apply IHl.
-          --
-            inversion U.
-            auto.
-          --
-            apply NS.add_3 in H; auto.
+    apply NM_NS_In.
   Qed.
-
 
   Lemma mem_block_exists_memory_new
         (m : memory):
