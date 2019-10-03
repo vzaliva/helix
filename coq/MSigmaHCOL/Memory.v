@@ -752,10 +752,19 @@ Section Memory_Blocks.
   Definition mem_block_exists: mem_block_id -> memory -> Prop
     := NM.In (elt:=mem_block).
 
+  Definition memory_keys_lst (m:memory): list nat :=
+    List.map fst (NM.elements m).
+
+  Definition memory_keys_set (m: memory): NatSet :=
+    NSP.of_list (memory_keys_lst m).
+
   (* Returns block ID which is guaraneed to be free in [m] *)
   Definition memory_new
              (m: memory): mem_block_id
-    := S (fold_left_rev Nat.max 0 (List.map fst (NM.elements m))).
+    :=  match NS.max_elt (memory_keys_set m) with
+        | None => 0
+        | Some k => S k
+        end.
 
   Lemma mem_block_exists_exists (m:memory) (k:nat):
     mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.
@@ -856,13 +865,94 @@ Section Memory_Blocks.
       apply NP.F.add_neq_in_iff in H; auto.
   Qed.
 
+  Lemma memory_keys_set_In (k:NM.key) (m:memory):
+    NM.In k m <-> NS.In k (memory_keys_set m).
+  Proof.
+    pose proof (NM.elements_3w m) as U.
+    split; intros H.
+    -
+      rewrite <- NP.of_list_3 with (s:=m) in H.
+      unfold memory_keys_set, memory_keys_lst.
+      unfold NP.of_list, NP.to_list in H.
+      generalize dependent (NM.elements m). intros l U H.
+      induction l.
+      +
+        simpl in H.
+        apply NP.F.empty_in_iff in H.
+        tauto.
+      +
+        destruct a as [k' v].
+        simpl in *.
+        destruct (eq_nat_dec k k') as [K|NK].
+        *
+          (* k=k' *)
+          apply NS.add_1.
+          auto.
+        *
+          (* k!=k' *)
+          apply NSP.FM.add_neq_iff; try auto.
+          apply IHl.
+          --
+            inversion U.
+            auto.
+          --
+            eapply NP.F.add_neq_in_iff with (x:=k').
+            auto.
+            apply H.
+    -
+      rewrite <- NP.of_list_3 with (s:=m).
+      unfold memory_keys_set, memory_keys_lst in H.
+      unfold NP.of_list, NP.to_list.
+      generalize dependent (NM.elements m). intros l U H.
+      induction l.
+      +
+        simpl in H.
+        apply NSP.FM.empty_iff in H.
+        tauto.
+      +
+        destruct a as [k' v].
+        simpl in *.
+        destruct (eq_nat_dec k k') as [K|NK].
+        *
+          (* k=k' *)
+          apply NP.F.add_in_iff.
+          auto.
+        *
+          (* k!=k' *)
+          apply NP.F.add_neq_in_iff; auto.
+          apply IHl.
+          --
+            inversion U.
+            auto.
+          --
+            apply NS.add_3 in H; auto.
+  Qed.
+
+
   Lemma mem_block_exists_memory_new
         (m : memory):
     not (mem_block_exists (memory_new m) m).
   Proof.
     unfold mem_block_exists, memory_new.
-    intros H.
-  Admitted.
+    break_match; rename Heqo into H.
+    -
+      rewrite memory_keys_set_In.
+      revert H.
+      generalize (memory_keys_set m) as ms.
+      intros ms H C.
+      clear m.
+      apply NS.max_elt_2  with (y:=S e) in H; auto.
+    -
+
+      apply NS.max_elt_3 in H.
+      rewrite memory_keys_set_In.
+      apply MP.empty_is_empty_1 in H.
+      unfold NS.Equal in *.
+      intros C.
+      apply H in C.
+      apply FM.empty_iff in C.
+      congruence.
+  Qed.
 
 
 End Memory_Blocks.
