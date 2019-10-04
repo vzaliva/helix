@@ -55,7 +55,7 @@ Require Import CoLoR.Util.Relation.RelUtil.
 
 (*
 TODO: move
-*)
+ *)
 Section opt_p.
 
   Variables (A : Type) (P : A -> Prop).
@@ -75,7 +75,7 @@ Arguments opt_p_n {A} P.
 
 (* Extension to [option _] of a heterogenous relation on [A] [B]
 TODO: move
-*)
+ *)
 Section hopt.
 
   Variables (A B : Type) (R: A -> B -> Prop).
@@ -102,7 +102,7 @@ Arguments hopt_i {A B} R.
 
 Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
-      memory_lookup m a.
+    memory_lookup m a.
 
 Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   opt_p (fun k => mem_block_exists k m) (evalPexp σ p).
@@ -158,11 +158,11 @@ Qed.
 (*
    - [evalPexp σ p] must not to fail
    - [memory_lookup] must succeed
-*)
+ *)
 Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
   := fun m0 m1 =>
        opt (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
-             (evalPexp σ0 p) (evalPexp σ1 p).
+           (evalPexp σ0 p) (evalPexp σ1 p).
 
 (* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
@@ -202,13 +202,13 @@ Class DSH_pure
             EnvMemoryConsistent σ0 m0 ->
             EnvMemoryConsistent σ1 m1 ->
            *)
-            valid_Pexp σ0 m0 y_p ->
-            valid_Pexp σ1 m1 y_p ->
-        blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
-        opt_r
-          (blocks_equiv_at_Pexp σ0 σ1 y_p)
-          (evalDSHOperator σ0 d m0 fuel)
-          (evalDSHOperator σ1 d m1 fuel);
+          valid_Pexp σ0 m0 y_p ->
+          valid_Pexp σ1 m1 y_p ->
+          blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
+          opt_r
+            (blocks_equiv_at_Pexp σ0 σ1 y_p)
+            (evalDSHOperator σ0 d m0 fuel)
+            (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
@@ -356,14 +356,14 @@ Class MSH_DSH_BinCarrierA_compat
 Instance Abs_MSH_DSH_BinCarrierA_compat
   :
     forall σ,
-    MSH_DSH_BinCarrierA_compat
-      (λ i (a b : CarrierA),
-       IgnoreIndex abs i
-                   (HCOL.Fin1SwapIndex2 (n:=2)
-                                        jf
-                                        (IgnoreIndex2 sub) i a b))
-      σ
-      (AAbs (AMinus (AVar 1) (AVar 0))).
+      MSH_DSH_BinCarrierA_compat
+        (λ i (a b : CarrierA),
+         IgnoreIndex abs i
+                     (HCOL.Fin1SwapIndex2 (n:=2)
+                                          jf
+                                          (IgnoreIndex2 sub) i a b))
+        σ
+        (AAbs (AMinus (AVar 1) (AVar 0))).
 Proof.
   split.
   -
@@ -1188,6 +1188,160 @@ Proof.
       apply blocks_equiv_at_Pexp_add_mem; auto.
     +
       exfalso.
+      rename m into m0'''.
+
+      inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y.
+      inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y.
+
+      remember (memory_new m0) as t0_i.
+      remember (memory_new m1) as t1_i.
+      remember (DSHPtrVal t0_i) as t0_v.
+      remember (DSHPtrVal t1_i) as t1_v.
+
+      remember (memory_set m0 t0_i mem_empty) as m0'.
+      remember (memory_set m1 t1_i mem_empty) as m1'.
+
+      remember (t0_v :: σ0) as σ0'.
+      remember (t1_v :: σ1) as σ1'.
+
+      destruct fuel;  simpl in *; try some_none.
+      repeat break_match_hyp; try some_none.
+      *
+        rename Heqo1 into E12, Heqo0 into E11.
+        rename Heqo2 into E02, Heqo into E01.
+        rename m2 into m0''.
+        rename m into m1''.
+        destruct P1, P2.
+
+        pose proof (Option_equiv_eq _ _ E02) as E02'.
+        pose proof (Option_equiv_eq _ _ E12) as E12'.
+
+        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
+        {
+          rewrite E0Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M0Y.
+          subst t0_i.
+          apply mem_block_exists_memory_new in M0Y.
+          congruence.
+        }
+        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
+        {
+          rewrite E1Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M1Y.
+          subst t1_i.
+          apply mem_block_exists_memory_new in M1Y.
+          congruence.
+        }
+        specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
+        rewrite E01 in mem_read_safe0.
+        rewrite E11 in mem_read_safe0.
+        (*
+      specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
+      rewrite E02 in mem_read_safe1.
+      rewrite E12 in mem_read_safe1.
+         *)
+        assert(valid_Pexp σ0' m0'' (incrPVar 0 y_p)) as VIP0.
+        {
+          subst σ0'.
+          apply valid_Pexp_incrPVar.
+          unfold valid_Pexp.
+          rewrite E0Y.
+          constructor.
+          subst m0'.
+          erewrite <- (mem_stable1 _ _ m0'' fuel E02').
+          eapply mem_block_exists_memory_set.
+          eauto.
+        }
+        assert(valid_Pexp σ1' m1'' (incrPVar 0 y_p)) as VIP1.
+        {
+          subst σ1'.
+          apply valid_Pexp_incrPVar.
+          unfold valid_Pexp.
+          rewrite E1Y.
+          constructor.
+          subst m1'.
+          erewrite <- (mem_stable1 _ _ m1'' fuel E12').
+          eapply mem_block_exists_memory_set.
+          eauto.
+        }
+        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0'' m1'') as H.
+        {
+          cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
+          intros H;  inversion H.
+          apply H2.
+          specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
+          rewrite E02 in mem_read_safe1.
+          rewrite E12 in mem_read_safe1.
+          apply mem_read_safe1; clear mem_read_safe1.
+          1:{
+            subst σ0'.
+            unfold valid_Pexp.
+            subst t0_v.
+            simpl.
+            constructor.
+            subst m0'.
+            apply mem_block_exists_memory_set_eq.
+            reflexivity.
+          }
+          1:{
+            subst σ1'.
+            unfold valid_Pexp.
+            subst t1_v.
+            simpl.
+            constructor.
+            subst m1'.
+            apply mem_block_exists_memory_set_eq.
+            reflexivity.
+          }
+
+          subst σ0' σ1' t0_v t1_v.
+          apply blocks_equiv_at_Pexp_incrVar; auto.
+          subst m0' m1'.
+
+          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H2.
+            subst t0_i.
+            symmetry in H2.
+            apply eq_Some_is_Some in H2.
+            apply memory_is_set_is_Some in H2.
+            apply mem_block_exists_memory_new in H2.
+            congruence.
+          }
+
+          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H3.
+            subst t1_i.
+            symmetry in H3.
+            apply eq_Some_is_Some in H3.
+            apply memory_is_set_is_Some in H3.
+            apply mem_block_exists_memory_new in H3.
+            congruence.
+          }
+          apply blocks_equiv_at_Pexp_add_mem; auto.
+
+        }
+        specialize (mem_read_safe0 VIP0 VIP1 H).
+        inversion mem_read_safe0.
+      *
+
+
+
+
+
     +
       exfalso.
 
@@ -1254,14 +1408,14 @@ Proof.
 
     (* Stopped here 2019-08-80 *)
 
-  destruct (mem_op mop2 mx) as [mt'|], (mem_op mop1 mt) as [my'|].
+    destruct (mem_op mop2 mx) as [mt'|], (mem_op mop1 mt) as [my'|].
 
-  repeat break_match; inversion E1; inversion E2; clear E1 E2; try rename H3 into D2;
-    try rename H0 into D1;
-    (repeat match goal with
-         | [H: opt_p _ _ |- _ ] => inversion_clear H
-         end);
-    symmetry_option_hyp; subst.
+    repeat break_match; inversion E1; inversion E2; clear E1 E2; try rename H3 into D2;
+      try rename H0 into D1;
+      (repeat match goal with
+              | [H: opt_p _ _ |- _ ] => inversion_clear H
+              end);
+      symmetry_option_hyp; subst.
   -
     rewrite enough_fuel in D1 by lia.
     some_none.
@@ -1284,20 +1438,20 @@ Proof.
   -
     admit.
 
-  inversion E2.
+    inversion E2.
   -
 
 
-//
+    //
 
 
-  destruct E1 as [E1].
-  specialize (E1 mt my).
+      destruct E1 as [E1].
+    specialize (E1 mt my).
 
 
 Admitted.
 
-  (*
+(*
   (* High-level equivalence *)
   Instance dynwin_SHCOL_DSHCOL
            (a: vector CarrierA 3):
@@ -1369,7 +1523,7 @@ Admitted.
     apply SafeCast_SHCOL_DSHCOL.
   Qed.
 
-   *)
+ *)
 
 (* Heterogenous relation of semantic equivalence of structurally correct SHCOL and DSHCOL operators *)
 
@@ -1407,7 +1561,7 @@ Definition SHCOL_DSHCOL_equiv {i o:nat} {svalue:CarrierA} {fm}
     | None, None  => True
     | _, _ => False
     end.
-*)
+ *)
 
 (*
 Theorem SHCompose_DSHCompose
@@ -1661,7 +1815,7 @@ Qed.
 
  *)
 
-               (*
+(*
 Definition SHOperatorFamily_DSHCOL_equiv
            {i o n:nat}
            {svalue: CarrierA}
@@ -1674,7 +1828,7 @@ Definition SHOperatorFamily_DSHCOL_equiv
   forall (j:nat) (jc:j<n), SHCOL_DSHCOL_equiv (DSHnatVal j :: Γ)
                                        (op_family (mkFinNat jc))
                                        d.
-                *)
+ *)
 
 (*
 Section Expr_NVar_subst_S.
@@ -2614,4 +2768,4 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- Some _ = evalIUnCarrierA _ _ _ _ ] => unfold evalIUnCarrierA; symmetry; solve_evalAexp
          | [ |- _ ] => try reflexivity
          end.
-*)
+ *)
