@@ -1424,8 +1424,246 @@ Proof.
         inversion mem_read_safe1.
     +
       exfalso.
+      rename m into m1'''.
 
-Admitted.
+      inversion VY0 as [y0_i M0Y E0Y]; symmetry in E0Y.
+      inversion VY1 as [y1_i M1Y E1Y]; symmetry in E1Y.
+
+      remember (memory_new m0) as t0_i.
+      remember (memory_new m1) as t1_i.
+      remember (DSHPtrVal t0_i) as t0_v.
+      remember (DSHPtrVal t1_i) as t1_v.
+
+      remember (memory_set m0 t0_i mem_empty) as m0'.
+      remember (memory_set m1 t1_i mem_empty) as m1'.
+
+      remember (t0_v :: σ0) as σ0'.
+      remember (t1_v :: σ1) as σ1'.
+
+      destruct fuel;  simpl in *; try  some_none.
+      break_match_hyp; try some_none.
+      break_match_hyp; try some_none.
+      *
+        rename Heqo1 into E12, Heqo0 into E11.
+        rename Heqo2 into E02, Heqo into E01.
+        rename m2 into m0''.
+        rename m into m1''.
+
+        destruct P1, P2.
+
+        pose proof (Option_equiv_eq _ _ E02) as E02'.
+        pose proof (Option_equiv_eq _ _ E12) as E12'.
+
+        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
+        {
+          rewrite E0Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M0Y.
+          subst t0_i.
+          apply mem_block_exists_memory_new in M0Y.
+          congruence.
+        }
+        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
+        {
+          rewrite E1Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M1Y.
+          subst t1_i.
+          apply mem_block_exists_memory_new in M1Y.
+          congruence.
+        }
+        specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
+        rewrite E01 in mem_read_safe0.
+        rewrite E11 in mem_read_safe0.
+
+        assert(valid_Pexp σ0' m0'' (incrPVar 0 y_p)) as VIP0.
+        {
+          subst σ0'.
+          apply valid_Pexp_incrPVar.
+          unfold valid_Pexp.
+          rewrite E0Y.
+          constructor.
+          subst m0'.
+          erewrite <- (mem_stable1 _ _ m0'' fuel E02').
+          eapply mem_block_exists_memory_set.
+          eauto.
+        }
+        assert(valid_Pexp σ1' m1'' (incrPVar 0 y_p)) as VIP1.
+        {
+          subst σ1'.
+          apply valid_Pexp_incrPVar.
+          unfold valid_Pexp.
+          rewrite E1Y.
+          constructor.
+          subst m1'.
+          erewrite <- (mem_stable1 _ _ m1'' fuel E12').
+          eapply mem_block_exists_memory_set.
+          eauto.
+        }
+        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0'' m1'') as H.
+        {
+          cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
+          intros H;  inversion H.
+          apply H2.
+          specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
+          rewrite E02 in mem_read_safe1.
+          rewrite E12 in mem_read_safe1.
+          apply mem_read_safe1; clear mem_read_safe1.
+          1:{
+            subst σ0'.
+            unfold valid_Pexp.
+            subst t0_v.
+            simpl.
+            constructor.
+            subst m0'.
+            apply mem_block_exists_memory_set_eq.
+            reflexivity.
+          }
+          1:{
+            subst σ1'.
+            unfold valid_Pexp.
+            subst t1_v.
+            simpl.
+            constructor.
+            subst m1'.
+            apply mem_block_exists_memory_set_eq.
+            reflexivity.
+          }
+
+          subst σ0' σ1' t0_v t1_v.
+          apply blocks_equiv_at_Pexp_incrVar; auto.
+          subst m0' m1'.
+
+          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H2.
+            subst t0_i.
+            symmetry in H2.
+            apply eq_Some_is_Some in H2.
+            apply memory_is_set_is_Some in H2.
+            apply mem_block_exists_memory_new in H2.
+            congruence.
+          }
+
+          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H3.
+            subst t1_i.
+            symmetry in H3.
+            apply eq_Some_is_Some in H3.
+            apply memory_is_set_is_Some in H3.
+            apply mem_block_exists_memory_new in H3.
+            congruence.
+          }
+          apply blocks_equiv_at_Pexp_add_mem; auto.
+
+        }
+        specialize (mem_read_safe0 VIP0 VIP1 H).
+        inversion mem_read_safe0.
+      *
+        rename Heqo1 into E12, Heqo0 into E11.
+        rename Heqo2 into E02, Heqo into E01.
+        rename m into m1''.
+        destruct P1, P2.
+
+        pose proof (Option_equiv_eq _ _ E02) as E02'.
+        pose proof (Option_equiv_eq _ _ E12) as E12'.
+
+        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
+        {
+          rewrite E0Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M0Y.
+          subst t0_i.
+          apply mem_block_exists_memory_new in M0Y.
+          congruence.
+        }
+        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
+        {
+          rewrite E1Y.
+          apply Some_neq.
+          intros C.
+          rewrite C in M1Y.
+          subst t1_i.
+          apply mem_block_exists_memory_new in M1Y.
+          congruence.
+        }
+        specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
+        rewrite E02 in mem_read_safe1.
+        rewrite E12 in mem_read_safe1.
+
+        assert(valid_Pexp σ0' m0' (PVar 0)) as NV0.
+        {
+          subst σ0' t0_v.
+          constructor.
+          subst m0'.
+          apply mem_block_exists_memory_set_eq.
+          reflexivity.
+        }
+
+        assert(valid_Pexp σ1' m1' (PVar 0)) as NV1.
+        {
+          subst σ1' t1_v.
+          constructor.
+          subst m1'.
+          apply mem_block_exists_memory_set_eq.
+          reflexivity.
+        }
+
+        assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 x_p) m0' m1') as H.
+        {
+          subst σ0' σ1'.
+          apply blocks_equiv_at_Pexp_incrVar.
+          subst m0' m1'.
+
+          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H2.
+            subst t0_i.
+            symmetry in H2.
+            apply eq_Some_is_Some in H2.
+            apply memory_is_set_is_Some in H2.
+            apply mem_block_exists_memory_new in H2.
+            congruence.
+          }
+
+          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
+          {
+            inversion E.
+            apply Some_neq.
+            intros C.
+            inversion H1.
+            rewrite C in H3.
+            subst t1_i.
+            symmetry in H3.
+            apply eq_Some_is_Some in H3.
+            apply memory_is_set_is_Some in H3.
+            apply mem_block_exists_memory_new in H3.
+            congruence.
+          }
+          apply blocks_equiv_at_Pexp_add_mem; auto.
+        }
+        specialize (mem_read_safe1 NV0 NV1 H).
+        inversion mem_read_safe1.
+  -
+    (* mem_write_safe *)
+
+Qed.
 
 Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
