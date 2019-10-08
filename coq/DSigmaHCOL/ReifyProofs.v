@@ -1793,101 +1793,23 @@ Instance Compose_MSH_DSH_compat
          {σ: evalContext}
          {m: memory}
          {dop1 dop2: DSHOperator}
-         {t_i x_i y_i: mem_block_id}
-         `{P2: DSH_pure dop2 x_i t_i}
-         `{P1: DSH_pure dop1 t_i y_i}
-         (tcx: t_i ≢ x_i)
-         (tcy: t_i ≢ y_i)
-         (tct: ¬ mem_block_exists t_i m) (* [t_i] must not be allocated yet *)
-         `{P: DSH_pure (DSHAlloc o2 t_i (DSHSeq dop2 dop1)) x_i y_i}
+         {x_p y_p: PExpr}
+         `{P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) x_p y_p}
+         `{C2: MSH_DSH_compat _ _ mop2 dop2
+                              (DSHPtrVal (memory_new m) :: σ)
+                              (memory_alloc_empty m (memory_new m))
+                              (incrPVar 0 x_p) (PVar 0)}
+         `{C1: MSH_DSH_compat _ _ mop1 dop1
+                              (DSHPtrVal (memory_new m) :: σ)
+                              (memory_alloc_empty m (memory_new m))
+                              (PVar 0) (incrPVar 0 y_p)}
   :
-    MSH_DSH_compat mop2 dop2 σ (memory_alloc_empty m t_i) x_i t_i ->
-
-    (forall m', evalDSHOperator σ dop2 (memory_alloc_empty m t_i) (estimateFuel dop2) ≡ Some m' ->
-           MSH_DSH_compat mop1 dop1 σ m' t_i y_i) ->
-
     MSH_DSH_compat
       (MSHCompose mop1 mop2)
-      (DSHAlloc o2 t_i (DSHSeq dop2 dop1))
-      σ m x_i y_i.
+      (DSHAlloc o2 (DSHSeq dop2 dop1))
+      σ m x_p y_p.
 Proof.
-  intros E2 E1.
-  unshelve eapply DSHAlloc_MSH_DSH_compat; auto.
-  apply P.
-  split.
-  intros mx my MX MY.
-
-  simpl.
-  unfold MSHCompose, option_compose; simpl.
-
-  assert(exists mt, memory_lookup (memory_alloc_empty m t_i) t_i ≡ Some mt) as MT.
-  {
-    exists (mem_empty).
-    apply NP.F.add_eq_o.
-    reflexivity.
-  }
-  destruct MT as [mt MT].
-  destruct E2 as [E2].
-  specialize (E2 mx mt MX MT).
-
-  destruct (evalDSHOperator σ dop2 (memory_alloc_empty m t_i)) as [m'|] eqn:EV2.
-  -
-    specialize (E1 m').
-    destruct E1 as [E1].
-    reflexivity.
-
-    assert(MT': memory_lookup m' t_i ≡ Some mt). admit.
-    assert(MY': memory_lookup m' y_i ≡ Some my). admit.
-    specialize (E1 mt my MT' MY').
-  -
-    (* [dop2] failed *)
-    clear E1.
-    inversion_clear E2.
-
-    (* Stopped here 2019-08-80 *)
-
-    destruct (mem_op mop2 mx) as [mt'|], (mem_op mop1 mt) as [my'|].
-
-    repeat break_match; inversion E1; inversion E2; clear E1 E2; try rename H3 into D2;
-      try rename H0 into D1;
-      (repeat match goal with
-              | [H: opt_p _ _ |- _ ] => inversion_clear H
-              end);
-      symmetry_option_hyp; subst.
-  -
-    rewrite enough_fuel in D1 by lia.
-    some_none.
-  -
-    rewrite enough_fuel in D1 by lia.
-    rewrite enough_fuel by lia.
-    assert(m1 ≡ a).
-    {
-      apply Some_inj_eq.
-      rewrite <- D1.
-      rewrite <- H.
-      reflexivity.
-    }
-    subst.
-    clear H.
-    rewrite H2.
-    admit.
-  -
-    admit.
-  -
-    admit.
-
-    inversion E2.
-  -
-
-
-    //
-
-
-      destruct E1 as [E1].
-    specialize (E1 mt my).
-
-
-Admitted.
+Qed.
 
 (*
   (* High-level equivalence *)
