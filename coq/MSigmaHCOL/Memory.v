@@ -758,6 +758,12 @@ Section Memory_Blocks.
   Definition mem_block_exists: mem_block_id -> memory -> Prop
     := NM.In (elt:=mem_block).
 
+  Lemma decidable_mem_block_exists (k:NM.key) (m:memory): decidable (mem_block_exists k m).
+  Proof.
+    unfold decidable.
+    destruct (NP.F.In_dec m k); auto.
+  Qed.
+
   Definition memory_keys_lst (m:memory): list nat :=
     List.map fst (NM.elements m).
 
@@ -810,7 +816,7 @@ Section Memory_Blocks.
       some_none.
   Qed.
 
-  Lemma mem_block_exists_memory_remove {k m}:
+  Lemma mem_block_exists_memory_remove (k:mem_block_id) (m:memory):
     not (mem_block_exists k (memory_remove m k)).
   Proof.
     unfold mem_block_exists, memory_remove.

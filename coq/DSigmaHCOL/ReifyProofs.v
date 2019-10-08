@@ -175,6 +175,11 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 | DSHCarrierAValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCarrierAVal a :: σ) m
 | DSHMemValConsistent: forall σ b m, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHMemVal b :: σ) m.
 
+(* TODO: move *)
+(* Two memory locations equivalent on all addresses except one *)
+Definition memory_equiv_except (m m': memory) (e:mem_block_id)
+  := forall k, k≢e -> NM.find k m = NM.find k m'.
+
 
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
@@ -214,7 +219,7 @@ Class DSH_pure
       mem_write_safe: forall σ m m' fuel,
           evalDSHOperator σ d m fuel = Some m' ->
           (forall y_i , evalPexp σ y_p = Some y_i ->
-                   memory_remove m y_i = memory_remove m' y_i)
+                   memory_equiv_except m m' y_i)
     }.
 
 
@@ -1662,6 +1667,87 @@ Proof.
         inversion mem_read_safe1.
   -
     (* mem_write_safe *)
+    intros σ m0 m4 fuel H y_i H0.
+    destruct fuel;  simpl in * ; try  some_none.
+    break_match_hyp; try some_none.
+    destruct fuel;  simpl in * ; try  some_none.
+    break_match_hyp; try some_none.
+    some_inv.
+    rename m1 into m2, m into m3.
+    rename Heqo into E1, Heqo0 into E2.
+    remember (memory_new m0) as t_i.
+    remember (memory_set m0 t_i mem_empty) as m1.
+    remember (DSHPtrVal t_i :: σ) as σ'.
+    intros k ky.
+
+
+    destruct (Nat.eq_dec k t_i) as [kt|kt].
+    1:{
+
+      subst k.
+      pose proof (mem_block_exists_memory_new m0) as H1.
+      rewrite <- Heqt_i in H1.
+
+      unfold mem_block_exists in H1.
+      apply NP.F.not_find_in_iff in H1.
+      rewrite_clear H1.
+      symmetry.
+
+      pose proof (mem_block_exists_memory_remove t_i m3) as H4.
+      unfold mem_block_exists in H4.
+      apply NP.F.not_find_in_iff in H4.
+      unfold equiv, memory_Equiv in H.
+      rewrite <- H.
+      rewrite H4.
+      reflexivity.
+    }
+
+    destruct P1 as [P1p _ P1w].
+    destruct P2 as [P2p _ P2w].
+    apply Option_equiv_eq in E1.
+    apply Option_equiv_eq in E2.
+    specialize (P1p _ _ _ _ E1).
+    specialize (P1w _ _ _ _ E1).
+    specialize (P2p _ _ _ _ E2).
+    specialize (P2w _ _ _ _ E2).
+
+    destruct(decidable_mem_block_exists k m0) as [F0|NF0]; symmetry.
+    2:{
+
+      assert(¬ mem_block_exists k m1) as NF1.
+      {
+        revert NF0.
+        apply not_iff_compat.
+        subst m1.
+        symmetry.
+        apply mem_block_exists_memory_set_neq.
+        apply kt.
+      }
+
+      specialize (P2p k).
+      apply not_iff_compat in P2p.
+      apply P2p in NF1.
+
+      specialize (P1p k).
+      apply not_iff_compat in P1p.
+      apply P1p in NF1.
+
+      assert(¬ mem_block_exists k m4) as NF4.
+      {
+        rewrite <- H.
+        erewrite <- mem_block_exists_memory_remove_neq; eauto.
+      }
+
+      unfold mem_block_exists in NF4.
+      apply NP.F.not_find_in_iff in NF4.
+      rewrite NF4.
+
+      unfold mem_block_exists in NF0.
+      apply NP.F.not_find_in_iff in NF0.
+      rewrite NF0.
+      reflexivity.
+    }
+
 
 Qed.
 
