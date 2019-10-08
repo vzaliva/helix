@@ -1748,7 +1748,41 @@ Proof.
       reflexivity.
     }
 
+    assert (V := F0).
+    apply NP.F.in_find_iff, is_Some_ne_None, is_Some_def in V.
+    destruct V as [v V].
+    rewrite V.
 
+    cut(NM.find (elt:=mem_block) k m3 = Some v).
+    intros F3.
+    unfold equiv, memory_Equiv in H.
+    rewrite <- H.
+    unfold memory_remove.
+    rewrite NP.F.remove_neq_o; auto.
+
+    cut(NM.find (elt:=mem_block) k m2 = Some v).
+    intros F2.
+    unfold memory_equiv_except in P1w.
+    specialize (P1w y_i).
+    erewrite <- P1w; auto.
+    subst σ'.
+    rewrite evalPexp_incrPVar.
+    assumption.
+
+    cut(NM.find (elt:=mem_block) k m1 = Some v).
+    intros F1.
+    unfold memory_equiv_except in P2w.
+    specialize (P2w t_i).
+    erewrite <- P2w; auto.
+    subst σ'.
+    reflexivity.
+
+    unfold equiv, memory_Equiv in Heqm1.
+    rewrite Heqm1.
+    unfold memory_set.
+    rewrite NP.F.add_neq_o; auto.
+    rewrite V.
+    reflexivity.
 Qed.
 
 Instance Compose_MSH_DSH_compat
