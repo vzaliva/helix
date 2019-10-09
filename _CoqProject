@@ -1,8 +1,6 @@
 -R coq Helix
 -R ./lib/vellvm/src/coq Vellvm
--R ./lib/metacoq/template-coq/theories MetaCoq.Template
--I ./lib/metacoq/template-coq/src
--R ./lib/coq-switch/theories Switch
+-R ./lib/vellvm/lib/InteractionTrees/theories ITree
 -arg "-w '-notation-overridden'"
 
 
