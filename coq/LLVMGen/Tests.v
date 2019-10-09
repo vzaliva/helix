@@ -8,7 +8,7 @@ Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
-Require Import Vellvm.LLVMIO.
+Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.StepSemantics.
 Require Import Vellvm.Memory.
 Require Import Vellvm.TopLevel.
