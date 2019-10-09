@@ -173,7 +173,7 @@ Fixpoint compileMSHCOL2DSHCOL
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
             toDSHType (tmReturn vt) ;;
-            compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar x_p) (incrPVar y_p)
+            compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
     | Some n_eUnion, [o ; b ; _] =>
@@ -225,12 +225,12 @@ Fixpoint compileMSHCOL2DSHCOL
               (* freshly allocated, inside alloc before loop *)
               let t_i := PVar 0 in
               (* single inc. inside loop *)
-              let t_i' := incrPVar t_i in
+              let t_i' := incrPVar 0 t_i in
               (* single inc. inside alloca before loop *)
-              let x_p' := incrPVar x_p in
+              let x_p' := incrPVar 0 x_p in
               (* double inc. inside alloc and loop *)
-              let x_p'' := incrPVar x_p' in
-              let y_p'' := incrPVar (incrPVar y_p) in
+              let x_p'' := incrPVar 0 x_p' in
+              let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
               (* op_family will increase stack offsets automatically *)
               c' <- compileMSHCOL2DSHCOL ((nAnon, tt)::vars) op_family x_p' t_i ;;
                  df <- compileDSHBinCarrierA f ;;
@@ -250,8 +250,8 @@ Fixpoint compileMSHCOL2DSHCOL
               (* freshly allocated, inside alloc *)
               let t_i := PVar 0 in
               (* single inc. inside alloc *)
-              let x_p' := incrPVar x_p in
-              let y_p' := incrPVar y_p in
+              let x_p' := incrPVar 0 x_p in
+              let y_p' := incrPVar 0 y_p in
               cop2' <- compileMSHCOL2DSHCOL vars op2 x_p' t_i ;;
                     let '(_, cop2) := cop2' in
                     cop1' <- compileMSHCOL2DSHCOL vars op1 t_i y_p' ;;
@@ -267,8 +267,8 @@ Fixpoint compileMSHCOL2DSHCOL
               let tyg_i := PVar 1 in
               let vars' := ((nAnon, tt)::((nAnon, tt)::vars)) in
               (* double increase after 2 allocs *)
-              let x_p'' := incrPVar (incrPVar x_p) in
-              let y_p'' := incrPVar (incrPVar y_p) in
+              let x_p'' := incrPVar 0 (incrPVar 0 x_p) in
+              let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
               cop1' <- compileMSHCOL2DSHCOL vars' op1 x_p'' tyf_i ;;
                     let '(_, cop1) := cop1' in
                     cop2' <- compileMSHCOL2DSHCOL vars' op2 x_p'' tyg_i ;;

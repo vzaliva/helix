@@ -1840,7 +1840,7 @@ Proof.
     admit.
   -
     constructor.
-Qed.
+Admitted.
 
 (*
   (* High-level equivalence *)
