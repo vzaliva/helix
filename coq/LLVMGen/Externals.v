@@ -1,12 +1,15 @@
 From Vellvm Require Import
-     LLVMIO
+     LLVMEvents
      LLVMAst
      Error
      Coqlib
      Numeric.Integers
      Numeric.Floats.
 
-Require Import ExtLib.Structures.Monads.
+From ExtLib Require Import
+     Structures.Monads
+     Programming.Eqv
+     Data.String.
 
 Import MonadNotation.
 Import ListNotations.
@@ -17,7 +20,7 @@ Definition Float_maxnum (a b: float): float :=
 Definition Float32_maxnum (a b: float32): float32 :=
   if Float32.cmp Clt a b then b else a.
 
-Definition maxnum_64_decl: declaration :=
+Definition maxnum_64_decl: declaration typ :=
   {|
     dc_name        := Name "llvm.maxnum.f64";
     dc_type        := TYPE_Function TYPE_Double [TYPE_Double;TYPE_Double] ;
@@ -32,7 +35,7 @@ Definition maxnum_64_decl: declaration :=
     dc_gc          := None
   |}.
 
-Definition maxnum_32_decl: declaration :=
+Definition maxnum_32_decl: declaration typ :=
   {|
     dc_name        := Name "llvm.maxnum.f32";
     dc_type        := TYPE_Function TYPE_Float [TYPE_Float;TYPE_Float] ;
@@ -57,7 +60,7 @@ Module Make(A:MemoryAddress.ADDRESS)(LLVMIO: LLVM_INTERACTIONS(A)).
   Import DV.
 
   Definition semantic_function := (list dvalue) -> err dvalue.
-  Definition intrinsic_definitions := list (declaration * semantic_function).
+  Definition intrinsic_definitions := list (declaration typ * semantic_function).
 
   Definition llvm_maxnum_f64 : semantic_function :=
     fun args =>
