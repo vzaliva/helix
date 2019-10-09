@@ -1809,6 +1809,37 @@ Instance Compose_MSH_DSH_compat
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p.
 Proof.
+  rename H into H2, H0 into H1.
+  split.
+  intros mx mb MX MB.
+  simpl.
+
+  remember (memory_new m) as t_i.
+  remember (DSHPtrVal t_i :: σ) as σ'.
+  unfold memory_alloc_empty in *.
+  remember (memory_set m t_i mem_empty) as m'.
+
+  destruct (option_compose (mem_op mop1) (mem_op mop2) mx) as [md|] eqn:MD;
+    repeat break_match; try some_none.
+  -
+    rename m1 into m''.
+    rename m0 into m'''.
+    constructor.
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    exfalso.
+    admit.
+  -
+    constructor.
 Qed.
 
 (*
