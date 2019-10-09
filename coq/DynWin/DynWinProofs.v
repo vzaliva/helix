@@ -945,7 +945,6 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
-
 (*
 Section SigmaHCOL_mem.
 
@@ -1053,4 +1052,3 @@ Defined.
 
 End SigmaHCOL_mem.
  *)
-
