@@ -9,8 +9,8 @@ Require Import Helix.LLVMGen.Externals.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
-Require Import Vellvm.StepSemantics.
-Require Import Vellvm.Memory.
+Require Import Vellvm.Denotation.
+Require Import Vellvm.Handlers.Memory.
 Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 
@@ -171,7 +171,7 @@ Fixpoint constArray
            {ft: FloatT}
            (len: nat)
            (data:list (FloatV ft))
-  : ((list (FloatV ft))*(list texp))
+  : ((list (FloatV ft))*(list (texp typ)))
   :=
     match len with
     | O => (data,[])
@@ -184,7 +184,7 @@ Fixpoint initIRGlobals
          {ft: FloatT}
          (data: list (FloatV ft))
          (x: list (string * (@FSHValType ft)))
-  : (list (FloatV ft) * list (toplevel_entity (list block)))
+  : (list (FloatV ft) * list (toplevel_entity typ (list (block typ))))
   :=
     match x with
     | nil => (data,[])
@@ -195,11 +195,11 @@ Fixpoint initIRGlobals
                       | FSHFloatValType => (ds,[]) (* TODO: no supported *)
                       | FSHvecValType n => constArray n ds
                       end in
-      (ds, TLE_Global {|
+      (ds, TLE_Global _ _ {|
                g_ident        := Name n;
                g_typ          := getIRType t ;
                g_constant     := true ;
-               g_exp          := Some (EXP_Array arr);
+               g_exp          := Some (EXP_Array _ arr);
                g_linkage      := Some LINKAGE_Internal ;
                g_visibility   := None ;
                g_dll_storage  := None ;
@@ -219,7 +219,7 @@ Definition genMain
            (globals: list (string * (@FSHValType ft)))
            (data:list (FloatV ft))
   :
-    LLVMAst.toplevel_entities (list LLVMAst.block) :=
+    LLVMAst.toplevel_entities _ (list (LLVMAst.block typ)) :=
   let x := Name "X" in
   let xtyp := getIRType (@FSHvecValType ft i) in
   let xptyp := TYPE_Pointer xtyp in
@@ -230,13 +230,13 @@ Definition genMain
   let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
   let z := Name "z" in
   [
-    TLE_Comment _ " X data" ;
-      TLE_Global
+    TLE_Comment _ _ " X data" ;
+      TLE_Global _ _
         {|
           g_ident        := x;
           g_typ          := xtyp;
           g_constant     := true;
-          g_exp          := Some (EXP_Array xdata);
+          g_exp          := Some (EXP_Array _ xdata);
           g_linkage      := None;
           g_visibility   := None;
           g_dll_storage  := None;
@@ -247,8 +247,8 @@ Definition genMain
           g_section      := None;
           g_align        := None;
         |} ;
-      TLE_Comment _ " Main function" ;
-      TLE_Definition
+      TLE_Comment _ _ " Main function" ;
+      TLE_Definition _ _
         {|
           df_prototype   :=
             {|
@@ -273,12 +273,12 @@ Definition genMain
                                blk_code  :=
                                  List.app (@allocTempArrayCode ft y o)
                                           [
-                                            (IVoid 0, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
-                                              (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
+                                            (IVoid 0, INSTR_Call _ (TYPE_Void, EXP_Ident _ (ID_Global (Name op_name))) [(xptyp, EXP_Ident _ (ID_Global x)); (yptyp, EXP_Ident _ (ID_Local y))]) ;
+                                              (IId z, INSTR_Load _ false ytyp (yptyp, EXP_Ident _ (ID_Local y)) None )
                                           ]
                                ;
 
-                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
+                               blk_term  := (IId (Name "main_ret"), TERM_Ret _ (ytyp, EXP_Ident _ (ID_Local z))) ;
                                blk_comments := None
                              |}
 
@@ -288,10 +288,10 @@ Definition genMain
 Module EXT := Externals.Make(Memory.A)(IO).
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
-  : ((option (toplevel_entities (list block))) * (option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))
+  : ((option (toplevel_entities typ (list (block typ)))) * (option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))
   :=
     match t return (list (FloatV t.(ft))
-                    -> ((option (toplevel_entities (list block)))*(option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))) with
+                    -> ((option (toplevel_entities typ (list (block typ))))*(option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
