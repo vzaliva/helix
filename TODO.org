@@ -51,6 +51,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** FinNatSet proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]] 
    (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
    equality).
+** Tactic =solve_facts= in =DynWinProof= is hacky and slow.
+   - Need more precise matching of goals
+   - can use eauto instead of matching
+   - can use =typeclasses_eauto= to find some instances
 * Unfinished
 ** Automate /DynWin/ rewriting proof
 ** Automate SPIRAL log reading for sequence of rewrites
