@@ -18,6 +18,8 @@ Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
+Require Import String.
+
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.HCOL.HCOLBreakdown.
@@ -127,6 +129,9 @@ Require Import Helix.MSigmaHCOL.ReifyProofs.
 
 Ltac solve_facts :=
   repeat match goal with
+         | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _ _) ] => unfold SumSparseEmbedding
+         | [ |- SHOperator_Facts _ (ISumUnion _) ] => unfold ISumUnion
+         | [ |- SHOperator_Facts _ (IUnion _ _) ] => apply IUnion_Facts; intros
          | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
          | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
            replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
@@ -140,9 +145,7 @@ Ltac solve_facts :=
          | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
          | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
          | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply IUnion_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts
-         | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _) ] => unfold SumSparseEmbedding
+         | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts; intros
 
          | [ |- SH_MSH_Operator_compat _ _ ] => apply SafeCast_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat _ _ ] => apply SHCompose_SH_MSH_Operator_compat
@@ -168,7 +171,7 @@ Ltac solve_facts :=
          | [ |- MSHOperator_Facts _ ] => apply SHBinOp_MFacts
          | [ |- Disjoint _ (singleton _) (singleton _)] => apply Disjoined_singletons; auto
          | _ => crush
-         end.
+  end.
 
 Section SHCOL_to_MSHCOL.
 
@@ -395,6 +398,7 @@ Section SigmaHCOL_rewriting.
     crush.
   Qed.
 
+
   Instance DynWinSigmaHCOL_Facts
            (a: avector 3):
     SHOperator_Facts _ (dynwin_SHCOL a).
@@ -402,13 +406,12 @@ Section SigmaHCOL_rewriting.
     unfold dynwin_SHCOL.
 
     (* First resolve all SHOperator_Facts typeclass instances *)
-    solve_facts.
+    Time solve_facts.
 
     (* Now let's take care of remaining proof obligations *)
     -
       apply two_h_index_maps_disjoint.
       assumption.
-
     -
       unfold Included, In.
       intros x H.
@@ -425,13 +428,11 @@ Section SigmaHCOL_rewriting.
       unfold Included.
       intros x H.
       apply Full_intro.
-
     -
       apply two_h_index_maps_disjoint.
       unfold peano_naturals.nat_lt, peano_naturals.nat_plus,
       peano_naturals.nat_1, one, plus, lt.
       crush.
-
     -
       unfold Included, In.
       intros x H.
