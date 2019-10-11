@@ -21,7 +21,7 @@ proof assistant.
 
 ** Dependencies
 
-   - [[https://coq.inria.fr/][Coq 8.8.2]]
+   - [[https://coq.inria.fr/][Coq 8.9.1]]
    - [[http://color.inria.fr/][CoLoR]]
    - [[https://github.com/coq-ext-lib/coq-ext-lib][ExtLib]]
    - [[https://github.com/math-classes/math-classes][math-classes]]
