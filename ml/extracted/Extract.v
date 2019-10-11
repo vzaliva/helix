@@ -1,5 +1,6 @@
 Require Vellvm.TopLevel.
-Require Vellvm.Transform.
+Require Vellvm.Transformations.Transform.
+Require Vellvm.ParserHelper.
 
 Require Helix.LLVMGen.Compiler.
 Require Helix.LLVMGen.Tests.

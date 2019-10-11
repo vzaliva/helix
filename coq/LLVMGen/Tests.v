@@ -288,34 +288,17 @@ Definition genMain
 Module EXT := Externals.Make(Memory.A)(IO).
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
-  : ((option (toplevel_entities typ (list (block typ)))) * (option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))
   :=
-    match t return (list (FloatV t.(ft))
-                    -> ((option (toplevel_entities typ (list (block typ))))*(option (LLVM (failureE +' debugE) (M.memory * DV.dvalue))))) with
+    match t return (list (FloatV t.(ft)) -> _) with
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
-        let ginit := app [TLE_Comment _ "Global variables"] ginit in
+        let ginit := app [TLE_Comment _ _ "Global variables"] ginit in
         let main := genMain i o name globals data'' in
         match LLVMGen' (m := sum string) globals false op name with
         | inl _ => (None, None)
         | inr prog =>
           let code := app (app ginit prog) main in
-          let scfg := Vellvm.AstLib.modul_of_toplevel_entities code in
-          match CFG.mcfg_of_modul scfg with
-          | None => (Some prog, None)
-          | Some mcfg =>
-
-            let core_trace  :=
-                s <- SS.init_state mcfg "main" ;;
-                  SS.step_sem mcfg (SS.Step s)
-            in
-            let all_intrinsics :=
-                List.app INT.IS.defined_intrinsics EXT.helix_intrinsics
-            in
-            let after_intrinsics_trace :=
-                INT.evaluate_intrinsics all_intrinsics core_trace in
-            (Some code, Some (M.memD M.empty after_intrinsics_trace))
-          end
+          (Some prog, Some (TopLevel.interpreter code))
         end
     end data.
