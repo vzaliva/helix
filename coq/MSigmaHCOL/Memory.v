@@ -908,5 +908,13 @@ Section Memory_Blocks.
       congruence.
   Qed.
 
+  Lemma memory_lookup_memory_new_is_None (m:memory):
+    MathClasses.misc.util.is_None (memory_lookup m (memory_new m)).
+  Proof.
+    pose proof (mem_block_exists_memory_new m) as P.
+    apply mem_block_not_exists_exists in P.
+    unfold MathClasses.misc.util.is_None.
+    break_match; try some_none; auto.
+  Qed.
 
 End Memory_Blocks.
