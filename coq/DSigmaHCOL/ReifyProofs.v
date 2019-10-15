@@ -1825,6 +1825,73 @@ Proof.
     rename m1 into m''.
     rename m0 into m'''.
     constructor.
+    unfold lookup_Pexp in *.
+    simpl in MX, MB.
+    repeat break_match_hyp; try some_none.
+    simpl.
+    rename m1 into x_i.
+    rename m0 into y_i.
+
+    assert(t_i ≢ y_i).
+    {
+      destruct (Nat.eq_dec t_i y_i); auto.
+      subst.
+      exfalso.
+      contradict MB.
+      pose proof (memory_lookup_memory_new_is_None m) as F.
+      apply is_None_def in F.
+      rewrite F.
+      some_none.
+    }
+
+    unfold memory_lookup, memory_remove.
+    rewrite NP.F.remove_neq_o by assumption.
+
+    assert(mem_block_exists y_i m) as EY.
+    {
+      apply mem_block_exists_exists.
+      eauto.
+    }
+
+    assert(mem_block_exists y_i m') as EY'.
+    {
+      subst m'.
+      apply mem_block_exists_memory_set.
+      eauto.
+    }
+
+    assert(mem_block_exists y_i m'') as EY''.
+    {
+      destruct H2.
+      eapply (mem_stable0  _ m' m'').
+      apply Option_equiv_eq in Heqo0.
+      eapply Heqo0.
+      assumption.
+    }
+
+    assert(mem_block_exists y_i m''') as EY'''.
+    {
+      destruct H1.
+      eapply (mem_stable0  _ m'' m''').
+      apply Option_equiv_eq in Heqo.
+      eapply Heqo.
+      assumption.
+    }
+
+    destruct (NM.find (elt:=mem_block) y_i m''') as [ma|_] eqn:MA .
+    2:{
+      apply memory_is_set_is_Some, is_Some_ne_None in EY'''.
+      unfold memory_lookup in EY'''.
+      congruence.
+    }
+    constructor.
+    unfold SHCOL_DSHCOL_mem_block_equiv.
+    intros k.
+
+    unfold option_compose in MD.
+    destruct (mem_op mop2 mx) as [mt|] eqn:MT; try some_none.
+
+
     admit.
   -
     exfalso.
