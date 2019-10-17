@@ -1,24 +1,26 @@
-From Vellvm Require Import
-     LLVMEvents
-     LLVMAst
-     Error
-     Coqlib
-     Numeric.Integers
-     Numeric.Floats.
+(* Some intrinsics used by Helix, but not presently implemented in Vellvm.
+   Please note that these are not strict implementations in accordance to LLVM
+   spec. TODO: Consider these to be temporary placholders. *)
+
+From Coq Require Import
+     ZArith List String.
 
 From ExtLib Require Import
      Structures.Monads
      Programming.Eqv
      Data.String.
 
+From Vellvm Require Import
+     Error
+     LLVMEvents
+     LLVMAst
+     Numeric.Integers
+     Numeric.Floats
+     IntrinsicsDefinitions
+     TopLevel.
+
 Import MonadNotation.
 Import ListNotations.
-
-Definition Float_maxnum (a b: float): float :=
-  if Float.cmp Clt a b then b else a.
-
-Definition Float32_maxnum (a b: float32): float32 :=
-  if Float32.cmp Clt a b then b else a.
 
 Definition maxnum_64_decl: declaration typ :=
   {|
@@ -50,35 +52,30 @@ Definition maxnum_32_decl: declaration typ :=
     dc_gc          := None
   |}.
 
+Definition Float_maxnum (a b: float): float :=
+  if Float.cmp Clt a b then b else a.
+
+Definition Float32_maxnum (a b: float32): float32 :=
+  if Float32.cmp Clt a b then b else a.
+
+Definition llvm_maxnum_f64 : IS.semantic_function :=
+  fun args =>
+    match args with
+    | [DVALUE_Double a; DVALUE_Double b] => ret (DVALUE_Double (Float_maxnum a b))
+    | _ => failwith "llvm_maxnum_f64 got incorrect / ill-typed intputs"
+    end.
+
+Definition llvm_maxnum_f32 : IS.semantic_function :=
+  fun args =>
+    match args with
+    | [DVALUE_Float a; DVALUE_Float b] => ret (DVALUE_Float (Float32_maxnum a b))
+    | _ => failwith "llvm_maxnum_f32 got incorrect / ill-typed intputs"
+    end.
+
 Definition helix_intrinsics_decls :=
   [ maxnum_32_decl ; maxnum_64_decl ].
 
-Module Make(A:MemoryAddress.ADDRESS)(LLVMIO: LLVM_INTERACTIONS(A)).
-  Open Scope string_scope.
-
-  Import LLVMIO.
-  Import DV.
-
-  Definition semantic_function := (list dvalue) -> err dvalue.
-  Definition intrinsic_definitions := list (declaration typ * semantic_function).
-
-  Definition llvm_maxnum_f64 : semantic_function :=
-    fun args =>
-      match args with
-      | [DVALUE_Double a; DVALUE_Double b] => ret (DVALUE_Double (Float_maxnum a b))
-      | _ => raise "llvm_maxnum_f64 got incorrect / ill-typed intputs"
-      end.
-
-  Definition llvm_maxnum_f32 : semantic_function :=
-    fun args =>
-      match args with
-      | [DVALUE_Float a; DVALUE_Float b] => ret (DVALUE_Float (Float32_maxnum a b))
-      | _ => raise "llvm_maxnum_f32 got incorrect / ill-typed intputs"
-      end.
-
-  Definition helix_intrinsics : intrinsic_definitions :=
-    [ (maxnum_64_decl, llvm_maxnum_f64) ;
-        (maxnum_32_decl, llvm_maxnum_f32)
-    ].
-
-End Make.
+Definition helix_intrinsics : IS.intrinsic_definitions :=
+  [(maxnum_64_decl, llvm_maxnum_f64);
+     (maxnum_32_decl, llvm_maxnum_f32)
+  ].

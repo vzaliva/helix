@@ -285,7 +285,7 @@ Definition genMain
                            ]
         |}].
 
-Module EXT := Externals.Make(Memory.A)(IO).
+Definition test_interpreter := interpreter_user helix_intrinsics.
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
   :=
@@ -299,6 +299,6 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
         | inl _ => (None, None)
         | inr prog =>
           let code := app (app ginit prog) main in
-          (Some prog, Some (TopLevel.interpreter code))
+          (Some prog, Some (test_interpreter code))
         end
     end data.
