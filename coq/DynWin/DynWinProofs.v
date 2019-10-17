@@ -18,7 +18,7 @@ Require Import Helix.SigmaHCOL.IndexFunctions.
 Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Arith.Peano_dec.
-Require Import String.
+Require Import Coq.Strings.String.
 
 
 Require Import Helix.Tactics.HelixTactics.
@@ -172,6 +172,7 @@ Ltac solve_facts :=
          | [ |- Disjoint _ (singleton _) (singleton _)] => apply Disjoined_singletons; auto
          | _ => crush
   end.
+
 
 Section SHCOL_to_MSHCOL.
 
