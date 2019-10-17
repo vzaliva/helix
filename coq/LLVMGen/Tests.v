@@ -195,11 +195,11 @@ Fixpoint initIRGlobals
                       | FSHFloatValType => (ds,[]) (* TODO: no supported *)
                       | FSHvecValType n => constArray n ds
                       end in
-      (ds, TLE_Global _ _ {|
+      (ds, TLE_Global {|
                g_ident        := Name n;
                g_typ          := getIRType t ;
                g_constant     := true ;
-               g_exp          := Some (EXP_Array _ arr);
+               g_exp          := Some (EXP_Array arr);
                g_linkage      := Some LINKAGE_Internal ;
                g_visibility   := None ;
                g_dll_storage  := None ;
@@ -230,13 +230,13 @@ Definition genMain
   let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
   let z := Name "z" in
   [
-    TLE_Comment _ _ " X data" ;
-      TLE_Global _ _
+    TLE_Comment " X data" ;
+      TLE_Global
         {|
           g_ident        := x;
           g_typ          := xtyp;
           g_constant     := true;
-          g_exp          := Some (EXP_Array _ xdata);
+          g_exp          := Some (EXP_Array xdata);
           g_linkage      := None;
           g_visibility   := None;
           g_dll_storage  := None;
@@ -247,8 +247,8 @@ Definition genMain
           g_section      := None;
           g_align        := None;
         |} ;
-      TLE_Comment _ _ " Main function" ;
-      TLE_Definition _ _
+      TLE_Comment " Main function" ;
+      TLE_Definition
         {|
           df_prototype   :=
             {|
@@ -273,12 +273,12 @@ Definition genMain
                                blk_code  :=
                                  List.app (@allocTempArrayCode ft y o)
                                           [
-                                            (IVoid 0, INSTR_Call _ (TYPE_Void, EXP_Ident _ (ID_Global (Name op_name))) [(xptyp, EXP_Ident _ (ID_Global x)); (yptyp, EXP_Ident _ (ID_Local y))]) ;
-                                              (IId z, INSTR_Load _ false ytyp (yptyp, EXP_Ident _ (ID_Local y)) None )
+                                            (IVoid 0, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
+                                              (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
                                           ]
                                ;
 
-                               blk_term  := (IId (Name "main_ret"), TERM_Ret _ (ytyp, EXP_Ident _ (ID_Local z))) ;
+                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
                                blk_comments := None
                              |}
 
@@ -293,7 +293,7 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
     | mkFSHCOLTest ft i o name globals op =>
       fun data' =>
         let (data'', ginit) := initIRGlobals data' globals in
-        let ginit := app [TLE_Comment _ _ "Global variables"] ginit in
+        let ginit := app [TLE_Comment "Global variables"] ginit in
         let main := genMain i o name globals data'' in
         match LLVMGen' (m := sum string) globals false op name with
         | inl _ => (None, None)

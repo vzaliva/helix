@@ -55,7 +55,7 @@ Definition genIRGlobals
   := let l := List.map
        (fun g:(string * (@FSHValType ft)) =>
           let (n,t) := g in
-          TLE_Global _ _ {|
+          TLE_Global {|
               g_ident        := Name n;
               g_typ          := getIRType t ; (* globals are always pointers *)
               g_constant     := true ;
@@ -73,7 +73,7 @@ Definition genIRGlobals
        ) x in
      match l with
      | nil => []
-     | cons _ _ => [TLE_Comment _ _ "Global variables"] ++ l
+     | cons _ _ => [TLE_Comment "Global variables"] ++ l
      end.
 
 Record IRState :=
@@ -113,11 +113,11 @@ Definition string_of_nat (n : nat) : string :=
 
 Definition add_comments (b:block typ) (xs:list string): block typ :=
   {|
-    blk_id    := blk_id _ b;
-    blk_phis  := blk_phis _ b;
-    blk_code  := blk_code _ b;
-    blk_term  := blk_term _ b;
-    blk_comments := match blk_comments _ b with
+    blk_id    := blk_id b;
+    blk_phis  := blk_phis b;
+    blk_code  := blk_code b;
+    blk_term  := blk_term b;
+    blk_comments := match blk_comments b with
                     | None => Some xs
                     | Some ys => Some (ys++xs)
                     end
@@ -177,7 +177,7 @@ Definition newLocalVarNamed (st:IRState) (t:typ) (prefix:string): (IRState*raw_i
 Definition newLocalVar (st:IRState) (t:typ): (IRState*raw_id) := newLocalVarNamed st t "l".
 
 Definition intrinsic_exp (d:declaration typ): exp typ :=
-  EXP_Ident _ (ID_Global (dc_name _ d)).
+  EXP_Ident (ID_Global (dc_name d)).
 
 Section monadic.
 
@@ -211,7 +211,7 @@ Section monadic.
              (name: local_id)
              (size: nat): (code typ)
     :=
-      [(IId name, INSTR_Alloca _ (getIRType (@FSHvecValType ft size)) None (Some PtrAlignment))].
+      [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some PtrAlignment))].
 
   Definition allocTempArrayBlock
              {ft: FloatT}
@@ -227,7 +227,7 @@ Section monadic.
          blk_id    := bid ;
          blk_phis  := [];
          blk_code  := @allocTempArrayCode ft name size;
-         blk_term  := (IVoid retid, TERM_Br_1 _ nextblock) ;
+         blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
          blk_comments := None
        |}).
 
@@ -249,9 +249,9 @@ Section monadic.
            '(st, bexp, bcode) <- @genNExpr ft st b ;;
            let '(st, res) := incLocal st in
            ret (st,
-                EXP_Ident _ (ID_Local res),
+                EXP_Ident (ID_Local res),
                 acode ++ bcode ++
-                      [(IId res, INSTR_Op _ (OP_IBinop typ iop
+                      [(IId res, INSTR_Op (OP_IBinop iop
                                                      IntType
                                                      aexp
                                                      bexp))
@@ -261,22 +261,22 @@ Section monadic.
                   match t, IntType with
                   | TYPE_I z, TYPE_I zi =>
                     if Z.eq_dec z zi then
-                      ret (st, EXP_Ident typ i, [])
+                      ret (st, EXP_Ident i, [])
                     else
                       raise "NVar int size mismatch"
                   | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                     if Z.eq_dec z zi then
                       let '(st, res) := incLocal st in
-                      ret (st, EXP_Ident typ (ID_Local res),
-                           [(IId res, INSTR_Load _ false (IntType)
+                      ret (st, EXP_Ident (ID_Local res),
+                           [(IId res, INSTR_Load false (IntType)
                                                  (TYPE_Pointer (IntType),
-                                                  (EXP_Ident _ i))
+                                                  (EXP_Ident i))
                                                  (ret 8%Z))])
                     else
                       raise "NVar int (via ptr) size mismatch"
                   | _,_ => raise "NVar type mismatch"
                   end
-      | NConst v => ret (st, EXP_Integer _ (Z.of_nat v), [])
+      | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
       | NDiv   a b => gen_binop a b (SDiv true)
       | NMod   a b => gen_binop a b SRem
       | NPlus  a b => gen_binop a b (Add true true)
@@ -297,7 +297,7 @@ Section monadic.
                      match t, ft with
                      | TYPE_Pointer (TYPE_Array zi TYPE_Double), Float64 | TYPE_Pointer (TYPE_Array zi TYPE_Float), Float32 =>
                        if Z.eq_dec (Z.of_nat n) zi then
-                         ret (st, EXP_Ident _ i, [])
+                         ret (st, EXP_Ident i, [])
                        else
                          raise "VVar array size mismatch"
                      | _,_ => raise "VVar type mismatch"
@@ -316,9 +316,9 @@ Section monadic.
            '(st, bexp, bcode) <- genFExpr st b ;;
            let '(st, res) := incLocal st in
            ret (st,
-                EXP_Ident _ (ID_Local res),
+                EXP_Ident (ID_Local res),
                 acode ++ bcode ++
-                      [(IId res, INSTR_Op _ (OP_FBinop _ fop
+                      [(IId res, INSTR_Op (OP_FBinop fop
                                                      [] (* TODO: list fast_math *)
                                                      (FloatTtyp ft)
                                                      aexp
@@ -329,9 +329,9 @@ Section monadic.
            let '(st, res) := incLocal st in
            let ftyp := FloatTtyp ft in
            ret (st,
-                EXP_Ident _ (ID_Local res),
+                EXP_Ident (ID_Local res),
                 acode ++
-                      [(IId res, INSTR_Call _ (ftyp,f) [(ftyp,aexp)])
+                      [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
                ]) in
       let gen_call2 a b f :=
           '(st, aexp, acode) <- genFExpr st a ;;
@@ -339,26 +339,26 @@ Section monadic.
            let '(st, res) := incLocal st in
            let ftyp := FloatTtyp ft in
            ret (st,
-                EXP_Ident _ (ID_Local res),
+                EXP_Ident (ID_Local res),
                 acode ++ bcode ++
-                      [(IId res, INSTR_Call _ (ftyp,f)
+                      [(IId res, INSTR_Call (ftyp,f)
                                             [(ftyp,aexp); (ftyp,bexp)])
                ]) in
       match fexp with
       | AVar n => '(i,t) <- opt2err "AVar out of range" (List.nth_error (vars st) n) ;;
                   match t, ft with
-                  | TYPE_Double, Float64 | TYPE_Float, Float32 => ret (st, EXP_Ident _ i, [])
+                  | TYPE_Double, Float64 | TYPE_Float, Float32 => ret (st, EXP_Ident i, [])
                   | TYPE_Pointer TYPE_Double, Float64 | TYPE_Pointer TYPE_Float, Float32 =>
                     let '(st, res) := incLocal st in
-                    ret (st, EXP_Ident _ (ID_Local res),
-                         [(IId res, INSTR_Load _ false (FloatTtyp ft)
+                    ret (st, EXP_Ident (ID_Local res),
+                         [(IId res, INSTR_Load false (FloatTtyp ft)
                                                (TYPE_Pointer (FloatTtyp ft),
-                                                (EXP_Ident _ i))
+                                                (EXP_Ident i))
                                                (ret 8%Z))])
                   | _,_ => raise "AVar type mismatch"
                   end
-      | AConst (Float64V v) => ret (st, EXP_Double _ v, [])
-      | AConst (Float32V v) => ret (st, EXP_Float _ v, [])
+      | AConst (Float64V v) => ret (st, EXP_Double v, [])
+      | AConst (Float32V v) => ret (st, EXP_Float v, [])
       | ANth n vec i =>
         '(st, iexp, icode) <- genNExpr st i ;;
          '(st, vexp, vcode) <- genVExpr st vec ;;
@@ -366,18 +366,18 @@ Section monadic.
          let xtyp := getIRType (@FSHvecValType ft n) in
          let xptyp := TYPE_Pointer xtyp in
          let '(st, res) := incLocal st in
-         ret (st, EXP_Ident _ (ID_Local res),
+         ret (st, EXP_Ident (ID_Local res),
               icode ++ vcode ++
                     [
-                      (IId px,  INSTR_Op _ (OP_GetElementPtr _
+                      (IId px,  INSTR_Op (OP_GetElementPtr
                                             xtyp (xptyp, vexp)
-                                            [(IntType, EXP_Integer _ 0%Z);
+                                            [(IntType, EXP_Integer 0%Z);
                                                (IntType, iexp)]
 
                       )) ;
-                        (IId res, INSTR_Load _ false (FloatTtyp ft)
+                        (IId res, INSTR_Load false (FloatTtyp ft)
                                              (TYPE_Pointer (FloatTtyp ft),
-                                              (EXP_Ident _ (ID_Local px)))
+                                              (EXP_Ident (ID_Local px)))
                                              (ret 8%Z))
              ])
       | AAbs a => match ft with
@@ -400,17 +400,17 @@ Section monadic.
          let '(st, fres) := incLocal st in
          let '(st, void0) := incVoid st in
          ret (st,
-              EXP_Ident _ (ID_Local fres),
+              EXP_Ident (ID_Local fres),
               acode ++ bcode ++
-                    [(IId ires, INSTR_Op _ (OP_FCmp _ FOlt
+                    [(IId ires, INSTR_Op (OP_FCmp FOlt
                                                   (FloatTtyp ft)
                                                   aexp
                                                   bexp));
-                       (IVoid void0, INSTR_Comment _ "Cast bool to float") ;
-                       (IId fres, INSTR_Op _ (OP_Conversion _
+                       (IVoid void0, INSTR_Comment "Cast bool to float") ;
+                       (IId fres, INSTR_Op (OP_Conversion
                                               Uitofp
                                               (TYPE_I 1%Z)
-                                              (EXP_Ident _ (ID_Local ires))
+                                              (EXP_Ident (ID_Local ires))
                                               (FloatTtyp ft)))
              ])
       end.
@@ -442,28 +442,28 @@ Section monadic.
                      blk_id    := entryblock ;
                      blk_phis  := [];
                      blk_code  := [
-                                   (IId xb, INSTR_Op _ (OP_Conversion _
+                                   (IId xb, INSTR_Op (OP_Conversion
                                                         Bitcast
                                                         atyp
-                                                        (EXP_Ident _ (ID_Local x))
+                                                        (EXP_Ident (ID_Local x))
                                                         ptyp
                                    ));
-                                     (IId yb, INSTR_Op _ (OP_Conversion _
+                                     (IId yb, INSTR_Op (OP_Conversion
                                                           Bitcast
                                                           atyp
-                                                          (EXP_Ident _ (ID_Local y))
+                                                          (EXP_Ident (ID_Local y))
                                                           ptyp
                                      ));
 
-                                     (IVoid callid, INSTR_Call _ (TYPE_Void, intrinsic_exp memcpy_8_decl)
+                                     (IVoid callid, INSTR_Call (TYPE_Void, intrinsic_exp memcpy_8_decl)
                                                                [
-                                                                 (ptyp, EXP_Ident _ (ID_Local yb));
-                                                                   (ptyp, EXP_Ident _ (ID_Local xb));
-                                                                   (i32, EXP_Integer _ len);
-                                                                   (i32, EXP_Integer _ PtrAlignment) ;
-                                                                   (i1, EXP_Integer _ 0%Z)])
+                                                                 (ptyp, EXP_Ident (ID_Local yb));
+                                                                   (ptyp, EXP_Ident (ID_Local xb));
+                                                                   (i32, EXP_Integer len);
+                                                                   (i32, EXP_Integer PtrAlignment) ;
+                                                                   (i1, EXP_Integer 0%Z)])
                                  ];
-                     blk_term  := (IVoid retentry, TERM_Br_1 _ nextblock);
+                     blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
                      blk_comments := None
                    |}
           ])).
@@ -493,32 +493,32 @@ Section monadic.
                       blk_id    := entryblock ;
                       blk_phis  := [];
                       blk_code  := nexpcode ++ [
-                                              (IId px,  INSTR_Op _ (OP_GetElementPtr _
-                                                                    xtyp (xptyp, (EXP_Ident _ (ID_Local x)))
-                                                                    [(IntType, EXP_Integer _ 0%Z);
-                                                                       (IntType, EXP_Integer _ 0%Z)]
+                                              (IId px,  INSTR_Op (OP_GetElementPtr
+                                                                    xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                                    [(IntType, EXP_Integer 0%Z);
+                                                                       (IntType, EXP_Integer 0%Z)]
 
                                               )) ;
-                                                (IId v, INSTR_Load _ false (FloatTtyp ft)
+                                                (IId v, INSTR_Load false (FloatTtyp ft)
                                                                    (TYPE_Pointer (FloatTtyp ft),
-                                                                    (EXP_Ident _ (ID_Local px)))
+                                                                    (EXP_Ident (ID_Local px)))
                                                                    (ret 8%Z));
 
-                                                (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                                      ytyp (yptyp, (EXP_Ident _ (ID_Local y)))
-                                                                      [(IntType, EXP_Integer _ 0%Z);
+                                                (IId py,  INSTR_Op (OP_GetElementPtr
+                                                                      ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                                      [(IntType, EXP_Integer 0%Z);
                                                                          (IntType, nexpr)]
 
                                                 ));
 
-                                                (IVoid storeid, INSTR_Store _ false
-                                                                            ((FloatTtyp ft), (EXP_Ident _ (ID_Local v)))
+                                                (IVoid storeid, INSTR_Store false
+                                                                            ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
                                                                             (TYPE_Pointer (FloatTtyp ft),
-                                                                             (EXP_Ident _ (ID_Local py)))
+                                                                             (EXP_Ident (ID_Local py)))
                                                                             (ret 8%Z))
 
                                             ];
-                      blk_term  := (IVoid retentry, TERM_Br_1 _ nextblock);
+                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
                       blk_comments := None
                     |}
            ])).
@@ -549,32 +549,32 @@ Section monadic.
                       blk_id    := entryblock ;
                       blk_phis  := [];
                       blk_code  := nexpcode ++ [
-                                              (IId px,  INSTR_Op _ (OP_GetElementPtr _
-                                                                    xtyp (xptyp, (EXP_Ident _ (ID_Local x)))
-                                                                    [(IntType, EXP_Integer _ 0%Z);
+                                              (IId px,  INSTR_Op (OP_GetElementPtr
+                                                                    xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                                    [(IntType, EXP_Integer 0%Z);
                                                                        (IntType, nexpr)]
 
                                               )) ;
-                                                (IId v, INSTR_Load _ false (FloatTtyp ft)
+                                                (IId v, INSTR_Load false (FloatTtyp ft)
                                                                    (TYPE_Pointer (FloatTtyp ft),
-                                                                    (EXP_Ident _ (ID_Local px)))
+                                                                    (EXP_Ident (ID_Local px)))
                                                                    (ret 8%Z));
 
-                                                (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                                      ytyp (yptyp, (EXP_Ident _ (ID_Local y)))
-                                                                      [(IntType, EXP_Integer _ 0%Z);
-                                                                         (IntType, EXP_Integer _ 0%Z)]
+                                                (IId py,  INSTR_Op (OP_GetElementPtr
+                                                                      ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                                      [(IntType, EXP_Integer 0%Z);
+                                                                         (IntType, EXP_Integer 0%Z)]
 
                                                 ));
 
-                                                (IVoid storeid, INSTR_Store _ false
-                                                                            ((FloatTtyp ft), (EXP_Ident _ (ID_Local v)))
+                                                (IVoid storeid, INSTR_Store false
+                                                                            ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
                                                                             (TYPE_Pointer (FloatTtyp ft),
-                                                                             (EXP_Ident _ (ID_Local py)))
+                                                                             (EXP_Ident (ID_Local py)))
                                                                             (ret 8%Z))
 
                                             ];
-                      blk_term  := (IVoid retentry, TERM_Br_1 _ nextblock);
+                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
                       blk_comments := None
                     |}
            ])).
@@ -625,21 +625,21 @@ Section monadic.
               blk_code  :=
                 init_code ++
                           [
-                            (IId loopcond, INSTR_Op _ (OP_ICmp _ Slt
+                            (IId loopcond, INSTR_Op (OP_ICmp Slt
                                                              IntType
                                                              from
                                                              to))
 
                                      ];
-              blk_term  := (IVoid void0, TERM_Br _ (TYPE_I 1%Z, EXP_Ident _ (ID_Local loopcond)) loopblock nextblock);
+              blk_term  := (IVoid void0, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock);
               blk_comments := None
             |} ;
 
               {|
                 blk_id    := loopblock ;
-                blk_phis  := [(loopvar, Phi _ IntType [(entryblock, from); (loopcontblock, EXP_Ident _ (ID_Local nextvar))])];
+                blk_phis  := [(loopvar, Phi IntType [(entryblock, from); (loopcontblock, EXP_Ident (ID_Local nextvar))])];
                 blk_code  := [];
-                blk_term  := (IVoid void1, TERM_Br_1 _ body_entry);
+                blk_term  := (IVoid void1, TERM_Br_1 body_entry);
                 blk_comments := None
               |}
           ] in
@@ -648,17 +648,17 @@ Section monadic.
               blk_id    := loopcontblock;
               blk_phis  := [];
               blk_code  := [
-                            (IId nextvar, INSTR_Op _ (OP_IBinop _ (Add false false)
+                            (IId nextvar, INSTR_Op (OP_IBinop (Add false false)
                                                               IntType
-                                                              (EXP_Ident _ (ID_Local loopvar))
-                                                              (EXP_Integer _ 1%Z))) ;
-                              (IId loopcond1, INSTR_Op _ (OP_ICmp _ Slt
+                                                              (EXP_Ident (ID_Local loopvar))
+                                                              (EXP_Integer 1%Z))) ;
+                              (IId loopcond1, INSTR_Op (OP_ICmp Slt
                                                                IntType
-                                                               (EXP_Ident _ (ID_Local nextvar))
+                                                               (EXP_Ident (ID_Local nextvar))
                                                                to))
 
                           ];
-              blk_term  := (IVoid retloop, TERM_Br _ (TYPE_I 1%Z, EXP_Ident _ (ID_Local loopcond1)) loopblock nextblock );
+              blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock );
               blk_comments := None
             |}
           ] in
@@ -695,49 +695,49 @@ Section monadic.
                  blk_id    := pwblock ;
                  blk_phis  := [];
                  blk_code  := [
-                               (IId pa,  INSTR_Op _ (OP_GetElementPtr _
-                                                     xytyp (xyptyp, (EXP_Ident _ (ID_Local a)))
-                                                     [(IntType, EXP_Integer _ 0%Z);
-                                                        (IntType,(EXP_Ident _ loopvarid))]
+                               (IId pa,  INSTR_Op (OP_GetElementPtr
+                                                     xytyp (xyptyp, (EXP_Ident (ID_Local a)))
+                                                     [(IntType, EXP_Integer 0%Z);
+                                                        (IntType,(EXP_Ident loopvarid))]
 
                                ));
 
-                                 (IId va, INSTR_Load _ false (FloatTtyp ft)
+                                 (IId va, INSTR_Load false (FloatTtyp ft)
                                                      (TYPE_Pointer (FloatTtyp ft),
-                                                      (EXP_Ident _ (ID_Local pa)))
+                                                      (EXP_Ident (ID_Local pa)))
                                                      (ret 8%Z));
 
-                                 (IId pb,  INSTR_Op _ (OP_GetElementPtr _
-                                                       xytyp (xyptyp, (EXP_Ident _ (ID_Local b)))
-                                                       [(IntType, EXP_Integer _ 0%Z);
-                                                          (IntType,(EXP_Ident _ loopvarid))]
+                                 (IId pb,  INSTR_Op (OP_GetElementPtr
+                                                       xytyp (xyptyp, (EXP_Ident (ID_Local b)))
+                                                       [(IntType, EXP_Integer 0%Z);
+                                                          (IntType,(EXP_Ident loopvarid))]
 
                                  ));
 
-                                 (IId vb, INSTR_Load _ false (FloatTtyp ft)
+                                 (IId vb, INSTR_Load false (FloatTtyp ft)
                                                      (TYPE_Pointer (FloatTtyp ft),
-                                                      (EXP_Ident _ (ID_Local pb)))
+                                                      (EXP_Ident (ID_Local pb)))
                                                      (ret 8%Z))
                              ]
 
                                 ++ fexpcode ++
 
-                                [ (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                        xytyp (xyptyp, (EXP_Ident _ (ID_Local y)))
-                                                        [(IntType, EXP_Integer _ 0%Z);
-                                                           (IntType,(EXP_Ident _ loopvarid))]
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident loopvarid))]
 
                                   ));
 
-                                    (IVoid storeid, INSTR_Store _ false
+                                    (IVoid storeid, INSTR_Store false
                                                                 ((FloatTtyp ft), fexpr)
                                                                 (TYPE_Pointer (FloatTtyp ft),
-                                                                 (EXP_Ident _ (ID_Local py)))
+                                                                 (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
 
                                 ];
-                 blk_term  := (IVoid pwret, TERM_Br_1 _ nextblock);
+                 blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
                  blk_comments := None
                |}
            ])).
@@ -771,37 +771,37 @@ Section monadic.
                  blk_id    := pwblock ;
                  blk_phis  := [];
                  blk_code  := [
-                               (IId px,  INSTR_Op _ (OP_GetElementPtr _
-                                                     xytyp (xyptyp, (EXP_Ident _ (ID_Local x)))
-                                                     [(IntType, EXP_Integer _ 0%Z);
-                                                        (IntType,(EXP_Ident _ loopvarid))]
+                               (IId px,  INSTR_Op (OP_GetElementPtr
+                                                     xytyp (xyptyp, (EXP_Ident (ID_Local x)))
+                                                     [(IntType, EXP_Integer 0%Z);
+                                                        (IntType,(EXP_Ident loopvarid))]
 
                                ));
 
-                                 (IId v, INSTR_Load _ false (FloatTtyp ft)
+                                 (IId v, INSTR_Load false (FloatTtyp ft)
                                                     (TYPE_Pointer (FloatTtyp ft),
-                                                     (EXP_Ident _ (ID_Local px)))
+                                                     (EXP_Ident (ID_Local px)))
                                                     (ret 8%Z))
                              ]
 
                                 ++ fexpcode ++
 
-                                [ (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                        xytyp (xyptyp, (EXP_Ident _ (ID_Local y)))
-                                                        [(IntType, EXP_Integer _ 0%Z);
-                                                           (IntType,(EXP_Ident _ loopvarid))]
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident loopvarid))]
 
                                   ));
 
-                                    (IVoid storeid, INSTR_Store _ false
+                                    (IVoid storeid, INSTR_Store false
                                                                 ((FloatTtyp ft), fexpr)
                                                                 (TYPE_Pointer (FloatTtyp ft),
-                                                                 (EXP_Ident _ (ID_Local py)))
+                                                                 (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
 
                                 ];
-                 blk_term  := (IVoid pwret, TERM_Br_1 _ nextblock);
+                 blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
                  blk_comments := None
                |}
            ])).
@@ -840,64 +840,64 @@ Section monadic.
                  blk_id    := binopblock ;
                  blk_phis  := [];
                  blk_code  := [
-                               (IId px0,  INSTR_Op _ (OP_GetElementPtr _
-                                                      xtyp (xptyp, (EXP_Ident _ (ID_Local x)))
-                                                      [(IntType, EXP_Integer _ 0%Z);
-                                                         (IntType,(EXP_Ident _ loopvarid))]
+                               (IId px0,  INSTR_Op (OP_GetElementPtr
+                                                      xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                      [(IntType, EXP_Integer 0%Z);
+                                                         (IntType,(EXP_Ident loopvarid))]
 
                                ));
 
-                                 (IId v0, INSTR_Load _ false (FloatTtyp ft)
+                                 (IId v0, INSTR_Load false (FloatTtyp ft)
                                                      (TYPE_Pointer (FloatTtyp ft),
-                                                      (EXP_Ident _ (ID_Local px0)))
+                                                      (EXP_Ident (ID_Local px0)))
                                                      (ret 8%Z));
 
-                                 (IId loopvar2, INSTR_Op _ (OP_IBinop _ (Add false false)
+                                 (IId loopvar2, INSTR_Op (OP_IBinop (Add false false)
                                                                     IntType
-                                                                    (EXP_Ident _ loopvarid)
-                                                                    (EXP_Integer _ (Z.of_nat n))));
+                                                                    (EXP_Ident loopvarid)
+                                                                    (EXP_Integer (Z.of_nat n))));
 
 
-                                 (IId px1,  INSTR_Op _ (OP_GetElementPtr _
-                                                        xtyp (xptyp, (EXP_Ident _ (ID_Local x)))
-                                                        [(IntType, EXP_Integer _ 0%Z);
-                                                           (IntType,(EXP_Ident _ (ID_Local loopvar2)))]
+                                 (IId px1,  INSTR_Op (OP_GetElementPtr
+                                                        xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident (ID_Local loopvar2)))]
 
                                  ));
 
-                                 (IId v1, INSTR_Load _ false (FloatTtyp ft)
+                                 (IId v1, INSTR_Load false (FloatTtyp ft)
                                                      (TYPE_Pointer (FloatTtyp ft),
-                                                      (EXP_Ident _ (ID_Local px1)))
+                                                      (EXP_Ident (ID_Local px1)))
                                                      (ret 8%Z))
                              ]
 
 
                                 ++ fexpcode ++
 
-                                [ (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                        ytyp (yptyp, (EXP_Ident _ (ID_Local y)))
-                                                        [(IntType, EXP_Integer _ 0%Z);
-                                                           (IntType, (EXP_Ident _ loopvarid))]
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType, (EXP_Ident loopvarid))]
 
                                   ));
 
-                                    (IVoid storeid, INSTR_Store _ false
+                                    (IVoid storeid, INSTR_Store false
                                                                 ((FloatTtyp ft), fexpr)
                                                                 (TYPE_Pointer (FloatTtyp ft),
-                                                                 (EXP_Ident _ (ID_Local py)))
+                                                                 (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
 
                                 ];
-                 blk_term  := (IVoid binopret, TERM_Br_1 _ nextblock);
+                 blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
                  blk_comments := None
                |}
            ])).
 
   Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : (exp typ) :=
     match fv with
-    | Float32V b32 => EXP_Float _ b32
-    | Float64V b64 => EXP_Double _ b64
+    | Float32V b32 => EXP_Float b32
+    | Float64V b64 => EXP_Double b64
     end.
 
   (* !!!TODO: this may be wrong! We initializint [t] while we must intialize [y] *)
@@ -927,26 +927,26 @@ Section monadic.
             blk_id    := init_block_id ;
             blk_phis  := [];
             blk_code  := [
-                          (IId pt,  INSTR_Op _ (OP_GetElementPtr _
-                                                ttyp (tptyp, (EXP_Ident _ (ID_Local t)))
-                                                [(IntType, EXP_Integer _ 0%Z);
-                                                   (IntType,(EXP_Ident _ (ID_Local loopvar)))]
+                          (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                                [(IntType, EXP_Integer 0%Z);
+                                                   (IntType,(EXP_Ident (ID_Local loopvar)))]
 
                           ));
 
-                            (IVoid storeid, INSTR_Store _ false
+                            (IVoid storeid, INSTR_Store false
                                                         ((FloatTtyp ft), ini)
                                                         (TYPE_Pointer (FloatTtyp ft),
-                                                         (EXP_Ident _ (ID_Local pt)))
+                                                         (EXP_Ident (ID_Local pt)))
                                                         (ret 8%Z))
 
 
 
                         ];
-            blk_term  := (IVoid void0, TERM_Br_1 _ loopcontblock);
+            blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
             blk_comments := None
           |} in
-      genWhileLoop "IReduction_init_loop" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
+      genWhileLoop "IReduction_init_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] tmpalloc st nextblock.
 
   Definition genIReductionFold
              {i o n: nat}
@@ -978,41 +978,41 @@ Section monadic.
              blk_phis  := [];
              blk_code  := [
 
-                           (IId pt,  INSTR_Op _ (OP_GetElementPtr _
-                                                 ttyp (tptyp, (EXP_Ident _ (ID_Local t)))
-                                                 [(IntType, EXP_Integer _ 0%Z);
-                                                    (IntType, (EXP_Ident _ (ID_Local loopvar)))]
+                           (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                 ttyp (tptyp, (EXP_Ident (ID_Local t)))
+                                                 [(IntType, EXP_Integer 0%Z);
+                                                    (IntType, (EXP_Ident (ID_Local loopvar)))]
 
                            ));
-                             (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                   ytyp (yptyp, (EXP_Ident _ (ID_Local y)))
-                                                   [(IntType, EXP_Integer _ 0%Z);
-                                                      (IntType, (EXP_Ident _ (ID_Local loopvar)))]
+                             (IId py,  INSTR_Op (OP_GetElementPtr
+                                                   ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                   [(IntType, EXP_Integer 0%Z);
+                                                      (IntType, (EXP_Ident (ID_Local loopvar)))]
 
                              ));
 
-                             (IId tv, INSTR_Load _ false (FloatTtyp ft)
+                             (IId tv, INSTR_Load false (FloatTtyp ft)
                                                  (TYPE_Pointer (FloatTtyp ft),
-                                                  (EXP_Ident _ (ID_Local pt)))
+                                                  (EXP_Ident (ID_Local pt)))
                                                  (ret 8%Z));
-                             (IId yv, INSTR_Load _ false (FloatTtyp ft)
+                             (IId yv, INSTR_Load false (FloatTtyp ft)
                                                  (TYPE_Pointer (FloatTtyp ft),
-                                                  (EXP_Ident _ (ID_Local py)))
+                                                  (EXP_Ident (ID_Local py)))
                                                  (ret 8%Z))
 
                          ] ++ fexpcode ++  [
 
-                             (IVoid storeid, INSTR_Store _ false
+                             (IVoid storeid, INSTR_Store false
                                                          ((FloatTtyp ft), fexpr)
                                                          (TYPE_Pointer (FloatTtyp ft),
-                                                          (EXP_Ident _ (ID_Local py)))
+                                                          (EXP_Ident (ID_Local py)))
                                                          (ret 8%Z))
 
                            ];
-             blk_term  := (IVoid void0, TERM_Br_1 _ loopcontblock);
+             blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
              blk_comments := None
            |} in
-       genWhileLoop "IReduction_fold_loop" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
+       genWhileLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
   Definition genFSHInductor
              {ft: FloatT}
@@ -1033,17 +1033,17 @@ Section monadic.
       '(st, nexp, ncode) <- genNExpr st n ;;
        let ini := genFloatV initial in
        let init_code := ncode ++ [
-                                (IId py,  INSTR_Op _ (OP_GetElementPtr _
-                                                      xytyp (xyptyp, (EXP_Ident _ (ID_Local y)))
-                                                      [(IntType, EXP_Integer _ 0%Z);
-                                                         (IntType,EXP_Integer _ 0%Z)]
+                                (IId py,  INSTR_Op (OP_GetElementPtr
+                                                      xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                      [(IntType, EXP_Integer 0%Z);
+                                                         (IntType,EXP_Integer 0%Z)]
 
                                 ));
 
-                                  (IVoid storeid0, INSTR_Store _ false
+                                  (IVoid storeid0, INSTR_Store false
                                                                ((FloatTtyp ft), ini)
                                                                (TYPE_Pointer (FloatTtyp ft),
-                                                                (EXP_Ident _ (ID_Local py)))
+                                                                (EXP_Ident (ID_Local py)))
                                                                (ret 8%Z))
 
                               ] in
@@ -1061,33 +1061,33 @@ Section monadic.
               blk_id    := body_block_id ;
               blk_phis  := [];
               blk_code  := [
-                            (IId px,  INSTR_Op _ (OP_GetElementPtr _
-                                                  xytyp (xyptyp, (EXP_Ident _ (ID_Local x)))
-                                                  [(IntType, EXP_Integer _ 0%Z);
-                                                     (IntType,EXP_Integer _ 0%Z)]
+                            (IId px,  INSTR_Op (OP_GetElementPtr
+                                                  xytyp (xyptyp, (EXP_Ident (ID_Local x)))
+                                                  [(IntType, EXP_Integer 0%Z);
+                                                     (IntType,EXP_Integer 0%Z)]
 
                             ));
-                              (IId yv, INSTR_Load _ false (FloatTtyp ft)
+                              (IId yv, INSTR_Load false (FloatTtyp ft)
                                                   (TYPE_Pointer (FloatTtyp ft),
-                                                   (EXP_Ident _ (ID_Local py)))
+                                                   (EXP_Ident (ID_Local py)))
                                                   (ret 8%Z));
-                              (IId xv, INSTR_Load _ false (FloatTtyp ft)
+                              (IId xv, INSTR_Load false (FloatTtyp ft)
                                                   (TYPE_Pointer (FloatTtyp ft),
-                                                   (EXP_Ident _ (ID_Local px)))
+                                                   (EXP_Ident (ID_Local px)))
                                                   (ret 8%Z))
                           ]
                              ++ fexpcode ++
                              [
-                               (IVoid storeid1, INSTR_Store _ false
+                               (IVoid storeid1, INSTR_Store false
                                                             ((FloatTtyp ft), fexpr)
                                                             (TYPE_Pointer (FloatTtyp ft),
-                                                             (EXP_Ident _ (ID_Local py)))
+                                                             (EXP_Ident (ID_Local py)))
                                                             (ret 8%Z))
                              ];
-              blk_term  := (IVoid void2, TERM_Br_1 _ loopcontblock);
+              blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
               blk_comments := None
             |} in
-        genWhileLoop "Inductor" (EXP_Integer _ 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+        genWhileLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
 
   Fixpoint genIR
            {i o: nat}
@@ -1118,14 +1118,14 @@ Section monadic.
         let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
         '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
          add_comment
-         (genWhileLoop "Pointwise" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+         (genWhileLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: FSHPointwise ---"
       | FSHBinOp n f =>
         let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
         '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
          add_comment
-         (genWhileLoop "BinOp" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+         (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: FSHBinOp ---"
       | FSHInductor n f initial =>
         add_comment
@@ -1138,7 +1138,7 @@ Section monadic.
         '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
          st <- dropVars st 1 ;;
          add_comment
-         (genWhileLoop "Union_loop" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat n))
+         (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
          "--- Operator: FSHIUnion ---"
       | FSHIReduction i o n dot initial child =>
@@ -1150,7 +1150,7 @@ Section monadic.
          '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
           st <- dropVars st 1 ;;
           '(st, (loop_block_id, loop_blocks))
-          <- genWhileLoop "IReduction_main_loop" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat n))
+          <- genWhileLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
           loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
           [] st nextblock ;;
           '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
@@ -1168,7 +1168,7 @@ Section monadic.
         let '(st, loopcontblock) := incBlockNamed st "HTSUMUnion_lcont" in
         let '(st, loopvar) := incLocalNamed st "HTSUMUnion_i" in
         '(st, (body_entry, body_blocks)) <- @genHTSUMUnionpBody o ft tmpfy tmpgy y dot st loopvar loopcontblock ;;
-         '(st, (loopblock, loop_blocks)) <-  genWhileLoop "HTSUMUnion" (EXP_Integer _ 0%Z) (EXP_Integer _ (Z.of_nat o)) loopvar loopcontblock body_entry body_blocks [] st nextblock ;;
+         '(st, (loopblock, loop_blocks)) <-  genWhileLoop "HTSUMUnion" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock body_entry body_blocks [] st nextblock ;;
          '(st, (fb, f')) <- genIR x tmpfy f st loopblock  ;;
          '(st, (gb, g')) <- genIR x tmpgy g st fb  ;;
          let (st,retid) := incVoid st in
@@ -1179,7 +1179,7 @@ Section monadic.
                blk_phis  := [];
                blk_code  :=
                  @allocTempArrayCode ft tmpfy o ++ @allocTempArrayCode ft tmpgy o;
-               blk_term  := (IVoid retid, TERM_Br_1 _ gb) ;
+               blk_term  := (IVoid retid, TERM_Br_1 gb) ;
                blk_comments := None
              |} in
          add_comment (ret (st, (tmp_alloc_block_id, [tmp_alloc_block]++g'++f'++loop_blocks)))
@@ -1214,14 +1214,14 @@ Section monadic.
             blk_id    := rid ;
             blk_phis  := [];
             blk_code  := [];
-            blk_term  := (IId rsid, TERM_Ret_void _);
+            blk_term  := (IId rsid, TERM_Ret_void);
             blk_comments := None
           |} in
       '(st,(_,body)) <- genIR x y fshcol st rid ;;
        let body := body ++ [retblock] in
        let all_intrinsics:toplevel_entities typ (list (block typ))
            := [@TLE_Comment _ (list (block typ)) "Prototypes for intrinsics we use"]
-                ++ (List.map (TLE_Declaration _ _) (
+                ++ (List.map (TLE_Declaration) (
                                helix_intrinsics_decls ++ defined_intrinsics_decls))
        in
        ret
@@ -1229,8 +1229,8 @@ Section monadic.
                          (if globals_extern then
                               (genIRGlobals (FnBody:=list (block typ)) globals) else []) ++
                                        [
-                                         TLE_Comment _ _ " Top-level operator definition" ;
-                                         TLE_Definition _ _
+                                         TLE_Comment " Top-level operator definition" ;
+                                         TLE_Definition
                                           {|
                                             df_prototype   :=
                                               {|
