@@ -43,7 +43,8 @@ proof assistant.
 
 *** Install VELLVM dependency:
 
- You need to manually check out /master/ branch of VELLVM and symlink it as follows:
+    You need to manually check out /master/ branch of VELLVM, compile,
+    and symlink it as follows:
 
 #+BEGIN_SRC sh
      ln -s path_to_vellvm_checkout/vellvm helix/lib
@@ -66,7 +67,6 @@ proof assistant.
     - [[http://www.crocodile.org/lord/vzaliva-CoqPL19.pdf][Reification of shallow-embedded DSLs in Coq with automated verification (CoqPL 2019)]]
     - [[http://www.crocodile.org/lord/vzaliva-fhpc2018.pdf][HELIX: A Case Study of a Formal Verification of High Performance Program Generation (FHPC 2018)]]
     - [[http://www.crocodile.org/lord/Formal_Verification_of_HCOL_Rewriting_FMCAD15.pdf][Formal Verification of HCOL Rewriting (FMCAD 2015)]]
-
 
 ** Contact
 
