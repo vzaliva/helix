@@ -43,7 +43,7 @@ $(TSTAMP): $(VOFILES) $(EXTRACTDIR)/Extract.v
 
 EXE=ml/_build/default/testeval.exe
 
-$(CEXE): extracted ml/dune ml/extracted/dune ml/llvm_printer.ml ml/llvm_printer.mli ml/testcomp.ml
+$(CEXE): extracted ml/dune ml/extracted/dune ml/testcomp.ml
 	@echo "Compiling $(CEXE)"
 	(cd ml; dune build --profile=dev testcomp.exe)
 
@@ -65,8 +65,6 @@ clean-ml:
 	rm -f $(TSTAMP) $(EXTRACTDIR)/*.ml $(EXTRACTDIR)/*.mli 
 	rm -rf _build ml/_build $(EXTRACTDIR)/_build
 	rm -f *.log *.cache
-	rm -f ml/llvm_printer.ml ml/llvm_printer.mli
-
 
 clean: clean-ml
 	rm -f `find . -name \*~`
