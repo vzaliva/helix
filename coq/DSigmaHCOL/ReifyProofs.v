@@ -74,6 +74,36 @@ Section opt_p.
   | opt_p_None_intro: opt_p_n None
   | opt_p_Some_intro : forall x, P x -> opt_p_n (Some x).
 
+  Global Instance opt_p_proper
+         `{Ae: Equiv A}
+         {Pp: Proper ((=) ==> (iff)) P}
+    :
+      Proper ((=) ==> (iff)) opt_p.
+  Proof.
+    intros a b E.
+    split.
+    -
+      intros H.
+      destruct a,b; try some_none.
+      inversion H.
+      subst x.
+      constructor.
+      some_inv.
+      rewrite <- E.
+      assumption.
+      inversion H.
+    -
+      intros H.
+      destruct a,b; try some_none.
+      inversion H.
+      subst x.
+      constructor.
+      some_inv.
+      rewrite E.
+      assumption.
+      inversion H.
+  Qed.
+
 End opt_p.
 Arguments opt_p {A} P.
 Arguments opt_p_n {A} P.
@@ -183,7 +213,7 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 (* TODO: move *)
 (* Two memory locations equivalent on all addresses except one *)
 Definition memory_equiv_except (m m': memory) (e:mem_block_id)
-  := forall k, k≢e -> NM.find k m = NM.find k m'.
+  := forall k, k≢e -> memory_lookup m k = memory_lookup m' k.
 
 Lemma memory_equiv_except_memory_set {m m' b k}:
   m' ≡ memory_set m k b -> memory_equiv_except m m' k.
@@ -192,6 +222,7 @@ Proof.
   subst.
   intros k' kc.
   unfold memory_set.
+  unfold memory_lookup.
   rewrite NP.F.add_neq_o.
   reflexivity.
   auto.
@@ -1738,6 +1769,7 @@ Proof.
 
       unfold mem_block_exists in H1.
       apply NP.F.not_find_in_iff in H1.
+      unfold memory_lookup.
       rewrite_clear H1.
       symmetry.
 
@@ -1788,6 +1820,7 @@ Proof.
 
       unfold mem_block_exists in NF4.
       apply NP.F.not_find_in_iff in NF4.
+      unfold memory_lookup.
       rewrite NF4.
 
       unfold mem_block_exists in NF0.
@@ -1799,6 +1832,7 @@ Proof.
     assert (V := F0).
     apply NP.F.in_find_iff, is_Some_ne_None, is_Some_def in V.
     destruct V as [v V].
+    unfold memory_lookup.
     rewrite V.
 
     cut(NM.find (elt:=mem_block) k m3 = Some v).
@@ -1810,7 +1844,7 @@ Proof.
 
     cut(NM.find (elt:=mem_block) k m2 = Some v).
     intros F2.
-    unfold memory_equiv_except in P1w.
+    unfold memory_equiv_except, memory_lookup in P1w.
     specialize (P1w y_i).
     erewrite <- P1w; auto.
     subst σ'.
@@ -1819,7 +1853,7 @@ Proof.
 
     cut(NM.find (elt:=mem_block) k m1 = Some v).
     intros F1.
-    unfold memory_equiv_except in P2w.
+    unfold memory_equiv_except, memory_lookup in P2w.
     specialize (P2w t_i).
     erewrite <- P2w; auto.
     subst σ'.
@@ -1995,7 +2029,7 @@ Proof.
     }
     specialize (C2 MX').
 
-    assert(MB': lookup_Pexp σ' m' (PVar 0) = Some mem_empty).
+    assert(MT': lookup_Pexp σ' m' (PVar 0) = Some mem_empty).
     {
       rewrite Heqσ'.
       unfold lookup_Pexp.
@@ -2004,7 +2038,7 @@ Proof.
       unfold memory_lookup, memory_set.
       rewrite NP.F.add_eq_o; reflexivity.
     }
-    specialize (C2 MB').
+    specialize (C2 MT').
 
     rewrite E2 in C2.
     rewrite MT in C2.
@@ -2037,11 +2071,10 @@ Proof.
     specialize (C1 m'').
     destruct C1 as [C1].
 
-    eapply memory_equiv_except_trans.
-    eapply memory_equiv_except_memory_set.
-    eapply Heqm'.
-
-    {
+    1:{
+      eapply memory_equiv_except_trans.
+      eapply memory_equiv_except_memory_set.
+      eapply Heqm'.
       intros.
       destruct P2.
       eapply mem_write_safe0.
@@ -2051,11 +2084,78 @@ Proof.
       reflexivity.
     }
 
-    specialize (C1 mt ma MT'').
+    specialize (C1 mt mb MT'').
+    assert(lookup_Pexp σ' m'' (incrPVar 0 y_p) = Some mb) as MB''.
+    {
+      subst σ'.
+      unfold lookup_Pexp.
+      rewrite evalPexp_incrPVar.
+      simpl.
+      rewrite Heqo1.
 
+      destruct P2 as [_ _ mem_write_safe2].
+      apply Option_equiv_eq in E2.
+      specialize (mem_write_safe2 _ _ _ _ E2).
 
+      assert(TS: evalPexp (DSHPtrVal t_i :: σ) (PVar 0) = Some t_i)
+        by reflexivity.
+      specialize (mem_write_safe2 _ TS).
 
-    admit.
+      assert(MB': memory_lookup m' y_i = Some mb).
+      {
+        rewrite <- MB.
+        subst m'.
+        unfold memory_lookup, memory_set.
+        rewrite NP.F.add_neq_o.
+        reflexivity.
+        assumption.
+      }
+
+      rewrite <- MB'.
+      symmetry.
+      apply mem_write_safe2.
+      auto.
+    }
+
+    specialize (C1 MB'').
+    rewrite MD, E1 in C1.
+
+    inversion C1 as [C1N | ab bm HC1 HA HB];
+      clear C1; rename HC1 into C1;
+        subst ab; subst bm.
+
+    assert(MA''': lookup_Pexp σ' m''' (incrPVar 0 y_p) = Some ma).
+    {
+      subst σ'.
+      unfold lookup_Pexp.
+      rewrite evalPexp_incrPVar.
+      simpl.
+      rewrite Heqo1.
+      unfold memory_lookup.
+      rewrite MA.
+      reflexivity.
+    }
+
+    assert(PC1: Proper ((=) ==> iff)
+                       (λ z : mem_block, SHCOL_DSHCOL_mem_block_equiv mb z md)).
+    {
+      unfold SHCOL_DSHCOL_mem_block_equiv.
+      simpl_relation.
+      split.
+      -
+        intros H4 i.
+        specialize (H4 i).
+        rewrite <- H2.
+        auto.
+      -
+        intros H4 i.
+        specialize (H4 i).
+        rewrite H2.
+        auto.
+    }
+    rewrite MA''' in C1.
+    inversion C1.
+    auto.
   -
     exfalso.
     admit.
