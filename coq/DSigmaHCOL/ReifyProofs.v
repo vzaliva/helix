@@ -180,6 +180,30 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 Definition memory_equiv_except (m m': memory) (e:mem_block_id)
   := forall k, k≢e -> NM.find k m = NM.find k m'.
 
+Lemma memory_equiv_except_memory_set {m m' b k}:
+  m' ≡ memory_set m k b -> memory_equiv_except m m' k.
+Proof.
+  intros H.
+  subst.
+  intros k' kc.
+  unfold memory_set.
+  rewrite NP.F.add_neq_o.
+  reflexivity.
+  auto.
+Qed.
+
+Lemma memory_equiv_except_trans {m m' m'' k}:
+  memory_equiv_except m m' k ->
+  memory_equiv_except m' m'' k ->
+  memory_equiv_except m m'' k.
+Proof.
+  intros H H0.
+  intros k' kc.
+  specialize (H0 k' kc).
+  rewrite <- H0. clear H0.
+  apply H.
+  apply kc.
+Qed.
 
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
@@ -1820,17 +1844,19 @@ Instance Compose_MSH_DSH_compat
                               (DSHPtrVal (memory_new m) :: σ)
                               (memory_alloc_empty m (memory_new m))
                               (incrPVar 0 x_p) (PVar 0)}
-         `{C1: MSH_DSH_compat _ _ mop1 dop1
-                              (DSHPtrVal (memory_new m) :: σ)
-                              (memory_alloc_empty m (memory_new m))
-                              (PVar 0) (incrPVar 0 y_p)}
+         `{P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p)}
+         `{C1: forall m'', memory_equiv_except m m'' (memory_new m) ->
+              MSH_DSH_compat mop1 dop1
+                             (DSHPtrVal (memory_new m) :: σ)
+                             m''
+                             (PVar 0) (incrPVar 0 y_p)}
   :
     MSH_DSH_compat
       (MSHCompose mop1 mop2)
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p.
 Proof.
-  rename H into H2, H0 into H1.
   split.
   intros mx mb MX MB.
   simpl.
@@ -1897,7 +1923,7 @@ Proof.
 
     assert(mem_block_exists y_i m'') as EY''.
     {
-      destruct H2.
+      destruct P2.
       eapply (mem_stable0  _ m' m'').
       apply Option_equiv_eq in E2.
       eapply E2.
@@ -1906,7 +1932,7 @@ Proof.
 
     assert(mem_block_exists y_i m''') as EY'''.
     {
-      destruct H1.
+      destruct P1.
       eapply (mem_stable0  _ m'' m''').
       apply Option_equiv_eq in E1.
       eapply E1.
@@ -1958,7 +1984,7 @@ Proof.
 
     rewrite E2 in C2.
     rewrite MT in C2.
-    inversion C2; subst a b; clear C2; rename H5 into C2.
+    inversion C2; subst a b; clear C2; rename H4 into C2.
 
     assert(mem_block_exists t_i m') as ET'.
     {
@@ -1969,7 +1995,7 @@ Proof.
 
     assert(mem_block_exists t_i m'') as ET''.
     {
-      destruct H2.
+      destruct P2.
       eapply (mem_stable0  _ m' m'').
       apply Option_equiv_eq in E2.
       eapply E2.
@@ -1983,6 +2009,29 @@ Proof.
     apply Option_equiv_eq in MT''.
     rewrite C2 in MT''.
     clear C2 mt'.
+
+    specialize (C1 m'').
+    destruct C1 as [C1].
+
+    eapply memory_equiv_except_trans.
+    eapply memory_equiv_except_memory_set.
+    eapply Heqm'.
+
+    {
+      intros.
+      destruct P2.
+      eapply mem_write_safe0.
+      rewrite E2.
+      reflexivity.
+      subst σ'.
+      reflexivity.
+    }
+
+    (*
+    specialize (C1 mt ma MT'').
+     *)
+
+
 
     admit.
   -
