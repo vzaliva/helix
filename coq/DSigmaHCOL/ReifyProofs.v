@@ -1785,6 +1785,27 @@ Proof.
     reflexivity.
 Qed.
 
+
+(* Also could be proven in other direction *)
+Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
+  SHCOL_DSHCOL_mem_block_equiv mem_empty a b -> a = b.
+Proof.
+  intros H.
+  unfold SHCOL_DSHCOL_mem_block_equiv in H.
+  intros k.
+  specialize (H k).
+  unfold mem_lookup, mem_empty in H.
+  rewrite NP.F.empty_o in H.
+  inversion H.
+  -
+    rewrite <- H1.
+    apply is_None_def in H0.
+    rewrite H0.
+    reflexivity.
+  -
+    assumption.
+Qed.
+
 Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
          {mop1: @MSHOperator o2 o3}
@@ -1829,8 +1850,10 @@ Proof.
     simpl in MX, MB.
     repeat break_match_hyp; try some_none.
     simpl.
-    rename m1 into x_i.
-    rename m0 into y_i.
+    rename m1 into x_i, m0 into y_i.
+    rename Heqo0 into E2, Heqo into E1.
+    rewrite evalDSHOperator_estimateFuel_ge in E1 by lia.
+    rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
 
     assert(t_i ≢ y_i).
     {
@@ -1838,6 +1861,18 @@ Proof.
       subst.
       exfalso.
       contradict MB.
+      pose proof (memory_lookup_memory_new_is_None m) as F.
+      apply is_None_def in F.
+      rewrite F.
+      some_none.
+    }
+
+    assert(t_i ≢ x_i).
+    {
+      destruct (Nat.eq_dec t_i x_i); auto.
+      subst.
+      exfalso.
+      contradict MX.
       pose proof (memory_lookup_memory_new_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
@@ -1864,8 +1899,8 @@ Proof.
     {
       destruct H2.
       eapply (mem_stable0  _ m' m'').
-      apply Option_equiv_eq in Heqo0.
-      eapply Heqo0.
+      apply Option_equiv_eq in E2.
+      eapply E2.
       assumption.
     }
 
@@ -1873,8 +1908,8 @@ Proof.
     {
       destruct H1.
       eapply (mem_stable0  _ m'' m''').
-      apply Option_equiv_eq in Heqo.
-      eapply Heqo.
+      apply Option_equiv_eq in E1.
+      eapply E1.
       assumption.
     }
 
@@ -1891,6 +1926,63 @@ Proof.
     unfold option_compose in MD.
     destruct (mem_op mop2 mx) as [mt|] eqn:MT; try some_none.
 
+    destruct C2 as [C2].
+    specialize (C2 mx (mem_empty)).
+
+    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) ≡ Some mx).
+    {
+      rewrite Heqσ'.
+      unfold lookup_Pexp.
+      rewrite evalPexp_incrPVar.
+      simpl.
+      rewrite Heqo2.
+      subst m'.
+      unfold memory_lookup, memory_set.
+      rewrite NP.F.add_neq_o.
+      apply MX.
+      auto.
+    }
+    specialize (C2 MX').
+
+    assert(MB': lookup_Pexp σ' m' (PVar 0) ≡ Some mem_empty).
+    {
+      rewrite Heqσ'.
+      unfold lookup_Pexp.
+      subst m'.
+      simpl.
+      unfold memory_lookup, memory_set.
+      apply NP.F.add_eq_o.
+      reflexivity.
+    }
+    specialize (C2 MB').
+
+    rewrite E2 in C2.
+    rewrite MT in C2.
+    inversion C2; subst a b; clear C2; rename H5 into C2.
+
+    assert(mem_block_exists t_i m') as ET'.
+    {
+      subst m'.
+      apply mem_block_exists_memory_set_eq.
+      reflexivity.
+    }
+
+    assert(mem_block_exists t_i m'') as ET''.
+    {
+      destruct H2.
+      eapply (mem_stable0  _ m' m'').
+      apply Option_equiv_eq in E2.
+      eapply E2.
+      assumption.
+    }
+
+    inversion C2 as [mt' HC2 MT'']; clear C2; rename HC2 into C2.
+    symmetry in MT''.
+
+    apply SHCOL_DSHCOL_mem_block_equiv_mem_empty in C2.
+    apply Option_equiv_eq in MT''.
+    rewrite C2 in MT''.
+    clear C2 mt'.
 
     admit.
   -

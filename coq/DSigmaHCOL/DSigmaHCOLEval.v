@@ -325,6 +325,19 @@ Fixpoint evalDSHOperator
       end
     end.
 
+
+Lemma evalDSHOperator_estimateFuel_ge (f:nat) {σ op m}:
+  f>=(estimateFuel op) ->
+  evalDSHOperator σ op m f ≡ evalDSHOperator σ op m (estimateFuel op).
+Proof.
+  intro F.
+  destruct F as [|f].
+  -
+    reflexivity.
+  -
+    (* induction op; auto *)
+Admitted.
+
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
   repeat break_match;subst; try reflexivity; try some_none;
