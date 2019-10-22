@@ -237,3 +237,15 @@ Proof.
     apply None_nequiv_neq in H.
     auto.
 Qed.
+
+Lemma mem_block_exists_exists_equiv (m:memory) (k:nat):
+  mem_block_exists k m <-> exists y : mem_block, memory_lookup m k = Some y.
+Proof.
+  split; intros H.
+  -
+    apply NP.F.in_find_iff, is_Some_ne_None, is_Some_equiv_def in H.
+    eauto.
+  -
+    apply NP.F.in_find_iff, is_Some_ne_None, is_Some_equiv_def.
+    eauto.
+Qed.

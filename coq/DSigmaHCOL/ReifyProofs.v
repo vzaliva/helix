@@ -42,6 +42,11 @@ Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
 | MemPreserved: is_None d -> b = a -> MemOpDelta b a d (* preserving memory state *)
 | MemExpected: is_Some d -> a = d -> MemOpDelta b a d (* expected results *).
 
+Global Instance MemOpDelta_proper:
+  Proper ((=) ==> (=) ==> (=) ==> (iff)) MemOpDelta.
+Proof.
+Admitted.
+
 (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [md] *)
 Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
@@ -268,8 +273,8 @@ Class MSH_DSH_compat
       eval_equiv
       :
         forall (mx mb: mem_block),
-          (lookup_Pexp σ m x_p ≡ Some mx) (* input exists *) ->
-          (lookup_Pexp σ m y_p ≡ Some mb) (* output before *) ->
+          (lookup_Pexp σ m x_p = Some mx) (* input exists *) ->
+          (lookup_Pexp σ m y_p = Some mb) (* output before *) ->
 
           (hopt_r (fun md (* memory diff *) m' (* memory state after execution *) =>
                      opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
@@ -409,12 +414,12 @@ Lemma evalDSHBinOp_mem_lookup_mx
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (E: evalDSHBinOp n off df σ mx mb ≡ Some ma)
+      (E: evalDSHBinOp n off df σ mx mb = Some ma)
       (k: nat)
       (kc:k<n):
   is_Some (mem_lookup k mx) /\ is_Some (mem_lookup (k+off) mx).
 Proof.
-  apply eq_Some_is_Some in E.
+  apply equiv_Some_is_Some in E.
   revert mb E k kc.
   induction n; intros.
   -
@@ -508,9 +513,9 @@ Lemma evalDSHBinOp_nth
       (k: nat)
       (kc: k<n)
       {a b : CarrierA}:
-  (mem_lookup k mx ≡ Some a) ->
-  (mem_lookup (k + off) mx ≡ Some b) ->
-  (evalDSHBinOp n off df σ mx mb ≡ Some ma) ->
+  (mem_lookup k mx = Some a) ->
+  (mem_lookup (k + off) mx = Some b) ->
+  (evalDSHBinOp n off df σ mx mb = Some ma) ->
   (mem_lookup k ma = evalIBinCarrierA σ df k a b).
 Proof.
   intros A B E.
@@ -528,10 +533,12 @@ Proof.
       rewrite Heqo in A. clear Heqo.
       rewrite Heqo0 in B. clear Heqo0.
       repeat some_inv.
-      subst_max.
+
+      opt_hyp_to_equiv.
+      rewrite B in Heqo1; clear B c0.
+      rewrite A in Heqo1; clear A c.
       rewrite Heqo1. clear Heqo1.
       clear - E.
-      apply Option_equiv_eq in E.
       unshelve eapply (evalDSHBinOp_preservation E).
       lia.
     +
@@ -544,14 +551,14 @@ Lemma evalDSHBinOp_oob_preservation
       {df : DSHIBinCarrierA}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (ME: evalDSHBinOp n off df σ mx mb ≡ Some ma):
+      (ME: evalDSHBinOp n off df σ mx mb = Some ma):
   ∀ (k : NM.key) (kc:k>=n), mem_lookup k mb = mem_lookup k ma.
 Proof.
   intros k kc.
   revert mb ME.
   induction n; intros.
   -
-    inversion kc; simpl in ME; some_inv; reflexivity.
+    inversion kc; simpl in ME; some_inv; rewrite ME; reflexivity.
   -
     simpl in *.
     repeat break_match_hyp; try some_none.
@@ -708,13 +715,20 @@ Proof.
       rewrite NP.F.add_eq_o by reflexivity.
       constructor.
       repeat some_inv.
-      subst m3 m2.
+
+      opt_hyp_to_equiv.
+
+      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
+      rewrite MX in Heqo2, Heqo4; clear MX m2. (* poor man's subst *)
+
       rename Heqo4 into ME.
       intros k.
 
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
-      inversion_clear MD. clear md.
+      some_inv.
+      rewrite <- MD.
+      clear MD md.
       rename t into vx.
 
       unfold avector_to_mem_block.
@@ -740,8 +754,8 @@ Proof.
 
           pose proof (evalDSHBinOp_mem_lookup_mx ME k kc) as [A B].
 
-          apply is_Some_def in A. destruct A as [a A].
-          apply is_Some_def in B. destruct B as [b B].
+          apply is_Some_equiv_def in A. destruct A as [a A].
+          apply is_Some_equiv_def in B. destruct B as [b B].
 
           rewrite (evalDSHBinOp_nth k kc A B ME).
           specialize FV with (nc:=mkFinNat kc) (a:=a) (b:=b).
@@ -770,17 +784,22 @@ Proof.
       (* mem_op succeeded with [Some md] while evaluation of DHS failed *)
       exfalso.
       repeat some_inv.
-      subst m3. subst m2.
+
+
+      opt_hyp_to_equiv.
+      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
+      rewrite MX in Heqo2, Heqo4; clear MX m2. (* poor man's subst *)
+
       rename Heqo4 into E.
 
-      apply eq_Some_is_Some in MD.
+      apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
       clear MD pF.
 
       inversion_clear H as [_ FV].
 
       contradict E.
-      apply is_Some_ne_None.
+      apply is_Some_nequiv_None.
       eapply evalDSHBinOp_is_Some; eauto.
       intros k kc a b.
       specialize (FV (FinNat.mkFinNat kc) a b).
@@ -793,7 +812,12 @@ Proof.
     +
       apply Some_ne_None in Heqo2.
       contradict Heqo2.
-      repeat some_inv. subst m3 m2.
+      repeat some_inv.
+
+      opt_hyp_to_equiv.
+      rewrite MB in Heqo3, Heqo4; clear MB m3. (* poor man's subst *)
+      rewrite MX in Heqo4; clear MX m2. (* poor man's subst *)
+
       unfold mem_op_of_hop in MD.
       break_match_hyp; try some_none.
       clear MD.
@@ -807,9 +831,9 @@ Proof.
         inversion kc.
       *
         contradict Heqo4.
-        apply None_ne_Some.
-        apply is_None_def.
-
+        apply None_nequiv_Some.
+        apply is_None_equiv_def.
+        apply mem_block_Equiv_Equivalence.
 
         apply evalDSHBinOp_is_None.
         lia.
@@ -1910,8 +1934,9 @@ Proof.
 
     assert(mem_block_exists y_i m) as EY.
     {
-      apply mem_block_exists_exists.
-      eauto.
+      apply mem_block_exists_exists_equiv.
+      eexists.
+      eapply MB.
     }
 
     assert(mem_block_exists y_i m') as EY'.
@@ -1955,7 +1980,7 @@ Proof.
     destruct C2 as [C2].
     specialize (C2 mx (mem_empty)).
 
-    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) ≡ Some mx).
+    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) = Some mx).
     {
       rewrite Heqσ'.
       unfold lookup_Pexp.
@@ -1970,15 +1995,14 @@ Proof.
     }
     specialize (C2 MX').
 
-    assert(MB': lookup_Pexp σ' m' (PVar 0) ≡ Some mem_empty).
+    assert(MB': lookup_Pexp σ' m' (PVar 0) = Some mem_empty).
     {
       rewrite Heqσ'.
       unfold lookup_Pexp.
       subst m'.
       simpl.
       unfold memory_lookup, memory_set.
-      apply NP.F.add_eq_o.
-      reflexivity.
+      rewrite NP.F.add_eq_o; reflexivity.
     }
     specialize (C2 MB').
 
@@ -2027,9 +2051,7 @@ Proof.
       reflexivity.
     }
 
-    (*
     specialize (C1 mt ma MT'').
-     *)
 
 
 

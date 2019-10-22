@@ -185,6 +185,14 @@ Lemma Some_ne_None `(x : option A) y :
   x ≡ Some y → x ≢ None.
 Proof. congruence. Qed.
 
+Lemma Some_nequiv_None `(x : option A) `{Ae: Equiv A} y :
+  x = Some y → x ≠ None.
+Proof.
+  intros H.
+  intros H1.
+  destruct x; some_none.
+Qed.
+
 Fact equiv_Some_is_Some `{Equiv A} (x:A) (y: option A):
   (y = Some x) -> is_Some y.
 Proof.
@@ -242,6 +250,21 @@ Proof.
   split;crush.
 Qed.
 
+Lemma None_nequiv_Some
+      {A: Type} (x : option A) {Ae: Equiv A} (y : A):
+  x = None → x ≠ Some y.
+Proof.
+  intros H H0.
+  destruct x; some_none.
+Qed.
+
+Lemma is_None_equiv_def `(x : option A) `{Ae: Equiv A} `{H: Equivalence A Ae}:
+  is_None x ↔ x = None.
+Proof.
+  unfold is_None.
+  destruct x; split; intros; try some_none; try tauto.
+Qed.
+
 (* In monadic world `(f >=> g) ∘ Some` *)
 Definition option_compose
            {A B C: Type}
@@ -297,3 +320,7 @@ Ltac destruct_opt_r_equiv :=
     end
   end.
 
+Ltac opt_hyp_to_equiv :=
+  repeat match goal with
+           [H: @eq (option _) _ _ |- _] => apply Option_equiv_eq in H
+         end.
