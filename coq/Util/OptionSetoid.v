@@ -58,6 +58,10 @@ Qed.
 Ltac norm_some_none :=
   repeat
     match goal with
+    | [H: is_Some (Some _) |- _ ] => clear H
+    | [H: is_None (None) |- _ ] => clear H
+    | [|- is_Some (None) ] => exfalso
+    | [|- is_None (Some _)] => exfalso
     | [H: is_Some _ |- _ ] => apply is_Some_def in H; destruct H
     | [H: is_None _ |- _ ] => apply is_None_def in H; destruct H
     | [H: Some ≡ _ |- _ ] => symmetry in H
@@ -91,6 +95,8 @@ Ltac some_none :=
   | [ |- None ≡ None ] => reflexivity
   | [ |- Some ?a = Some ?a] => reflexivity
   | [ |- Some ?a ≡ Some ?a] => reflexivity
+  | [ |- is_None None ] => apply is_None_def; reflexivity
+  | [ |- is_Some (Some _)] => unfold is_Some; tauto
   end.
 
 Ltac some_inv :=
