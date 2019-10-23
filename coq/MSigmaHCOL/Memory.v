@@ -854,6 +854,26 @@ Section Memory_Blocks.
       auto.
   Qed.
 
+  Lemma mem_block_exists_memory_set_inv {k k' m v}:
+    mem_block_exists k (memory_set m k' v) ->
+    ((mem_block_exists k m) \/ k=k').
+  Proof.
+    unfold mem_block_exists, memory_set.
+    intros H.
+    destruct (Nat.eq_dec k k') as [kc|kc].
+    -
+      right.
+      assumption.
+    -
+      left.
+      apply F.add_in_iff in H.
+      destruct H.
+      +
+        congruence.
+      +
+        apply H.
+  Qed.
+
   Lemma mem_block_exists_memory_set_eq
         {k k' m v}
         (NK:k = k'):

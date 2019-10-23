@@ -764,9 +764,63 @@ Proof.
 Qed.
 
 Global Instance BinOp_DSH_pure:
-  DSH_pure (DSHBinOp o x_i y_i df) x_i y_i.
+  DSH_pure (DSHBinOp o x_p y_p df) x_p y_p.
 Proof.
   split.
+  -
+    (* mem_stable *)
+    intros σ m m' fuel E k.
+    split; intros H.
+    +
+      destruct fuel; simpl in E.
+      *
+        some_none.
+      *
+        repeat break_match; try some_none.
+        rename m0 into x_i, m1 into y_i.
+        rename m2 into mx, m3 into my.
+        rename m4 into mxy.
+        some_inv.
+        rewrite <- E; clear E.
+        destruct (Nat.eq_dec k y_i) as [kc | kc].
+        --
+          subst k.
+          apply mem_block_exists_memory_set_eq.
+          reflexivity.
+        --
+          apply mem_block_exists_memory_set.
+          apply H.
+    +
+      destruct fuel; simpl in E.
+      *
+        some_none.
+      *
+        repeat break_match; try some_none.
+        rename m0 into x_i, m1 into y_i.
+        rename m2 into mx, m3 into my.
+        rename m4 into mxy.
+        some_inv.
+        rewrite <- E in H; clear E.
+        destruct (Nat.eq_dec k y_i) as [kc | kc].
+        --
+          subst k.
+          apply mem_block_exists_memory_set_inv in H.
+          destruct H.
+          ++ auto.
+          ++
+            apply memory_is_set_is_Some.
+            apply eq_Some_is_Some in Heqo3.
+            assumption.
+        --
+          apply mem_block_exists_memory_set_neq in H; auto.
+  -
+    (* mem_read_safe *)
+    intros σ0 σ1 m0 m1 fuel P0 P1 E.
+    admit.
+  -
+    (* mem_write_safe *)
+    intros σ m m' fuel E y_i P.
+    admit.
 Admitted.
 
 Global Instance BinOp_MSH_DSH_compat
