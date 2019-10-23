@@ -2466,8 +2466,7 @@ Proof.
     exfalso.
     admit.
   -
-    exfalso.
-    admit.
+    constructor.
   -
     constructor.
 Admitted.
