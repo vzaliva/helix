@@ -45,7 +45,56 @@ Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
 Global Instance MemOpDelta_proper:
   Proper ((=) ==> (=) ==> (=) ==> (iff)) MemOpDelta.
 Proof.
-Admitted.
+  intros b b' Eb a a' Ea d d' Ed.
+  split; intros H.
+  -
+    destruct H.
+    +
+      apply is_None_def in H.
+      subst d.
+      inversion_clear Ed.
+      apply MemPreserved.
+      *
+        some_none.
+      *
+        rewrite <- Eb, <- Ea.
+        assumption.
+    +
+      norm_some_none.
+      subst d.
+      rewrite Ea in H0. clear Ea a.
+      dep_destruct d'; try some_none.
+      apply MemExpected.
+      *
+        some_none.
+      *
+        rewrite H0.
+        assumption.
+  -
+    destruct H.
+    +
+      apply is_None_def in H.
+      subst d'.
+      inversion_clear Ed.
+      apply MemPreserved.
+      *
+        some_none.
+      *
+        rewrite Eb, Ea.
+        assumption.
+    +
+      norm_some_none.
+      subst d'.
+      rewrite <-Ea in H0. clear Ea a'.
+      dep_destruct d; try some_none.
+      apply MemExpected.
+      *
+        some_none.
+      *
+        rewrite H0.
+        symmetry.
+        assumption.
+Qed.
 
 (* Shows relations of memory blocks before ([mb]) and after ([ma]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [md] *)
