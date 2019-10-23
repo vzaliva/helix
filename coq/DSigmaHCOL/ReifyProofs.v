@@ -1975,6 +1975,7 @@ Proof.
 
   destruct (option_compose (mem_op mop1) (mem_op mop2) mx) as [md|] eqn:MD;
     repeat break_match; try some_none.
+
   -
     rename m1 into m''.
     rename m0 into m'''.
@@ -2377,7 +2378,90 @@ Proof.
     inversion C1.
   -
     exfalso.
-    admit.
+    unfold lookup_Pexp in *.
+    simpl in MX, MB.
+    repeat break_match_hyp; try some_none.
+    rename m1 into x_i, m0 into y_i.
+    clear Heqo.
+    rename Heqo0 into E2.
+    rewrite evalDSHOperator_estimateFuel_ge in E2 by lia.
+
+    assert(t_i ≢ y_i).
+    {
+      destruct (Nat.eq_dec t_i y_i); auto.
+      subst.
+      exfalso.
+      contradict MB.
+      pose proof (memory_lookup_memory_new_is_None m) as F.
+      apply is_None_def in F.
+      rewrite F.
+      some_none.
+    }
+
+    assert(t_i ≢ x_i).
+    {
+      destruct (Nat.eq_dec t_i x_i); auto.
+      subst.
+      exfalso.
+      contradict MX.
+      pose proof (memory_lookup_memory_new_is_None m) as F.
+      apply is_None_def in F.
+      rewrite F.
+      some_none.
+    }
+
+    unfold memory_lookup, memory_remove.
+
+    assert(mem_block_exists y_i m) as EY.
+    {
+      apply mem_block_exists_exists_equiv.
+      eexists.
+      eapply MB.
+    }
+
+    assert(mem_block_exists y_i m') as EY'.
+    {
+      subst m'.
+      apply mem_block_exists_memory_set.
+      eauto.
+    }
+
+
+    unfold option_compose in MD.
+    destruct (mem_op mop2 mx) as [mt|] eqn:MT; try some_none.
+
+    destruct C2 as [C2].
+    specialize (C2 mx (mem_empty)).
+
+    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) = Some mx).
+    {
+      rewrite Heqσ'.
+      unfold lookup_Pexp.
+      rewrite evalPexp_incrPVar.
+      simpl.
+      rewrite Heqo2.
+      subst m'.
+      unfold memory_lookup, memory_set.
+      rewrite NP.F.add_neq_o.
+      apply MX.
+      auto.
+    }
+    specialize (C2 MX').
+
+    assert(MT': lookup_Pexp σ' m' (PVar 0) = Some mem_empty).
+    {
+      rewrite Heqσ'.
+      unfold lookup_Pexp.
+      subst m'.
+      simpl.
+      unfold memory_lookup, memory_set.
+      rewrite NP.F.add_eq_o; reflexivity.
+    }
+    specialize (C2 MT').
+
+    rewrite E2 in C2.
+    rewrite MT in C2.
+    inversion C2.
   -
     exfalso.
     admit.
