@@ -325,18 +325,52 @@ Fixpoint evalDSHOperator
       end
     end.
 
-
 Lemma evalDSHOperator_estimateFuel_ge (f:nat) {σ op m}:
-  f>=(estimateFuel op) ->
+  f >= (estimateFuel op) ->
   evalDSHOperator σ op m f ≡ evalDSHOperator σ op m (estimateFuel op).
 Proof.
   intro F.
-  destruct F as [|f].
+  generalize dependent f.
+  generalize dependent σ.
+  generalize dependent m.
+  induction op;
+   try (intros; destruct F; auto; fail).
   -
+    assert (EP : estimateFuel op >= 1) by (destruct op; simpl; lia).
+    induction n; intros.
+    + 
+      destruct f;
+        [inversion F | reflexivity].
+    +
+      destruct f; [inversion F |].
+      simpl estimateFuel; simpl.
+
+      rewrite IHn by (simpl in *; lia).
+      rewrite IHn with (f := estimateFuel op * S n) by (simpl in *; lia).
+      break_match; try reflexivity.
+
+      rewrite IHop by (simpl in *; rewrite PeanoNat.Nat.mul_succ_r in F; lia).
+      rewrite IHop with (f := estimateFuel op * S n) by (rewrite PeanoNat.Nat.mul_succ_r; lia).
+      reflexivity.
+  -
+    intros.
+    destruct f; [inversion F|].
+    simpl.
+    rewrite IHop by (simpl in F; lia).
     reflexivity.
   -
-    (* induction op; auto *)
-Admitted.
+    intros.
+    destruct f; [inversion F|].
+    simpl.
+
+    rewrite IHop1 by (simpl in F; lia).
+    rewrite IHop1 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
+    break_match; try reflexivity.
+
+    rewrite IHop2 by (simpl in F; lia).
+    rewrite IHop2 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
+    reflexivity.
+Qed.
 
 Local Ltac proper_eval2 IHe1 IHe2 :=
   simpl;
