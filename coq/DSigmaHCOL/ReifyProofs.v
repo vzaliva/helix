@@ -763,8 +763,12 @@ Proof.
       apply DX.
 Qed.
 
-Global Instance BinOp_DSH_pure:
-  DSH_pure (DSHBinOp o x_p y_p df) x_p y_p.
+Global Instance BinOp_DSH_pure
+       (o : nat)
+       (x_p y_p : PExpr)
+       (df: DSHIBinCarrierA)
+  :
+    DSH_pure (DSHBinOp o x_p y_p df) x_p y_p.
 Proof.
   split.
   -
@@ -815,8 +819,60 @@ Proof.
           apply mem_block_exists_memory_set_neq in H; auto.
   -
     (* mem_read_safe *)
-    intros σ0 σ1 m0 m1 fuel P0 P1 E.
-    admit.
+    intros σ0 σ1 m0 m1 fuel PY0 PY1 E.
+    destruct fuel; try constructor.
+
+    unfold valid_Pexp in *.
+    inversion PY0.
+    rename x into y0_i.
+    clear PY0; rename H into PY0; symmetry in PY0.
+    inversion PY1.
+    rename x into y1_i.
+    clear PY1; rename H into PY1; symmetry in PY1.
+
+    apply mem_block_exists_exists in H0.
+    destruct H0 as [y0 H0].
+
+    apply mem_block_exists_exists in H1.
+    destruct H1 as [y1 H1].
+
+    simpl.
+    unfold blocks_equiv_at_Pexp.
+    rewrite PY0, PY1, H0, H1.
+
+    unfold blocks_equiv_at_Pexp in *.
+
+    destruct (evalPexp σ0 x_p) eqn:P0X, (evalPexp σ1 x_p) eqn:P1X; try inversion E.
+    subst m m2.
+    rename x into x0_i, y into x1_i.
+    clear E.
+
+    inversion_clear H3.
+    clear P0X P1X x_p x0_i x1_i.
+    eq_to_equiv_hyp.
+    rename x into x0, y into x1.
+
+    repeat break_match.
+    +
+      constructor.
+      rename m into m0', m2 into m1'.
+      constructor.
+      unfold memory_lookup, memory_set.
+      rewrite 2!NP.F.add_eq_o by reflexivity.
+      rewrite <- Heqo0, <- Heqo1.
+      clear Heqo0 Heqo1 m0' m1'.
+      rewrite H.
+      clear H x0. rename x1 into x.
+      (* need additional assumption on [df] here! *)
+      admit.
+    +
+      exfalso.
+      admit.
+    +
+      exfalso.
+      admit.
+    +
+      constructor.
   -
     (* mem_write_safe *)
     intros σ m m' fuel E y_i P.
