@@ -8,28 +8,25 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
-** Rename =eT= and =eUnion= to =Embed= and =Pick=
+** Rename =eT= and =eUnion= to =Embed= and =Pick=                    :zoickx:
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
   with =ISUmUnion=.
 ** Rename =Diamond= to =MR=
-** Many usused definitions could be removed. (Hint: try =make print-unused=)
+** Many unused definitions could be removed. (Hint: try =make print-unused=)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
-** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/.
-  For example =eT'= should become =eT_impl=
+** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/. :zoickx:
+   For example =eT'= should become =eT_impl= 
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
-
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
   =SHOperator= instanct and dense body assumption in =IRedution_Mem=.
   This nees to be normalized.
-
 ** =RMonoid= vs =Monoid= 
    Whenever we us =Monoid= as pre-condition for rewriting we should use
    =RMnonoid= which is more general.
-
 ** =SHOpeator= constraints:
   For =svalue_at_sparse= we need =szero= to be a fixpoint of =dot=
   (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
@@ -48,7 +45,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 * Proof mechanics
 ** Review =_arg_proper= vs =_proper= instances
 ** Proof-irrelevance assumption could be avoided
-** FinNatSet proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]] 
+** FinNatSet proofs automation via [[https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection][computational reflection]]          :zoickx:
    (for automatic obligations resoluition in SHCL/MSHCOL/DSHCOL/
    equality).
 ** Tactic =solve_facts= in =DynWinProof= is hacky and slow.
@@ -56,10 +53,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - can use eauto instead of matching
    - can use =typeclasses_eauto= to find some instances
 * Unfinished
-** Automate /DynWin/ rewriting proof
+** Automate /DynWin/ rewriting proof                                 :zoickx:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
-** =maxnum=  implementation
+** =maxnum=  implementation                                          :zoickx:
    Currently implemented as C =max= macro. Should be more
    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
