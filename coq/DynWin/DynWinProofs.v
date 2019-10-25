@@ -132,32 +132,34 @@ Ltac solve_facts :=
          | [ |- SHOperator_Facts _ (SumSparseEmbedding _ _ _) ] => unfold SumSparseEmbedding
          | [ |- SHOperator_Facts _ (ISumUnion _) ] => unfold ISumUnion
          | [ |- SHOperator_Facts _ (IUnion _ _) ] => apply IUnion_Facts; intros
-         | [ |- SHOperator_Facts _ _ ] => apply SHBinOp_RthetaSafe_Facts
+         | [ |- SHOperator_Facts _ (SHBinOp _ _) ] => apply SHBinOp_RthetaSafe_Facts
          | [ |- @SHOperator_Facts ?m ?i ?o _ (@SHBinOp _ _ ?o _ _) ] =>
            replace (@SHOperator_Facts m i) with (@SHOperator_Facts m (o+o)) by apply eq_refl
-         | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply SafeCast_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply UnSafeCast_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply HTSUMUnion_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply SHCompose_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply Scatter_Rtheta_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply liftM_HOperator_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply Gather_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply SHPointwise_Facts
-         | [ |- SHInductor_Facts _ _ ] => apply SHInductor_Facts
-         | [ |- SHOperator_Facts _ _ ] => apply IReduction_Facts; intros
-
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply SafeCast_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHCompose_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply UnSafeCast_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply eUnion_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply IReduction_SH_MSH_Operator_compat; intros
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHInductor_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply SHPointwise_SH_MSH_Operator_compat
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply IUnion_SH_MSH_Operator_compat; intros
-         | [ |- SH_MSH_Operator_compat _ _ ] => apply eT_SH_MSH_Operator_compat
+         | [ |- SHOperator_Facts _ (SafeCast _)          ] => apply SafeCast_Facts
+         | [ |- SHOperator_Facts _ (UnSafeCast _)        ] => apply UnSafeCast_Facts
+         | [ |- SHOperator_Facts _ (HTSUMUnion _ _ _ _)  ] => apply HTSUMUnion_Facts
+         | [ |- SHOperator_Facts _ (Scatter _ _)         ] => apply Scatter_Rtheta_Facts
+         | [ |- SHOperator_Facts _ (ScatH _ _)           ] => apply Scatter_Rtheta_Facts
+         | [ |- SHOperator_Facts _ (ScatH _ _ _)         ] => apply Scatter_Rtheta_Facts
+         | [ |- SHOperator_Facts _ (liftM_HOperator _ _) ] => apply liftM_HOperator_Facts
+         | [ |- SHOperator_Facts _ (Gather _ _)          ] => apply Gather_Facts
+         | [ |- SHOperator_Facts _ (GathH _ _)           ] => apply Gather_Facts
+         | [ |- SHOperator_Facts _ (GathH _ _ _)         ] => apply Gather_Facts
+         | [ |- SHOperator_Facts _ (SHPointwise _ _)     ] => apply SHPointwise_Facts
+         | [ |- SHInductor_Facts _ (SHInductor _ _ _ _)  ] => apply SHInductor_Facts
+         | [ |- SHOperator_Facts _ (IReduction _ _)      ] => apply IReduction_Facts; intros
+         | [ |- SHOperator_Facts _ _                     ] => apply SHCompose_Facts
+         | [ |- SH_MSH_Operator_compat (SafeCast _) _         ] => apply SafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (UnSafeCast _) _       ] => apply UnSafeCast_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (HTSUMUnion _ _ _ _) _ ] => apply HTSUMUnion_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SHPointwise _ _) _    ] => apply SHPointwise_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SHInductor _ _ _ _) _ ] => apply SHInductor_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (IReduction _ _) _     ] => apply IReduction_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat (eUnion _ _) _         ] => apply eUnion_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply IUnion_SH_MSH_Operator_compat; intros
+         | [ |- SH_MSH_Operator_compat (eT _ _) _             ] => apply eT_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
          | [ |- Monoid.MonoidLaws Monoid_RthetaSafeFlags] => apply MonoidLaws_SafeRthetaFlags
          | [ |- MSHOperator_Facts _ ] => apply HTSUMUnion_MFacts
@@ -207,7 +209,7 @@ Section SHCOL_to_MSHCOL.
     unfold dynwin_SHCOL1, dynwin_MSHCOL1.
     unfold ISumUnion.
 
-    Time solve_facts.
+    solve_facts.
 
     -
       unfold Included, In.
@@ -407,7 +409,7 @@ Section SigmaHCOL_rewriting.
     unfold dynwin_SHCOL.
 
     (* First resolve all SHOperator_Facts typeclass instances *)
-    Time solve_facts.
+    solve_facts.
 
     (* Now let's take care of remaining proof obligations *)
     -
