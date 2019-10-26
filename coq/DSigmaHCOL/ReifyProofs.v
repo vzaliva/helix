@@ -316,9 +316,8 @@ Class DSH_pure
             EnvMemoryConsistent σ0 m0 ->
             EnvMemoryConsistent σ1 m1 ->
            *)
-          valid_Pexp σ0 m0 y_p ->
-          valid_Pexp σ1 m1 y_p ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
+          blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
           opt_r
             (blocks_equiv_at_Pexp σ0 σ1 y_p)
             (evalDSHOperator σ0 d m0 fuel)
