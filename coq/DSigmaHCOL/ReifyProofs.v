@@ -1471,7 +1471,28 @@ Proof.
 
         assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p) m0'' m1'') as VIP1.
         {
-          admit.
+          unfold blocks_equiv_at_Pexp.
+          rewrite Heqσ1', Heqσ0'.
+          rewrite 2!evalPexp_incrPVar.
+          rewrite P0Y, P1Y.
+          constructor.
+
+          rename mem_write_safe1 into mem_write_safe10.
+          assert (mem_write_safe11 := mem_write_safe10).
+
+          assert(YT0': evalPexp σ0' (PVar 0) = Some t0_i) by (subst; reflexivity).
+          assert(YT1': evalPexp σ1' (PVar 0) = Some t1_i) by (subst; reflexivity).
+          rewrite P0Y in NYT0; rewrite Some_neq in NYT0.
+          rewrite P1Y in NYT1; rewrite Some_neq in NYT1.
+          specialize (mem_write_safe10 σ0' m0' m0'' fuel E02' t0_i YT0' y0_i NYT0).
+          specialize (mem_write_safe11 σ1' m1' m1'' fuel E12' t1_i YT1' y1_i NYT1).
+          rewrite <- mem_write_safe10, <- mem_write_safe11.
+          subst m0' m1'.
+          unfold memory_lookup, memory_set in *.
+          rewrite 2!NP.F.add_neq_o by auto.
+          rewrite H3, H5.
+          constructor.
+          apply H6.
         }
         specialize (mem_read_safe0 VIP0 VIP1).
         inversion mem_read_safe0.
@@ -1544,7 +1565,16 @@ Proof.
 
         assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0' m1') as VIP1.
         {
-          admit.
+          subst σ0' σ1' t0_v t1_v.
+          unfold blocks_equiv_at_Pexp.
+          simpl.
+          constructor.
+          subst.
+          simpl.
+          unfold memory_lookup, memory_set.
+          rewrite 2!NP.F.add_eq_o by reflexivity.
+          constructor.
+          reflexivity.
         }
         specialize (mem_read_safe1 VIP0 VIP1).
         inversion mem_read_safe1.
@@ -1646,9 +1676,50 @@ Proof.
           reflexivity.
         }
 
+        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
+        {
+          rewrite P0Y.
+          apply Some_neq.
+          intros C.
+          subst.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+          tauto.
+        }
+
+        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
+        {
+          rewrite P1Y.
+          apply Some_neq.
+          intros C.
+          subst.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+          tauto.
+        }
+
         assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p) m0'' m1'') as VIP1.
         {
-          admit.
+          unfold blocks_equiv_at_Pexp.
+          rewrite Heqσ1', Heqσ0'.
+          rewrite 2!evalPexp_incrPVar.
+          rewrite P0Y, P1Y.
+          constructor.
+
+          rename mem_write_safe1 into mem_write_safe10.
+          assert (mem_write_safe11 := mem_write_safe10).
+
+          assert(YT0': evalPexp σ0' (PVar 0) = Some t0_i) by (subst; reflexivity).
+          assert(YT1': evalPexp σ1' (PVar 0) = Some t1_i) by (subst; reflexivity).
+          rewrite P0Y in NYT0; rewrite Some_neq in NYT0.
+          rewrite P1Y in NYT1; rewrite Some_neq in NYT1.
+          specialize (mem_write_safe10 σ0' m0' m0'' fuel E02' t0_i YT0' y0_i NYT0).
+          specialize (mem_write_safe11 σ1' m1' m1'' fuel E12' t1_i YT1' y1_i NYT1).
+          rewrite <- mem_write_safe10, <- mem_write_safe11.
+          subst m0' m1'.
+          unfold memory_lookup, memory_set in *.
+          rewrite 2!NP.F.add_neq_o by auto.
+          rewrite H3, H5.
+          constructor.
+          apply H6.
         }
         specialize (mem_read_safe0 VIP0 VIP1).
         inversion mem_read_safe0.
@@ -1721,7 +1792,16 @@ Proof.
         }
         assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0' m1') as VIP1.
         {
-          admit.
+          subst σ0' σ1' t0_v t1_v.
+          unfold blocks_equiv_at_Pexp.
+          simpl.
+          constructor.
+          subst.
+          simpl.
+          unfold memory_lookup, memory_set.
+          rewrite 2!NP.F.add_eq_o by reflexivity.
+          constructor.
+          reflexivity.
         }
         specialize (mem_read_safe1 VIP0 VIP1).
         inversion mem_read_safe1.
@@ -1846,7 +1926,7 @@ Proof.
     rewrite NP.F.add_neq_o; auto.
     rewrite V.
     reflexivity.
-Admitted.
+Qed.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
