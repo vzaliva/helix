@@ -1241,7 +1241,7 @@ Section SigmaHCOL_Operators.
                {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 svalue (Embed' bc) _
+      := mkSHOperator i 1 svalue (Embed_impl bc) _
                       (FinNatSet.singleton b)
                       (Full_set _) _.
     Next Obligation.

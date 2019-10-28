@@ -778,9 +778,9 @@ Section OperatorPairwiseProofs.
             rewrite Heqo0 in V. clear Heqo0 m1.
             some_inv. clear c H1.
 
-            assert(Is_Val (Vnth (Embed' bc x) (lt_0_Sn O))) as V0.
+            assert(Is_Val (Vnth (Embed_impl bc x) (lt_0_Sn O))) as V0.
             {
-              unfold Embed'.
+              unfold Embed_impl.
               rewrite Vnth_0.
               simpl.
               apply G.

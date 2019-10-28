@@ -4508,7 +4508,7 @@ and `ISumReduction_PointWise` *)
             rewrite 2!Vbuild_nth.
             unfold get_family_op.
             simpl.
-            unfold Embed'.
+            unfold Embed_impl.
             apply Vcons_single_elim.
             rewrite <- Vnth_tail.
             reflexivity.
@@ -4545,7 +4545,7 @@ and `ISumReduction_PointWise` *)
       intros x y H.
       simpl.
 
-      unfold Embed'.
+      unfold Embed_impl.
       vec_index_equiv j jc.
       destruct j.
       -
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold Pick_impl, compose, Embed'.
+      unfold Pick_impl, compose, Embed_impl.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with
@@ -4828,7 +4828,7 @@ and `ISumReduction_PointWise` *)
       rewrite <- E; clear E y.
 
       vec_index_equiv j jc.
-      unfold Embed'.
+      unfold Embed_impl.
 
       rewrite Vnth_1.
       rewrite 2!SHPointwise'_nth.
@@ -4910,7 +4910,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       apply Vnth_equiv.
       reflexivity.
 
-      unfold Embed'.
+      unfold Embed_impl.
       clear j jc.
       vec_index_equiv j jc.
       rewrite Vnth_1.
