@@ -1142,8 +1142,8 @@ Section SigmaHCOL_Operators.
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
       := mkSHOperator i o svalue
-                      (liftM_HOperator' op)
-                      (@liftM_HOperator'_proper fm i o op HOP)
+                      (liftM_HOperator_impl op)
+                      (@liftM_HOperator_impl_proper fm i o op HOP)
                       (Full_set _)
                       (Full_set _)
                       _.
@@ -2217,7 +2217,7 @@ Section OperatorProperies.
       simpl.
       vec_index_equiv j jc.
       rewrite SHPointwise'_nth.
-      unfold liftM_HOperator'.
+      unfold liftM_HOperator_impl.
       unfold compose.
       unfold sparsify; rewrite Vnth_map.
       rewrite HPointwise_nth.
@@ -2323,7 +2323,7 @@ Section StructuralProperies.
       -
         intros v H j jc H0.
         simpl in *.
-        unfold liftM_HOperator', compose, sparsify, densify.
+        unfold liftM_HOperator_impl, compose, sparsify, densify.
         rewrite Vnth_map.
         apply Is_Val_mkValue.
       -
@@ -2333,7 +2333,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl in *.
-        unfold liftM_HOperator', compose, sparsify, densify.
+        unfold liftM_HOperator_impl, compose, sparsify, densify.
         rewrite Vnth_map.
         apply Not_Collision_mkValue.
       -

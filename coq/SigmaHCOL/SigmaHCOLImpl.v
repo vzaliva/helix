@@ -59,21 +59,21 @@ Section FlagsMonoidGenericOperators.
 
   Variable fm:Monoid RthetaFlags.
 
-  Definition liftM_HOperator'
+  Definition liftM_HOperator_impl
              {i o}
              (op: avector i -> avector o)
     : svector fm i -> svector fm o :=
     sparsify fm ∘ op ∘ densify fm.
 
-  Global Instance liftM_HOperator'_proper
+  Global Instance liftM_HOperator_impl_proper
          {i o}
          (op: avector i -> avector o)
          `{HOP: HOperator i o op}
     :
-      Proper ((=) ==> (=)) (liftM_HOperator' op).
+      Proper ((=) ==> (=)) (liftM_HOperator_impl op).
   Proof.
     intros x y H.
-    unfold liftM_HOperator'.
+    unfold liftM_HOperator_impl.
     unfold compose.
     f_equiv.
     rewrite H.

@@ -137,7 +137,7 @@ Section SigmaHCOLHelperLemmas.
     intros x y E.
     rewrite_clear E.
     vec_index_equiv j jc.
-    unfold liftM_HOperator', compose, sparsify, densify.
+    unfold liftM_HOperator_impl, compose, sparsify, densify.
     rewrite Vnth_map.
     unfold HReduction, compose, HCOLImpl.Vectorize.
 
@@ -209,7 +209,7 @@ Section SigmaHCOLHelperLemmas.
     unfold rsvector2rvector.
     setoid_rewrite Vnth_map.
     unfold rvector2rsvector.
-    unfold liftM_HOperator'.
+    unfold liftM_HOperator_impl.
     unfold sparsify, densify, compose.
     setoid_rewrite Vnth_map.
     rewrite Vmap_map.
@@ -404,18 +404,18 @@ Section SigmaHCOLHelperLemmas.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply liftM_HOperator'_proper.
+        + apply liftM_HOperator_impl_proper.
           apply compose_HOperator.
       -
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
         + apply compose_proper with (RA:=equiv) (RB:=equiv).
-          apply liftM_HOperator'_proper; assumption.
-          apply liftM_HOperator'_proper; assumption.
+          apply liftM_HOperator_impl_proper; assumption.
+          apply liftM_HOperator_impl_proper; assumption.
       -
         intros v.
-        unfold liftM_HOperator', compose.
+        unfold liftM_HOperator_impl, compose.
         unfold sparsify, densify.
         rewrite Vmap_map.
 
@@ -793,7 +793,7 @@ Section SigmaHCOLExpansionRules.
       intros v.
       simpl.
       unfold SHInductor'.
-      unfold liftM_HOperator', compose.
+      unfold liftM_HOperator_impl, compose.
       unfold sparsify, HInductor, compose, Lst.
       simpl Vmap.
       apply Vcons_proper. 2:reflexivity.
@@ -825,7 +825,7 @@ Section SigmaHCOLExpansionRules.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply liftM_HOperator'_proper.
+        + apply liftM_HOperator_impl_proper.
           apply HBinOp_HOperator.
           apply pF.
       -
@@ -844,7 +844,7 @@ Section SigmaHCOLExpansionRules.
                                   (jc1:=jc1) (jc2:=jc2).
 
 
-        unfold liftM_HOperator'.
+        unfold liftM_HOperator_impl.
         unfold compose.
         unfold sparsify.
         repeat rewrite Vnth_map.
@@ -1131,7 +1131,7 @@ Section SigmaHCOLExpansionRules.
           reflexivity.
       -
         intros x.
-        unfold liftM_HOperator' at 1.
+        unfold liftM_HOperator_impl at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
         HTSUMUnion', pair2vector.
@@ -1146,7 +1146,7 @@ Section SigmaHCOLExpansionRules.
                               (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
                                                          (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
                               zero
-                              (@liftM_HOperator' fm i1 o1 f
+                              (@liftM_HOperator_impl fm i1 o1 f
                                                  (@Gather' fm (Init.Nat.add i1 i2) i1
                                                            (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                                            x))) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
@@ -1180,7 +1180,7 @@ Section SigmaHCOLExpansionRules.
               rewrite Vnth_map.
               break_match.
               * simpl.
-                unfold liftM_HOperator', sparsify, compose.
+                unfold liftM_HOperator_impl, sparsify, compose.
                 rewrite Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -1252,7 +1252,7 @@ Section SigmaHCOLExpansionRules.
                               (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
                                                          (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
                               zero
-                              (@liftM_HOperator' fm i2 o2 g
+                              (@liftM_HOperator_impl fm i2 o2 g
                                                  (@Gather' fm (Init.Nat.add i1 i2) i2
                                                            (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                                          (h_bound_second_half i1 i2)) x))) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
@@ -1269,7 +1269,7 @@ Section SigmaHCOLExpansionRules.
             + (* Second half of x, which is gx0 *)
               break_match.
               * simpl.
-                unfold liftM_HOperator', sparsify, compose.
+                unfold liftM_HOperator_impl, sparsify, compose.
                 rewrite 2!Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -3171,7 +3171,7 @@ Section SigmaHCOLRewritingRules.
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply liftM_HOperator'_proper.
+        apply liftM_HOperator_impl_proper.
         apply HReduction_HOperator.
         typeclasses eauto.
         apply Diamond_proper.
@@ -3192,7 +3192,7 @@ Section SigmaHCOLRewritingRules.
           apply UnSafeCast'_proper.
           apply compose_proper with (RA:=equiv) (RB:=equiv).
           *
-            apply liftM_HOperator'_proper.
+            apply liftM_HOperator_impl_proper.
             apply HReduction_HOperator.
             typeclasses eauto.
           *
@@ -3203,7 +3203,7 @@ Section SigmaHCOLRewritingRules.
         vec_index_equiv j jc.
 
         unfold SafeCast', rsvector2rvector, compose.
-        unfold liftM_HOperator', compose, sparsify.
+        unfold liftM_HOperator_impl, compose, sparsify.
         rewrite 2!Vnth_map.
 
         unfold HReduction, compose, HCOLImpl.Vectorize.
@@ -4157,7 +4157,7 @@ and `ISumReduction_PointWise` *)
       clear x F.
 
       vec_index_equiv j jc.
-      unfold liftM_HOperator', compose.
+      unfold liftM_HOperator_impl, compose.
       rewrite Vnth_sparsify.
       unfold densify.
 
@@ -4443,7 +4443,7 @@ and `ISumReduction_PointWise` *)
         =
         IReduction f (svalue:=idv) (Embedn n).
     Proof.
-      unfold IReduction, liftM_HOperator,liftM_HOperator'.
+      unfold IReduction, liftM_HOperator,liftM_HOperator_impl.
       unfold compose, sparsify, densify.
       unfold equiv,SHOperator_equiv.
       simpl.
@@ -4773,7 +4773,7 @@ and `ISumReduction_PointWise` *)
       unfold SHCompose, equiv, SHOperator_equiv.
       simpl.
 
-      unfold compose, liftM_HOperator',sparsify, densify, SHBinOp', vector2pair, SHPointwise', mult_by_nth, HPrepend, compose, IgnoreIndex2.
+      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp', vector2pair, SHPointwise', mult_by_nth, HPrepend, compose, IgnoreIndex2.
       Opaque Monad.liftM.
       simpl.
       unfold equiv, ext_equiv.
@@ -4915,7 +4915,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       vec_index_equiv j jc.
       rewrite Vnth_1.
 
-      unfold liftM_HOperator', compose, sparsify.
+      unfold liftM_HOperator_impl, compose, sparsify.
       rewrite 2!Vnth_map.
       f_equiv.
 

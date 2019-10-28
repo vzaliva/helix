@@ -1937,25 +1937,25 @@ given natrual number by index mapping function f_spec. *)
             Proper ((=) ==> iff) (@op_Vforall_P i o P).
           Admitted.
 
-          Definition liftM_HOperator'
+          Definition liftM_HOperator_impl
                      {i o}
                      (op: avector i -> avector o)
             : svector fm i -> svector fm o :=
             sparsify fm ∘ op ∘ densify fm.
 
-          Global Instance liftM_HOperator'_proper
+          Global Instance liftM_HOperator_impl_proper
                  {i o}
                  (op: avector i -> avector o)
                  `{HOP: HOperator i o op}
             :
-              Proper ((=) ==> (=)) (liftM_HOperator' op).
+              Proper ((=) ==> (=)) (liftM_HOperator_impl op).
           Admitted.
 
           Definition liftM_HOperator
                      {i o}
                      (op: avector i -> avector o)
                      `{HOP: HOperator i o op}
-            := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper i o op HOP)
+            := mkSHOperator i o (liftM_HOperator_impl op) (@liftM_HOperator_impl_proper i o op HOP)
                             (Full_set _) (Full_set _).
 
           (** Apply family of functions to same fector and return matrix of results *)
