@@ -19,6 +19,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    For example =eT'= should become =eT_impl= 
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
+** Vellvm as sub-module                                              :zoickx:
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
