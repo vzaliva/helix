@@ -4424,12 +4424,12 @@ and `ISumReduction_PointWise` *)
           reflexivity.
     Qed.
 
-    (* Special `n by n` family of sequentially indexed `eT` operators *)
-    Definition eTn
+    (* Special `n by n` family of sequentially indexed `Embed` operators *)
+    Definition Embedn
                {fm}
                {svalue: CarrierA}
                (n:nat)
-      : @SHOperatorFamily fm n 1 n svalue := fun jf => eT _ (proj2_sig jf).
+      : @SHOperatorFamily fm n 1 n svalue := fun jf => Embed _ (proj2_sig jf).
 
     Theorem terminate_Reduction
             {n}
@@ -4441,7 +4441,7 @@ and `ISumReduction_PointWise` *)
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
-        IReduction f (svalue:=idv) (eTn n).
+        IReduction f (svalue:=idv) (Embedn n).
     Proof.
       unfold IReduction, liftM_HOperator,liftM_HOperator'.
       unfold compose, sparsify, densify.
@@ -4508,7 +4508,7 @@ and `ISumReduction_PointWise` *)
             rewrite 2!Vbuild_nth.
             unfold get_family_op.
             simpl.
-            unfold eT'.
+            unfold Embed'.
             apply Vcons_single_elim.
             rewrite <- Vnth_tail.
             reflexivity.
@@ -4537,7 +4537,7 @@ and `ISumReduction_PointWise` *)
             (base stride: nat)
             {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
       :
-        @GathH fm svalue i 1 base stride domain_bound = @eT fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
+        @GathH fm svalue i 1 base stride domain_bound = @Embed fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
     Proof.
       unfold GathH.
       unfold equiv, SHOperator_equiv.
@@ -4545,7 +4545,7 @@ and `ISumReduction_PointWise` *)
       intros x y H.
       simpl.
 
-      unfold eT'.
+      unfold Embed'.
       vec_index_equiv j jc.
       destruct j.
       -
@@ -4684,7 +4684,7 @@ and `ISumReduction_PointWise` *)
         @IUnion z i o o f _ _ (fun jf =>
                                 SHCompose _
                                           (@eUnion _ z o (proj1_sig jf) (proj2_sig jf))
-                                          (@eT _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
+                                          (@Embed _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
                                           )
                              ).
     Proof.
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold eUnion', compose, eT'.
+      unfold eUnion', compose, Embed'.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with
@@ -4738,7 +4738,7 @@ and `ISumReduction_PointWise` *)
         @ISumUnion i o o  (fun jf =>
                              SHCompose _
                                        (@eUnion _ zero o _ (proj2_sig jf))
-                                       (@eT _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
+                                       (@Embed _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
                                        )
                    ).
     Proof.
@@ -4804,7 +4804,7 @@ and `ISumReduction_PointWise` *)
 
     (* We will use this rule to rewrite in left-to-right direction. Howver instead of putting concrete implementation of `g` which shrinks domain of `f` we chose to formulate it in a way that will allow to rewrite in opposite direction as well.
      *)
-    Lemma rewrite_eT_SHPointwise
+    Lemma rewrite_Embed_SHPointwise
           (n:nat)
           {svalue: CarrierA}
           {b:nat}
@@ -4816,8 +4816,8 @@ and `ISumReduction_PointWise` *)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
           (fg: forall x z, f (mkFinNat bc) x = g z x)
       :
-        SHCompose (svalue:=svalue) fm (eT fm bc) (SHPointwise fm f) =
-        SHCompose fm (SHPointwise fm g) (eT fm bc).
+        SHCompose (svalue:=svalue) fm (Embed fm bc) (SHPointwise fm f) =
+        SHCompose fm (SHPointwise fm g) (Embed fm bc).
     Proof.
       unfold SHCompose, compose.
       unfold equiv, SHOperator_equiv.
@@ -4828,7 +4828,7 @@ and `ISumReduction_PointWise` *)
       rewrite <- E; clear E y.
 
       vec_index_equiv j jc.
-      unfold eT'.
+      unfold Embed'.
 
       rewrite Vnth_1.
       rewrite 2!SHPointwise'_nth.
@@ -4885,7 +4885,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
         break_match; crush.
     Qed.
 
-    Lemma rewrite_eT_Induction
+    Lemma rewrite_Embed_Induction
           (n:nat)
           {svalue:CarrierA}
           {b:nat}
@@ -4895,7 +4895,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (initial: CarrierA)
       :
-        SHCompose (svalue:=svalue) fm (eT fm bc) (liftM_HOperator fm (HInduction n f initial)) =
+        SHCompose (svalue:=svalue) fm (Embed fm bc) (liftM_HOperator fm (HInduction n f initial)) =
         liftM_HOperator fm (HInductor b f initial).
     Proof.
       unfold SHCompose, compose.
@@ -4910,7 +4910,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       apply Vnth_equiv.
       reflexivity.
 
-      unfold eT'.
+      unfold Embed'.
       clear j jc.
       vec_index_equiv j jc.
       rewrite Vnth_1.

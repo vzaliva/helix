@@ -109,19 +109,19 @@ Section FlagsMonoidGenericOperators.
       reflexivity.
     Qed.
 
-    Definition eT'
+    Definition Embed'
                {i b:nat}
                (bc: b < i)
                (v: svector fm i)
       := [Vnth v bc].
 
-    Global Instance eT'_proper
+    Global Instance Embed'_proper
            {i b:nat}
            (bc: b < i):
-      Proper ((=) ==> (=)) (eT' bc).
+      Proper ((=) ==> (=)) (Embed' bc).
     Proof.
       intros x y E.
-      unfold eT'.
+      unfold Embed'.
       apply Vcons_single_elim.
       apply Vnth_equiv; auto.
     Qed.

@@ -9,7 +9,7 @@ dynwin_MSHCOL1 =
                                                           MSigmaHCOL.MSHPointwise
                                                           (MSigmaHCOL.MSHInductor
                                                           (` jf) 1))
-                                                        (MSigmaHCOL.MSHeT
+                                                        (MSigmaHCOL.MSHEmbed
                                                           (GathH1_domain_bound_to_base_bound
                                                           (h_bound_first_half 1 4))))))
                               (MSigmaHCOL.MSHCompose (MSigmaHCOL.MSHeUnion (le_n 2))
@@ -21,7 +21,7 @@ dynwin_MSHCOL1 =
                                                           MSigmaHCOL.MSHCompose
                                                           (MSigmaHCOL.MSHeUnion
                                                           (proj2_sig jf0))
-                                                          (MSigmaHCOL.MSHeT
+                                                          (MSigmaHCOL.MSHEmbed
                                                           (h_index_map_compose_range_bound
                                                           (GathH_jn_domain_bound 
                                                           (` jf) 2 
@@ -45,7 +45,7 @@ dynwin_MSHCOL1 =
                                                           MSigmaHCOL.MSHPointwise
                                                           (MSigmaHCOL.MSHInductor
                                                           (` jf) 1))
-                                                          (MSigmaHCOL.MSHeT
+                                                          (MSigmaHCOL.MSHEmbed
                                                           (GathH1_domain_bound_to_base_bound
                                                           (h_bound_first_half 1 4))))))
                                                           (MSigmaHCOL.MSHCompose
@@ -60,7 +60,7 @@ dynwin_MSHCOL1 =
                                                           MSigmaHCOL.MSHCompose
                                                           (MSigmaHCOL.MSHeUnion
                                                           (proj2_sig jf0))
-                                                          (MSigmaHCOL.MSHeT
+                                                          (MSigmaHCOL.MSHEmbed
                                                           (h_index_map_compose_range_bound
                                                           (GathH_jn_domain_bound 
                                                           (` jf) 2 
@@ -288,7 +288,7 @@ fun a : VectorDef.t CarrierA (S (S (S O))) =>
                                 (@rings.Ring_Semi CarrierA CarrierAe CarrierAplus
                                    CarrierAmult CarrierAz CarrierA1 CarrierAneg
                                    CarrierAr))))) (@one CarrierA CarrierA1)))
-              (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O))))) O
+              (@MSigmaHCOL.MSHEmbed (Init.Nat.add (S O) (S (S (S (S O))))) O
                  (@GathH1_domain_bound_to_base_bound
                     (Init.Nat.add (S O) (S (S (S (S O))))) O 
                     (S O) (h_bound_first_half (S O) (S (S (S (S O))))))))))
@@ -579,7 +579,7 @@ fun a : VectorDef.t CarrierA (S (S (S O))) =>
                     (@MSigmaHCOL.MSHeUnion (S (S O))
                        (@proj1_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0)
                        (@proj2_sig nat (fun x : nat => Peano.lt x (S (S O))) jf0))
-                    (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O)))))
+                    (@MSigmaHCOL.MSHEmbed (Init.Nat.add (S O) (S (S (S (S O)))))
                        (Init.Nat.add
                           (Init.Nat.add (S O)
                              (Init.Nat.mul
@@ -869,7 +869,7 @@ fun a : VectorDef.t CarrierA (S (S (S O))) =>
                                                 CarrierAplus CarrierAmult CarrierAz
                                                 CarrierA1 CarrierAneg CarrierAr)))))
                                  (@one CarrierA CarrierA1)))
-                           (@MSigmaHCOL.MSHeT (Init.Nat.add (S O) (S (S (S (S O))))) O
+                           (@MSigmaHCOL.MSHEmbed (Init.Nat.add (S O) (S (S (S (S O))))) O
                               (@GathH1_domain_bound_to_base_bound
                                  (Init.Nat.add (S O) (S (S (S (S O))))) O 
                                  (S O) (h_bound_first_half (S O) (S (S (S (S O))))))))))
@@ -1240,7 +1240,7 @@ fun a : VectorDef.t CarrierA (S (S (S O))) =>
                                        (fun x : nat => Peano.lt x (S (S O))) jf0)
                                     (@proj2_sig nat
                                        (fun x : nat => Peano.lt x (S (S O))) jf0))
-                                 (@MSigmaHCOL.MSHeT
+                                 (@MSigmaHCOL.MSHEmbed
                                     (Init.Nat.add (S O) (S (S (S (S O)))))
                                     (Init.Nat.add
                                        (Init.Nat.add (S O)

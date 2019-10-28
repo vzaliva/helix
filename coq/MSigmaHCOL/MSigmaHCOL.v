@@ -545,7 +545,7 @@ Section Operators.
     map_mem_block_elt x 0 (mem_empty) b.
 
   (* AKA "pick" *)
-  Definition eT_mem (b: nat) (x:mem_block): option mem_block :=
+  Definition Embed_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
 
   (** Apply family of mem functions to same mem_block and return list of results *)
@@ -701,12 +701,12 @@ Section Morphisms.
       some_none.
   Qed.
 
-  Global Instance eT_mem_proper
+  Global Instance Embed_mem_proper
          {b:nat}
-    : Proper (equiv ==> equiv) (eT_mem b).
+    : Proper (equiv ==> equiv) (Embed_mem b).
   Proof.
     simpl_relation.
-    unfold eT_mem.
+    unfold Embed_mem.
     unfold map_mem_block_elt.
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
@@ -1607,11 +1607,11 @@ Section MSHOperator_Definitions.
                       (Full_set _)
                       (FinNatSet.singleton b).
 
-  Definition MSHeT
+  Definition MSHEmbed
              {i b: nat}
              (bc: b < i)
-    := @mkMSHOperator i 1 (eT_mem b)
-                      eT_mem_proper
+    := @mkMSHOperator i 1 (Embed_mem b)
+                      Embed_mem_proper
                       (FinNatSet.singleton b)
                       (Full_set _).
 
@@ -1964,16 +1964,16 @@ Section MSHOperator_Facts_instances.
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
 
-  Global Instance eT_MFacts
+  Global Instance Embed_MFacts
          {i b: nat}
          (bc: b<i)
-    : MSHOperator_Facts (MSHeT bc).
+    : MSHOperator_Facts (MSHEmbed bc).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros v H.
-      unfold is_Some, MSHeT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
+      unfold is_Some, MSHEmbed, Embed_mem, map_mem_block_elt, mem_lookup. simpl.
       repeat break_match; try some_none; try tauto.
       clear Heqo. rename Heqo0 into M.
       simpl in *.
@@ -1990,7 +1990,7 @@ Section MSHOperator_Facts_instances.
       (* out_mem_fill_pattern *)
       intros m0 m H.
       simpl in *.
-      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
       destruct j; try omega.
       split.
       +
@@ -2011,7 +2011,7 @@ Section MSHOperator_Facts_instances.
     -
       intros m0 m H.
       simpl in *.
-      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
 
       intros j jc.
       unfold not.

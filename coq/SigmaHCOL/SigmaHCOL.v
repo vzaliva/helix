@@ -1237,11 +1237,11 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-    Program Definition eT
+    Program Definition Embed
                {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 svalue (eT' bc) _
+      := mkSHOperator i 1 svalue (Embed' bc) _
                       (FinNatSet.singleton b)
                       (Full_set _) _.
     Next Obligation.
@@ -2488,10 +2488,10 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
     Qed.
 
-    Global Instance eT_Facts
+    Global Instance Embed_Facts
            {i b:nat}
            (bc: b < i)
-      : SHOperator_Facts fm (eT fm bc) (svalue:=svalue).
+      : SHOperator_Facts fm (Embed fm bc) (svalue:=svalue).
     Proof.
       split.
       -

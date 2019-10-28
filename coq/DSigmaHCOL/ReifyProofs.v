@@ -3909,7 +3909,7 @@ Proof.
     apply Edot.
 Qed.
 
-Theorem eT_DSHeT
+Theorem Embed_DSHEmbed
         {fm}
         {svalue: CarrierA}
         {i b:nat}
@@ -3919,8 +3919,8 @@ Theorem eT_DSHeT
   :
     (forall (Γ:evalContext), Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ
-                       (@eT fm svalue i b bc)
-                       (@DSHeT i (db:NExpr)).
+                       (@Embed fm svalue i b bc)
+                       (@DSHEmbed i (db:NExpr)).
 Proof.
   intros H.
   intros Γ x.
@@ -4110,7 +4110,7 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- SHCOL_DSHCOL_equiv _ (SHFamilyOperatorCompose _ _ _ _) (DSHCompose _ _)] => apply SHCompose_DSHCompose
          | [ |- SHCOL_DSHCOL_equiv _ (SHPointwise _ _) (DSHPointwise _) ] =>  apply SHPointwise_DSHPointwise
          | [ |- SHCOL_DSHCOL_equiv _ (SHInductor _ _ _ _) (DSHInductor _ _ _)] => apply SHInductor_DSHInductor
-         | [ |- SHCOL_DSHCOL_equiv _ (eT _ _) (DSHeT _)] => apply eT_DSHeT
+         | [ |- SHCOL_DSHCOL_equiv _ (Embed _ _) (DSHEmbed _)] => apply Embed_DSHEmbed
          | [ |- SHCOL_DSHCOL_equiv _(ISumUnion _) (DSHIUnion _ _ _ _) ] => apply ISumUnion_DSHISumUnion
          | [ |- Some _ = evalIUnCarrierA _ _ _ _ ] => unfold evalIUnCarrierA; symmetry; solve_evalAexp
          | [ |- _ ] => try reflexivity

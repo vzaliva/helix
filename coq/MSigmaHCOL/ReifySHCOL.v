@@ -28,7 +28,7 @@ Run TemplateProgram
     (mkSwitch string
               string_beq
               [("Helix.SigmaHCOL.SigmaHCOL.eUnion", "n_eUnion") ;
-                 ("Helix.SigmaHCOL.SigmaHCOL.eT", "n_eT") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.Embed", "n_Embed") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHPointwise", "n_SHPointwise") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHBinOp", "n_SHBinOp") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHInductor", "n_SHInductor") ;
@@ -77,9 +77,9 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
         tmPrint "eUnion" ;;
                 tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHeUnion" u)
                                 [o; b ; bc])
-      | Some n_eT, [fm ; svalue; i ; b ; bc] =>
-        tmPrint "eT" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHeT" u)
+      | Some n_Embed, [fm ; svalue; i ; b ; bc] =>
+        tmPrint "Embed" ;;
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed" u)
                                 [i; b; bc])
       | Some n_SHPointwise, [fm ; svalue; n ; f ; pF ] =>
         tmPrint "SHPointwise" ;;

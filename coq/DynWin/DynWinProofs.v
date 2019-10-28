@@ -158,12 +158,12 @@ Ltac solve_facts :=
          | [ |- SH_MSH_Operator_compat (eUnion _ _) _         ] => apply eUnion_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (SHBinOp _ _) _        ] => apply SHBinOp_RthetaSafe_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat (IUnion _ _) _         ] => apply IUnion_SH_MSH_Operator_compat; intros
-         | [ |- SH_MSH_Operator_compat (eT _ _) _             ] => apply eT_SH_MSH_Operator_compat
+         | [ |- SH_MSH_Operator_compat (Embed _ _) _          ] => apply Embed_SH_MSH_Operator_compat
          | [ |- SH_MSH_Operator_compat _ _                    ] => apply SHCompose_SH_MSH_Operator_compat
          | [ |- Monoid.MonoidLaws Monoid_RthetaFlags] => apply MonoidLaws_RthetaFlags
          | [ |- Monoid.MonoidLaws Monoid_RthetaSafeFlags] => apply MonoidLaws_SafeRthetaFlags
          | [ |- MSHOperator_Facts _ ] => apply HTSUMUnion_MFacts
-         | [ |- MSHOperator_Facts _ ] => apply eT_MFacts
+         | [ |- MSHOperator_Facts _ ] => apply Embed_MFacts
          | [ |- MSHOperator_Facts _ ] => apply SHPointwise_MFacts
          | [ |- MSHOperator_Facts _ ] => apply eUnion_MFacts
          | [ |- MSHOperator_Facts _ ] => apply IUnion_MFacts; intros
@@ -762,25 +762,25 @@ Section SigmaHCOL_rewriting.
     (* IReduction_absorb_operator as ISumXXX_YYY *)
     setoid_rewrite rewrite_IReduction_absorb_operator.
 
-    (* Next rule: eT_Pointwise *)
+    (* Next rule: Embed_Pointwise *)
     unfold SHFamilyOperatorCompose.
     simpl.
 
     (* --- BEGIN: hack ---
     I would expect the following to work here:
 
-    setoid_rewrite rewrite_eT_SHPointwise
+    setoid_rewrite rewrite_Embed_SHPointwise
       with (g:=mult_by_1st (@le_S 2 2 (le_n 2)) a).
 
      But it does not (match fails), so we have to do some manual rewriting
      *)
 
-    unfold eTn.
+    unfold Embedn.
     match goal with
     | [ |- context [ IReduction plus ?f ]] =>
       match f with
-      | (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (eT _ ?l) (SHPointwise _ ?c)) ?rest) =>  setoid_replace f with
-            (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex jf c)) (eT _ l)) rest)
+      | (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (Embed _ ?l) (SHPointwise _ ?c)) ?rest) =>  setoid_replace f with
+            (fun (jf:FinNat 3) => SHCompose _ (SHCompose _ (SHPointwise _ (Fin1SwapIndex jf c)) (Embed _ l)) rest)
       end
     end.
 
@@ -789,7 +789,7 @@ Section SigmaHCOL_rewriting.
     intros [j jc].
     f_equiv.
     simpl.
-    apply rewrite_eT_SHPointwise.
+    apply rewrite_Embed_SHPointwise.
     (* --- END: hack --- *)
 
     (* now solve some obligations *)
@@ -799,12 +799,12 @@ Section SigmaHCOL_rewriting.
       reflexivity.
     }
 
-    (* Next rule: eT_Induction *)
+    (* Next rule: Embed_Induction *)
     setoid_rewrite SHCompose_assoc at 2.
 
-    setoid_rewrite rewrite_eT_Induction.
+    setoid_rewrite rewrite_Embed_Induction.
 
-    (* Bring `eT` into `IReduction` *)
+    (* Bring `Embed` into `IReduction` *)
     setoid_rewrite SHCompose_assoc at 1.
     rewrite <- SafeCast_SHCompose.
     setoid_rewrite rewrite_IReduction_absorb_operator.

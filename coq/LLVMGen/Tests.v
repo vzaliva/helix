@@ -47,13 +47,13 @@ Section DoubleTests.
               (FSHCompose
                  (FSHCompose (FSHPointwise (AMult (AVar 0) (ANth 3 (VVar 3) (NVar 2))))
                     (FSHInductor (NVar 0) (AMult (AVar 1) (AVar 0)) FloatV64One))
-                 (FSHeT (NConst 0)))))
+                 (FSHEmbed (NConst 0)))))
         (FSHCompose (FSHeUnion (NConst 1) FloatV64Zero)
            (FSHIReduction 2 (AMax (AVar 1) (AVar 0)) FloatV64Zero
               (FSHCompose (FSHBinOp (AAbs (AMinus (AVar 1) (AVar 0))))
                  (FSHIUnion 2 (APlus (AVar 1) (AVar 0)) FloatV64Zero
                     (FSHCompose (FSHeUnion (NVar 0) FloatV64Zero)
-                       (FSHeT
+                       (FSHEmbed
                           (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                              (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
 
@@ -92,7 +92,7 @@ Section DoubleTests.
                  (FSHeUnion (NVar 0) FloatV64Zero)
                  (FSHCompose
                     FSHId
-                    (FSHeT (NVar 0)))).
+                    (FSHEmbed (NVar 0)))).
 
   Definition Inductor_test: @FSHOperator Float64 1 1 :=
     FSHInductor (NConst 8) (AMult (AVar 1) (AVar 0)) FloatV64One.
@@ -113,13 +113,13 @@ Section SingleTests.
               (FSHCompose
                  (FSHCompose (FSHPointwise (AMult (AVar 0) (ANth 3 (VVar 3) (NVar 2))))
                     (FSHInductor (NVar 0) (AMult (AVar 1) (AVar 0)) FloatV32One))
-                 (FSHeT (NConst 0)))))
+                 (FSHEmbed (NConst 0)))))
         (FSHCompose (FSHeUnion (NConst 1) FloatV32Zero)
            (FSHIReduction 2 (AMax (AVar 1) (AVar 0)) FloatV32Zero
               (FSHCompose (FSHBinOp (AAbs (AMinus (AVar 1) (AVar 0))))
                  (FSHIUnion 2 (APlus (AVar 1) (AVar 0)) FloatV32Zero
                     (FSHCompose (FSHeUnion (NVar 0) FloatV32Zero)
-                       (FSHeT
+                       (FSHEmbed
                           (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                              (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
 

@@ -56,7 +56,7 @@ Definition FSHIBinFloat {ft:FloatT} := @FExpr ft.
 Inductive FSHOperator {ft:FloatT}: nat -> nat -> Type :=
 | FSHId {i:nat}: FSHOperator i i  (* identity operator. mostly for testing *)
 | FSHeUnion {o: nat} (b: @NExpr ft) (z: (FloatV ft)): FSHOperator 1 o
-| FSHeT {i: nat} (b:@NExpr ft): FSHOperator i 1
+| FSHEmbed {i: nat} (b:@NExpr ft): FSHOperator i 1
 | FSHPointwise {i: nat} (f: @FSHIUnFloat ft): FSHOperator i i
 | FSHBinOp {o} (f: @FSHIBinFloat ft): FSHOperator (o+o) o
 | FSHInductor (n:@NExpr ft) (f: @FSHBinFloat ft) (initial: FloatV ft): FSHOperator 1 1

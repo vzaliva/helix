@@ -5,13 +5,13 @@
 ;            (DSHCompose
 ;               (DSHCompose (DSHPointwise (AMult (AVar 0) (ANth 3 (VVar 3) (NVar 2))))
 ;                  (DSHInductor (NVar 0) (AMult (AVar 1) (AVar 0)) CarrierA1))
-;               (DSHeT (NConst 0)))))
+;               (DSHEmbed (NConst 0)))))
 ;      (DSHCompose (DSHeUnion (NConst 1) CarrierAz)
 ;         (DSHIReduction 2 (AMax (AVar 1) (AVar 0)) CarrierAz
 ;            (DSHCompose (DSHBinOp (AAbs (AMinus (AVar 1) (AVar 0))))
 ;               (DSHIUnion 2 (APlus (AVar 1) (AVar 0)) CarrierAz
 ;                  (DSHCompose (DSHeUnion (NVar 0) CarrierAz)
-;                     (DSHeT
+;                     (DSHEmbed
 ;                        (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
 ;                           (NMult (NVar 0) (NMult (NConst 2) (NConst 1)))))))))))
 ;      : DSHOperator (1 + 4) 1

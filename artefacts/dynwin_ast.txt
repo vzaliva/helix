@@ -3205,7 +3205,7 @@ tLambda (nNamed "a")
                            [])
                         [tConst "Helix.HCOL.CarrierType.CarrierA" [];
                         tConst "Helix.HCOL.CarrierType.CarrierA1" []]]];
-                  tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" [])
+                  tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Embed" [])
                     [tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaSafeFlags"
                        [];
                     tApp (tConst "Coq.Init.Nat.add" [])
@@ -6876,7 +6876,7 @@ tLambda (nNamed "a")
                                   [])
                                [tConst "Helix.HCOL.CarrierType.CarrierA" [];
                                tConst "Helix.HCOL.CarrierType.CarrierAz" []]];
-                           tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" [])
+                           tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Embed" [])
                              [tConst
                                 "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags"
                                 [];

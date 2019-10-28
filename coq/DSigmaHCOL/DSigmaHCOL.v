@@ -73,7 +73,7 @@ Definition DSHIBinCarrierA := AExpr.
 Definition MemVarRef: Set := (PExpr * NExpr).
 
 Inductive DSHOperator :=
-| DSHAssign (src dst: MemVarRef) (* formerly [eT] and [eUnion] *)
+| DSHAssign (src dst: MemVarRef) (* formerly [Embed] and [eUnion] *)
 | DSHIMap (n: nat) (x_p y_p: PExpr) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
 | DSHBinOp (n: nat) (x_p y_p: PExpr) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
 | DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)

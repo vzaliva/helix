@@ -732,11 +732,11 @@ Section OperatorPairwiseProofs.
           congruence.
     Qed.
 
-    Global Instance eT_SH_MSH_Operator_compat
+    Global Instance Embed_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o b:nat}
            (bc: b < o)
-      : SH_MSH_Operator_compat (eT (svalue:=svalue) fm bc) (MSHeT bc).
+      : SH_MSH_Operator_compat (Embed (svalue:=svalue) fm bc) (MSHEmbed bc).
     Proof.
       split.
       -
@@ -748,12 +748,12 @@ Section OperatorPairwiseProofs.
       -
         reflexivity.
       -
-        assert (facts: SHOperator_Facts fm (svalue:=svalue) (eT fm bc)) by
+        assert (facts: SHOperator_Facts fm (svalue:=svalue) (Embed fm bc)) by
             typeclasses eauto.
         intros x G.
         simpl.
 
-        unfold eT_mem , map_mem_block_elt.
+        unfold Embed_mem , map_mem_block_elt.
         unfold svector_to_mem_block.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
         svector_to_mem_block_to_spec m1 H1 I1 O1.
@@ -778,9 +778,9 @@ Section OperatorPairwiseProofs.
             rewrite Heqo0 in V. clear Heqo0 m1.
             some_inv. clear c H1.
 
-            assert(Is_Val (Vnth (eT' bc x) (lt_0_Sn O))) as V0.
+            assert(Is_Val (Vnth (Embed' bc x) (lt_0_Sn O))) as V0.
             {
-              unfold eT'.
+              unfold Embed'.
               rewrite Vnth_0.
               simpl.
               apply G.

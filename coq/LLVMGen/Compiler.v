@@ -524,7 +524,7 @@ Section monadic.
            ])).
 
   (* AKA "pick" *)
-  Definition genFSHeT
+  Definition genFSHEmbed
              {i:nat}
              {ft: FloatT}
              (st: IRState)
@@ -533,7 +533,7 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, entryblock) := incBlockNamed st "eT" in
+      let '(st, entryblock) := incBlockNamed st "Embed" in
       let '(st, retentry) := incVoid st in
       let '(st, storeid) := incVoid st in
       let '(st, px) := incLocal st in
@@ -1109,10 +1109,10 @@ Section monadic.
         add_comment
           (@genFSHeUnion o ft st x y b nextblock)
           "--- Operator: FSHeUnion ---"
-      | FSHeT i b =>
+      | FSHEmbed i b =>
         add_comment
-          (@genFSHeT i ft st x y b nextblock)
-          "--- Operator: FSHeT ---"
+          (@genFSHEmbed i ft st x y b nextblock)
+          "--- Operator: FSHEmbed ---"
       | FSHPointwise i f =>
         let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
         let '(st, loopvar) := incLocalNamed st "Pointwise_i" in

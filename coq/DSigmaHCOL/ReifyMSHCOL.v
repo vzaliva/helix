@@ -150,7 +150,7 @@ Run TemplateProgram
     (mkSwitch string
               string_beq
               [  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHeUnion"    , "n_eUnion"     ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHeT"        , "n_eT"         ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed"     , "n_Embed"      ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPointwise" , "n_SHPointwise") ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHBinOp"     , "n_SHBinOp"    ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHInductor"  , "n_SHInductor" ) ;
@@ -181,8 +181,8 @@ Fixpoint compileMSHCOL2DSHCOL
               no <- tmUnquoteTyped nat o ;;
               bc <- compileNExpr b ;;
               tmReturn (vars,  DSHAssign (x_p, NConst 0) (y_p, bc))
-    | Some n_eT, [i ; b ; _] =>
-      tmPrint "MSHeT" ;;
+    | Some n_Embed, [i ; b ; _] =>
+      tmPrint "MSHEmbed" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, DSHAssign (x_p, bc) (y_p, NConst 0))

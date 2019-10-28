@@ -29,14 +29,14 @@ SUMUnion(
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o
     Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
-    eT(5, 0)
+    Embed(5, 0)
   ),
   eUnion(2, 1) o
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o
     ISumUnion(i18, 2,
       eUnion(2, i18) o
-      eT(5, add(add(i15, V(1)), mul(V(2), i18)))
+      Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
 )
@@ -88,7 +88,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                                                   jf
                                                                                   (mult_by_nth a)))
                                                                   (SHInductor _ (proj1_sig jf) mult 1))
-                                                      (eT Monoid_RthetaSafeFlags
+                                                      (Embed Monoid_RthetaSafeFlags
                                                           (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
          (eUnion Monoid_RthetaFlags (le_n 2)
                  ⊚ SafeCast
@@ -107,7 +107,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                               (λ jf0,
                                                eUnion Monoid_RthetaFlags (proj2_sig jf0)
                                                       ⊚
-                                                      eT Monoid_RthetaFlags
+                                                      Embed Monoid_RthetaFlags
                                                       (h_index_map_compose_range_bound
                                                          (GathH_jn_domain_bound (proj1_sig jf) 2 (proj2_sig jf))
                                                          (h_bound_second_half 1 4) (proj1_sig jf0)
