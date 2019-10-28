@@ -269,7 +269,7 @@ Section SigmaHCOLHelperLemmas.
     rewrite Vnth_map.
     unfold rsvector2rvector.
     unfold_Rtheta_equiv.
-    setoid_rewrite Gather'_spec.
+    setoid_rewrite Gather_impl_spec.
     unfold VnthIndexMapped.
     rewrite Vnth_map.
     f_equiv.
@@ -297,7 +297,7 @@ Section SigmaHCOLHelperLemmas.
     rewrite Vnth_map.
     unfold rvector2rsvector.
     unfold_Rtheta_equiv.
-    setoid_rewrite Gather'_spec.
+    setoid_rewrite Gather_impl_spec.
     unfold VnthIndexMapped.
     rewrite Vnth_map.
     f_equiv.
@@ -309,26 +309,26 @@ Section SigmaHCOLHelperLemmas.
 
     Variable fm:Monoid RthetaFlags.
 
-    Lemma Gather'_composition
+    Lemma Gather_impl_composition
           {i o t: nat}
           (f: index_map o t)
           (g: index_map t i):
-      Gather' (fm:=fm) f ∘ Gather' g = Gather' (index_map_compose g f).
+      Gather_impl (fm:=fm) f ∘ Gather_impl g = Gather_impl (index_map_compose g f).
     Proof.
       apply ext_equiv_applied_equiv.
       -
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv);
-          apply Gather'_proper; reflexivity.
+          apply Gather_impl_proper; reflexivity.
       -
         split; try apply vec_Setoid.
-        apply Gather'_proper; reflexivity.
+        apply Gather_impl_proper; reflexivity.
       -
         intros v.
         unfold compose.
         vec_index_equiv j jp.
 
-        unfold Gather'.
+        unfold Gather_impl.
         rewrite 2!Vbuild_nth.
         unfold VnthIndexMapped.
         destruct f as [f fspec].
@@ -882,7 +882,7 @@ Section SigmaHCOLExpansionRules.
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
                                                                                                              (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
                                  (SafeCast' (@SHBinOp' Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
-                                            (Gather' (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
+                                            (Gather_impl (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
         = Vnth ((@SHBinOp' _ n f) x) kp.
     Proof.
@@ -961,7 +961,7 @@ Section SigmaHCOLExpansionRules.
            crush.
 
 
-           rewrite 2!Gather'_spec with (fm:=Monoid_RthetaFlags).
+           rewrite 2!Gather_impl_spec with (fm:=Monoid_RthetaFlags).
            unfold VnthIndexMapped.
 
            unfold inverse_index_f, build_inverse_index_map, const.
@@ -1147,11 +1147,11 @@ Section SigmaHCOLExpansionRules.
                                                          (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
                               zero
                               (@liftM_HOperator_impl fm i1 o1 f
-                                                 (@Gather' fm (Init.Nat.add i1 i2) i1
+                                                 (@Gather_impl fm (Init.Nat.add i1 i2) i1
                                                            (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                                            x))) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
         {
-          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i1
+          setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i1
                                    (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                    x) with (sparsify fm x0).
           -
@@ -1218,7 +1218,7 @@ Section SigmaHCOLExpansionRules.
                 rewrite Nat.mul_comm, Nat.mul_1_l.
                 reflexivity.
           -
-            unfold Gather'.
+            unfold Gather_impl.
             vec_index_equiv i ip.
 
             rewrite Vnth_sparsify.
@@ -1253,11 +1253,11 @@ Section SigmaHCOLExpansionRules.
                                                          (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
                               zero
                               (@liftM_HOperator_impl fm i2 o2 g
-                                                 (@Gather' fm (Init.Nat.add i1 i2) i2
+                                                 (@Gather_impl fm (Init.Nat.add i1 i2) i2
                                                            (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                                          (h_bound_second_half i1 i2)) x))) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
         {
-          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i2
+          setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i2
                                    (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                  (h_bound_second_half i1 i2)) x) with (sparsify fm x1).
           -
@@ -1322,7 +1322,7 @@ Section SigmaHCOLExpansionRules.
               *
                 rewrite Vnth_const.
                 reflexivity.
-          - unfold Gather'.
+          - unfold Gather_impl.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             unfold h_index_map.
@@ -4309,9 +4309,9 @@ and `ISumReduction_PointWise` *)
       unfold equiv, SHOperator_equiv.
       simpl.
 
-      rewrite Gather'_composition.
+      rewrite Gather_impl_composition.
       rewrite h_index_map_compose.
-      apply Gather'_proper.
+      apply Gather_impl_proper.
       reflexivity.
     Qed.
 
@@ -4549,7 +4549,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       destruct j.
       -
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         simpl.
         apply Vnth_equiv.
@@ -4695,7 +4695,7 @@ and `ISumReduction_PointWise` *)
       intros x y E.
       rewrite <- E; clear y E.
       vec_index_equiv j jc.
-      rewrite Gather'_spec.
+      rewrite Gather_impl_spec.
       unfold VnthIndexMapped.
       unfold Diamond.
       unfold Apply_Family'.

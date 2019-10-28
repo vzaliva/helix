@@ -1995,23 +1995,23 @@ given natrual number by index mapping function f_spec. *)
             Proper ((=) ==> (=)) (@Apply_Family i o n op_family).
           Admitted.
 
-          Definition Gather'
+          Definition Gather_impl
                      {i o: nat}
                      (f: index_map o i)
                      (x: svector fm i):
             svector fm o
             := Vbuild (VnthIndexMapped x f).
 
-          Global Instance Gather'_proper
+          Global Instance Gather_impl_proper
                  {i o: nat}
                  (f: index_map o i):
-            Proper ((=) ==> (=)) (Gather' f).
+            Proper ((=) ==> (=)) (Gather_impl f).
           Admitted.
 
           Definition Gather
                      {i o: nat}
                      (f: index_map o i)
-            := mkSHOperator i o (Gather' f) _
+            := mkSHOperator i o (Gather_impl f) _
                             (index_map_range_set f) (* Read pattern is governed by index function *)
                             (Full_set _) (* Gater always writes everywhere *).
 

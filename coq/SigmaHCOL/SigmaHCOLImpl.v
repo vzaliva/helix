@@ -126,19 +126,19 @@ Section FlagsMonoidGenericOperators.
       apply Vnth_equiv; auto.
     Qed.
 
-    Definition Gather'
+    Definition Gather_impl
                {i o: nat}
                (f: index_map o i)
                (x: svector fm i):
       svector fm o
       := Vbuild (VnthIndexMapped x f).
 
-    Global Instance Gather'_proper
+    Global Instance Gather_impl_proper
            {i o: nat}:
-      Proper ((=) ==> (=) ==> (=)) (@Gather' i o).
+      Proper ((=) ==> (=) ==> (=)) (@Gather_impl i o).
     Proof.
       intros f g Efg x y Exy.
-      unfold Gather', VnthIndexMapped.
+      unfold Gather_impl, VnthIndexMapped.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
       apply Vnth_equiv.

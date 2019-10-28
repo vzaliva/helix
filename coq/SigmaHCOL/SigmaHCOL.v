@@ -1254,7 +1254,7 @@ Section SigmaHCOL_Operators.
                {svalue: CarrierA}
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator i o svalue (Gather' f) _
+      := mkSHOperator i o svalue (Gather_impl f) _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *)
                       _.
@@ -1566,9 +1566,9 @@ Section SigmaHCOL_Operators.
       unfold compose.
       generalize
         (@op ki ko _ (kernel (mkFinNat jc0))
-             (@Gather' fm i ki (g (mkFinNat jc0)) x)),
+             (@Gather_impl fm i ki (g (mkFinNat jc0)) x)),
       (@op ki ko _ (kernel (mkFinNat jc1))
-           (@Gather' fm i ki (g (mkFinNat jc1)) x)).
+           (@Gather_impl fm i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
       clear kernel g i x ki. rename ko into i.
@@ -1892,13 +1892,13 @@ Section OperatorProperies.
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Gather'_spec
+  Lemma Gather_impl_spec
         {i o: nat}
         (f: index_map o i)
         (x: svector fm i):
-    ∀ n (ip : n < o), Vnth (Gather' f x) ip ≡ VnthIndexMapped x f n ip.
+    ∀ n (ip : n < o), Vnth (Gather_impl f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
-    unfold Gather', Vbuild.
+    unfold Gather_impl, Vbuild.
     destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
     simpl.
     intros.
@@ -1907,25 +1907,25 @@ Section OperatorProperies.
   Qed.
 
   (* Index-function based condition under which Gather output is dense *)
-  Lemma Gather'_dense_constr (i ki : nat)
+  Lemma Gather_impl_dense_constr (i ki : nat)
         (g: index_map ki i)
         (x: svector fm i)
         (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather' g x).
+    Vforall Is_Val (Gather_impl g x).
   Proof.
     apply Vforall_nth_intro.
     intros i0 ip.
-    rewrite Gather'_spec.
+    rewrite Gather_impl_spec.
     apply g_dense.
   Qed.
 
 
-  Lemma Gather'_is_endomorphism:
+  Lemma Gather_impl_is_endomorphism:
     ∀ (i o : nat)
       (x : svector fm i),
     ∀ (f: index_map o i),
       Vforall (Vin_aux x)
-              (Gather' f x).
+              (Gather_impl f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -1938,16 +1938,16 @@ Section OperatorProperies.
     apply Vnth_in.
   Qed.
 
-  Lemma Gather'_preserves_P:
+  Lemma Gather_impl_preserves_P:
     ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
       Vforall P x
       → ∀ f : index_map o i,
-        Vforall P (Gather' f x).
+        Vforall P (Gather_impl f x).
   Proof.
     intros.
-    assert(Vforall (Vin_aux x) (Gather' f x))
-      by apply Gather'_is_endomorphism.
-    generalize dependent (Gather' f x).
+    assert(Vforall (Vin_aux x) (Gather_impl f x))
+      by apply Gather_impl_is_endomorphism.
+    generalize dependent (Gather_impl f x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
@@ -1956,15 +1956,15 @@ Section OperatorProperies.
     auto.
   Qed.
 
-  Lemma Gather'_preserves_density:
+  Lemma Gather_impl_preserves_density:
     ∀ (i o : nat) (x : svector fm i)
       (f: index_map o i),
       svector_is_dense fm x ->
-      svector_is_dense fm (Gather' f x).
+      svector_is_dense fm (Gather_impl f x).
   Proof.
     intros.
     unfold svector_is_dense in *.
-    apply Gather'_preserves_P.
+    apply Gather_impl_preserves_P.
     assumption.
   Qed.
 
@@ -2560,7 +2560,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        rewrite 2!Gather'_spec.
+        rewrite 2!Gather_impl_spec.
         unfold VnthIndexMapped.
         apply H.
         unfold mkFinNat.
@@ -2568,7 +2568,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl.
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         apply H.
         simpl.
@@ -2582,7 +2582,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         apply D.
         simpl.
