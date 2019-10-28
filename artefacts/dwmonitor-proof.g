@@ -740,7 +740,7 @@ ScatHUnion(2, 1, 0, 1)
 ------------------------------------------------------------------
 new expression
 ------------------------------------------------------------------
-eUnion(2, 0)
+Pick(2, 0)
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------
@@ -778,7 +778,7 @@ ScatHUnion(2, 1, 1, 1)
 ------------------------------------------------------------------
 new expression
 ------------------------------------------------------------------
-eUnion(2, 1)
+Pick(2, 1)
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------
@@ -791,7 +791,7 @@ GathH(5, 2, add(i15, V(1)), 2)
 new expression
 ------------------------------------------------------------------
 ISumUnion(i18, 2,
-  eUnion(2, i18) o 
+  Pick(2, i18) o 
   Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
 )
 ------------------------------------------------------------------
@@ -803,18 +803,18 @@ Final SigmaSPL
 ------------------------------------------------------------------
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o 
 SUMUnion(
-  eUnion(2, 0) o 
+  Pick(2, 0) o 
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     Embed(3, i17)
   ) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o 
   Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
   Embed(5, 0), 
-  eUnion(2, 1) o 
+  Pick(2, 1) o 
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
     ISumUnion(i18, 2,
-      eUnion(2, i18) o 
+      Pick(2, i18) o 
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -831,18 +831,18 @@ Initial SigmaSPL
 ------------------------------------------------------------------
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o 
 SUMUnion(
-  eUnion(2, 0) o 
+  Pick(2, 0) o 
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     Embed(3, i17)
   ) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o 
   Induction(3, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
   Embed(5, 0), 
-  eUnion(2, 1) o 
+  Pick(2, 1) o 
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
     ISumUnion(i18, 2,
-      eUnion(2, i18) o 
+      Pick(2, i18) o 
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -854,7 +854,7 @@ RULE: ISumReduction_PointWise
 ------------------------------------------------------------------
 old expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17)
 ) o 
@@ -864,7 +864,7 @@ Embed(5, 0)
 ------------------------------------------------------------------
 new expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14))))
@@ -878,7 +878,7 @@ RULE: ISumXXX_YYY
 ------------------------------------------------------------------
 old expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14))))
@@ -888,7 +888,7 @@ Embed(5, 0)
 ------------------------------------------------------------------
 new expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o 
@@ -902,7 +902,7 @@ RULE: ISumXXX_YYY
 ------------------------------------------------------------------
 old expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o 
@@ -912,7 +912,7 @@ Embed(5, 0)
 ------------------------------------------------------------------
 new expression
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   Embed(3, i17) o 
   PointWise(3, Lambda([ r16, i14 ], mul(r16, nth(D, i14)))) o 
@@ -999,17 +999,17 @@ Final SigmaSPL
 ------------------------------------------------------------------
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o 
 SUMUnion(
-  eUnion(2, 0) o 
+  Pick(2, 0) o 
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o 
     Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
     Embed(5, 0)
   ), 
-  eUnion(2, 1) o 
+  Pick(2, 1) o 
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
     ISumUnion(i18, 2,
-      eUnion(2, i18) o 
+      Pick(2, i18) o 
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -1023,17 +1023,17 @@ Sigma-SPL expression:
 ------------------------------------------------------------------
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o 
 SUMUnion(
-  eUnion(2, 0) o 
+  Pick(2, 0) o 
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o 
     Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
     Embed(5, 0)
   ), 
-  eUnion(2, 1) o 
+  Pick(2, 1) o 
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
     ISumUnion(i18, 2,
-      eUnion(2, i18) o 
+      Pick(2, i18) o 
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -1129,11 +1129,11 @@ chain(
 
 
 ==================================================================
-EXPANSION RULE: eUnion
+EXPANSION RULE: Pick
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, 0)
+Pick(2, 0)
 ------------------------------------------------------------------
 icode:
 ------------------------------------------------------------------
@@ -1145,7 +1145,7 @@ EXPANSION RULE: OLCompose
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, 0) o 
+Pick(2, 0) o 
 ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
   PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o 
   Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
@@ -1191,11 +1191,11 @@ assign(nth(T18, V(0)), nth(X, add(add(i15, V(1)), mul(V(2), i18))))
 
 
 ==================================================================
-EXPANSION RULE: eUnion
+EXPANSION RULE: Pick
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, i18)
+Pick(2, i18)
 ------------------------------------------------------------------
 icode:
 ------------------------------------------------------------------
@@ -1207,7 +1207,7 @@ EXPANSION RULE: OLCompose
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, i18) o 
+Pick(2, i18) o 
 Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
 ------------------------------------------------------------------
 icode:
@@ -1226,7 +1226,7 @@ EXPANSION RULE: ISumUnion
 Signma-SPL expression:
 ------------------------------------------------------------------
 ISumUnion(i18, 2,
-  eUnion(2, i18) o 
+  Pick(2, i18) o 
   Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
 )
 ------------------------------------------------------------------
@@ -1261,7 +1261,7 @@ Signma-SPL expression:
 ------------------------------------------------------------------
 BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
 ISumUnion(i18, 2,
-  eUnion(2, i18) o 
+  Pick(2, i18) o 
   Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
 )
 ------------------------------------------------------------------
@@ -1290,7 +1290,7 @@ Signma-SPL expression:
 ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
   BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
   ISumUnion(i18, 2,
-    eUnion(2, i18) o 
+    Pick(2, i18) o 
     Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
   )
 )
@@ -1323,11 +1323,11 @@ chain(
 
 
 ==================================================================
-EXPANSION RULE: eUnion
+EXPANSION RULE: Pick
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, 1)
+Pick(2, 1)
 ------------------------------------------------------------------
 icode:
 ------------------------------------------------------------------
@@ -1339,11 +1339,11 @@ EXPANSION RULE: OLCompose
 ------------------------------------------------------------------
 Signma-SPL expression:
 ------------------------------------------------------------------
-eUnion(2, 1) o 
+Pick(2, 1) o 
 ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
   BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
   ISumUnion(i18, 2,
-    eUnion(2, i18) o 
+    Pick(2, i18) o 
     Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
   )
 )
@@ -1386,17 +1386,17 @@ EXPANSION RULE: SUMUnion
 Signma-SPL expression:
 ------------------------------------------------------------------
 SUMUnion(
-  eUnion(2, 0) o 
+  Pick(2, 0) o 
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o 
     Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
     Embed(5, 0)
   ), 
-  eUnion(2, 1) o 
+  Pick(2, 1) o 
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
     ISumUnion(i18, 2,
-      eUnion(2, i18) o 
+      Pick(2, i18) o 
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -11862,17 +11862,17 @@ rec(
     ),
   ss2 := BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o 
     SUMUnion(
-      eUnion(2, 0) o 
+      Pick(2, 0) o 
       ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
         PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o 
         Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o 
         Embed(5, 0)
       ), 
-      eUnion(2, 1) o 
+      Pick(2, 1) o 
       ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
         BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o 
         ISumUnion(i18, 2,
-          eUnion(2, i18) o 
+          Pick(2, i18) o 
           Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
         )
       )

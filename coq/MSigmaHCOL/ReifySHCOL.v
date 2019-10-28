@@ -27,7 +27,7 @@ Open Scope string_scope.
 Run TemplateProgram
     (mkSwitch string
               string_beq
-              [("Helix.SigmaHCOL.SigmaHCOL.eUnion", "n_eUnion") ;
+              [("Helix.SigmaHCOL.SigmaHCOL.Pick", "n_Pick") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.Embed", "n_Embed") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHPointwise", "n_SHPointwise") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHBinOp", "n_SHBinOp") ;
@@ -73,9 +73,9 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
               tmReturn(tLambda (nNamed n) vt c)
     | tApp (tConst opname u) args =>
       match parse_SHCOL_Op_Name opname, args with
-      | Some n_eUnion, [fm ; svalue; o ; b ; bc] =>
-        tmPrint "eUnion" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHeUnion" u)
+      | Some n_Pick, [fm ; svalue; o ; b ; bc] =>
+        tmPrint "Pick" ;;
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHPick" u)
                                 [o; b ; bc])
       | Some n_Embed, [fm ; svalue; i ; b ; bc] =>
         tmPrint "Embed" ;;

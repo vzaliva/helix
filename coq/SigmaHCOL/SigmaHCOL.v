@@ -1215,17 +1215,17 @@ Section SigmaHCOL_Operators.
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
-    Program Definition eUnion
+    Program Definition Pick
                {svalue: CarrierA}
                {o b: nat}
                (bc: b < o)
-      := mkSHOperator 1 o svalue (eUnion' bc svalue) _
+      := mkSHOperator 1 o svalue (Pick' bc svalue) _
                       (Full_set _)
                       (FinNatSet.singleton b) _.
     Next Obligation.
       (* svalue_at_sparse *)
       simpl in *.
-      unfold eUnion'.
+      unfold Pick'.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -2409,10 +2409,10 @@ Section StructuralProperies.
         apply H.
     Qed.
 
-    Global Instance eUnion_Facts
+    Global Instance Pick_Facts
            {o b:nat}
            (bc: b < o):
-      SHOperator_Facts fm (eUnion fm bc) (svalue:=svalue).
+      SHOperator_Facts fm (Pick fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2423,7 +2423,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        unfold eUnion'.
+        unfold Pick'.
         rewrite 2!Vbuild_nth.
         break_if.
         +
@@ -2435,7 +2435,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick'.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2450,7 +2450,7 @@ Section StructuralProperies.
       -
         intros v j jc S.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick'.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2462,7 +2462,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        unfold eUnion'.
+        unfold Pick'.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2476,7 +2476,7 @@ Section StructuralProperies.
       -
         intros v j jc H.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick'.
         rewrite Vbuild_nth.
         break_if.
         +

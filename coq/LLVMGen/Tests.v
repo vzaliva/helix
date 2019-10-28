@@ -42,17 +42,17 @@ Section DoubleTests.
   Definition DynWin64_test: @FSHOperator Float64 (1 + 4) 1 :=
     FSHCompose (FSHBinOp (AZless (AVar 1) (AVar 0)))
      (FSHHTSUMUnion (APlus (AVar 1) (AVar 0))
-        (FSHCompose (FSHeUnion (NConst 0) FloatV64Zero)
+        (FSHCompose (FSHPick (NConst 0) FloatV64Zero)
            (FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV64Zero
               (FSHCompose
                  (FSHCompose (FSHPointwise (AMult (AVar 0) (ANth 3 (VVar 3) (NVar 2))))
                     (FSHInductor (NVar 0) (AMult (AVar 1) (AVar 0)) FloatV64One))
                  (FSHEmbed (NConst 0)))))
-        (FSHCompose (FSHeUnion (NConst 1) FloatV64Zero)
+        (FSHCompose (FSHPick (NConst 1) FloatV64Zero)
            (FSHIReduction 2 (AMax (AVar 1) (AVar 0)) FloatV64Zero
               (FSHCompose (FSHBinOp (AAbs (AMinus (AVar 1) (AVar 0))))
                  (FSHIUnion 2 (APlus (AVar 1) (AVar 0)) FloatV64Zero
-                    (FSHCompose (FSHeUnion (NVar 0) FloatV64Zero)
+                    (FSHCompose (FSHPick (NVar 0) FloatV64Zero)
                        (FSHEmbed
                           (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                              (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).
@@ -89,7 +89,7 @@ Section DoubleTests.
   Definition IUnion_test: @FSHOperator Float64 4 4 :=
     FSHIUnion 4 (APlus (AVar 1) (AVar 0)) FloatV64Zero
               (FSHCompose
-                 (FSHeUnion (NVar 0) FloatV64Zero)
+                 (FSHPick (NVar 0) FloatV64Zero)
                  (FSHCompose
                     FSHId
                     (FSHEmbed (NVar 0)))).
@@ -108,17 +108,17 @@ Section SingleTests.
   Definition DynWin32_test: @FSHOperator Float32 (1 + 4) 1 :=
     FSHCompose (FSHBinOp (AZless (AVar 1) (AVar 0)))
      (FSHHTSUMUnion (APlus (AVar 1) (AVar 0))
-        (FSHCompose (FSHeUnion (NConst 0) FloatV32Zero)
+        (FSHCompose (FSHPick (NConst 0) FloatV32Zero)
            (FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV32Zero
               (FSHCompose
                  (FSHCompose (FSHPointwise (AMult (AVar 0) (ANth 3 (VVar 3) (NVar 2))))
                     (FSHInductor (NVar 0) (AMult (AVar 1) (AVar 0)) FloatV32One))
                  (FSHEmbed (NConst 0)))))
-        (FSHCompose (FSHeUnion (NConst 1) FloatV32Zero)
+        (FSHCompose (FSHPick (NConst 1) FloatV32Zero)
            (FSHIReduction 2 (AMax (AVar 1) (AVar 0)) FloatV32Zero
               (FSHCompose (FSHBinOp (AAbs (AMinus (AVar 1) (AVar 0))))
                  (FSHIUnion 2 (APlus (AVar 1) (AVar 0)) FloatV32Zero
-                    (FSHCompose (FSHeUnion (NVar 0) FloatV32Zero)
+                    (FSHCompose (FSHPick (NVar 0) FloatV32Zero)
                        (FSHEmbed
                           (NPlus (NPlus (NConst 1) (NMult (NVar 1) (NConst 1)))
                              (NMult (NVar 0) (NMult (NConst 2) (NConst 1))))))))))).

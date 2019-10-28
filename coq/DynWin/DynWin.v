@@ -25,17 +25,17 @@ Final SigmaHCOL expression (before translating to h-Code):
 
 BinOp(1, Lambda([ r14, r15 ], geq(r15, r14))) o
 SUMUnion(
-  eUnion(2, 0) o
+  Pick(2, 0) o
   ISumReduction(i17, 3, (a, b) -> add(a, b), V(0.0), (arg) -> false,
     PointWise(1, Lambda([ r16, i19 ], mul(r16, nth(D, i17)))) o
     Inductor(3, i17, Lambda([ r9, r10 ], mul(r9, r10)), V(1.0)) o
     Embed(5, 0)
   ),
-  eUnion(2, 1) o
+  Pick(2, 1) o
   ISumReduction(i15, 2, (a, b) -> max(a, b), V(0.0), (arg) -> false,
     BinOp(1, Lambda([ r12, r13 ], abs(sub(r12, r13)))) o
     ISumUnion(i18, 2,
-      eUnion(2, i18) o
+      Pick(2, i18) o
       Embed(5, add(add(i15, V(1)), mul(V(2), i18)))
     )
   )
@@ -77,7 +77,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                        (@ext_equiv CarrierA CarrierAe CarrierA CarrierAe)))
                                   Zless_proper))))
          ⊚ HTSUMUnion Monoid_RthetaFlags plus
-         (eUnion Monoid_RthetaFlags (le_S (le_n 1))
+         (Pick Monoid_RthetaFlags (le_S (le_n 1))
                  ⊚ SafeCast
                  (IReduction plus
                              (SHFamilyOperatorCompose Monoid_RthetaSafeFlags
@@ -90,7 +90,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                                                   (SHInductor _ (proj1_sig jf) mult 1))
                                                       (Embed Monoid_RthetaSafeFlags
                                                           (GathH1_domain_bound_to_base_bound (h_bound_first_half 1 4))))))
-         (eUnion Monoid_RthetaFlags (le_n 2)
+         (Pick Monoid_RthetaFlags (le_n 2)
                  ⊚ SafeCast
                  (IReduction minmax.max
                              (λ jf,
@@ -105,7 +105,7 @@ Definition dynwin_SHCOL1 (a:avector 3) : @SHOperator Monoid_RthetaFlags (1+(2+2)
                                         (UnSafeCast
                                            (ISumUnion
                                               (λ jf0,
-                                               eUnion Monoid_RthetaFlags (proj2_sig jf0)
+                                               Pick Monoid_RthetaFlags (proj2_sig jf0)
                                                       ⊚
                                                       Embed Monoid_RthetaFlags
                                                       (h_index_map_compose_range_bound

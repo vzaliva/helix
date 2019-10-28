@@ -468,7 +468,7 @@ Section monadic.
                    |}
           ])).
 
-  Definition genFSHeUnion
+  Definition genFSHPick
              {o: nat}
              {ft: FloatT}
              (st: IRState)
@@ -477,7 +477,7 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, entryblock) := incBlockNamed st "eUnion" in
+      let '(st, entryblock) := incBlockNamed st "Pick" in
       let '(st, retentry) := incVoid st in
       let '(st, storeid) := incVoid st in
       let '(st, px) := incLocal st in
@@ -1105,10 +1105,10 @@ Section monadic.
         add_comment
           (genId i ft st x y nextblock)
           "--- Operator: FSHId ---"
-      | FSHeUnion o b _ =>
+      | FSHPick o b _ =>
         add_comment
-          (@genFSHeUnion o ft st x y b nextblock)
-          "--- Operator: FSHeUnion ---"
+          (@genFSHPick o ft st x y b nextblock)
+          "--- Operator: FSHPick ---"
       | FSHEmbed i b =>
         add_comment
           (@genFSHEmbed i ft st x y b nextblock)

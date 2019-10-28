@@ -611,11 +611,11 @@ Section OperatorPairwiseProofs.
         apply Meq2, G.
     Qed.
 
-    Global Instance eUnion_SH_MSH_Operator_compat
+    Global Instance Pick_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o b: nat}
            (bc: b < o)
-      : SH_MSH_Operator_compat (eUnion (svalue:=svalue) fm bc) (MSHeUnion bc).
+      : SH_MSH_Operator_compat (Pick (svalue:=svalue) fm bc) (MSHPick bc).
     Proof.
       split.
       -
@@ -627,11 +627,11 @@ Section OperatorPairwiseProofs.
       -
         reflexivity.
       -
-        assert (facts: SHOperator_Facts fm (svalue:=svalue) (eUnion fm bc)) by
+        assert (facts: SHOperator_Facts fm (svalue:=svalue) (Pick fm bc)) by
             typeclasses eauto.
         intros x G.
         simpl.
-        unfold eUnion_mem, map_mem_block_elt.
+        unfold Pick_mem, map_mem_block_elt.
 
         unfold svector_to_mem_block.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
@@ -641,7 +641,7 @@ Section OperatorPairwiseProofs.
         +
           f_equiv.
           unfold mem_add, mem_empty.
-          assert(Vb: Is_Val (Vnth (eUnion' bc svalue x) bc)).
+          assert(Vb: Is_Val (Vnth (Pick' bc svalue x) bc)).
           {
             destruct facts.
             apply out_as_range.
@@ -671,7 +671,7 @@ Section OperatorPairwiseProofs.
               rewrite_clear Vb.
               rewrite NP.F.add_eq_o by reflexivity.
               f_equiv.
-              unfold eUnion'.
+              unfold Pick'.
               rewrite Vbuild_nth.
               dep_destruct (Nat.eq_dec b b); try congruence.
 
@@ -696,7 +696,7 @@ Section OperatorPairwiseProofs.
               rewrite NP.F.add_neq_o by apply NE.
               rewrite NP.F.empty_o.
 
-              assert(Vk: Is_Struct (Vnth (eUnion' bc svalue x) kc)).
+              assert(Vk: Is_Struct (Vnth (Pick' bc svalue x) kc)).
               {
                 destruct facts.
                 apply no_vals_at_sparse.

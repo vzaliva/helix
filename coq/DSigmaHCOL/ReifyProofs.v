@@ -3119,7 +3119,7 @@ Proof.
     some_none.
 Qed.
 
-Theorem eUnion_DSHeUnion
+Theorem Pick_DSHPick
         {fm}
         (σ: evalContext)
         {o b:nat}
@@ -3129,8 +3129,8 @@ Theorem eUnion_DSHeUnion
   :
     (forall Γ, Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ (svalue:=svalue)
-                       (eUnion fm bc)
-                       (DSHeUnion db svalue).
+                       (Pick fm bc)
+                       (DSHPick db svalue).
 Proof.
   intros H.
   intros Γ x.
@@ -3147,7 +3147,7 @@ Proof.
     rewrite Vmap_map.
 
     apply castWriter_equiv.
-    unfold eUnion'.
+    unfold Pick'.
     repeat rewrite Vbuild_nth.
     break_if.
     +
@@ -4104,7 +4104,7 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- SHCOL_DSHCOL_equiv _ (UnSafeCast _) _ ] => apply SHCOL_DSHCOL_equiv_UnSafeCast
          | [ |- SHCOL_DSHCOL_equiv _ (SHBinOp _ _) (DSHBinOp _) ] => apply SHBinOp_DSHBinOp
          | [ |- SHCOL_DSHCOL_equiv _ (HTSUMUnion _ _ _ _) (DSHHTSUMUnion _ _ _) ] => apply HTSUMUnion_DSHHTSUMUnion
-         | [ |- SHCOL_DSHCOL_equiv _ (eUnion _ _) (DSHeUnion _ _)] => apply eUnion_DSHeUnion
+         | [ |- SHCOL_DSHCOL_equiv _ (Pick _ _) (DSHPick _ _)] => apply Pick_DSHPick
          | [  |- SHCOL_DSHCOL_equiv _ (IReduction _ _) (DSHIReduction _ _ _ _)] => apply IReduction_DSHIReduction
          | [ |- SHOperatorFamily_DSHCOL_equiv _ _ _ ] => unfold SHOperatorFamily_DSHCOL_equiv
          | [ |- SHCOL_DSHCOL_equiv _ (SHFamilyOperatorCompose _ _ _ _) (DSHCompose _ _)] => apply SHCompose_DSHCompose

@@ -4381,7 +4381,7 @@ and `ISumReduction_PointWise` *)
         ScatH fm (svalue:=z) b s
               (snzord0 := snzord) (* Also `or_intror Nat.lt_1_2` *)
               (range_bound:=range_bound)
-        = eUnion fm bc.
+        = Pick fm bc.
     Proof.
       unfold equiv, ext_equiv, SHOperator_equiv.
       unfold equiv, ext_equiv.
@@ -4389,7 +4389,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       simpl.
 
-      unfold eUnion'.
+      unfold Pick'.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -4683,7 +4683,7 @@ and `ISumReduction_PointWise` *)
         =
         @IUnion z i o o f _ _ (fun jf =>
                                 SHCompose _
-                                          (@eUnion _ z o (proj1_sig jf) (proj2_sig jf))
+                                          (@Pick _ z o (proj1_sig jf) (proj2_sig jf))
                                           (@Embed _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
                                           )
                              ).
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold eUnion', compose, Embed'.
+      unfold Pick', compose, Embed'.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with
@@ -4737,7 +4737,7 @@ and `ISumReduction_PointWise` *)
         =
         @ISumUnion i o o  (fun jf =>
                              SHCompose _
-                                       (@eUnion _ zero o _ (proj2_sig jf))
+                                       (@Pick _ zero o _ (proj2_sig jf))
                                        (@Embed _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
                                        )
                    ).
