@@ -875,9 +875,9 @@ Section OperatorPairwiseProofs.
             apply Full_intro.
           }
 
-          assert(V: Is_Val (Vnth (SHPointwise' f x) kc)).
+          assert(V: Is_Val (Vnth (SHPointwise_impl f x) kc)).
           {
-            unfold SHPointwise'.
+            unfold SHPointwise_impl.
             rewrite Vbuild_nth.
             apply Is_Val_liftM.
             apply V0.
@@ -887,7 +887,7 @@ Section OperatorPairwiseProofs.
           apply NM.find_1 in V.
           rewrite V.
 
-          unfold SHPointwise'.
+          unfold SHPointwise_impl.
           rewrite Vbuild_nth.
           rewrite H2 with (ip:=kc).
           rewrite HPointwise_nth.

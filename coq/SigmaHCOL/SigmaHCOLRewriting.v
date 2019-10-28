@@ -239,7 +239,7 @@ Section SigmaHCOLHelperLemmas.
     unfold rsvector2rvector.
     setoid_rewrite Vnth_map.
     unfold rvector2rsvector.
-    setoid_rewrite SHPointwise'_nth.
+    setoid_rewrite SHPointwise_impl_nth.
     unfold RStheta2Rtheta.
     unfold_Rtheta_equiv.
     rewrite WriterMonadNoT.evalWriter_castWriter.
@@ -1402,7 +1402,7 @@ Section SigmaHCOLRewritingRules.
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply SHPointwise'_proper.
+        apply SHPointwise_impl_proper.
         apply pf_mor.
         apply Diamond_proper.
         + apply CarrierAPlus_proper.
@@ -1422,7 +1422,7 @@ Section SigmaHCOLRewritingRules.
         unfold Diamond.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
-        setoid_rewrite SHPointwise'_nth; try apply MonoidLaws_RthetaFlags.
+        setoid_rewrite SHPointwise_impl_nth; try apply MonoidLaws_RthetaFlags.
 
         unfold Apply_Family'.
         rewrite 2!AbsorbMUnionIndex_Vbuild.
@@ -1482,12 +1482,12 @@ Section SigmaHCOLRewritingRules.
 
           assert(H: UnionFold _ plus zero vr = mkSZero).
           {
-            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise' Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
+            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise_impl Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
                       Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x) jc))))).
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
-              rewrite SHPointwise'_nth by apply pf_mor.
+              rewrite SHPointwise_impl_nth by apply pf_mor.
               reflexivity.
             }
 
@@ -1570,7 +1570,7 @@ Section SigmaHCOLRewritingRules.
               intros t tc H.
               rewrite Vbuild_nth.
               unfold Is_ValZero, Is_ValX.
-              rewrite SHPointwise'_nth by apply pf_mor.
+              rewrite SHPointwise_impl_nth by apply pf_mor.
 
               unfold VAllButOne in Uone.
               specialize (Uone t tc H).
@@ -1587,7 +1587,7 @@ Section SigmaHCOLRewritingRules.
             rewrite UnionFold_VallButOne_zero with (kc:=kc).
             ** subst vr.
                rewrite Vbuild_nth.
-               rewrite SHPointwise'_nth.
+               rewrite SHPointwise_impl_nth.
                reflexivity.
             ** apply H.
           *
@@ -4020,7 +4020,7 @@ and `ISumReduction_PointWise` *)
       reflexivity.
     Qed.
 
-    Lemma SHPointwise'_distr_over_Scatter_impl
+    Lemma SHPointwise_impl_distr_over_Scatter_impl
           {fm : Monoid RthetaFlags}
           {o i : nat}
           (pf : CarrierA → CarrierA)
@@ -4029,11 +4029,11 @@ and `ISumReduction_PointWise` *)
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
-      SHPointwise' (IgnoreIndex pf) (@Scatter_impl fm _ _ f f_inj zero v) =
-      @Scatter_impl fm _ _ f f_inj zero (SHPointwise' (IgnoreIndex pf) v).
+      SHPointwise_impl (IgnoreIndex pf) (@Scatter_impl fm _ _ f f_inj zero v) =
+      @Scatter_impl fm _ _ f f_inj zero (SHPointwise_impl (IgnoreIndex pf) v).
     Proof.
       vec_index_equiv j jc.
-      rewrite SHPointwise'_nth.
+      rewrite SHPointwise_impl_nth.
       unfold equiv, Rtheta'_equiv.
       rewrite evalWriter_mkValue.
       (* unfold IgnoreIndex, const. *)
@@ -4046,7 +4046,7 @@ and `ISumReduction_PointWise` *)
         rewrite 2!Vbuild_nth.
         break_match; auto.
         unfold IgnoreIndex, const.
-        rewrite SHPointwise'_nth.
+        rewrite SHPointwise_impl_nth.
         rewrite evalWriter_mkValue.
         reflexivity.
       -
@@ -4066,7 +4066,7 @@ and `ISumReduction_PointWise` *)
         }
 
         rewrite pfzn.
-        remember (@Scatter_impl fm _ _ f _ zero (SHPointwise' (IgnoreIndex pf) v)) as s1.
+        remember (@Scatter_impl fm _ _ f _ zero (SHPointwise_impl (IgnoreIndex pf) v)) as s1.
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
@@ -4117,7 +4117,7 @@ and `ISumReduction_PointWise` *)
       intros x y E.
       simpl.
       rewrite_clear E.
-      apply SHPointwise'_distr_over_Scatter_impl, pfzn.
+      apply SHPointwise_impl_distr_over_Scatter_impl, pfzn.
       apply pf_mor.
     Qed.
 
@@ -4357,7 +4357,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
 
       unfold SHCompose, compose, equiv, SHOperator_equiv; simpl.
-      unfold SHPointwise'.
+      unfold SHPointwise_impl.
       rewrite Vbuild_nth.
 
       assert(jc1: j<n+n) by omega.
@@ -4773,7 +4773,7 @@ and `ISumReduction_PointWise` *)
       unfold SHCompose, equiv, SHOperator_equiv.
       simpl.
 
-      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp', vector2pair, SHPointwise', mult_by_nth, HPrepend, compose, IgnoreIndex2.
+      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp', vector2pair, SHPointwise_impl, mult_by_nth, HPrepend, compose, IgnoreIndex2.
       Opaque Monad.liftM.
       simpl.
       unfold equiv, ext_equiv.
@@ -4831,7 +4831,7 @@ and `ISumReduction_PointWise` *)
       unfold Embed_impl.
 
       rewrite Vnth_1.
-      rewrite 2!SHPointwise'_nth.
+      rewrite 2!SHPointwise_impl_nth.
       rewrite Vnth_1.
       f_equiv.
       apply fg.

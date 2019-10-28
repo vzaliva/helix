@@ -179,17 +179,17 @@ Section FlagsMonoidGenericOperators.
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-    Definition SHPointwise'
+    Definition SHPointwise_impl
                {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-    Global Instance SHPointwise'_proper {n: nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise' n).
+    Global Instance SHPointwise_impl_proper {n: nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise_impl n).
     Proof.
       intros f f' Ef x y Exy.
-      unfold SHPointwise'.
+      unfold SHPointwise_impl.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
       unfold_Rtheta_equiv.

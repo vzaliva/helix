@@ -553,7 +553,7 @@ Section SigmaHCOL_rewriting.
     intros j0 jc0 j1 jc1.
     repeat rewrite Vnth_map.
     intros [H0 H1].
-    rewrite SHPointwise'_nth in H0, H1.
+    rewrite SHPointwise_impl_nth in H0, H1.
 
 
     unfold transpose, row, Vnth_aux in H.
@@ -596,7 +596,7 @@ Section SigmaHCOL_rewriting.
     unfold compose.
     generalize (op fm F x).
     intros v.
-    unfold SigmaHCOLImpl.SHPointwise'.
+    unfold SigmaHCOLImpl.SHPointwise_impl.
     rewrite Vbuild_nth.
     unfold liftRthetaP.
     rewrite evalWriter_Rtheta_liftM.

@@ -3812,7 +3812,7 @@ Proof.
   unfold densify.
   rewrite Vmap_map.
   simpl.
-  unfold SHPointwise'.
+  unfold SHPointwise_impl.
   rewrite Vmap_Vbuild.
   apply Vbuild_proper.
   intros j jc.

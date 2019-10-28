@@ -1453,7 +1453,7 @@ Section SigmaHCOL_Operators.
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator n n svalue (SHPointwise' f) _
+      := mkSHOperator n n svalue (SHPointwise_impl f) _
                       (Full_set _) (Full_set _) _.
     Next Obligation.
       contradict H.
@@ -2173,14 +2173,14 @@ Section OperatorProperies.
             reflexivity.
   Qed.
 
-  Lemma SHPointwise'_nth
+  Lemma SHPointwise_impl_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (SHPointwise' f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+    Vnth (SHPointwise_impl f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
-    unfold SHPointwise'.
+    unfold SHPointwise_impl.
     rewrite Vbuild_nth.
     generalize (Vnth v jc) as x. intros x. clear v.
     rewrite <- evalWriter_Rtheta_liftM.
@@ -2197,7 +2197,7 @@ Section OperatorProperies.
     Vnth (op _ (svalue:=svalue) (SHPointwise fm f) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
   Proof.
     simpl.
-    unfold SHPointwise'.
+    unfold SHPointwise_impl.
     rewrite Vbuild_nth.
     reflexivity.
   Qed.
@@ -2216,7 +2216,7 @@ Section OperatorProperies.
       intros x.
       simpl.
       vec_index_equiv j jc.
-      rewrite SHPointwise'_nth.
+      rewrite SHPointwise_impl_nth.
       unfold liftM_HOperator_impl.
       unfold compose.
       unfold sparsify; rewrite Vnth_map.
@@ -2622,7 +2622,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold SHPointwise'.
+        unfold SHPointwise_impl.
         rewrite Vbuild_nth.
         apply Is_Val_liftM.
         apply H, S.
@@ -2633,7 +2633,7 @@ Section StructuralProperies.
         split.
       - intros v D j jc S.
         simpl in *.
-        unfold SHPointwise'.
+        unfold SHPointwise_impl.
         rewrite Vbuild_nth.
         apply Not_Collision_liftM.
         apply D, S.

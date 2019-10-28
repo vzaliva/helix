@@ -2132,25 +2132,25 @@ given natrual number by index mapping function f_spec. *)
 
 
           (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-          Definition SHPointwise'
+          Definition SHPointwise_impl
                      {n: nat}
                      (f: { i | i<n} -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                      (x: svector fm n): svector fm n
             := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-          Global Instance SHPointwise'_proper
+          Global Instance SHPointwise_impl_proper
                  {n: nat}
                  (f: { i | i<n} -> CarrierA -> CarrierA)
                  `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-            Proper ((=) ==> (=)) (SHPointwise' f).
+            Proper ((=) ==> (=)) (SHPointwise_impl f).
           Admitted.
 
           Definition SHPointwise
                      {n: nat}
                      (f: { i | i<n} -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-            := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
+            := mkSHOperator n n (SHPointwise_impl f) _ (Full_set _) (Full_set _).
 
           Definition SHBinOp'
                      {o}
