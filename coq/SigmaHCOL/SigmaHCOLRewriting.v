@@ -4389,7 +4389,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       simpl.
 
-      unfold Pick'.
+      unfold Pick_impl.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold Pick', compose, Embed'.
+      unfold Pick_impl, compose, Embed'.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with

@@ -1219,13 +1219,13 @@ Section SigmaHCOL_Operators.
                {svalue: CarrierA}
                {o b: nat}
                (bc: b < o)
-      := mkSHOperator 1 o svalue (Pick' bc svalue) _
+      := mkSHOperator 1 o svalue (Pick_impl bc svalue) _
                       (Full_set _)
                       (FinNatSet.singleton b) _.
     Next Obligation.
       (* svalue_at_sparse *)
       simpl in *.
-      unfold Pick'.
+      unfold Pick_impl.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -2423,7 +2423,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        unfold Pick'.
+        unfold Pick_impl.
         rewrite 2!Vbuild_nth.
         break_if.
         +
@@ -2435,7 +2435,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold Pick'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2450,7 +2450,7 @@ Section StructuralProperies.
       -
         intros v j jc S.
         simpl in *.
-        unfold Pick'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2462,7 +2462,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        unfold Pick'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2476,7 +2476,7 @@ Section StructuralProperies.
       -
         intros v j jc H.
         simpl in *.
-        unfold Pick'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +

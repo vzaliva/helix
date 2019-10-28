@@ -641,7 +641,7 @@ Section OperatorPairwiseProofs.
         +
           f_equiv.
           unfold mem_add, mem_empty.
-          assert(Vb: Is_Val (Vnth (Pick' bc svalue x) bc)).
+          assert(Vb: Is_Val (Vnth (Pick_impl bc svalue x) bc)).
           {
             destruct facts.
             apply out_as_range.
@@ -671,7 +671,7 @@ Section OperatorPairwiseProofs.
               rewrite_clear Vb.
               rewrite NP.F.add_eq_o by reflexivity.
               f_equiv.
-              unfold Pick'.
+              unfold Pick_impl.
               rewrite Vbuild_nth.
               dep_destruct (Nat.eq_dec b b); try congruence.
 
@@ -696,7 +696,7 @@ Section OperatorPairwiseProofs.
               rewrite NP.F.add_neq_o by apply NE.
               rewrite NP.F.empty_o.
 
-              assert(Vk: Is_Struct (Vnth (Pick' bc svalue x) kc)).
+              assert(Vk: Is_Struct (Vnth (Pick_impl bc svalue x) kc)).
               {
                 destruct facts.
                 apply no_vals_at_sparse.

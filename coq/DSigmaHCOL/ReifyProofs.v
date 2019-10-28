@@ -3147,7 +3147,7 @@ Proof.
     rewrite Vmap_map.
 
     apply castWriter_equiv.
-    unfold Pick'.
+    unfold Pick_impl.
     repeat rewrite Vbuild_nth.
     break_if.
     +

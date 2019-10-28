@@ -81,7 +81,7 @@ Section FlagsMonoidGenericOperators.
   Qed.
 
 
-    Definition Pick'
+    Definition Pick_impl
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
@@ -93,14 +93,14 @@ Section FlagsMonoidGenericOperators.
                    | right fc => mkStruct z
                    end).
 
-    Global Instance Pick'_arg_proper
+    Global Instance Pick_impl_arg_proper
            {o b: nat}
            (bc: b < o)
            (z: CarrierA):
-      Proper ((=) ==> (=)) (Pick' bc z).
+      Proper ((=) ==> (=)) (Pick_impl bc z).
     Proof.
       intros x x' Ex.
-      unfold Pick'.
+      unfold Pick_impl.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
       break_if.
