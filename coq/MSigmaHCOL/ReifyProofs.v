@@ -1178,9 +1178,9 @@ Section OperatorPairwiseProofs.
             apply Full_intro.
           }
 
-          assert(V: Is_Val (Vnth (SHBinOp' f x) kc)).
+          assert(V: Is_Val (Vnth (SHBinOp_impl f x) kc)).
           {
-            erewrite SHBinOp'_nth with (jc:=kc).
+            erewrite SHBinOp_impl_nth with (jc:=kc).
             apply Is_Val_Safe_liftM2.
             apply V1.
             apply V2.
@@ -1192,7 +1192,7 @@ Section OperatorPairwiseProofs.
 
           rewrite H2 with (ip:=kc).
           f_equiv.
-          rewrite SHBinOp'_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
+          rewrite SHBinOp_impl_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
           rewrite HBinOp_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
 
           rewrite evalWriter_Rtheta_liftM2.

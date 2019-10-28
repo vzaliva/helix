@@ -1589,7 +1589,7 @@ Section SigmaHCOL_Operators.
                {o: nat}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o svalue (SHBinOp' f) _
+      := mkSHOperator (o+o) o svalue (SHBinOp_impl f) _
                       (Full_set _) (Full_set _) _.
     Next Obligation.
       contradict H.
@@ -2225,7 +2225,7 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  Lemma SHBinOp'_nth
+  Lemma SHBinOp_impl_nth
         {o}
         {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
         {v: svector fm (o+o)}
@@ -2234,9 +2234,9 @@ Section OperatorProperies.
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp' fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp_impl fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
   Proof.
-    unfold SHBinOp', vector2pair.
+    unfold SHBinOp_impl, vector2pair.
     break_let.
     replace t with (fst (Vbreak v)) by crush.
     replace t0 with (snd (Vbreak v)) by crush.
@@ -2806,7 +2806,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
+      rewrite (@SHBinOp_impl_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
       apply Is_Val_Safe_liftM2; (apply H; constructor).
     -
       intros v j jc S.
@@ -2817,7 +2817,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth _  o f v j jc jc1 jc2).
+      rewrite (@SHBinOp_impl_nth _  o f v j jc jc1 jc2).
       apply Not_Collision_Safe_liftM2; apply D; constructor.
     -
       intros v D j jc S.

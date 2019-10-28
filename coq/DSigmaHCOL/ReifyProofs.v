@@ -3018,7 +3018,7 @@ Proof.
   intros Γ x.
   simpl.
   unfold evalDSHBinOp.
-  unfold SHBinOp'.
+  unfold SHBinOp_impl.
   break_let.
   rename t into x0, t0 into x1.
 

@@ -2152,7 +2152,7 @@ given natrual number by index mapping function f_spec. *)
                      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
             := mkSHOperator n n (SHPointwise_impl f) _ (Full_set _) (Full_set _).
 
-          Definition SHBinOp'
+          Definition SHBinOp_impl
                      {o}
                      (f: nat -> CarrierA -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
@@ -2161,11 +2161,11 @@ given natrual number by index mapping function f_spec. *)
                 | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
                 end.
 
-          Global Instance SHBinOp'_proper
+          Global Instance SHBinOp_impl_proper
                  {o}
                  (f: nat -> CarrierA -> CarrierA -> CarrierA)
                  `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-            Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
+            Proper ((=) ==> (=)) (SHBinOp_impl (o:=o) f).
           Admitted.
 
         End FlagsMonoidGenericOperators.
@@ -2175,7 +2175,7 @@ given natrual number by index mapping function f_spec. *)
                    (f: nat -> CarrierA -> CarrierA -> CarrierA)
                    `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
           := mkSHOperator Monoid_RthetaSafeFlags
-                          (o+o) o (SHBinOp' Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
+                          (o+o) o (SHBinOp_impl Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
 
         (** Matrix-union. This is a common implementations for IUnion and IReduction *)
         Definition Diamond'

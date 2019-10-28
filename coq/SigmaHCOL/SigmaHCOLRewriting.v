@@ -176,7 +176,7 @@ Section SigmaHCOLHelperLemmas.
 
     assert(jc1: j < o + o) by omega.
     assert(jc2: j + o < o + o) by omega.
-    setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+    setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
     rewrite 2!Vnth_map.
     f_equiv.
@@ -745,7 +745,7 @@ Section SigmaHCOLHelperLemmas.
 
       assert(jc1: j < o + o) by omega.
       assert(jc2: j + o < o + o) by omega.
-      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+      setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
       rewrite 2!Vnth_map.
       f_equiv.
@@ -819,7 +819,7 @@ Section SigmaHCOLExpansionRules.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply SafeCast'_proper, SHBinOp'_proper, pF.
+        + apply SafeCast'_proper, SHBinOp_impl_proper, pF.
       -
         simpl.
         split.
@@ -840,7 +840,7 @@ Section SigmaHCOLExpansionRules.
 
         assert(jc1: j<o+o) by omega.
         assert(jc2: j+o<o+o) by omega.
-        rewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags)
+        rewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags)
                                   (jc1:=jc1) (jc2:=jc2).
 
 
@@ -881,10 +881,10 @@ Section SigmaHCOLExpansionRules.
                                  (@index_map_family_member_injective 1 n n
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
                                                                                                              (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
-                                 (SafeCast' (@SHBinOp' Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
+                                 (SafeCast' (@SHBinOp_impl Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
                                             (Gather_impl (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
-        = Vnth ((@SHBinOp' _ n f) x) kp.
+        = Vnth ((@SHBinOp_impl _ n f) x) kp.
     Proof.
       intros n x f f_mor k kp.
 
@@ -944,7 +944,7 @@ Section SigmaHCOLExpansionRules.
            unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
            rewrite Vnth_map.
 
-           unshelve erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
+           unshelve erewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags).
            crush.
            destruct (Nat.eq_dec (k + 0) k).
            auto.
@@ -956,7 +956,7 @@ Section SigmaHCOLExpansionRules.
            tauto.
 
            rewrite 2!Vnth_map.
-           unshelve erewrite SHBinOp'_nth.
+           unshelve erewrite SHBinOp_impl_nth.
            crush.
            crush.
 
@@ -1023,7 +1023,7 @@ Section SigmaHCOLExpansionRules.
 
         assert(ip1: i<n+n) by omega.
         assert(ip2: (i+n) < (n+n)) by omega.
-        setoid_rewrite SHBinOp'_nth with (jc1:=ip1) (jc2:=ip2).
+        setoid_rewrite SHBinOp_impl_nth with (jc1:=ip1) (jc2:=ip2).
 
 
         unfold Diamond.
@@ -1040,7 +1040,7 @@ Section SigmaHCOLExpansionRules.
         rewrite <- AbsorbISumUnionIndex_Vbuild.
 
         setoid_rewrite U_SAG2.
-        setoid_rewrite SHBinOp'_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
+        setoid_rewrite SHBinOp_impl_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
 
         repeat rewrite Vnth_map.
         apply RStheta2Rtheta_liftM2.
@@ -4362,7 +4362,7 @@ and `ISumReduction_PointWise` *)
 
       assert(jc1: j<n+n) by omega.
       assert(jc2: (j+n) < (n+n)) by omega.
-      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+      setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
       unfold Rtheta'_equiv.
       rewrite evalWriter_Rtheta_liftM.
       rewrite 2!evalWriter_Rtheta_liftM2.
@@ -4773,7 +4773,7 @@ and `ISumReduction_PointWise` *)
       unfold SHCompose, equiv, SHOperator_equiv.
       simpl.
 
-      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp', vector2pair, SHPointwise_impl, mult_by_nth, HPrepend, compose, IgnoreIndex2.
+      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp_impl, vector2pair, SHPointwise_impl, mult_by_nth, HPrepend, compose, IgnoreIndex2.
       Opaque Monad.liftM.
       simpl.
       unfold equiv, ext_equiv.

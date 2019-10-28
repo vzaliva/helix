@@ -202,7 +202,7 @@ Section FlagsMonoidGenericOperators.
       apply Exy.
     Qed.
 
-    Definition SHBinOp'
+    Definition SHBinOp_impl
                {o: nat}
                (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
                (v:svector fm (o+o)): svector fm o
@@ -210,11 +210,11 @@ Section FlagsMonoidGenericOperators.
           | (a,b) => Vbuild (fun i (ip:i<o) => liftM2 (f (mkFinNat ip)) (Vnth a ip) (Vnth b ip))
           end.
 
-    Global Instance SHBinOp'_proper {o:nat}:
-      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp' o).
+    Global Instance SHBinOp_impl_proper {o:nat}:
+      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp_impl o).
     Proof.
       intros f f' Ef x y E.
-      unfold SHBinOp'.
+      unfold SHBinOp_impl.
 
       vec_index_equiv j jc.
       unfold vector2pair.
