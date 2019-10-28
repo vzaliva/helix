@@ -792,7 +792,7 @@ Section SigmaHCOLExpansionRules.
       apply SHOperator_ext_equiv_applied.
       intros v.
       simpl.
-      unfold SHInductor'.
+      unfold SHInductor_impl.
       unfold liftM_HOperator_impl, compose.
       unfold sparsify, HInductor, compose, Lst.
       simpl Vmap.

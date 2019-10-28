@@ -246,20 +246,20 @@ Section FlagsMonoidGenericOperators.
         reflexivity.
     Qed.
 
-    Definition SHInductor'
+    Definition SHInductor_impl
                (n:nat)
                (f: CarrierA -> CarrierA -> CarrierA)
                (initial: CarrierA)
                (x: svector fm 1): svector fm 1
       := Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x)).
 
-    Global Instance SHInductor'_proper {n:nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor' n).
+    Global Instance SHInductor_impl_proper {n:nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor_impl n).
     Proof.
       intros f f' Ef.
       intros ini ini' Eini.
       intros x y E.
-      unfold SHInductor'.
+      unfold SHInductor_impl.
       apply Vcons_proper. 2:{ reflexivity. }
       unfold_Rtheta_equiv.
       rewrite 2!evalWriter_Rtheta_liftM.

@@ -939,7 +939,7 @@ Section OperatorPairwiseProofs.
       -
         intros x H.
         simpl.
-        unfold SHInductor', HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
+        unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
         Opaque liftM.
         simpl.
         break_match.

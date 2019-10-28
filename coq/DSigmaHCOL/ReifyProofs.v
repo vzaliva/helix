@@ -3868,7 +3868,7 @@ Proof.
   subst n0.
 
   simpl op.
-  unfold SHInductor', Lst, Vconst, densify.
+  unfold SHInductor_impl, Lst, Vconst, densify.
   rewrite Vmap_cons.
   rewrite evalWriter_Rtheta_liftM.
   simpl.

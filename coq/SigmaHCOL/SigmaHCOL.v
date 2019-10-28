@@ -1467,7 +1467,7 @@ Section SigmaHCOL_Operators.
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
-      := mkSHOperator 1 1 svalue (SHInductor' n f initial) _
+      := mkSHOperator 1 1 svalue (SHInductor_impl n f initial) _
                       (Full_set _) (Full_set _) _ .
     Next Obligation.
       contradict H.
@@ -2674,7 +2674,7 @@ Section StructuralProperies.
         specialize (H 0 jc).
         simpl op.
         simpl in H, S.
-        unfold SHInductor', Lst.
+        unfold SHInductor_impl, Lst.
         dep_destruct v.
         Opaque liftM. simpl in *. Transparent liftM.
         apply Is_Val_liftM.
