@@ -146,7 +146,7 @@ Section FlagsMonoidGenericOperators.
       apply Exy.
     Qed.
 
-    Definition Scatter'
+    Definition Scatter_impl
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
@@ -160,14 +160,14 @@ Section FlagsMonoidGenericOperators.
                   | right _ => mkStruct idv
                   end).
 
-    Global Instance Scatter'_proper
+    Global Instance Scatter_impl_proper
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      Proper ((=) ==> (=) ==> (=)) (@Scatter' i o f f_inj).
+      Proper ((=) ==> (=) ==> (=)) (@Scatter_impl i o f f_inj).
     Proof.
       intros z0 z1 Ez x y Exy.
-      unfold Scatter'.
+      unfold Scatter_impl.
       vec_index_equiv j jp.
       simpl.
       rewrite 2!Vbuild_nth.

@@ -339,29 +339,29 @@ Section SigmaHCOLHelperLemmas.
         reflexivity.
     Qed.
 
-    Lemma Scatter'_composition
+    Lemma Scatter_impl_composition
           {i o t: nat}
           (f: index_map i t)
           (g: index_map t o)
           {f_inj: index_map_injective f}
           {g_inj: index_map_injective g}
           (idv: CarrierA):
-      @Scatter' fm _ _ g g_inj idv ∘ @Scatter' fm _ _ f f_inj idv
-      = @Scatter' fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
+      @Scatter_impl fm _ _ g g_inj idv ∘ @Scatter_impl fm _ _ f f_inj idv
+      = @Scatter_impl fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
     Proof.
       apply ext_equiv_applied_equiv.
       -
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv);
-          apply Scatter'_proper; reflexivity.
+          apply Scatter_impl_proper; reflexivity.
       -
         split; try apply vec_Setoid.
-        apply Scatter'_proper; reflexivity.
+        apply Scatter_impl_proper; reflexivity.
       -
         intros v.
         unfold compose.
         vec_index_equiv j jp.
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite 2!Vbuild_nth.
         break_match.
         + rewrite Vbuild_nth.
@@ -876,7 +876,7 @@ Section SigmaHCOLExpansionRules.
           (SumUnion Monoid_RthetaFlags
                     (Vbuild
                        (λ (j : nat) (jc : j < n),
-                        @Scatter' Monoid_RthetaFlags 1 _
+                        @Scatter_impl Monoid_RthetaFlags 1 _
                                  (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound j n 1 jc))
                                  (@index_map_family_member_injective 1 n n
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
@@ -888,7 +888,7 @@ Section SigmaHCOLExpansionRules.
     Proof.
       intros n x f f_mor k kp.
 
-      remember (fun i jc => Scatter' _ _) as bf.
+      remember (fun i jc => Scatter_impl _ _) as bf.
 
 
       (* Lemma5 embedded below*)
@@ -905,7 +905,7 @@ Section SigmaHCOLExpansionRules.
         intros ib icb.
         subst.
         rewrite Vbuild_nth.
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite Vbuild_nth; intros H.
         break_match.
         - unfold h_index_map in i.
@@ -935,7 +935,7 @@ Section SigmaHCOLExpansionRules.
       -  subst b.
          rewrite Vbuild_nth.
          subst bf.
-         unfold Scatter'.
+         unfold Scatter_impl.
          rewrite Vbuild_nth.
          break_match.
          +
@@ -1141,7 +1141,7 @@ Section SigmaHCOLExpansionRules.
         tuple_inversion.
         symmetry.
 
-        assert(LS: (@Scatter' fm o1 (Init.Nat.add o1 o2)
+        assert(LS: (@Scatter_impl fm o1 (Init.Nat.add o1 o2)
                               (@h_index_map o1 (Init.Nat.add o1 o2) O (S O) (h_bound_first_half o1 o2))
                               (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
                                                          (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
@@ -1156,7 +1156,7 @@ Section SigmaHCOLExpansionRules.
                                    x) with (sparsify fm x0).
           -
             vec_index_equiv i ip.
-            unfold Scatter'.
+            unfold Scatter_impl.
             rewrite Vbuild_nth.
 
             unfold sparsify.
@@ -1247,7 +1247,7 @@ Section SigmaHCOLExpansionRules.
             apply le_unique.
         }
 
-        assert(RS: (@Scatter' fm o2 (Init.Nat.add o1 o2)
+        assert(RS: (@Scatter_impl fm o2 (Init.Nat.add o1 o2)
                               (@h_index_map o2 (Init.Nat.add o1 o2) o1 (S O) (h_bound_second_half o1 o2))
                               (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
                                                          (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
@@ -1261,7 +1261,7 @@ Section SigmaHCOLExpansionRules.
                                    (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                  (h_bound_second_half i1 i2)) x) with (sparsify fm x1).
           -
-            unfold Scatter'.
+            unfold Scatter_impl.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             rewrite Vnth_app.
@@ -4020,7 +4020,7 @@ and `ISumReduction_PointWise` *)
       reflexivity.
     Qed.
 
-    Lemma SHPointwise'_distr_over_Scatter'
+    Lemma SHPointwise'_distr_over_Scatter_impl
           {fm : Monoid RthetaFlags}
           {o i : nat}
           (pf : CarrierA → CarrierA)
@@ -4029,8 +4029,8 @@ and `ISumReduction_PointWise` *)
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
-      SHPointwise' (IgnoreIndex pf) (@Scatter' fm _ _ f f_inj zero v) =
-      @Scatter' fm _ _ f f_inj zero (SHPointwise' (IgnoreIndex pf) v).
+      SHPointwise' (IgnoreIndex pf) (@Scatter_impl fm _ _ f f_inj zero v) =
+      @Scatter_impl fm _ _ f f_inj zero (SHPointwise' (IgnoreIndex pf) v).
     Proof.
       vec_index_equiv j jc.
       rewrite SHPointwise'_nth.
@@ -4041,7 +4041,7 @@ and `ISumReduction_PointWise` *)
       destruct (in_range_dec f j) as [R | NR].
       -
         (* `j` in dense position *)
-        unfold Scatter'.
+        unfold Scatter_impl.
         simpl.
         rewrite 2!Vbuild_nth.
         break_match; auto.
@@ -4051,11 +4051,11 @@ and `ISumReduction_PointWise` *)
         reflexivity.
       -
         (* `j` in sparse position *)
-        remember (@Scatter' fm _ _ f f_inj zero v) as s0.
+        remember (@Scatter_impl fm _ _ f f_inj zero v) as s0.
         assert(VZ0: Is_ValZero (Vnth s0 jc)).
         {
           subst s0.
-          apply Scatter'_Unit_at_sparse; assumption.
+          apply Scatter_impl_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s0 jc) ) with CarrierAz.
         2: {
@@ -4066,11 +4066,11 @@ and `ISumReduction_PointWise` *)
         }
 
         rewrite pfzn.
-        remember (@Scatter' fm _ _ f _ zero (SHPointwise' (IgnoreIndex pf) v)) as s1.
+        remember (@Scatter_impl fm _ _ f _ zero (SHPointwise' (IgnoreIndex pf) v)) as s1.
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
-          apply Scatter'_Unit_at_sparse; assumption.
+          apply Scatter_impl_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s1 jc) ) with CarrierAz.
         reflexivity.
@@ -4117,7 +4117,7 @@ and `ISumReduction_PointWise` *)
       intros x y E.
       simpl.
       rewrite_clear E.
-      apply SHPointwise'_distr_over_Scatter', pfzn.
+      apply SHPointwise'_distr_over_Scatter_impl, pfzn.
       apply pf_mor.
     Qed.
 
@@ -4199,7 +4199,7 @@ and `ISumReduction_PointWise` *)
           crush.
       +
         remember (S n) as sn.
-        erewrite Scatter'_1_Sn.
+        erewrite Scatter_impl_1_Sn.
 
         break_match.
         *
@@ -4252,9 +4252,9 @@ and `ISumReduction_PointWise` *)
             intros i ip.
 
             assert(H: Vforall (fun p => (Vin p y) \/ (p ≡ mkStruct mzero))
-                              (@Scatter' fm _ _ (shrink_index_map_1_range f n0)
+                              (@Scatter_impl fm _ _ (shrink_index_map_1_range f n0)
                                         (shrink_index_map_1_range_inj f n0 f_inj)
-                                        mzero y)) by apply Scatter'_is_almost_endomorphism.
+                                        mzero y)) by apply Scatter_impl_is_almost_endomorphism.
             apply Vforall_nth with (ip:=ip) in H.
             destruct H.
             ++
@@ -4394,7 +4394,7 @@ and `ISumReduction_PointWise` *)
       break_if.
       +
         rewrite Vhead_nth.
-        rewrite Scatter'_spec with
+        rewrite Scatter_impl_spec with
             (idv  := z)
             (f    := @h_index_map (S O) o b s range_bound)
             (f_inj:= @h_index_map_is_injective (S O) o b s range_bound snzord).
@@ -4409,7 +4409,7 @@ and `ISumReduction_PointWise` *)
           rewrite_clear Exy.
           reflexivity.
       +
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite Vbuild_nth.
         break_match.
         *

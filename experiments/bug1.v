@@ -2024,7 +2024,7 @@ given natrual number by index mapping function f_spec. *)
                                   (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
                      ).
 
-          Definition Scatter'
+          Definition Scatter_impl
                      {i o: nat}
                      (f: index_map i o)
                      {f_inj: index_map_injective f}
@@ -2038,11 +2038,11 @@ given natrual number by index mapping function f_spec. *)
                         | right _ => mkStruct idv
                         end).
 
-          Global Instance Scatter'_proper
+          Global Instance Scatter_impl_proper
                  {i o: nat}
                  (f: index_map i o)
                  {f_inj: index_map_injective f}:
-            Proper ((=) ==> (=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
+            Proper ((=) ==> (=) ==> (=)) (Scatter_impl f (f_inj:=f_inj)).
           Admitted.
 
           Definition Scatter
@@ -2050,7 +2050,7 @@ given natrual number by index mapping function f_spec. *)
                      (f: index_map i o)
                      {f_inj: index_map_injective f}
                      (idv: CarrierA)
-            := mkSHOperator i o (Scatter' f (f_inj:=f_inj) idv) _
+            := mkSHOperator i o (Scatter_impl f (f_inj:=f_inj) idv) _
                             (Full_set _) (* Scatter always reads evertying *)
                             (index_map_range_set f) (* Write pattern is governed by index function *).
 
