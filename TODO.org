@@ -20,6 +20,20 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
 ** Vellvm as sub-module                                              :zoickx:
+   Keep in mind that currently it is linked in 2 places, as follows:
+   
+   #+BEGIN_SRC sh
+   rm -f lib/vellvm
+   rm -f ml/libvellvm
+   ln -s ~/coq/vellvm lib/
+   ln -s ~/coq/vellvm/src/ml/libvellvm ml/
+   #+END_SRC
+
+   Ideally, we would like to have HELIX compile out of the box, after
+   checkout, without making any symlinks.
+   
+   Also top-level makefile may compile dependencies (Vellvm, interaction trees).
+
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
