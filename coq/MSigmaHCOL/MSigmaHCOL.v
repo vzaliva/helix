@@ -656,7 +656,7 @@ Section Morphisms.
     specialize (Em1 k).
     rewrite 2!NP.F.map2_1bis by auto.
     repeat break_match; try some_none; auto;
-      repeat some_inv; f_equiv; apply Efg; auto.
+      repeat some_inv; f_equiv; try apply Efg; auto.
   Qed.
 
   Global Instance eUnion_mem_proper
