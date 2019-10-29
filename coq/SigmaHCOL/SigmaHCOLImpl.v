@@ -59,21 +59,21 @@ Section FlagsMonoidGenericOperators.
 
   Variable fm:Monoid RthetaFlags.
 
-  Definition liftM_HOperator'
+  Definition liftM_HOperator_impl
              {i o}
              (op: avector i -> avector o)
     : svector fm i -> svector fm o :=
     sparsify fm ∘ op ∘ densify fm.
 
-  Global Instance liftM_HOperator'_proper
+  Global Instance liftM_HOperator_impl_proper
          {i o}
          (op: avector i -> avector o)
          `{HOP: HOperator i o op}
     :
-      Proper ((=) ==> (=)) (liftM_HOperator' op).
+      Proper ((=) ==> (=)) (liftM_HOperator_impl op).
   Proof.
     intros x y H.
-    unfold liftM_HOperator'.
+    unfold liftM_HOperator_impl.
     unfold compose.
     f_equiv.
     rewrite H.
@@ -81,7 +81,7 @@ Section FlagsMonoidGenericOperators.
   Qed.
 
 
-    Definition eUnion'
+    Definition Pick_impl
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
@@ -93,14 +93,14 @@ Section FlagsMonoidGenericOperators.
                    | right fc => mkStruct z
                    end).
 
-    Global Instance eUnion'_arg_proper
+    Global Instance Pick_impl_arg_proper
            {o b: nat}
            (bc: b < o)
            (z: CarrierA):
-      Proper ((=) ==> (=)) (eUnion' bc z).
+      Proper ((=) ==> (=)) (Pick_impl bc z).
     Proof.
       intros x x' Ex.
-      unfold eUnion'.
+      unfold Pick_impl.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
       break_if.
@@ -109,36 +109,36 @@ Section FlagsMonoidGenericOperators.
       reflexivity.
     Qed.
 
-    Definition eT'
+    Definition Embed_impl
                {i b:nat}
                (bc: b < i)
                (v: svector fm i)
       := [Vnth v bc].
 
-    Global Instance eT'_proper
+    Global Instance Embed_impl_proper
            {i b:nat}
            (bc: b < i):
-      Proper ((=) ==> (=)) (eT' bc).
+      Proper ((=) ==> (=)) (Embed_impl bc).
     Proof.
       intros x y E.
-      unfold eT'.
+      unfold Embed_impl.
       apply Vcons_single_elim.
       apply Vnth_equiv; auto.
     Qed.
 
-    Definition Gather'
+    Definition Gather_impl
                {i o: nat}
                (f: index_map o i)
                (x: svector fm i):
       svector fm o
       := Vbuild (VnthIndexMapped x f).
 
-    Global Instance Gather'_proper
+    Global Instance Gather_impl_proper
            {i o: nat}:
-      Proper ((=) ==> (=) ==> (=)) (@Gather' i o).
+      Proper ((=) ==> (=) ==> (=)) (@Gather_impl i o).
     Proof.
       intros f g Efg x y Exy.
-      unfold Gather', VnthIndexMapped.
+      unfold Gather_impl, VnthIndexMapped.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
       apply Vnth_equiv.
@@ -146,7 +146,7 @@ Section FlagsMonoidGenericOperators.
       apply Exy.
     Qed.
 
-    Definition Scatter'
+    Definition Scatter_impl
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
@@ -160,14 +160,14 @@ Section FlagsMonoidGenericOperators.
                   | right _ => mkStruct idv
                   end).
 
-    Global Instance Scatter'_proper
+    Global Instance Scatter_impl_proper
            {i o: nat}
            (f: index_map i o)
            {f_inj: index_map_injective f}:
-      Proper ((=) ==> (=) ==> (=)) (@Scatter' i o f f_inj).
+      Proper ((=) ==> (=) ==> (=)) (@Scatter_impl i o f f_inj).
     Proof.
       intros z0 z1 Ez x y Exy.
-      unfold Scatter'.
+      unfold Scatter_impl.
       vec_index_equiv j jp.
       simpl.
       rewrite 2!Vbuild_nth.
@@ -179,17 +179,17 @@ Section FlagsMonoidGenericOperators.
 
 
     (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-    Definition SHPointwise'
+    Definition SHPointwise_impl
                {n: nat}
                (f: { i | i<n} -> CarrierA -> CarrierA)
                (x: svector fm n): svector fm n
       := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-    Global Instance SHPointwise'_proper {n: nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise' n).
+    Global Instance SHPointwise_impl_proper {n: nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHPointwise_impl n).
     Proof.
       intros f f' Ef x y Exy.
-      unfold SHPointwise'.
+      unfold SHPointwise_impl.
       vec_index_equiv j jc.
       rewrite 2!Vbuild_nth.
       unfold_Rtheta_equiv.
@@ -202,7 +202,7 @@ Section FlagsMonoidGenericOperators.
       apply Exy.
     Qed.
 
-    Definition SHBinOp'
+    Definition SHBinOp_impl
                {o: nat}
                (f: FinNat o -> CarrierA -> CarrierA -> CarrierA)
                (v:svector fm (o+o)): svector fm o
@@ -210,11 +210,11 @@ Section FlagsMonoidGenericOperators.
           | (a,b) => Vbuild (fun i (ip:i<o) => liftM2 (f (mkFinNat ip)) (Vnth a ip) (Vnth b ip))
           end.
 
-    Global Instance SHBinOp'_proper {o:nat}:
-      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp' o).
+    Global Instance SHBinOp_impl_proper {o:nat}:
+      Proper (((=) ==> (=) ==> (=) ==> (=)) ==> (=) ==> (=)) (@SHBinOp_impl o).
     Proof.
       intros f f' Ef x y E.
-      unfold SHBinOp'.
+      unfold SHBinOp_impl.
 
       vec_index_equiv j jc.
       unfold vector2pair.
@@ -246,20 +246,20 @@ Section FlagsMonoidGenericOperators.
         reflexivity.
     Qed.
 
-    Definition SHInductor'
+    Definition SHInductor_impl
                (n:nat)
                (f: CarrierA -> CarrierA -> CarrierA)
                (initial: CarrierA)
                (x: svector fm 1): svector fm 1
       := Lst ((liftM (HCOLImpl.Inductor n f initial)) (Vhead x)).
 
-    Global Instance SHInductor'_proper {n:nat}:
-      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor' n).
+    Global Instance SHInductor_impl_proper {n:nat}:
+      Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=)) (@SHInductor_impl n).
     Proof.
       intros f f' Ef.
       intros ini ini' Eini.
       intros x y E.
-      unfold SHInductor'.
+      unfold SHInductor_impl.
       apply Vcons_proper. 2:{ reflexivity. }
       unfold_Rtheta_equiv.
       rewrite 2!evalWriter_Rtheta_liftM.

@@ -521,7 +521,7 @@ tLambda (nNamed "a")
                  {|
                  inductive_mind := "Coq.Init.Datatypes.nat";
                  inductive_ind := 0 |} 0 []]];
-         tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" [])
+         tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Pick" [])
            [tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags" [];
            tApp
              (tConstruct
@@ -3205,7 +3205,7 @@ tLambda (nNamed "a")
                            [])
                         [tConst "Helix.HCOL.CarrierType.CarrierA" [];
                         tConst "Helix.HCOL.CarrierType.CarrierA1" []]]];
-                  tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" [])
+                  tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Embed" [])
                     [tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaSafeFlags"
                        [];
                     tApp (tConst "Coq.Init.Nat.add" [])
@@ -3393,7 +3393,7 @@ tLambda (nNamed "a")
                  {|
                  inductive_mind := "Coq.Init.Datatypes.nat";
                  inductive_ind := 0 |} 0 []]];
-         tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" [])
+         tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Pick" [])
            [tConst "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags" [];
            tApp
              (tConstruct
@@ -6798,7 +6798,7 @@ tLambda (nNamed "a")
                                    inductive_mind := "Coq.Init.Datatypes.nat";
                                    inductive_ind := 0 |} 0 []]];
                            tApp
-                             (tConst "Helix.SigmaHCOL.SigmaHCOL.eUnion" [])
+                             (tConst "Helix.SigmaHCOL.SigmaHCOL.Pick" [])
                              [tConst
                                 "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags"
                                 [];
@@ -6876,7 +6876,7 @@ tLambda (nNamed "a")
                                   [])
                                [tConst "Helix.HCOL.CarrierType.CarrierA" [];
                                tConst "Helix.HCOL.CarrierType.CarrierAz" []]];
-                           tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.eT" [])
+                           tApp (tConst "Helix.SigmaHCOL.SigmaHCOL.Embed" [])
                              [tConst
                                 "Helix.SigmaHCOL.Rtheta.Monoid_RthetaFlags"
                                 [];

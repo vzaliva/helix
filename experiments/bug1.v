@@ -1937,25 +1937,25 @@ given natrual number by index mapping function f_spec. *)
             Proper ((=) ==> iff) (@op_Vforall_P i o P).
           Admitted.
 
-          Definition liftM_HOperator'
+          Definition liftM_HOperator_impl
                      {i o}
                      (op: avector i -> avector o)
             : svector fm i -> svector fm o :=
             sparsify fm ∘ op ∘ densify fm.
 
-          Global Instance liftM_HOperator'_proper
+          Global Instance liftM_HOperator_impl_proper
                  {i o}
                  (op: avector i -> avector o)
                  `{HOP: HOperator i o op}
             :
-              Proper ((=) ==> (=)) (liftM_HOperator' op).
+              Proper ((=) ==> (=)) (liftM_HOperator_impl op).
           Admitted.
 
           Definition liftM_HOperator
                      {i o}
                      (op: avector i -> avector o)
                      `{HOP: HOperator i o op}
-            := mkSHOperator i o (liftM_HOperator' op) (@liftM_HOperator'_proper i o op HOP)
+            := mkSHOperator i o (liftM_HOperator_impl op) (@liftM_HOperator_impl_proper i o op HOP)
                             (Full_set _) (Full_set _).
 
           (** Apply family of functions to same fector and return matrix of results *)
@@ -1995,23 +1995,23 @@ given natrual number by index mapping function f_spec. *)
             Proper ((=) ==> (=)) (@Apply_Family i o n op_family).
           Admitted.
 
-          Definition Gather'
+          Definition Gather_impl
                      {i o: nat}
                      (f: index_map o i)
                      (x: svector fm i):
             svector fm o
             := Vbuild (VnthIndexMapped x f).
 
-          Global Instance Gather'_proper
+          Global Instance Gather_impl_proper
                  {i o: nat}
                  (f: index_map o i):
-            Proper ((=) ==> (=)) (Gather' f).
+            Proper ((=) ==> (=)) (Gather_impl f).
           Admitted.
 
           Definition Gather
                      {i o: nat}
                      (f: index_map o i)
-            := mkSHOperator i o (Gather' f) _
+            := mkSHOperator i o (Gather_impl f) _
                             (index_map_range_set f) (* Read pattern is governed by index function *)
                             (Full_set _) (* Gater always writes everywhere *).
 
@@ -2024,7 +2024,7 @@ given natrual number by index mapping function f_spec. *)
                                   (range_bound:=domain_bound) (* since we swap domain and range, domain bound becomes range boud *)
                      ).
 
-          Definition Scatter'
+          Definition Scatter_impl
                      {i o: nat}
                      (f: index_map i o)
                      {f_inj: index_map_injective f}
@@ -2038,11 +2038,11 @@ given natrual number by index mapping function f_spec. *)
                         | right _ => mkStruct idv
                         end).
 
-          Global Instance Scatter'_proper
+          Global Instance Scatter_impl_proper
                  {i o: nat}
                  (f: index_map i o)
                  {f_inj: index_map_injective f}:
-            Proper ((=) ==> (=) ==> (=)) (Scatter' f (f_inj:=f_inj)).
+            Proper ((=) ==> (=) ==> (=)) (Scatter_impl f (f_inj:=f_inj)).
           Admitted.
 
           Definition Scatter
@@ -2050,7 +2050,7 @@ given natrual number by index mapping function f_spec. *)
                      (f: index_map i o)
                      {f_inj: index_map_injective f}
                      (idv: CarrierA)
-            := mkSHOperator i o (Scatter' f (f_inj:=f_inj) idv) _
+            := mkSHOperator i o (Scatter_impl f (f_inj:=f_inj) idv) _
                             (Full_set _) (* Scatter always reads evertying *)
                             (index_map_range_set f) (* Write pattern is governed by index function *).
 
@@ -2132,27 +2132,27 @@ given natrual number by index mapping function f_spec. *)
 
 
           (* Sigma-HCOL version of HPointwise. We could not just (liftM_Hoperator HPointwise) but we want to preserve structural flags. *)
-          Definition SHPointwise'
+          Definition SHPointwise_impl
                      {n: nat}
                      (f: { i | i<n} -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                      (x: svector fm n): svector fm n
             := Vbuild (fun j jd => liftM (f (j ↾ jd)) (Vnth x jd)).
 
-          Global Instance SHPointwise'_proper
+          Global Instance SHPointwise_impl_proper
                  {n: nat}
                  (f: { i | i<n} -> CarrierA -> CarrierA)
                  `{pF: !Proper ((=) ==> (=) ==> (=)) f}:
-            Proper ((=) ==> (=)) (SHPointwise' f).
+            Proper ((=) ==> (=)) (SHPointwise_impl f).
           Admitted.
 
           Definition SHPointwise
                      {n: nat}
                      (f: { i | i<n} -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-            := mkSHOperator n n (SHPointwise' f) _ (Full_set _) (Full_set _).
+            := mkSHOperator n n (SHPointwise_impl f) _ (Full_set _) (Full_set _).
 
-          Definition SHBinOp'
+          Definition SHBinOp_impl
                      {o}
                      (f: nat -> CarrierA -> CarrierA -> CarrierA)
                      `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
@@ -2161,11 +2161,11 @@ given natrual number by index mapping function f_spec. *)
                 | (a,b) => Vbuild (fun i ip => liftM2 (f i) (Vnth a ip) (Vnth b ip))
                 end.
 
-          Global Instance SHBinOp'_proper
+          Global Instance SHBinOp_impl_proper
                  {o}
                  (f: nat -> CarrierA -> CarrierA -> CarrierA)
                  `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}:
-            Proper ((=) ==> (=)) (SHBinOp' (o:=o) f).
+            Proper ((=) ==> (=)) (SHBinOp_impl (o:=o) f).
           Admitted.
 
         End FlagsMonoidGenericOperators.
@@ -2175,7 +2175,7 @@ given natrual number by index mapping function f_spec. *)
                    (f: nat -> CarrierA -> CarrierA -> CarrierA)
                    `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
           := mkSHOperator Monoid_RthetaSafeFlags
-                          (o+o) o (SHBinOp' Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
+                          (o+o) o (SHBinOp_impl Monoid_RthetaSafeFlags f) _ (Full_set _) (Full_set _).
 
         (** Matrix-union. This is a common implementations for IUnion and IReduction *)
         Definition Diamond'

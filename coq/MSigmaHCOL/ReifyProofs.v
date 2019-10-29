@@ -611,11 +611,11 @@ Section OperatorPairwiseProofs.
         apply Meq2, G.
     Qed.
 
-    Global Instance eUnion_SH_MSH_Operator_compat
+    Global Instance Pick_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o b: nat}
            (bc: b < o)
-      : SH_MSH_Operator_compat (eUnion (svalue:=svalue) fm bc) (MSHeUnion bc).
+      : SH_MSH_Operator_compat (Pick (svalue:=svalue) fm bc) (MSHPick bc).
     Proof.
       split.
       -
@@ -627,11 +627,11 @@ Section OperatorPairwiseProofs.
       -
         reflexivity.
       -
-        assert (facts: SHOperator_Facts fm (svalue:=svalue) (eUnion fm bc)) by
+        assert (facts: SHOperator_Facts fm (svalue:=svalue) (Pick fm bc)) by
             typeclasses eauto.
         intros x G.
         simpl.
-        unfold eUnion_mem, map_mem_block_elt.
+        unfold Pick_mem, map_mem_block_elt.
 
         unfold svector_to_mem_block.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
@@ -641,7 +641,7 @@ Section OperatorPairwiseProofs.
         +
           f_equiv.
           unfold mem_add, mem_empty.
-          assert(Vb: Is_Val (Vnth (eUnion' bc svalue x) bc)).
+          assert(Vb: Is_Val (Vnth (Pick_impl bc svalue x) bc)).
           {
             destruct facts.
             apply out_as_range.
@@ -671,7 +671,7 @@ Section OperatorPairwiseProofs.
               rewrite_clear Vb.
               rewrite NP.F.add_eq_o by reflexivity.
               f_equiv.
-              unfold eUnion'.
+              unfold Pick_impl.
               rewrite Vbuild_nth.
               dep_destruct (Nat.eq_dec b b); try congruence.
 
@@ -696,7 +696,7 @@ Section OperatorPairwiseProofs.
               rewrite NP.F.add_neq_o by apply NE.
               rewrite NP.F.empty_o.
 
-              assert(Vk: Is_Struct (Vnth (eUnion' bc svalue x) kc)).
+              assert(Vk: Is_Struct (Vnth (Pick_impl bc svalue x) kc)).
               {
                 destruct facts.
                 apply no_vals_at_sparse.
@@ -732,11 +732,11 @@ Section OperatorPairwiseProofs.
           congruence.
     Qed.
 
-    Global Instance eT_SH_MSH_Operator_compat
+    Global Instance Embed_SH_MSH_Operator_compat
            {svalue: CarrierA}
            {o b:nat}
            (bc: b < o)
-      : SH_MSH_Operator_compat (eT (svalue:=svalue) fm bc) (MSHeT bc).
+      : SH_MSH_Operator_compat (Embed (svalue:=svalue) fm bc) (MSHEmbed bc).
     Proof.
       split.
       -
@@ -748,12 +748,12 @@ Section OperatorPairwiseProofs.
       -
         reflexivity.
       -
-        assert (facts: SHOperator_Facts fm (svalue:=svalue) (eT fm bc)) by
+        assert (facts: SHOperator_Facts fm (svalue:=svalue) (Embed fm bc)) by
             typeclasses eauto.
         intros x G.
         simpl.
 
-        unfold eT_mem , map_mem_block_elt.
+        unfold Embed_mem , map_mem_block_elt.
         unfold svector_to_mem_block.
         svector_to_mem_block_to_spec m0 H0 I0 O0.
         svector_to_mem_block_to_spec m1 H1 I1 O1.
@@ -778,9 +778,9 @@ Section OperatorPairwiseProofs.
             rewrite Heqo0 in V. clear Heqo0 m1.
             some_inv. clear c H1.
 
-            assert(Is_Val (Vnth (eT' bc x) (lt_0_Sn O))) as V0.
+            assert(Is_Val (Vnth (Embed_impl bc x) (lt_0_Sn O))) as V0.
             {
-              unfold eT'.
+              unfold Embed_impl.
               rewrite Vnth_0.
               simpl.
               apply G.
@@ -875,9 +875,9 @@ Section OperatorPairwiseProofs.
             apply Full_intro.
           }
 
-          assert(V: Is_Val (Vnth (SHPointwise' f x) kc)).
+          assert(V: Is_Val (Vnth (SHPointwise_impl f x) kc)).
           {
-            unfold SHPointwise'.
+            unfold SHPointwise_impl.
             rewrite Vbuild_nth.
             apply Is_Val_liftM.
             apply V0.
@@ -887,7 +887,7 @@ Section OperatorPairwiseProofs.
           apply NM.find_1 in V.
           rewrite V.
 
-          unfold SHPointwise'.
+          unfold SHPointwise_impl.
           rewrite Vbuild_nth.
           rewrite H2 with (ip:=kc).
           rewrite HPointwise_nth.
@@ -939,7 +939,7 @@ Section OperatorPairwiseProofs.
       -
         intros x H.
         simpl.
-        unfold SHInductor', HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
+        unfold SHInductor_impl, HInductor, compose, mem_op_of_hop, HCOLImpl.Scalarize, Lst.
         Opaque liftM.
         simpl.
         break_match.
@@ -1178,9 +1178,9 @@ Section OperatorPairwiseProofs.
             apply Full_intro.
           }
 
-          assert(V: Is_Val (Vnth (SHBinOp' f x) kc)).
+          assert(V: Is_Val (Vnth (SHBinOp_impl f x) kc)).
           {
-            erewrite SHBinOp'_nth with (jc:=kc).
+            erewrite SHBinOp_impl_nth with (jc:=kc).
             apply Is_Val_Safe_liftM2.
             apply V1.
             apply V2.
@@ -1192,7 +1192,7 @@ Section OperatorPairwiseProofs.
 
           rewrite H2 with (ip:=kc).
           f_equiv.
-          rewrite SHBinOp'_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
+          rewrite SHBinOp_impl_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
           rewrite HBinOp_nth with (jc:=kc) (jc1:=kc1) (jc2:=kc2).
 
           rewrite evalWriter_Rtheta_liftM2.

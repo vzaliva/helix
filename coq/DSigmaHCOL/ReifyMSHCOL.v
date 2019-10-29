@@ -149,8 +149,8 @@ Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA :=
 Run TemplateProgram
     (mkSwitch string
               string_beq
-              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHeUnion"    , "n_eUnion"     ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHeT"        , "n_eT"         ) ;
+              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPick"      , "n_Pick"       ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed"     , "n_Embed"      ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPointwise" , "n_SHPointwise") ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHBinOp"     , "n_SHBinOp"    ) ;
                  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHInductor"  , "n_SHInductor" ) ;
@@ -176,13 +176,13 @@ Fixpoint compileMSHCOL2DSHCOL
             compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
-    | Some n_eUnion, [o ; b ; _] =>
-      tmPrint "MSHeUnion" ;;
+    | Some n_Pick, [o ; b ; _] =>
+      tmPrint "MSHPick" ;;
               no <- tmUnquoteTyped nat o ;;
               bc <- compileNExpr b ;;
               tmReturn (vars,  DSHAssign (x_p, NConst 0) (y_p, bc))
-    | Some n_eT, [i ; b ; _] =>
-      tmPrint "MSHeT" ;;
+    | Some n_Embed, [i ; b ; _] =>
+      tmPrint "MSHEmbed" ;;
               ni <- tmUnquoteTyped nat i ;;
               bc <- compileNExpr b ;;
               tmReturn (vars, DSHAssign (x_p, bc) (y_p, NConst 0))

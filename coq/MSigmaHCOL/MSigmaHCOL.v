@@ -541,11 +541,11 @@ Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
 
 Section Operators.
   (* AKA: "embed" *)
-  Definition eUnion_mem (b: nat) (x:mem_block): option mem_block :=
+  Definition Pick_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x 0 (mem_empty) b.
 
   (* AKA "pick" *)
-  Definition eT_mem (b: nat) (x:mem_block): option mem_block :=
+  Definition Embed_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
 
   (** Apply family of mem functions to same mem_block and return list of results *)
@@ -659,12 +659,12 @@ Section Morphisms.
       repeat some_inv; f_equiv; try apply Efg; auto.
   Qed.
 
-  Global Instance eUnion_mem_proper
+  Global Instance Pick_mem_proper
          {b:nat}
-    : Proper (equiv ==> equiv) (eUnion_mem b).
+    : Proper (equiv ==> equiv) (Pick_mem b).
   Proof.
     simpl_relation.
-    unfold eUnion_mem.
+    unfold Pick_mem.
     unfold map_mem_block_elt.
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
@@ -701,12 +701,12 @@ Section Morphisms.
       some_none.
   Qed.
 
-  Global Instance eT_mem_proper
+  Global Instance Embed_mem_proper
          {b:nat}
-    : Proper (equiv ==> equiv) (eT_mem b).
+    : Proper (equiv ==> equiv) (Embed_mem b).
   Proof.
     simpl_relation.
-    unfold eT_mem.
+    unfold Embed_mem.
     unfold map_mem_block_elt.
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
@@ -1598,20 +1598,20 @@ Section MSHOperator_Definitions.
                       (Full_set _)
                       (Full_set _).
 
-  Definition MSHeUnion
+  Definition MSHPick
              {o b: nat}
              (bc: b < o)
     := @mkMSHOperator 1 o
-                      (eUnion_mem b)
-                      eUnion_mem_proper
+                      (Pick_mem b)
+                      Pick_mem_proper
                       (Full_set _)
                       (FinNatSet.singleton b).
 
-  Definition MSHeT
+  Definition MSHEmbed
              {i b: nat}
              (bc: b < i)
-    := @mkMSHOperator i 1 (eT_mem b)
-                      eT_mem_proper
+    := @mkMSHOperator i 1 (Embed_mem b)
+                      Embed_mem_proper
                       (FinNatSet.singleton b)
                       (Full_set _).
 
@@ -1901,16 +1901,16 @@ Section MSHOperator_Facts_instances.
       apply P2; auto.
   Qed.
 
-  Global Instance eUnion_MFacts
+  Global Instance Pick_MFacts
          {o b: nat}
          (bc: b < o)
-    : MSHOperator_Facts (MSHeUnion bc).
+    : MSHOperator_Facts (MSHPick bc).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros m H.
-      unfold is_Some, MSHeUnion, eUnion_mem, map_mem_block_elt, mem_lookup. simpl.
+      unfold is_Some, MSHPick, Pick_mem, map_mem_block_elt, mem_lookup. simpl.
       repeat break_match; try some_none; try tauto.
       clear Heqo0. rename Heqo1 into M.
       simpl in *.
@@ -1925,7 +1925,7 @@ Section MSHOperator_Facts_instances.
       split.
       +
         simpl in *.
-        unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
+        unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
         break_match_hyp; try some_none.
         some_inv.
         subst m.
@@ -1941,7 +1941,7 @@ Section MSHOperator_Facts_instances.
           congruence.
       +
         simpl in *.
-        unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
+        unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
         break_match_hyp; try some_none.
         some_inv.
         subst m.
@@ -1954,7 +1954,7 @@ Section MSHOperator_Facts_instances.
     -
       intros m0 m H j jc C.
       simpl in H.
-      unfold eUnion_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
+      unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
       break_match; try some_none.
       some_inv.
       subst m.
@@ -1964,16 +1964,16 @@ Section MSHOperator_Facts_instances.
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
 
-  Global Instance eT_MFacts
+  Global Instance Embed_MFacts
          {i b: nat}
          (bc: b<i)
-    : MSHOperator_Facts (MSHeT bc).
+    : MSHOperator_Facts (MSHEmbed bc).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros v H.
-      unfold is_Some, MSHeT, eT_mem, map_mem_block_elt, mem_lookup. simpl.
+      unfold is_Some, MSHEmbed, Embed_mem, map_mem_block_elt, mem_lookup. simpl.
       repeat break_match; try some_none; try tauto.
       clear Heqo. rename Heqo0 into M.
       simpl in *.
@@ -1990,7 +1990,7 @@ Section MSHOperator_Facts_instances.
       (* out_mem_fill_pattern *)
       intros m0 m H.
       simpl in *.
-      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
       destruct j; try omega.
       split.
       +
@@ -2011,7 +2011,7 @@ Section MSHOperator_Facts_instances.
     -
       intros m0 m H.
       simpl in *.
-      unfold eT_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
 
       intros j jc.
       unfold not.

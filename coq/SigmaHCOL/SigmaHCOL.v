@@ -1142,8 +1142,8 @@ Section SigmaHCOL_Operators.
                (op: avector i -> avector o)
                `{HOP: HOperator i o op}
       := mkSHOperator i o svalue
-                      (liftM_HOperator' op)
-                      (@liftM_HOperator'_proper fm i o op HOP)
+                      (liftM_HOperator_impl op)
+                      (@liftM_HOperator_impl_proper fm i o op HOP)
                       (Full_set _)
                       (Full_set _)
                       _.
@@ -1215,17 +1215,17 @@ Section SigmaHCOL_Operators.
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
-    Program Definition eUnion
+    Program Definition Pick
                {svalue: CarrierA}
                {o b: nat}
                (bc: b < o)
-      := mkSHOperator 1 o svalue (eUnion' bc svalue) _
+      := mkSHOperator 1 o svalue (Pick_impl bc svalue) _
                       (Full_set _)
                       (FinNatSet.singleton b) _.
     Next Obligation.
       (* svalue_at_sparse *)
       simpl in *.
-      unfold eUnion'.
+      unfold Pick_impl.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -1237,11 +1237,11 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-    Program Definition eT
+    Program Definition Embed
                {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 svalue (eT' bc) _
+      := mkSHOperator i 1 svalue (Embed_impl bc) _
                       (FinNatSet.singleton b)
                       (Full_set _) _.
     Next Obligation.
@@ -1254,7 +1254,7 @@ Section SigmaHCOL_Operators.
                {svalue: CarrierA}
                {i o: nat}
                (f: index_map o i)
-      := mkSHOperator i o svalue (Gather' f) _
+      := mkSHOperator i o svalue (Gather_impl f) _
                       (index_map_range_set f) (* Read pattern is governed by index function *)
                       (Full_set _) (* Gater always writes everywhere *)
                       _.
@@ -1279,13 +1279,13 @@ Section SigmaHCOL_Operators.
                {i o: nat}
                (f: index_map i o)
                {f_inj: index_map_injective f}
-      := mkSHOperator i o svalue (@Scatter' _ _ _ f f_inj svalue) _
+      := mkSHOperator i o svalue (@Scatter_impl _ _ _ f f_inj svalue) _
                       (Full_set _) (* Scatter always reads evertying *)
                       (index_map_range_set f) (* Write pattern is governed by index function *) _.
     Next Obligation.
       simpl in *.
       unfold index_map_range_set in H.
-      unfold Scatter'.
+      unfold Scatter_impl.
       rewrite Vbuild_nth.
       break_match.
       *
@@ -1453,7 +1453,7 @@ Section SigmaHCOL_Operators.
                {n: nat}
                (f: FinNat n -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-      := mkSHOperator n n svalue (SHPointwise' f) _
+      := mkSHOperator n n svalue (SHPointwise_impl f) _
                       (Full_set _) (Full_set _) _.
     Next Obligation.
       contradict H.
@@ -1467,7 +1467,7 @@ Section SigmaHCOL_Operators.
                (f: CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=)) f}
                (initial: CarrierA)
-      := mkSHOperator 1 1 svalue (SHInductor' n f initial) _
+      := mkSHOperator 1 1 svalue (SHInductor_impl n f initial) _
                       (Full_set _) (Full_set _) _ .
     Next Obligation.
       contradict H.
@@ -1492,7 +1492,7 @@ Section SigmaHCOL_Operators.
                   ⊚ (kernel jf)
                   ⊚ (Gather (g jf)).
 
-    Lemma Scatter'_Unit_at_sparse
+    Lemma Scatter_impl_Unit_at_sparse
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
@@ -1500,11 +1500,11 @@ Section SigmaHCOL_Operators.
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      ¬ in_range f k -> (Is_ValX idv) (Vnth (@Scatter' _ _ _ f f_inj idv x) kc).
+      ¬ in_range f k -> (Is_ValX idv) (Vnth (@Scatter_impl _ _ _ f f_inj idv x) kc).
     Proof.
       intros R.
 
-      unfold Scatter'.
+      unfold Scatter_impl.
       rewrite Vbuild_nth.
       break_match.
       -
@@ -1514,7 +1514,7 @@ Section SigmaHCOL_Operators.
         apply Is_ValX_mkStruct.
     Qed.
 
-    Lemma Scatter'_NonUnit_in_range
+    Lemma Scatter_impl_NonUnit_in_range
           {i o: nat}
           (f: index_map i o)
           {f_inj: index_map_injective f}
@@ -1522,11 +1522,11 @@ Section SigmaHCOL_Operators.
           (x: svector fm i)
           (k:nat)
           (kc:k<o):
-      idv ≠ evalWriter (Vnth (@Scatter' _  _ _ f f_inj idv x) kc) -> in_range f k.
+      idv ≠ evalWriter (Vnth (@Scatter_impl _  _ _ f f_inj idv x) kc) -> in_range f k.
     Proof.
       intros H.
 
-      unfold Scatter' in H.
+      unfold Scatter_impl in H.
       rewrite Vbuild_nth in H.
       break_match.
       -
@@ -1566,16 +1566,16 @@ Section SigmaHCOL_Operators.
       unfold compose.
       generalize
         (@op ki ko _ (kernel (mkFinNat jc0))
-             (@Gather' fm i ki (g (mkFinNat jc0)) x)),
+             (@Gather_impl fm i ki (g (mkFinNat jc0)) x)),
       (@op ki ko _ (kernel (mkFinNat jc1))
-           (@Gather' fm i ki (g (mkFinNat jc1)) x)).
+           (@Gather_impl fm i ki (g (mkFinNat jc1)) x)).
       intros x0 x1.
 
       clear kernel g i x ki. rename ko into i.
 
       intros [H0 H1].
-      apply Scatter'_NonUnit_in_range, in_range_exists in H0; try assumption.
-      apply Scatter'_NonUnit_in_range, in_range_exists in H1; try assumption.
+      apply Scatter_impl_NonUnit_in_range, in_range_exists in H0; try assumption.
+      apply Scatter_impl_NonUnit_in_range, in_range_exists in H1; try assumption.
       destruct H0 as [x [xc H0]].
       destruct H1 as [y [yc H1]].
       rewrite <- H1 in H0.
@@ -1589,7 +1589,7 @@ Section SigmaHCOL_Operators.
                {o: nat}
                (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
                `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
-      := mkSHOperator (o+o) o svalue (SHBinOp' f) _
+      := mkSHOperator (o+o) o svalue (SHBinOp_impl f) _
                       (Full_set _) (Full_set _) _.
     Next Obligation.
       contradict H.
@@ -1892,13 +1892,13 @@ Section OperatorProperies.
   (* Specification of gather as mapping from output to input. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Gather'_spec
+  Lemma Gather_impl_spec
         {i o: nat}
         (f: index_map o i)
         (x: svector fm i):
-    ∀ n (ip : n < o), Vnth (Gather' f x) ip ≡ VnthIndexMapped x f n ip.
+    ∀ n (ip : n < o), Vnth (Gather_impl f x) ip ≡ VnthIndexMapped x f n ip.
   Proof.
-    unfold Gather', Vbuild.
+    unfold Gather_impl, Vbuild.
     destruct (Vbuild_spec (VnthIndexMapped x f)) as [Vv Vs].
     simpl.
     intros.
@@ -1907,25 +1907,25 @@ Section OperatorProperies.
   Qed.
 
   (* Index-function based condition under which Gather output is dense *)
-  Lemma Gather'_dense_constr (i ki : nat)
+  Lemma Gather_impl_dense_constr (i ki : nat)
         (g: index_map ki i)
         (x: svector fm i)
         (g_dense: forall k (kc:k<ki), Is_Val (Vnth x («g» k kc))):
-    Vforall Is_Val (Gather' g x).
+    Vforall Is_Val (Gather_impl g x).
   Proof.
     apply Vforall_nth_intro.
     intros i0 ip.
-    rewrite Gather'_spec.
+    rewrite Gather_impl_spec.
     apply g_dense.
   Qed.
 
 
-  Lemma Gather'_is_endomorphism:
+  Lemma Gather_impl_is_endomorphism:
     ∀ (i o : nat)
       (x : svector fm i),
     ∀ (f: index_map o i),
       Vforall (Vin_aux x)
-              (Gather' f x).
+              (Gather_impl f x).
   Proof.
     intros.
     apply Vforall_eq.
@@ -1938,16 +1938,16 @@ Section OperatorProperies.
     apply Vnth_in.
   Qed.
 
-  Lemma Gather'_preserves_P:
+  Lemma Gather_impl_preserves_P:
     ∀ (i o : nat) (x : svector fm i) (P: Rtheta' fm -> Prop),
       Vforall P x
       → ∀ f : index_map o i,
-        Vforall P (Gather' f x).
+        Vforall P (Gather_impl f x).
   Proof.
     intros.
-    assert(Vforall (Vin_aux x) (Gather' f x))
-      by apply Gather'_is_endomorphism.
-    generalize dependent (Gather' f x).
+    assert(Vforall (Vin_aux x) (Gather_impl f x))
+      by apply Gather_impl_is_endomorphism.
+    generalize dependent (Gather_impl f x).
     intros t.
     rewrite 2!Vforall_eq.
     crush.
@@ -1956,32 +1956,32 @@ Section OperatorProperies.
     auto.
   Qed.
 
-  Lemma Gather'_preserves_density:
+  Lemma Gather_impl_preserves_density:
     ∀ (i o : nat) (x : svector fm i)
       (f: index_map o i),
       svector_is_dense fm x ->
-      svector_is_dense fm (Gather' f x).
+      svector_is_dense fm (Gather_impl f x).
   Proof.
     intros.
     unfold svector_is_dense in *.
-    apply Gather'_preserves_P.
+    apply Gather_impl_preserves_P.
     assumption.
   Qed.
 
   (* Specification of scatter as mapping from input to output. NOTE:
     we are using definitional equality here, as Scatter does not
     perform any operations on elements of type A *)
-  Lemma Scatter'_spec
+  Lemma Scatter_impl_spec
         {i o: nat}
         (f: index_map i o)
         {f_inj: index_map_injective f}
         (idv: CarrierA)
         (x: svector fm i)
         (n: nat) (ip : n < i):
-    Vnth x ip ≡ VnthIndexMapped (@Scatter' _ _ _ f f_inj idv x) f n ip.
+    Vnth x ip ≡ VnthIndexMapped (@Scatter_impl _ _ _ f f_inj idv x) f n ip.
   Proof.
     unfold VnthIndexMapped.
-    unfold Scatter'.
+    unfold Scatter_impl.
     rewrite Vbuild_nth.
     break_match.
     simpl.
@@ -1994,18 +1994,18 @@ Section OperatorProperies.
     - apply in_range_by_def, ip.
   Qed.
 
-  Lemma Scatter'_is_almost_endomorphism
+  Lemma Scatter_impl_is_almost_endomorphism
         (i o : nat)
         (x : svector fm i)
         (f: index_map i o)
         {f_inj : index_map_injective f}
         (idv: CarrierA):
     Vforall (fun p => (Vin p x) \/ (p ≡ mkStruct idv))
-            (@Scatter' fm  _ _ f f_inj idv x).
+            (@Scatter_impl fm  _ _ f f_inj idv x).
   Proof.
     apply Vforall_nth_intro.
     intros j jp.
-    unfold Scatter'.
+    unfold Scatter_impl.
     rewrite Vbuild_nth.
     simpl.
     break_match.
@@ -2015,14 +2015,14 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  Lemma Scatter'_1_1
+  Lemma Scatter_impl_1_1
         (f : index_map 1 1)
         (f_inj : index_map_injective f)
         (idv : CarrierA)
         (h : Rtheta' fm):
-    @Scatter' fm _ _ f f_inj idv [h] ≡ [h].
+    @Scatter_impl fm _ _ f f_inj idv [h] ≡ [h].
   Proof.
-    unfold Scatter'.
+    unfold Scatter_impl.
     rewrite Vbuild_1.
     break_match.
     -
@@ -2047,13 +2047,13 @@ Section OperatorProperies.
         omega.
   Qed.
 
-  Lemma Scatter'_1_Sn
+  Lemma Scatter_impl_1_Sn
         {n: nat}
         (f: index_map 1 (S n))
         {f_inj: index_map_injective f}
         (idv: CarrierA)
         (x: svector fm 1):
-    @Scatter' fm _ _ f f_inj idv x
+    @Scatter_impl fm _ _ f f_inj idv x
               ≡
               match Nat.eq_dec (⟦ f ⟧ 0) 0 with
               | in_left =>
@@ -2064,7 +2064,7 @@ Section OperatorProperies.
                 let f' := (shrink_index_map_1_range f fc) in
                 Vcons
                   (mkStruct idv)
-                  (@Scatter' fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
+                  (@Scatter_impl fm _ _ f' (shrink_index_map_1_range_inj f fc f_inj) idv x)
               end.
   Proof.
     break_match.
@@ -2073,7 +2073,7 @@ Section OperatorProperies.
       apply vec_eq_elementwise.
       apply Vforall2_intro_nth.
       intros i ip.
-      unfold Scatter'.
+      unfold Scatter_impl.
       rewrite Vbuild_nth.
       destruct (eq_nat_dec i 0).
       +
@@ -2111,7 +2111,7 @@ Section OperatorProperies.
       apply vec_eq_elementwise.
       apply Vforall2_intro_nth.
       intros i ip.
-      unfold Scatter'.
+      unfold Scatter_impl.
       rewrite Vbuild_nth.
       destruct (eq_nat_dec i 0).
       +
@@ -2173,14 +2173,14 @@ Section OperatorProperies.
             reflexivity.
   Qed.
 
-  Lemma SHPointwise'_nth
+  Lemma SHPointwise_impl_nth
         {n: nat}
         (f: { i | i<n} -> CarrierA -> CarrierA)
         {j:nat} {jc:j<n}
         (v: svector fm n):
-    Vnth (SHPointwise' f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
+    Vnth (SHPointwise_impl f v) jc = mkValue (f (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth v jc))).
   Proof.
-    unfold SHPointwise'.
+    unfold SHPointwise_impl.
     rewrite Vbuild_nth.
     generalize (Vnth v jc) as x. intros x. clear v.
     rewrite <- evalWriter_Rtheta_liftM.
@@ -2197,7 +2197,7 @@ Section OperatorProperies.
     Vnth (op _ (svalue:=svalue) (SHPointwise fm f) v) jc ≡ Monad.liftM (f (j ↾ jc)) (Vnth v jc).
   Proof.
     simpl.
-    unfold SHPointwise'.
+    unfold SHPointwise_impl.
     rewrite Vbuild_nth.
     reflexivity.
   Qed.
@@ -2216,8 +2216,8 @@ Section OperatorProperies.
       intros x.
       simpl.
       vec_index_equiv j jc.
-      rewrite SHPointwise'_nth.
-      unfold liftM_HOperator'.
+      rewrite SHPointwise_impl_nth.
+      unfold liftM_HOperator_impl.
       unfold compose.
       unfold sparsify; rewrite Vnth_map.
       rewrite HPointwise_nth.
@@ -2225,7 +2225,7 @@ Section OperatorProperies.
       reflexivity.
   Qed.
 
-  Lemma SHBinOp'_nth
+  Lemma SHBinOp_impl_nth
         {o}
         {f: FinNat o -> CarrierA -> CarrierA -> CarrierA}
         {v: svector fm (o+o)}
@@ -2234,9 +2234,9 @@ Section OperatorProperies.
         {jc1:j<o+o}
         {jc2: (j+o)<o+o}
     :
-      Vnth (@SHBinOp' fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
+      Vnth (@SHBinOp_impl fm o f v) jc ≡ liftM2 (f (mkFinNat jc)) (Vnth v jc1) (Vnth v jc2).
   Proof.
-    unfold SHBinOp', vector2pair.
+    unfold SHBinOp_impl, vector2pair.
     break_let.
     replace t with (fst (Vbreak v)) by crush.
     replace t0 with (snd (Vbreak v)) by crush.
@@ -2323,7 +2323,7 @@ Section StructuralProperies.
       -
         intros v H j jc H0.
         simpl in *.
-        unfold liftM_HOperator', compose, sparsify, densify.
+        unfold liftM_HOperator_impl, compose, sparsify, densify.
         rewrite Vnth_map.
         apply Is_Val_mkValue.
       -
@@ -2333,7 +2333,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl in *.
-        unfold liftM_HOperator', compose, sparsify, densify.
+        unfold liftM_HOperator_impl, compose, sparsify, densify.
         rewrite Vnth_map.
         apply Not_Collision_mkValue.
       -
@@ -2409,10 +2409,10 @@ Section StructuralProperies.
         apply H.
     Qed.
 
-    Global Instance eUnion_Facts
+    Global Instance Pick_Facts
            {o b:nat}
            (bc: b < o):
-      SHOperator_Facts fm (eUnion fm bc) (svalue:=svalue).
+      SHOperator_Facts fm (Pick fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2423,7 +2423,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        unfold eUnion'.
+        unfold Pick_impl.
         rewrite 2!Vbuild_nth.
         break_if.
         +
@@ -2435,7 +2435,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2450,7 +2450,7 @@ Section StructuralProperies.
       -
         intros v j jc S.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2462,7 +2462,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        unfold eUnion'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2476,7 +2476,7 @@ Section StructuralProperies.
       -
         intros v j jc H.
         simpl in *.
-        unfold eUnion'.
+        unfold Pick_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2488,10 +2488,10 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
     Qed.
 
-    Global Instance eT_Facts
+    Global Instance Embed_Facts
            {i b:nat}
            (bc: b < i)
-      : SHOperator_Facts fm (eT fm bc) (svalue:=svalue).
+      : SHOperator_Facts fm (Embed fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2560,7 +2560,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        rewrite 2!Gather'_spec.
+        rewrite 2!Gather_impl_spec.
         unfold VnthIndexMapped.
         apply H.
         unfold mkFinNat.
@@ -2568,7 +2568,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl.
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         apply H.
         simpl.
@@ -2582,7 +2582,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         apply D.
         simpl.
@@ -2622,7 +2622,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold SHPointwise'.
+        unfold SHPointwise_impl.
         rewrite Vbuild_nth.
         apply Is_Val_liftM.
         apply H, S.
@@ -2633,7 +2633,7 @@ Section StructuralProperies.
         split.
       - intros v D j jc S.
         simpl in *.
-        unfold SHPointwise'.
+        unfold SHPointwise_impl.
         rewrite Vbuild_nth.
         apply Not_Collision_liftM.
         apply D, S.
@@ -2674,7 +2674,7 @@ Section StructuralProperies.
         specialize (H 0 jc).
         simpl op.
         simpl in H, S.
-        unfold SHInductor', Lst.
+        unfold SHInductor_impl, Lst.
         dep_destruct v.
         Opaque liftM. simpl in *. Transparent liftM.
         apply Is_Val_liftM.
@@ -2732,7 +2732,7 @@ Section StructuralProperies.
     -
       intros v H j jc S.
       simpl.
-      unfold Scatter' in *.
+      unfold Scatter_impl in *.
       rewrite Vbuild_nth.
       break_match.
       + simpl in *.
@@ -2749,7 +2749,7 @@ Section StructuralProperies.
       simpl in *.
 
       unfold index_map_range_set in S.
-      unfold Scatter'.
+      unfold Scatter_impl.
       rewrite Vbuild_nth.
       break_match.
       *
@@ -2759,7 +2759,7 @@ Section StructuralProperies.
         apply (@Is_Struct_mkSZero Monoid_RthetaSafeFlags MonoidLaws_SafeRthetaFlags).
     - intros v D j jc S.
       simpl.
-      unfold Scatter' in *.
+      unfold Scatter_impl in *.
       rewrite Vbuild_nth.
       break_match.
       + simpl in *.
@@ -2774,7 +2774,7 @@ Section StructuralProperies.
     -
       intros v D j jc S.
       simpl in *.
-      unfold Scatter' in *.
+      unfold Scatter_impl in *.
       rewrite Vbuild_nth in S.
       break_match; crush.
   Qed.
@@ -2806,7 +2806,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
+      rewrite (@SHBinOp_impl_nth Monoid_RthetaSafeFlags o f v j jc jc1 jc2).
       apply Is_Val_Safe_liftM2; (apply H; constructor).
     -
       intros v j jc S.
@@ -2817,7 +2817,7 @@ Section StructuralProperies.
       simpl in *.
       assert(jc2: (j+o)<o+o) by omega.
       assert(jc1:j<o+o) by omega.
-      rewrite (@SHBinOp'_nth _  o f v j jc jc1 jc2).
+      rewrite (@SHBinOp_impl_nth _  o f v j jc jc1 jc2).
       apply Not_Collision_Safe_liftM2; apply D; constructor.
     -
       intros v D j jc S.

@@ -137,7 +137,7 @@ Section SigmaHCOLHelperLemmas.
     intros x y E.
     rewrite_clear E.
     vec_index_equiv j jc.
-    unfold liftM_HOperator', compose, sparsify, densify.
+    unfold liftM_HOperator_impl, compose, sparsify, densify.
     rewrite Vnth_map.
     unfold HReduction, compose, HCOLImpl.Vectorize.
 
@@ -176,7 +176,7 @@ Section SigmaHCOLHelperLemmas.
 
     assert(jc1: j < o + o) by omega.
     assert(jc2: j + o < o + o) by omega.
-    setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+    setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
     rewrite 2!Vnth_map.
     f_equiv.
@@ -209,7 +209,7 @@ Section SigmaHCOLHelperLemmas.
     unfold rsvector2rvector.
     setoid_rewrite Vnth_map.
     unfold rvector2rsvector.
-    unfold liftM_HOperator'.
+    unfold liftM_HOperator_impl.
     unfold sparsify, densify, compose.
     setoid_rewrite Vnth_map.
     rewrite Vmap_map.
@@ -239,7 +239,7 @@ Section SigmaHCOLHelperLemmas.
     unfold rsvector2rvector.
     setoid_rewrite Vnth_map.
     unfold rvector2rsvector.
-    setoid_rewrite SHPointwise'_nth.
+    setoid_rewrite SHPointwise_impl_nth.
     unfold RStheta2Rtheta.
     unfold_Rtheta_equiv.
     rewrite WriterMonadNoT.evalWriter_castWriter.
@@ -269,7 +269,7 @@ Section SigmaHCOLHelperLemmas.
     rewrite Vnth_map.
     unfold rsvector2rvector.
     unfold_Rtheta_equiv.
-    setoid_rewrite Gather'_spec.
+    setoid_rewrite Gather_impl_spec.
     unfold VnthIndexMapped.
     rewrite Vnth_map.
     f_equiv.
@@ -297,7 +297,7 @@ Section SigmaHCOLHelperLemmas.
     rewrite Vnth_map.
     unfold rvector2rsvector.
     unfold_Rtheta_equiv.
-    setoid_rewrite Gather'_spec.
+    setoid_rewrite Gather_impl_spec.
     unfold VnthIndexMapped.
     rewrite Vnth_map.
     f_equiv.
@@ -309,26 +309,26 @@ Section SigmaHCOLHelperLemmas.
 
     Variable fm:Monoid RthetaFlags.
 
-    Lemma Gather'_composition
+    Lemma Gather_impl_composition
           {i o t: nat}
           (f: index_map o t)
           (g: index_map t i):
-      Gather' (fm:=fm) f ∘ Gather' g = Gather' (index_map_compose g f).
+      Gather_impl (fm:=fm) f ∘ Gather_impl g = Gather_impl (index_map_compose g f).
     Proof.
       apply ext_equiv_applied_equiv.
       -
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv);
-          apply Gather'_proper; reflexivity.
+          apply Gather_impl_proper; reflexivity.
       -
         split; try apply vec_Setoid.
-        apply Gather'_proper; reflexivity.
+        apply Gather_impl_proper; reflexivity.
       -
         intros v.
         unfold compose.
         vec_index_equiv j jp.
 
-        unfold Gather'.
+        unfold Gather_impl.
         rewrite 2!Vbuild_nth.
         unfold VnthIndexMapped.
         destruct f as [f fspec].
@@ -339,29 +339,29 @@ Section SigmaHCOLHelperLemmas.
         reflexivity.
     Qed.
 
-    Lemma Scatter'_composition
+    Lemma Scatter_impl_composition
           {i o t: nat}
           (f: index_map i t)
           (g: index_map t o)
           {f_inj: index_map_injective f}
           {g_inj: index_map_injective g}
           (idv: CarrierA):
-      @Scatter' fm _ _ g g_inj idv ∘ @Scatter' fm _ _ f f_inj idv
-      = @Scatter' fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
+      @Scatter_impl fm _ _ g g_inj idv ∘ @Scatter_impl fm _ _ f f_inj idv
+      = @Scatter_impl fm _ _ (index_map_compose g f) (index_map_compose_injective g f g_inj f_inj) idv.
     Proof.
       apply ext_equiv_applied_equiv.
       -
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv);
-          apply Scatter'_proper; reflexivity.
+          apply Scatter_impl_proper; reflexivity.
       -
         split; try apply vec_Setoid.
-        apply Scatter'_proper; reflexivity.
+        apply Scatter_impl_proper; reflexivity.
       -
         intros v.
         unfold compose.
         vec_index_equiv j jp.
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite 2!Vbuild_nth.
         break_match.
         + rewrite Vbuild_nth.
@@ -404,18 +404,18 @@ Section SigmaHCOLHelperLemmas.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply liftM_HOperator'_proper.
+        + apply liftM_HOperator_impl_proper.
           apply compose_HOperator.
       -
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
         + apply compose_proper with (RA:=equiv) (RB:=equiv).
-          apply liftM_HOperator'_proper; assumption.
-          apply liftM_HOperator'_proper; assumption.
+          apply liftM_HOperator_impl_proper; assumption.
+          apply liftM_HOperator_impl_proper; assumption.
       -
         intros v.
-        unfold liftM_HOperator', compose.
+        unfold liftM_HOperator_impl, compose.
         unfold sparsify, densify.
         rewrite Vmap_map.
 
@@ -745,7 +745,7 @@ Section SigmaHCOLHelperLemmas.
 
       assert(jc1: j < o + o) by omega.
       assert(jc2: j + o < o + o) by omega.
-      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+      setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
 
       rewrite 2!Vnth_map.
       f_equiv.
@@ -792,8 +792,8 @@ Section SigmaHCOLExpansionRules.
       apply SHOperator_ext_equiv_applied.
       intros v.
       simpl.
-      unfold SHInductor'.
-      unfold liftM_HOperator', compose.
+      unfold SHInductor_impl.
+      unfold liftM_HOperator_impl, compose.
       unfold sparsify, HInductor, compose, Lst.
       simpl Vmap.
       apply Vcons_proper. 2:reflexivity.
@@ -819,13 +819,13 @@ Section SigmaHCOLExpansionRules.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply SafeCast'_proper, SHBinOp'_proper, pF.
+        + apply SafeCast'_proper, SHBinOp_impl_proper, pF.
       -
         simpl.
         split.
         + apply vec_Setoid.
         + apply vec_Setoid.
-        + apply liftM_HOperator'_proper.
+        + apply liftM_HOperator_impl_proper.
           apply HBinOp_HOperator.
           apply pF.
       -
@@ -840,11 +840,11 @@ Section SigmaHCOLExpansionRules.
 
         assert(jc1: j<o+o) by omega.
         assert(jc2: j+o<o+o) by omega.
-        rewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags)
+        rewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags)
                                   (jc1:=jc1) (jc2:=jc2).
 
 
-        unfold liftM_HOperator'.
+        unfold liftM_HOperator_impl.
         unfold compose.
         unfold sparsify.
         repeat rewrite Vnth_map.
@@ -876,19 +876,19 @@ Section SigmaHCOLExpansionRules.
           (SumUnion Monoid_RthetaFlags
                     (Vbuild
                        (λ (j : nat) (jc : j < n),
-                        @Scatter' Monoid_RthetaFlags 1 _
+                        @Scatter_impl Monoid_RthetaFlags 1 _
                                  (h_index_map j 1 (range_bound:=ScatH_1_to_n_range_bound j n 1 jc))
                                  (@index_map_family_member_injective 1 n n
                                           (fun j0 => @h_index_map 1 n (proj1_sig j0) 1
                                                                                                              (ScatH_1_to_n_range_bound (proj1_sig j0) n 1 (proj2_sig j0))) (@h_j_1_family_injective n) (mkFinNat jc)) zero
-                                 (SafeCast' (@SHBinOp' Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
-                                            (Gather' (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
+                                 (SafeCast' (@SHBinOp_impl Monoid_RthetaSafeFlags 1 (Fin1SwapIndex2 (mkFinNat jc) f))
+                                            (Gather_impl (@h_index_map (1+1) (n+n) j n (GathH_jn_domain_bound j n jc)) x)))
           )) kp
-        = Vnth ((@SHBinOp' _ n f) x) kp.
+        = Vnth ((@SHBinOp_impl _ n f) x) kp.
     Proof.
       intros n x f f_mor k kp.
 
-      remember (fun i jc => Scatter' _ _) as bf.
+      remember (fun i jc => Scatter_impl _ _) as bf.
 
 
       (* Lemma5 embedded below*)
@@ -905,7 +905,7 @@ Section SigmaHCOLExpansionRules.
         intros ib icb.
         subst.
         rewrite Vbuild_nth.
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite Vbuild_nth; intros H.
         break_match.
         - unfold h_index_map in i.
@@ -935,7 +935,7 @@ Section SigmaHCOLExpansionRules.
       -  subst b.
          rewrite Vbuild_nth.
          subst bf.
-         unfold Scatter'.
+         unfold Scatter_impl.
          rewrite Vbuild_nth.
          break_match.
          +
@@ -944,7 +944,7 @@ Section SigmaHCOLExpansionRules.
            unfold SafeCast', rsvector2rvector, rvector2rsvector, compose.
            rewrite Vnth_map.
 
-           unshelve erewrite SHBinOp'_nth with (fm:=Monoid_RthetaSafeFlags).
+           unshelve erewrite SHBinOp_impl_nth with (fm:=Monoid_RthetaSafeFlags).
            crush.
            destruct (Nat.eq_dec (k + 0) k).
            auto.
@@ -956,12 +956,12 @@ Section SigmaHCOLExpansionRules.
            tauto.
 
            rewrite 2!Vnth_map.
-           unshelve erewrite SHBinOp'_nth.
+           unshelve erewrite SHBinOp_impl_nth.
            crush.
            crush.
 
 
-           rewrite 2!Gather'_spec with (fm:=Monoid_RthetaFlags).
+           rewrite 2!Gather_impl_spec with (fm:=Monoid_RthetaFlags).
            unfold VnthIndexMapped.
 
            unfold inverse_index_f, build_inverse_index_map, const.
@@ -1023,7 +1023,7 @@ Section SigmaHCOLExpansionRules.
 
         assert(ip1: i<n+n) by omega.
         assert(ip2: (i+n) < (n+n)) by omega.
-        setoid_rewrite SHBinOp'_nth with (jc1:=ip1) (jc2:=ip2).
+        setoid_rewrite SHBinOp_impl_nth with (jc1:=ip1) (jc2:=ip2).
 
 
         unfold Diamond.
@@ -1040,7 +1040,7 @@ Section SigmaHCOLExpansionRules.
         rewrite <- AbsorbISumUnionIndex_Vbuild.
 
         setoid_rewrite U_SAG2.
-        setoid_rewrite SHBinOp'_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
+        setoid_rewrite SHBinOp_impl_nth with (jc:=ip) (jc1:=ip1) (jc2:=ip2).
 
         repeat rewrite Vnth_map.
         apply RStheta2Rtheta_liftM2.
@@ -1131,7 +1131,7 @@ Section SigmaHCOLExpansionRules.
           reflexivity.
       -
         intros x.
-        unfold liftM_HOperator' at 1.
+        unfold liftM_HOperator_impl at 1.
         unfold compose.
         unfold HTDirectSum, HCross, THCOLImpl.Cross, compose,
         HTSUMUnion', pair2vector.
@@ -1141,22 +1141,22 @@ Section SigmaHCOLExpansionRules.
         tuple_inversion.
         symmetry.
 
-        assert(LS: (@Scatter' fm o1 (Init.Nat.add o1 o2)
+        assert(LS: (@Scatter_impl fm o1 (Init.Nat.add o1 o2)
                               (@h_index_map o1 (Init.Nat.add o1 o2) O (S O) (h_bound_first_half o1 o2))
                               (@h_index_map_is_injective o1 (Init.Nat.add o1 o2) O
                                                          (S O) (h_bound_first_half o1 o2) (@ScatH_stride1_constr o1 (S (S O))))
                               zero
-                              (@liftM_HOperator' fm i1 o1 f
-                                                 (@Gather' fm (Init.Nat.add i1 i2) i1
+                              (@liftM_HOperator_impl fm i1 o1 f
+                                                 (@Gather_impl fm (Init.Nat.add i1 i2) i1
                                                            (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                                            x))) = Vapp (sparsify fm (f x0)) (szero_svector fm o2)).
         {
-          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i1
+          setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i1
                                    (@h_index_map i1 (Init.Nat.add i1 i2) O (S O) (h_bound_first_half i1 i2))
                                    x) with (sparsify fm x0).
           -
             vec_index_equiv i ip.
-            unfold Scatter'.
+            unfold Scatter_impl.
             rewrite Vbuild_nth.
 
             unfold sparsify.
@@ -1180,7 +1180,7 @@ Section SigmaHCOLExpansionRules.
               rewrite Vnth_map.
               break_match.
               * simpl.
-                unfold liftM_HOperator', sparsify, compose.
+                unfold liftM_HOperator_impl, sparsify, compose.
                 rewrite Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -1218,7 +1218,7 @@ Section SigmaHCOLExpansionRules.
                 rewrite Nat.mul_comm, Nat.mul_1_l.
                 reflexivity.
           -
-            unfold Gather'.
+            unfold Gather_impl.
             vec_index_equiv i ip.
 
             rewrite Vnth_sparsify.
@@ -1247,21 +1247,21 @@ Section SigmaHCOLExpansionRules.
             apply le_unique.
         }
 
-        assert(RS: (@Scatter' fm o2 (Init.Nat.add o1 o2)
+        assert(RS: (@Scatter_impl fm o2 (Init.Nat.add o1 o2)
                               (@h_index_map o2 (Init.Nat.add o1 o2) o1 (S O) (h_bound_second_half o1 o2))
                               (@h_index_map_is_injective o2 (Init.Nat.add o1 o2) o1
                                                          (S O) (h_bound_second_half o1 o2) (@ScatH_stride1_constr o2 (S (S O))))
                               zero
-                              (@liftM_HOperator' fm i2 o2 g
-                                                 (@Gather' fm (Init.Nat.add i1 i2) i2
+                              (@liftM_HOperator_impl fm i2 o2 g
+                                                 (@Gather_impl fm (Init.Nat.add i1 i2) i2
                                                            (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                                          (h_bound_second_half i1 i2)) x))) = Vapp (szero_svector fm o1) (sparsify fm (g x1))).
         {
-          setoid_replace (@Gather' fm (Init.Nat.add i1 i2) i2
+          setoid_replace (@Gather_impl fm (Init.Nat.add i1 i2) i2
                                    (@h_index_map i2 (Init.Nat.add i1 i2) i1 (S O)
                                                  (h_bound_second_half i1 i2)) x) with (sparsify fm x1).
           -
-            unfold Scatter'.
+            unfold Scatter_impl.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             rewrite Vnth_app.
@@ -1269,7 +1269,7 @@ Section SigmaHCOLExpansionRules.
             + (* Second half of x, which is gx0 *)
               break_match.
               * simpl.
-                unfold liftM_HOperator', sparsify, compose.
+                unfold liftM_HOperator_impl, sparsify, compose.
                 rewrite 2!Vnth_map.
                 unfold densify.
                 rewrite Vmap_map.
@@ -1322,7 +1322,7 @@ Section SigmaHCOLExpansionRules.
               *
                 rewrite Vnth_const.
                 reflexivity.
-          - unfold Gather'.
+          - unfold Gather_impl.
             vec_index_equiv i ip.
             rewrite Vbuild_nth.
             unfold h_index_map.
@@ -1402,7 +1402,7 @@ Section SigmaHCOLRewritingRules.
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply SHPointwise'_proper.
+        apply SHPointwise_impl_proper.
         apply pf_mor.
         apply Diamond_proper.
         + apply CarrierAPlus_proper.
@@ -1422,7 +1422,7 @@ Section SigmaHCOLRewritingRules.
         unfold Diamond.
         unfold compose.
         vec_index_equiv j jc. (* fix column *)
-        setoid_rewrite SHPointwise'_nth; try apply MonoidLaws_RthetaFlags.
+        setoid_rewrite SHPointwise_impl_nth; try apply MonoidLaws_RthetaFlags.
 
         unfold Apply_Family'.
         rewrite 2!AbsorbMUnionIndex_Vbuild.
@@ -1482,12 +1482,12 @@ Section SigmaHCOLRewritingRules.
 
           assert(H: UnionFold _ plus zero vr = mkSZero).
           {
-            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise' Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
+            assert(H: Vbuild (λ (i0 : nat) (ic : i0 < n), Vnth (@SHPointwise_impl Monoid_RthetaFlags _ pf (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x)) jc) =
                       Vbuild (λ (i0 : nat) (ic : i0 < n), mkValue (pf (j ↾ jc) (WriterMonadNoT.evalWriter (Vnth (op Monoid_RthetaFlags (op_family (mkFinNat ic)) x) jc))))).
             {
               vec_index_equiv k kc.
               rewrite 2!Vbuild_nth.
-              rewrite SHPointwise'_nth by apply pf_mor.
+              rewrite SHPointwise_impl_nth by apply pf_mor.
               reflexivity.
             }
 
@@ -1570,7 +1570,7 @@ Section SigmaHCOLRewritingRules.
               intros t tc H.
               rewrite Vbuild_nth.
               unfold Is_ValZero, Is_ValX.
-              rewrite SHPointwise'_nth by apply pf_mor.
+              rewrite SHPointwise_impl_nth by apply pf_mor.
 
               unfold VAllButOne in Uone.
               specialize (Uone t tc H).
@@ -1587,7 +1587,7 @@ Section SigmaHCOLRewritingRules.
             rewrite UnionFold_VallButOne_zero with (kc:=kc).
             ** subst vr.
                rewrite Vbuild_nth.
-               rewrite SHPointwise'_nth.
+               rewrite SHPointwise_impl_nth.
                reflexivity.
             ** apply H.
           *
@@ -3171,7 +3171,7 @@ Section SigmaHCOLRewritingRules.
         (* LHS Setoid_Morphism *)
         split; try apply vec_Setoid.
         apply compose_proper with (RA:=equiv) (RB:=equiv).
-        apply liftM_HOperator'_proper.
+        apply liftM_HOperator_impl_proper.
         apply HReduction_HOperator.
         typeclasses eauto.
         apply Diamond_proper.
@@ -3192,7 +3192,7 @@ Section SigmaHCOLRewritingRules.
           apply UnSafeCast'_proper.
           apply compose_proper with (RA:=equiv) (RB:=equiv).
           *
-            apply liftM_HOperator'_proper.
+            apply liftM_HOperator_impl_proper.
             apply HReduction_HOperator.
             typeclasses eauto.
           *
@@ -3203,7 +3203,7 @@ Section SigmaHCOLRewritingRules.
         vec_index_equiv j jc.
 
         unfold SafeCast', rsvector2rvector, compose.
-        unfold liftM_HOperator', compose, sparsify.
+        unfold liftM_HOperator_impl, compose, sparsify.
         rewrite 2!Vnth_map.
 
         unfold HReduction, compose, HCOLImpl.Vectorize.
@@ -4020,7 +4020,7 @@ and `ISumReduction_PointWise` *)
       reflexivity.
     Qed.
 
-    Lemma SHPointwise'_distr_over_Scatter'
+    Lemma SHPointwise_impl_distr_over_Scatter_impl
           {fm : Monoid RthetaFlags}
           {o i : nat}
           (pf : CarrierA → CarrierA)
@@ -4029,11 +4029,11 @@ and `ISumReduction_PointWise` *)
           (v : svector fm i)
           (f : index_map i o)
           (f_inj : index_map_injective f):
-      SHPointwise' (IgnoreIndex pf) (@Scatter' fm _ _ f f_inj zero v) =
-      @Scatter' fm _ _ f f_inj zero (SHPointwise' (IgnoreIndex pf) v).
+      SHPointwise_impl (IgnoreIndex pf) (@Scatter_impl fm _ _ f f_inj zero v) =
+      @Scatter_impl fm _ _ f f_inj zero (SHPointwise_impl (IgnoreIndex pf) v).
     Proof.
       vec_index_equiv j jc.
-      rewrite SHPointwise'_nth.
+      rewrite SHPointwise_impl_nth.
       unfold equiv, Rtheta'_equiv.
       rewrite evalWriter_mkValue.
       (* unfold IgnoreIndex, const. *)
@@ -4041,21 +4041,21 @@ and `ISumReduction_PointWise` *)
       destruct (in_range_dec f j) as [R | NR].
       -
         (* `j` in dense position *)
-        unfold Scatter'.
+        unfold Scatter_impl.
         simpl.
         rewrite 2!Vbuild_nth.
         break_match; auto.
         unfold IgnoreIndex, const.
-        rewrite SHPointwise'_nth.
+        rewrite SHPointwise_impl_nth.
         rewrite evalWriter_mkValue.
         reflexivity.
       -
         (* `j` in sparse position *)
-        remember (@Scatter' fm _ _ f f_inj zero v) as s0.
+        remember (@Scatter_impl fm _ _ f f_inj zero v) as s0.
         assert(VZ0: Is_ValZero (Vnth s0 jc)).
         {
           subst s0.
-          apply Scatter'_Unit_at_sparse; assumption.
+          apply Scatter_impl_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s0 jc) ) with CarrierAz.
         2: {
@@ -4066,11 +4066,11 @@ and `ISumReduction_PointWise` *)
         }
 
         rewrite pfzn.
-        remember (@Scatter' fm _ _ f _ zero (SHPointwise' (IgnoreIndex pf) v)) as s1.
+        remember (@Scatter_impl fm _ _ f _ zero (SHPointwise_impl (IgnoreIndex pf) v)) as s1.
         assert(VZ1: Is_ValZero (Vnth s1 jc)).
         {
           subst s1.
-          apply Scatter'_Unit_at_sparse; assumption.
+          apply Scatter_impl_Unit_at_sparse; assumption.
         }
         setoid_replace (WriterMonadNoT.evalWriter (Vnth s1 jc) ) with CarrierAz.
         reflexivity.
@@ -4117,7 +4117,7 @@ and `ISumReduction_PointWise` *)
       intros x y E.
       simpl.
       rewrite_clear E.
-      apply SHPointwise'_distr_over_Scatter', pfzn.
+      apply SHPointwise_impl_distr_over_Scatter_impl, pfzn.
       apply pf_mor.
     Qed.
 
@@ -4157,7 +4157,7 @@ and `ISumReduction_PointWise` *)
       clear x F.
 
       vec_index_equiv j jc.
-      unfold liftM_HOperator', compose.
+      unfold liftM_HOperator_impl, compose.
       rewrite Vnth_sparsify.
       unfold densify.
 
@@ -4199,7 +4199,7 @@ and `ISumReduction_PointWise` *)
           crush.
       +
         remember (S n) as sn.
-        erewrite Scatter'_1_Sn.
+        erewrite Scatter_impl_1_Sn.
 
         break_match.
         *
@@ -4252,9 +4252,9 @@ and `ISumReduction_PointWise` *)
             intros i ip.
 
             assert(H: Vforall (fun p => (Vin p y) \/ (p ≡ mkStruct mzero))
-                              (@Scatter' fm _ _ (shrink_index_map_1_range f n0)
+                              (@Scatter_impl fm _ _ (shrink_index_map_1_range f n0)
                                         (shrink_index_map_1_range_inj f n0 f_inj)
-                                        mzero y)) by apply Scatter'_is_almost_endomorphism.
+                                        mzero y)) by apply Scatter_impl_is_almost_endomorphism.
             apply Vforall_nth with (ip:=ip) in H.
             destruct H.
             ++
@@ -4309,9 +4309,9 @@ and `ISumReduction_PointWise` *)
       unfold equiv, SHOperator_equiv.
       simpl.
 
-      rewrite Gather'_composition.
+      rewrite Gather_impl_composition.
       rewrite h_index_map_compose.
-      apply Gather'_proper.
+      apply Gather_impl_proper.
       reflexivity.
     Qed.
 
@@ -4357,12 +4357,12 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
 
       unfold SHCompose, compose, equiv, SHOperator_equiv; simpl.
-      unfold SHPointwise'.
+      unfold SHPointwise_impl.
       rewrite Vbuild_nth.
 
       assert(jc1: j<n+n) by omega.
       assert(jc2: (j+n) < (n+n)) by omega.
-      setoid_rewrite SHBinOp'_nth with (jc1:=jc1) (jc2:=jc2).
+      setoid_rewrite SHBinOp_impl_nth with (jc1:=jc1) (jc2:=jc2).
       unfold Rtheta'_equiv.
       rewrite evalWriter_Rtheta_liftM.
       rewrite 2!evalWriter_Rtheta_liftM2.
@@ -4381,7 +4381,7 @@ and `ISumReduction_PointWise` *)
         ScatH fm (svalue:=z) b s
               (snzord0 := snzord) (* Also `or_intror Nat.lt_1_2` *)
               (range_bound:=range_bound)
-        = eUnion fm bc.
+        = Pick fm bc.
     Proof.
       unfold equiv, ext_equiv, SHOperator_equiv.
       unfold equiv, ext_equiv.
@@ -4389,12 +4389,12 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       simpl.
 
-      unfold eUnion'.
+      unfold Pick_impl.
       rewrite Vbuild_nth.
       break_if.
       +
         rewrite Vhead_nth.
-        rewrite Scatter'_spec with
+        rewrite Scatter_impl_spec with
             (idv  := z)
             (f    := @h_index_map (S O) o b s range_bound)
             (f_inj:= @h_index_map_is_injective (S O) o b s range_bound snzord).
@@ -4409,7 +4409,7 @@ and `ISumReduction_PointWise` *)
           rewrite_clear Exy.
           reflexivity.
       +
-        unfold Scatter'.
+        unfold Scatter_impl.
         rewrite Vbuild_nth.
         break_match.
         *
@@ -4424,12 +4424,12 @@ and `ISumReduction_PointWise` *)
           reflexivity.
     Qed.
 
-    (* Special `n by n` family of sequentially indexed `eT` operators *)
-    Definition eTn
+    (* Special `n by n` family of sequentially indexed `Embed` operators *)
+    Definition Embedn
                {fm}
                {svalue: CarrierA}
                (n:nat)
-      : @SHOperatorFamily fm n 1 n svalue := fun jf => eT _ (proj2_sig jf).
+      : @SHOperatorFamily fm n 1 n svalue := fun jf => Embed _ (proj2_sig jf).
 
     Theorem terminate_Reduction
             {n}
@@ -4441,9 +4441,9 @@ and `ISumReduction_PointWise` *)
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
-        IReduction f (svalue:=idv) (eTn n).
+        IReduction f (svalue:=idv) (Embedn n).
     Proof.
-      unfold IReduction, liftM_HOperator,liftM_HOperator'.
+      unfold IReduction, liftM_HOperator,liftM_HOperator_impl.
       unfold compose, sparsify, densify.
       unfold equiv,SHOperator_equiv.
       simpl.
@@ -4508,7 +4508,7 @@ and `ISumReduction_PointWise` *)
             rewrite 2!Vbuild_nth.
             unfold get_family_op.
             simpl.
-            unfold eT'.
+            unfold Embed_impl.
             apply Vcons_single_elim.
             rewrite <- Vnth_tail.
             reflexivity.
@@ -4537,7 +4537,7 @@ and `ISumReduction_PointWise` *)
             (base stride: nat)
             {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
       :
-        @GathH fm svalue i 1 base stride domain_bound = @eT fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
+        @GathH fm svalue i 1 base stride domain_bound = @Embed fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
     Proof.
       unfold GathH.
       unfold equiv, SHOperator_equiv.
@@ -4545,11 +4545,11 @@ and `ISumReduction_PointWise` *)
       intros x y H.
       simpl.
 
-      unfold eT'.
+      unfold Embed_impl.
       vec_index_equiv j jc.
       destruct j.
       -
-        rewrite Gather'_spec.
+        rewrite Gather_impl_spec.
         unfold VnthIndexMapped.
         simpl.
         apply Vnth_equiv.
@@ -4683,8 +4683,8 @@ and `ISumReduction_PointWise` *)
         =
         @IUnion z i o o f _ _ (fun jf =>
                                 SHCompose _
-                                          (@eUnion _ z o (proj1_sig jf) (proj2_sig jf))
-                                          (@eT _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
+                                          (@Pick _ z o (proj1_sig jf) (proj2_sig jf))
+                                          (@Embed _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
                                           )
                              ).
     Proof.
@@ -4695,7 +4695,7 @@ and `ISumReduction_PointWise` *)
       intros x y E.
       rewrite <- E; clear y E.
       vec_index_equiv j jc.
-      rewrite Gather'_spec.
+      rewrite Gather_impl_spec.
       unfold VnthIndexMapped.
       unfold Diamond.
       unfold Apply_Family'.
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold eUnion', compose, eT'.
+      unfold Pick_impl, compose, Embed_impl.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with
@@ -4737,8 +4737,8 @@ and `ISumReduction_PointWise` *)
         =
         @ISumUnion i o o  (fun jf =>
                              SHCompose _
-                                       (@eUnion _ zero o _ (proj2_sig jf))
-                                       (@eT _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
+                                       (@Pick _ zero o _ (proj2_sig jf))
+                                       (@Embed _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
                                        )
                    ).
     Proof.
@@ -4773,7 +4773,7 @@ and `ISumReduction_PointWise` *)
       unfold SHCompose, equiv, SHOperator_equiv.
       simpl.
 
-      unfold compose, liftM_HOperator',sparsify, densify, SHBinOp', vector2pair, SHPointwise', mult_by_nth, HPrepend, compose, IgnoreIndex2.
+      unfold compose, liftM_HOperator_impl,sparsify, densify, SHBinOp_impl, vector2pair, SHPointwise_impl, mult_by_nth, HPrepend, compose, IgnoreIndex2.
       Opaque Monad.liftM.
       simpl.
       unfold equiv, ext_equiv.
@@ -4804,7 +4804,7 @@ and `ISumReduction_PointWise` *)
 
     (* We will use this rule to rewrite in left-to-right direction. Howver instead of putting concrete implementation of `g` which shrinks domain of `f` we chose to formulate it in a way that will allow to rewrite in opposite direction as well.
      *)
-    Lemma rewrite_eT_SHPointwise
+    Lemma rewrite_Embed_SHPointwise
           (n:nat)
           {svalue: CarrierA}
           {b:nat}
@@ -4816,8 +4816,8 @@ and `ISumReduction_PointWise` *)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
           (fg: forall x z, f (mkFinNat bc) x = g z x)
       :
-        SHCompose (svalue:=svalue) fm (eT fm bc) (SHPointwise fm f) =
-        SHCompose fm (SHPointwise fm g) (eT fm bc).
+        SHCompose (svalue:=svalue) fm (Embed fm bc) (SHPointwise fm f) =
+        SHCompose fm (SHPointwise fm g) (Embed fm bc).
     Proof.
       unfold SHCompose, compose.
       unfold equiv, SHOperator_equiv.
@@ -4828,10 +4828,10 @@ and `ISumReduction_PointWise` *)
       rewrite <- E; clear E y.
 
       vec_index_equiv j jc.
-      unfold eT'.
+      unfold Embed_impl.
 
       rewrite Vnth_1.
-      rewrite 2!SHPointwise'_nth.
+      rewrite 2!SHPointwise_impl_nth.
       rewrite Vnth_1.
       f_equiv.
       apply fg.
@@ -4885,7 +4885,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
         break_match; crush.
     Qed.
 
-    Lemma rewrite_eT_Induction
+    Lemma rewrite_Embed_Induction
           (n:nat)
           {svalue:CarrierA}
           {b:nat}
@@ -4895,7 +4895,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (initial: CarrierA)
       :
-        SHCompose (svalue:=svalue) fm (eT fm bc) (liftM_HOperator fm (HInduction n f initial)) =
+        SHCompose (svalue:=svalue) fm (Embed fm bc) (liftM_HOperator fm (HInduction n f initial)) =
         liftM_HOperator fm (HInductor b f initial).
     Proof.
       unfold SHCompose, compose.
@@ -4910,12 +4910,12 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       apply Vnth_equiv.
       reflexivity.
 
-      unfold eT'.
+      unfold Embed_impl.
       clear j jc.
       vec_index_equiv j jc.
       rewrite Vnth_1.
 
-      unfold liftM_HOperator', compose, sparsify.
+      unfold liftM_HOperator_impl, compose, sparsify.
       rewrite 2!Vnth_map.
       f_equiv.
 
