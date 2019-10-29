@@ -243,6 +243,62 @@ Inductive DSH_mem_block_free: DSHOperator -> mem_block_id -> Prop :=
   : DSH_mem_block_free f x -> DSH_mem_block_free g x -> DSH_mem_block_free (DSHSeq f g) x.
  *)
 
+Inductive is_Bound_in_NExpr (v:var_id): NExpr -> Prop :=
+| NVar_bound {n}: v=n -> is_Bound_in_NExpr v (NVar n)
+| NDiv_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NDiv a b)
+| NMod_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NMod a b)
+| NPlus_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NPlus a b)
+| NMinus_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NMinus a b)
+| NMult_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NMult a b)
+| NMin_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NMin a b)
+| NMax_bound {a b}: is_Bound_in_NExpr v a \/ is_Bound_in_NExpr v b -> is_Bound_in_NExpr v (NMax a b).
+
+Inductive is_Bound_in_MExpr (v:var_id): MExpr -> Prop :=
+| MVar_bound {n}: v=n -> is_Bound_in_MExpr v (MVar n).
+
+Inductive is_Bound_in_AExpr (v:var_id): AExpr -> Prop :=
+| AVar_bound  {n}: v=n -> is_Bound_in_AExpr v (AVar n)
+| ANth_bound {m:MExpr} {n:NExpr} :
+    is_Bound_in_NExpr v n ->
+    is_Bound_in_MExpr v m ->
+    is_Bound_in_AExpr v (ANth m n)
+| AAbs_bound  {a}: is_Bound_in_AExpr v a -> is_Bound_in_AExpr v (AAbs a)
+| APlus_bound {a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v (APlus a b)
+| AMinus_bound{a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v (AMinus a b)
+| AMult_bound {a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v ( AMult a b)
+| AMin_bound  {a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v (AMin a b)
+| AMax_bound  {a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v (  AMax a b)
+| AZless_bound {a b}: is_Bound_in_AExpr v a \/ is_Bound_in_AExpr v b -> is_Bound_in_AExpr v (AZless a b).
+
+Definition context_equiv_at_AExpr (e:AExpr) : relation evalContext :=
+  fun σ0 σ1 =>
+    forall (v:var_id), is_Bound_in_AExpr v e -> context_lookup σ0 v = context_lookup σ1 v.
+
+Definition context_equiv_at_BinCarrierA
+           (f: DSHIBinCarrierA)
+  : relation evalContext
+  := fun σ0 σ1 => forall a b, context_equiv_at_AExpr
+                        f
+                        (DSHCarrierAVal b :: DSHCarrierAVal a :: σ0)
+                        (DSHCarrierAVal b :: DSHCarrierAVal a :: σ1).
+
+Definition context_equiv_at_IBinCarrierA
+           (f: DSHIBinCarrierA) : relation evalContext
+  := fun σ0 σ1 => forall a b i, context_equiv_at_AExpr
+                          f
+                          (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: σ0)
+                          (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: σ1).
+
+Lemma evalIBinCarrierA_equiv_at_IBinCarrierA
+      (σ0 σ1: evalContext)
+      (f: DSHIBinCarrierA) :
+  context_equiv_at_IBinCarrierA f σ0 σ1 ->
+  forall a b i,
+    evalIBinCarrierA σ0 f i a b =
+    evalIBinCarrierA σ0 f i a b.
+Proof.
+Admitted.
+
 Fixpoint evalDSHOperator
          (σ: evalContext)
          (op: DSHOperator)
