@@ -762,6 +762,17 @@ Proof.
       apply DX.
 Qed.
 
+Lemma evalDSHBinOp_context_equiv
+      (o : nat)
+      (df : DSHIBinCarrierA)
+      (σ0 σ1 : evalContext) (m0 m1: mem_block):
+  context_equiv_at_IBinCarrierA df σ0 σ1
+  → evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
+Proof.
+  intros EDF.
+  (* Hint: use induction and [evalIBinCarrierA_equiv_at_IBinCarrierA] *)
+Admitted.
+
 Global Instance BinOp_DSH_pure
        (o : nat)
        (x_p y_p : PExpr)
@@ -852,26 +863,34 @@ Proof.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
       clear_all.
-      (* TODO: need additional assumption on [df] here! *)
-      admit.
+      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
+      {
+        admit.
+        (* TODO: need additional assumption on [df] here! *)
+      }
+      apply evalDSHBinOp_context_equiv, EDF.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      (* rewrite Heqo0 in Heqo1.
-         some_none. *)
-      (* TODO: two-sigmas problem *)
-      admit.
-    +
-      exfalso.
-      eq_to_equiv_hyp.
-      rewrite H2, H5 in Heqo0.
-      (*
-      rewrite Heqo0 in Heqo1.
+      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
+      {
+        admit.
+        (* TODO: need additional assumption on [df] here! *)
+      }
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
       some_none.
-       *)
-      (* TODO: two-sigmas problem *)
-      admit.
+    +
+      exfalso.
+      eq_to_equiv_hyp.
+      rewrite H2, H5 in Heqo0.
+      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
+      {
+        admit.
+        (* TODO: need additional assumption on [df] here! *)
+      }
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
+      some_none.
     +
       constructor.
   -
