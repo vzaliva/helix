@@ -8,15 +8,12 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 
 * Refactoring
 ** Some other cleanup opportunities are marked with "TODO" comments
-** Rename =eT= and =eUnion= to =Embed= and =Pick=                    :zoickx:
 ** Probably "SUM" shoud be avoided in the name =HTSumUnion= not to confuse
   with =ISUmUnion=.
 ** Rename =Diamond= to =MR=
 ** Many unused definitions could be removed. (Hint: try =make print-unused=)
 ** It looks like =Apply_Family= never used directly. Just =Apply_Family'=.
    We probably need just one definition.
-** Rename implementations named =foo'= into =foo_Impl= in /SigmaHCOLImpl.v/. :zoickx:
-   For example =eT'= should become =eT_impl= 
 ** Run =coq-min-imports= on all codebase
 ** GEP definition in Coq
 ** Vellvm as sub-module                                              :zoickx:
@@ -33,7 +30,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    checkout, without making any symlinks.
    
    Also top-level makefile may compile dependencies (Vellvm, interaction trees).
-
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
