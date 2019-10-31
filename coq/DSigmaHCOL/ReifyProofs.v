@@ -2001,14 +2001,17 @@ Instance Compose_MSH_DSH_compat
          {σ: evalContext}
          {m: memory}
          {dop1 dop2: DSHOperator}
+         {dsig1 dsig2: TypeSig}
          {x_p y_p: PExpr}
-         `{P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) x_p y_p}
-         `{C2: MSH_DSH_compat _ _ mop2 dop2
+         `{P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p}
+         `{P2: DSH_pure dop2 dsig2 (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 dsig1 (PVar 0) (incrPVar 0 y_p)}
+         `{C2: @MSH_DSH_compat _ _ mop2 dop2 dsig2
                               (DSHPtrVal (memory_new m) :: σ)
                               (memory_alloc_empty m (memory_new m))
-                              (incrPVar 0 x_p) (PVar 0)}
-         `{P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p)}
+                              (incrPVar 0 x_p) (PVar 0)
+                              P2
+          }
          `{C1: forall m'', memory_equiv_except m m'' (memory_new m) ->
                       MSH_DSH_compat mop1 dop1
                                      (DSHPtrVal (memory_new m) :: σ)
@@ -2148,7 +2151,7 @@ Proof.
 
     rewrite E2 in C2.
     rewrite MT in C2.
-    inversion C2; subst a b; clear C2; rename H4 into C2.
+    inversion C2; subst a b; clear C2 ; rename H3 into C2.
 
     assert(mem_block_exists t_i m') as ET'.
     {
@@ -2251,12 +2254,12 @@ Proof.
       -
         intros H4 i.
         specialize (H4 i).
-        rewrite <- H2.
+        rewrite <- H1.
         auto.
       -
         intros H4 i.
         specialize (H4 i).
-        rewrite H2.
+        rewrite H1.
         auto.
     }
     rewrite MA''' in C1.
@@ -2353,7 +2356,7 @@ Proof.
 
     rewrite E2 in C2.
     rewrite MT in C2.
-    inversion C2; subst a b; clear C2; rename H4 into C2.
+    inversion C2; subst a b; clear C2; rename H3 into C2.
 
     assert(mem_block_exists t_i m') as ET'.
     {
@@ -2628,7 +2631,7 @@ Proof.
       specialize (C2 MT').
 
       rewrite E2 in C2.
-      inversion C2; subst a b; clear C2; rename H4 into C2.
+      inversion C2; subst a b; clear C2; rename H3 into C2.
 
       assert(mem_block_exists t_i m') as ET'.
       {
