@@ -48,6 +48,48 @@ Module Import TP := FMapFacts.WProperties_fun(Nat_as_OT)(TM).
    De-Brujn indices to expected types *)
 Definition TypeSig := TM.t DSHType.
 
+Section TypeSig_Setoid.
+
+  Global Instance TypeSig_Equiv: Equiv (TypeSig) :=
+    fun m m' => forall k : TM.key, TM.find k m = TM.find k m'.
+
+  Global Instance TypeSig_Equiv_Reflexive:
+    Reflexive (TypeSig_Equiv).
+  Proof.
+    unfold TypeSig_Equiv.
+    unfold Reflexive.
+    reflexivity.
+  Qed.
+
+  Global Instance TypeSig_Equiv_Symmetric:
+    Symmetric (TypeSig_Equiv).
+  Proof.
+    unfold TypeSig_Equiv.
+    unfold Symmetric.
+    intros x y H k.
+    specialize (H k).
+    auto.
+  Qed.
+
+  Global Instance TypeSig_Equiv_Transitive:
+    Transitive (TypeSig_Equiv).
+  Proof.
+    unfold TypeSig_Equiv.
+    unfold Transitive.
+    intros x y z H0 H1 k.
+    specialize (H0 k).
+    specialize (H1 k).
+    auto.
+  Qed.
+
+  Global Instance TypeSig_Equiv_Equivalence:
+    Equivalence (TypeSig_Equiv).
+  Proof.
+    split; typeclasses eauto.
+  Qed.
+
+End TypeSig_Setoid.
+
 (* True if nth context element has expected type. decidable. *)
 Definition contextEnsureType (σ: evalContext) (k:nat) (t:DSHType) : Prop :=
   match nth_error σ k with
@@ -81,22 +123,6 @@ Lemma typecheck_env_bool_iff (tm:TypeSig) (σ: evalContext):
 Proof.
 Admitted.
 
-Definition TypeSigMExpr (me:MExpr) : TypeSig :=
-  match me with
-  | MVar v => TM.add v DSHMemBlock (TM.empty _)
-  | MConst _ => TM.empty _
-  end.
-
-(*
-TODO:
-  =AExpr= could be invalid if it refers to same env. indices assuming different types!
-  =TypeSigNExpr= could be either conditioned by correcteness of all expressions and
-  or return =Option=.
- *)
-
-Definition TypeSigUnion := TP.update (elt:=DSHType).
-
-
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
    of 2 incompatible values.
@@ -123,31 +149,74 @@ Definition findTypeSigConflicts (s1 s2:TypeSig)
 Definition TypeSigCompat (s1 s2:TypeSig) : Prop
   := TM.Empty (findTypeSigConflicts s1 s1).
 
-Fixpoint TypeSigNExpr (ne:NExpr) : TypeSig :=
-  match ne with
-  | NVar v => TM.add v DSHnat (TM.empty _)
-  | NConst x => TM.empty _
-  | NDiv a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NMod a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NPlus a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NMinus a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NMult a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NMin a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
-  | NMax a b => TypeSigUnion (TypeSigNExpr a) (TypeSigNExpr b)
+(* This is "unsafe" version which will override conflicting keys *)
+Definition TypeSigUnion := TP.update (elt:=DSHType).
+
+(* This is "safe" version which returns error in case of conflct *)
+Definition TypeSigUnion_error (s1 s2: TypeSig)
+  := if TM.is_empty (findTypeSigConflicts s1 s1)
+     then Some (TypeSigUnion s1 s2)
+     else None.
+
+Lemma TypeSigCompat_TypeSigUnion_error {dsig1 dsig2}:
+  TypeSigCompat dsig1 dsig2 ->
+  TypeSigUnion_error dsig1 dsig2 = Some (TypeSigUnion dsig1 dsig2).
+Proof.
+  intros H.
+  unfold TypeSigUnion_error.
+  break_if.
+  -
+    f_equiv.
+  -
+    unfold TypeSigCompat in H.
+    apply TM.is_empty_1 in H.
+    congruence.
+Qed.
+
+(* Helper wrapper for double bind of [TypeSigUnion_error] *)
+Definition TypeSigUnion_error' (os1 os2: option TypeSig): option TypeSig
+  := s1 <- os1 ;; s2 <- os2 ;; TypeSigUnion_error s1 s2.
+
+Definition TypeSig_safe_add (k:var_id) (v:DSHType) (ts: TypeSig): option TypeSig
+  := match TM.find k ts with
+     | Some v' =>
+       if bool_decide (v = v')
+       then Some ts (* already exists with same value *)
+       else None (* already exists, but with different value *)
+     | None => Some (TM.add k v ts)
+     end.
+
+Definition TypeSigMExpr (me:MExpr) : option TypeSig :=
+  match me with
+  | MVar v => Some (TM.add v DSHMemBlock (TM.empty _))
+  | MConst _ => Some (TM.empty _)
   end.
 
-Fixpoint TypeSigAExpr (ae:AExpr) : TypeSig :=
+Fixpoint TypeSigNExpr (ne:NExpr) : option TypeSig :=
+  match ne with
+  | NVar v => TypeSig_safe_add v DSHnat (TM.empty _)
+  | NConst x => Some (TM.empty _)
+  | NDiv a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NMod a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NPlus a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NMinus a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NMult a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NMin a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  | NMax a b => TypeSigUnion_error' (TypeSigNExpr a) (TypeSigNExpr b)
+  end.
+
+Fixpoint TypeSigAExpr (ae:AExpr) : option TypeSig :=
   match ae with
-  | AVar v => TM.add v DSHCarrierA (TM.empty _)
-  | AConst _ => TM.empty _
-  | ANth m n => TypeSigUnion (TypeSigMExpr m) (TypeSigNExpr n)
+  | AVar v => TypeSig_safe_add v DSHCarrierA (TM.empty _)
+  | AConst _ => Some (TM.empty _)
+  | ANth m n => TypeSigUnion_error' (TypeSigMExpr m) (TypeSigNExpr n)
   | AAbs a => TypeSigAExpr a
-  | APlus a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
-  | AMinus a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
-  | AMult a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
-  | AMin a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
-  | AMax a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
-  | AZless a b => TypeSigUnion (TypeSigAExpr a) (TypeSigAExpr b)
+  | APlus a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
+  | AMinus a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
+  | AMult a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
+  | AMin a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
+  | AMax a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
+  | AZless a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
   end.
 
 
@@ -156,14 +225,14 @@ Fixpoint TypeSigAExpr (ae:AExpr) : TypeSig :=
 Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
   := fun σ0 σ1 =>
        forall k t, TM.MapsTo k t tm ->
-              contextEnsureType σ0 k t /\
-              contextEnsureType σ1 k t /\
-              context_lookup σ0 k = context_lookup σ1 k.
+                   contextEnsureType σ0 k t /\
+                   contextEnsureType σ1 k t /\
+                   context_lookup σ0 k = context_lookup σ1 k.
 
-Definition TypeSigAExpr_UnCarrierA (f: DSHIBinCarrierA) : TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_IUnCarrierA (f: DSHIBinCarrierA) : TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_BinCarrierA (f: DSHBinCarrierA) : TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : TypeSig := TypeSigAExpr f.
+Definition TypeSigAExpr_UnCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
+Definition TypeSigAExpr_IUnCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
+Definition TypeSigAExpr_BinCarrierA (f: DSHBinCarrierA) : option TypeSig := TypeSigAExpr f.
+Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
 
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:

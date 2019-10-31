@@ -769,9 +769,10 @@ Qed.
 Lemma evalDSHBinOp_context_equiv
       (o : nat)
       (df : DSHIBinCarrierA)
+      {dfs: TypeSig}
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
-  context_equiv_at_TypeSig (TypeSigAExpr_IBinCarrierA df) σ0 σ1
-  ->  evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
+  TypeSigAExpr_IBinCarrierA df = Some dfs ->
+  context_equiv_at_TypeSig dfs σ0 σ1 ->  evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
 Proof.
   intros H.
 Admitted.
@@ -780,10 +781,10 @@ Global Instance BinOp_DSH_pure
        (o : nat)
        (x_p y_p : PExpr)
        (df: DSHIBinCarrierA)
+       {dfs: TypeSig}
+       {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
   :
-    DSH_pure (DSHBinOp o x_p y_p df)
-             (TypeSigAExpr_IBinCarrierA df)
-             x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p.
 Proof.
   split.
   -
@@ -867,19 +868,19 @@ Proof.
       constructor.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
-      clear -TE.
-      apply evalDSHBinOp_context_equiv, TE.
+      eapply evalDSHBinOp_context_equiv, TE.
+      apply DTS.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by eauto.
       some_none.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by eauto.
       some_none.
     +
       constructor.
@@ -895,11 +896,14 @@ Global Instance BinOp_MSH_DSH_compat
        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
        (x_p y_p : PExpr)
        (df : DSHIBinCarrierA)
+       {dfs: TypeSig}
+       {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
        (σ: evalContext)
        (m: memory)
        `{MSH_DSH_BinCarrierA_compat _ f σ df}
+       `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
   :
-    MSH_DSH_compat (MSHBinOp f) (DSHBinOp o x_p y_p df) σ m x_p y_p.
+    @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
   split.
   intros mx mb MX MB.

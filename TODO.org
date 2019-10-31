@@ -30,6 +30,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    checkout, without making any symlinks.
    
    Also top-level makefile may compile dependencies (Vellvm, interaction trees).
+** FMap equality
+   We have now defined setoid equiality for =mem_block=, =memory= and =TypeSig=. 
+   These are pretty much boilderplate, assuming =Equality= on the values. Perhaps
+   these 3 could be generalized via typeclass or a module.
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in
