@@ -161,3 +161,15 @@ Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
 Proof.
   intros H.
 Admitted.
+
+Lemma context_equiv_at_TypeSigUnion_left {σ0 σ1 dsig1 dsig2}:
+  context_equiv_at_TypeSig (TypeSigUnion dsig1 dsig2) σ0 σ1 ->
+  context_equiv_at_TypeSig dsig1 σ0 σ1.
+Proof.
+Admitted.
+
+Lemma context_equiv_at_TypeSigUnion_right {σ0 σ1 dsig1 dsig2}:
+  context_equiv_at_TypeSig (TypeSigUnion dsig1 dsig2) σ0 σ1 ->
+  context_equiv_at_TypeSig dsig2 σ0 σ1.
+Proof.
+Admitted.

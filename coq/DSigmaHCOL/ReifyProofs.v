@@ -1292,7 +1292,10 @@ Proof.
       rewrite E11 in mem_read_safe0.
       apply mem_read_safe0; clear mem_read_safe0.
 
-      admit.
+      subst σ0' σ1'.
+      apply context_equiv_at_TypeSig_widening.
+      eapply context_equiv_at_TypeSigUnion_right.
+      eapply TE.
 
       cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
       intros H1;  inversion H1.
@@ -1302,7 +1305,10 @@ Proof.
       rewrite E12 in mem_read_safe1.
       apply mem_read_safe1; clear mem_read_safe1.
 
-      admit.
+      subst σ0' σ1'.
+      apply context_equiv_at_TypeSig_widening.
+      eapply context_equiv_at_TypeSigUnion_left.
+      eapply TE.
 
       subst σ0' σ1' t0_v t1_v.
       apply blocks_equiv_at_Pexp_incrVar; auto.
@@ -1441,7 +1447,10 @@ Proof.
           rewrite E12 in mem_read_safe1.
           apply mem_read_safe1; clear mem_read_safe1.
 
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_left.
+          eapply TE.
 
           subst σ0' σ1' t0_v t1_v.
           apply blocks_equiv_at_Pexp_incrVar; auto.
@@ -1515,7 +1524,10 @@ Proof.
 
         assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
         {
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_right.
+          eapply TE.
         }
 
         specialize (mem_read_safe0 TE2' VIP0 VIP1).
@@ -1603,7 +1615,10 @@ Proof.
 
         assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
         {
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_left.
+          eapply TE.
         }
 
         specialize (mem_read_safe1 TE1' VIP0 VIP1).
@@ -1663,7 +1678,10 @@ Proof.
           rewrite E12 in mem_read_safe1.
           apply mem_read_safe1; clear mem_read_safe1.
 
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_left.
+          eapply TE.
 
           subst σ0' σ1' t0_v t1_v.
           apply blocks_equiv_at_Pexp_incrVar; auto.
@@ -1757,7 +1775,10 @@ Proof.
 
         assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
         {
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_right.
+          eapply TE.
         }
 
         specialize (mem_read_safe0 TE2' VIP0 VIP1).
@@ -1845,7 +1866,10 @@ Proof.
 
         assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
         {
-          admit.
+          subst σ0' σ1'.
+          apply context_equiv_at_TypeSig_widening.
+          eapply context_equiv_at_TypeSigUnion_left.
+          eapply TE.
         }
 
         specialize (mem_read_safe1 TE1' VIP0 VIP1).
@@ -1971,7 +1995,7 @@ Proof.
     rewrite NP.F.add_neq_o; auto.
     rewrite V.
     reflexivity.
-Admitted.
+Qed.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
