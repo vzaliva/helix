@@ -1295,6 +1295,7 @@ Proof.
       subst σ0' σ1'.
       apply context_equiv_at_TypeSig_widening.
       eapply context_equiv_at_TypeSigUnion_right.
+      eapply TC.
       eapply TE.
 
       cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
@@ -1308,6 +1309,7 @@ Proof.
       subst σ0' σ1'.
       apply context_equiv_at_TypeSig_widening.
       eapply context_equiv_at_TypeSigUnion_left.
+      eapply TC.
       eapply TE.
 
       subst σ0' σ1' t0_v t1_v.
@@ -1450,6 +1452,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_left.
+          eapply TC.
           eapply TE.
 
           subst σ0' σ1' t0_v t1_v.
@@ -1527,6 +1530,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_right.
+          eapply TC.
           eapply TE.
         }
 
@@ -1618,6 +1622,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_left.
+          eapply TC.
           eapply TE.
         }
 
@@ -1681,6 +1686,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_left.
+          eapply TC.
           eapply TE.
 
           subst σ0' σ1' t0_v t1_v.
@@ -1778,6 +1784,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_right.
+          eapply TC.
           eapply TE.
         }
 
@@ -1869,6 +1876,7 @@ Proof.
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
           eapply context_equiv_at_TypeSigUnion_left.
+          eapply TC.
           eapply TE.
         }
 
