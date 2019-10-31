@@ -106,11 +106,41 @@ TODO:
 Definition TypeSigUnion := TP.update (elt:=DSHType).
 
 
-(* True, if given type signatures do not have conflicts.
-   A conflict occurs when different values occur at
-   different signatures at the same index.
- *)
-Definition TypeSigCompat (s1 s2:TypeSig) : Prop. Admitted.
+Global Instance DSHType_equiv: Equiv DSHType := eq.
+
+Global Instance DSHType_equiv_Decision (a b:DSHType):
+  Decision (equiv a b).
+Proof.
+  unfold decidable.
+  destruct a,b; try (left;constructor); right; intros H; inversion H.
+Qed.
+
+
+(* Compare two type signatures for conflicts and returns map of
+   conflicting entries, for each conflicting key, the value us a tuple
+   of 2 incompatible values.
+
+   A conflict occurs when different values occur at different
+   signatures at the same index. If for given index the value is
+   present only in one signature that does not constiture a
+   conflct.  *)
+Definition findTypeSigConflicts (s1 s2:TypeSig)
+  := TM.map2 (fun a b => match a, b with
+                      | Some x, Some y =>
+                        if bool_decide (x = y)
+                        then None
+                        else Some (a,b)
+                      | _, _ => None
+                      end) s1 s2.
+
+(* Returns [True], if given type signatures do not have conflicts.
+
+   A conflict occurs when different values occur at different
+   signatures at the same index. If for given index the value is
+   present only in one signature that does not constiture a
+   conflct.  *)
+Definition TypeSigCompat (s1 s2:TypeSig) : Prop
+  := TM.is_empty (findTypeSigConflicts s1 s1) ≡ true.
 
 Fixpoint TypeSigNExpr (ne:NExpr) : TypeSig :=
   match ne with
