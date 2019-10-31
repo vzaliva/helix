@@ -319,41 +319,6 @@ Proof.
     constructor. constructor.
 Admitted.
 
-(*
-ATTEMPT TO FIND A CONTRADICTION
-
-Parameter σ0 σ1 : evalContext.
-Parameter a b : CarrierA.
-
-Let f := ANth (MVar 2) (NVar 3).
-
-Let to_prove :=
-  ∀ (σ0 σ1 : evalContext) (f : DSHIBinCarrierA),
-    context_equiv_at_IBinCarrierA f σ0 σ1
-    → ∀ (a b : CarrierA) (i : nat), evalIBinCarrierA σ0 f i a b = evalIBinCarrierA σ1 f i a b.
-
-Lemma contra : not to_prove.
-Proof.
-  unfold to_prove.
-  intros H.
-  specialize (H σ0 σ1 f).
-  assert (∀ (a b : CarrierA) (i : nat), evalIBinCarrierA σ0 f i a b = evalIBinCarrierA σ1 f i a b).
-  {
-    apply H.
-    unfold context_equiv_at_IBinCarrierA, context_equiv_at_AExpr.
-    intros.
-    unfold f in *.
-    inversion H0; subst.
-    inversion H3.
-    inversion H4.
-    congruence.
-  }
-  clear H.
-  specialize (H0 a b 1).
-  unfold f in H0.
-  unfold evalIBinCarrierA in H0.
-  inversion H0.
-*)
 
 Fixpoint evalDSHOperator
          (σ: evalContext)

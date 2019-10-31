@@ -11,6 +11,7 @@ Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.TypeSig.
 
 (* When proving concrete functions we need to use some implementation defs from this packages *)
 Require Import Helix.HCOL.HCOL.
@@ -301,6 +302,7 @@ Qed.
  *)
 Class DSH_pure
       (d: DSHOperator)
+      (dsig: TypeSig)
       (x_p y_p: PExpr)
   := {
 
@@ -316,6 +318,7 @@ Class DSH_pure
             EnvMemoryConsistent σ0 m0 ->
             EnvMemoryConsistent σ1 m1 ->
            *)
+          context_equiv_at_TypeSig dsig σ0 σ1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
           opt_r
@@ -344,10 +347,11 @@ Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
       (dop: DSHOperator)
+      {dsig: TypeSig}
       (σ: evalContext)
       (m: memory)
       (x_p y_p: PExpr)
-      `{DSH_pure dop x_p y_p}
+      `{DSH_pure dop dsig x_p y_p}
   := {
       eval_equiv
       :
@@ -766,11 +770,10 @@ Lemma evalDSHBinOp_context_equiv
       (o : nat)
       (df : DSHIBinCarrierA)
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
-  context_equiv_at_IBinCarrierA df σ0 σ1
-  → evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
+  context_equiv_at_TypeSig (TypeSigAExpr_IBinCarrierA df) σ0 σ1
+  ->  evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
 Proof.
-  intros EDF.
-  (* Hint: use induction and [evalIBinCarrierA_equiv_at_IBinCarrierA] *)
+  intros H.
 Admitted.
 
 Global Instance BinOp_DSH_pure
@@ -778,7 +781,9 @@ Global Instance BinOp_DSH_pure
        (x_p y_p : PExpr)
        (df: DSHIBinCarrierA)
   :
-    DSH_pure (DSHBinOp o x_p y_p df) x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p df)
+             (TypeSigAExpr_IBinCarrierA df)
+             x_p y_p.
 Proof.
   split.
   -
@@ -829,7 +834,7 @@ Proof.
           apply mem_block_exists_memory_set_neq in H; auto.
   -
     (* mem_read_safe *)
-    intros σ0 σ1 m0 m1 fuel EX EY.
+    intros σ0 σ1 m0 m1 fuel TE EX EY.
     destruct fuel; try constructor.
 
     unfold blocks_equiv_at_Pexp in EX, EY.
@@ -862,33 +867,18 @@ Proof.
       constructor.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
-      clear_all.
-      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
-      {
-        admit.
-        (* TODO: need additional assumption on [df] here! *)
-      }
-      apply evalDSHBinOp_context_equiv, EDF.
+      clear -TE.
+      apply evalDSHBinOp_context_equiv, TE.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
-      {
-        admit.
-        (* TODO: need additional assumption on [df] here! *)
-      }
       erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
       some_none.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      assert(EDF: context_equiv_at_IBinCarrierA df σ0 σ1).
-      {
-        admit.
-        (* TODO: need additional assumption on [df] here! *)
-      }
       erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by auto.
       some_none.
     +
@@ -1164,9 +1154,11 @@ Instance Compose_DSH_pure
          {n: nat}
          {x_p y_p: PExpr}
          {dop1 dop2: DSHOperator}
-         `{P2: DSH_pure dop2 (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 (PVar 0) (incrPVar 0 y_p)}
-  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) x_p y_p.
+         {dsig1 dsig2: TypeSig}
+         (TC: TypeSigCompat dsig1 dsig2)
+         `{P2: DSH_pure dop2 dsig1 (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 dsig2 (PVar 0) (incrPVar 0 y_p)}
+  : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p.
 Proof.
   split.
   - (* mem_stable *)
@@ -1220,7 +1212,7 @@ Proof.
         eapply D1.
         eapply mem_block_exists_memory_remove_neq; eauto.
   -
-    intros σ0 σ1 m0 m1 fuel EX EY.
+    intros σ0 σ1 m0 m1 fuel TE EX EY.
     destruct fuel; try constructor.
     simpl.
     repeat break_match; try some_none; try constructor.
@@ -1300,6 +1292,8 @@ Proof.
       rewrite E11 in mem_read_safe0.
       apply mem_read_safe0; clear mem_read_safe0.
 
+      admit.
+
       cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
       intros H1;  inversion H1.
       apply H8.
@@ -1307,6 +1301,8 @@ Proof.
       rewrite E02 in mem_read_safe1.
       rewrite E12 in mem_read_safe1.
       apply mem_read_safe1; clear mem_read_safe1.
+
+      admit.
 
       subst σ0' σ1' t0_v t1_v.
       apply blocks_equiv_at_Pexp_incrVar; auto.
@@ -1444,6 +1440,9 @@ Proof.
           rewrite E02 in mem_read_safe1.
           rewrite E12 in mem_read_safe1.
           apply mem_read_safe1; clear mem_read_safe1.
+
+          admit.
+
           subst σ0' σ1' t0_v t1_v.
           apply blocks_equiv_at_Pexp_incrVar; auto.
           subst m0' m1'.
@@ -1513,7 +1512,13 @@ Proof.
           constructor.
           apply H6.
         }
-        specialize (mem_read_safe0 VIP0 VIP1).
+
+        assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
+        {
+          admit.
+        }
+
+        specialize (mem_read_safe0 TE2' VIP0 VIP1).
         inversion mem_read_safe0.
       *
         rename Heqo1 into E12, Heqo0 into E11.
@@ -1595,7 +1600,13 @@ Proof.
           constructor.
           reflexivity.
         }
-        specialize (mem_read_safe1 VIP0 VIP1).
+
+        assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
+        {
+          admit.
+        }
+
+        specialize (mem_read_safe1 TE1' VIP0 VIP1).
         inversion mem_read_safe1.
     +
       exfalso.
@@ -1651,6 +1662,9 @@ Proof.
           rewrite E02 in mem_read_safe1.
           rewrite E12 in mem_read_safe1.
           apply mem_read_safe1; clear mem_read_safe1.
+
+          admit.
+
           subst σ0' σ1' t0_v t1_v.
           apply blocks_equiv_at_Pexp_incrVar; auto.
           subst m0' m1'.
@@ -1740,7 +1754,13 @@ Proof.
           constructor.
           apply H6.
         }
-        specialize (mem_read_safe0 VIP0 VIP1).
+
+        assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
+        {
+          admit.
+        }
+
+        specialize (mem_read_safe0 TE2' VIP0 VIP1).
         inversion mem_read_safe0.
       *
         rename Heqo1 into E12, Heqo0 into E11.
@@ -1822,7 +1842,13 @@ Proof.
           constructor.
           reflexivity.
         }
-        specialize (mem_read_safe1 VIP0 VIP1).
+
+        assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
+        {
+          admit.
+        }
+
+        specialize (mem_read_safe1 TE1' VIP0 VIP1).
         inversion mem_read_safe1.
   -
     (* mem_write_safe *)
@@ -1945,7 +1971,7 @@ Proof.
     rewrite NP.F.add_neq_o; auto.
     rewrite V.
     reflexivity.
-Qed.
+Admitted.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
