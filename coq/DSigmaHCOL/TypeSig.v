@@ -96,6 +96,12 @@ Definition TypeSigMExpr (me:MExpr) : TypeSig :=
   | MConst _ => TM.empty _
   end.
 
+(*
+TODO:
+  =AExpr= could be invalid if it refers to same env. indices assuming different types!
+  =TypeSigNExpr= could be either conditioned by correcteness of all expressions and
+  or return =Option=.
+ *)
 
 Definition TypeSigUnion := TP.update (elt:=DSHType).
 
