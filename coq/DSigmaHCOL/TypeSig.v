@@ -140,7 +140,7 @@ Definition findTypeSigConflicts (s1 s2:TypeSig)
    present only in one signature that does not constiture a
    conflct.  *)
 Definition TypeSigCompat (s1 s2:TypeSig) : Prop
-  := TM.is_empty (findTypeSigConflicts s1 s1) ≡ true.
+  := TM.Empty (findTypeSigConflicts s1 s1).
 
 Fixpoint TypeSigNExpr (ne:NExpr) : TypeSig :=
   match ne with
