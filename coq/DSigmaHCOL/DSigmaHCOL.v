@@ -89,8 +89,25 @@ Inductive DSHOperator :=
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.implementations.peano_naturals.
+Require Import MathClasses.misc.decision.
 Require Import Helix.Util.VecSetoid.
 Require Import Helix.Tactics.HelixTactics.
+
+Global Instance DSHType_equiv: Equiv DSHType := eq.
+
+Global Instance DSHType_equiv_Decision (a b:DSHType):
+  Decision (equiv a b).
+Proof.
+  destruct a,b; try (left;constructor); right; intros H; inversion H.
+Qed.
+
+Global Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
+  Decision (DSHValType v t).
+Proof.
+  destruct v,t; try (left;constructor); right; intros H; inversion H.
+Qed.
+
+Definition DSHValType_bool (v:DSHVal) (t:DSHType) := bool_decide (DSHValType v t).
 
 Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
 | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)

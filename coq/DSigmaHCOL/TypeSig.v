@@ -48,15 +48,6 @@ Module Import TP := FMapFacts.WProperties_fun(Nat_as_OT)(TM).
    De-Brujn indices to expected types *)
 Definition TypeSig := TM.t DSHType.
 
-Global Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
-  Decision (DSHValType v t).
-Proof.
-  unfold decidable.
-  destruct v,t; try (left;constructor); right; intros H; inversion H.
-Qed.
-
-Definition DSHValType_bool (v:DSHVal) (t:DSHType) := bool_decide (DSHValType v t).
-
 (* True if nth context element has expected type. decidable. *)
 Definition contextEnsureType (σ: evalContext) (k:nat) (t:DSHType) : Prop :=
   match nth_error σ k with
@@ -104,16 +95,6 @@ TODO:
  *)
 
 Definition TypeSigUnion := TP.update (elt:=DSHType).
-
-
-Global Instance DSHType_equiv: Equiv DSHType := eq.
-
-Global Instance DSHType_equiv_Decision (a b:DSHType):
-  Decision (equiv a b).
-Proof.
-  unfold decidable.
-  destruct a,b; try (left;constructor); right; intros H; inversion H.
-Qed.
 
 
 (* Compare two type signatures for conflicts and returns map of
