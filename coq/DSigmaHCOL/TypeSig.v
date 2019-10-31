@@ -75,7 +75,7 @@ Admitted.
 Definition typecheck_env_bool (tm:TypeSig) (σ: evalContext) : bool :=
   TP.for_all (fun k t => bool_decide (contextEnsureType σ k t)) tm.
 
-(* Sanity check *)
+(* Check if both versions are equivalent. Not sure we need both and which one we will be using *)
 Lemma typecheck_env_bool_iff (tm:TypeSig) (σ: evalContext):
   bool_decide (typecheck_env tm σ) ≡ typecheck_env_bool tm σ.
 Proof.
