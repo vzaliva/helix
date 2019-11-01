@@ -125,7 +125,7 @@ Section HCOL_implementations.
     : CarrierA :=
     match n with
     | O => initial
-    | S p => f (Inductor p f initial v) v
+    | S p => f (Inductor' p f initial v) v
     end.
    *)
 
