@@ -105,23 +105,12 @@ Proof.
   apply DSHValType_Decision.
 Qed.
 
-Definition typecheck_env (tm:TypeSig) (σ: evalContext) :  Prop :=
-  forall k t, TM.MapsTo k t tm -> contextEnsureType σ k t.
-
-Global Instance typecheck_env_Decision (tm:TypeSig) (σ: evalContext):
-  Decision (typecheck_env tm σ).
-Proof.
-Admitted.
-
-(* alternative definition on booleans using `for_all` *)
 Definition typecheck_env_bool (tm:TypeSig) (σ: evalContext) : bool :=
   TP.for_all (fun k t => bool_decide (contextEnsureType σ k t)) tm.
 
-(* Check if both versions are equivalent. Not sure we need both and which one we will be using *)
-Lemma typecheck_env_bool_iff (tm:TypeSig) (σ: evalContext):
-  bool_decide (typecheck_env tm σ) ≡ typecheck_env_bool tm σ.
-Proof.
-Admitted.
+(* Propositional version *)
+Definition typecheck_env (tm:TypeSig) (σ: evalContext) :  Prop :=
+  typecheck_env_bool tm σ ≡ true.
 
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
