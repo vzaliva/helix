@@ -285,7 +285,7 @@ Definition genMain
                            ]
         |}].
 
-Definition test_interpreter := interpreter_user helix_intrinsics.
+Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
 
 Definition runFSHCOLTest (t:FSHCOLTest) (data:list (FloatV t.(ft)))
   :=
