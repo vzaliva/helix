@@ -46,7 +46,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
   For =svalue_at_sparse= we need =szero= to be a fixpoint of =dot=
   (with 2 arguments). For =SHOperator_Mem= we need a =Monoid= which is
   a superset of that. 
-
 ** Quasi-Ring
    In one of rewrting proofs (=Diamond_f_subst=) I am using an awkward
    pre-condition which consists of two /Monoids/ which are sharing
@@ -54,7 +53,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    structure exists, and called [[https://argumatronic.com/posts/2019-06-21-algebra-cheatsheet.html#ring-like-structures][Quazi-ring]]. Instead of carrying over
    multiple assumptions I should define a typeclass for /QuaziRing/
    and pack them into it.
-
 ** Monoidal Restriction
    See if =RelUtil.restrict= could be used in =MonoidalRestriction=.
 * Proof mechanics
@@ -68,6 +66,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - can use eauto instead of matching
    - can use =typeclasses_eauto= to find some instances
 * Unfinished
+** Division by zero in DSHCOL [[file:coq/DSigmaHCOL/DSigmaHCOL.v::33][=NExpr=]] ([[file:coq/DSigmaHCOL/DSigmaHCOLEval.v::61][=evalNexpr=]])
 ** Automate /DynWin/ rewriting proof                                 :zoickx:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
