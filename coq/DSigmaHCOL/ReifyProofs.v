@@ -1160,8 +1160,8 @@ Instance Compose_DSH_pure
          {dop1 dop2: DSHOperator}
          {dsig1 dsig2: TypeSig}
          (TC: TypeSigCompat dsig1 dsig2)
-         `{P2: DSH_pure dop2 dsig1 (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 dsig2 (PVar 0) (incrPVar 0 y_p)}
+         `{P2: DSH_pure dop2 (TypeSig_incr dsig1) (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 (TypeSig_incr dsig2) (PVar 0) (incrPVar 0 y_p)}
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p.
 Proof.
   split.
@@ -1529,7 +1529,7 @@ Proof.
           apply H6.
         }
 
-        assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
+        assert(TE2': context_equiv_at_TypeSig (TypeSig_incr dsig2) σ0' σ1').
         {
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
@@ -1621,7 +1621,7 @@ Proof.
           reflexivity.
         }
 
-        assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
+        assert(TE1': context_equiv_at_TypeSig (TypeSig_incr dsig1) σ0' σ1').
         {
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
@@ -1783,7 +1783,7 @@ Proof.
           apply H6.
         }
 
-        assert(TE2': context_equiv_at_TypeSig dsig2 σ0' σ1').
+        assert(TE2': context_equiv_at_TypeSig (TypeSig_incr dsig2) σ0' σ1').
         {
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
@@ -1875,7 +1875,7 @@ Proof.
           reflexivity.
         }
 
-        assert(TE1': context_equiv_at_TypeSig dsig1 σ0' σ1').
+        assert(TE1': context_equiv_at_TypeSig (TypeSig_incr dsig1) σ0' σ1').
         {
           subst σ0' σ1'.
           apply context_equiv_at_TypeSig_widening.
@@ -2040,9 +2040,9 @@ Instance Compose_MSH_DSH_compat
          {dsig1 dsig2: TypeSig}
          {x_p y_p: PExpr}
          `{P: DSH_pure (DSHAlloc o2 (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p}
-         `{P2: DSH_pure dop2 dsig2 (incrPVar 0 x_p) (PVar 0)}
-         `{P1: DSH_pure dop1 dsig1 (PVar 0) (incrPVar 0 y_p)}
-         `{C2: @MSH_DSH_compat _ _ mop2 dop2 dsig2
+         `{P2: DSH_pure dop2 (TypeSig_incr dsig2) (incrPVar 0 x_p) (PVar 0)}
+         `{P1: DSH_pure dop1 (TypeSig_incr dsig1) (PVar 0) (incrPVar 0 y_p)}
+         `{C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
                               (DSHPtrVal (memory_new m) :: σ)
                               (memory_alloc_empty m (memory_new m))
                               (incrPVar 0 x_p) (PVar 0)

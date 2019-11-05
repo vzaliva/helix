@@ -224,9 +224,13 @@ Definition TypeSigAExpr_BinCarrierA (f: DSHBinCarrierA) : option TypeSig := Type
 Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
 
 
+(* uncreases keys in type signature by 1 *)
+Definition TypeSig_incr (t:TypeSig) : TypeSig :=
+  TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
+
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
-  context_equiv_at_TypeSig tm (foo0 :: σ0) (foo1 :: σ1).
+  context_equiv_at_TypeSig (TypeSig_incr tm) (foo0 :: σ0) (foo1 :: σ1).
 Proof.
   intros H.
 Admitted.
@@ -244,3 +248,4 @@ Lemma context_equiv_at_TypeSigUnion_right {σ0 σ1 dsig1 dsig2}:
   context_equiv_at_TypeSig dsig2 σ0 σ1.
 Proof.
 Admitted.
+
