@@ -767,12 +767,12 @@ Proof.
 Qed.
 
 Lemma evalDSHBinOp_context_equiv
-      (o : nat)
+      (n off : nat)
       (df : DSHIBinCarrierA)
       {dfs: TypeSig}
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
   TypeSigAExpr_IBinCarrierA df = Some dfs ->
-  context_equiv_at_TypeSig dfs σ0 σ1 ->  evalDSHBinOp o o df σ0 m0 m1 = evalDSHBinOp o o df σ1 m0 m1.
+  context_equiv_at_TypeSig dfs σ0 σ1 ->  evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
 Proof.
   intros H.
 Admitted.
