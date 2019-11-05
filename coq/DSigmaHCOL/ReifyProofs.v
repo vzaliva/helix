@@ -887,8 +887,22 @@ Proof.
   -
     (* mem_write_safe *)
     intros σ m m' fuel E y_i P.
-    admit.
-Admitted.
+    destruct fuel; simpl in E; [some_none|].
+
+    repeat break_match; try some_none.
+    repeat some_inv.
+    opt_hyp_to_equiv.
+    rewrite P in Heqo1, Heqo3, E.
+    clear P m1.
+    rename m0 into x_i, m2 into x, m3 into y, m4 into y'.
+
+    intros k NKY.
+    rewrite <- E.
+    clear E m'.
+    unfold memory_lookup, memory_set in *.
+    rewrite NP.F.add_neq_o by auto.
+    reflexivity.
+Qed.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
