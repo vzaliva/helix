@@ -138,12 +138,22 @@ Definition findTypeSigConflicts (s1 s2:TypeSig)
 Definition TypeSigCompat (s1 s2:TypeSig) : Prop
   := TM.Empty (findTypeSigConflicts s1 s2).
 
+Global Instance TypeSigCompat_Decision {s1 s2}:
+  Decision (TypeSigCompat s1 s2).
+Proof.
+  unfold Decision, TypeSigCompat.
+  destruct (TM.is_empty (elt:=option DSHType * option DSHType)
+                        (findTypeSigConflicts s1 s2)) eqn:H.
+  - left; apply TM.is_empty_2; assumption.
+  - right; intro C; apply TM.is_empty_1 in C; congruence.
+Qed.
+
 (* This is "unsafe" version which will override conflicting keys *)
 Definition TypeSigUnion := TP.update (elt:=DSHType).
 
 (* This is "safe" version which returns error in case of conflct *)
 Definition TypeSigUnion_error (s1 s2: TypeSig)
-  := if TM.is_empty (findTypeSigConflicts s1 s1)
+  := if TypeSigCompat_Decision (s1:=s1) (s2:=s2)
      then Some (TypeSigUnion s1 s2)
      else None.
 
@@ -153,14 +163,8 @@ Lemma TypeSigCompat_TypeSigUnion_error {dsig1 dsig2}:
 Proof.
   intros H.
   unfold TypeSigUnion_error.
-  break_if.
-  -
-    f_equiv.
-  -
-    unfold TypeSigCompat in H.
-    apply TM.is_empty_1 in H.
-Admitted.
-
+  break_if; [ reflexivity | congruence ].
+Qed.
 
 (* Helper wrapper for double bind of [TypeSigUnion_error] *)
 Definition TypeSigUnion_error' (os1 os2: option TypeSig): option TypeSig
