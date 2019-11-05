@@ -228,11 +228,37 @@ Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := Ty
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
 
+Lemma MapsTo_TypeSig_incr
+      {tm : TypeSig}
+      {k : nat}
+      {t : DSHType}:
+    TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
+Proof.
+  intros H.
+Admitted.
+
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
   context_equiv_at_TypeSig (TypeSig_incr tm) (foo0 :: σ0) (foo1 :: σ1).
 Proof.
-  intros H.
+  intros H k t M.
+  destruct k.
+  -
+    (* M is false *)
+    admit.
+  -
+    specialize (H k t (MapsTo_TypeSig_incr M)).
+    destruct H as [ET0 [ET1 L]].
+    repeat split.
+    +
+      unfold contextEnsureType in *.
+      crush.
+    +
+      unfold contextEnsureType in *.
+      crush.
+    +
+      simpl.
+      assumption.
 Admitted.
 
 Lemma context_equiv_at_TypeSigUnion_left {σ0 σ1 dsig1 dsig2}:
