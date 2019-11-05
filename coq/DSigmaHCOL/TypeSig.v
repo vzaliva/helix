@@ -327,3 +327,26 @@ Lemma context_equiv_at_TypeSigUnion_right {σ0 σ1 dsig1 dsig2}:
 Proof.
 Admitted.
 
+Lemma context_equiv_at_TypeSig_both_typcheck
+      (dfs : TypeSig)
+      (σ0 σ1 : evalContext):
+  context_equiv_at_TypeSig dfs σ0 σ1 → (typecheck_env dfs σ0 /\ typecheck_env dfs σ1).
+Proof.
+  intros H.
+  split.
+  -
+    unfold typecheck_env, typecheck_env_bool.
+    apply for_all_iff.
+    typeclasses eauto.
+    intros k t M.
+    apply bool_decide_true.
+    specialize (H k t M).
+    apply H.
+  -
+    apply for_all_iff.
+    typeclasses eauto.
+    intros k t M.
+    apply bool_decide_true.
+    specialize (H k t M).
+    apply H.
+Qed.
