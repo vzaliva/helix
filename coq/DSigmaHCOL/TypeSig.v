@@ -235,6 +235,15 @@ Lemma MapsTo_TypeSig_incr
     TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
 Proof.
   intros H.
+  unfold TypeSig_incr in H.
+  unfold to_list, of_list in H.
+  apply TM.elements_2.
+  apply TM.elements_1 in H.
+  remember (TM.eq_key_elt (elt:=DSHType)) as x.
+  (*
+  Search to_list.
+  Search of_list.
+  *)
 Admitted.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
