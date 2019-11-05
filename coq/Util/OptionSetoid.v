@@ -74,6 +74,17 @@ Ltac symmetry_option_hyp :=
           | [H: None ≡ _  |- _ ] => symmetry in H
           end.
 
+Lemma is_Some_ne_None `(x : option A) :
+  is_Some x ↔ x ≢ None.
+Proof.
+  destruct x; intros; crush.
+Qed.
+
+Lemma Some_ne_None `(x : option A) y :
+  x ≡ Some y → x ≢ None.
+Proof. congruence. Qed.
+
+
 Ltac some_none :=
   let H' := fresh in
   match goal with
@@ -98,6 +109,8 @@ Ltac some_none :=
   | [ |- Some ?a ≡ Some ?a] => reflexivity
   | [ |- is_None None ] => apply is_None_def; reflexivity
   | [ |- is_Some (Some _)] => unfold is_Some; tauto
+  | [H1: is_Some ?x, H2: is_None ?x |- _] =>
+    apply is_Some_ne_None in H1; apply is_None_def in H2; congruence
   end.
 
 Ltac some_inv :=
@@ -181,16 +194,6 @@ Proof.
     inversion H.
     reflexivity.
 Qed.
-
-Lemma is_Some_ne_None `(x : option A) :
-  is_Some x ↔ x ≢ None.
-Proof.
-  destruct x; intros; crush.
-Qed.
-
-Lemma Some_ne_None `(x : option A) y :
-  x ≡ Some y → x ≢ None.
-Proof. congruence. Qed.
 
 Lemma Some_nequiv_None `(x : option A) `{Ae: Equiv A} y :
   x = Some y → x ≠ None.
