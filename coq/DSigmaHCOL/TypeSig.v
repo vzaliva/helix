@@ -314,7 +314,22 @@ Lemma context_equiv_at_TypeSigUnion_right {σ0 σ1 dsig1 dsig2}:
   context_equiv_at_TypeSig (TypeSigUnion dsig1 dsig2) σ0 σ1 ->
   context_equiv_at_TypeSig dsig2 σ0 σ1.
 Proof.
-Admitted.
+  unfold context_equiv_at_TypeSig.
+  intros; apply H0; clear - H H1.
+  apply update_mapsto_iff.
+  destruct (F.In_dec (elt:=DSHType) dsig1 k) as [I|];
+    [left | auto].
+  apply TM.find_2.
+  unfold TypeSigCompat, TypeSigUnion in H.
+  apply find_Empty with (k := k) in H.
+  unfold findTypeSigConflicts, TypeSig in H.
+  rewrite TM.map2_1 in H by auto.
+  rewrite TM.find_1 with (e := t) (m := dsig2) in H by assumption.
+  unfold bool_decide in H.
+  repeat break_match_hyp; try congruence.
+  apply TM.find_1; assumption.
+  apply F.in_find_iff in I; congruence.
+Qed.
 
 Lemma context_equiv_at_TypeSig_both_typcheck
       (dfs : TypeSig)
