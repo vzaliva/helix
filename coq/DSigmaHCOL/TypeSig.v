@@ -299,10 +299,25 @@ Proof.
     intuition.
 Qed.
 
-Lemma InA_to_list_of_list (elt : Type) (m : list (TM.key * elt)) (x : TM.key * elt) :
-  InA (TM.eq_key_elt (elt:=elt)) x (to_list (of_list m)) <->
-  InA (TM.eq_key_elt (elt:=elt)) x m.
-Admitted.
+Lemma TypeSig_incr_NoDupA (tm : TypeSig) :
+  NoDupA (TM.eq_key (elt:=DSHType)) (map (λ '(k, v), (S k, v)) (to_list tm)).
+Proof.
+    unfold to_list.
+    pose proof TM.elements_3w (elt:=DSHType) tm.
+    induction H; [constructor |].
+    simpl.
+    break_match.
+    constructor; [| assumption].
+    intros C; contradict H.
+    apply InA_alt.
+    apply InA_alt in C.
+    destruct C as [y T]; destruct T as [H1 H2].
+    apply in_map_iff in H2.
+    destruct H2 as [x' T]; destruct T as [H3 H4].
+    break_match; subst.
+    inversion H1; subst.
+    exists (n, d0); split; [reflexivity | assumption].
+Qed.
 
 Lemma MapsTo_TypeSig_incr
       {tm : TypeSig}
@@ -311,19 +326,23 @@ Lemma MapsTo_TypeSig_incr
     TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
 Proof.
   intros H.
-  apply TM.elements_1 in H.
-  apply TM.elements_2.
   unfold TypeSig_incr in H.
-  rewrite ->InA_to_list_of_list in H.
-  remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
+  apply of_list_1 in H;
+    [| apply TypeSig_incr_NoDupA].
   remember (λ '(k, v), (S k, v)) as f.
-  pose proof InA_map_2 K (k, t) (TM.elements (elt:=DSHType) tm) f as M.
-  apply M; [| subst; assumption].
-  subst; clear.
-  unfold TM.eq_key_elt, TM.Raw.Proofs.PX.eqke.
-  intros.
-  repeat break_match; simpl in *.
-  intuition.
+  remember (TM.eq_key_elt (elt:=DSHType)) as K.
+  assert (KP : ∀ a b, K (f a) (f b) → K a b).
+  {
+    subst; clear.
+    intros.
+    repeat break_match.
+    cbv in *.
+    intuition.
+  }
+  pose proof InA_map_2 K (k, t) (to_list tm) f KP.
+  subst; apply H0 in H; clear - H.
+  apply TM.elements_2.
+  assumption.
 Qed.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
@@ -334,16 +353,14 @@ Proof.
   destruct k.
   -
     exfalso.
-    apply TM.elements_1 in M.
-    unfold TypeSig_incr in M.
-    rewrite ->InA_to_list_of_list in M.
-    remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
-    remember (λ '(k, v), (S k, v)) as f.
-    apply InA_map_prototype with (fx := (0, t)) in M;
-      [| generalize eqke_equiv; subst; intuition].
-    destruct M as [x M]; destruct M as [M1 M2].
-    subst; break_match.
-    inversion M2; discriminate.
+    apply of_list_1 in M;
+      [| apply TypeSig_incr_NoDupA].
+    apply InA_alt in M.
+    destruct M as [x T]; destruct T as [H1 H2].
+    apply in_map_iff in H2.
+    destruct H2 as [y T]; destruct T as [H2 H3].
+    break_match; subst.
+    inversion H1; discriminate.
   -
     specialize (H k t (MapsTo_TypeSig_incr M)).
     destruct H as [ET0 [ET1 L]].
