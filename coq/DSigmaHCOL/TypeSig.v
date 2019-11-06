@@ -241,7 +241,7 @@ Proof.
   intros P H.
   apply InA_alt.
   apply InA_alt in H.
-  destruct H as [y T]; destruct T as [H1 H2].
+  destruct H as [y [H1 H2]].
   exists (f y).
   split; [apply P; congruence |].
   apply in_map_iff.
@@ -259,9 +259,9 @@ Proof.
   intros P H.
   apply InA_alt.
   apply InA_alt in H.
-  destruct H as [fy T]; destruct T as [H1 H2].
+  destruct H as [fy [H1 H2]].
   apply in_map_iff in H2.
-  destruct H2 as [y T]; destruct T as [H2 H3].
+  destruct H2 as [y [H2 H3]].
   exists y; split;
     [apply P; congruence | assumption].
 Qed.
@@ -276,9 +276,9 @@ Lemma InA_map_prototype {A : Type}
 Proof.
   intros R H.
   apply InA_alt in H.
-  destruct H as [fy T]; destruct T as [H1 H2].
+  destruct H as [fy [H1 H2]].
   apply in_map_iff in H2.
-  destruct H2 as [y T]; destruct T as [H2 H3].
+  destruct H2 as [y [H2 H3]].
   exists y.
   split; [| congruence].
   induction m;
@@ -305,9 +305,9 @@ Proof.
     intros C; contradict H.
     apply InA_alt.
     apply InA_alt in C.
-    destruct C as [y T]; destruct T as [H1 H2].
+    destruct C as [y [H1 H2]].
     apply in_map_iff in H2.
-    destruct H2 as [x' T]; destruct T as [H3 H4].
+    destruct H2 as [x' [H2 H3]].
     break_match; subst.
     inversion H1; subst.
     exists (n, d0); split; [reflexivity | assumption].
@@ -349,9 +349,9 @@ Proof.
     apply of_list_1 in M;
       [| apply TypeSig_incr_NoDupA].
     apply InA_alt in M.
-    destruct M as [x T]; destruct T as [H1 H2].
+    destruct M as [x [H1 H2]].
     apply in_map_iff in H2.
-    destruct H2 as [y T]; destruct T as [H2 H3].
+    destruct H2 as [y [H2 H3]].
     break_match; subst.
     inversion H1; discriminate.
   -
