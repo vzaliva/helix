@@ -236,6 +236,27 @@ Definition TypeSig_incr (t:TypeSig) : TypeSig :=
 Definition TypeSig_incr' (t:TypeSig) : TypeSig :=
   TM.fold (fun k e acc => TM.add (S k) e acc) t (TM.empty DSHType).
 
+Lemma InA_map_iff {A : Type}
+                  (eqA : A -> A -> Prop)
+                  (x : A)
+                  (m : list A)
+                  (f : A -> A) :
+  InA eqA (f x) (map f m) <-> InA eqA x m.
+Admitted.
+
+Lemma InA_map_prototype {A : Type}
+                        (eqA : A -> A -> Prop)
+                        (x' : A)
+                        (m : list A)
+                        (f : A -> A) :
+  InA eqA x' (map f m) <-> (exists x, InA eqA x m /\ x' ≡ f x).
+Admitted.
+
+Lemma InA_to_list_of_list (elt : Type) (m : list (TM.key * elt)) (x : TM.key * elt) :
+  InA (TM.eq_key_elt (elt:=elt)) x (to_list (of_list m)) <->
+  InA (TM.eq_key_elt (elt:=elt)) x m.
+Admitted.
+
 Lemma MapsTo_TypeSig_incr
       {tm : TypeSig}
       {k : nat}
@@ -243,16 +264,15 @@ Lemma MapsTo_TypeSig_incr
     TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
 Proof.
   intros H.
-  unfold TypeSig_incr in H.
-  unfold to_list, of_list in H.
-  apply TM.elements_2.
   apply TM.elements_1 in H.
-  remember (TM.eq_key_elt (elt:=DSHType)) as x.
-  (*
-  Search to_list.
-  Search of_list.
-  *)
-Admitted.
+  apply TM.elements_2.
+  unfold TypeSig_incr in H.
+  rewrite ->InA_to_list_of_list in H.
+  remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
+  remember (λ '(k, v), (S k, v)) as f.
+  pose proof InA_map_iff K (k, t) (TM.elements (elt:=DSHType) tm) f as M.
+  apply M; subst; assumption.
+Qed.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
@@ -261,8 +281,15 @@ Proof.
   intros H k t M.
   destruct k.
   -
-    (* M is false *)
-    admit.
+    exfalso.
+    apply TM.elements_1 in M.
+    unfold TypeSig_incr in M.
+    rewrite ->InA_to_list_of_list in M.
+    remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
+    remember (λ '(k, v), (S k, v)) as f.
+    apply InA_map_prototype with (x' := (0, t)) in M.
+    destruct M as [x M]; destruct M as [M1 M2].
+    subst; break_match; discriminate.
   -
     specialize (H k t (MapsTo_TypeSig_incr M)).
     destruct H as [ET0 [ET1 L]].
@@ -276,7 +303,7 @@ Proof.
     +
       simpl.
       assumption.
-Admitted.
+Qed.
 
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
   TM.Empty (elt:=elt) m ->
