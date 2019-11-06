@@ -67,6 +67,9 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - can use =typeclasses_eauto= to find some instances
 * Unfinished
 ** Division by zero in DSHCOL [[file:coq/DSigmaHCOL/DSigmaHCOL.v::33][=NExpr=]] ([[file:coq/DSigmaHCOL/DSigmaHCOLEval.v::61][=evalNexpr=]])
+** =DSHAlloc= memory size is not tracked and enforced. 
+   Probably not a problem for DSHCOL as memory blocks are of infinite
+   size, but could be an issue later for LLVM codegen.
 ** Automate /DynWin/ rewriting proof                                 :zoickx:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
