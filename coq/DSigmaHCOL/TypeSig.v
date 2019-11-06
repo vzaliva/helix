@@ -278,8 +278,8 @@ Proof.
       assumption.
 Admitted.
 
-Lemma find_Empty (elt : Type) (m : TM.t elt)
-  (X : TM.Empty (elt:=elt) m) :
+Lemma find_Empty (elt : Type) (m : TM.t elt) :
+  TM.Empty (elt:=elt) m ->
   forall k, TM.find k m ≡ None.
 Admitted.
 
@@ -291,37 +291,17 @@ Proof.
   unfold context_equiv_at_TypeSig.
   intros; apply H0; clear - H H1.
   apply update_mapsto_iff.
-  destruct (F.In_dec (elt:=DSHType) dsig2 k) as [I|I];
+  destruct (F.In_dec (elt:=DSHType) dsig2 k) as [I|];
     [left | auto].
-  unfold TypeSigCompat, TypeSigUnion, findTypeSigConflicts, TypeSig in *.
-  remember (λ a b : option DSHType,
-              match a with
-              | Some x =>
-                  match b with
-                  | Some y => if bool_decide (x = y) then None else Some (a, b)
-                  | None => None
-                  end
-              | None => None
-              end)
-    as dedup.
-  
-  assert (TM.find (elt:=option DSHType * option DSHType) k (TM.map2 dedup dsig1 dsig2) ≡
-          dedup (TM.find (elt:=DSHType) k dsig1) (TM.find (elt:=DSHType) k dsig2))
-  by (apply TM.map2_1; auto).
-
-  rewrite TM.find_1 with (e := t) in H0 by assumption.
-  destruct (TM.find (elt:=DSHType) k dsig2) as [t'|] eqn:F2;
-  [ | apply F.in_find_iff in I; congruence].
-  replace (dedup (Some t) (Some t'))
-    with (if bool_decide (t = t') then None else Some (Some t, Some t'))
-    in H0
-    by (subst; reflexivity).
-  rewrite find_Empty in H0 by assumption.
-  unfold bool_decide in H0.
-  repeat break_match_hyp; try discriminate.
-  rewrite e.
   apply TM.find_2.
-  assumption.
+  unfold TypeSigCompat, TypeSigUnion in H.
+  apply find_Empty with (k := k) in H.
+  unfold findTypeSigConflicts, TypeSig in H.
+  rewrite TM.map2_1 in H by auto.
+  rewrite TM.find_1 with (e := t) in H by assumption.
+  unfold bool_decide in H.
+  repeat break_match_hyp; try congruence.
+  apply F.in_find_iff in I; congruence.
 Qed.
 
 Lemma context_equiv_at_TypeSigUnion_right {σ0 σ1 dsig1 dsig2}:
