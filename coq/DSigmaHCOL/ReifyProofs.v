@@ -830,7 +830,6 @@ Qed.
  *)
 Lemma evalDSHBinOp_is_None_inv
       (off n: nat)
-      (nz: n≢0)
       (df : DSHIBinCarrierA)
       (σ : evalContext)
       {dfs}
@@ -841,6 +840,28 @@ Lemma evalDSHBinOp_is_None_inv
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
+  induction n.
+  -
+    crush.
+  -
+    intros N.
+    simpl in *.
+    repeat break_match_hyp; try some_none.
+    +
+      admit.
+    +
+      clear N.
+      admit.
+    +
+      apply is_None_def in Heqo0.
+      exists n.
+      eexists. lia.
+      auto.
+    +
+      apply is_None_def in Heqo.
+      exists n.
+      eexists. lia.
+      auto.
 Admitted.
 
 Lemma evalDSHBinOp_context_equiv
