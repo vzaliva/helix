@@ -690,35 +690,80 @@ Proof.
   apply Heqo0.
 Qed.
 
+(* This is generalized version of [evalDSHBinOp_nth]
+   TODO see if we can replace [evalDSHBinOp_nth] with it
+   or at lease simplify its proof using this lemma.
+*)
 Lemma evalDSHBinOp_is_Some_spec
-      (off n: nat)
-      (df : DSHIBinCarrierA)
-      (σ : evalContext)
-      (mx mb ma : mem_block):
+      {off n: nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {mx mb ma : mem_block}:
+  (evalDSHBinOp n off df σ mx mb = Some ma)
+  ->
   (∀ k (kc: k < n),
-      ∃ a b c,
+      ∃ a b,
         (mem_lookup k mx = Some a /\
          mem_lookup (k+off) mx = Some b /\
-         mem_lookup k ma = Some c /\
-         evalIBinCarrierA σ df k a b = mem_lookup k ma)
-  )
-  <->
-  evalDSHBinOp n off df σ mx mb = Some ma.
+         (exists c,
+             mem_lookup k ma = Some c /\
+             evalIBinCarrierA σ df k a b = Some c))
+  ).
 Proof.
-Admitted.
+  intros E k kc.
+  pose proof (evalDSHBinOp_mem_lookup_mx E) as [A B] ; eauto.
+  apply is_Some_equiv_def in A.
+  destruct A as [a A].
+  apply is_Some_equiv_def in B.
+  destruct B as [b B].
+  exists a.
+  exists b.
+  repeat split; auto.
+
+  revert mb a b A B E.
+  induction n; intros.
+  -
+    inversion kc.
+  -
+    simpl in *.
+    repeat break_match_hyp; try some_none.
+    destruct (Nat.eq_dec k n).
+    +
+      clear IHn.
+      subst k.
+      rewrite Heqo in A. clear Heqo.
+      rewrite Heqo0 in B. clear Heqo0.
+      repeat some_inv.
+
+      opt_hyp_to_equiv.
+      rewrite B in Heqo1; clear B c0.
+      rewrite A in Heqo1; clear A c.
+      exists c1.
+      rewrite Heqo1. clear Heqo1.
+      clear - E.
+      split; try reflexivity.
+      unshelve eapply (evalDSHBinOp_preservation E).
+      lia.
+    +
+      apply IHn with (mb:=mem_add n c1 mb); auto.
+      lia.
+Qed.
 
 Lemma evalDSHBinOp_is_Some
       (off n: nat)
       (df : DSHIBinCarrierA) (σ : evalContext)
       (mx mb : mem_block):
-  ((∀ k (kc: k < (n + off)%nat), is_Some (mem_lookup k mx)) /\
-   (∀ k (kc: k < n) (a b : CarrierA), is_Some (evalIBinCarrierA σ df k a b)))
-  <->
+  (∀ k (kc: k < n),
+      is_Some (mem_lookup k mx) /\
+      is_Some (mem_lookup (k+off) mx) /\
+      (∀ (a b : CarrierA), is_Some (evalIBinCarrierA σ df k a b)))
+  ->
   is_Some (evalDSHBinOp n off df σ mx mb).
 Proof.
+  (*
   split.
   -
-    intros [DX FV].
+    intros H.
     revert mb.
     induction n.
     +
@@ -769,7 +814,7 @@ Proof.
       *
         specialize (H (k-n)).
         destruct H as [a [b [c' [A [B [C E]]]]]].
-
+        *)
 Admitted.
 
 Lemma evalDSHBinOp_is_None
@@ -854,21 +899,18 @@ Proof.
       opt_hyp_to_equiv.
       destruct (Nat.lt_decidable k (S n)) as [kc|kc].
       *
-        rewrite <- evalDSHBinOp_is_Some_spec in Ha.
-        rewrite <- evalDSHBinOp_is_Some_spec in Hb.
-        specialize (Ha k kc).
-        specialize (Hb k kc).
+        eapply evalDSHBinOp_is_Some_spec in Ha; eauto.
+        eapply evalDSHBinOp_is_Some_spec in Hb; eauto.
 
-        destruct Ha as [a0 [b0 [c0 [A0 [B0 [C0 E0]]]]]].
-        destruct Hb as [a1 [b1 [c1 [A1 [B1 [C1 E1]]]]]].
+        destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
+        destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
 
         rewrite A0 in A1. clear A0.
         rewrite B0 in B1. clear B0.
         repeat some_inv.
         rewrite A1, B1 in E0. clear A1 B1 a0 b0.
-        rewrite <- E0, <- E1. clear E0 E1.
+        rewrite C0, C1, <- E0, <- E1. clear C0 C1 E0 E1 c0 c1.
         rename a1 into a, b1 into b.
-        clear C0 C1 c0 c1.
         unfold evalIBinCarrierA in *.
 
         unfold context_equiv_at_TypeSig in E.
@@ -895,18 +937,9 @@ Proof.
         apply E.
       }
       apply equiv_Some_is_Some in Ha.
-      apply evalDSHBinOp_is_Some in Ha.
-      destruct Ha as [Ha0 Ha1].
-      destruct Hb as [k [kc Hb]].
-      destruct Hb.
-      *
-        assert(kc1: k < S n + off) by lia.
-        specialize (Ha0 k kc1).
-        some_none.
-      *
-        assert(kc1: k + off < S n + off) by lia.
-        specialize (Ha0 (k+off) kc1).
-        some_none.
+      apply evalDSHBinOp_is_None with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
+      some_none.
+      auto.
   -
     destruct n.
     +
@@ -920,18 +953,10 @@ Proof.
           apply E.
       }
       apply equiv_Some_is_Some in Hb.
-      apply evalDSHBinOp_is_Some in Hb.
-      destruct Hb as [Hb0 Hb1].
-      destruct Ha as [k [kc Ha]].
-      destruct Ha.
-      *
-        assert(kc1: k < S n + off) by lia.
-        specialize (Hb0 k kc1).
-        some_none.
-      *
-        assert(kc1: k + off < S n + off) by lia.
-        specialize (Hb0 (k+off) kc1).
-        some_none.
+
+      apply evalDSHBinOp_is_None with (df:=df) (σ:=σ1) (mb:=m1) in Ha.
+      some_none.
+      auto.
 Admitted.
 
 Global Instance BinOp_DSH_pure
@@ -1179,11 +1204,17 @@ Proof.
       split.
       *
         apply DX.
+        lia.
       *
-        intros k kc a b.
-        specialize (FV (FinNat.mkFinNat kc) a b).
-        apply equiv_Some_is_Some in FV.
-        apply FV.
+        split.
+        --
+          apply DX.
+          lia.
+        --
+          intros a b.
+          specialize (FV (FinNat.mkFinNat kc) a b).
+          apply equiv_Some_is_Some in FV.
+          apply FV.
   -
     unfold lookup_Pexp in *.
     simpl in *.
