@@ -760,62 +760,32 @@ Lemma evalDSHBinOp_is_Some
   ->
   is_Some (evalDSHBinOp n off df σ mx mb).
 Proof.
-  (*
-  split.
+  intros H.
+  revert mb.
+  induction n.
   -
-    intros H.
-    revert mb.
-    induction n.
-    +
-      constructor.
-    +
-      intros mb.
-      simpl.
-      repeat break_match; simpl in *.
-      *
-        apply IHn.
-        intros k kc.
-        apply DX.
-        lia.
-        intros k kc a b.
-        apply FV.
-        lia.
-      *
-        contradict Heqo1.
-        apply is_Some_ne_None.
-        apply FV.
-        lia.
-      *
-        contradict Heqo0.
-        apply is_Some_ne_None.
-        apply DX.
-        lia.
-      *
-        contradict Heqo.
-        apply is_Some_ne_None.
-        apply DX.
-        lia.
+    constructor.
   -
-
-    intros H.
-    apply is_Some_equiv_def in H.
-    destruct H as [c H].
-    rewrite <- evalDSHBinOp_is_Some_spec in H.
-    split.
+    intros mb.
+    simpl.
+    repeat break_match; simpl in *.
     +
-      assert(ON: off>=n). admit.
-      intros k kc'.
-      destruct (Nat.lt_decidable k n) as [kc|kc].
-      *
-        specialize (H k kc).
-        destruct H as [a [b [c' [A [B [C E]]]]]].
-        apply equiv_Some_is_Some in A.
-        auto.
-      *
-        specialize (H (k-n)).
-        destruct H as [a [b [c' [A [B [C E]]]]]].
-        *)
-Admitted.
+      apply IHn.
+      intros k kc.
+      repeat split; apply H; lia.
+    +
+      contradict Heqo1.
+      apply is_Some_ne_None.
+      apply H; lia.
+    +
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      apply H; lia.
+    +
+      contradict Heqo.
+      apply is_Some_ne_None.
+      apply H; lia.
+Qed.
 
 Lemma evalDSHBinOp_is_None
       (off n: nat)
