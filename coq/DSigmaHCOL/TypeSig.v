@@ -236,21 +236,68 @@ Definition TypeSig_incr (t:TypeSig) : TypeSig :=
 Definition TypeSig_incr' (t:TypeSig) : TypeSig :=
   TM.fold (fun k e acc => TM.add (S k) e acc) t (TM.empty DSHType).
 
-Lemma InA_map_iff {A : Type}
+Lemma InA_map_1 {A : Type}
                   (eqA : A -> A -> Prop)
                   (x : A)
                   (m : list A)
                   (f : A -> A) :
-  InA eqA (f x) (map f m) <-> InA eqA x m.
-Admitted.
+  (forall a b, eqA a b -> eqA (f a) (f b)) ->
+  InA eqA x m -> InA eqA (f x) (map f m).
+Proof.
+  intros P H.
+  apply InA_alt.
+  apply InA_alt in H.
+  destruct H as [y T]; destruct T as [H1 H2].
+  exists (f y).
+  split; [apply P; congruence |].
+  apply in_map_iff.
+  exists y; auto.
+Qed.
+
+Lemma InA_map_2 {A : Type}
+                  (eqA : A -> A -> Prop)
+                  (x : A)
+                  (m : list A)
+                  (f : A -> A) :
+  (forall a b, eqA (f a) (f b) -> eqA a b) ->
+  InA eqA (f x) (map f m) -> InA eqA x m.
+Proof.
+  intros P H.
+  apply InA_alt.
+  apply InA_alt in H.
+  destruct H as [fy T]; destruct T as [H1 H2].
+  apply in_map_iff in H2.
+  destruct H2 as [y T]; destruct T as [H2 H3].
+  exists y; split;
+    [apply P; congruence | assumption].
+Qed.
 
 Lemma InA_map_prototype {A : Type}
                         (eqA : A -> A -> Prop)
-                        (x' : A)
+                        (fx : A)
                         (m : list A)
                         (f : A -> A) :
-  InA eqA x' (map f m) <-> (exists x, InA eqA x m /\ x' ≡ f x).
-Admitted.
+  Reflexive eqA ->
+  InA eqA fx (map f m) -> (exists x, InA eqA x m /\ eqA fx (f x)).
+Proof.
+  intros R H.
+  apply InA_alt in H.
+  destruct H as [fy T]; destruct T as [H1 H2].
+  apply in_map_iff in H2.
+  destruct H2 as [y T]; destruct T as [H2 H3].
+  exists y.
+  split; [| congruence].
+  induction m;
+    [inversion H3 |].
+  simpl in H3; destruct H3 as [EQ | NEQ].
+  -
+    apply InA_cons_hd.
+    rewrite EQ.
+    apply R.
+  -
+    apply InA_cons_tl.
+    intuition.
+Qed.
 
 Lemma InA_to_list_of_list (elt : Type) (m : list (TM.key * elt)) (x : TM.key * elt) :
   InA (TM.eq_key_elt (elt:=elt)) x (to_list (of_list m)) <->
@@ -270,8 +317,13 @@ Proof.
   rewrite ->InA_to_list_of_list in H.
   remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
   remember (λ '(k, v), (S k, v)) as f.
-  pose proof InA_map_iff K (k, t) (TM.elements (elt:=DSHType) tm) f as M.
-  apply M; subst; assumption.
+  pose proof InA_map_2 K (k, t) (TM.elements (elt:=DSHType) tm) f as M.
+  apply M; [| subst; assumption].
+  subst; clear.
+  unfold TM.eq_key_elt, TM.Raw.Proofs.PX.eqke.
+  intros.
+  repeat break_match; simpl in *.
+  intuition.
 Qed.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
@@ -287,9 +339,11 @@ Proof.
     rewrite ->InA_to_list_of_list in M.
     remember (TM.eq_key_elt (elt:=DSHType)) as K eqn:TK.
     remember (λ '(k, v), (S k, v)) as f.
-    apply InA_map_prototype with (x' := (0, t)) in M.
+    apply InA_map_prototype with (fx := (0, t)) in M;
+      [| generalize eqke_equiv; subst; intuition].
     destruct M as [x M]; destruct M as [M1 M2].
-    subst; break_match; discriminate.
+    subst; break_match.
+    inversion M2; discriminate.
   -
     specialize (H k t (MapsTo_TypeSig_incr M)).
     destruct H as [ET0 [ET1 L]].
