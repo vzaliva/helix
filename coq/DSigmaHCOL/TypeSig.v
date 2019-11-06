@@ -212,7 +212,6 @@ Fixpoint TypeSigAExpr (ae:AExpr) : option TypeSig :=
   | AZless a b => TypeSigUnion_error' (TypeSigAExpr a) (TypeSigAExpr b)
   end.
 
-
 (* make sure 2 contexts are quivalent at locations from given [TypeSig].
    additionally makes typechecks both contexts wrt [TypeSig] *)
 Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
@@ -227,16 +226,15 @@ Definition TypeSigAExpr_IUnCarrierA (f: DSHIBinCarrierA) : option TypeSig := Typ
 Definition TypeSigAExpr_BinCarrierA (f: DSHBinCarrierA) : option TypeSig := TypeSigAExpr f.
 Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
 
-
-(* uncreases keys in type signature by 1 *)
+(* increases keys in type signature by 1 *)
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
 
 Lemma InA_map_1 {A : Type}
-                  (eqA : A -> A -> Prop)
-                  (x : A)
-                  (m : list A)
-                  (f : A -> A) :
+                (eqA : A -> A -> Prop)
+                (x : A)
+                (m : list A)
+                (f : A -> A) :
   (forall a b, eqA a b -> eqA (f a) (f b)) ->
   InA eqA x m -> InA eqA (f x) (map f m).
 Proof.
@@ -251,10 +249,10 @@ Proof.
 Qed.
 
 Lemma InA_map_2 {A : Type}
-                  (eqA : A -> A -> Prop)
-                  (x : A)
-                  (m : list A)
-                  (f : A -> A) :
+                (eqA : A -> A -> Prop)
+                (x : A)
+                (m : list A)
+                (f : A -> A) :
   (forall a b, eqA (f a) (f b) -> eqA a b) ->
   InA eqA (f x) (map f m) -> InA eqA x m.
 Proof.
@@ -315,11 +313,10 @@ Proof.
     exists (n, d0); split; [reflexivity | assumption].
 Qed.
 
-Lemma MapsTo_TypeSig_incr
-      {tm : TypeSig}
-      {k : nat}
-      {t : DSHType}:
-    TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
+Lemma MapsTo_TypeSig_incr {tm : TypeSig}
+                          {k : nat}
+                          {t : DSHType} :
+  TM.MapsTo (S k) t (TypeSig_incr tm) → TM.MapsTo k t tm.
 Proof.
   intros H.
   unfold TypeSig_incr in H.
