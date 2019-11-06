@@ -232,6 +232,10 @@ Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := Ty
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
 
+(* alternative version of [TypeSig_incr]  *)
+Definition TypeSig_incr' (t:TypeSig) : TypeSig :=
+  TM.fold (fun k e acc => TM.add (S k) e acc) t (TM.empty DSHType).
+
 Lemma MapsTo_TypeSig_incr
       {tm : TypeSig}
       {k : nat}
