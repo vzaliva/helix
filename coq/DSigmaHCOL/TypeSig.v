@@ -281,7 +281,12 @@ Admitted.
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
   TM.Empty (elt:=elt) m ->
   forall k, TM.find k m ≡ None.
-Admitted.
+Proof.
+  intros.
+  apply elements_Empty in H.
+  rewrite F.elements_o, H.
+  reflexivity.
+Qed.
 
 Lemma context_equiv_at_TypeSigUnion_left {σ0 σ1 dsig1 dsig2}:
   TypeSigCompat dsig1 dsig2 ->
