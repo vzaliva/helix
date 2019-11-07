@@ -27,6 +27,7 @@ Require Import MathClasses.misc.util.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
+Require Import MathClasses.implementations.bool.
 Require Import MathClasses.orders.orders.
 Require Import MathClasses.misc.decision.
 
@@ -114,6 +115,13 @@ Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
 (* Propositional version *)
 Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
   typecheck_env_bool off tm σ ≡ true.
+
+(* not needed for now. maybe need later.
+Global Instance typecheck_env_proper:
+  Proper ((=) ==> (=) ==> (=) ==> iff) typecheck_env.
+Proof.
+Admitted.
+*)
 
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
@@ -456,3 +464,73 @@ Definition TypeSigIncluded_bool (needle haystack: TypeSig) : bool
    the same values. This is propositional predicate *)
 Definition TypeSigIncluded (needle haystack: TypeSig) : Prop
   := TypeSigIncluded_bool needle haystack ≡ true.
+
+(* TODO: move somewhere? *)
+Lemma eq_equiv_bool:
+  forall (a b:bool), a ≡ b <-> a = b.
+Proof.
+  split; intros; destr_bool.
+Qed.
+
+Global Instance TypeSig_find_proper:
+  Proper ((eq) ==> (=) ==> (=)) (TM.find (elt:=DSHType)).
+Proof.
+  simpl_relation.
+  apply H0.
+Qed.
+
+(* not sure it is provable *)
+Global Instance TypeSig_for_all_proper:
+  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (for_all (elt:=DSHType)).
+Proof.
+Admitted.
+
+Global Instance TypeSigIncluded_proper:
+  Proper ((=) ==> (=) ==> iff) TypeSigIncluded.
+Proof.
+  intros n0 n1 En s0 s1 Es.
+  split; intros H.
+  -
+    unfold TypeSigIncluded, TypeSigIncluded_bool in *.
+    rewrite <- H.
+    apply eq_equiv_bool.
+    f_equiv; auto.
+
+    simpl_relation.
+    apply eq_equiv_bool.
+    unfold bool_decide.
+    repeat break_if; auto.
+    +
+      exfalso.
+      clear Heqd Heqd0.
+      rewrite H1, H0 in e.
+      rewrite <- e in n.
+      crush.
+    +
+      exfalso.
+      clear Heqd Heqd0.
+      rewrite <- H1, Es, <- H0 in e.
+      rewrite <- e in n.
+      crush.
+  -
+    unfold TypeSigIncluded, TypeSigIncluded_bool in *.
+    rewrite <- H.
+    apply eq_equiv_bool.
+    f_equiv; auto.
+    simpl_relation.
+    apply eq_equiv_bool.
+    unfold bool_decide.
+    repeat break_if; auto.
+    +
+      exfalso.
+      clear Heqd Heqd0.
+      rewrite H0, H1, Es in e.
+      rewrite <- e in n.
+      crush.
+    +
+      exfalso.
+      clear Heqd Heqd0.
+      rewrite <- H1, <- Es, <- H0 in e.
+      rewrite <- e in n.
+      crush.
+Qed.
