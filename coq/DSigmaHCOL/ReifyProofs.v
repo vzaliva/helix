@@ -37,6 +37,44 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
+(* Type signatures of expressions as binary or unary functions with
+optional index *)
+
+Definition DSHIBinCarrierA_TypeSig :=
+  TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA) ; (2,DSHnat)].
+
+Definition DSHUnCarrierA_TypeSig :=
+  TP.of_list [(0,DSHCarrierA)].
+
+Definition DSHIUnCarrierA_TypeSig :=
+  TP.of_list [(0,DSHCarrierA) ; (1,DSHnat)].
+
+Definition DSHBinCarrierA_TypeSig :=
+  TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA)].
+
+(* Instances of this class ensure that given [AExpr]
+   could be propely typed, and it's type signaure includes
+   given [TypeSig].
+
+   This could be viewed as a subtyping relation...
+*)
+Class AExprTypeSigIncludes (a:AExpr) (ts:TypeSig) : Prop
+  := atypesigincl: forall dfs, (TypeSigAExpr_IBinCarrierA a = Some dfs) /\
+            TypeSigIncluded ts dfs.
+
+Class DSHIBinCarrierA_C (a:AExpr) : Prop :=
+  DSHIBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIBinCarrierA_TypeSig.
+
+Class DSHUnCarrierA_C (a:AExpr) : Prop :=
+  DSHUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHUnCarrierA_TypeSig.
+
+Class DSHIUnCarrierA_C (a:AExpr) : Prop :=
+  DSHIUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIUnCarrierA_TypeSig.
+
+Class DSHBinCarrierA_C (a:AExpr) : Prop :=
+  DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
+
+
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
 Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
