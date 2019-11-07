@@ -525,10 +525,10 @@ Proof.
     intros.
     inversion H.
   -
-    (* THIS BRANCH IS UNPROVABLE *)
-    (* left admitted to prevent compilation errors *)
     cbv.
-Admitted.
+    repeat break_match; try congruence.
+    contradict f; reflexivity.
+Qed.
 
 Instance Abs_MSH_DSH_BinCarrierA_compat
   :
