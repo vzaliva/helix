@@ -880,6 +880,8 @@ Qed.
 
    Basically, it states that in valid environment, the only reason for
    [evalDSHBinOp] to fail is missing data in memory.
+
+   TODO: Not correct! binop could return 0 for example in x/0 case!
  *)
 Lemma evalDSHBinOp_is_None_inv
       (off n: nat)
