@@ -59,7 +59,7 @@ Definition DSHBinCarrierA_TypeSig :=
    This could be viewed as a subtyping relation...
 *)
 Class AExprTypeSigIncludes (a:AExpr) (ts:TypeSig) : Prop
-  := atypesigincl: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded ts dfs.
+  := atypesigincl: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded dfs ts.
 
 Class DSHIBinCarrierA (a:AExpr) : Prop :=
   DSHIBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIBinCarrierA_TypeSig.
