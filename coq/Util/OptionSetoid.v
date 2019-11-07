@@ -94,6 +94,7 @@ Ltac some_none :=
   | [H1: ?x = Some _, H2: ?x = None |- _ ] => rewrite H2 in H1; inversion H1
   | [H: is_Some None |- _ ] => inversion H
   | [H: is_None (Some _) |- _ ] => inversion H
+  | [H: ¬ is_None None |- _] => unfold is_None in H; tauto
   | [H: Some _ = None |- _ ] => inversion H
   | [H: None = Some _ |- _ ] => inversion H
   | [H: Some _ ≡ None |- _ ] => inversion H
@@ -274,6 +275,17 @@ Lemma is_None_equiv_def `(x : option A) `{Ae: Equiv A} `{H: Equivalence A Ae}:
 Proof.
   unfold is_None.
   destruct x; split; intros; try some_none; try tauto.
+Qed.
+
+Lemma not_is_None_is_Some {A: Type} {x: option A}:
+  ¬ is_None x <-> is_Some x.
+Proof.
+  split; intros.
+  -
+    destruct x; some_none.
+  -
+    intros H1.
+    some_none.
 Qed.
 
 (* In monadic world `(f >=> g) ∘ Some` *)
