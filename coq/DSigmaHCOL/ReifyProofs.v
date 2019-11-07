@@ -516,16 +516,18 @@ Proof.
   exists (TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA)]).
   split.
   -
-    simpl.
     unfold TP.uncurry.
-    simpl.
-    admit.
+    cbn.
+    unfold TypeSigUnion_error.
+    break_match; [reflexivity |].
+    clear Heqd; contradict n.
+    cbv.
+    intros.
+    inversion H.
   -
-    unfold DSHIBinCarrierA_TypeSig.
-    simpl.
-    unfold TP.uncurry.
-    simpl.
-    admit.
+    (* THIS BRANCH IS UNPROVABLE *)
+    (* left admitted to prevent compilation errors *)
+    cbv.
 Admitted.
 
 Instance Abs_MSH_DSH_BinCarrierA_compat
