@@ -451,3 +451,13 @@ Proof.
     apply H.
    *)
 Admitted.
+
+(* True if all of [needle]'s keys belong to [haystack] with
+   the same values. This is boolean predicate. *)
+Definition TypeSigIncluded_bool (needle haystack: TypeSig) : bool
+  := TP.for_all (fun k v => bool_decide (TM.find k haystack = Some v)) needle.
+
+(* True if all of [needle]'s keys belong to [haystack] with
+   the same values. This is propositional predicate *)
+Definition TypeSigIncluded (needle haystack: TypeSig) : Prop
+  := TypeSigIncluded_bool needle haystack ≡ true.
