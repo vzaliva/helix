@@ -424,28 +424,28 @@ Lemma context_equiv_at_TypeSig_both_typcheck
       (off: nat)
       (dfs : TypeSig)
       (σ0 σ1 : evalContext):
-  context_equiv_at_TypeSig dfs σ0 σ1 → (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
+  context_equiv_at_TypeSig dfs σ0 σ1 →
+  (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
 Proof.
-  (*
   intros H.
   split.
   -
     unfold typecheck_env, typecheck_env_bool.
-    apply for_all_iff.
-    typeclasses eauto.
+    apply for_all_iff; [typeclasses eauto |].
     intros k t M.
-    apply bool_decide_true.
+    destruct (k <? off); [constructor |].
+    simpl; apply bool_decide_true.
     specialize (H k t M).
-    apply H.
+    intuition.
   -
     apply for_all_iff.
     typeclasses eauto.
     intros k t M.
-    apply bool_decide_true.
+    destruct (k <? off); [constructor |].
+    simpl; apply bool_decide_true.
     specialize (H k t M).
-    apply H.
-   *)
-Admitted.
+    intuition.
+Qed.
 
 (* True if all of [needle]'s keys belong to [haystack] with
    the same values. This is boolean predicate. *)
