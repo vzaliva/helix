@@ -2,6 +2,7 @@ Require Import Coq.Classes.RelationClasses.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.util.
+Require Import MathClasses.misc.decision.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
@@ -334,3 +335,44 @@ Ltac opt_hyp_to_equiv :=
   repeat match goal with
            [H: @eq (option _) _ _ |- _] => apply Option_equiv_eq in H
          end.
+
+
+Lemma Some_nequiv {T:Type} `{Equiv T} {a b: T}:
+  (Some a ≠ Some b) <-> a ≠ b.
+Proof.
+  split.
+  -
+    intros H0.
+    intros N.
+    contradict H0.
+    f_equiv.
+    assumption.
+  -
+    intros H0 N.
+    contradict H0.
+    some_inv.
+    assumption.
+Qed.
+
+Program Instance option_equiv_dec
+        `{Ae: Equiv A}
+        `{Aeq: Equivalence A Ae} (* needed for reflexivity *)
+        `(A_dec : ∀ x y : A, Decision (x = y))
+  : ∀ x y : option A, Decision (x = y)
+  := λ x y,
+  match x with
+  | Some r =>
+    match y with
+    | Some s => match A_dec r s with left _ => left _ | right _ => right _ end
+    | None => right _
+    end
+  | None =>
+    match y with
+    | Some s => right _
+    | None => left _
+    end
+  end.
+Next Obligation. f_equiv; assumption. Qed.
+Next Obligation. apply Some_nequiv; assumption. Qed.
+Next Obligation. some_none. Qed.
+Next Obligation. some_none. Qed.
