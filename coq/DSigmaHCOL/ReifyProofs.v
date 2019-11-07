@@ -694,7 +694,7 @@ Qed.
    TODO see if we can replace [evalDSHBinOp_nth] with it
    or at lease simplify its proof using this lemma.
 *)
-Lemma evalDSHBinOp_is_Some_spec
+Lemma evalDSHBinOp_equiv_Some_spec
       {off n: nat}
       {df : DSHIBinCarrierA}
       {σ : evalContext}
@@ -749,43 +749,45 @@ Proof.
       lia.
 Qed.
 
-Lemma evalDSHBinOp_is_Some
-      (off n: nat)
-      (df : DSHIBinCarrierA) (σ : evalContext)
-      (mx mb : mem_block):
+
+Lemma evalDSHBinOp_equiv_Some_spec_inv
+      {off n: nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {dfs: TypeSig}
+      (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
+      (TC: typecheck_env dfs σ)
+      {mx mb ma : mem_block}:
   (∀ k (kc: k < n),
-      is_Some (mem_lookup k mx) /\
-      is_Some (mem_lookup (k+off) mx) /\
-      (∀ (a b : CarrierA), is_Some (evalIBinCarrierA σ df k a b)))
-  ->
-  is_Some (evalDSHBinOp n off df σ mx mb).
+      ∃ a b,
+        (mem_lookup k mx = Some a /\
+         mem_lookup (k+off) mx = Some b /\
+         (exists c,
+             mem_lookup k ma = Some c /\
+             evalIBinCarrierA σ df k a b = Some c))
+  ) -> (evalDSHBinOp n off df σ mx mb = Some ma).
+Proof.
+Admitted.
+
+Lemma evalDSHBinOp_is_Some_inv
+      {off n: nat}
+      {df : DSHIBinCarrierA}
+      {σ : evalContext}
+      {dfs: TypeSig}
+      (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
+      (TC: typecheck_env dfs σ)
+      {mx mb: mem_block}:
+  (∀ k (kc: k < n),
+      ∃ a b,
+        (mem_lookup k mx = Some a /\
+         mem_lookup (k+off) mx = Some b /\
+         is_Some (evalIBinCarrierA σ df k a b)
+        )
+  ) -> (is_Some (evalDSHBinOp n off df σ mx mb)).
 Proof.
   intros H.
-  revert mb.
-  induction n.
-  -
-    constructor.
-  -
-    intros mb.
-    simpl.
-    repeat break_match; simpl in *.
-    +
-      apply IHn.
-      intros k kc.
-      repeat split; apply H; lia.
-    +
-      contradict Heqo1.
-      apply is_Some_ne_None.
-      apply H; lia.
-    +
-      contradict Heqo0.
-      apply is_Some_ne_None.
-      apply H; lia.
-    +
-      contradict Heqo.
-      apply is_Some_ne_None.
-      apply H; lia.
-Qed.
+  (* TODO: the proof should follow from [evalDSHBinOp_equiv_Some_spec_inv] *)
+Admitted.
 
 Lemma evalDSHBinOp_is_None
       (off n: nat)
@@ -832,7 +834,7 @@ Lemma evalDSHBinOp_is_None_inv
       (off n: nat)
       (df : DSHIBinCarrierA)
       (σ : evalContext)
-      {dfs}
+      {dfs:TypeSig}
       (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
       (TC: typecheck_env dfs σ)
       (mx mb : mem_block):
@@ -890,8 +892,8 @@ Proof.
       opt_hyp_to_equiv.
       destruct (Nat.lt_decidable k (S n)) as [kc|kc].
       *
-        eapply evalDSHBinOp_is_Some_spec in Ha; eauto.
-        eapply evalDSHBinOp_is_Some_spec in Hb; eauto.
+        eapply evalDSHBinOp_equiv_Some_spec in Ha; eauto.
+        eapply evalDSHBinOp_equiv_Some_spec in Hb; eauto.
 
         destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
         destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
@@ -1086,6 +1088,7 @@ Global Instance BinOp_MSH_DSH_compat
        {dfs: TypeSig}
        {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
        (σ: evalContext)
+       (TC: typecheck_env dfs σ)
        (m: memory)
        `{MSH_DSH_BinCarrierA_compat _ f σ df}
        `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
@@ -1183,6 +1186,7 @@ Proof.
 
       rename Heqo4 into E.
 
+      (* TODO may be not needed *)
       apply equiv_Some_is_Some in MD.
       pose proof (mem_op_of_hop_x_density MD) as DX.
       clear MD pF.
@@ -1191,21 +1195,27 @@ Proof.
 
       contradict E.
       apply is_Some_nequiv_None.
-      eapply evalDSHBinOp_is_Some.
-      split.
-      *
-        apply DX.
-        lia.
-      *
-        split.
-        --
-          apply DX.
-          lia.
-        --
-          intros a b.
-          specialize (FV (FinNat.mkFinNat kc) a b).
-          apply equiv_Some_is_Some in FV.
-          apply FV.
+
+      eapply evalDSHBinOp_is_Some_inv; try eauto.
+      intros k kc.
+
+      assert(DX1:=DX).
+      assert(kc1: k < o + o) by lia.
+      specialize (DX k kc1).
+      apply is_Some_equiv_def in DX.
+      destruct DX as [a DX].
+
+      assert(kc2: k + o < o + o) by lia.
+      specialize (DX1 (k+o) kc2).
+      apply is_Some_equiv_def in DX1.
+      destruct DX1 as [b DX1].
+      exists a.
+      exists b.
+      repeat split; eauto.
+
+      specialize (FV (FinNat.mkFinNat kc) a b).
+      apply equiv_Some_is_Some in FV.
+      apply FV.
   -
     unfold lookup_Pexp in *.
     simpl in *.
