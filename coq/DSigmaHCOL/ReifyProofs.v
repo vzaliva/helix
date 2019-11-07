@@ -59,19 +59,18 @@ Definition DSHBinCarrierA_TypeSig :=
    This could be viewed as a subtyping relation...
 *)
 Class AExprTypeSigIncludes (a:AExpr) (ts:TypeSig) : Prop
-  := atypesigincl: forall dfs, (TypeSigAExpr_IBinCarrierA a = Some dfs) /\
-            TypeSigIncluded ts dfs.
+  := atypesigincl: forall dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded ts dfs.
 
-Class DSHIBinCarrierA_C (a:AExpr) : Prop :=
+Class DSHIBinCarrierA (a:AExpr) : Prop :=
   DSHIBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIBinCarrierA_TypeSig.
 
-Class DSHUnCarrierA_C (a:AExpr) : Prop :=
+Class DSHUnCarrierA (a:AExpr) : Prop :=
   DSHUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHUnCarrierA_TypeSig.
 
-Class DSHIUnCarrierA_C (a:AExpr) : Prop :=
+Class DSHIUnCarrierA (a:AExpr) : Prop :=
   DSHIUnCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIUnCarrierA_TypeSig.
 
-Class DSHBinCarrierA_C (a:AExpr) : Prop :=
+Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
 
@@ -497,7 +496,8 @@ Class MSH_DSH_BinCarrierA_compat
       {o: nat}
       (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
       (σ: evalContext)
-      (df : DSHIBinCarrierA)
+      (df : AExpr)
+      `{dft : DSHIBinCarrierA df}
   :=
     {
       ibin_typechecks:
@@ -507,6 +507,10 @@ Class MSH_DSH_BinCarrierA_compat
       ibin_equiv:
         forall nc a b, evalIBinCarrierA σ df (proj1_sig nc) a b = Some (f nc a b)
     }.
+
+Instance AAbs_DSHIBinCarrierA:
+  DSHIBinCarrierA (AAbs (AMinus (AVar 1) (AVar 0))).
+Admitted.
 
 Instance Abs_MSH_DSH_BinCarrierA_compat
   :
@@ -532,7 +536,8 @@ Qed.
 
 Lemma evalDSHBinOp_mem_lookup_mx
       {n off: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
       (E: evalDSHBinOp n off df σ mx mb = Some ma)
@@ -600,7 +605,8 @@ Qed.
 Fact evalDSHBinOp_preservation
      {n off k: nat}
      {kc: k>=n}
-     {df : DSHIBinCarrierA}
+     {df : AExpr}
+     `{dft : DSHIBinCarrierA df}
      {σ : evalContext}
      {mx ma mb : mem_block}
      {c : CarrierA}:
@@ -628,7 +634,8 @@ Qed.
 
 Lemma evalDSHBinOp_nth
       {n off: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
       (k: nat)
@@ -659,7 +666,7 @@ Proof.
       rewrite B in Heqo1; clear B c0.
       rewrite A in Heqo1; clear A c.
       rewrite Heqo1. clear Heqo1.
-      clear - E.
+      clear - E dft.
       unshelve eapply (evalDSHBinOp_preservation E).
       lia.
     +
@@ -669,7 +676,8 @@ Qed.
 
 Lemma evalDSHBinOp_oob_preservation
       {n off: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
       (ME: evalDSHBinOp n off df σ mx mb = Some ma):
@@ -734,7 +742,8 @@ Qed.
 *)
 Lemma evalDSHBinOp_equiv_Some_spec
       {off n: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}:
   (evalDSHBinOp n off df σ mx mb = Some ma)
@@ -778,7 +787,7 @@ Proof.
       rewrite A in Heqo1; clear A c.
       exists c1.
       rewrite Heqo1. clear Heqo1.
-      clear - E.
+      clear - E dft.
       split; try reflexivity.
       unshelve eapply (evalDSHBinOp_preservation E).
       lia.
@@ -790,10 +799,11 @@ Qed.
 
 Lemma evalDSHBinOp_equiv_Some_spec_inv
       {off n: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {dfs: TypeSig}
-      (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
+      (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
       {mx mb ma : mem_block}:
   (∀ k (kc: k < n),
@@ -809,10 +819,11 @@ Admitted.
 
 Lemma evalDSHBinOp_is_Some_inv
       {off n: nat}
-      {df : DSHIBinCarrierA}
+      {df : AExpr}
+      `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {dfs: TypeSig}
-      (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
+      (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
       {mx mb: mem_block}:
   (∀ k (kc: k < n),
@@ -830,7 +841,9 @@ Admitted.
 Lemma evalDSHBinOp_is_None
       (off n: nat)
       (nz: n≢0)
-      (df : DSHIBinCarrierA) (σ : evalContext)
+      (df : AExpr)
+      `{dft : DSHIBinCarrierA df}
+      (σ : evalContext)
       (mx mb : mem_block):
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
@@ -870,10 +883,11 @@ Qed.
  *)
 Lemma evalDSHBinOp_is_None_inv
       (off n: nat)
-      (df : DSHIBinCarrierA)
+      (df : AExpr)
+      `{dft : DSHIBinCarrierA df}
       (σ : evalContext)
       {dfs:TypeSig}
-      (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
+      (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
       (mx mb : mem_block):
   is_None (evalDSHBinOp n off df σ mx mb) ->
@@ -906,10 +920,11 @@ Admitted.
 
 Lemma evalDSHBinOp_context_equiv
       (n off : nat)
-      (df : DSHIBinCarrierA)
+      (df : AExpr)
+      `{dft : DSHIBinCarrierA df}
       {dfs: TypeSig}
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
-  TypeSigAExpr_IBinCarrierA df = Some dfs ->
+  TypeSigAExpr df = Some dfs ->
   context_equiv_at_TypeSig dfs σ0 σ1 ->  evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
 Proof.
   intros H E.
@@ -971,6 +986,7 @@ Proof.
       apply evalDSHBinOp_is_None with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
       some_none.
       auto.
+      apply dft.
   -
     destruct n.
     +
@@ -993,9 +1009,10 @@ Admitted.
 Global Instance BinOp_DSH_pure
        (o : nat)
        (x_p y_p : PExpr)
-       (df: DSHIBinCarrierA)
+       (df: AExpr)
+       `{dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
-       {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
+       {DTS: TypeSigAExpr df = Some dfs}
   :
     DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p.
 Proof.
@@ -1082,6 +1099,7 @@ Proof.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
       eapply evalDSHBinOp_context_equiv, TE.
+      typeclasses eauto.
       apply DTS.
     +
       exfalso.
@@ -1122,9 +1140,10 @@ Global Instance BinOp_MSH_DSH_compat
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
        `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
        (x_p y_p : PExpr)
-       (df : DSHIBinCarrierA)
+       (df : AExpr)
+       `{dft : DSHIBinCarrierA df}
        {dfs: TypeSig}
-       {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
+       {DTS: TypeSigAExpr df = Some dfs}
        (σ: evalContext)
        (TC: typecheck_env 3 dfs σ)
        (m: memory)
@@ -1284,7 +1303,7 @@ Proof.
         apply is_None_equiv_def.
         apply mem_block_Equiv_Equivalence.
 
-        apply evalDSHBinOp_is_None.
+        apply evalDSHBinOp_is_None; try typeclasses eauto.
         lia.
         destruct MX as [k MX].
         destruct (NatUtil.lt_ge_dec k (S o)) as [kc1 | kc2].

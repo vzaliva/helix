@@ -64,20 +64,15 @@ Inductive AExpr : Type :=
 | AZless: AExpr -> AExpr -> AExpr.
 
 
-Definition DSHUnCarrierA := AExpr.
-Definition DSHIUnCarrierA := AExpr.
-Definition DSHBinCarrierA := AExpr.
-Definition DSHIBinCarrierA := AExpr.
-
 (* Memory variable along with offset *)
 Definition MemVarRef: Set := (PExpr * NExpr).
 
 Inductive DSHOperator :=
 | DSHAssign (src dst: MemVarRef) (* formerly [Embed] and [Pick] *)
-| DSHIMap (n: nat) (x_p y_p: PExpr) (f: DSHIUnCarrierA) (* formerly [Pointwise] *)
-| DSHBinOp (n: nat) (x_p y_p: PExpr) (f: DSHIBinCarrierA) (* formerly [BinOp] *)
-| DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: DSHBinCarrierA) (* No direct correspondance in SHCOL *)
-| DSHPower (n:NExpr) (src dst: MemVarRef) (f: DSHBinCarrierA) (initial: CarrierA) (* formely [Inductor] *)
+| DSHIMap (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [Pointwise] *)
+| DSHBinOp (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [BinOp] *)
+| DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: AExpr) (* No direct correspondance in SHCOL *)
+| DSHPower (n:NExpr) (src dst: MemVarRef) (f: AExpr) (initial: CarrierA) (* formely [Inductor] *)
 | DSHLoop (n:nat) (body: DSHOperator) (* Formerly [IUnion] *)
 | DSHAlloc (size:nat) (body: DSHOperator) (* allocates new uninitialized memory block and puts pointer to it on stack. The new block will be visible in the scope of [body] *)
 | DSHMemInit (size:nat) (y_p: PExpr) (value: CarrierA) (* Initialize memory block indices [0-size] with given value *)
@@ -342,9 +337,9 @@ Fixpoint incrAVar (skip:nat) (p: AExpr) : AExpr :=
   | AZless a b => AZless (incrAVar skip a) (incrAVar skip b)
   end.
 
-Definition incrDSHIUnCarrierA: DSHIUnCarrierA -> DSHIUnCarrierA := incrAVar 2.
-Definition incrDSHIBinCarrierA: DSHIBinCarrierA -> DSHIBinCarrierA := incrAVar 3.
-Definition incrDSHBinCarrierA: DSHBinCarrierA -> DSHBinCarrierA := incrAVar 2.
+Definition incrDSHIUnCarrierA := incrAVar 2.
+Definition incrDSHIBinCarrierA := incrAVar 3.
+Definition incrDSHBinCarrierA := incrAVar 2.
 
 Fixpoint incrOp (skip:nat) (d:DSHOperator) : DSHOperator
   := match d with

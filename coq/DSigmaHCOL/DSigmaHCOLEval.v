@@ -101,23 +101,23 @@ Fixpoint evalAexp (σ: evalContext) (e:AExpr): option CarrierA :=
   end.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalIUnCarrierA (σ: evalContext) (f: DSHIUnCarrierA)
+Definition evalIUnCarrierA (σ: evalContext) (f: AExpr)
            (i:nat) (a:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal a :: DSHnatVal i :: σ) f.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalIBinCarrierA (σ: evalContext) (f: DSHIBinCarrierA)
+Definition evalIBinCarrierA (σ: evalContext) (f: AExpr)
            (i:nat) (a b:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal i :: σ) f.
 
 (* Evaluation of functions does not allow for side-effects *)
-Definition evalBinCarrierA (σ: evalContext) (f: DSHBinCarrierA)
+Definition evalBinCarrierA (σ: evalContext) (f: AExpr)
            (a b:CarrierA): option CarrierA :=
   evalAexp (DSHCarrierAVal b :: DSHCarrierAVal a :: σ) f.
 
 Fixpoint evalDSHIMap
          (n: nat)
-         (f: DSHIUnCarrierA)
+         (f: AExpr)
          (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
@@ -131,7 +131,7 @@ Fixpoint evalDSHIMap
 
 Fixpoint evalDSHMap2
          (n: nat)
-         (f: DSHBinCarrierA)
+         (f: AExpr)
          (σ: evalContext)
          (x0 x1 y: mem_block) : option (mem_block)
   :=
@@ -146,7 +146,7 @@ Fixpoint evalDSHMap2
 
 Fixpoint evalDSHBinOp
          (n off: nat)
-         (f: DSHIBinCarrierA)
+         (f: AExpr)
          (σ: evalContext)
          (x y: mem_block) : option (mem_block)
   :=
@@ -162,7 +162,7 @@ Fixpoint evalDSHBinOp
 Fixpoint evalDSHPower
          (σ: evalContext)
          (n: nat)
-         (f: DSHBinCarrierA)
+         (f: AExpr)
          (x y: mem_block)
          (xoffset yoffset: nat)
   : option (mem_block)
@@ -444,8 +444,8 @@ Qed.
 
 Global Instance evalIBinCarrierA_proper
        (σ: evalContext)
-       (f: DSHIBinCarrierA)
-       (i:nat):
+       (f: AExpr)
+       (i: nat):
   Proper
     ((=) ==> (=) ==> (=)) (evalIBinCarrierA σ f i).
 Proof.
@@ -539,7 +539,7 @@ Fixpoint DSHOperator_NVar_subt
 
 Global Instance evalDSHBinOp_proper
        (n off: nat)
-       (f: DSHIBinCarrierA)
+       (f: AExpr)
        (σ: evalContext):
   Proper
     ((=) ==> (=) ==> (=)) (evalDSHBinOp n off f σ).
@@ -851,7 +851,7 @@ Section IncrEval.
 
   Lemma evalIUnCarrierA_incrDSHIUnCarrierA
         (σ: evalContext)
-        (f: DSHIUnCarrierA)
+        (f: AExpr)
         (i:nat)
         (a:CarrierA)
         (foo: DSHVal):
@@ -863,7 +863,7 @@ Section IncrEval.
 
   Lemma evalIBinCarrierA_incrDSHIBinCarrierA
         (σ: evalContext)
-        (f: DSHIBinCarrierA)
+        (f: AExpr)
         (i:nat)
         (a b:CarrierA)
         (foo: DSHVal):
@@ -875,7 +875,7 @@ Section IncrEval.
 
   Lemma evalBinCarrierA_incrDSHBinCarrierA
         (σ: evalContext)
-        (f: DSHBinCarrierA)
+        (f: AExpr)
         (a b:CarrierA)
         (foo: DSHVal):
     evalBinCarrierA (foo :: σ) (incrDSHBinCarrierA f) a b ≡ evalBinCarrierA σ f a b.
@@ -886,7 +886,7 @@ Section IncrEval.
 
   Lemma evalDSHBinOp_incrincrDSHIBinCarrierA
         (n off: nat)
-        (f: DSHIBinCarrierA)
+        (f: AExpr)
         (σ: evalContext)
         (x y: mem_block)
         (foo: DSHVal):
@@ -918,7 +918,7 @@ Section IncrEval.
 
   Lemma evalDSHIMap_incrDSHIUnCarrierA
         (n: nat)
-        (f: DSHIUnCarrierA)
+        (f: AExpr)
         (σ: evalContext)
         (x y: mem_block)
         (foo: DSHVal):
@@ -950,7 +950,7 @@ Section IncrEval.
 
   Lemma evalDSHMap2_incrDSHBinCarrierA
         (n: nat)
-        (f: DSHBinCarrierA)
+        (f: AExpr)
         (σ: evalContext)
         (x0 x1 y: mem_block)
         (foo: DSHVal):
@@ -983,7 +983,7 @@ Section IncrEval.
   Lemma evalDSHPower_incrDSHBinCarrierA
         (σ: evalContext)
         (n: nat)
-        (f: DSHBinCarrierA)
+        (f: AExpr)
         (x y: mem_block)
         (xoffset yoffset: nat)
         (foo: DSHVal):

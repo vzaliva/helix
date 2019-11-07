@@ -224,11 +224,6 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
                    contextEnsureType σ1 k t /\
                    context_lookup σ0 k = context_lookup σ1 k.
 
-Definition TypeSigAExpr_UnCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_IUnCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_BinCarrierA (f: DSHBinCarrierA) : option TypeSig := TypeSigAExpr f.
-Definition TypeSigAExpr_IBinCarrierA (f: DSHIBinCarrierA) : option TypeSig := TypeSigAExpr f.
-
 (* increases keys in type signature by 1 *)
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).

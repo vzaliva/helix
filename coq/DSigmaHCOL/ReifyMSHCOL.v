@@ -112,19 +112,19 @@ Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
   | _ => tmFail ("Unsupported AExpr" ++ (string_of_term a_e))
   end.
 
-Definition compileDSHUnCarrierA (a_f:term): TemplateMonad DSHUnCarrierA :=
+Definition compileDSHUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileAExpr a_f'
   | _ => tmFail ("Unsupported UnCarrierA" ++ (string_of_term a_f))
   end.
 
-Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad DSHIUnCarrierA :=
+Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHUnCarrierA a_f'
   | _ => tmFail ("Unsupported IUnCarrierA" ++ (string_of_term a_f))
   end.
 
-Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA :=
+Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tApp (tConst "MathClasses.orders.minmax.max" [])
          [tConst "Helix.HCOL.CarrierType.CarrierA" []; _; _ ] =>
@@ -140,7 +140,7 @@ Definition compileDSHBinCarrierA (a_f:term): TemplateMonad DSHBinCarrierA :=
   | _ => tmFail ("Unsupported BinCarrierA" ++ (string_of_term a_f))
   end.
 
-Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad DSHIBinCarrierA :=
+Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHBinCarrierA a_f'
   | _ => tmFail ("Unsupported IBinCarrierA" ++ (string_of_term a_f))
