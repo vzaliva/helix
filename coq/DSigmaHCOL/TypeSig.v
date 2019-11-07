@@ -105,12 +105,15 @@ Proof.
   apply DSHValType_Decision.
 Qed.
 
-Definition typecheck_env_bool (tm:TypeSig) (σ: evalContext) : bool :=
-  TP.for_all (fun k t => bool_decide (contextEnsureType σ k t)) tm.
+(* typecheck env. starting from [off] index (inclusuve).  *)
+Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
+  TP.for_all (fun k t =>
+                (k<?off) || (bool_decide (contextEnsureType σ k t))
+             ) tm.
 
 (* Propositional version *)
-Definition typecheck_env (tm:TypeSig) (σ: evalContext) :  Prop :=
-  typecheck_env_bool tm σ ≡ true.
+Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
+  typecheck_env_bool off tm σ ≡ true.
 
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
@@ -423,10 +426,12 @@ Proof.
 Qed.
 
 Lemma context_equiv_at_TypeSig_both_typcheck
+      (off: nat)
       (dfs : TypeSig)
       (σ0 σ1 : evalContext):
-  context_equiv_at_TypeSig dfs σ0 σ1 → (typecheck_env dfs σ0 /\ typecheck_env dfs σ1).
+  context_equiv_at_TypeSig dfs σ0 σ1 → (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
 Proof.
+  (*
   intros H.
   split.
   -
@@ -444,4 +449,5 @@ Proof.
     apply bool_decide_true.
     specialize (H k t M).
     apply H.
-Qed.
+   *)
+Admitted.

@@ -756,7 +756,7 @@ Lemma evalDSHBinOp_equiv_Some_spec_inv
       {σ : evalContext}
       {dfs: TypeSig}
       (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
-      (TC: typecheck_env dfs σ)
+      (TC: typecheck_env 3 dfs σ)
       {mx mb ma : mem_block}:
   (∀ k (kc: k < n),
       ∃ a b,
@@ -775,7 +775,7 @@ Lemma evalDSHBinOp_is_Some_inv
       {σ : evalContext}
       {dfs: TypeSig}
       (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
-      (TC: typecheck_env dfs σ)
+      (TC: typecheck_env 3 dfs σ)
       {mx mb: mem_block}:
   (∀ k (kc: k < n),
       ∃ a b,
@@ -836,7 +836,7 @@ Lemma evalDSHBinOp_is_None_inv
       (σ : evalContext)
       {dfs:TypeSig}
       (TS : TypeSigAExpr_IBinCarrierA df = Some dfs)
-      (TC: typecheck_env dfs σ)
+      (TC: typecheck_env 3 dfs σ)
       (mx mb : mem_block):
   is_None (evalDSHBinOp n off df σ mx mb) ->
   (exists k (kc:k<n),
@@ -926,8 +926,8 @@ Proof.
 
       eapply evalDSHBinOp_is_None_inv in Hb; eauto.
       2:{
-        apply context_equiv_at_TypeSig_both_typcheck in E.
-        apply E.
+        eapply context_equiv_at_TypeSig_both_typcheck in E.
+        eapply E.
       }
       apply equiv_Some_is_Some in Ha.
       apply evalDSHBinOp_is_None with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
@@ -942,8 +942,8 @@ Proof.
       opt_hyp_to_equiv.
       apply is_None_equiv_def in Ha; try typeclasses eauto.
       eapply evalDSHBinOp_is_None_inv in Ha; eauto.
-      2:{ apply context_equiv_at_TypeSig_both_typcheck in E.
-          apply E.
+      2:{ eapply context_equiv_at_TypeSig_both_typcheck in E.
+          eapply E.
       }
       apply equiv_Some_is_Some in Hb.
 
@@ -1088,7 +1088,7 @@ Global Instance BinOp_MSH_DSH_compat
        {dfs: TypeSig}
        {DTS: TypeSigAExpr_IBinCarrierA df = Some dfs}
        (σ: evalContext)
-       (TC: typecheck_env dfs σ)
+       (TC: typecheck_env 3 dfs σ)
        (m: memory)
        `{MSH_DSH_BinCarrierA_compat _ f σ df}
        `{BP: DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p}
