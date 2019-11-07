@@ -73,6 +73,25 @@ Class DSHIUnCarrierA (a:AExpr) : Prop :=
 Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
+(*
+  =AExpr= evaluation could return error only for technical reason:
+  missing or incorrectly typed values in
+  environent. It could not return an error based on values of
+  parameters.  The reason for this is that =AExpr= model =CarrierA=
+  expressions which could not return error. An exampe in case BinOp
+  function types =A -> A -> A= in MSCHOL and =A -> A -> option A= in
+  DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
+*)
+Lemma evalAExpr_is_Some
+      (e: AExpr)
+      {σ: evalContext}
+      {ts: TypeSig}
+      (TS : TypeSigAExpr e = Some ts)
+      (TC : typecheck_env 0 ts σ):
+  is_Some (evalAexp σ e).
+Proof.
+Admitted.
+
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -814,7 +833,6 @@ Proof.
       lia.
 Qed.
 
-
 Lemma evalDSHBinOp_equiv_Some_spec_inv
       {off n: nat}
       {df : AExpr}
@@ -892,14 +910,11 @@ Proof.
       apply DX.
 Qed.
 
-
 (* This is an inverse of [evalDSHBinOp_is_None] but it takes
    additional assumption [typecheck_env].
 
    Basically, it states that in valid environment, the only reason for
    [evalDSHBinOp] to fail is missing data in memory.
-
-   TODO: Not correct! binop could return 0 for example in x/0 case!
  *)
 Lemma evalDSHBinOp_is_None_inv
       (off n: nat)
@@ -914,17 +929,39 @@ Lemma evalDSHBinOp_is_None_inv
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
+  revert mb.
   induction n.
   -
     crush.
   -
-    intros N.
+    intros mb N.
     simpl in *.
     repeat break_match_hyp; try some_none.
     +
-      admit.
+      specialize (IHn _ N).
+      destruct IHn as [k [kc IHn]].
+      exists k.
+      assert(k<S n) as kc1 by lia.
+      exists kc1.
+      apply IHn.
     +
       clear N.
+      contradict Heqo1.
+      apply is_Some_ne_None.
+      eapply evalAExpr_is_Some.
+      eauto.
+      destruct dft as [dfs' [TS' TI]].
+      assert(dfs' = dfs) as DE.
+      {
+        rewrite TS in TS'.
+        some_inv.
+        symmetry.
+        apply TS'.
+      }
+      rewrite DE in TI.
+      clear dfs' DE TS'.
+
+      (* This follows from two parts: TC and TI *)
       admit.
     +
       apply is_None_def in Heqo0.
