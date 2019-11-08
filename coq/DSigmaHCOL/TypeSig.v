@@ -479,11 +479,30 @@ Proof.
   apply H0.
 Qed.
 
+(* not sure this is provable *)
+Global Instance TypeSig_fold_proper :
+  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
+         (TM.fold (elt:=DSHType) (A:=bool)).
+Proof.
+  simpl_relation.
+  rewrite TM.fold_1 at 1.
+  apply eq_equiv_bool.
+  pose proof ListUtil.fold_left_m_ext.
+  unfold Proper, respectful in *.
+  unfold ListUtil.feq in H2.
+Admitted.
+
 (* not sure it is provable *)
 Global Instance TypeSig_for_all_proper:
   Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (for_all (elt:=DSHType)).
 Proof.
-Admitted.
+  simpl_relation.
+  unfold for_all.
+  apply TypeSig_fold_proper; auto.
+  unfold respectful in *; intros.
+  specialize (H x1 y1 H1 x2 y2 H2).
+  repeat break_if; congruence.
+Qed.
 
 Global Instance TypeSigIncluded_proper:
   Proper ((=) ==> (=) ==> iff) TypeSigIncluded.
