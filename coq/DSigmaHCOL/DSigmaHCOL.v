@@ -29,6 +29,23 @@ Inductive DSHValType: DSHVal -> DSHType -> Prop :=
 | DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
 | DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
 
+(* Functional version. *)
+Definition DSHValToType: DSHVal -> DSHType :=
+  fun v => match v with
+        | DSHnatVal _ => DSHnat
+        | DSHCarrierAVal _ =>  DSHCarrierA
+        | DSHMemVal _ =>  DSHMemBlock
+        | DSHPtrVal _ => DSHPtr
+        end.
+
+(* Sanity check to make sure 2 definitons above are consistent with each other *)
+Fact DSHValToType_DSHValType:
+  forall v, DSHValType v (DSHValToType v).
+Proof.
+  intros v.
+  destruct v; constructor.
+Qed.
+
 (* Expressions which evaluate to `nat` *)
 Inductive NExpr : Type :=
 | NVar  : var_id -> NExpr
