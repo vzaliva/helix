@@ -961,8 +961,24 @@ Proof.
       rewrite DE in TI.
       clear dfs' DE TS'.
 
-      (* This follows from two parts: TC and TI *)
-      admit.
+      apply typecheck_env_S.
+      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+      cbn; unfold TP.uncurry; simpl.
+      apply TM.add_1; reflexivity.
+
+      apply typecheck_env_S.
+      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+      cbn; unfold TP.uncurry; simpl.
+      repeat (apply TM.add_2; [lia|]).
+      apply TM.add_1; reflexivity.
+
+      apply typecheck_env_S.
+      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+      cbn; unfold TP.uncurry; simpl.
+      repeat (apply TM.add_2; [lia|]).
+      apply TM.add_1; reflexivity.
+
+      apply TC.
     +
       apply is_None_def in Heqo0.
       exists n.
@@ -973,7 +989,7 @@ Proof.
       exists n.
       eexists. lia.
       auto.
-Admitted.
+Qed.
 
 Lemma evalDSHBinOp_context_equiv
       (n off : nat)

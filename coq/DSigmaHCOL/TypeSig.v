@@ -553,3 +553,43 @@ Proof.
       rewrite <- e in n.
       crush.
 Qed.
+
+(* If given key if in type signature it must have certain type.
+   OK if it is not present *)
+Definition TypeSig_MaybeMapsTo (k:nat) (t:DSHType) (tm:TypeSig): Prop :=
+  match TM.find k tm with
+  | Some t' => t = t'
+  | None => True
+  end.
+
+Lemma typecheck_env_S (off:nat) (tm:TypeSig) (σ: evalContext)
+  :
+    forall v,
+      TypeSig_MaybeMapsTo off (DSHValToType v) tm ->
+      typecheck_env (S off) tm (σ) ->
+      typecheck_env off tm (List.cons v σ).
+Proof.
+  intros v M T.
+Admitted.
+
+Lemma TypeSigIncluded_at (needle haystack:TypeSig):
+  TypeSigIncluded needle haystack ->
+  forall k v, TM.MapsTo k v needle -> TM.MapsTo k v haystack.
+Proof.
+  intros I k v M.
+  unfold TypeSigIncluded, TypeSigIncluded_bool, TP.for_all in I.
+Admitted.
+
+Lemma MaybeMapsTo_Included (needle haystack:TypeSig):
+  forall k t,
+    TM.MapsTo k t haystack ->
+    TypeSigIncluded needle haystack ->
+    TypeSig_MaybeMapsTo k t needle.
+Proof.
+  intros k t M I.
+  unfold TypeSig_MaybeMapsTo in *.
+  break_match; try trivial.
+  apply TM.find_2 in Heqo.
+  apply TypeSigIncluded_at with (haystack:=haystack) in Heqo; [|auto].
+  eapply TP.F.MapsTo_fun in Heqo; eauto.
+Qed.
