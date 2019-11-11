@@ -75,6 +75,15 @@ Proof.
   apply List_Equivalence.
 Qed.
 
+Global Instance List_cons_proper
+       {A:Type}
+       `{Equiv A}
+  :
+  Proper ((=) ==> (=) ==> (=)) (@List.cons A).
+Proof.
+  simpl_relation.
+Qed.
+
 Global Instance fold_left_rev_proper
        {A B : Type}
        `{Eb: Equiv B}
