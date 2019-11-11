@@ -238,7 +238,7 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
  *)
 Definition context_equiv_at_TypeSig_off (tm:TypeSig) (off:nat): relation evalContext
   := fun σ0 σ1 =>
-       forall k t, k>off ->
+       forall k t, k>=off ->
               TM.MapsTo k t tm ->
               contextEnsureType σ0 (k-off) t /\
               contextEnsureType σ1 (k-off) t /\
@@ -247,7 +247,24 @@ Definition context_equiv_at_TypeSig_off (tm:TypeSig) (off:nat): relation evalCon
 Lemma context_equiv_at_TypeSig_0 {tm σ0 σ1}:
   context_equiv_at_TypeSig_off tm 0 σ0 σ1 <-> context_equiv_at_TypeSig tm σ0 σ1.
 Proof.
-Admitted.
+  split; intros H.
+  -
+    unfold context_equiv_at_TypeSig_off in H.
+    unfold context_equiv_at_TypeSig.
+    intros k t H0.
+    specialize (H k t).
+    rewrite Nat.sub_0_r in H.
+    destruct (lt_ge_dec k 0) as [kc|kc].
+    inversion kc.
+    auto.
+  -
+    unfold context_equiv_at_TypeSig_off.
+    unfold context_equiv_at_TypeSig in H.
+    intros k t kc H1.
+    rewrite Nat.sub_0_r.
+    apply H.
+    auto.
+Qed.
 
 Definition TypeSig_incr_n (t:TypeSig) (off:nat): TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (k+off, v)) (TP.to_list t)).
