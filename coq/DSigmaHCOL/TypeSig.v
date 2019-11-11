@@ -612,7 +612,17 @@ Lemma typecheck_env_S (off:nat) (tm:TypeSig) (σ: evalContext)
       typecheck_env off tm (List.cons v σ).
 Proof.
   intros v M T.
+
+  unfold typecheck_env, typecheck_env_bool, for_all in *.
+
+  setoid_rewrite <- T at 2. clear T.
+  f_equal.
+  extensionality k.
+  extensionality e.
+  extensionality b.
+
 Admitted.
+
 
 Lemma TypeSigIncluded_at (needle haystack:TypeSig):
   TypeSigIncluded needle haystack ->
