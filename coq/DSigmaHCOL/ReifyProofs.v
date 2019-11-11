@@ -92,6 +92,16 @@ Lemma evalAExpr_is_Some
 Proof.
 Admitted.
 
+Lemma evalAExpr_context_equiv_at_TypeSig
+      (e: AExpr)
+      {σ0 σ1: evalContext}
+      {ts: TypeSig}
+      (TS : TypeSigAExpr e = Some ts)
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalAexp σ0 e = evalAexp σ1 e.
+Proof.
+Admitted.
+
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -998,7 +1008,8 @@ Lemma evalDSHBinOp_context_equiv
       {dfs: TypeSig}
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
   TypeSigAExpr df = Some dfs ->
-  context_equiv_at_TypeSig dfs σ0 σ1 ->  evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
+  context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
+  evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
 Proof.
   intros H E.
   unfold equiv, option_Equiv.
@@ -1024,18 +1035,20 @@ Proof.
         destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
         destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
 
-        rewrite A0 in A1. clear A0.
-        rewrite B0 in B1. clear B0.
+        rewrite A0 in A1; clear A0.
+        rewrite B0 in B1; clear B0.
         repeat some_inv.
-        rewrite A1, B1 in E0. clear A1 B1 a0 b0.
-        rewrite C0, C1, <- E0, <- E1. clear C0 C1 E0 E1 c0 c1.
+        rewrite A1, B1 in E0; clear A1 B1 a0 b0.
+        rewrite C0, C1, <- E0, <- E1; clear C0 C1 E0 E1 c0 c1.
         rename a1 into a, b1 into b.
         unfold evalIBinCarrierA in *.
 
-        unfold context_equiv_at_TypeSig in E.
+        apply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
+        apply H.
 
-        (* induction df *)
-        admit.
+        apply context_equiv_at_TypeSig_0.
+        repeat apply context_equiv_at_TypeSig_off_widening.
+        apply E.
       *
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
@@ -1052,7 +1065,7 @@ Proof.
 
       eapply evalDSHBinOp_is_None_inv in Hb; eauto.
       2:{
-        eapply context_equiv_at_TypeSig_both_typcheck in E.
+        eapply context_equiv_at_TypeSig_off_both_typcheck in E.
         eapply E.
       }
       apply equiv_Some_is_Some in Ha.
@@ -1069,7 +1082,7 @@ Proof.
       opt_hyp_to_equiv.
       apply is_None_equiv_def in Ha; try typeclasses eauto.
       eapply evalDSHBinOp_is_None_inv in Ha; eauto.
-      2:{ eapply context_equiv_at_TypeSig_both_typcheck in E.
+      2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
           eapply E.
       }
       apply equiv_Some_is_Some in Hb.
@@ -1077,7 +1090,8 @@ Proof.
       apply evalDSHBinOp_is_None with (df:=df) (σ:=σ1) (mb:=m1) in Ha.
       some_none.
       auto.
-Admitted.
+      auto.
+Qed.
 
 Global Instance BinOp_DSH_pure
        (o : nat)
@@ -1087,7 +1101,7 @@ Global Instance BinOp_DSH_pure
        {dfs: TypeSig}
        {DTS: TypeSigAExpr df = Some dfs}
   :
-    DSH_pure (DSHBinOp o x_p y_p df) dfs x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p df) (TypeSig_incr_n dfs 3) x_p y_p.
 Proof.
   split.
   -
@@ -1171,21 +1185,25 @@ Proof.
       constructor.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
-      eapply evalDSHBinOp_context_equiv, TE.
-      typeclasses eauto.
-      apply DTS.
+      eapply evalDSHBinOp_context_equiv; eauto.
+      apply context_equiv_at_TypeSig_off_incr.
+      auto.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by eauto.
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
       some_none.
+      apply context_equiv_at_TypeSig_off_incr.
+      auto.
     +
       exfalso.
       eq_to_equiv_hyp.
       rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0 by eauto.
+      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
       some_none.
+      apply context_equiv_at_TypeSig_off_incr.
+      auto.
     +
       constructor.
   -

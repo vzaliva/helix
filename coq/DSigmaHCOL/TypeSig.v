@@ -109,7 +109,7 @@ Qed.
 (* typecheck env. starting from [off] index (inclusuve).  *)
 Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
   TP.for_all (fun k t =>
-                (k<?off) || (bool_decide (contextEnsureType σ k t))
+                (k<?off) || (bool_decide (contextEnsureType σ (k-off) t))
              ) tm.
 
 (* Propositional version *)
@@ -232,7 +232,31 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
                    contextEnsureType σ1 k t /\
                    context_lookup σ0 k = context_lookup σ1 k.
 
-(* increases keys in type signature by 1 *)
+(* Similar to [context_equiv_at_TypeSig] but assumes first [off] values
+   are not included in eval contexts but still could be referenced in
+   type signature. These first [off] keys will not be type checked.
+ *)
+Definition context_equiv_at_TypeSig_off (tm:TypeSig) (off:nat): relation evalContext
+  := fun σ0 σ1 =>
+       forall k t, k>off ->
+              TM.MapsTo k t tm ->
+              contextEnsureType σ0 (k-off) t /\
+              contextEnsureType σ1 (k-off) t /\
+              context_lookup σ0 (k-off) = context_lookup σ1 (k-off).
+
+Lemma context_equiv_at_TypeSig_0 {tm σ0 σ1}:
+  context_equiv_at_TypeSig_off tm 0 σ0 σ1 <-> context_equiv_at_TypeSig tm σ0 σ1.
+Proof.
+Admitted.
+
+Definition TypeSig_incr_n (t:TypeSig) (off:nat): TypeSig :=
+  TP.of_list (List.map (fun '(k,v) => (k+off, v)) (TP.to_list t)).
+
+(* increases keys in type signature by 1.
+
+TODO: Should be defined as := TypeSig_incr_n t 1.
+
+ *)
 Definition TypeSig_incr (t:TypeSig) : TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (S k, v)) (TP.to_list t)).
 
@@ -375,6 +399,12 @@ Proof.
       assumption.
 Qed.
 
+Lemma context_equiv_at_TypeSig_off_widening {σ0 σ1 off tm foo0 foo1}:
+  context_equiv_at_TypeSig_off tm (S off) σ0 σ1 ->
+  context_equiv_at_TypeSig_off tm off (foo0 :: σ0) (foo1 :: σ1).
+Proof.
+Admitted.
+
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
   TM.Empty (elt:=elt) m ->
   forall k, TM.find k m ≡ None.
@@ -428,12 +458,22 @@ Proof.
   apply F.in_find_iff in I; congruence.
 Qed.
 
+Lemma context_equiv_at_TypeSig_off_both_typcheck
+      (off: nat)
+      (dfs : TypeSig)
+      (σ0 σ1 : evalContext):
+  context_equiv_at_TypeSig_off dfs off σ0 σ1 →
+  (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
+Proof.
+Admitted.
+
+(* Special case of previous lemma *)
 Lemma context_equiv_at_TypeSig_both_typcheck
       (off: nat)
       (dfs : TypeSig)
       (σ0 σ1 : evalContext):
   context_equiv_at_TypeSig dfs σ0 σ1 →
-  (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
+  (typecheck_env 0 dfs σ0 /\ typecheck_env 0 dfs σ1).
 Proof.
   intros H.
   split.
@@ -441,17 +481,19 @@ Proof.
     unfold typecheck_env, typecheck_env_bool.
     apply for_all_iff; [typeclasses eauto |].
     intros k t M.
-    destruct (k <? off); [constructor |].
+    destruct (k <? 0); [constructor |].
     simpl; apply bool_decide_true.
     specialize (H k t M).
+    rewrite Nat.sub_0_r.
     intuition.
   -
     apply for_all_iff.
     typeclasses eauto.
     intros k t M.
-    destruct (k <? off); [constructor |].
+    destruct (k <? 0); [constructor |].
     simpl; apply bool_decide_true.
     specialize (H k t M).
+    rewrite Nat.sub_0_r.
     intuition.
 Qed.
 
@@ -593,3 +635,9 @@ Proof.
   apply TypeSigIncluded_at with (haystack:=haystack) in Heqo; [|auto].
   eapply TP.F.MapsTo_fun in Heqo; eauto.
 Qed.
+
+Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1}:
+  context_equiv_at_TypeSig (TypeSig_incr_n dfs 3) σ0 σ1 <->
+  context_equiv_at_TypeSig_off dfs 3 σ0 σ1.
+Proof.
+Admitted.
