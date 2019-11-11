@@ -608,29 +608,65 @@ Proof.
   apply H0.
 Qed.
 
-(* not sure this is provable *)
-Global Instance TypeSig_fold_proper :
-  Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=) ==> (=))
-         (TM.fold (elt:=DSHType) (A:=bool)).
-Proof.
-  simpl_relation.
-  rewrite TM.fold_1 at 1.
-  apply eq_equiv_bool.
-  pose proof ListUtil.fold_left_m_ext.
-  unfold Proper, respectful in *.
-  unfold ListUtil.feq in H2.
-Admitted.
-
-(* not sure it is provable *)
 Global Instance TypeSig_for_all_proper:
   Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (for_all (elt:=DSHType)).
 Proof.
   simpl_relation.
-  unfold for_all.
-  apply TypeSig_fold_proper; auto.
-  unfold respectful in *; intros.
-  specialize (H x1 y1 H1 x2 y2 H2).
-  repeat break_if; congruence.
+  destruct (for_all x x0) eqn:X,
+           (for_all y y0) eqn:Y;
+    try reflexivity; exfalso;
+    [ contradict Y | contradict X ].
+  all: apply not_false_iff_true.
+  all: rewrite for_all_iff in *; simpl_relation.
+  all: unfold Proper, respectful in H.
+  all: assert (K : k = k) by reflexivity.
+  all: assert (E : e = e) by reflexivity.
+  -
+    assert (KEX : TM.MapsTo k e x0).
+    {
+      clear - H0 H1.
+      unfold equiv, TypeSig_Equiv in H0.
+      specialize (H0 k).
+      apply F.find_mapsto_iff.
+      apply F.find_mapsto_iff in H1.
+      rewrite H1 in H0.
+      rewrite <-H1.
+      destruct (TM.find (elt:=DSHType) k x0).
+      -
+        rewrite H1.
+        inversion H0.
+        inversion H3.
+        reflexivity.
+      -
+        inversion H0.
+    }
+    specialize (H k k K e e E).
+    rewrite eq_equiv_bool, <-H.
+    apply X.
+    assumption.
+  -
+    assert (KEY : TM.MapsTo k e y0).
+    {
+      clear - H0 H1.
+      unfold equiv, TypeSig_Equiv in H0.
+      specialize (H0 k).
+      apply F.find_mapsto_iff.
+      apply F.find_mapsto_iff in H1.
+      rewrite H1 in H0.
+      rewrite <-H1.
+      destruct (TM.find (elt:=DSHType) k y0).
+      -
+        rewrite H1.
+        inversion H0.
+        inversion H3.
+        reflexivity.
+      -
+        inversion H0.
+    }
+    specialize (H k k K e e E).
+    rewrite eq_equiv_bool, H.
+    apply Y.
+    assumption.
 Qed.
 
 Global Instance TypeSigIncluded_proper:
