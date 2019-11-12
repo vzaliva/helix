@@ -251,7 +251,7 @@ Lemma evalAExpr_is_Some
       (TC : typecheck_env 0 ts σ):
   is_Some (evalAexp σ e).
 Proof.
-  destruct e; simpl in *.
+  dependent induction e; simpl in *.
   -
     admit.
   -
@@ -266,7 +266,15 @@ Proof.
     destruct TC as [TM TN].
     break_match.
     +
-      admit.
+      break_match.
+      *
+        (* Here we have a problem as ANth does return an error! *)
+        admit.
+      *
+        contradict Heqo2.
+        apply is_Some_ne_None.
+        eq_to_equiv_hyp.
+        eapply evalNExpr_is_Some with (tn0:=tn); eauto.
     +
       contradict Heqo1.
       apply is_Some_ne_None.
