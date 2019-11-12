@@ -116,6 +116,12 @@ Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
 Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
   typecheck_env_bool off tm σ ≡ true.
 
+Global Instance typecheck_env_proper:
+  Proper ((=) ==> (=) ==> (=) ==> iff) typecheck_env.
+Proof.
+Admitted.
+
+
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
    of 2 incompatible values.
@@ -734,4 +740,47 @@ Proof.
     rewrite L in T.
     rewrite L.
     auto.
+Qed.
+
+Lemma typecheck_env_TypeSigUnion
+      (σ : evalContext)
+      (t0 t1 : TypeSig) (off : nat)
+      (TSC: TypeSigCompat t0 t1):
+  typecheck_env off (TypeSigUnion t0 t1) σ
+  → typecheck_env off t0 σ ∧ typecheck_env off t1 σ.
+Proof.
+  intros CU.
+  unfold typecheck_env, typecheck_env_bool, for_all in *.
+  split.
+  -
+    eapply TP.for_all_iff.
+    solve_proper.
+    intros k e H.
+    eapply TP.for_all_iff with (k:=k) (e:=e) in CU.
+    +
+      admit.
+    +
+      solve_proper.
+    +
+      unfold TypeSigUnion.
+      apply update_mapsto_iff.
+      right.
+      split; [apply H|].
+Admitted.
+
+Lemma TypeSigUnion_error_typecheck_env
+      {σ: evalContext}
+      {t0 t1 tu: TypeSig}
+      {off:nat}
+      (TU: TypeSigUnion_error t0 t1 = Some tu):
+  typecheck_env off tu σ ->
+  typecheck_env off t0 σ /\ typecheck_env off t1 σ.
+Proof.
+  intros CU.
+  unfold TypeSigUnion_error in TU.
+  break_if; try some_none.
+  some_inv.
+  rewrite <- TU in CU.
+  clear TU tu Heqd.
+  apply typecheck_env_TypeSigUnion; eauto.
 Qed.

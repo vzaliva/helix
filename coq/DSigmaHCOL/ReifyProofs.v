@@ -19,6 +19,7 @@ Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.FinNat.
 
 Require Import MathClasses.misc.util.
+Require Import MathClasses.misc.decision.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax MathClasses.interfaces.orders.
 Require Import MathClasses.implementations.peano_naturals.
@@ -73,24 +74,77 @@ Class DSHIUnCarrierA (a:AExpr) : Prop :=
 Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
+Lemma evalMExpr_is_Some
+      {σ: evalContext}
+      {m: MExpr}
+      (tm: TypeSig)
+      (TS : TypeSigMExpr m = Some tm)
+      (TC : typecheck_env 0 tm σ):
+  is_Some (evalMexp σ m).
+Proof.
+  destruct m; simpl in *; [|trivial].
+  some_inv.
+  rewrite <- TS in TC. clear TS.
+  unfold typecheck_env, typecheck_env_bool, TP.for_all in TC.
+  eapply TP.for_all_iff with (k:=v) (e:=DSHMemBlock) in TC .
+  -
+    destruct (v <? 0) eqn:K; [inversion K|].
+    inversion TC; clear TC.
+    apply bool_decide_true in H0.
+    rewrite Nat.sub_0_r in H0.
+    unfold contextEnsureType in H0.
+    break_match; [| trivial].
+    inversion H0.
+    some_none.
+  -
+    solve_proper.
+  -
+    apply TM.add_1.
+    reflexivity.
+Qed.
+
 (*
   =AExpr= evaluation could return error only for technical reason:
   missing or incorrectly typed values in
   environent. It could not return an error based on values of
-  parameters.  The reason for this is that =AExpr= model =CarrierA=
+  parameters. The reason for this is that =AExpr= model =CarrierA=
   expressions which could not return error. An exampe in case BinOp
   function types =A -> A -> A= in MSCHOL and =A -> A -> option A= in
   DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
-*)
+ *)
 Lemma evalAExpr_is_Some
-      (e: AExpr)
       {σ: evalContext}
-      {ts: TypeSig}
+      {e: AExpr}
+      (ts: TypeSig)
       (TS : TypeSigAExpr e = Some ts)
       (TC : typecheck_env 0 ts σ):
   is_Some (evalAexp σ e).
 Proof.
+  destruct e; simpl in *.
+  -
+    admit.
+  -
+    trivial.
+  -
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into tm.
+    rename t0 into tn.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [TM TN].
+    break_match.
+    +
+      admit.
+    +
+      contradict Heqo1.
+      apply is_Some_ne_None.
+      eq_to_equiv_hyp.
+      eapply evalMExpr_is_Some with (tm0:=tm); eauto.
+  -
+
 Admitted.
+
 
 Lemma evalAExpr_context_equiv_at_TypeSig
       (e: AExpr)
@@ -958,6 +1012,7 @@ Proof.
       clear N.
       contradict Heqo1.
       apply is_Some_ne_None.
+      unfold evalIBinCarrierA.
       eapply evalAExpr_is_Some.
       eauto.
       destruct dft as [dfs' [TS' TI]].
