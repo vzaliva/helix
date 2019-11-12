@@ -1047,8 +1047,27 @@ Proof.
         apply H.
 
         apply context_equiv_at_TypeSig_0.
-        repeat apply context_equiv_at_TypeSig_off_widening.
+        destruct dft as [dfs' [D0 D1]].
+        assert(DE: dfs' = dfs).
+        {
+          apply Some_inj_equiv.
+          rewrite <- D0, <- H.
+          reflexivity.
+        }
+        rewrite DE in D1.
+        clear DE D0 dfs'.
+
+        replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ0) with
+            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ0) by admit.
+        replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ1) with
+            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ1) by admit.
+
+        apply context_equiv_at_TypeSig_split.
         apply E.
+        reflexivity.
+        simpl.
+        unfold DSHIBinCarrierA_TypeSig in D1.
+        admit.
       *
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
@@ -1091,7 +1110,7 @@ Proof.
       some_none.
       auto.
       auto.
-Qed.
+Admitted.
 
 Global Instance BinOp_DSH_pure
        (o : nat)

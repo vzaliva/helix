@@ -229,7 +229,7 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
   := fun σ0 σ1 =>
        forall k t, TM.MapsTo k t tm ->
                    contextEnsureType σ0 k t /\
-                   contextEnsureType σ1 k t /\
+                   contextEnsureType σ1 k t /\ (* this is redundant *)
                    context_lookup σ0 k = context_lookup σ1 k.
 
 (* Similar to [context_equiv_at_TypeSig] but assumes first [off] values
@@ -241,8 +241,16 @@ Definition context_equiv_at_TypeSig_off (tm:TypeSig) (off:nat): relation evalCon
        forall k t, k>=off ->
               TM.MapsTo k t tm ->
               contextEnsureType σ0 (k-off) t /\
-              contextEnsureType σ1 (k-off) t /\
+              contextEnsureType σ1 (k-off) t /\ (* this is redundant *)
               context_lookup σ0 (k-off) = context_lookup σ1 (k-off).
+
+Definition context_equiv_at_TypeSig_head (tm:TypeSig) (max:nat): relation evalContext
+  := fun σ0 σ1 =>
+       forall k t, k<max ->
+              TM.MapsTo k t tm ->
+              contextEnsureType σ0 k t /\
+              contextEnsureType σ1 k t /\ (* this is redundant *)
+              context_lookup σ0 k = context_lookup σ1 k.
 
 Lemma context_equiv_at_TypeSig_0 {tm σ0 σ1}:
   context_equiv_at_TypeSig_off tm 0 σ0 σ1 <-> context_equiv_at_TypeSig tm σ0 σ1.
@@ -416,11 +424,7 @@ Proof.
       assumption.
 Qed.
 
-Lemma context_equiv_at_TypeSig_off_widening {σ0 σ1 off tm foo0 foo1}:
-  context_equiv_at_TypeSig_off tm (S off) σ0 σ1 ->
-  context_equiv_at_TypeSig_off tm off (foo0 :: σ0) (foo1 :: σ1).
-Proof.
-Admitted.
+Require Import CoLoR.Util.List.ListUtil.
 
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
   TM.Empty (elt:=elt) m ->
@@ -666,5 +670,15 @@ Qed.
 Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1}:
   context_equiv_at_TypeSig (TypeSig_incr_n dfs 3) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs 3 σ0 σ1.
+Proof.
+Admitted.
+
+Lemma context_equiv_at_TypeSig_split {σ0 σ1 σ0' σ1' tm}:
+  context_equiv_at_TypeSig_off tm (length σ0') σ0 σ1 ->
+
+  (length σ0' = length σ1') ->
+  context_equiv_at_TypeSig_head tm (length σ0') σ0' σ1' ->
+
+  context_equiv_at_TypeSig_off tm 0 (σ0' ++ σ0) (σ1' ++ σ1).
 Proof.
 Admitted.
