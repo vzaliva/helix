@@ -758,7 +758,7 @@ Proof.
     intros k e H.
     eapply TP.for_all_iff with (k:=k) (e:=e) in CU.
     +
-      admit.
+      apply CU.
     +
       solve_proper.
     +
@@ -766,7 +766,8 @@ Proof.
       apply update_mapsto_iff.
       right.
       split; [apply H|].
-Admitted.
+      (* lord stuck here! *)
+Qed.
 
 Lemma TypeSigUnion_error_typecheck_env
       {σ: evalContext}
