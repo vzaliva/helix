@@ -116,6 +116,29 @@ Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
 Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
   typecheck_env_bool off tm σ ≡ true.
 
+Lemma eq_equiv_option_DSHType (a b : option DSHType) :
+  a ≡ b <-> a = b.
+Proof.
+  split; intros.
+  -
+    rewrite H; reflexivity.
+  -
+    destruct a, b;
+      inversion H; congruence.
+Qed.
+
+Global Instance TypeSig_MapsTo_proper {k : TM.key} {v : DSHType} :
+  Proper ((=) ==> (iff)) (TM.MapsTo (elt:=DSHType) k v).
+Proof.
+  simpl_relation.
+  unfold equiv, TypeSig_Equiv in H.
+  specialize (H k).
+  repeat rewrite ->F.find_mapsto_iff.
+  apply eq_equiv_option_DSHType in H.
+  rewrite H.
+  reflexivity.
+Qed.
+
 Global Instance DSHValType_proper:
   Proper ((=) ==> (=) ==> iff) DSHValType.
 Proof.
@@ -601,34 +624,11 @@ Proof.
   split; intros; destr_bool.
 Qed.
 
-Lemma eq_equiv_option_DSHType (a b : option DSHType) :
-  a ≡ b <-> a = b.
-Proof.
-  split; intros.
-  -
-    rewrite H; reflexivity.
-  -
-    destruct a, b;
-      inversion H; congruence.
-Qed.
-
 Global Instance TypeSig_find_proper:
   Proper ((eq) ==> (=) ==> (=)) (TM.find (elt:=DSHType)).
 Proof.
   simpl_relation.
   apply H0.
-Qed.
-
-Global Instance TypeSig_MapsTo_proper {k : TM.key} {v : DSHType} :
-  Proper ((=) ==> (iff)) (TM.MapsTo (elt:=DSHType) k v).
-Proof.
-  simpl_relation.
-  unfold equiv, TypeSig_Equiv in H.
-  specialize (H k).
-  repeat rewrite ->F.find_mapsto_iff.
-  apply eq_equiv_option_DSHType in H.
-  rewrite H.
-  reflexivity.
 Qed.
 
 Global Instance TypeSig_for_all_proper:
