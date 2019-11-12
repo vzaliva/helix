@@ -103,6 +103,137 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma evalNExpr_is_Some
+      {σ: evalContext}
+      {n: NExpr}
+      (tn: TypeSig)
+      (TS : TypeSigNExpr n = Some tn)
+      (TC : typecheck_env 0 tn σ):
+  is_Some (evalNexp σ n).
+Proof.
+  dependent induction n; simpl in *.
+  -
+    unfold TypeSig_safe_add in TS.
+    rewrite TP.F.empty_o in TS.
+    some_inv.
+    rewrite <- TS in TC. clear TS.
+    unfold typecheck_env, typecheck_env_bool, TP.for_all in TC.
+    eapply TP.for_all_iff with (k:=v) (e:=DSHnat) in TC .
+    +
+      destruct (v <? 0) eqn:K; [inversion K|].
+      inversion TC; clear TC.
+      apply bool_decide_true in H0.
+      rewrite Nat.sub_0_r in H0.
+      unfold contextEnsureType in H0.
+      break_match; [| trivial].
+      inversion H0.
+      some_none.
+    +
+      solve_proper.
+    +
+      apply TM.add_1.
+      reflexivity.
+  -
+    trivial.
+  -
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHn1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHn2 t2 T2T T2).
+    repeat break_match; try some_none.
+Qed.
+
 (*
   =AExpr= evaluation could return error only for technical reason:
   missing or incorrectly typed values in
