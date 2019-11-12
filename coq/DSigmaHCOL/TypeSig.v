@@ -116,11 +116,57 @@ Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
 Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
   typecheck_env_bool off tm σ ≡ true.
 
+Global Instance DSHValType_proper:
+  Proper ((=) ==> (=) ==> iff) DSHValType.
+Proof.
+  intros v0 v1 Ev t0 t1 Et.
+Admitted.
+
 Global Instance typecheck_env_proper:
   Proper ((=) ==> (=) ==> (=) ==> iff) typecheck_env.
 Proof.
+  intros n0 n1 En t0 t1 Et σ0 σ1 Eσ.
+  unfold equiv, nat_equiv in En.
+  subst n1. rename n0 into n.
+  split; intros H.
+  -
+    unfold typecheck_env, typecheck_env_bool in *.
+    apply for_all_iff; [typeclasses eauto |].
+    intros k t M.
+    apply for_all_iff with (k:=k) (e:=t) in H.
+    destruct (k <? n) eqn:K; [constructor |].
+    simpl; apply bool_decide_true.
+    apply Nat.ltb_ge in K.
+    rewrite orb_false_l in H.
+    apply bool_decide_true in H.
+    +
+      unfold contextEnsureType in *.
+      repeat break_match; eq_to_equiv_hyp.
+      *
+        rewrite Eσ in Heqo0.
+        rewrite Heqo0 in Heqo.
+        clear Heqo0.
+        some_inv.
+        clear - Heqo H.
+        rewrite <- Heqo.
+        assumption.
+      *
+        rewrite Eσ in Heqo0.
+        some_none.
+      *
+        rewrite Eσ in Heqo0.
+        some_none.
+      *
+        trivial.
+    +
+      solve_proper.
+    +
+      (* Here we haev the same problem we discussed with @zoickx at Slack today.
+         Perhaps we need to move away from [MapsTo] to [find] *)
+      admit.
+  -
+    admit.
 Admitted.
-
 
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
