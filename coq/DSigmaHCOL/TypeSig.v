@@ -116,13 +116,6 @@ Definition typecheck_env_bool (off:nat) (tm:TypeSig) (σ: evalContext) : bool :=
 Definition typecheck_env (off:nat) (tm:TypeSig) (σ: evalContext) :  Prop :=
   typecheck_env_bool off tm σ ≡ true.
 
-(* not needed for now. maybe need later.
-Global Instance typecheck_env_proper:
-  Proper ((=) ==> (=) ==> (=) ==> iff) typecheck_env.
-Proof.
-Admitted.
-*)
-
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
    of 2 incompatible values.
