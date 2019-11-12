@@ -640,16 +640,8 @@ Proof.
       specialize (H0 k).
       apply F.find_mapsto_iff.
       apply F.find_mapsto_iff in H1.
-      rewrite H1 in H0.
-      rewrite <-H1.
-      destruct (TM.find (elt:=DSHType) k x0).
-      -
-        rewrite H1.
-        inversion H0.
-        inversion H3.
-        reflexivity.
-      -
-        inversion H0.
+      rewrite eq_equiv_option_DSHType.
+      congruence.
     }
     specialize (H k k K e e E).
     rewrite eq_equiv_bool, <-H.
@@ -663,16 +655,8 @@ Proof.
       specialize (H0 k).
       apply F.find_mapsto_iff.
       apply F.find_mapsto_iff in H1.
-      rewrite H1 in H0.
-      rewrite <-H1.
-      destruct (TM.find (elt:=DSHType) k y0).
-      -
-        rewrite H1.
-        inversion H0.
-        inversion H3.
-        reflexivity.
-      -
-        inversion H0.
+      rewrite eq_equiv_option_DSHType.
+      symmetry in H0; congruence.
     }
     specialize (H k k K e e E).
     rewrite eq_equiv_bool, H.
