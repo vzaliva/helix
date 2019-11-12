@@ -128,12 +128,17 @@ Ltac some_apply :=
   end.
 
 Lemma Equiv_to_opt_r {A:Type} {a b: option A} `{Ae: Equiv A}:
-  a = b -> RelUtil.opt_r Ae a b.
+  a = b <-> RelUtil.opt_r Ae a b.
 Proof.
-  intros H.
-  destruct a, b; try some_none; constructor.
-  some_inv.
-  apply H.
+  split.
+  -
+    intros H.
+    destruct a, b; try some_none; constructor.
+    some_inv.
+    apply H.
+  -
+    intros H.
+    auto.
 Qed.
 
 Global Instance liftM_option_proper `{Ae:Equiv A} `{Be: Equiv B}:
