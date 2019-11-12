@@ -486,7 +486,28 @@ Lemma context_equiv_at_TypeSig_off_both_typcheck
   context_equiv_at_TypeSig_off dfs off σ0 σ1 →
   (typecheck_env off dfs σ0 /\ typecheck_env off dfs σ1).
 Proof.
-Admitted.
+  intros H.
+  split.
+  -
+    unfold typecheck_env, typecheck_env_bool.
+    apply for_all_iff; [typeclasses eauto |].
+    intros k t M.
+    destruct (k <? off) eqn:K; [constructor |].
+    simpl; apply bool_decide_true.
+    apply Nat.ltb_ge in K.
+    assert(kc1: k ≥ off) by lia.
+    specialize (H k t kc1 M).
+    intuition.
+  -
+    apply for_all_iff.
+    typeclasses eauto.
+    intros k t M.
+    destruct (k <? off) eqn:K; [constructor |].
+    simpl; apply bool_decide_true.
+    specialize (H k t).
+    apply Nat.ltb_ge in K.
+    intuition.
+Qed.
 
 (* Special case of previous lemma *)
 Lemma context_equiv_at_TypeSig_both_typcheck
