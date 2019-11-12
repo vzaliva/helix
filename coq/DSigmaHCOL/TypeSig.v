@@ -143,7 +143,12 @@ Global Instance DSHValType_proper:
   Proper ((=) ==> (=) ==> iff) DSHValType.
 Proof.
   intros v0 v1 Ev t0 t1 Et.
-Admitted.
+  inversion Et; subst.
+  inversion Ev; subst.
+  rewrite H. reflexivity.
+  all: split; intros;
+    inversion H0; subst; constructor.
+Qed.
 
 Global Instance typecheck_env_proper:
   Proper ((=) ==> (=) ==> (=) ==> iff) typecheck_env.
