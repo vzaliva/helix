@@ -616,7 +616,6 @@ Qed.
 
 (* Special case of previous lemma *)
 Lemma context_equiv_at_TypeSig_both_typcheck
-      (off: nat)
       (dfs : TypeSig)
       (σ0 σ1 : evalContext):
   context_equiv_at_TypeSig dfs σ0 σ1 →
