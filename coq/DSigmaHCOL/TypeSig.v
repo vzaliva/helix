@@ -601,6 +601,17 @@ Proof.
   split; intros; destr_bool.
 Qed.
 
+Lemma eq_equiv_option_DSHType (a b : option DSHType) :
+  a ≡ b <-> a = b.
+Proof.
+  split; intros.
+  -
+    rewrite H; reflexivity.
+  -
+    destruct a, b;
+      inversion H; congruence.
+Qed.
+
 Global Instance TypeSig_find_proper:
   Proper ((eq) ==> (=) ==> (=)) (TM.find (elt:=DSHType)).
 Proof.
