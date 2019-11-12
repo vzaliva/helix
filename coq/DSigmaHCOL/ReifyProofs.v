@@ -1252,9 +1252,9 @@ Proof.
         clear DE D0 dfs'.
 
         replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ0) with
-            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ0) by admit.
+            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ0) by reflexivity.
         replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ1) with
-            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ1) by admit.
+            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ1) by reflexivity.
 
         apply context_equiv_at_TypeSig_split.
         apply E.
