@@ -741,14 +741,20 @@ Proof.
 
 Admitted.
 
-
 Lemma TypeSigIncluded_at (needle haystack:TypeSig):
   TypeSigIncluded needle haystack ->
   forall k v, TM.MapsTo k v needle -> TM.MapsTo k v haystack.
 Proof.
   intros I k v M.
-  unfold TypeSigIncluded, TypeSigIncluded_bool, TP.for_all in I.
-Admitted.
+  unfold TypeSigIncluded, TypeSigIncluded_bool in I.
+  rewrite ->for_all_iff in I by simpl_relation.
+  specialize (I k v M).
+  unfold bool_decide in I;
+    break_if; try discriminate; clear Heqd.
+  apply F.find_mapsto_iff.
+  rewrite eq_equiv_option_DSHType.
+  assumption.
+Qed.
 
 Lemma MaybeMapsTo_Included (needle haystack:TypeSig):
   forall k t,
