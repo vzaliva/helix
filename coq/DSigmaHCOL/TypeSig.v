@@ -667,9 +667,9 @@ Proof.
   eapply TP.F.MapsTo_fun in Heqo; eauto.
 Qed.
 
-Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1}:
-  context_equiv_at_TypeSig (TypeSig_incr_n dfs 3) σ0 σ1 <->
-  context_equiv_at_TypeSig_off dfs 3 σ0 σ1.
+Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1 n}:
+  context_equiv_at_TypeSig (TypeSig_incr_n dfs n) σ0 σ1 <->
+  context_equiv_at_TypeSig_off dfs n σ0 σ1.
 Proof.
 Admitted.
 
