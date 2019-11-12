@@ -681,4 +681,30 @@ Lemma context_equiv_at_TypeSig_split {σ0 σ1 σ0' σ1' tm}:
 
   context_equiv_at_TypeSig_off tm 0 (σ0' ++ σ0) (σ1' ++ σ1).
 Proof.
-Admitted.
+  intros T L H.
+  intros k t _ M.
+  rewrite Nat.sub_0_r.
+  unfold equiv, nat_equiv in L.
+  destruct (lt_ge_dec k (length σ0')) as [kc|kc].
+  -
+    (* head *)
+    clear T.
+    specialize (H k t kc M).
+
+    unfold contextEnsureType in *.
+    unfold context_lookup in *.
+    rewrite nth_app_left by assumption.
+    rewrite nth_app_left by lia.
+    auto.
+  -
+    (* tail *)
+    clear H.
+    specialize (T k t kc M).
+    unfold contextEnsureType in *.
+    unfold context_lookup in *.
+    rewrite nth_app_right by assumption.
+    rewrite nth_app_right by lia.
+    rewrite L in T.
+    rewrite L.
+    auto.
+Qed.
