@@ -184,12 +184,44 @@ Proof.
     +
       solve_proper.
     +
-      (* Here we haev the same problem we discussed with @zoickx at Slack today.
-         Perhaps we need to move away from [MapsTo] to [find] *)
-      admit.
-  -
-    admit.
-Admitted.
+      rewrite Et.
+      assumption.
+  - (* this bullet is symmetric to the previous *)
+    unfold typecheck_env, typecheck_env_bool in *.
+    apply for_all_iff; [typeclasses eauto |].
+    intros k t M.
+    apply for_all_iff with (k:=k) (e:=t) in H.
+    destruct (k <? n) eqn:K; [constructor |].
+    simpl; apply bool_decide_true.
+    apply Nat.ltb_ge in K.
+    rewrite orb_false_l in H.
+    apply bool_decide_true in H.
+    +
+      unfold contextEnsureType in *.
+      repeat break_match; eq_to_equiv_hyp.
+      *
+        rewrite <-Eσ in Heqo0.
+        rewrite Heqo0 in Heqo.
+        clear Heqo0.
+        some_inv.
+        clear - Heqo H.
+        rewrite <- Heqo.
+        assumption.
+      *
+        rewrite <-Eσ in Heqo0.
+        some_none.
+      *
+        rewrite <-Eσ in Heqo0.
+        some_none.
+      *
+        trivial.
+    +
+      solve_proper.
+    +
+      rewrite <-Et.
+      assumption.
+Qed.
+
 
 (* Compare two type signatures for conflicts and returns map of
    conflicting entries, for each conflicting key, the value us a tuple
