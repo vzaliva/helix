@@ -253,7 +253,26 @@ Lemma evalAExpr_is_Some
 Proof.
   dependent induction e; simpl in *.
   -
-    admit.
+    unfold TypeSig_safe_add in TS.
+    rewrite TP.F.empty_o in TS.
+    some_inv.
+    rewrite <- TS in TC. clear TS.
+    unfold typecheck_env, typecheck_env_bool, TP.for_all in TC.
+    eapply TP.for_all_iff with (k:=v) (e:=DSHCarrierA) in TC .
+    +
+      destruct (v <? 0) eqn:K; [inversion K|].
+      inversion TC; clear TC.
+      apply bool_decide_true in H0.
+      rewrite Nat.sub_0_r in H0.
+      unfold contextEnsureType in H0.
+      break_match; [| trivial].
+      inversion H0.
+      some_none.
+    +
+      solve_proper.
+    +
+      apply TM.add_1.
+      reflexivity.
   -
     trivial.
   -
