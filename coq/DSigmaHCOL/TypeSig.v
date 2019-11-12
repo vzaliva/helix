@@ -671,6 +671,19 @@ Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1 n}:
   context_equiv_at_TypeSig (TypeSig_incr_n dfs n) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs n σ0 σ1.
 Proof.
+  split; intros H.
+  -
+    intros k t kc M.
+    apply H. clear H.
+    (* TODO: need lemma similar to `MapsTo_TypeSig_incr` but +n *)
+    admit.
+  -
+    intros k t M.
+    specialize (H (k+n) t).
+    replace (k + n - n) with k in H by omega.
+    apply H.
+    lia.
+    clear H.
 Admitted.
 
 Lemma context_equiv_at_TypeSig_split {σ0 σ1 σ0' σ1' tm}:
