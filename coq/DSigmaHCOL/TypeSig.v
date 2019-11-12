@@ -619,45 +619,38 @@ Proof.
   apply H0.
 Qed.
 
+Global Instance TypeSig_MapsTo_proper {k : TM.key} {v : DSHType} :
+  Proper ((=) ==> (iff)) (TM.MapsTo (elt:=DSHType) k v).
+Proof.
+  simpl_relation.
+  unfold equiv, TypeSig_Equiv in H.
+  specialize (H k).
+  repeat rewrite ->F.find_mapsto_iff.
+  apply eq_equiv_option_DSHType in H.
+  rewrite H.
+  reflexivity.
+Qed.
+
 Global Instance TypeSig_for_all_proper:
   Proper (((=) ==> (=) ==> (=)) ==> (=) ==> (=)) (for_all (elt:=DSHType)).
 Proof.
   simpl_relation.
   destruct (for_all x x0) eqn:X,
            (for_all y y0) eqn:Y;
-    try reflexivity; exfalso;
-    [ contradict Y | contradict X ].
+    try reflexivity; [ contradict Y | contradict X ].
   all: apply not_false_iff_true.
   all: rewrite for_all_iff in *; simpl_relation.
   all: unfold Proper, respectful in H.
   all: assert (K : k = k) by reflexivity.
   all: assert (E : e = e) by reflexivity.
   -
-    assert (KEX : TM.MapsTo k e x0).
-    {
-      clear - H0 H1.
-      unfold equiv, TypeSig_Equiv in H0.
-      specialize (H0 k).
-      apply F.find_mapsto_iff.
-      apply F.find_mapsto_iff in H1.
-      rewrite eq_equiv_option_DSHType.
-      congruence.
-    }
+    assert (KEX : TM.MapsTo k e x0) by (rewrite H0; assumption).
     specialize (H k k K e e E).
     rewrite eq_equiv_bool, <-H.
     apply X.
     assumption.
   -
-    assert (KEY : TM.MapsTo k e y0).
-    {
-      clear - H0 H1.
-      unfold equiv, TypeSig_Equiv in H0.
-      specialize (H0 k).
-      apply F.find_mapsto_iff.
-      apply F.find_mapsto_iff in H1.
-      rewrite eq_equiv_option_DSHType.
-      symmetry in H0; congruence.
-    }
+    assert (KEY : TM.MapsTo k e y0) by (rewrite <-H0; assumption).
     specialize (H k k K e e E).
     rewrite eq_equiv_bool, H.
     apply Y.
@@ -751,8 +744,8 @@ Proof.
   specialize (I k v M).
   unfold bool_decide in I;
     break_if; try discriminate; clear Heqd.
-  apply F.find_mapsto_iff.
-  rewrite eq_equiv_option_DSHType.
+  rewrite <-eq_equiv_option_DSHType in e.
+  apply F.find_mapsto_iff in e.
   assumption.
 Qed.
 
