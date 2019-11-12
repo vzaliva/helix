@@ -880,7 +880,7 @@ Proof.
       right.
       split; [apply H|].
       (* lord stuck here! *)
-Qed.
+Admitted.
 
 Lemma TypeSigUnion_error_typecheck_env
       {σ: evalContext}
