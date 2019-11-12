@@ -299,9 +299,92 @@ Proof.
       eq_to_equiv_hyp.
       eapply evalMExpr_is_Some with (tm0:=tm); eauto.
   -
-
-Admitted.
-
+    specialize (IHe ts TS TC).
+    break_match; some_none.
+  -
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; try some_none.
+Qed.
 
 Lemma evalAExpr_context_equiv_at_TypeSig
       (e: AExpr)
