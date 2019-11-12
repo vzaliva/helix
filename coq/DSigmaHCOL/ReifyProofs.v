@@ -268,8 +268,7 @@ Proof.
     +
       break_match.
       *
-        (* Here we have a problem as ANth does return an error! *)
-        admit.
+        break_match;   some_none.
       *
         contradict Heqo2.
         apply is_Some_ne_None.

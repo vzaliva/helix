@@ -96,7 +96,15 @@ Fixpoint evalAexp (σ: evalContext) (e:AExpr): option CarrierA :=
   | ANth m i =>
     m' <- (evalMexp σ m) ;;
        i' <- (evalNexp σ i) ;;
-       mem_lookup i' m'
+       (* Instead of returning error we default to zero here.
+          This situation should never happen for programs
+          refined from MSHCOL which ensure bounds via
+          dependent types. So DHCOL programs should
+          be correct by construction *)
+       (match mem_lookup i' m' with
+       | Some v => ret v
+       | None => ret CarrierAz
+       end)
   | AZless a b => liftM2 Zless (evalAexp σ a) (evalAexp σ b)
   end.
 
@@ -410,10 +418,26 @@ Proof.
       try inversion C1; try inversion C2;
         apply Some_inj_equiv in C1;
         apply Some_inj_equiv in C2; try congruence.
-    unfold peano_naturals.nat_equiv in *.
-    subst.
-    f_equiv.
-    assumption.
+    +
+      unfold equiv, peano_naturals.nat_equiv in *.
+      subst_max.
+      f_equiv.
+      apply Some_inj_equiv.
+      rewrite <- Heqo1, <- Heqo4.
+      rewrite H3.
+      reflexivity.
+    +
+      unfold equiv, peano_naturals.nat_equiv in *.
+      subst_max.
+      eq_to_equiv_hyp.
+      rewrite H3 in Heqo1.
+      some_none.
+    +
+      unfold equiv, peano_naturals.nat_equiv in *.
+      subst_max.
+      eq_to_equiv_hyp.
+      rewrite H3 in Heqo1.
+      some_none.
   - repeat break_match;subst; try reflexivity; try some_none.
     f_equiv.
     rewrite <- Some_inj_equiv in IHEe.
