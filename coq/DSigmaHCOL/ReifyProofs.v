@@ -404,7 +404,63 @@ Lemma evalMExpr_context_equiv_at_TypeSig
       (E : context_equiv_at_TypeSig ts σ0 σ1):
   evalMexp σ0 e = evalMexp σ1 e.
 Proof.
-Admitted.
+  assert(E':=E).
+  apply context_equiv_at_TypeSig_both_typcheck in E'.
+  destruct E' as [TC0 TC1].
+  apply Equiv_to_opt_r.
+  destruct_opt_r_equiv.
+  -
+    destruct e; simpl in *.
+    +
+      unfold context_equiv_at_TypeSig in E.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv; subst.
+      rewrite <- TS in TC0.
+      rewrite <- TS in TC1.
+      unfold typecheck_env, typecheck_env_bool, TP.for_all in *.
+      eapply TP.for_all_iff with (k:=v) (e:=DSHMemBlock) in TC0 ;
+        eapply TP.for_all_iff with (k:=v) (e:=DSHMemBlock) in TC1 ;
+        try solve_proper; try (apply TM.add_1; reflexivity).
+
+      destruct (v <? 0) eqn:K; [inversion K|].
+      clear K.
+      inversion TC0; clear TC0.
+      inversion TC1; clear TC1.
+      apply bool_decide_true in H0.
+      apply bool_decide_true in H1.
+      rewrite Nat.sub_0_r in H0.
+      rewrite Nat.sub_0_r in H1.
+      unfold contextEnsureType in H0.
+      unfold contextEnsureType in H1.
+      repeat break_match; try tauto.
+      repeat some_inv; subst.
+
+      assert(M: TM.MapsTo v DSHMemBlock ts).
+      {
+        rewrite <- TS.
+        apply TM.add_1.
+        reflexivity.
+      }
+      specialize (E v DSHMemBlock M).
+      destruct E as [_ [_ EE]].
+      unfold context_lookup in EE.
+      rewrite Heqo2, Heqo1 in EE.
+      some_inv.
+      inversion EE.
+      auto.
+    +
+      apply Some_inj_equiv.
+      rewrite <- Ha, <- Hb.
+      reflexivity.
+  -
+    contradict Hb.
+    apply is_Some_ne_None.
+    eapply evalMExpr_is_Some; eauto.
+  -
+    contradict Ha.
+    apply is_Some_ne_None.
+    eapply evalMExpr_is_Some; eauto.
+Qed.
 
 Lemma evalAExpr_context_equiv_at_TypeSig
       (e: AExpr)
@@ -420,7 +476,6 @@ Proof.
   apply Equiv_to_opt_r.
   destruct_opt_r_equiv.
   -
-
     induction e; simpl in *.
     +
       unfold context_equiv_at_TypeSig in E.
