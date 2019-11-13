@@ -763,19 +763,53 @@ Lemma typecheck_env_S (off:nat) (tm:TypeSig) (σ: evalContext)
     forall v,
       TypeSig_MaybeMapsTo off (DSHValToType v) tm ->
       typecheck_env (S off) tm (σ) ->
-      typecheck_env off tm (List.cons v σ).
+      typecheck_env off tm (v :: σ).
 Proof.
   intros v M T.
-
-  unfold typecheck_env, typecheck_env_bool, for_all in *.
-
-  setoid_rewrite <- T at 2. clear T.
-  f_equal.
-  extensionality k.
-  extensionality e.
-  extensionality b.
-
-Admitted.
+  unfold typecheck_env, typecheck_env_bool in *.
+  rewrite for_all_iff in * by simpl_relation.
+  intros k e KM.
+  specialize (T k e KM).
+  destruct (le_lt_dec k off) eqn:B1.
+  -
+    destruct (Nat.eq_dec k off) eqn:B2.
+    +
+      subst.
+      rewrite orb_true_iff, Nat.sub_diag; right.
+      cbv; break_if; try reflexivity.
+      clear - M KM n.
+      contradict n.
+      cbv.
+      unfold TypeSig_MaybeMapsTo in M.
+      rewrite F.find_mapsto_iff in KM.
+      rewrite KM in M.
+      inversion M.
+      apply DSHValToType_DSHValType.
+    +
+      assert (k < off) by omega.
+      rewrite orb_true_iff; left.
+      apply Nat.ltb_lt.
+      assumption.
+  -
+    rewrite orb_true_iff in *.
+    destruct T as [T | T].
+    +
+      exfalso.
+      apply Nat.ltb_lt in T.
+      omega.
+    +
+      right.
+      clear - l T.
+      unfold bool_decide in *.
+      repeat break_if; try congruence.
+      exfalso.
+      clear - Heqd0 n l.
+      contradict n.
+      unfold contextEnsureType in *.
+      replace (k - off) with (S (k - S off)) by lia.
+      simpl.
+      assumption.
+Qed.
 
 Lemma TypeSigIncluded_at (needle haystack:TypeSig):
   TypeSigIncluded needle haystack ->
