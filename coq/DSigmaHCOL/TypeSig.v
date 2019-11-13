@@ -337,6 +337,13 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
                    contextEnsureType σ1 k t /\ (* this is redundant *)
                    context_lookup σ0 k = context_lookup σ1 k.
 
+
+Global Instance context_equiv_at_TypeSig_proper:
+  Proper ((=) ==> (=) ==> (=) ==> iff) context_equiv_at_TypeSig.
+Proof.
+  simpl_relation.
+Admitted.
+
 (* Similar to [context_equiv_at_TypeSig] but assumes first [off] values
    are not included in eval contexts but still could be referenced in
    type signature. These first [off] keys will not be type checked.
