@@ -1669,7 +1669,78 @@ Proof.
         reflexivity.
         simpl.
         unfold DSHIBinCarrierA_TypeSig in D1.
-        admit.
+
+        clear -D1.
+        rename k into nv.
+        unfold context_equiv_at_TypeSig_head.
+        intros k t kc M.
+        apply TypeSigIncluded_at with (k:=k) (v:=t) in D1; eauto.
+        clear dfs M.
+
+        unfold contextEnsureType.
+        break_match; [|contradict Heqo; apply ListUtil.nth_in; auto].
+        destruct k.
+        --
+          simpl in *.
+          some_inv.
+          subst d. clear kc.
+          unfold TP.uncurry in *; simpl in *.
+          apply TP.F.add_mapsto_iff in D1.
+          destruct D1.
+          ++
+            destruct H.
+            subst t.
+            split; constructor.
+            constructor.
+            reflexivity.
+          ++
+            destruct H.
+            congruence.
+        --
+          destruct k.
+          simpl in *.
+          some_inv.
+          subst d. clear kc.
+          unfold TP.uncurry in *; simpl in *.
+          apply TP.F.add_neq_mapsto_iff in D1.
+          apply TP.F.add_mapsto_iff in D1.
+          destruct D1.
+          ++
+            destruct H.
+            subst t.
+            split; constructor.
+            constructor.
+            reflexivity.
+          ++
+            destruct H.
+            congruence.
+          ++
+            auto.
+          ++
+            destruct k.
+            simpl in *.
+            some_inv.
+            subst d. clear kc.
+            unfold TP.uncurry in *; simpl in *.
+            apply TP.F.add_neq_mapsto_iff in D1.
+            apply TP.F.add_neq_mapsto_iff in D1.
+            apply TP.F.add_mapsto_iff in D1.
+            destruct D1.
+            **
+              destruct H.
+              subst t.
+              split; constructor.
+              constructor.
+              reflexivity.
+            **
+              destruct H.
+              congruence.
+            **
+              auto.
+            **
+              auto.
+            **
+              lia.
       *
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
@@ -1712,7 +1783,7 @@ Proof.
       some_none.
       auto.
       auto.
-Admitted.
+Qed./
 
 Global Instance BinOp_DSH_pure
        (o : nat)
