@@ -386,6 +386,26 @@ Proof.
     repeat break_match; try some_none.
 Qed.
 
+Lemma evalNExpr_context_equiv_at_TypeSig
+      (e: NExpr)
+      {σ0 σ1: evalContext}
+      {ts: TypeSig}
+      (TS : TypeSigNExpr e = Some ts)
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalNexp σ0 e = evalNexp σ1 e.
+Proof.
+Admitted.
+
+Lemma evalMExpr_context_equiv_at_TypeSig
+      (e: MExpr)
+      {σ0 σ1: evalContext}
+      {ts: TypeSig}
+      (TS : TypeSigMExpr e = Some ts)
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalMexp σ0 e = evalMexp σ1 e.
+Proof.
+Admitted.
+
 Lemma evalAExpr_context_equiv_at_TypeSig
       (e: AExpr)
       {σ0 σ1: evalContext}
@@ -400,10 +420,10 @@ Proof.
   apply Equiv_to_opt_r.
   destruct_opt_r_equiv.
   -
-    unfold context_equiv_at_TypeSig in E.
 
     induction e; simpl in *.
     +
+      unfold context_equiv_at_TypeSig in E.
       repeat break_match_hyp; try some_none.
       repeat some_inv; subst.
       unfold TypeSig_safe_add in TS.
@@ -447,7 +467,163 @@ Proof.
       rewrite <- Ha, <- Hb.
       reflexivity.
     +
-      admit.
+      eq_to_equiv_hyp.
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into mts.
+      rename t0 into nts.
+
+      repeat break_match; try some_none.
+      *
+        eq_to_equiv_hyp.
+        rename n0 into n1, n1 into n0.
+        assert(NE: n0=n1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo0, <- Heqo3.
+          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_right in E; auto.
+        }
+        rewrite NE in Heqo3, Heqo4.
+        clear NE n0. rename n1 into nv.
+
+        rename m0 into m1, m1 into m0.
+        assert(ME: m0=m1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo2, <- Heqo.
+          eapply evalMExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_left in E; auto.
+        }
+        rewrite ME in Heqo2, Heqo4.
+        clear ME m0. rename m1 into mv.
+
+        apply Some_inj_equiv.
+        rewrite <- Hb, <- Ha.
+        rewrite <- Heqo1, <- Heqo4.
+        reflexivity.
+      *
+        exfalso.
+        (* TODO: copy-paste from previous goal. refactor! *)
+        eq_to_equiv_hyp.
+        rename n0 into n1, n1 into n0.
+        assert(NE: n0=n1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo0, <- Heqo3.
+          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_right in E; auto.
+        }
+        rewrite NE in Heqo3, Heqo4.
+        clear NE n0. rename n1 into nv.
+
+        rename m0 into m1, m1 into m0.
+        assert(ME: m0=m1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo2, <- Heqo.
+          eapply evalMExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_left in E; auto.
+        }
+        rewrite ME in Heqo2, Heqo4.
+        clear ME m0. rename m1 into mv.
+
+        some_none.
+      *
+        exfalso.
+        (* TODO: copy-paste from previous goal. refactor! *)
+        eq_to_equiv_hyp.
+        rename n0 into n1, n1 into n0.
+        assert(NE: n0=n1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo0, <- Heqo3.
+          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_right in E; auto.
+        }
+        rewrite NE in Heqo3, Heqo4.
+        clear NE n0. rename n1 into nv.
+
+        rename m0 into m1, m1 into m0.
+        assert(ME: m0=m1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo2, <- Heqo.
+          eapply evalMExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_left in E; auto.
+        }
+        rewrite ME in Heqo2, Heqo4.
+        clear ME m0. rename m1 into mv.
+
+        some_none.
+      *
+        eq_to_equiv_hyp.
+        rename n0 into n1, n1 into n0.
+        assert(NE: n0=n1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo0, <- Heqo3.
+          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_right in E; auto.
+        }
+        rewrite NE in Heqo3, Heqo4.
+        clear NE n0. rename n1 into nv.
+
+        rename m0 into m1, m1 into m0.
+        assert(ME: m0=m1).
+        {
+          apply Some_inj_equiv.
+          eq_to_equiv_hyp.
+          rewrite <- Heqo2, <- Heqo.
+          eapply evalMExpr_context_equiv_at_TypeSig; eauto.
+          unfold TypeSigUnion_error in TS.
+          break_if; try some_none. clear Heqd.
+          apply Some_inj_equiv in TS.
+          rewrite <- TS in E.
+          apply context_equiv_at_TypeSigUnion_left in E; auto.
+        }
+        rewrite ME in Heqo2, Heqo4.
+        clear ME m0. rename m1 into mv.
+
+        apply Some_inj_equiv.
+        rewrite <- Hb, <- Ha.
+        reflexivity.
     +
       admit.
     +
