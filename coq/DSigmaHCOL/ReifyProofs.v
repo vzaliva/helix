@@ -1783,7 +1783,7 @@ Proof.
       some_none.
       auto.
       auto.
-Qed./
+Qed.
 
 Global Instance BinOp_DSH_pure
        (o : nat)
