@@ -476,7 +476,7 @@ Proof.
   apply Equiv_to_opt_r.
   destruct_opt_r_equiv.
   -
-    induction e; simpl in *.
+    dependent induction e; simpl in *.
     +
       unfold context_equiv_at_TypeSig in E.
       repeat break_match_hyp; try some_none.
@@ -680,7 +680,11 @@ Proof.
         rewrite <- Hb, <- Ha.
         reflexivity.
     +
-      admit.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+      setoid_replace c2 with c1 by (eapply IHe; eauto).
+      reflexivity.
     +
       admit.
     +
