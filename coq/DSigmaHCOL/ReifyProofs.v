@@ -686,17 +686,298 @@ Proof.
       setoid_replace c2 with c1 by (eapply IHe; eauto).
       reflexivity.
     +
-      admit.
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
     +
-      admit.
+      (* TODO: copy-paste from previous branch. Refactor! *)
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
     +
-      admit.
+      (* TODO: copy-paste from previous branch. Refactor! *)
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
     +
-      admit.
+      (* TODO: copy-paste from previous branch. Refactor! *)
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
     +
-      admit.
+      (* TODO: copy-paste from previous branch. Refactor! *)
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
     +
-      admit.
+      (* TODO: copy-paste from previous branch. Refactor! *)
+      repeat break_match_hyp; try some_none.
+      repeat some_inv.
+      subst c c0.
+
+      unfold TypeSigUnion_error' in TS.
+      simpl in TS.
+      repeat break_match_hyp; try some_none.
+      rename t into ts0.
+      rename t0 into ts1.
+
+      assert(TS':=TS).
+      unfold TypeSigUnion_error in TS.
+      break_if; try some_none.
+      clear Heqd.
+      some_inv.
+      rewrite <- TS in E.
+
+      assert(E1: c3=c1).
+      {
+        eapply IHe1 with (ts:=ts0); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_left t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      assert(E2: c4=c2).
+      {
+        eapply IHe2 with (ts:=ts1); eauto.
+        -
+          apply (context_equiv_at_TypeSigUnion_right t), E.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+        -
+          eapply TypeSigUnion_error_typecheck_env in TS'.
+          eapply TS'.
+          eauto.
+      }
+      rewrite E1, E2.
+      reflexivity.
   -
     contradict Hb.
     apply is_Some_ne_None.
@@ -705,7 +986,7 @@ Proof.
     contradict Ha.
     apply is_Some_ne_None.
     eapply evalAExpr_is_Some; eauto.
-Admitted.
+Qed.
 
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
