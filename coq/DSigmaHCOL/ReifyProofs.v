@@ -1729,6 +1729,10 @@ Proof.
       lia.
 Qed.
 
+(* NOTE: this lemma currently is not used anywhere.
+   Although it is a more generic formulation of the next lemma
+   it might be easier to prove the next lemma directly instead
+   and drop this alotogether *)
 Lemma evalDSHBinOp_equiv_Some_spec_inv
       {off n: nat}
       {df : AExpr}
