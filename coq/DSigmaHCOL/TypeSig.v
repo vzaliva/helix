@@ -91,6 +91,7 @@ Section TypeSig_Setoid.
 
 End TypeSig_Setoid.
 
+
 (* True if nth context element has expected type. decidable. *)
 Definition contextEnsureType (σ: evalContext) (k:nat) (t:DSHType) : Prop :=
   match nth_error σ k with
@@ -895,6 +896,13 @@ Proof.
     auto.
 Qed.
 
+Lemma TypeSigCompat_at
+      (t0 t1 : TypeSig):
+  TypeSigCompat t0 t1
+  → forall (k : TM.key) (e : DSHType), TM.MapsTo k e t0 <-> TM.MapsTo k e t1.
+Proof.
+Admitted.
+
 Lemma typecheck_env_TypeSigUnion
       (σ : evalContext)
       (t0 t1 : TypeSig) (off : nat)
@@ -917,10 +925,23 @@ Proof.
     +
       unfold TypeSigUnion.
       apply update_mapsto_iff.
-      right.
-      split; [apply H|].
-      (* lord stuck here! *)
-Admitted.
+      left.
+      rewrite <- TypeSigCompat_at; eauto.
+  -
+    eapply TP.for_all_iff.
+    solve_proper.
+    intros k e H.
+    eapply TP.for_all_iff with (k:=k) (e:=e) in CU.
+    +
+      apply CU.
+    +
+      solve_proper.
+    +
+      unfold TypeSigUnion.
+      apply update_mapsto_iff.
+      left.
+      apply H.
+Qed.
 
 Lemma TypeSigUnion_error_typecheck_env
       {σ: evalContext}
