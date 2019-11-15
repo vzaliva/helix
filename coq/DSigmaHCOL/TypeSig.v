@@ -338,12 +338,45 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
                    contextEnsureType σ1 k t /\ (* this is redundant *)
                    context_lookup σ0 k = context_lookup σ1 k.
 
+Global Instance contextEnsureType_proper :
+  Proper ((=) ==> (=) ==> (=) ==> iff) contextEnsureType.
+Proof.
+  intros tm1 tm2 TMeq k1 k2 Keq t1 t2 Teq.
+  rewrite Keq, Teq;
+    clear k1 t1 Keq Teq; rename k2 into k, t2 into t;
+    assert (K: k = k) by reflexivity.
+  unfold contextEnsureType.
+  pose proof ListSetoid.nth_error_proper tm1 tm2 TMeq k k K.
+  repeat break_match;
+    inversion H; subst;
+    try reflexivity.
+  rewrite H2.
+  reflexivity.
+Qed.
 
 Global Instance context_equiv_at_TypeSig_proper:
   Proper ((=) ==> (=) ==> (=) ==> iff) context_equiv_at_TypeSig.
 Proof.
   simpl_relation.
-Admitted.
+  unfold context_equiv_at_TypeSig.
+  split; intros.
+  -
+    assert (TM.MapsTo k t x) by (rewrite H; assumption).
+    specialize (H2 k t H4).
+    split; [| split].
+    1: rewrite <-H0.
+    2: rewrite <-H1.
+    3: rewrite <-H0, <-H1.
+    all: apply H2.
+  -
+    assert (TM.MapsTo k t y) by (rewrite <-H; assumption).
+    specialize (H2 k t H4).
+    split; [| split].
+    1: rewrite H0.
+    2: rewrite H1.
+    3: rewrite H0, H1.
+    all: apply H2.
+Qed.
 
 (* Similar to [context_equiv_at_TypeSig] but assumes first [off] values
    are not included in eval contexts but still could be referenced in
