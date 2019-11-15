@@ -990,8 +990,9 @@ Proof.
     unfold bool_decide in H.
     repeat break_match; try congruence.
     +
-      rewrite e0.
-      apply TM.find_2; assumption.
+      rewrite <-H0, e0.
+      apply TM.find_2.
+      assumption.
     +
       (* unprovable *)
       (* this shows the lemma itself is incorrect:
