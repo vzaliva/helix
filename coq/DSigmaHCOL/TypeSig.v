@@ -899,7 +899,7 @@ Qed.
 Lemma TypeSigCompat_at
       (t0 t1 : TypeSig):
   TypeSigCompat t0 t1
-  → forall (k : TM.key) (e : DSHType), TM.MapsTo k e t0 <-> TM.MapsTo k e t1.
+  → forall (k : TM.key) (e e' : DSHType), e=e' -> (TM.MapsTo k e t0 <-> TM.MapsTo k e' t1).
 Proof.
 Admitted.
 
