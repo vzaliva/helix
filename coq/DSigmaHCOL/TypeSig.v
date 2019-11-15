@@ -560,6 +560,38 @@ Proof.
   apply TM.elements_2.
   assumption.
 Qed.
+ 
+Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1 n}:
+  context_equiv_at_TypeSig (TypeSig_incr_n dfs n) σ0 σ1 <->
+  context_equiv_at_TypeSig_off dfs n σ0 σ1.
+Proof.
+  split; intros H.
+  -
+    intros k t kc M.
+    apply H; clear H.
+    unfold TypeSig_incr_n.
+    apply TM.elements_1 in M.
+    remember (λ '(k0, v), (k0 + n, v)) as f.
+    remember (TM.eq_key_elt (elt:=DSHType)) as K.
+    assert (KP : ∀ a b, K a b → K (f a) (f b)).
+    {
+      subst; clear.
+      intros.
+      repeat break_let.
+      cbv in *.
+      fold Nat.add in *.
+      split; [lia | apply H].
+    }
+    pose proof InA_map_1 K (k, t) (to_list dfs) f KP.
+    apply H in M.
+    apply of_list_1;
+      [subst; apply TypeSig_incr_n_NoDupA |].
+    subst.
+    clear KP H.
+    (* unprovable *)
+    (* while the two shifts by [n] are similar,
+       they are not actually connected *)
+Admitted.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
@@ -895,25 +927,6 @@ Proof.
   apply TypeSigIncluded_at with (haystack:=haystack) in Heqo; [|auto].
   eapply TP.F.MapsTo_fun in Heqo; eauto.
 Qed.
-
-Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1 n}:
-  context_equiv_at_TypeSig (TypeSig_incr_n dfs n) σ0 σ1 <->
-  context_equiv_at_TypeSig_off dfs n σ0 σ1.
-Proof.
-  split; intros H.
-  -
-    intros k t kc M.
-    apply H. clear H.
-    (* TODO: need lemma similar to `MapsTo_TypeSig_incr` but +n *)
-    admit.
-  -
-    intros k t M.
-    specialize (H (k+n) t).
-    replace (k + n - n) with k in H by omega.
-    apply H.
-    lia.
-    clear H.
-Admitted.
 
 Lemma context_equiv_at_TypeSig_split {σ0 σ1 σ0' σ1' tm}:
   context_equiv_at_TypeSig_off tm (length σ0') σ0 σ1 ->
