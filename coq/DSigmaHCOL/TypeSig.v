@@ -423,6 +423,14 @@ Qed.
 Definition TypeSig_incr_n (t:TypeSig) (off:nat): TypeSig :=
   TP.of_list (List.map (fun '(k,v) => (k+off, v)) (TP.to_list t)).
 
+(* Delete all keys < n *)
+Definition TypeSig_trunc_first_n (t:TypeSig) (off:nat): TypeSig :=
+  TP.filter (fun k _ => k <? off) t.
+
+Definition TypeSig_decr_n (t:TypeSig) (off:nat): TypeSig :=
+  let tc := TypeSig_trunc_first_n t off in
+  TP.of_list (List.map (fun '(k,v) => (k-off, v)) (TP.to_list tc)).
+
 (* increases keys in type signature by 1.
 
 TODO: Should be defined as := TypeSig_incr_n t 1.
@@ -560,16 +568,18 @@ Proof.
   apply TM.elements_2.
   assumption.
 Qed.
- 
-Lemma context_equiv_at_TypeSig_off_incr {dfs σ0 σ1 n}:
-  context_equiv_at_TypeSig (TypeSig_incr_n dfs n) σ0 σ1 <->
+
+
+Lemma context_equiv_at_TypeSig_off_decr {dfs σ0 σ1 n}:
+  context_equiv_at_TypeSig (TypeSig_decr_n dfs n) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs n σ0 σ1.
 Proof.
+  (*
   split; intros H.
   -
     intros k t kc M.
     apply H; clear H.
-    unfold TypeSig_incr_n.
+    unfold TypeSig_decr_n.
     apply TM.elements_1 in M.
     remember (λ '(k0, v), (k0 + n, v)) as f.
     remember (TM.eq_key_elt (elt:=DSHType)) as K.
@@ -591,7 +601,9 @@ Proof.
     (* unprovable *)
     (* while the two shifts by [n] are similar,
        they are not actually connected *)
+   *)
 Admitted.
+
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->

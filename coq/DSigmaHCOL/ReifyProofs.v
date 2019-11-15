@@ -2082,7 +2082,7 @@ Global Instance BinOp_DSH_pure
        {dfs: TypeSig}
        {DTS: TypeSigAExpr df = Some dfs}
   :
-    DSH_pure (DSHBinOp o x_p y_p df) (TypeSig_incr_n dfs 3) x_p y_p.
+    DSH_pure (DSHBinOp o x_p y_p df) (TypeSig_decr_n dfs 3) x_p y_p.
 Proof.
   split.
   -
@@ -2167,7 +2167,7 @@ Proof.
       apply Some_inj_equiv.
       rewrite <- Heqo0, <- Heqo1.
       eapply evalDSHBinOp_context_equiv; eauto.
-      apply context_equiv_at_TypeSig_off_incr.
+      apply context_equiv_at_TypeSig_off_decr.
       auto.
     +
       exfalso.
@@ -2175,7 +2175,7 @@ Proof.
       rewrite H2, H5 in Heqo0.
       erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
       some_none.
-      apply context_equiv_at_TypeSig_off_incr.
+      apply context_equiv_at_TypeSig_off_decr.
       auto.
     +
       exfalso.
@@ -2183,7 +2183,7 @@ Proof.
       rewrite H2, H5 in Heqo0.
       erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
       some_none.
-      apply context_equiv_at_TypeSig_off_incr.
+      apply context_equiv_at_TypeSig_off_decr.
       auto.
     +
       constructor.
