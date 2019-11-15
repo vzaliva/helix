@@ -514,6 +514,28 @@ Proof.
     exists (n, d0); split; [reflexivity | assumption].
 Qed.
 
+
+Lemma TypeSig_incr_n_NoDupA (tm : TypeSig) (n : nat) :
+  NoDupA (TM.eq_key (elt:=DSHType)) (map (λ '(k, v), (k + n, v)) (to_list tm)).
+Proof.
+  unfold to_list.
+  pose proof TM.elements_3w (elt:=DSHType) tm.
+  induction H; [constructor |].
+  simpl.
+  break_match.
+  constructor; [| assumption].
+  intros C; contradict H.
+  apply InA_alt.
+  apply InA_alt in C.
+  destruct C as [y [H1 H2]].
+  apply in_map_iff in H2.
+  destruct H2 as [x' [H2 H3]].
+  break_match; subst.
+  inversion H1; subst.
+  exists (n0, d0); split;
+    [cbv; lia | assumption].
+Qed.
+
 Lemma MapsTo_TypeSig_incr {tm : TypeSig}
                           {k : nat}
                           {t : DSHType} :
