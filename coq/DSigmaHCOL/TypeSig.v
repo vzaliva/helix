@@ -951,11 +951,41 @@ Proof.
     auto.
 Qed.
 
+
+Lemma MapsTo_In (tm : TypeSig) (k : TM.key) (e : DSHType) :
+  TM.MapsTo k e tm →
+  TM.In (elt:=DSHType) k tm.
+Proof.
+  intros.
+  exists e; assumption.
+Qed.
+
 Lemma TypeSigCompat_at
       (t0 t1 : TypeSig):
   TypeSigCompat t0 t1
   → forall (k : TM.key) (e e' : DSHType), e=e' -> (TM.MapsTo k e t0 <-> TM.MapsTo k e' t1).
 Proof.
+  intros.
+  unfold TypeSigCompat in H.
+  split; intros.
+  -
+    apply find_Empty with (k:=k) in H.
+    unfold findTypeSigConflicts in H.
+    rewrite TM.map2_1 in H
+      by (left; apply MapsTo_In with (e := e); assumption).
+    rewrite TM.find_1 with (e := e) in H by assumption.
+    unfold bool_decide in H.
+    repeat break_match; try congruence.
+    +
+      rewrite e0.
+      apply TM.find_2; assumption.
+    +
+      (* unprovable *)
+      (* this shows the lemma itself is incorrect:
+         if  [k] maps to [e] in [t0]
+         and [k] is not in [t1]
+         then there is no conflict, but [MapsTo <-> MapsTo] does not hold
+      *)
 Admitted.
 
 Lemma typecheck_env_TypeSigUnion
