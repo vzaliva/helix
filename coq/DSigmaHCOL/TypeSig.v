@@ -425,7 +425,7 @@ Definition TypeSig_incr_n (t:TypeSig) (off:nat): TypeSig :=
 
 (* Delete all keys < n *)
 Definition TypeSig_trunc_first_n (t:TypeSig) (off:nat): TypeSig :=
-  TP.filter (fun k _ => k <? off) t.
+  TP.filter (fun k _ => off <=? k) t.
 
 Definition TypeSig_decr_n (t:TypeSig) (off:nat): TypeSig :=
   let tc := TypeSig_trunc_first_n t off in
