@@ -544,6 +544,94 @@ Proof.
     [cbv; lia | assumption].
 Qed.
 
+Lemma InA_eqk_eqke {elt : Type} (k : TM.key) (e' : elt) (l : list (TM.key * elt)) :
+  InA (TM.eq_key (elt:=elt)) (k, e') l ->
+  exists e, InA (TM.eq_key_elt (elt:=elt)) (k, e) l.
+Proof.
+  intros.
+  apply InA_alt in H.
+  destruct H as [(k0, e) [EQK IN]].
+  cbv in EQK; subst k0.
+  exists e.
+  apply In_InA.
+  typeclasses eauto.
+  assumption.
+Qed.
+
+Lemma TypeSig_trunc_first_n_NoDupA (dfs : TypeSig) (n : nat) :
+  NoDupA (TM.eq_key (elt:=DSHType))
+         (map (λ '(k, v), (k - n, v)) (to_list (TypeSig_trunc_first_n dfs n))).
+Proof.
+  unfold to_list, TypeSig_trunc_first_n.
+
+  (* store info about truncation in usable form *)
+  remember (λ (k : TM.key) (_ : DSHType), n <=? k) as f.
+  remember (filter f dfs) as fm.
+  remember (TM.eq_key (elt:=DSHType)) as eqA eqn:E;
+  assert (F : forall k e, InA eqA (k, e) (TM.elements (elt:=DSHType) fm) -> n <= k).
+  {
+    assert (FAux : forall k e, InA (TM.eq_key_elt (elt:=DSHType)) (k, e)
+                              (TM.elements (elt:=DSHType) fm) -> n <= k).
+    {
+      assert (T : Proper (eq ==> eq ==> eq) f) by simpl_relation.
+      pose proof filter_iff (elt:=DSHType) (f:=f) T dfs as F'.
+      intros; subst.
+      specialize (F' k e).
+      rewrite <-F.elements_mapsto_iff, F' in H.
+      apply Nat.leb_le, H.
+    }
+    intros.
+    subst.
+    apply InA_eqk_eqke in H.
+    destruct H as [e' H].
+    specialize (FAux k e').
+    apply FAux.
+    assumption.
+  }
+  clear - F E.
+
+  pose proof TM.elements_3w (elt:=DSHType) fm as ND.
+
+  induction ND.
+  -
+    constructor.
+  -
+    rewrite <-E in *.
+    (* strengthen induction hypothesis *)
+    assert (T : (∀ k e, InA eqA (k, e) l → n <= k)).
+    {
+      clear - F; intros.
+      specialize (F k e).
+      apply F.
+      constructor 2.
+      assumption.
+    }
+    specialize (IHND T); clear T.
+
+    simpl; constructor; [| assumption].
+    intros C; contradict H.
+    clear - F C E.
+
+    destruct x as (k, e).
+
+    apply InA_map_prototype in C;
+      [| subst; typeclasses eauto].
+    destruct C as [(pk, pe) [H1 H2]].
+
+    assert (n <= k)
+      by (apply F with (e0:=e); constructor; subst; reflexivity).
+    assert (n <= pk)
+      by (apply F with (e0:=pe); constructor 2; assumption).
+
+    subst; inversion H2.
+    replace pk with k in * by omega.
+    clear - H1.
+    apply InA_alt; apply InA_alt in H1.
+    destruct H1 as [p H].
+    exists p.
+    apply H.
+Qed.
+
 Lemma MapsTo_TypeSig_incr {tm : TypeSig}
                           {k : nat}
                           {t : DSHType} :
@@ -574,36 +662,40 @@ Lemma context_equiv_at_TypeSig_off_decr {dfs σ0 σ1 n}:
   context_equiv_at_TypeSig (TypeSig_decr_n dfs n) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs n σ0 σ1.
 Proof.
-  (*
   split; intros H.
   -
-    intros k t kc M.
+    intros k t KN M.
     apply H; clear H.
-    unfold TypeSig_decr_n.
-    apply TM.elements_1 in M.
-    remember (λ '(k0, v), (k0 + n, v)) as f.
-    remember (TM.eq_key_elt (elt:=DSHType)) as K.
-    assert (KP : ∀ a b, K a b → K (f a) (f b)).
+
+    remember (λ (k : TM.key) (_ : DSHType), n <=? k) as f eqn:F.
+    assert (TM.MapsTo k t (filter f dfs)).
     {
-      subst; clear.
+      apply filter_iff.
+      simpl_relation.
+      split;
+        [apply M | subst; apply Nat.leb_le; assumption].
+    }
+
+    clear - H F.
+    unfold TypeSig_decr_n.
+    apply of_list_1;
+      [apply TypeSig_trunc_first_n_NoDupA |].
+    apply TM.elements_1 in H.
+    unfold TypeSig_trunc_first_n.
+    apply InA_map_1 with (f0:=λ '(k0, v), (k0 - n, v)) in H.
+    +
+      unfold to_list.
+      rewrite <-F.
+      apply H.
+    +
       intros.
       repeat break_let.
-      cbv in *.
-      fold Nat.add in *.
-      split; [lia | apply H].
-    }
-    pose proof InA_map_1 K (k, t) (to_list dfs) f KP.
-    apply H in M.
-    apply of_list_1;
-      [subst; apply TypeSig_incr_n_NoDupA |].
-    subst.
-    clear KP H.
-    (* unprovable *)
-    (* while the two shifts by [n] are similar,
-       they are not actually connected *)
-   *)
+      cbv in H0.
+      destruct H0; subst.
+      reflexivity.
+  -
+    admit.
 Admitted.
-
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
