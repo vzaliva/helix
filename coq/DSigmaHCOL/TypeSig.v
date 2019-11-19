@@ -558,78 +558,63 @@ Proof.
   assumption.
 Qed.
 
+Lemma TypeSig_trunc_first_n_keys (dfs : TypeSig) (n : nat) :
+  forall p, InA (TM.eq_key (elt:=DSHType)) p (TM.elements (TypeSig_trunc_first_n dfs n)) ->
+       n <= fst p.
+Proof.
+  intros; destruct p as (k, e'); simpl.
+
+  (* if (k, _) is in [elements], then [k] [MapsTo] something *)
+  apply InA_eqk_eqke in H;
+    clear e';
+    destruct H as [e H];
+    apply F.elements_mapsto_iff in H.
+
+  unfold TypeSig_trunc_first_n in H.
+  apply filter_iff in H; [| typeclasses eauto].
+  apply Nat.leb_le, H.
+Qed.
+
 Lemma TypeSig_trunc_first_n_NoDupA (dfs : TypeSig) (n : nat) :
   NoDupA (TM.eq_key (elt:=DSHType))
          (map (λ '(k, v), (k - n, v)) (to_list (TypeSig_trunc_first_n dfs n))).
 Proof.
-  unfold to_list, TypeSig_trunc_first_n.
-
-  (* store info about truncation in usable form *)
-  remember (λ (k : TM.key) (_ : DSHType), n <=? k) as f.
-  remember (filter f dfs) as fm.
-  remember (TM.eq_key (elt:=DSHType)) as eqA eqn:E;
-  assert (F : forall k e, InA eqA (k, e) (TM.elements (elt:=DSHType) fm) -> n <= k).
-  {
-    assert (FAux : forall k e, InA (TM.eq_key_elt (elt:=DSHType)) (k, e)
-                              (TM.elements (elt:=DSHType) fm) -> n <= k).
-    {
-      assert (T : Proper (eq ==> eq ==> eq) f) by simpl_relation.
-      pose proof filter_iff (elt:=DSHType) (f:=f) T dfs as F'.
-      intros; subst.
-      specialize (F' k e).
-      rewrite <-F.elements_mapsto_iff, F' in H.
-      apply Nat.leb_le, H.
-    }
-    intros.
-    subst.
-    apply InA_eqk_eqke in H.
-    destruct H as [e' H].
-    specialize (FAux k e').
-    apply FAux.
-    assumption.
-  }
-  clear - F E.
-
-  pose proof TM.elements_3w (elt:=DSHType) fm as ND.
-
+  unfold to_list.
+  pose proof TM.elements_3w (elt:=DSHType) (TypeSig_trunc_first_n dfs n) as ND.
+  pose proof TypeSig_trunc_first_n_keys dfs n as K.
   induction ND.
   -
     constructor.
   -
-    rewrite <-E in *.
-    (* strengthen induction hypothesis *)
-    assert (T : (∀ k e, InA eqA (k, e) l → n <= k)).
-    {
-      clear - F; intros.
-      specialize (F k e).
-      apply F.
+    simpl.
+    constructor.
+    +
+      intros C; contradict H.
+      clear - K C.
+      apply InA_map_prototype in C;
+        [| subst; typeclasses eauto].
+      destruct C as [x' [C1 C2]].
+      destruct x as (k, e), x' as (k', e').
+      replace k' with k in *.
+      *
+        apply InA_alt; apply InA_alt in C1.
+        destruct C1 as [p H].
+        exists p.
+        apply H.
+      *
+        assert (n <= fst (k, e))
+          by (apply K; constructor; reflexivity).
+        assert (n <= fst (k', e'))
+          by (apply K; constructor 2; assumption).
+        inversion C2.
+        simpl in *.
+        omega.
+    +
+      apply IHND.
+      intros.
+      apply K.
       constructor 2.
       assumption.
-    }
-    specialize (IHND T); clear T.
-
-    simpl; constructor; [| assumption].
-    intros C; contradict H.
-    clear - F C E.
-
-    destruct x as (k, e).
-
-    apply InA_map_prototype in C;
-      [| subst; typeclasses eauto].
-    destruct C as [(pk, pe) [H1 H2]].
-
-    assert (n <= k)
-      by (apply F with (e0:=e); constructor; subst; reflexivity).
-    assert (n <= pk)
-      by (apply F with (e0:=pe); constructor 2; assumption).
-
-    subst; inversion H2.
-    replace pk with k in * by omega.
-    clear - H1.
-    apply InA_alt; apply InA_alt in H1.
-    destruct H1 as [p H].
-    exists p.
-    apply H.
 Qed.
 
 Lemma MapsTo_TypeSig_incr {tm : TypeSig}
@@ -657,7 +642,6 @@ Proof.
   assumption.
 Qed.
 
-
 Lemma context_equiv_at_TypeSig_off_decr {dfs σ0 σ1 n}:
   context_equiv_at_TypeSig (TypeSig_decr_n dfs n) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs n σ0 σ1.
@@ -681,21 +665,41 @@ Proof.
     apply of_list_1;
       [apply TypeSig_trunc_first_n_NoDupA |].
     apply TM.elements_1 in H.
-    unfold TypeSig_trunc_first_n.
-    apply InA_map_1 with (f0:=λ '(k0, v), (k0 - n, v)) in H.
-    +
-      unfold to_list.
-      rewrite <-F.
-      apply H.
-    +
-      intros.
-      repeat break_let.
-      cbv in H0.
-      destruct H0; subst.
-      reflexivity.
+    unfold TypeSig_trunc_first_n; rewrite <-F.
+    apply InA_map_1 with (f0:=λ '(k, v), (k - n, v)) in H;
+      [apply H |].
+    intros.
+    repeat break_let.
+    cbv in H0.
+    destruct H0; subst.
+    reflexivity.
   -
-    admit.
-Admitted.
+    intros k t M.
+    specialize (H (n + k) t).
+    replace (n + k - n) with k in H by omega.
+    apply H; [omega |].
+    clear - M.
+
+    apply filter_iff with (f := λ (k : TM.key) (_ : DSHType), n <=? k);
+      [typeclasses eauto |].
+    unfold TypeSig_decr_n in M.
+    apply of_list_1 in M;
+      [| apply TypeSig_trunc_first_n_NoDupA].
+    apply InA_map_prototype in M;
+      [| typeclasses eauto].
+    destruct M as [(pk, pt) [M1 M2]].
+    replace (n + k) with pk.
+    +
+      apply F.elements_mapsto_iff.
+      inversion M2; simpl in *; subst.
+      unfold to_list, TypeSig_trunc_first_n in M1.
+      assumption.
+    +
+      unfold to_list in M1.
+      apply InA_eqke_eqk with (k2:=pk) (e2:=pt) in M1; [| reflexivity].
+      apply TypeSig_trunc_first_n_keys in M1.
+      inversion M2; simpl in *; omega.
+Qed.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
   context_equiv_at_TypeSig tm σ0 σ1 ->
