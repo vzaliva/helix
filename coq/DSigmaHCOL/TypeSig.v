@@ -1072,7 +1072,6 @@ Proof.
     auto.
 Qed.
 
-
 Lemma MapsTo_In (tm : TypeSig) (k : TM.key) (e : DSHType) :
   TM.MapsTo k e tm →
   TM.In (elt:=DSHType) k tm.
@@ -1129,8 +1128,10 @@ Proof.
     +
       unfold TypeSigUnion.
       apply update_mapsto_iff.
-      left.
-      admit.
+      destruct (F.In_dec t1 k);
+        [left | auto].
+      apply TypeSigCompat_at with (t0:=t0);
+        assumption.
   -
     eapply TP.for_all_iff.
     solve_proper.
@@ -1145,7 +1146,7 @@ Proof.
       apply update_mapsto_iff.
       left.
       apply H.
-Admitted.
+Qed.
 
 Lemma TypeSigUnion_error_typecheck_env
       {σ: evalContext}
