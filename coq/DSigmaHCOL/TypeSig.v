@@ -1081,6 +1081,32 @@ Proof.
   exists e; assumption.
 Qed.
 
+Lemma TypeSigCompat_at
+      (t0 t1 : TypeSig):
+  TypeSigCompat t0 t1 →
+  forall (k : TM.key) (e : DSHType),
+    TM.MapsTo k e t0 -> TM.In k t1 ->
+    TM.MapsTo k e t1.
+Proof.
+  intros.
+  unfold TypeSigCompat in H.
+  apply find_Empty with (k:=k) in H.
+  unfold findTypeSigConflicts in H.
+  rewrite TM.map2_1 in H
+    by (left; apply MapsTo_In with (e := e); assumption).
+  rewrite TM.find_1 with (e := e) in H by assumption.
+  unfold bool_decide in H.
+  repeat break_match; try congruence.
+  -
+    rewrite e0.
+    apply TM.find_2.
+    assumption.
+  -
+    exfalso.
+    apply F.in_find_iff in H1.
+    congruence.
+Qed.
+
 Lemma typecheck_env_TypeSigUnion
       (σ : evalContext)
       (t0 t1 : TypeSig) (off : nat)
