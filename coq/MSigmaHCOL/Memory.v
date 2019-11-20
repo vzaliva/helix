@@ -122,7 +122,7 @@ Proof.
 Qed.
 
 
-Module Type CTMemory (Import CT : CType).
+Module Type Basics (Import CT : CType).
   Include CT.
 
   Definition mem_add k (v:t) := NM.add k v.
@@ -943,4 +943,4 @@ Module Type CTMemory (Import CT : CType).
 
   End Memory_Blocks.
 
-End CTMemory.
+End Basics.

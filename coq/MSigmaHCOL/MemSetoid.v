@@ -10,8 +10,8 @@ Require Import MathClasses.misc.util.
 
 Require Import Helix.Tactics.HelixTactics.
 
-Module CTMemSetoid (Import CT : CType).
-  Include CTMemory CT.
+Module Make (CT : CType).
+  Include Memory.Basics CT.
 
   (* Custom equality of memory blocks using (@equiv t) on members *)
   Global Instance mem_block_Equiv: Equiv (mem_block) :=
@@ -253,4 +253,4 @@ Module CTMemSetoid (Import CT : CType).
       eauto.
   Qed.
 
-End CTMemSetoid.
+End Make.
