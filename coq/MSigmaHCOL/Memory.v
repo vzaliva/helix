@@ -19,6 +19,7 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
 Require Export Coq.Sets.Ensembles.
+Require Import Psatz.
 
 Require Import ExtLib.Structures.Monads.
 Require Import ExtLib.Data.Monads.OptionMonad.
@@ -667,8 +668,6 @@ Module Type CTMemory (Import CT : CType).
     apply mem_merge_with_as_Union in H.
     crush.
   Qed.
-
-  Require Import Psatz.
 
   Lemma mem_const_block_find
         (n : nat)
