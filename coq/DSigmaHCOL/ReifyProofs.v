@@ -1787,11 +1787,60 @@ Proof.
       lia.
 Qed.
 
+(* TODO: generalize this *)
+Lemma is_Some_evalDSHBinOp_mem_equiv :
+  forall n off df σ mx ma mb,
+    ma = mb ->
+    is_Some (evalDSHBinOp n off df σ mx ma) =
+    is_Some (evalDSHBinOp n off df σ mx mb).
+Proof.
+  intros.
+  pose proof evalDSHBinOp_proper n off df σ mx mx.
+  unfold Proper, respectful in H0.
+  assert (T : mx = mx) by reflexivity;
+    specialize (H0 T ma mb H); clear T.
+  unfold is_Some.
+  repeat break_match; try reflexivity; inversion H0.
+Qed.
+
+Lemma mem_add_overwrite :
+  forall k v1 v2 m,
+  mem_add k v2 (mem_add k v1 m) = mem_add k v2 m.
+Proof.
+  intros.
+  unfold mem_add, equiv, mem_block_Equiv.
+  intros.
+  destruct (Nat.eq_dec k k0).
+  -
+    repeat rewrite NP.F.add_eq_o by assumption.
+    reflexivity.
+  -
+    repeat rewrite NP.F.add_neq_o by assumption.
+    reflexivity.
+Qed.
+
 Lemma is_Some_evalDSHBinOp_mem_add :
   forall n off df σ mx k v mb,
   is_Some (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
   is_Some (evalDSHBinOp n off df σ mx mb).
-Admitted.
+Proof.
+  intros.
+  dependent induction n; [reflexivity |].
+  cbn.
+  repeat break_match; try reflexivity.
+  destruct (Nat.eq_dec n k).
+  -
+    subst.
+    apply is_Some_evalDSHBinOp_mem_equiv.
+    apply mem_add_overwrite.
+  -
+    rewrite is_Some_evalDSHBinOp_mem_equiv
+      with (ma := mem_add n c1 (mem_add k v mb))
+           (mb := mem_add k v (mem_add n c1 mb)).
+    apply IHn.
+    apply mem_add_comm.
+    assumption.
+Qed.
 
 Lemma evalIBinCarrierA_value_independent :
   forall σ df n, 
