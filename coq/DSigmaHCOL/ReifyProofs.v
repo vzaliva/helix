@@ -38,20 +38,22 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
+Import D.
+
 (* Type signatures of expressions as binary or unary functions with
 optional index *)
 
 Definition DSHIBinCarrierA_TypeSig :=
-  TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA) ; (2,DSHnat)].
+  TP.of_list [(0,DSHCType) ; (1,DSHCType) ; (2,DSHnat)].
 
 Definition DSHUnCarrierA_TypeSig :=
-  TP.of_list [(0,DSHCarrierA)].
+  TP.of_list [(0,DSHCType)].
 
 Definition DSHIUnCarrierA_TypeSig :=
-  TP.of_list [(0,DSHCarrierA) ; (1,DSHnat)].
+  TP.of_list [(0,DSHCType) ; (1,DSHnat)].
 
 Definition DSHBinCarrierA_TypeSig :=
-  TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA)].
+  TP.of_list [(0,DSHCType) ; (1,DSHCType)].
 
 (* Instances of this class ensure that given [AExpr]
    could be propely typed, and it's type signaure includes
@@ -258,7 +260,7 @@ Proof.
     some_inv.
     rewrite <- TS in TC. clear TS.
     unfold typecheck_env, typecheck_env_bool, TP.for_all in TC.
-    eapply TP.for_all_iff with (k:=v) (e:=DSHCarrierA) in TC .
+    eapply TP.for_all_iff with (k:=v) (e:=DSHCType) in TC .
     +
       destruct (v <? 0) eqn:K; [inversion K|].
       inversion TC; clear TC.
@@ -487,8 +489,8 @@ Proof.
       rewrite <- TS in TC0.
       rewrite <- TS in TC1.
       unfold typecheck_env, typecheck_env_bool, TP.for_all in *.
-      eapply TP.for_all_iff with (k:=v) (e:=DSHCarrierA) in TC0 ;
-        eapply TP.for_all_iff with (k:=v) (e:=DSHCarrierA) in TC1 ;
+      eapply TP.for_all_iff with (k:=v) (e:=DSHCType) in TC0 ;
+        eapply TP.for_all_iff with (k:=v) (e:=DSHCType) in TC1 ;
         try solve_proper; try (apply TM.add_1; reflexivity).
 
       destruct (v <? 0) eqn:K; [inversion K|].
@@ -504,13 +506,13 @@ Proof.
       repeat break_match; try tauto.
       repeat some_inv; subst.
 
-      assert(M: TM.MapsTo v DSHCarrierA ts).
+      assert(M: TM.MapsTo v DSHCType ts).
       {
         rewrite <- TS.
         apply TM.add_1.
         reflexivity.
       }
-      specialize (E v DSHCarrierA M).
+      specialize (E v DSHCType M).
       destruct E as [_ [_ EE]].
       unfold context_lookup in EE.
       rewrite Heqo2, Heqo1 in EE.
@@ -1209,7 +1211,7 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
     EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
 (* the remaining case does not depend on memory and just recurse over environment *)
 | DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
-| DSHCarrierAValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCarrierAVal a :: σ) m
+| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m
 | DSHMemValConsistent: forall σ b m, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHMemVal b :: σ) m.
 
 (* TODO: move *)
@@ -1374,7 +1376,7 @@ Inductive PExpr_typecheck: PExpr -> evalContext -> Prop :=
 Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
   :=
   | AVar_tc (σ: evalContext) (n:var_id):
-      context_pos_typecheck σ n DSHCarrierA ->  AExpr_typecheck (AVar n) σ
+      context_pos_typecheck σ n DSHCType ->  AExpr_typecheck (AVar n) σ
   | AConst_tc (σ: evalContext) {a}: AExpr_typecheck (AConst a) σ
   | ANth_tc (σ: evalContext) (me:MExpr) (ne:NExpr) :
       MExpr_typecheck me σ ->
@@ -1417,10 +1419,10 @@ Class MSH_DSH_BinCarrierA_compat
     {
       ibin_typechecks:
         forall n a b,
-          AExpr_typecheck df (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal n :: σ);
+          AExpr_typecheck df (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal n :: σ);
 
       ibin_equiv:
-        forall nc a b, evalIBinCarrierA σ df (proj1_sig nc) a b = Some (f nc a b)
+        forall nc a b, evalIBinCType σ df (proj1_sig nc) a b = Some (f nc a b)
     }.
 
 Instance AAbs_DSHIBinCarrierA:
@@ -1428,7 +1430,7 @@ Instance AAbs_DSHIBinCarrierA:
 Proof.
   unfold DSHIBinCarrierA.
   unfold AExprTypeSigIncludes.
-  exists (TP.of_list [(0,DSHCarrierA) ; (1,DSHCarrierA)]).
+  exists (TP.of_list [(0,DSHCType) ; (1,DSHCType)]).
   split.
   -
     unfold TP.uncurry.
@@ -1463,7 +1465,7 @@ Proof.
     repeat constructor.
   -
     intros nc a b.
-    unfold evalIBinCarrierA.
+    unfold evalIBinCType.
     f_equiv.
 Qed.
 
@@ -1577,7 +1579,7 @@ Lemma evalDSHBinOp_nth
   (mem_lookup k mx = Some a) ->
   (mem_lookup (k + off) mx = Some b) ->
   (evalDSHBinOp n off df σ mx mb = Some ma) ->
-  (mem_lookup k ma = evalIBinCarrierA σ df k a b).
+  (mem_lookup k ma = evalIBinCType σ df k a b).
 Proof.
   intros A B E.
   revert mb a b A B E.
@@ -1687,7 +1689,7 @@ Lemma evalDSHBinOp_equiv_Some_spec
          mem_lookup (k+off) mx = Some b /\
          (exists c,
              mem_lookup k ma = Some c /\
-             evalIBinCarrierA σ df k a b = Some c))
+             evalIBinCType σ df k a b = Some c))
   ).
 Proof.
   intros E k kc.
@@ -1748,7 +1750,7 @@ Lemma evalDSHBinOp_equiv_Some_spec_inv
          mem_lookup (k+off) mx = Some b /\
          (exists c,
              mem_lookup k ma = Some c /\
-             evalIBinCarrierA σ df k a b = Some c))
+             evalIBinCType σ df k a b = Some c))
   ) -> (evalDSHBinOp n off df σ mx mb = Some ma).
 Proof.
 Admitted.
@@ -1766,7 +1768,7 @@ Lemma evalDSHBinOp_is_Some_inv
       ∃ a b,
         (mem_lookup k mx = Some a /\
          mem_lookup (k+off) mx = Some b /\
-         is_Some (evalIBinCarrierA σ df k a b)
+         is_Some (evalIBinCType σ df k a b)
         )
   ) -> (is_Some (evalDSHBinOp n off df σ mx mb)).
 Proof.
@@ -1848,7 +1850,7 @@ Proof.
       clear N.
       contradict Heqo1.
       apply is_Some_ne_None.
-      unfold evalIBinCarrierA.
+      unfold evalIBinCType.
       eapply evalAExpr_is_Some.
       eauto.
       destruct dft as [dfs' [TS' TI]].
@@ -1932,7 +1934,7 @@ Proof.
         rewrite A1, B1 in E0; clear A1 B1 a0 b0.
         rewrite C0, C1, <- E0, <- E1; clear C0 C1 E0 E1 c0 c1.
         rename a1 into a, b1 into b.
-        unfold evalIBinCarrierA in *.
+        unfold evalIBinCType in *.
 
         apply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
         apply H.
@@ -1948,10 +1950,10 @@ Proof.
         rewrite DE in D1.
         clear DE D0 dfs'.
 
-        replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ0) with
-            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ0) by reflexivity.
-        replace (DSHCarrierAVal b :: DSHCarrierAVal a :: DSHnatVal k :: σ1) with
-            ([DSHCarrierAVal b ; DSHCarrierAVal a ; DSHnatVal k] ++ σ1) by reflexivity.
+        replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ0) with
+            ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ0) by reflexivity.
+        replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ1) with
+            ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ1) by reflexivity.
 
         apply context_equiv_at_TypeSig_split.
         apply E.
@@ -4328,7 +4330,7 @@ Theorem SHBinOp_DSHBinOp
         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
         (df: DSHIBinCarrierA)
   :
-    (forall (Γ: evalContext) j a b, Some (f j a b) = evalIBinCarrierA
+    (forall (Γ: evalContext) j a b, Some (f j a b) = evalIBinCType
                                                        (σ ++ Γ)
                                                        df (proj1_sig j) a b) ->
     @SHCOL_DSHCOL_equiv (o+o) o svalue fm σ
@@ -4854,7 +4856,7 @@ Proof.
     + apply L1.
   -
     simpl.
-    unfold evalDSHBinOp, evalIBinCarrierA.
+    unfold evalDSHBinOp, evalIBinCType.
     break_let.
     apply vsequence_option_proper.
     apply Vbuild_proper.

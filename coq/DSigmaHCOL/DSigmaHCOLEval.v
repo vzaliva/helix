@@ -29,7 +29,9 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Module Make (Import CT : CType) (Import M: MemSetoid CT) (Import D: DSigmaHCOL CT M).
+Module Make (Import CT : CType).
+
+  Include MDSigmaHCOL CT.
 
   (* Some additiona =CType.t= properties we need in proofs *)
   Declare Instance CTypeZero: Zero t.

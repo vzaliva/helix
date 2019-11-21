@@ -16,7 +16,9 @@ Require Import MathClasses.misc.decision.
 
 Global Open Scope nat_scope.
 
-Module Type DSigmaHCOL (Import CT : CType) (Import M: MemSetoid CT).
+Module Type MDSigmaHCOL (Import CT : CType).
+
+  Include MMemSetoid CT.
 
   (* Variable on stack (De-Brujn index) *)
   Definition var_id := nat.
@@ -377,7 +379,7 @@ Module Type DSigmaHCOL (Import CT : CType) (Import M: MemSetoid CT).
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
 
-End DSigmaHCOL.
+End MDSigmaHCOL.
 
 (*
 Module DSHNotation.
