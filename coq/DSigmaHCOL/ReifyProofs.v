@@ -1787,28 +1787,16 @@ Proof.
       lia.
 Qed.
 
-(* NOTE: this lemma currently is not used anywhere.
-   Although it is a more generic formulation of the next lemma
-   it might be easier to prove the next lemma directly instead
-   and drop this alotogether *)
-Lemma evalDSHBinOp_equiv_Some_spec_inv
-      {off n: nat}
-      {df : AExpr}
-      `{dft : DSHIBinCarrierA df}
-      {σ : evalContext}
-      {dfs: TypeSig}
-      (TS : TypeSigAExpr df = Some dfs)
-      (TC: typecheck_env 3 dfs σ)
-      {mx mb ma : mem_block}:
-  (∀ k (kc: k < n),
-      ∃ a b,
-        (mem_lookup k mx = Some a /\
-         mem_lookup (k+off) mx = Some b /\
-         (exists c,
-             mem_lookup k ma = Some c /\
-             evalIBinCarrierA σ df k a b = Some c))
-  ) -> (evalDSHBinOp n off df σ mx mb = Some ma).
-Proof.
+Lemma is_Some_evalDSHBinOp_mem_add :
+  forall n off df σ mx k v mb,
+  is_Some (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
+  is_Some (evalDSHBinOp n off df σ mx mb).
+Admitted.
+
+Lemma evalIBinCarrierA_value_independent :
+  forall σ df n, 
+    (exists a b, is_Some (evalIBinCarrierA σ df n a b)) ->
+    forall c d, is_Some (evalIBinCarrierA σ df n c d).
 Admitted.
 
 Lemma evalDSHBinOp_is_Some_inv
@@ -1829,8 +1817,39 @@ Lemma evalDSHBinOp_is_Some_inv
   ) -> (is_Some (evalDSHBinOp n off df σ mx mb)).
 Proof.
   intros H.
-  (* TODO: the proof should follow from [evalDSHBinOp_equiv_Some_spec_inv] *)
-Admitted.
+  induction n; [reflexivity |].
+  simpl.
+  repeat break_match.
+  -
+    rewrite is_Some_evalDSHBinOp_mem_add.
+    apply IHn.
+    intros.
+    apply H.
+    omega.
+  -
+    contradict Heqo1.
+    apply is_Some_ne_None.
+    assert (T : n < S n) by omega.
+    specialize (H n T).
+    apply evalIBinCarrierA_value_independent.
+    destruct H as [a [b H]].
+    exists a, b.
+    apply H.
+  -
+    contradict Heqo0.
+    apply is_Some_ne_None.
+    assert (T : n < S n) by omega.
+    specialize (H n T).
+    destruct H as [a [b [L1 [L2 S]]]].
+    unfold is_Some; break_match; [trivial | some_none].
+  -
+    contradict Heqo.
+    apply is_Some_ne_None.
+    assert (T : n < S n) by omega.
+    specialize (H n T).
+    destruct H as [a [b [L1 [L2 S]]]].
+    unfold is_Some; break_match; [trivial | some_none].
+Qed.
 
 Lemma evalDSHBinOp_is_None
       (off n: nat)
