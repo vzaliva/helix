@@ -16,11 +16,10 @@ Require Import MathClasses.misc.decision.
 
 Global Open Scope nat_scope.
 
-(* Variable on stack (De-Brujn index) *)
-Definition var_id := nat.
+Module Type DSigmaHCOL (Import CT : CType) (Import M: MemSetoid CT).
 
-Module DSigmaHCOL (Import CT : CType).
-  Include CT.
+  (* Variable on stack (De-Brujn index) *)
+  Definition var_id := nat.
 
   Inductive DSHType :=
   | DSHnat : DSHType
@@ -110,15 +109,15 @@ Module DSigmaHCOL (Import CT : CType).
 
 
   (* Some Setoid stuff below *)
-  Global Instance DSHType_equiv: Equiv DSHType := eq.
+  Instance DSHType_equiv: Equiv DSHType := eq.
 
-  Global Instance DSHType_equiv_Decision (a b:DSHType):
+  Instance DSHType_equiv_Decision (a b:DSHType):
     Decision (equiv a b).
   Proof.
     destruct a,b; try (left;constructor); right; intros H; inversion H.
   Qed.
 
-  Global Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
+  Instance DSHValType_Decision (v:DSHVal) (t:DSHType):
     Decision (DSHValType v t).
   Proof.
     destruct v,t0; try (left;constructor); right; intros H; inversion H.
@@ -132,7 +131,7 @@ Module DSigmaHCOL (Import CT : CType).
   | DSHMemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHMemVal m0) (DSHMemVal m1)
   | DSHPtr_equiv {p0 p1: mem_block_id}: p0=p1 -> DSHVal_equiv (DSHPtrVal p0) (DSHPtrVal p1).
 
-  Global Instance DSHVar_Equivalence:
+  Instance DSHVar_Equivalence:
     Equivalence DSHVal_equiv.
   Proof.
     split.
@@ -166,7 +165,7 @@ Module DSigmaHCOL (Import CT : CType).
         auto.
   Qed.
 
-  Global Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
+  Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
 
   Inductive NExpr_equiv: NExpr -> NExpr -> Prop :=
   | NVar_equiv  {n1 n2}: n1=n2 -> NExpr_equiv (NVar n1)  (NVar n2)
@@ -179,9 +178,9 @@ Module DSigmaHCOL (Import CT : CType).
   | NMin_equiv  {a a' b b'}: NExpr_equiv a a' -> NExpr_equiv b b' -> NExpr_equiv (NMin a b)   (NMin a' b')
   | NMax_equiv  {a a' b b'}: NExpr_equiv a a' -> NExpr_equiv b b' -> NExpr_equiv (NMax a b)   (NMax a' b').
 
-  Global Instance NExpr_Equiv: Equiv NExpr  := NExpr_equiv.
+  Instance NExpr_Equiv: Equiv NExpr  := NExpr_equiv.
 
-  Global Instance NExpr_Equivalence:
+  Instance NExpr_Equivalence:
     Equivalence NExpr_equiv.
   Proof.
     split.
@@ -213,9 +212,9 @@ Module DSigmaHCOL (Import CT : CType).
   | MVar_equiv {n0 n1}: n0=n1 -> MExpr_equiv (MVar n0) (MVar n1)
   | MConst_equiv {a b: mem_block}: a=b -> MExpr_equiv (MConst a) (MConst b).
 
-  Global Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
+  Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
 
-  Global Instance MExpr_Equivalence:
+  Instance MExpr_Equivalence:
     Equivalence MExpr_equiv.
   Proof.
     split.
@@ -235,9 +234,9 @@ Module DSigmaHCOL (Import CT : CType).
   | PVar_equiv {n0 n1}: n0=n1 -> PExpr_equiv (PVar n0) (PVar n1)
   | PConst_equiv {a b: mem_block_id}: a=b -> PExpr_equiv (PConst a) (PConst b).
 
-  Global Instance PExpr_Equiv: Equiv PExpr := PExpr_equiv.
+  Instance PExpr_Equiv: Equiv PExpr := PExpr_equiv.
 
-  Global Instance PExpr_Equivalence:
+  Instance PExpr_Equivalence:
     Equivalence PExpr_equiv.
   Proof.
     split.
@@ -268,9 +267,9 @@ Module DSigmaHCOL (Import CT : CType).
   | AMax_equiv  {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMax a b) (  AMax a' b')
   | AZless_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AZless a b) (AZless a' b').
 
-  Global Instance AExpr_Equiv: Equiv AExpr := AExpr_equiv.
+  Instance AExpr_Equiv: Equiv AExpr := AExpr_equiv.
 
-  Global Instance AExpr_Equivalence:
+  Instance AExpr_Equivalence:
     Equivalence AExpr_equiv.
   Proof.
     split.

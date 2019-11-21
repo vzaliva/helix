@@ -1219,7 +1219,7 @@ Section MFamilies.
             congruence.
 
             rewrite <- IHn.
-            assert(tc1: t0<n) by omega.
+            assert(tc1: t<n) by omega.
             apply (m_family_in_set_includes_members _ _ _
                      (shrink_m_op_family_up op_family) _
                      tc1).
@@ -1511,7 +1511,7 @@ Section MFamilies.
             destruct t.
             congruence.
             rewrite <- IHn.
-            assert(tc1: t0<n) by omega.
+            assert(tc1: t<n) by omega.
             apply (m_family_out_set_includes_members _ _ _
                      (shrink_m_op_family_up op_family) _
                      tc1).
@@ -2513,7 +2513,7 @@ Section MSHOperator_Facts_instances.
         apply Disjoint_Symmetric.
         assert(K: (Init.Nat.add (S n) d) ≡ (Init.Nat.add n (S d))) by lia.
 
-        assert(tc2: S t0 <= n + S d).
+        assert(tc2: S t <= n + S d).
         {
           rewrite <- K.
           apply tc1.
@@ -2523,7 +2523,7 @@ Section MSHOperator_Facts_instances.
                             (m:=m)
                             (m0:=m0)
                             (l:=m1t)
-                            (t:=t0)
+                            (t:=t)
                             (tc1:=tc2)
                             (op_family:=cast_m_op_family op_family K).
         specialize (IHn (cast_m_op_family_facts op_family_facts K)).
@@ -2568,7 +2568,7 @@ Section MSHOperator_Facts_instances.
         shrink_m_op_family_up_n, shrink_m_op_family_facts_up_n
           in *.
         simpl in *.
-        specialize (compat t0 tc1).
+        specialize (compat t tc1).
         specialize (compat d (Plus.plus_lt_compat_r O (S n) d (Nat.lt_0_succ n))).
         apply Disjoint_FinNat_to_nat in compat.
         rewrite (mem_keys_set_to_m_out_index_set _ _ _ _ _ H0) in compat.

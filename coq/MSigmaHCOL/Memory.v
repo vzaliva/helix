@@ -122,8 +122,7 @@ Proof.
 Qed.
 
 
-Module Type Basics (Import CT : CType).
-  Include CT.
+Module Type Basic (Import CT : CType).
 
   Definition mem_add k (v:t) := NM.add k v.
   Definition mem_delete k (m:NatMap t) := NM.remove k m.
@@ -943,4 +942,4 @@ Module Type Basics (Import CT : CType).
 
   End Memory_Blocks.
 
-End Basics.
+End Basic.

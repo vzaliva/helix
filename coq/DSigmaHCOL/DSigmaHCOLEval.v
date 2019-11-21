@@ -8,6 +8,7 @@ Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.MSigmaHCOL.Memory.
+Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
@@ -16,6 +17,9 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.orders.minmax.
 Require Import MathClasses.interfaces.orders.
 Require Import MathClasses.misc.decision.
+Require Import MathClasses.interfaces.abstract_algebra.
+Require Import MathClasses.theory.rings.
+Require Import MathClasses.interfaces.orders.
 
 Global Open Scope nat_scope.
 
@@ -25,19 +29,28 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Module DSigmaHCOLEval (Import CT : CType).
-  Include DSigmaHCOL (CT).
+Module Make (Import CT : CType) (Import M: MemSetoid CT) (Import D: DSigmaHCOL CT M).
 
   (* Some additiona =CType.t= properties we need in proofs *)
   Declare Instance CTypeZero: Zero t.
-  Declare Instance CTypeLe: Le t.
-  Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y).
-  Declare Instance CTypeNeg: Negate t.
+  Declare Instance CTypeOne: One t.
   Declare Instance CTypePlus: Plus t.
+  Declare Instance CTypeNeg: Negate t.
   Declare Instance CTypeMult: Mult t.
+  Declare Instance CTypeLe: Le t.
+  Declare Instance CTypeLt: Lt t.
+  Declare Instance CTypeTO: @TotalOrder t CTypeEquiv CTypeLe.
   Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
+  (*TOD: Ring could be problematic with Float *)
+  Declare Instance CTypeRing: Ring t.
+  Declare Instance CTypeLtDec: forall x y: t, Decision (x < y)%mc.
+  Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y)%mc.
+  Declare Instance CTypeEquivDec: forall x y: t, Decision (x = y).
+  Declare Instance CTypeASSO: @StrictSetoidOrder t CTypeEquiv CTypeLt.
+  Declare Instance CTypeASRO: @SemiRingOrder t CTypeEquiv CTypePlus CTypeMult CTypeZero CTypeOne CTypeLe.
 
   Parameter CTypeZLess: t -> t -> t.
+  Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) (CTypeZLess).
 
   Definition evalContext:Type := list DSHVal.
 
@@ -89,8 +102,6 @@ Module DSigmaHCOLEval (Import CT : CType).
     | NMin a b => liftM2 Nat.min (evalNexp σ a) (evalNexp σ b)
     | NMax a b => liftM2 Nat.max (evalNexp σ a) (evalNexp σ b)
     end.
-
-  Typeclasses eauto := 1.
 
   (* Evaluation of expressions does not allow for side-effects *)
   Fixpoint evalAexp (σ: evalContext) (e:AExpr): option t :=
@@ -355,7 +366,7 @@ Module DSigmaHCOLEval (Import CT : CType).
     rewrite IHe1, IHe2;
     reflexivity.
 
-  Global Instance evalNexp_proper:
+  Instance evalNexp_proper:
     Proper ((=) ==> (=) ==> (=)) evalNexp.
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
@@ -385,7 +396,7 @@ Module DSigmaHCOLEval (Import CT : CType).
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
-  Global Instance evalMexp_proper:
+  Instance evalMexp_proper:
     Proper ((=) ==> (=) ==> (=)) (evalMexp).
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
@@ -409,7 +420,7 @@ Module DSigmaHCOLEval (Import CT : CType).
       auto.
   Qed.
 
-  Global Instance evalAexp_proper:
+  Instance evalAexp_proper:
     Proper ((=) ==> (=) ==> (=)) evalAexp.
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
@@ -468,7 +479,7 @@ Module DSigmaHCOLEval (Import CT : CType).
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
-  Global Instance evalBinCType_proper:
+  Instance evalBinCType_proper:
     Proper ((=) ==> (=) ==> (=)) evalBinCType.
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
@@ -483,7 +494,7 @@ Module DSigmaHCOLEval (Import CT : CType).
       auto.
   Qed.
 
-  Global Instance evalIBinCType_proper
+  Instance evalIBinCType_proper
          (σ: evalContext)
          (f: AExpr)
          (i: nat):
@@ -577,8 +588,7 @@ Module DSigmaHCOLEval (Import CT : CType).
     | _ => exp
     end.
 
-
-  Global Instance evalDSHBinOp_proper
+  Instance evalDSHBinOp_proper
          (n off: nat)
          (f: AExpr)
          (σ: evalContext):
@@ -619,15 +629,13 @@ Module DSigmaHCOLEval (Import CT : CType).
           rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
           rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
           rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
-
-          assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+          assert(mem_add n t5 x0 = mem_add n t2 y0) as H1.
           {
             rewrite Heqo1.
             rewrite H0.
             reflexivity.
           }
-          specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
-
+          specialize (IHn x y H _ _ H1).
           rewrite Hb, Ha in IHn.
           some_none.
         *
@@ -652,13 +660,13 @@ Module DSigmaHCOLEval (Import CT : CType).
         rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
         rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
 
-        assert(mem_add n c4 x0 = mem_add n c1 y0) as H1.
+        assert(mem_add n t5 x0 = mem_add n t2 y0) as H1.
         {
           rewrite Heqo1.
           rewrite H0.
           reflexivity.
         }
-        specialize (IHn x y H (mem_add n c4 x0) (mem_add n c1 y0) H1).
+        specialize (IHn x y H (mem_add n t5 x0) (mem_add n t2 y0) H1).
 
         rewrite Hb, Ha in IHn.
         some_none.
@@ -894,7 +902,7 @@ Module DSigmaHCOLEval (Import CT : CType).
           (σ: evalContext)
           (f: AExpr)
           (i:nat)
-          (a:CType)
+          (a:t)
           (foo: DSHVal):
       evalIUnCType (foo :: σ) (incrDSHIUnCType f) i a ≡ evalIUnCType σ f i a.
     Proof.
@@ -906,7 +914,7 @@ Module DSigmaHCOLEval (Import CT : CType).
           (σ: evalContext)
           (f: AExpr)
           (i:nat)
-          (a b:CType)
+          (a b:t)
           (foo: DSHVal):
       evalIBinCType (foo :: σ) (incrDSHIBinCType f) i a b ≡ evalIBinCType σ f i a b.
     Proof.
@@ -917,7 +925,7 @@ Module DSigmaHCOLEval (Import CT : CType).
     Lemma evalBinCType_incrDSHBinCType
           (σ: evalContext)
           (f: AExpr)
-          (a b:CType)
+          (a b:t)
           (foo: DSHVal):
       evalBinCType (foo :: σ) (incrDSHBinCType f) a b ≡ evalBinCType σ f a b.
     Proof.
@@ -1058,5 +1066,4 @@ Module DSigmaHCOLEval (Import CT : CType).
 
   End IncrEval.
 
-
-End DSigmaHCOLEval.
+End Make.

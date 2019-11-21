@@ -174,12 +174,14 @@ Section HCOLBreakdown.
   Qed.
 
   Theorem breakdown_VMinus:  forall (n:nat) (ab: (avector n)*(avector n)),
-      VMinus ab =  BinOp (IgnoreIndex2 sub) ab.
+      VMinus ab = BinOp (IgnoreIndex2 sub) ab.
   Proof.
     intros.
     unfold VMinus, BinOp.
     break_let.
-    apply Vmap2Indexed_to_VMap2.
+    unfold sub.
+    rewrite Vmap2Indexed_to_VMap2.
+    reflexivity.
   Qed.
 
   Fact breakdown_OVMinus:  forall (n:nat),

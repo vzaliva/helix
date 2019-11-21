@@ -10,14 +10,15 @@ Require Import MathClasses.misc.util.
 
 Require Import Helix.Tactics.HelixTactics.
 
-Module Make (CT : CType).
-  Include Memory.Basics CT.
+Module Type MemSetoid (CT : CType).
+
+  Include Memory.Basic CT.
 
   (* Custom equality of memory blocks using (@equiv t) on members *)
-  Global Instance mem_block_Equiv: Equiv (mem_block) :=
+  Instance mem_block_Equiv: Equiv (mem_block) :=
     fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
 
-  Global Instance mem_block_Equiv_Reflexive:
+  Instance mem_block_Equiv_Reflexive:
     Reflexive (mem_block_Equiv).
   Proof.
     unfold mem_block_Equiv.
@@ -25,7 +26,7 @@ Module Make (CT : CType).
     reflexivity.
   Qed.
 
-  Global Instance mem_block_Equiv_Symmetric:
+  Instance mem_block_Equiv_Symmetric:
     Symmetric (mem_block_Equiv).
   Proof.
     unfold mem_block_Equiv.
@@ -35,7 +36,7 @@ Module Make (CT : CType).
     auto.
   Qed.
 
-  Global Instance mem_block_Equiv_Transitive:
+  Instance mem_block_Equiv_Transitive:
     Transitive (mem_block_Equiv).
   Proof.
     unfold mem_block_Equiv.
@@ -46,7 +47,7 @@ Module Make (CT : CType).
     auto.
   Qed.
 
-  Global Instance mem_block_Equiv_Equivalence:
+  Instance mem_block_Equiv_Equivalence:
     Equivalence (mem_block_Equiv).
   Proof.
     split; typeclasses eauto.
@@ -56,7 +57,7 @@ Module Make (CT : CType).
     unfold equiv, mem_block_Equiv;
     intros k.
 
-  Global Instance mem_lookup_proper:
+  Instance mem_lookup_proper:
     Proper ((eq) ==> (=) ==> (=)) (mem_lookup).
   Proof.
     simpl_relation.
@@ -101,7 +102,7 @@ Module Make (CT : CType).
       tauto.
   Qed.
 
-  Global Instance mem_in_proper:
+  Instance mem_in_proper:
     Proper ((eq) ==> (=) ==> iff) (mem_in).
   Proof.
     simpl_relation.
@@ -125,7 +126,7 @@ Module Make (CT : CType).
       auto.
   Qed.
 
-  Global Instance mem_add_proper:
+  Instance mem_add_proper:
     Proper ((eq) ==> (equiv) ==> (equiv) ==> (equiv)) (mem_add).
   Proof.
     simpl_relation.
@@ -170,10 +171,10 @@ Module Make (CT : CType).
   Qed.
 
   (* Equality of memory states *)
-  Global Instance memory_Equiv: Equiv (memory) :=
+  Instance memory_Equiv: Equiv (memory) :=
     fun m m' => forall k : NM.key, NM.find k m = NM.find k m'.
 
-  Global Instance memorey_Equiv_Reflexive:
+  Instance memorey_Equiv_Reflexive:
     Reflexive (memory_Equiv).
   Proof.
     unfold memory_Equiv.
@@ -181,7 +182,7 @@ Module Make (CT : CType).
     reflexivity.
   Qed.
 
-  Global Instance memory_Equiv_Symmetric:
+  Instance memory_Equiv_Symmetric:
     Symmetric (memory_Equiv).
   Proof.
     unfold memory_Equiv.
@@ -191,7 +192,7 @@ Module Make (CT : CType).
     auto.
   Qed.
 
-  Global Instance memory_Equiv_Transitive:
+  Instance memory_Equiv_Transitive:
     Transitive (memory_Equiv).
   Proof.
     unfold memory_Equiv.
@@ -202,20 +203,20 @@ Module Make (CT : CType).
     auto.
   Qed.
 
-  Global Instance memory_Equiv_Equivalence:
+  Instance memory_Equiv_Equivalence:
     Equivalence (memory_Equiv).
   Proof.
     split; typeclasses eauto.
   Qed.
 
-  Global Instance memory_lookup_proper:
+  Instance memory_lookup_proper:
     Proper ((=) ==> (eq) ==> (=)) (memory_lookup).
   Proof.
     simpl_relation.
     apply H.
   Qed.
 
-  Global Instance mem_block_exists_proper:
+  Instance mem_block_exists_proper:
     Proper ((eq) ==> (=) ==> iff) (mem_block_exists).
   Proof.
     simpl_relation.
@@ -253,4 +254,9 @@ Module Make (CT : CType).
       eauto.
   Qed.
 
+End MemSetoid.
+
+
+Module Make (CT : CType) <: MemSetoid CT.
+  Include MemSetoid CT.
 End Make.
