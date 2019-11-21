@@ -131,7 +131,7 @@ Module Make (Import CT : CType) (Import M: MemSetoid CT) (Import D: DSigmaHCOL C
           be correct by construction *)
          (match mem_lookup i' m' with
           | Some v => ret v
-          | None => Some zero
+          | None => ret zero
           end)
     | AZless a b => liftM2 CTypeZLess (evalAexp σ a) (evalAexp σ b)
     end.
