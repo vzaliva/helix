@@ -394,7 +394,65 @@ Lemma evalNExpr_context_equiv_at_TypeSig
       (E : context_equiv_at_TypeSig ts σ0 σ1):
   evalNexp σ0 e = evalNexp σ1 e.
 Proof.
-Admitted.
+  copy_apply context_equiv_at_TypeSig_both_typcheck E;
+    destruct H as [TC1 TC2].
+  (* get rid of errors *)
+  apply Equiv_to_opt_r; destruct_opt_r_equiv;
+    [ cbv; rename n0 into n1, n into n0
+    | pose proof evalNExpr_is_Some ts TS TC2 as C; rewrite Hb in C; inversion C
+    | pose proof evalNExpr_is_Some ts TS TC1 as C; rewrite Ha in C; inversion C].
+  
+  dependent induction e; simpl in *.
+  
+  (* first "base case" *)
+  repeat break_match; try some_none.
+  repeat some_inv; subst.
+  unfold context_equiv_at_TypeSig in E.
+  assert (T : TM.MapsTo v DSHnat ts).
+  {
+    unfold TypeSig_safe_add in TS.
+    repeat break_match; try (rewrite TP.F.empty_o in Heqo1; some_none).
+    some_inv; rewrite <-TS.
+    apply TM.add_1.
+    reflexivity.
+  }
+  specialize (E v DSHnat T).
+  destruct E as [E1 [E2 E3]].
+  unfold context_lookup in *.
+  rewrite Heqo0, Heqo in E3.
+  some_inv.
+  inversion E3.
+  congruence.
+ 
+  (* second "base case" *)
+  congruence.
+ 
+  (* all "inductive cases" are the same *)
+  all: repeat break_match; try some_none.
+  all: rename n3 into n01, n4 into n02,
+              n  into n11, n2 into n12.
+  all: cbn in TS; unfold TypeSigUnion_error in TS.
+  all: repeat break_match_hyp; try some_none.
+  all: repeat some_inv.
+  all: rewrite <-TS in *.
+  all: assert (n01 = n11)
+       by (eapply IHe1;
+           [ reflexivity
+           | eapply context_equiv_at_TypeSigUnion_left; eauto
+           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
+           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
+           | assumption
+           | assumption]).
+  all: assert (n02 = n12)
+       by (eapply IHe2;
+           [ reflexivity
+           | eapply context_equiv_at_TypeSigUnion_right; eauto
+           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
+           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
+           | assumption
+           | assumption]).
+  all: congruence.
+Qed.
 
 Lemma evalMExpr_context_equiv_at_TypeSig
       (e: MExpr)
