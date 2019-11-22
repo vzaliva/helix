@@ -1788,11 +1788,14 @@ Proof.
 Qed.
 
 (* TODO: generalize this *)
-Lemma is_Some_evalDSHBinOp_mem_equiv :
-  forall n off df σ mx ma mb,
-    ma = mb ->
-    is_Some (evalDSHBinOp n off df σ mx ma) =
-    is_Some (evalDSHBinOp n off df σ mx mb).
+Lemma is_Some_evalDSHBinOp_mem_equiv
+      (n off : nat)
+      (df : AExpr)
+      (σ : evalContext)
+      (mx ma mb : mem_block) :
+  ma = mb ->
+  is_Some (evalDSHBinOp n off df σ mx ma) =
+  is_Some (evalDSHBinOp n off df σ mx mb).
 Proof.
   intros.
   pose proof evalDSHBinOp_proper n off df σ mx mx.
@@ -1803,8 +1806,11 @@ Proof.
   repeat break_match; try reflexivity; inversion H0.
 Qed.
 
-Lemma mem_add_overwrite :
-  forall k v1 v2 m,
+(* TODO: move *)
+Lemma mem_add_overwrite
+      (k : NM.key)
+      (v1 v2 : CarrierA)
+      (m : NM.t CarrierA) :
   mem_add k v2 (mem_add k v1 m) = mem_add k v2 m.
 Proof.
   intros.
@@ -1819,12 +1825,16 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma is_Some_evalDSHBinOp_mem_add :
-  forall n off df σ mx k v mb,
+Lemma is_Some_evalDSHBinOp_mem_add
+      (n off : nat)
+      (df : AExpr)
+      (σ : evalContext)
+      (mx mb : mem_block)
+      (k : NM.key)
+      (v : CarrierA) :
   is_Some (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
   is_Some (evalDSHBinOp n off df σ mx mb).
 Proof.
-  intros.
   dependent induction n; [reflexivity |].
   cbn.
   repeat break_match; try reflexivity.
@@ -1842,10 +1852,12 @@ Proof.
     assumption.
 Qed.
 
-Lemma evalIBinCarrierA_value_independent :
-  forall σ df n, 
-    (exists a b, is_Some (evalIBinCarrierA σ df n a b)) ->
-    forall c d, is_Some (evalIBinCarrierA σ df n c d).
+Lemma evalIBinCarrierA_value_independent
+      (σ : evalContext)
+      (df : AExpr)
+      (n : nat) :
+  (exists a b, is_Some (evalIBinCarrierA σ df n a b)) ->
+  forall c d, is_Some (evalIBinCarrierA σ df n c d).
 Proof.
   intros.
   destruct H as [a [b H]].
