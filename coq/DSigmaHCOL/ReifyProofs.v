@@ -1846,7 +1846,94 @@ Lemma evalIBinCarrierA_value_independent :
   forall σ df n, 
     (exists a b, is_Some (evalIBinCarrierA σ df n a b)) ->
     forall c d, is_Some (evalIBinCarrierA σ df n c d).
-Admitted.
+Proof.
+  intros.
+  destruct H as [a [b H]].
+  induction df; cbn in *.
+  
+  (* base case 1 *)
+  destruct v.
+  reflexivity.
+  destruct v.
+  reflexivity.
+  apply H.
+  
+  (* base case 2 *)
+  trivial.
+  
+  (* base case 3 *)
+  {
+    repeat break_match; try some_none; exfalso.
+    -
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      apply eq_Some_is_Some in Heqo2.
+      clear - Heqo2; rename Heqo2 into H,
+                               n0 into e.
+      induction e; cbn in *.
+      (* base 1 *)
+      destruct v; [| destruct v].
+      inversion H.
+      inversion H.
+      apply H.
+      (* base 2 *)
+      trivial.
+      (* inductive *)
+      all: repeat break_match; try reflexivity; try some_none.
+      all: try apply IHe; try apply IHe1; try apply IHe2.
+      all: trivial.
+    -
+      contradict Heqo0.
+      apply is_Some_ne_None.
+      apply eq_Some_is_Some in Heqo2.
+      clear - Heqo2; rename Heqo2 into H,
+                               n0 into e.
+      induction e; cbn in *.
+      (* base 1 *)
+      destruct v; [| destruct v].
+      inversion H.
+      inversion H.
+      apply H.
+      (* base 2 *)
+      trivial.
+      (* inductive *)
+      all: repeat break_match; try reflexivity; try some_none.
+      all: try apply IHe; try apply IHe1; try apply IHe2.
+      all: trivial.
+    -
+      contradict Heqo.
+      apply is_Some_ne_None.
+      apply eq_Some_is_Some in Heqo0.
+      clear - Heqo0; rename Heqo0 into H.
+      destruct m; cbn in *.
+      +
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+      +
+        trivial.
+    -
+      contradict Heqo.
+      apply is_Some_ne_None.
+      apply eq_Some_is_Some in Heqo0.
+      clear - Heqo0; rename Heqo0 into H.
+      destruct m; cbn in *.
+      +
+        destruct v; [| destruct v].
+        inversion H.
+        inversion H.
+        apply H.
+      +
+        trivial.
+  }
+  
+  (* inductive cases *)
+  all: unfold evalIBinCarrierA in *.
+  all: repeat break_match; try reflexivity; try some_none.
+  all: try apply IHdf; try apply IHdf1; try apply IHdf2.
+  all: trivial.
+Qed.
 
 Lemma evalDSHBinOp_is_Some_inv
       {off n: nat}
