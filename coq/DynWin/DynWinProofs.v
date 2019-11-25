@@ -237,9 +237,11 @@ Section SHCOL_to_MSHCOL.
 End SHCOL_to_MSHCOL.
 
 Require Import Helix.DSigmaHCOL.ReifyMSHCOL.
-Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 
 Section MSHCOL_to_DSHCOL.
+
+  Import MDSHCOLOnCarrierA.
 
   (* tt <- tmQuote DSHnat ;; *)
      Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"

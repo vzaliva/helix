@@ -8,6 +8,9 @@ Require Import Psatz.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Import MDSHCOLOnCarrierA.
+
 From Coq.FSets Require Import
      FSetAVL
      FSetInterface
@@ -46,9 +49,6 @@ Local Open Scope nat_scope.
 
 Module TM := FMapAVL.Make(Nat_as_OT).
 Module Import TP := FMapFacts.WProperties_fun(Nat_as_OT)(TM).
-
-Module D := DSigmaHCOLEval.Make (CarrierAasCT).
-Import D.
 
 (* [TypeSig] is a signature of an evaluation context, which maps
    De-Brujn indices to expected types *)

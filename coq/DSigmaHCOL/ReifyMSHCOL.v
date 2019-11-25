@@ -11,6 +11,8 @@ Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import Switch.Switch.
@@ -24,9 +26,12 @@ Require Import MathClasses.misc.util.
    ".") *)
 Require Import Coq.Program.Basics.
 
+Import MDSHCOLOnCarrierA.
+
 Import MonadNotation.
 Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
+
 
 Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
   t <- tt ;;
@@ -37,7 +42,7 @@ Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
            [tInd
               {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
       => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
-    | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCarrierA
+    | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCType
     | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHMemBlock
     | tApp
         (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
@@ -149,15 +154,15 @@ Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad AExpr :=
 Run TemplateProgram
     (mkSwitch string
               string_beq
-              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPick"      , "n_Pick"       ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed"     , "n_Embed"      ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPointwise" , "n_SHPointwise") ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHBinOp"     , "n_SHBinOp"    ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHInductor"  , "n_SHInductor" ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHIUnion"    , "n_IUnion"     ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHIReduction", "n_IReduction" ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHCompose"   , "n_SHCompose"  ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MHTSUMUnion"  , "n_HTSUMUnion" ) ]
+              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPick"      , "n_Pick"       ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHEmbed"     , "n_Embed"      ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPointwise" , "n_SHPointwise") ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHBinOp"     , "n_SHBinOp"    ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHInductor"  , "n_SHInductor" ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIUnion"    , "n_IUnion"     ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIReduction", "n_IReduction" ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHCompose"   , "n_SHCompose"  ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MHTSUMUnion"  , "n_HTSUMUnion" ) ]
 
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
@@ -304,18 +309,18 @@ Fixpoint build_lambda p conc :=
 
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
-  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
+  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []])
   | (_,t)::gs =>
     dt <- toDSHType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
-             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
-             | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
-             | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 2 []) [tRel i])
-             | DSHPtr => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
+             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
+             | DSHCType => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
+             | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 2 []) [tRel i])
+             | DSHPtr => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
              end) ;;
           ts <- build_dsh_globals gs ;;
-          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []; dv; ts])
+          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []; dv; ts])
   end.
 
 Fixpoint rev_nat_seq (len: nat) : list nat :=

@@ -8,10 +8,12 @@ Require Import Helix.HCOL.CarrierType.
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
+Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.DSigmaHCOL.TypeSig.
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 
 (* When proving concrete functions we need to use some implementation defs from this packages *)
 Require Import Helix.HCOL.HCOL.
@@ -38,7 +40,7 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 Local Open Scope nat_scope.
 
-Import D.
+Import DSHCOLOnCarrierA.
 
 (* Type signatures of expressions as binary or unary functions with
 optional index *)
@@ -2264,6 +2266,8 @@ Proof.
         (* k<o, which is normal *)
         clear OD.
         simpl in *.
+        unfold MMemoryOfCarrierA.mem_lookup in HD.
+        unfold mem_lookup.
         rewrite HD with (ip:=kc).
         clear HD md.
         apply MemExpected.

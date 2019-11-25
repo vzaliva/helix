@@ -257,7 +257,3 @@ Module Type MMemSetoid (CT : CType).
 End MMemSetoid.
 
 
-(* Stand-alone module for [MMemSetoid] *)
-Module Make (CT : CType) <: MMemSetoid CT.
-  Include MMemSetoid CT.
-End Make.
