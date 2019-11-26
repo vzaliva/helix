@@ -82,14 +82,14 @@ Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
         d_b <- compileNExpr a_b ;;
         tmReturn (NMult d_a d_b)
   (* TODO: more cases *)
-  | _ => tmFail ("Unsupported NExpr" ++ (string_of_term a_n))
+  | _ => tmFail ("Unsupported NExpr " ++ (string_of_term a_n))
   end.
 
 Fixpoint compileMExpr (a_e:term): TemplateMonad (MExpr):=
   match a_e with
   | tRel i => tmReturn (MVar i)
   (* TODO: support for constant vectors as MConst *)
-  | _ => tmFail ("Unsupported MExpr" ++ (string_of_term a_e))
+  | _ => tmFail ("Unsupported MExpr " ++ (string_of_term a_e))
   end.
 
 Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
@@ -114,19 +114,19 @@ Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
       d_i <- compileNExpr a_i ;;
       tmReturn (ANth d_v d_i)
   | tRel i => tmReturn (AVar i)
-  | _ => tmFail ("Unsupported AExpr" ++ (string_of_term a_e))
+  | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
   end.
 
 Definition compileDSHUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileAExpr a_f'
-  | _ => tmFail ("Unsupported UnCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported UnCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHUnCarrierA a_f'
-  | _ => tmFail ("Unsupported IUnCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported IUnCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
@@ -142,13 +142,13 @@ Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
     tmReturn (AMult (AVar 1) (AVar 0))
   | tLambda _ _ (tLambda _ _ a_f') => compileAExpr a_f'
   | tLambda _ _ a_f' => compileAExpr a_f'
-  | _ => tmFail ("Unsupported BinCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported BinCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHBinCarrierA a_f'
-  | _ => tmFail ("Unsupported IBinCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported IBinCarrierA " ++ (string_of_term a_f))
   end.
 
 Run TemplateProgram
