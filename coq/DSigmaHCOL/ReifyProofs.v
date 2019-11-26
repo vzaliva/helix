@@ -2299,6 +2299,58 @@ Proof.
       auto.
 Qed.
 
+Global Instance Assign_DSH_pure
+       (src dst: MemVarRef)
+       (x_p y_p : PExpr)
+       (tm : TypeSig)
+  :
+    DSH_pure (DSHAssign src dst) tm x_p y_p.
+Proof.
+  split.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    cbn in H.
+    repeat break_match; try some_none.
+    some_inv; rewrite <-H.
+    split; intros.
+    +
+      apply mem_block_exists_memory_set; assumption.
+    +
+      apply mem_block_exists_memory_set_inv in H0.
+      destruct H0; [assumption |].
+      subst.
+      apply memory_is_set_is_Some.
+      rewrite Heqo2.
+      reflexivity.
+  -
+    intros until fuel; intros CE BEx BEy.
+    destruct (evalDSHOperator σ0) eqn:H1;
+    destruct (evalDSHOperator σ1) eqn:H2.
+    all: try constructor.
+    2,3: exfalso.
+    all: destruct fuel; [cbn in *; some_none |].
+    +
+      cbn in *.
+      repeat break_match; try some_none.
+      repeat some_inv; subst.
+      unfold blocks_equiv_at_Pexp in *.
+      inversion BEx; inversion H1.
+      inversion BEy; inversion H7.
+      constructor.
+      destruct (memory_lookup (memory_set m0 m8 (mem_add n4 c0 m10)) x1) eqn:Mx;
+      destruct (memory_lookup (memory_set m1 m4 (mem_add n2 c m6)) y1) eqn:My.
+      1: constructor.
+      2-4: exfalso.
+      *
+        unfold memory_lookup, memory_set, mem_add in *.
+        destruct (Nat.eq_dec m8 x1), (Nat.eq_dec m4 y1);
+          try rewrite NP.F.add_eq_o in * by assumption;
+          try rewrite NP.F.add_neq_o in * by assumption;
+          repeat some_inv.
+        unfold equiv, mem_block_Equiv; intro.
+Admitted.
+
 Global Instance BinOp_DSH_pure
        (o : nat)
        (x_p y_p : PExpr)
