@@ -248,8 +248,9 @@ Section MSHCOL_to_DSHCOL.
                                List.nil (*        [(nNamed "x",tt); (nNamed "y",tt)] *)
                                       (PVar 1) (PVar 0)
                          ).
-     (* Import DSHNotation. *)
-  Print dynwin_DSHCOL1.
+
+     Import DSHNotation.
+     Print dynwin_DSHCOL1.
 
 End MSHCOL_to_DSHCOL.
 

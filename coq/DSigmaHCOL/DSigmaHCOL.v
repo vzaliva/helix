@@ -379,20 +379,19 @@ Module Type MDSigmaHCOL (Import CT : CType).
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
 
+  Module DSHNotation.
+
+    Notation "A ; B" := (DSHSeq A B) (at level 99, right associativity, only printing).
+    Notation "A * B" := (AMult A B) (only printing).
+    Notation "A - B" := (AMinus A B) (only printing).
+    Notation "A + B" := (APlus A B) (only printing).
+    Notation "A * B" := (NMult A B) (only printing).
+    Notation "A - B" := (NMinus A B) (only printing).
+    Notation "A + B" := (NPlus A B) (only printing).
+    Notation "A %'N'" := (NConst A) (at level 99, only printing,
+                                     format "A %'N'").
+
+  End DSHNotation.
+
 End MDSigmaHCOL.
 
-(*
-Module DSHNotation.
-
-  Notation "A ; B" := (DSHSeq A B) (at level 99, right associativity, only printing).
-  Notation "A * B" := (AMult A B) (only printing).
-  Notation "A - B" := (AMinus A B) (only printing).
-  Notation "A + B" := (APlus A B) (only printing).
-  Notation "A * B" := (NMult A B) (only printing).
-  Notation "A - B" := (NMinus A B) (only printing).
-  Notation "A + B" := (NPlus A B) (only printing).
-  Notation "A %'N'" := (NConst A) (at level 99, only printing,
-                                   format "A %'N'").
-
-End DSigmaHCOL.
-*)
