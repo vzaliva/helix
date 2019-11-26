@@ -248,7 +248,7 @@ Section MSHCOL_to_DSHCOL.
                                List.nil (*        [(nNamed "x",tt); (nNamed "y",tt)] *)
                                       (PVar 1) (PVar 0)
                          ).
-  Import DSHNotation.
+     (* Import DSHNotation. *)
   Print dynwin_DSHCOL1.
 
 End MSHCOL_to_DSHCOL.
@@ -526,11 +526,11 @@ Section SigmaHCOL_rewriting.
 
   Lemma SHPointwise_preserves_Apply_Family_Single_NonUnit_Per_Row
         {i1 o2 n: nat}
-        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n zero)
+        (fam : @SHOperatorFamily Monoid_RthetaFlags i1 o2 n CarrierAz)
         (H: Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags fam)
         (f: FinNat o2 -> CarrierA -> CarrierA)
         {f_mor: Proper (equiv ==> equiv ==> equiv) f}
-        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), zero ≠ f (mkFinNat ic) v -> zero ≠ v):
+        (A: forall (i : nat) (ic : i<o2) (v : CarrierA), CarrierAz ≠ f (mkFinNat ic) v -> CarrierAz ≠ v):
     Apply_Family_Single_NonUnit_Per_Row Monoid_RthetaFlags
                                         (SHOperatorFamilyCompose
                                            Monoid_RthetaFlags

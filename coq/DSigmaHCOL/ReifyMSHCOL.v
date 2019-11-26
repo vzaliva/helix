@@ -99,7 +99,7 @@ Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
             _; _; _;  _; _; a_a] =>
     d_a <- compileAExpr a_a ;;
         tmReturn (AAbs d_a)
-  | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [a_a ; a_b] =>
+  | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [_; _; _; a_a ; a_b] =>
     d_a <- compileAExpr a_a ;;
         d_b <- compileAExpr a_b ;;
         tmReturn (AMinus d_a d_b)
