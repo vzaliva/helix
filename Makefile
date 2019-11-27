@@ -74,6 +74,7 @@ clean: clean-ml
 	rm -f moddep.dot moddep.svg
 
 clean-dep:
+	rm -f .depend
 	rm -f `find . -name \*.v.d`
 
 distclean: clean clean-dep clean-doc
