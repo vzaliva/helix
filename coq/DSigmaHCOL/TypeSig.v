@@ -8,6 +8,9 @@ Require Import Psatz.
 
 Require Import CoLoR.Util.Nat.NatUtil.
 
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Import MDSHCOLOnCarrierA.
+
 From Coq.FSets Require Import
      FSetAVL
      FSetInterface
@@ -20,6 +23,7 @@ From Coq.FSets Require Import
 
 Require Import Helix.HCOL.CarrierType.
 
+Require Import Helix.MSigmaHCOL.CarrierAasCT.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 
@@ -45,6 +49,7 @@ Local Open Scope nat_scope.
 
 Module TM := FMapAVL.Make(Nat_as_OT).
 Module Import TP := FMapFacts.WProperties_fun(Nat_as_OT)(TM).
+
 (* [TypeSig] is a signature of an evaluation context, which maps
    De-Brujn indices to expected types *)
 Definition TypeSig := TM.t DSHType.
@@ -317,7 +322,7 @@ Fixpoint TypeSigNExpr (ne:NExpr) : option TypeSig :=
 
 Fixpoint TypeSigAExpr (ae:AExpr) : option TypeSig :=
   match ae with
-  | AVar v => TypeSig_safe_add v DSHCarrierA (TM.empty _)
+  | AVar v => TypeSig_safe_add v DSHCType (TM.empty _)
   | AConst _ => Some (TM.empty _)
   | ANth m n => TypeSigUnion_error' (TypeSigMExpr m) (TypeSigNExpr n)
   | AAbs a => TypeSigAExpr a

@@ -75,46 +75,46 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
       match parse_SHCOL_Op_Name opname, args with
       | Some n_Pick, [fm ; svalue; o ; b ; bc] =>
         tmPrint "Pick" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHPick" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPick" u)
                                 [o; b ; bc])
       | Some n_Embed, [fm ; svalue; i ; b ; bc] =>
         tmPrint "Embed" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHEmbed" u)
                                 [i; b; bc])
       | Some n_SHPointwise, [fm ; svalue; n ; f ; pF ] =>
         tmPrint "SHPointwise" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHPointwise" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPointwise" u)
                                 [n; f; pF])
       | Some n_SHBinOp, [fm ; svalue; o ; f ; pF]
         =>
         tmPrint "SHBinOp" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHBinOp" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHBinOp" u)
                                 [o; f; pF])
       | Some n_SHInductor, [fm ; svalue; n ; f ; pF ; z] =>
         tmPrint "SHInductor" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHInductor" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHInductor" u)
                                 [n; f; pF; z])
       | Some n_IUnion, [svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
         tmPrint "IUnion" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel' ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHIUnion" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIUnion" u)
                                 [i; o; n; c])
       | Some n_ISumUnion, [i ; o ; n ; op_family] =>
         (* Same as [IUnion] *)
         tmPrint "ISumUnion" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel';;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHIUnion" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIUnion" u)
                                 [i; o; n; c])
       | Some n_IReduction, [svalue; i ; o ; n ; f ; pF ; scompat ; op_family] =>
         tmPrint "IReduction" ;;
                 c <- compileSHCOL2MSHCOL op_family fuel' ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHIReduction" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIReduction" u)
                                 [i; o; n; svalue; f; pF; c])
       | Some n_SHCompose, [fm ; svalue; i1 ; o2 ; o3 ; op1 ; op2] =>
         tmPrint "SHCompose" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MSHCompose" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHCompose" u)
                                 [i1; o2; o3; c1; c2])
       | Some n_SafeCast, [svalue; i ; o ; c] =>
         tmPrint "SafeCast" ;;
@@ -126,7 +126,7 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
         tmPrint "HTSumunion" ;;
                 c1 <- compileSHCOL2MSHCOL op1 fuel' ;;
                 c2 <- compileSHCOL2MSHCOL op2 fuel' ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MHTSUMUnion" u)
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MHTSUMUnion" u)
                                 [i; o; dot; c1; c2])
       | None, _ =>
         tmFail ("Usupported function call " ++ opname)

@@ -15,6 +15,7 @@ Require Import Helix.SigmaHCOL.SigmaHCOL.
 Require Import Helix.SigmaHCOL.TSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.MSigmaHCOL.MemSetoid.
+Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
 
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.FinNatSet.
@@ -57,6 +58,8 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 Open Scope nat_scope.
+
+Import MMemoryOfCarrierA.
 
 Section SVector.
 

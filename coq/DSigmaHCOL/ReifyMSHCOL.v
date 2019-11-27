@@ -11,6 +11,8 @@ Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+
 Require Import Helix.Tactics.HelixTactics.
 
 Require Import Switch.Switch.
@@ -24,9 +26,12 @@ Require Import MathClasses.misc.util.
    ".") *)
 Require Import Coq.Program.Basics.
 
+Import MDSHCOLOnCarrierA.
+
 Import MonadNotation.
 Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
+
 
 Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
   t <- tt ;;
@@ -37,7 +42,7 @@ Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
            [tInd
               {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ ; _])
       => tmReturn DSHnat (* `FinNat` is treated as `nat` *)
-    | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCarrierA
+    | tConst "Helix.HCOL.CarrierType.CarrierA" _ => tmReturn DSHCType
     | tConst "Helix.SigmaHCOL.Memory.mem_block" _ => tmReturn DSHMemBlock
     | tApp
         (tInd {| inductive_mind := "Coq.Vectors.VectorDef.t"; inductive_ind := 0 |} _)
@@ -77,14 +82,14 @@ Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
         d_b <- compileNExpr a_b ;;
         tmReturn (NMult d_a d_b)
   (* TODO: more cases *)
-  | _ => tmFail ("Unsupported NExpr" ++ (string_of_term a_n))
+  | _ => tmFail ("Unsupported NExpr " ++ (string_of_term a_n))
   end.
 
 Fixpoint compileMExpr (a_e:term): TemplateMonad (MExpr):=
   match a_e with
   | tRel i => tmReturn (MVar i)
   (* TODO: support for constant vectors as MConst *)
-  | _ => tmFail ("Unsupported MExpr" ++ (string_of_term a_e))
+  | _ => tmFail ("Unsupported MExpr " ++ (string_of_term a_e))
   end.
 
 Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
@@ -94,7 +99,7 @@ Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
             _; _; _;  _; _; a_a] =>
     d_a <- compileAExpr a_a ;;
         tmReturn (AAbs d_a)
-  | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [a_a ; a_b] =>
+  | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [_; _; _; a_a ; a_b] =>
     d_a <- compileAExpr a_a ;;
         d_b <- compileAExpr a_b ;;
         tmReturn (AMinus d_a d_b)
@@ -109,19 +114,19 @@ Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
       d_i <- compileNExpr a_i ;;
       tmReturn (ANth d_v d_i)
   | tRel i => tmReturn (AVar i)
-  | _ => tmFail ("Unsupported AExpr" ++ (string_of_term a_e))
+  | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
   end.
 
 Definition compileDSHUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileAExpr a_f'
-  | _ => tmFail ("Unsupported UnCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported UnCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHUnCarrierA a_f'
-  | _ => tmFail ("Unsupported IUnCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported IUnCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
@@ -137,27 +142,27 @@ Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
     tmReturn (AMult (AVar 1) (AVar 0))
   | tLambda _ _ (tLambda _ _ a_f') => compileAExpr a_f'
   | tLambda _ _ a_f' => compileAExpr a_f'
-  | _ => tmFail ("Unsupported BinCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported BinCarrierA " ++ (string_of_term a_f))
   end.
 
 Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tLambda _ _ a_f' => compileDSHBinCarrierA a_f'
-  | _ => tmFail ("Unsupported IBinCarrierA" ++ (string_of_term a_f))
+  | _ => tmFail ("Unsupported IBinCarrierA " ++ (string_of_term a_f))
   end.
 
 Run TemplateProgram
     (mkSwitch string
               string_beq
-              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPick"      , "n_Pick"       ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHEmbed"     , "n_Embed"      ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHPointwise" , "n_SHPointwise") ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHBinOp"     , "n_SHBinOp"    ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHInductor"  , "n_SHInductor" ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHIUnion"    , "n_IUnion"     ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHIReduction", "n_IReduction" ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MSHCompose"   , "n_SHCompose"  ) ;
-                 ("Helix.MSigmaHCOL.MSigmaHCOL.MHTSUMUnion"  , "n_HTSUMUnion" ) ]
+              [  ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPick"      , "n_Pick"       ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHEmbed"     , "n_Embed"      ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPointwise" , "n_SHPointwise") ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHBinOp"     , "n_SHBinOp"    ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHInductor"  , "n_SHInductor" ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIUnion"    , "n_IUnion"     ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHIReduction", "n_IReduction" ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHCompose"   , "n_SHCompose"  ) ;
+                 ("Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MHTSUMUnion"  , "n_HTSUMUnion" ) ]
 
               "SHCOL_Op_Names" "parse_SHCOL_Op_Name"
     ).
@@ -304,18 +309,18 @@ Fixpoint build_lambda p conc :=
 
 Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
   match g with
-  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []])
+  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []])
   | (_,t)::gs =>
     dt <- toDSHType (tmReturn t) ;;
        let i := length gs in
        dv <- (match dt with
-             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
-             | DSHCarrierA => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
-             | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 2 []) [tRel i])
-             | DSHPtr => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
+             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
+             | DSHCType => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
+             | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 2 []) [tRel i])
+             | DSHPtr => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
              end) ;;
           ts <- build_dsh_globals gs ;;
-          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSigmaHCOL.DSHVal"; inductive_ind := 0 |} []; dv; ts])
+          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []; dv; ts])
   end.
 
 Fixpoint rev_nat_seq (len: nat) : list nat :=

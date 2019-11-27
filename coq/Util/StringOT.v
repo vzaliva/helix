@@ -5,7 +5,7 @@ Ordering code by Antal :)
 
 *)
 
-Require Import OrderedType.
+Require Import Coq.Structures.OrderedType.
 
 Require Import Bool.
 

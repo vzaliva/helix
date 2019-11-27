@@ -23,6 +23,10 @@ Require Import Helix.HCOL.CarrierType.
 
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
+Require Import Helix.MSigmaHCOL.CType.
+Require Import Helix.MSigmaHCOL.CarrierAasCT.
+Require Import Helix.MSigmaHCOL.MemoryOfCarrierA.
+Import MMemoryOfCarrierA.
 
 Require Import Helix.Tactics.HelixTactics.
 
@@ -36,16 +40,24 @@ Require Import MathClasses.implementations.peano_naturals.
 
 Import Monoid.
 
-Global Open Scope nat_scope.
+Module MMSHCOL'
+       (CT:CType with Definition t:=CarrierA
+         with Definition CTypeEquiv := CarrierAe
+         with Definition CTypeSetoid := CarrierAsetoid
+       )
+       (Import CM:MMemSetoid CT).
 
-Import VectorNotations.
-Open Scope vector_scope.
 
-Import MonadNotation.
-Open Scope monad_scope.
+  Open Scope nat_scope.
 
-(* Conversion between memory block and dense vectors *)
-Section Avector.
+  Import VectorNotations.
+  Open Scope vector_scope.
+
+  Import MonadNotation.
+  Open Scope monad_scope.
+
+
+  (* Conversion between memory block and dense vectors *)
 
   (* After folding starting from 'j' attempts to lookup lower indices will fail *)
   Lemma find_fold_right_indexed_oob
@@ -323,18 +335,14 @@ Section Avector.
     apply H.
   Qed.
 
-End Avector.
 
-Section Avector_Setoid.
-
-  Global Instance mem_block_to_avector_proper {n:nat}:
+  Instance mem_block_to_avector_proper {n:nat}:
     Proper ((equiv) ==> (equiv)) (@mem_block_to_avector n).
   Proof.
     simpl_relation.
     unfold mem_block_to_avector.
     destruct_opt_r_equiv.
     -
-      rename t into a, t0 into b.
       apply vsequence_Vbuild_eq_Some in Ha.
       apply vsequence_Vbuild_eq_Some in Hb.
       rewrite Vmap_as_Vbuild in Ha.
@@ -372,7 +380,7 @@ Section Avector_Setoid.
       some_none.
   Qed.
 
-  Global Instance avector_to_mem_block_proper {n:nat}:
+  Instance avector_to_mem_block_proper {n:nat}:
     Proper ((equiv) ==> (equiv)) (@avector_to_mem_block n).
   Proof.
     simpl_relation.
@@ -382,6 +390,7 @@ Section Avector_Setoid.
     -
       rename c into a, c0 into b.
       apply Some_inj_equiv.
+      unfold CT.t.
       rewrite <- Ha, <- Hb.
       rewrite H.
       reflexivity.
@@ -406,26 +415,23 @@ Section Avector_Setoid.
   Qed.
 
 
-End Avector_Setoid.
+  Ltac avector_to_mem_block_to_spec m H0 H1 :=
+    match goal with
+    | [ |- context[avector_to_mem_block_spec ?v]] =>
+      pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
+      unfold avector_to_mem_block in H1 ;
+      destruct (avector_to_mem_block_spec v) as [m H0]
 
-Ltac avector_to_mem_block_to_spec m H0 H1 :=
-  match goal with
-  | [ |- context[avector_to_mem_block_spec ?v]] =>
-    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-    unfold avector_to_mem_block in H1 ;
-    destruct (avector_to_mem_block_spec v) as [m H0]
+    | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
+      pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
+      unfold avector_to_mem_block in H1 ;
+      destruct (avector_to_mem_block_spec v) as [m H0]
+    end.
 
-  | [ H: context[avector_to_mem_block_spec ?v] |- _] =>
-    pose proof (avector_to_mem_block_key_oob (v:=v)) as H1;
-    unfold avector_to_mem_block in H1 ;
-    destruct (avector_to_mem_block_spec v) as [m H0]
-  end.
-
-Section Wrappers.
 
   (* HOperator (on dense vector) mapping to memory operator *)
   Definition mem_op_of_hop {i o: nat} (op: vector CarrierA i -> vector CarrierA o)
-  : mem_block -> option mem_block
+    : mem_block -> option mem_block
     := fun x => match mem_block_to_avector x with
              | None => None
              | Some x' => Some (avector_to_mem_block (op x'))
@@ -502,8 +508,8 @@ Section Wrappers.
       congruence.
   Qed.
 
-  Global Instance mem_op_of_hop_proper
-         {i o: nat}:
+  Instance mem_op_of_hop_proper
+           {i o: nat}:
     Proper (((=) ==> (=)) ==> (=)) (@mem_op_of_hop i o).
   Proof.
     intros a b E mx my Em.
@@ -527,19 +533,16 @@ Section Wrappers.
       reflexivity.
   Qed.
 
-End Wrappers.
+
+  (* y[j] := x[i] *)
+  Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
+    : option mem_block :=
+    match mem_lookup i x with
+    | None => None
+    | Some v => Some (mem_add j v y)
+    end.
 
 
-(* y[j] := x[i] *)
-Definition map_mem_block_elt (x:mem_block) (i:nat) (y:mem_block) (j:nat)
-  : option mem_block :=
-  match mem_lookup i x with
-  | None => None
-  | Some v => Some (mem_add j v y)
-  end.
-
-
-Section Operators.
   (* AKA: "embed" *)
   Definition Pick_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x 0 (mem_empty) b.
@@ -579,11 +582,8 @@ Section Operators.
       x' <- (Apply_mem_Family op_family_f x) ;;
          ret (fold_left_rev mem_union mem_empty x').
 
-End Operators.
 
-Section Morphisms.
-
-  Global Instance mem_keys_set_proper:
+  Instance mem_keys_set_proper:
     Proper ((=) ==> NS.Equal) (mem_keys_set).
   Proof.
     simpl_relation.
@@ -592,7 +592,7 @@ Section Morphisms.
     apply mem_in_proper; auto.
   Qed.
 
-  Global Instance mem_union_proper:
+  Instance mem_union_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_union).
   Proof.
     intros m0 m0' Em0 m1 m1' Em1.
@@ -607,7 +607,7 @@ Section Morphisms.
   Qed.
 
 
-  Global Instance mem_merge_proper:
+  Instance mem_merge_proper:
     Proper (equiv ==> equiv ==> equiv) (mem_merge).
   Proof.
     intros m0 m0' Em0 m1 m1' Em1.
@@ -627,7 +627,7 @@ Section Morphisms.
       congruence.
   Qed.
 
-  Global Instance mem_merge_with_proper
+  Instance mem_merge_with_proper
     : Proper ((equiv ==> equiv ==> equiv)
                 ==> equiv ==> equiv ==> equiv) (mem_merge_with).
   Proof.
@@ -645,7 +645,7 @@ Section Morphisms.
     apply Efg; auto.
   Qed.
 
-  Global Instance mem_merge_with_def_proper
+  Instance mem_merge_with_def_proper
     : Proper ((equiv ==> equiv ==> equiv) ==> equiv ==> equiv ==> equiv ==> equiv) (mem_merge_with_def).
   Proof.
     intros f g Efg d d' Ed m0 m0' Em0 m1 m1' Em1.
@@ -659,8 +659,8 @@ Section Morphisms.
       repeat some_inv; f_equiv; try apply Efg; auto.
   Qed.
 
-  Global Instance Pick_mem_proper
-         {b:nat}
+  Instance Pick_mem_proper
+           {b:nat}
     : Proper (equiv ==> equiv) (Pick_mem b).
   Proof.
     simpl_relation.
@@ -701,8 +701,8 @@ Section Morphisms.
       some_none.
   Qed.
 
-  Global Instance Embed_mem_proper
-         {b:nat}
+  Instance Embed_mem_proper
+           {b:nat}
     : Proper (equiv ==> equiv) (Embed_mem b).
   Proof.
     simpl_relation.
@@ -743,7 +743,7 @@ Section Morphisms.
       some_none.
   Qed.
 
-  Global Instance HTSUMUnion_mem_proper:
+  Instance HTSUMUnion_mem_proper:
     Proper ((equiv ==> equiv) ==> (equiv ==> equiv) ==> equiv ==> equiv) (HTSUMUnion_mem).
   Proof.
     intros op0 op0' Eop0 op1 op1' Eop1 x y E.
@@ -758,46 +758,43 @@ Section Morphisms.
     apply mem_union_proper; apply Some_inj_equiv; auto.
   Qed.
 
-End Morphisms.
+  Record MSHOperator {i o: nat} : Type
+    := mkMSHOperator {
+           (* -- implementation on memory blocks -- *)
+           mem_op: mem_block -> option mem_block;
+           mem_op_proper: Proper ((=) ==> (=)) mem_op;
 
-Record MSHOperator {i o: nat} : Type
-  := mkMSHOperator {
-         (* -- implementation on memory blocks -- *)
-         mem_op: mem_block -> option mem_block;
-         mem_op_proper: Proper ((=) ==> (=)) mem_op;
+           m_in_index_set: FinNatSet i;
+           m_out_index_set: FinNatSet o;
+         }.
 
-         m_in_index_set: FinNatSet i;
-         m_out_index_set: FinNatSet o;
-       }.
+  Class MSHOperator_Facts
+        {i o: nat}
+        (mop: @MSHOperator i o)
+    :=
+      {
+        (* -- Structural properties for [mem_op] -- *)
 
-Class MSHOperator_Facts
-      {i o: nat}
-      (mop: @MSHOperator i o)
-  :=
-    {
-      (* -- Structural properties for [mem_op] -- *)
-
-      (* sufficiently (values in right places, no info on empty
+        (* sufficiently (values in right places, no info on empty
          spaces) filled input memory block guarantees that `mem_op`
          will not fail.  *)
-      mem_out_some: forall m,
-        (forall j (jc:j<i), m_in_index_set mop (mkFinNat jc) -> mem_in j m)
-        ->
-        is_Some (mem_op mop m);
-
-      (* Output memory block always have values in right places, and
-             does not have value in sparse positions *)
-      out_mem_fill_pattern: forall m0 m,
-          mem_op mop m0 ≡ Some m
+        mem_out_some: forall m,
+          (forall j (jc:j<i), m_in_index_set mop (mkFinNat jc) -> mem_in j m)
           ->
-          forall j (jc:j<o), m_out_index_set mop (mkFinNat jc) <-> mem_in j m;
+          is_Some (mem_op mop m);
 
-      (* Do not write memory outside of bounds *)
-      out_mem_oob: forall m0 m,
-          mem_op mop m0 ≡ Some m -> forall j (jc:j>=o), not (mem_in j m);
-    }.
+        (* Output memory block always have values in right places, and
+             does not have value in sparse positions *)
+        out_mem_fill_pattern: forall m0 m,
+            mem_op mop m0 ≡ Some m
+            ->
+            forall j (jc:j<o), m_out_index_set mop (mkFinNat jc) <-> mem_in j m;
 
-Section MFamilies.
+        (* Do not write memory outside of bounds *)
+        out_mem_oob: forall m0 m,
+            mem_op mop m0 ≡ Some m -> forall j (jc:j>=o), not (mem_in j m);
+      }.
+
 
   Definition MSHOperatorFamily {i o n: nat} := FinNat n -> @MSHOperator i o.
 
@@ -870,10 +867,10 @@ Section MFamilies.
     : forall j (jc:j<n), mem_block -> option mem_block
     := fun j (jc:j<n) => mem_op (op_family (mkFinNat jc)).
 
-  Global Instance get_family_mem_op_proper
-         {i o n: nat}
-         (j: nat) (jc: j<n)
-         (op_family: @MSHOperatorFamily i o n)
+  Instance get_family_mem_op_proper
+           {i o n: nat}
+           (j: nat) (jc: j<n)
+           (op_family: @MSHOperatorFamily i o n)
     :
       Proper ((=) ==> (=)) (get_family_mem_op op_family j jc).
   Proof.
@@ -1215,11 +1212,10 @@ Section MFamilies.
             congruence.
 
             rewrite <- IHn.
-
             assert(tc1: t<n) by omega.
             apply (m_family_in_set_includes_members _ _ _
-                     (shrink_m_op_family_up op_family) _
-                     tc1).
+                                                    (shrink_m_op_family_up op_family) _
+                                                    tc1).
             unfold mkFinNat.
             unfold shrink_m_op_family_up.
             simpl.
@@ -1480,8 +1476,8 @@ Section MFamilies.
             rewrite <- IHn; clear IHn.
             assert(nc1: n < S n) by lia.
             apply (m_family_out_set_includes_members _ _ _
-                     (shrink_m_op_family_up op_family) _
-                     nc1).
+                                                     (shrink_m_op_family_up op_family) _
+                                                     nc1).
             unfold shrink_m_op_family_up.
             simpl.
             replace (lt_n_S nc1) with nc by apply le_unique.
@@ -1510,8 +1506,8 @@ Section MFamilies.
             rewrite <- IHn.
             assert(tc1: t<n) by omega.
             apply (m_family_out_set_includes_members _ _ _
-                     (shrink_m_op_family_up op_family) _
-                     tc1).
+                                                     (shrink_m_op_family_up op_family) _
+                                                     tc1).
             unfold mkFinNat.
             unfold shrink_m_op_family_up.
             simpl.
@@ -1569,10 +1565,7 @@ Section MFamilies.
             apply NatUtil.lt_unique.
   Qed.
 
-End MFamilies.
-
-(* Note: We only define MSHCOL operators for final subset of SHCOL *)
-Section MSHOperator_Definitions.
+  (* Note: We only define MSHCOL operators for final subset of SHCOL *)
 
   Program Definition MSHCompose
           {i1 o2 o3}
@@ -1652,11 +1645,11 @@ Section MSHOperator_Definitions.
   Qed.
 
   (* Probably could be proven more generally for any monad with with some properties *)
-  Global Instance monadic_Lbuild_opt_proper
-         {A: Type}
-         `{Ae: Equiv A}
-         `{Equivalence A Ae}
-         (n : nat):
+  Instance monadic_Lbuild_opt_proper
+           {A: Type}
+           `{Ae: Equiv A}
+           `{Equivalence A Ae}
+           (n : nat):
     Proper ((forall_relation
                (fun i => pointwise_relation (i < n)%nat equiv)) ==> equiv) (@monadic_Lbuild A option OptionMonad.Monad_option n).
   Proof.
@@ -1726,9 +1719,9 @@ Section MSHOperator_Definitions.
         some_none.
   Qed.
 
-  Global Instance Apply_mem_Family_proper
-         {i o n: nat}
-         (op_family: @MSHOperatorFamily i o n)
+  Instance Apply_mem_Family_proper
+           {i o n: nat}
+           (op_family: @MSHOperatorFamily i o n)
     :
       Proper ((=) ==> (=)) (Apply_mem_Family (get_family_mem_op op_family)).
   Proof.
@@ -1740,12 +1733,12 @@ Section MSHOperator_Definitions.
     reflexivity.
   Qed.
 
-  Global Instance IReduction_mem_proper
-         {i o n: nat}
-         (initial: CarrierA)
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (op_family: @MSHOperatorFamily i o n)
+  Instance IReduction_mem_proper
+           {i o n: nat}
+           (initial: CarrierA)
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op_family: @MSHOperatorFamily i o n)
     :
       Proper (equiv ==> equiv) (IReduction_mem dot initial (get_family_mem_op op_family)).
   Proof.
@@ -1792,9 +1785,9 @@ Section MSHOperator_Definitions.
                      (m_family_out_index_set op_family) (* All scatters must be [Full_set] but we do not enforce it here. However if they are the same, the union will equal to any of them, so it is legit to use union here *).
 
 
-  Global Instance IUnion_mem_proper
-         {i o n: nat}
-         (op_family: @MSHOperatorFamily i o n)
+  Instance IUnion_mem_proper
+           {i o n: nat}
+           (op_family: @MSHOperatorFamily i o n)
     :
       Proper (equiv ==> equiv) (IUnion_mem (get_family_mem_op op_family)).
   Proof.
@@ -1837,19 +1830,16 @@ Section MSHOperator_Definitions.
                      (m_family_out_index_set op_family).
 
 
-End MSHOperator_Definitions.
 
-Section MSHOperator_Facts_instances.
-
-  Global Instance SHCompose_MFacts
-         {i1 o2 o3: nat}
-         (op1: @MSHOperator o2 o3)
-         (op2: @MSHOperator i1 o2)
-         (compat: Included _ (m_in_index_set op1) (m_out_index_set op2))
-         `{Mfacts1: !MSHOperator_Facts op1}
-         `{Mfacts2: !MSHOperator_Facts op2}
-  : MSHOperator_Facts
-      (MSHCompose op1 op2).
+  Instance SHCompose_MFacts
+           {i1 o2 o3: nat}
+           (op1: @MSHOperator o2 o3)
+           (op2: @MSHOperator i1 o2)
+           (compat: Included _ (m_in_index_set op1) (m_out_index_set op2))
+           `{Mfacts1: !MSHOperator_Facts op1}
+           `{Mfacts2: !MSHOperator_Facts op2}
+    : MSHOperator_Facts
+        (MSHCompose op1 op2).
   Proof.
     split.
     -
@@ -1901,9 +1891,9 @@ Section MSHOperator_Facts_instances.
       apply P2; auto.
   Qed.
 
-  Global Instance Pick_MFacts
-         {o b: nat}
-         (bc: b < o)
+  Instance Pick_MFacts
+           {o b: nat}
+           (bc: b < o)
     : MSHOperator_Facts (MSHPick bc).
   Proof.
     split.
@@ -1964,9 +1954,9 @@ Section MSHOperator_Facts_instances.
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
 
-  Global Instance Embed_MFacts
-         {i b: nat}
-         (bc: b<i)
+  Instance Embed_MFacts
+           {i b: nat}
+           (bc: b<i)
     : MSHOperator_Facts (MSHEmbed bc).
   Proof.
     split.
@@ -2030,10 +2020,10 @@ Section MSHOperator_Facts_instances.
         auto.
   Qed.
 
-  Global Instance SHPointwise_MFacts
-         {n: nat}
-         (f: FinNat n -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+  Instance SHPointwise_MFacts
+           {n: nat}
+           (f: FinNat n -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHPointwise f).
   Proof.
     split.
@@ -2049,11 +2039,11 @@ Section MSHOperator_Facts_instances.
       apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
-  Global Instance SHInductor_MFacts
-         (n:nat)
-         (f: CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=)) f}
-         (initial: CarrierA):
+  Instance SHInductor_MFacts
+           (n:nat)
+           (f: CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
+           (initial: CarrierA):
     MSHOperator_Facts (MSHInductor n f initial).
   Proof.
     split.
@@ -2069,10 +2059,10 @@ Section MSHOperator_Facts_instances.
       apply (out_mem_fill_pattern_mem_op_of_hop H).
   Qed.
 
-  Global Instance SHBinOp_MFacts
-         {o: nat}
-         (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
-         `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
+  Instance SHBinOp_MFacts
+           {o: nat}
+           (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
+           `{pF: !Proper ((=) ==> (=) ==> (=) ==> (=)) f}
     : MSHOperator_Facts (MSHBinOp f).
   Proof.
     split.
@@ -2134,15 +2124,15 @@ Section MSHOperator_Facts_instances.
         eapply (out_mem_fill_pattern _ _ Heqo1); eauto.
   Qed.
 
-  Global Instance HTSUMUnion_MFacts
-         {i o: nat}
-         `{dot: SgOp CarrierA}
-         (op1 op2: @MSHOperator i o)
-         (compat: Disjoint _
-                           (m_out_index_set op1)
-                           (m_out_index_set op2))
-         `{facts1: MSHOperator_Facts _ _ op1}
-         `{facts2: MSHOperator_Facts _ _ op2}
+  Instance HTSUMUnion_MFacts
+           {i o: nat}
+           `{dot: SgOp CarrierA}
+           (op1 op2: @MSHOperator i o)
+           (compat: Disjoint _
+                             (m_out_index_set op1)
+                             (m_out_index_set op2))
+           `{facts1: MSHOperator_Facts _ _ op1}
+           `{facts2: MSHOperator_Facts _ _ op2}
     : MSHOperator_Facts
         (MHTSUMUnion dot op1 op2).
   Proof.
@@ -2193,17 +2183,17 @@ Section MSHOperator_Facts_instances.
         eapply (out_mem_oob _ _ Heqo1); eauto.
   Qed.
 
-  Global Instance IReduction_MFacts
-         {i o k: nat}
-         (initial: CarrierA)
-         (dot: CarrierA -> CarrierA -> CarrierA)
-         `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
-         (op_family: @MSHOperatorFamily i o k)
-         (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
-         (compat: forall j (jc:j<k),
-             Ensembles.Same_set _
-                                (m_out_index_set (op_family (mkFinNat jc)))
-                                (Full_set _))
+  Instance IReduction_MFacts
+           {i o k: nat}
+           (initial: CarrierA)
+           (dot: CarrierA -> CarrierA -> CarrierA)
+           `{pdot: !Proper ((=) ==> (=) ==> (=)) dot}
+           (op_family: @MSHOperatorFamily i o k)
+           (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
+           (compat: forall j (jc:j<k),
+               Ensembles.Same_set _
+                                  (m_out_index_set (op_family (mkFinNat jc)))
+                                  (Full_set _))
     : MSHOperator_Facts (@MSHIReduction i o k initial dot pdot op_family).
   Proof.
     split.
@@ -2645,13 +2635,13 @@ Section MSHOperator_Facts_instances.
       auto.
   Qed.
 
-  Global Instance IUnion_MFacts
-         {i o k: nat}
-         (op_family: @MSHOperatorFamily i o k)
-         (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
-         (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
-                                                            (m_out_index_set (op_family (mkFinNat mc)))
-                                                            (m_out_index_set (op_family (mkFinNat nc))))
+  Instance IUnion_MFacts
+           {i o k: nat}
+           (op_family: @MSHOperatorFamily i o k)
+           (op_family_facts: forall j (jc:j<k), MSHOperator_Facts (op_family (mkFinNat jc)))
+           (compat: forall m (mc:m<k) n (nc:n<k), m ≢ n -> Disjoint _
+                                                              (m_out_index_set (op_family (mkFinNat mc)))
+                                                              (m_out_index_set (op_family (mkFinNat nc))))
     :  MSHOperator_Facts (MSHIUnion op_family).
   Proof.
     split.
@@ -2862,4 +2852,9 @@ Section MSHOperator_Facts_instances.
   Qed.
 
 
-End MSHOperator_Facts_instances.
+End MMSHCOL'.
+
+
+(* There will be only one instance of MMSCHOL', as it is always
+   defined on [CarrierA]. *)
+Module Export MMSCHOL := MMSHCOL'(CarrierAasCT)(MMemoryOfCarrierA).

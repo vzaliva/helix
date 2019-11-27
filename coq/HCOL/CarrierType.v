@@ -7,8 +7,10 @@ Require Import Coq.Structures.OrderedType.
 
 Require Import CoLoR.Util.Vector.VecUtil.
 
+Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
+Require Import MathClasses.theory.abs.
 Require Import MathClasses.interfaces.orders.
 
 Parameter CarrierA : Type.
@@ -32,13 +34,19 @@ Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmul
 
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
-Global Instance CarrierAPlus_proper:
+Instance CarrierAPlus_proper:
   Proper ((=) ==> (=) ==> (=)) (plus).
 Proof.
   solve_proper.
 Qed.
 
-Global Instance CommutativeMonoid_plus_zero:
+Instance CarrierAmult_proper:
+  Proper((=) ==> (=) ==> (=)) CarrierAmult.
+Proof.
+  solve_proper.
+Qed.
+
+Instance CommutativeMonoid_plus_zero:
   @MathClasses.interfaces.abstract_algebra.CommutativeMonoid CarrierA _ plus zero.
 Proof.
   typeclasses eauto.
@@ -54,10 +62,13 @@ Ltac decide_CarrierA_equality E NE :=
   end.
 
 (* Poor man's minus *)
-Definition sub: CarrierA → CarrierA → CarrierA := plus∘negate.
+Definition sub {T:Type}
+           `{Plus T}
+           `{Negate T}
+  : T → T → T := plus∘negate.
 
 (* The following is not strictly necessary as it follows from "properness" of composition, negation, and addition operations. Unfortunately Coq 8.4 class resolution could not find these automatically so we hint it by adding implicit instance. *)
-Global Instance CarrierA_sub_proper:
+Instance CarrierA_sub_proper:
   Proper ((=) ==> (=) ==> (=)) (sub).
 Proof.
   intros a b Ha x y Hx .
@@ -69,7 +80,7 @@ Qed.
 Definition Zless (a b: CarrierA): CarrierA
   := if CarrierAltdec a b then one else zero.
 
-Global Instance Zless_proper:
+Instance Zless_proper:
   Proper ((=) ==> (=) ==> (=)) (Zless).
 Proof.
   unfold Proper.
