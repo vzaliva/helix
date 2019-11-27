@@ -45,7 +45,6 @@ Module Type MDSigmaHCOLEvalSig (Import CT : CType).
   Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
   Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y)%mc.
 
-  (* TODO: THis should be a typeclass like [Plus] *)
   Parameter CTypeZLess: t -> t -> t.
 
   Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) (CTypeZLess).
