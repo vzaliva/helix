@@ -1,3 +1,4 @@
+Require Import ZArith.
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
@@ -9,8 +10,10 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.interfaces.orders.
 
-Instance   Float64Zero          : Zero binary64. Admitted.
-Instance   Float64Plus          : Plus binary64. Admitted.
+Open Scope Z.
+
+Instance Float64Zero : Zero binary64 := B754_zero 53 1024 true.
+Instance Float64Plus : Plus binary64 := b64_plus mode_NE.
 Instance   Float64Neg           : Negate binary64. Admitted.
 Instance   Float64Mult          : Mult binary64. Admitted.
 Instance   Float64Le            : Le binary64. Admitted.
@@ -21,7 +24,14 @@ Instance   Float64LeDec         : forall x y : binary64, Decision (x ≤ y). Adm
 Definition Float64ZLess         : binary64 → binary64 → binary64. Admitted.
 Instance   Float64ZLess_proper : Proper (equiv ==> equiv ==> equiv) Float64ZLess. Admitted.
 Instance   Float64Abs_proper   : Proper (equiv ==> equiv) abs. Admitted.
-Instance   Float64Plus_proper  : Proper (equiv ==> equiv ==> equiv) plus. Admitted.
+Instance   Float64Plus_proper  : Proper (equiv ==> equiv ==> equiv) plus.
+Proof.
+  simpl_relation.
+  unfold equiv, binary64_Equiv in *.
+  unfold plus, Float64Plus, b64_plus.
+  unfold b64_compare.
+  Search Bplus.
+Admitted.
 Instance   Float64Sub_proper   : Proper (equiv ==> equiv ==> equiv) CarrierType.sub. Admitted.
 Instance   Float64Mult_proper  : Proper (equiv ==> equiv ==> equiv) mult. Admitted.
 
