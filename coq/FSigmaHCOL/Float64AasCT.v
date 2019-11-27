@@ -5,15 +5,13 @@ Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Helix.MSigmaHCOL.CType.
 
+Instance binary64_Equiv: Equiv binary64 := eq.
+
+Instance binary64_Setoid: Setoid binary64.
+Proof. split; auto. Qed.
+
 Module MFloat64AasCT <: CType.
-
   Definition t := binary64.
-
-  Definition CTypeEquiv := @eq binary64.
-
-  Definition CTypeSetoid: @Setoid t CTypeEquiv.
-  Proof.
-    split; auto.
-  Defined.
-
+  Definition CTypeEquiv := binary64_Equiv.
+  Definition CTypeSetoid := binary64_Setoid.
 End MFloat64AasCT.

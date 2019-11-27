@@ -35,6 +35,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    These are pretty much boilderplate, assuming =Equality= on the values. Perhaps
    these 3 could be generalized via typeclass or a module.
 ** Split StringOT.v into several files                               :zoickx:
+** Move =CarrierAabs_proper= to =CarrierType.v=                          :zoickx:
 * Harmonization
 ** =IReduction= constraints:
   =IReduction= have 2 'compat' assumptions. We have =BFixpoint= in

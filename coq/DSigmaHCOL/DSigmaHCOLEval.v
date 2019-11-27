@@ -29,11 +29,11 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
-Module Make (Import CT : CType).
 
-  Include MDSigmaHCOL CT.
+Module Type MDSigmaHCOLEvalSig (Import CT : CType).
+  (* Some additiona =CType.t= properties and definitions we need for expressions
+     used in DHCOL *)
 
-  (* Some additiona =CType.t= properties we need in proofs *)
   Declare Instance CTypeZero: Zero t.
   Declare Instance CTypePlus: Plus t.
   Declare Instance CTypeNeg: Negate t.
@@ -53,6 +53,12 @@ Module Make (Import CT : CType).
   Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) plus.
   Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) sub.
   Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) mult.
+End MDSigmaHCOLEvalSig.
+
+
+Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
+
+  Include MDSigmaHCOL CT.
 
   Definition evalContext:Type := list DSHVal.
 
@@ -1067,4 +1073,4 @@ Module Make (Import CT : CType).
 
   End IncrEval.
 
-End Make.
+End MDSigmaHCOLEval.

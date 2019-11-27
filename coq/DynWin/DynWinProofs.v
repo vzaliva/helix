@@ -278,6 +278,17 @@ Section SigmaHCOL_rewriting.
     (* normalize associativity of composition *)
     repeat rewrite <- SHCompose_assoc.
 
+    (* TODO: remove this once =CarrierAabs_proper= moved to =CarrierType.v= *)
+    replace
+      (@abstract_algebra.sm_proper CarrierA CarrierA CarrierAe
+                               CarrierAe
+                               (@abs CarrierA CarrierAe CarrierAle CarrierAz
+                                  CarrierAneg CarrierAabs)
+                               (@abs_Setoid_Morphism CarrierA CarrierAe CarrierAplus
+                                  CarrierAmult CarrierAz CarrierA1 CarrierAneg
+                                  CarrierAr CarrierAsetoid CarrierAle CarrierAto
+                                  CarrierAabs))
+            with CarrierAabs_proper by apply proof_irrelevance.
     reflexivity.
     Transparent SHCompose.
   Qed.
@@ -952,110 +963,3 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
-(*
-Section SigmaHCOL_mem.
-
-Instance DynWinSigmaHCOL1_Mem
-         (a: avector 3):
-  SHOperator_Mem (dynwin_SHCOL1 a) (facts := DynWinSigmaHCOL1_Facts a).
-Proof.
-  unfold dynwin_SHCOL1.
-
-  Typeclasses eauto := 1.
-  solve_mem.
-  solve_facts.
-  solve_facts.
-  apply Disjoined_singletons; auto.
-  apply Obligation_XXX.
-  apply Disjoined_singletons; auto.
-  {
-    (* TODO: Automate Ensembles solving *)
-    simpl.
-    intros x H. unfold In in *.
-    destruct x as [x xc].
-    destruct x.
-    apply Union_introl. unfold In, singleton. simpl. reflexivity.
-    dep_destruct x.
-    apply Union_intror. unfold In, singleton. simpl. reflexivity.
-    crush.
-  }
-  solve_mem.
-  solve_mem. (* eapply SHBinOp_RthetaSafe_Mem. *)
-  solve_mem.
-  solve_facts.
-  solve_facts.
-  apply Disjoined_singletons; auto.
-  apply Obligation_XXX.
-  {
-    (* TODO: Automate Ensembles solving *)
-    simpl.
-    constructor.
-    intros x.
-    unfold In.
-    intros H.
-    inversion H.
-    crush.
-  }
-  solve_mem.
-  solve_facts.
-  solve_facts.
-  crush.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  solve_mem.
-  unfold SHFamilyOperatorCompose.
-  solve_mem.
-  solve_facts.
-  crush.
-  solve_mem.
-  solve_facts.
-  solve_facts.
-  crush.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  apply Disjoined_singletons; auto.
-  apply Obligation_XXX.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  apply Disjoined_singletons; auto.
-  apply Obligation_XXX.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  solve_facts.
-  apply Disjoined_singletons; auto.
-  apply Obligation_XXX.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  solve_mem.
-  solve_mem.
-  solve_facts.
-  crush.
-  solve_mem.
-  solve_mem.
-  {
-    intros m mc n nc H.
-    apply Disjoined_singletons, H.
-  }
-  crush.
-  solve_mem.
-Defined.
-
-
-End SigmaHCOL_mem.
- *)
