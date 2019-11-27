@@ -79,6 +79,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 ** Non-array global constants. See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
+* Build/Tests
+** Use =dune= for coq code builds.
 * Ideas
   - See if =coq-equations= package could be used to represent index
     functions and function arguments of =BinOp=, =Pointwise=, etc.
