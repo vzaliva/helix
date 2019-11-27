@@ -35,24 +35,24 @@ Module Make (Import CT : CType).
 
   (* Some additiona =CType.t= properties we need in proofs *)
   Declare Instance CTypeZero: Zero t.
-  Declare Instance CTypeOne: One t.
   Declare Instance CTypePlus: Plus t.
   Declare Instance CTypeNeg: Negate t.
   Declare Instance CTypeMult: Mult t.
   Declare Instance CTypeLe: Le t.
   Declare Instance CTypeLt: Lt t.
+  (* Total order needed for min/max *)
   Declare Instance CTypeTO: @TotalOrder t CTypeEquiv CTypeLe.
   Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
-  (*TOD: Ring could be problematic with Float *)
-  Declare Instance CTypeRing: Ring t.
-  Declare Instance CTypeLtDec: forall x y: t, Decision (x < y)%mc.
   Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y)%mc.
-  Declare Instance CTypeEquivDec: forall x y: t, Decision (x = y).
-  Declare Instance CTypeASSO: @StrictSetoidOrder t CTypeEquiv CTypeLt.
-  Declare Instance CTypeASRO: @SemiRingOrder t CTypeEquiv CTypePlus CTypeMult CTypeZero CTypeOne CTypeLe.
 
+  (* TODO: THis should be a typeclass like [Plus] *)
   Parameter CTypeZLess: t -> t -> t.
+
   Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) (CTypeZLess).
+  Declare Instance abs_proper: Proper ((=) ==> (=)) abs.
+  Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) plus.
+  Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) sub.
+  Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) mult.
 
   Definition evalContext:Type := list DSHVal.
 
@@ -471,8 +471,7 @@ Module Make (Import CT : CType).
     - repeat break_match;subst; try reflexivity; try some_none.
       f_equiv.
       rewrite <- Some_inj_equiv in IHEe.
-      rewrite IHEe.
-      reflexivity.
+      apply abs_proper, IHEe.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
