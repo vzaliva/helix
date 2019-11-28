@@ -24,6 +24,19 @@ Section MinMax.
    *)
   Definition Float64Max (a b: binary64): binary64. Admitted.
 
+  Definition Float64Le (a b: binary64) : Prop :=
+    match (Bcompare _ _ a b) with
+    | Some Eq => True
+    | Some Lt => True
+    | _ => False
+    end.
+
+  Definition Float64Lt (a b: binary64) : Prop :=
+    match (Bcompare _ _ a b) with
+    | Some Lt => True
+    | _ => False
+    end.
+
 End MinMax.
 
 Require Import MathClasses.interfaces.canonical_names.
@@ -32,60 +45,73 @@ Require Import MathClasses.interfaces.orders.
 
 Definition FT_Rounding:mode := mode_NE.
 
-Instance Float64Zero : Zero binary64 := B754_zero 53 1024 true.
-Instance Float64Plus : Plus binary64 := b64_plus FT_Rounding.
-Instance Float64Neg  : Negate binary64. Admitted.
-Instance Float64Mult : Mult binary64 :=  b64_mult FT_Rounding.
-Instance   Float64Le            : Le binary64. Admitted.
-Instance   Float64Lt            : Lt binary64. Admitted.
-Instance   Float64Abs : Abs binary64. Admitted. (* := b64_abs.*)
-Instance   Float64LeDec         : forall x y : binary64, Decision (x ≤ y). Admitted.
-Definition Float64ZLess         : binary64 → binary64 → binary64. Admitted.
-Definition Float64Sub           := b64_minus FT_Rounding.
-
-Instance   Float64ZLess_proper : Proper (equiv ==> equiv ==> equiv) Float64ZLess.
-Proof. solve_proper. Qed.
-
-Instance   Float64Abs_proper   : Proper (equiv ==> equiv) abs.
-Proof. solve_proper. Qed.
-Instance   Float64Plus_proper  : Proper (equiv ==> equiv ==> equiv) plus.
-Proof. solve_proper. Qed.
-
-Instance   Float64Sub_proper   : Proper (equiv ==> equiv ==> equiv) Float64Sub.
-Proof. solve_proper. Qed.
-Instance   Float64Mult_proper  : Proper (equiv ==> equiv ==> equiv) mult.
-Proof. solve_proper. Qed.
-Instance   Float64Min_proper  : Proper (equiv ==> equiv ==> equiv) Float64Min.
-Proof. solve_proper. Qed.
-Instance   Float64Max_proper  : Proper (equiv ==> equiv ==> equiv) Float64Max.
-Proof. solve_proper. Qed.
-
-
 Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
   Import MFloat64AasCT.
 
-  Definition CTypeZero     := Float64Zero.
-  Definition CTypePlus     := Float64Plus.
-  Definition CTypeNeg      := Float64Neg.
-  Definition CTypeMult     := Float64Mult.
+  Definition CTypeZero     := B754_zero 53 1024 true.
+
+  (* TODO: zoickx, please check if this is correct *)
+  Program Definition CTypeOne      : binary64 := Bone _ _ _ _ .
+  Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
+  Next Obligation. omega. Qed.
+
+  Definition CTypePlus     := b64_plus FT_Rounding.
+  Definition CTypeNeg      := b64_opp.
+  Definition CTypeMult     := b64_mult FT_Rounding.
   Definition CTypeLe       := Float64Le.
   Definition CTypeLt       := Float64Lt.
 
-  Definition CTypeLeDec    := Float64LeDec.
+  Instance CTypeLeDec: forall x y: t, Decision (Float64Le x y).
+  Proof.
+    intros x y.
+    unfold Float64Le.
+    destruct (Bcompare 53 1024 x y).
+    -
+      destruct c; solve_trivial_decision.
+    -
+      solve_trivial_decision.
+  Qed.
 
-  Definition CTypeAbs      := Float64Abs.
-  Definition CTypeZLess    := Float64ZLess.
+  (* needed for Zless *)
+  Instance CTypeLtDec: forall x y: t, Decision (Float64Lt x y).
+  Proof.
+    intros x y.
+    unfold Float64Lt.
+    destruct (Bcompare 53 1024 x y).
+    -
+      destruct c; solve_trivial_decision.
+    -
+      solve_trivial_decision.
+  Qed.
+
+  Definition CTypeAbs      := b64_abs.
+  Definition CTypeZLess (a b: binary64) :=
+    if CTypeLtDec a b then CTypeOne else CTypeZero.
+
   Definition CTypeMin      := Float64Min.
   Definition CTypeMax      := Float64Max.
-  Definition CTypeSub      := Float64Sub.
+  Definition CTypeSub      := b64_minus FT_Rounding.
 
-  Definition Zless_proper  := Float64ZLess_proper.
-  Definition abs_proper    := Float64Abs_proper.
-  Definition plus_proper   := Float64Plus_proper.
-  Definition sub_proper    := Float64Sub_proper.
-  Definition mult_proper   := Float64Mult_proper.
-  Definition min_proper    := Float64Min_proper.
-  Definition max_proper    := Float64Max_proper.
+  Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
+  Proof. solve_proper. Qed.
+
+  Definition abs_proper: Proper ((=) ==> (=)) b64_abs.
+  Proof. solve_proper. Qed.
+
+  Definition plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
+  Proof. solve_proper. Qed.
+
+  Definition max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
+  Proof. solve_proper. Qed.
 
 End MDSigmaHCOLEvalSigFloat64.
 

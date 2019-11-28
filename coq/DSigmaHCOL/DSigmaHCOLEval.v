@@ -25,32 +25,35 @@ Import MonadNotation.
 Local Open Scope monad_scope.
 
 Module Type MDSigmaHCOLEvalSig (Import CT : CType).
-  (* Some additiona =CType.t= properties and definitions we need for expressions
+  (* Some additiona =CType.t= properties and operations we need for expressions
      used in DHCOL *)
 
-  Declare Instance CTypeZero: Zero t.
-  Declare Instance CTypePlus: Plus t.
-  Declare Instance CTypeNeg: Negate t.
-  Declare Instance CTypeMult: Mult t.
-  Declare Instance CTypeLe: Le t.
-  Declare Instance CTypeLt: Lt t.
+  (* Values *)
+  Parameter CTypeZero: t.
 
-  (* Decidable *)
-  Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y)%mc.
+  (* predicates *)
+  Parameter CTypeLe: relation t.
+  Parameter CTypeLt: relation t.
+
+  (* Decidability *)
+  Declare Instance CTypeLeDec: forall x y: t, Decision (CTypeLe x y).
 
   (* operations *)
-  Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
+  Parameter CTypePlus: t -> t -> t.
+  Parameter CTypeNeg: t -> t.
+  Parameter CTypeMult: t -> t -> t.
+  Parameter CTypeAbs: t -> t.
   Parameter CTypeZLess: t -> t -> t.
   Parameter CTypeMin: t -> t -> t.
   Parameter CTypeMax: t -> t -> t.
   Parameter CTypeSub: t -> t -> t.
 
   (* Proper *)
-  Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) (CTypeZLess).
-  Declare Instance abs_proper: Proper ((=) ==> (=)) abs.
-  Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) plus.
+  Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
+  Declare Instance abs_proper: Proper ((=) ==> (=)) CTypeAbs.
+  Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) CTypePlus.
   Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) CTypeSub.
-  Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) mult.
+  Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) CTypeMult.
   Declare Instance min_proper: Proper((=) ==> (=) ==> (=)) CTypeMin.
   Declare Instance max_proper: Proper((=) ==> (=) ==> (=)) CTypeMax.
 End MDSigmaHCOLEvalSig.
@@ -120,9 +123,9 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                   | _ => None
                   end)
     | AConst x => Some x
-    | AAbs x =>  liftM abs (evalAexp σ x)
-    | APlus a b => liftM2 plus (evalAexp σ a) (evalAexp σ b)
-    | AMult a b => liftM2 mult (evalAexp σ a) (evalAexp σ b)
+    | AAbs x =>  liftM CTypeAbs (evalAexp σ x)
+    | APlus a b => liftM2 CTypePlus (evalAexp σ a) (evalAexp σ b)
+    | AMult a b => liftM2 CTypeMult (evalAexp σ a) (evalAexp σ b)
     | AMin a b => liftM2 CTypeMin (evalAexp σ a) (evalAexp σ b)
     | AMax a b => liftM2 CTypeMax (evalAexp σ a) (evalAexp σ b)
     | AMinus a b =>
@@ -139,7 +142,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           be correct by construction *)
          (match mem_lookup i' m' with
           | Some v => ret v
-          | None => ret zero
+          | None => ret CTypeZero
           end)
     | AZless a b => liftM2 CTypeZLess (evalAexp σ a) (evalAexp σ b)
     end.

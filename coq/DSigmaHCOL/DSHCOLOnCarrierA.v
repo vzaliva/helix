@@ -29,7 +29,7 @@ Module MDSigmaHCOLEvalSigCarrierA <: MDSigmaHCOLEvalSig(CarrierAasCT).
 
   Definition CTypeLeDec:= CarrierAledec.
 
-  Definition CTypeAbs  := CarrierAabs.
+  Definition CTypeAbs  := abs.
   Definition CTypeZLess := Zless.
   Definition CTypeMin   := @min CarrierA CarrierAle CarrierAledec.
   Definition CTypeMax   := @max CarrierA CarrierAle CarrierAledec.
