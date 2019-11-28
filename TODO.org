@@ -75,12 +75,16 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Automate /DynWin/ rewriting proof                                 :zoickx:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
-** =maxnum=  implementation                                          :zoickx:
-   Currently implemented as C =max= macro. Should be more
+** Non-array global constants. See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
+** Implement float min/max                                           :zoickx:
+   in DHCOL it is ==Float64Min= and =Float64Max=.
+
+   In LLVMgen =Float_maxnum= implemented as C =max= macro. Should be more
    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
-** Non-array global constants. See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
-** Implement =Float64Min= and =Float64Max= :zoickx:
+
+   =Float_maxnum= is the same as =Float64Max=
+
 * Build/Tests
 ** Use =dune= for coq code builds.
 * Ideas
