@@ -14,12 +14,7 @@ Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
-Require Import MathClasses.orders.minmax.
-Require Import MathClasses.interfaces.orders.
 Require Import MathClasses.misc.decision.
-Require Import MathClasses.interfaces.abstract_algebra.
-Require Import MathClasses.theory.rings.
-Require Import MathClasses.interfaces.orders.
 
 Global Open Scope nat_scope.
 
@@ -28,7 +23,6 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 
 Import MonadNotation.
 Local Open Scope monad_scope.
-
 
 Module Type MDSigmaHCOLEvalSig (Import CT : CType).
   (* Some additiona =CType.t= properties and definitions we need for expressions
@@ -40,18 +34,25 @@ Module Type MDSigmaHCOLEvalSig (Import CT : CType).
   Declare Instance CTypeMult: Mult t.
   Declare Instance CTypeLe: Le t.
   Declare Instance CTypeLt: Lt t.
-  (* Total order needed for min/max *)
-  Declare Instance CTypeTO: @TotalOrder t CTypeEquiv CTypeLe.
-  Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
+
+  (* Decidable *)
   Declare Instance CTypeLeDec: forall x y: t, Decision (x ≤ y)%mc.
 
+  (* operations *)
+  Declare Instance CTypeAbs: @Abs t CTypeEquiv CTypeLe CTypeZero CTypeNeg.
   Parameter CTypeZLess: t -> t -> t.
+  Parameter CTypeMin: t -> t -> t.
+  Parameter CTypeMax: t -> t -> t.
+  Parameter CTypeSub: t -> t -> t.
 
+  (* Proper *)
   Declare Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) (CTypeZLess).
   Declare Instance abs_proper: Proper ((=) ==> (=)) abs.
   Declare Instance plus_proper: Proper((=) ==> (=) ==> (=)) plus.
-  Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) sub.
+  Declare Instance sub_proper: Proper((=) ==> (=) ==> (=)) CTypeSub.
   Declare Instance mult_proper: Proper((=) ==> (=) ==> (=)) mult.
+  Declare Instance min_proper: Proper((=) ==> (=) ==> (=)) CTypeMin.
+  Declare Instance max_proper: Proper((=) ==> (=) ==> (=)) CTypeMax.
 End MDSigmaHCOLEvalSig.
 
 
@@ -122,12 +123,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     | AAbs x =>  liftM abs (evalAexp σ x)
     | APlus a b => liftM2 plus (evalAexp σ a) (evalAexp σ b)
     | AMult a b => liftM2 mult (evalAexp σ a) (evalAexp σ b)
-    | AMin a b => liftM2 min (evalAexp σ a) (evalAexp σ b)
-    | AMax a b => liftM2 max (evalAexp σ a) (evalAexp σ b)
+    | AMin a b => liftM2 CTypeMin (evalAexp σ a) (evalAexp σ b)
+    | AMax a b => liftM2 CTypeMax (evalAexp σ a) (evalAexp σ b)
     | AMinus a b =>
       a' <- (evalAexp σ a) ;;
          b' <- (evalAexp σ b) ;;
-         ret (sub a' b')
+         ret (CTypeSub a' b')
     | ANth m i =>
       m' <- (evalMexp σ m) ;;
          i' <- (evalNexp σ i) ;;

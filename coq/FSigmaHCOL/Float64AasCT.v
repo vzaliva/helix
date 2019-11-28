@@ -5,8 +5,7 @@ Require Import MathClasses.interfaces.abstract_algebra.
 
 Require Import Helix.MSigmaHCOL.CType.
 
-Instance binary64_Equiv: Equiv binary64 :=
-  fun f1 f2 => (b64_compare f1 f2 ≡ Some Eq).
+Instance binary64_Equiv: Equiv binary64 := eq.
 
 Instance binary64_Setoid: Setoid binary64.
 Admitted.
