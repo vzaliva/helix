@@ -80,6 +80,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 ** Non-array global constants. See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
+** Implement =Float64Min= and =Float64Max= :zoickx:
 * Build/Tests
 ** Use =dune= for coq code builds.
 * Ideas
