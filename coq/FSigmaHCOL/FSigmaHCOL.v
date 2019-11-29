@@ -1,72 +1,120 @@
 (* Deep-embedded SigmaHCOL with floating point arithmetics *)
 
-Require Import Helix.Util.VecUtil.
+Require Import ZArith.
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
-Global Open Scope nat_scope.
+Require Import Helix.DSigmaHCOL.DSigmaHCOL.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.FSigmaHCOL.Float64AasCT.
 
-(* Currently we support only IEE754 single and double-precision FP numbers *)
-Inductive FloatT : Type :=
-| Float32
-| Float64.
+(* Defining these before importing math classes to avoid name collisions,
+   e.g. on [Lt] *)
+Section MinMax.
 
-Inductive FloatV : FloatT -> Type :=
-| Float32V (b32:binary32) : FloatV Float32
-| Float64V (b64:binary64) : FloatV Float64.
+  (* TODO: Implement semantics as in LLVM:
+     https://llvm.org/docs/LangRef.html#llvm-minimum-intrinsic
+   *)
+  Definition Float64Min (a b: binary64): binary64. Admitted.
 
-Inductive FSHVal {ft:FloatT}: Type :=
-| FSHnatVal (n:nat): FSHVal 
-| FSHFloatVal (a:FloatV ft): FSHVal 
-| FSHvecVal {n:nat} (v:vector (FloatV ft) n): FSHVal.
+  (* TODO: Implement IEEE-754 semantics for `maxNum` except for the
+     handling of signaling `NaNs`. This matches the behavior of libm’s
+     `fmax`.
 
-Inductive FExpr {ft:FloatT} : Type :=
-| AVar  : nat -> FExpr
-| AConst: FloatV ft -> FExpr
-| ANth  : forall n, VExpr n -> NExpr -> FExpr
-| AAbs  : FExpr -> FExpr
-| APlus : FExpr -> FExpr  -> FExpr
-| AMinus: FExpr -> FExpr  -> FExpr
-| AMult : FExpr -> FExpr  -> FExpr
-| AMin  : FExpr -> FExpr  -> FExpr
-| AMax  : FExpr -> FExpr  -> FExpr
-| AZless: FExpr -> FExpr  -> FExpr
-with
-(* Expressions which evaluate to `nat` *)
-NExpr {ft:FloatT}: Type :=
-| NVar  : nat -> NExpr
-| NConst: nat -> NExpr
-| NDiv  : NExpr -> NExpr -> NExpr
-| NMod  : NExpr -> NExpr -> NExpr
-| NPlus : NExpr -> NExpr -> NExpr
-| NMinus: NExpr -> NExpr -> NExpr
-| NMult : NExpr -> NExpr -> NExpr
-| NMin  : NExpr -> NExpr -> NExpr
-| NMax  : NExpr -> NExpr -> NExpr
-(* Expressions which evaluate to vector of floats *)
-with VExpr {ft:FloatT}: nat -> Type :=
-     | VVar  {n:nat}: nat -> VExpr n
-     | VConst {n:nat}: vector (FloatV ft) n -> VExpr n.
+     https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
-Definition FSHUnFloat   {ft:FloatT} := @FExpr ft.
-Definition FSHIUnFloat  {ft:FloatT} := @FExpr ft.
-Definition FSHBinFloat  {ft:FloatT} := @FExpr ft.
-Definition FSHIBinFloat {ft:FloatT} := @FExpr ft.
+   *)
+  Definition Float64Max (a b: binary64): binary64. Admitted.
 
-Inductive FSHOperator {ft:FloatT}: nat -> nat -> Type :=
-| FSHId {i:nat}: FSHOperator i i  (* identity operator. mostly for testing *)
-| FSHPick {o: nat} (b: @NExpr ft) (z: (FloatV ft)): FSHOperator 1 o
-| FSHEmbed {i: nat} (b:@NExpr ft): FSHOperator i 1
-| FSHPointwise {i: nat} (f: @FSHIUnFloat ft): FSHOperator i i
-| FSHBinOp {o} (f: @FSHIBinFloat ft): FSHOperator (o+o) o
-| FSHInductor (n:@NExpr ft) (f: @FSHBinFloat ft) (initial: FloatV ft): FSHOperator 1 1
-| FSHIUnion {i o: nat} (n:nat) (dot: @FSHBinFloat ft) (initial: FloatV ft): FSHOperator i o -> FSHOperator i o
-| FSHIReduction {i o: nat} (n: nat) (dot: @FSHBinFloat ft) (initial: FloatV ft): FSHOperator i o -> FSHOperator i o
-| FSHCompose {i1 o2 o3: nat}: FSHOperator o2 o3 -> FSHOperator i1 o2 -> FSHOperator i1 o3
-| FSHHTSUMUnion {i o:nat} (dot: @FSHBinFloat ft): FSHOperator i o -> FSHOperator i o -> @FSHOperator ft i o.
+  Definition Float64Le (a b: binary64) : Prop :=
+    match (Bcompare _ _ a b) with
+    | Some Eq => True
+    | Some Lt => True
+    | _ => False
+    end.
 
-(* Used in code gen and possibly in reification *)
-Inductive FSHValType {ft:FloatT}: Type :=
-| FSHnatValType: FSHValType
-| FSHFloatValType: FSHValType
-| FSHvecValType {n:nat}: FSHValType.
+  Definition Float64Lt (a b: binary64) : Prop :=
+    match (Bcompare _ _ a b) with
+    | Some Lt => True
+    | _ => False
+    end.
+
+End MinMax.
+
+Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.interfaces.abstract_algebra.
+Require Import MathClasses.interfaces.orders.
+
+Definition FT_Rounding:mode := mode_NE.
+
+Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
+  Import MFloat64AasCT.
+
+  Definition CTypeZero     := B754_zero 53 1024 false.
+
+  (* TODO: zoickx, please check if this is correct *)
+  Program Definition CTypeOne      : binary64 := Bone _ _ _ _ .
+  Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
+  Next Obligation. omega. Qed.
+
+  Definition CTypePlus     := b64_plus FT_Rounding.
+  Definition CTypeNeg      := b64_opp.
+  Definition CTypeMult     := b64_mult FT_Rounding.
+  Definition CTypeLe       := Float64Le.
+  Definition CTypeLt       := Float64Lt.
+
+  Instance CTypeLeDec: forall x y: t, Decision (Float64Le x y).
+  Proof.
+    intros x y.
+    unfold Float64Le.
+    destruct (Bcompare 53 1024 x y).
+    -
+      destruct c; solve_trivial_decision.
+    -
+      solve_trivial_decision.
+  Qed.
+
+  (* needed for Zless *)
+  Instance CTypeLtDec: forall x y: t, Decision (Float64Lt x y).
+  Proof.
+    intros x y.
+    unfold Float64Lt.
+    destruct (Bcompare 53 1024 x y).
+    -
+      destruct c; solve_trivial_decision.
+    -
+      solve_trivial_decision.
+  Qed.
+
+  Definition CTypeAbs      := b64_abs.
+  Definition CTypeZLess (a b: binary64) :=
+    if CTypeLtDec a b then CTypeOne else CTypeZero.
+
+  Definition CTypeMin      := Float64Min.
+  Definition CTypeMax      := Float64Max.
+  Definition CTypeSub      := b64_minus FT_Rounding.
+
+  Instance Zless_proper: Proper ((=) ==> (=) ==> (=)) CTypeZLess.
+  Proof. solve_proper. Qed.
+
+  Definition abs_proper: Proper ((=) ==> (=)) b64_abs.
+  Proof. solve_proper. Qed.
+
+  Definition plus_proper: Proper ((=) ==> (=) ==> (=)) (b64_plus FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition sub_proper: Proper ((=) ==> (=) ==> (=)) (b64_minus FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition mult_proper: Proper ((=) ==> (=) ==> (=)) (b64_mult FT_Rounding).
+  Proof. solve_proper. Qed.
+
+  Definition min_proper: Proper ((=) ==> (=) ==> (=)) (Float64Min).
+  Proof. solve_proper. Qed.
+
+  Definition max_proper: Proper ((=) ==> (=) ==> (=)) (Float64Max).
+  Proof. solve_proper. Qed.
+
+End MDSigmaHCOLEvalSigFloat64.
+
+Module Export MDSHCOLOnFloat64 := MDSigmaHCOLEval(MFloat64AasCT)(MDSigmaHCOLEvalSigFloat64).
