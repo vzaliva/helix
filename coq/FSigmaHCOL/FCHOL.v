@@ -48,7 +48,7 @@ Definition FT_Rounding:mode := mode_NE.
 Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
   Import MFloat64AasCT.
 
-  Definition CTypeZero     := B754_zero 53 1024 true.
+  Definition CTypeZero     := B754_zero 53 1024 false.
 
   (* TODO: zoickx, please check if this is correct *)
   Program Definition CTypeOne      : binary64 := Bone _ _ _ _ .
