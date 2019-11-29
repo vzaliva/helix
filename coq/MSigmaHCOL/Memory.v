@@ -59,6 +59,18 @@ Module Import NSP := FSetProperties.WProperties_fun(Nat_as_OT)(NS).
 Definition NatSet := NS.t.
 Module Import NE := FSetToFiniteSet.WS_to_Finite_set(Nat_as_OT)(NS).
 
+Definition NM_sequence
+           {A:Type}
+           {m} {M:Monad m}
+           (mv: NM.t (m A)): m (NM.t A)
+  := NM.fold
+       (fun k v acc =>
+          v' <- v ;;
+             acc' <- acc ;;
+             ret (NM.add k v' acc'))
+       mv
+       (ret (@NM.empty A)).
+
 Lemma NM_NS_In {elt:Type} (k:NM.key) (m:NM.t elt):
   NM.In k m <->
   NS.In k (of_list (map fst (NM.elements  m))).
