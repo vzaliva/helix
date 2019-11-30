@@ -44,8 +44,28 @@ Definition translateCarrierA (a:CarrierType.CarrierA): option binary64 :=
   else if CarrierAequivdec a CarrierA1 then Some MDSigmaHCOLEvalSigFloat64.CTypeOne
        else None.
 
+(* TODO: Use of generic [NM_sequence] in this context
+   causes "universe inconsistency" error when importing this
+   module from DynWinProofs.v. This is workaround. To be investigated
+   and fixed *)
+Definition option_NM_sequence
+           {A:Type}
+           (mv: NM.t (option A)): option (NM.t A)
+  := NM.fold
+       (fun k v acc =>
+          match v with
+          | Some v' =>
+            match acc with
+            | Some acc' => Some (NM.add k v' acc')
+            | None => None
+            end
+          | None => None
+          end)
+       mv
+       (Some (@NM.empty A)).
+
 Definition translate_mem_block (m:MDSHCOLOnCarrierA.mem_block) : option mem_block
-  := NM_sequence (NM.map translateCarrierA m).
+    := option_NM_sequence (NM.map translateCarrierA m).
 
 Definition translateMExpr (m:MDSHCOLOnCarrierA.MExpr) : option MExpr :=
   match m with
