@@ -955,3 +955,12 @@ Section SigmaHCOL_rewriting.
 
 End SigmaHCOL_rewriting.
 
+Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+
+Section DHCOL_to_FHCOL.
+  Definition dynwin_FSHCOL := DSCHOLtoFHCOL dynwin_DSHCOL1.
+
+  (* Set Printing All.
+  Redirect "dynwin_FSHCOL" Compute dynwin_FSHCOL.
+  *)
+End DHCOL_to_FHCOL.
