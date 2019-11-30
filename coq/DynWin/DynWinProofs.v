@@ -279,16 +279,8 @@ Section SigmaHCOL_rewriting.
     repeat rewrite <- SHCompose_assoc.
 
     (* TODO: remove this once =CarrierAabs_proper= moved to =CarrierType.v= *)
-    replace
-      (@abstract_algebra.sm_proper CarrierA CarrierA CarrierAe
-                               CarrierAe
-                               (@abs CarrierA CarrierAe CarrierAle CarrierAz
-                                  CarrierAneg CarrierAabs)
-                               (@abs_Setoid_Morphism CarrierA CarrierAe CarrierAplus
-                                  CarrierAmult CarrierAz CarrierA1 CarrierAneg
-                                  CarrierAr CarrierAsetoid CarrierAle CarrierAto
-                                  CarrierAabs))
-            with CarrierAabs_proper by apply proof_irrelevance.
+    replace abstract_algebra.sm_proper with CarrierAabs_proper by apply proof_irrelevance.
+    replace abstract_algebra.sg_op_proper with CarrierA_max_proper by apply proof_irrelevance.
     reflexivity.
     Transparent SHCompose.
   Qed.
