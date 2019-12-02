@@ -2368,6 +2368,8 @@ Proof.
         rewrite <-Heqo1, <-Heqo4.
         rewrite XY0.
         pose proof evalNExpr_context_equiv_at_TypeSig.
+
+(*
         Search evalNexp.
         specialize (H x_n σ0 σ1 tm TM CE).
         rewrite Heqo2, Heqo in H.
@@ -2375,7 +2377,7 @@ Proof.
         inversion H; subst.
         reflexivity.
       *
-        
+*)
         
 Admitted.
 
