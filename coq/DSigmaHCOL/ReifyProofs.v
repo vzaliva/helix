@@ -2302,13 +2302,14 @@ Proof.
       auto.
       auto.
 Qed.
-
+ 
 Global Instance Assign_DSH_pure
-       (src dst: MemVarRef)
+       (x_n y_n : NExpr)
        (x_p y_p : PExpr)
        (tm : TypeSig)
+       (TM : TypeSigNExpr x_n = Some tm /\ TypeSigNExpr y_n = Some tm)
   :
-    DSH_pure (DSHAssign src dst) tm x_p y_p.
+    DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) tm x_p y_p.
 Proof.
   split.
   -
@@ -2329,30 +2330,53 @@ Proof.
       reflexivity.
   -
     intros until fuel; intros CE BEx BEy.
-    destruct (evalDSHOperator σ0) eqn:H1;
-    destruct (evalDSHOperator σ1) eqn:H2.
+    destruct (evalDSHOperator σ0) eqn:OE1,
+             (evalDSHOperator σ1) eqn:OE2.
     all: try constructor.
     2,3: exfalso.
-    all: destruct fuel; [cbn in *; some_none |].
     +
-      cbn in *.
-      repeat break_match; try some_none.
-      repeat some_inv; subst.
+      destruct fuel; [inversion OE1|].
       unfold blocks_equiv_at_Pexp in *.
-      inversion BEx; inversion H1.
-      inversion BEy; inversion H7.
+      inversion BEx; clear BEx; inversion H1; clear H1.
+      inversion BEy; clear BEy; inversion H6; clear H6.
+      cbn in OE1, OE2.
+      rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8 in *.
+      rename H4 into XY0, H9 into XY2.
+      clear - TM CE OE1 OE2 XY0 XY2.
+      move OE1 before OE2; move CE before OE1.
       constructor.
-      destruct (memory_lookup (memory_set m0 m8 (mem_add n4 c0 m10)) x1) eqn:Mx;
-      destruct (memory_lookup (memory_set m1 m4 (mem_add n2 c m6)) y1) eqn:My.
-      1: constructor.
-      2-4: exfalso.
+      rename m into rm0, m2 into rm1.
+
+      repeat break_match; try some_none.
+      repeat some_inv.
+      clear H0 H1.
+      rename n1 into xn0, n2 into yn0,
+             n  into xn1, n0 into yn1.
+
+      unfold memory_lookup, memory_set.
+      repeat (rewrite NP.F.add_eq_o by reflexivity).
+      constructor.
+      
+      unfold mem_add, equiv, mem_block_Equiv.
+      intros.
+      destruct (Nat.eq_dec yn0 k), (Nat.eq_dec yn1 k);
+        try (rewrite NP.F.add_eq_o with (x := yn0) by assumption);
+        try (rewrite NP.F.add_eq_o with (x := yn1) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := yn0) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := yn1) by assumption).
       *
-        unfold memory_lookup, memory_set, mem_add in *.
-        destruct (Nat.eq_dec m8 x1), (Nat.eq_dec m4 y1);
-          try rewrite NP.F.add_eq_o in * by assumption;
-          try rewrite NP.F.add_neq_o in * by assumption;
-          repeat some_inv.
-        unfold equiv, mem_block_Equiv; intro.
+        rewrite <-Heqo1, <-Heqo4.
+        rewrite XY0.
+        pose proof evalNExpr_context_equiv_at_TypeSig.
+        Search evalNexp.
+        specialize (H x_n σ0 σ1 tm TM CE).
+        rewrite Heqo2, Heqo in H.
+        some_inv.
+        inversion H; subst.
+        reflexivity.
+      *
+        
+        
 Admitted.
 
 Global Instance BinOp_DSH_pure
