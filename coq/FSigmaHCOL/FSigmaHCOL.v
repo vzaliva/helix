@@ -47,13 +47,16 @@ Require Import MathClasses.interfaces.orders.
 
 Definition FT_Rounding:mode := mode_NE.
 
+Definition Float64Zero : binary64 := B754_zero _ _ false.
+Program Definition Float64One : binary64 := Bone _ _ _ _ .
+Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
+Next Obligation. omega. Qed.
+
 Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
   Import MFloat64AasCT.
 
-  Definition CTypeZero : binary64 := B754_zero _ _ false.
-  Program Definition CTypeOne : binary64 := Bone _ _ _ _ .
-  Next Obligation. unfold FLX.Prec_gt_0. omega. Qed.
-  Next Obligation. omega. Qed.
+  Definition CTypeZero := Float64Zero.
+  Definition CTypeOne := Float64One.
 
   Definition CTypePlus     := b64_plus FT_Rounding.
   Definition CTypeNeg      := b64_opp.
