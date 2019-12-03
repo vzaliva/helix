@@ -32,6 +32,9 @@ Instance CarrierAequivdec: ∀ x y: CarrierA, Decision (x = y). Admitted.
 Instance CarrierASSO: @StrictSetoidOrder CarrierA CarrierAe CarrierAlt. Admitted.
 Instance CarrierASRO: @SemiRingOrder CarrierA CarrierAe CarrierAplus CarrierAmult CarrierAz CarrierA1 CarrierAle. Admitted.
 
+(* Zero and One are two distrinct values *)
+Axiom CarrierA_Z_neq_One: CarrierAz ≠ CarrierA1.
+
 Add Ring RingA: (stdlib_ring_theory CarrierA).
 
 Instance CarrierAPlus_proper:
