@@ -956,11 +956,106 @@ Section SigmaHCOL_rewriting.
 End SigmaHCOL_rewriting.
 
 Require Import Helix.FSigmaHCOL.ReifyDSHCOL.
+Require Import Coq.Bool.Sumbool.
+Require Import MathClasses.misc.decision.
 
 Section DHCOL_to_FHCOL.
   Definition dynwin_FSHCOL := DSCHOLtoFHCOL dynwin_DSHCOL1.
 
-  (* Set Printing All.
-  Redirect "dynwin_FSHCOL" Compute dynwin_FSHCOL.
-  *)
+  Lemma simplCarrierARefl:
+    forall a,
+      (CarrierAequivdec a a) ≡ left
+                             (@reflexivity
+                                (Zero CarrierA)
+                                (@equiv (Zero CarrierA) CarrierAe)
+                                (@Equivalence_Reflexive (Zero CarrierA)
+                                                        (@equiv (Zero CarrierA) CarrierAe)
+                                                        (@abstract_algebra.setoid_eq (Zero CarrierA) CarrierAe CarrierAsetoid))
+                                a
+                              : @equiv (Zero CarrierA) CarrierAe a a).
+  Proof.
+    intros a.
+    destruct (CarrierAequivdec a a) as [H|NH].
+    -
+      f_equiv.
+      apply proof_irrelevance.
+    -
+      contradict NH.
+      reflexivity.
+  Qed.
+
+  Lemma CarrierA_One_neq_Z: CarrierA1 ≠ CarrierAz.
+  Proof.
+    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    -
+      symmetry in H.
+      contradict H.
+      apply CarrierA_Z_neq_One.
+    -
+      assumption.
+  Qed.
+
+  Lemma simplCarrierA_Z_neq_One:
+    CarrierAequivdec CarrierAz CarrierA1 ≡ right CarrierA_Z_neq_One.
+  Proof.
+    destruct (CarrierAequivdec CarrierAz CarrierA1) as [H|NH].
+    -
+      contradict H.
+      apply CarrierA_Z_neq_One.
+    -
+      f_equiv.
+      apply proof_irrelevance.
+  Qed.
+
+  Lemma simplCarrierA_One_neq_Z:
+    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
+  Proof.
+    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    -
+      contradict H.
+      apply CarrierA_One_neq_Z.
+    -
+      f_equiv.
+      apply proof_irrelevance.
+  Qed.
+
+  Lemma simplCarrierA_One_eq_Z:
+    CarrierAequivdec CarrierA1 CarrierAz ≡ right CarrierA_One_neq_Z.
+  Proof.
+    destruct (CarrierAequivdec CarrierA1 CarrierAz) as [H|NH].
+    -
+      contradict H.
+      apply CarrierA_One_neq_Z.
+    -
+      f_equiv.
+      apply proof_irrelevance.
+  Qed.
+
+  Hint Rewrite
+       simplCarrierA_Z_neq_One
+       simplCarrierA_Z_neq_One
+       simplCarrierA_One_eq_Z
+       simplCarrierARefl:
+    CarrierAZ1equalities.
+
+  Import FSigmaHCOL.MDSHCOLOnFloat64.
+  Import DSHNotation.
+
+  Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
+  Proof.
+    remember dynwin_FSHCOL as a eqn:H.
+    Opaque FSigmaHCOL.Float64Zero.
+    Opaque FSigmaHCOL.Float64One.
+    cbv in H.
+    autorewrite with CarrierAZ1equalities in H.
+    cbv in H.
+    destruct a.
+    Helix.Util.OptionSetoid.some_inv.
+    -
+      Redirect "dynwin_FSHCOL" Show 1.
+      exact d.
+    - inversion H.
+  Defined.
+
+
 End DHCOL_to_FHCOL.
