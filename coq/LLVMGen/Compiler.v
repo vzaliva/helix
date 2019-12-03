@@ -1,7 +1,6 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
-Require Import Helix.FSigmaHCOL.FSigmaHCOLEval.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
@@ -26,26 +25,18 @@ Open Scope monad_scope.
 Set Implicit Arguments.
 Set Strict Implicit.
 
-Definition FloatTtyp (ft: FloatT) : typ :=
-  match ft with
-  | Float32 => TYPE_Float
-  | Float64 => TYPE_Double
-  end.
+Import MDSHCOLOnFloat64.
 
-Definition SizeofFloatT (ft:FloatT): nat :=
-  match ft with
-  | Float32 => 4
-  | Float64 => 8
-  end.
+Definition SizeofFloatT := 8.
 
-Definition getIRType
-           {ft: FloatT}
-           (t: @FSHValType ft): typ :=
-  match t with
-  | FSHnatValType => IntType
-  | FSHFloatValType => FloatTtyp ft
-  | FSHvecValType n => TYPE_Array (Z.of_nat n) (FloatTtyp ft)
-  end.
+Definition getIRType (t:DSHType): typ
+  :=match t with
+    | DSHnat => IntType
+    | DSHCType => TYPE_Double
+    | DSHMemBlock n => TYPE_Array (Z.of_nat n) TYPE_Double
+    | DSHPtr => _
+    end.
+
 
 Definition genIRGlobals
            {ft: FloatT}
