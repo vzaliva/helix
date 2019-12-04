@@ -11,6 +11,8 @@ Require Import Vellvm.Numeric.Floats.
 Require Import Vellvm.LLVMAst.
 
 Require Import Flocq.IEEE754.Binary.
+Require Import Flocq.IEEE754.Bits.
+
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
@@ -27,24 +29,28 @@ Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
 
+(* 64-bit IEEE floats *)
 Definition SizeofFloatT := 8.
 
-Definition getIRType (t:DSHType): typ
-  :=match t with
-    | DSHnat => IntType
-    | DSHCType => TYPE_Double
-    | DSHMemBlock n => TYPE_Array (Z.of_nat n) TYPE_Double
-    | DSHPtr => _
-    end.
+(* Type of values. Used for global variables *)
+Inductive FSHValType :=
+| FSHnatValType       :FSHValType
+| FSHFloatValType     :FSHValType
+| FSHvecValType (n:nat) :FSHValType.
 
+Definition getIRType (t: FSHValType): typ :=
+  match t with
+  | FSHnatValType => IntType
+  | FSHFloatValType => TYPE_Double
+  | FSHvecValType n => TYPE_Array (Z.of_nat n) TYPE_Double
+  end.
 
 Definition genIRGlobals
-           {ft: FloatT}
            {FnBody: Set}
-           (x: list (string* (@FSHValType ft)))
+           (x: list (string*FSHValType))
   : list (toplevel_entity _ FnBody)
   := let l := List.map
-       (fun g:(string * (@FSHValType ft)) =>
+       (fun g:(string * FSHValType) =>
           let (n,t) := g in
           TLE_Global {|
               g_ident        := Name n;
@@ -198,14 +204,12 @@ Section monadic.
           |}.
 
   Definition allocTempArrayCode
-             {ft: FloatT}
              (name: local_id)
              (size: nat): (code typ)
     :=
-      [(IId name, INSTR_Alloca (getIRType (@FSHvecValType ft size)) None (Some PtrAlignment))].
+      [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))].
 
   Definition allocTempArrayBlock
-             {ft: FloatT}
              (st: IRState)
              (name: local_id)
              (nextblock: block_id)
@@ -217,7 +221,7 @@ Section monadic.
        {|
          blk_id    := bid ;
          blk_phis  := [];
-         blk_code  := @allocTempArrayCode ft name size;
+         blk_code  := @allocTempArrayCode name size;
          blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
          blk_comments := None
        |}).
@@ -230,14 +234,13 @@ Section monadic.
     end.
 
   Fixpoint genNExpr
-           {ft: FloatT}
            (st: IRState)
-           (nexp: @NExpr ft) :
+           (nexp: NExpr) :
     m (IRState * (exp typ) * (code typ))
     :=
       let gen_binop a b iop :=
-          '(st, aexp, acode) <- @genNExpr ft st a ;;
-           '(st, bexp, bcode) <- @genNExpr ft st b ;;
+          '(st, aexp, acode) <- @genNExpr st a ;;
+           '(st, bexp, bcode) <- @genNExpr st b ;;
            let '(st, res) := incLocal st in
            ret (st,
                 EXP_Ident (ID_Local res),
@@ -277,58 +280,54 @@ Section monadic.
       | NMax   a b => raise "NMax not implemented" (* TODO *)
       end.
 
-  Definition genVExpr
-             {n:nat}
-             {ft: FloatT}
+
+  Definition genMExpr
              (st: IRState)
-             (vexp: @VExpr ft n) :
-    m (IRState * (exp typ) * (code typ))
-    := match vexp with
-       | VVar n x => '(i,t) <- opt2err "VVar out of range" (List.nth_error (vars st) n) ;;
-                     match t, ft with
-                     | TYPE_Pointer (TYPE_Array zi TYPE_Double), Float64 | TYPE_Pointer (TYPE_Array zi TYPE_Float), Float32 =>
-                       if Z.eq_dec (Z.of_nat n) zi then
-                         ret (st, EXP_Ident i, [])
-                       else
-                         raise "VVar array size mismatch"
-                     | _,_ => raise "VVar type mismatch"
-                     end
-       | VConst n c => raise "VConst not implemented" (* TODO *)
+             (mexp: MExpr)
+    :
+      m (IRState * (exp typ) * (code typ) * typ)
+    := match mexp with
+       | MVar x => '(i,t) <- opt2err "MVar out of range" (List.nth_error (vars st) x) ;;
+                   match t with
+                   | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
+                       ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
+                   | _ => raise "MVar type mismatch"
+                   end
+       | MConst c => raise "MConst not implemented" (* TODO *)
        end.
 
-  Fixpoint genFExpr
-           {ft: FloatT}
+  Fixpoint genAExpr
            (st: IRState)
-           (fexp: @FExpr ft) :
+           (fexp: AExpr) :
     m (IRState * (exp typ) * (code typ))
     :=
       let gen_binop a b fop :=
-          '(st, aexp, acode) <- genFExpr st a ;;
-           '(st, bexp, bcode) <- genFExpr st b ;;
+          '(st, aexp, acode) <- genAExpr st a ;;
+           '(st, bexp, bcode) <- genAExpr st b ;;
            let '(st, res) := incLocal st in
            ret (st,
                 EXP_Ident (ID_Local res),
                 acode ++ bcode ++
                       [(IId res, INSTR_Op (OP_FBinop fop
                                                      [] (* TODO: list fast_math *)
-                                                     (FloatTtyp ft)
+                                                     TYPE_Double
                                                      aexp
                                                      bexp))
                ]) in
       let gen_call1 a f :=
-          '(st, aexp, acode) <- @genFExpr ft st a ;;
+          '(st, aexp, acode) <- genAExpr st a ;;
            let '(st, res) := incLocal st in
-           let ftyp := FloatTtyp ft in
+           let ftyp := TYPE_Double in
            ret (st,
                 EXP_Ident (ID_Local res),
                 acode ++
                       [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
                ]) in
       let gen_call2 a b f :=
-          '(st, aexp, acode) <- genFExpr st a ;;
-           '(st, bexp, bcode) <- genFExpr st b ;;
+          '(st, aexp, acode) <- genAExpr st a ;;
+           '(st, bexp, bcode) <- genAExpr st b ;;
            let '(st, res) := incLocal st in
-           let ftyp := FloatTtyp ft in
+           let ftyp := TYPE_Double in
            ret (st,
                 EXP_Ident (ID_Local res),
                 acode ++ bcode ++
@@ -337,24 +336,22 @@ Section monadic.
                ]) in
       match fexp with
       | AVar n => '(i,t) <- opt2err "AVar out of range" (List.nth_error (vars st) n) ;;
-                  match t, ft with
-                  | TYPE_Double, Float64 | TYPE_Float, Float32 => ret (st, EXP_Ident i, [])
-                  | TYPE_Pointer TYPE_Double, Float64 | TYPE_Pointer TYPE_Float, Float32 =>
+                  match t with
+                  | TYPE_Double => ret (st, EXP_Ident i, [])
+                  | TYPE_Pointer TYPE_Double =>
                     let '(st, res) := incLocal st in
                     ret (st, EXP_Ident (ID_Local res),
-                         [(IId res, INSTR_Load false (FloatTtyp ft)
-                                               (TYPE_Pointer (FloatTtyp ft),
+                         [(IId res, INSTR_Load false TYPE_Double
+                                               (TYPE_Pointer TYPE_Double,
                                                 (EXP_Ident i))
                                                (ret 8%Z))])
-                  | _,_ => raise "AVar type mismatch"
+                  | _ => raise "AVar type mismatch"
                   end
-      | AConst (Float64V v) => ret (st, EXP_Double v, [])
-      | AConst (Float32V v) => ret (st, EXP_Float v, [])
-      | ANth n vec i =>
+      | AConst v => ret (st, EXP_Double v, [])
+      | ANth vec i =>
         '(st, iexp, icode) <- genNExpr st i ;;
-         '(st, vexp, vcode) <- genVExpr st vec ;;
+         '(st, vexp, vcode, xtyp) <- genMExpr st vec ;;
          let '(st, px) := incLocal st in
-         let xtyp := getIRType (@FSHvecValType ft n) in
          let xptyp := TYPE_Pointer xtyp in
          let '(st, res) := incLocal st in
          ret (st, EXP_Ident (ID_Local res),
@@ -366,27 +363,21 @@ Section monadic.
                                                (IntType, iexp)]
 
                       )) ;
-                        (IId res, INSTR_Load false (FloatTtyp ft)
-                                             (TYPE_Pointer (FloatTtyp ft),
+                        (IId res, INSTR_Load false TYPE_Double
+                                             (TYPE_Pointer TYPE_Double,
                                               (EXP_Ident (ID_Local px)))
                                              (ret 8%Z))
              ])
-      | AAbs a => match ft with
-                 | Float32 => gen_call1 a (intrinsic_exp fabs_32_decl)
-                 | Float64 => gen_call1 a (intrinsic_exp fabs_64_decl)
-                 end
+      | AAbs a => gen_call1 a (intrinsic_exp fabs_64_decl)
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
       | AMin a b => raise "AMin not implemented" (* TODO *)
-      | AMax a b => match ft with
-                   | Float32 => gen_call2 a b (intrinsic_exp maxnum_32_decl)
-                   | Float64 => gen_call2 a b (intrinsic_exp maxnum_64_decl)
-                   end
+      | AMax a b => gen_call2 a b (intrinsic_exp maxnum_64_decl)
       | AZless a b =>
         (* this is special as requires bool -> double cast *)
-        '(st, aexp, acode) <- genFExpr st a ;;
-         '(st, bexp, bcode) <- genFExpr st b ;;
+        '(st, aexp, acode) <- genAExpr st a ;;
+         '(st, bexp, bcode) <- genAExpr st b ;;
          let '(st, ires) := incLocal st in
          let '(st, fres) := incLocal st in
          let '(st, void0) := incVoid st in
@@ -394,7 +385,7 @@ Section monadic.
               EXP_Ident (ID_Local fres),
               acode ++ bcode ++
                     [(IId ires, INSTR_Op (OP_FCmp FOlt
-                                                  (FloatTtyp ft)
+                                                  TYPE_Double
                                                   aexp
                                                   bexp));
                        (IVoid void0, INSTR_Comment "Cast bool to float") ;
@@ -402,7 +393,7 @@ Section monadic.
                                               Uitofp
                                               (TYPE_I 1%Z)
                                               (EXP_Ident (ID_Local ires))
-                                              (FloatTtyp ft)))
+                                              TYPE_Double))
              ])
       end.
 
@@ -411,7 +402,6 @@ Section monadic.
 
   Definition genId
              (o: nat)
-             (ft: FloatT)
              (st: IRState)
              (x y: local_id)
              (nextblock: block_id)
@@ -423,9 +413,9 @@ Section monadic.
       let '(st, xb) := incLocal st in
       let '(st, yb) := incLocal st in
       let oz := (Z.of_nat o) in
-      let atyp := TYPE_Pointer (TYPE_Array oz (FloatTtyp ft)) in
+      let atyp := TYPE_Pointer (TYPE_Array oz TYPE_Double) in
       let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
-      let len:Z := Z.of_nat (o * (SizeofFloatT ft)) in
+      let len:Z := Z.of_nat (o * SizeofFloatT) in
       let i32 := TYPE_I 32%Z in
       let i1 := TYPE_I 1%Z in
       ret (st , (entryblock, [
@@ -461,10 +451,9 @@ Section monadic.
 
   Definition genFSHPick
              {o: nat}
-             {ft: FloatT}
              (st: IRState)
              (x y: local_id)
-             (b: @NExpr ft)
+             (b: NExpr)
              (nextblock: block_id)
     : m (IRState * segment)
     :=
@@ -474,9 +463,9 @@ Section monadic.
       let '(st, px) := incLocal st in
       let '(st, py) := incLocal st in
       let '(st, v) := incLocal st in
-      let xtyp := getIRType (@FSHvecValType ft 1) in
+      let xtyp := getIRType (FSHvecValType 1) in
       let xptyp := TYPE_Pointer xtyp in
-      let ytyp := getIRType (@FSHvecValType ft o) in
+      let ytyp := getIRType (FSHvecValType o) in
       let yptyp := TYPE_Pointer ytyp in
       '(st, nexpr, nexpcode) <- genNExpr st b  ;;
        ret (st , (entryblock, [
@@ -490,8 +479,8 @@ Section monadic.
                                                                        (IntType, EXP_Integer 0%Z)]
 
                                               )) ;
-                                                (IId v, INSTR_Load false (FloatTtyp ft)
-                                                                   (TYPE_Pointer (FloatTtyp ft),
+                                                (IId v, INSTR_Load false TYPE_Double
+                                                                   (TYPE_Pointer TYPE_Double,
                                                                     (EXP_Ident (ID_Local px)))
                                                                    (ret 8%Z));
 
@@ -503,8 +492,8 @@ Section monadic.
                                                 ));
 
                                                 (IVoid storeid, INSTR_Store false
-                                                                            ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
-                                                                            (TYPE_Pointer (FloatTtyp ft),
+                                                                            (TYPE_Double, (EXP_Ident (ID_Local v)))
+                                                                            (TYPE_Pointer TYPE_Double,
                                                                              (EXP_Ident (ID_Local py)))
                                                                             (ret 8%Z))
 
@@ -517,10 +506,9 @@ Section monadic.
   (* AKA "pick" *)
   Definition genFSHEmbed
              {i:nat}
-             {ft: FloatT}
              (st: IRState)
              (x y: local_id)
-             (b: @NExpr ft)
+             (b: NExpr)
              (nextblock: block_id)
     : m (IRState * segment)
     :=
@@ -530,9 +518,9 @@ Section monadic.
       let '(st, px) := incLocal st in
       let '(st, py) := incLocal st in
       let '(st, v) := incLocal st in
-      let xtyp := getIRType (@FSHvecValType ft i) in
+      let xtyp := getIRType (FSHvecValType i) in
       let xptyp := TYPE_Pointer xtyp in
-      let ytyp := getIRType (@FSHvecValType ft 1) in
+      let ytyp := getIRType (FSHvecValType 1) in
       let yptyp := TYPE_Pointer ytyp in
       '(st, nexpr, nexpcode) <- genNExpr st b  ;;
        ret (st , (entryblock, [
@@ -546,8 +534,8 @@ Section monadic.
                                                                        (IntType, nexpr)]
 
                                               )) ;
-                                                (IId v, INSTR_Load false (FloatTtyp ft)
-                                                                   (TYPE_Pointer (FloatTtyp ft),
+                                                (IId v, INSTR_Load false TYPE_Double
+                                                                   (TYPE_Pointer TYPE_Double,
                                                                     (EXP_Ident (ID_Local px)))
                                                                    (ret 8%Z));
 
@@ -559,8 +547,8 @@ Section monadic.
                                                 ));
 
                                                 (IVoid storeid, INSTR_Store false
-                                                                            ((FloatTtyp ft), (EXP_Ident (ID_Local v)))
-                                                                            (TYPE_Pointer (FloatTtyp ft),
+                                                                            (TYPE_Double, (EXP_Ident (ID_Local v)))
+                                                                            (TYPE_Pointer TYPE_Double,
                                                                              (EXP_Ident (ID_Local py)))
                                                                             (ret 8%Z))
 
@@ -657,9 +645,8 @@ Section monadic.
 
   Definition genHTSUMUnionpBody
              {n: nat}
-             {ft: FloatT}
              (a b y: local_id)
-             (f:@FSHBinFloat ft)
+             (f:AExpr)
              (st: IRState)
              (loopvar: raw_id)
              (nextblock: block_id)
@@ -673,11 +660,11 @@ Section monadic.
       let '(st, py) := incLocal st in
       let '(st, va) := incLocal st in
       let '(st, vb) := incLocal st in
-      let xytyp := getIRType (@FSHvecValType ft n) in
+      let xytyp := getIRType (FSHvecValType n) in
       let xyptyp := TYPE_Pointer xytyp in
       let loopvarid := ID_Local loopvar in
-      let st := addVars st [(ID_Local va, (FloatTtyp ft)); (ID_Local vb, (FloatTtyp ft))] in
-      '(st, fexpr, fexpcode) <- genFExpr st f ;;
+      let st := addVars st [(ID_Local va, TYPE_Double); (ID_Local vb, TYPE_Double)] in
+      '(st, fexpr, fexpcode) <- genAExpr st f ;;
        st <- dropVars st 2 ;;
        ret (st,
             (pwblock,
@@ -693,8 +680,8 @@ Section monadic.
 
                                ));
 
-                                 (IId va, INSTR_Load false (FloatTtyp ft)
-                                                     (TYPE_Pointer (FloatTtyp ft),
+                                 (IId va, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
                                                       (EXP_Ident (ID_Local pa)))
                                                      (ret 8%Z));
 
@@ -705,8 +692,8 @@ Section monadic.
 
                                  ));
 
-                                 (IId vb, INSTR_Load false (FloatTtyp ft)
-                                                     (TYPE_Pointer (FloatTtyp ft),
+                                 (IId vb, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
                                                       (EXP_Ident (ID_Local pb)))
                                                      (ret 8%Z))
                              ]
@@ -721,8 +708,8 @@ Section monadic.
                                   ));
 
                                     (IVoid storeid, INSTR_Store false
-                                                                ((FloatTtyp ft), fexpr)
-                                                                (TYPE_Pointer (FloatTtyp ft),
+                                                                (TYPE_Double, fexpr)
+                                                                (TYPE_Pointer TYPE_Double,
                                                                  (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
@@ -735,9 +722,8 @@ Section monadic.
 
   Definition genPointwiseBody
              {n: nat}
-             {ft: FloatT}
              (x y: local_id)
-             (f:@FSHIUnFloat ft)
+             (f: AExpr)
              (st: IRState)
              (loopvar: raw_id)
              (nextblock: block_id)
@@ -749,11 +735,11 @@ Section monadic.
       let '(st, px) := incLocal st in
       let '(st, py) := incLocal st in
       let '(st, v) := incLocal st in
-      let xytyp := getIRType (@FSHvecValType ft n) in
+      let xytyp := getIRType (FSHvecValType n) in
       let xyptyp := TYPE_Pointer xytyp in
       let loopvarid := ID_Local loopvar in
-      let st := addVars st [(ID_Local v, (FloatTtyp ft)); (loopvarid, IntType)] in
-      '(st, fexpr, fexpcode) <- genFExpr st f ;;
+      let st := addVars st [(ID_Local v, TYPE_Double); (loopvarid, IntType)] in
+      '(st, fexpr, fexpcode) <- genAExpr st f ;;
        st <- dropVars st 2 ;;
        ret (st,
             (pwblock,
@@ -769,8 +755,8 @@ Section monadic.
 
                                ));
 
-                                 (IId v, INSTR_Load false (FloatTtyp ft)
-                                                    (TYPE_Pointer (FloatTtyp ft),
+                                 (IId v, INSTR_Load false TYPE_Double
+                                                    (TYPE_Pointer TYPE_Double,
                                                      (EXP_Ident (ID_Local px)))
                                                     (ret 8%Z))
                              ]
@@ -785,8 +771,8 @@ Section monadic.
                                   ));
 
                                     (IVoid storeid, INSTR_Store false
-                                                                ((FloatTtyp ft), fexpr)
-                                                                (TYPE_Pointer (FloatTtyp ft),
+                                                                (TYPE_Double, fexpr)
+                                                                (TYPE_Pointer TYPE_Double,
                                                                  (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
@@ -799,9 +785,8 @@ Section monadic.
 
   Definition genBinOpBody
              {n: nat}
-             {ft: FloatT}
              (x y: local_id)
-             (f:@FSHIBinFloat ft)
+             (f: AExpr)
              (st: IRState)
              (loopvar: raw_id)
              (nextblock: block_id)
@@ -816,13 +801,13 @@ Section monadic.
       let '(st, py) := incLocal st in
       let '(st, v0) := incLocal st in
       let '(st, v1) := incLocal st in
-      let xtyp := getIRType (@FSHvecValType ft (n+n)) in
+      let xtyp := getIRType (FSHvecValType (n+n)) in
       let xptyp := TYPE_Pointer xtyp in
-      let ytyp := getIRType (@FSHvecValType ft n) in
+      let ytyp := getIRType (FSHvecValType n) in
       let yptyp := TYPE_Pointer ytyp in
       let loopvarid := ID_Local loopvar in
-      let st := addVars st [(ID_Local v1, (FloatTtyp ft)); (ID_Local v0, (FloatTtyp ft)); (loopvarid, IntType)] in
-      '(st, fexpr, fexpcode) <- genFExpr st f ;;
+      let st := addVars st [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] in
+      '(st, fexpr, fexpcode) <- genAExpr st f ;;
        st <- dropVars st 3 ;;
        ret (st,
             (binopblock,
@@ -838,8 +823,8 @@ Section monadic.
 
                                ));
 
-                                 (IId v0, INSTR_Load false (FloatTtyp ft)
-                                                     (TYPE_Pointer (FloatTtyp ft),
+                                 (IId v0, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
                                                       (EXP_Ident (ID_Local px0)))
                                                      (ret 8%Z));
 
@@ -856,8 +841,8 @@ Section monadic.
 
                                  ));
 
-                                 (IId v1, INSTR_Load false (FloatTtyp ft)
-                                                     (TYPE_Pointer (FloatTtyp ft),
+                                 (IId v1, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
                                                       (EXP_Ident (ID_Local px1)))
                                                      (ret 8%Z))
                              ]
@@ -873,8 +858,8 @@ Section monadic.
                                   ));
 
                                     (IVoid storeid, INSTR_Store false
-                                                                ((FloatTtyp ft), fexpr)
-                                                                (TYPE_Pointer (FloatTtyp ft),
+                                                                (TYPE_Double, fexpr)
+                                                                (TYPE_Pointer TYPE_Double,
                                                                  (EXP_Ident (ID_Local py)))
                                                                 (ret 8%Z))
 
@@ -885,27 +870,24 @@ Section monadic.
                |}
            ])).
 
-  Definition genFloatV {ft:FloatT} (fv:@FloatV ft) : (exp typ) :=
-    match fv with
-    | Float32V b32 => EXP_Float b32
-    | Float64V b64 => EXP_Double b64
-    end.
+  Definition genFloatV (fv:binary64) : (exp typ) :=
+    EXP_Double fv.
 
   (* !!!TODO: this may be wrong! We initializint [t] while we must intialize [y] *)
   Definition genIReductionInit
              {i o: nat}
-             {ft: FloatT}
              (n: nat)
              (t: raw_id)
              (x y: local_id)
-             (dot: @FSHBinFloat ft) (initial: FloatV ft)
+             (dot: AExpr)
+             (initial: binary64)
              (st: IRState)
              (nextblock: block_id):
     m (IRState * segment)
     :=
       let ini := genFloatV initial in
-      let tmpalloc := @allocTempArrayCode ft t o in
-      let ttyp := getIRType (@FSHvecValType ft o) in
+      let tmpalloc := @allocTempArrayCode t o in
+      let ttyp := getIRType (FSHvecValType o) in
       let tptyp := TYPE_Pointer ttyp in
       let '(st, pt) := incLocal st in
       let '(st, init_block_id) := incBlockNamed st "IReduction_init" in
@@ -926,8 +908,8 @@ Section monadic.
                           ));
 
                             (IVoid storeid, INSTR_Store false
-                                                        ((FloatTtyp ft), ini)
-                                                        (TYPE_Pointer (FloatTtyp ft),
+                                                        (TYPE_Double, ini)
+                                                        (TYPE_Pointer TYPE_Double,
                                                          (EXP_Ident (ID_Local pt)))
                                                         (ret 8%Z))
 
@@ -941,15 +923,14 @@ Section monadic.
 
   Definition genIReductionFold
              {i o n: nat}
-             {ft: FloatT}
              (y t: local_id)
-             (dot: @FSHBinFloat ft)
+             (dot: AExpr)
              (st: IRState)
              (nextblock: block_id): m (IRState * segment)
     :=
-      let ttyp := getIRType (@FSHvecValType ft o) in
+      let ttyp := getIRType (FSHvecValType o) in
       let tptyp := TYPE_Pointer ttyp in
-      let ytyp := getIRType (@FSHvecValType ft o) in
+      let ytyp := getIRType (FSHvecValType o) in
       let yptyp := TYPE_Pointer ytyp in
       let '(st, pt) := incLocal st in
       let '(st, py) := incLocal st in
@@ -960,8 +941,8 @@ Section monadic.
       let '(st, loopvar) := incLocalNamed st "IReduction_fold_i" in
       let '(st, storeid) := incVoid st in
       let '(st, void0) := incVoid st in
-      let st := addVars st [(ID_Local tv, (FloatTtyp ft)); (ID_Local yv, (FloatTtyp ft))] in
-      '(st, fexpr, fexpcode) <- genFExpr st dot ;;
+      let st := addVars st [(ID_Local tv, TYPE_Double); (ID_Local yv, TYPE_Double)] in
+      '(st, fexpr, fexpcode) <- genAExpr st dot ;;
        st <- dropVars st 2 ;;
        let fold_block :=
            {|
@@ -982,20 +963,20 @@ Section monadic.
 
                              ));
 
-                             (IId tv, INSTR_Load false (FloatTtyp ft)
-                                                 (TYPE_Pointer (FloatTtyp ft),
+                             (IId tv, INSTR_Load false TYPE_Double
+                                                 (TYPE_Pointer TYPE_Double,
                                                   (EXP_Ident (ID_Local pt)))
                                                  (ret 8%Z));
-                             (IId yv, INSTR_Load false (FloatTtyp ft)
-                                                 (TYPE_Pointer (FloatTtyp ft),
+                             (IId yv, INSTR_Load false TYPE_Double
+                                                 (TYPE_Pointer TYPE_Double,
                                                   (EXP_Ident (ID_Local py)))
                                                  (ret 8%Z))
 
                          ] ++ fexpcode ++  [
 
                              (IVoid storeid, INSTR_Store false
-                                                         ((FloatTtyp ft), fexpr)
-                                                         (TYPE_Pointer (FloatTtyp ft),
+                                                         (TYPE_Double, fexpr)
+                                                         (TYPE_Pointer TYPE_Double,
                                                           (EXP_Ident (ID_Local py)))
                                                          (ret 8%Z))
 
@@ -1006,17 +987,16 @@ Section monadic.
        genWhileLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
   Definition genFSHInductor
-             {ft: FloatT}
              (x y: local_id)
-             (n: @NExpr ft)
-             (f: @FSHBinFloat ft)
-             (initial: @FloatV ft)
+             (n: NExpr)
+             (f: AExpr)
+             (initial: binary64)
              (st: IRState)
              (nextblock: block_id): m (IRState * segment)
     :=
       let '(st, loopcontblock) := incBlockNamed st "Inductor_lcont" in
       let '(st, loopvar) := incLocalNamed st "Inductor_i" in
-      let xytyp := getIRType (@FSHvecValType ft 1) in
+      let xytyp := getIRType (FSHvecValType 1) in
       let xyptyp := TYPE_Pointer xytyp in
       let '(st, py) := incLocal st in
       let '(st, storeid0) := incVoid st in
@@ -1032,8 +1012,8 @@ Section monadic.
                                 ));
 
                                   (IVoid storeid0, INSTR_Store false
-                                                               ((FloatTtyp ft), ini)
-                                                               (TYPE_Pointer (FloatTtyp ft),
+                                                               (TYPE_Double, ini)
+                                                               (TYPE_Pointer TYPE_Double,
                                                                 (EXP_Ident (ID_Local py)))
                                                                (ret 8%Z))
 
@@ -1045,8 +1025,8 @@ Section monadic.
        let '(st, px) := incLocal st in
        let '(st, yv) := incLocal st in
        let '(st, xv) := incLocal st in
-       let st := addVars st [(ID_Local yv, (FloatTtyp ft)); (ID_Local xv, (FloatTtyp ft))] in
-       '(st, fexpr, fexpcode) <- genFExpr st f ;;
+       let st := addVars st [(ID_Local yv, TYPE_Double); (ID_Local xv, TYPE_Double)] in
+       '(st, fexpr, fexpcode) <- genAExpr st f ;;
         st <- dropVars st 2 ;;
         let body_block := {|
               blk_id    := body_block_id ;
@@ -1058,20 +1038,20 @@ Section monadic.
                                                      (IntType,EXP_Integer 0%Z)]
 
                             ));
-                              (IId yv, INSTR_Load false (FloatTtyp ft)
-                                                  (TYPE_Pointer (FloatTtyp ft),
+                              (IId yv, INSTR_Load false TYPE_Double
+                                                  (TYPE_Pointer TYPE_Double,
                                                    (EXP_Ident (ID_Local py)))
                                                   (ret 8%Z));
-                              (IId xv, INSTR_Load false (FloatTtyp ft)
-                                                  (TYPE_Pointer (FloatTtyp ft),
+                              (IId xv, INSTR_Load false TYPE_Double
+                                                  (TYPE_Pointer TYPE_Double,
                                                    (EXP_Ident (ID_Local px)))
                                                   (ret 8%Z))
                           ]
                              ++ fexpcode ++
                              [
                                (IVoid storeid1, INSTR_Store false
-                                                            ((FloatTtyp ft), fexpr)
-                                                            (TYPE_Pointer (FloatTtyp ft),
+                                                            (TYPE_Double, fexpr)
+                                                            (TYPE_Pointer TYPE_Double,
                                                              (EXP_Ident (ID_Local py)))
                                                             (ret 8%Z))
                              ];
@@ -1081,10 +1061,9 @@ Section monadic.
         genWhileLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
 
   Fixpoint genIR
-           {i o: nat}
-           {ft: FloatT}
+           (i o: nat)
            (x y: local_id)
-           (fshcol: @FSHOperator ft i o)
+           (fshcol: DSHOperator)
            (st: IRState)
            (nextblock: block_id):
     m (IRState * segment)
@@ -1186,9 +1165,9 @@ Section monadic.
     : m (toplevel_entities typ (list (block typ)))
     :=
       let x := Name "X" in
-      let xtyp := TYPE_Pointer (getIRType (@FSHvecValType ft i)) in
+      let xtyp := TYPE_Pointer (getIRType (FSHvecValType i)) in
       let y := Name "Y" in
-      let ytyp := TYPE_Pointer (getIRType (@FSHvecValType ft o)) in
+      let ytyp := TYPE_Pointer (getIRType (FSHvecValType o)) in
       let st := newState in
 
       let st :=
