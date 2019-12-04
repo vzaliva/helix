@@ -2485,12 +2485,18 @@ Proof.
       auto.
       auto.
 Qed.
+
+Import RingMicromega. (* for map_option2 *)
  
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
-       (tm : TypeSig)
-       (TM : TypeSigNExpr x_n = Some tm /\ TypeSigNExpr y_n = Some tm)
+       (tm' : TypeSig)
+       `{TM : (TypeSigUnion_error tm') =<<
+                                       map_option2 TypeSigUnion_error
+                                         (TypeSigNExpr x_n)
+                                         (TypeSigNExpr y_n)
+              = Some tm}
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) tm x_p y_p.
 Proof.
@@ -2550,18 +2556,25 @@ Proof.
       *
         rewrite <-Heqo1, <-Heqo4.
         rewrite XY0.
-        pose proof evalNExpr_context_equiv_at_TypeSig.
-
-(*
-        Search evalNexp.
-        specialize (H x_n σ0 σ1 tm TM CE).
-        rewrite Heqo2, Heqo in H.
-        some_inv.
-        inversion H; subst.
+        replace xn1 with xn0.
         reflexivity.
+        enough (Some xn0 = Some xn1) by (inversion H; congruence).
+        rewrite <-Heqo, <-Heqo2.
+        clear - TM CE.
+        unfold map_option2 in TM.
+        cbn in TM.
+        repeat break_match; try some_none.
+        eapply evalNExpr_context_equiv_at_TypeSig'.
+        rewrite Heqo0.
+        cbn.
+        apply Option_equiv_eq in Heqo.
+        rewrite TypeSigUnion_error_sym in Heqo.
+        eassumption.
+        unfold TypeSigUnion_error in TM; break_if; try some_none; some_inv.
+        rewrite <-TM in CE.
+        eapply context_equiv_at_TypeSigUnion_right; eassumption.
       *
-*)
-        
+        admit.
 Admitted.
 
 Global Instance BinOp_DSH_pure
