@@ -400,7 +400,7 @@ Section monadic.
   (* List of blocks with entry point *)
   Definition segment:Type := block_id * list (block typ).
 
-  Definition genId
+  Definition genFSHMemCopy
              (o: nat)
              (st: IRState)
              (x y: local_id)
