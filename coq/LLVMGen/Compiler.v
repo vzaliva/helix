@@ -449,70 +449,15 @@ Section monadic.
                    |}
           ])).
 
-  Definition genFSHPick
-             {o: nat}
+  Definition genFSHAssign
+             (i o: nat)
              (st: IRState)
              (x y: local_id)
-             (b: NExpr)
+             (src dst: NExpr)
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, entryblock) := incBlockNamed st "Pick" in
-      let '(st, retentry) := incVoid st in
-      let '(st, storeid) := incVoid st in
-      let '(st, px) := incLocal st in
-      let '(st, py) := incLocal st in
-      let '(st, v) := incLocal st in
-      let xtyp := getIRType (FSHvecValType 1) in
-      let xptyp := TYPE_Pointer xtyp in
-      let ytyp := getIRType (FSHvecValType o) in
-      let yptyp := TYPE_Pointer ytyp in
-      '(st, nexpr, nexpcode) <- genNExpr st b  ;;
-       ret (st , (entryblock, [
-                    {|
-                      blk_id    := entryblock ;
-                      blk_phis  := [];
-                      blk_code  := nexpcode ++ [
-                                              (IId px,  INSTR_Op (OP_GetElementPtr
-                                                                    xtyp (xptyp, (EXP_Ident (ID_Local x)))
-                                                                    [(IntType, EXP_Integer 0%Z);
-                                                                       (IntType, EXP_Integer 0%Z)]
-
-                                              )) ;
-                                                (IId v, INSTR_Load false TYPE_Double
-                                                                   (TYPE_Pointer TYPE_Double,
-                                                                    (EXP_Ident (ID_Local px)))
-                                                                   (ret 8%Z));
-
-                                                (IId py,  INSTR_Op (OP_GetElementPtr
-                                                                      ytyp (yptyp, (EXP_Ident (ID_Local y)))
-                                                                      [(IntType, EXP_Integer 0%Z);
-                                                                         (IntType, nexpr)]
-
-                                                ));
-
-                                                (IVoid storeid, INSTR_Store false
-                                                                            (TYPE_Double, (EXP_Ident (ID_Local v)))
-                                                                            (TYPE_Pointer TYPE_Double,
-                                                                             (EXP_Ident (ID_Local py)))
-                                                                            (ret 8%Z))
-
-                                            ];
-                      blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
-                      blk_comments := None
-                    |}
-           ])).
-
-  (* AKA "pick" *)
-  Definition genFSHEmbed
-             {i:nat}
-             (st: IRState)
-             (x y: local_id)
-             (b: NExpr)
-             (nextblock: block_id)
-    : m (IRState * segment)
-    :=
-      let '(st, entryblock) := incBlockNamed st "Embed" in
+      let '(st, entryblock) := incBlockNamed st "Assign" in
       let '(st, retentry) := incVoid st in
       let '(st, storeid) := incVoid st in
       let '(st, px) := incLocal st in
@@ -520,18 +465,19 @@ Section monadic.
       let '(st, v) := incLocal st in
       let xtyp := getIRType (FSHvecValType i) in
       let xptyp := TYPE_Pointer xtyp in
-      let ytyp := getIRType (FSHvecValType 1) in
+      let ytyp := getIRType (FSHvecValType o) in
       let yptyp := TYPE_Pointer ytyp in
-      '(st, nexpr, nexpcode) <- genNExpr st b  ;;
+      '(st, src_nexpr, src_nexpcode) <- genNExpr st src  ;;
+      '(st, dst_nexpr, dst_nexpcode) <- genNExpr st dst  ;;
        ret (st , (entryblock, [
                     {|
                       blk_id    := entryblock ;
                       blk_phis  := [];
-                      blk_code  := nexpcode ++ [
+                      blk_code  := src_nexpcode ++ dst_nexpcode ++ [
                                               (IId px,  INSTR_Op (OP_GetElementPtr
                                                                     xtyp (xptyp, (EXP_Ident (ID_Local x)))
                                                                     [(IntType, EXP_Integer 0%Z);
-                                                                       (IntType, nexpr)]
+                                                                       (IntType, src_nexpr)]
 
                                               )) ;
                                                 (IId v, INSTR_Load false TYPE_Double
@@ -542,7 +488,7 @@ Section monadic.
                                                 (IId py,  INSTR_Op (OP_GetElementPtr
                                                                       ytyp (yptyp, (EXP_Ident (ID_Local y)))
                                                                       [(IntType, EXP_Integer 0%Z);
-                                                                         (IntType, EXP_Integer 0%Z)]
+                                                                         (IntType, dst_nexpr)]
 
                                                 ));
 
