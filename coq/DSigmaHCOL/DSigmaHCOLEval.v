@@ -226,6 +226,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   (* Estimates fuel requirement for [evalDSHOperator] *)
   Fixpoint estimateFuel (s:DSHOperator): nat :=
     match s with
+    | DSHNop => 1
     | DSHAssign _ _ => 1
     | @DSHIMap _ _ _ _ => 1
     | @DSHMemMap2 _ _ _ _ _ => 1
@@ -249,6 +250,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | O => None
       | S fuel =>
         match op with
+        | DSHNop => ret m
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
           x_i <- evalPexp σ x_p ;;
               y_i <- evalPexp σ y_p ;;
