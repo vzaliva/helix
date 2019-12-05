@@ -740,13 +740,23 @@ Qed.
 Require Import CoLoR.Util.List.ListUtil.
 
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
-  TM.Empty (elt:=elt) m ->
+  TM.Empty (elt:=elt) m <->
   forall k, TM.find k m ≡ None.
 Proof.
-  intros.
-  apply elements_Empty in H.
-  rewrite F.elements_o, H.
-  reflexivity.
+  split; intros.
+  -
+    apply elements_Empty in H.
+    rewrite F.elements_o, H.
+    reflexivity.
+  -
+    unfold TM.Empty, TM.Raw.Proofs.Empty.
+    intros.
+    specialize (H a).
+    intros C; contradict H.
+    pose proof F.find_mapsto_iff.
+    unfold TM.MapsTo in H.
+    apply H in C.
+    congruence.
 Qed.
 
 Lemma context_equiv_at_TypeSigUnion_left {σ0 σ1 dsig1 dsig2}:

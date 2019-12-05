@@ -458,6 +458,189 @@ Proof.
   all: congruence.
 Qed.
 
+Global Instance TypeSigCompat_Symmetric :
+  Symmetric TypeSigCompat.
+Proof.
+  unfold Symmetric.
+  intros.
+  unfold TypeSigCompat, findTypeSigConflicts in *.
+  rewrite find_Empty in *.
+  intro k; specialize (H k).
+  rewrite TP.F.map2_1bis in * by reflexivity.
+  repeat break_match; try congruence.
+  exfalso; clear - Heqb Heqb0.
+  unfold bool_decide in *.
+  repeat break_if; try congruence.
+  clear - e n.
+  cbv in e, n.
+  congruence.
+Qed.
+
+Lemma TypeSigUnion_error_sym (ts1 ts2 : TypeSig) :
+  TypeSigUnion_error ts1 ts2 = TypeSigUnion_error ts2 ts1.
+Proof.
+  unfold TypeSigUnion_error.
+  repeat break_if; try some_none.
+  -
+    clear - t t0; rename t into Compat12, t0 into Compat21; constructor.
+
+    assert (H12 : ∀ (k : TM.key) (e : DSHType),
+               TM.MapsTo k e ts1 → TM.In (elt:=DSHType) k ts2 → TM.MapsTo k e ts2)
+     by (eapply TypeSigCompat_at; eassumption).
+    assert (H21 : ∀ (k : TM.key) (e : DSHType),
+               TM.MapsTo k e ts2 → TM.In (elt:=DSHType) k ts1 → TM.MapsTo k e ts1)
+     by (eapply TypeSigCompat_at; eassumption).
+    clear Compat12 Compat21.
+    unfold TypeSig_Equiv, TypeSigUnion.
+    intros; specialize (H12 k); specialize (H21 k).
+    destruct TM.find eqn:F12 at 1; destruct TM.find eqn:F21 at 1.
+    all: try constructor.
+    2,3: exfalso.
+    +
+      cbv.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F12 as [F12 | [F12 F12']],
+               F21 as [F21 | [F21 F21']].
+      *
+        apply H12 in F21.
+        eapply TP.F.MapsTo_fun; eassumption.
+        eapply TypeSig.MapsTo_In; eassumption.
+      *
+        eapply TP.F.MapsTo_fun; eassumption.
+      *
+        eapply TP.F.MapsTo_fun; eassumption.
+      *
+        contradict F12'.
+        eapply TypeSig.MapsTo_In; eassumption.
+    +
+      rewrite <-TP.F.not_find_in_iff in F21.
+      contradict F21.
+      apply TP.update_in_iff.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F12 as [F12 | [F12 F12']].
+      left; eapply TypeSig.MapsTo_In; eassumption.
+      right; eapply TypeSig.MapsTo_In; eassumption.
+    +
+      rewrite <-TP.F.not_find_in_iff in F12.
+      contradict F12.
+      apply TP.update_in_iff.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F21 as [F21 | [F21 F21']].
+      left; eapply TypeSig.MapsTo_In; eassumption.
+      right; eapply TypeSig.MapsTo_In; eassumption.
+  -
+    clear - t n.
+    contradict n.
+    symmetry.
+    assumption.
+  -
+    clear - t n.
+    contradict n.
+    symmetry.
+    assumption.
+Qed.
+
+Lemma evalNExpr_context_equiv_at_TypeSig'
+      (e : NExpr)
+      (ts' ts : TypeSig)
+      (σ0 σ1 : evalContext)
+      (TSU : TypeSigUnion_error ts' =<< (TypeSigNExpr e) = Some ts)
+      (E : context_equiv_at_TypeSig ts σ0 σ1)
+  :
+    evalNexp σ0 e = evalNexp σ1 e.
+Proof.
+  unfold TypeSigUnion_error in TSU; cbn in TSU.
+  repeat break_match; try some_none.
+  some_inv.
+  rename Heqo into TS, t0 into Compat; clear Heqd.
+
+  copy_apply context_equiv_at_TypeSig_both_typcheck E;
+    destruct H as [TC0 TC1].
+
+  apply Equiv_to_opt_r; destruct_opt_r_equiv.
+  -
+    cbv; rename n0 into n1, n into n0.
+    
+    dependent induction e; simpl in *.
+    
+    (* first "base case" *)
+    repeat break_match; try some_none.
+    repeat some_inv; subst.
+    assert (T : TM.MapsTo v DSHnat ts).
+    {
+      unfold TypeSig_safe_add in TS.
+      repeat break_match; try (rewrite TP.F.empty_o in Heqo1; some_none).
+      rewrite <-TSU in *; clear TSU ts.
+      some_inv; subst t.
+      unfold TypeSigUnion in *.
+      apply TP.update_mapsto_iff.
+      left.
+      apply TM.add_1.
+      reflexivity.
+    }
+    unfold context_equiv_at_TypeSig in E.
+    specialize (E v DSHnat T).
+    destruct E as [E1 [E2 E3]].
+    unfold context_lookup in *.
+    rewrite Heqo0, Heqo in E3.
+    some_inv.
+    inversion E3.
+    congruence.
+ 
+    (* second "base case" *)
+    congruence.
+
+    (* all "inductive cases" are the same *)
+    all: cbn in TS.
+    all: repeat break_match; try some_none.
+    all: rename n3 into n01, n4 into n02,
+                n  into n11, n2 into n12.
+    all: rewrite <-TSU in *; clear TSU.
+    all: apply Option_equiv_eq in TS.
+    all: assert (n01 = n11) by
+          (rewrite TypeSigUnion_error_sym in TS;
+           unfold TypeSigUnion_error in TS; break_if; try some_none;
+           repeat some_inv;
+           eapply IHe1;
+             [ reflexivity
+             | eassumption
+             | eassumption
+             | eapply context_equiv_at_TypeSigUnion_right; eassumption
+             | eapply typecheck_env_TypeSigUnion; eassumption
+             | eapply typecheck_env_TypeSigUnion; eassumption
+             | assumption
+             | assumption ]).
+    all: assert (n02 = n12) by
+          (unfold TypeSigUnion_error in TS; break_if; try some_none;
+           repeat some_inv;
+           eapply IHe2;
+             [ reflexivity
+             | eassumption
+             | eassumption
+             | eapply context_equiv_at_TypeSigUnion_right; eassumption
+             | eapply typecheck_env_TypeSigUnion; eassumption
+             | eapply typecheck_env_TypeSigUnion; eassumption
+             | assumption
+             | assumption ]).
+    all: congruence.
+  -
+    eq_to_equiv_hyp.
+    rewrite <-TSU in *.
+    contradict Hb.
+    apply is_Some_nequiv_None.
+    eapply evalNExpr_is_Some.
+    eassumption.
+    eapply typecheck_env_TypeSigUnion; eassumption.
+  -
+    eq_to_equiv_hyp.
+    rewrite <-TSU in *.
+    contradict Ha.
+    apply is_Some_nequiv_None.
+    eapply evalNExpr_is_Some.
+    eassumption.
+    eapply typecheck_env_TypeSigUnion; eassumption.
+Qed.
+
 Lemma evalMExpr_context_equiv_at_TypeSig
       (e: MExpr)
       {σ0 σ1: evalContext}
@@ -2302,12 +2485,18 @@ Proof.
       auto.
       auto.
 Qed.
+
+Import RingMicromega. (* for map_option2 *)
  
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
-       (tm : TypeSig)
-       (TM : TypeSigNExpr x_n = Some tm /\ TypeSigNExpr y_n = Some tm)
+       (tm' : TypeSig)
+       `{TM : (TypeSigUnion_error tm') =<<
+                                       map_option2 TypeSigUnion_error
+                                         (TypeSigNExpr x_n)
+                                         (TypeSigNExpr y_n)
+              = Some tm}
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) tm x_p y_p.
 Proof.
@@ -2367,18 +2556,25 @@ Proof.
       *
         rewrite <-Heqo1, <-Heqo4.
         rewrite XY0.
-        pose proof evalNExpr_context_equiv_at_TypeSig.
-
-(*
-        Search evalNexp.
-        specialize (H x_n σ0 σ1 tm TM CE).
-        rewrite Heqo2, Heqo in H.
-        some_inv.
-        inversion H; subst.
+        replace xn1 with xn0.
         reflexivity.
+        enough (Some xn0 = Some xn1) by (inversion H; congruence).
+        rewrite <-Heqo, <-Heqo2.
+        clear - TM CE.
+        unfold map_option2 in TM.
+        cbn in TM.
+        repeat break_match; try some_none.
+        eapply evalNExpr_context_equiv_at_TypeSig'.
+        rewrite Heqo0.
+        cbn.
+        apply Option_equiv_eq in Heqo.
+        rewrite TypeSigUnion_error_sym in Heqo.
+        eassumption.
+        unfold TypeSigUnion_error in TM; break_if; try some_none; some_inv.
+        rewrite <-TM in CE.
+        eapply context_equiv_at_TypeSigUnion_right; eassumption.
       *
-*)
-        
+        admit.
 Admitted.
 
 Global Instance BinOp_DSH_pure
