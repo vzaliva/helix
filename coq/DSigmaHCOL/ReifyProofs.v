@@ -390,73 +390,6 @@ Proof.
     repeat break_match; try some_none.
 Qed.
 
-Lemma evalNExpr_context_equiv_at_TypeSig
-      (e: NExpr)
-      {σ0 σ1: evalContext}
-      {ts: TypeSig}
-      (TS : TypeSigNExpr e = Some ts)
-      (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalNexp σ0 e = evalNexp σ1 e.
-Proof.
-  copy_apply context_equiv_at_TypeSig_both_typcheck E;
-    destruct H as [TC1 TC2].
-  (* get rid of errors *)
-  apply Equiv_to_opt_r; destruct_opt_r_equiv;
-    [ cbv; rename n0 into n1, n into n0
-    | pose proof evalNExpr_is_Some ts TS TC2 as C; rewrite Hb in C; inversion C
-    | pose proof evalNExpr_is_Some ts TS TC1 as C; rewrite Ha in C; inversion C].
-  
-  dependent induction e; simpl in *.
-  
-  (* first "base case" *)
-  repeat break_match; try some_none.
-  repeat some_inv; subst.
-  unfold context_equiv_at_TypeSig in E.
-  assert (T : TM.MapsTo v DSHnat ts).
-  {
-    unfold TypeSig_safe_add in TS.
-    repeat break_match; try (rewrite TP.F.empty_o in Heqo1; some_none).
-    some_inv; rewrite <-TS.
-    apply TM.add_1.
-    reflexivity.
-  }
-  specialize (E v DSHnat T).
-  destruct E as [E1 [E2 E3]].
-  unfold context_lookup in *.
-  rewrite Heqo0, Heqo in E3.
-  some_inv.
-  inversion E3.
-  congruence.
- 
-  (* second "base case" *)
-  congruence.
- 
-  (* all "inductive cases" are the same *)
-  all: repeat break_match; try some_none.
-  all: rename n3 into n01, n4 into n02,
-              n  into n11, n2 into n12.
-  all: cbn in TS; unfold TypeSigUnion_error in TS.
-  all: repeat break_match_hyp; try some_none.
-  all: repeat some_inv.
-  all: rewrite <-TS in *.
-  all: assert (n01 = n11)
-       by (eapply IHe1;
-           [ reflexivity
-           | eapply context_equiv_at_TypeSigUnion_left; eauto
-           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
-           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
-           | assumption
-           | assumption]).
-  all: assert (n02 = n12)
-       by (eapply IHe2;
-           [ reflexivity
-           | eapply context_equiv_at_TypeSigUnion_right; eauto
-           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
-           | apply typecheck_env_TypeSigUnion with (t0 := t) (t1 := t0); assumption
-           | assumption
-           | assumption]).
-  all: congruence.
-Qed.
 
 Global Instance TypeSigCompat_Symmetric :
   Symmetric TypeSigCompat.
@@ -540,7 +473,7 @@ Proof.
     assumption.
 Qed.
 
-Lemma evalNExpr_context_equiv_at_TypeSig'
+Lemma evalNExpr_context_equiv_at_TypeSigUnion
       (e : NExpr)
       (ts' ts : TypeSig)
       (σ0 σ1 : evalContext)
@@ -639,6 +572,59 @@ Proof.
     eapply evalNExpr_is_Some.
     eassumption.
     eapply typecheck_env_TypeSigUnion; eassumption.
+Qed.
+
+Lemma empty_TypeSigCompat (t : TypeSig) :
+  TypeSigCompat (TM.empty DSHType) t.
+Proof.
+  unfold TypeSigCompat, findTypeSigConflicts.
+  apply find_Empty; intro.
+  rewrite TP.F.map2_1bis by reflexivity.
+  reflexivity.
+Qed.
+
+Lemma TypeSig_update_empty (t : TypeSig) :
+  TP.update (TM.empty DSHType) t = t.
+Proof.
+    unfold equiv, TypeSig_Equiv; intros.
+    destruct TM.find eqn:H1 at 1, TM.find eqn:H2 at 1.
+    all: try rewrite <-TP.F.find_mapsto_iff in *.
+    all: try rewrite <-TP.F.not_find_in_iff in *.
+    1,2: apply TP.update_mapsto_iff in H1.
+    1,2: destruct H1 as [H1 | [C _]]; [| inversion C].
+    4: reflexivity.
+    +
+      pose proof TP.F.MapsTo_fun H1 H2.
+      subst; reflexivity.
+    +
+      apply TypeSig.MapsTo_In in H1.
+      congruence.
+    +
+      contradict H1.
+      apply TP.update_in_iff.
+      right.
+      eapply TypeSig.MapsTo_In; eassumption.
+Qed.
+
+Lemma evalNExpr_context_equiv_at_exact_TypeSig
+      (e: NExpr)
+      {σ0 σ1: evalContext}
+      {ts: TypeSig}
+      (TS : TypeSigNExpr e = Some ts)
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalNexp σ0 e = evalNexp σ1 e.
+Proof.
+  eapply evalNExpr_context_equiv_at_TypeSigUnion.
+  2: eassumption.
+  instantiate (1:=TM.empty DSHType).
+  cbn.
+  break_match; try some_none.
+  rewrite <-TS.
+  unfold TypeSigUnion_error, TypeSigUnion.
+  break_if.
+  rewrite TypeSig_update_empty; reflexivity.
+  clear - n; contradict n.
+  apply empty_TypeSigCompat.
 Qed.
 
 Lemma evalMExpr_context_equiv_at_TypeSig
@@ -783,7 +769,7 @@ Proof.
           apply Some_inj_equiv.
           eq_to_equiv_hyp.
           rewrite <- Heqo0, <- Heqo3.
-          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          eapply evalNExpr_context_equiv_at_exact_TypeSig; eauto.
           unfold TypeSigUnion_error in TS.
           break_if; try some_none. clear Heqd.
           apply Some_inj_equiv in TS.
@@ -823,7 +809,7 @@ Proof.
           apply Some_inj_equiv.
           eq_to_equiv_hyp.
           rewrite <- Heqo0, <- Heqo3.
-          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          eapply evalNExpr_context_equiv_at_exact_TypeSig; eauto.
           unfold TypeSigUnion_error in TS.
           break_if; try some_none. clear Heqd.
           apply Some_inj_equiv in TS.
@@ -860,7 +846,7 @@ Proof.
           apply Some_inj_equiv.
           eq_to_equiv_hyp.
           rewrite <- Heqo0, <- Heqo3.
-          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          eapply evalNExpr_context_equiv_at_exact_TypeSig; eauto.
           unfold TypeSigUnion_error in TS.
           break_if; try some_none. clear Heqd.
           apply Some_inj_equiv in TS.
@@ -895,7 +881,7 @@ Proof.
           apply Some_inj_equiv.
           eq_to_equiv_hyp.
           rewrite <- Heqo0, <- Heqo3.
-          eapply evalNExpr_context_equiv_at_TypeSig; eauto.
+          eapply evalNExpr_context_equiv_at_exact_TypeSig; eauto.
           unfold TypeSigUnion_error in TS.
           break_if; try some_none. clear Heqd.
           apply Some_inj_equiv in TS.
