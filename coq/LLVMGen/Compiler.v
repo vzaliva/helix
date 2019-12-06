@@ -816,8 +816,50 @@ Section monadic.
                |}
            ])).
 
-  Definition genFloatV (fv:binary64) : (exp typ) :=
-    EXP_Double fv.
+  Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
+
+  Definition genMemInit
+             (o n: nat)
+             (y: ident)
+             (initial: binary64)
+             (st: IRState)
+             (nextblock: block_id):
+    m (IRState * segment)
+    :=
+      let ini := genFloatV initial in
+      let ttyp := getIRType (FSHvecValType o) in
+      let tptyp := TYPE_Pointer ttyp in
+      let '(st, pt) := incLocal st in
+      let '(st, init_block_id) := incBlockNamed st "MemInit_init" in
+      let '(st, loopcontblock) := incBlockNamed st "MemInit_init_lcont" in
+      let '(st, loopvar) := incLocalNamed st "MemInit_init_i" in
+      let '(st, void0) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let init_block :=
+          {|
+            blk_id    := init_block_id ;
+            blk_phis  := [];
+            blk_code  := [
+                          (IId pt,  INSTR_Op (OP_GetElementPtr
+                                                ttyp (tptyp, (EXP_Ident y))
+                                                [(IntType, EXP_Integer 0%Z);
+                                                   (IntType,(EXP_Ident (ID_Local loopvar)))]
+
+                          ));
+
+                            (IVoid storeid, INSTR_Store false
+                                                        (TYPE_Double, ini)
+                                                        (TYPE_Pointer TYPE_Double,
+                                                         (EXP_Ident (ID_Local pt)))
+                                                        (ret 8%Z))
+
+
+
+                        ];
+            blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
+            blk_comments := None
+          |} in
+      genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] st nextblock.
 
   Definition genPower
              (x y: ident)
@@ -892,7 +934,7 @@ Section monadic.
               blk_comments := None
             |} in
         genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
-
+        
 
   Definition resolve_PVar (vars: list (ident * typ)) (p:PExpr): m (ident*nat)
     :=
@@ -970,7 +1012,10 @@ Section monadic.
          let '(st, aname) := incLocalNamed st "new" in
          let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
          add_comment (ret (st, (ablock, [acode]++bcode))) "--- Operator: DSHAlloc ---"
-      | DSHMemInit size y_p value => raise "TODO"
+      | DSHMemInit size y_p value =>
+        '(y,o) <- resolve_PVar (vars st) y_p ;;
+         '(st,(ablock,acode)) <- genMemInit o size y value st nextblock ;;
+         add_comment (ret (st, (ablock, acode))) "--- Operator: DSHMemInit ---"
       | DSHMemCopy size x_p y_p =>
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
