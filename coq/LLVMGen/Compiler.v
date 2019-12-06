@@ -400,10 +400,10 @@ Section monadic.
   (* List of blocks with entry point *)
   Definition segment:Type := block_id * list (block typ).
 
-  Definition genFSHMemCopy
+  Definition genMemCopy
              (o: nat)
              (st: IRState)
-             (x y: local_id)
+             (x y: ident)
              (nextblock: block_id)
     : m (IRState * segment)
     :=
@@ -426,13 +426,13 @@ Section monadic.
                                    (IId xb, INSTR_Op (OP_Conversion
                                                         Bitcast
                                                         atyp
-                                                        (EXP_Ident (ID_Local x))
+                                                        (EXP_Ident x)
                                                         ptyp
                                    ));
                                      (IId yb, INSTR_Op (OP_Conversion
                                                           Bitcast
                                                           atyp
-                                                          (EXP_Ident (ID_Local y))
+                                                          (EXP_Ident y)
                                                           ptyp
                                      ));
 
@@ -971,7 +971,13 @@ Section monadic.
          let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
          add_comment (ret (st, (ablock, [acode]++bcode))) "--- Operator: DSHAlloc ---"
       | DSHMemInit size y_p value => raise "TODO"
-      | DSHMemCopy size x_p y_p => raise "TODO"
+      | DSHMemCopy size x_p y_p =>
+        '(x,i) <- resolve_PVar (vars st) x_p ;;
+         '(y,o) <- resolve_PVar (vars st) y_p ;;
+         nat_eq_or_err "MemCopy dimensions do not match" i o ;;
+         add_comment
+         (genMemCopy size st x y nextblock)
+         "--- Operator: DSHMemCopy ---"
       | DSHSeq f g =>
         '(st, (gb, g')) <- genIR g st nextblock ;;
          '(st, (fb, f')) <- genIR f st gb ;;
