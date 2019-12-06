@@ -203,30 +203,25 @@ Section monadic.
             vars := vars'
           |}.
 
-  Definition allocTempArrayCode
-             (name: local_id)
-             (size: nat): (code typ)
-    :=
-      [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))].
-
   Definition allocTempArrayBlock
              (st: IRState)
              (name: local_id)
              (nextblock: block_id)
-             (size: nat): (IRState * local_id * (block typ))
+             (size: nat): (IRState * (local_id * (block typ)))
     :=
+      let code := [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))] in
       let (st,retid) := incVoid st in
       let (st,bid) := incBlock st in
-      (st, bid,
-       {|
-         blk_id    := bid ;
-         blk_phis  := [];
-         blk_code  := @allocTempArrayCode name size;
-         blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
-         blk_comments := None
-       |}).
+      (st, (bid,
+            {|
+              blk_id    := bid ;
+              blk_phis  := [];
+              blk_code  := code;
+              blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
+              blk_comments := None
+            |})).
 
-  (* TODO: move *)
+  (* TODO: move to OptionMonad.v? *)
   Definition opt2err {A:Type} (msg:string) (x: option A) : m A :=
     match x with
     | Some x => ret x
@@ -970,7 +965,11 @@ Section monadic.
          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
          "--- Operator: DSHLoop ---"
-      | DSHAlloc size body => raise "TODO"
+      | DSHAlloc size body =>
+        '(st, (bblock, bcode)) <- genIR body st nextblock ;;
+         let '(st, aname) := incLocalNamed st "new" in
+         let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
+         add_comment (ret (st, (ablock, [acode]++bcode))) "--- Operator: DSHAlloc ---"
       | DSHMemInit size y_p value => raise "TODO"
       | DSHMemCopy size x_p y_p => raise "TODO"
       | DSHSeq f g =>
