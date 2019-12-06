@@ -2473,12 +2473,57 @@ Proof.
 Qed.
 
 Import RingMicromega. (* for map_option2 *)
+
+Lemma eq_equiv_option_nat (n1 n2 : option nat) :
+  n1 = n2 <-> n1 ≡ n2.
+Proof.
+  intuition.
+  inversion H; congruence.
+  subst; reflexivity.
+Qed.
+  
+Lemma evalNExpr_context_equiv_at_TypeSigUnion2
+      (σ0 σ1 : evalContext)
+      (n1 n2 : NExpr)
+      (tm' : TypeSig)
+      `{TM : TypeSigUnion_error tm' =<<
+                                map_option2 TypeSigUnion_error
+                                       (TypeSigNExpr n1)
+                                       (TypeSigNExpr n2)
+       = Some tm}
+      {E : context_equiv_at_TypeSig tm σ0 σ1} :
+  evalNexp σ0 n1 = evalNexp σ1 n1
+  /\ evalNexp σ0 n2 = evalNexp σ1 n2.
+Proof.
+  unfold map_option2 in TM; cbn in TM.
+  repeat break_match; try some_none.
+  split.
+  -
+    eapply evalNExpr_context_equiv_at_TypeSigUnion.
+    rewrite Heqo0.
+    cbn.
+    apply Option_equiv_eq in Heqo.
+    rewrite TypeSigUnion_error_sym in Heqo.
+    eassumption.
+    unfold TypeSigUnion_error in TM; break_if; try some_none; some_inv.
+    rewrite <-TM in E.
+    eapply context_equiv_at_TypeSigUnion_right; eassumption.
+  -
+    eapply evalNExpr_context_equiv_at_TypeSigUnion.
+    rewrite Heqo1.
+    cbn.
+    apply Option_equiv_eq in Heqo.
+    eassumption.
+    unfold TypeSigUnion_error in TM; break_if; try some_none; some_inv.
+    rewrite <-TM in E.
+    eapply context_equiv_at_TypeSigUnion_right; eassumption.
+Qed.
  
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
        (tm' : TypeSig)
-       `{TM : (TypeSigUnion_error tm') =<<
+       `{TM : TypeSigUnion_error tm' =<<
                                        map_option2 TypeSigUnion_error
                                          (TypeSigNExpr x_n)
                                          (TypeSigNExpr y_n)
@@ -2505,63 +2550,61 @@ Proof.
       reflexivity.
   -
     intros until fuel; intros CE BEx BEy.
+    copy_eapply evalNExpr_context_equiv_at_TypeSigUnion2 TM; [| eassumption].
+    destruct H as [XN YN];
+      apply eq_equiv_option_nat in XN;
+      apply eq_equiv_option_nat in YN.
+    unfold blocks_equiv_at_Pexp in *;
+      inversion BEx; clear BEx; inversion H1; clear H1;
+      inversion BEy; clear BEy; inversion H6; clear H6.
     destruct (evalDSHOperator σ0) eqn:OE1,
              (evalDSHOperator σ1) eqn:OE2.
-    all: try constructor.
-    2,3: exfalso.
+    all: repeat constructor.
+    all: destruct fuel; try (cbn in *; some_none; fail).
+    all: cbn in *.
+    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8, XN, YN in *.
+    all: repeat break_match; try some_none.
+    all: repeat some_inv; subst.
     +
-      destruct fuel; [inversion OE1|].
-      unfold blocks_equiv_at_Pexp in *.
-      inversion BEx; clear BEx; inversion H1; clear H1.
-      inversion BEy; clear BEy; inversion H6; clear H6.
-      cbn in OE1, OE2.
-      rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8 in *.
-      rename H4 into XY0, H9 into XY2.
-      clear - TM CE OE1 OE2 XY0 XY2.
-      move OE1 before OE2; move CE before OE1.
-      constructor.
-      rename m into rm0, m2 into rm1.
-
-      repeat break_match; try some_none.
-      repeat some_inv.
-      clear H0 H1.
-      rename n1 into xn0, n2 into yn0,
-             n  into xn1, n0 into yn1.
-
       unfold memory_lookup, memory_set.
       repeat (rewrite NP.F.add_eq_o by reflexivity).
       constructor.
-      
-      unfold mem_add, equiv, mem_block_Equiv.
-      intros.
-      destruct (Nat.eq_dec yn0 k), (Nat.eq_dec yn1 k);
-        try (rewrite NP.F.add_eq_o with (x := yn0) by assumption);
-        try (rewrite NP.F.add_eq_o with (x := yn1) by assumption);
-        try (rewrite NP.F.add_neq_o with (x := yn0) by assumption);
-        try (rewrite NP.F.add_neq_o with (x := yn1) by assumption).
+      unfold mem_add, equiv, mem_block_Equiv; intros.
+      destruct (Nat.eq_dec n0 k).
       *
-        rewrite <-Heqo1, <-Heqo4.
-        rewrite XY0.
-        replace xn1 with xn0.
-        reflexivity.
-        enough (Some xn0 = Some xn1) by (inversion H; congruence).
-        rewrite <-Heqo, <-Heqo2.
-        clear - TM CE.
-        unfold map_option2 in TM.
-        cbn in TM.
-        repeat break_match; try some_none.
-        eapply evalNExpr_context_equiv_at_TypeSig'.
-        rewrite Heqo0.
-        cbn.
-        apply Option_equiv_eq in Heqo.
-        rewrite TypeSigUnion_error_sym in Heqo.
-        eassumption.
-        unfold TypeSigUnion_error in TM; break_if; try some_none; some_inv.
-        rewrite <-TM in CE.
-        eapply context_equiv_at_TypeSigUnion_right; eassumption.
+        repeat (rewrite NP.F.add_eq_o with (x := n0) by assumption).
+        rewrite <-Heqo1, <-Heqo2.
+        apply H4.
       *
-        admit.
-Admitted.
+        repeat (rewrite NP.F.add_neq_o with (x := n0) by assumption).
+        apply H9.
+    +
+      assert (C : mem_lookup n x0 = mem_lookup n y0) by apply H4.
+      rewrite Heqo1, Heqo2 in C.
+      some_none.
+    +
+      assert (C : mem_lookup n x0 = mem_lookup n y0) by apply H4.
+      rewrite Heqo1, Heqo2 in C.
+      some_none.
+  -
+    intros.
+    unfold memory_equiv_except, memory_lookup; intros.
+    destruct fuel; [inversion H |].
+    cbn in H.
+    repeat break_match; try some_none.
+    repeat some_inv; subst.
+    unfold equiv, memory_Equiv, memory_set, mem_add in H.
+    specialize (H k).
+    rewrite <-H.
+    destruct (Nat.eq_dec m1 k), (Nat.eq_dec n0 k);
+        try (rewrite NP.F.add_eq_o with (x := m1) by assumption);
+        try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
+        try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
+    all: subst.
+    all: try congruence.
+    all: reflexivity.
+Qed.
 
 Global Instance BinOp_DSH_pure
        (o : nat)
