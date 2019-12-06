@@ -239,8 +239,8 @@ Section monadic.
     m (IRState * (exp typ) * (code typ))
     :=
       let gen_binop a b iop :=
-          '(st, aexp, acode) <- @genNExpr st a ;;
-           '(st, bexp, bcode) <- @genNExpr st b ;;
+          '(st, aexp, acode) <- genNExpr st a ;;
+           '(st, bexp, bcode) <- genNExpr st b ;;
            let '(st, res) := incLocal st in
            ret (st,
                 EXP_Ident (ID_Local res),
@@ -667,7 +667,7 @@ Section monadic.
            ])).
 
   Definition genIMapBody
-             {n: nat}
+             (n: nat)
              (x y: ident)
              (f: AExpr)
              (st: IRState)
@@ -730,7 +730,7 @@ Section monadic.
            ])).
 
   Definition genBinOpBody
-             {n: nat}
+             (n: nat)
              (x y: ident)
              (f: AExpr)
              (st: IRState)
@@ -975,7 +975,7 @@ Section monadic.
          nat_eq_or_err "IMap dimensions do not match" i o ;;
          let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
          let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
-         '(st, (body_entry, body_blocks)) <- @genIMapBody i x y f st loopvar loopcontblock ;;
+         '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
           add_comment
           (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: DSHIMap ---"
@@ -986,7 +986,7 @@ Section monadic.
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          nat_eq_or_err "BinOp output dimensions do not match" n o ;;
          nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
-         '(st, (body_entry, body_blocks)) <- @genBinOpBody n x y f st loopvar loopcontblock ;;
+         '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
          add_comment
          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: DSHBinOp ---"
@@ -1067,7 +1067,7 @@ Section monadic.
       '(st,(_,body)) <- genIR fshcol st rid ;;
        let body := body ++ [retblock] in
        let all_intrinsics:toplevel_entities typ (list (block typ))
-           := [@TLE_Comment _ (list (block typ)) "Prototypes for intrinsics we use"]
+           := [TLE_Comment "Prototypes for intrinsics we use"]
                 ++ (List.map (TLE_Declaration) (
                                helix_intrinsics_decls ++ defined_intrinsics_decls))
        in
@@ -1076,7 +1076,7 @@ Section monadic.
                          (if globals_extern then
                             (genIRGlobals (FnBody:=list (block typ)) globals) else []) ++
                          [
-                           TLE_Comment " Top-level operator definition" ;
+                           TLE_Comment "Top-level operator definition" ;
                              TLE_Definition
                                {|
                                  df_prototype   :=
