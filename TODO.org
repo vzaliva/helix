@@ -84,6 +84,9 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
    =Float_maxnum= is the same as =Float64Max=
+** Implemnet int min/max
+   in =LLVMGen/Compiler.v= in =genNExpr= implement min/max code generation for integers.
+   [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
 
 * Build/Tests
 ** Use =dune= for coq code builds.
