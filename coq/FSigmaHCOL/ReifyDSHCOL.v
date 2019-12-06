@@ -115,6 +115,8 @@ Fixpoint DSCHOLtoFHCOL (d: MDSHCOLOnCarrierA.DSHOperator):
   option MDSHCOLOnFloat64.DSHOperator
   :=
     match d with
+    | MDSHCOLOnCarrierA.DSHNop =>
+      ret DSHNop
     | MDSHCOLOnCarrierA.DSHAssign src dst =>
       ret (DSHAssign
              (translateMemVarRef src)
