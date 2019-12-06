@@ -372,7 +372,7 @@ Section monadic.
       | APlus a b => gen_binop a b FAdd
       | AMinus a b => gen_binop a b FSub
       | AMult a b => gen_binop a b FMul
-      | AMin a b => raise "AMin not implemented" (* TODO *)
+      | AMin a b => gen_call2 a b (intrinsic_exp minimum_64_decl)
       | AMax a b => gen_call2 a b (intrinsic_exp maxnum_64_decl)
       | AZless a b =>
         (* this is special as requires bool -> double cast *)

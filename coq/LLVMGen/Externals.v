@@ -37,6 +37,21 @@ Definition maxnum_64_decl: declaration typ :=
     dc_gc          := None
   |}.
 
+Definition minimum_64_decl: declaration typ :=
+  {|
+    dc_name        := Name "llvm.minimum.f64";
+    dc_type        := TYPE_Function TYPE_Double [TYPE_Double;TYPE_Double] ;
+    dc_param_attrs := ([], [[];[]]);
+    dc_linkage     := None ;
+    dc_visibility  := None ;
+    dc_dll_storage := None ;
+    dc_cconv       := None ;
+    dc_attrs       := [] ;
+    dc_section     := None ;
+    dc_align       := None ;
+    dc_gc          := None
+  |}.
+
 Definition maxnum_32_decl: declaration typ :=
   {|
     dc_name        := Name "llvm.maxnum.f32";
@@ -72,10 +87,21 @@ Definition llvm_maxnum_f32 : IS.semantic_function :=
     | _ => failwith "llvm_maxnum_f32 got incorrect / ill-typed intputs"
     end.
 
+Definition Float_minimum (a b: float): float :=
+  if Float.cmp Clt a b then a else b.
+
+Definition llvm_minimum_f64 : IS.semantic_function :=
+  fun args =>
+    match args with
+    | [DVALUE_Double a; DVALUE_Double b] => ret (DVALUE_Double (Float_minimum a b))
+    | _ => failwith "llvm_minimum_f64 got incorrect / ill-typed intputs"
+    end.
+
 Definition helix_intrinsics_decls :=
-  [ maxnum_32_decl ; maxnum_64_decl ].
+  [ maxnum_32_decl ; maxnum_64_decl; minimum_64_decl ].
 
 Definition helix_intrinsics : IS.intrinsic_definitions :=
   [(maxnum_64_decl, llvm_maxnum_f64);
-     (maxnum_32_decl, llvm_maxnum_f32)
+     (maxnum_32_decl, llvm_maxnum_f32);
+     (minimum_64_decl, llvm_minimum_f64)
   ].
