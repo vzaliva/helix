@@ -50,24 +50,24 @@ Definition genIRGlobals
            (x: list (string*FSHValType))
   : list (toplevel_entity _ FnBody)
   := let l := List.map
-       (fun g:(string * FSHValType) =>
-          let (n,t) := g in
-          TLE_Global {|
-              g_ident        := Name n;
-              g_typ          := getIRType t ; (* globals are always pointers *)
-              g_constant     := true ;
-              g_exp          := None ;
-              g_linkage      := Some LINKAGE_External ;
-              g_visibility   := None ;
-              g_dll_storage  := None ;
-              g_thread_local := None ;
-              g_unnamed_addr := true ; (* TODO: unsure about this *)
-              g_addrspace    := None ;
-              g_externally_initialized:= true ;
-              g_section      := None ;
-              g_align        := Some PtrAlignment ;
-            |}
-       ) x in
+                (fun g:(string * FSHValType) =>
+                   let (n,t) := g in
+                   TLE_Global {|
+                       g_ident        := Name n;
+                       g_typ          := getIRType t ; (* globals are always pointers *)
+                       g_constant     := true ;
+                       g_exp          := None ;
+                       g_linkage      := Some LINKAGE_External ;
+                       g_visibility   := None ;
+                       g_dll_storage  := None ;
+                       g_thread_local := None ;
+                       g_unnamed_addr := true ; (* TODO: unsure about this *)
+                       g_addrspace    := None ;
+                       g_externally_initialized:= true ;
+                       g_section      := None ;
+                       g_align        := Some PtrAlignment ;
+                     |}
+                ) x in
      match l with
      | nil => []
      | cons _ _ => [TLE_Comment "Global variables"] ++ l
@@ -233,6 +233,11 @@ Section monadic.
     | None => raise msg
     end.
 
+  Definition nat_eq_or_err (msg:string) (a b:nat) : m unit :=
+    if PeanoNat.Nat.eq_dec a b
+    then ret tt
+    else raise msg.
+
   Fixpoint genNExpr
            (st: IRState)
            (nexp: NExpr) :
@@ -290,7 +295,7 @@ Section monadic.
        | MVar x => '(i,t) <- opt2err "MVar out of range" (List.nth_error (vars st) x) ;;
                    match t with
                    | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
-                       ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
+                     ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
                    | _ => raise "MVar type mismatch"
                    end
        | MConst c => raise "MConst not implemented" (* TODO *)
@@ -452,7 +457,7 @@ Section monadic.
   Definition genFSHAssign
              (i o: nat)
              (st: IRState)
-             (x y: local_id)
+             (x y: ident)
              (src dst: NExpr)
              (nextblock: block_id)
     : m (IRState * segment)
@@ -468,37 +473,37 @@ Section monadic.
       let ytyp := getIRType (FSHvecValType o) in
       let yptyp := TYPE_Pointer ytyp in
       '(st, src_nexpr, src_nexpcode) <- genNExpr st src  ;;
-      '(st, dst_nexpr, dst_nexpcode) <- genNExpr st dst  ;;
+       '(st, dst_nexpr, dst_nexpcode) <- genNExpr st dst  ;;
        ret (st , (entryblock, [
                     {|
                       blk_id    := entryblock ;
                       blk_phis  := [];
                       blk_code  := src_nexpcode ++ dst_nexpcode ++ [
-                                              (IId px,  INSTR_Op (OP_GetElementPtr
-                                                                    xtyp (xptyp, (EXP_Ident (ID_Local x)))
-                                                                    [(IntType, EXP_Integer 0%Z);
-                                                                       (IntType, src_nexpr)]
+                                                  (IId px,  INSTR_Op (OP_GetElementPtr
+                                                                        xtyp (xptyp, (EXP_Ident x))
+                                                                        [(IntType, EXP_Integer 0%Z);
+                                                                           (IntType, src_nexpr)]
 
-                                              )) ;
-                                                (IId v, INSTR_Load false TYPE_Double
-                                                                   (TYPE_Pointer TYPE_Double,
-                                                                    (EXP_Ident (ID_Local px)))
-                                                                   (ret 8%Z));
+                                                  )) ;
+                                                    (IId v, INSTR_Load false TYPE_Double
+                                                                       (TYPE_Pointer TYPE_Double,
+                                                                        (EXP_Ident (ID_Local px)))
+                                                                       (ret 8%Z));
 
-                                                (IId py,  INSTR_Op (OP_GetElementPtr
-                                                                      ytyp (yptyp, (EXP_Ident (ID_Local y)))
-                                                                      [(IntType, EXP_Integer 0%Z);
-                                                                         (IntType, dst_nexpr)]
+                                                    (IId py,  INSTR_Op (OP_GetElementPtr
+                                                                          ytyp (yptyp, (EXP_Ident y))
+                                                                          [(IntType, EXP_Integer 0%Z);
+                                                                             (IntType, dst_nexpr)]
 
-                                                ));
+                                                    ));
 
-                                                (IVoid storeid, INSTR_Store false
-                                                                            (TYPE_Double, (EXP_Ident (ID_Local v)))
-                                                                            (TYPE_Pointer TYPE_Double,
-                                                                             (EXP_Ident (ID_Local py)))
-                                                                            (ret 8%Z))
+                                                    (IVoid storeid, INSTR_Store false
+                                                                                (TYPE_Double, (EXP_Ident (ID_Local v)))
+                                                                                (TYPE_Pointer TYPE_Double,
+                                                                                 (EXP_Ident (ID_Local py)))
+                                                                                (ret 8%Z))
 
-                                            ];
+                                                ];
                       blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
                       blk_comments := None
                     |}
@@ -555,7 +560,7 @@ Section monadic.
                                                              from
                                                              to))
 
-                                     ];
+                          ];
               blk_term  := (IVoid void0, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond)) loopblock nextblock);
               blk_comments := None
             |} ;
@@ -578,9 +583,9 @@ Section monadic.
                                                               (EXP_Ident (ID_Local loopvar))
                                                               (EXP_Integer 1%Z))) ;
                               (IId loopcond1, INSTR_Op (OP_ICmp Slt
-                                                               IntType
-                                                               (EXP_Ident (ID_Local nextvar))
-                                                               to))
+                                                                IntType
+                                                                (EXP_Ident (ID_Local nextvar))
+                                                                to))
 
                           ];
               blk_term  := (IVoid retloop, TERM_Br (TYPE_I 1%Z, EXP_Ident (ID_Local loopcond1)) loopblock nextblock );
@@ -666,9 +671,9 @@ Section monadic.
                |}
            ])).
 
-  Definition genPointwiseBody
+  Definition genIMapBody
              {n: nat}
-             (x y: local_id)
+             (x y: ident)
              (f: AExpr)
              (st: IRState)
              (loopvar: raw_id)
@@ -695,7 +700,7 @@ Section monadic.
                  blk_phis  := [];
                  blk_code  := [
                                (IId px,  INSTR_Op (OP_GetElementPtr
-                                                     xytyp (xyptyp, (EXP_Ident (ID_Local x)))
+                                                     xytyp (xyptyp, (EXP_Ident x))
                                                      [(IntType, EXP_Integer 0%Z);
                                                         (IntType,(EXP_Ident loopvarid))]
 
@@ -710,7 +715,7 @@ Section monadic.
                                 ++ fexpcode ++
 
                                 [ (IId py,  INSTR_Op (OP_GetElementPtr
-                                                        xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                        xytyp (xyptyp, (EXP_Ident y))
                                                         [(IntType, EXP_Integer 0%Z);
                                                            (IntType,(EXP_Ident loopvarid))]
 
@@ -731,7 +736,7 @@ Section monadic.
 
   Definition genBinOpBody
              {n: nat}
-             (x y: local_id)
+             (x y: ident)
              (f: AExpr)
              (st: IRState)
              (loopvar: raw_id)
@@ -763,7 +768,7 @@ Section monadic.
                  blk_phis  := [];
                  blk_code  := [
                                (IId px0,  INSTR_Op (OP_GetElementPtr
-                                                      xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                      xtyp (xptyp, (EXP_Ident x))
                                                       [(IntType, EXP_Integer 0%Z);
                                                          (IntType,(EXP_Ident loopvarid))]
 
@@ -781,7 +786,7 @@ Section monadic.
 
 
                                  (IId px1,  INSTR_Op (OP_GetElementPtr
-                                                        xtyp (xptyp, (EXP_Ident (ID_Local x)))
+                                                        xtyp (xptyp, (EXP_Ident x))
                                                         [(IntType, EXP_Integer 0%Z);
                                                            (IntType,(EXP_Ident (ID_Local loopvar2)))]
 
@@ -797,7 +802,7 @@ Section monadic.
                                 ++ fexpcode ++
 
                                 [ (IId py,  INSTR_Op (OP_GetElementPtr
-                                                        ytyp (yptyp, (EXP_Ident (ID_Local y)))
+                                                        ytyp (yptyp, (EXP_Ident y))
                                                         [(IntType, EXP_Integer 0%Z);
                                                            (IntType, (EXP_Ident loopvarid))]
 
@@ -932,16 +937,16 @@ Section monadic.
            |} in
        genWhileLoop "IReduction_fold_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock fold_block_id [fold_block] [] st nextblock.
 
-  Definition genFSHInductor
-             (x y: local_id)
+  Definition genPower
+             (x y: ident)
              (n: NExpr)
              (f: AExpr)
              (initial: binary64)
              (st: IRState)
              (nextblock: block_id): m (IRState * segment)
     :=
-      let '(st, loopcontblock) := incBlockNamed st "Inductor_lcont" in
-      let '(st, loopvar) := incLocalNamed st "Inductor_i" in
+      let '(st, loopcontblock) := incBlockNamed st "Power_lcont" in
+      let '(st, loopvar) := incLocalNamed st "Power_i" in
       let xytyp := getIRType (FSHvecValType 1) in
       let xyptyp := TYPE_Pointer xytyp in
       let '(st, py) := incLocal st in
@@ -951,7 +956,7 @@ Section monadic.
        let ini := genFloatV initial in
        let init_code := ncode ++ [
                                 (IId py,  INSTR_Op (OP_GetElementPtr
-                                                      xytyp (xyptyp, (EXP_Ident (ID_Local y)))
+                                                      xytyp (xyptyp, (EXP_Ident y))
                                                       [(IntType, EXP_Integer 0%Z);
                                                          (IntType,EXP_Integer 0%Z)]
 
@@ -965,7 +970,7 @@ Section monadic.
 
                               ] in
 
-       let '(st, body_block_id) := incBlockNamed st "InductorLoopBody" in
+       let '(st, body_block_id) := incBlockNamed st "PowerLoopBody" in
        let '(st, storeid1) := incVoid st in
        let '(st, void2) := incVoid st in
        let '(st, px) := incLocal st in
@@ -979,7 +984,7 @@ Section monadic.
               blk_phis  := [];
               blk_code  := [
                             (IId px,  INSTR_Op (OP_GetElementPtr
-                                                  xytyp (xyptyp, (EXP_Ident (ID_Local x)))
+                                                  xytyp (xyptyp, (EXP_Ident x))
                                                   [(IntType, EXP_Integer 0%Z);
                                                      (IntType,EXP_Integer 0%Z)]
 
@@ -1004,11 +1009,23 @@ Section monadic.
               blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
               blk_comments := None
             |} in
-        genWhileLoop "Inductor" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+        genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+
+
+  Definition resolve_PVar (vars: list (ident * typ)) (p:PExpr): m (ident*nat)
+    :=
+      match p with
+      | PVar n =>
+        '(l,t) <- opt2err "NVar out of range" (List.nth_error vars n) ;;
+         match t with
+         | TYPE_Array sz TYPE_Double =>
+           ret (l, Z.to_nat sz)
+         | _ => raise "Invalid type of PVar"
+         end
+      | PConst _ => raise "PConst insupported"
+      end.
 
   Fixpoint genIR
-           (i o: nat)
-           (x y: local_id)
            (fshcol: DSHOperator)
            (st: IRState)
            (nextblock: block_id):
@@ -1017,97 +1034,70 @@ Section monadic.
       let add_comment r s : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [s])) in
 
       match fshcol with
-      | FSHId i =>
+      | DSHNop =>
+        let '(st, nopblock) := incBlockNamed st "Nop" in
         add_comment
-          (genId i ft st x y nextblock)
-          "--- Operator: FSHId ---"
-      | FSHPick o b _ =>
-        add_comment
-          (@genFSHPick o ft st x y b nextblock)
-          "--- Operator: FSHPick ---"
-      | FSHEmbed i b =>
-        add_comment
-          (@genFSHEmbed i ft st x y b nextblock)
-          "--- Operator: FSHEmbed ---"
-      | FSHPointwise i f =>
-        let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
-        let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
-        '(st, (body_entry, body_blocks)) <- @genPointwiseBody i ft x y f st loopvar loopcontblock ;;
+          (ret (st, (nopblock,[])))
+          "--- Operator: DSHNop ---"
+      | DSHAssign (src_p,src_n) (dst_p,dst_n) =>
+        '(x,i) <- resolve_PVar (vars st) src_p ;;
+         '(y,o) <- resolve_PVar (vars st) dst_p ;;
          add_comment
-         (genWhileLoop "Pointwise" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-         "--- Operator: FSHPointwise ---"
-      | FSHBinOp n f =>
+         (genFSHAssign i o st x y src_n dst_n nextblock)
+         "--- Operator: DSHAssign ---"
+      | DSHIMap n x_p y_p f =>
+        '(x,i) <- resolve_PVar (vars st) x_p ;;
+         '(y,o) <- resolve_PVar (vars st) y_p ;;
+         nat_eq_or_err "IMap dimensions do not match" i o ;;
+         let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
+         let '(st, loopvar) := incLocalNamed st "Pointwise_i" in
+         '(st, (body_entry, body_blocks)) <- @genIMapBody i x y f st loopvar loopcontblock ;;
+          add_comment
+          (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          "--- Operator: DSHIMap ---"
+      | DSHBinOp n x_p y_p f =>
         let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
-        '(st, (body_entry, body_blocks)) <- @genBinOpBody n ft x y f st loopvar loopcontblock ;;
+        '(x,i) <- resolve_PVar (vars st) x_p ;;
+         '(y,o) <- resolve_PVar (vars st) y_p ;;
+         nat_eq_or_err "BinOp output dimensions do not match" n o ;;
+         nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
+         '(st, (body_entry, body_blocks)) <- @genBinOpBody n x y f st loopvar loopcontblock ;;
          add_comment
          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-         "--- Operator: FSHBinOp ---"
-      | FSHInductor n f initial =>
-        add_comment
-          (genFSHInductor x y n f initial st nextblock)
-          "--- Operator: FSHInductor ---"
-      | FSHIUnion i o n _ _ child =>
+         "--- Operator: DSHBinOp ---"
+      | DSHMemMap2 n x0_p x1_p y_p f => raise "TODO"
+      | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
+        '(x,i) <- resolve_PVar (vars st) src_p ;;
+         '(y,o) <- resolve_PVar (vars st) dst_p ;;
+         add_comment
+         (genPower x y n f initial st nextblock)
+         "--- Operator: DSHPower ---"
+      | DSHLoop n body =>
         let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
         let '(st, loopvar) := incBlockNamed st "Union_i" in
         let st := addVars st [(ID_Local loopvar, IntType)] in
-        '(st,(child_block_id, child_blocks)) <- genIR x y child st loopcontblock ;;
+        '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
          st <- dropVars st 1 ;;
          add_comment
          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
-         "--- Operator: FSHIUnion ---"
-      | FSHIReduction i o n dot initial child =>
-        let '(st, t) := incLocalNamed st "IReductoin_tmp" in
-        let '(st, loopcontblock) := incBlockNamed st "IReduction_main_lcont" in
-        let '(st, loopvar) := incBlockNamed st "IReduction_main_i" in
-        '(st,(fold_block_id, fold_blocks)) <- @genIReductionFold i o n ft y t dot st loopcontblock ;;
-         let st := addVars st [(ID_Local loopvar, IntType)] in
-         '(st,(child_block_id, child_blocks)) <- genIR x t child st fold_block_id ;;
-          st <- dropVars st 1 ;;
-          '(st, (loop_block_id, loop_blocks))
-          <- genWhileLoop "IReduction_main_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-          loopvar loopcontblock child_block_id (child_blocks++fold_blocks)
-          [] st nextblock ;;
-          '(st, (init_block_id, init_blocks)) <- @genIReductionInit i o ft n t x y dot initial st loop_block_id ;;
-          add_comment (ret (st, (init_block_id, init_blocks++loop_blocks))) "--- Operator: FSHIReduction ---"
-      | FSHCompose i1 o2 o3 f g =>
-        let '(st, tmpid) := incLocal st in
-        '(st, (fb, f')) <- genIR tmpid y f st nextblock ;;
-         '(st, (gb, g')) <- genIR x tmpid g st fb ;;
-         let '(st, alloid, tmpalloc) := @allocTempArrayBlock ft st tmpid gb o2 in
-         (* TODO: free? *)
-         add_comment (ret (st, (alloid, [tmpalloc]++g'++f'))) "--- Operator: FSHCompose ---"
-      | FSHHTSUMUnion i o dot f g =>
-        let '(st, tmpfy) := incLocal st in
-        let '(st, tmpgy) := incLocal st in
-        let '(st, loopcontblock) := incBlockNamed st "HTSUMUnion_lcont" in
-        let '(st, loopvar) := incLocalNamed st "HTSUMUnion_i" in
-        '(st, (body_entry, body_blocks)) <- @genHTSUMUnionpBody o ft tmpfy tmpgy y dot st loopvar loopcontblock ;;
-         '(st, (loopblock, loop_blocks)) <-  genWhileLoop "HTSUMUnion" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock body_entry body_blocks [] st nextblock ;;
-         '(st, (fb, f')) <- genIR x tmpfy f st loopblock  ;;
-         '(st, (gb, g')) <- genIR x tmpgy g st fb  ;;
-         let (st,retid) := incVoid st in
-         let (st,tmp_alloc_block_id) := incBlock st in
-         let tmp_alloc_block :=
-             {|
-               blk_id    := tmp_alloc_block_id ;
-               blk_phis  := [];
-               blk_code  :=
-                 @allocTempArrayCode ft tmpfy o ++ @allocTempArrayCode ft tmpgy o;
-               blk_term  := (IVoid retid, TERM_Br_1 gb) ;
-               blk_comments := None
-             |} in
-         add_comment (ret (st, (tmp_alloc_block_id, [tmp_alloc_block]++g'++f'++loop_blocks)))
-                     "--- Operator: FSHHTSUMUnion ---"
+         "--- Operator: DSHLoop ---"
+      | DSHAlloc size body => raise "TODO"
+      | DSHMemInit size y_p value => raise "TODO"
+      | DSHMemCopy size x_p y_p => raise "TODO"
+      | DSHSeq f g =>
+        '(st, (gb, g')) <- genIR g st nextblock ;;
+         '(st, (fb, f')) <- genIR f st gb ;;
+         add_comment (ret (st, (fb, g'++f'))) "--- Operator: DSHSeq ---"
       end.
 
   Definition LLVMGen'
-             {i o: nat}
-             {ft: FloatT}
-             (globals: list (string* (@FSHValType ft)))
+             (i o: nat)
+             (globals: list (string*FSHValType))
              (globals_extern: bool)
-             (fshcol: @FSHOperator ft i o) (funname: string)
+             (fshcol: DSHOperator)
+             (funname: string)
     : m (toplevel_entities typ (list (block typ)))
     :=
       let x := Name "X" in
@@ -1116,12 +1106,16 @@ Section monadic.
       let ytyp := TYPE_Pointer (getIRType (FSHvecValType o)) in
       let st := newState in
 
+      (* Add globals *)
       let st :=
           addVars st
                   (List.map
-                     (fun g:(string* (@FSHValType ft)) =>
+                     (fun g:(string* FSHValType) =>
                         let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
                      globals) in (* TODO: check order of globals. Maybe reverse. *)
+
+      (* Add parameters as locals *)
+      let st := addVars st [(ID_Local x,xtyp);(ID_Local y,ytyp)] in
 
       let (st,rid) := incBlock st in
       let (st,rsid) := incBlock st in
@@ -1133,7 +1127,7 @@ Section monadic.
             blk_term  := (IId rsid, TERM_Ret_void);
             blk_comments := None
           |} in
-      '(st,(_,body)) <- genIR x y fshcol st rid ;;
+      '(st,(_,body)) <- genIR fshcol st rid ;;
        let body := body ++ [retblock] in
        let all_intrinsics:toplevel_entities typ (list (block typ))
            := [@TLE_Comment _ (list (block typ)) "Prototypes for intrinsics we use"]
@@ -1143,31 +1137,31 @@ Section monadic.
        ret
          (all_intrinsics ++
                          (if globals_extern then
-                              (genIRGlobals (FnBody:=list (block typ)) globals) else []) ++
-                                       [
-                                         TLE_Comment " Top-level operator definition" ;
-                                         TLE_Definition
-                                          {|
-                                            df_prototype   :=
-                                              {|
-                                                dc_name        := Name funname;
-                                                dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
-                                                dc_param_attrs := ([],
-                                                                   [[PARAMATTR_Readonly] ++ ArrayPtrParamAttrs;
-                                                                      ArrayPtrParamAttrs]);
-                                                dc_linkage     := None ;
-                                                dc_visibility  := None ;
-                                                dc_dll_storage := None ;
-                                                dc_cconv       := None ;
-                                                dc_attrs       := []   ;
-                                                dc_section     := None ;
-                                                dc_align       := None ;
-                                                dc_gc          := None
-                                              |} ;
-                                            df_args        := [x;y];
-                                            df_instrs      := body
-                                          |}
-                                       ]
+                            (genIRGlobals (FnBody:=list (block typ)) globals) else []) ++
+                         [
+                           TLE_Comment " Top-level operator definition" ;
+                             TLE_Definition
+                               {|
+                                 df_prototype   :=
+                                   {|
+                                     dc_name        := Name funname;
+                                     dc_type        := TYPE_Function TYPE_Void [xtyp; ytyp] ;
+                                     dc_param_attrs := ([],
+                                                        [[PARAMATTR_Readonly] ++ ArrayPtrParamAttrs;
+                                                           ArrayPtrParamAttrs]);
+                                     dc_linkage     := None ;
+                                     dc_visibility  := None ;
+                                     dc_dll_storage := None ;
+                                     dc_cconv       := None ;
+                                     dc_attrs       := []   ;
+                                     dc_section     := None ;
+                                     dc_align       := None ;
+                                     dc_gc          := None
+                                   |} ;
+                                 df_args        := [x;y];
+                                 df_instrs      := body
+                               |}
+                         ]
          ).
 
 End monadic.
@@ -1177,8 +1171,8 @@ End monadic.
  ** want to use
  **)
 Definition LLVMGen
-           {i o: nat}
-           {ft: FloatT}
-           (globals: list (string* (@FSHValType ft)))
-           (fshcol: @FSHOperator ft i o) (funname: string)
-  := LLVMGen' (m := sum string) globals true fshcol funname.
+           (i o: nat)
+           (globals: list (string* FSHValType))
+           (fshcol: DSHOperator)
+           (funname: string)
+  := LLVMGen' (m := sum string) i o globals true fshcol funname.
