@@ -816,6 +816,86 @@ Section monadic.
                |}
            ])).
 
+  Definition genMemMap2Body
+             (n: nat)
+             (x0 x1 y: ident)
+             (f: AExpr)
+             (st: IRState)
+             (loopvar: raw_id)
+             (nextblock: block_id)
+    : m (IRState * segment)
+    :=
+      let '(st, binopblock) := incBlockNamed st "MemMap2LoopBody" in
+      let '(st, binopret) := incVoid st in
+      let '(st, storeid) := incVoid st in
+      let '(st, px0) := incLocal st in
+      let '(st, px1) := incLocal st in
+      let '(st, py) := incLocal st in
+      let '(st, v0) := incLocal st in
+      let '(st, v1) := incLocal st in
+      let xtyp := getIRType (FSHvecValType n) in
+      let xptyp := TYPE_Pointer xtyp in
+      let ytyp := getIRType (FSHvecValType n) in
+      let yptyp := TYPE_Pointer ytyp in
+      let loopvarid := ID_Local loopvar in
+      let st := addVars st [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] in
+      '(st, fexpr, fexpcode) <- genAExpr st f ;;
+       st <- dropVars st 2 ;;
+       ret (st,
+            (binopblock,
+             [
+               {|
+                 blk_id    := binopblock ;
+                 blk_phis  := [];
+                 blk_code  := [
+                               (IId px0,  INSTR_Op (OP_GetElementPtr
+                                                      xtyp (xptyp, (EXP_Ident x0))
+                                                      [(IntType, EXP_Integer 0%Z);
+                                                         (IntType,(EXP_Ident loopvarid))]
+
+                               ));
+
+                                 (IId v0, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
+                                                      (EXP_Ident (ID_Local px0)))
+                                                     (ret 8%Z));
+
+                                 (IId px1,  INSTR_Op (OP_GetElementPtr
+                                                        xtyp (xptyp, (EXP_Ident x1))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType,(EXP_Ident (ID_Local loopvar)))]
+
+                                 ));
+
+                                 (IId v1, INSTR_Load false TYPE_Double
+                                                     (TYPE_Pointer TYPE_Double,
+                                                      (EXP_Ident (ID_Local px1)))
+                                                     (ret 8%Z))
+                             ]
+
+
+                                ++ fexpcode ++
+
+                                [ (IId py,  INSTR_Op (OP_GetElementPtr
+                                                        ytyp (yptyp, (EXP_Ident y))
+                                                        [(IntType, EXP_Integer 0%Z);
+                                                           (IntType, (EXP_Ident loopvarid))]
+
+                                  ));
+
+                                    (IVoid storeid, INSTR_Store false
+                                                                (TYPE_Double, fexpr)
+                                                                (TYPE_Pointer TYPE_Double,
+                                                                 (EXP_Ident (ID_Local py)))
+                                                                (ret 8%Z))
+
+
+                                ];
+                 blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
+                 blk_comments := None
+               |}
+           ])).
+
   Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
 
   Definition genMemInit
@@ -946,7 +1026,7 @@ Section monadic.
            ret (l, Z.to_nat sz)
          | _ => raise "Invalid type of PVar"
          end
-      | PConst _ => raise "PConst insupported"
+      | PConst _ => raise "PConst insupported" (* TODO *)
       end.
 
   Fixpoint genIR
@@ -990,7 +1070,19 @@ Section monadic.
          add_comment
          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: DSHBinOp ---"
-      | DSHMemMap2 n x0_p x1_p y_p f => raise "TODO"
+      | DSHMemMap2 n x0_p x1_p y_p f =>
+        let '(st, loopcontblock) := incBlockNamed st "MemMap2_lcont" in
+        let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
+        '(x0,i0) <- resolve_PVar (vars st) x0_p ;;
+         '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
+         '(y,o) <- resolve_PVar (vars st) y_p ;;
+         nat_eq_or_err "MemMap2 output dimensions do not match" n o ;;
+         nat_eq_or_err "MemMap2 input 1 dimensions do not match" n i0 ;;
+         nat_eq_or_err "MemMap2 input 2 dimensions do not match" n i1 ;;
+         '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
+         add_comment
+         (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+         "--- Operator: DSHMemMap2 ---"
       | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
         '(x,i) <- resolve_PVar (vars st) src_p ;;
          '(y,o) <- resolve_PVar (vars st) dst_p ;;
