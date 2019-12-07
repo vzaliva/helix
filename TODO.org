@@ -75,18 +75,30 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Automate /DynWin/ rewriting proof                                 :zoickx:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
-** Non-array global constants. See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
-** Implement float min/max                                           :zoickx:
-   in DHCOL it is ==Float64Min= and =Float64Max=.
+** LLVM Code generation
+*** Non-array global constants. 
+    See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
+*** Implement float min/max                                          :zoickx:
+    in DHCOL it is ==Float64Min= and =Float64Max=.
 
-   In LLVMgen =Float_maxnum= implemented as C =max= macro. Should be more
-   like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
-   LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
+    In LLVMgen =Float_maxnum= implemented as C =max= macro. Should be more
+    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
+    LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
-   =Float_maxnum= is the same as =Float64Max=
-** Implemnet int min/max
-   in =LLVMGen/Compiler.v= in =genNExpr= implement min/max code generation for integers.
-   [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
+    =Float_maxnum= is the same as =Float64Max=
+*** Implemnet int min/max
+    in =LLVMGen/Compiler.v= in =genNExpr= implement min/max code generation for integers.
+    [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
+*** Hanldoing =MConst= in LLVM compiler
+    See TODO comment in =Compiler.v=
+** =PConst= support 
+   Currently =PConst= is not supported. The problem is that to codgen this
+   we need to know the type of memory block. This could be fixed in DSHCOL
+   level by adding =n:nat= parameter to =PConst= constructor. In this case it
+   could directly compiler to =TYPE_Pointer=.
+
+   Alternatively, we can just forbid constant pointers, and remove
+   =PConst= constructor, leaving only =PVar=.
 
 * Build/Tests
 ** Use =dune= for coq code builds.
