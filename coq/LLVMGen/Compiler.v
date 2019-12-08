@@ -203,20 +203,24 @@ Section monadic.
             vars := vars'
           |}.
 
+
+  Definition allocTempArrayCode (name: local_id) (size:nat)
+    :=
+      [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))].
+
   Definition allocTempArrayBlock
              (st: IRState)
              (name: local_id)
              (nextblock: block_id)
              (size: nat): (IRState * (local_id * (block typ)))
     :=
-      let code := [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))] in
       let (st,retid) := incVoid st in
       let (st,bid) := incBlock st in
       (st, (bid,
             {|
               blk_id    := bid ;
               blk_phis  := [];
-              blk_code  := code;
+              blk_code  := allocTempArrayCode name size;
               blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
               blk_comments := None
             |})).
