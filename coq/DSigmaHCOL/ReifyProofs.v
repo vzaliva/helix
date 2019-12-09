@@ -2739,6 +2739,30 @@ Proof.
     reflexivity.
 Qed.
 
+Global Instance Pick_MSH_DSH_compat
+       {o b: nat}
+       (bc: b < o)
+       (σ: evalContext)
+
+       (y_n : NExpr)
+       (x_p y_p : PExpr)
+       (tm' : TypeSig)
+       (* Not sure if we need this.
+          `{TM : TypeSigUnion_error tm' =<<
+                                 map_option2 TypeSigUnion_error
+                                 (TypeSigNExpr (NConst 0))
+                                 (TypeSigNExpr y_n)
+              = Some tm} *)
+       (dfs : TypeSig)
+       (m : memory)
+       (* Please note, we use generic instance of [DSH_pure], not [Assign_DSH_pure] *)
+       (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
+       (Y: evalNexp σ y_n = Some b)
+  :
+    @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
+Proof.
+Admitted.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
