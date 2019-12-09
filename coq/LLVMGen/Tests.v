@@ -94,22 +94,27 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                  (APlus (AVar 1%nat) (AVar 0%nat))))))
      (DSHBinOp 1 (PVar 0%nat) (PVar 2%nat) (AZless (AVar 1%nat) (AVar 0%nat)))).
 
+Section SmallOps.
+  Local Open Scope nat_scope.
+
+  Definition BinOp_less_test :=
+    DSHBinOp 2 (PVar 0) (PVar 1) (AZless (AVar 1) (AVar 0)).
+
+  Definition BinOp_plus_test :=
+    DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1%nat) (AVar 0)).
+
+Definition Pointwise_plus1_test :=
+  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
+
+Definition Pointwise_plusD_test :=
+  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 2)).
+
 (*
-Definition BinOp_less_test: @FSHOperator Float64 (2+2) 2 :=
-  FSHBinOp (AZless (AVar 1) (AVar 0)).
-
-Definition BinOp_plus_test: @FSHOperator Float64 (2+2) 2 :=
-  FSHBinOp (APlus (AVar 1) (AVar 0)).
-
-Definition Pointwise_plus1_test: @FSHOperator Float64 8 8 :=
-  FSHPointwise (APlus (AConst FloatV64One) (AVar 0)).
-
-Definition Pointwise_plusD_test: @FSHOperator Float64 8 8 :=
-  FSHPointwise (APlus (AVar 0) (AVar 2)).
-
 Definition Compose_pointwise_test: @FSHOperator Float64 8 8 :=
   FSHCompose Pointwise_plus1_test Pointwise_plus1_test.
  *)
+End SmallOps.
+
 Record FSHCOLTest :=
   mkFSHCOLTest
     {
@@ -143,16 +148,20 @@ Local Open Scope string_scope.
 
 Definition all_tests :=
   [
-    {| i:=5; o:=1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType 3)] |}
-    (*      {| name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
-      {| name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
+    {| i:=5; o:=1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType 3)] |} ;
+      {| i:=4; o:=2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
+      {| i:=4; o:=2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
+      (*
       {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| name:="sumunion"; op:=SUMUnionTest; globals:=[] |} ;
-      {| name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
-      {| name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", @FSHFloatValType Float64)] |} ;
+       *)
+      {| i:=8; o:=8; name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
+      {| i:=8; o:=8; name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", FSHFloatValType)] |}
+(*
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|} *)
+
   ].
 
 
