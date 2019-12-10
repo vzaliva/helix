@@ -1026,7 +1026,7 @@ Section monadic.
       | PVar n =>
         '(l,t) <- opt2err "NVar out of range" (List.nth_error vars n) ;;
          match t with
-         | TYPE_Array sz TYPE_Double =>
+         | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
            ret (l, Z.to_nat sz)
          | _ => raise "Invalid type of PVar"
          end
@@ -1068,7 +1068,7 @@ Section monadic.
         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
-         nat_eq_or_err "BinOp output dimensions do not match" n o ;;
+         nat_eq_or_err ("BinOp output dimensions do not match "++(string_of_nat n)++"!="++(string_of_nat o)) n o ;;
          nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
          '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
          add_comment
@@ -1148,7 +1148,7 @@ Section monadic.
                      globals) in (* TODO: check order of globals. Maybe reverse. *)
 
       (* Add parameters as locals *)
-      let st := addVars st [(ID_Local x,xtyp);(ID_Local y,ytyp)] in
+      let st := addVars st [(ID_Local x, xtyp);(ID_Local y, ytyp)] in
 
       let (st,rid) := incBlock st in
       let (st,rsid) := incBlock st in
