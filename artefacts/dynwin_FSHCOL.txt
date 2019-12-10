@@ -1,138 +1,83 @@
-(DSHAlloc (S (S O))
-   (DSHSeq
-      (DSHAlloc (S (S O))
-         (DSHAlloc (S (S O))
-            (DSHSeq
-               (DSHSeq
-                  (DSHAlloc (S O)
-                     (DSHSeq
-                        (DSHAlloc (S O)
-                           (DSHSeq
-                              (DSHMemInit (S O) (PVar O)
-                                 FSigmaHCOL.Float64Zero)
-                              (DSHLoop (S (S (S O)))
-                                 (DSHSeq
-                                    (DSHAlloc (S O)
-                                       (DSHSeq
-                                          (DSHAssign
-                                             (@pair PExpr NExpr
-                                                (PVar
-                                                   (S
-                                                      (S
-                                                         (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S (S O))))))))))
-                                                (NConst O))
-                                             (@pair PExpr NExpr
-                                                (PVar O) (NConst O)))
-                                          (DSHAlloc (S O)
-                                             (DSHSeq
-                                                (DSHPower (NVar O)
-                                                   (@pair PExpr
-                                                      NExpr
-                                                      (PVar (S O))
-                                                      (NConst O))
-                                                   (@pair PExpr
-                                                      NExpr 
-                                                      (PVar O)
-                                                      (NConst O))
-                                                   (AMult
-                                                      (AVar (S O))
-                                                      (AVar O))
-                                                   FSigmaHCOL.Float64One)
-                                                (DSHIMap (S O)
-                                                   (PVar O)
-                                                   (PVar
-                                                      (S (S (S O))))
-                                                   (AMult (AVar O)
-                                                      (ANth
-                                                         (MVar
-                                                           (S
-                                                           (S (S O))))
-                                                         (NVar
-                                                           (S (S O))))))))))
-                                    (DSHMemMap2 (S (S (S O)))
-                                       (PVar (S O)) (PVar (S (S O)))
-                                       (PVar (S (S O)))
-                                       (APlus (AVar (S O)) (AVar O)))))))
-                        (DSHAssign
-                           (@pair PExpr NExpr (PVar O) (NConst O))
-                           (@pair PExpr NExpr (PVar (S O))
-                              (NConst O)))))
-                  (DSHAlloc (S O)
-                     (DSHSeq
-                        (DSHAlloc (S O)
-                           (DSHSeq
-                              (DSHMemInit (S O) (PVar O)
-                                 FSigmaHCOL.Float64Zero)
-                              (DSHLoop (S (S O))
-                                 (DSHSeq
-                                    (DSHAlloc (S (S O))
-                                       (DSHSeq
-                                          (DSHLoop (S (S O))
-                                             (DSHAlloc (S O)
-                                                (DSHSeq
-                                                   (DSHAssign
-                                                      (@pair PExpr
-                                                         NExpr
-                                                         (PVar
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S
-                                                           (S (S O))))))))))))
-                                                         (NPlus
-                                                           (NPlus
-                                                           (NConst
-                                                           (S O))
-                                                           (NMult
-                                                           (NVar
-                                                           (S O))
-                                                           (NConst
-                                                           (S O))))
-                                                           (NMult
-                                                           (NVar O)
-                                                           (NMult
-                                                           (NConst
-                                                           (S (S O)))
-                                                           (NConst
-                                                           (S O))))))
-                                                      (@pair PExpr
-                                                         NExpr
-                                                         (PVar O)
-                                                         (NConst O)))
-                                                   (DSHAssign
-                                                      (@pair PExpr
-                                                         NExpr
-                                                         (PVar O)
-                                                         (NConst O))
-                                                      (@pair PExpr
-                                                         NExpr
-                                                         (PVar
-                                                           (S (S O)))
-                                                         (NVar O))))))
-                                          (DSHBinOp (S O) (PVar O)
-                                             (PVar (S (S O)))
-                                             (AAbs
-                                                (AMinus (AVar (S O))
-                                                   (AVar O))))))
-                                    (DSHMemMap2 (S (S O))
-                                       (PVar (S O)) (PVar (S (S O)))
-                                       (PVar (S (S O)))
-                                       (AMax (AVar (S O)) (AVar O)))))))
-                        (DSHAssign
-                           (@pair PExpr NExpr (PVar O) (NConst O))
-                           (@pair PExpr NExpr (PVar (S (S O)))
-                              (NConst (S O)))))))
-               (DSHMemMap2 (S (S O)) (PVar O) (PVar (S O))
-                  (PVar (S (S O))) (APlus (AVar (S O)) (AVar O))))))
-      (DSHBinOp (S O) (PVar O) (PVar (S (S O)))
-                  (AZless (AVar (S O)) (AVar O)))))
+DSHAlloc 2
+  (DSHSeq
+     (DSHAlloc 2
+        (DSHAlloc 2
+           (DSHSeq
+              (DSHSeq
+                 (DSHAlloc 1
+                    (DSHSeq
+                       (DSHAlloc 1
+                          (DSHSeq
+                             (DSHMemInit 1 (PVar 0)
+                                FSigmaHCOL.Float64Zero)
+                             (DSHLoop 3
+                                (DSHSeq
+                                   (DSHAlloc 1
+                                      (DSHSeq
+                                         (DSHAssign
+                                            (PVar 9, NConst 0)
+                                            (PVar 0, NConst 0))
+                                         (DSHAlloc 1
+                                            (DSHSeq
+                                               (DSHPower (NVar 0)
+                                                  (PVar 1, NConst 0)
+                                                  (PVar 0, NConst 0)
+                                                  (AMult (AVar 1)
+                                                     (AVar 0))
+                                                  FSigmaHCOL.Float64One)
+                                               (DSHIMap 1 (PVar 0)
+                                                  (PVar 3)
+                                                  (AMult (AVar 0)
+                                                     (ANth (MVar 3)
+                                                        (NVar 2))))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
+                                      (PVar 2)
+                                      (APlus (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0)
+                          (PVar 1, NConst 0))))
+                 (DSHAlloc 1
+                    (DSHSeq
+                       (DSHAlloc 1
+                          (DSHSeq
+                             (DSHMemInit 1 (PVar 0)
+                                FSigmaHCOL.Float64Zero)
+                             (DSHLoop 2
+                                (DSHSeq
+                                   (DSHAlloc 2
+                                      (DSHSeq
+                                         (DSHLoop 2
+                                            (DSHAlloc 1
+                                               (DSHSeq
+                                                  (DSHAssign
+                                                     (PVar 11,
+                                                     NPlus
+                                                       (NPlus
+                                                          (NConst 1)
+                                                          (NMult
+                                                           (NVar 1)
+                                                           (NConst 1)))
+                                                       (NMult
+                                                          (NVar 0)
+                                                          (NMult
+                                                           (NConst 2)
+                                                           (NConst 1))))
+                                                     (PVar 0,
+                                                     NConst 0))
+                                                  (DSHAssign
+                                                     (PVar 0,
+                                                     NConst 0)
+                                                     (PVar 2,
+                                                     NVar 0)))))
+                                         (DSHBinOp 1 (PVar 0)
+                                            (PVar 2)
+                                            (AAbs
+                                               (AMinus (AVar 1)
+                                                  (AVar 0))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
+                                      (PVar 2)
+                                      (AMax (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0)
+                          (PVar 2, NConst 1)))))
+              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 2)
+                 (APlus (AVar 1) (AVar 0))))))
+     (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0))))

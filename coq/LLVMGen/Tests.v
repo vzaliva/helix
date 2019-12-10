@@ -26,6 +26,7 @@ Import ListNotations.
 Import MDSHCOLOnFloat64.
 
 (* sample definition to be moved to DynWin.v *)
+Local Open Scope nat_scope.
 Definition DynWin_test: DSHOperator := DSHAlloc 2
   (DSHSeq
      (DSHAlloc 2
@@ -35,32 +36,40 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                  (DSHAlloc 1
                     (DSHSeq
                        (DSHAlloc 1
-                          (DSHSeq (DSHMemInit 1 (PVar 0%nat) Float64Zero)
+                          (DSHSeq
+                             (DSHMemInit 1 (PVar 0)
+                                FSigmaHCOL.Float64Zero)
                              (DSHLoop 3
                                 (DSHSeq
                                    (DSHAlloc 1
                                       (DSHSeq
-                                         (DSHAssign (PVar 9%nat, NConst 0)
-                                            (PVar 0%nat, NConst 0))
+                                         (DSHAssign
+                                            (PVar 9, NConst 0)
+                                            (PVar 0, NConst 0))
                                          (DSHAlloc 1
                                             (DSHSeq
-                                               (DSHPower (NVar 0%nat)
-                                                  (PVar 1%nat, NConst 0)
-                                                  (PVar 0%nat, NConst 0)
-                                                  (AMult (AVar 1%nat) (AVar 0%nat))
-                                                  Float64One)
-                                               (DSHIMap 1 (PVar 0%nat)
-                                                  (PVar 3%nat)
-                                                  (AMult (AVar 0%nat)
-                                                     (ANth (MVar 3%nat) (NVar 2%nat))))))))
-                                   (DSHMemMap2 3 (PVar 1%nat)
-                                      (PVar 2%nat) (PVar 2%nat)
-                                      (APlus (AVar 1%nat) (AVar 0%nat)))))))
-                       (DSHAssign (PVar 0%nat, NConst 0) (PVar 1%nat, NConst 0))))
+                                               (DSHPower (NVar 0)
+                                                  (PVar 1, NConst 0)
+                                                  (PVar 0, NConst 0)
+                                                  (AMult (AVar 1)
+                                                     (AVar 0))
+                                                  FSigmaHCOL.Float64One)
+                                               (DSHIMap 1 (PVar 0)
+                                                  (PVar 3)
+                                                  (AMult (AVar 0)
+                                                     (ANth (MVar 3)
+                                                        (NVar 2))))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
+                                      (PVar 2)
+                                      (APlus (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0)
+                          (PVar 1, NConst 0))))
                  (DSHAlloc 1
                     (DSHSeq
                        (DSHAlloc 1
-                          (DSHSeq (DSHMemInit 1 (PVar 0%nat) Float64Zero)
+                          (DSHSeq
+                             (DSHMemInit 1 (PVar 0)
+                                FSigmaHCOL.Float64Zero)
                              (DSHLoop 2
                                 (DSHSeq
                                    (DSHAlloc 2
@@ -69,30 +78,39 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                                             (DSHAlloc 1
                                                (DSHSeq
                                                   (DSHAssign
-                                                     (PVar 11%nat,
+                                                     (PVar 11,
                                                      NPlus
                                                        (NPlus
                                                           (NConst 1)
                                                           (NMult
-                                                          (NVar 1%nat)
-                                                          (NConst 1)))
+                                                           (NVar 1)
+                                                           (NConst 1)))
                                                        (NMult
-                                                          (NVar 0%nat)
-                                                          (NMult (NConst 2) (NConst 1))))
-                                                     (PVar 0%nat, NConst 0))
+                                                          (NVar 0)
+                                                          (NMult
+                                                           (NConst 2)
+                                                           (NConst 1))))
+                                                     (PVar 0,
+                                                     NConst 0))
                                                   (DSHAssign
-                                                     (PVar 0%nat, NConst 0)
-                                                     (PVar 2%nat, NVar 0%nat)))))
-                                         (DSHBinOp 1 (PVar 0%nat)
-                                            (PVar 2%nat)
-                                            (AAbs (AMinus (AVar 1%nat) (AVar 0%nat))))))
-                                   (DSHMemMap2 2 (PVar 1%nat)
-                                      (PVar 2%nat) (PVar 2%nat)
-                                      (AMax (AVar 1%nat) (AVar 0%nat)))))))
-                       (DSHAssign (PVar 0%nat, NConst 0) (PVar 2%nat, NConst 1)))))
-              (DSHMemMap2 2 (PVar 0%nat) (PVar 1%nat) (PVar 2%nat)
-                 (APlus (AVar 1%nat) (AVar 0%nat))))))
-     (DSHBinOp 1 (PVar 0%nat) (PVar 2%nat) (AZless (AVar 1%nat) (AVar 0%nat)))).
+                                                     (PVar 0,
+                                                     NConst 0)
+                                                     (PVar 2,
+                                                     NVar 0)))))
+                                         (DSHBinOp 1 (PVar 0)
+                                            (PVar 2)
+                                            (AAbs
+                                               (AMinus (AVar 1)
+                                                  (AVar 0))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
+                                      (PVar 2)
+                                      (AMax (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0)
+                          (PVar 2, NConst 1)))))
+              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 2)
+                 (APlus (AVar 1) (AVar 0))))))
+     (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
+Local Close Scope nat_scope.
 
 Section SmallOps.
   Local Open Scope nat_scope.

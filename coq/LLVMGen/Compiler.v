@@ -1104,8 +1104,8 @@ Section monadic.
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
          "--- Operator: DSHLoop ---"
       | DSHAlloc size body =>
+         let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) in
         '(st, (bblock, bcode)) <- genIR body st nextblock ;;
-         let '(st, aname) := incLocalNamed st "new" in
          let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
          add_comment (ret (st, (ablock, [acode]++bcode))) "--- Operator: DSHAlloc ---"
       | DSHMemInit size y_p value =>
