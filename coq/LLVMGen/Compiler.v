@@ -235,7 +235,7 @@ Section monadic.
   Definition nat_eq_or_err (msg:string) (a b:nat) : m unit :=
     if PeanoNat.Nat.eq_dec a b
     then ret tt
-    else raise msg.
+    else raise (append msg (" "++(string_of_nat a)++"!="++(string_of_nat b))).
 
   Fixpoint genNExpr
            (st: IRState)
@@ -1068,8 +1068,8 @@ Section monadic.
         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
-         nat_eq_or_err ("BinOp output dimensions do not match "++(string_of_nat n)++"!="++(string_of_nat o)) n o ;;
          nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
+         nat_eq_or_err "BinOp output dimensions do not match" n o ;;
          '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
          add_comment
          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
