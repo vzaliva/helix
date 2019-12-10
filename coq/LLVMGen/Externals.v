@@ -67,6 +67,7 @@ Definition maxnum_32_decl: declaration typ :=
     dc_gc          := None
   |}.
 
+(* TODO: Should be same as [FSigmaHCOL.Float64Max] ! *)
 Definition Float_maxnum (a b: float): float :=
   if Float.cmp Clt a b then b else a.
 
@@ -87,6 +88,7 @@ Definition llvm_maxnum_f32 : IS.semantic_function :=
     | _ => failwith "llvm_maxnum_f32 got incorrect / ill-typed intputs"
     end.
 
+(* TODO: Should be same as [FSigmaHCOL.Float64Min] ! *)
 Definition Float_minimum (a b: float): float :=
   if Float.cmp Clt a b then a else b.
 

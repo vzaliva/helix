@@ -15,7 +15,12 @@ Section MinMax.
   (* TODO: Implement semantics as in LLVM:
      https://llvm.org/docs/LangRef.html#llvm-minimum-intrinsic
    *)
-  Definition Float64Min (a b: binary64): binary64. Admitted.
+  Definition Float64Min (a b: binary64) :=
+    match Bcompare _ _ a b with
+    | Some lt => a
+    | _ => b
+    end.
+
 
   (* TODO: Implement IEEE-754 semantics for `maxNum` except for the
      handling of signaling `NaNs`. This matches the behavior of libm’s
@@ -24,7 +29,11 @@ Section MinMax.
      https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
    *)
-  Definition Float64Max (a b: binary64): binary64. Admitted.
+  Definition Float64Max (a b: binary64): binary64 :=
+    match Bcompare _ _ a b with
+    | Some lt => b
+    | _ => a
+    end.
 
   Definition Float64Le (a b: binary64) : Prop :=
     match (Bcompare _ _ a b) with
