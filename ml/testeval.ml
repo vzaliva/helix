@@ -22,17 +22,14 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let gsize t =
-  let open FSigmaHCOL in
+  let open Compiler in
   match t with
   | FSHnatValType -> 1
   | FSHFloatValType -> 1
   | FSHvecValType n -> Nat.to_int n
 
 let string_of_FloatV fv =
-  Float.to_string
-    (match fv with
-    | FSigmaHCOL.Float32V x -> camlfloat_of_coqfloat32 x
-    | FSigmaHCOL.Float64V x -> camlfloat_of_coqfloat x)
+  Float.to_string (camlfloat_of_coqfloat fv)
 
 let randomFloat range =
   Random.float
@@ -44,12 +41,7 @@ let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
   let rs = Nat.to_int t.i + (List.fold t.globals ~init:0 ~f:(fun v (_,g) -> v + gsize g )) in
-  let randoms = List.init rs
-                  ~f:(fun _ -> let f = coqfloat_of_camlfloat (randomFloat 3.14E8) in
-                             match t.ft with
-                             | Float32 -> FSigmaHCOL.Float32V f
-                             | Float64 -> FSigmaHCOL.Float64V f
-                  ) in
+  let randoms = List.init rs ~f:(fun _ -> coqfloat_of_camlfloat (randomFloat 3.14E8)) in
   if !Interpreter.debug_flag then
     begin
       Printf.printf "Generating %d floats:\n" rs ;
@@ -110,6 +102,7 @@ let _ =
       exit 0
     end
   else
+    let open Core.String in
     let t = if !single = "" then all_tests
             else List.filter all_tests ~f:(fun x -> camlstring_of_coqstring (name x) = !single) in
     exit (if List.fold (List.map t ~f:process_test) ~init:true ~f:(&&)
