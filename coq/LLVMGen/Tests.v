@@ -119,16 +119,16 @@ Section SmallOps.
     DSHBinOp 2 (PVar 0) (PVar 1) (AZless (AVar 1) (AVar 0)).
 
   Definition BinOp_plus_test :=
-    DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1%nat) (AVar 0)).
+    DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1) (AVar 0)).
 
-Definition Pointwise_plus1_test :=
-  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
+  Definition IMap_plus1_test :=
+    DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
 
-Definition Pointwise_plusD_test :=
-  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 2)).
+  Definition IMap_plusD_test :=
+    DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 4)).
 
 (*
-Definition Compose_pointwise_test: @FSHOperator Float64 8 8 :=
+  Definition Compose_pointwise_test: @FSHOperator Float64 8 8 :=
   FSHCompose Pointwise_plus1_test Pointwise_plus1_test.
  *)
 End SmallOps.
@@ -175,8 +175,8 @@ Definition all_tests :=
       {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| name:="sumunion"; op:=SUMUnionTest; globals:=[] |} ;
        *)
-      {| i:=8; o:=8; name:="pointwise_plus1"; op:=Pointwise_plus1_test; globals:=[] |} ;
-      {| i:=8; o:=8; name:="pointwise_plusD"; op:=Pointwise_plusD_test; globals:=[("D", FSHFloatValType)] |}
+      {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
+      {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |}
 (*
       {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|} *)
 
