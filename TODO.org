@@ -102,6 +102,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 
 * Build/Tests
 ** Use =dune= for coq code builds.
+** Use =coq-struct-tact= package                                       :zoickx:
+   Instead of local copy we have in =Tactics/StructTactics.v=
 * Ideas
   - See if =coq-equations= package could be used to represent index
     functions and function arguments of =BinOp=, =Pointwise=, etc.
