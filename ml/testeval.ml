@@ -51,7 +51,7 @@ let process_test t =
   | (None,_) ->
      AT.printf [AT.white; AT.on_red] "Error" ;
      AT.printf [AT.yellow] ": %s" oname ;
-     AT.printf [] " F-HCOL Compilation failed" ;
+     AT.printf [] " F-HCOL Compilation failed\n" ;
      false
   | (Some ast, None) ->
      if !justcompile then
@@ -60,7 +60,7 @@ let process_test t =
        begin
          AT.printf [AT.white; AT.on_red] "Error" ;
          AT.printf [AT.yellow] ": %s" oname ;
-         AT.printf [] " LLVM Compilation failed" ;
+         AT.printf [] " LLVM Compilation failed\n" ;
          false
        end
   | (Some ast, Some trace) ->
