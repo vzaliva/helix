@@ -90,6 +90,14 @@ Definition newState: IRState :=
     vars := []
   |}.
 
+Definition setVars (s:IRState) (newvars:list (ident * typ)): IRState :=
+  {|
+    block_count := block_count s ;
+    local_count := local_count s ;
+    void_count  := void_count s ;
+    vars := newvars
+  |}.
+
 (* TODO: move. Lifted from Software foundations *)
 Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
   let d := match Nat.modulo n 10 with
@@ -1120,8 +1128,10 @@ Section monadic.
          (genMemCopy size st x y nextblock)
          "--- Operator: DSHMemCopy ---"
       | DSHSeq f g =>
+        let vars := vars st in
         '(st, (gb, g')) <- genIR g st nextblock ;;
          '(st, (fb, f')) <- genIR f st gb ;;
+         let st := setVars st vars in
          add_comment (ret (st, (fb, g'++f'))) "--- Operator: DSHSeq ---"
       end.
 
