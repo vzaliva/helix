@@ -48,12 +48,13 @@ let process_test t =
       List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
   match Tests.runFSHCOLTest t randoms with
-  | (None,_) ->
+  | ((None, _) , msg) ->
      AT.printf [AT.white; AT.on_red] "Error" ;
      AT.printf [AT.yellow] ": %s" oname ;
-     AT.printf [] " F-HCOL Compilation failed\n" ;
+     AT.printf [] " F-HCOL Compilation failed:" ;
+     AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
      false
-  | (Some ast, None) ->
+  | ((Some ast, None), _) ->
      if !justcompile then
        (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
      else
@@ -63,7 +64,7 @@ let process_test t =
          AT.printf [] " LLVM Compilation failed\n" ;
          false
        end
-  | (Some ast, Some trace) ->
+  | ((Some ast, Some trace), _) ->
      if !justcompile then
        (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
      else

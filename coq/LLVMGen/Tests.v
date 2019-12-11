@@ -320,9 +320,9 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list binary64)
         let ginit := app [TLE_Comment "Global variables"] ginit in
         let main := genMain i o name globals data'' in
         match LLVMGen' (m := sum string) i o globals false op name with
-        | inl _ => (None, None)
+        | inl msg => (None, None, msg)
         | inr prog =>
           let code := app (app ginit prog) main in
-          (Some prog, Some (test_interpreter code))
+          (Some prog, Some (test_interpreter code), "")
         end
     end data.
