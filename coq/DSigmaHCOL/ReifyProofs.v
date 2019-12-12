@@ -2743,25 +2743,104 @@ Global Instance Pick_MSH_DSH_compat
        {o b: nat}
        (bc: b < o)
        (σ: evalContext)
-
        (y_n : NExpr)
        (x_p y_p : PExpr)
        (tm' : TypeSig)
-       (* Not sure if we need this.
-          `{TM : TypeSigUnion_error tm' =<<
-                                 map_option2 TypeSigUnion_error
-                                 (TypeSigNExpr (NConst 0))
-                                 (TypeSigNExpr y_n)
-              = Some tm} *)
        (dfs : TypeSig)
        (m : memory)
-       (* Please note, we use generic instance of [DSH_pure], not [Assign_DSH_pure] *)
        (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
        (Y: evalNexp σ y_n = Some b)
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
-Admitted.
+  constructor; intros mx mb MX MB.
+  destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
+  2,3: exfalso.
+  -
+    destruct lookup_Pexp as [ma |] eqn:MA at 1; try constructor.
+    2: exfalso.
+    +
+      cbn in *.
+      repeat break_match; try some_none; repeat some_inv.
+      subst fma.
+      unfold memory_lookup, memory_set, mem_add in MA.
+      rewrite NP.F.add_eq_o in MA by reflexivity.
+      some_inv; subst ma.
+      replace n with b in *; clear Y.
+
+      unfold SHCOL_DSHCOL_mem_block_equiv; intros.
+
+      unfold Pick_mem,
+             map_mem_block_elt,
+             MMemoryOfCarrierA.mem_lookup,
+             MMemoryOfCarrierA.mem_add,
+             MMemoryOfCarrierA.mem_empty
+        in MD.
+      break_match; try some_none.
+      some_inv; subst md.
+      unfold mem_lookup in *.
+      destruct (Nat.eq_dec b i);
+        repeat rewrite NP.F.add_eq_o by assumption;
+        repeat rewrite NP.F.add_neq_o by assumption.
+      *
+        constructor; [reflexivity |].
+        rewrite <-Heqo5, <-Heqo6.
+        apply MX.
+      *
+        constructor; [reflexivity |].
+        symmetry.
+        apply MB.
+    +
+      cbn in FMA.
+      repeat break_match; try some_none.
+      some_inv; subst fma.
+      unfold lookup_Pexp in MA.
+      rewrite Heqo1 in MA.
+      simpl in MA.
+      unfold memory_lookup, memory_set, mem_add in MA.
+      rewrite NP.F.add_eq_o in MA by reflexivity.
+      congruence.
+  -
+    cbn in FMA.
+    unfold lookup_Pexp in MX, MB.
+    cbn in MX, MB.
+    destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
+    destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+    repeat break_match; try some_none.
+    repeat some_inv.
+    cbn in MD.
+    unfold Pick_mem,
+           map_mem_block_elt,
+           MMemoryOfCarrierA.mem_lookup,
+           MMemoryOfCarrierA.mem_add,
+           MMemoryOfCarrierA.mem_empty
+      in MD.
+    unfold mem_lookup in Heqo3.
+    repeat break_match; try some_none.
+    enough (Some c = None) by some_none.
+    rewrite <-Heqo3, <-Heqo4.
+    symmetry; apply MX.
+  -
+    cbn in FMA.
+    unfold lookup_Pexp in MX, MB.
+    cbn in MX, MB.
+    destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
+    destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+    repeat break_match; try some_none.
+    repeat some_inv.
+    
+    cbn in MD.
+    unfold Pick_mem,
+           map_mem_block_elt,
+           MMemoryOfCarrierA.mem_lookup,
+           MMemoryOfCarrierA.mem_add,
+           MMemoryOfCarrierA.mem_empty
+      in MD.
+    break_match; try some_none.
+    enough (Some c = None) by some_none.
+    rewrite <-Heqo3, <-Heqo4.
+    apply MX.
+Qed.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
