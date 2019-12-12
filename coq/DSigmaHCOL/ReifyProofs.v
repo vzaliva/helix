@@ -2756,87 +2756,41 @@ Proof.
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
+  all: unfold lookup_Pexp in MX, MB.
+  all: cbn in *.
+  all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
+  all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+  all: unfold Pick_mem,
+              map_mem_block_elt,
+              MMemoryOfCarrierA.mem_lookup,
+              MMemoryOfCarrierA.mem_add,
+              MMemoryOfCarrierA.mem_empty
+         in MD.
+  all: repeat break_match; try some_none.
+  all: repeat some_inv.
   -
-    destruct lookup_Pexp as [ma |] eqn:MA at 1; try constructor.
-    2: exfalso.
+    inversion Y; subst; clear Y.
+    unfold SHCOL_DSHCOL_mem_block_equiv,
+      memory_lookup, memory_set, mem_add, mem_lookup.
+    rewrite NP.F.add_eq_o by reflexivity.
+    constructor.
+    intros.
+    destruct (Nat.eq_dec b i);
+      [ repeat rewrite NP.F.add_eq_o by assumption
+      | repeat rewrite NP.F.add_neq_o by assumption ].
     +
-      cbn in *.
-      repeat break_match; try some_none; repeat some_inv.
-      subst fma.
-      unfold memory_lookup, memory_set, mem_add in MA.
-      rewrite NP.F.add_eq_o in MA by reflexivity.
-      some_inv; subst ma.
-      replace n with b in *; clear Y.
-
-      unfold SHCOL_DSHCOL_mem_block_equiv; intros.
-
-      unfold Pick_mem,
-             map_mem_block_elt,
-             MMemoryOfCarrierA.mem_lookup,
-             MMemoryOfCarrierA.mem_add,
-             MMemoryOfCarrierA.mem_empty
-        in MD.
-      break_match; try some_none.
-      some_inv; subst md.
-      unfold mem_lookup in *.
-      destruct (Nat.eq_dec b i);
-        repeat rewrite NP.F.add_eq_o by assumption;
-        repeat rewrite NP.F.add_neq_o by assumption.
-      *
-        constructor; [reflexivity |].
-        rewrite <-Heqo5, <-Heqo6.
-        apply MX.
-      *
-        constructor; [reflexivity |].
-        symmetry.
-        apply MB.
+      constructor 2; [reflexivity |].
+      rewrite <-Heqo3, <-Heqo4.
+      unfold mem_lookup.
+      apply MX.
     +
-      cbn in FMA.
-      repeat break_match; try some_none.
-      some_inv; subst fma.
-      unfold lookup_Pexp in MA.
-      rewrite Heqo1 in MA.
-      simpl in MA.
-      unfold memory_lookup, memory_set, mem_add in MA.
-      rewrite NP.F.add_eq_o in MA by reflexivity.
-      congruence.
+      constructor 1; [reflexivity |].
+      symmetry; apply MB.
   -
-    cbn in FMA.
-    unfold lookup_Pexp in MX, MB.
-    cbn in MX, MB.
-    destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
-    destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
-    repeat break_match; try some_none.
-    repeat some_inv.
-    cbn in MD.
-    unfold Pick_mem,
-           map_mem_block_elt,
-           MMemoryOfCarrierA.mem_lookup,
-           MMemoryOfCarrierA.mem_add,
-           MMemoryOfCarrierA.mem_empty
-      in MD.
-    unfold mem_lookup in Heqo3.
-    repeat break_match; try some_none.
-    enough (Some c = None) by some_none.
+    enough (None = Some c) by some_none.
     rewrite <-Heqo3, <-Heqo4.
-    symmetry; apply MX.
+    apply MX.
   -
-    cbn in FMA.
-    unfold lookup_Pexp in MX, MB.
-    cbn in MX, MB.
-    destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
-    destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
-    repeat break_match; try some_none.
-    repeat some_inv.
-    
-    cbn in MD.
-    unfold Pick_mem,
-           map_mem_block_elt,
-           MMemoryOfCarrierA.mem_lookup,
-           MMemoryOfCarrierA.mem_add,
-           MMemoryOfCarrierA.mem_empty
-      in MD.
-    break_match; try some_none.
     enough (Some c = None) by some_none.
     rewrite <-Heqo3, <-Heqo4.
     apply MX.
