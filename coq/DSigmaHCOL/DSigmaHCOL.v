@@ -361,19 +361,19 @@ Module Type MDSigmaHCOL (Import CT : CType).
     | AZless a b => AZless (incrAVar skip a) (incrAVar skip b)
     end.
 
-  Definition incrDSHIUnCType := incrAVar 2.
-  Definition incrDSHIBinCType := incrAVar 3.
-  Definition incrDSHBinCType := incrAVar 2.
+  Definition incrDSHIUnCType (skip:nat) := incrAVar (skip + 2).
+  Definition incrDSHIBinCType (skip:nat) := incrAVar (skip + 3).
+  Definition incrDSHBinCType (skip:nat) := incrAVar (skip + 2).
 
   Fixpoint incrOp (skip:nat) (d:DSHOperator) : DSHOperator
     := match d with
        | DSHNop => DSHNop
        | DSHAssign (src_p,src_o) (dst_p,dst_o) => DSHAssign (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o)
-       | DSHIMap n x_p y_p f => DSHIMap n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIUnCType f)
-       | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIBinCType f)
-       | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar skip x0_p) (incrPVar skip x1_p) (incrPVar skip y_p) (incrDSHBinCType f)
+       | DSHIMap n x_p y_p f => DSHIMap n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIUnCType skip f)
+       | DSHBinOp n x_p y_p f => DSHBinOp n (incrPVar skip x_p) (incrPVar skip y_p) (incrDSHIBinCType skip f)
+       | DSHMemMap2 n x0_p x1_p y_p f => DSHMemMap2 n (incrPVar skip x0_p) (incrPVar skip x1_p) (incrPVar skip y_p) (incrDSHBinCType skip f)
        | DSHPower n (src_p,src_o) (dst_p,dst_o) f initial =>
-         DSHPower (incrNVar skip n) (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o) (incrDSHBinCType f) initial
+         DSHPower (incrNVar skip n) (incrPVar skip src_p, incrNVar skip src_o) (incrPVar skip dst_p, incrNVar skip dst_o) (incrDSHBinCType skip f) initial
        | DSHLoop n body => DSHLoop n (incrOp (S skip) body)
        | DSHAlloc size body => DSHAlloc size (incrOp (S skip) body)
        | DSHMemInit size y_p value => DSHMemInit size (incrPVar skip y_p) value
