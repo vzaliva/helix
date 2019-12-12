@@ -177,7 +177,7 @@ Fixpoint compileMSHCOL2DSHCOL
   match t with
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
-            toDSHType (tmReturn vt) ;;
+            toDSHType (tmReturn vt) ;; (* to enforce valid type *)
             compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
