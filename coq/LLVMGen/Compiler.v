@@ -669,7 +669,7 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, pwblock) := incBlockNamed st "PointwiseLoopBody" in
+      let '(st, pwblock) := incBlockNamed st "IMapLoopBody" in
       let '(st, pwret) := incVoid st in
       let '(st, storeid) := incVoid st in
       let '(st, px) := incLocal st in
@@ -1047,8 +1047,8 @@ Section monadic.
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          nat_eq_or_err "IMap dimensions do not match" i o ;;
-         let '(st, loopcontblock) := incBlockNamed st "Pointwise_lcont" in
-         let '(st, loopvar) := newLocalVarNamed st IntType "Pointwise_i" in
+         let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
+         let '(st, loopvar) := incLocalNamed st "IMap_i" in
          '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
           st <- dropVars st 1 ;;
           add_comment
@@ -1059,8 +1059,8 @@ Section monadic.
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
-         nat_eq_or_err "BinOp output dimensions do not match" n o ;;
-         let '(st, loopvar) := newLocalVarNamed st IntType "BinOp_i" in
+         nat_eq_or_err "BinOp output dimensions do not match" o n ;;
+         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
           st <- dropVars st 1 ;;
           add_comment
@@ -1071,10 +1071,10 @@ Section monadic.
         '(x0,i0) <- resolve_PVar (vars st) x0_p ;;
          '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
-         nat_eq_or_err "MemMap2 output dimensions do not match" n o ;;
-         nat_eq_or_err "MemMap2 input 1 dimensions do not match" n i0 ;;
-         nat_eq_or_err "MemMap2 input 2 dimensions do not match" n i1 ;;
-         let '(st, loopvar) := newLocalVarNamed st IntType "MemMap2_i" in
+         nat_eq_or_err "MemMap2 output dimensions do not match" o n ;;
+         nat_eq_or_err "MemMap2 input 1 dimensions do not match" i0 n ;;
+         nat_eq_or_err "MemMap2 input 2 dimensions do not match" i1 n ;;
+         let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
          '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
           st <- dropVars st 1 ;;
           add_comment
@@ -1089,7 +1089,7 @@ Section monadic.
       | DSHLoop n body =>
         let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
 
-        let '(st, loopvar) := newLocalVarNamed st IntType "Union_i" in
+        let '(st, loopvar) := incLocalNamed st "Union_i" in
         '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
          st <- dropVars st 1 ;;
          add_comment
@@ -1108,7 +1108,7 @@ Section monadic.
       | DSHMemCopy size x_p y_p =>
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
-         nat_eq_or_err "MemCopy dimensions do not match" i o ;;
+         nat_eq_or_err "MemCopy input/output dimensions do not match" i o ;;
          add_comment
          (genMemCopy size st x y nextblock)
          "--- Operator: DSHMemCopy ---"

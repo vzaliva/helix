@@ -170,6 +170,7 @@ Run TemplateProgram
 
 (* return tuple: vars, [DSHOperator x_p y_p] *)
 Fixpoint compileMSHCOL2DSHCOL
+         (skip:nat)
          (vars:varbindings)
          (t:term)
          (x_p y_p: PExpr)
@@ -178,7 +179,7 @@ Fixpoint compileMSHCOL2DSHCOL
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
             toDSHType (tmReturn vt) ;; (* to enforce valid type *)
-            compileMSHCOL2DSHCOL ((nNamed n,vt)::vars) b (incrPVar 0 x_p) (incrPVar 0 y_p)
+            compileMSHCOL2DSHCOL (S skip) ((nNamed n,vt)::vars) b (incrPVar skip x_p) (incrPVar skip y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
     | Some n_Pick, [o ; b ; _] =>
@@ -212,7 +213,8 @@ Fixpoint compileMSHCOL2DSHCOL
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
-              c' <- compileMSHCOL2DSHCOL vars op_family x_p y_p ;;
+              (* op_family will increase [skip] offset automatically *)
+              c' <- compileMSHCOL2DSHCOL skip vars op_family x_p y_p ;;
               let '(_, rr) := c' in
               tmReturn (vars, DSHLoop nn rr )
     | Some n_IReduction, [i ; o ; n ; z; f ; _ ; op_family] =>
@@ -236,9 +238,13 @@ Fixpoint compileMSHCOL2DSHCOL
               (* double inc. inside alloc and loop *)
               let x_p'' := incrPVar 0 x_p' in
               let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
-              (* op_family will increase stack offsets automatically *)
-              c' <- compileMSHCOL2DSHCOL ((nAnon, tt)::vars) op_family x_p' t_i ;;
+              (* op_family will increase [skip] offset automatically,
+                 but we need to increase it once more for [DSHAlloc]
+               *)
+              c' <- compileMSHCOL2DSHCOL (S skip) ((nAnon, tt)::vars) op_family x_p' t_i ;;
                  df <- compileDSHBinCarrierA f ;;
+                 (* [df] increased twice to skip loop and alloc *)
+                 let df'' := incrDSHBinCType (S skip) df in
                  let '(_, rr) := c' in
                  tmReturn (vars, DSHAlloc no
                                           (DSHSeq
@@ -246,7 +252,7 @@ Fixpoint compileMSHCOL2DSHCOL
                                              (DSHLoop nn
                                                       (DSHSeq
                                                          rr
-                                                         (DSHMemMap2 no t_i' y_p'' y_p'' df)))))
+                                                         (DSHMemMap2 no t_i' y_p'' y_p'' df'')))))
     | Some n_SHCompose, [i1 ; o2 ; o3 ; op1 ; op2] =>
       tmPrint "MSHCompose" ;;
               ni1 <- tmUnquoteTyped nat i1 ;;
@@ -257,9 +263,9 @@ Fixpoint compileMSHCOL2DSHCOL
               (* single inc. inside alloc *)
               let x_p' := incrPVar 0 x_p in
               let y_p' := incrPVar 0 y_p in
-              cop2' <- compileMSHCOL2DSHCOL vars op2 x_p' t_i ;;
+              cop2' <- compileMSHCOL2DSHCOL (S skip) vars op2 x_p' t_i ;;
                     let '(_, cop2) := cop2' in
-                    cop1' <- compileMSHCOL2DSHCOL vars op1 t_i y_p' ;;
+                    cop1' <- compileMSHCOL2DSHCOL (S skip) vars op1 t_i y_p' ;;
                           let '(_, cop1) := cop1' in
                           tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
@@ -267,6 +273,8 @@ Fixpoint compileMSHCOL2DSHCOL
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
               ddot <- compileDSHBinCarrierA dot ;;
+              (* [ddot] increased twice for 2 allocs *)
+              let ddot' := incrDSHIBinCType (S (S skip)) ddot in
               tt <- tmQuote DSHnat ;;
               let tyf_i := PVar 0 in
               let tyg_i := PVar 1 in
@@ -274,16 +282,16 @@ Fixpoint compileMSHCOL2DSHCOL
               (* double increase after 2 allocs *)
               let x_p'' := incrPVar 0 (incrPVar 0 x_p) in
               let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
-              cop1' <- compileMSHCOL2DSHCOL vars' op1 x_p'' tyf_i ;;
+              cop1' <- compileMSHCOL2DSHCOL (S (S skip)) vars' op1 x_p'' tyf_i ;;
                     let '(_, cop1) := cop1' in
-                    cop2' <- compileMSHCOL2DSHCOL vars' op2 x_p'' tyg_i ;;
+                    cop2' <- compileMSHCOL2DSHCOL (S (S skip)) vars' op2 x_p'' tyg_i ;;
                           let '(_,cop2) := cop2' in
                           tmReturn (vars,
                                     DSHAlloc no
                                              (DSHAlloc no
                                                        (DSHSeq
                                                           (DSHSeq cop1 cop2)
-                                                          (DSHMemMap2 no tyf_i tyg_i y_p'' ddot))))
+                                                          (DSHMemMap2 no tyf_i tyg_i y_p'' ddot'))))
     | None, _ =>
       tmFail ("Usupported SHCOL operator " ++ opname)
     | _, _ =>
@@ -347,7 +355,7 @@ Definition reifyMSHCOL {A:Type} (expr: A)
         ast <- @tmQuote A eexpr ;;
         ast <- @tmQuote A eexpr ;;
         mt <- tmQuote (mem_block) ;;
-        d' <- compileMSHCOL2DSHCOL vars ast x_p y_p ;;
+        d' <- compileMSHCOL2DSHCOL 0 vars ast x_p y_p ;;
         let '(globals, dshcol) := d' in
         dshcol' <- tmEval cbv dshcol ;;
                 d_dshcol <- tmDefinition res_name dshcol'
