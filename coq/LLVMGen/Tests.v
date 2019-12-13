@@ -49,21 +49,21 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                                          (DSHAlloc 1
                                             (DSHSeq
                                                (DSHPower (NVar 0)
-                                                  (PVar 1, NConst 0)
+                                                  (PVar 0, NConst 0)
                                                   (PVar 0, NConst 0)
                                                   (AMult (AVar 1)
                                                      (AVar 0))
                                                   FSigmaHCOL.Float64One)
                                                (DSHIMap 1 (PVar 0)
-                                                  (PVar 2)
+                                                  (PVar 0)
                                                   (AMult (AVar 0)
                                                      (ANth (MVar 3)
                                                         (NVar 2))))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
-                                      (PVar 2)
+                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
+                                      (PVar 0)
                                       (APlus (AVar 1) (AVar 0)))))))
                        (DSHAssign (PVar 0, NConst 0)
-                          (PVar 1, NConst 0))))
+                          (PVar 0, NConst 0))))
                  (DSHAlloc 1
                     (DSHSeq
                        (DSHAlloc 1
@@ -95,19 +95,19 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                                                   (DSHAssign
                                                      (PVar 0,
                                                      NConst 0)
-                                                     (PVar 1,
+                                                     (PVar 0,
                                                      NVar 0)))))
                                          (DSHBinOp 1 (PVar 0)
-                                            (PVar 1)
+                                            (PVar 0)
                                             (AAbs
                                                (AMinus (AVar 1)
                                                   (AVar 0))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
-                                      (PVar 2)
+                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
+                                      (PVar 0)
                                       (AMax (AVar 1) (AVar 0)))))))
                        (DSHAssign (PVar 0, NConst 0)
-                          (PVar 2, NConst 1)))))
-              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 2)
+                          (PVar 1, NConst 1)))))
+              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 0)
                  (APlus (AVar 1) (AVar 0))))))
      (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
 
@@ -327,3 +327,20 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list binary64)
           (Some prog, Some (test_interpreter code), "")
         end
     end data.
+
+
+Import DSHNotation.
+Print DynWin_test.
+
+
+Compute LLVMGen
+        8 8
+        [("D", FSHFloatValType)]
+        IMap_plusD_test
+        "Pointwise_plusD".
+
+Compute LLVMGen
+        5 1
+        [("D", FSHvecValType 3)]
+        DynWin_test
+        "dynwin64".

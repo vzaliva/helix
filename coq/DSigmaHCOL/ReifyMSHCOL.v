@@ -33,8 +33,8 @@ Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
 
 
-Definition toDSHType (tt: TemplateMonad term): TemplateMonad DSHType :=
-  t <- tt ;;
+Definition toDSHType (tmt: TemplateMonad term): TemplateMonad DSHType :=
+  t <- tmt ;;
     match t with
     | tInd {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} _ =>
       tmReturn DSHnat
@@ -223,7 +223,7 @@ Fixpoint compileMSHCOL2DSHCOL
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
-              tt <- tmQuote DSHnat ;;
+              tnt <- tmQuote DSHnat ;;
               (* Stack states:
                  Before alloc: ... x_p y_p ...
                  After alloc: ... x_p y_p ... t_i
@@ -232,16 +232,16 @@ Fixpoint compileMSHCOL2DSHCOL
               (* freshly allocated, inside alloc before loop *)
               let t_i := PVar 0 in
               (* single inc. inside loop *)
-              let t_i' := incrPVar 0 t_i in
+              let t_i' := PVar 1 in
               (* single inc. inside alloca before loop *)
-              let x_p' := incrPVar 0 x_p in
+              let x_p' := incrPVar skip x_p in
               (* double inc. inside alloc and loop *)
-              let x_p'' := incrPVar 0 x_p' in
-              let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
+              let x_p'' := incrPVar (S skip) x_p' in
+              let y_p'' := incrPVar (S skip) (incrPVar skip y_p) in
               (* op_family will increase [skip] offset automatically,
                  but we need to increase it once more for [DSHAlloc]
                *)
-              c' <- compileMSHCOL2DSHCOL (S skip) ((nAnon, tt)::vars) op_family x_p' t_i ;;
+              c' <- compileMSHCOL2DSHCOL (S skip) vars op_family x_p' t_i ;;
                  df <- compileDSHBinCarrierA f ;;
                  (* [df] increased twice to skip loop and alloc *)
                  let df'' := incrDSHBinCType (S skip) df in
@@ -261,8 +261,8 @@ Fixpoint compileMSHCOL2DSHCOL
               (* freshly allocated, inside alloc *)
               let t_i := PVar 0 in
               (* single inc. inside alloc *)
-              let x_p' := incrPVar 0 x_p in
-              let y_p' := incrPVar 0 y_p in
+              let x_p' := incrPVar skip x_p in
+              let y_p' := incrPVar skip y_p in
               cop2' <- compileMSHCOL2DSHCOL (S skip) vars op2 x_p' t_i ;;
                     let '(_, cop2) := cop2' in
                     cop1' <- compileMSHCOL2DSHCOL (S skip) vars op1 t_i y_p' ;;
@@ -275,16 +275,15 @@ Fixpoint compileMSHCOL2DSHCOL
               ddot <- compileDSHBinCarrierA dot ;;
               (* [ddot] increased twice for 2 allocs *)
               let ddot' := incrDSHIBinCType (S (S skip)) ddot in
-              tt <- tmQuote DSHnat ;;
+              tnt <- tmQuote DSHnat ;;
               let tyf_i := PVar 0 in
               let tyg_i := PVar 1 in
-              let vars' := ((nAnon, tt)::((nAnon, tt)::vars)) in
               (* double increase after 2 allocs *)
-              let x_p'' := incrPVar 0 (incrPVar 0 x_p) in
-              let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
-              cop1' <- compileMSHCOL2DSHCOL (S (S skip)) vars' op1 x_p'' tyf_i ;;
+              let x_p'' := incrPVar (S skip) (incrPVar skip x_p) in
+              let y_p'' := incrPVar (S skip) (incrPVar skip y_p) in
+              cop1' <- compileMSHCOL2DSHCOL (S (S skip)) vars op1 x_p'' tyf_i ;;
                     let '(_, cop1) := cop1' in
-                    cop2' <- compileMSHCOL2DSHCOL (S (S skip)) vars' op2 x_p'' tyg_i ;;
+                    cop2' <- compileMSHCOL2DSHCOL (S (S skip)) vars op2 x_p'' tyg_i ;;
                           let '(_,cop2) := cop2' in
                           tmReturn (vars,
                                     DSHAlloc no

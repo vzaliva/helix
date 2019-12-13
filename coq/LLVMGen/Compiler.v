@@ -1050,7 +1050,6 @@ Section monadic.
          let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
          let '(st, loopvar) := incLocalNamed st "IMap_i" in
          '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
-          st <- dropVars st 1 ;;
           add_comment
           (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
           "--- Operator: DSHIMap ---"
@@ -1058,11 +1057,11 @@ Section monadic.
         let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
+         let vs := string_of_vars (vars st) in
          nat_eq_or_err "BinOp input dimensions do not match" i (n+n) ;;
-         nat_eq_or_err "BinOp output dimensions do not match" o n ;;
+         nat_eq_or_err (append "BinOp output dimensions do not match" vs) o n ;;
          let '(st, loopvar) := incLocalNamed st "BinOp_i" in
          '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
-          st <- dropVars st 1 ;;
           add_comment
           (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: DSHBinOp ---"
@@ -1076,7 +1075,6 @@ Section monadic.
          nat_eq_or_err "MemMap2 input 2 dimensions do not match" i1 n ;;
          let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
          '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
-          st <- dropVars st 1 ;;
           add_comment
           (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
          "--- Operator: DSHMemMap2 ---"
@@ -1091,7 +1089,6 @@ Section monadic.
 
         let '(st, loopvar) := incLocalNamed st "Union_i" in
         '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
-         st <- dropVars st 1 ;;
          add_comment
          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
