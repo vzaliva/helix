@@ -98,24 +98,6 @@ Definition setVars (s:IRState) (newvars:list (ident * typ)): IRState :=
     vars := newvars
   |}.
 
-(* TODO: move. Lifted from Software foundations *)
-Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
-  let d := match Nat.modulo n 10 with
-           | 0 => "0" | 1 => "1" | 2 => "2" | 3 => "3" | 4 => "4" | 5 => "5"
-           | 6 => "6" | 7 => "7" | 8 => "8" | _ => "9"
-           end in
-  let acc' := append d acc in
-  match time with
-  | 0 => acc'
-  | S time' =>
-    match Nat.div n 10 with
-    | 0 => acc'
-    | n' => string_of_nat_aux time' n' acc'
-    end
-  end.
-Definition string_of_nat (n : nat) : string :=
-  string_of_nat_aux n n "".
-
 Definition add_comments (b:block typ) (xs:list string): block typ :=
   {|
     blk_id    := blk_id b;
@@ -269,7 +251,7 @@ Section monadic.
                     if Z.eq_dec z zi then
                       ret (st, EXP_Ident i, [])
                     else
-                      raise "NVar int size mismatch"
+                      raise (append "NVar #" ((string_of_nat n) ++ " dimensions mismatch in " ++ string_of_vars (vars st)))
                   | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                     if Z.eq_dec z zi then
                       let '(st, res) := incLocal st in
@@ -279,8 +261,8 @@ Section monadic.
                                                   (EXP_Ident i))
                                                  (ret 8%Z))])
                     else
-                      raise "NVar int (via ptr) size mismatch"
-                  | _,_ => raise "NVar type mismatch"
+                      raise (append "NVar #" ((string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st)))
+                  | _,_ => raise (append "NVar #" ((string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st)))
                   end
       | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
       | NDiv   a b => gen_binop a b (SDiv true)
@@ -303,7 +285,7 @@ Section monadic.
                    match t with
                    | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
                      ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
-                   | _ => raise "MVar type mismatch"
+                  | _  => raise (append "MVar #" ((string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st)))
                    end
        | MConst c => raise "MConst not implemented" (* TODO *)
        end.
@@ -357,7 +339,7 @@ Section monadic.
                                                (TYPE_Pointer TYPE_Double,
                                                 (EXP_Ident i))
                                                (ret 8%Z))])
-                  | _ => raise "AVar type mismatch"
+                  | _ => raise (append "AVar #" ((string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st)))
                   end
       | AConst v => ret (st, EXP_Double v, [])
       | ANth vec i =>
