@@ -2796,6 +2796,62 @@ Proof.
     apply MX.
 Qed.
 
+Global Instance Embed_MSH_DSH_compat
+       {i b: nat}
+       (bc: b < i)
+       (σ: evalContext)
+       (x_n : NExpr)
+       (x_p y_p : PExpr)
+       (tm' : TypeSig)
+       (dfs : TypeSig)
+       (m : memory)
+       (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs x_p y_p)
+       (X: evalNexp σ x_n = Some b)
+  :
+    @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
+Proof.
+  constructor; intros mx mb MX MB.
+  destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
+  2,3: exfalso.
+  all: unfold lookup_Pexp in MX, MB.
+  all: cbn in *.
+  all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
+  all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
+  all: unfold Embed_mem,
+              map_mem_block_elt,
+              MMemoryOfCarrierA.mem_lookup,
+              MMemoryOfCarrierA.mem_add,
+              MMemoryOfCarrierA.mem_empty
+         in MD.
+  all: repeat break_match; try some_none.
+  all: repeat some_inv.
+  all: inversion X; subst; clear X.
+  -
+    unfold SHCOL_DSHCOL_mem_block_equiv,
+      memory_lookup, memory_set, mem_add, mem_lookup.
+    rewrite NP.F.add_eq_o by reflexivity.
+    constructor.
+    intros.
+    destruct (Nat.eq_dec 0 i0);
+      [ repeat rewrite NP.F.add_eq_o by assumption
+      | repeat rewrite NP.F.add_neq_o by assumption ].
+    +
+      constructor 2; [reflexivity |].
+      rewrite <-Heqo2, <-Heqo3.
+      apply MX.
+    +
+      constructor 1; [reflexivity |].
+      symmetry; apply MB.
+  -
+    enough (None = Some c) by some_none.
+    rewrite <-Heqo2, <-Heqo3.
+    apply MX.
+  -
+    enough (Some c = None) by some_none.
+    rewrite <-Heqo2, <-Heqo3.
+    apply MX.
+Qed.
+
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
        (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
