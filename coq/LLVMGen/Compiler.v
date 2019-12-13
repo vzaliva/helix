@@ -1020,7 +1020,6 @@ Section monadic.
            ret (l, Z.to_nat sz)
          | _ => raise "Invalid type of PVar"
          end
-      | PConst _ => raise "PConst insupported" (* TODO *)
       end.
 
   Fixpoint genIR

@@ -18,7 +18,6 @@ Local Open Scope monad_scope.
 Definition translatePExpr (p:MDSHCOLOnCarrierA.PExpr): PExpr :=
   match p with
   | MDSHCOLOnCarrierA.PVar x => PVar x
-  | MDSHCOLOnCarrierA.PConst x => PConst x
   end.
 
 Fixpoint translateNExpr (n:MDSHCOLOnCarrierA.NExpr) : NExpr :=

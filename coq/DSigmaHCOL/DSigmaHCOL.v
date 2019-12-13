@@ -76,8 +76,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   | MConst: mem_block -> MExpr.
 
   Inductive PExpr: Type :=
-  | PVar:  var_id -> PExpr
-  | PConst: mem_block_id -> PExpr.
+  | PVar:  var_id -> PExpr.
 
   (* Expressions which evaluate to `CType` *)
   Inductive AExpr : Type :=
@@ -234,8 +233,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Qed.
 
   Inductive PExpr_equiv : PExpr -> PExpr -> Prop :=
-  | PVar_equiv {n0 n1}: n0=n1 -> PExpr_equiv (PVar n0) (PVar n1)
-  | PConst_equiv {a b: mem_block_id}: a=b -> PExpr_equiv (PConst a) (PConst b).
+  | PVar_equiv {n0 n1}: n0=n1 -> PExpr_equiv (PVar n0) (PVar n1).
 
   Instance PExpr_Equiv: Equiv PExpr := PExpr_equiv.
 
@@ -325,7 +323,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
     match p with
     | PVar var_id =>
       PVar (if le_dec skip var_id then (S var_id) else var_id)
-    | _ => p
     end.
 
   Definition incrMVar (skip:nat) (p: MExpr): MExpr :=

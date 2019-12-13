@@ -1598,8 +1598,7 @@ Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
 (* Check if [MExpr] is properly typed in given evaluation context *)
 Inductive PExpr_typecheck: PExpr -> evalContext -> Prop :=
 | PVar_tc (σ: evalContext) (n:var_id):
-    context_pos_typecheck σ n DSHPtr -> PExpr_typecheck (PVar n) σ
-| PConst_tc (σ: evalContext) {a}: PExpr_typecheck (PConst a) σ.
+    context_pos_typecheck σ n DSHPtr -> PExpr_typecheck (PVar n) σ.
 
 (* Check if [AExpr] is properly typed in given evaluation context *)
 Inductive AExpr_typecheck: AExpr -> evalContext -> Prop

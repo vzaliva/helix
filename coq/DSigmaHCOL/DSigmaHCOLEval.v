@@ -93,7 +93,6 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | Some (@DSHPtrVal v) => Some v
       | _ => None
       end
-    | @PConst t => Some t
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
