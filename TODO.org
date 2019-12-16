@@ -91,15 +91,10 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
     [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
 *** Hanldoing =MConst= in LLVM compiler
     See TODO comment in =Compiler.v=
-** =PConst= support 
-   Currently =PConst= is not supported. The problem is that to codgen this
-   we need to know the type of memory block. This could be fixed in DSHCOL
-   level by adding =n:nat= parameter to =PConst= constructor. In this case it
-   could directly compiler to =TYPE_Pointer=.
-
-   Alternatively, we can just forbid constant pointers, and remove
-   =PConst= constructor, leaving only =PVar=.
-
+** Pretty printing
+   How there is an assortment of functions like =string_of_DSHOperator=
+   =string_of_vars= and =string_of_PExpr=. Consider using =Show= typeclass
+   intances instead.
 * Build/Tests
 ** Use =dune= for coq code builds.
 ** Use =coq-struct-tact= package                                       :zoickx:
