@@ -152,7 +152,7 @@ Definition addVars (st:IRState) (newvars: list (ident * typ)): IRState :=
     vars := newvars ++ vars st
   |}.
 
-Definition newLocalVarNamed (st:IRState) (t:typ) (prefix:string): (IRState*raw_id) :=
+Definition newLocalVar (st:IRState) (t:typ) (prefix:string): (IRState*raw_id) :=
   let v := Name (append prefix (string_of_nat (local_count st))) in
   ({|
       block_count := block_count st ;
@@ -160,8 +160,6 @@ Definition newLocalVarNamed (st:IRState) (t:typ) (prefix:string): (IRState*raw_i
       void_count  := void_count st ;
       vars := [(ID_Local v,t)] ++ (vars st)
     |}, v).
-
-Definition newLocalVar (st:IRState) (t:typ): (IRState*raw_id) := newLocalVarNamed st t "l".
 
 Definition intrinsic_exp (d:declaration typ): exp typ :=
   EXP_Ident (ID_Global (dc_name d)).
@@ -1115,7 +1113,7 @@ Section monadic.
          (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
       | DSHAlloc size body =>
-        let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) in
+        let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
         '(st, (bblock, bcode)) <- genIR body st nextblock ;;
          let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
          add_comment (ret (st, (ablock, [acode]++bcode)))
