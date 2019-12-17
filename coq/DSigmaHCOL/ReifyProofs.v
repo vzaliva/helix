@@ -2777,23 +2777,36 @@ Proof.
     all: repeat constructor.
     all: destruct fuel; cbn in *; try some_none.
     all: rewrite <-H0, <-H1, <-H3, <-H4, <-H2, <-H6, <-H8, <-H9 in *.
+    all: inversion H; [rewrite <-H11, <-H12 in *; some_none |]; clear H.
+    all: inversion H12; subst; clear H12; rewrite <-H7, <-H11 in *.
     +
-      inversion H; [rewrite <-H11 in *; some_none |].
-      inversion H12; subst; clear H12; rewrite <-H7, <-H11 in *.
       rename b into p.
-      induction p.
+      repeat break_match; try some_none.
+      repeat some_inv.
+      subst m m2.
+      dependent induction p.
       *
-        cbn in *.
-        repeat break_match; try some_none.
-        repeat some_inv; subst.
         unfold memory_lookup, memory_set.
         repeat (rewrite NP.F.add_eq_o by reflexivity).
+        rewrite <-Heqo1, <-Heqo4.
         constructor.
         unfold mem_add, equiv, mem_block_Equiv; intros.
         destruct (Nat.eq_dec 0 k).
         repeat rewrite NP.F.add_eq_o by assumption; reflexivity.
         repeat rewrite NP.F.add_neq_o by assumption; apply H10.
       *
+        unfold memory_lookup, memory_set.
+        repeat rewrite NP.F.add_eq_o by reflexivity.
+        constructor.
+        enough (Some m4 = Some m3) by (some_inv; assumption).
+        rewrite <-Heqo4, <-Heqo1.
+
+        cbn.
+          
+          
+
+
+
 Admitted.
 
 Global Instance Pick_MSH_DSH_compat
