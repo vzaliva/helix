@@ -1215,17 +1215,17 @@ Section SigmaHCOL_Operators.
       :=
         forall x (j:nat) (jc:j<n), Vforall P ((get_family_op op_family j jc) x).
 
-    Program Definition Pick
+    Program Definition Embed
                {svalue: CarrierA}
                {o b: nat}
                (bc: b < o)
-      := mkSHOperator 1 o svalue (Pick_impl bc svalue) _
+      := mkSHOperator 1 o svalue (Embed_impl bc svalue) _
                       (Full_set _)
                       (FinNatSet.singleton b) _.
     Next Obligation.
       (* svalue_at_sparse *)
       simpl in *.
-      unfold Pick_impl.
+      unfold Embed_impl.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -1237,11 +1237,11 @@ Section SigmaHCOL_Operators.
         reflexivity.
     Qed.
 
-    Program Definition Embed
+    Program Definition Pick
                {svalue: CarrierA}
                {i b:nat}
                (bc: b < i)
-      := mkSHOperator i 1 svalue (Embed_impl bc) _
+      := mkSHOperator i 1 svalue (Pick_impl bc) _
                       (FinNatSet.singleton b)
                       (Full_set _) _.
     Next Obligation.
@@ -2409,10 +2409,10 @@ Section StructuralProperies.
         apply H.
     Qed.
 
-    Global Instance Pick_Facts
+    Global Instance Embed_Facts
            {o b:nat}
            (bc: b < o):
-      SHOperator_Facts fm (Pick fm bc) (svalue:=svalue).
+      SHOperator_Facts fm (Embed fm bc) (svalue:=svalue).
     Proof.
       split.
       -
@@ -2423,7 +2423,7 @@ Section StructuralProperies.
         intros x y H.
         simpl in *.
         vec_index_equiv j jc.
-        unfold Pick_impl.
+        unfold Embed_impl.
         rewrite 2!Vbuild_nth.
         break_if.
         +
@@ -2435,7 +2435,7 @@ Section StructuralProperies.
       -
         intros v H j jc S.
         simpl in *.
-        unfold Pick_impl.
+        unfold Embed_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2450,7 +2450,7 @@ Section StructuralProperies.
       -
         intros v j jc S.
         simpl in *.
-        unfold Pick_impl.
+        unfold Embed_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2462,7 +2462,7 @@ Section StructuralProperies.
       -
         intros v D j jc S.
         simpl.
-        unfold Pick_impl.
+        unfold Embed_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2476,7 +2476,7 @@ Section StructuralProperies.
       -
         intros v j jc H.
         simpl in *.
-        unfold Pick_impl.
+        unfold Embed_impl.
         rewrite Vbuild_nth.
         break_if.
         +
@@ -2488,10 +2488,10 @@ Section StructuralProperies.
           apply Not_Collision_mkStruct.
     Qed.
 
-    Global Instance Embed_Facts
+    Global Instance Pick_Facts
            {i b:nat}
            (bc: b < i)
-      : SHOperator_Facts fm (Embed fm bc) (svalue:=svalue).
+      : SHOperator_Facts fm (Pick fm bc) (svalue:=svalue).
     Proof.
       split.
       -

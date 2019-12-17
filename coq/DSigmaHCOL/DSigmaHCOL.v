@@ -97,7 +97,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
 
   Inductive DSHOperator :=
   | DSHNop (* no-op. Used for testing *)
-  | DSHAssign (src dst: MemVarRef) (* formerly [Embed] and [Pick] *)
+  | DSHAssign (src dst: MemVarRef) (* formerly [Pick] and [Embed] *)
   | DSHIMap (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [Pointwise] *)
   | DSHBinOp (n: nat) (x_p y_p: PExpr) (f: AExpr) (* formerly [BinOp] *)
   | DSHMemMap2 (n: nat) (x0_p x1_p y_p: PExpr) (f: AExpr) (* No direct correspondance in SHCOL *)

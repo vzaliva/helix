@@ -27,8 +27,8 @@ Open Scope string_scope.
 Run TemplateProgram
     (mkSwitch string
               string_beq
-              [("Helix.SigmaHCOL.SigmaHCOL.Pick", "n_Pick") ;
-                 ("Helix.SigmaHCOL.SigmaHCOL.Embed", "n_Embed") ;
+              [("Helix.SigmaHCOL.SigmaHCOL.Embed", "n_Embed") ;
+                 ("Helix.SigmaHCOL.SigmaHCOL.Pick", "n_Pick") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHPointwise", "n_SHPointwise") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHBinOp", "n_SHBinOp") ;
                  ("Helix.SigmaHCOL.SigmaHCOL.SHInductor", "n_SHInductor") ;
@@ -73,13 +73,13 @@ Fixpoint compileSHCOL2MSHCOL (t:term) (fuel: nat) {struct fuel}: TemplateMonad (
               tmReturn(tLambda (nNamed n) vt c)
     | tApp (tConst opname u) args =>
       match parse_SHCOL_Op_Name opname, args with
-      | Some n_Pick, [fm ; svalue; o ; b ; bc] =>
-        tmPrint "Pick" ;;
-                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPick" u)
-                                [o; b ; bc])
-      | Some n_Embed, [fm ; svalue; i ; b ; bc] =>
+      | Some n_Embed, [fm ; svalue; o ; b ; bc] =>
         tmPrint "Embed" ;;
                 tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHEmbed" u)
+                                [o; b ; bc])
+      | Some n_Pick, [fm ; svalue; i ; b ; bc] =>
+        tmPrint "Pick" ;;
+                tmReturn  (tApp (tConst "Helix.MSigmaHCOL.MSigmaHCOL.MMSCHOL.MSHPick" u)
                                 [i; b; bc])
       | Some n_SHPointwise, [fm ; svalue; n ; f ; pF ] =>
         tmPrint "SHPointwise" ;;

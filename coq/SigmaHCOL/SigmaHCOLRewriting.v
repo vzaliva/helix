@@ -4381,7 +4381,7 @@ and `ISumReduction_PointWise` *)
         ScatH fm (svalue:=z) b s
               (snzord0 := snzord) (* Also `or_intror Nat.lt_1_2` *)
               (range_bound:=range_bound)
-        = Pick fm bc.
+        = Embed fm bc.
     Proof.
       unfold equiv, ext_equiv, SHOperator_equiv.
       unfold equiv, ext_equiv.
@@ -4389,7 +4389,7 @@ and `ISumReduction_PointWise` *)
       vec_index_equiv j jc.
       simpl.
 
-      unfold Pick_impl.
+      unfold Embed_impl.
       rewrite Vbuild_nth.
       break_if.
       +
@@ -4424,12 +4424,12 @@ and `ISumReduction_PointWise` *)
           reflexivity.
     Qed.
 
-    (* Special `n by n` family of sequentially indexed `Embed` operators *)
-    Definition Embedn
+    (* Special `n by n` family of sequentially indexed `Pick` operators *)
+    Definition Pickn
                {fm}
                {svalue: CarrierA}
                (n:nat)
-      : @SHOperatorFamily fm n 1 n svalue := fun jf => Embed _ (proj2_sig jf).
+      : @SHOperatorFamily fm n 1 n svalue := fun jf => Pick _ (proj2_sig jf).
 
     Theorem terminate_Reduction
             {n}
@@ -4441,7 +4441,7 @@ and `ISumReduction_PointWise` *)
       :
         liftM_HOperator Monoid_RthetaSafeFlags (HReduction f idv)
         =
-        IReduction f (svalue:=idv) (Embedn n).
+        IReduction f (svalue:=idv) (Pickn n).
     Proof.
       unfold IReduction, liftM_HOperator,liftM_HOperator_impl.
       unfold compose, sparsify, densify.
@@ -4508,7 +4508,7 @@ and `ISumReduction_PointWise` *)
             rewrite 2!Vbuild_nth.
             unfold get_family_op.
             simpl.
-            unfold Embed_impl.
+            unfold Pick_impl.
             apply Vcons_single_elim.
             rewrite <- Vnth_tail.
             reflexivity.
@@ -4537,7 +4537,7 @@ and `ISumReduction_PointWise` *)
             (base stride: nat)
             {domain_bound: ∀ x : nat, x < 1 → base + x * stride < i}
       :
-        @GathH fm svalue i 1 base stride domain_bound = @Embed fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
+        @GathH fm svalue i 1 base stride domain_bound = @Pick fm svalue i base (GathH1_domain_bound_to_base_bound domain_bound).
     Proof.
       unfold GathH.
       unfold equiv, SHOperator_equiv.
@@ -4545,7 +4545,7 @@ and `ISumReduction_PointWise` *)
       intros x y H.
       simpl.
 
-      unfold Embed_impl.
+      unfold Pick_impl.
       vec_index_equiv j jc.
       destruct j.
       -
@@ -4683,8 +4683,8 @@ and `ISumReduction_PointWise` *)
         =
         @IUnion z i o o f _ _ (fun jf =>
                                 SHCompose _
-                                          (@Pick _ z o (proj1_sig jf) (proj2_sig jf))
-                                          (@Embed _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
+                                          (@Embed _ z o (proj1_sig jf) (proj2_sig jf))
+                                          (@Pick _ z i (base+(proj1_sig jf)*stride) (domain_bound (proj1_sig jf) (proj2_sig jf))
                                           )
                              ).
     Proof.
@@ -4704,7 +4704,7 @@ and `ISumReduction_PointWise` *)
       simpl.
 
       unfold UnionFold.
-      unfold Pick_impl, compose, Embed_impl.
+      unfold Embed_impl, compose, Pick_impl.
       setoid_rewrite Vbuild_nth.
       simpl.
       match goal with
@@ -4737,8 +4737,8 @@ and `ISumReduction_PointWise` *)
         =
         @ISumUnion i o o  (fun jf =>
                              SHCompose _
-                                       (@Pick _ zero o _ (proj2_sig jf))
-                                       (@Embed _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
+                                       (@Embed _ zero o _ (proj2_sig jf))
+                                       (@Pick _ zero i (base+(proj1_sig jf)*stride) (domain_bound _ (proj2_sig jf))
                                        )
                    ).
     Proof.
@@ -4804,7 +4804,7 @@ and `ISumReduction_PointWise` *)
 
     (* We will use this rule to rewrite in left-to-right direction. Howver instead of putting concrete implementation of `g` which shrinks domain of `f` we chose to formulate it in a way that will allow to rewrite in opposite direction as well.
      *)
-    Lemma rewrite_Embed_SHPointwise
+    Lemma rewrite_Pick_SHPointwise
           (n:nat)
           {svalue: CarrierA}
           {b:nat}
@@ -4816,8 +4816,8 @@ and `ISumReduction_PointWise` *)
           `{g_mor: !Proper ((=) ==> (=) ==> (=)) g}
           (fg: forall x z, f (mkFinNat bc) x = g z x)
       :
-        SHCompose (svalue:=svalue) fm (Embed fm bc) (SHPointwise fm f) =
-        SHCompose fm (SHPointwise fm g) (Embed fm bc).
+        SHCompose (svalue:=svalue) fm (Pick fm bc) (SHPointwise fm f) =
+        SHCompose fm (SHPointwise fm g) (Pick fm bc).
     Proof.
       unfold SHCompose, compose.
       unfold equiv, SHOperator_equiv.
@@ -4828,7 +4828,7 @@ and `ISumReduction_PointWise` *)
       rewrite <- E; clear E y.
 
       vec_index_equiv j jc.
-      unfold Embed_impl.
+      unfold Pick_impl.
 
       rewrite Vnth_1.
       rewrite 2!SHPointwise_impl_nth.
@@ -4885,7 +4885,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
         break_match; crush.
     Qed.
 
-    Lemma rewrite_Embed_Induction
+    Lemma rewrite_Pick_Induction
           (n:nat)
           {svalue:CarrierA}
           {b:nat}
@@ -4895,7 +4895,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
           `{pF: !Proper ((=) ==> (=) ==> (=)) f}
           (initial: CarrierA)
       :
-        SHCompose (svalue:=svalue) fm (Embed fm bc) (liftM_HOperator fm (HInduction n f initial)) =
+        SHCompose (svalue:=svalue) fm (Pick fm bc) (liftM_HOperator fm (HInduction n f initial)) =
         liftM_HOperator fm (HInductor b f initial).
     Proof.
       unfold SHCompose, compose.
@@ -4910,7 +4910,7 @@ https://stackoverflow.com/questions/47934884/proving-two-fixpoint-functions-by-i
       apply Vnth_equiv.
       reflexivity.
 
-      unfold Embed_impl.
+      unfold Pick_impl.
       clear j jc.
       vec_index_equiv j jc.
       rewrite Vnth_1.

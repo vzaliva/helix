@@ -544,11 +544,11 @@ Module MMSHCOL'
 
 
   (* AKA: "embed" *)
-  Definition Pick_mem (b: nat) (x:mem_block): option mem_block :=
+  Definition Embed_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x 0 (mem_empty) b.
 
   (* AKA "pick" *)
-  Definition Embed_mem (b: nat) (x:mem_block): option mem_block :=
+  Definition Pick_mem (b: nat) (x:mem_block): option mem_block :=
     map_mem_block_elt x b (mem_empty) 0.
 
   (** Apply family of mem functions to same mem_block and return list of results *)
@@ -659,12 +659,12 @@ Module MMSHCOL'
       repeat some_inv; f_equiv; try apply Efg; auto.
   Qed.
 
-  Instance Pick_mem_proper
+  Instance Embed_mem_proper
            {b:nat}
-    : Proper (equiv ==> equiv) (Pick_mem b).
+    : Proper (equiv ==> equiv) (Embed_mem b).
   Proof.
     simpl_relation.
-    unfold Pick_mem.
+    unfold Embed_mem.
     unfold map_mem_block_elt.
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
@@ -701,12 +701,12 @@ Module MMSHCOL'
       some_none.
   Qed.
 
-  Instance Embed_mem_proper
+  Instance Pick_mem_proper
            {b:nat}
-    : Proper (equiv ==> equiv) (Embed_mem b).
+    : Proper (equiv ==> equiv) (Pick_mem b).
   Proof.
     simpl_relation.
-    unfold Embed_mem.
+    unfold Pick_mem.
     unfold map_mem_block_elt.
     destruct_opt_r_equiv; repeat break_match; try some_none.
     -
@@ -1591,20 +1591,20 @@ Module MMSHCOL'
                       (Full_set _)
                       (Full_set _).
 
-  Definition MSHPick
+  Definition MSHEmbed
              {o b: nat}
              (bc: b < o)
     := @mkMSHOperator 1 o
-                      (Pick_mem b)
-                      Pick_mem_proper
+                      (Embed_mem b)
+                      Embed_mem_proper
                       (Full_set _)
                       (FinNatSet.singleton b).
 
-  Definition MSHEmbed
+  Definition MSHPick
              {i b: nat}
              (bc: b < i)
-    := @mkMSHOperator i 1 (Embed_mem b)
-                      Embed_mem_proper
+    := @mkMSHOperator i 1 (Pick_mem b)
+                      Pick_mem_proper
                       (FinNatSet.singleton b)
                       (Full_set _).
 
@@ -1891,16 +1891,16 @@ Module MMSHCOL'
       apply P2; auto.
   Qed.
 
-  Instance Pick_MFacts
+  Instance Embed_MFacts
            {o b: nat}
            (bc: b < o)
-    : MSHOperator_Facts (MSHPick bc).
+    : MSHOperator_Facts (MSHEmbed bc).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros m H.
-      unfold is_Some, MSHPick, Pick_mem, map_mem_block_elt, mem_lookup. simpl.
+      unfold is_Some, MSHEmbed, Embed_mem, map_mem_block_elt, mem_lookup. simpl.
       repeat break_match; try some_none; try tauto.
       clear Heqo0. rename Heqo1 into M.
       simpl in *.
@@ -1915,7 +1915,7 @@ Module MMSHCOL'
       split.
       +
         simpl in *.
-        unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
+        unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
         break_match_hyp; try some_none.
         some_inv.
         subst m.
@@ -1931,7 +1931,7 @@ Module MMSHCOL'
           congruence.
       +
         simpl in *.
-        unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
+        unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in, mem_add, mem_empty in *.
         break_match_hyp; try some_none.
         some_inv.
         subst m.
@@ -1944,7 +1944,7 @@ Module MMSHCOL'
     -
       intros m0 m H j jc C.
       simpl in H.
-      unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
+      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *. simpl in *.
       break_match; try some_none.
       some_inv.
       subst m.
@@ -1954,16 +1954,16 @@ Module MMSHCOL'
       rewrite NP.F.add_neq_o in C; auto.
   Qed.
 
-  Instance Embed_MFacts
+  Instance Pick_MFacts
            {i b: nat}
            (bc: b<i)
-    : MSHOperator_Facts (MSHEmbed bc).
+    : MSHOperator_Facts (MSHPick bc).
   Proof.
     split.
     -
       (* mem_out_some *)
       intros v H.
-      unfold is_Some, MSHEmbed, Embed_mem, map_mem_block_elt, mem_lookup. simpl.
+      unfold is_Some, MSHPick, Pick_mem, map_mem_block_elt, mem_lookup. simpl.
       repeat break_match; try some_none; try tauto.
       clear Heqo. rename Heqo0 into M.
       simpl in *.
@@ -1980,7 +1980,7 @@ Module MMSHCOL'
       (* out_mem_fill_pattern *)
       intros m0 m H.
       simpl in *.
-      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in in *.
       destruct j; try omega.
       split.
       +
@@ -2001,7 +2001,7 @@ Module MMSHCOL'
     -
       intros m0 m H.
       simpl in *.
-      unfold Embed_mem, map_mem_block_elt, mem_lookup, mem_in in *.
+      unfold Pick_mem, map_mem_block_elt, mem_lookup, mem_in in *.
 
       intros j jc.
       unfold not.

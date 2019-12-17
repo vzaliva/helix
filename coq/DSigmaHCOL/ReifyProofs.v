@@ -2809,7 +2809,7 @@ Proof.
 
 Admitted.
 
-Global Instance Pick_MSH_DSH_compat
+Global Instance Embed_MSH_DSH_compat
        {o b: nat}
        (bc: b < o)
        (σ: evalContext)
@@ -2821,7 +2821,7 @@ Global Instance Pick_MSH_DSH_compat
        (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
        (Y: evalNexp σ y_n = Some b)
   :
-    @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
+    @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
@@ -2830,7 +2830,7 @@ Proof.
   all: cbn in *.
   all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
   all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
-  all: unfold Pick_mem,
+  all: unfold Embed_mem,
               map_mem_block_elt,
               MMemoryOfCarrierA.mem_lookup,
               MMemoryOfCarrierA.mem_add,
@@ -2866,7 +2866,7 @@ Proof.
     apply MX.
 Qed.
 
-Global Instance Embed_MSH_DSH_compat
+Global Instance Pick_MSH_DSH_compat
        {i b: nat}
        (bc: b < i)
        (σ: evalContext)
@@ -2878,7 +2878,7 @@ Global Instance Embed_MSH_DSH_compat
        (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs x_p y_p)
        (X: evalNexp σ x_n = Some b)
   :
-    @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
+    @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
@@ -2887,7 +2887,7 @@ Proof.
   all: cbn in *.
   all: destruct evalPexp eqn:XP in MX; try some_none; rewrite XP in *.
   all: destruct evalPexp eqn:YP in MB; try some_none; rewrite YP in *.
-  all: unfold Embed_mem,
+  all: unfold Pick_mem,
               map_mem_block_elt,
               MMemoryOfCarrierA.mem_lookup,
               MMemoryOfCarrierA.mem_add,
@@ -5157,7 +5157,7 @@ Proof.
     some_none.
 Qed.
 
-Theorem Pick_DSHPick
+Theorem Embed_DSHEmbed
         {fm}
         (σ: evalContext)
         {o b:nat}
@@ -5167,8 +5167,8 @@ Theorem Pick_DSHPick
   :
     (forall Γ, Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ (svalue:=svalue)
-                       (Pick fm bc)
-                       (DSHPick db svalue).
+                       (Embed fm bc)
+                       (DSHEmbed db svalue).
 Proof.
   intros H.
   intros Γ x.
@@ -5185,7 +5185,7 @@ Proof.
     rewrite Vmap_map.
 
     apply castWriter_equiv.
-    unfold Pick_impl.
+    unfold Embed_impl.
     repeat rewrite Vbuild_nth.
     break_if.
     +
@@ -5947,7 +5947,7 @@ Proof.
     apply Edot.
 Qed.
 
-Theorem Embed_DSHEmbed
+Theorem Pick_DSHPick
         {fm}
         {svalue: CarrierA}
         {i b:nat}
@@ -5957,8 +5957,8 @@ Theorem Embed_DSHEmbed
   :
     (forall (Γ:evalContext), Some b = evalNexp (σ++Γ) db) ->
     SHCOL_DSHCOL_equiv σ
-                       (@Embed fm svalue i b bc)
-                       (@DSHEmbed i (db:NExpr)).
+                       (@Pick fm svalue i b bc)
+                       (@DSHPick i (db:NExpr)).
 Proof.
   intros H.
   intros Γ x.
@@ -6142,13 +6142,13 @@ Ltac solve_reifySHCOL_obligations E :=
          | [ |- SHCOL_DSHCOL_equiv _ (UnSafeCast _) _ ] => apply SHCOL_DSHCOL_equiv_UnSafeCast
          | [ |- SHCOL_DSHCOL_equiv _ (SHBinOp _ _) (DSHBinOp _) ] => apply SHBinOp_DSHBinOp
          | [ |- SHCOL_DSHCOL_equiv _ (HTSUMUnion _ _ _ _) (DSHHTSUMUnion _ _ _) ] => apply HTSUMUnion_DSHHTSUMUnion
-         | [ |- SHCOL_DSHCOL_equiv _ (Pick _ _) (DSHPick _ _)] => apply Pick_DSHPick
+         | [ |- SHCOL_DSHCOL_equiv _ (Embed _ _) (DSHEmbed _ _)] => apply Embed_DSHEmbed
          | [  |- SHCOL_DSHCOL_equiv _ (IReduction _ _) (DSHIReduction _ _ _ _)] => apply IReduction_DSHIReduction
          | [ |- SHOperatorFamily_DSHCOL_equiv _ _ _ ] => unfold SHOperatorFamily_DSHCOL_equiv
          | [ |- SHCOL_DSHCOL_equiv _ (SHFamilyOperatorCompose _ _ _ _) (DSHCompose _ _)] => apply SHCompose_DSHCompose
          | [ |- SHCOL_DSHCOL_equiv _ (SHPointwise _ _) (DSHPointwise _) ] =>  apply SHPointwise_DSHPointwise
          | [ |- SHCOL_DSHCOL_equiv _ (SHInductor _ _ _ _) (DSHInductor _ _ _)] => apply SHInductor_DSHInductor
-         | [ |- SHCOL_DSHCOL_equiv _ (Embed _ _) (DSHEmbed _)] => apply Embed_DSHEmbed
+         | [ |- SHCOL_DSHCOL_equiv _ (Pick _ _) (DSHPick _)] => apply Pick_DSHPick
          | [ |- SHCOL_DSHCOL_equiv _(ISumUnion _) (DSHIUnion _ _ _ _) ] => apply ISumUnion_DSHISumUnion
          | [ |- Some _ = evalIUnCarrierA _ _ _ _ ] => unfold evalIUnCarrierA; symmetry; solve_evalAexp
          | [ |- _ ] => try reflexivity

@@ -151,10 +151,10 @@ Definition IReduction_test: @FSHOperator Float64 4 4 :=
 Definition IUnion_test: @FSHOperator Float64 4 4 :=
   FSHIUnion 4 (APlus (AVar 1) (AVar 0)) FloatV64Zero
             (FSHCompose
-               (FSHPick (NVar 0) FloatV64Zero)
+               (FSHEmbed (NVar 0) FloatV64Zero)
                (FSHCompose
                   FSHId
-                  (FSHEmbed (NVar 0)))).
+                  (FSHPick (NVar 0)))).
 
 Definition Inductor_test: @FSHOperator Float64 1 1 :=
   FSHInductor (NConst 8) (AMult (AVar 1) (AVar 0)) FloatV64One.

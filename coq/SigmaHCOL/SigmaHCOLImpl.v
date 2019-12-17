@@ -81,7 +81,7 @@ Section FlagsMonoidGenericOperators.
   Qed.
 
 
-    Definition Pick_impl
+    Definition Embed_impl
                {o b:nat}
                (bc: b < o)
                (z: CarrierA)
@@ -93,14 +93,14 @@ Section FlagsMonoidGenericOperators.
                    | right fc => mkStruct z
                    end).
 
-    Global Instance Pick_impl_arg_proper
+    Global Instance Embed_impl_arg_proper
            {o b: nat}
            (bc: b < o)
            (z: CarrierA):
-      Proper ((=) ==> (=)) (Pick_impl bc z).
+      Proper ((=) ==> (=)) (Embed_impl bc z).
     Proof.
       intros x x' Ex.
-      unfold Pick_impl.
+      unfold Embed_impl.
       vec_index_equiv j jp.
       rewrite 2!Vbuild_nth.
       break_if.
@@ -109,19 +109,19 @@ Section FlagsMonoidGenericOperators.
       reflexivity.
     Qed.
 
-    Definition Embed_impl
+    Definition Pick_impl
                {i b:nat}
                (bc: b < i)
                (v: svector fm i)
       := [Vnth v bc].
 
-    Global Instance Embed_impl_proper
+    Global Instance Pick_impl_proper
            {i b:nat}
            (bc: b < i):
-      Proper ((=) ==> (=)) (Embed_impl bc).
+      Proper ((=) ==> (=)) (Pick_impl bc).
     Proof.
       intros x y E.
-      unfold Embed_impl.
+      unfold Pick_impl.
       apply Vcons_single_elim.
       apply Vnth_equiv; auto.
     Qed.
