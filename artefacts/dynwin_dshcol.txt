@@ -1,34 +1,61 @@
-dynwin_DSHCOL1 = 
 DSHAlloc 2
-  (DSHAlloc 2
+  (DSHSeq
      (DSHAlloc 2
-        ((DSHAlloc 1
-            (DSHAlloc 1
-               (DSHMemInit 1 (PVar 0) CarrierAz;
-                DSHLoop 3
-                  (DSHAlloc 1
-                     (DSHAssign (PVar 9, 0%'N') (PVar 0, 0%'N');
-                      DSHAlloc 1
-                        (DSHPower (NVar 0) (PVar 0, 0%'N') 
-                           (PVar 0, 0%'N') (AVar 1 * AVar 0) CarrierA1;
-                         DSHIMap 1 (PVar 0) (PVar 0) (AVar 0 * ANth (MVar 3) (NVar 2))));
-                   DSHMemMap2 1 (PVar 1) (PVar 0) (PVar 0) (AVar 1 + AVar 0)));
-             DSHAssign (PVar 0, 0%'N') (PVar 0, 0%'N'));
-          DSHAlloc 1
-            (DSHAlloc 1
-               (DSHMemInit 1 (PVar 0) CarrierAz;
-                DSHLoop 2
-                  (DSHAlloc 2
-                     (DSHLoop 2
-                        (DSHAlloc 1
-                           (DSHAssign
-                              (PVar 11,
-                              (1%'N') + NVar 1 * (1%'N') + NVar 0 * ((2%'N') * (1%'N')))
-                              (PVar 0, 0%'N');
-                            DSHAssign (PVar 0, 0%'N') (PVar 0, NVar 0)));
-                      DSHBinOp 1 (PVar 0) (PVar 0) (AAbs (AVar 1 - AVar 0)));
-                   DSHMemMap2 1 (PVar 1) (PVar 0) (PVar 0) (AMax (AVar 1) (AVar 0))));
-             DSHAssign (PVar 0, 0%'N') (PVar 1, 1%'N')));
-         DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 0) (AVar 1 + AVar 0)));
-   DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))
-     : DSHOperator
+        (DSHAlloc 2
+           (DSHSeq
+              (DSHSeq
+                 (DSHAlloc 1
+                    (DSHSeq
+                       (DSHAlloc 1
+                          (DSHSeq (DSHMemInit 1 (PVar 0) CarrierAz)
+                             (DSHLoop 3
+                                (DSHSeq
+                                   (DSHAlloc 1
+                                      (DSHSeq
+                                         (DSHAssign (PVar 9, NConst 0)
+                                            (PVar 0, NConst 0))
+                                         (DSHAlloc 1
+                                            (DSHSeq
+                                               (DSHPower (NVar 0) 
+                                                  (PVar 0, NConst 0) 
+                                                  (PVar 0, NConst 0)
+                                                  (AMult (AVar 1) (AVar 0)) CarrierA1)
+                                               (DSHIMap 1 (PVar 0) 
+                                                  (PVar 0)
+                                                  (AMult (AVar 0)
+                                                     (ANth (MVar 3) (NVar 2))))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 0) 
+                                      (PVar 0) (APlus (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0) (PVar 0, NConst 0))))
+                 (DSHAlloc 1
+                    (DSHSeq
+                       (DSHAlloc 1
+                          (DSHSeq (DSHMemInit 1 (PVar 0) CarrierAz)
+                             (DSHLoop 2
+                                (DSHSeq
+                                   (DSHAlloc 2
+                                      (DSHSeq
+                                         (DSHLoop 2
+                                            (DSHAlloc 1
+                                               (DSHSeq
+                                                  (DSHAssign
+                                                     (PVar 11,
+                                                     NPlus
+                                                       (NPlus 
+                                                          (NConst 1)
+                                                          (NMult (NVar 1) (NConst 1)))
+                                                       (NMult 
+                                                          (NVar 0)
+                                                          (NMult (NConst 2) (NConst 1))))
+                                                     (PVar 0, NConst 0))
+                                                  (DSHAssign 
+                                                     (PVar 0, NConst 0)
+                                                     (PVar 0, NVar 0)))))
+                                         (DSHBinOp 1 (PVar 0) 
+                                            (PVar 0) (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                   (DSHMemMap2 1 (PVar 1) (PVar 0) 
+                                      (PVar 0) (AMax (AVar 1) (AVar 0)))))))
+                       (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 1)))))
+              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 0) (APlus (AVar 1) (AVar 0))))))
+     (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0))))
+

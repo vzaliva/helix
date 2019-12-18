@@ -1039,7 +1039,7 @@ Section DHCOL_to_FHCOL.
     CarrierAZ1equalities.
 
   Import FSigmaHCOL.MDSHCOLOnFloat64.
-  Import DSHNotation.
+  (* Import DSHNotation. *)
 
   Definition dynwin_FSHCOL1 : FSigmaHCOL.MDSHCOLOnFloat64.DSHOperator.
   Proof.
@@ -1052,7 +1052,7 @@ Section DHCOL_to_FHCOL.
     destruct a.
     Helix.Util.OptionSetoid.some_inv.
     -
-      (* Redirect "dynwin_FSHCOL" Show 1. *)
+      Redirect "dynwin_FSHCOL" Show 1.
       exact d.
     - inversion H.
   Defined.
