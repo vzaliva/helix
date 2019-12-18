@@ -55,7 +55,7 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                                                      (AVar 0))
                                                   FSigmaHCOL.Float64One)
                                                (DSHIMap 1 (PVar 0)
-                                                  (PVar 0)
+                                                  (PVar 1)
                                                   (AMult (AVar 0)
                                                      (ANth (MVar 3)
                                                         (NVar 2))))))))
@@ -98,7 +98,7 @@ Definition DynWin_test: DSHOperator := DSHAlloc 2
                                                      (PVar 0,
                                                      NVar 0)))))
                                          (DSHBinOp 1 (PVar 0)
-                                            (PVar 0)
+                                            (PVar 1)
                                             (AAbs
                                                (AMinus (AVar 1)
                                                   (AVar 0))))))

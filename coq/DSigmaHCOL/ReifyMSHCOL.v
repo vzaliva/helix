@@ -241,7 +241,7 @@ Fixpoint compileMSHCOL2DSHCOL
               (* op_family will increase [skip] offset automatically,
                  but we need to increase it once more for [DSHAlloc]
                *)
-              c' <- compileMSHCOL2DSHCOL (S skip) vars op_family x_p' t_i ;;
+              c' <- compileMSHCOL2DSHCOL (S skip) vars op_family x_p' t_i' ;;
                  df <- compileDSHBinCarrierA f ;;
                  (* [df] increased twice to skip loop and alloc *)
                  let df'' := incrDSHBinCType (S skip) df in
