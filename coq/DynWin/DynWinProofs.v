@@ -243,14 +243,12 @@ Section MSHCOL_to_DSHCOL.
 
   Import MDSHCOLOnCarrierA.
 
-  (* tt <- tmQuote DSHnat ;; *)
-     Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"
-                               List.nil (*        [(nNamed "x",tt); (nNamed "y",tt)] *)
-                                      (PVar 1) (PVar 0)
-                         ).
+  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"
+                                   List.nil
+                                   (PVar 1) (PVar 0)).
 
-     Import DSHNotation.
-     Print dynwin_DSHCOL1.
+  Import DSHNotation.
+  Print dynwin_DSHCOL1.
 
 End MSHCOL_to_DSHCOL.
 
