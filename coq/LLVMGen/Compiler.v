@@ -1010,16 +1010,17 @@ Section monadic.
 
   Definition resolve_PVar (vars: list (ident * typ)) (p:PExpr): m (ident*nat)
     :=
+      let vs := string_of_vars vars in
       match p with
       | PVar n =>
-        '(l,t) <- opt2err "NVar out of range" (List.nth_error vars n) ;;
+        let ns := (string_of_nat n) in
+        '(l,t) <- opt2err ("NVar#" ++ ns ++ " out of range in " ++ vs)%string (List.nth_error vars n) ;;
          match t with
          | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
            ret (l, Z.to_nat sz)
-         | _ => raise "Invalid type of PVar"
+         | _ => raise ("Invalid type of PVar#" ++ ns ++ " in " ++ vs)%string
          end
       end.
-
 
   Definition string_of_PExpr (p:PExpr) : string :=
     match p with
