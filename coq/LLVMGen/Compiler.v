@@ -380,7 +380,7 @@ Section monadic.
                                                   TYPE_Double
                                                   aexp
                                                   bexp));
-                       (IVoid void0, INSTR_Comment "Cast bool to float") ;
+                       (IVoid void0, INSTR_Comment "Casting bool to float") ;
                        (IId fres, INSTR_Op (OP_Conversion
                                               Uitofp
                                               (TYPE_I 1%Z)
@@ -399,7 +399,7 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, entryblock) := incBlockNamed st "ID" in
+      let '(st, entryblock) := incBlockNamed st "MemCopy" in
       let '(st, retentry) := incVoid st in
       let '(st, callid) := incVoid st in
       let '(st, xb) := incLocal st in
@@ -1029,12 +1029,13 @@ Section monadic.
          add_comment
          (genPower x y n f initial st nextblock)
       | DSHLoop n body =>
-        let '(st, loopcontblock) := incBlockNamed st "Union_lcont" in
+        let '(st, loopcontblock) := incBlockNamed st "Loop_lcont" in
 
-        let '(st, loopvar) := incLocalNamed st "Union_i" in
+        let '(st, loopvar) := newLocalVar st IntType "Loop_i" in
         '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
+         st <- dropVars st 1 ;;
          add_comment
-         (genWhileLoop "Union_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+         (genWhileLoop "Loop_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
                        loopvar loopcontblock child_block_id child_blocks[] st nextblock)
       | DSHAlloc size body =>
         let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
