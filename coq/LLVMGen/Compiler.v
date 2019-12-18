@@ -1081,7 +1081,7 @@ Section monadic.
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
          nat_eq_or_err (append fshcol_s " input dimensions do not match in " ++ vs) i (n+n) ;;
-                       nat_eq_or_err (append fshcol_s (" output dimensions do not match in" ++ vs)) o n ;;
+                       nat_eq_or_err (append fshcol_s (" output dimensions do not match in " ++ vs)) o n ;;
                        let '(st, loopvar) := incLocalNamed st "BinOp_i" in
                        '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
                         add_comment
