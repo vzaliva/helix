@@ -302,40 +302,6 @@ Fixpoint compileMSHCOL2DSHCOL
     tmFail ("Usupported SHCOL syntax " ++ (AstUtils.string_of_term t))
   end.
 
-Fixpoint build_forall p conc :=
-  match p with
-  | [] => conc
-  | (n,t)::ps => tProd n t (build_forall ps conc)
-  end.
-
-Fixpoint build_lambda p conc :=
-  match p with
-  | [] => conc
-  | (n,t)::ps => tLambda n t (build_lambda ps conc)
-  end.
-
-Fixpoint build_dsh_globals (g:varbindings) : TemplateMonad term :=
-  match g with
-  | [] => tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 0 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []])
-  | (_,t)::gs =>
-    dt <- toDSHType (tmReturn t) ;;
-       let i := length gs in
-       dv <- (match dt with
-             | DSHnat => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 0 []) [tRel i])
-             | DSHCType => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 1 []) [tRel i])
-             | DSHMemBlock => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 2 []) [tRel i])
-             | DSHPtr => tmReturn (tApp (tConstruct {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} 3 []) [tRel i])
-             end) ;;
-          ts <- build_dsh_globals gs ;;
-          tmReturn (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.list"; inductive_ind := 0 |} 1 []) [tInd {| inductive_mind := "Helix.DSigmaHCOL.DSHCOLOnCarrierA.MDSHCOLOnCarrierA.DSHVal"; inductive_ind := 0 |} []; dv; ts])
-  end.
-
-Fixpoint rev_nat_seq (len: nat) : list nat :=
-  match len with
-  | O => []
-  | S len' => List.cons len' (rev_nat_seq len')
-  end.
-
 Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
   match names with
   | [] => tmReturn e
