@@ -57,79 +57,80 @@ Definition toDSHType (tmt: TemplateMonad term): TemplateMonad DSHType :=
 (* DeBruijn indixed list variables. Each variable has name and type *)
 Definition varbindings:Type := list (name*term).
 
-Fixpoint compileNExpr (a_n:term): TemplateMonad NExpr :=
+Fixpoint compileNExpr (voff:nat) (a_n:term): TemplateMonad NExpr :=
   match a_n with
   | (tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 0 [])
     => tmReturn (NConst 0)
   | (tApp (tConst "Coq.Init.Specif.proj1_sig" []) [ _ ; _ ; tRel i])
-    => tmReturn (NVar i)
+    => tmReturn (NVar (voff+i))
   | (tApp (tConstruct {| inductive_mind := "Coq.Init.Datatypes.nat"; inductive_ind := 0 |} 1 []) [e]) =>
-    d_e <- compileNExpr e ;;
+    d_e <- compileNExpr voff e ;;
         tmReturn (match d_e with
                   | NConst v => NConst (v+1)
                   | o => NPlus o (NConst 1)
                   end)
   | (tApp (tConst "Coq.Init.Nat.add" []) [ a_a ; a_b]) =>
-    d_a <- compileNExpr a_a ;;
-        d_b <- compileNExpr a_b ;;
+    d_a <- compileNExpr voff a_a ;;
+        d_b <- compileNExpr voff a_b ;;
         tmReturn (NPlus d_a d_b)
   | (tApp (tConst "Coq.Init.Nat.sub" []) [ a_a ; a_b]) =>
-    d_a <- compileNExpr a_a ;;
-        d_b <- compileNExpr a_b ;;
+    d_a <- compileNExpr voff a_a ;;
+        d_b <- compileNExpr voff a_b ;;
         tmReturn (NMinus d_a d_b)
   | (tApp (tConst "Coq.Init.Nat.mul" []) [ a_a ; a_b]) =>
-    d_a <- compileNExpr a_a ;;
-        d_b <- compileNExpr a_b ;;
+    d_a <- compileNExpr voff a_a ;;
+        d_b <- compileNExpr voff a_b ;;
         tmReturn (NMult d_a d_b)
   (* TODO: more cases *)
   | _ => tmFail ("Unsupported NExpr " ++ (string_of_term a_n))
   end.
 
-Fixpoint compileMExpr (a_e:term): TemplateMonad (MExpr):=
+Fixpoint compileMExpr (voff:nat) (a_e:term): TemplateMonad (MExpr):=
   match a_e with
-  | tRel i => tmReturn (MVar i)
+  | tRel i => tmReturn (MVar (voff+i))
   (* TODO: support for constant vectors as MConst *)
   | _ => tmFail ("Unsupported MExpr " ++ (string_of_term a_e))
   end.
 
-Fixpoint compileAExpr (a_e:term): TemplateMonad AExpr :=
+(* TODO: this one takes a long time to compile. Speed up! *)
+Fixpoint compileAExpr (voff:nat) (a_e:term): TemplateMonad AExpr :=
   match a_e with
   | tApp (tConst "MathClasses.interfaces.canonical_names.abs" [])
          [tConst "Helix.HCOL.CarrierType.CarrierA" [];
             _; _; _;  _; _; a_a] =>
-    d_a <- compileAExpr a_a ;;
+    d_a <- compileAExpr voff a_a ;;
         tmReturn (AAbs d_a)
   | tApp (tConst "Helix.HCOL.CarrierType.sub" []) [_; _; _; a_a ; a_b] =>
-    d_a <- compileAExpr a_a ;;
-        d_b <- compileAExpr a_b ;;
+    d_a <- compileAExpr voff a_a ;;
+        d_b <- compileAExpr voff a_b ;;
         tmReturn (AMinus d_a d_b)
   | tApp (tConst "Helix.HCOL.CarrierType.CarrierAmult" []) [a_a ; a_b] =>
-    d_a <- compileAExpr a_a ;;
-        d_b <- compileAExpr a_b ;;
+    d_a <- compileAExpr voff a_a ;;
+        d_b <- compileAExpr voff a_b ;;
         tmReturn (AMult d_a d_b)
   | tApp (tConst "CoLoR.Util.Vector.VecUtil.Vnth" [])
          [tConst "Helix.HCOL.CarrierType.CarrierA" [] ; a_n ; a_v ; a_i ; _] =>
     (* n <- tmUnquoteTyped nat a_n ;; *)
-      d_v <- compileMExpr a_v ;;
-      d_i <- compileNExpr a_i ;;
+      d_v <- compileMExpr voff a_v ;;
+      d_i <- compileNExpr voff a_i ;;
       tmReturn (ANth d_v d_i)
-  | tRel i => tmReturn (AVar i)
+  | tRel i => tmReturn (AVar (voff+i))
   | _ => tmFail ("Unsupported AExpr " ++ (string_of_term a_e))
   end.
 
-Definition compileDSHUnCarrierA (a_f:term): TemplateMonad AExpr :=
+Definition compileDSHUnCarrierA (voff:nat) (a_f:term): TemplateMonad AExpr :=
   match a_f with
-  | tLambda _ _ a_f' => compileAExpr a_f'
+  | tLambda _ _ a_f' => compileAExpr voff a_f'
   | _ => tmFail ("Unsupported UnCarrierA " ++ (string_of_term a_f))
   end.
 
-Definition compileDSHIUnCarrierA (a_f:term): TemplateMonad AExpr :=
+Definition compileDSHIUnCarrierA (voff:nat) (a_f:term): TemplateMonad AExpr :=
   match a_f with
-  | tLambda _ _ a_f' => compileDSHUnCarrierA a_f'
+  | tLambda _ _ a_f' => compileDSHUnCarrierA voff a_f'
   | _ => tmFail ("Unsupported IUnCarrierA " ++ (string_of_term a_f))
   end.
 
-Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
+Definition compileDSHBinCarrierA (voff:nat) (a_f:term): TemplateMonad AExpr :=
   match a_f with
   | tApp (tConst "MathClasses.orders.minmax.max" [])
          [tConst "Helix.HCOL.CarrierType.CarrierA" []; _; _ ] =>
@@ -140,14 +141,14 @@ Definition compileDSHBinCarrierA (a_f:term): TemplateMonad AExpr :=
     tmReturn (APlus (AVar 1) (AVar 0))
   | tConst "Helix.HCOL.CarrierType.CarrierAmult" [] =>
     tmReturn (AMult (AVar 1) (AVar 0))
-  | tLambda _ _ (tLambda _ _ a_f') => compileAExpr a_f'
-  | tLambda _ _ a_f' => compileAExpr a_f'
+  | tLambda _ _ (tLambda _ _ a_f') => compileAExpr voff a_f'
+  | tLambda _ _ a_f' => compileAExpr voff a_f'
   | _ => tmFail ("Unsupported BinCarrierA " ++ (string_of_term a_f))
   end.
 
-Definition compileDSHIBinCarrierA (a_f:term): TemplateMonad AExpr :=
+Definition compileDSHIBinCarrierA (voff:nat) (a_f:term): TemplateMonad AExpr :=
   match a_f with
-  | tLambda _ _ a_f' => compileDSHBinCarrierA a_f'
+  | tLambda _ _ a_f' => compileDSHBinCarrierA voff a_f'
   | _ => tmFail ("Unsupported IBinCarrierA " ++ (string_of_term a_f))
   end.
 
@@ -170,6 +171,7 @@ Run TemplateProgram
 
 (* return tuple: vars, [DSHOperator x_p y_p] *)
 Fixpoint compileMSHCOL2DSHCOL
+         (voff:nat)
          (skip:nat)
          (vars:varbindings)
          (t:term)
@@ -179,34 +181,34 @@ Fixpoint compileMSHCOL2DSHCOL
   | tLambda (nNamed n) vt b =>
     tmPrint ("lambda " ++ n)  ;;
             toDSHType (tmReturn vt) ;; (* to enforce valid type *)
-            compileMSHCOL2DSHCOL (S skip) ((nNamed n,vt)::vars) b (incrPVar skip x_p) (incrPVar skip y_p)
+            compileMSHCOL2DSHCOL voff (S skip) ((nNamed n,vt)::vars) b (incrPVar skip x_p) (incrPVar skip y_p)
   | tApp (tConst opname _) args =>
     match parse_SHCOL_Op_Name opname, args with
     | Some n_Embed, [o ; b ; _] =>
       tmPrint "MSHEmbed" ;;
               no <- tmUnquoteTyped nat o ;;
-              bc <- compileNExpr b ;;
+              bc <- compileNExpr voff b ;;
               tmReturn (vars,  DSHAssign (x_p, NConst 0) (y_p, bc))
     | Some n_Pick, [i ; b ; _] =>
       tmPrint "MSHPick" ;;
               ni <- tmUnquoteTyped nat i ;;
-              bc <- compileNExpr b ;;
+              bc <- compileNExpr voff b ;;
               tmReturn (vars, DSHAssign (x_p, bc) (y_p, NConst 0))
     | Some n_SHPointwise, [n ; f ; _ ] =>
       tmPrint "MSHPointwise" ;;
               nn <- tmUnquoteTyped nat n ;;
-              df <- compileDSHIUnCarrierA f ;;
+              df <- compileDSHIUnCarrierA voff f ;;
               tmReturn (vars, DSHIMap nn (x_p) (y_p) df)
     | Some n_SHBinOp, [o ; f ; _] =>
       tmPrint "MSHBinOp" ;;
               no <- tmUnquoteTyped nat o ;;
-              df <- compileDSHIBinCarrierA f ;;
+              df <- compileDSHIBinCarrierA voff f ;;
               tmReturn (vars, DSHBinOp no (x_p) (y_p) df )
     | Some n_SHInductor, [n ; f ; _ ; z] =>
       tmPrint "MSHInductor" ;;
               zconst <- tmUnquoteTyped CarrierA z ;;
-              nc <- compileNExpr n ;;
-              df <- compileDSHBinCarrierA f ;;
+              nc <- compileNExpr voff n ;;
+              df <- compileDSHBinCarrierA voff f ;;
               tmReturn (vars, DSHPower nc (x_p, NConst 0) (y_p, NConst 0) df zconst)
     | Some n_IUnion, [i ; o ; n ; op_family] =>
       tmPrint "MSHIUnion" ;;
@@ -214,7 +216,7 @@ Fixpoint compileMSHCOL2DSHCOL
               no <- tmUnquoteTyped nat o ;;
               nn <- tmUnquoteTyped nat n ;;
               (* op_family will increase [skip] offset automatically *)
-              c' <- compileMSHCOL2DSHCOL skip vars op_family x_p y_p ;;
+              c' <- compileMSHCOL2DSHCOL voff skip vars op_family x_p y_p ;;
               let '(_, rr) := c' in
               tmReturn (vars, DSHLoop nn rr )
     | Some n_IReduction, [i ; o ; n ; z; f ; _ ; op_family] =>
@@ -241,8 +243,8 @@ Fixpoint compileMSHCOL2DSHCOL
               (* op_family will increase [skip] offset automatically,
                  but we need to increase it once more for [DSHAlloc]
                *)
-              c' <- compileMSHCOL2DSHCOL (S skip) vars op_family x_p' t_i' ;;
-                 df <- compileDSHBinCarrierA f ;;
+              c' <- compileMSHCOL2DSHCOL voff (S skip) vars op_family x_p' t_i' ;;
+                 df <- compileDSHBinCarrierA voff f ;;
                  (* [df] increased twice to skip loop and alloc *)
                  let df'' := incrDSHBinCType (S skip) df in
                  let '(_, rr) := c' in
@@ -263,16 +265,16 @@ Fixpoint compileMSHCOL2DSHCOL
               (* single inc. inside alloc *)
               let x_p' := incrPVar skip x_p in
               let y_p' := incrPVar skip y_p in
-              cop2' <- compileMSHCOL2DSHCOL (S skip) vars op2 x_p' t_i ;;
+              cop2' <- compileMSHCOL2DSHCOL voff (S skip) vars op2 x_p' t_i ;;
                     let '(_, cop2) := cop2' in
-                    cop1' <- compileMSHCOL2DSHCOL (S skip) vars op1 t_i y_p' ;;
+                    cop1' <- compileMSHCOL2DSHCOL voff (S skip) vars op1 t_i y_p' ;;
                           let '(_, cop1) := cop1' in
                           tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
       tmPrint "MHTSUMUnion" ;;
               ni <- tmUnquoteTyped nat i ;;
               no <- tmUnquoteTyped nat o ;;
-              ddot <- compileDSHBinCarrierA dot ;;
+              ddot <- compileDSHBinCarrierA voff dot ;;
               (* [ddot] increased twice for 2 allocs *)
               let ddot' := incrDSHIBinCType (S (S skip)) ddot in
               tnt <- tmQuote DSHnat ;;
@@ -281,9 +283,9 @@ Fixpoint compileMSHCOL2DSHCOL
               (* double increase after 2 allocs *)
               let x_p'' := incrPVar (S skip) (incrPVar skip x_p) in
               let y_p'' := incrPVar (S skip) (incrPVar skip y_p) in
-              cop1' <- compileMSHCOL2DSHCOL (S (S skip)) vars op1 x_p'' tyf_i ;;
+              cop1' <- compileMSHCOL2DSHCOL voff (S (S skip)) vars op1 x_p'' tyf_i ;;
                     let '(_, cop1) := cop1' in
-                    cop2' <- compileMSHCOL2DSHCOL (S (S skip)) vars op2 x_p'' tyg_i ;;
+                    cop2' <- compileMSHCOL2DSHCOL voff (S (S skip)) vars op2 x_p'' tyg_i ;;
                           let '(_,cop2) := cop2' in
                           tmReturn (vars,
                                     DSHAlloc no
@@ -309,19 +311,55 @@ Fixpoint tmUnfoldList {A:Type} (names:list string) (e:A): TemplateMonad A :=
                tmUnfoldList xs u
   end.
 
-Definition reifyMSHCOL {A:Type} (expr: A)
+Definition reifyMSHCOL
+           {A:Type}
+           (expr: A)
            (unfold_names: list string)
            (res_name: string)
            (vars: varbindings)
-           (x_p y_p: PExpr)
   : TemplateMonad unit :=
   let unfold_names := List.app unfold_names ["SHFamilyOperatorCompose"; "IgnoreIndex"; "Fin1SwapIndex"; "Fin1SwapIndex2"; "IgnoreIndex2"; "mult_by_nth"; "plus"; "mult"; "const"] in
   eexpr <- tmUnfoldList unfold_names expr ;;
         ast <- @tmQuote A eexpr ;;
         ast <- @tmQuote A eexpr ;;
         mt <- tmQuote (mem_block) ;;
-        d' <- compileMSHCOL2DSHCOL 0 vars ast x_p y_p ;;
+        (* voff=2 to take into account 2 fake variables we inserted *)
+        d' <- compileMSHCOL2DSHCOL 2 0 vars ast (PVar 1) (PVar 0) ;;
         let '(globals, dshcol) := d' in
         dshcol' <- tmEval cbv dshcol ;;
                 d_dshcol <- tmDefinition res_name dshcol'
                 ;; tmReturn tt.
+
+
+
+
+
+
+Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
+Require Import Helix.HCOL.HCOL.
+Require Import Helix.SigmaHCOL.SigmaHCOL.
+Require Import Helix.SigmaHCOL.IndexFunctions.
+Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
+Import MDSHCOLOnCarrierA.
+
+
+Definition foo := fun a => MSHPointwise (n:=4) (mult_by_nth a).
+
+Definition foo1 :=
+  MSHIReduction (i:=2) CarrierAz minmax.max
+                (fun (jf: FinNat 2) =>
+                   MSHCompose
+                     (MSHBinOp
+                        (fun i a b =>
+                           IgnoreIndex abs i
+                                       (Fin1SwapIndex2 jf
+                                                       (IgnoreIndex2 sub) i a b)))
+
+                          (MSHPointwise (n:=2) (IgnoreIndex (fun x => abs x)))
+                          ).
+
+Run TemplateProgram (reifyMSHCOL foo ["foo"] "bar"
+                                 List.nil
+                    ).
+
+Print bar.

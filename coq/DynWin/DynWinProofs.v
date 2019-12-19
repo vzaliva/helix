@@ -245,7 +245,7 @@ Section MSHCOL_to_DSHCOL.
 
   Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"
                                    List.nil
-                                   (PVar 1) (PVar 0)).
+                                   ).
 
   Import DSHNotation.
   Print dynwin_DSHCOL1.
