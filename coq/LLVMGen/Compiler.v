@@ -977,7 +977,8 @@ Section monadic.
     m (IRState * segment)
     :=
       let fshcol_s := string_of_DSHOperator fshcol in
-      let add_comment r : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [("--- Operator: " ++ fshcol_s ++ "---")%string])) in
+      let op_s := ("--- Operator: " ++ fshcol_s ++ "---")%string in
+      let add_comment r : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [op_s])) in
       match fshcol with
       | DSHNop =>
         let '(st, nopblock) := incBlockNamed st "Nop" in
@@ -989,7 +990,7 @@ Section monadic.
          add_comment
          (genFSHAssign i o st x y src_n dst_n nextblock)
       | DSHIMap n x_p y_p f =>
-        '(x,i) <- resolve_PVar (vars st) x_p ;;
+        '(x,i) <- (catch (resolve_PVar (vars st) x_p) (fun m => raise (m ++ " in " ++ op_s)%string)) ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
          nat_eq_or_err (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
