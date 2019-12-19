@@ -28,111 +28,117 @@ Import MDSHCOLOnFloat64.
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
 Definition DynWin_test: DSHOperator := DSHAlloc 2
-  (DSHSeq
-     (DSHAlloc 2
-        (DSHAlloc 2
-           (DSHSeq
-              (DSHSeq
-                 (DSHAlloc 1
-                    (DSHSeq
-                       (DSHAlloc 1
-                          (DSHSeq
-                             (DSHMemInit 1 (PVar 0)
-                                FSigmaHCOL.Float64Zero)
-                             (DSHLoop 3
-                                (DSHSeq
-                                   (DSHAlloc 1
-                                      (DSHSeq
-                                         (DSHAssign
-                                            (PVar 9, NConst 0)
-                                            (PVar 0, NConst 0))
-                                         (DSHAlloc 1
-                                            (DSHSeq
-                                               (DSHPower (NVar 0)
-                                                  (PVar 0, NConst 0)
-                                                  (PVar 0, NConst 0)
-                                                  (AMult (AVar 1)
-                                                     (AVar 0))
-                                                  FSigmaHCOL.Float64One)
-                                               (DSHIMap 1 (PVar 0)
-                                                  (PVar 1)
-                                                  (AMult (AVar 0)
-                                                     (ANth (MVar 3)
-                                                        (NVar 2))))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
-                                      (PVar 0)
-                                      (APlus (AVar 1) (AVar 0)))))))
-                       (DSHAssign (PVar 0, NConst 0)
-                          (PVar 0, NConst 0))))
-                 (DSHAlloc 1
-                    (DSHSeq
-                       (DSHAlloc 1
-                          (DSHSeq
-                             (DSHMemInit 1 (PVar 0)
-                                FSigmaHCOL.Float64Zero)
-                             (DSHLoop 2
-                                (DSHSeq
-                                   (DSHAlloc 2
-                                      (DSHSeq
-                                         (DSHLoop 2
-                                            (DSHAlloc 1
-                                               (DSHSeq
-                                                  (DSHAssign
-                                                     (PVar 11,
-                                                     NPlus
-                                                       (NPlus
-                                                          (NConst 1)
-                                                          (NMult
-                                                           (NVar 1)
-                                                           (NConst 1)))
-                                                       (NMult
-                                                          (NVar 0)
-                                                          (NMult
-                                                           (NConst 2)
-                                                           (NConst 1))))
-                                                     (PVar 0,
-                                                     NConst 0))
-                                                  (DSHAssign
-                                                     (PVar 0,
-                                                     NConst 0)
-                                                     (PVar 0,
-                                                     NVar 0)))))
-                                         (DSHBinOp 1 (PVar 0)
-                                            (PVar 1)
-                                            (AAbs
-                                               (AMinus (AVar 1)
-                                                  (AVar 0))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
-                                      (PVar 0)
-                                      (AMax (AVar 1) (AVar 0)))))))
-                       (DSHAssign (PVar 0, NConst 0)
-                          (PVar 1, NConst 1)))))
-              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 0)
-                 (APlus (AVar 1) (AVar 0))))))
-     (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
+                                                (DSHSeq
+                                                   (DSHAlloc 2
+                                                             (DSHAlloc 2
+                                                                       (DSHSeq
+                                                                          (DSHSeq
+                                                                             (DSHAlloc 1
+                                                                                       (DSHSeq
+                                                                                          (DSHAlloc 1
+                                                                                                    (DSHSeq
+                                                                                                       (DSHMemInit 1 (PVar 0)
+                                                                                                                   FSigmaHCOL.Float64Zero)
+                                                                                                       (DSHLoop 3
+                                                                                                                (DSHSeq
+                                                                                                                   (DSHAlloc 1
+                                                                                                                             (DSHSeq
+                                                                                                                                (DSHAssign
+                                                                                                                                   (PVar 9, NConst 0)
+                                                                                                                                   (PVar 0, NConst 0))
+                                                                                                                                (DSHAlloc 1
+                                                                                                                                          (DSHSeq
+                                                                                                                                             (DSHPower (NVar 0)
+                                                                                                                                                       (PVar 0, NConst 0)
+                                                                                                                                                       (PVar 0, NConst 0)
+                                                                                                                                                       (AMult (AVar 1)
+                                                                                                                                                              (AVar 0))
+                                                                                                                                                       FSigmaHCOL.Float64One)
+                                                                                                                                             (DSHIMap 1 (PVar 0)
+                                                                                                                                                      (PVar 1)
+                                                                                                                                                      (AMult (AVar 0)
+                                                                                                                                                             (ANth (MVar 3)
+                                                                                                                                                                   (NVar 2))))))))
+                                                                                                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
+                                                                                                                               (PVar 0)
+                                                                                                                               (APlus (AVar 1) (AVar 0)))))))
+                                                                                          (DSHAssign (PVar 0, NConst 0)
+                                                                                                     (PVar 0, NConst 0))))
+                                                                             (DSHAlloc 1
+                                                                                       (DSHSeq
+                                                                                          (DSHAlloc 1
+                                                                                                    (DSHSeq
+                                                                                                       (DSHMemInit 1 (PVar 0)
+                                                                                                                   FSigmaHCOL.Float64Zero)
+                                                                                                       (DSHLoop 2
+                                                                                                                (DSHSeq
+                                                                                                                   (DSHAlloc 2
+                                                                                                                             (DSHSeq
+                                                                                                                                (DSHLoop 2
+                                                                                                                                         (DSHAlloc 1
+                                                                                                                                                   (DSHSeq
+                                                                                                                                                      (DSHAssign
+                                                                                                                                                         (PVar 11,
+                                                                                                                                                          NPlus
+                                                                                                                                                            (NPlus
+                                                                                                                                                               (NConst 1)
+                                                                                                                                                               (NMult
+                                                                                                                                                                  (NVar 1)
+                                                                                                                                                                  (NConst 1)))
+                                                                                                                                                            (NMult
+                                                                                                                                                               (NVar 0)
+                                                                                                                                                               (NMult
+                                                                                                                                                                  (NConst 2)
+                                                                                                                                                                  (NConst 1))))
+                                                                                                                                                         (PVar 0,
+                                                                                                                                                          NConst 0))
+                                                                                                                                                      (DSHAssign
+                                                                                                                                                         (PVar 0,
+                                                                                                                                                          NConst 0)
+                                                                                                                                                         (PVar 0,
+                                                                                                                                                          NVar 0)))))
+                                                                                                                                (DSHBinOp 1 (PVar 0)
+                                                                                                                                          (PVar 1)
+                                                                                                                                          (AAbs
+                                                                                                                                             (AMinus (AVar 1)
+                                                                                                                                                     (AVar 0))))))
+                                                                                                                   (DSHMemMap2 1 (PVar 1) (PVar 0)
+                                                                                                                               (PVar 0)
+                                                                                                                               (AMax (AVar 1) (AVar 0)))))))
+                                                                                          (DSHAssign (PVar 0, NConst 0)
+                                                                                                     (PVar 1, NConst 1)))))
+                                                                          (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 0)
+                                                                                      (APlus (AVar 1) (AVar 0))))))
+                                                   (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
+
+Definition BinOp_less_test :=
+  DSHBinOp 2 (PVar 0) (PVar 1) (AZless (AVar 1) (AVar 0)).
+
+Definition BinOp_plus_test :=
+  DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1) (AVar 0)).
+
+Definition IMap_plus1_test :=
+  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
+
+Definition IMap_plusD_test :=
+  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 4)).
+
+Definition Compose_pointwise_test :=
+  DSHSeq IMap_plus1_test IMap_plus1_test.
+
+Definition IReduction_test :=
+  DSHAlloc 1
+           (DSHSeq (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+                   (DSHLoop 2
+                            (DSHSeq
+                               (DSHAlloc 2
+                                         (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0) (AAbs (AVar 0)))
+                                                 (DSHBinOp 1 (PVar 0) (PVar 3) (AAbs (AMinus (AVar 1) (AVar 0))))))
+                               (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) (AMax (AVar 1) (AVar 0)))))).
+
 
 Local Close Scope nat_scope.
 
-Section SmallOps.
-  Local Open Scope nat_scope.
-
-  Definition BinOp_less_test :=
-    DSHBinOp 2 (PVar 0) (PVar 1) (AZless (AVar 1) (AVar 0)).
-
-  Definition BinOp_plus_test :=
-    DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1) (AVar 0)).
-
-  Definition IMap_plus1_test :=
-    DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
-
-  Definition IMap_plusD_test :=
-    DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 4)).
-
-(*
-  Definition Compose_pointwise_test: @FSHOperator Float64 8 8 :=
-  FSHCompose Pointwise_plus1_test Pointwise_plus1_test.
- *)
-End SmallOps.
 
 Record FSHCOLTest :=
   mkFSHCOLTest
@@ -144,25 +150,6 @@ Record FSHCOLTest :=
       op: DSHOperator;
     }.
 
-(*
-Definition IReduction_test: @FSHOperator Float64 4 4 :=
-  FSHIReduction 3 (APlus (AVar 1) (AVar 0)) FloatV64Zero FSHId.
-
-Definition IUnion_test: @FSHOperator Float64 4 4 :=
-  FSHIUnion 4 (APlus (AVar 1) (AVar 0)) FloatV64Zero
-            (FSHCompose
-               (FSHEmbed (NVar 0) FloatV64Zero)
-               (FSHCompose
-                  FSHId
-                  (FSHPick (NVar 0)))).
-
-Definition Inductor_test: @FSHOperator Float64 1 1 :=
-  FSHInductor (NConst 8) (AMult (AVar 1) (AVar 0)) FloatV64One.
-
-Definition SUMUnionTest: @FSHOperator Float64 4 4 :=
-  FSHHTSUMUnion (APlus (AVar 1) (AVar 0)) FSHId FSHId.
- *)
-
 Local Open Scope string_scope.
 
 Definition all_tests :=
@@ -170,17 +157,16 @@ Definition all_tests :=
     {| i:=5; o:=1; name:="dynwin64"; op:=DynWin_test ; globals:=[("D", FSHvecValType 3)] |} ;
       {| i:=4; o:=2; name:="binop_less"; op:=BinOp_less_test; globals:=[] |} ;
       {| i:=4; o:=2; name:="binop_plus"; op:=BinOp_plus_test; globals:=[] |} ;
+      {| i:=2; o:=1; name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       (*
-      {| name:="ireduction"; op:=IReduction_test; globals:=[] |} ;
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
       {| name:="sumunion"; op:=SUMUnionTest; globals:=[] |} ;
        *)
       {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
-      {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |}
-(*
-      {| name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|} *)
+      {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
 
+      {| i:=8; o:=8; name:="compose_pointwise"; op:=Compose_pointwise_test ; globals:=[]|}
   ].
 
 
