@@ -330,3 +330,9 @@ Compute LLVMGen
         [("D", FSHvecValType 3)]
         DynWin_test
         "dynwin64".
+
+Compute LLVMGen
+        2 1
+        []
+        IReduction_test
+        "IReduction".
