@@ -122,7 +122,7 @@ Definition incBlockNamed (st:IRState) (prefix:string): (IRState*block_id) :=
       local_count := local_count st ;
       void_count := void_count st ;
       vars := vars st
-    |}, Name (append prefix (string_of_nat (block_count st)))).
+    |}, Name (prefix ++ string_of_nat (block_count st))%string).
 
 Definition incBlock (st:IRState): (IRState*block_id) := incBlockNamed st "b".
 
@@ -132,7 +132,7 @@ Definition incLocalNamed (st:IRState) (prefix:string): (IRState*raw_id) :=
       local_count := S (local_count st) ;
       void_count  := void_count st ;
       vars := vars st
-    |}, Name (append prefix (string_of_nat (local_count st)))).
+    |}, Name (prefix ++ string_of_nat (local_count st))%string).
 
 Definition incLocal (st:IRState): (IRState*raw_id) := incLocalNamed st "l".
 
@@ -153,7 +153,7 @@ Definition addVars (st:IRState) (newvars: list (ident * typ)): IRState :=
   |}.
 
 Definition newLocalVar (st:IRState) (t:typ) (prefix:string): (IRState*raw_id) :=
-  let v := Name (append prefix (string_of_nat (local_count st))) in
+  let v := Name (prefix ++ string_of_nat (local_count st))%string in
   ({|
       block_count := block_count st ;
       local_count := S (local_count st) ;
@@ -223,7 +223,7 @@ Section monadic.
   Definition nat_eq_or_err (msg:string) (a b:nat) : m unit :=
     if PeanoNat.Nat.eq_dec a b
     then ret tt
-    else raise (append msg (" "++(string_of_nat a)++"!="++(string_of_nat b))).
+    else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.
 
   Fixpoint genNExpr
            (st: IRState)
@@ -249,7 +249,7 @@ Section monadic.
                     if Z.eq_dec z zi then
                       ret (st, EXP_Ident i, [])
                     else
-                      raise (append "NVar #" ((string_of_nat n) ++ " dimensions mismatch in " ++ string_of_vars (vars st)))
+                      raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ string_of_vars (vars st))%string
                   | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                     if Z.eq_dec z zi then
                       let '(st, res) := incLocal st in
@@ -259,8 +259,8 @@ Section monadic.
                                                   (EXP_Ident i))
                                                  (ret 8%Z))])
                     else
-                      raise (append "NVar #" ((string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st)))
-                  | _,_ => raise (append "NVar #" ((string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st)))
+                      raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st))%string
+                  | _,_ => raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                   end
       | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
       | NDiv   a b => gen_binop a b (SDiv true)
@@ -283,7 +283,7 @@ Section monadic.
                    match t with
                    | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
                      ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
-                  | _  => raise (append "MVar #" ((string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st)))
+                  | _  => raise ("MVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                    end
        | MConst c => raise "MConst not implemented" (* TODO *)
        end.
@@ -337,7 +337,7 @@ Section monadic.
                                                (TYPE_Pointer TYPE_Double,
                                                 (EXP_Ident i))
                                                (ret 8%Z))])
-                  | _ => raise (append "AVar #" ((string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st)))
+                  | _ => raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                   end
       | AConst v => ret (st, EXP_Double v, [])
       | ANth vec i =>
@@ -523,11 +523,11 @@ Section monadic.
              (nextblock: block_id)
     : m (IRState * segment)
     :=
-      let '(st, entryblock) := incBlockNamed st (append prefix "_entry") in
-      let '(st, loopblock) := incBlockNamed st (append prefix "_loop") in
+      let '(st, entryblock) := incBlockNamed st (prefix ++ "_entry")%string in
+      let '(st, loopblock) := incBlockNamed st (prefix ++ "_loop")%string in
       let '(st, loopcond) := incLocal st in
       let '(st, loopcond1) := incLocal st in
-      let '(st, nextvar) := incLocalNamed st (append prefix "_next_i") in
+      let '(st, nextvar) := incLocalNamed st (prefix ++ "_next_i")%string in
       let '(st, void0) := incVoid st in
       let '(st, void1) := incVoid st in
       let '(st, retloop) := incVoid st in
@@ -947,7 +947,7 @@ Section monadic.
 
   Definition string_of_PExpr (p:PExpr) : string :=
     match p with
-    | PVar x => append "(PVar " (string_of_nat x) ++ ")"
+    | PVar x => ("(PVar " ++ string_of_nat x ++ ")")%string
     end.
 
   Definition string_of_DSHOperator (d:DSHOperator) : string :=
@@ -956,12 +956,11 @@ Section monadic.
     | DSHAssign src dst => "DSHAssign"
     | DSHIMap n x_p y_p f => "DSHIMap"
     | DSHBinOp n x_p y_p f =>
-      append "DSHBinOp "
-             (
-               (string_of_nat n) ++ " " ++
-               (string_of_PExpr x_p) ++ " " ++
-               (string_of_PExpr y_p) ++ " ..."
-             )
+      ("DSHBinOp " ++
+                   string_of_nat n ++ " " ++
+                   string_of_PExpr x_p ++ " " ++
+                   string_of_PExpr y_p ++ " ..."
+      )%string
     | DSHMemMap2 n x0_p x1_p y_p f => "DSHMemMap2"
     | DSHPower n src dst f initial => "DSHPower"
     | DSHLoop n body => "DSHLoop"
@@ -978,7 +977,7 @@ Section monadic.
     m (IRState * segment)
     :=
       let fshcol_s := string_of_DSHOperator fshcol in
-      let add_comment r : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [(append "--- Operator: " (fshcol_s ++ "---"))])) in
+      let add_comment r : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [("--- Operator: " ++ fshcol_s ++ "---")%string])) in
       match fshcol with
       | DSHNop =>
         let '(st, nopblock) := incBlockNamed st "Nop" in
@@ -993,7 +992,7 @@ Section monadic.
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
-         nat_eq_or_err (append fshcol_s " dimensions do not match in " ++ vs) i o ;;
+         nat_eq_or_err (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
          let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
          let '(st, loopvar) := incLocalNamed st "IMap_i" in
          '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
@@ -1004,8 +1003,8 @@ Section monadic.
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
-         nat_eq_or_err (append fshcol_s " input dimensions do not match in " ++ vs) i (n+n) ;;
-                       nat_eq_or_err (append fshcol_s (" output dimensions do not match in " ++ vs)) o n ;;
+         nat_eq_or_err (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
+                       nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
                        let '(st, loopvar) := incLocalNamed st "BinOp_i" in
                        '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
                         add_comment
@@ -1016,9 +1015,9 @@ Section monadic.
          '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
-         nat_eq_or_err (append fshcol_s " output dimensions do not match in " ++ vs) o n ;;
-         nat_eq_or_err (append fshcol_s " input 1 dimensions do not match in " ++ vs) i0 n ;;
-         nat_eq_or_err (append fshcol_s " input 2 dimensions do not match in " ++ vs) i1 n ;;
+         nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+         nat_eq_or_err (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
+         nat_eq_or_err (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
          let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
          '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
           add_comment
@@ -1050,7 +1049,7 @@ Section monadic.
         '(x,i) <- resolve_PVar (vars st) x_p ;;
          '(y,o) <- resolve_PVar (vars st) y_p ;;
          let vs := string_of_vars (vars st) in
-         nat_eq_or_err (append fshcol_s " input/output dimensions do not match in " ++ vs ) i o ;;
+         nat_eq_or_err (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
          add_comment
          (genMemCopy size st x y nextblock)
       | DSHSeq f g =>
