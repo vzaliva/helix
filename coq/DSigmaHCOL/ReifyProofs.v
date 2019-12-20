@@ -253,7 +253,7 @@ Qed.
   function types =A -> A -> A= in MSCHOL and =A -> A -> option A= in
   DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
  *)
-Lemma evalAExpr_is_Some
+Lemma evalAExpr_is_Some'
       {σ: evalContext}
       {e: AExpr}
       (ts: TypeSig)
@@ -396,6 +396,19 @@ Proof.
     repeat break_match; try some_none.
 Qed.
 
+Lemma evalAExpr_is_Some
+      {σ : evalContext}
+      {a : AExpr}
+      `{TSI : AExprTypeSigIncludes a ts}
+      (TC : typecheck_env 0 ts σ) :
+  is_Some (evalAexp σ a).
+Proof.
+  inversion TSI; clear TSI.
+  rename x into ats; destruct H as [ATS TSI].
+  eapply typecheck_env_TypeSigIncluded in TC.
+  eapply evalAExpr_is_Some'.
+  all: eassumption.
+Qed.
 
 Global Instance TypeSigCompat_Symmetric :
   Symmetric TypeSigCompat.
@@ -511,6 +524,262 @@ Proof.
       eapply TypeSig.MapsTo_In; eassumption.
 Qed.
 
+Lemma eq_equiv_option_nat (n1 n2 : option nat) :
+  n1 = n2 <-> n1 ≡ n2.
+Proof.
+  intuition.
+  inversion H; congruence.
+  subst; reflexivity.
+Qed.
+
+Lemma evalNExpr_context_equiv_at_TypeSig
+      (σ0 σ1 : evalContext)
+      (n : NExpr)
+      {ts : TypeSig}
+      `{TSI : NExprTypeSigIncludes n ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1) :
+  evalNexp σ0 n = evalNexp σ1 n.
+Proof.
+  inversion TSI; subst; clear TSI.
+  destruct H as [Heqx TSI].
+
+  copy_apply context_equiv_at_TypeSig_both_typcheck E;
+    destruct H as [TC0 TC1].
+
+  apply Equiv_to_opt_r; destruct_opt_r_equiv.
+  -
+    cbv.
+
+    dependent induction n; cbn in *.
+    
+    (* first "base case" *)
+    repeat break_match; try some_none.
+    repeat some_inv; subst; rewrite <-Heqx in *; clear Heqx.
+    assert (T : TM.MapsTo v DSHnat ts).
+    {
+      eapply TypeSigIncluded_at.
+      eassumption.
+      apply TM.add_1.
+      reflexivity.
+    }
+    unfold context_equiv_at_TypeSig in E.
+    specialize (E v DSHnat T).
+    destruct E as [E1 [E2 E3]].
+    unfold context_lookup in *.
+    rewrite Heqo0, Heqo in E3.
+    some_inv.
+    inversion E3.
+    congruence.
+ 
+    (* second "base case" *)
+    congruence.
+
+    (* all "inductive cases" are the same *)
+    all: unfold TypeSigUnion_error in Heqx.
+    all: repeat break_match; try some_none.
+    all: rename n5 into n10, n6 into n20,
+                n  into n11, n4 into n21.
+    all: rename t into tn1, t0 into tn2.
+    all: repeat some_inv; subst; rewrite <-Heqx in *.
+    all: copy_apply TypeSigIncluded_TypeSigUnion_left TSI;
+      [| assumption]; rename H into I1.
+    all: copy_apply TypeSigIncluded_TypeSigUnion_right TSI;
+      rename H into I2.
+    all: assert (n10 = n11)
+      by (eapply IHn1; try apply I1; try eassumption; reflexivity).
+    all: assert (n20 = n21)
+      by (eapply IHn2; try apply I2; try eassumption; reflexivity).
+    all: congruence.
+  -
+    eq_to_equiv_hyp.
+    contradict Hb.
+    apply is_Some_nequiv_None.
+    eapply evalNExpr_is_Some.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+  -
+    eq_to_equiv_hyp.
+    contradict Ha.
+    apply is_Some_nequiv_None.
+    eapply evalNExpr_is_Some.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+Qed.
+
+Lemma evalMExpr_context_equiv_at_TypeSig
+      (m : MExpr)
+      {σ0 σ1 : evalContext}
+      `{TSI : MExprTypeSigIncludes m ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalMexp σ0 m = evalMexp σ1 m.
+Proof.
+  inversion TSI; clear TSI.
+  rename x into mts; destruct H as [MTS TSI].
+  destruct m; cbn; [| reflexivity].
+  cbn in MTS.
+  some_inv.
+  assert (T : TM.MapsTo v DSHMemBlock ts).
+  {
+    eapply TypeSigIncluded_at.
+    eassumption.
+    rewrite <-MTS.
+    apply TM.add_1.
+    reflexivity.
+  }
+  specialize (E v DSHMemBlock T).
+  destruct E as [E1 [E2 H]].
+  unfold context_lookup in H.
+  inversion H.
+  reflexivity.
+  inversion H2; try reflexivity.
+  rewrite H3; reflexivity.
+Qed.
+
+Lemma evalAExpr_context_equiv_at_TypeSig
+      (a : AExpr)
+      {σ0 σ1 : evalContext}
+      `{TSI : AExprTypeSigIncludes a ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalAexp σ0 a = evalAexp σ1 a.
+Proof.
+  inversion TSI; subst; clear TSI.
+  rename x into ats; destruct H as [ATS TSI].
+
+  copy_apply context_equiv_at_TypeSig_both_typcheck E;
+    destruct H as [TC0 TC1].
+
+  apply Equiv_to_opt_r; destruct_opt_r_equiv.
+  -
+    dependent induction a; cbn in *.
+    
+    (* first "base case" *)
+    repeat break_match; try some_none.
+    repeat some_inv; subst.
+    enough (List.nth_error σ0 v = List.nth_error σ1 v)
+      by (rewrite Heqo, Heqo0 in H;
+          some_inv; inversion H; assumption).
+    clear - E ATS TSI.
+    assert (T : TM.MapsTo v DSHCType ts).
+    {
+      eapply TypeSigIncluded_at.
+      eassumption.
+      rewrite <-ATS.
+      apply TM.add_1.
+      reflexivity.
+    }
+    specialize (E v DSHCType T).
+    destruct E as [E1 [E2 H]].
+    assumption.
+
+    (* second "base case" *)
+    repeat some_inv; subst; reflexivity.
+
+    (* third "base case" *)
+    destruct TypeSigMExpr eqn:MTS in ATS; [rename t into mts | some_none].
+    destruct TypeSigNExpr eqn:NTS in ATS; [rename t into nts | some_none].
+    unfold TypeSigUnion_error in ATS; break_if; try some_none.
+    clear Heqd.
+    some_inv; rewrite <-ATS in *.
+    assert (MTSI : MExprTypeSigIncludes m ts).
+    {
+      exists mts. split.
+      eq_to_equiv_hyp; assumption.
+      eapply TypeSigIncluded_TypeSigUnion_left; eassumption.
+    }
+    assert (NTSI : NExprTypeSigIncludes n ts).
+    {
+      exists nts. split.
+      eq_to_equiv_hyp; assumption.
+      eapply TypeSigIncluded_TypeSigUnion_right; eassumption.
+    }
+    eapply evalMExpr_context_equiv_at_TypeSig in MTSI; [| eassumption].
+    eapply evalNExpr_context_equiv_at_TypeSig in NTSI; [| eassumption].
+    rewrite eq_equiv_option_nat in NTSI; rewrite NTSI in *.
+    destruct evalMexp eqn:M0 in Ha; [| some_none].
+    destruct evalMexp eqn:M1 in Hb; [| some_none].
+    rewrite M0, M1 in MTSI; some_inv.
+    break_match; [| some_none].
+    repeat break_match; repeat some_inv; subst.
+    1: enough (Some c = Some c0) by (some_inv; assumption).
+    2: enough (None = Some c0) by some_none.
+    3: enough (None = Some c) by some_none.
+    1-3: rewrite <-Heqo0, <-Heqo1, MTSI; reflexivity.
+    reflexivity.
+
+    (* inductive 1 *)
+    repeat break_match; try some_none; repeat some_inv.
+    enough (CarrierAe c1 c2) by (rewrite H; reflexivity).
+    symmetry.
+    eapply IHa; eassumption.
+
+    (* rest inductive *)
+    all: repeat break_match; try some_none; repeat some_inv.
+    all: assert (TypeSigIncluded t ts) by
+        (unfold TypeSigUnion_error in ATS; break_if; [| some_none];
+         some_inv; rewrite <-ATS in *;
+         eapply TypeSigIncluded_TypeSigUnion_left; eassumption).
+    all: assert (TypeSigIncluded t0 ts) by
+        (unfold TypeSigUnion_error in ATS; break_if; [| some_none];
+         some_inv; rewrite <-ATS in *;
+         eapply TypeSigIncluded_TypeSigUnion_right; eassumption).
+    all: assert (CarrierAe c3 c1)
+      by (eapply IHa1; try reflexivity; try eassumption).
+    all: assert (CarrierAe c4 c2)
+      by (eapply IHa2; try reflexivity; try eassumption).
+    all: rewrite H3, H4; reflexivity.
+  -
+    contradict Hb.
+    apply is_Some_ne_None.
+    eapply evalAExpr_is_Some'.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+  -
+    contradict Ha.
+    apply is_Some_ne_None.
+    eapply evalAExpr_is_Some'.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+Qed.
+ 
+Lemma evalNExpr_context_equiv_at_exact_TypeSig
+      (σ0 σ1 : evalContext)
+      (n : NExpr)
+      {ts : TypeSig}
+      `{TS : TypeSigNExpr n = Some ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1) :
+  evalNexp σ0 n = evalNexp σ1 n.
+Proof.
+  eapply evalNExpr_context_equiv_at_TypeSig; [| eassumption].
+  exists ts.
+  split; try assumption.
+  apply TypeSigIncluded_reflexive.
+Qed.
+
+Lemma evalMExpr_context_equiv_at_exact_TypeSig
+      (m : MExpr)
+      {σ0 σ1 : evalContext}
+      `{TS : TypeSigMExpr m = Some ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalMexp σ0 m = evalMexp σ1 m.
+Proof.
+  eapply evalMExpr_context_equiv_at_TypeSig; [| eassumption].
+  exists ts.
+  split; try assumption.
+  apply TypeSigIncluded_reflexive.
+Qed.
+
+Lemma evalAExpr_context_equiv_at_exact_TypeSig
+      (a : AExpr)
+      {σ0 σ1 : evalContext}
+      `{TS : TypeSigAExpr a = Some ts}
+      (E : context_equiv_at_TypeSig ts σ0 σ1):
+  evalAexp σ0 a = evalAexp σ1 a.
+Proof.
+  eapply evalAExpr_context_equiv_at_TypeSig; [| eassumption].
+  exists ts.
+  split; try assumption.
+  apply TypeSigIncluded_reflexive.
+Qed.
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -1538,7 +1807,7 @@ Proof.
       contradict Heqo1.
       apply is_Some_ne_None.
       unfold evalIBinCType.
-      eapply evalAExpr_is_Some.
+      eapply evalAExpr_is_Some'.
       eauto.
       destruct dft as [dfs' [TS' TI]].
       assert(dfs' = dfs) as DE.
@@ -1623,7 +1892,7 @@ Proof.
         rename a1 into a, b1 into b.
         unfold evalIBinCType in *.
 
-        apply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
+        apply evalAExpr_context_equiv_at_exact_TypeSig with (ts:=dfs).
         apply H.
 
         apply context_equiv_at_TypeSig_0.
@@ -1763,14 +2032,6 @@ Proof.
       auto.
 Qed.
 
-Lemma eq_equiv_option_nat (n1 n2 : option nat) :
-  n1 = n2 <-> n1 ≡ n2.
-Proof.
-  intuition.
-  inversion H; congruence.
-  subst; reflexivity.
-Qed.
- 
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)

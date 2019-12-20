@@ -1294,3 +1294,17 @@ Proof.
   clear - n0.
   contradict n0; reflexivity.
 Qed.
+
+Lemma TypeSigIncluded_reflexive :
+  forall ts, TypeSigIncluded ts ts.
+Proof.
+  intros.
+  unfold TypeSigIncluded, TypeSigIncluded_bool.
+  rewrite TP.for_all_iff by (typeclasses eauto).
+  intros.
+  apply TM.find_1 in H.
+  rewrite H.
+  unfold bool_decide.
+  break_if; try reflexivity.
+  clear - n; contradict n; reflexivity.
+Qed.
