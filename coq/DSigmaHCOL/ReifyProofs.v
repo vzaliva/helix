@@ -2125,7 +2125,95 @@ Global Instance BinOp_DSH_pure
        `{TSI: AExprTypeSigIncludes a ts}
   :
     DSH_pure (DSHBinOp o x_p y_p a) (TypeSig_decr_n ts 3) x_p y_p.
-Admitted.
+Proof.
+  split.
+  -
+    intros.
+    destruct fuel; [inversion H |].
+    cbn in H.
+    repeat break_match; try some_none.
+    some_inv; rewrite <-H.
+    split; intros.
+    +
+      apply mem_block_exists_memory_set; assumption.
+    +
+      apply mem_block_exists_memory_set_inv in H0.
+      destruct H0; [assumption |].
+      subst.
+      apply memory_is_set_is_Some.
+      rewrite Heqo3.
+      reflexivity.
+  -
+    intros until fuel; intros CE BEx BEy.
+    inversion TSI; clear TSI.
+    rename x into ats; destruct H as [ATS TSI].
+
+    unfold blocks_equiv_at_Pexp in *;
+      inversion BEx; clear BEx; inversion H1; clear H1;
+      inversion BEy; clear BEy; inversion H6; clear H6.
+    destruct (evalDSHOperator σ0) eqn:OE1,
+             (evalDSHOperator σ1) eqn:OE2.
+    all: repeat constructor.
+    all: destruct fuel; try (cbn in *; some_none; fail).
+    all: cbn in *.
+    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8 in *.
+    all: repeat break_match; try some_none.
+    all: repeat some_inv; subst.
+    +
+      unfold memory_lookup, memory_set.
+      repeat (rewrite NP.F.add_eq_o by reflexivity).
+      constructor.
+      unfold mem_add, equiv, mem_block_Equiv; intros.
+      enough (T : Some m4 = Some m3) by (some_inv; rewrite T; reflexivity).
+      rewrite <-Heqo0, <-Heqo1.
+      rewrite evalDSHBinOp_context_equiv with (σ1 := σ1).
+      rewrite H4, H9; reflexivity.
+      assumption.
+      eassumption.
+      apply context_equiv_at_TypeSig_off_decr.
+      enough (TypeSigIncluded (TypeSig_decr_n ats 3) (TypeSig_decr_n ts 3)).
+      eapply context_equiv_at_TypeSigIncluded; eassumption.
+      apply TypeSig_decr_n_Included; assumption.
+    +
+      enough (Some m2 = None) by some_none.
+      rewrite <-Heqo0, <-Heqo1.
+      rewrite evalDSHBinOp_context_equiv with (σ1 := σ1).
+      rewrite H4, H9; reflexivity.
+      assumption.
+      eassumption.
+      apply context_equiv_at_TypeSig_off_decr.
+      enough (TypeSigIncluded (TypeSig_decr_n ats 3) (TypeSig_decr_n ts 3)).
+      eapply context_equiv_at_TypeSigIncluded; eassumption.
+      apply TypeSig_decr_n_Included; assumption.
+    +
+      enough (None = Some m2) by some_none.
+      rewrite <-Heqo0, <-Heqo1.
+      rewrite evalDSHBinOp_context_equiv with (σ1 := σ1).
+      rewrite H4, H9; reflexivity.
+      assumption.
+      eassumption.
+      apply context_equiv_at_TypeSig_off_decr.
+      enough (TypeSigIncluded (TypeSig_decr_n ats 3) (TypeSig_decr_n ts 3)).
+      eapply context_equiv_at_TypeSigIncluded; eassumption.
+      apply TypeSig_decr_n_Included; assumption.
+  -
+    intros σ m m' fuel E y_i P.
+    destruct fuel; simpl in E; [some_none|].
+
+    repeat break_match; try some_none.
+    repeat some_inv.
+    opt_hyp_to_equiv.
+    rewrite P in Heqo1, Heqo3, E.
+    clear P m1.
+    rename m0 into x_i, m2 into x, m3 into y, m4 into y'.
+
+    intros k NKY.
+    rewrite <- E.
+    clear E m'.
+    unfold memory_lookup, memory_set in *.
+    rewrite NP.F.add_neq_o by auto.
+    reflexivity.    
+Qed.
 
 Global Instance Power_DSH_pure
        (n : NExpr)
