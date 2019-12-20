@@ -2040,8 +2040,6 @@ Global Instance Assign_DSH_pure
        `{YN : NExprTypeSigIncludes y_n ts}
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
-Admitted.
-(*
 Proof.
   split.
   -
@@ -2062,10 +2060,10 @@ Proof.
       reflexivity.
   -
     intros until fuel; intros CE BEx BEy.
-    copy_eapply evalNExpr_context_equiv_at_TypeSigUnion2 TM; [| eassumption].
-    destruct H as [XN YN];
-      apply eq_equiv_option_nat in XN;
-      apply eq_equiv_option_nat in YN.
+    eapply evalNExpr_context_equiv_at_TypeSig in XN;
+      [apply eq_equiv_option_nat in XN | eassumption].
+    eapply evalNExpr_context_equiv_at_TypeSig in YN;
+      [apply eq_equiv_option_nat in YN | eassumption].
     unfold blocks_equiv_at_Pexp in *;
       inversion BEx; clear BEx; inversion H1; clear H1;
       inversion BEy; clear BEy; inversion H6; clear H6.
@@ -2117,7 +2115,6 @@ Proof.
     all: try congruence.
     all: reflexivity.
 Qed.
-*)
 
 Global Instance BinOp_DSH_pure
        (o : nat)
