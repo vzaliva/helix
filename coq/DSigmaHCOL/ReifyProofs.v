@@ -66,6 +66,12 @@ Definition DSHBinCarrierA_TypeSig :=
 Class AExprTypeSigIncludes (a:AExpr) (ts:TypeSig) : Prop
   := atypesigincl: exists dfs, (TypeSigAExpr a = Some dfs) /\ TypeSigIncluded dfs ts.
 
+Class NExprTypeSigIncludes (n:NExpr) (ts:TypeSig) : Prop
+  := ntypesigincl: exists dfs, (TypeSigNExpr n = Some dfs) /\ TypeSigIncluded dfs ts.
+
+Class MExprTypeSigIncludes (m:MExpr) (ts:TypeSig) : Prop
+  := mtypesigincl: exists dfs, (TypeSigMExpr m = Some dfs) /\ TypeSigIncluded dfs ts.
+
 Class DSHIBinCarrierA (a:AExpr) : Prop :=
   DSHIBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHIBinCarrierA_TypeSig.
 
