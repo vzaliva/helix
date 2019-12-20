@@ -647,6 +647,53 @@ Proof.
   assumption.
 Qed.
 
+Lemma TypeSig_decr_n_MapsTo
+      (ts : TypeSig)
+      (v : DSHType)
+      (k n : nat) :
+  TM.MapsTo k v (TypeSig_decr_n ts n) <-> TM.MapsTo (n + k) v ts.
+Proof.
+  split; intros.
+  -
+    apply TP.filter_iff with (f := λ (k : TM.key) (_ : DSHType), n <=? k);
+      [typeclasses eauto |].
+    unfold TypeSig_decr_n in H.
+    apply TP.of_list_1 in H;
+      [| apply TypeSig_trunc_first_n_NoDupA].
+    apply InA_map_prototype in H;
+      [| typeclasses eauto].
+    destruct H as [(pk, pt) [M1 M2]].
+    replace (n + k) with pk.
+    +
+      apply TP.F.elements_mapsto_iff.
+      inversion M2; simpl in *; subst.
+      unfold to_list, TypeSig_trunc_first_n in M1.
+      assumption.
+    +
+      unfold to_list in M1.
+      apply TP.InA_eqke_eqk with (k2:=pk) (e2:=pt) in M1; [| reflexivity].
+      apply TypeSig_trunc_first_n_keys in M1.
+      inversion M2; simpl in *; omega.
+  -
+    assert (TM.MapsTo (n + k) v ts /\
+            (λ (k : TM.key) (_ : DSHType), n <=? k) (n + k) v = true)
+      by (split; [assumption | apply leb_correct; omega]).
+    clear H; rename H0 into H.
+    apply TP.filter_iff in H; [| typeclasses eauto].
+    apply TP.F.elements_mapsto_iff in H.
+    apply TP.of_list_1; [apply TypeSig_trunc_first_n_NoDupA |].
+    apply InA_map_1 with (f := (λ '(k0, v0), (k0 - n, v0))) in H.
+    +
+      replace (n + k - n) with k in H by omega.
+      assumption.
+    +
+      clear; intros.
+      repeat break_let; subst.
+      cbv in H.
+      destruct H; subst.
+      reflexivity.
+Qed.
+
 Lemma context_equiv_at_TypeSig_off_decr {dfs σ0 σ1 n}:
   context_equiv_at_TypeSig (TypeSig_decr_n dfs n) σ0 σ1 <->
   context_equiv_at_TypeSig_off dfs n σ0 σ1.
@@ -1178,4 +1225,92 @@ Proof.
   rewrite <- TU in CU.
   clear TU tu Heqd.
   apply typecheck_env_TypeSigUnion; eauto.
+Qed.
+
+Lemma TypeSigIncluded_TypeSigUnion_left (ts s1 s2 : TypeSig) :
+  TypeSigCompat s1 s2 ->
+  TypeSigIncluded (TypeSigUnion s1 s2) ts ->
+  TypeSigIncluded s1 ts.
+Proof.
+  intros C IU.
+  unfold TypeSigUnion, TypeSigIncluded, TypeSigIncluded_bool in *.
+  rewrite TP.for_all_iff in * by (typeclasses eauto).
+  intros; specialize (IU k e).
+  apply IU.
+  clear - H C.
+  apply TP.update_mapsto_iff.
+  destruct (TP.F.In_dec s2 k); [left | right].
+  - eapply TypeSigCompat_at; eassumption.
+  - auto.
+Qed.
+
+Lemma TypeSigIncluded_TypeSigUnion_right (ts s1 s2 : TypeSig) :
+  TypeSigIncluded (TypeSigUnion s1 s2) ts ->
+  TypeSigIncluded s2 ts.
+Proof.
+  intros IU.
+  unfold TypeSigUnion, TypeSigIncluded, TypeSigIncluded_bool in *.
+  rewrite TP.for_all_iff in * by (typeclasses eauto).
+  intros; specialize (IU k e).
+  apply IU.
+  apply TP.update_mapsto_iff.
+  left.
+  assumption.
+Qed.
+
+Lemma context_equiv_at_TypeSigIncluded
+  (ts s : TypeSig)
+  (σ0 σ1 : evalContext) :
+  TypeSigIncluded s ts ->
+  context_equiv_at_TypeSig ts σ0 σ1 ->
+  context_equiv_at_TypeSig s σ0 σ1.
+Proof.
+  unfold context_equiv_at_TypeSig in *.
+  intros.
+  apply H0.
+  clear - H H1.
+  eapply TypeSigIncluded_at; eassumption.
+Qed.
+
+Lemma typecheck_env_TypeSigIncluded
+      (n : nat)
+      (σ : evalContext)
+      (ts s : TypeSig) :
+  TypeSigIncluded s ts ->
+  typecheck_env n ts σ ->
+  typecheck_env n s σ.
+Proof.
+  intros.
+  unfold typecheck_env, typecheck_env_bool in *.
+  rewrite TP.for_all_iff in * by (typeclasses eauto).
+  intros; specialize (H0 k e).
+  apply H0.
+  eapply TypeSigIncluded_at; eassumption.
+Qed.
+
+Lemma TypeSig_decr_n_Included
+      (needle haystack : TypeSig)
+      (n : nat) :
+      TypeSigIncluded needle haystack ->
+      TypeSigIncluded (TypeSig_decr_n needle n)
+                      (TypeSig_decr_n haystack n).
+Proof.
+  intros.
+  unfold TypeSigIncluded, TypeSigIncluded_bool in *.
+  rewrite TP.for_all_iff in * by (typeclasses eauto).
+  intros k e KN.
+  apply TypeSig_decr_n_MapsTo in KN.
+  apply H in KN.
+  unfold bool_decide in KN.
+  break_if; [| discriminate].
+  clear Heqd; rename e0 into H1.
+  apply eq_equiv_option_DSHType in H1.
+  apply TM.find_2 in H1.
+  apply TypeSig_decr_n_MapsTo in H1.
+  apply TM.find_1 in H1.
+  rewrite H1.
+  unfold bool_decide.
+  break_if; try reflexivity.
+  clear - n0.
+  contradict n0; reflexivity.
 Qed.
