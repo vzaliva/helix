@@ -2527,14 +2527,13 @@ Qed.
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
-       (tm' : TypeSig)
-       `{TM : TypeSigUnion_error tm' =<<
-                                       map_option2 TypeSigUnion_error
-                                         (TypeSigNExpr x_n)
-                                         (TypeSigNExpr y_n)
-              = Some tm}
+       {ts : TypeSig}
+       `{XN : NExprTypeSigIncludes x_n ts}
+       `{YN : NExprTypeSigIncludes y_n ts}
   :
-    DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) tm x_p y_p.
+    DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
+Admitted.
+(*
 Proof.
   split.
   -
@@ -2610,150 +2609,32 @@ Proof.
     all: try congruence.
     all: reflexivity.
 Qed.
+*)
 
 Global Instance BinOp_DSH_pure
        (o : nat)
        (x_p y_p : PExpr)
-       (df: AExpr)
-       `{dft : DSHIBinCarrierA df}
-       {dfs: TypeSig}
-       {DTS: TypeSigAExpr df = Some dfs}
+       (a: AExpr)
+       `{dft : DSHIBinCarrierA a}
+       {ts: TypeSig}
+       `{TSI: AExprTypeSigIncludes a ts}
   :
-    DSH_pure (DSHBinOp o x_p y_p df) (TypeSig_decr_n dfs 3) x_p y_p.
-Proof.
-  split.
-  -
-    (* mem_stable *)
-    intros σ m m' fuel E k.
-    split; intros H.
-    +
-      destruct fuel; simpl in E.
-      *
-        some_none.
-      *
-        repeat break_match; try some_none.
-        rename m0 into x_i, m1 into y_i.
-        rename m2 into mx, m3 into my.
-        rename m4 into mxy.
-        some_inv.
-        rewrite <- E; clear E.
-        destruct (Nat.eq_dec k y_i) as [kc | kc].
-        --
-          subst k.
-          apply mem_block_exists_memory_set_eq.
-          reflexivity.
-        --
-          apply mem_block_exists_memory_set.
-          apply H.
-    +
-      destruct fuel; simpl in E.
-      *
-        some_none.
-      *
-        repeat break_match; try some_none.
-        rename m0 into x_i, m1 into y_i.
-        rename m2 into mx, m3 into my.
-        rename m4 into mxy.
-        some_inv.
-        rewrite <- E in H; clear E.
-        destruct (Nat.eq_dec k y_i) as [kc | kc].
-        --
-          subst k.
-          apply mem_block_exists_memory_set_inv in H.
-          destruct H.
-          ++ auto.
-          ++
-            apply memory_is_set_is_Some.
-            apply eq_Some_is_Some in Heqo3.
-            assumption.
-        --
-          apply mem_block_exists_memory_set_neq in H; auto.
-  -
-    (* mem_read_safe *)
-    intros σ0 σ1 m0 m1 fuel TE EX EY.
-    destruct fuel; try constructor.
+    DSH_pure (DSHBinOp o x_p y_p a) (TypeSig_decr_n ts 3) x_p y_p.
+Admitted.
 
-    unfold blocks_equiv_at_Pexp in EX, EY.
-
-    destruct (evalPexp σ0 x_p) eqn:P0X, (evalPexp σ1 x_p) eqn:P1X; try inversion EX.
-    destruct (evalPexp σ0 y_p) eqn:P0Y, (evalPexp σ1 y_p) eqn:P1Y; try inversion EY.
-    rename m into x0_i, m2 into x1_i, m3 into y0_i, m4 into y1_i.
-    clear EX EY.
-    subst x y x0 y0.
-
-    inversion H1; clear H1.
-    inversion H4; clear H4.
-    symmetry_option_hyp.
-    rename x into x0, y into x1, x0 into y0, y0 into y1.
-    rename H into LX0, H0 into LX1, H1 into LY0, H3 into LY1.
-
-    simpl.
-    unfold blocks_equiv_at_Pexp.
-    rewrite P0X, P1X, P0Y, P1Y.
-    rewrite LX0, LX1, LY0, LY1.
-    repeat break_match.
-    +
-      constructor.
-      rename m into m0', m2 into m1'.
-      constructor.
-      unfold memory_lookup, memory_set.
-      rewrite 2!NP.F.add_eq_o by reflexivity.
-      eq_to_equiv_hyp.
-      rewrite H2, H5 in Heqo0.
-      constructor.
-      apply Some_inj_equiv.
-      rewrite <- Heqo0, <- Heqo1.
-      eapply evalDSHBinOp_context_equiv; eauto.
-      apply context_equiv_at_TypeSig_off_decr.
-      auto.
-    +
-      exfalso.
-      eq_to_equiv_hyp.
-      rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
-      some_none.
-      apply context_equiv_at_TypeSig_off_decr.
-      auto.
-    +
-      exfalso.
-      eq_to_equiv_hyp.
-      rewrite H2, H5 in Heqo0.
-      erewrite evalDSHBinOp_context_equiv with (σ1:=σ1) in Heqo0; try eauto.
-      some_none.
-      apply context_equiv_at_TypeSig_off_decr.
-      auto.
-    +
-      constructor.
-  -
-    (* mem_write_safe *)
-    intros σ m m' fuel E y_i P.
-    destruct fuel; simpl in E; [some_none|].
-
-    repeat break_match; try some_none.
-    repeat some_inv.
-    opt_hyp_to_equiv.
-    rewrite P in Heqo1, Heqo3, E.
-    clear P m1.
-    rename m0 into x_i, m2 into x, m3 into y, m4 into y'.
-
-    intros k NKY.
-    rewrite <- E.
-    clear E m'.
-    unfold memory_lookup, memory_set in *.
-    rewrite NP.F.add_neq_o by auto.
-    reflexivity.
-Qed.
-
-Global Instance Power_DSH_Pure
+Global Instance Power_DSH_pure
        (n : NExpr)
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
-       (f : AExpr)
+       (a : AExpr)
        (ts : TypeSig)
-       {FTS : TypeSigNExpr n = Some ts}
+       `{AI : AExprTypeSigIncludes a ts}
+       `{NI : NExprTypeSigIncludes n ts}
+       `{XNI : NExprTypeSigIncludes x_n ts}
+       `{YNI : NExprTypeSigIncludes y_n ts}
        (initial : CarrierA)
   :
-    DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) f initial) ts x_p y_p.
+    DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) ts x_p y_p.
 Proof.
   split.
   -
@@ -2772,47 +2653,6 @@ Proof.
       apply memory_is_set_is_Some.
       rewrite Heqo2.
       reflexivity.
-  -
-    intros until fuel; intros CE BEx BEy.
-    copy_eapply evalNExpr_context_equiv_at_exact_TypeSig FTS; [| eassumption].
-    unfold blocks_equiv_at_Pexp in *;
-      inversion BEx; clear BEx; inversion H2; clear H2;
-      inversion BEy; clear BEy; inversion H7; clear H7.
-    destruct (evalDSHOperator σ0) eqn:OE1,
-             (evalDSHOperator σ1) eqn:OE2.
-    all: repeat constructor.
-    all: destruct fuel; cbn in *; try some_none.
-    all: rewrite <-H0, <-H1, <-H3, <-H4, <-H2, <-H6, <-H8, <-H9 in *.
-    all: inversion H; [rewrite <-H11, <-H12 in *; some_none |]; clear H.
-    all: inversion H12; subst; clear H12; rewrite <-H7, <-H11 in *.
-    +
-      rename b into p.
-      repeat break_match; try some_none.
-      repeat some_inv.
-      subst m m2.
-      dependent induction p.
-      *
-        unfold memory_lookup, memory_set.
-        repeat (rewrite NP.F.add_eq_o by reflexivity).
-        rewrite <-Heqo1, <-Heqo4.
-        constructor.
-        unfold mem_add, equiv, mem_block_Equiv; intros.
-        destruct (Nat.eq_dec 0 k).
-        repeat rewrite NP.F.add_eq_o by assumption; reflexivity.
-        repeat rewrite NP.F.add_neq_o by assumption; apply H10.
-      *
-        unfold memory_lookup, memory_set.
-        repeat rewrite NP.F.add_eq_o by reflexivity.
-        constructor.
-        enough (Some m4 = Some m3) by (some_inv; assumption).
-        rewrite <-Heqo4, <-Heqo1.
-
-        cbn.
-          
-          
-
-
-
 Admitted.
 
 Global Instance Embed_MSH_DSH_compat
