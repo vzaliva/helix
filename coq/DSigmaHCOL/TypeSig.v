@@ -730,27 +730,7 @@ Proof.
     specialize (H (n + k) t).
     replace (n + k - n) with k in H by omega.
     apply H; [omega |].
-    clear - M.
-
-    apply filter_iff with (f := λ (k : TM.key) (_ : DSHType), n <=? k);
-      [typeclasses eauto |].
-    unfold TypeSig_decr_n in M.
-    apply of_list_1 in M;
-      [| apply TypeSig_trunc_first_n_NoDupA].
-    apply InA_map_prototype in M;
-      [| typeclasses eauto].
-    destruct M as [(pk, pt) [M1 M2]].
-    replace (n + k) with pk.
-    +
-      apply F.elements_mapsto_iff.
-      inversion M2; simpl in *; subst.
-      unfold to_list, TypeSig_trunc_first_n in M1.
-      assumption.
-    +
-      unfold to_list in M1.
-      apply InA_eqke_eqk with (k2:=pk) (e2:=pt) in M1; [| reflexivity].
-      apply TypeSig_trunc_first_n_keys in M1.
-      inversion M2; simpl in *; omega.
+    apply TypeSig_decr_n_MapsTo; assumption.
 Qed.
 
 Lemma context_equiv_at_TypeSig_widening {σ0 σ1 tm foo0 foo1}:
