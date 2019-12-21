@@ -1094,6 +1094,9 @@ Section monadic.
       let ytyp := TYPE_Pointer (getIRType (FSHvecValType o)) in
       let st := newState in
 
+      (* Add parameters as locals X=PVar 1, Y=PVar 0 *)
+      let st := addVars st [(ID_Local y, ytyp);(ID_Local x, xtyp)] in
+
       (* Add globals *)
       let st :=
           addVars st
@@ -1101,9 +1104,6 @@ Section monadic.
                      (fun g:(string* FSHValType) =>
                         let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
                      globals) in (* TODO: check order of globals. Maybe reverse. *)
-
-      (* Add parameters as locals X=PVar 1, Y=PVar 0 *)
-      let st := addVars st [(ID_Local y, ytyp);(ID_Local x, xtyp)] in
 
       let (st,rid) := incBlock st in
       let (st,rsid) := incBlock st in

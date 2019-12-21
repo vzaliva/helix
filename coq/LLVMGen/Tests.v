@@ -37,7 +37,7 @@ Definition IMap_plus1_test :=
   DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst Float64One) (AVar 0)).
 
 Definition IMap_plusD_test :=
-  DSHIMap 8 (PVar 1) (PVar 0) (APlus (AVar 0) (AVar 4)).
+  DSHIMap 8 (PVar 2) (PVar 1) (APlus (AVar 0) (AVar 2)).
 
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
