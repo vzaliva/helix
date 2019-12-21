@@ -29,9 +29,16 @@ Require Import Coq.Program.Basics.
 Import MDSHCOLOnCarrierA.
 
 Import MonadNotation.
+
+(* Workaround. See https://github.com/MetaCoq/metacoq/pull/362 *)
+Notation "'mlet' ' pat <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => match x with pat => c2 end))
+    (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
+
+Notation "' pat <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => match x with pat => c2 end))
+  (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
+
 Require Import Coq.Lists.List. Import ListNotations.
 Open Scope string_scope.
-
 
 Definition toDSHType (tmt: TemplateMonad term): TemplateMonad DSHType :=
   t <- tmt ;;
