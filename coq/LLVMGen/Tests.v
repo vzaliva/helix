@@ -28,16 +28,16 @@ Import MDSHCOLOnFloat64.
 (* sample definition to be moved to DynWin.v *)
 Local Open Scope nat_scope.
 Definition BinOp_less_test :=
-  DSHBinOp 2 (PVar 0) (PVar 1) (AZless (AVar 1) (AVar 0)).
+  DSHBinOp 2 (PVar 1) (PVar 0) (AZless (AVar 1) (AVar 0)).
 
 Definition BinOp_plus_test :=
-  DSHBinOp 2 (PVar 0) (PVar 1) (APlus (AVar 1) (AVar 0)).
+  DSHBinOp 2 (PVar 1) (PVar 0) (APlus (AVar 1) (AVar 0)).
 
 Definition IMap_plus1_test :=
-  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AConst Float64One) (AVar 0)).
+  DSHIMap 8 (PVar 1) (PVar 0) (APlus (AConst Float64One) (AVar 0)).
 
 Definition IMap_plusD_test :=
-  DSHIMap 8 (PVar 0) (PVar 1) (APlus (AVar 0) (AVar 4)).
+  DSHIMap 8 (PVar 1) (PVar 0) (APlus (AVar 0) (AVar 4)).
 
 Definition Compose_pointwise_test :=
   DSHSeq IMap_plus1_test IMap_plus1_test.
