@@ -954,19 +954,38 @@ Section monadic.
     match d with
     | DSHNop => "DSHNop"
     | DSHAssign src dst => "DSHAssign"
-    | DSHIMap n x_p y_p f => "DSHIMap"
+    | DSHIMap n x_p y_p f =>
+      "DSHIMap " ++
+                 string_of_nat n ++ " " ++
+                 string_of_PExpr x_p ++ " " ++
+                 string_of_PExpr y_p ++ " ..."
     | DSHBinOp n x_p y_p f =>
-      ("DSHBinOp " ++
-                   string_of_nat n ++ " " ++
-                   string_of_PExpr x_p ++ " " ++
-                   string_of_PExpr y_p ++ " ..."
-      )%string
-    | DSHMemMap2 n x0_p x1_p y_p f => "DSHMemMap2"
-    | DSHPower n src dst f initial => "DSHPower"
-    | DSHLoop n body => "DSHLoop"
-    | DSHAlloc size body => "DSHAlloc"
-    | DSHMemInit size y_p value => "DSHMemInit"
-    | DSHMemCopy size x_p y_p => "DSHMemCopy"
+      "DSHBinOp " ++
+                  string_of_nat n ++ " " ++
+                  string_of_PExpr x_p ++ " " ++
+                  string_of_PExpr y_p ++ " ..."
+    | DSHMemMap2 n x0_p x1_p y_p f =>
+      "DSHMemMap2 " ++
+                    string_of_nat n ++ " " ++
+                    string_of_PExpr x0_p ++ " " ++
+                    string_of_PExpr x1_p ++ " " ++
+                    string_of_PExpr y_p ++ " ..."
+    | DSHPower n src dst f initial => "DSHPower "
+    | DSHLoop n body =>
+      "DSHLoop " ++
+                 string_of_nat n ++ " "
+    | DSHAlloc size body =>
+      "DSHAlloc " ++
+                  string_of_nat size
+    | DSHMemInit size y_p value =>
+      "DSHMemInit " ++
+                    string_of_nat size ++ " " ++
+                    string_of_PExpr y_p ++ " ..."
+    | DSHMemCopy size x_p y_p =>
+      "DSHMemCopy " ++
+                    string_of_nat size ++ " " ++
+                    string_of_PExpr x_p ++ " " ++
+                    string_of_PExpr y_p ++ " ..."
     | DSHSeq f g => "DSHSeq"
     end.
 
