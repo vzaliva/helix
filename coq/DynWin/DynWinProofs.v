@@ -243,9 +243,7 @@ Section MSHCOL_to_DSHCOL.
 
   Import MDSHCOLOnCarrierA.
 
-  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1"
-                                   List.nil
-                                   ).
+  Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
 
   Import DSHNotation.
   Print dynwin_DSHCOL1.
