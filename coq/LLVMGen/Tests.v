@@ -48,8 +48,10 @@ Definition IReduction_test :=
                    (DSHLoop 2
                             (DSHSeq
                                (DSHAlloc 2
-                                         (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0) (AAbs (AVar 0)))
-                                                 (DSHBinOp 1 (PVar 0) (PVar 3) (AAbs (AMinus (AVar 1) (AVar 0))))))
+                                         (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0)
+                                                          (AAbs (AVar 0)))
+                                                 (DSHBinOp 1 (PVar 0) (PVar 3)
+                                                           (AAbs (AMinus (AVar 1) (AVar 0))))))
                                (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) (AMax (AVar 1) (AVar 0)))))).
 
 Definition DynWin_test: DSHOperator :=
