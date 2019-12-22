@@ -1,9 +1,11 @@
 (* Deep embedding of a subset of SigmaHCOL *)
 
+Require Import Coq.Strings.String.
 Require Import Coq.Arith.Compare_dec.
 
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.HCOL.CarrierType.
+Require Import Helix.Util.Misc.
 
 Require Import Helix.MSigmaHCOL.Memory.
 Require Import Helix.MSigmaHCOL.MemSetoid.
@@ -377,6 +379,74 @@ Module Type MDSigmaHCOL (Import CT : CType).
        | DSHMemCopy size x_p y_p => DSHMemCopy size (incrPVar skip x_p) (incrPVar skip y_p)
        | DSHSeq f g => DSHSeq (incrOp skip f) (incrOp skip g)
        end.
+
+
+  Section Printing.
+
+    Definition string_of_PExpr (p:PExpr) : string :=
+      match p with
+      | PVar x => ("(PVar " ++ string_of_nat x ++ ")")%string
+      end.
+
+    (* TODO: Implement *)
+    Definition string_of_NExpr (n:NExpr) : string :=
+      match n with
+      | NVar x => "(NVar " ++ string_of_nat x ++ ")"
+      | NConst x => string_of_nat x
+      | _ => "?"
+      end.
+
+    Definition string_of_MemVarRef (m:MemVarRef) : string :=
+      let '(p,n) := m in
+      "(" ++ string_of_PExpr p ++ "," ++ string_of_NExpr n ++ ")".
+
+    Definition string_of_DSHOperator (d:DSHOperator) : string :=
+      match d with
+      | DSHNop => "DSHNop"
+      | DSHAssign src dst =>
+        "DSHAssign " ++
+                     string_of_MemVarRef src ++ " " ++
+                     string_of_MemVarRef dst ++ " "
+      | DSHIMap n x_p y_p f =>
+        "DSHIMap " ++
+                   string_of_nat n ++ " " ++
+                   string_of_PExpr x_p ++ " " ++
+                   string_of_PExpr y_p ++ " ..."
+      | DSHBinOp n x_p y_p f =>
+        "DSHBinOp " ++
+                    string_of_nat n ++ " " ++
+                    string_of_PExpr x_p ++ " " ++
+                    string_of_PExpr y_p ++ " ..."
+      | DSHMemMap2 n x0_p x1_p y_p f =>
+        "DSHMemMap2 " ++
+                      string_of_nat n ++ " " ++
+                      string_of_PExpr x0_p ++ " " ++
+                      string_of_PExpr x1_p ++ " " ++
+                      string_of_PExpr y_p ++ " ..."
+      | DSHPower n src dst f initial =>
+        "DSHPower " ++
+                    string_of_NExpr n ++ " " ++
+                    string_of_MemVarRef src ++ " " ++
+                    string_of_MemVarRef dst ++ "..."
+      | DSHLoop n body =>
+        "DSHLoop " ++
+                   string_of_nat n ++ " "
+      | DSHAlloc size body =>
+        "DSHAlloc " ++
+                    string_of_nat size
+      | DSHMemInit size y_p value =>
+        "DSHMemInit " ++
+                      string_of_nat size ++ " " ++
+                      string_of_PExpr y_p ++ " ..."
+      | DSHMemCopy size x_p y_p =>
+        "DSHMemCopy " ++
+                      string_of_nat size ++ " " ++
+                      string_of_PExpr x_p ++ " " ++
+                      string_of_PExpr y_p ++ " ..."
+      | DSHSeq f g => "DSHSeq"
+      end.
+
+  End Printing.
 
   Module DSHNotation.
 

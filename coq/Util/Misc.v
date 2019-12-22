@@ -360,3 +360,32 @@ Ltac nat_equiv_to_eq :=
   match goal with
   | [H: @equiv nat peano_naturals.nat_equiv ?a ?b |- _] => unfold equiv, peano_naturals.nat_equiv in H
   end.
+
+Require Import Coq.Strings.String.
+
+(* Maybe later move to separate .v file *)
+Section StringUtils.
+
+  Open Scope nat_scope.
+  Open Scope string_scope.
+
+  (* Lifted from Software foundations *)
+  Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
+    let d := match Nat.modulo n 10 with
+             | 0 => "0" | 1 => "1" | 2 => "2" | 3 => "3" | 4 => "4" | 5 => "5"
+             | 6 => "6" | 7 => "7" | 8 => "8" | _ => "9"
+             end in
+    let acc' := append d acc in
+    match time with
+    | 0 => acc'
+    | S time' =>
+      match Nat.div n 10 with
+      | 0 => acc'
+      | n' => string_of_nat_aux time' n' acc'
+      end
+    end.
+
+  Definition string_of_nat (n : nat) : string :=
+    string_of_nat_aux n n "".
+
+End StringUtils.

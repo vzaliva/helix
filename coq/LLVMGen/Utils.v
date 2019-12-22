@@ -1,6 +1,8 @@
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
+Require Import Helix.Util.Misc.
+
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMAst.
 
@@ -24,25 +26,6 @@ Section Config.
   Definition PtrAlignment := 16%Z.
   Definition ArrayPtrParamAttrs := [ PARAMATTR_Align PtrAlignment; PARAMATTR_Nonnull ].
 End Config.
-
-(* TODO: move. Lifted from Software foundations *)
-Fixpoint string_of_nat_aux (time n : nat) (acc : string) : string :=
-  let d := match Nat.modulo n 10 with
-           | 0 => "0" | 1 => "1" | 2 => "2" | 3 => "3" | 4 => "4" | 5 => "5"
-           | 6 => "6" | 7 => "7" | 8 => "8" | _ => "9"
-           end in
-  let acc' := append d acc in
-  match time with
-  | 0 => acc'
-  | S time' =>
-    match Nat.div n 10 with
-    | 0 => acc'
-    | n' => string_of_nat_aux time' n' acc'
-    end
-  end.
-
-Definition string_of_nat (n : nat) : string :=
-  string_of_nat_aux n n "".
 
 Definition string_of_raw_id (r:raw_id): string
 := match r with

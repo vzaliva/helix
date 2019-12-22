@@ -4,6 +4,7 @@ Require Import Coq.Lists.List.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Utils.
 Require Import Helix.LLVMGen.Externals.
+Require Import Helix.Util.Misc.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.IntrinsicsDefinitions.
@@ -945,50 +946,6 @@ Section monadic.
          end
       end.
 
-  Definition string_of_PExpr (p:PExpr) : string :=
-    match p with
-    | PVar x => ("(PVar " ++ string_of_nat x ++ ")")%string
-    end.
-
-  Definition string_of_DSHOperator (d:DSHOperator) : string :=
-    match d with
-    | DSHNop => "DSHNop"
-    | DSHAssign src dst => "DSHAssign"
-    | DSHIMap n x_p y_p f =>
-      "DSHIMap " ++
-                 string_of_nat n ++ " " ++
-                 string_of_PExpr x_p ++ " " ++
-                 string_of_PExpr y_p ++ " ..."
-    | DSHBinOp n x_p y_p f =>
-      "DSHBinOp " ++
-                  string_of_nat n ++ " " ++
-                  string_of_PExpr x_p ++ " " ++
-                  string_of_PExpr y_p ++ " ..."
-    | DSHMemMap2 n x0_p x1_p y_p f =>
-      "DSHMemMap2 " ++
-                    string_of_nat n ++ " " ++
-                    string_of_PExpr x0_p ++ " " ++
-                    string_of_PExpr x1_p ++ " " ++
-                    string_of_PExpr y_p ++ " ..."
-    | DSHPower n src dst f initial => "DSHPower "
-    | DSHLoop n body =>
-      "DSHLoop " ++
-                 string_of_nat n ++ " "
-    | DSHAlloc size body =>
-      "DSHAlloc " ++
-                  string_of_nat size
-    | DSHMemInit size y_p value =>
-      "DSHMemInit " ++
-                    string_of_nat size ++ " " ++
-                    string_of_PExpr y_p ++ " ..."
-    | DSHMemCopy size x_p y_p =>
-      "DSHMemCopy " ++
-                    string_of_nat size ++ " " ++
-                    string_of_PExpr x_p ++ " " ++
-                    string_of_PExpr y_p ++ " ..."
-    | DSHSeq f g => "DSHSeq"
-    end.
-
   Fixpoint genIR
            (fshcol: DSHOperator)
            (st: IRState)
@@ -998,87 +955,90 @@ Section monadic.
       let fshcol_s := string_of_DSHOperator fshcol in
       let op_s := ("--- Operator: " ++ fshcol_s ++ "---")%string in
       let add_comment r : m (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [op_s])) in
-      match fshcol with
-      | DSHNop =>
-        let '(st, nopblock) := incBlockNamed st "Nop" in
-        add_comment
-          (ret (st, (nopblock,[])))
-      | DSHAssign (src_p,src_n) (dst_p,dst_n) =>
-        '(x,i) <- resolve_PVar (vars st) src_p ;;
-         '(y,o) <- resolve_PVar (vars st) dst_p ;;
-         add_comment
-         (genFSHAssign i o st x y src_n dst_n nextblock)
-      | DSHIMap n x_p y_p f =>
-        '(x,i) <- (catch (resolve_PVar (vars st) x_p) (fun m => raise (m ++ " in " ++ op_s)%string)) ;;
-         '(y,o) <- resolve_PVar (vars st) y_p ;;
-         let vs := string_of_vars (vars st) in
-         nat_eq_or_err (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
-         let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
-         let '(st, loopvar) := incLocalNamed st "IMap_i" in
-         '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
-          add_comment
-          (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-      | DSHBinOp n x_p y_p f =>
-        let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
-        '(x,i) <- resolve_PVar (vars st) x_p ;;
-         '(y,o) <- resolve_PVar (vars st) y_p ;;
-         let vs := string_of_vars (vars st) in
-         nat_eq_or_err (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
-                       nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
-                       let '(st, loopvar) := incLocalNamed st "BinOp_i" in
-                       '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
-                        add_comment
-                        (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-      | DSHMemMap2 n x0_p x1_p y_p f =>
-        let '(st, loopcontblock) := incBlockNamed st "MemMap2_lcont" in
-        '(x0,i0) <- resolve_PVar (vars st) x0_p ;;
-         '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
-         '(y,o) <- resolve_PVar (vars st) y_p ;;
-         let vs := string_of_vars (vars st) in
-         nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
-         nat_eq_or_err (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
-         nat_eq_or_err (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
-         let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
-         '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
-          add_comment
-          (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
-      | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
-        '(x,i) <- resolve_PVar (vars st) src_p ;;
-         '(y,o) <- resolve_PVar (vars st) dst_p ;;
-         add_comment
-         (genPower x y n f initial st nextblock)
-      | DSHLoop n body =>
-        let '(st, loopcontblock) := incBlockNamed st "Loop_lcont" in
+      catch (
+          match fshcol with
+          | DSHNop =>
+            let '(st, nopblock) := incBlockNamed st "Nop" in
+            add_comment
+              (ret (st, (nopblock,[])))
+          | DSHAssign (src_p,src_n) (dst_p,dst_n) =>
+            '(x,i) <- resolve_PVar (vars st) src_p ;;
+             '(y,o) <- resolve_PVar (vars st) dst_p ;;
+             add_comment
+             (genFSHAssign i o st x y src_n dst_n nextblock)
+          | DSHIMap n x_p y_p f =>
+            '(x,i) <- resolve_PVar (vars st) x_p ;;
+             '(y,o) <- resolve_PVar (vars st) y_p ;;
+             let vs := string_of_vars (vars st) in
+             nat_eq_or_err (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
+                           let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
+                           let '(st, loopvar) := incLocalNamed st "IMap_i" in
+                           '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
+                            add_comment
+                            (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          | DSHBinOp n x_p y_p f =>
+            let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
+            '(x,i) <- resolve_PVar (vars st) x_p ;;
+             '(y,o) <- resolve_PVar (vars st) y_p ;;
+             let vs := string_of_vars (vars st) in
+             nat_eq_or_err (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
+                           nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+                           let '(st, loopvar) := incLocalNamed st "BinOp_i" in
+                           '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
+                            add_comment
+                            (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          | DSHMemMap2 n x0_p x1_p y_p f =>
+            let '(st, loopcontblock) := incBlockNamed st "MemMap2_lcont" in
+            '(x0,i0) <- resolve_PVar (vars st) x0_p ;;
+             '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
+             '(y,o) <- resolve_PVar (vars st) y_p ;;
+             let vs := string_of_vars (vars st) in
+             nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+                           nat_eq_or_err (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
+                           nat_eq_or_err (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
+                           let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
+                           '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
+                            add_comment
+                            (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+          | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
+            '(x,i) <- resolve_PVar (vars st) src_p ;;
+             '(y,o) <- resolve_PVar (vars st) dst_p ;;
+             add_comment
+             (genPower x y n f initial st nextblock)
+          | DSHLoop n body =>
+            let '(st, loopcontblock) := incBlockNamed st "Loop_lcont" in
 
-        let '(st, loopvar) := newLocalVar st IntType "Loop_i" in
-        '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
-         st <- dropVars st 1 ;;
-         add_comment
-         (genWhileLoop "Loop_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                       loopvar loopcontblock child_block_id child_blocks[] st nextblock)
-      | DSHAlloc size body =>
-        let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
-        '(st, (bblock, bcode)) <- genIR body st nextblock ;;
-         let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
-         add_comment (ret (st, (ablock, [acode]++bcode)))
-      | DSHMemInit size y_p value =>
-        '(y,o) <- resolve_PVar (vars st) y_p ;;
-         '(st,(ablock,acode)) <- genMemInit o size y value st nextblock ;;
-         add_comment (ret (st, (ablock, acode)))
-      | DSHMemCopy size x_p y_p =>
-        '(x,i) <- resolve_PVar (vars st) x_p ;;
-         '(y,o) <- resolve_PVar (vars st) y_p ;;
-         let vs := string_of_vars (vars st) in
-         nat_eq_or_err (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
-         add_comment
-         (genMemCopy size st x y nextblock)
-      | DSHSeq f g =>
-        let vars := vars st in
-        '(st, (gb, g')) <- genIR g st nextblock ;;
-         '(st, (fb, f')) <- genIR f st gb ;;
-         let st := setVars st vars in
-         add_comment (ret (st, (fb, g'++f')))
-      end.
+            let '(st, loopvar) := newLocalVar st IntType "Loop_i" in
+            '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
+             st <- dropVars st 1 ;;
+             add_comment
+             (genWhileLoop "Loop_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
+                           loopvar loopcontblock child_block_id child_blocks[] st nextblock)
+          | DSHAlloc size body =>
+            let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
+            '(st, (bblock, bcode)) <- genIR body st nextblock ;;
+             let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
+             add_comment (ret (st, (ablock, [acode]++bcode)))
+          | DSHMemInit size y_p value =>
+            '(y,o) <- resolve_PVar (vars st) y_p ;;
+             '(st,(ablock,acode)) <- genMemInit o size y value st nextblock ;;
+             add_comment (ret (st, (ablock, acode)))
+          | DSHMemCopy size x_p y_p =>
+            '(x,i) <- resolve_PVar (vars st) x_p ;;
+             '(y,o) <- resolve_PVar (vars st) y_p ;;
+             let vs := string_of_vars (vars st) in
+             nat_eq_or_err (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
+                           add_comment
+                           (genMemCopy size st x y nextblock)
+          | DSHSeq f g =>
+            let vars := vars st in
+            '(st, (gb, g')) <- genIR g st nextblock ;;
+             '(st, (fb, f')) <- genIR f st gb ;;
+             let st := setVars st vars in
+             add_comment (ret (st, (fb, g'++f')))
+          end)
+            (fun m => raise (m ++ (String (ascii_of_nat 10) "") ++ " at " ++ fshcol_s)%string).
+
 
   Definition LLVMGen'
              (i o: nat)
