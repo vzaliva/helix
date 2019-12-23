@@ -1018,6 +1018,7 @@ Section monadic.
             let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
             '(st, (bblock, bcode)) <- genIR body st nextblock ;;
              let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
+             st <- dropVars st 1 ;;
              add_comment (ret (st, (ablock, [acode]++bcode)))
           | DSHMemInit size y_p value =>
             '(y,o) <- resolve_PVar (vars st) y_p ;;
@@ -1031,11 +1032,9 @@ Section monadic.
                            add_comment
                            (genMemCopy size st x y nextblock)
           | DSHSeq f g =>
-            let vars := vars st in
             '(st, (gb, g')) <- genIR g st nextblock ;;
              '(st, (fb, f')) <- genIR f st gb ;;
-             let st := setVars st vars in
-             add_comment (ret (st, (fb, g'++f')))
+             add_comment (ret (st, (fb, f'++g')))
           end)
             (fun m => raise (m ++ (String (ascii_of_nat 10) "") ++ " at " ++ fshcol_s)%string).
 
