@@ -47,7 +47,7 @@ let process_test t =
       Printf.printf "Generating %d floats:\n" rs ;
       List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
-  match Tests.runFSHCOLTest t randoms with
+  match Tests.runFSHCOLTest t !justcompile randoms with
   | ((None, _) , msg) ->
      AT.printf [AT.white; AT.on_red] "Error" ;
      AT.printf [AT.yellow] ": %s" oname ;

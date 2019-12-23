@@ -300,7 +300,7 @@ Definition genMain
 
 Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
 
-Definition runFSHCOLTest (t:FSHCOLTest) (data:list binary64)
+Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
   :=
     match t return (list binary64 -> _) with
     | mkFSHCOLTest i o name globals op =>
@@ -308,14 +308,16 @@ Definition runFSHCOLTest (t:FSHCOLTest) (data:list binary64)
         let (data'', ginit) := initIRGlobals data' globals in
         let ginit := app [TLE_Comment "Global variables"] ginit in
         let main := genMain i o name globals data'' in
-        match LLVMGen' (m := sum string) i o globals false op name with
+        match LLVMGen' (m := sum string) i o globals just_compile op name with
         | inl msg => (None, None, msg)
         | inr prog =>
-          let code := app (app ginit prog) main in
-          (Some prog, Some (test_interpreter code), "")
+          if just_compile then
+            (Some prog, None,"")
+          else
+            let code := app (app ginit prog) main in
+            (Some prog, Some (test_interpreter code), "")
         end
     end data.
-
 
 Import DSHNotation.
 Print DynWin_test.
