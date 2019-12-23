@@ -245,8 +245,8 @@ Section MSHCOL_to_DSHCOL.
 
   Run TemplateProgram (reifyMSHCOL dynwin_MSHCOL1 ["dynwin_MSHCOL1"] "dynwin_DSHCOL1" "dynwin_DSHCOL1_globals").
 
-  Import DSHNotation.
-  Print dynwin_DSHCOL1.
+  (* Import DSHNotation.
+  Print dynwin_DSHCOL1. *)
 
 End MSHCOL_to_DSHCOL.
 

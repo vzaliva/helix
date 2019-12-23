@@ -48,8 +48,7 @@ Definition IReduction_test :=
                    (DSHLoop 2
                             (DSHSeq
                                (DSHAlloc 2
-                                         (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0)
-                                                          (AAbs (AVar 0)))
+                                         (DSHSeq (DSHIMap 2 (PVar 4) (PVar 0) (AAbs (AVar 0)))
                                                  (DSHBinOp 1 (PVar 0) (PVar 3)
                                                            (AAbs (AMinus (AVar 1) (AVar 0))))))
                                (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) (AMax (AVar 1) (AVar 0)))))).
@@ -76,7 +75,7 @@ DSHAlloc 2
                                             (PVar 0, NConst 0))
                                          (DSHAlloc 1
                                             (DSHSeq
-                                               (DSHPower (NVar 0)
+                                               (DSHPower (NVar 2)
                                                   (PVar 1, NConst 0)
                                                   (PVar 0, NConst 0)
                                                   (AMult (AVar 1)
@@ -85,8 +84,8 @@ DSHAlloc 2
                                                (DSHIMap 1 (PVar 0)
                                                   (PVar 4)
                                                   (AMult (AVar 0)
-                                                     (ANth (MVar 5)
-                                                        (NVar 2))))))))
+                                                     (ANth (MVar 10)
+                                                        (NVar 4))))))))
                                    (DSHMemMap2 1 (PVar 1) (PVar 2)
                                       (PVar 2)
                                       (APlus (AVar 1) (AVar 0)))))))
@@ -111,10 +110,10 @@ DSHAlloc 2
                                                        (NPlus
                                                           (NConst 1)
                                                           (NMult
-                                                           (NVar 2)
+                                                           (NVar 3)
                                                            (NConst 1)))
                                                        (NMult
-                                                          (NVar 0)
+                                                          (NVar 1)
                                                           (NMult
                                                            (NConst 2)
                                                            (NConst 1))))
@@ -124,7 +123,7 @@ DSHAlloc 2
                                                      (PVar 0,
                                                      NConst 0)
                                                      (PVar 2,
-                                                     NVar 0)))))
+                                                     NVar 1)))))
                                          (DSHBinOp 1 (PVar 0)
                                             (PVar 3)
                                             (AAbs
