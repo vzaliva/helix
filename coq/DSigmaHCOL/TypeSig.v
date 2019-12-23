@@ -764,6 +764,73 @@ Proof.
       assumption.
 Qed.
 
+Lemma TypeSig_incr_n_0 (ts : TypeSig) :
+  TypeSig_incr_n ts 0 = ts.
+Proof.
+  unfold TypeSig_incr_n.
+  assert (forall (A : Type) (l : list (nat * A)), List.map (λ '(k, v), (k + 0, v)) l ≡ l).
+  {
+    intros.
+    induction l; [reflexivity |].
+    cbn.
+    break_let.
+    rewrite IHl.
+    replace (n + 0) with n by trivial.
+    reflexivity.
+  }
+  rewrite H.
+  unfold equiv, TypeSig_Equiv.
+  intros.
+  rewrite TP.of_list_3.
+  reflexivity.
+Qed.
+  
+Lemma TypeSig_incr_TypeSig_incr_n (ts : TypeSig) (n : nat) :
+  TypeSig_incr_n ts (S n) = TypeSig_incr (TypeSig_incr_n ts n).
+Proof.
+  unfold equiv, TypeSig_Equiv; intro.
+  destruct TM.find eqn:H1 at 1;
+  destruct TM.find eqn:H2 at 1.
+  4:reflexivity.
+  2,3:exfalso.
+  -
+    unfold TypeSig_incr_n, TypeSig_incr.
+    rewrite <-F.find_mapsto_iff in H1, H2.
+    destruct k.
+    +
+      admit.
+    +
+      apply MapsTo_TypeSig_incr in H2.
+      apply of_list_1 in H1; [| apply TypeSig_incr_n_NoDupA].
+      apply of_list_1 in H2; [| apply TypeSig_incr_n_NoDupA].
+      apply InA_map_1 with (f := (fun '(k, v) => (S k, v))) in H2;
+       [| cbv; intros; repeat break_let; subst; intuition].
+      assert (T : forall (A : Type) (l : list (nat * A)),
+                 map (λ '(k, v), (S k, v)) (map (λ '(k, v), (k + n, v)) l) ≡
+                 map (λ '(k, v), (k + S n, v)) l).
+      {
+        clear.
+        intros.
+        induction l.
+        reflexivity.
+        cbn.
+        repeat break_let.
+        inversion Heqp; clear Heqp; subst.
+        rewrite IHl.
+        replace (S (n1 + n)) with (n1 + S n) by omega.
+        reflexivity.
+      }
+      rewrite T in H2; clear T.
+      rewrite <-of_list_1 in H1, H2 by apply TypeSig_incr_n_NoDupA.
+      rewrite F.find_mapsto_iff in H1, H2.
+      rewrite <-H1, <-H2.
+      reflexivity.
+  -
+    admit.
+  -
+    admit.
+Admitted.
+
 Require Import CoLoR.Util.List.ListUtil.
 
 Lemma find_Empty (elt : Type) (m : TM.t elt) :
