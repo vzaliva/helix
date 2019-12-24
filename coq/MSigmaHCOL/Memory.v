@@ -746,6 +746,8 @@ Module Type MBasic (Import CT : CType).
     (* memory is a map of memory blocks *)
     Definition memory := NatMap mem_block.
 
+    Definition memory_empty : memory := NM.empty _.
+
     (* Memory block address *)
     Definition mem_block_id := nat.
 
