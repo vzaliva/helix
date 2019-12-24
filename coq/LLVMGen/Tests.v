@@ -315,6 +315,7 @@ Definition genMain
 
 Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
 
+
 Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
   :=
     match t return (list binary64 -> _) with
@@ -327,12 +328,81 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
         | inl msg => (None, None, msg)
         | inr prog =>
           if just_compile then
-            (Some prog, None,"")
+            (Some prog, None, "")
           else
             let code := app (app ginit prog) main in
             (Some prog, Some (test_interpreter code), "")
         end
     end data.
+
+Require Import Helix.Util.ListSetoid.
+Require Import ExtLib.Data.Monads.OptionMonad.
+
+Section monadic.
+
+  (** Going to work over any monad [m] that is:
+   ** 1) a Monad, i.e. [Monad m]
+   ** 2) has string-valued exceptions, i.e. [MonadExc string m]
+   **)
+  Variable m : Type -> Type.
+  Context {Monad_m : Monad m}.
+  Context {MonadExc_m : MonadExc string m}.
+
+  Definition mem_to_list (n:nat) (mb:mem_block) : option (list binary64) :=
+    monadic_Lbuild n (fun j _ => mem_lookup j mb).
+
+  Fixpoint initDSHGlobals
+           (data: list binary64)
+           (mem: memory)
+           (globals: list (string * FSHValType))
+    : m (memory * list binary64 * evalContext)
+    :=
+      match globals with
+      | [] => ret (mem,data, [])
+      | (_,gt)::gs => match gt with
+                    | FSHnatValType => raise "Unsupported global type: nat"
+                    | FSHFloatValType => raise "Unsupported global type: Float"
+                    | FSHvecValType n =>
+                      '(mem,data,σ) <- initDSHGlobals data mem gs ;;
+                       let (data,mb) := constMemBlock n data in
+                       let k := memory_new mem in
+                       let mem := memory_set mem k mb in
+                       let p := DSHPtrVal k in
+                       ret (mem, data, (p::σ))
+                    end
+      end.
+
+  Definition evalDSHCOLTest
+             (i o: nat)
+             (name: string)
+             (globals: list (string * FSHValType))
+             (op: DSHOperator)
+             (data:list binary64)
+    :=
+      let mem := memory_empty in
+      let xindex := 1%nat in
+      let yindex := 0%nat in
+      let mem := memory_set mem xindex mem_empty in (* placeholder *)
+      let mem := memory_set mem yindex mem_empty in
+      '(mem, data, σ) <- initDSHGlobals data mem globals ;;
+      let '(data, x) := constMemBlock i data in
+      let xindex := 1%nat in
+      let yindex := 0%nat in
+      let mem := memory_set mem xindex x in
+      match
+        evalDSHOperator σ op mem (estimateFuel op) with
+      | Some mem =>
+        match memory_lookup mem yindex with
+        | Some yb =>  match mem_to_list o yb with
+                     | Some l => ret l
+                     | None => raise "Invalid output memory block"
+                     end
+        | None => raise "No output memory block"
+        end
+      | None => raise "DSH Evaluation error"
+      end.
+
+End monadic.
 
 (*
 
