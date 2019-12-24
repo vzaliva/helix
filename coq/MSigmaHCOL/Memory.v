@@ -151,6 +151,15 @@ Module Type MBasic (Import CT : CType).
   Definition mem_keys_set (m: mem_block): NatSet :=
     NSP.of_list (mem_keys_lst m).
 
+  Definition mem_block_of_list (lst:list t): mem_block :=
+    let fix f l n m :=
+        match l with
+        | nil => m
+        | (x::xs) => f xs (S n) (mem_add n x m)
+        end
+    in
+    f lst 0 (mem_empty).
+
   (* forcefull union of two memory blocks. conflicts are resolved by
    giving preference to elements of the 1st block *)
   Definition mem_union (m1 m2 : mem_block) : mem_block

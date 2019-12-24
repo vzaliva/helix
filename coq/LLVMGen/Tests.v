@@ -183,17 +183,32 @@ Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
      | (x::xs) => (x,app xs [x])
      end.
 
-Fixpoint constArray
+
+Fixpoint constList
          (len: nat)
-         (data:list binary64)
-  : ((list binary64)*(list (texp typ)))
+         (data:list binary64) :
+  ((list binary64) * (list binary64))
   :=
     match len with
     | O => (data,[])
     | S len' => let '(x, data') := rotate Float64Zero data in
-               let '(data'',res) := constArray len' data' in
-               (data'', (TYPE_Double, genFloatV x) :: res)
+               let '(data'',res) := constList len' data' in
+               (data'', x :: res)
     end.
+
+Definition constArray
+           (len: nat)
+           (data:list binary64)
+  : ((list binary64)*(list (texp typ)))
+  :=  let (data, l) := constList len data in
+      (data,List.map (fun x => (TYPE_Double, genFloatV x)) l).
+
+Definition constMemBlock
+         (len: nat)
+         (data:list binary64)
+  : ((list binary64)*mem_block)
+  := let (data, l) := constList len data in
+     (data, mem_block_of_list l).
 
 Fixpoint initIRGlobals
          (data: list binary64)
