@@ -319,10 +319,11 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
         end
     end data.
 
+(*
+
 Import DSHNotation.
 Print DynWin_test.
 
-(*
 Compute LLVMGen
         8 8
         [("D", FSHFloatValType)]
