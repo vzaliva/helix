@@ -351,7 +351,7 @@ Section monadic.
   Definition mem_to_list (n:nat) (mb:mem_block) : option (list binary64) :=
     monadic_Lbuild n (fun j _ => mem_lookup j mb).
 
-  Fixpoint initDSHGlobals
+  Fixpoint initFSHGlobals
            (data: list binary64)
            (mem: memory)
            (globals: list (string * FSHValType))
@@ -363,7 +363,7 @@ Section monadic.
                     | FSHnatValType => raise "Unsupported global type: nat"
                     | FSHFloatValType => raise "Unsupported global type: Float"
                     | FSHvecValType n =>
-                      '(mem,data,σ) <- initDSHGlobals data mem gs ;;
+                      '(mem,data,σ) <- initFSHGlobals data mem gs ;;
                        let (data,mb) := constMemBlock n data in
                        let k := memory_new mem in
                        let mem := memory_set mem k mb in
@@ -372,7 +372,7 @@ Section monadic.
                     end
       end.
 
-  Definition evalDSHCOLTest
+  Definition evalFSHCOLTest
              (i o: nat)
              (name: string)
              (globals: list (string * FSHValType))
@@ -384,7 +384,7 @@ Section monadic.
       let yindex := 0%nat in
       let mem := memory_set mem xindex mem_empty in (* placeholder *)
       let mem := memory_set mem yindex mem_empty in
-      '(mem, data, σ) <- initDSHGlobals data mem globals ;;
+      '(mem, data, σ) <- initFSHGlobals data mem globals ;;
       let '(data, x) := constMemBlock i data in
       let xindex := 1%nat in
       let yindex := 0%nat in
