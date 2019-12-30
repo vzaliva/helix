@@ -316,6 +316,11 @@ Definition genMain
 Definition test_interpreter := TopLevelEnv.interpreter_user helix_intrinsics.
 
 
+(* Returns a tuple [(Option p, Option d, e)] containting:
+   - p: generated LLVM program
+   - d: results of evaluation of LLVM program
+   - e: error string (applicable if either of first two tuple's elements are [None]
+*)
 Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
   :=
     match t return (list binary64 -> _) with
@@ -372,7 +377,7 @@ Section monadic.
                     end
       end.
 
-  Definition evalFSHCOLTest
+  Definition evalFSHCOLOperator
              (i o: nat)
              (name: string)
              (globals: list (string * FSHValType))
@@ -403,6 +408,18 @@ Section monadic.
       end.
 
 End monadic.
+
+(* Returns [sum string (list binary64)] *)
+Definition evalFSHCOLTest (t:FSHCOLTest) (data:list binary64)
+  : sum string (list binary64)
+  :=
+    @evalFSHCOLOperator (sum string) Error.Monad_err Error.Exception_err
+                        t.(i)
+                            t.(o)
+                                t.(name)
+                                    t.(globals)
+                                        t.(op)
+                                            data.
 
 (*
 

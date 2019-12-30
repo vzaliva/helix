@@ -37,6 +37,14 @@ let randomFloat range =
      then range
      else Float.neg range)
 
+let string_of_float_full f =
+  (* Due to the limited number of bits in the representation of doubles, the maximal precision is 324. See Wikipedia. *)
+  let s = sprintf "%.350f" f in
+  Str.global_replace (Str.regexp "0+$") "" s
+
+let pp_binary64 ppf v =
+    fprintf ppf "%s" (string_of_float_full (camlfloat_of_coqfloat v))
+
 let process_test t =
   let oname = camlstring_of_coqstring t.name in
   Random.self_init () ;
@@ -47,6 +55,31 @@ let process_test t =
       Printf.printf "Generating %d floats:\n" rs ;
       List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
+
+  (* Evaluate *)
+  begin
+  if !justcompile then
+    ()
+  else
+    match Tests.evalFSHCOLTest t randoms with
+    | Coq_inr v ->
+          AT.printf [AT.black; AT.on_green] "OK" ;
+          AT.printf [AT.yellow] ": %s :" oname ;
+          AT.printf [] " Result:\n" ;
+          let ppf = std_formatter in
+          pp_print_list pp_binary64 ppf v ;
+          pp_force_newline ppf ();
+          pp_print_flush ppf ()
+    | Coq_inl msg ->
+       begin
+         AT.printf [AT.white; AT.on_red] "Error" ;
+         AT.printf [AT.yellow] ": %s" oname ;
+         AT.printf [] " F-HCOL Evaluation failed:" ;
+         AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
+       end
+  end ;
+
+  (* Compile and run *)
   match Tests.runFSHCOLTest t !justcompile randoms with
   | ((None, _) , msg) ->
      AT.printf [AT.white; AT.on_red] "Error" ;
