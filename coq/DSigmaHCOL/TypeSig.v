@@ -647,6 +647,50 @@ Proof.
   assumption.
 Qed.
 
+Lemma InA_to_list_of_list
+      {elt : Type}
+      (l : list (TM.key * elt))
+      (e : TM.key * elt)
+      {ND : NoDupA (TM.eq_key (elt:=elt)) l} :
+  InA (TM.eq_key_elt (elt:=elt)) e l <->
+  InA (TM.eq_key_elt (elt:=elt)) e (to_list (of_list l)).
+Proof.
+  apply of_list_2 in ND.
+  unfold equivlistA in ND.
+  apply ND.
+Qed.
+
+Lemma find_TypeSig_incr
+      {tm : TypeSig}
+      {k : nat} :
+  TM.find (S k) (TypeSig_incr tm) ≡ TM.find k tm.
+Proof.
+  destruct TM.find eqn:H1 at 1;
+  destruct TM.find eqn:H2 at 1.
+  all: try rewrite <-F.find_mapsto_iff in H1.
+  all: try rewrite <-F.find_mapsto_iff in H2.
+  4:reflexivity.
+  2,3:exfalso.
+  -
+    apply MapsTo_TypeSig_incr in H1.
+    f_equal.
+    eapply F.MapsTo_fun; eassumption.
+  -
+    apply MapsTo_TypeSig_incr in H1.
+    rewrite F.find_mapsto_iff in H1.
+    congruence.
+  -
+    contradict H1; apply F.in_find_iff.
+    apply F.elements_in_iff; exists d.
+    apply TM.elements_1 in H2.
+    unfold TypeSig_incr.
+    rewrite <-InA_to_list_of_list by apply TypeSig_incr_NoDupA.
+    apply InA_map_1 with (f := λ '(k0, v), (S k0, v)) in H2.
+    assumption.
+    clear; cbv; intros.
+    repeat break_let; intuition.
+Qed.
+
 Lemma TypeSig_decr_n_MapsTo
       (ts : TypeSig)
       (v : DSHType)
@@ -784,52 +828,98 @@ Proof.
   rewrite TP.of_list_3.
   reflexivity.
 Qed.
-  
+
 Lemma TypeSig_incr_TypeSig_incr_n (ts : TypeSig) (n : nat) :
   TypeSig_incr_n ts (S n) = TypeSig_incr (TypeSig_incr_n ts n).
 Proof.
   unfold equiv, TypeSig_Equiv; intro.
-  destruct TM.find eqn:H1 at 1;
-  destruct TM.find eqn:H2 at 1.
-  4:reflexivity.
-  2,3:exfalso.
+  destruct k.
   -
-    unfold TypeSig_incr_n, TypeSig_incr.
-    rewrite <-F.find_mapsto_iff in H1, H2.
-    destruct k.
+    (* both sides are [None] *)
+    destruct TM.find eqn:H1, TM.find eqn:H2 at 1;
+      try reflexivity; exfalso.
     +
-      admit.
+      clear - H1.
+      rewrite <-F.find_mapsto_iff in *.
+      unfold TypeSig_incr_n in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_n_NoDupA.
+      apply InA_map_prototype in H1; [| typeclasses eauto].
+      destruct H1 as [x1 [H11 H12]].
+      break_let; inversion H12.
+      cbn in *.
+      omega.
     +
-      apply MapsTo_TypeSig_incr in H2.
-      apply of_list_1 in H1; [| apply TypeSig_incr_n_NoDupA].
-      apply of_list_1 in H2; [| apply TypeSig_incr_n_NoDupA].
-      apply InA_map_1 with (f := (fun '(k, v) => (S k, v))) in H2;
-       [| cbv; intros; repeat break_let; subst; intuition].
-      assert (T : forall (A : Type) (l : list (nat * A)),
-                 map (λ '(k, v), (S k, v)) (map (λ '(k, v), (k + n, v)) l) ≡
-                 map (λ '(k, v), (k + S n, v)) l).
-      {
-        clear.
-        intros.
-        induction l.
-        reflexivity.
-        cbn.
-        repeat break_let.
-        inversion Heqp; clear Heqp; subst.
-        rewrite IHl.
-        replace (S (n1 + n)) with (n1 + S n) by omega.
-        reflexivity.
-      }
-      rewrite T in H2; clear T.
-      rewrite <-of_list_1 in H1, H2 by apply TypeSig_incr_n_NoDupA.
-      rewrite F.find_mapsto_iff in H1, H2.
-      rewrite <-H1, <-H2.
-      reflexivity.
+      clear - H1.
+      rewrite <-F.find_mapsto_iff in *.
+      unfold TypeSig_incr_n in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_n_NoDupA.
+      apply InA_map_prototype in H1; [| typeclasses eauto].
+      destruct H1 as [x1 [H11 H12]].
+      break_let; inversion H12.
+      cbn in *.
+      omega.
+    +
+      clear - H2.
+      rewrite <-F.find_mapsto_iff in *.
+      unfold TypeSig_incr in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_NoDupA.
+      apply InA_map_prototype in H2; [| typeclasses eauto].
+      destruct H2 as [x2 [H21 H22]].
+      break_let; inversion H22.
+      cbn in *.
+      omega.
   -
-    admit.
-  -
-    admit.
-Admitted.
+    rewrite find_TypeSig_incr.
+    destruct TM.find eqn:H1, TM.find eqn:H2 at 1.
+    4: reflexivity.
+    2,3: exfalso.
+    +
+      rewrite <-F.find_mapsto_iff in *.
+      unfold TypeSig_incr_n in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_n_NoDupA.
+      apply InA_map_prototype in H1; [| typeclasses eauto].
+      apply InA_map_prototype in H2; [| typeclasses eauto].
+      destruct H1 as [x1 [H11 H12]].
+      destruct H2 as [x2 [H21 H22]].
+      repeat break_let.
+      inversion H12; inversion H22; cbn in *; subst.
+      replace k0 with k1 in * by omega.
+      rewrite <-of_list_1 in * by apply TM.elements_3w.
+      enough (T : d2 ≡ d1) by (rewrite T; reflexivity).
+      eapply F.MapsTo_fun; eassumption.
+    +
+      contradict H2;
+        apply F.in_find_iff, F.elements_in_iff;
+        exists d.
+      unfold TypeSig_incr_n in *;
+        rewrite <-InA_to_list_of_list by apply TypeSig_incr_n_NoDupA.
+      rewrite <-F.find_mapsto_iff in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_n_NoDupA.
+      apply InA_map_prototype in H1; [| typeclasses eauto].
+      destruct H1 as [x1 [H11 H12]].
+      repeat break_let; subst.
+      inversion H12; cbn in *; subst.
+      apply InA_map_1 with (f := λ '(k1, v), (k1 + n, v)) in H11;
+        [| clear; cbv; intros; repeat break_let; intuition].
+      replace (k0 + n) with k in * by omega.
+      assumption.
+    +
+      contradict H1;
+        apply F.in_find_iff, F.elements_in_iff;
+        exists d.
+      unfold TypeSig_incr_n in *;
+        rewrite <-InA_to_list_of_list by apply TypeSig_incr_n_NoDupA.
+      rewrite <-F.find_mapsto_iff in *.
+      rewrite of_list_1 in * by apply TypeSig_incr_n_NoDupA.
+      apply InA_map_prototype in H2; [| typeclasses eauto].
+      destruct H2 as [x2 [H21 H22]].
+      repeat break_let; subst.
+      inversion H22; cbn in *; subst.
+      apply InA_map_1 with (f := λ '(k1, v), (k1 + S n, v)) in H21;
+        [| clear; cbv; intros; repeat break_let; intuition].
+      replace (k0 + S n) with (S (k0 + n)) in * by omega.
+      assumption.
+Qed.
 
 Require Import CoLoR.Util.List.ListUtil.
 
