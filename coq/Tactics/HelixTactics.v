@@ -82,3 +82,9 @@ Require Import Specif.
 Ltac inv_exitstT :=  repeat match goal with
                               [ H: eq (existT _ _ _) (existT _ _ _) |- _ ] => apply Coq.Logic.ProofIrrelevance.ProofIrrelevanceTheory.EqdepTheory.inj_pair2 in H
                             end.
+
+Ltac assert_match_equiv H :=
+  match goal with
+  | [|- match ?a with _ => _  end = match ?b with _ => _  end] =>
+    assert(a = b) as H
+  end.
