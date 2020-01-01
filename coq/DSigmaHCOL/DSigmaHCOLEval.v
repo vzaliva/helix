@@ -111,6 +111,14 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     : err DSHVal
     := trywith msg (nth_error c n).
 
+
+  Instance context_lookup_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) context_lookup.
+  Proof.
+    unfold context_lookup.
+    solve_proper.
+  Qed.
+
   Definition context_tl (σ: evalContext) : evalContext
     := List.tl σ.
 

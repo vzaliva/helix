@@ -3,6 +3,7 @@ Require Import Coq.Structures.OrderedTypeEx.
 Require Import Coq.Arith.PeanoNat.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Logic.Decidable.
+Require Import Coq.Strings.String.
 Require Import Omega.
 Require Import Psatz.
 
@@ -35,9 +36,11 @@ Require Import MathClasses.implementations.bool.
 Require Import MathClasses.orders.orders.
 Require Import MathClasses.misc.decision.
 
+Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Tactics.HelixTactics.
 
+Local Open Scope string_scope.
 Open Scope list_scope.
 
 Require Import ExtLib.Structures.Monads.
@@ -341,7 +344,8 @@ Definition context_equiv_at_TypeSig (tm:TypeSig) : relation evalContext
        forall k t, TM.MapsTo k t tm ->
                    contextEnsureType σ0 k t /\
                    contextEnsureType σ1 k t /\ (* this is redundant *)
-                   context_lookup σ0 k = context_lookup σ1 k.
+                   context_lookup "" σ0 k = context_lookup "" σ1 k (* Error messages must be empty *)
+.
 
 Global Instance contextEnsureType_proper :
   Proper ((=) ==> (=) ==> (=) ==> iff) contextEnsureType.
@@ -393,7 +397,8 @@ Definition context_equiv_at_TypeSig_off (tm:TypeSig) (off:nat): relation evalCon
               TM.MapsTo k t tm ->
               contextEnsureType σ0 (k-off) t /\
               contextEnsureType σ1 (k-off) t /\ (* this is redundant *)
-              context_lookup σ0 (k-off) = context_lookup σ1 (k-off).
+              context_lookup "" σ0 (k-off) = context_lookup "" σ1 (k-off) (* Error messages must be empty *)
+.
 
 Definition context_equiv_at_TypeSig_head (tm:TypeSig) (max:nat): relation evalContext
   := fun σ0 σ1 =>
@@ -401,7 +406,7 @@ Definition context_equiv_at_TypeSig_head (tm:TypeSig) (max:nat): relation evalCo
               TM.MapsTo k t tm ->
               contextEnsureType σ0 k t /\
               contextEnsureType σ1 k t /\ (* this is redundant *)
-              context_lookup σ0 k = context_lookup σ1 k.
+              context_lookup "" σ0 k = context_lookup "" σ1 k. (* Error messages must be empty *)
 
 Lemma context_equiv_at_TypeSig_0 {tm σ0 σ1}:
   context_equiv_at_TypeSig_off tm 0 σ0 σ1 <-> context_equiv_at_TypeSig tm σ0 σ1.
