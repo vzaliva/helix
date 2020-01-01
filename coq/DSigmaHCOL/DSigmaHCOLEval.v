@@ -659,15 +659,16 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       auto
     end.
 
+  (* TODO: This proof is terrible. It contains a lot of copy-paste and
+     slow to proceess. Needs to be cleaned-up *)
   Instance evalDSHBinOp_proper
-         (n off: nat)
-         (f: AExpr)
-         (σ: evalContext):
+           (n off: nat)
+           (f: AExpr)
+           (σ: evalContext):
     Proper
       ((=) ==> (=) ==> (=)) (evalDSHBinOp n off f σ).
   Proof.
     intros x y H x0 y0 H0.
-
     revert x y H x0 y0 H0.
     induction n; intros.
     -
@@ -687,12 +688,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           -
             simpl in *.
             repeat break_match_hyp; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
-            try rewrite H in Heqe0;
-            try rewrite H in Heqe1;
-            try rewrite H in Heqe2;
-            try rewrite H in Heqe3;
-            try solve_match_err_case;
-            try inl_inr.
+              try rewrite H in Heqe0;
+              try rewrite H in Heqe1;
+              try rewrite H in Heqe2;
+              try rewrite H in Heqe3;
+              try solve_match_err_case;
+              try inl_inr.
             +
               rewrite Heqe2 in Heqe.
               clear Heqe2.
@@ -739,83 +740,219 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               rewrite H5, H0.
               reflexivity.
           -
-            admit.
+            simpl in *.
+            repeat break_match_hyp; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+              try rewrite H in Heqe0;
+              try rewrite H in Heqe1;
+              try rewrite H in Heqe2;
+              try rewrite H in Heqe3;
+              try solve_match_err_case;
+              try inl_inr.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H1, H2 in Heqe4.
+              inl_inr.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H1, H4 in Heqe4.
+              rewrite Heqe4 in Heqe1.
+              clear Heqe4.
+              inversion_clear Heqe1.
+              clear H3.
+              rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha.
+              inl_inr.
+              apply H.
+              rewrite H5, H0.
+              reflexivity.
           -
-            admit.
+            err_eq_to_equiv_hyp.
+            simpl in *.
+            repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+              try rewrite H in Heqe0;
+              try rewrite H in Heqe1;
+              try rewrite H in Heqe2;
+              try rewrite H in Heqe3;
+              try solve_match_err_case;
+              try inl_inr.
+            *
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H2, H4 in Heqe4.
+              inl_inr.
+            *
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H2, H5 in Heqe4.
+              rewrite Heqe4 in Heqe1.
+              clear Heqe4.
+              inversion_clear Heqe1.
+              clear H3.
+              rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
+              symmetry in H1.
+              clear H4.
+              inl_inr.
+              apply H.
+              rewrite H7, H0.
+              reflexivity.
           -
-            admit.
+            simpl in *.
+            repeat break_match_hyp; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+              try rewrite H in Heqe0;
+              try rewrite H in Heqe1;
+              try rewrite H in Heqe2;
+              try rewrite H in Heqe3;
+              try solve_match_err_case;
+              try inl_inr.
+
+            rewrite Heqe2 in Heqe.
+            clear Heqe2.
+            inversion_clear Heqe.
+            rewrite Heqe3 in Heqe0.
+            clear Heqe3.
+            inversion_clear Heqe0.
+            rewrite H1, H4 in Heqe4.
+            rewrite Heqe4 in Heqe1.
+            clear Heqe4.
+            inversion_clear Heqe1.
+            clear H3.
+            rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha.
+
+            assert(@inr string mem_block m = @inr string mem_block m0) as E
+                by (rewrite <- Ha, <- Hb; reflexivity).
+            inversion E.
+            auto.
+            apply H.
+            rewrite H5, H0.
+            reflexivity.
         }
         inversion E.
         auto.
       +
-        (*
+        err_eq_to_equiv_hyp.
         simpl in *.
-        repeat break_match; try some_none; try reflexivity.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
         *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
-          rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
-          rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
-          assert(mem_add n t5 x0 = mem_add n t2 y0) as H1.
-          {
-            rewrite Heqo1.
-            rewrite H0.
-            reflexivity.
-          }
-          specialize (IHn x y H _ _ H1).
-          rewrite Hb, Ha in IHn.
-          some_none.
+          rewrite Heqe2 in Heqe.
+          clear Heqe2.
+          inversion_clear Heqe.
+          rewrite Heqe3 in Heqe0.
+          clear Heqe3.
+          inversion_clear Heqe0.
+          rewrite H1, H2 in Heqe4.
+          inl_inr.
         *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
-          rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
-          rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
-          some_none.
-        *
-          repeat
-            eq_to_equiv_hyp.
-          rewrite <- H in Heqo. rewrite Heqo in Heqo1;clear Heqo;some_inv.
-          rewrite <- H in Heqo0;rewrite Heqo0 in Heqo2; clear Heqo0;some_none.
-        *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo; rewrite Heqo in Heqo0; clear Heqo; some_none.
-         *)
-        admit.
-      +
-        (*
-        simpl in *.
-        repeat break_match; try some_none; try reflexivity.
-        eq_to_equiv_hyp.
-        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
-        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
-        rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
-
-        assert(mem_add n t5 x0 = mem_add n t2 y0) as H1.
-        {
-          rewrite Heqo1.
-          rewrite H0.
+          rewrite Heqe2 in Heqe.
+          clear Heqe2.
+          inversion_clear Heqe.
+          rewrite Heqe3 in Heqe0.
+          clear Heqe3.
+          inversion_clear Heqe0.
+          rewrite H2, H5 in Heqe4.
+          rewrite Heqe4 in Heqe1.
+          clear Heqe4.
+          inversion_clear Heqe1.
+          clear H3.
+          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
+          symmetry in H1.
+          clear H4.
+          inl_inr.
+          apply H.
+          rewrite H7, H0.
           reflexivity.
-        }
-        specialize (IHn x y H (mem_add n t5 x0) (mem_add n t2 y0) H1).
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
+        *
+          rewrite Heqe2 in Heqe.
+          clear Heqe2.
+          inversion_clear Heqe.
+          rewrite Heqe3 in Heqe0.
+          clear Heqe3.
+          inversion_clear Heqe0.
+          rewrite H2, H4 in Heqe4.
+          inl_inr.
+        *
+          rewrite Heqe2 in Heqe.
+          clear Heqe2.
+          inversion_clear Heqe.
+          rewrite Heqe3 in Heqe0.
+          clear Heqe3.
+          inversion_clear Heqe0.
+          rewrite H2, H5 in Heqe4.
+          rewrite Heqe4 in Heqe1.
+          clear Heqe4.
+          inversion_clear Heqe1.
+          clear H3.
+          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
+          symmetry in H1.
+          clear H4.
+          inl_inr.
+          apply H.
+          rewrite H7, H0.
+          reflexivity.
+      +
+        err_eq_to_equiv_hyp.
+        simpl in *.
+        repeat break_match_hyp ; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+          try rewrite H in Heqe0;
+          try rewrite H in Heqe1;
+          try rewrite H in Heqe2;
+          try rewrite H in Heqe3;
+          try solve_match_err_case;
+          try inl_inr.
 
-        rewrite Hb, Ha in IHn.
-        some_none.
-        *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
-          rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
-          rewrite <- Heqo2 in Heqo4; rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1; clear Heqo4.
-          some_none.
-        *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo;some_inv.
-          rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0; some_none.
-        *
-          eq_to_equiv_hyp.
-          rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
-         *)
-        admit.
-  Admitted.
+        rewrite Heqe2 in Heqe.
+        clear Heqe2.
+        inversion_clear Heqe.
+        rewrite Heqe3 in Heqe0.
+        clear Heqe3.
+        inversion_clear Heqe0.
+        rewrite H2, H5 in Heqe4.
+        rewrite Heqe4 in Heqe1.
+        clear Heqe4.
+        inversion_clear Heqe1.
+        clear H3.
+        rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in Ha.
+
+        assert(@inr string mem_block m = @inr string mem_block m0) as E
+            by (rewrite <- Ha, <- Hb; reflexivity).
+        inversion E.
+        auto.
+        apply H.
+        rewrite H7, H0.
+        reflexivity.
+  Qed.
 
   Section IncrEval.
 
