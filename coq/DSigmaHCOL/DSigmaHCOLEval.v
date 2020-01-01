@@ -13,6 +13,7 @@ Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.MSigmaHCOL.CType.
 Require Import Helix.Tactics.HelixTactics.
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ErrorSetoid.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
@@ -59,55 +60,62 @@ Module Type MDSigmaHCOLEvalSig (Import CT : CType).
   Declare Instance max_proper: Proper((=) ==> (=) ==> (=)) CTypeMax.
 End MDSigmaHCOLEvalSig.
 
+
 Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
   Include MDSigmaHCOL CT.
 
   Definition evalContext:Type := list DSHVal.
 
-  (** Going to work over any monad [m] that is:
-   ** 1) a Monad, i.e. [Monad m]
-   ** 2) has string-valued exceptions, i.e. [MonadExc string m]
-   **)
-  Variable m : Type -> Type.
-  Context {Monad_m : Monad m}.
-  Context {MonadExc_m : MonadExc string m}.
-  Context {Equiv_m: forall (T:Type), (Equiv T) -> Equiv (m T)}.
-
   Local Open Scope string_scope.
-
-  Definition opt_raise {A: Type}: string -> option A -> m A :=
-    fun msg v => match v with
-              | Some x => ret x
-              | None => raise msg
-              end.
 
   Definition mem_lookup_err
              (msg:string)
              (n: nat)
              (mem: mem_block)
     :=
-    opt_raise msg (mem_lookup n mem).
+      trywith msg (mem_lookup n mem).
+
+  Instance mem_lookup_err_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) mem_lookup_err.
+  Proof.
+    unfold mem_lookup_err.
+    simpl_relation.
+    destruct_err_equiv;
+      err_eq_to_equiv_hyp;
+      rewrite H0, H1, H in Ha;
+      rewrite Ha in Hb.
+    -
+      inversion Hb.
+      auto.
+    -
+      inl_inr.
+    -
+      inl_inr.
+    -
+      inversion Hb.
+      auto.
+  Qed.
 
   Definition memory_lookup_err
              (msg:string)
              (mem: memory)
              (n: mem_block_id)
     :=
-    opt_raise msg (memory_lookup mem n).
+    trywith msg (memory_lookup mem n).
 
   Definition context_lookup
              (msg: string)
              (c: evalContext)
              (n: var_id)
-    : m DSHVal
-    := opt_raise msg (nth_error c n).
+    : err DSHVal
+    := trywith msg (nth_error c n).
 
   Definition context_tl (σ: evalContext) : evalContext
     := List.tl σ.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalMexp (σ: evalContext) (exp:MExpr): m (mem_block) :=
+  Definition evalMexp (σ: evalContext) (exp:MExpr): err (mem_block) :=
     match exp with
     | @MVar i =>
       match nth_error σ i with
@@ -118,7 +126,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPexp (σ: evalContext) (exp:PExpr): m (mem_block_id) :=
+  Definition evalPexp (σ: evalContext) (exp:PExpr): err (mem_block_id) :=
     match exp with
     | @PVar i =>
       match nth_error σ i with
@@ -128,7 +136,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalNexp (σ: evalContext) (e:NExpr): m nat :=
+  Fixpoint evalNexp (σ: evalContext) (e:NExpr): err nat :=
     match e with
     | NVar i => v <- (context_lookup "NVar not found" σ i) ;;
                  (match v with
@@ -146,7 +154,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalAexp (σ: evalContext) (e:AExpr): m t :=
+  Fixpoint evalAexp (σ: evalContext) (e:AExpr): err t :=
     match e with
     | AVar i => v <- (context_lookup "AVar not found" σ i) ;;
                  (match v with
@@ -180,24 +188,24 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIUnCType (σ: evalContext) (f: AExpr)
-             (i:nat) (a:t): m t :=
+             (i:nat) (a:t): err t :=
     evalAexp (DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalIBinCType (σ: evalContext) (f: AExpr)
-             (i:nat) (a b:t): m t :=
+             (i:nat) (a b:t): err t :=
     evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
   Definition evalBinCType (σ: evalContext) (f: AExpr)
-             (a b:t): m t :=
+             (a b:t): err t :=
     evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
 
   Fixpoint evalDSHIMap
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
-           (x y: mem_block) : m (mem_block)
+           (x y: mem_block) : err (mem_block)
     :=
       match n with
       | O => ret y
@@ -211,7 +219,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
-           (x0 x1 y: mem_block) : m (mem_block)
+           (x0 x1 y: mem_block) : err (mem_block)
     :=
       match n with
       | O => ret y
@@ -226,7 +234,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            (n off: nat)
            (f: AExpr)
            (σ: evalContext)
-           (x y: mem_block) : m (mem_block)
+           (x y: mem_block) : err (mem_block)
     :=
       match n with
       | O => ret y
@@ -243,7 +251,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            (f: AExpr)
            (x y: mem_block)
            (xoffset yoffset: nat)
-    : m (mem_block)
+    : err (mem_block)
     :=
       match n with
       | O => ret y
@@ -275,7 +283,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            (σ: evalContext)
            (op: DSHOperator)
            (mem: memory)
-           (fuel: nat): m (memory)
+           (fuel: nat): err (memory)
     :=
       match fuel with
       | O => raise "evalDSHOperator run out of fuel"
@@ -377,9 +385,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         f_equiv.
         rewrite IHn by (simpl in *; lia).
         rewrite IHn with (f := estimateFuel op * S n) by (simpl in *; lia).
-        reflexivity.
-        extensionality mem.
-        f_equiv.
+        break_match; try reflexivity.
         rewrite IHop by (simpl in *; rewrite PeanoNat.Nat.mul_succ_r in F; lia).
         rewrite IHop with (f := estimateFuel op * S n) by (rewrite PeanoNat.Nat.mul_succ_r; lia).
         reflexivity.
@@ -397,24 +403,21 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       simpl.
 
       rewrite IHop1 by (simpl in F; lia).
-      f_equiv.
       rewrite IHop1 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
-      reflexivity.
+      break_match. 1: reflexivity.
 
-      extensionality mem.
       rewrite IHop2 by (simpl in F; lia).
       rewrite IHop2 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
       reflexivity.
   Qed.
 
   Local Ltac proper_eval2 IHe1 IHe2 :=
-    simpl;
-    repeat break_match;subst; try reflexivity; try some_none;
-    f_equiv;
-    rewrite <- Some_inj_equiv in IHe1;
-    rewrite <- Some_inj_equiv in IHe2;
-    rewrite IHe1, IHe2;
-    reflexivity.
+      repeat break_match;
+        try inversion IHEe1;
+        try inversion IHEe2; auto;
+          subst;
+          f_equiv;
+      crush.
 
   Instance evalNexp_proper:
     Proper ((=) ==> (=) ==> (=)) evalNexp.
@@ -424,18 +427,21 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     -
       unfold equiv, peano_naturals.nat_equiv in H.
       subst n2. rename n1 into n.
-      assert(E: nth_error c1 n = nth_error c2 n).
+
+      assert_match_equiv E.
       {
+        unfold context_lookup.
+        apply trywith_proper.
+        reflexivity.
         apply nth_error_proper.
         apply Ec.
         reflexivity.
       }
-      repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E).
-      subst.
-      rewrite H1.
-      reflexivity.
+      repeat break_match; try inversion E; subst; try (constructor;auto);
+      try (inversion H1;auto).
     -
       rewrite H.
+      constructor.
       reflexivity.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
@@ -454,19 +460,16 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     -
       unfold equiv, peano_naturals.nat_equiv in H.
       subst n1. rename n0 into v.
-
-      assert(E: nth_error c1 v = nth_error c2 v).
+      assert_match_equiv E.
       {
         apply nth_error_proper.
         apply Ec.
         reflexivity.
       }
-      repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E); inv_exitstT; subst; try congruence.
-      simpl.
-      f_equiv.
-      auto.
+      repeat break_match; try inversion E; subst; try (constructor;auto);
+      try (inversion H1;auto).
     -
-      rewrite H.
+      constructor.
       auto.
   Qed.
 
@@ -475,18 +478,20 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
     induction Ee; simpl.
-    - unfold equiv, peano_naturals.nat_equiv in H.
+    -
+      unfold equiv, peano_naturals.nat_equiv in H.
       subst n1. rename n0 into n.
-      assert(E: nth_error c1 n = nth_error c2 n).
+      assert_match_equiv E.
       {
+        unfold context_lookup.
+        apply trywith_proper.
+        reflexivity.
         apply nth_error_proper.
         apply Ec.
         reflexivity.
       }
-      repeat break_match; subst; try reflexivity; try some_none; try (rewrite <- Some_inj_equiv in E; inversion E).
-      subst.
-      rewrite H1.
-      reflexivity.
+      repeat break_match; try inversion E; subst; try (constructor;auto);
+      try (inversion H1;auto).
     - f_equiv. apply H.
     - assert(C1:  evalMexp c1 v1 = evalMexp c2 v2)
         by (apply evalMexp_proper; auto).
@@ -495,31 +500,26 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       repeat break_match; subst ; try reflexivity; subst;
         try inversion C1; try inversion C2;
           apply Some_inj_equiv in C1;
-          apply Some_inj_equiv in C2; try congruence.
+          apply Some_inj_equiv in C2; try congruence; try (constructor;auto); subst.
       +
-        unfold equiv, peano_naturals.nat_equiv in *.
-        subst_max.
-        f_equiv.
         apply Some_inj_equiv.
-        rewrite <- Heqo1, <- Heqo4.
-        rewrite H3.
-        reflexivity.
+        rewrite <- Heqo, <- Heqo0.
+        crush.
       +
-        unfold equiv, peano_naturals.nat_equiv in *.
-        subst_max.
-        eq_to_equiv_hyp.
-        rewrite H3 in Heqo1.
+
+        assert(C: Some t0 = None).
+        rewrite <- Heqo, <- Heqo0.
+        crush.
         some_none.
       +
-        unfold equiv, peano_naturals.nat_equiv in *.
-        subst_max.
-        eq_to_equiv_hyp.
-        rewrite H3 in Heqo1.
+        assert(C: Some t0 = None).
+        rewrite <- Heqo, <- Heqo0.
+        crush.
         some_none.
-    - repeat break_match;subst; try reflexivity; try some_none.
-      f_equiv.
-      rewrite <- Some_inj_equiv in IHEe.
-      apply abs_proper, IHEe.
+    -
+      repeat break_match;subst; try reflexivity;
+        try constructor; try inversion IHEe; auto.
+      apply abs_proper, H1.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
     - proper_eval2 IHEe1 IHEe2.
@@ -637,6 +637,20 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     | _ => exp
     end.
 
+
+  Ltac solve_match_err_case :=
+    match goal with
+    | [ Ha: ?la = @inl string ?TH ?a,
+            Hb: ?la = @inl string ?TH ?b
+        |- ?a = ?b] =>
+      let E := fresh "E" in
+      assert(@inl string TH a = @inl string TH b) as E
+          by
+            (rewrite <- Ha, <- Hb; reflexivity);
+      inversion E;
+      auto
+    end.
+
   Instance evalDSHBinOp_proper
          (n off: nat)
          (f: AExpr)
@@ -652,25 +666,81 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       constructor.
       apply H0.
     -
-      unfold equiv, option_Equiv.
-      destruct_opt_r_equiv.
+      destruct_err_equiv.
       +
-        simpl in *.
-        repeat break_match; try some_none; try reflexivity.
-        eq_to_equiv_hyp.
-        rewrite <- H in Heqo;rewrite Heqo in Heqo2;clear Heqo;some_inv.
-        rewrite <- H in Heqo0;rewrite Heqo0 in Heqo3; clear Heqo0;some_inv.
-        rewrite <- Heqo2 in Heqo4;rewrite <- Heqo3 in Heqo4; rewrite Heqo4 in Heqo1;clear Heqo4; some_inv.
+        err_eq_to_equiv_hyp.
+        assert(E: @inl string mem_block s = inl s0).
+        {
+          rewrite <- Ha, <- Hb.
+          clear Ha Hb s s0.
+          unfold equiv.
 
-        apply Some_inj_equiv.
-        rewrite <- Hb, <- Ha.
-        apply IHn.
-        apply H.
+          destruct_err_equiv.
+          -
+            simpl in *.
+            repeat break_match_hyp; try (err_eq_to_equiv_hyp; rewrite H in Heqe0; inl_inr); inversion Ha; inversion Hb; subst; err_eq_to_equiv_hyp;
+            try rewrite H in Heqe0;
+            try rewrite H in Heqe1;
+            try rewrite H in Heqe2;
+            try rewrite H in Heqe3;
+            try solve_match_err_case;
+            try inl_inr.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
 
-        rewrite Heqo1.
-        rewrite H0.
-        reflexivity.
+              rewrite H1, H2 in Heqe4.
+              solve_match_err_case.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H1, H3 in Heqe4.
+              inl_inr.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H1, H2 in Heqe4.
+              inl_inr.
+            +
+              rewrite Heqe2 in Heqe.
+              clear Heqe2.
+              inversion_clear Heqe.
+              rewrite Heqe3 in Heqe0.
+              clear Heqe3.
+              inversion_clear Heqe0.
+              rewrite H1, H4 in Heqe4.
+              rewrite Heqe4 in Heqe1.
+              clear Heqe4.
+              inversion_clear Heqe1.
+              clear H3.
+              rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H2.
+              solve_match_err_case.
+              apply H.
+              rewrite H5, H0.
+              reflexivity.
+          -
+            admit.
+          -
+            admit.
+          -
+            admit.
+        }
+        inversion E.
+        auto.
       +
+        (*
         simpl in *.
         repeat break_match; try some_none; try reflexivity.
         *
@@ -701,7 +771,10 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         *
           eq_to_equiv_hyp.
           rewrite <- H in Heqo; rewrite Heqo in Heqo0; clear Heqo; some_none.
+         *)
+        admit.
       +
+        (*
         simpl in *.
         repeat break_match; try some_none; try reflexivity.
         eq_to_equiv_hyp.
@@ -732,7 +805,9 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         *
           eq_to_equiv_hyp.
           rewrite <- H in Heqo; rewrite Heqo in Heqo2; clear Heqo; some_none.
-  Qed.
+         *)
+        admit.
+  Admitted.
 
   Section IncrEval.
 
