@@ -341,85 +341,59 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
     end data.
 
 Require Import Helix.Util.ListSetoid.
-Require Import ExtLib.Data.Monads.OptionMonad.
+Require Import Helix.Util.ErrorSetoid.
 
-Section monadic.
+Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
+  monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).
 
-  (** Going to work over any monad [m] that is:
-   ** 1) a Monad, i.e. [Monad m]
-   ** 2) has string-valued exceptions, i.e. [MonadExc string m]
-   **)
-  Variable m : Type -> Type.
-  Context {Monad_m : Monad m}.
-  Context {MonadExc_m : MonadExc string m}.
+Fixpoint initFSHGlobals
+         (data: list binary64)
+         (mem: memory)
+         (globals: list (string * FSHValType))
+  : err (memory * list binary64 * evalContext)
+  :=
+    match globals with
+    | [] => ret (mem,data, [])
+    | (_,gt)::gs => match gt with
+                  | FSHnatValType => raise "Unsupported global type: nat"
+                  | FSHFloatValType => raise "Unsupported global type: Float"
+                  | FSHvecValType n =>
+                    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
+                     let (data,mb) := constMemBlock n data in
+                     let k := memory_new mem in
+                     let mem := memory_set mem k mb in
+                     let p := DSHPtrVal k in
+                     ret (mem, data, (p::σ))
+                  end
+    end.
 
-  Definition mem_to_list (n:nat) (mb:mem_block) : option (list binary64) :=
-    monadic_Lbuild n (fun j _ => mem_lookup j mb).
-
-  Fixpoint initFSHGlobals
-           (data: list binary64)
-           (mem: memory)
+Definition evalFSHCOLOperator
+           (i o: nat)
+           (name: string)
            (globals: list (string * FSHValType))
-    : m (memory * list binary64 * evalContext)
-    :=
-      match globals with
-      | [] => ret (mem,data, [])
-      | (_,gt)::gs => match gt with
-                    | FSHnatValType => raise "Unsupported global type: nat"
-                    | FSHFloatValType => raise "Unsupported global type: Float"
-                    | FSHvecValType n =>
-                      '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-                       let (data,mb) := constMemBlock n data in
-                       let k := memory_new mem in
-                       let mem := memory_set mem k mb in
-                       let p := DSHPtrVal k in
-                       ret (mem, data, (p::σ))
-                    end
-      end.
-
-  Definition evalFSHCOLOperator
-             (i o: nat)
-             (name: string)
-             (globals: list (string * FSHValType))
-             (op: DSHOperator)
-             (data:list binary64)
-    :=
-      let mem := memory_empty in
-      let xindex := 1%nat in
-      let yindex := 0%nat in
-      let mem := memory_set mem xindex mem_empty in (* placeholder *)
-      let mem := memory_set mem yindex mem_empty in
-      '(mem, data, σ) <- initFSHGlobals data mem globals ;;
-      let '(data, x) := constMemBlock i data in
-      let xindex := 1%nat in
-      let yindex := 0%nat in
-      let mem := memory_set mem xindex x in
-      match
-        evalDSHOperator σ op mem (estimateFuel op) with
-      | Some mem =>
-        match memory_lookup mem yindex with
-        | Some yb =>  match mem_to_list o yb with
-                     | Some l => ret l
-                     | None => raise "Invalid output memory block"
-                     end
-        | None => raise "No output memory block"
-        end
-      | None => raise "DSH Evaluation error"
-      end.
-
-End monadic.
+           (op: DSHOperator)
+           (data:list binary64)
+  : err (list binary64)
+  :=
+    let mem := memory_empty in
+    let xindex := 1%nat in
+    let yindex := 0%nat in
+    let mem := memory_set mem xindex mem_empty in (* placeholder *)
+    let mem := memory_set mem yindex mem_empty in
+    '(mem, data, σ) <- initFSHGlobals data mem globals ;;
+     let '(data, x) := constMemBlock i data in
+     let xindex := 1%nat in
+     let yindex := 0%nat in
+     let mem := memory_set mem xindex x in
+     mem <- evalDSHOperator σ op mem (estimateFuel op) ;;
+         yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;
+         mem_to_list "Invalid output memory block" o yb.
 
 (* Returns [sum string (list binary64)] *)
 Definition evalFSHCOLTest (t:FSHCOLTest) (data:list binary64)
-  : sum string (list binary64)
+  : err (list binary64)
   :=
-    @evalFSHCOLOperator (sum string) Error.Monad_err Error.Exception_err
-                        t.(i)
-                            t.(o)
-                                t.(name)
-                                    t.(globals)
-                                        t.(op)
-                                            data.
+    @evalFSHCOLOperator t.(i) t.(o) t.(name) t.(globals) t.(op) data.
 
 (*
 
