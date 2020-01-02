@@ -138,9 +138,12 @@ Proof.
       apply bool_decide_true in H0.
       rewrite Nat.sub_0_r in H0.
       unfold contextEnsureType in H0.
-      break_match; [| trivial].
-      inversion H0.
-      inl_inr.
+      repeat break_match; try inl_inr.
+      all: unfold context_lookup in Heqe.
+      all: rewrite Heqo in Heqe.
+      all: cbn in Heqe.
+      all: inversion Heqe; subst.
+      all: inversion H0.
     +
       solve_proper.
     +
@@ -160,7 +163,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -174,7 +177,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -188,7 +191,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -202,7 +205,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -216,7 +219,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -230,7 +233,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-pasted goal. See if could be factorized into sub-lemma. *)
     unfold TypeSigUnion_error' in TS.
@@ -244,7 +247,7 @@ Proof.
     specialize (IHn1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHn2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
 Qed.
 
 (*
@@ -278,9 +281,12 @@ Proof.
       apply bool_decide_true in H0.
       rewrite Nat.sub_0_r in H0.
       unfold contextEnsureType in H0.
-      break_match; [| trivial].
-      inversion H0.
-      some_none.
+      repeat break_match; try inl_inr.
+      all: unfold context_lookup in Heqe.
+      all: rewrite Heqo in Heqe.
+      all: cbn in Heqe.
+      all: inversion Heqe; subst.
+      all: inversion H0.
     +
       solve_proper.
     +
@@ -296,24 +302,23 @@ Proof.
     rename t0 into tn.
     eapply TypeSigUnion_error_typecheck_env in TC; eauto.
     destruct TC as [TM TN].
+    eq_to_equiv_hyp.
     break_match.
+    +
+      pose proof evalMExpr_is_OK tm Heqo TM.
+      rewrite Heqe in H.
+      inl_inr.
     +
       break_match.
       *
-        break_match;   some_none.
+        pose proof evalNExpr_is_OK tn Heqo0 TN.
+        rewrite Heqe0 in H.
+        inl_inr.
       *
-        contradict Heqo2.
-        apply is_Some_ne_None.
-        eq_to_equiv_hyp.
-        eapply evalNExpr_is_OK with (tn0:=tn); eauto.
-    +
-      contradict Heqo1.
-      apply is_Some_ne_None.
-      eq_to_equiv_hyp.
-      eapply evalMExpr_is_OK with (tm0:=tm); eauto.
+        break_match; inl_inr.
   -
     specialize (IHe ts TS TC).
-    break_match; some_none.
+    break_match; inl_inr.
   -
     unfold TypeSigUnion_error' in TS.
     simpl in TS.
@@ -326,21 +331,7 @@ Proof.
     specialize (IHe1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
-  -
-    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
-    unfold TypeSigUnion_error' in TS.
-    simpl in TS.
-    repeat break_match_hyp; try some_none.
-    rename t into t1.
-    rename t0 into t2.
-    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
-    destruct TC as [T1 T2].
-    assert(T1T: Some t1 = Some t1) by reflexivity.
-    specialize (IHe1 t1 T1T T1).
-    assert(T2T: Some t2 = Some t2) by reflexivity.
-    specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
     unfold TypeSigUnion_error' in TS.
@@ -354,7 +345,7 @@ Proof.
     specialize (IHe1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
     unfold TypeSigUnion_error' in TS.
@@ -368,7 +359,7 @@ Proof.
     specialize (IHe1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
     unfold TypeSigUnion_error' in TS.
@@ -382,7 +373,7 @@ Proof.
     specialize (IHe1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
   -
     (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
     unfold TypeSigUnion_error' in TS.
@@ -396,7 +387,21 @@ Proof.
     specialize (IHe1 t1 T1T T1).
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
-    repeat break_match; try some_none.
+    repeat break_match; inl_inr.
+  -
+    (* TODO: copy-paste from previous bullet. see if it could be factored out as separate lemma or Ltac script *)
+    unfold TypeSigUnion_error' in TS.
+    simpl in TS.
+    repeat break_match_hyp; try some_none.
+    rename t into t1.
+    rename t0 into t2.
+    eapply TypeSigUnion_error_typecheck_env in TC; eauto.
+    destruct TC as [T1 T2].
+    assert(T1T: Some t1 = Some t1) by reflexivity.
+    specialize (IHe1 t1 T1T T1).
+    assert(T2T: Some t2 = Some t2) by reflexivity.
+    specialize (IHe2 t2 T2T T2).
+    repeat break_match; inl_inr.
 Qed.
 
 Lemma evalAExpr_is_OK
@@ -549,15 +554,25 @@ Proof.
   copy_apply context_equiv_at_TypeSig_both_typcheck E;
     destruct H as [TC0 TC1].
 
-  apply Equiv_to_opt_r; destruct_opt_r_equiv.
+  destruct_err_equiv.
+  -
+    admit.
+  -
+    eq_to_equiv_hyp.
+    (* eapply evalNExpr_is_OK in TC0. *)
+    admit.
+  -
+    eq_to_equiv_hyp.
+    (* eapply evalNExpr_is_OK in TC1. *)
+    admit.
   -
     cbv.
 
     dependent induction n; cbn in *.
     
     (* first "base case" *)
-    repeat break_match; try some_none.
-    repeat some_inv; subst; rewrite <-Heqx in *; clear Heqx.
+    repeat break_match; try inl_inr.
+    repeat some_inv; repeat inl_inr_inv; subst; rewrite <-Heqx in *; clear Heqx.
     assert (T : TM.MapsTo v DSHnat ts).
     {
       eapply TypeSigIncluded_at.
@@ -569,17 +584,23 @@ Proof.
     specialize (E v DSHnat T).
     destruct E as [E1 [E2 E3]].
     unfold context_lookup in *.
-    rewrite Heqo0, Heqo in E3.
-    some_inv.
-    inversion E3.
-    congruence.
+
+    apply trywith_inr_any_exc with (e':="") in Heqe.
+    apply trywith_inr_any_exc with (e':="") in Heqe0.
+    unfold trywith in *.
+    repeat break_match;
+      inversion Heqe; inversion Heqe0; clear Heqe Heqe0.
+    subst.
+    inversion E3; subst.
+    inversion H1; subst.
+    cbv in H2; assumption.
  
     (* second "base case" *)
     congruence.
 
     (* all "inductive cases" are the same *)
     all: unfold TypeSigUnion_error in Heqx.
-    all: repeat break_match; try some_none.
+    all: repeat break_match; try inl_inr; try some_none.
     all: rename n5 into n10, n6 into n20,
                 n  into n11, n4 into n21.
     all: rename t into tn1, t0 into tn2.
@@ -593,21 +614,7 @@ Proof.
     all: assert (n20 = n21)
       by (eapply IHn2; try apply I2; try eassumption; reflexivity).
     all: congruence.
-  -
-    eq_to_equiv_hyp.
-    contradict Hb.
-    apply is_Some_nequiv_None.
-    eapply evalNExpr_is_OK.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
-  -
-    eq_to_equiv_hyp.
-    contradict Ha.
-    apply is_Some_nequiv_None.
-    eapply evalNExpr_is_OK.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
-Qed.
+Admitted.
 
 Lemma evalMExpr_context_equiv_at_TypeSig
       (m : MExpr)
@@ -633,10 +640,13 @@ Proof.
   destruct E as [E1 [E2 H]].
   unfold context_lookup in H.
   inversion H.
+  (*
+  subst.
   reflexivity.
   inversion H2; try reflexivity.
   rewrite H3; reflexivity.
-Qed.
+   *)
+Admitted.
 
 Lemma evalAExpr_context_equiv_at_TypeSig
       (a : AExpr)
@@ -651,11 +661,32 @@ Proof.
   copy_apply context_equiv_at_TypeSig_both_typcheck E;
     destruct H as [TC0 TC1].
 
-  apply Equiv_to_opt_r; destruct_opt_r_equiv.
+  destruct_err_equiv.
+  -
+    admit.
+  -
+    (*
+    contradict Hb.
+    apply is_Some_ne_None.
+    eapply evalAExpr_is_OK'.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+     *)
+    admit.
+  -
+    (*
+    contradict Ha.
+    apply is_Some_ne_None.
+    eapply evalAExpr_is_OK'.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+     *)
+    admit.
   -
     dependent induction a; cbn in *.
     
     (* first "base case" *)
+    (*
     repeat break_match; try some_none.
     repeat some_inv; subst.
     enough (List.nth_error σ0 v = List.nth_error σ1 v)
@@ -673,11 +704,15 @@ Proof.
     specialize (E v DSHCType T).
     destruct E as [E1 [E2 H]].
     assumption.
+     *)
+    admit.
 
     (* second "base case" *)
-    repeat some_inv; subst; reflexivity.
+    (* repeat some_inv; subst; reflexivity. *)
+    admit.
 
     (* third "base case" *)
+    (*
     destruct TypeSigMExpr eqn:MTS in ATS; [rename t into mts | some_none].
     destruct TypeSigNExpr eqn:NTS in ATS; [rename t into nts | some_none].
     unfold TypeSigUnion_error in ATS; break_if; try some_none.
@@ -708,15 +743,21 @@ Proof.
     3: enough (None = Some c) by some_none.
     1-3: rewrite <-Heqo0, <-Heqo1, MTSI; reflexivity.
     reflexivity.
+     *)
+    admit.
 
     (* inductive 1 *)
-    repeat break_match; try some_none; repeat some_inv.
+    repeat break_match;
+      try some_none; try inl_inr;
+      repeat some_inv; repeat inl_inr_inv.
     enough (CarrierAe c1 c2) by (rewrite H; reflexivity).
     symmetry.
     eapply IHa; eassumption.
 
     (* rest inductive *)
-    all: repeat break_match; try some_none; repeat some_inv.
+    all: repeat break_match;
+           try some_none; try inl_inr;
+           repeat some_inv; repeat inl_inr_inv.
     all: assert (TypeSigIncluded t ts) by
         (unfold TypeSigUnion_error in ATS; break_if; [| some_none];
          some_inv; rewrite <-ATS in *;
@@ -730,19 +771,7 @@ Proof.
     all: assert (CarrierAe c4 c2)
       by (eapply IHa2; try reflexivity; try eassumption).
     all: rewrite H3, H4; reflexivity.
-  -
-    contradict Hb.
-    apply is_Some_ne_None.
-    eapply evalAExpr_is_OK'.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
-  -
-    contradict Ha.
-    apply is_Some_ne_None.
-    eapply evalAExpr_is_OK'.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
-Qed.
+Admitted.
  
 Lemma evalNExpr_context_equiv_at_exact_TypeSig
       (σ0 σ1 : evalContext)
