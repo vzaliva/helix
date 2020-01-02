@@ -7,6 +7,31 @@ Require Export Vellvm.Error.
 
 Require Import Helix.Util.OptionSetoid.
 Require Export Helix.Util.StringSetoid. (* for (=) on String *)
+Require Import Helix.Tactics.HelixTactics.
+
+Definition is_OK {A:Type} (v:err A) :=
+  match v with
+  | inl _ => False
+  | inr _ => True
+  end.
+
+Definition is_Err {A:Type} (v:err A) :=
+  match v with
+  | inl _ => True
+  | inr _ => False
+  end.
+
+Fact eq_inr_is_OK {A:Type} (x:A) (y: err A):
+  (y ≡ inr x) -> is_OK y.
+Proof.
+  crush.
+Qed.
+
+Fact eq_inl_is_Err {A:Type} (msg:string) (y: err A):
+  (y ≡ inl msg) -> is_Err y.
+Proof.
+  crush.
+Qed.
 
 Inductive err_equiv_r {A:Type} `{Equiv A} : relation (err A) :=
 | err_r_inr : forall a b, a=b -> err_equiv_r (inr a) (inr b)
@@ -14,7 +39,6 @@ Inductive err_equiv_r {A:Type} `{Equiv A} : relation (err A) :=
 
 Global Instance err_equiv {T:Type} `{Equiv T}:
   Equiv (err T) := err_equiv_r.
-
 
 Global Instance err_Equivalence
        {A:Type}
@@ -89,6 +113,8 @@ Ltac inl_inr :=
          H2: ?b = inl _ |- _] => rewrite H1 in H2;
                                unfold equiv in H2;
                                inversion H2
+  | [|- is_OK (inr _)] => unfold is_OK; tauto
+  | [|- is_Err (inl _)] => unfold is_Err; tauto
   end.
 
 Lemma err_equiv_eq

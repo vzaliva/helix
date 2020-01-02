@@ -1,3 +1,4 @@
+Require Import Coq.Strings.String.
 Require Import Coq.Arith.Arith.
 Require Import Omega.
 Require Import Psatz.
@@ -28,9 +29,11 @@ Require Import MathClasses.implementations.peano_naturals.
 Require Import MathClasses.orders.orders.
 
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.MSigmaHCOL.MemSetoid.
 Require Import Helix.Tactics.HelixTactics.
 
+Open Scope string_scope.
 Open Scope list_scope.
 
 Require Import ExtLib.Structures.Monads.
@@ -84,13 +87,13 @@ Class DSHIUnCarrierA (a:AExpr) : Prop :=
 Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
-Lemma evalMExpr_is_Some
+Lemma evalMExpr_is_OK
       {σ: evalContext}
       {m: MExpr}
       (tm: TypeSig)
       (TS : TypeSigMExpr m = Some tm)
       (TC : typecheck_env 0 tm σ):
-  is_Some (evalMexp σ m).
+  is_OK (evalMexp σ m).
 Proof.
   destruct m; simpl in *; [|trivial].
   some_inv.
@@ -105,7 +108,7 @@ Proof.
     unfold contextEnsureType in H0.
     break_match; [| trivial].
     inversion H0.
-    some_none.
+    inl_inr.
   -
     solve_proper.
   -
@@ -113,13 +116,13 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma evalNExpr_is_Some
+Lemma evalNExpr_is_OK
       {σ: evalContext}
       {n: NExpr}
       (tn: TypeSig)
       (TS : TypeSigNExpr n = Some tn)
       (TC : typecheck_env 0 tn σ):
-  is_Some (evalNexp σ n).
+  is_OK (evalNexp σ n).
 Proof.
   dependent induction n; simpl in *.
   -
@@ -137,7 +140,7 @@ Proof.
       unfold contextEnsureType in H0.
       break_match; [| trivial].
       inversion H0.
-      some_none.
+      inl_inr.
     +
       solve_proper.
     +
@@ -253,13 +256,13 @@ Qed.
   function types =A -> A -> A= in MSCHOL and =A -> A -> option A= in
   DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
  *)
-Lemma evalAExpr_is_Some'
+Lemma evalAExpr_is_OK'
       {σ: evalContext}
       {e: AExpr}
       (ts: TypeSig)
       (TS : TypeSigAExpr e = Some ts)
       (TC : typecheck_env 0 ts σ):
-  is_Some (evalAexp σ e).
+  is_OK (evalAexp σ e).
 Proof.
   dependent induction e; simpl in *.
   -
@@ -302,12 +305,12 @@ Proof.
         contradict Heqo2.
         apply is_Some_ne_None.
         eq_to_equiv_hyp.
-        eapply evalNExpr_is_Some with (tn0:=tn); eauto.
+        eapply evalNExpr_is_OK with (tn0:=tn); eauto.
     +
       contradict Heqo1.
       apply is_Some_ne_None.
       eq_to_equiv_hyp.
-      eapply evalMExpr_is_Some with (tm0:=tm); eauto.
+      eapply evalMExpr_is_OK with (tm0:=tm); eauto.
   -
     specialize (IHe ts TS TC).
     break_match; some_none.
@@ -396,17 +399,17 @@ Proof.
     repeat break_match; try some_none.
 Qed.
 
-Lemma evalAExpr_is_Some
+Lemma evalAExpr_is_OK
       {σ : evalContext}
       {a : AExpr}
       `{TSI : AExprTypeSigIncludes a ts}
       (TC : typecheck_env 0 ts σ) :
-  is_Some (evalAexp σ a).
+  is_OK (evalAexp σ a).
 Proof.
   inversion TSI; clear TSI.
   rename x into ats; destruct H as [ATS TSI].
   eapply typecheck_env_TypeSigIncluded in TC.
-  eapply evalAExpr_is_Some'.
+  eapply evalAExpr_is_OK'.
   all: eassumption.
 Qed.
 
@@ -594,14 +597,14 @@ Proof.
     eq_to_equiv_hyp.
     contradict Hb.
     apply is_Some_nequiv_None.
-    eapply evalNExpr_is_Some.
+    eapply evalNExpr_is_OK.
     eassumption.
     eapply typecheck_env_TypeSigIncluded; eassumption.
   -
     eq_to_equiv_hyp.
     contradict Ha.
     apply is_Some_nequiv_None.
-    eapply evalNExpr_is_Some.
+    eapply evalNExpr_is_OK.
     eassumption.
     eapply typecheck_env_TypeSigIncluded; eassumption.
 Qed.
@@ -730,13 +733,13 @@ Proof.
   -
     contradict Hb.
     apply is_Some_ne_None.
-    eapply evalAExpr_is_Some'.
+    eapply evalAExpr_is_OK'.
     eassumption.
     eapply typecheck_env_TypeSigIncluded; eassumption.
   -
     contradict Ha.
     apply is_Some_ne_None.
-    eapply evalAExpr_is_Some'.
+    eapply evalAExpr_is_OK'.
     eassumption.
     eapply typecheck_env_TypeSigIncluded; eassumption.
 Qed.
@@ -1464,13 +1467,13 @@ Qed.
    TODO see if we can replace [evalDSHBinOp_nth] with it
    or at lease simplify its proof using this lemma.
 *)
-Lemma evalDSHBinOp_equiv_Some_spec
+Lemma evalDSHBinOp_equiv_inr_spec
       {off n: nat}
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}:
-  (evalDSHBinOp n off df σ mx mb = Some ma)
+  (evalDSHBinOp n off df σ mx mb = inr ma)
   ->
   (∀ k (kc: k < n),
       ∃ a b,
@@ -1521,14 +1524,14 @@ Proof.
 Qed.
 
 (* TODO: generalize this *)
-Lemma is_Some_evalDSHBinOp_mem_equiv
+Lemma is_OK_evalDSHBinOp_mem_equiv
       (n off : nat)
       (df : AExpr)
       (σ : evalContext)
       (mx ma mb : mem_block) :
   ma = mb ->
-  is_Some (evalDSHBinOp n off df σ mx ma) =
-  is_Some (evalDSHBinOp n off df σ mx mb).
+  is_OK (evalDSHBinOp n off df σ mx ma) =
+  is_OK (evalDSHBinOp n off df σ mx mb).
 Proof.
   intros.
   pose proof evalDSHBinOp_proper n off df σ mx mx.
@@ -1558,15 +1561,15 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma is_Some_evalDSHBinOp_mem_add
+Lemma is_OK_evalDSHBinOp_mem_add
       (n off : nat)
       (df : AExpr)
       (σ : evalContext)
       (mx mb : mem_block)
       (k : NM.key)
       (v : CarrierA) :
-  is_Some (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
-  is_Some (evalDSHBinOp n off df σ mx mb).
+  is_OK (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
+  is_OK (evalDSHBinOp n off df σ mx mb).
 Proof.
   dependent induction n; [reflexivity |].
   cbn.
@@ -1574,10 +1577,10 @@ Proof.
   destruct (Nat.eq_dec n k).
   -
     subst.
-    apply is_Some_evalDSHBinOp_mem_equiv.
+    apply is_OK_evalDSHBinOp_mem_equiv.
     apply mem_add_overwrite.
   -
-    rewrite is_Some_evalDSHBinOp_mem_equiv
+    rewrite is_OK_evalDSHBinOp_mem_equiv
       with (ma := mem_add n c1 (mem_add k v mb))
            (mb := mem_add k v (mem_add n c1 mb)).
     apply IHn.
@@ -1680,7 +1683,7 @@ Proof.
   all: trivial.
 Qed.
 
-Lemma evalDSHBinOp_is_Some_inv
+Lemma evalDSHBinOp_is_OK_inv
       {off n: nat}
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
@@ -1695,14 +1698,14 @@ Lemma evalDSHBinOp_is_Some_inv
          mem_lookup (k+off) mx = Some b /\
          is_Some (evalIBinCType σ df k a b)
         )
-  ) -> (is_Some (evalDSHBinOp n off df σ mx mb)).
+  ) -> (is_OK (evalDSHBinOp n off df σ mx mb)).
 Proof.
   intros H.
   induction n; [reflexivity |].
   simpl.
   repeat break_match.
   -
-    rewrite is_Some_evalDSHBinOp_mem_add.
+    rewrite is_OK_evalDSHBinOp_mem_add.
     apply IHn.
     intros.
     apply H.
@@ -1732,7 +1735,7 @@ Proof.
     unfold is_Some; break_match; [trivial | some_none].
 Qed.
 
-Lemma evalDSHBinOp_is_None
+Lemma evalDSHBinOp_is_Err
       (off n: nat)
       (nz: n≢0)
       (df : AExpr)
@@ -1742,7 +1745,7 @@ Lemma evalDSHBinOp_is_None
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
   ->
-  is_None (evalDSHBinOp n off df σ mx mb).
+  is_Err (evalDSHBinOp n off df σ mx mb).
 Proof.
   revert mb.
   induction n; intros mb DX.
@@ -1768,13 +1771,13 @@ Proof.
       apply DX.
 Qed.
 
-(* This is an inverse of [evalDSHBinOp_is_None] but it takes
+(* This is an inverse of [evalDSHBinOp_is_Err] but it takes
    additional assumption [typecheck_env].
 
    Basically, it states that in valid environment, the only reason for
    [evalDSHBinOp] to fail is missing data in memory.
  *)
-Lemma evalDSHBinOp_is_None_inv
+Lemma evalDSHBinOp_is_Err_inv
       (off n: nat)
       (df : AExpr)
       `{dft : DSHIBinCarrierA df}
@@ -1783,7 +1786,7 @@ Lemma evalDSHBinOp_is_None_inv
       (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
       (mx mb : mem_block):
-  is_None (evalDSHBinOp n off df σ mx mb) ->
+  is_Err (evalDSHBinOp n off df σ mx mb) ->
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
@@ -1807,7 +1810,7 @@ Proof.
       contradict Heqo1.
       apply is_Some_ne_None.
       unfold evalIBinCType.
-      eapply evalAExpr_is_Some'.
+      eapply evalAExpr_is_OK'.
       eauto.
       destruct dft as [dfs' [TS' TI]].
       assert(dfs' = dfs) as DE.
@@ -1878,8 +1881,8 @@ Proof.
       opt_hyp_to_equiv.
       destruct (Nat.lt_decidable k (S n)) as [kc|kc].
       *
-        eapply evalDSHBinOp_equiv_Some_spec in Ha; eauto.
-        eapply evalDSHBinOp_equiv_Some_spec in Hb; eauto.
+        eapply evalDSHBinOp_equiv_inr_spec in Ha; eauto.
+        eapply evalDSHBinOp_equiv_inr_spec in Hb; eauto.
 
         destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
         destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
@@ -2002,13 +2005,13 @@ Proof.
       opt_hyp_to_equiv.
       apply is_None_equiv_def in Hb; try typeclasses eauto.
 
-      eapply evalDSHBinOp_is_None_inv in Hb; eauto.
+      eapply evalDSHBinOp_is_Err_inv in Hb; eauto.
       2:{
         eapply context_equiv_at_TypeSig_off_both_typcheck in E.
         eapply E.
       }
       apply equiv_Some_is_Some in Ha.
-      apply evalDSHBinOp_is_None with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
+      apply evalDSHBinOp_is_Err with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
       some_none.
       auto.
       apply dft.
@@ -2020,13 +2023,13 @@ Proof.
     +
       opt_hyp_to_equiv.
       apply is_None_equiv_def in Ha; try typeclasses eauto.
-      eapply evalDSHBinOp_is_None_inv in Ha; eauto.
+      eapply evalDSHBinOp_is_Err_inv in Ha; eauto.
       2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
           eapply E.
       }
       apply equiv_Some_is_Some in Hb.
 
-      apply evalDSHBinOp_is_None with (df:=df) (σ:=σ1) (mb:=m1) in Ha.
+      apply evalDSHBinOp_is_Err with (df:=df) (σ:=σ1) (mb:=m1) in Ha.
       some_none.
       auto.
       auto.
@@ -2633,7 +2636,7 @@ Proof.
       contradict E.
       apply is_Some_nequiv_None.
 
-      eapply evalDSHBinOp_is_Some_inv; try eauto.
+      eapply evalDSHBinOp_is_OK_inv; try eauto.
       intros k kc.
 
       assert(DX1:=DX).
@@ -2683,7 +2686,7 @@ Proof.
         apply is_None_equiv_def.
         apply mem_block_Equiv_Equivalence.
 
-        apply evalDSHBinOp_is_None; try typeclasses eauto.
+        apply evalDSHBinOp_is_Err; try typeclasses eauto.
         lia.
         destruct MX as [k MX].
         destruct (NatUtil.lt_ge_dec k (S o)) as [kc1 | kc2].
