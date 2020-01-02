@@ -113,8 +113,34 @@ Ltac inl_inr :=
          H2: ?b = inl _ |- _] => rewrite H1 in H2;
                                unfold equiv in H2;
                                inversion H2
+  | [H1: is_OK (inl _) |- _] => inversion H1
+  | [H1: is_Err (inr _) |- _] => inversion H1
   | [|- is_OK (inr _)] => unfold is_OK; tauto
   | [|- is_Err (inl _)] => unfold is_Err; tauto
+  end.
+
+Lemma inl_inj_equiv :
+  forall s1 s2, s1 = s2 <-> inl s1 = inl s2.
+Proof.
+  split; intros.
+  - constructor; assumption.
+  - inversion H; subst; assumption.
+Qed.
+
+Lemma inr_inj_equiv `{E: Equiv A}:
+  forall (a b : A), a = b <-> inr a = inr b.
+Proof.
+  split; intros.
+  - constructor; assumption.
+  - inversion H; subst; assumption.
+Qed.
+
+Ltac inl_inr_inv :=
+  match goal with
+  | [H1: inl _ ≡ inl _ |- _] => inversion H1; clear H1
+  | [H1: inr _ ≡ inr _ |- _] => inversion H1; clear H1
+  | [H1: inl _ = inl _ |- _] => apply inl_inj_equiv in H1
+  | [H1: inr _ = inr _ |- _] => apply inr_inj_equiv in H1
   end.
 
 Lemma err_equiv_eq
@@ -127,6 +153,15 @@ Proof.
   intros H.
   rewrite H.
   reflexivity.
+Qed.
+
+Lemma trywith_inr_any_exc {E A : Type} (e : E) (oa : option A) (a : A) :
+  trywith e oa ≡ inr a ->
+  forall e' : E, trywith e' oa ≡ inr a.
+Proof.
+  intros.
+  unfold trywith in *.
+  break_match; [assumption | inversion H].
 Qed.
 
 Ltac err_eq_to_equiv_hyp :=
