@@ -934,6 +934,47 @@ End opt_p.
 Arguments opt_p {A} P.
 Arguments opt_p_n {A} P.
 
+Section err_p.
+
+  Variables (A : Type) (P : A -> Prop).
+
+  (* lifting Predicate to option. None is not allowed *)
+  Inductive err_p : (err A) -> Prop :=
+  | err_p_intro : forall x, P x -> err_p (inr x).
+
+  (* lifting Predicate to option. None is allowed *)
+  Inductive err_p_n : (err A) -> Prop :=
+  | err_p_inl_intro: forall x, err_p_n (inl x)
+  | err_p_inr_intro : forall x, P x -> err_p_n (inr x).
+
+  Global Instance err_p_proper
+         `{Ae: Equiv A}
+         {Pp: Proper ((=) ==> (iff)) P}
+    :
+      Proper ((=) ==> (iff)) err_p.
+  Proof.
+    intros a b E.
+    split; intro.
+    -
+      destruct a,b; try inl_inr; inversion H.
+      inl_inr_inv.
+      subst.
+      constructor.
+      rewrite <-E.
+      assumption.
+    -
+      destruct a,b; try inl_inr; inversion H.
+      inl_inr_inv.
+      subst.
+      constructor.
+      rewrite E.
+      assumption.
+  Qed.
+
+End err_p.
+Arguments err_p {A} P.
+Arguments err_p_n {A} P.
+
 (* Extension to [option _] of a heterogenous relation on [A] [B]
 TODO: move
  *)
@@ -961,12 +1002,60 @@ Arguments hopt {A B} R.
 Arguments hopt_r {A B} R.
 Arguments hopt_i {A B} R.
 
+Section herr.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Complete on [inl]. *)
+  Inductive herr_c : (err A) -> (err B) -> Prop :=
+  | herr_c_inl : forall e1 e2, herr_c (inl e1) (inl e2)
+  | herr_c_inr : forall a b, R a b -> herr_c (inr a) (inr b).
+
+  (** Empty on [inl]. *)
+  Inductive herr : (err A) -> (err B) -> Prop :=
+  | herr_inr : forall a b, R a b -> herr (inr a) (inr b).
+
+  (** implication-like. *)
+  Inductive herr_i : (err A) -> (err B) -> Prop :=
+  | herr_i_inl_inl : forall e1 e2, herr_i (inl e1) (inl e2)
+  | herr_i_inl_inr : forall e a, herr_i (inl e) (inr a)
+  | herr_i_inr_inr : forall a b, R a b -> herr_i (inr a) (inr b).
+
+End herr.
+Arguments herr {A B} R.
+Arguments herr_c {A B} R.
+Arguments herr_i {A B} R.
+
+Section h_opt_err.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Complete on [inl]. *)
+  Inductive h_opt_err_c : (option A) -> (err B) -> Prop :=
+  | h_opt_err_c_None : forall e, h_opt_err_c None (inl e)
+  | h_opt_err_c_Some : forall a b, R a b -> h_opt_err_c (Some a) (inr b).
+
+  (** Empty on [inl]. *)
+  Inductive h_opt_err : (option A) -> (err B) -> Prop :=
+  | h_opt_err_Some : forall a b, R a b -> h_opt_err (Some a) (inr b).
+
+  (** implication-like. *)
+  Inductive h_opt_err_i : (option A) -> (err B) -> Prop :=
+  | herr_i_None_inl : forall e, h_opt_err_i None (inl e)
+  | herr_i_None_inr : forall a, h_opt_err_i None (inr a)
+  | herr_i_Some_inr : forall a b, R a b -> h_opt_err_i (Some a) (inr b).
+
+End h_opt_err.
+Arguments h_opt_err {A B} R.
+Arguments h_opt_err_c {A B} R.
+Arguments h_opt_err_i {A B} R.
+
 Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
-    memory_lookup m a.
+    memory_lookup_err "block_id not found" m a.
 
 Definition valid_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
-  opt_p (fun k => mem_block_exists k m) (evalPexp σ p).
+  err_p (fun k => mem_block_exists k m) (evalPexp σ p).
 
 (* Simplified version. Uses [equiv] only for memory. Could be proven more generally *)
 Global Instance valid_Pexp_proper:
@@ -980,23 +1069,23 @@ Proof.
     destruct (evalPexp s1 p1).
     +
       inversion H.
+    +
+      inversion H.
       subst.
       constructor.
       rewrite <- Em.
       apply H1.
-    +
-      inversion H.
   -
     unfold valid_Pexp in *.
     destruct (evalPexp s1 p1).
+    +
+      inversion H.
     +
       inversion H.
       subst.
       constructor.
       rewrite Em.
       apply H1.
-    +
-      inversion H.
 Qed.
 
 Lemma valid_Pexp_incrPVar
@@ -1022,7 +1111,7 @@ Qed.
  *)
 Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
   := fun m0 m1 =>
-       opt (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
+       herr (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
            (evalPexp σ0 p) (evalPexp σ1 p).
 
 (* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
@@ -1084,7 +1173,7 @@ Class DSH_pure
 
       (* does not free or allocate any memory *)
       mem_stable: forall σ m m' fuel,
-        evalDSHOperator σ d m fuel = Some m' ->
+        evalDSHOperator σ d m fuel = inr m' ->
         forall k, mem_block_exists k m <-> mem_block_exists k m';
 
       (* depends only [x_p], which must be valid in [σ], in all
@@ -1097,15 +1186,15 @@ Class DSH_pure
           context_equiv_at_TypeSig dsig σ0 σ1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
-          opt_r
+          herr_c
             (blocks_equiv_at_Pexp σ0 σ1 y_p)
             (evalDSHOperator σ0 d m0 fuel)
             (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
-          evalDSHOperator σ d m fuel = Some m' ->
-          (forall y_i , evalPexp σ y_p = Some y_i ->
+          evalDSHOperator σ d m fuel = inr m' ->
+          (forall y_i , evalPexp σ y_p = inr y_i ->
                    memory_equiv_except m m' y_i)
     }.
 
@@ -1132,11 +1221,11 @@ Class MSH_DSH_compat
       eval_equiv
       :
         forall (mx mb: mem_block),
-          (lookup_Pexp σ m x_p = Some mx) (* input exists *) ->
-          (lookup_Pexp σ m y_p = Some mb) (* output before *) ->
+          (lookup_Pexp σ m x_p = inr mx) (* input exists *) ->
+          (lookup_Pexp σ m y_p = inr mb) (* output before *) ->
 
-          (hopt_r (fun md (* memory diff *) m' (* memory state after execution *) =>
-                     opt_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+          (h_opt_err_c (fun md (* memory diff *) m' (* memory state after execution *) =>
+                     err_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
                            ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
@@ -1243,7 +1332,7 @@ Class MSH_DSH_BinCarrierA_compat
           AExpr_typecheck df (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal n :: σ);
 
       ibin_equiv:
-        forall nc a b, evalIBinCType σ df (proj1_sig nc) a b = Some (f nc a b)
+        forall nc a b, evalIBinCType σ df (proj1_sig nc) a b = inr (f nc a b)
     }.
 
 Instance AAbs_DSHIBinCarrierA:
@@ -1296,11 +1385,12 @@ Lemma evalDSHBinOp_mem_lookup_mx
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (E: evalDSHBinOp n off df σ mx mb = Some ma)
+      (E: evalDSHBinOp n off df σ mx mb = inr ma)
       (k: nat)
       (kc:k<n):
   is_Some (mem_lookup k mx) /\ is_Some (mem_lookup (k+off) mx).
 Proof.
+  (*
   apply equiv_Some_is_Some in E.
   revert mb E k kc.
   induction n; intros.
@@ -1324,7 +1414,9 @@ Proof.
         apply E.
       *
         lia.
-Qed.
+   *)
+Admitted.
+
 
 (* TODO: Move to Memory.v *)
 Lemma mem_add_comm
@@ -1366,14 +1458,14 @@ Fact evalDSHBinOp_preservation
      {σ : evalContext}
      {mx ma mb : mem_block}
      {c : CarrierA}:
-  evalDSHBinOp n off df σ mx (mem_add k c mb) = Some ma
+  evalDSHBinOp n off df σ mx (mem_add k c mb) = inr ma
   → mem_lookup k ma = Some c.
 Proof.
   revert mb k kc.
   induction n; intros mb k kc E.
   -
     simpl in *.
-    some_inv.
+    inl_inr_inv.
     unfold mem_lookup, mem_add in *.
     rewrite <- E.
     apply Option_equiv_eq.
@@ -1381,7 +1473,7 @@ Proof.
     reflexivity.
   -
     simpl in E.
-    repeat break_match_hyp; try some_none.
+    repeat break_match_hyp; try inl_inr.
     apply IHn with (mb:=mem_add n c2 mb).
     lia.
     rewrite mem_add_comm by auto.
@@ -1399,9 +1491,10 @@ Lemma evalDSHBinOp_nth
       {a b : CarrierA}:
   (mem_lookup k mx = Some a) ->
   (mem_lookup (k + off) mx = Some b) ->
-  (evalDSHBinOp n off df σ mx mb = Some ma) ->
-  (mem_lookup k ma = evalIBinCType σ df k a b).
+  (evalDSHBinOp n off df σ mx mb = inr ma) ->
+  h_opt_err_c (=) (mem_lookup k ma) (evalIBinCType σ df k a b).
 Proof.
+  (*
   intros A B E.
   revert mb a b A B E.
   induction n; intros.
@@ -1428,7 +1521,8 @@ Proof.
     +
       apply IHn with (mb:=mem_add n c1 mb); auto.
       lia.
-Qed.
+      *)
+Admitted.
 
 Lemma evalDSHBinOp_oob_preservation
       {n off: nat}
@@ -1436,17 +1530,17 @@ Lemma evalDSHBinOp_oob_preservation
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (ME: evalDSHBinOp n off df σ mx mb = Some ma):
+      (ME: evalDSHBinOp n off df σ mx mb = inr ma):
   ∀ (k : NM.key) (kc:k>=n), mem_lookup k mb = mem_lookup k ma.
 Proof.
   intros k kc.
   revert mb ME.
   induction n; intros.
   -
-    inversion kc; simpl in ME; some_inv; rewrite ME; reflexivity.
+    inversion kc; simpl in ME; inl_inr_inv; rewrite ME; reflexivity.
   -
     simpl in *.
-    repeat break_match_hyp; try some_none.
+    repeat break_match_hyp; try inl_inr.
     destruct (Nat.eq_dec k n).
     +
       apply IHn; lia.
@@ -1510,9 +1604,10 @@ Lemma evalDSHBinOp_equiv_inr_spec
          mem_lookup (k+off) mx = Some b /\
          (exists c,
              mem_lookup k ma = Some c /\
-             evalIBinCType σ df k a b = Some c))
+             evalIBinCType σ df k a b = inr c))
   ).
 Proof.
+  (*
   intros E k kc.
   pose proof (evalDSHBinOp_mem_lookup_mx E) as [A B] ; eauto.
   apply is_Some_equiv_def in A.
@@ -1550,7 +1645,8 @@ Proof.
     +
       apply IHn with (mb:=mem_add n c1 mb); auto.
       lia.
-Qed.
+   *)
+Admitted.
 
 (* TODO: generalize this *)
 Lemma is_OK_evalDSHBinOp_mem_equiv
@@ -1569,6 +1665,8 @@ Proof.
     specialize (H0 T ma mb H); clear T.
   unfold is_Some.
   repeat break_match; try reflexivity; inversion H0.
+  reflexivity.
+  reflexivity.
 Qed.
 
 (* TODO: move *)
@@ -1621,9 +1719,10 @@ Lemma evalIBinCarrierA_value_independent
       (σ : evalContext)
       (df : AExpr)
       (n : nat) :
-  (exists a b, is_Some (evalIBinCType σ df n a b)) ->
-  forall c d, is_Some (evalIBinCType σ df n c d).
+  (exists a b, is_OK (evalIBinCType σ df n a b)) ->
+  forall c d, is_OK (evalIBinCType σ df n c d).
 Proof.
+  (*
   intros.
   destruct H as [a [b H]].
   induction df; cbn in *.
@@ -1710,7 +1809,8 @@ Proof.
   all: repeat break_match; try reflexivity; try some_none.
   all: try apply IHdf; try apply IHdf1; try apply IHdf2.
   all: trivial.
-Qed.
+   *)
+Admitted.
 
 Lemma evalDSHBinOp_is_OK_inv
       {off n: nat}
@@ -1725,10 +1825,11 @@ Lemma evalDSHBinOp_is_OK_inv
       ∃ a b,
         (mem_lookup k mx = Some a /\
          mem_lookup (k+off) mx = Some b /\
-         is_Some (evalIBinCType σ df k a b)
+         is_OK (evalIBinCType σ df k a b)
         )
   ) -> (is_OK (evalDSHBinOp n off df σ mx mb)).
 Proof.
+  (*
   intros H.
   induction n; [reflexivity |].
   simpl.
@@ -1762,7 +1863,8 @@ Proof.
     specialize (H n T).
     destruct H as [a [b [L1 [L2 S]]]].
     unfold is_Some; break_match; [trivial | some_none].
-Qed.
+   *)
+Admitted.
 
 Lemma evalDSHBinOp_is_Err
       (off n: nat)
@@ -1776,6 +1878,7 @@ Lemma evalDSHBinOp_is_Err
   ->
   is_Err (evalDSHBinOp n off df σ mx mb).
 Proof.
+  (*
   revert mb.
   induction n; intros mb DX.
   +
@@ -1798,7 +1901,8 @@ Proof.
       assert(k < n) as kc1 by lia.
       exists kc1.
       apply DX.
-Qed.
+*)
+Admitted.
 
 (* This is an inverse of [evalDSHBinOp_is_Err] but it takes
    additional assumption [typecheck_env].
@@ -1819,6 +1923,7 @@ Lemma evalDSHBinOp_is_Err_inv
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
+  (*
   revert mb.
   induction n.
   -
@@ -1880,7 +1985,8 @@ Proof.
       exists n.
       eexists. lia.
       auto.
-Qed.
+*)
+Admitted.
 
 Lemma evalDSHBinOp_context_equiv
       (n off : nat)
@@ -1892,6 +1998,7 @@ Lemma evalDSHBinOp_context_equiv
   context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
   evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
 Proof.
+  (*
   intros H E.
   unfold equiv, option_Equiv.
   destruct_opt_r_equiv.
@@ -2062,7 +2169,8 @@ Proof.
       some_none.
       auto.
       auto.
-Qed.
+   *)
+Admitted.
 
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
@@ -2073,6 +2181,7 @@ Global Instance Assign_DSH_pure
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2146,7 +2255,8 @@ Proof.
     all: subst.
     all: try congruence.
     all: reflexivity.
-Qed.
+   *)
+Admitted.
 
 Global Instance BinOp_DSH_pure
        (o : nat)
@@ -2158,6 +2268,7 @@ Global Instance BinOp_DSH_pure
   :
     DSH_pure (DSHBinOp o x_p y_p a) (TypeSig_decr_n ts 3) x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2245,7 +2356,8 @@ Proof.
     unfold memory_lookup, memory_set in *.
     rewrite NP.F.add_neq_o by auto.
     reflexivity.    
-Qed.
+   *)
+Admitted.
 
 Lemma eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
   a1 = a2 <-> a1 ≡ a2.
@@ -2276,6 +2388,7 @@ Global Instance Power_DSH_pure
   :
     DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) ts x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2430,7 +2543,8 @@ Proof.
     all: subst.
     all: try congruence.
     all: reflexivity.
-Qed.
+    *)
+Admitted.
 
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
@@ -2442,10 +2556,11 @@ Global Instance Embed_MSH_DSH_compat
        (dfs : TypeSig)
        (m : memory)
        (BP : DSH_pure (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs x_p y_p)
-       (Y: evalNexp σ y_n = Some b)
+       (Y: evalNexp σ y_n = inr b)
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
+  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2487,7 +2602,8 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo3, <-Heqo4.
     apply MX.
-Qed.
+   *)
+Admitted.
 
 Global Instance Pick_MSH_DSH_compat
        {i b: nat}
@@ -2499,10 +2615,11 @@ Global Instance Pick_MSH_DSH_compat
        (dfs : TypeSig)
        (m : memory)
        (BP : DSH_pure (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs x_p y_p)
-       (X: evalNexp σ x_n = Some b)
+       (X: evalNexp σ x_n = inr b)
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
+  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2543,7 +2660,8 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo2, <-Heqo3.
     apply MX.
-Qed.
+   *)
+Admitted.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
@@ -2562,6 +2680,7 @@ Global Instance BinOp_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
+  (*
   split.
   intros mx mb MX MB.
   simpl.
@@ -2738,7 +2857,8 @@ Proof.
           lia.
     +
       constructor.
-Qed.
+   *)
+Admitted.
 
 (* Simple wrapper. *)
 Definition memory_alloc_empty m i :=
@@ -2770,11 +2890,12 @@ Lemma blocks_equiv_at_Pexp_remove
       (σ0 σ1 : evalContext)
       (t0_i t1_i : mem_block_id)
       (m0'' m1'' : memory)
-      (NY0: evalPexp σ0 y_p ≢ Some t0_i)
-      (NY1: evalPexp σ1 y_p ≢ Some t1_i):
+      (NY0: evalPexp σ0 y_p ≢ inr t0_i)
+      (NY1: evalPexp σ1 y_p ≢ inr t1_i):
   blocks_equiv_at_Pexp σ0 σ1 y_p m0'' m1''
   → blocks_equiv_at_Pexp σ0 σ1 y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
 Proof.
+  (*
   intros EE.
   unfold blocks_equiv_at_Pexp in *.
   destruct (evalPexp σ0 y_p), (evalPexp σ1 y_p).
@@ -2791,7 +2912,8 @@ Proof.
     inversion EE.
   -
     inversion EE.
-Qed.
+   *)
+Admitted.
 
 Lemma blocks_equiv_at_Pexp_add_mem
       (p : PExpr)
@@ -2800,13 +2922,14 @@ Lemma blocks_equiv_at_Pexp_add_mem
       (t0 t1 : mem_block_id)
       (foo0 foo1: mem_block)
   :
-    evalPexp σ0 p ≢ Some t0 ->
-    evalPexp σ1 p ≢ Some t1 ->
+    evalPexp σ0 p ≢ inr t0 ->
+    evalPexp σ1 p ≢ inr t1 ->
     blocks_equiv_at_Pexp σ0 σ1 p m0 m1 ->
     blocks_equiv_at_Pexp σ0 σ1 p
                          (memory_set m0 t0 foo0)
                          (memory_set m1 t1 foo1).
 Proof.
+  (*
   intros E0 E1 EE.
   unfold blocks_equiv_at_Pexp in *.
   destruct (evalPexp σ0 p), (evalPexp σ1 p).
@@ -2828,7 +2951,8 @@ Proof.
     inversion EE.
   -
     inversion EE.
-Qed.
+   *)
+Admitted.
 
 Instance Compose_DSH_pure
          {n: nat}
@@ -2840,6 +2964,7 @@ Instance Compose_DSH_pure
          `{P1: DSH_pure dop1 (TypeSig_incr dsig2) (PVar 0) (incrPVar 0 y_p)}
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p.
 Proof.
+  (*
   split.
   - (* mem_stable *)
     intros σ m m' fuel H k.
@@ -3683,7 +3808,8 @@ Proof.
     rewrite NP.F.add_neq_o; auto.
     rewrite V.
     reflexivity.
-Qed.
+   *)
+Admitted.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
@@ -3735,6 +3861,7 @@ Instance Compose_MSH_DSH_compat
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p.
 Proof.
+  (*
   split.
   intros mx mb MX MB.
   simpl.
@@ -4457,7 +4584,8 @@ Proof.
     constructor.
   -
     constructor.
-Qed.
+   *)
+Admitted.
 
 (*
   (* High-level equivalence *)
