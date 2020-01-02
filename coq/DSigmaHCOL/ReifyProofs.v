@@ -891,11 +891,11 @@ Section opt_p.
 
   Variables (A : Type) (P : A -> Prop).
 
-  (* lifting Predicate to option. None is not allowed *)
+  (* lifting Predicate to option. error is not allowed *)
   Inductive opt_p : (option A) -> Prop :=
   | opt_p_intro : forall x, P x -> opt_p (Some x).
 
-  (* lifting Predicate to option. None is allowed *)
+  (* lifting Predicate to option. errors is allowed *)
   Inductive opt_p_n : (option A) -> Prop :=
   | opt_p_None_intro: opt_p_n None
   | opt_p_Some_intro : forall x, P x -> opt_p_n (Some x).
