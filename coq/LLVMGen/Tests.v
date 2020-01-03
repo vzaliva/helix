@@ -217,28 +217,45 @@ Fixpoint initIRGlobals
   :=
     match x with
     | nil => (data,[])
-    | cons (n,t) xs =>
-      let (ds,gs) := initIRGlobals data xs in
-      let (ds,arr) := match t with
-                      | FSHnatValType => (ds,[]) (* TODO: not supported *)
-                      | FSHFloatValType => (ds,[]) (* TODO: not supported *)
-                      | FSHvecValType n => constArray n ds
-                      end in
-      (ds, TLE_Global {|
-               g_ident        := Name n;
-               g_typ          := getIRType t ;
-               g_constant     := true ;
-               g_exp          := Some (EXP_Array arr);
-               g_linkage      := Some LINKAGE_Internal ;
-               g_visibility   := None ;
-               g_dll_storage  := None ;
-               g_thread_local := None ;
-               g_unnamed_addr := true ;
-               g_addrspace    := None ;
-               g_externally_initialized := false ;
-               g_section      := None ;
-               g_align        := Some Utils.PtrAlignment ;
-             |} :: gs)
+    | cons (nm, t) xs =>
+      let (data,gs) := initIRGlobals data xs in
+      match t with
+      | FSHnatValType => (data,gs) (* TODO: not supported *)
+      | FSHFloatValType =>
+        let '(x, data) := rotate Float64Zero data in
+        (data, TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Double x);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
+                 |} :: gs)
+      | FSHvecValType n =>
+        let (data, arr) := constArray n data in
+        (data, TLE_Global {|
+                   g_ident        := Name nm;
+                   g_typ          := getIRType t ;
+                   g_constant     := true ;
+                   g_exp          := Some (EXP_Array arr);
+                   g_linkage      := Some LINKAGE_Internal ;
+                   g_visibility   := None ;
+                   g_dll_storage  := None ;
+                   g_thread_local := None ;
+                   g_unnamed_addr := true ;
+                   g_addrspace    := None ;
+                   g_externally_initialized := false ;
+                   g_section      := None ;
+                   g_align        := Some Utils.PtrAlignment ;
+                 |} :: gs)
+      end
     end.
 
 Definition genMain
@@ -356,7 +373,10 @@ Fixpoint initFSHGlobals
     | [] => ret (mem,data, [])
     | (_,gt)::gs => match gt with
                   | FSHnatValType => raise "Unsupported global type: nat"
-                  | FSHFloatValType => raise "Unsupported global type: Float"
+                  | FSHFloatValType =>
+                    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
+                    let '(x, data) := rotate Float64Zero data in
+                    ret (mem, data, (DSHCTypeVal x)::σ)
                   | FSHvecValType n =>
                     '(mem,data,σ) <- initFSHGlobals data mem gs ;;
                      let (data,mb) := constMemBlock n data in
