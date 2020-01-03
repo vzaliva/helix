@@ -104,6 +104,27 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     :=
     trywith msg (memory_lookup mem n).
 
+  Instance memory_lookup_err_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) memory_lookup_err.
+  Proof.
+    unfold memory_lookup_err.
+    simpl_relation.
+    destruct_err_equiv;
+      err_eq_to_equiv_hyp;
+      rewrite H0, H1, H in Ha;
+      rewrite Ha in Hb.
+    -
+      inversion Hb.
+      auto.
+    -
+      inl_inr.
+    -
+      inl_inr.
+    -
+      inversion Hb.
+      auto.
+  Qed.
+
   Definition context_lookup
              (msg: string)
              (c: evalContext)
@@ -122,18 +143,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Definition context_tl (σ: evalContext) : evalContext
     := List.tl σ.
 
-  (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalMexp (σ: evalContext) (exp:MExpr): err (mem_block) :=
-    match exp with
-    | @MVar i =>
-      match nth_error σ i with
-      | Some (@DSHMemVal v) => ret v
-      | _ => raise "error looking up MVar"
-      end
-    | @MConst t => ret t
-    end.
-
-  (* Evaluation of expressions does not allow for side-effects *)
+    (* Evaluation of expressions does not allow for side-effects *)
   Definition evalPexp (σ: evalContext) (exp:PExpr): err (mem_block_id) :=
     match exp with
     | @PVar i =>
@@ -141,6 +151,15 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | Some (@DSHPtrVal v) => ret v
       | _ => raise "error looking up PVar"
       end
+    end.
+
+  (* Evaluation of expressions does not allow for side-effects *)
+  Definition evalMexp (mem:memory) (σ: evalContext) (exp:MExpr): err (mem_block) :=
+    match exp with
+    | @MPtrDeref p =>
+      bi <- evalPexp σ p ;;
+         memory_lookup_err "MPtrDeref lookup failed" mem bi
+    | @MConst t => ret t
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
@@ -162,7 +181,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     end.
 
   (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalAexp (σ: evalContext) (e:AExpr): err t :=
+  Fixpoint evalAexp (mem:memory) (σ: evalContext) (e:AExpr): err t :=
     match e with
     | AVar i => v <- (context_lookup "AVar not found" σ i) ;;
                  (match v with
@@ -170,17 +189,17 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                   | _ => raise "invalid AVar type"
                   end)
     | AConst x => ret x
-    | AAbs x =>  liftM CTypeAbs (evalAexp σ x)
-    | APlus a b => liftM2 CTypePlus (evalAexp σ a) (evalAexp σ b)
-    | AMult a b => liftM2 CTypeMult (evalAexp σ a) (evalAexp σ b)
-    | AMin a b => liftM2 CTypeMin (evalAexp σ a) (evalAexp σ b)
-    | AMax a b => liftM2 CTypeMax (evalAexp σ a) (evalAexp σ b)
+    | AAbs x =>  liftM CTypeAbs (evalAexp mem σ x)
+    | APlus a b => liftM2 CTypePlus (evalAexp mem σ a) (evalAexp mem σ b)
+    | AMult a b => liftM2 CTypeMult (evalAexp mem σ a) (evalAexp mem σ b)
+    | AMin a b => liftM2 CTypeMin (evalAexp mem σ a) (evalAexp mem σ b)
+    | AMax a b => liftM2 CTypeMax (evalAexp mem σ a) (evalAexp mem σ b)
     | AMinus a b =>
-      a' <- (evalAexp σ a) ;;
-         b' <- (evalAexp σ b) ;;
+      a' <- (evalAexp mem σ a) ;;
+         b' <- (evalAexp mem σ b) ;;
          ret (CTypeSub a' b')
     | ANth m i =>
-      m' <- (evalMexp σ m) ;;
+      m' <- (evalMexp mem σ m) ;;
          i' <- (evalNexp σ i) ;;
          (* Instead of returning error we default to zero here.
           This situation should never happen for programs
@@ -191,25 +210,26 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           | Some v => ret v
           | None => ret CTypeZero
           end)
-    | AZless a b => liftM2 CTypeZLess (evalAexp σ a) (evalAexp σ b)
+    | AZless a b => liftM2 CTypeZLess (evalAexp mem σ a) (evalAexp mem σ b)
     end.
 
   (* Evaluation of functions does not allow for side-effects *)
-  Definition evalIUnCType (σ: evalContext) (f: AExpr)
+  Definition evalIUnCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:nat) (a:t): err t :=
-    evalAexp (DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAexp mem (DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
-  Definition evalIBinCType (σ: evalContext) (f: AExpr)
+  Definition evalIBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (i:nat) (a b:t): err t :=
-    evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    evalAexp mem (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
   (* Evaluation of functions does not allow for side-effects *)
-  Definition evalBinCType (σ: evalContext) (f: AExpr)
+  Definition evalBinCType (mem:memory) (σ: evalContext) (f: AExpr)
              (a b:t): err t :=
-    evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
+    evalAexp mem (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
 
   Fixpoint evalDSHIMap
+           (mem:memory)
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -219,11 +239,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | O => ret y
       | S n =>
         v <- mem_lookup_err "Error reading memory evalDSHIMap" n x ;;
-          v' <- evalIUnCType σ f n v ;;
-          evalDSHIMap n f σ x (mem_add n v' y)
+          v' <- evalIUnCType mem σ f n v ;;
+          evalDSHIMap mem n f σ x (mem_add n v' y)
       end.
 
   Fixpoint evalDSHMap2
+           (mem:memory)
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -234,11 +255,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | S n =>
         v0 <- mem_lookup_err "Error reading 1st arg memory in evalDSHMap2" n x0 ;;
            v1 <- mem_lookup_err "Error reading 2nd arg memory in evalDSHMap2" n x1 ;;
-           v' <- evalBinCType σ f v0 v1 ;;
-           evalDSHMap2 n f σ x0 x1 (mem_add n v' y)
+           v' <- evalBinCType mem σ f v0 v1 ;;
+           evalDSHMap2 mem n f σ x0 x1 (mem_add n v' y)
       end.
 
   Fixpoint evalDSHBinOp
+           (mem:memory)
            (n off: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -249,11 +271,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | S n =>
         v0 <- mem_lookup_err "Error reading 1st arg memory in evalDSHBinOp" n x ;;
            v1 <- mem_lookup_err "Error reading 2nd arg memory in evalDSHBinOp" (n+off) x ;;
-           v' <- evalIBinCType σ f n v0 v1 ;;
-           evalDSHBinOp n off f σ x (mem_add n v' y)
+           v' <- evalIBinCType mem σ f n v0 v1 ;;
+           evalDSHBinOp mem n off f σ x (mem_add n v' y)
       end.
 
   Fixpoint evalDSHPower
+           (mem:memory)
            (σ: evalContext)
            (n: nat)
            (f: AExpr)
@@ -266,8 +289,8 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | S p =>
         xv <- mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" 0 x ;;
            yv <- mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" 0 y ;;
-           v' <- evalBinCType σ f xv yv ;;
-           evalDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
+           v' <- evalBinCType mem σ f xv yv ;;
+           evalDSHPower mem σ p f x (mem_add 0 v' y) xoffset yoffset
       end.
 
   (* Estimates fuel requirement for [evalDSHOperator] *)
@@ -312,7 +335,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               y_i <- evalPexp σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
-              y' <- evalDSHIMap n f σ x y ;;
+              y' <- evalDSHIMap mem n f σ x y ;;
               ret (memory_set mem y_i y')
         | @DSHMemMap2 n x0_p x1_p y_p f =>
           x0_i <- evalPexp σ x0_p ;;
@@ -321,14 +344,14 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                x0 <- memory_lookup_err "Error looking up 'x0' in DSHMemMap2" mem x0_i ;;
                x1 <- memory_lookup_err "Error looking up 'x1' in DSHMemMap2" mem x1_i ;;
                y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
-               y' <- evalDSHMap2 n f σ x0 x1 y ;;
+               y' <- evalDSHMap2 mem n f σ x0 x1 y ;;
                ret (memory_set mem y_i y')
         | @DSHBinOp n x_p y_p f =>
           x_i <- evalPexp σ x_p ;;
               y_i <- evalPexp σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
-              y' <- evalDSHBinOp n n f σ x y ;;
+              y' <- evalDSHBinOp mem n n f σ x y ;;
               ret (memory_set mem y_i y')
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
           x_i <- evalPexp σ x_p ;;
@@ -339,7 +362,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               let y' := mem_add 0 initial y in
               xoff <- evalNexp σ xoffset ;;
                    yoff <- evalNexp σ yoffset ;;
-                   y'' <- evalDSHPower σ n f x y' xoff yoff ;;
+                   y'' <- evalDSHPower mem σ n f x y' xoff yoff ;;
                    ret (memory_set mem y_i y'')
         | DSHLoop O body => ret mem
         | DSHLoop (S n) body =>
@@ -460,31 +483,48 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     - proper_eval2 IHEe1 IHEe2.
   Qed.
 
-  Instance evalMexp_proper:
-    Proper ((=) ==> (=) ==> (=)) (evalMexp).
+  Instance evalPexp_proper:
+    Proper ((=) ==> (=) ==> (=)) (evalPexp).
   Proof.
     intros c1 c2 Ec e1 e2 Ee.
-    induction Ee; simpl.
+     destruct Ee; simpl.
+     unfold equiv, peano_naturals.nat_equiv in H.
+     subst n1. rename n0 into v.
+     assert_match_equiv E.
+     {
+       apply nth_error_proper.
+       apply Ec.
+       reflexivity.
+     }
+     repeat break_match; try inversion E; subst; try (constructor;auto);
+       try (inversion H1;auto).
+  Qed.
+
+  Instance evalMexp_proper:
+    Proper ((=) ==> (=) ==> (=) ==> (=)) (evalMexp).
+  Proof.
+    intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
+    destruct Ee; simpl.
     -
       unfold equiv, peano_naturals.nat_equiv in H.
-      subst n1. rename n0 into v.
       assert_match_equiv E.
       {
-        apply nth_error_proper.
-        apply Ec.
+        rewrite H, Ec.
         reflexivity.
       }
       repeat break_match; try inversion E; subst; try (constructor;auto);
-      try (inversion H1;auto).
+        try (inversion H1;auto).
+      rewrite H2, Em.
+      reflexivity.
     -
       constructor.
       auto.
   Qed.
 
   Instance evalAexp_proper:
-    Proper ((=) ==> (=) ==> (=)) evalAexp.
+    Proper ((=) ==> (=) ==> (=) ==> (=)) evalAexp.
   Proof.
-    intros c1 c2 Ec e1 e2 Ee.
+    intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
     induction Ee; simpl.
     -
       unfold equiv, peano_naturals.nat_equiv in H.
@@ -501,7 +541,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       repeat break_match; try inversion E; subst; try (constructor;auto);
       try (inversion H1;auto).
     - f_equiv. apply H.
-    - assert(C1:  evalMexp c1 v1 = evalMexp c2 v2)
+    - assert(C1:  evalMexp m1 c1 v1 = evalMexp m2 c2 v2)
         by (apply evalMexp_proper; auto).
       assert(C2:  evalNexp c1 n1 = evalNexp c2 n2)
         by (apply evalNexp_proper; auto).
@@ -509,20 +549,19 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         try inversion C1; try inversion C2;
           apply Some_inj_equiv in C1;
           apply Some_inj_equiv in C2; try congruence; try (constructor;auto); subst.
+
       +
         apply Some_inj_equiv.
         rewrite <- Heqo, <- Heqo0.
-        crush.
+        rewrite H3, H6.
+        reflexivity.
       +
-
-        assert(C: Some t0 = None).
-        rewrite <- Heqo, <- Heqo0.
-        crush.
+        eq_to_equiv_hyp.
+        rewrite H3, H6 in Heqo.
         some_none.
       +
-        assert(C: Some t0 = None).
-        rewrite <- Heqo, <- Heqo0.
-        crush.
+        eq_to_equiv_hyp.
+        rewrite H3, H6 in Heqo.
         some_none.
     -
       repeat break_match;subst; try reflexivity;
@@ -537,12 +576,14 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Qed.
 
   Instance evalBinCType_proper:
-    Proper ((=) ==> (=) ==> (=)) evalBinCType.
+    Proper ((=) ==> (=) ==> (=) ==> (=)) evalBinCType.
   Proof.
-    intros c1 c2 Ec e1 e2 Ee.
+    intros m1 m2 Em c1 c2 Ec e1 e2 Ee.
     unfold evalBinCType.
     intros a a' Ea b b' Eb.
     apply evalAexp_proper.
+    -
+      assumption.
     -
       unfold equiv, List_equiv.
       apply List.Forall2_cons; constructor; auto.
@@ -552,15 +593,18 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Qed.
 
   Instance evalIBinCType_proper
+         (mem: memory)
          (σ: evalContext)
          (f: AExpr)
          (i: nat):
     Proper
-      ((=) ==> (=) ==> (=)) (evalIBinCType σ f i).
+      ((=) ==> (=) ==> (=)) (evalIBinCType mem σ f i).
   Proof.
     simpl_relation.
     unfold evalIBinCType.
     apply evalAexp_proper.
+    -
+      reflexivity.
     -
       unfold equiv, ListSetoid.List_equiv.
       constructor.
@@ -662,11 +706,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   (* TODO: This proof is terrible. It contains a lot of copy-paste and
      slow to proceess. Needs to be cleaned-up *)
   Instance evalDSHBinOp_proper
+           (mem: memory)
            (n off: nat)
            (f: AExpr)
            (σ: evalContext):
     Proper
-      ((=) ==> (=) ==> (=)) (evalDSHBinOp n off f σ).
+      ((=) ==> (=) ==> (=)) (evalDSHBinOp mem n off f σ).
   Proof.
     intros x y H x0 y0 H0.
     revert x y H x0 y0 H0.
@@ -966,51 +1011,20 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     Lemma evalMexp_incrMVar
+          (mem: memory)
           (m : MExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalMexp (foo :: σ) (incrMVar 0 m) ≡ evalMexp σ m.
+      evalMexp mem (foo :: σ) (incrMVar 0 m) ≡ evalMexp mem σ m.
     Proof.
-      destruct m;constructor.
-    Qed.
-
-    Lemma evalMexp_incrMVar_1
-          (m : MExpr)
-          (σ : evalContext)
-          (a foo: DSHVal):
-      evalMexp (a :: foo :: σ) (incrMVar 1 m) ≡ evalMexp (a :: σ) m.
-    Proof.
-      destruct m; try reflexivity.
-      simpl.
-      break_if.
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
-    Qed.
-
-    Lemma evalMexp_incrMVar_2
-          (m : MExpr)
-          (σ : evalContext)
-          (a b foo: DSHVal):
-      evalMexp (a :: b :: foo :: σ) (incrMVar 2 m) ≡ evalMexp (a :: b :: σ) m.
-    Proof.
-      destruct m; try reflexivity.
-      simpl.
-      break_if.
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
-    Qed.
-
-    Lemma evalMexp_incrMVar_3
-          (m : MExpr)
-          (σ : evalContext)
-          (a b c foo: DSHVal):
-      evalMexp (a :: b :: c :: foo :: σ) (incrMVar 3 m) ≡ evalMexp (a :: b :: c :: σ) m.
-    Proof.
-      destruct m; try reflexivity.
-      simpl.
-      break_if.
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
-      repeat (try destruct v; try simpl; try reflexivity; try lia).
+      destruct m.
+      -
+        simpl.
+        assert_match_eq E.
+        apply evalPexp_incrPVar.
+        repeat break_match; try inversion E; auto.
+      -
+        constructor.
     Qed.
 
     Lemma evalNexp_incrNVar
@@ -1025,71 +1039,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
          reflexivity).
     Qed.
 
-    Lemma evalNexp_incrNVar_2
-          (m : NExpr)
-          (σ : evalContext)
-          (a b foo: DSHVal):
-      evalNexp (a :: b :: foo :: σ) (incrNVar 2 m) ≡ evalNexp (a :: b :: σ) m.
-    Proof.
-      revert a b.
-      induction m; intros; try reflexivity.
-      simpl.
-      break_if.
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-    Qed.
-
-    Lemma evalNexp_incrNVar_3
-          (m : NExpr)
-          (σ : evalContext)
-          (a b c foo: DSHVal):
-      evalNexp (a :: b :: c :: foo :: σ) (incrNVar 3 m) ≡ evalNexp (a :: b :: c :: σ) m.
-    Proof.
-      revert a b c.
-      induction m; intros; try reflexivity.
-      simpl.
-      break_if.
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2;reflexivity.
-    Qed.
-
     Lemma evalAexp_incrAVar
+          (mem: memory)
           (a : AExpr)
           (σ : evalContext)
           (foo: DSHVal):
-      evalAexp (foo :: σ) (incrAVar 0 a) ≡ evalAexp σ a.
+      evalAexp mem (foo :: σ) (incrAVar 0 a) ≡ evalAexp mem σ a.
     Proof.
       induction a; try constructor; simpl;
         (try rewrite evalMexp_incrMVar;
@@ -1097,74 +1052,6 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
          try reflexivity);
         (try rewrite IHa; try reflexivity);
         (try rewrite IHa1, IHa2;reflexivity).
-    Qed.
-
-    Lemma evalAexp_incrAVar_2
-          (m : AExpr)
-          (σ : evalContext)
-          (a b foo: DSHVal):
-      evalAexp (a :: b :: foo :: σ) (incrAVar 2 m) ≡ evalAexp (a :: b :: σ) m.
-    Proof.
-      revert a b.
-      induction m; intros; try reflexivity.
-      simpl.
-      break_if.
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        simpl.
-        rewrite evalMexp_incrMVar_2, evalNexp_incrNVar_2.
-        reflexivity.
-      -
-        simpl; rewrite IHm; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-    Qed.
-
-    Lemma evalAexp_incrAVar_3
-          (m : AExpr)
-          (σ : evalContext)
-          (a b c foo: DSHVal):
-      evalAexp (a :: b :: c :: foo :: σ) (incrAVar 3 m) ≡ evalAexp (a :: b :: c :: σ) m.
-    Proof.
-      revert a b c.
-      induction m; intros; try reflexivity.
-      simpl.
-      break_if.
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        repeat (try destruct v; try simpl; try reflexivity; try lia).
-      -
-        simpl.
-        rewrite evalMexp_incrMVar_3, evalNexp_incrNVar_3.
-        reflexivity.
-      -
-        simpl; rewrite IHm; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
-      -
-        simpl; rewrite IHm1, IHm2; reflexivity.
     Qed.
 
   End IncrEval.
