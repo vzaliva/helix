@@ -88,3 +88,9 @@ Ltac assert_match_equiv H :=
   | [|- match ?a with _ => _  end = match ?b with _ => _  end] =>
     assert(a = b) as H
   end.
+
+Ltac assert_match_eq H :=
+  match goal with
+  | [|- match ?a with _ => _  end ≡ match ?b with _ => _  end] =>
+    assert(a ≡ b) as H
+  end.
