@@ -385,6 +385,7 @@ Definition evalFSHCOLOperator
      let xindex := 1%nat in
      let yindex := 0%nat in
      let mem := memory_set mem xindex x in
+     let σ := DSHPtrVal yindex::DSHPtrVal xindex::σ in
      mem <- evalDSHOperator σ op mem (estimateFuel op) ;;
          yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;
          mem_to_list "Invalid output memory block" o yb.
