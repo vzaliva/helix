@@ -85,7 +85,9 @@ DSHAlloc 2
                                                (DSHIMap 1 (PVar 0)
                                                   (PVar 4)
                                                   (AMult (AVar 0)
-                                                     (ANth (MVar 10)
+                                                     (ANth
+                                                        (MPtrDeref
+                                                           (PVar 10))
                                                         (NVar 4))))))))
                                    (DSHMemMap2 1 (PVar 1) (PVar 2)
                                       (PVar 2)
