@@ -304,9 +304,14 @@ Definition TypeSig_safe_add (k:var_id) (v:DSHType) (ts: TypeSig): option TypeSig
      | None => Some (TM.add k v ts)
      end.
 
+Definition TypeSigPExpr (me:PExpr) : option TypeSig :=
+  match me with
+  | PVar v => Some (TM.add v DSHMemBlock (TM.empty _))
+  end.
+
 Definition TypeSigMExpr (me:MExpr) : option TypeSig :=
   match me with
-  | MVar v => Some (TM.add v DSHMemBlock (TM.empty _))
+  | MPtrDeref p => TypeSigPExpr p
   | MConst _ => Some (TM.empty _)
   end.
 
