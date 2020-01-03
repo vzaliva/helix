@@ -67,7 +67,7 @@ let process_test t =
           AT.printf [AT.yellow] ": %s :" oname ;
           AT.printf [] " Result:\n" ;
           let ppf = std_formatter in
-          pp_print_list pp_binary64 ppf v ;
+          pp_print_list ~pp_sep:Llvm_printer.pp_comma_space pp_binary64 ppf v ;
           pp_force_newline ppf ();
           pp_print_flush ppf ()
     | Coq_inl msg ->
