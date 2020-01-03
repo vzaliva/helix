@@ -1,6 +1,9 @@
 Require Import Coq.Relations.Relations.
 Require Import Coq.Strings.String.
 
+Require Import ExtLib.Structures.Monad.
+Require Import ExtLib.Structures.MonadExc.
+
 Require Import MathClasses.interfaces.canonical_names.
 
 Require Export Vellvm.Error.
@@ -105,14 +108,24 @@ Ltac inl_inr :=
   match goal with
   | [H1: inl _ ≡ inr _ |- _] => inversion H1
   | [H1: inr _ ≡ inl _ |- _] => inversion H1
+
+  | [H1: inl _ ≡ Monad.ret _ |- _] => inversion H1
+  | [H1: Monad.ret _ ≡ inl _ |- _] => inversion H1
+
+  | [H1: raise _ ≡ inr _ |- _] => inversion H1
+  | [H1: inr _ ≡ raise _ |- _] => inversion H1
+
   | [H1: inl _ = inr _ |- _] => unfold equiv in H1; inversion H1
   | [H1: inr _ = inl _ |- _] => unfold equiv in H1; inversion H1
+
   | [ |- inl ?x ≡ inl ?x ] => reflexivity
   | [ |- inr ?x ≡ inr ?x ] => reflexivity
+
   | [H1: ?a = inr _,
-         H2: ?b = inl _ |- _] => rewrite H1 in H2;
+         H2: ?a = inl _ |- _] => rewrite H1 in H2;
                                unfold equiv in H2;
                                inversion H2
+
   | [H1: is_OK (inl _) |- _] => inversion H1
   | [H1: is_Err (inr _) |- _] => inversion H1
   | [|- is_OK (inr _)] => unfold is_OK; tauto
@@ -141,6 +154,11 @@ Ltac inl_inr_inv :=
   | [H1: inr _ ≡ inr _ |- _] => inversion H1; clear H1
   | [H1: inl _ = inl _ |- _] => apply inl_inj_equiv in H1
   | [H1: inr _ = inr _ |- _] => apply inr_inj_equiv in H1
+
+  | [H1: inr _ ≡ Monad.ret _ |- _] => inversion H1; clear H1
+  | [H1: Monad.ret _ ≡ inr _ |- _] => inversion H1; clear H1
+  | [H1: raise _ ≡ inl _ |- _] => inversion H1; clear H1
+  | [H1: inl _ ≡ raise _ |- _] => inversion H1; clear H1
   end.
 
 Lemma err_equiv_eq
