@@ -6,6 +6,7 @@ Require Import Coq.ZArith.BinInt.
 Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
+Require Import Helix.Util.ErrorSetoid.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
@@ -213,17 +214,17 @@ Definition constMemBlock
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
-  : (list binary64 * list (toplevel_entity typ (list (block typ))))
+  : err (list binary64 * list (toplevel_entity typ (list (block typ))))
   :=
     match x with
-    | nil => (data,[])
+    | nil => ret (data,[])
     | cons (nm, t) xs =>
-      let (data,gs) := initIRGlobals data xs in
+      '(data,gs) <- initIRGlobals data xs ;;
       match t with
-      | FSHnatValType => (data,gs) (* TODO: not supported *)
+      | FSHnatValType => raise "FSHnatValType global type not supported"
       | FSHFloatValType =>
         let '(x, data) := rotate Float64Zero data in
-        (data, TLE_Global {|
+        ret (data, TLE_Global {|
                    g_ident        := Name nm;
                    g_typ          := getIRType t ;
                    g_constant     := true ;
@@ -240,7 +241,7 @@ Fixpoint initIRGlobals
                  |} :: gs)
       | FSHvecValType n =>
         let (data, arr) := constArray n data in
-        (data, TLE_Global {|
+        ret (data, TLE_Global {|
                    g_ident        := Name nm;
                    g_typ          := getIRType t ;
                    g_constant     := true ;
@@ -343,17 +344,20 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
     match t return (list binary64 -> _) with
     | mkFSHCOLTest i o name globals op =>
       fun data' =>
-        let (data'', ginit) := initIRGlobals data' globals in
-        let ginit := app [TLE_Comment "Global variables"] ginit in
-        let main := genMain i o name globals data'' in
-        match LLVMGen' (m := sum string) i o globals just_compile op name with
-        | inl msg => (None, None, msg)
-        | inr prog =>
-          if just_compile then
-            (Some prog, None, "")
-          else
-            let code := app (app ginit prog) main in
-            (Some prog, Some (test_interpreter code), "")
+        match initIRGlobals data' globals with
+        | inl msg => (None,None,msg)
+        | inr (data'', ginit) =>
+          let ginit := app [TLE_Comment "Global variables"] ginit in
+          let main := genMain i o name globals data'' in
+          match LLVMGen' (m := sum string) i o globals just_compile op name with
+          | inl msg => (None, None, msg)
+          | inr prog =>
+            if just_compile then
+              (Some prog, None, "")
+            else
+              let code := app (app ginit prog) main in
+              (Some prog, Some (test_interpreter code), "")
+          end
         end
     end data.
 
