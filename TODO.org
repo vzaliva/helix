@@ -93,8 +93,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
     See TODO comment in =Compiler.v=
 ** Pretty printing
    How there is an assortment of functions like =string_of_DSHOperator=
-   =string_of_vars= and =string_of_PExpr=. Consider using =Show= typeclass
-   intances instead.
+   =string_of_vars= and =string_of_PExpr=. Consider using
+   =ExtLib.Programming.Show= typeclass intances instead.
 * Build/Tests
 ** Use =dune= for coq code builds.
 ** Use =coq-struct-tact= package                                       :zoickx:
