@@ -103,7 +103,7 @@ Fixpoint compileNExpr (res:var_resolver) (a_n:term): TemplateMonad NExpr :=
 
 Fixpoint compileMExpr (res:var_resolver) (a_e:term): TemplateMonad (MExpr):=
   match a_e with
-  | tRel i => tmReturn (MVar (res i))
+  | tRel i => tmReturn (MPtrDeref (PVar (res i)))
   (* TODO: support for constant vectors as MConst *)
   | _ => tmFail ("Unsupported MExpr " ++ (string_of_term a_e))
   end.

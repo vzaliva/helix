@@ -68,7 +68,7 @@ Definition translate_mem_block (m:MDSHCOLOnCarrierA.mem_block) : option mem_bloc
 
 Definition translateMExpr (m:MDSHCOLOnCarrierA.MExpr) : option MExpr :=
   match m with
-  | MDSHCOLOnCarrierA.MVar x => ret (MVar x)
+  | MDSHCOLOnCarrierA.MPtrDeref x => ret (MPtrDeref (translatePExpr x))
   | MDSHCOLOnCarrierA.MConst x =>
     x' <- translate_mem_block x ;;
        ret (MConst x')

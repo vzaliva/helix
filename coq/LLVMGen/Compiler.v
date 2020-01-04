@@ -280,11 +280,11 @@ Section monadic.
     :
       m (IRState * (exp typ) * (code typ) * typ)
     := match mexp with
-       | MVar x => '(i,t) <- opt2err "MVar out of range" (List.nth_error (vars st) x) ;;
+       | MPtrDeref (PVar x) => '(i,t) <- opt2err "PVar un MPtrDeref out of range" (List.nth_error (vars st) x) ;;
                    match t with
                    | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
                      ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
-                  | _  => raise ("MVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                  | _  => raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                    end
        | MConst c => raise "MConst not implemented" (* TODO *)
        end.

@@ -72,13 +72,17 @@ Module Type MDSigmaHCOL (Import CT : CType).
   | NMin  : NExpr -> NExpr -> NExpr
   | NMax  : NExpr -> NExpr -> NExpr.
 
-  (* Expressions which evaluate to `mem_block` *)
+  (* Expressions which evaluate to [mem_block]  *)
+  Inductive PExpr: Type :=
+  | PVar:  var_id -> PExpr
+  (*  | PConst:  constant memory addresses are not implemneted *)
+  .
+
+  (* Expressions which evaluate to [mem_block] *)
   Inductive MExpr: Type :=
-  | MVar:  var_id -> MExpr
+  | MPtrDeref:  PExpr -> MExpr (* Dereference operator *)
   | MConst: mem_block -> MExpr.
 
-  Inductive PExpr: Type :=
-  | PVar:  var_id -> PExpr.
 
   (* Expressions which evaluate to `CType` *)
   Inductive AExpr : Type :=
@@ -211,29 +215,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
       + constructor; [apply IHx1 with (y:=y1); auto | apply IHx2 with (y:=y2); auto].
   Qed.
 
-
-  Inductive MExpr_equiv : MExpr -> MExpr -> Prop :=
-  | MVar_equiv {n0 n1}: n0=n1 -> MExpr_equiv (MVar n0) (MVar n1)
-  | MConst_equiv {a b: mem_block}: a=b -> MExpr_equiv (MConst a) (MConst b).
-
-  Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
-
-  Instance MExpr_Equivalence:
-    Equivalence MExpr_equiv.
-  Proof.
-    split.
-    -
-      intros x.
-      induction x; constructor; auto.
-    -
-      intros x y E.
-      induction E; constructor; try symmetry; assumption.
-    -
-      intros x y z Exy Eyz.
-      induction Exy; inversion Eyz; subst;
-        constructor; auto.
-  Qed.
-
   Inductive PExpr_equiv : PExpr -> PExpr -> Prop :=
   | PVar_equiv {n0 n1}: n0=n1 -> PExpr_equiv (PVar n0) (PVar n1).
 
@@ -255,6 +236,29 @@ Module Type MDSigmaHCOL (Import CT : CType).
         constructor; auto.
   Qed.
 
+  Inductive MExpr_equiv : MExpr -> MExpr -> Prop :=
+  | MPtrDeref_equiv {p0 p1}: p0=p1 -> MExpr_equiv (MPtrDeref p0) (MPtrDeref p1)
+  | MConst_equiv {a b: mem_block}: a=b -> MExpr_equiv (MConst a) (MConst b).
+
+  Instance MExpr_Equiv: Equiv MExpr := MExpr_equiv.
+
+  Instance MExpr_Equivalence:
+    Equivalence MExpr_equiv.
+  Proof.
+    split.
+    -
+      intros x.
+      induction x; constructor; auto.
+    -
+      intros x y E.
+      induction E; constructor; try symmetry; assumption.
+    -
+      intros x y z Exy Eyz.
+      induction Exy; inversion Eyz; subst;
+        constructor; auto.
+  Qed.
+
+
   Inductive AExpr_equiv: AExpr -> AExpr -> Prop :=
   | AVar_equiv  {n0 n1}: n0=n1 -> AExpr_equiv (AVar n0) (AVar n1)
   | AConst_equiv {a b}: a=b -> AExpr_equiv (AConst a) (AConst b)
@@ -269,6 +273,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   | AMin_equiv  {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMin a b) (  AMin a' b')
   | AMax_equiv  {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AMax a b) (  AMax a' b')
   | AZless_equiv {a a' b b'}: AExpr_equiv a a' -> AExpr_equiv b b' -> AExpr_equiv (AZless a b) (AZless a' b').
+
 
   Instance AExpr_Equiv: Equiv AExpr := AExpr_equiv.
 
@@ -327,10 +332,10 @@ Module Type MDSigmaHCOL (Import CT : CType).
       PVar (if le_dec skip var_id then (S var_id) else var_id)
     end.
 
-  Definition incrMVar (skip:nat) (p: MExpr): MExpr :=
-    match p with
-    | MVar var_id => MVar (if le_dec skip var_id then (S var_id) else var_id)
-    | _ => p
+  Definition incrMVar (skip:nat) (m: MExpr): MExpr :=
+    match m with
+    | MPtrDeref p => MPtrDeref (incrPVar skip p)
+    | _ => m
     end.
 
   Fixpoint incrNVar (skip:nat) (p: NExpr): NExpr :=

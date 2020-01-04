@@ -56,66 +56,128 @@ let process_test t =
       List.iteri randoms ~f:(fun i v -> Printf.printf "\t%d\t-\t%s\n" i (string_of_FloatV v))
     end ;
 
-  (* Evaluate *)
   begin
-  if !justcompile then
-    ()
-  else
-    match Tests.evalFSHCOLTest t randoms with
-    | Coq_inr v ->
-          AT.printf [AT.black; AT.on_green] "OK" ;
-          AT.printf [AT.yellow] ": %s :" oname ;
-          AT.printf [] " Result:\n" ;
-          let ppf = std_formatter in
-          pp_print_list ~pp_sep:Llvm_printer.pp_comma_space pp_binary64 ppf v ;
-          pp_force_newline ppf ();
-          pp_print_flush ppf ()
-    | Coq_inl msg ->
-       begin
+    if !justcompile then
+      match Tests.runFSHCOLTest t !justcompile randoms with
+      | ((None, _) , msg) ->
          AT.printf [AT.white; AT.on_red] "Error" ;
          AT.printf [AT.yellow] ": %s" oname ;
-         AT.printf [] " F-HCOL Evaluation failed:" ;
+         AT.printf [] " F-HCOL Compilation failed:" ;
          AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
-       end
-  end ;
-
-  (* Compile and run *)
-  match Tests.runFSHCOLTest t !justcompile randoms with
-  | ((None, _) , msg) ->
-     AT.printf [AT.white; AT.on_red] "Error" ;
-     AT.printf [AT.yellow] ": %s" oname ;
-     AT.printf [] " F-HCOL Compilation failed:" ;
-     AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
-     false
-  | ((Some ast, None), _) ->
-     if !justcompile then
-       (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
-     else
-       begin
-         AT.printf [AT.white; AT.on_red] "Error" ;
-         AT.printf [AT.yellow] ": %s" oname ;
-         AT.printf [] " LLVM Compilation failed\n" ;
          false
-       end
-  | ((Some ast, Some trace), _) ->
-     if !justcompile then
-       (output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ; true)
-     else
-       match Interpreter.step trace with
-       | Error msg ->
-          AT.printf [AT.white; AT.on_red] "Error";
-          AT.printf [AT.yellow] ": %s :" oname ;
-          AT.printf [] "LLVM Intepretation failed with: %s\n" msg ;
-          false
-       | Ok dv ->
-          AT.printf [AT.black; AT.on_green] "OK" ;
-          AT.printf [AT.yellow] ": %s :" oname ;
-          AT.printf [] " Result:\n" ;
-          let ppf = std_formatter in
-          Interpreter.pp_dvalue ppf dv ;
-          pp_force_newline ppf ();
-          pp_print_flush ppf () ;
-          true
+      | ((Some ast, _), _) ->
+         output_ll_file (output_file_prefix ^ oname ^ ".ll") ast ;
+         true
+    else
+      let eres = Tests.evalFSHCOLTest t randoms in
+      let rres = Tests.runFSHCOLTest t !justcompile randoms in
+
+      let print_eres v =
+        AT.printf [AT.green] "Evaluation Result:\n" ;
+        let ppf = std_formatter in
+        pp_print_list ~pp_sep:Llvm_printer.pp_comma_space pp_binary64 ppf v ;
+        pp_force_newline ppf ();
+        pp_print_flush ppf () in
+
+      let print_dv dv =
+        AT.printf [AT.green] "Interpretation Result:\n" ;
+        let ppf = std_formatter in
+        Interpreter.pp_dvalue ppf dv ;
+        pp_force_newline ppf ();
+        pp_print_flush ppf ()  in
+
+      AT.printf [AT.yellow] "\n%s:\n" oname ;
+
+      (* Compilation *)
+      let cflag =
+        (match rres with
+         | ((Some _, _), _) ->
+            AT.printf [AT.black; AT.on_green] "OK" ;
+            AT.printf [] " F-HCOL Compilation passed\n" ;
+            true
+         | ((None, _) , msg) ->
+            AT.printf [AT.white; AT.on_red] "Error" ;
+            AT.printf [AT.yellow] " F-HCOL Compilation failed:" ;
+            AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
+            false
+        ) in
+      (* Interpretation *)
+      let (iflag,tres) =
+        (match rres with
+         | ((_, Some trace), _) ->
+            begin
+              let tres = Interpreter.step trace in
+              match tres with
+              | Error msg ->
+                 AT.printf [AT.white; AT.on_red] "Error";
+                 AT.printf [] " LLVM Intepretation failed with: %s\n" msg ;
+                 (false, tres)
+              | Ok (DVALUE_Array _) ->
+                 AT.printf [AT.black; AT.on_green] "OK" ;
+                 AT.printf [] " Interpretation passed\n" ;
+                 (true, tres)
+              | Ok dv ->
+                 AT.printf [AT.white; AT.on_red] "Error";
+                 AT.printf [] " LLVM Intepretation did not produce array\n";
+                 print_dv dv;
+                 (false, tres)
+            end
+         | ((_, None), msg) ->
+            AT.printf [AT.white; AT.on_red] "Error" ;
+            AT.printf [] " F-HCOL Interpretation did not produce trace:" ;
+            AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
+            (false, Error "no trace produced")
+        ) in
+      let eflag =
+        (match eres with
+         | Coq_inr _ ->
+            AT.printf [AT.black; AT.on_green] "OK" ;
+            AT.printf [] " Evaluation passed\n" ;
+            true
+         | Coq_inl msg ->
+            AT.printf [AT.white; AT.on_red] "Error" ;
+            AT.printf [] " F-HCOL Evaluation failed:" ;
+            AT.printf [AT.magenta] " %s\n" (camlstring_of_coqstring msg)  ;
+            false
+        ) in
+
+      let dflag =
+        (match tres, eres with
+         | Ok (DVALUE_Array arr), Coq_inr v ->
+            begin
+              match List.fold2 v arr ~init:true ~f:(fun p ve de ->
+                        match de with
+                        | DVALUE_Double d -> p && (Floats.Float.cmp Ceq d ve)
+                        | _ -> false
+                      ) with
+              | Ok bv ->
+                 if bv then
+                   begin
+                     AT.printf [AT.black; AT.on_green] "OK" ;
+                     AT.printf [] " Results match\n" ;
+                     true
+                   end
+                 else
+                   begin
+                     AT.printf [AT.white; AT.on_red] "Error" ;
+                     AT.printf [] " Value comparison failed: values differ" ;
+                     print_dv (DVALUE_Array arr) ;
+                     print_eres v ;
+                     false
+                   end
+              | Unequal_lengths ->
+                 AT.printf [AT.white; AT.on_red] "Error" ;
+                 AT.printf [] " Value comparison failed: different vector length" ;
+                 print_dv (DVALUE_Array arr) ;
+                 print_eres v ;
+                 false
+            end
+         | _,_ ->
+            false
+        ) in
+
+      (cflag && iflag && eflag && dflag)
+  end
 
 let args =
   [
