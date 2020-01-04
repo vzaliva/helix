@@ -28,27 +28,23 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Inductive DSHType :=
   | DSHnat : DSHType
   | DSHCType : DSHType
-  | DSHMemBlock : DSHType
   | DSHPtr : DSHType.
 
   Inductive DSHVal :=
   | DSHnatVal (n:nat): DSHVal
   | DSHCTypeVal (a:t): DSHVal
-  | DSHMemVal (m:mem_block): DSHVal
   | DSHPtrVal (a:mem_block_id): DSHVal.
 
   Inductive DSHValType: DSHVal -> DSHType -> Prop :=
   | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
   | DSHCTypeVal_type (a:t): DSHValType (DSHCTypeVal a) DSHCType
-  | DSHMemVal_type (m:mem_block): DSHValType (DSHMemVal m)  DSHMemBlock
-  | DSHMemBlockId_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
+  | DSHDSHPtrVal_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
 
   (* Functional version. *)
   Definition DSHValToType: DSHVal -> DSHType :=
     fun v => match v with
           | DSHnatVal _ => DSHnat
           | DSHCTypeVal _ =>  DSHCType
-          | DSHMemVal _ =>  DSHMemBlock
           | DSHPtrVal _ => DSHPtr
           end.
 
@@ -136,7 +132,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
   | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHMemVal_equiv {m0 m1: mem_block}: m0=m1 -> DSHVal_equiv (DSHMemVal m0) (DSHMemVal m1)
   | DSHPtr_equiv {p0 p1: mem_block_id}: p0=p1 -> DSHVal_equiv (DSHPtrVal p0) (DSHPtrVal p1).
 
   Instance DSHVar_Equivalence:
@@ -167,10 +162,6 @@ Module Type MDSigmaHCOL (Import CT : CType).
         constructor.
         rewrite H.
         apply H2.
-      +
-        subst.
-        constructor.
-        auto.
   Qed.
 
   Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.
