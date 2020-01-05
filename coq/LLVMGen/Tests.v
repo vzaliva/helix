@@ -56,99 +56,69 @@ Definition IReduction_test :=
 
 
 Definition SUMUnion_test :=
-DSHAlloc 4
-  (DSHAlloc 4
-     (DSHSeq
-        (DSHSeq (DSHIMap 4 (PVar 4) (PVar 0) (AAbs (AVar 0)))
-           (DSHIMap 4 (PVar 4) (PVar 1)
-              (AMult (AVar 0) (ANth (MPtrDeref (PVar 4)) (NVar 1)))))
-        (DSHMemMap2 4 (PVar 0) (PVar 1) (PVar 3) (APlus (AVar 1) (AVar 0))))).
+DSHSeq (DSHIMap 4 (PVar 2) (PVar 1) (AAbs (AVar 0)))
+       (DSHIMap 4 (PVar 2) (PVar 1) (AMult (AVar 0) (ANth (MPtrDeref (PVar 2)) (NVar 1)))).
 
 Definition DynWin_test: DSHOperator :=
 DSHAlloc 2
   (DSHSeq
-     (DSHAlloc 2
-        (DSHAlloc 2
+     (DSHSeq
+        (DSHAlloc 1
            (DSHSeq
-              (DSHSeq
-                 (DSHAlloc 1
-                    (DSHSeq
-                       (DSHAlloc 1
-                          (DSHSeq
-                             (DSHMemInit 1 (PVar 0)
-                                FSigmaHCOL.Float64Zero)
-                             (DSHLoop 3
-                                (DSHSeq
+              (DSHAlloc 1
+                 (DSHSeq
+                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHLoop 3
+                       (DSHSeq
+                          (DSHAlloc 1
+                             (DSHSeq
+                                (DSHAssign (PVar 7, NConst 0)
+                                   (PVar 0, NConst 0))
+                                (DSHAlloc 1
+                                   (DSHSeq
+                                      (DSHPower (NVar 2)
+                                         (PVar 1, NConst 0)
+                                         (PVar 0, NConst 0)
+                                         (AMult (AVar 1) (AVar 0))
+                                         FSigmaHCOL.Float64One)
+                                      (DSHIMap 1 (PVar 0) (PVar 4)
+                                         (AMult (AVar 0)
+                                            (ANth
+                                               (MPtrDeref (PVar 8))
+                                               (NVar 4))))))))
+                          (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
+                             (APlus (AVar 1) (AVar 0)))))))
+              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 0))))
+        (DSHAlloc 1
+           (DSHSeq
+              (DSHAlloc 1
+                 (DSHSeq
+                    (DSHMemInit 1 (PVar 0) FSigmaHCOL.Float64Zero)
+                    (DSHLoop 2
+                       (DSHSeq
+                          (DSHAlloc 2
+                             (DSHSeq
+                                (DSHLoop 2
                                    (DSHAlloc 1
                                       (DSHSeq
                                          (DSHAssign
-                                            (PVar 9, NConst 0)
+                                            (PVar 9,
+                                            NPlus
+                                              (NPlus (NConst 1)
+                                                 (NMult (NVar 3)
+                                                    (NConst 1)))
+                                              (NMult (NVar 1)
+                                                 (NMult (NConst 2)
+                                                    (NConst 1))))
                                             (PVar 0, NConst 0))
-                                         (DSHAlloc 1
-                                            (DSHSeq
-                                               (DSHPower (NVar 2)
-                                                  (PVar 1, NConst 0)
-                                                  (PVar 0, NConst 0)
-                                                  (AMult (AVar 1)
-                                                     (AVar 0))
-                                                  FSigmaHCOL.Float64One)
-                                               (DSHIMap 1 (PVar 0)
-                                                  (PVar 4)
-                                                  (AMult (AVar 0)
-                                                     (ANth
-                                                        (MPtrDeref
-                                                           (PVar 10))
-                                                        (NVar 4))))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
-                                      (PVar 2)
-                                      (APlus (AVar 1) (AVar 0)))))))
-                       (DSHAssign (PVar 0, NConst 0)
-                          (PVar 1, NConst 0))))
-                 (DSHAlloc 1
-                    (DSHSeq
-                       (DSHAlloc 1
-                          (DSHSeq
-                             (DSHMemInit 1 (PVar 0)
-                                FSigmaHCOL.Float64Zero)
-                             (DSHLoop 2
-                                (DSHSeq
-                                   (DSHAlloc 2
-                                      (DSHSeq
-                                         (DSHLoop 2
-                                            (DSHAlloc 1
-                                               (DSHSeq
-                                                  (DSHAssign
-                                                     (PVar 11,
-                                                     NPlus
-                                                       (NPlus
-                                                          (NConst 1)
-                                                          (NMult
-                                                           (NVar 3)
-                                                           (NConst 1)))
-                                                       (NMult
-                                                          (NVar 1)
-                                                          (NMult
-                                                           (NConst 2)
-                                                           (NConst 1))))
-                                                     (PVar 0,
-                                                     NConst 0))
-                                                  (DSHAssign
-                                                     (PVar 0,
-                                                     NConst 0)
-                                                     (PVar 2,
-                                                     NVar 1)))))
-                                         (DSHBinOp 1 (PVar 0)
-                                            (PVar 3)
-                                            (AAbs
-                                               (AMinus (AVar 1)
-                                                  (AVar 0))))))
-                                   (DSHMemMap2 1 (PVar 1) (PVar 2)
-                                      (PVar 2)
-                                      (AMax (AVar 1) (AVar 0)))))))
-                       (DSHAssign (PVar 0, NConst 0)
-                          (PVar 2, NConst 1)))))
-              (DSHMemMap2 2 (PVar 0) (PVar 1) (PVar 2)
-                 (APlus (AVar 1) (AVar 0))))))
+                                         (DSHAssign
+                                            (PVar 0, NConst 0)
+                                            (PVar 2, NVar 1)))))
+                                (DSHBinOp 1 (PVar 0) (PVar 3)
+                                   (AAbs (AMinus (AVar 1) (AVar 0))))))
+                          (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2)
+                             (AMax (AVar 1) (AVar 0)))))))
+              (DSHAssign (PVar 0, NConst 0) (PVar 1, NConst 1)))))
      (DSHBinOp 1 (PVar 0) (PVar 2) (AZless (AVar 1) (AVar 0)))).
 
 

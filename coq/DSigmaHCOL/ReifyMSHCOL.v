@@ -276,25 +276,11 @@ Fixpoint compileMSHCOL2DSHCOL
                tmReturn (vars, DSHAlloc no2 (DSHSeq cop2 cop1))
     | Some n_HTSUMUnion, [i ; o ; dot ; op1 ; op2] =>
       tmPrint "MHTSUMUnion" ;;
-              ni <- tmUnquoteTyped nat i ;;
-              no <- tmUnquoteTyped nat o ;;
-              (* [ddot] increased twice for 2 allocs *)
-              ddot <- compileDSHBinCarrierA res dot ;;
-              tnt <- tmQuote DSHnat ;;
-              let tyf_i := PVar 0 in
-              let tyg_i := PVar 1 in
-              (* double increase after 2 allocs *)
-              let x_p'' := incrPVar 0 (incrPVar 0 x_p) in
-              let y_p'' := incrPVar 0 (incrPVar 0 y_p) in
-              let res2 := Fake_var_resolver res 2 in
-              '(_, cop1) <- compileMSHCOL2DSHCOL res2 vars op1 x_p'' tyf_i ;;
-               '(_,cop2) <- compileMSHCOL2DSHCOL res2 vars op2 x_p'' tyg_i ;;
-               tmReturn (vars,
-                         DSHAlloc no
-                                  (DSHAlloc no
-                                            (DSHSeq
-                                               (DSHSeq cop1 cop2)
-                                               (DSHMemMap2 no tyf_i tyg_i y_p'' ddot))))
+              (* This only works under assumption that output index
+                 sets of [op1] and [op2] are disjount *)
+              '(_, cop1) <- compileMSHCOL2DSHCOL res vars op1 x_p y_p ;;
+              '(_,cop2) <- compileMSHCOL2DSHCOL res vars op2 x_p y_p ;;
+               tmReturn (vars, DSHSeq cop1 cop2)
     | None, _ =>
       tmFail ("Usupported SHCOL operator " ++ opname)
     | _, _ =>
