@@ -54,6 +54,16 @@ Definition IReduction_test :=
                                                            (AAbs (AMinus (AVar 1) (AVar 0))))))
                                (DSHMemMap2 1 (PVar 1) (PVar 2) (PVar 2) (AMax (AVar 1) (AVar 0)))))).
 
+
+Definition SUMUnion_test :=
+DSHAlloc 4
+  (DSHAlloc 4
+     (DSHSeq
+        (DSHSeq (DSHIMap 4 (PVar 4) (PVar 0) (AAbs (AVar 0)))
+           (DSHIMap 4 (PVar 4) (PVar 1)
+              (AMult (AVar 0) (ANth (MPtrDeref (PVar 4)) (NVar 1)))))
+        (DSHMemMap2 4 (PVar 0) (PVar 1) (PVar 3) (APlus (AVar 1) (AVar 0))))).
+
 Definition DynWin_test: DSHOperator :=
 DSHAlloc 2
   (DSHSeq
@@ -166,8 +176,8 @@ Definition all_tests :=
       (*
       {| name:="iunion"; op:=IUnion_test; globals:=[] |} ;
       {| name:="inductor"; op:=Inductor_test; globals:=[] |} ;
-      {| name:="sumunion"; op:=SUMUnionTest; globals:=[] |} ;
        *)
+      {| i:=4; o:=4; name:="sumunion"; op:=SUMUnion_test; globals:=[("D", FSHvecValType 4)] |} ;
       {| i:=8; o:=8; name:="pointwise_plus1"; op:=IMap_plus1_test; globals:=[] |} ;
       {| i:=8; o:=8; name:="pointwise_plusD"; op:=IMap_plusD_test; globals:=[("D", FSHFloatValType)] |} ;
 

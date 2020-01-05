@@ -342,7 +342,9 @@ Require Import Helix.SigmaHCOL.SigmaHCOLRewriting.
 Import MDSHCOLOnCarrierA.
 
 
-Definition foo := fun a => MSHPointwise (n:=4) (mult_by_nth a).
+Definition foo := MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)).
+
+Definition foo0 := fun a => MSHPointwise (n:=4) (mult_by_nth a).
 
 Definition foo1 :=
   MSHIReduction (i:=2) CarrierAz minmax.max
@@ -357,7 +359,12 @@ Definition foo1 :=
                      (MSHPointwise (n:=2) (IgnoreIndex (fun x => abs x)))
                 ).
 
-Run TemplateProgram (reifyMSHCOL foo1 ["foo1"] "bar" "bar_globals").
+Definition foo2 := fun a => MHTSUMUnion plus
+                                     (MSHPointwise (n:=4) (IgnoreIndex (fun x => abs x)))
+                                     (MSHPointwise (n:=4) (mult_by_nth a)).
+
+
+Run TemplateProgram (reifyMSHCOL foo2 ["foo2"] "bar" "bar_globals").
 
 Print bar_globals.
 Print bar.
