@@ -253,8 +253,8 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S n =>
-        v0 <- mem_lookup_err "Error reading 1st arg memory in evalDSHMap2" n x0 ;;
-           v1 <- mem_lookup_err "Error reading 2nd arg memory in evalDSHMap2" n x1 ;;
+        v0 <- mem_lookup_err ("Error reading 1st arg memory in evalDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x0) n x0 ;;
+           v1 <- mem_lookup_err ("Error reading 2nd arg memory in evalDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x1) n x1 ;;
            v' <- evalBinCType mem σ f v0 v1 ;;
            evalDSHMap2 mem n f σ x0 x1 (mem_add n v' y)
       end.

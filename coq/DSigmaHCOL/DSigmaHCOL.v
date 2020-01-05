@@ -379,6 +379,13 @@ Module Type MDSigmaHCOL (Import CT : CType).
 
   Section Printing.
 
+    (* List of keys of elements in memblock as string.
+       E.g. "{1,2,5}"
+     *)
+    Definition string_of_mem_block_keys (m:mem_block) : string
+      :=
+        "{"++(concat "," (List.map string_of_nat (mem_keys_lst m)))++"}".
+
     Definition string_of_PExpr (p:PExpr) : string :=
       match p with
       | PVar x => ("(PVar " ++ string_of_nat x ++ ")")%string
