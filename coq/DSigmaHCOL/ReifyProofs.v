@@ -542,15 +542,9 @@ Proof.
 Qed.
 
 Lemma eq_equiv_err_nat (n1 n2 : err nat) :
-  n1 = n2 <-> n1 ≡ n2.
+  n1 ≡ n2 -> n1 = n2.
 Proof.
-  split; intros.
-  -
-    inversion H; inversion H0.
-    reflexivity.
-    apply String.eqb_eq in H4; congruence.
-  -
-    subst; reflexivity.
+  intros; subst; reflexivity.
 Qed.
 
 Lemma eq_equiv_option_nat (n1 n2 : option nat) :
@@ -576,8 +570,6 @@ Proof.
     destruct H as [TC0 TC1].
 
   destruct_err_equiv.
-  -
-    admit.
   -
     eq_to_equiv_hyp.
     (* eapply evalNExpr_is_OK in TC0. *)
@@ -685,8 +677,6 @@ Proof.
     destruct H as [TC0 TC1].
 
   destruct_err_equiv.
-  -
-    admit.
   -
     (*
     contradict Hb.
@@ -2297,42 +2287,50 @@ Proof.
   -
     intros until fuel; intros CE BEx BEy.
     eapply evalNExpr_context_equiv_at_TypeSig in XN;
-      [apply eq_equiv_err_nat in XN | eassumption].
-    eapply evalNExpr_context_equiv_at_TypeSig in YN;
-      [apply eq_equiv_err_nat in YN | eassumption].
-    unfold blocks_equiv_at_Pexp in *;
+      [inversion XN; clear XN; rename H into XN0, H0 into XN1; [rename H1 into XN | ]
+      | eassumption].
+    all: eapply evalNExpr_context_equiv_at_TypeSig in YN;
+      [inversion YN; clear YN; rename H into YN0, H0 into YN1; [rename H1 into YN | ]
+      | eassumption].
+
+    all: unfold blocks_equiv_at_Pexp in *;
       inversion BEx; clear BEx; inversion H1; clear H1;
       inversion BEy; clear BEy; inversion H6; clear H6.
-    destruct (evalDSHOperator σ0) eqn:OE1,
+    all: destruct (evalDSHOperator σ0) eqn:OE1,
              (evalDSHOperator σ1) eqn:OE2.
     all: repeat constructor.
     all: destruct fuel; try (cbn in *; some_none; fail).
     all: cbn in *.
     all: try inl_inr.
     all: unfold memory_lookup_err, mem_lookup_err, trywith in *.
-    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8, XN, YN in *.
+    all: rewrite <-H, <-H0, <-H1, <-H2, <-H3, <-H5, <-H7, <-H8, <-XN0, <-XN1 in *.
+    all: try rewrite <-YN0, <-YN1 in *.
     all: repeat break_match; try some_none; try inl_inr.
     all: repeat some_inv; repeat inl_inr_inv; subst.
     +
-      assert (C : mem_lookup n m4 = mem_lookup n m2) by apply H4.
-      rewrite Heqo0, Heqo in C.
-      some_none.
+      enough (C : mem_lookup a m4 = mem_lookup b m2)
+        by (rewrite Heqo0, Heqo in C; some_none).
+      rewrite XN.
+      apply H4.
     +
-      assert (C : mem_lookup n m4 = mem_lookup n m2) by apply H4.
-      rewrite Heqo0, Heqo in C.
-      some_none.
+      enough (C : mem_lookup a m4 = mem_lookup b m2)
+        by (rewrite Heqo0, Heqo in C; some_none).
+      rewrite XN.
+      apply H4.
     +
       unfold memory_lookup, memory_set.
       repeat (rewrite NP.F.add_eq_o by reflexivity).
       constructor.
       unfold mem_add, equiv, mem_block_Equiv; intros.
-      destruct (Nat.eq_dec n0 k).
+      inversion XN; subst.
+      inversion YN; subst.
+      destruct (Nat.eq_dec b0 k).
       *
-        repeat (rewrite NP.F.add_eq_o with (x := n0) by assumption).
+        repeat (rewrite NP.F.add_eq_o with (x := b0) by assumption).
         rewrite <-Heqo, <-Heqo0.
         apply H4.
       *
-        repeat (rewrite NP.F.add_neq_o with (x := n0) by assumption).
+        repeat (rewrite NP.F.add_neq_o with (x := b0) by assumption).
         apply H9.
   -
     intros.
@@ -2347,6 +2345,7 @@ Proof.
     destruct (Nat.eq_dec m1 k), (Nat.eq_dec n0 k);
         try (rewrite NP.F.add_eq_o with (x := m1) by assumption);
         try (rewrite NP.F.add_eq_o with (x := n0) by assumption);
+
         try (rewrite NP.F.add_neq_o with (x := m1) by assumption);
         try (rewrite NP.F.add_neq_o with (x := n0) by assumption).
     all: subst.
