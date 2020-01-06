@@ -1251,7 +1251,8 @@ Class MSH_DSH_compat
           (lookup_Pexp σ m y_p = inr mb) (* output before *) ->
 
           (h_opt_err_c (fun md (* memory diff *) m' (* memory state after execution *) =>
-                     err_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
+     
+                err_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
                            ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
@@ -1350,6 +1351,7 @@ Class MSH_DSH_BinCarrierA_compat
       (f: {n:nat|n<o} -> CarrierA -> CarrierA -> CarrierA)
       (σ: evalContext)
       (df : AExpr)
+      (mem : memory)
       `{dft : DSHIBinCarrierA df}
   :=
     {
@@ -1358,7 +1360,7 @@ Class MSH_DSH_BinCarrierA_compat
           AExpr_typecheck df (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal n :: σ);
 
       ibin_equiv:
-        forall nc a b, evalIBinCType σ df (proj1_sig nc) a b = inr (f nc a b)
+        forall nc a b, evalIBinCType mem σ df (proj1_sig nc) a b = inr (f nc a b)
     }.
 
 Instance AAbs_DSHIBinCarrierA:
@@ -1385,7 +1387,7 @@ Qed.
 
 Instance Abs_MSH_DSH_BinCarrierA_compat
   :
-    forall σ,
+    forall σ mem,
       MSH_DSH_BinCarrierA_compat
         (λ i (a b : CarrierA),
          IgnoreIndex abs i
@@ -1393,7 +1395,7 @@ Instance Abs_MSH_DSH_BinCarrierA_compat
                                           jf
                                           (IgnoreIndex2 sub) i a b))
         σ
-        (AAbs (AMinus (AVar 1) (AVar 0))).
+        (AAbs (AMinus (AVar 1) (AVar 0))) mem.
 Proof.
   split.
   -
@@ -1410,14 +1412,14 @@ Lemma evalDSHBinOp_mem_lookup_mx
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
+      {mem : memory}
       {mx mb ma : mem_block}
-      (E: evalDSHBinOp n off df σ mx mb = inr ma)
+      (E: evalDSHBinOp mem n off df σ mx mb = inr ma)
       (k: nat)
       (kc:k<n):
   is_Some (mem_lookup k mx) /\ is_Some (mem_lookup (k+off) mx).
 Proof.
-  (*
-  apply equiv_Some_is_Some in E.
+  apply inr_is_OK in E.
   revert mb E k kc.
   induction n; intros.
   -
@@ -1426,23 +1428,22 @@ Proof.
     destruct (Nat.eq_dec k n).
     +
       subst.
-      simpl in *.
-      repeat break_match_hyp; try some_none.
-      split;constructor.
+      cbn in *.
+      unfold mem_lookup_err, trywith in *.
+      repeat break_match_hyp; try inl_inr.
+      split; reflexivity.
     +
       simpl in *.
-      repeat break_match_hyp; try some_none.
-      apply eq_Some_is_Some in Heqo. rename Heqo into H1.
-      apply eq_Some_is_Some in Heqo0. rename Heqo0 into H2.
-      clear Heqo1 c c0.
+      repeat break_match_hyp; try inl_inr.
+      apply eq_inr_is_OK in Heqe. rename Heqe into H1.
+      apply eq_inr_is_OK in Heqe0. rename Heqe0 into H2.
+      clear Heqe1 c c0.
       apply IHn with (mb:=mem_add n c1 mb); clear IHn.
       *
         apply E.
       *
         lia.
-   *)
-Admitted.
-
+Qed.
 
 (* TODO: Move to Memory.v *)
 Lemma mem_add_comm
@@ -1482,9 +1483,10 @@ Fact evalDSHBinOp_preservation
      {df : AExpr}
      `{dft : DSHIBinCarrierA df}
      {σ : evalContext}
+     {mem : memory}
      {mx ma mb : mem_block}
      {c : CarrierA}:
-  evalDSHBinOp n off df σ mx (mem_add k c mb) = inr ma
+  evalDSHBinOp mem n off df σ mx (mem_add k c mb) = inr ma
   → mem_lookup k ma = Some c.
 Proof.
   revert mb k kc.
@@ -1512,13 +1514,14 @@ Lemma evalDSHBinOp_nth
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
+      (mem : memory)
       (k: nat)
       (kc: k<n)
       {a b : CarrierA}:
   (mem_lookup k mx = Some a) ->
   (mem_lookup (k + off) mx = Some b) ->
-  (evalDSHBinOp n off df σ mx mb = inr ma) ->
-  h_opt_err_c (=) (mem_lookup k ma) (evalIBinCType σ df k a b).
+  (evalDSHBinOp mem n off df σ mx mb = inr ma) ->
+  h_opt_err_c (=) (mem_lookup k ma) (evalIBinCType mem σ df k a b).
 Proof.
   (*
   intros A B E.
@@ -1556,7 +1559,8 @@ Lemma evalDSHBinOp_oob_preservation
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
       {mx mb ma : mem_block}
-      (ME: evalDSHBinOp n off df σ mx mb = inr ma):
+      (mem : memory)
+      (ME: evalDSHBinOp mem n off df σ mx mb = inr ma):
   ∀ (k : NM.key) (kc:k>=n), mem_lookup k mb = mem_lookup k ma.
 Proof.
   intros k kc.
@@ -1621,8 +1625,9 @@ Lemma evalDSHBinOp_equiv_inr_spec
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
       {σ : evalContext}
+      {mem : memory}
       {mx mb ma : mem_block}:
-  (evalDSHBinOp n off df σ mx mb = inr ma)
+  (evalDSHBinOp mem n off df σ mx mb = inr ma)
   ->
   (∀ k (kc: k < n),
       ∃ a b,
@@ -1630,7 +1635,7 @@ Lemma evalDSHBinOp_equiv_inr_spec
          mem_lookup (k+off) mx = Some b /\
          (exists c,
              mem_lookup k ma = Some c /\
-             evalIBinCType σ df k a b = inr c))
+             evalIBinCType mem σ df k a b = inr c))
   ).
 Proof.
   (*
@@ -1679,13 +1684,14 @@ Lemma is_OK_evalDSHBinOp_mem_equiv
       (n off : nat)
       (df : AExpr)
       (σ : evalContext)
+      (mem : memory)
       (mx ma mb : mem_block) :
   ma = mb ->
-  is_OK (evalDSHBinOp n off df σ mx ma) =
-  is_OK (evalDSHBinOp n off df σ mx mb).
+  is_OK (evalDSHBinOp mem n off df σ mx ma) =
+  is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
   intros.
-  pose proof evalDSHBinOp_proper n off df σ mx mx.
+  pose proof evalDSHBinOp_proper mem n off df σ mx mx.
   unfold Proper, respectful in H0.
   assert (T : mx = mx) by reflexivity;
     specialize (H0 T ma mb H); clear T.
@@ -1717,12 +1723,13 @@ Qed.
 Lemma is_OK_evalDSHBinOp_mem_add
       (n off : nat)
       (df : AExpr)
+      (mem : memory)
       (σ : evalContext)
       (mx mb : mem_block)
       (k : NM.key)
       (v : CarrierA) :
-  is_OK (evalDSHBinOp n off df σ mx (mem_add k v mb)) =
-  is_OK (evalDSHBinOp n off df σ mx mb).
+  is_OK (evalDSHBinOp mem n off df σ mx (mem_add k v mb)) =
+  is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
   dependent induction n; [reflexivity |].
   cbn.
@@ -1742,11 +1749,12 @@ Proof.
 Qed.
 
 Lemma evalIBinCarrierA_value_independent
+      (mem : memory)
       (σ : evalContext)
       (df : AExpr)
       (n : nat) :
-  (exists a b, is_OK (evalIBinCType σ df n a b)) ->
-  forall c d, is_OK (evalIBinCType σ df n c d).
+  (exists a b, is_OK (evalIBinCType mem σ df n a b)) ->
+  forall c d, is_OK (evalIBinCType mem σ df n c d).
 Proof.
   (*
   intros.
@@ -1848,6 +1856,7 @@ Proof.
 Qed.
 
 Lemma evalDSHBinOp_is_OK_inv
+      {mem : memory}
       {off n: nat}
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
@@ -1860,9 +1869,9 @@ Lemma evalDSHBinOp_is_OK_inv
       ∃ a b,
         (mem_lookup k mx = Some a /\
          mem_lookup (k+off) mx = Some b /\
-         is_OK (evalIBinCType σ df k a b)
+         is_OK (evalIBinCType mem σ df k a b)
         )
-  ) -> (is_OK (evalDSHBinOp n off df σ mx mb)).
+  ) -> (is_OK (evalDSHBinOp mem n off df σ mx mb)).
 Proof.
   intros H.
   induction n; [reflexivity |].
@@ -1909,6 +1918,7 @@ Proof.
 Qed.
 
 Lemma evalDSHBinOp_is_OK_inv'
+      {mem : memory}
       {off n: nat}
       {df : AExpr}
       `{dft : DSHIBinCarrierA df}
@@ -1921,9 +1931,9 @@ Lemma evalDSHBinOp_is_OK_inv'
       ∃ a b,
         (mem_lookup k mx = Some a /\
          mem_lookup (k+off) mx = Some b /\
-         is_OK (evalIBinCType σ df k a b)
+         is_OK (evalIBinCType mem σ df k a b)
         )
-  ) -> (is_OK (evalDSHBinOp n off df σ mx mb)).
+  ) -> (is_OK (evalDSHBinOp mem n off df σ mx mb)).
 Proof.
   pose proof AExprTypeSigIncludes_exact df dfs TS; clear TS.
   apply evalDSHBinOp_is_OK_inv.
@@ -1931,6 +1941,7 @@ Proof.
 Qed.
 
 Lemma evalDSHBinOp_is_Err
+      (mem : memory)
       (off n: nat)
       (nz: n≢0)
       (df : AExpr)
@@ -1940,7 +1951,7 @@ Lemma evalDSHBinOp_is_Err
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
   ->
-  is_Err (evalDSHBinOp n off df σ mx mb).
+  is_Err (evalDSHBinOp mem n off df σ mx mb).
 Proof.
   revert mb.
   induction n; intros mb DX.
@@ -1978,6 +1989,7 @@ Qed.
    [evalDSHBinOp] to fail is missing data in memory.
  *)
 Lemma evalDSHBinOp_is_Err_inv
+      (mem : memory)
       (off n: nat)
       (df : AExpr)
       `{dft : DSHIBinCarrierA df}
@@ -1986,10 +1998,11 @@ Lemma evalDSHBinOp_is_Err_inv
       (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
       (mx mb : mem_block):
-  is_Err (evalDSHBinOp n off df σ mx mb) ->
+  is_Err (evalDSHBinOp mem n off df σ mx mb) ->
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
+  (*
   revert mb.
   induction n.
   -
@@ -2053,9 +2066,11 @@ Proof.
       assert(k<S n) as kc1 by lia.
       exists kc1.
       apply IHn.
-Qed.
+*)
+Abort.
 
 Lemma evalDSHBinOp_context_equiv
+      (mem : memory)
       (n off : nat)
       (df : AExpr)
       `{dft : DSHIBinCarrierA df}
@@ -2063,8 +2078,9 @@ Lemma evalDSHBinOp_context_equiv
       (σ0 σ1 : evalContext) (m0 m1: mem_block):
   TypeSigAExpr df = Some dfs ->
   context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
-  evalDSHBinOp n off df σ0 m0 m1 = evalDSHBinOp n off df σ1 m0 m1.
+  evalDSHBinOp mem n off df σ0 m0 m1 = evalDSHBinOp mem n off df σ1 m0 m1.
 Proof.
+  (*
   intros H E.
   unfold equiv, option_Equiv.
   destruct_err_equiv.
@@ -2239,8 +2255,8 @@ Proof.
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
         rewrite <- Ha, <- Hb.
         reflexivity.
-Admitted.
-
+   *)
+Abort.
 
 Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : mem_block_id) :
   forall mb, memory_lookup_err s m mbi ≡ inr mb → is_Some (memory_lookup m mbi).
@@ -2348,6 +2364,7 @@ Global Instance BinOp_DSH_pure
   :
     DSH_pure (DSHBinOp o x_p y_p a) (TypeSig_decr_n ts 3) x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2439,7 +2456,8 @@ Proof.
     unfold memory_lookup, memory_set in *.
     rewrite NP.F.add_neq_o by auto.
     reflexivity.    
-Qed.
+   *)
+Abort.
 
 Lemma eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
   a1 = a2 <-> a1 ≡ a2.
@@ -2470,6 +2488,7 @@ Global Instance Power_DSH_pure
   :
     DSH_pure (DSHPower n (x_p, x_n) (y_p, y_n) a initial) ts x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2627,7 +2646,8 @@ Proof.
     all: try congruence.
     all: reflexivity.
        *)
-Admitted.
+       *)
+Abort.
 
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
