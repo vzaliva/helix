@@ -76,8 +76,6 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 ** Automate SPIRAL log reading for sequence of rewrites
    Perhaps using TemplateCoq?
 ** LLVM Code generation
-*** Non-array global constants. 
-    See =potwise_plusD= test and *TODO* comments in =initIRGlobals=
 *** Implement float min/max                                          :zoickx:
     in DHCOL it is ==Float64Min= and =Float64Max=.
 
@@ -89,16 +87,22 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
 *** Implemnet int min/max
     in =LLVMGen/Compiler.v= in =genNExpr= implement min/max code generation for integers.
     [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
-*** Hanldoing =MConst= in LLVM compiler
+*** Handling of =MConst= in LLVM compiler
     See TODO comment in =Compiler.v=
 ** Pretty printing
    How there is an assortment of functions like =string_of_DSHOperator=
    =string_of_vars= and =string_of_PExpr=. Consider using
    =ExtLib.Programming.Show= typeclass intances instead.
+
+   An alternative approach would be to use =sexp= serialization
+   via [[https://github.com/Lysxia/coq-ceres][coq-ceres]], as it was chosen by Vellvm. See
+   related [[https://harry.garrood.me/blog/down-with-show-part-3/][blog post]].
 * Build/Tests
 ** Use =dune= for coq code builds.
 ** Use =coq-struct-tact= package                                       :zoickx:
    Instead of local copy we have in =Tactics/StructTactics.v=
+   But we beed to wait until it become avaialble in default repo.
+   Track this [[https://github.com/uwplse/StructTact/issues/55][issue]] for details.
 * Ideas
   - See if =coq-equations= package could be used to represent index
     functions and function arguments of =BinOp=, =Pointwise=, etc.
