@@ -82,7 +82,7 @@ let process_test t =
       let print_dv dv =
         AT.printf [AT.green] "Interpretation Result:\n" ;
         let ppf = std_formatter in
-        Interpreter.pp_dvalue ppf dv ;
+        Interpreter.pp_uvalue ppf dv ;
         pp_force_newline ppf ();
         pp_print_flush ppf ()  in
 
@@ -112,7 +112,7 @@ let process_test t =
                  AT.printf [AT.white; AT.on_red] "Error";
                  AT.printf [] " LLVM Intepretation failed with: %s\n" msg ;
                  (false, tres)
-              | Ok (DVALUE_Array _) ->
+              | Ok (UVALUE_Array _) ->
                  AT.printf [AT.black; AT.on_green] "OK" ;
                  AT.printf [] " Interpretation passed\n" ;
                  (true, tres)
@@ -143,11 +143,11 @@ let process_test t =
 
       let dflag =
         (match tres, eres with
-         | Ok (DVALUE_Array arr), Coq_inr v ->
+         | Ok (UVALUE_Array arr), Coq_inr v ->
             begin
               match List.fold2 v arr ~init:true ~f:(fun p ve de ->
                         match de with
-                        | DVALUE_Double d -> p && (Floats.Float.cmp Ceq d ve)
+                        | UVALUE_Double d -> p && (Floats.Float.cmp Ceq d ve)
                         | _ -> false
                       ) with
               | Ok bv ->
@@ -161,14 +161,14 @@ let process_test t =
                    begin
                      AT.printf [AT.white; AT.on_red] "Error" ;
                      AT.printf [] " Value comparison failed: values differ" ;
-                     print_dv (DVALUE_Array arr) ;
+                     print_dv (UVALUE_Array arr) ;
                      print_eres v ;
                      false
                    end
               | Unequal_lengths ->
                  AT.printf [AT.white; AT.on_red] "Error" ;
                  AT.printf [] " Value comparison failed: different vector length" ;
-                 print_dv (DVALUE_Array arr) ;
+                 print_dv (UVALUE_Array arr) ;
                  print_eres v ;
                  false
             end
