@@ -87,9 +87,6 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       rewrite Ha in Hb.
     -
       inversion Hb.
-      auto.
-    -
-      inl_inr.
     -
       inl_inr.
     -
@@ -115,9 +112,6 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       rewrite Ha in Hb.
     -
       inversion Hb.
-      auto.
-    -
-      inl_inr.
     -
       inl_inr.
     -
@@ -721,6 +715,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       apply H0.
     -
       destruct_err_equiv.
+      (*
       +
         err_eq_to_equiv_hyp.
         assert(E: @inl string mem_block s = inl s0).
@@ -890,6 +885,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         }
         inversion E.
         auto.
+         *)
       +
         err_eq_to_equiv_hyp.
         simpl in *.
@@ -907,7 +903,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           rewrite Heqe3 in Heqe0.
           clear Heqe3.
           inversion_clear Heqe0.
-          rewrite H1, H2 in Heqe4.
+          rewrite H2, H3 in Heqe4.
           inl_inr.
         *
           rewrite Heqe2 in Heqe.
@@ -916,17 +912,17 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           rewrite Heqe3 in Heqe0.
           clear Heqe3.
           inversion_clear Heqe0.
-          rewrite H2, H5 in Heqe4.
+          rewrite H3, H4 in Heqe4.
           rewrite Heqe4 in Heqe1.
           clear Heqe4.
           inversion_clear Heqe1.
           clear H3.
-          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H1.
+          rewrite IHn with (y:=y) (y0:=mem_add n t2 y0) in H2.
           symmetry in H1.
-          clear H4.
+          rewrite H1 in H2.
           inl_inr.
           apply H.
-          rewrite H7, H0.
+          rewrite H6, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
@@ -954,7 +950,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           rewrite Heqe3 in Heqe0.
           clear Heqe3.
           inversion_clear Heqe0.
-          rewrite H2, H5 in Heqe4.
+          rewrite H2, H4 in Heqe4.
           rewrite Heqe4 in Heqe1.
           clear Heqe4.
           inversion_clear Heqe1.
@@ -964,7 +960,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           clear H4.
           inl_inr.
           apply H.
-          rewrite H7, H0.
+          rewrite H6, H0.
           reflexivity.
       +
         err_eq_to_equiv_hyp.
