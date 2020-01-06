@@ -184,3 +184,12 @@ Ltac err_eq_to_equiv_hyp :=
     match goal with
     | [H: @eq (err _) _ _ |- _] => apply err_equiv_eq in H
     end.
+
+Fact inr_is_OK `{Equiv A} (x:A) (y: err A):
+  (y = inr x) -> is_OK y.
+Proof.
+  intros.
+  destruct y.
+  inversion H0.
+  reflexivity.
+Qed.
