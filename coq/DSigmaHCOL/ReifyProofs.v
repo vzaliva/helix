@@ -1298,16 +1298,16 @@ Inductive NExpr_typecheck: NExpr -> evalContext -> Prop :=
     NExpr_typecheck b σ ->
     NExpr_typecheck (NMax a b) σ.
 
-(* Check if [MExpr] is properly typed in given evaluation context *)
-Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
-| MPtrDeref_tc (σ: evalContext) (n:var_id):
-    context_pos_typecheck σ n DSHPtr -> MExpr_typecheck (MPtrDeref (PVar n)) σ
-| MConst_tc (σ: evalContext) {a}: MExpr_typecheck (MConst a) σ.
-
-(* Check if [MExpr] is properly typed in given evaluation context *)
+(* Check if [PExpr] is properly typed in given evaluation context *)
 Inductive PExpr_typecheck: PExpr -> evalContext -> Prop :=
 | PVar_tc (σ: evalContext) (n:var_id):
     context_pos_typecheck σ n DSHPtr -> PExpr_typecheck (PVar n) σ.
+
+(* Check if [MExpr] is properly typed in given evaluation context *)
+Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
+| MPtrDeref_tc (σ: evalContext) (n:var_id):
+    PExpr_typecheck (PVar n) σ -> MExpr_typecheck (MPtrDeref (PVar n)) σ
+| MConst_tc (σ: evalContext) {a}: MExpr_typecheck (MConst a) σ.
 
 (* Check if [AExpr] is properly typed in given evaluation context *)
 Inductive AExpr_typecheck: AExpr -> evalContext -> Prop
