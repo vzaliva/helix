@@ -90,11 +90,13 @@ Class DSHBinCarrierA (a:AExpr) : Prop :=
 Lemma evalMExpr_is_OK
       {σ: evalContext}
       {m: MExpr}
+      (mem : memory)
       (tm: TypeSig)
       (TS : TypeSigMExpr m = Some tm)
       (TC : typecheck_env 0 tm σ):
-  is_OK (evalMexp σ m).
+  is_OK (evalMexp mem σ m).
 Proof.
+  (*
   destruct m; simpl in *; [|trivial].
   some_inv.
   rewrite <- TS in TC. clear TS.
@@ -114,7 +116,8 @@ Proof.
   -
     apply TM.add_1.
     reflexivity.
-Qed.
+   *)
+Abort.
 
 Lemma evalNExpr_is_OK
       {σ: evalContext}
@@ -262,11 +265,13 @@ Qed.
 Lemma evalAExpr_is_OK'
       {σ: evalContext}
       {e: AExpr}
+      (mem : memory)
       (ts: TypeSig)
       (TS : TypeSigAExpr e = Some ts)
       (TC : typecheck_env 0 ts σ):
-  is_OK (evalAexp σ e).
+  is_OK (evalAexp mem σ e).
 Proof.
+  (*
   dependent induction e; simpl in *.
   -
     unfold TypeSig_safe_add in TS.
@@ -402,21 +407,25 @@ Proof.
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
     repeat break_match; inl_inr.
-Qed.
+*)
+Abort.
 
 Lemma evalAExpr_is_OK
       {σ : evalContext}
       {a : AExpr}
+      (mem : memory)
       `{TSI : AExprTypeSigIncludes a ts}
       (TC : typecheck_env 0 ts σ) :
-  is_OK (evalAexp σ a).
+  is_OK (evalAexp mem σ a).
 Proof.
+  (*
   inversion TSI; clear TSI.
   rename x into ats; destruct H as [ATS TSI].
   eapply typecheck_env_TypeSigIncluded in TC.
   eapply evalAExpr_is_OK'.
   all: eassumption.
-Qed.
+   *)
+Abort.
 
 Global Instance TypeSigCompat_Symmetric :
   Symmetric TypeSigCompat.
@@ -631,16 +640,17 @@ Admitted.
 Lemma evalMExpr_context_equiv_at_TypeSig
       (m : MExpr)
       {σ0 σ1 : evalContext}
+      (mem : memory)
       `{TSI : MExprTypeSigIncludes m ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalMexp σ0 m = evalMexp σ1 m.
+  evalMexp mem σ0 m = evalMexp mem σ1 m.
 Proof.
   inversion TSI; clear TSI.
   rename x into mts; destruct H as [MTS TSI].
-  destruct m; cbn; [| reflexivity].
-  cbn in MTS.
+  destruct m; cbn in *; [| reflexivity].
+  destruct p; cbn in *.
   some_inv.
-  assert (T : TM.MapsTo v DSHMemBlock ts).
+  assert (T : TM.MapsTo v DSHPtr ts).
   {
     eapply TypeSigIncluded_at.
     eassumption.
@@ -648,24 +658,25 @@ Proof.
     apply TM.add_1.
     reflexivity.
   }
-  specialize (E v DSHMemBlock T).
+  specialize (E v DSHPtr T).
   destruct E as [E1 [E2 H]].
   unfold context_lookup in H.
-  inversion H.
-  (*
+  destruct (List.nth_error σ0 v) eqn:H0; destruct (List.nth_error σ1 v) eqn:H1;
+    inversion H; try reflexivity.
   subst.
+  destruct d0, d; inversion H4; try reflexivity.
+  subst.
+  rewrite H5.
   reflexivity.
-  inversion H2; try reflexivity.
-  rewrite H3; reflexivity.
-   *)
-Admitted.
+Qed.
 
 Lemma evalAExpr_context_equiv_at_TypeSig
       (a : AExpr)
       {σ0 σ1 : evalContext}
+      (mem : memory)
       `{TSI : AExprTypeSigIncludes a ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalAexp σ0 a = evalAexp σ1 a.
+  evalAexp mem σ0 a = evalAexp mem σ1 a.
 Proof.
   inversion TSI; subst; clear TSI.
   rename x into ats; destruct H as [ATS TSI].
@@ -783,7 +794,7 @@ Proof.
     all: assert (CarrierAe c4 c2)
       by (eapply IHa2; try reflexivity; try eassumption).
     all: rewrite H3, H4; reflexivity.
-Admitted.
+Abort.
  
 Lemma evalNExpr_context_equiv_at_exact_TypeSig
       (σ0 σ1 : evalContext)
@@ -802,9 +813,10 @@ Qed.
 Lemma evalMExpr_context_equiv_at_exact_TypeSig
       (m : MExpr)
       {σ0 σ1 : evalContext}
+      (mem : memory)
       `{TS : TypeSigMExpr m = Some ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalMexp σ0 m = evalMexp σ1 m.
+  evalMexp mem σ0 m = evalMexp mem σ1 m.
 Proof.
   eapply evalMExpr_context_equiv_at_TypeSig; [| eassumption].
   exists ts.
@@ -815,15 +827,18 @@ Qed.
 Lemma evalAExpr_context_equiv_at_exact_TypeSig
       (a : AExpr)
       {σ0 σ1 : evalContext}
+      (mem : memory)
       `{TS : TypeSigAExpr a = Some ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalAexp σ0 a = evalAexp σ1 a.
+  evalAexp mem σ0 a = evalAexp mem σ1 a.
 Proof.
+  (*
   eapply evalAExpr_context_equiv_at_TypeSig; [| eassumption].
   exists ts.
   split; try assumption.
   apply TypeSigIncluded_reflexive.
-Qed.
+   *)
+Abort.
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
