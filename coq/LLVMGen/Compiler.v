@@ -73,7 +73,7 @@ Definition genIRGlobals
                 ) x in
      match l with
      | nil => []
-     | cons _ _ => [TLE_Comment "Global variables"] ++ l
+     | _::_ => [TLE_Comment "Global variables"] ++ l
      end.
 
 Record IRState :=
@@ -116,7 +116,7 @@ Definition add_comments (b:block typ) (xs:list string): block typ :=
 Definition add_comment (bs:list (block typ)) (xs:list string): list (block typ) :=
   match bs with
   | nil => nil
-  | cons b bs => cons (add_comments b xs) bs
+  | b::bs => (add_comments b xs)::bs
   end.
 
 Definition incBlockNamed (st:IRState) (prefix:string): (IRState*block_id) :=
@@ -183,7 +183,6 @@ Definition dropVars (st:IRState) (n: nat): err IRState :=
           void_count  := void_count st ;
           vars := vars'
         |}.
-
 
 Definition allocTempArrayCode (name: local_id) (size:nat)
   :=
