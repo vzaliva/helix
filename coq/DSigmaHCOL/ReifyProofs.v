@@ -1149,8 +1149,7 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
     EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
 (* the remaining case does not depend on memory and just recurse over environment *)
 | DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
-| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m
-| DSHMemValConsistent: forall σ b m, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHMemVal b :: σ) m.
+| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
 
 (* TODO: move *)
 (* Two memory locations equivalent on all addresses except one *)
@@ -1300,8 +1299,8 @@ Inductive NExpr_typecheck: NExpr -> evalContext -> Prop :=
 
 (* Check if [MExpr] is properly typed in given evaluation context *)
 Inductive MExpr_typecheck: MExpr -> evalContext -> Prop :=
-| MVar_tc (σ: evalContext) (n:var_id):
-    context_pos_typecheck σ n DSHMemBlock -> MExpr_typecheck (MVar n) σ
+| MPtrDeref_tc (σ: evalContext) (n:var_id):
+    context_pos_typecheck σ n DSHPtr -> MExpr_typecheck (MPtrDeref (PVar n)) σ
 | MConst_tc (σ: evalContext) {a}: MExpr_typecheck (MConst a) σ.
 
 (* Check if [MExpr] is properly typed in given evaluation context *)
