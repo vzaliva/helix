@@ -38,7 +38,7 @@ Qed.
 
 Inductive err_equiv_r {A:Type} `{Equiv A} : relation (err A) :=
 | err_r_inr : forall a b, a=b -> err_equiv_r (inr a) (inr b)
-| err_r_inl : forall a b, a=b -> err_equiv_r (inl a) (inl b).
+| err_r_inl : forall a b, err_equiv_r (inl a) (inl b). (* Error messages could differ! *)
 
 Global Instance err_equiv {T:Type} `{Equiv T}:
   Equiv (err T) := err_equiv_r.
@@ -74,7 +74,6 @@ Global Instance err_inl_proper {T:Type} `{Equiv T}:
 Proof.
   simpl_relation.
   constructor.
-  assumption.
 Qed.
 
 Global Instance trywith_proper {T:Type} `{Te: Equiv T}:
@@ -133,11 +132,9 @@ Ltac inl_inr :=
   end.
 
 Lemma inl_inj_equiv :
-  forall s1 s2, s1 = s2 <-> inl s1 = inl s2.
+  forall s1 s2, inl s1 = inl s2.
 Proof.
-  split; intros.
-  - constructor; assumption.
-  - inversion H; subst; assumption.
+  constructor; assumption.
 Qed.
 
 Lemma inr_inj_equiv `{E: Equiv A}:
