@@ -308,30 +308,35 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            (σ: evalContext)
            (op: DSHOperator)
            (mem: memory)
-           (fuel: nat): err (memory)
+           (fuel: nat): option (err memory)
     :=
       match fuel with
-      | O => raise "evalDSHOperator run out of fuel"
+      | O => None
       | S fuel =>
         match op with
-        | DSHNop => ret mem
+        | DSHNop => Some (ret mem)
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
+          Some (
           x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
-              x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
-              y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
-              src <- evalNexp σ src_e ;;
-              dst <- evalNexp σ dst_e ;;
-              v <- mem_lookup_err "Error looking up 'v' in DSHAssign" src x ;;
-              ret (memory_set mem y_i (mem_add dst v y))
+          y_i <- evalPexp σ y_p ;;
+          x <- memory_lookup_err "Error looking up 'x' in DSHAssign" mem x_i ;;
+          y <- memory_lookup_err "Error looking up 'y' in DSHAssign" mem y_i ;;
+          src <- evalNexp σ src_e ;;
+          dst <- evalNexp σ dst_e ;;
+          v <- mem_lookup_err "Error looking up 'v' in DSHAssign" src x ;;
+          ret (memory_set mem y_i (mem_add dst v y))
+            )
         | @DSHIMap n x_p y_p f =>
-          x_i <- evalPexp σ x_p ;;
+          Some (
+            x_i <- evalPexp σ x_p ;;
               y_i <- evalPexp σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHIMap" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHIMap" mem y_i ;;
               y' <- evalDSHIMap mem n f σ x y ;;
               ret (memory_set mem y_i y')
+              )
         | @DSHMemMap2 n x0_p x1_p y_p f =>
+          Some (
           x0_i <- evalPexp σ x0_p ;;
                x1_i <- evalPexp σ x1_p ;;
                y_i <- evalPexp σ y_p ;;
@@ -340,14 +345,18 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                y <- memory_lookup_err "Error looking up 'y' in DSHMemMap2" mem y_i ;;
                y' <- evalDSHMap2 mem n f σ x0 x1 y ;;
                ret (memory_set mem y_i y')
+               )
         | @DSHBinOp n x_p y_p f =>
-          x_i <- evalPexp σ x_p ;;
+          Some (
+              x_i <- evalPexp σ x_p ;;
               y_i <- evalPexp σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHBinOp" mem x_i ;;
               y <- memory_lookup_err "Error looking up 'y' in DSHBinOp" mem y_i ;;
               y' <- evalDSHBinOp mem n n f σ x y ;;
               ret (memory_set mem y_i y')
+              )
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
+          Some (
           x_i <- evalPexp σ x_p ;;
               y_i <- evalPexp σ y_p ;;
               x <- memory_lookup_err "Error looking up 'x' in DSHPower" mem x_i ;;
@@ -358,32 +367,43 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                    yoff <- evalNexp σ yoffset ;;
                    y'' <- evalDSHPower mem σ n f x y' xoff yoff ;;
                    ret (memory_set mem y_i y'')
-        | DSHLoop O body => ret mem
+                   )
+        | DSHLoop O body => Some (ret mem)
         | DSHLoop (S n) body =>
-          mem <- evalDSHOperator σ (DSHLoop n body) mem fuel ;;
-            mem' <- evalDSHOperator (DSHnatVal n :: σ) body mem fuel ;;
-            ret mem'
+          match evalDSHOperator σ (DSHLoop n body) mem fuel with
+          | Some (inr mem) => evalDSHOperator (DSHnatVal n :: σ) body mem fuel
+          | Some (inl msg) => Some (inl msg)
+          | None => None
+          end
         | DSHAlloc size body =>
           let t_i := memory_new mem in
-          m' <- evalDSHOperator (DSHPtrVal t_i :: σ) body (memory_set mem t_i (mem_empty)) fuel ;;
-             ret (memory_remove m' t_i)
+          match evalDSHOperator (DSHPtrVal t_i :: σ) body (memory_set mem t_i (mem_empty)) fuel with
+          | Some (inr mem') => Some (ret (memory_remove mem' t_i))
+          | Some (inl msg) => Some (inl msg)
+          | None => None
+          end
         | DSHMemInit size y_p value =>
-          y_i <- evalPexp σ y_p ;;
-              y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
-              let y' := mem_union
-                          (mem_const_block size value)
-                          y in
-              ret (memory_set mem y_i y')
-        | DSHMemCopy size x_p y_p =>
-          x_i <- evalPexp σ x_p ;;
+          Some (
               y_i <- evalPexp σ y_p ;;
-              x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
-              y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
-              let y' := mem_union x y in
+              y <- memory_lookup_err "Error looking up 'y' in DSHMemInit" mem y_i ;;
+              let y' := mem_union (mem_const_block size value) y in
               ret (memory_set mem y_i y')
+            )
+        | DSHMemCopy size x_p y_p =>
+          Some (
+          x_i <- evalPexp σ x_p ;;
+          y_i <- evalPexp σ y_p ;;
+          x <- memory_lookup_err "Error looking up 'x' in DSHMemCopy" mem x_i ;;
+          y <- memory_lookup_err "Error looking up 'y' in DSHMemCopy" mem y_i ;;
+          let y' := mem_union x y in
+          ret (memory_set mem y_i y'))
+
         | DSHSeq f g =>
-          mem <- evalDSHOperator σ f mem fuel ;;
-            evalDSHOperator σ g mem fuel
+          match evalDSHOperator σ f mem fuel with
+          | Some (inr mem') => evalDSHOperator σ g mem' fuel
+          | Some (inl msg)  => Some (inl msg)
+          | None => None
+          end
         end
       end.
 
@@ -410,7 +430,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         f_equiv.
         rewrite IHn by (simpl in *; lia).
         rewrite IHn with (f := estimateFuel op * S n) by (simpl in *; lia).
-        break_match; try reflexivity.
+        repeat (break_match; try reflexivity).
         rewrite IHop by (simpl in *; rewrite PeanoNat.Nat.mul_succ_r in F; lia).
         rewrite IHop with (f := estimateFuel op * S n) by (rewrite PeanoNat.Nat.mul_succ_r; lia).
         reflexivity.
@@ -429,10 +449,12 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
       rewrite IHop1 by (simpl in F; lia).
       rewrite IHop1 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
-      break_match. 1: reflexivity.
+      repeat break_match.
+      1: reflexivity.
 
       rewrite IHop2 by (simpl in F; lia).
       rewrite IHop2 with (f := Nat.max (estimateFuel op1) (estimateFuel op2)) by lia.
+      reflexivity.
       reflexivity.
   Qed.
 
