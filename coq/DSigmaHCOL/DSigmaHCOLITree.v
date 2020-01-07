@@ -375,4 +375,19 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           evalDSHOperator σ f ;; evalDSHOperator σ g
       end.
 
+  Definition pure_state {S E} : E ~> Monads.stateT S (itree E)
+    := fun _ e s => Vis e (fun x => Ret (s, x)).
+
+  Definition Mem_handler: MemEvent ~> Monads.stateT memory (itree (StaticFailE +' DynamicFailE)) :=
+    fun T e mem =>
+      match e with
+      | MemLU msg id  => lift_Derr (Functor.fmap (fun x => (mem,x)) (memory_lookup_err msg mem id))
+      | MemSet id blk => ret (memory_set mem id blk, tt)
+      | MemAlloc size => ret (mem, memory_new mem)
+      | MemFree id    => ret (memory_remove mem id, tt)
+      end.
+
+  Definition interp_Mem: itree Event ~> Monads.stateT memory (itree (StaticFailE +' DynamicFailE)) :=
+    interp (case_ Mem_handler pure_state).
+
 End MDSigmaHCOLITree.
