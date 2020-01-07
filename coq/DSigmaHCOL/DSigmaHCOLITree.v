@@ -34,78 +34,9 @@ Local Open Scope monad_scope.
 
 Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
-  Include MDSigmaHCOL CT.
-
-  Definition evalContext:Type := list DSHVal.
+  Include MDSigmaHCOLEval CT ESig.
 
   Local Open Scope string_scope.
-
-  Definition mem_lookup_err
-             (msg:string)
-             (n: nat)
-             (mem: mem_block)
-    :=
-      trywith msg (mem_lookup n mem).
-
-  Instance mem_lookup_err_proper:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) mem_lookup_err.
-  Proof.
-    unfold mem_lookup_err.
-    simpl_relation.
-    destruct_err_equiv;
-      err_eq_to_equiv_hyp;
-      rewrite H0, H1, H in Ha;
-      rewrite Ha in Hb.
-    -
-      inversion Hb.
-    -
-      inl_inr.
-    -
-      inversion Hb.
-      auto.
-  Qed.
-
-  Definition memory_lookup_err
-             (msg:string)
-             (mem: memory)
-             (n: mem_block_id)
-    :=
-    trywith msg (memory_lookup mem n).
-
-  Instance memory_lookup_err_proper:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) memory_lookup_err.
-  Proof.
-    unfold memory_lookup_err.
-    simpl_relation.
-    destruct_err_equiv;
-      err_eq_to_equiv_hyp;
-      rewrite H0, H1, H in Ha;
-      rewrite Ha in Hb.
-    -
-      inversion Hb.
-    -
-      inl_inr.
-    -
-      inversion Hb.
-      auto.
-  Qed.
-
-  Definition context_lookup
-             (msg: string)
-             (c: evalContext)
-             (n: var_id)
-    : err DSHVal
-    := trywith msg (nth_error c n).
-
-  Instance context_lookup_proper:
-    Proper ((=) ==> (=) ==> (=) ==> (=)) context_lookup.
-  Proof.
-    unfold context_lookup.
-    solve_proper.
-  Qed.
-
-  Definition context_tl (σ: evalContext) : evalContext
-    := List.tl σ.
 
   Variant MemEvent: Type -> Type :=
   | MemLU  (msg: string) (id: mem_block_id): MemEvent mem_block
@@ -136,50 +67,21 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     | inr x => ret x
     end.
 
-  (* This could be defined as a lift of the same definition in [Eval]. Would require a [MonadT] instance for itree *)
-  (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalPexp (σ: evalContext) (exp:PExpr): itree Event (mem_block_id) :=
-    match exp with
-    | @PVar i =>
-      match nth_error σ i with
-      | Some (@DSHPtrVal v) => ret v
-      | _ => Sfail "error looking up PVar"
-      end
-    end.
+  Definition denotePexp (σ: evalContext) (exp:PExpr): itree Event (mem_block_id) :=
+    lift_Serr (evalPexp σ exp).
 
-  (* Evaluation of expressions does not allow for side-effects *)
-  Definition evalMexp (σ: evalContext) (exp:MExpr): itree Event (mem_block) :=
+  Definition denoteMexp (σ: evalContext) (exp:MExpr): itree Event (mem_block) :=
     match exp with
     | @MPtrDeref p =>
-      bi <- evalPexp σ p ;;
+      bi <- denotePexp σ p ;;
       trigger (MemLU "MPtrDeref" bi)
     | @MConst t => ret t
     end.
 
-  (* Evaluation of expressions does not allow for side-effects *)
-  (* Merge this to be shared with the [Eval] equivalent *)
-  Fixpoint evalNexp_aux (σ: evalContext) (e:NExpr): err nat :=
-    match e with
-    | NVar i => v <- (context_lookup "NVar not found" σ i) ;;
-                 (match v with
-                  | DSHnatVal x => ret x
-                  | _ => raise "invalid NVar type"
-                  end)
-    | NConst c => ret c
-    | NDiv a b => liftM2 Nat.div (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NMod a b => liftM2 Nat.modulo (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NPlus a b => liftM2 Nat.add (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NMinus a b => liftM2 Nat.sub (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NMult a b => liftM2 Nat.mul (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NMin a b => liftM2 Nat.min (evalNexp_aux σ a) (evalNexp_aux σ b)
-    | NMax a b => liftM2 Nat.max (evalNexp_aux σ a) (evalNexp_aux σ b)
-    end.
+  Definition denoteNexp (σ: evalContext) (e: NExpr): itree Event nat :=
+    lift_Serr (evalNexp σ e).
 
-  Definition evalNexp (σ: evalContext) (e: NExpr): itree Event nat :=
-    lift_Serr (evalNexp_aux σ e).
-
-  (* Evaluation of expressions does not allow for side-effects *)
-  Fixpoint evalAexp (σ: evalContext) (e:AExpr): itree Event t :=
+  Fixpoint denoteAexp (σ: evalContext) (e:AExpr): itree Event t :=
     match e with
     | AVar i =>
       v <- lift_Serr (context_lookup "AVar not found" σ i);;
@@ -188,18 +90,18 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
          | _ => Sfail "invalid AVar type"
          end)
     | AConst x => ret x
-    | AAbs x =>  liftM CTypeAbs (evalAexp σ x)
-    | APlus a b => liftM2 CTypePlus (evalAexp σ a) (evalAexp σ b)
-    | AMult a b => liftM2 CTypeMult (evalAexp σ a) (evalAexp σ b)
-    | AMin a b => liftM2 CTypeMin (evalAexp σ a) (evalAexp σ b)
-    | AMax a b => liftM2 CTypeMax (evalAexp σ a) (evalAexp σ b)
+    | AAbs x =>  liftM CTypeAbs (denoteAexp σ x)
+    | APlus a b => liftM2 CTypePlus (denoteAexp σ a) (denoteAexp σ b)
+    | AMult a b => liftM2 CTypeMult (denoteAexp σ a) (denoteAexp σ b)
+    | AMin a b => liftM2 CTypeMin (denoteAexp σ a) (denoteAexp σ b)
+    | AMax a b => liftM2 CTypeMax (denoteAexp σ a) (denoteAexp σ b)
     | AMinus a b =>
-      a' <- (evalAexp σ a) ;;
-         b' <- (evalAexp σ b) ;;
+      a' <- (denoteAexp σ a) ;;
+         b' <- (denoteAexp σ b) ;;
          ret (CTypeSub a' b')
     | ANth m i =>
-      m' <- (evalMexp σ m) ;;
-      i' <- evalNexp σ i ;;
+      m' <- (denoteMexp σ m) ;;
+      i' <- denoteNexp σ i ;;
          (* Instead of returning error we default to zero here.
           This situation should never happen for programs
           refined from MSHCOL which ensure bounds via
@@ -209,25 +111,22 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
        | Some v => ret v
        | None => ret CTypeZero
        end)
-    | AZless a b => liftM2 CTypeZLess (evalAexp σ a) (evalAexp σ b)
+    | AZless a b => liftM2 CTypeZLess (denoteAexp σ a) (denoteAexp σ b)
     end.
 
-  (* Evaluation of functions does not allow for side-effects *)
-  Definition evalIUnCType (σ: evalContext) (f: AExpr)
+  Definition denoteIUnCType (σ: evalContext) (f: AExpr)
              (i:nat) (a:t): itree Event t :=
-    evalAexp (DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    denoteAexp (DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
-  (* Evaluation of functions does not allow for side-effects *)
-  Definition evalIBinCType (σ: evalContext) (f: AExpr)
+  Definition denoteIBinCType (σ: evalContext) (f: AExpr)
              (i:nat) (a b:t): itree Event t :=
-    evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
+    denoteAexp (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal i :: σ) f.
 
-  (* Evaluation of functions does not allow for side-effects *)
-  Definition evalBinCType (σ: evalContext) (f: AExpr)
+  Definition denoteBinCType (σ: evalContext) (f: AExpr)
              (a b:t): itree Event t :=
-    evalAexp (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
+    denoteAexp (DSHCTypeVal b :: DSHCTypeVal a :: σ) f.
 
-  Fixpoint evalDSHIMap
+  Fixpoint denoteDSHIMap
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -236,12 +135,12 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S n =>
-        v <- lift_Derr (mem_lookup_err "Error reading memory evalDSHIMap" n x) ;;
-        v' <- evalIUnCType σ f n v ;;
-        evalDSHIMap n f σ x (mem_add n v' y)
+        v <- lift_Derr (mem_lookup_err "Error reading memory denoteDSHIMap" n x) ;;
+        v' <- denoteIUnCType σ f n v ;;
+        denoteDSHIMap n f σ x (mem_add n v' y)
       end.
 
-  Fixpoint evalDSHMap2
+  Fixpoint denoteDSHMap2
            (n: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -250,13 +149,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S n =>
-        v0 <- lift_Derr (mem_lookup_err ("Error reading 1st arg memory in evalDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x0) n x0) ;;
-        v1 <- lift_Derr (mem_lookup_err ("Error reading 2nd arg memory in evalDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x1) n x1) ;;
-        v' <- evalBinCType σ f v0 v1 ;;
-        evalDSHMap2 n f σ x0 x1 (mem_add n v' y)
+        v0 <- lift_Derr (mem_lookup_err ("Error reading 1st arg memory in denoteDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x0) n x0) ;;
+        v1 <- lift_Derr (mem_lookup_err ("Error reading 2nd arg memory in denoteDSHMap2 @" ++ (string_of_nat n) ++ " in " ++ string_of_mem_block_keys x1) n x1) ;;
+        v' <- denoteBinCType σ f v0 v1 ;;
+        denoteDSHMap2 n f σ x0 x1 (mem_add n v' y)
       end.
 
-  Fixpoint evalDSHBinOp
+  Fixpoint denoteDSHBinOp
            (n off: nat)
            (f: AExpr)
            (σ: evalContext)
@@ -265,13 +164,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S n =>
-        v0 <- lift_Derr (mem_lookup_err "Error reading 1st arg memory in evalDSHBinOp" n x) ;;
-        v1 <- lift_Derr (mem_lookup_err "Error reading 2nd arg memory in evalDSHBinOp" (n+off) x) ;;
-        v' <- evalIBinCType σ f n v0 v1 ;;
-        evalDSHBinOp n off f σ x (mem_add n v' y)
+        v0 <- lift_Derr (mem_lookup_err "Error reading 1st arg memory in denoteDSHBinOp" n x) ;;
+        v1 <- lift_Derr (mem_lookup_err "Error reading 2nd arg memory in denoteDSHBinOp" (n+off) x) ;;
+        v' <- denoteIBinCType σ f n v0 v1 ;;
+        denoteDSHBinOp n off f σ x (mem_add n v' y)
       end.
 
-  Fixpoint evalDSHPower
+  Fixpoint denoteDSHPower
            (σ: evalContext)
            (n: nat)
            (f: AExpr)
@@ -282,13 +181,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match n with
       | O => ret y
       | S p =>
-        xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in evalDSHBinOp" 0 x) ;;
-        yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in evalDSHBinOp" 0 y) ;;
-        v' <- evalBinCType σ f xv yv ;;
-        evalDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
+        xv <- lift_Derr (mem_lookup_err "Error reading 'xv' memory in denoteDSHBinOp" 0 x) ;;
+        yv <- lift_Derr (mem_lookup_err "Error reading 'yv' memory in denoteDSHBinOp" 0 y) ;;
+        v' <- denoteBinCType σ f xv yv ;;
+        denoteDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
       end.
 
-  Fixpoint evalDSHOperator
+  Fixpoint denoteDSHOperator
            (σ: evalContext)
            (op: DSHOperator): itree Event unit
     :=
@@ -296,50 +195,50 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         | DSHNop => ret tt
 
         | DSHAssign (x_p, src_e) (y_p, dst_e) =>
-          x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
+          x_i <- denotePexp σ x_p ;;
+          y_i <- denotePexp σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHAssign" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHAssign" y_i) ;;
-          src <- evalNexp σ src_e ;;
-          dst <- evalNexp σ dst_e ;;
+          src <- denoteNexp σ src_e ;;
+          dst <- denoteNexp σ dst_e ;;
           v <- lift_Derr (mem_lookup_err "Error looking up 'v' in DSHAssign" src x) ;;
           trigger (MemSet y_i (mem_add dst v y))
 
         | @DSHIMap n x_p y_p f =>
-          x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
+          x_i <- denotePexp σ x_p ;;
+              y_i <- denotePexp σ y_p ;;
               x <- trigger (MemLU "Error looking up 'x' in DSHIMap" x_i) ;;
               y <- trigger (MemLU "Error looking up 'y' in DSHIMap" y_i) ;;
-              y' <- evalDSHIMap n f σ x y ;;
+              y' <- denoteDSHIMap n f σ x y ;;
               trigger (MemSet y_i y')
 
         | @DSHMemMap2 n x0_p x1_p y_p f =>
-          x0_i <- evalPexp σ x0_p ;;
-               x1_i <- evalPexp σ x1_p ;;
-               y_i <- evalPexp σ y_p ;;
+          x0_i <- denotePexp σ x0_p ;;
+               x1_i <- denotePexp σ x1_p ;;
+               y_i <- denotePexp σ y_p ;;
                x0 <- trigger (MemLU "Error looking up 'x0' in DSHMemMap2" x0_i) ;;
                x1 <- trigger (MemLU "Error looking up 'x1' in DSHMemMap2" x1_i) ;;
                y <- trigger (MemLU "Error looking up 'y' in DSHMemMap2" y_i) ;;
-               y' <- evalDSHMap2 n f σ x0 x1 y ;;
+               y' <- denoteDSHMap2 n f σ x0 x1 y ;;
                trigger (MemSet y_i y')
         | @DSHBinOp n x_p y_p f =>
-          x_i <- evalPexp σ x_p ;;
-              y_i <- evalPexp σ y_p ;;
+          x_i <- denotePexp σ x_p ;;
+              y_i <- denotePexp σ y_p ;;
               x <- trigger (MemLU "Error looking up 'x' in DSHBinOp" x_i) ;;
               y <- trigger (MemLU "Error looking up 'y' in DSHBinOp" y_i) ;;
-              y' <- evalDSHBinOp n n f σ x y ;;
+              y' <- denoteDSHBinOp n n f σ x y ;;
               trigger (MemSet y_i y')
 
         | DSHPower ne (x_p,xoffset) (y_p,yoffset) f initial =>
-          x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
+          x_i <- denotePexp σ x_p ;;
+          y_i <- denotePexp σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHPower" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHPower" y_i) ;;
-          n <- evalNexp σ ne ;; (* [n] evaluated once at the beginning *)
+          n <- denoteNexp σ ne ;; (* [n] denoteuated once at the beginning *)
           let y' := mem_add 0 initial y in
-          xoff <- evalNexp σ xoffset ;;
-          yoff <- evalNexp σ yoffset ;;
-          y'' <- evalDSHPower σ n f x y' xoff yoff ;;
+          xoff <- denoteNexp σ xoffset ;;
+          yoff <- denoteNexp σ yoffset ;;
+          y'' <- denoteDSHPower σ n f x y' xoff yoff ;;
           trigger (MemSet y_i y'')
 
         | DSHLoop n body =>
@@ -347,32 +246,32 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                   match p with
                   | O => ret (inr tt)
                   | S p =>
-                    evalDSHOperator (DSHnatVal (n - (S p)) :: σ) body;;
+                    denoteDSHOperator (DSHnatVal (n - (S p)) :: σ) body;;
                     ret (inl p)
                   end) n
 
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
           trigger (MemSet t_i (mem_empty)) ;;
-          evalDSHOperator (DSHPtrVal t_i :: σ) body ;;
+          denoteDSHOperator (DSHPtrVal t_i :: σ) body ;;
           trigger (MemFree t_i)
 
         | DSHMemInit size y_p value =>
-          y_i <- evalPexp σ y_p ;;
+          y_i <- denotePexp σ y_p ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemInit" y_i) ;;
           let y' := mem_union (mem_const_block size value) y in
           trigger (MemSet y_i y')
 
        | DSHMemCopy size x_p y_p =>
-          x_i <- evalPexp σ x_p ;;
-          y_i <- evalPexp σ y_p ;;
+          x_i <- denotePexp σ x_p ;;
+          y_i <- denotePexp σ y_p ;;
           x <- trigger (MemLU "Error looking up 'x' in DSHMemCopy" x_i) ;;
           y <- trigger (MemLU "Error looking up 'y' in DSHMemCopy" y_i) ;;
           let y' := mem_union x y in
           trigger (MemSet y_i y')
 
        | DSHSeq f g =>
-          evalDSHOperator σ f ;; evalDSHOperator σ g
+          denoteDSHOperator σ f ;; denoteDSHOperator σ g
       end.
 
   Definition pure_state {S E} : E ~> Monads.stateT S (itree E)
