@@ -45,6 +45,8 @@ Local Open Scope nat_scope.
 
 Import DSHCOLOnCarrierA.
 
+(*
+
 (* Type signatures of expressions as binary or unary functions with
 optional index *)
 
@@ -1189,7 +1191,7 @@ Class DSH_pure
 
       (* does not free or allocate any memory *)
       mem_stable: forall σ m m' fuel,
-        evalDSHOperator σ d m fuel = inr m' ->
+        evalDSHOperator σ d m fuel = Some (inr m') ->
         forall k, mem_block_exists k m <-> mem_block_exists k m';
 
       (* depends only [x_p], which must be valid in [σ], in all
@@ -4688,3 +4690,5 @@ Proof.
     constructor.
    *)
 Admitted.
+
+*)
