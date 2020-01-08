@@ -49,6 +49,22 @@
  |             |                           |                                    |            |        |                  |
  |-------------+---------------------------+------------------------------------+------------+--------+------------------|
 
+** Questions:
+   - Is implication of error handling is right approach for MSH/DSH
+     compat? - *NO*. Switching to reflexive equality.
+   - Should MSH err on collisions - *NO*
+
+** Errors returned by MSH =mem_op=:
+   - *OOB access in input memory blocks*
+    
+** Errors retuned by DSH evaluation:
+   - running out of fuel [prevented by estimation]
+   - *OOB access in input memory blocks*
+   - OOB memory index in Mexp [prevented by construction]
+   - Variable not found in environment for Nexp, Mexp, Aexp [equality pre-condition]
+   - Type mismatch for environment variable in Nexp, Mexp, Aexp [equality pre-condition]
+   - Allocating memory at already allocated index [equality pre-condition?]
+      
 * LLVM IR generation
 ** General
   - TODO BinOp/1, Poitwise/1 unrolled into scalar operations.
@@ -180,21 +196,4 @@
 
     j*c_0 + i*c_1 + k*c_2
 
-* DSH
-** Error handling in MSH and DSH equality
-*** Questions:
-    - Is implication of error handling is right approach for MSH/DSH
-      compat? - *NO*. Switching to reflexive equality.
-    - Should MSH err on collisions - *NO*
 
-*** Errors returned by MSH =mem_op=:
-    - *OOB access in input memory blocks*
-    
-*** Errors retuned by DSH evaluation:
-    - running out of fuel [prevented by estimation]
-    - *OOB access in input memory blocks*
-    - OOB memory index in Mexp [prevented by construction]
-    - Variable not found in environment for Nexp, Mexp, Aexp [equality pre-condition]
-    - Type mismatch for environment variable in Nexp, Mexp, Aexp [equality pre-condition]
-    - Allocating memory at already allocated index [equality pre-condition?]
-      
