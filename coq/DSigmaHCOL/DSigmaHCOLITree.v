@@ -294,185 +294,235 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     interp_state (case_ Mem_handler pure_state).
   Arguments interp_Mem {T} _ _.
 
-  (* Instance tuple_equiv {A B: Type} `{Equiv A} `{Equiv B}: Equiv (A * B) := *)
-  (*   fun '(a,b) '(a',b') => a = a' /\ b = b'. *)
+  Section Eval_Denote_Equiv.
 
-  Lemma Denote_Eval_Equiv_Mexp_Succeeds: forall mem σ e bk,
-      evalMexp mem σ e ≡ inr bk ->
-      eutt eq
-           (interp_Mem (denoteMexp σ e) mem)
-           (ret (mem, bk)).
-  Proof.
-    intros mem σ [] bk HEval; unfold interp_Mem.
-    - cbn in *.
-      unfold denotePexp.
-      repeat (break_match_hyp; try inl_inr).
-      rewrite interp_state_bind; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_trigger; cbn.
-      unfold memory_lookup_err, trywith in *.
-      break_match_hyp; try inl_inr.
-      rewrite HEval; cbn.
-      rewrite bind_ret, tau_eutt; reflexivity.
-    - inv HEval.
-      cbn; rewrite interp_state_ret; reflexivity.
-  Qed.
+    Ltac state_step :=
+      match goal with
+      | |- interp_state _ (ITree.bind _ _) _ ≈ _ => rewrite interp_state_bind
+      | |- ITree.bind (ITree.bind _ _) _ ≈ _ => rewrite bind_bind
+      | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret
+      | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
+      | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
+      | |- context[Tau _] => rewrite tau_eutt
+      end.
 
-  Lemma Denote_Eval_Equiv_Aexp_Succeeds: forall mem σ e v,
-      evalAexp mem σ e ≡ inr v ->
-      eutt eq
-           (interp_Mem (denoteAexp σ e) mem)
-           (ret (mem, v)).
-  Proof.
-    induction e; intros res HEVal.
-    - cbn in *.
-      repeat (break_match_hyp; try inl_inr).
-      inv HEVal.
-      unfold interp_Mem; cbn.
-      rewrite interp_state_bind, interp_state_ret, bind_ret; cbn.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat (break_match_hyp; try inl_inr).
-      inv HEVal.
-      unfold interp_Mem; cbn.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      unfold denoteNexp.
-      do 2 (break_match_hyp; try inl_inr).
-      unfold interp_Mem; cbn.
-      apply Denote_Eval_Equiv_Mexp_Succeeds in Heqe.
-      rewrite interp_state_bind, Heqe.
-      cbn; rewrite bind_ret, interp_state_bind.
-      rewrite interp_state_ret, bind_ret; cbn.
-      break_match_hyp; inv HEVal; rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      break_match_hyp; try inl_inr; inv HEVal.
-      unfold interp_Mem; rewrite interp_state_bind.
-      rewrite IHe; eauto; rewrite bind_ret, interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-    - cbn in *.
-      repeat(break_match_hyp; try inl_inr); inv HEVal.
-      unfold interp_Mem.
-      rewrite interp_state_bind, IHe1; eauto; rewrite bind_ret.
-      rewrite interp_state_bind, IHe2; eauto; rewrite bind_ret.
-      rewrite interp_state_ret; reflexivity.
-  Qed.
+    Ltac state_steps := repeat (state_step; cbn).
 
-  Lemma Denote_Eval_Equiv_IMap_Succeeds: forall mem n f σ m1 m2 id,
-      evalDSHIMap mem n f σ m1 m2 ≡ inr id ->
-      eutt eq
-           (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
-           (ret (mem, id)).
-  Proof.
-    induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval.
-    - unfold interp_Mem; rewrite interp_state_ret; apply eqit_Ret.
-      inv HEval; auto.
-    - repeat (break_match_hyp; [inv HEval |]).
-      unfold interp_Mem; rewrite interp_state_bind.
-      unfold mem_lookup_err, trywith in *.
-      break_match_hyp; [| inv Heqe].
-      rewrite Heqe; cbn.
-      rewrite interp_state_ret, bind_ret, interp_state_bind.
-      unfold evalIUnCType, denoteIUnCType in *.
-      apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0.
-      unfold interp_Mem in Heqe0.
-      rewrite Heqe0; cbn; rewrite bind_ret.
-      rewrite IH; eauto.
-      reflexivity.
-  Qed.
+    Ltac inv_sum :=
+      match goal with
+      | h: inl _ ≡ inl _ |-  _ => inv h
+      | h: inr _ ≡ inr _ |-  _ => inv h
+      end.
 
-  Lemma Denote_Eval_Equiv_IMap_Fails: forall mem n f σ m1 m2 msg,
-      evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
-      exists msg',
-      eutt eq
-           (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
-           (Dfail msg').
-  Admitted.
+    Ltac inv_mem_lookup_err :=
+      unfold mem_lookup_err, trywith in *;
+      break_match_hyp; cbn in *; try inl_inr; try inv_sum.
 
-  Theorem Denote_Eval_Equiv_Succeeds:
-    forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
-      evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
-      eutt (* (fun '(m,_) '(m',_) => m = m') *) eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)).
-  Proof.
-    intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
-    revert mem' fuel mem H.
-    induction op; intros mem fuel mem' HEval.
-    - cbn in *; inv HEval; subst.
-      (* cbn in *; some_inv. inv HEval; subst. *)
-      unfold interp_Mem.
-      rewrite interp_state_ret.
-      apply eqit_Ret; auto.
-    - destruct src,dst.
-      simpl in HEval.
-      (* some_inv. *)
-      repeat (break_match_hyp; [inv HEval |]).
-      unfold interp_Mem; simpl.
-      rewrite interp_state_bind.
-      unfold denotePexp, denoteNexp; simpl.
-      rewrite Heqe; cbn. rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind, Heqe0; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind, interp_state_trigger, bind_bind; cbn.
-      rewrite Heqe1; cbn; rewrite bind_ret, bind_tau, bind_ret, tau_eutt.
-      rewrite interp_state_bind, interp_state_trigger, bind_bind; cbn.
-      rewrite Heqe2; cbn; rewrite bind_ret, bind_tau, bind_ret, tau_eutt.
-      rewrite interp_state_bind, Heqe3; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind, Heqe4; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind, Heqe5; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_trigger; cbn; rewrite bind_ret, tau_eutt; cbn.
-      apply eqit_Ret.
-      inv HEval; auto.
-    - simpl in HEval.
-      (* some_inv. *)
-      repeat (break_match_hyp; [inv HEval |]).
-      cbn.
-      unfold interp_Mem; simpl; unfold denotePexp.
-      rewrite interp_state_bind; rewrite Heqe; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind; rewrite Heqe0; cbn; rewrite interp_state_ret, bind_ret.
-      rewrite interp_state_bind, interp_state_trigger, bind_bind; cbn.
-      rewrite Heqe1; cbn; rewrite bind_ret, tau_eutt, bind_ret.
-      rewrite interp_state_bind, interp_state_trigger, bind_bind; cbn.
-      rewrite Heqe2; cbn; rewrite bind_ret, tau_eutt, bind_ret.
-      rewrite interp_state_bind.
-      apply Denote_Eval_Equiv_IMap_Succeeds in Heqe3.
-      rewrite Heqe3.
-      cbn; rewrite bind_ret, interp_state_trigger.
-      cbn; rewrite bind_ret, tau_eutt.
-      apply eqit_Ret.
-      inv HEval; auto.
-    -
+    Ltac inv_memory_lookup_err :=
+      unfold memory_lookup_err, trywith in *;
+      break_match_hyp; cbn in *; try inl_inr; try inv_sum.
 
-  Theorem Denote_Eval_Equiv_Fails:
-    forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
-      evalDSHOperator σ op mem fuel = Some (inl msg) ->
-      exists msg', Eq.eutt eq (interp_Mem _ (denoteDSHOperator σ op) mem) (Dfail msg').
+    Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum)); try inv_sum.
+
+    Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *.
+
+    Lemma Denote_Eval_Equiv_Mexp_Succeeds: forall mem σ e bk,
+        evalMexp mem σ e ≡ inr bk ->
+        eutt eq
+             (interp_Mem (denoteMexp σ e) mem)
+             (ret (mem, bk)).
+    Proof.
+      intros mem σ [] bk HEval; unfold_Mem.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        inv_memory_lookup_err.
+        state_steps; reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps; reflexivity.
+    Qed.
+
+    Lemma Denote_Eval_Equiv_Aexp_Succeeds: forall mem σ e v,
+        evalAexp mem σ e ≡ inr v ->
+        eutt eq
+             (interp_Mem (denoteAexp σ e) mem)
+             (ret (mem, v)).
+    Proof.
+      induction e; intros res HEVal; unfold_Mem.
+      - cbn in *.
+        inv_eval.
+        state_steps; reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps; reflexivity.
+      - cbn in *.
+        do 2 (break_match_hyp; try inl_inr).
+        state_steps.
+        apply Denote_Eval_Equiv_Mexp_Succeeds in Heqe.
+        rewrite Heqe; cbn; state_steps.
+        inv_eval; state_steps; reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe; eauto.
+        state_steps; reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+      - cbn in *.
+        inv_eval.
+        state_steps.
+        rewrite IHe1; eauto; state_steps.
+        rewrite IHe2; eauto; state_steps.
+        reflexivity.
+    Qed.
+
+    Lemma Denote_Eval_Equiv_Aexp_Fails: forall mem σ e msg,
+        evalAexp mem σ e ≡ inl msg ->
+        exists msg', eutt eq
+                     (interp_Mem (denoteAexp σ e) mem)
+                     (Dfail msg').
+    Proof.
+      induction e; intros msg HEVal; eexists; unfold_Mem.
+      - cbn in *.
+        repeat (break_match_hyp; try inl_inr); inv HEVal.
+        + rewrite interp_state_bind; cbn.
+          unfold throw.
+          rewrite interp_state_vis, bind_bind.
+          cbn.
+          unfold pure_state.
+          rewrite bind_vis.
+          apply eqit_Vis.
+          intros [].
+        + cbn; rewrite bind_ret.
+          (*     + break_match_hyp; try inl_inr. *)
+          (*       cbn; rewrite interp_state_ret, bind_ret, interp_state_bind. *)
+          (*       cbn. *)
+          (*       unfold evalIUnCType, denoteIUnCType in *. *)
+          (*       apply Denote_Eval_Equiv_Aexp_Fails. *)
+          (*       rewrite Heqe. *)
+          (*       unfold mem_lookup_err, trywith in *. *)
+          (*       break_match_hyp; [| inv Heqe]. *)
+          (*       rewrite Heqe; cbn. *)
+          (*       rewrite interp_state_ret, bind_ret, interp_state_bind. *)
+          (*       unfold evalIUnCType, denoteIUnCType in *. *)
+          (*       apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0. *)
+          (*       unfold interp_Mem in Heqe0. *)
+          (*       rewrite Heqe0; cbn; rewrite bind_ret. *)
+          (*       rewrite IH; eauto. *)
+          (*       reflexivity. *)
+          (* Qed. *)
+    Admitted.
+
+    Lemma Denote_Eval_Equiv_IMap_Succeeds: forall mem n f σ m1 m2 id,
+        evalDSHIMap mem n f σ m1 m2 ≡ inr id ->
+        eutt eq
+             (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
+             (ret (mem, id)).
+    Proof.
+      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem.
+      - inv_eval; state_steps; reflexivity.
+      - inv_eval; state_steps.
+        inv_mem_lookup_err.
+        state_steps.
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0.
+        unfold_Mem. 
+        rewrite Heqe0; cbn; state_steps.
+        rewrite IH; eauto.
+        reflexivity.
+    Qed.
+
+    Lemma Denote_Eval_Equiv_IMap_Fails: forall mem n f σ m1 m2 msg,
+        evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
+        exists msg',
+          eutt eq
+               (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
+               (Dfail msg').
+    Proof.
+      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval.
+      - inl_inr.
+      -  eexists; unfold interp_Mem; rewrite interp_state_bind.
+         unfold mem_lookup_err,trywith in *.
+         repeat (break_match_hyp; [inv HEval |]).
+         + break_match_hyp; try inl_inr.
+           cbn.
+           unfold throw.
+           rewrite interp_state_vis, bind_bind.
+           cbn.
+           unfold pure_state.
+           rewrite bind_vis.
+           apply eqit_Vis.
+           intros [].
+         + break_match_hyp; try inl_inr.
+           cbn; rewrite interp_state_ret, bind_ret, interp_state_bind.
+           cbn.
+           unfold evalIUnCType, denoteIUnCType in *.
+    Admitted.
+
+    Theorem Denote_Eval_Equiv_Succeeds:
+      forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
+        evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
+        eutt (* (fun '(m,_) '(m',_) => m = m') *) eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)).
+    Proof.
+      intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
+      revert mem' fuel mem H.
+      induction op; intros mem fuel mem' HEval; unfold_Mem.
+      - inv_eval; state_steps.
+        inv HEval; reflexivity.
+      - destruct src,dst.
+        repeat (break_match_hyp; [inv HEval |]).
+        cbn; state_steps.
+        unfold denotePexp, denoteNexp; cbn.
+        rewrite Heqe1; cbn; state_steps.
+        rewrite Heqe2; cbn; state_steps.
+        rewrite Heqe5; cbn; state_steps.
+        apply eqit_Ret.
+        inv HEval; auto.
+      - cbn in HEval.
+        repeat (break_match_hyp; [inv HEval |]).
+        cbn.
+        unfold interp_Mem; simpl; unfold denotePexp.
+        state_steps.
+        rewrite Heqe1; cbn; state_steps.
+        rewrite Heqe2; cbn; state_steps.
+        apply Denote_Eval_Equiv_IMap_Succeeds in Heqe3.
+        rewrite Heqe3; cbn; state_steps.
+        apply eqit_Ret.
+        inv HEval; auto.
+      -
+
+        Theorem Denote_Eval_Equiv_Fails:
+          forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
+            evalDSHOperator σ op mem fuel = Some (inl msg) ->
+            exists msg', Eq.eutt eq (interp_Mem _ (denoteDSHOperator σ op) mem) (Dfail msg').
 
 
-End MDSigmaHCOLITree.
+  End MDSigmaHCOLITree.
