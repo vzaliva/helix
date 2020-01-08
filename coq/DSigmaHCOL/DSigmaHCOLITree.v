@@ -314,15 +314,20 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       | h: inr _ ≡ inr _ |-  _ => inv h
       end.
 
+    Ltac inv_option :=
+      match goal with
+      | h: Some _ ≡ Some _ |-  _ => inv h
+      end.
+
     Ltac inv_mem_lookup_err :=
       unfold mem_lookup_err, trywith in *;
-      break_match_hyp; cbn in *; try inl_inr; try inv_sum.
+      break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
 
     Ltac inv_memory_lookup_err :=
       unfold memory_lookup_err, trywith in *;
-      break_match_hyp; cbn in *; try inl_inr; try inv_sum.
+      break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
 
-    Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum)); try inv_sum.
+    Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum || inv_sum || inv_option)); repeat try (inv_sum || inv_option).
 
     Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *.
 
@@ -490,34 +495,33 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
-        eutt (* (fun '(m,_) '(m',_) => m = m') *) eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)).
+        eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)).
     Proof.
       intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
       revert mem' fuel mem H.
       induction op; intros mem fuel mem' HEval; unfold_Mem.
-      - inv_eval; state_steps.
-        inv HEval; reflexivity.
+      - inv_eval; state_steps; reflexivity.
       - destruct src,dst.
-        repeat (break_match_hyp; [inv HEval |]).
+        inv_eval.
         cbn; state_steps.
-        unfold denotePexp, denoteNexp; cbn.
         rewrite Heqe1; cbn; state_steps.
         rewrite Heqe2; cbn; state_steps.
         rewrite Heqe5; cbn; state_steps.
-        apply eqit_Ret.
-        inv HEval; auto.
-      - cbn in HEval.
-        repeat (break_match_hyp; [inv HEval |]).
+        apply eqit_Ret; auto.
+      - inv_eval.
         cbn.
-        unfold interp_Mem; simpl; unfold denotePexp.
         state_steps.
         rewrite Heqe1; cbn; state_steps.
         rewrite Heqe2; cbn; state_steps.
         apply Denote_Eval_Equiv_IMap_Succeeds in Heqe3.
         rewrite Heqe3; cbn; state_steps.
-        apply eqit_Ret.
-        inv HEval; auto.
-      -
+        apply eqit_Ret; auto.
+      - inv_eval.
+        cbn.
+        state_steps.
+        rewrite Heqe1; cbn; state_steps.
+        rewrite Heqe2; cbn; state_steps.
+
 
     Admitted.
 
