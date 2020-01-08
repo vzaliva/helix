@@ -1,0 +1,200 @@
+* List of all operators
+
+|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
+| SHCOL           | mem_op         | DSH_Pure         | MSH/DSH compat         | DSHCOL    | MSHoperator   | MFacts             |
+|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
+| IdOp            | Some ∘ id      |                  |                        |           |               |                    |
+| liftM_HOperator | mem_op_of_hop  |                  |                        |           |               |                    |
+| IUnion          | IUnion_mem     | TODO             | TODO                   | DSHLoop   | MSHIUnion     | IUnion_Mem         |
+| Scatter         | mem_op_of_op   |                  |                        |           |               |                    |
+| Gather          | mem_op_of_op   |                  |                        |           |               |                    |
+| SHInductor      | mem_op_of_hop  | TODO             | TODO                   | DSHPower  | MSHInductor   | SHInductor_MFacts  |
+| HTSUMUnion      | HTSUMUnion_mem | TODO             | TODO                   | ...       | MHTSUMUnion   | HTSUMUnion_MFacts  |
+| UnSafeCast      | mem_op         |                  |                        |           | /pass-through/  | /pass-through/       |
+| SafeCast        | mem_op         |                  |                        |           | /pass-through/  | /pass-through/       |
+| IReduction      | IReduction_mem |                  | TODO                   | ...       | MSHIReduction | IReduction_MFacts  |
+| SHBinOp         | mem_op_of_hop  | TODO             | BinOp_MSH_DSH_compat   | DSHBinOp  | MSHBinOp      | SHBinOp_MFacts     |
+| eT              | eT_mem         | TODO             | TODO                   | DSHAssign | MSHeT         | eT_MFacts          |
+| eUnion          | eUnion_mem     | TODO             | TODO                   | DSHAssign | MSHeUnion     | eUnion_MFacts      |
+| SHPointwise     | mem_op_of_hop  | TODO             | TODO                   | DSHIMap   | MSHPointwise  | SHPointwise_MFacts |
+| SHCompose       | option_compose | Compose_DSH_pure | Compose_MSH_DSH_compat | ...       | MSHCompose    | SHCompose_MFacts   |
+|-----------------+----------------+------------------+------------------------+-----------+---------------+--------------------|
+
+* Errors in Helix:
+
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | *Language*    | *Type errors*               | *Reading*                            | *Writing*    | *Fuel*   | Mem alloc        |
+ |             |                           | *uninitialized*                      | *twice*      |        | Mem free         |
+ |             |                           | *memory*                             |            |        |                  |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | SHCOL       | correct by construction   | defaults to 0                      | tracked    | N/A    | N/A              |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | SHCOL+facts | correct by construction   | no                                 | no         | N/A    | N/A              |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | MSHCOL      | correct by construction   | /option/                             | overwrites | N/A    | N/A              |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | DSHCOL eval | context lookup fail - /err/ | /mem_lookup/ in /ANth/ - defaults 0    | overwrites | /option/ | could not        |
+ |             | var type mismatch - /err/   | /memory_lookup/ - /err/                |            |        | occur            |
+ |             |                           |                                    |            |        |                  |
+ |             |                           |                                    |            |        |                  |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | ITrees      | /static/ error              | /mem_lookaup/ - /dynamic/ err          | overwrites | N/A    | could not        |
+ | denote      |                           | /mem_lookup/ in /ANth/ - defaults 0    |            |        | occur            |
+ |             |                           |                                    |            |        |                  |
+ |             |                           | /memory_lookup/ - /MemLU/ event,       |            |        |                  |
+ |             |                           | lifted to /dynamic/ error in handler |            |        |                  |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+ | LLVM        | compiler error            | /memory_lookup/ - ?                  | overwrites | N/A    | /alloca/ - undef   |
+ |             |                           | /mem_lookup/ - ?                     |            |        | /free/ - automatic |
+ |             |                           |                                    |            |        |                  |
+ |-------------+---------------------------+------------------------------------+------------+--------+------------------|
+
+* LLVM IR generation
+** General
+  - TODO BinOp/1, Poitwise/1 unrolled into scalar operations.
+** Vectorization
+  - No vector optimizations yet.
+  - Arrays only, no vectors.
+  - Later/optional: BinOp/n, Poitwise/n compiled into vector operators?
+* Template Coq appoach
+** Differences between SHCOL deep and shallow embeddings:
+
+    - Shallow is always correct by construction. No errors. Deep
+    embedding has errors.
+    - Shallow has proofs which are part of expressions. Deep does not
+    have any.
+    - Shallow uses Coq expressions as elementary functions. Deep uses
+    /Lambda/ language.
+    - Shallow uses Coq lambda for iterator body. Deep uses lexically
+    scoped variables.
+    - Shallow operator's implementation is an evaluatable function. Deep
+    embedding uses =eval= function.
+    - Shallow operators are tagged as typeclass instances. Deep
+    operators are constructors in inductive type.
+
+** Lambda language
+
+   Currenly used Lambda functions:
+   - =sub,plus,mult,minmax.max=: CarrierA -> CarrierA -> CarrierA
+   - =abs CarrierA= -> CarrierA
+   - =IgnoreIndex abs=
+   - =IgnoreIndex2 mult=, =IgnoreIndex2 Zless=
+   - =Fin1SwapIndex2 jf (IgnoreIndex2 sub)=
+   - =fun j => h_index_map (proj1_sig j) 1 _= : index_map_family
+   - =fun j => h_index_map (proj1_sig j) 2 _= : index_map_family
+
+** Props in operators
+
+   HCOL:
+   - =HPointwise= function paramterized by /FinNat/
+   - =HBinOp= function paramterized by /FinNat/
+   Sigma-HCOL:
+   - =index_map= (/index_f_spec/ field enforces domain/range)
+   - =index_map_family= just a family of index maps with their own
+     specs.
+   - eUnion= 'b' paramter must be less than output vector size. (use /FinNat/?)
+   - =eT= 'b' paramter must be less than input vector size (use /FinNat/?)
+   - =Scatter= index map must be /injective/
+   - =SHBinOp= function paramterized by /FinNat/
+   - Whenever /Lambda/ function is passed as parameter /Proper/
+     instance is required.
+
+** Normalized SHCOL
+*** Operatos used in final SHCOL
+
+    Special:
+
+   - SafeCast
+   - UnSafeCast
+   - SHFamilyOperatorCompose?
+   - SHCompose
+
+     Regular:
+
+   - eT
+   - eUnion
+   - SHBinOp
+   - SHPointwise
+   - SHInductor
+   - IReduction
+   - ISumUnion
+   - HTSUMUnion
+
+*** Narutal Functions
+
+    We do not need functoins. We need expressions which could be used
+    in the following cases:
+
+    - Parameter of eT
+    - Parameter of eUnion
+    - Parameter of Inductor
+    - *Maybe* parameter `n' of =IUnion=, =IReduction=
+
+    We do not need it for parameters of ISumUnion and IReduction!
+    These are tied op to dimensions of the data and fixed.
+
+    Q: Can we get away with linear combination of all variables for these?
+
+    Variables are introduced by itereative operators
+    (e.g. =ISumUnion=) and their scope is the body of such
+    operator. We will use DeBruijn indices instea of variable
+    names. To refer to a variable we will us an index which value is
+    distance in number of nested scopes between the reference and
+    definition. For example the index variable from the iterator
+    immediately enclosing the reference will be 0. For example using
+    variable names:
+     
+    ISumUnion j 0 n
+       ISumUnion i 0 m
+          Pointwise (fun k => k+i+j)
+
+    Using DeBruijn indices:
+
+    ISumUnion 0 n
+       ISumUnion 0 m
+          Pointwise ((var 0) + (var 1) + (var 2))
+
+
+    Global variables could be also represented using this approach,
+    via enclosed nested binders around whole expression. Each such
+    binder will give gloval variable an index.
+
+    Index mapping functions have type: =nat -> nat= We can represent a
+    subset of index mapping functions using the folloing encoding:
+
+    Each function is represented a vector of coefficients (natural numbers):
+
+    c = [1,2,3,100]
+
+    When evaluated a vector of all variables in scope is build, ordered by 
+    their DeBruijn indices. "1" is appended to the end. Using example above,
+    assuming j=12,i=22,k=32:
+
+    v = [12,22,32,1]
+
+    The result of evaluation is dot product of these two vectors: 
+
+    c \dot {v^T} = 1*12 + 2*22 + 3*32 + 100*1
+
+    This allows us to represent expression such as: 
+
+    j*c_0 + i*c_1 + k*c_2
+
+* DSH
+** Error handling in MSH and DSH equality
+*** Questions:
+    - Is implication of error handling is right approach for MSH/DSH
+      compat? - *NO*. Switching to reflexive equality.
+    - Should MSH err on collisions - *NO*
+
+*** Errors returned by MSH =mem_op=:
+    - *OOB access in input memory blocks*
+    
+*** Errors retuned by DSH evaluation:
+    - running out of fuel [prevented by estimation]
+    - *OOB access in input memory blocks*
+    - OOB memory index in Mexp [prevented by construction]
+    - Variable not found in environment for Nexp, Mexp, Aexp [equality pre-condition]
+    - Type mismatch for environment variable in Nexp, Mexp, Aexp [equality pre-condition]
+    - Allocating memory at already allocated index [equality pre-condition?]
+      
