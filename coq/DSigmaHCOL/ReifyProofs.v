@@ -153,7 +153,7 @@ Proof.
       apply TM.add_1.
       reflexivity.
   -
-    trivial.
+    constructor.
   -
     unfold TypeSigUnion_error' in TS.
     simpl in TS.
@@ -1677,7 +1677,7 @@ Lemma is_OK_evalDSHBinOp_mem_equiv
       (mem : memory)
       (mx ma mb : mem_block) :
   ma = mb ->
-  is_OK (evalDSHBinOp mem n off df σ mx ma) =
+  is_OK (evalDSHBinOp mem n off df σ mx ma) <->
   is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
   intros.
@@ -1687,8 +1687,8 @@ Proof.
     specialize (H0 T ma mb H); clear T.
   unfold is_Some.
   repeat break_match; try reflexivity; inversion H0.
-  reflexivity.
-  reflexivity.
+  split; constructor.
+  split; intros C; inversion C.
 Qed.
 
 (* TODO: move *)
@@ -1718,10 +1718,10 @@ Lemma is_OK_evalDSHBinOp_mem_add
       (mx mb : mem_block)
       (k : NM.key)
       (v : CarrierA) :
-  is_OK (evalDSHBinOp mem n off df σ mx (mem_add k v mb)) =
+  is_OK (evalDSHBinOp mem n off df σ mx (mem_add k v mb)) <->
   is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
-  dependent induction n; [reflexivity |].
+  dependent induction n; [split; constructor |].
   cbn.
   repeat break_match; try reflexivity.
   destruct (Nat.eq_dec n k).
@@ -1840,8 +1840,7 @@ Admitted.
 Lemma is_OK_neq_inl {A : Type} (s : string) (v : err A) :
   is_OK v -> v ≢ inl s.
 Proof.
-  destruct v.
-  auto.
+  destruct v; intro; inversion H.
   discriminate.
 Qed.
 
@@ -1864,7 +1863,7 @@ Lemma evalDSHBinOp_is_OK_inv
   ) -> (is_OK (evalDSHBinOp mem n off df σ mx mb)).
 Proof.
   intros H.
-  induction n; [reflexivity |].
+  induction n; [constructor |].
   simpl.
   repeat break_match.
   1-3: exfalso.
