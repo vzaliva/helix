@@ -53,7 +53,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Definition DynamicThrow (msg: string): DynamicFailE void := Throw msg.
   Definition Event := MemEvent +' StaticFailE +' DynamicFailE.
 
-  Definition Sfail {A: Type} (msg: string): itree Event A :=
+  Definition Sfail {A: Type} {E} `{DynamicFailE -< E} (msg: string): itree E A :=
     vis (Throw msg) (fun (x: void) => match x with end).
 
   Definition Dfail {A: Type} {E} `{DynamicFailE -< E} (msg: string): itree E A :=
@@ -300,13 +300,15 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match goal with
       | |- interp_state _ (ITree.bind _ _) _ ≈ _ => rewrite interp_state_bind
       | |- ITree.bind (ITree.bind _ _) _ ≈ _ => rewrite bind_bind
-      | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret
+      | |- ITree.bind (Vis _ _) _ ≈ _ => rewrite bind_vis
+      | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret_l
       | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
       | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
+      | |- context[interp_state _ (vis _ _) _] => rewrite interp_state_vis
       | |- context[Tau _] => rewrite tau_eutt
       end.
 
-    Ltac state_steps := repeat (state_step; cbn).
+    Ltac state_steps := cbn; repeat (state_step; cbn).
 
     Ltac inv_sum :=
       match goal with
@@ -410,42 +412,155 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
     Qed.
 
+    Lemma Denote_Eval_Equiv_Mexp_Fails: forall mem σ e msg,
+        evalMexp mem σ e ≡ inl msg ->
+        exists msg',
+          eutt eq (interp_Mem (denoteMexp σ e) mem) (Dfail msg') \/
+          eutt eq (interp_Mem (denoteMexp σ e) mem) (Sfail msg').
+    Proof.
+      intros mem σ [] bk HEval; unfold_Mem.
+      - inv_eval; state_steps.
+        + eexists; left; state_steps.
+          unfold throw, pure_state.
+          state_steps.
+          apply eqit_Vis; intros [].
+        + eexists; left; state_steps.
+          inv_memory_lookup_err.
+          unfold throw, pure_state.
+          state_steps.
+          apply eqit_Vis; intros [].
+      - inl_inr.
+    Qed.
+
     Lemma Denote_Eval_Equiv_Aexp_Fails: forall mem σ e msg,
         evalAexp mem σ e ≡ inl msg ->
-        exists msg', eutt eq
-                     (interp_Mem (denoteAexp σ e) mem)
-                     (Dfail msg').
+        exists msg', eutt eq (interp_Mem (denoteAexp σ e) mem) (Dfail msg')
+              \/ eutt eq (interp_Mem (denoteAexp σ e) mem) (Sfail msg').
     Proof.
-      induction e; intros msg HEVal; eexists; unfold_Mem.
-      - cbn in *.
-        repeat (break_match_hyp; try inl_inr); inv HEVal.
-        + rewrite interp_state_bind; cbn.
-          unfold throw.
-          rewrite interp_state_vis, bind_bind.
-          cbn.
-          unfold pure_state.
-          rewrite bind_vis.
-          apply eqit_Vis.
-          intros [].
-        + cbn; rewrite bind_ret.
-          (*     + break_match_hyp; try inl_inr. *)
-          (*       cbn; rewrite interp_state_ret, bind_ret, interp_state_bind. *)
-          (*       cbn. *)
-          (*       unfold evalIUnCType, denoteIUnCType in *. *)
-          (*       apply Denote_Eval_Equiv_Aexp_Fails. *)
-          (*       rewrite Heqe. *)
-          (*       unfold mem_lookup_err, trywith in *. *)
-          (*       break_match_hyp; [| inv Heqe]. *)
-          (*       rewrite Heqe; cbn. *)
-          (*       rewrite interp_state_ret, bind_ret, interp_state_bind. *)
-          (*       unfold evalIUnCType, denoteIUnCType in *. *)
-          (*       apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0. *)
-          (*       unfold interp_Mem in Heqe0. *)
-          (*       rewrite Heqe0; cbn; rewrite bind_ret. *)
-          (*       rewrite IH; eauto. *)
-          (*       reflexivity. *)
-          (* Qed. *)
-    Admitted.
+      intros mem σ e msg; induction e; intros HEVal; unfold_Mem.
+      - eexists; right; cbn in *; inv_eval.
+        + state_steps; cbn.
+          unfold throw, pure_state.
+          state_steps.
+          apply eqit_Vis; intros [].
+        + unfold Sfail, throw, pure_state.
+          cbn; state_steps; cbn.
+          apply eqit_Vis; intros [].
+        + unfold Sfail, throw, pure_state.
+          cbn; state_steps; cbn.
+          apply eqit_Vis; intros [].
+      - inl_inr.
+      - inv_eval; state_steps.
+        + apply Denote_Eval_Equiv_Mexp_Fails in Heqe; destruct Heqe as (?msg & [Heqe | Heqe]).
+          * eexists; left.
+            state_steps.
+            unfold interp_Mem in Heqe; rewrite Heqe.
+            unfold Dfail.
+            state_steps.
+            apply eqit_Vis; intros [].
+          * eexists; right.
+            state_steps.
+            unfold interp_Mem in Heqe; rewrite Heqe.
+            unfold Sfail.
+            state_steps.
+            apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Mexp_Succeeds in Heqe.
+          unfold interp_Mem in Heqe.
+          eexists.
+          left.
+          state_steps; rewrite Heqe; cbn; state_steps.
+          unfold throw, pure_state.
+          state_steps.
+          apply eqit_Vis; intros [].
+      - inv_eval.
+        destruct IHe as [msg' [IHe | IHe]]; auto; eexists.
+        left; state_steps; rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+        right; state_steps; rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+      - inv_eval.
+        + destruct IHe1 as [msg1 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps; rewrite IHe.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps; rewrite IHe.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe.
+          destruct IHe2 as [msg2 [IHe | IHe]]; auto.
+          * eexists; left; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; right; cbn; state_steps.
+            rewrite Heqe; cbn; state_steps.
+            rewrite IHe; unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+    Qed.
 
     Lemma Denote_Eval_Equiv_IMap_Succeeds: forall mem n f σ m1 m2 id,
         evalDSHIMap mem n f σ m1 m2 ≡ inr id ->
@@ -459,7 +574,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         inv_mem_lookup_err.
         state_steps.
         apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0.
-        unfold_Mem. 
+        unfold_Mem.
         rewrite Heqe0; cbn; state_steps.
         rewrite IH; eauto.
         reflexivity.
@@ -467,30 +582,29 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
     Lemma Denote_Eval_Equiv_IMap_Fails: forall mem n f σ m1 m2 msg,
         evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
-        exists msg',
-          eutt eq
-               (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
-               (Dfail msg').
+        exists msg', eutt eq (interp_Mem (denoteDSHIMap n f σ m1 m2) mem) (Dfail msg')
+                \/ eutt eq (interp_Mem (denoteDSHIMap n f σ m1 m2) mem) (Sfail msg').
     Proof.
-      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval.
+      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem.
       - inl_inr.
-      -  eexists; unfold interp_Mem; rewrite interp_state_bind.
-         unfold mem_lookup_err,trywith in *.
-         repeat (break_match_hyp; [inv HEval |]).
-         + break_match_hyp; try inl_inr.
-           cbn.
-           unfold throw.
-           rewrite interp_state_vis, bind_bind.
-           cbn.
-           unfold pure_state.
-           rewrite bind_vis.
-           apply eqit_Vis.
-           intros [].
-         + break_match_hyp; try inl_inr.
-           cbn; rewrite interp_state_ret, bind_ret, interp_state_bind.
-           cbn.
-           unfold evalIUnCType, denoteIUnCType in *.
-    Admitted.
+      - inv_eval.
+        + inv_mem_lookup_err; eexists; left.
+          cbn; state_steps.
+          unfold throw, pure_state.
+          state_steps.
+          unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + inv_mem_lookup_err.
+          apply Denote_Eval_Equiv_Aexp_Fails in Heqe0; destruct Heqe0 as (?msg & [Heqe0 | Heqe0]); unfold interp_Mem in Heqe0.
+          * eexists; left; cbn; state_steps; rewrite Heqe0.
+            unfold Dfail; cbn; state_steps; apply eqit_Vis; intros [].
+          * eexists; left; cbn; state_steps; rewrite Heqe0.
+            unfold Sfail; cbn; state_steps; apply eqit_Vis; intros [].
+        + inv_mem_lookup_err.
+          apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe0.
+          apply IH in HEval; destruct HEval as [msg' [EQ | EQ]]; eexists; [left | right].
+          * state_steps; rewrite Heqe0; state_steps; rewrite EQ; reflexivity.
+          * state_steps; rewrite Heqe0; state_steps; rewrite EQ; reflexivity.
+    Qed.
 
     Lemma Denote_Eval_Equiv_BinCType_Succeeds: forall mem σ f i a b v,
         evalIBinCType mem σ f i a b ≡ inr v ->
@@ -555,13 +669,11 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
         do 3 inv_memory_lookup_err; state_steps.
 
-        rewrite Heqe1; cbn; state_steps.
-        rewrite Heqe2; cbn; state_steps.
-        apply Denote_Eval_Equiv_BinOp_Succeeds in Heqe3; rewrite Heqe3; cbn; state_steps.
-        reflexivity.
-      -
-
-      -
+      (*   rewrite Heqe1; cbn; state_steps. *)
+      (*   rewrite Heqe2; cbn; state_steps. *)
+      (*   apply Denote_Eval_Equiv_BinOp_Succeeds in Heqe3; rewrite Heqe3; cbn; state_steps. *)
+      (*   reflexivity. *)
+      (* - *)
 
     Admitted.
 
