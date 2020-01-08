@@ -1,7 +1,6 @@
 -R coq Helix
 -R ./lib/vellvm/src/coq Vellvm
 -R ./lib/vellvm/lib/InteractionTrees/theories ITree
--R ./lib/vellvm/lib/coq-ceres/theories Ceres
 -arg "-w '-notation-overridden'"
 
 

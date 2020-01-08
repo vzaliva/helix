@@ -12,6 +12,8 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import ExtLib.Structures.Monads.
 
+Require Import Ceres.CeresString.
+
 Import ListNotations.
 Import MonadNotation.
 Open Scope monad_scope.
@@ -44,7 +46,7 @@ Fixpoint string_of_IRType (t: typ) :=
   match t with
   | TYPE_I 64%Z => "int64"
   | TYPE_Double => "float64"
-  | TYPE_Array n TYPE_Double => append "float64[" ((String.string_of_Z n) ++ "]")
+  | TYPE_Array n TYPE_Double => append "float64[" ((Ceres.CeresString.string_of_Z n) ++ "]")
   | TYPE_Pointer p => append "*" (string_of_IRType p)
   | _ => "#INVALID"
   end.
