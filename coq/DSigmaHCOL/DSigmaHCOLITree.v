@@ -519,10 +519,15 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         inv HEval; auto.
       -
 
-        Theorem Denote_Eval_Equiv_Fails:
-          forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
-            evalDSHOperator σ op mem fuel = Some (inl msg) ->
-            exists msg', Eq.eutt eq (interp_Mem _ (denoteDSHOperator σ op) mem) (Dfail msg').
+    Admitted.
 
+    Theorem Denote_Eval_Equiv_Fails:
+      forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
+        evalDSHOperator σ op mem fuel = Some (inl msg) ->
+        exists msg', Eq.eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (Dfail msg').
+    Proof.
+    Admitted.
 
-  End MDSigmaHCOLITree.
+  End Eval_Denote_Equiv.
+
+End MDSigmaHCOLITree.
