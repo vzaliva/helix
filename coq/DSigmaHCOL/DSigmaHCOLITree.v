@@ -704,7 +704,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         rewrite Heqe1; state_steps.
         rewrite Heqe2; state_steps.
         admit. (* Map2 case, need a lemma for it *)
-      - rewrite <- denote_Loop_from_0.
+      -
 
         (*
           The equivalence between both loops is non-trivial.
@@ -723,6 +723,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
          *)
 
     (*
+      rewrite <- denote_Loop_from_0.
         generalize 0 at 1; intros N.
         revert mem mem' HEval.
         revert dependent σ.
