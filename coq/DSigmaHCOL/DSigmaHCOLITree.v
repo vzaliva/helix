@@ -24,6 +24,12 @@ Require Import ITree.Eq.
 Require Import ITree.Interp.InterpFacts.
 Require Import ITree.Events.State.
 Require Import ITree.Events.StateFacts.
+Require Import ITree.Basics.CategoryTheory.
+Require Import ITree.Basics.CategoryOps.
+Require Import ITree.Basics.CategoryKleisli.
+Require Import ITree.Basics.CategoryKleisliFacts.
+Require Import ITree.Core.KTree.
+Require Import ITree.Core.KTreeFacts.
 
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MathClasses.misc.decision.
@@ -247,12 +253,11 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
         | DSHLoop n body =>
           iter (fun (p: nat) =>
-                  match p with
-                  | O => ret (inr tt)
-                  | S p =>
-                    denoteDSHOperator (DSHnatVal (n - (S p)) :: σ) body;;
-                    ret (inl p)
-                  end) n
+                  if EqNat.beq_nat p n
+                  then ret (inr tt)
+                  else denoteDSHOperator (DSHnatVal p :: σ) body;;
+                       ret (inl (S p))
+                  ) 0
 
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
@@ -328,6 +333,10 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Ltac inv_memory_lookup_err :=
       unfold memory_lookup_err, trywith in *;
       break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
+
+    Ltac inv_memory_lookup_err_H H :=
+      unfold memory_lookup_err, trywith in H;
+      break_match_hyp; cbn in H; try (inl_inr || inv_sum || inv_sum).
 
     Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum || inv_sum || inv_option)); repeat try (inv_sum || inv_option).
 
@@ -631,23 +640,42 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         rewrite IH; eauto; reflexivity.
     Qed.
 
+    Definition denote_Loop_for_i_to_N σ body (N i: nat) :=
+      iter (fun (p: nat) =>
+              if EqNat.beq_nat p N
+              then ret (inr tt)
+              else denoteDSHOperator (DSHnatVal p :: σ) body;;
+                   ret (inl (S p))
+           ) i.
+
+    Lemma denote_Loop_from_0:
+      forall σ body N, denote_Loop_for_i_to_N σ body N 0 ≈ denoteDSHOperator σ (DSHLoop N body).
+    Admitted.
+
+    Lemma aux: forall σ n op fuel mem_i mem_f,
+        evalDSHOperator σ (DSHLoop (S n) op) mem_i (S fuel) ≡ Some (inr mem_f) ->
+        exists mem,
+          evalDSHOperator (DSHnatVal n :: σ) op mem_i (S fuel) ≡ Some (inr mem) /\
+          evalDSHOperator σ (DSHLoop n op) mem (S fuel) ≡ Some (inr mem_f).
+    Admitted.
+
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
         eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)).
     Proof.
       intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
-      revert mem' fuel mem H.
-      induction op; intros mem fuel mem' HEval; unfold_Mem.
-      - inv_eval; state_steps; reflexivity.
-      - destruct src,dst.
+      revert σ mem' fuel mem H.
+      induction op; intros σ mem fuel mem' HEval.
+      - unfold_Mem; inv_eval; state_steps; reflexivity.
+      - unfold_Mem; destruct src,dst.
         inv_eval.
         cbn; state_steps.
         rewrite Heqe1; cbn; state_steps.
         rewrite Heqe2; cbn; state_steps.
         rewrite Heqe5; cbn; state_steps.
         apply eqit_Ret; auto.
-      - inv_eval.
+      - unfold_Mem; inv_eval.
         cbn.
         state_steps.
         rewrite Heqe1; cbn; state_steps.
@@ -655,26 +683,244 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         apply Denote_Eval_Equiv_IMap_Succeeds in Heqe3.
         rewrite Heqe3; cbn; state_steps.
         apply eqit_Ret; auto.
-      - inv_eval.
+      - unfold_Mem; inv_eval.
         cbn.
         state_steps.
         rewrite Heqe1; cbn; state_steps.
         rewrite Heqe2; cbn; state_steps.
         apply Denote_Eval_Equiv_BinOp_Succeeds in Heqe3; rewrite Heqe3; cbn; state_steps.
         reflexivity.
-      - inv_eval.
-        cbn.
+      - unfold_Mem; inv_eval.
         state_steps.
+        rewrite Heqe2.
+        state_steps.
+        rewrite Heqe3.
+        state_steps.
+        rewrite Heqe4.
+        state_steps.
+        admit. (* Map2 case, need a lemma for it *)
+      - unfold_Mem; inv_eval.
+        state_steps.
+        rewrite Heqe1; state_steps.
+        rewrite Heqe2; state_steps.
+        admit. (* Map2 case, need a lemma for it *)
+      - rewrite <- denote_Loop_from_0.
+
+        (*
+          The equivalence between both loops is non-trivial.
+          The core of the problem is that the [evalContext] gets
+          extended at each step with the current iteration index.
+          This means that if you try to conduct naïvely the induction
+          by unrolling, i.e. want to exploit simply that:
+          [| loop (S n) body |] σ ~ [| body |] (0::σ);; [| loop n body |] σ
+          You need to generalize your construct so that the remaining of
+          the loop starts binding at 1 and not at 0 once again.
+
+          It is done via [denote_Loop_for_i_to_N] on the denotation side,
+          but we also need to do so on the Eval side.
+
+          That is assuming that we did not get lost on the way.
+         *)
+
+    (*
+        generalize 0 at 1; intros N.
+        revert mem mem' HEval.
+        revert dependent σ.
+        induction n as [| n IH]; intros σ mem mem' HEval; cbn.
+        + unfold denote_Loop_for_i_to_N.
+          cbn in HEval. inv_eval.
+          clear IHop.
+          unfold_Mem.
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ 0).
+          rewrite EQ; clear EQ.
+          cbn in *.
+          state_steps.
+          reflexivity.
+        + unfold interp_Mem, denote_Loop_for_i_to_N.
+          match goal with
+          | |- interp_state ?h (iter ?k _) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ 0).
+          rewrite EQ; clear EQ.
+          cbn.
+          state_steps.
+          unfold interp_Mem in IH.
+          rewrite interp_state_bind.
+          apply aux in HEval; destruct HEval as (mem_aux & EQ1 & EQ2).
+          rewrite IHop.
+          {
+            state_steps.
+            simpl ret in IH.
+            rewrite <- (IH σ mem mem_aux).
+            {
+              cbn; reflexivity.
+            }
+            auto.
+          }
 
 
-        do 3 inv_memory_lookup_err; state_steps.
 
-      (*   rewrite Heqe1; cbn; state_steps. *)
-      (*   rewrite Heqe2; cbn; state_steps. *)
-      (*   apply Denote_Eval_Equiv_BinOp_Succeeds in Heqe3; rewrite Heqe3; cbn; state_steps. *)
-      (*   reflexivity. *)
-      (* - *)
+        induction n as [| n IH]; intros σ mem mem' HEval; cbn.
+        + unfold denote_LoopN_at_i.
+          cbn in HEval. inv_eval.
+          clear IHop.
+          unfold_Mem.
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ 0).
+          rewrite EQ; clear EQ.
+          cbn in *.
+          state_steps.
+          reflexivity.
+        + unfold interp_Mem, denote_LoopN_at_i.
+          match goal with
+          | |- interp_state ?h (iter ?k _) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ (S n)).
+          rewrite EQ; clear EQ.
+          cbn.
+          state_steps.
+          unfold interp_Mem in IH.
+          rewrite interp_state_bind.
+          apply aux in HEval; destruct HEval as (mem_aux & EQ1 & EQ2).
+          rewrite IHop.
+          {
+            state_steps.
+            simpl ret in IH.
+            rewrite <- (IH σ mem mem_aux).
+            {
+              unfold denote_LoopN_at_i.
+              cbn; reflexivity.
+            }
+            auto.
+          }
 
+
+        rewrite <- denote_LoopN_at_N.
+        generalize n at 1; intros N.
+        revert mem mem' HEval.
+        revert dependent σ.
+
+        induction n as [| n IH]; intros σ mem mem' HEval; cbn.
+        + unfold denote_LoopN_at_i.
+          cbn in HEval. inv_eval.
+          clear IHop.
+          unfold_Mem.
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ 0).
+          rewrite EQ; clear EQ.
+          cbn in *.
+          state_steps.
+          reflexivity.
+        + unfold interp_Mem, denote_LoopN_at_i.
+          match goal with
+          | |- interp_state ?h (iter ?k _) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ (S n)).
+          rewrite EQ; clear EQ.
+          cbn.
+          state_steps.
+          unfold interp_Mem in IH.
+          rewrite interp_state_bind.
+          apply aux in HEval; destruct HEval as (mem_aux & EQ1 & EQ2).
+          rewrite IHop.
+          {
+            state_steps.
+            simpl ret in IH.
+            rewrite <- (IH σ mem mem_aux).
+            {
+              unfold denote_LoopN_at_i.
+              cbn; reflexivity.
+            }
+            auto.
+          }
+
+
+
+
+        induction n as [| n IH]; intros σ mem mem' HEval; cbn.
+        + cbn in HEval; inv_eval.
+          clear IHop.
+          unfold_Mem.
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ 0).
+          rewrite EQ; clear EQ.
+          cbn in *.
+          state_steps.
+          reflexivity.
+        + unfold interp_Mem.
+          match goal with
+          | |- interp_state ?h (iter ?k _) _ ≈ _ =>
+            generalize (@iter_unfold _ (ktree _) _ _ _ sum _ _ _ nat unit k)
+          end; intros EQ.
+          specialize (EQ (S n)).
+          rewrite EQ; clear EQ.
+          cbn.
+          state_steps.
+          unfold interp_Mem in IH.
+          rewrite interp_state_bind.
+          rewrite IHop.
+          { state_steps.
+            simpl ret in IH.
+            specialize (IH σ mem mem').
+            rewrite <- IH.
+            cbn.
+            {
+
+            rewrite <- IH.
+
+          unfold iter_unfold in Heqe.
+          unfold iterative_unfold in Heqe.
+          break_let.
+
+          unfold KTree.iter, Iter_Kleisli, Basics.iter, MonadIter_itree.
+          pose proof @interp_state_iter'.
+          red in H.
+          rewrite H.
+          match goal with
+          | |- Basics.iter ?body 0 mem ≈ _ =>
+            erewrite (@iter_unfold _ (Kleisli (Monads.stateT _ (itree _))) _ _ _ sum _ _ _ nat unit body)
+          end.
+
+            rewrite (iter_unfold k)
+          end.
+
+
+          pose @iter_unfold.
+
+
+          unfold KTree.iter. unfold Iter_Kleisli.
+          rewrite interp_state_iter.
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+pose (iter_unfold k)
+          end.
+
+          match goal with
+          | |- interp_state ?h (iter ?k 0) _ ≈ _ =>
+            generalize (interp_state_iter _ h k (fun _ m => Ret (m,inr ())))
+          end.
+          intros ?.
+
+          Set Printing Implicit.
+          rewrite iterative_unfold.
+          rewrite interp_state_iter'.
+          *)
     Admitted.
 
     Theorem Denote_Eval_Equiv_Fails:
