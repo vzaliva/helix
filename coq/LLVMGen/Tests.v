@@ -392,9 +392,13 @@ Definition evalFSHCOLOperator
      let yindex := 0%nat in
      let mem := memory_set mem xindex x in
      let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in
-     mem <- evalDSHOperator σ op mem (estimateFuel op) ;;
-         yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;
-         mem_to_list "Invalid output memory block" o yb.
+     match evalDSHOperator σ op mem (estimateFuel op) with
+     | Some (inr mem) =>
+       yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;
+          mem_to_list "Invalid output memory block" o yb
+     | Some (inl msg) => inl msg
+     | None => raise "evalDSHOperator returns None"
+     end.
 
 (* Returns [sum string (list binary64)] *)
 Definition evalFSHCOLTest (t:FSHCOLTest) (data:list binary64)
