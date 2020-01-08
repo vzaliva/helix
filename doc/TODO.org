@@ -103,6 +103,7 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Instead of local copy we have in =Tactics/StructTactics.v=
    But we beed to wait until it become avaialble in default repo.
    Track this [[https://github.com/uwplse/StructTact/issues/55][issue]] for details.
+** Use [[https://github.com/QuickChick/QuickChick][QuickChick]]
 * Ideas
   - See if =coq-equations= package could be used to represent index
     functions and function arguments of =BinOp=, =Pointwise=, etc.
