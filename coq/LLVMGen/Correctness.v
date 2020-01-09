@@ -9,6 +9,8 @@ Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.ErrorSetoid.
 
+Require Import ExtLib.Structures.Monads.
+
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
 Require Import Vellvm.Denotation.
@@ -17,15 +19,17 @@ Require Import Vellvm.TopLevel.
 Require Import Vellvm.LLVMAst.
 Require Import Vellvm.CFG.
 Require Import Vellvm.TopLevelRefinements.
+Require Import Vellvm.LLVMEvents.
 
 Require Import ITree.ITree.
+Require Import ITree.Eq.Eq.
 Require Import ITree.Basics.Basics.
 
 Require Import Flocq.IEEE754.Binary.
 Require Import Flocq.IEEE754.Bits.
 
-Require Import ExtLib.Structures.Monads.
-
+Require Import MathClasses.interfaces.canonical_names.
+Require Import MathClasses.misc.decision.
 
 Set Implicit Arguments.
 Set Strict Implicit.
@@ -36,7 +40,19 @@ Definition model_llvm' := model_to_L3 helix_intrinsics.
 
 Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.PickE +' UBE +' DebugE +' FailureE).
 
-Definition model_llvm p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
+Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
+
+Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) :=
+  let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in
+
+  match CFG.mcfg_of_modul _ scfg with
+  | Some ucfg =>
+    let mcfg := TopLevelEnv.normalize_types ucfg in
+
+    semantics_llvm_mcfg mcfg
+
+  | None => raise "Ill-formed program: mcfg_of_modul failed."
+  end.
 
 Import ListNotations.
 Import MonadNotation.
@@ -65,32 +81,28 @@ Fixpoint denote_initFSHGlobals
       end
     end.
 
-(* Definition denote_FSHCOL (t:FSHCOLProgram) (data:list binary64) *)
-(*   : itree (StaticFailE +' DynamicFailE) (list binary64) := *)
-(*   xindex <- trigger (MemAlloc xindex mem_empty);; *)
-(*   yindex <- trigger (MemAlloc yindex mem_empty);; *)
-(*   '(data, σ) <- initFSHGlobals data mem globals ;; *)
-(*   let '(data, x) := constMemBlock i data in *)
-(*   let mem := memory_set mem xindex x in *)
-(*   let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in *)
-(*   match evalDSHOperator σ op mem (estimateFuel op) with *)
-(*   | Some (inr mem) => *)
-(*     yb <- trywith "No output memory block" (memory_lookup mem yindex) ;; *)
-(*        mem_to_list "Invalid output memory block" o yb *)
-(*   | Some (inl msg) => inl msg *)
-(*   | None => raise "evalDSHOperator returns None" *)
-(*   end. *)
+Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
+  ListSetoid.monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).
 
+Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
+  : itree Event (list binary64) :=
+  '(data, σ) <- denote_initFSHGlobals data p.(globals) ;;
+  xindex <- trigger (MemAlloc p.(i));;
+  yindex <- trigger (MemAlloc p.(o));;
+  let '(data, x) := constMemBlock p.(i) data in
+  trigger (MemSet xindex x);;
 
+  let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in
+  denoteDSHOperator σ p.(op);;
+  bk <- trigger (MemLU "denote_FSHCOL" yindex);;
+  lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
 
-(* Theorem compiler_correct: *)
-(*   forall (i o: nat) *)
-(*     (globals: list (string*FSHValType)) *)
-(*     (globals_extern: bool) *)
-(*     (fshcol: DSHOperator) *)
-(*     (funname: string) *)
-(*     p σ mem, *)
-(*   exists RR, *)
-(*     LLVMGen i o globals globals_extern fshcol funname ≡ inr p -> *)
-(*     eutt RR (denoteDSHOperator σ fshcol mem) (model_user ). *)
+Definition semantics_FSHCOL p data: itree E (memory * list binary64) :=
+  translate (@subevent _ E _) (interp_Mem (denote_FSHCOL p data) memory_empty).
+
+Theorem compiler_correct:
+  exists RR,
+  forall (p:FSHCOLProgram) data pll,
+    compile p data ≡ inr pll ->
+    eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
 

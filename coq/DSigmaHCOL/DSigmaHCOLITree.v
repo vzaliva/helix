@@ -694,6 +694,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           evalDSHOperator σ (DSHLoop n op) mem (S fuel) ≡ Some (inr mem_f).
     Admitted.
 
+    (* Lemma loop_is_iter *)
+
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->

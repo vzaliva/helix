@@ -193,9 +193,6 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.Util.ErrorSetoid.
 
-Definition mem_to_list (msg:string) (n:nat) (mb:mem_block) : err (list binary64) :=
-  monadic_Lbuild n (fun j _ => trywith msg (mem_lookup j mb)).
-
 Fixpoint initFSHGlobals
          (data: list binary64)
          (mem: memory)
@@ -219,34 +216,6 @@ Fixpoint initFSHGlobals
                      ret (mem, data, (p::σ))
                   end
     end.
-
-(* Definition evalFSHCOLOperator *)
-(*            (i o: nat) *)
-(*            (name: string) *)
-(*            (globals: list (string * FSHValType)) *)
-(*            (op: DSHOperator) *)
-(*            (data:list binary64) *)
-(*   : err (list binary64) *)
-(*   := *)
-(*     let mem := memory_empty in *)
-(*     let xindex := 1%nat in *)
-(*     let yindex := 0%nat in *)
-(*     let mem := memory_set mem xindex mem_empty in (* placeholder *) *)
-(*     let mem := memory_set mem yindex mem_empty in *)
-(*     '(mem, data, σ) <- initFSHGlobals data mem globals ;; *)
-(*      let '(data, x) := constMemBlock i data in *)
-(*      let xindex := 1%nat in *)
-(*      let yindex := 0%nat in *)
-(*      let mem := memory_set mem xindex x in *)
-(*      let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in *)
-(*      match evalDSHOperator σ op mem (estimateFuel op) with *)
-(*      | Some (inr mem) => *)
-(*        yb <- trywith "No output memory block" (memory_lookup mem yindex) ;; *)
-(*           mem_to_list "Invalid output memory block" o yb *)
-(*      | Some (inl msg) => inl msg *)
-(*      | None => raise "evalDSHOperator returns None" *)
-(*      end. *)
-
 
 Definition evalFSHCOLOperator
            (i o: nat)
