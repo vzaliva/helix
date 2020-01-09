@@ -42,17 +42,24 @@ Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.P
 
 Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
 
+(* MOVE TO VELLVM *)
+Definition lift_sem_to_mcfg {E X} `{FailureE -< E}
+           (sem: (CFG.mcfg DynamicTypes.dtyp) -> itree E X):
+  list (toplevel_entity typ (list (LLVMAst.block typ))) -> itree E X :=
+  fun prog =>
+    let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in
+
+    match CFG.mcfg_of_modul _ scfg with
+    | Some ucfg =>
+      let mcfg := TopLevelEnv.normalize_types ucfg in
+
+      sem mcfg
+
+    | None => raise "Ill-formed program: mcfg_of_modul failed."
+    end.
+
 Definition semantics_llvm (prog: list (toplevel_entity typ (list (LLVMAst.block typ)))) :=
-  let scfg := Vellvm.AstLib.modul_of_toplevel_entities _ prog in
-
-  match CFG.mcfg_of_modul _ scfg with
-  | Some ucfg =>
-    let mcfg := TopLevelEnv.normalize_types ucfg in
-
-    semantics_llvm_mcfg mcfg
-
-  | None => raise "Ill-formed program: mcfg_of_modul failed."
-  end.
+  lift_sem_to_mcfg semantics_llvm_mcfg prog.
 
 Import ListNotations.
 Import MonadNotation.
@@ -100,6 +107,106 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
 Definition semantics_FSHCOL p data: itree E (memory * list binary64) :=
   translate (@subevent _ E _) (interp_Mem (denote_FSHCOL p data) memory_empty).
 
+(* MOVE TO VELLVM *)
+Definition denote_bks (bks: list _): block_id -> itree IO.instr_E (block_id + uvalue) :=
+  loop (fun (bid : block_id + block_id) =>
+          match bid with
+          | inl bid
+          | inr bid =>
+            (* We lookup the block [bid] to be denoted *)
+            match find_block DynamicTypes.dtyp bks bid with
+            | None => ret (inr (inl bid))
+            | Some block =>
+              (* We denote the block *)
+              bd <- D.denote_block block;;
+                 (* And set the phi-nodes of the new destination, if any *)
+                 match bd with
+                 | inr dv => ret (inr (inr dv))
+                 | inl bid_target =>
+                   match find_block DynamicTypes.dtyp bks bid_target with
+                   | None => ret (inr (inl bid_target))
+                   | Some block_target =>
+                     dvs <- Util.map_monad
+                         (fun x => translate IO.exp_E_to_instr_E (D.denote_phi bid x))
+                         (blk_phis block_target) ;;
+                         Util.map_monad (fun '(id,dv) => trigger (LocalWrite id dv)) dvs;;
+                         ret (inl bid_target)
+                   end
+                 end
+            end
+          end
+       ).
+
+Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
+  : list (LLVMAst.block DynamicTypes.dtyp) :=
+  List.map
+    (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
+Import IO TopLevelEnv Global Local.
+
+Variable (interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
+                        (FMapAList.alist raw_id dvalue) ->
+                        (FMapAList.alist raw_id res_L0) ->
+                        M.memory_stack ->
+itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
+              (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R)))
+         ).
+
+(* We could probably fix [env] to be [nil] *)
+Lemma compile_FSHCOL_correct:
+  forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
+  exists RR,
+    genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
+    eutt (RR σ)
+         (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
+         (translate (@subevent _ E _)
+                    (interp_to_L3' helix_intrinsics
+                                  (denote_bks (normalize_types_blocks env bks) bid_in)
+         g ρ mem_llvm)).
+Admitted.
+
+Definition Type_R: Type := evalContext
+           → MDSHCOLOnFloat64.memory * ()
+             → M.memory_stack *
+               (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) → Prop.
+
+Definition injection_Fin {A} (ι: nat -> A) k: Prop :=
+  forall x y,
+    x < k /\ y < k ->
+    ι x ≡ ι y ->
+    x ≡ y.
+
+Definition get_logical_block (mem: M.memory) (ptr: A.addr): option M.logical_block :=
+  let '(b,a) := ptr in
+  M.lookup_logical b mem.
+
+Definition bisim: Type_R.
+  intros σ [mem_helix _] (mem_llvm & ρ & g & bid_or_v).
+  refine (exists (ι: nat -> raw_id), _).
+  refine (injection_Fin ι (length σ) /\ _).
+  refine (forall (x: nat) v,
+             nth_error σ x ≡ Some v ->
+             match v with
+             | DSHnatVal v   =>
+               FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
+             | DSHCTypeVal v =>
+               FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Double v)
+             | DSHPtrVal ptr_helix =>
+               forall bk_helix,
+                 memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
+                 exists ptr_llvm bk_llvm,
+                   FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+                   get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+                   _ bk_helix bk_llvm
+             end).
+  refine (fun bk_helix bk_llvm =>
+         (* This needs to relate [mem_block] to logical blocks on the LLVM side *)
+         (* Doing so is currently tricky because Helix to not track the size
+            of the array *)
+         (* mem_to_list "" bk_helix *)
+            False
+         ).
+Defined.
+
 Theorem compiler_correct:
   exists RR,
   forall (p:FSHCOLProgram) data pll,
@@ -107,3 +214,4 @@ Theorem compiler_correct:
     eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
+
