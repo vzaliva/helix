@@ -22,6 +22,8 @@ Require Import Flocq.IEEE754.Bits.
 
 Require Import ExtLib.Structures.Monads.
 
+Require Import Helix.LLVMGen.Correctness.
+
 Import ListNotations.
 
 Import MDSHCOLOnFloat64.

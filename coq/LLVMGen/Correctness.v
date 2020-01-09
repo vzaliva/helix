@@ -105,4 +105,5 @@ Theorem compiler_correct:
   forall (p:FSHCOLProgram) data pll,
     compile p data ≡ inr pll ->
     eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
-
+Proof.
+Admitted.

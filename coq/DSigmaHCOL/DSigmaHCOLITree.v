@@ -1,6 +1,7 @@
 (* Deep embedding of a subset of SigmaHCOL *)
 
 Require Import Coq.Lists.List.
+Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Strings.String.
@@ -672,7 +673,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           end
       end.
 
-    Require Import Arith.
     Lemma eval_Loop_for_0_to_N:
       forall σ body N mem fuel, eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem (S fuel).
     Proof.
