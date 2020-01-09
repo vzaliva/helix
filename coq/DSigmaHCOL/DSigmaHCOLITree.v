@@ -931,8 +931,9 @@ pose (iter_unfold k)
     Theorem Denote_Eval_Equiv_Fails:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
         evalDSHOperator σ op mem fuel = Some (inl msg) ->
-        exists msg', Eq.eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (Dfail msg').
+        interp_Mem_Fails (denoteDSHOperator σ op) mem.
     Proof.
+      unfold interp_Mem_Fails.
     Admitted.
 
   End Eval_Denote_Equiv.
