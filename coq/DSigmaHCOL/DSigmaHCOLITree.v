@@ -292,7 +292,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match e with
       | MemLU msg id  => lift_Derr (Functor.fmap (fun x => (mem,x)) (memory_lookup_err msg mem id))
       | MemSet id blk => ret (memory_set mem id blk, tt)
-      | MemAlloc size => ret (mem, memory_new mem)
+      | MemAlloc size => ret (mem, memory_next_key mem)
       | MemFree id    => ret (memory_remove mem id, tt)
       end.
 

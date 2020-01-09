@@ -797,7 +797,7 @@ Module Type MBasic (Import CT : CType).
       NSP.of_list (memory_keys_lst m).
 
     (* Returns block ID which is guaraneed to be free in [m] *)
-    Definition memory_new
+    Definition memory_next_key
                (m: memory): mem_block_id
       :=  match NS.max_elt (memory_keys_set m) with
           | None => 0
@@ -929,11 +929,11 @@ Module Type MBasic (Import CT : CType).
       apply NM_NS_In.
     Qed.
 
-    Lemma mem_block_exists_memory_new
+    Lemma mem_block_exists_memory_next_key
           (m : memory):
-      not (mem_block_exists (memory_new m) m).
+      not (mem_block_exists (memory_next_key m) m).
     Proof.
-      unfold mem_block_exists, memory_new.
+      unfold mem_block_exists, memory_next_key.
       break_match; rename Heqo into H.
       -
         rewrite memory_keys_set_In.
@@ -954,10 +954,10 @@ Module Type MBasic (Import CT : CType).
         congruence.
     Qed.
 
-    Lemma memory_lookup_memory_new_is_None (m:memory):
-      MathClasses.misc.util.is_None (memory_lookup m (memory_new m)).
+    Lemma memory_lookup_memory_next_key_is_None (m:memory):
+      MathClasses.misc.util.is_None (memory_lookup m (memory_next_key m)).
     Proof.
-      pose proof (mem_block_exists_memory_new m) as P.
+      pose proof (mem_block_exists_memory_next_key m) as P.
       apply mem_block_not_exists_exists in P.
       unfold MathClasses.misc.util.is_None.
       break_match; try some_none; auto.

@@ -376,7 +376,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           | None => None
           end
         | DSHAlloc size body =>
-          let t_i := memory_new mem in
+          let t_i := memory_next_key mem in
           match evalDSHOperator (DSHPtrVal t_i :: σ) body (memory_set mem t_i (mem_empty)) fuel with
           | Some (inr mem') => Some (ret (memory_remove mem' t_i))
           | Some (inl msg) => Some (inl msg)

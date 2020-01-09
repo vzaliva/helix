@@ -212,7 +212,7 @@ Fixpoint initFSHGlobals
                   | FSHvecValType n =>
                     '(mem,data,σ) <- initFSHGlobals data mem gs ;;
                      let (data,mb) := constMemBlock n data in
-                     let k := memory_new mem in
+                     let k := memory_next_key mem in
                      let mem := memory_set mem k mb in
                      let p := DSHPtrVal k in
                      ret (mem, data, (p::σ))
@@ -231,11 +231,11 @@ Definition evalFSHCOLOperator
     let mem := memory_empty in
     (* Initializes the input address *)
     '(mem, data, σ) <- initFSHGlobals data mem globals ;;
-    let xindex := memory_new mem in
+    let xindex := memory_next_key mem in
     let '(data, x) := constMemBlock i data in
     let mem := memory_set mem xindex x in
     (* Initializes the output address *)
-    let yindex :=  memory_new mem in
+    let yindex :=  memory_next_key mem in
     let mem := memory_set mem yindex mem_empty in
 
      let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in
