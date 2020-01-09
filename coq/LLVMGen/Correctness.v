@@ -143,13 +143,14 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
     (TransformTypes.fmap_block _ _ (TypeUtil.normalize_type_dtyp env)) bks.
 Import IO TopLevelEnv Global Local.
 
-Variable (interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
+(* TO FIX *)
+Definition interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
                         (FMapAList.alist raw_id dvalue) ->
                         (FMapAList.alist raw_id res_L0) ->
                         M.memory_stack ->
 itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
-              (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R)))
-         ).
+              (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R))) :=
+  fun R _ _ a b c => raise "".
 
 (* We could probably fix [env] to be [nil] *)
 Lemma compile_FSHCOL_correct:
