@@ -6,6 +6,7 @@ Require Import Flocq.IEEE754.Bits.
 
 Require Import Helix.DSigmaHCOL.DSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
+Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.FSigmaHCOL.Float64AasCT.
 
 (* Defining these before importing math classes to avoid name collisions,
@@ -127,4 +128,4 @@ Module MDSigmaHCOLEvalSigFloat64 <: MDSigmaHCOLEvalSig(MFloat64AasCT).
 
 End MDSigmaHCOLEvalSigFloat64.
 
-Module Export MDSHCOLOnFloat64 := MDSigmaHCOLEval(MFloat64AasCT)(MDSigmaHCOLEvalSigFloat64).
+Module Export MDSHCOLOnFloat64 := MDSigmaHCOLITree(MFloat64AasCT)(MDSigmaHCOLEvalSigFloat64).

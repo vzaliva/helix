@@ -652,8 +652,39 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                    ret (inl (S p))
            ) i.
 
-    Lemma denote_Loop_from_0:
+    Lemma denote_Loop_for_0_to_N:
       forall σ body N, denote_Loop_for_i_to_N σ body N 0 ≈ denoteDSHOperator σ (DSHLoop N body).
+    Proof.
+      unfold denote_Loop_for_i_to_N; reflexivity.
+    Qed.
+
+    Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel :=
+      match N with
+      | O => Some (ret mem)
+      | S N =>
+        if EqNat.beq_nat (S N) i then
+          Some (ret mem)
+        else
+          match eval_Loop_for_i_to_N σ body N i mem fuel with
+          | Some (inr mem) => evalDSHOperator (DSHnatVal (S N) :: σ) body mem fuel
+          | Some (inl msg) => Some (inl msg)
+          | None => None
+          end
+      end.
+
+    Require Import Arith.
+    Lemma eval_Loop_for_0_to_N:
+      forall σ body N mem fuel, eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem (S fuel).
+    Proof.
+      induction N as [| N IH]; intros mem fuel.
+      - reflexivity.
+      - unfold eval_Loop_for_i_to_N in *.
+        destruct (PeanoNat.Nat.eqb (S N) 0) eqn:EQ.
+        symmetry in EQ; apply beq_nat_eq in EQ; inv EQ.
+        clear EQ.
+        rewrite IH; clear IH.
+        simpl evalDSHOperator at 3.
+        admit. (* fuel a bit annoying *)
     Admitted.
 
     Lemma aux: forall σ n op fuel mem_i mem_f,
