@@ -421,12 +421,16 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
     Qed.
 
+    Definition interp_Mem_Fails {T} e mem :=
+      exists msg',
+        eutt eq (interp_Mem e mem) (Dfail msg') \/
+        eutt eq (interp_Mem (T:=T) e mem) (Sfail msg').
+
     Lemma Denote_Eval_Equiv_Mexp_Fails: forall mem σ e msg,
         evalMexp mem σ e ≡ inl msg ->
-        exists msg',
-          eutt eq (interp_Mem (denoteMexp σ e) mem) (Dfail msg') \/
-          eutt eq (interp_Mem (denoteMexp σ e) mem) (Sfail msg').
+        interp_Mem_Fails (denoteMexp σ e) mem.
     Proof.
+      unfold interp_Mem_Fails.
       intros mem σ [] bk HEval; unfold_Mem.
       - inv_eval; state_steps.
         + eexists; left; state_steps.
@@ -443,9 +447,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
     Lemma Denote_Eval_Equiv_Aexp_Fails: forall mem σ e msg,
         evalAexp mem σ e ≡ inl msg ->
-        exists msg', eutt eq (interp_Mem (denoteAexp σ e) mem) (Dfail msg')
-              \/ eutt eq (interp_Mem (denoteAexp σ e) mem) (Sfail msg').
+        interp_Mem_Fails (denoteAexp σ e) mem.
     Proof.
+      unfold interp_Mem_Fails.
       intros mem σ e msg; induction e; intros HEVal; unfold_Mem.
       - eexists; right; cbn in *; inv_eval.
         + state_steps; cbn.
@@ -591,9 +595,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
     Lemma Denote_Eval_Equiv_IMap_Fails: forall mem n f σ m1 m2 msg,
         evalDSHIMap mem n f σ m1 m2 ≡ inl msg ->
-        exists msg', eutt eq (interp_Mem (denoteDSHIMap n f σ m1 m2) mem) (Dfail msg')
-                \/ eutt eq (interp_Mem (denoteDSHIMap n f σ m1 m2) mem) (Sfail msg').
+        interp_Mem_Fails  (denoteDSHIMap n f σ m1 m2) mem.
     Proof.
+      unfold interp_Mem_Fails.
       induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem.
       - inl_inr.
       - inv_eval.
