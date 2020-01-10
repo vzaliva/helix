@@ -659,33 +659,36 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       unfold denote_Loop_for_i_to_N; reflexivity.
     Qed.
 
-    Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel :=
-      match N with
-      | O => Some (ret mem)
-      | S N =>
-        if EqNat.beq_nat i (S N) then
-          Some (ret mem)
-        else
-          match eval_Loop_for_i_to_N σ body N i mem fuel with
-          | Some (inr mem) => evalDSHOperator (DSHnatVal (S N) :: σ) body mem fuel
-          | Some (inl msg) => Some (inl msg)
-          | None => None
-          end
+    Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel {struct fuel} :=
+      match fuel with
+      | O => None
+      | S fuel =>
+             match N with
+             | O => Some (ret mem)
+             | S N =>
+               if EqNat.beq_nat i (S N) then
+                 Some (ret mem)
+               else
+                 match eval_Loop_for_i_to_N σ body N i mem fuel with
+                 | Some (inr mem) => evalDSHOperator (DSHnatVal N :: σ) body mem fuel
+                 | Some (inl msg) => Some (inl msg)
+                 | None => None
+                 end
+             end
       end.
 
     Lemma eval_Loop_for_0_to_N:
-      forall σ body N mem fuel, eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem (S fuel).
+      forall σ body N mem fuel,
+        eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
     Proof.
       induction N as [| N IH]; intros mem fuel.
-      - reflexivity.
-      - unfold eval_Loop_for_i_to_N in *.
-        destruct (PeanoNat.Nat.eqb (S N) 0) eqn:EQ.
-        symmetry in EQ; apply beq_nat_eq in EQ; inv EQ.
-        clear EQ.
-        rewrite IH; clear IH.
-        simpl evalDSHOperator at 3.
-        admit. (* fuel a bit annoying *)
-    Admitted.
+      - destruct fuel; reflexivity.
+      - destruct fuel as [| fuel ]; [reflexivity |].
+        simpl evalDSHOperator.
+        simpl.
+        rewrite <- IH.
+        reflexivity.
+    Qed.
 
     (* TODO : MOVE THIS TO ITREE *)
     Require Import Paco.paco.
@@ -747,7 +750,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         (N i: nat)
         (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
         i <= N ->
-        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inr mem')
+        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some (inr mem')
         → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op N i) mem ≈ ret (mem', ()).
     Proof.
       intros op IHop N i σ mem fuel mem' ineq HEval.
