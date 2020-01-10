@@ -9,8 +9,10 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Export Vellvm.Error.
 
 Require Import Helix.Util.OptionSetoid.
-Require Export Helix.Util.StringSetoid. (* for (=) on String *)
+Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
+
+Require Export Helix.Util.StringSetoid. (* for (=) on String *)
 
 Definition is_OK {A:Type} (v:err A) :=
   match v with
@@ -193,3 +195,8 @@ Proof.
   inversion H0.
   reflexivity.
 Qed.
+
+Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=
+  if PeanoNat.Nat.eq_dec a b
+  then ret tt
+  else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.

@@ -205,11 +205,6 @@ Definition allocTempArrayBlock
             blk_comments := None
           |})).
 
-Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=
-  if PeanoNat.Nat.eq_dec a b
-  then ret tt
-  else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.
-
 Fixpoint genNExpr
          (st: IRState)
          (nexp: NExpr) :
