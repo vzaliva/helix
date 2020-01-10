@@ -7,6 +7,8 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Strings.String.
 Require Import Psatz.
 
+Require Import Paco.paco.
+
 Require Import Helix.Util.Misc.
 Require Import Helix.Util.ListSetoid.
 Require Import Helix.HCOL.CarrierType.
@@ -691,7 +693,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     (* TODO : MOVE THIS TO ITREE *)
-    Require Import Paco.paco.
     Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
              (h : E ~> Monads.stateT S (itree F)) :
       Proper (eutt eq ==> eq ==> eutt eq) (@interp_state E (itree F) S _ _ _ h R).
