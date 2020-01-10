@@ -33,19 +33,19 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Inductive DSHVal :=
   | DSHnatVal (n:nat): DSHVal
   | DSHCTypeVal (a:t): DSHVal
-  | DSHPtrVal (a:mem_block_id): DSHVal.
+  | DSHPtrVal (a:mem_block_id) (size:nat): DSHVal.
 
   Inductive DSHValType: DSHVal -> DSHType -> Prop :=
   | DSHnatVal_type (n:nat): DSHValType (DSHnatVal n) DSHnat
   | DSHCTypeVal_type (a:t): DSHValType (DSHCTypeVal a) DSHCType
-  | DSHDSHPtrVal_type (a:mem_block_id): DSHValType (DSHPtrVal a) DSHPtr.
+  | DSHDSHPtrVal_type (a:mem_block_id) (size:nat): DSHValType (DSHPtrVal a size) (DSHPtr).
 
   (* Functional version. *)
   Definition DSHValToType: DSHVal -> DSHType :=
     fun v => match v with
           | DSHnatVal _ => DSHnat
           | DSHCTypeVal _ =>  DSHCType
-          | DSHPtrVal _ => DSHPtr
+          | DSHPtrVal _ size => DSHPtr
           end.
 
   (* Sanity check to make sure 2 definitons above are consistent with each other *)
@@ -132,7 +132,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
   Inductive DSHVal_equiv: DSHVal -> DSHVal -> Prop :=
   | DSHnatVal_equiv {n0 n1:nat}: n0=n1 -> DSHVal_equiv (DSHnatVal n0) (DSHnatVal n1)
   | DSHCTypeVal_equiv {a b: t}: a=b -> DSHVal_equiv (DSHCTypeVal a) (DSHCTypeVal b)
-  | DSHPtr_equiv {p0 p1: mem_block_id}: p0=p1 -> DSHVal_equiv (DSHPtrVal p0) (DSHPtrVal p1).
+  | DSHPtr_equiv {p0 p1: mem_block_id} {s0 s1:nat}: s0 ≡ s1 /\ p0=p1 -> DSHVal_equiv (DSHPtrVal p0 s0) (DSHPtrVal p1 s1).
 
   Instance DSHVar_Equivalence:
     Equivalence DSHVal_equiv.
@@ -140,10 +140,10 @@ Module Type MDSigmaHCOL (Import CT : CType).
     split.
     -
       intros x.
-      destruct x; constructor; reflexivity.
+      destruct x; constructor; auto.
     -
       intros x y E.
-      inversion E; constructor; symmetry;  apply H.
+      inversion E; constructor; try split; symmetry; apply H.
     -
       intros x y z Exy Eyz.
       inversion Exy; inversion Eyz; subst y; try inversion H3.
@@ -160,8 +160,11 @@ Module Type MDSigmaHCOL (Import CT : CType).
       +
         subst.
         constructor.
-        rewrite H.
-        apply H2.
+        destruct H as [Hs Hp].
+        destruct H2 as [H2s H2p].
+        split.
+        * rewrite Hs; auto.
+        * rewrite Hp; auto.
   Qed.
 
   Instance DSHVar_Equiv: Equiv DSHVal := DSHVal_equiv.

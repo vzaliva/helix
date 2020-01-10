@@ -214,7 +214,7 @@ Fixpoint initFSHGlobals
                      let (data,mb) := constMemBlock n data in
                      let k := memory_next_key mem in
                      let mem := memory_set mem k mb in
-                     let p := DSHPtrVal k in
+                     let p := DSHPtrVal k n in
                      ret (mem, data, (p::σ))
                   end
     end.
@@ -238,7 +238,7 @@ Definition evalFSHCOLOperator
     let yindex :=  memory_next_key mem in
     let mem := memory_set mem yindex mem_empty in
 
-     let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in
+     let σ := List.app σ [DSHPtrVal yindex o; DSHPtrVal xindex i] in
      match evalDSHOperator σ op mem (estimateFuel op) with
      | Some (inr mem) =>
        yb <- trywith "No output memory block" (memory_lookup mem yindex) ;;

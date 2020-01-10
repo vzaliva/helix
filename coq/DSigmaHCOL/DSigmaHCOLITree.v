@@ -263,7 +263,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
           trigger (MemSet t_i (mem_empty)) ;;
-          denoteDSHOperator (DSHPtrVal t_i :: σ) body ;;
+          denoteDSHOperator (DSHPtrVal t_i size :: σ) body ;;
           trigger (MemFree t_i)
 
         | DSHMemInit size y_p value =>
