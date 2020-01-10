@@ -740,7 +740,70 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
         evalDSHOperator σ op mem (S fuel) ≡ Some (inr mem').
     Proof.
-    Admitted.
+      intros σ op mem fuel mem'.
+      revert dependent σ.
+      revert dependent mem.
+      revert dependent mem'.
+      revert dependent fuel.
+      induction op; try (simpl; intros; destruct fuel; try inversion H; auto; fail).
+      -
+        (* Loop *)
+        induction n; intros.
+        +
+          cbn.
+          destruct fuel; simpl in H.
+          * some_none.
+          * assumption.
+        +
+          cbn.
+          destruct fuel; simpl in H.
+          some_none.
+          repeat break_match_hyp; simpl in H; subst.
+          1: inv H.
+          2: some_none.
+          erewrite IHn; eauto.
+      -
+        (* Alloc *)
+        intros.
+        destruct fuel.
+        +
+          simpl in H; some_none.
+        +
+          simpl in H.
+          repeat break_match_hyp.
+          *
+            some_inv.
+          *
+            subst.
+            apply IHop in Heqo; clear IHop.
+            remember (S fuel) as fuel'.
+            cbn.
+            rewrite Heqo.
+            assumption.
+          *
+            some_none.
+      -
+        (* Seq *)
+        intros.
+        destruct fuel.
+        +
+          simpl in H; some_none.
+        +
+          simpl in H.
+          repeat break_match_hyp.
+          *
+            some_inv.
+          *
+            subst.
+            apply IHop1 in Heqo; clear IHop1.
+            apply IHop2 in H; clear IHop2.
+            remember (S fuel) as fuel'.
+            cbn.
+            rewrite Heqo, H.
+            reflexivity.
+          *
+            some_none.
+    Qed.
 
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
