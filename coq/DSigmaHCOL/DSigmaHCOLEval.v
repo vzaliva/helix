@@ -142,7 +142,7 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     match exp with
     | @PVar i =>
       match nth_error σ i with
-      | Some (@DSHPtrVal v) => ret v
+      | Some (@DSHPtrVal v _) => ret v
       | _ => raise "error looking up PVar"
       end
     end.
@@ -376,8 +376,8 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           | None => None
           end
         | DSHAlloc size body =>
-          let t_i := memory_new mem in
-          match evalDSHOperator (DSHPtrVal t_i :: σ) body (memory_set mem t_i (mem_empty)) fuel with
+          let t_i := memory_next_key mem in
+          match evalDSHOperator (DSHPtrVal t_i size :: σ) body (memory_set mem t_i (mem_empty)) fuel with
           | Some (inr mem') => Some (ret (memory_remove mem' t_i))
           | Some (inl msg) => Some (inl msg)
           | None => None
@@ -514,6 +514,8 @@ Module MDSigmaHCOLEval (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
      }
      repeat break_match; try inversion E; subst; try (constructor;auto);
        try (inversion H1;auto).
+     destruct H0.
+     auto.
   Qed.
 
   Instance evalMexp_proper:

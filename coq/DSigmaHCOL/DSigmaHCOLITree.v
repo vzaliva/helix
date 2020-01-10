@@ -263,7 +263,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         | DSHAlloc size body =>
           t_i <- trigger (MemAlloc size) ;;
           trigger (MemSet t_i (mem_empty)) ;;
-          denoteDSHOperator (DSHPtrVal t_i :: σ) body ;;
+          denoteDSHOperator (DSHPtrVal t_i size :: σ) body ;;
           trigger (MemFree t_i)
 
         | DSHMemInit size y_p value =>
@@ -292,7 +292,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match e with
       | MemLU msg id  => lift_Derr (Functor.fmap (fun x => (mem,x)) (memory_lookup_err msg mem id))
       | MemSet id blk => ret (memory_set mem id blk, tt)
-      | MemAlloc size => ret (mem, memory_new mem)
+      | MemAlloc size => ret (mem, memory_next_key mem)
       | MemFree id    => ret (memory_remove mem id, tt)
       end.
 

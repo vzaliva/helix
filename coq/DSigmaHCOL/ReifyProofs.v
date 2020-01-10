@@ -3080,7 +3080,7 @@ Proof.
     break_match_hyp; try some_none.
     rename Heqo into D1, Heqo0 into D2.
     some_inv. rewrite <- H. clear m' H.
-    remember (memory_new m) as k'.
+    remember (memory_next_key m) as k'.
 
     destruct(Nat.eq_dec k k') as [E|NE].
     +
@@ -3097,7 +3097,7 @@ Proof.
       *
         contradict H.
         subst k.
-        apply mem_block_exists_memory_new.
+        apply mem_block_exists_memory_next_key.
       *
         contradict H.
         subst k.
@@ -3141,8 +3141,8 @@ Proof.
       symmetry_option_hyp.
       rename x0 into y0, y0 into y1, x into x0, y into x1.
 
-      remember (memory_new m0) as t0_i.
-      remember (memory_new m1) as t1_i.
+      remember (memory_next_key m0) as t0_i.
+      remember (memory_next_key m1) as t1_i.
       remember (DSHPtrVal t0_i) as t0_v.
       remember (DSHPtrVal t1_i) as t1_v.
 
@@ -3172,7 +3172,7 @@ Proof.
         apply Some_neq.
         intros C.
         subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
         tauto.
       }
 
@@ -3182,7 +3182,7 @@ Proof.
         apply Some_neq.
         intros C.
         subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
         tauto.
       }
 
@@ -3231,7 +3231,7 @@ Proof.
         apply Some_neq.
         intros C.
         subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H.
+        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
         congruence.
       }
 
@@ -3241,7 +3241,7 @@ Proof.
         apply Some_neq.
         intros C.
         subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H0.
+        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
         congruence.
       }
       apply blocks_equiv_at_Pexp_add_mem; auto.
@@ -3302,8 +3302,8 @@ Proof.
       symmetry_option_hyp.
       rename x0 into y0, y0 into y1, x into x0, y into x1.
 
-      remember (memory_new m0) as t0_i.
-      remember (memory_new m1) as t1_i.
+      remember (memory_next_key m0) as t0_i.
+      remember (memory_next_key m1) as t1_i.
       remember (DSHPtrVal t0_i) as t0_v.
       remember (DSHPtrVal t1_i) as t1_v.
 
@@ -3331,7 +3331,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
           tauto.
         }
 
@@ -3341,7 +3341,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
           tauto.
         }
         specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
@@ -3374,7 +3374,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
             congruence.
           }
 
@@ -3384,7 +3384,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H0.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
             congruence.
           }
           apply blocks_equiv_at_Pexp_add_mem; auto.
@@ -3460,7 +3460,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
           tauto.
         }
 
@@ -3470,7 +3470,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
           tauto.
         }
         specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
@@ -3489,7 +3489,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
             congruence.
           }
 
@@ -3499,7 +3499,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H0.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
             congruence.
           }
           apply blocks_equiv_at_Pexp_add_mem; auto.
@@ -3553,8 +3553,8 @@ Proof.
       symmetry_option_hyp.
       rename x0 into y0, y0 into y1, x into x0, y into x1.
 
-      remember (memory_new m0) as t0_i.
-      remember (memory_new m1) as t1_i.
+      remember (memory_next_key m0) as t0_i.
+      remember (memory_next_key m1) as t1_i.
       remember (DSHPtrVal t0_i) as t0_v.
       remember (DSHPtrVal t1_i) as t1_v.
 
@@ -3608,7 +3608,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
             congruence.
            }
 
@@ -3618,7 +3618,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H0.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
             congruence.
           }
           apply blocks_equiv_at_Pexp_add_mem; auto.
@@ -3648,7 +3648,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
           tauto.
         }
 
@@ -3658,7 +3658,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
           tauto.
         }
 
@@ -3714,7 +3714,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H3.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
           tauto.
         }
 
@@ -3724,7 +3724,7 @@ Proof.
           apply Some_neq.
           intros C.
           subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H5.
+          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
           tauto.
         }
         specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
@@ -3744,7 +3744,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
             congruence.
            }
 
@@ -3754,7 +3754,7 @@ Proof.
             apply Some_neq.
             intros C.
             subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_new in H0.
+            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
             congruence.
           }
           apply blocks_equiv_at_Pexp_add_mem; auto.
@@ -3801,7 +3801,7 @@ Proof.
     some_inv.
     rename m1 into m2, m into m3.
     rename Heqo into E1, Heqo0 into E2.
-    remember (memory_new m0) as t_i.
+    remember (memory_next_key m0) as t_i.
     remember (memory_set m0 t_i mem_empty) as m1.
     remember (DSHPtrVal t_i :: σ) as σ'.
     intros k ky.
@@ -3811,7 +3811,7 @@ Proof.
     1:{
 
       subst k.
-      pose proof (mem_block_exists_memory_new m0) as H1.
+      pose proof (mem_block_exists_memory_next_key m0) as H1.
       rewrite <- Heqt_i in H1.
 
       unfold mem_block_exists in H1.
@@ -3949,14 +3949,14 @@ Instance Compose_MSH_DSH_compat
          `{P2: DSH_pure dop2 (TypeSig_incr dsig2) (incrPVar 0 x_p) (PVar 0)}
          `{P1: DSH_pure dop1 (TypeSig_incr dsig1) (PVar 0) (incrPVar 0 y_p)}
          `{C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
-                              (DSHPtrVal (memory_new m) :: σ)
-                              (memory_alloc_empty m (memory_new m))
+                              (DSHPtrVal (memory_next_key m) :: σ)
+                              (memory_alloc_empty m (memory_next_key m))
                               (incrPVar 0 x_p) (PVar 0)
                               P2
           }
-         `{C1: forall m'', memory_equiv_except m m'' (memory_new m) ->
+         `{C1: forall m'', memory_equiv_except m m'' (memory_next_key m) ->
                       MSH_DSH_compat mop1 dop1
-                                     (DSHPtrVal (memory_new m) :: σ)
+                                     (DSHPtrVal (memory_next_key m) :: σ)
                                      m''
                                      (PVar 0) (incrPVar 0 y_p)}
   :
@@ -3970,7 +3970,7 @@ Proof.
   intros mx mb MX MB.
   simpl.
 
-  remember (memory_new m) as t_i.
+  remember (memory_next_key m) as t_i.
   remember (DSHPtrVal t_i :: σ) as σ'.
   unfold memory_alloc_empty in *.
   remember (memory_set m t_i mem_empty) as m'.
@@ -3997,7 +3997,7 @@ Proof.
       subst.
       exfalso.
       contradict MB.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4009,7 +4009,7 @@ Proof.
       subst.
       exfalso.
       contradict MX.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4225,7 +4225,7 @@ Proof.
       subst.
       exfalso.
       contradict MB.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4237,7 +4237,7 @@ Proof.
       subst.
       exfalso.
       contradict MX.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4394,7 +4394,7 @@ Proof.
       subst.
       exfalso.
       contradict MB.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4406,7 +4406,7 @@ Proof.
       subst.
       exfalso.
       contradict MX.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4482,7 +4482,7 @@ Proof.
       subst.
       exfalso.
       contradict MB.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.
@@ -4494,7 +4494,7 @@ Proof.
       subst.
       exfalso.
       contradict MX.
-      pose proof (memory_lookup_memory_new_is_None m) as F.
+      pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
       rewrite F.
       some_none.

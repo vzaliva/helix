@@ -83,7 +83,7 @@ Fixpoint denote_initFSHGlobals
          let (data,mb) := constMemBlock n data in
          k <- trigger (MemAlloc n);;
          trigger (MemSet k mb);;
-         let p := DSHPtrVal k in
+         let p := DSHPtrVal k n in
          ret (data, (p::σ))
       end
     end.
@@ -99,7 +99,7 @@ Definition denote_FSHCOL (p:FSHCOLProgram) (data:list binary64)
   let '(data, x) := constMemBlock p.(i) data in
   trigger (MemSet xindex x);;
 
-  let σ := List.app σ [DSHPtrVal yindex; DSHPtrVal xindex] in
+  let σ := List.app σ [DSHPtrVal yindex p.(o); DSHPtrVal xindex p.(i)] in
   denoteDSHOperator σ p.(op);;
   bk <- trigger (MemLU "denote_FSHCOL" yindex);;
   lift_Derr (mem_to_list "Invalid output memory block" p.(o) bk).
@@ -191,7 +191,7 @@ Definition bisim: Type_R.
                FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
              | DSHCTypeVal v =>
                FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Double v)
-             | DSHPtrVal ptr_helix =>
+             | DSHPtrVal ptr_helix ptr_size_helix =>
                forall bk_helix,
                  memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
                  exists ptr_llvm bk_llvm,
