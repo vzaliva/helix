@@ -45,6 +45,26 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 Import MonadNotation.
 Local Open Scope monad_scope.
 
+Ltac state_step :=
+  match goal with
+  | |- interp_state _ (ITree.bind _ _) _ ≈ _ => rewrite interp_state_bind
+  | |- ITree.bind (ITree.bind _ _) _ ≈ _ => rewrite bind_bind
+  | |- ITree.bind (Vis _ _) _ ≈ _ => rewrite bind_vis
+  | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret_l
+  | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
+  | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
+  | |- context[interp_state _ (vis _ _) _] => rewrite interp_state_vis
+  | |- context[Tau _] => rewrite tau_eutt
+  end.
+
+Ltac state_steps := cbn; repeat (state_step; cbn).
+
+Ltac iter_unfold_pointed :=
+  match goal with
+  | |- interp_state ?h (iter ?k ?i) _ ≈ _ =>
+    generalize (iter_unfold k); let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
+  end.
+
 Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
   Include MDSigmaHCOLEval CT ESig.
@@ -303,20 +323,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
   Arguments interp_Mem {T} _ _.
 
   Section Eval_Denote_Equiv.
-
-    Ltac state_step :=
-      match goal with
-      | |- interp_state _ (ITree.bind _ _) _ ≈ _ => rewrite interp_state_bind
-      | |- ITree.bind (ITree.bind _ _) _ ≈ _ => rewrite bind_bind
-      | |- ITree.bind (Vis _ _) _ ≈ _ => rewrite bind_vis
-      | |- ITree.bind (Ret _) _ ≈ _ => rewrite bind_ret_l
-      | |- context[interp_state _ (Ret _) _] => rewrite interp_state_ret
-      | |- context[interp_state _ (trigger _) _] => rewrite interp_state_trigger
-      | |- context[interp_state _ (vis _ _) _] => rewrite interp_state_vis
-      | |- context[Tau _] => rewrite tau_eutt
-      end.
-
-    Ltac state_steps := cbn; repeat (state_step; cbn).
 
     Ltac inv_sum :=
       match goal with
@@ -711,12 +717,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - rewrite tau_eutt, unfold_interp_state; eauto.
     Qed.
 
-    Ltac iter_unfold_pointed :=
-      match goal with
-      | |- interp_state ?h (iter ?k ?i) _ ≈ _ =>
-        generalize (iter_unfold k); let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
-      end.
-
     Lemma eval_Loop_for_i_to_N_invert: forall σ N i op fuel mem_i mem_f,
         i < N ->
         eval_Loop_for_i_to_N σ op N i mem_i fuel ≡ Some (inr mem_f) ->
@@ -736,15 +736,11 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Admitted.
 
     Lemma eval_fuel_monotone:
-      forall σ op mem fuel mem',
+      forall op σ mem fuel mem',
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
         evalDSHOperator σ op mem (S fuel) ≡ Some (inr mem').
     Proof.
-      intros σ op mem fuel mem'.
-      revert dependent σ.
-      revert dependent mem.
-      revert dependent mem'.
-      revert dependent fuel.
+      intros op.
       induction op; try (simpl; intros; destruct fuel; try inversion H; auto; fail).
       -
         (* Loop *)

@@ -8,6 +8,7 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Tactics.StructTactics.
 
 Require Import ExtLib.Structures.Monads.
 
@@ -152,19 +153,6 @@ itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
               (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R))) :=
   fun R _ _ a b c => raise "".
 
-(* We could probably fix [env] to be [nil] *)
-Lemma compile_FSHCOL_correct:
-  forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
-  exists RR,
-    genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
-    eutt (RR σ)
-         (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
-         (translate (@subevent _ E _)
-                    (interp_to_L3' helix_intrinsics
-                                  (denote_bks (normalize_types_blocks env bks) bid_in)
-         g ρ mem_llvm)).
-Admitted.
-
 Definition Type_R: Type := evalContext
            → MDSHCOLOnFloat64.memory * ()
              → M.memory_stack *
@@ -180,39 +168,112 @@ Definition get_logical_block (mem: M.memory) (ptr: A.addr): option M.logical_blo
   let '(b,a) := ptr in
   M.lookup_logical b mem.
 
-Definition bisim: Type_R.
-  intros σ [mem_helix _] (mem_llvm & ρ & g & bid_or_v).
-  refine (exists (ι: nat -> raw_id), _).
-  refine (injection_Fin ι (length σ) /\ _).
-  refine (forall (x: nat) v,
-             nth_error σ x ≡ Some v ->
-             match v with
-             | DSHnatVal v   =>
-               FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
-             | DSHCTypeVal v =>
-               FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Double v)
-             | DSHPtrVal ptr_helix ptr_size_helix =>
-               forall bk_helix,
-                 memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
-                 exists ptr_llvm bk_llvm,
-                   FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
-                   get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
-                   _ bk_helix bk_llvm
-             end).
-  refine (fun bk_helix bk_llvm =>
-         (* This needs to relate [mem_block] to logical blocks on the LLVM side *)
-         (* Doing so is currently tricky because Helix to not track the size
-            of the array *)
-         (* mem_to_list "" bk_helix *)
-            False
-         ).
-Defined.
+Import DynamicTypes.
 
-Theorem compiler_correct:
-  exists RR,
-  forall (p:FSHCOLProgram) data pll,
-    compile p data ≡ inr pll ->
-    eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
-Proof.
-Admitted.
+Definition bisim_mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_helix v_llvm :=
+  exists offset,
+    match bk_llvm with
+    | M.LBlock _ bk_llvm _ =>
+      M.handle_gep_h (DTYPE_Array (Z.of_nat ptr_size_helix) DTYPE_Double)
+                     0
+                     [DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat i))] ≡ inr offset /\
+      M.deserialize_sbytes
+        (M.lookup_all_index offset (M.sizeof_dtyp DTYPE_Double) bk_llvm M.SUndef)
+        DTYPE_Double ≡ v_llvm
+    end.
 
+Definition bisim: Type_R :=
+  fun σ '(mem_helix, _) '(mem_llvm, x) =>
+    let '(ρ, (g, bid_or_v)) := x in
+    exists (ι: nat -> raw_id),
+      injection_Fin ι (length σ) /\
+      forall (x: nat) v,
+        nth_error σ x ≡ Some v ->
+        match v with
+        | DSHnatVal v   =>
+          FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
+        | DSHCTypeVal v =>
+          FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Double v)
+        | DSHPtrVal ptr_helix ptr_size_helix =>
+          forall bk_helix,
+            memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
+            exists ptr_llvm bk_llvm,
+              FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
+              (fun bk_helix bk_llvm =>
+                 forall i, i < ptr_size_helix ->
+                      exists v_helix v_llvm,
+                        mem_lookup i bk_helix ≡ Some v_helix /\
+                        bisim_mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                        v_llvm ≡ UVALUE_Double v_helix
+              ) bk_helix bk_llvm
+        end
+  .
+
+Require Import ITree.Interp.TranslateFacts.
+Require Import ITree.Basics.CategoryFacts.
+Require Import StateFacts.
+
+  Import Coq.Strings.String Strings.Ascii.
+  Open Scope string_scope.
+  Open Scope char_scope.
+
+  Import CatNotations.
+
+  Lemma denote_bks_nil: forall s, denote_bks [] s ≈ ret (inl s).
+  Proof.
+    intros s; unfold denote_bks.
+    unfold loop.
+    cbn. rewrite bind_ret_l.
+    match goal with
+    | |- KTree.iter ?body ?s ≈ _ =>
+      rewrite (unfold_iter body s)
+    end.
+    state_steps.
+    reflexivity.
+  Qed.
+
+  (* We could probably fix [env] to be [nil] *)
+  Lemma compile_FSHCOL_correct:
+    forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
+      genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
+      eutt (bisim σ)
+           (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
+           (translate (@subevent _ E _)
+                      (interp_to_L3' helix_intrinsics
+                                     (denote_bks (normalize_types_blocks env bks) bid_in)
+                                     g ρ mem_llvm)).
+  Proof.
+    induction op; intros; rename H into HCompile.
+    - inv HCompile.
+      unfold interp_Mem. simpl denoteDSHOperator.
+      rewrite interp_state_ret, translate_ret.
+      simpl normalize_types_blocks.
+      admit.
+    - destruct src, dst.
+      simpl in HCompile.
+      repeat break_match_hyp; try inl_inr.
+      inv Heqs; inv HCompile.
+      match goal with
+      | |- context[add_comment _ ?ss] => generalize ss; intros ls
+      end.
+      unfold interp_Mem. simpl denoteDSHOperator.
+
+  Admitted.
+
+  (* The relation to provide is not [TT] but rather the singleton pair of the empty memories *)
+  Lemma compiler_correct_aux:
+    forall (p:FSHCOLProgram) data pll,
+      compile p data ≡ inr pll ->
+      eutt (fun _ _ => True) (semantics_FSHCOL p data) (semantics_llvm pll).
+  Proof.
+  Admitted.
+
+  Theorem compiler_correct:
+    exists RR,
+    forall (p:FSHCOLProgram) data pll,
+      compile p data ≡ inr pll ->
+      eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
+  Proof.
+    eexists; eapply compiler_correct_aux.
+  Qed.
