@@ -9,6 +9,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Export Vellvm.Error.
 
 Require Import Helix.Util.OptionSetoid.
+Require Import Helix.Util.StringSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
@@ -56,7 +57,7 @@ Proof.
 Qed.
 
 Global Instance err_inr_proper {T:Type} `{Equiv T}:
-  Proper ((=) ==> (=)) inr.
+  Proper ((=) ==> (=)) (@inr string T).
 Proof.
   simpl_relation.
   constructor.
@@ -64,7 +65,7 @@ Proof.
 Qed.
 
 Global Instance err_inl_proper {T:Type} `{Equiv T}:
-  Proper ((=) ==> (=)) inl.
+  Proper ((=) ==> (=)) (@inl string T).
 Proof.
   simpl_relation.
   constructor.
