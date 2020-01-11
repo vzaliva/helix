@@ -717,24 +717,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - rewrite tau_eutt, unfold_interp_state; eauto.
     Qed.
 
-    Lemma eval_Loop_for_i_to_N_invert: forall σ N i op fuel mem_i mem_f,
-        i < N ->
-        eval_Loop_for_i_to_N σ op N i mem_i fuel ≡ Some (inr mem_f) ->
-        exists mem_aux,
-          evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inr mem_f).
-    Proof.
-      intros.
-      remember (N - i) as k.
-      revert i Heqk H0 H.
-      induction k as [| k IH]; intros i EQ Heval ineq.
-      - lia.
-      - destruct N as [| N]; [lia |].
-        cbn in Heval.
-        destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | clear EQ'].
-        (* destruct (IH (S i)) as (mem_aux & eval_body & eval_tail); [lia | ..]. *)
-    Admitted.
-
     Lemma eval_fuel_monotone:
       forall op σ mem fuel mem',
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
@@ -799,6 +781,59 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             reflexivity.
           *
             some_none.
+    Qed.
+
+    Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
+        eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
+    Proof.
+      intros fuel σ op [| N] mem; [reflexivity |].
+      simpl; rewrite Nat.eqb_refl; reflexivity.
+    Qed.
+
+    Lemma eval_Loop_for_i_to_N_invert: forall σ N i op fuel mem_i mem_f,
+        i < N ->
+        eval_Loop_for_i_to_N σ op N i mem_i fuel ≡ Some (inr mem_f) ->
+        exists mem_aux,
+          evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
+          eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inr mem_f).
+    Proof.
+      (* This proof is surprisingly painful to go through *)
+      intros.
+      (* Induction on the number of steps remaining *)
+      remember (N - i) as k.
+      revert σ fuel N i Heqk mem_i mem_f H0 H.
+      induction k as [| k IH]; intros σ fuel N i EQ mem_i mem_f Heval ineq; [lia |].
+
+      (* N > 0 for us to be able to take a step *)
+      destruct N as [| N]; [lia |].
+      (* We got some fuel since the computation succeeded *)
+      destruct fuel as [| fuel]; [inv Heval |].
+      (* We can now reduce *)
+      simpl in Heval.
+
+      (* We know there's still a step to be taken *)
+      destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
+      (* And that the recursive call succeeded since the computation did *)
+      destruct (eval_Loop_for_i_to_N σ op N i mem_i fuel) eqn: HEval'; [| inv Heval].
+      destruct e; inv Heval.
+
+      (* Now there are two cases:
+         either a single step was remaining and we should be able to conclude directly;
+         or more were remaining, and we should be able to conclude by induction
+       *)
+
+      destruct (i =? N)%nat eqn: EQ''; [apply beq_nat_true in EQ''; subst; clear IH |].
+      - clear EQ' EQ ineq.
+        destruct fuel as [| fuel]; [inv HEval' |].
+        rewrite eval_Loop_for_N_to_N in HEval'.
+        setoid_rewrite eval_Loop_for_N_to_N.
+        inv HEval'.
+        exists mem_f.
+        split; [apply eval_fuel_monotone; auto | auto ].
+      - apply IH in HEval'; [| lia | apply beq_nat_false in EQ''; lia].
+        destruct HEval' as (mem_aux & STEP & TAIL).
+        exists mem_aux; split; [apply eval_fuel_monotone; auto |].
+        cbn; rewrite EQ'', TAIL; auto.
     Qed.
 
     Lemma Loop_is_Iter_aux:
@@ -886,6 +921,17 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       eapply Loop_is_Iter_aux; eauto; lia.
     Qed.
 
+    (* Lemma Denote_Eval_Equiv_DSHMap2_Succeeds: *)
+    (*   forall (σ: evalContext) (op: DSHOperator) m1 m2 m3 m4, *)
+    (*     evalDSHMap2 mem n f σ m1 m2 m3  ≡ inr m4 -> *)
+    (*     eutt eq *)
+    (*          (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem) *)
+    (*          (ret (mem, v)). *)
+    (*      evalDSHOperator σ op mem fuel ≡ Some (inr mem') -> *)
+    (*     eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)). *)
+
+    (* (denoteDSHMap2 n f σ m2 m3 m4) *)
+
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
@@ -925,6 +971,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         state_steps.
         rewrite Heqe4.
         state_steps.
+
+
         admit. (* Map2 case, need a lemma for it *)
       - unfold_Mem; inv_eval.
         state_steps.
