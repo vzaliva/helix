@@ -921,16 +921,43 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       eapply Loop_is_Iter_aux; eauto; lia.
     Qed.
 
-    (* Lemma Denote_Eval_Equiv_DSHMap2_Succeeds: *)
-    (*   forall (σ: evalContext) (op: DSHOperator) m1 m2 m3 m4, *)
-    (*     evalDSHMap2 mem n f σ m1 m2 m3  ≡ inr m4 -> *)
-    (*     eutt eq *)
-    (*          (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem) *)
-    (*          (ret (mem, v)). *)
-    (*      evalDSHOperator σ op mem fuel ≡ Some (inr mem') -> *)
-    (*     eutt eq (interp_Mem (denoteDSHOperator σ op) mem) (ret (mem', tt)). *)
+    Require Import Ascii Coq.Strings.String.
 
-    (* (denoteDSHMap2 n f σ m2 m3 m4) *)
+    Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
+      forall n (σ: evalContext) mem f m1 m2 m3 m4,
+        evalDSHMap2 mem n f σ m1 m2 m3  ≡ inr m4 ->
+        eutt eq
+             (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem)
+             (ret (mem, m4)).
+    Proof.
+      induction n as [| n IH]; intros σ mem f m1 m2 m3 m4 HEval.
+      - unfold_Mem; inv_sum.
+        state_steps; reflexivity.
+      - unfold_Mem; inv_eval.
+        state_steps.
+        do 2 inv_mem_lookup_err.
+        state_steps.
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1; rewrite Heqe1; state_steps.
+        rewrite IH; eauto; reflexivity.
+    Qed.
+
+    Lemma Denote_Eval_Equiv_DSHPower_Succeeds:
+      forall n (σ: evalContext) mem f x y xoff yoff m,
+        evalDSHPower mem σ n f x y xoff yoff  ≡ inr m ->
+        eutt eq
+             (interp_Mem (denoteDSHPower σ n f x y xoff yoff) mem)
+             (ret (mem, m)).
+    Proof.
+      induction n as [| n IH]; intros σ mem f x y xoff yoff m HEval.
+      - unfold_Mem; inv_sum.
+        state_steps; reflexivity.
+      - unfold_Mem; inv_eval.
+        state_steps.
+        do 2 inv_mem_lookup_err.
+        state_steps.
+        apply Denote_Eval_Equiv_Aexp_Succeeds in Heqe1; rewrite Heqe1; state_steps.
+        rewrite IH; eauto; reflexivity.
+    Qed.
 
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
@@ -971,17 +998,16 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         state_steps.
         rewrite Heqe4.
         state_steps.
-
-
-        admit. (* Map2 case, need a lemma for it *)
+        apply Denote_Eval_Equiv_DSHMap2_Succeeds in Heqe5; rewrite Heqe5; state_steps.
+        reflexivity.
       - unfold_Mem; inv_eval.
         state_steps.
         rewrite Heqe1; state_steps.
         rewrite Heqe2; state_steps.
-        admit. (* Map2 case, need a lemma for it *)
+        apply Denote_Eval_Equiv_DSHPower_Succeeds in Heqe6; rewrite Heqe6; state_steps.
+        reflexivity.
       - unfold interp_Mem.
         eapply Loop_is_Iter; eauto.
-
     Admitted.
 
     Theorem Denote_Eval_Equiv_Fails:
