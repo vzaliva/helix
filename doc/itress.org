@@ -1,0 +1,5 @@
+Notes on DSHCOL to LLVM IR Compiler proofs using =itrees=
+
+* The plan
+  [[./2020-01-10 15.32.52.jpg]]
+  
