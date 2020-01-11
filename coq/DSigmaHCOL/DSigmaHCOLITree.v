@@ -5,6 +5,8 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.Arith.Peano_dec.
 Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Strings.String.
+Require Import Coq.Strings.Ascii.
+
 Require Import Psatz.
 
 Require Import Paco.paco.
@@ -862,8 +864,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       rewrite <- eval_Loop_for_0_to_N, <- denote_Loop_for_0_to_N in *.
       eapply Loop_is_Iter_aux; eauto; lia.
     Qed.
-
-    Require Import Ascii Coq.Strings.String.
 
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
       forall n (σ: evalContext) mem f m1 m2 m3 m4,
