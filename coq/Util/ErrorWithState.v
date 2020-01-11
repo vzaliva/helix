@@ -7,6 +7,7 @@ Require Import ExtLib.Structures.MonadState.
 
 Require Import ExtLib.Data.Monads.EitherMonad.
 
+
 Import MonadNotation.
 Open Scope monad_scope.
 Open Scope type_scope.
@@ -34,3 +35,19 @@ Instance State_errS St : MonadState St (errS St) :=
     get := fun s => inr (s,s)
     ; put := fun t s => inr (t, tt)
   }.
+
+
+Require Import Vellvm.Error.
+
+Definition err2errS {St A: Type}: (err A) -> (errS St A)
+  := fun e => match e with
+           | inl msg => raise msg
+           | inr v => ret v
+           end.
+
+Definition option2errS {St A: Type} (msg:string) (o:option A): (errS St A)
+  := match o with
+     | Some v => ret v
+     | None => raise msg
+     end.
+

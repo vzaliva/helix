@@ -180,7 +180,8 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
         | inr (data'', ginit) =>
           let ginit := app [TLE_Comment "Global variables"] ginit in
           let main := genMain i o name globals data'' in
-          match LLVMGen i o globals just_compile op name with
+          let eres := run_errS newState (LLVMGen i o globals just_compile op name) in
+          match eres with
           | inl msg => (None, None, msg)
           | inr prog =>
             if just_compile then
@@ -253,29 +254,3 @@ Definition evalFSHCOLTest (t:FSHCOLTest) (data:list binary64)
   :=
     @evalFSHCOLOperator t.(i) t.(o) t.(name) t.(globals) t.(op) data.
 
-(*
-
-Import DSHNotation.
-Print DynWin_test.
-
-Compute LLVMGen
-        8 8
-        [("D", FSHFloatValType)]
-        true
-        IMap_plusD_test
-        "Pointwise_plusD".
-
-Compute LLVMGen
-        5 1
-        [("D", FSHvecValType 3)]
-        true
-        DynWin_test
-        "dynwin64".
-
-Compute LLVMGen
-        2 1
-        []
-        true
-        IReduction_test
-        "IReduction".
-*)

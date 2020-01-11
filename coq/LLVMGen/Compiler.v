@@ -19,9 +19,9 @@ Require Import Flocq.IEEE754.Bits.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
-Require Import ExtLib.Structures.Monads.
-Require Import ExtLib.Data.Monads.EitherMonad.
 Require Import ExtLib.Data.String.
+Require Import ExtLib.Structures.Monads.
+Require Import Helix.Util.ErrorWithState.
 
 Import ListNotations.
 Import MonadNotation.
@@ -31,6 +31,50 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
+
+Section withErrorStateMonad.
+
+  Record IRState :=
+    mkIRstate
+      {
+        block_count: nat ;
+        local_count: nat ;
+        void_count : nat ;
+        vars: list (ident * typ)
+      }.
+
+  Definition newState: IRState :=
+    {|
+      block_count := 0 ;
+      local_count := 0 ;
+      void_count  := 0 ;
+      vars := []
+    |}.
+
+  Definition cerr := errS IRState.
+
+  Definition setVars (s:IRState) (newvars:list (ident * typ)): IRState :=
+    {|
+      block_count := block_count s ;
+      local_count := local_count s ;
+      void_count  := void_count s ;
+      vars := newvars
+    |}.
+
+  (* Returns n-th varable from state or error if [n] index oob *)
+  Definition getStateVar (msg:string) (n:nat): cerr (ident * typ) :=
+    st <- get ;;
+       option2errS msg (List.nth_error (vars st) n).
+
+  (* for debugging and error reporting *)
+  Definition getVarsAsString : cerr string :=
+    st <- get ;;
+       ret (string_of_vars (vars st)).
+
+  Definition nat_eq_or_cerr msg a b : cerr _ := err2errS  (nat_eq_or_err msg a b).
+
+End withErrorStateMonad.
+
 
 (* 64-bit IEEE floats *)
 Definition SizeofFloatT := 8.
@@ -76,31 +120,6 @@ Definition genIRGlobals
      | _::_ => [TLE_Comment "Global variables"] ++ l
      end.
 
-Record IRState :=
-  mkIRstate
-    {
-      block_count: nat ;
-      local_count: nat ;
-      void_count : nat ;
-      vars: list (ident * typ)
-    }.
-
-Definition newState: IRState :=
-  {|
-    block_count := 0 ;
-    local_count := 0 ;
-    void_count  := 0 ;
-    vars := []
-  |}.
-
-Definition setVars (s:IRState) (newvars:list (ident * typ)): IRState :=
-  {|
-    block_count := block_count s ;
-    local_count := local_count s ;
-    void_count  := void_count s ;
-    vars := newvars
-  |}.
-
 Definition add_comments (b:block typ) (xs:list string): block typ :=
   {|
     blk_id    := blk_id b;
@@ -119,50 +138,61 @@ Definition add_comment (bs:list (block typ)) (xs:list string): list (block typ) 
   | b::bs => (add_comments b xs)::bs
   end.
 
-Definition incBlockNamed (st:IRState) (prefix:string): (IRState*block_id) :=
-  ({|
-      block_count := S (block_count st);
-      local_count := local_count st ;
-      void_count := void_count st ;
-      vars := vars st
-    |}, Name (prefix ++ string_of_nat (block_count st))%string).
+Definition incBlockNamed (prefix:string): (cerr block_id) :=
+  st <- get  ;;
+     put
+     {|
+         block_count := S (block_count st);
+         local_count := local_count st ;
+         void_count := void_count st ;
+         vars := vars st
+       |} ;;
+     ret (Name (prefix ++ string_of_nat (block_count st))%string).
 
-Definition incBlock (st:IRState): (IRState*block_id) := incBlockNamed st "b".
+Definition incBlock := incBlockNamed "b".
 
-Definition incLocalNamed (st:IRState) (prefix:string): (IRState*raw_id) :=
-  ({|
-      block_count := block_count st ;
-      local_count := S (local_count st) ;
-      void_count  := void_count st ;
-      vars := vars st
-    |}, Name (prefix ++ string_of_nat (local_count st))%string).
+Definition incLocalNamed (prefix:string): (cerr raw_id) :=
+  st <- get ;;
+     put
+     {|
+         block_count := block_count st ;
+         local_count := S (local_count st) ;
+         void_count  := void_count st ;
+         vars := vars st
+       |} ;; ret (Name (prefix ++ string_of_nat (local_count st))%string).
 
-Definition incLocal (st:IRState): (IRState*raw_id) := incLocalNamed st "l".
+Definition incLocal := incLocalNamed "l".
 
-Definition incVoid (st:IRState): (IRState*int) :=
-  ({|
-      block_count := block_count st ;
-      local_count := local_count st ;
-      void_count  := S (void_count st) ;
-      vars := vars st
-    |}, Z.of_nat (void_count st)).
+Definition incVoid: (cerr int) :=
+  st <- get ;;
+     put
+     {|
+         block_count := block_count st ;
+         local_count := local_count st ;
+         void_count  := S (void_count st) ;
+         vars := vars st
+       |} ;; ret (Z.of_nat (void_count st)).
 
-Definition addVars (st:IRState) (newvars: list (ident * typ)): IRState :=
-  {|
-    block_count := block_count st ;
-    local_count := local_count st ;
-    void_count  := void_count st ;
-    vars := newvars ++ vars st
-  |}.
+Definition addVars (newvars: list (ident * typ)): cerr unit :=
+  st <- get ;;
+     put
+       {|
+         block_count := block_count st ;
+         local_count := local_count st ;
+         void_count  := void_count st ;
+         vars := newvars ++ vars st
+       |}.
 
-Definition newLocalVar (st:IRState) (t:typ) (prefix:string): (IRState*raw_id) :=
-  let v := Name (prefix ++ string_of_nat (local_count st))%string in
-  ({|
-      block_count := block_count st ;
-      local_count := S (local_count st) ;
-      void_count  := void_count st ;
-      vars := [(ID_Local v,t)] ++ (vars st)
-    |}, v).
+Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
+  st <- get ;;
+     let v := Name (prefix ++ string_of_nat (local_count st))%string in
+     put
+       {|
+         block_count := block_count st ;
+         local_count := S (local_count st) ;
+         void_count  := void_count st ;
+         vars := [(ID_Local v,t)] ++ (vars st)
+       |} ;; ret v.
 
 Definition intrinsic_exp (d:declaration typ): exp typ :=
   EXP_Ident (ID_Global (dc_name d)).
@@ -175,47 +205,45 @@ Fixpoint drop_err {A:Type} (n:nat) (lst:list A) : err (list A)
      | _, _ => raise "drop on empty list"
      end.
 
-Definition dropVars (st:IRState) (n: nat): err IRState :=
-  vars' <- drop_err n (vars st) ;;
-        ret {|
-          block_count := block_count st ;
-          local_count := local_count st ;
-          void_count  := void_count st ;
-          vars := vars'
-        |}.
+Definition dropVars (n: nat): cerr unit :=
+  st <- get ;;
+     vars' <- err2errS (drop_err n (vars st)) ;;
+     put {|
+       block_count := block_count st ;
+       local_count := local_count st ;
+       void_count  := void_count st ;
+       vars := vars'
+     |}.
 
 Definition allocTempArrayCode (name: local_id) (size:nat)
   :=
     [(IId name, INSTR_Alloca (getIRType (FSHvecValType size)) None (Some PtrAlignment))].
 
 Definition allocTempArrayBlock
-           (st: IRState)
            (name: local_id)
            (nextblock: block_id)
-           (size: nat): (IRState * (local_id * (block typ)))
+           (size: nat): (cerr (local_id * (block typ)))
   :=
-    let (st,retid) := incVoid st in
-    let (st,bid) := incBlock st in
-    (st, (bid,
-          {|
-            blk_id    := bid ;
-            blk_phis  := [];
-            blk_code  := allocTempArrayCode name size;
-            blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
-            blk_comments := None
-          |})).
+    retid <- incVoid ;;
+          bid <- incBlock ;;
+          ret (bid,
+               {|
+                 blk_id    := bid ;
+                 blk_phis  := [];
+                 blk_code  := allocTempArrayCode name size;
+                 blk_term  := (IVoid retid, TERM_Br_1 nextblock) ;
+                 blk_comments := None
+               |}).
 
 Fixpoint genNExpr
-         (st: IRState)
          (nexp: NExpr) :
-  err (IRState * (exp typ) * (code typ))
+  cerr ((exp typ) * (code typ))
   :=
     let gen_binop a b iop :=
-        '(st, aexp, acode) <- genNExpr st a ;;
-         '(st, bexp, bcode) <- genNExpr st b ;;
-         let '(st, res) := incLocal st in
-         ret (st,
-              EXP_Ident (ID_Local res),
+        '(aexp, acode) <- genNExpr a ;;
+         '(bexp, bcode) <- genNExpr b ;;
+         res <- incLocal ;;
+         ret (EXP_Ident (ID_Local res),
               acode ++ bcode ++
                     [(IId res, INSTR_Op (OP_IBinop iop
                                                    IntType
@@ -223,26 +251,30 @@ Fixpoint genNExpr
                                                    bexp))
              ]) in
     match nexp with
-    | NVar n => '(i,t) <- trywith "NVar out of range" (List.nth_error (vars st) n) ;;
+    | NVar n => '(i,t) <- getStateVar "NVar out of range" n ;;
                 match t, IntType with
                 | TYPE_I z, TYPE_I zi =>
                   if Z.eq_dec z zi then
-                    ret (st, EXP_Ident i, [])
+                    ret (EXP_Ident i, [])
                   else
-                    raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ string_of_vars (vars st))%string
+                    svars <- getVarsAsString ;;
+                       raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ svars)%string
                 | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                   if Z.eq_dec z zi then
-                    let '(st, res) := incLocal st in
-                    ret (st, EXP_Ident (ID_Local res),
-                         [(IId res, INSTR_Load false (IntType)
-                                               (TYPE_Pointer (IntType),
-                                                (EXP_Ident i))
-                                               (ret 8%Z))])
+                    res <- incLocal ;;
+                        ret (EXP_Ident (ID_Local res),
+                             [(IId res, INSTR_Load false (IntType)
+                                                   (TYPE_Pointer (IntType),
+                                                    (EXP_Ident i))
+                                                   (ret 8%Z))])
                   else
-                    raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st))%string
-                | _,_ => raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                    st <- get ;;
+                       raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st))%string
+                | _,_ =>
+                  st <- get ;;
+                     raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                 end
-    | NConst v => ret (st, EXP_Integer (Z.of_nat v), [])
+    | NConst v => ret (EXP_Integer (Z.of_nat v), [])
     | NDiv   a b => gen_binop a b (SDiv true)
     | NMod   a b => gen_binop a b SRem
     | NPlus  a b => gen_binop a b (Add true true)
@@ -252,33 +284,31 @@ Fixpoint genNExpr
     | NMax   a b => raise "NMax not implemented" (* TODO *)
     end.
 
-
 Definition genMExpr
-           (st: IRState)
            (mexp: MExpr)
   :
-    err (IRState * (exp typ) * (code typ) * typ)
+    cerr ((exp typ) * (code typ) * typ)
   := match mexp with
-     | MPtrDeref (PVar x) => '(i,t) <- trywith "PVar un MPtrDeref out of range" (List.nth_error (vars st) x) ;;
+     | MPtrDeref (PVar x) => '(i,t) <- getStateVar "PVar un MPtrDeref out of range" x ;;
                              match t with
                              | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
-                               ret (st, EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
-                             | _  => raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                               ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
+                             | _  =>
+                               st <- get ;;
+                                  raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                              end
      | MConst c => raise "MConst not implemented" (* TODO *)
      end.
 
 Fixpoint genAExpr
-         (st: IRState)
          (fexp: AExpr) :
-  err (IRState * (exp typ) * (code typ))
+  cerr ((exp typ) * (code typ))
   :=
     let gen_binop a b fop :=
-        '(st, aexp, acode) <- genAExpr st a ;;
-         '(st, bexp, bcode) <- genAExpr st b ;;
-         let '(st, res) := incLocal st in
-         ret (st,
-              EXP_Ident (ID_Local res),
+        '(aexp, acode) <- genAExpr a ;;
+         '(bexp, bcode) <- genAExpr b ;;
+         res <- incLocal ;;
+         ret (EXP_Ident (ID_Local res),
               acode ++ bcode ++
                     [(IId res, INSTR_Op (OP_FBinop fop
                                                    [] (* TODO: list fast_math *)
@@ -287,46 +317,46 @@ Fixpoint genAExpr
                                                    bexp))
              ]) in
     let gen_call1 a f :=
-        '(st, aexp, acode) <- genAExpr st a ;;
-         let '(st, res) := incLocal st in
+        '(aexp, acode) <- genAExpr a ;;
+         res <- incLocal ;;
          let ftyp := TYPE_Double in
-         ret (st,
-              EXP_Ident (ID_Local res),
+         ret (EXP_Ident (ID_Local res),
               acode ++
                     [(IId res, INSTR_Call (ftyp,f) [(ftyp,aexp)])
              ]) in
     let gen_call2 a b f :=
-        '(st, aexp, acode) <- genAExpr st a ;;
-         '(st, bexp, bcode) <- genAExpr st b ;;
-         let '(st, res) := incLocal st in
+        '(aexp, acode) <- genAExpr a ;;
+         '(bexp, bcode) <- genAExpr b ;;
+         res <- incLocal ;;
          let ftyp := TYPE_Double in
-         ret (st,
-              EXP_Ident (ID_Local res),
+         ret (EXP_Ident (ID_Local res),
               acode ++ bcode ++
                     [(IId res, INSTR_Call (ftyp,f)
                                           [(ftyp,aexp); (ftyp,bexp)])
              ]) in
     match fexp with
-    | AVar n => '(i,t) <- trywith "AVar out of range" (List.nth_error (vars st) n) ;;
+    | AVar n => '(i,t) <- getStateVar "AVar out of range" n ;;
                 match t with
-                | TYPE_Double => ret (st, EXP_Ident i, [])
+                | TYPE_Double => ret (EXP_Ident i, [])
                 | TYPE_Pointer TYPE_Double =>
-                  let '(st, res) := incLocal st in
-                  ret (st, EXP_Ident (ID_Local res),
+                  res <- incLocal ;;
+                  ret (EXP_Ident (ID_Local res),
                        [(IId res, INSTR_Load false TYPE_Double
                                              (TYPE_Pointer TYPE_Double,
                                               (EXP_Ident i))
                                              (ret 8%Z))])
-                | _ => raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                | _ =>
+                  st <- get ;;
+                     raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
                 end
-    | AConst v => ret (st, EXP_Double v, [])
+    | AConst v => ret (EXP_Double v, [])
     | ANth vec i =>
-      '(st, iexp, icode) <- genNExpr st i ;;
-       '(st, vexp, vcode, xtyp) <- genMExpr st vec ;;
-       let '(st, px) := incLocal st in
+      '(iexp, icode) <- genNExpr i ;;
+       '(vexp, vcode, xtyp) <- genMExpr vec ;;
+       px <- incLocal ;;
        let xptyp := TYPE_Pointer xtyp in
-       let '(st, res) := incLocal st in
-       ret (st, EXP_Ident (ID_Local res),
+       res <- incLocal ;;
+       ret (EXP_Ident (ID_Local res),
             icode ++ vcode ++
                   [
                     (IId px,  INSTR_Op (OP_GetElementPtr
@@ -348,13 +378,12 @@ Fixpoint genAExpr
     | AMax a b => gen_call2 a b (intrinsic_exp maxnum_64_decl)
     | AZless a b =>
       (* this is special as requires bool -> double cast *)
-      '(st, aexp, acode) <- genAExpr st a ;;
-       '(st, bexp, bcode) <- genAExpr st b ;;
-       let '(st, ires) := incLocal st in
-       let '(st, fres) := incLocal st in
-       let '(st, void0) := incVoid st in
-       ret (st,
-            EXP_Ident (ID_Local fres),
+      '(aexp, acode) <- genAExpr a ;;
+       '(bexp, bcode) <- genAExpr b ;;
+       ires <- incLocal ;;
+       fres <- incLocal ;;
+       void0 <- incVoid ;;
+       ret (EXP_Ident (ID_Local fres),
             acode ++ bcode ++
                   [(IId ires, INSTR_Op (OP_FCmp FOlt
                                                 TYPE_Double
@@ -374,23 +403,22 @@ Definition segment:Type := block_id * list (block typ).
 
 Definition genMemCopy
            (o: nat)
-           (st: IRState)
            (x y: ident)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, entryblock) := incBlockNamed st "MemCopy" in
-    let '(st, retentry) := incVoid st in
-    let '(st, callid) := incVoid st in
-    let '(st, xb) := incLocal st in
-    let '(st, yb) := incLocal st in
+    entryblock <- incBlockNamed "MemCopy" ;;
+    retentry <- incVoid ;;
+    callid <- incVoid ;;
+    xb <- incLocal ;;
+    yb <- incLocal ;;
     let oz := (Z.of_nat o) in
     let atyp := TYPE_Pointer (TYPE_Array oz TYPE_Double) in
     let ptyp := TYPE_Pointer (TYPE_I 8%Z) in
     let len:Z := Z.of_nat (o * SizeofFloatT) in
     let i32 := TYPE_I 32%Z in
     let i1 := TYPE_I 1%Z in
-    ret (st , (entryblock, [
+    ret ((entryblock, [
                  {|
                    blk_id    := entryblock ;
                    blk_phis  := [];
@@ -423,25 +451,24 @@ Definition genMemCopy
 
 Definition genFSHAssign
            (i o: nat)
-           (st: IRState)
            (x y: ident)
            (src dst: NExpr)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, entryblock) := incBlockNamed st "Assign" in
-    let '(st, retentry) := incVoid st in
-    let '(st, storeid) := incVoid st in
-    let '(st, px) := incLocal st in
-    let '(st, py) := incLocal st in
-    let '(st, v) := incLocal st in
+    entryblock <- incBlockNamed "Assign" ;;
+    retentry <- incVoid ;;
+    storeid <- incVoid ;;
+    px <- incLocal ;;
+    py <- incLocal ;;
+    v <- incLocal ;;
     let xtyp := getIRType (FSHvecValType i) in
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (FSHvecValType o) in
     let yptyp := TYPE_Pointer ytyp in
-    '(st, src_nexpr, src_nexpcode) <- genNExpr st src  ;;
-     '(st, dst_nexpr, dst_nexpcode) <- genNExpr st dst  ;;
-     ret (st , (entryblock, [
+    '(src_nexpr, src_nexpcode) <- genNExpr src  ;;
+     '(dst_nexpr, dst_nexpcode) <- genNExpr dst  ;;
+     ret (entryblock, [
                   {|
                     blk_id    := entryblock ;
                     blk_phis  := [];
@@ -474,7 +501,7 @@ Definition genFSHAssign
                     blk_term  := (IVoid retentry, TERM_Br_1 nextblock);
                     blk_comments := None
                   |}
-         ])).
+         ]).
 
 (* Generates while loop `init_code(); i=from; while(i<to){ body(); i++;}`
 
@@ -499,18 +526,17 @@ Definition genWhileLoop
            (body_entry: block_id)
            (body_blocks: list (block typ))
            (init_code: (code typ))
-           (st: IRState)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, entryblock) := incBlockNamed st (prefix ++ "_entry")%string in
-    let '(st, loopblock) := incBlockNamed st (prefix ++ "_loop")%string in
-    let '(st, loopcond) := incLocal st in
-    let '(st, loopcond1) := incLocal st in
-    let '(st, nextvar) := incLocalNamed st (prefix ++ "_next_i")%string in
-    let '(st, void0) := incVoid st in
-    let '(st, void1) := incVoid st in
-    let '(st, retloop) := incVoid st in
+    entryblock <- incBlockNamed (prefix ++ "_entry")%string ;;
+    loopblock <- incBlockNamed (prefix ++ "_loop")%string ;;
+    loopcond <- incLocal ;;
+    loopcond1 <- incLocal ;;
+    nextvar <- incLocalNamed (prefix ++ "_next_i")%string ;;
+    void0 <- incVoid ;;
+    void1 <- incVoid ;;
+    retloop <- incVoid ;;
 
     (* Not strictly necessary to split loop blocks, but for
         readability it is nice to have body in-place inside the
@@ -559,31 +585,29 @@ Definition genWhileLoop
             blk_comments := None
           |}
         ] in
-    ret (st, (entryblock, loop_pre ++ body_blocks ++ loop_post)).
+    ret (entryblock, loop_pre ++ body_blocks ++ loop_post).
 
 Definition genIMapBody
            (n: nat)
            (x y: ident)
            (f: AExpr)
-           (st: IRState)
            (loopvar: raw_id)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, pwblock) := incBlockNamed st "IMapLoopBody" in
-    let '(st, pwret) := incVoid st in
-    let '(st, storeid) := incVoid st in
-    let '(st, px) := incLocal st in
-    let '(st, py) := incLocal st in
-    let '(st, v) := incLocal st in
+    pwblock <- incBlockNamed "IMapLoopBody" ;;
+    pwret <- incVoid ;;
+    storeid <- incVoid ;;
+    px <- incLocal ;;
+    py <- incLocal ;;
+    v <- incLocal ;;
     let xytyp := getIRType (FSHvecValType n) in
     let xyptyp := TYPE_Pointer xytyp in
     let loopvarid := ID_Local loopvar in
-    let st := addVars st [(ID_Local v, TYPE_Double); (loopvarid, IntType)] in
-    '(st, fexpr, fexpcode) <- genAExpr st f ;;
-     st <- dropVars st 2 ;;
-     ret (st,
-          (pwblock,
+    addVars [(ID_Local v, TYPE_Double); (loopvarid, IntType)] ;;
+    '(fexpr, fexpcode) <- genAExpr f ;;
+     dropVars 2 ;;
+     ret (pwblock,
            [
              {|
                blk_id    := pwblock ;
@@ -622,36 +646,34 @@ Definition genIMapBody
                blk_term  := (IVoid pwret, TERM_Br_1 nextblock);
                blk_comments := None
              |}
-         ])).
+         ]).
 
 Definition genBinOpBody
            (n: nat)
            (x y: ident)
            (f: AExpr)
-           (st: IRState)
            (loopvar: raw_id)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, binopblock) := incBlockNamed st "BinOpLoopBody" in
-    let '(st, binopret) := incVoid st in
-    let '(st, storeid) := incVoid st in
-    let '(st, loopvar2) := incLocal st in
-    let '(st, px0) := incLocal st in
-    let '(st, px1) := incLocal st in
-    let '(st, py) := incLocal st in
-    let '(st, v0) := incLocal st in
-    let '(st, v1) := incLocal st in
+    binopblock <- incBlockNamed "BinOpLoopBody" ;;
+    binopret <- incVoid ;;
+    storeid <- incVoid ;;
+    loopvar2 <- incLocal ;;
+    px0 <- incLocal ;;
+    px1 <- incLocal ;;
+    py <- incLocal ;;
+    v0 <- incLocal ;;
+    v1 <- incLocal ;;
     let xtyp := getIRType (FSHvecValType (n+n)) in
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (FSHvecValType n) in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    let st := addVars st [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] in
-    '(st, fexpr, fexpcode) <- genAExpr st f ;;
-     st <- dropVars st 3 ;;
-     ret (st,
-          (binopblock,
+    addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double); (loopvarid, IntType)] ;;
+    '(fexpr, fexpcode) <- genAExpr f ;;
+     dropVars 3 ;;
+     ret (binopblock,
            [
              {|
                blk_id    := binopblock ;
@@ -709,35 +731,33 @@ Definition genBinOpBody
                blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
                blk_comments := None
              |}
-         ])).
+         ]).
 
 Definition genMemMap2Body
            (n: nat)
            (x0 x1 y: ident)
            (f: AExpr)
-           (st: IRState)
            (loopvar: raw_id)
            (nextblock: block_id)
-  : err (IRState * segment)
+  : cerr segment
   :=
-    let '(st, binopblock) := incBlockNamed st "MemMap2LoopBody" in
-    let '(st, binopret) := incVoid st in
-    let '(st, storeid) := incVoid st in
-    let '(st, px0) := incLocal st in
-    let '(st, px1) := incLocal st in
-    let '(st, py) := incLocal st in
-    let '(st, v0) := incLocal st in
-    let '(st, v1) := incLocal st in
+    binopblock <- incBlockNamed "MemMap2LoopBody" ;;
+    binopret <- incVoid ;;
+    storeid <- incVoid ;;
+    px0 <- incLocal ;;
+    px1 <- incLocal ;;
+    py <- incLocal ;;
+    v0 <- incLocal ;;
+    v1 <- incLocal ;;
     let xtyp := getIRType (FSHvecValType n) in
     let xptyp := TYPE_Pointer xtyp in
     let ytyp := getIRType (FSHvecValType n) in
     let yptyp := TYPE_Pointer ytyp in
     let loopvarid := ID_Local loopvar in
-    let st := addVars st [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] in
-    '(st, fexpr, fexpcode) <- genAExpr st f ;;
-     st <- dropVars st 2 ;;
-     ret (st,
-          (binopblock,
+    addVars [(ID_Local v1, TYPE_Double); (ID_Local v0, TYPE_Double)] ;;
+    '(fexpr, fexpcode) <- genAExpr f ;;
+     dropVars 2 ;;
+     ret (binopblock,
            [
              {|
                blk_id    := binopblock ;
@@ -789,7 +809,7 @@ Definition genMemMap2Body
                blk_term  := (IVoid binopret, TERM_Br_1 nextblock);
                blk_comments := None
              |}
-         ])).
+         ]).
 
 Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
 
@@ -797,19 +817,18 @@ Definition genMemInit
            (o n: nat)
            (y: ident)
            (initial: binary64)
-           (st: IRState)
            (nextblock: block_id):
-  err (IRState * segment)
+  cerr segment
   :=
     let ini := genFloatV initial in
     let ttyp := getIRType (FSHvecValType o) in
     let tptyp := TYPE_Pointer ttyp in
-    let '(st, pt) := incLocal st in
-    let '(st, init_block_id) := incBlockNamed st "MemInit_init" in
-    let '(st, loopcontblock) := incBlockNamed st "MemInit_init_lcont" in
-    let '(st, loopvar) := incLocalNamed st "MemInit_init_i" in
-    let '(st, void0) := incVoid st in
-    let '(st, storeid) := incVoid st in
+    pt <- incLocal ;;
+    init_block_id <- incBlockNamed "MemInit_init" ;;
+    loopcontblock <- incBlockNamed "MemInit_init_lcont" ;;
+    loopvar <- incLocalNamed "MemInit_init_i" ;;
+    void0 <- incVoid ;;
+    storeid <- incVoid ;;
     let init_block :=
         {|
           blk_id    := init_block_id ;
@@ -834,24 +853,23 @@ Definition genMemInit
           blk_term  := (IVoid void0, TERM_Br_1 loopcontblock);
           blk_comments := None
         |} in
-    genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] st nextblock.
+    genWhileLoop "MemInit_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat o)) loopvar loopcontblock init_block_id [init_block] [] nextblock.
 
 Definition genPower
            (x y: ident)
            (n: NExpr)
            (f: AExpr)
            (initial: binary64)
-           (st: IRState)
-           (nextblock: block_id): err (IRState * segment)
+           (nextblock: block_id): cerr segment
   :=
-    let '(st, loopcontblock) := incBlockNamed st "Power_lcont" in
-    let '(st, loopvar) := incLocalNamed st "Power_i" in
+    loopcontblock <- incBlockNamed "Power_lcont" ;;
+    loopvar <- incLocalNamed "Power_i" ;;
     let xytyp := getIRType (FSHvecValType 1) in
     let xyptyp := TYPE_Pointer xytyp in
-    let '(st, py) := incLocal st in
-    let '(st, storeid0) := incVoid st in
-    let '(st, void1) := incVoid st in
-    '(st, nexp, ncode) <- genNExpr st n ;;
+    py <- incLocal ;;
+    storeid0 <- incVoid ;;
+    void1 <- incVoid ;;
+    '(nexp, ncode) <- genNExpr n ;;
      let ini := genFloatV initial in
      let init_code := ncode ++ [
                               (IId py,  INSTR_Op (OP_GetElementPtr
@@ -869,15 +887,15 @@ Definition genPower
 
                             ] in
 
-     let '(st, body_block_id) := incBlockNamed st "PowerLoopBody" in
-     let '(st, storeid1) := incVoid st in
-     let '(st, void2) := incVoid st in
-     let '(st, px) := incLocal st in
-     let '(st, yv) := incLocal st in
-     let '(st, xv) := incLocal st in
-     let st := addVars st [(ID_Local yv, TYPE_Double); (ID_Local xv, TYPE_Double)] in
-     '(st, fexpr, fexpcode) <- genAExpr st f ;;
-      st <- dropVars st 2 ;;
+     body_block_id <- incBlockNamed "PowerLoopBody" ;;
+     storeid1 <- incVoid ;;
+     void2 <- incVoid ;;
+     px <- incLocal ;;
+     yv <- incLocal ;;
+     xv <- incLocal ;;
+     addVars [(ID_Local yv, TYPE_Double); (ID_Local xv, TYPE_Double)] ;;
+     '(fexpr, fexpcode) <- genAExpr f ;;
+      dropVars 2 ;;
       let body_block := {|
             blk_id    := body_block_id ;
             blk_phis  := [];
@@ -908,112 +926,110 @@ Definition genPower
             blk_term  := (IVoid void2, TERM_Br_1 loopcontblock);
             blk_comments := None
           |} in
-      genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code st nextblock.
+      genWhileLoop "Power" (EXP_Integer 0%Z) nexp loopvar loopcontblock body_block_id [body_block] init_code nextblock.
 
-
-Definition resolve_PVar (vars: list (ident * typ)) (p:PExpr): err (ident*nat)
+Definition resolve_PVar (p:PExpr): cerr (ident*nat)
   :=
-    let vs := string_of_vars vars in
-    match p with
-    | PVar n =>
-      let ns := (string_of_nat n) in
-      '(l,t) <- trywith ("NVar#" ++ ns ++ " out of range in " ++ vs)%string (List.nth_error vars n) ;;
-       match t with
-       | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
-         ret (l, Z.to_nat sz)
-       | _ => raise ("Invalid type of PVar#" ++ ns ++ " in " ++ vs)%string
-       end
-    end.
+    svars <- getVarsAsString ;;
+          match p with
+          | PVar n =>
+            let ns := (string_of_nat n) in
+            '(l,t) <- getStateVar ("NVar#" ++ ns ++ " out of range in " ++ svars)%string n ;;
+             match t with
+             | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
+               ret (l, Z.to_nat sz)
+             | _ => raise ("Invalid type of PVar#" ++ ns ++ " in " ++ svars)%string
+             end
+          end.
 
 Fixpoint genIR
          (fshcol: DSHOperator)
-         (st: IRState)
          (nextblock: block_id):
-  err (IRState * segment)
+  cerr segment
   :=
     let fshcol_s := string_of_DSHOperator fshcol in
     let op_s := ("--- Operator: " ++ fshcol_s ++ "---")%string in
-    let add_comment r : err (IRState * segment) := '(st, (e, b)) <- r ;; ret (st,(e,add_comment b [op_s])) in
+    let add_comment r : cerr (segment) := '((e, b)) <- r ;; ret (e,add_comment b [op_s]) in
     catch (
         match fshcol with
         | DSHNop =>
-          let '(st, nopblock) := incBlockNamed st "Nop" in
+          nopblock <- incBlockNamed "Nop" ;;
           add_comment
-            (ret (st, (nopblock,[])))
+            (ret (nopblock,[]))
         | DSHAssign (src_p,src_n) (dst_p,dst_n) =>
-          '(x,i) <- resolve_PVar (vars st) src_p ;;
-           '(y,o) <- resolve_PVar (vars st) dst_p ;;
+          '(x,i) <- resolve_PVar src_p ;;
+           '(y,o) <- resolve_PVar dst_p ;;
            add_comment
-           (genFSHAssign i o st x y src_n dst_n nextblock)
+           (genFSHAssign i o x y src_n dst_n nextblock)
         | DSHIMap n x_p y_p f =>
-          '(x,i) <- resolve_PVar (vars st) x_p ;;
-           '(y,o) <- resolve_PVar (vars st) y_p ;;
-           let vs := string_of_vars (vars st) in
-           nat_eq_or_err (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
-                         let '(st, loopcontblock) := incBlockNamed st "IMap_lcont" in
-                         let '(st, loopvar) := incLocalNamed st "IMap_i" in
-                         '(st, (body_entry, body_blocks)) <- genIMapBody i x y f st loopvar loopcontblock ;;
+          '(x,i) <- resolve_PVar x_p ;;
+           '(y,o) <- resolve_PVar y_p ;;
+           vs <- getVarsAsString ;;
+           nat_eq_or_cerr (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
+                         loopcontblock <- incBlockNamed "IMap_lcont" ;;
+                         loopvar <- incLocalNamed "IMap_i" ;;
+                         '(body_entry, body_blocks) <- genIMapBody i x y f loopvar loopcontblock ;;
                           add_comment
-                          (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+                          (genWhileLoop "IMap" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat i)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHBinOp n x_p y_p f =>
-          let '(st, loopcontblock) := incBlockNamed st "BinOp_lcont" in
-          '(x,i) <- resolve_PVar (vars st) x_p ;;
-           '(y,o) <- resolve_PVar (vars st) y_p ;;
-           let vs := string_of_vars (vars st) in
-           nat_eq_or_err (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
-                         nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
-                         let '(st, loopvar) := incLocalNamed st "BinOp_i" in
-                         '(st, (body_entry, body_blocks)) <- genBinOpBody n x y f st loopvar loopcontblock ;;
+          loopcontblock <- incBlockNamed "BinOp_lcont" ;;
+          '(x,i) <- resolve_PVar x_p ;;
+           '(y,o) <- resolve_PVar y_p ;;
+           vs <- getVarsAsString ;;
+           nat_eq_or_cerr (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
+                         nat_eq_or_cerr (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+                         loopvar <- incLocalNamed "BinOp_i" ;;
+                         '(body_entry, body_blocks) <- genBinOpBody n x y f loopvar loopcontblock ;;
                           add_comment
-                          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+                          (genWhileLoop "BinOp" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHMemMap2 n x0_p x1_p y_p f =>
-          let '(st, loopcontblock) := incBlockNamed st "MemMap2_lcont" in
-          '(x0,i0) <- resolve_PVar (vars st) x0_p ;;
-           '(x1,i1) <- resolve_PVar (vars st) x1_p ;;
-           '(y,o) <- resolve_PVar (vars st) y_p ;;
-           let vs := string_of_vars (vars st) in
-           nat_eq_or_err (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
-                         nat_eq_or_err (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
-                         nat_eq_or_err (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
-                         let '(st, loopvar) := incLocalNamed st "MemMap2_i" in
-                         '(st, (body_entry, body_blocks)) <- genMemMap2Body n x0 x1 y f st loopvar loopcontblock ;;
+          loopcontblock <- incBlockNamed "MemMap2_lcont" ;;
+          '(x0,i0) <- resolve_PVar x0_p ;;
+           '(x1,i1) <- resolve_PVar x1_p ;;
+           '(y,o) <- resolve_PVar y_p ;;
+           vs <- getVarsAsString ;;
+           nat_eq_or_cerr (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+                         nat_eq_or_cerr (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
+                         nat_eq_or_cerr (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
+                         loopvar <- incLocalNamed "MemMap2_i" ;;
+                         '(body_entry, body_blocks) <- genMemMap2Body n x0 x1 y f loopvar loopcontblock ;;
                           add_comment
-                          (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] st nextblock)
+                          (genWhileLoop "MemMap2" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n)) loopvar loopcontblock body_entry body_blocks [] nextblock)
         | DSHPower n (src_p,src_n) (dst_p,dst_n) f initial =>
-          '(x,i) <- resolve_PVar (vars st) src_p ;;
-           '(y,o) <- resolve_PVar (vars st) dst_p ;;
+          '(x,i) <- resolve_PVar src_p ;;
+           '(y,o) <- resolve_PVar dst_p ;;
            add_comment
-           (genPower x y n f initial st nextblock)
+           (genPower x y n f initial nextblock)
         | DSHLoop n body =>
-          let '(st, loopcontblock) := incBlockNamed st "Loop_lcont" in
+          loopcontblock <- incBlockNamed "Loop_lcont" ;;
 
-          let '(st, loopvar) := newLocalVar st IntType "Loop_i" in
-          '(st,(child_block_id, child_blocks)) <- genIR body st loopcontblock ;;
-           st <- dropVars st 1 ;;
+          loopvar <- newLocalVar IntType "Loop_i" ;;
+          '(child_block_id, child_blocks) <- genIR body loopcontblock ;;
+           dropVars 1 ;;
            add_comment
            (genWhileLoop "Loop_loop" (EXP_Integer 0%Z) (EXP_Integer (Z.of_nat n))
-                         loopvar loopcontblock child_block_id child_blocks[] st nextblock)
+                         loopvar loopcontblock child_block_id child_blocks[] nextblock)
         | DSHAlloc size body =>
-          let '(st, aname) := newLocalVar st (TYPE_Pointer (getIRType (FSHvecValType size))) "a" in
-          '(st, (bblock, bcode)) <- genIR body st nextblock ;;
-           let '(st,(ablock,acode)) := allocTempArrayBlock st aname bblock size in
-           st <- dropVars st 1 ;;
-              add_comment (ret (st, (ablock, [acode]++bcode)))
+          aname <- newLocalVar (TYPE_Pointer (getIRType (FSHvecValType size))) "a" ;;
+          '(bblock, bcode) <- genIR body nextblock ;;
+           '(ablock,acode) <- allocTempArrayBlock aname bblock size ;;
+           dropVars 1 ;;
+              add_comment (ret (ablock, [acode]++bcode))
         | DSHMemInit size y_p value =>
-          '(y,o) <- resolve_PVar (vars st) y_p ;;
-           '(st,(ablock,acode)) <- genMemInit o size y value st nextblock ;;
-           add_comment (ret (st, (ablock, acode)))
+          '(y,o) <- resolve_PVar y_p ;;
+           '(ablock,acode) <- genMemInit o size y value nextblock ;;
+           add_comment (ret (ablock, acode))
         | DSHMemCopy size x_p y_p =>
-          '(x,i) <- resolve_PVar (vars st) x_p ;;
-           '(y,o) <- resolve_PVar (vars st) y_p ;;
-           let vs := string_of_vars (vars st) in
-           nat_eq_or_err (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
+          '(x,i) <- resolve_PVar x_p ;;
+           '(y,o) <- resolve_PVar y_p ;;
+           vs <- getVarsAsString ;;
+           nat_eq_or_cerr (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
                          add_comment
-                         (genMemCopy size st x y nextblock)
+                         (genMemCopy size x y nextblock)
         | DSHSeq f g =>
-          '(st, (gb, g')) <- genIR g st nextblock ;;
-           '(st, (fb, f')) <- genIR f st gb ;;
-           add_comment (ret (st, (fb, f'++g')))
+          '(gb, g') <- genIR g nextblock ;;
+           '(fb, f') <- genIR f gb ;;
+           add_comment (ret (fb, f'++g'))
         end)
           (fun m => raise (m ++ (String (ascii_of_nat 10) "") ++ " at " ++ fshcol_s)%string).
 
@@ -1024,27 +1040,25 @@ Definition LLVMGen
            (globals_extern: bool)
            (fshcol: DSHOperator)
            (funname: string)
-  : err (toplevel_entities typ (list (block typ)))
+  : cerr (toplevel_entities typ (list (block typ)))
   :=
     let x := Name "X" in
     let xtyp := TYPE_Pointer (getIRType (FSHvecValType i)) in
     let y := Name "Y" in
     let ytyp := TYPE_Pointer (getIRType (FSHvecValType o)) in
-    let st := newState in
 
     (* Add parameters as locals X=PVar 1, Y=PVar 0 *)
-    let st := addVars st [(ID_Local y, ytyp);(ID_Local x, xtyp)] in
+    addVars [(ID_Local y, ytyp);(ID_Local x, xtyp)] ;;
 
     (* Add globals *)
-    let st :=
-        addVars st
-                (List.map
-                   (fun g:(string* FSHValType) =>
-                      let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
-                   globals) in (* TODO: check order of globals. Maybe reverse. *)
+    addVars
+    (List.map
+       (fun g:(string* FSHValType) =>
+          let (n,t) := g in (ID_Global (Name n), TYPE_Pointer (getIRType t)))
+       globals) ;; (* TODO: check order of globals. Maybe reverse. *)
 
-    let (st,rid) := incBlock st in
-    let (st,rsid) := incBlock st in
+    rid <- incBlock ;;
+    rsid <- incBlock ;;
     let retblock :=
         {|
           blk_id    := rid ;
@@ -1053,7 +1067,7 @@ Definition LLVMGen
           blk_term  := (IId rsid, TERM_Ret_void);
           blk_comments := None
         |} in
-    '(st,(_,body)) <- genIR fshcol st rid ;;
+    '(_,body) <- genIR fshcol rid ;;
      let body := body ++ [retblock] in
      let all_intrinsics:toplevel_entities typ (list (block typ))
          := [TLE_Comment "Prototypes for intrinsics we use"]
@@ -1253,6 +1267,12 @@ Definition genMain
                            ]
         |}].
 
+Definition run_errS (A:Type) (initial: IRState) : cerr A -> err A
+  := fun ce => match ce initial with
+            | inl msg => raise msg
+            | inr (s,v) => ret v
+            end.
+
 Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
   match p return (list binary64 -> _) with
   | mkFSHCOLProgram i o name globals op =>
@@ -1260,9 +1280,7 @@ Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities t
       '(data'',ginit) <- initIRGlobals data' globals ;;
        let ginit := app [TLE_Comment "Global variables"] ginit in
        let main := genMain i o name globals data'' in
-       prog <- LLVMGen i o globals false op name ;;
+       prog <- run_errS newState (LLVMGen i o globals false op name) ;;
        let code := app (app ginit prog) main in
        ret code
   end.
-
-
