@@ -12,30 +12,22 @@ Require Import Helix.Util.OptionSetoid.
 Require Import Helix.Util.Misc.
 Require Import Helix.Tactics.HelixTactics.
 
-Require Export Helix.Util.StringSetoid. (* for (=) on String *)
+Inductive is_OK {A : Type} : err A -> Prop :=
+| is_OK_intro : forall a, is_OK (inr a).
 
-Definition is_OK {A:Type} (v:err A) :=
-  match v with
-  | inl _ => False
-  | inr _ => True
-  end.
-
-Definition is_Err {A:Type} (v:err A) :=
-  match v with
-  | inl _ => True
-  | inr _ => False
-  end.
+Inductive is_Err {A : Type} : err A -> Prop :=
+| is_Err_intro : forall a, is_Err (inl a).
 
 Fact eq_inr_is_OK {A:Type} (x:A) (y: err A):
   (y ≡ inr x) -> is_OK y.
 Proof.
-  crush.
+  intro; subst; constructor.
 Qed.
 
 Fact eq_inl_is_Err {A:Type} (msg:string) (y: err A):
   (y ≡ inl msg) -> is_Err y.
 Proof.
-  crush.
+  intro; subst; constructor.
 Qed.
 
 Inductive err_equiv_r {A:Type} `{Equiv A} : relation (err A) :=
@@ -129,8 +121,8 @@ Ltac inl_inr :=
 
   | [H1: is_OK (inl _) |- _] => inversion H1
   | [H1: is_Err (inr _) |- _] => inversion H1
-  | [|- is_OK (inr _)] => unfold is_OK; tauto
-  | [|- is_Err (inl _)] => unfold is_Err; tauto
+  | [|- is_OK (inr _)] => constructor
+  | [|- is_Err (inl _)] => constructor
   end.
 
 Lemma inl_inj_equiv :
@@ -193,7 +185,7 @@ Proof.
   intros.
   destruct y.
   inversion H0.
-  reflexivity.
+  constructor.
 Qed.
 
 Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=

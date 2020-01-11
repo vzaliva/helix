@@ -89,37 +89,87 @@ Class DSHIUnCarrierA (a:AExpr) : Prop :=
 Class DSHBinCarrierA (a:AExpr) : Prop :=
   DSHBinCarrierA_atypesigincl :> AExprTypeSigIncludes a DSHBinCarrierA_TypeSig.
 
+(* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
+Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
+| EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
+| DSHPtrValConsistent: forall σ m a,
+    mem_block_exists a m ->
+    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
+(* the remaining case does not depend on memory and just recurse over environment *)
+| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
+| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
+
+Lemma EnvMemoryConsistent_inv (a : DSHVal) (σ : evalContext) (mem : memory) :
+  EnvMemoryConsistent (a :: σ) mem -> EnvMemoryConsistent σ mem.
+Proof.
+  intros; inversion H; auto.
+Qed.
+
+Global Instance EnvMemoryConsistent_proper :
+  Proper ((=) ==> (=) ==> (iff)) EnvMemoryConsistent.
+Proof.
+  intros σ0 σ1 SE mem0 mem1 ME.
+  inversion SE; [split; constructor |].
+Abort.
+
+Lemma EnvMemoryConsistent_memory_lookup
+      {σ : evalContext}
+      {mem : memory}
+      {EC : EnvMemoryConsistent σ mem}
+      (v : var_id)
+      (a : mem_block_id) :
+  List.nth_error σ v = Some (DSHPtrVal a) →
+  is_Some (memory_lookup mem a).
+Proof.
+  intros.
+  dependent induction σ; [destruct v; inversion H |].
+  destruct v.
+  -
+    clear IHσ.
+    cbn in H; some_inv.
+    destruct a; inversion H; clear H; subst.
+    inversion EC; subst.
+    apply memory_is_set_is_Some.
+    rewrite <-H2.
+    assumption.
+  -
+    eapply IHσ.
+    eapply EnvMemoryConsistent_inv; eassumption.
+    cbn in H; eassumption.
+Qed.
+
 Lemma evalMExpr_is_OK
-      {σ: evalContext}
+      `{EC : EnvMemoryConsistent σ mem}
       {m: MExpr}
-      (mem : memory)
       (tm: TypeSig)
       (TS : TypeSigMExpr m = Some tm)
       (TC : typecheck_env 0 tm σ):
   is_OK (evalMexp mem σ m).
 Proof.
-  (*
-  destruct m; simpl in *; [|trivial].
+  destruct m; cbn in *; [| constructor].
+  destruct p; cbn in *.
   some_inv.
-  rewrite <- TS in TC. clear TS.
+  rewrite <-TS in TC; clear TS.
   unfold typecheck_env, typecheck_env_bool, TP.for_all in TC.
-  eapply TP.for_all_iff with (k:=v) (e:=DSHMemBlock) in TC .
-  -
-    destruct (v <? 0) eqn:K; [inversion K|].
-    inversion TC; clear TC.
-    apply bool_decide_true in H0.
-    rewrite Nat.sub_0_r in H0.
-    unfold contextEnsureType in H0.
-    break_match; [| trivial].
-    inversion H0.
-    inl_inr.
-  -
-    solve_proper.
-  -
-    apply TM.add_1.
-    reflexivity.
-   *)
-Abort.
+  eapply TP.for_all_iff with (k:=v) (e:=DSHPtr) in TC ;
+    [| solve_proper | apply TM.add_1; reflexivity].
+  cbn in TC.
+  apply bool_decide_true in TC.
+  rewrite Nat.sub_0_r in TC.
+  unfold contextEnsureType in TC.
+  break_match_hyp; [| inversion TC].
+  inversion TC; subst d.
+  unfold memory_lookup_err.
+  assert (is_Some (memory_lookup mem a)).
+  eapply EnvMemoryConsistent_memory_lookup with (v0:=v).
+  rewrite <-Heqo.
+  reflexivity.
+  apply is_Some_def in H; destruct H as [b H].
+  rewrite H.
+  constructor.
+  Unshelve.
+  assumption.
+Qed.
 
 Lemma evalNExpr_is_OK
       {σ: evalContext}
@@ -155,7 +205,7 @@ Proof.
       apply TM.add_1.
       reflexivity.
   -
-    trivial.
+    constructor.
   -
     unfold TypeSigUnion_error' in TS.
     simpl in TS.
@@ -265,15 +315,15 @@ Qed.
   DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
  *)
 Lemma evalAExpr_is_OK'
+      {mem : memory}
       {σ: evalContext}
+      {EC : EnvMemoryConsistent σ mem}
       {e: AExpr}
-      (mem : memory)
       (ts: TypeSig)
       (TS : TypeSigAExpr e = Some ts)
       (TC : typecheck_env 0 ts σ):
   is_OK (evalAexp mem σ e).
 Proof.
-  (*
   dependent induction e; simpl in *.
   -
     unfold TypeSig_safe_add in TS.
@@ -300,7 +350,7 @@ Proof.
       apply TM.add_1.
       reflexivity.
   -
-    trivial.
+    constructor.
   -
     unfold TypeSigUnion_error' in TS.
     simpl in TS.
@@ -312,7 +362,7 @@ Proof.
     eq_to_equiv_hyp.
     break_match.
     +
-      pose proof evalMExpr_is_OK tm Heqo TM.
+      pose proof evalMExpr_is_OK (EC:=EC) tm Heqo TM.
       rewrite Heqe in H.
       inl_inr.
     +
@@ -409,25 +459,24 @@ Proof.
     assert(T2T: Some t2 = Some t2) by reflexivity.
     specialize (IHe2 t2 T2T T2).
     repeat break_match; inl_inr.
-*)
-Abort.
+Qed.
 
 Lemma evalAExpr_is_OK
+      {mem : memory}
       {σ : evalContext}
+      {EC : EnvMemoryConsistent σ mem}
       {a : AExpr}
-      (mem : memory)
       `{TSI : AExprTypeSigIncludes a ts}
       (TC : typecheck_env 0 ts σ) :
   is_OK (evalAexp mem σ a).
 Proof.
-  (*
   inversion TSI; clear TSI.
   rename x into ats; destruct H as [ATS TSI].
   eapply typecheck_env_TypeSigIncluded in TC.
   eapply evalAExpr_is_OK'.
   all: eassumption.
-   *)
-Abort.
+  Unshelve. assumption.
+Qed.
 
 Global Instance TypeSigCompat_Symmetric :
   Symmetric TypeSigCompat.
@@ -664,10 +713,22 @@ Proof.
   reflexivity.
 Qed.
 
+(* TODO: move *)
+Lemma is_OK_neq_inl {A : Type} {E : Equiv A} (a : err A) :
+  is_OK a -> forall s, a ≠ inl s.
+Proof.
+  intros.
+  destruct a.
+  inversion H.
+  intros C; inversion C.
+Qed.
+
 Lemma evalAExpr_context_equiv_at_TypeSig
-      (a : AExpr)
+      {mem : memory}
       {σ0 σ1 : evalContext}
-      (mem : memory)
+      {EC0 : EnvMemoryConsistent σ0 mem}
+      {EC1 : EnvMemoryConsistent σ1 mem}
+      (a : AExpr)
       `{TSI : AExprTypeSigIncludes a ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
   evalAexp mem σ0 a = evalAexp mem σ1 a.
@@ -680,30 +741,30 @@ Proof.
 
   destruct_err_equiv.
   -
-    (*
-    contradict Hb.
-    apply is_Some_ne_None.
-    eapply evalAExpr_is_OK'.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
-     *)
-    admit.
-  -
-    (*
+    err_eq_to_equiv_hyp.
     contradict Ha.
-    apply is_Some_ne_None.
+    apply is_OK_neq_inl.
     eapply evalAExpr_is_OK'.
     eassumption.
     eapply typecheck_env_TypeSigIncluded; eassumption.
-     *)
-    admit.
+    Unshelve.
+    assumption.
+  -
+    err_eq_to_equiv_hyp.
+    contradict Hb.
+    apply is_OK_neq_inl.
+    eapply evalAExpr_is_OK'.
+    eassumption.
+    eapply typecheck_env_TypeSigIncluded; eassumption.
+    Unshelve.
+    assumption.
   -
     dependent induction a; cbn in *.
     
     (* first "base case" *)
-    (*
-    repeat break_match; try some_none.
-    repeat some_inv; subst.
+    unfold context_lookup, trywith in *.
+    repeat break_match; try some_none; try inl_inr.
+    repeat some_inv; repeat inl_inr_inv; subst.
     enough (List.nth_error σ0 v = List.nth_error σ1 v)
       by (rewrite Heqo, Heqo0 in H;
           some_inv; inversion H; assumption).
@@ -718,16 +779,15 @@ Proof.
     }
     specialize (E v DSHCType T).
     destruct E as [E1 [E2 H]].
-    assumption.
-     *)
-    admit.
+    unfold context_lookup, trywith in *.
+    repeat break_match; inversion H; try reflexivity.
+    rewrite H2.
+    reflexivity.
 
     (* second "base case" *)
-    (* repeat some_inv; subst; reflexivity. *)
-    admit.
+    repeat some_inv; repeat inl_inr_inv; subst; reflexivity.
 
     (* third "base case" *)
-    (*
     destruct TypeSigMExpr eqn:MTS in ATS; [rename t into mts | some_none].
     destruct TypeSigNExpr eqn:NTS in ATS; [rename t into nts | some_none].
     unfold TypeSigUnion_error in ATS; break_if; try some_none.
@@ -745,21 +805,24 @@ Proof.
       eq_to_equiv_hyp; assumption.
       eapply TypeSigIncluded_TypeSigUnion_right; eassumption.
     }
-    eapply evalMExpr_context_equiv_at_TypeSig in MTSI; [| eassumption].
+    eapply evalMExpr_context_equiv_at_TypeSig with (mem:=mem) in MTSI; [| eassumption].
     eapply evalNExpr_context_equiv_at_TypeSig in NTSI; [| eassumption].
-    rewrite eq_equiv_option_nat in NTSI; rewrite NTSI in *.
-    destruct evalMexp eqn:M0 in Ha; [| some_none].
-    destruct evalMexp eqn:M1 in Hb; [| some_none].
-    rewrite M0, M1 in MTSI; some_inv.
-    break_match; [| some_none].
-    repeat break_match; repeat some_inv; subst.
+    (* rewrite eq_equiv_option_nat in NTSI; rewrite NTSI in *. *)
+    destruct evalMexp eqn:M0 in Ha; [inl_inr |].
+    destruct evalMexp eqn:M1 in Hb; [inl_inr |].
+    rewrite M0, M1 in MTSI; inl_inr_inv.
+    destruct evalNexp eqn:N0 in NTSI;
+      destruct evalNexp eqn:N1 in NTSI;
+      rewrite N0, N1 in *;
+      try inl_inr.
+    inl_inr_inv.
+    inversion NTSI; subst.
+    repeat break_match; repeat inl_inr_inv; subst.
     1: enough (Some c = Some c0) by (some_inv; assumption).
     2: enough (None = Some c0) by some_none.
     3: enough (None = Some c) by some_none.
-    1-3: rewrite <-Heqo0, <-Heqo1, MTSI; reflexivity.
+    1-3: rewrite <-Heqo0, <-Heqo, MTSI; reflexivity.
     reflexivity.
-     *)
-    admit.
 
     (* inductive 1 *)
     repeat break_match;
@@ -767,7 +830,7 @@ Proof.
       repeat some_inv; repeat inl_inr_inv.
     enough (CarrierAe c1 c2) by (rewrite H; reflexivity).
     symmetry.
-    eapply IHa; eassumption.
+    eapply IHa; try eassumption; reflexivity.
 
     (* rest inductive *)
     all: repeat break_match;
@@ -786,7 +849,7 @@ Proof.
     all: assert (CarrierAe c4 c2)
       by (eapply IHa2; try reflexivity; try eassumption).
     all: rewrite H3, H4; reflexivity.
-Abort.
+Qed.
  
 Lemma evalNExpr_context_equiv_at_exact_TypeSig
       (σ0 σ1 : evalContext)
@@ -817,20 +880,22 @@ Proof.
 Qed.
 
 Lemma evalAExpr_context_equiv_at_exact_TypeSig
-      (a : AExpr)
+      {mem : memory}
       {σ0 σ1 : evalContext}
-      (mem : memory)
+      {EC0 : EnvMemoryConsistent σ0 mem}
+      {EC1 : EnvMemoryConsistent σ1 mem}
+      (a : AExpr)
       `{TS : TypeSigAExpr a = Some ts}
       (E : context_equiv_at_TypeSig ts σ0 σ1):
   evalAexp mem σ0 a = evalAexp mem σ1 a.
 Proof.
-  (*
   eapply evalAExpr_context_equiv_at_TypeSig; [| eassumption].
   exists ts.
   split; try assumption.
   apply TypeSigIncluded_reflexive.
-   *)
-Abort.
+  Unshelve.
+  all: assumption.
+Qed.
 
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
@@ -1133,15 +1198,6 @@ Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
        herr (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
            (evalPexp σ0 p) (evalPexp σ1 p).
 
-(* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
-Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
-| EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
-| DSHPtrValConsistent: forall σ m a,
-    mem_block_exists a m ->
-    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
-(* the remaining case does not depend on memory and just recurse over environment *)
-| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
-| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
 
 (* TODO: move *)
 (* Two memory locations equivalent on all addresses except one *)
@@ -1679,7 +1735,7 @@ Lemma is_OK_evalDSHBinOp_mem_equiv
       (mem : memory)
       (mx ma mb : mem_block) :
   ma = mb ->
-  is_OK (evalDSHBinOp mem n off df σ mx ma) =
+  is_OK (evalDSHBinOp mem n off df σ mx ma) <->
   is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
   intros.
@@ -1689,8 +1745,8 @@ Proof.
     specialize (H0 T ma mb H); clear T.
   unfold is_Some.
   repeat break_match; try reflexivity; inversion H0.
-  reflexivity.
-  reflexivity.
+  split; constructor.
+  split; intros C; inversion C.
 Qed.
 
 (* TODO: move *)
@@ -1720,10 +1776,10 @@ Lemma is_OK_evalDSHBinOp_mem_add
       (mx mb : mem_block)
       (k : NM.key)
       (v : CarrierA) :
-  is_OK (evalDSHBinOp mem n off df σ mx (mem_add k v mb)) =
+  is_OK (evalDSHBinOp mem n off df σ mx (mem_add k v mb)) <->
   is_OK (evalDSHBinOp mem n off df σ mx mb).
 Proof.
-  dependent induction n; [reflexivity |].
+  dependent induction n; [split; constructor |].
   cbn.
   repeat break_match; try reflexivity.
   destruct (Nat.eq_dec n k).
@@ -1838,15 +1894,6 @@ Proof.
    *)
 Admitted.
 
-(* TODO: move *)
-Lemma is_OK_neq_inl {A : Type} (s : string) (v : err A) :
-  is_OK v -> v ≢ inl s.
-Proof.
-  destruct v.
-  auto.
-  discriminate.
-Qed.
-
 Lemma evalDSHBinOp_is_OK_inv
       {mem : memory}
       {off n: nat}
@@ -1866,7 +1913,7 @@ Lemma evalDSHBinOp_is_OK_inv
   ) -> (is_OK (evalDSHBinOp mem n off df σ mx mb)).
 Proof.
   intros H.
-  induction n; [reflexivity |].
+  induction n; [constructor |].
   simpl.
   repeat break_match.
   1-3: exfalso.
@@ -1883,6 +1930,7 @@ Proof.
     unfold mem_lookup_err, trywith in Heqe0.
     break_match; try inversion Heqe0; try some_none.
   -
+    err_eq_to_equiv_hyp.
     contradict Heqe1.
     assert (T : n < S n) by omega.
     specialize (H n T).
@@ -1986,6 +2034,7 @@ Lemma evalDSHBinOp_is_Err_inv
       (df : AExpr)
       `{dft : DSHIBinCarrierA df}
       (σ : evalContext)
+      {EC : EnvMemoryConsistent σ mem}
       {dfs:TypeSig}
       (TS : TypeSigAExpr df = Some dfs)
       (TC: typecheck_env 3 dfs σ)
@@ -1994,11 +2043,11 @@ Lemma evalDSHBinOp_is_Err_inv
   (exists k (kc:k<n),
       is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
 Proof.
-  (*
   revert mb.
   induction n.
   -
     crush.
+    inversion H.
   -
     intros mb N.
     simpl in *.
@@ -2017,6 +2066,7 @@ Proof.
       right; rewrite Heqo; reflexivity.
     +
       clear N.
+      err_eq_to_equiv_hyp.
       contradict Heqe1.
       apply is_OK_neq_inl.
       unfold evalIBinCType.
@@ -2058,8 +2108,10 @@ Proof.
       assert(k<S n) as kc1 by lia.
       exists kc1.
       apply IHn.
-*)
-Abort.
+
+      Unshelve.
+      do 3 constructor; assumption.
+Qed.
 
 Lemma evalDSHBinOp_context_equiv
       (mem : memory)
@@ -2067,17 +2119,17 @@ Lemma evalDSHBinOp_context_equiv
       (df : AExpr)
       `{dft : DSHIBinCarrierA df}
       {dfs: TypeSig}
-      (σ0 σ1 : evalContext) (m0 m1: mem_block):
+      (σ0 σ1 : evalContext)
+      {EC0 : EnvMemoryConsistent σ0 mem}
+      {EC1 : EnvMemoryConsistent σ1 mem}
+      (m0 m1: mem_block):
   TypeSigAExpr df = Some dfs ->
   context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
   evalDSHBinOp mem n off df σ0 m0 m1 = evalDSHBinOp mem n off df σ1 m0 m1.
 Proof.
-  (*
   intros H E.
   unfold equiv, option_Equiv.
   destruct_err_equiv.
-  -
-    admit.
   -
     destruct n.
     +
@@ -2091,10 +2143,11 @@ Proof.
       }
       apply eq_inr_is_OK in Hb.
 
-      apply evalDSHBinOp_is_Err with (df:=df) (σ:=σ1) (mb:=m1) in Ha.
+      apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ1) (mb:=m1) in Ha.
       clear - Ha Hb.
-      unfold is_Err, is_OK in *.
-      break_match.
+      inversion Ha; inversion Hb.
+      rewrite <-H0 in H1.
+      inl_inr.
       all: auto.
   -
     destruct n.
@@ -2109,10 +2162,11 @@ Proof.
       }
       apply eq_inr_is_OK in Ha.
 
-      apply evalDSHBinOp_is_Err with (df:=df) (σ:=σ0) (mb:=m1) in Hb.
+      apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ0) (mb:=m1) in Hb.
       clear - Ha Hb.
-      unfold is_Err, is_OK in *.
-      break_match.
+      inversion Ha; inversion Hb.
+      rewrite <-H0 in H1.
+      inl_inr.
       all: auto.
   -
     destruct n.
@@ -2140,13 +2194,13 @@ Proof.
         rewrite B0 in B1; clear B0.
         repeat some_inv.
         rewrite A1, B1 in E0; clear A1 B1 a0 b0.
-        enough (evalIBinCType σ0 df k a1 b1 = evalIBinCType σ1 df k a1 b1)
+        enough (evalIBinCType mem σ0 df k a1 b1 = evalIBinCType mem σ1 df k a1 b1)
          by (rewrite C0, C1; rewrite E0, E1 in H0; inl_inr_inv; rewrite H0; reflexivity).
         rename a1 into a, b1 into b.
         unfold evalIBinCType in *.
 
-        apply evalAExpr_context_equiv_at_exact_TypeSig with (ts:=dfs).
-        apply H.
+        eapply evalAExpr_context_equiv_at_exact_TypeSig with (ts:=dfs).
+        assumption.
 
         apply context_equiv_at_TypeSig_0.
         destruct dft as [dfs' [D0 D1]].
@@ -2247,8 +2301,10 @@ Proof.
         apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
         rewrite <- Ha, <- Hb.
         reflexivity.
-   *)
-Abort.
+
+        Unshelve.
+        all: do 3 constructor; assumption.
+Qed.
 
 Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : mem_block_id) :
   forall mb, memory_lookup_err s m mbi ≡ inr mb → is_Some (memory_lookup m mbi).
