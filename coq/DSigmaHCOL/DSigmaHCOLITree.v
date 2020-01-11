@@ -328,11 +328,16 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       match goal with
       | h: inl _ ≡ inl _ |-  _ => inv h
       | h: inr _ ≡ inr _ |-  _ => inv h
+      | h: inl _ ≡ inr _ |-  _ => inv h
+      | h: inr _ ≡ inl _ |-  _ => inv h
       end.
 
     Ltac inv_option :=
       match goal with
       | h: Some _ ≡ Some _ |-  _ => inv h
+      | h: None   ≡ Some _ |-  _ => inv h
+      | h: Some _ ≡ None   |-  _ => inv h
+      | h: None   ≡ None   |-  _ => inv h
       end.
 
     Ltac inv_mem_lookup_err :=
@@ -347,9 +352,10 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       unfold memory_lookup_err, trywith in H;
       break_match_hyp; cbn in H; try (inl_inr || inv_sum || inv_sum).
 
-    Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum || inv_sum || inv_option)); repeat try (inv_sum || inv_option).
+    Ltac inv_eval := repeat (break_match_hyp; try (inl_inr || inv_sum || inv_option)); repeat try (inv_sum || inv_option).
 
-    Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *.
+    (* Ltac unfold_Mem := unfold interp_Mem in *; cbn in *; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *. *)
+    Ltac unfold_Mem := unfold interp_Mem in *; cbn; unfold denotePexp, denoteNexp, evalIUnCType, denoteIUnCType in *.
 
     Lemma Denote_Eval_Equiv_Mexp_Succeeds: forall mem σ e bk,
         evalMexp mem σ e ≡ inr bk ->
@@ -374,7 +380,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              (interp_Mem (denoteAexp σ e) mem)
              (ret (mem, v)).
     Proof.
-      induction e; intros res HEVal; unfold_Mem.
+      induction e; intros res HEval; unfold_Mem.
       - cbn in *.
         inv_eval.
         state_steps; reflexivity.
@@ -440,7 +446,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         interp_Mem_Fails (denoteMexp σ e) mem.
     Proof.
       unfold interp_Mem_Fails.
-      intros mem σ [] bk HEval; unfold_Mem.
+      intros mem σ [] bk HEval; cbn in HEval; unfold_Mem.
       - inv_eval; state_steps.
         + eexists; left; state_steps.
           unfold throw, pure_state.
@@ -459,7 +465,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         interp_Mem_Fails (denoteAexp σ e) mem.
     Proof.
       unfold interp_Mem_Fails.
-      intros mem σ e msg; induction e; intros HEVal; unfold_Mem.
+      intros mem σ e msg; induction e; intros HEval; cbn in HEval; unfold_Mem.
       - eexists; right; cbn in *; inv_eval.
         + state_steps; cbn.
           unfold throw, pure_state.
@@ -590,7 +596,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              (interp_Mem (denoteDSHIMap n f σ m1 m2) mem)
              (ret (mem, id)).
     Proof.
-      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; unfold_Mem.
+      induction n as [| n IH]; cbn; intros f σ m1 m2 id HEval; cbn in HEval; unfold_Mem.
       - inv_eval; state_steps; reflexivity.
       - inv_eval; state_steps.
         inv_mem_lookup_err.
@@ -930,7 +936,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              (interp_Mem (denoteDSHMap2 n f σ m1 m2 m3) mem)
              (ret (mem, m4)).
     Proof.
-      induction n as [| n IH]; intros σ mem f m1 m2 m3 m4 HEval.
+      induction n as [| n IH]; intros σ mem f m1 m2 m3 m4 HEval; cbn in HEval.
       - unfold_Mem; inv_sum.
         state_steps; reflexivity.
       - unfold_Mem; inv_eval.
@@ -948,7 +954,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              (interp_Mem (denoteDSHPower σ n f x y xoff yoff) mem)
              (ret (mem, m)).
     Proof.
-      induction n as [| n IH]; intros σ mem f x y xoff yoff m HEval.
+      induction n as [| n IH]; intros σ mem f x y xoff yoff m HEval; cbn in HEval.
       - unfold_Mem; inv_sum.
         state_steps; reflexivity.
       - unfold_Mem; inv_eval.
@@ -959,6 +965,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         rewrite IH; eauto; reflexivity.
     Qed.
 
+
     Theorem Denote_Eval_Equiv_Succeeds:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (mem': memory),
         evalDSHOperator σ op mem fuel ≡ Some (inr mem') ->
@@ -966,7 +973,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Proof.
       intros ? ? ? ? ? H; destruct fuel as [| fuel]; [inversion H |].
       revert σ mem' fuel mem H.
-      induction op; intros σ mem fuel mem' HEval.
+      induction op; intros σ mem fuel mem' HEval; cbn in HEval.
       - unfold_Mem; inv_eval; state_steps; reflexivity.
       - unfold_Mem; destruct src,dst.
         inv_eval.
@@ -1008,7 +1015,28 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
       - unfold interp_Mem.
         eapply Loop_is_Iter; eauto.
-    Admitted.
+      - unfold_Mem; state_steps.
+        inv_eval.
+        destruct fuel as [| fuel]; [inv Heqo |].
+        rewrite IHop; eauto; state_steps.
+        reflexivity.
+      - unfold_Mem; inv_eval.
+        state_steps.
+        inv_memory_lookup_err.
+        state_steps.
+        reflexivity.
+      - unfold_Mem; inv_eval.
+        state_steps.
+        do 2 inv_memory_lookup_err.
+        state_steps.
+        break_match_goal; inv_memory_lookup_err; inv_option.
+        state_steps.
+        reflexivity.
+      - unfold_Mem; inv_eval.
+        state_steps; rewrite IHop1; eauto using eval_fuel_monotone.
+        state_steps; rewrite IHop2; eauto using eval_fuel_monotone.
+        reflexivity.
+    Qed.
 
     Theorem Denote_Eval_Equiv_Fails:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
