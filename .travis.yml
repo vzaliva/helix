@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 language: generic
 
@@ -17,7 +17,7 @@ addons:
     - aspcud
 env:
   global:
-  - NJOBS=1
+  - NJOBS=2
   matrix:
   - TEST_TARGET="8.9.1"
 
@@ -49,7 +49,8 @@ install:
 script:
   - eval $(opam config env)
   - opam config var root
-  - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm && make -C lib/vellvm/src
+  - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm && make -j ${NJOBS} -C lib/vellvm/src
+  - make -j ${NJOBS}
   - make test
 
 notifications:
