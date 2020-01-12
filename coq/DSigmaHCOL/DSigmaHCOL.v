@@ -391,7 +391,7 @@ Module Type MDSigmaHCOL (Import CT : CType).
 
     Definition string_of_PExpr (p:PExpr) : string :=
       match p with
-      | PVar x => ("(PVar " ++ string_of_nat x ++ ")")%string
+      | PVar x => "(PVar " ++ string_of_nat x ++ ")"
       end.
 
     (* TODO: Implement *)

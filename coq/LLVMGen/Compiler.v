@@ -19,7 +19,6 @@ Require Import Flocq.IEEE754.Bits.
 Require Import Coq.Numbers.BinNums. (* for Z scope *)
 Require Import Coq.ZArith.BinInt.
 
-Require Import ExtLib.Data.String.
 Require Import ExtLib.Structures.Monads.
 Require Import Helix.Util.ErrorWithState.
 
@@ -31,6 +30,10 @@ Set Implicit Arguments.
 Set Strict Implicit.
 
 Import MDSHCOLOnFloat64.
+
+(* Both [String] and [List] define [(++)] notation. We use both.
+   To avoid implicit scoping, we re-define one for String *)
+Notation "x @@ y" := (String.append x y) (right associativity, at level 60) : string_scope.
 
 Section withErrorStateMonad.
 
@@ -147,7 +150,7 @@ Definition incBlockNamed (prefix:string): (cerr block_id) :=
       void_count := void_count st ;
       vars := vars st
     |} ;;
-  ret (Name (prefix ++ string_of_nat (block_count st))%string).
+  ret (Name (prefix ++ string_of_nat (block_count st))).
 
 Definition incBlock := incBlockNamed "b".
 
@@ -160,7 +163,7 @@ Definition incLocalNamed (prefix:string): (cerr raw_id) :=
       void_count  := void_count st ;
       vars := vars st
     |} ;;
-  ret (Name (prefix ++ string_of_nat (local_count st))%string).
+  ret (Name (prefix @@ string_of_nat (local_count st))).
 
 Definition incLocal := incLocalNamed "l".
 
@@ -187,7 +190,7 @@ Definition addVars (newvars: list (ident * typ)): cerr unit :=
 
 Definition newLocalVar (t:typ) (prefix:string): (cerr raw_id) :=
   st <- get ;;
-  let v := Name (prefix ++ string_of_nat (local_count st))%string in
+  let v := Name (prefix @@ string_of_nat (local_count st)) in
   put
     {|
       block_count := block_count st ;
@@ -261,7 +264,7 @@ Fixpoint genNExpr
                     ret (EXP_Ident i, [])
                   else
                     (svars <- getVarsAsString ;;
-                     raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ svars)%string)
+                     raise ("NVar #" @@ string_of_nat n @@ " dimensions mismatch in " @@ svars))
                 | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                   if Z.eq_dec z zi then
                     res <- incLocal ;;
@@ -272,10 +275,10 @@ Fixpoint genNExpr
                                                (ret 8%Z))])
                   else
                     (svars <- getVarsAsString ;;
-                     raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ svars)%string)
+                     raise ("NVar #" @@ string_of_nat n @@ " pointer type mismatch in " @@ svars))
                 | _,_ =>
                   svars <- getVarsAsString ;;
-                  raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ svars)%string
+                  raise ("NVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
                 end
     | NConst v => ret (EXP_Integer (Z.of_nat v), [])
     | NDiv   a b => gen_binop a b (SDiv true)
@@ -298,7 +301,7 @@ Definition genMExpr
                                ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
                              | _  =>
                                svars <- getVarsAsString ;;
-                               raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ svars)%string
+                               raise ("MPtrDeref's PVar #" @@ string_of_nat x @@ " type mismatch in " @@ svars)
                              end
      | MConst c => raise "MConst not implemented" (* TODO *)
      end.
@@ -350,7 +353,7 @@ Fixpoint genAExpr
                                              (ret 8%Z))])
                 | _ =>
                   svars <- getVarsAsString ;;
-                  raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ svars)%string
+                  raise ("AVar #" @@ string_of_nat n @@ " type mismatch in " @@ svars)
                 end
     | AConst v => ret (EXP_Double v, [])
     | ANth vec i =>
@@ -532,11 +535,11 @@ Definition genWhileLoop
            (nextblock: block_id)
   : cerr segment
   :=
-    entryblock <- incBlockNamed (prefix ++ "_entry")%string ;;
-    loopblock <- incBlockNamed (prefix ++ "_loop")%string ;;
+    entryblock <- incBlockNamed (prefix @@ "_entry") ;;
+    loopblock <- incBlockNamed (prefix @@ "_loop") ;;
     loopcond <- incLocal ;;
     loopcond1 <- incLocal ;;
-    nextvar <- incLocalNamed (prefix ++ "_next_i")%string ;;
+    nextvar <- incLocalNamed (prefix @@ "_next_i") ;;
     void0 <- incVoid ;;
     void1 <- incVoid ;;
     retloop <- incVoid ;;
@@ -936,12 +939,12 @@ Definition resolve_PVar (p:PExpr): cerr (ident*nat)
     svars <- getVarsAsString ;;
     match p with
     | PVar n =>
-      let ns := (string_of_nat n) in
-      '(l,t) <- getStateVar ("NVar#" ++ ns ++ " out of range in " ++ svars)%string n ;;
+      let ns := string_of_nat n in
+      '(l,t) <- getStateVar ("NVar#" @@ ns @@ " out of range in " @@ svars) n ;;
       match t with
       | TYPE_Pointer (TYPE_Array sz TYPE_Double) =>
         ret (l, Z.to_nat sz)
-      | _ => raise ("Invalid type of PVar#" ++ ns ++ " in " ++ svars)%string
+      | _ => raise ("Invalid type of PVar#" @@ ns @@ " in " @@ svars)
       end
     end.
 
@@ -951,7 +954,7 @@ Fixpoint genIR
   cerr segment
   :=
     let fshcol_s := string_of_DSHOperator fshcol in
-    let op_s := ("--- Operator: " ++ fshcol_s ++ "---")%string in
+    let op_s := ("--- Operator: " @@ fshcol_s @@ "---") in
     let add_comment r : cerr (segment) := '((e, b)) <- r ;; ret (e,add_comment b [op_s]) in
     catch (
         match fshcol with
@@ -968,7 +971,7 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s ++ " dimensions do not match in " ++ vs)%string i o ;;
+          nat_eq_or_cerr (fshcol_s @@ " dimensions do not match in " @@ vs) i o ;;
           loopcontblock <- incBlockNamed "IMap_lcont" ;;
           loopvar <- incLocalNamed "IMap_i" ;;
           '(body_entry, body_blocks) <- genIMapBody i x y f loopvar loopcontblock ;;
@@ -979,8 +982,8 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s ++ " input dimensions do not match in " ++ vs)%string i (n+n) ;;
-          nat_eq_or_cerr (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
+          nat_eq_or_cerr (fshcol_s @@ " input dimensions do not match in " @@ vs) i (n+n) ;;
+          nat_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n ;;
           loopvar <- incLocalNamed "BinOp_i" ;;
           '(body_entry, body_blocks) <- genBinOpBody n x y f loopvar loopcontblock ;;
           add_comment
@@ -991,9 +994,9 @@ Fixpoint genIR
           '(x1,i1) <- resolve_PVar x1_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s ++ " output dimensions do not match in " ++ vs)%string o n ;;
-          nat_eq_or_cerr (fshcol_s ++ " input 1 dimensions do not match in " ++ vs)%string i0 n ;;
-          nat_eq_or_cerr (fshcol_s ++ " input 2 dimensions do not match in " ++ vs)%string i1 n ;;
+          nat_eq_or_cerr (fshcol_s @@ " output dimensions do not match in " @@ vs) o n ;;
+          nat_eq_or_cerr (fshcol_s @@ " input 1 dimensions do not match in " @@ vs) i0 n ;;
+          nat_eq_or_cerr (fshcol_s @@ " input 2 dimensions do not match in " @@ vs) i1 n ;;
           loopvar <- incLocalNamed "MemMap2_i" ;;
           '(body_entry, body_blocks) <- genMemMap2Body n x0 x1 y f loopvar loopcontblock ;;
           add_comment
@@ -1026,7 +1029,7 @@ Fixpoint genIR
           '(x,i) <- resolve_PVar x_p ;;
           '(y,o) <- resolve_PVar y_p ;;
           vs <- getVarsAsString ;;
-          nat_eq_or_cerr (fshcol_s ++ " input/output dimensions do not match in " ++ vs)%string i o ;;
+          nat_eq_or_cerr (fshcol_s @@ " input/output dimensions do not match in " @@ vs) i o ;;
           add_comment
             (genMemCopy size x y nextblock)
         | DSHSeq f g =>
@@ -1034,8 +1037,7 @@ Fixpoint genIR
           '(fb, f') <- genIR f gb ;;
           add_comment (ret (fb, f'++g'))
         end)
-          (fun m => raise (m ++ (String (ascii_of_nat 10) "") ++ " at " ++ fshcol_s)%string).
-
+          (fun m => raise (m @@ " in " @@ fshcol_s)).
 
 Definition LLVMGen
            (i o: nat)
