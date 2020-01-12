@@ -260,8 +260,8 @@ Fixpoint genNExpr
                   if Z.eq_dec z zi then
                     ret (EXP_Ident i, [])
                   else
-                    svars <- getVarsAsString ;;
-                  raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ svars)%string
+                    (svars <- getVarsAsString ;;
+                     raise ("NVar #" ++ (string_of_nat n) ++ " dimensions mismatch in " ++ svars)%string)
                 | TYPE_Pointer (TYPE_I z), TYPE_I zi =>
                   if Z.eq_dec z zi then
                     res <- incLocal ;;
@@ -271,11 +271,11 @@ Fixpoint genNExpr
                                                 (EXP_Ident i))
                                                (ret 8%Z))])
                   else
-                    st <- get ;;
-                  raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ string_of_vars (vars st))%string
+                    (svars <- getVarsAsString ;;
+                     raise ("NVar #" ++ (string_of_nat n) ++ " pointer type mismatch in " ++ svars)%string)
                 | _,_ =>
-                  st <- get ;;
-                  raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                  svars <- getVarsAsString ;;
+                  raise ("NVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ svars)%string
                 end
     | NConst v => ret (EXP_Integer (Z.of_nat v), [])
     | NDiv   a b => gen_binop a b (SDiv true)
@@ -297,8 +297,8 @@ Definition genMExpr
                              | TYPE_Pointer (TYPE_Array zi TYPE_Double) =>
                                ret (EXP_Ident i, [], (TYPE_Array zi TYPE_Double))
                              | _  =>
-                               st <- get ;;
-                               raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                               svars <- getVarsAsString ;;
+                               raise ("MPtrDeref's PVar #" ++ (string_of_nat x) ++ " type mismatch in " ++ svars)%string
                              end
      | MConst c => raise "MConst not implemented" (* TODO *)
      end.
@@ -349,8 +349,8 @@ Fixpoint genAExpr
                                               (EXP_Ident i))
                                              (ret 8%Z))])
                 | _ =>
-                  st <- get ;;
-                  raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ string_of_vars (vars st))%string
+                  svars <- getVarsAsString ;;
+                  raise ("AVar #" ++ (string_of_nat n) ++ " type mismatch in " ++ svars)%string
                 end
     | AConst v => ret (EXP_Double v, [])
     | ANth vec i =>
