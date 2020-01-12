@@ -1270,12 +1270,6 @@ Definition genMain
                            ]
         |}].
 
-Definition run_errS (A:Type) (initial: IRState) : cerr A -> err A
-  := fun ce => match ce initial with
-               | inl msg => raise msg
-               | inr (s,v) => ret v
-               end.
-
 Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
   match p return (list binary64 -> _) with
   | mkFSHCOLProgram i o name globals op =>
@@ -1283,7 +1277,7 @@ Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities t
       '(data'',ginit) <- initIRGlobals data' globals ;;
       let ginit := app [TLE_Comment "Global variables"] ginit in
       let main := genMain i o name globals data'' in
-      prog <- run_errS newState (LLVMGen i o globals false op name) ;;
+      prog <- evalErrS (LLVMGen i o globals false op name) newState ;;
       let code := app (app ginit prog) main in
       ret code
   end.

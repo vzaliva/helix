@@ -7,6 +7,7 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
 Require Import Helix.Util.ErrorSetoid.
+Require Import Helix.Util.ErrorWithState.
 
 Require Import Vellvm.Numeric.Fappli_IEEE_extra.
 Require Import Vellvm.LLVMEvents.
@@ -180,7 +181,7 @@ Definition runFSHCOLTest (t:FSHCOLTest) (just_compile:bool) (data:list binary64)
         | inr (data'', ginit) =>
           let ginit := app [TLE_Comment "Global variables"] ginit in
           let main := genMain i o name globals data'' in
-          let eres := run_errS newState (LLVMGen i o globals just_compile op name) in
+          let eres := evalErrS (LLVMGen i o globals just_compile op name) newState in
           match eres with
           | inl msg => (None, None, msg)
           | inr prog =>
