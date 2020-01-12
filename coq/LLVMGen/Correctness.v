@@ -220,6 +220,47 @@ Require Import StateFacts.
 
   Import CatNotations.
 
+  (* TODO: This is a redefinition from [DSigmaHCOLITree]. To remove after proper reorganization into two files *)
+  (* TODO: Actually even more so there should be a clean part of the tactics that do the generic structural
+   rewriting, and a wrapper around it doing stuff specific to this denotation. We should only need the former
+   here I believe *)
+
+    Ltac inv_option :=
+      match goal with
+      | h: Some _ ≡ Some _ |-  _ => inv h
+      | h: None   ≡ Some _ |-  _ => inv h
+      | h: Some _ ≡ None   |-  _ => inv h
+      | h: None   ≡ None   |-  _ => inv h
+      end.
+
+    Ltac inv_sum :=
+      match goal with
+      | h: inl _ ≡ inl _ |-  _ => inv h
+      | h: inr _ ≡ inr _ |-  _ => inv h
+      | h: inl _ ≡ inr _ |-  _ => inv h
+      | h: inr _ ≡ inl _ |-  _ => inv h
+      end.
+
+    Ltac inv_mem_lookup_err :=
+      unfold mem_lookup_err, trywith in *;
+      break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
+
+    Ltac inv_memory_lookup_err :=
+      unfold memory_lookup_err, trywith in *;
+      break_match_hyp; cbn in *; try (inl_inr || inv_sum || inv_sum).
+
+
+    Ltac state_steps :=
+      cbn;
+      repeat (
+          ((match goal with
+            | |- ITree.bind (lift_Derr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option
+            | |- ITree.bind (lift_Serr _) _ ≈ _ => break_match_goal; inv_memory_lookup_err; inv_option
+            | |- ITree.bind (State.interp_state _ (lift_Derr _) _) _ ≈ _ => break_match_goal; inv_option
+            | |- ITree.bind (State.interp_state _ (lift_Serr _) _) _ ≈ _ => break_match_goal; inv_option
+            end) || state_step); cbn).
+
+
   Lemma denote_bks_nil: forall s, denote_bks [] s ≈ ret (inl s).
   Proof.
     intros s; unfold denote_bks.
