@@ -35,7 +35,6 @@ install:
   - opam install -y --verbose -j ${NJOBS} coq-color
   - opam install -y --verbose -j ${NJOBS} coq-ext-lib
   - opam install -y --verbose -j ${NJOBS} coq-math-classes
-  - opam install -y --verbose -j ${NJOBS} coq-dpdgraph
   - opam install -y --verbose -j ${NJOBS} coq-metacoq-template
   - opam install -y --verbose -j ${NJOBS} coq-switch
   - opam install -y --verbose -j ${NJOBS} ANSITerminal
@@ -52,3 +51,7 @@ script:
   - opam config var root
   - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm && make -C lib/vellvm/src
   - make test
+
+notifications:
+  slack: digamma-ai:UpxI6GZGpcU4NZi813AkDl0g
+  
