@@ -50,7 +50,7 @@ script:
   - eval $(opam config env)
   - opam config var root
   - git clone --recurse-submodules https://github.com/vellvm/vellvm.git lib/vellvm && make -j ${NJOBS} -C lib/vellvm/src
-  - ln -s lib/vellvm/src/ml/libvellvm ml
+  - ln -s `pwd`/lib/vellvm/src/ml/libvellvm/ ml/
   - make -j ${NJOBS}
   - make test
 
