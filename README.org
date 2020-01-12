@@ -35,7 +35,7 @@ proof assistant.
 
 #+BEGIN_SRC sh
      opam repo add coq-released https://coq.inria.fr/opam/released
-     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-metacoq-template coq-flocq coq-switch ANSITerminal coq-paco coq-ceres menhir core core_kernel
+     opam install --jobs=4 coq coq-color coq-ext-lib coq-math-classes coq-dpdgraph coq-metacoq-template coq-flocq coq-switch ANSITerminal coq-paco coq-ceres dune menhir core core_kernel
      opam remove coq-itree # conflicts with submodule copy from Vellvm
 #+END_SRC
 
