@@ -68,7 +68,8 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    - can use eauto instead of matching
    - can use =typeclasses_eauto= to find some instances
 * Unfinished
-** Division by zero in DSHCOL [[file:coq/DSigmaHCOL/DSigmaHCOL.v::33][=NExpr=]] ([[file:coq/DSigmaHCOL/DSigmaHCOLEval.v::61][=evalNexpr=]])
+** Division by zero in DSHCOL
+   [[file:../coq/DSigmaHCOL/DSigmaHCOL.v::33][NExpr]] ([[file:../coq/DSigmaHCOL/DSigmaHCOLEval.v::61][evalNexpr]])
 ** =DSHAlloc= memory size is not tracked and enforced. 
    Probably not a problem for DSHCOL as memory blocks are of infinite
    size, but could be an issue later for LLVM codegen.
@@ -77,17 +78,17 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    Perhaps using TemplateCoq?
 ** LLVM Code generation
 *** Implement float min/max                                          :zoickx:
-    in DHCOL it is ==Float64Min= and =Float64Max=.
+    in DHCOL it is ~~Float64Min~ and ~Float64Max~.
 
-    In LLVMgen =Float_maxnum= implemented as C =max= macro. Should be more
-    like =fmax= https://en.cppreference.com/w/c/numeric/math/fmax
+    In LLVMgen ~Float_maxnum~ implemented as C ~max~ macro. Should be more
+    like ~fmax~ https://en.cppreference.com/w/c/numeric/math/fmax
     LLVM ref: https://llvm.org/docs/LangRef.html#llvm-maxnum-intrinsic
 
-    =Float_maxnum= is the same as =Float64Max=
+    ~Float_maxnum~ is the same as ~Float64Max~
 *** Implemnet int min/max
-    in =LLVMGen/Compiler.v= in =genNExpr= implement min/max code generation for integers.
+    in ~LLVMGen/Compiler.v~ in ~genNExpr~ implement min/max code generation for integers.
     [[https://lists.llvm.org/pipermail/llvm-dev/2016-November/106868.html][related discussion]]
-*** Handling of =MConst= in LLVM compiler
+*** Handling of ~MConst~ in LLVM compiler
     See TODO comment in =Compiler.v=
 ** Pretty printing
    How there is an assortment of functions like =string_of_DSHOperator=
