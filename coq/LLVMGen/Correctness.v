@@ -39,7 +39,7 @@ Import MDSHCOLOnFloat64.
 
 Definition model_llvm' := model_to_L3 helix_intrinsics.
 
-Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.PickE +' UBE +' DebugE +' FailureE).
+Definition E: Type -> Type := (StaticFailE +' DynamicFailE) +' (IO.CallE +' IO.ExternalCallE +' IO.PickE +' UBE +' DebugE +' FailureE).
 
 Definition semantics_llvm_mcfg p: itree E _ := translate (@subevent _ E _) (model_llvm' p).
 
@@ -109,35 +109,6 @@ Definition semantics_FSHCOL p data: itree E (memory * list binary64) :=
   translate (@subevent _ E _) (interp_Mem (denote_FSHCOL p data) memory_empty).
 
 (* MOVE TO VELLVM *)
-Definition denote_bks (bks: list _): block_id -> itree IO.instr_E (block_id + uvalue) :=
-  loop (fun (bid : block_id + block_id) =>
-          match bid with
-          | inl bid
-          | inr bid =>
-            (* We lookup the block [bid] to be denoted *)
-            match find_block DynamicTypes.dtyp bks bid with
-            | None => ret (inr (inl bid))
-            | Some block =>
-              (* We denote the block *)
-              bd <- D.denote_block block;;
-                 (* And set the phi-nodes of the new destination, if any *)
-                 match bd with
-                 | inr dv => ret (inr (inr dv))
-                 | inl bid_target =>
-                   match find_block DynamicTypes.dtyp bks bid_target with
-                   | None => ret (inr (inl bid_target))
-                   | Some block_target =>
-                     dvs <- Util.map_monad
-                         (fun x => translate IO.exp_E_to_instr_E (D.denote_phi bid x))
-                         (blk_phis block_target) ;;
-                         Util.map_monad (fun '(id,dv) => trigger (LocalWrite id dv)) dvs;;
-                         ret (inl bid_target)
-                   end
-                 end
-            end
-          end
-       ).
-
 Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
   : list (LLVMAst.block DynamicTypes.dtyp) :=
   List.map
@@ -145,7 +116,7 @@ Definition normalize_types_blocks (env: list _) (bks: list (LLVMAst.block typ))
 Import IO TopLevelEnv Global Local.
 
 (* TO FIX *)
-Definition interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
+Definition interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
                         (FMapAList.alist raw_id dvalue) ->
                         (FMapAList.alist raw_id res_L0) ->
                         M.memory_stack ->
@@ -261,9 +232,9 @@ Require Import StateFacts.
             end) || state_step); cbn).
 
 
-  Lemma denote_bks_nil: forall s, denote_bks [] s ≈ ret (inl s).
+  Lemma denote_bks_nil: forall s, D.denote_bks [] s ≈ ret (inl s).
   Proof.
-    intros s; unfold denote_bks.
+    intros s; unfold D.denote_bks.
     unfold loop.
     cbn. rewrite bind_ret_l.
     match goal with
@@ -282,7 +253,7 @@ Require Import StateFacts.
            (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
            (translate (@subevent _ E _)
                       (interp_to_L3' helix_intrinsics
-                                     (denote_bks (normalize_types_blocks env bks) bid_in)
+                                     (D.denote_bks (normalize_types_blocks env bks) bid_in)
                                      g ρ mem_llvm)).
   Proof.
     induction op; intros; rename H into HCompile.
