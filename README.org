@@ -29,7 +29,7 @@ proof assistant.
    - [[https://github.com/math-classes/math-classes][math-classes]]
    - [[https://github.com/MetaCoq/metacoq][Template Coq]]
    - [[http://flocq.gforge.inria.fr/][Flocq]]
-   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires =coq-ceres=, =coq-ext-lib,= =coq-paco=, and =coq-flocq=) /(*manual installation instructions below)/
+   - [[https://github.com/vellvm/vellvm][Vellvm]] (requires ~coq-ceres~, ~coq-ext-lib~, ~coq-paco~, and ~coq-flocq~) /(*manual installation instructions below)/
    - [[https://opensource.janestreet.com/core/][Core]]
    - [[https://github.com/Karmaki/coq-dpdgraph][coq-dpdgraph]] /(optional)/
 
