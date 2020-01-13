@@ -105,6 +105,14 @@ It is overdue for serious refactoring and cleanup. Amongst other things:
    But we beed to wait until it become avaialble in default repo.
    Track this [[https://github.com/uwplse/StructTact/issues/55][issue]] for details.
 ** Use [[https://github.com/QuickChick/QuickChick][QuickChick]]
+** StructTactics dependency
+   Instead of included copy of [[file:~/src/helix/coq/Tactics/StructTactics.v][StructTactics.v]] we can pin an opam
+   package for git repo:
+
+   =opam pin add coq-struct-tact https://github.com/uwplse/StructTact.git -k git=
+
+   Related [[https://github.com/uwplse/StructTact/issues/55][ticket]].
+
 * Ideas
   - See if =coq-equations= package could be used to represent index
     functions and function arguments of =BinOp=, =Pointwise=, etc.
