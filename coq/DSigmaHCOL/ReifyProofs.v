@@ -1320,8 +1320,6 @@ Proof.
   all: repeat inl_inr_inv; rewrite H0, H1; reflexivity.
 Qed.
 
-(*
-
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
    modifies only output memory block.
@@ -1345,21 +1343,23 @@ Class DSH_pure
       (* depends only [x_p], which must be valid in [σ], in all
          consistent memory configurations *)
       mem_read_safe: forall σ0 σ1 m0 m1 fuel,
-          (*
-            EnvMemoryConsistent σ0 m0 ->
-            EnvMemoryConsistent σ1 m1 ->
-           *)
+
+          DSHOperator_const σ0 d ->
+          constants_match σ0 m0 m1 ->
+          (* DSHOperator_const σ1 d -> *)
+          (* constants_match σ1 m0 m1 -> *) (* σ0 is sufficient *)
+
           context_equiv_at_TypeSig dsig σ0 σ1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
-          herr_c
-            (blocks_equiv_at_Pexp σ0 σ1 y_p)
+          hopt_r
+            (herr_c (blocks_equiv_at_Pexp σ0 σ1 y_p))
             (evalDSHOperator σ0 d m0 fuel)
             (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
-          evalDSHOperator σ d m fuel = inr m' ->
+          evalDSHOperator σ d m fuel = Some (inr m') ->
           (forall y_i , evalPexp σ y_p = inr y_i ->
                    memory_equiv_except m m' y_i)
     }.
@@ -1374,6 +1374,7 @@ Class DSH_pure
 
   We do not require input block to be structurally correct, because
   [mem_op] will just return an error in this case.  *)
+(*
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -1396,6 +1397,7 @@ Class MSH_DSH_compat
                            ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
+*)
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
 | context0_tc {v: DSHVal} {t: DSHType} (cs:evalContext):
@@ -2408,6 +2410,7 @@ Proof.
   inversion H.
 Qed.
 
+(*
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
@@ -2502,6 +2505,7 @@ Proof.
     all: try congruence.
     all: reflexivity.
 Qed.
+*)
 
 Global Instance BinOp_DSH_pure
        (o : nat)
@@ -2608,6 +2612,7 @@ Proof.
    *)
 Abort.
 
+(*
 Lemma eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
   a1 = a2 <-> a1 ≡ a2.
 Proof.
