@@ -63,7 +63,7 @@ Ltac state_steps' := cbn; repeat (state_step; cbn).
 
 Ltac iter_unfold_pointed :=
   match goal with
-  | |- interp_state ?h (iter ?k ?i) _ ≈ _ =>
+  | |- context[interp_state ?h (iter ?k ?i) _ ≈ _] =>
     generalize (iter_unfold k); let EQ := fresh "EQ" in intros EQ; rewrite (EQ i); clear EQ
   end.
 
@@ -976,6 +976,108 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
     Qed.
 
+    Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ N i op fuel mem_i msg,
+        i < N ->
+        eval_Loop_for_i_to_N σ op N i mem_i (S fuel) ≡ Some (inl msg) ->
+        (evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inl msg) \/
+         (∃ mem_aux, eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inl msg))).
+    Proof.
+      intros σ N i op fuel mem_i msg H H0.
+    Admitted.
+    
+    Lemma Loop_is_Iter_Fail_aux:
+      ∀ (op : DSHOperator)
+        (IHop: ∀ (σ : evalContext) (msg : string) (fuel : nat) (mem : memory),
+            evalDSHOperator σ op mem (S fuel) ≡ Some (inl msg)
+            → ∃ msg' : string,
+              interp_Mem (denoteDSHOperator σ op) mem ≈ Dfail msg'
+              ∨ interp_Mem (denoteDSHOperator σ op) mem ≈ Sfail msg')
+        (N i: nat)
+        (σ : evalContext) (mem : memory) (fuel : nat) (msg : string),
+        i <= N ->
+        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some (inl msg)
+        → exists msg',
+            interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op N i) mem
+                         ≈ Dfail msg'
+            ∨ interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op N i) mem
+                           ≈ Sfail msg'.
+    Proof.
+      intros op IHop N i σ mem fuel msg ineq HEval.
+      remember (N - i) as k.
+      revert Heqk σ mem msg HEval.
+      revert i ineq.
+      induction k as [| k IH].
+      - intros i ineq EQ.
+        assert (N ≡ i) by lia; clear EQ ineq; subst.
+        intros.
+        destruct i as [| i].
+        + cbn in HEval.
+          inv HEval.
+        + cbn in HEval.
+          rewrite Nat.eqb_refl in HEval.
+          inv HEval.
+      - intros i ineq EQ σ mem msg HEval.
+        destruct N as [| N].
+        + cbn in HEval; inv HEval.
+        + destruct (i =? S N)%nat eqn:EQ'.
+          * unfold eval_Loop_for_i_to_N in HEval; rewrite EQ' in HEval.
+            inv HEval.
+          * unfold denote_Loop_for_i_to_N.
+            eexists.
+            iter_unfold_pointed.
+            state_steps.
+            rewrite EQ'; state_steps.
+            rewrite bind_bind.
+            rewrite interp_state_bind.
+            apply beq_nat_false in EQ'.
+            apply eval_Loop_for_i_to_N_Fail_invert in HEval; [| lia].
+            destruct HEval as [Eval_body | [mem_aux Eval_tail]].
+            --
+              apply eval_fuel_monotone in Eval_body.
+              apply IHop in Eval_body; clear IHop.
+              unfold interp_Mem in Eval_body.
+              destruct Eval_body as [msg' [Eval_body_D | Eval_body_S]].
+              ++
+                left.
+                rewrite_clear Eval_body_D.
+                setoid_rewrite interp_state_bind.
+                admit.
+              ++
+                right.
+                rewrite_clear Eval_body_S.
+                setoid_rewrite interp_state_bind.
+                admit.
+            --
+              (*
+              apply IH in Eval_tail; try lia. clear IH.
+              unfold interp_Mem in Eval_tail.
+              destruct Eval_tail as [msg' [Eval_tail_D | Eval_tail_S]].
+               *)
+              admit.
+    Admitted.
+
+    Lemma Loop_is_Iter_Fail:
+      ∀ (op : DSHOperator)
+        (IHop: ∀ (σ : evalContext) (msg : string) (fuel : nat) (mem : memory),
+            evalDSHOperator σ op mem (S fuel) ≡ Some (inl msg)
+            → ∃ msg' : string,
+              interp_Mem (denoteDSHOperator σ op) mem ≈ Dfail msg'
+              ∨ interp_Mem (denoteDSHOperator σ op) mem ≈ Sfail msg')
+        (N: nat) (σ : evalContext) (mem : memory) (fuel : nat) (msg: string),
+        evalDSHOperator σ (DSHLoop N op) mem (S fuel) ≡ Some (inl msg) ->
+        ∃ msg' : string,
+          interp_Mem (denoteDSHOperator σ (DSHLoop N op)) mem ≈ Dfail msg'
+          ∨ interp_Mem (denoteDSHOperator σ (DSHLoop N op)) mem ≈ Sfail msg'.
+    Proof.
+      intros.
+      rewrite <- eval_Loop_for_0_to_N in H.
+      assert(zn: 0 <= N) by lia.
+      pose proof (Loop_is_Iter_Fail_aux op IHop N 0 σ mem fuel msg zn H) as AUX.
+      destruct AUX as [msg' AUX].
+      exists msg'.
+      eapply AUX; eauto.
+    Qed.
+    
     Theorem Denote_Eval_Equiv_Fails:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
         evalDSHOperator σ op mem fuel ≡ Some (inl msg) ->
@@ -1004,7 +1106,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           try (eexists; left; state_steps; match_failure).
         edestruct Denote_Eval_Equiv_DSHPower_Fails as [? [H|H]]; eauto;
           eexists; [left | right]; state_steps; rewrite H; match_failure.
-      - admit.
+      -
+        eapply Loop_is_Iter_Fail; eauto.
       - unfold_Mem; inv_eval.
         destruct fuel as [| fuel]; [inv Heqo |].
         edestruct IHop as [? [H|H]]; eauto;
@@ -1017,7 +1120,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         + apply Denote_Eval_Equiv_Succeeds in Heqo.
           edestruct IHop2 as [? [H|H]]; eauto using eval_fuel_monotone;
             eexists; [left | right]; state_steps; rewrite Heqo; state_steps; rewrite H; state_steps; match_failure.
-   Admitted.
+   Qed.
 
   End Eval_Denote_Equiv.
 
