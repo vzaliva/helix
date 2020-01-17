@@ -3983,8 +3983,6 @@ Proof.
    *)
 Admitted.
 
-(*
-
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
   SHCOL_DSHCOL_mem_block_equiv mem_empty a b -> a = b.
@@ -4019,14 +4017,14 @@ Instance Compose_MSH_DSH_compat
          `{P2: DSH_pure dop2 (TypeSig_incr dsig2) (incrPVar 0 x_p) (PVar 0)}
          `{P1: DSH_pure dop1 (TypeSig_incr dsig1) (PVar 0) (incrPVar 0 y_p)}
          `{C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
-                              (DSHPtrVal (memory_next_key m) :: σ)
+                              (DSHPtrVal (memory_next_key m) o2 :: σ)
                               (memory_alloc_empty m (memory_next_key m))
                               (incrPVar 0 x_p) (PVar 0)
                               P2
           }
          `{C1: forall m'', memory_equiv_except m m'' (memory_next_key m) ->
                       MSH_DSH_compat mop1 dop1
-                                     (DSHPtrVal (memory_next_key m) :: σ)
+                                     (DSHPtrVal (memory_next_key m) o2 :: σ)
                                      m''
                                      (PVar 0) (incrPVar 0 y_p)}
   :
@@ -4035,26 +4033,30 @@ Instance Compose_MSH_DSH_compat
       (DSHAlloc o2 (DSHSeq dop2 dop1))
       σ m x_p y_p.
 Proof.
-  (*
   split.
   intros mx mb MX MB.
   simpl.
 
   remember (memory_next_key m) as t_i.
-  remember (DSHPtrVal t_i :: σ) as σ'.
+  remember (DSHPtrVal t_i o2 :: σ) as σ'.
   unfold memory_alloc_empty in *.
   remember (memory_set m t_i mem_empty) as m'.
 
   destruct (option_compose (mem_op mop1) (mem_op mop2) mx) as [md|] eqn:MD;
-    repeat break_match; try some_none.
+    repeat break_match;
+    try some_none; repeat some_inv;
+    try inl_inr; repeat inl_inr_inv;
+    repeat constructor.
+
+  admit.
+  admit.
 
   -
     rename m1 into m''.
     rename m0 into m'''.
-    constructor.
     unfold lookup_Pexp in *.
     simpl in MX, MB.
-    repeat break_match_hyp; try some_none.
+    repeat break_match_hyp; try some_none; repeat some_inv; try inl_inr.
     simpl.
     rename m1 into x_i, m0 into y_i.
     rename Heqo0 into E2, Heqo into E1.
@@ -4069,8 +4071,10 @@ Proof.
       contradict MB.
       pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
+      unfold memory_lookup_err.
       rewrite F.
-      some_none.
+      cbn.
+      intros C; inl_inr.
     }
 
     assert(t_i ≢ x_i).
@@ -4081,18 +4085,23 @@ Proof.
       contradict MX.
       pose proof (memory_lookup_memory_next_key_is_None m) as F.
       apply is_None_def in F.
+      unfold memory_lookup_err.
       rewrite F.
-      some_none.
+      cbn.
+      intros C; inl_inr.
     }
 
-    unfold memory_lookup, memory_remove.
+    unfold memory_lookup_err, memory_lookup, memory_remove.
     rewrite NP.F.remove_neq_o by assumption.
 
     assert(mem_block_exists y_i m) as EY.
     {
       apply mem_block_exists_exists_equiv.
       eexists.
-      eapply MB.
+      unfold memory_lookup_err, trywith in MB.
+      break_match_hyp; inversion MB.
+      constructor.
+      apply H3.
     }
 
     assert(mem_block_exists y_i m') as EY'.
@@ -4136,28 +4145,28 @@ Proof.
     destruct C2 as [C2].
     specialize (C2 mx (mem_empty)).
 
-    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) = Some mx).
+    assert(MX': lookup_Pexp σ' m' (incrPVar 0 x_p) = inr mx).
     {
       rewrite Heqσ'.
       unfold lookup_Pexp.
       rewrite evalPexp_incrPVar.
       simpl.
-      rewrite Heqo2.
+      rewrite Heqe3.
       subst m'.
-      unfold memory_lookup, memory_set.
+      unfold memory_lookup_err, memory_lookup, memory_set.
       rewrite NP.F.add_neq_o.
       apply MX.
       auto.
     }
     specialize (C2 MX').
 
-    assert(MT': lookup_Pexp σ' m' (PVar 0) = Some mem_empty).
+    assert(MT': lookup_Pexp σ' m' (PVar 0) = inr mem_empty).
     {
       rewrite Heqσ'.
       unfold lookup_Pexp.
       subst m'.
       simpl.
-      unfold memory_lookup, memory_set.
+      unfold memory_lookup_err, memory_lookup, memory_set.
       rewrite NP.F.add_eq_o; reflexivity.
     }
     specialize (C2 MT').
@@ -4186,7 +4195,7 @@ Proof.
     symmetry in MT''.
 
     apply SHCOL_DSHCOL_mem_block_equiv_mem_empty in C2.
-    apply Option_equiv_eq in MT''.
+    apply err_equiv_eq in MT''.
     rewrite C2 in MT''.
     clear C2 mt'.
 
@@ -4207,32 +4216,37 @@ Proof.
     }
 
     specialize (C1 mt mb MT'').
-    assert(lookup_Pexp σ' m'' (incrPVar 0 y_p) = Some mb) as MB''.
+    assert(lookup_Pexp σ' m'' (incrPVar 0 y_p) = inr mb) as MB''.
     {
       subst σ'.
       unfold lookup_Pexp.
       rewrite evalPexp_incrPVar.
       simpl.
-      rewrite Heqo1.
+      rewrite Heqe2.
 
       destruct P2 as [_ _ mem_write_safe2].
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
-      assert(TS: evalPexp (DSHPtrVal t_i :: σ) (PVar 0) = Some t_i)
+      assert(TS: evalPexp (DSHPtrVal t_i o2 :: σ) (PVar 0) = inr t_i)
         by reflexivity.
       specialize (mem_write_safe2 _ TS).
 
       assert(MB': memory_lookup m' y_i = Some mb).
       {
-        rewrite <- MB.
-        subst m'.
+        unfold memory_lookup_err, trywith in MB.
+        break_match_hyp; inversion MB; subst.
+        rewrite <-H3.
+        rewrite <-Heqo.
         unfold memory_lookup, memory_set.
         rewrite NP.F.add_neq_o.
         reflexivity.
         assumption.
       }
 
+
+      unfold memory_lookup_err.
+      enough (T : memory_lookup m'' y_i = Some mb) by (rewrite T; reflexivity).
       rewrite <- MB'.
       symmetry.
       apply mem_write_safe2.
@@ -4242,17 +4256,19 @@ Proof.
     specialize (C1 MB'').
     rewrite MD, E1 in C1.
 
-    inversion C1 as [C1N | ab bm HC1 HA HB];
+    inversion C1 as [ | | ab bm HC1 HA HB];
       clear C1; rename HC1 into C1;
         subst ab; subst bm.
 
-    assert(MA''': lookup_Pexp σ' m''' (incrPVar 0 y_p) = Some ma).
+    assert(MA''': lookup_Pexp σ' m''' (incrPVar 0 y_p) = inr ma).
     {
       subst σ'.
       unfold lookup_Pexp.
       rewrite evalPexp_incrPVar.
       simpl.
-      rewrite Heqo1.
+      rewrite Heqe2.
+      unfold memory_lookup_err.
+      enough (T : memory_lookup m''' y_i = Some ma) by (rewrite T; reflexivity).
       unfold memory_lookup.
       rewrite MA.
       reflexivity.
@@ -4279,6 +4295,7 @@ Proof.
     inversion C1.
     auto.
   -
+    (*
     exfalso.
     rename m0 into m''.
     unfold lookup_Pexp in *.
@@ -4758,7 +4775,5 @@ Proof.
     constructor.
   -
     constructor.
-   *)
-Admitted.
-
 *)
+Admitted.
