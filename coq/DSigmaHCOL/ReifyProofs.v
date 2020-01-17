@@ -1120,6 +1120,11 @@ Section h_opt_err.
   | h_opt_err_c_None : forall e, h_opt_err_c None (inl e)
   | h_opt_err_c_Some : forall a b, R a b -> h_opt_err_c (Some a) (inr b).
 
+  Inductive h_opt_opterr_c : (option A) -> option (err B) -> Prop :=
+  | h_opt_opterr_c_None1 : h_opt_opterr_c None None
+  | h_opt_opterr_c_None2 : forall e, h_opt_opterr_c None (Some (inl e))
+  | h_opt_opterr_c_Some : forall a b, R a b -> h_opt_opterr_c (Some a) (Some (inr b)).
+
   (** Empty on [inl]. *)
   Inductive h_opt_err : (option A) -> (err B) -> Prop :=
   | h_opt_err_Some : forall a b, R a b -> h_opt_err (Some a) (inr b).
@@ -1133,6 +1138,7 @@ Section h_opt_err.
 End h_opt_err.
 Arguments h_opt_err {A B} R.
 Arguments h_opt_err_c {A B} R.
+Arguments h_opt_opterr_c {A B} R.
 Arguments h_opt_err_i {A B} R.
 
 Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
@@ -1286,7 +1292,7 @@ Class DSH_pure
 
   We do not require input block to be structurally correct, because
   [mem_op] will just return an error in this case.  *)
-(*
+
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -1303,13 +1309,14 @@ Class MSH_DSH_compat
           (lookup_Pexp σ m x_p = inr mx) (* input exists *) ->
           (lookup_Pexp σ m y_p = inr mb) (* output before *) ->
 
-          (h_opt_err_c (fun md (* memory diff *) m' (* memory state after execution *) =>
-     
-                err_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md
-                           ) (lookup_Pexp σ m' y_p)
-                  ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
+          (* [md] - memory diff *) 
+          (* [m'] - memory state after execution *) 
+          (h_opt_opterr_c
+             (fun md m' => err_p (fun ma => SHCOL_DSHCOL_mem_block_equiv mb ma md)
+                              (lookup_Pexp σ m' y_p))
+             (mem_op mop mx)
+             (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
-*)
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
 | context0_tc {v: DSHVal} {t: DSHType} (cs:evalContext):
