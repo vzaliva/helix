@@ -1231,6 +1231,12 @@ Proof.
   apply kc.
 Qed.
 
+Definition memory_equiv_at_TypeSig (tm : TypeSig) (σ : evalContext) : relation memory
+  := fun mem0 mem1 =>
+       forall k t i size, TM.MapsTo k t tm ->
+                     context_lookup "" σ k = inr (DSHPtrVal i size) ->
+                     memory_lookup mem0 i = memory_lookup mem1 i.
+
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
    modifies only output memory block.
@@ -1254,11 +1260,8 @@ Class DSH_pure
       (* depends only [x_p], which must be valid in [σ], in all
          consistent memory configurations *)
       mem_read_safe: forall σ0 σ1 m0 m1 fuel,
-          (*
-            EnvMemoryConsistent σ0 m0 ->
-            EnvMemoryConsistent σ1 m1 ->
-           *)
           context_equiv_at_TypeSig dsig σ0 σ1 ->
+          memory_equiv_at_TypeSig dsig σ0 m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
           hopt_r
