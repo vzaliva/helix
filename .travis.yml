@@ -18,9 +18,9 @@ addons:
 env:
   global:
   - NJOBS=2
+  - EXT_LIB_TARGET="0.10.3"
   matrix:
   - TEST_TARGET="8.9.1"
-  - EXT_LIB_TARGET="0.10.3"
 
 before_script:
   -  ./ci/keep_alive.sh &
