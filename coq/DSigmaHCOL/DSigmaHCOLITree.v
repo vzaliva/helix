@@ -1017,33 +1017,38 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - intros i ineq EQ σ mem msg HEval.
         assert(EQ': (i =? S N)%nat ≡ false) by (apply Nat.eqb_neq; lia).
         unfold denote_Loop_for_i_to_N.
-        eexists.
-        iter_unfold_pointed.
-        state_steps.
-        rewrite EQ'; state_steps.
-        rewrite bind_bind.
-        rewrite interp_state_bind.
-        apply beq_nat_false in EQ'.
         apply eval_Loop_for_i_to_N_Fail_invert in HEval; [| lia].
         destruct HEval as [Eval_body | [mem_aux [Eval_head Eval_tail]]].
         +
           (* fails @i *)
-          apply eval_fuel_monotone in Eval_body.
           apply IHop in Eval_body; clear IHop.
           unfold interp_Mem in Eval_body.
           destruct Eval_body as [msg' [Eval_body_D | Eval_body_S]].
           *
+            eexists.
             left.
-            rewrite_clear Eval_body_D.
-            setoid_rewrite interp_state_bind.
-            admit.
+            iter_unfold_pointed.
+            state_steps.
+            rewrite EQ'; state_steps.
+            rewrite interp_state_bind.
+            rewrite bind_bind.
+            apply beq_nat_false in EQ'.
+            rewrite Eval_body_D.
+            match_failure.
           *
+            eexists.
             right.
+            iter_unfold_pointed.
+            state_steps.
+            rewrite EQ'; state_steps.
+            rewrite interp_state_bind.
+            rewrite bind_bind.
+            apply beq_nat_false in EQ'.
             rewrite_clear Eval_body_S.
-            setoid_rewrite interp_state_bind.
-            admit.
+            match_failure.
         +
           (* succeeds @i, but fails later *)
+          (*
           apply IH in Eval_tail; clear IH.
           apply Denote_Eval_Equiv_Succeeds in Eval_head.
           unfold interp_Mem in Eval_head.
@@ -1053,6 +1058,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           iter_unfold_pointed.
           state_steps.
           admit.
+           *)
     Admitted.
 
     Lemma Loop_is_Iter_Fail:
