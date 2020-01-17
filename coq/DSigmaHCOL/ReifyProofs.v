@@ -45,8 +45,6 @@ Local Open Scope nat_scope.
 
 Import DSHCOLOnCarrierA.
 
-(*
-
 (* Type signatures of expressions as binary or unary functions with
 optional index *)
 
@@ -92,9 +90,9 @@ Class DSHBinCarrierA (a:AExpr) : Prop :=
 (* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 | EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
-| DSHPtrValConsistent: forall σ m a,
+| DSHPtrValConsistent: forall σ m a n,
     mem_block_exists a m ->
-    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
+    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a n :: σ) m
 (* the remaining case does not depend on memory and just recurse over environment *)
 | DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
 | DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
@@ -117,8 +115,9 @@ Lemma EnvMemoryConsistent_memory_lookup
       {mem : memory}
       {EC : EnvMemoryConsistent σ mem}
       (v : var_id)
-      (a : mem_block_id) :
-  List.nth_error σ v = Some (DSHPtrVal a) →
+      (a : mem_block_id)
+      (n : nat) :
+  List.nth_error σ v = Some (DSHPtrVal a n) →
   is_Some (memory_lookup mem a).
 Proof.
   intros.
@@ -130,7 +129,8 @@ Proof.
     destruct a; inversion H; clear H; subst.
     inversion EC; subst.
     apply memory_is_set_is_Some.
-    rewrite <-H2.
+    destruct H1.
+    rewrite <-H0.
     assumption.
   -
     eapply IHσ.
@@ -709,7 +709,8 @@ Proof.
   subst.
   destruct d0, d; inversion H4; try reflexivity.
   subst.
-  rewrite H5.
+  destruct H3.
+  rewrite H3.
   reflexivity.
 Qed.
 
@@ -1260,14 +1261,14 @@ Class DSH_pure
           context_equiv_at_TypeSig dsig σ0 σ1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
-          herr_c
-            (blocks_equiv_at_Pexp σ0 σ1 y_p)
+          hopt_r
+            (herr_c (blocks_equiv_at_Pexp σ0 σ1 y_p))
             (evalDSHOperator σ0 d m0 fuel)
             (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
-          evalDSHOperator σ d m fuel = inr m' ->
+          evalDSHOperator σ d m fuel = Some (inr m') ->
           (forall y_i , evalPexp σ y_p = inr y_i ->
                    memory_equiv_except m m' y_i)
     }.
@@ -1282,6 +1283,7 @@ Class DSH_pure
 
   We do not require input block to be structurally correct, because
   [mem_op] will just return an error in this case.  *)
+(*
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -1304,6 +1306,7 @@ Class MSH_DSH_compat
                            ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
+*)
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
 | context0_tc {v: DSHVal} {t: DSHType} (cs:evalContext):
@@ -2325,6 +2328,7 @@ Global Instance Assign_DSH_pure
   :
     DSH_pure (DSHAssign (x_p, x_n) (y_p, y_n)) ts x_p y_p.
 Proof.
+  (*
   split.
   -
     intros.
@@ -2410,6 +2414,8 @@ Proof.
     all: try congruence.
     all: reflexivity.
 Qed.
+   *)
+Admitted.
 
 Global Instance BinOp_DSH_pure
        (o : nat)
@@ -2706,6 +2712,7 @@ Proof.
        *)
 Abort.
 
+(*
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
        (bc: b < o)
@@ -2720,7 +2727,6 @@ Global Instance Embed_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
-  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2762,7 +2768,6 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo3, <-Heqo4.
     apply MX.
-   *)
 Admitted.
 
 Global Instance Pick_MSH_DSH_compat
@@ -2779,7 +2784,6 @@ Global Instance Pick_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
-  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2820,7 +2824,6 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo2, <-Heqo3.
     apply MX.
-   *)
 Admitted.
 
 Global Instance BinOp_MSH_DSH_compat
@@ -2840,7 +2843,6 @@ Global Instance BinOp_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
-  (*
   split.
   intros mx mb MX MB.
   simpl.
@@ -3017,8 +3019,8 @@ Proof.
           lia.
     +
       constructor.
-   *)
 Admitted.
+*)
 
 (* Simple wrapper. *)
 Definition memory_alloc_empty m i :=
@@ -3970,6 +3972,8 @@ Proof.
     reflexivity.
    *)
 Admitted.
+
+(*
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
