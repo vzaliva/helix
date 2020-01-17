@@ -606,6 +606,19 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       unfold denote_Loop_for_i_to_N; reflexivity.
     Qed.
 
+    (* loop over [i .. N)
+       Some boundary cases:
+       - i<N => 
+         - fuel >= (N-i) => [Some _]  exectutes at least once. Normal case.
+         - fuel < (N-i) => [None] runs out of fuel
+       - N=0 => 
+         - fuel=0 => [None]
+         - fuel>0 => [Some (ret mem)] no-op
+       - i=N => 
+         - fuel=0 => [None]
+         - fuel>0 => [Some (ret mem)] no-op
+       - i>N => eval_Loop_for_0_to_N
+     *)
     Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel {struct fuel} :=
       match fuel with
       | O => None
