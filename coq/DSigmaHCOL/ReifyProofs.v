@@ -45,6 +45,8 @@ Local Open Scope nat_scope.
 
 Import DSHCOLOnCarrierA.
 
+(*
+
 (* Type signatures of expressions as binary or unary functions with
 optional index *)
 
@@ -90,9 +92,9 @@ Class DSHBinCarrierA (a:AExpr) : Prop :=
 (* This relations represents consistent memory/envirnment combinations. That means all pointer variables should resolve to existing memory blocks *)
 Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 | EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
-| DSHPtrValConsistent: forall σ m n a,
+| DSHPtrValConsistent: forall σ m a,
     mem_block_exists a m ->
-    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a n :: σ) m
+    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a :: σ) m
 (* the remaining case does not depend on memory and just recurse over environment *)
 | DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
 | DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
@@ -115,9 +117,8 @@ Lemma EnvMemoryConsistent_memory_lookup
       {mem : memory}
       {EC : EnvMemoryConsistent σ mem}
       (v : var_id)
-      (n : nat)
       (a : mem_block_id) :
-  List.nth_error σ v = Some (DSHPtrVal a n) →
+  List.nth_error σ v = Some (DSHPtrVal a) →
   is_Some (memory_lookup mem a).
 Proof.
   intros.
@@ -127,10 +128,9 @@ Proof.
     clear IHσ.
     cbn in H; some_inv.
     destruct a; inversion H; clear H; subst.
-    destruct H1.
     inversion EC; subst.
     apply memory_is_set_is_Some.
-    rewrite <-H0.
+    rewrite <-H2.
     assumption.
   -
     eapply IHσ.
@@ -161,14 +161,15 @@ Proof.
   inversion TC; subst d.
   unfold memory_lookup_err.
   assert (is_Some (memory_lookup mem a)).
-  eapply EnvMemoryConsistent_memory_lookup with (v0:=v) (n:=size).
+  eapply EnvMemoryConsistent_memory_lookup with (v0:=v).
   rewrite <-Heqo.
   reflexivity.
   apply is_Some_def in H; destruct H as [b H].
   rewrite H.
   constructor.
   Unshelve.
-  assumption. Qed.
+  assumption.
+Qed.
 
 Lemma evalNExpr_is_OK
       {σ: evalContext}
@@ -708,8 +709,7 @@ Proof.
   subst.
   destruct d0, d; inversion H4; try reflexivity.
   subst.
-  destruct H3.
-  rewrite H3.
+  rewrite H5.
   reflexivity.
 Qed.
 
@@ -1230,96 +1230,6 @@ Proof.
   apply kc.
 Qed.
 
-(* [DSHVal] is constant if it is a [DSHPtrVal] which points to a constant memory block (?) *)
-Definition is_const_ptr : DSHVal -> Prop. Admitted.
-
-(* ugly *)
-Inductive constants_match : evalContext -> relation memory :=
-| consistent_nil : forall mem0 mem1, constants_match [] mem0 mem1
-| consistent_const_cons : forall mem0 mem1 σ a size, is_const_ptr (DSHPtrVal a size) ->
-                                memory_lookup mem0 a = memory_lookup mem1 a ->
-                                constants_match ((DSHPtrVal a size) :: σ) mem0 mem1
-| consistent_nonconst_cons : forall mem0 mem1 σ v, not (is_const_ptr v) -> constants_match (v :: σ) mem0 mem1.
-
-(* [PVar i] is constant if it is a valid constant pointer *)
-Inductive PExpr_const (σ : evalContext) : PExpr -> Prop :=
-| PVar_const : forall i, opt_p is_const_ptr (List.nth_error σ i) -> PExpr_const σ (PVar i).
-
-Inductive MExpr_const (σ : evalContext) : MExpr -> Prop :=
-| MPtrDeref_const : forall p, PExpr_const σ p -> MExpr_const σ (MPtrDeref p)
-| MConst_const : forall b, MExpr_const σ (MConst b).
-                                              
-Inductive AExpr_const (σ : evalContext) : AExpr -> Prop :=
-| ANth_const   : forall m n,
-    MExpr_const σ m -> AExpr_const σ (ANth m n)
-| AVar_const   : forall n, AExpr_const σ (AVar n)
-| AConst_const : forall a, AExpr_const σ (AConst a)
-| AAbs_const   : forall a, AExpr_const σ a -> AExpr_const σ (AAbs a)
-| APlus_const  : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (APlus  a1 a2)
-| AMinus_const : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (AMinus a1 a2)
-| AMult_const  : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (AMult  a1 a2)
-| AMin_const   : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (AMin   a1 a2)
-| AMax_const   : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (AMax   a1 a2)
-| AZless_const : forall a1 a2, AExpr_const σ a1 -> AExpr_const σ a2 -> AExpr_const σ (AZless a1 a2).
-
-Inductive DSHOperator_const (σ : evalContext) : DSHOperator -> Prop :=
-| DSHNop_const : DSHOperator_const σ DSHNop
-| DSHAssign_const : forall src dst, DSHOperator_const σ (DSHAssign src dst)
-| DSHIMap_const : forall n x_p y_p f, AExpr_const σ f -> DSHOperator_const σ (DSHIMap n x_p y_p f)
-| DSHBinOp_const : forall n x_p y_p f, AExpr_const σ f → DSHOperator_const σ (DSHBinOp n x_p y_p f)
-| DSHMemMap2_const : forall n x0_p x1_p y_p f, AExpr_const σ f → DSHOperator_const σ (DSHMemMap2 n x0_p x1_p y_p f)
-| DSHPower_const : forall n src dst f initial, AExpr_const σ f → DSHOperator_const σ (DSHPower n src dst f initial)
-| DSHLoop_const : forall n body, DSHOperator_const σ body -> DSHOperator_const σ (DSHLoop n body)
-| DSHAlloc_const : forall size body, DSHOperator_const σ body -> DSHOperator_const σ (DSHAlloc size body)
-| DSHMemInit_const : forall size y_p value, DSHOperator_const σ (DSHMemInit size y_p value)
-| DSHMemCopy_const : forall size x_p y_p, DSHOperator_const σ (DSHMemCopy size x_p y_p)
-| DSHSeq_const : forall f g, DSHOperator_const σ f → DSHOperator_const σ g → DSHOperator_const σ (DSHSeq f g).
-
-Lemma evalMexp_const `{MC : MExpr_const σ m} :
-  forall mem0 mem1,
-    constants_match σ mem0 mem1 ->
-    evalMexp mem0 σ m = evalMexp mem1 σ m.
-Admitted. (* a similar lemma was proven, but I lost the proof *) (* should be ok *)
-
-Lemma evalAexp_const `{AC : AExpr_const σ a} :
-  forall mem0 mem1,
-    constants_match σ mem0 mem1 ->
-    evalAexp mem0 σ a = evalAexp mem1 σ a.
-Proof.
-  intros.
-  dependent induction a.
-  (* base 1 *)
-  reflexivity.
-  (* base 2 *)
-  reflexivity.
-  (* base 3 *)
-  cbn.
-  inversion AC.
-  pose proof evalMexp_const mem0 mem1 (MC:=H1) H.
-  repeat break_match; try inl_inr; try constructor.
-  enough (Some c = Some c0) by (some_inv; assumption);
-    rewrite <-Heqo, <-Heqo0; inl_inr_inv; apply H3.
-  enough (Some c = None) by some_none;
-    rewrite <-Heqo, <-Heqo0; inl_inr_inv; apply H3.
-  enough (None = Some c) by some_none;
-    rewrite <-Heqo, <-Heqo0; inl_inr_inv; apply H3.
-  reflexivity.
-
-  (* inductive 1 *)
-  cbn.
-  assert (evalAexp mem0 σ a = evalAexp mem1 σ a) by (apply IHa; inversion AC; assumption).
-  repeat break_match; try inl_inr; [assumption | inl_inr_inv; rewrite H0; reflexivity].
-  (* inductive 2-7 *)
-  all: cbn.
-  all: assert (evalAexp mem0 σ a1 = evalAexp mem1 σ a1)
-    by (apply IHa1; inversion AC; assumption).
-  all: assert (evalAexp mem0 σ a2 = evalAexp mem1 σ a2)
-    by (apply IHa2; inversion AC; assumption).
-  all: repeat break_match; try inl_inr.
-  all: try assumption.
-  all: repeat inl_inr_inv; rewrite H0, H1; reflexivity.
-Qed.
-
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
    modifies only output memory block.
@@ -1343,23 +1253,21 @@ Class DSH_pure
       (* depends only [x_p], which must be valid in [σ], in all
          consistent memory configurations *)
       mem_read_safe: forall σ0 σ1 m0 m1 fuel,
-
-          DSHOperator_const σ0 d ->
-          constants_match σ0 m0 m1 ->
-          (* DSHOperator_const σ1 d -> *)
-          (* constants_match σ1 m0 m1 -> *) (* σ0 is sufficient *)
-
+          (*
+            EnvMemoryConsistent σ0 m0 ->
+            EnvMemoryConsistent σ1 m1 ->
+           *)
           context_equiv_at_TypeSig dsig σ0 σ1 ->
           blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
           blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
-          hopt_r
-            (herr_c (blocks_equiv_at_Pexp σ0 σ1 y_p))
+          herr_c
+            (blocks_equiv_at_Pexp σ0 σ1 y_p)
             (evalDSHOperator σ0 d m0 fuel)
             (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
-          evalDSHOperator σ d m fuel = Some (inr m') ->
+          evalDSHOperator σ d m fuel = inr m' ->
           (forall y_i , evalPexp σ y_p = inr y_i ->
                    memory_equiv_except m m' y_i)
     }.
@@ -1374,7 +1282,6 @@ Class DSH_pure
 
   We do not require input block to be structurally correct, because
   [mem_op] will just return an error in this case.  *)
-(*
 Class MSH_DSH_compat
       {i o: nat}
       (mop: @MSHOperator i o)
@@ -1397,7 +1304,6 @@ Class MSH_DSH_compat
                            ) (lookup_Pexp σ m' y_p)
                   ) (mem_op mop mx) (evalDSHOperator σ dop m (estimateFuel dop)));
     }.
-*)
 
 Inductive context_pos_typecheck: evalContext -> var_id -> DSHType -> Prop :=
 | context0_tc {v: DSHVal} {t: DSHType} (cs:evalContext):
@@ -2410,7 +2316,6 @@ Proof.
   inversion H.
 Qed.
 
-(*
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
        (x_p y_p : PExpr)
@@ -2505,7 +2410,6 @@ Proof.
     all: try congruence.
     all: reflexivity.
 Qed.
-*)
 
 Global Instance BinOp_DSH_pure
        (o : nat)
@@ -2612,7 +2516,6 @@ Proof.
    *)
 Abort.
 
-(*
 Lemma eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
   a1 = a2 <-> a1 ≡ a2.
 Proof.
@@ -4843,4 +4746,5 @@ Proof.
     constructor.
    *)
 Admitted.
+
 *)
