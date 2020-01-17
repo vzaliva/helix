@@ -7,6 +7,7 @@ Require Import Helix.FSigmaHCOL.FSigmaHCOL.
 Require Import Helix.DSigmaHCOL.DSigmaHCOLITree.
 Require Import Helix.LLVMGen.Compiler.
 Require Import Helix.LLVMGen.Externals.
+Require Import Helix.LLVMGen.Data.
 Require Import Helix.Util.ErrorSetoid.
 Require Import Helix.Tactics.StructTactics.
 

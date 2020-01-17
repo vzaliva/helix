@@ -1,4 +1,3 @@
-
 Require Import Coq.Strings.String.
 Require Import Coq.Lists.List.
 
@@ -21,6 +20,7 @@ Require Import Coq.ZArith.BinInt.
 
 Require Import ExtLib.Structures.Monads.
 Require Import Helix.Util.ErrorWithState.
+Require Import Helix.LLVMGen.Data.
 
 Import ListNotations.
 Import MonadNotation.
@@ -78,15 +78,8 @@ Section withErrorStateMonad.
 
 End withErrorStateMonad.
 
-
 (* 64-bit IEEE floats *)
 Definition SizeofFloatT := 8.
-
-(* Type of values. Used for global variables *)
-Inductive FSHValType :=
-| FSHnatValType       :FSHValType
-| FSHFloatValType     :FSHValType
-| FSHvecValType (n:nat) :FSHValType.
 
 Definition getIRType (t: FSHValType): typ :=
   match t with
@@ -817,8 +810,6 @@ Definition genMemMap2Body
            |}
         ]).
 
-Definition genFloatV (fv:binary64) : (exp typ) :=  EXP_Double fv.
-
 Definition genMemInit
            (o n: nat)
            (y: ident)
@@ -1109,49 +1100,6 @@ Definition LLVMGen
                       ]
       ).
 
-Record FSHCOLProgram :=
-  mkFSHCOLProgram
-    {
-      i: nat;
-      o: nat;
-      name: string;
-      globals: list (string * FSHValType) ;
-      op: DSHOperator;
-    }.
-
-(* To move to Utils? *)
-Definition rotate {A:Type} (default:A) (lst:list (A)): (A*(list A))
-  := match lst with
-     | [] => (default,[])
-     | (x::xs) => (x,app xs [x])
-     end.
-
-Fixpoint constList
-         (len: nat)
-         (data:list binary64) :
-  ((list binary64) * (list binary64))
-  :=
-    match len with
-    | O => (data,[])
-    | S len' => let '(x, data') := rotate Float64Zero data in
-                let '(data'',res) := constList len' data' in
-                (data'', x :: res)
-    end.
-
-Definition constArray
-           (len: nat)
-           (data:list binary64)
-  : ((list binary64)*(list (texp typ)))
-  :=  let (data, l) := constList len data in
-      (data,List.map (fun x => (TYPE_Double, genFloatV x)) l).
-
-Definition constMemBlock
-           (len: nat)
-           (data:list binary64)
-  : ((list binary64)*mem_block)
-  := let (data, l) := constList len data in
-     (data, mem_block_of_list l).
-
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
@@ -1283,3 +1231,5 @@ Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities t
       let code := app (app ginit prog) main in
       ret code
   end.
+
+

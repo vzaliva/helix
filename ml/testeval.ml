@@ -2,6 +2,7 @@ open Arg
 open Camlcoq
 open Core (* Jane Street Core, not ITree.Core! *)
 open Tests
+open Data
 open Format
 
 let verbose = ref false
@@ -22,7 +23,6 @@ let output_ll_file filename ast =
   Out_channel.close channel
 
 let gsize t =
-  let open Compiler in
   match t with
   | FSHnatValType -> 1
   | FSHFloatValType -> 1
