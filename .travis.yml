@@ -20,6 +20,7 @@ env:
   - NJOBS=2
   matrix:
   - TEST_TARGET="8.9.1"
+  - EXT_LIB_TARGET="0.10.3"
 
 before_script:
   -  ./ci/keep_alive.sh &
@@ -33,7 +34,7 @@ install:
   - opam install -y --verbose -j ${NJOBS} coq.${TEST_TARGET} && opam pin add coq ${TEST_TARGET} -y
   - opam install -y --verbose -j ${NJOBS} ocamlfind camlp5 ${EXTRA_OPAM} 
   - opam install -y --verbose -j ${NJOBS} coq-color
-  - opam install -y --verbose -j ${NJOBS} coq-ext-lib
+  - opam install -y --verbose -j ${NJOBS} coq-ext-lib.${EXT_LIB_TARGET} && opam pin add coq-ext-lib ${EXT_LIB_TARGET} -y
   - opam install -y --verbose -j ${NJOBS} coq-math-classes
   - opam install -y --verbose -j ${NJOBS} coq-metacoq-template
   - opam install -y --verbose -j ${NJOBS} coq-switch
