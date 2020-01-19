@@ -793,6 +793,23 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         cbn; rewrite EQ'', TAIL; auto.
     Qed.
 
+    Lemma eval_Loop_for_i_to_N_i_gt_N σ op N i fuel mem:
+      i > N ->
+      eval_Loop_for_i_to_N σ op N i mem fuel ≡ eval_Loop_for_i_to_N σ op N 0 mem fuel.
+    Proof.
+      revert fuel.
+      induction N; intros.
+      +
+        destruct fuel;reflexivity.
+      +
+        destruct fuel; [ reflexivity|].
+        cbn.
+        break_if; [apply beq_nat_true in Heqb; lia| ].
+        apply beq_nat_false in Heqb.
+        rewrite IHN.
+        reflexivity.
+        lia.
+    Qed.
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
         (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
