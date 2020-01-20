@@ -740,6 +740,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             some_none.
     Qed.
 
+    Lemma eval_Loop_for_i_to_N_monotone:
+      forall res σ op N i fuel mem,
+        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
+        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
+    Proof.
+    Admitted.
+
     Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
         eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
     Proof.
@@ -895,6 +902,38 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       eapply Loop_is_Iter_aux; eauto; lia.
     Qed.
 
+    (* This is "natural" invert following implementation recursion *)
+    Lemma eval_Loop_for_i_to_N_Fail_invert': forall σ N i op fuel mem msg,
+        eval_Loop_for_i_to_N σ op (S N) i mem fuel ≡ Some (inl msg) ->
+
+        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inl msg) \/
+        (exists mem_aux, eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inr mem_aux) /\
+                    evalDSHOperator (DSHnatVal N :: σ) op mem_aux fuel ≡ Some (inl msg)).
+    Proof.
+      intros σ N i op fuel mem msg H.
+      destruct fuel; [inv H|].
+      cbn in H.
+      break_if; [inv H|].
+      repeat break_match_hyp.
+      -
+        left.
+        inv H.
+        apply eval_Loop_for_i_to_N_monotone.
+        assumption.
+      -
+        right.
+        subst.
+        exists m.
+        split.
+        apply eval_Loop_for_i_to_N_monotone.
+        assumption.
+        apply eval_fuel_monotone.
+        assumption.
+      -
+        some_none.
+    Qed.
+
+    (* This invert goes in wrong direction. Not sure if it could be proven *)
     Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ N i op fuel mem msg,
         i < N ->
         eval_Loop_for_i_to_N σ op N (* should be [S N] here but it's OK as long as everyting is ]Some] *) i mem fuel ≡ Some (inl msg) ->
@@ -904,7 +943,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inl msg)).
     Proof.
     Admitted.
-            
+
+
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
       forall n (σ: evalContext) mem f m1 m2 m3 m4,
         evalDSHMap2 mem n f σ m1 m2 m3  ≡ inr m4 ->
