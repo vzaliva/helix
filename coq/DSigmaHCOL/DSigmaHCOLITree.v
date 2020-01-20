@@ -655,15 +655,18 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           end
         end.
 
-    (* Note that the two formulations are not the same!
-       See comments in imeplemtations above.
+    (* Note that the two formulations are not the same in most general
+       case.  See comments in imeplemtations above. In particular:
 
-       This migh be not provable without [(S fuel)] in RHS!
-     *)
+       - [eval_Loop_for_i_to_N] takes one more unit of [fuel] When
+       - [i>N] behaviour is different.
+
+       We fix that by constraining our equality with [i<N] and giving
+       more fuel to [eval_Loop_for_i_to_N].  *)
     Lemma eval_Loop_for_i_to_N_variants σ body (N i: nat) mem fuel:
       i<N ->
       eval_Loop_for_i_to_N' σ body N i mem fuel ≡
-      eval_Loop_for_i_to_N σ body N i mem fuel.
+      eval_Loop_for_i_to_N σ body N i mem (S fuel).
     Proof.
     Admitted.
     
