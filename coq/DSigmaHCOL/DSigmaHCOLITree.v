@@ -616,6 +616,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
        - i=N => 
          - fuel=0 => [None]
          - fuel>0 => [Some (ret mem)] no-op
+
+      NOTE: Struct [{struct N}] works instead of [{struct fuel}] here as well.
      *)
     Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel {struct fuel} :=
       match fuel with
