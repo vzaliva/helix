@@ -608,16 +608,14 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
     (* loop over [i .. N)
        Some boundary cases:
-       - i<N => 
-         - fuel >= (N-i) => [Some _]  exectutes at least once. Normal case.
-         - fuel < (N-i) => [None] runs out of fuel
-       - N=0 => 
+       - i<N => either [Some _] or [None] if runs out of fuel
+       - i>N => same as [eval_Loop_for_0_to_N]
+       - N=0 =>
          - fuel=0 => [None]
          - fuel>0 => [Some (ret mem)] no-op
        - i=N => 
          - fuel=0 => [None]
          - fuel>0 => [Some (ret mem)] no-op
-       - i>N => eval_Loop_for_0_to_N
      *)
     Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel {struct fuel} :=
       match fuel with
@@ -637,6 +635,38 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              end
       end.
 
+    (* Alternative loop definition recursing in forward direction [i .. N)
+       Some boundary cases:
+       - i<N => either [Some (inl _)] or [None] if runs out of fuel
+       - i=N => [Some (ret mem)] no-op
+       - i>N => [None] runs out of fuel
+     *)
+    Fixpoint eval_Loop_for_i_to_N' σ body (N i: nat) mem fuel {struct fuel} :=
+      if EqNat.beq_nat i N then
+        Some (ret mem)
+      else
+        match fuel with
+        | O => None
+        | S fuel =>
+          match evalDSHOperator (DSHnatVal i :: σ) body mem fuel with
+          | Some (inr mem) => eval_Loop_for_i_to_N' σ body N (S i) mem fuel
+          | Some (inl msg) => Some (inl msg)
+          | None => None
+          end
+        end.
+
+    (* Note that the two formulations are not the same!
+       See comments in imeplemtations above.
+
+       This migh be not provable without [(S fuel)] in RHS!
+     *)
+    Lemma eval_Loop_for_i_to_N_variants σ body (N i: nat) mem fuel:
+      i<N ->
+      eval_Loop_for_i_to_N' σ body N i mem fuel ≡
+      eval_Loop_for_i_to_N σ body N i mem fuel.
+    Proof.
+    Admitted.
+    
     Lemma eval_Loop_for_0_to_N:
       forall σ body N mem fuel,
         eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
