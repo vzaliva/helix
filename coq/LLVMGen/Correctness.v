@@ -127,12 +127,14 @@ itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
 
 (* memory and block or value *)
 Open Scope type_scope.
-Definition LLVM_state := M.memory_stack *
-                         (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
+
+Definition LLVM_state_cfg := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
+
+Definition LLVM_state_mcfg := M.memory_stack * ((FMapAList.alist raw_id res_L0) * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * (block_id + res_L0))).
 
 Definition Type_R: Type := evalContext
            → MDSHCOLOnFloat64.memory * ()
-             → LLVM_state → Prop.
+             → LLVM_state_cfg → Prop.
 
 Definition injection_Fin {A} (ι: nat -> A) k: Prop :=
   forall x y,
@@ -281,58 +283,72 @@ Proof.
 
 Admitted.
 
-Definition LLVM_memory_state
+Definition LLVM_memory_state_cfg
   := M.memory_stack *
      (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue)).
 
-Definition llvm_empty_memory_state: LLVM_memory_state
+Definition LLVM_memory_state_mcfg
+  := M.memory_stack *
+     (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue)).
+
+(* Definition LLVM_state_cfg_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state_cfg *)
+(*   := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, (ρ, (g, r))). *)
+
+(* Definition LLVM_state_mcfg_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state_mcfg *)
+(*   := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, ((ρ,[ρ]), (g, r))). *)
+
+Definition LLVM_sub_state_cfg (T:Type): Type
+  := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
+
+Definition LLVM_sub_state_mcfg (T:Type): Type
+  := M.memory_stack * (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * T)).
+
+Definition LLVM_sub_state_cfg_from_mem (T:Type) (v:T): LLVM_memory_state_cfg -> (LLVM_sub_state_cfg T)
+  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+Definition LLVM_sub_state_mcfg_from_mem (T:Type) (v:T): LLVM_memory_state_mcfg -> (LLVM_sub_state_mcfg T)
+  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+Definition llvm_empty_memory_state_cfg: LLVM_memory_state_cfg
   := (M.empty, M.empty, [], ([], [])).
 
-Definition LLVM_state_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state
-  := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, (ρ, (g, r))).
-
-Definition LLVM_sub_state (T:Type)
-  := M.memory_stack *
-     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
-
-Definition LLVM_sub_state_from_mem (T:Type) (v:T): LLVM_memory_state -> (LLVM_sub_state T)
-  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+Definition llvm_empty_memory_state_mcfg: LLVM_memory_state_mcfg
+  := (M.empty, M.empty, [], (([],[]), [])).
 
 Definition Type_R': Type := evalContext
            → MDSHCOLOnFloat64.memory * (list binary64)
-             → LLVM_sub_state (res_L0) → Prop.
+             → LLVM_sub_state_mcfg (res_L0) → Prop.
 
 Definition bisim': Type_R'  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
-    let '(m, (ρ, (g, v))) := mem_llvm in
-    bisim σ (mem_helix, tt) (LLVM_sub_state_from_mem (inr v) (m, (ρ, g))).
+    let '(m, ((ρ,_), (g, v))) := mem_llvm in
+    bisim σ (mem_helix, tt) (LLVM_sub_state_cfg_from_mem (inr v) (m, (ρ, g))).
 
-Definition init_one_global (m:LLVM_memory_state) (g:toplevel_entity typ (list (LLVMAst.block typ))) : err LLVM_memory_state. Admitted.
+Definition init_one_global (m:LLVM_memory_state_cfg) (g:toplevel_entity typ (list (LLVMAst.block typ))) : err LLVM_memory_state_cfg. Admitted.
 
 Definition init_llvm_memory
            (p: FSHCOLProgram)
-           (data: list binary64) : err LLVM_memory_state
+           (data: list binary64) : err LLVM_memory_state_cfg
   :=
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
     (* At this point `ginit` is list of TLE_Global definitions
        which could be applied sequentually to empty memory to
        get the state with initialized globals *)
-    ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state ginit.
+    ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_cfg ginit.
 
 (* Relation holds between two empty memory states *)
-Definition empty_R hm (lm:LLVM_sub_state unit) : Prop :=
-  hm ≡ (helix_empty_memory,tt) /\ lm ≡ (LLVM_sub_state_from_mem tt llvm_empty_memory_state).
+Definition empty_R hm (lm:LLVM_sub_state_mcfg unit) : Prop :=
+  hm ≡ (helix_empty_memory,tt) /\ lm ≡ (LLVM_sub_state_mcfg_from_mem tt llvm_empty_memory_state_mcfg).
 
 (* Bisimulation relation holds between two memory states after
    initalization of global variables *)
 Lemma initialization_memory_bisim_OK
       (p: FSHCOLProgram)
-      (data: list binary64)
-      σ:
+      (data: list binary64) :
   match helix_intial_memory p data, init_llvm_memory p data with
   | inl _, inl _ => False (* not sure if both erroring should be [True] *)
   | inr (hmem,data,σ'), inr lmem =>
-    bisim σ (hmem,tt) (LLVM_state_from_mem (inl (Name "main")) lmem)
+    bisim σ' (hmem,tt) (LLVM_sub_state_cfg_from_mem (inl (Name "main")) lmem)
   | _, _ => False
   end.
 Proof.
