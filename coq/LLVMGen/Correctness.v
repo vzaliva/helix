@@ -324,7 +324,18 @@ Definition bisim': Type_R'  :=
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
     bisim σ (mem_helix, tt) (LLVM_sub_state_cfg_from_mem (inr v) (m, (ρ, g))).
 
-Definition init_one_global (m:LLVM_memory_state_cfg) (g:toplevel_entity typ (list (LLVMAst.block typ))) : err LLVM_memory_state_cfg. Admitted.
+Definition init_one_global (m:LLVM_memory_state_cfg) (g:toplevel_entity typ (list (LLVMAst.block typ)))
+  : err LLVM_memory_state_cfg
+  := match g with
+     | TLE_Global (mk_global (Name c_name) c_typ
+                             true
+                             (Some c_initiaizer)
+                             (Some LINKAGE_Internal)
+                             None None None true None
+                             false None None) =>
+       inl "TODO: implement me"%string
+     | _ => inl "Usupported global initialization"%string
+     end.
 
 Definition init_llvm_memory
            (p: FSHCOLProgram)
