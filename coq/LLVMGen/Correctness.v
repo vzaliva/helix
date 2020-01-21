@@ -184,7 +184,7 @@ Definition bisim: Type_R :=
                         v_llvm ≡ UVALUE_Double v_helix
               ) bk_helix bk_llvm
         end
-  .
+.
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
@@ -250,7 +250,10 @@ Proof.
   reflexivity.
 Qed.
 
-(* We could probably fix [env] to be [nil] *)
+(*
+    for an opeartor, in initized state
+    TODO: We could probably fix [env] to be [nil]
+*)
 Lemma compile_FSHCOL_correct:
   forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
     genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
@@ -288,6 +291,22 @@ Definition llvm_empty_memory_state: LLVM_memory_state
 Definition LLVM_state_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state
   := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, (ρ, (g, r))).
 
+Definition LLVM_sub_state (T:Type)
+  := M.memory_stack *
+     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
+
+Definition LLVM_sub_state_from_mem (T:Type) (v:T): LLVM_memory_state -> (LLVM_sub_state T)
+  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+Definition Type_R': Type := evalContext
+           → MDSHCOLOnFloat64.memory * (list binary64)
+             → LLVM_sub_state (res_L0) → Prop.
+
+Definition bisim': Type_R'  :=
+  fun σ  '(mem_helix, v_helix) mem_llvm =>
+    let '(m, (ρ, (g, v))) := mem_llvm in
+    bisim σ (mem_helix, tt) (LLVM_sub_state_from_mem (inr v) (m, (ρ, g))).
+
 Definition init_one_global (m:LLVM_memory_state) (g:toplevel_entity typ (list (LLVMAst.block typ))) : err LLVM_memory_state. Admitted.
 
 Definition init_llvm_memory
@@ -300,12 +319,9 @@ Definition init_llvm_memory
        get the state with initialized globals *)
     ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state ginit.
 
-(* Bisimulation relation holds between two empty memory states *)
-Lemma empty_memory_bisim_OK:
-  forall σ bv, bisim σ (helix_empty_memory,tt) (LLVM_state_from_mem bv llvm_empty_memory_state).
-Proof.
-  intros σ bv.
-Admitted.
+(* Relation holds between two empty memory states *)
+Definition empty_R hm (lm:LLVM_sub_state unit) : Prop :=
+  hm ≡ (helix_empty_memory,tt) /\ lm ≡ (LLVM_sub_state_from_mem tt llvm_empty_memory_state).
 
 (* Bisimulation relation holds between two memory states after
    initalization of global variables *)
@@ -322,16 +338,17 @@ Lemma initialization_memory_bisim_OK
 Proof.
 Admitted.
 
-(* The relation to provide is not [TT] but rather the singleton pair of the empty memories *)
+(* with init step  *)
 Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (list (LLVMAst.block typ))),
     compile p data ≡ inr pll ->
-    eutt (fun _ _ => True) (semantics_FSHCOL p data) (semantics_llvm pll).
+    eutt (bisim' []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
 
+(* top-level  *)
 Theorem compiler_correct:
   exists RR,
   forall (p:FSHCOLProgram)
