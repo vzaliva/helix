@@ -125,10 +125,14 @@ itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
               (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R))) :=
   fun R _ _ a b c => raise "".
 
+(* memory and block or value *)
+Open Scope type_scope.
+Definition LLVM_state := M.memory_stack *
+                         (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
+
 Definition Type_R: Type := evalContext
            → MDSHCOLOnFloat64.memory * ()
-             → M.memory_stack *
-               (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) → Prop.
+             → LLVM_state → Prop.
 
 Definition injection_Fin {A} (ι: nat -> A) k: Prop :=
   forall x y,
@@ -274,12 +278,30 @@ Proof.
 
 Admitted.
 
-Open Scope type_scope.
-Definition LLVM_state := M.memory_stack *
-                         (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
+Definition LLVM_memory_state
+  := M.memory_stack *
+     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue)).
 
-Definition LLVM_empty_state : LLVM_state := (M.empty, M.empty, [], ([], ([], inl (Name "foo")))).
+Definition llvm_empty_memory_state: LLVM_memory_state
+  := (M.empty, M.empty, [], ([], [])).
 
+Definition LLVM_state_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state
+  := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, (ρ, (g, r))).
+
+(* This lemma states that at the end of initialization stage, respective
+   Helix and LLVM memory states are consistent
+ *)
+Lemma initial_memory_bisim_OK
+      (p: FSHCOLProgram)
+      (data: list binary64)
+      σ:
+  match helix_intial_memory p data with
+  | inl _ => False
+  | inr (hmem,data,σ') =>
+    bisim σ (hmem,tt) (LLVM_state_from_mem (inl (Name "main")) llvm_empty_memory_state)
+  end.
+Proof.
+Admitted.
 
 (* The relation to provide is not [TT] but rather the singleton pair of the empty memories *)
 Lemma compiler_correct_aux:
