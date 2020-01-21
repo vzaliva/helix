@@ -274,6 +274,13 @@ Proof.
 
 Admitted.
 
+Open Scope type_scope.
+Definition LLVM_state := M.memory_stack *
+                         (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
+
+Definition LLVM_empty_state : LLVM_state := (M.empty, M.empty, [], ([], ([], inl (Name "foo")))).
+
+
 (* The relation to provide is not [TT] but rather the singleton pair of the empty memories *)
 Lemma compiler_correct_aux:
   forall (p:FSHCOLProgram)
