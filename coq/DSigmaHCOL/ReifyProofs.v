@@ -4003,6 +4003,82 @@ Proof.
     assumption.
 Qed.
 
+(* (likely) incorrect, WILL CHANGE *)
+Instance HTSUMUnion_MSH_DSH_compat
+         {i o : nat}
+         {mop1: @MSHOperator i o}
+         {mop2: @MSHOperator i o}
+         {m: memory}
+         {σ: evalContext}
+         {dop1 dop2: DSHOperator}
+         {dsig1 dsig2: TypeSig}
+         {dot : CarrierA -> CarrierA -> CarrierA} (* why is this here at all? *)
+
+         (* these are subject to change *)
+         `{P: DSH_pure (DSHSeq dop1 dop2) (TypeSigUnion dsig1 dsig2) x_p y_p}
+         `{P1: DSH_pure dop1 (TypeSig_incr dsig1) x_p y_p}
+         `{P2: DSH_pure dop2 (TypeSig_incr dsig2) x_p y_p}
+         `{C1: @MSH_DSH_compat _ _ mop1 dop1 (TypeSig_incr dsig1)
+                              (DSHPtrVal (memory_next_key m) o :: σ)
+                              (memory_alloc_empty m (memory_next_key m))
+                              x_p y_p
+                              P1}
+         `{C2: @MSH_DSH_compat _ _ mop2 dop2 (TypeSig_incr dsig2)
+                              (DSHPtrVal (memory_next_key m) o :: σ)
+                              (memory_alloc_empty m (memory_next_key m))
+                              x_p y_p
+                              P2}
+  :
+    MSH_DSH_compat
+      (MHTSUMUnion dot mop1 mop2)
+      (DSHSeq dop1 dop2)
+      σ m x_p y_p.
+Proof.
+  constructor; intros.
+  destruct mem_op eqn:M,
+           evalDSHOperator eqn:D.
+  all: try destruct e; repeat constructor.
+  1,3,4: exfalso.
+  1,2,3: admit. (* should follow from C1/C2 *)
+  -
+    destruct lookup_Pexp eqn:YP at 1;
+      [exfalso | constructor].
+    +
+      apply err_equiv_eq in YP; contradict YP.
+      apply is_OK_neq_inl.
+      admit. (* should follow from P without [mem_read_safe] *)
+    +
+      unfold SHCOL_DSHCOL_mem_block_equiv.
+      intro k.
+      cbn in *.
+      repeat break_match;
+        try some_none; repeat some_inv;
+        try inl_inr; repeat inl_inr_inv.
+      subst.
+      unfold mem_lookup, MMemoryOfCarrierA.mem_union.
+      rewrite NP.F.map2_1bis by reflexivity.
+      break_match.
+      *
+        constructor 2; [reflexivity |].
+        enough (T : Some m2 = Some m5) by (some_inv; rewrite <-Heqo3; apply T).
+        unfold memory_lookup_err, trywith in YP.
+        break_match; try inl_inr; inl_inr_inv.
+        rewrite <-H2, <-Heqo4; clear Heqo4 H2 m0.
+        rewrite <-Heqo1.
+
+        inversion C2.
+        (* this is the main subgoal which may depend on [mem_read_safe] *)
+        admit.
+      *
+        destruct NM.find at 3.
+        --
+          constructor 2; [reflexivity |].
+          admit. (* similar to [*] above *)
+        --
+          constructor 1; [reflexivity |].
+          admit. (* similar to [*] above *)
+Abort.
+
 Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
          {mop1: @MSHOperator o2 o3}
