@@ -102,14 +102,16 @@ Fixpoint initFSHGlobals
 Definition X_mem_block_id : mem_block_id := 1.
 Definition Y_mem_block_id : mem_block_id := 2.
 
+
+Definition helix_empty_memory := memory_empty.
+
 Definition helix_intial_memory
            (p: FSHCOLProgram)
            (data: list binary64)
   : err (MDSHCOLOnFloat64.memory * list binary64 * evalContext)
   := match p with
      | mkFSHCOLProgram i o name globals op =>
-       let mem := memory_empty in
-       '(mem, data, σ) <- initFSHGlobals data mem globals ;;
+       '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, x) := constMemBlock i data in
        let mem := memory_set mem X_mem_block_id x in
        let mem := memory_set mem Y_mem_block_id mem_empty in

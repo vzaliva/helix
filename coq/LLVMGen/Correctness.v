@@ -288,20 +288,27 @@ Definition llvm_empty_memory_state: LLVM_memory_state
 Definition LLVM_state_from_mem: (block_id + res_L0) -> LLVM_memory_state -> LLVM_state
   := λ (r : block_id + res_L0) '(m, (ρ, g)), (m, (ρ, (g, r))).
 
+Definition init_one_global (m:LLVM_memory_state) (g:toplevel_entity typ (list (LLVMAst.block typ))) : err LLVM_memory_state. Admitted.
+
 Definition init_llvm_memory
            (p: FSHCOLProgram)
            (data: list binary64) : err LLVM_memory_state
   :=
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
-    let mem := llvm_empty_memory_state in
-    (* TODO: At this point `ginit` is list of TLE_Global definitions
+    (* At this point `ginit` is list of TLE_Global definitions
        which could be applied sequentually to empty memory to
        get the state with initialized globals *)
-    ret mem.
+    ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state ginit.
 
-(* This lemma states that at the end of initialization stage, respective
-   Helix and LLVM memory states are consistent
- *)
+(* Bisimulation relation holds between two empty memory states *)
+Lemma empty_memory_bisim_OK:
+  forall σ bv, bisim σ (helix_empty_memory,tt) (LLVM_state_from_mem bv llvm_empty_memory_state).
+Proof.
+  intros σ bv.
+Admitted.
+
+(* Bisimulation relation holds between two memory states after
+   initalization of global variables *)
 Lemma initialization_memory_bisim_OK
       (p: FSHCOLProgram)
       (data: list binary64)
