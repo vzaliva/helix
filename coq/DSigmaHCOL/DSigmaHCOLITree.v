@@ -637,54 +637,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
              end
       end.
 
-    (* Alternative loop definition recursing in forward direction [i .. N)
-       Some boundary cases:
-       - i<N => either [Some (inl _)] or [None] if runs out of fuel
-       - i=N => [Some (ret mem)] no-op
-       - i>N => [None] runs out of fuel
-     *)
-    Fixpoint eval_Loop_for_i_to_N' σ body (N i: nat) mem fuel {struct fuel} :=
-      if EqNat.beq_nat i N then
-        Some (ret mem)
-      else
-        match fuel with
-        | O => None
-        | S fuel =>
-          match evalDSHOperator (DSHnatVal i :: σ) body mem fuel with
-          | Some (inr mem) => eval_Loop_for_i_to_N' σ body N (S i) mem fuel
-          | Some (inl msg) => Some (inl msg)
-          | None => None
-          end
-        end.
-
-    (* Note that the two formulations are not the same in most general
-       case.  See comments in imeplemtations above. In particular:
-
-       - [eval_Loop_for_i_to_N] takes one more unit of [fuel] When
-       - [i>N] behaviour is different.
-
-       We fix that by constraining our equality with [i<N] and giving
-       more fuel to [eval_Loop_for_i_to_N].  *)
-    Lemma eval_Loop_for_i_to_N_variants σ body (N i: nat) mem fuel:
-      i<N ->
-      eval_Loop_for_i_to_N' σ body N i mem fuel ≡
-      eval_Loop_for_i_to_N σ body N i mem (S fuel).
-    Proof.
-    Admitted.
-    
-    Lemma eval_Loop_for_0_to_N:
-      forall σ body N mem fuel,
-        eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
-    Proof.
-      induction N as [| N IH]; intros mem fuel.
-      - destruct fuel; reflexivity.
-      - destruct fuel as [| fuel ]; [reflexivity |].
-        simpl evalDSHOperator.
-        simpl.
-        rewrite <- IH.
-        reflexivity.
-    Qed.
-
     (* TODO : MOVE THIS TO ITREE *)
     Instance eutt_interp_state_eq {E F: Type -> Type} {S : Type}
              (h : E ~> Monads.stateT S (itree F)) :
@@ -775,13 +727,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             some_none.
     Qed.
 
-    Lemma eval_Loop_for_i_to_N_monotone:
-      forall res σ op N i fuel mem,
-        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
-        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
-    Proof.
-    Admitted.
-
     Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
         eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
     Proof.
@@ -852,6 +797,27 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
         lia.
     Qed.
+
+    Lemma eval_Loop_for_0_to_N:
+      forall σ body N mem fuel,
+        eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
+    Proof.
+      induction N as [| N IH]; intros mem fuel.
+      - destruct fuel; reflexivity.
+      - destruct fuel as [| fuel ]; [reflexivity |].
+        simpl evalDSHOperator.
+        simpl.
+        rewrite <- IH.
+        reflexivity.
+    Qed.
+
+    Lemma eval_Loop_for_i_to_N_monotone:
+      forall res σ op N i fuel mem,
+        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
+        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
+    Proof.
+    Admitted.
+
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
         (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
