@@ -592,7 +592,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             eexists; [left | right]; state_steps; rewrite Heqe1; state_steps; rewrite H; match_failure.
     Qed.
 
-    Definition denote_Loop_for_i_to_N σ body (N i: nat) :=
+    Definition denote_Loop_for_i_to_N σ body (i N: nat) :=
       iter (fun (p: nat) =>
               if EqNat.beq_nat p N
               then ret (inr tt)
@@ -601,7 +601,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
            ) i.
 
     Lemma denote_Loop_for_0_to_N:
-      forall σ body N, denote_Loop_for_i_to_N σ body N 0 ≈ denoteDSHOperator σ (DSHLoop N body).
+      forall σ body N, denote_Loop_for_i_to_N σ body 0 N ≈ denoteDSHOperator σ (DSHLoop N body).
     Proof.
       unfold denote_Loop_for_i_to_N; reflexivity.
     Qed.
@@ -619,7 +619,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
       NOTE: Struct [{struct N}] works instead of [{struct fuel}] here as well.
      *)
-    Fixpoint eval_Loop_for_i_to_N σ body (N i: nat) mem fuel {struct fuel} :=
+    Fixpoint eval_Loop_for_i_to_N σ body (i N: nat) mem fuel {struct fuel} :=
       match fuel with
       | O => None
       | S fuel =>
@@ -629,7 +629,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                if EqNat.beq_nat i (S N) then
                  Some (ret mem)
                else
-                 match eval_Loop_for_i_to_N σ body N i mem fuel with
+                 match eval_Loop_for_i_to_N σ body i N mem fuel with
                  | Some (inr mem) => evalDSHOperator (DSHnatVal N :: σ) body mem fuel
                  | Some (inl msg) => Some (inl msg)
                  | None => None
@@ -734,19 +734,19 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       simpl; rewrite Nat.eqb_refl; reflexivity.
     Qed.
 
-    Lemma eval_Loop_for_i_to_N_invert: forall σ N i op fuel mem_i mem_f,
+    Lemma eval_Loop_for_i_to_N_invert: forall σ i N op fuel mem_i mem_f,
         i < N ->
-        eval_Loop_for_i_to_N σ op N i mem_i fuel ≡ Some (inr mem_f) ->
+        eval_Loop_for_i_to_N σ op i N mem_i fuel ≡ Some (inr mem_f) ->
         exists mem_aux,
           evalDSHOperator (DSHnatVal i :: σ) op mem_i fuel ≡ Some (inr mem_aux) /\
-          eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inr mem_f).
+          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inr mem_f).
     Proof.
       (* This proof is surprisingly painful to go through *)
       intros.
       (* Induction on the number of steps remaining *)
       remember (N - i) as k.
-      revert σ fuel N i Heqk mem_i mem_f H0 H.
-      induction k as [| k IH]; intros σ fuel N i EQ mem_i mem_f Heval ineq; [lia |].
+      revert σ fuel i N Heqk mem_i mem_f H0 H.
+      induction k as [| k IH]; intros σ fuel i N EQ mem_i mem_f Heval ineq; [lia |].
 
       (* N > 0 for us to be able to take a step *)
       destruct N as [| N]; [lia |].
@@ -758,7 +758,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       (* We know there's still a step to be taken *)
       destruct (i =? S N)%nat eqn:EQ'; [apply beq_nat_true in EQ'; lia | apply beq_nat_false in EQ'].
       (* And that the recursive call succeeded since the computation did *)
-      destruct (eval_Loop_for_i_to_N σ op N i mem_i fuel) eqn: HEval'; [| inv Heval].
+      destruct (eval_Loop_for_i_to_N σ op i N mem_i fuel) eqn: HEval'; [| inv Heval].
       destruct e; inv Heval.
 
       (* Now there are two cases:
@@ -780,9 +780,9 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         cbn; rewrite EQ'', TAIL; auto.
     Qed.
 
-    Lemma eval_Loop_for_i_to_N_i_gt_N σ op N i fuel mem:
+    Lemma eval_Loop_for_i_to_N_i_gt_N σ op i N fuel mem:
       i > N ->
-      eval_Loop_for_i_to_N σ op N i mem fuel ≡ eval_Loop_for_i_to_N σ op N 0 mem fuel.
+      eval_Loop_for_i_to_N σ op i N mem fuel ≡ eval_Loop_for_i_to_N σ op 0 N mem fuel.
     Proof.
       revert fuel.
       induction N; intros.
@@ -800,7 +800,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
 
     Lemma eval_Loop_for_0_to_N:
       forall σ body N mem fuel,
-        eval_Loop_for_i_to_N σ body N 0 mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
+        eval_Loop_for_i_to_N σ body 0 N mem fuel ≡ evalDSHOperator σ (DSHLoop N body) mem fuel.
     Proof.
       induction N as [| N IH]; intros mem fuel.
       - destruct fuel; reflexivity.
@@ -812,11 +812,11 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     Lemma eval_Loop_for_i_to_N_fuel_monotone:
-      forall res σ op N i fuel mem,
-        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
-        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
+      forall res σ op i N fuel mem,
+        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
+        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some res.
     Proof.
-      intros res σ op N i fuel mem H.
+      intros res σ op i N fuel mem H.
       revert H.
       revert res σ i fuel.
       induction N; intros.
@@ -879,13 +879,13 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             evalDSHOperator σ op mem (S fuel) ≡ Some (inr mem')
             → interp_Mem (denoteDSHOperator σ op) mem ≈ ret (mem', ()))
 
-        (N i: nat)
+        (i N: nat)
         (σ : evalContext) (mem : memory) (fuel : nat) (mem' : memory),
         i <= N ->
-        eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some (inr mem')
-        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op N i) mem ≈ ret (mem', ()).
+        eval_Loop_for_i_to_N σ op i N mem (S fuel) ≡ Some (inr mem')
+        → interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i N) mem ≈ ret (mem', ()).
     Proof.
-      intros op IHop N i σ mem fuel mem' ineq HEval.
+      intros op IHop i N σ mem fuel mem' ineq HEval.
       remember (N - i) as k.
       revert Heqk σ mem mem' HEval.
       revert i ineq.
@@ -959,14 +959,14 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     (* This is "natural" invert following implementation recursion *)
-    Lemma eval_Loop_for_i_to_N_Fail_invert': forall σ N i op fuel mem msg,
-        eval_Loop_for_i_to_N σ op (S N) i mem fuel ≡ Some (inl msg) ->
+    Lemma eval_Loop_for_i_to_N_Fail_invert': forall σ i N op fuel mem msg,
+        eval_Loop_for_i_to_N σ op i (S N) mem fuel ≡ Some (inl msg) ->
 
-        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inl msg) \/
-        (exists mem_aux, eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inr mem_aux) /\
+        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg) \/
+        (exists mem_aux, eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inr mem_aux) /\
                     evalDSHOperator (DSHnatVal N :: σ) op mem_aux fuel ≡ Some (inl msg)).
     Proof.
-      intros σ N i op fuel mem msg H.
+      intros σ i N op fuel mem msg H.
       destruct fuel; [inv H|].
       cbn in H.
       break_if; [inv H|].
@@ -990,18 +990,18 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     (* This invert goes in wrong direction. Not sure if it could be proven *)
-    Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ N i op fuel mem msg,
+    Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ i N op fuel mem msg,
         i < N ->
 
-        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inl msg) ->
+        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg) ->
 
         evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl msg) \/
 
         exists mem_aux,
             evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr mem_aux) /\
-            eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inl msg).
+            eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inl msg).
     Proof.
-      intros σ N i op fuel mem msg ic H.
+      intros σ i N op fuel mem msg ic H.
 
 
 
@@ -1126,17 +1126,17 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             → ∃ msg' : string,
               interp_Mem (denoteDSHOperator σ op) mem ≈ Dfail msg'
               ∨ interp_Mem (denoteDSHOperator σ op) mem ≈ Sfail msg')
-        (N i: nat)
+        (i N: nat)
         (σ : evalContext) (mem : memory) (fuel : nat) (msg : string),
         i < S N ->
-        eval_Loop_for_i_to_N σ op (S N) i mem (S fuel) ≡ Some (inl msg)
+        eval_Loop_for_i_to_N σ op i (S N) mem (S fuel) ≡ Some (inl msg)
         → exists msg',
-            interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op (S N) i) mem
+            interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem
                          ≈ Dfail msg'
-            ∨ interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op (S N) i) mem
+            ∨ interp_state (case_ Mem_handler pure_state) (denote_Loop_for_i_to_N σ op i (S N)) mem
                            ≈ Sfail msg'.
     Proof.
-      intros op IHop N i σ mem fuel msg ineq HEval.
+      intros op IHop i N σ mem fuel msg ineq HEval.
       remember ((S N) - i) as k.
       revert Heqk σ mem msg HEval.
       revert i ineq.
@@ -1210,7 +1210,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       intros.
       rewrite <- eval_Loop_for_0_to_N in H.
       assert(zn: 0 < S N) by lia.
-      pose proof (Loop_is_Iter_Fail_aux op IHop N 0 σ mem fuel msg zn H) as AUX.
+      pose proof (Loop_is_Iter_Fail_aux op IHop 0 N σ mem fuel msg zn H) as AUX.
       destruct AUX as [msg' AUX].
       exists msg'.
       eapply AUX; eauto.
