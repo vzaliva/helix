@@ -816,7 +816,62 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
         eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
     Proof.
-    Admitted.
+      intros res σ op N i fuel mem H.
+      revert H.
+      revert res σ i fuel.
+      induction N; intros.
+      -
+        destruct fuel; cbn in *; [some_none| apply H].
+      -
+        cbn.
+        destruct fuel; [cbn in H; some_none|].
+        break_if.
+        +
+          apply beq_nat_true in Heqb.
+          subst.
+          cbn in H.
+          rewrite Nat.eqb_refl in H.
+          apply H.
+        +
+          repeat break_match_goal; subst; cbn in H; rewrite Heqb in H.
+          *
+            unfold err in *.
+            rewrite <- Heqo.
+            repeat break_match_hyp; subst.
+            --
+              rewrite <- H.
+              apply IHN.
+              apply Heqo0.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
+              some_none.
+          *
+            unfold err in *.
+            repeat break_match_hyp; subst.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+            --
+              apply IHN in Heqo0.
+              rewrite Heqo0 in Heqo.
+              inv Heqo.
+              apply eval_fuel_monotone.
+              apply H.
+            --
+              some_none.
+          *
+            exfalso.
+            break_match_hyp.
+            --
+              apply IHN in Heqo0.
+              some_none.
+            --
+              some_none.
+    Qed.
 
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
