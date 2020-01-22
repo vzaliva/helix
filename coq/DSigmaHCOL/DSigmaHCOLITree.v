@@ -656,7 +656,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - rewrite tau_eutt, unfold_interp_state; eauto.
     Qed.
 
-    Lemma eval_fuel_monotone:
+    Lemma evalDSHOperator_fuel_monotone:
       forall op σ mem fuel res,
         evalDSHOperator σ op mem fuel ≡ Some res ->
         evalDSHOperator σ op mem (S fuel) ≡ Some res.
@@ -773,10 +773,10 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         setoid_rewrite eval_Loop_for_N_to_N.
         inv HEval'.
         exists mem_f.
-        split; [apply eval_fuel_monotone; auto | auto ].
+        split; [apply evalDSHOperator_fuel_monotone; auto | auto ].
       - apply IH in HEval'; [| lia | apply beq_nat_false in EQ''; lia].
         destruct HEval' as (mem_aux & STEP & TAIL).
-        exists mem_aux; split; [apply eval_fuel_monotone; auto |].
+        exists mem_aux; split; [apply evalDSHOperator_fuel_monotone; auto |].
         cbn; rewrite EQ'', TAIL; auto.
     Qed.
 
@@ -811,7 +811,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         reflexivity.
     Qed.
 
-    Lemma eval_Loop_for_i_to_N_monotone:
+    Lemma eval_Loop_for_i_to_N_fuel_monotone:
       forall res σ op N i fuel mem,
         eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some res ->
         eval_Loop_for_i_to_N σ op N i mem (S fuel) ≡ Some res.
@@ -859,7 +859,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               apply IHN in Heqo0.
               rewrite Heqo0 in Heqo.
               inv Heqo.
-              apply eval_fuel_monotone.
+              apply evalDSHOperator_fuel_monotone.
               apply H.
             --
               some_none.
@@ -934,7 +934,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             apply beq_nat_false in EQ'.
             apply eval_Loop_for_i_to_N_invert in HEval; [| lia].
             destruct HEval as (mem_aux & Eval_body & Eval_tail).
-            apply eval_fuel_monotone in Eval_body.
+            apply evalDSHOperator_fuel_monotone in Eval_body.
             apply IHop in Eval_body.
             unfold interp_Mem in Eval_body.
             rewrite Eval_body.
@@ -974,16 +974,16 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       -
         left.
         inv H.
-        apply eval_Loop_for_i_to_N_monotone.
+        apply eval_Loop_for_i_to_N_fuel_monotone.
         assumption.
       -
         right.
         subst.
         exists m.
         split.
-        apply eval_Loop_for_i_to_N_monotone.
+        apply eval_Loop_for_i_to_N_fuel_monotone.
         assumption.
-        apply eval_fuel_monotone.
+        apply evalDSHOperator_fuel_monotone.
         assumption.
       -
         some_none.
@@ -992,12 +992,19 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     (* This invert goes in wrong direction. Not sure if it could be proven *)
     Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ N i op fuel mem msg,
         i < N ->
-        eval_Loop_for_i_to_N σ op N (* should be [S N] here but it's OK as long as everyting is ]Some] *) i mem fuel ≡ Some (inl msg) ->
-        (evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl msg)) \/
-        (exists mem_aux,
+
+        eval_Loop_for_i_to_N σ op N i mem fuel ≡ Some (inl msg) ->
+
+        evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl msg) \/
+
+        exists mem_aux,
             evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr mem_aux) /\
-            eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inl msg)).
+            eval_Loop_for_i_to_N σ op N (S i) mem_aux fuel ≡ Some (inl msg).
     Proof.
+      intros σ N i op fuel mem msg ic H.
+
+
+
     Admitted.
 
 
@@ -1107,8 +1114,8 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         state_steps.
         reflexivity.
       - unfold_Mem; inv_eval.
-        state_steps; rewrite IHop1; eauto using eval_fuel_monotone.
-        state_steps; rewrite IHop2; eauto using eval_fuel_monotone.
+        state_steps; rewrite IHop1; eauto using evalDSHOperator_fuel_monotone.
+        state_steps; rewrite IHop2; eauto using evalDSHOperator_fuel_monotone.
         reflexivity.
     Qed.
 
@@ -1247,10 +1254,10 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       - unfold_Mem; inv_eval; eexists; left; state_steps; match_failure.
       - unfold_Mem; inv_eval; eexists; left; state_steps; match_failure.
       - unfold_Mem; inv_eval.
-        + edestruct IHop1 as [? [H|H]]; eauto using eval_fuel_monotone;
+        + edestruct IHop1 as [? [H|H]]; eauto using evalDSHOperator_fuel_monotone;
           eexists; [left | right]; state_steps; rewrite H; state_steps; match_failure.
         + apply Denote_Eval_Equiv_Succeeds in Heqo.
-          edestruct IHop2 as [? [H|H]]; eauto using eval_fuel_monotone;
+          edestruct IHop2 as [? [H|H]]; eauto using evalDSHOperator_fuel_monotone;
             eexists; [left | right]; state_steps; rewrite Heqo; state_steps; rewrite H; state_steps; match_failure.
    Qed.
 
