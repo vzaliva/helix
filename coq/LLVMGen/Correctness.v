@@ -381,14 +381,25 @@ Lemma compiler_correct_aux:
 Proof.
 Admitted.
 
-(* top-level  *)
+(** Relation bewteen the final states of evaluation and execution
+    of DHCOL program *)
+Definition bisim_final: Type_R_full. Admitted.
+
+(** This lemmas states that final relation is a "subrelation" of
+    a "full" *)
+Lemma bisim_final_full_subrelation: forall σ helix_state llvm_state,
+    bisim_full σ helix_state llvm_state -> bisim_final σ helix_state llvm_state.
+Admitted.
+
+(* Top-level compiler correctness lemma  *)
 Theorem compiler_correct:
-  exists RR,
   forall (p:FSHCOLProgram)
     (data:list binary64)
     (pll: toplevel_entities typ (list (LLVMAst.block typ))),
     compile p data ≡ inr pll ->
-    eutt RR (semantics_FSHCOL p data) (semantics_llvm pll).
+    eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
-  eexists; eapply compiler_correct_aux.
+  intros p data pll H.
+  (* apply bisim_final_full_subrelation.
+  eapply compiler_correct_aux. *)
 Qed.
