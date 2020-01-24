@@ -259,16 +259,16 @@ Qed.
     for an opeartor, in initized state
     TODO: We could probably fix [env] to be [nil]
 *)
-Lemma compile_FSHCOL_correct:
-  forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
-    genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
-    eutt (bisim_partial σ)
-         (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
-         (translate (@subevent _ E _)
-                    (interp_to_L3' helix_intrinsics
-                                   (D.denote_bks (normalize_types_blocks env bks) bid_in)
-                                   g ρ mem_llvm)).
-Proof.
+Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm:
+  bisim_partial σ (mem,tt) (mem_llvm, (ρ, (g, (inl bid_in)))) ->
+  genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
+  eutt (bisim_partial σ)
+       (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
+       (translate (@subevent _ E _)
+                  (interp_to_L3' helix_intrinsics
+                                 (D.denote_bks (normalize_types_blocks env bks) bid_in)
+                                 g ρ mem_llvm)).
+  intros P.
   induction op; intros; rename H into HCompile.
   - inv HCompile.
     unfold interp_Mem. simpl denoteDSHOperator.
@@ -283,7 +283,6 @@ Proof.
     | |- context[add_comment _ ?ss] => generalize ss; intros ls
     end.
     unfold interp_Mem. simpl denoteDSHOperator.
-
 Admitted.
 
 Definition LLVM_memory_state_cfg
