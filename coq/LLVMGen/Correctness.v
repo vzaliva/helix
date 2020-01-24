@@ -132,6 +132,27 @@ Definition LLVM_state_partial := M.memory_stack * (FMapAList.alist raw_id res_L0
 
 Definition LLVM_state_full := M.memory_stack * ((FMapAList.alist raw_id res_L0) * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * (block_id + res_L0))).
 
+Definition LLVM_memory_state_partial
+  := M.memory_stack *
+     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue)).
+
+Definition LLVM_memory_state_full
+  := M.memory_stack *
+     (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue)).
+
+Definition LLVM_sub_state_partial (T:Type): Type
+  := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
+
+Definition LLVM_sub_state_full (T:Type): Type
+  := M.memory_stack * (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * T)).
+
+Definition LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
+  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+Definition LLVM_sub_state_full_from_mem (T:Type) (v:T): LLVM_memory_state_full -> (LLVM_sub_state_full T)
+  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+
 (** Type of bisimilation relation between between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
  *)
@@ -163,11 +184,16 @@ Definition bisim_mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_heli
         DTYPE_Double ≡ v_llvm
     end.
 
-Definition bisim_partial: Type_R_partial :=
-  fun σ '(mem_helix, _) '(mem_llvm, x) =>
-    let '(ρ, (g, bid_or_v)) := x in
+(** Relation of memory states which must be held for
+    intialization steps *)
+Definition Type_R_memory: Type := evalContext
+           → MDSHCOLOnFloat64.memory → LLVM_memory_state_partial → Prop.
+
+Definition memory_invariant : Type_R_memory :=
+    fun σ mem_helix '(mem_llvm, x) =>
+    let '(ρ, g) := x in
     exists (ι: nat -> raw_id),
-      injection_Fin ι (length σ) /\
+      injection_Fin ι (List.length σ) /\
       forall (x: nat) v,
         nth_error σ x ≡ Some v ->
         match v with
@@ -188,8 +214,15 @@ Definition bisim_partial: Type_R_partial :=
                         bisim_mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
                         v_llvm ≡ UVALUE_Double v_helix
               ) bk_helix bk_llvm
-        end
-.
+        end.
+
+(* TODO: Currently this relation just preserves memory invariant.
+   Maybe it needs to do something more?
+*)
+Definition bisim_partial: Type_R_partial :=
+  fun σ '(mem_helix, _) '(mem_llvm, x) =>
+    let '(ρ, (g, bid_or_v)) := x in
+    memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
@@ -285,26 +318,6 @@ Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env 
     unfold interp_Mem. simpl denoteDSHOperator.
 Admitted.
 
-Definition LLVM_memory_state_partial
-  := M.memory_stack *
-     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue)).
-
-Definition LLVM_memory_state_full
-  := M.memory_stack *
-     (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue)).
-
-Definition LLVM_sub_state_partial (T:Type): Type
-  := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
-
-Definition LLVM_sub_state_full (T:Type): Type
-  := M.memory_stack * (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * T)).
-
-Definition LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
-  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
-
-Definition LLVM_sub_state_full_from_mem (T:Type) (v:T): LLVM_memory_state_full -> (LLVM_sub_state_full T)
-  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
-
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_partial
   := (M.empty, M.empty, [], ([], [])).
 
@@ -345,13 +358,6 @@ Definition init_llvm_memory
        which could be applied sequentually to empty memory to
        get the state with initialized globals *)
     ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit.
-
-(** Relation of memory states which must be held for
-    intialization steps *)
-Definition Type_R_init: Type := evalContext
-           → MDSHCOLOnFloat64.memory → LLVM_memory_state_partial → Prop.
-
-Definition memory_invariant : Type_R_init. Admitted.
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
 Lemma memory_invariant_empty: memory_invariant [] helix_empty_memory llvm_empty_memory_state_partial.
@@ -402,4 +408,4 @@ Proof.
   intros p data pll H.
   (* apply bisim_final_full_subrelation.
   eapply compiler_correct_aux. *)
-Qed.
+Admitted.
