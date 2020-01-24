@@ -346,19 +346,26 @@ Definition init_llvm_memory
        get the state with initialized globals *)
     ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit.
 
-(* Relation holds between two empty memory states *)
-Definition empty_R hm (lm:LLVM_sub_state_full unit) : Prop :=
-  hm ≡ (helix_empty_memory,tt) /\ lm ≡ (LLVM_sub_state_full_from_mem tt llvm_empty_memory_state_full).
+(** Relation of memory states which must be held for
+    intialization steps *)
+Definition Type_R_init: Type := evalContext
+           → MDSHCOLOnFloat64.memory → LLVM_memory_state_partial → Prop.
 
-(* Bisimulation relation holds between two memory states after
-   initalization of global variables *)
-Lemma initialization_memory_bisim_OK
+Definition memory_invariant : Type_R_init. Admitted.
+
+(** Empty memories and environments should satisfy [memory_invariant] *)
+Lemma memory_invariant_empty: memory_invariant [] helix_empty_memory llvm_empty_memory_state_partial.
+Proof.
+Admitted.
+
+(** [memory_invariant] relation must holds after initalization of global variables *)
+Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
   match helix_intial_memory p data, init_llvm_memory p data with
   | inl _, inl _ => False (* not sure if both erroring should be [True] *)
   | inr (hmem,data,σ), inr lmem =>
-    bisim_partial σ (hmem,tt) (LLVM_sub_state_partial_from_mem (inl (Name "main")) lmem)
+    memory_invariant σ hmem lmem
   | _, _ => False
   end.
 Proof.
