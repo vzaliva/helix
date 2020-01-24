@@ -132,7 +132,10 @@ Definition LLVM_state_cfg := M.memory_stack * (FMapAList.alist raw_id res_L0 * (
 
 Definition LLVM_state_mcfg := M.memory_stack * ((FMapAList.alist raw_id res_L0) * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * (block_id + res_L0))).
 
-Definition Type_R: Type := evalContext
+(** Type of bisimilation relation between between DSHCOL and LLVM states.
+    This relation could be used for fragments of CFG [cfg].
+ *)
+Definition Type_R_partial: Type := evalContext
            → MDSHCOLOnFloat64.memory * ()
              → LLVM_state_cfg → Prop.
 
@@ -160,7 +163,7 @@ Definition bisim_mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_heli
         DTYPE_Double ≡ v_llvm
     end.
 
-Definition bisim: Type_R :=
+Definition bisim_partial: Type_R_partial :=
   fun σ '(mem_helix, _) '(mem_llvm, x) =>
     let '(ρ, (g, bid_or_v)) := x in
     exists (ι: nat -> raw_id),
@@ -259,7 +262,7 @@ Qed.
 Lemma compile_FSHCOL_correct:
   forall (op: DSHOperator) st bid_out st' bid_in bks σ env mem g ρ mem_llvm,
     genIR op st bid_out ≡ inr (st',(bid_in,bks)) ->
-    eutt (bisim σ)
+    eutt (bisim_partial σ)
          (translate (@subevent _ E _) (interp_Mem (denoteDSHOperator σ op) mem))
          (translate (@subevent _ E _)
                     (interp_to_L3' helix_intrinsics
@@ -315,14 +318,17 @@ Definition llvm_empty_memory_state_cfg: LLVM_memory_state_cfg
 Definition llvm_empty_memory_state_mcfg: LLVM_memory_state_mcfg
   := (M.empty, M.empty, [], (([],[]), [])).
 
-Definition Type_R': Type := evalContext
+(** Type of bisimilation relation between between DSHCOL and LLVM states.
+    This relation could be used for "closed" CFG [mcfg].
+ *)
+Definition Type_R_full: Type := evalContext
            → MDSHCOLOnFloat64.memory * (list binary64)
              → LLVM_sub_state_mcfg (res_L0) → Prop.
 
-Definition bisim': Type_R'  :=
+Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
-    bisim σ (mem_helix, tt) (LLVM_sub_state_cfg_from_mem (inr v) (m, (ρ, g))).
+    bisim_partial σ (mem_helix, tt) (LLVM_sub_state_cfg_from_mem (inr v) (m, (ρ, g))).
 
 Definition init_one_global (m:LLVM_memory_state_cfg) (g:toplevel_entity typ (list (LLVMAst.block typ)))
   : err LLVM_memory_state_cfg
@@ -358,8 +364,8 @@ Lemma initialization_memory_bisim_OK
       (data: list binary64) :
   match helix_intial_memory p data, init_llvm_memory p data with
   | inl _, inl _ => False (* not sure if both erroring should be [True] *)
-  | inr (hmem,data,σ'), inr lmem =>
-    bisim σ' (hmem,tt) (LLVM_sub_state_cfg_from_mem (inl (Name "main")) lmem)
+  | inr (hmem,data,σ), inr lmem =>
+    bisim_partial σ (hmem,tt) (LLVM_sub_state_cfg_from_mem (inl (Name "main")) lmem)
   | _, _ => False
   end.
 Proof.
@@ -371,7 +377,7 @@ Lemma compiler_correct_aux:
     (data:list binary64)
     (pll: toplevel_entities typ (list (LLVMAst.block typ))),
     compile p data ≡ inr pll ->
-    eutt (bisim' []) (semantics_FSHCOL p data) (semantics_llvm pll).
+    eutt (bisim_full []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
 Admitted.
 
