@@ -148,6 +148,9 @@ Definition LLVM_sub_state_partial (T:Type): Type
 Definition LLVM_sub_state_full (T:Type): Type
   := memory * (local_env * @Stack.stack (local_env) * (global_env * T)).
 
+Definition LLVM_state_final :=
+  LLVM_sub_state_full (uvalue).
+
 Definition LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
   := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
 
@@ -323,15 +326,12 @@ Admitted.
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_partial
   := (M.empty, M.empty, [], ([], [])).
 
-Definition llvm_empty_memory_state_full: LLVM_memory_state_full
-  := (M.empty, M.empty, [], (([],[]), [])).
-
 (** Type of bisimilation relation between between DSHCOL and LLVM states.
     This relation could be used for "closed" CFG [mcfg].
  *)
 Definition Type_R_full: Type := evalContext
            → MDSHCOLOnFloat64.memory * (list binary64)
-             → LLVM_sub_state_full (uvalue) → Prop.
+             → LLVM_state_final → Prop.
 
 Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
