@@ -118,33 +118,35 @@ Import IO TopLevelEnv Global Local.
 
 (* TO FIX *)
 Definition interp_to_L3': forall (R: Type), IS.intrinsic_definitions -> itree (CallE +' ExternalCallE +' IntrinsicE +' LLVMGEnvE +' LLVMEnvE +' MemoryE +' PickE +' UBE +' DebugE +' FailureE) R ->
-                        (FMapAList.alist raw_id dvalue) ->
-                        (FMapAList.alist raw_id res_L0) ->
-                        M.memory_stack ->
+                        (global_env) ->
+                        (local_env) ->
+                        memory ->
 itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
-              (M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * R))) :=
+              (memory * (local_env * (global_env * R))) :=
   fun R _ _ a b c => raise "".
 
 (* memory and block or value *)
 Open Scope type_scope.
 
-Definition LLVM_state_partial := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * (block_id + res_L0))) .
-
-Definition LLVM_state_full := M.memory_stack * ((FMapAList.alist raw_id res_L0) * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * (block_id + res_L0))).
-
 Definition LLVM_memory_state_partial
-  := M.memory_stack *
-     (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue)).
+  := memory *
+     (local_env * (global_env)).
 
 Definition LLVM_memory_state_full
-  := M.memory_stack *
-     (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue)).
+  := memory *
+     (local_env * @Stack.stack (local_env) * (global_env)).
+
+Definition LLVM_state_partial
+  := memory * (local_env * (global_env * (block_id + uvalue))) .
+
+Definition LLVM_state_full
+  := memory * ((local_env) * @Stack.stack (local_env) * (global_env * (block_id + uvalue))).
 
 Definition LLVM_sub_state_partial (T:Type): Type
-  := M.memory_stack * (FMapAList.alist raw_id res_L0 * (FMapAList.alist raw_id dvalue * T)).
+  := memory * (local_env * (global_env * T)).
 
 Definition LLVM_sub_state_full (T:Type): Type
-  := M.memory_stack * (FMapAList.alist raw_id res_L0 * @Stack.stack (FMapAList.alist raw_id res_L0) * (FMapAList.alist raw_id dvalue * T)).
+  := memory * (local_env * @Stack.stack (local_env) * (global_env * T)).
 
 Definition LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
   := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
@@ -329,7 +331,7 @@ Definition llvm_empty_memory_state_full: LLVM_memory_state_full
  *)
 Definition Type_R_full: Type := evalContext
            → MDSHCOLOnFloat64.memory * (list binary64)
-             → LLVM_sub_state_full (res_L0) → Prop.
+             → LLVM_sub_state_full (uvalue) → Prop.
 
 Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
