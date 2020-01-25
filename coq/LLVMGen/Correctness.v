@@ -125,45 +125,66 @@ itree (CallE +' PickE +' UBE +' DebugE +' FailureE)
               (memory * (local_env * (global_env * R))) :=
   fun R _ _ a b c => raise "".
 
-(* memory and block or value *)
-Open Scope type_scope.
+Section StateTypes.
 
-Definition LLVM_memory_state_partial
-  := memory *
-     (local_env * (global_env)).
+  Local Open Scope type_scope.
 
-Definition LLVM_memory_state_full
-  := memory *
-     (local_env * @Stack.stack (local_env) * (global_env)).
+  Definition LLVM_memory_state_partial
+    := memory *
+       (local_env * (global_env)).
 
-Definition LLVM_state_partial
-  := memory * (local_env * (global_env * (block_id + uvalue))) .
+  Definition LLVM_memory_state_full
+    := memory *
+       (local_env * @Stack.stack (local_env) * (global_env)).
 
-Definition LLVM_state_full
-  := memory * ((local_env) * @Stack.stack (local_env) * (global_env * (block_id + uvalue))).
+  Definition LLVM_state_partial
+    := memory * (local_env * (global_env * (block_id + uvalue))) .
 
-Definition LLVM_sub_state_partial (T:Type): Type
-  := memory * (local_env * (global_env * T)).
+  Definition LLVM_state_full
+    := memory * ((local_env) * @Stack.stack (local_env) * (global_env * (block_id + uvalue))).
 
-Definition LLVM_sub_state_full (T:Type): Type
-  := memory * (local_env * @Stack.stack (local_env) * (global_env * T)).
+  Definition LLVM_sub_state_partial (T:Type): Type
+    := memory * (local_env * (global_env * T)).
 
-Definition LLVM_state_final :=
-  LLVM_sub_state_full (uvalue).
+  Definition LLVM_sub_state_full (T:Type): Type
+    := memory * (local_env * @Stack.stack (local_env) * (global_env * T)).
 
-Definition LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
-  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+  Definition LLVM_state_final :=
+    LLVM_sub_state_full (uvalue).
 
-Definition LLVM_sub_state_full_from_mem (T:Type) (v:T): LLVM_memory_state_full -> (LLVM_sub_state_full T)
-  := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+  (* -- Injections -- *)
 
+  Definition mk_LLVM_sub_state_partial_from_mem (T:Type) (v:T): LLVM_memory_state_partial -> (LLVM_sub_state_partial T)
+    := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
 
-(** Type of bisimilation relation between between DSHCOL and LLVM states.
+  Definition mk_LLVM_sub_state_full_from_mem (T:Type) (v:T): LLVM_memory_state_full -> (LLVM_sub_state_full T)
+    := λ '(m, (ρ, g)), (m, (ρ, (g, v))).
+
+End StateTypes.
+
+Section RelationTypes.
+
+  (** Relation of memory states which must be held for
+      intialization steps *)
+  Definition Type_R_memory: Type
+    := evalContext ->
+       MDSHCOLOnFloat64.memory → LLVM_memory_state_partial → Prop.
+
+  (** Type of bisimilation relation between between DSHCOL and LLVM states.
     This relation could be used for fragments of CFG [cfg].
- *)
-Definition Type_R_partial: Type := evalContext
-           → MDSHCOLOnFloat64.memory * ()
-             → LLVM_state_partial → Prop.
+   *)
+  Definition Type_R_partial: Type
+    := evalContext ->
+       MDSHCOLOnFloat64.memory * () → LLVM_state_partial → Prop.
+
+  (** Type of bisimilation relation between between DSHCOL and LLVM states.
+      This relation could be used for "closed" CFG [mcfg].
+   *)
+  Definition Type_R_full: Type
+    := evalContext ->
+       MDSHCOLOnFloat64.memory * (list binary64) → LLVM_state_final → Prop.
+
+End RelationTypes.
 
 Definition injection_Fin {A} (ι: nat -> A) k: Prop :=
   forall x y,
@@ -177,7 +198,7 @@ Definition get_logical_block (mem: M.memory) (ptr: A.addr): option M.logical_blo
 
 Import DynamicTypes.
 
-Definition bisim_mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_helix v_llvm :=
+Definition mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_helix v_llvm :=
   exists offset,
     match bk_llvm with
     | M.LBlock _ bk_llvm _ =>
@@ -188,11 +209,6 @@ Definition bisim_mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_heli
         (M.lookup_all_index offset (M.sizeof_dtyp DTYPE_Double) bk_llvm M.SUndef)
         DTYPE_Double ≡ v_llvm
     end.
-
-(** Relation of memory states which must be held for
-    intialization steps *)
-Definition Type_R_memory: Type := evalContext
-           → MDSHCOLOnFloat64.memory → LLVM_memory_state_partial → Prop.
 
 Definition memory_invariant : Type_R_memory :=
     fun σ mem_helix '(mem_llvm, x) =>
@@ -216,18 +232,10 @@ Definition memory_invariant : Type_R_memory :=
                  forall i, i < ptr_size_helix ->
                       exists v_helix v_llvm,
                         mem_lookup i bk_helix ≡ Some v_helix /\
-                        bisim_mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
+                        mem_lookup_llvm_at_i bk_llvm i ptr_size_helix v_llvm /\
                         v_llvm ≡ UVALUE_Double v_helix
               ) bk_helix bk_llvm
         end.
-
-(* TODO: Currently this relation just preserves memory invariant.
-   Maybe it needs to do something more?
-*)
-Definition bisim_partial: Type_R_partial :=
-  fun σ '(mem_helix, _) '(mem_llvm, x) =>
-    let '(ρ, (g, bid_or_v)) := x in
-    memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
 
 Require Import ITree.Interp.TranslateFacts.
 Require Import ITree.Basics.CategoryFacts.
@@ -293,6 +301,15 @@ Proof.
   reflexivity.
 Qed.
 
+(* TODO: Currently this relation just preserves memory invariant.
+   Maybe it needs to do something more?
+ *)
+Definition bisim_partial: Type_R_partial
+  :=
+    fun σ '(mem_helix, _) '(mem_llvm, x) =>
+      let '(ρ, (g, bid_or_v)) := x in
+      memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
+
 (*
     for an opeartor, in initized state
     TODO: We could probably fix [env] to be [nil]
@@ -326,17 +343,10 @@ Admitted.
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_partial
   := (M.empty, M.empty, [], ([], [])).
 
-(** Type of bisimilation relation between between DSHCOL and LLVM states.
-    This relation could be used for "closed" CFG [mcfg].
- *)
-Definition Type_R_full: Type := evalContext
-           → MDSHCOLOnFloat64.memory * (list binary64)
-             → LLVM_state_final → Prop.
-
 Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
-    bisim_partial σ (mem_helix, tt) (LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
+    bisim_partial σ (mem_helix, tt) (mk_LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
 
 Definition init_one_global (m:LLVM_memory_state_partial) (g:toplevel_entity typ (list (LLVMAst.block typ)))
   : err LLVM_memory_state_partial
@@ -396,13 +406,13 @@ Definition bisim_final: Type_R_full. Admitted.
 Lemma bisim_full_partial_subrelation: forall σ helix_state llvm_state,
     let '(mem_helix, v_helix) := helix_state in
     let '(m, ((ρ,_), (g, v))) := llvm_state in
-    bisim_full σ helix_state llvm_state -> bisim_partial σ (mem_helix, tt) (LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
+    bisim_full σ helix_state llvm_state -> bisim_partial σ (mem_helix, tt) (mk_LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
 Proof.
   intros σ helix_state llvm_state.
   repeat break_let.
   subst.
   intros H.
-  unfold LLVM_sub_state_partial_from_mem.
+  unfold mk_LLVM_sub_state_partial_from_mem.
   auto.
 Qed.
 
