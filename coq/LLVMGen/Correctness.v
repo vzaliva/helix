@@ -403,6 +403,18 @@ Admitted.
     of DHCOL program *)
 Definition bisim_final: Type_R_full. Admitted.
 
+Lemma bisim_partial_memory_subrelation: forall σ helix_state llvm_state,
+    let '(mem_helix, _) := helix_state in
+    let '(mem_llvm, (ρ, (g, _))) := llvm_state in
+    bisim_partial σ helix_state llvm_state -> memory_invariant σ mem_helix (mem_llvm, (ρ, g)).
+Proof.
+  intros σ helix_state llvm_state.
+  repeat break_let.
+  subst.
+  intros H.
+  auto.
+Qed.
+
 Lemma bisim_full_partial_subrelation: forall σ helix_state llvm_state,
     let '(mem_helix, v_helix) := helix_state in
     let '(m, ((ρ,_), (g, v))) := llvm_state in
