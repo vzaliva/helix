@@ -408,6 +408,10 @@ Theorem compiler_correct:
     eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
   intros p data pll H.
-  (* apply bisim_final_full_subrelation.
-  eapply compiler_correct_aux. *)
-Admitted.
+  eapply eqit_mon.
+  3:apply bisim_final_full_subrelation.
+  3:eapply compiler_correct_aux.
+  tauto.
+  tauto.
+  tauto.
+Qed.
