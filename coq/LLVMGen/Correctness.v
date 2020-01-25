@@ -393,10 +393,23 @@ Admitted.
     of DHCOL program *)
 Definition bisim_final: Type_R_full. Admitted.
 
-(** This lemmas states that final relation is a "subrelation" of
-    a "full" *)
-Lemma bisim_final_full_subrelation: forall σ helix_state llvm_state,
+Lemma bisim_full_partial_subrelation: forall σ helix_state llvm_state,
+    let '(mem_helix, v_helix) := helix_state in
+    let '(m, ((ρ,_), (g, v))) := llvm_state in
+    bisim_full σ helix_state llvm_state -> bisim_partial σ (mem_helix, tt) (LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
+Proof.
+  intros σ helix_state llvm_state.
+  repeat break_let.
+  subst.
+  intros H.
+  unfold LLVM_sub_state_partial_from_mem.
+  auto.
+Qed.
+
+Lemma bisim_full_final_subrelation: forall σ helix_state llvm_state,
     bisim_full σ helix_state llvm_state -> bisim_final σ helix_state llvm_state.
+Proof.
+  intros σ helix_state llvm_state H.
 Admitted.
 
 (* Top-level compiler correctness lemma  *)
@@ -409,7 +422,7 @@ Theorem compiler_correct:
 Proof.
   intros p data pll H.
   eapply eqit_mon.
-  3:apply bisim_final_full_subrelation.
+  3:apply bisim_full_final_subrelation.
   3:eapply compiler_correct_aux.
   tauto.
   tauto.
