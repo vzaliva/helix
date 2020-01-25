@@ -186,12 +186,6 @@ Section RelationTypes.
 
 End RelationTypes.
 
-Definition injection_Fin {A} (ι: nat -> A) k: Prop :=
-  forall x y,
-    x < k /\ y < k ->
-    ι x ≡ ι y ->
-    x ≡ y.
-
 Definition get_logical_block (mem: M.memory) (ptr: A.addr): option M.logical_block :=
   let '(b,a) := ptr in
   M.lookup_logical b mem.
@@ -210,23 +204,38 @@ Definition mem_lookup_llvm_at_i (bk_llvm: M.logical_block) i ptr_size_helix v_ll
         DTYPE_Double ≡ v_llvm
     end.
 
+(** Injective function from finite naturals [i<domain] to
+   arbitrary type.
+*)
+Record injection_Fin (A:Type) (domain : nat) :=
+  mk_injection_Fin
+    {
+      inj_f : nat -> A;
+      inj_f_spec :
+        forall x y,
+          x < domain /\ y < domain ->
+          inj_f x ≡ inj_f y ->
+          x ≡ y
+    }.
+
 Definition memory_invariant : Type_R_memory :=
-    fun σ mem_helix '(mem_llvm, x) =>
+  fun σ mem_helix '(mem_llvm, x) =>
+    let σ_len := List.length σ in
+    σ_len ≡ 0 \/ (* empty env immediately allowed, as injection could not exists *)
     let '(ρ, g) := x in
-    exists (ι: nat -> raw_id),
-      injection_Fin ι (List.length σ) /\
+    exists (ι: injection_Fin raw_id σ_len),
       forall (x: nat) v,
         nth_error σ x ≡ Some v ->
         match v with
         | DSHnatVal v   =>
-          FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
+          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
         | DSHCTypeVal v =>
-          FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Double v)
+          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v)
         | DSHPtrVal ptr_helix ptr_size_helix =>
           forall bk_helix,
             memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
             exists ptr_llvm bk_llvm,
-              FMapAList.alist_find _ (ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
+              FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Addr ptr_llvm) /\
               get_logical_block (fst mem_llvm) ptr_llvm ≡ Some bk_llvm /\
               (fun bk_helix bk_llvm =>
                  forall i, i < ptr_size_helix ->
@@ -374,7 +383,11 @@ Definition init_llvm_memory
 (** Empty memories and environments should satisfy [memory_invariant] *)
 Lemma memory_invariant_empty: memory_invariant [] helix_empty_memory llvm_empty_memory_state_partial.
 Proof.
-Admitted.
+  unfold memory_invariant.
+  break_let.
+  left.
+  auto.
+Qed.
 
 (** [memory_invariant] relation must holds after initalization of global variables *)
 Lemma memory_invariant_after_init
