@@ -413,8 +413,25 @@ Proof.
 Admitted.
 
 (** Relation bewteen the final states of evaluation and execution
-    of DHCOL program *)
-Definition bisim_final: Type_R_full. Admitted.
+    of DHCOL program.
+
+    At this stage we do not care about memory or environemnts, and
+    just compare return value of [main] function in LLVM with
+    evaulation results of DSHCOL.
+ *)
+Definition bisim_final: Type_R_full :=
+  fun σ '(_, h_result) '(_,(_,(_,llvm_result))) =>
+    match llvm_result with
+    | UVALUE_Array arr => @List.Forall2 _ _
+                                       (fun ve de =>
+                                          match de with
+                                          | UVALUE_Double d =>
+                                            Floats.Float.cmp Integers.Ceq d ve
+                                          | _ => False
+                                          end)
+                                       h_result arr
+    | _ => False
+    end.
 
 Lemma bisim_partial_memory_subrelation: forall σ helix_state llvm_state,
     let '(mem_helix, _) := helix_state in
@@ -441,12 +458,6 @@ Proof.
   auto.
 Qed.
 
-Lemma bisim_full_final_subrelation: forall σ helix_state llvm_state,
-    bisim_full σ helix_state llvm_state -> bisim_final σ helix_state llvm_state.
-Proof.
-  intros σ helix_state llvm_state H.
-Admitted.
-
 (* Top-level compiler correctness lemma  *)
 Theorem compiler_correct:
   forall (p:FSHCOLProgram)
@@ -456,10 +467,15 @@ Theorem compiler_correct:
     eutt (bisim_final []) (semantics_FSHCOL p data) (semantics_llvm pll).
 Proof.
   intros p data pll H.
-  eapply eqit_mon.
-  3:apply bisim_full_final_subrelation.
-  3:eapply compiler_correct_aux.
-  tauto.
-  tauto.
-  tauto.
-Qed.
+  (* This no longer follows from [compiler_correct_aux]. It will
+     at pen-ultimate step when the [main] does [return] on a memory
+     block.
+
+       eapply eqit_mon.
+       3:apply bisim_full_final_subrelation.
+       3:eapply compiler_correct_aux.
+       tauto.
+       tauto.
+       tauto.
+   *)
+Admitted.
