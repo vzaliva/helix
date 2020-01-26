@@ -49,15 +49,29 @@ DSHCOL to LLVM IR with respect to Vellvm's semantics.
    generalization.
 
 * TODO Initialization phase
+  We start with empty states (empty mememory and environments).
+  The intialization consists of only initializing global variables.
 
 * TODO Proof of correction
-
 ** TODO Statement
 
 ** TODO Core Bisimulation
-
 *** TODO Bisimulation relation
-
+    We have multiple bisimulation relation for different stages:
+**** Initialization step
+     During this step we only enforce memory relation
+     during initizalization loop invariant. The relation
+     is ~Type_R_memory~.
+**** Operator evaluation step     
+     The relation is ~Type_R_partial~ which includes memory invariant,
+     but does not deal with return value or next block pointer.
+**** Final result
+     Even though currently is the same type as ~Type_R_partial~ the
+      implementation ~bisim_final~ is a relation bewteen the final
+      states of evaluation and execution of DHCOL program. At this
+      stage we do not care about memory or environemnts, and just
+      compare return value of [main] function in LLVM with evaulation
+      results of DSHCOL.
 *** TODO Bisimulation
 
 * The plan
