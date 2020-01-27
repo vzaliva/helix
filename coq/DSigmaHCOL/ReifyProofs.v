@@ -1237,12 +1237,6 @@ Proof.
   apply kc.
 Qed.
 
-Definition memory_equiv_at_TypeSig (tm : TypeSig) (σ : evalContext) : relation memory
-  := fun mem0 mem1 =>
-       forall k t i size, TM.MapsTo k t tm ->
-                     context_lookup "" σ k = inr (DSHPtrVal i size) ->
-                     memory_lookup mem0 i = memory_lookup mem1 i.
-
 (* DSH expression as a "pure" function by enforcing the memory
    invariants guaranteeing that it depends only input memory block and
    modifies only output memory block.
@@ -1262,18 +1256,6 @@ Class DSH_pure
       mem_stable: forall σ m m' fuel,
         evalDSHOperator σ d m fuel = Some (inr m') ->
         forall k, mem_block_exists k m <-> mem_block_exists k m';
-
-      (* depends only [x_p], which must be valid in [σ], in all
-         consistent memory configurations *)
-      mem_read_safe: forall σ0 σ1 m0 m1 fuel,
-          context_equiv_at_TypeSig dsig σ0 σ1 ->
-          memory_equiv_at_TypeSig dsig σ0 m0 m1 ->
-          blocks_equiv_at_Pexp σ0 σ1 x_p m0 m1 ->
-          blocks_equiv_at_Pexp σ0 σ1 y_p m0 m1 ->
-          hopt_r
-            (herr_c (blocks_equiv_at_Pexp σ0 σ1 y_p))
-            (evalDSHOperator σ0 d m0 fuel)
-            (evalDSHOperator σ1 d m1 fuel);
 
       (* modifies only [y_p], which must be valid in [σ] *)
       mem_write_safe: forall σ m m' fuel,
@@ -4365,7 +4347,7 @@ Proof.
       simpl.
       rewrite Heqe2.
 
-      destruct P2 as [_ _ mem_write_safe2].
+      destruct P2 as [_ mem_write_safe2].
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
@@ -4576,7 +4558,7 @@ Proof.
       simpl.
       rewrite Heqe2.
 
-      destruct P2 as [_ _ mem_write_safe2].
+      destruct P2 as [_ mem_write_safe2].
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
@@ -4796,7 +4778,7 @@ Proof.
       simpl.
       rewrite Heqe1.
 
-      destruct P2 as [_ _ mem_write_safe2].
+      destruct P2 as [_ mem_write_safe2].
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
@@ -5094,7 +5076,7 @@ Proof.
       simpl.
       rewrite Heqe2.
 
-      destruct P2 as [_ _ mem_write_safe2].
+      destruct P2 as [_ mem_write_safe2].
       apply Option_equiv_eq in E2.
       specialize (mem_write_safe2 _ _ _ _ E2).
 
