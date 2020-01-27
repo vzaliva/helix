@@ -727,6 +727,97 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
             some_none.
     Qed.
 
+    Lemma evalDSHOperator_fuel_monotone_None:
+      ∀ (op : DSHOperator)  (σ : list DSHVal) (fuel : nat) (m : memory),
+        evalDSHOperator σ op m (S fuel) ≡ None
+        → evalDSHOperator σ op m fuel ≡ None.
+    Proof.
+      intros op.
+      induction op; intros; try (cbn in H; repeat break_let; subst; some_none).
+      -
+        (* Loop *)
+        destruct n.
+        +
+          cbn in H.
+          some_none.
+        + cbn in H.
+          destruct fuel; [reflexivity|].
+          repeat break_match_hyp; subst.
+          * some_none.
+          *
+            cbn.
+            repeat break_match_goal; subst.
+            --
+              exfalso.
+              apply evalDSHOperator_fuel_monotone in Heqo0.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+            --
+              apply evalDSHOperator_fuel_monotone in Heqo0.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+              apply IHop.
+              auto.
+            --
+              reflexivity.
+          *
+            clear H.
+            cbn.
+            repeat break_match_goal; subst.
+            --
+              exfalso.
+              apply evalDSHOperator_fuel_monotone in Heqo0.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+            --
+              apply evalDSHOperator_fuel_monotone in Heqo0.
+              rewrite Heqo in Heqo0.
+              inv Heqo0.
+            --
+              reflexivity.
+      -
+        (* Alloc *)
+        cbn in H.
+        repeat break_match_hyp; subst.
+        + some_none.
+        + some_none.
+        + clear H.
+          destruct fuel; [reflexivity|].
+          eapply IHop in Heqo.
+          cbn.
+          rewrite Heqo.
+          reflexivity.
+      -
+        (* Seq *)
+        cbn in H.
+        destruct fuel; [reflexivity|].
+        repeat break_match_hyp; subst.
+        + some_none.
+        + (* [op1] succeeded [op2] fails *)
+          cbn.
+          repeat break_match_goal; subst.
+          *
+            exfalso.
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+          *
+            apply IHop2.
+            apply evalDSHOperator_fuel_monotone in Heqo0.
+            rewrite Heqo in Heqo0.
+            inv Heqo0.
+            apply H.
+          *
+            reflexivity.
+        + (* [op1] fails *)
+          clear H.
+          cbn.
+          apply IHop1 in Heqo.
+          rewrite Heqo.
+          reflexivity.
+    Qed.
+
+
     Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
         eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
     Proof.
