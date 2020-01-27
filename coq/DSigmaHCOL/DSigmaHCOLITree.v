@@ -963,6 +963,28 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
               some_none.
     Qed.
 
+    Lemma eval_Loop_for_i_to_N_fuel_monotone_gt:
+      forall res σ op i N fuel fuel' mem,
+        fuel'>fuel ->
+        eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some res ->
+        eval_Loop_for_i_to_N σ op i N mem fuel' ≡ Some res.
+    Proof.
+      intros H.
+      intros σ op i N fuel fuel' mem H0 H1.
+      remember (fuel'-fuel) as d.
+      assert(F: fuel' ≡ fuel + d) by lia.
+      subst fuel'.
+      clear H0 Heqd.
+      induction d.
+      -
+        replace (fuel + 0) with fuel by lia.
+        auto.
+      -
+        replace (fuel + S d) with (S (fuel + d)) by lia.
+        apply eval_Loop_for_i_to_N_fuel_monotone.
+        auto.
+    Qed.
+
     Lemma Loop_is_Iter_aux:
       ∀ (op : DSHOperator)
         (IHop: ∀ (σ : evalContext) (mem' : memory) (fuel : nat) (mem : memory),
