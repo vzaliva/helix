@@ -817,7 +817,6 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           reflexivity.
     Qed.
 
-
     Lemma eval_Loop_for_N_to_N: forall fuel σ op N mem,
         eval_Loop_for_i_to_N σ op N N mem (S fuel) ≡ Some (ret mem).
     Proof.
@@ -1080,7 +1079,62 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         some_none.
     Qed.
 
-    (* This invert goes in wrong direction. Not sure if it could be proven *)
+    Lemma eval_Loop_for_i_to_N_inl_at_i:
+      ∀ (σ : list DSHVal) (i N : nat) (op : DSHOperator) (fuel : nat) (mem : memory),
+        i < N
+        → ∀ s : string,
+          evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl s)
+          → eval_Loop_for_i_to_N σ op i N mem (fuel+N-i) ≡ Some (inl s).
+    Proof.
+      intros σ i N op fuel mem ic s H.
+      induction N.
+      -
+        inv ic.
+      -
+        replace (fuel + S N - i) with (S (fuel + N - i)) by lia.
+        cbn.
+        break_if; [apply beq_nat_true in Heqb; lia|].
+        destruct (i =? N)%nat eqn:EN.
+        +
+          apply beq_nat_true in EN.
+          subst i.
+          clear IHN.
+          repeat break_match_goal; subst.
+          *
+            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
+            rewrite  eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
+          *
+            apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
+            rewrite  eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
+            replace (fuel+N-N) with fuel by lia.
+            apply H.
+          *
+            exfalso.
+            destruct fuel ; [inv H|].
+            replace (S fuel + N - N) with (S fuel) in Heqo by lia.
+            rewrite eval_Loop_for_i_to_N_fuel_monotone with (res:=inl s) in Heqo.
+            some_none.
+            rewrite eval_Loop_for_N_to_N in Heqo.
+            some_none.
+        +
+          repeat break_match_goal; subst.
+          *
+            apply IHN.
+            apply beq_nat_false in EN.
+            lia.
+          *
+            assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
+            specialize (IHN ic1).
+            inv IHN.
+          *
+            exfalso.
+            assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
+            specialize (IHN ic1).
+            inv IHN.
+    Qed.
+
     Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ i N op fuel mem msg,
         i < N ->
 
