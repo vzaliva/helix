@@ -4040,11 +4040,11 @@ Instance HTSUMUnion_MSH_DSH_compat
          `{P2: DSH_pure dop2 dsig2 x_p y_p}
          `{C1: @MSH_DSH_compat _ _ mop1 dop1 dsig1 σ m x_p y_p P1}
          `{C2: forall m', lookup_Pexp σ m x_p = lookup_Pexp σ m' x_p ->
-                      MSH_DSH_compat mop2 dop2 σ m' x_p y_p}
+                      @MSH_DSH_compat _ _ mop2 dop2 dsig2 σ m' x_p y_p P2}
          
   :
     MSH_DSH_compat
-      (MHTSUMUnion dot mop1 mop2)
+      (MHTSUMUnion dot mop2 mop1)
       (DSHSeq dop1 dop2)
       σ m x_p y_p.
 Proof.
