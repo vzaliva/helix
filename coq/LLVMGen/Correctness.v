@@ -303,7 +303,7 @@ Proof.
   unfold loop.
   cbn. rewrite bind_ret_l.
   match goal with
-  | |- KTree.iter ?body ?s ≈ _ =>
+  | |- CategoryOps.iter (C := ktree _) ?body ?s ≈ _ =>
     rewrite (unfold_iter body s)
   end.
   state_steps.

@@ -222,10 +222,11 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         denoteDSHPower σ p f x (mem_add 0 v' y) xoffset yoffset
       end.
 
+  Notation iter := (@iter _ (ktree _) sum _ _ _).
+
   Fixpoint denoteDSHOperator
            (σ: evalContext)
-           (op: DSHOperator): itree Event unit
-    :=
+           (op: DSHOperator): itree Event unit :=
         match op with
         | DSHNop => ret tt
 
@@ -275,6 +276,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
           yoff <- denoteNexp σ yoffset ;;
           y'' <- denoteDSHPower σ n f x y' xoff yoff ;;
           trigger (MemSet y_i y'')
+
 
         | DSHLoop n body =>
           iter (fun (p: nat) =>
@@ -613,7 +615,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
        - N=0 =>
          - fuel=0 => [None]
          - fuel>0 => [Some (ret mem)] no-op
-       - i=N => 
+       - i=N =>
          - fuel=0 => [None]
          - fuel>0 => [Some (ret mem)] no-op
 
@@ -1531,7 +1533,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
       exists msg'.
       eapply AUX; eauto.
     Qed.
-    
+
     Theorem Denote_Eval_Equiv_Fails:
       forall (σ: evalContext) (op: DSHOperator) (mem: memory) (fuel: nat) (msg:string),
         evalDSHOperator σ op mem fuel ≡ Some (inl msg) ->
