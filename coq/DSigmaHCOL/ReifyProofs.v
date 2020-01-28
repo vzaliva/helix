@@ -4055,16 +4055,242 @@ Proof.
     [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
 
   destruct mem_op as [mma |] eqn:MOP.
-  all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [| dma] |].
+  all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
   all: repeat constructor.
 
   1,3,4: exfalso.
   -
-    admit.
+    cbn in MOP.
+    destruct (mem_op mop2 x_m) as [mma2 |] eqn:MOP2; [| some_none].
+    destruct (mem_op mop1 x_m) as [mma1 |] eqn:MOP1; [| some_none].
+    some_inv; subst.
+
+    cbn in DOP.
+    destruct evalDSHOperator as [r |] eqn:DOP1 in DOP; [| some_none];
+      destruct r as [msg1 | dma1]; inversion DOP; subst; clear DOP.
+    +
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1.
+    +
+      rename H0 into DOP2.
+
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1; subst.
+      inversion H1; clear C1 H1.
+      rename x into y_dma1, H into Y_DMA1, H0 into C1; symmetry in Y_DMA1.
+
+      (* make use of C2 *)
+      assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
+      {
+        clear - X X_M P1 DOP1 Y.
+        inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
+        eq_to_equiv_hyp.
+        apply P1 with (y_i := y_id) in DOP1;
+          [| err_eq_to_equiv_hyp; assumption]; clear P1.
+        unfold lookup_Pexp, memory_lookup_err.
+        rewrite X.
+        cbn.
+        unfold memory_equiv_except in DOP1.
+        assert (T : x_id <> y_id) by admit.
+        specialize (DOP1 x_id T).
+        rewrite DOP1.
+        reflexivity.
+      }
+      specialize (C2 dma1 T).
+      inversion C2; clear C2; rename eval_equiv0 into C2.
+      specialize (C2 x_m y_dma1).
+      rewrite <-T in C2; clear T.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m) by
+          (unfold lookup_Pexp, memory_lookup_err;
+           rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ dma1 y_p = inr y_dma1)
+        by (rewrite Y_DMA1; reflexivity).
+      specialize (C2 TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP2 by lia.
+      rewrite DOP2, MOP2 in C2.
+      inversion C2.
   -
-    admit.
+    cbn in MOP.
+    destruct (mem_op mop2 x_m) as [mma2 |] eqn:MOP2; [| some_none].
+    destruct (mem_op mop1 x_m) as [mma1 |] eqn:MOP1; [| some_none].
+    some_inv; subst.
+
+    cbn in DOP.
+    destruct evalDSHOperator as [r |] eqn:DOP1 in DOP.
+    +
+      destruct r as [| dma1]; inversion DOP; subst; clear DOP.
+      rename H0 into DOP2.
+
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1; subst.
+      inversion H1; clear C1 H1.
+      rename x into y_dma1, H into Y_DMA1, H0 into C1; symmetry in Y_DMA1.
+
+      (* make use of C2 *)
+      assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
+      {
+        clear - X X_M P1 DOP1 Y.
+        inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
+        eq_to_equiv_hyp.
+        apply P1 with (y_i := y_id) in DOP1;
+          [| err_eq_to_equiv_hyp; assumption]; clear P1.
+        unfold lookup_Pexp, memory_lookup_err.
+        rewrite X.
+        cbn.
+        unfold memory_equiv_except in DOP1.
+        assert (T : x_id <> y_id) by admit.
+        specialize (DOP1 x_id T).
+        rewrite DOP1.
+        reflexivity.
+      }
+      specialize (C2 dma1 T).
+      inversion C2; clear C2; rename eval_equiv0 into C2.
+      specialize (C2 x_m y_dma1).
+      rewrite <-T in C2; clear T.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m) by
+          (unfold lookup_Pexp, memory_lookup_err;
+           rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ dma1 y_p = inr y_dma1)
+        by (rewrite Y_DMA1; reflexivity).
+      specialize (C2 TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP2 by lia.
+      rewrite DOP2, MOP2 in C2.
+      inversion C2.
+    +
+      clear DOP.
+
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1.
   -
-    admit.
+    cbn in DOP.
+    destruct evalDSHOperator as [r |] eqn:DOP1 in DOP; [| some_none].
+    destruct r as [| dma1]; [some_inv; inl_inr |].
+    rename DOP into DOP2.
+    
+    cbn in MOP.
+    destruct (mem_op mop1 x_m) as [mma1 |] eqn:MOP1.
+    +
+      destruct (mem_op mop2 x_m) eqn:MOP2; [some_none |].
+      clear MOP.
+
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+      
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1; subst.
+      inversion H1; clear C1 H1.
+      rename x into y_dma1, H into Y_DMA1, H0 into C1; symmetry in Y_DMA1.
+
+      (* make use of C2 *)
+      assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
+      {
+        clear - X X_M P1 DOP1 Y.
+        inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
+        eq_to_equiv_hyp.
+        apply P1 with (y_i := y_id) in DOP1;
+          [| err_eq_to_equiv_hyp; assumption]; clear P1.
+        unfold lookup_Pexp, memory_lookup_err.
+        rewrite X.
+        cbn.
+        unfold memory_equiv_except in DOP1.
+        assert (T : x_id <> y_id) by admit.
+        specialize (DOP1 x_id T).
+        rewrite DOP1.
+        reflexivity.
+      }
+      specialize (C2 dma1 T).
+      inversion C2; clear C2; rename eval_equiv0 into C2.
+      specialize (C2 x_m y_dma1).
+      rewrite <-T in C2; clear T.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m) by
+          (unfold lookup_Pexp, memory_lookup_err;
+           rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ dma1 y_p = inr y_dma1)
+        by (rewrite Y_DMA1; reflexivity).
+      specialize (C2 TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP2 by lia.
+      rewrite DOP2, MOP2 in C2.
+      inversion C2.
+    +
+      clear MOP.
+      
+      cbn in X_M; rewrite X in X_M.
+      cbn in Y_M; rewrite Y in Y_M.
+      
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1.
   -
     unfold lookup_Pexp; cbn.
     rewrite Y.
