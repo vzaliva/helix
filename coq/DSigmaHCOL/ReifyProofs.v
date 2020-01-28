@@ -4023,7 +4023,6 @@ Proof.
     rewrite D12, E12, D12; reflexivity.
 Qed.
 
-(* (likely) incorrect, WILL CHANGE *)
 Instance HTSUMUnion_MSH_DSH_compat
          {i o : nat}
          {mop1: @MSHOperator i o}
@@ -4059,7 +4058,13 @@ Proof.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [| dma] |].
   all: repeat constructor.
 
-  1,3,4: exfalso; admit. (* should follow from C1/C2 *)
+  1,3,4: exfalso.
+  -
+    admit.
+  -
+    admit.
+  -
+    admit.
   -
     unfold lookup_Pexp; cbn.
     rewrite Y.
@@ -4082,8 +4087,8 @@ Proof.
 
 
       cbn in MOP.
-      destruct (mem_op mop1 x_m) as [mma1 |] eqn:MOP1; [| some_none].
       destruct (mem_op mop2 x_m) as [mma2 |] eqn:MOP2; [| some_none].
+      destruct (mem_op mop1 x_m) as [mma1 |] eqn:MOP1; [| some_none].
       some_inv; subst.
 
       cbn in DOP.
@@ -4091,73 +4096,86 @@ Proof.
       destruct r as [| dma1]; [some_inv; inl_inr |].
       rename DOP into DOP2.
 
-      destruct (mem_lookup k (MMemoryOfCarrierA.mem_union mma1 mma2)) as [k_r |] eqn:K_R.
-      *
-        constructor 2.
+      (* make use of C1 *)
+      inversion C1; clear C1; rename eval_equiv0 into C1.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
+        by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
+        by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
+            rewrite Y; cbn; rewrite Y_M; reflexivity).
+      specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
+      rewrite DOP1, MOP1 in C1.
+      inversion C1; subst.
+      inversion H1; clear C1 H1.
+      rename x into y_dma1, H into Y_DMA1, H0 into C1; symmetry in Y_DMA1.
+
+      (* make use of C2 *)
+      assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
+      {
+        clear - X X_M P1 DOP1 Y.
+        inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
+        eq_to_equiv_hyp.
+        apply P1 with (y_i := y_id) in DOP1;
+          [| err_eq_to_equiv_hyp; assumption]; clear P1.
+        unfold lookup_Pexp, memory_lookup_err.
+        rewrite X.
+        cbn.
+        unfold memory_equiv_except in DOP1.
+        assert (T : x_id <> y_id) by admit.
+        specialize (DOP1 x_id T).
+        rewrite DOP1.
         reflexivity.
+      }
+      specialize (C2 dma1 T).
+      inversion C2; clear C2; rename eval_equiv0 into C2.
+      specialize (C2 x_m y_dma1).
+      rewrite <-T in C2; clear T.
+      assert (TC1 : lookup_Pexp σ m x_p = inr x_m) by
+          (unfold lookup_Pexp, memory_lookup_err;
+           rewrite X; cbn; rewrite X_M; reflexivity).
+      assert (TC2 : lookup_Pexp σ dma1 y_p = inr y_dma1)
+        by (rewrite Y_DMA1; reflexivity).
+      specialize (C2 TC1 TC2); clear TC1 TC2.
+      rewrite evalDSHOperator_estimateFuel_ge in DOP2 by lia.
+      rewrite DOP2, MOP2 in C2.
+      inversion C2; subst.
+      inversion H1; clear C2 H1.
+      rename x into y_dma2, H into Y_DMA2, H0 into C2; symmetry in Y_DMA2.
+      replace y_dma2 with y_dma in *.
+      2: {
+        clear - Y Y_DMA Y_DMA2.
+        unfold lookup_Pexp, memory_lookup_err in Y_DMA2.
+        rewrite Y in Y_DMA2.
+        cbn in Y_DMA2.
+        rewrite Y_DMA in Y_DMA2.
+        inversion Y_DMA2.
+        reflexivity.
+      }
+      clear y_dma2 Y_DMA2.
 
-        (* make use of C1 *)
-        inversion C1; clear C1; rename eval_equiv0 into C1.
-        assert (TC1 : lookup_Pexp σ m x_p = inr x_m)
-          by (clear - X X_M; unfold lookup_Pexp, memory_lookup_err;
-              rewrite X; cbn; rewrite X_M; reflexivity).
-        assert (TC2 : lookup_Pexp σ m y_p = inr y_m)
-          by (clear - Y Y_M; unfold lookup_Pexp, memory_lookup_err;
-              rewrite Y; cbn; rewrite Y_M; reflexivity).
-        specialize (C1 x_m y_m TC1 TC2); clear TC1 TC2.
-        rewrite evalDSHOperator_estimateFuel_ge in DOP1 by lia.
-        rewrite DOP1, MOP1 in C1.
-        inversion C1; subst.
-        inversion H1; clear C1 H1.
-        rename x into y_dma1, H into Y_DMA1, H0 into C1; symmetry in Y_DMA1.
+      eapply SHCOL_DSHCOL_mem_block_equiv_comp; eassumption.
+    +
+      exfalso.
+      clear - P DOP Y Y_M Y_DMA.
 
-        (* make use of C2 *)
-        assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
-        {
-          clear - X X_M P1 DOP1 Y.
-          inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
-          eq_to_equiv_hyp.
-          apply P1 with (y_i := y_id) in DOP1;
-            [| err_eq_to_equiv_hyp; assumption]; clear P1.
-          unfold lookup_Pexp, memory_lookup_err.
-          rewrite X.
-          cbn.
-          unfold memory_equiv_except in DOP1.
-          assert (T : x_id <> y_id) by admit.
-          specialize (DOP1 x_id T).
-          rewrite DOP1.
-          reflexivity.
-        }
-        specialize (C2 dma1 T).
-        inversion C2; clear C2; rename eval_equiv0 into C2.
-        specialize (C2 x_m y_dma1).
-        rewrite <-T in C2; clear T.
-        assert (TC1 : lookup_Pexp σ m x_p = inr x_m) by
-            (unfold lookup_Pexp, memory_lookup_err;
-             rewrite X; cbn; rewrite X_M; reflexivity).
-        assert (TC2 : lookup_Pexp σ dma1 y_p = inr y_dma1)
-          by (rewrite Y_DMA1; reflexivity).
-        specialize (C2 TC1 TC2); clear TC1 TC2.
-        rewrite evalDSHOperator_estimateFuel_ge in DOP2 by lia.
-        rewrite DOP2, MOP2 in C2.
-        inversion C2; subst.
-        inversion H1; clear C2 H1.
-        rename x into y_dma2, H into Y_DMA2, H0 into C2; symmetry in Y_DMA2.
-        replace y_dma2 with y_dma in *.
-        2: {
-          clear - Y Y_DMA Y_DMA2.
-          unfold lookup_Pexp, memory_lookup_err in Y_DMA2.
-          rewrite Y in Y_DMA2.
-          cbn in Y_DMA2.
-          rewrite Y_DMA in Y_DMA2.
-          inversion Y_DMA2.
-          reflexivity.
-        }
-        clear y_dma2 Y_DMA2.
-        assert (C : SHCOL_DSHCOL_mem_block_equiv
-                  y_m y_dma (MMemoryOfCarrierA.mem_union mma2 mma1))
-          by (eapply SHCOL_DSHCOL_mem_block_equiv_comp; eassumption).
-Abort.
+      rewrite <-mem_block_not_exists_exists in Y_DMA.
+      contradict Y_DMA.
+
+      inversion P; clear mem_write_safe0; rename mem_stable0 into MS.
+      apply Option_equiv_eq in DOP.
+      apply MS with (k := y_id) in DOP; clear MS.
+
+      apply DOP, mem_block_exists_exists_equiv.
+      exists y_m.
+      unfold lookup_Pexp in Y_M.
+      rewrite Y in Y_M.
+      cbn in Y_M.
+      unfold memory_lookup_err, trywith in Y_M.
+      break_match; inversion Y_M.
+      rewrite H1; reflexivity.
+Admitted.
 
 Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
