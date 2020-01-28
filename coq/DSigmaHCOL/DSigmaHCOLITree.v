@@ -1158,22 +1158,109 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
     Qed.
 
     Lemma eval_Loop_for_i_to_N_Fail_invert: forall σ i N op fuel mem msg,
-        i < N ->
+        S i < N ->
 
         eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg) ->
 
         evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inl msg) \/
 
         exists mem_aux,
-            evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr mem_aux) /\
-            eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inl msg).
+          evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr mem_aux) /\
+          eval_Loop_for_i_to_N σ op (S i) N mem_aux fuel ≡ Some (inl msg).
     Proof.
       intros σ i N op fuel mem msg ic H.
 
+      destruct (evalDSHOperator (DSHnatVal i :: σ) op mem fuel) eqn:E.
+      destruct e.
+      -
+        (* fails at [i] *)
+        destruct (string_dec s msg) as [SE|NSE].
+        +
+          (* Same message *)
+          left.
+          subst.
+          reflexivity.
+        +
+          (* different message *)
+          exfalso.
+          eapply eval_Loop_for_i_to_N_inl_at_i with (N:=N) in E; [|lia].
+          eapply eval_Loop_for_i_to_N_fuel_monotone_gt in H.
+          rewrite H in E.
+          inv E.
+          unfold not in NSE. contradict NSE. reflexivity.
+          lia.
+      -
+        (* succeeds at [i] *)
+        right.
+        exists m.
+        split; [reflexivity|].
+        destruct fuel; [inv H|].
+        cbn.
+        destruct N; [inv ic|].
+        break_if ; [apply beq_nat_true in Heqb; lia|].
 
-
+        (* unfinished bullet *)
+        (*
+          cbn.
+          break_if; [apply beq_nat_true in Heqb; lia|].
+          repeat break_match_hyp; subst.
+          *
+            inv H.
+            destruct fuel; [inv Heqo|].
+            rewrite eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
+          *
+            destruct fuel; [inv Heqo|].
+            rewrite eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
+            apply evalDSHOperator_fuel_monotone in H.
+            congruence.
+          *
+            some_none.
+         *)
+        admit.
+      -
+        (* out of fuel at [i] *)
+        exfalso.
+        apply Nat.lt_succ_l in ic.
+        assert(eval_Loop_for_i_to_N σ op i N mem fuel ≡ None).
+        {
+          clear H.
+          induction N; intros.
+          -
+            inversion ic; intros.
+          -
+            destruct fuel.
+            reflexivity.
+            destruct (i =? N)%nat eqn:EN.
+            *
+              apply beq_nat_true in EN.
+              subst i.
+              clear IHN.
+              cbn.
+              break_if; [apply beq_nat_true in Heqb; lia|].
+              clear Heqb.
+              destruct fuel; [reflexivity|].
+              rewrite eval_Loop_for_N_to_N.
+              break_match; inv Heqe.
+              apply evalDSHOperator_fuel_monotone_None, E.
+            *
+              assert (ic1: i<N) by (apply beq_nat_false in EN; lia).
+              specialize (IHN ic1).
+              cbn.
+              break_if; [apply beq_nat_true in Heqb; lia|].
+              repeat break_match_goal; subst.
+              --
+                apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
+                some_none.
+              --
+                apply eval_Loop_for_i_to_N_fuel_monotone in Heqo.
+                some_none.
+              --
+                reflexivity.
+        }
+        some_none.
     Admitted.
-
 
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
       forall n (σ: evalContext) mem f m1 m2 m3 m4,
@@ -1316,50 +1403,112 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         inv HEval.
       - intros i ineq EQ σ mem msg HEval.
         assert(EQ': (i =? S N)%nat ≡ false) by (apply Nat.eqb_neq; lia).
-        unfold denote_Loop_for_i_to_N.
-        apply eval_Loop_for_i_to_N_Fail_invert in HEval; [| lia].
-        destruct HEval as [Eval_body | [mem_aux [Eval_head Eval_tail]]].
+        destruct (Nat.eq_dec i N) as [E|NE].
         +
-          (* fails @i *)
-          apply IHop in Eval_body; clear IHop.
-          unfold interp_Mem in Eval_body.
-          destruct Eval_body as [msg' [Eval_body_D | Eval_body_S]].
+          unfold denote_Loop_for_i_to_N.
+          subst i.
+          cbn in HEval.
+          rewrite EQ' in HEval.
+          repeat break_match_hyp; subst.
           *
-            eexists.
-            left.
-            iter_unfold_pointed.
-            state_steps.
-            rewrite EQ'; state_steps.
-            rewrite interp_state_bind.
-            rewrite bind_bind.
-            apply beq_nat_false in EQ'.
-            rewrite Eval_body_D.
-            match_failure.
+            destruct fuel; [inv Heqo|].
+            inv HEval.
+            rewrite eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
           *
-            eexists.
-            right.
-            iter_unfold_pointed.
-            state_steps.
-            rewrite EQ'; state_steps.
-            rewrite interp_state_bind.
-            rewrite bind_bind.
-            apply beq_nat_false in EQ'.
-            rewrite_clear Eval_body_S.
-            match_failure.
+            destruct fuel; [inv Heqo|].
+            rewrite eval_Loop_for_N_to_N in Heqo.
+            inv Heqo.
+
+            apply IHop in HEval.
+            unfold interp_Mem in HEval.
+            destruct HEval as [msg' [Eval_body_D | Eval_body_S]].
+            --
+              eexists.
+              left.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              apply beq_nat_false in EQ'.
+              rewrite Eval_body_D.
+              match_failure.
+            --
+              eexists.
+              right.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              apply beq_nat_false in EQ'.
+              rewrite_clear Eval_body_S.
+              match_failure.
+          *
+            some_none.
         +
-          (* succeeds @i, but fails later *)
-          (*
-          apply IH in Eval_tail; clear IH.
-          apply Denote_Eval_Equiv_Succeeds in Eval_head.
-          unfold interp_Mem in Eval_head.
-          rewrite Eval_head.
-          repeat setoid_rewrite bind_ret_l.
-          state_steps.
-          iter_unfold_pointed.
-          state_steps.
-          admit.
-           *)
-    Admitted.
+          apply eval_Loop_for_i_to_N_Fail_invert in HEval ; [| lia].
+          destruct HEval as [Eval_body | [mem_aux [Eval_head Eval_tail]]].
+          --
+            (* fails @i *)
+            unfold denote_Loop_for_i_to_N.
+            apply IHop in Eval_body; clear IHop.
+            unfold interp_Mem in Eval_body.
+            destruct Eval_body as [msg' [Eval_body_D | Eval_body_S]].
+            ++
+              exists msg'.
+              left.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              apply beq_nat_false in EQ'.
+              rewrite Eval_body_D.
+              match_failure.
+            ++
+              exists msg'.
+              right.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              apply beq_nat_false in EQ'.
+              rewrite_clear Eval_body_S.
+              match_failure.
+          --
+            (* succeeds @i, but fails later *)
+            apply IH in Eval_tail; clear IH; try lia.
+            apply Denote_Eval_Equiv_Succeeds in Eval_head.
+            unfold interp_Mem in Eval_head.
+            destruct Eval_tail as [msg' [Eval_tail_D | Eval_tail_S]].
+            ++
+              exists msg'.
+              left.
+              unfold denote_Loop_for_i_to_N in *.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              rewrite Eval_head.
+              state_steps.
+              auto.
+            ++
+              exists msg'.
+              right.
+              unfold denote_Loop_for_i_to_N in *.
+              iter_unfold_pointed.
+              state_steps.
+              rewrite EQ'; state_steps.
+              rewrite interp_state_bind.
+              rewrite bind_bind.
+              rewrite Eval_head.
+              state_steps.
+              auto.
+    Qed.
 
     Lemma Loop_is_Iter_Fail:
       ∀ (op : DSHOperator)
