@@ -1103,6 +1103,19 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         some_none.
     Qed.
 
+    Lemma eval_Loop_for_i_to_N_inr_at_i:
+          ∀ (σ : list DSHVal) (i N : nat) (op : DSHOperator) (fuel : nat)
+            (mem : memory) (msg : string),
+            S i < N
+            → eval_Loop_for_i_to_N σ op i N mem fuel ≡ Some (inl msg)
+            → ∀ m : memory,
+                evalDSHOperator (DSHnatVal i :: σ) op mem fuel ≡ Some (inr m)
+                → eval_Loop_for_i_to_N σ op (S i) N m fuel ≡ Some (inl msg).
+    Proof.
+      intros σ i N op fuel mem msg ic H m E.
+
+    Admitted.
+
     Lemma eval_Loop_for_i_to_N_inl_at_i:
       ∀ (σ : list DSHVal) (i N : nat) (op : DSHOperator) (fuel : nat) (mem : memory),
         i < N
@@ -1196,31 +1209,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
         right.
         exists m.
         split; [reflexivity|].
-        destruct fuel; [inv H|].
-        cbn.
-        destruct N; [inv ic|].
-        break_if ; [apply beq_nat_true in Heqb; lia|].
-
-        (* unfinished bullet *)
-        (*
-          cbn.
-          break_if; [apply beq_nat_true in Heqb; lia|].
-          repeat break_match_hyp; subst.
-          *
-            inv H.
-            destruct fuel; [inv Heqo|].
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-          *
-            destruct fuel; [inv Heqo|].
-            rewrite eval_Loop_for_N_to_N in Heqo.
-            inv Heqo.
-            apply evalDSHOperator_fuel_monotone in H.
-            congruence.
-          *
-            some_none.
-         *)
-        admit.
+        eapply eval_Loop_for_i_to_N_inr_at_i; eauto.
       -
         (* out of fuel at [i] *)
         exfalso.
@@ -1262,7 +1251,7 @@ Module MDSigmaHCOLITree (Import CT : CType) (Import ESig:MDSigmaHCOLEvalSig CT).
                 reflexivity.
         }
         some_none.
-    Admitted.
+    Qed.
 
     Lemma Denote_Eval_Equiv_DSHMap2_Succeeds:
       forall n (σ: evalContext) mem f m1 m2 m3 m4,
