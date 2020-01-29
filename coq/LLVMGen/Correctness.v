@@ -350,7 +350,7 @@ Lemma compile_FSHCOL_correct (op: DSHOperator) st bid_out st' bid_in bks σ env 
 Admitted.
 
 Definition llvm_empty_memory_state_partial: LLVM_memory_state_partial
-  := (M.empty, M.empty, [], ([], [])).
+  := (M.empty_memory_stack, ([], [])).
 
 Definition bisim_full: Type_R_full  :=
   fun σ  '(mem_helix, v_helix) mem_llvm =>
