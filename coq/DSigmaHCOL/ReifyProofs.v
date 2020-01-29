@@ -1106,6 +1106,11 @@ Section herr.
   | herr_i_inl_inr : forall e a, herr_i (inl e) (inr a)
   | herr_i_inr_inr : forall a b, R a b -> herr_i (inr a) (inr b).
 
+  Inductive herr_f : (err A) -> (err B) -> Prop :=
+  | herr_f_inl_l : forall e x, herr_f (inl e) x
+  | herr_f_inl_r : forall e x, herr_f x (inl e)
+  | herr_f_inr : forall a b, R a b -> herr_f (inr a) (inr b).
+
 End herr.
 Arguments herr {A B} R.
 Arguments herr_c {A B} R.
@@ -4023,6 +4028,9 @@ Proof.
     rewrite D12, E12, D12; reflexivity.
 Qed.
 
+Definition compose2 {A B C D : Type} (g : C -> D) (f : A -> B -> C) : A -> B -> D :=
+    fun a b => g (f a b).
+
 Instance HTSUMUnion_MSH_DSH_compat
          {i o : nat}
          {mop1: @MSHOperator i o}
@@ -4031,16 +4039,13 @@ Instance HTSUMUnion_MSH_DSH_compat
          {σ: evalContext}
          {dop1 dop2: DSHOperator}
          {dsig1 dsig2: TypeSig}
-         {dot : CarrierA -> CarrierA -> CarrierA} (* why is this here at all? *)
-
-         (* these are subject to change *)
          `{P: DSH_pure (DSHSeq dop1 dop2) (TypeSigUnion dsig1 dsig2) x_p y_p}
+         `{D : herr_f nat nat (compose2 not equiv) (evalPexp σ x_p) (evalPexp σ y_p)}
          `{P1: DSH_pure dop1 dsig1 x_p y_p}
          `{P2: DSH_pure dop2 dsig2 x_p y_p}
          `{C1: @MSH_DSH_compat _ _ mop1 dop1 dsig1 σ m x_p y_p P1}
          `{C2: forall m', lookup_Pexp σ m x_p = lookup_Pexp σ m' x_p ->
                       @MSH_DSH_compat _ _ mop2 dop2 dsig2 σ m' x_p y_p P2}
-         
   :
     MSH_DSH_compat
       (MHTSUMUnion dot mop2 mop1)
@@ -4053,6 +4058,15 @@ Proof.
     [unfold lookup_Pexp in X_M; rewrite X in X_M; inversion X_M |].
   destruct (evalPexp σ y_p) as [| y_id] eqn:Y;
     [unfold lookup_Pexp in Y_M; rewrite Y in Y_M; inversion Y_M |].
+  assert (XY : x_id <> y_id).
+  {
+    clear - D.
+    cbv in D.
+    inversion D.
+    intros C.
+    apply H1 in C.
+    inversion C.
+  }
 
   destruct mem_op as [mma |] eqn:MOP.
   all: destruct evalDSHOperator as [r |] eqn:DOP; [destruct r as [msg | dma] |].
@@ -4108,7 +4122,7 @@ Proof.
       (* make use of C2 *)
       assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
       {
-        clear - X X_M P1 DOP1 Y.
+        clear - X X_M P1 DOP1 Y XY.
         inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
         eq_to_equiv_hyp.
         apply P1 with (y_i := y_id) in DOP1;
@@ -4117,8 +4131,7 @@ Proof.
         rewrite X.
         cbn.
         unfold memory_equiv_except in DOP1.
-        assert (T : x_id <> y_id) by admit.
-        specialize (DOP1 x_id T).
+        specialize (DOP1 x_id XY).
         rewrite DOP1.
         reflexivity.
       }
@@ -4168,7 +4181,7 @@ Proof.
       (* make use of C2 *)
       assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
       {
-        clear - X X_M P1 DOP1 Y.
+        clear - X X_M P1 DOP1 Y XY.
         inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
         eq_to_equiv_hyp.
         apply P1 with (y_i := y_id) in DOP1;
@@ -4177,8 +4190,7 @@ Proof.
         rewrite X.
         cbn.
         unfold memory_equiv_except in DOP1.
-        assert (T : x_id <> y_id) by admit.
-        specialize (DOP1 x_id T).
+        specialize (DOP1 x_id XY).
         rewrite DOP1.
         reflexivity.
       }
@@ -4246,7 +4258,7 @@ Proof.
       (* make use of C2 *)
       assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
       {
-        clear - X X_M P1 DOP1 Y.
+        clear - X X_M P1 DOP1 Y XY.
         inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
         eq_to_equiv_hyp.
         apply P1 with (y_i := y_id) in DOP1;
@@ -4255,8 +4267,7 @@ Proof.
         rewrite X.
         cbn.
         unfold memory_equiv_except in DOP1.
-        assert (T : x_id <> y_id) by admit.
-        specialize (DOP1 x_id T).
+        specialize (DOP1 x_id XY).
         rewrite DOP1.
         reflexivity.
       }
@@ -4340,7 +4351,7 @@ Proof.
       (* make use of C2 *)
       assert (T : lookup_Pexp σ m x_p = lookup_Pexp σ dma1 x_p).
       {
-        clear - X X_M P1 DOP1 Y.
+        clear - X X_M P1 DOP1 Y XY.
         inversion P1; clear P1 mem_stable0; rename mem_write_safe0 into P1.
         eq_to_equiv_hyp.
         apply P1 with (y_i := y_id) in DOP1;
@@ -4349,8 +4360,7 @@ Proof.
         rewrite X.
         cbn.
         unfold memory_equiv_except in DOP1.
-        assert (T : x_id <> y_id) by admit.
-        specialize (DOP1 x_id T).
+        specialize (DOP1 x_id XY).
         rewrite DOP1.
         reflexivity.
       }
@@ -4401,7 +4411,7 @@ Proof.
       unfold memory_lookup_err, trywith in Y_M.
       break_match; inversion Y_M.
       rewrite H1; reflexivity.
-Admitted.
+Qed.
 
 Instance Compose_MSH_DSH_compat
          {i1 o2 o3: nat}
