@@ -3122,41 +3122,35 @@ Instance Compose_DSH_pure
          `{P1: DSH_pure dop1 (TypeSig_incr dsig2) (PVar 0) (incrPVar 0 y_p)}
   : DSH_pure (DSHAlloc n (DSHSeq dop2 dop1)) (TypeSigUnion dsig1 dsig2) x_p y_p.
 Proof.
-  (*
   split.
   - (* mem_stable *)
     intros σ m m' fuel H k.
     destruct P1 as [MS1 _ _].
     destruct P2 as [MS2 _ _].
     destruct fuel; simpl in *; try some_none.
-    break_match_hyp; try some_none.
+    repeat break_match_hyp; try some_none.
+    inversion H; inversion H2.
     destruct fuel; simpl in *; try some_none.
-    break_match_hyp; try some_none.
-    rename Heqo into D1, Heqo0 into D2.
-    some_inv. rewrite <- H. clear m' H.
+    break_match_hyp; try some_none; repeat some_inv; try inl_inr.
+    rename Heqo into D1, Heqe0 into D2.
+    inl_inr_inv. rewrite <- H. clear m' H.
     remember (memory_next_key m) as k'.
 
     destruct(Nat.eq_dec k k') as [E|NE].
     +
-      subst k'.
-      rewrite <- E in D1.
-      rewrite <- E in D2.
-      apply Option_equiv_eq in D1.
-      apply Option_equiv_eq in D2.
-      rewrite <- E.
-      apply MS2 with (k:=k) in D2.
-      apply MS1 with (k:=k) in D1.
-      clear MS1 MS2.
+      break_match; [inversion D1 |].
+      subst.
       split; intros H.
       *
         contradict H.
-        subst k.
         apply mem_block_exists_memory_next_key.
       *
         contradict H.
-        subst k.
         apply mem_block_exists_memory_remove.
     +
+      break_match; [inversion D1 |].
+      subst.
+      rename Heqo0 into D2.
       apply Option_equiv_eq in D1.
       apply Option_equiv_eq in D2.
       apply MS2 with (k:=k) in D2.
@@ -3175,689 +3169,20 @@ Proof.
         eapply D1.
         eapply mem_block_exists_memory_remove_neq; eauto.
   -
-    intros σ0 σ1 m0 m1 fuel TE EX EY.
-    destruct fuel; try constructor.
-    simpl.
-    repeat break_match; try some_none; try constructor.
-    +
-      rename m into m0''',  m2 into m1'''.
-
-      unfold blocks_equiv_at_Pexp in EX, EY.
-
-      destruct (evalPexp σ0 x_p) eqn:P0X, (evalPexp σ1 x_p) eqn:P1X; try inversion EX.
-      destruct (evalPexp σ0 y_p) eqn:P0Y, (evalPexp σ1 y_p) eqn:P1Y; try inversion EY.
-      rename m into x0_i, m2 into x1_i, m3 into y0_i, m4 into y1_i.
-      clear EX EY.
-      subst x y x0 y0.
-      inversion H1.
-      inversion H4.
-      clear H1 H4.
-      symmetry_option_hyp.
-      rename x0 into y0, y0 into y1, x into x0, y into x1.
-
-      remember (memory_next_key m0) as t0_i.
-      remember (memory_next_key m1) as t1_i.
-      remember (DSHPtrVal t0_i) as t0_v.
-      remember (DSHPtrVal t1_i) as t1_v.
-
-      remember (memory_set m0 t0_i mem_empty) as m0'.
-      remember (memory_set m1 t1_i mem_empty) as m1'.
-
-      remember (t0_v :: σ0) as σ0'.
-      remember (t1_v :: σ1) as σ1'.
-
-      destruct fuel;  simpl in *; try  some_none.
-      break_match_hyp; try some_none.
-      break_match_hyp; try some_none.
-
-      rename Heqo1 into E12, Heqo0 into E11.
-      rename Heqo2 into E02, Heqo into E01.
-      rename m2 into m0''.
-      rename m into m1''.
-
-      destruct P1, P2.
-
-      pose proof (Option_equiv_eq _ _ E02) as E02'.
-      pose proof (Option_equiv_eq _ _ E12) as E12'.
-
-      assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
-      {
-        rewrite P0Y.
-        apply Some_neq.
-        intros C.
-        subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
-        tauto.
-      }
-
-      assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
-      {
-        rewrite P1Y.
-        apply Some_neq.
-        intros C.
-        subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
-        tauto.
-      }
-
-      apply blocks_equiv_at_Pexp_remove; auto.
-
-      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p)) (Some m0''') (Some m1''')).
-      intros H1; inversion H1.
-
-      apply blocks_equiv_at_Pexp_incrVar with (foo0:=DSHPtrVal t0_i) (foo1:=DSHPtrVal t1_i); auto.
-      replace (DSHPtrVal t0_i :: σ0) with σ0' by crush.
-      replace (DSHPtrVal t1_i :: σ1) with σ1' by crush.
-      apply H8.
-
-      specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
-      rewrite E01 in mem_read_safe0.
-      rewrite E11 in mem_read_safe0.
-      apply mem_read_safe0; clear mem_read_safe0.
-
-      subst σ0' σ1'.
-      apply context_equiv_at_TypeSig_widening.
-      eapply context_equiv_at_TypeSigUnion_right.
-      eapply TC.
-      eapply TE.
-
-      cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
-      intros H1;  inversion H1.
-      apply H8.
-      specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
-      rewrite E02 in mem_read_safe1.
-      rewrite E12 in mem_read_safe1.
-      apply mem_read_safe1; clear mem_read_safe1.
-
-      subst σ0' σ1'.
-      apply context_equiv_at_TypeSig_widening.
-      eapply context_equiv_at_TypeSigUnion_left.
-      eapply TC.
-      eapply TE.
-
-      subst σ0' σ1' t0_v t1_v.
-      apply blocks_equiv_at_Pexp_incrVar; auto.
-      subst m0' m1'.
-
-      assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
-      {
-        rewrite P0X.
-        apply Some_neq.
-        intros C.
-        subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
-        congruence.
-      }
-
-      assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
-      {
-        rewrite P1X.
-        apply Some_neq.
-        intros C.
-        subst.
-        apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
-        congruence.
-      }
-      apply blocks_equiv_at_Pexp_add_mem; auto.
-
-      unfold blocks_equiv_at_Pexp.
-      rewrite P0X, P1X.
-      constructor.
-      rewrite H, H0.
-      constructor.
-      auto.
-
-      subst σ0' σ1' t0_v t1_v.
-      unfold blocks_equiv_at_Pexp.
-      simpl.
-      constructor.
-      subst.
-      simpl.
-      unfold memory_lookup, memory_set.
-      rewrite 2!NP.F.add_eq_o by reflexivity.
-      constructor.
-      reflexivity.
-
-      unfold blocks_equiv_at_Pexp.
-      rewrite Heqσ1', Heqσ0'.
-      rewrite 2!evalPexp_incrPVar.
-      rewrite P0Y, P1Y.
-      constructor.
-
-      rename mem_write_safe1 into mem_write_safe10.
-      assert (mem_write_safe11 := mem_write_safe10).
-
-      assert(YT0': evalPexp σ0' (PVar 0) = Some t0_i) by (subst; reflexivity).
-      assert(YT1': evalPexp σ1' (PVar 0) = Some t1_i) by (subst; reflexivity).
-      rewrite P0Y in NYT0; rewrite Some_neq in NYT0.
-      rewrite P1Y in NYT1; rewrite Some_neq in NYT1.
-      specialize (mem_write_safe10 σ0' m0' m0'' fuel E02' t0_i YT0' y0_i NYT0).
-      specialize (mem_write_safe11 σ1' m1' m1'' fuel E12' t1_i YT1' y1_i NYT1).
-      rewrite <- mem_write_safe10, <- mem_write_safe11.
-      subst m0' m1'.
-      unfold memory_lookup, memory_set in *.
-      rewrite 2!NP.F.add_neq_o by auto.
-      rewrite H3, H5.
-      constructor.
-      apply H6.
-    +
-      exfalso.
-      rename m into m0'''.
-
-      unfold blocks_equiv_at_Pexp in EX, EY.
-      destruct (evalPexp σ0 x_p) eqn:P0X, (evalPexp σ1 x_p) eqn:P1X; try inversion EX.
-      destruct (evalPexp σ0 y_p) eqn:P0Y, (evalPexp σ1 y_p) eqn:P1Y; try inversion EY.
-      rename m into x0_i, m2 into x1_i, m3 into y0_i, m4 into y1_i.
-      clear EX EY.
-      subst x y x0 y0.
-      inversion H1.
-      inversion H4.
-      clear H1 H4.
-      symmetry_option_hyp.
-      rename x0 into y0, y0 into y1, x into x0, y into x1.
-
-      remember (memory_next_key m0) as t0_i.
-      remember (memory_next_key m1) as t1_i.
-      remember (DSHPtrVal t0_i) as t0_v.
-      remember (DSHPtrVal t1_i) as t1_v.
-
-      remember (memory_set m0 t0_i mem_empty) as m0'.
-      remember (memory_set m1 t1_i mem_empty) as m1'.
-
-      remember (t0_v :: σ0) as σ0'.
-      remember (t1_v :: σ1) as σ1'.
-
-      destruct fuel;  simpl in *; try some_none.
-      repeat break_match_hyp; try some_none.
-      *
-        rename Heqo1 into E12, Heqo0 into E11.
-        rename Heqo2 into E02, Heqo into E01.
-        rename m2 into m0''.
-        rename m into m1''.
-        destruct P1, P2.
-
-        pose proof (Option_equiv_eq _ _ E02) as E02'.
-        pose proof (Option_equiv_eq _ _ E12) as E12'.
-
-        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
-        {
-          rewrite P0Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
-          tauto.
-        }
-
-        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
-        {
-          rewrite P1Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
-          tauto.
-        }
-        specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
-        rewrite E01 in mem_read_safe0.
-        rewrite E11 in mem_read_safe0.
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0'' m1'') as VIP0.
-        {
-          cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
-          intros H1;  inversion H1.
-          apply H8.
-          specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
-          rewrite E02 in mem_read_safe1.
-          rewrite E12 in mem_read_safe1.
-          apply mem_read_safe1; clear mem_read_safe1.
-
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_left.
-          eapply TC.
-          eapply TE.
-
-          subst σ0' σ1' t0_v t1_v.
-          apply blocks_equiv_at_Pexp_incrVar; auto.
-          subst m0' m1'.
-
-          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
-          {
-            rewrite P0X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
-            congruence.
-          }
-
-          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
-          {
-            rewrite P1X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
-            congruence.
-          }
-          apply blocks_equiv_at_Pexp_add_mem; auto.
-
-          unfold blocks_equiv_at_Pexp.
-          rewrite P0X, P1X.
-          constructor.
-          rewrite H, H0.
-          constructor.
-          auto.
-
-          subst σ0' σ1' t0_v t1_v.
-          unfold blocks_equiv_at_Pexp.
-          simpl.
-          constructor.
-          subst.
-          simpl.
-          unfold memory_lookup, memory_set.
-          rewrite 2!NP.F.add_eq_o by reflexivity.
-          constructor.
-          reflexivity.
-        }
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p) m0'' m1'') as VIP1.
-        {
-          unfold blocks_equiv_at_Pexp.
-          rewrite Heqσ1', Heqσ0'.
-          rewrite 2!evalPexp_incrPVar.
-          rewrite P0Y, P1Y.
-          constructor.
-
-          rename mem_write_safe1 into mem_write_safe10.
-          assert (mem_write_safe11 := mem_write_safe10).
-
-          assert(YT0': evalPexp σ0' (PVar 0) = Some t0_i) by (subst; reflexivity).
-          assert(YT1': evalPexp σ1' (PVar 0) = Some t1_i) by (subst; reflexivity).
-          rewrite P0Y in NYT0; rewrite Some_neq in NYT0.
-          rewrite P1Y in NYT1; rewrite Some_neq in NYT1.
-          specialize (mem_write_safe10 σ0' m0' m0'' fuel E02' t0_i YT0' y0_i NYT0).
-          specialize (mem_write_safe11 σ1' m1' m1'' fuel E12' t1_i YT1' y1_i NYT1).
-          rewrite <- mem_write_safe10, <- mem_write_safe11.
-          subst m0' m1'.
-          unfold memory_lookup, memory_set in *.
-          rewrite 2!NP.F.add_neq_o by auto.
-          rewrite H3, H5.
-          constructor.
-          apply H6.
-        }
-
-        assert(TE2': context_equiv_at_TypeSig (TypeSig_incr dsig2) σ0' σ1').
-        {
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_right.
-          eapply TC.
-          eapply TE.
-        }
-
-        specialize (mem_read_safe0 TE2' VIP0 VIP1).
-        inversion mem_read_safe0.
-      *
-        rename Heqo1 into E12, Heqo0 into E11.
-        rename Heqo2 into E02, Heqo into E01.
-        rename m into m0''.
-        destruct P1, P2.
-
-        pose proof (Option_equiv_eq _ _ E02) as E02'.
-        pose proof (Option_equiv_eq _ _ E12) as E12'.
-
-        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
-        {
-          rewrite P0Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
-          tauto.
-        }
-
-        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
-        {
-          rewrite P1Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
-          tauto.
-        }
-        specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
-        rewrite E02 in mem_read_safe1.
-        rewrite E12 in mem_read_safe1.
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 x_p) m0' m1') as VIP0.
-        {
-          subst σ0' σ1'.
-          apply blocks_equiv_at_Pexp_incrVar.
-          subst m0' m1'.
-
-          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
-          {
-            rewrite P0X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
-            congruence.
-          }
-
-          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
-          {
-            rewrite P1X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
-            congruence.
-          }
-          apply blocks_equiv_at_Pexp_add_mem; auto.
-
-          unfold blocks_equiv_at_Pexp.
-          rewrite P0X, P1X.
-          constructor.
-          rewrite H, H0.
-          constructor.
-          auto.
-        }
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0' m1') as VIP1.
-        {
-          subst σ0' σ1' t0_v t1_v.
-          unfold blocks_equiv_at_Pexp.
-          simpl.
-          constructor.
-          subst.
-          simpl.
-          unfold memory_lookup, memory_set.
-          rewrite 2!NP.F.add_eq_o by reflexivity.
-          constructor.
-          reflexivity.
-        }
-
-        assert(TE1': context_equiv_at_TypeSig (TypeSig_incr dsig1) σ0' σ1').
-        {
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_left.
-          eapply TC.
-          eapply TE.
-        }
-
-        specialize (mem_read_safe1 TE1' VIP0 VIP1).
-        inversion mem_read_safe1.
-    +
-      exfalso.
-      rename m into m1'''.
-
-      unfold blocks_equiv_at_Pexp in EX, EY.
-      destruct (evalPexp σ0 x_p) eqn:P0X, (evalPexp σ1 x_p) eqn:P1X; try inversion EX.
-      destruct (evalPexp σ0 y_p) eqn:P0Y, (evalPexp σ1 y_p) eqn:P1Y; try inversion EY.
-      rename m into x0_i, m2 into x1_i, m3 into y0_i, m4 into y1_i.
-      clear EX EY.
-      subst x y x0 y0.
-      inversion H1.
-      inversion H4.
-      clear H1 H4.
-      symmetry_option_hyp.
-      rename x0 into y0, y0 into y1, x into x0, y into x1.
-
-      remember (memory_next_key m0) as t0_i.
-      remember (memory_next_key m1) as t1_i.
-      remember (DSHPtrVal t0_i) as t0_v.
-      remember (DSHPtrVal t1_i) as t1_v.
-
-      remember (memory_set m0 t0_i mem_empty) as m0'.
-      remember (memory_set m1 t1_i mem_empty) as m1'.
-
-      remember (t0_v :: σ0) as σ0'.
-      remember (t1_v :: σ1) as σ1'.
-
-      destruct fuel;  simpl in *; try  some_none.
-      break_match_hyp; try some_none.
-      break_match_hyp; try some_none.
-      *
-        rename Heqo1 into E12, Heqo0 into E11.
-        rename Heqo2 into E02, Heqo into E01.
-        rename m2 into m0''.
-        rename m into m1''.
-
-        destruct P1, P2.
-
-        pose proof (Option_equiv_eq _ _ E02) as E02'.
-        pose proof (Option_equiv_eq _ _ E12) as E12'.
-
-        specialize (mem_read_safe0 σ0' σ1' m0'' m1'' fuel).
-        rewrite E01 in mem_read_safe0.
-        rewrite E11 in mem_read_safe0.
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0'' m1'') as VIP0.
-        {
-          cut (opt_r (blocks_equiv_at_Pexp σ0' σ1' (PVar 0)) (Some m0'') (Some m1'')).
-          intros H1;  inversion H1.
-          apply H8.
-          specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
-          rewrite E02 in mem_read_safe1.
-          rewrite E12 in mem_read_safe1.
-          apply mem_read_safe1; clear mem_read_safe1.
-
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_left.
-          eapply TC.
-          eapply TE.
-
-          subst σ0' σ1' t0_v t1_v.
-          apply blocks_equiv_at_Pexp_incrVar; auto.
-          subst m0' m1'.
-
-          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
-          {
-            rewrite P0X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
-            congruence.
-           }
-
-          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
-          {
-            rewrite P1X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
-            congruence.
-          }
-          apply blocks_equiv_at_Pexp_add_mem; auto.
-
-          unfold blocks_equiv_at_Pexp.
-          rewrite P0X, P1X.
-          constructor.
-          rewrite H, H0.
-          constructor.
-          auto.
-
-          subst σ0' σ1' t0_v t1_v.
-          unfold blocks_equiv_at_Pexp.
-          simpl.
-          constructor.
-          subst.
-          simpl.
-          unfold memory_lookup, memory_set.
-          rewrite 2!NP.F.add_eq_o by reflexivity.
-          constructor.
-          reflexivity.
-        }
-
-        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
-        {
-          rewrite P0Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
-          tauto.
-        }
-
-        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
-        {
-          rewrite P1Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
-          tauto.
-        }
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 y_p) m0'' m1'') as VIP1.
-        {
-          unfold blocks_equiv_at_Pexp.
-          rewrite Heqσ1', Heqσ0'.
-          rewrite 2!evalPexp_incrPVar.
-          rewrite P0Y, P1Y.
-          constructor.
-
-          rename mem_write_safe1 into mem_write_safe10.
-          assert (mem_write_safe11 := mem_write_safe10).
-
-          assert(YT0': evalPexp σ0' (PVar 0) = Some t0_i) by (subst; reflexivity).
-          assert(YT1': evalPexp σ1' (PVar 0) = Some t1_i) by (subst; reflexivity).
-          rewrite P0Y in NYT0; rewrite Some_neq in NYT0.
-          rewrite P1Y in NYT1; rewrite Some_neq in NYT1.
-          specialize (mem_write_safe10 σ0' m0' m0'' fuel E02' t0_i YT0' y0_i NYT0).
-          specialize (mem_write_safe11 σ1' m1' m1'' fuel E12' t1_i YT1' y1_i NYT1).
-          rewrite <- mem_write_safe10, <- mem_write_safe11.
-          subst m0' m1'.
-          unfold memory_lookup, memory_set in *.
-          rewrite 2!NP.F.add_neq_o by auto.
-          rewrite H3, H5.
-          constructor.
-          apply H6.
-        }
-
-        assert(TE2': context_equiv_at_TypeSig (TypeSig_incr dsig2) σ0' σ1').
-        {
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_right.
-          eapply TC.
-          eapply TE.
-        }
-
-        specialize (mem_read_safe0 TE2' VIP0 VIP1).
-        inversion mem_read_safe0.
-      *
-        rename Heqo1 into E12, Heqo0 into E11.
-        rename Heqo2 into E02, Heqo into E01.
-        rename m into m1''.
-        destruct P1, P2.
-
-        pose proof (Option_equiv_eq _ _ E02) as E02'.
-        pose proof (Option_equiv_eq _ _ E12) as E12'.
-
-        assert(evalPexp σ0 y_p ≢ Some t0_i) as NYT0.
-        {
-          rewrite P0Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H3.
-          tauto.
-        }
-
-        assert(evalPexp σ1 y_p ≢ Some t1_i) as NYT1.
-        {
-          rewrite P1Y.
-          apply Some_neq.
-          intros C.
-          subst.
-          apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H5.
-          tauto.
-        }
-        specialize (mem_read_safe1 σ0' σ1' m0' m1' fuel).
-        rewrite E02 in mem_read_safe1.
-        rewrite E12 in mem_read_safe1.
-
-
-        assert(blocks_equiv_at_Pexp σ0' σ1' (incrPVar 0 x_p) m0' m1') as VIP0.
-        {
-          subst σ0' σ1'.
-          apply blocks_equiv_at_Pexp_incrVar.
-          subst m0' m1'.
-
-          assert(evalPexp σ0 x_p ≢ Some t0_i) as NXT0.
-          {
-            rewrite P0X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H.
-            congruence.
-           }
-
-          assert(evalPexp σ1 x_p ≢ Some t1_i) as NXT1.
-          {
-            rewrite P1X.
-            apply Some_neq.
-            intros C.
-            subst.
-            apply eq_Some_is_Some, memory_is_set_is_Some, mem_block_exists_memory_next_key in H0.
-            congruence.
-          }
-          apply blocks_equiv_at_Pexp_add_mem; auto.
-
-          unfold blocks_equiv_at_Pexp.
-          rewrite P0X, P1X.
-          constructor.
-          rewrite H, H0.
-          constructor.
-          auto.
-        }
-        assert(blocks_equiv_at_Pexp σ0' σ1' (PVar 0) m0' m1') as VIP1.
-        {
-          subst σ0' σ1' t0_v t1_v.
-          unfold blocks_equiv_at_Pexp.
-          simpl.
-          constructor.
-          subst.
-          simpl.
-          unfold memory_lookup, memory_set.
-          rewrite 2!NP.F.add_eq_o by reflexivity.
-          constructor.
-          reflexivity.
-        }
-
-        assert(TE1': context_equiv_at_TypeSig (TypeSig_incr dsig1) σ0' σ1').
-        {
-          subst σ0' σ1'.
-          apply context_equiv_at_TypeSig_widening.
-          eapply context_equiv_at_TypeSigUnion_left.
-          eapply TC.
-          eapply TE.
-        }
-
-        specialize (mem_read_safe1 TE1' VIP0 VIP1).
-        inversion mem_read_safe1.
-  -
     (* mem_write_safe *)
     intros σ m0 m4 fuel H y_i H0.
-    destruct fuel;  simpl in * ; try  some_none.
-    break_match_hyp; try some_none.
-    destruct fuel;  simpl in * ; try  some_none.
-    break_match_hyp; try some_none.
-    some_inv.
+    destruct fuel; simpl in *; try some_none.
+    repeat break_match_hyp;
+      try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+    destruct fuel; simpl in *; try some_none.
+    repeat break_match_hyp;
+      try some_none; repeat some_inv; try inl_inr; repeat inl_inr_inv.
+    subst.
     rename m1 into m2, m into m3.
     rename Heqo into E1, Heqo0 into E2.
     remember (memory_next_key m0) as t_i.
     remember (memory_set m0 t_i mem_empty) as m1.
-    remember (DSHPtrVal t_i :: σ) as σ'.
+    remember (DSHPtrVal t_i n :: σ) as σ'.
     intros k ky.
 
 
@@ -3883,8 +3208,8 @@ Proof.
       reflexivity.
     }
 
-    destruct P1 as [P1p _ P1w].
-    destruct P2 as [P2p _ P2w].
+    destruct P1 as [P1p P1w].
+    destruct P2 as [P2p P2w].
     apply Option_equiv_eq in E1.
     apply Option_equiv_eq in E2.
     specialize (P1p _ _ _ _ E1).
@@ -3966,8 +3291,7 @@ Proof.
     rewrite NP.F.add_neq_o; auto.
     rewrite V.
     reflexivity.
-   *)
-Admitted.
+Qed.
 
 (* Also could be proven in other direction *)
 Lemma SHCOL_DSHCOL_mem_block_equiv_mem_empty {a b: mem_block}:
@@ -4029,7 +3353,7 @@ Proof.
 Qed.
 
 Definition compose2 {A B C D : Type} (g : C -> D) (f : A -> B -> C) : A -> B -> D :=
-    fun a b => g (f a b).
+  fun a b => g (f a b).
 
 Instance HTSUMUnion_MSH_DSH_compat
          {i o : nat}
