@@ -1156,8 +1156,8 @@ Fixpoint initIRGlobals
 Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
   LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
   :=
-    let '(_,xdata) := constArray i data in
-    let zeroes := List.repeat (TYPE_Double, EXP_Double Float64Zero) o in
+    let '(data,xdata) := constArray i data in
+    let '(_,ydata) := constArray o data in
     [TLE_Comment " X data"
      ; TLE_Global
          {|
@@ -1181,7 +1181,7 @@ Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
            g_ident        := y;
            g_typ          := ytyp;
            g_constant     := true;
-           g_exp          := Some (EXP_Array zeroes);
+           g_exp          := Some (EXP_Array ydata);
            g_linkage      := None;
            g_visibility   := None;
            g_dll_storage  := None;

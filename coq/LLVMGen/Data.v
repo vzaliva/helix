@@ -113,8 +113,9 @@ Definition helix_intial_memory
      | mkFSHCOLProgram i o name globals op =>
        '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, x) := constMemBlock i data in
+       let '(data, y) := constMemBlock o data in
        let mem := memory_set mem X_mem_block_id x in
-       let mem := memory_set mem Y_mem_block_id mem_empty in
+       let mem := memory_set mem Y_mem_block_id y in
        let σ := List.app σ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in
        ret (mem, data, σ)
      end.
