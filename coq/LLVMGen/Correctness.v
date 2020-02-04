@@ -464,13 +464,24 @@ Qed.
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
-  match helix_intial_memory p data, init_llvm_memory p data with
-  | inl _, inl _ => False (* not sure if both erroring should be [True] *)
-  | inr (hmem,data,σ), inr lmem =>
-    memory_invariant σ hmem lmem
-  | _, _ => False
-  end.
+  forall hmem σ lmem,
+                helix_intial_memory p data ≡ inr (hmem,data,σ) /\
+                init_llvm_memory p data ≡ inr lmem ->
+                memory_invariant σ hmem lmem.
 Proof.
+  intros hmem σ lmem [HI LI].
+  unfold memory_invariant.
+  repeat break_let; subst.
+  unfold helix_intial_memory, init_llvm_memory in *.
+  cbn in *.
+  break_match_hyp ; [inl_inr|].
+  break_let.
+  destruct p.
+  break_match_hyp; inv HI.
+  repeat break_let; subst.
+  inv H0.
+  right. (* as [σ] is never empty after init *)
+
 Admitted.
 
 (* with init step  *)
