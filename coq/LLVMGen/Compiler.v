@@ -1148,77 +1148,108 @@ Fixpoint initIRGlobals
       end
     end.
 
+
+(*
+   When code genration generates [main], the input
+   will be stored in pre-initialized [X] global variable.
+ *)
+Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
+  LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  :=
+    let '(_,xdata) := constArray i data in
+    let zeroes := List.repeat (TYPE_Double, EXP_Double Float64Zero) o in
+    [TLE_Comment " X data"
+     ; TLE_Global
+         {|
+           g_ident        := x;
+           g_typ          := xtyp;
+           g_constant     := true;
+           g_exp          := Some (EXP_Array xdata);
+           g_linkage      := None;
+           g_visibility   := None;
+           g_dll_storage  := None;
+           g_thread_local := None;
+           g_unnamed_addr := false;
+           g_addrspace    := None;
+           g_externally_initialized := false;
+           g_section      := None;
+           g_align        := None;
+         |}
+     ; TLE_Comment " X placeholder"
+     ; TLE_Global
+         {|
+           g_ident        := y;
+           g_typ          := ytyp;
+           g_constant     := true;
+           g_exp          := Some (EXP_Array zeroes);
+           g_linkage      := None;
+           g_visibility   := None;
+           g_dll_storage  := None;
+           g_thread_local := None;
+           g_unnamed_addr := false;
+           g_addrspace    := None;
+           g_externally_initialized := false;
+           g_section      := None;
+           g_align        := None;
+         |}
+    ].
+
 Definition genMain
            (i o: nat)
            (op_name: string)
            (globals: list (string * FSHValType))
            (data:list binary64)
-  :
-    LLVMAst.toplevel_entities _ (list (LLVMAst.block typ)) :=
-  let x := Name "X" in
-  let xtyp := getIRType (FSHvecValType i) in
-  let xptyp := TYPE_Pointer xtyp in
-  let '(_,xdata) := constArray i data in
-  let y := Name "Y" in
-  let ytyp := getIRType (FSHvecValType o) in
-  let yptyp := TYPE_Pointer ytyp in
-  let ftyp := TYPE_Function TYPE_Void [xptyp; yptyp] in
-  let z := Name "z" in
-  [
-    TLE_Comment " X data" ;
-      TLE_Global
-        {|
-          g_ident        := x;
-          g_typ          := xtyp;
-          g_constant     := true;
-          g_exp          := Some (EXP_Array xdata);
-          g_linkage      := None;
-          g_visibility   := None;
-          g_dll_storage  := None;
-          g_thread_local := None;
-          g_unnamed_addr := false;
-          g_addrspace    := None;
-          g_externally_initialized := false;
-          g_section      := None;
-          g_align        := None;
-        |} ;
-      TLE_Comment " Main function" ;
-      TLE_Definition
-        {|
-          df_prototype   :=
-            {|
-              dc_name        := Name ("main") ;
-              dc_type        := TYPE_Function ytyp [] ;
-              dc_param_attrs := ([],
-                                 []);
-              dc_linkage     := None ;
-              dc_visibility  := None ;
-              dc_dll_storage := None ;
-              dc_cconv       := None ;
-              dc_attrs       := []   ;
-              dc_section     := None ;
-              dc_align       := None ;
-              dc_gc          := None
-            |} ;
-          df_args        := [];
-          df_instrs      := [
-                             {|
-                               blk_id    := Name "main_block" ;
-                               blk_phis  := [];
-                               blk_code  :=
-                                 List.app (allocTempArrayCode y o)
-                                          [
-                                            (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Local y))]) ;
-                                              (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Local y)) None )
-                                          ]
-                               ;
+  : LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
+  :=
+    let x := Name "X" in
+    let xtyp := getIRType (FSHvecValType i) in
+    let xptyp := TYPE_Pointer xtyp in
 
-                               blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
-                               blk_comments := None
-                             |}
+    let y := Name "Y" in
+    let ytyp := getIRType (FSHvecValType o) in
+    let yptyp := TYPE_Pointer ytyp in
 
-                           ]
-        |}].
+    let xyblocks := global_XY i o data x xtyp y ytyp in
+
+    let z := Name "z" in
+    xyblocks ++
+            [
+              TLE_Comment " Main function"
+              ; TLE_Definition
+                  {|
+                    df_prototype   :=
+                      {|
+                        dc_name        := Name ("main") ;
+                        dc_type        := TYPE_Function ytyp [] ;
+                        dc_param_attrs := ([],
+                                           []);
+                        dc_linkage     := None ;
+                        dc_visibility  := None ;
+                        dc_dll_storage := None ;
+                        dc_cconv       := None ;
+                        dc_attrs       := []   ;
+                        dc_section     := None ;
+                        dc_align       := None ;
+                        dc_gc          := None
+                      |} ;
+                    df_args        := [];
+                    df_instrs      := [
+                                       {|
+                                         blk_id    := Name "main_block" ;
+                                         blk_phis  := [];
+                                         blk_code  :=
+                                           [
+                                             (IVoid 0%Z, INSTR_Call (TYPE_Void, EXP_Ident (ID_Global (Name op_name))) [(xptyp, EXP_Ident (ID_Global x)); (yptyp, EXP_Ident (ID_Global y))]) ;
+                                                    (IId z, INSTR_Load false ytyp (yptyp, EXP_Ident (ID_Global y)) None )
+                                                    ]
+                                         ;
+
+                                         blk_term  := (IId (Name "main_ret"), TERM_Ret (ytyp, EXP_Ident (ID_Local z))) ;
+                                         blk_comments := None
+                                       |}
+
+                                     ]
+                  |}].
 
 Definition compile (p: FSHCOLProgram): list binary64 -> err (toplevel_entities typ (list (block typ))) :=
   match p return (list binary64 -> _) with
