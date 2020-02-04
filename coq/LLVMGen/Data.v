@@ -99,8 +99,6 @@ Fixpoint initFSHGlobals
                 end
   end.
 
-Definition X_mem_block_id : mem_block_id := 1.
-Definition Y_mem_block_id : mem_block_id := 2.
 
 
 Definition helix_empty_memory := memory_empty.
@@ -114,6 +112,8 @@ Definition helix_intial_memory
        '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, x) := constMemBlock i data in
        let '(data, y) := constMemBlock o data in
+       let X_mem_block_id : mem_block_id := length globals  in
+       let Y_mem_block_id : mem_block_id := S (length globals) in
        let mem := memory_set mem X_mem_block_id x in
        let mem := memory_set mem Y_mem_block_id y in
        let σ := List.app σ [DSHPtrVal Y_mem_block_id o; DSHPtrVal X_mem_block_id i] in

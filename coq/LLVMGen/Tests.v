@@ -200,6 +200,7 @@ Definition evalFSHCOLOperator
     '(mem, data, σ) <- helix_intial_memory p data ;;
     match evalDSHOperator σ op mem (estimateFuel op) with
     | Some (inr mem) =>
+      let Y_mem_block_id : mem_block_id := S (length globals) in
       yb <- trywith "No output memory block" (memory_lookup mem Y_mem_block_id) ;;
       mem_to_list "Invalid output memory block" o yb
     | Some (inl msg) => inl msg
