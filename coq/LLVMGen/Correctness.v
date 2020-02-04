@@ -23,6 +23,8 @@ Require Import Vellvm.CFG.
 Require Import Vellvm.TopLevelRefinements.
 Require Import Vellvm.LLVMEvents.
 
+Require Import Ceres.Ceres.
+
 Require Import ITree.ITree.
 Require Import ITree.Eq.Eq.
 Require Import ITree.Basics.Basics.
@@ -357,7 +359,72 @@ Definition bisim_full: Type_R_full  :=
     let '(m, ((ρ,_), (g, v))) := mem_llvm in
     bisim_partial σ (mem_helix, tt) (mk_LLVM_sub_state_partial_from_mem (inr v) (m, (ρ, g))).
 
-Definition init_one_global (m:LLVM_memory_state_partial) (g:toplevel_entity typ (list (LLVMAst.block typ)))
+
+(* This code attempts to mimic global variable initialization from
+   [Vellvm.Toplevel] and heavily depends on internal memory
+   organization of Vellvm, as in [Vellvm.Handlers.Memory] *)
+Section LLVM_Memory_Init.
+
+  (* mimics [Alloca] handler *)
+  Definition alloc_global (c_name:string) (c_typ:typ) (m:M.memory) (ms:M.mem_stack) (genv:global_env) :=
+    (* TODO: not sure about this [typ] to [dtyp] conversion *)
+    let d_typ := TypeUtil.normalize_type_dtyp [] c_typ in
+    let new_block := M.make_empty_block d_typ in
+    let key := M.next_logical_key m in
+    let new_mem := M.add_logical key new_block m in
+    match ms with
+    | [] => inl "No stack frame for alloca."%string
+    | frame :: stack_rest =>
+      let new_stack := (key :: frame) :: stack_rest in
+      (*  global_env = FMapAList.alist raw_id dvalue *)
+      let a := DVALUE_Addr (key, 0%Z) in
+      ret (new_mem, new_stack, (Name c_name, a) :: genv, a)
+    end.
+
+  (* mimics [Store] handler *)
+  Definition init_global (m:M.memory) (ms:M.mem_stack) (a: dvalue) (v:dvalue)
+    : err (M.memory * M.mem_stack)
+    :=
+      match a with
+      | DVALUE_Addr (key, i) =>
+        match M.lookup_logical key m with
+        | Some (M.LBlock sz bytes cid) =>
+          let bytes' := M.add_all_index (M.serialize_dvalue v) i bytes in
+          let block' := M.LBlock sz bytes' cid in
+          ret (M.add_logical key block' m, ms)
+        | None => inl "stored to unallocated address"%string
+        end
+      | _ => inl ("Store got non-address dvalue: " ++ (to_string a))
+      end.
+
+End LLVM_Memory_Init.
+
+(* Scalar *)
+Definition eval_const_double_exp (typed_expr:typ*exp typ): err dvalue :=
+  match typed_expr with
+  | (TYPE_Double, EXP_Double v) => ret (DVALUE_Double v)
+  | (_, c_typ) => inl ("Type double expected: " ++ (to_string c_typ))
+  end.
+
+(* Array *)
+Definition eval_const_arr_exp (typed_expr:typ*exp typ): err dvalue :=
+  match typed_expr with
+  | (TYPE_Array _ TYPE_Double, EXP_Array a) =>
+    da <- ListSetoid.monadic_fold_left
+           (fun ds d => dd <- eval_const_double_exp d ;; ret (dd::ds))
+           [] a ;;
+    ret (DVALUE_Array da)
+  | (_, c_typ) => inl ("Array of doubles expected: " ++ (to_string c_typ))
+  end.
+
+Definition eval_const_exp (typed_expr:typ*exp typ): err dvalue :=
+  match typed_expr with
+  | (TYPE_Array _ TYPE_Double, EXP_Array a) => eval_const_double_exp typed_expr
+  | (TYPE_Double, EXP_Double v) =>  eval_const_arr_exp typed_expr
+  | (_, c_typ) => inl ("Unsupported constant expression type: " ++ (to_string c_typ))
+  end.
+
+Definition init_one_global (mem_state:LLVM_memory_state_partial) (g:toplevel_entity typ (list (LLVMAst.block typ)))
   : err LLVM_memory_state_partial
   := match g with
      | TLE_Global (mk_global (Name c_name) c_typ
@@ -366,7 +433,11 @@ Definition init_one_global (m:LLVM_memory_state_partial) (g:toplevel_entity typ 
                              (Some LINKAGE_Internal)
                              None None None true None
                              false None None) =>
-       inl "TODO: implement me"%string
+       let '((m,ms), (lenv, genv)) := mem_state in
+       '(m,ms,genv,a) <- alloc_global c_name c_typ m ms genv ;;
+       mms <- (eval_const_exp >=> init_global m ms a) (c_typ, c_initiaizer)
+       ;;
+       ret (mms,(lenv, genv))
      | _ => inl "Usupported global initialization"%string
      end.
 
