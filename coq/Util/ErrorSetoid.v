@@ -193,3 +193,28 @@ Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=
   if PeanoNat.Nat.eq_dec a b
   then ret tt
   else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.
+
+Require Import Helix.Util.ListSetoid.
+
+Lemma monadic_fold_left_err_app
+      {A B : Type}
+      {f : A -> B -> err A}
+      {a a':A}
+      {l l': list B}
+      {x: err A}
+  :
+    monadic_fold_left f a l ≡ inr a' ->
+    monadic_fold_left f a' l' ≡ x ->
+    monadic_fold_left f a (l++l') ≡ x.
+Proof.
+  revert a a'.
+  induction l as [|l0 ls IH]; intros.
+  -
+    cbn in *.
+    inv H.
+    auto.
+  -
+    cbn in *.
+    break_match_goal;[inl_inr|].
+    eapply IH; eauto.
+Qed.
