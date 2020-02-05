@@ -492,6 +492,14 @@ Proof.
   inv H1.
   right. (* as [σ] is never empty after init *)
 
+  rename Heqp3 into HCY, m2 into ydata.
+  rename Heqp2 into HCX, m1 into xdata.
+  rename Heqe1 into HFSHG, l3 into fdata', e into σ.
+  rename Heqe into HIRG, l0 into ldata', l1 into gdecls.
+  remember (global_XY i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
+                      (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
+  rename Heqe0 into HFXY, l2 into lm0.
+
 Admitted.
 
 (* with init step  *)
