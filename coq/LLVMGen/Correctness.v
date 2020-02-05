@@ -509,6 +509,56 @@ Proof.
   rename H0 into HG.
   rename m into lm1, l4 into fdata'', data into fdata'''.
 
+  (* No local variables initialize in init stage *)
+  assert(L: l ≡ []).
+  {
+    pose proof (monadic_fold_left_err_app HFXY HG) as HFGXY.
+    unfold llvm_empty_memory_state_partial in HFGXY.
+    generalize dependent (app xydecls gdecls).
+    generalize dependent M.empty_memory_stack.
+    intros m x.
+    generalize (@nil (prod raw_id dvalue)).
+    intros g0 H.
+    clear - H.
+
+    unfold llvm_empty_memory_state_partial in H.
+    revert g0 m g l H.
+    induction x; intros; cbn in H.
+    -
+      inv H; reflexivity.
+    -
+      break_match_hyp; [inl_inr|].
+      destruct l0 as [m' [l' g']].
+      destruct l'.
+      + eapply IHx, H.
+      +
+        unfold init_one_global in Heqe.
+        repeat break_match_hyp; subst; try inl_inr.
+        inv Heqe.
+        repeat break_match_hyp; subst; try inl_inr.
+  }
+  subst l.
+
+  cbn.
+  eexists.
+  intros x v Hn.
+  break_match.
+  -
+    (* [DSHnatVal] must end up in globals *)
+    right.
+    split; [trivial|].
+    admit.
+  -
+    (* [DSHCTypeVal] must end up in globals *)
+    right.
+    split; [trivial|].
+    admit.
+  -
+    (* [DSHPtrVal] must end up in memory *)
+    intros bk_helix HMH.
+    eexists.
+    eexists.
+    admit.
 
 Admitted.
 
