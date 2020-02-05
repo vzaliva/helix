@@ -446,10 +446,17 @@ Definition init_llvm_memory
            (data: list binary64) : err LLVM_memory_state_partial
   :=
     '(data,ginit) <- initIRGlobals data p.(globals) ;;
-    (* At this point `ginit` is list of TLE_Global definitions
-       which could be applied sequentually to empty memory to
-       get the state with initialized globals *)
-    ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial ginit.
+
+    let x := Anon 0%Z in
+    let xtyp := getIRType (FSHvecValType p.(i)) in
+    let y := Anon 1%Z in
+    let ytyp := getIRType (FSHvecValType p.(o)) in
+
+    let xyinit := global_XY p.(i) p.(o) data x xtyp y ytyp in
+
+    post_xy <- ListSetoid.monadic_fold_left init_one_global llvm_empty_memory_state_partial xyinit ;;
+    ListSetoid.monadic_fold_left init_one_global post_xy ginit.
+
 
 (** Empty memories and environments should satisfy [memory_invariant] *)
 Lemma memory_invariant_empty: memory_invariant [] helix_empty_memory llvm_empty_memory_state_partial.
