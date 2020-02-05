@@ -484,9 +484,12 @@ Proof.
   break_match_hyp ; [inl_inr|].
   break_let.
   destruct p.
-  break_match_hyp; inv HI.
+  break_match_hyp; inv LI.
   repeat break_let; subst.
-  inv H0.
+  break_match_hyp; inv HI.
+  cbn in *.
+  repeat break_let; subst.
+  inv H1.
   right. (* as [σ] is never empty after init *)
 
 Admitted.
