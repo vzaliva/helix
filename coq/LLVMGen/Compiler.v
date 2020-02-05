@@ -1201,11 +1201,11 @@ Definition genMain
            (data:list binary64)
   : LLVMAst.toplevel_entities _ (list (LLVMAst.block typ))
   :=
-    let x := Name "X" in
+    let x := Anon 0%Z in
     let xtyp := getIRType (FSHvecValType i) in
     let xptyp := TYPE_Pointer xtyp in
 
-    let y := Name "Y" in
+    let y := Anon 1%Z in
     let ytyp := getIRType (FSHvecValType o) in
     let yptyp := TYPE_Pointer ytyp in
 
