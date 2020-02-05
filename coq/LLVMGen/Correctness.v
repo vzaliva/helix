@@ -478,12 +478,12 @@ Qed.
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
       (data: list binary64) :
-  forall hmem σ lmem,
-                helix_intial_memory p data ≡ inr (hmem,data,σ) /\
+  forall hmem σ lmem hdata,
+                helix_intial_memory p data ≡ inr (hmem,hdata,σ) /\
                 init_llvm_memory p data ≡ inr lmem ->
                 memory_invariant σ hmem lmem.
 Proof.
-  intros hmem σ lmem [HI LI].
+  intros hmem σ lmem hdata [HI LI].
   unfold memory_invariant.
   repeat break_let; subst.
   unfold helix_intial_memory, init_llvm_memory in *.
@@ -506,6 +506,9 @@ Proof.
   remember (global_XY i o ldata' (Anon 0%Z) (TYPE_Array (Z.of_nat i) TYPE_Double)
                       (Anon 1%Z) (TYPE_Array (Z.of_nat o) TYPE_Double)) as xydecls eqn:HXY.
   rename Heqe0 into HFXY, l2 into lm0.
+  rename H0 into HG.
+  rename m into lm1, l4 into fdata'', data into fdata'''.
+
 
 Admitted.
 
