@@ -112,6 +112,7 @@ Definition helix_intial_memory
        '(mem, data, σ) <- initFSHGlobals data helix_empty_memory globals ;;
        let '(data, x) := constMemBlock i data in
        let '(data, y) := constMemBlock o data in
+       (* over-estimating id, as some globals may not alocate memory (e.g. scalars) *)
        let X_mem_block_id : mem_block_id := length globals  in
        let Y_mem_block_id : mem_block_id := S (length globals) in
        let mem := memory_set mem X_mem_block_id x in
