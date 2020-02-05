@@ -230,9 +230,16 @@ Definition memory_invariant : Type_R_memory :=
         nth_error σ x ≡ Some v ->
         match v with
         | DSHnatVal v   =>
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v)))
+          (* check local env first *)
+          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))) \/
+          (* if not found, check global *)
+          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\ FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_I64 (DynamicValues.Int64.repr (Z.of_nat v))))
         | DSHCTypeVal v =>
-          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v)
+          (* check local env first *)
+          FMapAList.alist_find _ (inj_f ι x) ρ ≡ Some (UVALUE_Double v) \/
+          (* if not found, check global *)
+          (FMapAList.alist_find _ (inj_f ι x) ρ ≡ None /\
+           FMapAList.alist_find _ (inj_f ι x) g ≡ Some (DVALUE_Double v))
         | DSHPtrVal ptr_helix ptr_size_helix =>
           forall bk_helix,
             memory_lookup mem_helix ptr_helix ≡ Some bk_helix ->
