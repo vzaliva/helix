@@ -2088,7 +2088,6 @@ Proof.
       exfalso.
       enough (inr m4 = inl s) by inl_inr.
       rewrite <-Heqe7, <-Heqe4; clear Heqe7 Heqe4.
-      (*
       clear H7; generalize dependent x2.
       clear H8; generalize dependent y2.
       generalize dependent initial.
@@ -2203,11 +2202,9 @@ Proof.
     all: subst.
     all: try congruence.
     all: reflexivity.
-       *)
-       *)
+  *)
 Abort.
 
-(*
 Global Instance Embed_MSH_DSH_compat
        {o b: nat}
        (bc: b < o)
@@ -2222,6 +2219,7 @@ Global Instance Embed_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHEmbed bc) (DSHAssign (x_p, NConst 0) (y_p, y_n)) dfs σ m x_p y_p BP.
 Proof.
+  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2263,7 +2261,8 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo3, <-Heqo4.
     apply MX.
-Admitted.
+  *)
+Abort.
 
 Global Instance Pick_MSH_DSH_compat
        {i b: nat}
@@ -2279,6 +2278,7 @@ Global Instance Pick_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHPick bc) (DSHAssign (x_p, x_n) (y_p, NConst 0)) dfs σ m x_p y_p BP.
 Proof.
+  (*
   constructor; intros mx mb MX MB.
   destruct mem_op as [md |] eqn:MD, evalDSHOperator as [fma |] eqn:FMA; try constructor.
   2,3: exfalso.
@@ -2319,7 +2319,8 @@ Proof.
     enough (Some c = None) by some_none.
     rewrite <-Heqo2, <-Heqo3.
     apply MX.
-Admitted.
+  *)
+Abort.
 
 Global Instance BinOp_MSH_DSH_compat
        {o: nat}
@@ -2338,6 +2339,7 @@ Global Instance BinOp_MSH_DSH_compat
   :
     @MSH_DSH_compat _ _ (MSHBinOp f) (DSHBinOp o x_p y_p df) dfs σ m x_p y_p BP.
 Proof.
+  (*
   split.
   intros mx mb MX MB.
   simpl.
@@ -2514,8 +2516,8 @@ Proof.
           lia.
     +
       constructor.
-Admitted.
-*)
+  *)
+Abort.
 
 (* Simple wrapper. *)
 Definition memory_alloc_empty m i :=
@@ -2569,7 +2571,7 @@ Proof.
     inversion EE.
   -
     inversion EE.
-   *)
+  *)
 Admitted.
 
 Lemma blocks_equiv_at_Pexp_add_mem
@@ -2608,7 +2610,7 @@ Proof.
     inversion EE.
   -
     inversion EE.
-   *)
+  *)
 Admitted.
 
 Instance Compose_DSH_pure
