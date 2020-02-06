@@ -593,52 +593,6 @@ Proof.
     all: rewrite H3, H4; reflexivity.
 Qed.
  
-Lemma evalNExpr_context_equiv_at_exact_TypeSig
-      (σ0 σ1 : evalContext)
-      (n : NExpr)
-      {ts : TypeSig}
-      `{TS : TypeSigNExpr n = Some ts}
-      (E : context_equiv_at_TypeSig ts σ0 σ1) :
-  evalNexp σ0 n = evalNexp σ1 n.
-Proof.
-  eapply evalNExpr_context_equiv_at_TypeSig; [| eassumption].
-  exists ts.
-  split; try assumption.
-  apply TypeSigIncluded_reflexive.
-Qed.
-
-Lemma evalMExpr_context_equiv_at_exact_TypeSig
-      (m : MExpr)
-      {σ0 σ1 : evalContext}
-      (mem : memory)
-      `{TS : TypeSigMExpr m = Some ts}
-      (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalMexp mem σ0 m = evalMexp mem σ1 m.
-Proof.
-  eapply evalMExpr_context_equiv_at_TypeSig; [| eassumption].
-  exists ts.
-  split; try assumption.
-  apply TypeSigIncluded_reflexive.
-Qed.
-
-Lemma evalAExpr_context_equiv_at_exact_TypeSig
-      {mem : memory}
-      {σ0 σ1 : evalContext}
-      {EC0 : EnvMemoryConsistent σ0 mem}
-      {EC1 : EnvMemoryConsistent σ1 mem}
-      (a : AExpr)
-      `{TS : TypeSigAExpr a = Some ts}
-      (E : context_equiv_at_TypeSig ts σ0 σ1):
-  evalAexp mem σ0 a = evalAexp mem σ1 a.
-Proof.
-  eapply evalAExpr_context_equiv_at_TypeSig; [| eassumption].
-  exists ts.
-  split; try assumption.
-  apply TypeSigIncluded_reflexive.
-  Unshelve.
-  all: assumption.
-Qed.
-
 (* Shows relations of cells before ([b]) and after ([a]) evaluating
    DSHCOL operator and a result of evaluating [mem_op] as [d] *)
 Inductive MemOpDelta (b a d: option CarrierA) : Prop :=
@@ -1762,8 +1716,11 @@ Proof.
         rename a1 into a, b1 into b.
         unfold evalIBinCType in *.
 
-        eapply evalAExpr_context_equiv_at_exact_TypeSig with (ts:=dfs).
-        assumption.
+        eapply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
+        unfold AExprTypeSigIncludes.
+        eexists. split.
+        eassumption.
+        apply TypeSigIncluded_reflexive.
 
         apply context_equiv_at_TypeSig_0.
         destruct dft as [dfs' [D0 D1]].
