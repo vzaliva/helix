@@ -74,6 +74,20 @@ Record FSHCOLProgram :=
       op: DSHOperator;
     }.
 
+Definition initOneFSHGlobal (gt:FSHValType) mem data
+  :=
+    match gt with
+    | FSHnatValType => raise "Unsupported global type: nat"
+    | FSHFloatValType =>
+      let '(x, data) := rotate Float64Zero data in
+      ret (mem, data, DSHCTypeVal x)
+    | FSHvecValType n =>
+      let (data,mb) := constMemBlock n data in
+      let k := memory_next_key mem in
+      let mem := memory_set mem k mb in
+      let p := DSHPtrVal k n in
+      ret (mem, data, p)
+    end.
 
 Fixpoint initFSHGlobals
          (data: list binary64)
@@ -83,23 +97,11 @@ Fixpoint initFSHGlobals
 :=
   match globals with
   | [] => ret (mem, data, [])
-  | (_,gt)::gs => match gt with
-                | FSHnatValType => raise "Unsupported global type: nat"
-                | FSHFloatValType =>
-                  '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-                  let '(x, data) := rotate Float64Zero data in
-                  ret (mem, data, (DSHCTypeVal x)::σ)
-                | FSHvecValType n =>
-                  '(mem,data,σ) <- initFSHGlobals data mem gs ;;
-                  let (data,mb) := constMemBlock n data in
-                  let k := memory_next_key mem in
-                  let mem := memory_set mem k mb in
-                  let p := DSHPtrVal k n in
-                  ret (mem, data, (p::σ))
-                end
+  | (_,gt)::gs =>
+    '(mem,data,σ) <- initFSHGlobals data mem gs ;;
+    '(mem,data,σ0) <- initOneFSHGlobal gt mem data ;;
+    ret (mem,data,σ0::σ)
   end.
-
-
 
 Definition helix_empty_memory := memory_empty.
 
