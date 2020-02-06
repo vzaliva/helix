@@ -1175,7 +1175,7 @@ Definition global_XY (i o:nat) (data:list binary64) x xtyp y ytyp:
            g_section      := None;
            g_align        := None;
          |}
-     ; TLE_Comment " X placeholder"
+     ; TLE_Comment " Y placeholder"
      ; TLE_Global
          {|
            g_ident        := y;
