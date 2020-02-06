@@ -193,3 +193,112 @@ Definition nat_eq_or_err (msg:string) (a b:nat) : err unit :=
   if PeanoNat.Nat.eq_dec a b
   then ret tt
   else raise (msg ++ " " ++ string_of_nat a ++ "!=" ++ string_of_nat b)%string.
+
+Lemma is_OK_neq_inl {A : Type} {E : Equiv A} (a : err A) :
+  is_OK a -> forall s, a ≠ inl s.
+Proof.
+  intros.
+  destruct a.
+  inversion H.
+  intros C; inversion C.
+Qed.
+
+Section err_p.
+
+  Variables (A : Type) (P : A -> Prop).
+
+  (* lifting Predicate to option. None is not allowed *)
+  Inductive err_p : (err A) -> Prop :=
+  | err_p_intro : forall x, P x -> err_p (inr x).
+
+  (* lifting Predicate to option. None is allowed *)
+  Inductive err_p_n : (err A) -> Prop :=
+  | err_p_inl_intro: forall x, err_p_n (inl x)
+  | err_p_inr_intro : forall x, P x -> err_p_n (inr x).
+
+  Global Instance err_p_proper
+         `{Ae: Equiv A}
+         {Pp: Proper ((=) ==> (iff)) P}
+    :
+      Proper ((=) ==> (iff)) err_p.
+  Proof.
+    intros a b E.
+    split; intro.
+    -
+      destruct a,b; try inl_inr; inversion H.
+      inl_inr_inv.
+      subst.
+      constructor.
+      rewrite <-E.
+      assumption.
+    -
+      destruct a,b; try inl_inr; inversion H.
+      inl_inr_inv.
+      subst.
+      constructor.
+      rewrite E.
+      assumption.
+  Qed.
+
+End err_p.
+Arguments err_p {A} P.
+Arguments err_p_n {A} P.
+
+Section herr.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Complete on [inl]. *)
+  Inductive herr_c : (err A) -> (err B) -> Prop :=
+  | herr_c_inl : forall e1 e2, herr_c (inl e1) (inl e2)
+  | herr_c_inr : forall a b, R a b -> herr_c (inr a) (inr b).
+
+  (** Empty on [inl]. *)
+  Inductive herr : (err A) -> (err B) -> Prop :=
+  | herr_inr : forall a b, R a b -> herr (inr a) (inr b).
+
+  (** implication-like. *)
+  Inductive herr_i : (err A) -> (err B) -> Prop :=
+  | herr_i_inl_inl : forall e1 e2, herr_i (inl e1) (inl e2)
+  | herr_i_inl_inr : forall e a, herr_i (inl e) (inr a)
+  | herr_i_inr_inr : forall a b, R a b -> herr_i (inr a) (inr b).
+
+  Inductive herr_f : (err A) -> (err B) -> Prop :=
+  | herr_f_inl_l : forall e x, herr_f (inl e) x
+  | herr_f_inl_r : forall e x, herr_f x (inl e)
+  | herr_f_inr : forall a b, R a b -> herr_f (inr a) (inr b).
+
+End herr.
+Arguments herr {A B} R.
+Arguments herr_c {A B} R.
+Arguments herr_i {A B} R.
+
+Section h_opt_err.
+
+  Variables (A B : Type) (R: A -> B -> Prop).
+
+  (** Complete on [inl]. *)
+  Inductive h_opt_err_c : (option A) -> (err B) -> Prop :=
+  | h_opt_err_c_None : forall e, h_opt_err_c None (inl e)
+  | h_opt_err_c_Some : forall a b, R a b -> h_opt_err_c (Some a) (inr b).
+
+  Inductive h_opt_opterr_c : (option A) -> option (err B) -> Prop :=
+  | h_opt_opterr_c_None1 : h_opt_opterr_c None None
+  | h_opt_opterr_c_None2 : forall e, h_opt_opterr_c None (Some (inl e))
+  | h_opt_opterr_c_Some : forall a b, R a b -> h_opt_opterr_c (Some a) (Some (inr b)).
+
+  (** Empty on [inl]. *)
+  Inductive h_opt_err : (option A) -> (err B) -> Prop :=
+  | h_opt_err_Some : forall a b, R a b -> h_opt_err (Some a) (inr b).
+
+  (** implication-like. *)
+  Inductive h_opt_err_i : (option A) -> (err B) -> Prop :=
+  | herr_i_None_inl : forall e, h_opt_err_i None (inl e)
+  | herr_i_None_inr : forall a, h_opt_err_i None (inr a)
+  | herr_i_Some_inr : forall a b, R a b -> h_opt_err_i (Some a) (inr b).
+
+End h_opt_err.
+Arguments h_opt_err {A B} R.
+Arguments h_opt_err_c {A B} R.
+Arguments h_opt_opterr_c {A B} R.
+Arguments h_opt_err_i {A B} R.

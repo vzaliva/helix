@@ -714,16 +714,6 @@ Proof.
   reflexivity.
 Qed.
 
-(* TODO: move *)
-Lemma is_OK_neq_inl {A : Type} {E : Equiv A} (a : err A) :
-  is_OK a -> forall s, a ≠ inl s.
-Proof.
-  intros.
-  destruct a.
-  inversion H.
-  intros C; inversion C.
-Qed.
-
 Lemma evalAExpr_context_equiv_at_TypeSig
       {mem : memory}
       {σ0 σ1 : evalContext}
@@ -969,183 +959,6 @@ Definition SHCOL_DSHCOL_mem_block_equiv (mb ma md: mem_block) : Prop :=
 
 Require Import CoLoR.Util.Relation.RelUtil.
 
-(*
-TODO: move
- *)
-Section opt_p.
-
-  Variables (A : Type) (P : A -> Prop).
-
-  (* lifting Predicate to option. error is not allowed *)
-  Inductive opt_p : (option A) -> Prop :=
-  | opt_p_intro : forall x, P x -> opt_p (Some x).
-
-  (* lifting Predicate to option. errors is allowed *)
-  Inductive opt_p_n : (option A) -> Prop :=
-  | opt_p_None_intro: opt_p_n None
-  | opt_p_Some_intro : forall x, P x -> opt_p_n (Some x).
-
-  Global Instance opt_p_proper
-         `{Ae: Equiv A}
-         {Pp: Proper ((=) ==> (iff)) P}
-    :
-      Proper ((=) ==> (iff)) opt_p.
-  Proof.
-    intros a b E.
-    split.
-    -
-      intros H.
-      destruct a,b; try some_none.
-      inversion H.
-      subst x.
-      constructor.
-      some_inv.
-      rewrite <- E.
-      assumption.
-      inversion H.
-    -
-      intros H.
-      destruct a,b; try some_none.
-      inversion H.
-      subst x.
-      constructor.
-      some_inv.
-      rewrite E.
-      assumption.
-      inversion H.
-  Qed.
-
-End opt_p.
-Arguments opt_p {A} P.
-Arguments opt_p_n {A} P.
-
-Section err_p.
-
-  Variables (A : Type) (P : A -> Prop).
-
-  (* lifting Predicate to option. None is not allowed *)
-  Inductive err_p : (err A) -> Prop :=
-  | err_p_intro : forall x, P x -> err_p (inr x).
-
-  (* lifting Predicate to option. None is allowed *)
-  Inductive err_p_n : (err A) -> Prop :=
-  | err_p_inl_intro: forall x, err_p_n (inl x)
-  | err_p_inr_intro : forall x, P x -> err_p_n (inr x).
-
-  Global Instance err_p_proper
-         `{Ae: Equiv A}
-         {Pp: Proper ((=) ==> (iff)) P}
-    :
-      Proper ((=) ==> (iff)) err_p.
-  Proof.
-    intros a b E.
-    split; intro.
-    -
-      destruct a,b; try inl_inr; inversion H.
-      inl_inr_inv.
-      subst.
-      constructor.
-      rewrite <-E.
-      assumption.
-    -
-      destruct a,b; try inl_inr; inversion H.
-      inl_inr_inv.
-      subst.
-      constructor.
-      rewrite E.
-      assumption.
-  Qed.
-
-End err_p.
-Arguments err_p {A} P.
-Arguments err_p_n {A} P.
-
-(* Extension to [option _] of a heterogenous relation on [A] [B]
-TODO: move
- *)
-Section hopt.
-
-  Variables (A B : Type) (R: A -> B -> Prop).
-
-  (** Reflexive on [None]. *)
-  Inductive hopt_r : (option A) -> (option B) -> Prop :=
-  | hopt_r_None : hopt_r None None
-  | hopt_r_Some : forall a b, R a b -> hopt_r (Some a) (Some b).
-
-  (** Non-Reflexive on [None]. *)
-  Inductive hopt : (option A) -> (option B) -> Prop :=
-  | hopt_Some : forall a b, R a b -> hopt (Some a) (Some b).
-
-  (** implication-like. *)
-  Inductive hopt_i : (option A) -> (option B) -> Prop :=
-  | hopt_i_None_None : hopt_i None None
-  | hopt_i_None_Some : forall a, hopt_i None (Some a)
-  | hopt_i_Some : forall a b, R a b -> hopt_i (Some a) (Some b).
-
-End hopt.
-Arguments hopt {A B} R.
-Arguments hopt_r {A B} R.
-Arguments hopt_i {A B} R.
-
-Section herr.
-
-  Variables (A B : Type) (R: A -> B -> Prop).
-
-  (** Complete on [inl]. *)
-  Inductive herr_c : (err A) -> (err B) -> Prop :=
-  | herr_c_inl : forall e1 e2, herr_c (inl e1) (inl e2)
-  | herr_c_inr : forall a b, R a b -> herr_c (inr a) (inr b).
-
-  (** Empty on [inl]. *)
-  Inductive herr : (err A) -> (err B) -> Prop :=
-  | herr_inr : forall a b, R a b -> herr (inr a) (inr b).
-
-  (** implication-like. *)
-  Inductive herr_i : (err A) -> (err B) -> Prop :=
-  | herr_i_inl_inl : forall e1 e2, herr_i (inl e1) (inl e2)
-  | herr_i_inl_inr : forall e a, herr_i (inl e) (inr a)
-  | herr_i_inr_inr : forall a b, R a b -> herr_i (inr a) (inr b).
-
-  Inductive herr_f : (err A) -> (err B) -> Prop :=
-  | herr_f_inl_l : forall e x, herr_f (inl e) x
-  | herr_f_inl_r : forall e x, herr_f x (inl e)
-  | herr_f_inr : forall a b, R a b -> herr_f (inr a) (inr b).
-
-End herr.
-Arguments herr {A B} R.
-Arguments herr_c {A B} R.
-Arguments herr_i {A B} R.
-
-Section h_opt_err.
-
-  Variables (A B : Type) (R: A -> B -> Prop).
-
-  (** Complete on [inl]. *)
-  Inductive h_opt_err_c : (option A) -> (err B) -> Prop :=
-  | h_opt_err_c_None : forall e, h_opt_err_c None (inl e)
-  | h_opt_err_c_Some : forall a b, R a b -> h_opt_err_c (Some a) (inr b).
-
-  Inductive h_opt_opterr_c : (option A) -> option (err B) -> Prop :=
-  | h_opt_opterr_c_None1 : h_opt_opterr_c None None
-  | h_opt_opterr_c_None2 : forall e, h_opt_opterr_c None (Some (inl e))
-  | h_opt_opterr_c_Some : forall a b, R a b -> h_opt_opterr_c (Some a) (Some (inr b)).
-
-  (** Empty on [inl]. *)
-  Inductive h_opt_err : (option A) -> (err B) -> Prop :=
-  | h_opt_err_Some : forall a b, R a b -> h_opt_err (Some a) (inr b).
-
-  (** implication-like. *)
-  Inductive h_opt_err_i : (option A) -> (err B) -> Prop :=
-  | herr_i_None_inl : forall e, h_opt_err_i None (inl e)
-  | herr_i_None_inr : forall a, h_opt_err_i None (inr a)
-  | herr_i_Some_inr : forall a b, R a b -> h_opt_err_i (Some a) (inr b).
-
-End h_opt_err.
-Arguments h_opt_err {A B} R.
-Arguments h_opt_err_c {A B} R.
-Arguments h_opt_opterr_c {A B} R.
-Arguments h_opt_err_i {A B} R.
-
 Definition lookup_Pexp (σ:evalContext) (m:memory) (p:PExpr) :=
   a <- evalPexp σ p ;;
     memory_lookup_err "block_id not found" m a.
@@ -1209,7 +1022,6 @@ Definition blocks_equiv_at_Pexp (σ0 σ1:evalContext) (p:PExpr): rel (memory)
   := fun m0 m1 =>
        herr (fun a b => (opt equiv (memory_lookup m0 a) (memory_lookup m1 b)))
            (evalPexp σ0 p) (evalPexp σ1 p).
-
 
 (* TODO: move *)
 (* Two memory locations equivalent on all addresses except one *)
