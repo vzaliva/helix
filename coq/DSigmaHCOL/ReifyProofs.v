@@ -162,6 +162,16 @@ Section memory_aux.
     apply Heqo0.
   Qed.
 
+  Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : mem_block_id) :
+    forall mb, memory_lookup_err s m mbi ≡ inr mb → is_Some (memory_lookup m mbi).
+  Proof.
+    intros.
+    unfold memory_lookup_err, trywith in H.
+    break_match.
+    reflexivity.
+    inversion H.
+  Qed.
+
 End memory_aux.
 
 (* Type signatures of expressions as binary or unary functions with
@@ -1471,348 +1481,338 @@ Section DSHBinOp.
       omega.
   Qed.
 
-End DSHBinOp.
-
-Lemma evalDSHBinOp_is_Err
-      (mem : memory)
-      (off n: nat)
-      (nz: n≢0)
-      (df : AExpr)
-      `{dft : DSHIBinCarrierA df}
-      (σ : evalContext)
-      (mx mb : mem_block):
-  (exists k (kc:k<n),
-      is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
-  ->
-  is_Err (evalDSHBinOp mem n off df σ mx mb).
-Proof.
-  revert mb.
-  induction n; intros mb DX.
-  +
-    crush.
-  +
-    destruct DX as [k [kc DX]].
-    destruct (Nat.eq_dec k n).
-    *
-      clear IHn.
-      subst k.
-      simpl.
-      repeat break_match; try constructor.
+  Lemma evalDSHBinOp_is_Err
+        (mem : memory)
+        (off n: nat)
+        (nz: n≢0)
+        (df : AExpr)
+        `{dft : DSHIBinCarrierA df}
+        (σ : evalContext)
+        (mx mb : mem_block):
+    (exists k (kc:k<n),
+        is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx))
+    ->
+    is_Err (evalDSHBinOp mem n off df σ mx mb).
+  Proof.
+    revert mb.
+    induction n; intros mb DX.
+    +
       crush.
-      all: unfold is_None in H.
-      all: break_match; inversion H.
-      all: unfold mem_lookup_err in Heqe, Heqe0.
-      all: try rewrite Heqo in Heqe; try rewrite Heqo in Heqe0.
-      all: cbn in *; inl_inr.
-    *
-      simpl.
-      repeat break_match; try constructor.
-      apply IHn.
-      lia.
-      exists k.
-      assert(k < n) as kc1 by lia.
-      exists kc1.
-      apply DX.
-Qed.
-
-(* This is an inverse of [evalDSHBinOp_is_Err] but it takes
-   additional assumption [typecheck_env].
-
-   Basically, it states that in valid environment, the only reason for
-   [evalDSHBinOp] to fail is missing data in memory.
- *)
-Lemma evalDSHBinOp_is_Err_inv
-      (mem : memory)
-      (off n: nat)
-      (df : AExpr)
-      `{dft : DSHIBinCarrierA df}
-      (σ : evalContext)
-      {EC : EnvMemoryConsistent σ mem}
-      {dfs:TypeSig}
-      (TS : TypeSigAExpr df = Some dfs)
-      (TC: typecheck_env 3 dfs σ)
-      (mx mb : mem_block):
-  is_Err (evalDSHBinOp mem n off df σ mx mb) ->
-  (exists k (kc:k<n),
-      is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
-Proof.
-  revert mb.
-  induction n.
-  -
-    crush.
-    inversion H.
-  -
-    intros mb N.
-    simpl in *.
-    repeat break_match_hyp; try some_none.
     +
-      unfold mem_lookup_err, trywith in Heqe.
-      break_match; inversion Heqe.
-      exists n.
-      eexists. lia.
-      left; rewrite Heqo; reflexivity.
-    +
-      unfold mem_lookup_err, trywith in Heqe0.
-      break_match; inversion Heqe0.
-      exists n.
-      eexists. lia.
-      right; rewrite Heqo; reflexivity.
-    +
-      clear N.
-      err_eq_to_equiv_hyp.
-      contradict Heqe1.
-      apply is_OK_neq_inl.
-      unfold evalIBinCType.
-      assert (AExprTypeSigIncludes df dfs)
-        by (unfold AExprTypeSigIncludes;
-            eexists; split; [eassumption | apply TypeSigIncluded_reflexive]).
-      eapply evalAExpr_is_OK.
-      Unshelve.
-      2: {repeat constructor. assumption. }
-      destruct dft as [dfs' [TS' TI]].
-      assert(dfs' = dfs) as DE.
-      {
-        rewrite TS in TS'.
-        some_inv.
-        symmetry.
-        apply TS'.
-      }
-      rewrite DE in TI.
-      clear dfs' DE TS'.
-
-      apply typecheck_env_S.
-      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
-      cbn; unfold TP.uncurry; simpl.
-      apply TM.add_1; reflexivity.
-
-      apply typecheck_env_S.
-      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
-      cbn; unfold TP.uncurry; simpl.
-      repeat (apply TM.add_2; [lia|]).
-      apply TM.add_1; reflexivity.
-
-      apply typecheck_env_S.
-      apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
-      cbn; unfold TP.uncurry; simpl.
-      repeat (apply TM.add_2; [lia|]).
-      apply TM.add_1; reflexivity.
-
-      apply TC.
-    +
-      specialize (IHn _ N).
-
-      destruct IHn as [k [kc IHn]].
-      exists k.
-      assert(k<S n) as kc1 by lia.
-      exists kc1.
-      apply IHn.
-Qed.
-
-Lemma evalDSHBinOp_context_equiv
-      (mem : memory)
-      (n off : nat)
-      (df : AExpr)
-      `{dft : DSHIBinCarrierA df}
-      {dfs: TypeSig}
-      (σ0 σ1 : evalContext)
-      {EC0 : EnvMemoryConsistent σ0 mem}
-      {EC1 : EnvMemoryConsistent σ1 mem}
-      (m0 m1: mem_block):
-  TypeSigAExpr df = Some dfs ->
-  context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
-  evalDSHBinOp mem n off df σ0 m0 m1 = evalDSHBinOp mem n off df σ1 m0 m1.
-Proof.
-  intros H E.
-  unfold equiv, option_Equiv.
-  destruct_err_equiv.
-  -
-    destruct n.
-    +
-      simpl in Ha.
-      inl_inr.
-    +
-      apply eq_inl_is_Err in Ha.
-      eapply evalDSHBinOp_is_Err_inv in Ha; eauto.
-      2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
-          eapply E.
-      }
-      apply eq_inr_is_OK in Hb.
-
-      apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ1) (mb:=m1) in Ha.
-      clear - Ha Hb.
-      inversion Ha; inversion Hb.
-      rewrite <-H0 in H1.
-      inl_inr.
-      all: auto.
-  -
-    destruct n.
-    +
-      simpl in Hb.
-      inl_inr.
-    +
-      apply eq_inl_is_Err in Hb.
-      eapply evalDSHBinOp_is_Err_inv in Hb; eauto.
-      2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
-          eapply E.
-      }
-      apply eq_inr_is_OK in Ha.
-
-      apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ0) (mb:=m1) in Hb.
-      clear - Ha Hb.
-      inversion Ha; inversion Hb.
-      rewrite <-H0 in H1.
-      inl_inr.
-      all: auto.
-  -
-    destruct n.
-    +
-      simpl in *.
-      repeat inl_inr_inv.
-      subst.
-      reflexivity.
-    +
-      rename m0 into x, m1 into y.
-      rename m into m0, m2 into m1.
-      intros k.
-
-      apply err_equiv_eq in Ha.
-      apply err_equiv_eq in Hb.
-      destruct (Nat.lt_decidable k (S n)) as [kc|kc].
+      destruct DX as [k [kc DX]].
+      destruct (Nat.eq_dec k n).
       *
-        eapply evalDSHBinOp_equiv_inr_spec in Ha; eauto.
-        eapply evalDSHBinOp_equiv_inr_spec in Hb; eauto.
-
-        destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
-        destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
-
-        rewrite A0 in A1; clear A0.
-        rewrite B0 in B1; clear B0.
-        repeat some_inv.
-        rewrite A1, B1 in E0; clear A1 B1 a0 b0.
-        enough (evalIBinCType mem σ0 df k a1 b1 = evalIBinCType mem σ1 df k a1 b1)
-         by (rewrite C0, C1; rewrite E0, E1 in H0; inl_inr_inv; rewrite H0; reflexivity).
-        rename a1 into a, b1 into b.
-        unfold evalIBinCType in *.
-
-        eapply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
-        unfold AExprTypeSigIncludes.
-        eexists. split.
-        eassumption.
-        apply TypeSigIncluded_reflexive.
-
-        apply context_equiv_at_TypeSig_0.
-        destruct dft as [dfs' [D0 D1]].
-        assert(DE: dfs' = dfs).
-        {
-          apply Some_inj_equiv.
-          rewrite <- D0, <- H.
-          reflexivity.
-        }
-        rewrite DE in D1.
-        clear DE D0 dfs'.
-
-        replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ0) with
-            ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ0) by reflexivity.
-        replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ1) with
-            ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ1) by reflexivity.
-
-        apply context_equiv_at_TypeSig_split.
-        apply E.
-        reflexivity.
+        clear IHn.
+        subst k.
         simpl.
-        unfold DSHIBinCarrierA_TypeSig in D1.
-
-        clear -D1.
-        rename k into nv.
-        unfold context_equiv_at_TypeSig_head.
-        intros k t kc M.
-        apply TypeSigIncluded_at with (k:=k) (v:=t) in D1; eauto.
-        clear dfs M.
-
-        unfold contextEnsureType.
-        break_match; [|contradict Heqo; apply ListUtil.nth_in; auto].
-        destruct k.
-        --
-          simpl in *.
+        repeat break_match; try constructor.
+        crush.
+        all: unfold is_None in H.
+        all: break_match; inversion H.
+        all: unfold mem_lookup_err in Heqe, Heqe0.
+        all: try rewrite Heqo in Heqe; try rewrite Heqo in Heqe0.
+        all: cbn in *; inl_inr.
+      *
+        simpl.
+        repeat break_match; try constructor.
+        apply IHn.
+        lia.
+        exists k.
+        assert(k < n) as kc1 by lia.
+        exists kc1.
+        apply DX.
+  Qed.
+  
+  (* This is an inverse of [evalDSHBinOp_is_Err] but it takes
+     additional assumption [typecheck_env].
+  
+     Basically, it states that in valid environment, the only reason for
+     [evalDSHBinOp] to fail is missing data in memory.
+   *)
+  Lemma evalDSHBinOp_is_Err_inv
+        (mem : memory)
+        (off n: nat)
+        (df : AExpr)
+        `{dft : DSHIBinCarrierA df}
+        (σ : evalContext)
+        {EC : EnvMemoryConsistent σ mem}
+        {dfs:TypeSig}
+        (TS : TypeSigAExpr df = Some dfs)
+        (TC: typecheck_env 3 dfs σ)
+        (mx mb : mem_block):
+    is_Err (evalDSHBinOp mem n off df σ mx mb) ->
+    (exists k (kc:k<n),
+        is_None (mem_lookup k mx) \/ is_None (mem_lookup (k+off) mx)).
+  Proof.
+    revert mb.
+    induction n.
+    -
+      crush.
+      inversion H.
+    -
+      intros mb N.
+      simpl in *.
+      repeat break_match_hyp; try some_none.
+      +
+        unfold mem_lookup_err, trywith in Heqe.
+        break_match; inversion Heqe.
+        exists n.
+        eexists. lia.
+        left; rewrite Heqo; reflexivity.
+      +
+        unfold mem_lookup_err, trywith in Heqe0.
+        break_match; inversion Heqe0.
+        exists n.
+        eexists. lia.
+        right; rewrite Heqo; reflexivity.
+      +
+        clear N.
+        err_eq_to_equiv_hyp.
+        contradict Heqe1.
+        apply is_OK_neq_inl.
+        unfold evalIBinCType.
+        assert (AExprTypeSigIncludes df dfs)
+          by (unfold AExprTypeSigIncludes;
+              eexists; split; [eassumption | apply TypeSigIncluded_reflexive]).
+        eapply evalAExpr_is_OK.
+        Unshelve.
+        2: {repeat constructor. assumption. }
+        destruct dft as [dfs' [TS' TI]].
+        assert(dfs' = dfs) as DE.
+        {
+          rewrite TS in TS'.
           some_inv.
-          subst d. clear kc.
-          unfold TP.uncurry in *; simpl in *.
-          apply TP.F.add_mapsto_iff in D1.
-          destruct D1.
-          ++
-            destruct H.
-            subst t.
-            split; constructor.
-            constructor.
+          symmetry.
+          apply TS'.
+        }
+        rewrite DE in TI.
+        clear dfs' DE TS'.
+  
+        apply typecheck_env_S.
+        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        cbn; unfold TP.uncurry; simpl.
+        apply TM.add_1; reflexivity.
+  
+        apply typecheck_env_S.
+        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        cbn; unfold TP.uncurry; simpl.
+        repeat (apply TM.add_2; [lia|]).
+        apply TM.add_1; reflexivity.
+  
+        apply typecheck_env_S.
+        apply MaybeMapsTo_Included with (haystack:=DSHIBinCarrierA_TypeSig); eauto.
+        cbn; unfold TP.uncurry; simpl.
+        repeat (apply TM.add_2; [lia|]).
+        apply TM.add_1; reflexivity.
+  
+        apply TC.
+      +
+        specialize (IHn _ N).
+  
+        destruct IHn as [k [kc IHn]].
+        exists k.
+        assert(k<S n) as kc1 by lia.
+        exists kc1.
+        apply IHn.
+  Qed.
+  
+  Lemma evalDSHBinOp_context_equiv
+        (mem : memory)
+        (n off : nat)
+        (df : AExpr)
+        `{dft : DSHIBinCarrierA df}
+        {dfs: TypeSig}
+        (σ0 σ1 : evalContext)
+        {EC0 : EnvMemoryConsistent σ0 mem}
+        {EC1 : EnvMemoryConsistent σ1 mem}
+        (m0 m1: mem_block):
+    TypeSigAExpr df = Some dfs ->
+    context_equiv_at_TypeSig_off dfs 3 σ0 σ1 ->
+    evalDSHBinOp mem n off df σ0 m0 m1 = evalDSHBinOp mem n off df σ1 m0 m1.
+  Proof.
+    intros H E.
+    unfold equiv, option_Equiv.
+    destruct_err_equiv.
+    -
+      destruct n.
+      +
+        simpl in Ha.
+        inl_inr.
+      +
+        apply eq_inl_is_Err in Ha.
+        eapply evalDSHBinOp_is_Err_inv in Ha; eauto.
+        2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
+            eapply E.
+        }
+        apply eq_inr_is_OK in Hb.
+  
+        apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ1) (mb:=m1) in Ha.
+        clear - Ha Hb.
+        inversion Ha; inversion Hb.
+        rewrite <-H0 in H1.
+        inl_inr.
+        all: auto.
+    -
+      destruct n.
+      +
+        simpl in Hb.
+        inl_inr.
+      +
+        apply eq_inl_is_Err in Hb.
+        eapply evalDSHBinOp_is_Err_inv in Hb; eauto.
+        2:{ eapply context_equiv_at_TypeSig_off_both_typcheck in E.
+            eapply E.
+        }
+        apply eq_inr_is_OK in Ha.
+  
+        apply evalDSHBinOp_is_Err with (mem:=mem) (df:=df) (σ:=σ0) (mb:=m1) in Hb.
+        clear - Ha Hb.
+        inversion Ha; inversion Hb.
+        rewrite <-H0 in H1.
+        inl_inr.
+        all: auto.
+    -
+      destruct n.
+      +
+        simpl in *.
+        repeat inl_inr_inv.
+        subst.
+        reflexivity.
+      +
+        rename m0 into x, m1 into y.
+        rename m into m0, m2 into m1.
+        intros k.
+  
+        apply err_equiv_eq in Ha.
+        apply err_equiv_eq in Hb.
+        destruct (Nat.lt_decidable k (S n)) as [kc|kc].
+        *
+          eapply evalDSHBinOp_equiv_inr_spec in Ha; eauto.
+          eapply evalDSHBinOp_equiv_inr_spec in Hb; eauto.
+  
+          destruct Ha as [a0 [b0 [A0 [B0 [c0 [C0 E0]]]]]].
+          destruct Hb as [a1 [b1 [A1 [B1 [c1 [C1 E1]]]]]].
+  
+          rewrite A0 in A1; clear A0.
+          rewrite B0 in B1; clear B0.
+          repeat some_inv.
+          rewrite A1, B1 in E0; clear A1 B1 a0 b0.
+          enough (evalIBinCType mem σ0 df k a1 b1 = evalIBinCType mem σ1 df k a1 b1)
+           by (rewrite C0, C1; rewrite E0, E1 in H0; inl_inr_inv; rewrite H0; reflexivity).
+          rename a1 into a, b1 into b.
+          unfold evalIBinCType in *.
+  
+          eapply evalAExpr_context_equiv_at_TypeSig with (ts:=dfs).
+          unfold AExprTypeSigIncludes.
+          eexists. split.
+          eassumption.
+          apply TypeSigIncluded_reflexive.
+  
+          apply context_equiv_at_TypeSig_0.
+          destruct dft as [dfs' [D0 D1]].
+          assert(DE: dfs' = dfs).
+          {
+            apply Some_inj_equiv.
+            rewrite <- D0, <- H.
             reflexivity.
-          ++
-            destruct H.
-            congruence.
-        --
+          }
+          rewrite DE in D1.
+          clear DE D0 dfs'.
+  
+          replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ0) with
+              ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ0) by reflexivity.
+          replace (DSHCTypeVal b :: DSHCTypeVal a :: DSHnatVal k :: σ1) with
+              ([DSHCTypeVal b ; DSHCTypeVal a ; DSHnatVal k] ++ σ1) by reflexivity.
+  
+          apply context_equiv_at_TypeSig_split.
+          apply E.
+          reflexivity.
+          simpl.
+          unfold DSHIBinCarrierA_TypeSig in D1.
+  
+          clear -D1.
+          rename k into nv.
+          unfold context_equiv_at_TypeSig_head.
+          intros k t kc M.
+          apply TypeSigIncluded_at with (k:=k) (v:=t) in D1; eauto.
+          clear dfs M.
+  
+          unfold contextEnsureType.
+          break_match; [|contradict Heqo; apply ListUtil.nth_in; auto].
           destruct k.
-          simpl in *.
-          some_inv.
-          subst d. clear kc.
-          unfold TP.uncurry in *; simpl in *.
-          apply TP.F.add_neq_mapsto_iff in D1.
-          apply TP.F.add_mapsto_iff in D1.
-          destruct D1.
-          ++
-            destruct H.
-            subst t.
-            split; constructor.
-            constructor.
-            reflexivity.
-          ++
-            destruct H.
-            congruence.
-          ++
-            auto.
-          ++
-            destruct k.
+          --
             simpl in *.
             some_inv.
-
             subst d. clear kc.
             unfold TP.uncurry in *; simpl in *.
-            apply TP.F.add_neq_mapsto_iff in D1.
-            apply TP.F.add_neq_mapsto_iff in D1.
             apply TP.F.add_mapsto_iff in D1.
             destruct D1.
-            **
+            ++
               destruct H.
               subst t.
               split; constructor.
               constructor.
               reflexivity.
-            **
+            ++
               destruct H.
               congruence.
-            **
+          --
+            destruct k.
+            simpl in *.
+            some_inv.
+            subst d. clear kc.
+            unfold TP.uncurry in *; simpl in *.
+            apply TP.F.add_neq_mapsto_iff in D1.
+            apply TP.F.add_mapsto_iff in D1.
+            destruct D1.
+            ++
+              destruct H.
+              subst t.
+              split; constructor.
+              constructor.
+              reflexivity.
+            ++
+              destruct H.
+              congruence.
+            ++
               auto.
-            **
-              auto.
-            **
-              lia.
-      *
-        apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
-        apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
-        rewrite <- Ha, <- Hb.
-        reflexivity.
+            ++
+              destruct k.
+              simpl in *.
+              some_inv.
+  
+              subst d. clear kc.
+              unfold TP.uncurry in *; simpl in *.
+              apply TP.F.add_neq_mapsto_iff in D1.
+              apply TP.F.add_neq_mapsto_iff in D1.
+              apply TP.F.add_mapsto_iff in D1.
+              destruct D1.
+              **
+                destruct H.
+                subst t.
+                split; constructor.
+                constructor.
+                reflexivity.
+              **
+                destruct H.
+                congruence.
+              **
+                auto.
+              **
+                auto.
+              **
+                lia.
+        *
+          apply evalDSHBinOp_oob_preservation with (k0:=k) in Ha; try lia.
+          apply evalDSHBinOp_oob_preservation with (k0:=k) in Hb; try lia.
+          rewrite <- Ha, <- Hb.
+          reflexivity.
+  
+          Unshelve.
+          all: do 3 constructor; assumption.
+  Qed.
 
-        Unshelve.
-        all: do 3 constructor; assumption.
-Qed.
-
-Lemma memory_lookup_err_inr_is_Some {s : string} (m : memory) (mbi : mem_block_id) :
-  forall mb, memory_lookup_err s m mbi ≡ inr mb → is_Some (memory_lookup m mbi).
-Proof.
-  intros.
-  unfold memory_lookup_err, trywith in H.
-  break_match.
-  reflexivity.
-  inversion H.
-Qed.
+End DSHBinOp.
 
 Global Instance Assign_DSH_pure
        (x_n y_n : NExpr)
@@ -2017,7 +2017,7 @@ Proof.
    *)
 Abort.
 
-Lemma eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
+Fact eq_equiv_option_CarrierA (a1 a2 : option CarrierA) :
   a1 = a2 <-> a1 ≡ a2.
 Proof.
   split; intros.
