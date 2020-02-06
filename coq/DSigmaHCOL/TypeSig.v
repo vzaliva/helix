@@ -1475,3 +1475,117 @@ Proof.
   break_if; try reflexivity.
   clear - n; contradict n; reflexivity.
 Qed.
+
+Global Instance TypeSigCompat_Symmetric :
+  Symmetric TypeSigCompat.
+Proof.
+  unfold Symmetric.
+  intros.
+  unfold TypeSigCompat, findTypeSigConflicts in *.
+  rewrite find_Empty in *.
+  intro k; specialize (H k).
+  rewrite TP.F.map2_1bis in * by reflexivity.
+  repeat break_match; try congruence.
+  exfalso; clear - Heqb Heqb0.
+  unfold bool_decide in *.
+  repeat break_if; try congruence.
+  clear - e n.
+  cbv in e, n.
+  congruence.
+Qed.
+
+Lemma TypeSigUnion_error_sym (ts1 ts2 : TypeSig) :
+  TypeSigUnion_error ts1 ts2 = TypeSigUnion_error ts2 ts1.
+Proof.
+  unfold TypeSigUnion_error.
+  repeat break_if; try some_none.
+  -
+    clear - t t0; rename t into Compat12, t0 into Compat21; constructor.
+
+    assert (H12 : ∀ (k : TM.key) (e : DSHType),
+               TM.MapsTo k e ts1 → TM.In (elt:=DSHType) k ts2 → TM.MapsTo k e ts2)
+     by (eapply TypeSigCompat_at; eassumption).
+    assert (H21 : ∀ (k : TM.key) (e : DSHType),
+               TM.MapsTo k e ts2 → TM.In (elt:=DSHType) k ts1 → TM.MapsTo k e ts1)
+     by (eapply TypeSigCompat_at; eassumption).
+    clear Compat12 Compat21.
+    unfold TypeSig_Equiv, TypeSigUnion.
+    intros; specialize (H12 k); specialize (H21 k).
+    destruct TM.find eqn:F12 at 1; destruct TM.find eqn:F21 at 1.
+    all: try constructor.
+    2,3: exfalso.
+    +
+      cbv.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F12 as [F12 | [F12 F12']],
+               F21 as [F21 | [F21 F21']].
+      *
+        apply H12 in F21.
+        eapply TP.F.MapsTo_fun; eassumption.
+        eapply TypeSig.MapsTo_In; eassumption.
+      *
+        eapply TP.F.MapsTo_fun; eassumption.
+      *
+        eapply TP.F.MapsTo_fun; eassumption.
+      *
+        contradict F12'.
+        eapply TypeSig.MapsTo_In; eassumption.
+    +
+      rewrite <-TP.F.not_find_in_iff in F21.
+      contradict F21.
+      apply TP.update_in_iff.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F12 as [F12 | [F12 F12']].
+      left; eapply TypeSig.MapsTo_In; eassumption.
+      right; eapply TypeSig.MapsTo_In; eassumption.
+    +
+      rewrite <-TP.F.not_find_in_iff in F12.
+      contradict F12.
+      apply TP.update_in_iff.
+      rewrite <-TP.F.find_mapsto_iff, ->TP.update_mapsto_iff in *.
+      destruct F21 as [F21 | [F21 F21']].
+      left; eapply TypeSig.MapsTo_In; eassumption.
+      right; eapply TypeSig.MapsTo_In; eassumption.
+  -
+    clear - t n.
+    contradict n.
+    symmetry.
+    assumption.
+  -
+    clear - t n.
+    contradict n.
+    symmetry.
+    assumption.
+Qed.
+
+Lemma empty_TypeSigCompat (t : TypeSig) :
+  TypeSigCompat (TM.empty DSHType) t.
+Proof.
+  unfold TypeSigCompat, findTypeSigConflicts.
+  apply find_Empty; intro.
+  rewrite TP.F.map2_1bis by reflexivity.
+  reflexivity.
+Qed.
+
+Lemma TypeSig_update_empty (t : TypeSig) :
+  TP.update (TM.empty DSHType) t = t.
+Proof.
+    unfold equiv, TypeSig_Equiv; intros.
+    destruct TM.find eqn:H1 at 1, TM.find eqn:H2 at 1.
+    all: try rewrite <-TP.F.find_mapsto_iff in *.
+    all: try rewrite <-TP.F.not_find_in_iff in *.
+    1,2: apply TP.update_mapsto_iff in H1.
+    1,2: destruct H1 as [H1 | [C _]]; [| inversion C].
+    4: reflexivity.
+    +
+      pose proof TP.F.MapsTo_fun H1 H2.
+      subst; reflexivity.
+    +
+      apply TypeSig.MapsTo_In in H1.
+      congruence.
+    +
+      contradict H1.
+      apply TP.update_in_iff.
+      right.
+      eapply TypeSig.MapsTo_In; eassumption.
+Qed.
