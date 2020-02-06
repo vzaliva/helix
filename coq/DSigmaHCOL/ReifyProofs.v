@@ -243,17 +243,22 @@ Qed.
   function types =A -> A -> A= in MSCHOL and =A -> A -> option A= in
   DSCHOL. This "option" is to hold DSHCOL memory/environment errors.
  *)
-Lemma evalAExpr_is_OK'
+Lemma evalAExpr_is_OK
       {mem : memory}
-      {σ: evalContext}
+      {σ : evalContext}
       {EC : EnvMemoryConsistent σ mem}
-      {e: AExpr}
-      (ts: TypeSig)
-      (TS : TypeSigAExpr e = Some ts)
-      (TC : typecheck_env 0 ts σ):
-  is_OK (evalAexp mem σ e).
+      {a : AExpr}
+      `{TSI : AExprTypeSigIncludes a ts}
+      (TC : typecheck_env 0 ts σ) :
+  is_OK (evalAexp mem σ a).
 Proof.
-  dependent induction e; simpl in *.
+  inversion TSI; clear TSI.
+  rename x into ats; destruct H as [ATS TSI].
+  eapply typecheck_env_TypeSigIncluded in TC.
+  2: eassumption.
+  clear TSI ts; rename ATS into TS, ats into ts.
+
+  dependent induction a; simpl in *.
 
   {
     unfold TypeSig_safe_add in TS.
@@ -274,6 +279,7 @@ Proof.
       all: cbn in Heqe.
       all: inversion Heqe; subst.
       all: inversion H0.
+
     +
       solve_proper.
     +
@@ -310,7 +316,7 @@ Proof.
   }
   
   {
-    specialize (IHe ts TS TC).
+    specialize (IHa ts TS TC).
     break_match; inl_inr.
   }
   
@@ -322,27 +328,10 @@ Proof.
   all: eapply TypeSigUnion_error_typecheck_env in TC; eauto.
   all: destruct TC as [T1 T2].
   all: assert(T1T: Some t1 = Some t1) by reflexivity.
-  all: specialize (IHe1 t1 T1T T1).
+  all: specialize (IHa1 t1 T1T T1).
   all: assert(T2T: Some t2 = Some t2) by reflexivity.
-  all: specialize (IHe2 t2 T2T T2).
+  all: specialize (IHa2 t2 T2T T2).
   all: repeat break_match; inl_inr.
-Qed.
-
-Lemma evalAExpr_is_OK
-      {mem : memory}
-      {σ : evalContext}
-      {EC : EnvMemoryConsistent σ mem}
-      {a : AExpr}
-      `{TSI : AExprTypeSigIncludes a ts}
-      (TC : typecheck_env 0 ts σ) :
-  is_OK (evalAexp mem σ a).
-Proof.
-  inversion TSI; clear TSI.
-  rename x into ats; destruct H as [ATS TSI].
-  eapply typecheck_env_TypeSigIncluded in TC.
-  eapply evalAExpr_is_OK'.
-  all: eassumption.
-  Unshelve. assumption.
 Qed.
 
 Lemma evalNExpr_context_equiv_at_TypeSig
@@ -474,20 +463,20 @@ Proof.
     err_eq_to_equiv_hyp.
     contradict Ha.
     apply is_OK_neq_inl.
-    eapply evalAExpr_is_OK'.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
+    eapply evalAExpr_is_OK.
     Unshelve.
-    assumption.
+    eassumption.
+    eassumption.
+    unfold AExprTypeSigIncludes; eexists; split; eassumption.
   -
     err_eq_to_equiv_hyp.
     contradict Hb.
     apply is_OK_neq_inl.
-    eapply evalAExpr_is_OK'.
-    eassumption.
-    eapply typecheck_env_TypeSigIncluded; eassumption.
+    eapply evalAExpr_is_OK.
     Unshelve.
-    assumption.
+    eassumption.
+    eassumption.
+    unfold AExprTypeSigIncludes; eexists; split; eassumption.
   -
     dependent induction a; cbn in *.
     
@@ -1619,8 +1608,11 @@ Proof.
       contradict Heqe1.
       apply is_OK_neq_inl.
       unfold evalIBinCType.
-      eapply evalAExpr_is_OK'.
-      eauto.
+      assert (AExprTypeSigIncludes df dfs)
+        by (eapply AExprTypeSigIncludes_exact; eassumption).
+      eapply evalAExpr_is_OK.
+      Unshelve.
+      2: {repeat constructor. assumption. }
       destruct dft as [dfs' [TS' TI]].
       assert(dfs' = dfs) as DE.
       {
@@ -1652,14 +1644,12 @@ Proof.
       apply TC.
     +
       specialize (IHn _ N).
+
       destruct IHn as [k [kc IHn]].
       exists k.
       assert(k<S n) as kc1 by lia.
       exists kc1.
       apply IHn.
-
-      Unshelve.
-      do 3 constructor; assumption.
 Qed.
 
 Lemma evalDSHBinOp_context_equiv
