@@ -1473,39 +1473,6 @@ Section DSHBinOp.
 
 End DSHBinOp.
 
-Lemma AExprTypeSigIncludes_exact
-      (df : AExpr)
-      (dfs : TypeSig)
-      (TS : TypeSigAExpr df = Some dfs) :
-  AExprTypeSigIncludes df dfs.
-Proof.
-  exists dfs.
-  split; [assumption | apply TypeSigIncluded_reflexive].
-Qed.
-
-Lemma evalDSHBinOp_is_OK_inv'
-      {mem : memory}
-      {off n: nat}
-      {df : AExpr}
-      `{dft : DSHIBinCarrierA df}
-      {σ : evalContext}
-      {dfs: TypeSig}
-      (TS : TypeSigAExpr df = Some dfs)
-      (TC: typecheck_env 3 dfs σ)
-      {mx mb: mem_block}:
-  (∀ k (kc: k < n),
-      ∃ a b,
-        (mem_lookup k mx = Some a /\
-         mem_lookup (k+off) mx = Some b /\
-         is_OK (evalIBinCType mem σ df k a b)
-        )
-  ) -> (is_OK (evalDSHBinOp mem n off df σ mx mb)).
-Proof.
-  pose proof AExprTypeSigIncludes_exact df dfs TS; clear TS.
-  apply evalDSHBinOp_is_OK_inv.
-  assumption.
-Qed.
-
 Lemma evalDSHBinOp_is_Err
       (mem : memory)
       (off n: nat)
@@ -1597,7 +1564,8 @@ Proof.
       apply is_OK_neq_inl.
       unfold evalIBinCType.
       assert (AExprTypeSigIncludes df dfs)
-        by (eapply AExprTypeSigIncludes_exact; eassumption).
+        by (unfold AExprTypeSigIncludes;
+            eexists; split; [eassumption | apply TypeSigIncluded_reflexive]).
       eapply evalAExpr_is_OK.
       Unshelve.
       2: {repeat constructor. assumption. }
