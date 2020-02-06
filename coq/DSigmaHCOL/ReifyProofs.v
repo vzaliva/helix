@@ -16,7 +16,8 @@ Require Import Helix.DSigmaHCOL.DSigmaHCOLEval.
 Require Import Helix.DSigmaHCOL.TypeSig.
 Require Import Helix.DSigmaHCOL.DSHCOLOnCarrierA.
 
-(* When proving concrete functions we need to use some implementation defs from this packages *)
+(* When proving concrete functions we need to use
+   some implementation defs from this packages *)
 Require Import Helix.HCOL.HCOL.
 Require Import Helix.Util.VecUtil.
 Require Import Helix.Util.FinNat.
@@ -60,7 +61,7 @@ Definition DSHIUnCarrierA_TypeSig :=
 Definition DSHBinCarrierA_TypeSig :=
   TP.of_list [(0,DSHCType) ; (1,DSHCType)].
 
-(* Instances of this class ensure that given [AExpr]
+(* Instances of this class ensure that given [*Expr]
    could be propely typed, and it's type signaure includes
    given [TypeSig].
 
@@ -92,10 +93,14 @@ Inductive EnvMemoryConsistent: evalContext -> memory -> Prop :=
 | EmptyEnvConsistent: forall m, EnvMemoryConsistent [] m
 | DSHPtrValConsistent: forall σ m a n,
     mem_block_exists a m ->
-    EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHPtrVal a n :: σ) m
-(* the remaining case does not depend on memory and just recurse over environment *)
-| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHnatVal n :: σ) m
-| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m -> EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
+    EnvMemoryConsistent σ m ->
+    EnvMemoryConsistent (DSHPtrVal a n :: σ) m
+
+(* the remaining case does not depend on memory and just recurses over environment *)
+| DSHnatValConsistent : forall σ m n, EnvMemoryConsistent σ m ->
+                                 EnvMemoryConsistent (DSHnatVal n :: σ) m
+| DSHCTypeValConsistent: forall σ m a, EnvMemoryConsistent σ m ->
+                                  EnvMemoryConsistent (DSHCTypeVal a :: σ) m.
 
 Lemma EnvMemoryConsistent_inv (a : DSHVal) (σ : evalContext) (mem : memory) :
   EnvMemoryConsistent (a :: σ) mem -> EnvMemoryConsistent σ mem.
