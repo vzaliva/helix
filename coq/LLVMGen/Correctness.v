@@ -474,6 +474,29 @@ Proof.
   auto.
 Qed.
 
+Fact initFSHGlobals_globals_sigma_len_eq
+     {mem mem' data data' globals σ}:
+  initFSHGlobals data mem globals ≡ inr (mem', data', σ) ->
+  List.length globals ≡ List.length σ.
+Proof.
+  revert mem mem' data data' σ.
+  induction globals; intros.
+  -
+    cbn in *.
+    inv H.
+    reflexivity.
+  -
+    cbn in H.
+    break_let; subst.
+    break_match;[inl_inr|].
+    repeat break_let; subst.
+    break_match;[inl_inr|].
+    repeat break_let; subst.
+    inv H.
+    cbn.
+    erewrite IHglobals; eauto.
+Qed.
+
 (** [memory_invariant] relation must holds after initalization of global variables *)
 Lemma memory_invariant_after_init
       (p: FSHCOLProgram)
@@ -537,9 +560,8 @@ Proof.
         inv Heqe.
         repeat break_match_hyp; subst; try inl_inr.
   }
-  subst l.
+  subst l; cbn in *.
 
-  cbn.
   eexists.
   intros x v Hn.
   break_match.
@@ -547,7 +569,52 @@ Proof.
     (* [DSHnatVal] must end up in globals *)
     right.
     split; [trivial|].
-    admit.
+    (* but currently natval constants not implemented so we
+       shortcut this branch *)
+    exfalso.
+    clear - Hn HFSHG.
+    rename HFSHG into F.
+
+    apply ListUtil.nth_app in Hn.
+    destruct Hn as [[Hn Hx] | [Hn Hx]].
+    2:{
+      remember (x - Datatypes.length σ)%nat as k.
+      destruct k; inv Hn.
+      destruct k; inv H0.
+      rewrite Util.nth_error_nil in H1.
+      inv H1.
+    }
+    clear Hx.
+    revert F Hn.
+    revert fdata''' m0 fdata' σ x.
+    generalize helix_empty_memory as mem.
+    induction globals; intros.
+    +
+      cbn in F.
+      inv F.
+      rewrite Util.nth_error_nil in Hn.
+      inv Hn.
+    +
+      cbn in F.
+      destruct a; destruct f; cbn in F.
+      *
+        break_match_hyp.
+        inl_inr.
+        repeat break_let; subst. inl_inr.
+      *
+        break_match_hyp; [inl_inr|].
+        repeat break_let; subst.
+        destruct σ as [| σ0 σs]; inv F.
+        destruct x; [inv Hn|].
+        rewrite ListUtil.nth_error_Sn in Hn.
+        eapply IHglobals; eauto.
+      *
+        break_match_hyp; [inl_inr|].
+        repeat break_let; subst.
+        destruct σ as [| σ0 σs]; inv F.
+        destruct x; [inv Hn|].
+        rewrite ListUtil.nth_error_Sn in Hn.
+        eapply IHglobals; eauto.
   -
     (* [DSHCTypeVal] must end up in globals *)
     right.
