@@ -148,10 +148,15 @@ Lemma evalMExpr_is_OK
       `{EC : EnvMemoryConsistent σ mem}
       {m: MExpr}
       (tm: TypeSig)
-      (TS : TypeSigMExpr m = Some tm)
+      (TSI : MExprTypeSigIncludes m tm)
       (TC : typecheck_env 0 tm σ):
   is_OK (evalMexp mem σ m).
 Proof.
+  inversion TSI; clear TSI.
+  rename x into mts; destruct H as [MTS TSI].
+  eapply typecheck_env_TypeSigIncluded in TC.
+  2: eassumption.
+  clear TSI tm; rename MTS into TS, mts into ts.
   destruct m; cbn in *; [| constructor].
   destruct p; cbn in *.
   some_inv.
@@ -181,10 +186,15 @@ Lemma evalNExpr_is_OK
       {σ: evalContext}
       {n: NExpr}
       (tn: TypeSig)
-      (TS : TypeSigNExpr n = Some tn)
+      (TSI : NExprTypeSigIncludes n tn)
       (TC : typecheck_env 0 tn σ):
   is_OK (evalNexp σ n).
 Proof.
+  inversion TSI; clear TSI.
+  rename x into nts; destruct H as [NTS TSI].
+  eapply typecheck_env_TypeSigIncluded in TC.
+  2: eassumption.
+  clear TSI tn; rename NTS into TS, nts into ts.
   dependent induction n; simpl in *.
 
   (* base case 1 *)
@@ -302,15 +312,29 @@ Proof.
     eq_to_equiv_hyp.
     break_match.
     +
-      pose proof evalMExpr_is_OK (EC:=EC) tm Heqo TM.
-      rewrite Heqe in H.
-      inl_inr.
+      apply err_equiv_eq in Heqe.
+      contradict Heqe.
+      eapply is_OK_neq_inl.
+      eapply evalMExpr_is_OK.
+      unfold MExprTypeSigIncludes.
+      exists tm. split.
+      assumption.
+      eapply TypeSigIncluded_reflexive.
+      assumption.
     +
       break_match.
       *
-        pose proof evalNExpr_is_OK tn Heqo0 TN.
-        rewrite Heqe0 in H.
-        inl_inr.
+        apply err_equiv_eq in Heqe0.
+        contradict Heqe0.
+        eapply is_OK_neq_inl.
+        eapply evalNExpr_is_OK.
+        unfold MExprTypeSigIncludes.
+        exists tn. split.
+        assumption.
+        eapply TypeSigIncluded_reflexive.
+        assumption.
+        Unshelve.
+        assumption.
       *
         break_match; inl_inr.
   }
