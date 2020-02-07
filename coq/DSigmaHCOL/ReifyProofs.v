@@ -503,12 +503,16 @@ Proof.
   destruct_err_equiv.
   -
     eq_to_equiv_hyp.
-    (* eapply evalNExpr_is_OK in TC0. *)
-    admit.
+    eapply evalNExpr_is_OK in TC0.
+    erewrite Ha in TC0; inversion TC0.
+    unfold NExprTypeSigIncludes.
+    eauto.
   -
     eq_to_equiv_hyp.
-    (* eapply evalNExpr_is_OK in TC1. *)
-    admit.
+    eapply evalNExpr_is_OK in TC1.
+    erewrite Hb in TC1; inversion TC1.
+    unfold NExprTypeSigIncludes.
+    eauto.
   -
     cbv.
 
@@ -558,7 +562,7 @@ Proof.
     all: assert (n20 = n21)
       by (eapply IHn2; try apply I2; try eassumption; reflexivity).
     all: congruence.
-Admitted.
+Qed.
 
 Lemma evalMExpr_context_equiv_at_TypeSig
       (m : MExpr)
