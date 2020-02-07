@@ -1868,25 +1868,16 @@ Lemma blocks_equiv_at_Pexp_remove
   blocks_equiv_at_Pexp σ0 σ1 y_p m0'' m1''
   → blocks_equiv_at_Pexp σ0 σ1 y_p (memory_remove m0'' t0_i) (memory_remove m1'' t1_i).
 Proof.
-  (*
   intros EE.
   unfold blocks_equiv_at_Pexp in *.
-  destruct (evalPexp σ0 y_p), (evalPexp σ1 y_p).
-  -
-    constructor.
-    inversion_clear EE.
-    rewrite Some_neq in NY0.
-    rewrite Some_neq in NY1.
-    unfold memory_lookup, memory_remove in *.
-    rewrite 2!NP.F.remove_neq_o; auto.
-  -
-    inversion EE.
-  -
-    inversion EE.
-  -
-    inversion EE.
-  *)
-Admitted.
+  destruct (evalPexp σ0 y_p), (evalPexp σ1 y_p); try (inversion EE; fail).
+  constructor.
+  inversion_clear EE.
+  rewrite inr_neq in NY0.
+  rewrite inr_neq in NY1.
+  unfold memory_lookup, memory_remove in *.
+  rewrite 2!NP.F.remove_neq_o; auto.
+Qed.
 
 Lemma blocks_equiv_at_Pexp_add_mem
       (p : PExpr)

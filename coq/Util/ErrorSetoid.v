@@ -203,6 +203,12 @@ Proof.
   intros C; inversion C.
 Qed.
 
+Lemma inr_neq {A : Type} {a b : A} :
+  inr (A:=string) a ≢ inr b <-> a ≢ b.
+Proof.
+  split; congruence.
+Qed.
+
 Section err_p.
 
   Variables (A : Type) (P : A -> Prop).
