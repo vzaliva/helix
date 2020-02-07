@@ -1143,7 +1143,7 @@ Section DSHBinOp.
       rewrite mem_add_comm by auto.
       apply E.
   Qed.
-  
+ 
   Lemma evalDSHBinOp_nth
         {n off: nat}
         {df : AExpr}
@@ -1159,7 +1159,6 @@ Section DSHBinOp.
     (evalDSHBinOp mem n off df σ mx mb = inr ma) ->
     h_opt_err_c (=) (mem_lookup k ma) (evalIBinCType mem σ df k a b).
   Proof.
-    (*
     intros A B E.
     revert mb a b A B E.
     induction n; intros.
@@ -1167,27 +1166,35 @@ Section DSHBinOp.
       inversion kc.
     -
       simpl in *.
-      repeat break_match_hyp; try some_none.
+      repeat break_match_hyp; try some_none; try inl_inr.
       destruct (Nat.eq_dec k n).
       +
         clear IHn.
         subst k.
-        rewrite Heqo in A. clear Heqo.
-        rewrite Heqo0 in B. clear Heqo0.
-        repeat some_inv.
-  
-        opt_hyp_to_equiv.
-        rewrite B in Heqo1; clear B c0.
-        rewrite A in Heqo1; clear A c.
-        rewrite Heqo1. clear Heqo1.
-        clear - E dft.
-        unshelve eapply (evalDSHBinOp_preservation E).
-        lia.
+        unfold mem_lookup_err, trywith in *.
+        repeat break_match; try inl_inr.
+        repeat some_inv; repeat inl_inr_inv; subst.
+        eq_to_equiv_hyp.
+        err_eq_to_equiv_hyp.
+        rewrite A in *; clear A c.
+        rewrite B in *; clear B c0.
+
+        assert (mem_lookup n ma = Some c1).
+        {
+          eapply evalDSHBinOp_preservation.
+          eassumption.
+          Unshelve.
+          reflexivity.
+        }
+
+        clear - Heqe1 H.
+        rewrite Heqe1, H.
+        constructor.
+        reflexivity.
       +
         apply IHn with (mb:=mem_add n c1 mb); auto.
         lia.
-        *)
-  Admitted.
+  Qed.
   
   Lemma evalDSHBinOp_oob_preservation
         {n off: nat}

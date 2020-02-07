@@ -297,6 +297,38 @@ Section h_opt_err.
   | herr_i_None_inr : forall a, h_opt_err_i None (inr a)
   | herr_i_Some_inr : forall a b, R a b -> h_opt_err_i (Some a) (inr b).
 
+  Global Instance h_opt_err_c_proper
+         `{Ae : Equiv A}
+         `{Be : Equiv B}
+         {RP : Proper ((=) ==> (=) ==> (iff)) R}
+    :
+      Proper ((=) ==> (=) ==> (iff)) h_opt_err_c.
+  Proof.
+    split; intros.
+    -
+      destruct x, y, x0, y0.
+      all: try some_none.
+      all: try inl_inr.
+      all: try inversion H1.
+      all: constructor.
+      some_inv; inl_inr_inv; subst.
+      unfold Proper, respectful in RP.
+      specialize (RP a a0 H b b0 H0).
+      apply RP.
+      apply H4.
+    -
+      destruct x, y, x0, y0.
+      all: try some_none.
+      all: try inl_inr.
+      all: try inversion H1.
+      all: constructor.
+      some_inv; inl_inr_inv; subst.
+      unfold Proper, respectful in RP.
+      specialize (RP a a0 H b b0 H0).
+      apply RP.
+      apply H4.
+  Qed.
+
 End h_opt_err.
 Arguments h_opt_err {A B} R.
 Arguments h_opt_err_c {A B} R.
