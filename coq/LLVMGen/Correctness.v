@@ -535,11 +535,55 @@ Proof.
   - apply nth_error_None in Heqo; lia.
 Qed.
 
+Fact initIRGlobals_cons_exists d a l r:
+  initIRGlobals d (a :: l) ≡ inr r -> ∃ r', initIRGlobals d l ≡ inr r'.
+Proof.
+  intros H.
+  cbn in H.
+  cbn in H.
+  break_let; subst.
+  break_match_hyp ; [inl_inr|].
+  repeat break_let; subst.
+  break_if ; [inl_inr|].
+  break_match_hyp; inv H; eauto.
+Qed.
+
+Fact initIRGlobals_cons_head_uniq:
+  ∀ (a : string * FSHValType) (globals : list (string * FSHValType))
+    (data : list binary64) (res : list binary64 *
+                                  list (toplevel_entity typ (list (LLVMAst.block typ)))),
+    initIRGlobals data (a :: globals) ≡ inr res ->
+    forall (j : nat) (n : string) (v : FSHValType),
+      (nth_error globals j ≡ Some (n, v) → n ≡ fst a) → False.
+Proof.
+  intros a globals data res H j n v C.
+  destruct res as [data' globals'].
+Admitted.
+
 (* If [initIRGlobals] suceeds, the names of variables in [globals] were unique *)
 Lemma initIRGlobals_names_unique globals data res:
   initIRGlobals data globals ≡ inr res → list_uniq fst globals.
 Proof.
-Admitted.
+  revert res.
+  induction globals; intros.
+  -
+    cbn in H.
+    inv H.
+    apply list_uniq_nil.
+  -
+    apply list_uniq_cons.
+    split.
+    +
+      apply initIRGlobals_cons_exists in H.
+      destruct H.
+      eapply IHglobals, H.
+    +
+      (* [a] must not be present in [globals] *)
+      unfold not.
+      intros C.
+      destruct C as (j & [n v] & C); cbn in C.
+      eapply initIRGlobals_cons_head_uniq; eauto.
+Qed.
 
 (** [memory_invariant] relation must holds after initalization of global variables *)
 Lemma memory_invariant_after_init

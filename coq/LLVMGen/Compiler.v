@@ -1100,6 +1100,22 @@ Definition LLVMGen
                       ]
       ).
 
+
+Fixpoint TLE_Global_name_present (name:string) (l:list (toplevel_entity typ (list (block typ)))) : bool :=
+  match l with
+  | [] => false
+  | (t::ts) =>
+    orb (match t with
+         | TLE_Global g =>
+           match g.(g_ident) with
+           | Name s => string_beq s name
+           | _ => false
+           end
+         | _ => false
+         end)
+        (TLE_Global_name_present name ts)
+  end.
+
 Fixpoint initIRGlobals
          (data: list binary64)
          (x: list (string * FSHValType))
@@ -1109,45 +1125,48 @@ Fixpoint initIRGlobals
     | nil => ret (data,[])
     | cons (nm, t) xs =>
       '(data,gs) <- initIRGlobals data xs ;;
-      match t with
-      | FSHnatValType => raise "FSHnatValType global type not supported"
-      | FSHFloatValType =>
-        let '(x, data) := rotate Float64Zero data in
-        ret (data, TLE_Global {|
-                       g_ident        := Name nm;
-                       g_typ          := getIRType t ;
-                       g_constant     := true ;
-                       g_exp          := Some (EXP_Double x);
-                       g_linkage      := Some LINKAGE_Internal ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ;
-                       g_addrspace    := None ;
-                       g_externally_initialized := false ;
-                       g_section      := None ;
-                       g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
-                     |} :: gs)
-      | FSHvecValType n =>
-        let (data, arr) := constArray n data in
-        ret (data, TLE_Global {|
-                       g_ident        := Name nm;
-                       g_typ          := getIRType t ;
-                       g_constant     := true ;
-                       g_exp          := Some (EXP_Array arr);
-                       g_linkage      := Some LINKAGE_Internal ;
-                       g_visibility   := None ;
-                       g_dll_storage  := None ;
-                       g_thread_local := None ;
-                       g_unnamed_addr := true ;
-                       g_addrspace    := None ;
-                       g_externally_initialized := false ;
-                       g_section      := None ;
-                       g_align        := Some Utils.PtrAlignment ;
-                     |} :: gs)
-      end
+      if TLE_Global_name_present nm gs
+      then
+        inl ("duplicate global name: " ++ nm)%string
+      else
+        match t with
+        | FSHnatValType => raise "FSHnatValType global type not supported"
+        | FSHFloatValType =>
+          let '(x, data) := rotate Float64Zero data in
+          ret (data, TLE_Global {|
+                         g_ident        := Name nm;
+                         g_typ          := getIRType t ;
+                         g_constant     := true ;
+                         g_exp          := Some (EXP_Double x);
+                         g_linkage      := Some LINKAGE_Internal ;
+                         g_visibility   := None ;
+                         g_dll_storage  := None ;
+                         g_thread_local := None ;
+                         g_unnamed_addr := true ;
+                         g_addrspace    := None ;
+                         g_externally_initialized := false ;
+                         g_section      := None ;
+                         g_align        := None ; (* TODO: maybe need to alight to 64-bit boundary? *)
+                       |} :: gs)
+        | FSHvecValType n =>
+          let (data, arr) := constArray n data in
+          ret (data, TLE_Global {|
+                         g_ident        := Name nm;
+                         g_typ          := getIRType t ;
+                         g_constant     := true ;
+                         g_exp          := Some (EXP_Array arr);
+                         g_linkage      := Some LINKAGE_Internal ;
+                         g_visibility   := None ;
+                         g_dll_storage  := None ;
+                         g_thread_local := None ;
+                         g_unnamed_addr := true ;
+                         g_addrspace    := None ;
+                         g_externally_initialized := false ;
+                         g_section      := None ;
+                         g_align        := Some Utils.PtrAlignment ;
+                       |} :: gs)
+        end
     end.
-
 
 (*
    When code genration generates [main], the input

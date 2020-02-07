@@ -1,6 +1,8 @@
 Require Import Coq.Arith.Arith.
 Require Import Coq.Lists.List.
 
+Require Import ExtLib.Data.ListNth.
+
 Import ListNotations.
 
 Fixpoint fold_left_rev
@@ -50,3 +52,38 @@ Definition list_uniq {A B:Type} (p: A -> B) (l:list A): Prop
     List.nth_error l x = Some a ->
     List.nth_error l y = Some b ->
     (p a) = (p b) -> x=y.
+
+Lemma list_uniq_nil {A B:Type} (p: A -> B):
+  list_uniq p (@nil A).
+Proof.
+  unfold list_uniq.
+  intros x y a b H H0 H1.
+  rewrite nth_error_nil in H.
+  inversion H.
+Qed.
+
+Lemma list_uniq_cons {A B:Type} (p: A -> B) (a:A) (l:list A):
+  list_uniq p l /\
+  not (exists j x, nth_error l j = Some x -> p x = p a) ->
+  list_uniq p (a :: l).
+Proof.
+  intros [U E].
+  unfold list_uniq in *.
+  intros x y a0 b H H0 H1.
+  destruct x,y; cbn in *.
+  -
+    reflexivity.
+  -
+    inversion H; subst.
+    contradict E.
+    exists y, b.
+    auto.
+  -
+    inversion H0; subst.
+    contradict E.
+    exists x, a0.
+    auto.
+  -
+    apply eq_S.
+    eapply U; eauto.
+Qed.
